@@ -1,0 +1,140 @@
+# ============================================================================
+# IoTDB 定制 Helm values
+# 关联：部署清单 v0.1 §6.6 时序数据库 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/iotdb-values.yaml
+# 说明：ConfigNode 3 副本，DataNode 3+ 副本；顺序/乱序文件分离存储，
+#       批量写入 + flush 策略调优，时间范围索引 + 倒排索引。
+# ============================================================================
+
+# IoTDB 在 base 中未声明，独立顶层 key
+iotdb:
+  enabled: true
+  image: "sq-iotdb:2.0-0.1.0"
+  version: "2.0.1"
+  clusterName: "sq-iotdb"
+
+  # ---- 套餐分档 ----
+  tierProfiles:
+    base:      { dataNodeMemory: "4Gi",  dataNodeStorage: "200Gi", dataNodeReplicas: 3 }
+    standard:  { dataNodeMemory: "8Gi",  dataNodeStorage: "500Gi", dataNodeReplicas: 3 }
+    flagship:  { dataNodeMemory: "16Gi", dataNodeStorage: "1Ti",   dataNodeReplicas: 5 }
+
+  # ---- ConfigNode ----
+  configNode:
+    replicas: 3                # 奇数副本，元数据一致性
+    image: "sq-iotdb-confignode:2.0-0.1.0"
+    memory: "2Gi"
+    cpu: 1
+    resources:
+      requests: { cpu: "1", memory: "2Gi" }
+      limits:   { cpu: "2", memory: "3Gi" }
+    config:
+      rpcPort: 10710
+      mppPort: 10730
+      schemaRegionId: 0
+      dataRegionId: 0
+    persistence:
+      consensus: { size: "10Gi", storageClass: "fast-ssd" }
+      schema:    { size: "10Gi", storageClass: "fast-ssd" }
+    nodeSelector: { "sq.io/pool": "iotdb-config" }
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - { labelSelector: { matchLabels: { "app.kubernetes.io/name": "iotdb-confignode" } }, topologyKey: "kubernetes.io/hostname" }
+
+  # ---- DataNode ----
+  dataNode:
+    replicas: 3
+    image: "sq-iotdb-datanode:2.0-0.1.0"
+    memory: "8Gi"
+    cpu: 2
+    resources:
+      requests: { cpu: "2", memory: "8Gi" }
+      limits:   { cpu: "4", memory: "12Gi" }
+    config:
+      rpcPort: 6667
+      mppPort: 10730
+      dataRegionPort: 10740
+      schemaRegionPort: 10750
+      metricsPort: 9091
+    persistence:
+      # 顺序文件 / 乱序文件分离
+      sequence: { size: "300Gi", storageClass: "fast-nvme" }
+      unsequence: { size: "100Gi", storageClass: "fast-ssd" }
+      wal: { size: "20Gi", storageClass: "fast-nvme" }
+      system: { size: "10Gi", storageClass: "standard" }
+    nodeSelector: { "sq.io/pool": "iotdb-data" }
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - { labelSelector: { matchLabels: { "app.kubernetes.io/name": "iotdb-datanode" } }, topologyKey: "kubernetes.io/hostname" }
+
+  # ---- 写入调优 ----
+  write:
+    batch:
+      enabled: true
+      batchSize: 10000
+      maxConcurrentRequests: 200
+    flush:
+      strategy: "auto"
+      flushInterval: "60s"
+      flushThreshold: "100MB"
+      maxFlushThreads: 8
+    wal:
+      enabled: true
+      syncMode: "async"        # async | sync
+      flushInterval: "10s"
+
+  # ---- 查询调优 ----
+  query:
+    timeRangeIndex:
+      enabled: true
+      granularity: "1m"
+    invertedIndex:
+      enabled: true
+      bufferSize: "512MB"
+    cache:
+      enabled: true
+      metaDataCacheSize: "512MB"
+      chunkCacheSize: "1GB"
+    maxConcurrentQueries: 100
+    queryTimeout: "60s"
+
+  # ---- 监控 ----
+  monitoring:
+    metrics:
+      enabled: true
+      port: 9091
+      interval: "30s"
+    prometheus:
+      enabled: true
+      scrapeInterval: "30s"
+      serviceMonitor: true
+    grafana:
+      dashboardEnabled: true
+
+  # ---- 认证集成（P2-E4）----
+  # IoTDB 无原生 OIDC 集成，统一经 X4 APISIX 网关代理认证（IoTDB UI/管理接口）：
+  #   用户 → APISIX（Keycloak OIDC）→ IoTDB WebUI/REST API
+  # 数据面认证使用 IoTDB 内置用户 + ACL，与 Keycloak 用户通过 Secret 同步。
+  auth:
+    mode: "via-apisix-gateway"
+    keycloakRealm: "sq"
+    uiAuthVia: "apisix-keycloak-oidc"
+    dataPlane:
+      authType: "iotdb-builtin-acl"
+      # IoTDB 用户与 Keycloak 用户同步
+      userSync:
+        enabled: true
+        syncInterval: "5m"
+        userMapping: true
+      # 租户上下文通过 session property 传递
+      tenantContextProp: "tenant_id"
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是 IoTDB 在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  quota:
+    base:      { requests.cpu: "10", requests.memory: "30Gi",  requests.storage: "600Gi",  limits.cpu: "20",  limits.memory: "45Gi" }
+    standard:  { requests.cpu: "20", requests.memory: "60Gi",  requests.storage: "1.5Ti",  limits.cpu: "40",  limits.memory: "90Gi" }
+    flagship:  { requests.cpu: "40", requests.memory: "120Gi", requests.storage: "5Ti",    limits.cpu: "80",  limits.memory: "180Gi" }

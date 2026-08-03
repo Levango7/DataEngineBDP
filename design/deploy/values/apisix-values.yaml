@@ -1,0 +1,291 @@
+# ============================================================================
+# APISIX API 网关定制 Helm values（P1-D6 新增）
+# 关联：部署清单 v0.1 §7 X4 API网关 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/apisix-values.yaml
+# 说明：APISIX 3.x Ingress Controller 模式部署，作为全局 API 网关，
+#       承担认证/限流/熔断/审计/路由职责；与 Keycloak OIDC 集成做统一身份认证。
+# 职责边界澄清（对应评审 L5）：
+#   - X4 APISIX：全局 API 网关，负责所有 HTTP API 的认证/限流/路由/审计
+#   - L2.7 sql-gateway：SQL 联邦查询网关，负责多引擎 SQL 路由/下推
+#   两者非同一组件；APISIX 在前做认证/限流，sql-gateway 在后做 SQL 路由。
+# 与 L5.5 开放API/服务目录对接：路由自动生成（apisix-ingress-controller 监听 CRD）
+# ============================================================================
+
+# APISIX 在 base 中未声明，独立顶层 key
+apisix:
+  enabled: true
+
+  # ============================================================================
+  # 1. 镜像配置
+  # ============================================================================
+  image:
+    apisix: "apache/apisix:3.9.1"
+    ingressController: "apache/apisix-ingress-controller:1.7.0"
+    etcd: "bitnami/etcd:3.5.12"
+    dashboard: "apache/apisix-dashboard:3.0.1"
+
+  # 版本声明
+  version: "3.9.1"
+
+  # ============================================================================
+  # 2. 部署配置
+  # ============================================================================
+  deployment:
+    # APISIX 网关实例（数据面）
+    gateway:
+      replicas: 3                  # HA：多副本 + LB
+      memory: "1Gi"
+      cpu: 1
+      resources:
+        requests: { cpu: "1",   memory: "1Gi" }
+        limits:   { cpu: "2",   memory: "2Gi" }
+      # 监听端口
+      ports:
+        http: 9080                 # HTTP/API
+        https: 9443                # HTTPS/TLS
+        admin: 9180                # Admin API（内部）
+        control: 9092              # Control Plane（健康检查/配置下发）
+      nodeSelector: { "sq.io/pool": "apisix" }
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - { weight: 100, podAffinityTerm: { labelSelector: { matchLabels: { "app.kubernetes.io/name": "apisix" } }, topologyKey: "kubernetes.io/hostname" } }
+
+    # Ingress Controller 模式（控制面，监听 K8s Ingress/APISIX CRD）
+    ingressController:
+      enabled: true
+      replicas: 2
+      resources:
+        requests: { cpu: "500m", memory: "500Mi" }
+        limits:   { cpu: "1",    memory: "1Gi" }
+      # 监听 K8s 资源类型
+      watchingResources:
+        - "ingress"                # 标准 Ingress
+        - "apisixroute"            # APISIX 自定义 CRD（推荐）
+        - "apisixpluginconfig"     # 插件配置 CRD
+        - "apisixconsumer"         # 消费者/凭证 CRD
+        - "apisixtls"              # TLS 证书 CRD
+      # 与 L5.5 开放API服务目录对接：路由自动生成
+      routeAutoGeneration:
+        enabled: true
+        # 从 L5.5 服务目录 ConfigMap/CRD 读取 API 元数据，自动生成 ApisixRoute
+        serviceCatalogSource: "configmap/sq-openapi-catalog"
+        syncInterval: "30s"
+
+    # etcd（配置存储）
+    etcd:
+      replicas: 3                  # HA：奇数副本
+      memory: "1Gi"
+      resources:
+        requests: { cpu: "500m", memory: "1Gi" }
+        limits:   { cpu: "1",    memory: "2Gi" }
+      persistence: { size: "10Gi", storageClass: "fast-ssd" }
+
+    # Dashboard（运营管理 UI，可选）
+    dashboard:
+      enabled: true
+      replicas: 1
+      ingress: { enabled: true, host: "apisix-dashboard.<domain>" }
+
+  # ============================================================================
+  # 3. 路由配置
+  # ============================================================================
+  routing:
+    # 全局路由前缀
+    globalPrefix: "/api/v1"
+    # 路由策略
+    strategy:
+      # 按租户路由（path 中携带 tenant_id 或 header X-Tenant-Id）
+      tenantRouting:
+        enabled: true
+        # 从 header / path / query 提取 tenant_id
+        extractFrom: ["header", "path"]
+        headerName: "X-Tenant-Id"
+      # 按权重灰度路由
+      canary:
+        enabled: true
+        # 通过 header X-Canary=true 路由到灰度后端
+        headerName: "X-Canary"
+    # 上游服务路由表（核心 API）
+    upstreams:
+      # L2.7 统一SQL网关
+      - { name: "sql-gateway",     host: "sql-gateway",       port: 8080, path: "/api/v1/sql/*",     plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      # L3 治理中台
+      - { name: "metadata-api",    host: "sq-metadata",       port: 8080, path: "/api/v1/metadata/*", plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      - { name: "standard-api",    host: "sq-standard",       port: 8080, path: "/api/v1/standard/*", plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      - { name: "quality-api",     host: "sq-quality",        port: 8080, path: "/api/v1/quality/*",  plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      - { name: "lineage-api",     host: "sq-lineage",        port: 8080, path: "/api/v1/lineage/*",  plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      # L5.1 控制台 API
+      - { name: "console-api",     host: "sq-console-api",    port: 8080, path: "/api/v1/console/*",  plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      # L4.2 DolphinScheduler API
+      - { name: "ds-api",          host: "dolphinscheduler-api", port: 12345, path: "/api/v1/ds/*",   plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+      # L4.4 Superset（透传到 Superset 自身 OIDC）
+      - { name: "superset",        host: "superset",          port: 8088, path: "/api/v1/bi/*",       plugins: ["keycloak-oidc", "limit-req", "audit-log"] }
+
+  # ============================================================================
+  # 4. 插件配置
+  # ============================================================================
+  plugins:
+    # 启用的插件清单（APISIX 3.x 内置 + 自定义）
+    enabled:
+      - "keycloak-oidc"            # Keycloak OIDC 认证
+      - "limit-req"                # 限流（请求速率）
+      - "limit-count"              # 限流（请求计数）
+      - "limit-conn"               # 限流（并发连接）
+      - "circuit-breaker"          # 熔断
+      - "proxy-rewrite"            # 请求改写
+      - "uri-blocker"              # URI 黑名单
+      - "ip-restriction"           # IP 白/黑名单
+      - "cors"                     # 跨域
+      - "audit-log"                # 审计日志（自定义，推送 Kafka sq-audit-log）
+      - "prometheus"               # Prometheus 指标
+      - "zipkin"                   # 分布式追踪
+      - "request-id"               # 请求 ID 注入
+
+    # 限流配置（按租户分级）
+    limitReq:
+      # 默认限流：100 req/s per tenant
+      defaultRate: 100
+      defaultBurst: 50
+      # 按租户配额分级（与 §11.5 套餐对应）
+      tenantTierRates:
+        base:      { rate: 50,   burst: 25   }
+        standard:  { rate: 200,  burst: 100  }
+        flagship:  { rate: 1000, burst: 500  }
+      # 按上游服务分级
+      serviceRates:
+        sql-gateway:    { rate: 50,  burst: 20  }   # SQL 查询较重，限流更严
+        metadata-api:   { rate: 200, burst: 100 }
+        console-api:    { rate: 500, burst: 200 }
+
+    # 熔断配置
+    circuitBreaker:
+      default:
+        # 错误率 > 50% 触发熔断
+        errorRateThreshold: 0.5
+        # 5s 内最少 30 个请求才计算错误率
+        minRequests: 30
+        # 熔断时长
+        breakTime: "30s"
+        # 半开探测
+        halfOpenRequests: 5
+      # 按上游分级
+      overrides:
+        sql-gateway: { errorRateThreshold: 0.3, breakTime: "60s" }
+
+    # 审计日志（推送 Kafka sq-audit-log topic）
+    auditLog:
+      enabled: true
+      # 推送到 Kafka sq-audit-log topic（kafka-values.yaml 已定义）
+      kafkaBootstrap: "sq-kafka-bootstrap:9092"
+      kafkaTopic: "sq-audit-log"
+      # 审计字段
+      fields: ["timestamp", "tenant_id", "user_id", "method", "path", "status", "latency", "source_ip", "request_id"]
+      # 敏感字段脱敏
+      maskFields: ["authorization", "password", "token"]
+      # 异步推送（不阻塞主请求）
+      asyncPush: true
+      bufferSize: 10000
+
+    # CORS
+    cors:
+      allowOrigins: ["https://console.<domain>", "https://ops.<domain>"]
+      allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"]
+      allowHeaders: ["Authorization", "Content-Type", "X-Tenant-Id", "X-Canary", "X-Request-Id"]
+      allowCredentials: true
+      maxAge: 3600
+
+  # ============================================================================
+  # 5. 认证配置（Keycloak OIDC 集成）
+  # ============================================================================
+  auth:
+    # Keycloak OIDC 集成（P2-E4 / P1-D6）
+    keycloak:
+      enabled: true
+      # Keycloak 服务地址（内部）
+      internalUrl: "http://keycloak:8080"
+      # Keycloak 公开地址（用于浏览器跳转登录）
+      publicUrl: "https://keycloak.<domain>"
+      # Realm（与 keycloak-values.yaml realms[0].name=sq 对齐）
+      realm: "sq"
+      # APISIX 作为 OIDC 客户端
+      clientId: "sq-api-gateway"
+      clientSecretRef: "keycloak-api-gw-secret"
+      # OIDC Discovery 端点
+      discoveryUrl: "https://keycloak.<domain>/realms/sq/.well-known/openid-configuration"
+      # 令牌校验
+      tokenValidation:
+        # 校验 access_token（JWT）
+        accessToken: true
+        # 校验 scope（按路由要求）
+        scopeCheck: true
+        # 校验 audience
+        audienceCheck: true
+        expectedAudience: "sq-api-gateway"
+      # 令牌缓存（减少 Keycloak 调用）
+      cache:
+        enabled: true
+        ttl: "300s"               # 与 access_token lifespan 对齐
+        maxSize: 10000
+      # 未认证跳转登录
+      loginRedirect: true
+      # 401/403 响应格式
+      errorResponse: "json"
+
+  # ============================================================================
+  # 6. Keycloak 集成（Realm/Client 对齐声明）
+  # ============================================================================
+  # P2-E6 / Realm 对齐：本节声明 APISIX 期望的 Keycloak Realm/Client 配置，
+  #                       与 keycloak-values.yaml realms[0].clients[sq-api-gateway] 对齐。
+  keycloak:
+    # 期望的 Realm（keycloak-values.yaml 已定义 realms[0].name=sq）
+    expectedRealm: "sq"
+    # 期望的 Client（keycloak-values.yaml 已定义 clientId=sq-api-gateway）
+    expectedClient: "sq-api-gateway"
+    # 期望的 Client Scopes（按路由权限分级）
+    expectedScopes:
+      - { name: "sq:read",   description: "只读权限（查询/检索）" }
+      - { name: "sq:write",  description: "写入权限（创建/更新）" }
+      - { name: "sq:admin",  description: "管理权限（删除/配置）" }
+      - { name: "sq:tenant:{tenant_id}", description: "租户隔离权限（动态 scope）" }
+    # Realm 导入校验（启动时校验 Realm/Client 是否存在）
+    realmImportCheck:
+      enabled: true
+      # 启动时若 Realm/Client 缺失，从 ConfigMap 自动导入
+      autoImport: true
+      importConfigMap: "keycloak-realm-sq-import"
+
+  # ---- 套餐分档 ----
+  tierProfiles:
+    base:      { gatewayReplicas: 2, etcdReplicas: 3, gatewayMemory: "512Mi" }
+    standard:  { gatewayReplicas: 3, etcdReplicas: 3, gatewayMemory: "1Gi" }
+    flagship:  { gatewayReplicas: 5, etcdReplicas: 5, gatewayMemory: "2Gi" }
+
+  # ---- 监控 ----
+  monitoring:
+    metrics:
+      enabled: true
+      port: 9091
+      endpoint: "/apisix/prometheus/metrics"
+    prometheus:
+      enabled: true
+      scrapeInterval: "30s"
+      serviceMonitor: true
+    # 分布式追踪
+    tracing:
+      enabled: true
+      type: "zipkin"
+      endpoint: "http://zipkin:9411/api/v2/spans"
+      sampleRate: 0.1            # 10% 采样
+    # Grafana
+    grafana:
+      dashboardEnabled: true
+      dashboardConfigMap: "apisix-grafana-dashboard"
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是 APISIX 网关在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  quota:
+    base:      { requests.cpu: "4",  requests.memory: "6Gi",  limits.cpu: "8",  limits.memory: "10Gi" }
+    standard:  { requests.cpu: "8",  requests.memory: "12Gi", limits.cpu: "16", limits.memory: "20Gi" }
+    flagship:  { requests.cpu: "16", requests.memory: "24Gi", limits.cpu: "32", limits.memory: "40Gi" }

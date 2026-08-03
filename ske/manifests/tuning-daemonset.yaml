@@ -1,0 +1,71 @@
+# 数擎云核 SKE · 节点级调优 DaemonSet
+# 在 SKE 每个节点启动时应用 sysctl 与大页分配(尽力而为; 受限项不影响集群起停)
+# 生产 VM 镜像已在镜像内固化内核参数, 此处作为兜底与 dev 模式补充
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ske-node-tuning
+  namespace: kube-system
+data:
+  tune.sh: |
+    #!/usr/bin/env bash
+    set -x
+    # ---- 网络栈 ----
+    sysctl -w net.core.somaxconn=65535 || true
+    sysctl -w net.ipv4.tcp_tw_reuse=1 || true
+    sysctl -w net.ipv4.tcp_rmem="4096 87380 16777216" || true
+    sysctl -w net.ipv4.tcp_wmem="4096 65536 16777216" || true
+    sysctl -w net.core.rmem_max=16777216 || true
+    sysctl -w net.core.wmem_max=16777216 || true
+    sysctl -w net.ipv4.ip_local_port_range="1024 65535" || true
+    # ---- 虚拟内存 ----
+    sysctl -w vm.swappiness=1 || true
+    sysctl -w vm.dirty_ratio=10 || true
+    sysctl -w vm.dirty_background_ratio=5 || true
+    sysctl -w vm.max_map_count=262144 || true
+    # ---- 文件句柄 ----
+    sysctl -w fs.file-max=2097152 || true
+    # ---- 大页(2MB): 尽力分配; 失败仅告警 ----
+    for n in 1024 512 256; do
+      if echo "$n" > /sys/kernel/mm/hugepages/hugepages-2048kB/nr_hugepages 2>/dev/null; then
+        echo "hugepages-2048kB set to $n"; break
+      fi
+    done
+    # Cgroup v2 下允许 kubelet 大页拓扑感知
+    echo "tuning done"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: ske-node-tuning
+  namespace: kube-system
+  labels:
+    app: ske-node-tuning
+spec:
+  selector:
+    matchLabels:
+      app: ske-node-tuning
+  template:
+    metadata:
+      labels:
+        app: ske-node-tuning
+    spec:
+      hostPID: true
+      hostNetwork: true
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: tune
+          image: "{{SKE_TUNING_IMAGE}}"   # ske.sh 注入; 默认 registry.k8s.io/debian-base 之类
+          command: ["/bin/bash", "-c", "chmod +x /tune/tune.sh && /tune/tune.sh; sleep infinity"]
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: tune
+              mountPath: /tune
+      volumes:
+        - name: tune
+          configMap:
+            name: ske-node-tuning
+            defaultMode: 0755
+      terminationGracePeriodSeconds: 30

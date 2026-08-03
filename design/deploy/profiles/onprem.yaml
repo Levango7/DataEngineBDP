@@ -1,0 +1,41 @@
+# ============================================================================
+# Profile: 本地数据中心（onprem）
+# 机器：客户自有 x86 物理机 / 虚机 + 标准 OS
+# 关联：部署清单 v0.1 §5 抽象维度表
+# ============================================================================
+meta:
+  name: onprem
+  k8s: self-built
+  note: "x86 裸金属/虚机；CentOS/RHEL/Ubuntu"
+
+compute:
+  arch: ["x86"]
+  os: ["CentOS", "RHEL", "Ubuntu"]
+
+images:
+  baseImage: "base:rockylinux-9"
+  extraVariant: ""
+
+global:
+  guomiEnabled: false
+  guomiAlgos: ["AES", "SHA256"]
+
+storage:
+  objectStore:
+    driver: "ceph"                   # CephDriver（RGW/MinIO 兼容 S3）
+    endpoint: "http://ceph-rgw.internal"
+    csi: "ceph-csi"
+
+network:
+  cni: "cilium"
+  lb: "metallb"
+
+kms:
+  driver: "Vault"                    # 自研/HashiCorp Vault
+  algo: ["AES", "SHA256"]
+
+identity:
+  driver: "KeycloakLDAP"
+
+elastic:
+  driver: "FixedNodePool"

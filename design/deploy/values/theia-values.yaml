@@ -1,0 +1,215 @@
+# ============================================================================
+# Theia IDE 定制 Helm values（P2-C4 新增）
+# 关联：部署清单 v0.1 §8.4 数据开发IDE / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/theia-values.yaml
+# 说明：基于 Eclipse Theia 二次开发的 Web IDE（§5.5 拍板），
+#       每用户独立 Pod（StatefulSet + PVC），按需启停（scale-to-zero），
+#       资源按使用强度分档（轻量/标准/重度），与 Keycloak SSO 集成。
+# 部署模式：
+#   - 每用户一个 StatefulSet 实例（Pod 名：theia-{user-id}）
+#   - 用户工作空间持久化到 PVC（按租户 storagePrefix 隔离）
+#   - 空闲超时自动 scale-to-zero（KEDA 观测 WebSocket 连接数）
+#   - 用户重新连接时自动唤醒（apisix 路由触发 K8s Service 唤醒）
+# ============================================================================
+
+# Theia 在 base 中未声明，独立顶层 key
+theia:
+  enabled: true
+  image: "sq-theia:1.45-0.1.0"
+  version: "1.45.0"
+  # 上游版本（Eclipse Theia 基座）
+  upstreamVersion: "1.45.0"
+
+  # ---- 部署模式 ----
+  # 每用户 Pod 模式：StatefulSet + PVC，Pod 名 theia-{user-id}
+  deployment:
+    mode: "per-user-statefulset"   # per-user-statefulset | shared
+    # StatefulSet 模板
+    statefulset:
+      # Pod 命名模板（{user-id} 由创建时替换）
+      podNameTemplate: "theia-{user-id}"
+      # 每用户独立 Service（用于 APISIX 路由）
+      perUserService: true
+      # 每用户独立 PVC（工作空间持久化）
+      perUserPvc:
+        enabled: true
+        # PVC 大小按资源档位分级（见 tierProfiles）
+        storageClass: "fast-ssd"
+        # 挂载路径
+        mountPath: "/home/theia/workspace"
+        # 工作空间按租户 storagePrefix 隔离
+        # 实际路径：/home/theia/workspace/{tenant_id}/{project_id}/
+    # 启动时执行的初始化（克隆项目/安装依赖）
+    initContainer:
+      enabled: true
+      image: "sq-theia-init:0.1.0"
+      # 从 Git 仓库克隆默认项目
+      gitClone:
+        enabled: true
+        # 项目仓库 URL 由用户启动时通过 API 指定
+        # defaultRepoUrl: "https://gitlab.<domain>/{tenant_id}/{project_id}.git"
+      # 安装项目依赖（pip/maven/npm 自动探测）
+      installDeps: true
+
+  # ---- 资源分档（按使用强度）----
+  # P2-C4 要求：轻量 0.5核1Gi / 标准 2核4Gi / 重度 4核8Gi
+  resourceTiers:
+    # 轻量档：临时查看/小脚本编辑
+    light:
+      cpu: "500m"
+      memory: "1Gi"
+      storage: "5Gi"
+      # JVM/Theia 进程参数
+      javaOpts: "-Xmx512m"
+      nodeOpts: "--max-old-space-size=512"
+    # 标准档：日常开发（默认）
+    standard:
+      cpu: "2"
+      memory: "4Gi"
+      storage: "20Gi"
+      javaOpts: "-Xmx2g"
+      nodeOpts: "--max-old-space-size=2048"
+    # 重度档：大型项目/长时间运行（Spark/Flink 本地调试）
+    heavy:
+      cpu: "4"
+      memory: "8Gi"
+      storage: "50Gi"
+      javaOpts: "-Xmx4g"
+      nodeOpts: "--max-old-space-size=4096"
+    # 默认档位（用户未指定时使用）
+    defaultTier: "standard"
+
+  # ---- 按需启停（scale-to-zero）----
+  scaleToZero:
+    enabled: true
+    # KEDA ScaledObject 配置
+    keda:
+      # 观测 WebSocket 连接数（Theia 通过 WebSocket 通信）
+      metric: "websocket_connections"
+      # 空闲阈值：0 个连接持续 30 分钟则缩容到 0
+      idleThreshold: 0
+      idleTimeout: "30m"
+      # 唤醒：APISIX 路由触发 Service 唤醒
+      wakeupOnRequest: true
+    # 强制保留时长（用户主动断开后保留 Pod 多久，避免数据丢失）
+    gracePeriod: "1h"
+    # 最大空闲时长（超过则回收 PVC，需用户重新初始化）
+    maxIdleBeforeRecycle: "7d"
+
+  # ---- 套餐分档（与 §11.5 对应）----
+  tierProfiles:
+    # 基础版：仅支持轻量档，并发用户数 5
+    base:
+      allowedTiers: ["light", "standard"]
+      maxConcurrentUsers: 5
+      defaultResourceTier: "light"
+    # 标准版：支持轻量/标准档，并发用户数 20
+    standard:
+      allowedTiers: ["light", "standard", "heavy"]
+      maxConcurrentUsers: 20
+      defaultResourceTier: "standard"
+    # 旗舰版：全档位，并发用户数 100
+    flagship:
+      allowedTiers: ["light", "standard", "heavy"]
+      maxConcurrentUsers: 100
+      defaultResourceTier: "standard"
+
+  # ---- Theia 配置 ----
+  config:
+    # 监听端口
+    port: 3000
+    # 默认工作区
+    defaultWorkspace: "/home/theia/workspace"
+    # 内置插件（数据开发场景定制）
+    builtinExtensions:
+      - { id: "sq-spark-sql",        version: "0.1.0", description: "Spark SQL 语法高亮/补全" }
+      - { id: "sq-flink-sql",        version: "0.1.0", description: "Flink SQL 语法高亮/补全" }
+      - { id: "sq-trino-sql",        version: "0.1.0", description: "Trino SQL 语法高亮/补全" }
+      - { id: "sq-doris-sql",        version: "0.1.0", description: "Doris SQL 语法高亮/补全" }
+      - { id: "sq-python-pyspark",   version: "0.1.0", description: "PySpark 开发调试" }
+      - { id: "sq-java-spark",       version: "0.1.0", description: "Spark Java/Scala 开发" }
+      - { id: "sq-git-integration",  version: "0.1.0", description: "Git 集成（提交/分支/PR）" }
+      - { id: "sq-ds-submit",        version: "0.1.0", description: "DolphinScheduler 作业提交插件" }
+      - { id: "sq-data-lineage",     version: "0.1.0", description: "血缘可视化插件（对接 L3.4）" }
+    # 终端配置
+    terminal:
+      enabled: true
+      shell: "/bin/bash"
+      # 终端数量限制
+      maxInstances: 5
+    # 主题
+    theme: "sq-light"               # 数擎浅色主题（用户偏好浅色）
+
+  # ---- 网关路由 ----
+  # 经 X4 APISIX 网关代理，路由规则：/ide/{user-id} → theia-{user-id}:3000
+  routing:
+    # APISIX 路由前缀
+    pathPrefix: "/ide"
+    # 路由模板（{user-id} 动态替换）
+    pathTemplate: "/ide/{user-id}/*"
+    # 上游服务模板
+    upstreamTemplate: "theia-{user-id}"
+    upstreamPort: 3000
+    # 经 APISIX Keycloak OIDC 认证后转发
+    authVia: "apisix-keycloak-oidc"
+    # WebSocket 升级（Theia 依赖 WebSocket）
+    websocketUpgrade: true
+
+  # ---- 安全 ----
+  security:
+    # Keycloak SSO 集成（P2-E4）
+    sso:
+      enabled: true
+      type: "keycloak-oidc"
+      clientId: "sq-ide-plugin"
+      clientSecretRef: "theia-oidc-secret"
+      keycloakUrl: "https://keycloak.<domain>"
+      realm: "sq"
+    # 用户隔离
+    isolation:
+      # 每用户独立 Pod + PVC，命名空间级隔离
+      mode: "per-user-pod"
+      # 网络隔离（NetworkPolicy 限制 Pod 间互访）
+      networkPolicy: true
+      # 只允许访问必要的内部服务
+      allowedEgress:
+        - "sql-gateway:8080"           # SQL 查询
+        - "dolphinscheduler-api:12345" # 作业提交
+        - "gitlab.<domain>:443"        # Git 仓库
+        - "keycloak:8080"              # 认证
+    # 资源限制（防止单用户占用过多资源）
+    limits:
+      maxCpuPerUser: "8"
+      maxMemoryPerUser: "16Gi"
+      maxStoragePerUser: "100Gi"
+
+  # ---- 监控 ----
+  monitoring:
+    metrics:
+      enabled: true
+      port: 9091
+      endpoint: "/metrics"
+    prometheus:
+      enabled: true
+      scrapeInterval: "30s"
+      serviceMonitor: true
+    # 用户活跃度指标（用于 scale-to-zero 决策）
+    userActivity:
+      enabled: true
+      # WebSocket 连接数 / 编辑操作数 / 终端会话数
+      metrics: ["websocket_connections", "edit_operations", "terminal_sessions"]
+    grafana:
+      dashboardEnabled: true
+      dashboardConfigMap: "theia-grafana-dashboard"
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是 Theia IDE 在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  #                    实际占用 = Σ(单用户资源档位)，受 maxConcurrentUsers 限制。
+  quota:
+    # 基础版：5 用户 × 标准档（2核4Gi）≈ 10核20Gi
+    base:      { requests.cpu: "5",  requests.memory: "10Gi", requests.storage: "100Gi", limits.cpu: "10", limits.memory: "20Gi" }
+    # 标准版：20 用户 × 标准档（2核4Gi）≈ 40核80Gi
+    standard:  { requests.cpu: "20", requests.memory: "40Gi", requests.storage: "400Gi", limits.cpu: "40", limits.memory: "80Gi" }
+    # 旗舰版：100 用户 × 标准档（2核4Gi）≈ 200核400Gi
+    flagship:  { requests.cpu: "100", requests.memory: "200Gi", requests.storage: "2Ti",  limits.cpu: "200", limits.memory: "400Gi" }

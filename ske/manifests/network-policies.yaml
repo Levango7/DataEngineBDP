@@ -1,0 +1,214 @@
+# 数擎云核 SKE · 租户隔离网络策略 (多租户 NetworkPolicy 模板)
+# 关联: cilium-values.yaml (policyEnforcementMode=always, eBPF 强制) / pod-security.yaml
+# 设计要点:
+#   - 默认 deny-all: 每个 Namespace 创建时自动注入 (由封装层 Admission Webhook)
+#   - 同 Namespace 内 Pod 互通 (允许同租户内部通信)
+#   - 白名单放通: DNS / 监控 / 日志 / 镜像仓库 / API 网关 / 身份认证
+#   - 跨 Namespace 访问需显式 NetworkPolicy 放通
+#   - 租户间默认完全隔离, 仅通过 API 网关出口
+
+# ---- 1. 默认 deny-all 策略 (每个租户 Namespace 自动注入) ----
+# 入站全部拒绝, 出站全部拒绝; 后续策略逐项放通
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-default-deny-all
+  namespace: sq-tenant-example
+  annotations:
+    sq.shuqing.io/auto-injected: "true"
+    sq.shuqing.io/description: "默认拒绝所有入站出站流量, 由封装层在创建 Namespace 时注入"
+spec:
+  podSelector: {}                            # 选中 Namespace 内所有 Pod
+  policyTypes:
+    - Ingress
+    - Egress
+
+---
+# ---- 2. 同 Namespace 内 Pod 互通 ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-same-namespace
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}                   # 同 Namespace 内所有 Pod
+  egress:
+    - to:
+        - podSelector: {}                   # 同 Namespace 内所有 Pod
+
+---
+# ---- 3. 白名单: DNS (kube-system:coredns 53/UDP+TCP) ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-dns
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+
+---
+# ---- 4. 白名单: 监控 (observability:prometheus 9090 scrape) ----
+# 允许 Prometheus 主动 scrape 租户 Pod 的 metrics 端口
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-prometheus-scrape
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - protocol: TCP
+          port: 9090
+        - protocol: TCP
+          port: 9404
+        - protocol: TCP
+          port: 8080
+
+---
+# ---- 5. 白名单: 日志 (observability:loki 3100 push) ----
+# 允许租户 Pod 向 Loki / Promtail push 日志
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-loki-push
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: observability
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: loki
+      ports:
+        - protocol: TCP
+          port: 3100
+
+---
+# ---- 6. 白名单: 镜像仓库 (registry.internal:5000) ----
+# 允许租户 Pod 拉取内部镜像 (出站到镜像仓库)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-registry
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/8                # 内网 CIDR, 生产由封装层注入精确 IP
+      ports:
+        - protocol: TCP
+          port: 5000
+        - protocol: TCP
+          port: 443
+
+---
+# ---- 7. 白名单: API 网关 (sq-system:apisix 9080/9443) ----
+# 允许租户 Pod 访问平台 API 网关 (控制台/身份认证/作业提交)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-api-gateway
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: sq-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: apisix
+      ports:
+        - protocol: TCP
+          port: 9080
+        - protocol: TCP
+          port: 9443
+
+---
+# ---- 8. 白名单: 身份认证 (sq-system:keycloak 8080) ----
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-allow-keycloak
+  namespace: sq-tenant-example
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: sq-system
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: keycloak
+      ports:
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8443
+
+---
+# ---- 9. 租户间隔离: 显式拒绝其他租户 Namespace ----
+# 默认 deny-all 已隔离; 此策略作为审计兜底, 标注租户间隔离意图
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: ske-tenant-isolation
+  namespace: sq-tenant-example
+  annotations:
+    sq.shuqing.io/description: "租户间默认隔离; 跨租户访问需平台方显式放通"
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress: []                                # 不允许任何其他租户 Namespace 入站
+  egress:
+    # 仅允许上述白名单 (DNS/网关/认证/仓库/同 Namespace)
+    - to:
+        - podSelector: {}                    # 同 Namespace

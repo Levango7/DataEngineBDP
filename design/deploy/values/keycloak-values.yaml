@@ -1,0 +1,128 @@
+# ============================================================================
+# Keycloak 定制 Helm values
+# 关联：部署清单 v0.1 §7 身份驱动 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/keycloak-values.yaml
+# 说明：双 realm（sq 租户域 + master 平台域），多客户端接入；
+#       信创 Profile 启用国密 SM2/SM3/SM4 插件；PostgreSQL 后端 + 3 副本 HA。
+# ============================================================================
+
+# Keycloak 在 base 中未声明，独立顶层 key
+keycloak:
+  enabled: true
+  image: "sq-keycloak:24.0-0.1.0"
+  version: "24.0.5"
+  # P2-E6 修复：显式声明端口（与 superset-values.yaml security.sso.keycloakUrl 对齐）
+  port: 8080
+  # HTTPS/TLS 端口（Ingress 终止 TLS 后内部走 HTTP）
+  httpsPort: 8443
+
+  # ---- 套餐分档 ----
+  tierProfiles:
+    base:      { replicas: 1, memory: "1Gi" }
+    standard:  { replicas: 3, memory: "2Gi" }
+    flagship:  { replicas: 3, memory: "4Gi" }
+
+  # ---- 部署 ----
+  replicas: 3                  # HA：多副本 + 共享数据库
+  memory: "2Gi"
+  cpu: 1
+  resources:
+    requests: { cpu: "1",   memory: "2Gi" }
+    limits:   { cpu: "2",   memory: "3Gi" }
+  nodeSelector: { "sq.io/pool": "keycloak" }
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - { weight: 100, podAffinityTerm: { labelSelector: { matchLabels: { "app.kubernetes.io/name": "keycloak" } }, topologyKey: "kubernetes.io/hostname" } }
+
+  # ---- Realm 配置 ----
+  realms:
+    - name: "sq"               # 租户域
+      displayName: "数擎租户域"
+      enabled: true
+      sslRequired: "external"
+      accessTokenLifespan: 300         # 5 min
+      ssoSessionIdleTimeout: 28800     # 8h
+      ssoSessionMaxLifespan: 86400     # 24h
+      refreshTokenMaxReuse: 0
+      clients:
+        - { clientId: "sq-console",       protocol: "openid-connect", publicClient: true,  redirectUris: ["https://console.<domain>/*"] }
+        - { clientId: "sq-ops-portal",    protocol: "openid-connect", publicClient: true,  redirectUris: ["https://ops.<domain>/*"] }
+        - { clientId: "sq-api-gateway",   protocol: "openid-connect", publicClient: false, secretRef: "keycloak-api-gw-secret" }
+        - { clientId: "sq-ide-plugin",    protocol: "openid-connect", publicClient: true,  redirectUris: ["http://localhost:*/*"] }
+    - name: "master"           # 平台域
+      displayName: "数擎平台管理域"
+      enabled: true
+      accessTokenLifespan: 60
+      ssoSessionIdleTimeout: 3600       # 1h
+      ssoSessionMaxLifespan: 7200       # 2h
+
+  # ---- 会话 / 令牌 ----
+  session:
+    ssoIdleTimeout: "8h"       # SSO 8h
+    ssoMaxLifespan: "24h"
+    refreshToken:
+      enabled: true
+      maxReuse: 0              # 一次性刷新
+      lifespan: "30d"          # 刷新令牌 30d
+    accessToken:
+      lifespan: "5m"
+      lifespanForImplicit: "5m"
+
+  # ---- 国密插件（信创 Profile 启用）----
+  guomi:
+    enabled: false             # 由 Profile 覆盖为 true
+    profile: "xinchuang"
+    algos:
+      sign: "SM2"
+      digest: "SM3"
+      encrypt: "SM4"
+    plugins:
+      - "keycloak-guomi-sm2"
+      - "keycloak-guomi-sm3"
+      - "keycloak-guomi-sm4"
+    keystoreRef: "keycloak-guomi-keystore"
+
+  # ---- 存储（PostgreSQL 后端）----
+  database:
+    type: "postgresql"
+    host: "pg-keycloak.internal"
+    port: 5432
+    name: "keycloak"
+    user: "keycloak"
+    passwordRef: "keycloak-db-password"
+    poolSize: 20
+    ssl: true
+    # HA：3 副本共享同一数据库
+    haMode: "shared-db"
+
+  # ---- 缓存（Infinispan）----
+  cache:
+    type: "infinispan"
+    mode: "distributed"        # distributed | local
+    owners: 2
+    sessionsCacheSize: "10000"
+    realmsCacheSize: "1000"
+
+  # ---- 监控 ----
+  monitoring:
+    metrics:
+      enabled: true
+      endpoint: "/metrics"
+      port: 9000
+    prometheus:
+      enabled: true
+      scrapeInterval: "30s"
+      serviceMonitor: true
+    healthCheck:
+      enabled: true
+      readinessProbe: "/health/ready"
+      livenessProbe: "/health/live"
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是 Keycloak 在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  quota:
+    base:      { requests.cpu: "2",  requests.memory: "3Gi",  limits.cpu: "4",  limits.memory: "5Gi" }
+    standard:  { requests.cpu: "6",  requests.memory: "9Gi",  limits.cpu: "12", limits.memory: "15Gi" }
+    flagship:  { requests.cpu: "12", requests.memory: "18Gi", limits.cpu: "24", limits.memory: "30Gi" }

@@ -1,0 +1,43 @@
+# ============================================================================
+# Profile: 信创环境（xinchuang）
+# 机器：客户自有信创服务器（鲲鹏/海光/飞腾）+ 国产 OS
+# 铁律：K8s 一律自建，不启用任何云托管 K8s；国密按本 Profile 启用
+# 关联：部署清单 v0.1 §5 抽象维度表 / publiccloud 注"云只作裸 VM"
+# ============================================================================
+meta:
+  name: xinchuang
+  k8s: self-built
+  distro: ske          # SKE 自研发行版(深度定制高性能 K8s)/
+  note: "鲲鹏920(arm64)/海光(x86)/飞腾 纳管；openEuler/麒麟/统信"
+
+compute:
+  arch: ["arm64", "x86"]
+  os: ["openEuler", "kylin", "uos"]
+
+images:
+  baseImage: "base:openeuler-24.03"
+  extraVariant: "openeuler"          # buildx 额外产出 openEuler 基础镜像变体
+
+global:
+  guomiEnabled: true
+  guomiAlgos: ["SM2", "SM3", "SM4"]
+
+storage:
+  objectStore:
+    driver: "xcobject"               # XCObjectDriver（国产对象存储 CSI）
+    endpoint: "https://xc-obj.internal"
+    csi: "csi-xc"
+
+network:
+  cni: "cilium"
+  lb: "metallb"
+
+kms:
+  driver: "GuomiKMS"                 # CryptoDriver 国密实现
+  algo: ["SM2", "SM3", "SM4"]
+
+identity:
+  driver: "KeycloakLDAP"
+
+elastic:
+  driver: "FixedNodePool"            # 信创固定节点池，不依赖云弹性

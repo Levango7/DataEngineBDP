@@ -1,0 +1,183 @@
+# ============================================================================
+# Superset 定制 Helm values
+# 关联：部署清单 v0.1 §8.3 数据可视化 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/superset-values.yaml
+# 说明：web + celery 分离部署，PostgreSQL 元数据库 + Redis 查询结果缓存；
+#       多数据源联邦（Trino + Doris + Iceberg），ECharts 自定义可视化插件。
+# ============================================================================
+
+# Superset 在 base 中未声明，独立顶层 key
+superset:
+  enabled: true
+  image: "sq-superset:4.0-0.1.0"
+  version: "4.0.2"
+
+  # ---- 套餐分档 ----
+  # P1-C10：base 档不含 L4 组件，enabled=false（仅 standard/flagship 启用 L4 BI 可视化）
+  tierProfiles:
+    base:      { enabled: false, webMemory: "1Gi",  celeryMemory: "1Gi",  webReplicas: 1, celeryReplicas: 1 }
+    standard:  { enabled: true,  webMemory: "2Gi",  celeryMemory: "2Gi",  webReplicas: 2, celeryReplicas: 2 }
+    flagship:  { enabled: true,  webMemory: "4Gi",  celeryMemory: "4Gi",  webReplicas: 4, celeryReplicas: 4 }
+
+  # ---- Web（Gunicorn）----
+  web:
+    replicas: 2
+    memory: "2Gi"
+    cpu: 1
+    resources:
+      requests: { cpu: "1", memory: "2Gi" }
+      limits:   { cpu: "2", memory: "3Gi" }
+    config:
+      gunicornWorkers: 4
+      gunicornWorkerClass: "gthread"
+      gunicornTimeout: 120
+      maxConnections: 1000
+    nodeSelector: { "sq.io/pool": "superset-web" }
+    ingress:
+      enabled: true
+      host: "superset.<domain>"
+      tls: true
+
+  # ---- Celery（定时任务 / 告警）----
+  celery:
+    # 定时任务（报表刷新）
+    beat:
+      enabled: true
+      replicas: 1
+      resources:
+        requests: { cpu: "500m", memory: "1Gi" }
+        limits:   { cpu: "1",    memory: "2Gi" }
+    # worker（告警 + 报表）
+    worker:
+      replicas: 2
+      memory: "2Gi"
+      cpu: 1
+      resources:
+        requests: { cpu: "1", memory: "2Gi" }
+        limits:   { cpu: "2", memory: "3Gi" }
+      config:
+        workerConcurrency: 4
+        workerMaxTasksPerChild: 100
+        workerPrefetchMultiplier: 1
+    # 队列分离
+    queues:
+      - { name: "default",   routingKey: "default" }
+      - { name: "alerts",    routingKey: "alerts" }
+      - { name: "reports",   routingKey: "reports" }
+      - { name: "emails",    routingKey: "emails" }
+
+  # ---- 元数据库（PostgreSQL）----
+  database:
+    type: "postgresql"
+    host: "pg-superset.internal"
+    port: 5432
+    name: "superset"
+    user: "superset"
+    passwordRef: "superset-db-password"
+    poolSize: 20
+    ssl: true
+
+  # ---- 缓存（Redis，查询结果缓存）----
+  cache:
+    type: "redis"
+    host: "redis-superset.internal"
+    port: 6379
+    passwordRef: "superset-redis-password"
+    # 多用途分离
+    caches:
+      default:    { db: 0, ttl: "1h" }
+      metadata:   { db: 1, ttl: "1d" }
+      queryResult: { db: 2, ttl: "30m" }    # 查询结果缓存
+      dashboard:  { db: 3, ttl: "10m" }
+
+  # ---- 数据源 ----
+  # P0-8 修复：所有数据源统一经 L2.7 统一SQL网关（sql-gateway:8080）访问，
+  # 不再直连 trino-coord / doris-fe；连接串携带 ?tenant={tenant_id} 参数，
+  # 由网关解析租户上下文后路由到对应引擎（Trino/Doris/Iceberg）。
+  # 关系澄清：X4 APISIX 是全局 API 网关（认证/限流/路由），
+  #           L2.7 sql-gateway 是 SQL 联邦查询网关（多引擎路由/下推）。
+  datasources:
+    trino:
+      enabled: true
+      connector: "trino"
+      # P0-8：直连 trino-coord:8080 → 统一SQL网关
+      host: "sql-gateway:8080"
+      catalog: "iceberg"
+      user: "superset"
+      passwordRef: "trino-superset-password"
+      # 租户上下文参数，由 sql-gateway 解析后路由到对应 Trino coordinator
+      connectionParams: "?tenant={tenant_id}"
+    doris:
+      enabled: true
+      connector: "doris"
+      # P0-8：直连 doris-fe:9030 → 统一SQL网关（网关内部转发到 doris-fe:9030）
+      host: "sql-gateway:8080"
+      user: "superset"
+      passwordRef: "doris-superset-password"
+      connectionParams: "?tenant={tenant_id}"
+    iceberg:
+      enabled: true
+      connector: "trino"
+      # P0-8：经统一SQL网关联邦访问 Iceberg
+      host: "sql-gateway:8080"
+      catalog: "iceberg"
+      connectionParams: "?tenant={tenant_id}"
+    # 内置示例（可关闭）
+    examples: false
+
+  # ---- 自定义可视化（ECharts 插件）----
+  visualization:
+    customPlugins:
+      - { name: "echarts-line",      module: "echarts_line",     enabled: true }
+      - { name: "echarts-bar",       module: "echarts_bar",      enabled: true }
+      - { name: "echarts-heatmap",   module: "echarts_heatmap",  enabled: true }
+      - { name: "echarts-graph",     module: "echarts_graph",    enabled: true }
+      - { name: "echarts-3d",        module: "echarts_3d",       enabled: true }
+      - { name: "sq-kanban",         module: "sq_kanban",        enabled: true }
+    # 启用功能
+    features:
+      rowLevelSecurity: true
+      dashboardCache: true
+      queryCostEstimate: true
+      alerting: true
+      reporting: true
+      annotations: true
+
+  # ---- 安全 ----
+  security:
+    secretKeyRef: "superset-secret-key"
+    # SSO 集成（Keycloak OIDC）
+    sso:
+      enabled: true
+      type: "keycloak-oidc"
+      clientId: "sq-superset"
+      clientSecretRef: "superset-oidc-secret"
+      keycloakUrl: "https://keycloak.<domain>"
+      realm: "sq"
+    # 权限
+    roleMapping:
+      admin: ["Admin"]
+      alpha: ["Alpha"]
+      gamma: ["Gamma"]
+
+  # ---- 监控 ----
+  monitoring:
+    metrics:
+      enabled: true
+      port: 9091
+      endpoint: "/metrics"
+    prometheus:
+      enabled: true
+      scrapeInterval: "30s"
+      serviceMonitor: true
+    grafana:
+      dashboardEnabled: true
+      dashboardConfigMap: "superset-grafana-dashboard"
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是 Superset 在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  quota:
+    base:      { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
+    standard:  { requests.cpu: "10", requests.memory: "20Gi", limits.cpu: "20", limits.memory: "30Gi" }
+    flagship:  { requests.cpu: "24", requests.memory: "48Gi", limits.cpu: "48", limits.memory: "72Gi" }

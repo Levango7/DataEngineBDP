@@ -1,0 +1,42 @@
+# 数擎云核 SKE · kubelet 深度调优 (kubelet.config.k8s.io/v1beta1)
+# 由 node-image/build.sh 烘焙进 SKE 节点镜像 (/etc/kubernetes/kubelet-config.yaml)
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+# ---- 容器运行时 ----
+containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+cgroupDriver: systemd
+# ---- 资源预留: 给系统/控制面留核, 避免数据面被挤 ----
+# 生产由 controlplane.sh 注入精确值; 此处为合理默认值
+systemReserved:
+  cpu: "500m"
+  memory: "1Gi"
+kubeReserved:
+  cpu: "500m"
+  memory: "1Gi"
+# ---- CPU 管理器: 静态策略 + 拓扑管理器单 NUMA ----
+cpuManagerPolicy: "static"
+cpuManagerReconcilePeriod: "10s"
+topologyManagerPolicy: "single-numa-node"
+topologyManagerScope: "pod"
+# ---- 大页: 预留 2MB 大页给引擎/Doris/etcd (生产在 tune-host 分配) ----
+# 显式大页通过 --reserved-memory 在 node-image 烘焙时挂载; 此处启用
+featureGates:
+  TopologyManager: true
+  CPUManager: true
+# ---- 驱逐与压力 ----
+evictionHard:
+  memory.available: "500Mi"
+  nodefs.available: "10%"
+  imagefs.available: "10%"
+evictionSoft:
+  memory.available: "1Gi"
+evictionSoftGracePeriod:
+  memory.available: "1m30s"
+# ---- 优雅与心跳 ----
+maxPods: 110
+serializeImagePulls: false
+# ---- 安全: 保护内核默认, 收紧 ----
+protectKernelDefaults: true
+# ---- 日志 ----
+logging:
+  verbosity: 2

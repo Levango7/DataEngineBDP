@@ -1,0 +1,112 @@
+# 数擎云核 SKE · K8s 审计日志策略 (audit.k8s.io/v1)
+# 关联: apiserver-hardening.yaml (audit-policy-file) / kubeadm-config.yaml (audit-log-path)
+# 设计要点:
+#   - Metadata 级别: 记录所有请求的元数据 (轻量, 默认)
+#   - Request 级别: 记录敏感资源 (secrets/configmaps) 的请求体
+#   - RequestResponse 级别: 记录 RBAC 变更的完整响应 (合规审计)
+#   - 忽略: get/list/watch on non-sensitive resources (减少日志量)
+#   - 日志保留: 30 天 (apiserver-hardening.yaml audit-log-maxage=30)
+#   - 合规: 满足等保三级 / SOC2 审计要求
+
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# ---- 保留阶段: 30 天 ----
+# 通过 apiserver audit-log-maxage=30 控制文件保留天数
+rules:
+  # ---- 1. 忽略: 非敏感资源的只读请求 (减少日志量 90%+) ----
+  - level: None
+    users:
+      - "system:kube-proxy"
+      - "system:apiserver"
+      - "system:kube-controller-manager"
+      - "system:kube-scheduler"
+      - "system:cloud-controller-manager"
+    verbs: ["get", "list", "watch"]
+
+  # ---- 2. 忽略: 健康检查 / lease / discovery ----
+  - level: None
+    users:
+      - "system:kubelet"
+      - "system:node:*"
+    verbs: ["get"]
+    resources:
+      - group: ""
+        resources: ["nodes", "nodes/status"]
+  - level: None
+    nonResourceURLs:
+      - /healthz*
+      - /livez*
+      - /readyz*
+      - /version*
+      - /swagger*
+      - /openapi*
+      - /apis*
+      - /metrics*
+
+  # ---- 3. 忽略: coordintion leases (心跳, 高频低价值) ----
+  - level: None
+    resources:
+      - group: "coordination.k8s.io"
+        resources: ["leases"]
+
+  # ---- 4. RequestResponse: RBAC 变更 (完整记录, 合规审计) ----
+  - level: RequestResponse
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+
+  # ---- 5. Request: 敏感资源变更 (secrets/configmaps 请求体) ----
+  - level: Request
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["secrets", "configmaps"]
+      - group: ""
+        resources: ["serviceaccounts", "serviceaccounts/token"]
+      - group: "certificates.k8s.io"
+        resources: ["certificatesigningrequests"]
+
+  # ---- 6. Request: 安全策略 / 准入控制变更 ----
+  - level: Request
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: "networking.k8s.io"
+        resources: ["networkpolicies"]
+      - group: "policy"
+        resources: ["podsecuritypolicies", "poddisruptionbudgets"]
+      - group: "constraints.gatekeeper.sh"
+        resources: ["*"]
+      - group: "templates.gatekeeper.sh"
+        resources: ["*"]
+
+  # ---- 7. Request: 数擎平台 CR 变更 (租户/工作空间/作业) ----
+  - level: Request
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: "sq.shuqing.io"
+        resources: ["*"]
+      - group: "sparkoperator.k8s.io"
+        resources: ["sparkapplications"]
+      - group: "flink.apache.org"
+        resources: ["flinkdeployments", "flinksessionclusters"]
+
+  # ---- 8. Request: Namespace / ResourceQuota / LimitRange 变更 ----
+  - level: Request
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["namespaces", "resourcequotas", "limitranges", "pods", "pods/eviction"]
+      - group: "apps"
+        resources: ["deployments", "daemonsets", "statefulsets", "replicasets"]
+
+  # ---- 9. Metadata: 认证失败 / 授权拒绝 (记录谁尝试访问) ----
+  - level: Metadata
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    omitStages:
+      - "ResponseStarted"
+
+  # ---- 10. Metadata: 其他所有请求 (兜底, 仅元数据) ----
+  - level: Metadata
+    omitStages:
+      - "ResponseStarted"

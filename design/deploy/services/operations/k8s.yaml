@@ -1,0 +1,87 @@
+# 数擎运营后台 operations-api 部署
+# 纳入 deploy/ 体系; 平台侧服务, 客户不可见 (L5 隔离)
+# 仅平台方命名空间部署, 不随租户工作空间创建
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform-ops
+  labels:
+    tier: platform
+    tenant: platform   # 平台侧, 非租户
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operations-api
+  namespace: platform-ops
+  labels:
+    app: operations-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: operations-api
+  template:
+    metadata:
+      labels:
+        app: operations-api
+        tier: platform
+    spec:
+      containers:
+        - name: operations-api
+          image: ${REGISTRY}/operations-api:${TAG}   # 由 Helm/Profile 注入
+          ports:
+            - containerPort: 8080
+          env:
+            - name: PROMETHEUS_URL
+              value: "http://prometheus.monitoring:9090"
+            - name: ENCAPS_URL
+              value: "http://encaps-layer.encaps:8080"
+            - name: ADMIN_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: platform-secrets
+                  key: admin-token
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: operations-api
+  namespace: platform-ops
+spec:
+  selector:
+    app: operations-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# Prometheus 抓取 operations-api 自身指标 (可选)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: operations-api
+  namespace: platform-ops
+spec:
+  selector:
+    matchLabels:
+      app: operations-api
+  endpoints:
+    - port: 8080
+      path: /metrics

@@ -1,0 +1,279 @@
+# 数擎云核 SKE · NodePool CRD 定义 (节点池概念封装)
+# 关联: hpa-templates.yaml (弹性伸缩) / resource-quotas.yaml (套餐配额) / scheduler-policy.yaml
+# 设计要点:
+#   - spec: nodeSelector, taints, labels, resources, autoscaling
+#   - 封装层将"节点池"概念映射给客户 (客户无需理解 Node/Taint/Toleration)
+#   - 支持手动伸缩 + 自动伸缩 (对接 KEDA/Cluster Autoscaler)
+#   - 支持独占隔离: dedicated=true 时只允许指定租户的 Pod 调度
+#   - 支持按引擎分池: Spark 池 / Flink 池 / Doris 池 / 控制面池
+
+# ---- 1. NodePool CRD 定义 ----
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: nodepools.ske.shuqing.io
+  labels:
+    app.kubernetes.io/part-of: shuqing-ske
+spec:
+  group: ske.shuqing.io
+  names:
+    kind: NodePool
+    plural: nodepools
+    singular: nodepool
+    shortNames: ["np", "nps"]
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          required: ["spec"]
+          properties:
+            spec:
+              type: object
+              required: ["nodeSelector", "resources"]
+              properties:
+                # 节点选择器: 匹配哪些 Node 加入此池
+                nodeSelector:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: "节点标签选择器, 匹配的 Node 归入此池"
+                # 池标签: 注入到匹配的 Node 上
+                labels:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: "注入到匹配 Node 的标签"
+                # 池污点: 控制哪些 Pod 可以调度到此池
+                taints:
+                  type: array
+                  items:
+                    type: object
+                    required: ["key", "effect"]
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+                      effect:
+                        type: string
+                        enum: ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+                # 资源容量: 池内总资源
+                resources:
+                  type: object
+                  properties:
+                    nodeCount:
+                      type: object
+                      properties:
+                        min:
+                          type: integer
+                          minimum: 0
+                        max:
+                          type: integer
+                          minimum: 1
+                        current:
+                          type: integer
+                          minimum: 0
+                    cpu:
+                      type: string
+                    memory:
+                      type: string
+                    gpu:
+                      type: string
+                # 自动伸缩配置
+                autoscaling:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    minNodes:
+                      type: integer
+                      minimum: 0
+                    maxNodes:
+                      type: integer
+                      minimum: 1
+                    scaleDownUtilizationThreshold:
+                      type: number
+                      description: "节点资源利用率低于此值时缩容"
+                    scaleDownDelayAfterAdd:
+                      type: string
+                      description: "扩容后多久内不缩容"
+                    scaleDownUnneededTime:
+                      type: string
+                      description: "节点空闲多久后缩容"
+                # 独占隔离: dedicated=true 时只允许指定租户调度
+                dedicated:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    tenant:
+                      type: string
+                      description: "独占租户 ID"
+                # 池用途: 引擎类型
+                purpose:
+                  type: string
+                  enum: ["control-plane", "spark", "flink", "trino", "doris", "console", "general"]
+                  description: "节点池用途, 用于调度亲和"
+                # 云提供商 / 实例类型 (多环境适配)
+                provider:
+                  type: object
+                  properties:
+                    cloud:
+                      type: string
+                    instanceType:
+                      type: string
+                    zone:
+                      type: string
+            status:
+              type: object
+              properties:
+                readyNodes:
+                  type: integer
+                totalCPU:
+                  type: string
+                totalMemory:
+                  type: string
+                conditions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                      reason:
+                        type: string
+                      message:
+                        type: string
+      additionalPrinterColumns:
+        - name: Purpose
+          type: string
+          jsonPath: .spec.purpose
+        - name: Min
+          type: integer
+          jsonPath: .spec.autoscaling.minNodes
+        - name: Max
+          type: integer
+          jsonPath: .spec.autoscaling.maxNodes
+        - name: Ready
+          type: integer
+          jsonPath: .status.readyNodes
+        - name: Dedicated
+          type: string
+          jsonPath: .spec.dedicated.tenant
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+
+---
+# ---- 2. 示例: Spark 计算节点池 ----
+apiVersion: ske.shuqing.io/v1alpha1
+kind: NodePool
+metadata:
+  name: spark-compute-pool
+  labels:
+    app.kubernetes.io/part-of: shuqing-ske
+spec:
+  purpose: spark
+  nodeSelector:
+    node.ske.shuqing.io/pool: spark-compute
+  labels:
+    node.ske.shuqing.io/pool: spark-compute
+    node.ske.shuqing.io/engine: spark
+  taints:
+    - key: node.ske.shuqing.io/pool
+      value: spark-compute
+      effect: NoSchedule                     # 仅带对应 toleration 的 Spark Pod 调度
+  resources:
+    nodeCount:
+      min: 2
+      max: 50
+      current: 5
+    cpu: "64"
+    memory: "256Gi"
+  autoscaling:
+    enabled: true
+    minNodes: 2
+    maxNodes: 50
+    scaleDownUtilizationThreshold: 0.3
+    scaleDownDelayAfterAdd: "10m"
+    scaleDownUnneededTime: "30m"
+  provider:
+    cloud: onprem
+    instanceType: baremetal-64c256g
+    zone: zone-a
+
+---
+# ---- 3. 示例: Doris BE 数据节点池 (独占租户) ----
+apiVersion: ske.shuqing.io/v1alpha1
+kind: NodePool
+metadata:
+  name: doris-be-pool-tenant-a
+spec:
+  purpose: doris
+  nodeSelector:
+    node.ske.shuqing.io/pool: doris-be-tenant-a
+  labels:
+    node.ske.shuqing.io/pool: doris-be-tenant-a
+    node.ske.shuqing.io/engine: doris
+  taints:
+    - key: node.ske.shuqing.io/dedicated
+      value: tenant-a
+      effect: NoSchedule                     # 独占: 仅 tenant-a 的 Doris BE 调度
+  resources:
+    nodeCount:
+      min: 3
+      max: 15
+      current: 3
+    cpu: "32"
+    memory: "128Gi"
+  autoscaling:
+    enabled: true
+    minNodes: 3
+    maxNodes: 15
+    scaleDownUtilizationThreshold: 0.2
+    scaleDownDelayAfterAdd: "30m"
+    scaleDownUnneededTime: "60m"
+  dedicated:
+    enabled: true
+    tenant: tenant-a
+  provider:
+    cloud: onprem
+    instanceType: baremetal-32c128g-nvme
+    zone: zone-b
+
+---
+# ---- 4. 示例: 控制面节点池 (不自动伸缩) ----
+apiVersion: ske.shuqing.io/v1alpha1
+kind: NodePool
+metadata:
+  name: control-plane-pool
+spec:
+  purpose: control-plane
+  nodeSelector:
+    node-role.kubernetes.io/control-plane: ""
+  labels:
+    node.ske.shuqing.io/pool: control-plane
+  taints:
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+  resources:
+    nodeCount:
+      min: 3
+      max: 3
+      current: 3
+    cpu: "8"
+    memory: "32Gi"
+  autoscaling:
+    enabled: false                           # 控制面不自动伸缩
+  provider:
+    cloud: onprem
+    instanceType: baremetal-8c32g-nvme
+    zone: zone-a

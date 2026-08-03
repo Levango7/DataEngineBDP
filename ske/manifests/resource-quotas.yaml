@@ -1,0 +1,169 @@
+# 数擎云核 SKE · 资源配额模板 (按套餐分档 ResourceQuota + LimitRange)
+# 关联: 封装层 L1.6 (套餐 -> Namespace 配额映射) / scheduler-policy.yaml
+# 设计要点:
+#   - 基础版: 2C/4Gi/100Gi 存储/Pod 50 (小团队试用)
+#   - 标准版: 8C/16Gi/500Gi 存储/Pod 200 (中型团队生产)
+#   - 旗舰版: 32C/64Gi/2Ti 存储/Pod 500 (大型团队/AI 训练)
+#   - LimitRange: 默认 request/limit, 防 Pod 不设资源挤占
+#   - PVC 大小限制: 防单个 PVC 吃满存储
+#   - 由封装层在创建租户 Namespace 时按套餐注入对应 ResourceQuota
+
+# ---- 1. 基础版套餐: 2C/4Gi/100Gi/Pod 50 ----
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ske-quota-basic
+  namespace: sq-tenant-basic
+  labels:
+    sq.shuqing.io/tier: basic
+spec:
+  hard:
+    requests.cpu: "2"                        # 总 request CPU 2 核
+    requests.memory: 4Gi
+    limits.cpu: "4"                          # 总 limit CPU 4 核
+    limits.memory: 8Gi
+    pods: "50"                               # 最多 50 个 Pod
+    services: "10"
+    configmaps: "20"
+    secrets: "30"
+    persistentvolumeclaims: "10"             # 最多 10 个 PVC
+    requests.storage: "100Gi"               # 总存储 100Gi
+    count/jobs.batch: "20"                   # 最多 20 个 Job
+    count/cronjobs.batch: "10"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ske-limits-basic
+  namespace: sq-tenant-basic
+spec:
+  limits:
+    - type: Container
+      default:                              # 未设 limit 时的默认值
+        cpu: "500m"
+        memory: 512Mi
+      defaultRequest:                       # 未设 request 时的默认值
+        cpu: "100m"
+        memory: 128Mi
+      max:                                  # 单容器上限
+        cpu: "2"
+        memory: 4Gi
+      min:                                  # 单容器下限
+        cpu: "50m"
+        memory: 64Mi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 50Gi                       # 单 PVC 最大 50Gi
+      min:
+        storage: 1Gi
+
+---
+# ---- 2. 标准版套餐: 8C/16Gi/500Gi/Pod 200 ----
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ske-quota-standard
+  namespace: sq-tenant-standard
+  labels:
+    sq.shuqing.io/tier: standard
+spec:
+  hard:
+    requests.cpu: "8"
+    requests.memory: 16Gi
+    limits.cpu: "16"
+    limits.memory: 32Gi
+    pods: "200"
+    services: "30"
+    configmaps: "50"
+    secrets: "80"
+    persistentvolumeclaims: "50"
+    requests.storage: "500Gi"
+    count/jobs.batch: "100"
+    count/cronjobs.batch: "30"
+    # 大数据引擎 CR 配额
+    count/sparkapplications.sparkoperator.k8s.io: "50"
+    count/flinkdeployments.flink.apache.org: "20"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ske-limits-standard
+  namespace: sq-tenant-standard
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "1"
+        memory: 1Gi
+      defaultRequest:
+        cpu: "200m"
+        memory: 256Mi
+      max:
+        cpu: "8"
+        memory: 16Gi
+      min:
+        cpu: "50m"
+        memory: 64Mi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 200Gi
+      min:
+        storage: 1Gi
+
+---
+# ---- 3. 旗舰版套餐: 32C/64Gi/2Ti/Pod 500 ----
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: ske-quota-flagship
+  namespace: sq-tenant-flagship
+  labels:
+    sq.shuqing.io/tier: flagship
+spec:
+  hard:
+    requests.cpu: "32"
+    requests.memory: 64Gi
+    limits.cpu: "64"
+    limits.memory: 128Gi
+    pods: "500"
+    services: "50"
+    configmaps: "100"
+    secrets: "200"
+    persistentvolumeclaims: "200"
+    requests.storage: "2Ti"
+    count/jobs.batch: "300"
+    count/cronjobs.batch: "100"
+    count/sparkapplications.sparkoperator.k8s.io: "200"
+    count/flinkdeployments.flink.apache.org: "100"
+    # GPU 配额 (AI 训练场景)
+    requests.nvidia.com/gpu: "8"
+    limits.nvidia.com/gpu: "8"
+
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: ske-limits-flagship
+  namespace: sq-tenant-flagship
+spec:
+  limits:
+    - type: Container
+      default:
+        cpu: "2"
+        memory: 2Gi
+      defaultRequest:
+        cpu: "500m"
+        memory: 512Mi
+      max:
+        cpu: "32"
+        memory: 64Gi
+      min:
+        cpu: "100m"
+        memory: 128Mi
+    - type: PersistentVolumeClaim
+      max:
+        storage: 500Gi
+      min:
+        storage: 1Gi

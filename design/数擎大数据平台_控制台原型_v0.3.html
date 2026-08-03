@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数擎·大数据平台 控制台原型 v0.3</title>
+<style>
+  :root{
+    --bg:#f4f6f7; --panel:#ffffff; --ink:#232a2e; --muted:#717a80;
+    --line:#e4e8ea; --primary:#2f6f6a; --primary-soft:#e9f1f0;
+    --green:#2f9e6f; --amber:#c08a2e; --red:#c0504d;
+    --radius:10px; --shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+       background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5}
+  .app{display:grid;grid-template-columns:232px 1fr;height:100vh}
+  /* sidebar */
+  .side{background:#ffffff;color:var(--ink);display:flex;flex-direction:column;overflow-y:auto;border-right:1px solid var(--line)}
+  .brand{padding:15px 18px;font-size:15px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--line)}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--green)}
+  .nav{padding:8px 0;flex:1}
+  .nav .grp{font-size:10.5px;color:var(--muted);padding:12px 18px 4px;letter-spacing:.5px}
+  .nav a{display:flex;align-items:center;gap:9px;padding:8px 18px;color:#334155;cursor:pointer;
+         border-left:3px solid transparent;font-size:13px}
+  .nav a:hover{background:var(--primary-soft);color:var(--primary)}
+  .nav a.active{background:var(--primary-soft);color:var(--primary);border-left-color:var(--primary)}
+  .nav a .ic{width:17px;height:17px;flex:none;stroke:currentColor;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+  .nav a.active .ic{opacity:1}
+  .fic{width:14px;height:14px;flex:none;stroke:#94a3b8;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+  .play{width:13px;height:13px;fill:currentColor;vertical-align:-1px}
+  .nav a .badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;border-radius:10px;padding:1px 6px}
+  .side-foot{padding:10px 18px;border-top:1px solid var(--line);font-size:11px;color:var(--muted)}
+  /* main */
+  .main{display:flex;flex-direction:column;overflow:hidden}
+  .topbar{height:54px;background:var(--panel);border-bottom:1px solid var(--line);
+          display:flex;align-items:center;gap:14px;padding:0 20px}
+  .ws-switch{display:flex;align-items:center;gap:8px;background:var(--primary-soft);
+             color:var(--primary);padding:6px 12px;border-radius:8px;font-weight:600;cursor:pointer}
+  .topbar .spacer{flex:1}
+  .env-tag{font-size:12px;padding:4px 10px;border-radius:20px;background:#ecfdf5;color:var(--green);border:1px solid #a7f3d0}
+  .avatar{width:32px;height:32px;border-radius:50%;background:var(--primary);color:#fff;
+          display:flex;align-items:center;justify-content:center;font-weight:700}
+  .view{overflow-y:auto;padding:22px 26px;flex:1}
+  .view h1{font-size:20px;margin-bottom:3px}
+  .view .sub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .hidden{display:none}
+  /* cards */
+  .grid{display:grid;gap:14px}
+  .g4{grid-template-columns:repeat(4,1fr)} .g3{grid-template-columns:repeat(3,1fr)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .card h3{font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .card .act{margin-left:auto;font-size:12px;color:var(--primary);cursor:pointer}
+  .kpi{font-size:26px;font-weight:700}.kpi.s{font-size:18px}
+  .meta{color:var(--muted);font-size:12px}
+  .pill{display:inline-block;font-size:11px;padding:2px 9px;border-radius:20px;font-weight:600}
+  .pill.g{background:#ecfdf5;color:var(--green)} .pill.a{background:#fffbeb;color:var(--amber)}
+  .pill.r{background:#fef2f2;color:var(--red)} .pill.b{background:var(--primary-soft);color:var(--primary)}
+  .pill.p{background:var(--primary-soft);color:var(--primary)} .pill.c{background:#eafaf1;color:var(--green)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  tr:hover td{background:#fafafa} tr.click{cursor:pointer}
+  .btn{background:var(--primary);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;font-weight:600}
+  .btn.ghost{background:#fff;color:var(--primary);border:1px solid var(--primary)}
+  .btn.sm{padding:5px 10px;font-size:12px}.btn.danger{background:var(--red)}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .toolbar .spacer{flex:1}
+  input,select,textarea{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;width:100%}
+  label{font-size:12px;color:var(--muted);display:block;margin:10px 0 4px}
+  /* IDE */
+  .ide{display:grid;grid-template-columns:190px 1fr 220px;gap:0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;background:#fff}
+  .ide .tree{padding:10px;border-right:1px solid var(--line);background:#fafafa;font-size:12.5px;max-height:420px;overflow:auto}
+  .ide .tree div{padding:4px 7px;border-radius:6px;cursor:pointer;white-space:nowrap}
+  .ide .tree div:hover{background:#eef2ff}
+  .code-wrap{display:flex;flex-direction:column}
+  .tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);background:#f8fafc;font-size:12px}
+  .tabs .tab{padding:8px 12px;cursor:pointer;border-bottom:2px solid transparent;color:var(--muted)}
+  .tabs .tab.on{color:var(--primary);border-bottom-color:var(--primary);background:#fff;font-weight:600}
+  .tabs .tab .x{margin-left:6px;color:#cbd5e1}
+  .code{padding:12px;font-family:"SFMono-Regular",Consolas,monospace;font-size:12.5px;white-space:pre;color:#334155;min-height:200px}
+  .code .k{color:#7c3aed}.code .s{color:#16a34a}.code .c{color:#94a3b8}
+  .runlog{background:#0f172a;color:#cbd5e1;font-family:monospace;font-size:11.5px;padding:10px;height:120px;overflow:auto}
+  .runlog .ok{color:#4ade80}.runlog .info{color:#93c5fd}.runlog .warn{color:#fbbf24}
+  .params{padding:12px;border-left:1px solid var(--line);font-size:12.5px;background:#fafafa;max-height:420px;overflow:auto}
+  /* dag */
+  .dag{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:14px;background:#fafafa;border-radius:8px}
+  .node{background:#fff;border:1px solid var(--line);border-radius:8px;padding:7px 11px;font-size:12px;box-shadow:var(--shadow);cursor:pointer}
+  .node.act{border-color:var(--primary);color:var(--primary)} .arrow{color:var(--muted)}
+  /* lineage */
+  .lineage{display:flex;flex-direction:column;gap:14px;align-items:center;padding:10px}
+  .lvl{display:flex;gap:14px}.ln{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;font-size:12px;box-shadow:var(--shadow);cursor:pointer}
+  .ln.hot{border-color:var(--primary);color:var(--primary)} .ln.dim{opacity:.5}
+  /* bars */
+  .bar{height:8px;background:#eef2f7;border-radius:6px;overflow:hidden}
+  .bar > i{display:block;height:100%;background:var(--primary)} .bar > i.a{background:var(--amber)} .bar > i.r{background:var(--red)}
+  .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:13px}
+  .note{font-size:12px;color:var(--muted);margin-top:8px}
+  /* connector grid */
+  .conn-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+  .conn{border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer;background:#fff}
+  .conn:hover{border-color:var(--primary);box-shadow:var(--shadow)}
+  .conn .logo{width:40px;height:40px;border-radius:9px;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700;margin:0 auto 8px;font-size:16px}
+  /* drawer & modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;z-index:50}
+  .overlay.show{display:block}
+  .drawer{position:fixed;top:0;right:0;height:100vh;width:560px;max-width:92vw;background:#fff;box-shadow:-4px 0 20px rgba(0,0,0,.15);transform:translateX(100%);transition:transform .22s;z-index:60;display:flex;flex-direction:column}
+  .drawer.show{transform:translateX(0)}
+  .drawer .dh{padding:16px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px}
+  .drawer .dh .x{margin-left:auto;cursor:pointer;color:var(--muted);font-size:18px}
+  .drawer .db{padding:18px 20px;overflow-y:auto;flex:1}
+  .modal{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:520px;max-width:92vw;background:#fff;border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.25);z-index:60;display:none}
+  .modal.show{display:block}
+  .modal .mh{padding:16px 20px;border-bottom:1px solid var(--line);font-weight:700;font-size:15px;display:flex;align-items:center}
+  .modal .mh .x{margin-left:auto;cursor:pointer;color:var(--muted);font-size:18px}
+  .modal .mb{padding:18px 20px;max-height:64vh;overflow:auto}
+  .modal .mf{padding:14px 20px;border-top:1px solid var(--line);display:flex;gap:10px;justify-content:flex-end}
+  /* toast */
+  .toasts{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{background:#0f172a;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.25);animation:fade .3s}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  /* tabs generic */
+  .tabbar{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:14px}
+  .tabbar .t{padding:9px 16px;cursor:pointer;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+  .tabbar .t.on{color:var(--primary);border-bottom-color:var(--primary);font-weight:600}
+  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13px}
+  .kv span:first-child{color:var(--muted)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:11px;padding:3px 9px;border:1px solid var(--line);border-radius:20px;color:var(--muted)}
+  .chip.on{border-color:var(--primary);color:var(--primary);background:var(--primary-soft)}
+  .mini{height:46px;display:flex;align-items:flex-end;gap:3px}
+  .mini i{flex:1;background:var(--primary);border-radius:2px 2px 0 0;opacity:.8}
+  .legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px}
+  .section-title{font-size:13px;font-weight:700;color:var(--muted);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="side">
+    <div class="brand"><span class="dot"></span>数擎 · 大数据平台</div>
+    <nav class="nav" id="nav">
+      <div class="grp">基础设施</div>
+      <a data-view="infra-machine"><svg class="ic"><use href="#i-ws"/></svg>机器供应</a>
+      <a data-view="infra-k8s"><svg class="ic"><use href="#i-ops"/></svg>K8s 集群</a>
+      <a data-view="infra-net"><svg class="ic"><use href="#i-integrate"/></svg>容器网络</a>
+      <a data-view="infra-store"><svg class="ic"><use href="#i-folder"/></svg>容器存储</a>
+      <a data-view="infra-sched"><svg class="ic"><use href="#i-develop"/></svg>弹性调度</a>
+      <div class="grp">数据引擎</div>
+      <a data-view="eng-storage"><svg class="ic"><use href="#i-folder"/></svg>统一存储</a>
+      <a data-view="eng-spark"><svg class="ic"><use href="#i-develop"/></svg>批计算（Spark）</a>
+      <a data-view="eng-flink"><svg class="ic"><use href="#i-develop"/></svg>流计算（Flink）</a>
+      <a data-view="sql"><svg class="ic"><use href="#i-sql"/></svg>交互查询（Trino）</a>
+      <a data-view="eng-doris"><svg class="ic"><use href="#i-analyze"/></svg>OLAP（Doris）</a>
+      <a data-view="eng-kafka"><svg class="ic"><use href="#i-integrate"/></svg>消息流接入（Kafka）</a>
+      <a data-view="eng-iotdb"><svg class="ic"><use href="#i-ops"/></svg>时序引擎（IoTDB）</a>
+      <a data-view="eng-mmg"><svg class="ic"><use href="#i-vector"/></svg>多模型引擎</a>
+      <div class="grp">数据治理</div>
+      <a data-view="govern-meta"><svg class="ic"><use href="#i-standard"/></svg>元数据管理</a>
+      <a data-view="quality"><svg class="ic"><use href="#i-quality"/></svg>数据质量</a>
+      <a data-view="lineage"><svg class="ic"><use href="#i-lineage"/></svg>数据血缘</a>
+      <a data-view="govern"><svg class="ic"><use href="#i-govern"/></svg>资产目录</a>
+      <a data-view="standard"><svg class="ic"><use href="#i-standard"/></svg>主数据管理</a>
+      <a data-view="sec"><svg class="ic"><use href="#i-sec"/></svg>数据安全 <span class="badge">3</span></a>
+      <div class="grp">开发工具</div>
+      <a data-view="integrate"><svg class="ic"><use href="#i-integrate"/></svg>数据集成（SeaTunnel）</a>
+      <a data-view="dev-sched"><svg class="ic"><use href="#i-develop"/></svg>调度编排（DolphinScheduler）</a>
+      <a data-view="develop"><svg class="ic"><use href="#i-develop"/></svg>数据开发 IDE</a>
+      <a data-view="analyze"><svg class="ic"><use href="#i-analyze"/></svg>BI 可视化</a>
+      <a data-view="dev-tag"><svg class="ic"><use href="#i-vector"/></svg>标签画像</a>
+      <a data-view="dev-ml"><svg class="ic"><use href="#i-llmops"/></svg>机器学习</a>
+      <div class="grp">智能数据</div>
+      <a data-view="vector"><svg class="ic"><use href="#i-vector"/></svg>向量数据库</a>
+      <a data-view="kb"><svg class="ic"><use href="#i-kb"/></svg>知识工程</a>
+      <a data-view="llmops"><svg class="ic"><use href="#i-llmops"/></svg>LLMOps</a>
+      <a data-view="gateway"><svg class="ic"><use href="#i-gateway"/></svg>大模型接口</a>
+      <div class="grp">产品运营</div>
+      <a data-view="dashboard" class="active"><svg class="ic"><use href="#i-dash"/></svg>统一控制台</a>
+      <a data-view="admin"><svg class="ic"><use href="#i-admin"/></svg>运营后台</a>
+      <a data-view="ops-tpl"><svg class="ic"><use href="#i-proj"/></svg>行业应用模板</a>
+      <a data-view="ops-portal"><svg class="ic"><use href="#i-ws"/></svg>业务线门户</a>
+      <a data-view="ops-api"><svg class="ic"><use href="#i-gateway"/></svg>开放 API</a>
+      <a data-view="ops-flow"><svg class="ic"><use href="#i-govern"/></svg>数据资产流通</a>
+    </nav>
+    <div class="side-foot">原型 v0.3 · 客户无感知底座<br>自研 SKE 发行版 · 环境: 信创</div>
+  </aside>
+
+  <!-- ===================== MAIN ===================== -->
+  <section class="main">
+    <div class="topbar">
+      <div class="ws-switch">▾ 工作空间：华东生产集群</div>
+      <div class="spacer"></div>
+      <span class="env-tag">● 信创环境 · 健康</span>
+      <div class="avatar">租</div>
+    </div>
+    <div class="view" id="view">
+
+      <!-- ========== 工作台 ========== -->
+      <div data-pane="dashboard">
+        <h1>工作台</h1>
+        <div class="sub">租户：华东生产集群 ｜ 套餐：企业版 ｜ 本月资源消耗 62% ｜ <span class="pill b">待办 3</span></div>
+        <div class="grid g4">
+          <div class="card"><h3>数据项目</h3><div class="kpi">18</div><div class="meta">运行中 14 · 暂停 4</div></div>
+          <div class="card"><h3>调度作业</h3><div class="kpi">326</div><div class="meta">今日成功 312 · 失败 3</div></div>
+          <div class="card"><h3>存储用量</h3><div class="kpi s">486 TB</div><div class="meta">湖仓集一体</div></div>
+          <div class="card"><h3>数据资产</h3><div class="kpi s">2,140</div><div class="meta">表/主题/标签</div></div>
+        </div>
+        <div class="grid g2" style="margin-top:14px">
+          <div class="card">
+            <h3>资源趋势（近 7 日）</h3>
+            <div class="mini"><i style="height:40%"></i><i style="height:52%"></i><i style="height:48%"></i><i style="height:63%"></i><i style="height:58%"></i><i style="height:71%"></i><i style="height:66%"></i></div>
+            <div class="row" style="margin-top:10px"><span>CPU</span><span>58%</span></div><div class="bar"><i style="width:58%"></i></div>
+            <div class="row" style="margin-top:8px"><span>内存</span><span>71%</span></div><div class="bar"><i class="a" style="width:71%"></i></div>
+            <div class="note">超 80% 自动扩容，客户无感知。</div>
+          </div>
+          <div class="card">
+            <h3>待办审批 <span class="pill r">3</span></h3>
+            <table>
+              <tr><th>申请</th><th>申请人</th><th></th></tr>
+              <tr class="todo"><td>资产 dwd.order_wide 读权限</td><td>李工</td><td><button class="btn sm" onclick="approve(this)">批准</button> <button class="btn ghost sm" onclick="reject(this)">驳回</button></td></tr>
+              <tr class="todo"><td>项目「风控域」成员新增</td><td>王工</td><td><button class="btn sm" onclick="approve(this)">批准</button> <button class="btn ghost sm" onclick="reject(this)">驳回</button></td></tr>
+              <tr class="todo"><td>工作空间配额升级</td><td>赵工</td><td><button class="btn sm" onclick="approve(this)">批准</button> <button class="btn ghost sm" onclick="reject(this)">驳回</button></td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px">
+          <h3>快捷入口</h3>
+          <div class="chips">
+            <span class="chip on" onclick="goto('develop')">新建作业</span>
+            <span class="chip" onclick="goto('integrate')">配置同步</span>
+            <span class="chip" onclick="goto('govern')">登记资产</span>
+            <span class="chip" onclick="goto('llmops')">训练模型</span>
+            <span class="chip" onclick="goto('analyze')">建看板</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========== 工作空间 ========== -->
+      <div data-pane="workspaces" class="hidden">
+        <h1>工作空间</h1>
+        <div class="sub">顶层隔离边界，底层基于自研 SKE 发行版自动映射为 Namespace + 配额 + 网络策略，客户无需关心容器与编排。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-ws')">+ 新建工作空间</button><input style="width:220px" placeholder="搜索…"><div class="spacer"></div><span class="pill b">配额独立</span><span class="pill p">网络隔离</span></div>
+        <div class="grid g3">
+          <div class="card"><div class="row"><b>华东生产集群</b><span class="pill g">运行中</span></div><div class="meta">企业版 · 外部客户A</div>
+            <div class="row" style="margin-top:8px"><span>CPU 58%</span><span>内存 71%</span></div><div class="bar"><i style="width:58%"></i></div>
+            <button class="btn ghost sm" style="margin-top:10px" onclick="drawer('d-ws1')">查看详情</button></div>
+          <div class="card"><div class="row"><b>华北测试集群</b><span class="pill a">受限</span></div><div class="meta">标准版 · 外部客户A</div>
+            <div class="row" style="margin-top:8px"><span>CPU 22%</span><span>内存 30%</span></div><div class="bar"><i style="width:22%"></i></div>
+            <button class="btn ghost sm" style="margin-top:10px" onclick="drawer('d-ws1')">查看详情</button></div>
+          <div class="card"><div class="row"><b>内部数据中枢</b><span class="pill g">运行中</span></div><div class="meta">内部无限 · 内部业务线</div>
+            <div class="row" style="margin-top:8px"><span>CPU 64%</span><span>内存 55%</span></div><div class="bar"><i style="width:64%"></i></div>
+            <button class="btn ghost sm" style="margin-top:10px" onclick="drawer('d-ws1')">查看详情</button></div>
+        </div>
+      </div>
+
+      <!-- ========== 数据项目 ========== -->
+      <div data-pane="projects" class="hidden">
+        <h1>数据项目</h1>
+        <div class="sub">工作空间：华东生产集群 ｜ 项目是数据加工与消费的组织单元。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-proj')">+ 新建项目</button><select><option>全部状态</option></select><div class="spacer"></div><input style="width:200px" placeholder="搜索项目…"></div>
+        <div class="card"><table>
+          <tr><th>项目</th><th>域</th><th>数据集</th><th>作业</th><th>负责人</th><th>状态</th></tr>
+          <tr class="click" onclick="drawer('d-proj')"><td>交易域</td><td>核心</td><td>42</td><td>88</td><td>张工</td><td><span class="pill g">运行中</span></td></tr>
+          <tr class="click" onclick="drawer('d-proj')"><td>营销域</td><td>增长</td><td>31</td><td>54</td><td>李工</td><td><span class="pill g">运行中</span></td></tr>
+          <tr class="click" onclick="drawer('d-proj')"><td>风控域</td><td>安全</td><td>18</td><td>37</td><td>王工</td><td><span class="pill a">运行中</span></td></tr>
+          <tr class="click" onclick="drawer('d-proj')"><td>财务域</td><td>财经</td><td>12</td><td>21</td><td>赵工</td><td><span class="pill r">异常</span></td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 数据集成 ========== -->
+      <div data-pane="integrate" class="hidden">
+        <h1>数据集成</h1>
+        <div class="sub">基于 SeaTunnel 可视化配置异构数据源同步至湖仓集一体存储，支持批流一体，无需搬运代码。</div>
+        <div class="section-title">数据源连接器</div>
+        <div class="conn-grid">
+          <div class="conn" onclick="toast('已连通 MySQL')"><div class="logo">My</div>MySQL<span class="pill g" style="display:block;margin-top:6px">已连通</span></div>
+          <div class="conn" onclick="toast('已连通 Oracle')"><div class="logo">Or</div>Oracle<span class="pill g" style="display:block;margin-top:6px">已连通</span></div>
+          <div class="conn" onclick="toast('已连通 Kafka')"><div class="logo">Ka</div>Kafka<span class="pill g" style="display:block;margin-top:6px">已连通</span></div>
+          <div class="conn" onclick="modal('m-src')"><div class="logo">+</div>新增源<span class="pill a" style="display:block;margin-top:6px">待配置</span></div>
+          <div class="conn" onclick="toast('HDFS 已注册')"><div class="logo">Hd</div>HDFS<span class="pill g" style="display:block;margin-top:6px">已连通</span></div>
+          <div class="conn" onclick="toast('API 待授权')"><div class="logo">API</div>REST API<span class="pill a" style="display:block;margin-top:6px">待授权</span></div>
+        </div>
+        <div class="toolbar" style="margin-top:16px"><button class="btn sm" onclick="modal('m-sync')">+ 新建同步任务</button><div class="spacer"></div><span class="pill b">批流一体</span></div>
+        <div class="card"><table>
+          <tr><th>任务</th><th>源→目标</th><th>模式</th><th>状态</th><th>最近运行</th></tr>
+          <tr><td>订单全量</td><td>MySQL → Iceberg</td><td>批</td><td><span class="pill g">成功</span></td><td>04:00 · 12m</td></tr>
+          <tr><td>点击流CDC</td><td>Kafka → Doris</td><td>流</td><td><span class="pill a">运行中</span></td><td>持续</td></tr>
+          <tr><td>台账增量</td><td>Oracle → Iceberg</td><td>批</td><td><span class="pill g">成功</span></td><td>05:10 · 8m</td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 数据开发 IDE ========== -->
+      <div data-pane="develop" class="hidden">
+        <h1>数据开发</h1>
+        <div class="sub">Web IDE 编写 SQL / 配置 DAG，提交即由 DolphinScheduler 调度运行；底层 Pod 由 Spark/Flink Operator 托管，客户不可见。</div>
+        <div class="toolbar"><span class="chip on" onclick="toast('已切换：开发环境')">开发环境</span><span class="chip" onclick="toast('已切换：生产环境（独立配额与数据隔离）')">生产环境</span><div class="spacer"></div><span class="pill b">标准模式 · 双环境隔离</span></div>
+        <div class="ide">
+          <div class="tree">
+            <div><svg class="fic"><use href="#i-folder"/></svg> 交易域</div>
+            <div style="padding-left:12px">▾ ods</div>
+            <div style="padding-left:24px">orders.sql</div>
+            <div style="padding-left:24px">pay.sql</div>
+            <div style="padding-left:12px">▾ dwd</div>
+            <div style="padding-left:24px;background:#eef2ff;border-radius:5px">order_wide.sql</div>
+            <div style="padding-left:24px">user_city.sql</div>
+            <div><svg class="fic"><use href="#i-folder"/></svg> 营销域</div>
+            <div style="padding-left:12px">tag_calc.py</div>
+            <div><svg class="fic"><use href="#i-folder"/></svg> 调度</div>
+            <div style="padding-left:12px">daily_dag.dag</div>
+          </div>
+          <div class="code-wrap">
+            <div class="tabs">
+              <div class="tab on">order_wide.sql <span class="x">×</span></div>
+              <div class="tab">user_city.sql <span class="x">×</span></div>
+              <div class="tab">+ 新建</div>
+            </div>
+            <div class="code"><span class="c">-- 订单宽表（湖仓集一体：写 Iceberg，物化至 Doris 在线服务）</span>
+<span class="k">INSERT</span> <span class="k">OVERWRITE</span> dwd.order_wide
+<span class="k">SELECT</span> o.order_id, o.user_id, u.city, p.amount
+<span class="k">FROM</span> ods.orders o
+<span class="k">JOIN</span> dim.user u <span class="k">ON</span> o.user_id = u.user_id
+<span class="k">JOIN</span> dws.pay p <span class="k">ON</span> o.order_id = p.order_id
+<span class="k">WHERE</span> o.dt = <span class="s">'${bizdate}'</span>;</div>
+            <div class="runlog" id="runlog"><span class="info">[就绪] 点击「运行」提交至封装层调度…</span></div>
+          </div>
+          <div class="params">
+            <h3 style="font-size:13px;margin-bottom:8px">运行参数</h3>
+            <label>引擎</label><select><option>Spark SQL</option><option>Flink SQL</option><option>Trino</option></select>
+            <label>CPU / 内存</label><div class="row"><span>4 核</span><span>16 GB</span></div>
+            <label>并发度</label><input value="8">
+            <label>调度</label><select><option>手动</option><option>每日 04:00</option><option>Cron</option></select>
+            <button class="btn" style="width:100%;margin-top:12px" onclick="runJob()"><svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z"/></svg> 运行</button>
+            <button class="btn ghost" style="width:100%;margin-top:8px" onclick="toast('已提交调度')">提交调度</button>
+            <div class="note">资源请求受工作空间 Quota 约束，超额自动排队或扩容。</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px"><h3>任务 DAG（自动生成）</h3>
+          <div class="dag"><div class="node">ods.orders</div><span class="arrow">→</span><div class="node">ods.pay</div><span class="arrow">→</span><div class="node act" onclick="toast('高亮节点：dwd.order_wide')">dwd.order_wide</div><span class="arrow">→</span><div class="node">ADS 报表</div><span class="arrow">→</span><div class="node">Doris 在线</div></div>
+        </div>
+      </div>
+
+      <!-- ========== 统一 SQL ========== -->
+      <div data-pane="sql" class="hidden">
+        <h1>统一 SQL 查询</h1>
+        <div class="sub">单一入口跨 Doris / Trino / Iceberg 联邦查询，Trino 作为统一 SQL 网关，底层引擎对客户透明。</div>
+        <div class="ide" style="grid-template-columns:1fr 240px">
+          <div class="code-wrap">
+            <div class="tabs"><div class="tab on">联邦查询</div><div class="tab">+ 新查询</div></div>
+<div class="code"><span class="c">-- 跨引擎联邦：Iceberg 明细 + Doris 维表</span>
+<span class="k">SELECT</span> u.city, <span class="k">SUM</span>(p.amount) gmv
+<span class="k">FROM</span> iceberg.ods.orders o
+<span class="k">JOIN</span> doris.dim.user u <span class="k">ON</span> o.user_id = u.user_id
+<span class="k">GROUP BY</span> u.city <span class="k">ORDER BY</span> gmv <span class="k">DESC</span>;</div>
+            <div class="runlog" id="sqllog"><span class="info">[就绪] 点击「执行」经统一 SQL 网关路由…</span></div>
+          </div>
+          <div class="params">
+            <h3 style="font-size:13px">查询配置</h3>
+            <label>路由引擎</label><select><option>网关自动</option><option>Trino</option><option>Doris</option></select>
+            <label>超时(s)</label><input value="120">
+            <div class="chips" style="margin-top:10px"><span class="chip on">iceberg</span><span class="chip on">doris</span><span class="chip">kafka</span></div>
+            <label>AI 辅助（自然语言 → SQL）</label>
+            <div style="display:flex;gap:6px"><input placeholder="如：各城市 GMV 排名" style="flex:1"><button class="btn ghost sm" onclick="toast('已生成 SQL（mock）')">生成</button></div>
+            <button class="btn" style="width:100%;margin-top:12px" onclick="runSql()"><svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z"/></svg> 执行</button>
+            <div class="note">网关自动选择最优引擎并下推，客户只见结果。</div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:14px"><h3>结果预览</h3>
+          <table><tr><th>city</th><th>gmv</th></tr><tr><td>上海</td><td>4.82亿</td></tr><tr><td>北京</td><td>4.31亿</td></tr><tr><td>深圳</td><td>3.77亿</td></tr><tr><td>成都</td><td>2.95亿</td></tr></table>
+          <div class="note">实际执行后由网关回填结果集与耗时/扫描量指标。</div>
+        </div>
+      </div>
+
+      <!-- ========== 资产目录 ========== -->
+      <div data-pane="govern" class="hidden">
+        <h1>资产目录</h1>
+        <div class="sub">统一检索、申请、订阅数据资产；血缘、质量、脱敏策略随资产沉淀。</div>
+        <div class="toolbar"><input style="width:280px" placeholder="搜索表 / 主题 / 标签…"><select><option>全部分层</option></select><div class="spacer"></div><button class="btn sm" onclick="modal('m-asset')">+ 登记资产</button></div>
+        <div class="card"><table>
+          <tr><th>资产名</th><th>分层</th><th>负责人</th><th>质量分</th><th>敏感</th><th></th></tr>
+          <tr class="click" onclick="drawer('d-asset')"><td>dwd.order_wide</td><td>DWD</td><td>张工</td><td>96</td><td><span class="pill r">PII</span></td><td><span class="pill b">详情</span></td></tr>
+          <tr class="click" onclick="drawer('d-asset')"><td>ads.user_profile</td><td>ADS</td><td>李工</td><td>91</td><td><span class="pill a">受限</span></td><td><span class="pill b">详情</span></td></tr>
+          <tr class="click" onclick="drawer('d-asset')"><td>dws.pay_summary</td><td>DWS</td><td>赵工</td><td>88</td><td><span class="pill g">无</span></td><td><span class="pill b">详情</span></td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 数据标准 ========== -->
+      <div data-pane="standard" class="hidden">
+        <h1>数据标准</h1>
+        <div class="sub">统一字段命名、类型、码值，治理前置，避免"同义不同名"。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-std')">+ 新建标准</button><div class="spacer"></div><span class="pill b">已落标 78%</span></div>
+        <div class="card"><table>
+          <tr><th>标准项</th><th>类型</th><th>码值/规则</th><th>引用资产</th></tr>
+          <tr><td>user_id</td><td>主键</td><td>bigint, 非空</td><td>42</td></tr>
+          <tr><td>order_status</td><td>枚举</td><td>待支付/已支付/已发货/已完成/退款</td><td>18</td></tr>
+          <tr><td>city_code</td><td>字典</td><td>GB/T 2260</td><td>31</td></tr>
+          <tr><td>amount</td><td>金额</td><td>decimal(18,2), ≥0</td><td>55</td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 数据质量 ========== -->
+      <div data-pane="quality" class="hidden">
+        <h1>数据质量</h1>
+        <div class="sub">规则配置即校验，异常自动阻断下游并告警，保障湖仓集数据可信。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-qrule')">+ 新建规则</button><div class="spacer"></div><span class="pill g">通过率 94%</span></div>
+        <div class="card"><table>
+          <tr><th>规则</th><th>对象</th><th>校验</th><th>阈值</th><th>最近</th><th>状态</th></tr>
+          <tr><td>订单ID非空</td><td>dwd.order_wide</td><td>非空</td><td>100%</td><td>04:00</td><td><span class="pill g">通过</span></td></tr>
+          <tr><td>金额非负</td><td>dws.pay_summary</td><td>范围</td><td>≥0</td><td>04:05</td><td><span class="pill g">通过</span></td></tr>
+          <tr><td>用户数波动</td><td>ads.user_profile</td><td>波动</td><td>±15%</td><td>04:10</td><td><span class="pill r">告警</span></td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 血缘 ========== -->
+      <div data-pane="lineage" class="hidden">
+        <h1>血缘分析</h1>
+        <div class="sub">端到端自动采集字段级血缘；影响分析一键追溯。当前高亮：dwd.order_wide</div>
+        <div class="legend"><span style="color:#8a9ba0">■ 上游</span><span style="color:var(--primary)">■ 当前</span><span style="color:var(--green)">■ 下游</span><span style="color:#94a3b8">□ 弱化</span></div>
+        <div class="card"><div class="lineage">
+          <div class="lvl"><div class="ln">ods.orders</div><div class="ln">ods.pay</div><div class="ln">dim.user</div></div>
+          <div class="lvl"><div class="ln hot" onclick="toast('当前节点 dwd.order_wide')">dwd.order_wide</div></div>
+          <div class="lvl"><div class="ln">ads.订单看板</div><div class="ln">dws.用户复购</div></div>
+          <div class="lvl"><div class="ln">Doris 在线</div><div class="ln">BI 报表</div></div>
+        </div></div>
+      </div>
+
+      <!-- ========== 安全脱敏 ========== -->
+      <div data-pane="sec" class="hidden">
+        <h1>安全脱敏</h1>
+        <div class="sub">字段级脱敏策略 + 权限申请审批流；密评合规（国密可插拔）。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-mask')">+ 新建脱敏策略</button><div class="spacer"></div><span class="pill r">3 待审批</span></div>
+        <div class="card"><table>
+          <tr><th>字段</th><th>所属资产</th><th>策略</th><th>算法</th><th>状态</th></tr>
+          <tr><td>user_phone</td><td>dim.user</td><td>掩码</td><td>138****8000</td><td><span class="pill g">生效</span></td></tr>
+          <tr><td>id_card</td><td>dwd.order_wide</td><td>哈希</td><td>SM3</td><td><span class="pill g">生效</span></td></tr>
+          <tr><td>real_name</td><td>ads.user_profile</td><td>脱敏</td><td>仅授权可见</td><td><span class="pill a">待审批</span></td></tr>
+        </table></div>
+        <div class="section-title">权限申请审批流</div>
+        <div class="card"><table>
+          <tr><th>申请人</th><th>资产</th><th>权限</th><th></th></tr>
+          <tr><td>李工</td><td>dwd.order_wide</td><td>读</td><td><button class="btn sm" onclick="approve(this)">批准</button> <button class="btn ghost sm" onclick="reject(this)">驳回</button></td></tr>
+          <tr><td>王工</td><td>风控域</td><td>写</td><td><button class="btn sm" onclick="approve(this)">批准</button> <button class="btn ghost sm" onclick="reject(this)">驳回</button></td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 向量库 ========== -->
+      <div data-pane="vector" class="hidden">
+        <h1>向量库</h1>
+        <div class="sub">L4.5 智能数据层 · 基于 Milvus 统一管理 embedding 集合，支撑语义检索与 RAG。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-vec')">+ 新建集合</button><div class="spacer"></div>
+          <input style="width:260px" placeholder="相似度检索：输入查询文本…" onkeydown="if(event.key==='Enter')toast('检索 top5 结果已返回')"></div>
+        <div class="card"><table>
+          <tr><th>集合</th><th>维度</th><th>条数</th><th>索引</th><th>关联知识库</th></tr>
+          <tr><td>product_embed</td><td>1536</td><td>1.2M</td><td>HNSW</td><td>商品知识库</td></tr>
+          <tr><td>doc_chunk</td><td>768</td><td>860K</td><td>IVF_PQ</td><td>制度文档库</td></tr>
+          <tr><td>user_vec</td><td>512</td><td>3.4M</td><td>HNSW</td><td>用户画像库</td></tr>
+        </table></div>
+      </div>
+
+      <!-- ========== 知识工程 ========== -->
+      <div data-pane="kb" class="hidden">
+        <h1>知识工程</h1>
+        <div class="sub">L4.5 · 文档入库 → 切片 → 向量化 → RAG 策略配置，构建企业级知识底座。</div>
+        <div class="toolbar"><button class="btn sm" onclick="toast('已触发文档解析（mock）')">⬆ 上传文档</button><div class="spacer"></div><span class="pill c">RAG 已启用</span></div>
+        <div class="card"><table>
+          <tr><th>知识库</th><th>文档数</th><th>切片策略</th><th>检索</th><th>状态</th></tr>
+          <tr><td>商品知识库</td><td>1,204</td><td>按段落 512</td><td>混合(向量+关键词)</td><td><span class="pill g">就绪</span></td></tr>
+          <tr><td>制度文档库</td><td>356</td><td>按标题 256</td><td>向量</td><td><span class="pill g">就绪</span></td></tr>
+          <tr><td>客服话术库</td><td>89</td><td>按轮次</td><td>向量</td><td><span class="pill a">构建中</span></td></tr>
+        </table></div>
+        <div class="card" style="margin-top:14px"><h3>RAG 策略</h3>
+          <div class="kv"><span>检索 TopK</span><span>5</span></div>
+          <div class="kv"><span>分数阈值</span><span>0.78</span></div>
+          <div class="kv"><span>重排模型</span><span>bge-reranker（自托管）</span></div>
+          <div class="kv"><span>引用溯源</span><span>开启</span></div>
+        </div>
+      </div>
+
+      <!-- ========== LLMOps ========== -->
+      <div data-pane="llmops" class="hidden">
+        <h1>LLMOps</h1>
+        <div class="sub">L4.5 · 从微调、评估到部署的一体化大模型运营；基座模型与领域模型统一纳管。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-ft')">+ 新建微调任务</button><div class="spacer"></div><span class="pill p">2 个部署端点</span></div>
+        <div class="card"><h3>模型注册表</h3><table>
+          <tr><th>模型</th><th>类型</th><th>基座</th><th>状态</th><th>端点</th></tr>
+          <tr><td>qiong-7B</td><td>基座</td><td>—</td><td><span class="pill g">已部署</span></td><td>/v1/qiong-7b</td></tr>
+          <tr><td>风控-领域-1.3B</td><td>微调</td><td>qiong-7B</td><td><span class="pill g">已部署</span></td><td>/v1/risk-1.3b</td></tr>
+          <tr><td>营销-领域-3B</td><td>微调</td><td>qiong-7B</td><td><span class="pill a">训练中</span></td><td>—</td></tr>
+        </table></div>
+        <div class="card" style="margin-top:14px"><h3>评估</h3>
+          <div class="kv"><span>营销-领域-3B / 准确率</span><span>0.86</span></div>
+          <div class="kv"><span>营销-领域-3B / 幻觉率</span><span>4.2%</span></div>
+          <div class="kv"><span>对比基座提升</span><span>+11.3pt</span></div>
+          <button class="btn ghost sm" style="margin-top:8px" onclick="toast('已发起人工评估任务')">发起人工评估</button>
+        </div>
+      </div>
+
+      <!-- ========== 大模型网关 ========== -->
+      <div data-pane="gateway" class="hidden">
+        <h1>大模型网关</h1>
+        <div class="sub">L4.5 · 统一 API 入口，路由多模型、限流、计费、审计，屏蔽底层部署差异。</div>
+        <div class="grid g4">
+          <div class="card"><h3>今日调用</h3><div class="kpi s">128K</div><div class="meta">请求数</div></div>
+          <div class="card"><h3>平均时延</h3><div class="kpi s">320ms</div></div>
+          <div class="card"><h3>成功率</h3><div class="kpi s">99.6%</div></div>
+          <div class="card"><h3>活跃 Key</h3><div class="kpi s">14</div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><h3>API Key 与路由</h3>
+          <table><tr><th>Key 名称</th><th>路由模型</th><th>限流</th><th>状态</th></tr>
+          <tr><td>prod-portal</td><td>qiong-7B</td><td>100/s</td><td><span class="pill g">启用</span></td></tr>
+          <tr><td>risk-svc</td><td>风控-领域-1.3B</td><td>50/s</td><td><span class="pill g">启用</span></td></tr>
+          <tr><td>mkt-exp</td><td>营销-领域-3B</td><td>20/s</td><td><span class="pill a">待上线</span></td></tr></table>
+          <button class="btn ghost sm" style="margin-top:8px" onclick="modal('m-key')">+ 新建 Key</button>
+        </div>
+      </div>
+
+      <!-- ========== BI 分析 ========== -->
+      <div data-pane="analyze" class="hidden">
+        <h1>BI 分析</h1>
+        <div class="sub">基于 Superset + ECharts 拖拽式构建看板，查询经统一 SQL 网关跨湖仓集联邦，客户无感知底层引擎。</div>
+        <div class="toolbar"><button class="btn sm" onclick="modal('m-board')">+ 新建看板</button><div class="spacer"></div><span class="pill b">统一 SQL 网关</span></div>
+        <div class="grid g3">
+          <div class="card"><h3>GMV 趋势</h3><div style="height:110px;display:flex;align-items:flex-end;gap:6px"><i style="flex:1;background:var(--primary);height:40%"></i><i style="flex:1;background:var(--primary);height:62%"></i><i style="flex:1;background:var(--primary);height:55%"></i><i style="flex:1;background:var(--primary);height:78%"></i><i style="flex:1;background:var(--primary);height:70%"></i><i style="flex:1;background:var(--primary);height:90%"></i></div><div class="meta" style="margin-top:8px">近 6 月 · 亿元</div></div>
+          <div class="card"><h3>渠道占比</h3><div style="height:110px;display:flex;align-items:center;justify-content:center"><div style="width:90px;height:90px;border-radius:50%;background:conic-gradient(var(--primary) 0 45%,var(--amber) 45% 70%,#cdd5d8 70% 100%)"></div></div><div class="meta" style="margin-top:8px">App 45% · 小程序 25% · 其他 30%</div></div>
+          <div class="card"><h3>实时指标</h3><div class="kpi s">1,284 <span class="meta">笔/分</span></div><div class="meta" style="margin-top:8px">流计算结果 · 延迟 &lt; 2s</div><button class="btn ghost sm" style="margin-top:10px" onclick="toast('已打开组件库（mock）')">编辑组件</button></div>
+        </div>
+      </div>
+
+      <!-- ========== 运维中心 ========== -->
+      <div data-pane="ops" class="hidden">
+        <h1>运维中心</h1>
+        <div class="sub">客户视角运行态监控；底层自研 SKE 发行版自愈、扩容对客户透明。</div>
+        <div class="grid g4">
+          <div class="card"><h3>集群健康</h3><div class="kpi s"><span class="pill g">健康</span></div></div>
+          <div class="card"><h3>运行作业</h3><div class="kpi">326</div></div>
+          <div class="card"><h3>今日失败</h3><div class="kpi s">3</div></div>
+          <div class="card"><h3>平均延迟</h3><div class="kpi s">1.8s</div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><h3>作业监控</h3>
+          <table><tr><th>作业</th><th>类型</th><th>运行时长</th><th>状态</th><th></th></tr>
+          <tr><td>实时风控流</td><td>流(Flink)</td><td>持续</td><td><span class="pill a">运行中</span></td><td><button class="btn ghost sm" onclick="drawer('d-log')">日志</button></td></tr>
+          <tr><td>日汇总DAG</td><td>批(Spark)</td><td>12m</td><td><span class="pill g">成功</span></td><td><button class="btn ghost sm" onclick="drawer('d-log')">日志</button></td></tr>
+          <tr><td>报表T+1</td><td>批(Spark)</td><td>0m48s</td><td><span class="pill r">失败</span></td><td><button class="btn ghost sm" onclick="drawer('d-log')">日志</button></td></tr>
+        </table></div>
+        <div class="card" style="margin-top:14px"><h3>告警 <span class="pill r">2</span></h3>
+          <table><tr><th>告警</th><th>级别</th><th></th></tr>
+          <tr><td>内存水位 71% 接近阈值</td><td><span class="pill a">警告</span></td><td><button class="btn sm" onclick="toast('已确认并派单')">处理</button></td></tr>
+          <tr><td>报表T+1 作业失败</td><td><span class="pill r">严重</span></td><td><button class="btn sm" onclick="toast('已触发重跑')">处理</button></td></tr></table></div>
+      </div>
+
+      <!-- ========== 账户与配额 ========== -->
+      <div data-pane="account" class="hidden">
+        <h1>账户与配额</h1>
+        <div class="sub">套餐即容量边界；超额自动扩容或升级套餐，费用清晰可核算。</div>
+        <div class="card"><h3>当前套餐：企业版</h3>
+          <div class="row"><span>CPU 配额</span><span>800 核 / 已用 464</span></div><div class="bar"><i style="width:58%"></i></div>
+          <div class="row" style="margin-top:12px"><span>内存配额</span><span>3 TB / 已用 2.1</span></div><div class="bar"><i class="a" style="width:71%"></i></div>
+          <div class="row" style="margin-top:12px"><span>存储配额</span><span>1 PB / 已用 486 TB</span></div><div class="bar"><i style="width:43%"></i></div>
+          <button class="btn ghost sm" style="margin-top:10px" onclick="modal('m-upgrade')">升级套餐</button>
+        </div>
+        <div class="card" style="margin-top:14px"><h3>本月计费明细</h3>
+          <table><tr><th>项</th><th>用量</th><th>费用</th></tr>
+          <tr><td>计算(CPU·时)</td><td>38,400</td><td>¥ 19,200</td></tr>
+          <tr><td>存储(TB·月)</td><td>486</td><td>¥ 9,720</td></tr>
+          <tr><td>调用(API·万)</td><td>1,280</td><td>¥ 6,400</td></tr>
+          <tr><td><b>合计</b></td><td></td><td><b>¥ 35,320</b></td></tr></table>
+          <div class="note">套餐由 ResourceQuota + 节点池租约实现，与 SKE 发行版解耦，客户仅见套餐概念。</div>
+        </div>
+      </div>
+
+      <!-- ========== 运营后台 ========== -->
+      <div data-pane="admin" class="hidden">
+        <h1>运营后台（平台侧）</h1>
+        <div class="sub">仅平台运维可见；租户、计量、底座运维与多环境管理。</div>
+        <div class="grid g4">
+          <div class="card"><h3>租户总数</h3><div class="kpi">27</div><div class="meta">外部 19 · 内部 8</div></div>
+          <div class="card"><h3>集群实例</h3><div class="kpi">34</div><div class="meta">信创 12 · 本地 9 · 云VM 13</div></div>
+          <div class="card"><h3>本月营收</h3><div class="kpi s">¥ 4.2M</div></div>
+          <div class="card"><h3>底座告警</h3><div class="kpi s">2</div><div class="meta">已自动处置 2</div></div>
+        </div>
+        <div class="card" style="margin-top:14px"><h3>环境矩阵</h3>
+          <table><tr><th>环境</th><th>Namespace</th><th>节点</th><th>控制面</th><th>状态</th></tr>
+          <tr><td>信创-华东</td><td>19</td><td>64</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
+          <tr><td>本地-华北</td><td>11</td><td>40</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
+          <tr><td>云VM-华南</td><td>14</td><td>52</td><td>HA 3</td><td><span class="pill a">扩容中</span></td></tr></table>
+          <div class="note">此处为平台运维视图，印证「自研 SKE 发行版封装层」将底层复杂度对客屏蔽；客户控制台仅见工作空间/项目/配额。</div>
+        </div>
+      </div>
+
+      <!-- ========== 规划中模块占位 ========== -->
+      <div data-pane="roadmap" class="hidden">
+        <h1>模块规划中</h1>
+        <div class="sub">该模块已纳入产品规划，敬请期待。详见产品设计 §3.3 模块状态表。</div>
+        <div class="card">
+          <h3>规划说明</h3>
+          <div class="kv"><span>所属层级</span><span>见 §3.3 模块状态表</span></div>
+          <div class="kv"><span>交付状态</span><span><span class="pill a">规划中</span></span></div>
+          <div class="kv"><span>技术选型</span><span>见 §5.5 选型决策</span></div>
+          <div class="note">本页面为控制台原型 v0.3 占位视图，后续迭代将补充完整交互。</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- ===================== DRAWERS ===================== -->
+<div class="overlay" id="ov" onclick="if(event.target===this)closeAll()"></div>
+
+<div class="drawer" id="d-ws1">
+  <div class="dh">工作空间：华东生产集群 <span class="pill g">运行中</span><span class="x" onclick="closeAll()">×</span></div>
+  <div class="db">
+    <div class="tabbar"><div class="t on" onclick="tab(this)">概览</div><div class="t" onclick="tab(this)">成员</div><div class="t" onclick="tab(this)">配额</div><div class="t" onclick="tab(this)">项目</div></div>
+    <div class="tabpane">
+      <div class="kv"><span>租户</span><span>外部客户A</span></div>
+      <div class="kv"><span>套餐</span><span>企业版</span></div>
+      <div class="kv"><span>环境</span><span>信创</span></div>
+      <div class="kv"><span>创建时间</span><span>2025-11-02</span></div>
+      <div class="note">底层自动映射为 Namespace + ResourceQuota + NetworkPolicy(deny-all)。</div>
+    </div>
+    <div class="tabpane hidden"><table><tr><th>成员</th><th>角色</th></tr><tr><td>张工</td><td>空间管理员</td></tr><tr><td>李工</td><td>开发</td></tr><tr><td>王工</td><td>开发</td></tr></table><button class="btn ghost sm" style="margin-top:8px" onclick="toast('已邀请成员（mock）')">+ 邀请</button></div>
+    <div class="tabpane hidden"><div class="row"><span>CPU</span><span>58%</span></div><div class="bar"><i style="width:58%"></i></div><div class="row" style="margin-top:8px"><span>内存</span><span>71%</span></div><div class="bar"><i class="a" style="width:71%"></i></div><div class="row" style="margin-top:8px"><span>存储</span><span>43%</span></div><div class="bar"><i style="width:43%"></i></div></div>
+    <div class="tabpane hidden"><table><tr><th>项目</th><th>状态</th></tr><tr><td>交易域</td><td><span class="pill g">运行中</span></td></tr><tr><td>营销域</td><td><span class="pill g">运行中</span></td></tr><tr><td>风控域</td><td><span class="pill a">运行中</span></td></tr></table></div>
+  </div>
+</div>
+
+<div class="drawer" id="d-proj">
+  <div class="dh">数据项目：交易域 <span class="pill g">运行中</span><span class="x" onclick="closeAll()">×</span></div>
+  <div class="db">
+    <div class="tabbar"><div class="t on" onclick="tab(this)">概览</div><div class="t" onclick="tab(this)">数据集</div><div class="t" onclick="tab(this)">作业</div><div class="t" onclick="tab(this)">成员</div><div class="t" onclick="tab(this)">设置</div></div>
+    <div class="tabpane"><div class="kv"><span>业务域</span><span>核心</span></div><div class="kv"><span>数据集</span><span>42</span></div><div class="kv"><span>作业</span><span>88</span></div><div class="kv"><span>负责人</span><span>张工</span></div></div>
+    <div class="tabpane hidden"><table><tr><th>数据集</th><th>类型</th><th>字段</th></tr><tr><td>ods.orders</td><td>Iceberg</td><td>23</td></tr><tr><td>dwd.order_wide</td><td>Iceberg</td><td>31</td></tr><tr><td>ads.order_kpi</td><td>Doris</td><td>12</td></tr></table></div>
+    <div class="tabpane hidden"><table><tr><th>作业</th><th>引擎</th><th>状态</th></tr><tr><td>ods_订单宽表ETL</td><td>Spark</td><td><span class="pill g">成功</span></td></tr><tr><td>画像日更新</td><td>Spark</td><td><span class="pill g">成功</span></td></tr><tr><td>实时风控</td><td>Flink</td><td><span class="pill a">运行中</span></td></tr></table></div>
+    <div class="tabpane hidden"><table><tr><th>成员</th><th>角色</th></tr><tr><td>张工</td><td>owner</td></tr><tr><td>李工</td><td>dev</td></tr><tr><td>赵工</td><td>reader</td></tr></table></div>
+    <div class="tabpane hidden"><label>项目名</label><input value="交易域"><label>描述</label><textarea rows="3">核心交易域数据加工</textarea><button class="btn sm" style="margin-top:10px" onclick="toast('已保存')">保存</button></div>
+  </div>
+</div>
+
+<div class="drawer" id="d-asset">
+  <div class="dh">资产：dwd.order_wide <span class="pill r">PII</span><span class="x" onclick="closeAll()">×</span></div>
+  <div class="db">
+    <div class="tabbar"><div class="t on" onclick="tab(this)">元数据</div><div class="t" onclick="tab(this)">Schema</div><div class="t" onclick="tab(this)">质量</div><div class="t" onclick="tab(this)">权限</div></div>
+    <div class="tabpane"><div class="kv"><span>分层</span><span>DWD</span></div><div class="kv"><span>负责人</span><span>张工</span></div><div class="kv"><span>质量分</span><span>96</span></div><div class="kv"><span>更新频率</span><span>日</span></div></div>
+    <div class="tabpane hidden"><table><tr><th>字段</th><th>类型</th><th>敏感</th></tr><tr><td>order_id</td><td>bigint</td><td>—</td></tr><tr><td>user_id</td><td>bigint</td><td>—</td></tr><tr><td>id_card</td><td>string</td><td><span class="pill r">PII</span></td></tr><tr><td>amount</td><td>decimal</td><td>—</td></tr></table></div>
+    <div class="tabpane hidden"><div class="kv"><span>订单ID非空</span><span><span class="pill g">通过</span></span></div><div class="kv"><span>金额非负</span><span><span class="pill g">通过</span></span></div><div class="kv"><span>行数波动</span><span><span class="pill g">通过</span></span></div></div>
+    <div class="tabpane hidden"><div class="kv"><span>当前权限</span><span>张工(读写) · 李工(读)</span></div><button class="btn sm" style="margin-top:10px" onclick="toast('权限申请已提交，等待审批')">申请读权限</button><div class="note">申请经审批流，不直连底层存储。</div></div>
+  </div>
+</div>
+
+<div class="drawer" id="d-log">
+  <div class="dh">作业日志：实时风控流 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="db"><div class="runlog" style="height:auto">
+<span class="ok">[INFO] Flink 作业启动 · 并行度 8</span>
+<span class="info">[INFO] 消费 Kafka topic clickstream offset=88214</span>
+<span class="ok">[INFO] checkpoint 12 完成 1.2s</span>
+<span class="warn">[WARN] 反压中等，自动扩容至并行度 12</span>
+<span class="ok">[INFO] 写入 Doris 在线表 user_risk 12,480 行</span>
+<span class="info">[INFO] 作业健康，时延 1.6s</span>
+  </div><div class="note">日志由封装层归一化输出，隐藏 Pod/容器细节。</div></div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+<div class="modal" id="m-ws"><div class="mh">新建工作空间 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>名称</label><input placeholder="如 华南生产集群"><label>租户</label><select><option>外部客户A</option><option>内部业务线</option></select>
+  <label>套餐</label><select><option>标准版</option><option>企业版</option><option>旗舰版</option></select>
+  <label>环境</label><select><option>信创</option><option>本地数据中心</option><option>公有云 VM</option><option>私有云</option></select></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('工作空间已创建')">创建</button></div></div>
+
+<div class="modal" id="m-proj"><div class="mh">新建数据项目 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>项目名</label><input placeholder="如 供应链域"><label>业务域</label><input placeholder="运营"><label>描述</label><textarea rows="3"></textarea></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('数据项目已创建')">创建</button></div></div>
+
+<div class="modal" id="m-sync"><div class="mh">新建同步任务 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>任务名</label><input placeholder="如 订单全量"><label>源</label><select><option>MySQL</option><option>Oracle</option><option>Kafka</option></select>
+  <label>目标</label><select><option>Iceberg(湖)</option><option>Doris(仓/集)</option></select>
+  <label>模式</label><select><option>批</option><option>流(CDC)</option></select>
+  <label>调度频率</label><input value="每日 04:00"></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('同步任务已创建')">创建</button></div></div>
+
+<div class="modal" id="m-src"><div class="mh">新增数据源 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>类型</label><select><option>MySQL</option><option>Oracle</option><option>PostgreSQL</option><option>API</option></select>
+  <label>连接串</label><input placeholder="jdbc:mysql://…"><label>账号</label><input><label>密码</label><input type="password"></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('数据源已添加')">测试并保存</button></div></div>
+
+<div class="modal" id="m-asset"><div class="mh">登记数据资产 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>资产名</label><input placeholder="如 dws.xxx"><label>分层</label><select><option>ODS</option><option>DWD</option><option>DWS</option><option>ADS</option></select>
+  <label>负责人</label><input><label>敏感级别</label><select><option>无</option><option>受限</option><option>PII</option></select></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('资产已登记')">登记</button></div></div>
+
+<div class="modal" id="m-std"><div class="mh">新建数据标准 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>标准项</label><input placeholder="如 user_id"><label>类型</label><select><option>主键</option><option>枚举</option><option>字典</option><option>金额</option></select>
+  <label>规则/码值</label><input placeholder="如 bigint,非空"><label>引用资产数</label><input value="0"></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('标准已发布')">发布</button></div></div>
+
+<div class="modal" id="m-qrule"><div class="mh">新建质量规则 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>对象表</label><input placeholder="如 dwd.order_wide"><label>字段</label><input placeholder="如 order_id"><label>校验类型</label><select><option>非空</option><option>唯一</option><option>范围</option><option>波动</option></select>
+  <label>阈值</label><input value="100%"><label>异常动作</label><select><option>告警</option><option>阻断下游</option></select></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('规则已创建')">创建</button></div></div>
+
+<div class="modal" id="m-mask"><div class="mh">新建脱敏策略 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>字段</label><input placeholder="如 real_name"><label>所属资产</label><input><label>策略</label><select><option>掩码</option><option>哈希</option><option>仅授权可见</option></select>
+  <label>算法</label><select><option>SM3(国密)</option><option>SHA256</option><option>AES</option></select></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('脱敏策略已提交审批')">提交</button></div></div>
+
+<div class="modal" id="m-vec"><div class="mh">新建向量集合 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>集合名</label><input placeholder="如 doc_chunk"><label>维度</label><input value="768"><label>索引类型</label><select><option>HNSW</option><option>IVF_PQ</option></select>
+  <label>关联知识库</label><input placeholder="如 制度文档库"></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('向量集合已创建')">创建</button></div></div>
+
+<div class="modal" id="m-ft"><div class="mh">新建微调任务 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>模型名</label><input placeholder="如 营销-领域-3B"><label>基座</label><select><option>qiong-7B</option></select>
+  <label>训练数据</label><input placeholder="如 营销话术-2026.parquet"><label>显存/卡</label><input value="2×GPU"><label>epochs</label><input value="3"></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('微调任务已提交')">提交</button></div></div>
+
+<div class="modal" id="m-key"><div class="mh">新建 API Key <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>Key 名称</label><input placeholder="如 mkt-exp"><label>路由模型</label><select><option>qiong-7B</option><option>风控-领域-1.3B</option><option>营销-领域-3B</option></select>
+  <label>限流(/s)</label><input value="20"></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('API Key 已生成')">生成</button></div></div>
+
+<div class="modal" id="m-board"><div class="mh">新建看板 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>看板名</label><input placeholder="如 经营驾驶舱"><label>数据源</label><select><option>统一 SQL 网关</option></select>
+  <label>组件</label><div class="chips"><span class="chip on">折线</span><span class="chip on">饼图</span><span class="chip">指标卡</span><span class="chip">柱状</span><span class="chip">漏斗</span></div></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('看板已创建')">创建</button></div></div>
+
+<div class="modal" id="m-upgrade"><div class="mh">升级套餐 <span class="x" onclick="closeAll()">×</span></div>
+  <div class="mb"><label>目标套餐</label><select><option>旗舰版</option><option>企业版+扩容包</option></select>
+  <label>预计月费</label><input value="¥ 58,000"><div class="note">升级后经 NodePoolLease 自动扩容，客户无感知停机。</div></div>
+  <div class="mf"><button class="btn ghost" onclick="closeAll()">取消</button><button class="btn" onclick="ok('套餐升级已提交')">确认升级</button></div></div>
+
+<div class="toasts" id="toasts"></div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-dash" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></symbol>
+  <symbol id="i-ws" viewBox="0 0 24 24"><path d="M12 3 21 8 12 13 3 8Z"/><path d="M3 13 12 18 21 13"/></symbol>
+  <symbol id="i-proj" viewBox="0 0 24 24"><path d="M3 7 12 3 21 7 12 11Z"/><path d="M3 7V17L12 21V11"/><path d="M21 7V17L12 21"/></symbol>
+  <symbol id="i-integrate" viewBox="0 0 24 24"><path d="M4 8h12l-3-3"/><path d="M20 16H8l3 3"/></symbol>
+  <symbol id="i-develop" viewBox="0 0 24 24"><path d="M9 8 5 12l4 4"/><path d="M15 8l4 4-4 4"/></symbol>
+  <symbol id="i-sql" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></symbol>
+  <symbol id="i-govern" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/></symbol>
+  <symbol id="i-standard" viewBox="0 0 24 24"><path d="M4 8h16"/><circle cx="9" cy="8" r="2"/><path d="M4 16h16"/><circle cx="15" cy="16" r="2"/></symbol>
+  <symbol id="i-quality" viewBox="0 0 24 24"><path d="M12 3 20 6V11C20 16 16 19 12 21 8 19 4 16 4 11V6Z"/><path d="M9 12l2 2 4-4"/></symbol>
+  <symbol id="i-lineage" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6 8.5 12 15.5M18 8.5 12 15.5"/></symbol>
+  <symbol id="i-sec" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-vector" viewBox="0 0 24 24"><circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="6" r="1.4"/><circle cx="18" cy="6" r="1.4"/><circle cx="6" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="18" cy="12" r="1.4"/><circle cx="6" cy="18" r="1.4"/><circle cx="12" cy="18" r="1.4"/><circle cx="18" cy="18" r="1.4"/></symbol>
+  <symbol id="i-kb" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 4v16"/></symbol>
+  <symbol id="i-llmops" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></symbol>
+  <symbol id="i-gateway" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="12" r="2.5"/><path d="M6 15.5 10.5 13M18 8.5 13.5 10.5"/></symbol>
+  <symbol id="i-analyze" viewBox="0 0 24 24"><path d="M4 20h16"/><rect x="6" y="11" width="3" height="9"/><rect x="11" y="7" width="3" height="13"/><rect x="16" y="13" width="3" height="7"/></symbol>
+  <symbol id="i-ops" viewBox="0 0 24 24"><path d="M3 12h4l2-6 4 12 2-6h6"/></symbol>
+  <symbol id="i-account" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M13 9h5M13 14h5"/></symbol>
+  <symbol id="i-admin" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/><circle cx="8" cy="7.5" r="1"/><circle cx="8" cy="16.5" r="1"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></symbol>
+</svg>
+
+<script>
+  const nav=document.getElementById('nav'), panes=document.querySelectorAll('[data-pane]');
+  const roadmap=document.querySelector('[data-pane="roadmap"]');
+  nav.addEventListener('click',e=>{const a=e.target.closest('a');if(!a)return;
+    nav.querySelectorAll('a').forEach(x=>x.classList.remove('active'));a.classList.add('active');
+    let hit=false;
+    panes.forEach(p=>{const m=p.dataset.pane===a.dataset.view;p.classList.toggle('hidden',!m);if(m)hit=true;});
+    if(!hit&&roadmap){panes.forEach(p=>p.classList.add('hidden'));roadmap.classList.remove('hidden');
+      const t=roadmap.querySelector('h1'),s=roadmap.querySelector('.sub');
+      if(t)t.textContent=a.textContent.replace(/\s*\d+$/,'').trim();
+      if(s)s.textContent='该模块已纳入产品规划，敬请期待。详见产品设计 §3.3 模块状态表。';}
+    document.querySelector('.view').scrollTop=0;});
+  function goto(v){const a=nav.querySelector(`[data-view="${v}"]`);if(a)a.click();}
+  function drawer(id){document.getElementById('ov').classList.add('show');document.getElementById(id).classList.add('show');}
+  function modal(id){document.getElementById('ov').classList.add('show');document.getElementById(id).classList.add('show');}
+  function closeAll(){document.getElementById('ov').classList.remove('show');
+    document.querySelectorAll('.drawer,.modal').forEach(el=>el.classList.remove('show'));}
+  function tab(el){const bar=el.parentElement,panes=bar.parentElement.querySelectorAll('.tabpane');
+    bar.querySelectorAll('.t').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+    panes.forEach((p,i)=>p.classList.toggle('hidden',i!==[...bar.children].indexOf(el)));}
+  function toast(m){const c=document.getElementById('toasts');const t=document.createElement('div');
+    t.className='toast';t.textContent=m;c.appendChild(t);setTimeout(()=>t.remove(),2200);}
+  function ok(m){closeAll();toast(m);}
+  function approve(b){const tr=b.closest('tr');if(tr)tr.remove();updateBadge();toast('已批准');}
+  function reject(b){const tr=b.closest('tr');if(tr)tr.remove();updateBadge();toast('已驳回');}
+  function updateBadge(){const n=document.querySelectorAll('.todo').length+document.querySelectorAll('[data-pane="sec"] .pill.r').length;
+    const bd=document.querySelector('[data-view="sec"] .badge');if(bd)bd.textContent=n;}
+  function runJob(){const l=document.getElementById('runlog');l.innerHTML='';
+    const lines=[['info','[提交] 封装层接收任务 → 翻译为 SparkApplication CR'],
+      ['info','[调度] Operator 拉起 Pod（客户不可见）'],['ok','[运行] Stage 1/3 扫描 12M 行'],
+      ['ok','[运行] Stage 2/3 JOIN dim.user'],['warn','[资源] 内存峰值 14.2G < 上限'],
+      ['ok','[完成] 写入 dwd.order_wide，耗时 4m12s']];
+    let i=0;(function step(){if(i>=lines.length)return;const s=lines[i++];
+      const d=document.createElement('div');d.className=s[0];d.textContent=s[1];l.appendChild(d);l.scrollTop=l.scrollHeight;
+      setTimeout(step,500);})();}
+  function runSql(){const l=document.getElementById('sqllog');l.innerHTML='';
+    const lines=[['info','[网关] 解析联邦查询 → 路由 Trino + Doris'],
+      ['info','[下推] iceberg.ods.orders 扫描 12M 行'],['ok','[关联] doris.dim.user 维表 JOIN'],
+      ['ok','[返回] 4 行 · 扫描 14M · 耗时 1.8s']];
+    let i=0;(function step(){if(i>=lines.length)return;const s=lines[i++];
+      const d=document.createElement('div');d.className=s[0];d.textContent=s[1];l.appendChild(d);l.scrollTop=l.scrollHeight;
+      setTimeout(step,500);})();}
+</script>
+</body>
+</html>

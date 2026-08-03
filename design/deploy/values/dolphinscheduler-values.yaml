@@ -1,0 +1,199 @@
+# ============================================================================
+# DolphinScheduler 定制 Helm values
+# 关联：部署清单 v0.1 §8.2 任务调度 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/dolphinscheduler-values.yaml
+# 说明：在 values-base.integration.dolphinscheduler 之上做深度调优；
+#       master/worker HA，DAG 并行度 + 全局超时，PostgreSQL 元数据库。
+# ============================================================================
+
+integration:
+  dolphinscheduler:
+    image: "sq-dolphinscheduler:3.2-0.1.0"
+    version: "3.2.2"
+    replicas: 2
+
+    # ---- 套餐分档 ----
+    # P1-C10：base 档不含 L4 组件，enabled=false（仅 standard/flagship 启用 L4 集成工具）
+    tierProfiles:
+      base:      { enabled: false, masterMemory: "2Gi", workerMemory: "2Gi", workerReplicas: 2 }
+      standard:  { enabled: true,  masterMemory: "3Gi", workerMemory: "3Gi", workerReplicas: 3 }
+      flagship:  { enabled: true,  masterMemory: "4Gi", workerMemory: "4Gi", workerReplicas: 4 }
+
+    # ---- Master（调度器，HA）----
+    master:
+      replicas: 2              # HA
+      # P1-C7：HA 协调模式，kubernetes（推荐）或 zookeeper
+      # zookeeper 模式下使用上方 zookeeper.quorum 配置
+      haMode: "kubernetes"     # kubernetes | zookeeper
+      memory: "3Gi"
+      cpu: 1
+      resources:
+        requests: { cpu: "1", memory: "3Gi" }
+        limits:   { cpu: "2", memory: "4Gi" }
+      config:
+        masterExecThreads: 64
+        masterExecTaskNum: 20
+        masterHeartbeatInterval: "10s"
+        masterTaskCommitInterval: "1s"
+        masterMaxDispatchTaskNum: 3
+      nodeSelector: { "sq.io/pool": "ds-master" }
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - { weight: 100, podAffinityTerm: { labelSelector: { matchLabels: { "app.kubernetes.io/name": "ds-master" } }, topologyKey: "kubernetes.io/hostname" } }
+
+    # ---- Worker（执行器）----
+    worker:
+      replicas: 2
+      memory: "3Gi"
+      cpu: 2
+      resources:
+        requests: { cpu: "2", memory: "3Gi" }
+        limits:   { cpu: "4", memory: "4Gi" }
+      config:
+        workerExecThreads: 64
+        workerHeartbeatInterval: "10s"
+        workerFetchTaskNum: 3
+        workerTaskRetryDelay: "1m"
+        # DAG 并行度
+        maxTaskParallelism: 10
+        # 全局超时
+        globalTaskTimeout: "2h"
+        taskMaxRetryTimes: 3
+      nodeSelector: { "sq.io/pool": "ds-worker" }
+
+    # ---- Alert（告警）----
+    alert:
+      replicas: 1
+      memory: "1Gi"
+      resources:
+        requests: { cpu: "500m", memory: "1Gi" }
+        limits:   { cpu: "1",    memory: "2Gi" }
+      config:
+        alertInterval: "10s"
+        # 告警渠道（P1-C7 补充：增加飞书 feishu 通道）
+        channels: ["email", "dingtalk", "webhook", "wechat", "feishu"]
+        # 飞书告警通道配置（P1-C7 新增）
+        feishu:
+          enabled: true
+          # 飞书开放平台 webhook 地址（按租户/项目隔离）
+          webhookUrlRef: "ds-feishu-webhook-url"
+          # 应用凭证（app_id/app_secret 由 Secret 注入）
+          appIdRef: "ds-feishu-app-id"
+          appSecretRef: "ds-feishu-app-secret"
+          # 消息模板（支持 markdown / text / post）
+          msgType: "markdown"
+          # 告警级别 → 飞书消息颜色映射
+          severityMapping:
+            HIGH:    { color: "red",    atAll: true  }
+            MEDIUM:  { color: "orange", atAll: false }
+            LOW:     { color: "blue",   atAll: false }
+          # 限流：避免告警风暴
+          rateLimit:
+            enabled: true
+            maxPerMinute: 30
+            burst: 10
+          # 重试
+          retry:
+            maxAttempts: 3
+            backoff: "30s"
+
+    # ---- ZooKeeper（P1-C7 补充：master HA 协调）----
+    # 说明：master.mode=zookeeper 时使用；mode=kubernetes 时可关闭。
+    #       与 Flink HA / Kafka KRaft 共享 ZK 集群时，需隔离 chroot 路径。
+    zookeeper:
+      enabled: true                 # 默认开启，由 master.mode 决定是否实际使用
+      mode: "external"              # external | embedded（推荐 external 共享集群）
+      # 外部 ZK 集群连接串（与 Flink HA 共享，chroot 隔离）
+      quorum: "zk-0.zk:2181,zk-1.zk:2181,zk-2.zk:2181/dolphinscheduler"
+      sessionTimeout: "30s"
+      connectionTimeout: "10s"
+      retry:
+        maxRetries: 3
+        baseSleepMs: 1000
+      # 嵌入式 ZK（仅单实例/测试环境使用）
+      embedded:
+        replicas: 3
+        memory: "1Gi"
+        persistence: { size: "10Gi", storageClass: "fast-ssd" }
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+
+    # ---- API ----
+    api:
+      replicas: 2
+      memory: "2Gi"
+      resources:
+        requests: { cpu: "1", memory: "2Gi" }
+        limits:   { cpu: "2", memory: "3Gi" }
+      config:
+        sessionTimeout: "8h"
+        maxConnections: 1000
+      ingress:
+        enabled: true
+        host: "ds.<domain>"
+
+    # ---- DAG 调度 ----
+    dag:
+      parallelism: 10
+      globalTimeout: "2h"
+      taskMaxRetry: 3
+      taskRetryDelay: "1m"
+      # 调度策略
+      schedule:
+        maxConcurrentInstances: 5
+        misfirePolicy: "fire-and-proceed"
+
+    # ---- 元数据库（PostgreSQL）----
+    database:
+      type: "postgresql"
+      host: "pg-dolphinscheduler.internal"
+      port: 5432
+      name: "dolphinscheduler"
+      user: "dolphinscheduler"
+      passwordRef: "ds-db-password"
+      poolSize: 20
+      ssl: true
+
+    # ---- 监控 ----
+    monitoring:
+      metrics:
+        enabled: true
+        port: 9091
+        interval: "30s"
+      prometheus:
+        enabled: true
+        scrapeInterval: "30s"
+        serviceMonitor: true
+      exporterImage: "ds-prometheus-exporter:0.1.0"
+
+    # ---- 认证集成（P2-E4）----
+    # DolphinScheduler 3.2 支持插件式 OIDC 集成，同时经 X4 APISIX 网关代理认证：
+    #   用户 → APISIX（Keycloak OIDC）→ DolphinScheduler API/UI
+    # 内置 Keycloak OIDC 插件做 SSO，作业执行通过 ServiceAccount + Kerberos 凭证。
+    auth:
+      mode: "keycloak-oidc"
+      keycloakRealm: "sq"
+      keycloakUrl: "https://keycloak.<domain>"
+      # DolphinScheduler 内置 OIDC 插件
+      oidc:
+        enabled: true
+        clientId: "sq-dolphinscheduler"
+        clientSecretRef: "ds-oidc-secret"
+        discoveryUrl: "https://keycloak.<domain>/realms/sq/.well-known/openid-configuration"
+      # UI 经 APISIX 路由（双层认证）
+      uiAuthVia: "apisix-keycloak-oidc"
+      # 作业执行认证
+      jobExecution:
+        authType: "service-account-kerberos"
+        # 租户上下文通过作业参数传递
+        tenantContextParam: "tenant.id"
+
+    # ---- 资源配额（Namespace 级单组件配额）----
+    # P1-C12/P1-E5 说明：本 quota 是 DolphinScheduler 在平台 Namespace 的总配额，
+    #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+    quota:
+      base:      { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16",  limits.memory: "24Gi" }
+      standard:  { requests.cpu: "16", requests.memory: "32Gi", limits.cpu: "32",  limits.memory: "48Gi" }
+      flagship:  { requests.cpu: "32", requests.memory: "64Gi", limits.cpu: "64",  limits.memory: "96Gi" }

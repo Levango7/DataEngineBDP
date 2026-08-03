@@ -1,0 +1,235 @@
+# 数擎云核 SKE · Pod 安全策略 (大数据平台多租户隔离)
+# 关联: apiserver-hardening.yaml (admission PodSecurityPolicy) / tuning/security.sh (自检)
+# 设计要点:
+#   - 禁止 privileged: true (防容器逃逸)
+#   - 禁止 hostNetwork/hostPID/hostIPC (防跨容器窥探)
+#   - 强制 readOnlyRootFilesystem: true (除白名单组件)
+#   - 强制 runAsNonRoot: true (禁止 root 运行)
+#   - capabilities 白名单: 仅 NET_BIND_SERVICE (绑定低端口)
+#   - seccompProfile: RuntimeDefault (系统调用过滤)
+#   - 白名单: Cilium/CSI driver/kube-proxy 等系统组件需特权
+#   - K8s >= 1.25 用 Pod Security Admission (PSA) restricted 级别替代 PSP
+
+# ---- 1. Pod Security Admission: 基础命名空间强制 restricted 级别 ----
+# 通过 Namespace label 启用 PSA, 适用于 K8s >= 1.25
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sq-tenant-example
+  labels:
+    # pod-security.kubernetes.io/enforce: restricted 强制 restricted 级别
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    # audit: restricted 违规记入审计日志 (不拒绝)
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    # warn: restricted 违规向 kubectl 输出警告
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+    # 数擎租户标签
+    sq.shuqing.io/tenant: "true"
+    sq.shuqing.io/managed-by: ske
+
+---
+# ---- 2. 系统组件命名空间: privileged 级别 (白名单) ----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ske-system
+  labels:
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: privileged
+    pod-security.kubernetes.io/warn: privileged
+    sq.shuqing.io/system-component: "true"
+
+---
+# ---- 3. PodSecurityPolicy: 禁止特权 (K8s < 1.25 兼容, 1.25+ 由 PSA 接管) ----
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: ske-restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: "runtime/default"
+    app.kubernetes.io/part-of: shuqing-ske
+spec:
+  privileged: false                          # 禁止特权容器
+  allowPrivilegeEscalation: false            # 禁止子进程提权
+  allowedCapabilities: ["NET_BIND_SERVICE"]  # 仅允许绑定低端口
+  defaultAddCapabilities: []                 # 不默认添加任何 capability
+  requiredDropCapabilities: ["ALL"]          # 默认丢弃所有 capability
+  hostNetwork: false                         # 禁止 hostNetwork
+  hostPID: false                             # 禁止 hostPID
+  hostIPC: false                             # 禁止 hostIPC
+  hostPorts:
+    - min: 0
+      max: 0                                 # 禁止 hostPort
+  readOnlyRootFilesystem: true               # 强制只读根文件系统
+  runAsUser:
+    rule: MustRunAsNonRoot                   # 强制非 root
+  runAsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535                           # 强制非 root group
+  supplementalGroups:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  fsGroup:
+    rule: MustRunAs
+    ranges:
+      - min: 1000
+        max: 65535
+  seLinux:
+    rule: RunAsAny
+  volumes:
+    - configMap
+    - downwardAPI
+    - emptyDir
+    - persistentVolumeClaim
+    - projected
+    - secret
+    - csi                                    # 允许 CSI 卷 (存储驱动)
+  seccompProfile:
+    type: RuntimeDefault                     # seccomp 默认配置
+
+---
+# ---- 4. 系统组件白名单 PSP (Cilium/CSI/kube-proxy 等) ----
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: ske-system-privileged
+  annotations:
+    app.kubernetes.io/part-of: shuqing-ske
+spec:
+  privileged: true                           # 系统组件允许特权
+  allowPrivilegeEscalation: true
+  allowedCapabilities: ["*"]                 # 全部 capability
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
+  hostPorts:
+    - min: 0
+      max: 65535
+  readOnlyRootFilesystem: false
+  runAsUser:
+    rule: RunAsAny
+  runAsGroup:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  fsGroup:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  volumes: ["*"]
+  seccompProfile:
+    type: Unconfined                         # 系统组件不限制 seccomp
+
+---
+# ---- 5. OPA Gatekeeper ConstraintTemplate: 禁止特权容器 ----
+# 适用于安装了 Gatekeeper 的集群; 否则由 PSA/PSP 兜底
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: ske-disallow-privileged
+spec:
+  crd:
+    spec:
+      names:
+        kind: SKEDisallowPrivileged
+      validation:
+        openAPIV3Schema:
+          type: object
+          properties:
+            exemptNamespaces:
+              type: array
+              items:
+                type: string
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ske.disallow_privileged
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.privileged == true
+          not is_exempt(input.review.object.metadata.namespace)
+          msg := sprintf("容器 %v 禁止 privileged: true", [container.name])
+        }
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          container.securityContext.allowPrivilegeEscalation == true
+          not is_exempt(input.review.object.metadata.namespace)
+          msg := sprintf("容器 %v 禁止 allowPrivilegeEscalation: true", [container.name])
+        }
+        is_exempt(ns) {
+          ns == input.parameters.exemptNamespaces[_]
+        }
+
+---
+# ---- 6. OPA Gatekeeper Constraint: 应用禁止特权策略 ----
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: SKEDisallowPrivileged
+metadata:
+  name: no-privileged-containers
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      - kube-system
+      - ske-system
+      - cilium-system
+  parameters:
+    exemptNamespaces:
+      - kube-system
+      - ske-system
+      - cilium-system
+
+---
+# ---- 7. OPA ConstraintTemplate: 强制 readOnlyRootFilesystem ----
+apiVersion: templates.gatekeeper.sh/v1
+kind: ConstraintTemplate
+metadata:
+  name: ske-readonly-rootfs
+spec:
+  crd:
+    spec:
+      names:
+        kind: SKEReadOnlyRootFS
+  targets:
+    - target: admission.k8s.gatekeeper.sh
+      rego: |
+        package ske.readonly_rootfs
+        violation[{"msg": msg}] {
+          container := input.review.object.spec.containers[_]
+          not container.securityContext.readOnlyRootFilesystem
+          not is_exempt(input.review.object.metadata.namespace)
+          msg := sprintf("容器 %v 必须设置 readOnlyRootFilesystem: true", [container.name])
+        }
+        is_exempt(ns) {
+          ns == input.parameters.exemptNamespaces[_]
+        }
+
+---
+apiVersion: constraints.gatekeeper.sh/v1beta1
+kind: SKEReadOnlyRootFS
+metadata:
+  name: enforce-readonly-rootfs
+spec:
+  match:
+    kinds:
+      - apiGroups: [""]
+        kinds: ["Pod"]
+    excludedNamespaces:
+      - kube-system
+      - ske-system
+      - cilium-system
+  parameters:
+    exemptNamespaces:
+      - kube-system
+      - ske-system
+      - cilium-system

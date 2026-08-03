@@ -1,0 +1,140 @@
+# ============================================================================
+# Kafka 定制 Helm values
+# 关联：部署清单 v0.1 §6.5 消息中间件 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/kafka-values.yaml
+# 说明：3+ broker 副本，端到端延迟优化（min.isr=2, acks=all），lz4 压缩，
+#       Cruise Control 自动均衡；按三档套餐给出参数建议。
+# ============================================================================
+
+# Kafka 在 base 中未声明，独立顶层 key（与 engines 同级）
+kafka:
+  enabled: true
+  image: "sq-kafka:3.7-0.1.0"
+  version: "3.7.1"
+  clusterName: "sq-kafka"
+
+  # ---- 套餐分档 ----
+  tierProfiles:
+    base:      { brokerMemory: "4Gi",  brokerStorage: "200Gi", brokers: 3,  defaultPartitions: 6,  replicationFactor: 1 }
+    standard:  { brokerMemory: "6Gi",  brokerStorage: "500Gi", brokers: 3,  defaultPartitions: 12, replicationFactor: 3 }
+    flagship:  { brokerMemory: "8Gi",  brokerStorage: "1Ti",   brokers: 5,  defaultPartitions: 24, replicationFactor: 3 }
+
+  # ---- Broker ----
+  broker:
+    replicas: 3
+    memory: "6Gi"
+    cpu: 2
+    resources:
+      requests: { cpu: "2", memory: "6Gi" }
+      limits:   { cpu: "4", memory: "8Gi" }
+    config:
+      brokerIdRange: "0-2"
+      logDirs: ["/var/lib/kafka/data"]
+      numNetworkThreads: 8
+      numIoThreads: 16
+      socketSendBufferBytes: "102400"
+      socketReceiveBufferBytes: "102400"
+      socketRequestMaxBytes: "104857600"
+      # 端到端延迟优化
+      minInSyncReplicas: 2
+      defaultReplicationFactor: 3
+      acks: "all"
+      # 压缩
+      compressionType: "lz4"
+      # 保留
+      logRetentionHours: 168          # 7 天
+      logRetentionBytes: "107374182400"   # 100GB
+      logSegmentBytes: "1073741824"   # 1GB
+      logCleanupPolicy: "delete"      # delete | compact
+      # 性能
+      messageMaxBytes: "1048576"
+      replicaFetchMaxBytes: "1048576"
+      queuedMaxRequests: 500
+    persistence:
+      data: { size: "500Gi", storageClass: "fast-ssd" }
+    nodeSelector: { "sq.io/pool": "kafka-broker" }
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - { labelSelector: { matchLabels: { "app.kubernetes.io/name": "kafka" } }, topologyKey: "kubernetes.io/hostname" }
+
+  # ---- Topic 默认配置 ----
+  topics:
+    defaultPartitions: 12
+    defaultReplicationFactor: 3
+    defaultMinIsr: 2
+    # 关键 topic 覆盖
+    overrides:
+      - { name: "sq-metrics",          partitions: 24, replicationFactor: 3, retention: "3d" }
+      - { name: "sq-audit-log",        partitions: 12, replicationFactor: 3, retention: "30d" }
+      - { name: "sq-cdc-binlog",       partitions: 12, replicationFactor: 3, retention: "7d", cleanup: "compact" }
+      - { name: "sq-flink-checkpoint", partitions: 6,  replicationFactor: 3, retention: "1d" }
+
+  # ---- Zookeeper / KRaft ----
+  metadata:
+    mode: "kraft"               # kraft | zookeeper（推荐 KRaft）
+    kraft:
+      controllers: 3
+      combinedMode: false       # 控制器与 broker 分离
+    zookeeper:
+      replicas: 3
+      memory: "1Gi"
+      persistence: { size: "10Gi" }
+
+  # ---- Cruise Control（自动均衡）----
+  cruiseControl:
+    enabled: true
+    image: "cruise-control:2.5"
+    replicas: 1
+    resources:
+      requests: { cpu: "500m", memory: "1Gi" }
+      limits:   { cpu: "1",    memory: "2Gi" }
+    config:
+      goals: "RackAwareGoal,ReplicaDistributionGoal,DiskCapacityGoal,NetworkInboundCapacityGoal,NetworkOutboundCapacityGoal"
+      defaultGoals: "RackAwareGoal,ReplicaDistributionGoal,DiskCapacityGoal"
+      hardGoals: "RackAwareGoal,ReplicaDistributionGoal"
+      executionConcurrency: 8
+
+  # ---- 监控 ----
+  monitoring:
+    jmxExporter:
+      enabled: true
+      image: "jmx-exporter:0.18.0"
+      port: 5556
+    kafkaExporter:
+      enabled: true
+      image: "kafka-exporter:1.7.0"
+      port: 9308
+      topics: ["sq-metrics", "sq-audit-log"]
+      consumers: true
+    prometheus:
+      scrapeInterval: "30s"
+      serviceMonitor: true
+
+  # ---- 认证集成（P2-E4）----
+  # Kafka 无原生 OIDC 集成，统一经 X4 APISIX 网关代理认证（Kafka UI/管理接口）：
+  #   用户 → APISIX（Keycloak OIDC）→ Kafka UI/REST API
+  # 数据面认证使用 SASL/SCRAM + TLS，与 Keycloak 用户通过 Secret 同步。
+  auth:
+    mode: "via-apisix-gateway"
+    keycloakRealm: "sq"
+    # Kafka UI/管理接口经 APISIX 路由
+    uiAuthVia: "apisix-keycloak-oidc"
+    # 数据面认证（客户端 → Broker）
+    dataPlane:
+      authType: "sasl-scram-sha-512"
+      tls: true
+      # SCRAM 凭证从 Keycloak 用户同步到 Kafka Secret
+      credentialSync:
+        enabled: true
+        syncInterval: "5m"
+        # Keycloak 用户 → Kafka SCRAM user 映射
+        userMapping: true
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是 Kafka 在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  quota:
+    base:      { requests.cpu: "10", requests.memory: "20Gi",  requests.storage: "600Gi",  limits.cpu: "20",  limits.memory: "30Gi" }
+    standard:  { requests.cpu: "20", requests.memory: "30Gi",  requests.storage: "1.5Ti",  limits.cpu: "40",  limits.memory: "40Gi" }
+    flagship:  { requests.cpu: "40", requests.memory: "60Gi",  requests.storage: "5Ti",    limits.cpu: "80",  limits.memory: "80Gi" }

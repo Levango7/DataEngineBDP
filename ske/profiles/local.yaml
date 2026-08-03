@@ -1,0 +1,44 @@
+# 笔记本单机验证 Profile (非信创, x86_64 / amd64)
+# 适用: 开发者笔记本 (无信创机器), 单机 K3s / kind, 最小资源, 本地 MinIO 存储
+# 与 xinchuang 差异: arch=amd64, 无 openeuler 变体, 标准加密(非国密), 存储走 MinIO
+# 注意: 仅用于本地验证 PoC; 客户交付仍用 xinchuang/onprem/publiccloud/privatecloud
+
+profile: local
+k8s:
+  self-built: true
+  distro: ske          # SKE 自研发行版(深度定制高性能 K8s)
+  singleNode: true
+  namespacePrefix: ws
+
+compute:
+  arch: amd64
+  os: ubuntu           # 笔记本宿主 Linux / WSL2
+
+images:
+  baseImage: "docker.io/library"
+  extraVariant: ""     # 非信创, 不产 openeuler 变体
+  platforms: ["amd64"]
+
+global:
+  guomiEnabled: false  # 笔记本无国密卡, 走标准算法
+
+storage:
+  objectStore:
+    driver: MinIODriver        # 本地 MinIO 替代 Ceph (onprem 用 CephDriver)
+    endpoint: "http://minio.local:9000"
+    bucket: "lakehouse"
+    accessKey: "minio"
+    secretKey: "minio123"
+
+network:
+  lb: nodeport        # 单机用 NodePort / Port-Forward, 不用云 LB
+
+kms:
+  driver: Vault
+  algo: aes
+
+identity:
+  provider: keycloak-local
+
+elastic:
+  mode: static        # 单机固定节点池, 不启用云节点伸缩

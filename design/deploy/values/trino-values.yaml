@@ -1,0 +1,146 @@
+# ============================================================================
+# Trino 438 定制 Helm values
+# 关联：部署清单 v0.1 §6.3 联邦查询 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/trino-values.yaml
+# 说明：在 values-base.engines.trino 之上做深度调优；coordinator/worker 分离，
+#       资源组按租户/项目分组，Iceberg+Doris+Hive 多 catalog 联邦。
+# ============================================================================
+
+engines:
+  trino:
+    image: "trino:438"
+    version: "438"
+
+    # ---- 套餐分档 ----
+    tierProfiles:
+      base:      { coordinatorMemory: "4Gi",  workerMemory: "8Gi",  workers: 2 }
+      standard:  { coordinatorMemory: "6Gi",  workerMemory: "16Gi", workers: 4 }
+      flagship:  { coordinatorMemory: "8Gi",  workerMemory: "32Gi", workers: 8 }
+
+    # ---- Coordinator ----
+    coordinator:
+      replicas: 1                # 单点（无状态，可重建）
+      memory: "6Gi"
+      cpu: 2
+      resources:
+        requests: { cpu: "2", memory: "6Gi" }
+        limits:   { cpu: "4", memory: "8Gi" }
+      nodeSelector: { "sq.io/pool": "trino-coord" }
+      jvm:
+        gc: "G1GC"
+        maxHeap: "4g"
+        offHeap: "2g"
+        opts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=32M"
+
+    # ---- Worker ----
+    worker:
+      replicas: 4
+      memory: "16Gi"
+      cpu: 4
+      concurrency: 4             # query.max-pixels-per-task
+      resources:
+        requests: { cpu: "4", memory: "16Gi" }
+        limits:   { cpu: "8", memory: "24Gi" }
+      nodeSelector: { "sq.io/pool": "trino-worker" }
+      jvm:
+        gc: "G1GC"
+        maxHeap: "12g"
+        offHeap: "4g"
+        opts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=32M"
+
+    # ---- Catalogs（联邦查询后端）----
+    catalogs:
+      iceberg:
+        enabled: true
+        connector: "iceberg"
+        catalogUri: "http://iceberg-catalog:8181"
+        warehouse: "s3://sq-iceberg/warehouse"
+        fileFormat: "PARQUET"
+      doris:
+        enabled: true
+        connector: "doris"
+        feHost: "doris-fe:9030"
+        user: "trino"
+        passwordRef: "doris-trino-password"
+      hive:
+        enabled: true
+        connector: "hive"
+        metastoreUri: "thrift://hive-metastore:9083"
+        configDir: "/etc/trino/hive"
+
+    # ---- 资源组（按租户/项目分组）----
+    resourceGroups:
+      enabled: true
+      managerType: "legacy"      # legacy | file
+      groups:
+        - { name: "global", softMemoryLimit: "80%", hardConcurrencyLimit: 100, schedulingWeight: 100 }
+        - { name: "global.tenant_sq", parent: "global", softMemoryLimit: "60%", hardConcurrencyLimit: 50, schedulingWeight: 50 }
+        - { name: "global.tenant_sq.project_default", parent: "global.tenant_sq", hardConcurrencyLimit: 20, schedulingWeight: 20 }
+        - { name: "global.tenant_sq.project_adhoc",   parent: "global.tenant_sq", hardConcurrencyLimit: 10, schedulingWeight: 10, schedulingPolicy: "fair" }
+
+    # ---- 缓存 ----
+    cache:
+      queryResult:
+        enabled: true
+        ttl: "10m"
+        maxSize: "1GB"
+      metadata:
+        enabled: true
+        ttl: "5m"
+
+    # ---- 超时 ----
+    timeout:
+      query:
+        maxExecutionTime: "30m"
+        idleTimeout: "5m"
+        softFail: false
+      session:
+        defaultQueryTimeout: "30m"
+        warningThreshold: "25m"
+
+    # ---- 监控 ----
+    monitoring:
+      jmx:
+        enabled: true
+        exporterImage: "jmx-exporter:0.18.0"
+        port: 5556
+      prometheus:
+        enabled: true
+        scrapeInterval: "30s"
+        serviceMonitor: true
+      ui:
+        enabled: true
+        ingress: { enabled: true, host: "trino.<domain>" }
+
+    # ---- 认证集成（P2-E4）----
+    # Trino 引擎无原生 OIDC 集成，统一经 X4 APISIX 网关代理认证：
+    #   用户 → APISIX（Keycloak OIDC）→ Trino UI/REST
+    # Trino 通过 OAuth2 Authenticator（内置）对接 Keycloak OIDC，
+    # 同时通过 L3.7 策略下推做行/列级权限校验（ranger/trino-plugin）。
+    auth:
+      mode: "oauth2-oidc"
+      keycloakRealm: "sq"
+      keycloakUrl: "https://keycloak.<domain>"
+      # Trino OAuth2 Authenticator 配置
+      oauth2:
+        enabled: true
+        issuerUrl: "https://keycloak.<domain>/realms/sq"
+        clientId: "sq-trino"
+        clientSecretRef: "trino-oidc-secret"
+        # JWK 缓存
+        jwkCacheTtl: "5m"
+      # UI 经 APISIX 路由
+      uiAuthVia: "apisix-keycloak-oidc"
+      # 行/列级权限下推
+      rangerPlugin:
+        enabled: true
+        serviceUrl: "http://ranger-admin:6080"
+        policySyncInterval: "30s"
+
+    # ---- 资源配额（Namespace 级单组件配额）----
+    # P1-C12/P1-E5 说明：本 quota 是 Trino 在平台 Namespace 的总配额，
+    #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+    quota:
+      base:      { requests.cpu: "10", requests.memory: "30Gi",  limits.cpu: "20",  limits.memory: "40Gi" }
+      standard:  { requests.cpu: "30", requests.memory: "100Gi", limits.cpu: "60",  limits.memory: "150Gi" }
+      flagship:  { requests.cpu: "80", requests.memory: "300Gi", limits.cpu: "160", limits.memory: "400Gi" }

@@ -1,0 +1,178 @@
+# ============================================================================
+# 多平台多租户大数据平台 · 基础 Helm values（环境无关）
+# 关联：部署清单详细设计 v0.1 §5 / §7 / §8 / §10
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/profiles/<env>.yaml
+# 说明：本文件只声明"组件清单 + 默认值"，所有环境差异（arch/OS/存储/KMS/...）
+#       由 profiles/<env>.yaml 覆盖，业务镜像与编排逻辑零改动。
+# ============================================================================
+
+global:
+  registry: "registry.internal/sq"        # 统一内部 registry，不直连公网
+  imagePullSecrets: ["sq-registry"]
+  namespacePrefix: "sq-"                  # 封装层据此创建 Namespace
+  # 多 arch 镜像（buildx 产出 manifest）
+  image:
+    multiArch: ["amd64", "arm64"]
+    extraVariant: ""                      # 信创=openeuler，其余留空
+  # 国密可插拔（默认关；信创 Profile 置 true）
+  guomiEnabled: false
+  guomiAlgos: ["SM2", "SM3", "SM4"]
+  # 身份驱动（四环境一致）
+  identity:
+    driver: KeycloakLDAP
+    realm: sq
+    adminRealm: master
+
+# ----------------------------------------------------------------------------
+# L1.6 封装层（随底座最先安装，P0）
+# ----------------------------------------------------------------------------
+encapsulation:
+  enabled: true
+  crds: ["Workspace", "Project", "Task", "NodePoolLease", "WorkspaceRuntime"]
+  controller:
+    image: "sq-encapsulation:0.1.0"
+    replicas: 3
+    resources:
+      requests: { cpu: "500m", memory: "1Gi" }
+      limits:   { cpu: "1",    memory: "2Gi" }
+  # 客户概念 → K8s 资源 的翻译规则（与 L1.6 契约一致）
+  translate:
+    workspace: { kind: Namespace, quota: ResourceQuota, netpol: deny-all }
+    project:   { labels: ["sq.io/project"], storagePrefix: true, rbac: WorkspaceRoleBinding }
+    batchTask: { cr: SparkApplication }
+    streamTask: { cr: FlinkDeployment }
+    quota:     { ref: ResourceQuota }
+
+# ----------------------------------------------------------------------------
+# L2.1 统一存储（P0）
+# ----------------------------------------------------------------------------
+storage:
+  # 对象存储后端由 Profile 选 driver（MinIO/Ceph/国产/云S3-客户提供密钥）
+  objectStore:
+    driver: ""            # Profile 注入：minio | ceph | xcobject | s3
+    endpoint: ""
+    bucketPrefix: "sq-"
+    persistence: { size: "1Ti" }
+  icebergCatalog:
+    image: "sq-iceberg-catalog:0.1.0"
+    jdbcBackend: "postgres"
+    replicas: 2
+  juicefs:
+    enabled: true
+    cacheSize: "100Gi"
+
+# ----------------------------------------------------------------------------
+# L2 计算引擎（P0）
+# ----------------------------------------------------------------------------
+engines:
+  spark:
+    operator: { image: "spark-operator:1.4.0", replicas: 2 }
+    sparkImage: "sq-spark:3.5-0.1.0"
+  flink:
+    operator: { image: "flink-operator:1.9.0", replicas: 2 }
+    flinkImage: "sq-flink:1.18-0.1.0"
+  trino:
+    image: "trino:438"
+    replicas: 2
+    workers: 4
+  doris:
+    image: "sq-doris:2.1-0.1.0"
+    feReplicas: 3
+    beReplicas: 3
+    storage: { size: "500Gi" }
+
+# ----------------------------------------------------------------------------
+# L2.7 统一 SQL 网关（P0）
+# ----------------------------------------------------------------------------
+sqlGateway:
+  enabled: true
+  image: "sq-sql-gateway:0.1.0"
+  replicas: 2
+  resources:
+    requests: { cpu: "500m", memory: "1Gi" }
+    limits:   { cpu: "1",    memory: "2Gi" }
+  backends: ["iceberg", "doris", "trino"]   # 联邦查询后端
+
+# ----------------------------------------------------------------------------
+# L3 治理中台（P1）
+# ----------------------------------------------------------------------------
+governance:
+  metadata:
+    image: "sq-metadata:0.1.0"
+    replicas: 2
+  standard:
+    image: "sq-standard:0.1.0"
+    replicas: 1
+  quality:
+    image: "sq-quality:0.1.0"
+    replicas: 1
+  lineage:
+    image: "sq-lineage:0.1.0"
+    replicas: 1
+  catalog:
+    image: "sq-catalog:0.1.0"      # 资产目录（数据地图）
+    replicas: 2
+  security:
+    image: "sq-security:0.1.0"      # 安全脱敏 + 权限审批
+    replicas: 2
+    guomiMaskAlgo: "SM3"            # 信创 Profile 启用
+
+# ----------------------------------------------------------------------------
+# L4 集成 / 调度（P1）
+# ----------------------------------------------------------------------------
+integration:
+  seatunnel:
+    image: "sq-seatunnel:2.3-0.1.0"
+    replicas: 2
+  dolphinscheduler:
+    image: "sq-dolphinscheduler:3.2-0.1.0"
+    replicas: 2
+
+# ----------------------------------------------------------------------------
+# L4.5 智能数据层（P2）
+# ----------------------------------------------------------------------------
+aiLayer:
+  vector:
+    image: "sq-vector:0.1.0"
+    replicas: 2
+  kb:
+    image: "sq-kb:0.1.0"            # 知识工程 RAG
+    replicas: 1
+  llmops:
+    image: "sq-llmops:0.1.0"
+    replicas: 1
+    gpuNodePool: "gpu-pool"         # 微调任务调度到 GPU 节点池
+  llmGateway:
+    image: "sq-llm-gateway:0.1.0"   # OpenAI 兼容网关
+    replicas: 2
+    rateLimit: { rpm: 600, tpm: 200000 }
+
+# ----------------------------------------------------------------------------
+# L5 控制台（P0）
+# ----------------------------------------------------------------------------
+console:
+  api:
+    image: "sq-console-api:0.1.0"
+    replicas: 2
+  web:
+    image: "sq-console-web:0.1.0"
+    replicas: 2
+  brandName: "数擎大数据平台"
+
+# ----------------------------------------------------------------------------
+# 横切：可观测（四环境一致）
+# ----------------------------------------------------------------------------
+observability:
+  prometheus: { enabled: true, retention: "30d" }
+  grafana:    { enabled: true }
+  loki:       { enabled: true, retention: "15d" }
+  tempo:      { enabled: true }
+
+# ----------------------------------------------------------------------------
+# 网络 / 弹性（默认；Profile 可覆盖）
+# ----------------------------------------------------------------------------
+network:
+  cni: "cilium"
+  lb: "metallb"
+elastic:
+  driver: "FixedNodePool"

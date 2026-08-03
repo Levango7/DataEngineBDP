@@ -1,0 +1,66 @@
+# 数擎云核 SKE · 深度定制 kubeadm 配置 (kubeadm.k8s.io/v1beta3)
+# 与 ske.sh 配合: 禁用默认 kube-proxy(Cilium 接管), apiserver 高并发, scheduler 用拓扑感知策略
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock
+  kubeletExtraArgs:
+    - name: config
+      value: /etc/kubernetes/kubelet-config.yaml   # 由 node-image 烘焙进节点
+    - name: container-runtime-endpoint
+      value: unix:///run/containerd/containerd.sock
+  ignorePreflightErrors:
+    - DirAvailable--etc-kubernetes-manifests
+    - FileAvailable--etc-kubernetes-kubelet-config.yaml
+localAPIEndpoint:
+  advertiseAddress: 0.0.0.0
+  bindPort: 6443
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.30.0
+clusterName: shuqing-ske
+controlPlaneEndpoint: ""   # 多节点 HA 时由 ske.sh 注入 VIP; 单节点留空
+networking:
+  podSubnet: 10.244.0.0/16        # 与 cilium-values.yaml 的 podCIDR 一致
+  serviceSubnet: 10.96.0.0/12
+  dnsDomain: cluster.local
+# 禁用默认 kube-proxy: Cilium eBPF 完全接管数据面
+kubeProxy:
+  mode: "none"
+apiServer:
+  certSANs:
+    - localhost
+    - 127.0.0.1
+  extraArgs:
+    max-requests-inflight: "3000"
+    max-mutating-requests-inflight: "2000"
+    default-watch-cache-size: "1000"
+    audit-log-path: "/var/log/kubernetes/apiserver-audit.log"
+    audit-log-maxage: "7"
+    audit-log-maxbackup: "5"
+    audit-log-maxsize: "100"
+  extraVolumes:
+    - name: audit-log
+      hostPath: /var/log/kubernetes
+      mountPath: /var/log/kubernetes
+      pathType: DirectoryOrCreate
+controllerManager:
+  extraArgs:
+    node-cidr-mask-size: "24"
+    terminated-pod-gc-threshold: "12500"
+scheduler:
+  # 使用拓扑感知 + 数据本地性扩展器策略 (见 scheduler-policy.yaml)
+  extraArgs:
+    config: /etc/kubernetes/scheduler-policy.yaml
+  extraVolumes:
+    - name: scheduler-policy
+      hostPath: /etc/kubernetes/scheduler-policy.yaml
+      mountPath: /etc/kubernetes/scheduler-policy.yaml
+      pathType: File
+etcd:
+  local:
+    dataDir: /var/lib/etcd          # 生产: 独占 NVMe (见 tuning/controlplane.sh)
+    extraArgs:
+      quota-backend-bytes: "8589934592"   # 8GiB
+      wal-fsync-duration: "100"

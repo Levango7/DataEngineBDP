@@ -1,0 +1,276 @@
+# ============================================================================
+# L3 治理中台定制 Helm values（P1-C8 新增）
+# 关联：部署清单 v0.1 §7 治理组件 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/governance-values.yaml
+# 说明：L3 治理中台 4 组件统一部署配置，全部基于 Java 技术栈（Spring Boot 3.x），
+#       PostgreSQL 元数据存储；与 L2 引擎通过 Iceberg Catalog 事件 / Hook 对接，
+#       与 L4 开发工具通过 OpenAPI 暴露资产检索 / 权限校验接口。
+# 组件清单：
+#   - sq-metadata  (L3.1 元数据管理：自研轻量 Catalog，订阅 L2 引擎元数据变更事件)
+#   - sq-standard  (L3.2 数据标准：指标/维度/口径统一管理)
+#   - sq-quality   (L3.3 数据质量：自研规则引擎，定时/实时校验)
+#   - sq-lineage   (L3.4 数据血缘：从 L2 引擎作业 Hook 采集，存 NebulaGraph)
+# ============================================================================
+
+# 治理中台在 base 中未声明，独立顶层 key
+governance:
+  enabled: true
+
+  # ---- 全局公共配置 ----
+  common:
+    # Java 技术栈镜像基座
+    baseImage: "sq-governance-base:0.1.0"
+    jdkVersion: "17"
+    springBootVersion: "3.2.5"
+    # 公共 JVM 参数
+    javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:G1HeapRegionSize=16M"
+    # 公共元数据库（PostgreSQL，各组件独立 schema 隔离）
+    database:
+      type: "postgresql"
+      host: "pg-governance.internal"
+      port: 5432
+      ssl: true
+      poolSize: 20
+    # 公共 Keycloak OIDC 集成（P2-E4）
+    auth:
+      mode: "keycloak-oidc"
+      keycloakUrl: "https://keycloak.<domain>"
+      realm: "sq"
+      clientId: "sq-governance"
+      clientSecretRef: "governance-oidc-secret"
+      # 权限校验下推到 L2 引擎执行层
+      enforceAtEngine: true
+
+  # ============================================================================
+  # L3.1 元数据管理（sq-metadata）
+  # 职责：自研轻量 Catalog，订阅 L2 引擎 Iceberg Catalog 元数据变更事件，
+  #       维护技术元数据/业务元数据，向 L4 工具暴露资产检索 OpenAPI。
+  # ============================================================================
+  metadata:
+    enabled: true
+    image: "sq-metadata:0.1.0"
+    version: "0.1.0"
+    replicas: 2
+
+    # ---- 套餐分档 ----
+    tierProfiles:
+      base:      { replicas: 1, memory: "1Gi" }
+      standard:  { replicas: 2, memory: "2Gi" }
+      flagship:  { replicas: 3, memory: "4Gi" }
+
+    # ---- 部署 ----
+    resources:
+      requests: { cpu: "1",   memory: "2Gi" }
+      limits:   { cpu: "2",   memory: "3Gi" }
+    nodeSelector: { "sq.io/pool": "governance" }
+    config:
+      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      # 元数据存储 schema（在公共 PG 实例中独立 schema）
+      database:
+        schema: "sq_metadata"
+        user: "sq_metadata"
+        passwordRef: "metadata-db-password"
+      # L2 引擎 Iceberg Catalog 订阅（事件源）
+      icebergCatalogSubscription:
+        catalogUri: "http://iceberg-catalog:8181"
+        eventMode: "polling"        # polling | webhook
+        pollInterval: "30s"
+      # 向 L4 工具暴露的 OpenAPI
+      openapi:
+        enabled: true
+        ingress: { enabled: true, host: "metadata-api.<domain>" }
+        # 资产检索/申请接口
+        endpoints: ["/api/v1/assets", "/api/v1/assets/search", "/api/v1/assets/apply"]
+
+    # ---- 监控 ----
+    monitoring:
+      metrics: { enabled: true, port: 9091 }
+      prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
+
+  # ============================================================================
+  # L3.2 数据标准（sq-standard）
+  # 职责：指标/维度/口径统一管理，向 L4 工具暴露标准检索 API，
+  #       与 sq-quality 联动（标准变更触发质量规则同步）。
+  # ============================================================================
+  standard:
+    enabled: true
+    image: "sq-standard:0.1.0"
+    version: "0.1.0"
+    replicas: 2
+
+    tierProfiles:
+      base:      { replicas: 1, memory: "1Gi" }
+      standard:  { replicas: 2, memory: "2Gi" }
+      flagship:  { replicas: 3, memory: "4Gi" }
+
+    resources:
+      requests: { cpu: "1",   memory: "2Gi" }
+      limits:   { cpu: "2",   memory: "3Gi" }
+    nodeSelector: { "sq.io/pool": "governance" }
+    config:
+      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      database:
+        schema: "sq_standard"
+        user: "sq_standard"
+        passwordRef: "standard-db-password"
+      # 标准类型
+      standardTypes: ["metric", "dimension", "caliber", "naming"]
+      # 与 sq-quality 联动
+      qualityLinkage:
+        enabled: true
+        notifyEndpoint: "http://sq-quality:8080/api/v1/rules/sync"
+      openapi:
+        enabled: true
+        ingress: { enabled: true, host: "standard-api.<domain>" }
+
+    monitoring:
+      metrics: { enabled: true, port: 9091 }
+      prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
+
+  # ============================================================================
+  # L3.3 数据质量（sq-quality）
+  # 职责：自研规则引擎（Java），支持定时/实时校验，
+  #       规则模板 + DSL 表达式，校验结果写入 PG + 推送告警。
+  # ============================================================================
+  quality:
+    enabled: true
+    image: "sq-quality:0.1.0"
+    version: "0.1.0"
+    replicas: 2
+
+    tierProfiles:
+      base:      { replicas: 1, memory: "1Gi",  workerReplicas: 1 }
+      standard:  { replicas: 2, memory: "2Gi",  workerReplicas: 2 }
+      flagship:  { replicas: 3, memory: "4Gi",  workerReplicas: 4 }
+
+    resources:
+      requests: { cpu: "1",   memory: "2Gi" }
+      limits:   { cpu: "2",   memory: "3Gi" }
+    nodeSelector: { "sq.io/pool": "governance" }
+    config:
+      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      database:
+        schema: "sq_quality"
+        user: "sq_quality"
+        passwordRef: "quality-db-password"
+      # 规则引擎配置
+      ruleEngine:
+        # 规则模板（内置 + 自定义）
+        builtinTemplates: ["null_check", "unique_check", "range_check", "regex_check", "referential_integrity"]
+        # DSL 表达式引擎：SpEL（Spring Expression Language）
+        dslEngine: "spel"
+        # 校验模式
+        modes: ["scheduled", "realtime"]
+      # 校验任务 worker（独立 Pod，避免阻塞 API）
+      worker:
+        replicas: 2
+        resources:
+          requests: { cpu: "500m", memory: "1Gi" }
+          limits:   { cpu: "1",    memory: "2Gi" }
+        config:
+          maxConcurrentTasks: 20
+          taskTimeout: "30m"
+          retryMax: 3
+      # 告警通道（复用 DolphinScheduler alert）
+      alert:
+        channels: ["email", "dingtalk", "feishu"]
+        dsAlertEndpoint: "http://dolphinscheduler-alert:9093/api/v1/alert"
+      openapi:
+        enabled: true
+        ingress: { enabled: true, host: "quality-api.<domain>" }
+
+    monitoring:
+      metrics: { enabled: true, port: 9091 }
+      prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
+
+  # ============================================================================
+  # L3.4 数据血缘（sq-lineage）
+  # 职责：从 L2 引擎作业 Hook/事件采集血缘，存 NebulaGraph（§5.5 拍板），
+  #       向 L4 工具暴露血缘查询/影响分析 API。
+  # ============================================================================
+  lineage:
+    enabled: true
+    image: "sq-lineage:0.1.0"
+    version: "0.1.0"
+    replicas: 2
+
+    tierProfiles:
+      base:      { replicas: 1, memory: "1Gi" }
+      standard:  { replicas: 2, memory: "2Gi" }
+      flagship:  { replicas: 3, memory: "4Gi" }
+
+    resources:
+      requests: { cpu: "1",   memory: "2Gi" }
+      limits:   { cpu: "2",   memory: "3Gi" }
+    nodeSelector: { "sq.io/pool": "governance" }
+    config:
+      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      database:
+        schema: "sq_lineage"
+        user: "sq_lineage"
+        passwordRef: "lineage-db-password"
+      # 血缘采集源（L2 引擎 Hook）
+      collectors:
+        spark:
+          enabled: true
+          mode: "spark_listener"    # Spark Listener Hook
+        flink:
+          enabled: true
+          mode: "flink_sql_hook"    # Flink SQL 解析 Hook
+        doris:
+          enabled: true
+          mode: "audit_log"         # 审计日志解析
+        trino:
+          enabled: true
+          mode: "event_listener"    # Trino EventListener
+        seatunnel:
+          enabled: true
+          mode: "job_hook"          # SeaTunnel Job Hook
+      # 图数据库（NebulaGraph，§5.5 拍板）
+      graphStore:
+        type: "nebula"
+        endpoints: ["nebula-graphd:9669", "nebula-graphd:9669", "nebula-graphd:9669"]
+        space: "sq_lineage"
+        user: "root"
+        passwordRef: "nebula-password"
+        # 血缘图模型：table/column/job/task 四类顶点
+        vertexTypes: ["table", "column", "job", "task"]
+        edgeTypes: ["derived_from", "produced_by", "consumed_by", "transforms_to"]
+      # 影响分析
+      impactAnalysis:
+        enabled: true
+        maxDepth: 10
+        cacheTtl: "10m"
+      openapi:
+        enabled: true
+        ingress: { enabled: true, host: "lineage-api.<domain>" }
+        endpoints: ["/api/v1/lineage/query", "/api/v1/lineage/impact", "/api/v1/lineage/visualize"]
+
+    monitoring:
+      metrics: { enabled: true, port: 9091 }
+      prometheus: { enabled: true, scrapeInterval: "30s", serviceMonitor: true }
+
+  # ---- 资源配额（Namespace 级单组件配额）----
+  # P1-C12/P1-E5 说明：本 quota 是治理中台各组件在平台 Namespace 的总配额，
+  #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+  quota:
+    # 元数据管理
+    metadata:
+      base:      { requests.cpu: "2",  requests.memory: "4Gi",  limits.cpu: "4",  limits.memory: "6Gi" }
+      standard:  { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
+      flagship:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
+    # 数据标准
+    standard:
+      base:      { requests.cpu: "2",  requests.memory: "4Gi",  limits.cpu: "4",  limits.memory: "6Gi" }
+      standard:  { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
+      flagship:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
+    # 数据质量（含 worker）
+    quality:
+      base:      { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
+      standard:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
+      flagship:  { requests.cpu: "16", requests.memory: "32Gi", limits.cpu: "32", limits.memory: "48Gi" }
+    # 数据血缘
+    lineage:
+      base:      { requests.cpu: "2",  requests.memory: "4Gi",  limits.cpu: "4",  limits.memory: "6Gi" }
+      standard:  { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
+      flagship:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }

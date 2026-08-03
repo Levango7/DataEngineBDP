@@ -1,0 +1,47 @@
+# 数擎云核 SKE · 调度策略 (kubescheduler.config.k8s.io/v1beta3)
+# 拓扑感知 + 数据本地性扩展器, 让计算尽量落在数据所在 NUMA/节点
+apiVersion: kubescheduler.config.k8s.io/v1beta3
+kind: KubeSchedulerConfiguration
+profiles:
+  - schedulerName: "shuqing-ske-scheduler"
+    plugins:
+      # 拓扑感知打分
+      score:
+        enabled:
+          - name: NodeResourcesFit
+            weight: 3
+          - name: InterPodAffinity
+            weight: 2
+          - name: TopologyAwareHint
+            weight: 2
+          - name: ImageLocality
+            weight: 1
+      # 数据本地性扩展器 (SKE 自研, 见 platform-ops/ske-scheduler-extender)
+      preFilter:
+        enabled:
+          - name: "SKEDataLocality"
+      filter:
+        enabled:
+          - name: "SKEDataLocality"
+    pluginConfig:
+      - name: NodeResourcesFit
+        args:
+          scoringStrategy:
+            type: "MostAllocated"
+      - name: "SKEDataLocality"
+        args:
+          # 扩展器服务地址 (部署在 platform-ops 命名空间)
+          extenderAddress: "http://ske-scheduler-extender.platform-ops.svc:8888"
+          # 数据本地性权重: 命中 Iceberg 分片/缓存节点时加分
+          localityWeight: 5
+          # 允许调度偏离本地的最大网络跳数 (0=必须同节点)
+          maxHops: 1
+# 默认调度器也启用拓扑感知, 兜底
+  - schedulerName: "default-scheduler"
+    plugins:
+      score:
+        enabled:
+          - name: TopologyAwareHint
+            weight: 2
+          - name: NodeResourcesFit
+            weight: 2

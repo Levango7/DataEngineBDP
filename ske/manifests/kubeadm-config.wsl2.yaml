@@ -1,0 +1,105 @@
+# 数擎云核 SKE · WSL2/VM 真实 kubeadm 配置 (单节点, 控制面兼跑负载)
+# 与 kind 配置不同: 此处直接 kubeadm init, KubeletConfiguration 内联以避免双 --config 冲突
+# 由 ske.sh up --target wsl2 使用; scheduler-policy.yaml 需先拷到 /etc/kubernetes
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+nodeRegistration:
+  criSocket: unix:///run/containerd/containerd.sock
+  kubeletExtraArgs:
+    container-runtime-endpoint: unix:///run/containerd/containerd.sock
+  ignorePreflightErrors:
+    - DirAvailable--etc-kubernetes-manifests
+    - FileAvailable--etc-kubernetes-kubelet-config.yaml
+    - SystemVIPrivatePorts
+    - FileExisting-crictl
+localAPIEndpoint:
+  advertiseAddress: 0.0.0.0
+  bindPort: 6443
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: v1.30.0
+clusterName: shuqing-ske
+controlPlaneEndpoint: ""
+networking:
+  podSubnet: 10.244.0.0/16        # 与 cilium-values.yaml 的 podCIDR 一致
+  serviceSubnet: 10.96.0.0/12
+  dnsDomain: cluster.local
+# 禁用默认 kube-proxy: Cilium eBPF 完全接管数据面
+kubeProxy:
+  mode: "none"
+apiServer:
+  certSANs:
+    - localhost
+    - 127.0.0.1
+  extraArgs:
+    max-requests-inflight: "3000"
+    max-mutating-requests-inflight: "2000"
+    default-watch-cache-size: "1000"
+    audit-log-path: "/var/log/kubernetes/apiserver-audit.log"
+    audit-log-maxage: "7"
+    audit-log-maxbackup: "5"
+    audit-log-maxsize: "100"
+  extraVolumes:
+    - name: audit-log
+      hostPath: /var/log/kubernetes
+      mountPath: /var/log/kubernetes
+      pathType: DirectoryOrCreate
+controllerManager:
+  extraArgs:
+    node-cidr-mask-size: "24"
+    terminated-pod-gc-threshold: "12500"
+scheduler:
+  # 使用拓扑感知 + 数据本地性扩展器策略 (见 scheduler-policy.yaml)
+  extraArgs:
+    config: /etc/kubernetes/scheduler-policy.yaml
+  extraVolumes:
+    - name: scheduler-policy
+      hostPath: /etc/kubernetes/scheduler-policy.yaml
+      mountPath: /etc/kubernetes/scheduler-policy.yaml
+      pathType: File
+etcd:
+  local:
+    dataDir: /var/lib/etcd          # 生产: 独占 NVMe (见 tuning/controlplane.sh)
+    extraArgs:
+      quota-backend-bytes: "8589934592"   # 8GiB
+      wal-fsync-duration: "100"
+---
+apiVersion: kubelet.config.k8s.io/v1beta1
+kind: KubeletConfiguration
+# ---- 容器运行时 ----
+containerRuntimeEndpoint: unix:///run/containerd/containerd.sock
+cgroupDriver: systemd
+# ---- 资源预留: 给系统/控制面留核, 避免数据面被挤 ----
+systemReserved:
+  cpu: "500m"
+  memory: "1Gi"
+kubeReserved:
+  cpu: "500m"
+  memory: "1Gi"
+# ---- CPU 管理器: 静态策略 + 拓扑管理器单 NUMA ----
+cpuManagerPolicy: "static"
+cpuManagerReconcilePeriod: "10s"
+topologyManagerPolicy: "single-numa-node"
+topologyManagerScope: "pod"
+# ---- 大页: 预留 2MB 大页给引擎/Doris/etcd (生产在 tune-host 分配) ----
+featureGates:
+  TopologyManager: true
+  CPUManager: true
+# ---- 驱逐与压力 ----
+evictionHard:
+  memory.available: "500Mi"
+  nodefs.available: "10%"
+  imagefs.available: "10%"
+evictionSoft:
+  memory.available: "1Gi"
+evictionSoftGracePeriod:
+  memory.available: "1m30s"
+# ---- 优雅与心跳 ----
+maxPods: 110
+serializeImagePulls: false
+# ---- 安全: 保护内核默认, 收紧 ----
+protectKernelDefaults: true
+# ---- 日志 ----
+logging:
+  verbosity: 2

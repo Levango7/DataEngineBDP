@@ -1,0 +1,150 @@
+# ============================================================================
+# SeaTunnel 定制 Helm values
+# 关联：部署清单 v0.1 §8.1 数据集成 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/seatunnel-values.yaml
+# 说明：在 values-base.integration.seatunnel 之上做深度调优；
+#       多 connector 支持，批量写入 + checkpoint 分钟级。
+# ============================================================================
+
+integration:
+  seatunnel:
+    image: "sq-seatunnel:2.3-0.1.0"
+    version: "2.3.4"
+    replicas: 2
+
+    # ---- 套餐分档 ----
+    # P1-C10：base 档不含 L4 组件，enabled=false（仅 standard/flagship 启用 L4 集成工具）
+    tierProfiles:
+      base:      { enabled: false, workerMemory: "2Gi",  workerReplicas: 2, parallelism: 2 }
+      standard:  { enabled: true,  workerMemory: "3Gi",  workerReplicas: 3, parallelism: 4 }
+      flagship:  { enabled: true,  workerMemory: "4Gi",  workerReplicas: 4, parallelism: 8 }
+
+    # ---- Worker ----
+    worker:
+      replicas: 2
+      memory: "3Gi"
+      cpu: 1
+      resources:
+        requests: { cpu: "1", memory: "3Gi" }
+        limits:   { cpu: "2", memory: "4Gi" }
+      nodeSelector: { "sq.io/pool": "seatunnel" }
+      config:
+        slotNum: 2
+        checkpointInterval: "60s"      # 分钟级
+        checkpointTimeout: "5m"
+        maxParallelism: 100
+
+    # ---- Master/Coordinator（Zookeeper 协调）----
+    master:
+      mode: "kubernetes"        # kubernetes | zookeeper
+      replicas: 1
+      resources:
+        requests: { cpu: "500m", memory: "1Gi" }
+        limits:   { cpu: "1",    memory: "2Gi" }
+
+    # ---- Connector ----
+    connectors:
+      mysql:
+        enabled: true
+        driver: "mysql-connector-j:8.3"
+        cdc: true
+      postgres:
+        enabled: true
+        driver: "postgresql:42.7"
+        cdc: true
+      kafka:
+        enabled: true
+        version: "3.7.1"
+      iceberg:
+        enabled: true
+        catalogUri: "http://iceberg-catalog:8181"
+        warehouse: "s3://sq-iceberg/warehouse"
+      hdfs:
+        enabled: true
+        namenode: "hdfs://hdfs-namenode:8020"
+      rest:
+        enabled: true
+        timeout: "30s"
+      # 其他常用 connector
+      mongodb:   { enabled: true, cdc: true }
+      redis:     { enabled: true }
+      elasticsearch: { enabled: true }
+      jdbc:      { enabled: true }
+      # P1-C6 补充：国产数据库连接器（信创环境必选）
+      # 由 Profile=xinchuang 时启用，覆盖达梦/人大金仓/OceanBase 三大主流国产库
+      dameng:
+        enabled: false             # 由 Profile 覆盖为 true
+        driver: "DmJdbcDriver18:8.1"
+        cdc: false                 # 达梦暂不支持 CDC，仅批量同步
+        defaultPort: 5236
+        jdbcUrlTemplate: "jdbc:dm://{host}:{port}/{database}"
+      kingbase:
+        enabled: false             # 由 Profile 覆盖为 true
+        driver: "kingbase8:8.6"
+        cdc: true                  # 人大金仓 V8R6 支持 CDC
+        defaultPort: 54321
+        jdbcUrlTemplate: "jdbc:kingbase8://{host}:{port}/{database}"
+      oceanbase:
+        enabled: false             # 由 Profile 覆盖为 true
+        driver: "oceanbase-client:2.4"
+        cdc: true                  # OceanBase 4.x 支持 CDC（基于 logproxy）
+        defaultPort: 2881
+        jdbcUrlTemplate: "jdbc:oceanbase://{host}:{port}/{database}"
+        cdcConfig:
+          logproxyHost: "ob-logproxy:2983"
+          startTimestamp: 0
+
+    # ---- 批量调优 ----
+    batch:
+      size: 10000
+      interval: "5s"
+      parallelism: 4
+      flushMaxRetries: 3
+      # 反压
+      backpressure:
+        enabled: true
+        maxRate: 5000
+
+    # ---- Checkpoint ----
+    checkpoint:
+      interval: "60s"           # 分钟级
+      timeout: "5m"
+      minPause: "30s"
+      externalized: true
+      storage: "s3://sq-seatunnel/checkpoints"
+
+    # ---- 监控 ----
+    monitoring:
+      metrics:
+        enabled: true
+        port: 9091
+        interval: "30s"
+      prometheus:
+        enabled: true
+        scrapeInterval: "30s"
+        serviceMonitor: true
+      restApi:
+        enabled: true
+        port: 8080
+        ingress: { enabled: true, host: "seatunnel.<domain>" }
+
+    # ---- 认证集成（P2-E4）----
+    # SeaTunnel 无原生 OIDC 集成，统一经 X4 APISIX 网关代理认证：
+    #   用户 → APISIX（Keycloak OIDC）→ SeaTunnel REST API
+    # 作业提交通过 ServiceAccount + Kerberos 凭证，租户上下文通过作业参数传递。
+    auth:
+      mode: "via-apisix-gateway"
+      keycloakRealm: "sq"
+      uiAuthVia: "apisix-keycloak-oidc"
+      jobSubmission:
+        authType: "service-account-kerberos"
+        # 租户上下文通过作业参数 -Dtenant.id 传递
+        tenantContextProp: "tenant.id"
+
+    # ---- 资源配额（Namespace 级单组件配额）----
+    # P1-C12/P1-E5 说明：本 quota 是 SeaTunnel 在平台 Namespace 的总配额，
+    #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+    quota:
+      base:      { requests.cpu: "4",  requests.memory: "8Gi",  limits.cpu: "8",  limits.memory: "12Gi" }
+      standard:  { requests.cpu: "8",  requests.memory: "16Gi", limits.cpu: "16", limits.memory: "24Gi" }
+      flagship:  { requests.cpu: "16", requests.memory: "32Gi", limits.cpu: "32", limits.memory: "48Gi" }

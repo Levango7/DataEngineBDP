@@ -1,0 +1,171 @@
+# ============================================================================
+# 多 Arch 镜像构建 CI（buildx + 扫描 + 签名）
+# 关联：部署清单 v0.1 §6（多 Arch 镜像构建 CI）
+# 运行环境：GitHub Actions（或 GitLab CI 等价改写）；self-hosted runner（含 arm64）
+# 产物：registry.internal/sq/*:tag 的 amd64+arm64 manifest；信创额外 openeuler 变体
+# ============================================================================
+name: build-images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      variant:
+        description: "额外基础镜像变体（信创=openeuler）"
+        required: false
+        default: ""
+
+env:
+  REGISTRY: registry.internal/sq
+  VARIANT: ${{ github.event.inputs.variant || '' }}
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1) 单元测试 + 代码扫描（门禁）
+  # ------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unit Test
+        run: |
+          # 各组件自带测试；此处聚合
+          ./scripts/unit-test.sh
+      - name: SAST (gitleaks / trivy fs)
+        run: |
+          docker run --rm -v $PWD:/repo aquasec/trivy:latest fs --scanners vuln,secret /repo
+
+  # ------------------------------------------------------------------
+  # 2) 多 Arch 镜像构建与推送
+  # ------------------------------------------------------------------
+  build:
+    needs: test
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        component:
+          - sq-encapsulation
+          - sq-iceberg-catalog
+          - sq-spark
+          - sq-flink
+          - sq-doris
+          - sq-sql-gateway
+          - sq-metadata
+          - sq-standard
+          - sq-quality
+          - sq-lineage
+          - sq-catalog
+          - sq-security
+          - sq-seatunnel
+          - sq-dolphinscheduler
+          - sq-vector
+          - sq-kb
+          - sq-llmops
+          - sq-llm-gateway
+          - sq-console-api
+          - sq-console-web
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up QEMU (arm64 仿真)
+        uses: docker/setup-qemu-action@v3
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to internal registry
+        run: echo "${{ secrets.REGISTRY_TOKEN }}" | docker login $REGISTRY -u ci --password-stdin
+      - name: Compute tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+      - name: Build & Push (amd64 + arm64)
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg VARIANT=$VARIANT \
+            -t $REGISTRY/${{ matrix.component }}:${{ steps.tag.outputs.tag }} \
+            -f docker/${{ matrix.component }}.Dockerfile \
+            --push .
+      # 信创额外变体：openeuler 基础镜像
+      - name: Build & Push openEuler variant (xinchuang)
+        if: env.VARIANT == 'openeuler'
+        run: |
+          docker buildx build \
+            --platform linux/amd64,linux/arm64 \
+            --build-arg BASE=openeuler-24.03 \
+            -t $REGISTRY/${{ matrix.component }}:${{ steps.tag.outputs.tag }}-openeuler \
+            -f docker/${{ matrix.component }}.Dockerfile \
+            --push .
+
+  # ------------------------------------------------------------------
+  # 3) 镜像扫描 + 签名（推送后）
+  # ------------------------------------------------------------------
+  scan-sign:
+    needs: build
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        component:
+          - sq-encapsulation
+          - sq-iceberg-catalog
+          - sq-spark
+          - sq-flink
+          - sq-doris
+          - sq-sql-gateway
+          - sq-metadata
+          - sq-standard
+          - sq-quality
+          - sq-lineage
+          - sq-catalog
+          - sq-security
+          - sq-seatunnel
+          - sq-dolphinscheduler
+          - sq-vector
+          - sq-kb
+          - sq-llmops
+          - sq-llm-gateway
+          - sq-console-api
+          - sq-console-web
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute tag
+        id: tag
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=sha-${GITHUB_SHA::8}" >> $GITHUB_OUTPUT
+          fi
+      - name: Image scan (trivy)
+        run: |
+          for c in ${{ join(matrix.component, ' ') }}; do
+            docker run --rm aquasec/trivy:latest image $REGISTRY/$c:${{ steps.tag.outputs.tag }} \
+              --exit-code 1 --severity CRITICAL
+          done
+      - name: Cosign sign
+        run: |
+          echo "${{ secrets.COSIGN_KEY }}" > cosign.key
+          for c in ${{ join(matrix.component, ' ') }}; do
+            cosign sign --key cosign.key $REGISTRY/$c:${{ steps.tag.outputs.tag }}
+          done
+      - name: Update Chart image tag
+        run: |
+          # 自动回填 deploy/values-base.yaml 中各组件 image.tag
+          ./scripts/bump-values.sh ${{ steps.tag.outputs.tag }}
+
+  # ------------------------------------------------------------------
+  # 4) 同步 Helm Chart
+  # ------------------------------------------------------------------
+  helm-sync:
+    needs: scan-sign
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package & push charts
+        run: |
+          helm package deploy/charts/* -d dist/
+          helm push dist/*.tgz oci://$REGISTRY/charts

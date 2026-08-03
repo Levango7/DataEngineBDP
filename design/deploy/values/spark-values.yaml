@@ -1,0 +1,163 @@
+# ============================================================================
+# Spark 3.5 定制 Helm values
+# 关联：部署清单 v0.1 §6.2 计算引擎 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/spark-values.yaml
+# 说明：在 values-base.engines.spark 之上做深度调优；按三档套餐给出参数建议。
+#       基础(base) / 标准(standard) / 旗舰(flagship) 由 profile 或 -f 覆盖 tier 字段。
+# ============================================================================
+
+engines:
+  spark:
+    # ---- 镜像 / Operator ----
+    operator:
+      image: "spark-operator:1.4.0"
+      replicas: 2
+      resources:
+        requests: { cpu: "500m", memory: "1Gi" }
+        limits:   { cpu: "1",    memory: "2Gi" }
+      webhook:
+        enabled: true
+        failurePolicy: Fail
+    sparkImage: "sq-spark:3.5-0.1.0"
+    sparkVersion: "3.5.1"
+    hadoopVersion: "3.3.4"
+
+    # ---- 套餐分档（按 NodePool 自动选择）----
+    tierProfiles:
+      base:
+        executor: { memory: "4Gi",  cores: 2, instances: 2 }
+        driver:   { memory: "2Gi",  cores: 1 }
+        dynamicAllocation: { enabled: true, minExecutors: 1, maxExecutors: 8 }
+      standard:
+        executor: { memory: "8Gi",  cores: 3, instances: 4 }
+        driver:   { memory: "3Gi",  cores: 2 }
+        dynamicAllocation: { enabled: true, minExecutors: 2, maxExecutors: 30 }
+      flagship:
+        executor: { memory: "16Gi", cores: 4, instances: 8 }
+        driver:   { memory: "4Gi",  cores: 2 }
+        dynamicAllocation: { enabled: true, minExecutors: 4, maxExecutors: 100 }
+
+    # ---- Driver ----
+    driver:
+      memory: "3Gi"
+      cores: 2
+      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      resources:
+        requests: { cpu: "2",  memory: "3Gi" }
+        limits:   { cpu: "4",  memory: "4Gi" }
+      nodeSelector: { "sq.io/pool": "spark-driver" }
+      tolerations:
+        - { key: "sq.io/spark", value: "driver", effect: "NoSchedule" }
+
+    # ---- Executor ----
+    executor:
+      memory: "8Gi"
+      cores: 3
+      instances: 4
+      javaOpts: "-XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+      resources:
+        requests: { cpu: "3",  memory: "8Gi" }
+        limits:   { cpu: "6",  memory: "10Gi" }
+      dynamicAllocation:
+        enabled: true
+        initialExecutors: 2
+        minExecutors: 1
+        maxExecutors: 30
+        schedulerBacklogTimeout: "1m"
+        executorIdleTimeout: "10m"
+      nodeSelector: { "sq.io/pool": "spark-exec" }
+
+    # ---- Shuffle Service（独立 DaemonSet，IO_uring 加速）----
+    shuffleService:
+      enabled: true
+      mode: DaemonSet
+      image: "sq-spark-shuffle:3.5-0.1.0"
+      ioUring: true
+      ports: { shuffle: 7337 }
+      resources:
+        requests: { cpu: "500m", memory: "1Gi" }
+        limits:   { cpu: "1",    memory: "2Gi" }
+
+    # ---- 序列化 / 内存管理 ----
+    config:
+      serializer: "org.apache.spark.serializer.KryoSerializer"
+      kryoRegistrationRequired: true
+      memory:
+        fraction: 0.8              # spark.memory.fraction
+        storageFraction: 0.5
+        offHeapEnabled: true
+        offHeapSize: "2g"
+      aqe:                          # 自适应查询执行
+        enabled: true
+        coalescePartitions: true
+        coalescePartitionsInitialPartitionNum: 200
+        skewJoin: true
+        shuffleAdaptiveJoin: true
+
+    # ---- Iceberg 集成 ----
+    iceberg:
+      enabled: true
+      catalog:
+        type: "rest"
+        uri: "http://iceberg-catalog:8181"
+        # P0-12 修复：s3a:// → s3://，与 Flink/Trino/SeaTunnel 统一协议前缀，
+        # 使用 Iceberg 原生 S3FileIO，避免跨引擎联邦查询路径解析失败。
+        warehouse: "s3://sq-iceberg/warehouse"
+        ioImpl: "org.apache.iceberg.aws.s3.S3FileIO"
+      write:
+        formatVersion: 2
+        distributionMode: "hash"
+        targetFileBytes: 536870912   # 512MB
+        splitOpenFileCost: 4194304
+      mergeOnRead:
+        enabled: true
+        compactMinFiles: 5
+        compactTargetFiles: 30
+
+    # ---- 监控 ----
+    monitoring:
+      sparkUI:
+        enabled: true
+        port: 4040
+        ingress: { enabled: true, host: "spark-ui.<domain>" }
+      prometheus:
+        enabled: true
+        exporterImage: "spark-prometheus-exporter:0.1.0"
+        port: 8090
+        scrapeInterval: "30s"
+
+    # ---- 日志 → Loki ----
+    logging:
+      loki:
+        enabled: true
+        promtailSidecar: true
+        pushUrl: "http://loki-gateway:3100/loki/api/v1/push"
+        labels: { "app": "spark", "tier": "compute" }
+      maxLogSize: "100Mi"
+      retention: "15d"
+
+    # ---- 认证集成（P2-E4）----
+    # Spark 引擎无原生 Web UI OIDC 集成，统一经 X4 APISIX 网关代理认证：
+    #   用户 → APISIX（Keycloak OIDC）→ Spark UI/REST
+    # Spark 提交作业时通过 Hadoop Delegation Token 携带租户上下文，
+    # 由 L3.7 数据安全策略下推到执行层做行/列级权限校验。
+    auth:
+      mode: "via-apisix-gateway"
+      keycloakRealm: "sq"
+      # Spark UI 经 APISIX 路由
+      uiAuthVia: "apisix-keycloak-oidc"
+      # 作业提交认证：Kerberos + Delegation Token
+      jobSubmission:
+        authType: "kerberos-delegation-token"
+        # 从 Keycloak token 转换为 Hadoop Delegation Token
+        tokenExchange: true
+        # 租户上下文通过 _hoodie.tenant_id 或 Iceberg property 传递
+        tenantContextProp: "spark.sql.tenant.id"
+
+    # ---- 资源配额（Namespace 级单组件配额）----
+    # P1-C12/P1-E5 说明：本 quota 是 Spark 在平台 Namespace 的总配额，
+    #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+    quota:
+      base:      { requests.cpu: "20",  requests.memory: "80Gi",  limits.cpu: "40",  limits.memory: "120Gi" }
+      standard:  { requests.cpu: "60",  requests.memory: "240Gi", limits.cpu: "120", limits.memory: "360Gi" }
+      flagship:  { requests.cpu: "200", requests.memory: "800Gi", limits.cpu: "400", limits.memory: "1200Gi" }

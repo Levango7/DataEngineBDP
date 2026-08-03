@@ -1,0 +1,52 @@
+# 数擎云核 SKE · Cilium 网络 (eBPF 取代 kube-proxy) Helm values
+# 关键: kubeProxyReplacement + HostRouting + BPF 伪装, 绕过 iptables 慢路径
+kubeProxyReplacement: true
+kubeProxyReplacementHealthzBindAddress: "0.0.0.0:10256"
+
+# 直连路由 (HostRouting): Pod 出网不走 iptables masquerade
+endpointRoutes:
+  enabled: true
+hostRouting: true
+bpf:
+  masquerade: true
+  preallocateMaps: true
+  # 关闭 legacy ipv6 路径以降开销
+  enableIPv6Masquerade: false
+
+# 数据面: native-routing + 直连, 延迟最低
+tunnel: disabled
+nativeRoutingCIDR: "10.244.0.0/16"
+autoDirectNodeRoutes: true
+
+# 网络策略 & 可观测
+policyEnforcementMode: "always"
+hubble:
+  enabled: true
+  relay:
+    enabled: true
+  ui:
+    enabled: false
+
+# 性能: 大 Socket 缓冲, 开启 XDP 加速
+socketLB:
+  enabled: true
+  mode: "snat"
+bpfClockProbe: true
+
+# 资源: 控制面独立, 给 Cilium agent 足够资源
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+operator:
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+
+# 与 kubeadm-config 的 podSubnet 对齐
+ipam:
+  mode: "kubernetes"

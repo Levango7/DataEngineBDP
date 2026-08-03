@@ -1,0 +1,220 @@
+# 数擎云核 SKE · 弹性伸缩模板 (HPA + KEDA ScaledObject)
+# 关联: resource-quotas.yaml (套餐配额上限) / nodepool-crd.yaml (节点池伸缩)
+# 设计要点:
+#   - Spark executor: 按 pending Pod 数伸缩 (KEDA ScaledObject)
+#   - Flink TM: 按 Kafka lag 伸缩
+#   - Trino worker: 按查询队列深度伸缩
+#   - Doris BE: 按查询并发伸缩
+#   - 控制台 API: 按 QPS 伸缩 (HPA)
+#   - 最小/最大副本数 + 扩缩冷却时间
+#   - KEDA 适配外部指标 (Kafka lag / Prometheus / 自定义)
+
+# ---- 1. Spark executor 弹性: KEDA 按 pending Pod 数伸缩 ----
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: spark-executor-scaler
+  namespace: sq-tenant-standard
+  labels:
+    app.kubernetes.io/name: spark
+    sq.shuqing.io/engine: spark
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: spark-executor-pool
+  pollingInterval: 30                       # 30s 轮询一次指标
+  cooldownPeriod: 60                        # 缩容冷却 60s
+  minReplicaCount: 2                        # 最小 2 个 executor 保活
+  maxReplicaCount: 50                       # 最大 50 (受 ResourceQuota 约束)
+  advanced:
+    horizontalPodAutoscalerConfig:
+      scaleDown:
+        stabilizationWindowSeconds: 300    # 缩容稳定窗口 5min
+        policies:
+          - type: Percent
+            value: 50                       # 每次最多缩 50%
+            periodSeconds: 60
+  triggers:
+    - type: kubernetes-workload
+      metadata:
+        namespace: sq-tenant-standard
+        labelSelector: "app=spark-executor-pending"
+        value: "1"                          # 每个 pending Pod 触发扩容
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus.observability.svc:9090
+        metricName: spark_executor_pending_count
+        threshold: "5"
+        query: >-
+          sum(spark_executor_pending_count{namespace="sq-tenant-standard"})
+
+---
+# ---- 2. Flink TaskManager 弹性: KEDA 按 Kafka lag 伸缩 ----
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: flink-tm-scaler
+  namespace: sq-tenant-standard
+  labels:
+    app.kubernetes.io/name: flink
+    sq.shuqing.io/engine: flink
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: flink-taskmanager
+  pollingInterval: 30
+  cooldownPeriod: 120                       # Flink TM 启动重, 冷却更长
+  minReplicaCount: 1
+  maxReplicaCount: 30
+  advanced:
+    horizontalPodAutoscalerConfig:
+      scaleDown:
+        stabilizationWindowSeconds: 600    # 10min 稳定窗口
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: kafka.sq-streaming.svc:9092
+        consumerGroup: flink-streaming-job
+        topic: input-events
+        lagThreshold: "1000"                # lag > 1000 触发扩容
+        offsetResetPolicy: latest
+        partitionLimitation: ""             # 监控全分区
+
+---
+# ---- 3. Trino worker 弹性: KEDA 按查询队列深度伸缩 ----
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: trino-worker-scaler
+  namespace: sq-tenant-standard
+  labels:
+    app.kubernetes.io/name: trino
+    sq.shuqing.io/engine: trino
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: trino-worker
+  pollingInterval: 15                       # Trino 查询短, 轮询更频繁
+  cooldownPeriod: 60
+  minReplicaCount: 2
+  maxReplicaCount: 20
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus.observability.svc:9090
+        metricName: trino_queued_queries
+        threshold: "3"
+        query: >-
+          trino_queued_queries{namespace="sq-tenant-standard"}
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus.observability.svc:9090
+        metricName: trino_running_queries
+        threshold: "10"
+        query: >-
+          trino_running_queries{namespace="sq-tenant-standard"}
+
+---
+# ---- 4. Doris BE 弹性: KEDA 按查询并发伸缩 ----
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: doris-be-scaler
+  namespace: sq-tenant-standard
+  labels:
+    app.kubernetes.io/name: doris
+    sq.shuqing.io/engine: doris
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: doris-be
+  pollingInterval: 30
+  cooldownPeriod: 300                       # BE 有数据本地性, 缩容更保守
+  minReplicaCount: 3                        # BE 至少 3 副本 (副本数约束)
+  maxReplicaCount: 15
+  advanced:
+    horizontalPodAutoscalerConfig:
+      scaleDown:
+        stabilizationWindowSeconds: 900    # 15min 稳定窗口
+        policies:
+          - type: Pods
+            value: 1                        # 每次最多缩 1 个 BE
+            periodSeconds: 300
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: http://prometheus.observability.svc:9090
+        metricName: doris_query_concurrency
+        threshold: "20"
+        query: >-
+          avg(doris_be_query_concurrency{namespace="sq-tenant-standard"})
+
+---
+# ---- 5. 控制台 API 弹性: HPA 按 QPS (CPU + 自定义指标) 伸缩 ----
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: console-api-hpa
+  namespace: sq-system
+  labels:
+    app.kubernetes.io/name: console-api
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: console-api
+  minReplicas: 3                            # 控制台高可用, 最少 3 副本
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70            # CPU 平均利用率 70% 触发
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods
+      pods:
+        metric:
+          name: http_requests_per_second
+        target:
+          type: AverageValue
+          averageValue: "1000"              # 每 Pod 1000 QPS 触发
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0        # 扩容立即执行
+      policies:
+        - type: Percent
+          value: 100                        # 每次最多翻倍
+          periodSeconds: 30
+        - type: Pods
+          value: 5                          # 或最多加 5 个
+          periodSeconds: 30
+      selectPolicy: Max
+    scaleDown:
+      stabilizationWindowSeconds: 300      # 缩容 5min 稳定
+      policies:
+        - type: Percent
+          value: 25                         # 每次最多缩 25%
+          periodSeconds: 60
+
+---
+# ---- 6. KEDA TriggerAuthentication (如需认证外部指标源) ----
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: keda-prometheus-auth
+  namespace: sq-tenant-standard
+spec:
+  authenticationTarget:
+    name: keda-prometheus-auth
+    kind: Secret

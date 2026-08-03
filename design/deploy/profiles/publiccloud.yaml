@@ -1,0 +1,44 @@
+# ============================================================================
+# Profile: 公有云 VM（publiccloud）
+# 机器：客户在公有云自购的 VM（即算力）+ 块存储 + 网络
+# 铁律：云只提供 VM + 块存储 + 网络；禁用 ACK/EKS/TKE/CCE 等托管 K8s，
+#       禁用云托管 DB/MQ/对象存储（对象存储由客户提供密钥，不绑云托管）
+# 关联：部署清单 v0.1 §5 / §11（风险：云环境误绑托管服务）
+# ============================================================================
+meta:
+  name: publiccloud
+  k8s: self-built                   # 我方在客户 VM 上自建标准 K8s
+  note: "客户 VM 池 + 块存储 + 网络；不启用任何云托管 K8s/DB/MQ"
+
+compute:
+  arch: ["x86", "arm64"]
+  os: ["Ubuntu", "RHEL"]
+
+images:
+  baseImage: "base:ubuntu-22.04"
+  extraVariant: ""
+
+global:
+  guomiEnabled: false
+  guomiAlgos: ["AES", "SHA256"]
+
+storage:
+  objectStore:
+    driver: "s3"                     # S3Driver；客户提供密钥，不绑云托管
+    endpoint: "https://s3.<region>.example.com"
+    csi: "csi-s3"
+    binding: "customer-provided-credentials"   # 关键：密钥由客户提供，不依赖云 IAM 托管
+
+network:
+  cni: "cilium"
+  lb: "cloud-LB-or-metallb"         # 优先云 LB，回退 metallb
+
+kms:
+  driver: "Vault"                    # 自研优先，不强制云 KMS
+  algo: ["AES", "SHA256"]
+
+identity:
+  driver: "KeycloakLDAP"
+
+elastic:
+  driver: "ClusterAutoscaler"        # 客户 VM 池弹性伸缩

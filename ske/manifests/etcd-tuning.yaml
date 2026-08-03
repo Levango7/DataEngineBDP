@@ -1,0 +1,209 @@
+# 数擎云核 SKE · etcd 深度调优 (大数据负载场景)
+# 关联: kubeadm-config.yaml (etcd.local.dataDir) / tuning/controlplane.sh (NVMe 挂载) / tuning/etcd.sh (运行时检查)
+# 设计要点:
+#   - quota-backend-bytes 8GiB: 防止 db 膨胀导致集群只读不可用
+#   - heartbeat 250ms / election 2500ms: 大数据写入高峰稳定, 避免误判脑裂
+#   - snapshot-count 10000: 减少 snapshot 压力, 适配高写入吞吐
+#   - auto-compaction periodic / 1h: 自动压缩历史 key version, 控制 db 增长
+#   - 资源 2C/4Gi ~ 4C/8Gi: 控制面独立配额, 与数据面互不干扰
+#   - anti-affinity 跨 AZ: 单 AZ 故障不影响 etcd 多数派
+#   - 专属 NVMe (noatime, nodiratime): 见 tuning/storage.sh
+#   - CronJob defrag: 每日凌晨低峰期碎片整理, 避免 db 离散化
+
+# ---- 1. etcd Pod 资源配额与 anti-affinity (静态 Pod 模板补丁) ----
+apiVersion: v1
+kind: Pod
+metadata:
+  name: etcd-tuning-template
+  namespace: kube-system
+  labels:
+    component: etcd
+    tier: control-plane
+  annotations:
+    ske.shuqing.io/tuning: "quota=8GiB,heartbeat=250ms,election=2500ms,snapshot=10000,compaction=periodic-1h"
+spec:
+  containers:
+    - name: etcd
+      resources:
+        requests:
+          cpu: "2"
+          memory: "4Gi"
+        limits:
+          cpu: "4"
+          memory: "8Gi"
+      command:
+        - /usr/local/bin/etcd
+        - --name=$(NODE_NAME)
+        - --data-dir=/var/lib/etcd
+        - --quota-backend-bytes=8589934592
+        - --heartbeat-interval=250
+        - --election-timeout=2500
+        - --snapshot-count=10000
+        - --auto-compaction-mode=periodic
+        - --auto-compaction-retention=1h
+        - --max-request-bytes=10485760
+        - --enable-v2=false
+        - --peer-client-cert-auth=true
+        - --peer-trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+        - --peer-cert-file=/etc/kubernetes/pki/etcd/server.crt
+        - --peer-key-file=/etc/kubernetes/pki/etcd/server.key
+        - --client-cert-auth=true
+        - --trusted-ca-file=/etc/kubernetes/pki/etcd/ca.crt
+        - --cert-file=/etc/kubernetes/pki/etcd/server.crt
+        - --key-file=/etc/kubernetes/pki/etcd/server.key
+      volumeMounts:
+        - name: etcd-data
+          mountPath: /var/lib/etcd
+        - name: etcd-certs
+          mountPath: /etc/kubernetes/pki/etcd
+          readOnly: true
+  volumes:
+    - name: etcd-data
+      hostPath:
+        path: /var/lib/etcd
+        type: Directory
+    - name: etcd-certs
+      hostPath:
+        path: /etc/kubernetes/pki/etcd
+        type: Directory
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              component: etcd
+              tier: control-plane
+          topologyKey: kubernetes.io/hostname
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                component: etcd
+                tier: control-plane
+            topologyKey: topology.kubernetes.io/zone
+  tolerations:
+    - key: node-role.kubernetes.io/control-plane
+      effect: NoSchedule
+
+---
+# ---- 2. etcd defrag CronJob: 每日凌晨 02:00 低峰期执行 ----
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: etcd-defrag
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: etcd-defrag
+  namespace: kube-system
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: etcd-defrag
+  namespace: kube-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: etcd-defrag
+subjects:
+  - kind: ServiceAccount
+    name: etcd-defrag
+    namespace: kube-system
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: etcd-defrag
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: etcd-defrag
+    app.kubernetes.io/part-of: shuqing-ske
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      parallelism: 1
+      template:
+        spec:
+          serviceAccountName: etcd-defrag
+          restartPolicy: OnFailure
+          tolerations:
+            - key: node-role.kubernetes.io/control-plane
+              effect: NoSchedule
+          containers:
+            - name: defrag
+              image: "{{SKE_ETCD_TOOLS_IMAGE}}"
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/bash
+                - -c
+                - |
+                  set -euo pipefail
+                  echo "== [SKE] etcd defrag 开始 =="
+                  ETCD_PODS=$(kubectl -n kube-system get pods -l component=etcd -o jsonpath='{.items[*].metadata.name}')
+                  for POD in $ETCD_PODS; do
+                    echo "-- 对 $POD 执行 defrag --"
+                    kubectl -n kube-system exec "$POD" -- /bin/sh -c \
+                      "etcdctl --command-timeout=30s compact \$(etcdctl --command-timeout=30s endpoint status -w json | grep -o '\"revision\":[0-9]*' | grep -o '[0-9]*')" || true
+                    kubectl -n kube-system exec "$POD" -- /bin/sh -c \
+                      "etcdctl --command-timeout=120s defrag" || echo "  $POD defrag 失败, 跳过"
+                    sleep 30
+                  done
+                  echo "== [SKE] etcd defrag 完成 =="
+          terminationGracePeriodSeconds: 600
+
+---
+# ---- 3. etcd 告警 PromQL (供 observability Prometheus 使用) ----
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: etcd-tuning-alerts
+  namespace: observability
+  labels:
+    prometheus: platform
+spec:
+  groups:
+    - name: etcd-tuning
+      rules:
+        - alert: SKEEtcdDBSizeHigh
+          expr: etcd_mvcc_db_total_size_in_bytes > 4294967296
+          for: 10m
+          labels:
+            severity: warning
+            team: platform-ops
+          annotations:
+            summary: "etcd db 大小超过 4GiB"
+            description: "{{ $labels.instance }} db 接近 quota 8GiB, 请检查压缩/defrag"
+        - alert: SKEEtcdQuotaAtRisk
+          expr: etcd_mvcc_db_total_size_in_bytes / 8589934592 > 0.8
+          for: 5m
+          labels:
+            severity: critical
+            team: platform-ops
+          annotations:
+            summary: "etcd db 已用 80% quota, 即将触发只读保护"
+            description: "{{ $labels.instance }} db 已用 quota 80%+, 立即执行 defrag"
+        - alert: SKEEtcdHighFsyncDuration
+          expr: histogram_quantile(0.99, rate(etcd_disk_wal_fsync_duration_seconds_bucket[5m])) > 0.025
+          for: 5m
+          labels:
+            severity: warning
+            team: platform-ops
+          annotations:
+            summary: "etcd wal fsync P99 > 25ms, 写入延迟过高"
+            description: "检查 NVMe IO 性能 / 是否与其他服务共盘"

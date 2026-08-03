@@ -1,0 +1,146 @@
+# ============================================================================
+# Doris 2.1 定制 Helm values
+# 关联：部署清单 v0.1 §6.4 实时数仓 / §10 可观测 / §9 资源配额
+# 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/doris-values.yaml
+# 说明：在 values-base.engines.doris 之上做深度调优；FE 3 副本 HA，BE 3+ 副本，
+#       存储冷热分层（NVMe 热数据 + 对象存储冷数据），物化视图自动刷新。
+# ============================================================================
+
+engines:
+  doris:
+    image: "sq-doris:2.1-0.1.0"
+    version: "2.1.3"
+
+    # ---- 套餐分档 ----
+    tierProfiles:
+      base:      { feMemory: "4Gi",  beMemory: "8Gi",  beStorage: "500Gi",  beReplicas: 3 }
+      standard:  { feMemory: "6Gi",  beMemory: "16Gi", beStorage: "1Ti",    beReplicas: 4 }
+      flagship:  { feMemory: "8Gi",  beMemory: "32Gi", beStorage: "2Ti",    beReplicas: 6 }
+
+    # ---- FE（Frontend）----
+    fe:
+      replicas: 3                # HA：奇数副本
+      image: "sq-doris-fe:2.1-0.1.0"
+      memory: "6Gi"
+      cpu: 2
+      resources:
+        requests: { cpu: "2", memory: "6Gi" }
+        limits:   { cpu: "4", memory: "8Gi" }
+      config:
+        editLogPort: 9010
+        queryPort: 9030
+        httpPort: 8030
+        heartbeatPort: 9050
+        maxConnections: 1024
+        qeMaxConnection: 1024
+      persistence:
+        meta: { size: "50Gi",  storageClass: "fast-ssd" }
+        log:  { size: "20Gi",  storageClass: "standard" }
+      nodeSelector: { "sq.io/pool": "doris-fe" }
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - { labelSelector: { matchLabels: { "app.kubernetes.io/name": "doris-fe" } }, topologyKey: "kubernetes.io/hostname" }
+
+    # ---- BE（Backend）----
+    be:
+      replicas: 3
+      image: "sq-doris-be:2.1-0.1.0"
+      memory: "16Gi"
+      cpu: 4
+      resources:
+        requests: { cpu: "4", memory: "16Gi" }
+        limits:   { cpu: "8", memory: "24Gi" }
+      config:
+        heartbeatServicePort: 9050
+        brpcPort: 8060
+        webserverPort: 8040
+        tabletMaxSize: 100000
+      persistence:
+        data: { size: "1Ti",   storageClass: "fast-nvme" }
+        log:  { size: "20Gi",  storageClass: "standard" }
+      nodeSelector: { "sq.io/pool": "doris-be" }
+      storage:
+        # 冷热分层
+        hotTier:
+          medium: "SSD"
+          path: "/opt/doris/storage/hot"
+          limit: "80%"
+        coldTier:
+          medium: "OBJECT_STORE"
+          endpoint: "s3://sq-doris-cold"
+          moveThreshold: "0.7"   # 热盘使用率 > 70% 触发迁移
+          ttl: "30d"
+
+    # ---- Compaction ----
+    compaction:
+      maxConcurrency: 4
+      maxCpuNum: 4
+      # 限速
+      rateLimit:
+        enabled: true
+        maxBytesPerSecond: "200MB"
+      checkInterval: "60s"
+      minVersionNum: 5
+
+    # ---- 导入方式 ----
+    import:
+      streamLoad:
+        enabled: true
+        maxBytes: "10GB"
+        timeout: "300s"
+        defaultTimeout: "600s"
+      routineLoad:
+        enabled: true
+        maxTaskNum: 10
+        maxPartitionNum: 100
+      insert:
+        enabled: true
+        maxFilterRatio: 0.0
+
+    # ---- 物化视图 ----
+    materializedView:
+      autoRefresh: true
+      refreshStrategy: "incremental"   # incremental | full
+      refreshInterval: "1h"
+      maxConcurrentRefresh: 3
+      gracePeriod: "5m"
+
+    # ---- 监控 ----
+    monitoring:
+      metrics:
+        enabled: true
+        port: 8040
+      prometheus:
+        enabled: true
+        scrapeInterval: "30s"
+        serviceMonitor: true
+      grafana:
+        dashboardEnabled: true
+        dashboardConfigMap: "doris-grafana-dashboard"
+
+    # ---- 认证集成（P2-E4）----
+    # Doris 引擎无原生 OIDC 集成，统一经 X4 APISIX 网关代理认证：
+    #   用户 → APISIX（Keycloak OIDC）→ Doris FE WebUI/REST
+    # SQL 查询通过 Doris RBAC + L3.7 策略下推做行/列级权限校验。
+    auth:
+      mode: "via-apisix-gateway"
+      keycloakRealm: "sq"
+      uiAuthVia: "apisix-keycloak-oidc"
+      # SQL 查询认证：Doris 内置 MySQL 协议 RBAC + 租户上下文
+      sqlAuth:
+        authType: "mysql-rbac"
+        # 租户上下文通过 session variable 传递
+        tenantContextVar: "tenant_id"
+        # 与 Keycloak 用户映射
+        userMapping:
+          keycloakUserToDorisUser: true
+          defaultRole: "tenant_user"
+
+    # ---- 资源配额（Namespace 级单组件配额）----
+    # P1-C12/P1-E5 说明：本 quota 是 Doris 在平台 Namespace 的总配额，
+    #                    §11.5.2 是单租户配额，关系为：平台配额 ≥ Σ(租户配额)。
+    quota:
+      base:      { requests.cpu: "20",  requests.memory: "60Gi",   requests.storage: "1.5Ti",  limits.cpu: "40",  limits.memory: "90Gi" }
+      standard:  { requests.cpu: "40",  requests.memory: "120Gi",  requests.storage: "4Ti",    limits.cpu: "80",  limits.memory: "180Gi" }
+      flagship:  { requests.cpu: "100", requests.memory: "300Gi",  requests.storage: "12Ti",   limits.cpu: "200", limits.memory: "450Gi" }

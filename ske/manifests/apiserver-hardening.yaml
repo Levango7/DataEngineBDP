@@ -1,0 +1,166 @@
+# 数擎云核 SKE · APIServer 安全加固配置
+# 关联: kubeadm-config.yaml (apiServer.extraArgs) / audit-policy.yaml / tuning/security.sh
+# 设计要点:
+#   - admission-plugins: NodeRestriction + PodSecurityPolicy + AlwaysPullImages + ResourceQuota + LimitRanger
+#   - feature-gates: PodSecurity=true, LegacyServiceAccountTokenNoAutoGeneration=true
+#   - tls-min-version: VersionTLS12 (禁用 TLS 1.0/1.1)
+#   - request-timeout: 30s (防慢请求拖垮 apiserver)
+#   - max-m7s-in-flight: 400/200 (限流, 适配大数据批量提交)
+#   - audit-log: maxage=30/maxbackup=10/maxsize=100
+#   - profiling: false (关闭 pprof 端点)
+#   - enable-aggregation-routing: true (支持扩展 API server)
+
+# ---- 1. APIServer 加固参数 (以 ConfigMap 形式文档化, 由 kubeadm 注入 extraArgs) ----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ske-apiserver-hardening
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/part-of: shuqing-ske
+  annotations:
+    sq.shuqing.io/description: "APIServer 安全加固参数; 由 ske.sh 在 kubeadm init 时注入 --extra-args"
+data:
+  # ---- Admission Controllers (启用顺序敏感) ----
+  enable-admission-plugins: >-
+    NodeRestriction,
+    PodSecurity,
+    PodSecurityPolicy,
+    AlwaysPullImages,
+    NamespaceLifecycle,
+    ServiceAccount,
+    DefaultStorageClass,
+    DefaultTolerationSeconds,
+    ResourceQuota,
+    LimitRanger,
+    MutatingAdmissionWebhook,
+    ValidatingAdmissionWebhook,
+    Priority,
+    EventRateLimit,
+    ExtendedResourceToleration
+  disable-admission-plugins: >-
+    LegacyServiceAccountTokenNoAutoGeneration
+
+  # ---- Feature Gates ----
+  feature-gates: >-
+    PodSecurity=true,
+    LegacyServiceAccountTokenNoAutoGeneration=true,
+    APIServerIdentity=true,
+    ServiceAccountTokenJTI=true,
+    ConsistentListFromCache=true,
+    WatchList=true
+
+  # ---- TLS 加密 ----
+  tls-min-version: "VersionTLS12"
+  tls-cipher-suites: >-
+    TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+    TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+    TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+    TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,
+    TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+
+  # ---- 限流 (适配大数据批量提交, 适当调高) ----
+  max-requests-inflight: "400"
+  max-mutating-requests-inflight: "200"
+  default-watch-cache-size: "1000"
+  request-timeout: "30s"
+
+  # ---- 审计日志 (关联 audit-policy.yaml) ----
+  audit-log-path: "/var/log/kubernetes/apiserver-audit.log"
+  audit-log-maxage: "30"
+  audit-log-maxbackup: "10"
+  audit-log-maxsize: "100"
+  audit-log-format: "json"
+  audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+
+  # ---- 安全关闭项 ----
+  profiling: "false"
+  enable-profiling: "false"
+  anonymous-auth: "false"
+
+  # ---- 聚合层 (支持扩展 API server, 如 metrics-server/CRD 转换) ----
+  enable-aggregation-routing: "true"
+  aggregation-runtime-go-config: "true"
+
+  # ---- 服务账号令牌控制 ----
+  service-account-lookup: "true"
+  service-account-key-file: "/etc/kubernetes/pki/sa.pub"
+
+---
+# ---- 2. APIServer EventRateLimit 配置 (防事件洪水) ----
+apiVersion: eventratelimit.admission.k8s.io/v1alpha1
+kind: Configuration
+metadata:
+  name: eventratelimit-config
+  namespace: kube-system
+spec:
+  limits:
+    - type: Server
+      qps: 500
+      burst: 1000
+    - type: Namespace
+      qps: 100
+      burst: 200
+    - type: User
+      qps: 50
+      burst: 100
+    - type: SourceAndObject
+      qps: 30
+      burst: 60
+
+---
+# ---- 3. APIServer 审计日志卷挂载 (kubeadm extraVolumes 补充) ----
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ske-apiserver-volumes
+  namespace: kube-system
+data:
+  extraVolumes.yaml: |
+    # 审计策略文件挂载
+    - name: audit-policy
+      hostPath: /etc/kubernetes/audit-policy.yaml
+      mountPath: /etc/kubernetes/audit-policy.yaml
+      pathType: File
+      readOnly: true
+    # 审计日志目录
+    - name: audit-log
+      hostPath: /var/log/kubernetes
+      mountPath: /var/log/kubernetes
+      pathType: DirectoryOrCreate
+    # 审计日志轮转专用盘 (生产建议独立盘)
+    - name: audit-log-disk
+      hostPath: /var/lib/kubernetes-audit
+      mountPath: /var/log/kubernetes/audit
+      pathType: DirectoryOrCreate
+
+---
+# ---- 4. APIServer 健康告警 ----
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: apiserver-hardening-alerts
+  namespace: observability
+spec:
+  groups:
+    - name: apiserver-hardening
+      rules:
+        - alert: SKEAPIServerTLSVersionLow
+          expr: apiserver_requested_deprecated_apis_total > 0
+          for: 10m
+          labels:
+            severity: warning
+            team: platform-ops
+          annotations:
+            summary: "APIServer 检测到废弃 API 调用"
+            description: "有客户端使用废弃 API, 升级前需排查"
+        - alert: SKEAPIServerHighInflight
+          expr: apiserver_current_inflight_requests > 300
+          for: 5m
+          labels:
+            severity: warning
+            team: platform-ops
+          annotations:
+            summary: "APIServer in-flight 请求 > 300, 接近限流阈值"
+            description: "检查是否有客户端异常批量请求"

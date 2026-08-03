@@ -1,0 +1,42 @@
+# ============================================================================
+# Profile: 私有云 VM（privatecloud）
+# 机器：客户私有云环境内的 VM + 厂商对象存储 / 块存储
+# 关联：部署清单 v0.1 §5 抽象维度表
+# ============================================================================
+meta:
+  name: privatecloud
+  k8s: self-built
+  distro: ske          # SKE 自研发行版(深度定制高性能 K8s)/
+  note: "私有云 VM + 厂商对象存储/MinIO"
+
+compute:
+  arch: ["x86"]
+  os: ["CentOS", "vendorOS"]
+
+images:
+  baseImage: "base:rockylinux-9"
+  extraVariant: ""
+
+global:
+  guomiEnabled: false
+  guomiAlgos: ["AES", "SM4"]          # 部分私有云支持 SM4
+
+storage:
+  objectStore:
+    driver: "private"                # PrivateDriver（厂商对象存储/MinIO）
+    endpoint: "http://private-obj.internal"
+    csi: "ceph-csi"
+
+network:
+  cni: "cilium"
+  lb: "metallb"
+
+kms:
+  driver: "VendorKMS"                # 厂商 KMS
+  algo: ["AES", "SM4"]
+
+identity:
+  driver: "KeycloakLDAP"
+
+elastic:
+  driver: "FixedNodePool"
