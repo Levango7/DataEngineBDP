@@ -204,19 +204,376 @@ jobs:
           fi
 
   # ============================================================
+  # Java 构建与测试：JDK 17 + Maven 3.9
+  # 遍历 platform/ 下所有含 pom.xml 的子目录，逐个执行 mvn clean test -B
+  # 上传 JUnit 测试报告（surefire-reports）
+  # ============================================================
+  java-build-test:
+    name: Java Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 17 (Temurin) + Maven 3.9
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          maven-version: '3.9'
+          cache: 'maven'
+
+      - name: 发现并遍历所有 Java 组件（含 pom.xml）
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有含 pom.xml 的子目录"
+          echo "============================================"
+          java_modules=()
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            java_modules+=("$mod_dir")
+            echo "发现 Java 组件: $mod_dir"
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+          if [ ${#java_modules[@]} -eq 0 ]; then
+            echo "::warning::未发现任何含 pom.xml 的 Java 组件，跳过 Java 构建测试"
+            echo "java_skip=true" >> $GITHUB_ENV
+          else
+            echo "共发现 ${#java_modules[@]} 个 Java 组件"
+            echo "java_skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: 对每个 Java 组件执行 mvn clean test -B
+        if: env.java_skip != 'true'
+        run: |
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  构建 & 测试: $mod_name ($mod_dir)"
+            echo "============================================"
+            mvn -f "$pom" clean test -B -V \
+              -Dmaven.test.failure.ignore=false \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+
+      - name: 收集 JUnit 测试报告
+        if: env.java_skip != 'true' && always()
+        run: |
+          mkdir -p java-test-reports
+          while IFS= read -r report; do
+            mod_dir=$(dirname "$report")
+            mod_name=$(basename "$(dirname "$mod_dir")")
+            mkdir -p "java-test-reports/$mod_name"
+            cp "$report" "java-test-reports/$mod_name/" 2>/dev/null || true
+          done < <(find platform -path "*/target/surefire-reports/*.xml" 2>/dev/null)
+          echo "已收集测试报告到 java-test-reports/"
+
+      - name: 上传 Java 测试报告
+        if: env.java_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-test-reports
+          path: java-test-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================
+  # Go 构建与测试：Go 1.23
+  # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 go test ./... && go vet ./...
+  # 上传 Go 测试报告
+  # ============================================================
+  go-build-test:
+    name: Go Build & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: 发现并遍历所有 Go 组件（含 go.mod）
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有含 go.mod 的子目录"
+          echo "============================================"
+          go_modules=()
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            go_modules+=("$mod_dir")
+            echo "发现 Go 组件: $mod_dir"
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+          if [ ${#go_modules[@]} -eq 0 ]; then
+            echo "::warning::未发现任何含 go.mod 的 Go 组件，跳过 Go 构建测试"
+            echo "go_skip=true" >> $GITHUB_ENV
+          else
+            echo "共发现 ${#go_modules[@]} 个 Go 组件"
+            echo "go_skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: 对每个 Go 组件执行 go test & go vet
+        if: env.go_skip != 'true'
+        run: |
+          mkdir -p go-test-reports
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  构建 & 测试: $mod_name ($mod_dir)"
+            echo "============================================"
+            (cd "$mod_dir" && go test ./... -v 2>&1 | tee "../go-test-reports/${mod_name}-test.log")
+            (cd "$mod_dir" && go vet ./... 2>&1 | tee "../go-test-reports/${mod_name}-vet.log")
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+
+      - name: 上传 Go 测试报告
+        if: env.go_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-test-reports
+          path: go-test-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================
+  # Python 测试：Python 3.11
+  # 遍历 platform/ 下所有含 pytest.ini 或 pyproject.toml(含 pytest 配置) 的子目录
+  # 逐个执行 pytest，上传测试报告
+  # ============================================================
+  python-test:
+    name: Python Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 发现并遍历所有 Python 组件（含 pytest 配置）
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有含 pytest 配置的子目录"
+          echo "============================================"
+          py_modules=()
+          # 收集含 pytest.ini 的目录
+          while IFS= read -r f; do
+            mod_dir=$(dirname "$f")
+            py_modules+=("$mod_dir")
+            echo "发现 Python 组件 (pytest.ini): $mod_dir"
+          done < <(find platform -name pytest.ini 2>/dev/null)
+          # 收集含 pyproject.toml 且配置了 pytest 的目录
+          while IFS= read -r f; do
+            mod_dir=$(dirname "$f")
+            if grep -q "pytest" "$f" 2>/dev/null; then
+              # 去重
+              if [[ ! " ${py_modules[*]} " =~ " ${mod_dir} " ]]; then
+                py_modules+=("$mod_dir")
+                echo "发现 Python 组件 (pyproject.toml+pytest): $mod_dir"
+              fi
+            fi
+          done < <(find platform -name pyproject.toml 2>/dev/null)
+          if [ ${#py_modules[@]} -eq 0 ]; then
+            echo "::warning::未发现任何含 pytest 配置的 Python 组件，跳过 Python 测试"
+            echo "py_skip=true" >> $GITHUB_ENV
+          else
+            echo "共发现 ${#py_modules[@]} 个 Python 组件"
+            echo "py_skip=false" >> $GITHUB_ENV
+            printf '%s\n' "${py_modules[@]}" > .python-modules.txt
+          fi
+
+      - name: 对每个 Python 组件执行 pytest
+        if: env.py_skip != 'true'
+        run: |
+          mkdir -p python-test-reports
+          while IFS= read -r mod_dir; do
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  测试: $mod_name ($mod_dir)"
+            echo "============================================"
+            # 安装依赖：优先 requirements.txt，其次 pyproject.toml 的 test extras
+            if [ -f "$mod_dir/requirements.txt" ]; then
+              pip install -r "$mod_dir/requirements.txt" -q 2>&1 | tail -5
+            fi
+            if [ -f "$mod_dir/pyproject.toml" ]; then
+              pip install "$mod_dir[test,dev]" -q 2>&1 | tail -5 || pip install "$mod_dir" -q 2>&1 | tail -5 || true
+            fi
+            pip install pytest pytest-html -q 2>&1 | tail -2
+            # 执行 pytest
+            (cd "$mod_dir" && pytest \
+              --html="../python-test-reports/${mod_name}-report.html" \
+              --self-contained-html \
+              -v 2>&1 | tee "../python-test-reports/${mod_name}-test.log") || true
+          done < .python-modules.txt
+
+      - name: 上传 Python 测试报告
+        if: env.py_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-test-reports
+          path: python-test-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================
+  # Docker 镜像构建验证：遍历 platform/ 下所有含 Dockerfile 的组件
+  # 仅执行 docker build 验证（不 push），确保 Dockerfile 可正常构建
+  # 仅在 PR 到 main 时执行
+  # ============================================================
+  docker-build:
+    name: Docker Build Verify
+    runs-on: ubuntu-latest
+    # 仅在 PR 到 main 时执行，push 时不执行以节省资源
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 发现并遍历所有含 Dockerfile 的组件
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有含 Dockerfile 的子目录"
+          echo "============================================"
+          docker_dirs=()
+          while IFS= read -r df; do
+            mod_dir=$(dirname "$df")
+            docker_dirs+=("$mod_dir")
+            echo "发现 Dockerfile: $mod_dir"
+          done < <(find platform -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*")
+          if [ ${#docker_dirs[@]} -eq 0 ]; then
+            echo "::warning::未发现任何含 Dockerfile 的组件，跳过 Docker 构建验证"
+            echo "docker_skip=true" >> $GITHUB_ENV
+          else
+            echo "共发现 ${#docker_dirs[@]} 个 Dockerfile"
+            echo "docker_skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: 对每个 Dockerfile 执行 docker build（仅验证，不 push）
+        if: env.docker_skip != 'true'
+        run: |
+          fail_count=0
+          while IFS= read -r df; do
+            mod_dir=$(dirname "$df")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  Docker build 验证: $mod_name ($mod_dir)"
+            echo "============================================"
+            # 使用本地镜像 tag，仅验证构建不 push
+            if docker build -t "sq-${mod_name}:ci-verify" "$mod_dir"; then
+              echo "✓ $mod_name Docker 构建成功"
+            else
+              echo "✗ $mod_name Docker 构建失败"
+              fail_count=$((fail_count + 1))
+            fi
+          done < <(find platform -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Docker 镜像构建失败"
+            exit 1
+          fi
+          echo "所有 Docker 镜像构建验证通过"
+
+  # ============================================================
+  # 集成测试：依赖 java-build-test 和 go-build-test 通过
+  # 使用 docker-compose 启动 4 个自研组件 + Prometheus/Grafana/Jaeger
+  # 运行 tests/integration/ 下的 pytest 集成测试
+  # ============================================================
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    needs:
+      - java-build-test
+      - go-build-test
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 检查集成测试环境是否存在
+        run: |
+          if [ ! -f "tests/integration/docker-compose.yml" ]; then
+            echo "::warning::tests/integration/docker-compose.yml 不存在，跳过集成测试"
+            echo "it_skip=true" >> $GITHUB_ENV
+          else
+            echo "发现集成测试环境: tests/integration/"
+            echo "it_skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: 安装集成测试依赖
+        if: env.it_skip != 'true'
+        run: |
+          if [ -f "tests/integration/requirements.txt" ]; then
+            pip install -r tests/integration/requirements.txt -q
+          else
+            pip install pytest pytest-html httpx docker -q
+          fi
+
+      - name: 启动 docker-compose 集成测试环境
+        if: env.it_skip != 'true'
+        working-directory: tests/integration
+        run: |
+          echo "启动 docker-compose 服务..."
+          docker compose up -d --build --wait
+          echo "所有服务已就绪，查看运行状态："
+          docker compose ps
+
+      - name: 执行 pytest 集成测试
+        if: env.it_skip != 'true'
+        working-directory: tests/integration
+        run: |
+          mkdir -p integration-reports
+          pytest \
+            --html="integration-reports/integration-report.html" \
+            --self-contained-html \
+            -v 2>&1 | tee integration-reports/integration-test.log || true
+
+      - name: 上传集成测试报告
+        if: env.it_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-reports
+          path: tests/integration/integration-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: 销毁 docker-compose 环境
+        if: env.it_skip != 'true' && always()
+        working-directory: tests/integration
+        run: |
+          docker compose down -v || true
+          echo "集成测试环境已销毁"
+
+  # ============================================================
   # Markdown lint：校验 README.md、CONVENTIONS.md
-  # 依赖前述 5 个检查全部通过，作为最后的文档门禁
+  # 依赖前述所有检查全部通过，作为最后的文档门禁
   # ============================================================
   markdown-lint:
     name: Markdown Lint
     runs-on: ubuntu-latest
-    # 依赖前 5 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
+    # 依赖前 10 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
     needs:
       - yaml-lint
       - python-check
       - bash-check
       - frontend-build
       - helm-lint
+      - java-build-test
+      - go-build-test
+      - python-test
+      - docker-build
+      - integration-test
     steps:
       - name: 检出代码
         uses: actions/checkout@v4

@@ -9,8 +9,11 @@ on:
       - 'v*'
 
 # 默认权限最小化，按需提升
+# create-github-release 需要 contents: write 以创建 Release 和上传资产
 permissions:
-  contents: read
+  contents: write
+  packages: write
+  id-token: write
 
 jobs:
   # ============================================================
@@ -184,6 +187,366 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================
+  # 构建 Java 制品：JDK 17 + Maven 3.9
+  # 遍历 platform/ 下所有含 pom.xml 的子目录，执行 mvn package -DskipTests
+  # 收集所有 JAR 文件为 artifact，供 GitHub Release 上传
+  # ============================================================
+  build-java-artifacts:
+    name: Build Java Artifacts
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 17 (Temurin) + Maven 3.9
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          maven-version: '3.9'
+          cache: 'maven'
+
+      - name: 发现并遍历所有 Java 组件
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有含 pom.xml 的子目录"
+          echo "============================================"
+          java_count=$(find platform -name pom.xml -not -path "*/target/*" | wc -l)
+          echo "共发现 $java_count 个 Java 组件"
+          if [ "$java_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Java 组件"
+            echo "java_skip=true" >> $GITHUB_ENV
+          else
+            echo "java_skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: 对每个 Java 组件执行 mvn package -DskipTests
+        if: env.java_skip != 'true'
+        run: |
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  打包 Java 组件: $mod_name"
+            echo "============================================"
+            mvn -f "$pom" clean package -DskipTests -B -V \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+
+      - name: 收集所有 JAR 制品
+        if: env.java_skip != 'true'
+        run: |
+          mkdir -p release-java-artifacts
+          jar_count=0
+          while IFS= read -r jar; do
+            mod_dir=$(dirname "$(dirname "$jar")")
+            mod_name=$(basename "$mod_dir")
+            mkdir -p "release-java-artifacts/$mod_name"
+            cp "$jar" "release-java-artifacts/$mod_name/"
+            jar_count=$((jar_count + 1))
+            echo "收集 JAR: $jar -> release-java-artifacts/$mod_name/"
+          done < <(find platform -path "*/target/*.jar" -not -name "*-sources.jar" -not -name "*-javadoc.jar" 2>/dev/null)
+          echo "共收集 $jar_count 个 JAR 文件"
+          if [ "$jar_count" -eq 0 ]; then
+            echo "::warning::未收集到任何 JAR 文件"
+          fi
+
+      - name: 上传 Java 制品 artifact
+        if: env.java_skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-java-artifacts
+          path: release-java-artifacts/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # 构建 Go 二进制：Go 1.23
+  # 遍历 platform/ 下所有含 go.mod 的子目录
+  # 交叉编译 linux/amd64 + linux/arm64，收集二进制为 artifact
+  # ============================================================
+  build-go-binaries:
+    name: Build Go Binaries
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: 发现并遍历所有 Go 组件
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有含 go.mod 的子目录"
+          echo "============================================"
+          go_count=$(find platform -name go.mod -not -path "*/vendor/*" | wc -l)
+          echo "共发现 $go_count 个 Go 组件"
+          if [ "$go_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Go 组件"
+            echo "go_skip=true" >> $GITHUB_ENV
+          else
+            echo "go_skip=false" >> $GITHUB_ENV
+          fi
+
+      - name: 交叉编译所有 Go 组件 (linux/amd64 + linux/arm64)
+        if: env.go_skip != 'true'
+        run: |
+          mkdir -p release-go-binaries
+          # 定义目标平台列表
+          targets=("linux/amd64" "linux/arm64")
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  编译 Go 组件: $mod_name"
+            echo "============================================"
+            for target in "${targets[@]}"; do
+              os=$(echo "$target" | cut -d'/' -f1)
+              arch=$(echo "$target" | cut -d'/' -f2)
+              output="release-go-binaries/${mod_name}-${os}-${arch}"
+              echo "编译 $mod_name -> $os/$arch"
+              (cd "$mod_dir" && CGO_ENABLED=0 GOOS="$os" GOARCH="$arch" go build -ldflags="-s -w" -o "../$output" ./)
+              if [ -f "$output" ]; then
+                echo "✓ 生成: $output"
+              else
+                echo "::warning::未能生成 $output"
+              fi
+            done
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+
+      - name: 上传 Go 二进制 artifact
+        if: env.go_skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-go-binaries
+          path: release-go-binaries/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # 构建 Python 包：Python 3.11
+  # 遍历 platform/ 下所有含 pyproject.toml 或 setup.py 的 Python 组件
+  # 打包为 wheel/sdist，收集为 artifact
+  # ============================================================
+  build-python-packages:
+    name: Build Python Packages
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装打包工具
+        run: |
+          pip install --upgrade pip build wheel setuptools -q
+
+      - name: 发现并遍历所有 Python 组件
+        run: |
+          echo "============================================"
+          echo "  扫描 platform/ 下所有可打包的 Python 组件"
+          echo "============================================"
+          py_modules=()
+          # 收集含 pyproject.toml 的目录
+          while IFS= read -r f; do
+            mod_dir=$(dirname "$f")
+            py_modules+=("$mod_dir")
+            echo "发现 Python 组件 (pyproject.toml): $mod_dir"
+          done < <(find platform -name pyproject.toml 2>/dev/null)
+          # 收集含 setup.py 的目录（去重）
+          while IFS= read -r f; do
+            mod_dir=$(dirname "$f")
+            if [[ ! " ${py_modules[*]} " =~ " ${mod_dir} " ]]; then
+              py_modules+=("$mod_dir")
+              echo "发现 Python 组件 (setup.py): $mod_dir"
+            fi
+          done < <(find platform -name setup.py 2>/dev/null)
+          if [ ${#py_modules[@]} -eq 0 ]; then
+            echo "::warning::未发现任何可打包的 Python 组件"
+            echo "py_skip=true" >> $GITHUB_ENV
+          else
+            echo "共发现 ${#py_modules[@]} 个 Python 组件"
+            echo "py_skip=false" >> $GITHUB_ENV
+            printf '%s\n' "${py_modules[@]}" > .python-build-modules.txt
+          fi
+
+      - name: 对每个 Python 组件执行 python -m build
+        if: env.py_skip != 'true'
+        run: |
+          mkdir -p release-python-packages
+          while IFS= read -r mod_dir; do
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  打包 Python 组件: $mod_name"
+            echo "============================================"
+            (cd "$mod_dir" && python -m build --wheel --sdist 2>&1 | tail -10)
+            # 收集 dist/ 下的 wheel 和 sdist
+            if [ -d "$mod_dir/dist" ]; then
+              mkdir -p "release-python-packages/$mod_name"
+              cp "$mod_dir"/dist/*.whl "release-python-packages/$mod_name/" 2>/dev/null || true
+              cp "$mod_dir"/dist/*.tar.gz "release-python-packages/$mod_name/" 2>/dev/null || true
+              echo "✓ 收集 $mod_name 的 wheel/sdist"
+            else
+              echo "::warning::$mod_name 未生成 dist/ 目录"
+            fi
+          done < .python-build-modules.txt
+
+      - name: 上传 Python 包 artifact
+        if: env.py_skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-python-packages
+          path: release-python-packages/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # 生成 SBOM（软件物料清单）：使用 anchore/sbom-action
+  # 对整个代码库生成 SBOM，上传为 artifact 供 Release 使用
+  # ============================================================
+  generate-sbom:
+    name: Generate SBOM
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 生成 SBOM (CycloneDX 格式)
+        uses: anchore/sbom-action@v0
+        with:
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+          artifact-name: release-sbom
+
+      - name: 生成 SBOM (SPDX 格式)
+        uses: anchore/sbom-action@v0
+        with:
+          format: spdx-json
+          output-file: sbom.spdx.json
+          artifact-name: release-sbom-spdx
+
+      - name: 汇总 SBOM 文件
+        run: |
+          mkdir -p release-sbom
+          cp sbom.cyclonedx.json release-sbom/ 2>/dev/null || echo "CycloneDX SBOM 不存在" 
+          cp sbom.spdx.json release-sbom/ 2>/dev/null || echo "SPDX SBOM 不存在"
+          echo "SBOM 文件已汇总到 release-sbom/"
+          ls -la release-sbom/ || true
+
+      - name: 上传 SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-sbom
+          path: release-sbom/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # 创建 GitHub Release：依赖所有 build job 通过
+  # 使用 softprops/action-gh-release@v2 创建 Release
+  # 上传所有 artifacts：前端 dist、SKE 脚本、Helm Charts、Java JARs、Go binaries、Python packages、SBOM
+  # 自动生成 Release Notes（从 CHANGELOG.md 或 commit messages）
+  # ============================================================
+  create-github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-frontend
+      - build-ske
+      - package-charts
+      - build-java-artifacts
+      - build-go-binaries
+      - build-python-packages
+      - generate-sbom
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 下载所有构建制品
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets/
+          merge-multiple: false
+
+      - name: 整理 Release 资产目录
+        run: |
+          mkdir -p github-release-assets
+          # 将所有 artifact 内容平铺到统一目录
+          if [ -d "release-assets/release-frontend-dist" ]; then
+            mkdir -p github-release-assets/frontend
+            cp -r release-assets/release-frontend-dist/* github-release-assets/frontend/ 2>/dev/null || true
+          fi
+          if [ -d "release-assets/release-ske-scripts" ]; then
+            mkdir -p github-release-assets/ske-scripts
+            cp -r release-assets/release-ske-scripts/* github-release-assets/ske-scripts/ 2>/dev/null || true
+          fi
+          if [ -d "release-assets/release-helm-charts" ]; then
+            mkdir -p github-release-assets/helm-charts
+            cp -r release-assets/release-helm-charts/* github-release-assets/helm-charts/ 2>/dev/null || true
+          fi
+          if [ -d "release-assets/release-java-artifacts" ]; then
+            mkdir -p github-release-assets/java
+            cp -r release-assets/release-java-artifacts/* github-release-assets/java/ 2>/dev/null || true
+          fi
+          if [ -d "release-assets/release-go-binaries" ]; then
+            mkdir -p github-release-assets/go
+            cp -r release-assets/release-go-binaries/* github-release-assets/go/ 2>/dev/null || true
+          fi
+          if [ -d "release-assets/release-python-packages" ]; then
+            mkdir -p github-release-assets/python
+            cp -r release-assets/release-python-packages/* github-release-assets/python/ 2>/dev/null || true
+          fi
+          if [ -d "release-assets/release-sbom" ]; then
+            cp -r release-assets/release-sbom/* github-release-assets/ 2>/dev/null || true
+          fi
+          echo "============================================"
+          echo "  Release 资产清单"
+          echo "============================================"
+          find github-release-assets -type f | head -50
+          echo "..."
+          echo "总文件数: $(find github-release-assets -type f | wc -l)"
+
+      - name: 生成 Release Notes（优先使用 CHANGELOG.md）
+        id: release-notes
+        run: |
+          if [ -f "CHANGELOG.md" ]; then
+            echo "使用 CHANGELOG.md 作为 Release Notes"
+            cp CHANGELOG.md release-notes.md
+          else
+            echo "CHANGELOG.md 不存在，将使用自动生成的 Release Notes"
+            echo "" > release-notes.md
+          fi
+
+      - name: 创建 GitHub Release 并上传所有资产
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') || contains(github.ref_name, 'rc') }}
+          generate_release_notes: true
+          files: |
+            github-release-assets/**
+            github-release-assets/**/*
+          fail_on_unmatched_files: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================
   # 发布汇总：所有构建产物就绪后输出发布信息
   # ============================================================
   release-summary:
@@ -193,13 +556,25 @@ jobs:
       - build-frontend
       - build-ske
       - package-charts
+      - build-java-artifacts
+      - build-go-binaries
+      - build-python-packages
+      - generate-sbom
+      - create-github-release
     steps:
       - name: 输出发布汇总
         run: |
           echo "============================================"
           echo "  Release ${{ github.ref_name }} 构建完成"
           echo "============================================"
-          echo "前端产物: release-frontend-dist"
-          echo "SKE 脚本: release-ske-scripts"
-          echo "Helm Chart: release-helm-charts"
+          echo "前端产物:        release-frontend-dist"
+          echo "SKE 脚本:        release-ske-scripts"
+          echo "Helm Chart:      release-helm-charts"
+          echo "Java JAR 制品:   release-java-artifacts"
+          echo "Go 二进制:       release-go-binaries"
+          echo "Python 包:       release-python-packages"
+          echo "SBOM 物料清单:   release-sbom"
+          echo "GitHub Release:  ${{ github.ref_name }}"
+          echo "============================================"
+          echo "所有制品已上传至 GitHub Release: ${{ github.ref_name }}"
           echo "============================================"

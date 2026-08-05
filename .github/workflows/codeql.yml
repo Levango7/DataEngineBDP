@@ -1,0 +1,102 @@
+# CodeQL 安全分析工作流
+# 对 Java、Go、Python、JavaScript 四种语言执行静态安全分析
+# 触发条件：push 到 main、PR 到 main、每周定时（周一 02:00 UTC）
+name: CodeQL Security Analysis
+
+on:
+  # 推送到 main 分支时触发
+  push:
+    branches:
+      - main
+  # 向 main 分支发起 PR 时触发
+  pull_request:
+    branches:
+      - main
+  # 每周一 02:00 UTC 定时执行全量扫描
+  schedule:
+    - cron: '0 2 * * 1'
+  # 支持手动触发
+  workflow_dispatch:
+
+# 权限：需要 security-events: write 以上传 SARIF 结果到 GitHub Security
+permissions:
+  security-events: write
+  actions: read
+  contents: read
+
+# 同一分支的并发分析只保留最新一次
+concurrency:
+  group: codeql-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # 分析任务：对 java、go、python、javascript 四种语言执行 CodeQL 分析
+  # 每种语言一个 job，并行执行以加速分析
+  # ============================================================
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # CodeQL 支持的语言：java、go、python、javascript
+        # javascript 同时覆盖 TypeScript（frontend/ 下的 .ts/.tsx）
+        language:
+          - java
+          - go
+          - python
+          - javascript
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      # ============================================================
+      # 初始化 CodeQL：根据 matrix.language 自动配置分析环境
+      # 使用 codeql-action/init@v3，queries 使用默认 + security-extended 套件
+      # ============================================================
+      - name: 初始化 CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          # 使用 security-extended 套件，覆盖更多安全规则
+          queries: security-extended,security-and-quality
+          # 启用 autobuild 的调试日志
+          debug: false
+
+      # ============================================================
+      # 自动构建：CodeQL 会根据语言自动执行构建
+      # Java：自动检测 Maven/Gradle 并构建
+      # Go：自动检测 go.mod 并构建
+      # Python：无需构建，直接分析源码
+      # JavaScript：自动检测 npm/yarn 并构建
+      # ============================================================
+      - name: 自动构建（CodeQL autobuild）
+        uses: github/codeql-action/autobuild@v3
+        # 对非关键语言构建失败时继续执行，避免单语言失败阻塞整体分析
+        continue-on-error: ${{ matrix.language == 'javascript' || matrix.language == 'python' }}
+
+      # ============================================================
+      # 执行 CodeQL 分析：分析构建产物，生成 SARIF 结果
+      # ============================================================
+      - name: 执行 CodeQL 分析
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+          # 上传 SARIF 到 GitHub Security tab
+          upload: true
+          # 输出 SARIF 文件路径
+          output: sarif-results/${{ matrix.language }}.sarif
+
+      # ============================================================
+      # 上传 SARIF 结果为 artifact（备份，便于离线分析）
+      # ============================================================
+      - name: 上传 SARIF 结果 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: codeql-sarif-${{ matrix.language }}
+          path: sarif-results/${{ matrix.language }}.sarif
+          retention-days: 14
+          if-no-files-found: warn

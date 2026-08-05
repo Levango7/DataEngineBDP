@@ -1,0 +1,442 @@
+# Dependabot 依赖更新配置
+# 自动检测并创建 PR 更新过期的依赖，降低安全风险
+# 覆盖 5 种生态系统：github-actions、maven、gomod、npm、pip
+# 每周检查一次，避免 PR 过于频繁干扰开发
+version: 2
+
+updates:
+  # ============================================================
+  # GitHub Actions 依赖更新：检查 .github/workflows/ 下的 action 版本
+  # ============================================================
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - github-actions
+    commit-message:
+      prefix: '[deps-actions]'
+      include: scope
+
+  # ============================================================
+  # npm 依赖更新：检查 frontend/ 下的 package.json
+  # ============================================================
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - npm
+      - frontend
+    commit-message:
+      prefix: '[deps-npm]'
+      include: scope
+    groups:
+      # 将开发依赖合并为一个 PR
+      development-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+      # 生产依赖合并为一个 PR
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+
+  # ============================================================
+  # Maven 依赖更新：检查 platform/ 下所有含 pom.xml 的 Java 组件
+  # 共 10 个 Java 组件，每个独立配置
+  # ============================================================
+  # tag-engine
+  - package-ecosystem: maven
+    directory: /platform/tag-engine
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # governance/lineage-analyzer
+  - package-ecosystem: maven
+    directory: /platform/governance/lineage-analyzer
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # governance/metadata-collector
+  - package-ecosystem: maven
+    directory: /platform/governance/metadata-collector
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # sql-gateway
+  - package-ecosystem: maven
+    directory: /platform/sql-gateway
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # infra-orchestrator
+  - package-ecosystem: maven
+    directory: /platform/infra-orchestrator
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # infra-provider-private
+  - package-ecosystem: maven
+    directory: /platform/infra-provider-private
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # infra-provider-cloud
+  - package-ecosystem: maven
+    directory: /platform/infra-provider-cloud
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # encaps-layer
+  - package-ecosystem: maven
+    directory: /platform/encaps-layer
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # infra-provider-xinchang
+  - package-ecosystem: maven
+    directory: /platform/infra-provider-xinchang
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # rule-engine
+  - package-ecosystem: maven
+    directory: /platform/rule-engine
+    schedule:
+      interval: weekly
+      day: tuesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - maven
+      - java
+    commit-message:
+      prefix: '[deps-maven]'
+      include: scope
+
+  # ============================================================
+  # Go 模块依赖更新：检查 platform/ 下所有含 go.mod 的 Go 组件
+  # 共 5 个 Go 组件，每个独立配置
+  # ============================================================
+  # catalog
+  - package-ecosystem: gomod
+    directory: /platform/catalog
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - gomod
+      - go
+    commit-message:
+      prefix: '[deps-go]'
+      include: scope
+
+  # dqctl
+  - package-ecosystem: gomod
+    directory: /platform/dqctl
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - gomod
+      - go
+    commit-message:
+      prefix: '[deps-go]'
+      include: scope
+
+  # vector-engine
+  - package-ecosystem: gomod
+    directory: /platform/vector-engine
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - gomod
+      - go
+    commit-message:
+      prefix: '[deps-go]'
+      include: scope
+
+  # llm-gateway
+  - package-ecosystem: gomod
+    directory: /platform/llm-gateway
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - gomod
+      - go
+    commit-message:
+      prefix: '[deps-go]'
+      include: scope
+
+  # infra-provider-baremetal
+  - package-ecosystem: gomod
+    directory: /platform/infra-provider-baremetal
+    schedule:
+      interval: weekly
+      day: wednesday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - gomod
+      - go
+    commit-message:
+      prefix: '[deps-go]'
+      include: scope
+
+  # ============================================================
+  # pip 依赖更新：检查 platform/ 下所有含 requirements.txt/pyproject.toml 的 Python 组件
+  # 共 7 个 Python 组件，每个独立配置
+  # ============================================================
+  # business-portal
+  - package-ecosystem: pip
+    directory: /platform/business-portal
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope
+
+  # industry-templates
+  - package-ecosystem: pip
+    directory: /platform/industry-templates
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope
+
+  # asset-exchange
+  - package-ecosystem: pip
+    directory: /platform/asset-exchange
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope
+
+  # open-api-catalog
+  - package-ecosystem: pip
+    directory: /platform/open-api-catalog
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope
+
+  # ml-platform
+  - package-ecosystem: pip
+    directory: /platform/ml-platform
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope
+
+  # knowledge-engine
+  - package-ecosystem: pip
+    directory: /platform/knowledge-engine
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope
+
+  # llmops
+  - package-ecosystem: pip
+    directory: /platform/llmops
+    schedule:
+      interval: weekly
+      day: thursday
+      time: '03:00'
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - pip
+      - python
+    commit-message:
+      prefix: '[deps-pip]'
+      include: scope

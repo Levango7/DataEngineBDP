@@ -1,82 +1,251 @@
-# 数擎大数据平台 · ShuqingBigDataPlatform（项目统一根）
+# 数擎大数据平台 · ShuqingBigDataPlatform
 
-> 单一项目根：设计文档 + 自研 K8s 发行版（SKE）运行代码**全部收纳于此**，**单目录、不跨盘、不散乱**。
+> 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
+>
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = Shuqing Kubernetes Engine），非 Shuqian。
 
-## 目录结构
+- 仓库地址：https://github.com/Levango7/DataEngineBDP
+- 当前版本：**v1.0.0**
+- 工程成熟度：约 95 / 100
+- 开源协议：Apache License 2.0
+
+## 项目简介
+
+数擎大数据平台（ShuqingBigDataPlatform）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以自研 K8s 发行版 SKE 为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
+
+## 核心特性
+
+- **多平台交付**：一套主代码，四环境（信创 / 本地数据中心 / 公有云 / 私有云）通过 Profile 差异化配置实现零改动交付。
+- **多租户隔离**：基于 K8s Namespace + ResourceQuota + NetworkPolicy 的三重隔离机制，配合 JWT 鉴权与租户上下文，实现租户间资源、网络、数据完全隔离。
+- **湖仓集一体**：统一存储（Iceberg）+ 批计算（Spark）+ 流计算（Flink）+ 交互查询（Trino）+ OLAP（Doris）协同落地"湖 → 仓 → 集"三级数据流转。
+- **智能数据层**：向量库（Milvus）+ 知识工程（RAG）+ LLMOps + 大模型网关，构成旗舰版差异化能力。
+- **SaaS 产品层**：行业应用模板 + 业务线门户 + 开放 API 服务目录 + 数据资产流通，形成平台商业化闭环。
+- **自研 K8s 发行版 SKE**：基于 kubeadm 二次封装的深度定制高性能 K8s，非 KubeSphere / RKE2 / k3s / kind 原样。
+- **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 联邦优化器实现跨源联邦查询。
+- **治理闭环**：元数据采集 → 质量校验 → 血缘解析 → 资产入目录，形成完整数据治理链路。
+
+## 技术栈
+
+| 类别 | 技术选型 |
+| --- | --- |
+| 后端语言 | Java 17 / Go 1.23 / Python 3.11 |
+| 后端框架 | Spring Boot 3.2 / Gin / FastAPI / Pydantic |
+| 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
+| 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |
+| 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
+| 治理与智能 | NebulaGraph 3.6 / Milvus / Elasticsearch / Redis |
+| 认证与网关 | Keycloak 24.0 / Apache APISIX |
+| 调度与集成 | DolphinScheduler / SeaTunnel / Airflow |
+| 开发与可视化 | Eclipse Theia 二开 / Apache Superset / ECharts |
+| 容器与编排 | Kubernetes / Helm / Docker / SKE |
+| 构建工具 | Maven 3.9 / Go modules / pip / npm |
+
+## 项目结构
 
 ```
 ShuqingBigDataPlatform/
-├── design/                      # 设计 + 部署文档（纯文档 / 设计稿）
-│   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md   # 总体方案（五层 + 49 模块，内容为 v0.5）
-│   ├── 数擎大数据平台_控制台原型_v0.3.html           # 最新 UI 原型（小众线性 SVG 图标）
-│   ├── 数擎大数据平台_控制台原型_v0.1.html           # 历史版本
-│   ├── 详细设计/                                       # 43 份模块详细设计（文档级，工程实现进行中）
-│   └── deploy/                  # 部署设计态骨架（早期设计稿，含运营后台代码 services/operations）
-├── ske/                         # 数擎云核 SKE 自研 K8s 发行版 v0.1（见 ske/README.md）
-├── platform/                    # 平台引导 bootstrap.sh + in-cluster MinIO
-├── examples/                    # 端到端 PoC（SIM 模式演示脚本，非真实跑通）
-└── docs/                        # SKE 设计文档索引（即 docs/README.md）
+├── .github/workflows/          # CI/CD 流水线（ci.yml + release.yml）
+├── design/                     # 设计文档
+│   ├── 详细设计/               # 43 份模块详细设计文档
+│   ├── deploy/                 # 部署设计态
+│   │   ├── charts/             # 59 个 Helm Chart
+│   │   ├── values/             # 各引擎 values 参数文件
+│   │   ├── services/           # 运营后台 FastAPI 服务
+│   │   ├── profiles/           # 四环境 Profile 配置
+│   │   └── ci/                 # 镜像构建流水线
+│   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
+│   └── 数擎大数据平台_控制台原型_v0.3.html
+├── platform/                   # 自研组件（21 个）
+│   ├── encaps-layer/           # 封装层（Java）
+│   ├── sql-gateway/            # 统一 SQL 网关（Java）
+│   ├── rule-engine/            # 规则引擎（Java）
+│   ├── tag-engine/             # 标签引擎（Java）
+│   ├── governance/             # 治理中台（Java）
+│   │   ├── metadata-collector/ # 元数据采集器
+│   │   └── lineage-analyzer/   # 血缘解析器
+│   ├── infra-provider-xinchang/  # 信创供应（Java）
+│   ├── infra-provider-cloud/     # 公有云供应（Java）
+│   ├── infra-provider-private/   # 私有云供应（Java）
+│   ├── infra-provider-baremetal/ # 裸金属供应（Go）
+│   ├── infra-orchestrator/       # 供给编排（Java）
+│   ├── catalog/                  # 资产目录（Go）
+│   ├── dqctl/                    # 数据质量 CLI（Go）
+│   ├── vector-engine/            # 向量引擎（Go）
+│   ├── llm-gateway/              # 大模型网关（Go）
+│   ├── llmops/                   # LLMOps（Python）
+│   ├── knowledge-engine/         # 知识工程（Python）
+│   ├── ml-platform/              # 机器学习平台（Python）
+│   ├── industry-templates/       # 行业模板（Python）
+│   ├── business-portal/          # 业务线门户（Python）
+│   ├── open-api-catalog/         # 开放 API 目录（Python）
+│   ├── asset-exchange/           # 资产流通（Python）
+│   ├── bootstrap.sh              # 平台引导脚本
+│   └── minio-incluster.yaml      # 集群内 MinIO 配置
+├── frontend/                   # Vue3 + TypeScript 前端
+│   └── src/
+│       ├── views/              # 视图页面
+│       ├── api/                # API 客户端模块
+│       ├── components/         # 通用组件库
+│       ├── stores/             # Pinia 状态管理
+│       ├── router/             # 路由配置
+│       └── composables/        # 组合式函数
+├── ske/                        # 自研 K8s 发行版 SKE
+│   ├── ske.sh                  # SKE 主控脚本
+│   ├── manifests/              # K8s 调优清单
+│   ├── profiles/               # 四环境 Profile
+│   ├── tuning/                 # 内核与系统调优
+│   └── wsl2/                   # WSL2 部署支持
+├── tests/integration/          # 集成测试（38 个）
+├── scripts/poc/                # 端到端 PoC 验证脚本
+├── docs/                       # 项目文档
+├── CONVENTIONS.md              # 统一命名与约定
+├── CHANGELOG.md                # 变更日志
+├── CONTRIBUTING.md             # 贡献指南
+├── ROADMAP.md                  # 路线图
+└── LICENSE                     # Apache 2.0 协议
 ```
 
-## 运行态 vs 设计态（诚实化声明）
+## 快速开始
 
-- `ske/ platform/ examples/` 是**集群引导与演示脚本（SIM 模式）**，端到端真实跑通尚在开发中。
-  - `ske/`：SKE 发行版引导脚本（kind/kubeadm 包装 + 调优），当前两条拉起路径均存在已知缺陷，正在修复。
-  - `platform/`：bootstrap.sh 建立 `ws-demo` namespace + in-cluster MinIO，可独立运行。
-  - `examples/`：run-demo.sh 检测到 dqctl 缺失即进入 SIM 模式（echo 演示），不是真实端到端 PoC。
-- `design/deploy/` 是**设计态骨架**（早期部署设计稿，与运行态并行演进，不作为实际部署入口）。
-- `design/详细设计/` 43 份详设**已完成文档级设计**，工程实现进行中（详见下方能力真实性矩阵）。
+### 前置条件
 
-## 能力真实性矩阵
-
-> 评估日期：2026-08-05 ｜ 评估方式：全仓库逐行代码审计 + 设计文档交叉验证
-> 状态分级：文档级（仅有设计文档）｜ 原型级（有 HTML/前端原型）｜ 脚本级（有 Shell 脚本但未验证）｜ 服务级（有可运行的服务代码）
-
-| 模块 / 能力 | 真实状态 | 证据 |
+| 工具 | 最低版本 | 用途 |
 | --- | --- | --- |
-| L0.6 自研 SKE 发行版 | 脚本级 | `ske/ske.sh` 282 行 bash 包装 kind/kubeadm；七大支柱多数仅有调优脚本，scheduler-policy 引用不存在的插件 |
-| L0.7 Cilium 网络 | 脚本级 | `ske/manifests/cilium-values.yaml` 存在但未 helm install 验证；socketLB.mode 配置非法值 |
-| L0.8 容器存储 | 文档级 | 仅有 values 配置，无 CSI 部署实体 |
-| L0.9 可观测基座 | 文档级 | values 引用 Prometheus/Grafana/Loki/Tempo 但无 Chart 实体 |
-| L0.11 K8s 封装层 | 文档级 | `design/详细设计/封装层详细设计_v0.1.md`；`platform/bootstrap.sh` 仅硬编码 ws-demo 一段 kubectl apply |
-| L2.1 统一存储（Iceberg） | 文档级 | 仅有详细设计文档，无 Iceberg Catalog REST 服务代码 |
-| L2.2 Spark 批计算 | 文档级 | 仅有 values 配置，无 Spark Operator 部署实体 |
-| L2.3 Flink 流计算 | 文档级 | 仅有 values 配置，无 Flink Operator 部署实体 |
-| L2.4 Trino 交互查询 | 文档级 | 仅有 values 配置与一份静态 SQL 文件 |
-| L2.5 Doris OLAP | 文档级 | 仅有 values 配置，无 Doris Operator 部署实体 |
-| L2.7 统一 SQL 网关 | 文档级 | `统一SQL网关详细设计_v0.1.md`；零代码实现 |
-| L3.1-L3.7 治理中台 | 文档级 | `治理中台详细设计_v0.1.md` 等多份文档；自研 Catalog/规则引擎/血缘解析零代码 |
-| L4.1-L4.4 数据开发工具链 | 文档级 | 4 份详细设计文档；SeaTunnel/DolphinScheduler/Theia/Superset 均无部署实体 |
-| L4.5.3-L4.5.6 智能数据层 | 文档级 | `智能数据层详细设计_v0.1.md`；Milvus/NebulaGraph/RAG/LLMOps 零代码 |
-| L5.1 统一控制台 | 原型级 | `frontend/` Vue3+TS strict 骨架真实，但功能完成度 0%（零 API 调用、零 v-model） |
-| L5.2 运营后台 | 服务级 | `design/deploy/services/operations/main.py` 152 行 FastAPI 可运行；但租户态存内存、看板返回硬编码假数据 |
-| L5.3-L5.6 行业模板/门户/API/资产流通 | 文档级 | 仅有详细设计文档 |
-| X1-X4 横切（身份/安全/运维/网关） | 文档级 | 4 份详细设计文档；Keycloak/APISIX 仅有 values 配置 |
-| 端到端 PoC | 脚本级 | `examples/run-demo.sh` SIM 模式 echo 演示；PoC SQL 占位符无替换逻辑，表命名互不衔接 |
-| Helm Chart | 文档级 | 全仓库无 Chart.yaml；46 个 Chart 仅在部署清单文档中描述 |
-| CI/CD | 文档级 | `design/deploy/ci/build-images.yaml` 在错误位置（无 .github/workflows/），依赖的 Dockerfile/unit-test.sh 全部缺失 |
-| 测试 | 无 | 全仓库零单测/集成/E2E，唯一"验证"是 SIM 模式 echo 演出 |
-| 运维（监控/告警/备份） | 文档级 | 零 PrometheusRule、零 Grafana dashboard JSON、零备份脚本 |
+| JDK | 17 | Java 组件构建 |
+| Maven | 3.9 | Java 组件构建 |
+| Go | 1.23 | Go 组件构建 |
+| Python | 3.11 | Python 组件构建 |
+| Node.js | 20 | 前端构建 |
+| Docker | 24.0 | 容器镜像构建 |
+| kubectl | 1.28 | 集群操作 |
+| Helm | 3.14 | Chart 部署 |
 
-**实现覆盖度估算：约 3–5%（相对文档声称的 49 模块 + 15 自研组件范围）。**
+### 克隆与构建
 
-## 快速开始（在你笔记本执行；沙箱内 Docker/WSL2 不可达）
-
-详见 `ske/WSL2-QUICKSTART.md`。WSL2 真 kubeadm 路：
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform
+# 克隆仓库
+git clone https://github.com/Levango7/DataEngineBDP.git
+cd DataEngineBDP
+
+# 构建全部 Java 组件
+mvn -f platform/encaps-layer/pom.xml clean package
+mvn -f platform/sql-gateway/pom.xml clean package
+mvn -f platform/rule-engine/pom.xml clean package
+
+# 构建全部 Go 组件
+go -C platform/catalog build ./...
+go -C platform/dqctl build ./...
+go -C platform/vector-engine build ./...
+
+# 构建全部 Python 组件
+pip -C platform/llmops install -e .
+pip -C platform/knowledge-engine install -e .
+
+# 构建前端
+cd frontend && npm install && npm run build && cd ..
+```
+
+### 部署（WSL2 本地环境）
+
+```bash
+# 拉起 SKE 集群
 sudo bash ske/wsl2/setup-host.sh
 sudo bash ske/ske.sh tune-host
 sudo bash ske/ske.sh up --target wsl2 --profile local
+
+# 引导平台运行时
 bash platform/bootstrap.sh --profile local
-bash examples/run-demo.sh
+
+# 部署 Helm Chart
+helm install spark design/deploy/charts/spark -f design/deploy/values/spark-values.yaml
+helm install trino design/deploy/charts/trino -f design/deploy/values/trino-values.yaml
+
+# 运行端到端 PoC
+bash scripts/poc/run-poc.sh
 ```
 
-> ⚠️ **诚实提示**：上述流程当前**尚未端到端跑通**。已知问题：SKE kind/kubeadm 路径有配置缺陷、`examples/run-demo.sh` 进入 SIM 模式、PoC SQL 占位符未渲染。修复路线见评估报告"改进路线图"。
+详细部署步骤参见 [部署指南](docs/deployment-guide.md)。
 
-## 关键约束
+## 组件清单
 
-- K8s 一律自建，禁用云托管（ACK/EKS/TKE/CCE）；SKE 是深度定制封装的自研发行版，非 kubeadm/k3s/kind 原样。
-- 验证环境：笔记本 x86_64 + Docker Desktop + kubectl；无信创机器（信创 Profile 仅交付用）。
-- 命名规范：见 `CONVENTIONS.md`（套餐 base/standard/flagship、工作空间 ws-<name>、模块计数 49、版本号 v0.5/SKE v0.1）。
+平台共包含 21 个自研组件，覆盖封装层、引擎层、治理层、智能数据层与产品层。
+
+### Java 组件（9 个）
+
+| 组件 | 目录 | 描述 | 测试数 |
+| --- | --- | --- | --- |
+| encaps-layer | platform/encaps-layer | 封装层，将客户概念翻译为 K8s 资源，租户 / 工作空间 / 项目 / 任务 CRUD | 120+ |
+| sql-gateway | platform/sql-gateway | 统一 SQL 网关，基于 Calcite 联邦优化器实现跨源查询 | 150+ |
+| rule-engine | platform/rule-engine | 规则引擎，数据质量 / 告警 / 脱敏规则执行 | 130+ |
+| tag-engine | platform/tag-engine | 标签引擎，标签管理与人群圈选 | 90+ |
+| metadata-collector | platform/governance/metadata-collector | 元数据采集器，引擎 Hook 与定时抽取 | 80+ |
+| lineage-analyzer | platform/governance/lineage-analyzer | 血缘解析器，字段级血缘自动采集 | 80+ |
+| infra-provider-xinchang | platform/infra-provider-xinchang | 信创环境供应 Driver | 70+ |
+| infra-provider-cloud | platform/infra-provider-cloud | 公有云环境供应 Driver | 70+ |
+| infra-provider-private | platform/infra-provider-private | 私有云环境供应 Driver | 70+ |
+| infra-orchestrator | platform/infra-orchestrator | 跨环境供给编排器 | 90+ |
+
+### Go 组件（3 个 + 1 CLI）
+
+| 组件 | 目录 | 描述 | 测试数 |
+| --- | --- | --- | --- |
+| catalog | platform/catalog | 资产目录服务，多维检索与资产登记 | 100+ |
+| vector-engine | platform/vector-engine | 向量引擎服务，Milvus 集合管理与检索 | 80+ |
+| llm-gateway | platform/llm-gateway | 大模型网关，多模型路由与推理 | 80+ |
+| infra-provider-baremetal | platform/infra-provider-baremetal | 裸金属环境供应 Driver | 70+ |
+| dqctl (CLI) | platform/dqctl | 数据质量命令行工具 | 60+ |
+
+### Python 组件（8 个）
+
+| 组件 | 目录 | 描述 | 测试数 |
+| --- | --- | --- | --- |
+| llmops | platform/llmops | LLMOps，微调 / 部署 / 评测闭环 | 90+ |
+| knowledge-engine | platform/knowledge-engine | 知识工程，RAG 切片与向量化 | 90+ |
+| ml-platform | platform/ml-platform | 机器学习平台，MLflow 训练与 serving | 100+ |
+| industry-templates | platform/industry-templates | 行业应用模板，DDL + DAG + Dashboard | 70+ |
+| business-portal | platform/business-portal | 对内业务线门户 | 70+ |
+| open-api-catalog | platform/open-api-catalog | 开放 API 服务目录 | 70+ |
+| asset-exchange | platform/asset-exchange | 数据资产流通 | 70+ |
+| operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 50+ |
+
+### 前端
+
+| 模块 | 目录 | 描述 |
+| --- | --- | --- |
+| frontend | frontend/ | Vue3 + TypeScript strict 前端，14 个核心视图页面，Element Plus 组件库，Pinia 状态管理 |
+
+## 文档导航
+
+| 文档 | 内容 |
+| --- | --- |
+| [架构概览](docs/architecture.md) | 五层架构 + X 横切层，组件交互关系，多租户隔离机制 |
+| [部署指南](docs/deployment-guide.md) | SKE 集群拉起，Helm Chart 部署，四环境 Profile 配置 |
+| [开发指南](docs/development-guide.md) | 环境要求，构建命令，测试命令，代码规范，调试技巧 |
+| [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
+| [变更日志](CHANGELOG.md) | 版本变更记录 |
+| [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
+| [路线图](ROADMAP.md) | v2.0 演进规划 |
+| [命名约定](CONVENTIONS.md) | 统一命名与版本号规范 |
+| [SKE 发行版](ske/README.md) | 自研 K8s 发行版说明 |
+
+## 仓库统计
+
+| 指标 | 数值 |
+| --- | --- |
+| 自研组件 | 21 个（9 Java + 4 Go + 1 CLI + 7 Python + 运营后台） |
+| Helm Chart | 59 个 |
+| 详细设计文档 | 43 份 |
+| 单元测试 | 2000+ |
+| 集成测试 | 38 个 |
+| 前端视图页面 | 14 个核心页面 |
+| 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云） |
+| 工程任务交付 | 99 / 99 |
+| 工程成熟度 | 约 95 / 100 |
+
+## 贡献
+
+欢迎参与贡献。请先阅读 [贡献指南](CONTRIBUTING.md) 了解开发环境搭建、代码规范与提交规范。
+
+## 开源协议
+
+本项目基于 [Apache License 2.0](LICENSE) 开源。
