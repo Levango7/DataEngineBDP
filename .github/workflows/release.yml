@@ -455,7 +455,7 @@ jobs:
 
   # ============================================================
   # 创建 GitHub Release：依赖所有 build job 通过
-  # 使用 softprops/action-gh-release@v2 创建 Release
+  # 使用 softprops/action-gh-release@v3 创建 Release
   # 上传所有 artifacts：前端 dist、SKE 脚本、Helm Charts、Java JARs、Go binaries、Python packages、SBOM
   # 自动生成 Release Notes（从 CHANGELOG.md 或 commit messages）
   # ============================================================
@@ -532,7 +532,7 @@ jobs:
           fi
 
       - name: 创建 GitHub Release 并上传所有资产
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
