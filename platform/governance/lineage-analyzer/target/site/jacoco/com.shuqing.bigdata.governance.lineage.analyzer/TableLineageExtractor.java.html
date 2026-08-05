@@ -1,0 +1,206 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TableLineageExtractor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lineage-analyzer</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.lineage.analyzer</a> &gt; <span class="el_source">TableLineageExtractor.java</span></div><h1>TableLineageExtractor.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.lineage.analyzer;
+
+import com.shuqing.bigdata.sqlgateway.parser.ASTNode;
+import com.shuqing.bigdata.sqlgateway.parser.SqlDialect;
+import com.shuqing.bigdata.sqlgateway.parser.SqlParseException;
+import com.shuqing.bigdata.sqlgateway.parser.SqlParserService;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * 表级血缘提取器。
+ *
+ * &lt;p&gt;基于 SQL 解析器产出的 AST，识别数据从源表流向目标表的语句：
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code INSERT INTO target SELECT ... FROM source1 JOIN source2 ...}：
+ *       产生 {@code source1 → target}、{@code source2 → target}&lt;/li&gt;
+ *   &lt;li&gt;{@code CREATE TABLE target AS SELECT ... FROM source}：
+ *       产生 {@code source → target}&lt;/li&gt;
+ *   &lt;li&gt;{@code INSERT OVERWRITE TABLE target SELECT ... FROM source}：
+ *       同 INSERT INTO&lt;/li&gt;
+ * &lt;/ul&gt;
+ * 纯 SELECT 语句无目标表，返回空列表。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class TableLineageExtractor {
+
+    private final SqlParserService parser;
+
+    /**
+     * 构造提取器。
+     *
+     * @param parser SQL 解析器
+     */
+<span class="fc" id="L37">    public TableLineageExtractor(SqlParserService parser) {</span>
+<span class="fc" id="L38">        this.parser = parser;</span>
+<span class="fc" id="L39">    }</span>
+
+    /**
+     * 从 SQL 文本提取表级血缘。
+     *
+     * @param sql     SQL 文本
+     * @param dialect 方言；{@code null} 时自动检测
+     * @return 血缘关系列表
+     * @throws SqlParseException 解析失败
+     */
+    public List&lt;LineageRelation&gt; extract(String sql, SqlDialect dialect) {
+<span class="fc bfc" id="L50" title="All 4 branches covered.">        if (sql == null || sql.isBlank()) {</span>
+<span class="fc" id="L51">            return Collections.emptyList();</span>
+        }
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        ASTNode ast = dialect == null ? parser.parseAuto(sql) : parser.parse(sql, dialect);</span>
+<span class="fc" id="L54">        return extractFromAst(ast, sql, dialect);</span>
+    }
+
+    /**
+     * 从已解析的 AST 提取表级血缘（避免重复解析）。
+     *
+     * @param ast    AST 根节点
+     * @param sql    原始 SQL（用于记录）
+     * @param dialect 方言
+     * @return 血缘关系列表
+     */
+    public List&lt;LineageRelation&gt; extractFromAst(ASTNode ast, String sql, SqlDialect dialect) {
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (ast == null) {</span>
+<span class="nc" id="L67">            return Collections.emptyList();</span>
+        }
+<span class="fc" id="L69">        List&lt;LineageRelation&gt; relations = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">        String dialectName = dialect == null ? &quot;AUTO&quot; : dialect.name();</span>
+
+        // 遍历顶层语句的子节点（INSERT / CREATE_TABLE / SELECT 等）
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        for (ASTNode child : ast.getChildren()) {</span>
+<span class="fc" id="L74">            collectFromStatement(child, relations, sql, dialectName);</span>
+<span class="fc" id="L75">        }</span>
+<span class="fc" id="L76">        return relations;</span>
+    }
+
+    private void collectFromStatement(ASTNode stmt, List&lt;LineageRelation&gt; relations,
+                                      String sql, String dialectName) {
+<span class="pc bpc" id="L81" title="1 of 2 branches missed.">        if (stmt == null) {</span>
+<span class="nc" id="L82">            return;</span>
+        }
+<span class="pc bpc" id="L84" title="2 of 4 branches missed.">        switch (stmt.getType()) {</span>
+<span class="fc" id="L85">            case INSERT -&gt; handleInsert(stmt, relations, sql, dialectName);</span>
+<span class="nc" id="L86">            case CREATE_TABLE -&gt; handleCreateTableAsSelect(stmt, relations, sql, dialectName);</span>
+<span class="nc" id="L87">            case CTE -&gt; handleCte(stmt, relations, sql, dialectName);</span>
+            default -&gt; {
+                // 纯 SELECT 等无目标表的语句：不产生表级血缘
+            }
+        }
+<span class="fc" id="L92">    }</span>
+
+    /**
+     * 处理 INSERT 语句：目标表 = INSERT.table；源表 = 内嵌 SELECT 的 FROM 表。
+     */
+    private void handleInsert(ASTNode insert, List&lt;LineageRelation&gt; relations,
+                              String sql, String dialectName) {
+<span class="fc" id="L99">        String targetTable = insert.getString(&quot;table&quot;);</span>
+<span class="pc bpc" id="L100" title="2 of 4 branches missed.">        if (targetTable == null || targetTable.isEmpty()) {</span>
+<span class="nc" id="L101">            return;</span>
+        }
+        // 仅 SELECT 模式产生血缘；VALUES 模式无源表
+<span class="fc" id="L104">        String mode = insert.getString(&quot;mode&quot;);</span>
+<span class="fc bfc" id="L105" title="All 2 branches covered.">        if (!&quot;SELECT&quot;.equalsIgnoreCase(mode)) {</span>
+<span class="fc" id="L106">            return;</span>
+        }
+<span class="fc" id="L108">        List&lt;String&gt; sourceTables = collectSelectSources(insert);</span>
+<span class="fc bfc" id="L109" title="All 2 branches covered.">        for (String source : sourceTables) {</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">            if (!source.equalsIgnoreCase(targetTable)) {</span>
+<span class="fc" id="L111">                relations.add(new LineageRelation(source, targetTable,</span>
+                        LineageRelation.RelationType.TABLE_LINEAGE, null, sql, dialectName));
+            }
+<span class="fc" id="L114">        }</span>
+<span class="fc" id="L115">    }</span>
+
+    /**
+     * 处理 CREATE TABLE AS SELECT：当前 sql-gateway 解析器未显式支持 AS SELECT，
+     * 但若 CREATE_TABLE 节点包含子 SELECT（未来扩展），则按 INSERT 逻辑处理。
+     */
+    private void handleCreateTableAsSelect(ASTNode create, List&lt;LineageRelation&gt; relations,
+                                           String sql, String dialectName) {
+<span class="nc" id="L123">        String targetTable = create.getString(&quot;table&quot;);</span>
+<span class="nc bnc" id="L124" title="All 4 branches missed.">        if (targetTable == null || targetTable.isEmpty()) {</span>
+<span class="nc" id="L125">            return;</span>
+        }
+        // 检查是否有子 SELECT 节点（CREATE TABLE t AS SELECT ...）
+<span class="nc" id="L128">        List&lt;ASTNode&gt; selects = create.findAll(ASTNode.NodeType.SELECT);</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        if (selects.isEmpty()) {</span>
+<span class="nc" id="L130">            return;</span>
+        }
+<span class="nc" id="L132">        List&lt;String&gt; sourceTables = collectSelectSources(create);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        for (String source : sourceTables) {</span>
+<span class="nc bnc" id="L134" title="All 2 branches missed.">            if (!source.equalsIgnoreCase(targetTable)) {</span>
+<span class="nc" id="L135">                relations.add(new LineageRelation(source, targetTable,</span>
+                        LineageRelation.RelationType.TABLE_LINEAGE, null, sql, dialectName));
+            }
+<span class="nc" id="L138">        }</span>
+<span class="nc" id="L139">    }</span>
+
+    /**
+     * 处理 CTE（WITH ... SELECT）：CTE 内部子查询产生 CTE 名 → 源表 的血缘，
+     * 但 CTE 名通常不作为持久化表，此处仅提取最终 SELECT 的源表（含 CTE 名）。
+     */
+    private void handleCte(ASTNode cte, List&lt;LineageRelation&gt; relations,
+                           String sql, String dialectName) {
+        // CTE 不直接产生表级血缘（CTE 名非持久化表），保持空实现
+<span class="nc" id="L148">    }</span>
+
+    /**
+     * 收集语句内所有 SELECT 的 FROM 表（含 JOIN、子查询递归）。
+     *
+     * @param stmt 语句节点
+     * @return 源表全名列表（去重保序）
+     */
+    private List&lt;String&gt; collectSelectSources(ASTNode stmt) {
+<span class="fc" id="L157">        List&lt;String&gt; sources = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L158">        List&lt;ASTNode&gt; froms = stmt.findAll(ASTNode.NodeType.FROM);</span>
+<span class="fc bfc" id="L159" title="All 2 branches covered.">        for (ASTNode from : froms) {</span>
+<span class="fc" id="L160">            collectTablesFromFrom(from, sources);</span>
+<span class="fc" id="L161">        }</span>
+<span class="fc" id="L162">        return sources;</span>
+    }
+
+    /**
+     * 从 FROM 节点收集表名（含 JOIN 引入的表）。
+     */
+    private void collectTablesFromFrom(ASTNode from, List&lt;String&gt; sources) {
+<span class="fc bfc" id="L169" title="All 2 branches covered.">        for (ASTNode child : from.getChildren()) {</span>
+<span class="fc" id="L170">            collectTableReference(child, sources);</span>
+<span class="fc" id="L171">        }</span>
+<span class="fc" id="L172">    }</span>
+
+    /**
+     * 递归收集表引用：TABLE 节点直接取 name；SUBQUERY 节点递归其内部 SELECT。
+     */
+    private void collectTableReference(ASTNode node, List&lt;String&gt; sources) {
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">        if (node == null) {</span>
+<span class="nc" id="L179">            return;</span>
+        }
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (node.getType() == ASTNode.NodeType.TABLE) {</span>
+<span class="fc" id="L182">            String name = node.getString(&quot;name&quot;);</span>
+<span class="pc bpc" id="L183" title="2 of 6 branches missed.">            if (name != null &amp;&amp; !name.isEmpty() &amp;&amp; !sources.contains(name)) {</span>
+<span class="fc" id="L184">                sources.add(name);</span>
+            }
+<span class="fc" id="L186">            return;</span>
+        }
+<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (node.getType() == ASTNode.NodeType.JOIN) {</span>
+            // JOIN 的第一个子节点是被 JOIN 的表引用
+<span class="fc bfc" id="L190" title="All 2 branches covered.">            for (ASTNode child : node.getChildren()) {</span>
+<span class="fc" id="L191">                collectTableReference(child, sources);</span>
+<span class="fc" id="L192">            }</span>
+<span class="fc" id="L193">            return;</span>
+        }
+<span class="fc bfc" id="L195" title="All 2 branches covered.">        if (node.getType() == ASTNode.NodeType.SUBQUERY) {</span>
+            // 子查询：递归内部 SELECT 的 FROM
+<span class="fc bfc" id="L197" title="All 2 branches covered.">            for (ASTNode child : node.getChildren()) {</span>
+<span class="fc" id="L198">                List&lt;ASTNode&gt; innerFroms = child.findAll(ASTNode.NodeType.FROM);</span>
+<span class="fc bfc" id="L199" title="All 2 branches covered.">                for (ASTNode innerFrom : innerFroms) {</span>
+<span class="fc" id="L200">                    collectTablesFromFrom(innerFrom, sources);</span>
+<span class="fc" id="L201">                }</span>
+<span class="fc" id="L202">            }</span>
+        }
+<span class="fc" id="L204">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

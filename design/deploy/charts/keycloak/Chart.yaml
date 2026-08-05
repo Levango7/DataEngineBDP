@@ -1,0 +1,14 @@
+apiVersion: v2
+name: keycloak
+description: Keycloak 身份认证与访问管理 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "24.0"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - keycloak
+  - shuqing-platform

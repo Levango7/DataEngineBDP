@@ -1,0 +1,9 @@
+# 二进制产物
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 构建输出
+vendor/
+bin/

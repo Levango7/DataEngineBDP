@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PrivateClusterController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">infra-provider-private</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.infra.privatecloud.controller</a> &gt; <span class="el_source">PrivateClusterController.java</span></div><h1>PrivateClusterController.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.infra.privatecloud.controller;
+
+import com.shuqing.bigdata.infra.privatecloud.model.PrivateClusterInfo;
+import com.shuqing.bigdata.infra.privatecloud.model.PrivateClusterRequest;
+import com.shuqing.bigdata.infra.privatecloud.model.PrivateClusterRepository;
+import com.shuqing.bigdata.infra.privatecloud.model.ScaleRequest;
+import com.shuqing.bigdata.infra.privatecloud.provider.PrivateCloudProvider;
+import com.shuqing.bigdata.infra.privatecloud.security.TenantContext;
+import com.shuqing.bigdata.infra.privatecloud.service.K8sBootstrapService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 私有云集群 REST 控制器。
+ *
+ * &lt;p&gt;提供统一的私有云 K8s 集群管理 API，通过路径变量 {@code provider} 路由到
+ * 对应的 {@link PrivateCloudProvider} 实现（vsphere / openstack）。&lt;/p&gt;
+ *
+ * &lt;p&gt;端点：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code POST   /api/v1/clusters/private/{provider}} - 创建集群；&lt;/li&gt;
+ *   &lt;li&gt;{@code DELETE /api/v1/clusters/private/{provider}/{id}} - 销毁集群；&lt;/li&gt;
+ *   &lt;li&gt;{@code GET    /api/v1/clusters/private/{provider}/{id}} - 查询集群；&lt;/li&gt;
+ *   &lt;li&gt;{@code POST   /api/v1/clusters/private/{provider}/{id}/scale} - 扩缩容；&lt;/li&gt;
+ *   &lt;li&gt;{@code GET    /api/v1/clusters/private/{provider}} - 列出集群。&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/clusters/private&quot;)
+public class PrivateClusterController {
+
+<span class="fc" id="L48">    private static final Logger log = LoggerFactory.getLogger(PrivateClusterController.class);</span>
+
+    private final Map&lt;String, PrivateCloudProvider&gt; providers;
+    private final PrivateClusterRepository repository;
+    private final K8sBootstrapService k8sBootstrapService;
+
+    /**
+     * 构造控制器。
+     *
+     * &lt;p&gt;Spring 自动将所有 {@link PrivateCloudProvider} Bean 注入 Map，
+     * key 为 Bean 名称（{@code vsphereProvider} / {@code openstackProvider}）。
+     * 此处按 {@link PrivateCloudProvider#getType()} 重新构建 key，
+     * 使其与 REST 路径变量 {@code provider} 对齐（{@code vsphere} / {@code openstack}）。&lt;/p&gt;
+     *
+     * @param providerList       所有 Provider 实现
+     * @param repository          集群信息 Repository
+     * @param k8sBootstrapService K8s 引导服务
+     */
+    public PrivateClusterController(List&lt;PrivateCloudProvider&gt; providerList,
+                                    PrivateClusterRepository repository,
+<span class="fc" id="L68">                                    K8sBootstrapService k8sBootstrapService) {</span>
+<span class="fc" id="L69">        this.repository = repository;</span>
+<span class="fc" id="L70">        this.k8sBootstrapService = k8sBootstrapService;</span>
+<span class="fc" id="L71">        java.util.Map&lt;String, PrivateCloudProvider&gt; map = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        for (PrivateCloudProvider p : providerList) {</span>
+<span class="fc" id="L73">            map.put(p.getType(), p);</span>
+<span class="fc" id="L74">        }</span>
+<span class="fc" id="L75">        this.providers = map;</span>
+<span class="fc" id="L76">        log.info(&quot;PrivateClusterController 初始化: providers={}&quot;, providers.keySet());</span>
+<span class="fc" id="L77">    }</span>
+
+    /**
+     * 创建私有云 K8s 集群。
+     *
+     * @param provider 云平台类型（vsphere / openstack）
+     * @param request  集群创建请求
+     * @return 创建的集群信息
+     */
+    @PostMapping(&quot;/{provider}&quot;)
+    public ResponseEntity&lt;PrivateClusterInfo&gt; createCluster(@PathVariable String provider,
+                                                            @Valid @RequestBody PrivateClusterRequest request) {
+<span class="nc" id="L89">        PrivateCloudProvider p = resolveProvider(provider);</span>
+
+<span class="nc" id="L91">        log.info(&quot;创建私有云集群: provider={} clusterName={}&quot;, provider, request.getClusterName());</span>
+<span class="nc" id="L92">        PrivateClusterInfo cluster = new PrivateClusterInfo();</span>
+<span class="nc" id="L93">        cluster.setClusterName(request.getClusterName());</span>
+<span class="nc" id="L94">        cluster.setProvider(provider);</span>
+<span class="nc" id="L95">        cluster.setTenantId(TenantContext.getTenantId());</span>
+<span class="nc" id="L96">        cluster.setStatus(&quot;CREATING&quot;);</span>
+<span class="nc" id="L97">        cluster.setK8sVersion(request.getK8sVersion());</span>
+<span class="nc" id="L98">        cluster.setPodCidr(request.getPodCidr());</span>
+<span class="nc" id="L99">        cluster.setServiceCidr(request.getServiceCidr());</span>
+<span class="nc" id="L100">        cluster.setControlPlaneCount(1);</span>
+<span class="nc bnc" id="L101" title="All 2 branches missed.">        cluster.setWorkerCount(request.getWorkers() == null ? 0 : request.getWorkers().size());</span>
+<span class="nc" id="L102">        cluster.setCreatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L103">        cluster.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L104">        cluster = repository.save(cluster);</span>
+
+        try {
+            // 1. 创建 VM
+<span class="nc" id="L108">            List&lt;PrivateClusterInfo.VMInfo&gt; vms = p.createVMs(request);</span>
+<span class="nc" id="L109">            cluster.setVms(vms);</span>
+<span class="nc" id="L110">            cluster.setVmJson(k8sBootstrapService.serializeVms(vms));</span>
+
+            // 2. K8s 引导
+<span class="nc" id="L113">            boolean bootstrapOk = k8sBootstrapService.bootstrap(cluster);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">            cluster.setStatus(bootstrapOk ? &quot;RUNNING&quot; : &quot;FAILED&quot;);</span>
+<span class="nc bnc" id="L115" title="All 2 branches missed.">            if (!bootstrapOk) {</span>
+<span class="nc" id="L116">                cluster.setErrorMessage(&quot;K8s 引导失败&quot;);</span>
+            }
+<span class="nc" id="L118">        } catch (Exception e) {</span>
+<span class="nc" id="L119">            log.error(&quot;集群创建失败: provider={} clusterName={} err={}&quot;,</span>
+<span class="nc" id="L120">                    provider, request.getClusterName(), e.getMessage(), e);</span>
+<span class="nc" id="L121">            cluster.setStatus(&quot;FAILED&quot;);</span>
+<span class="nc" id="L122">            cluster.setErrorMessage(e.getMessage());</span>
+<span class="nc" id="L123">        }</span>
+
+<span class="nc" id="L125">        cluster.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L126">        cluster = repository.save(cluster);</span>
+<span class="nc" id="L127">        fillVms(cluster);</span>
+
+<span class="nc bnc" id="L129" title="All 2 branches missed.">        HttpStatus httpStatus = &quot;FAILED&quot;.equals(cluster.getStatus())</span>
+<span class="nc" id="L130">                ? HttpStatus.INTERNAL_SERVER_ERROR : HttpStatus.CREATED;</span>
+<span class="nc" id="L131">        return ResponseEntity.status(httpStatus).body(cluster);</span>
+    }
+
+    /**
+     * 销毁私有云 K8s 集群。
+     *
+     * @param provider 云平台类型
+     * @param id       集群 ID
+     * @return 204 成功 / 404 不存在
+     */
+    @DeleteMapping(&quot;/{provider}/{id}&quot;)
+    public ResponseEntity&lt;Void&gt; destroyCluster(@PathVariable String provider,
+                                               @PathVariable Long id) {
+<span class="nc" id="L144">        PrivateCloudProvider p = resolveProvider(provider);</span>
+<span class="nc" id="L145">        PrivateClusterInfo cluster = repository.findById(id).orElse(null);</span>
+<span class="nc bnc" id="L146" title="All 4 branches missed.">        if (cluster == null || !provider.equals(cluster.getProvider())) {</span>
+<span class="nc" id="L147">            return ResponseEntity.notFound().build();</span>
+        }
+
+<span class="nc" id="L150">        log.info(&quot;销毁私有云集群: provider={} clusterId={}&quot;, provider, id);</span>
+<span class="nc" id="L151">        cluster.setStatus(&quot;DELETING&quot;);</span>
+<span class="nc" id="L152">        cluster.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L153">        repository.save(cluster);</span>
+
+<span class="nc" id="L155">        fillVms(cluster);</span>
+<span class="nc" id="L156">        boolean destroyed = p.destroyVMs(cluster);</span>
+<span class="nc bnc" id="L157" title="All 2 branches missed.">        cluster.setStatus(destroyed ? &quot;DELETED&quot; : &quot;FAILED&quot;);</span>
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (!destroyed) {</span>
+<span class="nc" id="L159">            cluster.setErrorMessage(&quot;部分 VM 销毁失败&quot;);</span>
+        }
+<span class="nc" id="L161">        cluster.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L162">        repository.save(cluster);</span>
+
+<span class="nc bnc" id="L164" title="All 2 branches missed.">        return destroyed ? ResponseEntity.noContent().build()</span>
+<span class="nc" id="L165">                : ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();</span>
+    }
+
+    /**
+     * 查询私有云 K8s 集群。
+     *
+     * @param provider 云平台类型
+     * @param id       集群 ID
+     * @return 集群信息（含 VM 实时状态）
+     */
+    @GetMapping(&quot;/{provider}/{id}&quot;)
+    public ResponseEntity&lt;PrivateClusterInfo&gt; getCluster(@PathVariable String provider,
+                                                        @PathVariable Long id) {
+<span class="nc" id="L178">        PrivateCloudProvider p = resolveProvider(provider);</span>
+<span class="nc" id="L179">        PrivateClusterInfo cluster = repository.findById(id).orElse(null);</span>
+<span class="nc bnc" id="L180" title="All 4 branches missed.">        if (cluster == null || !provider.equals(cluster.getProvider())) {</span>
+<span class="nc" id="L181">            return ResponseEntity.notFound().build();</span>
+        }
+
+<span class="nc" id="L184">        fillVms(cluster);</span>
+        // 实时刷新 VM 状态
+        try {
+<span class="nc" id="L187">            List&lt;PrivateClusterInfo.VMInfo&gt; refreshed = p.getVMInfo(cluster);</span>
+<span class="nc" id="L188">            cluster.setVms(refreshed);</span>
+<span class="nc" id="L189">        } catch (Exception e) {</span>
+<span class="nc" id="L190">            log.warn(&quot;刷新 VM 状态失败: clusterId={} err={}&quot;, id, e.getMessage());</span>
+<span class="nc" id="L191">        }</span>
+<span class="nc" id="L192">        return ResponseEntity.ok(cluster);</span>
+    }
+
+    /**
+     * 列出指定 provider 的所有集群。
+     *
+     * @param provider 云平台类型
+     * @return 集群列表
+     */
+    @GetMapping(&quot;/{provider}&quot;)
+    public ResponseEntity&lt;List&lt;PrivateClusterInfo&gt;&gt; listClusters(@PathVariable String provider) {
+<span class="nc" id="L203">        resolveProvider(provider);</span>
+<span class="nc" id="L204">        String tenantId = TenantContext.getTenantId();</span>
+        List&lt;PrivateClusterInfo&gt; clusters;
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        if (tenantId != null) {</span>
+<span class="nc" id="L207">            clusters = repository.findByTenantIdAndProvider(tenantId, provider);</span>
+        } else {
+<span class="nc" id="L209">            clusters = repository.findAll().stream()</span>
+<span class="nc" id="L210">                    .filter(c -&gt; provider.equals(c.getProvider()))</span>
+<span class="nc" id="L211">                    .toList();</span>
+        }
+<span class="nc" id="L213">        clusters.forEach(this::fillVms);</span>
+<span class="nc" id="L214">        return ResponseEntity.ok(clusters);</span>
+    }
+
+    /**
+     * 扩缩容集群工作节点。
+     *
+     * @param provider 云平台类型
+     * @param id       集群 ID
+     * @param request  扩缩容请求
+     * @return 变更后的集群信息
+     */
+    @PostMapping(&quot;/{provider}/{id}/scale&quot;)
+    public ResponseEntity&lt;PrivateClusterInfo&gt; scaleCluster(@PathVariable String provider,
+                                                           @PathVariable Long id,
+                                                           @Valid @RequestBody ScaleRequest request) {
+<span class="nc" id="L229">        PrivateCloudProvider p = resolveProvider(provider);</span>
+<span class="nc" id="L230">        PrivateClusterInfo cluster = repository.findById(id).orElse(null);</span>
+<span class="nc bnc" id="L231" title="All 4 branches missed.">        if (cluster == null || !provider.equals(cluster.getProvider())) {</span>
+<span class="nc" id="L232">            return ResponseEntity.notFound().build();</span>
+        }
+
+<span class="nc" id="L235">        log.info(&quot;扩缩容集群: provider={} clusterId={} target={}&quot;, provider, id, request.getTargetWorkerCount());</span>
+<span class="nc" id="L236">        cluster.setStatus(&quot;SCALING&quot;);</span>
+<span class="nc" id="L237">        cluster.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L238">        repository.save(cluster);</span>
+
+<span class="nc" id="L240">        fillVms(cluster);</span>
+        try {
+<span class="nc" id="L242">            List&lt;PrivateClusterInfo.VMInfo&gt; vms = p.scaleVMs(cluster,</span>
+<span class="nc" id="L243">                    request.getTargetWorkerCount(), request.getWorkerSpec());</span>
+<span class="nc" id="L244">            cluster.setVms(vms);</span>
+<span class="nc" id="L245">            cluster.setVmJson(k8sBootstrapService.serializeVms(vms));</span>
+<span class="nc" id="L246">            cluster.setWorkerCount((int) vms.stream()</span>
+<span class="nc" id="L247">                    .filter(vm -&gt; &quot;worker&quot;.equals(vm.getRole()))</span>
+<span class="nc" id="L248">                    .count());</span>
+<span class="nc" id="L249">            cluster.setStatus(&quot;RUNNING&quot;);</span>
+<span class="nc" id="L250">        } catch (Exception e) {</span>
+<span class="nc" id="L251">            log.error(&quot;扩缩容失败: clusterId={} err={}&quot;, id, e.getMessage(), e);</span>
+<span class="nc" id="L252">            cluster.setStatus(&quot;FAILED&quot;);</span>
+<span class="nc" id="L253">            cluster.setErrorMessage(e.getMessage());</span>
+<span class="nc" id="L254">        }</span>
+<span class="nc" id="L255">        cluster.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L256">        cluster = repository.save(cluster);</span>
+<span class="nc" id="L257">        fillVms(cluster);</span>
+<span class="nc" id="L258">        return ResponseEntity.ok(cluster);</span>
+    }
+
+    /**
+     * 根据路径变量解析 Provider，不存在则抛 400。
+     *
+     * @param provider 路径变量
+     * @return Provider 实现
+     */
+    private PrivateCloudProvider resolveProvider(String provider) {
+<span class="nc" id="L268">        PrivateCloudProvider p = providers.get(provider);</span>
+<span class="nc bnc" id="L269" title="All 2 branches missed.">        if (p == null) {</span>
+<span class="nc" id="L270">            throw new IllegalArgumentException(&quot;不支持的 provider: &quot; + provider</span>
+<span class="nc" id="L271">                    + &quot;，当前支持: &quot; + providers.keySet());</span>
+        }
+<span class="nc" id="L273">        return p;</span>
+    }
+
+    /**
+     * 从 vmJson 反序列化填充 vms 字段。
+     *
+     * @param cluster 集群信息
+     */
+    private void fillVms(PrivateClusterInfo cluster) {
+<span class="nc bnc" id="L282" title="All 2 branches missed.">        if (cluster.getVms() == null) {</span>
+<span class="nc" id="L283">            cluster.setVms(k8sBootstrapService.deserializeVms(cluster.getVmJson()));</span>
+        }
+<span class="nc" id="L285">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

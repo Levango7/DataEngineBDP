@@ -52,6 +52,12 @@ ensure_node_image(){
 }
 
 # ---------- 生成 kind 集群配置 (内嵌 SKE 深度调优) ----------
+# 注意: kind Cluster 配置 (kind.x-k8s.io/v1alpha4) 的合法顶层字段仅
+#       apiVersion / kind / name / nodes / networking / featureGates / containerdConfigPatches 等。
+#       以下字段在顶层并不存在, 必须放在 nodes[].kubeadmConfigPatches 内:
+#         - disableDefaultCNI (实际是 networking.disableDefaultCNI, kind 顶层无此字段)
+#         - clusterConfiguration / nodeRegistration (属于 kubeadm 配置, 通过 patch 注入)
+#       此处改用 kubeadmConfigPatches (JSON6902 / strategic merge) 标准写法注入深度定制。
 gen_kind_config(){
   local out="$1"
   cat > "$out" <<EOF
@@ -59,12 +65,20 @@ kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 name: ${CLUSTER}
 # 禁用默认 CNI: Cilium eBPF 接管数据面
+# 注意: disableDefaultCNI 是 kind Cluster 顶层合法字段 (v1alpha4),
+#       但需配合先装 Cilium 再 --wait, 否则控制面就绪探测会超时 (见 up() 顺序)。
 disableDefaultCNI: true
+# 集群网络 (kind 顶层 networking 字段, 用于 kubeadm InitConfiguration.networking 注入)
+networking:
+  # disableDefaultCNI 也可放在此处, 与顶层等价; 保留顶层以兼容旧版 kind
+  ipFamily: ipv4
+  podSubnet: 10.244.0.0/16
+  serviceSubnet: 10.96.0.0/12
+  dnsDomain: cluster.local
 # 使用 SKE 自定义节点镜像(烘焙 kubelet/scheduler 调优)
 nodes:
   - role: control-plane
     image: ${NODE_IMG}
-    kubeadmConfigDir: /etc/kubernetes
     extraPortMappings:
       - containerPort: 30080
         hostPort: 30080
@@ -75,34 +89,38 @@ nodes:
       - containerPort: 30888
         hostPort: 30888
         protocol: TCP
-# kubelet 使用烘焙的 SKE 配置
-nodeRegistration:
-  kubeletExtraArgs:
-    config: /etc/kubernetes/kubelet-config.yaml
-    container-runtime-endpoint: unix:///run/containerd/containerd.sock
-# 深度定制 kubeadm 集群配置 (对齐 manifests/kubeadm-config.yaml)
-clusterConfiguration:
-  kubernetesVersion: v1.30.0
-  networking:
-    podSubnet: 10.244.0.0/16
-    serviceSubnet: 10.96.0.0/12
-    dnsDomain: cluster.local
-  # 禁用 kube-proxy: Cilium 完全接管
-  kubeProxy:
-    mode: "none"
-  apiServer:
-    certSANs: [localhost, 127.0.0.1]
-    extraArgs:
-      max-requests-inflight: "3000"
-      max-mutating-requests-inflight: "2000"
-      default-watch-cache-size: "1000"
-  scheduler:
-    extraArgs:
-      config: /etc/kubernetes/scheduler-policy.yaml
-  etcd:
-    local:
-      extraArgs:
-        quota-backend-bytes: "8589934592"
+    # 通过 kubeadmConfigPatches 注入 SKE 深度定制 (对齐 manifests/kubeadm-config.yaml)
+    # 使用 strategic merge patch, apiVersion/kind 与 kubeadm 配置对象一致
+    kubeadmConfigPatches:
+      - |
+        apiVersion: kubeadm.k8s.io/v1beta3
+        kind: ClusterConfiguration
+        metadata:
+          name: config
+        apiServer:
+          certSANs:
+            - localhost
+            - 127.0.0.1
+          extraArgs:
+            max-requests-inflight: "3000"
+            max-mutating-requests-inflight: "2000"
+            default-watch-cache-size: "1000"
+        scheduler:
+          extraArgs:
+            config: /etc/kubernetes/scheduler-policy.yaml
+        etcd:
+          local:
+            extraArgs:
+              quota-backend-bytes: "8589934592"
+      - |
+        apiVersion: kubeadm.k8s.io/v1beta3
+        kind: InitConfiguration
+        metadata:
+          name: config
+        nodeRegistration:
+          kubeletExtraArgs:
+            config: /etc/kubernetes/kubelet-config.yaml
+            container-runtime-endpoint: unix:///run/containerd/containerd.sock
 EOF
   ok "kind 配置已生成: $out"
 }
@@ -144,13 +162,24 @@ up(){
     local cfg; cfg="$(mktemp -d)/kind.yaml"
     gen_kind_config "$cfg"
     log "创建 SKE 集群 (mode=$MODE, profile=$PROFILE)..."
-    "$KIND_BIN" create cluster --config "$cfg" --wait 120s || { err "集群创建失败"; return 1; }
+    # 注意: 禁用默认 CNI 后, 控制面节点网络就绪探测会因无 CNI 而超时。
+    #   方案: 先用较短 wait 创建集群 (control-plane 容器就绪即可),
+    #         然后立即安装 Cilium, 最后显式 wait control-plane Ready。
+    #   --wait 60s 仅等待 control-plane 容器启动, 不等待节点 Ready (节点 Ready 需 CNI)。
+    "$KIND_BIN" create cluster --config "$cfg" --wait 60s || { err "集群创建失败"; return 1; }
   fi
 
   export KUBECONFIG="$HOME/.kube/config"
   kubectl cluster-info --context "kind-${CLUSTER}" 2>/dev/null || true
 
+  # 先装 Cilium (eBPF 数据面), 再 wait 节点 Ready
+  # 顺序很关键: 禁用默认 CNI 时, 节点 NotReady 直到 CNI 装好; 先 wait 必然超时
   install_cilium
+  # Cilium 就绪后, 等待节点 Ready (kind create cluster 已 wait 过 control-plane, 此处兜底)
+  log "等待节点 Ready (Cilium 已安装)..."
+  kubectl --context "kind-${CLUSTER}" wait --for=condition=Ready nodes --all --timeout=180s 2>/dev/null \
+    || warn "部分节点未在 180s 内 Ready, 请检查 Cilium 状态: kubectl -n kube-system get pods -l app.kubernetes.io/name=cilium"
+
   apply_tuning
 
   # 标签: 数据面节点 (dev 单节点即承载)
@@ -175,6 +204,10 @@ up_wsl2(){
   local kdir="/etc/kubernetes"
   mkdir -p "$kdir"
   cp "$SKE_DIR/manifests/scheduler-policy.yaml" "$kdir/scheduler-policy.yaml"
+  # 审计策略文件 (kubeadm-config.wsl2.yaml 中 audit-policy-file 引用)
+  cp "$SKE_DIR/manifests/audit-policy.yaml" "$kdir/audit-policy.yaml" 2>/dev/null || warn "audit-policy.yaml 拷贝失败, 审计日志将无策略过滤"
+  # APIServer 加固参数 ConfigMap (文档化, 实际注入通过 kubeadm-config extraArgs)
+  kubectl apply -f "$SKE_DIR/manifests/apiserver-hardening.yaml" 2>/dev/null || warn "apiserver-hardening.yaml 应用失败 (ConfigMap 文档化, 不影响集群启动)"
   local cfg="$SKE_DIR/manifests/kubeadm-config.wsl2.yaml"
 
   if [ -f /etc/kubernetes/admin.conf ] && kubectl --kubeconfig /etc/kubernetes/admin.conf get nodes >/dev/null 2>&1; then

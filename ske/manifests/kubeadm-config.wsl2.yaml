@@ -40,11 +40,20 @@ apiServer:
     audit-log-maxage: "7"
     audit-log-maxbackup: "5"
     audit-log-maxsize: "100"
+    # 审计策略文件 (关联 manifests/audit-policy.yaml, 需先拷到 /etc/kubernetes)
+    audit-policy-file: "/etc/kubernetes/audit-policy.yaml"
+    audit-log-format: "json"
   extraVolumes:
     - name: audit-log
       hostPath: /var/log/kubernetes
       mountPath: /var/log/kubernetes
       pathType: DirectoryOrCreate
+    # 审计策略文件挂载 (只读)
+    - name: audit-policy
+      hostPath: /etc/kubernetes/audit-policy.yaml
+      mountPath: /etc/kubernetes/audit-policy.yaml
+      pathType: File
+      readOnly: true
 controllerManager:
   extraArgs:
     node-cidr-mask-size: "24"
@@ -78,14 +87,14 @@ kubeReserved:
   cpu: "500m"
   memory: "1Gi"
 # ---- CPU 管理器: 静态策略 + 拓扑管理器单 NUMA ----
+# 注意: TopologyManager / CPUManager 自 K8s 1.10 起 GA, 1.28+ 已从 featureGates 移除,
+#       不能再写在 featureGates 中 (会报 "unrecognized feature gate" 致 kubeadm init 失败)。
+#       此处直接通过 cpuManagerPolicy / topologyManagerPolicy 字段配置 (GA 后的字段)。
 cpuManagerPolicy: "static"
 cpuManagerReconcilePeriod: "10s"
 topologyManagerPolicy: "single-numa-node"
 topologyManagerScope: "pod"
 # ---- 大页: 预留 2MB 大页给引擎/Doris/etcd (生产在 tune-host 分配) ----
-featureGates:
-  TopologyManager: true
-  CPUManager: true
 # ---- 驱逐与压力 ----
 evictionHard:
   memory.available: "500Mi"

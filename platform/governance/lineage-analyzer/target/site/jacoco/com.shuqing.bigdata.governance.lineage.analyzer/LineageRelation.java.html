@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LineageRelation.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lineage-analyzer</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.lineage.analyzer</a> &gt; <span class="el_source">LineageRelation.java</span></div><h1>LineageRelation.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.lineage.analyzer;
+
+import com.shuqing.bigdata.governance.lineage.model.LineageEdge;
+
+import java.util.Objects;
+
+/**
+ * 血缘关系（提取器产出，写入图谱前中间表示）。
+ *
+ * &lt;p&gt;描述一条 {@code source → target} 的血缘，附带关系类型与可选元信息。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class LineageRelation {
+
+    /** 关系类型 */
+<span class="fc" id="L17">    public enum RelationType {</span>
+        /** 表级血缘 */
+<span class="fc" id="L19">        TABLE_LINEAGE,</span>
+        /** 字段级血缘 */
+<span class="fc" id="L21">        COLUMN_LINEAGE</span>
+    }
+
+    private final String source;
+    private final String target;
+    private final RelationType relationType;
+    private final String expression;
+    private final String sourceSql;
+    private final String dialect;
+
+    /**
+     * 构造表级血缘关系。
+     *
+     * @param source 源表全名
+     * @param target 目标表全名
+     */
+    public LineageRelation(String source, String target) {
+<span class="nc" id="L38">        this(source, target, RelationType.TABLE_LINEAGE, null, null, null);</span>
+<span class="nc" id="L39">    }</span>
+
+    /**
+     * 构造血缘关系。
+     *
+     * @param source       源全名
+     * @param target       目标全名
+     * @param relationType 关系类型
+     * @param expression   转换表达式（字段级）
+     * @param sourceSql    源 SQL
+     * @param dialect      方言
+     */
+    public LineageRelation(String source, String target, RelationType relationType,
+<span class="fc" id="L52">                           String expression, String sourceSql, String dialect) {</span>
+<span class="fc" id="L53">        this.source = source;</span>
+<span class="fc" id="L54">        this.target = target;</span>
+<span class="fc" id="L55">        this.relationType = relationType;</span>
+<span class="fc" id="L56">        this.expression = expression;</span>
+<span class="fc" id="L57">        this.sourceSql = sourceSql;</span>
+<span class="fc" id="L58">        this.dialect = dialect;</span>
+<span class="fc" id="L59">    }</span>
+
+    public String getSource() {
+<span class="fc" id="L62">        return source;</span>
+    }
+
+    public String getTarget() {
+<span class="fc" id="L66">        return target;</span>
+    }
+
+    public RelationType getRelationType() {
+<span class="fc" id="L70">        return relationType;</span>
+    }
+
+    public String getExpression() {
+<span class="fc" id="L74">        return expression;</span>
+    }
+
+    public String getSourceSql() {
+<span class="nc" id="L78">        return sourceSql;</span>
+    }
+
+    public String getDialect() {
+<span class="nc" id="L82">        return dialect;</span>
+    }
+
+    /**
+     * 转换为持久化边对象。
+     *
+     * @return {@link LineageEdge}
+     */
+    public LineageEdge toEdge() {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        LineageEdge.RelationType type = relationType == RelationType.TABLE_LINEAGE</span>
+<span class="fc" id="L92">                ? LineageEdge.RelationType.TABLE_LINEAGE</span>
+<span class="fc" id="L93">                : LineageEdge.RelationType.COLUMN_LINEAGE;</span>
+<span class="fc" id="L94">        LineageEdge edge = new LineageEdge(source, target, type);</span>
+<span class="fc" id="L95">        edge.setSourceSql(sourceSql);</span>
+<span class="fc" id="L96">        edge.setDialect(dialect);</span>
+<span class="fc" id="L97">        edge.setExpression(expression);</span>
+<span class="fc" id="L98">        return edge;</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="nc bnc" id="L103" title="All 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L104">            return true;</span>
+        }
+<span class="nc bnc" id="L106" title="All 2 branches missed.">        if (!(o instanceof LineageRelation other)) {</span>
+<span class="nc" id="L107">            return false;</span>
+        }
+<span class="nc bnc" id="L109" title="All 2 branches missed.">        return Objects.equals(source, other.source)</span>
+<span class="nc bnc" id="L110" title="All 4 branches missed.">                &amp;&amp; Objects.equals(target, other.target)</span>
+                &amp;&amp; relationType == other.relationType;
+    }
+
+    @Override
+    public int hashCode() {
+<span class="nc" id="L116">        return Objects.hash(source, target, relationType);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="nc" id="L121">        return source + &quot; -&gt; &quot; + target + &quot; (&quot; + relationType + ')';</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

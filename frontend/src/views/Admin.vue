@@ -11,10 +11,14 @@
     <div class="card" style="margin-top: 14px">
       <h3>环境矩阵</h3>
       <table>
-        <tr><th>环境</th><th>Namespace</th><th>节点</th><th>控制面</th><th>状态</th></tr>
-        <tr><td>信创-华东</td><td>19</td><td>64</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
-        <tr><td>本地-华北</td><td>11</td><td>40</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
-        <tr><td>云VM-华南</td><td>14</td><td>52</td><td>HA 3</td><td><span class="pill a">扩容中</span></td></tr>
+        <thead>
+          <tr><th>环境</th><th>Namespace</th><th>节点</th><th>控制面</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>信创-华东</td><td>19</td><td>64</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
+          <tr><td>本地-华北</td><td>11</td><td>40</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
+          <tr><td>云VM-华南</td><td>14</td><td>52</td><td>HA 3</td><td><span class="pill a">扩容中</span></td></tr>
+        </tbody>
       </table>
       <div class="note">
         此处为平台运维视图，印证「自研 SKE 发行版封装层」将底层复杂度对客屏蔽；客户控制台仅见工作空间/项目/配额。

@@ -7,6 +7,47 @@
 #   - LimitRange: 默认 request/limit, 防 Pod 不设资源挤占
 #   - PVC 大小限制: 防单个 PVC 吃满存储
 #   - 由封装层在创建租户 Namespace 时按套餐注入对应 ResourceQuota
+#
+# 注意: ResourceQuota / LimitRange 必须在已存在的 Namespace 中创建,
+#   否则 kubectl apply 会报 "namespaces "sq-tenant-basic" not found"。
+#   此处先声明三个 Namespace 资源 (apply 顺序: YAML 内文档顺序, kubectl 按序 apply),
+#   再声明对应 ResourceQuota / LimitRange。
+#   生产场景: 由封装层按需创建 Namespace + 注入对应套餐配额, 不应直接 apply 此文件。
+
+# ---- 0. Namespace 声明 (必须先于 ResourceQuota/LimitRange 创建) ----
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sq-tenant-basic
+  labels:
+    sq.shuqing.io/tenant: "true"
+    sq.shuqing.io/tier: basic
+    sq.shuqing.io/managed-by: ske
+    # Pod Security Admission: 基础版租户强制 restricted
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sq-tenant-standard
+  labels:
+    sq.shuqing.io/tenant: "true"
+    sq.shuqing.io/tier: standard
+    sq.shuqing.io/managed-by: ske
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sq-tenant-flagship
+  labels:
+    sq.shuqing.io/tenant: "true"
+    sq.shuqing.io/tier: flagship
+    sq.shuqing.io/managed-by: ske
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
 
 # ---- 1. 基础版套餐: 2C/4Gi/100Gi/Pod 50 ----
 apiVersion: v1

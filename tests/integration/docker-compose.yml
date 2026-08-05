@@ -1,0 +1,168 @@
+# 数擎大数据平台集成测试环境编排
+#
+# 用途：在 CI 或本地一键拉起 4 个自研组件，供 pytest 集成测试调用。
+# 所有服务均配置 healthcheck，确保服务就绪后再执行测试。
+#
+# 启动：docker-compose up -d --build
+# 等待就绪：docker-compose up -d --wait   （Compose v2 支持 --wait）
+# 销毁：docker-compose down -v
+#
+# 端口映射（使用 18080-18083 避开本机 8080 端口占用）：
+#   encaps-layer  -> 18080 -> 容器内 8080
+#   sql-gateway   -> 18081 -> 容器内 8081
+#   catalog       -> 18082 -> 容器内 8082
+#   rule-engine   -> 18083 -> 容器内 8083
+version: '3.8'
+
+services:
+  # ---------------------------------------------------------------------------
+  # 封装层（Java/Spring Boot, port 8080）
+  # ---------------------------------------------------------------------------
+  encaps-layer:
+    build:
+      context: ../../platform/encaps-layer
+      dockerfile: Dockerfile
+    image: shuqing/encaps-layer:0.1.0
+    container_name: it-encaps-layer
+    ports:
+      - "18080:8080"
+    environment:
+      - SERVER_PORT=8080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 统一 SQL 网关（Java/Spring Boot, port 8081）
+  # ---------------------------------------------------------------------------
+  sql-gateway:
+    build:
+      context: ../../platform/sql-gateway
+      dockerfile: Dockerfile
+    image: shuqing/sql-gateway:0.1.0
+    container_name: it-sql-gateway
+    ports:
+      - "18081:8081"
+    environment:
+      - SERVER_PORT=8081
+    depends_on:
+      encaps-layer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # Catalog 元数据目录（Go/Gin, port 8082）
+  # ---------------------------------------------------------------------------
+  catalog:
+    build:
+      context: ../../platform/catalog
+      dockerfile: Dockerfile
+    image: shuqing/catalog:0.1.0
+    container_name: it-catalog
+    ports:
+      - "18082:8082"
+    environment:
+      - CATALOG_PORT=8082
+      - CATALOG_VERSION=0.1.0
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 规则引擎（Java/Spring Boot, port 8083）
+  # ---------------------------------------------------------------------------
+  rule-engine:
+    build:
+      context: ../../platform/rule-engine
+      dockerfile: Dockerfile
+    image: shuqing/rule-engine:0.1.0
+    container_name: it-rule-engine
+    ports:
+      - "18083:8083"
+    environment:
+      - SERVER_PORT=8083
+    depends_on:
+      encaps-layer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # Prometheus（采集 4 个自研组件的 metrics）
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: it-prometheus
+    ports:
+      - "19090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - it-net
+    depends_on:
+      encaps-layer:
+        condition: service_healthy
+      sql-gateway:
+        condition: service_healthy
+      catalog:
+        condition: service_healthy
+      rule-engine:
+        condition: service_healthy
+
+  # ---------------------------------------------------------------------------
+  # Grafana（可视化面板）
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: it-grafana
+    ports:
+      - "13000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    networks:
+      - it-net
+    depends_on:
+      - prometheus
+
+  # ---------------------------------------------------------------------------
+  # Jaeger（分布式追踪，All-in-One 模式）
+  # ---------------------------------------------------------------------------
+  jaeger:
+    image: jaegertracing/all-in-one:1.54
+    container_name: it-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+    networks:
+      - it-net
+
+networks:
+  it-net:
+    driver: bridge

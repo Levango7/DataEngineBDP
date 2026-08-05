@@ -5,26 +5,52 @@
       顶层隔离边界，底层基于自研 SKE 发行版自动映射为 Namespace + 配额 + 网络策略，客户无需关心容器与编排。
     </div>
     <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">+ 新建工作空间</button>
-      <input style="width: 220px" placeholder="搜索…" />
+      <button class="btn sm" @click="openCreateModal">+ 新建工作空间</button>
+      <input style="width: 220px" placeholder="搜索…" v-model="keyword" @keyup.enter="reloadList" />
       <div class="spacer"></div>
       <span class="pill b">配额独立</span>
       <span class="pill p">网络隔离</span>
     </div>
+
+    <!-- 工作空间列表：loading / error / empty / data 四态 -->
     <div class="grid g3">
-      <div class="card" v-for="ws in workspaces" :key="ws.name">
-        <div class="row">
-          <b>{{ ws.name }}</b>
-          <span class="pill" :class="ws.pillClass">{{ ws.pillText }}</span>
+      <template v-if="listLoading">
+        <div class="card" v-for="i in 3" :key="`sk-${i}`">
+          <b>加载中…</b>
+          <div class="meta">正在拉取工作空间列表</div>
         </div>
-        <div class="meta">{{ ws.meta }}</div>
-        <div class="row" style="margin-top: 8px">
-          <span>CPU {{ ws.cpu }}%</span>
-          <span>内存 {{ ws.mem }}%</span>
+      </template>
+      <template v-else-if="listError">
+        <div class="card" style="grid-column: span 3">
+          <h3>加载失败</h3>
+          <div class="meta" style="color: var(--muted)">
+            {{ listError.message }}，<a href="javascript:void(0)" @click="reloadList">重试</a>
+          </div>
         </div>
-        <div class="bar"><i :style="{ width: ws.cpu + '%' }"></i></div>
-        <button class="btn ghost sm" style="margin-top: 10px" @click="openDrawer(ws)">查看详情</button>
-      </div>
+      </template>
+      <template v-else-if="workspaces.length === 0">
+        <div class="card" style="grid-column: span 3">
+          <h3>暂无工作空间</h3>
+          <div class="meta" style="color: var(--muted)">
+            当前租户下还没有工作空间，点击右上角「+ 新建工作空间」创建第一个。
+          </div>
+        </div>
+      </template>
+      <template v-else>
+        <div class="card" v-for="ws in workspaces" :key="ws.id">
+          <div class="row">
+            <b>{{ ws.name }}</b>
+            <span class="pill" :class="statusPillClass(ws.status)">{{ statusPillText(ws.status) }}</span>
+          </div>
+          <div class="meta">{{ planLabel(ws.plan) }} · {{ ws.tenantName || '默认租户' }}</div>
+          <div class="row" style="margin-top: 8px">
+            <span>CPU {{ ws.cpuUsage }}%</span>
+            <span>内存 {{ ws.memUsage }}%</span>
+          </div>
+          <div class="bar"><i :style="{ width: ws.cpuUsage + '%' }"></i></div>
+          <button class="btn ghost sm" style="margin-top: 10px" @click="openDrawer(ws)">查看详情</button>
+        </div>
+      </template>
     </div>
 
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
@@ -39,10 +65,10 @@
         <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">项目</div>
       </div>
       <div v-if="tab === 0">
-        <div class="kv"><span>租户</span><span>外部客户A</span></div>
-        <div class="kv"><span>套餐</span><span>企业版</span></div>
-        <div class="kv"><span>环境</span><span>信创</span></div>
-        <div class="kv"><span>创建时间</span><span>2025-11-02</span></div>
+        <div class="kv"><span>租户</span><span>{{ current?.tenantName || '外部客户A' }}</span></div>
+        <div class="kv"><span>套餐</span><span>{{ planLabel(current?.plan) }}</span></div>
+        <div class="kv"><span>环境</span><span>{{ envLabel(current?.env) }}</span></div>
+        <div class="kv"><span>创建时间</span><span>{{ current?.createdAt || '--' }}</span></div>
         <div class="note">底层自动映射为 Namespace + ResourceQuota + NetworkPolicy(deny-all)。</div>
       </div>
       <div v-if="tab === 1">
@@ -55,12 +81,12 @@
         <button class="btn ghost sm" style="margin-top: 8px" @click="store.showToast('已邀请成员（mock）')">+ 邀请</button>
       </div>
       <div v-if="tab === 2">
-        <div class="row"><span>CPU</span><span>{{ current?.cpu }}%</span></div>
-        <div class="bar"><i :style="{ width: (current?.cpu || 0) + '%' }"></i></div>
-        <div class="row" style="margin-top: 8px"><span>内存</span><span>{{ current?.mem }}%</span></div>
-        <div class="bar"><i class="a" :style="{ width: (current?.mem || 0) + '%' }"></i></div>
-        <div class="row" style="margin-top: 8px"><span>存储</span><span>43%</span></div>
-        <div class="bar"><i style="width: 43%"></i></div>
+        <div class="row"><span>CPU</span><span>{{ current?.cpuUsage ?? 0 }}%</span></div>
+        <div class="bar"><i :style="{ width: (current?.cpuUsage || 0) + '%' }"></i></div>
+        <div class="row" style="margin-top: 8px"><span>内存</span><span>{{ current?.memUsage ?? 0 }}%</span></div>
+        <div class="bar"><i class="a" :style="{ width: (current?.memUsage || 0) + '%' }"></i></div>
+        <div class="row" style="margin-top: 8px"><span>存储</span><span>{{ current?.storageUsage ?? 0 }}%</span></div>
+        <div class="bar"><i :style="{ width: (current?.storageUsage || 0) + '%' }"></i></div>
       </div>
       <div v-if="tab === 3">
         <table>
@@ -73,56 +99,179 @@
     </Drawer>
 
     <Modal :visible="modalVisible" title="新建工作空间" @close="modalVisible = false">
-      <label>名称</label><input placeholder="如 华南生产集群" />
+      <label>名称</label><input v-model="form.name" placeholder="如 华南生产集群" />
       <label>租户</label>
-      <select><option>外部客户A</option><option>内部业务线</option></select>
+      <select v-model="form.tenantId"><option value="t-external">外部客户A</option><option value="t-internal">内部业务线</option></select>
       <label>套餐</label>
-      <select><option>标准版</option><option>企业版</option><option>旗舰版</option></select>
+      <select v-model="form.plan"><option value="standard">标准版</option><option value="enterprise">企业版</option><option value="flagship">旗舰版</option></select>
       <label>环境</label>
-      <select><option>信创</option><option>本地数据中心</option><option>公有云 VM</option><option>私有云</option></select>
+      <select v-model="form.env"><option value="xinchuang">信创</option><option value="onprem">本地数据中心</option><option value="public-cloud">公有云 VM</option><option value="private-cloud">私有云</option></select>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" @click="ok('工作空间已创建')">创建</button>
+        <button class="btn" :disabled="creating" @click="handleCreate">{{ creating ? '创建中…' : '创建' }}</button>
       </template>
     </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
+import * as workspaceApi from '@/api/workspace'
+import type { Workspace, PlanTier, DeployEnv, WorkspaceStatus } from '@/api/types'
 
 const store = useAppStore()
 
-interface Ws {
-  name: string
-  pillClass: string
-  pillText: string
-  meta: string
-  cpu: number
-  mem: number
+// 列表数据：通过 useApi 包装 listWorkspaces 调用
+const keyword = ref('')
+const {
+  data: paged,
+  loading: listLoading,
+  error: listError,
+  execute: loadList
+} = useApi(() => workspaceApi.listWorkspaces({ keyword: keyword.value || undefined }))
+
+// 当前页工作空间列表
+const workspaces = ref<Workspace[]>([])
+
+// 重新拉取列表
+async function reloadList() {
+  const result = await loadList()
+  workspaces.value = result?.list ?? []
 }
 
-const workspaces: Ws[] = [
-  { name: '华东生产集群', pillClass: 'g', pillText: '运行中', meta: '企业版 · 外部客户A', cpu: 58, mem: 71 },
-  { name: '华北测试集群', pillClass: 'a', pillText: '受限', meta: '标准版 · 外部客户A', cpu: 22, mem: 30 },
-  { name: '内部数据中枢', pillClass: 'g', pillText: '运行中', meta: '内部无限 · 内部业务线', cpu: 64, mem: 55 }
-]
+/* ------------------------------ 状态映射辅助 ------------------------------ */
+
+/** 工作空间状态 → pill 样式类 */
+function statusPillClass(status: WorkspaceStatus): string {
+  switch (status) {
+    case 'running':
+      return 'g'
+    case 'limited':
+      return 'a'
+    case 'stopped':
+      return 'r'
+    default:
+      return ''
+  }
+}
+
+/** 工作空间状态 → pill 文案 */
+function statusPillText(status: WorkspaceStatus): string {
+  switch (status) {
+    case 'running':
+      return '运行中'
+    case 'limited':
+      return '受限'
+    case 'stopped':
+      return '已停止'
+    case 'creating':
+      return '创建中'
+    case 'failed':
+      return '失败'
+    default:
+      return status
+  }
+}
+
+/** 套餐 → 中文标签 */
+function planLabel(plan?: PlanTier): string {
+  switch (plan) {
+    case 'standard':
+      return '标准版'
+    case 'enterprise':
+      return '企业版'
+    case 'flagship':
+      return '旗舰版'
+    case 'internal':
+      return '内部无限'
+    default:
+      return '--'
+  }
+}
+
+/** 部署环境 → 中文标签 */
+function envLabel(env?: DeployEnv): string {
+  switch (env) {
+    case 'xinchuang':
+      return '信创'
+    case 'onprem':
+      return '本地数据中心'
+    case 'public-cloud':
+      return '公有云 VM'
+    case 'private-cloud':
+      return '私有云'
+    default:
+      return '--'
+  }
+}
+
+/* ------------------------------ 详情抽屉 ------------------------------ */
 
 const drawerVisible = ref(false)
-const modalVisible = ref(false)
 const tab = ref(0)
-const current = ref<Ws | null>(null)
+const current = ref<Workspace | null>(null)
 
-function openDrawer(ws: Ws) {
+function openDrawer(ws: Workspace) {
   current.value = ws
   tab.value = 0
   drawerVisible.value = true
 }
-function ok(msg: string) {
-  modalVisible.value = false
-  store.showToast(msg)
+
+/* ------------------------------ 新建工作空间 ------------------------------ */
+
+const modalVisible = ref(false)
+const creating = ref(false)
+
+/** 新建表单 */
+const form = ref<{
+  name: string
+  tenantId: string
+  plan: PlanTier
+  env: DeployEnv
+}>({
+  name: '',
+  tenantId: 't-external',
+  plan: 'enterprise',
+  env: 'xinchuang'
+})
+
+function openCreateModal() {
+  form.value = { name: '', tenantId: 't-external', plan: 'enterprise', env: 'xinchuang' }
+  modalVisible.value = true
 }
+
+/** 提交创建工作空间 */
+async function handleCreate() {
+  if (!form.value.name.trim()) {
+    store.showToast('请填写工作空间名称')
+    return
+  }
+  creating.value = true
+  try {
+    await workspaceApi.createWorkspace({
+      name: form.value.name.trim(),
+      tenantId: form.value.tenantId,
+      plan: form.value.plan,
+      env: form.value.env
+    })
+    modalVisible.value = false
+    store.showToast('工作空间已创建')
+    // 刷新列表
+    await reloadList()
+  } catch {
+    // 错误提示已由拦截器统一处理
+  } finally {
+    creating.value = false
+  }
+}
+
+/* ------------------------------ 初始化 ------------------------------ */
+
+onMounted(() => {
+  void reloadList()
+})
 </script>

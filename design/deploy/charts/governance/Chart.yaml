@@ -1,0 +1,14 @@
+apiVersion: v2
+name: governance
+description: 数擎 L3 治理中台 (元数据/标准/质量/血缘) - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - governance
+  - shuqing-platform

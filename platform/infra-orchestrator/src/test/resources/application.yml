@@ -1,0 +1,47 @@
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+app:
+  security:
+    jwt:
+      secret: dev-secret-key-change-in-production-at-least-256-bits
+      issuer: shuqing-bigdata
+    cors:
+      allowed-origins: http://localhost:5173
+  orchestrator:
+    webclient:
+      connect-timeout-ms: 5000
+      read-timeout-ms: 5000
+      write-timeout-ms: 5000
+      response-timeout-ms: 10000
+    poll:
+      enabled: false
+      max-attempts: 5
+      interval-ms: 100
+    providers:
+      xinchang:
+        base-url: http://localhost:8090
+        enabled: true
+      baremetal:
+        base-url: http://localhost:8091
+        enabled: true
+      cloud:
+        base-url: http://localhost:8092
+        enabled: true
+      private:
+        base-url: http://localhost:8093
+        enabled: true

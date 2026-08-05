@@ -1,0 +1,14 @@
+apiVersion: v2
+name: spark
+description: Apache Spark 计算引擎 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "3.5.1"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - spark
+  - shuqing-platform

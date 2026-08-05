@@ -1,0 +1,205 @@
+# Release 发布流水线
+# 触发条件：打 tag v*（如 v1.0.0、v0.3.0-beta）
+# 依赖 CI 工作流（ci.yml）通过后才运行
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 默认权限最小化，按需提升
+permissions:
+  contents: read
+
+jobs:
+  # ============================================================
+  # 门禁检查：等待 CI 工作流在对应 tag commit 上通过
+  # release.yml 依赖 ci.yml 通过后才继续执行后续发布步骤
+  # ============================================================
+  ci-gate:
+    name: CI Gate (等待 CI 通过)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 等待 CI 工作流通过
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: 'Markdown Lint'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          verbose: true
+
+      - name: CI 门禁通过
+        run: echo "CI 工作流已通过，开始执行发布流水线"
+
+  # ============================================================
+  # 构建前端：复用 CI 的构建逻辑并上传 artifact 供后续发布使用
+  # ============================================================
+  build-frontend:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    defaults:
+      run:
+        working-directory: frontend/
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            echo "package-lock.json 不存在，使用 npm install"
+            npm install
+          fi
+
+      - name: 构建前端
+        run: npm run build
+
+      - name: 上传前端构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-frontend-dist
+          path: frontend/dist/
+          retention-days: 30
+          if-no-files-found: error
+
+  # ============================================================
+  # 验证 SKE 脚本可执行：bash -n 语法检查 + 关键脚本存在性校验
+  # ============================================================
+  build-ske:
+    name: Build & Verify SKE
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 验证 ske/ske.sh 存在且语法正确
+        run: |
+          if [ ! -f "ske/ske.sh" ]; then
+            echo "::error::ske/ske.sh 不存在"
+            exit 1
+          fi
+          bash -n ske/ske.sh
+          chmod +x ske/ske.sh
+          echo "ske/ske.sh 验证通过"
+
+      - name: 验证 ske/tuning/*.sh 全部可执行
+        run: |
+          if compgen -G "ske/tuning/*.sh" > /dev/null; then
+            for script in ske/tuning/*.sh; do
+              echo "验证 $script ..."
+              bash -n "$script"
+              chmod +x "$script"
+            done
+            echo "ske/tuning/ 下所有脚本验证通过"
+          else
+            echo "::error::ske/tuning/ 下无 .sh 脚本"
+            exit 1
+          fi
+
+      - name: 验证 platform/bootstrap.sh 存在且语法正确
+        run: |
+          if [ ! -f "platform/bootstrap.sh" ]; then
+            echo "::error::platform/bootstrap.sh 不存在"
+            exit 1
+          fi
+          bash -n platform/bootstrap.sh
+          chmod +x platform/bootstrap.sh
+          echo "platform/bootstrap.sh 验证通过"
+
+      - name: 打包 SKE 脚本为 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ske-scripts
+          path: |
+            ske/ske.sh
+            ske/tuning/*.sh
+            platform/bootstrap.sh
+          retention-days: 30
+          if-no-files-found: error
+
+  # ============================================================
+  # 打包所有 Helm Chart 为 tgz
+  # 仅当 design/deploy/charts/ 目录存在时执行打包
+  # ============================================================
+  package-charts:
+    name: Package Helm Charts
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: 打包所有 Helm Chart 为 tgz
+        run: |
+          if [ ! -d "design/deploy/charts" ]; then
+            echo "design/deploy/charts/ 目录不存在，创建空目录以保留 artifact"
+            mkdir -p release-charts
+            echo "design/deploy/charts/ 目录不存在，无 Chart 可打包" > release-charts/README.txt
+            exit 0
+          fi
+          mkdir -p release-charts
+          chart_found=0
+          for chart_dir in design/deploy/charts/*/; do
+            if [ -f "${chart_dir}Chart.yaml" ]; then
+              chart_found=1
+              chart_name=$(basename "${chart_dir}")
+              echo "----------------------------------------"
+              echo "打包 Chart: ${chart_name}"
+              echo "----------------------------------------"
+              helm package "${chart_dir}" -d release-charts/
+            fi
+          done
+          if [ "$chart_found" -eq 0 ]; then
+            echo "design/deploy/charts/ 下未发现任何 Helm Chart"
+            echo "design/deploy/charts/ 下未发现任何 Helm Chart" > release-charts/README.txt
+          fi
+
+      - name: 上传 Chart tgz 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-helm-charts
+          path: release-charts/*.tgz
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # 发布汇总：所有构建产物就绪后输出发布信息
+  # ============================================================
+  release-summary:
+    name: Release Summary
+    runs-on: ubuntu-latest
+    needs:
+      - build-frontend
+      - build-ske
+      - package-charts
+    steps:
+      - name: 输出发布汇总
+        run: |
+          echo "============================================"
+          echo "  Release ${{ github.ref_name }} 构建完成"
+          echo "============================================"
+          echo "前端产物: release-frontend-dist"
+          echo "SKE 脚本: release-ske-scripts"
+          echo "Helm Chart: release-helm-charts"
+          echo "============================================"

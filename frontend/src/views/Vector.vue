@@ -13,10 +13,14 @@
     </div>
     <div class="card">
       <table>
-        <tr><th>集合</th><th>维度</th><th>条数</th><th>索引</th><th>关联知识库</th></tr>
-        <tr><td>product_embed</td><td>1536</td><td>1.2M</td><td>HNSW</td><td>商品知识库</td></tr>
-        <tr><td>doc_chunk</td><td>768</td><td>860K</td><td>IVF_PQ</td><td>制度文档库</td></tr>
-        <tr><td>user_vec</td><td>512</td><td>3.4M</td><td>HNSW</td><td>用户画像库</td></tr>
+        <thead>
+          <tr><th>集合</th><th>维度</th><th>条数</th><th>索引</th><th>关联知识库</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>product_embed</td><td>1536</td><td>1.2M</td><td>HNSW</td><td>商品知识库</td></tr>
+          <tr><td>doc_chunk</td><td>768</td><td>860K</td><td>IVF_PQ</td><td>制度文档库</td></tr>
+          <tr><td>user_vec</td><td>512</td><td>3.4M</td><td>HNSW</td><td>用户画像库</td></tr>
+        </tbody>
       </table>
     </div>
 

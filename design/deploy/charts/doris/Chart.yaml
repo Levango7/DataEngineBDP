@@ -1,0 +1,14 @@
+apiVersion: v2
+name: doris
+description: Apache Doris 实时数仓 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "2.0.3"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - doris
+  - shuqing-platform

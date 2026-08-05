@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MetadataWriterService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">metadata-collector</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.collector.service</a> &gt; <span class="el_source">MetadataWriterService.java</span></div><h1>MetadataWriterService.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.collector.service;
+
+import com.shuqing.bigdata.governance.collector.model.ColumnMetadata;
+import com.shuqing.bigdata.governance.collector.model.TableMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 元数据写入 Catalog 服务。
+ *
+ * &lt;p&gt;使用 Spring WebFlux {@link WebClient} 调用 Catalog REST API，
+ * 将采集到的 {@link TableMetadata} 写入 Catalog，供血缘/质量/查询等下游消费。&lt;/p&gt;
+ *
+ * &lt;p&gt;Catalog API：
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code POST http://catalog:8082/api/v1/catalog/tables} — 创建/更新表元数据&lt;/li&gt;
+ * &lt;/ul&gt;&lt;/p&gt;
+ *
+ * &lt;p&gt;设计要点：
+ * &lt;ul&gt;
+ *   &lt;li&gt;非阻塞 WebClient，避免阻塞采集调度线程&lt;/li&gt;
+ *   &lt;li&gt;失败重试 3 次，每次间隔 1s（指数退避）&lt;/li&gt;
+ *   &lt;li&gt;批量写入时单表失败不影响其他表，返回成功计数&lt;/li&gt;
+ * &lt;/ul&gt;&lt;/p&gt;
+ */
+@Service
+public class MetadataWriterService {
+
+<span class="fc" id="L40">    private static final Logger log = LoggerFactory.getLogger(MetadataWriterService.class);</span>
+
+    /** 默认写入超时时间（秒） */
+    private static final long DEFAULT_TIMEOUT_SECONDS = 30;
+
+    /** 默认重试次数 */
+    private static final int DEFAULT_MAX_RETRIES = 3;
+
+    private final WebClient webClient;
+    private final String catalogBaseUrl;
+    private final long timeoutSeconds;
+    private final int maxRetries;
+
+    /**
+     * 构造写入服务。
+     *
+     * @param webClientBuilder WebClient 构造器
+     * @param catalogBaseUrl   Catalog 基地址，从配置 {@code app.catalog.base-url} 读取
+     * @param timeoutSeconds   单次写入超时秒数，从配置 {@code app.catalog.timeout-seconds} 读取
+     * @param maxRetries       最大重试次数，从配置 {@code app.catalog.max-retries} 读取
+     */
+    public MetadataWriterService(WebClient.Builder webClientBuilder,
+                                 @Value(&quot;${app.catalog.base-url:http://catalog:8082}&quot;) String catalogBaseUrl,
+                                 @Value(&quot;${app.catalog.timeout-seconds:30}&quot;) long timeoutSeconds,
+<span class="fc" id="L64">                                 @Value(&quot;${app.catalog.max-retries:3}&quot;) int maxRetries) {</span>
+<span class="fc" id="L65">        this.webClient = webClientBuilder.baseUrl(catalogBaseUrl).build();</span>
+<span class="fc" id="L66">        this.catalogBaseUrl = catalogBaseUrl;</span>
+<span class="fc" id="L67">        this.timeoutSeconds = timeoutSeconds;</span>
+<span class="fc" id="L68">        this.maxRetries = maxRetries;</span>
+<span class="fc" id="L69">    }</span>
+
+    /**
+     * 写入单张表元数据到 Catalog。
+     *
+     * @param metadata 表元数据
+     * @return 写入成功返回 {@code true}；失败返回 {@code false}
+     */
+    public boolean writeTableMetadata(TableMetadata metadata) {
+<span class="fc bfc" id="L78" title="All 2 branches covered.">        if (metadata == null) {</span>
+<span class="fc" id="L79">            return false;</span>
+        }
+<span class="fc" id="L81">        Map&lt;String, Object&gt; body = toCatalogPayload(metadata);</span>
+        try {
+<span class="fc" id="L83">            webClient.post()</span>
+<span class="fc" id="L84">                    .uri(&quot;/api/v1/catalog/tables&quot;)</span>
+<span class="fc" id="L85">                    .contentType(MediaType.APPLICATION_JSON)</span>
+<span class="fc" id="L86">                    .bodyValue(body)</span>
+<span class="fc" id="L87">                    .retrieve()</span>
+<span class="fc" id="L88">                    .bodyToMono(String.class)</span>
+<span class="fc" id="L89">                    .timeout(Duration.ofSeconds(timeoutSeconds))</span>
+<span class="nc" id="L90">                    .block();</span>
+<span class="nc" id="L91">            log.debug(&quot;Wrote table {}.{} to catalog&quot;, metadata.getDatabaseName(), metadata.getTableName());</span>
+<span class="nc" id="L92">            return true;</span>
+<span class="fc" id="L93">        } catch (Exception e) {</span>
+<span class="fc" id="L94">            log.error(&quot;Failed to write table {}.{} to catalog: {}&quot;,</span>
+<span class="fc" id="L95">                    metadata.getDatabaseName(), metadata.getTableName(), e.getMessage());</span>
+<span class="fc" id="L96">            return false;</span>
+        }
+    }
+
+    /**
+     * 批量写入表元数据。
+     *
+     * &lt;p&gt;逐表写入，单表失败不影响其他表。返回成功写入的表数。&lt;/p&gt;
+     *
+     * @param tables 表元数据列表
+     * @return 成功写入的表数
+     */
+    public int writeBatch(List&lt;TableMetadata&gt; tables) {
+<span class="fc bfc" id="L109" title="All 4 branches covered.">        if (tables == null || tables.isEmpty()) {</span>
+<span class="fc" id="L110">            return 0;</span>
+        }
+<span class="fc" id="L112">        AtomicInteger successCount = new AtomicInteger(0);</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        for (TableMetadata table : tables) {</span>
+<span class="pc bpc" id="L114" title="1 of 2 branches missed.">            if (writeWithRetry(table)) {</span>
+<span class="nc" id="L115">                successCount.incrementAndGet();</span>
+            }
+<span class="fc" id="L117">        }</span>
+<span class="fc" id="L118">        return successCount.get();</span>
+    }
+
+    /**
+     * 带重试的写入。
+     *
+     * @param metadata 表元数据
+     * @return 最终是否成功
+     */
+    private boolean writeWithRetry(TableMetadata metadata) {
+<span class="fc bfc" id="L128" title="All 2 branches covered.">        for (int attempt = 1; attempt &lt;= maxRetries; attempt++) {</span>
+<span class="pc bpc" id="L129" title="1 of 2 branches missed.">            if (writeTableMetadata(metadata)) {</span>
+<span class="nc" id="L130">                return true;</span>
+            }
+<span class="pc bpc" id="L132" title="1 of 2 branches missed.">            if (attempt &lt; maxRetries) {</span>
+                try {
+                    // 指数退避：1s, 2s, 4s...
+<span class="nc" id="L135">                    Thread.sleep(1000L * (1L &lt;&lt; (attempt - 1)));</span>
+<span class="nc" id="L136">                } catch (InterruptedException e) {</span>
+<span class="nc" id="L137">                    Thread.currentThread().interrupt();</span>
+<span class="nc" id="L138">                    return false;</span>
+<span class="nc" id="L139">                }</span>
+            }
+        }
+<span class="fc" id="L142">        return false;</span>
+    }
+
+    /**
+     * 将 {@link TableMetadata} 转换为 Catalog API 请求体。
+     *
+     * &lt;p&gt;字段命名与 Catalog 服务 {@code Table} 模型对齐：
+     * {@code databaseName/tableName/description/columns/partitionKeys/properties}。&lt;/p&gt;
+     *
+     * @param metadata 表元数据
+     * @return 请求体 Map
+     */
+    private Map&lt;String, Object&gt; toCatalogPayload(TableMetadata metadata) {
+<span class="fc" id="L155">        Map&lt;String, Object&gt; body = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L156">        body.put(&quot;databaseName&quot;, metadata.getDatabaseName());</span>
+<span class="fc" id="L157">        body.put(&quot;tableName&quot;, metadata.getTableName());</span>
+<span class="pc bpc" id="L158" title="1 of 2 branches missed.">        if (metadata.getDescription() != null) {</span>
+<span class="nc" id="L159">            body.put(&quot;description&quot;, metadata.getDescription());</span>
+        }
+
+        // 列：与 Catalog Column 模型对齐
+<span class="fc" id="L163">        List&lt;Map&lt;String, Object&gt;&gt; columns = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L164" title="1 of 2 branches missed.">        if (metadata.getColumns() != null) {</span>
+<span class="pc bpc" id="L165" title="1 of 2 branches missed.">            for (ColumnMetadata col : metadata.getColumns()) {</span>
+<span class="nc" id="L166">                Map&lt;String, Object&gt; c = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L167">                c.put(&quot;name&quot;, col.getName());</span>
+<span class="nc" id="L168">                c.put(&quot;type&quot;, col.getType());</span>
+<span class="nc bnc" id="L169" title="All 2 branches missed.">                if (col.getComment() != null) {</span>
+<span class="nc" id="L170">                    c.put(&quot;description&quot;, col.getComment());</span>
+                }
+<span class="nc" id="L172">                c.put(&quot;nullable&quot;, col.isNullable());</span>
+<span class="nc" id="L173">                columns.add(c);</span>
+<span class="nc" id="L174">            }</span>
+        }
+<span class="fc" id="L176">        body.put(&quot;columns&quot;, columns);</span>
+
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">        if (metadata.getPartitionKeys() != null) {</span>
+<span class="fc" id="L179">            body.put(&quot;partitionKeys&quot;, metadata.getPartitionKeys());</span>
+        }
+<span class="pc bpc" id="L181" title="1 of 2 branches missed.">        if (metadata.getProperties() != null) {</span>
+<span class="fc" id="L182">            body.put(&quot;properties&quot;, metadata.getProperties());</span>
+        }
+
+        // 附加采集源信息，便于 Catalog 区分来源
+<span class="fc" id="L186">        Map&lt;String, String&gt; props = metadata.getProperties();</span>
+<span class="pc bpc" id="L187" title="1 of 2 branches missed.">        if (props == null) {</span>
+<span class="nc" id="L188">            props = new HashMap&lt;&gt;();</span>
+        }
+<span class="pc bpc" id="L190" title="1 of 2 branches missed.">        if (metadata.getSourceType() != null) {</span>
+<span class="nc" id="L191">            props.put(&quot;_sourceType&quot;, metadata.getSourceType());</span>
+        }
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">        if (metadata.getTableType() != null) {</span>
+<span class="nc" id="L194">            props.put(&quot;_tableType&quot;, metadata.getTableType());</span>
+        }
+<span class="fc" id="L196">        body.put(&quot;properties&quot;, props);</span>
+
+<span class="fc" id="L198">        return body;</span>
+    }
+
+    /**
+     * 暴露 Catalog 基地址，供健康检查/调试使用。
+     *
+     * @return Catalog 基地址
+     */
+    public String getCatalogBaseUrl() {
+<span class="fc" id="L207">        return catalogBaseUrl;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

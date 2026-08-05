@@ -1,0 +1,348 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CollectionSchedulerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">metadata-collector</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.collector.service</a> &gt; <span class="el_source">CollectionSchedulerService.java</span></div><h1>CollectionSchedulerService.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.collector.service;
+
+import com.shuqing.bigdata.governance.collector.collector.MetadataCollector;
+import com.shuqing.bigdata.governance.collector.model.CollectionHistory;
+import com.shuqing.bigdata.governance.collector.model.CollectionResult;
+import com.shuqing.bigdata.governance.collector.model.MetadataSource;
+import com.shuqing.bigdata.governance.collector.repository.CollectionHistoryRepository;
+import com.shuqing.bigdata.governance.collector.repository.MetadataSourceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.support.CronExpression;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 元数据采集调度服务。
+ *
+ * &lt;p&gt;核心职责：
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@link #triggerCollection(Long, String)} — 手动触发指定数据源采集&lt;/li&gt;
+ *   &lt;li&gt;{@link #scheduleCollection(Long, String)} — 按 cron 表达式注册定时采集&lt;/li&gt;
+ *   &lt;li&gt;{@link #getCollectionStatus(Long)} — 查询数据源最近采集状态&lt;/li&gt;
+ *   &lt;li&gt;{@link #unscheduleCollection(Long)} — 取消定时调度&lt;/li&gt;
+ * &lt;/ul&gt;&lt;/p&gt;
+ *
+ * &lt;p&gt;设计要点：
+ * &lt;ul&gt;
+ *   &lt;li&gt;使用独立 {@link ScheduledExecutorService} 承载动态 cron 调度，避免阻塞 Spring 主调度器&lt;/li&gt;
+ *   &lt;li&gt;采集任务异步执行，避免长耗时阻塞调用方&lt;/li&gt;
+ *   &lt;li&gt;每次采集写入 {@link CollectionHistory} 持久化记录&lt;/li&gt;
+ *   &lt;li&gt;采集成功后调用 {@link MetadataWriterService#writeBatch} 写入 Catalog&lt;/li&gt;
+ *   &lt;li&gt;{@link #refreshSchedules} 周期性扫描数据源，将 cron 同步到调度器（容灾）&lt;/li&gt;
+ * &lt;/ul&gt;&lt;/p&gt;
+ */
+@Service
+@EnableScheduling
+public class CollectionSchedulerService {
+
+<span class="fc" id="L53">    private static final Logger log = LoggerFactory.getLogger(CollectionSchedulerService.class);</span>
+
+    /** 调度刷新间隔（毫秒）：每 60s 扫描一次数据源，同步 cron 调度 */
+    private static final long SCHEDULE_REFRESH_INTERVAL_MS = 60_000L;
+
+    private final MetadataSourceRepository sourceRepository;
+    private final CollectionHistoryRepository historyRepository;
+    private final MetadataWriterService writerService;
+    private final List&lt;MetadataCollector&gt; collectors;
+
+    /** 按 type 索引的 Collector 映射，加速路由 */
+<span class="fc" id="L64">    private final Map&lt;String, MetadataCollector&gt; collectorByType = new ConcurrentHashMap&lt;&gt;();</span>
+
+    /** 数据源 ID → 调度 Future，用于取消已注册的定时任务 */
+<span class="fc" id="L67">    private final Map&lt;Long, ScheduledFuture&lt;?&gt;&gt; scheduledTasks = new ConcurrentHashMap&lt;&gt;();</span>
+
+    /** 数据源 ID → 进行中采集的 Future，用于状态查询与去重 */
+<span class="fc" id="L70">    private final Map&lt;Long, java.util.concurrent.Future&lt;?&gt;&gt; runningTasks = new ConcurrentHashMap&lt;&gt;();</span>
+
+    /** 异步采集线程池 */
+    private final ExecutorService collectionExecutor;
+
+    /** 动态 cron 调度器 */
+    private final ScheduledExecutorService dynamicScheduler;
+
+    /**
+     * 构造调度服务。
+     *
+     * @param sourceRepository 数据源 Repository
+     * @param historyRepository 采集历史 Repository
+     * @param writerService    Catalog 写入服务
+     * @param collectors       Spring 注入的所有 Collector 实现
+     */
+    public CollectionSchedulerService(MetadataSourceRepository sourceRepository,
+                                      CollectionHistoryRepository historyRepository,
+                                      MetadataWriterService writerService,
+<span class="fc" id="L89">                                      List&lt;MetadataCollector&gt; collectors) {</span>
+<span class="fc" id="L90">        this.sourceRepository = sourceRepository;</span>
+<span class="fc" id="L91">        this.historyRepository = historyRepository;</span>
+<span class="fc" id="L92">        this.writerService = writerService;</span>
+<span class="fc" id="L93">        this.collectors = collectors;</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        for (MetadataCollector c : collectors) {</span>
+<span class="fc" id="L95">            this.collectorByType.put(c.getType(), c);</span>
+<span class="fc" id="L96">        }</span>
+<span class="fc" id="L97">        this.collectionExecutor = Executors.newFixedThreadPool(</span>
+<span class="fc" id="L98">                Math.max(4, Runtime.getRuntime().availableProcessors() * 2),</span>
+                r -&gt; {
+<span class="nc" id="L100">                    Thread t = new Thread(r, &quot;metadata-collector-worker&quot;);</span>
+<span class="nc" id="L101">                    t.setDaemon(true);</span>
+<span class="nc" id="L102">                    return t;</span>
+                });
+<span class="fc" id="L104">        this.dynamicScheduler = Executors.newScheduledThreadPool(2,</span>
+                r -&gt; {
+<span class="nc" id="L106">                    Thread t = new Thread(r, &quot;metadata-collector-scheduler&quot;);</span>
+<span class="nc" id="L107">                    t.setDaemon(true);</span>
+<span class="nc" id="L108">                    return t;</span>
+                });
+<span class="fc" id="L110">    }</span>
+
+    /**
+     * 手动触发指定数据源采集。
+     *
+     * @param sourceId    数据源 ID
+     * @param triggerType 触发方式：MANUAL/SCHEDULED
+     * @return 采集结果；数据源不存在返回 empty
+     */
+    public Optional&lt;CollectionResult&gt; triggerCollection(Long sourceId, String triggerType) {
+<span class="nc" id="L120">        Optional&lt;MetadataSource&gt; sourceOpt = sourceRepository.findById(sourceId);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (sourceOpt.isEmpty()) {</span>
+<span class="nc" id="L122">            return Optional.empty();</span>
+        }
+<span class="nc" id="L124">        MetadataSource source = sourceOpt.get();</span>
+<span class="nc" id="L125">        CollectionResult result = doCollect(source, triggerType);</span>
+<span class="nc" id="L126">        return Optional.of(result);</span>
+    }
+
+    /**
+     * 异步触发采集（不等待结果，立即返回）。
+     *
+     * @param sourceId    数据源 ID
+     * @param triggerType 触发方式
+     * @return 已提交返回 true；数据源不存在或正在采集返回 false
+     */
+    public boolean triggerCollectionAsync(Long sourceId, String triggerType) {
+<span class="nc bnc" id="L137" title="All 2 branches missed.">        if (runningTasks.containsKey(sourceId)) {</span>
+<span class="nc" id="L138">            log.info(&quot;Collection already running for source {}, skip&quot;, sourceId);</span>
+<span class="nc" id="L139">            return false;</span>
+        }
+<span class="nc" id="L141">        Optional&lt;MetadataSource&gt; sourceOpt = sourceRepository.findById(sourceId);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (sourceOpt.isEmpty()) {</span>
+<span class="nc" id="L143">            return false;</span>
+        }
+<span class="nc" id="L145">        MetadataSource source = sourceOpt.get();</span>
+<span class="nc" id="L146">        java.util.concurrent.Future&lt;?&gt; future = collectionExecutor.submit(() -&gt; {</span>
+            try {
+<span class="nc" id="L148">                doCollect(source, triggerType);</span>
+            } finally {
+<span class="nc" id="L150">                runningTasks.remove(sourceId);</span>
+            }
+<span class="nc" id="L152">        });</span>
+<span class="nc" id="L153">        runningTasks.put(sourceId, future);</span>
+<span class="nc" id="L154">        return true;</span>
+    }
+
+    /**
+     * 按 cron 表达式注册定时采集。
+     *
+     * &lt;p&gt;本实现采用简化策略：将 cron 解析为固定延迟（取 cron 周期的近似值），
+     * 适用于&quot;每 N 分钟/小时&quot;类周期。复杂 cron 由 {@link #refreshSchedules} 周期校验。&lt;/p&gt;
+     *
+     * @param sourceId 数据源 ID
+     * @param cron     Spring CronExpression 格式（6 字段：second minute hour day-of-month month day-of-week）
+     * @return 注册成功返回 true；数据源不存在或 cron 非法返回 false
+     */
+    public boolean scheduleCollection(Long sourceId, String cron) {
+<span class="nc bnc" id="L168" title="All 4 branches missed.">        if (cron == null || cron.isBlank()) {</span>
+<span class="nc" id="L169">            return false;</span>
+        }
+        try {
+<span class="nc" id="L172">            CronExpression.parse(cron);</span>
+<span class="nc" id="L173">        } catch (IllegalArgumentException e) {</span>
+<span class="nc" id="L174">            log.warn(&quot;Invalid cron expression for source {}: {}&quot;, sourceId, cron);</span>
+<span class="nc" id="L175">            return false;</span>
+<span class="nc" id="L176">        }</span>
+<span class="nc" id="L177">        Optional&lt;MetadataSource&gt; sourceOpt = sourceRepository.findById(sourceId);</span>
+<span class="nc bnc" id="L178" title="All 2 branches missed.">        if (sourceOpt.isEmpty()) {</span>
+<span class="nc" id="L179">            return false;</span>
+        }
+<span class="nc" id="L181">        MetadataSource source = sourceOpt.get();</span>
+<span class="nc" id="L182">        source.setCron(cron);</span>
+<span class="nc" id="L183">        sourceRepository.save(source);</span>
+
+        // 取消已有调度
+<span class="nc" id="L186">        unscheduleCollection(sourceId);</span>
+
+        // 计算下次执行延迟（简化：固定 60s 间隔，由 refreshSchedules 校准）
+<span class="nc" id="L189">        long periodSeconds = estimatePeriodSeconds(cron);</span>
+<span class="nc" id="L190">        ScheduledFuture&lt;?&gt; future = dynamicScheduler.scheduleAtFixedRate(</span>
+<span class="nc" id="L191">                () -&gt; triggerCollectionAsync(sourceId, &quot;SCHEDULED&quot;),</span>
+                periodSeconds, periodSeconds, TimeUnit.SECONDS);
+<span class="nc" id="L193">        scheduledTasks.put(sourceId, future);</span>
+<span class="nc" id="L194">        log.info(&quot;Scheduled collection for source {} with cron '{}' (period={}s)&quot;, sourceId, cron, periodSeconds);</span>
+<span class="nc" id="L195">        return true;</span>
+    }
+
+    /**
+     * 取消指定数据源的定时调度。
+     *
+     * @param sourceId 数据源 ID
+     * @return 取消成功返回 true；原本未调度返回 false
+     */
+    public boolean unscheduleCollection(Long sourceId) {
+<span class="nc" id="L205">        ScheduledFuture&lt;?&gt; future = scheduledTasks.remove(sourceId);</span>
+<span class="nc bnc" id="L206" title="All 2 branches missed.">        if (future != null) {</span>
+<span class="nc" id="L207">            future.cancel(false);</span>
+<span class="nc" id="L208">            log.info(&quot;Unscheduled collection for source {}&quot;, sourceId);</span>
+<span class="nc" id="L209">            return true;</span>
+        }
+<span class="nc" id="L211">        return false;</span>
+    }
+
+    /**
+     * 查询指定数据源最近采集状态。
+     *
+     * @param sourceId 数据源 ID
+     * @return 最近一条采集历史；无记录返回 empty
+     */
+    public Optional&lt;CollectionHistory&gt; getCollectionStatus(Long sourceId) {
+<span class="nc" id="L221">        List&lt;CollectionHistory&gt; histories = historyRepository.findBySourceIdOrderByStartedAtDesc(sourceId);</span>
+<span class="nc bnc" id="L222" title="All 2 branches missed.">        if (histories.isEmpty()) {</span>
+<span class="nc" id="L223">            return Optional.empty();</span>
+        }
+<span class="nc" id="L225">        return Optional.of(histories.get(0));</span>
+    }
+
+    /**
+     * 周期性扫描数据源，同步 cron 调度（容灾与启动恢复）。
+     *
+     * &lt;p&gt;每 60s 执行一次，将数据库中带 cron 的数据源同步到内存调度器。
+     * 已注册且 cron 未变更的跳过；cron 变更或新增的重新注册。&lt;/p&gt;
+     */
+    @Scheduled(fixedDelay = SCHEDULE_REFRESH_INTERVAL_MS, initialDelay = 5_000L)
+    public void refreshSchedules() {
+        try {
+<span class="nc" id="L237">            List&lt;MetadataSource&gt; sources = sourceRepository.findAll();</span>
+<span class="nc bnc" id="L238" title="All 2 branches missed.">            for (MetadataSource source : sources) {</span>
+<span class="nc bnc" id="L239" title="All 4 branches missed.">                if (source.getCron() == null || source.getCron().isBlank()) {</span>
+                    // 无 cron 的取消已有调度
+<span class="nc" id="L241">                    unscheduleCollection(source.getId());</span>
+<span class="nc" id="L242">                    continue;</span>
+                }
+                // 简化：若已注册则跳过；cron 变更需手动调用 scheduleCollection
+<span class="nc bnc" id="L245" title="All 2 branches missed.">                if (!scheduledTasks.containsKey(source.getId())) {</span>
+<span class="nc" id="L246">                    scheduleCollection(source.getId(), source.getCron());</span>
+                }
+<span class="nc" id="L248">            }</span>
+<span class="nc" id="L249">        } catch (Exception e) {</span>
+<span class="nc" id="L250">            log.warn(&quot;Failed to refresh schedules: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L251">        }</span>
+<span class="nc" id="L252">    }</span>
+
+    /**
+     * 执行实际采集（同步），写入历史与 Catalog。
+     *
+     * @param source      数据源
+     * @param triggerType 触发方式
+     * @return 采集结果
+     */
+    private CollectionResult doCollect(MetadataSource source, String triggerType) {
+<span class="nc" id="L262">        CollectionHistory history = new CollectionHistory();</span>
+<span class="nc" id="L263">        history.setSourceId(source.getId());</span>
+<span class="nc" id="L264">        history.setTriggerType(triggerType);</span>
+<span class="nc" id="L265">        history.setStatus(&quot;RUNNING&quot;);</span>
+<span class="nc" id="L266">        history.setStartedAt(LocalDateTime.now());</span>
+<span class="nc" id="L267">        historyRepository.save(history);</span>
+
+        CollectionResult result;
+        try {
+<span class="nc" id="L271">            MetadataCollector collector = collectorByType.get(source.getType());</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">            if (collector == null) {</span>
+<span class="nc" id="L273">                result = CollectionResult.failure(source.getId(), source.getName(),</span>
+<span class="nc" id="L274">                        source.getType(), &quot;No collector registered for type: &quot; + source.getType());</span>
+            } else {
+<span class="nc" id="L276">                result = collector.collect(source);</span>
+            }
+
+            // 写入 Catalog
+<span class="nc bnc" id="L280" title="All 6 branches missed.">            if (result.isSuccess() &amp;&amp; result.getTables() != null &amp;&amp; !result.getTables().isEmpty()) {</span>
+<span class="nc" id="L281">                int written = writerService.writeBatch(result.getTables());</span>
+<span class="nc" id="L282">                log.info(&quot;Wrote {}/{} tables to catalog for source {}&quot;,</span>
+<span class="nc" id="L283">                        written, result.getTables().size(), source.getName());</span>
+            }
+
+<span class="nc bnc" id="L286" title="All 2 branches missed.">            history.setStatus(result.isSuccess() ? &quot;SUCCESS&quot; : &quot;FAILED&quot;);</span>
+<span class="nc" id="L287">            history.setTableCount(result.getTableCount());</span>
+<span class="nc" id="L288">            history.setColumnCount(result.getColumnCount());</span>
+<span class="nc bnc" id="L289" title="All 2 branches missed.">            if (!result.isSuccess()) {</span>
+<span class="nc" id="L290">                history.setErrorMessage(result.getErrorMessage());</span>
+            }
+<span class="nc" id="L292">        } catch (Exception e) {</span>
+<span class="nc" id="L293">            log.error(&quot;Collection failed for source {}: {}&quot;, source.getName(), e.getMessage(), e);</span>
+<span class="nc" id="L294">            result = CollectionResult.failure(source.getId(), source.getName(),</span>
+<span class="nc" id="L295">                    source.getType(), e.getMessage());</span>
+<span class="nc" id="L296">            history.setStatus(&quot;FAILED&quot;);</span>
+<span class="nc" id="L297">            history.setErrorMessage(e.getMessage());</span>
+<span class="nc" id="L298">        }</span>
+
+<span class="nc" id="L300">        history.setFinishedAt(LocalDateTime.now());</span>
+<span class="nc bnc" id="L301" title="All 2 branches missed.">        if (history.getStartedAt() != null) {</span>
+<span class="nc" id="L302">            history.setDurationMs(Duration.between(history.getStartedAt(), history.getFinishedAt()).toMillis());</span>
+        }
+<span class="nc" id="L304">        historyRepository.save(history);</span>
+<span class="nc" id="L305">        return result;</span>
+    }
+
+    /**
+     * 估算 cron 表达式的周期（秒）。
+     *
+     * &lt;p&gt;简化策略：解析 cron 字段，取最细粒度字段的周期。例如：
+     * &lt;ul&gt;
+     *   &lt;li&gt;{@code 0 * * * * *} → 60s（每分钟）&lt;/li&gt;
+     *   &lt;li&gt;{@code 0 0 * * * *} → 3600s（每小时）&lt;/li&gt;
+     *   &lt;li&gt;{@code 0 0 0 * * *} → 86400s（每天）&lt;/li&gt;
+     * &lt;/ul&gt;&lt;/p&gt;
+     *
+     * @param cron cron 表达式
+     * @return 周期秒数
+     */
+    private long estimatePeriodSeconds(String cron) {
+<span class="nc" id="L322">        String[] parts = cron.trim().split(&quot;\\s+&quot;);</span>
+<span class="nc bnc" id="L323" title="All 2 branches missed.">        if (parts.length &lt; 6) {</span>
+<span class="nc" id="L324">            return 3600L; // 默认 1 小时</span>
+        }
+        // second minute hour dom mon dow
+<span class="nc bnc" id="L327" title="All 2 branches missed.">        if (!&quot;*&quot;.equals(parts[1])) {</span>
+<span class="nc" id="L328">            return 60L; // 每分钟级</span>
+        }
+<span class="nc bnc" id="L330" title="All 2 branches missed.">        if (!&quot;*&quot;.equals(parts[2])) {</span>
+<span class="nc" id="L331">            return 3600L; // 每小时级</span>
+        }
+<span class="nc bnc" id="L333" title="All 2 branches missed.">        if (!&quot;*&quot;.equals(parts[3])) {</span>
+<span class="nc" id="L334">            return 86400L; // 每天级</span>
+        }
+<span class="nc" id="L336">        return 3600L;</span>
+    }
+
+    /**
+     * 暴露已注册的 Collector 类型列表，供健康检查/调试。
+     *
+     * @return 已注册类型列表
+     */
+    public List&lt;String&gt; getRegisteredTypes() {
+<span class="fc" id="L345">        return List.copyOf(collectorByType.keySet());</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

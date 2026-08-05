@@ -1,0 +1,53 @@
+# syntax=docker/dockerfile:1.6
+
+# 基础镜像仓库 ARG，便于在内网/国内切换镜像源
+ARG BASE_REGISTRY=docker.m.daocloud.io/library
+
+# =============================================================================
+# 阶段 1: 构建
+# =============================================================================
+FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+
+WORKDIR /build
+
+# 复制 sql-gateway 与 lineage-analyzer 的 pom（利用层缓存加速依赖下载）
+COPY pom.xml ./
+COPY ../sql-gateway/pom.xml /tmp/sql-gateway/pom.xml
+RUN --mount=type=cache,target=/root/.m2/repository \
+    mvn -B -q dependency:go-offline
+
+# 复制源码并构建
+COPY src ./src
+RUN --mount=type=cache,target=/root/.m2/repository \
+    mvn -B -q clean package -DskipTests
+
+# =============================================================================
+# 阶段 2: 运行
+# =============================================================================
+FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
+
+LABEL org.opencontainers.image.title="lineage-analyzer" \
+      org.opencontainers.image.description="数擎大数据平台 - 数据血缘分析引擎" \
+      org.opencontainers.image.source="https://github.com/shuqing-bigdata/ShuqingBigDataPlatform"
+
+# 创建非 root 用户
+RUN addgroup --system --gid 1001 appgroup \
+    && adduser  --system --uid 1001 --gid appgroup --home /app appuser
+
+WORKDIR /app
+
+# 复制构建产物
+COPY --from=builder /build/target/lineage-analyzer-*.jar /app/lineage-analyzer.jar
+
+# 创建数据目录并赋权
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+
+# 切换非 root 用户
+USER appuser
+
+EXPOSE 8086
+
+# JVM 参数：容器感知，限制堆内存
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/lineage-analyzer.jar"]

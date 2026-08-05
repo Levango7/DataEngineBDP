@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.shuqing.bigdata.infra.privatecloud.provider.vsphere.VSphereProviderTest
+-------------------------------------------------------------------------------
+Tests run: 12, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.488 s -- in com.shuqing.bigdata.infra.privatecloud.provider.vsphere.VSphereProviderTest

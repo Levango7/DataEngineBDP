@@ -1,0 +1,71 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: tag-engine
+  datasource:
+    # 开发环境默认 H2 文件模式（重启不丢数据）；生产环境通过环境变量切换 PostgreSQL
+    url: ${DB_URL:jdbc:h2:file:./data/tag-engine-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  level:
+    com.shuqing.bigdata: INFO
+
+# 标签画像引擎配置
+app:
+  tag-store:
+    # 存储实现类型：mock（内存）/ doris（真实 Doris 集群）
+    type: ${TAG_STORE_TYPE:mock}
+  doris:
+    # Doris FE JDBC 地址，仅当 tag-store.type=doris 时生效
+    jdbc-url: ${DORIS_JDBC_URL:jdbc:mysql://doris-fe:9030}
+    username: ${DORIS_USERNAME:root}
+    password: ${DORIS_PASSWORD:}
+    # 标签宽表库名
+    database: ${DORIS_DATABASE:tag_db}
+    # 标签宽表表名
+    wide-table: ${DORIS_WIDE_TABLE:dws_user_tag_wide}
+    # 圈选最大返回行数（防止 OOM）
+    select-limit: ${DORIS_SELECT_LIMIT:100000}
+    # 圈选超时（毫秒）
+    query-timeout-ms: ${DORIS_QUERY_TIMEOUT_MS:5000}
+  compute:
+    # 批量计算并发度
+    batch-concurrency: ${COMPUTE_BATCH_CONCURRENCY:4}
+    # 单次批计算最大标签数
+    batch-max-size: ${COMPUTE_BATCH_MAX_SIZE:100}
+  audience:
+    # 单次圈选最大返回用户数
+    max-result-size: ${AUDIENCE_MAX_RESULT:10000}

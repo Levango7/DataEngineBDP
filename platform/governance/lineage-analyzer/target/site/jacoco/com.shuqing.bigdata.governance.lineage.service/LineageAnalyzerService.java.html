@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LineageAnalyzerService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lineage-analyzer</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.lineage.service</a> &gt; <span class="el_source">LineageAnalyzerService.java</span></div><h1>LineageAnalyzerService.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.lineage.service;
+
+import com.shuqing.bigdata.governance.lineage.analyzer.ColumnLineageExtractor;
+import com.shuqing.bigdata.governance.lineage.analyzer.LineageRelation;
+import com.shuqing.bigdata.governance.lineage.analyzer.TableLineageExtractor;
+import com.shuqing.bigdata.governance.lineage.model.LineageEdge;
+import com.shuqing.bigdata.governance.lineage.model.LineageGraph;
+import com.shuqing.bigdata.governance.lineage.model.LineageNode;
+import com.shuqing.bigdata.sqlgateway.parser.ASTNode;
+import com.shuqing.bigdata.sqlgateway.parser.SqlDialect;
+import com.shuqing.bigdata.sqlgateway.parser.SqlParserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * 血缘分析核心服务。
+ *
+ * &lt;p&gt;编排 SQL 解析、表级/字段级血缘提取、图谱构建与持久化：
+ * &lt;ol&gt;
+ *   &lt;li&gt;调用 {@link SqlParserService#parse} 得到 AST&lt;/li&gt;
+ *   &lt;li&gt;{@link TableLineageExtractor} 提取表级血缘&lt;/li&gt;
+ *   &lt;li&gt;{@link ColumnLineageExtractor} 提取字段级血缘&lt;/li&gt;
+ *   &lt;li&gt;构建 {@link LineageGraph}（含节点与边）&lt;/li&gt;
+ *   &lt;li&gt;{@link LineageGraphWriter} 持久化到 H2 / NebulaGraph&lt;/li&gt;
+ * &lt;/ol&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@Service
+public class LineageAnalyzerService {
+
+<span class="fc" id="L36">    private static final Logger log = LoggerFactory.getLogger(LineageAnalyzerService.class);</span>
+
+    private final SqlParserService parser;
+    private final TableLineageExtractor tableExtractor;
+    private final ColumnLineageExtractor columnExtractor;
+    private final LineageGraphWriter graphWriter;
+
+    /**
+     * 构造服务。
+     *
+     * @param parser         SQL 解析器
+     * @param graphWriter    图谱写入器
+     */
+    @Autowired
+<span class="fc" id="L50">    public LineageAnalyzerService(SqlParserService parser, LineageGraphWriter graphWriter) {</span>
+<span class="fc" id="L51">        this.parser = parser;</span>
+<span class="fc" id="L52">        this.tableExtractor = new TableLineageExtractor(parser);</span>
+<span class="fc" id="L53">        this.columnExtractor = new ColumnLineageExtractor(parser);</span>
+<span class="fc" id="L54">        this.graphWriter = graphWriter;</span>
+<span class="fc" id="L55">    }</span>
+
+    /**
+     * 分析 SQL 血缘（自动检测方言）。
+     *
+     * @param sql SQL 文本
+     * @return 血缘图谱
+     */
+    public LineageGraph analyze(String sql) {
+<span class="fc" id="L64">        return analyze(sql, null);</span>
+    }
+
+    /**
+     * 分析 SQL 血缘。
+     *
+     * @param sql     SQL 文本
+     * @param dialect 方言；{@code null} 时自动检测
+     * @return 血缘图谱
+     */
+    public LineageGraph analyze(String sql, SqlDialect dialect) {
+<span class="fc" id="L75">        long start = System.currentTimeMillis();</span>
+<span class="pc bpc" id="L76" title="1 of 4 branches missed.">        if (sql == null || sql.isBlank()) {</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">            return new LineageGraph(sql, dialect == null ? &quot;AUTO&quot; : dialect.name(), 0);</span>
+        }
+
+        // 1. 解析 AST
+<span class="fc" id="L81">        SqlDialect effectiveDialect = dialect;</span>
+        ASTNode ast;
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        if (dialect == null) {</span>
+            // 自动检测方言并记录
+<span class="fc" id="L85">            effectiveDialect = parser.detectDialect(sql);</span>
+<span class="fc" id="L86">            ast = parser.parse(sql, effectiveDialect);</span>
+        } else {
+<span class="fc" id="L88">            ast = parser.parse(sql, dialect);</span>
+        }
+<span class="fc" id="L90">        String dialectName = effectiveDialect.name();</span>
+
+        // 2. 提取表级 + 字段级血缘
+<span class="fc" id="L93">        List&lt;LineageRelation&gt; tableRelations = tableExtractor.extractFromAst(ast, sql, dialect);</span>
+<span class="fc" id="L94">        List&lt;LineageRelation&gt; columnRelations = columnExtractor.extractFromAst(ast, sql, dialect);</span>
+
+        // 3. 构建图谱
+<span class="fc" id="L97">        long elapsed = System.currentTimeMillis() - start;</span>
+<span class="fc" id="L98">        LineageGraph graph = new LineageGraph(sql, dialectName, elapsed);</span>
+<span class="fc" id="L99">        buildGraph(graph, tableRelations, columnRelations);</span>
+
+        // 4. 持久化
+        try {
+<span class="fc" id="L103">            graphWriter.write(graph);</span>
+<span class="nc" id="L104">        } catch (Exception e) {</span>
+<span class="nc" id="L105">            log.warn(&quot;图谱持久化失败，仅返回内存图: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L106">        }</span>
+
+<span class="fc" id="L108">        log.info(&quot;血缘分析完成: {} 个节点, {} 条边, 耗时 {}ms&quot;,</span>
+<span class="fc" id="L109">                graph.getNodes().size(), graph.getEdges().size(),</span>
+<span class="fc" id="L110">                graph.getAnalyzeTimeMs());</span>
+<span class="fc" id="L111">        return graph;</span>
+    }
+
+    /**
+     * 构建内存图谱（节点 + 边）。
+     */
+    private void buildGraph(LineageGraph graph,
+                            List&lt;LineageRelation&gt; tableRelations,
+                            List&lt;LineageRelation&gt; columnRelations) {
+        // 表级节点与边
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        for (LineageRelation rel : tableRelations) {</span>
+<span class="fc" id="L122">            graph.addNode(buildTableNode(rel.getSource()));</span>
+<span class="fc" id="L123">            graph.addNode(buildTableNode(rel.getTarget()));</span>
+<span class="fc" id="L124">            graph.addEdge(rel.toEdge());</span>
+<span class="fc" id="L125">        }</span>
+        // 字段级节点与边
+<span class="fc bfc" id="L127" title="All 2 branches covered.">        for (LineageRelation rel : columnRelations) {</span>
+<span class="fc" id="L128">            graph.addNode(buildColumnNode(rel.getSource()));</span>
+<span class="fc" id="L129">            graph.addNode(buildColumnNode(rel.getTarget()));</span>
+<span class="fc" id="L130">            graph.addEdge(rel.toEdge());</span>
+<span class="fc" id="L131">        }</span>
+<span class="fc" id="L132">    }</span>
+
+    /**
+     * 构造表节点：解析 db.table 形式。
+     */
+    private LineageNode buildTableNode(String fullName) {
+<span class="fc" id="L138">        LineageNode node = new LineageNode(fullName, LineageNode.NodeType.TABLE);</span>
+<span class="fc" id="L139">        String[] parts = fullName.split(&quot;\\.&quot;, 2);</span>
+<span class="fc bfc" id="L140" title="All 2 branches covered.">        if (parts.length == 2) {</span>
+<span class="fc" id="L141">            node.setSchemaName(parts[0]);</span>
+<span class="fc" id="L142">            node.setTableName(parts[1]);</span>
+<span class="fc" id="L143">            node.setDisplayName(parts[1]);</span>
+        } else {
+<span class="fc" id="L145">            node.setTableName(fullName);</span>
+<span class="fc" id="L146">            node.setDisplayName(fullName);</span>
+        }
+<span class="fc" id="L148">        return node;</span>
+    }
+
+    /**
+     * 构造字段节点：解析 db.table.column 形式。
+     */
+    private LineageNode buildColumnNode(String fullName) {
+<span class="fc" id="L155">        LineageNode node = new LineageNode(fullName, LineageNode.NodeType.COLUMN);</span>
+<span class="fc" id="L156">        String[] parts = fullName.split(&quot;\\.&quot;);</span>
+<span class="fc bfc" id="L157" title="All 2 branches covered.">        if (parts.length == 3) {</span>
+<span class="fc" id="L158">            node.setSchemaName(parts[0]);</span>
+<span class="fc" id="L159">            node.setTableName(parts[1]);</span>
+<span class="fc" id="L160">            node.setColumnName(parts[2]);</span>
+<span class="fc" id="L161">            node.setDisplayName(parts[1] + &quot;.&quot; + parts[2]);</span>
+<span class="pc bpc" id="L162" title="1 of 2 branches missed.">        } else if (parts.length == 2) {</span>
+<span class="fc" id="L163">            node.setTableName(parts[0]);</span>
+<span class="fc" id="L164">            node.setColumnName(parts[1]);</span>
+<span class="fc" id="L165">            node.setDisplayName(fullName);</span>
+        } else {
+<span class="nc" id="L167">            node.setColumnName(fullName);</span>
+<span class="nc" id="L168">            node.setDisplayName(fullName);</span>
+        }
+<span class="fc" id="L170">        return node;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

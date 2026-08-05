@@ -1,0 +1,14 @@
+apiVersion: v2
+name: seatunnel
+description: Apache SeaTunnel 数据集成引擎 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "2.3.5"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - seatunnel
+  - shuqing-platform

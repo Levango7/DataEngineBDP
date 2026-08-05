@@ -30,7 +30,11 @@ hubble:
 # 性能: 大 Socket 缓冲, 开启 XDP 加速
 socketLB:
   enabled: true
-  mode: "snat"
+  # 修复: mode 仅接受 "strict" 或 "hybrid", "snat" 是非法值 (Cilium 1.13+ 已移除 snat 模式)
+  #   - strict: socket LB 完全接管, 不走 kube-proxy 回退 (要求无 kube-proxy)
+  #   - hybrid: socket LB 与 iptables 共存 (兼容性更好, 适合过渡期)
+  # 此处选 hybrid: 虽然 SKE 禁用了 kube-proxy, 但 hybrid 对内核版本要求更低, 兼容性更好
+  mode: "hybrid"
 bpfClockProbe: true
 
 # 资源: 控制面独立, 给 Cilium agent 足够资源

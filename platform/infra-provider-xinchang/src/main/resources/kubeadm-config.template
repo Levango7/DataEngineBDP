@@ -1,0 +1,41 @@
+# SKE 定制 kubeadm 配置模板
+# 此模板在 K8sBootstrapService 中读取并填充集群参数：
+#   - __CLUSTER_NAME__：集群名称
+#   - __K8S_VERSION__：K8s 版本
+#   - __CONTROL_PLANE_ENDPOINT__：control-plane VIP
+#   - __POD_CIDR__：Pod 网段
+#   - __SERVICE_CIDR__：Service 网段
+#
+# SKE 定制项：
+#   1. IPVS 模式（kube-proxy）
+#   2. containerd CRI
+#   3. systemd cgroup-driver
+#   4. DynamicResourceAllocation feature-gate
+#
+# 注意：本文件为多文档 YAML 模板（--- 分隔），运行时按字符串替换占位符。
+
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+metadata:
+  name: __CLUSTER_NAME__
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock
+  kubeletExtraArgs:
+    cgroup-driver: systemd
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+kubernetesVersion: __K8S_VERSION__
+controlPlaneEndpoint: "__CONTROL_PLANE_ENDPOINT__:6443"
+networking:
+  podSubnet: __POD_CIDR__
+  serviceSubnet: __SERVICE_CIDR__
+apiServer:
+  extraArgs:
+    feature-gates: "DynamicResourceAllocation=true"
+---
+apiVersion: kubeproxy.config.k8s.io/v1alpha1
+kind: KubeProxyConfiguration
+mode: ipvs
+ipvs:
+  scheduler: "lc"

@@ -1,0 +1,38 @@
+# 测试环境配置：H2 内存模式，凭证留空（Provider 在测试中不实际调用云 API）
+spring:
+  datasource:
+    url: jdbc:h2:mem:test-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+app:
+  security:
+    jwt:
+      secret: test-secret-key-change-in-production-at-least-256-bits
+      issuer: shuqing-bigdata
+    cors:
+      allowed-origins: http://localhost:5173
+  cloud:
+    huawei:
+      ak:
+      sk:
+      region: cn-north-4
+    ali:
+      ak:
+      sk:
+      region: cn-hangzhou
+    tencent:
+      secret-id:
+      secret-key:
+      region: ap-guangzhou
+  k8s:
+    bootstrap-script: /opt/ske/bootstrap.sh
+    api-port: 6443

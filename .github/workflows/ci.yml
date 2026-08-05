@@ -1,0 +1,245 @@
+# CI 持续集成工作流
+# 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
+name: CI
+
+on:
+  # 推送到任意分支时触发
+  push:
+    branches:
+      - '*'
+  # 向 main 分支发起 PR 时触发
+  pull_request:
+    branches:
+      - main
+
+# 同一分支的并发工作流只保留最新一次，避免重复执行浪费资源
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # YAML lint：校验所有 .yaml/.yml 文件语法与风格
+  # 检查范围：design/deploy/values/、ske/manifests/、design/deploy/charts/
+  # ============================================================
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 yamllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yamllint
+
+      - name: 校验 design/deploy/values/ 下的 YAML 文件
+        run: |
+          if compgen -G "design/deploy/values/*.yaml" > /dev/null; then
+            yamllint -d relaxed design/deploy/values/
+          else
+            echo "design/deploy/values/ 下无 YAML 文件，跳过"
+          fi
+
+      - name: 校验 ske/manifests/ 下的 YAML 文件
+        run: |
+          if compgen -G "ske/manifests/*.yaml" > /dev/null || compgen -G "ske/manifests/*.yml" > /dev/null; then
+            yamllint -d relaxed ske/manifests/
+          else
+            echo "ske/manifests/ 下无 YAML 文件，跳过"
+          fi
+
+      - name: 校验 design/deploy/charts/ 下的 YAML 文件
+        run: |
+          if [ -d "design/deploy/charts" ]; then
+            yamllint -d relaxed design/deploy/charts/
+          else
+            echo "design/deploy/charts/ 目录不存在，跳过"
+          fi
+
+  # ============================================================
+  # Python 语法检查：编译 design/deploy/services/operations/main.py
+  # ============================================================
+  python-check:
+    name: Python Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 编译检查 main.py 语法
+        run: |
+          if [ -f "design/deploy/services/operations/main.py" ]; then
+            python -m py_compile design/deploy/services/operations/main.py
+            echo "main.py 语法检查通过"
+          else
+            echo "::error::design/deploy/services/operations/main.py 不存在"
+            exit 1
+          fi
+
+  # ============================================================
+  # Bash 语法检查：bash -n 检查所有关键 shell 脚本
+  # 检查范围：ske/ske.sh、ske/tuning/*.sh、platform/bootstrap.sh
+  # ============================================================
+  bash-check:
+    name: Bash Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 检查 ske/ske.sh 语法
+        run: |
+          if [ -f "ske/ske.sh" ]; then
+            bash -n ske/ske.sh
+            echo "ske/ske.sh 语法检查通过"
+          else
+            echo "::error::ske/ske.sh 不存在"
+            exit 1
+          fi
+
+      - name: 检查 ske/tuning/*.sh 语法
+        run: |
+          if compgen -G "ske/tuning/*.sh" > /dev/null; then
+            for script in ske/tuning/*.sh; do
+              echo "检查 $script ..."
+              bash -n "$script"
+            done
+            echo "ske/tuning/ 下所有脚本语法检查通过"
+          else
+            echo "ske/tuning/ 下无 .sh 文件，跳过"
+          fi
+
+      - name: 检查 platform/bootstrap.sh 语法
+        run: |
+          if [ -f "platform/bootstrap.sh" ]; then
+            bash -n platform/bootstrap.sh
+            echo "platform/bootstrap.sh 语法检查通过"
+          else
+            echo "::error::platform/bootstrap.sh 不存在"
+            exit 1
+          fi
+
+  # ============================================================
+  # 前端构建：Node 20 + npm ci + npm run build
+  # 工作目录：frontend/
+  # ============================================================
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            echo "package-lock.json 不存在，使用 npm install"
+            npm install
+          fi
+
+      - name: 构建前端
+        run: npm run build
+
+      - name: 上传构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ============================================================
+  # Helm lint：校验 design/deploy/charts/ 下每个 Helm Chart
+  # 仅当 charts 目录存在时执行
+  # ============================================================
+  helm-lint:
+    name: Helm Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: 对每个 Chart 执行 helm lint
+        run: |
+          if [ ! -d "design/deploy/charts" ]; then
+            echo "design/deploy/charts/ 目录不存在，跳过 helm lint"
+            exit 0
+          fi
+          chart_found=0
+          for chart_dir in design/deploy/charts/*/; do
+            if [ -f "${chart_dir}Chart.yaml" ]; then
+              chart_found=1
+              echo "----------------------------------------"
+              echo "校验 Chart: ${chart_dir}"
+              echo "----------------------------------------"
+              helm lint "${chart_dir}"
+            fi
+          done
+          if [ "$chart_found" -eq 0 ]; then
+            echo "design/deploy/charts/ 下未发现任何 Helm Chart，跳过"
+          fi
+
+  # ============================================================
+  # Markdown lint：校验 README.md、CONVENTIONS.md
+  # 依赖前述 5 个检查全部通过，作为最后的文档门禁
+  # ============================================================
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    # 依赖前 5 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
+    needs:
+      - yaml-lint
+      - python-check
+      - bash-check
+      - frontend-build
+      - helm-lint
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 markdownlint-cli
+        run: npm install -g markdownlint-cli
+
+      - name: 校验 README.md
+        run: |
+          if [ -f "README.md" ]; then
+            markdownlint README.md
+            echo "README.md 校验通过"
+          else
+            echo "::error::README.md 不存在"
+            exit 1
+          fi
+
+      - name: 校验 CONVENTIONS.md
+        run: |
+          if [ -f "CONVENTIONS.md" ]; then
+            markdownlint CONVENTIONS.md
+            echo "CONVENTIONS.md 校验通过"
+          else
+            echo "::error::CONVENTIONS.md 不存在"
+            exit 1
+          fi

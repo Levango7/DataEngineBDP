@@ -10,15 +10,19 @@
     </div>
     <div class="card">
       <table>
-        <tr><th>资产名</th><th>分层</th><th>负责人</th><th>质量分</th><th>敏感</th><th></th></tr>
-        <tr class="click" v-for="a in assets" :key="a.name" @click="openDrawer(a)">
-          <td>{{ a.name }}</td>
-          <td>{{ a.layer }}</td>
-          <td>{{ a.owner }}</td>
-          <td>{{ a.score }}</td>
-          <td><span class="pill" :class="a.pillClass">{{ a.pillText }}</span></td>
-          <td><span class="pill b">详情</span></td>
-        </tr>
+        <thead>
+          <tr><th>资产名</th><th>分层</th><th>负责人</th><th>质量分</th><th>敏感</th><th></th></tr>
+        </thead>
+        <tbody>
+          <tr class="click" v-for="a in assets" :key="a.name" @click="openDrawer(a)">
+            <td>{{ a.name }}</td>
+            <td>{{ a.layer }}</td>
+            <td>{{ a.owner }}</td>
+            <td>{{ a.score }}</td>
+            <td><span class="pill" :class="a.pillClass">{{ a.pillText }}</span></td>
+            <td><span class="pill b">详情</span></td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
@@ -41,11 +45,15 @@
       </div>
       <div v-if="tab === 1">
         <table>
-          <tr><th>字段</th><th>类型</th><th>敏感</th></tr>
-          <tr><td>order_id</td><td>bigint</td><td>—</td></tr>
-          <tr><td>user_id</td><td>bigint</td><td>—</td></tr>
-          <tr><td>id_card</td><td>string</td><td><span class="pill r">PII</span></td></tr>
-          <tr><td>amount</td><td>decimal</td><td>—</td></tr>
+          <thead>
+            <tr><th>字段</th><th>类型</th><th>敏感</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>order_id</td><td>bigint</td><td>—</td></tr>
+            <tr><td>user_id</td><td>bigint</td><td>—</td></tr>
+            <tr><td>id_card</td><td>string</td><td><span class="pill r">PII</span></td></tr>
+            <tr><td>amount</td><td>decimal</td><td>—</td></tr>
+          </tbody>
         </table>
       </div>
       <div v-if="tab === 2">

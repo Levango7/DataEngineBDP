@@ -1,0 +1,81 @@
+# ============================================================================
+# superset Helm Chart 默认 values
+# 关联：design/deploy/values/superset-values.yaml（深度调优配置）
+# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+# ============================================================================
+
+# ---- 镜像配置 ----
+image:
+  repository: "sq-superset"
+  tag: "4.0-0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicas: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8088
+  # 容器端口
+  containerPort: 8088
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "1"
+    memory: "2Gi"
+  limits:
+    cpu: "2"
+    memory: "4Gi"
+
+# ---- 健康检查 ----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 8088
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: 8088
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- ConfigMap 数据（从 design/deploy/values/superset-values.yaml 提取骨架）----
+config:
+  web:
+    replicas: 2
+    gunicornWorkers: 4
+    gunicornTimeout: 120
+  celery:
+    worker:
+      replicas: 2
+      workerConcurrency: 4
+    beat:
+      enabled: true
+      replicas: 1
+  database:
+    type: postgresql
+    host: pg-superset.internal
+    port: 5432
+    name: superset
+  cache:
+    type: redis
+    host: redis-superset.internal
+    port: 6379
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/superset-values.yaml 覆盖
+# 渲染命令： helm template superset design/deploy/charts/superset -f design/deploy/values/superset-values.yaml

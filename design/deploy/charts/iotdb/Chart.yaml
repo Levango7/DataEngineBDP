@@ -1,0 +1,14 @@
+apiVersion: v2
+name: iotdb
+description: Apache IoTDB 时序数据库 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "2.0.1"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - iotdb
+  - shuqing-platform

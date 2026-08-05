@@ -1,0 +1,38 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: sql-gateway-test
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+sql-gateway:
+  backends:
+    trino:
+      url: http://localhost:9999
+      timeout: 5
+      max-retries: 1
+    doris:
+      url: http://localhost:9998
+      timeout: 5
+      max-retries: 1
+  default-engine: trino
+
+app:
+  security:
+    jwt:
+      secret: test-secret-key-for-unit-tests-at-least-256-bits-long
+      issuer: shuqing-bigdata
+    cors:
+      allowed-origins: http://localhost:5173

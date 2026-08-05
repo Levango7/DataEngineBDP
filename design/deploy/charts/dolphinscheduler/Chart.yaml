@@ -1,0 +1,14 @@
+apiVersion: v2
+name: dolphinscheduler
+description: Apache DolphinScheduler 任务调度 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "3.2.1"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - dolphinscheduler
+  - shuqing-platform

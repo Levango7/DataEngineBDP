@@ -1,0 +1,83 @@
+# golangci-lint 配置 for infra-provider-baremetal
+# 文档: https://golangci-lint.run/usage/configuration/
+
+run:
+  # 超时
+  timeout: 5m
+  # Go版本
+  go: "1.23"
+  # 需要检查的目录
+  dirs:
+    - ./src
+  # 跳过测试vendor
+  modules-download-mode: readonly
+
+linters:
+  enable-all: false
+  enable:
+    - errcheck        # 检查未处理的error
+    - gosimple        # 简化代码
+    - govet           # go vet
+    - ineffassign     # 无效赋值
+    - staticcheck     # 静态检查全套
+    - unused          # 未使用代码
+    - misspell        # 拼写检查
+    - revive          # golint替代
+    - gofmt           # 格式检查
+    - goimports       # import顺序
+    - bodyclose       # http.Body关闭检查
+    - contextcheck    # context传递检查
+    - nilerr          # nil错误检查
+    - unparam         # 未使用参数检查
+    - unconvert       # 不必要类型转换
+    - prealloc        # 切片预分配
+    - exportloopref   # 循环变量引用
+    - gocritic        # 综合检查
+    - dupl            # 重复代码
+    - goconst         # 提取常量
+    - gocyclo         # 圈复杂度
+    - nakedret        # 裸return
+  disable:
+    - lll             # 行长限制(放宽)
+    - funlen          # 函数长度(放宽)
+    - wsl             # 空行风格(过于严格)
+
+linters-settings:
+  gocyclo:
+    min-complexity: 20
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - diagnostic
+  dupl:
+    threshold: 120
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+issues:
+  # 每个linter最多报告50条
+  max-issues-per-linter: 50
+  # 最多50条same-issues
+  max-same-issues: 10
+  # 排除生成的文件
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gocyclo
+        - errcheck
+        - gosec
+  # 排除目录
+  exclude-dirs:
+    - vendor
+    - third_party
+
+output:
+  formats:
+    - format: colored-line-number
+  sort-results: true

@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "seatunnel.fullname" . }}
+  labels:
+    {{- include "seatunnel.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicas | int }}
+  selector:
+    matchLabels:
+      {{- include "seatunnel.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "seatunnel.selectorLabels" . | nindent 8 }}
+      annotations:
+        # ConfigMap 变更时滚动重启
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort | int }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "seatunnel.configmapName" . }}
+          {{- if .Values.probes.liveness.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ .Values.probes.liveness.httpGet.path | quote }}
+              port: {{ .Values.probes.liveness.httpGet.port | int }}
+            initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.liveness.periodSeconds | int }}
+            failureThreshold: {{ .Values.probes.liveness.failureThreshold | int }}
+          {{- end }}
+          {{- if .Values.probes.readiness.enabled }}
+          readinessProbe:
+            httpGet:
+              path: {{ .Values.probes.readiness.httpGet.path | quote }}
+              port: {{ .Values.probes.readiness.httpGet.port | int }}
+            initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds | int }}
+            periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
+            failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}
+          {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 16 }}

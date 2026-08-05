@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: apisix-routes
+  labels:
+    app.kubernetes.io/name: apisix
+    app.kubernetes.io/part-of: shuqing-bigdata
+data:
+  routes.json: |
+    {
+      "routes": [
+        {
+          "uri": "/api/v1/tenants/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "encaps-layer:8080": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/sql/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "sql-gateway:8081": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/catalog/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "catalog:8082": 1
+            }
+          }
+        },
+        {
+          "uri": "/api/v1/rules/**",
+          "upstream": {
+            "type": "roundrobin",
+            "nodes": {
+              "rule-engine:8083": 1
+            }
+          }
+        }
+      ]
+    }

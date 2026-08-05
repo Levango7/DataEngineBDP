@@ -1,0 +1,10 @@
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\service\MetadataWriterServiceTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\collector\DorisMetadataCollectorTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\controller\CollectorControllerTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\controller\HealthControllerTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\MetadataCollectorApplicationTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\collector\FileSystemMetadataCollectorTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\collector\KafkaMetadataCollectorTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\collector\HiveMetadataCollectorTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\model\CollectionResultTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\src\test\java\com\shuqing\bigdata\governance\collector\security\JwtAuthFilterTest.java

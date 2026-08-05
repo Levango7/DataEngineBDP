@@ -39,11 +39,21 @@ if has_kubectl; then
   else
     report_warn "未检测到 Pod Security Admission restricted 级别"
   fi
-  # PodSecurityPolicy (K8s < 1.25)
-  if "$KUBECTL_BIN" get psp ske-restricted >/dev/null 2>&1; then
-    report_pass "PodSecurityPolicy ske-restricted 存在"
+  # PodSecurityPolicy (K8s < 1.25, 1.25+ 已移除 policy/v1beta1 PSP)
+  # 修复: kubectl get psp 在 1.25+ 会报 "server doesn't have a resource type psp",
+  #   原配置会把这个错误当成 "PSP 不存在" 输出 WARN, 误导运维。
+  #   改为: 先检查集群版本, 仅在 < 1.25 时检查 PSP; >= 1.25 跳过 (PSA 接管)
+  K8S_VERSION=$("$KUBECTL_BIN" version --short 2>/dev/null | grep -oP 'v\K[0-9]+\.[0-9]+' | head -1 || echo "0.0")
+  K8S_MAJOR=$(echo "$K8S_VERSION" | cut -d. -f1)
+  K8S_MINOR=$(echo "$K8S_VERSION" | cut -d. -f2)
+  if [ "${K8S_MAJOR:-0}" -lt 1 ] || { [ "${K8S_MAJOR:-0}" -eq 1 ] && [ "${K8S_MINOR:-0}" -lt 25 ]; }; then
+    if "$KUBECTL_BIN" get psp ske-restricted >/dev/null 2>&1; then
+      report_pass "PodSecurityPolicy ske-restricted 存在 (K8s < 1.25)"
+    else
+      report_warn "PodSecurityPolicy ske-restricted 不存在 (K8s < 1.25 应创建)"
+    fi
   else
-    report_warn "PodSecurityPolicy ske-restricted 不存在 (K8s >= 1.25 由 PSA 接管)"
+    report_pass "K8s ${K8S_MAJOR}.${K8S_MINOR} >= 1.25, PSP 已由 Pod Security Admission 接管 (无需 PSP 资源)"
   fi
   # 检查是否有特权 Pod 在租户 Namespace 运行
   PRIV_PODS=$("$KUBECTL_BIN" get pods --all-namespaces -o json \
@@ -173,13 +183,19 @@ if has_kubectl; then
   TEST_NS="ske-security-test-$$"
   "$KUBECTL_BIN" create namespace "$TEST_NS" >/dev/null 2>&1 || true
   "$KUBECTL_BIN" -n "$TEST_NS" create secret generic ske-enc-test --from-literal=key=testvalue >/dev/null 2>&1 || true
-  if ETCDCTL_BIN="${ETCDCTL_BIN:-etcdctl}" command -v etcdctl >/dev/null 2>&1; then
+  # 修复: 原 `ETCDCTL_BIN="${ETCDCTL_BIN:-etcdctl}" command -v etcdctl` 写法有变量作用域 bug
+  #   - 内联赋值仅对 command -v 生效, ETCDCTL_BIN 不会持久化到下方 $ETCDCTL_BIN 引用
+  #   - 改为先解析 ETCDCTL_BIN, 再单独检查 command -v
+  ETCDCTL_BIN="${ETCDCTL_BIN:-etcdctl}"
+  if command -v "$ETCDCTL_BIN" >/dev/null 2>&1; then
     # 检查 etcd 中 Secret 是否明文 (需要 etcdctl 访问)
+    # 修复: etcd 中 K8s Secret 的 key 前缀是 /registry/secrets/ (不是 /kubernetes/secrets/)
+    #   K8s v1.6+ etcd 存储路径统一为 /registry/<resource>/<namespace>/<name>
     ENC_CHECK=$("$ETCDCTL_BIN" --endpoints=https://127.0.0.1:2379 \
       --cacert=/etc/kubernetes/pki/etcd/ca.crt \
       --cert=/etc/kubernetes/pki/etcd/peer.crt \
       --key=/etc/kubernetes/pki/etcd/peer.key \
-      get "/kubernetes/secrets/$TEST_NS/ske-enc-test" 2>/dev/null | grep -c "testvalue" || echo 0)
+      get "/registry/secrets/$TEST_NS/ske-enc-test" 2>/dev/null | grep -c "testvalue" || echo 0)
     if [ "$ENC_CHECK" -eq 0 ]; then
       report_pass "Secret 静态加密已启用 (etcd 中无明文)"
     else

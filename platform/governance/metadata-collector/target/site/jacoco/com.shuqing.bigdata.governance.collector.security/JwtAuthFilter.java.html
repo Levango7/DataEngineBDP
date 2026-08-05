@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>JwtAuthFilter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">metadata-collector</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.collector.security</a> &gt; <span class="el_source">JwtAuthFilter.java</span></div><h1>JwtAuthFilter.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.collector.security;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import javax.crypto.SecretKey;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * JWT 认证过滤器（参考 encaps-layer JwtAuthFilter）。
+ *
+ * &lt;p&gt;从 {@code Authorization} 头提取 Bearer token，使用 HMAC-SHA 验证签名与过期时间，
+ * 解析出 {@code tenantId} 与 {@code sub}(userId) claim，写入
+ * {@link SecurityContextHolder} 与 {@link TenantContext}。&lt;/p&gt;
+ *
+ * &lt;p&gt;放行路径：{@code /api/v1/health} 与 {@code /actuator/**}，由
+ * {@link SecurityConfig#securityFilterChain} 的 permitAll 规则前置短路。&lt;/p&gt;
+ */
+@Component
+public class JwtAuthFilter extends OncePerRequestFilter {
+
+<span class="fc" id="L39">    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);</span>
+
+    private static final String BEARER_PREFIX = &quot;Bearer &quot;;
+    private static final String CLAIM_TENANT_ID = &quot;tenantId&quot;;
+
+    private final SecretKey signingKey;
+    private final String issuer;
+
+    /**
+     * 构造过滤器。
+     *
+     * @param secret JWT 签名密钥（HMAC-SHA），至少 256 bit（32 字节）
+     * @param issuer JWT issuer，校验 {@code iss} claim 必须匹配
+     */
+    public JwtAuthFilter(@Value(&quot;${app.security.jwt.secret}&quot;) String secret,
+<span class="fc" id="L54">                         @Value(&quot;${app.security.jwt.issuer}&quot;) String issuer) {</span>
+<span class="fc" id="L55">        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));</span>
+<span class="fc" id="L56">        this.issuer = issuer;</span>
+<span class="fc" id="L57">    }</span>
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+<span class="fc" id="L63">        String authHeader = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="fc bfc" id="L64" title="All 4 branches covered.">        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {</span>
+<span class="fc" id="L65">            sendUnauthorized(response, &quot;missing or non-Bearer Authorization header&quot;);</span>
+<span class="fc" id="L66">            return;</span>
+        }
+
+<span class="fc" id="L69">        String token = authHeader.substring(BEARER_PREFIX.length()).trim();</span>
+        try {
+<span class="fc" id="L71">            Claims claims = Jwts.parser()</span>
+<span class="fc" id="L72">                    .verifyWith(signingKey)</span>
+<span class="fc" id="L73">                    .requireIssuer(issuer)</span>
+<span class="fc" id="L74">                    .build()</span>
+<span class="fc" id="L75">                    .parseSignedClaims(token)</span>
+<span class="fc" id="L76">                    .getPayload();</span>
+
+<span class="fc" id="L78">            String tenantId = claims.get(CLAIM_TENANT_ID, String.class);</span>
+<span class="fc" id="L79">            String userId = claims.getSubject();</span>
+
+<span class="fc" id="L81">            TenantContext.setTenantId(tenantId);</span>
+<span class="fc" id="L82">            TenantContext.setUserId(userId);</span>
+
+<span class="fc" id="L84">            List&lt;SimpleGrantedAuthority&gt; authorities = Collections.singletonList(</span>
+                    new SimpleGrantedAuthority(&quot;ROLE_USER&quot;));
+<span class="fc" id="L86">            UsernamePasswordAuthenticationToken authentication =</span>
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
+<span class="fc" id="L88">            SecurityContextHolder.getContext().setAuthentication(authentication);</span>
+
+<span class="fc" id="L90">            filterChain.doFilter(request, response);</span>
+<span class="fc" id="L91">        } catch (JwtException | IllegalArgumentException e) {</span>
+<span class="fc" id="L92">            log.debug(&quot;JWT validation failed: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L93">            sendUnauthorized(response, &quot;invalid or expired JWT token&quot;);</span>
+        } finally {
+<span class="fc" id="L95">            TenantContext.clear();</span>
+<span class="fc" id="L96">            SecurityContextHolder.clearContext();</span>
+        }
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * 健康检查与 actuator 端点不走 JWT，直接放行。
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+<span class="fc" id="L105">        String path = request.getServletPath();</span>
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        return path != null</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">                &amp;&amp; (path.startsWith(&quot;/api/v1/health&quot;)</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">                    || path.startsWith(&quot;/actuator&quot;));</span>
+    }
+
+    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
+<span class="fc" id="L112">        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);</span>
+<span class="fc" id="L113">        response.setContentType(&quot;application/json;charset=UTF-8&quot;);</span>
+<span class="fc" id="L114">        response.getWriter().write(&quot;{\&quot;error\&quot;:\&quot;&quot; + message + &quot;\&quot;}&quot;);</span>
+<span class="fc" id="L115">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

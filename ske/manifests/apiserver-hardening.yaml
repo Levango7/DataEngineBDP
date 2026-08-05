@@ -1,14 +1,25 @@
 # 数擎云核 SKE · APIServer 安全加固配置
 # 关联: kubeadm-config.yaml (apiServer.extraArgs) / audit-policy.yaml / tuning/security.sh
 # 设计要点:
-#   - admission-plugins: NodeRestriction + PodSecurityPolicy + AlwaysPullImages + ResourceQuota + LimitRanger
-#   - feature-gates: PodSecurity=true, LegacyServiceAccountTokenNoAutoGeneration=true
+#   - admission-plugins: NodeRestriction + PodSecurity + AlwaysPullImages + ResourceQuota + LimitRanger
+#   - feature-gates: LegacyServiceAccountTokenNoAutoGeneration=true
 #   - tls-min-version: VersionTLS12 (禁用 TLS 1.0/1.1)
 #   - request-timeout: 30s (防慢请求拖垮 apiserver)
 #   - max-m7s-in-flight: 400/200 (限流, 适配大数据批量提交)
 #   - audit-log: maxage=30/maxbackup=10/maxsize=100
 #   - profiling: false (关闭 pprof 端点)
 #   - enable-aggregation-routing: true (支持扩展 API server)
+#
+# 注入方式说明 (重要):
+#   此 ConfigMap 仅作文档化与运行时自检 (security.sh 检查其存在性)。
+#   实际注入到 kube-apiserver 的 --enable-admission-plugins 等 extraArgs,
+#   通过以下两种方式之一完成:
+#     1. kubeadm init --config kubeadm-config.wsl2.yaml (apiServer.extraArgs 字段, 见 wsl2 路径)
+#     2. kind kubeadmConfigPatches (apiServer.extraArgs, 见 ske.sh gen_kind_config)
+#   如需从 ConfigMap 自动注入, 可在 ske.sh 中添加 patch 生成逻辑
+#   (读取 ConfigMap.data, 转换为 kubeadmConfigPatches YAML 片段)。
+#   当前实现: 关键参数已硬编码在 kubeadm-config.wsl2.yaml / ske.sh 中,
+#             ConfigMap 作为单一事实源 (single source of truth) 供审计与自检。
 
 # ---- 1. APIServer 加固参数 (以 ConfigMap 形式文档化, 由 kubeadm 注入 extraArgs) ----
 apiVersion: v1
@@ -19,13 +30,14 @@ metadata:
   labels:
     app.kubernetes.io/part-of: shuqing-ske
   annotations:
-    sq.shuqing.io/description: "APIServer 安全加固参数; 由 ske.sh 在 kubeadm init 时注入 --extra-args"
+    sq.shuqing.io/description: "APIServer 安全加固参数; 实际注入通过 kubeadm-config.wsl2.yaml apiServer.extraArgs 或 ske.sh kubeadmConfigPatches"
 data:
   # ---- Admission Controllers (启用顺序敏感) ----
+  # 注意: PodSecurityPolicy 在 K8s 1.25 已移除, 改用 Pod Security Admission (PSA)
+  #       PSA 通过 namespace 标签启用 (见 pod-security.yaml), 无需 admission plugin
   enable-admission-plugins: >-
     NodeRestriction,
     PodSecurity,
-    PodSecurityPolicy,
     AlwaysPullImages,
     NamespaceLifecycle,
     ServiceAccount,
@@ -42,8 +54,8 @@ data:
     LegacyServiceAccountTokenNoAutoGeneration
 
   # ---- Feature Gates ----
+  # 注意: PodSecurity 自 K8s 1.25 起 GA, 已从 featureGates 移除 (默认启用, 无需 gate)
   feature-gates: >-
-    PodSecurity=true,
     LegacyServiceAccountTokenNoAutoGeneration=true,
     APIServerIdentity=true,
     ServiceAccountTokenJTI=true,

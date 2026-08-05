@@ -1,0 +1,18 @@
+{{- if .Values.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "infra-provider-xinchang.fullname" . }}
+  labels:
+    {{- include "infra-provider-xinchang.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable | int }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable | int }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "infra-provider-xinchang.selectorLabels" . | nindent 6 }}
+{{- end -}}

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: theia
+description: Eclipse Theia Web IDE - 数擎大数据平台数据开发IDE
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - theia
+  - shuqing-platform

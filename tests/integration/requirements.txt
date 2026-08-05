@@ -1,0 +1,25 @@
+# 数擎大数据平台集成测试 Python 依赖
+#
+# 安装：pip install -r requirements.txt
+# 推荐 Python 版本：3.10+
+
+# 测试框架
+pytest>=8.0
+
+# HTTP 客户端，调用各组件 REST API
+requests>=2.31
+
+# 测试报告生成（pytest --html=report.html）
+pytest-html>=4.1
+
+# 并行测试执行（pytest -n auto）
+pytest-xdist>=3.5
+
+# 测试进度条（可选，提升大规模测试可观测性）
+pytest-progress>=1.2
+
+# YAML 解析（用于校验 docker-compose.yml 等配置文件，可选）
+PyYAML>=6.0
+
+# JWT token 生成（集成测试需要携带 Bearer token 才能访问受保护端点）
+PyJWT>=2.8

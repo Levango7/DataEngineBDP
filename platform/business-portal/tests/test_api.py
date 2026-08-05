@@ -1,0 +1,408 @@
+"""API 端点测试."""
+from __future__ import annotations
+
+import uuid
+
+
+class TestHealth:
+    """健康检查."""
+
+    def test_health(self, client):
+        resp = client.get("/health")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert data["store"] == "mock"
+        assert data["module"] == "business-portal"
+        assert data["level"] == "L5.4"
+
+
+class TestBusinessLineApi:
+    """业务线管理 API 测试."""
+
+    def _create_payload(self, name="风控线", tenant_id="t-1"):
+        return {
+            "name": name,
+            "tenantId": tenant_id,
+            "description": "测试业务线",
+            "budget": {"total": 100000.0, "used": 30000.0, "cycle": "monthly", "softLimit": True},
+            "config": {"dataIsolation": "strict", "permissionScope": "bl"},
+            "ownerIds": ["admin-1"],
+            "team$ownerIds": None,  # 占位
+            "teamIds": ["team-1"],
+            "memberIds": ["admin-1", "user-1"],
+        }
+
+    def test_create_business_line(self, client):
+        payload = {
+            "name": "风控线",
+            "tenantId": "t-1",
+            "ownerIds": ["admin-1"],
+            "memberIds": ["admin-1", "user-1"],
+        }
+        resp = client.post("/api/v1/business-lines", json=payload)
+        assert resp.status_code == 201, resp.text
+        data = resp.json()
+        assert data["name"] == "风控线"
+        assert data["tenantId"] == "t-1"
+        assert data["status"] == "active"
+        assert "id" in data
+
+    def test_create_duplicate_name_returns_409(self, client):
+        payload = {"name": "风控线", "tenantId": "t-1", "ownerIds": ["a"]}
+        client.post("/api/v1/business-lines", json=payload)
+        resp = client.post("/api/v1/business-lines", json=payload)
+        assert resp.status_code == 409
+
+    def test_list_business_lines(self, client):
+        client.post(
+            "/api/v1/business-lines",
+            json={"name": "bl-1", "tenantId": "t-1", "memberIds": ["u-1"]},
+        )
+        client.post(
+            "/api/v1/business-lines",
+            json={"name": "bl-2", "tenantId": "t-1", "memberIds": ["u-2"]},
+        )
+        client.post(
+            "/api/v1/business-lines",
+            json={"name": "bl-3", "tenantId": "t-2", "memberIds": ["u-1"]},
+        )
+        # 全部
+        resp = client.get("/api/v1/business-lines")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 3
+        # 按租户
+        resp = client.get("/api/v1/business-lines?tenantId=t-1")
+        assert len(resp.json()) == 2
+        # 按成员（权限隔离）
+        resp = client.get("/api/v1/business-lines?memberId=u-1")
+        result = resp.json()
+        assert len(result) == 2
+        names = {bl["name"] for bl in result}
+        assert names == {"bl-1", "bl-3"}
+
+    def test_get_business_line(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1", "memberIds": ["u-1"]},
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.get(f"/api/v1/business-lines/{bl_id}")
+        assert resp.status_code == 200
+        assert resp.json()["id"] == bl_id
+
+    def test_get_business_line_with_user_header(self, client):
+        """带 X-User-Id 头：成员可访问，非成员 403."""
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={
+                "name": "风控线",
+                "tenantId": "t-1",
+                "ownerIds": ["admin-1"],
+                "memberIds": ["admin-1", "user-1"],
+            },
+        )
+        bl_id = create_resp.json()["id"]
+        # 成员访问
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "user-1"}
+        )
+        assert resp.status_code == 200
+        # 非成员访问
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "intruder"}
+        )
+        assert resp.status_code == 403
+
+    def test_get_business_line_not_found(self, client):
+        resp = client.get("/api/v1/business-lines/nonexistent")
+        assert resp.status_code == 404
+
+    def test_update_business_line(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1", "ownerIds": ["admin-1"]},
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.put(
+            f"/api/v1/business-lines/{bl_id}", json={"name": "风控线-v2"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["name"] == "风控线-v2"
+
+    def test_update_by_non_owner_returns_403(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={
+                "name": "风控线",
+                "tenantId": "t-1",
+                "ownerIds": ["admin-1"],
+                "memberIds": ["admin-1", "user-1"],
+            },
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.put(
+            f"/api/v1/business-lines/{bl_id}",
+            json={"name": "x"},
+            headers={"X-User-Id": "user-1"},
+        )
+        assert resp.status_code == 403
+
+    def test_delete_business_line(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.delete(f"/api/v1/business-lines/{bl_id}")
+        assert resp.status_code == 204
+        # 二次获取应 404
+        resp = client.get(f"/api/v1/business-lines/{bl_id}")
+        assert resp.status_code == 404
+
+    def test_delete_not_found(self, client):
+        resp = client.delete("/api/v1/business-lines/nonexistent")
+        assert resp.status_code == 404
+
+
+class TestDashboardApi:
+    """数据概览 API 测试."""
+
+    def test_get_dashboard(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.get(f"/api/v1/business-lines/{bl_id}/dashboard")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["blId"] == bl_id
+        assert len(data["kpis"]) > 0
+        assert len(data["trends"]) > 0
+        assert len(data["realtime"]) > 0
+        assert len(data["topProjects"]) > 0
+
+    def test_get_dashboard_bl_not_found(self, client):
+        resp = client.get("/api/v1/business-lines/nonexistent/dashboard")
+        assert resp.status_code == 404
+
+
+class TestWorkbenchApi:
+    """工作台 API 测试."""
+
+    def test_get_workbench(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.get(f"/api/v1/business-lines/{bl_id}/workbench")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["blId"] == bl_id
+        assert len(data["todos"]) > 0
+        assert len(data["tools"]) > 0
+        assert len(data["recentTasks"]) > 0
+
+
+class TestCatalogApi:
+    """数据目录 API 测试."""
+
+    def test_get_catalog(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        )
+        bl_id = create_resp.json()["id"]
+        resp = client.get(f"/api/v1/business-lines/{bl_id}/catalog")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["blId"] == bl_id
+        assert len(data["nodes"]) > 0
+        assert len(data["rootIds"]) > 0
+
+    def test_add_catalog_node(self, client):
+        create_resp = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        )
+        bl_id = create_resp.json()["id"]
+        # 先获取根节点 ID
+        tree = client.get(f"/api/v1/business-lines/{bl_id}/catalog").json()
+        root_id = tree["rootIds"][0]
+        # 添加节点
+        resp = client.post(
+            f"/api/v1/business-lines/{bl_id}/catalog",
+            json={
+                "parentId": root_id,
+                "name": "new_schema",
+                "type": "schema",
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        node = resp.json()
+        assert node["blId"] == bl_id
+        assert node["name"] == "new_schema"
+        assert node["parentId"] == root_id
+
+    def test_catalog_isolation_between_bl(self, client):
+        """数据目录隔离：A 的目录与 B 完全独立."""
+        bl_a = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        bl_b = client.post(
+            "/api/v1/business-lines",
+            json={"name": "增长线", "tenantId": "t-1"},
+        ).json()["id"]
+        tree_a = client.get(f"/api/v1/business-lines/{bl_a}/catalog").json()
+        tree_b = client.get(f"/api/v1/business-lines/{bl_b}/catalog").json()
+        ids_a = {n["id"] for n in tree_a["nodes"]}
+        ids_b = {n["id"] for n in tree_b["nodes"]}
+        assert ids_a.isdisjoint(ids_b)
+
+
+class TestReportApi:
+    """BI 报表 API 测试."""
+
+    def test_create_and_list_report(self, client):
+        bl_id = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        # 创建报表
+        resp = client.post(
+            f"/api/v1/business-lines/{bl_id}/reports",
+            json={
+                "name": "风控日报",
+                "description": "风控线每日数据概览",
+                "config": {"type": "chart", "chartType": "line"},
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        report = resp.json()
+        assert report["blId"] == bl_id
+        assert report["name"] == "风控日报"
+
+        # 列表
+        resp = client.get(f"/api/v1/business-lines/{bl_id}/reports")
+        assert resp.status_code == 200
+        assert len(resp.json()) == 1
+
+    def test_get_report(self, client):
+        bl_id = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        report_id = client.post(
+            f"/api/v1/business-lines/{bl_id}/reports",
+            json={"name": "r1"},
+        ).json()["id"]
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_id}/reports/{report_id}"
+        )
+        assert resp.status_code == 200
+        assert resp.json()["id"] == report_id
+
+    def test_update_report(self, client):
+        bl_id = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        report_id = client.post(
+            f"/api/v1/business-lines/{bl_id}/reports",
+            json={"name": "r1"},
+        ).json()["id"]
+        resp = client.put(
+            f"/api/v1/business-lines/{bl_id}/reports/{report_id}",
+            json={"name": "r1-v2"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["name"] == "r1-v2"
+
+    def test_delete_report(self, client):
+        bl_id = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        report_id = client.post(
+            f"/api/v1/business-lines/{bl_id}/reports",
+            json={"name": "r1"},
+        ).json()["id"]
+        resp = client.delete(
+            f"/api/v1/business-lines/{bl_id}/reports/{report_id}"
+        )
+        assert resp.status_code == 204
+        # 二次获取应 404
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_id}/reports/{report_id}"
+        )
+        assert resp.status_code == 404
+
+    def test_report_isolation_between_bl(self, client):
+        """报表隔离：A 的报表在 B 不可见."""
+        bl_a = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        bl_b = client.post(
+            "/api/v1/business-lines",
+            json={"name": "增长线", "tenantId": "t-1"},
+        ).json()["id"]
+        # 在 A 创建报表
+        report_a_id = client.post(
+            f"/api/v1/business-lines/{bl_a}/reports",
+            json={"name": "r-a"},
+        ).json()["id"]
+        # B 列表为空
+        reports_b = client.get(
+            f"/api/v1/business-lines/{bl_b}/reports"
+        ).json()
+        assert len(reports_b) == 0
+        # B 视角获取 A 的报表 → 404
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_b}/reports/{report_a_id}"
+        )
+        assert resp.status_code == 404
+
+    def test_cross_bl_get_returns_404(self, client):
+        """跨业务线获取报表返回 404（数据隔离）."""
+        bl_a = client.post(
+            "/api/v1/business-lines",
+            json={"name": "风控线", "tenantId": "t-1"},
+        ).json()["id"]
+        bl_b = client.post(
+            "/api/v1/business-lines",
+            json={"name": "增长线", "tenantId": "t-1"},
+        ).json()["id"]
+        report_a_id = client.post(
+            f"/api/v1/business-lines/{bl_a}/reports",
+            json={"name": "r-a"},
+        ).json()["id"]
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_b}/reports/{report_a_id}"
+        )
+        assert resp.status_code == 404
+
+
+class TestOpenApi:
+    """OpenAPI 文档测试."""
+
+    def test_openapi_schema(self, client):
+        resp = client.get("/openapi.json")
+        assert resp.status_code == 200
+        schema = resp.json()
+        assert schema["info"]["title"] == "Business Portal"
+        # 关键端点存在
+        paths = schema["paths"]
+        assert "/health" in paths
+        assert "/api/v1/business-lines" in paths
+        assert "/api/v1/business-lines/{bl_id}/dashboard" in paths
+        assert "/api/v1/business-lines/{bl_id}/workbench" in paths
+        assert "/api/v1/business-lines/{bl_id}/catalog" in paths
+        assert "/api/v1/business-lines/{bl_id}/reports" in paths
+
+    def test_docs_page(self, client):
+        resp = client.get("/docs")
+        assert resp.status_code == 200

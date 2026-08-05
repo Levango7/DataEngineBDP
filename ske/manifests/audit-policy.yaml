@@ -56,8 +56,14 @@ rules:
       - group: "rbac.authorization.k8s.io"
         resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
 
-  # ---- 5. Request: 敏感资源变更 (secrets/configmaps 请求体) ----
-  - level: Request
+  # ---- 5. Metadata: 敏感资源变更 (secrets/configmaps 仅记录元数据, 不记录请求体) ----
+  # 安全修复: 原配置 level: Request 会把 Secret 的明文数据写进审计日志,
+  #   造成敏感信息泄露 (审计日志通常仅做访问审计, 不做密文保管)。
+  #   改为 level: Metadata: 仅记录 user/timestamp/verb/resource 等元数据,
+  #   不记录 requestObject / responseObject, 避免明文落盘。
+  #   如需记录 Secret 变更内容用于合规审计, 应配合 Secret 加密存储 + 审计日志加密,
+  #   而非直接用 level: Request。
+  - level: Metadata
     verbs: ["create", "update", "patch", "delete"]
     resources:
       - group: ""
@@ -68,13 +74,14 @@ rules:
         resources: ["certificatesigningrequests"]
 
   # ---- 6. Request: 安全策略 / 准入控制变更 ----
+  # 注意: podsecuritypolicies (policy/v1beta1) 在 K8s 1.25 已移除, 从审计规则中删除
   - level: Request
     verbs: ["create", "update", "patch", "delete"]
     resources:
       - group: "networking.k8s.io"
         resources: ["networkpolicies"]
       - group: "policy"
-        resources: ["podsecuritypolicies", "poddisruptionbudgets"]
+        resources: ["poddisruptionbudgets"]
       - group: "constraints.gatekeeper.sh"
         resources: ["*"]
       - group: "templates.gatekeeper.sh"

@@ -1,0 +1,22 @@
+# 生产环境 profile：切换 PostgreSQL、关闭 H2 控制台、提升日志级别门槛
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  h2:
+    console:
+      enabled: false
+
+logging:
+  level:
+    com.shuqing.bigdata: INFO
+    org.hibernate: WARN

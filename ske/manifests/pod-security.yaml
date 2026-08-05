@@ -44,89 +44,19 @@ metadata:
     sq.shuqing.io/system-component: "true"
 
 ---
-# ---- 3. PodSecurityPolicy: 禁止特权 (K8s < 1.25 兼容, 1.25+ 由 PSA 接管) ----
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: ske-restricted
-  annotations:
-    seccomp.security.alpha.kubernetes.io/allowedProfileNames: "runtime/default"
-    app.kubernetes.io/part-of: shuqing-ske
-spec:
-  privileged: false                          # 禁止特权容器
-  allowPrivilegeEscalation: false            # 禁止子进程提权
-  allowedCapabilities: ["NET_BIND_SERVICE"]  # 仅允许绑定低端口
-  defaultAddCapabilities: []                 # 不默认添加任何 capability
-  requiredDropCapabilities: ["ALL"]          # 默认丢弃所有 capability
-  hostNetwork: false                         # 禁止 hostNetwork
-  hostPID: false                             # 禁止 hostPID
-  hostIPC: false                             # 禁止 hostIPC
-  hostPorts:
-    - min: 0
-      max: 0                                 # 禁止 hostPort
-  readOnlyRootFilesystem: true               # 强制只读根文件系统
-  runAsUser:
-    rule: MustRunAsNonRoot                   # 强制非 root
-  runAsGroup:
-    rule: MustRunAs
-    ranges:
-      - min: 1000
-        max: 65535                           # 强制非 root group
-  supplementalGroups:
-    rule: MustRunAs
-    ranges:
-      - min: 1000
-        max: 65535
-  fsGroup:
-    rule: MustRunAs
-    ranges:
-      - min: 1000
-        max: 65535
-  seLinux:
-    rule: RunAsAny
-  volumes:
-    - configMap
-    - downwardAPI
-    - emptyDir
-    - persistentVolumeClaim
-    - projected
-    - secret
-    - csi                                    # 允许 CSI 卷 (存储驱动)
-  seccompProfile:
-    type: RuntimeDefault                     # seccomp 默认配置
+# ---- 3. (已移除) PodSecurityPolicy: K8s 1.25+ 由 Pod Security Admission 接管 ----
+# 原配置使用 policy/v1beta1 PodSecurityPolicy, 该 API 在 K8s 1.25 已移除。
+# 替代方案: Pod Security Admission (PSA), 通过 namespace 标签启用 (见上方 §1/§2)。
+#   - restricted 级别 (租户): pod-security.kubernetes.io/enforce: restricted
+#   - privileged 级别 (系统): pod-security.kubernetes.io/enforce: privileged
+# PSA 是内置 admission controller, 无需创建 PodSecurityPolicy 资源,
+# 也无需额外的 RBAC (PSP 需 ClusterRoleBinding 授权使用)。
+# 如需更细粒度控制 (如自定义 volume 类型白名单), 可部署 OPA Gatekeeper (见下方 §5+)。
 
 ---
-# ---- 4. 系统组件白名单 PSP (Cilium/CSI/kube-proxy 等) ----
-apiVersion: policy/v1beta1
-kind: PodSecurityPolicy
-metadata:
-  name: ske-system-privileged
-  annotations:
-    app.kubernetes.io/part-of: shuqing-ske
-spec:
-  privileged: true                           # 系统组件允许特权
-  allowPrivilegeEscalation: true
-  allowedCapabilities: ["*"]                 # 全部 capability
-  hostNetwork: true
-  hostPID: true
-  hostIPC: true
-  hostPorts:
-    - min: 0
-      max: 65535
-  readOnlyRootFilesystem: false
-  runAsUser:
-    rule: RunAsAny
-  runAsGroup:
-    rule: RunAsAny
-  supplementalGroups:
-    rule: RunAsAny
-  fsGroup:
-    rule: RunAsAny
-  seLinux:
-    rule: RunAsAny
-  volumes: ["*"]
-  seccompProfile:
-    type: Unconfined                         # 系统组件不限制 seccomp
+# ---- 4. (已移除) 系统组件白名单 PSP: 由 PSA privileged 级别替代 ----
+# 原配置: policy/v1beta1 PodSecurityPolicy ske-system-privileged
+# 替代: 上方 §2 ske-system namespace 标签 pod-security.kubernetes.io/enforce: privileged
 
 ---
 # ---- 5. OPA Gatekeeper ConstraintTemplate: 禁止特权容器 ----

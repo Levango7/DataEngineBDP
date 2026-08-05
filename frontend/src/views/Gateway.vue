@@ -11,10 +11,14 @@
     <div class="card" style="margin-top: 14px">
       <h3>API Key 与路由</h3>
       <table>
-        <tr><th>Key 名称</th><th>路由模型</th><th>限流</th><th>状态</th></tr>
-        <tr><td>prod-portal</td><td>qiong-7B</td><td>100/s</td><td><span class="pill g">启用</span></td></tr>
-        <tr><td>risk-svc</td><td>风控-领域-1.3B</td><td>50/s</td><td><span class="pill g">启用</span></td></tr>
-        <tr><td>mkt-exp</td><td>营销-领域-3B</td><td>20/s</td><td><span class="pill a">待上线</span></td></tr>
+        <thead>
+          <tr><th>Key 名称</th><th>路由模型</th><th>限流</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>prod-portal</td><td>qiong-7B</td><td>100/s</td><td><span class="pill g">启用</span></td></tr>
+          <tr><td>risk-svc</td><td>风控-领域-1.3B</td><td>50/s</td><td><span class="pill g">启用</span></td></tr>
+          <tr><td>mkt-exp</td><td>营销-领域-3B</td><td>20/s</td><td><span class="pill a">待上线</span></td></tr>
+        </tbody>
       </table>
       <button class="btn ghost sm" style="margin-top: 8px" @click="modalVisible = true">+ 新建 Key</button>
     </div>

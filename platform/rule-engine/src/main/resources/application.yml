@@ -1,0 +1,64 @@
+server:
+  port: 8083
+spring:
+  application:
+    name: rule-engine
+  datasource:
+    # 开发环境默认 H2 文件模式（重启不丢数据）；生产环境通过环境变量切换 PostgreSQL
+    url: ${DB_URL:jdbc:h2:file:./data/rule-engine-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:org.h2.Driver}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
+  level:
+    com.shuqing.bigdata: INFO
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  resource:
+    attributes:
+      service.name: ${spring.application.name}
+  traces:
+    exporter: otlp
+
+app:
+  security:
+    jwt:
+      # HMAC-SHA 签名密钥，至少 32 字节（256 bit）；生产环境必须通过环境变量覆盖
+      secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+      issuer: ${JWT_ISSUER:shuqing-bigdata}
+      expiry: 3600
+    cors:
+      # 允许的前端源，逗号分隔；默认放行 Vite 开发服务器
+      allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
+    keycloak:
+      realm: ${KEYCLOAK_REALM:shuqing}
+      auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
+      resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}

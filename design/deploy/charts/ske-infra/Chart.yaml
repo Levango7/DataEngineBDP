@@ -1,0 +1,18 @@
+apiVersion: v2
+name: ske-infra
+description: "SKE 发行版基础配置 - 自研 Kubernetes Engine 调优与七大支柱 - 数擎大数据平台"
+type: application
+version: 0.1.0
+appVersion: "1.28.0"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - ske
+  - kubernetes
+  - infra
+  - shuqing-platform
+  - infrastructure
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: kube-system

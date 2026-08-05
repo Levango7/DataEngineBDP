@@ -1,0 +1,18 @@
+apiVersion: v2
+name: metadata-collector
+description: "元数据采集 - 多源元数据自动抓取 - 数擎大数据平台"
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - metadata
+  - collector
+  - governance
+  - shuqing-platform
+  - governance
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-governance

@@ -1,0 +1,10 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.provider.vsphere,VSphereClient,341,53,7,1,87,13,14,2,10,2
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.provider.vsphere,VSphereProvider,26,524,10,38,7,110,10,24,0,10
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.security,JwtAuthFilter,109,16,10,0,33,5,8,2,3,2
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.security,TenantContext,0,30,0,0,0,11,0,6,0,6
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.controller,PrivateClusterController,469,43,32,2,105,11,25,3,9,2
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.controller,HealthController,0,11,0,0,0,2,0,2,0,2
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.provider.openstack,OpenStackProvider,55,566,16,42,14,121,15,24,0,10
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.provider.openstack,OpenStackClient,563,53,31,1,127,13,27,2,11,2
+infra-provider-private,com.shuqing.bigdata.infra.privatecloud.service,K8sBootstrapService,64,199,6,16,12,34,6,15,1,9

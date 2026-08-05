@@ -1,47 +1,72 @@
-# 数擎云核 SKE · 调度策略 (kubescheduler.config.k8s.io/v1beta3)
+# 数擎云核 SKE · 调度策略 (kubescheduler.config.k8s.io/v1)
 # 拓扑感知 + 数据本地性扩展器, 让计算尽量落在数据所在 NUMA/节点
-apiVersion: kubescheduler.config.k8s.io/v1beta3
+#
+# 修复说明:
+#   1. apiVersion: v1beta3 在 K8s 1.29 已移除, 改为 v1 (自 1.23 起稳定)
+#   2. 插件名 TopologyAwareHint 拼错, 正确为 TopologyAwareHints (注意复数 s)
+#   3. SKEDataLocality 插件需自研调度器扩展二进制 (scheduling framework 插件),
+#      原生 kube-scheduler 不识别该插件名, 加载会失败。
+#      此处改为通过 KubeSchedulerConfiguration.extenders 配置外部 extender (HTTP),
+#      避免在内置 plugins 中引用不存在的插件名。
+apiVersion: kubescheduler.config.k8s.io/v1
 kind: KubeSchedulerConfiguration
+# 调度器 leader 选举 (多副本 kube-scheduler 高可用)
+leaderElection:
+  leaderElect: true
+  leaseDuration: 15s
+  renewDeadline: 10s
+  retryPeriod: 2s
+# 外部调度扩展器 (SKE 自研数据本地性, 部署在 platform-ops 命名空间)
+# 注意: extenders 仅在原生 plugins 全部通过后才调用, 不会阻塞调度
+extenders:
+  - urlPrefix: "http://ske-scheduler-extender.platform-ops.svc:8888"
+    filterVerb: "filter"
+    prioritizeVerb: "prioritize"
+    weight: 5
+    # 仅对带 sq.shuqing.io/data-locality 标签的 Pod 启用扩展器
+    nodeCacheCapable: true
+    managedResources:
+      - name: "ske.shuqing.io/data-locality"
+        ignoredByScheduler: true
+    enableHttps: false
+    tlsConfig:
+      insecureSkipVerify: true
 profiles:
   - schedulerName: "shuqing-ske-scheduler"
     plugins:
-      # 拓扑感知打分
+      # 拓扑感知打分 (内置插件, 名字必须精确匹配)
       score:
         enabled:
           - name: NodeResourcesFit
             weight: 3
           - name: InterPodAffinity
             weight: 2
-          - name: TopologyAwareHint
+          # 正确插件名: TopologyAwareHints (复数 s), 1.26+ GA
+          - name: TopologyAwareHints
             weight: 2
           - name: ImageLocality
             weight: 1
-      # 数据本地性扩展器 (SKE 自研, 见 platform-ops/ske-scheduler-extender)
-      preFilter:
-        enabled:
-          - name: "SKEDataLocality"
-      filter:
-        enabled:
-          - name: "SKEDataLocality"
     pluginConfig:
       - name: NodeResourcesFit
         args:
+          apiVersion: kubescheduler.config.k8s.io/v1
+          kind: NodeResourcesFitArgs
           scoringStrategy:
             type: "MostAllocated"
-      - name: "SKEDataLocality"
-        args:
-          # 扩展器服务地址 (部署在 platform-ops 命名空间)
-          extenderAddress: "http://ske-scheduler-extender.platform-ops.svc:8888"
-          # 数据本地性权重: 命中 Iceberg 分片/缓存节点时加分
-          localityWeight: 5
-          # 允许调度偏离本地的最大网络跳数 (0=必须同节点)
-          maxHops: 1
+            requestedToCapacity:
+              mode: Least
+            resources:
+              - name: cpu
+                weight: 1
+              - name: memory
+                weight: 1
 # 默认调度器也启用拓扑感知, 兜底
   - schedulerName: "default-scheduler"
     plugins:
       score:
         enabled:
-          - name: TopologyAwareHint
+          # 正确插件名: TopologyAwareHints (复数 s)
+          - name: TopologyAwareHints
             weight: 2
           - name: NodeResourcesFit
             weight: 2

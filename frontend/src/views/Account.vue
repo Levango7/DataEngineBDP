@@ -15,11 +15,15 @@
     <div class="card" style="margin-top: 14px">
       <h3>本月计费明细</h3>
       <table>
-        <tr><th>项</th><th>用量</th><th>费用</th></tr>
-        <tr><td>计算(CPU·时)</td><td>38,400</td><td>¥ 19,200</td></tr>
-        <tr><td>存储(TB·月)</td><td>486</td><td>¥ 9,720</td></tr>
-        <tr><td>调用(API·万)</td><td>1,280</td><td>¥ 6,400</td></tr>
-        <tr><td><b>合计</b></td><td></td><td><b>¥ 35,320</b></td></tr>
+        <thead>
+          <tr><th>项</th><th>用量</th><th>费用</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>计算(CPU·时)</td><td>38,400</td><td>¥ 19,200</td></tr>
+          <tr><td>存储(TB·月)</td><td>486</td><td>¥ 9,720</td></tr>
+          <tr><td>调用(API·万)</td><td>1,280</td><td>¥ 6,400</td></tr>
+          <tr><td><b>合计</b></td><td></td><td><b>¥ 35,320</b></td></tr>
+        </tbody>
       </table>
       <div class="note">套餐由 ResourceQuota + 节点池租约实现，与 SKE 发行版解耦，客户仅见套餐概念。</div>
     </div>

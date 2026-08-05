@@ -11,6 +11,7 @@ const Govern = () => import('@/views/Govern.vue')
 const Standard = () => import('@/views/Standard.vue')
 const Quality = () => import('@/views/Quality.vue')
 const Lineage = () => import('@/views/Lineage.vue')
+const DataLineage = () => import('@/views/DataLineage.vue')
 const Sec = () => import('@/views/Sec.vue')
 const Vector = () => import('@/views/Vector.vue')
 const Kb = () => import('@/views/Kb.vue')
@@ -21,6 +22,26 @@ const Ops = () => import('@/views/Ops.vue')
 const Account = () => import('@/views/Account.vue')
 const Admin = () => import('@/views/Admin.vue')
 const Roadmap = () => import('@/views/Roadmap.vue')
+
+// 批次4新增：核心功能页面
+const TenantManagement = () => import('@/views/TenantManagement.vue')
+const ClusterOverview = () => import('@/views/ClusterOverview.vue')
+const DataSourceManagement = () => import('@/views/DataSourceManagement.vue')
+const JobManagement = () => import('@/views/JobManagement.vue')
+// 批次5新增：Workspace 管理（封装层 K8s 翻译）
+const WorkspaceManagement = () => import('@/views/WorkspaceManagement.vue')
+// 批次6新增：Quota 管理（封装层 K8s ResourceQuota + LimitRange 翻译）
+const QuotaManagement = () => import('@/views/QuotaManagement.vue')
+// 批次7新增：SQL 工作台（跨源归并引擎前端）
+const SqlWorkbench = () => import('@/views/SqlWorkbench.vue')
+// 批次8新增：行业应用模板市场（L5.3）
+const TemplateMarket = () => import('@/views/TemplateMarket.vue')
+// 批次8新增：业务线门户（L5.4）
+const BusinessPortal = () => import('@/views/BusinessPortal.vue')
+// 批次8新增：数据资产流通市场（L5.6 AssetExchange 前端）
+const AssetMarket = () => import('@/views/AssetMarket.vue')
+// 批次8新增：开放 API 服务目录（L5.5）
+const APIMarket = () => import('@/views/APIMarket.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
@@ -36,6 +57,7 @@ const routes: RouteRecordRaw[] = [
   { path: '/standard', name: 'standard', component: Standard },
   { path: '/quality', name: 'quality', component: Quality },
   { path: '/lineage', name: 'lineage', component: Lineage },
+  { path: '/data-lineage', name: 'dataLineage', component: DataLineage, meta: { title: '血缘分析引擎', icon: 'Share' } },
   { path: '/sec', name: 'sec', component: Sec },
   { path: '/vector', name: 'vector', component: Vector },
   { path: '/kb', name: 'kb', component: Kb },
@@ -45,6 +67,73 @@ const routes: RouteRecordRaw[] = [
   { path: '/ops', name: 'ops', component: Ops },
   { path: '/account', name: 'account', component: Account },
   { path: '/admin', name: 'admin', component: Admin },
+
+  // 批次4新增：核心功能页面
+  {
+    path: '/tenants',
+    name: 'TenantManagement',
+    component: TenantManagement,
+    meta: { title: '租户管理', icon: 'Management' }
+  },
+  {
+    path: '/cluster',
+    name: 'ClusterOverview',
+    component: ClusterOverview,
+    meta: { title: '集群概览', icon: 'Monitor' }
+  },
+  {
+    path: '/datasources',
+    name: 'DataSourceManagement',
+    component: DataSourceManagement,
+    meta: { title: '数据源管理', icon: 'Connection' }
+  },
+  {
+    path: '/jobs',
+    name: 'JobManagement',
+    component: JobManagement,
+
+    meta: { title: '作业管理', icon: 'Tickets' }
+  },
+
+  // 批次5新增：Workspace 管理（封装层 K8s 翻译）
+  {
+    path: '/workspace-management',
+    name: 'WorkspaceManagement',
+    component: WorkspaceManagement,
+    meta: { title: '工作空间管理', icon: 'Grid' }
+  },
+
+  // 批次6新增：Quota 管理（封装层 K8s ResourceQuota + LimitRange 翻译）
+  {
+    path: '/quota-management',
+    name: 'QuotaManagement',
+    component: QuotaManagement,
+    meta: { title: '配额管理', icon: 'Histogram' }
+  },
+
+  // 批次7新增：SQL 工作台（跨源归并引擎前端）
+  {
+    path: '/sql-workbench',
+    name: 'SqlWorkbench',
+    component: SqlWorkbench,
+    meta: { title: 'SQL 工作台', icon: 'EditPen' }
+  },
+
+  // 批次8新增：行业应用模板市场（L5.3）
+  {
+    path: '/template-market',
+    name: 'TemplateMarket',
+    component: TemplateMarket,
+    meta: { title: '行业应用模板', icon: 'Files' }
+  },
+
+  // 批次8新增：开放 API 服务目录（L5.5）
+  {
+    path: '/api-market',
+    name: 'APIMarket',
+    component: APIMarket,
+    meta: { title: '开放 API', icon: 'Connection' }
+  },
 
   // 占位页（Roadmap），通过 meta.title 传递模块名
   { path: '/infra-machine', component: Roadmap, meta: { title: '机器供应' } },
@@ -63,10 +152,10 @@ const routes: RouteRecordRaw[] = [
   { path: '/dev-sched', component: Roadmap, meta: { title: '调度编排（DolphinScheduler）' } },
   { path: '/dev-tag', component: Roadmap, meta: { title: '标签画像' } },
   { path: '/dev-ml', component: Roadmap, meta: { title: '机器学习' } },
-  { path: '/ops-tpl', component: Roadmap, meta: { title: '行业应用模板' } },
-  { path: '/ops-portal', component: Roadmap, meta: { title: '业务线门户' } },
-  { path: '/ops-api', component: Roadmap, meta: { title: '开放 API' } },
-  { path: '/ops-flow', component: Roadmap, meta: { title: '数据资产流通' } },
+  { path: '/ops-tpl', component: TemplateMarket, meta: { title: '行业应用模板' } },
+  { path: '/ops-portal', name: 'BusinessPortal', component: BusinessPortal, meta: { title: '业务线门户', icon: 'Grid' } },
+  { path: '/ops-api', name: 'APIMarketLegacy', component: APIMarket, meta: { title: '开放 API', icon: 'Connection' } },
+  { path: '/ops-flow', name: 'AssetMarket', component: AssetMarket, meta: { title: '数据资产流通', icon: 'ShoppingCart' } },
 
   // 兜底
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }

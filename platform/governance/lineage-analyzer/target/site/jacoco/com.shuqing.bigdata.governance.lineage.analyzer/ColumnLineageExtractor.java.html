@@ -1,0 +1,409 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ColumnLineageExtractor.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lineage-analyzer</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.lineage.analyzer</a> &gt; <span class="el_source">ColumnLineageExtractor.java</span></div><h1>ColumnLineageExtractor.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.lineage.analyzer;
+
+import com.shuqing.bigdata.sqlgateway.parser.ASTNode;
+import com.shuqing.bigdata.sqlgateway.parser.SqlDialect;
+import com.shuqing.bigdata.sqlgateway.parser.SqlParseException;
+import com.shuqing.bigdata.sqlgateway.parser.SqlParserService;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * 字段级血缘提取器。
+ *
+ * &lt;p&gt;在表级血缘基础上，进一步解析 SELECT 列表中每个列引用的来源表，
+ * 产生字段到字段的血缘关系：
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code INSERT INTO t2(c1, c2) SELECT a.x, b.y FROM a JOIN b}：
+ *       {@code a.x → t2.c1}、{@code b.y → t2.c2}&lt;/li&gt;
+ *   &lt;li&gt;{@code INSERT INTO t2 SELECT a.x, b.y FROM a JOIN b}（未指定列清单）：
+ *       按位置映射，目标列名取源列名：{@code a.x → t2.x}、{@code b.y → t2.y}&lt;/li&gt;
+ *   &lt;li&gt;纯 {@code SELECT a.x, b.y FROM a JOIN b}：虚拟目标 {@code result}：
+ *       {@code a.x → result.x}、{@code b.y → result.y}&lt;/li&gt;
+ *   &lt;li&gt;{@code SELECT * FROM a}：展开为 {@code a.* → result.*}&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;表达式列（如 {@code SUM(a.x)}）通过提取表达式中的列引用，将每个引用列
+ * 都映射到目标列，表达式记录在 {@link LineageRelation#getExpression()}。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class ColumnLineageExtractor {
+
+    /** 纯 SELECT 语句的虚拟目标表名 */
+    public static final String VIRTUAL_TARGET = &quot;result&quot;;
+
+    private final SqlParserService parser;
+
+    /**
+     * 构造提取器。
+     *
+     * @param parser SQL 解析器
+     */
+<span class="fc" id="L48">    public ColumnLineageExtractor(SqlParserService parser) {</span>
+<span class="fc" id="L49">        this.parser = parser;</span>
+<span class="fc" id="L50">    }</span>
+
+    /**
+     * 从 SQL 文本提取字段级血缘。
+     *
+     * @param sql     SQL 文本
+     * @param dialect 方言；{@code null} 时自动检测
+     * @return 字段级血缘关系列表
+     * @throws SqlParseException 解析失败
+     */
+    public List&lt;LineageRelation&gt; extract(String sql, SqlDialect dialect) {
+<span class="fc bfc" id="L61" title="All 4 branches covered.">        if (sql == null || sql.isBlank()) {</span>
+<span class="fc" id="L62">            return Collections.emptyList();</span>
+        }
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">        ASTNode ast = dialect == null ? parser.parseAuto(sql) : parser.parse(sql, dialect);</span>
+<span class="fc" id="L65">        return extractFromAst(ast, sql, dialect);</span>
+    }
+
+    /**
+     * 从已解析的 AST 提取字段级血缘。
+     *
+     * @param ast     AST 根节点
+     * @param sql     原始 SQL
+     * @param dialect 方言
+     * @return 字段级血缘关系列表
+     */
+    public List&lt;LineageRelation&gt; extractFromAst(ASTNode ast, String sql, SqlDialect dialect) {
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">        if (ast == null) {</span>
+<span class="nc" id="L78">            return Collections.emptyList();</span>
+        }
+<span class="fc" id="L80">        List&lt;LineageRelation&gt; relations = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L81" title="All 2 branches covered.">        String dialectName = dialect == null ? &quot;AUTO&quot; : dialect.name();</span>
+
+<span class="fc bfc" id="L83" title="All 2 branches covered.">        for (ASTNode child : ast.getChildren()) {</span>
+<span class="fc" id="L84">            collectFromStatement(child, relations, sql, dialectName);</span>
+<span class="fc" id="L85">        }</span>
+<span class="fc" id="L86">        return relations;</span>
+    }
+
+    private void collectFromStatement(ASTNode stmt, List&lt;LineageRelation&gt; relations,
+                                      String sql, String dialectName) {
+<span class="pc bpc" id="L91" title="1 of 2 branches missed.">        if (stmt == null) {</span>
+<span class="nc" id="L92">            return;</span>
+        }
+<span class="pc bpc" id="L94" title="2 of 4 branches missed.">        switch (stmt.getType()) {</span>
+<span class="fc" id="L95">            case INSERT -&gt; handleInsert(stmt, relations, sql, dialectName);</span>
+<span class="nc" id="L96">            case CREATE_TABLE -&gt; handleCreateTableAsSelect(stmt, relations, sql, dialectName);</span>
+<span class="fc" id="L97">            case SELECT, UNION -&gt; handlePureSelect(stmt, relations, sql, dialectName);</span>
+            default -&gt; {
+            }
+        }
+<span class="fc" id="L101">    }</span>
+
+    /**
+     * 处理 INSERT 语句的字段级血缘。
+     */
+    private void handleInsert(ASTNode insert, List&lt;LineageRelation&gt; relations,
+                              String sql, String dialectName) {
+<span class="fc" id="L108">        String targetTable = insert.getString(&quot;table&quot;);</span>
+<span class="pc bpc" id="L109" title="2 of 4 branches missed.">        if (targetTable == null || targetTable.isEmpty()) {</span>
+<span class="nc" id="L110">            return;</span>
+        }
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (!&quot;SELECT&quot;.equalsIgnoreCase(insert.getString(&quot;mode&quot;))) {</span>
+<span class="fc" id="L113">            return;</span>
+        }
+        // 目标列清单（INSERT INTO t(c1, c2) ...）
+<span class="fc" id="L116">        List&lt;String&gt; targetColumns = insert.getStringList(&quot;columns&quot;);</span>
+
+        // 找到内嵌 SELECT
+<span class="fc" id="L119">        ASTNode select = insert.findChild(ASTNode.NodeType.SELECT);</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        if (select == null) {</span>
+            // 可能是 UNION
+<span class="nc" id="L122">            ASTNode union = insert.findChild(ASTNode.NodeType.UNION);</span>
+<span class="nc bnc" id="L123" title="All 2 branches missed.">            if (union != null) {</span>
+<span class="nc" id="L124">                select = union;</span>
+            }
+        }
+<span class="pc bpc" id="L127" title="1 of 2 branches missed.">        if (select == null) {</span>
+<span class="nc" id="L128">            return;</span>
+        }
+<span class="fc" id="L130">        mapSelectToTarget(select, targetTable, targetColumns, relations, sql, dialectName);</span>
+<span class="fc" id="L131">    }</span>
+
+    /**
+     * 处理 CREATE TABLE AS SELECT。
+     */
+    private void handleCreateTableAsSelect(ASTNode create, List&lt;LineageRelation&gt; relations,
+                                           String sql, String dialectName) {
+<span class="nc" id="L138">        String targetTable = create.getString(&quot;table&quot;);</span>
+<span class="nc bnc" id="L139" title="All 4 branches missed.">        if (targetTable == null || targetTable.isEmpty()) {</span>
+<span class="nc" id="L140">            return;</span>
+        }
+<span class="nc" id="L142">        List&lt;ASTNode&gt; selects = create.findAll(ASTNode.NodeType.SELECT);</span>
+<span class="nc bnc" id="L143" title="All 2 branches missed.">        if (selects.isEmpty()) {</span>
+<span class="nc" id="L144">            return;</span>
+        }
+<span class="nc" id="L146">        List&lt;String&gt; targetColumns = create.getStringList(&quot;columns&quot;);</span>
+<span class="nc" id="L147">        mapSelectToTarget(selects.get(0), targetTable, targetColumns, relations, sql, dialectName);</span>
+<span class="nc" id="L148">    }</span>
+
+    /**
+     * 处理纯 SELECT（虚拟目标 result）。
+     */
+    private void handlePureSelect(ASTNode select, List&lt;LineageRelation&gt; relations,
+                                  String sql, String dialectName) {
+<span class="fc" id="L155">        mapSelectToTarget(select, VIRTUAL_TARGET, Collections.emptyList(), relations, sql, dialectName);</span>
+<span class="fc" id="L156">    }</span>
+
+    /**
+     * 将 SELECT 列表的列引用映射到目标表字段。
+     *
+     * @param select        SELECT 节点
+     * @param targetTable   目标表名
+     * @param targetColumns 目标列清单（可为空，按位置/源列名推导）
+     * @param relations     输出血缘关系
+     * @param sql           源 SQL
+     * @param dialectName   方言名
+     */
+    private void mapSelectToTarget(ASTNode select, String targetTable, List&lt;String&gt; targetColumns,
+                                   List&lt;LineageRelation&gt; relations,
+                                   String sql, String dialectName) {
+        // UNION：分别处理每个分支，目标列清单共享
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">        if (select.getType() == ASTNode.NodeType.UNION) {</span>
+<span class="nc bnc" id="L173" title="All 2 branches missed.">            for (ASTNode child : select.getChildren()) {</span>
+<span class="nc" id="L174">                mapSelectToTarget(child, targetTable, targetColumns, relations, sql, dialectName);</span>
+<span class="nc" id="L175">            }</span>
+<span class="nc" id="L176">            return;</span>
+        }
+<span class="pc bpc" id="L178" title="1 of 2 branches missed.">        if (select.getType() != ASTNode.NodeType.SELECT) {</span>
+<span class="nc" id="L179">            return;</span>
+        }
+
+        // 构建 FROM 中别名 → 表名 映射
+<span class="fc" id="L183">        Map&lt;String, String&gt; aliasToTable = buildAliasMap(select);</span>
+        // 收集 SELECT 列表的 COLUMN 子节点
+<span class="fc" id="L185">        List&lt;ASTNode&gt; selectColumns = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L186" title="All 2 branches covered.">        for (ASTNode child : select.getChildren()) {</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">            if (child.getType() == ASTNode.NodeType.COLUMN) {</span>
+<span class="fc" id="L188">                selectColumns.add(child);</span>
+            }
+<span class="fc" id="L190">        }</span>
+
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        for (int i = 0; i &lt; selectColumns.size(); i++) {</span>
+<span class="fc" id="L193">            ASTNode colNode = selectColumns.get(i);</span>
+<span class="fc" id="L194">            String expression = colNode.getString(&quot;expression&quot;);</span>
+<span class="fc" id="L195">            String colName = colNode.getString(&quot;name&quot;);</span>
+<span class="fc" id="L196">            String alias = colNode.getString(&quot;alias&quot;);</span>
+
+            // 目标列名：优先使用 INSERT 列清单；其次使用 SELECT 别名；最后用源列名
+            String targetCol;
+<span class="pc bpc" id="L200" title="1 of 4 branches missed.">            if (!targetColumns.isEmpty() &amp;&amp; i &lt; targetColumns.size()) {</span>
+<span class="fc" id="L201">                targetCol = targetColumns.get(i);</span>
+<span class="pc bpc" id="L202" title="1 of 4 branches missed.">            } else if (alias != null &amp;&amp; !alias.isEmpty()) {</span>
+<span class="fc" id="L203">                targetCol = alias;</span>
+<span class="pc bpc" id="L204" title="2 of 4 branches missed.">            } else if (colName != null &amp;&amp; !&quot;*&quot;.equals(colName)) {</span>
+                // colName 可能是 &quot;a . x&quot; 或 &quot;a.x&quot; 形式，取最后一段作为目标列名
+<span class="fc" id="L206">                targetCol = shortName(normalizeDot(colName));</span>
+            } else {
+<span class="nc" id="L208">                targetCol = &quot;*&quot;;</span>
+            }
+
+            // 从表达式提取源列引用（形如 a.x 或 table.column）
+<span class="fc" id="L212">            List&lt;ColumnRef&gt; refs = extractColumnRefs(expression, aliasToTable);</span>
+<span class="pc bpc" id="L213" title="2 of 6 branches missed.">            if (refs.isEmpty() &amp;&amp; colName != null &amp;&amp; !&quot;*&quot;.equals(colName)) {</span>
+                // 简单列引用：expression 可能就是列名
+<span class="fc" id="L215">                refs = extractColumnRefs(colName, aliasToTable);</span>
+            }
+<span class="fc bfc" id="L217" title="All 2 branches covered.">            if (refs.isEmpty()) {</span>
+                // 无法识别源（常量、函数无列参数等）：跳过
+<span class="fc" id="L219">                continue;</span>
+            }
+
+<span class="fc" id="L222">            String targetFullName = targetTable + &quot;.&quot; + targetCol;</span>
+<span class="fc bfc" id="L223" title="All 2 branches covered.">            for (ColumnRef ref : refs) {</span>
+<span class="fc" id="L224">                String sourceFullName = ref.table + &quot;.&quot; + ref.column;</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">                if (sourceFullName.equalsIgnoreCase(targetFullName)) {</span>
+<span class="fc" id="L226">                    continue;</span>
+                }
+<span class="fc" id="L228">                relations.add(new LineageRelation(sourceFullName, targetFullName,</span>
+                        LineageRelation.RelationType.COLUMN_LINEAGE,
+                        expression, sql, dialectName));
+<span class="fc" id="L231">            }</span>
+        }
+<span class="fc" id="L233">    }</span>
+
+    /**
+     * 构建 SELECT 中 FROM/JOIN 的别名 → 真实表名 映射。
+     */
+    private Map&lt;String, String&gt; buildAliasMap(ASTNode select) {
+<span class="fc" id="L239">        Map&lt;String, String&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L240">        ASTNode from = select.findChild(ASTNode.NodeType.FROM);</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        if (from == null) {</span>
+<span class="fc" id="L242">            return map;</span>
+        }
+<span class="fc bfc" id="L244" title="All 2 branches covered.">        for (ASTNode child : from.getChildren()) {</span>
+<span class="fc" id="L245">            collectAlias(child, map);</span>
+<span class="fc" id="L246">        }</span>
+<span class="fc" id="L247">        return map;</span>
+    }
+
+    private void collectAlias(ASTNode node, Map&lt;String, String&gt; map) {
+<span class="pc bpc" id="L251" title="1 of 2 branches missed.">        if (node == null) {</span>
+<span class="nc" id="L252">            return;</span>
+        }
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        if (node.getType() == ASTNode.NodeType.TABLE) {</span>
+<span class="fc" id="L255">            String name = node.getString(&quot;name&quot;);</span>
+<span class="fc" id="L256">            String alias = node.getString(&quot;alias&quot;);</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">            if (name != null) {</span>
+                // 表名本身作为键（允许 table.column 形式）
+<span class="fc" id="L259">                String shortName = shortName(name);</span>
+<span class="fc" id="L260">                map.putIfAbsent(shortName, name);</span>
+<span class="fc" id="L261">                map.putIfAbsent(name, name);</span>
+<span class="pc bpc" id="L262" title="1 of 4 branches missed.">                if (alias != null &amp;&amp; !alias.isEmpty()) {</span>
+<span class="fc" id="L263">                    map.putIfAbsent(alias, name);</span>
+                }
+            }
+<span class="fc" id="L266">            return;</span>
+        }
+<span class="fc bfc" id="L268" title="All 2 branches covered.">        if (node.getType() == ASTNode.NodeType.JOIN) {</span>
+<span class="fc bfc" id="L269" title="All 2 branches covered.">            for (ASTNode child : node.getChildren()) {</span>
+<span class="fc" id="L270">                collectAlias(child, map);</span>
+<span class="fc" id="L271">            }</span>
+<span class="fc" id="L272">            return;</span>
+        }
+<span class="pc bpc" id="L274" title="1 of 2 branches missed.">        if (node.getType() == ASTNode.NodeType.SUBQUERY) {</span>
+<span class="nc" id="L275">            String alias = node.getString(&quot;alias&quot;);</span>
+            // 子查询别名映射到自身（字段引用以子查询别名作表名）
+<span class="nc bnc" id="L277" title="All 4 branches missed.">            if (alias != null &amp;&amp; !alias.isEmpty()) {</span>
+<span class="nc" id="L278">                map.putIfAbsent(alias, alias);</span>
+            }
+        }
+<span class="fc" id="L281">    }</span>
+
+    /**
+     * 从表达式文本提取列引用。
+     *
+     * &lt;p&gt;识别形如 {@code alias.column} 或 {@code table.column} 的 token。
+     * 单独的裸列名（无前缀）尝试用唯一表别名补全；无法确定时跳过。&lt;/p&gt;
+     *
+     * &lt;p&gt;注意：SQL 解析器产出的 expression 在 token 间可能含空格，如 {@code &quot;a . x&quot;}，
+     * 此方法先规范化：去除 {@code .} 周围空格，再按非标识符字符分割。&lt;/p&gt;
+     *
+     * @param expression   表达式文本
+     * @param aliasToTable 别名映射
+     * @return 列引用列表
+     */
+    private List&lt;ColumnRef&gt; extractColumnRefs(String expression, Map&lt;String, String&gt; aliasToTable) {
+<span class="fc" id="L297">        List&lt;ColumnRef&gt; refs = new ArrayList&lt;&gt;();</span>
+<span class="pc bpc" id="L298" title="2 of 4 branches missed.">        if (expression == null || expression.isBlank()) {</span>
+<span class="nc" id="L299">            return refs;</span>
+        }
+        // 规范化：去掉 '.' 周围的空格，使 &quot;a . x&quot; → &quot;a.x&quot;
+<span class="fc" id="L302">        String normalized = expression.replaceAll(&quot;\\s*\\.\\s*&quot;, &quot;.&quot;);</span>
+        // 用非标识符字符分割（保留 '.' 以识别 a.b 形式）
+<span class="fc" id="L304">        String[] tokens = normalized.split(&quot;[^\\w.]+&quot;);</span>
+<span class="fc bfc" id="L305" title="All 2 branches covered.">        for (String token : tokens) {</span>
+<span class="pc bpc" id="L306" title="3 of 6 branches missed.">            if (token.isEmpty() || token.equals(&quot;.&quot;) || token.startsWith(&quot;.&quot;)) {</span>
+<span class="nc" id="L307">                continue;</span>
+            }
+<span class="fc" id="L309">            int dot = token.indexOf('.');</span>
+<span class="pc bpc" id="L310" title="1 of 4 branches missed.">            if (dot &gt; 0 &amp;&amp; dot &lt; token.length() - 1) {</span>
+<span class="fc" id="L311">                String prefix = token.substring(0, dot);</span>
+<span class="fc" id="L312">                String col = token.substring(dot + 1);</span>
+<span class="pc bpc" id="L313" title="2 of 4 branches missed.">                if (isIdentifier(prefix) &amp;&amp; isIdentifier(col)) {</span>
+<span class="fc" id="L314">                    String realTable = aliasToTable.get(prefix);</span>
+<span class="pc bpc" id="L315" title="1 of 2 branches missed.">                    if (realTable == null) {</span>
+                        // 别名未找到：保留原 prefix（可能是 db.table 形式被拆错）
+<span class="nc" id="L317">                        realTable = prefix;</span>
+                    }
+<span class="fc" id="L319">                    refs.add(new ColumnRef(realTable, col));</span>
+                }
+            }
+        }
+        // 处理裸列名：若 FROM 仅一张唯一表，则将该列归到该表
+<span class="fc bfc" id="L324" title="All 2 branches covered.">        if (refs.isEmpty()) {</span>
+            // 去重 aliasToTable 的值集合，判断是否仅一张唯一表
+<span class="fc" id="L326">            Set&lt;String&gt; uniqueTables = new LinkedHashSet&lt;&gt;(aliasToTable.values());</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">            if (uniqueTables.size() == 1) {</span>
+<span class="fc" id="L328">                String onlyTable = uniqueTables.iterator().next();</span>
+<span class="fc bfc" id="L329" title="All 2 branches covered.">                for (String token : tokens) {</span>
+<span class="pc bpc" id="L330" title="2 of 4 branches missed.">                    if (isIdentifier(token) &amp;&amp; !token.equals(onlyTable)</span>
+<span class="pc bpc" id="L331" title="1 of 2 branches missed.">                            &amp;&amp; !shortName(onlyTable).equals(token)</span>
+<span class="pc bpc" id="L332" title="2 of 4 branches missed.">                            &amp;&amp; !isKeyword(token) &amp;&amp; !isNumeric(token)) {</span>
+<span class="fc" id="L333">                        refs.add(new ColumnRef(onlyTable, token));</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L338">        return refs;</span>
+    }
+
+    /**
+     * 取表名的最后一段（去掉 db. 前缀），用于别名匹配。
+     */
+    private String shortName(String fullName) {
+<span class="fc" id="L345">        int dot = fullName.lastIndexOf('.');</span>
+<span class="fc bfc" id="L346" title="All 2 branches covered.">        return dot &gt;= 0 ? fullName.substring(dot + 1) : fullName;</span>
+    }
+
+    /**
+     * 规范化表达式中的点号：去除 '.' 周围空格，使 &quot;a . x&quot; → &quot;a.x&quot;。
+     *
+     * @param expr 原始表达式
+     * @return 规范化后的表达式
+     */
+    private String normalizeDot(String expr) {
+<span class="pc bpc" id="L356" title="1 of 2 branches missed.">        return expr == null ? null : expr.replaceAll(&quot;\\s*\\.\\s*&quot;, &quot;.&quot;);</span>
+    }
+
+    private boolean isIdentifier(String s) {
+<span class="pc bpc" id="L360" title="2 of 4 branches missed.">        if (s == null || s.isEmpty()) {</span>
+<span class="nc" id="L361">            return false;</span>
+        }
+<span class="pc bpc" id="L363" title="3 of 4 branches missed.">        if (!Character.isLetter(s.charAt(0)) &amp;&amp; s.charAt(0) != '_') {</span>
+<span class="nc" id="L364">            return false;</span>
+        }
+<span class="fc bfc" id="L366" title="All 2 branches covered.">        for (int i = 1; i &lt; s.length(); i++) {</span>
+<span class="fc" id="L367">            char c = s.charAt(i);</span>
+<span class="pc bpc" id="L368" title="3 of 4 branches missed.">            if (!Character.isLetterOrDigit(c) &amp;&amp; c != '_') {</span>
+<span class="nc" id="L369">                return false;</span>
+            }
+        }
+<span class="fc" id="L372">        return true;</span>
+    }
+
+    private boolean isKeyword(String s) {
+<span class="pc bpc" id="L376" title="1 of 2 branches missed.">        return switch (s.toUpperCase()) {</span>
+            case &quot;SELECT&quot;, &quot;FROM&quot;, &quot;WHERE&quot;, &quot;JOIN&quot;, &quot;ON&quot;, &quot;AND&quot;, &quot;OR&quot;, &quot;NOT&quot;,
+                 &quot;AS&quot;, &quot;BY&quot;, &quot;GROUP&quot;, &quot;ORDER&quot;, &quot;HAVING&quot;, &quot;LIMIT&quot;, &quot;INSERT&quot;,
+                 &quot;INTO&quot;, &quot;VALUES&quot;, &quot;CREATE&quot;, &quot;TABLE&quot;, &quot;DROP&quot;, &quot;ALTER&quot;, &quot;UNION&quot;,
+                 &quot;ALL&quot;, &quot;DISTINCT&quot;, &quot;CASE&quot;, &quot;WHEN&quot;, &quot;THEN&quot;, &quot;ELSE&quot;, &quot;END&quot;,
+<span class="nc" id="L381">                 &quot;NULL&quot;, &quot;TRUE&quot;, &quot;FALSE&quot;, &quot;IN&quot;, &quot;BETWEEN&quot;, &quot;LIKE&quot;, &quot;IS&quot; -&gt; true;</span>
+<span class="fc" id="L382">            default -&gt; false;</span>
+        };
+    }
+
+    private boolean isNumeric(String s) {
+<span class="pc bpc" id="L387" title="2 of 4 branches missed.">        if (s == null || s.isEmpty()) {</span>
+<span class="nc" id="L388">            return false;</span>
+        }
+        try {
+<span class="nc" id="L391">            Double.parseDouble(s);</span>
+<span class="nc" id="L392">            return true;</span>
+<span class="fc" id="L393">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L394">            return false;</span>
+        }
+    }
+
+    /** 列引用内部表示 */
+    private static final class ColumnRef {
+        final String table;
+        final String column;
+
+<span class="fc" id="L403">        ColumnRef(String table, String column) {</span>
+<span class="fc" id="L404">            this.table = table;</span>
+<span class="fc" id="L405">            this.column = column;</span>
+<span class="fc" id="L406">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,74 @@
+# Industry Templates Platform (L5.3)
+
+数擎大数据平台 · 行业应用模板平台 — 面向外部客户的预置分析模板。
+
+## 定位
+
+行业应用模板是面向外部客户的**预置分析模板**（金融风控、零售画像、制造质检等），让客户"开箱即用"而非从零搭建数据模型、作业流与仪表盘。
+
+## 模板清单
+
+| 模板 ID | 行业 | 模板名 | 核心能力 |
+|---|---|---|---|
+| fin-risk-scorecard | 金融 | 风控评分卡 | 信贷风控：数据采集→特征工程→模型评分→风险等级 |
+| retail-user-profile | 零售 | 用户画像标签体系 | 用户画像：交易数据→标签计算→人群圈选→营销推荐 |
+| mfg-quality-inspection | 制造 | 产线质检流水线 | 产品质检：图像采集→缺陷检测→质量分级→报告生成 |
+
+## API 端点
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | /health | 健康检查 |
+| GET | /api/v1/templates | 列出所有模板（支持过滤） |
+| GET | /api/v1/templates/{id} | 模板详情 |
+| POST | /api/v1/templates/{id}/deploy | 部署模板 |
+| GET | /api/v1/templates/{id}/preview | 预览模板架构 |
+| GET | /api/v1/templates/categories | 模板分类 |
+| GET | /api/v1/templates/{id}/deployments | 列出部署记录 |
+
+## 快速开始
+
+```bash
+# 安装依赖
+pip install -e ".[test]"
+
+# 启动服务
+python main.py
+
+# 运行测试
+python -m pytest tests/
+```
+
+## 配置
+
+通过环境变量配置（前缀 `INDUSTRY_TEMPLATES_`）：
+
+| 环境变量 | 默认值 | 说明 |
+|---|---|---|
+| INDUSTRY_TEMPLATES_HOST | 0.0.0.0 | 监听地址 |
+| INDUSTRY_TEMPLATES_PORT | 8090 | 监听端口 |
+| INDUSTRY_TEMPLATES_API_PREFIX | /api/v1 | API 前缀 |
+| INDUSTRY_TEMPLATES_DEPLOY_MODE | mock | 部署模式: mock / helm |
+
+## 架构
+
+```
+industry_templates/
+├── api/                  # FastAPI 路由
+│   ├── app.py            # 应用工厂
+│   └── routers/          # 路由模块
+├── config/               # 配置
+├── models/               # 数据模型（Pydantic）
+├── services/             # 业务服务
+│   ├── template_engine.py  # TemplateEngine
+│   └── registry.py       # 服务注册表
+└── templates/            # 行业模板内容
+    ├── fin_risk_scorecard.py
+    ├── retail_user_profile.py
+    └── mfg_quality_inspection.py
+```
+
+## 对齐文档
+
+- `design/详细设计/多平台多租户大数据平台_行业应用模板详细设计_v0.1.md`
+- `design/工程交付计划_缺口补全_v1.0.md` — Phase 4 任务 P4-T1

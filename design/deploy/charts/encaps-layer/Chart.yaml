@@ -1,0 +1,17 @@
+apiVersion: v2
+name: encaps-layer
+description: "封装层 - K8s 产品化业务语义翻译 - 数擎大数据平台"
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - encapsulation
+  - platform
+  - shuqing-platform
+  - platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-system

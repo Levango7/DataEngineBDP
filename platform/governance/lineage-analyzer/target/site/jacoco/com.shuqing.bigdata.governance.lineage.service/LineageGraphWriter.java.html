@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>LineageGraphWriter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lineage-analyzer</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.lineage.service</a> &gt; <span class="el_source">LineageGraphWriter.java</span></div><h1>LineageGraphWriter.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.lineage.service;
+
+import com.shuqing.bigdata.governance.lineage.model.LineageEdge;
+import com.shuqing.bigdata.governance.lineage.model.LineageGraph;
+import com.shuqing.bigdata.governance.lineage.model.LineageNode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 血缘图谱写入器。
+ *
+ * &lt;p&gt;双写策略：
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;内存图&lt;/b&gt;：{@link ConcurrentHashMap} 维护邻接表，供快速上下游查询&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;H2/JPA&lt;/b&gt;：通过 {@link LineageNodeRepository}/{@link LineageEdgeRepository}
+ *       持久化，重启后可恢复&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;NebulaGraph&lt;/b&gt;（可选）：通过配置 {@code nebula.enabled=true} 启用，
+ *       当前版本预留接口，实际写入降级为日志&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;内存图结构：{@code upstreamMap} 键为目标表，值为上游表集合；
+ * {@code downstreamMap} 键为源表，值为下游表集合。仅记录表级血缘。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@Service
+public class LineageGraphWriter {
+
+<span class="fc" id="L39">    private static final Logger log = LoggerFactory.getLogger(LineageGraphWriter.class);</span>
+
+    private final LineageNodeRepository nodeRepository;
+    private final LineageEdgeRepository edgeRepository;
+
+    /** 内存图：target → {source1, source2, ...} 上游 */
+<span class="fc" id="L45">    private final Map&lt;String, Set&lt;String&gt;&gt; upstreamMap = new ConcurrentHashMap&lt;&gt;();</span>
+    /** 内存图：source → {target1, target2, ...} 下游 */
+<span class="fc" id="L47">    private final Map&lt;String, Set&lt;String&gt;&gt; downstreamMap = new ConcurrentHashMap&lt;&gt;();</span>
+    /** 全部已知表节点 */
+<span class="fc" id="L49">    private final Set&lt;String&gt; knownTables = ConcurrentHashMap.newKeySet();</span>
+
+    /** 是否启用 NebulaGraph 后端 */
+    @Value(&quot;${nebula.enabled:false}&quot;)
+    private boolean nebulaEnabled;
+
+    /** NebulaGraph host（仅日志占位） */
+    @Value(&quot;${nebula.host:127.0.0.1}&quot;)
+    private String nebulaHost;
+
+    /**
+     * 构造写入器。
+     *
+     * @param nodeRepository 节点 Repository
+     * @param edgeRepository 边 Repository
+     */
+    @Autowired
+    public LineageGraphWriter(LineageNodeRepository nodeRepository,
+<span class="fc" id="L67">                              LineageEdgeRepository edgeRepository) {</span>
+<span class="fc" id="L68">        this.nodeRepository = nodeRepository;</span>
+<span class="fc" id="L69">        this.edgeRepository = edgeRepository;</span>
+<span class="fc" id="L70">    }</span>
+
+    /**
+     * 写入图谱（内存 + H2 + 可选 Nebula）。
+     *
+     * @param graph 血缘图谱
+     */
+    public synchronized void write(LineageGraph graph) {
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">        if (graph == null) {</span>
+<span class="nc" id="L79">            return;</span>
+        }
+        // 1. 写内存图（仅表级边参与邻接表）
+<span class="fc bfc" id="L82" title="All 2 branches covered.">        for (LineageEdge edge : graph.getEdges()) {</span>
+<span class="fc bfc" id="L83" title="All 2 branches covered.">            if (edge.getRelationType() == LineageEdge.RelationType.TABLE_LINEAGE) {</span>
+<span class="fc" id="L84">                String src = edge.getSourceFullName();</span>
+<span class="fc" id="L85">                String tgt = edge.getTargetFullName();</span>
+<span class="fc" id="L86">                upstreamMap.computeIfAbsent(tgt, k -&gt; ConcurrentHashMap.newKeySet()).add(src);</span>
+<span class="fc" id="L87">                downstreamMap.computeIfAbsent(src, k -&gt; ConcurrentHashMap.newKeySet()).add(tgt);</span>
+<span class="fc" id="L88">                knownTables.add(src);</span>
+<span class="fc" id="L89">                knownTables.add(tgt);</span>
+            }
+<span class="fc" id="L91">        }</span>
+
+        // 2. 写 H2（节点 + 边，幂等）
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        for (LineageNode node : graph.getNodes()) {</span>
+<span class="fc" id="L95">            nodeRepository.findByFullName(node.getFullName()).ifPresentOrElse(</span>
+                    existing -&gt; {
+<span class="fc" id="L97">                        existing.setUpdatedAt(Instant.now());</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">                        if (node.getSchemaName() != null) {</span>
+<span class="nc" id="L99">                            existing.setSchemaName(node.getSchemaName());</span>
+                        }
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">                        if (node.getTableName() != null) {</span>
+<span class="fc" id="L102">                            existing.setTableName(node.getTableName());</span>
+                        }
+<span class="fc bfc" id="L104" title="All 2 branches covered.">                        if (node.getColumnName() != null) {</span>
+<span class="fc" id="L105">                            existing.setColumnName(node.getColumnName());</span>
+                        }
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">                        if (node.getDisplayName() != null) {</span>
+<span class="fc" id="L108">                            existing.setDisplayName(node.getDisplayName());</span>
+                        }
+<span class="fc" id="L110">                        nodeRepository.save(existing);</span>
+<span class="fc" id="L111">                    },</span>
+<span class="fc" id="L112">                    () -&gt; nodeRepository.save(node)</span>
+            );
+<span class="fc" id="L114">        }</span>
+<span class="fc bfc" id="L115" title="All 2 branches covered.">        for (LineageEdge edge : graph.getEdges()) {</span>
+            // 查重：同 source+target+type 不重复写
+<span class="fc" id="L117">            boolean exists = edgeRepository.findBySourceFullName(edge.getSourceFullName()).stream()</span>
+<span class="pc bnc" id="L118" title="All 2 branches missed.">                    .anyMatch(e -&gt; e.getTargetFullName().equals(edge.getTargetFullName())</span>
+<span class="nc bnc" id="L119" title="All 2 branches missed.">                            &amp;&amp; e.getRelationType() == edge.getRelationType());</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">            if (!exists) {</span>
+<span class="fc" id="L121">                edgeRepository.save(edge);</span>
+            }
+<span class="fc" id="L123">        }</span>
+
+        // 3. NebulaGraph（可选占位）
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (nebulaEnabled) {</span>
+<span class="nc" id="L127">            log.info(&quot;NebulaGraph 后端已启用 (host={})，当前版本降级为日志占位：{} 节点 {} 边&quot;,</span>
+<span class="nc" id="L128">                    nebulaHost, graph.getNodes().size(), graph.getEdges().size());</span>
+        }
+
+<span class="fc" id="L131">        log.debug(&quot;图谱写入完成: {} 节点, {} 边&quot;, graph.getNodes().size(), graph.getEdges().size());</span>
+<span class="fc" id="L132">    }</span>
+
+    /**
+     * 获取指定表的上游表集合（内存图，1 跳）。
+     *
+     * @param table 表全名
+     * @return 上游表集合
+     */
+    public Set&lt;String&gt; getDirectUpstream(String table) {
+<span class="fc" id="L141">        return upstreamMap.getOrDefault(table, new HashSet&lt;&gt;());</span>
+    }
+
+    /**
+     * 获取指定表的下游表集合（内存图，1 跳）。
+     *
+     * @param table 表全名
+     * @return 下游表集合
+     */
+    public Set&lt;String&gt; getDirectDownstream(String table) {
+<span class="fc" id="L151">        return downstreamMap.getOrDefault(table, new HashSet&lt;&gt;());</span>
+    }
+
+    /**
+     * 获取全部已知表。
+     *
+     * @return 表全名集合
+     */
+    public Set&lt;String&gt; getKnownTables() {
+<span class="fc" id="L160">        return new HashSet&lt;&gt;(knownTables);</span>
+    }
+
+    /**
+     * 获取完整下游邻接表（用于 BFS 遍历）。
+     *
+     * @return downstreamMap 副本
+     */
+    public Map&lt;String, Set&lt;String&gt;&gt; getDownstreamMap() {
+<span class="fc" id="L169">        Map&lt;String, Set&lt;String&gt;&gt; copy = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L170" title="All 2 branches covered.">        for (Map.Entry&lt;String, Set&lt;String&gt;&gt; e : downstreamMap.entrySet()) {</span>
+<span class="fc" id="L171">            copy.put(e.getKey(), new HashSet&lt;&gt;(e.getValue()));</span>
+<span class="fc" id="L172">        }</span>
+<span class="fc" id="L173">        return copy;</span>
+    }
+
+    /**
+     * 获取完整上游邻接表（用于 BFS 遍历）。
+     *
+     * @return upstreamMap 副本
+     */
+    public Map&lt;String, Set&lt;String&gt;&gt; getUpstreamMap() {
+<span class="fc" id="L182">        Map&lt;String, Set&lt;String&gt;&gt; copy = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        for (Map.Entry&lt;String, Set&lt;String&gt;&gt; e : upstreamMap.entrySet()) {</span>
+<span class="fc" id="L184">            copy.put(e.getKey(), new HashSet&lt;&gt;(e.getValue()));</span>
+<span class="fc" id="L185">        }</span>
+<span class="fc" id="L186">        return copy;</span>
+    }
+
+    /**
+     * 清空内存图与持久化存储（测试用）。
+     */
+    public synchronized void clear() {
+<span class="fc" id="L193">        upstreamMap.clear();</span>
+<span class="fc" id="L194">        downstreamMap.clear();</span>
+<span class="fc" id="L195">        knownTables.clear();</span>
+<span class="fc" id="L196">        edgeRepository.deleteAll();</span>
+<span class="fc" id="L197">        nodeRepository.deleteAll();</span>
+<span class="fc" id="L198">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

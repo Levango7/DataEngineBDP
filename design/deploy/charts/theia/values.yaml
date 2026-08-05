@@ -1,0 +1,87 @@
+# ============================================================================
+# theia Helm Chart 默认 values
+# 关联：design/deploy/values/theia-values.yaml（深度调优配置）
+# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+# ============================================================================
+
+# ---- 镜像配置 ----
+image:
+  repository: "sq-theia"
+  tag: "1.45-0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicas: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 3000
+  # 容器端口
+  containerPort: 3000
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "1"
+    memory: "2Gi"
+  limits:
+    cpu: "2"
+    memory: "4Gi"
+
+# ---- 健康检查 ----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 3000
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: 3000
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- ConfigMap 数据（从 design/deploy/values/theia-values.yaml 提取骨架）----
+config:
+  deployment:
+    mode: per-user-statefulset
+    perUserPvc:
+      enabled: true
+      storageClass: fast-ssd
+  resourceTiers:
+    light:
+      cpu: 500m
+      memory: 1Gi
+      storage: 5Gi
+    standard:
+      cpu: 2
+      memory: 4Gi
+      storage: 20Gi
+    heavy:
+      cpu: 4
+      memory: 8Gi
+      storage: 50Gi
+  scaleToZero:
+    enabled: true
+    keda:
+      metric: websocket_connections
+      idleTimeout: 30m
+  appConfig:
+    port: 3000
+    defaultWorkspace: /home/theia/workspace
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/theia-values.yaml 覆盖
+# 渲染命令： helm template theia design/deploy/charts/theia -f design/deploy/values/theia-values.yaml

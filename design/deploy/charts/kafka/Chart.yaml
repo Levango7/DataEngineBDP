@@ -1,0 +1,14 @@
+apiVersion: v2
+name: kafka
+description: Apache Kafka 消息中间件 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "3.6.1"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - kafka
+  - shuqing-platform

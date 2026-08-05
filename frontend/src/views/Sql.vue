@@ -43,11 +43,15 @@
     <div class="card" style="margin-top: 14px">
       <h3>结果预览</h3>
       <table>
-        <tr><th>city</th><th>gmv</th></tr>
-        <tr><td>上海</td><td>4.82亿</td></tr>
-        <tr><td>北京</td><td>4.31亿</td></tr>
-        <tr><td>深圳</td><td>3.77亿</td></tr>
-        <tr><td>成都</td><td>2.95亿</td></tr>
+        <thead>
+          <tr><th>city</th><th>gmv</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>上海</td><td>4.82亿</td></tr>
+          <tr><td>北京</td><td>4.31亿</td></tr>
+          <tr><td>深圳</td><td>3.77亿</td></tr>
+          <tr><td>成都</td><td>2.95亿</td></tr>
+        </tbody>
       </table>
       <div class="note">实际执行后由网关回填结果集与耗时/扫描量指标。</div>
     </div>

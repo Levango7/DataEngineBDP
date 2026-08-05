@@ -1,0 +1,23 @@
+###############################################################################
+# superset Chart 安装完成
+###############################################################################
+
+{{ .Chart.Name }}-{{ .Release.Name }} 已部署到集群。
+
+1. 获取 Pod 状态:
+   kubectl get pods -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+2. 获取 Service 信息:
+   kubectl get svc {{ include "superset.serviceName" . }} -n {{ .Release.Namespace }}
+
+3. 端口转发访问（本地调试）:
+   kubectl port-forward svc/{{ include "superset.serviceName" . }} 8088:8088 -n {{ .Release.Namespace }}
+
+4. 查看日志:
+   kubectl logs -l "app.kubernetes.io/instance={{ .Release.Name }}" -n {{ .Release.Namespace }}
+
+###############################################################################
+# 完整生产配置请引用:
+#   helm upgrade --install {{ .Release.Name }} design/deploy/charts/superset \
+#     -f design/deploy/values/superset-values.yaml -n {{ .Release.Namespace }}
+###############################################################################

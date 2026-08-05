@@ -1,0 +1,276 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CollectorController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">metadata-collector</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.collector.controller</a> &gt; <span class="el_source">CollectorController.java</span></div><h1>CollectorController.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.collector.controller;
+
+import com.shuqing.bigdata.governance.collector.collector.MetadataCollector;
+import com.shuqing.bigdata.governance.collector.model.CollectionHistory;
+import com.shuqing.bigdata.governance.collector.model.CollectionResult;
+import com.shuqing.bigdata.governance.collector.model.MetadataSource;
+import com.shuqing.bigdata.governance.collector.repository.MetadataSourceRepository;
+import com.shuqing.bigdata.governance.collector.service.CollectionSchedulerService;
+import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+/**
+ * 元数据采集 REST 控制器。
+ *
+ * &lt;p&gt;统一前缀：{@code /api/v1/metadata}&lt;/p&gt;
+ *
+ * &lt;p&gt;端点清单：
+ * &lt;ul&gt;
+ *   &lt;li&gt;POST   /sources                       — 添加数据源&lt;/li&gt;
+ *   &lt;li&gt;GET    /sources                       — 列出全部数据源&lt;/li&gt;
+ *   &lt;li&gt;GET    /sources/{id}                  — 获取单个数据源&lt;/li&gt;
+ *   &lt;li&gt;PUT    /sources/{id}                  — 更新数据源&lt;/li&gt;
+ *   &lt;li&gt;DELETE /sources/{id}                  — 删除数据源&lt;/li&gt;
+ *   &lt;li&gt;POST   /collect/{sourceId}            — 手动触发采集&lt;/li&gt;
+ *   &lt;li&gt;GET    /collect/status/{sourceId}     — 查询采集状态&lt;/li&gt;
+ *   &lt;li&gt;POST   /collect/test/{sourceId}       — 测试数据源连接&lt;/li&gt;
+ *   &lt;li&gt;POST   /collect/schedule/{sourceId}   — 注册定时采集（cron）&lt;/li&gt;
+ *   &lt;li&gt;DELETE /collect/schedule/{sourceId}   — 取消定时采集&lt;/li&gt;
+ * &lt;/ul&gt;&lt;/p&gt;
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/metadata&quot;)
+public class CollectorController {
+
+<span class="fc" id="L52">    private static final Logger log = LoggerFactory.getLogger(CollectorController.class);</span>
+
+    private final MetadataSourceRepository sourceRepository;
+    private final CollectionSchedulerService schedulerService;
+    private final List&lt;MetadataCollector&gt; collectors;
+
+    /**
+     * 构造控制器。
+     *
+     * @param sourceRepository 数据源 Repository
+     * @param schedulerService 采集调度服务
+     * @param collectors       Spring 注入的所有 Collector 实现
+     */
+    public CollectorController(MetadataSourceRepository sourceRepository,
+                               CollectionSchedulerService schedulerService,
+<span class="fc" id="L67">                               List&lt;MetadataCollector&gt; collectors) {</span>
+<span class="fc" id="L68">        this.sourceRepository = sourceRepository;</span>
+<span class="fc" id="L69">        this.schedulerService = schedulerService;</span>
+<span class="fc" id="L70">        this.collectors = collectors;</span>
+<span class="fc" id="L71">    }</span>
+
+    // ============ 数据源 CRUD ============
+
+    /**
+     * 添加数据源。
+     *
+     * @param source 数据源配置
+     * @return 创建后的数据源（含 ID），201 状态码
+     */
+    @PostMapping(&quot;/sources&quot;)
+    public ResponseEntity&lt;MetadataSource&gt; addSource(@Valid @RequestBody MetadataSource source) {
+<span class="fc" id="L83">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L84">        source.setCreatedAt(now);</span>
+<span class="fc" id="L85">        source.setUpdatedAt(now);</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (source.getStatus() == null) {</span>
+<span class="fc" id="L87">            source.setStatus(&quot;ACTIVE&quot;);</span>
+        }
+<span class="fc" id="L89">        MetadataSource saved = sourceRepository.save(source);</span>
+        // 若提供 cron，自动注册调度
+<span class="pc bpc" id="L91" title="3 of 4 branches missed.">        if (source.getCron() != null &amp;&amp; !source.getCron().isBlank()) {</span>
+<span class="nc" id="L92">            schedulerService.scheduleCollection(saved.getId(), source.getCron());</span>
+        }
+<span class="fc" id="L94">        return ResponseEntity.status(HttpStatus.CREATED).body(saved);</span>
+    }
+
+    /**
+     * 列出全部数据源。
+     *
+     * @return 数据源列表
+     */
+    @GetMapping(&quot;/sources&quot;)
+    public ResponseEntity&lt;List&lt;MetadataSource&gt;&gt; listSources() {
+<span class="fc" id="L104">        return ResponseEntity.ok(sourceRepository.findAll());</span>
+    }
+
+    /**
+     * 获取单个数据源。
+     *
+     * @param id 数据源 ID
+     * @return 数据源；不存在返回 404
+     */
+    @GetMapping(&quot;/sources/{id}&quot;)
+    public ResponseEntity&lt;MetadataSource&gt; getSource(@PathVariable Long id) {
+<span class="fc" id="L115">        return sourceRepository.findById(id)</span>
+<span class="fc" id="L116">                .map(ResponseEntity::ok)</span>
+<span class="fc" id="L117">                .orElseGet(() -&gt; ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * 更新数据源。
+     *
+     * @param id     数据源 ID
+     * @param source 新配置
+     * @return 更新后的数据源；不存在返回 404
+     */
+    @PutMapping(&quot;/sources/{id}&quot;)
+    public ResponseEntity&lt;MetadataSource&gt; updateSource(@PathVariable Long id,
+                                                       @Valid @RequestBody MetadataSource source) {
+<span class="nc" id="L130">        Optional&lt;MetadataSource&gt; existing = sourceRepository.findById(id);</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        if (existing.isEmpty()) {</span>
+<span class="nc" id="L132">            return ResponseEntity.notFound().build();</span>
+        }
+<span class="nc" id="L134">        source.setId(id);</span>
+<span class="nc" id="L135">        source.setCreatedAt(existing.get().getCreatedAt());</span>
+<span class="nc" id="L136">        source.setUpdatedAt(LocalDateTime.now());</span>
+<span class="nc" id="L137">        MetadataSource saved = sourceRepository.save(source);</span>
+        // cron 变更时重新调度
+<span class="nc bnc" id="L139" title="All 4 branches missed.">        if (source.getCron() != null &amp;&amp; !source.getCron().isBlank()) {</span>
+<span class="nc" id="L140">            schedulerService.scheduleCollection(id, source.getCron());</span>
+        } else {
+<span class="nc" id="L142">            schedulerService.unscheduleCollection(id);</span>
+        }
+<span class="nc" id="L144">        return ResponseEntity.ok(saved);</span>
+    }
+
+    /**
+     * 删除数据源。
+     *
+     * @param id 数据源 ID
+     * @return 204；不存在返回 404
+     */
+    @DeleteMapping(&quot;/sources/{id}&quot;)
+    public ResponseEntity&lt;Void&gt; deleteSource(@PathVariable Long id) {
+<span class="nc bnc" id="L155" title="All 2 branches missed.">        if (!sourceRepository.existsById(id)) {</span>
+<span class="nc" id="L156">            return ResponseEntity.notFound().build();</span>
+        }
+<span class="nc" id="L158">        schedulerService.unscheduleCollection(id);</span>
+<span class="nc" id="L159">        sourceRepository.deleteById(id);</span>
+<span class="nc" id="L160">        return ResponseEntity.noContent().build();</span>
+    }
+
+    // ============ 采集操作 ============
+
+    /**
+     * 手动触发指定数据源采集。
+     *
+     * @param sourceId 数据源 ID
+     * @return 采集结果；数据源不存在返回 404
+     */
+    @PostMapping(&quot;/collect/{sourceId}&quot;)
+    public ResponseEntity&lt;CollectionResult&gt; triggerCollection(@PathVariable Long sourceId) {
+<span class="fc" id="L173">        Optional&lt;CollectionResult&gt; result = schedulerService.triggerCollection(sourceId, &quot;MANUAL&quot;);</span>
+<span class="fc" id="L174">        return result.map(ResponseEntity::ok)</span>
+<span class="fc" id="L175">                .orElseGet(() -&gt; ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * 查询指定数据源最近采集状态。
+     *
+     * @param sourceId 数据源 ID
+     * @return 最近一条采集历史；无记录返回 404
+     */
+    @GetMapping(&quot;/collect/status/{sourceId}&quot;)
+    public ResponseEntity&lt;CollectionHistory&gt; getCollectionStatus(@PathVariable Long sourceId) {
+<span class="fc" id="L186">        return schedulerService.getCollectionStatus(sourceId)</span>
+<span class="fc" id="L187">                .map(ResponseEntity::ok)</span>
+<span class="pc" id="L188">                .orElseGet(() -&gt; ResponseEntity.notFound().build());</span>
+    }
+
+    /**
+     * 测试数据源连接。
+     *
+     * @param sourceId 数据源 ID
+     * @return {@code {&quot;connected&quot;: true/false}}；数据源不存在返回 404
+     */
+    @PostMapping(&quot;/collect/test/{sourceId}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testConnection(@PathVariable Long sourceId) {
+<span class="fc" id="L199">        Optional&lt;MetadataSource&gt; sourceOpt = sourceRepository.findById(sourceId);</span>
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">        if (sourceOpt.isEmpty()) {</span>
+<span class="nc" id="L201">            return ResponseEntity.notFound().build();</span>
+        }
+<span class="fc" id="L203">        MetadataSource source = sourceOpt.get();</span>
+<span class="fc" id="L204">        MetadataCollector collector = findCollector(source.getType());</span>
+<span class="fc" id="L205">        Map&lt;String, Object&gt; body = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L206">        body.put(&quot;sourceId&quot;, sourceId);</span>
+<span class="fc" id="L207">        body.put(&quot;sourceType&quot;, source.getType());</span>
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">        if (collector == null) {</span>
+<span class="nc" id="L209">            body.put(&quot;connected&quot;, false);</span>
+<span class="nc" id="L210">            body.put(&quot;message&quot;, &quot;No collector registered for type: &quot; + source.getType());</span>
+<span class="nc" id="L211">            return ResponseEntity.ok(body);</span>
+        }
+<span class="fc" id="L213">        boolean connected = collector.testConnection(source);</span>
+<span class="fc" id="L214">        body.put(&quot;connected&quot;, connected);</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">        body.put(&quot;message&quot;, connected ? &quot;Connection successful&quot; : &quot;Connection failed&quot;);</span>
+<span class="fc" id="L216">        return ResponseEntity.ok(body);</span>
+    }
+
+    /**
+     * 注册定时采集。
+     *
+     * @param sourceId 数据源 ID
+     * @param body     请求体，包含 {@code cron} 字段
+     * @return 注册结果
+     */
+    @PostMapping(&quot;/collect/schedule/{sourceId}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; scheduleCollection(@PathVariable Long sourceId,
+                                                                  @RequestBody Map&lt;String, String&gt; body) {
+<span class="nc" id="L229">        String cron = body.get(&quot;cron&quot;);</span>
+<span class="nc" id="L230">        boolean success = schedulerService.scheduleCollection(sourceId, cron);</span>
+<span class="nc" id="L231">        Map&lt;String, Object&gt; resp = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L232">        resp.put(&quot;sourceId&quot;, sourceId);</span>
+<span class="nc" id="L233">        resp.put(&quot;cron&quot;, cron);</span>
+<span class="nc" id="L234">        resp.put(&quot;scheduled&quot;, success);</span>
+<span class="nc bnc" id="L235" title="All 2 branches missed.">        return ResponseEntity.status(success ? HttpStatus.OK : HttpStatus.BAD_REQUEST).body(resp);</span>
+    }
+
+    /**
+     * 取消定时采集。
+     *
+     * @param sourceId 数据源 ID
+     * @return 取消结果
+     */
+    @DeleteMapping(&quot;/collect/schedule/{sourceId}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; unscheduleCollection(@PathVariable Long sourceId) {
+<span class="nc" id="L246">        boolean success = schedulerService.unscheduleCollection(sourceId);</span>
+<span class="nc" id="L247">        Map&lt;String, Object&gt; resp = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L248">        resp.put(&quot;sourceId&quot;, sourceId);</span>
+<span class="nc" id="L249">        resp.put(&quot;unscheduled&quot;, success);</span>
+<span class="nc" id="L250">        return ResponseEntity.ok(resp);</span>
+    }
+
+    /**
+     * 列出已注册的 Collector 类型。
+     *
+     * @return 类型列表
+     */
+    @GetMapping(&quot;/collectors&quot;)
+    public ResponseEntity&lt;List&lt;String&gt;&gt; listCollectors() {
+<span class="fc" id="L260">        return ResponseEntity.ok(schedulerService.getRegisteredTypes());</span>
+    }
+
+    /**
+     * 按 type 查找 Collector。
+     *
+     * @param type 数据源类型
+     * @return Collector；未找到返回 null
+     */
+    private MetadataCollector findCollector(String type) {
+<span class="fc" id="L270">        return collectors.stream()</span>
+<span class="fc" id="L271">                .filter(c -&gt; c.getType().equalsIgnoreCase(type))</span>
+<span class="fc" id="L272">                .findFirst()</span>
+<span class="fc" id="L273">                .orElse(null);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "iotdb.configmapName" . }}
+  labels:
+    {{- include "iotdb.labels" . | nindent 4 }}
+data:
+  {{- range $key, $val := .Values.config }}
+  {{ $key }}: {{ $val | toString | quote }}
+  {{- end }}

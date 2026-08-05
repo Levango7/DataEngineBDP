@@ -1,0 +1,26 @@
+# 编译产物
+*.exe
+*.dll
+*.so
+*.dylib
+
+# 依赖与构建目录
+vendor/
+bin/
+
+# Go 工作区文件
+go.work
+go.work.sum
+
+# IDE / 编辑器
+.idea/
+.vscode/
+*.swp
+
+# 测试覆盖率
+*.out
+coverage.txt
+
+# 操作系统
+.DS_Store
+Thumbs.db

@@ -1,0 +1,14 @@
+apiVersion: v2
+name: trino
+description: Trino 联邦查询引擎 - 数擎大数据平台
+type: application
+version: 0.1.0
+appVersion: "428"
+home: https://github.com/ShuqingBigDataPlatform
+maintainers:
+  - name: ShuqingBigDataPlatform Team
+    email: platform@shuqing.example.com
+keywords:
+  - big-data
+  - trino
+  - shuqing-platform

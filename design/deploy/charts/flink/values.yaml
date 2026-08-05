@@ -1,0 +1,72 @@
+# ============================================================================
+# flink Helm Chart 默认 values
+# 关联：design/deploy/values/flink-values.yaml（深度调优配置）
+# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+# ============================================================================
+
+# ---- 镜像配置 ----
+image:
+  repository: "sq-flink"
+  tag: "1.18-0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicas: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8081
+  # 容器端口
+  containerPort: 8081
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "1"
+    memory: "2Gi"
+  limits:
+    cpu: "2"
+    memory: "4Gi"
+
+# ---- 健康检查 ----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 8081
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: 8081
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- ConfigMap 数据（从 design/deploy/values/flink-values.yaml 提取骨架）----
+config:
+  stateBackend:
+    type: rocksdb
+    incremental: true
+  checkpoint:
+    interval: 60s
+    timeout: 10m
+    externalized: true
+  network:
+    netty:
+      numNetworkBuffers: 2048
+      segmentSize: 32KB
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/flink-values.yaml 覆盖
+# 渲染命令： helm template flink design/deploy/charts/flink -f design/deploy/values/flink-values.yaml
