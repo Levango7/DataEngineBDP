@@ -38,10 +38,10 @@ RUN chown -R app:app /app
 
 USER app
 
-EXPOSE 8084
+EXPOSE 8086
 
 # 健康检查（容器层）。
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:8084/health || exit 1
+    CMD wget -qO- http://127.0.0.1:8086/health || exit 1
 
 ENTRYPOINT ["/app/vector-engine"]

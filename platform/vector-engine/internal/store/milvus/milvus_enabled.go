@@ -34,22 +34,22 @@ import (
 
 // 集合 Schema 字段命名约定。
 const (
-	fieldID       = "id"       // 主键字段名
-	fieldVector   = "vector"   // 向量字段名
-	fieldMetadata = "metadata" // 元数据字段名（JSON）
-	idMaxLength   = 65535      // VarChar 主键最大长度
-	shardNum      = 2          // 默认分片数
+	fieldID        = "id"             // 主键字段名
+	fieldVector    = "vector"         // 向量字段名
+	fieldMetadata  = "metadata"       // 元数据字段名（JSON）
+	idMaxLength    = 65535            // VarChar 主键最大长度
+	shardNum       = 2                // 默认分片数
 	connectTimeout = 10 * time.Second // 连接超时
 )
 
 // 默认索引参数。
 const (
-	defaultNlist          = 128 // IVF 系列索引的 nlist
-	defaultNprobe         = 10  // IVF 系列检索的 nprobe
-	defaultHNSWM          = 16  // HNSW 的 M
+	defaultNlist           = 128 // IVF 系列索引的 nlist
+	defaultNprobe          = 10  // IVF 系列检索的 nprobe
+	defaultHNSWM           = 16  // HNSW 的 M
 	defaultHNSWEfConstruct = 200 // HNSW 的 efConstruction
-	defaultHNSWEf         = 64  // HNSW 检索的 ef
-	defaultPQNbits        = 8   // IVF_PQ 的 nbits
+	defaultHNSWEf          = 64  // HNSW 检索的 ef
+	defaultPQNbits         = 8   // IVF_PQ 的 nbits
 )
 
 // open 在 milvus_enabled 构建下连接真实 Milvus 实例。
