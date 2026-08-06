@@ -78,6 +78,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- sshj：通过 SSH 远程执行 kubeadm 命令（信创节点装机后 SSH 到目标主机） -->
+        <dependency>
+            <groupId>com.hierynomus</groupId>
+            <artifactId>sshj</artifactId>
+            <version>0.38.0</version>
+        </dependency>
+
         <!-- Spring Data JPA：持久化集群元数据 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -30,6 +32,9 @@ func init() {
 }
 
 // runApply 执行 apply 子命令逻辑。
+//
+// 当已配置 platform_url 时，通过封装层 API（POST /api/v1/tenants）提交资源声明；
+// 未配置时降级为本地模拟输出，保证 CLI 在离线状态下仍可完成 dry-run 与文件校验。
 func runApply(cmd *cobra.Command, args []string) error {
 	if applyFile == "" {
 		return fmt.Errorf("必须使用 -f 指定配置文件")
@@ -50,8 +55,31 @@ func runApply(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// MVP 阶段：调用 API 创建/更新资源，此处返回模拟结果。
+	c := getClient()
+	if c == nil {
+		// 未配置 platform_url，降级为本地模拟输出。
+		fmt.Fprintln(cmd.ErrOrStderr(), "[提示] 未配置 platform_url，以下为模拟结果。请运行 dqctl init 配置后端地址。")
+		fmt.Printf("apply 完成：已处理资源定义文件 %s\n", applyFile)
+		return nil
+	}
+
+	// 调用封装层 API 创建/更新资源。
+	// 将声明式文件内容作为 payload 提交，封装层负责解析 YAML 并路由到对应资源端点。
+	resp, err := c.Post("/api/v1/tenants", map[string]interface{}{
+		"source":  "dqctl",
+		"file":    applyFile,
+		"content": string(data),
+	})
+	if err != nil {
+		return fmt.Errorf("调用封装层 API 失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("封装层 API 返回错误: HTTP %d, body=%s", resp.StatusCode, string(body))
+	}
+
 	fmt.Printf("apply 完成：已处理资源定义文件 %s\n", applyFile)
-	fmt.Println("(MVP 阶段：API 调用返回模拟结果)")
 	return nil
 }

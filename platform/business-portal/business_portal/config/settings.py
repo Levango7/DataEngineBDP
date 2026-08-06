@@ -5,7 +5,8 @@
     BP_PORT              监听端口（默认 8084）
     BP_LOG_LEVEL         日志级别（默认 info）
     BP_RELOAD            开发模式热重载（默认 false）
-    BP_STORE_TYPE        存储类型: mock / sqlite（默认 mock）
+    BP_STORE_TYPE        存储类型: mock / sqlite（默认 sqlite）
+    BP_DB_PATH           SQLite 数据库文件路径（默认 data/business_portal.db）
     BP_API_PREFIX        API 路由前缀（默认 /api/v1）
     BP_INTERNAL_FACTOR   内部结算系数（默认 0.3，§11.5 定价模型）
     BP_BUDGET_SOFT_LIMIT 预算软限制开关（默认 true，超限告警不阻断）
@@ -38,7 +39,11 @@ class Settings(BaseSettings):
 
     # ---- store ----
     storeType: Literal["mock", "sqlite"] = Field(
-        default="mock", description="存储类型: mock / sqlite"
+        default="sqlite", description="存储类型: mock / sqlite"
+    )
+    dbPath: str = Field(
+        default="data/business_portal.db",
+        description="SQLite 数据库文件路径（storeType=sqlite 时生效）",
     )
 
     # ---- api ----

@@ -54,8 +54,12 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
 
     if settings.isMock:
         bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock()
+    elif settings.isSqlite:
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_sqlite(
+            settings.dbPath
+        )
     else:
-        # SQLite 暂未实现，回退到 Mock
+        # 兜底：未知类型回退 Mock
         bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock()
 
     bl_service = BusinessLineService(bl_store)
@@ -99,6 +103,40 @@ def _build_mock() -> tuple[
     workbench_store = MockWorkbenchStore()
     catalog_store = MockCatalogStore()
     report_store = MockReportStore()
+    return (
+        bl_store,
+        dashboard_store,
+        workbench_store,
+        catalog_store,
+        report_store,
+    )
+
+
+def _build_sqlite(
+    db_path: str,
+) -> tuple[
+    BusinessLineStore,
+    DashboardStore,
+    WorkbenchStore,
+    CatalogStore,
+    ReportStore,
+]:
+    from business_portal.repositories.sqlite import (
+        SQLiteBusinessLineStore,
+        SQLiteCatalogStore,
+        SQLiteConnection,
+        SQLiteDashboardStore,
+        SQLiteReportStore,
+        SQLiteWorkbenchStore,
+    )
+
+    conn = SQLiteConnection(db_path)
+    conn.init_schema()
+    bl_store = SQLiteBusinessLineStore(conn)
+    dashboard_store = SQLiteDashboardStore(bl_store)
+    workbench_store = SQLiteWorkbenchStore(conn)
+    catalog_store = SQLiteCatalogStore(conn)
+    report_store = SQLiteReportStore(conn)
     return (
         bl_store,
         dashboard_store,

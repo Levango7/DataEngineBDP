@@ -21,6 +21,14 @@ import (
 	"github.com/shuqing/bigdata/vector-engine/internal/store"
 )
 
+// open 在默认构建下为空操作。
+//
+// 默认构建不链接 Milvus Go SDK，故无需也无法建立连接。
+// 真实连接逻辑位于 milvus_enabled.go（build tag milvus_enabled）。
+func (s *MilvusVectorStore) open() error {
+	return nil
+}
+
 // CreateCollection 创建向量集合。
 func (s *MilvusVectorStore) CreateCollection(_ context.Context, _ store.CreateCollectionRequest) error {
 	return ErrNotImplemented

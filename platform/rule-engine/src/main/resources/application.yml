@@ -62,3 +62,36 @@ app:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
+  rule-engine:
+    # DQ 规则执行器：质量检查数据源配置
+    # 默认复用主数据源（spring.datasource）；可通过下方独立配置覆盖以隔离检查库
+    dq:
+      # 是否启用独立 DQ 检查数据源；false 时复用主数据源 JdbcTemplate
+      dedicated-datasource-enabled: ${DQ_DEDICATED_DS:false}
+      datasource:
+        url: ${DQ_DB_URL:jdbc:h2:file:./data/rule-engine-dq-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+        username: ${DQ_DB_USERNAME:sa}
+        password: ${DQ_DB_PASSWORD:}
+        driver-class-name: ${DQ_DB_DRIVER:org.h2.Driver}
+      # SQL 执行超时（秒），0 表示使用 JDBC 默认
+      query-timeout-seconds: ${DQ_QUERY_TIMEOUT:30}
+    # ALERT 规则执行器：告警通知通道配置
+    alert:
+      # Webhook 通知（后续实现，当前仅日志）
+      webhook:
+        enabled: ${ALERT_WEBHOOK_ENABLED:false}
+        url: ${ALERT_WEBHOOK_URL:}
+        # 连接超时（毫秒）
+        connect-timeout-ms: ${ALERT_WEBHOOK_CONNECT_TIMEOUT:3000}
+        # 读取超时（毫秒）
+        read-timeout-ms: ${ALERT_WEBHOOK_READ_TIMEOUT:5000}
+      # 邮件通知（后续实现）
+      email:
+        enabled: ${ALERT_EMAIL_ENABLED:false}
+        from: ${ALERT_EMAIL_FROM:rule-engine@shuqing.local}
+    # MASK 规则执行器：脱敏默认参数
+    mask:
+      # 默认掩码字符
+      default-mask-char: ${MASK_DEFAULT_CHAR:*}
+      # 哈希默认算法
+      default-hash-algorithm: ${MASK_DEFAULT_HASH:SHA-256}

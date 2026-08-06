@@ -19,7 +19,7 @@ class RuleExecutionResultTest {
         RuleExecutionResult result = RuleExecutionResult.builder()
                 .ruleId(1L)
                 .status("PASS")
-                .message("SIMULATED")
+                .message("DQ_CHECK_PASSED")
                 .details(Map.of("type", "DQ"))
                 .durationMs(10L)
                 .executedAt(LocalDateTime.now())
@@ -27,7 +27,7 @@ class RuleExecutionResultTest {
 
         assertThat(result.getRuleId()).isEqualTo(1L);
         assertThat(result.getStatus()).isEqualTo("PASS");
-        assertThat(result.getMessage()).isEqualTo("SIMULATED");
+        assertThat(result.getMessage()).isEqualTo("DQ_CHECK_PASSED");
         assertThat(result.getDetails()).containsEntry("type", "DQ");
         assertThat(result.getDurationMs()).isEqualTo(10L);
         assertThat(result.getExecutedAt()).isNotNull();

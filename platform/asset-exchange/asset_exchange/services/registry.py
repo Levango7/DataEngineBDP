@@ -1,7 +1,7 @@
-"""服务注册表 - 根据配置构建 Mock 实现并注入服务层.
+"""服务注册表 - 根据配置构建 Mock / SQLite 实现并注入服务层.
 
 设计模式：依赖注入 + 工厂。
-配置开关：ASSET_EXCHANGE_STORE_TYPE=mock
+配置开关：ASSET_EXCHANGE_STORE_TYPE=mock | sqlite
 """
 from __future__ import annotations
 
@@ -50,8 +50,12 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
 
     if settings.isMock:
         asset_repo, sub_repo, delivery_repo, billing_repo = _build_mock()
+    elif settings.isSQLite:
+        asset_repo, sub_repo, delivery_repo, billing_repo = _build_sqlite(
+            settings.dbPath
+        )
     else:
-        # 未来扩展其他实现
+        # 兜底：未知类型回退 Mock
         asset_repo, sub_repo, delivery_repo, billing_repo = _build_mock()
 
     asset_service = AssetService(asset_repo, sub_repo)
@@ -97,4 +101,30 @@ def _build_mock() -> tuple[
         MockSubscriptionRepository(),
         MockDeliveryRepository(),
         MockBillingRepository(),
+    )
+
+
+def _build_sqlite(
+    db_path: str,
+) -> tuple[
+    AssetRepository,
+    SubscriptionRepository,
+    DeliveryRepository,
+    BillingRepository,
+]:
+    from asset_exchange.repositories.sqlite import (
+        SQLiteAssetRepository,
+        SQLiteBillingRepository,
+        SQLiteConnection,
+        SQLiteDeliveryRepository,
+        SQLiteSubscriptionRepository,
+    )
+
+    conn = SQLiteConnection(db_path)
+    conn.init_schema()
+    return (
+        SQLiteAssetRepository(conn),
+        SQLiteSubscriptionRepository(conn),
+        SQLiteDeliveryRepository(conn),
+        SQLiteBillingRepository(conn),
     )

@@ -14,8 +14,18 @@ import (
 	"github.com/shuqing/bigdata/vector-engine/internal/store/milvus"
 )
 
+// newMilvusStore 创建真实 Milvus 存储实例。
+//
+// 连接参数来自配置（MILVUS_HOST/PORT/DATABASE/USERNAME/PASSWORD）。
+// 连接失败时返回 nil，由 newMilvusStoreOrFallback 回退到 Mock。
 func newMilvusStore(cfg *config.Config) store.VectorStore {
-	s, err := milvus.NewMilvusVectorStore(cfg.Milvus.Host, cfg.Milvus.Port, cfg.Milvus.Database)
+	s, err := milvus.NewMilvusVectorStore(
+		cfg.Milvus.Host,
+		cfg.Milvus.Port,
+		cfg.Milvus.Database,
+		cfg.Milvus.Username,
+		cfg.Milvus.Password,
+	)
 	if err != nil {
 		log.Printf("[vector-engine] failed to create milvus store: %v", err)
 		return nil

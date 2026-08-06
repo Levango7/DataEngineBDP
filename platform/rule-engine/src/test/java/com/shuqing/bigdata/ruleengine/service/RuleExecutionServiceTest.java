@@ -21,6 +21,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * RuleExecutionService 单元测试。
+ *
+ * <p>注入真实执行器（无 JdbcTemplate），验证 DQ/ALERT/MASK 真实执行路径及错误分支。</p>
  */
 @ExtendWith(MockitoExtension.class)
 class RuleExecutionServiceTest {
@@ -32,7 +34,7 @@ class RuleExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        // 手动构造，注入真实的执行器列表
+        // 手动构造，注入真实的执行器列表（DQ 无 JdbcTemplate，仅支持条件模式）
         ruleExecutionService = new RuleExecutionService(
                 ruleService,
                 List.of(new DqRuleExecutor(), new MaskRuleExecutor(), new AlertRuleExecutor())
@@ -40,16 +42,16 @@ class RuleExecutionServiceTest {
     }
 
     @Test
-    @DisplayName("execute — DQ规则执行成功")
-    void execute_dqRule_shouldReturnPass() {
+    @DisplayName("execute — DQ规则条件模式执行成功(PASS)")
+    void execute_dqRule_conditionNotTriggered_shouldReturnPass() {
         Rule rule = new Rule();
         rule.setId(1L);
         rule.setType("DQ");
-        rule.setExpression("NOT NULL");
+        rule.setExpression("nullCount > 0");
 
         RuleExecutionRequest request = new RuleExecutionRequest();
         request.setRuleId(1L);
-        request.setContext(Map.of());
+        request.setContext(Map.of("nullCount", 0)); // 无违规
 
         when(ruleService.getById(1L)).thenReturn(rule);
 
@@ -57,21 +59,42 @@ class RuleExecutionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo("PASS");
-        assertThat(result.getMessage()).isEqualTo("SIMULATED");
+        assertThat(result.getMessage()).isEqualTo("DQ_CHECK_PASSED");
         assertThat(result.getRuleId()).isEqualTo(1L);
     }
 
     @Test
-    @DisplayName("execute — MASK规则执行成功")
+    @DisplayName("execute — DQ规则条件模式发现违规返回FAIL")
+    void execute_dqRule_conditionTriggered_shouldReturnFail() {
+        Rule rule = new Rule();
+        rule.setId(1L);
+        rule.setType("DQ");
+        rule.setExpression("nullCount > 0");
+
+        RuleExecutionRequest request = new RuleExecutionRequest();
+        request.setRuleId(1L);
+        request.setContext(Map.of("nullCount", 5)); // 有违规
+
+        when(ruleService.getById(1L)).thenReturn(rule);
+
+        RuleExecutionResult result = ruleExecutionService.execute(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo("FAIL");
+        assertThat(result.getMessage()).isEqualTo("DQ_CHECK_FAILED");
+    }
+
+    @Test
+    @DisplayName("execute — MASK规则脱敏执行成功(PASS)")
     void execute_maskRule_shouldReturnPass() {
         Rule rule = new Rule();
         rule.setId(2L);
         rule.setType("MASK");
-        rule.setExpression("PHONE_MASK");
+        rule.setExpression("mask:3,4");
 
         RuleExecutionRequest request = new RuleExecutionRequest();
         request.setRuleId(2L);
-        request.setContext(Map.of("column", "phone"));
+        request.setContext(Map.of("input", "13812345678"));
 
         when(ruleService.getById(2L)).thenReturn(rule);
 
@@ -79,19 +102,22 @@ class RuleExecutionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo("PASS");
+        assertThat(result.getMessage()).isEqualTo("MASK_APPLIED");
         assertThat(result.getRuleId()).isEqualTo(2L);
+        assertThat(result.getDetails()).containsEntry("maskedValue", "138****5678");
     }
 
     @Test
-    @DisplayName("execute — ALERT规则执行成功")
-    void execute_alertRule_shouldReturnPass() {
+    @DisplayName("execute — ALERT规则未触发返回PASS")
+    void execute_alertRule_notTriggered_shouldReturnPass() {
         Rule rule = new Rule();
         rule.setId(3L);
         rule.setType("ALERT");
-        rule.setExpression("THRESHOLD > 100");
+        rule.setExpression("errorRate > 0.05");
 
         RuleExecutionRequest request = new RuleExecutionRequest();
         request.setRuleId(3L);
+        request.setContext(Map.of("errorRate", 0.01)); // 未触发
 
         when(ruleService.getById(3L)).thenReturn(rule);
 
@@ -99,7 +125,50 @@ class RuleExecutionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo("PASS");
+        assertThat(result.getMessage()).isEqualTo("ALERT_NOT_TRIGGERED");
         assertThat(result.getRuleId()).isEqualTo(3L);
+    }
+
+    @Test
+    @DisplayName("execute — ALERT规则触发返回FAIL")
+    void execute_alertRule_triggered_shouldReturnFail() {
+        Rule rule = new Rule();
+        rule.setId(3L);
+        rule.setType("ALERT");
+        rule.setExpression("errorRate > 0.05");
+
+        RuleExecutionRequest request = new RuleExecutionRequest();
+        request.setRuleId(3L);
+        request.setContext(Map.of("errorRate", 0.1)); // 触发
+
+        when(ruleService.getById(3L)).thenReturn(rule);
+
+        RuleExecutionResult result = ruleExecutionService.execute(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo("FAIL");
+        assertThat(result.getMessage()).isEqualTo("ALERT_TRIGGERED");
+    }
+
+    @Test
+    @DisplayName("execute — ALERT规则缺少指标值返回PASS(无法评估)")
+    void execute_alertRule_metricMissing_shouldReturnPass() {
+        Rule rule = new Rule();
+        rule.setId(3L);
+        rule.setType("ALERT");
+        rule.setExpression("errorRate > 0.05");
+
+        RuleExecutionRequest request = new RuleExecutionRequest();
+        request.setRuleId(3L);
+        // context 未设置 → null → 无法评估 → PASS
+
+        when(ruleService.getById(3L)).thenReturn(rule);
+
+        RuleExecutionResult result = ruleExecutionService.execute(request);
+
+        assertThat(result).isNotNull();
+        assertThat(result.getStatus()).isEqualTo("PASS");
+        assertThat(result.getMessage()).isEqualTo("ALERT_NOT_EVALUATED");
     }
 
     @Test
@@ -142,10 +211,11 @@ class RuleExecutionServiceTest {
         Rule rule = new Rule();
         rule.setId(1L);
         rule.setType("DQ");
-        rule.setExpression("NOT NULL");
+        rule.setExpression("nullCount > 0");
 
         RuleExecutionRequest request = new RuleExecutionRequest();
         request.setRuleId(1L);
+        request.setContext(Map.of("nullCount", 0));
 
         when(ruleService.getById(1L)).thenReturn(rule);
 

@@ -123,6 +123,13 @@
             </exclusions>
         </dependency>
 
+        <!-- NebulaGraph Java 客户端：可选图存储后端，nebula.enabled=true 时启用 -->
+        <dependency>
+            <groupId>com.vesoft</groupId>
+            <artifactId>client</artifactId>
+            <version>3.8.4</version>
+        </dependency>
+
         <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>

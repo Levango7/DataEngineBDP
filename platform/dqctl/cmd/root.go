@@ -11,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/shuqing/bigdata/dqctl/internal/client"
 	"github.com/shuqing/bigdata/dqctl/internal/config"
 )
 
@@ -86,4 +87,15 @@ func loadConfig() error {
 	}
 
 	return nil
+}
+
+// getClient 根据全局配置构造 API 客户端。
+//
+// 当未配置 platform_url（globalCfg 为空或 PlatformURL 为空字符串）时返回 nil，
+// 调用方应据此降级为本地模拟输出，以保证 CLI 在离线/未初始化状态下仍可用。
+func getClient() *client.Client {
+	if globalCfg == nil || globalCfg.PlatformURL == "" {
+		return nil
+	}
+	return client.NewClient(globalCfg.PlatformURL, globalCfg.TenantID, globalCfg.Token)
 }

@@ -52,8 +52,9 @@ vector-engine/
 │       │   ├── mock.go
 │       │   └── mock_test.go
 │       └── milvus/            # Milvus 实现
-│           ├── milvus.go          # 骨架（默认构建）
-│           └── milvus_enabled.go # 真实实现（build tag）
+│           ├── milvus_common.go    # 类型定义与构造器（所有构建）
+│           ├── milvus.go           # 骨架（默认构建，返回 ErrNotImplemented）
+│           └── milvus_enabled.go  # 真实实现（build tag milvus_enabled，链接 SDK）
 ```
 
 ## API 端点
@@ -85,20 +86,85 @@ vector-engine/
 | `MILVUS_USERNAME` | - | Milvus 认证用户名 |
 | `MILVUS_PASSWORD` | - | Milvus 认证密码 |
 
+## Milvus 启用
+
+默认构建使用 Mock 实现（零外部依赖）。生产环境通过 build tag `milvus_enabled` 链接真实 Milvus Go SDK。
+
+### 构建方式
+
+```bash
+# 默认构建（Mock，无需 Milvus 服务）
+go build ./...
+go test ./...
+
+# Milvus 构建（链接真实 SDK）
+go build -tags milvus_enabled ./...
+go vet -tags milvus_enabled ./...
+```
+
+### 运行方式
+
+```bash
+# Mock 模式（默认）
+STORE_TYPE=mock ./vector-engine
+
+# Milvus 模式（需先用 -tags milvus_enabled 构建，并启动 Milvus 服务）
+STORE_TYPE=milvus \
+  MILVUS_HOST=127.0.0.1 \
+  MILVUS_PORT=19530 \
+  MILVUS_DATABASE=default \
+  MILVUS_USERNAME=root \
+  MILVUS_PASSWORD=milvus \
+  ./vector-engine
+```
+
+若 `STORE_TYPE=milvus` 但未用 `milvus_enabled` 构建，服务会回退到 Mock 并打印告警。
+
+### Milvus 集合 Schema 约定
+
+每个向量集合在 Milvus 中映射为三字段 Schema：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `id` | VarChar(65535) 主键 | 向量 ID（字符串） |
+| `vector` | FloatVector(dim) | 向量数据 |
+| `metadata` | JSON | 元数据 map |
+
+索引在 `vector` 字段上创建，类型与参数由 `CreateCollectionRequest.IndexType` 决定：
+
+| IndexType | Milvus 索引 | 默认参数 |
+|-----------|-------------|----------|
+| `FLAT` | FLAT | - |
+| `IVF_FLAT` | IVF_FLAT | nlist=128, nprobe=10 |
+| `HNSW` | HNSW | M=16, efConstruction=200, ef=64 |
+| `IVF_PQ` | IVF_PQ | nlist=128, m=auto(dim), nbits=8, nprobe=10 |
+
+度量类型（L2/IP/COSINE）直接映射到 Milvus 的 `entity.MetricType`，常量值一致。
+
+### 标量过滤表达式
+
+`Search.Filter` 与 `HybridSearch.Filter` 使用 [Milvus 表达式语法](https://milvus.io/docs/boolean.md)，例如：
+
+- `color == "red"`
+- `age > 18 && category == "news"`
+- `tags like "%AI%"`
+
 ## 开发
 
 ```bash
-# 编译
+# 编译（默认 Mock）
 go build ./...
 
-# 测试
+# 编译（Milvus 真实实现）
+go build -tags milvus_enabled ./...
+
+# 测试（使用 Mock，无需外部服务）
 go test ./...
 
 # 运行（Mock 模式）
-go run . 
+go run .
 
-# 运行（Milvus 模式，需安装 SDK 并启用 build tag）
-go build -tags milvus_enabled
+# 运行（Milvus 模式）
 STORE_TYPE=milvus MILVUS_HOST=127.0.0.1 MILVUS_PORT=19530 ./vector-engine
 ```
 
@@ -106,6 +172,8 @@ STORE_TYPE=milvus MILVUS_HOST=127.0.0.1 MILVUS_PORT=19530 ./vector-engine
 
 1. **接口抽象**：`VectorStore` 接口定义全部能力，上层不感知具体后端
 2. **Mock 优先**：默认构建使用 Mock 实现，零外部依赖，CI 友好
-3. **Build tag 隔离**：Milvus SDK 通过 `milvus_enabled` tag 隔离，未安装 SDK 也能编译
-4. **深拷贝防护**：Mock 实现对插入的向量做深拷贝，避免外部修改污染内部状态
-5. **哨兵错误**：使用 `errors.Is` 友好的哨兵错误，便于上层精确判别
+3. **Build tag 隔离**：Milvus SDK 通过 `milvus_enabled` tag 隔离，未启用时不链接 SDK，默认构建无需安装 SDK 即可编译
+4. **真实 SDK 集成**：启用 `milvus_enabled` 后，`internal/store/milvus/milvus_enabled.go` 委托 Milvus Go SDK v2.4.2 实现集合 CRUD、向量插入、ANN 检索与混合检索
+5. **深拷贝防护**：Mock 实现对插入的向量做深拷贝，避免外部修改污染内部状态
+6. **哨兵错误**：使用 `errors.Is` 友好的哨兵错误（`ErrCollectionNotFound`/`ErrCollectionAlreadyExists`/`ErrInvalidDimension` 等），Mock 与 Milvus 实现保持一致
+7. **元信息反查**：Milvus 实现通过 `DescribeCollection` + `DescribeIndex` 反查维度/度量类型/索引类型，无需本地缓存，支持跨重启一致性

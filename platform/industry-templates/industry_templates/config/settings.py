@@ -7,6 +7,10 @@
     INDUSTRY_TEMPLATES_RELOAD        开发模式热重载（默认 false）
     INDUSTRY_TEMPLATES_API_PREFIX    API 路由前缀（默认 /api/v1）
     INDUSTRY_TEMPLATES_DEPLOY_MODE   部署模式: mock / helm（默认 mock）
+    INDUSTRY_TEMPLATES_HELM_BIN      helm 二进制路径（默认 helm）
+    INDUSTRY_TEMPLATES_HELM_KUBECONFIG KUBECONFIG 路径（可选）
+    INDUSTRY_TEMPLATES_HELM_TIMEOUT  helm 命令超时秒数（默认 600）
+    INDUSTRY_TEMPLATES_CHART_BASE    Chart 查找基础路径（默认 ./charts）
 """
 from __future__ import annotations
 
@@ -40,6 +44,17 @@ class Settings(BaseSettings):
     # ---- deploy ----
     deployMode: Literal["mock", "helm"] = Field(
         default="mock", description="部署模式: mock / helm"
+    )
+    # ---- helm ----
+    helmBin: str = Field(default="helm", description="helm 二进制路径")
+    helmKubeconfig: str = Field(
+        default="", description="KUBECONFIG 路径（空表示使用默认）"
+    )
+    helmTimeout: int = Field(
+        default=600, ge=1, description="helm 命令超时秒数"
+    )
+    chartBase: str = Field(
+        default="./charts", description="Chart 查找基础路径"
     )
 
     @field_validator("logLevel")

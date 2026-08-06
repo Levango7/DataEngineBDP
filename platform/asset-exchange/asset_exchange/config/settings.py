@@ -5,7 +5,8 @@
     ASSET_EXCHANGE_PORT              监听端口（默认 8086）
     ASSET_EXCHANGE_LOG_LEVEL         日志级别（默认 info）
     ASSET_EXCHANGE_RELOAD            开发模式热重载（默认 false）
-    ASSET_EXCHANGE_STORE_TYPE        存储类型: mock（默认 mock）
+    ASSET_EXCHANGE_STORE_TYPE        存储类型: mock / sqlite（默认 sqlite）
+    ASSET_EXCHANGE_DB_PATH           SQLite 数据库文件路径（默认 data/asset_exchange.db）
     ASSET_EXCHANGE_API_PREFIX        API 路由前缀（默认 /api/v1）
     ASSET_EXCHANGE_PROVIDER_SHARE    提供方收益分成（默认 0.8）
     ASSET_EXCHANGE_PLATFORM_SHARE    平台抽成（默认 0.2）
@@ -38,8 +39,12 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- store ----
-    storeType: Literal["mock"] = Field(
-        default="mock", description="存储类型: mock"
+    storeType: Literal["mock", "sqlite"] = Field(
+        default="sqlite", description="存储类型: mock / sqlite"
+    )
+    dbPath: str = Field(
+        default="data/asset_exchange.db",
+        description="SQLite 数据库文件路径（storeType=sqlite 时生效）",
     )
 
     # ---- api ----
@@ -79,6 +84,11 @@ class Settings(BaseSettings):
     def isMock(self) -> bool:
         """是否 Mock 模式."""
         return self.storeType == "mock"
+
+    @property
+    def isSQLite(self) -> bool:
+        """是否 SQLite 模式."""
+        return self.storeType == "sqlite"
 
 
 @lru_cache(maxsize=1)

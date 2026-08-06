@@ -141,7 +141,7 @@ class RuleControllerTest {
         RuleExecutionResult result = RuleExecutionResult.builder()
                 .ruleId(1L)
                 .status("PASS")
-                .message("SIMULATED")
+                .message("DQ_CHECK_PASSED")
                 .durationMs(10L)
                 .executedAt(LocalDateTime.now())
                 .build();

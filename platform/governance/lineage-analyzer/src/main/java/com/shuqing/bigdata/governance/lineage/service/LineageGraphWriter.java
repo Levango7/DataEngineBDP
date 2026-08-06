@@ -5,6 +5,7 @@ import com.shuqing.bigdata.governance.lineage.model.LineageGraph;
 import com.shuqing.bigdata.governance.lineage.model.LineageNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,7 +26,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li><b>H2/JPA</b>：通过 {@link LineageNodeRepository}/{@link LineageEdgeRepository}
  *       持久化，重启后可恢复</li>
  *   <li><b>NebulaGraph</b>（可选）：通过配置 {@code nebula.enabled=true} 启用，
- *       当前版本预留接口，实际写入降级为日志</li>
+ *       由 {@link NebulaGraphClient} 执行真实 nGQL 写入（INSERT VERTEX/EDGE），
+ *       写入失败时降级为 H2-only，不影响主流程</li>
  * </ul>
  *
  * <p>内存图结构：{@code upstreamMap} 键为目标表，值为上游表集合；
@@ -40,6 +42,8 @@ public class LineageGraphWriter {
 
     private final LineageNodeRepository nodeRepository;
     private final LineageEdgeRepository edgeRepository;
+    /** NebulaGraph 可选图存储后端客户端（仅 nebula.enabled=true 时存在） */
+    private final NebulaGraphClient nebulaClient;
 
     /** 内存图：target → {source1, source2, ...} 上游 */
     private final Map<String, Set<String>> upstreamMap = new ConcurrentHashMap<>();
@@ -52,21 +56,20 @@ public class LineageGraphWriter {
     @Value("${nebula.enabled:false}")
     private boolean nebulaEnabled;
 
-    /** NebulaGraph host（仅日志占位） */
-    @Value("${nebula.host:127.0.0.1}")
-    private String nebulaHost;
-
     /**
      * 构造写入器。
      *
-     * @param nodeRepository 节点 Repository
-     * @param edgeRepository 边 Repository
+     * @param nodeRepository       节点 Repository
+     * @param edgeRepository       边 Repository
+     * @param nebulaClientProvider NebulaGraph 客户端 Provider（nebula.enabled=false 时为空）
      */
     @Autowired
     public LineageGraphWriter(LineageNodeRepository nodeRepository,
-                              LineageEdgeRepository edgeRepository) {
+                              LineageEdgeRepository edgeRepository,
+                              ObjectProvider<NebulaGraphClient> nebulaClientProvider) {
         this.nodeRepository = nodeRepository;
         this.edgeRepository = edgeRepository;
+        this.nebulaClient = nebulaClientProvider.getIfAvailable();
     }
 
     /**
@@ -122,10 +125,23 @@ public class LineageGraphWriter {
             }
         }
 
-        // 3. NebulaGraph（可选占位）
-        if (nebulaEnabled) {
-            log.info("NebulaGraph 后端已启用 (host={})，当前版本降级为日志占位：{} 节点 {} 边",
-                    nebulaHost, graph.getNodes().size(), graph.getEdges().size());
+        // 3. NebulaGraph（可选真实写入，失败降级为 H2-only，不影响主流程）
+        if (nebulaEnabled && nebulaClient != null && nebulaClient.isAvailable()) {
+            int nodeOk = 0;
+            int edgeOk = 0;
+            // 先写顶点，再写边（INSERT EDGE 要求端点顶点已存在）
+            for (LineageNode node : graph.getNodes()) {
+                if (nebulaClient.writeNode(node)) {
+                    nodeOk++;
+                }
+            }
+            for (LineageEdge edge : graph.getEdges()) {
+                if (nebulaClient.writeEdge(edge)) {
+                    edgeOk++;
+                }
+            }
+            log.info("NebulaGraph 写入完成: {}/{} 节点, {}/{} 边",
+                    nodeOk, graph.getNodes().size(), edgeOk, graph.getEdges().size());
         }
 
         log.debug("图谱写入完成: {} 节点, {} 边", graph.getNodes().size(), graph.getEdges().size());

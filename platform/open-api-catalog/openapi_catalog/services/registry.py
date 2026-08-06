@@ -1,14 +1,14 @@
 """服务注册表 - 聚合所有服务并注入依赖.
 
 设计模式：依赖注入 + 工厂。
+配置开关：OPENAPI_CATALOG_STORE_TYPE=mock | sqlite
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Optional, Union
 
 from openapi_catalog.config.settings import Settings, get_settings
-from openapi_catalog.repositories.mock import MockCatalogStore
 from openapi_catalog.services.api_call import APICallService
 from openapi_catalog.services.api_registry import APIRegistryService
 from openapi_catalog.services.apisix_config import APISIXConfigService
@@ -23,7 +23,7 @@ class ServiceRegistry:
     """服务注册表，聚合所有仓储与服务."""
 
     settings: Settings
-    store: MockCatalogStore
+    store: Any  # MockCatalogStore | SQLiteCatalogStore
     rateLimiter: RateLimiter
     apiRegistryService: APIRegistryService
     subscriptionService: SubscriptionService
@@ -45,7 +45,11 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     if settings is None:
         settings = get_settings()
 
-    store = MockCatalogStore()
+    if settings.isSQLite:
+        store = _build_sqlite_store(settings.dbPath)
+    else:
+        store = _build_mock_store()
+
     rate_limiter = RateLimiter()
 
     api_registry_service = APIRegistryService(store)
@@ -68,3 +72,20 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
         docGeneratorService=doc_generator_service,
         apiCallService=api_call_service,
     )
+
+
+def _build_mock_store():
+    from openapi_catalog.repositories.mock import MockCatalogStore
+
+    return MockCatalogStore()
+
+
+def _build_sqlite_store(db_path: str):
+    from openapi_catalog.repositories.sqlite import (
+        SQLiteCatalogStore,
+        SQLiteConnection,
+    )
+
+    conn = SQLiteConnection(db_path)
+    conn.init_schema()
+    return SQLiteCatalogStore(conn)

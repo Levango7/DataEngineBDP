@@ -68,6 +68,7 @@ app:
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
 
-  # K8s 客户端配置：mock-enabled=true 时不连接真实集群（开发/测试环境默认 true）
+  # K8s 客户端配置：mock-enabled=true 时不连接真实集群，使用 mock 数据
+  # 开发环境设 K8S_MOCK_ENABLED=true 使用 mock；生产环境默认 false 连接真实 K8s
   k8s:
-    mock-enabled: ${K8S_MOCK_ENABLED:true}
+    mock-enabled: ${K8S_MOCK_ENABLED:false}
