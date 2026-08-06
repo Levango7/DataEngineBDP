@@ -2,7 +2,7 @@
 
 支持配置项：
     BP_HOST              监听地址（默认 0.0.0.0）
-    BP_PORT              监听端口（默认 8084）
+    BP_PORT              监听端口（默认 8088）
     BP_LOG_LEVEL         日志级别（默认 info）
     BP_RELOAD            开发模式热重载（默认 false）
     BP_STORE_TYPE        存储类型: mock / sqlite（默认 sqlite）
@@ -33,7 +33,7 @@ class Settings(BaseSettings):
 
     # ---- server ----
     host: str = Field(default="0.0.0.0", description="监听地址")
-    port: int = Field(default=8084, ge=1, le=65535, description="监听端口")
+    port: int = Field(default=8088, ge=1, le=65535, description="监听端口")
     logLevel: str = Field(default="info", description="日志级别")
     reload: bool = Field(default=False, description="开发模式热重载")
 

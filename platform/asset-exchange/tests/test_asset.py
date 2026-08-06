@@ -5,10 +5,10 @@ from __future__ import annotations
 # ---------- health ----------
 
 def test_health(client):
-    resp = client.get("/health")
+    resp = client.get("/api/v1/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] == "ok"
+    assert body["status"] == "UP"
     assert body["store"] == "mock"
 
 
@@ -213,4 +213,4 @@ def test_openapi_docs_accessible(client):
     assert spec["info"]["title"] == "Asset Exchange Platform"
     paths = spec["paths"]
     assert "/api/v1/assets" in paths
-    assert "/health" in paths
+    assert "/api/v1/health" in paths

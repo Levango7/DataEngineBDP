@@ -1,7 +1,6 @@
 server:
   port: 8086
-  servlet:
-    context-path: /lineage
+  # 移除 context-path: /lineage，所有 API 直接从 /api/v1/* 访问，与平台其他服务保持一致
 
 spring:
   application:

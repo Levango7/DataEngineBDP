@@ -2,7 +2,7 @@
 
 支持配置项：
     INDUSTRY_TEMPLATES_HOST          监听地址（默认 0.0.0.0）
-    INDUSTRY_TEMPLATES_PORT          监听端口（默认 8090）
+    INDUSTRY_TEMPLATES_PORT          监听端口（默认 8091）
     INDUSTRY_TEMPLATES_LOG_LEVEL     日志级别（默认 info）
     INDUSTRY_TEMPLATES_RELOAD        开发模式热重载（默认 false）
     INDUSTRY_TEMPLATES_API_PREFIX    API 路由前缀（默认 /api/v1）
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # ---- server ----
     host: str = Field(default="0.0.0.0", description="监听地址")
-    port: int = Field(default=8090, ge=1, le=65535, description="监听端口")
+    port: int = Field(default=8091, ge=1, le=65535, description="监听端口")
     logLevel: str = Field(default="info", description="日志级别")
     reload: bool = Field(default=False, description="开发模式热重载")
 

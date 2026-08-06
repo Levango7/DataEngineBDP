@@ -67,7 +67,7 @@ public class LineageController {
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, Object>> analyze(@RequestBody AnalyzeRequest request) {
         if (request == null || request.getSql() == null || request.getSql().isBlank()) {
-            return ResponseEntity.badRequest().body(errorMap("sql 不能为空"));
+            return ResponseEntity.badRequest().body(errorMap("invalid_request", "sql 不能为空"));
         }
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
         log.info("收到血缘分析请求: dialect={}, sqlLength={}",
@@ -124,12 +124,23 @@ public class LineageController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleError(Exception e) {
         log.error("血缘 API 异常", e);
-        return ResponseEntity.badRequest().body(errorMap(e.getMessage()));
+        return ResponseEntity.badRequest().body(errorMap("lineage_analysis_failed", e.getMessage()));
     }
 
-    private Map<String, Object> errorMap(String message) {
+    /**
+     * 构造统一错误响应体。
+     *
+     * <p>错误响应契约：{@code {"error": "<error_code>", "message": "<human_readable_message>"}}。
+     * {@code error} 字段为字符串错误码，便于调用方程序化识别与国际化；
+     * {@code message} 字段为面向人类的可读描述。</p>
+     *
+     * @param errorCode 错误码（machine-readable，snake_case）
+     * @param message   错误描述（human-readable）
+     * @return 错误响应体
+     */
+    private Map<String, Object> errorMap(String errorCode, String message) {
         Map<String, Object> m = new LinkedHashMap<>();
-        m.put("error", true);
+        m.put("error", errorCode);
         m.put("message", message);
         return m;
     }

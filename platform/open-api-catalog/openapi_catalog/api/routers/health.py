@@ -6,16 +6,16 @@ from fastapi import APIRouter, Request
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health", summary="健康检查")
+@router.get("/api/v1/health", summary="健康检查")
 async def health(request: Request) -> dict:
     """健康检查端点.
 
     Returns:
-        {"status": "ok", "version": "0.1.0"}
+        {"status": "UP", "version": "0.1.0"}
     """
     registry = request.app.state.registry
     return {
-        "status": "ok",
+        "status": "UP",
         "store": registry.settings.storeType,
         "version": "0.1.0",
         "module": "open-api-catalog",

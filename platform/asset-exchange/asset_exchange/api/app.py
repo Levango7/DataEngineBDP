@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from asset_exchange.api.routers import assets, subscriptions, health
 from asset_exchange.config.settings import Settings, get_settings
@@ -46,8 +47,28 @@ def create_app(
     app.state.registry = registry
 
     prefix = settings.apiPrefix
-    app.include_router(health.router)
+    app.include_router(health.router, prefix=prefix)
     app.include_router(assets.router, prefix=prefix)
     app.include_router(subscriptions.router, prefix=prefix)
+
+    # ---- 全局异常处理器：统一错误响应格式 {error, message} ----
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_error", "message": str(exc)},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.detail.lower().replace(" ", "_")
+                if isinstance(exc.detail, str)
+                else "error",
+                "message": str(exc.detail),
+            },
+        )
 
     return app

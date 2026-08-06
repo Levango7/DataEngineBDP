@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
+
 
 /**
  * 信创集群供应 REST API。
@@ -31,8 +31,10 @@ import java.util.Map;
  *   <li>{@code GET    /api/v1/clusters/xinchang/{clusterId}}         - 查询集群状态</li>
  *   <li>{@code POST   /api/v1/clusters/xinchang/{clusterId}/scale}  - 扩缩容</li>
  *   <li>{@code GET    /api/v1/clusters/xinchang}                     - 列出租户全部集群</li>
- *   <li>{@code GET    /api/v1/health}                                - 健康检查</li>
  * </ul>
+ *
+ * <p>健康检查端点 {@code GET /api/v1/health} 由独立的 {@code HealthController} 提供，
+ * 此处不再重复定义，避免与全局健康检查控制器产生路径冲突。</p>
  */
 @RestController
 @RequestMapping("/api/v1/clusters/xinchang")
@@ -126,17 +128,4 @@ public class XinchangClusterController {
         return ResponseEntity.ok(clusters);
     }
 
-    /**
-     * 健康检查（无需鉴权）。
-     *
-     * @return 健康状态
-     */
-    @GetMapping("/health")
-    public ResponseEntity<Map<String, Object>> health() {
-        return ResponseEntity.ok(Map.of(
-                "status", "UP",
-                "provider", "xinchang",
-                "supportedCpuArch", List.of("KUNPENG", "HYGON", "PHYTIUM", "ZHAOXIN"),
-                "supportedOs", List.of("KYLIN_V10", "UOS")));
-    }
 }

@@ -2,7 +2,7 @@
 
 支持配置项：
     ASSET_EXCHANGE_HOST              监听地址（默认 0.0.0.0）
-    ASSET_EXCHANGE_PORT              监听端口（默认 8086）
+    ASSET_EXCHANGE_PORT              监听端口（默认 8087）
     ASSET_EXCHANGE_LOG_LEVEL         日志级别（默认 info）
     ASSET_EXCHANGE_RELOAD            开发模式热重载（默认 false）
     ASSET_EXCHANGE_STORE_TYPE        存储类型: mock / sqlite（默认 sqlite）
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
 
     # ---- server ----
     host: str = Field(default="0.0.0.0", description="监听地址")
-    port: int = Field(default=8086, ge=1, le=65535, description="监听端口")
+    port: int = Field(default=8087, ge=1, le=65535, description="监听端口")
     logLevel: str = Field(default="info", description="日志级别")
     reload: bool = Field(default=False, description="开发模式热重载")
 

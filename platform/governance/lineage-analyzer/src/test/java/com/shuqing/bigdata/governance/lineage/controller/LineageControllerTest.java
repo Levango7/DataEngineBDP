@@ -50,7 +50,8 @@ class LineageControllerTest {
     @BeforeEach
     void setUp() {
         graphWriter.clear();
-        baseUrl = "http://localhost:" + port + "/lineage/api/v1/lineage";
+        // context-path=/lineage 已移除，API 直接从 /api/v1/* 访问
+        baseUrl = "http://localhost:" + port + "/api/v1/lineage";
     }
 
     @Test
@@ -131,7 +132,7 @@ class LineageControllerTest {
     @DisplayName("GET /api/v1/health 健康检查")
     void testHealthEndpoint() {
         ResponseEntity<Map> resp = restTemplate.getForEntity(
-                "http://localhost:" + port + "/lineage/api/v1/health", Map.class);
+                "http://localhost:" + port + "/api/v1/health", Map.class);
         assertTrue(resp.getStatusCode().is2xxSuccessful());
         Map body = resp.getBody();
         assertNotNull(body);

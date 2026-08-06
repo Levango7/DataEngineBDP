@@ -33,7 +33,7 @@ import (
 const (
 	serviceName    = "vector-engine"
 	defaultVersion = "0.1.0"
-	defaultPort    = "8084"
+	defaultPort    = "8086"
 )
 
 func main() {
@@ -83,11 +83,10 @@ func main() {
 	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(middleware.CorsMiddleware())
 
-	// 健康检查端点（无需认证）。
-	r.GET("/health", healthH.Health)
-
 	// API v1 group。
 	v1 := r.Group("/api/v1")
+	// 健康检查端点（无需认证）。
+	v1.GET("/health", healthH.Health)
 	vectorH.RegisterRoutes(v1)
 
 	// 启动 HTTP 服务（支持优雅关闭）。

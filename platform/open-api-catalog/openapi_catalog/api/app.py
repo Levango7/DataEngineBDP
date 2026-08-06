@@ -3,7 +3,8 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from openapi_catalog.api.routers import (
     apis,
@@ -60,5 +61,28 @@ def create_app(
     app.include_router(subscriptions.subscriptions_router, prefix=prefix)
     app.include_router(invoke.router, prefix=prefix)
     app.include_router(metrics_docs.router, prefix=prefix)
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        """全局异常处理器：统一 500 错误响应格式."""
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_error", "message": str(exc)},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        """HTTPException 处理器：统一错误响应格式为 {error, message}."""
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": (
+                    exc.detail.lower().replace(" ", "_")
+                    if isinstance(exc.detail, str)
+                    else "error"
+                ),
+                "message": str(exc.detail),
+            },
+        )
 
     return app

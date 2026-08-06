@@ -9,7 +9,7 @@
 //	MILVUS_USERNAME   - Milvus 认证用户名（可选）
 //	MILVUS_PASSWORD   - Milvus 认证密码（可选）
 //	MILVUS_DATABASE   - Milvus 数据库（可选，默认 "default"）
-//	VECTOR_ENGINE_PORT - HTTP 服务端口，默认 "8084"
+//	VECTOR_ENGINE_PORT - HTTP 服务端口，默认 "8086"
 //	DEFAULT_TOP_K     - 默认检索 topK，默认 10
 //	MAX_VECTOR_DIM    - 最大向量维度，默认 32768
 package config
@@ -50,7 +50,7 @@ type MilvusConfig struct {
 func Load() *Config {
 	cfg := &Config{
 		StoreType:    "mock",
-		HTTPPort:     "8084",
+		HTTPPort:     "8086",
 		DefaultTopK:  10,
 		MaxVectorDim: 32768,
 		Milvus: MilvusConfig{

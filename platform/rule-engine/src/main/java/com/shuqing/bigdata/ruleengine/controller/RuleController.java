@@ -51,30 +51,33 @@ public class RuleController {
 
     /** 获取单个规则 */
     @GetMapping("/{id}")
-    public ResponseEntity<Rule> getRule(@PathVariable Long id) {
+    public ResponseEntity<?> getRule(@PathVariable Long id) {
         Rule rule = ruleService.getById(id);
         if (rule == null) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "rule_not_found", "message", "Rule " + id + " not found"));
         }
         return ResponseEntity.ok(rule);
     }
 
     /** 更新规则 */
     @PutMapping("/{id}")
-    public ResponseEntity<Rule> updateRule(@PathVariable Long id, @RequestBody Rule rule) {
+    public ResponseEntity<?> updateRule(@PathVariable Long id, @RequestBody Rule rule) {
         Rule updated = ruleService.update(id, rule);
         if (updated == null) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "rule_not_found", "message", "Rule " + id + " not found"));
         }
         return ResponseEntity.ok(updated);
     }
 
     /** 删除规则 */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteRule(@PathVariable Long id) {
+    public ResponseEntity<?> deleteRule(@PathVariable Long id) {
         boolean removed = ruleService.delete(id);
         if (!removed) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "rule_not_found", "message", "Rule " + id + " not found"));
         }
         return ResponseEntity.noContent().build();
     }

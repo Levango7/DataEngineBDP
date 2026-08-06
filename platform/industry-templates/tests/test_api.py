@@ -5,10 +5,10 @@ from __future__ import annotations
 # ---------- health ----------
 
 def test_health(client):
-    resp = client.get("/health")
+    resp = client.get("/api/v1/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] == "ok"
+    assert body["status"] == "UP"
     assert body["deployMode"] == "mock"
     assert body["templateCount"] == 3
 
@@ -209,4 +209,4 @@ def test_openapi_docs_accessible(client):
     assert "/api/v1/templates/{template_id}/deploy" in paths
     assert "/api/v1/templates/{template_id}/preview" in paths
     assert "/api/v1/templates/categories" in paths
-    assert "/health" in paths
+    assert "/api/v1/health" in paths

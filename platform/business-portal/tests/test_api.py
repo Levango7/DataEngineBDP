@@ -8,10 +8,10 @@ class TestHealth:
     """健康检查."""
 
     def test_health(self, client):
-        resp = client.get("/health")
+        resp = client.get("/api/v1/health")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "ok"
+        assert data["status"] == "UP"
         assert data["store"] == "mock"
         assert data["module"] == "business-portal"
         assert data["level"] == "L5.4"
@@ -396,7 +396,7 @@ class TestOpenApi:
         assert schema["info"]["title"] == "Business Portal"
         # 关键端点存在
         paths = schema["paths"]
-        assert "/health" in paths
+        assert "/api/v1/health" in paths
         assert "/api/v1/business-lines" in paths
         assert "/api/v1/business-lines/{bl_id}/dashboard" in paths
         assert "/api/v1/business-lines/{bl_id}/workbench" in paths

@@ -57,11 +57,12 @@ func doRequest(t *testing.T, r *gin.Engine, method, path string, body interface{
 func TestHealth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
+	v1 := r.Group("/api/v1")
 	h := NewHealthHandler("0.1.0", "vector-engine")
-	r.GET("/health", h.Health)
+	v1.GET("/health", h.Health)
 
 	w := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -78,10 +79,10 @@ func TestCreateCollection_Success(t *testing.T) {
 	r, _ := setupRouter()
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections", map[string]interface{}{
-		"name":        "test_col",
-		"dimension":   128,
-		"metric_type": "L2",
-		"index_type":  "HNSW",
+		"name":       "test_col",
+		"dimension":  128,
+		"metricType": "L2",
+		"indexType":  "HNSW",
 	})
 	assert.Equal(t, http.StatusCreated, w.Code)
 
@@ -95,10 +96,10 @@ func TestCreateCollection_AlreadyExists(t *testing.T) {
 	r, _ := setupRouterWithCollection(t, "col", 4)
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections", map[string]interface{}{
-		"name":        "col",
-		"dimension":   4,
-		"metric_type": "L2",
-		"index_type":  "FLAT",
+		"name":       "col",
+		"dimension":  4,
+		"metricType": "L2",
+		"indexType":  "FLAT",
 	})
 	assert.Equal(t, http.StatusConflict, w.Code)
 }
@@ -107,10 +108,10 @@ func TestCreateCollection_InvalidMetric(t *testing.T) {
 	r, _ := setupRouter()
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections", map[string]interface{}{
-		"name":        "col",
-		"dimension":   4,
-		"metric_type": "BAD",
-		"index_type":  "FLAT",
+		"name":       "col",
+		"dimension":  4,
+		"metricType": "BAD",
+		"indexType":  "FLAT",
 	})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -196,7 +197,7 @@ func TestSearch_Success(t *testing.T) {
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections/col/search", map[string]interface{}{
 		"vector": []float32{1, 1},
-		"top_k":  10,
+		"topK":   10,
 	})
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -221,7 +222,7 @@ func TestSearch_WithFilter(t *testing.T) {
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections/col/search", map[string]interface{}{
 		"vector": []float32{1, 1},
-		"top_k":  10,
+		"topK":   10,
 		"filter": "label=a",
 	})
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -248,10 +249,10 @@ func TestHybridSearch_Success(t *testing.T) {
 	}))
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections/col/hybrid-search", map[string]interface{}{
-		"vector":    []float32{0, 0},
-		"top_k":     10,
-		"filter":    "label=a",
-		"min_score": 0,
+		"vector":   []float32{0, 0},
+		"topK":     10,
+		"filter":   "label=a",
+		"minScore": 0,
 	})
 	assert.Equal(t, http.StatusOK, w.Code)
 
@@ -273,7 +274,7 @@ func TestHybridSearch_MissingFilter(t *testing.T) {
 
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections/col/hybrid-search", map[string]interface{}{
 		"vector": []float32{0, 0},
-		"top_k":  10,
+		"topK":   10,
 	})
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
@@ -333,10 +334,10 @@ func TestEndToEnd_FullFlow(t *testing.T) {
 
 	// 1. 创建集合
 	w := doRequest(t, r, http.MethodPost, "/api/v1/collections", map[string]interface{}{
-		"name":        "e2e_col",
-		"dimension":   3,
-		"metric_type": "COSINE",
-		"index_type":  "HNSW",
+		"name":       "e2e_col",
+		"dimension":  3,
+		"metricType": "COSINE",
+		"indexType":  "HNSW",
 	})
 	require.Equal(t, http.StatusCreated, w.Code)
 
@@ -353,7 +354,7 @@ func TestEndToEnd_FullFlow(t *testing.T) {
 	// 3. 检索
 	w = doRequest(t, r, http.MethodPost, "/api/v1/collections/e2e_col/search", map[string]interface{}{
 		"vector": []float32{1, 0, 0},
-		"top_k":  3,
+		"topK":   3,
 	})
 	require.Equal(t, http.StatusOK, w.Code)
 	var searchResp struct {
