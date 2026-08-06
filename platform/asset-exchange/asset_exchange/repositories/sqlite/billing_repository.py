@@ -90,7 +90,7 @@ class SQLiteBillingRepository(BillingRepository):
                 record.subscriptionId,
                 record.assetId,
                 record.subscriberId,
-                record.owner,
+                record.tenantId,
                 record.mode.value,
                 record.usage,
                 record.unit,
@@ -159,7 +159,9 @@ class SQLiteBillingRepository(BillingRepository):
             subscriptionId=row["subscription_id"],
             assetId=row["asset_id"],
             subscriberId=row["subscriber_id"],
-            owner=row["owner"],
+            # SQL 列名 owner 保留（数据库内部结构）；
+            # 映射到统一的 tenantId 字段（MODEL-2）
+            tenantId=row["owner"],
             mode=BillingMode(row["mode"]),
             usage=row["usage"],
             unit=row["unit"],

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 from asset_exchange.models.base import (
     AssetStatus,
@@ -53,7 +53,13 @@ class AssetFilter(BaseModel):
     securityLevel: Optional[SecurityLevel] = Field(
         default=None, description="按安全分级过滤"
     )
-    owner: Optional[str] = Field(default=None, description="按提供方过滤")
+    # 租户标识字段统一为 tenantId（MODEL-2）；
+    # 通过 validation_alias 同时接受旧字段名 owner 作为输入，保持向后兼容。
+    tenantId: Optional[str] = Field(
+        default=None,
+        validation_alias=AliasChoices("tenantId", "owner"),
+        description="按租户 ID 过滤",
+    )
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
 
@@ -67,7 +73,15 @@ class Asset(TimestampMixin):
     id: str = Field(default="", description="资产 ID")
     name: str = Field(..., min_length=1, max_length=128, description="资产名称")
     type: AssetType = Field(..., description="资产类型")
-    owner: str = Field(..., min_length=1, description="提供方（租户 ID）")
+    # 租户标识字段统一为 tenantId（MODEL-2）；
+    # 通过 validation_alias 同时接受旧字段名 owner 作为输入，保持向后兼容。
+    # 序列化默认输出字段名 tenantId，达成跨组件命名一致性。
+    tenantId: str = Field(
+        ...,
+        min_length=1,
+        validation_alias=AliasChoices("tenantId", "owner"),
+        description="租户 ID（资产提供方）",
+    )
     description: Optional[str] = Field(default=None, description="资产描述")
     status: AssetStatus = Field(
         default=AssetStatus.DRAFT, description="资产状态"

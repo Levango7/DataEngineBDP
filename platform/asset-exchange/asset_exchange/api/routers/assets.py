@@ -14,7 +14,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from pydantic import AliasChoices, BaseModel, Field
 
 from asset_exchange.api.routers.deps import get_registry, status_for_error
 from asset_exchange.models.asset import (
@@ -47,7 +47,11 @@ class ListAssetRequest(BaseModel):
 
     name: str
     type: AssetType
-    owner: str
+    # 租户标识字段统一为 tenantId（MODEL-2）；
+    # 同时接受 owner 作为输入别名，保持向后兼容。
+    tenantId: str = Field(
+        ..., validation_alias=AliasChoices("tenantId", "owner")
+    )
     description: str | None = None
     securityLevel: SecurityLevel = SecurityLevel.INTERNAL
     qualityScore: float = 0.0
@@ -89,7 +93,7 @@ async def list_asset(
         id=str(uuid.uuid4()),
         name=req.name,
         type=req.type,
-        owner=req.owner,
+        tenantId=req.tenantId,
         description=req.description,
         securityLevel=req.securityLevel,
         qualityScore=req.qualityScore,
@@ -120,18 +124,31 @@ async def list_assets(
     securityLevel: SecurityLevel | None = Query(
         default=None, description="按安全分级过滤"
     ),
-    owner: str | None = Query(default=None, description="按提供方过滤"),
+    tenantId: str | None = Query(
+        default=None, description="按租户 ID 过滤（推荐）"
+    ),
+    owner: str | None = Query(
+        default=None,
+        description="按提供方过滤（已废弃，请使用 tenantId；为兼容旧客户端保留）",
+        deprecated=True,
+    ),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> list[Asset]:
-    """浏览资产市场（默认只返回已上架资产）."""
+    """浏览资产市场（默认只返回已上架资产）.
+
+    租户过滤参数支持 ``tenantId``（推荐）与 ``owner``（向后兼容），
+    二者同时提供时以 ``tenantId`` 为准。
+    """
+    # 租户标识统一为 tenantId（MODEL-2）：优先使用 tenantId，回退到 owner 以保持向后兼容
+    effective_tenant_id = tenantId if tenantId is not None else owner
     filter_ = AssetFilter(
         name=name,
         type=type,
         status=status_,
         securityLevel=securityLevel,
-        owner=owner,
+        tenantId=effective_tenant_id,
         limit=limit,
         offset=offset,
     )

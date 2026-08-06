@@ -10,7 +10,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field
 
 from asset_exchange.models.base import BillingMode, TimestampMixin
 
@@ -22,7 +22,13 @@ class BillingRecord(TimestampMixin):
     subscriptionId: str = Field(..., description="订阅 ID")
     assetId: str = Field(..., description="资产 ID")
     subscriberId: str = Field(..., description="订阅方租户 ID")
-    owner: str = Field(..., description="提供方租户 ID")
+    # 租户标识字段统一为 tenantId（MODEL-2）；
+    # 通过 validation_alias 同时接受旧字段名 owner 作为输入，保持向后兼容。
+    tenantId: str = Field(
+        ...,
+        validation_alias=AliasChoices("tenantId", "owner"),
+        description="提供方租户 ID",
+    )
 
     # 计费
     mode: BillingMode = Field(..., description="计费方式")

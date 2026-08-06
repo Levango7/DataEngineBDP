@@ -103,7 +103,7 @@ class SQLiteAssetRepository(AssetRepository):
                 asset.id,
                 asset.name,
                 asset.type.value,
-                asset.owner,
+                asset.tenantId,
                 asset.description,
                 asset.status.value,
                 asset.qualityScore,
@@ -145,9 +145,9 @@ class SQLiteAssetRepository(AssetRepository):
         if filter.securityLevel:
             clauses.append("security_level = ?")
             params.append(filter.securityLevel.value)
-        if filter.owner:
+        if filter.tenantId:
             clauses.append("owner = ?")
-            params.append(filter.owner)
+            params.append(filter.tenantId)
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         sql = f"SELECT * FROM assets{where} ORDER BY created_at DESC LIMIT ? OFFSET ?;"
         params.extend([filter.limit, filter.offset])
@@ -184,7 +184,9 @@ class SQLiteAssetRepository(AssetRepository):
             id=row["id"],
             name=row["name"],
             type=AssetType(row["type"]),
-            owner=row["owner"],
+            # SQL 列名 owner 保留（数据库内部结构）；
+            # 映射到统一的 tenantId 字段（MODEL-2）
+            tenantId=row["owner"],
             description=row["description"],
             status=AssetStatus(row["status"]),
             qualityScore=row["quality_score"],

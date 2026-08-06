@@ -57,7 +57,7 @@ class MockAssetRepository(AssetRepository):
                 continue
             if filter.securityLevel and a.securityLevel != filter.securityLevel:
                 continue
-            if filter.owner and a.owner != filter.owner:
+            if filter.tenantId and a.tenantId != filter.tenantId:
                 continue
             result.append(a)
         # 按 createdAt 倒序

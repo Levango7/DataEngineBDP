@@ -55,7 +55,7 @@ class SubscriptionService:
 
         业务校验：
         - 资产必须为 LISTED 状态
-        - 不允许订阅自己的资产（owner != subscriberId）
+        - 不允许订阅自己的资产（tenantId != subscriberId）
 
         Raises:
             AssetNotFoundError: 资产不存在。
@@ -65,7 +65,7 @@ class SubscriptionService:
         asset = await self._asset_service.get_asset(asset_id)
         if asset.status != AssetStatus.LISTED:
             raise AssetNotListedError(asset_id, asset.status.value)
-        if asset.owner == req.subscriberId:
+        if asset.tenantId == req.subscriberId:
             raise ValidationError("不允许订阅自己的资产")
 
         now = utc_now()

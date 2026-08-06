@@ -51,9 +51,75 @@ def test_list_asset(client):
     assert body["name"] == "user-events"
     assert body["type"] == "table"
     assert body["status"] == "listed"
-    assert body["owner"] == "tenant-A"
+    # 租户标识字段统一为 tenantId（MODEL-2）：响应体使用 tenantId 字段名
+    assert body["tenantId"] == "tenant-A"
     assert body["qualityScore"] == 85.0
     assert body["pricing"]["price"] == 0.01
+
+
+def test_list_asset_with_tenant_id_input(client):
+    """验证新契约：请求体使用 tenantId 字段名可正常上架."""
+    resp = client.post(
+        "/api/v1/assets",
+        json={
+            "name": "tenant-id-input-asset",
+            "type": "table",
+            "tenantId": "tenant-New",
+            "securityLevel": "internal",
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["tenantId"] == "tenant-New"
+    # 确认旧字段名 owner 不再出现在响应中（字段已统一为 tenantId）
+    assert "owner" not in body
+
+
+def test_list_asset_owner_alias_backward_compat(client):
+    """验证向后兼容：请求体使用旧字段名 owner 仍可正常上架."""
+    resp = client.post(
+        "/api/v1/assets",
+        json={
+            "name": "owner-alias-asset",
+            "type": "table",
+            "owner": "tenant-Legacy",
+            "securityLevel": "internal",
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    # 即使输入用 owner，响应统一为 tenantId
+    assert body["tenantId"] == "tenant-Legacy"
+
+
+def test_list_assets_filter_by_tenant_id(client):
+    """验证查询参数 tenantId 过滤生效."""
+    _list_asset(client, name="asset-for-tenant-a", owner="tenant-A")
+    resp = client.post(
+        "/api/v1/assets",
+        json={
+            "name": "asset-for-tenant-c",
+            "type": "table",
+            "tenantId": "tenant-C",
+            "securityLevel": "internal",
+        },
+    )
+    assert resp.status_code == 201
+    # 用 tenantId 查询参数过滤
+    resp = client.get("/api/v1/assets?tenantId=tenant-A")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["name"] == "asset-for-tenant-a"
+
+
+def test_list_assets_filter_by_owner_backward_compat(client):
+    """验证向后兼容：查询参数 owner 仍可过滤."""
+    _list_asset(client, name="asset-for-owner-filter", owner="tenant-A")
+    resp = client.get("/api/v1/assets?owner=tenant-A")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert all(a["tenantId"] == "tenant-A" for a in body)
 
 
 def test_list_asset_duplicate_name(client):

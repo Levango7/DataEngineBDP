@@ -69,7 +69,7 @@ class BillingService:
 
         # 判断是否内部租户间流通（简化：以 owner 与 subscriber 是否同租户前缀判定）
         # 这里以 owner == subscriber 视为内部（实际场景需更精细判定）
-        is_internal = self._is_internal(asset.owner, sub.subscriberId)
+        is_internal = self._is_internal(asset.tenantId, sub.subscriberId)
 
         if is_internal:
             # 内部结算：成本系数 0.3，仅记成本不真扣费
@@ -86,7 +86,7 @@ class BillingService:
             subscriptionId=subscription_id,
             assetId=asset.id,
             subscriberId=sub.subscriberId,
-            owner=asset.owner,
+            tenantId=asset.tenantId,
             mode=asset.pricing.mode,
             usage=usage,
             unit=asset.pricing.unit,
@@ -122,7 +122,7 @@ class BillingService:
         else:
             return round(unit_price * usage, 2)
 
-    def _is_internal(self, owner: str, subscriber: str) -> bool:
+    def _is_internal(self, tenant_id: str, subscriber: str) -> bool:
         """判断是否内部租户间流通.
 
         判定规则：租户 ID 以 ":" 分隔组织前缀与租户 ID，
@@ -130,11 +130,11 @@ class BillingService:
         不同组织或无 ":" 分隔视为外部。
         实际场景需对接 L5.4 多租户计费。
         """
-        if ":" not in owner or ":" not in subscriber:
+        if ":" not in tenant_id or ":" not in subscriber:
             return False
-        owner_org = owner.split(":", 1)[0]
+        owner_org = tenant_id.split(":", 1)[0]
         subscriber_org = subscriber.split(":", 1)[0]
-        return owner_org == subscriber_org and owner != subscriber
+        return owner_org == subscriber_org and tenant_id != subscriber
 
     async def list_by_asset(self, asset_id: str) -> BillingSummary:
         """列出某资产的计费记录汇总."""
