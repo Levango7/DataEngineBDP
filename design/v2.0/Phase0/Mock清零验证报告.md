@@ -293,11 +293,11 @@
 
 Mock 清零冲刺在**功能实现层面已 100% 完成**：5 个 P0/P1 组件的 10 个模块全部完成 SIMULATED/Mock 替换为真实实现，编译通过、单元测试全绿。
 
-但在**跨组件接口一致性层面存在 13 个待修复问题**（详见第 5 章），其中：
+跨组件接口一致性层面原发现 **13 个问题**（详见第 5 章），已于 commit `94be0f8`（P0+P1）和 `ff939c6`（P2）中**全部修复清零**：
 
-- **高风险问题 4 个**：均为端口冲突，会导致同节点共部署时服务无法启动。
-- **中风险问题 5 个**：API 路径不统一、错误响应格式不统一、数据模型命名不统一，会影响跨组件集成与前端统一处理。
-- **低风险问题 4 个**：健康端点重复、error 字段类型、404 无 body、status 值不统一，影响范围有限但不规范。
+- **高风险问题 4 个**（P0，已修复）：均为端口冲突，已按 V2.0 规范统一端口分配。
+- **中风险问题 5 个**（P1，已修复）：API 路径、错误响应格式、数据模型命名已统一。
+- **低风险问题 4 个**（P2，已修复）：健康端点重复、error 字段类型、404 无 body、status 值已统一。
 
 ## 5. 遗留问题和建议
 
@@ -307,19 +307,19 @@ Mock 清零冲刺在**功能实现层面已 100% 完成**：5 个 P0/P1 组件�
 
 | 编号 | 风险等级 | 类别 | 问题 | 影响组件 | 状态 |
 |------|----------|------|------|----------|------|
-| PORT-1 | 高 | 端口 | vector-engine 端口未按 V2.0 规范更新为 8086 | vector-engine | 待修复 |
-| PORT-2 | 高 | 端口 | business-portal 8084 与 vector-engine/llm-gateway 冲突 | business-portal | 待修复 |
-| PORT-3 | 高 | 端口 | asset-exchange 8086 与 lineage-analyzer 冲突 | asset-exchange, lineage-analyzer | 待修复 |
-| PORT-4 | 高 | 端口 | industry-templates 8090 与 open-api-catalog 冲突 | industry-templates, open-api-catalog | 待修复 |
-| API-1 | 中 | API | 健康检查路径不统一（/health vs /api/v1/health） | 全部 10 个 | 待修复 |
-| API-2 | 中 | API | lineage-analyzer context-path=/lineage 与其他组件不一致 | lineage-analyzer | 待修复 |
-| API-3 | 低 | API | infra-provider-xinchang 健康端点重复 | infra-provider-xinchang | 待修复 |
-| ERR-1 | 中 | 错误码 | 错误响应字段名不统一（error+message vs detail vs error only） | 全部 10 个 | 待修复 |
-| ERR-2 | 低 | 错误码 | lineage-analyzer error 字段为 boolean 类型 | lineage-analyzer | 待修复 |
-| ERR-3 | 低 | 错误码 | rule-engine 404 响应无 body | rule-engine | 待修复 |
-| ERR-4 | 低 | 错误码 | 健康检查 status 字段值不统一（UP vs ok） | 5 个 Python 组件 | 待修复 |
-| MODEL-1 | 中 | 数据模型 | Go snake_case vs Java/Python camelCase | vector-engine | 待修复 |
-| MODEL-2 | 低 | 数据模型 | 租户标识字段命名不统一（id vs tenantId vs owner） | encaps-layer, infra-provider, asset-exchange | 待修复 |
+| PORT-1 | 高 | 端口 | vector-engine 端口未按 V2.0 规范更新为 8086 | vector-engine | ✅ 已修复 |
+| PORT-2 | 高 | 端口 | business-portal 8084 与 vector-engine/llm-gateway 冲突 | business-portal | ✅ 已修复 |
+| PORT-3 | 高 | 端口 | asset-exchange 8086 与 lineage-analyzer 冲突 | asset-exchange, lineage-analyzer | ✅ 已修复 |
+| PORT-4 | 高 | 端口 | industry-templates 8090 与 open-api-catalog 冲突 | industry-templates, open-api-catalog | ✅ 已修复 |
+| API-1 | 中 | API | 健康检查路径不统一（/health vs /api/v1/health） | 全部 10 个 | ✅ 已修复 |
+| API-2 | 中 | API | lineage-analyzer context-path=/lineage 与其他组件不一致 | lineage-analyzer | ✅ 已修复 |
+| API-3 | 低 | API | infra-provider-xinchang 健康端点重复 | infra-provider-xinchang | ✅ 已修复 |
+| ERR-1 | 中 | 错误码 | 错误响应字段名不统一（error+message vs detail vs error only） | 全部 10 个 | ✅ 已修复 |
+| ERR-2 | 低 | 错误码 | lineage-analyzer error 字段为 boolean 类型 | lineage-analyzer | ✅ 已修复 |
+| ERR-3 | 低 | 错误码 | rule-engine 404 响应无 body | rule-engine | ✅ 已修复 |
+| ERR-4 | 低 | 错误码 | 健康检查 status 字段值不统一（UP vs ok） | 5 个 Python 组件 | ✅ 已修复 |
+| MODEL-1 | 中 | 数据模型 | Go snake_case vs Java/Python camelCase | vector-engine | ✅ 已修复 |
+| MODEL-2 | 低 | 数据模型 | 租户标识字段命名不统一（id vs tenantId vs owner） | encaps-layer, infra-provider, asset-exchange | ✅ 已修复 |
 
 ### 5.2 修复建议
 
@@ -353,16 +353,16 @@ Mock 清零冲刺已**成功完成核心目标**：5 个 P0/P1 组件的 10 个�
 
 ### 6.2 跨组件接口一致性评估
 
-跨组件接口一致性检查发现 **13 个待修复问题**，其中 4 个高风险（端口冲突）、5 个中风险、4 个低风险。这些问题不影响单个组件的功能正确性，但会影响多组件联合部署与跨组件集成。
+跨组件接口一致性检查原发现 **13 个问题**，其中 4 个高风险（端口冲突）、5 个中风险、4 个低风险。这些问题不影响单个组件的功能正确性，但会影响多组件联合部署与跨组件集成。
 
-**建议在进入 V1.2 端到端 PoC 之前修复全部 4 个 P0 高风险端口冲突问题**，否则同节点共部署将失败。P1 中风险问题建议在本迭代内修复，P2 低风险问题可延至下迭代。
+**全部 13 个问题已于 commit `94be0f8`（P0+P1，9个问题）和 `ff939c6`（P2，4个问题）中修复清零**，tag `v2.0.0-interface-fix` 标记此里程碑。修复后跨组件接口一致性全面达标，可安全进入 V1.2 端到端 PoC 与 Phase 1a 工程实施。
 
 ### 6.3 后续行动项
 
-1. **立即（P0）**：修复 4 个端口冲突，确保同节点共部署可行。
-2. **本迭代（P1）**：统一健康检查路径、错误响应格式、健康检查 status 值；移除 lineage-analyzer context-path。
-3. **下迭代（P2）**：统一 Go 组件 JSON 字段命名、租户标识字段；修复 lineage-analyzer error 字段类型、rule-engine 404 body、infra-provider 重复健康端点。
-4. **验证**：修复完成后重新执行本报告的跨组件接口一致性检查，确认全部问题清零。
+1. ~~**立即（P0）**：修复 4 个端口冲突，确保同节点共部署可行。~~ ✅ 已完成（commit 94be0f8）
+2. ~~**本迭代（P1）**：统一健康检查路径、错误响应格式、健康检查 status 值；移除 lineage-analyzer context-path。~~ ✅ 已完成（commit 94be0f8）
+3. ~~**下迭代（P2）**：统一 Go 组件 JSON 字段命名、租户标识字段；修复 lineage-analyzer error 字段类型、rule-engine 404 body、infra-provider 重复健康端点。~~ ✅ 已完成（commit ff939c6）
+4. **验证**：修复完成后重新执行本报告的跨组件接口一致性检查，确认全部问题清零。✅ 已确认全部 13 个问题清零，tag `v2.0.0-interface-fix`。
 
 ### 6.4 总体评价
 
@@ -371,9 +371,9 @@ Mock 清零冲刺已**成功完成核心目标**：5 个 P0/P1 组件的 10 个�
 | 维度 | 评价 |
 |------|------|
 | 功能实现 | ✅ 优秀（10/10 组件编译+测试通过） |
-| 接口一致性 | ⚠️ 良好但有改进空间（13 个问题，4 个高风险） |
+| 接口一致性 | ✅ 优秀（13 个问题全部修复清零，tag v2.0.0-interface-fix） |
 | 文档完备性 | ✅ 良好（本报告 + T000a 核查报告 + 任务134-137 验证记录） |
-| **总体** | **✅ Mock 清零冲刺核心目标达成，接口一致性待后续迭代完善** |
+| **总体** | **✅ Mock 清零冲刺核心目标达成，跨组件接口一致性全面达标** |
 
 ---
 
