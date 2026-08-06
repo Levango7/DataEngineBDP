@@ -1,0 +1,275 @@
+# 数擎大数据平台 Python 工具配置中心
+# 此文件位于项目根目录，所有 platform/ 下的 Python 组件会向上查找并继承此配置
+# 各组件 pyproject.toml 仅声明 [project] 元信息和 [tool.pytest.ini_options] 测试配置
+# 工具配置（black/isort/coverage/mypy）统一在此声明，确保风格一致
+
+# ============================================================
+# black 代码格式化
+# 文档：https://black.readthedocs.io/en/stable/usage_and_configuration/the_basics.html
+# ============================================================
+[tool.black]
+line-length = 120
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.venv
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.tox
+  | build
+  | dist
+  | node_modules
+  | \.eggs
+  | .*\.egg-info
+)/
+'''
+# 字符串规范化
+skip-string-normalization = false
+# 预览功能（更激进的格式化）
+preview = false
+
+# ============================================================
+# isort import 排序
+# 文档：https://pycqa.github.io/isort/docs/configuration/options.html
+# ============================================================
+[tool.isort]
+profile = "black"
+line_length = 120
+known_first_party = [
+    "business_portal",
+    "industry_templates",
+    "asset_exchange",
+    "open_api_catalog",
+    "ml_platform",
+    "knowledge_engine",
+    "llmops",
+]
+known_third_party = [
+    "fastapi",
+    "uvicorn",
+    "pydantic",
+    "httpx",
+    "loguru",
+    "pytest",
+    "sqlalchemy",
+    "alembic",
+    "redis",
+    "celery",
+    "kafka",
+    "pulsar",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "torch",
+    "transformers",
+    "mlflow",
+    "langchain",
+    "openai",
+    "anthropic",
+]
+# 分组顺序：future → stdlib → third_party → first_party → local_folder
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+# 强制分组之间空行
+lines_between_sections = 1
+# 同一 import 多行时的换行风格
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+# 不按字母排序的 import
+force_sort_within_sections = true
+
+# ============================================================
+# coverage 覆盖率配置
+# 文档：https://coverage.readthedocs.io/en/latest/config.html
+# 通过 pytest-cov 调用：pytest --cov=. --cov-report=xml
+# ============================================================
+[tool.coverage.run]
+source = ["."]
+branch = true
+parallel = true
+# 数据文件
+data_file = ".coverage"
+# 排除的文件
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/conftest.py",
+    "*/setup.py",
+    "*/__init__.py",
+    "*/__main__.py",
+    "*/migrations/*",
+    "*/alembic/*",
+    "*/.venv/*",
+    "*/build/*",
+    "*/dist/*",
+    "*/node_modules/*",
+]
+
+[tool.coverage.paths]
+# 合并多个组件的覆盖率数据
+source = [
+    "src",
+    "*/site-packages",
+]
+
+[tool.coverage.report]
+# 最低覆盖率门禁
+fail_under = 70
+# 显示未完全覆盖的分支
+show_missing = true
+# 显示未覆盖的行号
+skip_covered = false
+# 跳过空文件
+skip_empty = true
+# 排除的行（这些行不计入覆盖率）
+exclude_lines = [
+    # 标准 pragma
+    "pragma: no cover",
+    # 抽象方法
+    "@abstractmethod",
+    "@abc\\.abstractmethod",
+    # 协议方法
+    "\\.\\.\\.",
+    # NotImplementedError
+    "raise NotImplementedError",
+    # 类型检查专用
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+    # 调试代码
+    "if DEBUG:",
+    "if .*DEBUG.*:",
+    # 平台特定
+    "if platform\\.system\\(\\) == .*:",
+    # 测试桩
+    "pass",
+]
+# 排除的文件（按正则）
+exclude_also = [
+    "def __repr__",
+    "def __str__",
+    "def __init__",
+]
+# 精确的分支覆盖
+partial_branches = [
+    "pragma: no branch",
+]
+
+[tool.coverage.html]
+directory = "htmlcov"
+title = "数擎大数据平台 Python 覆盖率报告"
+
+[tool.coverage.xml]
+output = "coverage.xml"
+
+[tool.coverage.json]
+output = "coverage.json"
+show_contexts = true
+
+# ============================================================
+# mypy 类型检查
+# 文档：https://mypy.readthedocs.io/en/stable/config_file.html
+# ============================================================
+[tool.mypy]
+python_version = "3.11"
+# 严格模式
+strict = true
+# 显示错误上下文
+show_error_context = true
+# 显示错误代码
+show_error_codes = true
+# 漂亮的输出
+pretty = true
+# 警告未使用的忽略
+warn_unused_ignores = true
+# 警告冗余类型转换
+warn_redundant_casts = true
+# 警告未类型化的函数
+warn_untyped = true
+# 警告返回类型不匹配
+warn_return_any = true
+# 警告未使用的配置
+warn_unused_configs = true
+# 允许任意类型（FastAPI/Pydantic 场景）
+disallow_any_generics = false
+disallow_any_explicit = false
+# 隐式重新导出
+implicit_reexport = true
+# 模块命名空间包
+namespace_packages = true
+# 忽略缺失的 import
+ignore_missing_imports = true
+# 排除的文件
+exclude = [
+    "tests/",
+    "test_.*\\.py",
+    "conftest\\.py",
+    "migrations/",
+    "alembic/",
+    "build/",
+    "dist/",
+    "\\.venv/",
+]
+
+# 第三方库类型忽略
+[[tool.mypy.overrides]]
+module = [
+    "fastapi.*",
+    "uvicorn.*",
+    "pydantic.*",
+    "loguru.*",
+    "httpx.*",
+    "kafka.*",
+    "pulsar.*",
+    "redis.*",
+    "celery.*",
+    "pandas.*",
+    "numpy.*",
+    "sklearn.*",
+    "torch.*",
+    "transformers.*",
+    "mlflow.*",
+    "langchain.*",
+    "openai.*",
+    "anthropic.*",
+]
+ignore_missing_imports = true
+
+# 测试代码放宽严格度
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+
+# ============================================================
+# pytest 全局配置（各组件可在自己 pyproject.toml 覆盖）
+# ============================================================
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# 标记注册
+markers = [
+    "slow: 标记慢速测试（deselect with '-m \"not slow\"')",
+    "integration: 标记集成测试",
+    "unit: 标记单元测试",
+    "e2e: 标记端到端测试",
+    "smoke: 标记冒烟测试",
+]
+# 警告过滤
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+    "ignore::ResourceWarning",
+]
+# 日志配置
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

@@ -1,5 +1,6 @@
 # CI 持续集成工作流
 # 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
+# Phase1a 增强：新增多语言代码检查（golangci-lint/pylint/black/isort/Checkstyle/ESLint）+ 覆盖率收集（JaCoCo/go cover/pytest-cov）
 name: CI
 
 on:
@@ -12,12 +13,226 @@ on:
     branches:
       - main
 
+# 默认权限最小化，PR 评论和检查需要 pull-requests: write
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
 # 同一分支的并发工作流只保留最新一次，避免重复执行浪费资源
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # ============================================================
+  # Go 代码检查：golangci-lint
+  # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 golangci-lint run
+  # 配置文件：.golangci.yml（项目根目录）
+  # ============================================================
+  go-lint:
+    name: Go Lint (golangci-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache: true
+
+      - name: 安装 golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.61
+          working-directory: platform
+          args: --timeout=10m
+
+      - name: 对每个 Go 组件执行 golangci-lint
+        run: |
+          if [ ! -f ".golangci.yml" ]; then
+            echo "::warning::.golangci.yml 不存在，使用 golangci-lint 默认配置"
+          fi
+          go_count=$(find platform -name go.mod -not -path "*/vendor/*" | wc -l)
+          if [ "$go_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Go 组件，跳过 go-lint"
+            exit 0
+          fi
+          fail_count=0
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  golangci-lint: $mod_name ($mod_dir)"
+            echo "============================================"
+            if (cd "$mod_dir" && golangci-lint run --timeout=10m ./...); then
+              echo "✓ $mod_name golangci-lint 通过"
+            else
+              echo "✗ $mod_name golangci-lint 发现问题"
+              fail_count=$((fail_count + 1))
+            fi
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Go 组件 lint 失败"
+            exit 1
+          fi
+
+  # ============================================================
+  # Python 代码检查：pylint + black + isort + flake8 + mypy
+  # 遍历 platform/ 下所有含 pyproject.toml 的子目录
+  # 配置文件：.pylintrc、pyproject.toml [tool.black] [tool.isort] [tool.mypy]
+  # ============================================================
+  python-lint:
+    name: Python Lint (pylint/black/isort/flake8/mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装 lint 工具集
+        run: pip install pylint black isort flake8 mypy -q
+
+      - name: 对每个 Python 组件执行 lint
+        run: |
+          py_count=$(find platform -name pyproject.toml 2>/dev/null | wc -l)
+          if [ "$py_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Python 组件，跳过 python-lint"
+            exit 0
+          fi
+          fail_count=0
+          while IFS= read -r f; do
+            mod_dir=$(dirname "$f")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  Python Lint: $mod_name ($mod_dir)"
+            echo "============================================"
+            # black 格式检查（不修改文件）
+            (cd "$mod_dir" && black --check --diff . 2>&1) || { echo "✗ $mod_name black 检查失败"; fail_count=$((fail_count + 1)); }
+            # isort 导入顺序检查
+            (cd "$mod_dir" && isort --check --diff . 2>&1) || { echo "✗ $mod_name isort 检查失败"; fail_count=$((fail_count + 1)); }
+            # flake8 风格检查
+            (cd "$mod_dir" && flake8 --max-line-length=120 --extend-ignore=E203,W503 . 2>&1) || { echo "✗ $mod_name flake8 检查失败"; fail_count=$((fail_count + 1)); }
+            # pylint 静态分析（容忍度较高，不阻断 CI）
+            (cd "$mod_dir" && pylint --rcfile=../../.pylintrc --fail-under=7.0 . 2>&1) || echo "::warning::$mod_name pylint 分数低于阈值，仅警告"
+            # mypy 类型检查（可选，失败仅警告）
+            (cd "$mod_dir" && mypy --ignore-missing-imports . 2>&1) || echo "::warning::$mod_name mypy 发现类型问题，仅警告"
+          done < <(find platform -name pyproject.toml 2>/dev/null)
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Python 组件 lint 失败"
+            exit 1
+          fi
+
+  # ============================================================
+  # 前端代码检查：ESLint + Prettier + TypeScript 类型检查
+  # 工作目录：frontend/
+  # ============================================================
+  frontend-lint:
+    name: Frontend Lint (ESLint+Prettier+TypeScript)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 安装依赖
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: ESLint 检查
+        run: |
+          if npm run lint --silent 2>/dev/null; then
+            echo "✓ ESLint 检查通过"
+          else
+            echo "::warning::npm run lint 未配置或检查失败，跳过 ESLint"
+          fi
+
+      - name: Prettier 格式检查
+        run: |
+          if npx --no-install prettier --check "src/**/*.{ts,tsx,vue,js,jsx,css,scss,json,md}" 2>/dev/null; then
+            echo "✓ Prettier 格式检查通过"
+          else
+            echo "::warning::Prettier 检查失败或未配置，仅警告"
+          fi
+
+      - name: TypeScript 类型检查
+        run: |
+          if npm run type-check --silent 2>/dev/null; then
+            echo "✓ TypeScript 类型检查通过"
+          else
+            echo "::warning::npm run type-check 未配置，使用 vue-tsc 回退"
+            npx --no-install vue-tsc --noEmit 2>/dev/null || echo "::warning::vue-tsc 检查跳过"
+          fi
+
+  # ============================================================
+  # Java 代码检查：Checkstyle + SpotBugs + PMD
+  # 通过 Maven 插件执行，遍历 platform/ 下所有含 pom.xml 的子目录
+  # 配置文件：design/v2.0/Phase1/启动前准备/config/checkstyle.xml
+  # ============================================================
+  java-lint:
+    name: Java Lint (Checkstyle+SpotBugs+PMD)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 JDK 17 (Temurin) + Maven 3.9
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          maven-version: '3.9'
+          cache: 'maven'
+
+      - name: 对每个 Java 组件执行 checkstyle:check + pmd:check
+        run: |
+          java_count=$(find platform -name pom.xml -not -path "*/target/*" | wc -l)
+          if [ "$java_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Java 组件，跳过 java-lint"
+            exit 0
+          fi
+          fail_count=0
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  Java Lint: $mod_name ($mod_dir)"
+            echo "============================================"
+            # Checkstyle 检查（若插件已配置则执行，否则跳过）
+            if mvn -f "$pom" checkstyle:check -B -q 2>/dev/null; then
+              echo "✓ $mod_name Checkstyle 通过"
+            else
+              echo "::warning::$mod_name Checkstyle 未配置或检查失败，仅警告"
+            fi
+            # PMD 检查
+            if mvn -f "$pom" pmd:check -B -q 2>/dev/null; then
+              echo "✓ $mod_name PMD 通过"
+            else
+              echo "::warning::$mod_name PMD 未配置或检查失败，仅警告"
+            fi
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+          echo "Java lint 检查完成"
+
   # ============================================================
   # YAML lint：校验所有 .yaml/.yml 文件语法与风格
   # 检查范围：design/deploy/values/、ske/manifests/、design/deploy/charts/
@@ -242,7 +457,7 @@ jobs:
             echo "java_skip=false" >> $GITHUB_ENV
           fi
 
-      - name: 对每个 Java 组件执行 mvn clean test -B
+      - name: 对每个 Java 组件执行 mvn clean test -B（含 JaCoCo 覆盖率）
         if: env.java_skip != 'true'
         run: |
           while IFS= read -r pom; do
@@ -268,12 +483,36 @@ jobs:
           done < <(find platform -path "*/target/surefire-reports/*.xml" 2>/dev/null)
           echo "已收集测试报告到 java-test-reports/"
 
+      - name: 收集 JaCoCo 覆盖率报告
+        if: env.java_skip != 'true' && always()
+        run: |
+          mkdir -p java-coverage-reports
+          cov_count=0
+          while IFS= read -r cov; do
+            mod_dir=$(dirname "$(dirname "$cov")")
+            mod_name=$(basename "$mod_dir")
+            mkdir -p "java-coverage-reports/$mod_name"
+            cp "$cov" "java-coverage-reports/$mod_name/" 2>/dev/null || true
+            cov_count=$((cov_count + 1))
+            echo "收集 JaCoCo XML: $cov -> java-coverage-reports/$mod_name/"
+          done < <(find platform -path "*/target/site/jacoco/jacoco.xml" 2>/dev/null)
+          echo "共收集 $cov_count 份 JaCoCo 报告"
+
       - name: 上传 Java 测试报告
         if: env.java_skip != 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: java-test-reports
           path: java-test-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: 上传 JaCoCo 覆盖率报告
+        if: env.java_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-coverage-reports
+          path: java-coverage-reports/
           retention-days: 7
           if-no-files-found: warn
 
@@ -314,18 +553,21 @@ jobs:
             echo "go_skip=false" >> $GITHUB_ENV
           fi
 
-      - name: 对每个 Go 组件执行 go test & go vet
+      - name: 对每个 Go 组件执行 go test & go vet（含覆盖率）
         if: env.go_skip != 'true'
         run: |
-          mkdir -p go-test-reports
+          mkdir -p go-test-reports go-coverage-reports
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  构建 & 测试: $mod_name ($mod_dir)"
             echo "============================================"
-            (cd "$mod_dir" && go test ./... -v 2>&1 | tee "../go-test-reports/${mod_name}-test.log")
+            # 执行测试并生成覆盖率报告（coverprofile）
+            (cd "$mod_dir" && go test ./... -v -coverprofile="../go-coverage-reports/${mod_name}.cov" -covermode=atomic 2>&1 | tee "../go-test-reports/${mod_name}-test.log")
             (cd "$mod_dir" && go vet ./... 2>&1 | tee "../go-test-reports/${mod_name}-vet.log")
+            # 将 coverage 转换为 HTML（便于人工查看）
+            (cd "$mod_dir" && go tool cover -html="../go-coverage-reports/${mod_name}.cov" -o "../go-coverage-reports/${mod_name}.html" 2>/dev/null) || true
           done < <(find platform -name go.mod -not -path "*/vendor/*")
 
       - name: 上传 Go 测试报告
@@ -334,6 +576,15 @@ jobs:
         with:
           name: go-test-reports
           path: go-test-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: 上传 Go 覆盖率报告
+        if: env.go_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-reports
+          path: go-coverage-reports/
           retention-days: 7
           if-no-files-found: warn
 
@@ -387,10 +638,11 @@ jobs:
             printf '%s\n' "${py_modules[@]}" > .python-modules.txt
           fi
 
-      - name: 对每个 Python 组件执行 pytest
+      - name: 对每个 Python 组件执行 pytest（含覆盖率）
         if: env.py_skip != 'true'
         run: |
-          mkdir -p python-test-reports
+          mkdir -p python-test-reports python-coverage-reports
+          pip install pytest-cov coverage -q 2>&1 | tail -2
           while IFS= read -r mod_dir; do
             mod_name=$(basename "$mod_dir")
             echo "============================================"
@@ -404,10 +656,13 @@ jobs:
               pip install "$mod_dir[test,dev]" -q 2>&1 | tail -5 || pip install "$mod_dir" -q 2>&1 | tail -5 || true
             fi
             pip install pytest pytest-html -q 2>&1 | tail -2
-            # 执行 pytest
+            # 执行 pytest 并生成覆盖率（XML + HTML）
             (cd "$mod_dir" && pytest \
               --html="../python-test-reports/${mod_name}-report.html" \
               --self-contained-html \
+              --cov=. --cov-report=xml:../python-coverage-reports/${mod_name}-coverage.xml \
+              --cov-report=html:../python-coverage-reports/${mod_name}-html \
+              --cov-branch \
               -v 2>&1 | tee "../python-test-reports/${mod_name}-test.log") || true
           done < .python-modules.txt
 
@@ -417,6 +672,15 @@ jobs:
         with:
           name: python-test-reports
           path: python-test-reports/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: 上传 Python 覆盖率报告
+        if: env.py_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage-reports
+          path: python-coverage-reports/
           retention-days: 7
           if-no-files-found: warn
 
@@ -562,8 +826,12 @@ jobs:
   markdown-lint:
     name: Markdown Lint
     runs-on: ubuntu-latest
-    # 依赖前 10 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
+    # 依赖前 14 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
     needs:
+      - go-lint
+      - python-lint
+      - frontend-lint
+      - java-lint
       - yaml-lint
       - python-check
       - bash-check
