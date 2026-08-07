@@ -232,6 +232,63 @@ services:
       - it-net
 
   # ---------------------------------------------------------------------------
+  # 微调→评测→部署闭环编排服务（Python/FastAPI, port 18088）
+  # ---------------------------------------------------------------------------
+  # T033 一键闭环编排：微调→评测→部署
+  # - 集成 T032 微调引擎 + T031 评测平台 + 模型仓库
+  # - 版本化管理（Adapter/评测报告）
+  # - WebSocket 实时进度推送
+  finetuning-loop:
+    build:
+      context: ../../platform/model-finetuning/loop
+      dockerfile: Dockerfile
+    image: shuqing/finetuning-loop:0.1.0
+    container_name: it-finetuning-loop
+    ports:
+      - "18088:18088"
+    environment:
+      - LOOP_PORT=18088
+      - LOOP_MOCK_MODE=true
+      - FINETUNE_URL=http://it-finetuning:8095
+      - EVALUATION_URL=http://it-evaluation:8086
+      - REGISTRY_URL=http://it-model-registry:18089
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18088/health', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      evaluation:
+        condition: service_healthy
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 模型仓库注册部署服务（Python/FastAPI, port 18089）
+  # ---------------------------------------------------------------------------
+  # T033 模型仓库：微调后模型注册 + 一键部署 + 部署管理 + 健康检查
+  model-registry:
+    build:
+      context: ../../platform/registry
+      dockerfile: Dockerfile
+    image: shuqing/model-registry:0.1.0
+    container_name: it-model-registry
+    ports:
+      - "18089:18089"
+    environment:
+      - REGISTRY_PORT=18089
+      - REGISTRY_MOCK_MODE=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18089/health', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
   # Prometheus（采集 4 个自研组件的 metrics）
   # ---------------------------------------------------------------------------
   prometheus:

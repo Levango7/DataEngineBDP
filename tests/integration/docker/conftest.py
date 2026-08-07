@@ -52,6 +52,8 @@ BASE_URLS: Dict[str, str] = {
     "llm_gateway": os.environ.get("LLM_GATEWAY_URL", "http://localhost:18085"),
     "evaluation": os.environ.get("EVALUATION_URL", "http://localhost:18086"),
     "finops_dashboard": os.environ.get("FINOPS_DASHBOARD_URL", "http://localhost:18087"),
+    "finetuning_loop": os.environ.get("FINETUNING_LOOP_URL", "http://localhost:18088"),
+    "model_registry": os.environ.get("MODEL_REGISTRY_URL", "http://localhost:18089"),
 }
 
 # Docker 容器名（用于 docker ps 状态检查）。
@@ -64,6 +66,8 @@ DOCKER_CONTAINERS: Dict[str, str] = {
     "llm_gateway": "it-llm-gateway",
     "evaluation": "it-evaluation",
     "finops_dashboard": "it-finops-dashboard",
+    "finetuning_loop": "it-finetuning-loop",
+    "model_registry": "it-model-registry",
 }
 
 # 各模块健康检查端点路径（Java 用 /actuator/health，Go 用 /api/v1/health）。
@@ -76,6 +80,8 @@ HEALTH_PATHS: Dict[str, str] = {
     "llm_gateway": "/health",
     "evaluation": "/health",
     "finops_dashboard": "/api/v1/health",
+    "finetuning_loop": "/health",
+    "model_registry": "/health",
 }
 
 
@@ -288,6 +294,18 @@ def evaluation_url() -> str:
     return BASE_URLS["evaluation"]
 
 
+@pytest.fixture(scope="session")
+def finetuning_loop_url() -> str:
+    """微调→评测→部署闭环编排服务基础 URL。"""
+    return BASE_URLS["finetuning_loop"]
+
+
+@pytest.fixture(scope="session")
+def model_registry_url() -> str:
+    """模型仓库注册部署服务基础 URL。"""
+    return BASE_URLS["model_registry"]
+
+
 # 各模块可用性 fixture（用于条件跳过）。
 @pytest.fixture(scope="session")
 def encaps_available() -> bool:
@@ -337,6 +355,18 @@ def finops_dashboard_available() -> bool:
     return is_service_available("finops_dashboard")
 
 
+@pytest.fixture(scope="session")
+def finetuning_loop_available() -> bool:
+    """微调→评测→部署闭环编排服务是否可用。"""
+    return is_service_available("finetuning_loop")
+
+
+@pytest.fixture(scope="session")
+def model_registry_available() -> bool:
+    """模型仓库注册部署服务是否可用。"""
+    return is_service_available("model_registry")
+
+
 # ---------------------------------------------------------------------------
 # 测试收集阶段钩子：自动跳过服务不可用的测试
 # ---------------------------------------------------------------------------
@@ -356,11 +386,14 @@ def pytest_collection_modifyitems(config, items):
         "llm_gateway": is_service_available("llm_gateway"),
         "evaluation": is_service_available("evaluation"),
         "finops_dashboard": is_service_available("finops_dashboard"),
+        "finetuning_loop": is_service_available("finetuning_loop"),
+        "model_registry": is_service_available("model_registry"),
     }
 
     # 测试文件名前缀 → 模块名映射。
     # 注意：test_model_evaluation 包含核心组件测试（不需服务）与 HTTP API 测试，
     # 不在此整体跳过，由测试文件内部通过 evaluation_available fixture 控制 HTTP 测试跳过。
+    # test_finetuning_loop 同理：TestClient 模式无需服务，HTTP 模式由环境变量控制。
     file_module_map = {
         "test_docker_encaps": "encaps",
         "test_docker_sql_gateway": "sql_gateway",
