@@ -11,11 +11,13 @@
     ASSET_EXCHANGE_PROVIDER_SHARE    提供方收益分成（默认 0.8）
     ASSET_EXCHANGE_PLATFORM_SHARE    平台抽成（默认 0.2）
     ASSET_EXCHANGE_INTERNAL_FACTOR   内部结算成本系数（默认 0.3）
+    ASSET_EXCHANGE_AUDIT_FACADE_URL  Phase 1 SecurityFacade T021 URL（可选）
+    ASSET_EXCHANGE_PLATFORM_ACCOUNT_ID 平台分账账户 ID（默认 platform-main）
 """
 from __future__ import annotations
 
 from functools import lru_cache
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -59,6 +61,15 @@ class Settings(BaseSettings):
     )
     internalFactor: float = Field(
         default=0.3, ge=0, le=1, description="内部结算成本系数（默认 0.3）"
+    )
+
+    # ---- audit ----
+    auditFacadeUrl: Optional[str] = Field(
+        default=None,
+        description="Phase 1 SecurityFacade T021 URL（可选，用于远程审计同步）",
+    )
+    platformAccountId: str = Field(
+        default="platform-main", description="平台分账账户 ID"
     )
 
     @field_validator("logLevel")

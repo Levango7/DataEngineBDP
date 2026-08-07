@@ -9,15 +9,25 @@ from dataclasses import dataclass
 from typing import Optional
 
 from asset_exchange.config.settings import Settings, get_settings
+from asset_exchange.interfaces.allocation_repository import (
+    AllocationRepository,
+)
 from asset_exchange.interfaces.asset_repository import AssetRepository
+from asset_exchange.interfaces.audit_repository import AuditRepository
 from asset_exchange.interfaces.billing_repository import BillingRepository
 from asset_exchange.interfaces.delivery_repository import DeliveryRepository
+from asset_exchange.interfaces.settlement_repository import (
+    SettlementRepository,
+)
 from asset_exchange.interfaces.subscription_repository import (
     SubscriptionRepository,
 )
+from asset_exchange.services.allocation_service import AllocationService
 from asset_exchange.services.asset_service import AssetService
+from asset_exchange.services.audit_service import AuditService
 from asset_exchange.services.billing_service import BillingService
 from asset_exchange.services.delivery_service import DeliveryService
+from asset_exchange.services.settlement_service import SettlementService
 from asset_exchange.services.subscription_service import SubscriptionService
 
 
@@ -30,10 +40,16 @@ class ServiceRegistry:
     subRepo: SubscriptionRepository
     deliveryRepo: DeliveryRepository
     billingRepo: BillingRepository
+    auditRepo: AuditRepository
+    settlementRepo: SettlementRepository
+    allocationRepo: AllocationRepository
     assetService: AssetService
     subscriptionService: SubscriptionService
     deliveryService: DeliveryService
     billingService: BillingService
+    auditService: AuditService
+    settlementService: SettlementService
+    allocationService: AllocationService
 
 
 def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
@@ -49,14 +65,36 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
         settings = get_settings()
 
     if settings.isMock:
-        asset_repo, sub_repo, delivery_repo, billing_repo = _build_mock()
+        (
+            asset_repo,
+            sub_repo,
+            delivery_repo,
+            billing_repo,
+            audit_repo,
+            settlement_repo,
+            allocation_repo,
+        ) = _build_mock()
     elif settings.isSQLite:
-        asset_repo, sub_repo, delivery_repo, billing_repo = _build_sqlite(
-            settings.dbPath
-        )
+        (
+            asset_repo,
+            sub_repo,
+            delivery_repo,
+            billing_repo,
+            audit_repo,
+            settlement_repo,
+            allocation_repo,
+        ) = _build_sqlite(settings.dbPath)
     else:
         # 兜底：未知类型回退 Mock
-        asset_repo, sub_repo, delivery_repo, billing_repo = _build_mock()
+        (
+            asset_repo,
+            sub_repo,
+            delivery_repo,
+            billing_repo,
+            audit_repo,
+            settlement_repo,
+            allocation_repo,
+        ) = _build_mock()
 
     asset_service = AssetService(asset_repo, sub_repo)
     subscription_service = SubscriptionService(sub_repo, asset_service)
@@ -69,6 +107,22 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
         platform_share=settings.platformShare,
         internal_factor=settings.internalFactor,
     )
+    audit_service = AuditService(
+        audit_repo,
+        audit_facade_url=settings.auditFacadeUrl,
+    )
+    settlement_service = SettlementService(
+        settlement_repo,
+        billing_repo,
+        asset_service,
+        provider_share=settings.providerShare,
+        platform_share=settings.platformShare,
+    )
+    allocation_service = AllocationService(
+        allocation_repo,
+        settlement_repo,
+        platform_account_id=settings.platformAccountId,
+    )
 
     return ServiceRegistry(
         settings=settings,
@@ -76,10 +130,16 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
         subRepo=sub_repo,
         deliveryRepo=delivery_repo,
         billingRepo=billing_repo,
+        auditRepo=audit_repo,
+        settlementRepo=settlement_repo,
+        allocationRepo=allocation_repo,
         assetService=asset_service,
         subscriptionService=subscription_service,
         deliveryService=delivery_service,
         billingService=billing_service,
+        auditService=audit_service,
+        settlementService=settlement_service,
+        allocationService=allocation_service,
     )
 
 
@@ -88,11 +148,17 @@ def _build_mock() -> tuple[
     SubscriptionRepository,
     DeliveryRepository,
     BillingRepository,
+    AuditRepository,
+    SettlementRepository,
+    AllocationRepository,
 ]:
     from asset_exchange.repositories.mock import (
+        MockAllocationRepository,
         MockAssetRepository,
+        MockAuditRepository,
         MockBillingRepository,
         MockDeliveryRepository,
+        MockSettlementRepository,
         MockSubscriptionRepository,
     )
 
@@ -101,6 +167,9 @@ def _build_mock() -> tuple[
         MockSubscriptionRepository(),
         MockDeliveryRepository(),
         MockBillingRepository(),
+        MockAuditRepository(),
+        MockSettlementRepository(),
+        MockAllocationRepository(),
     )
 
 
@@ -111,12 +180,18 @@ def _build_sqlite(
     SubscriptionRepository,
     DeliveryRepository,
     BillingRepository,
+    AuditRepository,
+    SettlementRepository,
+    AllocationRepository,
 ]:
     from asset_exchange.repositories.sqlite import (
+        SQLiteAllocationRepository,
         SQLiteAssetRepository,
+        SQLiteAuditRepository,
         SQLiteBillingRepository,
         SQLiteConnection,
         SQLiteDeliveryRepository,
+        SQLiteSettlementRepository,
         SQLiteSubscriptionRepository,
     )
 
@@ -127,4 +202,7 @@ def _build_sqlite(
         SQLiteSubscriptionRepository(conn),
         SQLiteDeliveryRepository(conn),
         SQLiteBillingRepository(conn),
+        SQLiteAuditRepository(conn),
+        SQLiteSettlementRepository(conn),
+        SQLiteAllocationRepository(conn),
     )

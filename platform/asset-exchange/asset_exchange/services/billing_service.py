@@ -106,16 +106,20 @@ class BillingService:
     ) -> float:
         """计算订单金额.
 
-        - BY_CALL:   按次计费，amount = unit_price * usage
-        - BY_DATA:   按数据量计费（千行），amount = unit_price * usage / 1000
-        - BY_TIME:   按时间计费（月），amount = unit_price * usage
-        - ONE_TIME:  一次性买断，amount = unit_price
+        - BY_CALL:       按次计费，amount = unit_price * usage
+        - BY_DATA:       按数据量计费（千行），amount = unit_price * usage / 1000
+        - BY_TIME:       按时间计费（月），amount = unit_price * usage
+        - SUBSCRIPTION:  订阅计费，amount = unit_price * usage（usage 为订阅期数）
+        - ONE_TIME:      一次性买断，amount = unit_price
         """
         if mode == BillingMode.BY_CALL:
             return round(unit_price * usage, 2)
         elif mode == BillingMode.BY_DATA:
             return round(unit_price * usage / 1000, 2)
         elif mode == BillingMode.BY_TIME:
+            return round(unit_price * usage, 2)
+        elif mode == BillingMode.SUBSCRIPTION:
+            # 订阅计费：单价 * 订阅期数
             return round(unit_price * usage, 2)
         elif mode == BillingMode.ONE_TIME:
             return round(unit_price, 2)

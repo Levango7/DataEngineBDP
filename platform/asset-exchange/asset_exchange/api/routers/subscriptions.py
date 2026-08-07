@@ -4,6 +4,7 @@
     POST /subscriptions/{id}/approve        审批订阅
     POST /subscriptions/{id}/deliver        交付数据
     GET  /subscriptions/{id}/delivery-status 交付状态
+    POST /subscriptions/{id}/charge         计费（辅助端点）
 """
 from __future__ import annotations
 
@@ -11,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
 from asset_exchange.api.routers.deps import get_registry, status_for_error
+from asset_exchange.models.base import AuditAction
 from asset_exchange.models.delivery import (
     Delivery,
     DeliveryRequest,
@@ -47,11 +49,11 @@ async def approve_subscription(
     """审批订阅（通过或驳回）."""
     try:
         if req.action == "approve":
-            return await registry.subscriptionService.approve(
+            result = await registry.subscriptionService.approve(
                 subscription_id, req.approverId
             )
         elif req.action == "reject":
-            return await registry.subscriptionService.reject(
+            result = await registry.subscriptionService.reject(
                 subscription_id,
                 req.approverId,
                 req.reason or "未提供驳回原因",
@@ -61,6 +63,15 @@ async def approve_subscription(
                 status_code=422,
                 detail=f"action 必须为 approve 或 reject，得到 {req.action}",
             )
+        # 审计留痕
+        await registry.auditService.log(
+            action=AuditAction.SUBSCRIBE,
+            actor_id=req.approverId,
+            asset_id=result.assetId,
+            subscription_id=subscription_id,
+            detail={"action": req.action, "reason": req.reason},
+        )
+        return result
     except AssetExchangeError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -78,7 +89,19 @@ async def deliver_data(
 ) -> Delivery:
     """交付数据（支持 API / 文件 / 数据库直连三种方式）."""
     try:
-        return await registry.deliveryService.deliver(subscription_id, req)
+        result = await registry.deliveryService.deliver(subscription_id, req)
+        # 审计留痕
+        await registry.auditService.log(
+            action=AuditAction.DELIVER,
+            actor_id="system",
+            subscription_id=subscription_id,
+            detail={
+                "method": req.method.value,
+                "status": result.status.value,
+                "dataRows": result.dataRows,
+            },
+        )
+        return result
     except AssetExchangeError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 

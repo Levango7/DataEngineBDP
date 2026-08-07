@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from asset_exchange.api.routers import assets, subscriptions, health
+from asset_exchange.api.routers import assets, audit, subscriptions, health
 from asset_exchange.config.settings import Settings, get_settings
 from asset_exchange.services.registry import ServiceRegistry, build_services
 
@@ -50,6 +50,7 @@ def create_app(
     app.include_router(health.router, prefix=prefix)
     app.include_router(assets.router, prefix=prefix)
     app.include_router(subscriptions.router, prefix=prefix)
+    app.include_router(audit.router, prefix=prefix)
 
     # ---- 全局异常处理器：统一错误响应格式 {error, message} ----
     @app.exception_handler(Exception)

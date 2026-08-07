@@ -1,0 +1,160 @@
+# 制造行业模板 - RBAC 权限定义
+# ============================================================================
+# 格式：Keycloak permission 格式（resource + action + scope）
+# 权限模型：基于资源的权限（Resource-Based Permission）
+# 资源类型：table（DDL 表）/ dag（调度作业）/ dashboard（仪表盘）
+# 资源总数：25 表 + 4 DAG + 3 Dashboard = 32 个资源
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 权限定义元信息
+permission_metadata:
+  total_resources: 32
+  resource_types:
+    - table
+    - dag
+    - dashboard
+  action_types:
+    - read    # 只读（SELECT）
+    - write   # 读写（INSERT/UPDATE/DELETE）
+    - manage  # 管理（DDL/调度上下线/触发执行）
+    - view    # 查看（DAG 详情 / Dashboard 渲染）
+  scope_types:
+    - manufacturing_template  # 制造模板范围
+
+# ============================================================================
+# 资源定义：25 张表 + 4 个 DAG + 3 个 Dashboard = 32 个资源
+# ============================================================================
+resources:
+  # --------------------------------------------------------------------------
+  # OEE 域表资源（7 张）
+  # --------------------------------------------------------------------------
+  - {name: equipment,              type: table, domain: oee,            classification: confidential, description: "设备主表"}
+  - {name: production_line,        type: table, domain: oee,            classification: internal,      description: "产线主表"}
+  - {name: shift,                  type: table, domain: oee,            classification: internal,      description: "班次主表"}
+  - {name: equipment_status_log,   type: table, domain: oee,            classification: confidential, description: "设备状态变更日志表"}
+  - {name: equipment_oee_daily,    type: table, domain: oee,            classification: confidential, description: "设备 OEE 日汇总表"}
+  - {name: equipment_oee_shift,    type: table, domain: oee,            classification: confidential, description: "设备 OEE 班次汇总表"}
+  - {name: equipment_sensor_metric, type: table, domain: oee,           classification: confidential, description: "设备传感器指标表"}
+
+  # --------------------------------------------------------------------------
+  # 质量追溯域表资源（7 张）
+  # --------------------------------------------------------------------------
+  - {name: product_batch,          type: table, domain: quality,        classification: internal,      description: "产品批次主表"}
+  - {name: work_order,             type: table, domain: quality,        classification: internal,      description: "工单主表"}
+  - {name: process_route,          type: table, domain: quality,        classification: internal,      description: "工艺路线表"}
+  - {name: process_record,         type: table, domain: quality,        classification: confidential, description: "工序执行记录表"}
+  - {name: quality_parameter,      type: table, domain: quality,        classification: confidential, description: "质量参数表"}
+  - {name: defect_record,          type: table, domain: quality,        classification: confidential, description: "缺陷记录表"}
+  - {name: quality_trace_link,     type: table, domain: quality,        classification: confidential, description: "质量追溯链路表"}
+
+  # --------------------------------------------------------------------------
+  # 供应链协同域表资源（7 张）
+  # --------------------------------------------------------------------------
+  - {name: supplier,               type: table, domain: supply_chain,   classification: internal,      description: "供应商主表"}
+  - {name: purchase_order,         type: table, domain: supply_chain,   classification: confidential, description: "采购订单表"}
+  - {name: inventory,              type: table, domain: supply_chain,   classification: confidential, description: "库存主表"}
+  - {name: inventory_movement,     type: table, domain: supply_chain,   classification: confidential, description: "库存流水表"}
+  - {name: sales_order,            type: table, domain: supply_chain,   classification: confidential, description: "销售订单表"}
+  - {name: logistics_shipment,     type: table, domain: supply_chain,   classification: confidential, description: "物流发货表"}
+  - {name: supply_chain_event,     type: table, domain: supply_chain,   classification: internal,      description: "供应链事件表"}
+
+  # --------------------------------------------------------------------------
+  # RBAC 域表资源（4 张）
+  # --------------------------------------------------------------------------
+  - {name: mfg_role,               type: table, domain: rbac,           classification: restricted,    description: "角色定义表"}
+  - {name: mfg_permission,         type: table, domain: rbac,           classification: restricted,    description: "权限定义表"}
+  - {name: mfg_role_permission,    type: table, domain: rbac,           classification: restricted,    description: "角色权限关联表"}
+  - {name: mfg_user_role,          type: table, domain: rbac,           classification: restricted,    description: "用户角色关联表"}
+
+  # --------------------------------------------------------------------------
+  # DAG 资源（4 个）
+  # --------------------------------------------------------------------------
+  - {name: oee_calculation,        type: dag, domain: oee,            schedule: "0 2 * * *",   description: "OEE 日计算 DAG"}
+  - {name: quality_trace,          type: dag, domain: quality,        schedule: "0 3 * * *",   description: "质量追溯 DAG"}
+  - {name: supply_chain_sync,      type: dag, domain: supply_chain,   schedule: "0 4 * * *",   description: "供应链协同 DAG"}
+  - {name: iotdb_ingestion,        type: dag, domain: oee,            schedule: "*/15 * * * *", description: "IoTDB 数据接入 DAG"}
+
+  # --------------------------------------------------------------------------
+  # Dashboard 资源（3 个）
+  # --------------------------------------------------------------------------
+  - {name: oee-dashboard,          type: dashboard, domain: oee,          charts_count: 6, description: "OEE 仪表盘"}
+  - {name: quality-dashboard,      type: dashboard, domain: quality,      charts_count: 6, description: "质量仪表盘"}
+  - {name: supply-chain-dashboard, type: dashboard, domain: supply_chain, charts_count: 6, description: "供应链仪表盘"}
+
+# ============================================================================
+# 权限定义：基于资源 × 操作的笛卡尔积，按业务语义筛选
+# ============================================================================
+permissions:
+  # --------------------------------------------------------------------------
+  # OEE 域表权限（7 张表 × 2 操作 = 14 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_equipment_read,              name: "设备主表只读",  resource: equipment,              action: read,  sql: "SELECT ON equipment"}
+  - {id: perm_table_equipment_write,             name: "设备主表读写",  resource: equipment,              action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON equipment"}
+  - {id: perm_table_production_line_read,        name: "产线主表只读",  resource: production_line,        action: read,  sql: "SELECT ON production_line"}
+  - {id: perm_table_production_line_write,       name: "产线主表读写",  resource: production_line,        action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON production_line"}
+  - {id: perm_table_shift_read,                  name: "班次主表只读",  resource: shift,                  action: read,  sql: "SELECT ON shift"}
+  - {id: perm_table_shift_write,                 name: "班次主表读写",  resource: shift,                  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON shift"}
+  - {id: perm_table_equipment_status_log_read,   name: "设备状态日志只读", resource: equipment_status_log, action: read,  sql: "SELECT ON equipment_status_log"}
+  - {id: perm_table_equipment_status_log_write,  name: "设备状态日志读写", resource: equipment_status_log, action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON equipment_status_log"}
+  - {id: perm_table_equipment_oee_daily_read,    name: "OEE日汇总只读", resource: equipment_oee_daily,    action: read,  sql: "SELECT ON equipment_oee_daily"}
+  - {id: perm_table_equipment_oee_daily_write,   name: "OEE日汇总读写", resource: equipment_oee_daily,    action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON equipment_oee_daily"}
+  - {id: perm_table_equipment_oee_shift_read,    name: "OEE班次汇总只读", resource: equipment_oee_shift,  action: read,  sql: "SELECT ON equipment_oee_shift"}
+  - {id: perm_table_equipment_oee_shift_write,   name: "OEE班次汇总读写", resource: equipment_oee_shift,  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON equipment_oee_shift"}
+  - {id: perm_table_equipment_sensor_metric_read,  name: "传感器指标只读", resource: equipment_sensor_metric, action: read,  sql: "SELECT ON equipment_sensor_metric"}
+  - {id: perm_table_equipment_sensor_metric_write, name: "传感器指标读写", resource: equipment_sensor_metric, action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON equipment_sensor_metric"}
+
+  # --------------------------------------------------------------------------
+  # 质量追溯域表权限（7 张表 × 2 操作 = 14 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_product_batch_read,       name: "产品批次只读",  resource: product_batch,       action: read,  sql: "SELECT ON product_batch"}
+  - {id: perm_table_product_batch_write,      name: "产品批次读写",  resource: product_batch,       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON product_batch"}
+  - {id: perm_table_work_order_read,          name: "工单只读",      resource: work_order,          action: read,  sql: "SELECT ON work_order"}
+  - {id: perm_table_work_order_write,         name: "工单读写",      resource: work_order,          action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON work_order"}
+  - {id: perm_table_process_route_read,       name: "工艺路线只读",  resource: process_route,       action: read,  sql: "SELECT ON process_route"}
+  - {id: perm_table_process_route_write,      name: "工艺路线读写",  resource: process_route,       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON process_route"}
+  - {id: perm_table_process_record_read,      name: "工序记录只读",  resource: process_record,      action: read,  sql: "SELECT ON process_record"}
+  - {id: perm_table_process_record_write,     name: "工序记录读写",  resource: process_record,      action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON process_record"}
+  - {id: perm_table_quality_parameter_read,   name: "质量参数只读",  resource: quality_parameter,   action: read,  sql: "SELECT ON quality_parameter"}
+  - {id: perm_table_quality_parameter_write,  name: "质量参数读写",  resource: quality_parameter,   action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON quality_parameter"}
+  - {id: perm_table_defect_record_read,       name: "缺陷记录只读",  resource: defect_record,       action: read,  sql: "SELECT ON defect_record"}
+  - {id: perm_table_defect_record_write,      name: "缺陷记录读写",  resource: defect_record,       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON defect_record"}
+  - {id: perm_table_quality_trace_link_read,  name: "追溯链路只读",  resource: quality_trace_link,  action: read,  sql: "SELECT ON quality_trace_link"}
+  - {id: perm_table_quality_trace_link_write, name: "追溯链路读写",  resource: quality_trace_link,  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON quality_trace_link"}
+
+  # --------------------------------------------------------------------------
+  # 供应链协同域表权限（7 张表 × 2 操作 = 14 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_supplier_read,            name: "供应商只读",    resource: supplier,            action: read,  sql: "SELECT ON supplier"}
+  - {id: perm_table_supplier_write,           name: "供应商读写",    resource: supplier,            action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON supplier"}
+  - {id: perm_table_purchase_order_read,      name: "采购订单只读",  resource: purchase_order,      action: read,  sql: "SELECT ON purchase_order"}
+  - {id: perm_table_purchase_order_write,     name: "采购订单读写",  resource: purchase_order,      action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON purchase_order"}
+  - {id: perm_table_inventory_read,           name: "库存只读",      resource: inventory,           action: read,  sql: "SELECT ON inventory"}
+  - {id: perm_table_inventory_write,          name: "库存读写",      resource: inventory,           action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON inventory"}
+  - {id: perm_table_inventory_movement_read,  name: "库存流水只读",  resource: inventory_movement,  action: read,  sql: "SELECT ON inventory_movement"}
+  - {id: perm_table_inventory_movement_write, name: "库存流水读写",  resource: inventory_movement,  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON inventory_movement"}
+  - {id: perm_table_sales_order_read,         name: "销售订单只读",  resource: sales_order,         action: read,  sql: "SELECT ON sales_order"}
+  - {id: perm_table_sales_order_write,        name: "销售订单读写",  resource: sales_order,         action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON sales_order"}
+  - {id: perm_table_logistics_shipment_read,  name: "物流发货只读",  resource: logistics_shipment,  action: read,  sql: "SELECT ON logistics_shipment"}
+  - {id: perm_table_logistics_shipment_write, name: "物流发货读写",  resource: logistics_shipment,  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON logistics_shipment"}
+  - {id: perm_table_supply_chain_event_read,  name: "供应链事件只读", resource: supply_chain_event, action: read,  sql: "SELECT ON supply_chain_event"}
+  - {id: perm_table_supply_chain_event_write, name: "供应链事件读写", resource: supply_chain_event, action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON supply_chain_event"}
+
+  # --------------------------------------------------------------------------
+  # DAG 权限（4 个 DAG × 2 操作 = 8 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_dag_oee_calculation_view,   name: "OEE计算DAG查看",   resource: oee_calculation,   action: view,   sql: "VIEW DAG oee_calculation"}
+  - {id: perm_dag_oee_calculation_manage, name: "OEE计算DAG管理",   resource: oee_calculation,   action: manage, sql: "MANAGE DAG oee_calculation"}
+  - {id: perm_dag_quality_trace_view,     name: "质量追溯DAG查看",  resource: quality_trace,     action: view,   sql: "VIEW DAG quality_trace"}
+  - {id: perm_dag_quality_trace_manage,   name: "质量追溯DAG管理",  resource: quality_trace,     action: manage, sql: "MANAGE DAG quality_trace"}
+  - {id: perm_dag_supply_chain_sync_view, name: "供应链协同DAG查看", resource: supply_chain_sync, action: view,   sql: "VIEW DAG supply_chain_sync"}
+  - {id: perm_dag_supply_chain_sync_manage, name: "供应链协同DAG管理", resource: supply_chain_sync, action: manage, sql: "MANAGE DAG supply_chain_sync"}
+  - {id: perm_dag_iotdb_ingestion_view,   name: "IoTDB接入DAG查看",  resource: iotdb_ingestion,   action: view,   sql: "VIEW DAG iotdb_ingestion"}
+  - {id: perm_dag_iotdb_ingestion_manage, name: "IoTDB接入DAG管理",  resource: iotdb_ingestion,   action: manage, sql: "MANAGE DAG iotdb_ingestion"}
+
+  # --------------------------------------------------------------------------
+  # Dashboard 权限（3 个 Dashboard × 1 操作 = 3 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_dashboard_oee_view,          name: "OEE仪表盘查看",       resource: oee-dashboard,          action: view, sql: "VIEW DASHBOARD oee-dashboard"}
+  - {id: perm_dashboard_quality_view,      name: "质量仪表盘查看",       resource: quality-dashboard,      action: view, sql: "VIEW DASHBOARD quality-dashboard"}
+  - {id: perm_dashboard_supply_chain_view, name: "供应链仪表盘查看",     resource: supply-chain-dashboard, action: view, sql: "VIEW DASHBOARD supply-chain-dashboard"}

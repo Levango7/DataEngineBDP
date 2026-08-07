@@ -1,0 +1,257 @@
+# 制造行业模板 - RBAC 角色定义
+# ============================================================================
+# 模块：T037 制造行业模板 RBAC
+# 格式：Keycloak realm role 格式
+# 角色数：4（车间主任 / 质量员 / 供应链经理 / 设备工程师）
+# 设计原则：最小权限原则（Least Privilege Principle）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# Keycloak realm 配置元信息
+realm: manufacturing-template-realm
+realm_enabled: true
+realm_display_name: 制造行业模板 RBAC 域
+realm_description: |
+  数擎大数据平台 L5.3 行业应用模板 - 制造行业 RBAC 角色定义。
+  基于 DDL（25 张表）、DAG（4 个调度作业）、Dashboard（3 个仪表盘）设计。
+  遵循最小权限原则：每个角色仅授予完成其业务职责所需的最小权限集合。
+
+# 角色定义列表
+roles:
+  # --------------------------------------------------------------------------
+  # 角色 1：车间主任（workshop_director）
+  # 职责：车间生产管理、设备 OEE 监控、工单管理、班次安排
+  # 可访问：设备/产线/班次/OEE 表、工单表、工序记录表、OEE Dashboard
+  # 不可访问：供应链表（供应商/采购/库存/销售/物流）、质量追溯全链路写权限
+  # --------------------------------------------------------------------------
+  - name: workshop_director
+    description: |
+      车间主任：负责车间生产管理、设备 OEE 监控、工单管理与班次安排。
+      可读写设备域 7 张表、工单表、工序记录表，可管理 OEE 计算 DAG，
+      可访问 OEE Dashboard。不可访问供应链表，不可修改质量追溯链路。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: workshop
+      data_classification: confidential
+      max_session_count: "3"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - equipment
+        - production_line
+        - shift
+        - equipment_status_log
+        - equipment_oee_daily
+        - equipment_oee_shift
+        - equipment_sensor_metric
+        - work_order
+        - process_record
+        - product_batch
+      tables_write:
+        - equipment
+        - production_line
+        - shift
+        - work_order
+        - process_record
+      tables_denied:
+        - supplier
+        - purchase_order
+        - inventory
+        - inventory_movement
+        - sales_order
+        - logistics_shipment
+        - supply_chain_event
+      dags_manage:
+        - oee_calculation
+        - iotdb_ingestion
+      dags_view:
+        - quality_trace
+      dashboards_view:
+        - oee-dashboard
+      dashboards_denied:
+        - supply-chain-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 2：质量员（quality_engineer）
+  # 职责：质量追溯、缺陷管理、质量参数分析、Cpk 计算
+  # 可访问：质量追溯域全部 7 张表、质量 Dashboard
+  # 不可访问：供应链表、设备 OEE 写权限（只读）
+  # --------------------------------------------------------------------------
+  - name: quality_engineer
+    description: |
+      质量员：负责质量追溯、缺陷管理、质量参数分析与 Cpk 计算。
+      可读写质量追溯域 7 张表（批次/工单/工艺/工序/参数/缺陷/追溯链路），
+      可管理质量追溯 DAG，可访问质量 Dashboard。
+      不可访问供应链表，设备 OEE 表只读。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: quality
+      data_classification: confidential
+      max_session_count: "3"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - product_batch
+        - work_order
+        - process_route
+        - process_record
+        - quality_parameter
+        - defect_record
+        - quality_trace_link
+        - equipment
+        - equipment_oee_daily
+      tables_write:
+        - product_batch
+        - work_order
+        - process_route
+        - process_record
+        - quality_parameter
+        - defect_record
+        - quality_trace_link
+      tables_denied:
+        - supplier
+        - purchase_order
+        - inventory
+        - inventory_movement
+        - sales_order
+        - logistics_shipment
+        - supply_chain_event
+      dags_manage:
+        - quality_trace
+      dags_view:
+        - oee_calculation
+      dashboards_view:
+        - quality-dashboard
+        - oee-dashboard
+      dashboards_denied:
+        - supply-chain-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 3：供应链经理（supply_chain_manager）
+  # 职责：供应链协同、订单管理、库存管理、物流跟踪、供应商管理
+  # 可访问：供应链协同域全部 7 张表、供应链 Dashboard
+  # 不可访问：设备 OEE 表、质量追溯表写权限（只读产品批次）
+  # --------------------------------------------------------------------------
+  - name: supply_chain_manager
+    description: |
+      供应链经理：负责供应链协同、订单管理、库存管理、物流跟踪与供应商管理。
+      可读写供应链协同域 7 张表（供应商/采购/库存/流水/销售/物流/事件），
+      可管理供应链协同 DAG，可访问供应链 Dashboard。
+      不可访问设备 OEE 表，质量追溯表只读产品批次。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: supply_chain
+      data_classification: internal
+      max_session_count: "5"
+      session_timeout_seconds: "7200"
+    permissions_scope:
+      tables_read:
+        - supplier
+        - purchase_order
+        - inventory
+        - inventory_movement
+        - sales_order
+        - logistics_shipment
+        - supply_chain_event
+        - product_batch
+      tables_write:
+        - supplier
+        - purchase_order
+        - inventory
+        - inventory_movement
+        - sales_order
+        - logistics_shipment
+        - supply_chain_event
+      tables_denied:
+        - equipment
+        - equipment_status_log
+        - equipment_oee_daily
+        - equipment_oee_shift
+        - equipment_sensor_metric
+        - process_record
+        - quality_parameter
+        - defect_record
+        - quality_trace_link
+      dags_manage:
+        - supply_chain_sync
+      dags_view: []
+      dashboards_view:
+        - supply-chain-dashboard
+      dashboards_denied:
+        - oee-dashboard
+        - quality-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 4：设备工程师（equipment_engineer）
+  # 职责：设备维护、IoTDB 数据接入、设备传感器监控
+  # 可访问：设备域表、IoTDB 接入 DAG、传感器指标表
+  # 不可访问：质量追溯表、供应链表
+  # --------------------------------------------------------------------------
+  - name: equipment_engineer
+    description: |
+      设备工程师：负责设备维护、IoTDB 时序数据接入与设备传感器监控。
+      可读写设备域 7 张表（设备/产线/班次/状态日志/OEE/传感器指标），
+      可管理 IoTDB 接入 DAG，可查看 OEE Dashboard。
+      不可访问质量追溯表与供应链表。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: equipment
+      data_classification: internal
+      max_session_count: "3"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - equipment
+        - production_line
+        - shift
+        - equipment_status_log
+        - equipment_oee_daily
+        - equipment_oee_shift
+        - equipment_sensor_metric
+      tables_write:
+        - equipment
+        - equipment_status_log
+        - equipment_sensor_metric
+      tables_denied:
+        - product_batch
+        - work_order
+        - process_route
+        - process_record
+        - quality_parameter
+        - defect_record
+        - quality_trace_link
+        - supplier
+        - purchase_order
+        - inventory
+        - inventory_movement
+        - sales_order
+        - logistics_shipment
+        - supply_chain_event
+      dags_manage:
+        - iotdb_ingestion
+      dags_view:
+        - oee_calculation
+      dashboards_view:
+        - oee-dashboard
+      dashboards_denied:
+        - quality-dashboard
+        - supply-chain-dashboard
+
+# 角色统计元信息
+role_statistics:
+  total_roles: 4
+  role_names:
+    - workshop_director
+    - quality_engineer
+    - supply_chain_manager
+    - equipment_engineer
+  design_principle: 最小权限原则（Least Privilege Principle）
+  verification:
+    workshop_director_no_supply_chain: true
+    quality_engineer_no_supply_chain: true
+    supply_chain_manager_no_equipment_oee: true
+    equipment_engineer_no_quality_and_supply_chain: true

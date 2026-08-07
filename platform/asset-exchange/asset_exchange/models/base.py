@@ -50,16 +50,20 @@ class AssetStatus(str, Enum):
     """资产状态机.
 
     状态转换：
-        DRAFT -> LISTED (上架)
+        DRAFT -> PENDING_AUDIT (提交审核)
+        PENDING_AUDIT -> LISTED (审核通过)
+        PENDING_AUDIT -> REJECTED (审核驳回)
+        DRAFT -> LISTED (直接上架，兼容旧流程)
         DRAFT -> REJECTED (审核驳回)
         LISTED -> OFFLINE (下架)
         OFFLINE -> LISTED (重新上架)
     """
 
-    DRAFT = "draft"         # 草稿/待审核
-    LISTED = "listed"       # 已上架/可流通
-    OFFLINE = "offline"     # 已下架
-    REJECTED = "rejected"   # 审核驳回
+    DRAFT = "draft"             # 草稿/已登记
+    PENDING_AUDIT = "pending_audit"  # 待审核
+    LISTED = "listed"           # 已上架/可流通
+    OFFLINE = "offline"         # 已下架
+    REJECTED = "rejected"       # 审核驳回
 
 
 class SecurityLevel(str, Enum):
@@ -122,16 +126,90 @@ class DeliveryStatus(str, Enum):
 class BillingMode(str, Enum):
     """计费方式.
 
-    - BY_CALL:   按调用量计费
-    - BY_DATA:   按数据量计费（行数/字节数）
-    - BY_TIME:   按时间计费（月/年）
-    - ONE_TIME:  一次性买断
+    - BY_CALL:       按调用量计费（按次）
+    - BY_DATA:       按数据量计费（按量，行数/字节数）
+    - BY_TIME:       按时间计费（月/年）
+    - SUBSCRIPTION:  订阅计费（周期订阅，按订阅期固定费用）
+    - ONE_TIME:      一次性买断
     """
 
     BY_CALL = "by_call"
     BY_DATA = "by_data"
     BY_TIME = "by_time"
+    SUBSCRIPTION = "subscription"
     ONE_TIME = "one_time"
+
+
+class AuditAction(str, Enum):
+    """审计动作类型（全过程留痕）.
+
+    - REGISTER:  资产登记
+    - AUDIT:     上架审核
+    - PUBLISH:   上架
+    - SUBSCRIBE: 订阅
+    - DOWNLOAD:  下载
+    - INVOKE:    API 调用
+    - DELIVER:   交付
+    - SETTLE:    结算
+    - ALLOCATE:  分账
+    - OFFLINE:   下架
+    """
+
+    REGISTER = "register"
+    AUDIT = "audit"
+    PUBLISH = "publish"
+    SUBSCRIBE = "subscribe"
+    DOWNLOAD = "download"
+    INVOKE = "invoke"
+    DELIVER = "deliver"
+    SETTLE = "settle"
+    ALLOCATE = "allocate"
+    OFFLINE = "offline"
+
+
+class AuditResult(str, Enum):
+    """审计结果."""
+
+    SUCCESS = "success"
+    FAILURE = "failure"
+    PENDING = "pending"
+
+
+class SettlementStatus(str, Enum):
+    """结算状态机.
+
+    状态转换：
+        PENDING -> SETTLED (结算完成)
+        PENDING -> FAILED (结算失败)
+    """
+
+    PENDING = "pending"
+    SETTLED = "settled"
+    FAILED = "failed"
+
+
+class AllocationStatus(str, Enum):
+    """分账状态机.
+
+    状态转换：
+        PENDING -> ALLOCATED (分账完成)
+        PENDING -> FAILED (分账失败)
+    """
+
+    PENDING = "pending"
+    ALLOCATED = "allocated"
+    FAILED = "failed"
+
+
+class AssetAuditResult(str, Enum):
+    """资产审核结果.
+
+    - APPROVED: 审核通过（合规/质量/分级检查通过）
+    - REJECTED: 审核驳回
+    """
+
+    APPROVED = "approved"
+    REJECTED = "rejected"
 
 
 class ApprovalAction(str, Enum):
