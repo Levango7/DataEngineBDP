@@ -1,0 +1,107 @@
+# ============================================================================
+# 数擎大数据平台 - Flink CDC + Kafka 中转管道配置模板
+# ============================================================================
+# 本文件描述一条从 MySQL 经 Debezium 格式中转到 Kafka 的 CDC 管道。
+# 包含 Debezium Deserializer、Schema Registry、Topic 管理、Kafka Sink 配置。
+# 使用方式：复制本文件并按实际环境修改，通过 start-cdc-kafka.sh 启动。
+# ============================================================================
+
+# ---- 作业级配置 ----
+job:
+  name: mysql-to-kafka-debezium
+  parallelism: 2
+  checkpointIntervalMs: 60000     # checkpoint 间隔（毫秒）
+
+# ---- 数据源（Source）配置：MySQL Binlog ----
+sources:
+  - name: mysql-orders
+    type: MYSQL
+    host: 127.0.0.1
+    port: 3306
+    username: cdc_user             # 需具备 REPLICATION SLAVE, REPLICATION CLIENT 权限
+    password: cdc_password
+    database: shop                 # 数据库名（支持正则）
+    table: shop.orders             # 表名（格式 db.table，支持正则）
+    serverId: 5400                 # MySQL Binlog 复制 server-id（多作业需唯一）
+    startupMode: initial           # initial / latest-offset / timestamp / specific-offset
+    includeSchemaChanges: false    # 是否捕获 DDL 变更
+    parallelism: 2                 # Source 并行度（增量分片数）
+    splitColumn: id                # 全量快照分片列
+
+# ---- Debezium Deserializer 配置 ----
+debezium:
+  # 是否启用 Schema Registry 集成（解析 schema 字段）
+  enableSchemaRegistry: false
+  # 是否启用事务元数据（transaction.metadata）
+  enableTransactionMetadata: false
+  # tombstone 记录处理策略：skip（跳过）/ emit（输出空记录）
+  tombstonePolicy: skip
+
+# ---- Schema Registry 配置（可选） ----
+schemaRegistry:
+  url: http://127.0.0.1:8081
+  # Schema 类型：AVRO / JSON / PROTOBUF
+  schemaType: AVRO
+  # 兼容性级别：BACKWARD / FORWARD / FULL / NONE
+  compatibility: BACKWARD
+  # 请求超时（秒）
+  requestTimeoutSeconds: 30
+
+# ---- Kafka Topic 管理配置 ----
+topicManager:
+  bootstrapServers: 127.0.0.1:9092
+  # 默认分区数（单分区吞吐 ≥10000 records/s）
+  defaultPartitions: 3
+  # 默认副本数
+  defaultReplicationFactor: 1
+  # 操作超时（秒）
+  timeoutSeconds: 30
+  # Topic 命名策略
+  namingStrategy:
+    # 策略类型：default / multiTenant / prefixed
+    type: multiTenant
+    # 多租户策略：租户标识
+    tenant: tenant-a
+    # 前缀策略：自定义前缀
+    # prefix: cdc
+  # Topic 默认配置
+  configs:
+    cleanup.policy: compact,delete
+    retention.ms: "604800000"      # 7 天
+    segment.bytes: "1073741824"    # 1GB
+    compression.type: producer
+
+# ---- 数据目标（Sink）配置：Kafka ----
+sinks:
+  - name: kafka-orders
+    type: KAFKA
+    host: 127.0.0.1
+    port: 9092
+    # Topic 名称（与 namingStrategy 互斥）
+    # topic: cdc.tenant-a.shop.orders
+    writeMode: upsert              # append-only / upsert / overwrite
+    format: debezium-json          # debezium-json / avro / json
+    primaryKey: id                 # upsert 模式主键列（逗号分隔）
+    parallelism: 2
+    # Delivery Guarantee: AT_LEAST_ONCE / EXACTLY_ONCE
+    deliveryGuarantee: EXACTLY_ONCE
+    # 事务 ID 前缀（EXACTLY_ONCE 模式必需）
+    transactionalIdPrefix: cdc-tx-orders-
+    # 高吞吐 Producer 配置（≥10000 records/s）
+    properties:
+      acks: "1"
+      linger.ms: "10"              # 批量发送等待时间
+      batch.size: "65536"          # 批量大小
+      compression.type: lz4        # 压缩算法
+      buffer.memory: "67108864"    # 发送缓冲区 64MB
+      max.in.flight.requests.per.connection: "5"
+      enable.idempotence: "true"   # 幂等性
+
+# ---- 性能目标 ----
+performance:
+  # 目标吞吐（records/s）
+  targetThroughput: 10000
+  # 单分区目标吞吐
+  perPartitionThroughput: 10000
+  # 端到端延迟目标（毫秒）
+  targetLatencyMs: 100

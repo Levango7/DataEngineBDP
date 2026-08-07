@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OracleSourceConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.source</a> &gt; <span class="el_source">OracleSourceConfig.java</span></div><h1>OracleSourceConfig.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.source;
+
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * Oracle CDC 数据源配置，扩展自 {@link SourceConfig}，添加 Oracle 特有配置。
+ *
+ * &lt;p&gt;Oracle 通过 &lt;b&gt;LogMiner&lt;/b&gt; 读取 Redo Log（含 Archived Redo Log）变更，
+ * 需要指定 service name / schema 列表 / 表列表等参数。&lt;/p&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * OracleSourceConfig config = OracleSourceConfig.builder()
+ *     .name(&quot;ora-orders&quot;)
+ *     .host(&quot;127.0.0.1&quot;).port(1521)
+ *     .username(&quot;cdc&quot;).password(&quot;cdc-pass&quot;)
+ *     .database(&quot;ORCLPDB1&quot;)            // service name
+ *     .schemaList(&quot;SHOP&quot;).tableList(&quot;SHOP.ORDERS&quot;)
+ *     .startupMode(SourceConfig.StartupMode.INITIAL)
+ *     .build();
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class OracleSourceConfig implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * LogMiner 选项枚举，控制 LogMiner 查询策略。
+     */
+<span class="fc" id="L37">    public enum LogMinerOption {</span>
+        /** 直接从 Redo Log Buffer 读取（低延迟，但可能丢数据）。 */
+<span class="fc" id="L39">        ONLINE_LOG(&quot;online-log&quot;),</span>
+        /** 从 Archived Redo Log 读取（高可靠，但延迟较高）。 */
+<span class="fc" id="L41">        ARCHIVED_LOG(&quot;archived-log&quot;),</span>
+        /** 同时读取 Online 与 Archived（默认，平衡延迟与可靠性）。 */
+<span class="fc" id="L43">        BOTH(&quot;both&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L47">        LogMinerOption(String code) {</span>
+<span class="fc" id="L48">            this.code = code;</span>
+<span class="fc" id="L49">        }</span>
+
+        public String code() {
+<span class="fc" id="L52">            return code;</span>
+        }
+
+        /**
+         * 根据字符串编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 选项编码
+         * @return 对应枚举值
+         * @throws IllegalArgumentException 若编码不被识别
+         */
+        public static LogMinerOption fromCode(String code) {
+<span class="fc" id="L63">            Objects.requireNonNull(code, &quot;logminer option 不能为 null&quot;);</span>
+<span class="fc bfc" id="L64" title="All 2 branches covered.">            for (LogMinerOption opt : values()) {</span>
+<span class="fc bfc" id="L65" title="All 2 branches covered.">                if (opt.code.equalsIgnoreCase(code)) {</span>
+<span class="fc" id="L66">                    return opt;</span>
+                }
+            }
+<span class="fc" id="L69">            throw new IllegalArgumentException(&quot;未知的 logminer option: &quot; + code);</span>
+        }
+    }
+
+    /** 基础配置（连接信息、启动模式等通用字段）。 */
+    private SourceConfig base;
+
+    /** Oracle service name（也可使用 SID，推荐 service name）。 */
+    private String serviceName;
+
+    /** 需要捕获的 schema 列表（Oracle schema 等同于 user，全部大写）。 */
+<span class="fc" id="L80">    private Set&lt;String&gt; schemaList = new HashSet&lt;&gt;();</span>
+
+    /** 需要捕获的表列表（格式 SCHEMA.TABLE，全部大写）。 */
+<span class="fc" id="L83">    private Set&lt;String&gt; tableList = new HashSet&lt;&gt;();</span>
+
+    /** LogMiner 选项。 */
+<span class="fc" id="L86">    private LogMinerOption logMinerOption = LogMinerOption.BOTH;</span>
+
+    /** 是否使用 XStream API（false 表示使用 LogMiner，推荐 LogMiner）。 */
+<span class="fc" id="L89">    private boolean useXStream = false;</span>
+
+    /** Oracle LogMiner 查询的 SCN 起始位置（null 表示从最新开始）。 */
+    private Long startScn;
+
+    /** 默认构造器，供 YAML 反序列化。 */
+<span class="fc" id="L95">    public OracleSourceConfig() {</span>
+<span class="fc" id="L96">        this.base = new SourceConfig();</span>
+<span class="fc" id="L97">        this.base.setType(SourceConfig.SourceType.ORACLE);</span>
+<span class="fc" id="L98">        this.base.setPort(1521);</span>
+<span class="fc" id="L99">    }</span>
+
+    /**
+     * 全参构造器。
+     *
+     * @param base           基础配置
+     * @param serviceName    service name
+     * @param schemaList     schema 列表
+     * @param tableList      表列表
+     * @param logMinerOption LogMiner 选项
+     * @param useXStream     是否使用 XStream
+     * @param startScn       起始 SCN
+     */
+    public OracleSourceConfig(SourceConfig base, String serviceName, Set&lt;String&gt; schemaList,
+                              Set&lt;String&gt; tableList, LogMinerOption logMinerOption,
+<span class="fc" id="L114">                              boolean useXStream, Long startScn) {</span>
+<span class="fc" id="L115">        this.base = base;</span>
+<span class="fc" id="L116">        this.serviceName = serviceName;</span>
+<span class="pc bpc" id="L117" title="1 of 2 branches missed.">        this.schemaList = schemaList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(schemaList);</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">        this.tableList = tableList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(tableList);</span>
+<span class="fc" id="L119">        this.logMinerOption = logMinerOption;</span>
+<span class="fc" id="L120">        this.useXStream = useXStream;</span>
+<span class="fc" id="L121">        this.startScn = startScn;</span>
+<span class="fc" id="L122">    }</span>
+
+    public SourceConfig getBase() {
+<span class="fc" id="L125">        return base;</span>
+    }
+
+    public void setBase(SourceConfig base) {
+<span class="fc" id="L129">        this.base = base;</span>
+<span class="fc" id="L130">    }</span>
+
+    public String getServiceName() {
+<span class="fc" id="L133">        return serviceName;</span>
+    }
+
+    public void setServiceName(String serviceName) {
+<span class="fc" id="L137">        this.serviceName = serviceName;</span>
+<span class="fc" id="L138">    }</span>
+
+    public Set&lt;String&gt; getSchemaList() {
+<span class="fc" id="L141">        return schemaList;</span>
+    }
+
+    public void setSchemaList(Set&lt;String&gt; schemaList) {
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">        this.schemaList = schemaList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(schemaList);</span>
+<span class="fc" id="L146">    }</span>
+
+    public Set&lt;String&gt; getTableList() {
+<span class="fc" id="L149">        return tableList;</span>
+    }
+
+    public void setTableList(Set&lt;String&gt; tableList) {
+<span class="pc bpc" id="L153" title="1 of 2 branches missed.">        this.tableList = tableList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(tableList);</span>
+<span class="fc" id="L154">    }</span>
+
+    public LogMinerOption getLogMinerOption() {
+<span class="fc" id="L157">        return logMinerOption;</span>
+    }
+
+    public void setLogMinerOption(LogMinerOption logMinerOption) {
+<span class="fc" id="L161">        this.logMinerOption = logMinerOption;</span>
+<span class="fc" id="L162">    }</span>
+
+    public boolean isUseXStream() {
+<span class="fc" id="L165">        return useXStream;</span>
+    }
+
+    public void setUseXStream(boolean useXStream) {
+<span class="nc" id="L169">        this.useXStream = useXStream;</span>
+<span class="nc" id="L170">    }</span>
+
+    public Long getStartScn() {
+<span class="fc" id="L173">        return startScn;</span>
+    }
+
+    public void setStartScn(Long startScn) {
+<span class="nc" id="L177">        this.startScn = startScn;</span>
+<span class="nc" id="L178">    }</span>
+
+    /**
+     * 获取 schema 列表（List 形式，供 Flink CDC API 使用）。
+     *
+     * @return schema 列表
+     */
+    public List&lt;String&gt; schemaListAsList() {
+<span class="fc" id="L186">        return schemaList.stream().sorted().toList();</span>
+    }
+
+    /**
+     * 获取表列表（List 形式，供 Flink CDC API 使用）。
+     *
+     * @return 表列表
+     */
+    public List&lt;String&gt; tableListAsList() {
+<span class="fc" id="L195">        return tableList.stream().sorted().toList();</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L201">            return true;</span>
+        }
+<span class="fc bfc" id="L203" title="All 2 branches covered.">        if (!(o instanceof OracleSourceConfig that)) {</span>
+<span class="fc" id="L204">            return false;</span>
+        }
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        return useXStream == that.useXStream</span>
+<span class="pc bpc" id="L207" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(base, that.base)</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">                &amp;&amp; Objects.equals(serviceName, that.serviceName)</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(schemaList, that.schemaList)</span>
+<span class="pc bpc" id="L210" title="2 of 4 branches missed.">                &amp;&amp; Objects.equals(tableList, that.tableList)</span>
+                &amp;&amp; logMinerOption == that.logMinerOption
+<span class="pc bpc" id="L212" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(startScn, that.startScn);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L217">        return Objects.hash(base, serviceName, schemaList, tableList, logMinerOption, useXStream, startScn);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L222">        return &quot;OracleSourceConfig{base=&quot; + base</span>
+                + &quot;, serviceName='&quot; + serviceName + '\''
+                + &quot;, schemaList=&quot; + schemaList
+                + &quot;, tableList=&quot; + tableList
+                + &quot;, logMinerOption=&quot; + logMinerOption
+                + &quot;, useXStream=&quot; + useXStream
+                + &quot;, startScn=&quot; + startScn + '}';
+    }
+
+    /**
+     * 链式 Builder。
+     */
+    public static Builder builder() {
+<span class="fc" id="L235">        return new Builder();</span>
+    }
+
+    /**
+     * 链式 Builder。
+     */
+<span class="fc" id="L241">    public static final class Builder {</span>
+<span class="fc" id="L242">        private final OracleSourceConfig config = new OracleSourceConfig();</span>
+
+        public Builder base(SourceConfig base) {
+<span class="fc" id="L245">            config.base = base;</span>
+<span class="fc" id="L246">            return this;</span>
+        }
+
+        public Builder name(String name) {
+<span class="fc" id="L250">            config.base.setName(name);</span>
+<span class="fc" id="L251">            return this;</span>
+        }
+
+        public Builder host(String host) {
+<span class="fc" id="L255">            config.base.setHost(host);</span>
+<span class="fc" id="L256">            return this;</span>
+        }
+
+        public Builder port(int port) {
+<span class="fc" id="L260">            config.base.setPort(port);</span>
+<span class="fc" id="L261">            return this;</span>
+        }
+
+        public Builder username(String username) {
+<span class="fc" id="L265">            config.base.setUsername(username);</span>
+<span class="fc" id="L266">            return this;</span>
+        }
+
+        public Builder password(String password) {
+<span class="fc" id="L270">            config.base.setPassword(password);</span>
+<span class="fc" id="L271">            return this;</span>
+        }
+
+        public Builder database(String database) {
+<span class="fc" id="L275">            config.base.setDatabase(database);</span>
+<span class="fc" id="L276">            config.serviceName = database;</span>
+<span class="fc" id="L277">            return this;</span>
+        }
+
+        public Builder serviceName(String serviceName) {
+<span class="fc" id="L281">            config.serviceName = serviceName;</span>
+<span class="fc" id="L282">            config.base.setDatabase(serviceName);</span>
+<span class="fc" id="L283">            return this;</span>
+        }
+
+        public Builder startupMode(SourceConfig.StartupMode mode) {
+<span class="fc" id="L287">            config.base.setStartupMode(mode);</span>
+<span class="fc" id="L288">            return this;</span>
+        }
+
+        public Builder schemaList(String... schemas) {
+<span class="fc" id="L292">            config.schemaList = new HashSet&lt;&gt;(Arrays.asList(schemas));</span>
+<span class="fc" id="L293">            return this;</span>
+        }
+
+        public Builder tableList(String... tables) {
+<span class="fc" id="L297">            config.tableList = new HashSet&lt;&gt;(Arrays.asList(tables));</span>
+<span class="fc" id="L298">            return this;</span>
+        }
+
+        public Builder logMinerOption(LogMinerOption option) {
+<span class="fc" id="L302">            config.logMinerOption = option;</span>
+<span class="fc" id="L303">            return this;</span>
+        }
+
+        public Builder useXStream(boolean flag) {
+<span class="fc" id="L307">            config.useXStream = flag;</span>
+<span class="fc" id="L308">            return this;</span>
+        }
+
+        public Builder startScn(Long scn) {
+<span class="fc" id="L312">            config.startScn = scn;</span>
+<span class="fc" id="L313">            return this;</span>
+        }
+
+        public OracleSourceConfig build() {
+<span class="fc" id="L317">            config.base.setType(SourceConfig.SourceType.ORACLE);</span>
+<span class="pc bpc" id="L318" title="1 of 2 branches missed.">            if (config.base.getPort() == 3306) {</span>
+<span class="nc" id="L319">                config.base.setPort(1521);</span>
+            }
+<span class="pc bpc" id="L321" title="1 of 4 branches missed.">            if (config.serviceName == null &amp;&amp; config.base.getDatabase() != null) {</span>
+<span class="nc" id="L322">                config.serviceName = config.base.getDatabase();</span>
+            }
+<span class="fc" id="L324">            return config;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

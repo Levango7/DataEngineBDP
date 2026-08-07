@@ -94,6 +94,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Bouncy Castle：提供 SM2/SM3/SM4 国密算法实现（GB/T 32918/32905/32907），同时作为国际算法补充 Provider -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+
         <!-- Spring Data JPA：用于将 Tenant 持久化到关系型数据库 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

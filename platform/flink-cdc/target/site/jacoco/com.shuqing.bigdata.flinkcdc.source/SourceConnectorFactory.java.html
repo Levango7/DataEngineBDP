@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SourceConnectorFactory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.source</a> &gt; <span class="el_source">SourceConnectorFactory.java</span></div><h1>SourceConnectorFactory.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.source;
+
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+import com.ververica.cdc.connectors.mysql.source.MySqlSource;
+import com.ververica.cdc.connectors.oracle.source.OracleSourceBuilder;
+import com.ververica.cdc.connectors.postgres.source.PostgresSourceBuilder;
+import org.apache.flink.api.connector.source.Source;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.Objects;
+
+/**
+ * Source 连接器统一工厂，根据 {@link SourceConfig.SourceType} 返回对应的 Flink CDC Source。
+ *
+ * &lt;p&gt;统一封装 MySQL / PostgreSQL / Oracle 三种连接器的创建逻辑，对外提供单一入口，
+ * 便于在 {@code CdcFramework} 中按配置类型动态选择连接器，避免 if-else 散落各处。&lt;/p&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * SourceConfig config = ...;  // 由 YAML 加载
+ * Source&lt;ChangeRecord, ?, ?&gt; source = SourceConnectorFactory.createSource(config);
+ * env.fromSource(source, WatermarkStrategy.noWatermarks(), &quot;cdc-&quot; + config.getName());
+ * }&lt;/pre&gt;
+ *
+ * &lt;p&gt;对于 PostgreSQL / Oracle，由于它们有特有配置（slotName / serviceName / schemaList 等），
+ * 需通过 {@link #createPostgresSource(PostgresSourceConfig)} / {@link #createOracleSource(OracleSourceConfig)}
+ * 显式调用，或使用 {@link #createSource(SourceConfig)} 时通过 base 中的扩展属性传递。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class SourceConnectorFactory {
+
+<span class="fc" id="L34">    private static final Logger log = LoggerFactory.getLogger(SourceConnectorFactory.class);</span>
+
+    private SourceConnectorFactory() {
+        // 工具类，禁止实例化
+    }
+
+    /**
+     * 根据基础 {@link SourceConfig} 的 {@link SourceConfig.SourceType} 创建对应的 Source。
+     *
+     * &lt;p&gt;对于 MySQL 类型直接委托 {@link MySqlSourceConnector#createSource(SourceConfig)}；
+     * 对于 PostgreSQL / Oracle 类型，需使用对应的专用配置类（含特有字段），
+     * 此处仅基于基础配置构造默认专用配置后委托。&lt;/p&gt;
+     *
+     * @param config 基础配置
+     * @return Flink Source（输出 ChangeRecord）
+     * @throws NullPointerException     若 config 为 null
+     * @throws IllegalArgumentException 若 sourceType 不被支持
+     * @throws IllegalStateException    若配置不完整
+     */
+    public static Source&lt;ChangeRecord, ?, ?&gt; createSource(SourceConfig config) {
+<span class="fc" id="L54">        Objects.requireNonNull(config, &quot;SourceConfig 不能为 null&quot;);</span>
+<span class="fc" id="L55">        SourceConfig.SourceType type = config.getType();</span>
+<span class="pc bpc" id="L56" title="1 of 2 branches missed.">        if (type == null) {</span>
+<span class="fc" id="L57">            throw new IllegalArgumentException(&quot;SourceConfig.type 不能为 null&quot;);</span>
+        }
+
+<span class="nc" id="L60">        log.info(&quot;SourceConnectorFactory: 创建 {} 类型 Source，name={}&quot;, type, config.getName());</span>
+
+<span class="nc bnc" id="L62" title="All 3 branches missed.">        return switch (type) {</span>
+<span class="nc" id="L63">            case MYSQL -&gt; MySqlSourceConnector.createSource(config);</span>
+<span class="nc" id="L64">            case POSTGRESQL -&gt; createPostgresSource(toPostgresConfig(config));</span>
+<span class="nc" id="L65">            case ORACLE -&gt; createOracleSource(toOracleConfig(config));</span>
+        };
+    }
+
+    /**
+     * 创建 PostgreSQL Source（使用专用配置）。
+     *
+     * @param config PostgreSQL 专用配置
+     * @return PostgresIncrementalSource
+     */
+    public static PostgresSourceBuilder.PostgresIncrementalSource&lt;ChangeRecord&gt; createPostgresSource(
+            PostgresSourceConfig config) {
+<span class="nc" id="L77">        return PostgresSourceConnector.createSource(config);</span>
+    }
+
+    /**
+     * 创建 Oracle Source（使用专用配置）。
+     *
+     * @param config Oracle 专用配置
+     * @return OracleIncrementalSource
+     */
+    public static OracleSourceBuilder.OracleIncrementalSource&lt;ChangeRecord&gt; createOracleSource(
+            OracleSourceConfig config) {
+<span class="nc" id="L88">        return OracleSourceConnector.createSource(config);</span>
+    }
+
+    /**
+     * 创建 MySQL Source（直接委托给 MySqlSourceConnector）。
+     *
+     * @param config 基础配置
+     * @return MySqlSource
+     */
+    public static MySqlSource&lt;ChangeRecord&gt; createMysqlSource(SourceConfig config) {
+<span class="nc" id="L98">        return MySqlSourceConnector.createSource(config);</span>
+    }
+
+    /**
+     * 将基础 {@link SourceConfig} 转换为 {@link PostgresSourceConfig}（携带默认 PG 特有配置）。
+     *
+     * &lt;p&gt;当用户仅提供基础配置时，使用默认 slotName=flink_slot、plugin=pgoutput、
+     * schema=public、table 解析自 base.table。&lt;/p&gt;
+     *
+     * @param base 基础配置
+     * @return PostgreSQL 专用配置
+     */
+    public static PostgresSourceConfig toPostgresConfig(SourceConfig base) {
+<span class="fc" id="L111">        Objects.requireNonNull(base, &quot;SourceConfig 不能为 null&quot;);</span>
+<span class="fc" id="L112">        PostgresSourceConfig.Builder builder = PostgresSourceConfig.builder()</span>
+<span class="fc" id="L113">                .base(base)</span>
+<span class="fc" id="L114">                .slotName(&quot;flink_slot&quot;)</span>
+<span class="fc" id="L115">                .decodingPlugin(PostgresSourceConfig.DecodingPlugin.PGOUTPUT)</span>
+<span class="fc" id="L116">                .schemaList(&quot;public&quot;);</span>
+
+<span class="pc bpc" id="L118" title="1 of 4 branches missed.">        if (base.getTable() != null &amp;&amp; !base.getTable().isBlank()) {</span>
+<span class="fc" id="L119">            builder.tableList(base.getTable());</span>
+        }
+<span class="fc" id="L121">        return builder.build();</span>
+    }
+
+    /**
+     * 将基础 {@link SourceConfig} 转换为 {@link OracleSourceConfig}（携带默认 Oracle 特有配置）。
+     *
+     * &lt;p&gt;当用户仅提供基础配置时，使用默认 logMinerOption=both、useXStream=false，
+     * schema/table 解析自 base.table，serviceName 取自 base.database。&lt;/p&gt;
+     *
+     * @param base 基础配置
+     * @return Oracle 专用配置
+     */
+    public static OracleSourceConfig toOracleConfig(SourceConfig base) {
+<span class="fc" id="L134">        Objects.requireNonNull(base, &quot;SourceConfig 不能为 null&quot;);</span>
+<span class="fc" id="L135">        OracleSourceConfig.Builder builder = OracleSourceConfig.builder()</span>
+<span class="fc" id="L136">                .base(base)</span>
+<span class="fc" id="L137">                .logMinerOption(OracleSourceConfig.LogMinerOption.BOTH)</span>
+<span class="fc" id="L138">                .useXStream(false);</span>
+
+<span class="pc bpc" id="L140" title="1 of 4 branches missed.">        if (base.getDatabase() != null &amp;&amp; !base.getDatabase().isBlank()) {</span>
+<span class="fc" id="L141">            builder.serviceName(base.getDatabase());</span>
+        }
+<span class="pc bpc" id="L143" title="2 of 4 branches missed.">        if (base.getTable() != null &amp;&amp; !base.getTable().isBlank()) {</span>
+<span class="fc" id="L144">            String[] parts = base.parseTable();</span>
+<span class="pc bpc" id="L145" title="1 of 2 branches missed.">            if (parts[0] != null) {</span>
+<span class="fc" id="L146">                builder.schemaList(parts[0].toUpperCase());</span>
+            }
+<span class="fc" id="L148">            builder.tableList(base.getTable().toUpperCase());</span>
+        }
+<span class="fc" id="L150">        return builder.build();</span>
+    }
+
+    /**
+     * 根据类型字符串解析为 {@link SourceConfig.SourceType} 枚举。
+     *
+     * @param type 类型字符串（mysql / postgresql / oracle，大小写不敏感）
+     * @return SourceType 枚举
+     * @throws IllegalArgumentException 若类型不被支持
+     */
+    public static SourceConfig.SourceType parseSourceType(String type) {
+<span class="fc" id="L161">        Objects.requireNonNull(type, &quot;source type 不能为 null&quot;);</span>
+<span class="fc" id="L162">        String normalized = type.trim().toUpperCase();</span>
+<span class="fc bfc" id="L163" title="All 4 branches covered.">        return switch (normalized) {</span>
+<span class="fc" id="L164">            case &quot;MYSQL&quot;, &quot;MY_SQL&quot; -&gt; SourceConfig.SourceType.MYSQL;</span>
+<span class="fc" id="L165">            case &quot;POSTGRES&quot;, &quot;POSTGRESQL&quot;, &quot;PG&quot; -&gt; SourceConfig.SourceType.POSTGRESQL;</span>
+<span class="fc" id="L166">            case &quot;ORACLE&quot;, &quot;ORA&quot; -&gt; SourceConfig.SourceType.ORACLE;</span>
+<span class="fc" id="L167">            default -&gt; throw new IllegalArgumentException(&quot;不支持的 source type: &quot; + type);</span>
+        };
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

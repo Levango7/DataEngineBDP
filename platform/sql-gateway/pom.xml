@@ -138,6 +138,12 @@
             <artifactId>calcite-core</artifactId>
             <version>1.36.0</version>
         </dependency>
+        <!-- Apache Calcite linq4j：Calcite 内部 LINQ 风格集合抽象 -->
+        <dependency>
+            <groupId>org.apache.calcite</groupId>
+            <artifactId>calcite-linq4j</artifactId>
+            <version>1.36.0</version>
+        </dependency>
 
         <!-- Spring Boot Test -->
         <dependency>

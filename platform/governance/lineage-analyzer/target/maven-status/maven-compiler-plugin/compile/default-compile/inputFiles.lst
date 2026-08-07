@@ -9,6 +9,7 @@ F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\config\SecurityConfig.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\model\LineageEdge.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\analyzer\ColumnLineageExtractor.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\service\NebulaGraphClient.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\service\LineageAnalyzerService.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\service\LineageEdgeRepository.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\lineage-analyzer\src\main\java\com\shuqing\bigdata\governance\lineage\model\LineageQueryResult.java

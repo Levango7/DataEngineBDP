@@ -16,6 +16,7 @@ com\shuqing\bigdata\governance\lineage\service\LineageQueryService$BfsResult.cla
 com\shuqing\bigdata\governance\lineage\analyzer\LineageRelation.class
 com\shuqing\bigdata\governance\lineage\config\SqlParserConfig.class
 com\shuqing\bigdata\governance\lineage\service\LineageGraphWriter.class
+com\shuqing\bigdata\governance\lineage\service\NebulaGraphClient.class
 com\shuqing\bigdata\governance\lineage\model\LineageNode.class
 com\shuqing\bigdata\governance\lineage\service\LineageAnalyzerService.class
 com\shuqing\bigdata\governance\lineage\analyzer\TableLineageExtractor.class

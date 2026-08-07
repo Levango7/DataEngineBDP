@@ -1,0 +1,59 @@
+# ArgoCD Application · prod 环境根应用
+# ============================================================================
+# 作用：生产环境，最谨慎同步策略
+# - 自动同步开启但 selfHeal 谨慎（生产漂移需人工确认后再自愈）
+# - 重试次数少，避免错误变更被反复重试
+# - 保留 50 个历史版本用于回滚
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    app.kubernetes.io/managed-by: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    # 通知配置（同步失败/成功通知到 Slack/邮件）
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: prod-alerts
+    notifications.argoproj.io/subscribe.on-sync-succeeded.slack: prod-deploy
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/argocd/kustomize/overlays/prod
+    kustomize:
+      namePrefix: prod-
+      commonLabels:
+        environment: prod
+        managed-by: argocd
+      commonAnnotations:
+        managed-by: argocd
+        gitops-repo: Levango7/DataEngineBDP
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false         # 生产 namespace 预创建（避免误删）
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+      - Replace=false                 # 不用 Replace（生产用 Strategic Merge Patch）
+    retry:
+      limit: 2                        # 生产重试次数最少
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
+  # 生产保留 50 个历史版本用于回滚
+  revisionHistoryLimit: 50

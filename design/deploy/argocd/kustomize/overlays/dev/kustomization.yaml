@@ -1,0 +1,34 @@
+# Kustomize overlay · dev 环境
+# ============================================================================
+# dev：1 副本 + 低资源 + DEBUG 日志 + latest 镜像
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 继承 base
+resources:
+  - ../../base
+
+# 环境标签
+commonLabels:
+  environment: dev
+
+# 环境注解
+commonAnnotations:
+  environment: dev
+  description: "开发环境 · 轻量配置 · DEBUG 日志"
+
+# 名称前缀（避免与 staging/prod 冲突）
+namePrefix: dev-
+
+# 覆盖 base 的配置
+patches:
+  - path: patch.yaml
+    target:
+      kind: Deployment
+      name: encaps-layer
+
+# 镜像 tag 覆盖：dev 用 latest（跟随主干）
+images:
+  - name: ghcr.io/levango7/dataenginebdp/encaps-layer
+    newTag: latest

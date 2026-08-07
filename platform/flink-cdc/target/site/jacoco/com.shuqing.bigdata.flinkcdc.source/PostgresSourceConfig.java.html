@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PostgresSourceConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.source</a> &gt; <span class="el_source">PostgresSourceConfig.java</span></div><h1>PostgresSourceConfig.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.source;
+
+import java.io.Serializable;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * PostgreSQL CDC 数据源配置，扩展自 {@link SourceConfig}，添加 PostgreSQL 特有配置。
+ *
+ * &lt;p&gt;PostgreSQL 通过 &lt;b&gt;Logical Replication Slot&lt;/b&gt; 读取 WAL（Write-Ahead Log）变更，
+ * 需要指定 slot 名称与逻辑解码插件（pgoutput / decoderbufs / wal2json 等）。&lt;/p&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * PostgresSourceConfig config = PostgresSourceConfig.builder()
+ *     .name(&quot;pg-orders&quot;)
+ *     .host(&quot;127.0.0.1&quot;).port(5432)
+ *     .username(&quot;cdc&quot;).password(&quot;cdc-pass&quot;)
+ *     .database(&quot;shop&quot;).schemaList(&quot;public&quot;).tableList(&quot;public.orders&quot;)
+ *     .slotName(&quot;flink_slot&quot;)
+ *     .decodingPluginName(DecodingPlugin.PGOUTPUT)
+ *     .startupMode(SourceConfig.StartupMode.INITIAL)
+ *     .build();
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class PostgresSourceConfig implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+
+    /**
+     * PostgreSQL 逻辑解码插件枚举。
+     *
+     * &lt;p&gt;PostgreSQL 10+ 内置 {@code pgoutput}（推荐），其他可选 decoderbufs / wal2json。&lt;/p&gt;
+     */
+<span class="fc" id="L41">    public enum DecodingPlugin {</span>
+        /** PostgreSQL 10+ 内置插件（推荐，原生 logical replication 协议）。 */
+<span class="fc" id="L43">        PGOUTPUT(&quot;pgoutput&quot;),</span>
+        /** Debezium decoderbufs 插件（需安装 logical_decoding）。 */
+<span class="fc" id="L45">        DECODERBUFS(&quot;decoderbufs&quot;),</span>
+        /** wal2json 插件（输出 JSON 格式变更）。 */
+<span class="fc" id="L47">        WAL2JSON(&quot;wal2json&quot;),</span>
+        /** wal2json_r2 插件（wal2json 增强版）。 */
+<span class="fc" id="L49">        WAL2JSON_R2(&quot;wal2json_r2&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L53">        DecodingPlugin(String code) {</span>
+<span class="fc" id="L54">            this.code = code;</span>
+<span class="fc" id="L55">        }</span>
+
+        public String code() {
+<span class="fc" id="L58">            return code;</span>
+        }
+
+        /**
+         * 根据字符串编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 插件名编码
+         * @return 对应枚举值
+         * @throws IllegalArgumentException 若编码不被识别
+         */
+        public static DecodingPlugin fromCode(String code) {
+<span class="fc" id="L69">            Objects.requireNonNull(code, &quot;decoding plugin 不能为 null&quot;);</span>
+<span class="fc bfc" id="L70" title="All 2 branches covered.">            for (DecodingPlugin plugin : values()) {</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">                if (plugin.code.equalsIgnoreCase(code)) {</span>
+<span class="fc" id="L72">                    return plugin;</span>
+                }
+            }
+<span class="fc" id="L75">            throw new IllegalArgumentException(&quot;未知的 decoding plugin: &quot; + code);</span>
+        }
+    }
+
+    /** 基础配置（连接信息、启动模式等通用字段）。 */
+    private SourceConfig base;
+
+    /** Logical Replication Slot 名称（需先在 PG 中创建）。 */
+<span class="fc" id="L83">    private String slotName = &quot;flink_slot&quot;;</span>
+
+    /** 逻辑解码插件名。 */
+<span class="fc" id="L86">    private DecodingPlugin decodingPlugin = DecodingPlugin.PGOUTPUT;</span>
+
+    /** 需要捕获的 schema 列表（支持正则表达式）。 */
+<span class="fc" id="L89">    private Set&lt;String&gt; schemaList = new HashSet&lt;&gt;(Collections.singletonList(&quot;public&quot;));</span>
+
+    /** 需要捕获的表列表（格式 schema.table，支持正则表达式）。 */
+<span class="fc" id="L92">    private Set&lt;String&gt; tableList = new HashSet&lt;&gt;();</span>
+
+    /** Slot 持久化时是否在 DROP 后保留（用于故障恢复）。 */
+<span class="fc" id="L95">    private boolean slotDropOnFinish = false;</span>
+
+    /** 默认构造器，供 YAML 反序列化。 */
+<span class="fc" id="L98">    public PostgresSourceConfig() {</span>
+<span class="fc" id="L99">        this.base = new SourceConfig();</span>
+<span class="fc" id="L100">        this.base.setType(SourceConfig.SourceType.POSTGRESQL);</span>
+<span class="fc" id="L101">        this.base.setPort(5432);</span>
+<span class="fc" id="L102">    }</span>
+
+    /**
+     * 全参构造器。
+     *
+     * @param base            基础配置
+     * @param slotName        slot 名称
+     * @param decodingPlugin  解码插件
+     * @param schemaList      schema 列表
+     * @param tableList       表列表
+     * @param slotDropOnFinish 完成后是否删除 slot
+     */
+    public PostgresSourceConfig(SourceConfig base, String slotName, DecodingPlugin decodingPlugin,
+                                Set&lt;String&gt; schemaList, Set&lt;String&gt; tableList,
+<span class="fc" id="L116">                                boolean slotDropOnFinish) {</span>
+<span class="fc" id="L117">        this.base = base;</span>
+<span class="fc" id="L118">        this.slotName = slotName;</span>
+<span class="fc" id="L119">        this.decodingPlugin = decodingPlugin;</span>
+<span class="pc bpc" id="L120" title="1 of 2 branches missed.">        this.schemaList = schemaList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(schemaList);</span>
+<span class="pc bpc" id="L121" title="1 of 2 branches missed.">        this.tableList = tableList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(tableList);</span>
+<span class="fc" id="L122">        this.slotDropOnFinish = slotDropOnFinish;</span>
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * 获取基础配置。
+     *
+     * @return SourceConfig
+     */
+    public SourceConfig getBase() {
+<span class="fc" id="L131">        return base;</span>
+    }
+
+    public void setBase(SourceConfig base) {
+<span class="fc" id="L135">        this.base = base;</span>
+<span class="fc" id="L136">    }</span>
+
+    public String getSlotName() {
+<span class="fc" id="L139">        return slotName;</span>
+    }
+
+    public void setSlotName(String slotName) {
+<span class="fc" id="L143">        this.slotName = slotName;</span>
+<span class="fc" id="L144">    }</span>
+
+    public DecodingPlugin getDecodingPlugin() {
+<span class="fc" id="L147">        return decodingPlugin;</span>
+    }
+
+    public void setDecodingPlugin(DecodingPlugin decodingPlugin) {
+<span class="fc" id="L151">        this.decodingPlugin = decodingPlugin;</span>
+<span class="fc" id="L152">    }</span>
+
+    public Set&lt;String&gt; getSchemaList() {
+<span class="fc" id="L155">        return schemaList;</span>
+    }
+
+    public void setSchemaList(Set&lt;String&gt; schemaList) {
+<span class="pc bpc" id="L159" title="1 of 2 branches missed.">        this.schemaList = schemaList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(schemaList);</span>
+<span class="fc" id="L160">    }</span>
+
+    public Set&lt;String&gt; getTableList() {
+<span class="fc" id="L163">        return tableList;</span>
+    }
+
+    public void setTableList(Set&lt;String&gt; tableList) {
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">        this.tableList = tableList == null ? new HashSet&lt;&gt;() : new HashSet&lt;&gt;(tableList);</span>
+<span class="fc" id="L168">    }</span>
+
+    public boolean isSlotDropOnFinish() {
+<span class="fc" id="L171">        return slotDropOnFinish;</span>
+    }
+
+    public void setSlotDropOnFinish(boolean slotDropOnFinish) {
+<span class="nc" id="L175">        this.slotDropOnFinish = slotDropOnFinish;</span>
+<span class="nc" id="L176">    }</span>
+
+    /**
+     * 获取 schema 列表（List 形式，供 Flink CDC API 使用）。
+     *
+     * @return schema 列表
+     */
+    public List&lt;String&gt; schemaListAsList() {
+<span class="fc" id="L184">        return schemaList.stream().sorted().toList();</span>
+    }
+
+    /**
+     * 获取表列表（List 形式，供 Flink CDC API 使用）。
+     *
+     * @return 表列表
+     */
+    public List&lt;String&gt; tableListAsList() {
+<span class="fc" id="L193">        return tableList.stream().sorted().toList();</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="pc bpc" id="L198" title="1 of 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L199">            return true;</span>
+        }
+<span class="fc bfc" id="L201" title="All 2 branches covered.">        if (!(o instanceof PostgresSourceConfig that)) {</span>
+<span class="fc" id="L202">            return false;</span>
+        }
+<span class="pc bpc" id="L204" title="1 of 2 branches missed.">        return slotDropOnFinish == that.slotDropOnFinish</span>
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(base, that.base)</span>
+<span class="pc bpc" id="L206" title="1 of 4 branches missed.">                &amp;&amp; Objects.equals(slotName, that.slotName)</span>
+                &amp;&amp; decodingPlugin == that.decodingPlugin
+<span class="pc bpc" id="L208" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(schemaList, that.schemaList)</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(tableList, that.tableList);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L214">        return Objects.hash(base, slotName, decodingPlugin, schemaList, tableList, slotDropOnFinish);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L219">        return &quot;PostgresSourceConfig{base=&quot; + base</span>
+                + &quot;, slotName='&quot; + slotName + '\''
+                + &quot;, decodingPlugin=&quot; + decodingPlugin
+                + &quot;, schemaList=&quot; + schemaList
+                + &quot;, tableList=&quot; + tableList
+                + &quot;, slotDropOnFinish=&quot; + slotDropOnFinish + '}';
+    }
+
+    /**
+     * 链式 Builder。
+     */
+    public static Builder builder() {
+<span class="fc" id="L231">        return new Builder();</span>
+    }
+
+    /**
+     * 链式 Builder。
+     */
+<span class="fc" id="L237">    public static final class Builder {</span>
+<span class="fc" id="L238">        private final PostgresSourceConfig config = new PostgresSourceConfig();</span>
+
+        public Builder base(SourceConfig base) {
+<span class="fc" id="L241">            config.base = base;</span>
+<span class="fc" id="L242">            return this;</span>
+        }
+
+        public Builder name(String name) {
+<span class="fc" id="L246">            config.base.setName(name);</span>
+<span class="fc" id="L247">            return this;</span>
+        }
+
+        public Builder host(String host) {
+<span class="fc" id="L251">            config.base.setHost(host);</span>
+<span class="fc" id="L252">            return this;</span>
+        }
+
+        public Builder port(int port) {
+<span class="fc" id="L256">            config.base.setPort(port);</span>
+<span class="fc" id="L257">            return this;</span>
+        }
+
+        public Builder username(String username) {
+<span class="fc" id="L261">            config.base.setUsername(username);</span>
+<span class="fc" id="L262">            return this;</span>
+        }
+
+        public Builder password(String password) {
+<span class="fc" id="L266">            config.base.setPassword(password);</span>
+<span class="fc" id="L267">            return this;</span>
+        }
+
+        public Builder database(String database) {
+<span class="fc" id="L271">            config.base.setDatabase(database);</span>
+<span class="fc" id="L272">            return this;</span>
+        }
+
+        public Builder startupMode(SourceConfig.StartupMode mode) {
+<span class="fc" id="L276">            config.base.setStartupMode(mode);</span>
+<span class="fc" id="L277">            return this;</span>
+        }
+
+        public Builder slotName(String slotName) {
+<span class="fc" id="L281">            config.slotName = slotName;</span>
+<span class="fc" id="L282">            return this;</span>
+        }
+
+        public Builder decodingPlugin(DecodingPlugin plugin) {
+<span class="fc" id="L286">            config.decodingPlugin = plugin;</span>
+<span class="fc" id="L287">            return this;</span>
+        }
+
+        public Builder schemaList(String... schemas) {
+<span class="fc" id="L291">            config.schemaList = new HashSet&lt;&gt;(Arrays.asList(schemas));</span>
+<span class="fc" id="L292">            return this;</span>
+        }
+
+        public Builder tableList(String... tables) {
+<span class="fc" id="L296">            config.tableList = new HashSet&lt;&gt;(Arrays.asList(tables));</span>
+<span class="fc" id="L297">            return this;</span>
+        }
+
+        public Builder slotDropOnFinish(boolean flag) {
+<span class="fc" id="L301">            config.slotDropOnFinish = flag;</span>
+<span class="fc" id="L302">            return this;</span>
+        }
+
+        public PostgresSourceConfig build() {
+<span class="fc" id="L306">            config.base.setType(SourceConfig.SourceType.POSTGRESQL);</span>
+<span class="pc bpc" id="L307" title="1 of 2 branches missed.">            if (config.base.getPort() == 3306) {</span>
+<span class="nc" id="L308">                config.base.setPort(5432);</span>
+            }
+<span class="fc" id="L310">            return config;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

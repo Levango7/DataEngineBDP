@@ -1,0 +1,86 @@
+# AppProject · prod 生产环境
+# ============================================================================
+# 作用：生产环境，最严格隔离
+# - 禁止创建集群级资源
+# - 仅允许 prod-* namespace
+# - 同步窗口：仅工作日 09:00-18:00 允许自动同步，其余时间仅手动同步
+# - 禁止删除操作（生产删除需审批）
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "数擎大数据平台 · prod 生产环境 GitOps Project"
+  sourceRepos:
+    - https://github.com/Levango7/DataEngineBDP
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: prod-*
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  # 生产禁止创建集群级资源
+  clusterResourceBlacklist:
+    - group: '*'
+      kind: '*'
+  # 生产禁止改平台管控资源
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+    - group: ''
+      kind: NetworkPolicy
+    - group: ''
+      kind: RoleBinding
+    - group: 'rbac.authorization.k8s.io'
+      kind: RoleBinding
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: prod-viewer
+      description: "生产只读：仅 get，不可 sync/delete"
+      policies:
+        - p, proj:platform-prod:prod-viewer, applications, get, platform-prod/*, allow
+        - p, proj:platform-prod:prod-viewer, applications, sync, platform-prod/*, deny
+        - p, proj:platform-prod:prod-viewer, applications, delete, platform-prod/*, deny
+      groups:
+        - "prod-viewers"
+    - name: prod-deployer
+      description: "生产部署：可 sync（需审批），不可 delete"
+      policies:
+        - p, proj:platform-prod:prod-deployer, applications, get, platform-prod/*, allow
+        - p, proj:platform-prod:prod-deployer, applications, sync, platform-prod/*, allow
+        - p, proj:platform-prod:prod-deployer, applications, delete, platform-prod/*, deny
+      groups:
+        - "prod-deployers"
+    - name: prod-admin
+      description: "生产管理员（SRE）：全权但 delete 需二次审批"
+      policies:
+        - p, proj:platform-prod:prod-admin, applications, *, platform-prod/*, allow
+      groups:
+        - "prod-admins"
+        - "sre-team"
+  # 同步窗口：仅工作日 09:00-18:00 允许自动同步
+  # 其余时间仅允许 manualSync（变更需人工确认）
+  syncWindows:
+    - kind: allow
+      schedule: '0 9 * * 1-5'
+      duration: 9h
+      applications:
+        - '*'
+      namespaces:
+        - prod-*
+      cluster: https://kubernetes.default.svc
+      manualSync: true
+  # 生产签名校验（可选，启用后仅允许签名 commit 部署）
+  # sourceNamespaces:
+  #   - argocd

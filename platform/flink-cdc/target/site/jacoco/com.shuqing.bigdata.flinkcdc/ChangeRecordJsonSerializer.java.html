@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ChangeRecordJsonSerializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc</a> &gt; <span class="el_source">ChangeRecordJsonSerializer.java</span></div><h1>ChangeRecordJsonSerializer.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc;
+
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * 将 {@link ChangeRecord} 序列化为 Debezium JSON 格式的字节数组。
+ *
+ * &lt;p&gt;采用轻量手写实现，避免对 Jackson 的强依赖，同时保证 Flink 集群运行时
+ * 无需额外序列化器配置。输出严格遵循 Debezium JSON 结构：&lt;/p&gt;
+ *
+ * &lt;pre&gt;{@code
+ * {&quot;before&quot;:{...},&quot;after&quot;:{...},&quot;op&quot;:&quot;u&quot;,&quot;source&quot;:{...},&quot;ts_ms&quot;:1700000000000}
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class ChangeRecordJsonSerializer {
+
+    private ChangeRecordJsonSerializer() {
+        // 工具类，禁止实例化
+    }
+
+    /**
+     * 将 ChangeRecord 序列化为 Debezium JSON 字节数组（UTF-8）。
+     *
+     * @param record 变更记录
+     * @return JSON 字节数组
+     * @throws NullPointerException 若 record 为 null
+     */
+    public static byte[] toJson(ChangeRecord record) {
+<span class="fc" id="L34">        Objects.requireNonNull(record, &quot;ChangeRecord 不能为 null&quot;);</span>
+<span class="fc" id="L35">        return toJsonString(record).getBytes(java.nio.charset.StandardCharsets.UTF_8);</span>
+    }
+
+    /**
+     * 将 ChangeRecord 序列化为 Debezium JSON 字符串。
+     *
+     * @param record 变更记录
+     * @return JSON 字符串
+     */
+    public static String toJsonString(ChangeRecord record) {
+<span class="fc" id="L45">        Objects.requireNonNull(record, &quot;ChangeRecord 不能为 null&quot;);</span>
+<span class="fc" id="L46">        StringBuilder sb = new StringBuilder(256);</span>
+<span class="fc" id="L47">        sb.append('{');</span>
+<span class="fc" id="L48">        appendField(sb, &quot;before&quot;, record.getBefore(), true);</span>
+<span class="fc" id="L49">        sb.append(',');</span>
+<span class="fc" id="L50">        appendField(sb, &quot;after&quot;, record.getAfter(), true);</span>
+<span class="fc" id="L51">        sb.append(',');</span>
+<span class="fc" id="L52">        appendKeyValue(sb, &quot;op&quot;, record.getOp(), true);</span>
+<span class="fc" id="L53">        sb.append(',');</span>
+<span class="fc" id="L54">        appendField(sb, &quot;source&quot;, record.getSource(), true);</span>
+<span class="fc" id="L55">        sb.append(',');</span>
+<span class="fc bfc" id="L56" title="All 2 branches covered.">        appendKeyValue(sb, &quot;ts_ms&quot;, record.getTsMs() == null ? null : record.getTsMs().toString(), false);</span>
+<span class="fc" id="L57">        sb.append('}');</span>
+<span class="fc" id="L58">        return sb.toString();</span>
+    }
+
+    /**
+     * 追加一个键值对（值为字符串时加引号，否则原样输出）。
+     *
+     * @param sb       字符串构建器
+     * @param key      键名
+     * @param value    值
+     * @param quoted   值是否需要引号
+     */
+    private static void appendKeyValue(StringBuilder sb, String key, String value, boolean quoted) {
+<span class="fc" id="L70">        sb.append('&quot;').append(key).append(&quot;\&quot;:&quot;);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L72">            sb.append(&quot;null&quot;);</span>
+<span class="fc bfc" id="L73" title="All 2 branches covered.">        } else if (quoted) {</span>
+<span class="fc" id="L74">            sb.append('&quot;').append(escapeJson(value)).append('&quot;');</span>
+        } else {
+<span class="fc" id="L76">            sb.append(value);</span>
+        }
+<span class="fc" id="L78">    }</span>
+
+    /**
+     * 追加一个对象字段（Map 序列化为 JSON 对象）。
+     *
+     * @param sb       字符串构建器
+     * @param key      键名
+     * @param value    Map 值
+     * @param first    是否可能为首个字段（未使用，保留以保持签名一致）
+     */
+    private static void appendField(StringBuilder sb, String key, Map&lt;String, Object&gt; value, boolean first) {
+<span class="fc" id="L89">        sb.append('&quot;').append(key).append(&quot;\&quot;:&quot;);</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L91">            sb.append(&quot;null&quot;);</span>
+        } else {
+<span class="fc" id="L93">            appendMap(sb, value);</span>
+        }
+<span class="fc" id="L95">    }</span>
+
+    /**
+     * 将 Map 序列化为 JSON 对象。
+     *
+     * @param sb 字符串构建器
+     * @param map Map
+     */
+    private static void appendMap(StringBuilder sb, Map&lt;String, Object&gt; map) {
+<span class="fc" id="L104">        sb.append('{');</span>
+<span class="fc" id="L105">        boolean firstEntry = true;</span>
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        for (Map.Entry&lt;String, Object&gt; entry : map.entrySet()) {</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (!firstEntry) {</span>
+<span class="fc" id="L108">                sb.append(',');</span>
+            }
+<span class="fc" id="L110">            firstEntry = false;</span>
+<span class="fc" id="L111">            sb.append('&quot;').append(escapeJson(entry.getKey())).append(&quot;\&quot;:&quot;);</span>
+<span class="fc" id="L112">            appendValue(sb, entry.getValue());</span>
+<span class="fc" id="L113">        }</span>
+<span class="fc" id="L114">        sb.append('}');</span>
+<span class="fc" id="L115">    }</span>
+
+    /**
+     * 追加一个值（根据类型选择 JSON 表示）。
+     *
+     * @param sb    字符串构建器
+     * @param value 值
+     */
+    private static void appendValue(StringBuilder sb, Object value) {
+<span class="pc bpc" id="L124" title="1 of 2 branches missed.">        if (value == null) {</span>
+<span class="nc" id="L125">            sb.append(&quot;null&quot;);</span>
+<span class="fc bfc" id="L126" title="All 4 branches covered.">        } else if (value instanceof Number || value instanceof Boolean) {</span>
+<span class="fc" id="L127">            sb.append(value);</span>
+        } else {
+<span class="fc" id="L129">            sb.append('&quot;').append(escapeJson(String.valueOf(value))).append('&quot;');</span>
+        }
+<span class="fc" id="L131">    }</span>
+
+    /**
+     * 转义 JSON 字符串中的特殊字符。
+     *
+     * @param s 原始字符串
+     * @return 转义后的字符串
+     */
+    private static String escapeJson(String s) {
+<span class="pc bpc" id="L140" title="1 of 2 branches missed.">        if (s == null) {</span>
+<span class="nc" id="L141">            return null;</span>
+        }
+<span class="fc" id="L143">        StringBuilder out = new StringBuilder(s.length() + 8);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="fc" id="L145">            char c = s.charAt(i);</span>
+<span class="pc bpc" id="L146" title="4 of 8 branches missed.">            switch (c) {</span>
+<span class="fc" id="L147">                case '&quot;' -&gt; out.append(&quot;\\\&quot;&quot;);</span>
+<span class="fc" id="L148">                case '\\' -&gt; out.append(&quot;\\\\&quot;);</span>
+<span class="fc" id="L149">                case '\n' -&gt; out.append(&quot;\\n&quot;);</span>
+<span class="nc" id="L150">                case '\r' -&gt; out.append(&quot;\\r&quot;);</span>
+<span class="nc" id="L151">                case '\t' -&gt; out.append(&quot;\\t&quot;);</span>
+<span class="nc" id="L152">                case '\b' -&gt; out.append(&quot;\\b&quot;);</span>
+<span class="nc" id="L153">                case '\f' -&gt; out.append(&quot;\\f&quot;);</span>
+                default -&gt; {
+<span class="pc bpc" id="L155" title="1 of 2 branches missed.">                    if (c &lt; 0x20) {</span>
+<span class="nc" id="L156">                        out.append(String.format(&quot;\\u%04x&quot;, (int) c));</span>
+                    } else {
+<span class="fc" id="L158">                        out.append(c);</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L163">        return out.toString();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

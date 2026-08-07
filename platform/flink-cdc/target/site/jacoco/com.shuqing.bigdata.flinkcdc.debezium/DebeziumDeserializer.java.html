@@ -1,0 +1,427 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DebeziumDeserializer.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.debezium</a> &gt; <span class="el_source">DebeziumDeserializer.java</span></div><h1>DebeziumDeserializer.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.debezium;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+import com.ververica.cdc.debezium.DebeziumDeserializationSchema;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.util.Collector;
+import org.apache.kafka.connect.data.Field;
+import org.apache.kafka.connect.data.Schema;
+import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.source.SourceRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Debezium 事件反序列化器，将 Debezium 事件转换为 {@link DebeziumChangeRecord}。
+ *
+ * &lt;p&gt;支持两种输入形态：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;SourceRecord (Struct)&lt;/b&gt; — 来自 Flink CDC 3.0 内部 Debezium Engine，
+ *       value 为 Kafka Connect {@link Struct}，含 before/after/op/source/ts_ms 字段。
+ *       通过 {@link #deserialize(SourceRecord, Collector)} 调用。&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;JSON 字节数组&lt;/b&gt; — 来自 Kafka Topic 中已落地的 Debezium JSON 消息，
+ *       通过 {@link #deserializeJson(byte[])} 解析。&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;解析后输出 {@link DebeziumChangeRecord}，保留 schema/sourceMeta/transaction 等扩展元数据。
+ * 支持与 Schema Registry 集成（外部传入 {@link SchemaResolver} 时调用解析 schema 信息）。&lt;/p&gt;
+ *
+ * &lt;p&gt;异常处理策略：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code null} value（tombstone 消息）— 跳过，不输出&lt;/li&gt;
+ *   &lt;li&gt;op 字段缺失或无法识别 — 抛出 {@link IllegalArgumentException}&lt;/li&gt;
+ *   &lt;li&gt;JSON 格式错误 — 抛出 {@link IOException}&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class DebeziumDeserializer
+        implements DebeziumDeserializationSchema&lt;ChangeRecord&gt;, Serializable {
+
+    private static final long serialVersionUID = 1L;
+<span class="fc" id="L52">    private static final Logger log = LoggerFactory.getLogger(DebeziumDeserializer.class);</span>
+
+    /** Debezium value 结构中的字段名常量。 */
+    public static final String FIELD_BEFORE = &quot;before&quot;;
+    public static final String FIELD_AFTER = &quot;after&quot;;
+    public static final String FIELD_OP = &quot;op&quot;;
+    public static final String FIELD_SOURCE = &quot;source&quot;;
+    public static final String FIELD_TS_MS = &quot;ts_ms&quot;;
+    public static final String FIELD_SCHEMA = &quot;schema&quot;;
+    public static final String FIELD_PAYLOAD = &quot;payload&quot;;
+    public static final String FIELD_TRANSACTION = &quot;transaction&quot;;
+
+    /** 可选的 Schema 解析器（用于 Schema Registry 集成）。 */
+    private final SchemaResolver schemaResolver;
+
+    /** 复用的 JsonFactory（线程安全）。 */
+    private transient JsonFactory jsonFactory;
+
+    /** 默认构造：不启用 Schema Registry。 */
+    public DebeziumDeserializer() {
+<span class="fc" id="L72">        this(null);</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * 构造并指定 Schema 解析器。
+     *
+     * @param schemaResolver Schema 解析器；{@code null} 表示不启用
+     */
+<span class="fc" id="L80">    public DebeziumDeserializer(SchemaResolver schemaResolver) {</span>
+<span class="fc" id="L81">        this.schemaResolver = schemaResolver;</span>
+<span class="fc" id="L82">    }</span>
+
+    /**
+     * 从 Flink CDC 3.0 的 {@link SourceRecord} 反序列化。
+     *
+     * @param record Debezium SourceRecord
+     * @param out    输出收集器
+     */
+    @Override
+    public void deserialize(SourceRecord record, Collector&lt;ChangeRecord&gt; out) {
+<span class="fc" id="L92">        Objects.requireNonNull(record, &quot;SourceRecord 不能为 null&quot;);</span>
+<span class="fc" id="L93">        Object valueObj = record.value();</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if (valueObj == null) {</span>
+            // tombstone 记录（DELETE 后 Debezium 会发送 value=null 的墓碑消息），跳过
+<span class="fc" id="L96">            log.debug(&quot;跳过 tombstone 记录: topic={}, sourceOffset={}&quot;,</span>
+<span class="fc" id="L97">                    record.topic(), record.sourceOffset());</span>
+<span class="fc" id="L98">            return;</span>
+        }
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (!(valueObj instanceof Struct value)) {</span>
+<span class="fc" id="L101">            log.warn(&quot;跳过非 Struct 类型记录: {}&quot;, valueObj.getClass());</span>
+<span class="fc" id="L102">            return;</span>
+        }
+
+<span class="fc" id="L105">        DebeziumChangeRecord change = parseStruct(value);</span>
+<span class="fc" id="L106">        out.collect(change);</span>
+<span class="fc" id="L107">    }</span>
+
+    @Override
+    public TypeInformation&lt;ChangeRecord&gt; getProducedType() {
+<span class="fc" id="L111">        return TypeInformation.of(ChangeRecord.class);</span>
+    }
+
+    /**
+     * 从 Debezium JSON 字节数组解析为 {@link DebeziumChangeRecord}。
+     *
+     * &lt;p&gt;支持两种 JSON 形态：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;&lt;b&gt;扁平格式&lt;/b&gt;：{@code {&quot;before&quot;:...,&quot;after&quot;:...,&quot;op&quot;:&quot;u&quot;,&quot;source&quot;:...,&quot;ts_ms&quot;:...}}
+     *       — 直接位于根对象&lt;/li&gt;
+     *   &lt;li&gt;&lt;b&gt;包装格式&lt;/b&gt;：{@code {&quot;schema&quot;:...,&quot;payload&quot;:{&quot;before&quot;:...,&quot;after&quot;:...}}}
+     *       — 字段位于 {@code payload} 内，{@code schema} 单独提取&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param jsonBytes JSON 字节数组
+     * @return 解析后的 DebeziumChangeRecord
+     * @throws IOException JSON 解析失败
+     * @throws IllegalArgumentException 必要字段缺失或 op 无法识别
+     */
+    public DebeziumChangeRecord deserializeJson(byte[] jsonBytes) throws IOException {
+<span class="fc" id="L131">        Objects.requireNonNull(jsonBytes, &quot;jsonBytes 不能为 null&quot;);</span>
+<span class="fc bfc" id="L132" title="All 2 branches covered.">        if (jsonBytes.length == 0) {</span>
+<span class="fc" id="L133">            throw new IllegalArgumentException(&quot;JSON 字节数组为空&quot;);</span>
+        }
+<span class="fc" id="L135">        JsonFactory factory = getJsonFactory();</span>
+<span class="fc" id="L136">        try (JsonParser parser = factory.createParser(jsonBytes)) {</span>
+<span class="fc" id="L137">            return parseJson(parser);</span>
+        }
+    }
+
+    /**
+     * 从 JSON 字符串解析。
+     *
+     * @param json JSON 字符串
+     * @return DebeziumChangeRecord
+     * @throws IOException 解析失败
+     */
+    public DebeziumChangeRecord deserializeJson(String json) throws IOException {
+<span class="fc" id="L149">        Objects.requireNonNull(json, &quot;json 不能为 null&quot;);</span>
+<span class="fc" id="L150">        return deserializeJson(json.getBytes(java.nio.charset.StandardCharsets.UTF_8));</span>
+    }
+
+    // ===== 内部解析方法 =====
+
+    /**
+     * 解析 Kafka Connect Struct 为 DebeziumChangeRecord。
+     *
+     * @param value Debezium value Struct
+     * @return DebeziumChangeRecord
+     */
+    DebeziumChangeRecord parseStruct(Struct value) {
+<span class="fc" id="L162">        Map&lt;String, Object&gt; before = extractStruct(value, FIELD_BEFORE);</span>
+<span class="fc" id="L163">        Map&lt;String, Object&gt; after = extractStruct(value, FIELD_AFTER);</span>
+<span class="fc" id="L164">        String opCode = requireString(value, FIELD_OP);</span>
+        // 校验 op 编码合法
+<span class="fc" id="L166">        validateOpCode(opCode);</span>
+<span class="fc" id="L167">        Map&lt;String, Object&gt; source = extractStruct(value, FIELD_SOURCE);</span>
+<span class="fc" id="L168">        Long tsMs = value.getInt64(FIELD_TS_MS);</span>
+
+        // 提取 transaction 元数据（若存在）
+<span class="fc" id="L171">        Map&lt;String, Object&gt; transaction = extractStruct(value, FIELD_TRANSACTION);</span>
+
+        // 提取 source 扩展字段（snapshot / dbserver_name / lsn 等）
+<span class="fc" id="L174">        Map&lt;String, Object&gt; sourceMeta = extractSourceMeta(source);</span>
+
+        // schema 信息（可选）
+<span class="fc" id="L177">        Map&lt;String, Object&gt; schemaInfo = null;</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">        if (schemaResolver != null) {</span>
+<span class="fc" id="L179">            schemaInfo = schemaResolver.resolve(value);</span>
+        }
+
+<span class="fc" id="L182">        return new DebeziumChangeRecord(before, after, opCode, source, tsMs,</span>
+                schemaInfo, sourceMeta, transaction);
+    }
+
+    /**
+     * 解析 JSON 流。
+     *
+     * @param parser Jackson JsonParser
+     * @return DebeziumChangeRecord
+     * @throws IOException 解析失败
+     */
+    DebeziumChangeRecord parseJson(JsonParser parser) throws IOException {
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        if (parser.nextToken() != JsonToken.START_OBJECT) {</span>
+<span class="fc" id="L195">            throw new IOException(&quot;期望 JSON 对象起始，实际: &quot; + parser.currentToken());</span>
+        }
+
+<span class="fc" id="L198">        Map&lt;String, Object&gt; root = parseJsonObject(parser);</span>
+
+        // 判断是否为包装格式（含 payload 字段）
+        Map&lt;String, Object&gt; payload;
+        Map&lt;String, Object&gt; schemaInfo;
+<span class="fc" id="L203">        Object payloadObj = root.get(FIELD_PAYLOAD);</span>
+<span class="fc" id="L204">        Object schemaObj = root.get(FIELD_SCHEMA);</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">        if (payloadObj instanceof Map&lt;?, ?&gt; p) {</span>
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L207">            Map&lt;String, Object&gt; payloadMap = (Map&lt;String, Object&gt;) p;</span>
+<span class="fc" id="L208">            payload = payloadMap;</span>
+<span class="fc" id="L209">        } else {</span>
+<span class="fc" id="L210">            payload = root;</span>
+        }
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        if (schemaObj instanceof Map&lt;?, ?&gt; s) {</span>
+            @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L214">            Map&lt;String, Object&gt; schemaMap = (Map&lt;String, Object&gt;) s;</span>
+<span class="fc" id="L215">            schemaInfo = schemaMap;</span>
+<span class="fc" id="L216">        } else {</span>
+<span class="fc" id="L217">            schemaInfo = null;</span>
+        }
+
+        // 必要字段校验
+<span class="fc" id="L221">        Object opObj = payload.get(FIELD_OP);</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">        if (opObj == null) {</span>
+<span class="fc" id="L223">            throw new IllegalArgumentException(&quot;Debezium JSON 缺少必要字段: op&quot;);</span>
+        }
+<span class="fc" id="L225">        String opCode = String.valueOf(opObj);</span>
+<span class="fc" id="L226">        validateOpCode(opCode);</span>
+
+        @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L229">        Map&lt;String, Object&gt; before = (Map&lt;String, Object&gt;) payload.get(FIELD_BEFORE);</span>
+        @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L231">        Map&lt;String, Object&gt; after = (Map&lt;String, Object&gt;) payload.get(FIELD_AFTER);</span>
+        @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L233">        Map&lt;String, Object&gt; source = (Map&lt;String, Object&gt;) payload.get(FIELD_SOURCE);</span>
+        @SuppressWarnings(&quot;unchecked&quot;)
+<span class="fc" id="L235">        Map&lt;String, Object&gt; transaction = (Map&lt;String, Object&gt;) payload.get(FIELD_TRANSACTION);</span>
+
+<span class="fc" id="L237">        Long tsMs = null;</span>
+<span class="fc" id="L238">        Object tsObj = payload.get(FIELD_TS_MS);</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        if (tsObj instanceof Number n) {</span>
+<span class="fc" id="L240">            tsMs = n.longValue();</span>
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">        } else if (tsObj != null) {</span>
+<span class="fc" id="L242">            tsMs = Long.parseLong(String.valueOf(tsObj));</span>
+        }
+
+<span class="fc" id="L245">        Map&lt;String, Object&gt; sourceMeta = extractSourceMeta(source);</span>
+
+<span class="fc" id="L247">        return new DebeziumChangeRecord(before, after, opCode, source, tsMs,</span>
+                schemaInfo, sourceMeta, transaction);
+    }
+
+    /**
+     * 校验 op 编码合法。
+     *
+     * @param opCode op 编码
+     * @throws IllegalArgumentException 若编码不被识别
+     */
+    private static void validateOpCode(String opCode) {
+<span class="pc bpc" id="L258" title="1 of 4 branches missed.">        if (opCode == null || opCode.isEmpty()) {</span>
+<span class="fc" id="L259">            throw new IllegalArgumentException(&quot;Debezium op 字段为空&quot;);</span>
+        }
+<span class="fc bfc" id="L261" title="All 2 branches covered.">        switch (opCode) {</span>
+<span class="fc" id="L262">            case &quot;c&quot;, &quot;u&quot;, &quot;d&quot;, &quot;r&quot; -&gt; { /* 合法 */ }</span>
+<span class="fc" id="L263">            default -&gt; throw new IllegalArgumentException(&quot;未知的 Debezium op 编码: &quot; + opCode);</span>
+        }
+<span class="fc" id="L265">    }</span>
+
+    /**
+     * 从 Struct 中提取字段为 Map。
+     *
+     * @param value     Debezium value Struct
+     * @param fieldName 字段名
+     * @return Map；若字段为 null 返回 {@code null}
+     */
+    private static Map&lt;String, Object&gt; extractStruct(Struct value, String fieldName) {
+<span class="fc" id="L275">        Schema schema = value.schema();</span>
+<span class="fc bfc" id="L276" title="All 2 branches covered.">        if (schema.field(fieldName) == null) {</span>
+<span class="fc" id="L277">            return null;</span>
+        }
+<span class="fc" id="L279">        Struct sub = value.getStruct(fieldName);</span>
+<span class="fc bfc" id="L280" title="All 2 branches covered.">        if (sub == null) {</span>
+<span class="fc" id="L281">            return null;</span>
+        }
+<span class="fc" id="L283">        Schema subSchema = sub.schema();</span>
+<span class="fc" id="L284">        Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        for (Field field : subSchema.fields()) {</span>
+<span class="fc" id="L286">            map.put(field.name(), sub.get(field));</span>
+<span class="fc" id="L287">        }</span>
+<span class="fc" id="L288">        return map;</span>
+    }
+
+    /**
+     * 提取必填字符串字段。
+     *
+     * @param value     Struct
+     * @param fieldName 字段名
+     * @return 字符串值
+     * @throws IllegalArgumentException 字段缺失
+     */
+    private static String requireString(Struct value, String fieldName) {
+<span class="fc" id="L300">        Schema schema = value.schema();</span>
+<span class="fc bfc" id="L301" title="All 2 branches covered.">        if (schema.field(fieldName) == null) {</span>
+<span class="fc" id="L302">            throw new IllegalArgumentException(&quot;Debezium Struct 缺少必要字段: &quot; + fieldName);</span>
+        }
+<span class="fc" id="L304">        Object v = value.get(fieldName);</span>
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">        if (v == null) {</span>
+<span class="nc" id="L306">            throw new IllegalArgumentException(&quot;Debezium 字段 &quot; + fieldName + &quot; 为 null&quot;);</span>
+        }
+<span class="fc" id="L308">        return String.valueOf(v);</span>
+    }
+
+    /**
+     * 从 source 元数据中提取扩展字段（snapshot / dbserver_name / lsn / txId / thread）。
+     *
+     * @param source source 元数据
+     * @return 扩展字段 Map；若 source 为 null 返回 {@code null}
+     */
+    private static Map&lt;String, Object&gt; extractSourceMeta(Map&lt;String, Object&gt; source) {
+<span class="fc bfc" id="L318" title="All 2 branches covered.">        if (source == null) {</span>
+<span class="fc" id="L319">            return null;</span>
+        }
+<span class="fc" id="L321">        Map&lt;String, Object&gt; meta = new LinkedHashMap&lt;&gt;();</span>
+        // 已知的扩展字段集合
+<span class="fc" id="L323">        String[] knownMetaKeys = {&quot;snapshot&quot;, &quot;dbserver_name&quot;, &quot;lsn&quot;, &quot;txId&quot;, &quot;thread&quot;,</span>
+                &quot;ts_ns&quot;, &quot;ts_us&quot;, &quot;ts_sec&quot;, &quot;snapshot=true&quot;};
+<span class="fc bfc" id="L325" title="All 2 branches covered.">        for (String key : knownMetaKeys) {</span>
+<span class="fc" id="L326">            Object v = source.get(key);</span>
+<span class="fc bfc" id="L327" title="All 2 branches covered.">            if (v != null) {</span>
+<span class="fc" id="L328">                meta.put(key, v);</span>
+            }
+        }
+<span class="fc bfc" id="L331" title="All 2 branches covered.">        return meta.isEmpty() ? null : meta;</span>
+    }
+
+    /**
+     * 解析 JSON 对象为 Map（递归）。
+     *
+     * @param parser JsonParser
+     * @return Map
+     * @throws IOException 解析失败
+     */
+    private static Map&lt;String, Object&gt; parseJsonObject(JsonParser parser) throws IOException {
+<span class="fc" id="L342">        Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+        while (true) {
+<span class="fc" id="L344">            JsonToken token = parser.nextToken();</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">            if (token == JsonToken.END_OBJECT) {</span>
+<span class="fc" id="L346">                break;</span>
+            }
+<span class="pc bpc" id="L348" title="1 of 2 branches missed.">            if (token != JsonToken.FIELD_NAME) {</span>
+<span class="nc" id="L349">                throw new IOException(&quot;期望字段名，实际: &quot; + token);</span>
+            }
+<span class="fc" id="L351">            String fieldName = parser.getCurrentName();</span>
+<span class="fc" id="L352">            token = parser.nextToken();</span>
+<span class="fc" id="L353">            map.put(fieldName, parseJsonValue(parser, token));</span>
+<span class="fc" id="L354">        }</span>
+<span class="fc" id="L355">        return map;</span>
+    }
+
+    /**
+     * 解析 JSON 值（根据当前 token 决定类型）。
+     *
+     * @param parser JsonParser
+     * @param token  当前 token
+     * @return Java 对象
+     * @throws IOException 解析失败
+     */
+    private static Object parseJsonValue(JsonParser parser, JsonToken token) throws IOException {
+<span class="pc bpc" id="L367" title="1 of 9 branches missed.">        return switch (token) {</span>
+<span class="fc" id="L368">            case VALUE_NULL -&gt; null;</span>
+<span class="fc" id="L369">            case VALUE_TRUE -&gt; Boolean.TRUE;</span>
+<span class="fc" id="L370">            case VALUE_FALSE -&gt; Boolean.FALSE;</span>
+<span class="fc" id="L371">            case VALUE_STRING -&gt; parser.getValueAsString();</span>
+<span class="fc" id="L372">            case VALUE_NUMBER_INT -&gt; parser.getLongValue();</span>
+<span class="fc" id="L373">            case VALUE_NUMBER_FLOAT -&gt; parser.getDoubleValue();</span>
+<span class="fc" id="L374">            case START_OBJECT -&gt; parseJsonObject(parser);</span>
+<span class="fc" id="L375">            case START_ARRAY -&gt; parseJsonArray(parser);</span>
+<span class="nc" id="L376">            default -&gt; throw new IOException(&quot;意外的 JSON token: &quot; + token);</span>
+        };
+    }
+
+    /**
+     * 解析 JSON 数组为 List。
+     *
+     * @param parser JsonParser
+     * @return List
+     * @throws IOException 解析失败
+     */
+    private static java.util.List&lt;Object&gt; parseJsonArray(JsonParser parser) throws IOException {
+<span class="fc" id="L388">        java.util.List&lt;Object&gt; list = new java.util.ArrayList&lt;&gt;();</span>
+        while (true) {
+<span class="fc" id="L390">            JsonToken token = parser.nextToken();</span>
+<span class="fc bfc" id="L391" title="All 2 branches covered.">            if (token == JsonToken.END_ARRAY) {</span>
+<span class="fc" id="L392">                break;</span>
+            }
+<span class="fc" id="L394">            list.add(parseJsonValue(parser, token));</span>
+<span class="fc" id="L395">        }</span>
+<span class="fc" id="L396">        return list;</span>
+    }
+
+    /**
+     * 获取 JsonFactory（懒初始化，复用）。
+     *
+     * @return JsonFactory
+     */
+    private JsonFactory getJsonFactory() {
+<span class="fc bfc" id="L405" title="All 2 branches covered.">        if (jsonFactory == null) {</span>
+<span class="fc" id="L406">            jsonFactory = new JsonFactory();</span>
+        }
+<span class="fc" id="L408">        return jsonFactory;</span>
+    }
+
+    /**
+     * Schema 解析器接口，用于从 Debezium 事件中提取 schema 信息（如对接 Schema Registry）。
+     *
+     * @author shuqing-bigdata
+     */
+    @FunctionalInterface
+    public interface SchemaResolver extends Serializable {
+        /**
+         * 从 Debezium value Struct 解析 schema 信息。
+         *
+         * @param value Debezium value
+         * @return schema 描述 Map
+         */
+        Map&lt;String, Object&gt; resolve(Struct value);
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

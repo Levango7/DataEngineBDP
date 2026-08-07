@@ -1,0 +1,67 @@
+# AppProject · staging 环境
+# ============================================================================
+# 作用：staging 预发布环境，比 dev 更严格
+# - 禁止创建集群级资源（Namespace 由平台预创建）
+# - 仅允许 staging-* namespace
+# - 同步窗口：仅工作时间允许自动同步
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "数擎大数据平台 · staging 预发布环境 GitOps Project"
+  sourceRepos:
+    - https://github.com/Levango7/DataEngineBDP
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: staging-*
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  # staging 禁止创建集群级资源
+  clusterResourceBlacklist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+    - group: ''
+      kind: NetworkPolicy
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  roles:
+    - name: staging-developer
+      description: "staging 开发者：可 get + sync，不可 delete"
+      policies:
+        - p, proj:platform-staging:staging-developer, applications, get, platform-staging/*, allow
+        - p, proj:platform-staging:staging-developer, applications, sync, platform-staging/*, allow
+        - p, proj:platform-staging:staging-developer, applications, delete, platform-staging/*, deny
+      groups:
+        - "staging-developers"
+    - name: staging-admin
+      description: "staging 管理员"
+      policies:
+        - p, proj:platform-staging:staging-admin, applications, *, platform-staging/*, allow
+      groups:
+        - "staging-admins"
+  # 同步窗口：仅工作日 09:00-22:00 允许自动同步（避免深夜变更）
+  syncWindows:
+    - kind: allow
+      schedule: '0 9 * * 1-5'
+      duration: 13h
+      applications:
+        - '*'
+      namespaces:
+        - staging-*
+      cluster: https://kubernetes.default.svc
+      manualSync: false

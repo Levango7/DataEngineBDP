@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>NebulaGraphClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">lineage-analyzer</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.governance.lineage.service</a> &gt; <span class="el_source">NebulaGraphClient.java</span></div><h1>NebulaGraphClient.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.governance.lineage.service;
+
+import com.shuqing.bigdata.governance.lineage.model.LineageEdge;
+import com.shuqing.bigdata.governance.lineage.model.LineageNode;
+import com.vesoft.nebula.client.graph.NebulaPoolConfig;
+import com.vesoft.nebula.client.graph.data.HostAddress;
+import com.vesoft.nebula.client.graph.data.ResultSet;
+import com.vesoft.nebula.client.graph.net.NebulaPool;
+import com.vesoft.nebula.client.graph.net.Session;
+import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * NebulaGraph 图存储客户端封装。
+ *
+ * &lt;p&gt;基于 nebula-java 3.x 的 {@link NebulaPool}（连接池）+ {@link Session} 实现，
+ * 仅在 {@code nebula.enabled=true} 时由 Spring 容器实例化（见
+ * {@link ConditionalOnProperty}）。连接/初始化失败时降级为不可用（
+ * {@link #isAvailable()} 返回 {@code false}），不影响 H2/JPA 主流程。&lt;/p&gt;
+ *
+ * &lt;p&gt;初始化流程：
+ * &lt;ol&gt;
+ *   &lt;li&gt;初始化连接池 {@link NebulaPool#init}&lt;/li&gt;
+ *   &lt;li&gt;认证并切换图空间（{@code USE `&lt;space&gt;`}），若空间不存在则自动创建
+ *       （{@code CREATE SPACE IF NOT EXISTS}，VID 类型 FIXED_STRING(512)）&lt;/li&gt;
+ *   &lt;li&gt;幂等创建 Tag {@code lineage_node} 与 Edge {@code lineage_edge}（IF NOT EXISTS）&lt;/li&gt;
+ * &lt;/ol&gt;
+ *
+ * &lt;p&gt;nGQL 写入语义：
+ * &lt;ul&gt;
+ *   &lt;li&gt;顶点：{@code INSERT VERTEX lineage_node(...) VALUES &quot;fullName&quot;:(...)}&lt;/li&gt;
+ *   &lt;li&gt;边：{@code INSERT EDGE lineage_edge(...) VALUES &quot;src&quot;-&gt;&quot;dst&quot;:(...)}&lt;/li&gt;
+ * &lt;/ul&gt;
+ * INSERT VERTEX/EDGE 默认覆盖同 VID/同 src→dst 的已有数据，天然幂等。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@Component
+@ConditionalOnProperty(prefix = &quot;nebula&quot;, name = &quot;enabled&quot;, havingValue = &quot;true&quot;)
+public class NebulaGraphClient {
+
+<span class="nc" id="L49">    private static final Logger log = LoggerFactory.getLogger(NebulaGraphClient.class);</span>
+
+    /** 顶点 Tag 名 */
+    private static final String TAG_NODE = &quot;lineage_node&quot;;
+    /** 边 Edge 名 */
+    private static final String EDGE_LINEAGE = &quot;lineage_edge&quot;;
+
+    private final NebulaPool pool;
+    private final String username;
+    private final String password;
+    private final String space;
+    private volatile boolean available;
+
+    /**
+     * 构造 NebulaGraph 客户端，完成连接池初始化与 Schema 就绪检查。
+     *
+     * &lt;p&gt;任何步骤失败均只记录警告日志并将 {@link #available} 置为 {@code false}，
+     * 不抛出异常，以保证应用启动不被可选后端阻断。&lt;/p&gt;
+     *
+     * @param host     NebulaGraph graphd 主机
+     * @param port     NebulaGraph graphd 端口
+     * @param username 用户名
+     * @param password 密码
+     * @param space    图空间名
+     */
+    public NebulaGraphClient(
+            @Value(&quot;${nebula.host:127.0.0.1}&quot;) String host,
+            @Value(&quot;${nebula.port:9669}&quot;) int port,
+            @Value(&quot;${nebula.username:root}&quot;) String username,
+            @Value(&quot;${nebula.password:nebula}&quot;) String password,
+<span class="nc" id="L79">            @Value(&quot;${nebula.space:lineage}&quot;) String space) {</span>
+
+<span class="nc" id="L81">        this.username = username;</span>
+<span class="nc" id="L82">        this.password = password;</span>
+<span class="nc" id="L83">        this.space = space;</span>
+<span class="nc" id="L84">        this.pool = new NebulaPool();</span>
+<span class="nc" id="L85">        this.available = false;</span>
+
+        try {
+<span class="nc" id="L88">            NebulaPoolConfig config = new NebulaPoolConfig()</span>
+<span class="nc" id="L89">                    .setMinConnSize(1)</span>
+<span class="nc" id="L90">                    .setMaxConnSize(10)</span>
+<span class="nc" id="L91">                    .setTimeout(3000)</span>
+<span class="nc" id="L92">                    .setIdleTime(0)</span>
+<span class="nc" id="L93">                    .setIntervalIdle(-1)</span>
+<span class="nc" id="L94">                    .setWaitTime(0);</span>
+<span class="nc" id="L95">            List&lt;HostAddress&gt; addresses = Collections.singletonList(new HostAddress(host, port));</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            if (!pool.init(addresses, config)) {</span>
+<span class="nc" id="L97">                log.warn(&quot;NebulaGraph 连接池初始化失败: host={}:{}&quot;, host, port);</span>
+<span class="nc" id="L98">                return;</span>
+            }
+
+<span class="nc" id="L101">            Session session = null;</span>
+            try {
+<span class="nc" id="L103">                session = pool.getSession(username, password, true);</span>
+<span class="nc bnc" id="L104" title="All 2 branches missed.">                if (!ensureSpace(session)) {</span>
+<span class="nc" id="L105">                    return;</span>
+                }
+<span class="nc" id="L107">                ensureSchema(session);</span>
+            } finally {
+<span class="nc" id="L109">                releaseQuietly(session);</span>
+            }
+
+<span class="nc" id="L112">            this.available = true;</span>
+<span class="nc" id="L113">            log.info(&quot;NebulaGraph 客户端就绪: host={}:{}, space={}&quot;, host, port, space);</span>
+<span class="nc" id="L114">        } catch (InterruptedException ie) {</span>
+<span class="nc" id="L115">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L116">            log.warn(&quot;NebulaGraph 初始化被中断，降级为 H2-only: host={}:{}, space={}&quot;, host, port, space);</span>
+<span class="nc" id="L117">        } catch (Exception e) {</span>
+<span class="nc" id="L118">            log.warn(&quot;NebulaGraph 初始化失败，降级为 H2-only: host={}:{}, error={}&quot;, host, port, e.getMessage());</span>
+<span class="nc" id="L119">        }</span>
+<span class="nc" id="L120">    }</span>
+
+    /**
+     * 切换图空间；若空间不存在则创建后等待生效再切换。
+     *
+     * @param session 已认证会话
+     * @return 切换成功返回 true
+     * @throws InterruptedException 等待空间生效时被中断
+     * @throws com.vesoft.nebula.client.graph.exception.IOErrorException nGQL 执行 IO 异常
+     */
+    private boolean ensureSpace(Session session) throws InterruptedException,
+            com.vesoft.nebula.client.graph.exception.IOErrorException {
+<span class="nc" id="L132">        ResultSet rs = session.execute(&quot;USE `&quot; + space + &quot;`;&quot;);</span>
+<span class="nc bnc" id="L133" title="All 2 branches missed.">        if (rs.isSucceeded()) {</span>
+<span class="nc" id="L134">            return true;</span>
+        }
+<span class="nc" id="L136">        log.info(&quot;图空间 [{}] 不存在或切换失败，尝试自动创建: {}&quot;, space, rs.getErrorMessage());</span>
+<span class="nc" id="L137">        session.execute(&quot;CREATE SPACE IF NOT EXISTS `&quot; + space + &quot;` &quot;</span>
+                + &quot;(vid_type=FIXED_STRING(512), partition_num=10, replica_factor=1);&quot;);
+        // NebulaGraph 创建 space 后需等待 2 个心跳周期（默认 1s × 2）生效
+<span class="nc" id="L140">        Thread.sleep(2000);</span>
+<span class="nc" id="L141">        rs = session.execute(&quot;USE `&quot; + space + &quot;`;&quot;);</span>
+<span class="nc bnc" id="L142" title="All 2 branches missed.">        if (!rs.isSucceeded()) {</span>
+<span class="nc" id="L143">            log.warn(&quot;NebulaGraph 切换图空间失败: space={}, error={}&quot;, space, rs.getErrorMessage());</span>
+<span class="nc" id="L144">            return false;</span>
+        }
+<span class="nc" id="L146">        return true;</span>
+    }
+
+    /**
+     * 幂等创建 Tag 与 Edge；创建后等待 schema 生效。
+     *
+     * @param session 已切换至目标空间的会话
+     * @throws InterruptedException 等待 schema 生效时被中断
+     * @throws com.vesoft.nebula.client.graph.exception.IOErrorException nGQL 执行 IO 异常
+     */
+    private void ensureSchema(Session session) throws InterruptedException,
+            com.vesoft.nebula.client.graph.exception.IOErrorException {
+<span class="nc" id="L158">        session.execute(&quot;CREATE TAG IF NOT EXISTS `&quot; + TAG_NODE + &quot;` (&quot;</span>
+                + &quot;full_name string(512), node_type string(16), &quot;
+                + &quot;schema_name string(128), table_name string(128), &quot;
+                + &quot;column_name string(128), display_name string(256));&quot;);
+<span class="nc" id="L162">        session.execute(&quot;CREATE EDGE IF NOT EXISTS `&quot; + EDGE_LINEAGE + &quot;` (&quot;</span>
+                + &quot;relation_type string(32), source_sql string(4096), &quot;
+                + &quot;dialect string(16), expression string(1024));&quot;);
+        // 等待 Tag/Edge schema 在集群内生效
+<span class="nc" id="L166">        Thread.sleep(2000);</span>
+<span class="nc" id="L167">    }</span>
+
+    /**
+     * 客户端是否可用（连接池已初始化且 Schema 就绪）。
+     *
+     * @return 可用返回 true；初始化失败或已关闭返回 false
+     */
+    public boolean isAvailable() {
+<span class="nc" id="L175">        return available;</span>
+    }
+
+    /**
+     * 执行单条 nGQL 语句（自动先 {@code USE `&lt;space&gt;`} 切换图空间）。
+     *
+     * @param ngql nGQL 语句（不含 USE）
+     * @return 执行成功返回 true；失败或客户端不可用返回 false
+     */
+    public boolean execute(String ngql) {
+<span class="nc bnc" id="L185" title="All 2 branches missed.">        if (!available) {</span>
+<span class="nc" id="L186">            return false;</span>
+        }
+<span class="nc" id="L188">        Session session = null;</span>
+        try {
+<span class="nc" id="L190">            session = pool.getSession(username, password, true);</span>
+<span class="nc" id="L191">            session.execute(&quot;USE `&quot; + space + &quot;`;&quot;);</span>
+<span class="nc" id="L192">            ResultSet rs = session.execute(ngql);</span>
+<span class="nc bnc" id="L193" title="All 2 branches missed.">            if (!rs.isSucceeded()) {</span>
+<span class="nc" id="L194">                log.warn(&quot;nGQL 执行失败: [{}], error={}&quot;, ngql, rs.getErrorMessage());</span>
+<span class="nc" id="L195">                return false;</span>
+            }
+<span class="nc" id="L197">            return true;</span>
+<span class="nc" id="L198">        } catch (Exception e) {</span>
+<span class="nc" id="L199">            log.warn(&quot;nGQL 执行异常: [{}], error={}&quot;, ngql, e.getMessage());</span>
+<span class="nc" id="L200">            return false;</span>
+        } finally {
+<span class="nc" id="L202">            releaseQuietly(session);</span>
+        }
+    }
+
+    /**
+     * 写入一个血缘节点顶点到 NebulaGraph。
+     *
+     * &lt;p&gt;nGQL：{@code INSERT VERTEX lineage_node(...) VALUES &quot;fullName&quot;:(...)}&lt;/p&gt;
+     *
+     * @param node 血缘节点
+     * @return 写入成功返回 true
+     */
+    public boolean writeNode(LineageNode node) {
+<span class="nc bnc" id="L215" title="All 6 branches missed.">        if (!available || node == null || node.getFullName() == null) {</span>
+<span class="nc" id="L216">            return false;</span>
+        }
+<span class="nc" id="L218">        String vid = escape(node.getFullName());</span>
+<span class="nc" id="L219">        StringBuilder ngql = new StringBuilder(256);</span>
+<span class="nc" id="L220">        ngql.append(&quot;INSERT VERTEX `&quot;).append(TAG_NODE).append(&quot;`&quot;)</span>
+<span class="nc" id="L221">                .append(&quot;(full_name, node_type, schema_name, table_name, column_name, display_name) &quot;)</span>
+<span class="nc" id="L222">                .append(&quot;VALUES \&quot;&quot;).append(vid).append(&quot;\&quot;:(\&quot;&quot;)</span>
+<span class="nc" id="L223">                .append(escape(node.getFullName())).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc bnc" id="L224" title="All 2 branches missed.">                .append(escape(node.getNodeType() != null ? node.getNodeType().name() : &quot;&quot;)).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L225">                .append(escape(node.getSchemaName())).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L226">                .append(escape(node.getTableName())).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L227">                .append(escape(node.getColumnName())).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L228">                .append(escape(node.getDisplayName())).append(&quot;\&quot;);&quot;);</span>
+<span class="nc" id="L229">        return execute(ngql.toString());</span>
+    }
+
+    /**
+     * 写入一条血缘边到 NebulaGraph。
+     *
+     * &lt;p&gt;nGQL：{@code INSERT EDGE lineage_edge(...) VALUES &quot;src&quot;-&gt;&quot;dst&quot;:(...)}&lt;/p&gt;
+     *
+     * @param edge 血缘边
+     * @return 写入成功返回 true
+     */
+    public boolean writeEdge(LineageEdge edge) {
+<span class="nc bnc" id="L241" title="All 4 branches missed.">        if (!available || edge == null</span>
+<span class="nc bnc" id="L242" title="All 4 branches missed.">                || edge.getSourceFullName() == null || edge.getTargetFullName() == null) {</span>
+<span class="nc" id="L243">            return false;</span>
+        }
+<span class="nc" id="L245">        StringBuilder ngql = new StringBuilder(256);</span>
+<span class="nc" id="L246">        ngql.append(&quot;INSERT EDGE `&quot;).append(EDGE_LINEAGE).append(&quot;`&quot;)</span>
+<span class="nc" id="L247">                .append(&quot;(relation_type, source_sql, dialect, expression) &quot;)</span>
+<span class="nc" id="L248">                .append(&quot;VALUES \&quot;&quot;).append(escape(edge.getSourceFullName())).append(&quot;\&quot;-&gt;\&quot;&quot;)</span>
+<span class="nc" id="L249">                .append(escape(edge.getTargetFullName())).append(&quot;\&quot;:(\&quot;&quot;)</span>
+<span class="nc bnc" id="L250" title="All 2 branches missed.">                .append(escape(edge.getRelationType() != null ? edge.getRelationType().name() : &quot;&quot;)).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L251">                .append(escape(edge.getSourceSql())).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L252">                .append(escape(edge.getDialect())).append(&quot;\&quot;, \&quot;&quot;)</span>
+<span class="nc" id="L253">                .append(escape(edge.getExpression())).append(&quot;\&quot;);&quot;);</span>
+<span class="nc" id="L254">        return execute(ngql.toString());</span>
+    }
+
+    /**
+     * 转义 nGQL 字符串字面量中的特殊字符（反斜杠与双引号）。
+     *
+     * @param s 原始字符串，null 视为空串
+     * @return 转义后字符串
+     */
+    private static String escape(String s) {
+<span class="nc bnc" id="L264" title="All 2 branches missed.">        if (s == null) {</span>
+<span class="nc" id="L265">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L267">        return s.replace(&quot;\\&quot;, &quot;\\\\&quot;).replace(&quot;\&quot;&quot;, &quot;\\\&quot;&quot;);</span>
+    }
+
+    /**
+     * 安静地释放会话回连接池，吞掉所有异常。
+     *
+     * @param session 待释放会话，null 时直接返回
+     */
+    private static void releaseQuietly(Session session) {
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        if (session == null) {</span>
+<span class="nc" id="L277">            return;</span>
+        }
+        try {
+<span class="nc" id="L280">            session.release();</span>
+<span class="nc" id="L281">        } catch (Exception ignored) {</span>
+            // 释放异常不影响主流程
+<span class="nc" id="L283">        }</span>
+<span class="nc" id="L284">    }</span>
+
+    /**
+     * 销毁时关闭连接池。
+     */
+    @PreDestroy
+    public void close() {
+        try {
+<span class="nc" id="L292">            pool.close();</span>
+<span class="nc" id="L293">        } catch (Exception ignored) {</span>
+            // 关闭异常忽略
+<span class="nc" id="L295">        }</span>
+<span class="nc" id="L296">        log.info(&quot;NebulaGraph 客户端已关闭&quot;);</span>
+<span class="nc" id="L297">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

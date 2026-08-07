@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DebeziumChangeRecord.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.debezium</a> &gt; <span class="el_source">DebeziumChangeRecord.java</span></div><h1>DebeziumChangeRecord.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.debezium;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+
+import java.io.Serializable;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Debezium 变更记录扩展模型，在 {@link ChangeRecord} 基础上增加 Debezium 特有元数据。
+ *
+ * &lt;p&gt;额外字段：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code schema} — Debezium 事件 schema 信息（payload schema / 顶层 schema）&lt;/li&gt;
+ *   &lt;li&gt;{@code sourceMeta} — Debezium source 元数据中的扩展字段（如 {@code snapshot} 标识、
+ *       {@code dbserver_name}、{@code lsn}、{@code txId} 等）&lt;/li&gt;
+ *   &lt;li&gt;{@code transaction} — 事务边界信息（事务 ID / 总事件数 / 当前事件序号）&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;典型 Debezium JSON 结构：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * {
+ *   &quot;schema&quot;: {...},
+ *   &quot;payload&quot;: {
+ *     &quot;before&quot;: {...},
+ *     &quot;after&quot;:  {...},
+ *     &quot;source&quot;: {&quot;db&quot;:&quot;shop&quot;,&quot;table&quot;:&quot;orders&quot;,&quot;ts_ms&quot;:1700000000000,&quot;snapshot&quot;:&quot;false&quot;},
+ *     &quot;op&quot;: &quot;u&quot;,
+ *     &quot;ts_ms&quot;: 1700000000000,
+ *     &quot;transaction&quot;: {&quot;id&quot;:&quot;tx-1&quot;,&quot;total_order&quot;:3,&quot;data_collection_order&quot;:1}
+ *   }
+ * }
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonPropertyOrder({&quot;before&quot;, &quot;after&quot;, &quot;op&quot;, &quot;source&quot;, &quot;ts_ms&quot;, &quot;schema&quot;, &quot;sourceMeta&quot;, &quot;transaction&quot;})
+public class DebeziumChangeRecord extends ChangeRecord implements Serializable {
+
+    private static final long serialVersionUID = 2L;
+
+    /**
+     * Debezium 事件 schema 描述（来自 {@code schema} 字段）。
+     * &lt;p&gt;键为 schema 字段名（如 {@code type}、{@code optional}、{@code fields}、{@code name}），
+     * 值为对应 schema 描述对象。&lt;/p&gt;
+     */
+    @JsonProperty(&quot;schema&quot;)
+    private Map&lt;String, Object&gt; schema;
+
+    /**
+     * Debezium source 元数据中的扩展字段（除 db/table/file/pos 之外的部分）。
+     * &lt;p&gt;典型字段：{@code snapshot}（&quot;true&quot;/&quot;false&quot;/&quot;last&quot;）、{@code dbserver_name}、
+     * {@code lsn}、{@code txId}、{@code thread} 等。&lt;/p&gt;
+     */
+    @JsonProperty(&quot;sourceMeta&quot;)
+    private Map&lt;String, Object&gt; sourceMeta;
+
+    /**
+     * 事务边界信息（Debezium 1.2+ 启用 {@code transaction.metadata} 后产生）。
+     * &lt;p&gt;典型字段：{@code id}（事务 ID）、{@code total_order}（事务内总事件序号）、
+     * {@code data_collection_order}（数据事件序号）。&lt;/p&gt;
+     */
+    @JsonProperty(&quot;transaction&quot;)
+    private Map&lt;String, Object&gt; transaction;
+
+    /** 默认构造器，供反序列化使用。 */
+    public DebeziumChangeRecord() {
+<span class="fc" id="L72">        super();</span>
+<span class="fc" id="L73">    }</span>
+
+    /**
+     * 全参构造器。
+     *
+     * @param before      变更前快照
+     * @param after       变更后快照
+     * @param opCode      Debezium op 编码 (c/u/d/r)
+     * @param source      来源元数据
+     * @param tsMs        变更时间戳
+     * @param schema      schema 描述
+     * @param sourceMeta  source 扩展元数据
+     * @param transaction 事务边界信息
+     */
+    public DebeziumChangeRecord(Map&lt;String, Object&gt; before, Map&lt;String, Object&gt; after,
+                                String opCode, Map&lt;String, Object&gt; source, Long tsMs,
+                                Map&lt;String, Object&gt; schema, Map&lt;String, Object&gt; sourceMeta,
+                                Map&lt;String, Object&gt; transaction) {
+<span class="fc" id="L91">        super(before, after, opCode, source, tsMs);</span>
+<span class="fc" id="L92">        this.schema = schema;</span>
+<span class="fc" id="L93">        this.sourceMeta = sourceMeta;</span>
+<span class="fc" id="L94">        this.transaction = transaction;</span>
+<span class="fc" id="L95">    }</span>
+
+    /**
+     * 从基础 {@link ChangeRecord} 升级为 {@link DebeziumChangeRecord}（保留所有基础字段）。
+     *
+     * @param record 基础变更记录
+     * @return DebeziumChangeRecord（不含额外元数据）
+     */
+    public static DebeziumChangeRecord from(ChangeRecord record) {
+<span class="fc" id="L104">        Objects.requireNonNull(record, &quot;ChangeRecord 不能为 null&quot;);</span>
+<span class="fc" id="L105">        DebeziumChangeRecord ext = new DebeziumChangeRecord();</span>
+<span class="fc" id="L106">        ext.setBefore(record.getBefore());</span>
+<span class="fc" id="L107">        ext.setAfter(record.getAfter());</span>
+<span class="fc" id="L108">        ext.setOp(record.getOp());</span>
+<span class="fc" id="L109">        ext.setSource(record.getSource());</span>
+<span class="fc" id="L110">        ext.setTsMs(record.getTsMs());</span>
+<span class="fc" id="L111">        return ext;</span>
+    }
+
+    public Map&lt;String, Object&gt; getSchema() {
+<span class="fc" id="L115">        return schema;</span>
+    }
+
+    public void setSchema(Map&lt;String, Object&gt; schema) {
+<span class="fc" id="L119">        this.schema = schema;</span>
+<span class="fc" id="L120">    }</span>
+
+    public Map&lt;String, Object&gt; getSourceMeta() {
+<span class="fc" id="L123">        return sourceMeta;</span>
+    }
+
+    public void setSourceMeta(Map&lt;String, Object&gt; sourceMeta) {
+<span class="fc" id="L127">        this.sourceMeta = sourceMeta;</span>
+<span class="fc" id="L128">    }</span>
+
+    public Map&lt;String, Object&gt; getTransaction() {
+<span class="fc" id="L131">        return transaction;</span>
+    }
+
+    public void setTransaction(Map&lt;String, Object&gt; transaction) {
+<span class="fc" id="L135">        this.transaction = transaction;</span>
+<span class="fc" id="L136">    }</span>
+
+    /**
+     * 判断当前事件是否为快照阶段（source.snapshot 字段为 &quot;true&quot; 或 &quot;last&quot;）。
+     *
+     * @return 若 source 或 sourceMeta 中 snapshot 字段为 &quot;true&quot;/&quot;last&quot; 返回 true
+     */
+    public boolean isSnapshotEvent() {
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (isSnapshot()) {</span>
+<span class="fc" id="L145">            return true;</span>
+        }
+<span class="fc" id="L147">        String snapshot = readSnapshotFlag();</span>
+<span class="pc bpc" id="L148" title="2 of 4 branches missed.">        return &quot;true&quot;.equalsIgnoreCase(snapshot) || &quot;last&quot;.equalsIgnoreCase(snapshot);</span>
+    }
+
+    private String readSnapshotFlag() {
+<span class="pc bpc" id="L152" title="1 of 2 branches missed.">        if (getSource() != null) {</span>
+<span class="fc" id="L153">            Object s = getSource().get(&quot;snapshot&quot;);</span>
+<span class="pc bpc" id="L154" title="1 of 2 branches missed.">            if (s != null) {</span>
+<span class="fc" id="L155">                return String.valueOf(s);</span>
+            }
+        }
+<span class="nc bnc" id="L158" title="All 2 branches missed.">        if (sourceMeta != null) {</span>
+<span class="nc" id="L159">            Object s = sourceMeta.get(&quot;snapshot&quot;);</span>
+<span class="nc bnc" id="L160" title="All 2 branches missed.">            if (s != null) {</span>
+<span class="nc" id="L161">                return String.valueOf(s);</span>
+            }
+        }
+<span class="nc" id="L164">        return null;</span>
+    }
+
+    /**
+     * 获取事务 ID（若启用 transaction.metadata）。
+     *
+     * @return 事务 ID；不存在返回 {@code null}
+     */
+    public String transactionId() {
+<span class="fc bfc" id="L173" title="All 2 branches covered.">        if (transaction == null) {</span>
+<span class="fc" id="L174">            return null;</span>
+        }
+<span class="fc" id="L176">        Object id = transaction.get(&quot;id&quot;);</span>
+<span class="fc bfc" id="L177" title="All 2 branches covered.">        return id == null ? null : String.valueOf(id);</span>
+    }
+
+    @Override
+    public boolean equals(Object o) {
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (this == o) {</span>
+<span class="fc" id="L183">            return true;</span>
+        }
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (!(o instanceof DebeziumChangeRecord that)) {</span>
+<span class="fc" id="L186">            return false;</span>
+        }
+<span class="pc bpc" id="L188" title="1 of 2 branches missed.">        if (!super.equals(o)) {</span>
+<span class="nc" id="L189">            return false;</span>
+        }
+<span class="fc bfc" id="L191" title="All 2 branches covered.">        return Objects.equals(schema, that.schema)</span>
+<span class="pc bpc" id="L192" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(sourceMeta, that.sourceMeta)</span>
+<span class="pc bpc" id="L193" title="1 of 2 branches missed.">                &amp;&amp; Objects.equals(transaction, that.transaction);</span>
+    }
+
+    @Override
+    public int hashCode() {
+<span class="fc" id="L198">        return Objects.hash(super.hashCode(), schema, sourceMeta, transaction);</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L203">        return &quot;DebeziumChangeRecord{op='&quot; + getOp() + &quot;', tsMs=&quot; + getTsMs()</span>
+<span class="fc" id="L204">                + &quot;, before=&quot; + getBefore() + &quot;, after=&quot; + getAfter()</span>
+<span class="fc" id="L205">                + &quot;, source=&quot; + getSource()</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">                + &quot;, schema=&quot; + (schema == null ? &quot;null&quot; : &quot;present&quot;)</span>
+                + &quot;, transaction=&quot; + transaction + '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

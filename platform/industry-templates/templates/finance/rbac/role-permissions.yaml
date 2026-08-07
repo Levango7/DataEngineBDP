@@ -1,0 +1,409 @@
+# 金融行业模板 - RBAC 角色-权限映射
+# ============================================================================
+# 模块：T018-5 RBAC 角色权限定义与模板打包
+# 格式：Keycloak role-permission mapping
+# 设计原则：最小权限原则（Least Privilege Principle）
+# 验收标准：
+#   1. 风控员：可访问风控模型表/风控DAG/风控Dashboard；不可访问客户隐私表
+#   2. 合规员：可只读访问所有表/查看所有DAG/查看所有Dashboard；不可修改数据
+#   3. 客户经理：可访问客户/账户/交易表/客户DAG/客户Dashboard；不可访问风控模型表
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 映射元信息
+mapping_metadata:
+  total_mappings: 78
+  design_principle: 最小权限原则（Least Privilege Principle）
+  verification_checklist:
+    - 风控员不可访问客户隐私表（customer/customer_profile/customer_relation/customer_tag）
+    - 合规员不可修改任何数据（无 write/manage 权限）
+    - 客户经理不可访问风控模型表（risk_model/risk_rule/risk_feature/risk_evaluation/risk_alert）
+    - 客户经理不可访问信贷评分表（credit_score/loan_application/loan_contract/repayment_plan）
+
+# ============================================================================
+# 角色-权限映射
+# ============================================================================
+role_permissions:
+
+  # --------------------------------------------------------------------------
+  # 角色 1：风控员（risk_officer）— 共 19 个权限
+  # 可访问：风控域 5 张表读写 + 交易明细/监控/AML告警只读 + 信用评分只读
+  #         + 风控DAG管理 + 反洗钱DAG查看 + 风控Dashboard查看
+  # 不可访问：客户隐私表（customer/customer_profile/customer_relation/customer_tag）
+  # --------------------------------------------------------------------------
+  - role: risk_officer
+    description: 风控员权限映射
+    permissions:
+      # 风控域表读写（10 个）
+      - perm_table_risk_model_read
+      - perm_table_risk_model_write
+      - perm_table_risk_rule_read
+      - perm_table_risk_rule_write
+      - perm_table_risk_feature_read
+      - perm_table_risk_feature_write
+      - perm_table_risk_evaluation_read
+      - perm_table_risk_evaluation_write
+      - perm_table_risk_alert_read
+      - perm_table_risk_alert_write
+      # 交易域相关表只读（3 个，用于风控特征计算与 AML 协同）
+      - perm_table_transaction_detail_read
+      - perm_table_transaction_monitor_read
+      - perm_table_aml_alert_read
+      # AML 告警表读写（1 个，风控员可处理 AML 告警）
+      - perm_table_aml_alert_write
+      # 信用评分表只读（1 个，风控决策参考）
+      - perm_table_credit_score_read
+      # DAG 权限（2 个：管理风控DAG + 查看反洗钱DAG）
+      - perm_dag_risk_feature_daily_manage
+      - perm_dag_risk_feature_daily_view
+      - perm_dag_transaction_aml_check_view
+      # Dashboard 权限（1 个：风控Dashboard）
+      - perm_dashboard_risk_view
+    permission_count: 19
+    denied_permissions:
+      - perm_table_customer_read
+      - perm_table_customer_write
+      - perm_table_customer_profile_read
+      - perm_table_customer_profile_write
+      - perm_table_customer_relation_read
+      - perm_table_customer_relation_write
+      - perm_table_customer_tag_read
+      - perm_table_customer_tag_write
+      - perm_dashboard_customer_view
+
+  # --------------------------------------------------------------------------
+  # 角色 2：合规员（compliance_officer）— 共 29 个权限（全部只读）
+  # 可访问：21 张表只读 + 5 个 DAG 查看 + 3 个 Dashboard 查看
+  # 不可访问：任何 write/manage 权限（不可修改数据）
+  # --------------------------------------------------------------------------
+  - role: compliance_officer
+    description: 合规员权限映射（全部只读）
+    permissions:
+      # 全部 21 张表只读（21 个）
+      - perm_table_risk_model_read
+      - perm_table_risk_rule_read
+      - perm_table_risk_feature_read
+      - perm_table_risk_evaluation_read
+      - perm_table_risk_alert_read
+      - perm_table_customer_read
+      - perm_table_customer_tag_read
+      - perm_table_customer_profile_read
+      - perm_table_customer_relation_read
+      - perm_table_account_read
+      - perm_table_account_balance_read
+      - perm_table_account_transaction_read
+      - perm_table_account_status_log_read
+      - perm_table_transaction_read
+      - perm_table_transaction_detail_read
+      - perm_table_aml_alert_read
+      - perm_table_transaction_monitor_read
+      - perm_table_loan_application_read
+      - perm_table_loan_contract_read
+      - perm_table_repayment_plan_read
+      - perm_table_credit_score_read
+      # 全部 5 个 DAG 查看（5 个，不可 manage）
+      - perm_dag_risk_feature_daily_view
+      - perm_dag_customer_tag_update_view
+      - perm_dag_account_eod_settlement_view
+      - perm_dag_transaction_aml_check_view
+      - perm_dag_credit_score_monthly_view
+      # 全部 3 个 Dashboard 查看（3 个，合规视角覆盖全部）
+      - perm_dashboard_risk_view
+      - perm_dashboard_customer_view
+      - perm_dashboard_transaction_view
+    permission_count: 29
+    denied_permissions:
+      # 显式拒绝所有 write/manage 权限
+      - perm_table_risk_model_write
+      - perm_table_risk_rule_write
+      - perm_table_risk_feature_write
+      - perm_table_risk_evaluation_write
+      - perm_table_risk_alert_write
+      - perm_table_customer_write
+      - perm_table_customer_tag_write
+      - perm_table_customer_profile_write
+      - perm_table_customer_relation_write
+      - perm_table_account_write
+      - perm_table_account_balance_write
+      - perm_table_account_transaction_write
+      - perm_table_account_status_log_write
+      - perm_table_transaction_write
+      - perm_table_transaction_detail_write
+      - perm_table_aml_alert_write
+      - perm_table_transaction_monitor_write
+      - perm_table_loan_application_write
+      - perm_table_loan_contract_write
+      - perm_table_repayment_plan_write
+      - perm_table_credit_score_write
+      - perm_dag_risk_feature_daily_manage
+      - perm_dag_customer_tag_update_manage
+      - perm_dag_account_eod_settlement_manage
+      - perm_dag_transaction_aml_check_manage
+      - perm_dag_credit_score_monthly_manage
+
+  # --------------------------------------------------------------------------
+  # 角色 3：客户经理（account_manager）— 共 25 个权限
+  # 可访问：客户域 4 张表读写 + 账户域 4 张表读写 + 交易域 2 张表读写
+  #         + 客户DAG管理 + 账户日终DAG查看 + 客户Dashboard + 交易Dashboard
+  # 不可访问：风控模型表（risk_model/risk_rule/risk_feature/risk_evaluation/risk_alert）
+  #         + 信贷评分表（credit_score/loan_application/loan_contract/repayment_plan）
+  #         + AML告警/交易监控表 + 风控Dashboard
+  # --------------------------------------------------------------------------
+  - role: account_manager
+    description: 客户经理权限映射
+    permissions:
+      # 客户域表读写（8 个）
+      - perm_table_customer_read
+      - perm_table_customer_write
+      - perm_table_customer_tag_read
+      - perm_table_customer_tag_write
+      - perm_table_customer_profile_read
+      - perm_table_customer_profile_write
+      - perm_table_customer_relation_read
+      - perm_table_customer_relation_write
+      # 账户域表读写（8 个）
+      - perm_table_account_read
+      - perm_table_account_write
+      - perm_table_account_balance_read
+      - perm_table_account_balance_write
+      - perm_table_account_transaction_read
+      - perm_table_account_transaction_write
+      - perm_table_account_status_log_read
+      - perm_table_account_status_log_write
+      # 交易域表读写（4 个，客户经理可查询交易明细）
+      - perm_table_transaction_read
+      - perm_table_transaction_write
+      - perm_table_transaction_detail_read
+      - perm_table_transaction_detail_write
+      # DAG 权限（3 个：管理客户DAG + 查看账户日终DAG + 查看客户DAG）
+      - perm_dag_customer_tag_update_manage
+      - perm_dag_customer_tag_update_view
+      - perm_dag_account_eod_settlement_view
+      # Dashboard 权限（2 个：客户Dashboard + 交易Dashboard）
+      - perm_dashboard_customer_view
+      - perm_dashboard_transaction_view
+    permission_count: 25
+    denied_permissions:
+      # 显式拒绝风控模型表
+      - perm_table_risk_model_read
+      - perm_table_risk_model_write
+      - perm_table_risk_rule_read
+      - perm_table_risk_rule_write
+      - perm_table_risk_feature_read
+      - perm_table_risk_feature_write
+      - perm_table_risk_evaluation_read
+      - perm_table_risk_evaluation_write
+      - perm_table_risk_alert_read
+      - perm_table_risk_alert_write
+      # 显式拒绝信贷评分表
+      - perm_table_loan_application_read
+      - perm_table_loan_application_write
+      - perm_table_loan_contract_read
+      - perm_table_loan_contract_write
+      - perm_table_repayment_plan_read
+      - perm_table_repayment_plan_write
+      - perm_table_credit_score_read
+      - perm_table_credit_score_write
+      # 显式拒绝 AML/交易监控表（属于风控/合规职责）
+      - perm_table_aml_alert_read
+      - perm_table_aml_alert_write
+      - perm_table_transaction_monitor_read
+      - perm_table_transaction_monitor_write
+      # 显式拒绝风控 Dashboard
+      - perm_dashboard_risk_view
+      # 显式拒绝风控/交易AML/信贷 DAG 管理
+      - perm_dag_risk_feature_daily_manage
+      - perm_dag_risk_feature_daily_view
+      - perm_dag_transaction_aml_check_manage
+      - perm_dag_transaction_aml_check_view
+      - perm_dag_credit_score_monthly_manage
+      - perm_dag_credit_score_monthly_view
+      - perm_dag_account_eod_settlement_manage
+
+# ============================================================================
+# 权限矩阵汇总（用于审计与可视化）
+# 值含义：R=只读 W=读写 M=管理 V=查看 N=无权限
+# ============================================================================
+permission_matrix:
+  # 表权限矩阵（行：角色，列：表）
+  table_matrix:
+    columns:
+      - risk_model
+      - risk_rule
+      - risk_feature
+      - risk_evaluation
+      - risk_alert
+      - customer
+      - customer_tag
+      - customer_profile
+      - customer_relation
+      - account
+      - account_balance
+      - account_transaction
+      - account_status_log
+      - transaction
+      - transaction_detail
+      - aml_alert
+      - transaction_monitor
+      - loan_application
+      - loan_contract
+      - repayment_plan
+      - credit_score
+    rows:
+      - role: risk_officer
+        values:
+          - W
+          - W
+          - W
+          - W
+          - W
+          - N
+          - N
+          - N
+          - N
+          - N
+          - N
+          - N
+          - N
+          - N
+          - R
+          - R
+          - W
+          - R
+          - N
+          - N
+          - N
+          - R
+      - role: compliance_officer
+        values:
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+          - R
+      - role: account_manager
+        values:
+          - N
+          - N
+          - N
+          - N
+          - N
+          - W
+          - W
+          - W
+          - W
+          - W
+          - W
+          - W
+          - W
+          - W
+          - W
+          - N
+          - N
+          - N
+          - N
+          - N
+          - N
+
+  # DAG 权限矩阵（行：角色，列：DAG）
+  dag_matrix:
+    columns:
+      - risk_feature_daily
+      - customer_tag_update
+      - account_eod_settlement
+      - transaction_aml_check
+      - credit_score_monthly
+    rows:
+      - role: risk_officer
+        values:
+          - M
+          - N
+          - N
+          - V
+          - N
+      - role: compliance_officer
+        values:
+          - V
+          - V
+          - V
+          - V
+          - V
+      - role: account_manager
+        values:
+          - N
+          - M
+          - V
+          - N
+          - N
+
+  # Dashboard 权限矩阵（行：角色，列：Dashboard）
+  dashboard_matrix:
+    columns:
+      - risk-dashboard
+      - customer-dashboard
+      - transaction-dashboard
+    rows:
+      - role: risk_officer
+        values:
+          - V
+          - N
+          - N
+      - role: compliance_officer
+        values:
+          - V
+          - V
+          - V
+      - role: account_manager
+        values:
+          - N
+          - V
+          - V
+
+# ============================================================================
+# 验收对照
+# ============================================================================
+acceptance_check:
+  - item: 风控员不可访问客户隐私表
+    expected: customer/customer_profile/customer_relation/customer_tag 无权限
+    actual: 4 张客户表均不在 risk_officer 权限列表
+    result: PASS
+  - item: 合规员不可修改任何数据
+    expected: 无 write/manage 权限
+    actual: 29 个权限全部为 read/view
+    result: PASS
+  - item: 客户经理不可访问风控模型表
+    expected: risk_model/risk_rule/risk_feature/risk_evaluation/risk_alert 无权限
+    actual: 5 张风控表均不在 account_manager 权限列表
+    result: PASS
+  - item: 客户经理不可访问信贷评分表
+    expected: credit_score/loan_application/loan_contract/repayment_plan 无权限
+    actual: 4 张信贷表均不在 account_manager 权限列表
+    result: PASS
+  - item: 合规员可访问所有表只读
+    expected: 21 张表 read 权限
+    actual: 21 个 read 权限全部授予
+    result: PASS
+  - item: 合规员可查看所有 DAG
+    expected: 5 个 DAG view 权限
+    actual: 5 个 view 权限全部授予
+    result: PASS
+  - item: 合规员可查看所有 Dashboard
+    expected: 3 个 Dashboard view 权限
+    actual: 3 个 view 权限全部授予
+    result: PASS

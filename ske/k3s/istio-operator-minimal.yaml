@@ -1,0 +1,65 @@
+# Istio Operator Overlay · minimal profile + mTLS
+# 数擎云核 SKE · Service Mesh 控制面配置
+#
+# minimal profile 仅安装 istiod（不含 ingress-gateway/egress-gateway），适合轻量测试与控制面验证。
+# 生产环境可切换为 default profile 并启用 ingress-gateway。
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+metadata:
+  namespace: istio-system
+  name: shuqing-istio-minimal
+spec:
+  profile: minimal
+
+  # 控制面组件资源（轻量测试：小限额）
+  components:
+    pilot:
+      k8s:
+        resources:
+          requests:
+            cpu: 100m
+            memory: 128Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+        # 部署在 istio-system，反亲和避免单节点多副本挤一起
+        hpaSpec:
+          minReplicas: 1
+          maxReplicas: 2
+        deploymentLabels:
+          app.kubernetes.io/part-of: shuqing-bigdata
+          app.kubernetes.io/component: service-mesh-controlplane
+
+  # 全局 Mesh 配置
+  meshConfig:
+    # 默认 mTLS 模式：PERMISSIVE（允许明文+密文过渡），全量 sidecar 就绪后切 STRICT
+    defaultConfig:
+      holdApplicationUntilProxyStarts: true   # Pod 启动时等 sidecar 就绪再启业务容器
+      proxyMetadata:
+        ISTIO_META_DNS_CAPTURE: "true"        # 启用 DNS 代理（sidecar 捕获 DNS 查询）
+    # 启用访问日志（stdout），便于排障
+    accessLogFile: /dev/stdout
+    accessLogEncoding: JSON
+    accessLogFormat: |
+      {"start_time":"%START_TIME%","method":"%REQ(:METHOD)%","path":"%REQ(X-ENVOY-ORIGINAL-PATH?:PATH)%","protocol":"%PROTOCOL%","response_code":"%RESPONSE_CODE%","response_flags":"%RESPONSE_FLAGS%","bytes_received":"%BYTES_RECEIVED%","bytes_sent":"%BYTES_SENT%","duration":"%DURATION%","upstream":"%UPSTREAM_HOST%","upstream_local_address":"%UPSTREAM_LOCAL_ADDRESS%","downstream_remote_address":"%DOWNSTREAM_REMOTE_ADDRESS%","trace_id":"%REQ(x-b3-traceid)%"}
+
+  # sidecar proxy 资源
+  values:
+    pilot:
+      env:
+        PILOT_TRACE_SAMPLING: "1.0"           # 1% 采样（测试环境可调高）
+    sidecarInjectorWebhook:
+      rewriteAppHTTPProbe: true               # 重写 HTTP 存活探针走 sidecar
+    global:
+      proxy:
+        resources:
+          requests:
+            cpu: 50m
+            memory: 64Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+        holdApplicationUntilProxyStarts: true
+      logAsJson: true
+      # 镜像版本（与 istioctl 版本对齐）
+      imagePullPolicy: IfNotPresent

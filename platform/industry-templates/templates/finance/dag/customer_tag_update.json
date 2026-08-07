@@ -1,0 +1,225 @@
+{
+  "projectName": "finance_customer",
+  "processDefinition": {
+    "name": "customer_tag_update",
+    "description": "客户标签更新DAG：从customer主表与transaction聚合计算客户业务/风险标签，写入customer_tag表",
+    "tenantCode": "default",
+    "globalParams": "[{\"prop\":\"biz_date\",\"direct\":\"IN\",\"type\":\"DATETIME\",\"value\":\"$biz_date\"},{\"prop\":\"db_finance\",\"direct\":\"IN\",\"type\":\"VARCHAR\",\"value\":\"db_finance\"}]",
+    "timeout": 7200,
+    "releaseState": "ONLINE",
+    "executionType": "PARALLEL",
+    "schedule": {
+      "startTime": "2024-01-01 00:00:00",
+      "endTime": "2099-12-31 23:59:59",
+      "crontab": "0 3 * * * ?",
+      "timezoneId": "Asia/Shanghai",
+      "failureStrategy": "CONTINUE",
+      "warningType": "FAILURE",
+      "warningGroupId": 2,
+      "workerGroup": "default"
+    }
+  },
+  "processTaskRelationList": [
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 2001,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 2002,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 2001,
+      "preTaskVersion": 1,
+      "postTaskCode": 2003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 2002,
+      "preTaskVersion": 1,
+      "postTaskCode": 2003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 2003,
+      "preTaskVersion": 1,
+      "postTaskCode": 2004,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 2004,
+      "preTaskVersion": 1,
+      "postTaskCode": 2005,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    }
+  ],
+  "taskDefinitionList": [
+    {
+      "code": 2001,
+      "version": 1,
+      "name": "extract_customer_basic",
+      "description": "抽取customer主表当日有效客户到临时表tmp_customer_tag_src",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_customer_tag_src PARTITION (p_${biz_date}) SELECT customer_id, customer_type, register_at, status FROM ${db_finance}.customer WHERE updated_at >= '${biz_date} 00:00:00' AND updated_at < '${biz_date} 23:59:59' OR status = 'ACTIVE';",
+        "sqlFile": "../sql/customer_tag_update/01_extract_customer_basic.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 1800,
+      "delayTime": 0
+    },
+    {
+      "code": 2002,
+      "version": 1,
+      "name": "aggregate_transaction_stat",
+      "description": "聚合transaction近30天交易统计：交易笔数/金额/活跃天数，作为标签计算输入",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_customer_txn_agg PARTITION (p_${biz_date}) SELECT customer_id, COUNT(1) AS txn_cnt_30d, SUM(amount) AS txn_amt_30d, COUNT(DISTINCT DATE(occurred_at)) AS active_days_30d FROM ${db_finance}.transaction WHERE occurred_at >= DATE_SUB('${biz_date}', INTERVAL 30 DAY) AND occurred_at <= '${biz_date}' GROUP BY customer_id;",
+        "sqlFile": "../sql/customer_tag_update/02_aggregate_transaction_stat.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 2003,
+      "version": 1,
+      "name": "compute_customer_tag",
+      "description": "根据客户基础信息与交易聚合计算标签：active/vip/dormant/high_value等",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_customer_tag_calc PARTITION (p_${biz_date}) SELECT c.customer_id, CASE WHEN t.txn_cnt_30d >= 20 THEN 'high_active' WHEN t.txn_cnt_30d >= 5 THEN 'active' WHEN t.txn_cnt_30d > 0 THEN 'low_active' ELSE 'dormant' END AS activity_tag, CASE WHEN t.txn_amt_30d >= 1000000 THEN 'vip' WHEN t.txn_amt_30d >= 100000 THEN 'normal_value' ELSE 'low_value' END AS value_tag, '${biz_date}' AS tag_date FROM ${db_finance}.tmp_customer_tag_src c LEFT JOIN ${db_finance}.tmp_customer_txn_agg t ON c.customer_id = t.customer_id;",
+        "sqlFile": "../sql/customer_tag_update/03_compute_customer_tag.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 2004,
+      "version": 1,
+      "name": "load_customer_tag",
+      "description": "将计算结果写入customer_tag表，覆盖当日分区",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.customer_tag (customer_id, tag_type, tag_value, tag_source, tagged_at, expire_at, created_at, updated_at, created_by, updated_by) SELECT customer_id, 'activity', activity_tag, 'transaction_agg', tag_date, DATE_ADD(tag_date, INTERVAL 7 DAY), NOW(), NOW(), 'dag_customer_tag_update', 'dag_customer_tag_update' FROM ${db_finance}.tmp_customer_tag_calc UNION ALL SELECT customer_id, 'value', value_tag, 'transaction_agg', tag_date, DATE_ADD(tag_date, INTERVAL 7 DAY), NOW(), NOW(), 'dag_customer_tag_update', 'dag_customer_tag_update' FROM ${db_finance}.tmp_customer_tag_calc;",
+        "sqlFile": "../sql/customer_tag_update/04_load_customer_tag.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 2005,
+      "version": 1,
+      "name": "notify_customer_tag_done",
+      "description": "通知客户标签更新完成",
+      "taskType": "SHELL",
+      "taskParams": {
+        "resourceList": [],
+        "localParams": [],
+        "rawScript": "echo \"[customer_tag_update] biz_date=${biz_date} done at $(date '+%Y-%m-%d %H:%M:%S')\" >> /var/log/finance/dag_customer_tag_update.log",
+        "sendEmail": true,
+        "emailConfig": {
+          "to": "customer-ops@finance.com",
+          "subject": "[DAG]customer_tag_update完成通知-${biz_date}",
+          "content": "客户标签更新已完成，业务日期：${biz_date}，请关注customer_tag表数据。"
+        }
+      },
+      "flag": "YES",
+      "taskPriority": "MEDIUM",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 1,
+      "failRetryInterval": 60,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 300,
+      "delayTime": 0
+    }
+  ],
+  "alertGroups": [
+    {
+      "id": 2,
+      "groupName": "finance-customer-alert",
+      "groupType": "FEISHU",
+      "feishuWebhook": "https://open.feishu.cn/open-apis/bot/v2/hook/customer-tag-update",
+      "alertType": "FAILURE"
+    }
+  ]
+}

@@ -67,7 +67,7 @@ public class LineageController {
     @PostMapping(&quot;/analyze&quot;)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; analyze(@RequestBody AnalyzeRequest request) {
 <span class="pc bpc" id="L69" title="2 of 6 branches missed.">        if (request == null || request.getSql() == null || request.getSql().isBlank()) {</span>
-<span class="fc" id="L70">            return ResponseEntity.badRequest().body(errorMap(&quot;sql 不能为空&quot;));</span>
+<span class="fc" id="L70">            return ResponseEntity.badRequest().body(errorMap(&quot;invalid_request&quot;, &quot;sql 不能为空&quot;));</span>
         }
 <span class="fc" id="L72">        SqlDialect dialect = SqlDialect.fromString(request.getDialect());</span>
 <span class="fc" id="L73">        log.info(&quot;收到血缘分析请求: dialect={}, sqlLength={}&quot;,</span>
@@ -124,37 +124,48 @@ public class LineageController {
     @ExceptionHandler(Exception.class)
     public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; handleError(Exception e) {
 <span class="nc" id="L126">        log.error(&quot;血缘 API 异常&quot;, e);</span>
-<span class="nc" id="L127">        return ResponseEntity.badRequest().body(errorMap(e.getMessage()));</span>
+<span class="nc" id="L127">        return ResponseEntity.badRequest().body(errorMap(&quot;lineage_analysis_failed&quot;, e.getMessage()));</span>
     }
 
-    private Map&lt;String, Object&gt; errorMap(String message) {
-<span class="fc" id="L131">        Map&lt;String, Object&gt; m = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L132">        m.put(&quot;error&quot;, true);</span>
-<span class="fc" id="L133">        m.put(&quot;message&quot;, message);</span>
-<span class="fc" id="L134">        return m;</span>
+    /**
+     * 构造统一错误响应体。
+     *
+     * &lt;p&gt;错误响应契约：{@code {&quot;error&quot;: &quot;&lt;error_code&gt;&quot;, &quot;message&quot;: &quot;&lt;human_readable_message&gt;&quot;}}。
+     * {@code error} 字段为字符串错误码，便于调用方程序化识别与国际化；
+     * {@code message} 字段为面向人类的可读描述。&lt;/p&gt;
+     *
+     * @param errorCode 错误码（machine-readable，snake_case）
+     * @param message   错误描述（human-readable）
+     * @return 错误响应体
+     */
+    private Map&lt;String, Object&gt; errorMap(String errorCode, String message) {
+<span class="fc" id="L142">        Map&lt;String, Object&gt; m = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L143">        m.put(&quot;error&quot;, errorCode);</span>
+<span class="fc" id="L144">        m.put(&quot;message&quot;, message);</span>
+<span class="fc" id="L145">        return m;</span>
     }
 
     /** 分析请求体 */
-<span class="fc" id="L138">    public static class AnalyzeRequest {</span>
+<span class="fc" id="L149">    public static class AnalyzeRequest {</span>
         @NotBlank
         private String sql;
         private String dialect;
 
         public String getSql() {
-<span class="fc" id="L144">            return sql;</span>
+<span class="fc" id="L155">            return sql;</span>
         }
 
         public void setSql(String sql) {
-<span class="fc" id="L148">            this.sql = sql;</span>
-<span class="fc" id="L149">        }</span>
+<span class="fc" id="L159">            this.sql = sql;</span>
+<span class="fc" id="L160">        }</span>
 
         public String getDialect() {
-<span class="fc" id="L152">            return dialect;</span>
+<span class="fc" id="L163">            return dialect;</span>
         }
 
         public void setDialect(String dialect) {
-<span class="fc" id="L156">            this.dialect = dialect;</span>
-<span class="fc" id="L157">        }</span>
+<span class="fc" id="L167">            this.dialect = dialect;</span>
+<span class="fc" id="L168">        }</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

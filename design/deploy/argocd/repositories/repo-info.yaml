@@ -1,0 +1,18 @@
+# ArgoCD 仓库信息 ConfigMap · 文档化仓库配置
+# ============================================================================
+# 此 ConfigMap 仅作文档化，实际仓库连接由同目录 repo-credentials.yaml 的 Secret 提供
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: repo-levango7-dataenginebdp-info
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+data:
+  repoUrl: https://github.com/Levango7/DataEngineBDP
+  defaultBranch: main
+  description: "数擎大数据平台 GitOps 配置仓库"
+  configPath: design/deploy/argocd/kustomize/overlays
+  environments: dev,staging,prod

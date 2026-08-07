@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.shuqing.bigdata.flinkcdc.exactlyonce.CheckpointBarrierHandlerTest
+-------------------------------------------------------------------------------
+Tests run: 0, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.191 s -- in com.shuqing.bigdata.flinkcdc.exactlyonce.CheckpointBarrierHandlerTest

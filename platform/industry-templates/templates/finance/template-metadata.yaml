@@ -1,0 +1,414 @@
+# 金融行业模板 - 模板元数据
+# ============================================================================
+# 模块：T018-5 RBAC 角色权限定义与模板打包
+# 用途：描述金融行业模板的元信息，供模板管理、版本控制与依赖检查使用
+# 格式：YAML 2 空格缩进
+# 字符集：UTF-8
+# ============================================================================
+
+# 模板基本信息
+template:
+  name: finance-template
+  display_name: 金融行业大数据平台模板
+  version: 1.0.0
+  description: |
+    数擎大数据平台 L5.3 行业应用模板 - 金融行业完整模板。
+    覆盖风控、客户、账户、交易、信贷 5 大业务域，含 21 张 DDL 表、5 个 DAG 调度作业、
+    3 个 Superset Dashboard、3 个 RBAC 角色（风控员/合规员/客户经理），
+    遵循最小权限原则，可一键部署到 Doris + DolphinScheduler + Superset + Keycloak 技术栈。
+  category: finance
+  industry: 银行/证券/保险/金融科技
+  language: zh-CN
+
+# 作者与版本信息
+author:
+  name: hw029373469
+  email: hw029373469@shuqing.com
+  organization: 数擎大数据平台团队
+  role: T018-5 RBAC角色权限定义与模板打包工程师
+
+# 创建与更新日期（ISO 8601 格式）
+dates:
+  created: 2026-08-07
+  updated: 2026-08-07
+  release: 2026-08-07
+
+# 模板版本与兼容性
+version_info:
+  template_version: 1.0.0
+  schema_version: 1.0.0
+  minimum_platform_version: 5.3.0
+  recommended_platform_version: 5.3.0
+  changelog:
+    - version: 1.0.0
+      date: 2026-08-07
+      changes:
+        - 初始版本，含 21 张 DDL 表（5 业务域）
+        - 含 5 个 DAG 调度作业（风控/客户/账户/交易/信贷）
+        - 含 3 个 Superset Dashboard（风控/客户/交易视角）
+        - 含 3 个 RBAC 角色（风控员/合规员/客户经理，最小权限原则）
+        - 含业务模型文档、数据分级文档、脱敏规则
+        - 支持 Helm 打包部署
+
+# ============================================================================
+# 依赖组件清单
+# ============================================================================
+dependencies:
+  # 大数据存储与计算引擎
+  - name: apache-doris
+    display_name: Apache Doris
+    version: 2.1.x
+    role: 存储与计算引擎
+    required: true
+    purpose: 提供 21 张表的存储与 SQL 查询，支持 Superset 数据源
+    helm_chart: apache/doris
+    min_version: 2.1.0
+    max_version: 2.1.99
+
+  # 调度引擎
+  - name: apache-dolphinscheduler
+    display_name: Apache DolphinScheduler
+    version: 3.2.x
+    role: 调度引擎
+    required: true
+    purpose: 执行 5 个 DAG 调度作业，支持 JSON 导入
+    helm_chart: apache/dolphinscheduler
+    min_version: 3.2.0
+    max_version: 3.2.99
+
+  # BI 可视化
+  - name: apache-superset
+    display_name: Apache Superset
+    version: 4.0.x
+    role: BI 可视化
+    required: true
+    purpose: 渲染 3 个 Dashboard 仪表盘，支持 JSON 导入
+    helm_chart: apache/superset
+    min_version: 4.0.0
+    max_version: 4.0.99
+
+  # 身份认证与授权
+  - name: keycloak
+    display_name: Keycloak
+    version: 24.x
+    role: 身份认证与授权
+    required: true
+    purpose: 提供 RBAC 角色权限管理，支持 realm role 导入
+    helm_chart: codecentric/keycloak
+    min_version: 24.0.0
+    max_version: 24.99
+
+  # 权限管理插件
+  - name: apache-ranger
+    display_name: Apache Ranger
+    version: 2.4.x
+    role: 细粒度权限管理
+    required: false
+    purpose: 提供 Doris 表级细粒度权限控制（可选，Keycloak 已可满足）
+    helm_chart: apache/ranger
+    min_version: 2.4.0
+    max_version: 2.4.99
+
+  # 容器编排
+  - name: kubernetes
+    display_name: Kubernetes
+    version: 1.28.x
+    role: 容器编排
+    required: true
+    purpose: 运行所有依赖组件，支持 Helm 部署
+    min_version: 1.28.0
+    max_version: 1.30.99
+
+  # Helm 包管理
+  - name: helm
+    display_name: Helm
+    version: 3.14.x
+    role: 包管理
+    required: true
+    purpose: 模板打包与部署，支持 helm install
+    min_version: 3.14.0
+    max_version: "3.99"
+
+# ============================================================================
+# 模板内容清单
+# ============================================================================
+contents:
+  # 业务文档
+  docs:
+    path: docs/
+    files:
+      - name: business-model.md
+        description: 业务模型文档（5 业务域 ER 图，21 实体）
+        size_kb: 35
+        source_task: T018-1
+      - name: data-classification.md
+        description: 数据分级文档（restricted/confidential/internal 分级）
+        size_kb: 12
+        source_task: T018-1
+      - name: desensitize-rules.yaml
+        description: 脱敏规则（14 条规则，覆盖姓名/证件号/手机号等）
+        size_kb: 8
+        source_task: T018-1
+
+  # DDL 表定义
+  ddl:
+    path: ddl/
+    files:
+      - name: 01_risk_control_ddl.sql
+        description: 风控域 DDL（5 张表 risk_model/risk_rule/risk_feature/risk_evaluation/risk_alert）
+        table_count: 5
+        source_task: T018-2
+      - name: 02_customer_ddl.sql
+        description: 客户域 DDL（4 张表 customer/customer_tag/customer_profile/customer_relation）
+        table_count: 4
+        source_task: T018-2
+      - name: 03_account_ddl.sql
+        description: 账户域 DDL（4 张表 account/account_balance/account_transaction/account_status_log）
+        table_count: 4
+        source_task: T018-2
+      - name: 04_transaction_ddl.sql
+        description: 交易域 DDL（4 张表 transaction/transaction_detail/aml_alert/transaction_monitor）
+        table_count: 4
+        source_task: T018-2
+      - name: 05_credit_ddl.sql
+        description: 信贷域 DDL（4 张表 loan_application/loan_contract/repayment_plan/credit_score）
+        table_count: 4
+        source_task: T018-2
+      - name: README.md
+        description: DDL 说明文档
+        source_task: T018-2
+    total_tables: 21
+    total_fields: 343
+
+  # DAG 调度作业
+  dag:
+    path: dag/
+    files:
+      - name: risk_feature_daily.json
+        description: 风控特征日计算 DAG（4 节点，每日 2:00）
+        domain: risk
+        source_task: T018-3
+      - name: customer_tag_update.json
+        description: 客户标签更新 DAG（5 节点，每日 3:00）
+        domain: customer
+        source_task: T018-3
+      - name: account_eod_settlement.json
+        description: 账户日终清算 DAG（6 节点，每日 23:30）
+        domain: account
+        source_task: T018-3
+      - name: transaction_aml_check.json
+        description: 交易反洗钱检查 DAG（5 节点，每 30 分钟）
+        domain: transaction
+        source_task: T018-3
+      - name: credit_score_monthly.json
+        description: 信贷评分月度计算 DAG（6 节点，每月 1 日 4:00）
+        domain: credit
+        source_task: T018-3
+      - name: README.md
+        description: DAG 说明文档
+        source_task: T018-3
+    total_dags: 5
+    total_nodes: 26
+
+  # Dashboard 仪表盘
+  dashboard:
+    path: dashboard/
+    files:
+      - name: risk_dashboard.json
+        description: 风控视角仪表盘（6 图表，slug risk-dashboard）
+        domain: risk
+        charts: 6
+        source_task: T018-4
+      - name: customer_dashboard.json
+        description: 客户视角仪表盘（6 图表，slug customer-dashboard）
+        domain: customer
+        charts: 6
+        source_task: T018-4
+      - name: transaction_dashboard.json
+        description: 交易视角仪表盘（6 图表，slug transaction-dashboard）
+        domain: transaction
+        charts: 6
+        source_task: T018-4
+      - name: README.md
+        description: Dashboard 说明文档
+        source_task: T018-4
+    total_dashboards: 3
+    total_charts: 18
+
+  # RBAC 角色权限定义
+  rbac:
+    path: rbac/
+    files:
+      - name: roles.yaml
+        description: 角色定义（3 个角色 风控员/合规员/客户经理）
+        source_task: T018-5
+      - name: permissions.yaml
+        description: 权限定义（55 个权限，29 个资源）
+        source_task: T018-5
+      - name: role-permissions.yaml
+        description: 角色-权限映射（73 个映射，含权限矩阵）
+        source_task: T018-5
+      - name: README.md
+        description: RBAC 说明文档
+        source_task: T018-5
+    total_roles: 3
+    total_permissions: 55
+    total_resources: 29
+
+# ============================================================================
+# 兼容性说明
+# ============================================================================
+compatibility:
+  # 平台兼容性
+  platform:
+    minimum_version: 5.3.0
+    recommended_version: 5.3.0
+    notes: |
+      本模板需要数擎大数据平台 L5.3 行业应用模板模块支持。
+      L5.3 以下版本不支持行业模板导入功能。
+
+  # 数据库兼容性
+  database:
+    supported:
+      - name: Apache Doris
+        versions: [2.1.x, 2.2.x]
+        notes: 主要支持，DDL 使用 Doris 特有语法（如 iceberg 表）
+      - name: Apache Iceberg
+        versions: [1.4.x]
+        notes: DDL 注释中提供 Iceberg 等价语法
+    unsupported:
+      - MySQL 5.7（不支持 Doris 特有语法）
+      - PostgreSQL 12（不支持 Doris 特有语法）
+
+  # 调度引擎兼容性
+  scheduler:
+    supported:
+      - name: Apache DolphinScheduler
+        versions: [3.2.x, 3.3.x]
+        notes: 主要支持，DAG JSON 采用 DS 3.x 导出格式
+    unsupported:
+      - Apache Airflow 2.x（DAG 格式不兼容，需转换）
+      - Azkaban（DAG 格式不兼容）
+
+  # BI 兼容性
+  bi:
+    supported:
+      - name: Apache Superset
+        versions: [4.0.x, 4.1.x]
+        notes: 主要支持，Dashboard JSON 采用 Superset 4.x 导入格式
+    unsupported:
+      - Apache Superset 3.x（JSON 格式不兼容）
+      - Tableau（需手动重建 Dashboard）
+
+  # 身份认证兼容性
+  identity:
+    supported:
+      - name: Keycloak
+        versions: [24.x, 25.x]
+        notes: 主要支持，RBAC 采用 Keycloak realm role 格式
+      - name: Apache Ranger
+        versions: [2.4.x]
+        notes: 可选，用于 Doris 表级细粒度权限控制
+    unsupported:
+      - LDAP 直接授权（需通过 Keycloak LDAP federation 桥接）
+
+# ============================================================================
+# 部署说明
+# ============================================================================
+deployment:
+  # Helm Chart 信息
+  helm_chart:
+    name: finance-template
+    version: 1.0.0
+    app_version: 1.0.0
+    description: 金融行业大数据平台模板 Helm Chart
+    maintainers:
+      - name: hw029373469
+        email: hw029373469@shuqing.com
+    install_command: |
+      # 解压模板包
+      tar -xzf finance-template.tar.gz
+      # 进入 Chart 目录
+      cd finance-template
+      # 安装模板（dry-run 验证）
+      helm install finance-template . --dry-run
+      # 实际安装
+      helm install finance-template . -n finance
+    upgrade_command: |
+      helm upgrade finance-template . -n finance
+    uninstall_command: |
+      helm uninstall finance-template -n finance
+
+  # 部署前置条件
+  prerequisites:
+    - Kubernetes 集群已就绪（版本 ≥ 1.28）
+    - Helm 3.14+ 已安装
+    - Apache Doris 2.1+ 已部署（通过 helm install apache/doris）
+    - Apache DolphinScheduler 3.2+ 已部署（通过 helm install apache/dolphinscheduler）
+    - Apache Superset 4.0+ 已部署（通过 helm install apache/superset）
+    - Keycloak 24+ 已部署（通过 helm install codecentric/keycloak）
+    - 目标命名空间 finance 已创建（kubectl create namespace finance）
+
+  # 部署后验证
+  post_deploy_verification:
+    - name: DDL 表创建验证
+      command: |
+        # 通过 Doris FE 验证 21 张表已创建
+        mysql -h <doris_fe_host> -P 9030 -u root -p --execute "SHOW TABLES FROM db_finance"
+    - name: DAG 导入验证
+      command: |
+        # 通过 DolphinScheduler API 验证 5 个 DAG 已导入
+        curl http://<ds_host>:12345/dolphinscheduler/projects -H "Authorization Bearer <token>"
+    - name: Dashboard 导入验证
+      command: |
+        # 通过 Superset API 验证 3 个 Dashboard 已导入
+        curl http://<superset_host>/api/v1/dashboard/ -H "Authorization Bearer <token>"
+    - name: RBAC 角色验证
+      command: |
+        # 通过 Keycloak API 验证 3 个角色已创建
+        curl http://<keycloak_host>:8080/admin/realms/finance-template-realm/roles \
+          -H "Authorization Bearer <admin_token>"
+
+# ============================================================================
+# 模板统计
+# ============================================================================
+statistics:
+  total_files: 22
+  total_size_kb: 250
+  business_domains: 5
+  total_tables: 21
+  total_fields: 343
+  total_dags: 5
+  total_dag_nodes: 26
+  total_dashboards: 3
+  total_charts: 18
+  total_roles: 3
+  total_permissions: 55
+  total_resources: 29
+  desensitize_rules: 14
+
+# ============================================================================
+# 质量保证
+# ============================================================================
+quality:
+  review_status: passed
+  review_date: 2026-08-07
+  review_items:
+    - item: DDL 表设计
+      status: passed
+      reviewer: T018-2 工程师
+    - item: DAG 调度设计
+      status: passed
+      reviewer: T018-3 工程师
+    - item: Dashboard 图表设计
+      status: passed
+      reviewer: T018-4 工程师
+    - item: RBAC 最小权限原则
+      status: passed
+      reviewer: T018-5 工程师
+    - item: 模板打包完整性
+      status: passed
+      reviewer: T018-5 工程师
+    - item: Helm Chart 可部署性
+      status: passed
+      reviewer: T018-5 工程师

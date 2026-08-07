@@ -1,0 +1,530 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>SchemaRegistryClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.schema</a> &gt; <span class="el_source">SchemaRegistryClient.java</span></div><h1>SchemaRegistryClient.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.schema;
+
+import com.fasterxml.jackson.core.JsonFactory;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * Confluent Schema Registry 客户端，支持 Schema 注册、版本查询与兼容性检查。
+ *
+ * &lt;p&gt;核心能力：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;注册 Schema：POST {@code /subjects/&lt;subject&gt;/versions}，返回版本号&lt;/li&gt;
+ *   &lt;li&gt;获取最新 Schema：GET {@code /subjects/&lt;subject&gt;/versions/latest}&lt;/li&gt;
+ *   &lt;li&gt;获取指定版本：GET {@code /subjects/&lt;subject&gt;/versions/&lt;version&gt;}&lt;/li&gt;
+ *   &lt;li&gt;检查兼容性：POST {@code /compatibility/subjects/&lt;subject&gt;/versions/latest}&lt;/li&gt;
+ *   &lt;li&gt;列出所有 Subject：GET {@code /subjects}&lt;/li&gt;
+ *   &lt;li&gt;支持 AVRO 与 JSON Schema 两种格式&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * SchemaRegistryClient client = SchemaRegistryClient.builder()
+ *     .url(&quot;http://127.0.0.1:8081&quot;)
+ *     .build();
+ *
+ * int version = client.register(&quot;shop.orders-value&quot;, schemaJson, SchemaType.AVRO);
+ * String latest = client.getLatestSchema(&quot;shop.orders-value&quot;);
+ * boolean compatible = client.checkCompatibility(&quot;shop.orders-value&quot;, newSchema, SchemaType.AVRO);
+ * client.close();
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class SchemaRegistryClient implements Closeable {
+
+<span class="fc" id="L54">    private static final Logger log = LoggerFactory.getLogger(SchemaRegistryClient.class);</span>
+
+    /** Schema 类型枚举。 */
+<span class="fc" id="L57">    public enum SchemaType {</span>
+        /** Avro Schema（Confluent 默认）。 */
+<span class="fc" id="L59">        AVRO(&quot;AVRO&quot;),</span>
+        /** JSON Schema（Confluent 5.5+ 支持）。 */
+<span class="fc" id="L61">        JSON(&quot;JSON&quot;),</span>
+        /** Protobuf Schema（Confluent 6.0+ 支持）。 */
+<span class="fc" id="L63">        PROTOBUF(&quot;PROTOBUF&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L67">        SchemaType(String code) {</span>
+<span class="fc" id="L68">            this.code = code;</span>
+<span class="fc" id="L69">        }</span>
+
+        public String code() {
+<span class="fc" id="L72">            return code;</span>
+        }
+
+        /**
+         * 根据字符串解析为枚举值（大小写不敏感）。
+         *
+         * @param code 类型编码
+         * @return 枚举值
+         * @throws IllegalArgumentException 编码不被识别
+         */
+        public static SchemaType fromCode(String code) {
+<span class="fc" id="L83">            Objects.requireNonNull(code, &quot;schema type 不能为 null&quot;);</span>
+<span class="fc bfc" id="L84" title="All 2 branches covered.">            for (SchemaType t : values()) {</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">                if (t.code.equalsIgnoreCase(code)) {</span>
+<span class="fc" id="L86">                    return t;</span>
+                }
+            }
+<span class="fc" id="L89">            throw new IllegalArgumentException(&quot;未知的 schema type: &quot; + code);</span>
+        }
+    }
+
+    /** 兼容性级别枚举。 */
+<span class="fc" id="L94">    public enum CompatibilityLevel {</span>
+<span class="fc" id="L95">        NONE(&quot;NONE&quot;),</span>
+<span class="fc" id="L96">        BACKWARD(&quot;BACKWARD&quot;),</span>
+<span class="fc" id="L97">        BACKWARD_TRANSITIVE(&quot;BACKWARD_TRANSITIVE&quot;),</span>
+<span class="fc" id="L98">        FORWARD(&quot;FORWARD&quot;),</span>
+<span class="fc" id="L99">        FORWARD_TRANSITIVE(&quot;FORWARD_TRANSITIVE&quot;),</span>
+<span class="fc" id="L100">        FULL(&quot;FULL&quot;),</span>
+<span class="fc" id="L101">        FULL_TRANSITIVE(&quot;FULL_TRANSITIVE&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L105">        CompatibilityLevel(String code) {</span>
+<span class="fc" id="L106">            this.code = code;</span>
+<span class="fc" id="L107">        }</span>
+
+        public String code() {
+<span class="fc" id="L110">            return code;</span>
+        }
+    }
+
+    private final HttpClient httpClient;
+    private final String baseUrl;
+    private final Duration requestTimeout;
+    private final JsonFactory jsonFactory;
+
+<span class="fc" id="L119">    private SchemaRegistryClient(String baseUrl, Duration requestTimeout, HttpClient httpClient) {</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">        this.baseUrl = baseUrl.endsWith(&quot;/&quot;) ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;</span>
+<span class="fc" id="L121">        this.requestTimeout = requestTimeout;</span>
+<span class="fc" id="L122">        this.httpClient = httpClient;</span>
+<span class="fc" id="L123">        this.jsonFactory = new JsonFactory();</span>
+<span class="fc" id="L124">    }</span>
+
+    /**
+     * 注册 Schema 到指定 Subject，返回新分配的版本号。
+     *
+     * @param subject Subject 名称（如 {@code shop.orders-value}）
+     * @param schema  Schema 字符串（JSON 格式）
+     * @param type    Schema 类型
+     * @return 版本号（从 1 开始）
+     * @throws IOException 注册失败
+     */
+    public int register(String subject, String schema, SchemaType type) throws IOException {
+<span class="fc" id="L136">        Objects.requireNonNull(subject, &quot;subject 不能为 null&quot;);</span>
+<span class="fc" id="L137">        Objects.requireNonNull(schema, &quot;schema 不能为 null&quot;);</span>
+<span class="fc" id="L138">        Objects.requireNonNull(type, &quot;type 不能为 null&quot;);</span>
+
+<span class="fc" id="L140">        String body = buildRegisterBody(schema, type);</span>
+<span class="fc" id="L141">        String url = baseUrl + &quot;/subjects/&quot; + encode(subject) + &quot;/versions&quot;;</span>
+
+<span class="fc" id="L143">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;POST&quot;, url, body);</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L145">            throw new IOException(&quot;注册 Schema 失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L146">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L148">        Map&lt;String, Object&gt; result = parseJson(resp.body());</span>
+<span class="fc" id="L149">        Object version = result.get(&quot;version&quot;);</span>
+<span class="fc bfc" id="L150" title="All 2 branches covered.">        if (version instanceof Number n) {</span>
+<span class="fc" id="L151">            log.info(&quot;注册 Schema: subject={}, version={}&quot;, subject, n.intValue());</span>
+<span class="fc" id="L152">            return n.intValue();</span>
+        }
+<span class="fc" id="L154">        throw new IOException(&quot;Schema Registry 返回异常: &quot; + resp.body());</span>
+    }
+
+    /**
+     * 获取 Subject 的最新 Schema。
+     *
+     * @param subject Subject 名称
+     * @return Schema 字符串
+     * @throws IOException 获取失败
+     */
+    public String getLatestSchema(String subject) throws IOException {
+<span class="fc" id="L165">        Objects.requireNonNull(subject, &quot;subject 不能为 null&quot;);</span>
+<span class="fc" id="L166">        String url = baseUrl + &quot;/subjects/&quot; + encode(subject) + &quot;/versions/latest&quot;;</span>
+<span class="fc" id="L167">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;GET&quot;, url, null);</span>
+<span class="fc bfc" id="L168" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L169">            throw new IOException(&quot;获取最新 Schema 失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L170">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L172">        Map&lt;String, Object&gt; result = parseJson(resp.body());</span>
+<span class="fc" id="L173">        Object schema = result.get(&quot;schema&quot;);</span>
+<span class="fc bfc" id="L174" title="All 2 branches covered.">        return schema == null ? null : String.valueOf(schema);</span>
+    }
+
+    /**
+     * 获取 Subject 指定版本的 Schema。
+     *
+     * @param subject Subject 名称
+     * @param version 版本号（从 1 开始）
+     * @return Schema 字符串
+     * @throws IOException 获取失败
+     */
+    public String getSchema(String subject, int version) throws IOException {
+<span class="fc" id="L186">        Objects.requireNonNull(subject, &quot;subject 不能为 null&quot;);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (version &lt;= 0) {</span>
+<span class="fc" id="L188">            throw new IllegalArgumentException(&quot;版本号必须为正: &quot; + version);</span>
+        }
+<span class="fc" id="L190">        String url = baseUrl + &quot;/subjects/&quot; + encode(subject) + &quot;/versions/&quot; + version;</span>
+<span class="fc" id="L191">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;GET&quot;, url, null);</span>
+<span class="fc bfc" id="L192" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L193">            throw new IOException(&quot;获取 Schema 失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L194">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L196">        Map&lt;String, Object&gt; result = parseJson(resp.body());</span>
+<span class="fc" id="L197">        Object schema = result.get(&quot;schema&quot;);</span>
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        return schema == null ? null : String.valueOf(schema);</span>
+    }
+
+    /**
+     * 检查给定 Schema 与 Subject 最新版本的兼容性。
+     *
+     * @param subject Subject 名称
+     * @param schema  待检查 Schema
+     * @param type    Schema 类型
+     * @return {@code true} 兼容；{@code false} 不兼容
+     * @throws IOException 请求失败
+     */
+    public boolean checkCompatibility(String subject, String schema, SchemaType type) throws IOException {
+<span class="fc" id="L211">        Objects.requireNonNull(subject, &quot;subject 不能为 null&quot;);</span>
+<span class="fc" id="L212">        Objects.requireNonNull(schema, &quot;schema 不能为 null&quot;);</span>
+<span class="fc" id="L213">        Objects.requireNonNull(type, &quot;type 不能为 null&quot;);</span>
+
+<span class="fc" id="L215">        String body = buildRegisterBody(schema, type);</span>
+<span class="fc" id="L216">        String url = baseUrl + &quot;/compatibility/subjects/&quot; + encode(subject) + &quot;/versions/latest&quot;;</span>
+
+<span class="fc" id="L218">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;POST&quot;, url, body);</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L220">            throw new IOException(&quot;兼容性检查失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L221">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L223">        Map&lt;String, Object&gt; result = parseJson(resp.body());</span>
+<span class="fc" id="L224">        Object compatible = result.get(&quot;compatible&quot;);</span>
+<span class="fc bfc" id="L225" title="All 2 branches covered.">        if (compatible instanceof Boolean b) {</span>
+<span class="fc" id="L226">            return b;</span>
+        }
+<span class="fc" id="L228">        return Boolean.parseBoolean(String.valueOf(compatible));</span>
+    }
+
+    /**
+     * 设置 Subject 的全局兼容性级别。
+     *
+     * @param subject Subject 名称；{@code null} 表示设置全局配置
+     * @param level   兼容性级别
+     * @return 是否设置成功
+     * @throws IOException 请求失败
+     */
+    public boolean setCompatibility(String subject, CompatibilityLevel level) throws IOException {
+<span class="fc" id="L240">        Objects.requireNonNull(level, &quot;compatibility level 不能为 null&quot;);</span>
+<span class="fc" id="L241">        String body = &quot;{\&quot;compatibility\&quot;:\&quot;&quot; + level.code() + &quot;\&quot;}&quot;;</span>
+<span class="fc bfc" id="L242" title="All 2 branches covered.">        String url = subject == null</span>
+<span class="fc" id="L243">                ? baseUrl + &quot;/config&quot;</span>
+<span class="fc" id="L244">                : baseUrl + &quot;/config/&quot; + encode(subject);</span>
+<span class="fc" id="L245">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;PUT&quot;, url, body);</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L247">            throw new IOException(&quot;设置兼容性失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L248">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L250">        return true;</span>
+    }
+
+    /**
+     * 列出所有 Subject。
+     *
+     * @return Subject 名称列表
+     * @throws IOException 请求失败
+     */
+    public java.util.List&lt;String&gt; listSubjects() throws IOException {
+<span class="fc" id="L260">        String url = baseUrl + &quot;/subjects&quot;;</span>
+<span class="fc" id="L261">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;GET&quot;, url, null);</span>
+<span class="fc bfc" id="L262" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L263">            throw new IOException(&quot;列出 Subject 失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L264">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L266">        return parseJsonArray(resp.body()).stream()</span>
+<span class="fc" id="L267">                .map(Object::toString).toList();</span>
+    }
+
+    /**
+     * 获取 Subject 的所有版本号。
+     *
+     * @param subject Subject 名称
+     * @return 版本号列表
+     * @throws IOException 请求失败
+     */
+    public java.util.List&lt;Integer&gt; listVersions(String subject) throws IOException {
+<span class="fc" id="L278">        Objects.requireNonNull(subject, &quot;subject 不能为 null&quot;);</span>
+<span class="fc" id="L279">        String url = baseUrl + &quot;/subjects/&quot; + encode(subject) + &quot;/versions&quot;;</span>
+<span class="fc" id="L280">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;GET&quot;, url, null);</span>
+<span class="fc bfc" id="L281" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L282">            throw new IOException(&quot;列出版本失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L283">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L285">        java.util.List&lt;Integer&gt; versions = new java.util.ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L286" title="All 2 branches covered.">        for (Object o : parseJsonArray(resp.body())) {</span>
+<span class="fc bfc" id="L287" title="All 2 branches covered.">            if (o instanceof Number n) {</span>
+<span class="fc" id="L288">                versions.add(n.intValue());</span>
+            } else {
+<span class="fc" id="L290">                versions.add(Integer.parseInt(String.valueOf(o)));</span>
+            }
+<span class="fc" id="L292">        }</span>
+<span class="fc" id="L293">        return versions;</span>
+    }
+
+    /**
+     * 删除 Subject 的所有版本（慎用）。
+     *
+     * @param subject Subject 名称
+     * @return 是否删除成功
+     * @throws IOException 请求失败
+     */
+    public boolean deleteSubject(String subject) throws IOException {
+<span class="fc" id="L304">        Objects.requireNonNull(subject, &quot;subject 不能为 null&quot;);</span>
+<span class="fc" id="L305">        String url = baseUrl + &quot;/subjects/&quot; + encode(subject);</span>
+<span class="fc" id="L306">        HttpResponse&lt;String&gt; resp = sendRequest(&quot;DELETE&quot;, url, null);</span>
+<span class="fc bfc" id="L307" title="All 2 branches covered.">        if (resp.statusCode() != 200) {</span>
+<span class="fc" id="L308">            throw new IOException(&quot;删除 Subject 失败: HTTP &quot; + resp.statusCode()</span>
+<span class="fc" id="L309">                    + &quot; &quot; + resp.body());</span>
+        }
+<span class="fc" id="L311">        log.info(&quot;删除 Subject: {}&quot;, subject);</span>
+<span class="fc" id="L312">        return true;</span>
+    }
+
+    // ===== 内部辅助 =====
+
+    /**
+     * 构造注册请求体。
+     *
+     * @param schema Schema 字符串
+     * @param type   Schema 类型
+     * @return JSON 请求体
+     */
+    static String buildRegisterBody(String schema, SchemaType type) {
+        // 转义 schema 中的特殊字符
+<span class="fc" id="L326">        String escaped = escapeJson(schema);</span>
+<span class="fc" id="L327">        return &quot;{\&quot;schema\&quot;:\&quot;&quot; + escaped + &quot;\&quot;,\&quot;schemaType\&quot;:\&quot;&quot; + type.code() + &quot;\&quot;}&quot;;</span>
+    }
+
+    /**
+     * 发送 HTTP 请求。
+     *
+     * @param method HTTP 方法
+     * @param url    URL
+     * @param body   请求体（GET 时为 null）
+     * @return HTTP 响应
+     * @throws IOException 请求失败
+     */
+    private HttpResponse&lt;String&gt; sendRequest(String method, String url, String body) throws IOException {
+        try {
+<span class="fc" id="L341">            HttpRequest.Builder reqBuilder = HttpRequest.newBuilder()</span>
+<span class="fc" id="L342">                    .uri(URI.create(url))</span>
+<span class="fc" id="L343">                    .timeout(requestTimeout)</span>
+<span class="fc" id="L344">                    .header(&quot;Accept&quot;, &quot;application/vnd.schemaregistry.v1+json&quot;);</span>
+<span class="fc bfc" id="L345" title="All 2 branches covered.">            if (body != null) {</span>
+<span class="fc" id="L346">                reqBuilder.header(&quot;Content-Type&quot;, &quot;application/vnd.schemaregistry.v1+json&quot;);</span>
+<span class="fc" id="L347">                reqBuilder.method(method, HttpRequest.BodyPublishers.ofString(body));</span>
+            } else {
+<span class="fc" id="L349">                reqBuilder.method(method, HttpRequest.BodyPublishers.noBody());</span>
+            }
+<span class="fc" id="L351">            return httpClient.send(reqBuilder.build(), HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L352">        } catch (InterruptedException e) {</span>
+<span class="nc" id="L353">            Thread.currentThread().interrupt();</span>
+<span class="nc" id="L354">            throw new IOException(&quot;HTTP 请求被中断: &quot; + method + &quot; &quot; + url, e);</span>
+        }
+    }
+
+    /**
+     * URL 编码 subject 名（处理特殊字符如 '-'）。
+     *
+     * @param s 待编码字符串
+     * @return 编码后字符串
+     */
+    private static String encode(String s) {
+<span class="fc" id="L365">        return java.net.URLEncoder.encode(s, StandardCharsets.UTF_8);</span>
+    }
+
+    /**
+     * 解析 JSON 对象为 Map。
+     *
+     * @param json JSON 字符串
+     * @return Map
+     * @throws IOException 解析失败
+     */
+    Map&lt;String, Object&gt; parseJson(String json) throws IOException {
+<span class="fc" id="L376">        try (JsonParser parser = jsonFactory.createParser(json)) {</span>
+<span class="pc bpc" id="L377" title="1 of 2 branches missed.">            if (parser.nextToken() != JsonToken.START_OBJECT) {</span>
+<span class="nc" id="L378">                throw new IOException(&quot;期望 JSON 对象&quot;);</span>
+            }
+<span class="fc" id="L380">            return parseJsonObject(parser);</span>
+        }
+    }
+
+    /**
+     * 解析 JSON 数组为 List。
+     *
+     * @param json JSON 字符串
+     * @return List
+     * @throws IOException 解析失败
+     */
+    java.util.List&lt;Object&gt; parseJsonArray(String json) throws IOException {
+<span class="fc" id="L392">        try (JsonParser parser = jsonFactory.createParser(json)) {</span>
+<span class="pc bpc" id="L393" title="1 of 2 branches missed.">            if (parser.nextToken() != JsonToken.START_ARRAY) {</span>
+<span class="nc" id="L394">                throw new IOException(&quot;期望 JSON 数组&quot;);</span>
+            }
+<span class="fc" id="L396">            java.util.List&lt;Object&gt; list = new java.util.ArrayList&lt;&gt;();</span>
+            while (true) {
+<span class="fc" id="L398">                JsonToken token = parser.nextToken();</span>
+<span class="fc bfc" id="L399" title="All 2 branches covered.">                if (token == JsonToken.END_ARRAY) {</span>
+<span class="fc" id="L400">                    break;</span>
+                }
+<span class="fc" id="L402">                list.add(parseJsonValue(parser, token));</span>
+<span class="fc" id="L403">            }</span>
+<span class="fc" id="L404">            return list;</span>
+        }
+    }
+
+    private static Map&lt;String, Object&gt; parseJsonObject(JsonParser parser) throws IOException {
+<span class="fc" id="L409">        Map&lt;String, Object&gt; map = new LinkedHashMap&lt;&gt;();</span>
+        while (true) {
+<span class="fc" id="L411">            JsonToken token = parser.nextToken();</span>
+<span class="fc bfc" id="L412" title="All 2 branches covered.">            if (token == JsonToken.END_OBJECT) {</span>
+<span class="fc" id="L413">                break;</span>
+            }
+<span class="pc bpc" id="L415" title="1 of 2 branches missed.">            if (token != JsonToken.FIELD_NAME) {</span>
+<span class="nc" id="L416">                throw new IOException(&quot;期望字段名&quot;);</span>
+            }
+<span class="fc" id="L418">            String fieldName = parser.getCurrentName();</span>
+<span class="fc" id="L419">            token = parser.nextToken();</span>
+<span class="fc" id="L420">            map.put(fieldName, parseJsonValue(parser, token));</span>
+<span class="fc" id="L421">        }</span>
+<span class="fc" id="L422">        return map;</span>
+    }
+
+    private static Object parseJsonValue(JsonParser parser, JsonToken token) throws IOException {
+<span class="pc bpc" id="L426" title="5 of 9 branches missed.">        return switch (token) {</span>
+<span class="nc" id="L427">            case VALUE_NULL -&gt; null;</span>
+<span class="fc" id="L428">            case VALUE_TRUE -&gt; Boolean.TRUE;</span>
+<span class="fc" id="L429">            case VALUE_FALSE -&gt; Boolean.FALSE;</span>
+<span class="fc" id="L430">            case VALUE_STRING -&gt; parser.getValueAsString();</span>
+<span class="fc" id="L431">            case VALUE_NUMBER_INT -&gt; parser.getLongValue();</span>
+<span class="nc" id="L432">            case VALUE_NUMBER_FLOAT -&gt; parser.getDoubleValue();</span>
+<span class="nc" id="L433">            case START_OBJECT -&gt; parseJsonObject(parser);</span>
+            case START_ARRAY -&gt; {
+<span class="nc" id="L435">                java.util.List&lt;Object&gt; list = new java.util.ArrayList&lt;&gt;();</span>
+                while (true) {
+<span class="nc" id="L437">                    JsonToken t = parser.nextToken();</span>
+<span class="nc bnc" id="L438" title="All 2 branches missed.">                    if (t == JsonToken.END_ARRAY) {</span>
+<span class="nc" id="L439">                        break;</span>
+                    }
+<span class="nc" id="L441">                    list.add(parseJsonValue(parser, t));</span>
+<span class="nc" id="L442">                }</span>
+<span class="nc" id="L443">                yield list;</span>
+            }
+<span class="nc" id="L445">            default -&gt; throw new IOException(&quot;意外的 JSON token: &quot; + token);</span>
+        };
+    }
+
+    /**
+     * 转义 JSON 字符串中的特殊字符。
+     *
+     * @param s 原始字符串
+     * @return 转义后字符串
+     */
+    private static String escapeJson(String s) {
+<span class="fc" id="L456">        StringBuilder out = new StringBuilder(s.length() + 8);</span>
+<span class="fc bfc" id="L457" title="All 2 branches covered.">        for (int i = 0; i &lt; s.length(); i++) {</span>
+<span class="fc" id="L458">            char c = s.charAt(i);</span>
+<span class="fc bfc" id="L459" title="All 6 branches covered.">            switch (c) {</span>
+<span class="fc" id="L460">                case '&quot;' -&gt; out.append(&quot;\\\&quot;&quot;);</span>
+<span class="fc" id="L461">                case '\\' -&gt; out.append(&quot;\\\\&quot;);</span>
+<span class="fc" id="L462">                case '\n' -&gt; out.append(&quot;\\n&quot;);</span>
+<span class="fc" id="L463">                case '\r' -&gt; out.append(&quot;\\r&quot;);</span>
+<span class="fc" id="L464">                case '\t' -&gt; out.append(&quot;\\t&quot;);</span>
+                default -&gt; {
+<span class="pc bpc" id="L466" title="1 of 2 branches missed.">                    if (c &lt; 0x20) {</span>
+<span class="nc" id="L467">                        out.append(String.format(&quot;\\u%04x&quot;, (int) c));</span>
+                    } else {
+<span class="fc" id="L469">                        out.append(c);</span>
+                    }
+                }
+            }
+        }
+<span class="fc" id="L474">        return out.toString();</span>
+    }
+
+    @Override
+    public void close() {
+        // HttpClient 复用，无需显式关闭
+<span class="fc" id="L480">        log.debug(&quot;SchemaRegistryClient 已关闭&quot;);</span>
+<span class="fc" id="L481">    }</span>
+
+    /**
+     * 创建 Builder。
+     *
+     * @return Builder 实例
+     */
+    public static Builder builder() {
+<span class="fc" id="L489">        return new Builder();</span>
+    }
+
+    /**
+     * SchemaRegistryClient 构造器。
+     */
+<span class="fc" id="L495">    public static final class Builder {</span>
+<span class="fc" id="L496">        private String url = &quot;http://localhost:8081&quot;;</span>
+<span class="fc" id="L497">        private Duration requestTimeout = Duration.ofSeconds(30);</span>
+        private HttpClient httpClient;
+
+        /** Schema Registry URL。 */
+        public Builder url(String url) {
+<span class="fc" id="L502">            this.url = Objects.requireNonNull(url);</span>
+<span class="fc" id="L503">            return this;</span>
+        }
+
+        /** 请求超时时间。 */
+        public Builder requestTimeout(Duration timeout) {
+<span class="nc" id="L508">            this.requestTimeout = Objects.requireNonNull(timeout);</span>
+<span class="nc" id="L509">            return this;</span>
+        }
+
+        /** 注入外部 HttpClient（用于测试）。 */
+        Builder httpClient(HttpClient httpClient) {
+<span class="fc" id="L514">            this.httpClient = httpClient;</span>
+<span class="fc" id="L515">            return this;</span>
+        }
+
+        /** 构建 SchemaRegistryClient。 */
+        public SchemaRegistryClient build() {
+<span class="fc" id="L520">            HttpClient client = this.httpClient;</span>
+<span class="pc bpc" id="L521" title="1 of 2 branches missed.">            if (client == null) {</span>
+<span class="nc" id="L522">                client = HttpClient.newBuilder()</span>
+<span class="nc" id="L523">                        .connectTimeout(Duration.ofSeconds(10))</span>
+<span class="nc" id="L524">                        .build();</span>
+            }
+<span class="fc" id="L526">            return new SchemaRegistryClient(url, requestTimeout, client);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

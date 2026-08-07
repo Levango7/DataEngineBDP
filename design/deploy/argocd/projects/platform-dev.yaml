@@ -1,0 +1,60 @@
+# AppProject · dev 环境
+# ============================================================================
+# 作用：限制 dev 环境 Application 的源仓库、目标 namespace、可操作资源
+# 隔离维度：源仓库白名单 + 目标 namespace 通配 + 资源黑白名单 + RBAC
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  description: "数擎大数据平台 · dev 环境 GitOps Project"
+  # 源仓库白名单：仅允许从 Levango7/DataEngineBDP 部署
+  sourceRepos:
+    - https://github.com/Levango7/DataEngineBDP
+  # 目标集群 + namespace：dev 仅部署到 dev-* namespace
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: dev-*
+    - server: https://kubernetes.default.svc
+      namespace: argocd
+  # 允许的集群级资源（dev 允许创建 Namespace + CRD 用于测试）
+  clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+  # 禁止租户改的资源（平台管控）
+  namespaceResourceBlacklist:
+    - group: ''
+      kind: ResourceQuota
+    - group: ''
+      kind: LimitRange
+  # 允许的命名空间级资源
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  # 角色定义（dev 环境开发者可 sync + sync 不可 delete）
+  roles:
+    - name: dev-developer
+      description: "dev 环境开发者：可 sync Application，不可删除 Project"
+      policies:
+        - p, proj:platform-dev:dev-developer, applications, get, platform-dev/*, allow
+        - p, proj:platform-dev:dev-developer, applications, sync, platform-dev/*, allow
+        - p, proj:platform-dev:dev-developer, applications, delete, platform-dev/*, deny
+      groups:
+        - "dev-developers"
+    - name: dev-admin
+      description: "dev 环境管理员：全权"
+      policies:
+        - p, proj:platform-dev:dev-admin, applications, *, platform-dev/*, allow
+        - p, proj:platform-dev:dev-admin, projects, *, *, allow
+      groups:
+        - "dev-admins"
+  # 同步窗口（dev 不限制，随时可同步）
+  syncWindows: []

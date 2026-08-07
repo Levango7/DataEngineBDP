@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TwoPhaseCommitCoordinator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.exactlyonce</a> &gt; <span class="el_source">TwoPhaseCommitCoordinator.java</span></div><h1>TwoPhaseCommitCoordinator.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.exactlyonce;
+
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * 两阶段提交协调器，编排 {@link TransactionalSink} 与 {@link IdempotentWriter} 完成端到端 exactly-once 提交。
+ *
+ * &lt;p&gt;&lt;b&gt;两阶段提交协议：&lt;/b&gt;&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * 阶段一：preCommit（prepare）
+ *   1. 对当前事务调用 TransactionalSink.preCommit（持久化事务句柄）
+ *   2. 将事务句柄写入外部存储（如 Kafka 事务日志，确保故障后可恢复）
+ *   3. 标记事务为 PRE_COMMITTED，此后拒绝新写入
+ *
+ * 阶段二：commit（commit）
+ *   1. 对已 preCommit 的事务调用 TransactionalSink.commit（原子提交）
+ *   2. 标记事务为 COMMITTED
+ *   3. 通知 IdempotentWriter.markCommitted 更新去重基线
+ *
+ * 故障恢复：recover
+ *   1. 枚举所有 PRE_COMMITTED 但未 COMMITTED 的事务
+ *   2. 对每个事务调用 TransactionalSink.recover（完成提交或回滚）
+ *   3. 重放未提交的缓冲记录
+ * }&lt;/pre&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;exactly-once 保障原理：&lt;/b&gt;&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;无重复&lt;/b&gt;：preCommit 持久化事务句柄后，即使故障重放，commit 幂等性保证不会重复提交；
+ *       IdempotentWriter 在重放时基于主键/版本号去重，丢弃旧记录&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;无丢失&lt;/b&gt;：preCommit 已持久化的事务在 recover 时必然被 commit；
+ *       未 preCommit 的记录从 checkpoint 状态恢复并重新提交&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;原子性&lt;/b&gt;：事务内所有记录要么全部可见（commit），要么全部不可见（abort）&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * TwoPhaseCommitCoordinator coordinator = TwoPhaseCommitCoordinator.builder()
+ *     .config(exactlyOnceConfig)
+ *     .sink(transactionalKafkaSink)
+ *     .writer(idempotentWriter)
+ *     .build();
+ *
+ * // 数据流：buffer → preCommit → commit
+ * coordinator.buffer(record1);
+ * coordinator.buffer(record2);
+ * coordinator.preCommit(checkpointId);
+ * coordinator.commit(checkpointId);
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class TwoPhaseCommitCoordinator implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+<span class="fc" id="L67">    private static final Logger log = LoggerFactory.getLogger(TwoPhaseCommitCoordinator.class);</span>
+
+    private final ExactlyOnceConfig config;
+    private final TransactionalSink sink;
+    private final IdempotentWriter writer;
+
+    /** 当前活跃事务 ID（null 表示无活跃事务）。 */
+    private String currentTxnId;
+    /** 已 preCommit 但未 commit 的事务：txnId → 事务元数据。 */
+<span class="fc" id="L76">    private final Map&lt;String, TransactionMetadata&gt; pendingTransactions = new LinkedHashMap&lt;&gt;();</span>
+    /** 当前事务的缓冲记录（preCommit 后清空，等待下次 checkpoint）。 */
+<span class="fc" id="L78">    private final List&lt;ChangeRecord&gt; currentBuffer = new ArrayList&lt;&gt;();</span>
+    /** 已完成的事务数（统计）。 */
+<span class="fc" id="L80">    private long committedTxnCount = 0L;</span>
+    /** 已中止的事务数（统计）。 */
+<span class="fc" id="L82">    private long abortedTxnCount = 0L;</span>
+
+    private TwoPhaseCommitCoordinator(ExactlyOnceConfig config,
+                                      TransactionalSink sink,
+<span class="fc" id="L86">                                      IdempotentWriter writer) {</span>
+<span class="fc" id="L87">        this.config = config;</span>
+<span class="fc" id="L88">        this.sink = sink;</span>
+<span class="fc" id="L89">        this.writer = writer;</span>
+<span class="fc" id="L90">    }</span>
+
+    /**
+     * 缓冲一条记录到当前事务。
+     *
+     * @param record 变更记录
+     * @throws IllegalStateException 当前事务已 preCommit
+     */
+    public synchronized void buffer(ChangeRecord record) {
+<span class="fc" id="L99">        Objects.requireNonNull(record, &quot;record 不能为 null&quot;);</span>
+<span class="fc bfc" id="L100" title="All 2 branches covered.">        if (currentTxnId != null</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">                &amp;&amp; sink.statusOf(currentTxnId) == TransactionalSink.TransactionStatus.PRE_COMMITTED) {</span>
+<span class="fc" id="L102">            throw new IllegalStateException(&quot;事务 &quot; + currentTxnId + &quot; 已 preCommit，不可再写入&quot;);</span>
+        }
+<span class="fc" id="L104">        currentBuffer.add(record);</span>
+<span class="fc" id="L105">    }</span>
+
+    /**
+     * 缓冲多条记录。
+     *
+     * @param records 记录集合
+     */
+    public synchronized void bufferAll(Collection&lt;ChangeRecord&gt; records) {
+<span class="nc" id="L113">        Objects.requireNonNull(records, &quot;records 不能为 null&quot;);</span>
+<span class="nc bnc" id="L114" title="All 2 branches missed.">        for (ChangeRecord r : records) {</span>
+<span class="nc" id="L115">            buffer(r);</span>
+<span class="nc" id="L116">        }</span>
+<span class="nc" id="L117">    }</span>
+
+    /**
+     * 阶段一：预提交。
+     *
+     * &lt;p&gt;流程：&lt;/p&gt;
+     * &lt;ol&gt;
+     *   &lt;li&gt;生成事务 ID（prefix + checkpointId）&lt;/li&gt;
+     *   &lt;li&gt;调用 {@link TransactionalSink#beginTransaction} 开启事务&lt;/li&gt;
+     *   &lt;li&gt;通过 {@link IdempotentWriter} 去重后写入 Sink&lt;/li&gt;
+     *   &lt;li&gt;调用 {@link TransactionalSink#preCommit} 持久化事务句柄&lt;/li&gt;
+     *   &lt;li&gt;记录事务元数据，标记 PRE_COMMITTED&lt;/li&gt;
+     * &lt;/ol&gt;
+     *
+     * @param checkpointId Flink checkpoint ID
+     * @throws TransactionalSink.TransactionException preCommit 失败
+     */
+    public synchronized void preCommit(long checkpointId) throws TransactionalSink.TransactionException {
+<span class="fc" id="L135">        String txnId = generateTxnId(checkpointId);</span>
+<span class="fc" id="L136">        log.info(&quot;preCommit 开始: checkpointId={}, txnId={}&quot;, checkpointId, txnId);</span>
+
+        // 1. 开启事务
+<span class="fc" id="L139">        sink.beginTransaction(txnId);</span>
+<span class="fc" id="L140">        currentTxnId = txnId;</span>
+
+        // 2. 幂等去重：逐条写入 writer 进行去重，然后取出有效记录
+<span class="fc bfc" id="L143" title="All 2 branches covered.">        for (ChangeRecord record : currentBuffer) {</span>
+<span class="fc" id="L144">            writer.write(record);</span>
+<span class="fc" id="L145">        }</span>
+<span class="fc" id="L146">        List&lt;ChangeRecord&gt; effective = writer.drainPending();</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        if (!effective.isEmpty()) {</span>
+<span class="fc" id="L148">            sink.write(effective, txnId);</span>
+        }
+
+        // 3. preCommit
+<span class="fc" id="L152">        sink.preCommit(txnId);</span>
+
+        // 4. 记录事务元数据
+<span class="fc" id="L155">        pendingTransactions.put(txnId, new TransactionMetadata(</span>
+<span class="fc" id="L156">                txnId, checkpointId, System.currentTimeMillis(),</span>
+<span class="fc" id="L157">                effective.size(),</span>
+                TransactionalSink.TransactionStatus.PRE_COMMITTED));
+
+<span class="fc" id="L160">        log.info(&quot;preCommit 完成: txnId={}, effectiveRecords={}&quot;, txnId, effective.size());</span>
+<span class="fc" id="L161">    }</span>
+
+    /**
+     * 阶段二：提交。
+     *
+     * &lt;p&gt;流程：&lt;/p&gt;
+     * &lt;ol&gt;
+     *   &lt;li&gt;查找 checkpointId 对应的事务&lt;/li&gt;
+     *   &lt;li&gt;调用 {@link TransactionalSink#commit} 原子提交&lt;/li&gt;
+     *   &lt;li&gt;通知 {@link IdempotentWriter#markCommitted} 更新去重基线&lt;/li&gt;
+     *   &lt;li&gt;清空缓冲，标记 COMMITTED&lt;/li&gt;
+     * &lt;/ol&gt;
+     *
+     * @param checkpointId Flink checkpoint ID
+     * @throws TransactionalSink.TransactionException commit 失败
+     */
+    public synchronized void commit(long checkpointId) throws TransactionalSink.TransactionException {
+<span class="fc" id="L178">        String txnId = generateTxnId(checkpointId);</span>
+<span class="fc" id="L179">        TransactionMetadata metadata = pendingTransactions.get(txnId);</span>
+
+<span class="fc bfc" id="L181" title="All 2 branches covered.">        if (metadata == null) {</span>
+<span class="fc" id="L182">            log.warn(&quot;commit: 事务 {} 不存在（可能已 commit 或从未 preCommit），跳过&quot;, txnId);</span>
+<span class="fc" id="L183">            return;</span>
+        }
+
+<span class="pc bpc" id="L186" title="1 of 2 branches missed.">        if (metadata.status == TransactionalSink.TransactionStatus.COMMITTED) {</span>
+<span class="nc" id="L187">            log.debug(&quot;commit: 事务 {} 已提交，幂等跳过&quot;, txnId);</span>
+<span class="nc" id="L188">            return;</span>
+        }
+
+<span class="fc" id="L191">        log.info(&quot;commit 开始: txnId={}&quot;, txnId);</span>
+<span class="fc" id="L192">        sink.commit(txnId);</span>
+<span class="fc" id="L193">        writer.markCommitted();</span>
+
+<span class="fc" id="L195">        metadata.status = TransactionalSink.TransactionStatus.COMMITTED;</span>
+<span class="fc" id="L196">        pendingTransactions.remove(txnId);</span>
+<span class="fc" id="L197">        currentBuffer.clear();</span>
+<span class="fc" id="L198">        currentTxnId = null;</span>
+<span class="fc" id="L199">        committedTxnCount++;</span>
+
+<span class="fc" id="L201">        log.info(&quot;commit 完成: txnId={}&quot;, txnId);</span>
+<span class="fc" id="L202">    }</span>
+
+    /**
+     * 中止事务。
+     *
+     * @param checkpointId Flink checkpoint ID
+     * @throws TransactionalSink.TransactionException abort 失败
+     */
+    public synchronized void abort(long checkpointId) throws TransactionalSink.TransactionException {
+<span class="fc" id="L211">        String txnId = generateTxnId(checkpointId);</span>
+<span class="fc" id="L212">        TransactionMetadata metadata = pendingTransactions.get(txnId);</span>
+
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        if (metadata == null) {</span>
+<span class="fc" id="L215">            log.warn(&quot;abort: 事务 {} 不存在，跳过&quot;, txnId);</span>
+<span class="fc" id="L216">            return;</span>
+        }
+
+<span class="pc bpc" id="L219" title="1 of 2 branches missed.">        if (metadata.status == TransactionalSink.TransactionStatus.ABORTED) {</span>
+<span class="nc" id="L220">            log.debug(&quot;abort: 事务 {} 已中止，幂等跳过&quot;, txnId);</span>
+<span class="nc" id="L221">            return;</span>
+        }
+
+<span class="fc" id="L224">        log.info(&quot;abort 开始: txnId={}&quot;, txnId);</span>
+<span class="fc" id="L225">        sink.abort(txnId);</span>
+<span class="fc" id="L226">        writer.rollback();</span>
+
+<span class="fc" id="L228">        metadata.status = TransactionalSink.TransactionStatus.ABORTED;</span>
+<span class="fc" id="L229">        pendingTransactions.remove(txnId);</span>
+<span class="fc" id="L230">        currentBuffer.clear();</span>
+<span class="fc" id="L231">        currentTxnId = null;</span>
+<span class="fc" id="L232">        abortedTxnCount++;</span>
+
+<span class="fc" id="L234">        log.info(&quot;abort 完成: txnId={}&quot;, txnId);</span>
+<span class="fc" id="L235">    }</span>
+
+    /**
+     * 故障恢复：完成未决事务并重放缓冲记录。
+     *
+     * &lt;p&gt;流程：&lt;/p&gt;
+     * &lt;ol&gt;
+     *   &lt;li&gt;对每个未决事务调用 {@link TransactionalSink#recover}&lt;/li&gt;
+     *   &lt;li&gt;对恢复的缓冲记录重新加入缓冲（等待下次 checkpoint）&lt;/li&gt;
+     * &lt;/ol&gt;
+     *
+     * @param restoredRecords      从 checkpoint 状态恢复的缓冲记录
+     * @param lastCheckpointId     最近完成的 checkpoint ID
+     * @throws TransactionalSink.TransactionException recover 失败
+     */
+    public synchronized void recover(List&lt;ChangeRecord&gt; restoredRecords, long lastCheckpointId)
+            throws TransactionalSink.TransactionException {
+<span class="fc" id="L252">        log.info(&quot;recover 开始: {} 条恢复记录, lastCheckpointId={}&quot;,</span>
+<span class="pc bpc" id="L253" title="1 of 2 branches missed.">                restoredRecords == null ? 0 : restoredRecords.size(),</span>
+<span class="fc" id="L254">                lastCheckpointId);</span>
+
+        // 1. 恢复未决事务
+<span class="fc bfc" id="L257" title="All 2 branches covered.">        if (lastCheckpointId &gt;= 0) {</span>
+<span class="fc" id="L258">            String txnId = generateTxnId(lastCheckpointId);</span>
+<span class="fc" id="L259">            TransactionalSink.TransactionStatus status = sink.statusOf(txnId);</span>
+<span class="fc" id="L260">            log.info(&quot;recover: 事务 {} 当前状态={}&quot;, txnId, status);</span>
+<span class="pc bpc" id="L261" title="1 of 5 branches missed.">            switch (status) {</span>
+                case PRE_COMMITTED -&gt; {
+<span class="fc" id="L263">                    log.info(&quot;recover: 事务 {} 已 preCommit 但未 commit，完成提交&quot;, txnId);</span>
+<span class="fc" id="L264">                    sink.recover(txnId);</span>
+<span class="fc" id="L265">                    pendingTransactions.remove(txnId);</span>
+<span class="fc" id="L266">                    committedTxnCount++;</span>
+<span class="fc" id="L267">                }</span>
+                case ACTIVE -&gt; {
+<span class="fc" id="L269">                    log.warn(&quot;recover: 事务 {} 仍为 ACTIVE，中止以避免数据重复&quot;, txnId);</span>
+<span class="fc" id="L270">                    sink.abort(txnId);</span>
+<span class="fc" id="L271">                    pendingTransactions.remove(txnId);</span>
+<span class="fc" id="L272">                    abortedTxnCount++;</span>
+<span class="fc" id="L273">                }</span>
+                case COMMITTED -&gt; {
+<span class="fc" id="L275">                    log.info(&quot;recover: 事务 {} 已提交，无需处理&quot;, txnId);</span>
+<span class="fc" id="L276">                    pendingTransactions.remove(txnId);</span>
+<span class="fc" id="L277">                }</span>
+                case ABORTED, UNKNOWN -&gt; {
+<span class="fc" id="L279">                    log.info(&quot;recover: 事务 {} 状态={}，无需处理&quot;, txnId, status);</span>
+<span class="fc" id="L280">                    pendingTransactions.remove(txnId);</span>
+                }
+            }
+        }
+
+        // 2. 恢复的记录已通过 writer 去重处理（在调用方完成）
+<span class="fc" id="L286">        log.info(&quot;recover 完成: committedTxnCount={}, abortedTxnCount={}&quot;,</span>
+<span class="fc" id="L287">                committedTxnCount, abortedTxnCount);</span>
+<span class="fc" id="L288">    }</span>
+
+    /**
+     * 取出当前缓冲记录用于状态快照（不清空缓冲）。
+     *
+     * @return 缓冲记录的只读副本
+     */
+    public synchronized List&lt;ChangeRecord&gt; drainBufferedForSnapshot() {
+<span class="fc" id="L296">        return new ArrayList&lt;&gt;(currentBuffer);</span>
+    }
+
+    /**
+     * 生成事务 ID：prefix + checkpointId。
+     *
+     * @param checkpointId checkpoint ID
+     * @return 事务 ID
+     */
+    String generateTxnId(long checkpointId) {
+<span class="fc" id="L306">        return config.getTransactionalIdPrefix() + checkpointId;</span>
+    }
+
+    /**
+     * 获取当前活跃事务 ID。
+     *
+     * @return 事务 ID；无活跃事务返回 {@code null}
+     */
+    public synchronized String getCurrentTxnId() {
+<span class="fc" id="L315">        return currentTxnId;</span>
+    }
+
+    /**
+     * 获取未决事务的只读视图。
+     *
+     * @return 未决事务 Map
+     */
+    public synchronized Map&lt;String, TransactionMetadata&gt; getPendingTransactions() {
+<span class="fc" id="L324">        return Collections.unmodifiableMap(new HashMap&lt;&gt;(pendingTransactions));</span>
+    }
+
+    /**
+     * 获取当前缓冲记录数。
+     *
+     * @return 缓冲记录数
+     */
+    public synchronized int getBufferSize() {
+<span class="fc" id="L333">        return currentBuffer.size();</span>
+    }
+
+    public long getCommittedTxnCount() {
+<span class="fc" id="L337">        return committedTxnCount;</span>
+    }
+
+    public long getAbortedTxnCount() {
+<span class="fc" id="L341">        return abortedTxnCount;</span>
+    }
+
+    public ExactlyOnceConfig getConfig() {
+<span class="nc" id="L345">        return config;</span>
+    }
+
+    public TransactionalSink getSink() {
+<span class="nc" id="L349">        return sink;</span>
+    }
+
+    public IdempotentWriter getWriter() {
+<span class="nc" id="L353">        return writer;</span>
+    }
+
+    /**
+     * 事务元数据，记录事务的生命周期信息。
+     */
+    public static final class TransactionMetadata implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private final String txnId;
+        private final long checkpointId;
+        private final long createTimestamp;
+        private final int recordCount;
+        private TransactionalSink.TransactionStatus status;
+
+        public TransactionMetadata(String txnId, long checkpointId, long createTimestamp,
+                                   int recordCount,
+<span class="fc" id="L370">                                   TransactionalSink.TransactionStatus status) {</span>
+<span class="fc" id="L371">            this.txnId = txnId;</span>
+<span class="fc" id="L372">            this.checkpointId = checkpointId;</span>
+<span class="fc" id="L373">            this.createTimestamp = createTimestamp;</span>
+<span class="fc" id="L374">            this.recordCount = recordCount;</span>
+<span class="fc" id="L375">            this.status = status;</span>
+<span class="fc" id="L376">        }</span>
+
+        public String getTxnId() {
+<span class="fc" id="L379">            return txnId;</span>
+        }
+
+        public long getCheckpointId() {
+<span class="fc" id="L383">            return checkpointId;</span>
+        }
+
+        public long getCreateTimestamp() {
+<span class="fc" id="L387">            return createTimestamp;</span>
+        }
+
+        public int getRecordCount() {
+<span class="fc" id="L391">            return recordCount;</span>
+        }
+
+        public TransactionalSink.TransactionStatus getStatus() {
+<span class="fc" id="L395">            return status;</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="fc" id="L400">            return &quot;TransactionMetadata{txnId='&quot; + txnId + &quot;', checkpointId=&quot; + checkpointId</span>
+                    + &quot;, status=&quot; + status + &quot;, recordCount=&quot; + recordCount + '}';
+        }
+    }
+
+    /**
+     * 创建 Builder。
+     *
+     * @return Builder 实例
+     */
+    public static Builder builder() {
+<span class="fc" id="L411">        return new Builder();</span>
+    }
+
+    /**
+     * TwoPhaseCommitCoordinator 构造器。
+     */
+<span class="fc" id="L417">    public static final class Builder {</span>
+        private ExactlyOnceConfig config;
+        private TransactionalSink sink;
+        private IdempotentWriter writer;
+
+        /** Exactly-Once 配置。 */
+        public Builder config(ExactlyOnceConfig config) {
+<span class="fc" id="L424">            this.config = Objects.requireNonNull(config);</span>
+<span class="fc" id="L425">            return this;</span>
+        }
+
+        /** 事务性 Sink。 */
+        public Builder sink(TransactionalSink sink) {
+<span class="fc" id="L430">            this.sink = Objects.requireNonNull(sink);</span>
+<span class="fc" id="L431">            return this;</span>
+        }
+
+        /** 幂等写入器。 */
+        public Builder writer(IdempotentWriter writer) {
+<span class="fc" id="L436">            this.writer = Objects.requireNonNull(writer);</span>
+<span class="fc" id="L437">            return this;</span>
+        }
+
+        /** 构建协调器。 */
+        public TwoPhaseCommitCoordinator build() {
+<span class="fc" id="L442">            Objects.requireNonNull(config, &quot;config 不能为 null&quot;);</span>
+<span class="fc" id="L443">            Objects.requireNonNull(sink, &quot;sink 不能为 null&quot;);</span>
+<span class="fc" id="L444">            Objects.requireNonNull(writer, &quot;writer 不能为 null&quot;);</span>
+<span class="fc" id="L445">            return new TwoPhaseCommitCoordinator(config, sink, writer);</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

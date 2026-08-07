@@ -1,0 +1,339 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CdcYamlConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.config</a> &gt; <span class="el_source">CdcYamlConfig.java</span></div><h1>CdcYamlConfig.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.config;
+
+import com.shuqing.bigdata.flinkcdc.sink.SinkConfig;
+import com.shuqing.bigdata.flinkcdc.source.SourceConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * CDC YAML 声明式配置加载器。
+ *
+ * &lt;p&gt;从 YAML 文件加载作业级配置（名称/并行度）以及多个 Source 和 Sink 配置，
+ * 支持&quot;一份配置描述整条 CDC 管道&quot;的声明式风格。&lt;/p&gt;
+ *
+ * &lt;p&gt;YAML 结构示例：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * job:
+ *   name: mysql-to-kafka
+ *   parallelism: 2
+ *
+ * sources:
+ *   - name: mysql-orders
+ *     type: MYSQL
+ *     host: 127.0.0.1
+ *     port: 3306
+ *     username: cdc
+ *     password: cdc-pass
+ *     database: shop
+ *     table: shop.orders
+ *     serverId: 5400
+ *     startupMode: initial
+ *
+ * sinks:
+ *   - name: kafka-orders
+ *     type: KAFKA
+ *     host: 127.0.0.1
+ *     port: 9092
+ *     topic: cdc-orders
+ *     writeMode: upsert
+ *     format: debezium-json
+ *     primaryKey: id
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class CdcYamlConfig {
+
+<span class="fc" id="L59">    private static final Logger log = LoggerFactory.getLogger(CdcYamlConfig.class);</span>
+
+    /** 作业名称。 */
+<span class="fc" id="L62">    private String jobName = &quot;flink-cdc-job&quot;;</span>
+    /** 作业并行度。 */
+<span class="fc" id="L64">    private int parallelism = 1;</span>
+    /** 数据源配置列表。 */
+<span class="fc" id="L66">    private List&lt;SourceConfig&gt; sources = new ArrayList&lt;&gt;();</span>
+    /** 数据目标配置列表。 */
+<span class="fc" id="L68">    private List&lt;SinkConfig&gt; sinks = new ArrayList&lt;&gt;();</span>
+
+    /** 默认构造器。 */
+<span class="fc" id="L71">    public CdcYamlConfig() {</span>
+<span class="fc" id="L72">    }</span>
+
+    /**
+     * 从 YAML 文件路径加载配置。
+     *
+     * @param path YAML 文件路径
+     * @return 解析后的 CdcYamlConfig
+     * @throws IOException 读取文件失败
+     * @throws IllegalArgumentException YAML 格式错误
+     */
+    public static CdcYamlConfig load(Path path) throws IOException {
+<span class="fc" id="L83">        Objects.requireNonNull(path, &quot;配置文件路径不能为 null&quot;);</span>
+<span class="fc" id="L84">        try (InputStream in = Files.newInputStream(path)) {</span>
+<span class="fc" id="L85">            return load(in);</span>
+        }
+    }
+
+    /**
+     * 从 YAML 文件路径（字符串）加载配置。
+     *
+     * @param path YAML 文件路径
+     * @return 解析后的 CdcYamlConfig
+     * @throws IOException 读取文件失败
+     */
+    public static CdcYamlConfig load(String path) throws IOException {
+<span class="nc" id="L97">        return load(Path.of(path));</span>
+    }
+
+    /**
+     * 从输入流加载 YAML 配置。
+     *
+     * @param inputStream YAML 输入流
+     * @return 解析后的 CdcYamlConfig
+     * @throws IllegalArgumentException YAML 格式错误
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public static CdcYamlConfig load(InputStream inputStream) {
+<span class="fc" id="L109">        Objects.requireNonNull(inputStream, &quot;输入流不能为 null&quot;);</span>
+<span class="fc" id="L110">        Yaml yaml = new Yaml();</span>
+<span class="fc" id="L111">        Map&lt;String, Object&gt; root = yaml.load(inputStream);</span>
+<span class="fc bfc" id="L112" title="All 2 branches covered.">        if (root == null) {</span>
+<span class="fc" id="L113">            throw new IllegalArgumentException(&quot;YAML 内容为空&quot;);</span>
+        }
+<span class="fc" id="L115">        return parse(root);</span>
+    }
+
+    /**
+     * 从类路径资源加载 YAML 配置。
+     *
+     * @param resourcePath 类路径资源名
+     * @return 解析后的 CdcYamlConfig
+     * @throws IOException 读取资源失败
+     */
+    public static CdcYamlConfig loadFromClasspath(String resourcePath) throws IOException {
+<span class="nc" id="L126">        Objects.requireNonNull(resourcePath, &quot;资源路径不能为 null&quot;);</span>
+<span class="nc" id="L127">        try (InputStream in = CdcYamlConfig.class.getClassLoader().getResourceAsStream(resourcePath)) {</span>
+<span class="nc bnc" id="L128" title="All 2 branches missed.">            if (in == null) {</span>
+<span class="nc" id="L129">                throw new IOException(&quot;类路径资源不存在: &quot; + resourcePath);</span>
+            }
+<span class="nc" id="L131">            return load(in);</span>
+        }
+    }
+
+    /**
+     * 从已解析的 Map 树构造配置（核心解析逻辑，便于单元测试）。
+     *
+     * @param root YAML 根 Map
+     * @return CdcYamlConfig
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public static CdcYamlConfig parse(Map&lt;String, Object&gt; root) {
+<span class="fc" id="L143">        Objects.requireNonNull(root, &quot;YAML root 不能为 null&quot;);</span>
+<span class="fc" id="L144">        CdcYamlConfig config = new CdcYamlConfig();</span>
+
+        // 解析 job 段
+<span class="fc" id="L147">        Object jobObj = root.get(&quot;job&quot;);</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (jobObj instanceof Map&lt;?, ?&gt; jobMap) {</span>
+<span class="fc" id="L149">            config.jobName = str(jobMap.get(&quot;name&quot;), &quot;flink-cdc-job&quot;);</span>
+<span class="fc" id="L150">            config.parallelism = intVal(jobMap.get(&quot;parallelism&quot;), 1);</span>
+        }
+
+        // 解析 sources 段
+<span class="fc" id="L154">        Object sourcesObj = root.get(&quot;sources&quot;);</span>
+<span class="fc bfc" id="L155" title="All 2 branches covered.">        if (sourcesObj instanceof List&lt;?&gt; sourcesList) {</span>
+<span class="fc bfc" id="L156" title="All 2 branches covered.">            for (Object item : sourcesList) {</span>
+<span class="pc bpc" id="L157" title="1 of 2 branches missed.">                if (item instanceof Map&lt;?, ?&gt; sourceMap) {</span>
+<span class="fc" id="L158">                    config.sources.add(parseSource((Map&lt;String, Object&gt;) sourceMap));</span>
+                }
+<span class="fc" id="L160">            }</span>
+        }
+
+        // 解析 sinks 段
+<span class="fc" id="L164">        Object sinksObj = root.get(&quot;sinks&quot;);</span>
+<span class="fc bfc" id="L165" title="All 2 branches covered.">        if (sinksObj instanceof List&lt;?&gt; sinksList) {</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">            for (Object item : sinksList) {</span>
+<span class="pc bpc" id="L167" title="1 of 2 branches missed.">                if (item instanceof Map&lt;?, ?&gt; sinkMap) {</span>
+<span class="fc" id="L168">                    config.sinks.add(parseSink((Map&lt;String, Object&gt;) sinkMap));</span>
+                }
+<span class="fc" id="L170">            }</span>
+        }
+
+<span class="fc" id="L173">        log.info(&quot;加载 CDC 配置: job={}, parallelism={}, sources={}, sinks={}&quot;,</span>
+<span class="fc" id="L174">                config.jobName, config.parallelism, config.sources.size(), config.sinks.size());</span>
+<span class="fc" id="L175">        return config;</span>
+    }
+
+    /**
+     * 解析单个 Source 配置。
+     *
+     * @param map Source YAML Map
+     * @return SourceConfig
+     */
+    static SourceConfig parseSource(Map&lt;String, Object&gt; map) {
+<span class="fc" id="L185">        SourceConfig config = new SourceConfig();</span>
+<span class="fc" id="L186">        config.setName(str(map.get(&quot;name&quot;), null));</span>
+<span class="fc" id="L187">        config.setType(SourceConfig.SourceType.valueOf(</span>
+<span class="fc" id="L188">                str(map.get(&quot;type&quot;), &quot;MYSQL&quot;).toUpperCase()));</span>
+<span class="fc" id="L189">        config.setHost(str(map.get(&quot;host&quot;), &quot;localhost&quot;));</span>
+<span class="fc" id="L190">        config.setPort(intVal(map.get(&quot;port&quot;), 3306));</span>
+<span class="fc" id="L191">        config.setUsername(str(map.get(&quot;username&quot;), null));</span>
+<span class="fc" id="L192">        config.setPassword(str(map.get(&quot;password&quot;), null));</span>
+<span class="fc" id="L193">        config.setDatabase(str(map.get(&quot;database&quot;), null));</span>
+<span class="fc" id="L194">        config.setTable(str(map.get(&quot;table&quot;), null));</span>
+<span class="fc" id="L195">        config.setServerId(longVal(map.get(&quot;serverId&quot;), 5400L));</span>
+<span class="fc" id="L196">        config.setStartupMode(SourceConfig.StartupMode.fromCode(</span>
+<span class="fc" id="L197">                str(map.get(&quot;startupMode&quot;), &quot;initial&quot;)));</span>
+<span class="fc" id="L198">        config.setStartupTimestampMillis(longValOrNull(map.get(&quot;startupTimestampMillis&quot;)));</span>
+<span class="fc" id="L199">        config.setBinlogFilename(str(map.get(&quot;binlogFilename&quot;), null));</span>
+<span class="fc" id="L200">        config.setBinlogPosition(longValOrNull(map.get(&quot;binlogPosition&quot;)));</span>
+<span class="fc" id="L201">        config.setIncludeSchemaChanges(boolVal(map.get(&quot;includeSchemaChanges&quot;), false));</span>
+<span class="fc" id="L202">        config.setParallelism(intVal(map.get(&quot;parallelism&quot;), 1));</span>
+<span class="fc" id="L203">        config.setSplitColumn(str(map.get(&quot;splitColumn&quot;), null));</span>
+
+<span class="fc" id="L205">        Object tableFiltersObj = map.get(&quot;tableFilters&quot;);</span>
+<span class="fc bfc" id="L206" title="All 2 branches covered.">        if (tableFiltersObj instanceof List&lt;?&gt; filters) {</span>
+<span class="fc" id="L207">            java.util.Set&lt;String&gt; filterSet = new java.util.HashSet&lt;&gt;();</span>
+<span class="fc bfc" id="L208" title="All 2 branches covered.">            for (Object f : filters) {</span>
+<span class="pc bpc" id="L209" title="1 of 2 branches missed.">                if (f != null) {</span>
+<span class="fc" id="L210">                    filterSet.add(String.valueOf(f));</span>
+                }
+<span class="fc" id="L212">            }</span>
+<span class="fc" id="L213">            config.setTableFilters(filterSet);</span>
+        }
+<span class="fc" id="L215">        return config;</span>
+    }
+
+    /**
+     * 解析单个 Sink 配置。
+     *
+     * @param map Sink YAML Map
+     * @return SinkConfig
+     */
+    static SinkConfig parseSink(Map&lt;String, Object&gt; map) {
+<span class="fc" id="L225">        SinkConfig config = new SinkConfig();</span>
+<span class="fc" id="L226">        config.setName(str(map.get(&quot;name&quot;), null));</span>
+<span class="fc" id="L227">        config.setType(SinkConfig.SinkType.valueOf(</span>
+<span class="fc" id="L228">                str(map.get(&quot;type&quot;), &quot;KAFKA&quot;).toUpperCase()));</span>
+<span class="fc" id="L229">        config.setHost(str(map.get(&quot;host&quot;), &quot;localhost&quot;));</span>
+<span class="fc" id="L230">        config.setPort(intVal(map.get(&quot;port&quot;), 9092));</span>
+<span class="fc" id="L231">        config.setTopic(str(map.get(&quot;topic&quot;), null));</span>
+<span class="fc" id="L232">        config.setUsername(str(map.get(&quot;username&quot;), null));</span>
+<span class="fc" id="L233">        config.setPassword(str(map.get(&quot;password&quot;), null));</span>
+<span class="fc" id="L234">        config.setWriteMode(SinkConfig.WriteMode.fromCode(</span>
+<span class="fc" id="L235">                str(map.get(&quot;writeMode&quot;), &quot;upsert&quot;)));</span>
+<span class="fc" id="L236">        config.setPrimaryKey(str(map.get(&quot;primaryKey&quot;), null));</span>
+<span class="fc" id="L237">        config.setFormat(str(map.get(&quot;format&quot;), &quot;debezium-json&quot;));</span>
+<span class="fc" id="L238">        config.setParallelism(intVal(map.get(&quot;parallelism&quot;), 1));</span>
+
+<span class="fc" id="L240">        Object propsObj = map.get(&quot;properties&quot;);</span>
+<span class="fc bfc" id="L241" title="All 2 branches covered.">        if (propsObj instanceof Map&lt;?, ?&gt; propsMap) {</span>
+<span class="fc" id="L242">            Map&lt;String, String&gt; props = new java.util.HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">            for (Map.Entry&lt;?, ?&gt; entry : propsMap.entrySet()) {</span>
+<span class="pc bpc" id="L244" title="2 of 4 branches missed.">                if (entry.getKey() != null &amp;&amp; entry.getValue() != null) {</span>
+<span class="fc" id="L245">                    props.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));</span>
+                }
+<span class="fc" id="L247">            }</span>
+<span class="fc" id="L248">            config.setProperties(props);</span>
+        }
+<span class="fc" id="L250">        return config;</span>
+    }
+
+    // ===== 类型转换辅助 =====
+
+    private static String str(Object value, String defaultValue) {
+<span class="fc bfc" id="L256" title="All 2 branches covered.">        return value == null ? defaultValue : String.valueOf(value);</span>
+    }
+
+    private static int intVal(Object value, int defaultValue) {
+<span class="fc bfc" id="L260" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L261">            return defaultValue;</span>
+        }
+<span class="pc bpc" id="L263" title="1 of 2 branches missed.">        if (value instanceof Number n) {</span>
+<span class="fc" id="L264">            return n.intValue();</span>
+        }
+<span class="nc" id="L266">        return Integer.parseInt(String.valueOf(value));</span>
+    }
+
+    private static long longVal(Object value, long defaultValue) {
+<span class="fc bfc" id="L270" title="All 2 branches covered.">        if (value == null) {</span>
+<span class="fc" id="L271">            return defaultValue;</span>
+        }
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">        if (value instanceof Number n) {</span>
+<span class="fc" id="L274">            return n.longValue();</span>
+        }
+<span class="nc" id="L276">        return Long.parseLong(String.valueOf(value));</span>
+    }
+
+    private static Long longValOrNull(Object value) {
+<span class="pc bpc" id="L280" title="1 of 2 branches missed.">        if (value == null) {</span>
+<span class="fc" id="L281">            return null;</span>
+        }
+<span class="nc bnc" id="L283" title="All 2 branches missed.">        if (value instanceof Number n) {</span>
+<span class="nc" id="L284">            return n.longValue();</span>
+        }
+<span class="nc" id="L286">        return Long.parseLong(String.valueOf(value));</span>
+    }
+
+    private static boolean boolVal(Object value, boolean defaultValue) {
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">        if (value == null) {</span>
+<span class="fc" id="L291">            return defaultValue;</span>
+        }
+<span class="nc bnc" id="L293" title="All 2 branches missed.">        if (value instanceof Boolean b) {</span>
+<span class="nc" id="L294">            return b;</span>
+        }
+<span class="nc" id="L296">        return Boolean.parseBoolean(String.valueOf(value));</span>
+    }
+
+    // ===== getter / setter =====
+
+    public String getJobName() {
+<span class="fc" id="L302">        return jobName;</span>
+    }
+
+    public void setJobName(String jobName) {
+<span class="fc" id="L306">        this.jobName = jobName;</span>
+<span class="fc" id="L307">    }</span>
+
+    public int getParallelism() {
+<span class="fc" id="L310">        return parallelism;</span>
+    }
+
+    public void setParallelism(int parallelism) {
+<span class="fc" id="L314">        this.parallelism = parallelism;</span>
+<span class="fc" id="L315">    }</span>
+
+    public List&lt;SourceConfig&gt; getSources() {
+<span class="fc" id="L318">        return Collections.unmodifiableList(sources);</span>
+    }
+
+    public void setSources(List&lt;SourceConfig&gt; sources) {
+<span class="fc bfc" id="L322" title="All 2 branches covered.">        this.sources = sources == null ? new ArrayList&lt;&gt;() : new ArrayList&lt;&gt;(sources);</span>
+<span class="fc" id="L323">    }</span>
+
+    public List&lt;SinkConfig&gt; getSinks() {
+<span class="fc" id="L326">        return Collections.unmodifiableList(sinks);</span>
+    }
+
+    public void setSinks(List&lt;SinkConfig&gt; sinks) {
+<span class="pc bpc" id="L330" title="1 of 2 branches missed.">        this.sinks = sinks == null ? new ArrayList&lt;&gt;() : new ArrayList&lt;&gt;(sinks);</span>
+<span class="fc" id="L331">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L335">        return &quot;CdcYamlConfig{jobName='&quot; + jobName + &quot;', parallelism=&quot; + parallelism</span>
+<span class="fc" id="L336">                + &quot;, sources=&quot; + sources.size() + &quot;, sinks=&quot; + sinks.size() + '}';</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

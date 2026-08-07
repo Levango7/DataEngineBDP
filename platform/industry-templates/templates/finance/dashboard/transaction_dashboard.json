@@ -1,0 +1,358 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "finance_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_finance",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "transaction",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "交易记录主表 | 交易全链路发起 | DDL: 04_transaction_ddl.sql §1",
+      "columns": [
+        {"name": "transaction_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "transaction_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "debit_account_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "credit_account_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "currency", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "txn_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "channel", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "counterparty", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "summary", "type": "VARCHAR(256)", "is_dttm": false},
+        {"name": "occurred_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "settled_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "occurred_at"
+    },
+    {
+      "table_name": "transaction_detail",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "交易明细表 | 交易明细行 | DDL: 04_transaction_ddl.sql §2",
+      "columns": [
+        {"name": "detail_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "transaction_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "line_no", "type": "INT", "is_dttm": false},
+        {"name": "item_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "item_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "item_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "item_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "quantity", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "unit_price", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "currency", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "aml_alert",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "反洗钱告警表 | AML命中与可疑报告 | DDL: 04_transaction_ddl.sql §3",
+      "columns": [
+        {"name": "aml_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "transaction_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "scenario", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "risk_level", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "hit_rules", "type": "STRING", "is_dttm": false},
+        {"name": "hit_score", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "report_status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "report_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "handle_opinion", "type": "VARCHAR(512)", "is_dttm": false},
+        {"name": "handled_by", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "handled_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "detected_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "detected_at"
+    },
+    {
+      "table_name": "transaction_monitor",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "交易监控表 | 监控规则命中与告警 | DDL: 04_transaction_ddl.sql §4",
+      "columns": [
+        {"name": "monitor_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "transaction_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "rule_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "rule_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "result", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "risk_score", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "hit_detail", "type": "STRING", "is_dttm": false},
+        {"name": "action_taken", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "checked_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "checked_at"
+    }
+  ],
+  "charts": [
+    {
+      "slice_name": "交易金额趋势",
+      "viz_type": "line",
+      "datasource_type": "table",
+      "datasource_name": "transaction",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按日统计交易总额，线图，X轴=日期，Y轴=交易金额",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS'"
+          }
+        ],
+        "x_axis": "txn_date",
+        "metrics": [{"expressionType": "SQL", "sqlExpression": "SUM(amount)", "label": "交易总额"}],
+        "groupby": ["txn_date"],
+        "time_grain_sqla": "DAY",
+        "time_range": "Last 90 days",
+        "row_limit": 365,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "日期",
+        "y_axis_label": "交易总额(元)",
+        "show_legend": true,
+        "line_interpolation": "linear"
+      },
+      "query": "SELECT DATE(occurred_at) AS txn_date, SUM(amount) AS total_amount FROM transaction WHERE occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS' GROUP BY DATE(occurred_at) ORDER BY txn_date"
+    },
+    {
+      "slice_name": "交易类型分布",
+      "viz_type": "pie",
+      "datasource_type": "table",
+      "datasource_name": "transaction",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按交易类型(TRANSFER/PAYMENT/DEPOSIT/WITHDRAW/REFUND)分类，饼图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS'"
+          }
+        ],
+        "metrics": [{"expressionType": "SQL", "sqlExpression": "SUM(amount)", "label": "交易金额"}],
+        "groupby": ["txn_type"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "donut": true,
+        "show_legend": true,
+        "labels_outside": false
+      },
+      "query": "SELECT txn_type, SUM(amount) AS total_amount, COUNT(1) AS txn_count FROM transaction WHERE occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS' GROUP BY txn_type ORDER BY total_amount DESC"
+    },
+    {
+      "slice_name": "大额交易Top10",
+      "viz_type": "table",
+      "datasource_type": "table",
+      "datasource_name": "transaction",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "交易金额降序Top10，表格，列=交易号/客户/金额/类型/渠道/时间",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS'"
+          }
+        ],
+        "metrics": [{"expressionType": "SIMPLE", "column": {"name": "amount"}, "aggregate": "MAX", "label": "交易金额"}],
+        "groupby": ["transaction_no", "customer_id", "amount", "txn_type", "channel", "occurred_at"],
+        "order_by": [{"column": "amount", "direction": "desc"}],
+        "row_limit": 10,
+        "page_length": 10,
+        "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
+        "show_cell_bars": true
+      },
+      "query": "SELECT transaction_no, customer_id, amount, txn_type, channel, occurred_at FROM transaction WHERE occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS' ORDER BY amount DESC LIMIT 10"
+    },
+    {
+      "slice_name": "AML告警统计",
+      "viz_type": "bar",
+      "datasource_type": "table",
+      "datasource_name": "aml_alert",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按AML告警级别(LOW/MEDIUM/HIGH)统计告警数，柱状图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "detected_at >= '{{ from_dttm }}' AND detected_at < '{{ to_dttm }}'"
+          }
+        ],
+        "x_axis": "risk_level",
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "AML告警数"}],
+        "groupby": ["risk_level"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "AML风险等级",
+        "y_axis_label": "告警数",
+        "show_legend": true
+      },
+      "query": "SELECT risk_level, COUNT(1) AS alert_count FROM aml_alert WHERE detected_at >= '{{ from_dttm }}' AND detected_at < '{{ to_dttm }}' GROUP BY risk_level ORDER BY CASE risk_level WHEN 'LOW' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'HIGH' THEN 3 ELSE 4 END"
+    },
+    {
+      "slice_name": "日交易总额",
+      "viz_type": "big_number",
+      "datasource_type": "table",
+      "datasource_name": "transaction",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "当日交易总额，指标卡，单数值",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS'"
+          }
+        ],
+        "metric": {"expressionType": "SQL", "sqlExpression": "SUM(amount)", "label": "日交易总额"},
+        "time_range": "Last day",
+        "compare_lag": 1,
+        "compare_suffix": "vs yesterday",
+        "header_format": "¥{{ value }}",
+        "subheader": "当日成功交易总额"
+      },
+      "query": "SELECT SUM(amount) AS daily_total_amount FROM transaction WHERE occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS'"
+    },
+    {
+      "slice_name": "交易渠道分布",
+      "viz_type": "pie",
+      "datasource_type": "table",
+      "datasource_name": "transaction",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按交易渠道(COUNTER/ONLINE/MOBILE/ATM/API)统计交易笔数，饼图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS'"
+          }
+        ],
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "交易笔数"}],
+        "groupby": ["channel"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "donut": true,
+        "show_legend": true
+      },
+      "query": "SELECT channel, COUNT(1) AS txn_count FROM transaction WHERE occurred_at >= '{{ from_dttm }}' AND occurred_at < '{{ to_dttm }}' AND status='SUCCESS' GROUP BY channel ORDER BY txn_count DESC"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "交易视角仪表盘",
+      "slug": "transaction-dashboard",
+      "description": "交易视角仪表盘 | 覆盖交易金额趋势/类型分布/大额交易/AML告警/日交易总额等核心指标 | 数据源：transaction/transaction_detail/aml_alert/transaction_monitor | DDL: 04_transaction_ddl.sql",
+      "owners": ["admin"],
+      "position": {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "DASHBOARD_ROOT_ID": "GRID_ID",
+        "DASHBOARD_GRID_RATIO": "1:1",
+        "GRID_ID": {
+          "type": "GRID",
+          "id": "GRID_ID",
+          "children": ["ROW_ID_1", "ROW_ID_2"],
+          "parents": ["ROOT_ID"],
+          "meta": {}
+        },
+        "ROW_ID_1": {
+          "type": "ROW",
+          "id": "ROW_ID_1",
+          "children": ["CHART_1", "CHART_2", "CHART_3"],
+          "parents": ["GRID_ID"],
+          "meta": {"background": "BACKGROUND_TRANSPARENT"}
+        },
+        "ROW_ID_2": {
+          "type": "ROW",
+          "id": "ROW_ID_2",
+          "children": ["CHART_4", "CHART_5", "CHART_6"],
+          "parents": ["GRID_ID"],
+          "meta": {"background": "BACKGROUND_TRANSPARENT"}
+        },
+        "CHART_1": {"type": "CHART", "id": "CHART_1", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "交易金额趋势"}},
+        "CHART_2": {"type": "CHART", "id": "CHART_2", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "交易类型分布"}},
+        "CHART_3": {"type": "CHART", "id": "CHART_3", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "大额交易Top10"}},
+        "CHART_4": {"type": "CHART", "id": "CHART_4", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "AML告警统计"}},
+        "CHART_5": {"type": "CHART", "id": "CHART_5", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "日交易总额"}},
+        "CHART_6": {"type": "CHART", "id": "CHART_6", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "交易渠道分布"}}
+      },
+      "metadata": {
+        "chart_configuration": {
+          "CHART_1": {"id": 1, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_2": {"id": 2, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_3": {"id": 3, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_4": {"id": 4, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_5": {"id": 5, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_6": {"id": 6, "crossFilters": {"scope": {"exclude": [], "include": []}}}
+        },
+        "global_chart_configuration": {
+          "scope": {"label": "All charts", "supersetCharts": [1, 2, 3, 4, 5, 6]}
+        },
+        "color_namespace": "superset_colors",
+        "color_scheme_domain": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+        "expanded_slices": {},
+        "label_colors": {},
+        "refresh_frequency": 300,
+        "timed_refresh_immune_slices": [],
+        "filter_immune_slice_fields": {},
+        "chart_ids": [1, 2, 3, 4, 5, 6],
+        "default_filters": "{}",
+        "native_filter_configuration": [
+          {
+            "id": "NATIVE_FILTER_TIME_RANGE",
+            "name": "时间范围",
+            "filterType": "filter_time",
+            "targets": [{"datasetId": 1, "column": {"name": "occurred_at"}}],
+            "defaultDataMask": {"timeRange": "Last 30 days"},
+            "controlValues": {"label": "时间范围", "defaultToEmpty": false}
+          },
+          {
+            "id": "NATIVE_FILTER_BIZ_LINE",
+            "name": "业务条线",
+            "filterType": "filter_select",
+            "targets": [{"datasetId": 1, "column": {"name": "txn_type"}}],
+            "defaultDataMask": null,
+            "controlValues": {"label": "业务条线", "defaultToEmpty": false, "multiSelect": true, "searchAllOptions": true}
+          },
+          {
+            "id": "NATIVE_FILTER_ORG",
+            "name": "机构",
+            "filterType": "filter_select",
+            "targets": [{"datasetId": 1, "column": {"name": "channel"}}],
+            "defaultDataMask": null,
+            "controlValues": {"label": "机构", "defaultToEmpty": false, "multiSelect": true, "searchAllOptions": true}
+          }
+        ]
+      },
+      "charts": ["交易金额趋势", "交易类型分布", "大额交易Top10", "AML告警统计", "日交易总额", "交易渠道分布"]
+    }
+  ]
+}

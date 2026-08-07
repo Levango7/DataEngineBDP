@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IdempotentWriter.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.exactlyonce</a> &gt; <span class="el_source">IdempotentWriter.java</span></div><h1>IdempotentWriter.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.exactlyonce;
+
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
+
+/**
+ * 幂等写入器，基于主键或版本号对 {@link ChangeRecord} 去重，保证故障恢复后重放无副作用。
+ *
+ * &lt;p&gt;核心职责：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;主键去重（{@link ExactlyOnceConfig.IdempotentStrategy#PRIMARY_KEY}）&lt;/b&gt;：
+ *       相同主键的记录只保留最新版本，按写入顺序后者覆盖前者&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;版本号去重（{@link ExactlyOnceConfig.IdempotentStrategy#VERSION}）&lt;/b&gt;：
+ *       版本号单调递增，仅接受比已写入版本更高的记录&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;事务 LSN 去重（{@link ExactlyOnceConfig.IdempotentStrategy#TXN_LSN}）&lt;/b&gt;：
+ *       按 Binlog 文件+位点去重，仅接受比已写入 LSN 更靠后的记录&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;exactly-once 保障原理：&lt;/b&gt;&lt;/p&gt;
+ * &lt;p&gt;故障恢复后，Flink 从最近 checkpoint 重放记录。幂等写入器通过去重保证：
+ * 重放的记录与首次写入的记录产生相同结果，不会因重复写入导致数据重复或状态错乱。
+ * 配合 {@link TransactionalSink} 的事务原子性，实现端到端 exactly-once。&lt;/p&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * IdempotentWriter writer = IdempotentWriter.builder()
+ *     .strategy(ExactlyOnceConfig.IdempotentStrategy.PRIMARY_KEY)
+ *     .primaryKeyColumns(&quot;id&quot;)
+ *     .build();
+ *
+ * // 写入（自动去重）
+ * writer.write(record1);
+ * writer.write(record2);  // 若与 record1 主键相同，覆盖
+ *
+ * // 获取去重后的有效记录
+ * List&lt;ChangeRecord&gt; effective = writer.drainPending();
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class IdempotentWriter implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+<span class="fc" id="L59">    private static final Logger log = LoggerFactory.getLogger(IdempotentWriter.class);</span>
+
+    private final ExactlyOnceConfig.IdempotentStrategy strategy;
+    private final List&lt;String&gt; primaryKeyColumns;
+    private final String versionColumn;
+
+    /** 已写入记录的去重键 → 最新版本号（VERSION 策略）/ LSN（TXN_LSN 策略）。 */
+<span class="fc" id="L66">    private final Map&lt;String, Long&gt; committedVersion = new HashMap&lt;&gt;();</span>
+    /** 已写入记录的去重键 → 已提交记录的 LSN（TXN_LSN 策略）。 */
+<span class="fc" id="L68">    private final Map&lt;String, Long&gt; committedLsn = new HashMap&lt;&gt;();</span>
+    /** 当前待写入（去重后）的记录缓冲：去重键 → 记录。 */
+<span class="fc" id="L70">    private final Map&lt;String, ChangeRecord&gt; pendingBuffer = new LinkedHashMap&lt;&gt;();</span>
+    /** 已写入的记录总数（含被覆盖的，用于统计）。 */
+<span class="fc" id="L72">    private final AtomicLong totalAttempted = new AtomicLong(0);</span>
+    /** 实际写入的记录总数（去重后）。 */
+<span class="fc" id="L74">    private final AtomicLong totalEffective = new AtomicLong(0);</span>
+    /** 被去重丢弃的记录总数。 */
+<span class="fc" id="L76">    private final AtomicLong totalDeduplicated = new AtomicLong(0);</span>
+
+    private IdempotentWriter(ExactlyOnceConfig.IdempotentStrategy strategy,
+                             List&lt;String&gt; primaryKeyColumns,
+<span class="fc" id="L80">                             String versionColumn) {</span>
+<span class="fc" id="L81">        this.strategy = strategy;</span>
+<span class="fc" id="L82">        this.primaryKeyColumns = primaryKeyColumns;</span>
+<span class="fc" id="L83">        this.versionColumn = versionColumn;</span>
+<span class="fc" id="L84">    }</span>
+
+    /**
+     * 写入单条记录，自动去重。
+     *
+     * @param record 变更记录
+     * @return true 表示记录被接受（新记录或更高版本）；false 表示被去重丢弃
+     */
+    public boolean write(ChangeRecord record) {
+<span class="fc" id="L93">        Objects.requireNonNull(record, &quot;record 不能为 null&quot;);</span>
+<span class="fc" id="L94">        totalAttempted.incrementAndGet();</span>
+
+<span class="fc" id="L96">        String dedupKey = computeDedupKey(record);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        if (dedupKey == null) {</span>
+<span class="fc" id="L98">            log.warn(&quot;记录无法计算去重键，按非幂等方式写入: {}&quot;, record);</span>
+<span class="fc" id="L99">            pendingBuffer.put(&quot;__no_key__&quot; + System.nanoTime(), record);</span>
+<span class="fc" id="L100">            totalEffective.incrementAndGet();</span>
+<span class="fc" id="L101">            return true;</span>
+        }
+
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">        switch (strategy) {</span>
+            case PRIMARY_KEY -&gt; {
+                // 主键去重：后者覆盖前者，返回 true 表示记录被接受（覆盖旧版本）
+<span class="fc" id="L107">                ChangeRecord previous = pendingBuffer.put(dedupKey, record);</span>
+<span class="fc bfc" id="L108" title="All 2 branches covered.">                if (previous != null) {</span>
+<span class="fc" id="L109">                    totalDeduplicated.incrementAndGet();</span>
+<span class="fc" id="L110">                    log.trace(&quot;主键去重：覆盖旧记录 key={}&quot;, dedupKey);</span>
+                } else {
+<span class="fc" id="L112">                    totalEffective.incrementAndGet();</span>
+                }
+<span class="fc" id="L114">                return true;</span>
+            }
+            case VERSION -&gt; {
+<span class="fc" id="L117">                long version = extractVersion(record);</span>
+<span class="fc" id="L118">                Long committed = committedVersion.get(dedupKey);</span>
+<span class="fc" id="L119">                ChangeRecord pending = pendingBuffer.get(dedupKey);</span>
+<span class="fc bfc" id="L120" title="All 2 branches covered.">                long pendingVersion = pending == null ? Long.MIN_VALUE : extractVersion(pending);</span>
+<span class="fc" id="L121">                long baseline = Math.max(</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">                        committed == null ? Long.MIN_VALUE : committed,</span>
+                        pendingVersion);
+<span class="fc bfc" id="L124" title="All 2 branches covered.">                if (version &gt; baseline) {</span>
+<span class="fc" id="L125">                    pendingBuffer.put(dedupKey, record);</span>
+<span class="fc" id="L126">                    totalEffective.incrementAndGet();</span>
+<span class="fc" id="L127">                    return true;</span>
+                } else {
+<span class="fc" id="L129">                    totalDeduplicated.incrementAndGet();</span>
+<span class="fc" id="L130">                    log.trace(&quot;版本号去重：丢弃旧版本 key={}, version={}, baseline={}&quot;,</span>
+<span class="fc" id="L131">                            dedupKey, version, baseline);</span>
+<span class="fc" id="L132">                    return false;</span>
+                }
+            }
+            case TXN_LSN -&gt; {
+<span class="fc" id="L136">                long lsn = extractLsn(record);</span>
+<span class="fc" id="L137">                Long committed = committedLsn.get(dedupKey);</span>
+<span class="fc" id="L138">                ChangeRecord pending = pendingBuffer.get(dedupKey);</span>
+<span class="fc bfc" id="L139" title="All 2 branches covered.">                long pendingLsn = pending == null ? Long.MIN_VALUE : extractLsn(pending);</span>
+<span class="fc" id="L140">                long baseline = Math.max(</span>
+<span class="fc bfc" id="L141" title="All 2 branches covered.">                        committed == null ? Long.MIN_VALUE : committed,</span>
+                        pendingLsn);
+<span class="fc bfc" id="L143" title="All 2 branches covered.">                if (lsn &gt; baseline) {</span>
+<span class="fc" id="L144">                    pendingBuffer.put(dedupKey, record);</span>
+<span class="fc" id="L145">                    totalEffective.incrementAndGet();</span>
+<span class="fc" id="L146">                    return true;</span>
+                } else {
+<span class="fc" id="L148">                    totalDeduplicated.incrementAndGet();</span>
+<span class="fc" id="L149">                    log.trace(&quot;LSN 去重：丢弃旧位点 key={}, lsn={}, baseline={}&quot;,</span>
+<span class="fc" id="L150">                            dedupKey, lsn, baseline);</span>
+<span class="fc" id="L151">                    return false;</span>
+                }
+            }
+            default -&gt; {
+<span class="nc" id="L155">                pendingBuffer.put(dedupKey + &quot;:&quot; + System.nanoTime(), record);</span>
+<span class="nc" id="L156">                totalEffective.incrementAndGet();</span>
+<span class="nc" id="L157">                return true;</span>
+            }
+        }
+    }
+
+    /**
+     * 批量写入记录，自动去重。
+     *
+     * @param records 记录集合
+     * @return 实际被接受的记录数
+     */
+    public int writeAll(Collection&lt;ChangeRecord&gt; records) {
+<span class="fc" id="L169">        Objects.requireNonNull(records, &quot;records 不能为 null&quot;);</span>
+<span class="fc" id="L170">        int accepted = 0;</span>
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        for (ChangeRecord record : records) {</span>
+<span class="pc bpc" id="L172" title="1 of 2 branches missed.">            if (write(record)) {</span>
+<span class="fc" id="L173">                accepted++;</span>
+            }
+<span class="fc" id="L175">        }</span>
+<span class="fc" id="L176">        return accepted;</span>
+    }
+
+    /**
+     * 获取当前去重后的待写入记录，并清空缓冲。
+     *
+     * @return 去重后的记录列表（按写入顺序）
+     */
+    public List&lt;ChangeRecord&gt; drainPending() {
+<span class="fc bfc" id="L185" title="All 2 branches covered.">        if (pendingBuffer.isEmpty()) {</span>
+<span class="fc" id="L186">            return Collections.emptyList();</span>
+        }
+<span class="fc" id="L188">        List&lt;ChangeRecord&gt; drained = new ArrayList&lt;&gt;(pendingBuffer.values());</span>
+<span class="fc" id="L189">        pendingBuffer.clear();</span>
+<span class="fc" id="L190">        return drained;</span>
+    }
+
+    /**
+     * 获取当前去重后的待写入记录（不清空缓冲，仅快照）。
+     *
+     * @return 去重后的记录列表（只读视图）
+     */
+    public List&lt;ChangeRecord&gt; snapshotPending() {
+<span class="fc" id="L199">        return new ArrayList&lt;&gt;(pendingBuffer.values());</span>
+    }
+
+    /**
+     * 标记当前缓冲中的记录为已提交，更新去重基线。
+     *
+     * &lt;p&gt;在事务 commit 成功后调用，使后续重放的记录能被正确去重。&lt;/p&gt;
+     */
+    public void markCommitted() {
+<span class="fc bfc" id="L208" title="All 2 branches covered.">        for (ChangeRecord record : pendingBuffer.values()) {</span>
+<span class="fc" id="L209">            String key = computeDedupKey(record);</span>
+<span class="pc bpc" id="L210" title="1 of 2 branches missed.">            if (key == null) {</span>
+<span class="nc" id="L211">                continue;</span>
+            }
+<span class="fc bfc" id="L213" title="All 2 branches covered.">            if (strategy == ExactlyOnceConfig.IdempotentStrategy.VERSION) {</span>
+<span class="fc" id="L214">                committedVersion.put(key, extractVersion(record));</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">            } else if (strategy == ExactlyOnceConfig.IdempotentStrategy.TXN_LSN) {</span>
+<span class="fc" id="L216">                committedLsn.put(key, extractLsn(record));</span>
+            }
+<span class="fc" id="L218">        }</span>
+<span class="fc" id="L219">        pendingBuffer.clear();</span>
+<span class="fc" id="L220">    }</span>
+
+    /**
+     * 回滚当前缓冲（事务 abort 后调用）。
+     */
+    public void rollback() {
+<span class="fc" id="L226">        pendingBuffer.clear();</span>
+<span class="fc" id="L227">    }</span>
+
+    /**
+     * 计算记录的去重键。
+     *
+     * @param record 变更记录
+     * @return 去重键；无法计算返回 {@code null}
+     */
+    String computeDedupKey(ChangeRecord record) {
+<span class="pc bpc" id="L236" title="1 of 3 branches missed.">        switch (strategy) {</span>
+            case PRIMARY_KEY, VERSION -&gt; {
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">                if (primaryKeyColumns.isEmpty()) {</span>
+<span class="nc" id="L239">                    return null;</span>
+                }
+<span class="fc" id="L241">                Map&lt;String, Object&gt; payload = selectPayload(record);</span>
+<span class="pc bpc" id="L242" title="1 of 2 branches missed.">                if (payload == null) {</span>
+<span class="nc" id="L243">                    return null;</span>
+                }
+<span class="fc" id="L245">                StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">                for (String col : primaryKeyColumns) {</span>
+<span class="fc" id="L247">                    Object val = payload.get(col);</span>
+<span class="pc bpc" id="L248" title="1 of 2 branches missed.">                    if (val == null) {</span>
+<span class="nc" id="L249">                        return null;</span>
+                    }
+<span class="fc bfc" id="L251" title="All 2 branches covered.">                    if (sb.length() &gt; 0) {</span>
+<span class="fc" id="L252">                        sb.append('|');</span>
+                    }
+<span class="fc" id="L254">                    sb.append(val);</span>
+<span class="fc" id="L255">                }</span>
+<span class="fc" id="L256">                return sb.toString();</span>
+            }
+            case TXN_LSN -&gt; {
+<span class="fc" id="L259">                Map&lt;String, Object&gt; source = record.getSource();</span>
+<span class="fc bfc" id="L260" title="All 2 branches covered.">                if (source == null) {</span>
+<span class="fc" id="L261">                    return null;</span>
+                }
+<span class="fc" id="L263">                Object file = source.get(&quot;file&quot;);</span>
+<span class="pc bpc" id="L264" title="1 of 2 branches missed.">                return file == null ? null : String.valueOf(file);</span>
+            }
+            default -&gt; {
+<span class="nc" id="L267">                return null;</span>
+            }
+        }
+    }
+
+    /**
+     * 选择记录的有效载荷（after 优先，DELETE 时用 before）。
+     *
+     * @param record 变更记录
+     * @return 载荷 Map；不存在返回 {@code null}
+     */
+    private Map&lt;String, Object&gt; selectPayload(ChangeRecord record) {
+<span class="fc bfc" id="L279" title="All 2 branches covered.">        if (record.getAfter() != null) {</span>
+<span class="fc" id="L280">            return record.getAfter();</span>
+        }
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">        if (record.getBefore() != null) {</span>
+<span class="fc" id="L283">            return record.getBefore();</span>
+        }
+<span class="nc" id="L285">        return null;</span>
+    }
+
+    /**
+     * 提取记录的版本号。
+     *
+     * @param record 变更记录
+     * @return 版本号；无法提取返回 {@code Long.MIN_VALUE}
+     */
+    long extractVersion(ChangeRecord record) {
+<span class="fc" id="L295">        Map&lt;String, Object&gt; payload = selectPayload(record);</span>
+<span class="pc bpc" id="L296" title="2 of 4 branches missed.">        if (payload == null || versionColumn == null) {</span>
+<span class="nc" id="L297">            return Long.MIN_VALUE;</span>
+        }
+<span class="fc" id="L299">        Object val = payload.get(versionColumn);</span>
+<span class="fc bfc" id="L300" title="All 2 branches covered.">        if (val instanceof Number n) {</span>
+<span class="fc" id="L301">            return n.longValue();</span>
+        }
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">        if (val != null) {</span>
+            try {
+<span class="fc" id="L305">                return Long.parseLong(String.valueOf(val));</span>
+<span class="nc" id="L306">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L307">                return Long.MIN_VALUE;</span>
+            }
+        }
+<span class="nc" id="L310">        return Long.MIN_VALUE;</span>
+    }
+
+    /**
+     * 提取记录的 Binlog LSN（file + pos）。
+     *
+     * @param record 变更记录
+     * @return LSN；无法提取返回 {@code Long.MIN_VALUE}
+     */
+    long extractLsn(ChangeRecord record) {
+<span class="fc" id="L320">        Map&lt;String, Object&gt; source = record.getSource();</span>
+<span class="pc bpc" id="L321" title="1 of 2 branches missed.">        if (source == null) {</span>
+<span class="nc" id="L322">            return Long.MIN_VALUE;</span>
+        }
+<span class="fc" id="L324">        Object pos = source.get(&quot;pos&quot;);</span>
+<span class="pc bpc" id="L325" title="1 of 2 branches missed.">        if (pos instanceof Number n) {</span>
+<span class="fc" id="L326">            return n.longValue();</span>
+        }
+<span class="nc bnc" id="L328" title="All 2 branches missed.">        if (pos != null) {</span>
+            try {
+<span class="nc" id="L330">                return Long.parseLong(String.valueOf(pos));</span>
+<span class="nc" id="L331">            } catch (NumberFormatException e) {</span>
+<span class="nc" id="L332">                return Long.MIN_VALUE;</span>
+            }
+        }
+<span class="nc" id="L335">        return Long.MIN_VALUE;</span>
+    }
+
+    // ===== 统计访问器 =====
+
+    public long getTotalAttempted() {
+<span class="fc" id="L341">        return totalAttempted.get();</span>
+    }
+
+    public long getTotalEffective() {
+<span class="nc" id="L345">        return totalEffective.get();</span>
+    }
+
+    public long getTotalDeduplicated() {
+<span class="fc" id="L349">        return totalDeduplicated.get();</span>
+    }
+
+    public int getPendingCount() {
+<span class="fc" id="L353">        return pendingBuffer.size();</span>
+    }
+
+    public ExactlyOnceConfig.IdempotentStrategy getStrategy() {
+<span class="fc" id="L357">        return strategy;</span>
+    }
+
+    public List&lt;String&gt; getPrimaryKeyColumns() {
+<span class="fc" id="L361">        return Collections.unmodifiableList(primaryKeyColumns);</span>
+    }
+
+    public String getVersionColumn() {
+<span class="fc" id="L365">        return versionColumn;</span>
+    }
+
+    /**
+     * 创建 Builder。
+     *
+     * @return Builder 实例
+     */
+    public static Builder builder() {
+<span class="fc" id="L374">        return new Builder();</span>
+    }
+
+    /**
+     * IdempotentWriter 构造器。
+     */
+<span class="fc" id="L380">    public static final class Builder {</span>
+<span class="fc" id="L381">        private ExactlyOnceConfig.IdempotentStrategy strategy =</span>
+                ExactlyOnceConfig.IdempotentStrategy.PRIMARY_KEY;
+<span class="fc" id="L383">        private List&lt;String&gt; primaryKeyColumns = new ArrayList&lt;&gt;();</span>
+        private String versionColumn;
+
+        /** 去重策略。 */
+        public Builder strategy(ExactlyOnceConfig.IdempotentStrategy strategy) {
+<span class="fc" id="L388">            this.strategy = Objects.requireNonNull(strategy);</span>
+<span class="fc" id="L389">            return this;</span>
+        }
+
+        /** 主键列（逗号分隔）。 */
+        public Builder primaryKeyColumns(String columns) {
+<span class="fc" id="L394">            Objects.requireNonNull(columns, &quot;primaryKeyColumns 不能为 null&quot;);</span>
+<span class="fc" id="L395">            this.primaryKeyColumns = parseColumns(columns);</span>
+<span class="fc" id="L396">            return this;</span>
+        }
+
+        /** 主键列（数组）。 */
+        public Builder primaryKeyColumns(String... columns) {
+<span class="fc" id="L401">            Objects.requireNonNull(columns, &quot;primaryKeyColumns 不能为 null&quot;);</span>
+<span class="fc" id="L402">            this.primaryKeyColumns = Arrays.asList(columns);</span>
+<span class="fc" id="L403">            return this;</span>
+        }
+
+        /** 版本号列。 */
+        public Builder versionColumn(String column) {
+<span class="fc" id="L408">            this.versionColumn = column;</span>
+<span class="fc" id="L409">            return this;</span>
+        }
+
+        /** 从 ExactlyOnceConfig 复制配置。 */
+        public Builder fromConfig(ExactlyOnceConfig config) {
+<span class="fc" id="L414">            Objects.requireNonNull(config, &quot;config 不能为 null&quot;);</span>
+<span class="fc" id="L415">            this.strategy = config.getIdempotentStrategy();</span>
+<span class="pc bpc" id="L416" title="1 of 2 branches missed.">            if (config.getPrimaryKeyColumns() != null) {</span>
+<span class="fc" id="L417">                this.primaryKeyColumns = parseColumns(config.getPrimaryKeyColumns());</span>
+            }
+<span class="fc" id="L419">            this.versionColumn = config.getVersionColumn();</span>
+<span class="fc" id="L420">            return this;</span>
+        }
+
+        /** 构建 IdempotentWriter。 */
+        public IdempotentWriter build() {
+<span class="fc" id="L425">            return new IdempotentWriter(strategy,</span>
+                    new ArrayList&lt;&gt;(primaryKeyColumns),
+                    versionColumn);
+        }
+
+        private static List&lt;String&gt; parseColumns(String columns) {
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">            if (columns.isEmpty()) {</span>
+<span class="nc" id="L432">                return new ArrayList&lt;&gt;();</span>
+            }
+<span class="fc" id="L434">            String[] parts = columns.split(&quot;,&quot;);</span>
+<span class="fc" id="L435">            Set&lt;String&gt; seen = new HashSet&lt;&gt;();</span>
+<span class="fc" id="L436">            List&lt;String&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L437" title="All 2 branches covered.">            for (String p : parts) {</span>
+<span class="fc" id="L438">                String trimmed = p.trim();</span>
+<span class="pc bpc" id="L439" title="1 of 4 branches missed.">                if (!trimmed.isEmpty() &amp;&amp; seen.add(trimmed)) {</span>
+<span class="fc" id="L440">                    result.add(trimmed);</span>
+                }
+            }
+<span class="fc" id="L443">            return result;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
