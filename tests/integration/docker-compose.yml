@@ -111,6 +111,62 @@ services:
       - it-net
 
   # ---------------------------------------------------------------------------
+  # FinOps 成本模型服务（Java/Spring Boot, port 8084）
+  # ---------------------------------------------------------------------------
+  cost-model:
+    build:
+      context: ../../platform/finops/cost-model
+      dockerfile: Dockerfile
+    image: shuqing/cost-model:0.1.0
+    container_name: it-cost-model
+    ports:
+      - "18084:8084"
+    environment:
+      - SERVER_PORT=8084
+      - PROMETHEUS_URL=http://prometheus:9090
+    depends_on:
+      encaps-layer:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # LLM 多模态网关（Go/Gin, port 8084 → 主机 18085）
+  # ---------------------------------------------------------------------------
+  # T030 大模型多模态网关统一 API 与路由
+  # - OpenAI 兼容 API（/v1/chat/completions）
+  # - 四维度路由（模型/租户/场景/成本）
+  # - 多模态 Token 计量（文本/图像/语音/视频）
+  # - SSE 流式响应 + 异步批处理
+  llm-gateway:
+    build:
+      context: ../../platform/llm-gateway
+      dockerfile: Dockerfile
+    image: shuqing/llm-gateway:0.2.0
+    container_name: it-llm-gateway
+    ports:
+      - "18085:8084"
+    environment:
+      - LLM_GATEWAY_PORT=8084
+      - LLM_GATEWAY_VERSION=0.2.0
+      - LLM_GATEWAY_MOCK_MODE=true
+      - JWT_DEV_MODE=true
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
   # Prometheus（采集 4 个自研组件的 metrics）
   # ---------------------------------------------------------------------------
   prometheus:

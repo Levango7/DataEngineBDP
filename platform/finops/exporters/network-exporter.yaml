@@ -1,0 +1,42 @@
+# 网络流量 Exporter 配置 — Prometheus ServiceMonitor
+#
+# 用途：采集 FinOps 五维度中的网络流量指标（入向 + 出向），按 tenant + namespace 标签隔离。
+# 基于 cAdvisor 已暴露的 container_network_receive_bytes_total / container_network_transmit_bytes_total，
+# 本 ServiceMonitor 配置 Prometheus Operator 自动发现并抓取 node-exporter 的网络指标，
+# 采集粒度 60s（≤ 1min 满足 FinOps 要求）。
+#
+# 关联资源（同目录下）：
+#   - network-exporter-deployment.yaml — Deployment + Service + ConfigMap
+#
+# 暴露指标示例：
+#   container_network_receive_bytes_total{tenant="t1",namespace="ns1",interface="eth0"} 1234567890
+#   container_network_transmit_bytes_total{tenant="t1",namespace="ns1",interface="eth0"} 987654321
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: network-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-exporter
+    app.kubernetes.io/part-of: finops
+    release: prometheus          # 与 Prometheus Operator 匹配
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-exporter
+  endpoints:
+    - port: metrics
+      interval: 60s              # 采集粒度 ≤ 1min
+      scrapeTimeout: 30s
+      # 按 tenant + namespace 标签隔离
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_tenant]
+          targetLabel: tenant
+          action: replace
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+          action: replace
+        # 排除 loopback 与 cni 内部接口
+        - sourceLabels: [interface]
+          regex: "lo|cni0|flannel.1|docker0"
+          action: drop

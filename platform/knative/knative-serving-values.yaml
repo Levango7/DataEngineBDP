@@ -1,0 +1,238 @@
+# ============================================================================
+# Knative Serving Helm values · 数擎大数据平台
+# ----------------------------------------------------------------------------
+# 版本：Knative Serving >= 1.12
+# 网络层：复用 Phase 1 已部署的 Istio（T001）Ingress Gateway
+# 仓库：knative-serving Helm Chart（https://knative.dev/docs/install/yaml-install/serving/installation-with-helm/）
+# 集成：与 ArgoCD（T003）GitOps 同步，见同目录 argocd-application.yaml
+# 特性：
+#   1. KPA 自动伸缩（基于 RPS 与并发）
+#   2. scale-to-zero（无流量 60s 后 Pod 缩容到 0）
+#   3. Istio Ingress Gateway 复用，避免重复部署网络层
+# 渲染命令：
+#   helm template knative-serving knative-serving \
+#     -n knative-serving \
+#     -f platform/knative/knative-serving-values.yaml
+# ============================================================================
+
+# ---------- 全局 ----------
+global:
+  # 复用 Phase 1 Istio，不重复部署
+  istioNamespace: istio-system
+  knativeNamespace: knative-serving
+  # 国内镜像加速
+  imageRegistry: docker.m.daocloud.io
+  # 标签
+  labels:
+    app.kubernetes.io/part-of: shuqing-platform
+    app.kubernetes.io/managed-by: helm
+    platform.shuqing.io/component: knative-serving
+
+# ---------- Knative Serving 核心配置 ----------
+serving:
+  # 版本
+  version: "1.12.0"
+
+  # ---------- 控制面 ----------
+  controller:
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/serving/cmd/controller
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "200Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    # 高可用：启用 leader election
+    enableLeaderElection: true
+
+  # ---------- Webhook ----------
+  webhook:
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/serving/cmd/webhook
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "500m"
+        memory: "500Mi"
+
+  # ---------- Activator（scale-from-zero 关键组件）----------
+  activator:
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/serving/cmd/activator
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+
+  # ---------- Autoscaler（KPA）----------
+  autoscaler:
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/serving/cmd/autoscaler
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    # 启用 KPA（Knative Pod Autoscaler）
+    enableKpa: true
+    # 启用基于 RPS 的伸缩指标
+    enableRpsMetric: true
+
+  # ---------- 默认配置（ConfigMap: config-defaults）----------
+  defaults:
+    # 默认每个 Pod 并发请求数（KPA target concurrency）
+    containerConcurrency: "10"
+    # 默认超时
+    timeoutSeconds: "30"
+    # 默认最大超时
+    maxTimeoutSeconds: "600"
+
+  # ---------- 自动伸缩配置（ConfigMap: config-autoscaler）----------
+  autoscalerConfig:
+    # 缩容到零：无流量后 Pod 缩容到 0
+    enableScaleToZero: "true"
+    # 无流量后等待 60s 再缩容到零
+    scaleToZeroGracePeriod: "60s"
+    # scale-to-zero 后保留 Activator 的最短时间
+    scaleToZeroPodRetentionPeriod: "0s"
+    # KPA 目标并发（target concurrency）
+    targetConcurrency: "10"
+    # KPA 目标 RPS（requests per second）
+    targetRps: "100"
+    # 容器并发限制（burst capacity）
+    containerConcurrencyTargetDefault: "10"
+    # 突发并发容量（>1 时启用突发）
+    containerConcurrencyTargetBurstCapacity: "11"
+    # 最大扩容速率（每秒新增 Pod 数）
+    maxScaleUpRate: "1000.0"
+    # 最大缩容速率
+    maxScaleDownRate: "2.0"
+    # 稳定窗口（伸缩决策前观察的稳定时间）
+    stableWindow: "60s"
+    # 缩容窗口
+    scaleDownDelay: "2m"
+    # 伸缩指标聚合窗口
+    panicWindow: "6s"
+    # panic 模式阈值倍数
+    panicThresholdPercentage: "200.0"
+
+  # ---------- 网络配置（ConfigMap: config-network）----------
+  network:
+    # 复用 Istio Ingress Gateway（Phase 1 部署）
+    ingressClass: "istio.ingress.networking.knative.dev"
+    # Istio Ingress Gateway 所在 namespace
+    istioIngressGatewayNamespace: "istio-system"
+    # Istio Ingress Gateway 名称（Phase 1 已部署）
+    istioIngressGatewayName: "istio-ingressgateway"
+    # 默认外部域名后缀
+    domainTemplate: "{{.Name}}.{{.Namespace}}.{{.Domain}}"
+    # 默认域名
+    defaultDomain: "shuqing.local"
+    # 是否启用自动 TLS
+    autoTLS: "Enabled"
+    # HTTP 重定向到 HTTPS
+    httpProtocol: "Redirected"
+    # 每个_revision_ 的可见性
+    visibility: "ClusterLocal"
+
+  # ---------- 部署配置（ConfigMap: config-deployment）----------
+  deployment:
+    # 默认 _revision_ 资源配额
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    # 默认 Queue 代理资源
+    queueSidecar:
+      resources:
+        requests:
+          cpu: "25m"
+          memory: "50Mi"
+        limits:
+          cpu: "500m"
+          memory: "500Mi"
+      # Queue 代理镜像
+      image:
+        repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/serving/cmd/queue
+        tag: "v1.12.0"
+        pullPolicy: IfNotPresent
+
+  # ---------- 特性开关（ConfigMap: config-features）----------
+  features:
+    # 多容器支持
+    multiContainer: "enabled"
+    # KPA 基于 RPS 伸缩
+    kpaRps: "enabled"
+    # 标签选择器
+    tagHeaderBasedRouting: "enabled"
+
+  # ---------- Pod 调度 ----------
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  # ---------- HPA（控制面 Deployment 自身）----------
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 80
+
+# ---------- 监控 ----------
+monitoring:
+  enabled: true
+  # Prometheus ServiceMonitor
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: "30s"
+    scrapeTimeout: "10s"
+  # Grafana Dashboard
+  grafanaDashboard:
+    enabled: true
+    namespace: monitoring
+
+# ---------- 资源配额（namespace 级）----------
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+
+# ---------- PodDisruptionBudget ----------
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ---------- 引用提示 ----------
+# 完整生产配置可通过 -f 覆盖上述任意字段。
+# 与 Istio 集成：确保 Phase 1 Istio Ingress Gateway 已就绪
+#   kubectl get svc istio-ingressgateway -n istio-system
+# 与 ArgoCD 集成：见 argocd-application.yaml
+# ============================================================================

@@ -1,0 +1,42 @@
+{
+  "task_id": "ft-f0b86da7249c",
+  "base_model": "meta-llama/Llama-2-13b-hf",
+  "dataset_path": "/data/datasets/alpaca-zh.json",
+  "output_dir": "/tmp/finetune-test/output",
+  "hyperparams": {
+    "epochs": 1,
+    "batchSize": 2,
+    "gradientAccumulationSteps": 2,
+    "learningRate": 0.0001,
+    "weightDecay": 0.01,
+    "warmupSteps": 100,
+    "maxSeqLength": 2048,
+    "loggingSteps": 5,
+    "saveSteps": 500,
+    "evalSteps": null,
+    "seed": 42,
+    "fp16": true,
+    "bf16": false
+  },
+  "peft": {
+    "method": "qlora",
+    "bnb_config": {
+      "load_in_4bit": true,
+      "load_in_8bit": false,
+      "bnb_4bit_compute_dtype": "bfloat16",
+      "bnb_4bit_quant_storage": "uint8",
+      "bnb_4bit_use_double_quant": true
+    },
+    "lora_config": {
+      "r": 32,
+      "lora_alpha": 64,
+      "lora_dropout": 0.05,
+      "target_modules": [
+        "q_proj",
+        "v_proj"
+      ],
+      "bias": "none",
+      "task_type": "CAUSAL_LM"
+    }
+  }
+}

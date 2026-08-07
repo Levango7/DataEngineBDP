@@ -48,6 +48,8 @@ BASE_URLS: Dict[str, str] = {
     "sql_gateway": os.environ.get("SQL_GATEWAY_URL", "http://localhost:18081"),
     "catalog": os.environ.get("CATALOG_URL", "http://localhost:18082"),
     "rule_engine": os.environ.get("RULE_ENGINE_URL", "http://localhost:18083"),
+    "finops": os.environ.get("FINOPS_URL", "http://localhost:18084"),
+    "llm_gateway": os.environ.get("LLM_GATEWAY_URL", "http://localhost:18085"),
 }
 
 # Docker 容器名（用于 docker ps 状态检查）。
@@ -56,6 +58,8 @@ DOCKER_CONTAINERS: Dict[str, str] = {
     "sql_gateway": "it-sql-gateway",
     "catalog": "it-catalog",
     "rule_engine": "it-rule-engine",
+    "finops": "it-cost-model",
+    "llm_gateway": "it-llm-gateway",
 }
 
 # 各模块健康检查端点路径（Java 用 /actuator/health，Go 用 /api/v1/health）。
@@ -64,6 +68,8 @@ HEALTH_PATHS: Dict[str, str] = {
     "sql_gateway": "/actuator/health",
     "catalog": "/api/v1/health",
     "rule_engine": "/actuator/health",
+    "finops": "/api/v1/health",
+    "llm_gateway": "/health",
 }
 
 # HTTP 请求默认超时（秒），避免测试卡死。
@@ -257,6 +263,18 @@ def rule_engine_url() -> str:
     return BASE_URLS["rule_engine"]
 
 
+@pytest.fixture(scope="session")
+def finops_url() -> str:
+    """FinOps 成本模型服务基础 URL。"""
+    return BASE_URLS["finops"]
+
+
+@pytest.fixture(scope="session")
+def llm_gateway_url() -> str:
+    """LLM 网关基础 URL。"""
+    return BASE_URLS["llm_gateway"]
+
+
 # 各模块可用性 fixture（用于条件跳过）。
 @pytest.fixture(scope="session")
 def encaps_available() -> bool:
@@ -282,6 +300,18 @@ def rule_engine_available() -> bool:
     return is_service_available("rule_engine")
 
 
+@pytest.fixture(scope="session")
+def finops_available() -> bool:
+    """FinOps 成本模型服务是否可用。"""
+    return is_service_available("finops")
+
+
+@pytest.fixture(scope="session")
+def llm_gateway_available() -> bool:
+    """LLM 网关是否可用。"""
+    return is_service_available("llm_gateway")
+
+
 # ---------------------------------------------------------------------------
 # 测试收集阶段钩子：自动跳过服务不可用的测试
 # ---------------------------------------------------------------------------
@@ -297,6 +327,8 @@ def pytest_collection_modifyitems(config, items):
         "sql_gateway": is_service_available("sql_gateway"),
         "catalog": is_service_available("catalog"),
         "rule_engine": is_service_available("rule_engine"),
+        "finops": is_service_available("finops"),
+        "llm_gateway": is_service_available("llm_gateway"),
     }
 
     # 测试文件名前缀 → 模块名映射。
@@ -305,6 +337,9 @@ def pytest_collection_modifyitems(config, items):
         "test_docker_sql_gateway": "sql_gateway",
         "test_docker_catalog": "catalog",
         "test_docker_rule_engine": "rule_engine",
+        "test_finops": "finops",
+        "test_multimodal_gateway": "llm_gateway",
+        "test_docker_llm_gateway": "llm_gateway",
     }
 
     for item in items:

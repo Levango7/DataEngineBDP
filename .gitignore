@@ -22,3 +22,8 @@ yarn-error.log*
 __pycache__/
 *.pyc
 .venv/
+
+# Maven build output
+platform/finops/cost-model/target/
+platform/model-finetuning/__pycache__/
+platform/model-finetuning/app/__pycache__/

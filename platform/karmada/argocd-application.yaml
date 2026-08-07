@@ -1,0 +1,162 @@
+﻿# ArgoCD Application · Karmada 控制面 GitOps 同步
+# ============================================================================
+# 作用：将 Karmada Helm Chart 纳入 ArgoCD GitOps 管理
+# 集成：与 Phase 1 ArgoCD（T003）已部署的实例对接
+# 仓库：https://github.com/karmada-io/karmada/tree/master/charts/karmada
+# ============================================================================
+# 部署后 ArgoCD 将自动：
+#   1. 安装 Karmada Helm Chart 到 karmada-system namespace
+#   2. 安装 CRD（PropagationPolicy/OverridePolicy 等）
+#   3. 启动控制面组件（apiserver/etcd/controller-manager/scheduler/webhook）
+# ============================================================================
+
+---
+# ArgoCD Application：Karmada Helm Chart
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karmada-control-plane
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: "karmada"
+    app.kubernetes.io/part-of: "gitops"
+    app.kubernetes.io/component: "control-plane"
+    environment: "production"
+    app.kubernetes.io/managed-by: "argocd"
+  annotations:
+    # 通知：同步失败时告警（与 Phase 1 通知配置对接）
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: "karmada-alerts"
+    notifications.argoproj.io/subscribe.on-health-degraded.slack: "karmada-alerts"
+  finalizers:
+    # 删除 Application 时级联清理 Karmada 资源
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # 所属 AppProject（与 Phase 1 platform-prod 项目对齐）
+  project: platform-prod
+  # 源配置：Karmada 官方 Helm Chart 仓库
+  source:
+    chart: "karmada"
+    repoURL: "https://raw.githubusercontent.com/karmada-io/karmada/master/charts"
+    targetRevision: "v1.10.0"
+    # Helm values：引用本仓库的 values 文件
+    helm:
+      # 传递 values 文件
+      valueFiles:
+        - "platform/karmada/karmada-values.yaml"
+      # 释放名
+      releaseName: "karmada"
+      # Helm 版本
+      version: "v3"
+      # 等待所有资源就绪
+      wait: true
+      # 超时（秒）
+      timeout: 600
+      # 安装时创建 namespace
+      createNamespace: true
+      # 原子安装：失败时回滚
+      atomic: true
+  # 目标集群：主集群（Karmada 控制面所在集群）
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "karmada-system"
+  # 同步策略：手动同步（控制面变更需人工确认）
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+      # CRD 安装优先
+      - ServerSideApply=true
+    # 失败重试
+    retry:
+      limit: 5
+      backoff:
+        duration: "10s"
+        factor: 2
+        maxDuration: "5m"
+  # 健康检查忽略字段（Karmada 控制面 status 由控制器异步写入）
+  ignoreDifferences:
+    - jsonPointers:
+        - /status
+      kind: Deployment
+    - jsonPointers:
+        - /status
+      kind: CustomResourceDefinition
+  revisionHistoryLimit: 10
+
+---
+# ArgoCD Application：Karmada CRD 显式声明（PropagationPolicy/OverridePolicy）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: karmada-crds
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: "karmada"
+    app.kubernetes.io/component: "crds"
+    app.kubernetes.io/managed-by: "argocd"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: "https://github.com/Levango7/DataEngineBDP"
+    targetRevision: "main"
+    path: "platform/karmada"
+    # 仅同步 CRD 定义文件
+    directory:
+      recurse: true
+      include: "propagation-policy-crd.yaml"
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: "karmada-system"
+  syncPolicy:
+    automated:
+      prune: false  # CRD 不修剪，避免误删多集群资源
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: "5s"
+        factor: 2
+        maxDuration: "1m"
+  revisionHistoryLimit: 5
+
+---
+# ArgoCD AppProject：Karmada 资源隔离
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: karmada-project
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: "karmada"
+    app.kubernetes.io/managed-by: "argocd"
+spec:
+  description: "Karmada 多集群控制面 GitOps 项目"
+  # 允许的源仓库
+  sourceRepos:
+    - "https://raw.githubusercontent.com/karmada-io/karmada/master/charts"
+    - "https://github.com/Levango7/DataEngineBDP"
+  # 允许的目标集群与 namespace
+  destinations:
+    - server: "https://kubernetes.default.svc"
+      namespace: "karmada-system"
+    - server: "https://kubernetes.default.svc"
+      namespace: "karmada-cluster"
+  # 允许的资源类型
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  namespaceResourceWhitelist:
+    - group: "*"
+      kind: "*"
+  # 允许的 Helm Chart
+  sourceNamespaces:
+    - "argocd"

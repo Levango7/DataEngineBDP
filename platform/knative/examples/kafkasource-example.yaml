@@ -1,0 +1,53 @@
+# ============================================================================
+# KafkaSource 触发示例 · 数擎大数据平台
+# ----------------------------------------------------------------------------
+# 作用：验证 KafkaSource 从 Kafka Topic 消费消息并触发 KService
+# 依赖：
+#   1. Phase 1 Kafka 集群（kafka namespace）
+#   2. Knative Eventing 已部署（knative-eventing namespace）
+#   3. Kafka Topic "knative-test-topic" 已创建（见 kafka-topic.yaml）
+# 流程：
+#   1. Kafka Topic 收到消息
+#   2. KafkaSource 消费消息
+#   3. 消息作为 CloudEvent 发送到 sink（KService）
+#   4. KService 处理消息并响应
+# 验证：
+#   kubectl get kafkasource kafka-source-example -n knative-examples
+#   kubectl exec -it kafka-client -- kafka-console-producer.sh \
+#     --bootstrap-server kafka-bootstrap.kafka:9092 \
+#     --topic knative-test-topic
+# ============================================================================
+apiVersion: sources.knative.dev/v1beta1
+kind: KafkaSource
+metadata:
+  name: kafka-source-example
+  namespace: knative-examples
+  labels:
+    app.kubernetes.io/name: kafka-source-example
+    app.kubernetes.io/part-of: knative-examples
+    platform.shuqing.io/component: eventing
+    platform.shuqing.io/task: "T024"
+  annotations:
+    # 消费者组
+    sources.knative.dev/consumer-group: "knative-kafka-source-example"
+spec:
+  # Kafka bootstrap servers（Phase 1 Kafka 集群）
+  bootstrapServers:
+    - kafka-bootstrap.kafka.svc.cluster.local:9092
+  # 消费的 Topic
+  topics:
+    - knative-test-topic
+  # 事件接收者（sink）：KService
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: hello-kservice
+      namespace: knative-examples
+  # 消费者配置
+  consumerGroup: knative-kafka-source-example
+  # CloudEvent 属性
+  ceOverrides:
+    extensions:
+      source: kafka://knative-test-topic
+      type: com.shuqing.platform.kafka.event

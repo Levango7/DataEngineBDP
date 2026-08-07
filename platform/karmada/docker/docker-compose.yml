@@ -1,0 +1,147 @@
+# Karmada 多集群 Docker 模拟配置
+# ============================================================================
+# 作用：用 Docker Compose 模拟 Karmada 控制面 + 3 个成员集群
+# 借鉴：Phase 1 经验（K3s 不稳定，改用 Docker 直接模拟）
+# 场景：集成测试、本地开发、CI 流水线
+# ============================================================================
+# 架构：
+#   ┌─────────────────────────────────────────────────────────┐
+#   │  Docker Compose 网络: karmada-net                        │
+#   │                                                         │
+#   │  ┌──────────────┐   ┌──────────────────────────────┐   │
+#   │  │ karmada-api  │   │ mock-xinchang-cluster (8091) │   │
+#   │  │ (8090)       │   │ 麲鹏/麒麟 信创集群           │   │
+#   │  │ 控制台API    │   ├──────────────────────────────┤   │
+#   │  │              │   │ mock-local-cluster   (8092)  │   │
+#   │  │              │   │ 本地标准 K8s 集群            │   │
+#   │  │              │   ├──────────────────────────────┤   │
+#   │  │              │   │ mock-cce-cluster     (8093)  │   │
+#   │  │              │   │ 华为云 CCE 集群             │   │
+#   │  └──────────────┘   └──────────────────────────────┘   │
+#   └─────────────────────────────────────────────────────────┘
+# ============================================================================
+# 启动：
+#   docker compose -f platform/karmada/docker/docker-compose.yml up -d
+# 验证：
+#   curl http://localhost:8090/api/v1/health
+#   curl http://localhost:8091/healthz
+# ============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Karmada 控制台 API（PropagationPolicy CRUD）
+  # ---------------------------------------------------------------------------
+  karmada-api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    image: sq/karmada-api:0.1.0
+    container_name: it-karmada-api
+    ports:
+      - "8090:8090"
+    environment:
+      KARMADA_API_VERSION: "0.1.0"
+      KARMADA_API_PORT: "8090"
+      KARMADA_API_DB: ":memory:"
+      JWT_SECRET: "dev-secret-key-change-in-production-at-least-256-bits"
+      JWT_ISSUER: "shuqing-bigdata"
+    networks:
+      - karmada-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8090/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # 成员集群 1：信创集群（麒麟 OS + 鲲鹏 ARM）mock
+  # ---------------------------------------------------------------------------
+  mock-xinchang-cluster:
+    build:
+      context: ./mock-cluster
+      dockerfile: Dockerfile
+    image: sq/mock-cluster:0.1.0
+    container_name: it-karmada-xinchang
+    ports:
+      - "8091:8090"
+    environment:
+      CLUSTER_NAME: "xinchang-cluster"
+      CLUSTER_TYPE: "xinchang"
+      CLUSTER_VENDOR: "kylin"
+      CLUSTER_ARCH: "arm64"
+      CLUSTER_REGION: "on-premise"
+      CLUSTER_ENV: "production"
+      CLUSTER_MAX_REPLICAS: "100"
+    networks:
+      - karmada-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8090/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # 成员集群 2：本地集群（标准 K8s x86_64）mock
+  # ---------------------------------------------------------------------------
+  mock-local-cluster:
+    build:
+      context: ./mock-cluster
+      dockerfile: Dockerfile
+    image: sq/mock-cluster:0.1.0
+    container_name: it-karmada-local
+    ports:
+      - "8092:8090"
+    environment:
+      CLUSTER_NAME: "local-cluster"
+      CLUSTER_TYPE: "local"
+      CLUSTER_VENDOR: "kubernetes"
+      CLUSTER_ARCH: "amd64"
+      CLUSTER_REGION: "on-premise"
+      CLUSTER_ENV: "staging"
+      CLUSTER_MAX_REPLICAS: "50"
+    networks:
+      - karmada-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8090/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+  # ---------------------------------------------------------------------------
+  # 成员集群 3：公有云集群（华为云 CCE）mock
+  # ---------------------------------------------------------------------------
+  mock-cce-cluster:
+    build:
+      context: ./mock-cluster
+      dockerfile: Dockerfile
+    image: sq/mock-cluster:0.1.0
+    container_name: it-karmada-cce
+    ports:
+      - "8093:8090"
+    environment:
+      CLUSTER_NAME: "cce-cluster"
+      CLUSTER_TYPE: "cloud"
+      CLUSTER_VENDOR: "huawei-cce"
+      CLUSTER_ARCH: "amd64"
+      CLUSTER_REGION: "cn-north-4"
+      CLUSTER_ENV: "production"
+      CLUSTER_MAX_REPLICAS: "200"
+    networks:
+      - karmada-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8090/healthz"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+# ---------------------------------------------------------------------------
+# 网络
+# ---------------------------------------------------------------------------
+networks:
+  karmada-net:
+    driver: bridge
+    name: karmada-test-net

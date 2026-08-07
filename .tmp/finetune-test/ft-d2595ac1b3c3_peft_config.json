@@ -1,0 +1,37 @@
+{
+  "task_id": "ft-d2595ac1b3c3",
+  "base_model": "meta-llama/Llama-2-7b-hf",
+  "dataset_path": "/data/datasets/alpaca-zh.json",
+  "output_dir": "/tmp/finetune-test/output",
+  "hyperparams": {
+    "epochs": 1,
+    "batchSize": 4,
+    "gradientAccumulationSteps": 2,
+    "learningRate": 0.0002,
+    "weightDecay": 0.01,
+    "warmupSteps": 100,
+    "maxSeqLength": 1024,
+    "loggingSteps": 5,
+    "saveSteps": 500,
+    "evalSteps": null,
+    "seed": 42,
+    "fp16": true,
+    "bf16": false
+  },
+  "peft": {
+    "method": "lora",
+    "lora_config": {
+      "r": 16,
+      "lora_alpha": 32,
+      "lora_dropout": 0.05,
+      "target_modules": [
+        "q_proj",
+        "k_proj",
+        "v_proj",
+        "o_proj"
+      ],
+      "bias": "none",
+      "task_type": "CAUSAL_LM"
+    }
+  }
+}

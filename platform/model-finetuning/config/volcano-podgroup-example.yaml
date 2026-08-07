@@ -1,0 +1,31 @@
+# Volcano PodGroup 示例
+# 数擎大数据平台 · T032 微调引擎
+#
+# 微调任务提交时由调度器创建 PodGroup，实现 Gang Scheduling。
+# minMember 指定最少调度 Pod 数，所有 Pod 必须同时调度成功。
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: PodGroup
+metadata:
+  name: finetune-task-example
+  namespace: default
+spec:
+  minMember: 1             # 最少调度 Pod 数（Gang Scheduling）
+  queue: finetune-normal
+  priorityClassName: finetune-normal-priority
+  taskSpecs:
+    - replicas: 1
+      template:
+        spec:
+          nodeSelector:
+            gpu-type: a100
+            pool: training
+          containers:
+            - name: finetune
+              image: sq/model-finetuning:0.1.0
+              resources:
+                limits:
+                  nvidia.com/gpu: 8   # 申请 8 卡 A100
+                  memory: 400Gi
+                requests:
+                  nvidia.com/gpu: 8
+                  memory: 400Gi

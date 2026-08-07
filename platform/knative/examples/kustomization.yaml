@@ -1,0 +1,35 @@
+# ============================================================================
+# Kustomization · Knative 示例资源 · 数擎大数据平台
+# ----------------------------------------------------------------------------
+# 作用：ArgoCD 通过 Kustomize 部署所有 Knative 示例资源
+# 资源顺序：
+#   1. kservice-hello.yaml      — KService（Serving 示例）
+#   2. kafka-topic.yaml         — Kafka Topic（测试用）
+#   3. kafkasource-example.yaml — KafkaSource（Eventing 示例）
+#   4. cronjobsource-example.yaml — CronJobSource（定时触发）
+#   5. pingsource-example.yaml  — PingSource（轻量定时）
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 资源列表
+resources:
+  - kservice-hello.yaml
+  - kafka-topic.yaml
+  - kafkasource-example.yaml
+  - cronjobsource-example.yaml
+  - pingsource-example.yaml
+
+# 通用标签
+commonLabels:
+  app.kubernetes.io/part-of: shuqing-platform
+  app.kubernetes.io/managed-by: kustomize
+  platform.shuqing.io/component: knative-examples
+
+# 通用注解
+commonAnnotations:
+  platform.shuqing.io/task: "T024"
+  platform.shuqing.io/description: "Knative Serving/Eventing 示例资源"
+
+# namespace 前缀（由 ArgoCD Application 覆盖）
+# namePrefix: dev-
