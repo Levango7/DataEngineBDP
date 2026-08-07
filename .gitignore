@@ -27,3 +27,6 @@ __pycache__/
 platform/finops/cost-model/target/
 platform/model-finetuning/__pycache__/
 platform/model-finetuning/app/__pycache__/
+
+# Temp test files
+.tmp/
