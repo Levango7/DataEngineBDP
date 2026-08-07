@@ -1,0 +1,70 @@
+# ============================================================================
+# Prometheus ServiceMonitor · 数擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：自动发现并采集三种运行时的 invocation 指标
+# 采集端点：
+#   - Python: /metrics
+#   - Java:   /actuator/prometheus
+#   - Go:     /metrics
+# tenant 隔离：指标自带 tenant 标签，PromQL 可按租户聚合
+# ============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: serverless-runtime-metrics
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: serverless-runtime-metrics
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: invocation-metering
+    platform.shuqing.io/task: "T025"
+spec:
+  namespaceSelector:
+    matchNames:
+      - serverless-functions
+  selector:
+    matchLabels:
+      app.kubernetes.io/part-of: serverless-runtime
+  endpoints:
+    # Python 运行时指标
+    - port: http1
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_platform_shuqing_io_runtime]
+          targetLabel: runtime
+        - sourceLabels: [__meta_kubernetes_pod_label_platform_shuqing_io_task]
+          targetLabel: task
+      # 仅采集 Python 运行时
+      metricRelabelings:
+        - sourceLabels: [runtime]
+          regex: python
+          action: keep
+    # Java 运行时指标
+    - port: http1
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_platform_shuqing_io_runtime]
+          targetLabel: runtime
+      metricRelabelings:
+        - sourceLabels: [runtime]
+          regex: java
+          action: keep
+    # Go 运行时指标
+    - port: http1
+      path: /metrics
+      interval: 15s
+      scrapeTimeout: 10s
+      honorLabels: true
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_pod_label_platform_shuqing_io_runtime]
+          targetLabel: runtime
+      metricRelabelings:
+        - sourceLabels: [runtime]
+          regex: go
+          action: keep

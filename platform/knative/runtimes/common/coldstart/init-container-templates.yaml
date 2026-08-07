@@ -1,0 +1,44 @@
+# ============================================================================
+# init container 模板 ConfigMap · 数擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 提供三种运行时的 init container 模板，供 KService 引用
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: init-container-templates
+  namespace: knative-serving
+  labels:
+    app.kubernetes.io/name: init-container-templates
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: cold-start-optimization
+    platform.shuqing.io/task: "T025"
+data:
+  # Python init container：预加载 Python 依赖到 page cache
+  python-init.yaml: |
+    name: dep-prewarmer
+    image: docker.m.daocloud.io/library/python:3.12-slim
+    command: ["python", "-c"]
+    args:
+      - |
+        import importlib
+        for mod in ["fastapi", "uvicorn", "prometheus_client"]:
+            try:
+                importlib.import_module(mod)
+            except ImportError:
+                pass
+    resources:
+      requests: {cpu: "50m", memory: "64Mi"}
+      limits: {cpu: "200m", memory: "256Mi"}
+
+  # Java init container：Native Image 无需 init（AOT 已编译）
+  java-init.yaml: |
+    name: noop
+    image: docker.m.daocloud.io/gcr.io/distroless/static-debian12:nonroot
+    command: ["true"]
+
+  # Go init container：静态二进制无需 init
+  go-init.yaml: |
+    name: noop
+    image: docker.m.daocloud.io/gcr.io/distroless/static-debian12:nonroot
+    command: ["true"]

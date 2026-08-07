@@ -137,6 +137,38 @@ services:
       - it-net
 
   # ---------------------------------------------------------------------------
+  # FinOps 看板与优化建议服务（Java/Spring Boot, port 8085 → 主机 18087）
+  # ---------------------------------------------------------------------------
+  # T029 FinOps 看板与优化建议
+  # - Top10/趋势/明细/闲置清单看板
+  # - 5 类闲置模式识别（低 CPU/低内存/未挂载存储/空闲 GPU/低流量）
+  # - 账单导出 CSV/Excel（明细+汇总）
+  # - 分账到子工作空间（比例可配置）
+  finops-dashboard:
+    build:
+      context: ../../platform/finops/dashboard
+      dockerfile: Dockerfile
+    image: shuqing/finops-dashboard:0.1.0
+    container_name: it-finops-dashboard
+    ports:
+      - "18087:8085"
+    environment:
+      - SERVER_PORT=8085
+      - PROMETHEUS_URL=http://prometheus:9090
+      - COST_MODEL_URL=http://cost-model:8084
+    depends_on:
+      cost-model:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
   # LLM 多模态网关（Go/Gin, port 8084 → 主机 18085）
   # ---------------------------------------------------------------------------
   # T030 大模型多模态网关统一 API 与路由
@@ -163,6 +195,39 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 模型评测平台（Python/FastAPI, port 8086 → 主机 18086）
+  # ---------------------------------------------------------------------------
+  # T031 模型评测平台与 A/B 对比
+  # - 评测任务引擎（提交/查询/日志/终止）
+  # - MMLU/CMMLU/CEval 标准集
+  # - 六指标（准确率/召回率/F1/延迟/成本/幻觉率）
+  # - 三模式（规则/模型/人工）+ A/B 对比报告
+  evaluation:
+    build:
+      context: ../../platform/llm-gateway/evaluation
+      dockerfile: Dockerfile
+    image: shuqing/evaluation:0.1.0
+    container_name: it-evaluation
+    ports:
+      - "18086:8086"
+    environment:
+      - EVAL_PORT=8086
+      - LLM_GATEWAY_URL=http://it-llm-gateway:8084
+      - LLM_GATEWAY_API_KEY=dummy
+      - EVAL_DEV_MODE=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8086/health', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    depends_on:
+      llm-gateway:
+        condition: service_healthy
     networks:
       - it-net
 

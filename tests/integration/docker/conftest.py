@@ -50,6 +50,8 @@ BASE_URLS: Dict[str, str] = {
     "rule_engine": os.environ.get("RULE_ENGINE_URL", "http://localhost:18083"),
     "finops": os.environ.get("FINOPS_URL", "http://localhost:18084"),
     "llm_gateway": os.environ.get("LLM_GATEWAY_URL", "http://localhost:18085"),
+    "evaluation": os.environ.get("EVALUATION_URL", "http://localhost:18086"),
+    "finops_dashboard": os.environ.get("FINOPS_DASHBOARD_URL", "http://localhost:18087"),
 }
 
 # Docker 容器名（用于 docker ps 状态检查）。
@@ -60,6 +62,8 @@ DOCKER_CONTAINERS: Dict[str, str] = {
     "rule_engine": "it-rule-engine",
     "finops": "it-cost-model",
     "llm_gateway": "it-llm-gateway",
+    "evaluation": "it-evaluation",
+    "finops_dashboard": "it-finops-dashboard",
 }
 
 # 各模块健康检查端点路径（Java 用 /actuator/health，Go 用 /api/v1/health）。
@@ -70,7 +74,10 @@ HEALTH_PATHS: Dict[str, str] = {
     "rule_engine": "/actuator/health",
     "finops": "/api/v1/health",
     "llm_gateway": "/health",
+    "evaluation": "/health",
+    "finops_dashboard": "/api/v1/health",
 }
+
 
 # HTTP 请求默认超时（秒），避免测试卡死。
 DEFAULT_TIMEOUT = 10
@@ -275,6 +282,12 @@ def llm_gateway_url() -> str:
     return BASE_URLS["llm_gateway"]
 
 
+@pytest.fixture(scope="session")
+def evaluation_url() -> str:
+    """模型评测平台基础 URL。"""
+    return BASE_URLS["evaluation"]
+
+
 # 各模块可用性 fixture（用于条件跳过）。
 @pytest.fixture(scope="session")
 def encaps_available() -> bool:
@@ -312,6 +325,18 @@ def llm_gateway_available() -> bool:
     return is_service_available("llm_gateway")
 
 
+@pytest.fixture(scope="session")
+def evaluation_available() -> bool:
+    """模型评测平台是否可用。"""
+    return is_service_available("evaluation")
+
+
+@pytest.fixture(scope="session")
+def finops_dashboard_available() -> bool:
+    """FinOps 看板服务是否可用。"""
+    return is_service_available("finops_dashboard")
+
+
 # ---------------------------------------------------------------------------
 # 测试收集阶段钩子：自动跳过服务不可用的测试
 # ---------------------------------------------------------------------------
@@ -329,15 +354,20 @@ def pytest_collection_modifyitems(config, items):
         "rule_engine": is_service_available("rule_engine"),
         "finops": is_service_available("finops"),
         "llm_gateway": is_service_available("llm_gateway"),
+        "evaluation": is_service_available("evaluation"),
+        "finops_dashboard": is_service_available("finops_dashboard"),
     }
 
     # 测试文件名前缀 → 模块名映射。
+    # 注意：test_model_evaluation 包含核心组件测试（不需服务）与 HTTP API 测试，
+    # 不在此整体跳过，由测试文件内部通过 evaluation_available fixture 控制 HTTP 测试跳过。
     file_module_map = {
         "test_docker_encaps": "encaps",
         "test_docker_sql_gateway": "sql_gateway",
         "test_docker_catalog": "catalog",
         "test_docker_rule_engine": "rule_engine",
         "test_finops": "finops",
+        "test_finops_dashboard": "finops_dashboard",
         "test_multimodal_gateway": "llm_gateway",
         "test_docker_llm_gateway": "llm_gateway",
     }

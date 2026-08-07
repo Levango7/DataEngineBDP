@@ -1,0 +1,101 @@
+# T027 多集群故障迁移 Docker 模拟配置
+# ============================================================================
+# 作用：用 Docker Compose 模拟 Failover API + Failover Engine + 3 个成员集群
+# 依赖：复用 T026 Karmada 控制面 mock-cluster 镜像
+# 场景：集成测试、本地开发、CI 流水线
+# ============================================================================
+# 架构：
+#   ┌──────────────────────────────────────────────────────────────┐
+#   │  Docker Compose 网络: karmada-net                            │
+#   │                                                              │
+#   │  ┌──────────────────┐  ┌──────────────────────────────┐     │
+#   │  │ failover-api     │  │ failover-engine (8095)       │     │
+#   │  │ (8094)           │  │ 健康检查 + 故障迁移引擎     │     │
+#   │  │ OverridePolicy   │  │                              │     │
+#   │  │ FailoverEvent    │  └──────────────────────────────┘     │
+#   │  │ ClusterHealth    │                                        │
+#   │  │ ReplicaWeightPlan│                                        │
+#   │  └──────────────────┘                                        │
+#   │                                                              │
+#   │  ┌──────────────────────────────────────────────────────┐   │
+#   │  │ mock-xinchang-cluster (8091) 主集群（可注入故障）   │   │
+#   │  ├──────────────────────────────────────────────────────┤   │
+#   │  │ mock-local-cluster   (8092) 备用集群 1              │   │
+#   │  ├──────────────────────────────────────────────────────┤   │
+#   │  │ mock-cce-cluster     (8093) 备用集群 2              │   │
+#   │  └──────────────────────────────────────────────────────┘   │
+#   └──────────────────────────────────────────────────────────────┘
+# ============================================================================
+# 启动：
+#   docker compose -f platform/karmada/failover/docker/docker-compose.yml up -d
+# 验证：
+#   curl http://localhost:8094/api/v1/health
+#   curl http://localhost:8095/healthz
+# ============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # Failover API（OverridePolicy + FailoverEvent + ClusterHealth + ReplicaWeightPlan）
+  # ---------------------------------------------------------------------------
+  failover-api:
+    build:
+      context: ../api
+      dockerfile: Dockerfile
+    image: sq/failover-api:0.1.0
+    container_name: it-failover-api
+    ports:
+      - "8094:8094"
+    environment:
+      FAILOVER_API_VERSION: "0.1.0"
+      FAILOVER_API_PORT: "8094"
+      FAILOVER_API_DB: ":memory:"
+      JWT_SECRET: "dev-secret-key-change-in-production-at-least-256-bits"
+      JWT_ISSUER: "shuqing-bigdata"
+    networks:
+      - karmada-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8094/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ---------------------------------------------------------------------------
+  # Failover Engine（健康检查 + 故障迁移引擎）
+  # ---------------------------------------------------------------------------
+  failover-engine:
+    build:
+      context: ../engine
+      dockerfile: Dockerfile
+    image: sq/failover-engine:0.1.0
+    container_name: it-failover-engine
+    ports:
+      - "8095:8095"
+    environment:
+      FAILOVER_ENGINE_VERSION: "0.1.0"
+      FAILOVER_ENGINE_PORT: "8095"
+      KARMADA_API_URL: "http://it-karmada-api:8090"
+      PROMETHEUS_URL: "http://it-prometheus:9090"
+      FAILOVER_PRIMARY_CLUSTER: "xinchang-cluster"
+      FAILOVER_BACKUP_CLUSTERS: "local-cluster,cce-cluster"
+      FAILOVER_DETECTION_WINDOW: "30"
+      FAILOVER_MIGRATION_TIMEOUT: "60"
+      FAILOVER_HEALTH_CHECK_INTERVAL: "10"
+    depends_on:
+      - failover-api
+    networks:
+      - karmada-net
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8095/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+# ---------------------------------------------------------------------------
+# 网络（与 karmada docker-compose 共享）
+# ---------------------------------------------------------------------------
+networks:
+  karmada-net:
+    driver: bridge
+    name: karmada-test-net

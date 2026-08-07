@@ -1,0 +1,42 @@
+server:
+  port: 8080
+  shutdown: graceful
+
+spring:
+  application:
+    name: function-runtime-java
+  lifecycle:
+    timeout-per-shutdown-phase: 10s
+
+# 函数配置
+function:
+  name: ${FUNCTION_NAME:default}
+  tenant-id: ${TENANT_ID:default-tenant}
+
+# Actuator 配置：健康检查 + Prometheus 指标
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        serverless_invocation_duration_seconds: true
+      percentiles:
+        serverless_invocation_duration_seconds: 0.5,0.95,0.99
+
+# 日志配置：结构化 JSON 输出（供 Promtail 采集写入 Loki）
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    com.shuqing.bigdata.function: INFO
+  pattern:
+    console: '{"timestamp":"%d","level":"%p","logger":"%logger","msg":"%m","tenant":"%X{tenantId}"}'

@@ -10,6 +10,7 @@
   POST /apis/deployments                接收部署（模拟 Karmada 推送工作负载）
   GET /apis/propagation-policies        传播策略列表（模拟已同步的策略）
   POST /apis/propagation-policies       接收传播策略
+  POST /query                           执行 SQL 查询（T034 跨集群查询路由目标）
 """
 
 from __future__ import annotations
@@ -140,6 +141,15 @@ class ClusterHandler(BaseHTTPRequestHandler):
             self._send_json(201, _policies[name])
             return
 
+        if path == "/query":
+            # T034 跨集群查询路由目标端点
+            # 接收 {"sql": "...", "database": "..."}，返回 mock 查询结果
+            sql = body.get("sql", "")
+            database = body.get("database", "default")
+            result = execute_mock_query(sql, database)
+            self._send_json(200, result)
+            return
+
         self._send_json(404, {"error": "not found"})
 
     # ------------------------------------------------------------------
@@ -184,6 +194,80 @@ def main() -> None:
     print(f"[mock-cluster] {CLUSTER_NAME} (type={CLUSTER_TYPE}, arch={CLUSTER_ARCH}) "
           f"listening on :{port}")
     server.serve_forever()
+
+
+# ---------------------------------------------------------------------------
+# Mock 查询执行（T034 跨集群查询路由目标）
+# ---------------------------------------------------------------------------
+def execute_mock_query(sql: str, database: str) -> dict:
+    """执行 mock SQL 查询，返回模拟结果。
+
+    根据 SQL 中的表名返回预置的 mock 数据，用于 T034 跨集群查询集成测试。
+    每个集群返回带集群标识的数据，便于验证跨集群归并。
+
+    Args:
+        sql: SQL 查询语句
+        database: 默认数据库
+
+    Returns:
+        {"status": "ok", "schema": {...}, "rows": [...], "rowCount": N}
+    """
+    sql_lower = sql.lower()
+
+    # 根据 SQL 中的表名返回对应 mock 数据
+    if "orders_east" in sql_lower or "orders" in sql_lower:
+        # 订单表：每个集群返回带集群标识的订单
+        rows = [
+            {"id": i, "cluster": CLUSTER_NAME, "amount": 100 + i}
+            for i in range(1, 4)
+        ]
+        return {
+            "status": "ok",
+            "schema": {"id": "INT", "cluster": "STRING", "amount": "INT"},
+            "rows": rows,
+            "rowCount": len(rows),
+        }
+
+    if "orders_west" in sql_lower:
+        rows = [
+            {"id": i, "cluster": CLUSTER_NAME, "amount": 200 + i}
+            for i in range(1, 3)
+        ]
+        return {
+            "status": "ok",
+            "schema": {"id": "INT", "cluster": "STRING", "amount": "INT"},
+            "rows": rows,
+            "rowCount": len(rows),
+        }
+
+    if "customers" in sql_lower:
+        rows = [
+            {"id": 1, "name": f"customer-{CLUSTER_NAME}", "region": CLUSTER_REGION},
+            {"id": 2, "name": f"client-{CLUSTER_NAME}", "region": CLUSTER_REGION},
+        ]
+        return {
+            "status": "ok",
+            "schema": {"id": "INT", "name": "STRING", "region": "STRING"},
+            "rows": rows,
+            "rowCount": len(rows),
+        }
+
+    if "count" in sql_lower or "aggregate" in sql_lower:
+        # 聚合查询：返回单行计数
+        return {
+            "status": "ok",
+            "schema": {"count": "INT", "cluster": "STRING"},
+            "rows": [{"count": 10, "cluster": CLUSTER_NAME}],
+            "rowCount": 1,
+        }
+
+    # 默认：返回简单结果
+    return {
+        "status": "ok",
+        "schema": {"result": "STRING"},
+        "rows": [{"result": f"from-{CLUSTER_NAME}"}],
+        "rowCount": 1,
+    }
 
 
 if __name__ == "__main__":

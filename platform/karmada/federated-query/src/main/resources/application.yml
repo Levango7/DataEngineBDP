@@ -1,0 +1,114 @@
+server:
+  port: 8094
+  shutdown: graceful
+
+spring:
+  application:
+    name: federated-query
+  datasource:
+    # 开发环境 H2 内存数据库；生产环境通过环境变量切换 PostgreSQL
+    url: jdbc:h2:mem:federated;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# ============================================================================
+# 跨集群查询配置
+# ============================================================================
+federated:
+  # 本地集群名（降级时仅查本地表）
+  local-cluster: local-cluster
+
+  # 全局 Catalog 客户端（复用 Phase 1 platform/catalog REST API）
+  catalog:
+    base-url: ${CATALOG_BASE_URL:http://localhost:8080/api/v1/catalog}
+    connect-timeout: 5s
+    response-timeout: 10s
+    cache-enabled: true
+    cache-ttl: 5m
+
+  # mTLS 跨集群传输配置（复用 Phase 1 Istio mTLS）
+  mtls:
+    enabled: ${MTLS_ENABLED:false}
+    trust-store-path: ${MTLS_TRUST_STORE_PATH:}
+    trust-store-password: ${MTLS_TRUST_STORE_PASSWORD:}
+    key-store-path: ${MTLS_KEY_STORE_PATH:}
+    key-store-password: ${MTLS_KEY_STORE_PASSWORD:}
+    key-alias: ${MTLS_KEY_ALIAS:client}
+    trust-store-type: PKCS12
+    key-store-type: PKCS12
+    verify-hostname: true
+
+  # 降级策略
+  degrade:
+    enabled: true
+    connect-timeout: 10s
+    query-timeout: 30s
+    max-retries: 2
+    failure-window: 5
+    failure-threshold: 3
+    cooldown: 30s
+    alert-enabled: true
+    alert-webhook-url: ${ALERT_WEBHOOK_URL:}
+
+  # 查询归并
+  merge:
+    strategy: CONCAT
+    max-rows-per-shard: 10000
+    parallelism: 4
+
+  # 集群拓扑（与 platform/karmada/docker/docker-compose.yml 对齐）
+  clusters:
+    xinchang-cluster:
+      url: http://localhost:8091
+      type: xinchang
+      vendor: kylin
+      arch: arm64
+      region: on-premise
+      env: production
+      enabled: true
+      local: false
+    local-cluster:
+      url: http://localhost:8092
+      type: local
+      vendor: kubernetes
+      arch: amd64
+      region: on-premise
+      env: staging
+      enabled: true
+      local: true
+    cce-cluster:
+      url: http://localhost:8093
+      type: cloud
+      vendor: huawei-cce
+      arch: amd64
+      region: cn-north-4
+      env: production
+      enabled: true
+      local: false
+
+logging:
+  level:
+    root: INFO
+    com.shuqing.bigdata.federated: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"

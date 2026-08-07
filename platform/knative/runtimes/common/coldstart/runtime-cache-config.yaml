@@ -1,0 +1,47 @@
+# ============================================================================
+# 运行时缓存 ConfigMap · 数擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：配置三种运行时的冷启动缓存策略
+# 策略：
+#   1. Python：预编译 .pyc 字节码缓存（Dockerfile 已处理）
+#   2. Java：GraalVM Native Image AOT 编译（Dockerfile 已处理）
+#   3. Go：静态编译单二进制（Dockerfile 已处理）
+#   4. 共享：init container 预加载依赖到 page cache
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: runtime-cache-config
+  namespace: knative-serving
+  labels:
+    app.kubernetes.io/name: runtime-cache-config
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: cold-start-optimization
+    platform.shuqing.io/task: "T025"
+data:
+  # 冷启动目标（秒）
+  cold-start-target-seconds: "3"
+
+  # Python 运行时缓存策略
+  python.cache-strategy: "precompiled-pyc"
+  python.precompile-command: "python -m compileall /app"
+  python.init-container: "dep-prewarmer"
+
+  # Java 运行时缓存策略
+  java.cache-strategy: "graalvm-native-image"
+  java.native-image-args: "--enable-url-protocols=http -H:+SpawnIsolates"
+  java.init-container: "none"
+
+  # Go 运行时缓存策略
+  go.cache-strategy: "static-binary"
+  go.build-args: "CGO_ENABLED=0 -trimpath -ldflags=-s -w"
+  go.init-container: "none"
+
+  # init container 通用配置
+  init-container-timeout-seconds: "30"
+  init-container-cpu-request: "50m"
+  init-container-memory-request: "64Mi"
+
+  # 镜像预热
+  image-prepull-enabled: "true"
+  image-prepull-daemonset: "runtime-image-prepuller"
