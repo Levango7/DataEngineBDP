@@ -1,0 +1,146 @@
+# 漂移策略总定义 · drift-policy
+# ============================================================================
+# 作用：集中定义漂移检测 / 修复 / 告警的全局策略
+# 集成：被 detection / remediation / alerting 模块引用
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-policy
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-policy
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移检测全局策略"
+data:
+  # ============================================================================
+  # 1. 全局策略
+  # ============================================================================
+  global.yaml: |
+    global:
+      # 漂移检测开关
+      detectionEnabled: true
+      # 自动修复开关
+      remediationEnabled: true
+      # 告警通知开关
+      alertingEnabled: true
+      # 合规审计开关
+      auditEnabled: true
+      # 检测间隔（秒）
+      detectionInterval: 60
+      # 最大并发检测数
+      maxConcurrentDetection: 10
+      # 最大并发修复数
+      maxConcurrentRemediation: 5
+
+  # ============================================================================
+  # 2. 分环境策略
+  # ============================================================================
+  env-policy.yaml: |
+    environments:
+      dev:
+        detection:
+          interval: 300          # 5 分钟
+          enabled: true
+        remediation:
+          selfHeal: true
+          autoRemediate: true
+          window: "7x24"
+          requireConfirmation: false
+          timeout: 60
+        alerting:
+          channels: [slack]
+          slackChannel: "#drift-warnings"
+          suppressWindow: 300    # 5 分钟抑制
+
+      staging:
+        detection:
+          interval: 180          # 3 分钟
+          enabled: true
+        remediation:
+          selfHeal: true
+          autoRemediate: true
+          window: "7x24"
+          requireConfirmation: false
+          timeout: 120
+        alerting:
+          channels: [slack, email]
+          slackChannel: "#drift-warnings"
+          emailRecipients: ["dev-team@company.com"]
+          suppressWindow: 300
+
+      prod:
+        detection:
+          interval: 60           # 1 分钟
+          enabled: true
+        remediation:
+          selfHeal: true
+          autoRemediate: true    # 仅 Critical/High
+          window: "weekday 09:00-18:00"
+          requireConfirmation: true   # High/Critical 需确认
+          timeout: 300
+        alerting:
+          channels: [slack, email, dingtalk, pagerduty]
+          slackChannel: "#prod-alerts"
+          emailRecipients: ["sre-team@company.com"]
+          dingtalkGroup: "sre-group"
+          pagerdutyService: "sre-on-call"
+          suppressWindow: 300
+
+  # ============================================================================
+  # 3. 修复风暴防护
+  # ============================================================================
+  protection.yaml: |
+    protection:
+      # 同一 App 5 分钟内最多修复 3 次
+      rateLimit:
+        window: 300
+        maxRemediations: 3
+      # 连续失败 3 次触发熔断，暂停 30 分钟
+      circuitBreaker:
+        failThreshold: 3
+        pauseDuration: 1800
+      # 全局并发修复限制
+      concurrency:
+        maxGlobal: 5
+      # 修复后冷却（60s 内不再修复同一 App）
+      cooldown:
+        duration: 60
+
+  # ============================================================================
+  # 4. 资源范围（哪些资源纳入漂移检测）
+  # ============================================================================
+  scope.yaml: |
+    scope:
+      # 纳入检测的 namespace
+      includedNamespaces:
+        - dev-platform
+        - staging-platform
+        - prod-platform
+      # 排除的 namespace
+      excludedNamespaces:
+        - kube-system
+        - kube-public
+        - istio-system
+        - argocd
+        - monitoring
+        - storage
+      # 纳入检测的资源类型
+      includedResourceTypes:
+        - Deployment
+        - StatefulSet
+        - DaemonSet
+        - ConfigMap
+        - Secret
+        - Service
+        - Ingress
+        - HorizontalPodAutoscaler
+        - ServiceAccount
+        - Role
+        - RoleBinding
+      # 排除的资源（按 label）
+      excludedLabels:
+        - "drift-detection.io/exclude: true"
+        - "app.kubernetes.io/managed-by: helm"  # Helm 管理的资源不检测

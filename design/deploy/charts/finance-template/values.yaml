@@ -1,0 +1,257 @@
+# ============================================================================
+# finance-template Helm Chart 默认 values（base，环境无关）
+# ============================================================================
+# 模块：T019 金融模板 Helm Chart
+# 关联：platform/industry-templates/templates/finance/helm/values.yaml（T018 原始）
+#       design/deploy/charts/finance-template/values-{dev,staging,prod}.yaml（环境覆盖）
+# 渲染： helm template finance-template design/deploy/charts/finance-template \
+#          -f design/deploy/charts/finance-template/values-dev.yaml
+# 说明：本文件为 base 默认值，所有环境差异（资源/副本/地址/镜像标签）由
+#       values-{env}.yaml 覆盖，业务逻辑零改动。
+# ============================================================================
+
+# ---- 模板元信息 ----
+template:
+  name: finance-template
+  version: 1.0.0
+  # 是否启用模板自动导入（部署后自动调用导入 Job）
+  autoImport: true
+  # 模板资产来源（用于资产同步脚本与审计）
+  source:
+    type: local              # local | git | objectStore
+    path: platform/industry-templates/templates/finance
+
+# ---- 目标命名空间 ----
+namespace: finance
+
+# ---- 全局配置（多环境共享）----
+global:
+  # 镜像拉取 Secret（若使用私有 registry）
+  imagePullSecrets: []
+  # 存储类（覆盖环境可调整）
+  storageClass: ""
+  # 国密开关（信创环境置 true）
+  guomiEnabled: false
+
+# ============================================================================
+# 目标组件地址（用于导入 Job 连接各组件）
+# ============================================================================
+target:
+  # ---- Apache Doris（DDL 导入目标）----
+  doris:
+    feHost: doris-fe.doris.svc.cluster.local
+    fePort: 9030
+    database: db_finance
+    user: root
+    # 密码通过 Secret 引用，不在此明文配置
+    passwordSecret:
+      name: doris-credentials
+      key: password
+    # 连接超时（秒）
+    connectTimeout: 30
+
+  # ---- Apache DolphinScheduler（DAG 导入目标）----
+  dolphinscheduler:
+    host: dolphinscheduler-api.dolphinscheduler.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials
+      key: token
+    # 项目名称（DAG 导入到的 DS 项目）
+    projectName: finance-template
+
+  # ---- Apache Superset（Dashboard 导入目标）----
+  superset:
+    host: superset.superset.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials
+      key: token
+    # 数据库连接名（Dashboard 关联的数据源）
+    databaseName: db_finance
+
+  # ---- Keycloak（RBAC 导入目标）----
+  keycloak:
+    host: keycloak.keycloak.svc.cluster.local
+    port: 8080
+    realm: finance-template-realm
+    adminSecret:
+      name: keycloak-credentials
+      key: admin-password
+    # 是否在导入前创建 realm（若 realm 不存在）
+    createRealm: true
+
+# ============================================================================
+# ConfigMap 配置（模板资产挂载方式）
+# ============================================================================
+configMap:
+  # 是否创建 ConfigMap 挂载模板资产
+  create: true
+  # ConfigMap 名称前缀
+  namePrefix: finance-template
+  # 资产子目录挂载配置
+  assets:
+    ddl:
+      enabled: true
+      mountPath: /templates/ddl
+      # 资产文件 glob 模式（相对 chart 根目录的 assets/ 目录）
+      glob: "ddl/**"
+    dag:
+      enabled: true
+      mountPath: /templates/dag
+      glob: "dag/**"
+    dashboard:
+      enabled: true
+      mountPath: /templates/dashboard
+      glob: "dashboard/**"
+    rbac:
+      enabled: true
+      mountPath: /templates/rbac
+      glob: "rbac/**"
+    docs:
+      enabled: true
+      mountPath: /templates/docs
+      glob: "docs/**"
+  # 是否将 template-metadata.yaml 也打包进 ConfigMap
+  includeMetadata: true
+
+# ============================================================================
+# Secret 配置（组件凭据占位）
+# ============================================================================
+secret:
+  # 是否创建占位 Secret（生产环境应使用外部 Secret 管理器如 External Secrets / Sealed Secrets）
+  create: false
+  # 占位凭据（仅 dev 环境使用，生产环境必须覆盖为外部引用）
+  doris:
+    password: "changeme-doris"
+  dolphinscheduler:
+    token: "changeme-ds"
+  superset:
+    token: "changeme-superset"
+  keycloak:
+    adminPassword: "changeme-keycloak"
+
+# ============================================================================
+# 导入 Job 配置（核心：将模板资产导入到各组件）
+# ============================================================================
+importJob:
+  # 是否创建导入 Job
+  enabled: true
+  # 导入 Job 镜像（平台侧提供的模板导入器）
+  image:
+    repository: shuqing/template-importer
+    tag: "5.3.0"
+    pullPolicy: IfNotPresent
+  # Job 资源配置
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  # Job 重试次数
+  backoffLimit: 3
+  # Job 超时（秒）
+  activeDeadlineSeconds: 1800
+  # 并行度（串行导入，避免并发冲突）
+  parallelism: 1
+  # 导入顺序（按依赖关系排列）
+  importOrder:
+    - ddl          # 1. 先建表（Doris）
+    - dag          # 2. 再导入调度（DS）
+    - dashboard    # 3. 再导入看板（Superset，依赖表存在）
+    - rbac         # 4. 最后导入权限（Keycloak）
+  # 失败处理策略
+  onFailure:
+    # 是否在导入失败时回滚已创建资源
+    rollback: true
+    # 是否继续后续步骤（false=遇错即停）
+    continueOnError: false
+
+# ============================================================================
+# RBAC 同步配置
+# ============================================================================
+rbacSync:
+  enabled: true
+  # 是否在导入失败时回滚已创建角色
+  rollbackOnFailure: true
+  # 是否同步权限到 Doris（表级权限）
+  syncToDoris: false
+  # 是否同步权限到 Ranger（细粒度权限，可选）
+  syncToRanger: false
+
+# ============================================================================
+# 部署验证配置（helm test）
+# ============================================================================
+verification:
+  # 是否创建验证 Job（helm test 触发）
+  enabled: true
+  # 验证 Job 镜像
+  image:
+    repository: shuqing/template-verifier
+    tag: "5.3.0"
+    pullPolicy: IfNotPresent
+  # 验证项配置
+  checks:
+    # DDL 表数量验证（期望 21 张表）
+    ddl:
+      enabled: true
+      expectedTables: 21
+    # DAG 数量验证（期望 5 个 DAG）
+    dag:
+      enabled: true
+      expectedDags: 5
+    # Dashboard 数量验证（期望 3 个）
+    dashboard:
+      enabled: true
+      expectedDashboards: 3
+    # RBAC 角色数量验证（期望 3 个角色）
+    rbac:
+      enabled: true
+      expectedRoles: 3
+    # 连通性验证（各组件可达）
+    connectivity:
+      enabled: true
+  # 验证 Job 资源
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  # 验证超时（秒）
+  timeout: 300
+
+# ============================================================================
+# ServiceAccount 与 Pod 安全
+# ============================================================================
+serviceAccount:
+  # 是否创建专用 ServiceAccount
+  create: true
+  # ServiceAccount 名称（留空则自动生成）
+  name: ""
+  # 是否绑定 RBAC 角色
+  rbacBind: true
+
+# ============================================================================
+# Pod 调度
+# ============================================================================
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ============================================================================
+# 镜像拉取策略覆盖（多环境统一）
+# ============================================================================
+imagePullPolicy: IfNotPresent
+
+# ---- 引用提示 ----
+# 多环境部署：
+#   helm upgrade --install finance-template design/deploy/charts/finance-template \
+#     -f design/deploy/charts/finance-template/values-dev.yaml -n finance
+# 验证：
+#   helm test finance-template -n finance
+# 打包：
+#   helm package design/deploy/charts/finance-template -d dist/

@@ -6,6 +6,7 @@ F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\source\MySqlSourceConnectorTest.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\source\SourceConfigTest.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\source\SourceConnectorFactoryTest.java
+F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\sink\IcebergSinkConnectorTest.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\schema\SchemaRegistryClientTest.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\kafka\TopicNamingStrategyTest.java
 F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\flink-cdc\src\test\java\com\shuqing\bigdata\flinkcdc\ChangeRecordJsonSerializerTest.java

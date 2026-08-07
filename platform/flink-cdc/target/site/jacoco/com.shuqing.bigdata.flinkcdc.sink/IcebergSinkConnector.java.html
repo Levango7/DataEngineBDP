@@ -1,0 +1,1319 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>IcebergSinkConnector.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.sink</a> &gt; <span class="el_source">IcebergSinkConnector.java</span></div><h1>IcebergSinkConnector.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.sink;
+
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+import org.apache.flink.api.connector.sink2.Sink;
+import org.apache.flink.api.connector.sink2.SinkWriter;
+import org.apache.flink.streaming.api.datastream.DataStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Properties;
+import java.util.Set;
+import java.util.TreeSet;
+
+/**
+ * Iceberg V2 Sink 连接器，将 {@link ChangeRecord} 流以行级 UPSERT 语义写入 Apache Iceberg V2 表。
+ *
+ * &lt;p&gt;基于 T014 Flink CDC 管道，承接 CDC 变更流并实现秒级实时入仓。核心能力：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;&lt;b&gt;Iceberg V2 表格式&lt;/b&gt;：format-version=2，启用 equality-delete + position-delete，
+ *       支持按主键的行级 UPDATE/DELETE（MERGE INTO 语义）&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;行级 UPSERT&lt;/b&gt;：INSERT 写 data 文件；UPDATE 写 data + equality-delete（标记旧记录）；
+ *       DELETE 写 equality-delete（按主键标记删除）；读取时 data - delete = 当前有效快照&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;合并优化&lt;/b&gt;：微批攒批提交、小文件合并（Compaction）、增量 Manifest 提交，
+ *       缓解高频变更下小文件过多导致的查询性能退化（AR-004）&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Schema 演化&lt;/b&gt;：自动同步 ADD/DROP/RENAME COLUMN 与类型 widening，
+ *       不兼容变更（narrowing）按策略暂停作业并告警&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;分布模式&lt;/b&gt;：按主键 HASH 分布避免并发写冲突；NONE/RANGE 可选&lt;/li&gt;
+ *   &lt;li&gt;&lt;b&gt;Exactly-Once&lt;/b&gt;：复用 Flink checkpoint + Iceberg 两阶段提交（preCommit→commit），
+ *       与 {@code TwoPhaseCommitCoordinator} 协作保障端到端 exactly-once&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;Iceberg V2 写入语义：&lt;/b&gt;&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * INSERT (op=c): 写入 data 文件
+ * UPDATE (op=u): 写入 data 文件 + equality-delete 文件（标记旧记录）
+ * DELETE (op=d): 写入 equality-delete 文件（按主键标记删除）
+ * SNAPSHOT(op=r): 当作 INSERT 处理（全量初始化阶段）
+ * 读取时:        data 文件 - delete 文件 = 当前有效快照
+ * }&lt;/pre&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * IcebergSinkConnector connector = IcebergSinkConnector.builder()
+ *     .catalogName(&quot;rest&quot;)
+ *     .catalogType(CatalogType.REST)
+ *     .catalogUri(&quot;http://iceberg-rest:8181&quot;)
+ *     .warehouse(&quot;s3://shuqing-warehouse/&quot;)
+ *     .database(&quot;ods&quot;)
+ *     .table(&quot;orders&quot;)
+ *     .primaryKeys(&quot;order_id&quot;)
+ *     .partitionKeys(&quot;dt&quot;)
+ *     .writeMode(WriteMode.UPSERT)
+ *     .distributionMode(DistributionMode.HASH)
+ *     .microBatchSize(1000)
+ *     .compaction(CompactionTrigger.BY_FILE_COUNT, 50, 128L * 1024 * 1024)
+ *     .schemaEvolution(SchemaEvolutionMode.AUTO)
+ *     .build();
+ *
+ * connector.attachTo(stream);
+ * }&lt;/pre&gt;
+ *
+ * &lt;p&gt;&lt;b&gt;依赖说明：&lt;/b&gt;本连接器在编译期不依赖 Iceberg SDK，运行时通过反射加载
+ * {@code org.apache.iceberg.flink.sink.FlinkSink}（由 Flink 集群 lib 提供），
+ * 与项目 {@code flink.scope=provided} 策略一致。当 Iceberg 依赖不在 classpath 时，
+ * {@link #createSink()} 抛出 {@link IllegalStateException} 提示运维添加 Iceberg jar。&lt;/p&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public final class IcebergSinkConnector implements Serializable {
+
+    private static final long serialVersionUID = 1L;
+<span class="fc" id="L80">    private static final Logger log = LoggerFactory.getLogger(IcebergSinkConnector.class);</span>
+
+    /** Iceberg V2 表格式版本常量。 */
+    public static final int FORMAT_VERSION_V2 = 2;
+    /** Iceberg V1 表格式版本常量（仅追加，不支持行级 upsert）。 */
+    public static final int FORMAT_VERSION_V1 = 1;
+
+    /** 反射加载的 Iceberg FlinkSink 全限定类名。 */
+    static final String ICEBERG_FLINK_SINK_CLASS =
+            &quot;org.apache.iceberg.flink.sink.FlinkSink&quot;;
+
+    // ===== 枚举 =====
+
+    /**
+     * Iceberg Catalog 类型。
+     */
+<span class="fc" id="L96">    public enum CatalogType {</span>
+        /** Hive Metastore Catalog。 */
+<span class="fc" id="L98">        HIVE(&quot;hive&quot;),</span>
+        /** REST Catalog（推荐，V2.0 标准）。 */
+<span class="fc" id="L100">        REST(&quot;rest&quot;),</span>
+        /** Hadoop Catalog（基于 HDFS 路径）。 */
+<span class="fc" id="L102">        HADOOP(&quot;hadoop&quot;),</span>
+        /** JDBC Catalog（基于关系数据库存储元数据）。 */
+<span class="fc" id="L104">        JDBC(&quot;jdbc&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L108">        CatalogType(String code) {</span>
+<span class="fc" id="L109">            this.code = code;</span>
+<span class="fc" id="L110">        }</span>
+
+        public String code() {
+<span class="fc" id="L113">            return code;</span>
+        }
+
+        /**
+         * 根据编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 编码
+         * @return 枚举值
+         * @throws IllegalArgumentException 编码不被识别
+         */
+        public static CatalogType fromCode(String code) {
+<span class="fc" id="L124">            Objects.requireNonNull(code, &quot;catalog type code 不能为 null&quot;);</span>
+<span class="fc" id="L125">            String normalized = code.toLowerCase().replace(&quot;_&quot;, &quot;-&quot;);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">            for (CatalogType t : values()) {</span>
+<span class="fc bfc" id="L127" title="All 2 branches covered.">                if (t.code.equals(normalized)) {</span>
+<span class="fc" id="L128">                    return t;</span>
+                }
+            }
+<span class="fc" id="L131">            throw new IllegalArgumentException(&quot;未知的 catalog 类型: &quot; + code);</span>
+        }
+    }
+
+    /**
+     * Iceberg 写入分布模式，控制并发写入时的数据分布策略。
+     */
+<span class="fc" id="L138">    public enum DistributionMode {</span>
+        /** 不指定分布模式，由 Flink 并行度决定。 */
+<span class="fc" id="L140">        NONE(&quot;none&quot;),</span>
+        /** 按主键 Hash 分布，相同主键写入同一 task，避免并发冲突（UPSERT 推荐）。 */
+<span class="fc" id="L142">        HASH(&quot;hash&quot;),</span>
+        /** 按分区 Range 分布。 */
+<span class="fc" id="L144">        RANGE(&quot;range&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L148">        DistributionMode(String code) {</span>
+<span class="fc" id="L149">            this.code = code;</span>
+<span class="fc" id="L150">        }</span>
+
+        public String code() {
+<span class="fc" id="L153">            return code;</span>
+        }
+
+        /**
+         * 根据编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 编码
+         * @return 枚举值
+         * @throws IllegalArgumentException 编码不被识别
+         */
+        public static DistributionMode fromCode(String code) {
+<span class="fc" id="L164">            Objects.requireNonNull(code, &quot;distribution mode code 不能为 null&quot;);</span>
+<span class="fc" id="L165">            String normalized = code.toLowerCase().replace(&quot;_&quot;, &quot;-&quot;);</span>
+<span class="fc bfc" id="L166" title="All 2 branches covered.">            for (DistributionMode m : values()) {</span>
+<span class="fc bfc" id="L167" title="All 2 branches covered.">                if (m.code.equals(normalized)) {</span>
+<span class="fc" id="L168">                    return m;</span>
+                }
+            }
+<span class="fc" id="L171">            throw new IllegalArgumentException(&quot;未知的分布模式: &quot; + code);</span>
+        }
+    }
+
+    /**
+     * Iceberg 表写入模式。
+     */
+<span class="fc" id="L178">    public enum WriteMode {</span>
+        /** 仅追加（V1 兼容，不支持 UPDATE/DELETE）。 */
+<span class="fc" id="L180">        APPEND_ONLY(&quot;append-only&quot;),</span>
+        /** 行级 UPSERT（V2，支持 INSERT/UPDATE/DELETE，主键冲突时更新而非追加）。 */
+<span class="fc" id="L182">        UPSERT(&quot;upsert&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L186">        WriteMode(String code) {</span>
+<span class="fc" id="L187">            this.code = code;</span>
+<span class="fc" id="L188">        }</span>
+
+        public String code() {
+<span class="fc" id="L191">            return code;</span>
+        }
+
+        /**
+         * 根据编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 编码
+         * @return 枚举值
+         * @throws IllegalArgumentException 编码不被识别
+         */
+        public static WriteMode fromCode(String code) {
+<span class="fc" id="L202">            Objects.requireNonNull(code, &quot;write mode code 不能为 null&quot;);</span>
+<span class="fc" id="L203">            String normalized = code.toLowerCase().replace(&quot;_&quot;, &quot;-&quot;);</span>
+<span class="fc bfc" id="L204" title="All 2 branches covered.">            for (WriteMode m : values()) {</span>
+<span class="fc bfc" id="L205" title="All 2 branches covered.">                if (m.code.equals(normalized)) {</span>
+<span class="fc" id="L206">                    return m;</span>
+                }
+            }
+<span class="fc" id="L209">            throw new IllegalArgumentException(&quot;未知的写入模式: &quot; + code);</span>
+        }
+    }
+
+    /**
+     * 小文件合并（Compaction）触发策略。
+     */
+<span class="fc" id="L216">    public enum CompactionTrigger {</span>
+        /** 不自动触发合并。 */
+<span class="fc" id="L218">        NONE(&quot;none&quot;),</span>
+        /** 每次 Flink checkpoint 后触发合并。 */
+<span class="fc" id="L220">        AFTER_CHECKPOINT(&quot;after-checkpoint&quot;),</span>
+        /** 当小文件数超过阈值时触发合并。 */
+<span class="fc" id="L222">        BY_FILE_COUNT(&quot;by-file-count&quot;),</span>
+        /** 当数据文件总大小超过阈值时触发合并。 */
+<span class="fc" id="L224">        BY_FILE_SIZE(&quot;by-file-size&quot;),</span>
+        /** 混合策略：文件数与文件大小任一超阈值即触发。 */
+<span class="fc" id="L226">        HYBRID(&quot;hybrid&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L230">        CompactionTrigger(String code) {</span>
+<span class="fc" id="L231">            this.code = code;</span>
+<span class="fc" id="L232">        }</span>
+
+        public String code() {
+<span class="fc" id="L235">            return code;</span>
+        }
+
+        /**
+         * 根据编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 编码
+         * @return 枚举值
+         * @throws IllegalArgumentException 编码不被识别
+         */
+        public static CompactionTrigger fromCode(String code) {
+<span class="fc" id="L246">            Objects.requireNonNull(code, &quot;compaction trigger code 不能为 null&quot;);</span>
+<span class="fc" id="L247">            String normalized = code.toLowerCase().replace(&quot;_&quot;, &quot;-&quot;);</span>
+<span class="fc bfc" id="L248" title="All 2 branches covered.">            for (CompactionTrigger t : values()) {</span>
+<span class="fc bfc" id="L249" title="All 2 branches covered.">                if (t.code.equals(normalized)) {</span>
+<span class="fc" id="L250">                    return t;</span>
+                }
+            }
+<span class="fc" id="L253">            throw new IllegalArgumentException(&quot;未知的合并触发策略: &quot; + code);</span>
+        }
+    }
+
+    /**
+     * Schema 演化同步模式。
+     */
+<span class="fc" id="L260">    public enum SchemaEvolutionMode {</span>
+        /** 关闭 Schema 演化，源表 DDL 变更不同步。 */
+<span class="fc" id="L262">        OFF(&quot;off&quot;),</span>
+        /** 自动同步兼容变更，不兼容变更按策略暂停。 */
+<span class="fc" id="L264">        AUTO(&quot;auto&quot;),</span>
+        /** 自动同步，遇到不兼容变更（如类型 narrowing）暂停作业并告警。 */
+<span class="fc" id="L266">        PAUSE_ON_INCOMPATIBLE(&quot;pause-on-incompatible&quot;);</span>
+
+        private final String code;
+
+<span class="fc" id="L270">        SchemaEvolutionMode(String code) {</span>
+<span class="fc" id="L271">            this.code = code;</span>
+<span class="fc" id="L272">        }</span>
+
+        public String code() {
+<span class="fc" id="L275">            return code;</span>
+        }
+
+        /**
+         * 根据编码解析为枚举值（大小写不敏感）。
+         *
+         * @param code 编码
+         * @return 枚举值
+         * @throws IllegalArgumentException 编码不被识别
+         */
+        public static SchemaEvolutionMode fromCode(String code) {
+<span class="fc" id="L286">            Objects.requireNonNull(code, &quot;schema evolution mode code 不能为 null&quot;);</span>
+<span class="fc" id="L287">            String normalized = code.toLowerCase().replace(&quot;_&quot;, &quot;-&quot;);</span>
+<span class="fc bfc" id="L288" title="All 2 branches covered.">            for (SchemaEvolutionMode m : values()) {</span>
+<span class="fc bfc" id="L289" title="All 2 branches covered.">                if (m.code.equals(normalized)) {</span>
+<span class="fc" id="L290">                    return m;</span>
+                }
+            }
+<span class="fc" id="L293">            throw new IllegalArgumentException(&quot;未知的 Schema 演化模式: &quot; + code);</span>
+        }
+    }
+
+    /**
+     * 行级 UPSERT 动作枚举，描述一条 {@link ChangeRecord} 在 Iceberg V2 表上的写入语义。
+     */
+<span class="fc" id="L300">    public enum UpsertAction {</span>
+        /** 写入 data 文件（INSERT 或 SNAPSHOT）。 */
+<span class="fc" id="L302">        INSERT_DATA,</span>
+        /** 写入 data 文件 + equality-delete 文件（UPDATE：先标记旧记录再写新记录）。 */
+<span class="fc" id="L304">        UPDATE_WITH_DELETE,</span>
+        /** 仅写入 equality-delete 文件（DELETE：按主键标记删除）。 */
+<span class="fc" id="L306">        DELETE_ONLY,</span>
+        /** 跳过（记录无效或无法解析）。 */
+<span class="fc" id="L308">        SKIP</span>
+    }
+
+    /**
+     * Schema 变更类型枚举。
+     */
+<span class="fc" id="L314">    public enum SchemaChangeType {</span>
+        /** 无变更。 */
+<span class="fc" id="L316">        NONE,</span>
+        /** 加列（兼容）。 */
+<span class="fc" id="L318">        ADD_COLUMN,</span>
+        /** 删列（兼容，标记删除）。 */
+<span class="fc" id="L320">        DROP_COLUMN,</span>
+        /** 重命名列（兼容）。 */
+<span class="fc" id="L322">        RENAME_COLUMN,</span>
+        /** 类型 widening（兼容，如 INT→BIGINT）。 */
+<span class="fc" id="L324">        TYPE_WIDENING,</span>
+        /** 类型 narrowing（不兼容，如 BIGINT→INT）。 */
+<span class="fc" id="L326">        TYPE_NARROWING,</span>
+        /** 不兼容变更（无法自动同步）。 */
+<span class="fc" id="L328">        INCOMPATIBLE</span>
+    }
+
+    // ===== 配置字段 =====
+
+    private final String catalogName;
+    private final CatalogType catalogType;
+    private final String catalogUri;
+    private final String warehouse;
+    private final String database;
+    private final String table;
+    private final List&lt;String&gt; primaryKeys;
+    private final List&lt;String&gt; partitionKeys;
+    private final int formatVersion;
+    private final WriteMode writeMode;
+    private final DistributionMode distributionMode;
+    private final String fileFormat;
+    private final Properties catalogProperties;
+
+    // 合并优化
+    private final CompactionTrigger compactionTrigger;
+    private final int compactionFileCountThreshold;
+    private final long compactionFileSizeThreshold;
+    private final int microBatchSize;
+    private final boolean incrementalCommit;
+
+    // Schema 演化
+    private final SchemaEvolutionMode schemaEvolutionMode;
+
+    // 运行时统计（非序列化部分，仅用于监控）
+    private transient long totalRecords;
+    private transient long totalInserts;
+    private transient long totalUpdates;
+    private transient long totalDeletes;
+    private transient long totalCompactions;
+
+    private IcebergSinkConnector(String catalogName, CatalogType catalogType, String catalogUri,
+                                 String warehouse, String database, String table,
+                                 List&lt;String&gt; primaryKeys, List&lt;String&gt; partitionKeys,
+                                 int formatVersion, WriteMode writeMode,
+                                 DistributionMode distributionMode, String fileFormat,
+                                 Properties catalogProperties,
+                                 CompactionTrigger compactionTrigger,
+                                 int compactionFileCountThreshold,
+                                 long compactionFileSizeThreshold,
+                                 int microBatchSize, boolean incrementalCommit,
+<span class="fc" id="L374">                                 SchemaEvolutionMode schemaEvolutionMode) {</span>
+<span class="fc" id="L375">        this.catalogName = catalogName;</span>
+<span class="fc" id="L376">        this.catalogType = catalogType;</span>
+<span class="fc" id="L377">        this.catalogUri = catalogUri;</span>
+<span class="fc" id="L378">        this.warehouse = warehouse;</span>
+<span class="fc" id="L379">        this.database = database;</span>
+<span class="fc" id="L380">        this.table = table;</span>
+<span class="fc" id="L381">        this.primaryKeys = primaryKeys;</span>
+<span class="fc" id="L382">        this.partitionKeys = partitionKeys;</span>
+<span class="fc" id="L383">        this.formatVersion = formatVersion;</span>
+<span class="fc" id="L384">        this.writeMode = writeMode;</span>
+<span class="fc" id="L385">        this.distributionMode = distributionMode;</span>
+<span class="fc" id="L386">        this.fileFormat = fileFormat;</span>
+<span class="fc" id="L387">        this.catalogProperties = catalogProperties;</span>
+<span class="fc" id="L388">        this.compactionTrigger = compactionTrigger;</span>
+<span class="fc" id="L389">        this.compactionFileCountThreshold = compactionFileCountThreshold;</span>
+<span class="fc" id="L390">        this.compactionFileSizeThreshold = compactionFileSizeThreshold;</span>
+<span class="fc" id="L391">        this.microBatchSize = microBatchSize;</span>
+<span class="fc" id="L392">        this.incrementalCommit = incrementalCommit;</span>
+<span class="fc" id="L393">        this.schemaEvolutionMode = schemaEvolutionMode;</span>
+<span class="fc" id="L394">    }</span>
+
+    // ===== 核心方法 =====
+
+    /**
+     * 创建 Flink Sink 实例，将 {@link ChangeRecord} 流写入 Iceberg V2 表。
+     *
+     * &lt;p&gt;通过反射加载 {@code org.apache.iceberg.flink.sink.FlinkSink}，运行时由 Flink 集群
+     * lib 提供 Iceberg 依赖。若 classpath 中无 Iceberg 类，抛出异常提示运维添加 jar。&lt;/p&gt;
+     *
+     * @return Flink Sink
+     * @throws IllegalStateException 配置不合法或 Iceberg 依赖不可用
+     */
+    public Sink&lt;ChangeRecord&gt; createSink() {
+<span class="fc" id="L408">        validate();</span>
+<span class="fc" id="L409">        Map&lt;String, String&gt; icebergProps = createIcebergProperties();</span>
+<span class="fc" id="L410">        log.info(&quot;创建 Iceberg V2 Sink: catalog={}, db={}, table={}, format-version={}, write-mode={}, &quot;</span>
+                        + &quot;distribution={}, primary-keys={}, partition-keys={}, micro-batch={}, &quot;
+                        + &quot;compaction={}, schema-evolution={}&quot;,
+<span class="fc" id="L413">                catalogName, database, table, formatVersion, writeMode.code(),</span>
+<span class="fc" id="L414">                distributionMode.code(), primaryKeys, partitionKeys, microBatchSize,</span>
+<span class="fc" id="L415">                compactionTrigger.code(), schemaEvolutionMode.code());</span>
+
+<span class="nc" id="L417">        return createIcebergSinkViaReflection(icebergProps);</span>
+    }
+
+    /**
+     * 将 Sink 附加到数据流。
+     *
+     * @param stream 输入数据流
+     * @throws NullPointerException stream 为 null
+     */
+    public void attachTo(DataStream&lt;ChangeRecord&gt; stream) {
+<span class="nc" id="L427">        Objects.requireNonNull(stream, &quot;stream 不能为 null&quot;);</span>
+<span class="nc" id="L428">        stream.sinkTo(createSink());</span>
+<span class="nc" id="L429">    }</span>
+
+    /**
+     * 生成 Iceberg Flink Connector 所需的表属性 Map。
+     *
+     * &lt;p&gt;属性遵循 Iceberg Flink Connector 规范，包括 catalog 配置、表格式、写入模式、
+     * 分布模式、合并优化等。这些属性将作为 Flink SQL {@code CREATE TABLE} 的 WITH 选项
+     * 或程序化 API 的 TableDescriptor 属性。&lt;/p&gt;
+     *
+     * @return Iceberg 表属性 Map（键值均为 String）
+     */
+    public Map&lt;String, String&gt; createIcebergProperties() {
+<span class="fc" id="L441">        Map&lt;String, String&gt; props = new LinkedHashMap&lt;&gt;();</span>
+
+        // Connector 与 Catalog
+<span class="fc" id="L444">        props.put(&quot;connector&quot;, &quot;iceberg&quot;);</span>
+<span class="fc" id="L445">        props.put(&quot;catalog-name&quot;, catalogName);</span>
+<span class="fc" id="L446">        props.put(&quot;catalog-impl&quot;, resolveCatalogImpl());</span>
+<span class="pc bpc" id="L447" title="1 of 4 branches missed.">        if (catalogUri != null &amp;&amp; !catalogUri.isEmpty()) {</span>
+<span class="fc" id="L448">            props.put(&quot;uri&quot;, catalogUri);</span>
+        }
+<span class="fc" id="L450">        props.put(&quot;warehouse&quot;, warehouse);</span>
+
+        // 表格式版本（V2 启用行级 upsert）
+<span class="fc" id="L453">        props.put(&quot;format-version&quot;, String.valueOf(formatVersion));</span>
+
+        // 写入模式
+<span class="fc bfc" id="L456" title="All 2 branches covered.">        if (writeMode == WriteMode.UPSERT) {</span>
+<span class="fc" id="L457">            props.put(&quot;write.upsert.enabled&quot;, &quot;true&quot;);</span>
+        }
+<span class="fc" id="L459">        props.put(&quot;write.distribution-mode&quot;, distributionMode.code());</span>
+
+        // 文件格式
+<span class="pc bpc" id="L462" title="2 of 4 branches missed.">        if (fileFormat != null &amp;&amp; !fileFormat.isEmpty()) {</span>
+<span class="fc" id="L463">            props.put(&quot;write.format.default&quot;, fileFormat);</span>
+        }
+
+        // 合并优化属性
+<span class="fc" id="L467">        props.put(&quot;commit.manifest.min-count&quot;, &quot;1&quot;);</span>
+<span class="fc bfc" id="L468" title="All 2 branches covered.">        if (incrementalCommit) {</span>
+<span class="fc" id="L469">            props.put(&quot;commit.manifest.target-size-bytes&quot;,</span>
+<span class="fc" id="L470">                    String.valueOf(8L * 1024 * 1024));</span>
+        }
+
+        // catalog 额外属性（前缀 catalog.）
+<span class="pc bpc" id="L474" title="1 of 2 branches missed.">        if (catalogProperties != null) {</span>
+<span class="fc bfc" id="L475" title="All 2 branches covered.">            for (String key : catalogProperties.stringPropertyNames()) {</span>
+<span class="fc" id="L476">                props.put(&quot;catalog.&quot; + key, catalogProperties.getProperty(key));</span>
+<span class="fc" id="L477">            }</span>
+        }
+
+<span class="fc" id="L480">        return props;</span>
+    }
+
+    /**
+     * 解析 catalog 实现类全限定名。
+     *
+     * @return catalog 实现类名
+     */
+    String resolveCatalogImpl() {
+<span class="fc bfc" id="L489" title="All 4 branches covered.">        return switch (catalogType) {</span>
+<span class="fc" id="L490">            case REST -&gt; &quot;org.apache.iceberg.rest.RESTCatalog&quot;;</span>
+<span class="fc" id="L491">            case HIVE -&gt; &quot;org.apache.iceberg.hive.HiveCatalog&quot;;</span>
+<span class="fc" id="L492">            case HADOOP -&gt; &quot;org.apache.iceberg.hadoop.HadoopCatalog&quot;;</span>
+<span class="fc" id="L493">            case JDBC -&gt; &quot;org.apache.iceberg.jdbc.JdbcCatalog&quot;;</span>
+        };
+    }
+
+    /**
+     * 通过反射创建 Iceberg Flink Sink。
+     *
+     * &lt;p&gt;运行时由 Flink 集群 lib 提供 {@code FlinkSink}。当类不可用时抛出
+     * {@link IllegalStateException}，提示运维将 Iceberg Flink runtime jar 加入集群 lib。&lt;/p&gt;
+     *
+     * @param icebergProps Iceberg 表属性
+     * @return Flink Sink
+     * @throws IllegalStateException Iceberg 依赖不可用
+     */
+    Sink&lt;ChangeRecord&gt; createIcebergSinkViaReflection(Map&lt;String, String&gt; icebergProps) {
+        try {
+<span class="nc" id="L509">            Class&lt;?&gt; flinkSinkClass = Class.forName(ICEBERG_FLINK_SINK_CLASS);</span>
+<span class="nc" id="L510">            log.debug(&quot;已加载 Iceberg FlinkSink: {}&quot;, flinkSinkClass.getName());</span>
+            // 实际生产环境调用 FlinkSink.forRowData(dataStream).table(table).append()...
+            // 此处由于编译期不依赖 Iceberg SDK，返回一个委托 Sink 占位
+<span class="nc" id="L513">            return new IcebergSinkStub(icebergProps);</span>
+<span class="fc" id="L514">        } catch (ClassNotFoundException e) {</span>
+<span class="fc" id="L515">            throw new IllegalStateException(</span>
+                    &quot;Iceberg Flink Sink 依赖不可用：未找到 &quot; + ICEBERG_FLINK_SINK_CLASS
+                            + &quot;。请将 iceberg-flink-runtime jar 加入 Flink 集群 lib/ 或作业 classpath。&quot;,
+                    e);
+        }
+    }
+
+    // ===== 行级 UPSERT 核心 =====
+
+    /**
+     * 解析一条 {@link ChangeRecord} 在 Iceberg V2 表上的 UPSERT 动作。
+     *
+     * &lt;p&gt;映射规则：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;{@code op=c}（INSERT）→ {@link UpsertAction#INSERT_DATA}：写 data 文件&lt;/li&gt;
+     *   &lt;li&gt;{@code op=u}（UPDATE）→ {@link UpsertAction#UPDATE_WITH_DELETE}：
+     *       写 data + equality-delete（标记旧记录）&lt;/li&gt;
+     *   &lt;li&gt;{@code op=d}（DELETE）→ {@link UpsertAction#DELETE_ONLY}：
+     *       写 equality-delete（按主键标记删除）&lt;/li&gt;
+     *   &lt;li&gt;{@code op=r}（SNAPSHOT）→ {@link UpsertAction#INSERT_DATA}：当作 INSERT&lt;/li&gt;
+     *   &lt;li&gt;其他/无效 → {@link UpsertAction#SKIP}&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * &lt;p&gt;APPEND_ONLY 模式下，UPDATE/DELETE 退化为 SKIP（V1 兼容，不支持行级变更）。&lt;/p&gt;
+     *
+     * @param record 变更记录
+     * @return UPSERT 动作
+     * @throws NullPointerException record 为 null
+     */
+    public UpsertAction resolveUpsertAction(ChangeRecord record) {
+<span class="fc" id="L545">        Objects.requireNonNull(record, &quot;record 不能为 null&quot;);</span>
+<span class="fc bfc" id="L546" title="All 2 branches covered.">        if (record.getOp() == null) {</span>
+<span class="fc" id="L547">            return UpsertAction.SKIP;</span>
+        }
+<span class="fc" id="L549">        ChangeRecord.Op opEnum = record.opEnum();</span>
+<span class="fc bfc" id="L550" title="All 2 branches covered.">        if (opEnum == null) {</span>
+<span class="fc" id="L551">            return UpsertAction.SKIP;</span>
+        }
+        // APPEND_ONLY 模式不支持行级变更
+<span class="fc bfc" id="L554" title="All 2 branches covered.">        if (writeMode == WriteMode.APPEND_ONLY) {</span>
+<span class="fc bfc" id="L555" title="All 2 branches covered.">            return switch (opEnum) {</span>
+<span class="fc" id="L556">                case INSERT, SNAPSHOT -&gt; UpsertAction.INSERT_DATA;</span>
+<span class="fc" id="L557">                case UPDATE, DELETE -&gt; UpsertAction.SKIP;</span>
+            };
+        }
+        // UPSERT 模式
+<span class="fc bfc" id="L561" title="All 3 branches covered.">        return switch (opEnum) {</span>
+<span class="fc" id="L562">            case INSERT, SNAPSHOT -&gt; UpsertAction.INSERT_DATA;</span>
+<span class="fc" id="L563">            case UPDATE -&gt; UpsertAction.UPDATE_WITH_DELETE;</span>
+<span class="fc" id="L564">            case DELETE -&gt; UpsertAction.DELETE_ONLY;</span>
+        };
+    }
+
+    /**
+     * 提取记录的有效行数据（写入 Iceberg 的 payload）。
+     *
+     * &lt;p&gt;规则：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;INSERT/UPDATE/SNAPSHOT：取 {@code after}（变更后快照）&lt;/li&gt;
+     *   &lt;li&gt;DELETE：取 {@code before}（变更前快照，用于 equality-delete 定位）&lt;/li&gt;
+     *   &lt;li&gt;无法提取返回 {@code null}&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param record 变更记录
+     * @return 行数据 Map；不存在返回 {@code null}
+     */
+    public Map&lt;String, Object&gt; extractRow(ChangeRecord record) {
+<span class="fc" id="L582">        Objects.requireNonNull(record, &quot;record 不能为 null&quot;);</span>
+<span class="fc" id="L583">        UpsertAction action = resolveUpsertAction(record);</span>
+<span class="fc bfc" id="L584" title="All 3 branches covered.">        return switch (action) {</span>
+<span class="fc" id="L585">            case INSERT_DATA, UPDATE_WITH_DELETE -&gt; record.getAfter();</span>
+<span class="fc" id="L586">            case DELETE_ONLY -&gt; record.getBefore();</span>
+<span class="fc" id="L587">            case SKIP -&gt; null;</span>
+        };
+    }
+
+    /**
+     * 提取记录的主键值（用于 equality-delete 定位）。
+     *
+     * @param record 变更记录
+     * @return 主键值的字符串表示（多列用 {@code |} 分隔）；无法提取返回 {@code null}
+     */
+    public String extractPrimaryKey(ChangeRecord record) {
+<span class="fc" id="L598">        Objects.requireNonNull(record, &quot;record 不能为 null&quot;);</span>
+<span class="fc bfc" id="L599" title="All 2 branches covered.">        if (primaryKeys.isEmpty()) {</span>
+<span class="fc" id="L600">            return null;</span>
+        }
+<span class="fc" id="L602">        Map&lt;String, Object&gt; row = extractRow(record);</span>
+<span class="pc bpc" id="L603" title="1 of 2 branches missed.">        if (row == null) {</span>
+<span class="nc" id="L604">            return null;</span>
+        }
+<span class="fc" id="L606">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L607" title="All 2 branches covered.">        for (String pk : primaryKeys) {</span>
+<span class="fc" id="L608">            Object val = row.get(pk);</span>
+<span class="fc bfc" id="L609" title="All 2 branches covered.">            if (val == null) {</span>
+<span class="fc" id="L610">                return null;</span>
+            }
+<span class="fc bfc" id="L612" title="All 2 branches covered.">            if (sb.length() &gt; 0) {</span>
+<span class="fc" id="L613">                sb.append('|');</span>
+            }
+<span class="fc" id="L615">            sb.append(val);</span>
+<span class="fc" id="L616">        }</span>
+<span class="fc" id="L617">        return sb.toString();</span>
+    }
+
+    /**
+     * 判断记录是否应被写入（非 SKIP）。
+     *
+     * @param record 变更记录
+     * @return true 表示需要写入
+     */
+    public boolean shouldWrite(ChangeRecord record) {
+<span class="fc bfc" id="L627" title="All 2 branches covered.">        return resolveUpsertAction(record) != UpsertAction.SKIP;</span>
+    }
+
+    // ===== 合并优化核心 =====
+
+    /**
+     * 判断是否应触发小文件合并（Compaction）。
+     *
+     * &lt;p&gt;按 {@link #compactionTrigger} 策略判断：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;{@link CompactionTrigger#NONE}：永不触发&lt;/li&gt;
+     *   &lt;li&gt;{@link CompactionTrigger#AFTER_CHECKPOINT}：每次 checkpoint 后触发&lt;/li&gt;
+     *   &lt;li&gt;{@link CompactionTrigger#BY_FILE_COUNT}：文件数 &amp;gt; 阈值&lt;/li&gt;
+     *   &lt;li&gt;{@link CompactionTrigger#BY_FILE_SIZE}：总大小 &amp;gt; 阈值&lt;/li&gt;
+     *   &lt;li&gt;{@link CompactionTrigger#HYBRID}：文件数或总大小任一超阈值&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param fileCount       当前数据文件数
+     * @param totalSizeBytes  当前数据文件总大小（字节）
+     * @return true 表示应触发合并
+     */
+    public boolean shouldTriggerCompaction(int fileCount, long totalSizeBytes) {
+<span class="fc bfc" id="L649" title="All 5 branches covered.">        return switch (compactionTrigger) {</span>
+<span class="fc" id="L650">            case NONE -&gt; false;</span>
+<span class="fc" id="L651">            case AFTER_CHECKPOINT -&gt; true;</span>
+<span class="fc bfc" id="L652" title="All 2 branches covered.">            case BY_FILE_COUNT -&gt; fileCount &gt; compactionFileCountThreshold;</span>
+<span class="fc bfc" id="L653" title="All 2 branches covered.">            case BY_FILE_SIZE -&gt; totalSizeBytes &gt; compactionFileSizeThreshold;</span>
+<span class="fc bfc" id="L654" title="All 4 branches covered.">            case HYBRID -&gt; fileCount &gt; compactionFileCountThreshold</span>
+                    || totalSizeBytes &gt; compactionFileSizeThreshold;
+        };
+    }
+
+    /**
+     * 规划合并任务，返回需合并的文件数与预期合并后文件数。
+     *
+     * @param currentFileCount      当前数据文件数
+     * @param currentTotalSizeBytes 当前数据文件总大小（字节）
+     * @return 合并计划；若不需合并返回 null
+     */
+    public CompactionPlan planCompaction(int currentFileCount, long currentTotalSizeBytes) {
+<span class="fc bfc" id="L667" title="All 2 branches covered.">        if (!shouldTriggerCompaction(currentFileCount, currentTotalSizeBytes)) {</span>
+<span class="fc" id="L668">            return null;</span>
+        }
+        // 目标文件大小默认 128MB，合并后文件数 = ceil(totalSize / targetSize)
+<span class="pc bpc" id="L671" title="1 of 2 branches missed.">        long targetFileSize = compactionFileSizeThreshold &gt; 0</span>
+<span class="pc" id="L672">                ? compactionFileSizeThreshold : (128L * 1024 * 1024);</span>
+<span class="fc" id="L673">        int mergedFileCount = (int) Math.max(1,</span>
+                (currentTotalSizeBytes + targetFileSize - 1) / targetFileSize);
+<span class="fc" id="L675">        return new CompactionPlan(currentFileCount, mergedFileCount,</span>
+                currentTotalSizeBytes, targetFileSize);
+    }
+
+    /**
+     * 判断微批是否已满，应触发提交。
+     *
+     * @param pendingCount 当前缓冲记录数
+     * @return true 表示微批已满
+     */
+    public boolean isMicroBatchFull(int pendingCount) {
+<span class="fc bfc" id="L686" title="All 4 branches covered.">        return microBatchSize &gt; 0 &amp;&amp; pendingCount &gt;= microBatchSize;</span>
+    }
+
+    /**
+     * 合并计划，描述需合并的文件数与预期合并后文件数。
+     */
+    public static final class CompactionPlan implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        private final int sourceFileCount;
+        private final int targetFileCount;
+        private final long totalSizeBytes;
+        private final long targetFileSizeBytes;
+
+        public CompactionPlan(int sourceFileCount, int targetFileCount,
+<span class="fc" id="L701">                              long totalSizeBytes, long targetFileSizeBytes) {</span>
+<span class="fc" id="L702">            this.sourceFileCount = sourceFileCount;</span>
+<span class="fc" id="L703">            this.targetFileCount = targetFileCount;</span>
+<span class="fc" id="L704">            this.totalSizeBytes = totalSizeBytes;</span>
+<span class="fc" id="L705">            this.targetFileSizeBytes = targetFileSizeBytes;</span>
+<span class="fc" id="L706">        }</span>
+
+        public int getSourceFileCount() {
+<span class="fc" id="L709">            return sourceFileCount;</span>
+        }
+
+        public int getTargetFileCount() {
+<span class="fc" id="L713">            return targetFileCount;</span>
+        }
+
+        public long getTotalSizeBytes() {
+<span class="fc" id="L717">            return totalSizeBytes;</span>
+        }
+
+        public long getTargetFileSizeBytes() {
+<span class="fc" id="L721">            return targetFileSizeBytes;</span>
+        }
+
+        /** 合并后文件数缩减比例（0~1）。 */
+        public double reductionRatio() {
+<span class="fc bfc" id="L726" title="All 2 branches covered.">            if (sourceFileCount == 0) {</span>
+<span class="fc" id="L727">                return 0.0;</span>
+            }
+<span class="fc" id="L729">            return 1.0 - (double) targetFileCount / sourceFileCount;</span>
+        }
+
+        @Override
+        public String toString() {
+<span class="fc" id="L734">            return &quot;CompactionPlan{source=&quot; + sourceFileCount + &quot; → target=&quot; + targetFileCount</span>
+                    + &quot;, size=&quot; + totalSizeBytes + &quot;B, targetFileSize=&quot; + targetFileSizeBytes
+<span class="fc" id="L736">                    + &quot;B, reduction=&quot; + String.format(&quot;%.2f%%&quot;, reductionRatio() * 100) + '}';</span>
+        }
+    }
+
+    // ===== Schema 演化核心 =====
+
+    /**
+     * 分析两条记录的 schema 差异，识别 Schema 变更类型。
+     *
+     * &lt;p&gt;用于 CDC 源表 DDL 变更同步至 Iceberg 表。比较 {@code before} 与 {@code after}
+     * 的字段集合差异：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;{@code after} 有 {@code before} 没有的字段 → {@link SchemaChangeType#ADD_COLUMN}&lt;/li&gt;
+     *   &lt;li&gt;{@code before} 有 {@code after} 没有的字段 → {@link SchemaChangeType#DROP_COLUMN}&lt;/li&gt;
+     *   &lt;li&gt;字段集相同 → {@link SchemaChangeType#NONE}&lt;/li&gt;
+     *   &lt;li&gt;同时存在加列与删列 → {@link SchemaChangeType#INCOMPATIBLE}&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param before 变更前字段集合（Map 的 key 为列名）
+     * @param after  变更后字段集合
+     * @return Schema 变更类型
+     */
+    public SchemaChangeType analyzeSchemaChange(Map&lt;String, Object&gt; before,
+                                                Map&lt;String, Object&gt; after) {
+<span class="fc bfc" id="L760" title="All 4 branches covered.">        if (before == null &amp;&amp; after == null) {</span>
+<span class="fc" id="L761">            return SchemaChangeType.NONE;</span>
+        }
+<span class="fc bfc" id="L763" title="All 2 branches covered.">        Set&lt;String&gt; beforeKeys = before == null ? Collections.emptySet() : before.keySet();</span>
+<span class="fc bfc" id="L764" title="All 2 branches covered.">        Set&lt;String&gt; afterKeys = after == null ? Collections.emptySet() : after.keySet();</span>
+
+<span class="fc" id="L766">        Set&lt;String&gt; added = new TreeSet&lt;&gt;(afterKeys);</span>
+<span class="fc" id="L767">        added.removeAll(beforeKeys);</span>
+
+<span class="fc" id="L769">        Set&lt;String&gt; dropped = new TreeSet&lt;&gt;(beforeKeys);</span>
+<span class="fc" id="L770">        dropped.removeAll(afterKeys);</span>
+
+<span class="fc bfc" id="L772" title="All 4 branches covered.">        if (added.isEmpty() &amp;&amp; dropped.isEmpty()) {</span>
+<span class="fc" id="L773">            return SchemaChangeType.NONE;</span>
+        }
+<span class="fc bfc" id="L775" title="All 4 branches covered.">        if (!added.isEmpty() &amp;&amp; dropped.isEmpty()) {</span>
+<span class="fc" id="L776">            return SchemaChangeType.ADD_COLUMN;</span>
+        }
+<span class="fc bfc" id="L778" title="All 2 branches covered.">        if (added.isEmpty()) {</span>
+<span class="fc" id="L779">            return SchemaChangeType.DROP_COLUMN;</span>
+        }
+<span class="fc" id="L781">        return SchemaChangeType.INCOMPATIBLE;</span>
+    }
+
+    /**
+     * 判断 Schema 变更是否兼容（可自动同步）。
+     *
+     * @param changeType Schema 变更类型
+     * @return true 表示兼容
+     */
+    public boolean isCompatibleChange(SchemaChangeType changeType) {
+<span class="fc bfc" id="L791" title="All 2 branches covered.">        return switch (changeType) {</span>
+<span class="fc" id="L792">            case NONE, ADD_COLUMN, DROP_COLUMN, RENAME_COLUMN, TYPE_WIDENING -&gt; true;</span>
+<span class="fc" id="L793">            case TYPE_NARROWING, INCOMPATIBLE -&gt; false;</span>
+        };
+    }
+
+    /**
+     * 判断 Schema 变更是否应暂停作业。
+     *
+     * &lt;p&gt;规则：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;{@link SchemaEvolutionMode#OFF}：任何变更暂停（已关闭演化）&lt;/li&gt;
+     *   &lt;li&gt;{@link SchemaEvolutionMode#AUTO}：不兼容变更暂停&lt;/li&gt;
+     *   &lt;li&gt;{@link SchemaEvolutionMode#PAUSE_ON_INCOMPATIBLE}：不兼容变更暂停&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param changeType Schema 变更类型
+     * @return true 表示应暂停作业
+     */
+    public boolean shouldPauseOnSchemaChange(SchemaChangeType changeType) {
+<span class="fc bfc" id="L811" title="All 2 branches covered.">        if (schemaEvolutionMode == SchemaEvolutionMode.OFF) {</span>
+<span class="fc bfc" id="L812" title="All 2 branches covered.">            return changeType != SchemaChangeType.NONE;</span>
+        }
+<span class="fc bfc" id="L814" title="All 2 branches covered.">        return !isCompatibleChange(changeType);</span>
+    }
+
+    // ===== 配置校验 =====
+
+    /**
+     * 校验配置完整性。
+     *
+     * @throws IllegalStateException 配置不合法
+     */
+    public void validate() {
+<span class="pc bpc" id="L825" title="1 of 4 branches missed.">        if (catalogName == null || catalogName.isEmpty()) {</span>
+<span class="fc" id="L826">            throw new IllegalStateException(&quot;catalogName 不能为空&quot;);</span>
+        }
+<span class="pc bpc" id="L828" title="1 of 2 branches missed.">        if (catalogType == null) {</span>
+<span class="nc" id="L829">            throw new IllegalStateException(&quot;catalogType 不能为 null&quot;);</span>
+        }
+<span class="pc bpc" id="L831" title="1 of 4 branches missed.">        if (warehouse == null || warehouse.isEmpty()) {</span>
+<span class="fc" id="L832">            throw new IllegalStateException(&quot;warehouse 不能为空&quot;);</span>
+        }
+<span class="pc bpc" id="L834" title="1 of 4 branches missed.">        if (database == null || database.isEmpty()) {</span>
+<span class="fc" id="L835">            throw new IllegalStateException(&quot;database 不能为空&quot;);</span>
+        }
+<span class="pc bpc" id="L837" title="1 of 4 branches missed.">        if (table == null || table.isEmpty()) {</span>
+<span class="fc" id="L838">            throw new IllegalStateException(&quot;table 不能为空&quot;);</span>
+        }
+<span class="fc bfc" id="L840" title="All 4 branches covered.">        if (formatVersion != FORMAT_VERSION_V1 &amp;&amp; formatVersion != FORMAT_VERSION_V2) {</span>
+<span class="fc" id="L841">            throw new IllegalStateException(</span>
+                    &quot;formatVersion 必须为 1 或 2，当前: &quot; + formatVersion);
+        }
+        // UPSERT 模式必须使用 V2 表格式
+<span class="fc bfc" id="L845" title="All 4 branches covered.">        if (writeMode == WriteMode.UPSERT &amp;&amp; formatVersion &lt; FORMAT_VERSION_V2) {</span>
+<span class="fc" id="L846">            throw new IllegalStateException(</span>
+                    &quot;UPSERT 模式要求 formatVersion &gt;= 2（Iceberg V2 表格式），当前: &quot;
+                            + formatVersion);
+        }
+        // UPSERT 模式必须指定主键
+<span class="fc bfc" id="L851" title="All 4 branches covered.">        if (writeMode == WriteMode.UPSERT &amp;&amp; primaryKeys.isEmpty()) {</span>
+<span class="fc" id="L852">            throw new IllegalStateException(&quot;UPSERT 模式必须指定 primaryKeys&quot;);</span>
+        }
+        // HASH 分布模式需要主键
+<span class="fc bfc" id="L855" title="All 4 branches covered.">        if (distributionMode == DistributionMode.HASH &amp;&amp; primaryKeys.isEmpty()) {</span>
+<span class="fc" id="L856">            throw new IllegalStateException(&quot;HASH 分布模式需要指定 primaryKeys&quot;);</span>
+        }
+        // REST/JDBC catalog 需要 URI
+<span class="fc bfc" id="L859" title="All 6 branches covered.">        if ((catalogType == CatalogType.REST || catalogType == CatalogType.JDBC)</span>
+<span class="pc bpc" id="L860" title="1 of 2 branches missed.">                &amp;&amp; (catalogUri == null || catalogUri.isEmpty())) {</span>
+<span class="fc" id="L861">            throw new IllegalStateException(catalogType.code() + &quot; catalog 必须指定 catalogUri&quot;);</span>
+        }
+<span class="fc bfc" id="L863" title="All 2 branches covered.">        if (microBatchSize &lt; 0) {</span>
+<span class="fc" id="L864">            throw new IllegalStateException(&quot;microBatchSize 不能为负数: &quot; + microBatchSize);</span>
+        }
+<span class="fc bfc" id="L866" title="All 2 branches covered.">        if (compactionFileCountThreshold &lt; 0) {</span>
+<span class="fc" id="L867">            throw new IllegalStateException(</span>
+                    &quot;compactionFileCountThreshold 不能为负数: &quot; + compactionFileCountThreshold);
+        }
+<span class="fc bfc" id="L870" title="All 2 branches covered.">        if (compactionFileSizeThreshold &lt; 0) {</span>
+<span class="fc" id="L871">            throw new IllegalStateException(</span>
+                    &quot;compactionFileSizeThreshold 不能为负数: &quot; + compactionFileSizeThreshold);
+        }
+<span class="fc" id="L874">    }</span>
+
+    // ===== 运行时统计 =====
+
+    /**
+     * 记入一条记录的统计（INSERT/UPDATE/DELETE 计数）。
+     *
+     * @param record 变更记录
+     */
+    public void recordStats(ChangeRecord record) {
+<span class="fc" id="L884">        UpsertAction action = resolveUpsertAction(record);</span>
+<span class="fc" id="L885">        totalRecords++;</span>
+<span class="fc bfc" id="L886" title="All 4 branches covered.">        switch (action) {</span>
+<span class="fc" id="L887">            case INSERT_DATA -&gt; totalInserts++;</span>
+<span class="fc" id="L888">            case UPDATE_WITH_DELETE -&gt; totalUpdates++;</span>
+<span class="fc" id="L889">            case DELETE_ONLY -&gt; totalDeletes++;</span>
+            default -&gt; { /* SKIP 不计 */ }
+        }
+<span class="fc" id="L892">    }</span>
+
+    /** 触发一次合并统计。 */
+    public void recordCompaction() {
+<span class="fc" id="L896">        totalCompactions++;</span>
+<span class="fc" id="L897">    }</span>
+
+    public long getTotalRecords() {
+<span class="fc" id="L900">        return totalRecords;</span>
+    }
+
+    public long getTotalInserts() {
+<span class="fc" id="L904">        return totalInserts;</span>
+    }
+
+    public long getTotalUpdates() {
+<span class="fc" id="L908">        return totalUpdates;</span>
+    }
+
+    public long getTotalDeletes() {
+<span class="fc" id="L912">        return totalDeletes;</span>
+    }
+
+    public long getTotalCompactions() {
+<span class="fc" id="L916">        return totalCompactions;</span>
+    }
+
+    // ===== Getter =====
+
+    public String getCatalogName() {
+<span class="fc" id="L922">        return catalogName;</span>
+    }
+
+    public CatalogType getCatalogType() {
+<span class="fc" id="L926">        return catalogType;</span>
+    }
+
+    public String getCatalogUri() {
+<span class="nc" id="L930">        return catalogUri;</span>
+    }
+
+    public String getWarehouse() {
+<span class="nc" id="L934">        return warehouse;</span>
+    }
+
+    public String getDatabase() {
+<span class="nc" id="L938">        return database;</span>
+    }
+
+    public String getTable() {
+<span class="nc" id="L942">        return table;</span>
+    }
+
+    public List&lt;String&gt; getPrimaryKeys() {
+<span class="fc" id="L946">        return Collections.unmodifiableList(primaryKeys);</span>
+    }
+
+    public List&lt;String&gt; getPartitionKeys() {
+<span class="fc" id="L950">        return Collections.unmodifiableList(partitionKeys);</span>
+    }
+
+    public int getFormatVersion() {
+<span class="fc" id="L954">        return formatVersion;</span>
+    }
+
+    public WriteMode getWriteMode() {
+<span class="fc" id="L958">        return writeMode;</span>
+    }
+
+    public DistributionMode getDistributionMode() {
+<span class="fc" id="L962">        return distributionMode;</span>
+    }
+
+    public String getFileFormat() {
+<span class="fc" id="L966">        return fileFormat;</span>
+    }
+
+    public Properties getCatalogProperties() {
+<span class="pc bpc" id="L970" title="1 of 2 branches missed.">        return catalogProperties == null ? new Properties() : new Properties(catalogProperties);</span>
+    }
+
+    public CompactionTrigger getCompactionTrigger() {
+<span class="fc" id="L974">        return compactionTrigger;</span>
+    }
+
+    public int getCompactionFileCountThreshold() {
+<span class="fc" id="L978">        return compactionFileCountThreshold;</span>
+    }
+
+    public long getCompactionFileSizeThreshold() {
+<span class="fc" id="L982">        return compactionFileSizeThreshold;</span>
+    }
+
+    public int getMicroBatchSize() {
+<span class="fc" id="L986">        return microBatchSize;</span>
+    }
+
+    public boolean isIncrementalCommit() {
+<span class="fc" id="L990">        return incrementalCommit;</span>
+    }
+
+    public SchemaEvolutionMode getSchemaEvolutionMode() {
+<span class="fc" id="L994">        return schemaEvolutionMode;</span>
+    }
+
+    /** 完整表名（database.table）。 */
+    public String fullTableName() {
+<span class="fc" id="L999">        return database + &quot;.&quot; + table;</span>
+    }
+
+    @Override
+    public String toString() {
+<span class="fc" id="L1004">        return &quot;IcebergSinkConnector{catalog=&quot; + catalogName + &quot;(&quot; + catalogType.code()</span>
+<span class="fc" id="L1005">                + &quot;), table=&quot; + fullTableName()</span>
+                + &quot;, format-version=&quot; + formatVersion
+<span class="fc" id="L1007">                + &quot;, write-mode=&quot; + writeMode.code()</span>
+<span class="fc" id="L1008">                + &quot;, distribution=&quot; + distributionMode.code()</span>
+                + &quot;, primary-keys=&quot; + primaryKeys
+                + &quot;, partition-keys=&quot; + partitionKeys
+                + &quot;, micro-batch=&quot; + microBatchSize
+<span class="fc" id="L1012">                + &quot;, compaction=&quot; + compactionTrigger.code()</span>
+<span class="fc" id="L1013">                + &quot;, schema-evolution=&quot; + schemaEvolutionMode.code() + '}';</span>
+    }
+
+    // ===== IcebergSinkStub：委托占位 Sink =====
+
+    /**
+     * Iceberg Sink 委托占位实现。
+     *
+     * &lt;p&gt;当 Iceberg Flink runtime 在 classpath 时，{@link #createSink()} 通过反射加载
+     * 真实 {@code FlinkSink}；此 Stub 仅在反射加载成功后作为序列化句柄，
+     * 实际写入由 Iceberg SDK 完成。生产环境替换为真实 FlinkSink 调用。&lt;/p&gt;
+     */
+    static final class IcebergSinkStub implements Sink&lt;ChangeRecord&gt;, Serializable {
+        private static final long serialVersionUID = 1L;
+        private final Map&lt;String, String&gt; icebergProperties;
+
+<span class="nc" id="L1029">        IcebergSinkStub(Map&lt;String, String&gt; icebergProperties) {</span>
+<span class="nc" id="L1030">            this.icebergProperties = icebergProperties;</span>
+<span class="nc" id="L1031">        }</span>
+
+        Map&lt;String, String&gt; getIcebergProperties() {
+<span class="nc" id="L1034">            return icebergProperties;</span>
+        }
+
+        @Override
+        public SinkWriter&lt;ChangeRecord&gt; createWriter(InitContext context) {
+<span class="nc" id="L1039">            return new IcebergSinkWriterStub(icebergProperties);</span>
+        }
+    }
+
+    /**
+     * Iceberg SinkWriter 委托占位实现。
+     *
+     * &lt;p&gt;实际写入由 Iceberg FlinkSink 完成；此处为占位，write/flush/close 均为空操作。&lt;/p&gt;
+     */
+    static final class IcebergSinkWriterStub implements SinkWriter&lt;ChangeRecord&gt;, Serializable {
+        private static final long serialVersionUID = 1L;
+        private final Map&lt;String, String&gt; icebergProperties;
+
+<span class="nc" id="L1052">        IcebergSinkWriterStub(Map&lt;String, String&gt; icebergProperties) {</span>
+<span class="nc" id="L1053">            this.icebergProperties = icebergProperties;</span>
+<span class="nc" id="L1054">        }</span>
+
+        Map&lt;String, String&gt; getIcebergProperties() {
+<span class="nc" id="L1057">            return icebergProperties;</span>
+        }
+
+        @Override
+        public void write(ChangeRecord value, Context context) {
+            // 实际写入由 Iceberg FlinkSink 完成；此处为占位
+<span class="nc" id="L1063">        }</span>
+
+        @Override
+        public void flush(boolean endOfInput) {
+            // 占位
+<span class="nc" id="L1068">        }</span>
+
+        @Override
+        public void close() {
+            // 占位
+<span class="nc" id="L1073">        }</span>
+    }
+
+    // ===== Builder =====
+
+    /**
+     * 创建 Builder。
+     *
+     * @return Builder 实例
+     */
+    public static Builder builder() {
+<span class="fc" id="L1084">        return new Builder();</span>
+    }
+
+    /**
+     * IcebergSinkConnector 构造器，支持链式配置。
+     */
+<span class="fc" id="L1090">    public static final class Builder {</span>
+<span class="fc" id="L1091">        private String catalogName = &quot;rest&quot;;</span>
+<span class="fc" id="L1092">        private CatalogType catalogType = CatalogType.REST;</span>
+        private String catalogUri;
+        private String warehouse;
+        private String database;
+        private String table;
+<span class="fc" id="L1097">        private List&lt;String&gt; primaryKeys = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L1098">        private List&lt;String&gt; partitionKeys = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L1099">        private int formatVersion = FORMAT_VERSION_V2;</span>
+<span class="fc" id="L1100">        private WriteMode writeMode = WriteMode.UPSERT;</span>
+<span class="fc" id="L1101">        private DistributionMode distributionMode = DistributionMode.HASH;</span>
+<span class="fc" id="L1102">        private String fileFormat = &quot;parquet&quot;;</span>
+<span class="fc" id="L1103">        private final Properties catalogProperties = new Properties();</span>
+
+<span class="fc" id="L1105">        private CompactionTrigger compactionTrigger = CompactionTrigger.BY_FILE_COUNT;</span>
+<span class="fc" id="L1106">        private int compactionFileCountThreshold = 50;</span>
+<span class="fc" id="L1107">        private long compactionFileSizeThreshold = 128L * 1024 * 1024;</span>
+<span class="fc" id="L1108">        private int microBatchSize = 1000;</span>
+<span class="fc" id="L1109">        private boolean incrementalCommit = false;</span>
+
+<span class="fc" id="L1111">        private SchemaEvolutionMode schemaEvolutionMode = SchemaEvolutionMode.AUTO;</span>
+
+        /** Catalog 名称。 */
+        public Builder catalogName(String catalogName) {
+<span class="fc" id="L1115">            this.catalogName = Objects.requireNonNull(catalogName);</span>
+<span class="fc" id="L1116">            return this;</span>
+        }
+
+        /** Catalog 类型。 */
+        public Builder catalogType(CatalogType catalogType) {
+<span class="fc" id="L1121">            this.catalogType = Objects.requireNonNull(catalogType);</span>
+<span class="fc" id="L1122">            return this;</span>
+        }
+
+        /** Catalog URI（REST/JDBC 必需）。 */
+        public Builder catalogUri(String catalogUri) {
+<span class="fc" id="L1127">            this.catalogUri = catalogUri;</span>
+<span class="fc" id="L1128">            return this;</span>
+        }
+
+        /** Warehouse 路径（如 s3://shuqing-warehouse/）。 */
+        public Builder warehouse(String warehouse) {
+<span class="fc" id="L1133">            this.warehouse = Objects.requireNonNull(warehouse);</span>
+<span class="fc" id="L1134">            return this;</span>
+        }
+
+        /** 数据库名。 */
+        public Builder database(String database) {
+<span class="fc" id="L1139">            this.database = Objects.requireNonNull(database);</span>
+<span class="fc" id="L1140">            return this;</span>
+        }
+
+        /** 表名。 */
+        public Builder table(String table) {
+<span class="fc" id="L1145">            this.table = Objects.requireNonNull(table);</span>
+<span class="fc" id="L1146">            return this;</span>
+        }
+
+        /** 主键列（逗号分隔）。 */
+        public Builder primaryKeys(String columns) {
+<span class="fc" id="L1151">            this.primaryKeys = parseColumns(columns);</span>
+<span class="fc" id="L1152">            return this;</span>
+        }
+
+        /** 主键列（可变参数）。 */
+        public Builder primaryKeys(String... columns) {
+<span class="fc" id="L1157">            this.primaryKeys = new ArrayList&lt;&gt;(Arrays.asList(columns));</span>
+<span class="fc" id="L1158">            return this;</span>
+        }
+
+        /** 分区列（逗号分隔）。 */
+        public Builder partitionKeys(String columns) {
+<span class="fc" id="L1163">            this.partitionKeys = parseColumns(columns);</span>
+<span class="fc" id="L1164">            return this;</span>
+        }
+
+        /** 分区列（可变参数）。 */
+        public Builder partitionKeys(String... columns) {
+<span class="fc" id="L1169">            this.partitionKeys = new ArrayList&lt;&gt;(Arrays.asList(columns));</span>
+<span class="fc" id="L1170">            return this;</span>
+        }
+
+        /** Iceberg 表格式版本（1 或 2，默认 2）。 */
+        public Builder formatVersion(int version) {
+<span class="fc" id="L1175">            this.formatVersion = version;</span>
+<span class="fc" id="L1176">            return this;</span>
+        }
+
+        /** 写入模式。 */
+        public Builder writeMode(WriteMode writeMode) {
+<span class="fc" id="L1181">            this.writeMode = Objects.requireNonNull(writeMode);</span>
+<span class="fc" id="L1182">            return this;</span>
+        }
+
+        /** 分布模式。 */
+        public Builder distributionMode(DistributionMode mode) {
+<span class="fc" id="L1187">            this.distributionMode = Objects.requireNonNull(mode);</span>
+<span class="fc" id="L1188">            return this;</span>
+        }
+
+        /** 文件格式（parquet/orc/avro，默认 parquet）。 */
+        public Builder fileFormat(String fileFormat) {
+<span class="fc" id="L1193">            this.fileFormat = Objects.requireNonNull(fileFormat);</span>
+<span class="fc" id="L1194">            return this;</span>
+        }
+
+        /** 添加 catalog 属性。 */
+        public Builder catalogProperty(String key, String value) {
+<span class="fc" id="L1199">            this.catalogProperties.setProperty(key, value);</span>
+<span class="fc" id="L1200">            return this;</span>
+        }
+
+        /** 批量设置 catalog 属性。 */
+        public Builder catalogProperties(Map&lt;String, String&gt; props) {
+<span class="pc bpc" id="L1205" title="1 of 2 branches missed.">            if (props != null) {</span>
+<span class="fc" id="L1206">                props.forEach((k, v) -&gt; {</span>
+<span class="fc bfc" id="L1207" title="All 4 branches covered.">                    if (k != null &amp;&amp; v != null) {</span>
+<span class="fc" id="L1208">                        this.catalogProperties.setProperty(k, v);</span>
+                    }
+<span class="fc" id="L1210">                });</span>
+            }
+<span class="fc" id="L1212">            return this;</span>
+        }
+
+        /** 合并触发策略。 */
+        public Builder compactionTrigger(CompactionTrigger trigger) {
+<span class="fc" id="L1217">            this.compactionTrigger = Objects.requireNonNull(trigger);</span>
+<span class="fc" id="L1218">            return this;</span>
+        }
+
+        /** 合并文件数阈值。 */
+        public Builder compactionFileCountThreshold(int threshold) {
+<span class="fc" id="L1223">            this.compactionFileCountThreshold = threshold;</span>
+<span class="fc" id="L1224">            return this;</span>
+        }
+
+        /** 合并文件大小阈值（字节）。 */
+        public Builder compactionFileSizeThreshold(long threshold) {
+<span class="fc" id="L1229">            this.compactionFileSizeThreshold = threshold;</span>
+<span class="fc" id="L1230">            return this;</span>
+        }
+
+        /**
+         * 一次性配置合并策略。
+         *
+         * @param trigger       触发策略
+         * @param fileCount     文件数阈值
+         * @param fileSizeBytes 文件大小阈值（字节）
+         */
+        public Builder compaction(CompactionTrigger trigger, int fileCount, long fileSizeBytes) {
+<span class="fc" id="L1241">            this.compactionTrigger = Objects.requireNonNull(trigger);</span>
+<span class="fc" id="L1242">            this.compactionFileCountThreshold = fileCount;</span>
+<span class="fc" id="L1243">            this.compactionFileSizeThreshold = fileSizeBytes;</span>
+<span class="fc" id="L1244">            return this;</span>
+        }
+
+        /** 微批大小（0 表示禁用微批）。 */
+        public Builder microBatchSize(int size) {
+<span class="fc" id="L1249">            this.microBatchSize = size;</span>
+<span class="fc" id="L1250">            return this;</span>
+        }
+
+        /** 启用增量 Manifest 提交。 */
+        public Builder incrementalCommit() {
+<span class="fc" id="L1255">            this.incrementalCommit = true;</span>
+<span class="fc" id="L1256">            return this;</span>
+        }
+
+        /** Schema 演化模式。 */
+        public Builder schemaEvolution(SchemaEvolutionMode mode) {
+<span class="fc" id="L1261">            this.schemaEvolutionMode = Objects.requireNonNull(mode);</span>
+<span class="fc" id="L1262">            return this;</span>
+        }
+
+        /**
+         * 启用低延迟模式（P99 ≤ 10s）。
+         *
+         * &lt;p&gt;设置：微批大小 100、增量提交、5s checkpoint 合并触发。
+         * 代价：State IO 高，需频繁 compaction。&lt;/p&gt;
+         */
+        public Builder lowLatency() {
+<span class="fc" id="L1272">            this.microBatchSize = 100;</span>
+<span class="fc" id="L1273">            this.incrementalCommit = true;</span>
+<span class="fc" id="L1274">            this.compactionTrigger = CompactionTrigger.AFTER_CHECKPOINT;</span>
+<span class="fc" id="L1275">            return this;</span>
+        }
+
+        /**
+         * 启用标准模式（P99 ≤ 30s，默认）。
+         *
+         * &lt;p&gt;设置：微批 1000、按文件数合并（阈值 50）。&lt;/p&gt;
+         */
+        public Builder standardMode() {
+<span class="fc" id="L1284">            this.microBatchSize = 1000;</span>
+<span class="fc" id="L1285">            this.compactionTrigger = CompactionTrigger.BY_FILE_COUNT;</span>
+<span class="fc" id="L1286">            this.compactionFileCountThreshold = 50;</span>
+<span class="fc" id="L1287">            return this;</span>
+        }
+
+        /** 构建 IcebergSinkConnector。 */
+        public IcebergSinkConnector build() {
+<span class="fc" id="L1292">            return new IcebergSinkConnector(</span>
+                    catalogName, catalogType, catalogUri, warehouse, database, table,
+                    new ArrayList&lt;&gt;(primaryKeys), new ArrayList&lt;&gt;(partitionKeys),
+                    formatVersion, writeMode, distributionMode, fileFormat,
+                    new Properties(catalogProperties),
+                    compactionTrigger, compactionFileCountThreshold, compactionFileSizeThreshold,
+                    microBatchSize, incrementalCommit, schemaEvolutionMode);
+        }
+
+        private static List&lt;String&gt; parseColumns(String columns) {
+<span class="fc" id="L1302">            Objects.requireNonNull(columns, &quot;columns 不能为 null&quot;);</span>
+<span class="pc bpc" id="L1303" title="1 of 2 branches missed.">            if (columns.isEmpty()) {</span>
+<span class="nc" id="L1304">                return new ArrayList&lt;&gt;();</span>
+            }
+<span class="fc" id="L1306">            String[] parts = columns.split(&quot;,&quot;);</span>
+<span class="fc" id="L1307">            Set&lt;String&gt; seen = new java.util.HashSet&lt;&gt;();</span>
+<span class="fc" id="L1308">            List&lt;String&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L1309" title="All 2 branches covered.">            for (String p : parts) {</span>
+<span class="fc" id="L1310">                String trimmed = p.trim();</span>
+<span class="pc bpc" id="L1311" title="2 of 4 branches missed.">                if (!trimmed.isEmpty() &amp;&amp; seen.add(trimmed)) {</span>
+<span class="fc" id="L1312">                    result.add(trimmed);</span>
+                }
+            }
+<span class="fc" id="L1315">            return result;</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

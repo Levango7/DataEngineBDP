@@ -52,6 +52,25 @@ from chunker.rag.fusion import (
     reciprocal_rank_fusion,
     weighted_fusion,
 )
+from chunker.rag.hybrid_retriever import (
+    BM25Index,
+    BM25Retriever,
+    CrossEncoderReranker,
+    DEFAULT_BM25_B,
+    DEFAULT_BM25_K1,
+    DEFAULT_CHANNEL_WEIGHTS,
+    DEFAULT_EXPAND_SYNONYMS,
+    DEFAULT_RERANK_METHOD,
+    HybridRetrievalResult,
+    HybridRetriever,
+    IdentityReranker,
+    KnowledgeGraph,
+    LLMReranker,
+    MockKnowledgeGraph,
+    Reranker,
+    create_reranker,
+    tokenize,
+)
 from chunker.rag.indexer import Indexer
 from chunker.rag.pipeline import RAGPipeline
 from chunker.rag.retriever import RetrievalResult, Retriever
@@ -95,6 +114,24 @@ __all__ = [
     "MultiModalFusionRetriever",
     "reciprocal_rank_fusion",
     "weighted_fusion",
+    # 混合检索与重排序 (T009)
+    "HybridRetriever",
+    "HybridRetrievalResult",
+    "BM25Index",
+    "BM25Retriever",
+    "KnowledgeGraph",
+    "MockKnowledgeGraph",
+    "Reranker",
+    "IdentityReranker",
+    "CrossEncoderReranker",
+    "LLMReranker",
+    "create_reranker",
+    "tokenize",
+    "DEFAULT_BM25_K1",
+    "DEFAULT_BM25_B",
+    "DEFAULT_RERANK_METHOD",
+    "DEFAULT_CHANNEL_WEIGHTS",
+    "DEFAULT_EXPAND_SYNONYMS",
     # 端到端管道
     "RAGPipeline",
     # 配置

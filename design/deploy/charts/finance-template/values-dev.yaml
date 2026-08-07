@@ -1,0 +1,107 @@
+# ============================================================================
+# finance-template Helm Chart · dev 环境覆盖 values
+# ============================================================================
+# 适用：开发/测试环境（本地 K3s/kind，最小资源，占位 Secret）
+# 渲染： helm template finance-template design/deploy/charts/finance-template \
+#          -f design/deploy/charts/finance-template/values-dev.yaml
+# 说明：在 base values.yaml 之上覆盖环境差异项，业务逻辑零改动。
+# ============================================================================
+
+# ---- 环境标识 ----
+env: dev
+
+# ---- 命名空间（dev 环境独立命名空间）----
+namespace: finance-dev
+
+# ---- 全局配置 ----
+global:
+  imagePullSecrets: []       # dev 用公共镜像，无需拉取 Secret
+  storageClass: "standard"   # dev 用默认存储类
+  guomiEnabled: false         # dev 不启用国密
+
+# ---- 目标组件地址（dev 环境本地部署）----
+target:
+  doris:
+    feHost: doris-fe.doris-dev.svc.cluster.local
+    fePort: 9030
+    database: db_finance_dev
+    user: root
+    passwordSecret:
+      name: doris-credentials-dev
+      key: password
+    connectTimeout: 10        # dev 短超时，快速失败
+  dolphinscheduler:
+    host: dolphinscheduler-api.ds-dev.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials-dev
+      key: token
+    projectName: finance-template-dev
+  superset:
+    host: superset.superset-dev.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials-dev
+      key: token
+    databaseName: db_finance_dev
+  keycloak:
+    host: keycloak.keycloak-dev.svc.cluster.local
+    port: 8080
+    realm: finance-template-realm-dev
+    adminSecret:
+      name: keycloak-credentials-dev
+      key: admin-password
+    createRealm: true
+
+# ---- Secret 配置（dev 环境创建占位 Secret，便于快速启动）----
+secret:
+  create: true
+  doris:
+    password: "dev-doris-123"
+  dolphinscheduler:
+    token: "dev-ds-token"
+  superset:
+    token: "dev-superset-token"
+  keycloak:
+    adminPassword: "dev-keycloak-123"
+
+# ---- 导入 Job（dev 环境降低资源，快速迭代）----
+importJob:
+  enabled: true
+  image:
+    repository: shuqing/template-importer
+    tag: "5.3.0-dev"          # dev 用开发标签
+    pullPolicy: Always        # dev 总是拉取最新
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+  backoffLimit: 1             # dev 减少重试
+  activeDeadlineSeconds: 600  # dev 短超时
+  onFailure:
+    rollback: false           # dev 不回滚，便于排查
+    continueOnError: true     # dev 容错，继续后续步骤
+
+# ---- 部署验证（dev 环境启用）----
+verification:
+  enabled: true
+  image:
+    repository: shuqing/template-verifier
+    tag: "5.3.0-dev"
+    pullPolicy: Always
+  resources:
+    limits:
+      cpu: 250m
+      memory: 256Mi
+    requests:
+      cpu: 50m
+      memory: 64Mi
+  timeout: 120
+
+# ---- Pod 调度（dev 无特殊要求）----
+nodeSelector: {}
+tolerations: []
+affinity: {}

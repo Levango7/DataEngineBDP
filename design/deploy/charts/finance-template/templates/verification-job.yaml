@@ -1,0 +1,207 @@
+{{- if .Values.verification.enabled -}}
+# Job - 部署验证作业（T019）
+# 用途：验证模板资产已正确导入到各组件
+# 触发：helm test <release-name>
+# Helm hook：test（helm test 触发）
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "finance-template.verifyJobName" . }}
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.labels" . | nindent 4 }}
+    {{- include "finance-template.templateLabels" . | nindent 4 }}
+  annotations:
+    {{- include "finance-template.templateAnnotations" . | nindent 4 }}
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: {{ .Values.verification.timeout }}
+  template:
+    metadata:
+      labels:
+        {{- include "finance-template.selectorLabels" . | nindent 8 }}
+        {{- include "finance-template.templateLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "finance-template.serviceAccountName" . }}
+      volumes:
+        - name: template-assets
+          configMap:
+            name: {{ include "finance-template.configmapName" . }}
+      containers:
+        - name: template-verifier
+          image: "{{ .Values.verification.image.repository }}:{{ .Values.verification.image.tag }}"
+          imagePullPolicy: {{ .Values.verification.image.pullPolicy }}
+          volumeMounts:
+            - name: template-assets
+              mountPath: /templates
+              readOnly: true
+          env:
+            # ---- 模板信息 ----
+            - name: TEMPLATE_NAME
+              value: {{ .Values.template.name | quote }}
+            - name: TEMPLATE_VERSION
+              value: {{ .Values.template.version | quote }}
+            # ---- 期望值 ----
+            - name: EXPECTED_TABLES
+              value: {{ .Values.verification.checks.ddl.expectedTables | quote }}
+            - name: EXPECTED_DAGS
+              value: {{ .Values.verification.checks.dag.expectedDags | quote }}
+            - name: EXPECTED_DASHBOARDS
+              value: {{ .Values.verification.checks.dashboard.expectedDashboards | quote }}
+            - name: EXPECTED_ROLES
+              value: {{ .Values.verification.checks.rbac.expectedRoles | quote }}
+            # ---- 验证开关 ----
+            - name: CHECK_DDL
+              value: {{ .Values.verification.checks.ddl.enabled | quote }}
+            - name: CHECK_DAG
+              value: {{ .Values.verification.checks.dag.enabled | quote }}
+            - name: CHECK_DASHBOARD
+              value: {{ .Values.verification.checks.dashboard.enabled | quote }}
+            - name: CHECK_RBAC
+              value: {{ .Values.verification.checks.rbac.enabled | quote }}
+            - name: CHECK_CONNECTIVITY
+              value: {{ .Values.verification.checks.connectivity.enabled | quote }}
+            # ---- Doris 连接 ----
+            - name: DORIS_FE_HOST
+              value: {{ .Values.target.doris.feHost | quote }}
+            - name: DORIS_FE_PORT
+              value: {{ .Values.target.doris.fePort | quote }}
+            - name: DORIS_DATABASE
+              value: {{ .Values.target.doris.database | quote }}
+            - name: DORIS_USER
+              value: {{ .Values.target.doris.user | quote }}
+            - name: DORIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.doris.passwordSecret.name }}
+                  key: {{ .Values.target.doris.passwordSecret.key }}
+            # ---- DolphinScheduler 连接 ----
+            - name: DS_HOST
+              value: {{ .Values.target.dolphinscheduler.host | quote }}
+            - name: DS_PORT
+              value: {{ .Values.target.dolphinscheduler.port | quote }}
+            - name: DS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.dolphinscheduler.tokenSecret.name }}
+                  key: {{ .Values.target.dolphinscheduler.tokenSecret.key }}
+            # ---- Superset 连接 ----
+            - name: SUPERSET_HOST
+              value: {{ .Values.target.superset.host | quote }}
+            - name: SUPERSET_PORT
+              value: {{ .Values.target.superset.port | quote }}
+            - name: SUPERSET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.superset.tokenSecret.name }}
+                  key: {{ .Values.target.superset.tokenSecret.key }}
+            # ---- Keycloak 连接 ----
+            - name: KEYCLOAK_HOST
+              value: {{ .Values.target.keycloak.host | quote }}
+            - name: KEYCLOAK_PORT
+              value: {{ .Values.target.keycloak.port | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.target.keycloak.realm | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.keycloak.adminSecret.name }}
+                  key: {{ .Values.target.keycloak.adminSecret.key }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=========================================="
+              echo "金融行业模板部署验证开始"
+              echo "模板: ${TEMPLATE_NAME} v${TEMPLATE_VERSION}"
+              echo "=========================================="
+              ERRORS=0
+              # ---- 连通性验证 ----
+              if [ "${CHECK_CONNECTIVITY}" = "true" ]; then
+                echo "[连通性] 验证各组件可达..."
+                echo "  Doris FE (${DORIS_FE_HOST}:${DORIS_FE_PORT})..."
+                nc -z -w5 ${DORIS_FE_HOST} ${DORIS_FE_PORT} || { echo "  FAIL: Doris 不可达"; ERRORS=$((ERRORS+1)); }
+                echo "  DolphinScheduler (${DS_HOST}:${DS_PORT})..."
+                nc -z -w5 ${DS_HOST} ${DS_PORT} || { echo "  FAIL: DS 不可达"; ERRORS=$((ERRORS+1)); }
+                echo "  Superset (${SUPERSET_HOST}:${SUPERSET_PORT})..."
+                nc -z -w5 ${SUPERSET_HOST} ${SUPERSET_PORT} || { echo "  FAIL: Superset 不可达"; ERRORS=$((ERRORS+1)); }
+                echo "  Keycloak (${KEYCLOAK_HOST}:${KEYCLOAK_PORT})..."
+                nc -z -w5 ${KEYCLOAK_HOST} ${KEYCLOAK_PORT} || { echo "  FAIL: Keycloak 不可达"; ERRORS=$((ERRORS+1)); }
+                echo "[连通性] 验证完成"
+              fi
+              # ---- DDL 表数量验证 ----
+              if [ "${CHECK_DDL}" = "true" ]; then
+                echo "[DDL] 验证表数量（期望 ${EXPECTED_TABLES}）..."
+                ACTUAL_TABLES=$(mysql -h ${DORIS_FE_HOST} -P ${DORIS_FE_PORT} -u ${DORIS_USER} -p${DORIS_PASSWORD} \
+                  -e "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DORIS_DATABASE}'" -s -N 2>/dev/null || echo 0)
+                echo "  实际表数: ${ACTUAL_TABLES}"
+                if [ "${ACTUAL_TABLES}" -ne "${EXPECTED_TABLES}" ]; then
+                  echo "  FAIL: 表数量不匹配（期望 ${EXPECTED_TABLES}，实际 ${ACTUAL_TABLES}）"
+                  ERRORS=$((ERRORS+1))
+                else
+                  echo "  PASS"
+                fi
+                echo "[DDL] 验证完成"
+              fi
+              # ---- DAG 数量验证 ----
+              if [ "${CHECK_DAG}" = "true" ]; then
+                echo "[DAG] 验证 DAG 数量（期望 ${EXPECTED_DAGS}）..."
+                ACTUAL_DAGS=$(curl -s "http://${DS_HOST}:${DS_PORT}/dolphinscheduler/projects/process-definition" \
+                  -H "Authorization: Bearer ${DS_TOKEN}" | jq '.data.totalList | length' 2>/dev/null || echo 0)
+                echo "  实际 DAG 数: ${ACTUAL_DAGS}"
+                if [ "${ACTUAL_DAGS}" -ne "${EXPECTED_DAGS}" ]; then
+                  echo "  FAIL: DAG 数量不匹配（期望 ${EXPECTED_DAGS}，实际 ${ACTUAL_DAGS}）"
+                  ERRORS=$((ERRORS+1))
+                else
+                  echo "  PASS"
+                fi
+                echo "[DAG] 验证完成"
+              fi
+              # ---- Dashboard 数量验证 ----
+              if [ "${CHECK_DASHBOARD}" = "true" ]; then
+                echo "[Dashboard] 验证 Dashboard 数量（期望 ${EXPECTED_DASHBOARDS}）..."
+                ACTUAL_DASH=$(curl -s "http://${SUPERSET_HOST}:${SUPERSET_PORT}/api/v1/dashboard/" \
+                  -H "Authorization: Bearer ${SUPERSET_TOKEN}" | jq '.count' 2>/dev/null || echo 0)
+                echo "  实际 Dashboard 数: ${ACTUAL_DASH}"
+                if [ "${ACTUAL_DASH}" -ne "${EXPECTED_DASHBOARDS}" ]; then
+                  echo "  FAIL: Dashboard 数量不匹配（期望 ${EXPECTED_DASHBOARDS}，实际 ${ACTUAL_DASH}）"
+                  ERRORS=$((ERRORS+1))
+                else
+                  echo "  PASS"
+                fi
+                echo "[Dashboard] 验证完成"
+              fi
+              # ---- RBAC 角色数量验证 ----
+              if [ "${CHECK_RBAC}" = "true" ]; then
+                echo "[RBAC] 验证角色数量（期望 ${EXPECTED_ROLES}）..."
+                KC_TOKEN=$(curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/realms/master/protocol/openid-connect/token" \
+                  -d "client_id=admin-cli" -d "username=admin" -d "password=${KEYCLOAK_ADMIN_PASSWORD}" -d "grant_type=password" | jq -r .access_token)
+                ACTUAL_ROLES=$(curl -s "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/admin/realms/${KEYCLOAK_REALM}/roles" \
+                  -H "Authorization: Bearer ${KC_TOKEN}" | jq 'length' 2>/dev/null || echo 0)
+                echo "  实际角色数: ${ACTUAL_ROLES}"
+                if [ "${ACTUAL_ROLES}" -ne "${EXPECTED_ROLES}" ]; then
+                  echo "  FAIL: 角色数量不匹配（期望 ${EXPECTED_ROLES}，实际 ${ACTUAL_ROLES}）"
+                  ERRORS=$((ERRORS+1))
+                else
+                  echo "  PASS"
+                fi
+                echo "[RBAC] 验证完成"
+              fi
+              echo "=========================================="
+              if [ ${ERRORS} -eq 0 ]; then
+                echo "部署验证全部通过"
+                echo "=========================================="
+                exit 0
+              else
+                echo "部署验证失败（${ERRORS} 个错误）"
+                echo "=========================================="
+                exit 1
+              fi
+          resources:
+            {{- toYaml .Values.verification.resources | nindent 12 }}
+{{- end -}}

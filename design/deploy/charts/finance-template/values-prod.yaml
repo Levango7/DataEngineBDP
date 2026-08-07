@@ -1,0 +1,149 @@
+# ============================================================================
+# finance-template Helm Chart · prod 环境覆盖 values
+# ============================================================================
+# 适用：生产环境（高资源、严格校验、外部 Secret、国密可选）
+# 渲染： helm template finance-template design/deploy/charts/finance-template \
+#          -f design/deploy/charts/finance-template/values-prod.yaml
+# 说明：在 base values.yaml 之上覆盖环境差异项，业务逻辑零改动。
+# 铁律：生产环境绝不创建占位 Secret，凭据必须由 External Secrets / Sealed Secrets 注入。
+# ============================================================================
+
+# ---- 环境标识 ----
+env: prod
+
+# ---- 命名空间 ----
+namespace: finance-prod
+
+# ---- 全局配置 ----
+global:
+  imagePullSecrets:
+    - name: sq-registry-prod
+  storageClass: "fast-nvme"
+  # 国密开关（信创生产环境置 true）
+  guomiEnabled: false
+
+# ---- 目标组件地址（prod 环境高可用集群）----
+target:
+  doris:
+    feHost: doris-fe.doris-prod.svc.cluster.local
+    fePort: 9030
+    database: db_finance_prod
+    user: root
+    passwordSecret:
+      name: doris-credentials-prod
+      key: password
+    connectTimeout: 30
+  dolphinscheduler:
+    host: dolphinscheduler-api.ds-prod.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials-prod
+      key: token
+    projectName: finance-template-prod
+  superset:
+    host: superset.superset-prod.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials-prod
+      key: token
+    databaseName: db_finance_prod
+  keycloak:
+    host: keycloak.keycloak-prod.svc.cluster.local
+    port: 8080
+    realm: finance-template-realm-prod
+    adminSecret:
+      name: keycloak-credentials-prod
+      key: admin-password
+    createRealm: true
+
+# ---- Secret 配置（prod 环境绝不创建占位 Secret）----
+secret:
+  create: false
+  # 凭据由 External Secrets Operator 从 Vault / KMS 注入
+  # doris:
+  #   password: "NEVER-HARDCODE-IN-PROD"
+  # dolphinscheduler:
+  #   token: "NEVER-HARDCODE-IN-PROD"
+  # superset:
+  #   token: "NEVER-HARDCODE-IN-PROD"
+  # keycloak:
+  #   adminPassword: "NEVER-HARDCODE-IN-PROD"
+
+# ---- 导入 Job（prod 环境高资源，严格重试）----
+importJob:
+  enabled: true
+  image:
+    repository: shuqing/template-importer
+    tag: "5.3.0"              # prod 用稳定标签
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+  backoffLimit: 5             # prod 增加重试
+  activeDeadlineSeconds: 3600 # prod 长超时
+  onFailure:
+    rollback: true            # prod 失败回滚
+    continueOnError: false     # prod 遇错即停
+
+# ---- RBAC 同步（prod 环境同步到 Doris 表级权限）----
+rbacSync:
+  enabled: true
+  rollbackOnFailure: true
+  syncToDoris: true           # prod 同步表级权限
+  syncToRanger: false         # Ranger 可选，按需启用
+
+# ---- 部署验证（prod 环境严格校验所有项）----
+verification:
+  enabled: true
+  image:
+    repository: shuqing/template-verifier
+    tag: "5.3.0"
+    pullPolicy: IfNotPresent
+  checks:
+    ddl:
+      enabled: true
+      expectedTables: 21
+    dag:
+      enabled: true
+      expectedDags: 5
+    dashboard:
+      enabled: true
+      expectedDashboards: 3
+    rbac:
+      enabled: true
+      expectedRoles: 3
+    connectivity:
+      enabled: true
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  timeout: 600
+
+# ---- Pod 调度（prod 专用节点池，严格隔离）----
+nodeSelector:
+  sq.io/env: prod
+  sq.io/pool: finance-template
+tolerations:
+  - key: sq.io/env
+    value: prod
+    effect: NoSchedule
+  - key: sq.io/pool
+    value: finance-template
+    effect: NoSchedule
+affinity:
+  podAntiAffinity:
+    preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: finance-template
+          topologyKey: kubernetes.io/hostname
