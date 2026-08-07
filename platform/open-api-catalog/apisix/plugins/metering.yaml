@@ -1,0 +1,209 @@
+# APISIX serverless-metering 插件配置 - 计量与计费
+#
+# 对应详细设计 §5 网关拦截第五步：计量
+#     APISIX 插件链依次做认证 → 租户隔离 → 限流 → 熔断 → 计量 → 转发。
+#
+# 工作原理：
+#     1. 在 log 阶段执行（请求完成后）
+#     2. 收集调用明细：apiId / consumerTenantId / latency / bytes / statusCode
+#     3. 根据计费策略计算单次费用
+#     4. 异步推送到计量服务（open-api-catalog:8090）
+#     5. 计量服务聚合后供看板和账单使用
+#
+# 三种计费策略：
+#     by_call:        每次固定单价（元/次）
+#     by_bytes:       按返回数据量计价（元/KB）
+#     monthly_package: 包月配额内 0 元，超量走阶梯单价
+
+# 插件元数据
+plugin_name: serverless-metering
+plugin_type: observability
+phase: log  # 在 log 阶段执行
+
+# 计量服务地址
+metering_service:
+  url: http://open-api-catalog:8090/api/v1/internal/metrics/record
+  timeout: 3000
+  retry: 2
+
+# 计费策略定义
+billing_strategies:
+  # 按次计费
+  by_call:
+    description: "按调用次数计费"
+    unit: "次"
+    price_unit: "元/次"
+    formula: "cost = unit_price * 1"
+    example: "单价 0.01 元/次，调用 1000 次费用 10 元"
+
+  # 按量计费
+  by_bytes:
+    description: "按数据流量计费"
+    unit: "KB"
+    price_unit: "元/KB"
+    formula: "cost = unit_price * (request_bytes + response_bytes) / 1024"
+    example: "单价 0.001 元/KB，传输 10000KB 费用 10 元"
+
+  # 订阅计费（月包）
+  monthly_package:
+    description: "按月订阅，配额内不另计费，超量按次计费"
+    unit: "月"
+    price_unit: "元/月"
+    formula: |
+      if monthly_calls < monthly_quota:
+          cost = 0  # 配额内
+      else:
+          cost = unit_price  # 超量按次计费
+    example: "月费 100 元，配额 10000 次，超量部分 0.02 元/次"
+
+# 计量数据模型
+metric_schema:
+  callId:
+    type: string
+    description: "唯一调用 ID"
+    source: request_id
+  apiId:
+    type: string
+    description: "API ID"
+    source: ctx.var.upstream_api_id
+  apiVersion:
+    type: string
+    description: "API 版本"
+    source: ctx.var.upstream_api_version
+  subscriptionId:
+    type: string
+    description: "订阅 ID"
+    source: ctx.var.consumer_name
+  consumerTenantId:
+    type: string
+    description: "消费者租户 ID"
+    source: ctx.var.consumer_tenant_id
+  providerTenantId:
+    type: string
+    description: "提供方租户 ID"
+    source: ctx.var.provider_tenant_id
+  timestamp:
+    type: datetime
+    description: "调用时间"
+    source: ngx.time
+  latencyMs:
+    type: number
+    description: "端到端延迟(ms)"
+    source: ngx.var.upstream_response_time * 1000
+  requestBytes:
+    type: integer
+    description: "请求字节数"
+    source: ngx.var.request_length
+  responseBytes:
+    type: integer
+    description: "响应字节数"
+    source: ngx.var.bytes_sent
+  statusCode:
+    type: integer
+    description: "HTTP 状态码"
+    source: ngx.var.status
+  costStrategy:
+    type: string
+    description: "计费策略"
+    source: ctx.var.api_cost_strategy
+  costAmount:
+    type: number
+    description: "本次折算金额"
+    computed: true
+  errorMessage:
+    type: string
+    description: "错误信息"
+    source: ngx.var.upstream_status
+
+# Lua 插件实现（嵌入 APISIX）
+plugin_code: |
+  local core = require("apisix.core")
+  local http = require("resty.http")
+  local ngx = ngx
+
+  local schema = {
+      type = "object",
+      properties = {
+          metering_url = {type = "string", default = "http://open-api-catalog:8090/api/v1/internal/metrics/record"},
+      },
+  }
+
+  local function log(conf, ctx)
+      local metric = {
+          callId = ngx.var.request_id,
+          apiId = ctx.var.upstream_api_id or "unknown",
+          apiVersion = ctx.var.upstream_api_version or "1.0.0",
+          subscriptionId = ctx.var.consumer_name or "anonymous",
+          consumerTenantId = ctx.var.consumer_tenant_id or "unknown",
+          providerTenantId = ctx.var.provider_tenant_id or "unknown",
+          timestamp = ngx.time(),
+          latencyMs = (ngx.var.upstream_response_time or 0) * 1000,
+          requestBytes = ngx.var.request_length or 0,
+          responseBytes = ngx.var.bytes_sent or 0,
+          statusCode = ngx.var.status or 0,
+          costStrategy = ctx.var.api_cost_strategy or "by_call",
+          costAmount = 0,  -- 由计量服务计算
+          errorMessage = nil,
+      }
+
+      -- 异步推送（不阻塞响应）
+      local ok, err = ngx.timer.at(0, function(premature, m)
+          if premature then return end
+          local httpc = http.new()
+          local res, err = httpc:request_uri(conf.metering_url, {
+              method = "POST",
+              body = core.json.encode(m),
+              headers = {["Content-Type"] = "application/json"},
+              time = 3,
+          })
+          if not res then
+              core.log.warn("failed to send metric: ", err)
+          end
+      end, metric)
+      if not ok then
+          core.log.warn("failed to create timer: ", err)
+      end
+  end
+
+  return {
+      version = 0.1,
+      priority = 50,
+      name = "serverless-metering",
+      schema = schema,
+      log = log,
+  }
+
+# 聚合规则（由计量服务执行）
+aggregation:
+  # 实时聚合（按小时）
+  realtime:
+    granularity: 1h
+    metrics: [call_count, error_count, avg_latency, p99_latency, total_cost]
+  # 日聚合
+  daily:
+    granularity: 1d
+    metrics: [call_count, error_count, avg_latency, p99_latency, total_cost, peak_qps]
+  # 月聚合（账单）
+  monthly:
+    granularity: 1M
+    metrics: [call_count, total_cost, by_consumer_breakdown]
+
+# Prometheus 指标暴露
+prometheus_metrics:
+  - name: api_call_total
+    type: counter
+    labels: [api_id, consumer_tenant_id, status_code]
+    description: "API 调用总次数"
+  - name: api_latency_ms
+    type: histogram
+    labels: [api_id]
+    buckets: [10, 50, 100, 500, 1000, 5000, 10000]
+    description: "API 调用延迟分布"
+  - name: api_cost_total
+    type: counter
+    labels: [api_id, cost_strategy]
+    description: "API 累计费用"
+  - name: api_bytes_total
+    type: counter
+    labels: [api_id, direction]
+    description: "API 流量统计"

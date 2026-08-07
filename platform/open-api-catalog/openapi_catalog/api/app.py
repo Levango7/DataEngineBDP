@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 
 from openapi_catalog.api.routers import (
     apis,
+    billing,
+    generate,
     health,
     invoke,
     metrics_docs,
@@ -57,8 +59,11 @@ def create_app(
     prefix = settings.apiPrefix
     app.include_router(health.router)
     app.include_router(apis.router, prefix=prefix)
+    app.include_router(generate.router, prefix=prefix)
+    app.include_router(billing.api_billing_router, prefix=prefix)
     app.include_router(subscriptions.router, prefix=prefix)
     app.include_router(subscriptions.subscriptions_router, prefix=prefix)
+    app.include_router(billing.subscriptions_billing_router, prefix=prefix)
     app.include_router(invoke.router, prefix=prefix)
     app.include_router(metrics_docs.router, prefix=prefix)
 

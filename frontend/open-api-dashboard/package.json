@@ -1,0 +1,29 @@
+{
+  "name": "open-api-dashboard",
+  "version": "0.1.0",
+  "description": "数擎大数据平台 - 开放 API 服务目录前端 (L5.5)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint src --ext .vue,.js,.ts --fix"
+  },
+  "dependencies": {
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.0",
+    "pinia": "^2.1.7",
+    "axios": "^1.6.8",
+    "echarts": "^5.5.0",
+    "vue-echarts": "^6.7.0",
+    "element-plus": "^2.6.3",
+    "@element-plus/icons-vue": "^2.3.1",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "vite": "^5.2.8",
+    "eslint": "^8.57.0",
+    "eslint-plugin-vue": "^9.24.0"
+  }
+}
