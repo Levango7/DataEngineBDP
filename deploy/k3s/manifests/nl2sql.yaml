@@ -26,6 +26,8 @@ spec:
         env:
         - name: SERVER_PORT
           value: "8093"
+        - name: PORT
+          value: "8093"
         readinessProbe:
           httpGet:
             path: /api/v1/health
