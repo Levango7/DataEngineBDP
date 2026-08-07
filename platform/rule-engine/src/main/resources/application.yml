@@ -95,3 +95,21 @@ app:
       default-mask-char: ${MASK_DEFAULT_CHAR:*}
       # 哈希默认算法
       default-hash-algorithm: ${MASK_DEFAULT_HASH:SHA-256}
+  # 调度引擎配置（T006：多租户调度 + 资源隔离 + 优先级队列 + 弹性伸缩）
+  scheduler:
+    enabled: ${SCHEDULER_ENABLED:true}
+    worker:
+      initial-size: ${SCHEDULER_WORKER_INITIAL:2}
+      min-size: ${SCHEDULER_WORKER_MIN:1}
+      max-size: ${SCHEDULER_WORKER_MAX:8}
+      poll-timeout-ms: ${SCHEDULER_WORKER_POLL_TIMEOUT:1000}
+    elastic:
+      enabled: ${SCHEDULER_ELASTIC_ENABLED:true}
+      scale-up-threshold: ${SCHEDULER_SCALE_UP_THRESHOLD:2.0}
+      scale-down-threshold: ${SCHEDULER_SCALE_DOWN_THRESHOLD:0.5}
+      eval-interval-ms: ${SCHEDULER_EVAL_INTERVAL:5000}
+      cooldown-ms: ${SCHEDULER_COOLDOWN:10000}
+    default-quota:
+      max-cpu-cores: ${SCHEDULER_DEFAULT_MAX_CPU:4.0}
+      max-memory-mb: ${SCHEDULER_DEFAULT_MAX_MEM:4096}
+      max-concurrent-tasks: ${SCHEDULER_DEFAULT_MAX_CONCURRENT:4}

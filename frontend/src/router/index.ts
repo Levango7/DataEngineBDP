@@ -42,6 +42,8 @@ const BusinessPortal = () => import('@/views/BusinessPortal.vue')
 const AssetMarket = () => import('@/views/AssetMarket.vue')
 // 批次8新增：开放 API 服务目录（L5.5）
 const APIMarket = () => import('@/views/APIMarket.vue')
+// 批次9新增：检索门户（T007 前端集成增强）
+const SearchPortal = () => import('@/views/SearchPortal.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
@@ -133,6 +135,14 @@ const routes: RouteRecordRaw[] = [
     name: 'APIMarket',
     component: APIMarket,
     meta: { title: '开放 API', icon: 'Connection' }
+  },
+
+  // 批次9新增：检索门户（T007 前端集成增强）
+  {
+    path: '/search',
+    name: 'SearchPortal',
+    component: SearchPortal,
+    meta: { title: '检索门户', icon: 'Search' }
   },
 
   // 占位页（Roadmap），通过 meta.title 传递模块名

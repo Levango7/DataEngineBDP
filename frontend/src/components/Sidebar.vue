@@ -100,6 +100,7 @@ const groups = computed<NavGroup[]>(() => [
     title: '产品运营',
     items: [
       { path: '/dashboard', label: '统一控制台', icon: 'dash' },
+      { path: '/search', label: '检索门户', icon: 'kb' },
       { path: '/admin', label: '运营后台', icon: 'admin' },
       { path: '/ops-tpl', label: '行业应用模板', icon: 'proj' },
       { path: '/ops-portal', label: '业务线门户', icon: 'ws' },
