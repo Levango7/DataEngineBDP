@@ -1,0 +1,434 @@
+{
+  "mode": "http",
+  "total": 20,
+  "keywordPass": 18,
+  "intentPass": 18,
+  "syntaxPass": 20,
+  "fullPass": 16,
+  "accuracy": 0.9199999999999999,
+  "spiderAccuracyEstimate": 0.7819999999999999,
+  "byCategory": {
+    "simple_select": {
+      "total": 2,
+      "pass": 2,
+      "accuracy": 1.0
+    },
+    "count_aggregation": {
+      "total": 2,
+      "pass": 2,
+      "accuracy": 1.0
+    },
+    "sum_aggregation": {
+      "total": 2,
+      "pass": 2,
+      "accuracy": 1.0
+    },
+    "avg_aggregation": {
+      "total": 1,
+      "pass": 1,
+      "accuracy": 1.0
+    },
+    "max_aggregation": {
+      "total": 1,
+      "pass": 1,
+      "accuracy": 1.0
+    },
+    "min_aggregation": {
+      "total": 1,
+      "pass": 1,
+      "accuracy": 1.0
+    },
+    "filter_time": {
+      "total": 4,
+      "pass": 4,
+      "accuracy": 1.0
+    },
+    "group_by": {
+      "total": 2,
+      "pass": 0,
+      "accuracy": 0.4
+    },
+    "order_by": {
+      "total": 2,
+      "pass": 2,
+      "accuracy": 1.0
+    },
+    "limit": {
+      "total": 2,
+      "pass": 0,
+      "accuracy": 0.8
+    },
+    "join": {
+      "total": 1,
+      "pass": 1,
+      "accuracy": 1.0
+    }
+  },
+  "results": [
+    {
+      "caseId": "TC-001",
+      "category": "simple_select",
+      "nl": "查询 orders 表的数据",
+      "generatedSql": "SELECT * FROM default.orders LIMIT 100;",
+      "generatedIntent": "simple_select",
+      "expectIntent": "simple_select",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 34.69130001030862,
+      "error": null
+    },
+    {
+      "caseId": "TC-002",
+      "category": "count_aggregation",
+      "nl": "统计 orders 表有多少条订单",
+      "generatedSql": "SELECT COUNT(*) AS cnt FROM default.orders LIMIT 10;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.789900017902255,
+      "error": null
+    },
+    {
+      "caseId": "TC-003",
+      "category": "sum_aggregation",
+      "nl": "求 orders 表 amount 字段的总和",
+      "generatedSql": "SELECT SUM(amount) AS agg_result FROM default.orders ORDER BY amount asc LIMIT 100;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 12.336699990555644,
+      "error": null
+    },
+    {
+      "caseId": "TC-004",
+      "category": "avg_aggregation",
+      "nl": "计算 orders 表 amount 的平均值",
+      "generatedSql": "SELECT AVG(amount) AS agg_result FROM default.orders ORDER BY amount asc LIMIT 100;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 12.517900002421811,
+      "error": null
+    },
+    {
+      "caseId": "TC-005",
+      "category": "max_aggregation",
+      "nl": "查询 orders 表 amount 的最大值",
+      "generatedSql": "SELECT MAX(amount) AS agg_result FROM default.orders ORDER BY amount asc LIMIT 100;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.531900003319606,
+      "error": null
+    },
+    {
+      "caseId": "TC-006",
+      "category": "min_aggregation",
+      "nl": "查询 orders 表 amount 的最小值",
+      "generatedSql": "SELECT MIN(amount) AS agg_result FROM default.orders ORDER BY amount asc LIMIT 100;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.461199988843873,
+      "error": null
+    },
+    {
+      "caseId": "TC-007",
+      "category": "filter_time",
+      "nl": "查询 orders 表昨天的数据",
+      "generatedSql": "SELECT * FROM default.orders WHERE dt = date_sub(current_date, 1) LIMIT 100;",
+      "generatedIntent": "simple_select",
+      "expectIntent": "simple_select",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.626999999862164,
+      "error": null
+    },
+    {
+      "caseId": "TC-008",
+      "category": "filter_time",
+      "nl": "查询 orders 表今天的数据",
+      "generatedSql": "SELECT * FROM default.orders WHERE dt = current_date LIMIT 100;",
+      "generatedIntent": "simple_select",
+      "expectIntent": "simple_select",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.284900014288723,
+      "error": null
+    },
+    {
+      "caseId": "TC-009",
+      "category": "filter_time",
+      "nl": "查询 orders 表最近7天的数据",
+      "generatedSql": "SELECT * FROM default.orders WHERE dt >= date_sub(current_date, 7) LIMIT 100;",
+      "generatedIntent": "simple_select",
+      "expectIntent": "simple_select",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.155399988638237,
+      "error": null
+    },
+    {
+      "caseId": "TC-010",
+      "category": "group_by",
+      "nl": "按 city 分组统计 users 表的数量",
+      "generatedSql": "SELECT city, * FROM default.users GROUP BY city ORDER BY city asc LIMIT 100;",
+      "generatedIntent": "group",
+      "expectIntent": "group",
+      "keywordHit": false,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 0.4,
+      "missingKeywords": [
+        "COUNT(*)"
+      ],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.336600000504404,
+      "error": null
+    },
+    {
+      "caseId": "TC-011",
+      "category": "order_by",
+      "nl": "查询 orders 表按 amount 降序排列",
+      "generatedSql": "SELECT * FROM default.orders ORDER BY amount desc LIMIT 100;",
+      "generatedIntent": "sort",
+      "expectIntent": "sort",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 9.324599988758564,
+      "error": null
+    },
+    {
+      "caseId": "TC-012",
+      "category": "order_by",
+      "nl": "查询 orders 表按 amount 升序排列",
+      "generatedSql": "SELECT * FROM default.orders ORDER BY amount asc LIMIT 100;",
+      "generatedIntent": "sort",
+      "expectIntent": "sort",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 8.167500025592744,
+      "error": null
+    },
+    {
+      "caseId": "TC-013",
+      "category": "limit",
+      "nl": "查询 orders 表前 10 条数据",
+      "generatedSql": "SELECT COUNT(*) AS cnt FROM default.orders LIMIT 10;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "limit",
+      "keywordHit": true,
+      "intentHit": false,
+      "syntaxValid": true,
+      "score": 0.8,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 9.823700005654246,
+      "error": null
+    },
+    {
+      "caseId": "TC-014",
+      "category": "limit",
+      "nl": "查询 users 表前 50 条数据",
+      "generatedSql": "SELECT COUNT(*) AS cnt FROM default.users LIMIT 50;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "limit",
+      "keywordHit": true,
+      "intentHit": false,
+      "syntaxValid": true,
+      "score": 0.8,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 10.600100009469315,
+      "error": null
+    },
+    {
+      "caseId": "TC-015",
+      "category": "join",
+      "nl": "关联 orders 和 users 表查询",
+      "generatedSql": "SELECT * FROM default.orders JOIN default.users ON default.orders.user_id = default.users.user_id LIMIT 100;",
+      "generatedIntent": "join",
+      "expectIntent": "join",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到",
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 11.938199982978404,
+      "error": null
+    },
+    {
+      "caseId": "TC-016",
+      "category": "count_aggregation",
+      "nl": "统计 users 表有多少个用户",
+      "generatedSql": "SELECT COUNT(*) AS cnt FROM default.users LIMIT 100;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 10.45430000522174,
+      "error": null
+    },
+    {
+      "caseId": "TC-017",
+      "category": "simple_select",
+      "nl": "查询 products 表的数据",
+      "generatedSql": "SELECT * FROM default.products LIMIT 100;",
+      "generatedIntent": "simple_select",
+      "expectIntent": "simple_select",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 10.300900001311675,
+      "error": null
+    },
+    {
+      "caseId": "TC-018",
+      "category": "filter_time",
+      "nl": "查询 users 表本月的数据",
+      "generatedSql": "SELECT * FROM default.users WHERE dt >= date_trunc('month', current_date) LIMIT 100;",
+      "generatedIntent": "simple_select",
+      "expectIntent": "simple_select",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 13.203700014855713,
+      "error": null
+    },
+    {
+      "caseId": "TC-019",
+      "category": "sum_aggregation",
+      "nl": "求 products 表 price 字段的总和",
+      "generatedSql": "SELECT SUM(price) AS agg_result FROM default.products LIMIT 100;",
+      "generatedIntent": "aggregation",
+      "expectIntent": "aggregation",
+      "keywordHit": true,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 1.0,
+      "missingKeywords": [],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 16940.168900007848,
+      "error": "HTTP 失败，回退 direct: "
+    },
+    {
+      "caseId": "TC-020",
+      "category": "group_by",
+      "nl": "按 category 分组统计 products 表的数量",
+      "generatedSql": "SELECT category, * FROM default.products GROUP BY category ORDER BY category asc LIMIT 100;",
+      "generatedIntent": "group",
+      "expectIntent": "group",
+      "keywordHit": false,
+      "intentHit": true,
+      "syntaxValid": true,
+      "score": 0.4,
+      "missingKeywords": [
+        "COUNT(*)"
+      ],
+      "validationIssues": [
+        "[warning] 表 'default' 未在 schema 上下文中找到"
+      ],
+      "elapsedMs": 16945.821900008013,
+      "error": "HTTP 失败，回退 direct: "
+    }
+  ]
+}
