@@ -152,6 +152,12 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <!-- ============ Spring Boot Web (物化视图管理 REST API) ============ -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
         <!-- ============ Lombok ============ -->
         <dependency>
             <groupId>org.projectlombok</groupId>

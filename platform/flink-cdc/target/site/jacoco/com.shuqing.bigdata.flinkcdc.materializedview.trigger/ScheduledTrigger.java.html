@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ScheduledTrigger.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.materializedview.trigger</a> &gt; <span class="el_source">ScheduledTrigger.java</span></div><h1>ScheduledTrigger.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.materializedview.trigger;
+
+import com.shuqing.bigdata.flinkcdc.materializedview.model.MaterializedViewDef;
+import com.shuqing.bigdata.flinkcdc.materializedview.model.RefreshPolicy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+
+/**
+ * 定时触发器：按固定周期对 SCHEDULED 模式的物化视图触发刷新。
+ *
+ * &lt;p&gt;使用 {@link ScheduledExecutorService} 为每个定时刷新的物化视图
+ * 调度独立周期任务，互不干扰。所有任务共享一个线程池，
+ * 池大小等于定时视图数量（最少 1）。&lt;/p&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * ScheduledTrigger trigger = new ScheduledTrigger(viewDefs);
+ * trigger.registerHandler(refreshEvent -&gt; viewRefresher.refresh(refreshEvent));
+ * trigger.start();  // 启动所有定时任务
+ * // ...
+ * trigger.stop();   // 停止所有定时任务
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class ScheduledTrigger implements RefreshTrigger {
+
+<span class="fc" id="L41">    private static final Logger log = LoggerFactory.getLogger(ScheduledTrigger.class);</span>
+
+    /** 注册的物化视图定义列表。 */
+    private final List&lt;MaterializedViewDef&gt; viewDefs;
+
+    /** 物化视图名称 → 刷新周期。 */
+<span class="fc" id="L47">    private final Map&lt;String, Duration&gt; viewIntervals = new HashMap&lt;&gt;();</span>
+
+    /** 调度线程池。 */
+    private ScheduledExecutorService scheduler;
+
+    /** 物化视图名称 → 调度任务 Future。 */
+<span class="fc" id="L53">    private final Map&lt;String, ScheduledFuture&lt;?&gt;&gt; scheduledTasks = new HashMap&lt;&gt;();</span>
+
+    /** 事件处理器。 */
+    private volatile Consumer&lt;RefreshEvent&gt; handler;
+
+    /** 运行状态标志。 */
+<span class="fc" id="L59">    private final AtomicBoolean running = new AtomicBoolean(false);</span>
+
+    /**
+     * 构造器。
+     *
+     * @param viewDefs 物化视图定义列表（仅 SCHEDULED 模式的视图会被调度）
+     */
+<span class="fc" id="L66">    public ScheduledTrigger(List&lt;MaterializedViewDef&gt; viewDefs) {</span>
+<span class="fc" id="L67">        Objects.requireNonNull(viewDefs, &quot;物化视图定义列表不能为 null&quot;);</span>
+<span class="fc" id="L68">        this.viewDefs = viewDefs;</span>
+<span class="fc" id="L69">        initialize();</span>
+<span class="fc" id="L70">    }</span>
+
+    /**
+     * 初始化定时刷新视图映射。
+     */
+    private void initialize() {
+<span class="fc bfc" id="L76" title="All 2 branches covered.">        for (MaterializedViewDef def : viewDefs) {</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">            if (!def.isEnabled()) {</span>
+<span class="fc" id="L78">                continue;</span>
+            }
+<span class="fc" id="L80">            RefreshPolicy policy = def.getRefreshPolicy();</span>
+<span class="pc bpc" id="L81" title="1 of 4 branches missed.">            if (policy == null || policy.getMode() != RefreshPolicy.Mode.SCHEDULED) {</span>
+<span class="fc" id="L82">                continue;</span>
+            }
+<span class="fc" id="L84">            viewIntervals.put(def.getName(), policy.getInterval());</span>
+<span class="fc" id="L85">            log.info(&quot;定时触发器注册物化视图: {}，周期: {}&quot;, def.getName(), policy.getInterval());</span>
+<span class="fc" id="L86">        }</span>
+<span class="fc" id="L87">    }</span>
+
+    @Override
+    public void registerHandler(Consumer&lt;RefreshEvent&gt; handler) {
+<span class="fc" id="L91">        this.handler = Objects.requireNonNull(handler, &quot;事件处理器不能为 null&quot;);</span>
+<span class="fc" id="L92">    }</span>
+
+    @Override
+    public void start() {
+<span class="fc bfc" id="L96" title="All 2 branches covered.">        if (!running.compareAndSet(false, true)) {</span>
+<span class="fc" id="L97">            return;</span>
+        }
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        if (viewIntervals.isEmpty()) {</span>
+<span class="fc" id="L100">            log.info(&quot;无 SCHEDULED 模式物化视图，定时触发器空启动&quot;);</span>
+<span class="fc" id="L101">            scheduler = Executors.newSingleThreadScheduledExecutor(r -&gt; {</span>
+<span class="nc" id="L102">                Thread t = new Thread(r, &quot;mv-scheduled-trigger&quot;);</span>
+<span class="nc" id="L103">                t.setDaemon(true);</span>
+<span class="nc" id="L104">                return t;</span>
+            });
+<span class="fc" id="L106">            return;</span>
+        }
+<span class="fc" id="L108">        int poolSize = Math.max(1, viewIntervals.size());</span>
+<span class="fc" id="L109">        scheduler = Executors.newScheduledThreadPool(poolSize, r -&gt; {</span>
+<span class="fc" id="L110">            Thread t = new Thread(r, &quot;mv-scheduled-trigger&quot;);</span>
+<span class="fc" id="L111">            t.setDaemon(true);</span>
+<span class="fc" id="L112">            return t;</span>
+        });
+<span class="fc bfc" id="L114" title="All 2 branches covered.">        for (Map.Entry&lt;String, Duration&gt; entry : viewIntervals.entrySet()) {</span>
+<span class="fc" id="L115">            String viewName = entry.getKey();</span>
+<span class="fc" id="L116">            Duration interval = entry.getValue();</span>
+<span class="fc" id="L117">            long initialDelayMs = interval.toMillis();</span>
+<span class="fc" id="L118">            long periodMs = interval.toMillis();</span>
+<span class="fc" id="L119">            ScheduledFuture&lt;?&gt; future = scheduler.scheduleAtFixedRate(</span>
+<span class="nc" id="L120">                    () -&gt; fireRefresh(viewName),</span>
+                    initialDelayMs, periodMs, TimeUnit.MILLISECONDS);
+<span class="fc" id="L122">            scheduledTasks.put(viewName, future);</span>
+<span class="fc" id="L123">            log.info(&quot;启动定时刷新任务: {}，初始延迟 {} ms，周期 {} ms&quot;, viewName, initialDelayMs, periodMs);</span>
+<span class="fc" id="L124">        }</span>
+<span class="fc" id="L125">        log.info(&quot;定时触发器已启动，调度 {} 个物化视图&quot;, viewIntervals.size());</span>
+<span class="fc" id="L126">    }</span>
+
+    @Override
+    public void stop() {
+<span class="fc bfc" id="L130" title="All 2 branches covered.">        if (!running.compareAndSet(true, false)) {</span>
+<span class="fc" id="L131">            return;</span>
+        }
+        // 取消所有调度任务
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (Map.Entry&lt;String, ScheduledFuture&lt;?&gt;&gt; entry : scheduledTasks.entrySet()) {</span>
+<span class="fc" id="L135">            entry.getValue().cancel(false);</span>
+<span class="fc" id="L136">        }</span>
+<span class="fc" id="L137">        scheduledTasks.clear();</span>
+<span class="pc bpc" id="L138" title="1 of 2 branches missed.">        if (scheduler != null) {</span>
+<span class="fc" id="L139">            scheduler.shutdown();</span>
+            try {
+<span class="pc bpc" id="L141" title="1 of 2 branches missed.">                if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {</span>
+<span class="nc" id="L142">                    scheduler.shutdownNow();</span>
+                }
+<span class="nc" id="L144">            } catch (InterruptedException e) {</span>
+<span class="nc" id="L145">                scheduler.shutdownNow();</span>
+<span class="nc" id="L146">                Thread.currentThread().interrupt();</span>
+<span class="fc" id="L147">            }</span>
+        }
+<span class="fc" id="L149">        log.info(&quot;定时触发器已停止&quot;);</span>
+<span class="fc" id="L150">    }</span>
+
+    @Override
+    public boolean isRunning() {
+<span class="fc" id="L154">        return running.get();</span>
+    }
+
+    /**
+     * 触发一次定时刷新事件。
+     *
+     * @param viewName 物化视图名称
+     */
+    private void fireRefresh(String viewName) {
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">        if (handler == null) {</span>
+<span class="nc" id="L164">            log.warn(&quot;物化视图 {} 定时触发但未注册处理器&quot;, viewName);</span>
+<span class="nc" id="L165">            return;</span>
+        }
+<span class="fc" id="L167">        RefreshEvent event = RefreshEvent.scheduled(viewName);</span>
+<span class="fc" id="L168">        log.info(&quot;定时触发物化视图刷新: {}&quot;, viewName);</span>
+        try {
+<span class="fc" id="L170">            handler.accept(event);</span>
+<span class="nc" id="L171">        } catch (Exception e) {</span>
+<span class="nc" id="L172">            log.error(&quot;处理定时刷新事件失败: view={}&quot;, viewName, e);</span>
+<span class="fc" id="L173">        }</span>
+<span class="fc" id="L174">    }</span>
+
+    /**
+     * 手动触发一次指定物化视图的定时刷新（用于测试与运维）。
+     *
+     * @param viewName 物化视图名称
+     */
+    public void triggerNow(String viewName) {
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        if (!viewIntervals.containsKey(viewName)) {</span>
+<span class="fc" id="L183">            throw new IllegalArgumentException(&quot;物化视图 &quot; + viewName + &quot; 未注册为 SCHEDULED 模式&quot;);</span>
+        }
+<span class="fc" id="L185">        fireRefresh(viewName);</span>
+<span class="fc" id="L186">    }</span>
+
+    /**
+     * 获取已注册的定时刷新视图名称列表（只读，供测试使用）。
+     *
+     * @return 视图名称列表
+     */
+    public List&lt;String&gt; getScheduledViewNames() {
+<span class="fc" id="L194">        return new ArrayList&lt;&gt;(viewIntervals.keySet());</span>
+    }
+
+    /**
+     * 获取指定视图的刷新周期（供测试使用）。
+     *
+     * @param viewName 视图名称
+     * @return 刷新周期；若未注册返回 null
+     */
+    public Duration getInterval(String viewName) {
+<span class="fc" id="L204">        return viewIntervals.get(viewName);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

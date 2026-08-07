@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MaterializedViewConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.materializedview.config</a> &gt; <span class="el_source">MaterializedViewConfig.java</span></div><h1>MaterializedViewConfig.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.materializedview.config;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+/**
+ * 物化视图自动刷新全局配置。
+ *
+ * &lt;p&gt;通过 Spring Boot {@code @ConfigurationProperties} 绑定 {@code application.yml} 中
+ * {@code materializedview.*} 前缀的配置项，控制物化视图刷新框架的全局行为。&lt;/p&gt;
+ *
+ * &lt;p&gt;配置示例（application.yml）：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * materializedview:
+ *   enabled: true
+ *   doris:
+ *     fe-hosts: &quot;127.0.0.1:8030&quot;
+ *     username: &quot;root&quot;
+ *     password: &quot;&quot;
+ *     database: &quot;report&quot;
+ *   refresh:
+ *     default-scheduled-interval: PT5M
+ *     default-batch-threshold: 100
+ *     default-debounce-window: PT30S
+ *     max-concurrent-refreshes: 5
+ *     refresh-timeout: PT10M
+ *   cdc:
+ *     listen-topics: &quot;cdc-orders,cdc-products&quot;
+ *     consumer-group: &quot;mv-refresh-group&quot;
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@Configuration
+@ConfigurationProperties(prefix = &quot;materializedview&quot;)
+public class MaterializedViewConfig {
+
+<span class="fc" id="L46">    private static final Logger log = LoggerFactory.getLogger(MaterializedViewConfig.class);</span>
+
+    /** 全局开关：是否启用物化视图自动刷新。 */
+<span class="fc" id="L49">    private boolean enabled = true;</span>
+
+    /** Doris 连接配置。 */
+<span class="fc" id="L52">    private DorisConfig doris = new DorisConfig();</span>
+
+    /** 刷新策略默认值配置。 */
+<span class="fc" id="L55">    private RefreshDefaults refresh = new RefreshDefaults();</span>
+
+    /** CDC 监听配置。 */
+<span class="fc" id="L58">    private CdcConfig cdc = new CdcConfig();</span>
+
+    /** 默认构造器。 */
+<span class="fc" id="L61">    public MaterializedViewConfig() {</span>
+<span class="fc" id="L62">    }</span>
+
+    /**
+     * Doris FE 连接配置。
+     */
+<span class="fc" id="L67">    public static class DorisConfig {</span>
+        /** Doris FE 主机列表（逗号分隔，格式 host:port）。 */
+<span class="fc" id="L69">        private String feHosts = &quot;127.0.0.1:8030&quot;;</span>
+
+        /** Doris 用户名。 */
+<span class="fc" id="L72">        private String username = &quot;root&quot;;</span>
+
+        /** Doris 密码。 */
+<span class="fc" id="L75">        private String password = &quot;&quot;;</span>
+
+        /** 默认目标数据库。 */
+<span class="fc" id="L78">        private String database = &quot;report&quot;;</span>
+
+        /** Stream Load 连接超时（毫秒）。 */
+<span class="fc" id="L81">        private long connectTimeoutMs = 10000L;</span>
+
+        /** Stream Load 读超时（毫秒）。 */
+<span class="fc" id="L84">        private long readTimeoutMs = 60000L;</span>
+
+        public String getFeHosts() {
+<span class="fc" id="L87">            return feHosts;</span>
+        }
+
+        public void setFeHosts(String feHosts) {
+<span class="fc" id="L91">            this.feHosts = feHosts;</span>
+<span class="fc" id="L92">        }</span>
+
+        public String getUsername() {
+<span class="fc" id="L95">            return username;</span>
+        }
+
+        public void setUsername(String username) {
+<span class="nc" id="L99">            this.username = username;</span>
+<span class="nc" id="L100">        }</span>
+
+        public String getPassword() {
+<span class="nc" id="L103">            return password;</span>
+        }
+
+        public void setPassword(String password) {
+<span class="nc" id="L107">            this.password = password;</span>
+<span class="nc" id="L108">        }</span>
+
+        public String getDatabase() {
+<span class="fc" id="L111">            return database;</span>
+        }
+
+        public void setDatabase(String database) {
+<span class="nc" id="L115">            this.database = database;</span>
+<span class="nc" id="L116">        }</span>
+
+        public long getConnectTimeoutMs() {
+<span class="nc" id="L119">            return connectTimeoutMs;</span>
+        }
+
+        public void setConnectTimeoutMs(long connectTimeoutMs) {
+<span class="nc" id="L123">            this.connectTimeoutMs = connectTimeoutMs;</span>
+<span class="nc" id="L124">        }</span>
+
+        public long getReadTimeoutMs() {
+<span class="nc" id="L127">            return readTimeoutMs;</span>
+        }
+
+        public void setReadTimeoutMs(long readTimeoutMs) {
+<span class="nc" id="L131">            this.readTimeoutMs = readTimeoutMs;</span>
+<span class="nc" id="L132">        }</span>
+
+        @Override
+        public String toString() {
+<span class="fc" id="L136">            return &quot;DorisConfig{feHosts='&quot; + feHosts + &quot;', username='&quot; + username</span>
+                    + &quot;', database='&quot; + database + &quot;'}&quot;;
+        }
+    }
+
+    /**
+     * 刷新策略默认值。
+     */
+<span class="fc" id="L144">    public static class RefreshDefaults {</span>
+        /** 默认定时刷新周期。 */
+<span class="fc" id="L146">        private Duration defaultScheduledInterval = Duration.ofMinutes(5);</span>
+
+        /** 默认事件触发批量阈值。 */
+<span class="fc" id="L149">        private int defaultBatchThreshold = 100;</span>
+
+        /** 默认去抖窗口。 */
+<span class="fc" id="L152">        private Duration defaultDebounceWindow = Duration.ofSeconds(30);</span>
+
+        /** 最大并发刷新数。 */
+<span class="fc" id="L155">        private int maxConcurrentRefreshes = 5;</span>
+
+        /** 单次刷新超时时间。 */
+<span class="fc" id="L158">        private Duration refreshTimeout = Duration.ofMinutes(10);</span>
+
+        public Duration getDefaultScheduledInterval() {
+<span class="nc" id="L161">            return defaultScheduledInterval;</span>
+        }
+
+        public void setDefaultScheduledInterval(Duration defaultScheduledInterval) {
+<span class="nc" id="L165">            this.defaultScheduledInterval = defaultScheduledInterval;</span>
+<span class="nc" id="L166">        }</span>
+
+        public int getDefaultBatchThreshold() {
+<span class="fc" id="L169">            return defaultBatchThreshold;</span>
+        }
+
+        public void setDefaultBatchThreshold(int defaultBatchThreshold) {
+<span class="nc" id="L173">            this.defaultBatchThreshold = defaultBatchThreshold;</span>
+<span class="nc" id="L174">        }</span>
+
+        public Duration getDefaultDebounceWindow() {
+<span class="nc" id="L177">            return defaultDebounceWindow;</span>
+        }
+
+        public void setDefaultDebounceWindow(Duration defaultDebounceWindow) {
+<span class="nc" id="L181">            this.defaultDebounceWindow = defaultDebounceWindow;</span>
+<span class="nc" id="L182">        }</span>
+
+        public int getMaxConcurrentRefreshes() {
+<span class="fc" id="L185">            return maxConcurrentRefreshes;</span>
+        }
+
+        public void setMaxConcurrentRefreshes(int maxConcurrentRefreshes) {
+<span class="fc" id="L189">            this.maxConcurrentRefreshes = maxConcurrentRefreshes;</span>
+<span class="fc" id="L190">        }</span>
+
+        public Duration getRefreshTimeout() {
+<span class="nc" id="L193">            return refreshTimeout;</span>
+        }
+
+        public void setRefreshTimeout(Duration refreshTimeout) {
+<span class="nc" id="L197">            this.refreshTimeout = refreshTimeout;</span>
+<span class="nc" id="L198">        }</span>
+
+        @Override
+        public String toString() {
+<span class="fc" id="L202">            return &quot;RefreshDefaults{interval=&quot; + defaultScheduledInterval</span>
+                    + &quot;, batchThreshold=&quot; + defaultBatchThreshold
+                    + &quot;, maxConcurrent=&quot; + maxConcurrentRefreshes + '}';
+        }
+    }
+
+    /**
+     * CDC 监听配置。
+     */
+<span class="fc" id="L211">    public static class CdcConfig {</span>
+        /** 监听的 CDC Topic 列表（逗号分隔）。 */
+<span class="fc" id="L213">        private String listenTopics = &quot;&quot;;</span>
+
+        /** 消费组 ID。 */
+<span class="fc" id="L216">        private String consumerGroup = &quot;mv-refresh-group&quot;;</span>
+
+        /** 是否从最早位点开始消费。 */
+<span class="fc" id="L219">        private boolean fromEarliest = false;</span>
+
+        public String getListenTopics() {
+<span class="nc" id="L222">            return listenTopics;</span>
+        }
+
+        public void setListenTopics(String listenTopics) {
+<span class="fc" id="L226">            this.listenTopics = listenTopics;</span>
+<span class="fc" id="L227">        }</span>
+
+        /**
+         * 解析监听 Topic 列表。
+         *
+         * @return Topic 列表
+         */
+        public List&lt;String&gt; parsedTopics() {
+<span class="fc bfc" id="L235" title="All 4 branches covered.">            if (listenTopics == null || listenTopics.isBlank()) {</span>
+<span class="fc" id="L236">                return Collections.emptyList();</span>
+            }
+<span class="fc" id="L238">            List&lt;String&gt; topics = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">            for (String t : listenTopics.split(&quot;,&quot;)) {</span>
+<span class="fc" id="L240">                String trimmed = t.trim();</span>
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">                if (!trimmed.isEmpty()) {</span>
+<span class="fc" id="L242">                    topics.add(trimmed);</span>
+                }
+            }
+<span class="fc" id="L245">            return topics;</span>
+        }
+
+        public String getConsumerGroup() {
+<span class="nc" id="L249">            return consumerGroup;</span>
+        }
+
+        public void setConsumerGroup(String consumerGroup) {
+<span class="nc" id="L253">            this.consumerGroup = consumerGroup;</span>
+<span class="nc" id="L254">        }</span>
+
+        public boolean isFromEarliest() {
+<span class="nc" id="L257">            return fromEarliest;</span>
+        }
+
+        public void setFromEarliest(boolean fromEarliest) {
+<span class="nc" id="L261">            this.fromEarliest = fromEarliest;</span>
+<span class="nc" id="L262">        }</span>
+
+        @Override
+        public String toString() {
+<span class="fc" id="L266">            return &quot;CdcConfig{listenTopics='&quot; + listenTopics + &quot;', consumerGroup='&quot; + consumerGroup + &quot;'}&quot;;</span>
+        }
+    }
+
+    // ===== getter / setter =====
+
+    public boolean isEnabled() {
+<span class="fc" id="L273">        return enabled;</span>
+    }
+
+    public void setEnabled(boolean enabled) {
+<span class="fc" id="L277">        this.enabled = enabled;</span>
+<span class="fc" id="L278">    }</span>
+
+    public DorisConfig getDoris() {
+<span class="fc" id="L281">        return doris;</span>
+    }
+
+    public void setDoris(DorisConfig doris) {
+<span class="nc" id="L285">        this.doris = Objects.requireNonNullElse(doris, new DorisConfig());</span>
+<span class="nc" id="L286">    }</span>
+
+    public RefreshDefaults getRefresh() {
+<span class="fc" id="L289">        return refresh;</span>
+    }
+
+    public void setRefresh(RefreshDefaults refresh) {
+<span class="nc" id="L293">        this.refresh = Objects.requireNonNullElse(refresh, new RefreshDefaults());</span>
+<span class="nc" id="L294">    }</span>
+
+    public CdcConfig getCdc() {
+<span class="nc" id="L297">        return cdc;</span>
+    }
+
+    public void setCdc(CdcConfig cdc) {
+<span class="nc" id="L301">        this.cdc = Objects.requireNonNullElse(cdc, new CdcConfig());</span>
+<span class="nc" id="L302">    }</span>
+
+    /**
+     * 校验配置合法性并记录日志。
+     *
+     * @throws IllegalStateException 若配置不合法
+     */
+    public void validate() {
+<span class="fc bfc" id="L310" title="All 2 branches covered.">        if (enabled) {</span>
+<span class="pc bpc" id="L311" title="1 of 4 branches missed.">            if (doris.feHosts == null || doris.feHosts.isBlank()) {</span>
+<span class="fc" id="L312">                throw new IllegalStateException(&quot;Doris FE 主机列表不能为空&quot;);</span>
+            }
+<span class="fc bfc" id="L314" title="All 2 branches covered.">            if (refresh.maxConcurrentRefreshes &lt;= 0) {</span>
+<span class="fc" id="L315">                throw new IllegalStateException(&quot;maxConcurrentRefreshes 必须为正数&quot;);</span>
+            }
+        }
+<span class="fc" id="L318">        log.info(&quot;物化视图配置: enabled={}, doris={}, refresh={}, cdc={}&quot;,</span>
+<span class="fc" id="L319">                enabled, doris, refresh, cdc);</span>
+<span class="fc" id="L320">    }</span>
+
+    @Override
+    public String toString() {
+<span class="fc" id="L324">        return &quot;MaterializedViewConfig{enabled=&quot; + enabled</span>
+                + &quot;, doris=&quot; + doris
+                + &quot;, refresh=&quot; + refresh
+                + &quot;, cdc=&quot; + cdc + '}';
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

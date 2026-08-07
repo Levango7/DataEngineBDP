@@ -113,3 +113,36 @@ app:
       max-cpu-cores: ${SCHEDULER_DEFAULT_MAX_CPU:4.0}
       max-memory-mb: ${SCHEDULER_DEFAULT_MAX_MEM:4096}
       max-concurrent-tasks: ${SCHEDULER_DEFAULT_MAX_CONCURRENT:4}
+  # T006 内置 Agent 模块配置：8 种角色 + 工具白名单 + 资源配额隔离
+  agent:
+    # 是否启用 Agent 模块
+    enabled: ${AGENT_ENABLED:true}
+    # 工具调用沙箱：隔离执行线程池与超时控制
+    sandbox:
+      pool-size: ${AGENT_SANDBOX_POOL:4}
+      default-timeout-ms: ${AGENT_SANDBOX_TIMEOUT:30000}
+    # 工具白名单：按角色限定可调用工具（最小权限原则）
+    # 未在配置中列出的角色使用 AgentConfig 中的内置默认白名单
+    whitelist:
+      PLANNING: [task_decompose, query_metadata]
+      SQL: [nl2sql, query_metadata]
+      VISUALIZATION: [recommend_chart, query_metadata]
+      QUALITY: [generate_dq_rule, query_metadata]
+      LINEAGE: [analyze_lineage, query_metadata]
+      DOCUMENTATION: [generate_doc, query_metadata]
+      CODE: [generate_code]
+      AUDIT: [audit_sql]
+    # 资源配额覆盖：按角色覆盖默认配额（未列出的字段保留默认值）
+    quota:
+      SQL:
+        max-tool-calls: 5
+        max-duration-ms: 30000
+        max-output-chars: 10000
+        max-concurrent-executions: 8
+        daily-call-limit: 500
+      AUDIT:
+        max-tool-calls: 4
+        max-duration-ms: 15000
+        max-output-chars: 10000
+        max-concurrent-executions: 2
+        daily-call-limit: 1000

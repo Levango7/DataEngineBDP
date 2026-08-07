@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MaterializedViewController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.materializedview.controller</a> &gt; <span class="el_source">MaterializedViewController.java</span></div><h1>MaterializedViewController.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.materializedview.controller;
+
+import com.shuqing.bigdata.flinkcdc.materializedview.model.MaterializedViewDef;
+import com.shuqing.bigdata.flinkcdc.materializedview.refresh.ViewRefresher;
+import com.shuqing.bigdata.flinkcdc.materializedview.service.MaterializedViewService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * 物化视图管理 REST API 控制器。
+ *
+ * &lt;p&gt;提供物化视图定义的 CRUD、手动刷新、状态查询等 HTTP 接口。&lt;/p&gt;
+ *
+ * &lt;p&gt;接口列表：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code POST   /api/materialized-views} — 注册物化视图&lt;/li&gt;
+ *   &lt;li&gt;{@code GET    /api/materialized-views} — 列出所有物化视图&lt;/li&gt;
+ *   &lt;li&gt;{@code GET    /api/materialized-views/{name}} — 查询单个物化视图&lt;/li&gt;
+ *   &lt;li&gt;{@code PUT    /api/materialized-views/{name}} — 更新物化视图&lt;/li&gt;
+ *   &lt;li&gt;{@code DELETE /api/materialized-views/{name}} — 删除物化视图&lt;/li&gt;
+ *   &lt;li&gt;{@code POST   /api/materialized-views/{name}/refresh} — 手动触发刷新&lt;/li&gt;
+ *   &lt;li&gt;{@code GET    /api/materialized-views/{name}/status} — 查询刷新状态&lt;/li&gt;
+ *   &lt;li&gt;{@code GET    /api/materialized-views/status} — 查询全局状态&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @author shuqing-bigdata
+ */
+@RestController
+@RequestMapping(&quot;/api/materialized-views&quot;)
+public class MaterializedViewController {
+
+<span class="fc" id="L47">    private static final Logger log = LoggerFactory.getLogger(MaterializedViewController.class);</span>
+
+    /** 物化视图管理服务。 */
+    private final MaterializedViewService service;
+
+    /**
+     * 构造器（Spring 自动注入）。
+     *
+     * @param service 物化视图服务
+     */
+<span class="fc" id="L57">    public MaterializedViewController(MaterializedViewService service) {</span>
+<span class="fc" id="L58">        this.service = Objects.requireNonNull(service, &quot;MaterializedViewService 不能为 null&quot;);</span>
+<span class="fc" id="L59">    }</span>
+
+    /**
+     * 注册物化视图。
+     *
+     * @param def 物化视图定义
+     * @return 201 创建成功；409 名称冲突
+     */
+    @PostMapping
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; registerView(@RequestBody MaterializedViewDef def) {
+        try {
+<span class="fc" id="L70">            boolean success = service.registerView(def);</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">            if (success) {</span>
+<span class="fc" id="L72">                return ResponseEntity.created(null).body(Map.of(</span>
+<span class="fc" id="L73">                        &quot;success&quot;, true,</span>
+<span class="fc" id="L74">                        &quot;message&quot;, &quot;物化视图注册成功: &quot; + def.getName(),</span>
+<span class="fc" id="L75">                        &quot;viewName&quot;, def.getName()</span>
+                ));
+            } else {
+<span class="fc" id="L78">                return ResponseEntity.status(409).body(Map.of(</span>
+<span class="fc" id="L79">                        &quot;success&quot;, false,</span>
+<span class="fc" id="L80">                        &quot;message&quot;, &quot;物化视图已存在: &quot; + def.getName()</span>
+                ));
+            }
+<span class="fc" id="L83">        } catch (Exception e) {</span>
+<span class="fc" id="L84">            log.error(&quot;注册物化视图失败&quot;, e);</span>
+<span class="fc" id="L85">            return ResponseEntity.badRequest().body(Map.of(</span>
+<span class="fc" id="L86">                    &quot;success&quot;, false,</span>
+<span class="fc" id="L87">                    &quot;message&quot;, &quot;注册失败: &quot; + e.getMessage()</span>
+            ));
+        }
+    }
+
+    /**
+     * 列出所有物化视图。
+     *
+     * @return 200 视图列表
+     */
+    @GetMapping
+    public ResponseEntity&lt;List&lt;MaterializedViewDef&gt;&gt; listViews() {
+<span class="fc" id="L99">        return ResponseEntity.ok(service.listViews());</span>
+    }
+
+    /**
+     * 查询单个物化视图。
+     *
+     * @param name 视图名称
+     * @return 200 视图定义；404 不存在
+     */
+    @GetMapping(&quot;/{name}&quot;)
+    public ResponseEntity&lt;?&gt; getView(@PathVariable String name) {
+<span class="fc" id="L110">        MaterializedViewDef def = service.getView(name);</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        if (def == null) {</span>
+<span class="fc" id="L112">            return ResponseEntity.status(404).body(Map.of(</span>
+<span class="fc" id="L113">                    &quot;success&quot;, false,</span>
+                    &quot;message&quot;, &quot;物化视图不存在: &quot; + name
+            ));
+        }
+<span class="fc" id="L117">        return ResponseEntity.ok(def);</span>
+    }
+
+    /**
+     * 更新物化视图。
+     *
+     * @param name 视图名称
+     * @param def  新的视图定义
+     * @return 200 成功；404 不存在
+     */
+    @PutMapping(&quot;/{name}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; updateView(@PathVariable String name,
+                                                          @RequestBody MaterializedViewDef def) {
+        try {
+            // 确保 path 中的 name 与 body 中的 name 一致
+<span class="fc" id="L132">            def.setName(name);</span>
+<span class="fc" id="L133">            boolean success = service.updateView(def);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">            if (success) {</span>
+<span class="fc" id="L135">                return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L136">                        &quot;success&quot;, true,</span>
+                        &quot;message&quot;, &quot;物化视图更新成功: &quot; + name
+                ));
+            } else {
+<span class="fc" id="L140">                return ResponseEntity.status(404).body(Map.of(</span>
+<span class="fc" id="L141">                        &quot;success&quot;, false,</span>
+                        &quot;message&quot;, &quot;物化视图不存在: &quot; + name
+                ));
+            }
+<span class="nc" id="L145">        } catch (Exception e) {</span>
+<span class="nc" id="L146">            log.error(&quot;更新物化视图失败: {}&quot;, name, e);</span>
+<span class="nc" id="L147">            return ResponseEntity.badRequest().body(Map.of(</span>
+<span class="nc" id="L148">                    &quot;success&quot;, false,</span>
+<span class="nc" id="L149">                    &quot;message&quot;, &quot;更新失败: &quot; + e.getMessage()</span>
+            ));
+        }
+    }
+
+    /**
+     * 删除物化视图。
+     *
+     * @param name 视图名称
+     * @return 200 成功；404 不存在
+     */
+    @DeleteMapping(&quot;/{name}&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; removeView(@PathVariable String name) {
+<span class="fc" id="L162">        boolean success = service.removeView(name);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        if (success) {</span>
+<span class="fc" id="L164">            return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L165">                    &quot;success&quot;, true,</span>
+                    &quot;message&quot;, &quot;物化视图删除成功: &quot; + name
+            ));
+        } else {
+<span class="fc" id="L169">            return ResponseEntity.status(404).body(Map.of(</span>
+<span class="fc" id="L170">                    &quot;success&quot;, false,</span>
+                    &quot;message&quot;, &quot;物化视图不存在: &quot; + name
+            ));
+        }
+    }
+
+    /**
+     * 手动触发物化视图刷新。
+     *
+     * @param name     视图名称
+     * @param operator 操作人（query param，默认 &quot;api&quot;）
+     * @return 200 触发成功；404 视图不存在
+     */
+    @PostMapping(&quot;/{name}/refresh&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; refreshView(@PathVariable String name,
+                                                           @RequestParam(defaultValue = &quot;api&quot;) String operator) {
+<span class="fc" id="L186">        var event = service.refreshManually(name, operator);</span>
+<span class="fc bfc" id="L187" title="All 2 branches covered.">        if (event == null) {</span>
+<span class="fc" id="L188">            return ResponseEntity.status(404).body(Map.of(</span>
+<span class="fc" id="L189">                    &quot;success&quot;, false,</span>
+                    &quot;message&quot;, &quot;物化视图不存在或触发失败: &quot; + name
+            ));
+        }
+<span class="fc" id="L193">        return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L194">                &quot;success&quot;, true,</span>
+                &quot;message&quot;, &quot;刷新已触发: &quot; + name,
+<span class="fc" id="L196">                &quot;eventId&quot;, event.getEventId(),</span>
+<span class="fc" id="L197">                &quot;triggerTime&quot;, event.getTriggerTime().toString()</span>
+        ));
+    }
+
+    /**
+     * 查询单个物化视图的刷新状态。
+     *
+     * @param name 视图名称
+     * @return 200 状态信息
+     */
+    @GetMapping(&quot;/{name}/status&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getViewStatus(@PathVariable String name) {
+<span class="fc" id="L209">        Map&lt;String, Object&gt; status = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L210">        status.put(&quot;viewName&quot;, name);</span>
+<span class="fc" id="L211">        ViewRefresher.RefreshResult result = service.getLastRefreshResult(name);</span>
+<span class="fc bfc" id="L212" title="All 2 branches covered.">        if (result != null) {</span>
+<span class="fc" id="L213">            status.put(&quot;lastRefreshSuccess&quot;, result.isSuccess());</span>
+<span class="fc" id="L214">            status.put(&quot;lastRefreshDurationMs&quot;, result.getDurationMs());</span>
+<span class="fc" id="L215">            status.put(&quot;lastRefreshRetryCount&quot;, result.getRetryCount());</span>
+<span class="fc" id="L216">            status.put(&quot;lastRefreshTime&quot;, result.getCompletedAt().toString());</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">            if (result.getErrorMessage() != null) {</span>
+<span class="nc" id="L218">                status.put(&quot;lastRefreshError&quot;, result.getErrorMessage());</span>
+            }
+        } else {
+<span class="fc" id="L221">            status.put(&quot;lastRefreshSuccess&quot;, false);</span>
+<span class="fc" id="L222">            status.put(&quot;message&quot;, &quot;从未刷新&quot;);</span>
+        }
+<span class="fc" id="L224">        return ResponseEntity.ok(status);</span>
+    }
+
+    /**
+     * 查询全局状态。
+     *
+     * @return 200 全局状态
+     */
+    @GetMapping(&quot;/status&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; getGlobalStatus() {
+<span class="fc" id="L234">        Map&lt;String, Object&gt; status = new HashMap&lt;&gt;();</span>
+<span class="fc" id="L235">        status.put(&quot;started&quot;, service.isStarted());</span>
+<span class="fc" id="L236">        status.put(&quot;viewCount&quot;, service.viewCount());</span>
+<span class="fc" id="L237">        status.put(&quot;activeRefreshCount&quot;, service.getActiveRefreshCount());</span>
+<span class="fc" id="L238">        status.put(&quot;viewNames&quot;, service.listViews().stream().map(MaterializedViewDef::getName).toList());</span>
+<span class="fc" id="L239">        return ResponseEntity.ok(status);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

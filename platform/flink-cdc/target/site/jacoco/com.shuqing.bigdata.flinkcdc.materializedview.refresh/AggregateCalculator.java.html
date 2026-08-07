@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="zh"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AggregateCalculator.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">flink-cdc</a> &gt; <a href="index.source.html" class="el_package">com.shuqing.bigdata.flinkcdc.materializedview.refresh</a> &gt; <span class="el_source">AggregateCalculator.java</span></div><h1>AggregateCalculator.java</h1><pre class="source lang-java linenums">package com.shuqing.bigdata.flinkcdc.materializedview.refresh;
+
+import com.shuqing.bigdata.flinkcdc.materializedview.model.AggregationType;
+import com.shuqing.bigdata.flinkcdc.model.ChangeRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+/**
+ * 聚合预计算器：对 CDC 变更记录流执行增量聚合计算，维护各聚合维度的中间状态。
+ *
+ * &lt;p&gt;支持五种聚合类型（COUNT/SUM/AVG/MIN/MAX），对每个 (维度组合, 指标列) 维护
+ * 增量可合并的状态量。INSERT 时累加，DELETE 时撤回，UPDATE 拆分为 DELETE+INSERT。&lt;/p&gt;
+ *
+ * &lt;p&gt;状态量说明：&lt;/p&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;COUNT — long 计数值&lt;/li&gt;
+ *   &lt;li&gt;SUM — double 累加和&lt;/li&gt;
+ *   &lt;li&gt;AVG — (sum, count) 二元组&lt;/li&gt;
+ *   &lt;li&gt;MIN — double 当前最小值&lt;/li&gt;
+ *   &lt;li&gt;MAX — double 当前最大值&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;典型用法：&lt;/p&gt;
+ * &lt;pre&gt;{@code
+ * AggregateCalculator calc = new AggregateCalculator(
+ *     List.of(&quot;region&quot;),                       // 维度列
+ *     Map.of(&quot;total&quot;, AggregationType.SUM,     // 指标列
+ *            &quot;cnt&quot;, AggregationType.COUNT));
+ * calc.apply(record1);  // 累积变更
+ * calc.apply(record2);
+ * Map&lt;String, Map&lt;String, Object&gt;&gt; result = calc.snapshot();  // 获取当前聚合结果
+ * }&lt;/pre&gt;
+ *
+ * @author shuqing-bigdata
+ */
+public class AggregateCalculator {
+
+<span class="fc" id="L45">    private static final Logger log = LoggerFactory.getLogger(AggregateCalculator.class);</span>
+
+    /** 维度列名列表。 */
+    private final List&lt;String&gt; dimensions;
+
+    /** 指标列：列名 → 聚合类型。 */
+    private final Map&lt;String, AggregationType&gt; metrics;
+
+    /**
+     * 聚合状态：维度组合 key → 指标列 → 状态值。
+     * &lt;p&gt;状态值含义因聚合类型而异（见类注释）。&lt;/p&gt;
+     */
+<span class="fc" id="L57">    private final Map&lt;String, Map&lt;String, double[]&gt;&gt; state = new HashMap&lt;&gt;();</span>
+
+    /**
+     * 构造器。
+     *
+     * @param dimensions 维度列名列表（GROUP BY 列）
+     * @param metrics    指标列映射（列名 → 聚合类型）
+     */
+<span class="fc" id="L65">    public AggregateCalculator(List&lt;String&gt; dimensions, Map&lt;String, AggregationType&gt; metrics) {</span>
+<span class="fc" id="L66">        this.dimensions = new ArrayList&lt;&gt;(Objects.requireNonNull(dimensions, &quot;维度列列表不能为 null&quot;));</span>
+<span class="fc" id="L67">        this.metrics = new LinkedHashMap&lt;&gt;(Objects.requireNonNull(metrics, &quot;指标列映射不能为 null&quot;));</span>
+<span class="fc" id="L68">    }</span>
+
+    /**
+     * 应用一条 CDC 变更记录，更新聚合状态。
+     *
+     * &lt;p&gt;根据操作类型分别处理：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;INSERT (c) — 累加新行&lt;/li&gt;
+     *   &lt;li&gt;UPDATE (u) — 先撤回 before 再累加 after&lt;/li&gt;
+     *   &lt;li&gt;DELETE (d) — 撤回 before&lt;/li&gt;
+     *   &lt;li&gt;SNAPSHOT (r) — 视为 INSERT 累加&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param record CDC 变更记录
+     */
+    public void apply(ChangeRecord record) {
+<span class="fc" id="L84">        Objects.requireNonNull(record, &quot;ChangeRecord 不能为 null&quot;);</span>
+<span class="fc" id="L85">        String op = record.getOp();</span>
+<span class="pc bpc" id="L86" title="1 of 2 branches missed.">        if (op == null) {</span>
+<span class="nc" id="L87">            return;</span>
+        }
+<span class="pc bpc" id="L89" title="1 of 4 branches missed.">        switch (op) {</span>
+<span class="fc" id="L90">            case &quot;c&quot;, &quot;r&quot; -&gt; addToState(record.getAfter());</span>
+            case &quot;u&quot; -&gt; {
+<span class="fc" id="L92">                removeFromState(record.getBefore());</span>
+<span class="fc" id="L93">                addToState(record.getAfter());</span>
+<span class="fc" id="L94">            }</span>
+<span class="fc" id="L95">            case &quot;d&quot; -&gt; removeFromState(record.getBefore());</span>
+<span class="nc" id="L96">            default -&gt; log.warn(&quot;未知操作类型: {}，跳过&quot;, op);</span>
+        }
+<span class="fc" id="L98">    }</span>
+
+    /**
+     * 将一行数据累加到聚合状态。
+     *
+     * @param row 行数据（列名 → 列值）
+     */
+    private void addToState(Map&lt;String, Object&gt; row) {
+<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (row == null) {</span>
+<span class="nc" id="L107">            return;</span>
+        }
+<span class="fc" id="L109">        String dimKey = dimensionKey(row);</span>
+<span class="fc" id="L110">        Map&lt;String, double[]&gt; metricState = state.computeIfAbsent(dimKey, k -&gt; new HashMap&lt;&gt;());</span>
+<span class="fc bfc" id="L111" title="All 2 branches covered.">        for (Map.Entry&lt;String, AggregationType&gt; entry : metrics.entrySet()) {</span>
+<span class="fc" id="L112">            String col = entry.getKey();</span>
+<span class="fc" id="L113">            AggregationType type = entry.getValue();</span>
+<span class="fc" id="L114">            double value = numericValue(row, col);</span>
+<span class="fc" id="L115">            double[] st = metricState.computeIfAbsent(col, c -&gt; initialState(type));</span>
+<span class="fc" id="L116">            addToAggregate(st, type, value);</span>
+<span class="fc" id="L117">        }</span>
+<span class="fc" id="L118">    }</span>
+
+    /**
+     * 从聚合状态撤回一行数据。
+     *
+     * @param row 行数据（列名 → 列值）
+     */
+    private void removeFromState(Map&lt;String, Object&gt; row) {
+<span class="pc bpc" id="L126" title="1 of 2 branches missed.">        if (row == null) {</span>
+<span class="nc" id="L127">            return;</span>
+        }
+<span class="fc" id="L129">        String dimKey = dimensionKey(row);</span>
+<span class="fc" id="L130">        Map&lt;String, double[]&gt; metricState = state.get(dimKey);</span>
+<span class="pc bpc" id="L131" title="1 of 2 branches missed.">        if (metricState == null) {</span>
+<span class="nc" id="L132">            return;</span>
+        }
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (Map.Entry&lt;String, AggregationType&gt; entry : metrics.entrySet()) {</span>
+<span class="fc" id="L135">            String col = entry.getKey();</span>
+<span class="fc" id="L136">            AggregationType type = entry.getValue();</span>
+<span class="fc" id="L137">            double value = numericValue(row, col);</span>
+<span class="fc" id="L138">            double[] st = metricState.get(col);</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">            if (st == null) {</span>
+<span class="nc" id="L140">                continue;</span>
+            }
+<span class="fc" id="L142">            removeFromAggregate(st, type, value);</span>
+<span class="fc" id="L143">        }</span>
+<span class="fc" id="L144">    }</span>
+
+    /**
+     * 初始化聚合状态数组。
+     *
+     * &lt;p&gt;状态数组约定：&lt;/p&gt;
+     * &lt;ul&gt;
+     *   &lt;li&gt;COUNT/SUM/MIN/MAX — 长度 1，存当前值&lt;/li&gt;
+     *   &lt;li&gt;AVG — 长度 2，[sum, count]&lt;/li&gt;
+     * &lt;/ul&gt;
+     *
+     * @param type 聚合类型
+     * @return 初始状态数组
+     */
+    static double[] initialState(AggregationType type) {
+<span class="fc bfc" id="L159" title="All 5 branches covered.">        return switch (type) {</span>
+<span class="fc" id="L160">            case COUNT -&gt; new double[]{0};</span>
+<span class="fc" id="L161">            case SUM -&gt; new double[]{0};</span>
+<span class="fc" id="L162">            case AVG -&gt; new double[]{0, 0};</span>
+<span class="fc" id="L163">            case MIN -&gt; new double[]{Double.POSITIVE_INFINITY};</span>
+<span class="fc" id="L164">            case MAX -&gt; new double[]{Double.NEGATIVE_INFINITY};</span>
+        };
+    }
+
+    /**
+     * 累加一个值到聚合状态。
+     *
+     * @param st    状态数组
+     * @param type  聚合类型
+     * @param value 新值
+     */
+    static void addToAggregate(double[] st, AggregationType type, double value) {
+<span class="pc bpc" id="L176" title="1 of 6 branches missed.">        switch (type) {</span>
+<span class="fc" id="L177">            case COUNT -&gt; st[0] += 1;</span>
+<span class="fc" id="L178">            case SUM -&gt; st[0] += value;</span>
+            case AVG -&gt; {
+<span class="fc" id="L180">                st[0] += value;</span>
+<span class="fc" id="L181">                st[1] += 1;</span>
+<span class="fc" id="L182">            }</span>
+<span class="fc" id="L183">            case MIN -&gt; st[0] = Math.min(st[0], value);</span>
+<span class="fc" id="L184">            case MAX -&gt; st[0] = Math.max(st[0], value);</span>
+        }
+<span class="fc" id="L186">    }</span>
+
+    /**
+     * 从聚合状态撤回一个值。
+     *
+     * &lt;p&gt;COUNT/SUM/AVG 支持精确撤回；MIN/MAX 不支持撤回（标记为 NaN 表示需全量重算）。&lt;/p&gt;
+     *
+     * @param st    状态数组
+     * @param type  聚合类型
+     * @param value 被撤回的值
+     */
+    static void removeFromAggregate(double[] st, AggregationType type, double value) {
+<span class="pc bpc" id="L198" title="1 of 5 branches missed.">        switch (type) {</span>
+<span class="fc" id="L199">            case COUNT -&gt; st[0] -= 1;</span>
+<span class="fc" id="L200">            case SUM -&gt; st[0] -= value;</span>
+            case AVG -&gt; {
+<span class="fc" id="L202">                st[0] -= value;</span>
+<span class="fc" id="L203">                st[1] -= 1;</span>
+<span class="fc" id="L204">            }</span>
+<span class="fc" id="L205">            case MIN, MAX -&gt; st[0] = Double.NaN;  // 标记需全量重算</span>
+        }
+<span class="fc" id="L207">    }</span>
+
+    /**
+     * 计算最终聚合结果值。
+     *
+     * @param st    状态数组
+     * @param type  聚合类型
+     * @return 最终值；MIN/MAX 若被标记为 NaN 返回 null（需全量重算）
+     */
+    static Number finalValue(double[] st, AggregationType type) {
+<span class="fc bfc" id="L217" title="All 4 branches covered.">        return switch (type) {</span>
+<span class="fc" id="L218">            case COUNT -&gt; (long) st[0];</span>
+<span class="fc" id="L219">            case SUM -&gt; st[0];</span>
+<span class="fc bfc" id="L220" title="All 2 branches covered.">            case AVG -&gt; st[1] == 0 ? null : st[0] / st[1];</span>
+<span class="fc bfc" id="L221" title="All 2 branches covered.">            case MIN, MAX -&gt; Double.isNaN(st[0]) ? null : st[0];</span>
+        };
+    }
+
+    /**
+     * 构造维度组合 key（将各维度列值拼接为字符串）。
+     *
+     * @param row 行数据
+     * @return 维度 key，如 &quot;east|2024-01-01&quot;
+     */
+    String dimensionKey(Map&lt;String, Object&gt; row) {
+<span class="fc bfc" id="L232" title="All 2 branches covered.">        if (dimensions.isEmpty()) {</span>
+<span class="fc" id="L233">            return &quot;__ALL__&quot;;</span>
+        }
+<span class="fc" id="L235">        StringBuilder sb = new StringBuilder();</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        for (int i = 0; i &lt; dimensions.size(); i++) {</span>
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">            if (i &gt; 0) {</span>
+<span class="nc" id="L238">                sb.append('|');</span>
+            }
+<span class="fc" id="L240">            Object val = row.get(dimensions.get(i));</span>
+<span class="pc bpc" id="L241" title="1 of 2 branches missed.">            sb.append(val == null ? &quot;&quot; : val);</span>
+        }
+<span class="fc" id="L243">        return sb.toString();</span>
+    }
+
+    /**
+     * 从行数据中提取数值列值。
+     *
+     * @param row   行数据
+     * @param column 列名
+     * @return 数值；若为 null 或非数值返回 0
+     */
+    static double numericValue(Map&lt;String, Object&gt; row, String column) {
+<span class="fc" id="L254">        Object val = row.get(column);</span>
+<span class="fc bfc" id="L255" title="All 2 branches covered.">        if (val == null) {</span>
+<span class="fc" id="L256">            return 0;</span>
+        }
+<span class="fc bfc" id="L258" title="All 2 branches covered.">        if (val instanceof Number n) {</span>
+<span class="fc" id="L259">            return n.doubleValue();</span>
+        }
+        try {
+<span class="fc" id="L262">            return Double.parseDouble(String.valueOf(val));</span>
+<span class="fc" id="L263">        } catch (NumberFormatException e) {</span>
+<span class="fc" id="L264">            return 0;</span>
+        }
+    }
+
+    /**
+     * 获取当前聚合状态快照（维度 key → 指标列 → 最终值）。
+     *
+     * @return 不可修改的快照
+     */
+    public Map&lt;String, Map&lt;String, Number&gt;&gt; snapshot() {
+<span class="fc" id="L274">        Map&lt;String, Map&lt;String, Number&gt;&gt; result = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L275" title="All 2 branches covered.">        for (Map.Entry&lt;String, Map&lt;String, double[]&gt;&gt; dimEntry : state.entrySet()) {</span>
+<span class="fc" id="L276">            Map&lt;String, Number&gt; metricsResult = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L277" title="All 2 branches covered.">            for (Map.Entry&lt;String, double[]&gt; metricEntry : dimEntry.getValue().entrySet()) {</span>
+<span class="fc" id="L278">                AggregationType type = metrics.get(metricEntry.getKey());</span>
+<span class="fc" id="L279">                Number value = finalValue(metricEntry.getValue(), type);</span>
+<span class="fc" id="L280">                metricsResult.put(metricEntry.getKey(), value);</span>
+<span class="fc" id="L281">            }</span>
+<span class="fc" id="L282">            result.put(dimEntry.getKey(), metricsResult);</span>
+<span class="fc" id="L283">        }</span>
+<span class="fc" id="L284">        return result;</span>
+    }
+
+    /**
+     * 获取当前聚合状态快照（带维度列名解析）。
+     *
+     * &lt;p&gt;返回结果中每个维度组合的 key 被解析为维度列 → 值的映射，
+     * 便于序列化为 JSON。&lt;/p&gt;
+     *
+     * @return 维度值映射 → 指标列 → 最终值
+     */
+    public List&lt;Map&lt;String, Object&gt;&gt; snapshotWithDimensions() {
+<span class="fc" id="L296">        List&lt;Map&lt;String, Object&gt;&gt; result = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        for (Map.Entry&lt;String, Map&lt;String, double[]&gt;&gt; dimEntry : state.entrySet()) {</span>
+<span class="fc" id="L298">            Map&lt;String, Object&gt; row = new LinkedHashMap&lt;&gt;();</span>
+            // 解析维度 key
+<span class="fc" id="L300">            String[] dimValues = dimEntry.getKey().split(&quot;\\|&quot;, -1);</span>
+<span class="fc bfc" id="L301" title="All 2 branches covered.">            for (int i = 0; i &lt; dimensions.size(); i++) {</span>
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">                row.put(dimensions.get(i), i &lt; dimValues.length ? dimValues[i] : null);</span>
+            }
+            // 添加指标值
+<span class="fc bfc" id="L305" title="All 2 branches covered.">            for (Map.Entry&lt;String, double[]&gt; metricEntry : dimEntry.getValue().entrySet()) {</span>
+<span class="fc" id="L306">                AggregationType type = metrics.get(metricEntry.getKey());</span>
+<span class="fc" id="L307">                row.put(metricEntry.getKey(), finalValue(metricEntry.getValue(), type));</span>
+<span class="fc" id="L308">            }</span>
+<span class="fc" id="L309">            result.add(row);</span>
+<span class="fc" id="L310">        }</span>
+<span class="fc" id="L311">        return result;</span>
+    }
+
+    /**
+     * 重置所有聚合状态。
+     */
+    public void reset() {
+<span class="fc" id="L318">        state.clear();</span>
+<span class="fc" id="L319">    }</span>
+
+    /**
+     * 获取当前状态中的维度组合数量。
+     *
+     * @return 维度组合数量
+     */
+    public int dimensionCount() {
+<span class="fc" id="L327">        return state.size();</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
