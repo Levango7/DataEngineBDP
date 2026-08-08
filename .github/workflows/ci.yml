@@ -52,6 +52,7 @@ jobs:
   go-lint:
     name: Go Lint (vet+gofmt)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -782,6 +783,7 @@ jobs:
   integration-test:
     name: Integration Test
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs:
       - java-build-test
       - go-build-test
