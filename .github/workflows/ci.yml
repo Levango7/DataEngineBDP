@@ -496,6 +496,16 @@ jobs:
         run: |
           mvn -version
           echo "============================================"
+          echo "  预构建：安装 sql-gateway 到本地仓库"
+          echo "============================================"
+          # lineage-analyzer 依赖 sql-gateway，需要先安装
+          sql_gw_pom="platform/sql-gateway/pom.xml"
+          if [ -f "$sql_gw_pom" ]; then
+            mvn -f "$sql_gw_pom" install -B -DskipTests -q \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+            echo "✓ sql-gateway 已安装到本地仓库"
+          fi
+          echo "============================================"
           echo "  开始 Java 编译"
           echo "============================================"
           fail_count=0
@@ -591,28 +601,28 @@ jobs:
       - name: 对每个 Go 组件执行 go build（只编译不测试，避免依赖外部服务）
         if: env.go_skip != 'true'
         run: |
+          set -o pipefail
           go version
           mkdir -p go-build-reports
+          fail_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  构建: $mod_name ($mod_dir)"
             echo "============================================"
-            # 先下载依赖，再编译验证（在子shell中执行，不影响主循环目录）
-            (
-              cd "$mod_dir"
-              echo "--- go mod download ---"
-              go mod download 2>&1 || { echo "✗ $mod_name go mod download 失败"; exit 1; }
-              echo "--- go build ---"
-              if go build ./... 2>&1 | tee "../go-build-reports/${mod_name}-build.log"; then
-                echo "✓ $mod_name go build 通过"
-              else
-                echo "✗ $mod_name go build 失败"
-                exit 1
-              fi
-            )
+            (cd "$mod_dir" && go build ./... 2>&1) | tee "go-build-reports/${mod_name}-build.log"
+            if [ ${PIPESTATUS[0]} -eq 0 ]; then
+              echo "✓ $mod_name go build 通过"
+            else
+              echo "✗ $mod_name go build 失败"
+              fail_count=$((fail_count + 1))
+            fi
           done < <(find platform -name go.mod -not -path "*/vendor/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Go 组件构建失败"
+            exit 1
+          fi
 
       - name: 上传 Go 构建报告
         if: env.go_skip != 'true' && always()
