@@ -1,12 +1,10 @@
 """Embedding 抽象基类测试 (T008-6)."""
+
 from __future__ import annotations
 
-import asyncio
 import math
 from typing import Any
 from unittest.mock import MagicMock
-
-import pytest
 
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.embedding.exceptions import (
@@ -15,7 +13,7 @@ from chunker.embedding.exceptions import (
     ModelLoadError,
     ModelUnavailableError,
 )
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 测试用具体适配器

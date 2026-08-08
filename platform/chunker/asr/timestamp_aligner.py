@@ -11,13 +11,14 @@
 
 对齐设计文档 T008-5。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any
 
 from chunker.asr.diarization import DiarizationResult, SpeakerSegment
-from chunker.asr.whisper_engine import ASRResult, ASRSegment, WhisperWord
+from chunker.asr.whisper_engine import ASRResult
 
 # ----------------------------------------------------------------------
 # 常量
@@ -147,9 +148,7 @@ class TimestampAligner:
     # 词收集
     # ------------------------------------------------------------------
 
-    def _collect_words(
-        self, asr_result: ASRResult, time_offset: float
-    ) -> list[AlignedWord]:
+    def _collect_words(self, asr_result: ASRResult, time_offset: float) -> list[AlignedWord]:
         """从 ASR 结果收集所有词，应用时间偏移."""
         words: list[AlignedWord] = []
         for seg in asr_result.segments:
@@ -180,9 +179,7 @@ class TimestampAligner:
     # 说话人分配
     # ------------------------------------------------------------------
 
-    def _assign_speakers(
-        self, words: list[AlignedWord], diarization: DiarizationResult
-    ) -> None:
+    def _assign_speakers(self, words: list[AlignedWord], diarization: DiarizationResult) -> None:
         """为每个词分配说话人标签（基于词中点时间）."""
         diar_segments = diarization.segments
         for w in words:
@@ -190,9 +187,7 @@ class TimestampAligner:
             speaker = self._find_speaker(mid, diar_segments)
             w.speaker = speaker
 
-    def _find_speaker(
-        self, time: float, segments: list[SpeakerSegment]
-    ) -> str:
+    def _find_speaker(self, time: float, segments: list[SpeakerSegment]) -> str:
         """查找时间点对应的说话人.
 
         :param time: 时间点

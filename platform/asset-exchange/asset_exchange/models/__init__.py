@@ -6,13 +6,12 @@ from asset_exchange.models.audit import (
     AuditLogFilter,
 )
 from asset_exchange.models.settlement import (
+    AllocateRequest,
     Allocation,
     AllocationFilter,
-    AllocateRequest,
-
-    SettleRequest,
     Settlement,
     SettlementFilter,
+    SettleRequest,
 )
 
 __all__ = [

@@ -1,19 +1,19 @@
 """SQL 生成器单测（Mock 模式）."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from models import (
     AggFunc,
+    ColumnSchema,
     Intent,
     IntentType,
     SchemaContext,
-    TableSchema,
-    ColumnSchema,
-    SlotFrame,
     Slot,
+    SlotFrame,
     SlotStatus,
+    TableSchema,
 )
+import pytest
 from sql_generator import MockSqlGenerator, createGenerator
 
 
@@ -66,9 +66,7 @@ class TestMockSqlGenerator:
         assert "COUNT(*) AS cnt" in result.sql
         assert "LIMIT" in result.sql.upper()
 
-    async def test_sum_aggregation_with_column(
-        self, mockGenerator: MockSqlGenerator
-    ) -> None:
+    async def test_sum_aggregation_with_column(self, mockGenerator: MockSqlGenerator) -> None:
         ctx = _mockCtx()
         intent = Intent(
             primaryType=IntentType.AGGREGATION,
@@ -122,9 +120,12 @@ class TestMockSqlGenerator:
     async def test_time_range_slot(self, mockGenerator: MockSqlGenerator) -> None:
         ctx = _mockCtx()
         intent = Intent(primaryType=IntentType.SIMPLE_SELECT)
-        frame = SlotFrame(slots=[
-            Slot(name="timeRange", required=False, status=SlotStatus.FILLED, value="yesterday"),
-        ], intent=intent)
+        frame = SlotFrame(
+            slots=[
+                Slot(name="timeRange", required=False, status=SlotStatus.FILLED, value="yesterday"),
+            ],
+            intent=intent,
+        )
         result = await mockGenerator.generate("查询昨天的数据", ctx, intent, frame)
         assert "WHERE" in result.sql.upper()
         assert "dt" in result.sql
@@ -143,6 +144,7 @@ class TestMockSqlGenerator:
 
     async def test_create_generator_mock(self, settings) -> None:
         from sql_validator import SqlValidator
+
         settings.llmMode = "mock"
         gen = createGenerator(settings, SqlValidator(settings))
         assert isinstance(gen, MockSqlGenerator)

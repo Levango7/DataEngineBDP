@@ -1,10 +1,11 @@
 """Mock 审计仓储 - 内存字典实现，含哈希链."""
+
 from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any
 import uuid
-from typing import Any, Optional
 
 from asset_exchange.interfaces.audit_repository import AuditRepository
 from asset_exchange.models.audit import AuditLog, AuditLogFilter
@@ -90,11 +91,7 @@ class MockAuditRepository(AuditRepository):
         return result[filter.offset : filter.offset + filter.limit]
 
     async def list_by_asset(self, asset_id: str) -> list[AuditLog]:
-        result = [
-            self._logs[log_id]
-            for log_id in self._order
-            if self._logs[log_id].assetId == asset_id
-        ]
+        result = [self._logs[log_id] for log_id in self._order if self._logs[log_id].assetId == asset_id]
         result.sort(key=lambda x: x.createdAt)
         return result
 

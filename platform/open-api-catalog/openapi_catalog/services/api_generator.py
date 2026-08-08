@@ -13,11 +13,10 @@
     - 自动配置 SLA 默认值（SILVER）
     - 自动配置认证方式默认值（API_KEY）
 """
+
 from __future__ import annotations
 
 import re
-import uuid
-from typing import Any
 
 from openapi_catalog.models import (
     APIDefinition,
@@ -32,12 +31,12 @@ from openapi_catalog.models import (
     ParamType,
     SLALevel,
 )
-from openapi_catalog.repositories import CatalogError, ValidationError
+from openapi_catalog.repositories import ValidationError
 from openapi_catalog.repositories.mock import MockCatalogStore
 from openapi_catalog.services.api_registry import APIRegistryService
 
-
 # ---------- 请求模型 ----------
+
 
 class SqlGenerateRequest:
     """SQL 一键生成请求（Pydantic 模型在 routers 中定义）."""
@@ -284,6 +283,7 @@ def _safe_cost_strategy(value: str) -> CostStrategy:
 
 # ---------- 生成服务 ----------
 
+
 class APIGeneratorService:
     """API 一键生成服务.
 
@@ -326,8 +326,7 @@ class APIGeneratorService:
 
         if req.datasource not in _DATASOURCE_UPSTREAM_MAP:
             raise ValidationError(
-                f"不支持的数据源: {req.datasource}，"
-                f"支持: {list(_DATASOURCE_UPSTREAM_MAP.keys())}"
+                f"不支持的数据源: {req.datasource}，" f"支持: {list(_DATASOURCE_UPSTREAM_MAP.keys())}"
             )
 
         # 解析 SQL 参数
@@ -398,8 +397,7 @@ class APIGeneratorService:
             raise ValidationError("模型 ID 不能为空")
         if req.modelType not in _MODEL_TYPE_UPSTREAM_MAP:
             raise ValidationError(
-                f"不支持的模型类型: {req.modelType}，"
-                f"支持: {list(_MODEL_TYPE_UPSTREAM_MAP.keys())}"
+                f"不支持的模型类型: {req.modelType}，" f"支持: {list(_MODEL_TYPE_UPSTREAM_MAP.keys())}"
             )
 
         # 构建上游
@@ -545,8 +543,7 @@ class APIGeneratorService:
             raise ValidationError("函数名不能为空")
         if req.runtime not in _FUNCTION_RUNTIME_UPSTREAM_MAP:
             raise ValidationError(
-                f"不支持的运行时: {req.runtime}，"
-                f"支持: {list(_FUNCTION_RUNTIME_UPSTREAM_MAP.keys())}"
+                f"不支持的运行时: {req.runtime}，" f"支持: {list(_FUNCTION_RUNTIME_UPSTREAM_MAP.keys())}"
             )
         if req.timeout < 1000 or req.timeout > 900000:
             raise ValidationError("超时必须在 1000ms ~ 900000ms 之间")
@@ -573,7 +570,8 @@ class APIGeneratorService:
             version="1.0.0",
             description=req.description or f"Serverless 函数 API: {req.functionName} ({req.runtime})",
             category=req.category,
-            tags=req.tags + [
+            tags=req.tags
+            + [
                 "function-generated",
                 f"function:{req.functionName}",
                 f"runtime:{req.runtime}",

@@ -1,9 +1,10 @@
 """SQLite 交付仓储."""
+
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any, Optional
+import uuid
 
 from asset_exchange.interfaces.delivery_repository import DeliveryRepository
 from asset_exchange.models.base import DeliveryMethod, DeliveryStatus, utc_now
@@ -20,8 +21,7 @@ class SQLiteDeliveryRepository(DeliveryRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS deliveries (
                 id              TEXT PRIMARY KEY,
                 subscription_id TEXT NOT NULL,
@@ -38,22 +38,15 @@ class SQLiteDeliveryRepository(DeliveryRepository):
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL
             );
-            """
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_deliveries_sub ON deliveries(subscription_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);"
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_deliveries_sub ON deliveries(subscription_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_deliveries_status ON deliveries(status);")
 
     async def save(self, delivery: Delivery) -> str:
         if not delivery.id:
             delivery.id = str(uuid.uuid4())
         now = utc_now()
-        cur = self._conn.conn.execute(
-            "SELECT id FROM deliveries WHERE id = ?;", (delivery.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM deliveries WHERE id = ?;", (delivery.id,))
         existing = cur.fetchone()
         if existing is None:
             delivery.createdAt = now
@@ -99,20 +92,15 @@ class SQLiteDeliveryRepository(DeliveryRepository):
         return delivery.id
 
     async def get(self, delivery_id: str) -> Delivery:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM deliveries WHERE id = ?;", (delivery_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM deliveries WHERE id = ?;", (delivery_id,))
         row = cur.fetchone()
         if row is None:
             raise DeliveryNotFoundError(delivery_id)
         return self._row_to_delivery(row)
 
-    async def get_by_subscription(
-        self, subscription_id: str
-    ) -> Optional[Delivery]:
+    async def get_by_subscription(self, subscription_id: str) -> Optional[Delivery]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM deliveries WHERE subscription_id = ? "
-            "ORDER BY created_at DESC LIMIT 1;",
+            "SELECT * FROM deliveries WHERE subscription_id = ? " "ORDER BY created_at DESC LIMIT 1;",
             (subscription_id,),
         )
         row = cur.fetchone()
@@ -127,12 +115,9 @@ class SQLiteDeliveryRepository(DeliveryRepository):
         await self.save(d)
         return d
 
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[Delivery]:
+    async def list_by_subscription(self, subscription_id: str) -> list[Delivery]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM deliveries WHERE subscription_id = ? "
-            "ORDER BY created_at DESC;",
+            "SELECT * FROM deliveries WHERE subscription_id = ? " "ORDER BY created_at DESC;",
             (subscription_id,),
         )
         return [self._row_to_delivery(r) for r in cur.fetchall()]

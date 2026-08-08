@@ -2,6 +2,7 @@
 
 用于测试与无外部依赖场景。
 """
+
 from __future__ import annotations
 
 from knowledge_engine.repositories.mock.entity_extractor import MockEntityExtractor

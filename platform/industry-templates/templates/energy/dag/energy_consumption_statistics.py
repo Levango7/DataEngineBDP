@@ -16,10 +16,11 @@
 
 Author: T043 能源行业模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -45,10 +46,7 @@ default_args = {
 # ---------------------------------------------------------------------------
 dag = DAG(
     dag_id="energy_consumption_statistics",
-    description=(
-        "用能分析统计 DAG：从能耗明细聚合多维度汇总，计算同比环比，"
-        "生成趋势数据、能源平衡与成本分析"
-    ),
+    description=("用能分析统计 DAG：从能耗明细聚合多维度汇总，计算同比环比，" "生成趋势数据、能源平衡与成本分析"),
     default_args=default_args,
     schedule_interval="0 1 * * *",  # 每日凌晨 1:00
     start_date=datetime(2024, 1, 1),
@@ -76,11 +74,16 @@ aggregate_daily_summary = SparkSubmitOperator(
         "spark.app.name": f"energy_daily_aggregate_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--dimensions", "DEVICE,LOCATION,DEPARTMENT,COMPANY",
-        "--periods", "HOUR,DAY",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--dimensions",
+        "DEVICE,LOCATION,DEPARTMENT,COMPANY",
+        "--periods",
+        "HOUR,DAY",
     ],
     dag=dag,
 )
@@ -94,7 +97,7 @@ calc_yoy_mom = BashOperator(
     task_id="calc_yoy_mom",
     bash_command=(
         f"echo '[2] 计算同比环比增长率...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"UPDATE {DORIS_DB}.energy_consumption_summary s "
         f"SET same_period_last = (SELECT total_consumption FROM {DORIS_DB}.energy_consumption_summary "
         f"WHERE dimension_type=s.dimension_type AND dimension_id=s.dimension_id "
@@ -102,8 +105,10 @@ calc_yoy_mom = BashOperator(
         f"last_period = (SELECT total_consumption FROM {DORIS_DB}.energy_consumption_summary "
         f"WHERE dimension_type=s.dimension_type AND dimension_id=s.dimension_id "
         f"AND measure_medium=s.measure_medium AND stat_date=DATE_SUB(s.stat_date, 1)), "
-        f"yoy_growth_rate = CASE WHEN same_period_last > 0 THEN (total_consumption - same_period_last)/same_period_last ELSE NULL END, "
-        f"mom_growth_rate = CASE WHEN last_period > 0 THEN (total_consumption - last_period)/last_period ELSE NULL END "
+        f"yoy_growth_rate = CASE WHEN same_period_last > 0 "
+        f"THEN (total_consumption - same_period_last)/same_period_last ELSE NULL END, "
+        f"mom_growth_rate = CASE WHEN last_period > 0 "
+        f"THEN (total_consumption - last_period)/last_period ELSE NULL END "
         f"WHERE s.stat_date = '{BIZ_DATE}';\" && "
         f"echo '[2] 同比环比计算完成'"
     ),
@@ -122,10 +127,14 @@ dimension_compare = SparkSubmitOperator(
         "spark.app.name": f"energy_dimension_compare_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--compare-types", "CROSS_DEPARTMENT,CROSS_LOCATION,CROSS_MEDIUM,CROSS_PERIOD,BENCHMARK",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--compare-types",
+        "CROSS_DEPARTMENT,CROSS_LOCATION,CROSS_MEDIUM,CROSS_PERIOD,BENCHMARK",
     ],
     dag=dag,
 )
@@ -137,14 +146,17 @@ generate_trend_data = BashOperator(
     task_id="generate_trend_data",
     bash_command=(
         f"echo '[4] 生成趋势数据（含 7 日/30 日移动平均）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.energy_trend_data "
         f"SELECT CONCAT('trend_', dimension_id, '_', stat_date) AS trend_id, "
         f"stat_date, NULL AS stat_time, 'DAY' AS granularity, measure_medium, "
         f"dimension_type, dimension_id, dimension_name, total_consumption, unit, standard_coal, "
-        f"AVG(total_consumption) OVER (PARTITION BY dimension_id ORDER BY stat_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS moving_avg_7d, "
-        f"AVG(total_consumption) OVER (PARTITION BY dimension_id ORDER BY stat_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS moving_avg_30d, "
-        f"CASE WHEN total_consumption > moving_avg_7d THEN 'UP' WHEN total_consumption < moving_avg_7d THEN 'DOWN' ELSE 'FLAT' END AS trend_direction, "
+        f"AVG(total_consumption) OVER (PARTITION BY dimension_id "
+        f"ORDER BY stat_date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS moving_avg_7d, "
+        f"AVG(total_consumption) OVER (PARTITION BY dimension_id "
+        f"ORDER BY stat_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS moving_avg_30d, "
+        f"CASE WHEN total_consumption > moving_avg_7d THEN 'UP' "
+        f"WHEN total_consumption < moving_avg_7d THEN 'DOWN' ELSE 'FLAT' END AS trend_direction, "
         f"NOW() AS created_at "
         f"FROM {DORIS_DB}.energy_consumption_summary WHERE stat_period='DAY' AND stat_date='{BIZ_DATE}';\" && "
         f"echo '[4] 趋势数据生成完成'"
@@ -158,8 +170,7 @@ generate_trend_data = BashOperator(
 energy_balance_analysis = PythonOperator(
     task_id="energy_balance_analysis",
     python_callable=lambda: print(
-        f"[5] 能源平衡分析：计算各介质输入/输出/损失/能效，"
-        f"写入 energy_balance 表（biz_date={BIZ_DATE}）"
+        f"[5] 能源平衡分析：计算各介质输入/输出/损失/能效，" f"写入 energy_balance 表（biz_date={BIZ_DATE}）"
     ),
     dag=dag,
 )
@@ -176,9 +187,12 @@ cost_analysis = SparkSubmitOperator(
         "spark.app.name": f"energy_cost_analysis_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )

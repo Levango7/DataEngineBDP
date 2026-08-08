@@ -9,12 +9,13 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import asyncio
 import math
 import threading
-from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from chunker.rag.exceptions import (
@@ -225,9 +226,7 @@ class MockVectorStore(VectorStore):
         with self._lock:
             if name in self._collections:
                 raise CollectionAlreadyExistsError(name)
-            self._collections[name] = CollectionInfo(
-                name, dimension, metric_type, index_type, 0
-            )
+            self._collections[name] = CollectionInfo(name, dimension, metric_type, index_type, 0)
             self._vectors[name] = {}
 
     async def drop_collection(self, name: str) -> None:
@@ -250,13 +249,10 @@ class MockVectorStore(VectorStore):
             for rec in records:
                 if len(rec.vector) != info.dimension:
                     raise VectorStoreError(
-                        f"向量维度不匹配，期望 {info.dimension}，"
-                        f"实际 {len(rec.vector)}（id={rec.id}）"
+                        f"向量维度不匹配，期望 {info.dimension}，" f"实际 {len(rec.vector)}（id={rec.id}）"
                     )
                 # 深拷贝避免外部修改污染
-                store[rec.id] = VectorRecord(
-                    rec.id, list(rec.vector), dict(rec.metadata)
-                )
+                store[rec.id] = VectorRecord(rec.id, list(rec.vector), dict(rec.metadata))
             info.vectorCount = len(store)
 
     async def search(
@@ -282,10 +278,7 @@ class MockVectorStore(VectorStore):
         # 排序：距离越小越相似（L2），相似度越大越相似（IP/COSINE）
         reverse = info.metricType in (METRIC_IP, METRIC_COSINE)
         scored.sort(key=lambda x: x[0], reverse=reverse)
-        return [
-            SearchResult(rec.id, score, dict(rec.metadata))
-            for score, rec in scored[:top_k]
-        ]
+        return [SearchResult(rec.id, score, dict(rec.metadata)) for score, rec in scored[:top_k]]
 
     async def hybrid_search(
         self,
@@ -333,9 +326,7 @@ class MockVectorStore(VectorStore):
 # ----------------------------------------------------------------------
 
 
-def _compute_similarity(
-    a: list[float], b: list[float], metric: str
-) -> float:
+def _compute_similarity(a: list[float], b: list[float], metric: str) -> float:
     """计算向量相似度/距离.
 
     :param a: 向量 A
@@ -473,9 +464,7 @@ class MilvusVectorStore(VectorStore):
             if self._client is not None:
                 return self._client
             if not is_pymilvus_available():
-                raise VectorStoreError(
-                    "pymilvus 未安装，请 pip install pymilvus"
-                )
+                raise VectorStoreError("pymilvus 未安装，请 pip install pymilvus")
             try:
                 from pymilvus import MilvusClient
 
@@ -492,9 +481,7 @@ class MilvusVectorStore(VectorStore):
                 self._connected = True
                 return client
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"连接 Milvus 失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"连接 Milvus 失败: {ex}", cause=ex) from ex
 
     async def create_collection(
         self,
@@ -518,15 +505,11 @@ class MilvusVectorStore(VectorStore):
                     FieldSchema("metadata", DataType.JSON),
                 ]
                 schema = CollectionSchema(fields)
-                client.create_collection(
-                    name, schema, metric_type=metric_type, index_type=index_type
-                )
+                client.create_collection(name, schema, metric_type=metric_type, index_type=index_type)
             except CollectionAlreadyExistsError:
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"创建集合 {name} 失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"创建集合 {name} 失败: {ex}", cause=ex) from ex
 
         await loop.run_in_executor(None, _work)
 
@@ -542,9 +525,7 @@ class MilvusVectorStore(VectorStore):
             except CollectionNotFoundError:
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"删除集合 {name} 失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"删除集合 {name} 失败: {ex}", cause=ex) from ex
 
         await loop.run_in_executor(None, _work)
 
@@ -560,17 +541,12 @@ class MilvusVectorStore(VectorStore):
             try:
                 if not client.has_collection(collection_name):
                     raise CollectionNotFoundError(collection_name)
-                data = [
-                    {"id": r.id, "vector": r.vector, "metadata": r.metadata}
-                    for r in records
-                ]
+                data = [{"id": r.id, "vector": r.vector, "metadata": r.metadata} for r in records]
                 client.insert(collection_name, data)
             except CollectionNotFoundError:
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"插入向量失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"插入向量失败: {ex}", cause=ex) from ex
 
         await loop.run_in_executor(None, _work)
 
@@ -611,9 +587,7 @@ class MilvusVectorStore(VectorStore):
             except CollectionNotFoundError:
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"检索失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"检索失败: {ex}", cause=ex) from ex
 
         return await loop.run_in_executor(None, _work)
 
@@ -625,9 +599,7 @@ class MilvusVectorStore(VectorStore):
         filter: Optional[str] = None,
         min_score: Optional[float] = None,
     ) -> list[SearchResult]:
-        results = await self.search(
-            collection_name, vector, top_k * 2, filter
-        )
+        results = await self.search(collection_name, vector, top_k * 2, filter)
         if min_score is not None:
             results = [r for r in results if r.score >= min_score]
         return results[:top_k]
@@ -648,9 +620,7 @@ class MilvusVectorStore(VectorStore):
             except CollectionNotFoundError:
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"删除向量失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"删除向量失败: {ex}", cause=ex) from ex
 
         await loop.run_in_executor(None, _work)
 
@@ -678,9 +648,7 @@ class MilvusVectorStore(VectorStore):
             except CollectionNotFoundError:
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise VectorStoreError(
-                    f"获取统计失败: {ex}", cause=ex
-                ) from ex
+                raise VectorStoreError(f"获取统计失败: {ex}", cause=ex) from ex
 
         return await loop.run_in_executor(None, _work)
 

@@ -16,6 +16,7 @@
 
 对齐设计文档 T008-5：语音切片(ASR转文本)。
 """
+
 from __future__ import annotations
 
 from chunker.asr.diarization import (

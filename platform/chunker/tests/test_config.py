@@ -1,11 +1,8 @@
 """配置 Schema 单元测试."""
+
 from __future__ import annotations
 
-import os
 from pathlib import Path
-
-import pytest
-from pydantic import ValidationError
 
 from chunker.config import (
     ChunkerSettings,
@@ -15,7 +12,8 @@ from chunker.config import (
 )
 from chunker.exceptions import ChunkerConfigError
 from chunker.models import ChunkConfig, Modality
-
+from pydantic import ValidationError
+import pytest
 
 # ----------------------------------------------------------------------
 # ModalityDefaults

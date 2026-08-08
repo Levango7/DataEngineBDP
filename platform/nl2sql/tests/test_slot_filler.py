@@ -1,16 +1,14 @@
 """槽位填充单测."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from models import (
     AggFunc,
+    ColumnSchema,
     Intent,
     IntentType,
     SchemaContext,
     TableSchema,
-    ColumnSchema,
-    SlotStatus,
 )
 from slot_filler import SlotFiller, parseTimeRange
 

@@ -5,6 +5,7 @@
 - 不可篡改：基于哈希链（每条日志包含前一条的哈希）
 - 与 Phase 1 SecurityFacade T021 集成
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -31,23 +32,13 @@ class AuditLog(TimestampMixin):
     id: str = Field(default="", description="审计日志 ID")
     action: AuditAction = Field(..., description="审计动作")
     assetId: Optional[str] = Field(default=None, description="关联资产 ID")
-    subscriptionId: Optional[str] = Field(
-        default=None, description="关联订阅 ID"
-    )
-    settlementId: Optional[str] = Field(
-        default=None, description="关联结算 ID"
-    )
+    subscriptionId: Optional[str] = Field(default=None, description="关联订阅 ID")
+    settlementId: Optional[str] = Field(default=None, description="关联结算 ID")
     actorId: str = Field(..., min_length=1, description="操作者 ID")
     actorRole: Optional[str] = Field(default=None, description="操作者角色")
-    tenantId: Optional[str] = Field(
-        default=None, description="租户 ID"
-    )
-    result: AuditResult = Field(
-        default=AuditResult.SUCCESS, description="审计结果"
-    )
-    detail: dict[str, Any] = Field(
-        default_factory=dict, description="审计详情"
-    )
+    tenantId: Optional[str] = Field(default=None, description="租户 ID")
+    result: AuditResult = Field(default=AuditResult.SUCCESS, description="审计结果")
+    detail: dict[str, Any] = Field(default_factory=dict, description="审计详情")
     # 不可篡改：哈希链
     prevHash: str = Field(default="", description="前一条日志的哈希")
     hash: str = Field(default="", description="本条日志的哈希")
@@ -57,17 +48,11 @@ class AuditLogFilter(BaseModel):
     """审计日志过滤条件."""
 
     assetId: Optional[str] = Field(default=None, description="按资产过滤")
-    action: Optional[AuditAction] = Field(
-        default=None, description="按动作过滤"
-    )
+    action: Optional[AuditAction] = Field(default=None, description="按动作过滤")
     actorId: Optional[str] = Field(default=None, description="按操作者过滤")
     tenantId: Optional[str] = Field(default=None, description="按租户过滤")
-    startTime: Optional[datetime] = Field(
-        default=None, description="起始时间"
-    )
-    endTime: Optional[datetime] = Field(
-        default=None, description="结束时间"
-    )
+    startTime: Optional[datetime] = Field(default=None, description="起始时间")
+    endTime: Optional[datetime] = Field(default=None, description="结束时间")
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
 
@@ -77,7 +62,5 @@ class AuditIntegrityReport(BaseModel):
 
     totalLogs: int = Field(default=0, ge=0, description="日志总数")
     verified: bool = Field(default=True, description="是否通过校验")
-    brokenAt: Optional[str] = Field(
-        default=None, description="首个断裂点的日志 ID"
-    )
+    brokenAt: Optional[str] = Field(default=None, description="首个断裂点的日志 ID")
     message: str = Field(default="OK", description="校验消息")

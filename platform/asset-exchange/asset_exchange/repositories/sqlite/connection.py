@@ -6,10 +6,11 @@
 线程安全：sqlite3 默认禁止跨线程使用，这里关闭 check_same_thread 校验，
 依赖 asyncio 单线程事件循环；多线程场景请改用连接池或 aiosqlite。
 """
+
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
+import sqlite3
 from typing import Optional
 
 # 默认数据库文件路径（相对当前工作目录）

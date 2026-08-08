@@ -13,10 +13,11 @@
 
 Author: T044 政务模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -43,8 +44,7 @@ default_args = {
 dag = DAG(
     dag_id="population_flow_tracking",
     description=(
-        "人口流动追踪 DAG：从流动原始数据聚合，"
-        "计算迁入/迁出/净流动量/流动原因分布，写入 population_flow 表"
+        "人口流动追踪 DAG：从流动原始数据聚合，" "计算迁入/迁出/净流动量/流动原因分布，写入 population_flow 表"
     ),
     default_args=default_args,
     schedule_interval="0 3 * * *",  # 每日凌晨 3:00
@@ -68,11 +68,11 @@ extract_flow_data = BashOperator(
     task_id="extract_flow_data",
     bash_command=(
         f"echo '[1] 抽取人口流动原始数据 biz_date={BIZ_DATE}...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT flow_type, from_district, to_district, flow_reason, COUNT(*) AS cnt "
         f"FROM {DORIS_DB}.population_flow "
         f"WHERE flow_date = '{BIZ_DATE}' "
-        f"GROUP BY flow_type, from_district, to_district, flow_reason;\" && "
+        f'GROUP BY flow_type, from_district, to_district, flow_reason;" && '
         f"echo '[1] 流动数据抽取完成'"
     ),
     dag=dag,
@@ -90,10 +90,14 @@ calc_net_flow = SparkSubmitOperator(
         "spark.app.name": f"population_flow_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--mode", "net_flow",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--mode",
+        "net_flow",
     ],
     dag=dag,
 )
@@ -105,12 +109,12 @@ analyze_flow_reason = BashOperator(
     task_id="analyze_flow_reason",
     bash_command=(
         f"echo '[3] 分析流动原因分布（工作/家庭/教育/医疗）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT flow_reason, COUNT(*) AS cnt, "
         f"COUNT(*)*100.0/SUM(COUNT(*)) OVER() AS ratio "
         f"FROM {DORIS_DB}.population_flow "
         f"WHERE flow_date = '{BIZ_DATE}' AND flow_reason IS NOT NULL "
-        f"GROUP BY flow_reason;\" && "
+        f'GROUP BY flow_reason;" && '
         f"echo '[3] 流动原因分析完成'"
     ),
     dag=dag,
@@ -123,11 +127,11 @@ calc_flow_by_scope = BashOperator(
     task_id="calc_flow_by_scope",
     bash_command=(
         f"echo '[4] 计算跨省/市内/跨市流动统计...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT flow_type, COUNT(*) AS cnt "
         f"FROM {DORIS_DB}.population_flow "
         f"WHERE flow_date = '{BIZ_DATE}' "
-        f"GROUP BY flow_type;\" && "
+        f'GROUP BY flow_type;" && '
         f"echo '[4] 流动范围统计完成'"
     ),
     dag=dag,
@@ -138,9 +142,7 @@ calc_flow_by_scope = BashOperator(
 # ---------------------------------------------------------------------------
 identify_hot_regions = PythonOperator(
     task_id="identify_hot_regions",
-    python_callable=lambda: print(
-        f"[5] 识别人口流动热点区域（净流入/净流出 Top 10）: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[5] 识别人口流动热点区域（净流入/净流出 Top 10）: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
@@ -149,13 +151,17 @@ identify_hot_regions = PythonOperator(
 # ---------------------------------------------------------------------------
 notify_dashboard = PythonOperator(
     task_id="notify_dashboard_refresh",
-    python_callable=lambda: print(
-        f"[6] 人口流动追踪完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[6] 人口流动追踪完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系
 # ---------------------------------------------------------------------------
-extract_flow_data >> calc_net_flow >> [analyze_flow_reason, calc_flow_by_scope] >> identify_hot_regions >> notify_dashboard
+(
+    extract_flow_data
+    >> calc_net_flow
+    >> [analyze_flow_reason, calc_flow_by_scope]
+    >> identify_hot_regions
+    >> notify_dashboard
+)

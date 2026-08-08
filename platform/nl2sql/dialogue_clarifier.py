@@ -11,6 +11,7 @@
     - 澄清问题按优先级排序：必需槽位 > 时间范围 > 聚合列。
     - 与 SlotFiller 协作：SlotFiller 检测缺失，DialogueClarifier 编排交互流程。
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -58,6 +59,7 @@ class DialogueClarifier:
 
         # 2. 聚合意图但聚合列未明确（且非 COUNT(*)）
         from models import AggFunc
+
         if intent.isAggregate and intent.aggFunc != AggFunc.COUNT:
             aggSlot = frame.get("aggColumn")
             if aggSlot is not None and not aggSlot.isFilled:
@@ -93,12 +95,14 @@ class DialogueClarifier:
             database=database,
             currentSlots=frame,
         )
-        state.addTurn(DialogueTurn(
-            role="user",
-            content=query,
-            intent=intent,
-            slots=frame,
-        ))
+        state.addTurn(
+            DialogueTurn(
+                role="user",
+                content=query,
+                intent=intent,
+                slots=frame,
+            )
+        )
         return state
 
     def nextQuestion(
@@ -116,9 +120,7 @@ class DialogueClarifier:
         if state.currentSlots is None or state.currentSlots.intent is None:
             return None
         # 取最后一轮 user 查询
-        lastUser = next(
-            (t for t in reversed(state.turns) if t.role == "user"), None
-        )
+        lastUser = next((t for t in reversed(state.turns) if t.role == "user"), None)
         if lastUser is None:
             return None
         questions = self.detectAmbiguity(
@@ -131,10 +133,12 @@ class DialogueClarifier:
             state.clarified = True
             return None
         # 追加 assistant 澄清问题
-        state.addTurn(DialogueTurn(
-            role="assistant",
-            content=questions[0],
-        ))
+        state.addTurn(
+            DialogueTurn(
+                role="assistant",
+                content=questions[0],
+            )
+        )
         return questions[0]
 
     def absorbAnswer(
@@ -147,11 +151,13 @@ class DialogueClarifier:
         if state.currentSlots is None:
             return state
         self.slotFiller.mergeAnswer(state.currentSlots, answer, ctx)
-        state.addTurn(DialogueTurn(
-            role="user",
-            content=answer,
-            slots=state.currentSlots,
-        ))
+        state.addTurn(
+            DialogueTurn(
+                role="user",
+                content=answer,
+                slots=state.currentSlots,
+            )
+        )
         return state
 
     # ---- 完成判定 ----

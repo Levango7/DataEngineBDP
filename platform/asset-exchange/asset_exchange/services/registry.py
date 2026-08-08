@@ -3,6 +3,7 @@
 设计模式：依赖注入 + 工厂。
 配置开关：ASSET_EXCHANGE_STORE_TYPE=mock | sqlite
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

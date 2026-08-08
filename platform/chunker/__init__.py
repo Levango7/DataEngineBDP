@@ -15,6 +15,7 @@
     chunker = get_chunker("text")
     chunks = await chunker.chunk("hello world", ChunkConfig(modality="text"))
 """
+
 from __future__ import annotations
 
 from chunker.base import BaseChunker

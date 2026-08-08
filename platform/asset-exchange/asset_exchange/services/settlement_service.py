@@ -6,6 +6,7 @@
 - 自动计算提供方收益与平台抽成
 - 结算状态机：PENDING -> SETTLED / FAILED
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -16,11 +17,10 @@ from asset_exchange.interfaces.settlement_repository import (
 )
 from asset_exchange.models.base import SettlementStatus, utc_now
 from asset_exchange.models.settlement import (
-    SettleRequest,
     Settlement,
     SettlementFilter,
+    SettleRequest,
 )
-from asset_exchange.repositories import AssetNotFoundError
 
 
 class SettlementService:
@@ -64,12 +64,8 @@ class SettlementService:
         # 周期：优先用请求中的，否则取当前年月
         period = req.period or utc_now().strftime("%Y-%m")
         # 分成比例：优先用请求中的，否则用配置默认值
-        provider_share = (
-            req.providerShare if req.providerShare is not None else self._providerShare
-        )
-        platform_share = (
-            req.platformShare if req.platformShare is not None else self._platformShare
-        )
+        provider_share = req.providerShare if req.providerShare is not None else self._providerShare
+        platform_share = req.platformShare if req.platformShare is not None else self._platformShare
 
         # 校验资产存在
         asset = await self._asset_service.get_asset(asset_id)
@@ -120,9 +116,7 @@ class SettlementService:
         """获取结算记录."""
         return await self._settlement_repo.get(settlement_id)
 
-    async def list(
-        self, filter: Optional[SettlementFilter] = None
-    ) -> list[Settlement]:
+    async def list(self, filter: Optional[SettlementFilter] = None) -> list[Settlement]:
         """列出结算记录."""
         return await self._settlement_repo.list(filter or SettlementFilter())
 

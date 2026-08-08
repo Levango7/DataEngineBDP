@@ -6,6 +6,7 @@
     GET  /subscriptions/{id}/delivery-status 交付状态
     POST /subscriptions/{id}/charge         计费（辅助端点）
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -27,6 +28,7 @@ router = APIRouter(prefix="/subscriptions", tags=["subscriptions"])
 
 # ---------- 请求模型 ----------
 
+
 class ChargeRequest(BaseModel):
     """计费请求（交付成功后调用）."""
 
@@ -35,6 +37,7 @@ class ChargeRequest(BaseModel):
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "/{subscription_id}/approve",
@@ -49,9 +52,7 @@ async def approve_subscription(
     """审批订阅（通过或驳回）."""
     try:
         if req.action == "approve":
-            result = await registry.subscriptionService.approve(
-                subscription_id, req.approverId
-            )
+            result = await registry.subscriptionService.approve(subscription_id, req.approverId)
         elif req.action == "reject":
             result = await registry.subscriptionService.reject(
                 subscription_id,

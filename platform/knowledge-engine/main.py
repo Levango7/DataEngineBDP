@@ -8,6 +8,7 @@ Usage:
     KE_EXTRACTOR_TYPE=llm python main.py        # LLM 抽取模式
     KE_HOST=127.0.0.1 KE_PORT=9000 python main.py
 """
+
 from __future__ import annotations
 
 import uvicorn

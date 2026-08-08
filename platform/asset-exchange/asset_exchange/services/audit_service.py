@@ -9,6 +9,7 @@
 - 本地优先：直接写入本地 AuditRepository，保证留痕不丢失
 - 远程同步：可选调用 SecurityFacade T021 远程审计服务（HTTP），失败不影响主流程
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional

@@ -13,6 +13,7 @@
 
 接入标签引擎：将 LTV 分层写入 member_tag 表，tag_category=LTV
 """
+
 from __future__ import annotations
 
 import math
@@ -114,9 +115,7 @@ def gamma_gamma_expected_value(
     if frequency == 0:
         return 0.0
     # E[M] = ((p * gamma + frequency * monetary) / (p + frequency)) * (q / (q - 1))
-    expected = (
-        (p * gamma + frequency * monetary) / max(p + frequency, 1e-10)
-    ) * (q / max(q - 1, 1e-10))
+    expected = ((p * gamma + frequency * monetary) / max(p + frequency, 1e-10)) * (q / max(q - 1, 1e-10))
     return max(0.0, expected)
 
 
@@ -145,15 +144,23 @@ def compute_ltv(
     """
     historical_value = frequency * monetary
     p_alive = bgnbd_p_alive(
-        frequency, recency_days, customer_age_days,
-        bgnbd_params["r"], bgnbd_params["alpha"],
-        bgnbd_params["a"], bgnbd_params["b"],
+        frequency,
+        recency_days,
+        customer_age_days,
+        bgnbd_params["r"],
+        bgnbd_params["alpha"],
+        bgnbd_params["a"],
+        bgnbd_params["b"],
     )
     # 预测未来 365 天购买次数
     pred_purchases_365 = bgnbd_expected_purchases(
-        frequency, recency_days, customer_age_days,
-        bgnbd_params["r"], bgnbd_params["alpha"],
-        bgnbd_params["a"], bgnbd_params["b"],
+        frequency,
+        recency_days,
+        customer_age_days,
+        bgnbd_params["r"],
+        bgnbd_params["alpha"],
+        bgnbd_params["a"],
+        bgnbd_params["b"],
         forecast_days=365,
     )
     pred_purchases_30 = pred_purchases_365 * 30 / 365
@@ -161,8 +168,11 @@ def compute_ltv(
     pred_purchases_180 = pred_purchases_365 * 180 / 365
     # 预测期望交易金额
     expected_value = gamma_gamma_expected_value(
-        frequency, monetary,
-        gg_params["p"], gg_params["q"], gg_params["gamma"],
+        frequency,
+        monetary,
+        gg_params["p"],
+        gg_params["q"],
+        gg_params["gamma"],
     )
     # 预测价值 = 预测次数 * 期望金额
     pred_value_30d = pred_purchases_30 * expected_value
@@ -254,7 +264,10 @@ FROM ${db}.tmp_ltv_computed
 
 # SQL 模板：将 LTV 分层写入 member_tag 表（接入标签引擎）
 SQL_LOAD_LTV_TAGS = """
-INSERT INTO ${db}.member_tag (tag_id, member_id, tag_code, tag_value, tag_category, tag_source, confidence, tagged_at, created_at, updated_at, created_by, updated_by)
+INSERT INTO ${db}.member_tag (
+    tag_id, member_id, tag_code, tag_value, tag_category,
+    tag_source, confidence, tagged_at, created_at, updated_at, created_by, updated_by
+)
 SELECT
     UUID(),
     member_id,
@@ -292,8 +305,15 @@ def build_dag() -> dict[str, Any]:
 if __name__ == "__main__":
     # 本地测试
     result = compute_ltv(
-        "m001", frequency=10, recency_days=15, customer_age_days=365,
-        monetary=200, bgnbd_params=DEFAULT_BGNBD_PARAMS, gg_params=DEFAULT_GG_PARAMS,
+        "m001",
+        frequency=10,
+        recency_days=15,
+        customer_age_days=365,
+        monetary=200,
+        bgnbd_params=DEFAULT_BGNBD_PARAMS,
+        gg_params=DEFAULT_GG_PARAMS,
     )
-    print(f"会员 {result['member_id']}: LTV={result['total_ltv']}, "
-          f"分层={result['ltv_segment']}, P(Alive)={result['predicted_p_alive']}")
+    print(
+        f"会员 {result['member_id']}: LTV={result['total_ltv']}, "
+        f"分层={result['ltv_segment']}, P(Alive)={result['predicted_p_alive']}"
+    )

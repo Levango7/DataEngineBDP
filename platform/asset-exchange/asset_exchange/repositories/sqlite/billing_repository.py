@@ -1,8 +1,8 @@
 """SQLite 计费仓储."""
+
 from __future__ import annotations
 
 import uuid
-from typing import Any
 
 from asset_exchange.interfaces.billing_repository import BillingRepository
 from asset_exchange.models.base import BillingMode, utc_now
@@ -19,8 +19,7 @@ class SQLiteBillingRepository(BillingRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS billing_records (
                 id                  TEXT PRIMARY KEY,
                 subscription_id     TEXT NOT NULL,
@@ -40,22 +39,15 @@ class SQLiteBillingRepository(BillingRepository):
                 created_at          TEXT NOT NULL,
                 updated_at          TEXT NOT NULL
             );
-            """
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_billing_asset ON billing_records(asset_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_billing_sub ON billing_records(subscription_id);"
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_billing_asset ON billing_records(asset_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_billing_sub ON billing_records(subscription_id);")
 
     async def save(self, record: BillingRecord) -> str:
         if not record.id:
             record.id = str(uuid.uuid4())
         now = utc_now()
-        cur = self._conn.conn.execute(
-            "SELECT id FROM billing_records WHERE id = ?;", (record.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM billing_records WHERE id = ?;", (record.id,))
         existing = cur.fetchone()
         if existing is None:
             record.createdAt = now
@@ -108,9 +100,7 @@ class SQLiteBillingRepository(BillingRepository):
         return record.id
 
     async def get(self, record_id: str) -> BillingRecord:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM billing_records WHERE id = ?;", (record_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM billing_records WHERE id = ?;", (record_id,))
         row = cur.fetchone()
         if row is None:
             raise AssetExchangeError(f"计费记录不存在: {record_id}")
@@ -118,18 +108,14 @@ class SQLiteBillingRepository(BillingRepository):
 
     async def list_by_asset(self, asset_id: str) -> list[BillingRecord]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM billing_records WHERE asset_id = ? "
-            "ORDER BY created_at DESC;",
+            "SELECT * FROM billing_records WHERE asset_id = ? " "ORDER BY created_at DESC;",
             (asset_id,),
         )
         return [self._row_to_record(r) for r in cur.fetchall()]
 
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[BillingRecord]:
+    async def list_by_subscription(self, subscription_id: str) -> list[BillingRecord]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM billing_records WHERE subscription_id = ? "
-            "ORDER BY created_at DESC;",
+            "SELECT * FROM billing_records WHERE subscription_id = ? " "ORDER BY created_at DESC;",
             (subscription_id,),
         )
         return [self._row_to_record(r) for r in cur.fetchall()]

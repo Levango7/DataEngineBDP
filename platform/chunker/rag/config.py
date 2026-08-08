@@ -7,6 +7,7 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -81,28 +82,16 @@ class RAGSettings(BaseSettings):
         extra="ignore",
     )
 
-    defaultCollection: str = Field(
-        default="chunks", description="默认集合名"
-    )
-    embeddingModel: str = Field(
-        default="bge-large-zh", description="默认 embedding 模型短名"
-    )
-    metricType: str = Field(
-        default=DEFAULT_METRIC_TYPE, description="默认度量类型"
-    )
-    indexType: str = Field(
-        default=DEFAULT_INDEX_TYPE, description="默认索引类型"
-    )
+    defaultCollection: str = Field(default="chunks", description="默认集合名")
+    embeddingModel: str = Field(default="bge-large-zh", description="默认 embedding 模型短名")
+    metricType: str = Field(default=DEFAULT_METRIC_TYPE, description="默认度量类型")
+    indexType: str = Field(default=DEFAULT_INDEX_TYPE, description="默认索引类型")
     topK: int = Field(default=DEFAULT_TOP_K, gt=0, description="默认检索 topK")
-    fusionMethod: str = Field(
-        default=DEFAULT_FUSION_METHOD, description="默认融合方法"
-    )
+    fusionMethod: str = Field(default=DEFAULT_FUSION_METHOD, description="默认融合方法")
     rrfK: int = Field(default=DEFAULT_RRF_K, gt=0, description="RRF k 参数")
 
     # ---- Milvus ----
-    storeType: str = Field(
-        default="mock", description="存储类型（milvus/mock）"
-    )
+    storeType: str = Field(default="mock", description="存储类型（milvus/mock）")
     milvusHost: str = Field(default="127.0.0.1", description="Milvus 主机")
     milvusPort: int = Field(default=19530, gt=0, le=65535, description="Milvus 端口")
     milvusDatabase: str = Field(default="default", description="Milvus 数据库")
@@ -120,9 +109,7 @@ class RAGSettings(BaseSettings):
     def _validate_metric(cls, v: str) -> str:
         uv = v.upper()
         if uv not in SUPPORTED_METRIC_TYPES:
-            raise ValueError(
-                f"metricType 必须为 {SUPPORTED_METRIC_TYPES} 之一，得到 {v}"
-            )
+            raise ValueError(f"metricType 必须为 {SUPPORTED_METRIC_TYPES} 之一，得到 {v}")
         return uv
 
     @field_validator("indexType")
@@ -130,9 +117,7 @@ class RAGSettings(BaseSettings):
     def _validate_index(cls, v: str) -> str:
         uv = v.upper()
         if uv not in SUPPORTED_INDEX_TYPES:
-            raise ValueError(
-                f"indexType 必须为 {SUPPORTED_INDEX_TYPES} 之一，得到 {v}"
-            )
+            raise ValueError(f"indexType 必须为 {SUPPORTED_INDEX_TYPES} 之一，得到 {v}")
         return uv
 
     @field_validator("fusionMethod")
@@ -140,9 +125,7 @@ class RAGSettings(BaseSettings):
     def _validate_fusion(cls, v: str) -> str:
         lv = v.lower()
         if lv not in SUPPORTED_FUSION_METHODS:
-            raise ValueError(
-                f"fusionMethod 必须为 {SUPPORTED_FUSION_METHODS} 之一，得到 {v}"
-            )
+            raise ValueError(f"fusionMethod 必须为 {SUPPORTED_FUSION_METHODS} 之一，得到 {v}")
         return lv
 
     @field_validator("storeType")

@@ -12,24 +12,16 @@
     - 异常处理（不支持格式/空内容/加载失败）
     - 元数据完整性（表头/行范围/列信息/合并来源）
 """
+
 from __future__ import annotations
 
 import asyncio
-import io
-import os
-import tempfile
 import time
-from typing import Any
-from unittest.mock import patch
-
-import pandas as pd
-import pytest
 
 from chunker.base import BaseChunker
 from chunker.exceptions import PreprocessError
-from chunker.models import Chunk, ChunkConfig, Modality
+from chunker.models import ChunkConfig, Modality
 from chunker.registry import (
-    clear_registry,
     get_chunker,
     is_chunker_registered,
     list_modalities,
@@ -51,7 +43,8 @@ from chunker.table_chunker import (
     _row_type_signature,
     _validate_header_quality,
 )
-
+import pandas as pd
+import pytest
 
 # ----------------------------------------------------------------------
 # fixtures
@@ -67,9 +60,7 @@ def chunker() -> TableChunker:
 @pytest.fixture
 def tmp_csv(tmp_path) -> str:
     """创建临时 CSV 文件."""
-    df = pd.DataFrame(
-        {"姓名": ["张三", "李四", "王五"], "年龄": [25, 30, 35], "城市": ["北京", "上海", "广州"]}
-    )
+    df = pd.DataFrame({"姓名": ["张三", "李四", "王五"], "年龄": [25, 30, 35], "城市": ["北京", "上海", "广州"]})
     p = tmp_path / "data.csv"
     df.to_csv(p, index=False, encoding="utf-8-sig")
     return str(p)
@@ -78,9 +69,7 @@ def tmp_csv(tmp_path) -> str:
 @pytest.fixture
 def tmp_excel(tmp_path) -> str:
     """创建临时 Excel 文件."""
-    df = pd.DataFrame(
-        {"name": ["Alice", "Bob", "Charlie"], "score": [90.5, 85.0, 78.5], "passed": [True, True, False]}
-    )
+    df = pd.DataFrame({"name": ["Alice", "Bob", "Charlie"], "score": [90.5, 85.0, 78.5], "passed": [True, True, False]})
     p = tmp_path / "data.xlsx"
     df.to_excel(p, index=False)
     return str(p)
@@ -183,15 +172,18 @@ class TestNormalizeValue:
 
     def test_numpy_int(self):
         import numpy as np
+
         result = _normalize_value(np.int64(7))
         assert result == 7
 
     def test_numpy_nan(self):
         import numpy as np
+
         assert _normalize_value(np.float64(np.nan)) is None
 
     def test_datetime(self):
         import datetime
+
         dt = datetime.datetime(2024, 1, 1, 12, 0, 0)
         assert _normalize_value(dt) == "2024-01-01T12:00:00"
 
@@ -277,9 +269,7 @@ class TestFlattenMultirowHeader:
         assert body.iloc[0].tolist() == [1, 2]
 
     def test_multirow(self):
-        df = pd.DataFrame(
-            [["主表", "主表"], ["姓名", "年龄"], ["张三", 25]]
-        )
+        df = pd.DataFrame([["主表", "主表"], ["姓名", "年龄"], ["张三", 25]])
         df.columns = [0, 1]
         headers, body = _flatten_multirow_header(df, 2)
         assert headers == ["主表 / 姓名", "主表 / 年龄"]
@@ -310,9 +300,7 @@ class TestDetectHeaderRows:
         assert _detect_header_rows(df) == 1
 
     def test_multirow_header(self):
-        df = pd.DataFrame(
-            [["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]]
-        )
+        df = pd.DataFrame([["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]])
         df.columns = [0, 1]
         result = _detect_header_rows(df)
         assert result >= 1
@@ -376,9 +364,7 @@ class TestHeaderExtraction:
         assert n == 1
 
     def test_explicit_header_rows(self, chunker):
-        df = pd.DataFrame(
-            [["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]]
-        )
+        df = pd.DataFrame([["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]])
         df.columns = [0, 1]
         headers, body, n = chunker._extract_header(df, 2)
         assert "主表" in headers[0]
@@ -407,9 +393,7 @@ class TestHeaderExtraction:
 
 class TestSinglePageTable:
     def test_dataframe_input(self, chunker):
-        df = pd.DataFrame(
-            {"name": ["a", "b", "c"], "value": [1, 2, 3]}
-        )
+        df = pd.DataFrame({"name": ["a", "b", "c"], "value": [1, 2, 3]})
         chunks = asyncio.run(chunker.chunk(df, _cfg()))
         assert len(chunks) == 1
         c = chunks[0]
@@ -488,9 +472,7 @@ class TestCrossPageMerge:
     def test_disable_merge(self, chunker):
         df1 = pd.DataFrame({"id": [1, 2], "v": [10, 20]})
         df2 = pd.DataFrame({"id": [3, 4], "v": [30, 40]})
-        chunks = asyncio.run(
-            chunker.chunk([df1, df2], _cfg(extra={"mergeCrossPage": False}))
-        )
+        chunks = asyncio.run(chunker.chunk([df1, df2], _cfg(extra={"mergeCrossPage": False})))
         assert len(chunks) == 2
 
     def test_html_multiple_tables_merge(self, chunker, tmp_html):
@@ -519,13 +501,9 @@ class TestCrossPageMerge:
 class TestMergedCellHeader:
     def test_multirow_header_explicit(self, chunker):
         # 模拟合并单元格：前两行是表头
-        df = pd.DataFrame(
-            [["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]]
-        )
+        df = pd.DataFrame([["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]])
         df.columns = [0, 1]
-        chunks = asyncio.run(
-            chunker.chunk(df, _cfg(extra={"headerRows": 2}))
-        )
+        chunks = asyncio.run(chunker.chunk(df, _cfg(extra={"headerRows": 2})))
         assert len(chunks) == 1
         headers = chunks[0].content["headers"]
         assert "主表" in headers[0]
@@ -533,9 +511,7 @@ class TestMergedCellHeader:
         assert chunks[0].content["rowCount"] == 2
 
     def test_multirow_header_auto(self, chunker):
-        df = pd.DataFrame(
-            [["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]]
-        )
+        df = pd.DataFrame([["主表", "主表"], ["姓名", "年龄"], ["张三", 25], ["李四", 30]])
         df.columns = [0, 1]
         chunks = asyncio.run(chunker.chunk(df, _cfg()))
         assert len(chunks) == 1
@@ -551,17 +527,13 @@ class TestMergedCellHeader:
 class TestRowGrouping:
     def test_type_signature_grouping(self, chunker):
         # 不同类型行应分到不同切片（窗口小时）
-        df = pd.DataFrame(
-            {"a": ["text", 1, "text2", 2], "b": ["x", 2, "y", 3]}
-        )
+        df = pd.DataFrame({"a": ["text", 1, "text2", 2], "b": ["x", 2, "y", 3]})
         chunks = asyncio.run(chunker.chunk(df, _cfg(windowSize=1)))
         # 每行类型不同，窗口=1 → 每行一个切片
         assert len(chunks) >= 2
 
     def test_similarity_grouping(self, chunker):
-        df = pd.DataFrame(
-            {"desc": ["apple red fruit", "apple green fruit", "banana yellow fruit", "car vehicle fast"]}
-        )
+        df = pd.DataFrame({"desc": ["apple red fruit", "apple green fruit", "banana yellow fruit", "car vehicle fast"]})
         chunks = asyncio.run(
             chunker.chunk(
                 df,
@@ -670,12 +642,14 @@ class TestRegistration:
     def test_registered(self):
         # conftest 清空注册表，显式重新注册验证装饰器机制
         from chunker.table_chunker import TableChunker as _TC
+
         register_chunker(Modality.TABLE)(_TC)
         assert is_chunker_registered("table") is True
         assert "table" in list_modalities()
 
     def test_get_chunker(self):
         from chunker.table_chunker import TableChunker as _TC
+
         register_chunker(Modality.TABLE)(_TC)
         c = get_chunker("table")
         assert isinstance(c, TableChunker)
@@ -725,16 +699,12 @@ class TestExceptions:
 class TestConfig:
     def test_input_format_csv(self, chunker):
         csv = "a,b\n1,2\n"
-        chunks = asyncio.run(
-            chunker.chunk(csv, _cfg(extra={"inputFormat": "csv"}))
-        )
+        chunks = asyncio.run(chunker.chunk(csv, _cfg(extra={"inputFormat": "csv"})))
         assert len(chunks) == 1
 
     def test_source_label(self, chunker):
         df = pd.DataFrame({"a": [1]})
-        chunks = asyncio.run(
-            chunker.chunk(df, _cfg(extra={"source": "my_table"}))
-        )
+        chunks = asyncio.run(chunker.chunk(df, _cfg(extra={"source": "my_table"})))
         assert chunks[0].metadata.extra["source"] == "my_table"
         assert chunks[0].metadata.source == "my_table"
 

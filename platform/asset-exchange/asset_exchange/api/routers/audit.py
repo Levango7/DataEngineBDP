@@ -5,10 +5,10 @@
     GET  /audit-logs/{id}           获取审计日志详情
     GET  /audit-logs/integrity      审计日志完整性校验
 """
+
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from asset_exchange.api.routers.deps import get_registry
 from asset_exchange.models.audit import (

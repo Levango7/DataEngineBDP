@@ -8,6 +8,7 @@ dialogue_clarifier / slot_filler / gateway_client 的共享数据结构。
     - 字段命名采用 camelCase（与平台约定一致），通过 alias 暴露 snake_case 别名。
     - 不可变模型默认 frozen=False（对话状态需更新），但提供 with_* 更新方法。
 """
+
 from __future__ import annotations
 
 from enum import Enum
@@ -22,12 +23,12 @@ from pydantic import BaseModel, Field
 class IntentType(str, Enum):
     """查询意图类型."""
 
-    AGGREGATION = "aggregation"   # 聚合：count/sum/avg/max/min
-    FILTER = "filter"             # 过滤：WHERE 条件
-    JOIN = "join"                 # 多表连接
-    SORT = "sort"                 # 排序：ORDER BY
-    GROUP = "group"               # 分组：GROUP BY
-    LIMIT = "limit"               # 行数限制
+    AGGREGATION = "aggregation"  # 聚合：count/sum/avg/max/min
+    FILTER = "filter"  # 过滤：WHERE 条件
+    JOIN = "join"  # 多表连接
+    SORT = "sort"  # 排序：ORDER BY
+    GROUP = "group"  # 分组：GROUP BY
+    LIMIT = "limit"  # 行数限制
     SIMPLE_SELECT = "simple_select"  # 简单查询
     UNKNOWN = "unknown"
 
@@ -46,9 +47,9 @@ class AggFunc(str, Enum):
 class SlotStatus(str, Enum):
     """槽位状态."""
 
-    FILLED = "filled"       # 已填充
-    MISSING = "missing"     # 缺失（必需）
-    OPTIONAL = "optional"   # 可选未填
+    FILLED = "filled"  # 已填充
+    MISSING = "missing"  # 缺失（必需）
+    OPTIONAL = "optional"  # 可选未填
     AMBIGUOUS = "ambiguous"  # 模糊需澄清
 
 
@@ -133,9 +134,7 @@ class Intent(BaseModel):
     groupColumns: list[str] = Field(default_factory=list, description="分组列")
     limit: Optional[int] = Field(default=None, description="行数限制")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="置信度")
-    rawEntities: dict[str, Any] = Field(
-        default_factory=dict, description="原始抽取实体（关键词匹配结果）"
-    )
+    rawEntities: dict[str, Any] = Field(default_factory=dict, description="原始抽取实体（关键词匹配结果）")
 
     @property
     def isAggregate(self) -> bool:
@@ -157,9 +156,7 @@ class Slot(BaseModel):
     status: SlotStatus = Field(default=SlotStatus.MISSING, description="状态")
     required: bool = Field(default=True, description="是否必需")
     description: str = Field(default="", description="槽位描述（用于生成澄清问题）")
-    promptQuestion: Optional[str] = Field(
-        default=None, description="向用户提问的澄清问题文本"
-    )
+    promptQuestion: Optional[str] = Field(default=None, description="向用户提问的澄清问题文本")
 
     @property
     def isFilled(self) -> bool:
@@ -274,9 +271,7 @@ class SqlGenerationResult(BaseModel):
     validation: Optional[ValidationResult] = Field(default=None, description="校验结果")
     slots: Optional[SlotFrame] = Field(default=None, description="槽位框架")
     needsClarification: bool = Field(default=False, description="是否需要澄清")
-    clarificationQuestions: list[str] = Field(
-        default_factory=list, description="澄清问题列表"
-    )
+    clarificationQuestions: list[str] = Field(default_factory=list, description="澄清问题列表")
     llmUsed: bool = Field(default=False, description="是否实际调用 LLM")
     elapsedMs: float = Field(default=0.0, ge=0.0, description="耗时毫秒")
 

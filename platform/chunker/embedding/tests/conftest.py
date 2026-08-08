@@ -1,8 +1,9 @@
 """pytest 共享 fixtures（embedding 模块）."""
+
 from __future__ import annotations
 
-import sys
 from pathlib import Path
+import sys
 from unittest.mock import MagicMock
 
 import pytest
@@ -14,9 +15,8 @@ if str(_PKG_ROOT) not in sys.path:
 
 # 导入 chunker.embedding 触发适配器注册（仅一次）
 import chunker.embedding  # noqa: E402, F401
-
-from chunker.embedding.st_adapter import clear_model_cache  # noqa: E402
 from chunker.embedding.openai_adapter import clear_client_cache  # noqa: E402
+from chunker.embedding.st_adapter import clear_model_cache  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -41,8 +41,9 @@ def mock_sentence_transformer():
             self.tokenizer = MagicMock()
             self.tokenizer.encode = lambda text: list(text.encode("utf-8"))
 
-        def encode(self, texts, batch_size=32, show_progress_bar=False,
-                   convert_to_numpy=True, normalize_embeddings=False):
+        def encode(
+            self, texts, batch_size=32, show_progress_bar=False, convert_to_numpy=True, normalize_embeddings=False
+        ):
             results = []
             for text in texts:
                 h = hashlib.sha256(text.encode("utf-8")).digest()
@@ -53,7 +54,7 @@ def mock_sentence_transformer():
                     counter += 1
                 vec = []
                 for i in range(1024):
-                    val = struct.unpack("f", seed[i*4:i*4+4])[0]
+                    val = struct.unpack("f", seed[i * 4 : i * 4 + 4])[0]
                     if val != val:
                         val = 0.0
                     vec.append(float(val))

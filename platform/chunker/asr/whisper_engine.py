@@ -19,13 +19,14 @@
 
 对齐设计文档 T008-5。
 """
+
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass, field
 import io
 import os
 import threading
-from dataclasses import dataclass, field
 from typing import Any
 
 # ----------------------------------------------------------------------
@@ -195,10 +196,10 @@ def load_audio(content: Any, sample_rate: int = WHISPER_SAMPLE_RATE) -> tuple[An
     if isinstance(content, (bytes, bytearray)):
         # bytes 输入：写入临时内存文件用 whisper 解码
         if is_whisper_available():
-            import whisper  # type: ignore[import-untyped]
-
             # whisper.load_audio 接受文件路径，需写临时文件
             import tempfile
+
+            import whisper  # type: ignore[import-untyped]
 
             with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
                 tmp.write(bytes(content))
@@ -220,16 +221,14 @@ def load_audio(content: Any, sample_rate: int = WHISPER_SAMPLE_RATE) -> tuple[An
         duration = len(audio) / sample_rate
         return audio, duration
 
-    raise TypeError(
-        f"不支持的音频输入类型: {type(content).__name__}，"
-        f"期望 str/Path/bytes/numpy.ndarray"
-    )
+    raise TypeError(f"不支持的音频输入类型: {type(content).__name__}，" f"期望 str/Path/bytes/numpy.ndarray")
 
 
 def _load_wav_with_numpy(path: str, sample_rate: int) -> tuple[Any, float]:
     """用 numpy + wave 读取 WAV 文件（无 whisper 依赖时）."""
-    import numpy as np  # type: ignore[import-untyped]
     import wave
+
+    import numpy as np  # type: ignore[import-untyped]
 
     with wave.open(path, "rb") as wf:
         n_channels = wf.getnchannels()
@@ -256,8 +255,9 @@ def _load_wav_with_numpy(path: str, sample_rate: int) -> tuple[Any, float]:
 
 def _load_wav_bytes_with_numpy(data: bytes, sample_rate: int) -> tuple[Any, float]:
     """从 bytes 读取 WAV（无 whisper 依赖时）."""
-    import numpy as np  # type: ignore[import-untyped]
     import wave
+
+    import numpy as np  # type: ignore[import-untyped]
 
     with wave.open(io.BytesIO(data), "rb") as wf:
         n_channels = wf.getnchannels()
@@ -409,9 +409,7 @@ class WhisperEngine:
             return self._transcribe_once(audio, lang, word_timestamps, duration)
 
         # 长音频：分段转录
-        return self._transcribe_segmented(
-            audio, lang, word_timestamps, duration, segment_max_seconds
-        )
+        return self._transcribe_segmented(audio, lang, word_timestamps, duration, segment_max_seconds)
 
     def _transcribe_once(
         self,
@@ -446,7 +444,6 @@ class WhisperEngine:
         segment_max_seconds: float,
     ) -> ASRResult:
         """分段转录长音频（同步顺序版，异步版见 transcribe_async）."""
-        import numpy as np  # type: ignore[import-untyped]
 
         sr = WHISPER_SAMPLE_RATE
         seg_samples = int(segment_max_seconds * sr)
@@ -551,9 +548,7 @@ class WhisperEngine:
 
         # 短音频：单次转录
         if duration <= segment_max_seconds:
-            return await loop.run_in_executor(
-                None, self._transcribe_once, audio, lang, word_timestamps, duration
-            )
+            return await loop.run_in_executor(None, self._transcribe_once, audio, lang, word_timestamps, duration)
 
         # 长音频：并行分段转录
         if parallel:
@@ -756,10 +751,7 @@ class MockWhisperEngine:
             return [(0.0, duration)] if duration > 0 else []
 
         energies = np.array(
-            [
-                float(np.sqrt(np.mean(audio[i * frame_size : (i + 1) * frame_size] ** 2)))
-                for i in range(n_frames)
-            ]
+            [float(np.sqrt(np.mean(audio[i * frame_size : (i + 1) * frame_size] ** 2))) for i in range(n_frames)]
         )
 
         # 阈值自适应：取能量的中位数 * 2 与固定阈值取较大

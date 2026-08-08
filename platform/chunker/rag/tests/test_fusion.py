@@ -1,7 +1,6 @@
 """多模态融合检索测试 (T008-6)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.models import Modality
@@ -12,6 +11,7 @@ from chunker.rag.fusion import (
 )
 from chunker.rag.retriever import RetrievalResult, Retriever
 from chunker.rag.vector_store import MockVectorStore, VectorRecord
+import pytest
 
 
 class StubAdapter(EmbeddingAdapter):
@@ -115,20 +115,25 @@ class TestWeightedFusion:
 async def setup_multi_modal_store():
     store = MockVectorStore()
     await store.create_collection("test", 3)
-    await store.insert("test", [
-        VectorRecord("t1", [1.0, 0.0, 0.0], {"modality": "text", "source": "doc1"}),
-        VectorRecord("t2", [0.9, 0.1, 0.0], {"modality": "text", "source": "doc2"}),
-        VectorRecord("i1", [0.0, 1.0, 0.0], {"modality": "image", "source": "doc3"}),
-        VectorRecord("tb1", [0.0, 0.0, 1.0], {"modality": "table", "source": "doc4"}),
-        VectorRecord("a1", [0.5, 0.5, 0.0], {"modality": "audio", "source": "doc5"}),
-    ])
+    await store.insert(
+        "test",
+        [
+            VectorRecord("t1", [1.0, 0.0, 0.0], {"modality": "text", "source": "doc1"}),
+            VectorRecord("t2", [0.9, 0.1, 0.0], {"modality": "text", "source": "doc2"}),
+            VectorRecord("i1", [0.0, 1.0, 0.0], {"modality": "image", "source": "doc3"}),
+            VectorRecord("tb1", [0.0, 0.0, 1.0], {"modality": "table", "source": "doc4"}),
+            VectorRecord("a1", [0.5, 0.5, 0.0], {"modality": "audio", "source": "doc5"}),
+        ],
+    )
     return store
 
 
 def _patch_query_vector(adapter, vector):
     """为 adapter 注入固定的 query_vector."""
+
     async def mock_embed_query(text):
         return vector
+
     adapter.embed_query = mock_embed_query
 
 
@@ -142,7 +147,8 @@ class TestMultiModalFusionRetriever:
         _patch_query_vector(adapter, [1.0, 0.0, 0.0])
 
         results = await fusion.retrieve_fused(
-            "test", "query",
+            "test",
+            "query",
             modalities=[Modality.TEXT, Modality.IMAGE],
             top_k=3,
             method="rrf",
@@ -158,7 +164,8 @@ class TestMultiModalFusionRetriever:
         _patch_query_vector(adapter, [1.0, 0.0, 0.0])
 
         results = await fusion.retrieve_fused(
-            "test", "query",
+            "test",
+            "query",
             modalities=[Modality.TEXT, Modality.IMAGE],
             top_k=3,
             method="weighted",
@@ -174,7 +181,10 @@ class TestMultiModalFusionRetriever:
         _patch_query_vector(adapter, [1.0, 0.0, 0.0])
 
         results = await fusion.retrieve_fused(
-            "test", "query", top_k=5, method="rrf",
+            "test",
+            "query",
+            top_k=5,
+            method="rrf",
         )
         assert isinstance(results, list)
 
@@ -188,7 +198,10 @@ class TestMultiModalFusionRetriever:
 
         with pytest.raises(ValueError):
             await fusion.retrieve_fused(
-                "test", "query", modalities=[Modality.TEXT], method="invalid",
+                "test",
+                "query",
+                modalities=[Modality.TEXT],
+                method="invalid",
             )
 
     @pytest.mark.asyncio
@@ -200,7 +213,8 @@ class TestMultiModalFusionRetriever:
         _patch_query_vector(adapter, [1.0, 0.0, 0.0])
 
         results = await fusion.retrieve_multi_query_fused(
-            "test", ["q1", "q2"],
+            "test",
+            ["q1", "q2"],
             modalities=[Modality.TEXT],
             top_k=3,
         )
@@ -215,7 +229,8 @@ class TestMultiModalFusionRetriever:
         _patch_query_vector(adapter, [1.0, 0.0, 0.0])
 
         results = await fusion.retrieve_fused(
-            "test", "query",
+            "test",
+            "query",
             modalities=[Modality.TEXT],
             top_k=5,
             method="rrf",
@@ -234,7 +249,8 @@ class TestMultiModalFusionRetriever:
 
         # 空模态列表会使用默认全部模态
         results = await fusion.retrieve_fused(
-            "test", "query",
+            "test",
+            "query",
             modalities=[],
             top_k=5,
         )
@@ -251,7 +267,8 @@ class TestMultiModalFusionRetriever:
         _patch_query_vector(adapter, [1.0, 0.0, 0.0])
 
         results = await fusion.retrieve_fused(
-            "test", "query",
+            "test",
+            "query",
             modalities=["text", "image"],
             top_k=3,
             method="rrf",

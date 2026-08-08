@@ -11,43 +11,32 @@
     - 注册机制
     - 工具函数（BBox / _iou / _merge_bboxes / _is_formula_text 等）
 """
+
 from __future__ import annotations
 
 import asyncio
 import io
-import os
-import time
 from pathlib import Path
-from typing import Any
+import time
 from unittest.mock import MagicMock, patch
 
-import pytest
-
+from PIL import Image, ImageDraw
 from chunker.base import BaseChunker
 from chunker.exceptions import PreprocessError
-from chunker.models import Chunk, ChunkConfig, Modality
-from chunker.registry import (
-    clear_registry,
-    get_chunker,
-    is_chunker_registered,
-    list_modalities,
-    register_chunker,
-)
 
 # 导入被测模块
 from chunker.image_chunker import (
     ALL_REGION_TYPES,
-    BBox,
     DEFAULT_OCR_LANG,
-    IMAGE_MIN_AREA_RATIO,
-    OCRItem,
     REGION_FORMULA,
     REGION_IMAGE,
     REGION_TABLE,
     REGION_TEXT,
     REGION_TITLE,
     SUPPORTED_IMAGE_EXTS,
+    BBox,
     ImageChunker,
+    OCRItem,
     _classify_regions,
     _contains,
     _count_horizontal_lines,
@@ -59,8 +48,13 @@ from chunker.image_chunker import (
     _merge_bboxes,
     _union,
 )
-from PIL import Image, ImageDraw
-
+from chunker.models import ChunkConfig, Modality
+from chunker.registry import (
+    get_chunker,
+    is_chunker_registered,
+    list_modalities,
+)
+import pytest
 
 # ----------------------------------------------------------------------
 # fixtures

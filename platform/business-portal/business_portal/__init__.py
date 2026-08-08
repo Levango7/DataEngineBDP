@@ -5,6 +5,7 @@
 
 参考: design/详细设计/多平台多租户大数据平台_对内业务线门户详细设计_v0.1.md
 """
+
 from __future__ import annotations
 
 __version__ = "0.1.0"

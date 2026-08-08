@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -55,7 +56,8 @@ class CloudProviderServiceTest {
     void listSupportedProvidersShouldReturnRegistered() {
         List<String> providers = service.listSupportedProviders();
         assertEquals(2, providers.size());
-        assertEquals(List.of("huawei", "ali"), providers);
+        // 不依赖注册顺序，验证包含关系
+        assertTrue(providers.containsAll(List.of("huawei", "ali")), "providers should contain huawei and ali");
     }
 
     @Test

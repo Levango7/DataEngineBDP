@@ -1,10 +1,8 @@
 """混合检索与重排序测试 (T009)."""
+
 from __future__ import annotations
 
 import json
-from typing import Any
-
-import pytest
 
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.models import Chunk, ChunkMetadata, Modality
@@ -12,10 +10,6 @@ from chunker.rag.hybrid_retriever import (
     BM25Index,
     BM25Retriever,
     CrossEncoderReranker,
-    DEFAULT_BM25_B,
-    DEFAULT_BM25_K1,
-    DEFAULT_CHANNEL_WEIGHTS,
-    DEFAULT_EXPAND_SYNONYMS,
     HybridRetrievalResult,
     HybridRetriever,
     IdentityReranker,
@@ -28,7 +22,7 @@ from chunker.rag.hybrid_retriever import (
 )
 from chunker.rag.retriever import RetrievalResult, Retriever
 from chunker.rag.vector_store import MockVectorStore, VectorRecord
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 测试用 stub
@@ -511,10 +505,7 @@ class TestCrossEncoderReranker:
             return float(len(d))
 
         r = CrossEncoderReranker(score_fn)
-        results = [
-            RetrievalResult(f"c{i}", 0.5, {"content": "x" * (i + 1)})
-            for i in range(5)
-        ]
+        results = [RetrievalResult(f"c{i}", 0.5, {"content": "x" * (i + 1)}) for i in range(5)]
         out = await r.rerank("q", results, top_k=2)
         assert len(out) == 2
 
@@ -584,10 +575,7 @@ class TestLLMReranker:
             return [1.0] * len(cands)
 
         r = LLMReranker(llm_fn, batch_size=2)
-        results = [
-            RetrievalResult(f"c{i}", 0.5, {"content": "x"})
-            for i in range(5)
-        ]
+        results = [RetrievalResult(f"c{i}", 0.5, {"content": "x"}) for i in range(5)]
         await r.rerank("q", results)
         # 5 个候选，batch=2，应调用 3 次
         assert call_count == 3
@@ -598,10 +586,7 @@ class TestLLMReranker:
             return [1.0] * len(cands)
 
         r = LLMReranker(llm_fn)
-        results = [
-            RetrievalResult(f"c{i}", 0.5, {"content": "x"})
-            for i in range(5)
-        ]
+        results = [RetrievalResult(f"c{i}", 0.5, {"content": "x"}) for i in range(5)]
         out = await r.rerank("q", results, top_k=2)
         assert len(out) == 2
 
@@ -687,9 +672,7 @@ class TestHybridRetrievalResult:
         assert d["linkedEntities"] == [{"id": "e1"}]
 
     def test_iter(self):
-        r = HybridRetrievalResult(
-            [RetrievalResult("a", 0.9, {}), RetrievalResult("b", 0.8, {})]
-        )
+        r = HybridRetrievalResult([RetrievalResult("a", 0.9, {}), RetrievalResult("b", 0.8, {})])
         ids = [x.chunkId for x in r]
         assert ids == ["a", "b"]
 
@@ -762,9 +745,7 @@ class TestHybridRetriever:
     async def test_retrieve_vector_only(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=2, channels=["vector"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=2, channels=["vector"])
         assert isinstance(result, HybridRetrievalResult)
         assert result.topK <= 2
         assert "vector" in result.channelResults
@@ -773,9 +754,7 @@ class TestHybridRetriever:
     async def test_retrieve_keyword_only(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=2, channels=["keyword"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=2, channels=["keyword"])
         assert "keyword" in result.channelResults
         assert result.topK <= 2
 
@@ -783,9 +762,7 @@ class TestHybridRetriever:
     async def test_retrieve_kg_only(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=2, channels=["kg"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=2, channels=["kg"])
         assert "kg" in result.channelResults
         # KG 通过实体链接召回 c1, c2
         assert result.topK >= 1
@@ -794,9 +771,7 @@ class TestHybridRetriever:
     async def test_retrieve_all_channels(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=5, channels=["vector", "keyword", "kg"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=5, channels=["vector", "keyword", "kg"])
         assert len(result.channelResults) == 3
 
     @pytest.mark.asyncio
@@ -825,9 +800,7 @@ class TestHybridRetriever:
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
         with pytest.raises(ValueError):
-            await hybrid.retrieve(
-                "test", "知识图谱", method="invalid"
-            )
+            await hybrid.retrieve("test", "知识图谱", method="invalid")
 
     @pytest.mark.asyncio
     async def test_retrieve_empty_query(self, hybrid_setup):
@@ -860,9 +833,7 @@ class TestHybridRetriever:
     async def test_retrieve_no_rerank(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, rerank=False
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, rerank=False)
         assert result.rerankerName == "identity"
 
     @pytest.mark.asyncio
@@ -894,12 +865,8 @@ class TestHybridRetriever:
     @pytest.mark.asyncio
     async def test_kg_query_expansion(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
-        hybrid = HybridRetriever(
-            retriever, bm25=bm25, kg=kg, enable_query_expansion=True
-        )
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=5, channels=["vector", "kg"]
-        )
+        hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg, enable_query_expansion=True)
+        result = await hybrid.retrieve("test", "知识图谱", top_k=5, channels=["vector", "kg"])
         # 应有扩展查询
         assert len(result.expandedQueries) >= 1
         assert len(result.linkedEntities) >= 1
@@ -907,12 +874,8 @@ class TestHybridRetriever:
     @pytest.mark.asyncio
     async def test_kg_query_expansion_disabled(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
-        hybrid = HybridRetriever(
-            retriever, bm25=bm25, kg=kg, enable_query_expansion=False
-        )
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=5, channels=["vector", "kg"]
-        )
+        hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg, enable_query_expansion=False)
+        result = await hybrid.retrieve("test", "知识图谱", top_k=5, channels=["vector", "kg"])
         assert result.expandedQueries == []
 
     @pytest.mark.asyncio
@@ -934,9 +897,7 @@ class TestHybridRetriever:
     async def test_invalid_channel_ignored(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, channels=["vector", "unknown"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, channels=["vector", "unknown"])
         assert "vector" in result.channelResults
         assert "unknown" not in result.channelResults
 
@@ -945,9 +906,7 @@ class TestHybridRetriever:
         """请求 keyword 通道但未配置 bm25，应忽略."""
         retriever, _, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=None, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, channels=["keyword"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, channels=["keyword"])
         assert result.topK == 0
 
     @pytest.mark.asyncio
@@ -955,18 +914,14 @@ class TestHybridRetriever:
         """请求 kg 通道但未配置 kg，应忽略."""
         retriever, bm25, _ = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=None)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, channels=["kg"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, channels=["kg"])
         assert result.topK == 0
 
     @pytest.mark.asyncio
     async def test_retrieve_multi(self, hybrid_setup):
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        results = await hybrid.retrieve_multi(
-            "test", ["知识图谱", "BM25"], top_k=3
-        )
+        results = await hybrid.retrieve_multi("test", ["知识图谱", "BM25"], top_k=3)
         assert len(results) == 2
         assert all(isinstance(r, HybridRetrievalResult) for r in results)
 
@@ -986,9 +941,7 @@ class TestHybridRetriever:
         retriever.retrieve = fail_retrieve  # type: ignore[method-assign]
 
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, channels=["vector", "keyword"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, channels=["vector", "keyword"])
         # keyword 应仍工作并有结果
         assert "keyword" in result.channelResults
         assert len(result.channelResults["keyword"]) >= 1
@@ -1006,9 +959,7 @@ class TestHybridRetriever:
         kg.link_entities = fail_link  # type: ignore[method-assign]
 
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, channels=["vector", "kg"]
-        )
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, channels=["vector", "kg"])
         # KG 链接失败，但 vector 应仍工作
         assert "vector" in result.channelResults
 
@@ -1025,12 +976,8 @@ class TestHybridRetriever:
             def name(self) -> str:
                 return "bad"
 
-        hybrid = HybridRetriever(
-            retriever, bm25=bm25, kg=kg, reranker=BadReranker()
-        )
-        result = await hybrid.retrieve(
-            "test", "知识图谱", top_k=3, channels=["vector"]
-        )
+        hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg, reranker=BadReranker())
+        result = await hybrid.retrieve("test", "知识图谱", top_k=3, channels=["vector"])
         # 应有结果（回退到融合）
         assert isinstance(result, HybridRetrievalResult)
 
@@ -1070,9 +1017,7 @@ class TestHybridRetriever:
         """查询不命中任何实体时，KG 通道返回空."""
         retriever, bm25, kg = hybrid_setup
         hybrid = HybridRetriever(retriever, bm25=bm25, kg=kg)
-        result = await hybrid.retrieve(
-            "test", "完全无关的查询词", top_k=3, channels=["kg"]
-        )
+        result = await hybrid.retrieve("test", "完全无关的查询词", top_k=3, channels=["kg"])
         # KG 通道存在但结果可能为空
         assert "kg" in result.channelResults or result.topK == 0
 
@@ -1177,9 +1122,7 @@ class TestHelpers:
         c = Chunk(
             id="c1",
             content=b"binary",
-            metadata=ChunkMetadata(
-                modality=Modality.IMAGE, extra={"text": "ocr text"}
-            ),
+            metadata=ChunkMetadata(modality=Modality.IMAGE, extra={"text": "ocr text"}),
         )
         assert _chunk_to_text(c) == "ocr text"
 

@@ -1,4 +1,5 @@
 """结算仓储抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -31,9 +32,7 @@ class SettlementRepository(ABC):
         ...
 
     @abstractmethod
-    async def find_by_asset_period(
-        self, asset_id: str, period: str
-    ) -> Optional[Settlement]:
+    async def find_by_asset_period(self, asset_id: str, period: str) -> Optional[Settlement]:
         """按资产与周期查找结算记录.
 
         Returns:

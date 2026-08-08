@@ -1,10 +1,11 @@
 """SQLite 审计仓储 - 含哈希链不可篡改实现."""
+
 from __future__ import annotations
 
 import hashlib
 import json
+from typing import Any
 import uuid
-from typing import Any, Optional
 
 from asset_exchange.interfaces.audit_repository import AuditRepository
 from asset_exchange.models.audit import AuditLog, AuditLogFilter
@@ -45,8 +46,7 @@ class SQLiteAuditRepository(AuditRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS audit_logs (
                 id              TEXT PRIMARY KEY,
                 action          TEXT NOT NULL,
@@ -63,28 +63,17 @@ class SQLiteAuditRepository(AuditRepository):
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL
             );
-            """
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_asset ON audit_logs(asset_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_audit_tenant ON audit_logs(tenant_id);"
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_asset ON audit_logs(asset_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_action ON audit_logs(action);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_actor ON audit_logs(actor_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_audit_tenant ON audit_logs(tenant_id);")
 
     async def save(self, log: AuditLog) -> str:
         if not log.id:
             log.id = str(uuid.uuid4())
         now = utc_now()
-        cur = self._conn.conn.execute(
-            "SELECT id FROM audit_logs WHERE id = ?;", (log.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM audit_logs WHERE id = ?;", (log.id,))
         existing = cur.fetchone()
         if existing is None:
             log.createdAt = now
@@ -134,9 +123,7 @@ class SQLiteAuditRepository(AuditRepository):
         return log.id
 
     async def get(self, log_id: str) -> AuditLog:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM audit_logs WHERE id = ?;", (log_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM audit_logs WHERE id = ?;", (log_id,))
         row = cur.fetchone()
         if row is None:
             raise AssetExchangeError(f"审计日志不存在: {log_id}")
@@ -164,33 +151,25 @@ class SQLiteAuditRepository(AuditRepository):
             clauses.append("created_at <= ?")
             params.append(filter.endTime.isoformat())
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
-        sql = (
-            f"SELECT * FROM audit_logs{where} ORDER BY created_at ASC "
-            f"LIMIT ? OFFSET ?;"
-        )
+        sql = f"SELECT * FROM audit_logs{where} ORDER BY created_at ASC " f"LIMIT ? OFFSET ?;"
         params.extend([filter.limit, filter.offset])
         cur = self._conn.conn.execute(sql, params)
         return [self._row_to_log(r) for r in cur.fetchall()]
 
     async def list_by_asset(self, asset_id: str) -> list[AuditLog]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM audit_logs WHERE asset_id = ? "
-            "ORDER BY created_at ASC;",
+            "SELECT * FROM audit_logs WHERE asset_id = ? " "ORDER BY created_at ASC;",
             (asset_id,),
         )
         return [self._row_to_log(r) for r in cur.fetchall()]
 
     async def get_last_hash(self) -> str:
-        cur = self._conn.conn.execute(
-            "SELECT hash FROM audit_logs ORDER BY created_at DESC LIMIT 1;"
-        )
+        cur = self._conn.conn.execute("SELECT hash FROM audit_logs ORDER BY created_at DESC LIMIT 1;")
         row = cur.fetchone()
         return row["hash"] if row else ""
 
     async def verify_integrity(self) -> dict[str, Any]:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM audit_logs ORDER BY created_at ASC;"
-        )
+        cur = self._conn.conn.execute("SELECT * FROM audit_logs ORDER BY created_at ASC;")
         rows = cur.fetchall()
         total = len(rows)
         prev_hash = ""

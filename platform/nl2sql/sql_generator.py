@@ -11,25 +11,23 @@
     - LangChain 模式延迟导入 langchain，避免未安装时 import 失败。
     - Prompt 模板内嵌（Jinja2 风格字符串），不依赖外部模板文件。
 """
+
 from __future__ import annotations
 
 import time
 from typing import Optional
 
-from loguru import logger
-
 from config.settings import Settings
+from loguru import logger
 from models import (
     AggFunc,
     Intent,
-    IntentType,
     SchemaContext,
     SlotFrame,
     SqlGenerationResult,
 )
 from schema_context import SchemaContextBuilder
 from sql_validator import SqlValidator
-
 
 # ============================================================
 # Prompt 模板
@@ -85,9 +83,7 @@ class BaseSqlGenerator:
         """生成 SQL（子类实现）."""
         raise NotImplementedError
 
-    def _buildUserPrompt(
-        self, query: str, ctx: SchemaContext, intent: Intent, slots: Optional[SlotFrame]
-    ) -> str:
+    def _buildUserPrompt(self, query: str, ctx: SchemaContext, intent: Intent, slots: Optional[SlotFrame]) -> str:
         """构造 user prompt."""
         schemaDdl = SchemaContextBuilder.renderDdl(ctx)
         sortStr = "无"
@@ -150,9 +146,7 @@ class MockSqlGenerator(BaseSqlGenerator):
             elapsedMs=elapsed,
         )
 
-    def _buildSql(
-        self, ctx: SchemaContext, intent: Intent, slots: Optional[SlotFrame]
-    ) -> str:
+    def _buildSql(self, ctx: SchemaContext, intent: Intent, slots: Optional[SlotFrame]) -> str:
         """规则化拼装 SQL."""
         if ctx.isEmpty:
             return "SELECT 1;"
@@ -339,6 +333,7 @@ class LangChainSqlGenerator(BaseSqlGenerator):
             userPrompt = self._buildUserPrompt(query, ctx, intent, slots)
             # LangChain 同步调用，包到线程池
             import asyncio
+
             messages = [
                 ("system", _SYSTEM_PROMPT),
                 ("human", userPrompt),
@@ -383,9 +378,7 @@ class LangChainSqlGenerator(BaseSqlGenerator):
 # ============================================================
 # 工厂
 # ============================================================
-def createGenerator(
-    settings: Settings, validator: Optional[SqlValidator] = None
-) -> BaseSqlGenerator:
+def createGenerator(settings: Settings, validator: Optional[SqlValidator] = None) -> BaseSqlGenerator:
     """根据配置创建 SQL 生成器."""
     validator = validator or SqlValidator(settings)
     if settings.isLangchainLlm:

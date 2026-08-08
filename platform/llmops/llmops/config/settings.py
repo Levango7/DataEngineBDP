@@ -10,6 +10,7 @@
     LLMOPS_MLFLOW_REGISTRY_URI  MLflow Registry URI（默认同 TRACKING_URI）
     LLMOPS_API_PREFIX        API 路由前缀（默认 /api/v1）
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -37,9 +38,7 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- store ----
-    storeType: Literal["mock", "mlflow"] = Field(
-        default="mock", description="存储类型: mock / mlflow"
-    )
+    storeType: Literal["mock", "mlflow"] = Field(default="mock", description="存储类型: mock / mlflow")
 
     # ---- mlflow ----
     mlflowUri: str = Field(

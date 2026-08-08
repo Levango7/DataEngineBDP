@@ -6,22 +6,19 @@ Mock 模式（settings.py 默认 llmMode="mock"、selectOnly=True，无需环境
 注：pydantic-settings v2 对 camelCase 字段的环境变量映射为 prefix+字段名原样，
 故多 word 字段（如 llmMode）通过构造参数覆盖，单 word 字段（如 port）可通过环境变量覆盖。
 """
+
 from __future__ import annotations
-
-from collections.abc import AsyncIterator
-
-import pytest
-import pytest_asyncio
-from fastapi.testclient import TestClient
 
 from app import ServiceRegistry, build_services, create_app
 from config.settings import Settings, reset_settings
 from dialogue_clarifier import DialogueClarifier
+from fastapi.testclient import TestClient
 from gateway_client import GatewayClient
 from intent_recognition import IntentRecognizer
+import pytest
 from schema_context import SchemaContextBuilder
 from slot_filler import SlotFiller
-from sql_generator import MockSqlGenerator, createGenerator
+from sql_generator import MockSqlGenerator
 from sql_validator import SqlValidator
 
 

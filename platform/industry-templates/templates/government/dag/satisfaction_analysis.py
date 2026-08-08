@@ -12,10 +12,11 @@
 
 Author: T044 政务模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -67,7 +68,7 @@ extract_evaluations = BashOperator(
     task_id="extract_evaluations",
     bash_command=(
         f"echo '[1] 抽取评价记录 biz_date={BIZ_DATE}...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT service_id, satisfaction_score, evaluation_content, evaluation_tags "
         f"FROM {DORIS_DB}.service_satisfaction "
         f"WHERE DATE(evaluate_time) = '{BIZ_DATE}';\" && "
@@ -88,9 +89,12 @@ aggregate_score_distribution = SparkSubmitOperator(
         "spark.app.name": f"satisfaction_agg_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -102,7 +106,7 @@ calc_satisfaction_rate = BashOperator(
     task_id="calc_satisfaction_rate",
     bash_command=(
         f"echo '[3] 计算平均分/满意度率/不满意度率...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT service_id, "
         f"COUNT(*) AS total_evaluations, "
         f"AVG(satisfaction_score) AS avg_score, "
@@ -110,7 +114,7 @@ calc_satisfaction_rate = BashOperator(
         f"SUM(CASE WHEN satisfaction_score<=2 THEN 1 ELSE 0 END)*100.0/COUNT(*) AS dissatisfaction_rate "
         f"FROM {DORIS_DB}.service_satisfaction "
         f"WHERE DATE(evaluate_time) = '{BIZ_DATE}' "
-        f"GROUP BY service_id;\" && "
+        f'GROUP BY service_id;" && '
         f"echo '[3] 满意度率计算完成'"
     ),
     dag=dag,
@@ -123,11 +127,11 @@ extract_top_tags = BashOperator(
     task_id="extract_top_tags",
     bash_command=(
         f"echo '[4] 提取高频评价标签（Top 10）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT evaluation_tags, COUNT(*) AS cnt "
         f"FROM {DORIS_DB}.service_satisfaction "
         f"WHERE DATE(evaluate_time) = '{BIZ_DATE}' AND evaluation_tags IS NOT NULL "
-        f"GROUP BY evaluation_tags ORDER BY cnt DESC LIMIT 10;\" && "
+        f'GROUP BY evaluation_tags ORDER BY cnt DESC LIMIT 10;" && '
         f"echo '[4] 高频标签提取完成'"
     ),
     dag=dag,
@@ -138,9 +142,7 @@ extract_top_tags = BashOperator(
 # ---------------------------------------------------------------------------
 identify_low_satisfaction = PythonOperator(
     task_id="identify_low_satisfaction",
-    python_callable=lambda: print(
-        f"[5] 识别低满意度事项（平均分 < 3）需改进: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[5] 识别低满意度事项（平均分 < 3）需改进: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
@@ -151,7 +153,7 @@ identify_hot_topics = BashOperator(
     task_id="identify_hot_topics",
     bash_command=(
         f"echo '[6] 识别热点事项排行（按办理量/搜索量/投诉量加权）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT service_id, service_name, transaction_count, "
         f"hot_score, ROW_NUMBER() OVER(ORDER BY hot_score DESC) AS hot_rank "
         f"FROM {DORIS_DB}.service_hot_topic "
@@ -166,13 +168,17 @@ identify_hot_topics = BashOperator(
 # ---------------------------------------------------------------------------
 notify_dashboard = PythonOperator(
     task_id="notify_dashboard_refresh",
-    python_callable=lambda: print(
-        f"[7] 满意度分析完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[7] 满意度分析完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系
 # ---------------------------------------------------------------------------
-extract_evaluations >> aggregate_score_distribution >> [calc_satisfaction_rate, extract_top_tags] >> [identify_low_satisfaction, identify_hot_topics] >> notify_dashboard
+(
+    extract_evaluations
+    >> aggregate_score_distribution
+    >> [calc_satisfaction_rate, extract_top_tags]
+    >> [identify_low_satisfaction, identify_hot_topics]
+    >> notify_dashboard
+)

@@ -3,10 +3,11 @@
 设计模式：依赖注入 + 工厂。
 配置开关：OPENAPI_CATALOG_STORE_TYPE=mock | sqlite
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from openapi_catalog.config.settings import Settings, get_settings
 from openapi_catalog.services.api_call import APICallService
@@ -57,9 +58,7 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     metering_service = MeteringService(store)
     apisix_config_service = APISIXConfigService(store, settings)
     doc_generator_service = DocGeneratorService(store)
-    api_call_service = APICallService(
-        store, subscription_service, rate_limiter, metering_service
-    )
+    api_call_service = APICallService(store, subscription_service, rate_limiter, metering_service)
 
     return ServiceRegistry(
         settings=settings,

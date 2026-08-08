@@ -10,6 +10,7 @@
 对齐设计文档 T008-1：多模态切片器框架与接口抽象。
 所有模型基于 pydantic v2 BaseModel，启用严格校验。
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -83,9 +84,7 @@ class Chunk(BaseModel):
     id: str = Field(..., min_length=1, description="切片 ID")
     content: Any = Field(..., description="切片内容")
     metadata: ChunkMetadata = Field(..., description="切片元数据")
-    embedding: Optional[list[float]] = Field(
-        default=None, description="向量嵌入"
-    )
+    embedding: Optional[list[float]] = Field(default=None, description="向量嵌入")
     tokens: Optional[int] = Field(default=None, ge=0, description="token 计数")
     createdAt: datetime = Field(default_factory=utc_now, description="创建时间")
 

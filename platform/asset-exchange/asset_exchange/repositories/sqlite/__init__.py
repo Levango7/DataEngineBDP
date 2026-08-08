@@ -9,6 +9,7 @@
 - 时间戳以 ISO 8601 字符串存储
 - 单连接 + check_same_thread=False，配合 asyncio 单线程事件循环使用
 """
+
 from __future__ import annotations
 
 from asset_exchange.repositories.sqlite.allocation_repository import (

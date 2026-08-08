@@ -1,8 +1,9 @@
 """Mock 分账仓储 - 内存字典实现."""
+
 from __future__ import annotations
 
+from typing import Any
 import uuid
-from typing import Any, Optional
 
 from asset_exchange.interfaces.allocation_repository import (
     AllocationRepository,
@@ -46,20 +47,12 @@ class MockAllocationRepository(AllocationRepository):
         return result[filter.offset : filter.offset + filter.limit]
 
     async def list_by_asset(self, asset_id: str) -> list[Allocation]:
-        result = [
-            a for a in self._allocations.values() if a.assetId == asset_id
-        ]
+        result = [a for a in self._allocations.values() if a.assetId == asset_id]
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result
 
-    async def list_by_settlement(
-        self, settlement_id: str
-    ) -> list[Allocation]:
-        result = [
-            a
-            for a in self._allocations.values()
-            if a.settlementId == settlement_id
-        ]
+    async def list_by_settlement(self, settlement_id: str) -> list[Allocation]:
+        result = [a for a in self._allocations.values() if a.settlementId == settlement_id]
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result
 

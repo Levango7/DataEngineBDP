@@ -1,9 +1,9 @@
 """Schema 上下文构建器单测."""
+
 from __future__ import annotations
 
-import pytest
-
 from models import SchemaContext, TableSchema
+import pytest
 from schema_context import SchemaContextBuilder
 
 
@@ -21,57 +21,35 @@ class TestSchemaContextBuilder:
         tables_other = await schemaBuilder.fetchTables(database="other", useMock=True)
         assert len(tables_other) == 0
 
-    async def test_build_context_with_query_match(
-        self, schemaBuilder: SchemaContextBuilder
-    ) -> None:
+    async def test_build_context_with_query_match(self, schemaBuilder: SchemaContextBuilder) -> None:
         # 查询含 orders 表名
-        ctx = await schemaBuilder.buildContext(
-            query="查询 orders 表的订单数量", useMock=True
-        )
+        ctx = await schemaBuilder.buildContext(query="查询 orders 表的订单数量", useMock=True)
         assert not ctx.isEmpty
         assert any(t.tableName == "orders" for t in ctx.tables)
 
-    async def test_build_context_with_column_match(
-        self, schemaBuilder: SchemaContextBuilder
-    ) -> None:
+    async def test_build_context_with_column_match(self, schemaBuilder: SchemaContextBuilder) -> None:
         # 查询含 user_id 列名
-        ctx = await schemaBuilder.buildContext(
-            query="按 user_id 统计", useMock=True
-        )
+        ctx = await schemaBuilder.buildContext(query="按 user_id 统计", useMock=True)
         # 应匹配到含 user_id 列的表
         assert not ctx.isEmpty
 
-    async def test_build_context_with_table_hints(
-        self, schemaBuilder: SchemaContextBuilder
-    ) -> None:
-        ctx = await schemaBuilder.buildContext(
-            query="随便看看", tableHints=["users"], useMock=True
-        )
+    async def test_build_context_with_table_hints(self, schemaBuilder: SchemaContextBuilder) -> None:
+        ctx = await schemaBuilder.buildContext(query="随便看看", tableHints=["users"], useMock=True)
         assert len(ctx.tables) == 1
         assert ctx.tables[0].tableName == "users"
 
-    async def test_build_context_no_match_returns_all(
-        self, schemaBuilder: SchemaContextBuilder
-    ) -> None:
-        ctx = await schemaBuilder.buildContext(
-            query="xyz12345", useMock=True
-        )
+    async def test_build_context_no_match_returns_all(self, schemaBuilder: SchemaContextBuilder) -> None:
+        ctx = await schemaBuilder.buildContext(query="xyz12345", useMock=True)
         # 无匹配返回全部
         assert len(ctx.tables) == 3
 
-    async def test_build_context_max_tables(
-        self, schemaBuilder: SchemaContextBuilder
-    ) -> None:
+    async def test_build_context_max_tables(self, schemaBuilder: SchemaContextBuilder) -> None:
         # 修改上限
         schemaBuilder.settings.maxTables = 1
-        ctx = await schemaBuilder.buildContext(
-            query="xyz", useMock=True
-        )
+        ctx = await schemaBuilder.buildContext(query="xyz", useMock=True)
         assert len(ctx.tables) <= 1
 
-    async def test_catalog_unreachable_falls_back_mock(
-        self, schemaBuilder: SchemaContextBuilder
-    ) -> None:
+    async def test_catalog_unreachable_falls_back_mock(self, schemaBuilder: SchemaContextBuilder) -> None:
         # Catalog 不可达（默认 localhost:8082 无服务），应降级 Mock
         tables = await schemaBuilder.fetchTables()
         assert len(tables) == 3

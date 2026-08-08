@@ -9,6 +9,7 @@
 - 时间戳以 ISO 8601 字符串存储
 - 调用计量保留最近 N 条（默认 10000，由调用方控制清理策略）
 """
+
 from __future__ import annotations
 
 from openapi_catalog.repositories.sqlite.store import (

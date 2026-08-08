@@ -14,6 +14,7 @@
     vecs = await adapter.embed(["hello", "world"])
     query_vec = await adapter.embed_query("检索查询")
 """
+
 from __future__ import annotations
 
 # 触发适配器注册（导入即注册）
@@ -35,8 +36,8 @@ from chunker.embedding.config import (
     get_embedding_settings,
     get_model_dimension,
     model_short_name,
-    resolve_model_name,
     reset_embedding_settings,
+    resolve_model_name,
     should_normalize,
 )
 from chunker.embedding.exceptions import (

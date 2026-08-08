@@ -16,10 +16,11 @@ OEE = 可用率(Availability) × 性能率(Performance) × 质量率(Quality)
 
 Author: T037 制造模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -74,7 +75,9 @@ extract_iotdb_status = BashOperator(
         f"echo '[1] 从 IoTDB({IOTDB_HOST}) 查询设备状态时序数据 biz_date={BIZ_DATE}...' && "
         f"java -jar /opt/iotdb/iotdb-jdbc-tool.jar "
         f"--host {IOTDB_HOST} "
-        f"--sql \"SELECT equipment_id, status, timestamp FROM root.mfg.equipment.* WHERE time >= {BIZ_DATE}T00:00:00.000+08:00 AND time < {BIZ_DATE}T23:59:59.999+08:00\" "
+        f'--sql "SELECT equipment_id, status, timestamp FROM root.mfg.equipment.* '
+        f"WHERE time >= {BIZ_DATE}T00:00:00.000+08:00 "
+        f'AND time < {BIZ_DATE}T23:59:59.999+08:00" '
         f"--output /tmp/iotdb_status_{BIZ_DATE}.csv && "
         f"echo '[1] IoTDB 状态数据抽取完成'"
     ),
@@ -93,10 +96,14 @@ aggregate_status_duration = SparkSubmitOperator(
         "spark.app.name": f"oee_status_aggregate_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--input", f"/tmp/iotdb_status_{BIZ_DATE}.csv",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--input",
+        f"/tmp/iotdb_status_{BIZ_DATE}.csv",
     ],
     dag=dag,
 )
@@ -108,7 +115,7 @@ calc_availability = BashOperator(
     task_id="calc_availability",
     bash_command=(
         f"echo '[3] 计算可用率 Availability = run_time / planned_time...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.tmp_oee_availability "
         f"SELECT equipment_id, line_id, '{BIZ_DATE}' AS stat_date, "
         f"SUM(CASE WHEN status_to='RUNNING' THEN duration_sec ELSE 0 END)/60.0 AS run_time, "
@@ -117,7 +124,7 @@ calc_availability = BashOperator(
         f"1440 AS planned_time "
         f"FROM {DORIS_DB}.equipment_status_log "
         f"WHERE DATE(occurred_at) = '{BIZ_DATE}' "
-        f"GROUP BY equipment_id, line_id;\" && "
+        f'GROUP BY equipment_id, line_id;" && '
         f"echo '[3] 可用率计算完成'"
     ),
     dag=dag,
@@ -130,7 +137,7 @@ calc_performance = BashOperator(
     task_id="calc_performance",
     bash_command=(
         f"echo '[4] 计算性能率 Performance = actual_output / ideal_output...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.tmp_oee_performance "
         f"SELECT pr.equipment_id, pr.line_id, '{BIZ_DATE}' AS stat_date, "
         f"SUM(pr.output_qty) AS actual_output, "
@@ -139,7 +146,7 @@ calc_performance = BashOperator(
         f"JOIN {DORIS_DB}.tmp_oee_availability a ON pr.equipment_id = a.equipment_id "
         f"JOIN {DORIS_DB}.equipment e ON pr.equipment_id = e.equipment_id "
         f"WHERE DATE(pr.occurred_at) = '{BIZ_DATE}' "
-        f"GROUP BY pr.equipment_id, pr.line_id;\" && "
+        f'GROUP BY pr.equipment_id, pr.line_id;" && '
         f"echo '[4] 性能率计算完成'"
     ),
     dag=dag,
@@ -152,17 +159,18 @@ calc_quality = BashOperator(
     task_id="calc_quality",
     bash_command=(
         f"echo '[5] 计算质量率 Quality = good_output / actual_output...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.tmp_oee_quality "
         f"SELECT equipment_id, line_id, '{BIZ_DATE}' AS stat_date, "
         f"SUM(good_qty) AS good_output, SUM(defect_qty) AS defect_output "
         f"FROM {DORIS_DB}.process_record "
         f"WHERE DATE(occurred_at) = '{BIZ_DATE}' "
-        f"GROUP BY equipment_id, line_id;\" && "
+        f'GROUP BY equipment_id, line_id;" && '
         f"echo '[5] 质量率计算完成'"
     ),
     dag=dag,
 )
+
 
 # ---------------------------------------------------------------------------
 # Task 6: 汇总计算 OEE = Availability × Performance × Quality，写入日汇总表
@@ -194,7 +202,8 @@ def calc_oee_final(biz_date: str, doris_fe: str, doris_db: str) -> None:
              ELSE 0 END AS oee,
         pl.target_oee,
         CASE WHEN a.planned_time > 0 AND p.ideal_output > 0 AND p.actual_output > 0
-             THEN (a.run_time / a.planned_time) * (p.actual_output / p.ideal_output) * (q.good_output / p.actual_output) - pl.target_oee
+             THEN (a.run_time / a.planned_time) * (p.actual_output / p.ideal_output)
+                  * (q.good_output / p.actual_output) - pl.target_oee
              ELSE -pl.target_oee END AS oee_gap,
         NOW(), NOW()
     FROM {doris_db}.equipment e
@@ -226,7 +235,7 @@ notify_done = BashOperator(
         f">> /var/log/manufacturing/oee_calculation.log && "
         f"curl -s -X POST http://superset:8088/api/v1/dashboard/refresh/ "
         f"-H 'Authorization: Bearer $SUPERSET_TOKEN' "
-        f"-d '{{\"dashboard_id\":\"oee-dashboard\"}}' || true"
+        f'-d \'{{"dashboard_id":"oee-dashboard"}}\' || true'
     ),
     dag=dag,
 )

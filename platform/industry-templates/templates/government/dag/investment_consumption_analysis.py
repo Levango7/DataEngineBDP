@@ -11,10 +11,11 @@
 
 Author: T044 政务模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -73,10 +74,14 @@ aggregate_investment = SparkSubmitOperator(
         "spark.app.name": f"investment_agg_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-year", BIZ_YEAR,
-        "--biz-month", BIZ_MONTH,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-year",
+        BIZ_YEAR,
+        "--biz-month",
+        BIZ_MONTH,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -93,10 +98,14 @@ aggregate_consumption = SparkSubmitOperator(
         "spark.app.name": f"consumption_agg_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-year", BIZ_YEAR,
-        "--biz-month", BIZ_MONTH,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-year",
+        BIZ_YEAR,
+        "--biz-month",
+        BIZ_MONTH,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -108,13 +117,13 @@ calc_growth_rate = BashOperator(
     task_id="calc_growth_rate",
     bash_command=(
         f"echo '[3] 计算投资增速与消费增速...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT 'investment' AS type, "
         f"SUM(investment_amount) AS current_value, "
         f"SUM(investment_amount)*100.0/NULLIF(SUM(prev.investment_amount),0)-100 AS growth_rate "
         f"FROM {DORIS_DB}.fixed_asset_investment cur "
         f"LEFT JOIN {DORIS_DB}.fixed_asset_investment prev "
-        f"ON cur.stat_year = prev.stat_year + 1;\" && "
+        f'ON cur.stat_year = prev.stat_year + 1;" && '
         f"echo '[3] 增速计算完成'"
     ),
     dag=dag,
@@ -127,12 +136,12 @@ analyze_investment_structure = BashOperator(
     task_id="analyze_investment_structure",
     bash_command=(
         f"echo '[4] 分析投资结构（基础设施/制造业/房地产占比）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT investment_type, SUM(investment_amount) AS total, "
         f"SUM(investment_amount)*100.0/SUM(SUM(investment_amount)) OVER() AS ratio "
         f"FROM {DORIS_DB}.fixed_asset_investment "
         f"WHERE stat_year = {BIZ_YEAR} "
-        f"GROUP BY investment_type;\" && "
+        f'GROUP BY investment_type;" && '
         f"echo '[4] 投资结构分析完成'"
     ),
     dag=dag,
@@ -145,13 +154,13 @@ analyze_consumption_structure = BashOperator(
     task_id="analyze_consumption_structure",
     bash_command=(
         f"echo '[5] 分析消费结构（城乡/线上线下）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT consumption_type, SUM(retail_amount) AS total, "
         f"SUM(urban_retail) AS urban, SUM(rural_retail) AS rural, "
         f"SUM(online_retail) AS online, SUM(offline_retail) AS offline "
         f"FROM {DORIS_DB}.social_retail_consumption "
         f"WHERE stat_year = {BIZ_YEAR} "
-        f"GROUP BY consumption_type;\" && "
+        f'GROUP BY consumption_type;" && '
         f"echo '[5] 消费结构分析完成'"
     ),
     dag=dag,
@@ -162,13 +171,16 @@ analyze_consumption_structure = BashOperator(
 # ---------------------------------------------------------------------------
 notify_dashboard = PythonOperator(
     task_id="notify_dashboard_refresh",
-    python_callable=lambda: print(
-        f"[6] 投资消费分析完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[6] 投资消费分析完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系
 # ---------------------------------------------------------------------------
-[aggregate_investment, aggregate_consumption] >> calc_growth_rate >> [analyze_investment_structure, analyze_consumption_structure] >> notify_dashboard
+(
+    [aggregate_investment, aggregate_consumption]
+    >> calc_growth_rate
+    >> [analyze_investment_structure, analyze_consumption_structure]
+    >> notify_dashboard
+)

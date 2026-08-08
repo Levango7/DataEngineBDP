@@ -13,6 +13,7 @@
     LISTED -> OFFLINE (下架)
     OFFLINE -> LISTED (重新上架)
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -29,11 +30,9 @@ from asset_exchange.models.base import (
 )
 from asset_exchange.models.subscription import SubscriptionStatus
 from asset_exchange.repositories import (
-    AssetNotFoundError,
     AssetNotListedError,
     ValidationError,
 )
-
 
 # 资产状态扩展：PENDING_AUDIT 表示待审核（已加入 AssetStatus 枚举）
 STATUS_PENDING_AUDIT = AssetStatus.PENDING_AUDIT.value
@@ -76,9 +75,7 @@ class AssetService:
         """
         a = await self._asset_repo.get(asset_id)
         if a.status != AssetStatus.DRAFT:
-            raise ValidationError(
-                f"资产当前状态 {a.status.value} 不可提交审核，仅 DRAFT 状态可提交"
-            )
+            raise ValidationError(f"资产当前状态 {a.status.value} 不可提交审核，仅 DRAFT 状态可提交")
         await self._asset_repo.update(asset_id, status=AssetStatus.PENDING_AUDIT)
         return await self._asset_repo.get(asset_id)
 
@@ -112,9 +109,7 @@ class AssetService:
         a = await self._asset_repo.get(asset_id)
         # 允许 PENDING_AUDIT 或 DRAFT 状态审核（兼容旧流程）
         if a.status.value not in (STATUS_PENDING_AUDIT, AssetStatus.DRAFT.value):
-            raise ValidationError(
-                f"资产当前状态 {a.status.value} 不可审核"
-            )
+            raise ValidationError(f"资产当前状态 {a.status.value} 不可审核")
 
         # 自动合规/质量/分级检查
         checks = self._run_audit_checks(a)
@@ -123,9 +118,7 @@ class AssetService:
         if result == AssetAuditResult.APPROVED:
             if not all_passed:
                 failed = [c["name"] for c in checks if not c["passed"]]
-                raise ValidationError(
-                    f"审核不通过，检查项失败: {failed}"
-                )
+                raise ValidationError(f"审核不通过，检查项失败: {failed}")
             await self._asset_repo.update(asset_id, status=AssetStatus.LISTED)
         else:
             await self._asset_repo.update(asset_id, status=AssetStatus.REJECTED)
@@ -147,15 +140,13 @@ class AssetService:
                 {
                     "name": "compliance",
                     "passed": desensitize,
-                    "message": "敏感资产必须配置脱敏规则（tags.desensitize=true）"
-                    if not desensitize
-                    else "合规检查通过",
+                    "message": (
+                        "敏感资产必须配置脱敏规则（tags.desensitize=true）" if not desensitize else "合规检查通过"
+                    ),
                 }
             )
         else:
-            checks.append(
-                {"name": "compliance", "passed": True, "message": "合规检查通过"}
-            )
+            checks.append({"name": "compliance", "passed": True, "message": "合规检查通过"})
 
         # 质量检查：qualityScore >= 60
         quality_ok = asset.qualityScore >= 60
@@ -163,16 +154,12 @@ class AssetService:
             {
                 "name": "quality",
                 "passed": quality_ok,
-                "message": f"质量评分 {asset.qualityScore} < 60"
-                if not quality_ok
-                else "质量检查通过",
+                "message": f"质量评分 {asset.qualityScore} < 60" if not quality_ok else "质量检查通过",
             }
         )
 
         # 分级检查：securityLevel 必须为合法值
-        checks.append(
-            {"name": "classification", "passed": True, "message": "分级检查通过"}
-        )
+        checks.append({"name": "classification", "passed": True, "message": "分级检查通过"})
 
         return checks
 
@@ -194,9 +181,7 @@ class AssetService:
             STATUS_PENDING_AUDIT,
             AssetStatus.OFFLINE.value,
         ):
-            raise ValidationError(
-                f"资产当前状态 {a.status.value} 不可上架"
-            )
+            raise ValidationError(f"资产当前状态 {a.status.value} 不可上架")
 
         # 自动审核检查
         checks = self._run_audit_checks(a)
@@ -222,14 +207,10 @@ class AssetService:
         # 敏感资产校验
         if asset.securityLevel == SecurityLevel.SENSITIVE:
             if asset.tags.get("desensitize") != "true":
-                raise ValidationError(
-                    "敏感资产必须配置脱敏规则（tags.desensitize=true）"
-                )
+                raise ValidationError("敏感资产必须配置脱敏规则（tags.desensitize=true）")
         # 质量校验
         if asset.qualityScore < 60:
-            raise ValidationError(
-                f"质量评分 {asset.qualityScore} < 60，不可上架"
-            )
+            raise ValidationError(f"质量评分 {asset.qualityScore} < 60，不可上架")
         asset.status = AssetStatus.LISTED
         asset_id = await self._asset_repo.save(asset)
         return await self._asset_repo.get(asset_id)
@@ -310,9 +291,7 @@ class AssetService:
     async def get_asset(self, asset_id: str) -> Asset:
         return await self._asset_repo.get(asset_id)
 
-    async def list_assets(
-        self, filter: Optional[AssetFilter] = None
-    ) -> list[Asset]:
+    async def list_assets(self, filter: Optional[AssetFilter] = None) -> list[Asset]:
         """浏览资产市场（仅返回已上架资产，除非 filter 显式指定状态）."""
         f = filter or AssetFilter()
         if f.status is None:
@@ -356,9 +335,7 @@ class AssetService:
         """获取资产使用统计."""
         a = await self._asset_repo.get(asset_id)
         subs = await self._sub_repo.list_by_asset(asset_id)
-        active_subs = [
-            s for s in subs if s.status == SubscriptionStatus.ACTIVE
-        ]
+        active_subs = [s for s in subs if s.status == SubscriptionStatus.ACTIVE]
         # 简化统计：订阅数即资产 subscriberCount
         return AssetUsage(
             assetId=asset_id,

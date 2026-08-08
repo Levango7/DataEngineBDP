@@ -10,6 +10,7 @@
 
 对齐设计文档 T008-1：多模态切片器框架与接口抽象。
 """
+
 from __future__ import annotations
 
 
@@ -61,9 +62,7 @@ class InvalidOverlapError(ChunkerConfigError):
     def __init__(self, overlap: float, windowSize: int) -> None:
         self.overlap = overlap
         self.windowSize = windowSize
-        super().__init__(
-            f"重叠率 overlap={overlap} 非法，要求 0 <= overlap < windowSize={windowSize}"
-        )
+        super().__init__(f"重叠率 overlap={overlap} 非法，要求 0 <= overlap < windowSize={windowSize}")
 
 
 class ChunkerRuntimeError(ChunkerError):

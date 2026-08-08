@@ -1,12 +1,11 @@
 """BaseChunker 抽象基类单元测试."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.base import BaseChunker
 from chunker.exceptions import InvalidOverlapError
 from chunker.models import Chunk, ChunkConfig, ChunkMetadata, Modality
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 测试用具体切片器
@@ -36,9 +35,7 @@ class _SimpleTextChunker(BaseChunker):
                 Chunk(
                     id=self._make_chunk_id(),
                     content=piece,
-                    metadata=self._make_metadata(
-                        config, index=idx, start=start, end=end
-                    ),
+                    metadata=self._make_metadata(config, index=idx, start=start, end=end),
                 )
             )
             idx += 1
@@ -177,9 +174,7 @@ class TestConfigValidation:
         # overlap < 1.0 由 pydantic 保证，但 overlap_size 可能等于 windowSize
         # 当 overlap=0.99, windowSize=100 -> overlap_size=99 < 100，仍合法
         # 我们手动构造一个非法场景：通过 model_construct 绕过校验
-        cfg = ChunkConfig.model_construct(
-            modality=Modality.TEXT, windowSize=10, overlap=1.0
-        )
+        cfg = ChunkConfig.model_construct(modality=Modality.TEXT, windowSize=10, overlap=1.0)
         with pytest.raises(InvalidOverlapError):
             await chunker.chunk("hello", cfg)
 
@@ -223,9 +218,7 @@ class TestUtilityMethods:
     def test_make_metadata(self):
         chunker = _NoOpChunker()
         cfg = ChunkConfig(modality=Modality.IMAGE)
-        m = chunker._make_metadata(
-            cfg, index=3, start=10, end=20, source="img.png", extra={"page": 1}
-        )
+        m = chunker._make_metadata(cfg, index=3, start=10, end=20, source="img.png", extra={"page": 1})
         assert m.modality is Modality.IMAGE
         assert m.index == 3
         assert m.start == 10
@@ -235,7 +228,7 @@ class TestUtilityMethods:
 
     def test_overlap_merge_default_noop(self):
         chunker = _NoOpChunker()
-        cfg = ChunkConfig(modality=Modality.TEXT)
+
         c1 = Chunk(
             id="1",
             content="a",

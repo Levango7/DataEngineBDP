@@ -1,4 +1,5 @@
 """模型管理、预测、评估路由."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -34,9 +35,7 @@ class EvaluateRequest(BaseModel):
         description="评估指标列表",
     )
     batchSize: int = Field(default=32, ge=1, description="批大小")
-    threshold: float | None = Field(
-        default=None, ge=0.0, le=1.0, description="二分类阈值"
-    )
+    threshold: float | None = Field(default=None, ge=0.0, le=1.0, description="二分类阈值")
 
 
 @router.get(
@@ -62,9 +61,7 @@ async def getModel(
     try:
         return await registry.backend.get_model(modelId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.delete(
@@ -79,9 +76,7 @@ async def deleteModel(
     try:
         await registry.backend.delete_model(modelId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.post(
@@ -98,9 +93,7 @@ async def predict(
         data = body.data if isinstance(body.data, dict) else {"_samples": body.data}
         return await registry.predictionService.predict(modelId, data)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.post(
@@ -120,10 +113,6 @@ async def evaluate(
             batchSize=body.batchSize,
             threshold=body.threshold,
         )
-        return await registry.evaluationService.evaluate(
-            modelId, evalConfig
-        )
+        return await registry.evaluationService.evaluate(modelId, evalConfig)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))

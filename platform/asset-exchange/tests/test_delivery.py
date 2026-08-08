@@ -1,8 +1,9 @@
 """数据交付测试（3种方式：API / 文件 / 数据库直连）."""
+
 from __future__ import annotations
 
-
 # ---------- 辅助函数 ----------
+
 
 def _setup_active_subscription(client, owner="tenant-A", subscriber="tenant-B"):
     """上架资产 + 订阅 + 审批通过，返回 (asset_id, subscription_id)."""
@@ -37,6 +38,7 @@ def _setup_active_subscription(client, owner="tenant-A", subscriber="tenant-B"):
 
 # ---------- API 交付 ----------
 
+
 def test_deliver_via_api(client):
     """API 交付：生成 endpoint + apiKey."""
     _, sid = _setup_active_subscription(client)
@@ -65,6 +67,7 @@ def test_deliver_via_api(client):
 
 
 # ---------- 文件交付 ----------
+
 
 def test_deliver_via_file(client):
     """文件交付：生成数据文件 URL."""
@@ -108,6 +111,7 @@ def test_deliver_via_file_parquet(client):
 
 # ---------- 数据库直连交付 ----------
 
+
 def test_deliver_via_database_direct(client):
     """数据库直连交付：生成只读访问凭证."""
     _, sid = _setup_active_subscription(client)
@@ -135,6 +139,7 @@ def test_deliver_via_database_direct(client):
 
 # ---------- 交付状态 ----------
 
+
 def test_get_delivery_status(client):
     _, sid = _setup_active_subscription(client)
     # 先交付
@@ -159,6 +164,7 @@ def test_get_delivery_status_no_delivery(client):
 
 
 # ---------- 不可交付场景 ----------
+
 
 def test_deliver_pending_subscription(client):
     """待审批订阅不可交付."""
@@ -189,6 +195,7 @@ def test_deliver_nonexistent_subscription(client):
 
 
 # ---------- 多次交付 ----------
+
 
 def test_multiple_deliveries(client):
     """同一订阅可多次交付."""

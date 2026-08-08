@@ -1,9 +1,10 @@
 """SQLite 订阅仓储."""
+
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
+import uuid
 
 from asset_exchange.interfaces.subscription_repository import (
     SubscriptionRepository,
@@ -22,8 +23,7 @@ class SQLiteSubscriptionRepository(SubscriptionRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS subscriptions (
                 id              TEXT PRIMARY KEY,
                 asset_id        TEXT NOT NULL,
@@ -39,25 +39,16 @@ class SQLiteSubscriptionRepository(SubscriptionRepository):
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL
             );
-            """
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_subs_asset ON subscriptions(asset_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_subs_subscriber ON subscriptions(subscriber_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_subs_status ON subscriptions(status);"
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_subs_asset ON subscriptions(asset_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_subs_subscriber ON subscriptions(subscriber_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_subs_status ON subscriptions(status);")
 
     async def save(self, subscription: Subscription) -> str:
         if not subscription.id:
             subscription.id = str(uuid.uuid4())
         now = utc_now()
-        cur = self._conn.conn.execute(
-            "SELECT id FROM subscriptions WHERE id = ?;", (subscription.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM subscriptions WHERE id = ?;", (subscription.id,))
         existing = cur.fetchone()
         if existing is None:
             subscription.createdAt = now
@@ -101,9 +92,7 @@ class SQLiteSubscriptionRepository(SubscriptionRepository):
         return subscription.id
 
     async def get(self, subscription_id: str) -> Subscription:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM subscriptions WHERE id = ?;", (subscription_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM subscriptions WHERE id = ?;", (subscription_id,))
         row = cur.fetchone()
         if row is None:
             raise SubscriptionNotFoundError(subscription_id)

@@ -5,6 +5,7 @@
 - 分账比例可配置
 - 分账状态机：PENDING -> ALLOCATED / FAILED
 """
+
 from __future__ import annotations
 
 from typing import Optional
@@ -17,11 +18,10 @@ from asset_exchange.interfaces.settlement_repository import (
 )
 from asset_exchange.models.base import AllocationStatus, utc_now
 from asset_exchange.models.settlement import (
+    AllocateRequest,
     Allocation,
     AllocationFilter,
-    AllocateRequest,
 )
-from asset_exchange.repositories import AssetExchangeError
 
 
 class AllocationService:
@@ -67,11 +67,7 @@ class AllocationService:
             alloc.providerAmount = settlement.providerRevenue
             alloc.platformAmount = settlement.platformRevenue
             alloc.providerAccountId = req.providerAccountId or alloc.providerAccountId
-            alloc.platformAccountId = (
-                req.platformAccountId
-                or alloc.platformAccountId
-                or self._platformAccountId
-            )
+            alloc.platformAccountId = req.platformAccountId or alloc.platformAccountId or self._platformAccountId
             alloc.status = AllocationStatus.ALLOCATED
             alloc.allocatedAt = utc_now()
             alloc.errorMessage = None
@@ -96,9 +92,7 @@ class AllocationService:
         """获取分账记录."""
         return await self._allocation_repo.get(allocation_id)
 
-    async def list(
-        self, filter: Optional[AllocationFilter] = None
-    ) -> list[Allocation]:
+    async def list(self, filter: Optional[AllocationFilter] = None) -> list[Allocation]:
         """列出分账记录."""
         return await self._allocation_repo.list(filter or AllocationFilter())
 
@@ -106,8 +100,6 @@ class AllocationService:
         """列出某资产的分账记录."""
         return await self._allocation_repo.list_by_asset(asset_id)
 
-    async def list_by_settlement(
-        self, settlement_id: str
-    ) -> list[Allocation]:
+    async def list_by_settlement(self, settlement_id: str) -> list[Allocation]:
         """列出某结算的分账记录."""
         return await self._allocation_repo.list_by_settlement(settlement_id)

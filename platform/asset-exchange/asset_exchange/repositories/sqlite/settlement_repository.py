@@ -1,9 +1,10 @@
 """SQLite 结算仓储."""
+
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any, Optional
+import uuid
 
 from asset_exchange.interfaces.settlement_repository import (
     SettlementRepository,
@@ -22,8 +23,7 @@ class SQLiteSettlementRepository(SettlementRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS settlements (
                 id                  TEXT PRIMARY KEY,
                 asset_id            TEXT NOT NULL,
@@ -41,26 +41,18 @@ class SQLiteSettlementRepository(SettlementRepository):
                 created_at          TEXT NOT NULL,
                 updated_at          TEXT NOT NULL
             );
-            """
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_settle_asset ON settlements(asset_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_settle_period ON settlements(period);")
         self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_settle_asset ON settlements(asset_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_settle_period ON settlements(period);"
-        )
-        self._conn.conn.execute(
-            "CREATE UNIQUE INDEX IF NOT EXISTS idx_settle_asset_period "
-            "ON settlements(asset_id, period);"
+            "CREATE UNIQUE INDEX IF NOT EXISTS idx_settle_asset_period " "ON settlements(asset_id, period);"
         )
 
     async def save(self, settlement: Settlement) -> str:
         if not settlement.id:
             settlement.id = str(uuid.uuid4())
         now = utc_now()
-        cur = self._conn.conn.execute(
-            "SELECT id FROM settlements WHERE id = ?;", (settlement.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM settlements WHERE id = ?;", (settlement.id,))
         existing = cur.fetchone()
         if existing is None:
             settlement.createdAt = now
@@ -100,9 +92,7 @@ class SQLiteSettlementRepository(SettlementRepository):
                 json.dumps(settlement.billingRecordIds),
                 settlement.providerShare,
                 settlement.platformShare,
-                settlement.settledAt.isoformat()
-                if settlement.settledAt
-                else None,
+                settlement.settledAt.isoformat() if settlement.settledAt else None,
                 settlement.errorMessage,
                 settlement.createdAt.isoformat(),
                 settlement.updatedAt.isoformat(),
@@ -111,9 +101,7 @@ class SQLiteSettlementRepository(SettlementRepository):
         return settlement.id
 
     async def get(self, settlement_id: str) -> Settlement:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM settlements WHERE id = ?;", (settlement_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM settlements WHERE id = ?;", (settlement_id,))
         row = cur.fetchone()
         if row is None:
             raise AssetExchangeError(f"结算记录不存在: {settlement_id}")
@@ -142,15 +130,12 @@ class SQLiteSettlementRepository(SettlementRepository):
 
     async def list_by_asset(self, asset_id: str) -> list[Settlement]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM settlements WHERE asset_id = ? "
-            "ORDER BY created_at DESC;",
+            "SELECT * FROM settlements WHERE asset_id = ? " "ORDER BY created_at DESC;",
             (asset_id,),
         )
         return [self._row_to_settlement(r) for r in cur.fetchall()]
 
-    async def find_by_asset_period(
-        self, asset_id: str, period: str
-    ) -> Optional[Settlement]:
+    async def find_by_asset_period(self, asset_id: str, period: str) -> Optional[Settlement]:
         cur = self._conn.conn.execute(
             "SELECT * FROM settlements WHERE asset_id = ? AND period = ? LIMIT 1;",
             (asset_id, period),

@@ -1,8 +1,6 @@
 """数据模型单元测试."""
-from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
+from __future__ import annotations
 
 from chunker.models import (
     Chunk,
@@ -11,7 +9,8 @@ from chunker.models import (
     ChunkResult,
     Modality,
 )
-
+from pydantic import ValidationError
+import pytest
 
 # ----------------------------------------------------------------------
 # Modality

@@ -1,4 +1,5 @@
 """FastAPI 应用工厂."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -6,7 +7,7 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from asset_exchange.api.routers import assets, audit, subscriptions, health
+from asset_exchange.api.routers import assets, audit, health, subscriptions
 from asset_exchange.config.settings import Settings, get_settings
 from asset_exchange.services.registry import ServiceRegistry, build_services
 
@@ -65,9 +66,7 @@ def create_app(
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": exc.detail.lower().replace(" ", "_")
-                if isinstance(exc.detail, str)
-                else "error",
+                "error": exc.detail.lower().replace(" ", "_") if isinstance(exc.detail, str) else "error",
                 "message": str(exc.detail),
             },
         )

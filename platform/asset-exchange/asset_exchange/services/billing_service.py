@@ -8,16 +8,15 @@
 结算流程：
     消费方扣费 ──▶ 平台分账 ──▶ 提供方入账 ──▶ 月度对账单
 """
+
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from asset_exchange.interfaces.billing_repository import BillingRepository
 from asset_exchange.interfaces.subscription_repository import (
     SubscriptionRepository,
 )
-from asset_exchange.models.asset import Asset
 from asset_exchange.models.base import BillingMode, utc_now
 from asset_exchange.models.billing import BillingRecord, BillingSummary
 from asset_exchange.services.asset_service import AssetService
@@ -101,9 +100,7 @@ class BillingService:
         record_id = await self._billing_repo.save(record)
         return await self._billing_repo.get(record_id)
 
-    def _calc_amount(
-        self, mode: BillingMode, unit_price: float, usage: float
-    ) -> float:
+    def _calc_amount(self, mode: BillingMode, unit_price: float, usage: float) -> float:
         """计算订单金额.
 
         - BY_CALL:       按次计费，amount = unit_price * usage
@@ -153,8 +150,6 @@ class BillingService:
             recordCount=len(records),
         )
 
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[BillingRecord]:
+    async def list_by_subscription(self, subscription_id: str) -> list[BillingRecord]:
         """列出某订阅的计费记录."""
         return await self._billing_repo.list_by_subscription(subscription_id)

@@ -13,6 +13,7 @@ BGE / M3E 等本地模型均可复用此基类。
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 import threading
@@ -136,17 +137,13 @@ class SentenceTransformerAdapter(EmbeddingAdapter):
             from sentence_transformers import SentenceTransformer
         except ImportError as ex:
             self._mark_unavailable("sentence-transformers 导入失败")
-            raise ModelUnavailableError(
-                self.model, f"sentence-transformers 导入失败: {ex}"
-            ) from ex
+            raise ModelUnavailableError(self.model, f"sentence-transformers 导入失败: {ex}") from ex
 
         try:
             st_model = SentenceTransformer(name, **load_kwargs)
         except Exception as ex:  # noqa: BLE001
             self._mark_unavailable(f"模型加载失败: {ex}")
-            raise ModelLoadError(
-                f"加载模型 {name} 失败: {ex}", cause=ex
-            ) from ex
+            raise ModelLoadError(f"加载模型 {name} 失败: {ex}", cause=ex) from ex
 
         with _model_cache_lock:
             _model_cache[name] = st_model
@@ -194,9 +191,7 @@ class SentenceTransformerAdapter(EmbeddingAdapter):
             )
             return [list(map(float, row)) for row in emb]
         except Exception as ex:  # noqa: BLE001
-            raise EmbeddingComputeError(
-                f"SentenceTransformer 编码失败: {ex}", cause=ex
-            ) from ex
+            raise EmbeddingComputeError(f"SentenceTransformer 编码失败: {ex}", cause=ex) from ex
 
     async def embed_query(self, text: str) -> list[float]:
         """单条查询嵌入.

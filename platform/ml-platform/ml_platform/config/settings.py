@@ -13,6 +13,7 @@
     ML_REDIS_URI               Redis URI（特征存储后端）
     ML_API_PREFIX              API 路由前缀（默认 /api/v1）
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -40,19 +41,13 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- backend ----
-    backendType: Literal["mock", "sklearn", "spark"] = Field(
-        default="mock", description="ML 后端类型"
-    )
+    backendType: Literal["mock", "sklearn", "spark"] = Field(default="mock", description="ML 后端类型")
 
     # ---- feature store ----
-    featureStoreType: Literal["mock", "redis"] = Field(
-        default="mock", description="特征存储类型"
-    )
+    featureStoreType: Literal["mock", "redis"] = Field(default="mock", description="特征存储类型")
 
     # ---- experiment store ----
-    experimentStoreType: Literal["mock", "mlflow"] = Field(
-        default="mock", description="实验存储类型"
-    )
+    experimentStoreType: Literal["mock", "mlflow"] = Field(default="mock", description="实验存储类型")
 
     # ---- mlflow ----
     mlflowUri: str = Field(

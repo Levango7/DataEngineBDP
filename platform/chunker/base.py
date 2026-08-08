@@ -14,12 +14,13 @@
 
 对齐设计文档 T008-1。
 """
+
 from __future__ import annotations
 
-import time
-import uuid
 from abc import ABC, abstractmethod
+import time
 from typing import Any
+import uuid
 
 from chunker.exceptions import InvalidOverlapError
 from chunker.models import Chunk, ChunkConfig, ChunkMetadata, ChunkResult, Modality
@@ -144,9 +145,7 @@ class BaseChunker(ABC):
             return 0
         return max(1, len(text) // 4)
 
-    def _overlap_merge(
-        self, chunks: list[Chunk], overlap_size: int
-    ) -> list[Chunk]:
+    def _overlap_merge(self, chunks: list[Chunk], overlap_size: int) -> list[Chunk]:
         """重叠合并相邻切片.
 
         当切片策略产生的相邻切片存在重叠区域时，

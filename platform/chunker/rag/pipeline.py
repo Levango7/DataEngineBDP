@@ -17,6 +17,7 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 import logging
@@ -26,12 +27,6 @@ from chunker.base import BaseChunker
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.models import Chunk, ChunkConfig, Modality
 from chunker.rag.config import (
-    DEFAULT_FUSION_METHOD,
-    DEFAULT_INDEX_TYPE,
-    DEFAULT_METRIC_TYPE,
-    DEFAULT_MODALITY_WEIGHTS,
-    DEFAULT_RRF_K,
-    DEFAULT_TOP_K,
     RAGSettings,
     get_rag_settings,
 )

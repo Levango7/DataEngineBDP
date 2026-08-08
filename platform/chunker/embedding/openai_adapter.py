@@ -13,6 +13,7 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -175,8 +176,7 @@ class OpenAIAdapter(EmbeddingAdapter):
             self._mark_unavailable("未配置 API Key")
             raise ModelUnavailableError(
                 self.model,
-                "未配置 OpenAI API Key，请设置 api_key 参数或 "
-                "CHUNKER_EMBEDDING_OPENAI_API_KEY 环境变量",
+                "未配置 OpenAI API Key，请设置 api_key 参数或 " "CHUNKER_EMBEDDING_OPENAI_API_KEY 环境变量",
             )
 
         if not is_openai_available():
@@ -195,9 +195,7 @@ class OpenAIAdapter(EmbeddingAdapter):
             import openai
         except ImportError as ex:
             self._mark_unavailable("openai 库导入失败")
-            raise ModelUnavailableError(
-                self.model, f"openai 库导入失败: {ex}"
-            ) from ex
+            raise ModelUnavailableError(self.model, f"openai 库导入失败: {ex}") from ex
 
         try:
             client = openai.AsyncOpenAI(
@@ -207,9 +205,7 @@ class OpenAIAdapter(EmbeddingAdapter):
             )
         except Exception as ex:  # noqa: BLE001
             self._mark_unavailable(f"客户端创建失败: {ex}")
-            raise ModelLoadError(
-                f"创建 OpenAI 客户端失败: {ex}", cause=ex
-            ) from ex
+            raise ModelLoadError(f"创建 OpenAI 客户端失败: {ex}", cause=ex) from ex
 
         with _client_cache_lock:
             _client_cache[cache_key] = client
@@ -233,9 +229,7 @@ class OpenAIAdapter(EmbeddingAdapter):
             return [self._mock_embed(t) for t in texts]
         # 真实后端不应走到这里（embed 会走异步路径）
         # 但为兼容基类接口，提供同步回退
-        raise EmbeddingComputeError(
-            "OpenAI 真实后端需通过 async embed 调用，不支持同步 _encode"
-        )
+        raise EmbeddingComputeError("OpenAI 真实后端需通过 async embed 调用，不支持同步 _encode")
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """批量异步嵌入.
@@ -273,9 +267,7 @@ class OpenAIAdapter(EmbeddingAdapter):
                 for i, item in enumerate(resp.data):
                     results[start + i] = list(map(float, item.embedding))
             except Exception as ex:  # noqa: BLE001
-                raise EmbeddingComputeError(
-                    f"OpenAI embedding 请求失败: {ex}", cause=ex
-                ) from ex
+                raise EmbeddingComputeError(f"OpenAI embedding 请求失败: {ex}", cause=ex) from ex
 
         tasks = []
         chunk = min(self.asyncChunk, OPENAI_MAX_INPUTS)
@@ -319,9 +311,7 @@ class OpenAIAdapter(EmbeddingAdapter):
         seed_bytes = bytearray()
         counter = 0
         while len(seed_bytes) < d * 4:
-            seed_bytes.extend(
-                hashlib.sha256(h + counter.to_bytes(4, "big")).digest()
-            )
+            seed_bytes.extend(hashlib.sha256(h + counter.to_bytes(4, "big")).digest())
             counter += 1
         # 转为 float 向量（[-1, 1] 范围）
         import struct

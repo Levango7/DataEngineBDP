@@ -1,4 +1,5 @@
 """模型管理业务逻辑."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -6,7 +7,6 @@ from typing import Optional
 from llmops.interfaces.store import ModelStore
 from llmops.models.base import ModelStatus
 from llmops.models.model import ModelFilter, ModelInfo, ModelVersion
-from llmops.repositories import ModelNotFoundError
 
 
 class ModelService:
@@ -36,9 +36,7 @@ class ModelService:
     async def get_model_versions(self, model_id: str) -> list[ModelVersion]:
         return await self._store.get_model_versions(model_id)
 
-    async def set_production_version(
-        self, model_id: str, version: int
-    ) -> ModelInfo:
+    async def set_production_version(self, model_id: str, version: int) -> ModelInfo:
         return await self._store.set_production_version(model_id, version)
 
     async def update_model(self, model_id: str, **fields) -> ModelInfo:

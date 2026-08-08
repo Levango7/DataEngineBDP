@@ -1,13 +1,13 @@
 """检索器测试 (T008-6)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.models import Modality
 from chunker.rag.exceptions import RetrieveError
 from chunker.rag.retriever import RetrievalResult, Retriever
 from chunker.rag.vector_store import MockVectorStore, VectorRecord
+import pytest
 
 
 class StubAdapter(EmbeddingAdapter):
@@ -27,11 +27,14 @@ async def setup_store():
     """构造带数据的 store."""
     store = MockVectorStore()
     await store.create_collection("test", 3)
-    await store.insert("test", [
-        VectorRecord("c1", [1.0, 0.0, 0.0], {"modality": "text", "source": "doc1"}),
-        VectorRecord("c2", [0.0, 1.0, 0.0], {"modality": "image", "source": "doc2"}),
-        VectorRecord("c3", [0.0, 0.0, 1.0], {"modality": "text", "source": "doc3"}),
-    ])
+    await store.insert(
+        "test",
+        [
+            VectorRecord("c1", [1.0, 0.0, 0.0], {"modality": "text", "source": "doc1"}),
+            VectorRecord("c2", [0.0, 1.0, 0.0], {"modality": "image", "source": "doc2"}),
+            VectorRecord("c3", [0.0, 0.0, 1.0], {"modality": "text", "source": "doc3"}),
+        ],
+    )
     return store
 
 
@@ -42,14 +45,18 @@ class TestRetrievalResult:
         assert r.score == 0.9
 
     def test_to_chunk(self):
-        r = RetrievalResult("c1", 0.9, {
-            "modality": "text",
-            "source": "doc1",
-            "start": 0,
-            "end": 10,
-            "index": 0,
-            "tokens": 5,
-        })
+        r = RetrievalResult(
+            "c1",
+            0.9,
+            {
+                "modality": "text",
+                "source": "doc1",
+                "start": 0,
+                "end": 10,
+                "index": 0,
+                "tokens": 5,
+            },
+        )
         chunk = r.to_chunk()
         assert chunk.id == "c1"
         assert chunk.metadata.modality == Modality.TEXT
@@ -74,9 +81,7 @@ class TestRetriever:
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter)
         # 使用预计算向量
-        results = await retriever.retrieve(
-            "test", "query", top_k=2, query_vector=[1.0, 0.0, 0.0]
-        )
+        results = await retriever.retrieve("test", "query", top_k=2, query_vector=[1.0, 0.0, 0.0])
         assert len(results) == 2
         assert results[0].chunkId == "c1"
 
@@ -94,7 +99,9 @@ class TestRetriever:
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter)
         results = await retriever.retrieve(
-            "test", "query", top_k=10,
+            "test",
+            "query",
+            top_k=10,
             filter='modality == "text"',
             query_vector=[1.0, 0.0, 0.0],
         )
@@ -106,8 +113,11 @@ class TestRetriever:
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter)
         results = await retriever.retrieve_by_modality(
-            "test", "query", Modality.IMAGE,
-            top_k=10, query_vector=[0.0, 1.0, 0.0],
+            "test",
+            "query",
+            Modality.IMAGE,
+            top_k=10,
+            query_vector=[0.0, 1.0, 0.0],
         )
         assert all(r.metadata.get("modality") == "image" for r in results)
         assert len(results) == 1
@@ -118,8 +128,11 @@ class TestRetriever:
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter)
         results = await retriever.retrieve_by_modality(
-            "test", "query", "text",
-            top_k=10, query_vector=[1.0, 0.0, 0.0],
+            "test",
+            "query",
+            "text",
+            top_k=10,
+            query_vector=[1.0, 0.0, 0.0],
         )
         assert all(r.metadata.get("modality") == "text" for r in results)
 
@@ -129,7 +142,9 @@ class TestRetriever:
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter)
         results = await retriever.retrieve(
-            "test", "query", top_k=10,
+            "test",
+            "query",
+            top_k=10,
             min_score=0.99,
             query_vector=[1.0, 0.0, 0.0],
         )
@@ -142,7 +157,9 @@ class TestRetriever:
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter)
         results = await retriever.retrieve_multi(
-            "test", ["q1", "q2"], top_k=2,
+            "test",
+            ["q1", "q2"],
+            top_k=2,
         )
         assert len(results) == 2
         assert len(results[0]) <= 2
@@ -160,7 +177,5 @@ class TestRetriever:
         store = setup_store
         adapter = StubAdapter(dimension=3)
         retriever = Retriever(store, adapter, default_top_k=2)
-        results = await retriever.retrieve(
-            "test", "query", query_vector=[1.0, 0.0, 0.0]
-        )
+        results = await retriever.retrieve("test", "query", query_vector=[1.0, 0.0, 0.0])
         assert len(results) <= 2

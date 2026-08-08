@@ -10,13 +10,14 @@
 - DashboardStore 沿用 Mock 聚合逻辑（基于 BusinessLineStore 计算）
 - WorkbenchStore 持久化待办任务，工具/最近任务保留默认示例
 """
+
 from __future__ import annotations
 
 import json
-import sqlite3
-import uuid
 from pathlib import Path
-from typing import Any, Optional
+import sqlite3
+from typing import Any
+import uuid
 
 from business_portal.interfaces.store import (
     BusinessLineStore,
@@ -100,8 +101,7 @@ class SQLiteConnection:
 
     def init_schema(self) -> None:
         """初始化全部表 schema."""
-        self._conn.executescript(
-            """
+        self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS business_lines (
                 id              TEXT PRIMARY KEY,
                 name            TEXT NOT NULL,
@@ -165,8 +165,7 @@ class SQLiteConnection:
                 created_at      TEXT NOT NULL
             );
             CREATE INDEX IF NOT EXISTS idx_todos_bl ON workbench_todos(bl_id);
-            """
-        )
+            """)
 
 
 # ---------------------------------------------------------------------------
@@ -210,9 +209,7 @@ class SQLiteBusinessLineStore(BusinessLineStore):
         return bl
 
     async def get(self, bl_id: str) -> BusinessLine:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM business_lines WHERE id = ?;", (bl_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM business_lines WHERE id = ?;", (bl_id,))
         row = cur.fetchone()
         if row is None:
             raise BusinessLineNotFoundError(bl_id)
@@ -283,9 +280,7 @@ class SQLiteBusinessLineStore(BusinessLineStore):
         return updated
 
     async def delete(self, bl_id: str) -> None:
-        cur = self._conn.conn.execute(
-            "DELETE FROM business_lines WHERE id = ?;", (bl_id,)
-        )
+        cur = self._conn.conn.execute("DELETE FROM business_lines WHERE id = ?;", (bl_id,))
         if cur.rowcount == 0:
             raise BusinessLineNotFoundError(bl_id)
 
@@ -487,9 +482,7 @@ class SQLiteCatalogStore(CatalogStore):
 
     def _ensure_bl(self, bl_id: str) -> None:
         """首次访问时初始化默认目录树."""
-        cur = self._conn.conn.execute(
-            "SELECT COUNT(*) AS c FROM catalog_nodes WHERE bl_id = ?;", (bl_id,)
-        )
+        cur = self._conn.conn.execute("SELECT COUNT(*) AS c FROM catalog_nodes WHERE bl_id = ?;", (bl_id,))
         if cur.fetchone()["c"] > 0:
             return
         nodes = [
@@ -576,24 +569,18 @@ class SQLiteCatalogStore(CatalogStore):
 
     async def get_tree(self, bl_id: str) -> CatalogTree:
         self._ensure_bl(bl_id)
-        cur = self._conn.conn.execute(
-            "SELECT * FROM catalog_nodes WHERE bl_id = ?;", (bl_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM catalog_nodes WHERE bl_id = ?;", (bl_id,))
         nodes = [self._row_to_node(r) for r in cur.fetchall()]
         root_ids = [n.id for n in nodes if n.parentId is None]
         return CatalogTree(blId=bl_id, nodes=nodes, rootIds=root_ids)
 
     async def add_node(self, node: CatalogNode) -> CatalogNode:
         self._ensure_bl(node.blId)
-        cur = self._conn.conn.execute(
-            "SELECT id FROM catalog_nodes WHERE id = ?;", (node.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM catalog_nodes WHERE id = ?;", (node.id,))
         if cur.fetchone() is not None:
             raise ValidationError(f"节点已存在: {node.id}")
         if node.parentId is not None:
-            cur = self._conn.conn.execute(
-                "SELECT * FROM catalog_nodes WHERE id = ?;", (node.parentId,)
-            )
+            cur = self._conn.conn.execute("SELECT * FROM catalog_nodes WHERE id = ?;", (node.parentId,))
             parent_row = cur.fetchone()
             if parent_row is None:
                 raise CatalogNodeNotFoundError(node.parentId)
@@ -621,9 +608,7 @@ class SQLiteCatalogStore(CatalogStore):
         node = self._row_to_node(row)
         # 从父节点 children 中移除
         if node.parentId:
-            cur = self._conn.conn.execute(
-                "SELECT * FROM catalog_nodes WHERE id = ?;", (node.parentId,)
-            )
+            cur = self._conn.conn.execute("SELECT * FROM catalog_nodes WHERE id = ?;", (node.parentId,))
             parent_row = cur.fetchone()
             if parent_row is not None:
                 parent = self._row_to_node(parent_row)
@@ -636,9 +621,7 @@ class SQLiteCatalogStore(CatalogStore):
         # 递归删除子节点
         for child_id in list(node.children):
             await self.remove_node(bl_id, child_id)
-        self._conn.conn.execute(
-            "DELETE FROM catalog_nodes WHERE id = ?;", (node_id,)
-        )
+        self._conn.conn.execute("DELETE FROM catalog_nodes WHERE id = ?;", (node_id,))
 
 
 # ---------------------------------------------------------------------------
@@ -680,9 +663,7 @@ class SQLiteReportStore(ReportStore):
         return report
 
     async def get(self, bl_id: str, report_id: str) -> Report:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM reports WHERE bl_id = ? AND id = ?;", (bl_id, report_id)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM reports WHERE bl_id = ? AND id = ?;", (bl_id, report_id))
         row = cur.fetchone()
         if row is None:
             raise ReportNotFoundError(report_id)
@@ -743,9 +724,7 @@ class SQLiteReportStore(ReportStore):
         return updated
 
     async def delete(self, bl_id: str, report_id: str) -> None:
-        cur = self._conn.conn.execute(
-            "DELETE FROM reports WHERE bl_id = ? AND id = ?;", (bl_id, report_id)
-        )
+        cur = self._conn.conn.execute("DELETE FROM reports WHERE bl_id = ? AND id = ?;", (bl_id, report_id))
         if cur.rowcount == 0:
             raise ReportNotFoundError(report_id)
 
@@ -758,9 +737,7 @@ class SQLiteReportStore(ReportStore):
             description=row["description"],
             status=row["status"],
             config=ReportConfig.model_validate_json(row["config_json"]),
-            dataSource=DataSourceRef.model_validate_json(row["datasource_json"])
-            if row["datasource_json"]
-            else None,
+            dataSource=DataSourceRef.model_validate_json(row["datasource_json"]) if row["datasource_json"] else None,
             creatorId=row["creator_id"],
             tags=json.loads(row["tags_json"]),
             createdAt=row["created_at"],

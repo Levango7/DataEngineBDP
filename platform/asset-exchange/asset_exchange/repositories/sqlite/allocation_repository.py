@@ -1,8 +1,9 @@
 """SQLite 分账仓储."""
+
 from __future__ import annotations
 
+from typing import Any
 import uuid
-from typing import Any, Optional
 
 from asset_exchange.interfaces.allocation_repository import (
     AllocationRepository,
@@ -21,8 +22,7 @@ class SQLiteAllocationRepository(AllocationRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS allocations (
                 id                  TEXT PRIMARY KEY,
                 settlement_id       TEXT NOT NULL,
@@ -37,22 +37,15 @@ class SQLiteAllocationRepository(AllocationRepository):
                 created_at          TEXT NOT NULL,
                 updated_at          TEXT NOT NULL
             );
-            """
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_alloc_asset ON allocations(asset_id);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_alloc_settle ON allocations(settlement_id);"
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_alloc_asset ON allocations(asset_id);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_alloc_settle ON allocations(settlement_id);")
 
     async def save(self, allocation: Allocation) -> str:
         if not allocation.id:
             allocation.id = str(uuid.uuid4())
         now = utc_now()
-        cur = self._conn.conn.execute(
-            "SELECT id FROM allocations WHERE id = ?;", (allocation.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM allocations WHERE id = ?;", (allocation.id,))
         existing = cur.fetchone()
         if existing is None:
             allocation.createdAt = now
@@ -86,9 +79,7 @@ class SQLiteAllocationRepository(AllocationRepository):
                 allocation.platformAmount,
                 allocation.providerAccountId,
                 allocation.platformAccountId,
-                allocation.allocatedAt.isoformat()
-                if allocation.allocatedAt
-                else None,
+                allocation.allocatedAt.isoformat() if allocation.allocatedAt else None,
                 allocation.errorMessage,
                 allocation.createdAt.isoformat(),
                 allocation.updatedAt.isoformat(),
@@ -97,9 +88,7 @@ class SQLiteAllocationRepository(AllocationRepository):
         return allocation.id
 
     async def get(self, allocation_id: str) -> Allocation:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM allocations WHERE id = ?;", (allocation_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM allocations WHERE id = ?;", (allocation_id,))
         row = cur.fetchone()
         if row is None:
             raise AssetExchangeError(f"分账记录不存在: {allocation_id}")
@@ -125,18 +114,14 @@ class SQLiteAllocationRepository(AllocationRepository):
 
     async def list_by_asset(self, asset_id: str) -> list[Allocation]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM allocations WHERE asset_id = ? "
-            "ORDER BY created_at DESC;",
+            "SELECT * FROM allocations WHERE asset_id = ? " "ORDER BY created_at DESC;",
             (asset_id,),
         )
         return [self._row_to_allocation(r) for r in cur.fetchall()]
 
-    async def list_by_settlement(
-        self, settlement_id: str
-    ) -> list[Allocation]:
+    async def list_by_settlement(self, settlement_id: str) -> list[Allocation]:
         cur = self._conn.conn.execute(
-            "SELECT * FROM allocations WHERE settlement_id = ? "
-            "ORDER BY created_at DESC;",
+            "SELECT * FROM allocations WHERE settlement_id = ? " "ORDER BY created_at DESC;",
             (settlement_id,),
         )
         return [self._row_to_allocation(r) for r in cur.fetchall()]

@@ -1,7 +1,6 @@
 """Settings 配置单测."""
-from __future__ import annotations
 
-import os
+from __future__ import annotations
 
 from config.settings import Settings, get_settings, reset_settings
 

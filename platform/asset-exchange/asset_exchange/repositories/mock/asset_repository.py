@@ -1,12 +1,13 @@
 """Mock 资产仓储 - 内存字典实现."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from asset_exchange.interfaces.asset_repository import AssetRepository
 from asset_exchange.models.asset import Asset, AssetFilter
-from asset_exchange.models.base import AssetStatus, utc_now
+from asset_exchange.models.base import utc_now
 from asset_exchange.repositories import (
     AssetAlreadyExistsError,
     AssetNotFoundError,

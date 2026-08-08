@@ -105,13 +105,13 @@ func main() {
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","service":"failover-engine","version":"` + version + `"}`))
+		_, _ = w.Write([]byte(`{"status":"ok","service":"failover-engine","version":"` + version + `"}`))
 	})
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		summary, _ := manager.MarshalHealthSummary()
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(summary))
+		_, _ = w.Write([]byte(summary))
 	})
 
 	srv := &http.Server{Addr: ":" + port, Handler: mux}

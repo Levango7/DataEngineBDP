@@ -19,10 +19,11 @@
 
 Author: T043 能源行业模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -49,8 +50,7 @@ default_args = {
 dag = DAG(
     dag_id="carbon_emission_calculation",
     description=(
-        "碳排放核算 DAG：匹配排放因子，计算排放量 E=AD×EF×GWP，"
-        "按 Scope 分类汇总，对比减排目标，生成核算报告"
+        "碳排放核算 DAG：匹配排放因子，计算排放量 E=AD×EF×GWP，" "按 Scope 分类汇总，对比减排目标，生成核算报告"
     ),
     default_args=default_args,
     schedule_interval="0 3 1 * *",  # 每月 1 日凌晨 3:00
@@ -91,7 +91,7 @@ extract_activity_data = BashOperator(
     task_id="extract_activity_data",
     bash_command=(
         f"echo '[2] 提取活动数据（AD）从 energy_consumption_summary...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"CREATE TEMPORARY VIEW activity_data_{BIZ_MONTH} AS "
         f"SELECT s.measure_medium, s.dimension_type, s.dimension_id, s.dimension_name, "
         f"s.total_consumption AS activity_data, s.unit AS activity_unit, "
@@ -112,7 +112,7 @@ calc_emission = BashOperator(
     task_id="calc_emission",
     bash_command=(
         f"echo '[3] 计算排放量 E = AD × EF × GWP...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.emission_calculation_result "
         f"SELECT CONCAT('emis_', source_id, '_', '{BIZ_MONTH}') AS result_id, "
         f"LAST_DAY('{BIZ_DATE}') AS stat_date, 'MONTH' AS stat_period, "
@@ -124,7 +124,7 @@ calc_emission = BashOperator(
         f"'OPERATIONAL' AS calculation_method, 1.0000 AS ownership_ratio, "
         f"NULL AS remark, NOW() AS created_at "
         f"FROM activity_data_{BIZ_MONTH} a "
-        f"JOIN {DORIS_DB}.emission_factor_library f ON a.factor_id = f.factor_id;\" && "
+        f'JOIN {DORIS_DB}.emission_factor_library f ON a.factor_id = f.factor_id;" && '
         f"echo '[3] 排放量计算完成'"
     ),
     dag=dag,
@@ -142,9 +142,12 @@ scope_classification = SparkSubmitOperator(
         "spark.app.name": f"carbon_scope_classification_{BIZ_MONTH}",
     },
     application_args=[
-        "--biz-month", BIZ_MONTH,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-month",
+        BIZ_MONTH,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -155,8 +158,7 @@ scope_classification = SparkSubmitOperator(
 update_reduction_progress = PythonOperator(
     task_id="update_reduction_progress",
     python_callable=lambda: print(
-        f"[5] 对比减排目标（emission_reduction_target），"
-        f"更新进度 progress，状态 status（biz_month={BIZ_MONTH}）"
+        f"[5] 对比减排目标（emission_reduction_target），" f"更新进度 progress，状态 status（biz_month={BIZ_MONTH}）"
     ),
     dag=dag,
 )
@@ -169,7 +171,7 @@ generate_report = BashOperator(
     task_id="generate_report",
     bash_command=(
         f"echo '[6] 生成核算报告...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.emission_report "
         f"SELECT CONCAT('report_', '{BIZ_MONTH}') AS report_id, "
         f"CONCAT('{BIZ_MONTH} 碳排放核算报告') AS report_name, "
@@ -197,9 +199,7 @@ generate_report = BashOperator(
 # ---------------------------------------------------------------------------
 notify_downstream = PythonOperator(
     task_id="notify_downstream",
-    python_callable=lambda: print(
-        f"[7] 通知下游：刷新碳排放 Dashboard，触发报告审批流程（biz_month={BIZ_MONTH}）"
-    ),
+    python_callable=lambda: print(f"[7] 通知下游：刷新碳排放 Dashboard，触发报告审批流程（biz_month={BIZ_MONTH}）"),
     dag=dag,
 )
 

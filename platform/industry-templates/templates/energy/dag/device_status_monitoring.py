@@ -15,15 +15,15 @@
 
 Author: T043 能源行业模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
-from airflow.providers.apache.flink.operators.flink_submit import FlinkSubmitOperator
 
 # ---------------------------------------------------------------------------
 # DAG 默认参数
@@ -45,8 +45,7 @@ default_args = {
 dag = DAG(
     dag_id="device_status_monitoring",
     description=(
-        "设备状态实时监控 DAG：从 IoTDB 查询设备时序数据，更新实时状态，"
-        "检测状态变更，触发告警，计算健康度评分"
+        "设备状态实时监控 DAG：从 IoTDB 查询设备时序数据，更新实时状态，" "检测状态变更，触发告警，计算健康度评分"
     ),
     default_args=default_args,
     schedule_interval="*/5 * * * *",  # 每 5 分钟
@@ -75,7 +74,7 @@ extract_iotdb_status = BashOperator(
         f"echo '[1] 从 IoTDB({IOTDB_HOST}) 查询设备最新状态时序数据 ts={BIZ_TS}...' && "
         f"java -jar /opt/iotdb/iotdb-jdbc-tool.jar "
         f"--host {IOTDB_HOST} "
-        f"--sql \"SELECT * FROM root.energy.device.* WHERE time >= now() - 5m\" "
+        f'--sql "SELECT * FROM root.energy.device.* WHERE time >= now() - 5m" '
         f"--output /tmp/iotdb_device_status_{BIZ_TS}.csv && "
         f"echo '[1] IoTDB 设备状态数据抽取完成'"
     ),
@@ -134,16 +133,19 @@ calc_health_score = BashOperator(
     task_id="calc_health_score",
     bash_command=(
         f"echo '[5] 计算设备健康度评分...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.device_health_score "
         f"SELECT CONCAT(device_id, '_', DATE(NOW())) AS score_id, "
         f"device_id, device_code, DATE(NOW()) AS stat_date, "
         f"-- 可用率评分 = 在线时长/总时长*100"
         f"COALESCE(SUM(CASE WHEN online_status='ONLINE' THEN 1 ELSE 0 END)*100.0/COUNT(*), 0) AS availability_score, "
         f"-- 性能评分 = 100 - 偏离额定参数的扣分"
-        f"COALESCE(100 - AVG(ABS(instantaneous_rate - rated_power)/NULLIF(rated_power,0)*100), 0) AS performance_score, "
+        f"COALESCE(100 - AVG(ABS(instantaneous_rate - rated_power)"
+        f"/NULLIF(rated_power,0)*100), 0) AS performance_score, "
         f"-- 告警评分 = 100 - 告警扣分（CRITICAL=20, WARNING=5, INFO=1）"
-        f"100 - SUM(CASE WHEN alarm_level='CRITICAL' THEN 20 WHEN alarm_level='WARNING' THEN 5 WHEN alarm_level='INFO' THEN 1 ELSE 0 END) AS alarm_score, "
+        f"100 - SUM(CASE WHEN alarm_level='CRITICAL' THEN 20 "
+        f"WHEN alarm_level='WARNING' THEN 5 "
+        f"WHEN alarm_level='INFO' THEN 1 ELSE 0 END) AS alarm_score, "
         f"-- 综合健康度 = 0.4*可用率 + 0.4*性能 + 0.2*告警"
         f"0.4*availability_score + 0.4*performance_score + 0.2*alarm_score AS health_score, "
         f"0.40 AS weight_availability, 0.40 AS weight_performance, 0.20 AS weight_alarm, "
@@ -153,7 +155,7 @@ calc_health_score = BashOperator(
         f"FROM {DORIS_DB}.device_realtime_status s "
         f"LEFT JOIN {DORIS_DB}.energy_device d ON s.device_id = d.device_id "
         f"LEFT JOIN {DORIS_DB}.device_alarm_record a ON s.device_id = a.device_id AND DATE(a.alarm_time) = DATE(NOW()) "
-        f"GROUP BY device_id, device_code;\" && "
+        f'GROUP BY device_id, device_code;" && '
         f"echo '[5] 健康度评分计算完成'"
     ),
     dag=dag,
@@ -164,10 +166,7 @@ calc_health_score = BashOperator(
 # ---------------------------------------------------------------------------
 notify_downstream = PythonOperator(
     task_id="notify_downstream",
-    python_callable=lambda: print(
-        "[6] 通知下游：触发 device_alert_routing DAG 处理新告警，"
-        "刷新设备监测 Dashboard"
-    ),
+    python_callable=lambda: print("[6] 通知下游：触发 device_alert_routing DAG 处理新告警，" "刷新设备监测 Dashboard"),
     dag=dag,
 )
 

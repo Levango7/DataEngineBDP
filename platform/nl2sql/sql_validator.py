@@ -11,23 +11,31 @@
     - sqlparse 解析失败即视为语法错误。
     - SELECT-only 模式下，检测到 DML/DDL 直接拒绝。
 """
+
 from __future__ import annotations
 
 import re
 from typing import Optional
 
+from config.settings import Settings
+from models import SchemaContext, ValidationIssue, ValidationLevel, ValidationResult
 import sqlparse
 from sqlparse.sql import Statement
 from sqlparse.tokens import Keyword
 
-from models import SchemaContext, ValidationIssue, ValidationLevel, ValidationResult
-from config.settings import Settings
-
-
 # 危险语句关键词（SELECT-only 模式下禁止）
 _DANGEROUS_KEYWORDS = {
-    "INSERT", "UPDATE", "DELETE", "DROP", "TRUNCATE", "ALTER",
-    "CREATE", "GRANT", "REVOKE", "MERGE", "REPLACE",
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "DROP",
+    "TRUNCATE",
+    "ALTER",
+    "CREATE",
+    "GRANT",
+    "REVOKE",
+    "MERGE",
+    "REPLACE",
 }
 
 
@@ -55,19 +63,19 @@ class SqlValidator:
         if not sql or not sql.strip():
             return ValidationResult(
                 valid=False,
-                issues=[ValidationIssue(
-                    level=ValidationLevel.ERROR, message="SQL 为空", code="EMPTY_SQL"
-                )],
+                issues=[ValidationIssue(level=ValidationLevel.ERROR, message="SQL 为空", code="EMPTY_SQL")],
             )
 
         # 1. sqlparse 解析
         parsed = sqlparse.parse(sql)
         if not parsed:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.ERROR,
-                message="SQL 解析失败：sqlparse 返回空",
-                code="PARSE_EMPTY",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.ERROR,
+                    message="SQL 解析失败：sqlparse 返回空",
+                    code="PARSE_EMPTY",
+                )
+            )
             return ValidationResult(valid=False, issues=issues)
 
         stmt: Statement = parsed[0]
@@ -136,31 +144,35 @@ class SqlValidator:
             elif ch == ")":
                 depth -= 1
                 if depth < 0:
-                    issues.append(ValidationIssue(
-                        level=ValidationLevel.ERROR,
-                        message="括号不配对：出现多余的 ')'",
-                        code="UNBALANCED_PAREN",
-                    ))
+                    issues.append(
+                        ValidationIssue(
+                            level=ValidationLevel.ERROR,
+                            message="括号不配对：出现多余的 ')'",
+                            code="UNBALANCED_PAREN",
+                        )
+                    )
                     return issues
         if depth != 0:
-            issues.append(ValidationIssue(
-                level=ValidationLevel.ERROR,
-                message=f"括号不配对：剩余 {depth} 个未闭合 '('",
-                code="UNBALANCED_PAREN",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.ERROR,
+                    message=f"括号不配对：剩余 {depth} 个未闭合 '('",
+                    code="UNBALANCED_PAREN",
+                )
+            )
         # 末尾分号（警告）
         if not sql.strip().rstrip().endswith(";"):
-            issues.append(ValidationIssue(
-                level=ValidationLevel.WARNING,
-                message="SQL 末尾建议以 ';' 结尾",
-                code="MISSING_SEMICOLON",
-            ))
+            issues.append(
+                ValidationIssue(
+                    level=ValidationLevel.WARNING,
+                    message="SQL 末尾建议以 ';' 结尾",
+                    code="MISSING_SEMICOLON",
+                )
+            )
         return issues
 
     # ---- 表名存在性检查 ----
-    def _checkTablesExist(
-        self, stmt: Statement, ctx: SchemaContext
-    ) -> list[ValidationIssue]:
+    def _checkTablesExist(self, stmt: Statement, ctx: SchemaContext) -> list[ValidationIssue]:
         """检查 SQL 中引用的表名是否存在于 schema 上下文."""
         issues: list[ValidationIssue] = []
         knownTables = set()
@@ -171,11 +183,13 @@ class SqlValidator:
         referenced = self._extractTableNames(stmt)
         for ref in referenced:
             if ref.lower() not in knownTables:
-                issues.append(ValidationIssue(
-                    level=ValidationLevel.WARNING,
-                    message=f"表 '{ref}' 未在 schema 上下文中找到",
-                    code="TABLE_NOT_FOUND",
-                ))
+                issues.append(
+                    ValidationIssue(
+                        level=ValidationLevel.WARNING,
+                        message=f"表 '{ref}' 未在 schema 上下文中找到",
+                        code="TABLE_NOT_FOUND",
+                    )
+                )
         return issues
 
     @staticmethod

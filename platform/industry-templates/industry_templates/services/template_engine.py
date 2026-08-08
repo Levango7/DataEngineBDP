@@ -11,20 +11,20 @@
     - mock: 不真正调用 helm，仅生成部署记录（开发/测试默认）
     - helm: 通过 HelmExecutor 调用真实 helm CLI（生产/集成环境）
 """
+
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import os
 import re
-import uuid
-from datetime import datetime, timezone
 from typing import Any, Literal, Optional
+import uuid
 
 from industry_templates.models import (
     DeploymentRecord,
     DeploymentRequest,
     DeploymentStatus,
     Template,
-    TemplateParameter,
     TemplatePreview,
     TemplateStatus,
 )
@@ -33,8 +33,8 @@ from industry_templates.services.exceptions import (
     ParameterValidationError,
     RenderError,
     TemplateError,
-    TemplateNotFoundError,
     TemplateNotDeployableError,
+    TemplateNotFoundError,
 )
 
 # 占位符正则：${param.name} 或 ${param.name:default}
@@ -174,10 +174,7 @@ class TemplateEngine:
                 "industry": ind,
                 "name": industry_names.get(ind, ind),
                 "count": len(items),
-                "templates": [
-                    {"id": t.id, "name": t.meta.name, "version": t.meta.version}
-                    for t in items
-                ],
+                "templates": [{"id": t.id, "name": t.meta.name, "version": t.meta.version} for t in items],
             }
             for ind, items in groups.items()
         ]
@@ -196,6 +193,7 @@ class TemplateEngine:
             渲染后的值。占位符未提供时保留原占位符。
         """
         if isinstance(value, str):
+
             def _replace(match: re.Match[str]) -> str:
                 key = match.group(1)
                 default = match.group(2)
@@ -207,10 +205,7 @@ class TemplateEngine:
 
             return _PLACEHOLDER_RE.sub(_replace, value)
         if isinstance(value, dict):
-            return {
-                k: TemplateEngine.render_value(v, values)
-                for k, v in value.items()
-            }
+            return {k: TemplateEngine.render_value(v, values) for k, v in value.items()}
         if isinstance(value, list):
             return [TemplateEngine.render_value(v, values) for v in value]
         return value
@@ -325,9 +320,7 @@ class TemplateEngine:
 
         # 2. 校验模板状态
         if template.meta.status != TemplateStatus.CATALOG:
-            raise TemplateNotDeployableError(
-                templateId, template.meta.status.value
-            )
+            raise TemplateNotDeployableError(templateId, template.meta.status.value)
 
         # 3. 合并默认值
         merged_values = self.merge_default_values(template, request.values)
@@ -337,7 +330,7 @@ class TemplateEngine:
 
         # 5. 渲染模板
         try:
-            rendered = self.render_template(template, merged_values)
+            self.render_template(template, merged_values)
         except Exception as e:
             raise RenderError(f"模板渲染失败: {e}") from e
 
@@ -380,9 +373,7 @@ class TemplateEngine:
         record.status = DeploymentStatus.INSTANTIATING
         record.jobRunId = f"job-{uuid.uuid4().hex[:12]}"
         record.status = DeploymentStatus.RUNNING
-        record.dashboardSnapshotUrl = (
-            f"/dashboards/{record.deploymentId}/snapshot.png"
-        )
+        record.dashboardSnapshotUrl = f"/dashboards/{record.deploymentId}/snapshot.png"
         record.finishedAt = datetime.now(timezone.utc)
 
     def _helm_deploy(
@@ -414,9 +405,7 @@ class TemplateEngine:
         record.status = DeploymentStatus.INSTANTIATING
         record.jobRunId = f"job-{uuid.uuid4().hex[:12]}"
         record.status = DeploymentStatus.RUNNING
-        record.dashboardSnapshotUrl = (
-            f"/dashboards/{record.deploymentId}/snapshot.png"
-        )
+        record.dashboardSnapshotUrl = f"/dashboards/{record.deploymentId}/snapshot.png"
         record.finishedAt = datetime.now(timezone.utc)
 
     def get_deployment(self, deploymentId: str) -> DeploymentRecord:

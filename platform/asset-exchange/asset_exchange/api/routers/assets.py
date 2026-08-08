@@ -21,6 +21,7 @@
     GET    /assets/{id}/allocations       分账列表
     GET    /assets/{id}/audit-logs        资产审计日志
 """
+
 from __future__ import annotations
 
 import uuid
@@ -47,10 +48,10 @@ from asset_exchange.models.base import (
 )
 from asset_exchange.models.billing import BillingSummary
 from asset_exchange.models.settlement import (
-    Allocation,
     AllocateRequest,
-    SettleRequest,
+    Allocation,
     Settlement,
+    SettleRequest,
 )
 from asset_exchange.models.subscription import (
     SubscribeRequest,
@@ -64,14 +65,13 @@ router = APIRouter(prefix="/assets", tags=["assets"])
 
 # ---------- 请求模型 ----------
 
+
 class ListAssetRequest(BaseModel):
     """上架资产请求（兼容旧接口）."""
 
     name: str
     type: AssetType
-    tenantId: str = Field(
-        ..., validation_alias=AliasChoices("tenantId", "owner")
-    )
+    tenantId: str = Field(..., validation_alias=AliasChoices("tenantId", "owner"))
     description: str | None = None
     securityLevel: SecurityLevel = SecurityLevel.INTERNAL
     qualityScore: float = 0.0
@@ -88,9 +88,7 @@ class RegisterAssetRequest(BaseModel):
 
     name: str
     type: AssetType
-    tenantId: str = Field(
-        ..., validation_alias=AliasChoices("tenantId", "owner")
-    )
+    tenantId: str = Field(..., validation_alias=AliasChoices("tenantId", "owner"))
     description: str | None = None
     securityLevel: SecurityLevel = SecurityLevel.INTERNAL
     qualityScore: float = 0.0
@@ -136,6 +134,7 @@ class InvokeRequest(BaseModel):
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "/register",
@@ -190,9 +189,7 @@ async def audit_asset(
 ) -> Asset:
     """资产审核（合规/质量/分级检查）."""
     try:
-        result = await registry.assetService.audit(
-            asset_id, req.result, req.auditorId, req.reason
-        )
+        result = await registry.assetService.audit(asset_id, req.result, req.auditorId, req.reason)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.AUDIT,
@@ -294,15 +291,9 @@ async def list_asset(
 async def list_assets(
     name: str | None = Query(default=None, description="名称模糊匹配"),
     type: AssetType | None = Query(default=None, description="按类型过滤"),
-    status_: AssetStatus | None = Query(
-        default=None, alias="status", description="按状态过滤"
-    ),
-    securityLevel: SecurityLevel | None = Query(
-        default=None, description="按安全分级过滤"
-    ),
-    tenantId: str | None = Query(
-        default=None, description="按租户 ID 过滤（推荐）"
-    ),
+    status_: AssetStatus | None = Query(default=None, alias="status", description="按状态过滤"),
+    securityLevel: SecurityLevel | None = Query(default=None, description="按安全分级过滤"),
+    tenantId: str | None = Query(default=None, description="按租户 ID 过滤（推荐）"),
     owner: str | None = Query(
         default=None,
         description="按提供方过滤（已废弃，请使用 tenantId；为兼容旧客户端保留）",
@@ -426,9 +417,7 @@ async def download_asset(
 ) -> dict:
     """下载资产（流通方式之一）."""
     try:
-        result = await registry.assetService.download(
-            asset_id, req.subscriberId, req.rows
-        )
+        result = await registry.assetService.download(asset_id, req.subscriberId, req.rows)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.DOWNLOAD,
@@ -453,9 +442,7 @@ async def invoke_asset(
 ) -> dict:
     """API 调用资产（流通方式之一）."""
     try:
-        result = await registry.assetService.invoke(
-            asset_id, req.subscriberId, req.params
-        )
+        result = await registry.assetService.invoke(asset_id, req.subscriberId, req.params)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.INVOKE,
@@ -511,6 +498,7 @@ async def get_asset_usage(
 
 
 # ---------- 结算与分账 ----------
+
 
 @router.post(
     "/{asset_id}/settle",
@@ -580,9 +568,7 @@ async def allocate_asset(
                 detail=f"资产 {asset_id} 无结算记录，请先结算再分账",
             )
         latest_settlement = settlements[0]
-        result = await registry.allocationService.allocate(
-            latest_settlement.id, req
-        )
+        result = await registry.allocationService.allocate(latest_settlement.id, req)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.ALLOCATE,

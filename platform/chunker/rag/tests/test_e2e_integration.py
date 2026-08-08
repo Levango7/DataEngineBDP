@@ -7,22 +7,18 @@
 本测试使用 MockVectorStore + StubAdapter，无需外部依赖（Milvus/sentence-transformers）。
 通过 stub 适配器模拟确定性 embedding，验证端到端流程的正确性。
 """
+
 from __future__ import annotations
-
-import math
-from typing import Any
-
-import pytest
 
 from chunker.base import BaseChunker
 from chunker.embedding.base import EmbeddingAdapter
-from chunker.models import Chunk, ChunkConfig, ChunkMetadata, Modality
+from chunker.models import Chunk, ChunkConfig, Modality
 from chunker.rag.fusion import MultiModalFusionRetriever
 from chunker.rag.indexer import Indexer
 from chunker.rag.pipeline import RAGPipeline
 from chunker.rag.retriever import Retriever
-from chunker.rag.vector_store import MockVectorStore, VectorRecord
-
+from chunker.rag.vector_store import MockVectorStore
+import pytest
 
 # ----------------------------------------------------------------------
 # Stub 适配器：确定性语义 embedding
@@ -40,14 +36,14 @@ class SemanticStubAdapter(EmbeddingAdapter):
 
     # 语义维度与关键词映射
     KEYWORDS = [
-        ["数据", "data", "dataset"],          # dim 0
-        ["平台", "platform", "系统"],          # dim 1
-        ["分析", "analysis", "analyze"],       # dim 2
-        ["机器学习", "ml", "learning"],        # dim 3
-        ["表格", "table", "csv"],              # dim 4
-        ["图像", "image", "图片"],             # dim 5
-        ["语音", "audio", "voice"],            # dim 6
-        ["报告", "report", "文档"],            # dim 7
+        ["数据", "data", "dataset"],  # dim 0
+        ["平台", "platform", "系统"],  # dim 1
+        ["分析", "analysis", "analyze"],  # dim 2
+        ["机器学习", "ml", "learning"],  # dim 3
+        ["表格", "table", "csv"],  # dim 4
+        ["图像", "image", "图片"],  # dim 5
+        ["语音", "audio", "voice"],  # dim 6
+        ["报告", "report", "文档"],  # dim 7
     ]
 
     def __init__(self, dimension=8):
@@ -80,6 +76,7 @@ class SemanticStubAdapter(EmbeddingAdapter):
 
 class TextStubChunker(BaseChunker):
     """文本切片器 stub."""
+
     MODALITY = Modality.TEXT
 
     async def _preprocess(self, content, config):
@@ -93,11 +90,15 @@ class TextStubChunker(BaseChunker):
         chunks = []
         for i in range(0, len(text), window):
             sub = text[i : i + window]
-            chunks.append(Chunk(
-                id=self._make_chunk_id(),
-                content=sub,
-                metadata=self._make_metadata(config, index=len(chunks), start=i, end=i + len(sub), source="text-doc"),
-            ))
+            chunks.append(
+                Chunk(
+                    id=self._make_chunk_id(),
+                    content=sub,
+                    metadata=self._make_metadata(
+                        config, index=len(chunks), start=i, end=i + len(sub), source="text-doc"
+                    ),
+                )
+            )
         return chunks
 
     async def _postprocess(self, chunks, config):
@@ -108,6 +109,7 @@ class TextStubChunker(BaseChunker):
 
 class TableStubChunker(BaseChunker):
     """表格切片器 stub."""
+
     MODALITY = Modality.TABLE
 
     async def _preprocess(self, content, config):
@@ -124,14 +126,20 @@ class TableStubChunker(BaseChunker):
             sub_rows = rows[i : i + window]
             # 将行序列化为文本用于 embedding
             text = " | ".join(" , ".join(r) for r in sub_rows)
-            chunks.append(Chunk(
-                id=self._make_chunk_id(),
-                content=text,
-                metadata=self._make_metadata(
-                    config, index=len(chunks), start=i, end=i + len(sub_rows),
-                    source="table-doc", extra={"rows": sub_rows}
-                ),
-            ))
+            chunks.append(
+                Chunk(
+                    id=self._make_chunk_id(),
+                    content=text,
+                    metadata=self._make_metadata(
+                        config,
+                        index=len(chunks),
+                        start=i,
+                        end=i + len(sub_rows),
+                        source="table-doc",
+                        extra={"rows": sub_rows},
+                    ),
+                )
+            )
         return chunks
 
     async def _postprocess(self, chunks, config):
@@ -142,6 +150,7 @@ class TableStubChunker(BaseChunker):
 
 class ImageStubChunker(BaseChunker):
     """图像切片器 stub（模拟 OCR 输出）."""
+
     MODALITY = Modality.IMAGE
 
     async def _preprocess(self, content, config):
@@ -152,14 +161,15 @@ class ImageStubChunker(BaseChunker):
         ocr_text = preprocessed.get("ocr_text", "")
         if not ocr_text:
             return []
-        chunks = [Chunk(
-            id=self._make_chunk_id(),
-            content=ocr_text,
-            metadata=self._make_metadata(
-                config, index=0, source="image-doc",
-                extra={"bbox": {"x": 0, "y": 0, "w": 100, "h": 100}}
-            ),
-        )]
+        chunks = [
+            Chunk(
+                id=self._make_chunk_id(),
+                content=ocr_text,
+                metadata=self._make_metadata(
+                    config, index=0, source="image-doc", extra={"bbox": {"x": 0, "y": 0, "w": 100, "h": 100}}
+                ),
+            )
+        ]
         return chunks
 
     async def _postprocess(self, chunks, config):
@@ -170,6 +180,7 @@ class ImageStubChunker(BaseChunker):
 
 class AudioStubChunker(BaseChunker):
     """语音切片器 stub（模拟 ASR 输出）."""
+
     MODALITY = Modality.AUDIO
 
     async def _preprocess(self, content, config):
@@ -180,14 +191,18 @@ class AudioStubChunker(BaseChunker):
         asr_text = preprocessed.get("asr_text", "")
         if not asr_text:
             return []
-        chunks = [Chunk(
-            id=self._make_chunk_id(),
-            content=asr_text,
-            metadata=self._make_metadata(
-                config, index=0, source="audio-doc",
-                extra={"startTime": 0, "endTime": preprocessed.get("duration", 0)}
-            ),
-        )]
+        chunks = [
+            Chunk(
+                id=self._make_chunk_id(),
+                content=asr_text,
+                metadata=self._make_metadata(
+                    config,
+                    index=0,
+                    source="audio-doc",
+                    extra={"startTime": 0, "endTime": preprocessed.get("duration", 0)},
+                ),
+            )
+        ]
         return chunks
 
     async def _postprocess(self, chunks, config):
@@ -441,10 +456,12 @@ class TestMultiModalFusion:
         # 注入固定 query vector（与"数据平台机器学习"相关）
         async def mock_embed_query(text):
             return adapter._normalize([1.0, 1.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.5])
+
         adapter.embed_query = mock_embed_query
 
         results = await fusion.retrieve_fused(
-            "multi_coll", "数据平台机器学习",
+            "multi_coll",
+            "数据平台机器学习",
             modalities=[Modality.TEXT, Modality.TABLE, Modality.IMAGE, Modality.AUDIO],
             top_k=10,
             method="rrf",
@@ -482,10 +499,12 @@ class TestMultiModalFusion:
 
         async def mock_embed_query(text):
             return adapter._normalize([1.0, 1.0, 0.5, 1.0, 0.0, 0.0, 0.0, 0.5])
+
         adapter.embed_query = mock_embed_query
 
         results = await fusion.retrieve_fused(
-            "weighted_coll", "数据平台",
+            "weighted_coll",
+            "数据平台",
             modalities=[Modality.TEXT, Modality.IMAGE],
             top_k=5,
             method="weighted",
@@ -504,18 +523,10 @@ class TestEndToEndAccuracy:
 
         # 索引四模态
         all_chunks = []
-        text_chunks = await TextStubChunker().chunk(
-            TEXT_DOC, ChunkConfig(modality=Modality.TEXT, windowSize=30)
-        )
-        table_chunks = await TableStubChunker().chunk(
-            TABLE_DOC, ChunkConfig(modality=Modality.TABLE, windowSize=5)
-        )
-        image_chunks = await ImageStubChunker().chunk(
-            IMAGE_DOC, ChunkConfig(modality=Modality.IMAGE)
-        )
-        audio_chunks = await AudioStubChunker().chunk(
-            AUDIO_DOC, ChunkConfig(modality=Modality.AUDIO)
-        )
+        text_chunks = await TextStubChunker().chunk(TEXT_DOC, ChunkConfig(modality=Modality.TEXT, windowSize=30))
+        table_chunks = await TableStubChunker().chunk(TABLE_DOC, ChunkConfig(modality=Modality.TABLE, windowSize=5))
+        image_chunks = await ImageStubChunker().chunk(IMAGE_DOC, ChunkConfig(modality=Modality.IMAGE))
+        audio_chunks = await AudioStubChunker().chunk(AUDIO_DOC, ChunkConfig(modality=Modality.AUDIO))
         all_chunks = text_chunks + table_chunks + image_chunks + audio_chunks
         await indexer.index("overall_coll", all_chunks)
 

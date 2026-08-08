@@ -1,17 +1,13 @@
 """索引器测试 (T008-6)."""
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Any
-
-import pytest
-
 from chunker.embedding.base import EmbeddingAdapter
-from chunker.models import Chunk, ChunkConfig, ChunkMetadata, Modality
-from chunker.rag.exceptions import EmbeddingMissingError, IndexError
+from chunker.models import Chunk, ChunkMetadata, Modality
+from chunker.rag.exceptions import EmbeddingMissingError
 from chunker.rag.indexer import Indexer
-from chunker.rag.vector_store import MockVectorStore, VectorRecord
-
+from chunker.rag.vector_store import MockVectorStore
+import pytest
 
 # ----------------------------------------------------------------------
 # fixtures
@@ -118,9 +114,7 @@ class TestIndexer:
         chunk = Chunk(
             id="c1",
             content=b"\x89PNG",
-            metadata=ChunkMetadata(
-                modality=Modality.IMAGE, source="img.png", extra={"text": "OCR text"}
-            ),
+            metadata=ChunkMetadata(modality=Modality.IMAGE, source="img.png", extra={"text": "OCR text"}),
         )
         assert Indexer._chunk_to_text(chunk) == "OCR text"
 
@@ -170,10 +164,7 @@ class TestIndexer:
     async def test_batch_insert(self):
         store = MockVectorStore()
         indexer = Indexer(store, batch_size=2)
-        chunks = [
-            _make_chunk(f"t{i}", embedding=[float(i), 0.0, 0.0, 0.0], chunk_id=f"c{i}")
-            for i in range(5)
-        ]
+        chunks = [_make_chunk(f"t{i}", embedding=[float(i), 0.0, 0.0, 0.0], chunk_id=f"c{i}") for i in range(5)]
         count = await indexer.index("test", chunks)
         assert count == 5
 

@@ -14,10 +14,11 @@
 
 Author: T044 政务模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -44,8 +45,7 @@ default_args = {
 dag = DAG(
     dag_id="population_forecast",
     description=(
-        "人口预测 DAG：基于历史人口数据，使用线性/ARIMA/队列要素法"
-        "预测未来 5 年人口趋势，写入 population_forecast 表"
+        "人口预测 DAG：基于历史人口数据，使用线性/ARIMA/队列要素法" "预测未来 5 年人口趋势，写入 population_forecast 表"
     ),
     default_args=default_args,
     schedule_interval="0 4 1 * *",  # 每月 1 日凌晨 4:00
@@ -71,12 +71,12 @@ load_history_data = BashOperator(
     task_id="load_history_data",
     bash_command=(
         f"echo '[1] 加载历史人口结构数据（近 10 年，base_year={BASE_YEAR}）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT stat_year, province, city, total_population, "
         f"aging_rate, urbanization_rate "
         f"FROM {DORIS_DB}.population_structure "
         f"WHERE stat_year BETWEEN {int(BASE_YEAR) - 10} AND {BASE_YEAR} "
-        f"ORDER BY stat_year;\" && "
+        f'ORDER BY stat_year;" && '
         f"echo '[1] 历史数据加载完成'"
     ),
     dag=dag,
@@ -94,11 +94,16 @@ forecast_linear = SparkSubmitOperator(
         "spark.app.name": f"population_forecast_linear_{BIZ_DATE}",
     },
     application_args=[
-        "--base-year", BASE_YEAR,
-        "--forecast-years", str(FORECAST_YEARS),
-        "--method", "LINEAR",
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--base-year",
+        BASE_YEAR,
+        "--forecast-years",
+        str(FORECAST_YEARS),
+        "--method",
+        "LINEAR",
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -115,11 +120,16 @@ forecast_arima = SparkSubmitOperator(
         "spark.app.name": f"population_forecast_arima_{BIZ_DATE}",
     },
     application_args=[
-        "--base-year", BASE_YEAR,
-        "--forecast-years", str(FORECAST_YEARS),
-        "--method", "ARIMA",
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--base-year",
+        BASE_YEAR,
+        "--forecast-years",
+        str(FORECAST_YEARS),
+        "--method",
+        "ARIMA",
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -136,11 +146,16 @@ forecast_cohort = SparkSubmitOperator(
         "spark.app.name": f"population_forecast_cohort_{BIZ_DATE}",
     },
     application_args=[
-        "--base-year", BASE_YEAR,
-        "--forecast-years", str(FORECAST_YEARS),
-        "--method", "COHORT",
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--base-year",
+        BASE_YEAR,
+        "--forecast-years",
+        str(FORECAST_YEARS),
+        "--method",
+        "COHORT",
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -152,13 +167,13 @@ calc_confidence_interval = BashOperator(
     task_id="calc_confidence_interval",
     bash_command=(
         f"echo '[5] 计算预测置信区间（95%）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT forecast_year, forecast_method, "
         f"forecast_population, "
         f"forecast_population * 0.97 AS forecast_lower, "
         f"forecast_population * 1.03 AS forecast_upper "
         f"FROM {DORIS_DB}.population_forecast "
-        f"WHERE base_year = {BASE_YEAR};\" && "
+        f'WHERE base_year = {BASE_YEAR};" && '
         f"echo '[5] 置信区间计算完成'"
     ),
     dag=dag,
@@ -169,9 +184,7 @@ calc_confidence_interval = BashOperator(
 # ---------------------------------------------------------------------------
 forecast_ratios = PythonOperator(
     task_id="forecast_ratios",
-    python_callable=lambda: print(
-        f"[6] 预测老龄化率/城镇化率: base_year={BASE_YEAR}, forecast_years={FORECAST_YEARS}"
-    ),
+    python_callable=lambda: print(f"[6] 预测老龄化率/城镇化率: base_year={BASE_YEAR}, forecast_years={FORECAST_YEARS}"),
     dag=dag,
 )
 
@@ -180,13 +193,17 @@ forecast_ratios = PythonOperator(
 # ---------------------------------------------------------------------------
 notify_dashboard = PythonOperator(
     task_id="notify_dashboard_refresh",
-    python_callable=lambda: print(
-        f"[7] 人口预测完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[7] 人口预测完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系
 # ---------------------------------------------------------------------------
-load_history_data >> [forecast_linear, forecast_arima, forecast_cohort] >> calc_confidence_interval >> forecast_ratios >> notify_dashboard
+(
+    load_history_data
+    >> [forecast_linear, forecast_arima, forecast_cohort]
+    >> calc_confidence_interval
+    >> forecast_ratios
+    >> notify_dashboard
+)

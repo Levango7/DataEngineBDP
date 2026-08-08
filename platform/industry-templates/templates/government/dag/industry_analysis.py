@@ -11,10 +11,11 @@
 
 Author: T044 政务模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -40,10 +41,7 @@ default_args = {
 # ---------------------------------------------------------------------------
 dag = DAG(
     dag_id="industry_analysis",
-    description=(
-        "产业结构分析 DAG：计算三次产业占比/行业贡献度/"
-        "产业结构升级趋势，写入 industry_structure 表"
-    ),
+    description=("产业结构分析 DAG：计算三次产业占比/行业贡献度/" "产业结构升级趋势，写入 industry_structure 表"),
     default_args=default_args,
     schedule_interval="0 5 16 1,4,7,10 *",  # 每季度首月 16 日凌晨 5:00
     start_date=datetime(2024, 1, 1),
@@ -67,10 +65,10 @@ load_industry_data = BashOperator(
     task_id="load_industry_data",
     bash_command=(
         f"echo '[1] 加载各行业增加值数据 biz_year={BIZ_YEAR}...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT industry_category, industry_code, industry_name, added_value, employee_count "
         f"FROM {DORIS_DB}.industry_structure "
-        f"WHERE stat_year = {BIZ_YEAR};\" && "
+        f'WHERE stat_year = {BIZ_YEAR};" && '
         f"echo '[1] 行业数据加载完成'"
     ),
     dag=dag,
@@ -83,12 +81,12 @@ calc_industry_ratio = BashOperator(
     task_id="calc_industry_ratio",
     bash_command=(
         f"echo '[2] 计算三次产业占比（第一/第二/第三产业占 GDP 比重）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT industry_category, SUM(added_value) AS total_value, "
         f"SUM(added_value)*100.0/SUM(SUM(added_value)) OVER() AS ratio "
         f"FROM {DORIS_DB}.industry_structure "
         f"WHERE stat_year = {BIZ_YEAR} "
-        f"GROUP BY industry_category;\" && "
+        f'GROUP BY industry_category;" && '
         f"echo '[2] 三次产业占比计算完成'"
     ),
     dag=dag,
@@ -106,9 +104,12 @@ calc_contribution_rate = SparkSubmitOperator(
         "spark.app.name": f"industry_contribution_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-year", BIZ_YEAR,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-year",
+        BIZ_YEAR,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -118,9 +119,7 @@ calc_contribution_rate = SparkSubmitOperator(
 # ---------------------------------------------------------------------------
 analyze_upgrade_trend = PythonOperator(
     task_id="analyze_upgrade_trend",
-    python_callable=lambda: print(
-        f"[4] 分析产业结构升级趋势（第三产业占比变化）: biz_year={BIZ_YEAR}"
-    ),
+    python_callable=lambda: print(f"[4] 分析产业结构升级趋势（第三产业占比变化）: biz_year={BIZ_YEAR}"),
     dag=dag,
 )
 
@@ -131,11 +130,11 @@ identify_pillar_industries = BashOperator(
     task_id="identify_pillar_industries",
     bash_command=(
         f"echo '[5] 识别支柱产业（增加值 Top 5）与新兴产业（增速 Top 5）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT industry_name, added_value, growth_rate "
         f"FROM {DORIS_DB}.industry_structure "
         f"WHERE stat_year = {BIZ_YEAR} AND added_value IS NOT NULL "
-        f"ORDER BY added_value DESC LIMIT 5;\" && "
+        f'ORDER BY added_value DESC LIMIT 5;" && '
         f"echo '[5] 支柱产业识别完成'"
     ),
     dag=dag,
@@ -146,13 +145,17 @@ identify_pillar_industries = BashOperator(
 # ---------------------------------------------------------------------------
 notify_dashboard = PythonOperator(
     task_id="notify_dashboard_refresh",
-    python_callable=lambda: print(
-        f"[6] 产业结构分析完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[6] 产业结构分析完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系
 # ---------------------------------------------------------------------------
-load_industry_data >> calc_industry_ratio >> calc_contribution_rate >> [analyze_upgrade_trend, identify_pillar_industries] >> notify_dashboard
+(
+    load_industry_data
+    >> calc_industry_ratio
+    >> calc_contribution_rate
+    >> [analyze_upgrade_trend, identify_pillar_industries]
+    >> notify_dashboard
+)

@@ -1,13 +1,11 @@
 """RAG 异常与配置测试 (T008-6)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.rag.config import (
     DEFAULT_FUSION_METHOD,
     DEFAULT_INDEX_TYPE,
     DEFAULT_METRIC_TYPE,
-    DEFAULT_MODALITY_WEIGHTS,
     DEFAULT_RRF_K,
     DEFAULT_TOP_K,
     RAGSettings,
@@ -25,6 +23,7 @@ from chunker.rag.exceptions import (
     RetrieveError,
     VectorStoreError,
 )
+import pytest
 
 
 class TestExceptions:

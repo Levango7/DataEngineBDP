@@ -12,6 +12,7 @@
 
 接入标签引擎：将获胜变体写入实验标签
 """
+
 from __future__ import annotations
 
 import math
@@ -39,31 +40,49 @@ def _normal_ppf(p: float) -> float:
     if p >= 1:
         return float("inf")
     # Acklam 算法系数
-    a = [-3.969683028665376e+01, 2.2096609862002455e+02,
-         -2.759285104469857e+02, 1.383577518672690e+02,
-         -3.066479806629540e+01, 2.506628277459239e+00]
-    b = [-5.447609979034314e+01, 1.615858368580443e+02,
-         -1.556989798598966e+02, 6.680131345399126e+01,
-         -1.328068528976182e+01]
-    c = [-7.784894002430293e-03, -3.223964580411025e-01,
-         -2.400758517749386e+00, -2.549732539343213e+00,
-         4.374664141464968e+00, 2.938163982698783e+00]
-    d = [7.784695709041463e-03, 3.224671290700875e-01,
-         2.445637672444178e+00, 3.754196953827773e+00]
+    a = [
+        -3.969683028665376e01,
+        2.2096609862002455e02,
+        -2.759285104469857e02,
+        1.383577518672690e02,
+        -3.066479806629540e01,
+        2.506628277459239e00,
+    ]
+    b = [
+        -5.447609979034314e01,
+        1.615858368580443e02,
+        -1.556989798598966e02,
+        6.680131345399126e01,
+        -1.328068528976182e01,
+    ]
+    c = [
+        -7.784894002430293e-03,
+        -3.223964580411025e-01,
+        -2.400758517749386e00,
+        -2.549732539343213e00,
+        4.374664141464968e00,
+        2.938163982698783e00,
+    ]
+    d = [7.784695709041463e-03, 3.224671290700875e-01, 2.445637672444178e00, 3.754196953827773e00]
     p_low = 0.02425
     p_high = 1 - p_low
     if p < p_low:
         q = math.sqrt(-2 * math.log(p))
-        return (((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) / \
-               ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1)
+        return (((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+            (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1
+        )
     if p <= p_high:
         q = p - 0.5
         r = q * q
-        return (((((a[0]*r + a[1])*r + a[2])*r + a[3])*r + a[4])*r + a[5]) * q / \
-               (((((b[0]*r + b[1])*r + b[2])*r + b[3])*r + b[4])*r + 1)
+        return (
+            (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5])
+            * q
+            / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1)
+        )
     q = math.sqrt(-2 * math.log(1 - p))
-    return -(((((c[0]*q + c[1])*q + c[2])*q + c[3])*q + c[4])*q + c[5]) / \
-            ((((d[0]*q + d[1])*q + d[2])*q + d[3])*q + 1)
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+        (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1
+    )
 
 
 def z_test_proportions(
@@ -87,7 +106,7 @@ def z_test_proportions(
     p2 = treatment_success / treatment_total if treatment_total > 0 else 0
     # 合并比例
     p_pooled = (control_success + treatment_success) / (control_total + treatment_total)
-    se = math.sqrt(p_pooled * (1 - p_pooled) * (1/control_total + 1/treatment_total))
+    se = math.sqrt(p_pooled * (1 - p_pooled) * (1 / control_total + 1 / treatment_total))
     if se == 0:
         z = 0.0
     else:
@@ -97,7 +116,7 @@ def z_test_proportions(
     # 提升度
     lift = (p2 - p1) / p1 if p1 > 0 else 0.0
     # 95% 置信区间（差异的 CI）
-    se_diff = math.sqrt(p1*(1-p1)/control_total + p2*(1-p2)/treatment_total)
+    se_diff = math.sqrt(p1 * (1 - p1) / control_total + p2 * (1 - p2) / treatment_total)
     diff = p2 - p1
     ci_lower = diff - Z_CRITICAL_95 * se_diff
     ci_upper = diff + Z_CRITICAL_95 * se_diff
@@ -127,14 +146,14 @@ def t_test_means(
     Returns:
         {t_score, p_value, lift, ci_lower, ci_upper}
     """
-    se = math.sqrt(control_var/control_n + treatment_var/treatment_n)
+    se = math.sqrt(control_var / control_n + treatment_var / treatment_n)
     if se == 0:
         t = 0.0
     else:
         t = (treatment_mean - control_mean) / se
     # Welch-Satterthwaite 自由度
-    num = (control_var/control_n + treatment_var/treatment_n) ** 2
-    den = (control_var/control_n)**2/(control_n-1) + (treatment_var/treatment_n)**2/(treatment_n-1)
+    num = (control_var / control_n + treatment_var / treatment_n) ** 2
+    den = (control_var / control_n) ** 2 / (control_n - 1) + (treatment_var / treatment_n) ** 2 / (treatment_n - 1)
     df = num / den if den > 0 else 1
     # 用正态近似计算 P 值（大样本下 T 分布趋近正态）
     p_value = 2 * (1 - _normal_cdf(abs(t)))
@@ -213,8 +232,10 @@ def run_ab_test(
         检验结果 dict
     """
     result = z_test_proportions(
-        control_data["success"], control_data["total"],
-        treatment_data["success"], treatment_data["total"],
+        control_data["success"],
+        control_data["total"],
+        treatment_data["success"],
+        treatment_data["total"],
     )
     is_significant = result["p_value"] < alpha
     # 获胜判定：显著且提升度为正
@@ -290,8 +311,10 @@ if __name__ == "__main__":
         control_data={"success": 1200, "total": 10000},
         treatment_data={"success": 1380, "total": 10000},
     )
-    print(f"实验 {result['experiment_id']}: "
-          f"对照组转化率={result['control_conversion_rate']:.4f}, "
-          f"实验组转化率={result['treatment_conversion_rate']:.4f}, "
-          f"提升={result['lift']:.4f}, P={result['p_value']:.6f}, "
-          f"显著={result['is_significant']}, 获胜={result['is_winner']}")
+    print(
+        f"实验 {result['experiment_id']}: "
+        f"对照组转化率={result['control_conversion_rate']:.4f}, "
+        f"实验组转化率={result['treatment_conversion_rate']:.4f}, "
+        f"提升={result['lift']:.4f}, P={result['p_value']:.6f}, "
+        f"显著={result['is_significant']}, 获胜={result['is_winner']}"
+    )

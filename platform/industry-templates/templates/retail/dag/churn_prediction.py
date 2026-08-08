@@ -13,6 +13,7 @@
 
 接入标签引擎：将流失风险等级写入 member_tag 表，tag_category=CHURN
 """
+
 from __future__ import annotations
 
 import math
@@ -42,9 +43,7 @@ def sigmoid(x: float) -> float:
     return z / (1.0 + z)
 
 
-def logistic_regression_predict(
-    features: dict[str, float], weights: dict[str, float], bias: float = 0.0
-) -> float:
+def logistic_regression_predict(features: dict[str, float], weights: dict[str, float], bias: float = 0.0) -> float:
     """逻辑回归预测.
 
     Args:
@@ -61,9 +60,7 @@ def logistic_regression_predict(
     return sigmoid(linear_output)
 
 
-def gbdt_predict(
-    features: dict[str, float], tree_outputs: list[float]
-) -> float:
+def gbdt_predict(features: dict[str, float], tree_outputs: list[float]) -> float:
     """GBDT 预测（简化版：累加各树输出后 sigmoid）.
 
     Args:
@@ -78,9 +75,7 @@ def gbdt_predict(
     return sigmoid(total)
 
 
-def ensemble_predict(
-    lr_prob: float, gbdt_prob: float, lr_weight: float = 0.4, gbdt_weight: float = 0.6
-) -> float:
+def ensemble_predict(lr_prob: float, gbdt_prob: float, lr_weight: float = 0.4, gbdt_weight: float = 0.6) -> float:
     """集成预测（Soft Voting）.
 
     Args:
@@ -202,7 +197,10 @@ FROM ${db}.tmp_churn_predicted
 
 # SQL 模板：将流失风险写入 member_tag 表（接入标签引擎）
 SQL_LOAD_CHURN_TAGS = """
-INSERT INTO ${db}.member_tag (tag_id, member_id, tag_code, tag_value, tag_category, tag_source, confidence, tagged_at, created_at, updated_at, created_by, updated_by)
+INSERT INTO ${db}.member_tag (
+    tag_id, member_id, tag_code, tag_value, tag_category,
+    tag_source, confidence, tagged_at, created_at, updated_at, created_by, updated_by
+)
 SELECT
     UUID(),
     member_id,
@@ -249,8 +247,8 @@ if __name__ == "__main__":
         "days_since_last_purchase": 90,
         "return_rate": 0.1,
     }
-    result = predict_churn_for_member(
-        "m001", features, DEFAULT_LR_WEIGHTS, DEFAULT_LR_BIAS, [0.5]
+    result = predict_churn_for_member("m001", features, DEFAULT_LR_WEIGHTS, DEFAULT_LR_BIAS, [0.5])
+    print(
+        f"会员 {result['member_id']}: 流失概率={result['churn_probability']}, "
+        f"标签={result['churn_label']}, 风险={result['risk_level']}"
     )
-    print(f"会员 {result['member_id']}: 流失概率={result['churn_probability']}, "
-          f"标签={result['churn_label']}, 风险={result['risk_level']}")

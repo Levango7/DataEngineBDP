@@ -5,9 +5,9 @@
 - 收益分成：默认提供方 80% / 平台 20%
 - 内部租户间走内部结算：成本系数 0.3，仅记成本不真扣费
 """
+
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 from pydantic import AliasChoices, BaseModel, Field
@@ -38,23 +38,15 @@ class BillingRecord(TimestampMixin):
 
     # 金额
     amount: float = Field(default=0.0, ge=0, description="订单金额（元）")
-    providerRevenue: float = Field(
-        default=0.0, ge=0, description="提供方收益（元）"
-    )
-    platformRevenue: float = Field(
-        default=0.0, ge=0, description="平台抽成（元）"
-    )
+    providerRevenue: float = Field(default=0.0, ge=0, description="提供方收益（元）")
+    platformRevenue: float = Field(default=0.0, ge=0, description="平台抽成（元）")
 
     # 周期
     period: str = Field(..., description="计费周期，如 2026-08")
-    isInternal: bool = Field(
-        default=False, description="是否内部租户间流通（内部结算）"
-    )
+    isInternal: bool = Field(default=False, description="是否内部租户间流通（内部结算）")
 
     # 关联
-    deliveryId: Optional[str] = Field(
-        default=None, description="关联交付 ID（按量计费时）"
-    )
+    deliveryId: Optional[str] = Field(default=None, description="关联交付 ID（按量计费时）")
 
 
 class BillingSummary(BaseModel):

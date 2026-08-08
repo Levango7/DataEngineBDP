@@ -7,15 +7,15 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
 from typing import Any, Optional
 
+from chunker.embedding.exceptions import InvalidModelError
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from chunker.embedding.exceptions import EmbeddingConfigError, InvalidModelError
 
 # ----------------------------------------------------------------------
 # 常量
@@ -152,34 +152,18 @@ class EmbeddingSettings(BaseSettings):
 
     model: str = Field(default=DEFAULT_MODEL, description="默认模型短名")
     device: str = Field(default="cpu", description="推理设备")
-    batchSize: int = Field(
-        default=DEFAULT_BATCH_SIZE, gt=0, description="批量计算分块大小"
-    )
-    asyncChunk: int = Field(
-        default=DEFAULT_ASYNC_CHUNK, gt=0, description="异步分块大小"
-    )
-    maxTexts: int = Field(
-        default=DEFAULT_MAX_TEXTS, gt=0, description="单次最大文本数"
-    )
+    batchSize: int = Field(default=DEFAULT_BATCH_SIZE, gt=0, description="批量计算分块大小")
+    asyncChunk: int = Field(default=DEFAULT_ASYNC_CHUNK, gt=0, description="异步分块大小")
+    maxTexts: int = Field(default=DEFAULT_MAX_TEXTS, gt=0, description="单次最大文本数")
 
     # ---- OpenAI ----
-    openaiApiKey: Optional[str] = Field(
-        default=None, description="OpenAI API Key"
-    )
-    openaiBaseUrl: str = Field(
-        default=DEFAULT_OPENAI_BASE_URL, description="OpenAI API 基址"
-    )
-    openaiTimeout: float = Field(
-        default=30.0, gt=0, description="OpenAI 请求超时秒"
-    )
+    openaiApiKey: Optional[str] = Field(default=None, description="OpenAI API Key")
+    openaiBaseUrl: str = Field(default=DEFAULT_OPENAI_BASE_URL, description="OpenAI API 基址")
+    openaiTimeout: float = Field(default=30.0, gt=0, description="OpenAI 请求超时秒")
 
     # ---- 通用 ----
-    cacheDir: Optional[str] = Field(
-        default=None, description="模型缓存目录"
-    )
-    offline: bool = Field(
-        default=False, description="是否离线模式（不下载模型）"
-    )
+    cacheDir: Optional[str] = Field(default=None, description="模型缓存目录")
+    offline: bool = Field(default=False, description="是否离线模式（不下载模型）")
 
     @field_validator("model")
     @classmethod

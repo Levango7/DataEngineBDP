@@ -24,15 +24,15 @@
 
 对齐设计文档 T008-4。
 """
+
 from __future__ import annotations
 
 import asyncio
 import base64
+from dataclasses import dataclass, field
 import io
-import math
 import os
 import threading
-from dataclasses import dataclass, field
 from typing import Any
 
 from chunker.base import BaseChunker
@@ -193,8 +193,7 @@ def _load_image(content: Any) -> Any:
             img = Image.open(path)
         else:
             raise PreprocessError(
-                f"不支持的图像输入类型: {type(content).__name__}，"
-                f"期望 str/Path/bytes/PIL.Image.Image"
+                f"不支持的图像输入类型: {type(content).__name__}，" f"期望 str/Path/bytes/PIL.Image.Image"
             )
         # 统一为 RGB（去除 alpha 通道、灰度转 RGB）
         if img.mode != "RGB":
@@ -262,7 +261,6 @@ def _image_to_b64(img: Any) -> str:
 
 def _crop_image(img: Any, bbox: BBox) -> Any:
     """按 bbox 裁剪 PIL 图像."""
-    from PIL import Image  # type: ignore[import-untyped]
 
     # 裁剪边界保护
     w, h = img.size
@@ -510,18 +508,14 @@ class ImageChunker(BaseChunker):
         """
         # 并行执行 OCR 和版面分析
         ocr_coro = self._ocr(img, lang=ocr_lang) if enable_ocr else _async_return([])
-        layout_coro = (
-            self._layout_analysis(img) if enable_layout else _async_return([])
-        )
+        layout_coro = self._layout_analysis(img) if enable_layout else _async_return([])
         try:
             ocr_items, regions = await asyncio.gather(
                 _with_timeout(ocr_coro, ocr_timeout),
                 layout_coro,
             )
         except asyncio.TimeoutError as ex:
-            raise PreprocessError(
-                f"OCR 超时（页 {page_idx}，超时 {ocr_timeout}s）", cause=ex
-            ) from ex
+            raise PreprocessError(f"OCR 超时（页 {page_idx}，超时 {ocr_timeout}s）", cause=ex) from ex
 
         # 若未启用版面分析但有 OCR 结果：将 OCR 文本聚合为一个文本切片
         if not enable_layout and ocr_items:
@@ -692,9 +686,7 @@ class ImageChunker(BaseChunker):
                 kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 5))
                 closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
                 # 轮廓检测
-                contours, _ = cv2.findContours(
-                    closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-                )
+                contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 # 转 BBox 列表
                 bboxes: list[BBox] = []
                 for c in contours:
@@ -937,12 +929,7 @@ def _iou(a: BBox, b: BBox) -> float:
 
 def _contains(outer: BBox, inner: BBox) -> bool:
     """判断 outer 是否包含 inner."""
-    return (
-        outer.x <= inner.x
-        and outer.y <= inner.y
-        and outer.x2 >= inner.x2
-        and outer.y2 >= inner.y2
-    )
+    return outer.x <= inner.x and outer.y <= inner.y and outer.x2 >= inner.x2 and outer.y2 >= inner.y2
 
 
 def _union(a: BBox, b: BBox) -> BBox:
@@ -976,7 +963,7 @@ def _classify_regions(
     if not bboxes:
         return []
     try:
-        import cv2  # type: ignore[import-untyped]
+        import cv2  # type: ignore[import-untyped]  # noqa: F401
         import numpy as np  # type: ignore[import-untyped]
     except ImportError:
         return []
@@ -1006,7 +993,7 @@ def _classify_single(
     :return: 区域类型字符串
     """
     try:
-        import cv2  # type: ignore[import-untyped]
+        import cv2  # type: ignore[import-untyped]  # noqa: F401
         import numpy as np  # type: ignore[import-untyped]
     except ImportError:
         return REGION_TEXT
@@ -1053,7 +1040,7 @@ def _count_horizontal_lines(region_bin: Any) -> int:
     水平线条：一行中连续白色像素跨度 > 区域宽度 * 0.5。
     """
     try:
-        import numpy as np  # type: ignore[import-untyped]
+        import numpy as np  # type: ignore[import-untyped]  # noqa: F401
     except ImportError:
         return 0
     if region_bin.size == 0:
@@ -1082,7 +1069,7 @@ def _count_horizontal_lines(region_bin: Any) -> int:
 def _count_vertical_lines(region_bin: Any) -> int:
     """统计区域内垂直线条数."""
     try:
-        import numpy as np  # type: ignore[import-untyped]
+        import numpy as np  # type: ignore[import-untyped]  # noqa: F401
     except ImportError:
         return 0
     if region_bin.size == 0:

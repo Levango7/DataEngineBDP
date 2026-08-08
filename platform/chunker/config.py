@@ -9,17 +9,17 @@
 
 对齐设计文档 T008-1。
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Optional
 
-from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from chunker.exceptions import ChunkerConfigError
 from chunker.models import ChunkConfig, Modality
+from pydantic import Field, field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class ModalityDefaults(BaseSettings):
@@ -128,26 +128,14 @@ class ChunkerSettings(BaseSettings):
     logLevel: str = Field(default="info", description="日志级别")
 
     # ---- chunker ----
-    configFile: Optional[str] = Field(
-        default=None, description="YAML 配置文件路径"
-    )
-    defaultModality: str = Field(
-        default="text", description="默认模态"
-    )
-    maxChunks: int = Field(
-        default=10000, gt=0, description="单次切片上限"
-    )
-    enableEmbedding: bool = Field(
-        default=False, description="是否启用 embedding"
-    )
-    tokenizer: str = Field(
-        default="tiktoken", description="tokenizer 名称"
-    )
+    configFile: Optional[str] = Field(default=None, description="YAML 配置文件路径")
+    defaultModality: str = Field(default="text", description="默认模态")
+    maxChunks: int = Field(default=10000, gt=0, description="单次切片上限")
+    enableEmbedding: bool = Field(default=False, description="是否启用 embedding")
+    tokenizer: str = Field(default="tiktoken", description="tokenizer 名称")
 
     # ---- 模态默认配置 ----
-    modalityDefaults: ModalityDefaults = Field(
-        default_factory=ModalityDefaults, description="各模态默认配置"
-    )
+    modalityDefaults: ModalityDefaults = Field(default_factory=ModalityDefaults, description="各模态默认配置")
 
     @field_validator("logLevel")
     @classmethod
@@ -177,9 +165,7 @@ class ChunkerSettings(BaseSettings):
         try:
             return ChunkConfig(**raw)
         except Exception as ex:
-            raise ChunkerConfigError(
-                f"模态 {modality} 默认配置非法", cause=ex
-            ) from ex
+            raise ChunkerConfigError(f"模态 {modality} 默认配置非法", cause=ex) from ex
 
     @classmethod
     def from_yaml(cls, path: str | Path) -> "ChunkerSettings":
@@ -192,9 +178,7 @@ class ChunkerSettings(BaseSettings):
         try:
             import yaml  # type: ignore[import-untyped]
         except ImportError as ex:
-            raise ChunkerConfigError(
-                "加载 YAML 配置需要 PyYAML，请先安装：pip install pyyaml"
-            ) from ex
+            raise ChunkerConfigError("加载 YAML 配置需要 PyYAML，请先安装：pip install pyyaml") from ex
 
         p = Path(path)
         if not p.exists():

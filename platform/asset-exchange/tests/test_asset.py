@@ -1,8 +1,9 @@
 """资产上架/下架/浏览/更新测试."""
+
 from __future__ import annotations
 
-
 # ---------- health ----------
+
 
 def test_health(client):
     resp = client.get("/api/v1/health")
@@ -13,6 +14,7 @@ def test_health(client):
 
 
 # ---------- 上架 ----------
+
 
 def _list_asset(client, name="user-events", owner="tenant-A"):
     """上架资产辅助函数，返回 asset_id."""
@@ -168,6 +170,7 @@ def test_list_asset_sensitive_with_desensitize(client):
 
 # ---------- 浏览 ----------
 
+
 def test_list_assets(client):
     _list_asset(client, name="a1")
     _list_asset(client, name="a2")
@@ -209,6 +212,7 @@ def test_list_assets_default_only_listed(client):
 
 # ---------- 详情 ----------
 
+
 def test_get_asset(client):
     aid = _list_asset(client)
     resp = client.get(f"/api/v1/assets/{aid}")
@@ -222,6 +226,7 @@ def test_get_asset_not_found(client):
 
 
 # ---------- 更新 ----------
+
 
 def test_update_asset(client):
     aid = _list_asset(client)
@@ -245,6 +250,7 @@ def test_update_asset_not_found(client):
 
 # ---------- 下架 ----------
 
+
 def test_offline_asset(client):
     aid = _list_asset(client)
     resp = client.delete(f"/api/v1/assets/{aid}")
@@ -261,6 +267,7 @@ def test_offline_asset_not_found(client):
 
 # ---------- 使用统计 ----------
 
+
 def test_get_asset_usage(client):
     aid = _list_asset(client)
     resp = client.get(f"/api/v1/assets/{aid}/usage")
@@ -272,6 +279,7 @@ def test_get_asset_usage(client):
 
 
 # ---------- docs ----------
+
 
 def test_openapi_docs_accessible(client):
     """FastAPI 自动文档可访问."""

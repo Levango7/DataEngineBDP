@@ -13,6 +13,7 @@
     - 多意图可同时识别，但 primaryType 取优先级最高者。
     - 置信度根据命中关键词数量与意图明确度估算。
 """
+
 from __future__ import annotations
 
 import re
@@ -25,7 +26,13 @@ from models import AggFunc, Intent, IntentType, SchemaContext
 # ============================================================
 _AGG_KEYWORDS: dict[AggFunc, list[str]] = {
     AggFunc.COUNT: [
-        "多少", "几个", "数量", "计数", "count", "总数", "条数",
+        "多少",
+        "几个",
+        "数量",
+        "计数",
+        "count",
+        "总数",
+        "条数",
     ],
     AggFunc.SUM: ["总和", "合计", "求和", "sum", "总金额", "累加"],
     AggFunc.AVG: ["平均", "均值", "avg", "average", "mean"],
@@ -34,29 +41,85 @@ _AGG_KEYWORDS: dict[AggFunc, list[str]] = {
 }
 
 _FILTER_KEYWORDS: list[str] = [
-    "其中", "筛选", "过滤", "条件", "where", "等于", "大于", "小于",
-    "是", "为", "包含", "属于", "在", "between", "like", "in",
-    "昨天", "今天", "最近", "本月", "上月", "本年", "去年",
+    "其中",
+    "筛选",
+    "过滤",
+    "条件",
+    "where",
+    "等于",
+    "大于",
+    "小于",
+    "是",
+    "为",
+    "包含",
+    "属于",
+    "在",
+    "between",
+    "like",
+    "in",
+    "昨天",
+    "今天",
+    "最近",
+    "本月",
+    "上月",
+    "本年",
+    "去年",
 ]
 
 _JOIN_KEYWORDS: list[str] = [
-    "join", "连接", "关联", "联合", "以及", "和", "与",
-    "对应", "匹配", "each", "together", "combine",
+    "join",
+    "连接",
+    "关联",
+    "联合",
+    "以及",
+    "和",
+    "与",
+    "对应",
+    "匹配",
+    "each",
+    "together",
+    "combine",
 ]
 
 _SORT_KEYWORDS: list[str] = [
-    "排序", "sort", "order by", "order", "排列",
-    "降序", "升序", "desc", "asc",
-    "从大到小", "从小到大", "按",
+    "排序",
+    "sort",
+    "order by",
+    "order",
+    "排列",
+    "降序",
+    "升序",
+    "desc",
+    "asc",
+    "从大到小",
+    "从小到大",
+    "按",
 ]
 
 _GROUP_KEYWORDS: list[str] = [
-    "分组", "group by", "group", "按...分类", "分类", "每个", "各类", "各",
-    "按天", "按月", "按年", "按城市", "按类目",
+    "分组",
+    "group by",
+    "group",
+    "按...分类",
+    "分类",
+    "每个",
+    "各类",
+    "各",
+    "按天",
+    "按月",
+    "按年",
+    "按城市",
+    "按类目",
 ]
 
 _LIMIT_KEYWORDS: list[str] = [
-    "前", "top", "limit", "取", "只看", "最多", "条",
+    "前",
+    "top",
+    "limit",
+    "取",
+    "只看",
+    "最多",
+    "条",
 ]
 
 
@@ -68,12 +131,8 @@ class IntentRecognizer:
 
     def __init__(self) -> None:
         # 编译排序方向正则
-        self._descPat = re.compile(
-            r"(降序|从大到小|从高到低|desc\b)", re.IGNORECASE
-        )
-        self._ascPat = re.compile(
-            r"(升序|从小到大|从低到高|asc\b)", re.IGNORECASE
-        )
+        self._descPat = re.compile(r"(降序|从大到小|从高到低|desc\b)", re.IGNORECASE)
+        self._ascPat = re.compile(r"(升序|从小到大|从低到高|asc\b)", re.IGNORECASE)
         # 数字 + 单位（前 N 条 / top N）
         self._limitPat = re.compile(
             r"(?:前|top|取|最多|limit\s*)\s*(\d+)\s*(?:条|行|个)?",

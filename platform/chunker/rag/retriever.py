@@ -12,6 +12,7 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 import logging
@@ -20,7 +21,7 @@ from typing import Any, Optional
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.models import Chunk, ChunkMetadata, Modality
 from chunker.rag.exceptions import RetrieveError
-from chunker.rag.vector_store import SearchResult, VectorStore
+from chunker.rag.vector_store import VectorStore
 
 logger = logging.getLogger(__name__)
 
@@ -133,9 +134,7 @@ class Retriever:
             try:
                 query_vector = await self.adapter.embed_query(query)
             except Exception as ex:  # noqa: BLE001
-                raise RetrieveError(
-                    f"生成查询 embedding 失败: {ex}", cause=ex
-                ) from ex
+                raise RetrieveError(f"生成查询 embedding 失败: {ex}", cause=ex) from ex
         if not query_vector:
             return []
 
@@ -156,9 +155,7 @@ class Retriever:
                     top_k=top_k,
                 )
         except Exception as ex:  # noqa: BLE001
-            raise RetrieveError(
-                f"检索失败: {ex}", cause=ex
-            ) from ex
+            raise RetrieveError(f"检索失败: {ex}", cause=ex) from ex
 
         return [RetrievalResult(r.id, r.score, r.metadata) for r in results]
 
@@ -211,8 +208,5 @@ class Retriever:
         """
         import asyncio
 
-        tasks = [
-            self.retrieve(collection_name, q, top_k=top_k, filter=filter)
-            for q in queries
-        ]
+        tasks = [self.retrieve(collection_name, q, top_k=top_k, filter=filter) for q in queries]
         return await asyncio.gather(*tasks)

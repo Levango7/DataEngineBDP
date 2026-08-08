@@ -3,6 +3,7 @@
 设计模式：依赖注入 + 工厂。
 配置开关：BP_STORE_TYPE=mock / sqlite
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -55,9 +56,7 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     if settings.isMock:
         bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock()
     elif settings.isSqlite:
-        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_sqlite(
-            settings.dbPath
-        )
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_sqlite(settings.dbPath)
     else:
         # 兜底：未知类型回退 Mock
         bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock()

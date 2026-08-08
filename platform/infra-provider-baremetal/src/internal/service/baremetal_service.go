@@ -218,7 +218,7 @@ func (s *BareMetalService) ListClusters(ctx context.Context) ([]model.BareMetalC
 }
 
 // provisionCluster 异步供应流程
-func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID string, req *model.CreateClusterRequest) {
+func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID string, _ *model.CreateClusterRequest) {
 	logger := s.logger.WithField("cluster_id", clusterID)
 
 	var cluster model.BareMetalCluster
@@ -400,7 +400,7 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 }
 
 // scaleOut 扩容
-func (s *BareMetalService) scaleOut(ctx context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
+func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
 	for _, spec := range specs {
 		node := buildNodeFromSpec(cluster.ID, spec)
 		if err := s.db.Create(node).Error; err != nil {

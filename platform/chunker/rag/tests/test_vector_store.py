@@ -1,9 +1,8 @@
 """向量存储测试 (T008-6)."""
+
 from __future__ import annotations
 
 import math
-
-import pytest
 
 from chunker.rag.exceptions import (
     CollectionAlreadyExistsError,
@@ -20,13 +19,12 @@ from chunker.rag.vector_store import (
     MockVectorStore,
     SearchResult,
     VectorRecord,
-    VectorStore,
     _compute_similarity,
     _eval_filter,
     create_vector_store,
     is_pymilvus_available,
 )
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 数据模型
@@ -170,11 +168,14 @@ class TestMockVectorStore:
     async def test_insert_and_search(self):
         store = MockVectorStore()
         await store.create_collection("test", 3, metric_type=METRIC_COSINE)
-        await store.insert("test", [
-            VectorRecord("a", [1.0, 0.0, 0.0], {"label": "a"}),
-            VectorRecord("b", [0.0, 1.0, 0.0], {"label": "b"}),
-            VectorRecord("c", [1.0, 0.0, 0.0], {"label": "c"}),
-        ])
+        await store.insert(
+            "test",
+            [
+                VectorRecord("a", [1.0, 0.0, 0.0], {"label": "a"}),
+                VectorRecord("b", [0.0, 1.0, 0.0], {"label": "b"}),
+                VectorRecord("c", [1.0, 0.0, 0.0], {"label": "c"}),
+            ],
+        )
         results = await store.search("test", [1.0, 0.0, 0.0], top_k=2)
         assert len(results) == 2
         # a 和 c 与查询完全相同，应排前面
@@ -198,13 +199,14 @@ class TestMockVectorStore:
     async def test_search_with_filter(self):
         store = MockVectorStore()
         await store.create_collection("test", 3)
-        await store.insert("test", [
-            VectorRecord("a", [1.0, 0.0, 0.0], {"modality": "text"}),
-            VectorRecord("b", [0.0, 1.0, 0.0], {"modality": "image"}),
-        ])
-        results = await store.search(
-            "test", [1.0, 0.0, 0.0], top_k=10, filter='modality == "text"'
+        await store.insert(
+            "test",
+            [
+                VectorRecord("a", [1.0, 0.0, 0.0], {"modality": "text"}),
+                VectorRecord("b", [0.0, 1.0, 0.0], {"modality": "image"}),
+            ],
         )
+        results = await store.search("test", [1.0, 0.0, 0.0], top_k=10, filter='modality == "text"')
         assert len(results) == 1
         assert results[0].id == "a"
 
@@ -212,13 +214,14 @@ class TestMockVectorStore:
     async def test_hybrid_search(self):
         store = MockVectorStore()
         await store.create_collection("test", 3)
-        await store.insert("test", [
-            VectorRecord("a", [1.0, 0.0, 0.0], {"score": 0.9}),
-            VectorRecord("b", [0.9, 0.1, 0.0], {"score": 0.3}),
-        ])
-        results = await store.hybrid_search(
-            "test", [1.0, 0.0, 0.0], top_k=10, min_score=0.5
+        await store.insert(
+            "test",
+            [
+                VectorRecord("a", [1.0, 0.0, 0.0], {"score": 0.9}),
+                VectorRecord("b", [0.9, 0.1, 0.0], {"score": 0.3}),
+            ],
         )
+        results = await store.hybrid_search("test", [1.0, 0.0, 0.0], top_k=10, min_score=0.5)
         # b 的相似度低于 0.5，应被过滤
         assert all(r.metadata.get("score", 0) >= 0.5 or r.score >= 0.5 for r in results)
 
@@ -226,10 +229,13 @@ class TestMockVectorStore:
     async def test_delete(self):
         store = MockVectorStore()
         await store.create_collection("test", 3)
-        await store.insert("test", [
-            VectorRecord("a", [1.0, 0.0, 0.0]),
-            VectorRecord("b", [0.0, 1.0, 0.0]),
-        ])
+        await store.insert(
+            "test",
+            [
+                VectorRecord("a", [1.0, 0.0, 0.0]),
+                VectorRecord("b", [0.0, 1.0, 0.0]),
+            ],
+        )
         await store.delete("test", ["a"])
         stats = await store.get_stats("test")
         assert stats.vectorCount == 1

@@ -1,14 +1,13 @@
 """端到端 RAG 管道测试 (T008-6)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.base import BaseChunker
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.models import Chunk, ChunkConfig, ChunkMetadata, Modality
 from chunker.rag.pipeline import RAGPipeline
 from chunker.rag.vector_store import MockVectorStore
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 测试用 stub
@@ -33,11 +32,13 @@ class StubChunker(BaseChunker):
         chunks = []
         for i in range(0, len(text), window):
             sub = text[i : i + window]
-            chunks.append(Chunk(
-                id=self._make_chunk_id(),
-                content=sub,
-                metadata=self._make_metadata(config, index=len(chunks), start=i, end=i + len(sub)),
-            ))
+            chunks.append(
+                Chunk(
+                    id=self._make_chunk_id(),
+                    content=sub,
+                    metadata=self._make_metadata(config, index=len(chunks), start=i, end=i + len(sub)),
+                )
+            )
         return chunks
 
     async def _postprocess(self, chunks, config):
@@ -90,9 +91,7 @@ class TestRAGPipeline:
             store=MockVectorStore(),
         )
         config = ChunkConfig(modality=Modality.TEXT, windowSize=10)
-        chunks, count = await pipeline.index(
-            "test", "hello world this is a test document", config
-        )
+        chunks, count = await pipeline.index("test", "hello world this is a test document", config)
         assert count > 0
         assert len(chunks) > 0
 
@@ -144,7 +143,8 @@ class TestRAGPipeline:
         await pipeline.index("test", "hello world test document", config)
 
         results = await pipeline.retrieve_fused(
-            "test", "hello",
+            "test",
+            "hello",
             modalities=[Modality.TEXT],
             top_k=3,
             method="rrf",
@@ -195,6 +195,7 @@ class TestRAGPipeline:
             store=MockVectorStore(),
         )
         from chunker.rag.exceptions import RAGError
+
         with pytest.raises(RAGError):
             await pipeline.index("test", "content", None)
 

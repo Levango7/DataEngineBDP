@@ -5,23 +5,10 @@
 run:
   # 超时时间
   timeout: 10m
-  # 需要检查的目录
-  dirs:
-    - platform/catalog
-    - platform/dqctl
-    - platform/vector-engine
-    - platform/llm-gateway
-    - platform/infra-provider-baremetal
-  # 跳过的目录
-  skip-dirs:
-    - platform/.*/vendor
-    - platform/.*/testdata
-    - platform/.*/generated
-  # 跳过的文件
-  skip-files:
-    - ".*_test\\.go"
+  # 跳过的目录（使用 issues.exclude-dirs 替代）
+  # 跳过的文件（使用 issues.exclude-files 替代）
   # Go 版本
-  go: "1.23"
+  go: "1.25"
   # 模块路径
   modules-download-mode: readonly
 
@@ -176,6 +163,14 @@ issues:
   # 最大问题数
   max-issues-per-linter: 0
   max-same-issues: 0
+  # 排除的目录
+  exclude-dirs:
+    - vendor
+    - testdata
+    - generated
+  # 排除的文件
+  exclude-files:
+    - ".*_test\\.go"
   # 排除的规则
   exclude-rules:
     # 测试文件允许使用全局变量和 init
@@ -202,7 +197,8 @@ issues:
 
 output:
   # 输出格式
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   # 排序方式
   sort-results: true
   # 显示问题统计

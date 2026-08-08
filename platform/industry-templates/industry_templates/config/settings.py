@@ -12,6 +12,7 @@
     INDUSTRY_TEMPLATES_HELM_TIMEOUT  helm 命令超时秒数（默认 600）
     INDUSTRY_TEMPLATES_CHART_BASE    Chart 查找基础路径（默认 ./charts）
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -42,20 +43,12 @@ class Settings(BaseSettings):
     apiPrefix: str = Field(default="/api/v1", description="API 路由前缀")
 
     # ---- deploy ----
-    deployMode: Literal["mock", "helm"] = Field(
-        default="mock", description="部署模式: mock / helm"
-    )
+    deployMode: Literal["mock", "helm"] = Field(default="mock", description="部署模式: mock / helm")
     # ---- helm ----
     helmBin: str = Field(default="helm", description="helm 二进制路径")
-    helmKubeconfig: str = Field(
-        default="", description="KUBECONFIG 路径（空表示使用默认）"
-    )
-    helmTimeout: int = Field(
-        default=600, ge=1, description="helm 命令超时秒数"
-    )
-    chartBase: str = Field(
-        default="./charts", description="Chart 查找基础路径"
-    )
+    helmKubeconfig: str = Field(default="", description="KUBECONFIG 路径（空表示使用默认）")
+    helmTimeout: int = Field(default=600, ge=1, description="helm 命令超时秒数")
+    chartBase: str = Field(default="./charts", description="Chart 查找基础路径")
 
     @field_validator("logLevel")
     @classmethod

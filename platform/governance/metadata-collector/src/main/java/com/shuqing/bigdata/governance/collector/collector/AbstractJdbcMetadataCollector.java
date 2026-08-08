@@ -154,7 +154,7 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
             // 执行简单查询验证连接可用
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(getDatabasesSql())) {
-                return rs.next() || true; // 即使空库也视为连接成功
+                return true; // 即使空库也视为连接成功（rs.next() 仅验证可执行性）
             }
         } catch (SQLException e) {
             log.warn("Connection test failed for source {}: {}", source.getName(), e.getMessage());

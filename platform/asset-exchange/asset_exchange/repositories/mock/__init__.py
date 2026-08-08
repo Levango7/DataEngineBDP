@@ -3,6 +3,7 @@
 提供 AssetExchange 全套 Mock 实现，用于开发与测试。
 生产环境可替换为 DB 实现。
 """
+
 from __future__ import annotations
 
 from asset_exchange.repositories.mock.allocation_repository import (

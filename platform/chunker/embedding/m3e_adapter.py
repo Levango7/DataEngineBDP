@@ -10,6 +10,7 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 from typing import Optional

@@ -1,10 +1,10 @@
 """SQL 网关客户端单测."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from gateway_client import GatewayClient
 from models import GatewayExecuteResult
+import pytest
 
 
 @pytest.mark.asyncio

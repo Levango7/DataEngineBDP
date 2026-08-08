@@ -12,10 +12,11 @@
 
 Author: T044 政务模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -67,7 +68,7 @@ extract_transactions = BashOperator(
     task_id="extract_transactions",
     bash_command=(
         f"echo '[1] 抽取办理记录 biz_date={BIZ_DATE}...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT service_id, department, channel, status, "
         f"processing_duration, accept_time, complete_time "
         f"FROM {DORIS_DB}.service_transaction "
@@ -89,10 +90,14 @@ aggregate_by_department = SparkSubmitOperator(
         "spark.app.name": f"service_stats_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--group-by", "department,service_category",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--group-by",
+        "department,service_category",
     ],
     dag=dag,
 )
@@ -104,7 +109,7 @@ calc_completion_rate = BashOperator(
     task_id="calc_completion_rate",
     bash_command=(
         f"echo '[3] 计算办结率/驳回率...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT department, "
         f"COUNT(*) AS total_count, "
         f"SUM(CASE WHEN status='COMPLETED' THEN 1 ELSE 0 END) AS completed_count, "
@@ -112,7 +117,7 @@ calc_completion_rate = BashOperator(
         f"SUM(CASE WHEN status='REJECTED' THEN 1 ELSE 0 END)*100.0/COUNT(*) AS rejection_rate "
         f"FROM {DORIS_DB}.service_transaction "
         f"WHERE DATE(accept_time) = '{BIZ_DATE}' "
-        f"GROUP BY department;\" && "
+        f'GROUP BY department;" && '
         f"echo '[3] 办结率计算完成'"
     ),
     dag=dag,
@@ -125,11 +130,11 @@ calc_avg_duration = BashOperator(
     task_id="calc_avg_duration",
     bash_command=(
         f"echo '[4] 计算平均办理时长（工作日）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT department, AVG(processing_duration) AS avg_days "
         f"FROM {DORIS_DB}.service_transaction "
         f"WHERE DATE(accept_time) = '{BIZ_DATE}' AND status='COMPLETED' "
-        f"GROUP BY department;\" && "
+        f'GROUP BY department;" && '
         f"echo '[4] 平均时长计算完成'"
     ),
     dag=dag,
@@ -142,14 +147,14 @@ calc_online_rate = BashOperator(
     task_id="calc_online_rate",
     bash_command=(
         f"echo '[5] 计算网办率...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT department, "
         f"SUM(CASE WHEN channel='ONLINE' THEN 1 ELSE 0 END) AS online_count, "
         f"SUM(CASE WHEN channel='WINDOW' THEN 1 ELSE 0 END) AS window_count, "
         f"SUM(CASE WHEN channel='ONLINE' THEN 1 ELSE 0 END)*100.0/COUNT(*) AS online_rate "
         f"FROM {DORIS_DB}.service_transaction "
         f"WHERE DATE(accept_time) = '{BIZ_DATE}' "
-        f"GROUP BY department;\" && "
+        f'GROUP BY department;" && '
         f"echo '[5] 网办率计算完成'"
     ),
     dag=dag,
@@ -160,9 +165,7 @@ calc_online_rate = BashOperator(
 # ---------------------------------------------------------------------------
 generate_multi_period = PythonOperator(
     task_id="generate_multi_period",
-    python_callable=lambda: print(
-        f"[6] 生成日/周/月/季/年多周期统计: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[6] 生成日/周/月/季/年多周期统计: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
@@ -171,13 +174,17 @@ generate_multi_period = PythonOperator(
 # ---------------------------------------------------------------------------
 notify_dashboard = PythonOperator(
     task_id="notify_dashboard_refresh",
-    python_callable=lambda: print(
-        f"[7] 政务服务统计完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"
-    ),
+    python_callable=lambda: print(f"[7] 政务服务统计完成，通知 Superset Dashboard 刷新: biz_date={BIZ_DATE}"),
     dag=dag,
 )
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系
 # ---------------------------------------------------------------------------
-extract_transactions >> aggregate_by_department >> [calc_completion_rate, calc_avg_duration, calc_online_rate] >> generate_multi_period >> notify_dashboard
+(
+    extract_transactions
+    >> aggregate_by_department
+    >> [calc_completion_rate, calc_avg_duration, calc_online_rate]
+    >> generate_multi_period
+    >> notify_dashboard
+)

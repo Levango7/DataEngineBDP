@@ -10,13 +10,13 @@
     - 时间槽位支持"昨天/今天/最近N天/本月/上月"等自然语言表述。
     - 槽位填充是澄清的前置：缺失必需槽位时触发澄清流程。
 """
+
 from __future__ import annotations
 
 import re
 from typing import Optional
 
-from models import Intent, IntentType, Slot, SlotFrame, SlotStatus, SchemaContext
-
+from models import Intent, IntentType, SchemaContext, Slot, SlotFrame, SlotStatus
 
 # ============================================================
 # 时间表达式解析
@@ -95,79 +95,91 @@ class SlotFiller:
         return frame
 
     # ---- 槽位定义 ----
-    def _defineSlots(
-        self, intent: Intent, ctx: Optional[SchemaContext]
-    ) -> list[Slot]:
+    def _defineSlots(self, intent: Intent, ctx: Optional[SchemaContext]) -> list[Slot]:
         """根据意图定义所需槽位."""
         slots: list[Slot] = []
 
         # 通用：时间范围（可选，多数查询都涉及时间）
-        slots.append(Slot(
-            name="timeRange",
-            required=False,
-            status=SlotStatus.OPTIONAL,
-            description="查询时间范围",
-            promptQuestion="请问要查询哪个时间段的数据？例如：昨天、最近7天、本月",
-        ))
+        slots.append(
+            Slot(
+                name="timeRange",
+                required=False,
+                status=SlotStatus.OPTIONAL,
+                description="查询时间范围",
+                promptQuestion="请问要查询哪个时间段的数据？例如：昨天、最近7天、本月",
+            )
+        )
 
         # 聚合意图
         if intent.isAggregate:
-            slots.append(Slot(
-                name="aggColumn",
-                required=False,
-                status=SlotStatus.OPTIONAL,
-                description="聚合列",
-                promptQuestion="请问要对哪个字段做聚合？",
-            ))
+            slots.append(
+                Slot(
+                    name="aggColumn",
+                    required=False,
+                    status=SlotStatus.OPTIONAL,
+                    description="聚合列",
+                    promptQuestion="请问要对哪个字段做聚合？",
+                )
+            )
 
         # 过滤意图
         if intent.primaryType in (IntentType.FILTER, IntentType.AGGREGATION, IntentType.SIMPLE_SELECT):
-            slots.append(Slot(
-                name="filterCondition",
-                required=False,
-                status=SlotStatus.OPTIONAL,
-                description="过滤条件",
-                promptQuestion="请问需要按什么条件过滤？",
-            ))
+            slots.append(
+                Slot(
+                    name="filterCondition",
+                    required=False,
+                    status=SlotStatus.OPTIONAL,
+                    description="过滤条件",
+                    promptQuestion="请问需要按什么条件过滤？",
+                )
+            )
 
         # 分组意图
         if intent.primaryType == IntentType.GROUP or intent.groupColumns:
-            slots.append(Slot(
-                name="groupBy",
-                required=False,
-                status=SlotStatus.OPTIONAL,
-                description="分组维度",
-                promptQuestion="请问按哪个字段分组？",
-            ))
+            slots.append(
+                Slot(
+                    name="groupBy",
+                    required=False,
+                    status=SlotStatus.OPTIONAL,
+                    description="分组维度",
+                    promptQuestion="请问按哪个字段分组？",
+                )
+            )
 
         # 排序意图
         if intent.primaryType == IntentType.SORT or intent.sortColumn:
-            slots.append(Slot(
-                name="sortBy",
-                required=False,
-                status=SlotStatus.OPTIONAL,
-                description="排序字段与方向",
-                promptQuestion="请问按哪个字段排序？升序还是降序？",
-            ))
+            slots.append(
+                Slot(
+                    name="sortBy",
+                    required=False,
+                    status=SlotStatus.OPTIONAL,
+                    description="排序字段与方向",
+                    promptQuestion="请问按哪个字段排序？升序还是降序？",
+                )
+            )
 
         # 限制
-        slots.append(Slot(
-            name="limit",
-            required=False,
-            status=SlotStatus.OPTIONAL,
-            description="结果行数限制",
-            promptQuestion="请问需要返回多少条结果？",
-        ))
+        slots.append(
+            Slot(
+                name="limit",
+                required=False,
+                status=SlotStatus.OPTIONAL,
+                description="结果行数限制",
+                promptQuestion="请问需要返回多少条结果？",
+            )
+        )
 
         # Join 意图：连接表
         if intent.isJoin:
-            slots.append(Slot(
-                name="joinTables",
-                required=True,
-                status=SlotStatus.MISSING,
-                description="参与连接的表",
-                promptQuestion="请问要关联哪些表？",
-            ))
+            slots.append(
+                Slot(
+                    name="joinTables",
+                    required=True,
+                    status=SlotStatus.MISSING,
+                    description="参与连接的表",
+                    promptQuestion="请问要关联哪些表？",
+                )
+            )
 
         return slots
 

@@ -11,6 +11,7 @@
 依赖：营销事件流（曝光/点击/加购/下单/支付）
 输出：conversion_funnel 表
 """
+
 from __future__ import annotations
 
 from typing import Any

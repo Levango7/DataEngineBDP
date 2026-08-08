@@ -1,11 +1,11 @@
 """FastAPI 应用工厂."""
+
 from __future__ import annotations
 
 from typing import Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
-
 from openapi_catalog.api.routers import (
     apis,
     billing,
@@ -43,7 +43,7 @@ def create_app(
             "数擎大数据平台 · L5 多租户产品层 · 开放 API 服务目录 (L5.5)\n\n"
             "将平台数据能力封装为 REST/gRPC API，经 APISIX 网关对外暴露；\n"
             "配套服务目录支持浏览、搜索、订阅、评分，形成"
-            "\"数据即 API、API 即资产\"的开放生态。\n\n"
+            '"数据即 API、API 即资产"的开放生态。\n\n'
             "对标：AWS API Gateway + Marketplace / 阿里云 API 市场 / Kong Dev Portal"
         ),
         version="0.1.0",
@@ -81,11 +81,7 @@ def create_app(
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": (
-                    exc.detail.lower().replace(" ", "_")
-                    if isinstance(exc.detail, str)
-                    else "error"
-                ),
+                "error": (exc.detail.lower().replace(" ", "_") if isinstance(exc.detail, str) else "error"),
                 "message": str(exc.detail),
             },
         )

@@ -32,6 +32,7 @@
     NL2SQL_MAX_DIALOGUE_TURNS   多轮对话最大轮次（默认 5）
     NL2SQL_TENANT_ID            默认租户 ID（默认 default）
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -74,9 +75,7 @@ class Settings(BaseSettings):
         description="SQL 网关地址",
     )
     sqlGatewayTimeout: float = Field(default=30.0, ge=0.1, description="SQL 网关请求超时(秒)")
-    defaultEngine: Literal["trino", "doris"] = Field(
-        default="trino", description="默认查询引擎"
-    )
+    defaultEngine: Literal["trino", "doris"] = Field(default="trino", description="默认查询引擎")
     defaultLimit: int = Field(default=100, ge=1, le=10000, description="默认结果行数上限")
 
     # ---- llm ----

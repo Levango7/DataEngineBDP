@@ -1,8 +1,9 @@
 """Mock 结算仓储 - 内存字典实现."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any, Optional
+import uuid
 
 from asset_exchange.interfaces.settlement_repository import (
     SettlementRepository,
@@ -48,15 +49,11 @@ class MockSettlementRepository(SettlementRepository):
         return result[filter.offset : filter.offset + filter.limit]
 
     async def list_by_asset(self, asset_id: str) -> list[Settlement]:
-        result = [
-            s for s in self._settlements.values() if s.assetId == asset_id
-        ]
+        result = [s for s in self._settlements.values() if s.assetId == asset_id]
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result
 
-    async def find_by_asset_period(
-        self, asset_id: str, period: str
-    ) -> Optional[Settlement]:
+    async def find_by_asset_period(self, asset_id: str, period: str) -> Optional[Settlement]:
         for s in self._settlements.values():
             if s.assetId == asset_id and s.period == period:
                 return s

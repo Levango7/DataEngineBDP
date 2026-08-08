@@ -13,23 +13,17 @@
     - 注册机制
     - 异常处理
 """
+
 from __future__ import annotations
 
-import asyncio
 import time
-from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock, patch
 
 from chunker.base import BaseChunker
 from chunker.models import Chunk, ChunkConfig, Modality
 from chunker.registry import (
-    clear_registry,
     get_chunker,
     is_chunker_registered,
-    list_modalities,
-    register_chunker,
 )
 from chunker.text_chunker import (
     DEFAULT_EMBEDDING_MODEL,
@@ -41,7 +35,7 @@ from chunker.text_chunker import (
     _split_into_units,
     _split_sentences,
 )
-
+import pytest
 
 # ----------------------------------------------------------------------
 # fixtures
@@ -633,9 +627,7 @@ class TestSemanticBoundary:
     async def test_no_embedding_returns_units(self):
         """embedding 不可用时，回退为不基于语义合并（按 windowSize 在滑动窗口处理）."""
         c = TextChunker(enableEmbedding=False)
-        units = [
-            (f"单元{i}", {"kind": "sentence"}) for i in range(5)
-        ]
+        units = [(f"单元{i}", {"kind": "sentence"}) for i in range(5)]
         merged = await c._semantic_merge(units, threshold=0.7)
         # 无 embedding 时所有单元合并为一个（无边界）
         assert len(merged) == 1
@@ -841,9 +833,7 @@ class TestEmbeddingExecution:
         c = TextChunker(enableEmbedding=True)
 
         mock_model = MagicMock()
-        mock_model.encode = MagicMock(
-            return_value=np.array([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]])
-        )
+        mock_model.encode = MagicMock(return_value=np.array([[1.0, 0.0], [0.0, 1.0], [0.5, 0.5]]))
         with patch.object(c, "_load_embedding_model", return_value=mock_model):
             result = await c._compute_embeddings(["a", "b", "c"])
             assert result is not None

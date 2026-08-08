@@ -16,10 +16,11 @@
 
 Author: T043 能源行业模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.python import PythonOperator
@@ -44,8 +45,7 @@ default_args = {
 dag = DAG(
     dag_id="device_alert_routing",
     description=(
-        "设备告警路由 DAG：查询新告警，分级处理，抑制去重，"
-        "按级别分发到邮件/短信/电话/钉钉/飞书/看板，自动派单与升级"
+        "设备告警路由 DAG：查询新告警，分级处理，抑制去重，" "按级别分发到邮件/短信/电话/钉钉/飞书/看板，自动派单与升级"
     ),
     default_args=default_args,
     schedule_interval="* * * * *",  # 每 1 分钟
@@ -78,8 +78,8 @@ def query_new_alarms():
 def alarm_suppression():
     """告警抑制：根据 device_alarm_rule.suppress_sec 去重."""
     print(
-        f"[2] 告警抑制：根据 device_alarm_rule.suppress_sec 配置，"
-        f"相同设备+相同指标+相同级别的告警在抑制期内不重复触发"
+        "[2] 告警抑制：根据 device_alarm_rule.suppress_sec 配置，"
+        "相同设备+相同指标+相同级别的告警在抑制期内不重复触发"
     )
 
 
@@ -129,23 +129,15 @@ def alarm_escalation():
 # ---------------------------------------------------------------------------
 # 构建任务
 # ---------------------------------------------------------------------------
-query_alarms_task = PythonOperator(
-    task_id="query_new_alarms", python_callable=query_new_alarms, dag=dag
-)
-suppression_task = PythonOperator(
-    task_id="alarm_suppression", python_callable=alarm_suppression, dag=dag
-)
-routing_task = PythonOperator(
-    task_id="alert_routing", python_callable=alert_routing, dag=dag
-)
+query_alarms_task = PythonOperator(task_id="query_new_alarms", python_callable=query_new_alarms, dag=dag)
+suppression_task = PythonOperator(task_id="alarm_suppression", python_callable=alarm_suppression, dag=dag)
+routing_task = PythonOperator(task_id="alert_routing", python_callable=alert_routing, dag=dag)
 dispatch_task = PythonOperator(
     task_id="auto_dispatch_workorder",
     python_callable=auto_dispatch_workorder,
     dag=dag,
 )
-escalation_task = PythonOperator(
-    task_id="alarm_escalation", python_callable=alarm_escalation, dag=dag
-)
+escalation_task = PythonOperator(task_id="alarm_escalation", python_callable=alarm_escalation, dag=dag)
 
 # ---------------------------------------------------------------------------
 # 任务依赖关系

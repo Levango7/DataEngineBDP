@@ -46,7 +46,7 @@ jobs:
   # ============================================================
   # Go 代码检查：golangci-lint
   # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 golangci-lint run
-  # 配置文件：.golangci.yml（项目根目录）
+  # 配置文件：各组件目录下的 .golangci.yml（优先）或项目根目录 .golangci.yml
   # ============================================================
   go-lint:
     name: Go Lint (golangci-lint)
@@ -55,24 +55,19 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.23
+      - name: 安装 Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache: true
 
-      - name: 安装 golangci-lint
-        uses: golangci/golangci-lint-action@v6
-        with:
-          version: v1.61
-          working-directory: platform
-          args: --timeout=10m
+      - name: 安装 golangci-lint v1.64
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.8
+          golangci-lint --version
 
       - name: 对每个 Go 组件执行 golangci-lint
         run: |
-          if [ ! -f ".golangci.yml" ]; then
-            echo "::warning::.golangci.yml 不存在，使用 golangci-lint 默认配置"
-          fi
           go_count=$(find platform -name go.mod -not -path "*/vendor/*" | wc -l)
           if [ "$go_count" -eq 0 ]; then
             echo "::warning::未发现任何 Go 组件，跳过 go-lint"
@@ -85,7 +80,13 @@ jobs:
             echo "============================================"
             echo "  golangci-lint: $mod_name ($mod_dir)"
             echo "============================================"
-            if (cd "$mod_dir" && golangci-lint run --timeout=10m ./...); then
+            # 优先使用组件本地 .golangci.yml，否则用根目录配置
+            if [ -f "$mod_dir/.golangci.yml" ]; then
+              lint_args="--config=$mod_dir/.golangci.yml"
+            else
+              lint_args=""
+            fi
+            if (cd "$mod_dir" && golangci-lint run --timeout=10m $lint_args ./...); then
               echo "✓ $mod_name golangci-lint 通过"
             else
               echo "✗ $mod_name golangci-lint 发现问题"
@@ -276,7 +277,7 @@ jobs:
       - name: 校验 design/deploy/values/ 下的 YAML 文件
         run: |
           if compgen -G "design/deploy/values/*.yaml" > /dev/null; then
-            yamllint -d relaxed design/deploy/values/
+            yamllint -c .yamllint design/deploy/values/
           else
             echo "design/deploy/values/ 下无 YAML 文件，跳过"
           fi
@@ -284,7 +285,7 @@ jobs:
       - name: 校验 ske/manifests/ 下的 YAML 文件
         run: |
           if compgen -G "ske/manifests/*.yaml" > /dev/null || compgen -G "ske/manifests/*.yml" > /dev/null; then
-            yamllint -d relaxed ske/manifests/
+            yamllint -c .yamllint ske/manifests/
           else
             echo "ske/manifests/ 下无 YAML 文件，跳过"
           fi
@@ -292,7 +293,7 @@ jobs:
       - name: 校验 design/deploy/charts/ 下的 YAML 文件
         run: |
           if [ -d "design/deploy/charts" ]; then
-            yamllint -d relaxed design/deploy/charts/
+            yamllint -c .yamllint design/deploy/charts/
           else
             echo "design/deploy/charts/ 目录不存在，跳过"
           fi
@@ -541,7 +542,7 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================
-  # Go 构建与测试：Go 1.23
+  # Go 构建与测试：Go 1.25
   # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 go test ./... && go vet ./...
   # 上传 Go 测试报告
   # ============================================================
@@ -552,10 +553,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.23
+      - name: 安装 Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.25'
           cache: true
 
       - name: 发现并遍历所有 Go 组件（含 go.mod）

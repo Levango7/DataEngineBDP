@@ -22,9 +22,9 @@
 
 对齐设计文档 T008-5。
 """
+
 from __future__ import annotations
 
-import asyncio
 import os
 import threading
 from typing import Any
@@ -35,27 +35,18 @@ from chunker.asr.diarization import (
     DiarizationResult,
     Diarizer,
     EnergyDiarizer,
-    PyannoteDiarizer,
-    SpeakerSegment,
     create_diarizer,
 )
 from chunker.asr.timestamp_aligner import (
     AlignedSegment,
-    AlignedWord,
     TimestampAligner,
-    align_segments,
 )
 from chunker.asr.whisper_engine import (
-    ASRResult,
-    ASRSegment,
     DEFAULT_SEGMENT_MAX_SECONDS,
     DEFAULT_WHISPER_MODEL,
     SUPPORTED_AUDIO_EXTS,
     WhisperEngine,
-    WhisperWord,
     estimate_audio_duration,
-    is_whisper_available,
-    load_audio,
 )
 from chunker.base import BaseChunker
 from chunker.exceptions import PreprocessError
@@ -305,9 +296,7 @@ class AudioChunker(BaseChunker):
         extra = config.extra or {}
         language = extra.get("language", self.language)
         enable_diar = bool(extra.get("enableDiarization", self.enableDiarization))
-        enable_text_chunker = bool(
-            extra.get("enableTextChunker", self.enableTextChunker)
-        )
+        enable_text_chunker = bool(extra.get("enableTextChunker", self.enableTextChunker))
         word_ts = bool(extra.get("wordTimestamps", self.wordTimestamps))
         parallel = bool(extra.get("parallel", self.parallel))
         max_workers = int(extra.get("maxWorkers", self.maxWorkers))
@@ -329,9 +318,7 @@ class AudioChunker(BaseChunker):
         diarization: DiarizationResult | None = None
         if enable_diar:
             diarizer = self._get_diarizer()
-            diarization = await diarizer.diarize_async(
-                content, min_speakers=min_spk, max_speakers=max_spk
-            )
+            diarization = await diarizer.diarize_async(content, min_speakers=min_spk, max_speakers=max_spk)
 
         # 3. 时间戳对齐
         aligner = self._get_aligner()
@@ -422,9 +409,7 @@ class AudioChunker(BaseChunker):
         while t < duration:
             window_end = min(t + window_seconds, duration)
             # 收集窗口内的段
-            window_segs = self._collect_segments_in_window(
-                aligned_segments, t, window_end
-            )
+            window_segs = self._collect_segments_in_window(aligned_segments, t, window_end)
             if window_segs:
                 chunk = self._build_chunk(
                     window_segs,

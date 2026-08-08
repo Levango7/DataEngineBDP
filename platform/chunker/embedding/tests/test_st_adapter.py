@@ -1,10 +1,8 @@
 """SentenceTransformer 通用适配器测试 (T008-6)."""
+
 from __future__ import annotations
 
-import math
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from chunker.embedding.exceptions import (
     EmbeddingComputeError,
@@ -14,8 +12,8 @@ from chunker.embedding.exceptions import (
 from chunker.embedding.st_adapter import (
     SentenceTransformerAdapter,
     clear_model_cache,
-    is_sentence_transformers_available,
 )
+import pytest
 
 
 def _make_mock_model(dimension=8):
@@ -29,8 +27,9 @@ def _make_mock_model(dimension=8):
             self.tokenizer = MagicMock()
             self.tokenizer.encode = lambda text: list(text.encode("utf-8"))
 
-        def encode(self, texts, batch_size=32, show_progress_bar=False,
-                   convert_to_numpy=True, normalize_embeddings=False):
+        def encode(
+            self, texts, batch_size=32, show_progress_bar=False, convert_to_numpy=True, normalize_embeddings=False
+        ):
             results = []
             for text in texts:
                 h = hashlib.sha256(text.encode("utf-8")).digest()
@@ -63,11 +62,13 @@ class TestSTAdapterInit:
 class TestSTAvailability:
     def test_is_sentence_transformers_available_mocked(self):
         import chunker.embedding.st_adapter as st_mod
+
         with patch.object(st_mod, "is_sentence_transformers_available", return_value=True):
             assert st_mod.is_sentence_transformers_available() is True
 
     def test_is_sentence_transformers_available_mocked_false(self):
         import chunker.embedding.st_adapter as st_mod
+
         with patch.object(st_mod, "is_sentence_transformers_available", return_value=False):
             assert st_mod.is_sentence_transformers_available() is False
 

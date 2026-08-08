@@ -1,7 +1,6 @@
 """注册机制单元测试."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.base import BaseChunker
 from chunker.exceptions import UnsupportedModalityError
@@ -15,7 +14,7 @@ from chunker.registry import (
     register_chunker,
     unregister_chunker,
 )
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 测试用切片器

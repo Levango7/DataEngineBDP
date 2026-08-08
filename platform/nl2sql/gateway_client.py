@@ -11,14 +11,14 @@
     Body: { sql, engine, tenantId, limit }
     Resp: { queryId, status, columns, rows, durationMs, engine }
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional
 
+from config.settings import Settings
 import httpx
 from loguru import logger
-
-from config.settings import Settings
 from models import GatewayExecuteResult
 
 

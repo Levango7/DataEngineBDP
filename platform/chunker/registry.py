@@ -12,6 +12,7 @@ get_chunker 每次返回新实例，避免共享状态。
 
 对齐设计文档 T008-1。
 """
+
 from __future__ import annotations
 
 from threading import RLock
@@ -55,9 +56,7 @@ class ChunkerRegistry:
         :raises TypeError: chunker_cls 不是 BaseChunker 子类
         """
         if not (isinstance(chunker_cls, type) and issubclass(chunker_cls, BaseChunker)):
-            raise TypeError(
-                f"chunker_cls 必须是 BaseChunker 的子类，得到 {chunker_cls!r}"
-            )
+            raise TypeError(f"chunker_cls 必须是 BaseChunker 的子类，得到 {chunker_cls!r}")
         key = modality.value if isinstance(modality, Modality) else str(modality).lower()
         with cls._lock:
             cls._chunkers[key] = chunker_cls
@@ -85,9 +84,7 @@ class ChunkerRegistry:
         with cls._lock:
             chunker_cls = cls._chunkers.get(key)
             if chunker_cls is None:
-                raise UnsupportedModalityError(
-                    modality=key, available=list(cls._chunkers.keys())
-                )
+                raise UnsupportedModalityError(modality=key, available=list(cls._chunkers.keys()))
             return chunker_cls()
 
     @classmethod
@@ -102,9 +99,7 @@ class ChunkerRegistry:
         with cls._lock:
             chunker_cls = cls._chunkers.get(key)
             if chunker_cls is None:
-                raise UnsupportedModalityError(
-                    modality=key, available=list(cls._chunkers.keys())
-                )
+                raise UnsupportedModalityError(modality=key, available=list(cls._chunkers.keys()))
             return chunker_cls
 
     @classmethod

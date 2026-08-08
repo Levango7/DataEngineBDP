@@ -1,17 +1,18 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("ASSET_EXCHANGE_STORE_TYPE", "mock")
 
-from asset_exchange.api.app import create_app
-from asset_exchange.config.settings import Settings, reset_settings
-from asset_exchange.repositories.mock import (
+from asset_exchange.api.app import create_app  # noqa: E402
+from asset_exchange.config.settings import Settings, reset_settings  # noqa: E402
+from asset_exchange.repositories.mock import (  # noqa: E402
     MockAllocationRepository,
     MockAssetRepository,
     MockAuditRepository,
@@ -20,14 +21,14 @@ from asset_exchange.repositories.mock import (
     MockSettlementRepository,
     MockSubscriptionRepository,
 )
-from asset_exchange.services.allocation_service import AllocationService
-from asset_exchange.services.asset_service import AssetService
-from asset_exchange.services.audit_service import AuditService
-from asset_exchange.services.billing_service import BillingService
-from asset_exchange.services.delivery_service import DeliveryService
-from asset_exchange.services.registry import ServiceRegistry
-from asset_exchange.services.settlement_service import SettlementService
-from asset_exchange.services.subscription_service import SubscriptionService
+from asset_exchange.services.allocation_service import AllocationService  # noqa: E402
+from asset_exchange.services.asset_service import AssetService  # noqa: E402
+from asset_exchange.services.audit_service import AuditService  # noqa: E402
+from asset_exchange.services.billing_service import BillingService  # noqa: E402
+from asset_exchange.services.delivery_service import DeliveryService  # noqa: E402
+from asset_exchange.services.registry import ServiceRegistry  # noqa: E402
+from asset_exchange.services.settlement_service import SettlementService  # noqa: E402
+from asset_exchange.services.subscription_service import SubscriptionService  # noqa: E402
 
 
 @pytest.fixture

@@ -3,12 +3,13 @@
 对应详细设计 §5 网关拦截：
     APISIX 插件链依次做认证 → 租户隔离 → 限流 → 熔断 → 计量 → 转发。
 """
+
 from __future__ import annotations
 
-import threading
-import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
+import threading
+import time
 
 from openapi_catalog.repositories import (
     QuotaExceededError,
@@ -20,9 +21,9 @@ from openapi_catalog.repositories import (
 class _TokenBucket:
     """令牌桶."""
 
-    capacity: float        # 桶容量（最大突发）
-    rate: float            # 令牌生成速率（个/秒）
-    tokens: float = 0.0    # 当前令牌数
+    capacity: float  # 桶容量（最大突发）
+    rate: float  # 令牌生成速率（个/秒）
+    tokens: float = 0.0  # 当前令牌数
     lastRefill: float = 0.0  # 上次补充时间
 
     def __post_init__(self) -> None:
@@ -71,16 +72,12 @@ class RateLimiter:
                 rate=float(rate_per_second),
             )
 
-    def configure_subscription(
-        self, subscription_id: str, quota_per_minute: int
-    ) -> None:
+    def configure_subscription(self, subscription_id: str, quota_per_minute: int) -> None:
         """配置订阅配额（次/分钟）."""
         with self._lock:
             self._subQuotas[subscription_id] = quota_per_minute
 
-    def configure_subscription_rate(
-        self, subscription_id: str, qps: int, burst: int = 0
-    ) -> None:
+    def configure_subscription_rate(self, subscription_id: str, qps: int, burst: int = 0) -> None:
         """配置订阅级 QPS 限流（次/秒，令牌桶）.
 
         Args:

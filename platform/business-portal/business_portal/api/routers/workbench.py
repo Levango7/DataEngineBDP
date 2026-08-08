@@ -1,4 +1,5 @@
 """业务线工作台路由."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException

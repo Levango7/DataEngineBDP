@@ -9,6 +9,7 @@
 - 计费方式：BY_CALL / BY_DATA / BY_TIME / ONE_TIME
 - 安全分级：PUBLIC / INTERNAL / SENSITIVE
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -59,11 +60,11 @@ class AssetStatus(str, Enum):
         OFFLINE -> LISTED (重新上架)
     """
 
-    DRAFT = "draft"             # 草稿/已登记
+    DRAFT = "draft"  # 草稿/已登记
     PENDING_AUDIT = "pending_audit"  # 待审核
-    LISTED = "listed"           # 已上架/可流通
-    OFFLINE = "offline"         # 已下架
-    REJECTED = "rejected"       # 审核驳回
+    LISTED = "listed"  # 已上架/可流通
+    OFFLINE = "offline"  # 已下架
+    REJECTED = "rejected"  # 审核驳回
 
 
 class SecurityLevel(str, Enum):
@@ -89,11 +90,11 @@ class SubscriptionStatus(str, Enum):
         ACTIVE -> EXPIRED (到期)
     """
 
-    PENDING = "pending"     # 待审批
-    APPROVED = "approved"   # 已批准
-    ACTIVE = "active"       # 生效中
-    EXPIRED = "expired"     # 已到期
-    REJECTED = "rejected"   # 已驳回
+    PENDING = "pending"  # 待审批
+    APPROVED = "approved"  # 已批准
+    ACTIVE = "active"  # 生效中
+    EXPIRED = "expired"  # 已到期
+    REJECTED = "rejected"  # 已驳回
 
 
 class DeliveryMethod(str, Enum):
@@ -117,10 +118,10 @@ class DeliveryStatus(str, Enum):
         PENDING/RUNNING -> FAILED
     """
 
-    PENDING = "pending"     # 待交付
-    RUNNING = "running"     # 交付中
-    SUCCEEDED = "succeeded" # 交付成功
-    FAILED = "failed"       # 交付失败
+    PENDING = "pending"  # 待交付
+    RUNNING = "running"  # 交付中
+    SUCCEEDED = "succeeded"  # 交付成功
+    FAILED = "failed"  # 交付失败
 
 
 class BillingMode(str, Enum):

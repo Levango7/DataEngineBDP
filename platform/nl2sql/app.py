@@ -17,28 +17,27 @@
     - 所有组件通过 app.state 共享，路由通过依赖获取。
     - Mock 模式（NL2SQL_LLM_MODE=mock）零外部依赖即可运行。
 """
+
 from __future__ import annotations
 
-import uuid
 from typing import Any, Optional
-
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
-from loguru import logger
-from pydantic import BaseModel, Field
+import uuid
 
 from config.settings import Settings, get_settings
 from dialogue_clarifier import DialogueClarifier
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import JSONResponse
 from gateway_client import GatewayClient
 from intent_recognition import IntentRecognizer
+from loguru import logger
 from models import (
     DialogueState,
     Intent,
-    SchemaContext,
     SlotFrame,
     SqlGenerationResult,
     ValidationResult,
 )
+from pydantic import BaseModel, Field
 from schema_context import SchemaContextBuilder
 from slot_filler import SlotFiller
 from sql_generator import BaseSqlGenerator, createGenerator
@@ -136,9 +135,7 @@ class ServiceRegistry:
         self.validator = SqlValidator(settings)
         self.generator: BaseSqlGenerator = createGenerator(settings, self.validator)
         self.slotFiller = SlotFiller()
-        self.clarifier = DialogueClarifier(
-            slotFiller=self.slotFiller, maxTurns=settings.maxDialogueTurns
-        )
+        self.clarifier = DialogueClarifier(slotFiller=self.slotFiller, maxTurns=settings.maxDialogueTurns)
         self.gatewayClient = GatewayClient(settings)
         # 会话存储（内存，生产可换 Redis）
         self._sessions: dict[str, DialogueState] = {}
@@ -301,9 +298,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         nextQ = reg.clarifier.nextQuestion(state, ctx)
         sql: Optional[str] = None
         if nextQ is None and state.currentSlots is not None and state.currentSlots.intent is not None:
-            gen = await reg.generator.generate(
-                queryText, ctx, state.currentSlots.intent, state.currentSlots
-            )
+            gen = await reg.generator.generate(queryText, ctx, state.currentSlots.intent, state.currentSlots)
             sql = gen.sql
             state.clarified = True
         reg.saveSession(state)
@@ -322,19 +317,19 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         """校验 SQL 语法."""
         ctx = None
         if req.database or req.useMockSchema:
-            ctx = await reg.schemaBuilder.buildContext(
-                query="", database=req.database, useMock=req.useMockSchema
-            )
+            ctx = await reg.schemaBuilder.buildContext(query="", database=req.database, useMock=req.useMockSchema)
         return reg.validator.validate(req.sql, ctx)
 
     @app.get(f"{prefix}/nl2sql/schema")
     async def schema(database: Optional[str] = None, useMock: bool = False) -> JSONResponse:
         """获取 schema 上下文（调试用）."""
         tables = await reg.schemaBuilder.fetchTables(database=database, useMock=useMock)
-        return JSONResponse({
-            "database": database,
-            "tables": [t.model_dump() for t in tables],
-        })
+        return JSONResponse(
+            {
+                "database": database,
+                "tables": [t.model_dump() for t in tables],
+            }
+        )
 
 
 # ============================================================

@@ -11,16 +11,15 @@
     GET /api/v1/catalog/tables?database=xxx
     GET /api/v1/catalog/tables/{id}
 """
+
 from __future__ import annotations
 
 from typing import Optional
 
+from config.settings import Settings
 import httpx
 from loguru import logger
-
-from config.settings import Settings
 from models import ColumnSchema, SchemaContext, TableSchema
-
 
 # ============================================================
 # Mock schema（Catalog 不可达时降级使用）
@@ -159,9 +158,7 @@ class SchemaContextBuilder:
         return tables
 
     # ---- 公共 API ----
-    async def fetchTables(
-        self, database: Optional[str] = None, useMock: bool = False
-    ) -> list[TableSchema]:
+    async def fetchTables(self, database: Optional[str] = None, useMock: bool = False) -> list[TableSchema]:
         """拉取表 schema.
 
         Args:
@@ -176,9 +173,7 @@ class SchemaContextBuilder:
         try:
             return await self._listTables(database)
         except Exception as e:  # noqa: BLE001
-            logger.warning(
-                "Catalog 不可达，降级 Mock schema: {} | error={}", self._baseUrl, e
-            )
+            logger.warning("Catalog 不可达，降级 Mock schema: {} | error={}", self._baseUrl, e)
             return self._mockTables(database)
 
     async def buildContext(
@@ -239,10 +234,7 @@ class SchemaContextBuilder:
         if tableHints:
             hintsLower = {h.lower() for h in tableHints}
             matched = [
-                t
-                for t in allTables
-                if t.tableName.lower() in hintsLower
-                or t.qualifiedName.lower() in hintsLower
+                t for t in allTables if t.tableName.lower() in hintsLower or t.qualifiedName.lower() in hintsLower
             ]
             if matched:
                 return matched

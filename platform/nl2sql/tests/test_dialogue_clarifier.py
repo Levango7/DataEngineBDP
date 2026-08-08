@@ -1,20 +1,18 @@
 """多轮对话澄清单测."""
+
 from __future__ import annotations
 
-import pytest
-
+from dialogue_clarifier import DialogueClarifier
 from models import (
-    AggFunc,
+    ColumnSchema,
     Intent,
     IntentType,
     SchemaContext,
-    TableSchema,
-    ColumnSchema,
-    SlotFrame,
     Slot,
+    SlotFrame,
     SlotStatus,
+    TableSchema,
 )
-from dialogue_clarifier import DialogueClarifier
 from slot_filler import SlotFiller
 
 
@@ -38,24 +36,30 @@ def _mockCtx() -> SchemaContext:
 class TestDialogueClarifier:
     def test_detect_no_ambiguity(self, clarifier: DialogueClarifier) -> None:
         intent = Intent(primaryType=IntentType.SIMPLE_SELECT)
-        frame = SlotFrame(slots=[
-            Slot(name="timeRange", required=False, status=SlotStatus.FILLED, value="yesterday"),
-            Slot(name="limit", required=False, status=SlotStatus.FILLED, value=10),
-        ], intent=intent)
+        frame = SlotFrame(
+            slots=[
+                Slot(name="timeRange", required=False, status=SlotStatus.FILLED, value="yesterday"),
+                Slot(name="limit", required=False, status=SlotStatus.FILLED, value=10),
+            ],
+            intent=intent,
+        )
         qs = clarifier.detectAmbiguity("查询昨天的数据", intent, frame, _mockCtx())
         # 已填充时间，可能仍提示其他可选问题；但不应有必需问题
         assert all("必需" not in q for q in qs)
 
     def test_detect_missing_required(self, clarifier: DialogueClarifier) -> None:
         intent = Intent(primaryType=IntentType.JOIN)
-        frame = SlotFrame(slots=[
-            Slot(
-                name="joinTables",
-                required=True,
-                status=SlotStatus.MISSING,
-                promptQuestion="请问要关联哪些表？",
-            ),
-        ], intent=intent)
+        frame = SlotFrame(
+            slots=[
+                Slot(
+                    name="joinTables",
+                    required=True,
+                    status=SlotStatus.MISSING,
+                    promptQuestion="请问要关联哪些表？",
+                ),
+            ],
+            intent=intent,
+        )
         qs = clarifier.detectAmbiguity("关联一下", intent, frame, _mockCtx())
         assert any("关联" in q for q in qs)
 
@@ -67,13 +71,14 @@ class TestDialogueClarifier:
         assert state.turnCount == 1
         assert state.turns[0].role == "user"
 
-    def test_next_question_returns_none_when_complete(
-        self, clarifier: DialogueClarifier
-    ) -> None:
+    def test_next_question_returns_none_when_complete(self, clarifier: DialogueClarifier) -> None:
         intent = Intent(primaryType=IntentType.SIMPLE_SELECT)
-        frame = SlotFrame(slots=[
-            Slot(name="timeRange", required=False, status=SlotStatus.FILLED, value="yesterday"),
-        ], intent=intent)
+        frame = SlotFrame(
+            slots=[
+                Slot(name="timeRange", required=False, status=SlotStatus.FILLED, value="yesterday"),
+            ],
+            intent=intent,
+        )
         state = clarifier.startDialogue("s1", "查询昨天的数据", intent, frame)
         q = clarifier.nextQuestion(state, _mockCtx())
         # 简单查询 + 时间已填，可能仍有可选问题；若返回 None 则已澄清
@@ -83,10 +88,12 @@ class TestDialogueClarifier:
     def test_next_question_max_turns(self, slotFiller: SlotFiller) -> None:
         clarifier = DialogueClarifier(slotFiller=slotFiller, maxTurns=1)
         intent = Intent(primaryType=IntentType.JOIN)
-        frame = SlotFrame(slots=[
-            Slot(name="joinTables", required=True, status=SlotStatus.MISSING,
-                 promptQuestion="关联哪些表？"),
-        ], intent=intent)
+        frame = SlotFrame(
+            slots=[
+                Slot(name="joinTables", required=True, status=SlotStatus.MISSING, promptQuestion="关联哪些表？"),
+            ],
+            intent=intent,
+        )
         state = clarifier.startDialogue("s1", "关联", intent, frame)
         # 第一轮已用，第二轮应返回 None
         q1 = clarifier.nextQuestion(state, _mockCtx())
@@ -98,10 +105,12 @@ class TestDialogueClarifier:
 
     def test_absorb_answer_updates_slots(self, clarifier: DialogueClarifier) -> None:
         intent = Intent(primaryType=IntentType.SIMPLE_SELECT)
-        frame = SlotFrame(slots=[
-            Slot(name="timeRange", required=False, status=SlotStatus.OPTIONAL,
-                 promptQuestion="时间范围？"),
-        ], intent=intent)
+        frame = SlotFrame(
+            slots=[
+                Slot(name="timeRange", required=False, status=SlotStatus.OPTIONAL, promptQuestion="时间范围？"),
+            ],
+            intent=intent,
+        )
         state = clarifier.startDialogue("s1", "查询数据", intent, frame)
         clarifier.absorbAnswer(state, "昨天", _mockCtx())
         tr = state.currentSlots.get("timeRange")

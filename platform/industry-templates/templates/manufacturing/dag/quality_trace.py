@@ -14,10 +14,11 @@
 
 Author: T037 制造模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -43,10 +44,7 @@ default_args = {
 # ---------------------------------------------------------------------------
 dag = DAG(
     dag_id="quality_trace",
-    description=(
-        "质量追溯 DAG：构建批次→工序→参数→缺陷正反向追溯链路，"
-        "计算 Cpk，写入 quality_trace_link 表"
-    ),
+    description=("质量追溯 DAG：构建批次→工序→参数→缺陷正反向追溯链路，" "计算 Cpk，写入 quality_trace_link 表"),
     default_args=default_args,
     schedule_interval="0 3 * * *",  # 每日凌晨 3:00
     start_date=datetime(2024, 1, 1),
@@ -74,10 +72,14 @@ build_forward_trace = SparkSubmitOperator(
         "spark.app.name": f"quality_forward_trace_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--direction", "FORWARD",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--direction",
+        "FORWARD",
     ],
     dag=dag,
 )
@@ -94,10 +96,14 @@ build_backward_trace = SparkSubmitOperator(
         "spark.app.name": f"quality_backward_trace_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--direction", "BACKWARD",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--direction",
+        "BACKWARD",
     ],
     dag=dag,
 )
@@ -109,9 +115,10 @@ link_material_supplier = BashOperator(
     task_id="link_material_supplier",
     bash_command=(
         f"echo '[3] 关联来料批次/供应商，补全全链路追溯...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.quality_trace_link "
-        f"(link_id, source_type, source_id, target_type, target_id, relation, trace_direction, batch_id, remark, created_at) "
+        f"(link_id, source_type, source_id, target_type, target_id, "
+        f"relation, trace_direction, batch_id, remark, created_at) "
         f"SELECT CONCAT('LINK-MS-', b.batch_id, '-', p.po_id), "
         f"'BATCH', b.batch_id, 'SUPPLIER', p.supplier_id, 'DERIVED_FROM', 'BACKWARD', b.batch_id, "
         f"'批次原料源自采购订单', NOW() "
@@ -123,6 +130,7 @@ link_material_supplier = BashOperator(
     ),
     dag=dag,
 )
+
 
 # ---------------------------------------------------------------------------
 # Task 4: 计算工序能力指数 Cpk
@@ -164,13 +172,13 @@ generate_report = BashOperator(
     task_id="generate_report",
     bash_command=(
         f"echo '[5] 生成质量追溯报告 biz_date={BIZ_DATE}...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT b.batch_no, b.product_name, b.good_qty, b.defect_qty, "
         f"d.defect_name, d.defect_category, d.root_cause, d.action "
         f"FROM {DORIS_DB}.product_batch b "
         f"LEFT JOIN {DORIS_DB}.defect_record d ON b.batch_id = d.batch_id "
         f"WHERE DATE(b.created_at) = '{BIZ_DATE}' "
-        f"ORDER BY b.batch_no;\" > /tmp/quality_report_{BIZ_DATE}.csv && "
+        f'ORDER BY b.batch_no;" > /tmp/quality_report_{BIZ_DATE}.csv && '
         f"echo '[5] 质量追溯报告生成完成: /tmp/quality_report_{BIZ_DATE}.csv'"
     ),
     dag=dag,
@@ -186,7 +194,7 @@ notify_done = BashOperator(
         f">> /var/log/manufacturing/quality_trace.log && "
         f"curl -s -X POST http://superset:8088/api/v1/dashboard/refresh/ "
         f"-H 'Authorization: Bearer $SUPERSET_TOKEN' "
-        f"-d '{{\"dashboard_id\":\"quality-dashboard\"}}' || true"
+        f'-d \'{{"dashboard_id":"quality-dashboard"}}\' || true'
     ),
     dag=dag,
 )

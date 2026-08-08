@@ -12,10 +12,11 @@ get_adapter 每次返回新实例，避免共享状态。
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 from threading import RLock
-from typing import Any, Callable, Type
+from typing import Any, Optional, Type
 
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.embedding.config import resolve_model_name
@@ -57,13 +58,8 @@ class EmbeddingRegistry:
         :return: 注册的类（便于装饰器链式使用）
         :raises TypeError: adapter_cls 不是 EmbeddingAdapter 子类
         """
-        if not (
-            isinstance(adapter_cls, type)
-            and issubclass(adapter_cls, EmbeddingAdapter)
-        ):
-            raise TypeError(
-                f"adapter_cls 必须是 EmbeddingAdapter 的子类，得到 {adapter_cls!r}"
-            )
+        if not (isinstance(adapter_cls, type) and issubclass(adapter_cls, EmbeddingAdapter)):
+            raise TypeError(f"adapter_cls 必须是 EmbeddingAdapter 的子类，得到 {adapter_cls!r}")
         with cls._lock:
             cls._adapters[name] = adapter_cls
             if defaults is not None:
@@ -97,9 +93,7 @@ class EmbeddingRegistry:
         with cls._lock:
             adapter_cls = cls._adapters.get(short)
             if adapter_cls is None:
-                raise InvalidModelError(
-                    name, available=list(cls._adapters.keys())
-                )
+                raise InvalidModelError(name, available=list(cls._adapters.keys()))
             defaults = dict(cls._defaults.get(short, {}))
         # 合并默认参数与显式参数
         defaults.update(kwargs)
@@ -123,9 +117,7 @@ class EmbeddingRegistry:
         with cls._lock:
             adapter_cls = cls._adapters.get(short)
             if adapter_cls is None:
-                raise InvalidModelError(
-                    name, available=list(cls._adapters.keys())
-                )
+                raise InvalidModelError(name, available=list(cls._adapters.keys()))
             return adapter_cls
 
     @classmethod

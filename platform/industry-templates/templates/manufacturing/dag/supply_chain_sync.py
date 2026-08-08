@@ -10,10 +10,11 @@
 
 Author: T037 制造模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -40,8 +41,7 @@ default_args = {
 dag = DAG(
     dag_id="supply_chain_sync",
     description=(
-        "供应链协同 DAG：库存预警/交期预警/订单-库存协同/物流状态同步，"
-        "生成供应链事件写入 supply_chain_event 表"
+        "供应链协同 DAG：库存预警/交期预警/订单-库存协同/物流状态同步，" "生成供应链事件写入 supply_chain_event 表"
     ),
     default_args=default_args,
     schedule_interval="0 4 * * *",  # 每日凌晨 4:00
@@ -57,6 +57,7 @@ BIZ_DATE = "{{ ds }}"
 SPARK_MASTER = os.environ.get("SPARK_MASTER", "spark://spark-master:7077")
 DORIS_FE = os.environ.get("DORIS_FE", "doris-fe:9030")
 DORIS_DB = os.environ.get("DORIS_DB", "db_manufacturing")
+
 
 # ---------------------------------------------------------------------------
 # Task 1: 库存预警检测
@@ -115,9 +116,10 @@ detect_delivery_delay = BashOperator(
     task_id="detect_delivery_delay",
     bash_command=(
         f"echo '[2] 交期预警检测...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.supply_chain_event "
-        f"(event_id, event_type, event_level, ref_type, ref_id, ref_no, event_desc, occurred_at, detected_at, status, created_at, updated_at) "
+        f"(event_id, event_type, event_level, ref_type, ref_id, ref_no, "
+        f"event_desc, occurred_at, detected_at, status, created_at, updated_at) "
         f"SELECT CONCAT('EVT-DELAY-PO-', p.po_id), 'DELAY', 'WARN', 'PO', p.po_id, p.po_no, "
         f"CONCAT('采购订单 ', p.po_no, ' 逾期，计划交货 ', CAST(p.plan_delivery AS VARCHAR)), "
         f"NOW(), NOW(), 'OPEN', NOW(), NOW() "
@@ -140,9 +142,12 @@ order_inventory_sync = SparkSubmitOperator(
         "spark.app.name": f"scm_order_sync_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
     ],
     dag=dag,
 )
@@ -168,13 +173,13 @@ generate_sc_events = BashOperator(
     task_id="generate_sc_events",
     bash_command=(
         f"echo '[5] 生成供应链事件汇总 biz_date={BIZ_DATE}...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"SELECT event_type, event_level, COUNT(*) AS cnt, "
         f"GROUP_CONCAT(ref_no) AS ref_list "
         f"FROM {DORIS_DB}.supply_chain_event "
         f"WHERE DATE(detected_at) = '{BIZ_DATE}' "
         f"GROUP BY event_type, event_level "
-        f"ORDER BY event_level, event_type;\" > /tmp/sc_events_{BIZ_DATE}.csv && "
+        f'ORDER BY event_level, event_type;" > /tmp/sc_events_{BIZ_DATE}.csv && '
         f"echo '[5] 供应链事件汇总完成: /tmp/sc_events_{BIZ_DATE}.csv'"
     ),
     dag=dag,
@@ -190,7 +195,7 @@ notify_done = BashOperator(
         f">> /var/log/manufacturing/supply_chain_sync.log && "
         f"curl -s -X POST http://superset:8088/api/v1/dashboard/refresh/ "
         f"-H 'Authorization: Bearer $SUPERSET_TOKEN' "
-        f"-d '{{\"dashboard_id\":\"supply-chain-dashboard\"}}' || true"
+        f'-d \'{{"dashboard_id":"supply-chain-dashboard"}}\' || true'
     ),
     dag=dag,
 )

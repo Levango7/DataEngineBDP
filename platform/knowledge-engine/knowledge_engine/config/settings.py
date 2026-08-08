@@ -17,6 +17,7 @@
     KE_LLM_API_KEY           LLM 网关 API Key
     KE_API_PREFIX            API 路由前缀（默认 /api/v1）
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -44,14 +45,10 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- store ----
-    storeType: Literal["mock", "nebula"] = Field(
-        default="mock", description="图存储类型: mock / nebula"
-    )
+    storeType: Literal["mock", "nebula"] = Field(default="mock", description="图存储类型: mock / nebula")
 
     # ---- extractor ----
-    extractorType: Literal["mock", "llm"] = Field(
-        default="mock", description="抽取器类型: mock / llm"
-    )
+    extractorType: Literal["mock", "llm"] = Field(default="mock", description="抽取器类型: mock / llm")
 
     # ---- nebula ----
     nebulaHost: str = Field(default="127.0.0.1", description="NebulaGraph GraphD 主机")

@@ -13,6 +13,7 @@
 依赖：marketing_campaign / 营销事件流 / 订单事实表
 输出：marketing_roi 表 + marketing_channel_stat 表
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -146,8 +147,10 @@ SELECT
     COUNT(DISTINCT e_exp.user_id) AS impression_count
 FROM ${db}.marketing_campaign c
 LEFT JOIN ${db}.order_fact o ON c.campaign_id = o.campaign_id AND o.pay_time = '${biz_date}'
-LEFT JOIN ${db}.marketing_event e_click ON c.campaign_id = e_click.campaign_id AND e_click.event_type = 'CLICK' AND e_click.stat_date = '${biz_date}'
-LEFT JOIN ${db}.marketing_event e_exp ON c.campaign_id = e_exp.campaign_id AND e_exp.event_type = 'EXPOSURE' AND e_exp.stat_date = '${biz_date}'
+LEFT JOIN ${db}.marketing_event e_click ON c.campaign_id = e_click.campaign_id
+    AND e_click.event_type = 'CLICK' AND e_click.stat_date = '${biz_date}'
+LEFT JOIN ${db}.marketing_event e_exp ON c.campaign_id = e_exp.campaign_id
+    AND e_exp.event_type = 'EXPOSURE' AND e_exp.stat_date = '${biz_date}'
 WHERE c.status IN ('RUNNING', 'COMPLETED')
 GROUP BY c.campaign_id, c.actual_cost
 """
@@ -252,6 +255,8 @@ if __name__ == "__main__":
         click_count=5000,
         impression_count=100000,
     )
-    print(f"活动 {result['campaign_id']}: ROI={result['roi']:.4f}, "
-          f"ROAS={result['roas']:.4f}, CPA={result['cpa']:.2f}, "
-          f"CPC={result['cpc']:.2f}, 盈利={result['is_profitable']}")
+    print(
+        f"活动 {result['campaign_id']}: ROI={result['roi']:.4f}, "
+        f"ROAS={result['roas']:.4f}, CPA={result['cpa']:.2f}, "
+        f"CPC={result['cpc']:.2f}, 盈利={result['is_profitable']}"
+    )

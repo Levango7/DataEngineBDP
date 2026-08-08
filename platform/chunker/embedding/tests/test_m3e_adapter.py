@@ -1,22 +1,22 @@
 """M3E 适配器测试 (T008-6)."""
+
 from __future__ import annotations
 
 import math
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from chunker.embedding.m3e_adapter import (
     M3E_BASE_MODEL,
     M3E_SMALL_MODEL,
     M3EAdapter,
 )
-from chunker.embedding.exceptions import ModelLoadError, ModelUnavailableError
+import pytest
 
 
 def _mock_encode(texts, **kwargs):
     import hashlib
     import struct
+
     results = []
     for text in texts:
         h = hashlib.sha256(text.encode("utf-8")).digest()
@@ -27,7 +27,7 @@ def _mock_encode(texts, **kwargs):
             counter += 1
         vec = []
         for i in range(768):
-            val = struct.unpack("f", seed[i*4:i*4+4])[0]
+            val = struct.unpack("f", seed[i * 4 : i * 4 + 4])[0]
             if val != val:
                 val = 0.0
             vec.append(float(val))

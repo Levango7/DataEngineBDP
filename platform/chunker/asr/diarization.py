@@ -17,13 +17,14 @@
 
 对齐设计文档 T008-5。
 """
+
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import asyncio
+from dataclasses import dataclass, field
 import os
 import threading
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
 from typing import Any
 
 from chunker.asr.whisper_engine import (
@@ -172,9 +173,7 @@ class Diarizer(ABC):
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
-            lambda: self.diarize(
-                content, min_speakers=min_speakers, max_speakers=max_speakers
-            ),
+            lambda: self.diarize(content, min_speakers=min_speakers, max_speakers=max_speakers),
         )
 
 
@@ -238,9 +237,7 @@ class PyannoteDiarizer(Diarizer):
             try:
                 from pyannote.audio import Pipeline  # type: ignore[import-untyped]
 
-                pipeline = Pipeline.from_pretrained(
-                    self.modelName, use_auth_token=self.hfToken
-                )
+                pipeline = Pipeline.from_pretrained(self.modelName, use_auth_token=self.hfToken)
                 self._pipeline_cache[self.modelName] = pipeline
                 return pipeline
             except Exception:  # noqa: BLE001
@@ -262,21 +259,21 @@ class PyannoteDiarizer(Diarizer):
     ) -> DiarizationResult:
         """同步说话人分离."""
         if self._use_fallback:
-            return self._get_fallback().diarize(
-                content, min_speakers=min_speakers, max_speakers=max_speakers
-            )
+            return self._get_fallback().diarize(content, min_speakers=min_speakers, max_speakers=max_speakers)
 
         pipeline = self._load_pipeline()
         if pipeline is None:
-            return self._get_fallback().diarize(
-                content, min_speakers=min_speakers, max_speakers=max_speakers
-            )
+            return self._get_fallback().diarize(content, min_speakers=min_speakers, max_speakers=max_speakers)
 
         try:
             # 加载音频
             audio, duration = load_audio(content)
             # pyannote 需要 AudioFile 对象（文件路径或 dict）
-            audio_input = content if isinstance(content, (str, os.PathLike)) else {"waveform": _to_tensor(audio), "sample_rate": WHISPER_SAMPLE_RATE}
+            audio_input = (
+                content
+                if isinstance(content, (str, os.PathLike))
+                else {"waveform": _to_tensor(audio), "sample_rate": WHISPER_SAMPLE_RATE}
+            )
             output = pipeline(
                 audio_input,
                 min_speakers=min_speakers,
@@ -286,9 +283,7 @@ class PyannoteDiarizer(Diarizer):
         except Exception:  # noqa: BLE001
             # 失败回退
             self._use_fallback = True
-            return self._get_fallback().diarize(
-                content, min_speakers=min_speakers, max_speakers=max_speakers
-            )
+            return self._get_fallback().diarize(content, min_speakers=min_speakers, max_speakers=max_speakers)
 
     def _parse_pyannote_output(self, output: Any, duration: float) -> DiarizationResult:
         """解析 pyannote Annotation 输出."""
@@ -404,9 +399,7 @@ class EnergyDiarizer(Diarizer):
             duration=duration,
         )
 
-    def _compute_energy_curve(
-        self, audio: Any, duration: float
-    ) -> tuple[list[float], list[float]]:
+    def _compute_energy_curve(self, audio: Any, duration: float) -> tuple[list[float], list[float]]:
         """计算短时能量曲线.
 
         :return: (energies, frame_times)
@@ -429,7 +422,7 @@ class EnergyDiarizer(Diarizer):
         times: list[float] = []
         for i in range(n_frames):
             frame = audio[i * frame_size : (i + 1) * frame_size]
-            rms = float(np.sqrt(np.mean(frame ** 2)))
+            rms = float(np.sqrt(np.mean(frame**2)))
             energies.append(rms)
             times.append(i * ENERGY_FRAME_SECONDS)
         return energies, times

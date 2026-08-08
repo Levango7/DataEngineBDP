@@ -4,6 +4,7 @@
     资产ID/名称/描述、资产类型、提供方、质量评分、安全分级、
     更新频率、样例数据、价格、订阅者数。
 """
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -50,9 +51,7 @@ class AssetFilter(BaseModel):
     name: Optional[str] = Field(default=None, description="名称模糊匹配")
     type: Optional[AssetType] = Field(default=None, description="按类型过滤")
     status: Optional[AssetStatus] = Field(default=None, description="按状态过滤")
-    securityLevel: Optional[SecurityLevel] = Field(
-        default=None, description="按安全分级过滤"
-    )
+    securityLevel: Optional[SecurityLevel] = Field(default=None, description="按安全分级过滤")
     # 租户标识字段统一为 tenantId（MODEL-2）；
     # 通过 validation_alias 同时接受旧字段名 owner 作为输入，保持向后兼容。
     tenantId: Optional[str] = Field(
@@ -83,35 +82,23 @@ class Asset(TimestampMixin):
         description="租户 ID（资产提供方）",
     )
     description: Optional[str] = Field(default=None, description="资产描述")
-    status: AssetStatus = Field(
-        default=AssetStatus.DRAFT, description="资产状态"
-    )
+    status: AssetStatus = Field(default=AssetStatus.DRAFT, description="资产状态")
 
     # 质量与安全
-    qualityScore: float = Field(
-        default=0.0, ge=0, le=100, description="质量评分 0-100"
-    )
-    securityLevel: SecurityLevel = Field(
-        default=SecurityLevel.INTERNAL, description="安全分级"
-    )
+    qualityScore: float = Field(default=0.0, ge=0, le=100, description="质量评分 0-100")
+    securityLevel: SecurityLevel = Field(default=SecurityLevel.INTERNAL, description="安全分级")
 
     # 元数据
     schema: AssetSchema = Field(default_factory=AssetSchema, description="字段定义")
-    sample: Optional[list[dict[str, Any]]] = Field(
-        default=None, description="样例数据（前 N 行）"
-    )
-    updateFrequency: str = Field(
-        default="static", description="更新频率: realtime/hourly/daily/weekly/monthly/static"
-    )
+    sample: Optional[list[dict[str, Any]]] = Field(default=None, description="样例数据（前 N 行）")
+    updateFrequency: str = Field(default="static", description="更新频率: realtime/hourly/daily/weekly/monthly/static")
     tags: dict[str, str] = Field(default_factory=dict, description="标签")
 
     # 定价
     pricing: AssetPricing = Field(default_factory=AssetPricing, description="定价")
 
     # 来源引用（关联 L3.5 资产目录 / L5.5 API 目录 / L4.5.2 ML / L4.5.5 LLMOps）
-    sourceRef: Optional[str] = Field(
-        default=None, description="源资产引用（如 catalog:table:uuid）"
-    )
+    sourceRef: Optional[str] = Field(default=None, description="源资产引用（如 catalog:table:uuid）")
 
     # 运行时统计
     subscriberCount: int = Field(default=0, ge=0, description="当前订阅者数")

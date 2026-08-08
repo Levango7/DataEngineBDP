@@ -15,9 +15,9 @@
 
 接入标签引擎：将 RFM 分群结果写入 member_tag 表，tag_category=RFM
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 from typing import Any
 
 # DolphinScheduler / Airflow 风格的 DAG 定义
@@ -243,7 +243,10 @@ FROM ${db}.tmp_rfm_scored
 
 # SQL 模板：将 RFM 分群写入 member_tag 表（接入标签引擎）
 SQL_LOAD_RFM_TAGS = """
-INSERT INTO ${db}.member_tag (tag_id, member_id, tag_code, tag_value, tag_category, tag_source, confidence, tagged_at, created_at, updated_at, created_by, updated_by)
+INSERT INTO ${db}.member_tag (
+    tag_id, member_id, tag_code, tag_value, tag_category,
+    tag_source, confidence, tagged_at, created_at, updated_at, created_by, updated_by
+)
 SELECT
     UUID() AS tag_id,
     member_id,
@@ -292,9 +295,7 @@ if __name__ == "__main__":
         ("m003", 10, 1, 200),  # 新客
     ]
     for member_id, r, f, m in test_cases:
-        result = compute_rfm_for_member(
-            member_id, r, f, m, r_quantiles, f_quantiles, m_quantiles
-        )
+        result = compute_rfm_for_member(member_id, r, f, m, r_quantiles, f_quantiles, m_quantiles)
         print(
             f"{member_id}: R={result['r_score']} F={result['f_score']} "
             f"M={result['m_score']} → {result['rfm_segment']} ({result['segment_value_level']})"

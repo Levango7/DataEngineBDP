@@ -1,11 +1,14 @@
 """OpenAI 适配器测试 (T008-6)."""
+
 from __future__ import annotations
 
 import math
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
-import pytest
-
+from chunker.embedding.exceptions import (
+    EmbeddingComputeError,
+    ModelUnavailableError,
+)
 from chunker.embedding.openai_adapter import (
     DEFAULT_BASE_URL,
     MOCK_API_KEY,
@@ -14,11 +17,7 @@ from chunker.embedding.openai_adapter import (
     OpenAIAdapter,
     is_openai_available,
 )
-from chunker.embedding.exceptions import (
-    EmbeddingComputeError,
-    ModelLoadError,
-    ModelUnavailableError,
-)
+import pytest
 
 
 class TestOpenAIAdapterInit:

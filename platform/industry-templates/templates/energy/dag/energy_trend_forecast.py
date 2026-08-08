@@ -18,10 +18,11 @@
 
 Author: T043 能源行业模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -119,7 +120,7 @@ generate_forecast = BashOperator(
     task_id="generate_forecast",
     bash_command=(
         f"echo '[4] 生成预测结果（含 95% 置信区间）...' && "
-        f"spark-sql --master {SPARK_MASTER} -e \""
+        f'spark-sql --master {SPARK_MASTER} -e "'
         f"INSERT INTO {DORIS_DB}.forecast_result "
         f"SELECT CONCAT('fc_', param_id, '_', forecast_date) AS result_id, "
         f"param_id, model_version_id, target_metric, measure_medium, "
@@ -149,10 +150,14 @@ evaluate_models = SparkSubmitOperator(
         "spark.app.name": f"energy_forecast_evaluate_{BIZ_DATE}",
     },
     application_args=[
-        "--biz-date", BIZ_DATE,
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--metrics", "MAPE,RMSE,MAE,R_SQUARED,BIAS,TRACKING_SIGNAL",
+        "--biz-date",
+        BIZ_DATE,
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--metrics",
+        "MAPE,RMSE,MAE,R_SQUARED,BIAS,TRACKING_SIGNAL",
     ],
     dag=dag,
 )
@@ -176,8 +181,7 @@ select_best_model = PythonOperator(
 notify_downstream = PythonOperator(
     task_id="notify_downstream",
     python_callable=lambda: print(
-        f"[7] 通知下游：刷新趋势预测 Dashboard，"
-        f"将预测结果应用到定额管理与能源计划（biz_date={BIZ_DATE}）"
+        f"[7] 通知下游：刷新趋势预测 Dashboard，" f"将预测结果应用到定额管理与能源计划（biz_date={BIZ_DATE}）"
     ),
     dag=dag,
 )

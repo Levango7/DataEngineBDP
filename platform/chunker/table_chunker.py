@@ -37,6 +37,7 @@
 
 对齐设计文档 T008-3。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -45,12 +46,11 @@ import os
 import re
 from typing import Any
 
-import pandas as pd
-
 from chunker.base import BaseChunker
 from chunker.exceptions import PreprocessError
 from chunker.models import Chunk, ChunkConfig, Modality
 from chunker.registry import register_chunker
+import pandas as pd
 
 # ----------------------------------------------------------------------
 # 常量
@@ -206,9 +206,7 @@ def _jaccard_similarity(a: str, b: str) -> float:
     return inter / union if union else 0.0
 
 
-def _headers_consistent(
-    h1: list[str], h2: list[str], *, ignore_case: bool = True, ignore_order: bool = False
-) -> bool:
+def _headers_consistent(h1: list[str], h2: list[str], *, ignore_case: bool = True, ignore_order: bool = False) -> bool:
     """判断两个表头是否一致.
 
     :param h1: 表头 1
@@ -267,9 +265,7 @@ def _detect_header_rows(df: pd.DataFrame) -> int:
     """
     # 规则 1：列名非默认整数索引 → 已有表头
     cols = list(df.columns)
-    is_default_index = all(
-        isinstance(c, (int,)) and c == i for i, c in enumerate(cols)
-    )
+    is_default_index = all(isinstance(c, (int,)) and c == i for i, c in enumerate(cols))
     if not is_default_index:
         return 0
 
@@ -450,9 +446,7 @@ class TableChunker(BaseChunker):
         except Exception as ex:  # noqa: BLE001
             raise PreprocessError("解析 HTML 内容失败", cause=ex) from ex
 
-    def _load_content_to_dataframes(
-        self, content: Any, fmt: str, source: str
-    ) -> list[tuple[pd.DataFrame, str]]:
+    def _load_content_to_dataframes(self, content: Any, fmt: str, source: str) -> list[tuple[pd.DataFrame, str]]:
         """将输入内容加载为 DataFrame 列表（带来源标识）.
 
         :param content: 原始内容
@@ -506,17 +500,13 @@ class TableChunker(BaseChunker):
                     results.append((df, source or "csv"))
                 return results
 
-        raise PreprocessError(
-            f"不支持的内容类型: {type(content).__name__}（格式: {fmt}）"
-        )
+        raise PreprocessError(f"不支持的内容类型: {type(content).__name__}（格式: {fmt}）")
 
     # ------------------------------------------------------------------
     # 表头识别
     # ------------------------------------------------------------------
 
-    def _extract_header(
-        self, df: pd.DataFrame, header_rows: int
-    ) -> tuple[list[str], pd.DataFrame, int]:
+    def _extract_header(self, df: pd.DataFrame, header_rows: int) -> tuple[list[str], pd.DataFrame, int]:
         """提取表头并返回数据体.
 
         :param df: 原始 DataFrame
@@ -635,9 +625,7 @@ class TableChunker(BaseChunker):
     # 窗口切分
     # ------------------------------------------------------------------
 
-    def _window_split_groups(
-        self, groups: list[list[int]], window_size: int, overlap_size: int
-    ) -> list[list[int]]:
+    def _window_split_groups(self, groups: list[list[int]], window_size: int, overlap_size: int) -> list[list[int]]:
         """按窗口大小切分分组列表，同组不拆分.
 
         切片策略：贪心地将连续分组填入当前窗口，直到加入下一组会超过窗口大小；
@@ -699,9 +687,7 @@ class TableChunker(BaseChunker):
 
         # 在线程池中执行 IO 密集型加载
         loop = asyncio.get_running_loop()
-        raw_tables = await loop.run_in_executor(
-            None, self._load_content_to_dataframes, content, fmt, source
-        )
+        raw_tables = await loop.run_in_executor(None, self._load_content_to_dataframes, content, fmt, source)
 
         if not raw_tables:
             raise PreprocessError("输入内容为空，未加载到任何表格")
@@ -716,10 +702,7 @@ class TableChunker(BaseChunker):
         if merge_cross_page and len(tables_with_header) > 1:
             merged = self._merge_cross_page(tables_with_header)
         else:
-            merged = [
-                (df, src, hdr, [src])
-                for df, src, hdr in tables_with_header
-            ]
+            merged = [(df, src, hdr, [src]) for df, src, hdr in tables_with_header]
 
         return {"tables": merged, "extra": extra}
 
@@ -756,9 +739,7 @@ class TableChunker(BaseChunker):
             # 批量提取所有行（pandas C 加速，避免逐行 iloc）
             all_rows = body.values.tolist()
 
-            groups = self._group_row_indices(
-                all_rows, group_by_similarity, similarity_threshold
-            )
+            groups = self._group_row_indices(all_rows, group_by_similarity, similarity_threshold)
             windowed = self._window_split_groups(groups, window_size, overlap_size)
 
             for win in windowed:

@@ -1,11 +1,12 @@
 """FastAPI 应用工厂."""
+
 from __future__ import annotations
 
 from typing import Optional
 
 from fastapi import FastAPI
 
-from llmops.api.routers import models, training, deployments, monitor, health
+from llmops.api.routers import deployments, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
 from llmops.services.registry import ServiceRegistry, build_services
 

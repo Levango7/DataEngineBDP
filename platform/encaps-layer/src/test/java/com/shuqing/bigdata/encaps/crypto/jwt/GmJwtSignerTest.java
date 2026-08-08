@@ -298,6 +298,7 @@ class GmJwtSignerTest {
         GmJwtVerifier audVerifier = new GmJwtVerifier("shuqing-bigdata", "api-client", 60);
         Map<String, Object> rawPayload = GmJwtSigner.newClaims();
         rawPayload.put("sub", "user-123");
+        rawPayload.put("iss", "shuqing-bigdata");
         rawPayload.put("aud", "api-client");
         rawPayload.put("exp", java.time.Instant.now().getEpochSecond() + 3600);
         String jwt = signer.signRaw(keyPair.getPrivateKeyD(), rawPayload, null);
@@ -311,6 +312,7 @@ class GmJwtSignerTest {
         GmJwtVerifier audVerifier = new GmJwtVerifier("shuqing-bigdata", "expected-aud", 60);
         Map<String, Object> rawPayload = GmJwtSigner.newClaims();
         rawPayload.put("sub", "user-123");
+        rawPayload.put("iss", "shuqing-bigdata");
         rawPayload.put("aud", "wrong-aud");
         rawPayload.put("exp", java.time.Instant.now().getEpochSecond() + 3600);
         String jwt = signer.signRaw(keyPair.getPrivateKeyD(), rawPayload, null);

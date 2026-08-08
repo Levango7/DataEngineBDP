@@ -8,38 +8,34 @@
     PUT    /api/v1/apis/{id}/billing               配置 API 计费策略
     GET    /api/v1/apis/{id}/billing               查询 API 计费策略
 """
+
 from __future__ import annotations
 
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
-    APIDefinition,
-    APISubscription,
     CostStrategy,
     SubscriptionStatus,
 )
 from openapi_catalog.repositories import (
     CatalogError,
-    SubscriptionNotFoundError,
     SubscriptionStatusError,
 )
 from openapi_catalog.repositories.mock import generate_ak_sk
 from openapi_catalog.services.registry import ServiceRegistry
+from pydantic import BaseModel, Field
 
 # 订阅增强路由（挂在 /subscriptions 下）
-subscriptions_billing_router = APIRouter(
-    prefix="/subscriptions", tags=["subscription-billing"]
-)
+subscriptions_billing_router = APIRouter(prefix="/subscriptions", tags=["subscription-billing"])
 
 # API 计费配置路由（挂在 /apis 下）
 api_billing_router = APIRouter(prefix="/apis", tags=["billing"])
 
 
 # ---------- 请求/响应模型 ----------
+
 
 class IssueKeyRequest(BaseModel):
     """重新颁发 AK/SK 请求."""
@@ -90,9 +86,7 @@ class BillingConfigRequest(BaseModel):
 
     costStrategy: str = Field(..., description="计费策略: by_call/by_bytes/monthly_package")
     costUnitPrice: float = Field(..., ge=0, description="单价")
-    monthlyQuota: int | None = Field(
-        default=None, ge=0, description="月配额（仅 monthly_package）"
-    )
+    monthlyQuota: int | None = Field(default=None, ge=0, description="月配额（仅 monthly_package）")
 
 
 class BillingConfigResponse(BaseModel):
@@ -107,6 +101,7 @@ class BillingConfigResponse(BaseModel):
 
 
 # ---------- Key 颁发 ----------
+
 
 @subscriptions_billing_router.post(
     "/{subscription_id}/keys",
@@ -201,17 +196,13 @@ async def configure_rate_limit(
     """
     try:
         # 校验订阅存在
-        sub = await registry.subscriptionService.get_subscription(subscription_id)
+        await registry.subscriptionService.get_subscription(subscription_id)
 
         # 配置限流器
         # QPS 通过令牌桶实现（每秒令牌数 = qps）
         # 并发通过信号量实现（此处记录配置，由 APISIX limit-conn 插件执行）
-        registry.rateLimiter.configure_subscription(
-            subscription_id, req.qps * 60  # 转换为次/分钟
-        )
-        registry.rateLimiter.configure_subscription_rate(
-            subscription_id, req.qps, burst=req.burst  # 按秒 QPS 限流
-        )
+        registry.rateLimiter.configure_subscription(subscription_id, req.qps * 60)  # 转换为次/分钟
+        registry.rateLimiter.configure_subscription_rate(subscription_id, req.qps, burst=req.burst)  # 按秒 QPS 限流
 
         # 保存配置
         _rate_limit_configs[subscription_id] = req
@@ -264,6 +255,7 @@ async def get_rate_limit(
 
 # ---------- API 计费配置 ----------
 
+
 @api_billing_router.put(
     "/{api_id}/billing",
     response_model=BillingConfigResponse,
@@ -310,10 +302,7 @@ async def configure_billing(
         strategy_desc = {
             CostStrategy.BY_CALL: f"按次计费 {req.costUnitPrice} 元/次",
             CostStrategy.BY_BYTES: f"按量计费 {req.costUnitPrice} 元/KB",
-            CostStrategy.MONTHLY_PACKAGE: (
-                f"订阅计费 {req.costUnitPrice} 元/月，"
-                f"配额 {req.monthlyQuota or 0} 次"
-            ),
+            CostStrategy.MONTHLY_PACKAGE: (f"订阅计费 {req.costUnitPrice} 元/月，" f"配额 {req.monthlyQuota or 0} 次"),
         }[strategy]
 
         return BillingConfigResponse(
@@ -344,10 +333,7 @@ async def get_billing(
         strategy_desc = {
             CostStrategy.BY_CALL: f"按次计费 {api.costUnitPrice} 元/次",
             CostStrategy.BY_BYTES: f"按量计费 {api.costUnitPrice} 元/KB",
-            CostStrategy.MONTHLY_PACKAGE: (
-                f"订阅计费 {api.costUnitPrice} 元/月，"
-                f"配额 {api.monthlyQuota or 0} 次"
-            ),
+            CostStrategy.MONTHLY_PACKAGE: (f"订阅计费 {api.costUnitPrice} 元/月，" f"配额 {api.monthlyQuota or 0} 次"),
         }[api.costStrategy]
 
         return BillingConfigResponse(

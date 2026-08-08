@@ -13,6 +13,7 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -80,9 +81,7 @@ def weighted_fusion(
     if not result_lists:
         return []
     if len(weights) != len(result_lists):
-        raise ValueError(
-            f"weights 长度 {len(weights)} 与 result_lists 长度 {len(result_lists)} 不匹配"
-        )
+        raise ValueError(f"weights 长度 {len(weights)} 与 result_lists 长度 {len(result_lists)} 不匹配")
 
     scores: dict[str, float] = {}
     metas: dict[str, dict[str, Any]] = {}
@@ -168,9 +167,7 @@ class MultiModalFusionRetriever:
 
         # 确定模态列表
         mods = modalities or list(DEFAULT_MODALITY_WEIGHTS.keys())
-        mod_strs = [
-            m.value if isinstance(m, Modality) else str(m) for m in mods
-        ]
+        mod_strs = [m.value if isinstance(m, Modality) else str(m) for m in mods]
 
         # 并行检索各模态
         tasks = [
@@ -206,9 +203,7 @@ class MultiModalFusionRetriever:
             weights = [self.modalityWeights.get(m, 1.0) for m in valid_mods]
             fused = weighted_fusion(valid_lists, weights)
         else:
-            raise ValueError(
-                f"未知融合方法: {method}，支持 rrf/weighted"
-            )
+            raise ValueError(f"未知融合方法: {method}，支持 rrf/weighted")
 
         # 标记来源模态
         for r in fused:
@@ -238,24 +233,16 @@ class MultiModalFusionRetriever:
         """
         per_k = top_k * 2
         mods = modalities or list(DEFAULT_MODALITY_WEIGHTS.keys())
-        mod_strs = [
-            m.value if isinstance(m, Modality) else str(m) for m in mods
-        ]
+        mod_strs = [m.value if isinstance(m, Modality) else str(m) for m in mods]
 
         # 并行检索所有 query × modality 组合
         tasks = []
         for q in queries:
             for mod_str in mod_strs:
-                tasks.append(
-                    self.retriever.retrieve_by_modality(
-                        collection_name, q, mod_str, top_k=per_k
-                    )
-                )
+                tasks.append(self.retriever.retrieve_by_modality(collection_name, q, mod_str, top_k=per_k))
         result_lists = await asyncio.gather(*tasks, return_exceptions=True)
 
-        valid_lists = [
-            r for r in result_lists if not isinstance(r, Exception)
-        ]
+        valid_lists = [r for r in result_lists if not isinstance(r, Exception)]
         if not valid_lists:
             return []
 
@@ -266,8 +253,6 @@ class MultiModalFusionRetriever:
             weights = [1.0] * len(valid_lists)
             fused = weighted_fusion(valid_lists, weights)
         else:
-            raise ValueError(
-                f"未知融合方法: {method}，支持 rrf/weighted"
-            )
+            raise ValueError(f"未知融合方法: {method}，支持 rrf/weighted")
 
         return fused[:top_k]

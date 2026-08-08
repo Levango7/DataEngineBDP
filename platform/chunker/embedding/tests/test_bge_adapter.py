@@ -1,10 +1,9 @@
 """BGE 适配器测试 (T008-6)."""
+
 from __future__ import annotations
 
 import math
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from chunker.embedding.bge_adapter import (
     BGE_EN_QUERY_INSTRUCTION,
@@ -14,20 +13,18 @@ from chunker.embedding.bge_adapter import (
     BGE_ZH_QUERY_INSTRUCTION,
     BGEAdapter,
 )
-from chunker.embedding.exceptions import ModelLoadError, ModelUnavailableError
-from chunker.embedding.st_adapter import is_sentence_transformers_available
-
+import pytest
 
 # ----------------------------------------------------------------------
 # Mock 编码函数
 # ----------------------------------------------------------------------
 
 
-def _mock_encode(texts, batch_size=32, show_progress_bar=False,
-                 convert_to_numpy=True, normalize_embeddings=False):
+def _mock_encode(texts, batch_size=32, show_progress_bar=False, convert_to_numpy=True, normalize_embeddings=False):
     """确定性 mock 编码：基于文本哈希生成 1024 维向量."""
     import hashlib
     import struct
+
     results = []
     for text in texts:
         h = hashlib.sha256(text.encode("utf-8")).digest()
@@ -38,7 +35,7 @@ def _mock_encode(texts, batch_size=32, show_progress_bar=False,
             counter += 1
         vec = []
         for i in range(1024):
-            val = struct.unpack("f", seed[i*4:i*4+4])[0]
+            val = struct.unpack("f", seed[i * 4 : i * 4 + 4])[0]
             if val != val:
                 val = 0.0
             vec.append(float(val))

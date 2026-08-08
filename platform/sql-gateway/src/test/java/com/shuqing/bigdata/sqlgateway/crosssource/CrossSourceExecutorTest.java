@@ -26,12 +26,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  */
 class CrossSourceExecutorTest {
 
-    private static final CrossSourceExecutor executorForTest =
+    private static final CrossSourceExecutor EXECUTOR_FOR_TEST =
             new CrossSourceExecutor(new SqlParserService());
 
     @AfterAll
     static void tearDown() {
-        executorForTest.shutdown();
+        EXECUTOR_FOR_TEST.shutdown();
     }
 
     // ===================== executeWithPlan =====================
@@ -43,7 +43,7 @@ class CrossSourceExecutorTest {
                 createMockTask("trino", List.of("id", "name"),
                         List.of(List.of(1, "alice"), List.of(2, "bob"))));
 
-        MergeResult result = executorForTest.executeWithPlan(tasks);
+        MergeResult result = EXECUTOR_FOR_TEST.executeWithPlan(tasks);
 
         assertThat(result.getRowCount()).isEqualTo(2);
         assertThat(result.getColumns()).containsExactly("id", "name");
@@ -59,7 +59,7 @@ class CrossSourceExecutorTest {
                 createMockTask("doris", List.of("id", "name"),
                         List.of(List.of(3, "carol"), List.of(4, "dave"))));
 
-        MergeResult result = executorForTest.executeWithPlan(tasks);
+        MergeResult result = EXECUTOR_FOR_TEST.executeWithPlan(tasks);
 
         assertThat(result.getRowCount()).isEqualTo(4);
         assertThat(result.getSource()).isEqualTo("merged");
@@ -72,7 +72,7 @@ class CrossSourceExecutorTest {
     @Test
     @DisplayName("executeWithPlan — 空任务列表抛 MERGE_ERROR")
     void executeWithPlan_emptyTasks() {
-        assertThatThrownBy(() -> executorForTest.executeWithPlan(List.of()))
+        assertThatThrownBy(() -> EXECUTOR_FOR_TEST.executeWithPlan(List.of()))
                 .isInstanceOf(CrossSourceException.class)
                 .satisfies(e -> assertThat(((CrossSourceException) e).getErrorCode())
                         .isEqualTo(CrossSourceException.MERGE_ERROR));
@@ -81,7 +81,7 @@ class CrossSourceExecutorTest {
     @Test
     @DisplayName("executeWithPlan — null 任务列表抛 MERGE_ERROR")
     void executeWithPlan_nullTasks() {
-        assertThatThrownBy(() -> executorForTest.executeWithPlan(null))
+        assertThatThrownBy(() -> EXECUTOR_FOR_TEST.executeWithPlan(null))
                 .isInstanceOf(CrossSourceException.class);
     }
 
@@ -91,7 +91,7 @@ class CrossSourceExecutorTest {
         List<SourceQueryTask> tasks = List.of(
                 createFailingTask("trino", "模拟查询失败"));
 
-        assertThatThrownBy(() -> executorForTest.executeWithPlan(tasks))
+        assertThatThrownBy(() -> EXECUTOR_FOR_TEST.executeWithPlan(tasks))
                 .isInstanceOf(CrossSourceException.class)
                 .satisfies(e -> assertThat(((CrossSourceException) e).getErrorCode())
                         .isEqualTo(CrossSourceException.QUERY_FAILED));
@@ -105,7 +105,7 @@ class CrossSourceExecutorTest {
                         List.of(List.of(1), List.of(2))),
                 createFailingTask("doris", "Doris 查询失败"));
 
-        assertThatThrownBy(() -> executorForTest.executeWithPlan(tasks))
+        assertThatThrownBy(() -> EXECUTOR_FOR_TEST.executeWithPlan(tasks))
                 .isInstanceOf(CrossSourceException.class);
     }
 
@@ -249,15 +249,15 @@ class CrossSourceExecutorTest {
     @Test
     @DisplayName("getJoinEngine — 返回 JOIN 引擎实例")
     void getJoinEngine_returnsInstance() {
-        assertThat(executorForTest.getJoinEngine()).isNotNull();
-        assertThat(executorForTest.getJoinEngine().getMaxRows())
+        assertThat(EXECUTOR_FOR_TEST.getJoinEngine()).isNotNull();
+        assertThat(EXECUTOR_FOR_TEST.getJoinEngine().getMaxRows())
                 .isEqualTo(CrossSourceExecutor.DEFAULT_MAX_ROWS);
     }
 
     @Test
     @DisplayName("getUnionEngine — 返回 UNION 引擎实例")
     void getUnionEngine_returnsInstance() {
-        assertThat(executorForTest.getUnionEngine()).isNotNull();
+        assertThat(EXECUTOR_FOR_TEST.getUnionEngine()).isNotNull();
     }
 
     // ===================== 辅助方法 =====================

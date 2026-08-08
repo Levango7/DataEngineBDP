@@ -1,9 +1,8 @@
 """SQL 校验单测."""
+
 from __future__ import annotations
 
-import pytest
-
-from models import SchemaContext, TableSchema, ColumnSchema, ValidationLevel
+from models import ColumnSchema, SchemaContext, TableSchema, ValidationLevel
 from sql_validator import SqlValidator
 
 
@@ -78,6 +77,7 @@ class TestSqlValidator:
 
     def test_select_only_disabled(self, settings) -> None:
         from sql_validator import SqlValidator
+
         s = settings
         s.selectOnly = False
         v = SqlValidator(s)

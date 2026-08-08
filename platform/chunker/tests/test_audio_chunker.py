@@ -12,42 +12,17 @@
     - 工具函数
     - 性能（长音频 P95 ≤ 10s）
 """
+
 from __future__ import annotations
 
 import asyncio
 import io
-import os
-import struct
-import time
-import wave
 from pathlib import Path
-from typing import Any
+import time
 from unittest.mock import MagicMock, patch
+import wave
 
-import numpy as np
-import pytest
-
-from chunker.base import BaseChunker
-from chunker.exceptions import PreprocessError
-from chunker.models import Chunk, ChunkConfig, Modality
-from chunker.registry import (
-    clear_registry,
-    get_chunker,
-    is_chunker_registered,
-    list_modalities,
-)
-
-# 导入被测模块
-from chunker.audio_chunker import (
-    DEFAULT_MAX_WORKERS,
-    DEFAULT_MODEL,
-    DEFAULT_WINDOW_MS,
-    LONG_AUDIO_THRESHOLD_SECONDS,
-    AudioChunker,
-)
 from chunker.asr.diarization import (
-    DEFAULT_MAX_SPEAKERS,
-    DEFAULT_MIN_SPEAKERS,
     DiarizationResult,
     Diarizer,
     EnergyDiarizer,
@@ -63,10 +38,9 @@ from chunker.asr.timestamp_aligner import (
     align_segments,
 )
 from chunker.asr.whisper_engine import (
+    DEFAULT_WHISPER_MODEL,
     ASRResult,
     ASRSegment,
-    DEFAULT_SEGMENT_MAX_SECONDS,
-    DEFAULT_WHISPER_MODEL,
     MockWhisperEngine,
     WhisperEngine,
     WhisperWord,
@@ -76,6 +50,22 @@ from chunker.asr.whisper_engine import (
     load_audio,
 )
 
+# 导入被测模块
+from chunker.audio_chunker import (
+    DEFAULT_MODEL,
+    DEFAULT_WINDOW_MS,
+    AudioChunker,
+)
+from chunker.base import BaseChunker
+from chunker.exceptions import PreprocessError
+from chunker.models import Chunk, ChunkConfig, Modality
+from chunker.registry import (
+    get_chunker,
+    is_chunker_registered,
+    list_modalities,
+)
+import numpy as np
+import pytest
 
 # ----------------------------------------------------------------------
 # 合成音频生成
@@ -212,7 +202,7 @@ def short_audio_wav_bytes(short_audio) -> bytes:
 def medium_audio() -> np.ndarray:
     """中等音频（30 秒，两说话人交替）."""
     segments = [
-        (0.0, 10.0, 440.0),   # 说话人 1
+        (0.0, 10.0, 440.0),  # 说话人 1
         (10.5, 20.0, 880.0),  # 说话人 2
         (20.5, 30.0, 440.0),  # 说话人 1
     ]
@@ -237,8 +227,8 @@ def long_audio() -> np.ndarray:
 def multi_speaker_audio() -> np.ndarray:
     """多说话人音频（3 说话人交替，20 秒）."""
     segments = [
-        (0.0, 5.0, 300.0),    # 说话人 1
-        (5.5, 10.0, 600.0),   # 说话人 2
+        (0.0, 5.0, 300.0),  # 说话人 1
+        (5.5, 10.0, 600.0),  # 说话人 2
         (10.5, 15.0, 900.0),  # 说话人 3
         (15.5, 20.0, 300.0),  # 说话人 1
     ]
@@ -350,18 +340,14 @@ class TestWhisperEngine:
     def test_whisper_engine_transcribe_async_long(self, long_audio: np.ndarray):
         """WhisperEngine 异步转录长音频（并行分段）."""
         engine = WhisperEngine(useMock=True)
-        result = asyncio.run(
-            engine.transcribe_async(long_audio, segment_max_seconds=10.0, parallel=True)
-        )
+        result = asyncio.run(engine.transcribe_async(long_audio, segment_max_seconds=10.0, parallel=True))
         assert isinstance(result, ASRResult)
         assert result.duration > 0
 
     def test_whisper_engine_transcribe_async_sequential(self, long_audio: np.ndarray):
         """WhisperEngine 异步转录长音频（顺序分段）."""
         engine = WhisperEngine(useMock=True)
-        result = asyncio.run(
-            engine.transcribe_async(long_audio, segment_max_seconds=10.0, parallel=False)
-        )
+        result = asyncio.run(engine.transcribe_async(long_audio, segment_max_seconds=10.0, parallel=False))
         assert isinstance(result, ASRResult)
 
     def test_asr_result_word_count(self):
@@ -680,9 +666,7 @@ class TestAudioChunkerBasic:
 class TestShortAudio:
     """短音频切片测试."""
 
-    async def test_chunk_short_audio_ndarray(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_chunk_short_audio_ndarray(self, chunker: AudioChunker, short_audio: np.ndarray):
         """短音频（numpy 数组）切片."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(short_audio, cfg)
@@ -695,17 +679,13 @@ class TestShortAudio:
             assert "startTime" in c.metadata.extra
             assert "endTime" in c.metadata.extra
 
-    async def test_chunk_short_audio_wav_bytes(
-        self, chunker: AudioChunker, short_audio_wav_bytes: bytes
-    ):
+    async def test_chunk_short_audio_wav_bytes(self, chunker: AudioChunker, short_audio_wav_bytes: bytes):
         """短音频（WAV bytes）切片."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(short_audio_wav_bytes, cfg)
         assert isinstance(chunks, list)
 
-    async def test_chunk_short_audio_file(
-        self, chunker: AudioChunker, tmp_wav_file: str
-    ):
+    async def test_chunk_short_audio_file(self, chunker: AudioChunker, tmp_wav_file: str):
         """短音频（文件路径）切片."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(tmp_wav_file, cfg)
@@ -715,17 +695,13 @@ class TestShortAudio:
         for c in chunks:
             assert c.metadata.source == tmp_wav_file
 
-    async def test_chunk_short_audio_single_chunk(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_chunk_short_audio_single_chunk(self, chunker: AudioChunker, short_audio: np.ndarray):
         """短音频（窗口 >= 时长）应产生单切片."""
         cfg = _cfg(windowSize=60000)  # 60 秒窗口
         chunks = await chunker.chunk(short_audio, cfg)
         assert len(chunks) == 1
 
-    async def test_chunk_metadata_extra(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_chunk_metadata_extra(self, chunker: AudioChunker, short_audio: np.ndarray):
         """切片元数据包含音频专属信息."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(short_audio, cfg)
@@ -738,9 +714,7 @@ class TestShortAudio:
             assert "asrEngine" in extra
             assert "diarEngine" in extra
 
-    async def test_chunk_tokens_calculated(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_chunk_tokens_calculated(self, chunker: AudioChunker, short_audio: np.ndarray):
         """切片 tokens 已计算."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(short_audio, cfg)
@@ -748,9 +722,7 @@ class TestShortAudio:
             assert c.tokens is not None
             assert c.tokens >= 0
 
-    async def test_chunk_index_sequential(
-        self, chunker: AudioChunker, medium_audio: np.ndarray
-    ):
+    async def test_chunk_index_sequential(self, chunker: AudioChunker, medium_audio: np.ndarray):
         """切片 index 从 0 连续."""
         cfg = _cfg(windowSize=10000)
         chunks = await chunker.chunk(medium_audio, cfg)
@@ -766,27 +738,21 @@ class TestShortAudio:
 class TestLongAudio:
     """长音频切片测试."""
 
-    async def test_chunk_long_audio_parallel(
-        self, chunker: AudioChunker, long_audio: np.ndarray
-    ):
+    async def test_chunk_long_audio_parallel(self, chunker: AudioChunker, long_audio: np.ndarray):
         """长音频并行切片."""
         cfg = _cfg(windowSize=10000, extra={"parallel": True, "maxWorkers": 4})
         chunks = await chunker.chunk(long_audio, cfg)
         assert isinstance(chunks, list)
         assert len(chunks) >= 1
 
-    async def test_chunk_long_audio_sequential(
-        self, chunker: AudioChunker, long_audio: np.ndarray
-    ):
+    async def test_chunk_long_audio_sequential(self, chunker: AudioChunker, long_audio: np.ndarray):
         """长音频顺序切片."""
         cfg = _cfg(windowSize=10000, extra={"parallel": False})
         chunks = await chunker.chunk(long_audio, cfg)
         assert isinstance(chunks, list)
         assert len(chunks) >= 1
 
-    async def test_chunk_long_audio_performance(
-        self, chunker: AudioChunker, long_audio: np.ndarray
-    ):
+    async def test_chunk_long_audio_performance(self, chunker: AudioChunker, long_audio: np.ndarray):
         """长音频性能：P95 ≤ 10s（Mock 引擎，宽松验证）."""
         cfg = _cfg(windowSize=10000, extra={"parallel": True, "maxWorkers": 4})
         start = time.perf_counter()
@@ -796,9 +762,7 @@ class TestLongAudio:
         assert elapsed < 10.0, f"长音频切片耗时 {elapsed:.2f}s 超过 10s"
         assert len(chunks) >= 1
 
-    async def test_chunk_long_audio_window_split(
-        self, chunker: AudioChunker, long_audio: np.ndarray
-    ):
+    async def test_chunk_long_audio_window_split(self, chunker: AudioChunker, long_audio: np.ndarray):
         """长音频按窗口切分多切片."""
         cfg = _cfg(windowSize=5000, overlap=0.0)  # 5 秒窗口
         chunks = await chunker.chunk(long_audio, cfg)
@@ -814,9 +778,7 @@ class TestLongAudio:
 class TestMultiSpeaker:
     """多说话人场景测试."""
 
-    async def test_chunk_multi_speaker(
-        self, chunker: AudioChunker, multi_speaker_audio: np.ndarray
-    ):
+    async def test_chunk_multi_speaker(self, chunker: AudioChunker, multi_speaker_audio: np.ndarray):
         """多说话人切片."""
         cfg = _cfg(windowSize=30000, extra={"minSpeakers": 2, "maxSpeakers": 4})
         chunks = await chunker.chunk(multi_speaker_audio, cfg)
@@ -829,9 +791,7 @@ class TestMultiSpeaker:
         # 能量分离应识别出至少 1 个说话人
         assert len(all_speakers) >= 1
 
-    async def test_chunk_no_diarization(
-        self, chunker_no_diar: AudioChunker, multi_speaker_audio: np.ndarray
-    ):
+    async def test_chunk_no_diarization(self, chunker_no_diar: AudioChunker, multi_speaker_audio: np.ndarray):
         """禁用说话人分离."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker_no_diar.chunk(multi_speaker_audio, cfg)
@@ -839,9 +799,7 @@ class TestMultiSpeaker:
         for c in chunks:
             assert c.metadata.extra.get("diarEngine") == "none"
 
-    async def test_chunk_speaker_labels_format(
-        self, chunker: AudioChunker, multi_speaker_audio: np.ndarray
-    ):
+    async def test_chunk_speaker_labels_format(self, chunker: AudioChunker, multi_speaker_audio: np.ndarray):
         """说话人标签格式 SPEAKER_XX."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(multi_speaker_audio, cfg)
@@ -849,9 +807,7 @@ class TestMultiSpeaker:
             for spk in c.metadata.extra.get("speakers", []):
                 assert spk.startswith("SPEAKER_")
 
-    async def test_chunk_two_speaker_alternating(
-        self, chunker: AudioChunker, medium_audio: np.ndarray
-    ):
+    async def test_chunk_two_speaker_alternating(self, chunker: AudioChunker, medium_audio: np.ndarray):
         """两说话人交替场景."""
         cfg = _cfg(windowSize=15000, extra={"minSpeakers": 2, "maxSpeakers": 2})
         chunks = await chunker.chunk(medium_audio, cfg)
@@ -866,9 +822,7 @@ class TestMultiSpeaker:
 class TestTextChunkerIntegration:
     """TextChunker 二次切片测试."""
 
-    async def test_chunk_with_text_chunker(
-        self, chunker_with_text: AudioChunker, medium_audio: np.ndarray
-    ):
+    async def test_chunk_with_text_chunker(self, chunker_with_text: AudioChunker, medium_audio: np.ndarray):
         """启用 TextChunker 二次切片."""
         cfg = _cfg(windowSize=30000, extra={"enableTextChunker": True})
         chunks = await chunker_with_text.chunk(medium_audio, cfg)
@@ -877,9 +831,7 @@ class TestTextChunkerIntegration:
         for c in chunks:
             assert isinstance(c, Chunk)
 
-    async def test_chunk_without_text_chunker(
-        self, chunker_no_text: AudioChunker, medium_audio: np.ndarray
-    ):
+    async def test_chunk_without_text_chunker(self, chunker_no_text: AudioChunker, medium_audio: np.ndarray):
         """禁用 TextChunker."""
         cfg = _cfg(windowSize=30000, extra={"enableTextChunker": False})
         chunks = await chunker_no_text.chunk(medium_audio, cfg)
@@ -1017,17 +969,13 @@ class TestUtilities:
 class TestConfig:
     """配置测试."""
 
-    async def test_config_language_override(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_config_language_override(self, chunker: AudioChunker, short_audio: np.ndarray):
         """配置覆盖语言."""
         cfg = _cfg(windowSize=30000, extra={"language": "zh"})
         chunks = await chunker.chunk(short_audio, cfg)
         assert isinstance(chunks, list)
 
-    async def test_config_disable_diarization(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_config_disable_diarization(self, chunker: AudioChunker, short_audio: np.ndarray):
         """配置禁用说话人分离."""
         cfg = _cfg(windowSize=30000, extra={"enableDiarization": False})
         chunks = await chunker.chunk(short_audio, cfg)
@@ -1209,6 +1157,7 @@ class TestPyannoteRealPath:
 
     def test_pyannote_with_mocked_module(self, medium_audio: np.ndarray):
         """通过 mock pyannote 库测试真实路径."""
+
         # 构造假的 Annotation 对象
         class FakeTurn:
             def __init__(self, start, end):
@@ -1227,9 +1176,7 @@ class TestPyannoteRealPath:
         fake_pipeline = MagicMock()
         fake_pipeline.return_value = FakeAnnotation()
 
-        with patch(
-            "chunker.asr.diarization.is_pyannote_available", return_value=True
-        ):
+        with patch("chunker.asr.diarization.is_pyannote_available", return_value=True):
             with patch(
                 "chunker.asr.diarization.PyannoteDiarizer._load_pipeline",
                 return_value=fake_pipeline,
@@ -1244,9 +1191,7 @@ class TestPyannoteRealPath:
 
     def test_pyannote_pipeline_load_failure(self, medium_audio: np.ndarray):
         """pyannote pipeline 加载失败回退."""
-        with patch(
-            "chunker.asr.diarization.is_pyannote_available", return_value=True
-        ):
+        with patch("chunker.asr.diarization.is_pyannote_available", return_value=True):
             diarizer = PyannoteDiarizer(hfToken="fake_token")
             # _load_pipeline 返回 None 触发回退
             with patch.object(diarizer, "_load_pipeline", return_value=None):
@@ -1259,9 +1204,7 @@ class TestPyannoteRealPath:
         """pyannote diarize 失败回退."""
         fake_pipeline = MagicMock()
         fake_pipeline.side_effect = RuntimeError("inference failed")
-        with patch(
-            "chunker.asr.diarization.is_pyannote_available", return_value=True
-        ):
+        with patch("chunker.asr.diarization.is_pyannote_available", return_value=True):
             diarizer = PyannoteDiarizer(hfToken="fake_token")
             with patch.object(diarizer, "_load_pipeline", return_value=fake_pipeline):
                 diarizer._use_fallback = False
@@ -1350,9 +1293,7 @@ class TestTimestampAlignerEdge:
     def test_aligned_segment_to_dict(self):
         """AlignedSegment 序列化."""
         words = [AlignedWord(word="你", start=0.0, end=0.2, speaker="A")]
-        seg = AlignedSegment(
-            text="你", start=0.0, end=0.2, speaker="A", words=words, confidence=0.9
-        )
+        seg = AlignedSegment(text="你", start=0.0, end=0.2, speaker="A", words=words, confidence=0.9)
         d = seg.to_dict()
         assert d["text"] == "你"
         assert d["speaker"] == "A"
@@ -1419,9 +1360,7 @@ class TestAudioChunkerInternals:
             words=[AlignedWord(word="你好", start=0.0, end=1.0, speaker="SPEAKER_00")],
         )
         config = _cfg()
-        chunk = chunker._build_chunk(
-            [seg], 0, "test.wav", config, 1.0, "mock", "energy"
-        )
+        chunk = chunker._build_chunk([seg], 0, "test.wav", config, 1.0, "mock", "energy")
         assert chunk.content == "你好"
         assert chunk.metadata.extra["speakers"] == ["SPEAKER_00"]
         assert chunk.metadata.extra["asrEngine"] == "mock"
@@ -1494,9 +1433,7 @@ class TestMockEngineVAD:
 class TestIntegration:
     """端到端集成场景测试."""
 
-    async def test_full_pipeline_mock(
-        self, chunker: AudioChunker, multi_speaker_audio: np.ndarray
-    ):
+    async def test_full_pipeline_mock(self, chunker: AudioChunker, multi_speaker_audio: np.ndarray):
         """完整流水线：Mock ASR + 能量分离 + 对齐 + 切片."""
         cfg = _cfg(
             windowSize=10000,
@@ -1518,9 +1455,7 @@ class TestIntegration:
             assert "speakers" in extra
             assert "asrEngine" in extra
 
-    async def test_chunk_with_result_full(
-        self, chunker: AudioChunker, medium_audio: np.ndarray
-    ):
+    async def test_chunk_with_result_full(self, chunker: AudioChunker, medium_audio: np.ndarray):
         """chunk_with_result 完整测试."""
         cfg = _cfg(windowSize=10000)
         result = await chunker.chunk_with_result(medium_audio, cfg)
@@ -1529,9 +1464,7 @@ class TestIntegration:
         assert result.totalTokens >= 0
         assert result.durationMs >= 0
 
-    async def test_wav_bytes_pipeline(
-        self, chunker: AudioChunker, short_audio: np.ndarray
-    ):
+    async def test_wav_bytes_pipeline(self, chunker: AudioChunker, short_audio: np.ndarray):
         """WAV bytes 输入完整流水线."""
         wav_bytes = _audio_to_wav_bytes(short_audio)
         cfg = _cfg(windowSize=30000)
@@ -1540,9 +1473,7 @@ class TestIntegration:
         for c in chunks:
             assert c.metadata.source == "bytes://audio"
 
-    async def test_file_path_pipeline(
-        self, chunker: AudioChunker, tmp_wav_file: str
-    ):
+    async def test_file_path_pipeline(self, chunker: AudioChunker, tmp_wav_file: str):
         """文件路径输入完整流水线."""
         cfg = _cfg(windowSize=30000)
         chunks = await chunker.chunk(tmp_wav_file, cfg)

@@ -1,10 +1,9 @@
 """意图识别单测."""
+
 from __future__ import annotations
 
-import pytest
-
-from models import AggFunc, IntentType, SchemaContext, TableSchema, ColumnSchema
 from intent_recognition import IntentRecognizer
+from models import AggFunc, ColumnSchema, IntentType, SchemaContext, TableSchema
 
 
 def _mockCtx() -> SchemaContext:
@@ -75,16 +74,12 @@ class TestIntentRecognition:
         assert intent.limit == 10
 
     def test_join_intent(self, intentRecognizer: IntentRecognizer) -> None:
-        intent = intentRecognizer.recognize(
-            "关联 orders 和 users 表", _mockCtx()
-        )
+        intent = intentRecognizer.recognize("关联 orders 和 users 表", _mockCtx())
         assert intent.primaryType == IntentType.JOIN
         assert len(intent.joinTables) >= 1
 
     def test_group_intent(self, intentRecognizer: IntentRecognizer) -> None:
-        intent = intentRecognizer.recognize(
-            "按 city 分组统计订单数量", _mockCtx()
-        )
+        intent = intentRecognizer.recognize("按 city 分组统计订单数量", _mockCtx())
         # 含"数量"触发聚合，含"分组"可能升级为 GROUP
         assert intent.primaryType in (IntentType.GROUP, IntentType.AGGREGATION)
         assert intent.aggFunc == AggFunc.COUNT

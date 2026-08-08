@@ -22,6 +22,7 @@
 
 对齐设计文档 T008-2。
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -401,9 +402,7 @@ class TextChunker(BaseChunker):
             }
         """
         if not isinstance(content, str):
-            raise TypeError(
-                f"TextChunker 仅支持 str 内容，得到 {type(content).__name__}"
-            )
+            raise TypeError(f"TextChunker 仅支持 str 内容，得到 {type(content).__name__}")
         # 归一化：去除首尾空白，统一换行符
         text = content.replace("\r\n", "\n").replace("\r", "\n")
         stripped = text.strip()
@@ -432,9 +431,7 @@ class TextChunker(BaseChunker):
 
         # 读取模态专属配置
         extra = config.extra or {}
-        sim_threshold = float(
-            extra.get("similarityThreshold", self.similarityThreshold)
-        )
+        sim_threshold = float(extra.get("similarityThreshold", self.similarityThreshold))
         enable_emb = bool(extra.get("enableEmbedding", self.enableEmbedding))
         # 临时切换 enableEmbedding（不修改实例属性，避免副作用）
         original_enable = self.enableEmbedding
@@ -492,10 +489,7 @@ class TextChunker(BaseChunker):
             texts = [u[0] for u in units]
             embeddings = await self._compute_embeddings(texts)
             if embeddings is not None and len(embeddings) == len(units):
-                similarities = [
-                    _cos_similarity(embeddings[i], embeddings[i + 1])
-                    for i in range(len(embeddings) - 1)
-                ]
+                similarities = [_cos_similarity(embeddings[i], embeddings[i + 1]) for i in range(len(embeddings) - 1)]
 
         merged: list[tuple[str, dict[str, Any]]] = []
         buf_text: list[str] = []
@@ -625,9 +619,7 @@ class TextChunker(BaseChunker):
                     Chunk(
                         id=self._make_chunk_id(),
                         content=text,
-                        metadata=self._make_metadata(
-                            config, index=idx, start=start, end=end
-                        ),
+                        metadata=self._make_metadata(config, index=idx, start=start, end=end),
                     )
                 )
                 idx += 1
@@ -656,9 +648,7 @@ class TextChunker(BaseChunker):
     # 重叠合并
     # ------------------------------------------------------------------
 
-    def _overlap_merge(
-        self, chunks: list[Chunk], overlap_size: int
-    ) -> list[Chunk]:
+    def _overlap_merge(self, chunks: list[Chunk], overlap_size: int) -> list[Chunk]:
         """重叠合并相邻切片.
 
         将前一切片尾部 ``overlap_size`` 字符拼接到后一切片头部，

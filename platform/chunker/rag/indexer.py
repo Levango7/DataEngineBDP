@@ -12,9 +12,9 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import Any, Optional
 
@@ -142,9 +142,7 @@ class Indexer:
                 await self.store.insert(collection_name, batch)
                 total += len(batch)
             except Exception as ex:  # noqa: BLE001
-                raise IndexError(
-                    f"写入批次 {i // self.batchSize} 失败: {ex}", cause=ex
-                ) from ex
+                raise IndexError(f"写入批次 {i // self.batchSize} 失败: {ex}", cause=ex) from ex
         logger.info("索引完成: %d/%d 切片写入 %s", total, len(chunks), collection_name)
         return total
 
@@ -173,9 +171,7 @@ class Indexer:
         try:
             vecs = await self.adapter.embed(texts)
         except Exception as ex:  # noqa: BLE001
-            raise IndexError(
-                f"生成 embedding 失败: {ex}", cause=ex
-            ) from ex
+            raise IndexError(f"生成 embedding 失败: {ex}", cause=ex) from ex
 
         # 填充 embedding
         emb_map = {c.id: v for c, v in zip(missing, vecs)}

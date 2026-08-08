@@ -23,6 +23,7 @@
     await pipeline.index("chunks", "文档内容", config)
     results = await pipeline.retrieve("chunks", "查询")
 """
+
 from __future__ import annotations
 
 from chunker.rag.config import (
@@ -53,14 +54,14 @@ from chunker.rag.fusion import (
     weighted_fusion,
 )
 from chunker.rag.hybrid_retriever import (
-    BM25Index,
-    BM25Retriever,
-    CrossEncoderReranker,
     DEFAULT_BM25_B,
     DEFAULT_BM25_K1,
     DEFAULT_CHANNEL_WEIGHTS,
     DEFAULT_EXPAND_SYNONYMS,
     DEFAULT_RERANK_METHOD,
+    BM25Index,
+    BM25Retriever,
+    CrossEncoderReranker,
     HybridRetrievalResult,
     HybridRetriever,
     IdentityReranker,

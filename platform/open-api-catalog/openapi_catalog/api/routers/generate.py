@@ -5,11 +5,10 @@
     POST /api/v1/apis/generate/model    指定模型 ID 生成推理 API
     POST /api/v1/apis/generate/function 指定 Serverless 函数生成 API
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field
-
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import APIDefinition
 from openapi_catalog.repositories import CatalogError
@@ -20,20 +19,20 @@ from openapi_catalog.services.api_generator import (
     SqlGenerateRequest,
 )
 from openapi_catalog.services.registry import ServiceRegistry
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/apis/generate", tags=["generate"])
 
 
 # ---------- 请求模型 ----------
 
+
 class SqlGenerateBody(BaseModel):
     """SQL 一键生成请求体."""
 
     name: str = Field(..., min_length=1, max_length=128, description="API 名称")
     sql: str = Field(..., min_length=1, description="SQL 查询语句")
-    datasource: str = Field(
-        ..., description="数据源: trino/doris/hive/mysql/postgresql"
-    )
+    datasource: str = Field(..., description="数据源: trino/doris/hive/mysql/postgresql")
     providerTenantId: str = Field(..., description="提供方租户 ID")
     description: str | None = Field(default=None, description="API 描述")
     category: str = Field(default="sql", description="分类")
@@ -48,9 +47,7 @@ class ModelGenerateBody(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=128, description="API 名称")
     modelId: str = Field(..., min_length=1, description="模型 ID")
-    modelType: str = Field(
-        ..., description="模型类型: llm/embedding/rerank/classification/image"
-    )
+    modelType: str = Field(..., description="模型类型: llm/embedding/rerank/classification/image")
     providerTenantId: str = Field(..., description="提供方租户 ID")
     description: str | None = Field(default=None, description="API 描述")
     category: str = Field(default="model", description="分类")
@@ -88,17 +85,17 @@ class GenerateOptionsResponse(BaseModel):
 
 # ---------- 服务获取依赖 ----------
 
+
 def _get_generator(registry: ServiceRegistry) -> APIGeneratorService:
     """从 registry 获取或构建 APIGeneratorService."""
     # 缓存到 registry 上避免重复构建
     if not hasattr(registry, "_apiGeneratorService") or registry._apiGeneratorService is None:
-        registry._apiGeneratorService = APIGeneratorService(
-            registry.store, registry.apiRegistryService
-        )
+        registry._apiGeneratorService = APIGeneratorService(registry.store, registry.apiRegistryService)
     return registry._apiGeneratorService
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "/sql",

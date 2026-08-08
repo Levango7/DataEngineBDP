@@ -12,6 +12,7 @@
 
 对齐设计文档 T008-6：Embedding 模型适配与 RAG 管道集成。
 """
+
 from __future__ import annotations
 
 
@@ -97,6 +98,4 @@ class EmbeddingDimensionError(EmbeddingError):
     def __init__(self, expected: int, actual: int) -> None:
         self.expected = expected
         self.actual = actual
-        super().__init__(
-            f"embedding 维度不匹配，期望 {expected}，实际 {actual}"
-        )
+        super().__init__(f"embedding 维度不匹配，期望 {expected}，实际 {actual}")

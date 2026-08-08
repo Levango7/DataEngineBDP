@@ -10,9 +10,10 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from chunker.embedding.registry import register_adapter
 from chunker.embedding.st_adapter import SentenceTransformerAdapter

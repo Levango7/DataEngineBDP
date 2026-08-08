@@ -80,7 +80,7 @@ public class PrometheusQueryClient {
                     .uri("/-/healthy")
                     .retrieve()
                     .body(Map.class);
-            return resp != null || true;
+            return true; // resp != null || true 恒为 true
         } catch (Exception e) {
             log.debug("Prometheus 不可用: {}", e.getMessage());
             return false;

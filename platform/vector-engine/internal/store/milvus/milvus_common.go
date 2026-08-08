@@ -37,7 +37,7 @@ type MilvusVectorStore struct {
 	password string
 	// client 在 milvus_enabled 构建下持有 Milvus SDK client，默认构建下为 nil。
 	// 此处用 interface{} 避免默认构建引入 SDK 依赖。
-	client interface{}
+	client interface{} //nolint:unused // milvus_enabled 构建下使用
 }
 
 // NewMilvusVectorStore 创建 Milvus 实现实例。

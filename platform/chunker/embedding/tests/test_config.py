@@ -1,7 +1,6 @@
 """Embedding 异常与配置测试 (T008-6)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.embedding.config import (
     DEFAULT_MODEL,
@@ -11,8 +10,8 @@ from chunker.embedding.config import (
     get_embedding_settings,
     get_model_dimension,
     model_short_name,
-    resolve_model_name,
     reset_embedding_settings,
+    resolve_model_name,
     should_normalize,
 )
 from chunker.embedding.exceptions import (
@@ -25,7 +24,7 @@ from chunker.embedding.exceptions import (
     ModelLoadError,
     ModelUnavailableError,
 )
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 异常层次

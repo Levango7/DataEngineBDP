@@ -25,18 +25,18 @@
 
 对齐设计文档 T009。
 """
+
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import asyncio
+from collections import Counter, defaultdict
 import logging
 import math
 import re
-from abc import ABC, abstractmethod
-from collections import Counter, defaultdict
 from typing import Any, Awaitable, Callable, Optional, Sequence
 
 from chunker.rag.config import DEFAULT_RRF_K, DEFAULT_TOP_K
-from chunker.rag.exceptions import RAGError, RetrieveError
 from chunker.rag.fusion import reciprocal_rank_fusion, weighted_fusion
 from chunker.rag.retriever import RetrievalResult, Retriever
 
@@ -243,9 +243,7 @@ class BM25Retriever:
         """
         self.index = index or BM25Index()
         # doc_id -> metadata
-        self._metaStore: dict[str, dict[str, Any]] = (
-            metadata_store if metadata_store is not None else {}
-        )
+        self._metaStore: dict[str, dict[str, Any]] = metadata_store if metadata_store is not None else {}
 
     def add_doc(
         self,
@@ -470,9 +468,7 @@ class MockKnowledgeGraph(KnowledgeGraph):
         hits: list[dict[str, Any]] = []
         seen: set[str] = set()
         # 按别名长度降序匹配，优先长别名（更具体）
-        for alias, ent_id in sorted(
-            self._aliasIndex.items(), key=lambda x: len(x[0]), reverse=True
-        ):
+        for alias, ent_id in sorted(self._aliasIndex.items(), key=lambda x: len(x[0]), reverse=True):
             if ent_id in seen:
                 continue
             if alias and alias in query:
@@ -617,6 +613,7 @@ class CrossEncoderReranker(Reranker):
     ) -> list[RetrievalResult]:
         if not results:
             return []
+
         # 并行打分
         async def _score(r: RetrievalResult) -> tuple[float, RetrievalResult]:
             doc_text = str(r.metadata.get(self._docTextKey, ""))
@@ -671,9 +668,7 @@ class LLMReranker(Reranker):
 
     def __init__(
         self,
-        llm_score_fn: Callable[
-            [str, list[dict[str, str]]], Awaitable[list[float]]
-        ],
+        llm_score_fn: Callable[[str, list[dict[str, str]]], Awaitable[list[float]]],
         *,
         doc_text_key: str = "content",
         batch_size: int = 20,
@@ -805,10 +800,7 @@ class HybridRetrievalResult:
         """转为字典."""
         return {
             "results": [r.to_dict() for r in self.results],
-            "channelResults": {
-                k: [r.to_dict() for r in v]
-                for k, v in self.channelResults.items()
-            },
+            "channelResults": {k: [r.to_dict() for r in v] for k, v in self.channelResults.items()},
             "expandedQueries": self.expandedQueries,
             "linkedEntities": self.linkedEntities,
             "fusedMethod": self.fusedMethod,
@@ -939,23 +931,15 @@ class HybridRetriever:
         task_channels: list[str] = []
         for ch in active:
             if ch == "vector":
-                tasks.append(
-                    self._retrieve_vector(
-                        collection_name, query, per_k, filter, expanded_queries
-                    )
-                )
+                tasks.append(self._retrieve_vector(collection_name, query, per_k, filter, expanded_queries))
                 task_channels.append(ch)
             elif ch == "keyword":
                 if self.bm25 is not None:
-                    tasks.append(
-                        self._retrieve_keyword(query, per_k, expanded_queries)
-                    )
+                    tasks.append(self._retrieve_keyword(query, per_k, expanded_queries))
                     task_channels.append(ch)
             elif ch == "kg":
                 if self.kg is not None:
-                    tasks.append(
-                        self._retrieve_kg(collection_name, query, per_k, linked_entities)
-                    )
+                    tasks.append(self._retrieve_kg(collection_name, query, per_k, linked_entities))
                     task_channels.append(ch)
 
         if not tasks:
@@ -999,9 +983,7 @@ class HybridRetriever:
             fused = weighted_fusion(valid_lists, weights)
             fused_method = "weighted"
         else:
-            raise ValueError(
-                f"未知融合方法: {method}，支持 rrf/weighted"
-            )
+            raise ValueError(f"未知融合方法: {method}，支持 rrf/weighted")
 
         # 标记融合方法
         for r in fused:
@@ -1071,9 +1053,7 @@ class HybridRetriever:
     # 内部方法
     # ------------------------------------------------------------------
 
-    def _resolve_channels(
-        self, channels: Optional[Sequence[str]]
-    ) -> list[str]:
+    def _resolve_channels(self, channels: Optional[Sequence[str]]) -> list[str]:
         """解析有效通道列表."""
         if channels is None:
             # 默认全部可用通道
@@ -1108,18 +1088,14 @@ class HybridRetriever:
         all_results: list[RetrievalResult] = []
         # 原始查询
         try:
-            results = await self.retriever.retrieve(
-                collection_name, query, top_k=top_k, filter=filter
-            )
+            results = await self.retriever.retrieve(collection_name, query, top_k=top_k, filter=filter)
             all_results.extend(results)
         except Exception as ex:  # noqa: BLE001
             logger.warning("向量检索原始查询失败: %s", ex)
         # 扩展查询
         for eq in expanded_queries:
             try:
-                results = await self.retriever.retrieve(
-                    collection_name, eq, top_k=top_k, filter=filter
-                )
+                results = await self.retriever.retrieve(collection_name, eq, top_k=top_k, filter=filter)
                 all_results.extend(results)
             except Exception as ex:  # noqa: BLE001
                 logger.warning("向量检索扩展查询 '%s' 失败: %s", eq, ex)

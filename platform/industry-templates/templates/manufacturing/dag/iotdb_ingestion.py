@@ -16,10 +16,11 @@ IoTDB 时序路径示例：
 
 Author: T037 制造模板工程师
 """
+
 from __future__ import annotations
 
-import os
 from datetime import datetime, timedelta
+import os
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
@@ -77,7 +78,7 @@ query_iotdb_sensors = BashOperator(
         f"echo '[1] 通过 IoTDB JDBC 查询设备传感器数据 exec_time={EXEC_TIME}...' && "
         f"java -jar /opt/iotdb/iotdb-jdbc-tool.jar "
         f"--host {IOTDB_HOST} --user {IOTDB_USER} --password {IOTDB_PASSWORD} "
-        f"--sql \"SELECT * FROM root.mfg.equipment.* WHERE time >= now() - 15m\" "
+        f'--sql "SELECT * FROM root.mfg.equipment.* WHERE time >= now() - 15m" '
         f"--output /tmp/iotdb_sensors_{EXEC_TIME}.json && "
         f"echo '[1] IoTDB 传感器数据查询完成: /tmp/iotdb_sensors_{EXEC_TIME}.json'"
     ),
@@ -98,16 +99,24 @@ flink_iotdb_source = FlinkSubmitOperator(
         "parallelism": "4",
     },
     application_args=[
-        "--iotdb-host", IOTDB_HOST,
-        "--iotdb-user", IOTDB_USER,
-        "--iotdb-password", IOTDB_PASSWORD,
-        "--iotdb-path", "root.mfg.equipment.*.status",
-        "--doris-fe", DORIS_FE,
-        "--doris-db", DORIS_DB,
-        "--target-table", "equipment_status_log",
+        "--iotdb-host",
+        IOTDB_HOST,
+        "--iotdb-user",
+        IOTDB_USER,
+        "--iotdb-password",
+        IOTDB_PASSWORD,
+        "--iotdb-path",
+        "root.mfg.equipment.*.status",
+        "--doris-fe",
+        DORIS_FE,
+        "--doris-db",
+        DORIS_DB,
+        "--target-table",
+        "equipment_status_log",
     ],
     dag=dag,
 )
+
 
 # ---------------------------------------------------------------------------
 # Task 3: 数据清洗与转换
@@ -156,12 +165,12 @@ load_sensor_metrics = BashOperator(
 trigger_realtime_oee = BashOperator(
     task_id="trigger_realtime_oee",
     bash_command=(
-        f"echo '[5] 触发 OEE 实时计算...' && "
-        f"curl -s -X POST http://flink-jobmanager:8081/jobs "
-        f"-H 'Content-Type: application/json' "
-        f"-d '{{\"jarId\":\"oee-streaming.jar\",\"entryClass\":\"com.shuqing.oee.OEEStreamingJob\"}}' "
-        f"|| echo '流式 OEE 未启用，跳过' && "
-        f"echo '[5] OEE 实时计算触发完成'"
+        "echo '[5] 触发 OEE 实时计算...' && "
+        "curl -s -X POST http://flink-jobmanager:8081/jobs "
+        "-H 'Content-Type: application/json' "
+        '-d \'{"jarId":"oee-streaming.jar","entryClass":"com.shuqing.oee.OEEStreamingJob"}\' '
+        "|| echo '流式 OEE 未启用，跳过' && "
+        "echo '[5] OEE 实时计算触发完成'"
     ),
     dag=dag,
 )
@@ -172,8 +181,7 @@ trigger_realtime_oee = BashOperator(
 notify_done = BashOperator(
     task_id="notify_done",
     bash_command=(
-        f"echo '[6] IoTDB 数据接入完成 exec_time={EXEC_TIME}' "
-        f">> /var/log/manufacturing/iotdb_ingestion.log"
+        f"echo '[6] IoTDB 数据接入完成 exec_time={EXEC_TIME}' " f">> /var/log/manufacturing/iotdb_ingestion.log"
     ),
     dag=dag,
 )

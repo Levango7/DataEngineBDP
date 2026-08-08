@@ -2,10 +2,11 @@
 
 编排 MLBackend + ExperimentStore：训练完成后自动记录参数与指标到实验。
 """
+
 from __future__ import annotations
 
-import uuid
 from typing import Optional
+import uuid
 
 from ml_platform.interfaces.backend import MLBackend
 from ml_platform.interfaces.experiment_store import ExperimentStore
@@ -14,7 +15,6 @@ from ml_platform.models import (
     TrainingJob,
     TrainingResult,
     TrainingStatus,
-    utcNow,
 )
 from ml_platform.repositories import (
     ExperimentNotFoundError,
@@ -34,9 +34,7 @@ class TrainingService:
         self._experimentStore = experimentStore
         self._jobs: dict[str, TrainingJob] = {}
 
-    async def createTrainingJob(
-        self, config: TrainingConfig
-    ) -> TrainingJob:
+    async def createTrainingJob(self, config: TrainingConfig) -> TrainingJob:
         """创建训练任务并立即执行（同步等待结果）.
 
         真实场景应改为异步任务队列；此处骨架为同步执行便于测试。
@@ -44,13 +42,9 @@ class TrainingService:
         # 校验实验存在
         if config.experimentId and self._experimentStore is not None:
             try:
-                await self._experimentStore.get_experiment(
-                    config.experimentId
-                )
+                await self._experimentStore.get_experiment(config.experimentId)
             except ExperimentNotFoundError:
-                raise ValueError(
-                    f"实验不存在: {config.experimentId}"
-                )
+                raise ValueError(f"实验不存在: {config.experimentId}")
 
         jobId = str(uuid.uuid4())
         job = TrainingJob(
@@ -75,9 +69,7 @@ class TrainingService:
                         **config.params,
                     },
                 )
-                await self._experimentStore.log_metrics(
-                    config.experimentId, result.metrics
-                )
+                await self._experimentStore.log_metrics(config.experimentId, result.metrics)
         except Exception as e:
             job.status = TrainingStatus.FAILED
             job.result = TrainingResult(
@@ -88,9 +80,7 @@ class TrainingService:
             )
         return job
 
-    async def getTrainingStatus(
-        self, jobId: str
-    ) -> TrainingJob:
+    async def getTrainingStatus(self, jobId: str) -> TrainingJob:
         if jobId not in self._jobs:
             raise TrainingJobNotFoundError(jobId)
         return self._jobs[jobId]
@@ -109,7 +99,5 @@ class TrainingService:
             TrainingStatus.FAILED,
             TrainingStatus.CANCELLED,
         ):
-            raise ValueError(
-                f"训练任务 {jobId} 已结束（状态 {job.status.value}），不可取消"
-            )
+            raise ValueError(f"训练任务 {jobId} 已结束（状态 {job.status.value}），不可取消")
         job.status = TrainingStatus.CANCELLED

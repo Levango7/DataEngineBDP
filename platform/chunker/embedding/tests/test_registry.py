@@ -1,7 +1,6 @@
 """Embedding 注册机制测试 (T008-6)."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from chunker.embedding.base import EmbeddingAdapter
 from chunker.embedding.registry import (
@@ -13,7 +12,7 @@ from chunker.embedding.registry import (
     register_adapter,
     unregister_adapter,
 )
-
+import pytest
 
 # ----------------------------------------------------------------------
 # 测试用适配器
@@ -98,17 +97,33 @@ class TestRegistry:
         assert not is_adapter_registered("to-clear")
         # 重新注册所有内置适配器（供后续测试使用）
         from chunker.embedding.bge_adapter import (
-            BGEAdapter, BGE_LARGE_ZH_MODEL, BGE_LARGE_EN_MODEL, BGE_SMALL_ZH_MODEL,
-            BGE_ZH_QUERY_INSTRUCTION, BGE_EN_QUERY_INSTRUCTION,
+            BGE_EN_QUERY_INSTRUCTION,
+            BGE_LARGE_EN_MODEL,
+            BGE_SMALL_ZH_MODEL,
+            BGE_ZH_QUERY_INSTRUCTION,
+            BGEAdapter,
         )
-        from chunker.embedding.m3e_adapter import M3EAdapter, M3E_BASE_MODEL, M3E_SMALL_MODEL
+        from chunker.embedding.m3e_adapter import M3E_SMALL_MODEL, M3EAdapter
         from chunker.embedding.openai_adapter import (
-            OpenAIAdapter, OPENAI_SMALL_MODEL, OPENAI_LARGE_MODEL,
+            OPENAI_LARGE_MODEL,
+            OPENAI_SMALL_MODEL,
+            OpenAIAdapter,
         )
+
         # BGE
-        register_adapter("bge-large-zh", BGEAdapter, defaults={"dimension": 1024, "query_instruction": BGE_ZH_QUERY_INSTRUCTION})
-        register_adapter("bge-large-en", BGEAdapter, defaults={"model": BGE_LARGE_EN_MODEL, "dimension": 1024, "query_instruction": BGE_EN_QUERY_INSTRUCTION})
-        register_adapter("bge-small-zh", BGEAdapter, defaults={"model": BGE_SMALL_ZH_MODEL, "dimension": 512, "query_instruction": BGE_ZH_QUERY_INSTRUCTION})
+        register_adapter(
+            "bge-large-zh", BGEAdapter, defaults={"dimension": 1024, "query_instruction": BGE_ZH_QUERY_INSTRUCTION}
+        )
+        register_adapter(
+            "bge-large-en",
+            BGEAdapter,
+            defaults={"model": BGE_LARGE_EN_MODEL, "dimension": 1024, "query_instruction": BGE_EN_QUERY_INSTRUCTION},
+        )
+        register_adapter(
+            "bge-small-zh",
+            BGEAdapter,
+            defaults={"model": BGE_SMALL_ZH_MODEL, "dimension": 512, "query_instruction": BGE_ZH_QUERY_INSTRUCTION},
+        )
         # M3E
         register_adapter("m3e-base", M3EAdapter, defaults={"dimension": 768})
         register_adapter("m3e-small", M3EAdapter, defaults={"model": M3E_SMALL_MODEL, "dimension": 384})

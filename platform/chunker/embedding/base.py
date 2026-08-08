@@ -15,12 +15,13 @@
 
 对齐设计文档 T008-6。
 """
+
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 import asyncio
 import math
 import threading
-from abc import ABC, abstractmethod
 from typing import Any, Optional
 
 from chunker.embedding.exceptions import (
@@ -169,9 +170,7 @@ class EmbeddingAdapter(ABC):
             except (ModelLoadError, ModelUnavailableError, EmbeddingComputeError):
                 raise
             except Exception as ex:  # noqa: BLE001
-                raise EmbeddingComputeError(
-                    f"embedding 计算失败: {ex}", cause=ex
-                ) from ex
+                raise EmbeddingComputeError(f"embedding 计算失败: {ex}", cause=ex) from ex
             for i, row in enumerate(out):
                 results[start + i] = row
 
