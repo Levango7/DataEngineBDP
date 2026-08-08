@@ -1,0 +1,187 @@
+# 政务访问控制策略
+# ============================================================================
+# 归属：数擎大数据平台 · L5.3 行业应用模板 · 政务模板（government）
+# 对标：GB/T 31075-2017 政务数据分级分类、等保2.0 访问控制要求
+# 关联：compliance/data-classification.yaml（数据分级）；rbac/roles.yaml（角色定义）
+# 策略模型：ABAC（基于属性的访问控制），属性含角色/数据分级/时间/IP/部门
+# 生效方式：策略下推到 L2.7 统一 SQL 网关，查询时由网关执行访问控制决策
+# 决策规则：DENY 优先于 ALLOW，优先级数字越小越先匹配
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 访问控制策略定义
+access_control:
+  # 策略元信息
+  metadata:
+    model: ABAC
+    description: |
+      政务行业访问控制策略：基于数据分级（L1/L2/L3/L4）与角色属性的访问控制。
+      DENY 优先于 ALLOW，优先级数字越小越先匹配。
+    default_decision: DENY
+
+  # 策略定义列表
+  policies:
+    # --------------------------------------------------------------------------
+    # DENY 策略（优先级高，先匹配）
+    # --------------------------------------------------------------------------
+
+    # 公众用户不可访问 L2/L3/L4 数据
+    - policy_id: deny_public_l2_l3_l4
+      policy_name: 公众用户禁止访问 L2/L3/L4 数据
+      policy_type: DENY
+      subject_role: public_user
+      object_level: [L2, L3, L4]
+      action: [READ, WRITE, EXPORT, DELETE]
+      priority: 10
+      description: "公众用户仅可访问 L1 公开数据"
+
+    # 数据分析师不可访问 L3/L4 数据
+    - policy_id: deny_analyst_l3_l4
+      policy_name: 数据分析师禁止访问 L3/L4 数据
+      policy_type: DENY
+      subject_role: data_analyst
+      object_level: [L3, L4]
+      action: [READ, WRITE, EXPORT, DELETE]
+      priority: 20
+      description: "数据分析师仅可访问 L1/L2 汇总数据"
+
+    # 部门用户不可访问 L3/L4 数据
+    - policy_id: deny_dept_user_l3_l4
+      policy_name: 部门用户禁止访问 L3/L4 数据
+      policy_type: DENY
+      subject_role: dept_user
+      object_level: [L3, L4]
+      action: [READ, WRITE, EXPORT, DELETE]
+      priority: 30
+      description: "部门用户仅可访问本部门 L1/L2 业务数据"
+
+    # 政务管理员不可访问 L4 审计日志/权限定义
+    - policy_id: deny_admin_l4
+      policy_name: 政务管理员禁止访问 L4 数据
+      policy_type: DENY
+      subject_role: gov_admin
+      object_level: [L4]
+      action: [READ, WRITE, EXPORT, DELETE]
+      priority: 40
+      description: "政务管理员不可访问审计日志/权限定义（职责分离）"
+
+    # 非工作时间禁止访问 L4 数据
+    - policy_id: deny_off_hours_l4
+      policy_name: 非工作时间禁止访问 L4 数据
+      policy_type: DENY
+      object_level: [L4]
+      action: [READ, WRITE, EXPORT, DELETE]
+      condition: "time NOT BETWEEN 08:00 AND 20:00"
+      priority: 50
+      description: "非工作时间（20:00-08:00）禁止访问机密数据"
+
+    # 非内网 IP 禁止访问 L3/L4 数据
+    - policy_id: deny_external_ip_l3_l4
+      policy_name: 非内网 IP 禁止访问 L3/L4 数据
+      policy_type: DENY
+      object_level: [L3, L4]
+      action: [READ, WRITE, EXPORT, DELETE]
+      condition: "source_ip NOT IN 10.0.0.0/8 AND source_ip NOT IN 172.16.0.0/12 AND source_ip NOT IN 192.168.0.0/16"
+      priority: 60
+      description: "非内网 IP 禁止访问敏感/机密数据"
+
+    # --------------------------------------------------------------------------
+    # ALLOW 策略（优先级低，后匹配）
+    # --------------------------------------------------------------------------
+
+    # 公众用户可读 L1 数据
+    - policy_id: allow_public_l1_read
+      policy_name: 公众用户可读 L1 公开数据
+      policy_type: ALLOW
+      subject_role: public_user
+      object_level: [L1]
+      action: [READ]
+      priority: 100
+      description: "公众用户可读公开数据"
+
+    # 数据分析师可读 L1/L2 数据
+    - policy_id: allow_analyst_l1_l2_read
+      policy_name: 数据分析师可读 L1/L2 数据
+      policy_type: ALLOW
+      subject_role: data_analyst
+      object_level: [L1, L2]
+      action: [READ]
+      priority: 110
+      description: "数据分析师可读公开/内部数据"
+
+    # 部门用户可读 L1/L2 数据
+    - policy_id: allow_dept_user_l1_l2_read
+      policy_name: 部门用户可读 L1/L2 数据
+      policy_type: ALLOW
+      subject_role: dept_user
+      object_level: [L1, L2]
+      action: [READ]
+      priority: 120
+      description: "部门用户可读公开/内部数据"
+
+    # 部门用户可写 L2 数据
+    - policy_id: allow_dept_user_l2_write
+      policy_name: 部门用户可写 L2 数据
+      policy_type: ALLOW
+      subject_role: dept_user
+      object_level: [L2]
+      action: [WRITE]
+      priority: 130
+      description: "部门用户可写内部数据"
+
+    # 政务管理员可读写 L1/L2/L3 数据
+    - policy_id: allow_admin_l1_l2_l3
+      policy_name: 政务管理员可读写 L1/L2/L3 数据
+      policy_type: ALLOW
+      subject_role: gov_admin
+      object_level: [L1, L2, L3]
+      action: [READ, WRITE, EXPORT]
+      priority: 140
+      description: "政务管理员可读写公开/内部/秘密数据"
+
+    # 审计员可读 L4 审计日志
+    - policy_id: allow_auditor_l4_read
+      policy_name: 审计员可读 L4 审计日志
+      policy_type: ALLOW
+      subject_role: auditor
+      object_level: [L4]
+      action: [READ]
+      priority: 150
+      description: "审计员可读机密数据（审计日志/权限定义）"
+
+    # 审计员可读写 L3 合规资源
+    - policy_id: allow_auditor_l3_compliance
+      policy_name: 审计员可读写 L3 合规资源
+      policy_type: ALLOW
+      subject_role: auditor
+      object_level: [L3]
+      action: [READ, WRITE]
+      priority: 160
+      description: "审计员可读写合规资源（风险预警/访问控制记录）"
+
+  # 决策规则
+  decision_rules:
+    # DENY 优先于 ALLOW
+    deny_overrides_allow: true
+    # 优先级数字越小越先匹配
+    priority_order: ascending
+    # 无匹配策略时默认决策
+    default_decision: DENY
+    # 决策结果记录到 access_control_record 表
+    log_decision: true
+    # DENY 决策生成审计日志
+    audit_on_deny: true
+
+  # 属性源
+  attribute_sources:
+    # 主体属性（角色/部门）从 Keycloak 获取
+    subject:
+      role: "从 Keycloak token 的 realm_access.roles 获取"
+      department: "从 Keycloak token 的 department claim 获取"
+    # 客体属性（数据分级）从 data_classification 表获取
+    object:
+      data_classification: "从 data_classification 表的 table_classification 映射获取"
+    # 环境属性（时间/IP）从请求上下文获取
+    environment:
+      time: "从请求时间获取"
+      source_ip: "从请求 IP 获取"

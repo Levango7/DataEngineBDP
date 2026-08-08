@@ -3,7 +3,6 @@ package token
 import (
 	"testing"
 
-
 	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
 	"github.com/stretchr/testify/assert"
 )
@@ -25,8 +24,8 @@ func TestCountText(t *testing.T) {
 	assert.Equal(t, 2, c.CountText("testtest"))
 
 	// 中文（每个 rune 算 1 字符）
-	assert.Equal(t, 1, c.CountText("你好")) // 2 rune → 1 token
-	assert.Equal(t, 1, c.CountText("你好世界")) // 4 rune → 1 token
+	assert.Equal(t, 1, c.CountText("你好"))       // 2 rune → 1 token
+	assert.Equal(t, 1, c.CountText("你好世界"))     // 4 rune → 1 token
 	assert.Equal(t, 2, c.CountText("你好世界你好世界")) // 8 rune → 2 token
 }
 

@@ -13,7 +13,6 @@ package token
 //   - 计量结果可序列化为 OpenAI Usage 兼容结构
 //   - 线程安全，供网关并发调用
 
-
 import (
 	"math"
 	"strings"

@@ -1,0 +1,123 @@
+# Helm Chart values - 政务行业模板默认配置
+# ============================================================================
+# 用途：定义 helm install government-template 时的可配置参数
+# 说明：政务模板不含 IoTDB 时序接入，但含政务合规预置配置
+# ============================================================================
+
+# 模板元信息
+template:
+  name: government-template
+  version: 1.0.0
+  # 是否启用模板自动导入（部署后自动调用平台 Job 导入 DDL/DAG/Dashboard/RBAC/合规配置）
+  autoImport: true
+
+# 目标命名空间
+namespace: government
+
+# 各组件目标地址（用于平台侧 Job 导入资产）
+target:
+  doris:
+    feHost: doris-fe.doris.svc.cluster.local
+    fePort: 9030
+    database: db_government
+    user: root
+    # 密码通过 Secret 引用，不在此明文配置
+    passwordSecret:
+      name: doris-credentials
+      key: password
+  dolphinscheduler:
+    host: dolphinscheduler-api.dolphinscheduler.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials
+      key: token
+  superset:
+    host: superset.superset.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials
+      key: token
+  keycloak:
+    host: keycloak.keycloak.svc.cluster.local
+    port: 8080
+    realm: government-template-realm
+    adminSecret:
+      name: keycloak-credentials
+      key: admin-password
+  spark:
+    masterHost: spark-master.spark.svc.cluster.local
+    masterPort: 7077
+
+# ConfigMap 配置（模板资产挂载方式）
+configMap:
+  # 是否创建 ConfigMap 挂载模板资产
+  create: true
+  # ConfigMap 名称前缀
+  namePrefix: government-template
+  # 资产子目录挂载配置
+  assets:
+    ddl:
+      enabled: true
+      mountPath: /templates/ddl
+    dag:
+      enabled: true
+      mountPath: /templates/dag
+    dashboards:
+      enabled: true
+      mountPath: /templates/dashboards
+    rbac:
+      enabled: true
+      mountPath: /templates/rbac
+    compliance:
+      enabled: true
+      mountPath: /templates/compliance
+
+# 导入 Job 配置
+importJob:
+  # 是否创建导入 Job
+  enabled: true
+  # 导入 Job 镜像（平台侧提供的模板导入器）
+  image:
+    repository: shuqing/template-importer
+    tag: "5.3.0"
+    pullPolicy: IfNotPresent
+  # Job 资源配置
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  # Job 重试次数
+  backoffLimit: 3
+  # Job 超时（秒）
+  activeDeadlineSeconds: 1800
+
+# RBAC 同步配置
+rbacSync:
+  enabled: true
+  # 是否在导入失败时回滚已创建角色
+  rollbackOnFailure: true
+
+# 政务合规配置同步
+complianceSync:
+  # 是否启用政务合规配置同步（数据分级/脱敏规则/审计策略/访问控制）
+  enabled: true
+  # 合规配置同步目标：L2.7 统一 SQL 网关
+  sqlGateway:
+    host: sql-gateway.sql-gateway.svc.cluster.local
+    port: 18081
+    tokenSecret:
+      name: sql-gateway-credentials
+      key: token
+  # 是否在合规配置同步失败时回滚已导入的 DDL/DAG/Dashboard
+  rollbackOnFailure: true
+  # 数据分级标准
+  dataClassificationStandard: GB/T 31075-2017
+  # 合规等级
+  complianceLevels:
+    - L1
+    - L2
+    - L3
+    - L4

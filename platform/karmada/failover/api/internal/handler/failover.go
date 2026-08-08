@@ -139,10 +139,10 @@ func (h *FailoverHandler) GetFailoverEvent(c *gin.Context) {
 
 // triggerFailoverRequest 手动触发迁移请求体。
 type triggerFailoverRequest struct {
-	SourceCluster string `json:"sourceCluster" binding:"required"`
-	TargetCluster string `json:"targetCluster" binding:"required"`
-	PolicyName    string `json:"policyName"`
-	Reason        string `json:"reason"`
+	SourceCluster string   `json:"sourceCluster" binding:"required"`
+	TargetCluster string   `json:"targetCluster" binding:"required"`
+	PolicyName    string   `json:"policyName"`
+	Reason        string   `json:"reason"`
 	Workloads     []string `json:"workloads"`
 }
 
@@ -172,15 +172,15 @@ func (h *FailoverHandler) TriggerFailover(c *gin.Context) {
 
 	eventID := "fo-" + strconv.FormatInt(time.Now().UnixNano(), 36)
 	e := &model.FailoverEvent{
-		EventID:            eventID,
-		TenantID:           tenantID.(string),
-		SourceCluster:      req.SourceCluster,
-		TargetCluster:      req.TargetCluster,
-		TriggerReason:      reason,
-		PolicyName:         req.PolicyName,
-		Status:             model.EventStatusPending,
-		AffectedWorkloads:  string(workloadsJSON),
-		StartedAt:          time.Now(),
+		EventID:           eventID,
+		TenantID:          tenantID.(string),
+		SourceCluster:     req.SourceCluster,
+		TargetCluster:     req.TargetCluster,
+		TriggerReason:     reason,
+		PolicyName:        req.PolicyName,
+		Status:            model.EventStatusPending,
+		AffectedWorkloads: string(workloadsJSON),
+		StartedAt:         time.Now(),
 	}
 
 	if err := h.store.CreateFailoverEvent(e); err != nil {
@@ -235,8 +235,8 @@ func (h *FailoverHandler) GetClusterHealthHistory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"items":  records,
-		"total":  len(records),
+		"items":   records,
+		"total":   len(records),
 		"cluster": clusterName,
 	})
 }
@@ -577,14 +577,14 @@ func (h *FailoverHandler) GetFailoverPolicy(c *gin.Context) {
 
 // createFailoverPolicyRequest 创建故障迁移策略请求体。
 type createFailoverPolicyRequest struct {
-	Name                     string   `json:"name" binding:"required"`
-	Namespace                string   `json:"namespace" binding:"required"`
-	PrimaryCluster           string   `json:"primaryCluster" binding:"required"`
-	BackupClusters           []string `json:"backupClusters" binding:"required"`
-	DetectionWindowSeconds   int      `json:"detectionWindowSeconds"`
-	MigrationTimeoutSeconds  int      `json:"migrationTimeoutSeconds"`
-	HealthCheckIntervalSeconds int    `json:"healthCheckIntervalSeconds"`
-	Enabled                  bool     `json:"enabled"`
+	Name                       string   `json:"name" binding:"required"`
+	Namespace                  string   `json:"namespace" binding:"required"`
+	PrimaryCluster             string   `json:"primaryCluster" binding:"required"`
+	BackupClusters             []string `json:"backupClusters" binding:"required"`
+	DetectionWindowSeconds     int      `json:"detectionWindowSeconds"`
+	MigrationTimeoutSeconds    int      `json:"migrationTimeoutSeconds"`
+	HealthCheckIntervalSeconds int      `json:"healthCheckIntervalSeconds"`
+	Enabled                    bool     `json:"enabled"`
 }
 
 // CreateFailoverPolicy 创建故障迁移策略。
@@ -621,15 +621,15 @@ func (h *FailoverHandler) CreateFailoverPolicy(c *gin.Context) {
 	backupJSON, _ := json.Marshal(req.BackupClusters)
 
 	p := &model.FailoverPolicy{
-		TenantID:                  tenantID.(string),
-		Name:                      req.Name,
-		Namespace:                 req.Namespace,
-		PrimaryCluster:            req.PrimaryCluster,
-		BackupClusters:            string(backupJSON),
-		DetectionWindowSeconds:    req.DetectionWindowSeconds,
-		MigrationTimeoutSeconds:   req.MigrationTimeoutSeconds,
+		TenantID:                   tenantID.(string),
+		Name:                       req.Name,
+		Namespace:                  req.Namespace,
+		PrimaryCluster:             req.PrimaryCluster,
+		BackupClusters:             string(backupJSON),
+		DetectionWindowSeconds:     req.DetectionWindowSeconds,
+		MigrationTimeoutSeconds:    req.MigrationTimeoutSeconds,
 		HealthCheckIntervalSeconds: req.HealthCheckIntervalSeconds,
-		Enabled:                   req.Enabled,
+		Enabled:                    req.Enabled,
 	}
 
 	if err := h.store.CreateFailoverPolicy(p); err != nil {
@@ -642,12 +642,12 @@ func (h *FailoverHandler) CreateFailoverPolicy(c *gin.Context) {
 
 // updateFailoverPolicyRequest 更新故障迁移策略请求体。
 type updateFailoverPolicyRequest struct {
-	PrimaryCluster           *string  `json:"primaryCluster"`
-	BackupClusters           []string `json:"backupClusters"`
-	DetectionWindowSeconds   *int     `json:"detectionWindowSeconds"`
-	MigrationTimeoutSeconds  *int     `json:"migrationTimeoutSeconds"`
-	HealthCheckIntervalSeconds *int   `json:"healthCheckIntervalSeconds"`
-	Enabled                  *bool    `json:"enabled"`
+	PrimaryCluster             *string  `json:"primaryCluster"`
+	BackupClusters             []string `json:"backupClusters"`
+	DetectionWindowSeconds     *int     `json:"detectionWindowSeconds"`
+	MigrationTimeoutSeconds    *int     `json:"migrationTimeoutSeconds"`
+	HealthCheckIntervalSeconds *int     `json:"healthCheckIntervalSeconds"`
+	Enabled                    *bool    `json:"enabled"`
 }
 
 // UpdateFailoverPolicy 更新故障迁移策略。

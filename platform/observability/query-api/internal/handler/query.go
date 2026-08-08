@@ -14,8 +14,8 @@ import (
 // 平台方视图：/platform/api/v1/query 等，不做 tenant 过滤。
 // 客户方视图：/tenant/api/v1/query 等，强制注入 tenant_id 过滤。
 type QueryHandler struct {
-	promClient  *service.PrometheusClient
-	tenantSvc   *service.TenantFilter
+	promClient *service.PrometheusClient
+	tenantSvc  *service.TenantFilter
 }
 
 // NewQueryHandler 创建 QueryHandler。
@@ -26,11 +26,12 @@ func NewQueryHandler(promClient *service.PrometheusClient, tenantSvc *service.Te
 // RegisterPlatformRoutes 注册平台方视图路由（不做 tenant 过滤）。
 //
 // 路由：
-//   GET /platform/api/v1/query          瞬时查询
-//   GET /platform/api/v1/query_range    范围查询
-//   GET /platform/api/v1/labels         标签名列表
-//   GET /platform/api/v1/label/:name/values  标签值列表
-//   GET /platform/api/v1/series         序列查找
+//
+//	GET /platform/api/v1/query          瞬时查询
+//	GET /platform/api/v1/query_range    范围查询
+//	GET /platform/api/v1/labels         标签名列表
+//	GET /platform/api/v1/label/:name/values  标签值列表
+//	GET /platform/api/v1/series         序列查找
 func (h *QueryHandler) RegisterPlatformRoutes(rg *gin.RouterGroup) {
 	v1 := rg.Group("/api/v1")
 	v1.GET("/query", h.platformQuery)

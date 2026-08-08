@@ -15,7 +15,6 @@ package provider
 // 多模态字段使用 OpenAI 已有命名（image_url / input_audio），
 // 自研扩展字段（video_url / output_image / output_audio）以 x- 前缀保留。
 
-
 // ============ 多模态消息内容 ============
 
 // ContentPart 单条消息的一个内容片段，支持多模态。
@@ -73,8 +72,8 @@ type InputAudioPart struct {
 // URL 支持 http(s):// 远程地址或 data:video/...;base64,... 数据 URI。
 // DurationMs 视频时长（毫秒），用于 Token 计量；若为 0 则由计量器按字节估算。
 type VideoURLPart struct {
-	URL       string `json:"url"`
-	DurationMs int64 `json:"durationMs,omitempty"`
+	URL        string `json:"url"`
+	DurationMs int64  `json:"durationMs,omitempty"`
 }
 
 // OutputImagePart 图像输出片段（自研扩展）。
@@ -115,10 +114,10 @@ type MultimodalMessage struct {
 // 在 ChatRequest 基础上扩展支持多模态消息。
 // 当 MultimodalMessages 非空时按多模态处理；否则回退到 Messages 纯文本。
 type MultimodalChatRequest struct {
-	Model    string               `json:"model"`
-	Messages []MultimodalMessage  `json:"messages,omitempty"`
+	Model    string              `json:"model"`
+	Messages []MultimodalMessage `json:"messages,omitempty"`
 	// 兼容字段：若调用方使用 OpenAI 标准 messages（纯文本），仍可解析。
-	RawMessages []Message         `json:"raw_messages,omitempty"`
+	RawMessages []Message `json:"raw_messages,omitempty"`
 
 	Temperature float64  `json:"temperature,omitempty"`
 	MaxTokens   int      `json:"max_tokens,omitempty"`
@@ -140,11 +139,11 @@ type MultimodalChatRequest struct {
 //
 // 在 ChatResponse 基础上扩展支持多模态输出。
 type MultimodalChatResponse struct {
-	ID      string                  `json:"id"`
-	Object  string                  `json:"object,omitempty"`
-	Model   string                  `json:"model"`
-	Choices []MultimodalChoice      `json:"choices"`
-	Usage   MultimodalUsage         `json:"usage"`
+	ID      string             `json:"id"`
+	Object  string             `json:"object,omitempty"`
+	Model   string             `json:"model"`
+	Choices []MultimodalChoice `json:"choices"`
+	Usage   MultimodalUsage    `json:"usage"`
 	// Provider 实际路由到的 Provider 名（用于路由可观测）。
 	Provider string `json:"provider,omitempty"`
 	// RouteReason 路由决策说明（命中哪条规则）。
@@ -153,9 +152,9 @@ type MultimodalChatResponse struct {
 
 // MultimodalChoice 多模态候选回复。
 type MultimodalChoice struct {
-	Index        int                 `json:"index"`
-	Message      MultimodalMessage   `json:"message"`
-	FinishReason string              `json:"finish_reason,omitempty"`
+	Index        int               `json:"index"`
+	Message      MultimodalMessage `json:"message"`
+	FinishReason string            `json:"finish_reason,omitempty"`
 }
 
 // MultimodalUsage 多模态 Token 用量统计。

@@ -11,12 +11,12 @@ import (
 
 // ClusterInfo 集群信息（来自 Karmada API）。
 type ClusterInfo struct {
-	Name        string            `json:"name"`
-	Labels      map[string]string `json:"labels"`
-	MaxReplicas int               `json:"maxReplicas"`
+	Name        string             `json:"name"`
+	Labels      map[string]string  `json:"labels"`
+	MaxReplicas int                `json:"maxReplicas"`
 	Conditions  []ClusterCondition `json:"conditions"`
-	Arch        string            `json:"arch"`
-	Vendor      string            `json:"vendor"`
+	Arch        string             `json:"arch"`
+	Vendor      string             `json:"vendor"`
 }
 
 // ClusterCondition 集群状态条件。
@@ -64,29 +64,29 @@ type ClusterHealth struct {
 
 // FailoverPolicyConfig 故障迁移策略配置。
 type FailoverPolicyConfig struct {
-	Name                      string   `json:"name"`
-	Namespace                 string   `json:"namespace"`
-	PrimaryCluster            string   `json:"primaryCluster"`
-	BackupClusters            []string `json:"backupClusters"`
-	DetectionWindowSeconds    int      `json:"detectionWindowSeconds"`
-	MigrationTimeoutSeconds   int      `json:"migrationTimeoutSeconds"`
-	HealthCheckIntervalSeconds int     `json:"healthCheckIntervalSeconds"`
-	Enabled                   bool     `json:"enabled"`
+	Name                       string   `json:"name"`
+	Namespace                  string   `json:"namespace"`
+	PrimaryCluster             string   `json:"primaryCluster"`
+	BackupClusters             []string `json:"backupClusters"`
+	DetectionWindowSeconds     int      `json:"detectionWindowSeconds"`
+	MigrationTimeoutSeconds    int      `json:"migrationTimeoutSeconds"`
+	HealthCheckIntervalSeconds int      `json:"healthCheckIntervalSeconds"`
+	Enabled                    bool     `json:"enabled"`
 }
 
 // FailoverEvent 迁移事件。
 type FailoverEvent struct {
-	EventID            string    `json:"eventId"`
-	TenantID           string    `json:"tenantId"`
-	SourceCluster      string    `json:"sourceCluster"`
-	TargetCluster      string    `json:"targetCluster"`
-	TriggerReason      string    `json:"triggerReason"`
-	PolicyName         string    `json:"policyName"`
-	Status             string    `json:"status"`
-	DurationMs         int64     `json:"durationMs"`
-	AffectedWorkloads  []string  `json:"affectedWorkloads"`
-	StartedAt          time.Time `json:"startedAt"`
-	FinishedAt         time.Time `json:"finishedAt"`
+	EventID           string    `json:"eventId"`
+	TenantID          string    `json:"tenantId"`
+	SourceCluster     string    `json:"sourceCluster"`
+	TargetCluster     string    `json:"targetCluster"`
+	TriggerReason     string    `json:"triggerReason"`
+	PolicyName        string    `json:"policyName"`
+	Status            string    `json:"status"`
+	DurationMs        int64     `json:"durationMs"`
+	AffectedWorkloads []string  `json:"affectedWorkloads"`
+	StartedAt         time.Time `json:"startedAt"`
+	FinishedAt        time.Time `json:"finishedAt"`
 }
 
 // WeightAllocation 副本权重分配方案。
@@ -105,10 +105,10 @@ const (
 	StatusDegraded = "degraded"
 	StatusDown     = "down"
 
-	EventPending    = "pending"
-	EventRunning    = "running"
-	EventSucceeded  = "succeeded"
-	EventFailed     = "failed"
+	EventPending   = "pending"
+	EventRunning   = "running"
+	EventSucceeded = "succeeded"
+	EventFailed    = "failed"
 
 	ReasonHealthCheck     = "health_check"
 	ReasonPrometheusAlert = "prometheus_alert"

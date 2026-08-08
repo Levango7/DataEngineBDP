@@ -19,7 +19,6 @@ package routing
 //   - 决策可观测（返回命中规则与决策原因）
 //   - 成本维度可扩展（CostEvaluator 接口）
 
-
 import (
 	"fmt"
 	"sort"
@@ -44,29 +43,29 @@ import (
 // Weight 权重，用于在同优先级候选间加权随机（当前实现：取首个）。
 type Rule struct {
 	ID       string `json:"id"`
-	Model    string `json:"model"`     // 逻辑模型名或 "*"
-	TenantID string `json:"tenantId"`  // 租户 ID（空=全局）
-	Scene    string `json:"scene"`     // 场景（空=任意）
-	Provider string `json:"provider"`  // 目标 Provider
-	Priority int    `json:"priority"`  // 优先级（越大越优先）
-	Weight   int    `json:"weight"`    // 权重（同优先级间）
+	Model    string `json:"model"`    // 逻辑模型名或 "*"
+	TenantID string `json:"tenantId"` // 租户 ID（空=全局）
+	Scene    string `json:"scene"`    // 场景（空=任意）
+	Provider string `json:"provider"` // 目标 Provider
+	Priority int    `json:"priority"` // 优先级（越大越优先）
+	Weight   int    `json:"weight"`   // 权重（同优先级间）
 }
 
 // TenantQuota 租户配额。
 type TenantQuota struct {
-	TenantID    string `json:"tenantId"`
-	Priority    int    `json:"priority"`     // 租户优先级（越大越优先）
-	TPMLimit    int64  `json:"tpmLimit"`     // 每分钟 Token 上限
-	RPMLimit    int64  `json:"rpmLimit"`     // 每分钟请求上限
-	DailyLimit  int64  `json:"dailyLimit"`   // 每日 Token 上限
+	TenantID   string `json:"tenantId"`
+	Priority   int    `json:"priority"`   // 租户优先级（越大越优先）
+	TPMLimit   int64  `json:"tpmLimit"`   // 每分钟 Token 上限
+	RPMLimit   int64  `json:"rpmLimit"`   // 每分钟请求上限
+	DailyLimit int64  `json:"dailyLimit"` // 每日 Token 上限
 }
 
 // ProviderCost Provider 成本信息。
 type ProviderCost struct {
-	Provider       string  `json:"provider"`
-	InputPricePerM float64 `json:"inputPricePerM"`  // 输入每百万 Token 单价（元）
+	Provider        string  `json:"provider"`
+	InputPricePerM  float64 `json:"inputPricePerM"`  // 输入每百万 Token 单价（元）
 	OutputPricePerM float64 `json:"outputPricePerM"` // 输出每百万 Token 单价（元）
-	AvgLatencyMs   float64 `json:"avgLatencyMs"`    // 平均延迟（毫秒）
+	AvgLatencyMs    float64 `json:"avgLatencyMs"`    // 平均延迟（毫秒）
 }
 
 // Decision 路由决策结果。
@@ -83,11 +82,11 @@ type Decision struct {
 //
 // 线程安全。规则库与租户配额、Provider 成本均可热更新。
 type Engine struct {
-	mu          sync.RWMutex
-	rules       []Rule
-	tenantQuota map[string]*TenantQuota // tenantId -> quota
-	providerCost map[string]*ProviderCost // provider -> cost
-	costEvaluator CostEvaluator
+	mu              sync.RWMutex
+	rules           []Rule
+	tenantQuota     map[string]*TenantQuota  // tenantId -> quota
+	providerCost    map[string]*ProviderCost // provider -> cost
+	costEvaluator   CostEvaluator
 	defaultProvider string
 }
 

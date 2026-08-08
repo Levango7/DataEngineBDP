@@ -119,13 +119,13 @@ func (c *Checker) CheckCluster(ctx context.Context, clusterName string) (*model.
 
 	// 6. 详细信息 JSON。
 	detail, _ := json.Marshal(map[string]interface{}{
-		"ready":          health.Ready,
-		"syncable":       health.Syncable,
-		"cpuLoad":        health.CPULoad,
-		"memoryLoad":     health.MemoryLoad,
-		"podCount":       health.PodCount,
-		"nodeCount":      health.NodeCount,
-		"maxReplicas":    health.MaxReplicas,
+		"ready":             health.Ready,
+		"syncable":          health.Syncable,
+		"cpuLoad":           health.CPULoad,
+		"memoryLoad":        health.MemoryLoad,
+		"podCount":          health.PodCount,
+		"nodeCount":         health.NodeCount,
+		"maxReplicas":       health.MaxReplicas,
 		"availableReplicas": health.AvailableReplicas,
 	})
 	health.Detail = string(detail)

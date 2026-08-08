@@ -1,4 +1,3 @@
-
 package store
 
 // GORM 存储实现。

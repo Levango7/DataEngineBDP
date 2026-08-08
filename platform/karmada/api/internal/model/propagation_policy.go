@@ -1,4 +1,3 @@
-
 package model
 
 // PropagationPolicy 数据模型。
@@ -22,11 +21,11 @@ import (
 // PropagationPolicy 传播策略持久化模型。
 type PropagationPolicy struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	Name      string    `gorm:"index:idx_ns_name,unique;size:253;not null" json:"name"`       // 策略名
+	Name      string    `gorm:"index:idx_ns_name,unique;size:253;not null" json:"name"`                        // 策略名
 	Namespace string    `gorm:"index:idx_ns_name,unique;size:253;not null;default:'default'" json:"namespace"` // 命名空间
-	TenantID  string    `gorm:"index;size:64;not null" json:"tenantId"`                        // 租户 ID
-	Spec      string    `gorm:"type:text;not null" json:"spec"`                               // 策略规格 JSON
-	Status    string    `gorm:"type:text" json:"status"`                                      // 策略状态 JSON
+	TenantID  string    `gorm:"index;size:64;not null" json:"tenantId"`                                        // 租户 ID
+	Spec      string    `gorm:"type:text;not null" json:"spec"`                                                // 策略规格 JSON
+	Status    string    `gorm:"type:text" json:"status"`                                                       // 策略状态 JSON
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -55,23 +54,23 @@ type PropagationPolicySpec struct {
 
 // ResourceSelector 资源选择器。
 type ResourceSelector struct {
-	APIVersion   string            `json:"apiVersion"`
-	Kind         string            `json:"kind"`
-	Name         string            `json:"name,omitempty"`
-	Namespace    string            `json:"namespace,omitempty"`
-	MatchLabels  map[string]string `json:"matchLabels,omitempty"`
+	APIVersion  string            `json:"apiVersion"`
+	Kind        string            `json:"kind"`
+	Name        string            `json:"name,omitempty"`
+	Namespace   string            `json:"namespace,omitempty"`
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }
 
 // Placement 调度策略。
 type Placement struct {
-	ClusterAffinity   *ClusterAffinity    `json:"clusterAffinity,omitempty"`
-	ReplicaScheduling *ReplicaScheduling  `json:"replicaScheduling,omitempty"`
-	SpreadConstraints []SpreadConstraint  `json:"spreadConstraints,omitempty"`
+	ClusterAffinity   *ClusterAffinity   `json:"clusterAffinity,omitempty"`
+	ReplicaScheduling *ReplicaScheduling `json:"replicaScheduling,omitempty"`
+	SpreadConstraints []SpreadConstraint `json:"spreadConstraints,omitempty"`
 }
 
 // ClusterAffinity 集群亲和性。
 type ClusterAffinity struct {
-	MatchLabels  map[string]string   `json:"matchLabels,omitempty"`
+	MatchLabels      map[string]string `json:"matchLabels,omitempty"`
 	MatchExpressions []LabelExpression `json:"matchExpressions,omitempty"`
 }
 
@@ -84,9 +83,9 @@ type LabelExpression struct {
 
 // ReplicaScheduling 副本调度策略。
 type ReplicaScheduling struct {
-	ReplicaSchedulingType       string           `json:"replicaSchedulingType"`       // Duplicated/Divided
-	ReplicaDivisionPreference   string           `json:"replicaDivisionPreference"`   // Aggregated/Weighted
-	WeightPreference            *WeightPreference `json:"weightPreference,omitempty"`
+	ReplicaSchedulingType     string            `json:"replicaSchedulingType"`     // Duplicated/Divided
+	ReplicaDivisionPreference string            `json:"replicaDivisionPreference"` // Aggregated/Weighted
+	WeightPreference          *WeightPreference `json:"weightPreference,omitempty"`
 }
 
 // WeightPreference 加权偏好。

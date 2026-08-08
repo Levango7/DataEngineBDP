@@ -175,14 +175,14 @@ func loadDefaultPolicies(manager *failover.Manager) {
 	}
 
 	policy := &model.FailoverPolicyConfig{
-		Name:                      "default-failover",
-		Namespace:                 "default",
-		PrimaryCluster:            primaryCluster,
-		BackupClusters:            backupClusters,
-		DetectionWindowSeconds:    detectionWindow,
-		MigrationTimeoutSeconds:   migrationTimeout,
+		Name:                       "default-failover",
+		Namespace:                  "default",
+		PrimaryCluster:             primaryCluster,
+		BackupClusters:             backupClusters,
+		DetectionWindowSeconds:     detectionWindow,
+		MigrationTimeoutSeconds:    migrationTimeout,
 		HealthCheckIntervalSeconds: healthCheckInterval,
-		Enabled:                   true,
+		Enabled:                    true,
 	}
 	manager.AddPolicy(policy)
 }

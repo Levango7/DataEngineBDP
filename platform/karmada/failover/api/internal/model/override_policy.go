@@ -1,4 +1,3 @@
-
 package model
 
 // OverridePolicy 数据模型。
@@ -22,11 +21,11 @@ import (
 // OverridePolicy 集群本地化覆盖策略持久化模型。
 type OverridePolicy struct {
 	ID        uint      `gorm:"primaryKey" json:"id"`
-	Name      string    `gorm:"index:idx_op_ns_name,unique;size:253;not null" json:"name"`            // 策略名
+	Name      string    `gorm:"index:idx_op_ns_name,unique;size:253;not null" json:"name"`                        // 策略名
 	Namespace string    `gorm:"index:idx_op_ns_name,unique;size:253;not null;default:'default'" json:"namespace"` // 命名空间
-	TenantID  string    `gorm:"index;size:64;not null" json:"tenantId"`                              // 租户 ID
-	Spec      string    `gorm:"type:text;not null" json:"spec"`                                       // 策略规格 JSON
-	Status    string    `gorm:"type:text" json:"status"`                                              // 策略状态 JSON
+	TenantID  string    `gorm:"index;size:64;not null" json:"tenantId"`                                           // 租户 ID
+	Spec      string    `gorm:"type:text;not null" json:"spec"`                                                   // 策略规格 JSON
+	Status    string    `gorm:"type:text" json:"status"`                                                          // 策略状态 JSON
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -47,9 +46,9 @@ func (p *OverridePolicy) ParseSpec() (*OverridePolicySpec, error) {
 
 // OverridePolicySpec 覆盖策略规格（对应 Karmada CRD spec）。
 type OverridePolicySpec struct {
-	ResourceSelectors []ResourceSelector  `json:"resourceSelectors,omitempty"`
-	OverrideRules     []OverrideRule       `json:"overrideRules"`
-	TargetClusters    *TargetCluster      `json:"targetClusters,omitempty"`
+	ResourceSelectors []ResourceSelector `json:"resourceSelectors,omitempty"`
+	OverrideRules     []OverrideRule     `json:"overrideRules"`
+	TargetClusters    *TargetCluster     `json:"targetClusters,omitempty"`
 }
 
 // OverrideRule 单条覆盖规则。
@@ -57,8 +56,8 @@ type OverridePolicySpec struct {
 // 通过 Overriders 描述对资源字段的覆盖动作，Karmada 控制器在
 // 同步资源到目标集群前应用这些覆盖。
 type OverrideRule struct {
-	TargetCluster *TargetCluster  `json:"targetCluster,omitempty"`
-	Overriders    Overriders      `json:"overriders"`
+	TargetCluster *TargetCluster `json:"targetCluster,omitempty"`
+	Overriders    Overriders     `json:"overriders"`
 }
 
 // Overriders 覆盖器集合。
@@ -69,25 +68,25 @@ type OverrideRule struct {
 //   - ArgsOverrider：参数覆盖
 //   - EnvOverrider：环境变量覆盖
 type Overriders struct {
-	Plaintext       []PlaintextOverrider       `json:"plaintext,omitempty"`
-	ImageOverrider  []ImageOverrider           `json:"imageOverrider,omitempty"`
-	CommandOverrider []CommandOverrider        `json:"commandOverrider,omitempty"`
-	ArgsOverrider   []ArgsOverrider            `json:"argsOverrider,omitempty"`
-	EnvOverrider    []EnvOverrider             `json:"envOverrider,omitempty"`
+	Plaintext        []PlaintextOverrider `json:"plaintext,omitempty"`
+	ImageOverrider   []ImageOverrider     `json:"imageOverrider,omitempty"`
+	CommandOverrider []CommandOverrider   `json:"commandOverrider,omitempty"`
+	ArgsOverrider    []ArgsOverrider      `json:"argsOverrider,omitempty"`
+	EnvOverrider     []EnvOverrider       `json:"envOverrider,omitempty"`
 }
 
 // PlaintextOverrider 明文覆盖器。
 type PlaintextOverrider struct {
-	Path  string      `json:"path"`
-	Operator string   `json:"operator,omitempty"` // add/replace/remove
-	Value interface{} `json:"value,omitempty"`
+	Path     string      `json:"path"`
+	Operator string      `json:"operator,omitempty"` // add/replace/remove
+	Value    interface{} `json:"value,omitempty"`
 }
 
 // ImageOverrider 镜像覆盖器（按集群替换镜像 registry/tag）。
 type ImageOverrider struct {
-	Component     string         `json:"component,omitempty"` // Registry/Repository/Tag
-	Operator      ImageOperator `json:"operator"`
-	Value         string         `json:"value"`
+	Component string        `json:"component,omitempty"` // Registry/Repository/Tag
+	Operator  ImageOperator `json:"operator"`
+	Value     string        `json:"value"`
 }
 
 // ImageOperator 镜像覆盖操作类型。
@@ -118,22 +117,22 @@ type ArgsOverrider struct {
 
 // EnvOverrider 环境变量覆盖器。
 type EnvOverrider struct {
-	ContainerName string     `json:"containerName"`
-	Operator      string     `json:"operator"` // add/remove/replace
-	Value         []EnvVar   `json:"value"`
+	ContainerName string   `json:"containerName"`
+	Operator      string   `json:"operator"` // add/remove/replace
+	Value         []EnvVar `json:"value"`
 }
 
 // EnvVar 环境变量。
 type EnvVar struct {
-	Name      string `json:"name"`
-	Value     string `json:"value,omitempty"`
+	Name      string        `json:"name"`
+	Value     string        `json:"value,omitempty"`
 	ValueFrom *EnvVarSource `json:"valueFrom,omitempty"`
 }
 
 // EnvVarSource 环境变量来源。
 type EnvVarSource struct {
-	ConfigMapKeyRef  *ConfigMapKeySelector  `json:"configMapKeyRef,omitempty"`
-	SecretKeyRef     *SecretKeySelector     `json:"secretKeyRef,omitempty"`
+	ConfigMapKeyRef *ConfigMapKeySelector `json:"configMapKeyRef,omitempty"`
+	SecretKeyRef    *SecretKeySelector    `json:"secretKeyRef,omitempty"`
 }
 
 // ConfigMapKeySelector ConfigMap 键选择器。
@@ -155,9 +154,9 @@ type TargetCluster struct {
 
 // ResourceSelector 资源选择器（与 PropagationPolicy 共享语义）。
 type ResourceSelector struct {
-	APIVersion   string            `json:"apiVersion"`
-	Kind         string            `json:"kind"`
-	Name         string            `json:"name,omitempty"`
-	Namespace    string            `json:"namespace,omitempty"`
-	MatchLabels  map[string]string `json:"matchLabels,omitempty"`
+	APIVersion  string            `json:"apiVersion"`
+	Kind        string            `json:"kind"`
+	Name        string            `json:"name,omitempty"`
+	Namespace   string            `json:"namespace,omitempty"`
+	MatchLabels map[string]string `json:"matchLabels,omitempty"`
 }

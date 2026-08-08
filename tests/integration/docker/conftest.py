@@ -54,6 +54,8 @@ BASE_URLS: Dict[str, str] = {
     "finops_dashboard": os.environ.get("FINOPS_DASHBOARD_URL", "http://localhost:18087"),
     "finetuning_loop": os.environ.get("FINETUNING_LOOP_URL", "http://localhost:18088"),
     "model_registry": os.environ.get("MODEL_REGISTRY_URL", "http://localhost:18089"),
+    # 数据虚拟化模块复用 sql-gateway 容器（虚拟表 API 挂载于 SQL 网关）
+    "data_virtualization": os.environ.get("DATA_VIRTUALIZATION_URL", "http://localhost:18081"),
 }
 
 # Docker 容器名（用于 docker ps 状态检查）。
@@ -68,6 +70,8 @@ DOCKER_CONTAINERS: Dict[str, str] = {
     "finops_dashboard": "it-finops-dashboard",
     "finetuning_loop": "it-finetuning-loop",
     "model_registry": "it-model-registry",
+    # 数据虚拟化模块复用 sql-gateway 容器
+    "data_virtualization": "it-sql-gateway",
 }
 
 # 各模块健康检查端点路径（Java 用 /actuator/health，Go 用 /api/v1/health）。
@@ -82,6 +86,8 @@ HEALTH_PATHS: Dict[str, str] = {
     "finops_dashboard": "/api/v1/health",
     "finetuning_loop": "/health",
     "model_registry": "/health",
+    # 数据虚拟化模块复用 sql-gateway 健康检查
+    "data_virtualization": "/actuator/health",
 }
 
 
@@ -306,6 +312,12 @@ def model_registry_url() -> str:
     return BASE_URLS["model_registry"]
 
 
+@pytest.fixture(scope="session")
+def data_virtualization_url() -> str:
+    """数据虚拟化模块基础 URL（复用 SQL 网关）。"""
+    return BASE_URLS["data_virtualization"]
+
+
 # 各模块可用性 fixture（用于条件跳过）。
 @pytest.fixture(scope="session")
 def encaps_available() -> bool:
@@ -367,6 +379,12 @@ def model_registry_available() -> bool:
     return is_service_available("model_registry")
 
 
+@pytest.fixture(scope="session")
+def data_virtualization_available() -> bool:
+    """数据虚拟化模块是否可用（复用 SQL 网关健康检查）。"""
+    return is_service_available("data_virtualization")
+
+
 # ---------------------------------------------------------------------------
 # 测试收集阶段钩子：自动跳过服务不可用的测试
 # ---------------------------------------------------------------------------
@@ -388,12 +406,15 @@ def pytest_collection_modifyitems(config, items):
         "finops_dashboard": is_service_available("finops_dashboard"),
         "finetuning_loop": is_service_available("finetuning_loop"),
         "model_registry": is_service_available("model_registry"),
+        "data_virtualization": is_service_available("data_virtualization"),
     }
 
     # 测试文件名前缀 → 模块名映射。
     # 注意：test_model_evaluation 包含核心组件测试（不需服务）与 HTTP API 测试，
     # 不在此整体跳过，由测试文件内部通过 evaluation_available fixture 控制 HTTP 测试跳过。
     # test_finetuning_loop 同理：TestClient 模式无需服务，HTTP 模式由环境变量控制。
+    # test_energy_template / test_manufacturing_template / test_retail_template：
+    # 行业模板测试仅验证文件结构与内容，不依赖 Docker 容器，不在此跳过。
     file_module_map = {
         "test_docker_encaps": "encaps",
         "test_docker_sql_gateway": "sql_gateway",
@@ -403,6 +424,8 @@ def pytest_collection_modifyitems(config, items):
         "test_finops_dashboard": "finops_dashboard",
         "test_multimodal_gateway": "llm_gateway",
         "test_docker_llm_gateway": "llm_gateway",
+        # 数据虚拟化测试复用 sql-gateway 容器
+        "test_data_virtualization": "data_virtualization",
     }
 
     for item in items:

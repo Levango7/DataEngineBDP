@@ -19,7 +19,6 @@ package streaming
 //   - 任务状态线程安全
 //   - worker pool 大小可配置
 
-
 import (
 	"context"
 	"crypto/rand"
@@ -210,12 +209,12 @@ func (s *SSEStreamer) writeDone(w io.Writer) error {
 
 // SSEChunk SSE 流式 chunk（OpenAI 兼容）。
 type SSEChunk struct {
-	ID      string        `json:"id"`
-	Object  string        `json:"object"`
-	Created int64         `json:"created"`
-	Model   string        `json:"model"`
-	Choices []SSEChoice   `json:"choices"`
-	Usage   *SSEUsage     `json:"usage,omitempty"`
+	ID      string      `json:"id"`
+	Object  string      `json:"object"`
+	Created int64       `json:"created"`
+	Model   string      `json:"model"`
+	Choices []SSEChoice `json:"choices"`
+	Usage   *SSEUsage   `json:"usage,omitempty"`
 }
 
 // SSEChoice SSE chunk 中的 choice。
@@ -266,8 +265,8 @@ func (s *SSEStreamer) buildErrorChunk(message string) SSEChunk {
 		Created: time.Now().Unix(),
 		Choices: []SSEChoice{
 			{
-				Index: 0,
-				Delta: map[string]any{"error": message},
+				Index:        0,
+				Delta:        map[string]any{"error": message},
 				FinishReason: "error",
 			},
 		},
@@ -318,14 +317,14 @@ const (
 
 // BatchJob 批处理任务。
 type BatchJob struct {
-	ID        string                       `json:"id"`
-	Status    BatchJobStatus               `json:"status"`
-	Request   provider.MultimodalChatRequest `json:"request"`
+	ID        string                           `json:"id"`
+	Status    BatchJobStatus                   `json:"status"`
+	Request   provider.MultimodalChatRequest   `json:"request"`
 	Response  *provider.MultimodalChatResponse `json:"response,omitempty"`
-	Error     string                       `json:"error,omitempty"`
-	CreatedAt time.Time                    `json:"createdAt"`
-	StartedAt time.Time                    `json:"startedAt,omitempty"`
-	EndedAt   time.Time                    `json:"endedAt,omitempty"`
+	Error     string                           `json:"error,omitempty"`
+	CreatedAt time.Time                        `json:"createdAt"`
+	StartedAt time.Time                        `json:"startedAt,omitempty"`
+	EndedAt   time.Time                        `json:"endedAt,omitempty"`
 	// Progress 0~100。
 	Progress int `json:"progress"`
 }
@@ -352,7 +351,7 @@ type BatchJobManager struct {
 type batchStats struct {
 	totalSubmitted atomic.Int64
 	totalSucceeded atomic.Int64
-	totalFailed   atomic.Int64
+	totalFailed    atomic.Int64
 }
 
 // BatchConfig 批处理配置。

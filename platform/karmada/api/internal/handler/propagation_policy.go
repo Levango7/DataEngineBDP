@@ -1,6 +1,5 @@
 package handler
 
-
 // PropagationPolicy CRUD handler。
 //
 // 路由：
@@ -43,8 +42,8 @@ func (h *PropagationPolicyHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // createRequest 创建请求体。
 type createRequest struct {
-	Name      string          `json:"name"      binding:"required"`
-	Namespace string          `json:"namespace" binding:"required"`
+	Name      string                      `json:"name"      binding:"required"`
+	Namespace string                      `json:"namespace" binding:"required"`
 	Spec      model.PropagationPolicySpec `json:"spec"      binding:"required"`
 }
 
@@ -115,9 +114,9 @@ func (h *PropagationPolicyHandler) List(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"items": pps,
-		"total": total,
-		"limit": limit,
+		"items":  pps,
+		"total":  total,
+		"limit":  limit,
 		"offset": offset,
 	})
 }

@@ -1,6 +1,5 @@
 package handler
 
-
 // 健康检查 handler。
 
 import (

@@ -42,9 +42,9 @@ func (h *OverridePolicyHandler) RegisterRoutes(rg *gin.RouterGroup) {
 
 // createRequest 创建请求体。
 type opCreateRequest struct {
-	Name      string                     `json:"name"      binding:"required"`
-	Namespace string                     `json:"namespace" binding:"required"`
-	Spec      model.OverridePolicySpec   `json:"spec"      binding:"required"`
+	Name      string                   `json:"name"      binding:"required"`
+	Namespace string                   `json:"namespace" binding:"required"`
+	Spec      model.OverridePolicySpec `json:"spec"      binding:"required"`
 }
 
 // Create 创建覆盖策略。

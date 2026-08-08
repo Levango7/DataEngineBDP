@@ -1,6 +1,5 @@
 package main
 
-
 // Karmada PropagationPolicy 控制台 API 入口。
 //
 // 提供租户通过控制台管理 PropagationPolicy 的 REST API：

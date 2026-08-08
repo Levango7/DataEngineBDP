@@ -1,0 +1,205 @@
+# 政务行业模板 - 角色权限关联
+# ============================================================================
+# 格式：role → permission 映射
+# 关联数：5 角色 × 多权限
+# 字符集：UTF-8，YAML 2 空格缩进
+# 设计原则：最小权限原则 + 数据分级访问控制
+# ============================================================================
+
+# 角色权限关联列表
+role_permissions:
+  # --------------------------------------------------------------------------
+  # 政务管理员（gov_admin）
+  # 可读写 L1/L2/L3 业务表，管理所有 DAG，查看业务 Dashboard
+  # 不可访问 L4 审计日志/权限定义
+  # --------------------------------------------------------------------------
+  - role: gov_admin
+    permissions:
+      # 人口分析域表读写
+      - perm_table_population_base_read
+      - perm_table_population_base_write
+      - perm_table_population_structure_read
+      - perm_table_population_structure_write
+      - perm_table_population_flow_read
+      - perm_table_population_flow_write
+      - perm_table_population_forecast_read
+      - perm_table_population_forecast_write
+      - perm_table_population_age_distribution_read
+      - perm_table_population_age_distribution_write
+      - perm_table_population_gender_distribution_read
+      - perm_table_population_gender_distribution_write
+      - perm_table_population_education_distribution_read
+      - perm_table_population_education_distribution_write
+      - perm_table_population_employment_distribution_read
+      - perm_table_population_employment_distribution_write
+      # 经济运行域表读写
+      - perm_table_gdp_read
+      - perm_table_gdp_write
+      - perm_table_industry_structure_read
+      - perm_table_industry_structure_write
+      - perm_table_fixed_asset_investment_read
+      - perm_table_fixed_asset_investment_write
+      - perm_table_social_retail_consumption_read
+      - perm_table_social_retail_consumption_write
+      - perm_table_foreign_trade_read
+      - perm_table_foreign_trade_write
+      - perm_table_fiscal_revenue_read
+      - perm_table_fiscal_revenue_write
+      - perm_table_fiscal_expenditure_read
+      - perm_table_fiscal_expenditure_write
+      - perm_table_economic_indicator_read
+      - perm_table_economic_indicator_write
+      # 民生服务域表读写
+      - perm_table_government_service_read
+      - perm_table_government_service_write
+      - perm_table_service_transaction_read
+      - perm_table_service_transaction_write
+      - perm_table_service_satisfaction_read
+      - perm_table_service_satisfaction_write
+      - perm_table_service_hot_topic_read
+      - perm_table_service_hot_topic_write
+      - perm_table_service_statistics_read
+      - perm_table_service_statistics_write
+      - perm_table_service_evaluation_read
+      - perm_table_service_evaluation_write
+      - perm_table_service_category_read
+      - perm_table_service_category_write
+      - perm_table_service_channel_read
+      - perm_table_service_channel_write
+      # 合规域表（仅分级/脱敏/策略读写，不含审计日志）
+      - perm_table_data_classification_read
+      - perm_table_data_classification_write
+      - perm_table_desensitize_rule_read
+      - perm_table_desensitize_rule_write
+      - perm_table_access_control_policy_read
+      - perm_table_access_control_policy_write
+      - perm_table_compliance_policy_read
+      - perm_table_compliance_policy_write
+      # RBAC 域表（角色/用户角色读写，不含权限定义）
+      - perm_table_gov_role_read
+      - perm_table_gov_role_write
+      - perm_table_gov_user_role_read
+      - perm_table_gov_user_role_write
+      # DAG 管理
+      - perm_dag_population_structure_analysis_manage
+      - perm_dag_population_flow_tracking_manage
+      - perm_dag_population_forecast_manage
+      - perm_dag_gdp_calculation_manage
+      - perm_dag_industry_analysis_manage
+      - perm_dag_investment_consumption_analysis_manage
+      - perm_dag_government_service_statistics_manage
+      - perm_dag_satisfaction_analysis_manage
+      # Dashboard 查看
+      - perm_dashboard_population_view
+      - perm_dashboard_economic_view
+      - perm_dashboard_livelihood_view
+
+  # --------------------------------------------------------------------------
+  # 数据分析师（data_analyst）
+  # 可读 L1/L2 汇总数据，查看所有业务 Dashboard
+  # 不可访问 L3 个体敏感数据/L4 审计
+  # --------------------------------------------------------------------------
+  - role: data_analyst
+    permissions:
+      # 人口分析域汇总表只读（不含 population_base）
+      - perm_table_population_structure_read
+      - perm_table_population_flow_read
+      - perm_table_population_forecast_read
+      - perm_table_population_age_distribution_read
+      - perm_table_population_gender_distribution_read
+      - perm_table_population_education_distribution_read
+      - perm_table_population_employment_distribution_read
+      # 经济运行域表只读（不含财政敏感数据）
+      - perm_table_gdp_read
+      - perm_table_industry_structure_read
+      - perm_table_fixed_asset_investment_read
+      - perm_table_social_retail_consumption_read
+      - perm_table_foreign_trade_read
+      - perm_table_economic_indicator_read
+      # 民生服务域表只读（不含办理记录/评价明细）
+      - perm_table_government_service_read
+      - perm_table_service_hot_topic_read
+      - perm_table_service_statistics_read
+      - perm_table_service_evaluation_read
+      - perm_table_service_category_read
+      - perm_table_service_channel_read
+      # DAG 查看
+      - perm_dag_population_structure_analysis_view
+      - perm_dag_population_flow_tracking_view
+      - perm_dag_population_forecast_view
+      - perm_dag_gdp_calculation_view
+      - perm_dag_industry_analysis_view
+      - perm_dag_investment_consumption_analysis_view
+      - perm_dag_government_service_statistics_view
+      - perm_dag_satisfaction_analysis_view
+      # Dashboard 查看
+      - perm_dashboard_population_view
+      - perm_dashboard_economic_view
+      - perm_dashboard_livelihood_view
+
+  # --------------------------------------------------------------------------
+  # 部门用户（dept_user）
+  # 可读写本部门政务服务办理记录/评价，查看民生 Dashboard
+  # --------------------------------------------------------------------------
+  - role: dept_user
+    permissions:
+      # 民生服务域表（办理记录/评价读写，其余只读）
+      - perm_table_government_service_read
+      - perm_table_service_transaction_read
+      - perm_table_service_transaction_write
+      - perm_table_service_satisfaction_read
+      - perm_table_service_satisfaction_write
+      - perm_table_service_hot_topic_read
+      - perm_table_service_statistics_read
+      - perm_table_service_evaluation_read
+      - perm_table_service_category_read
+      - perm_table_service_channel_read
+      # DAG 查看
+      - perm_dag_government_service_statistics_view
+      - perm_dag_satisfaction_analysis_view
+      # Dashboard 查看
+      - perm_dashboard_livelihood_view
+
+  # --------------------------------------------------------------------------
+  # 审计员（auditor）
+  # 可读 L4 审计日志与 L3 合规资源，可写风险预警/检查记录
+  # 不可修改任何业务数据
+  # --------------------------------------------------------------------------
+  - role: auditor
+    permissions:
+      # 合规域表（审计日志只读，风险预警/检查记录读写）
+      - perm_table_data_classification_read
+      - perm_table_desensitize_rule_read
+      - perm_table_audit_log_read
+      - perm_table_access_control_policy_read
+      - perm_table_access_control_record_read
+      - perm_table_compliance_risk_alert_read
+      - perm_table_compliance_risk_alert_write
+      - perm_table_compliance_check_record_read
+      - perm_table_compliance_check_record_write
+      - perm_table_compliance_policy_read
+      # RBAC 域表只读
+      - perm_table_gov_role_read
+      - perm_table_gov_permission_read
+      - perm_table_gov_role_permission_read
+      - perm_table_gov_user_role_read
+      # DAG 查看/管理（满意度分析用于合规检查）
+      - perm_dag_satisfaction_analysis_manage
+      - perm_dag_population_structure_analysis_view
+      - perm_dag_population_flow_tracking_view
+      - perm_dag_gdp_calculation_view
+      - perm_dag_government_service_statistics_view
+      # Dashboard 查看
+      - perm_dashboard_compliance_view
+
+  # --------------------------------------------------------------------------
+  # 公众用户（public_user）
+  # 仅可读 L1 公开数据（政务服务事项/热点事项/类别/渠道）
+  # --------------------------------------------------------------------------
+  - role: public_user
+    permissions:
+      # 民生服务域公开表只读
+      - perm_table_government_service_read
+      - perm_table_service_hot_topic_read
+      - perm_table_service_category_read
+      - perm_table_service_channel_read

@@ -10,7 +10,6 @@ package gateway
 // 调用链：
 //  请求 → 四维度路由 → 负载均衡 → Provider 调用 → 多模态 Token 计量 → 审计
 
-
 import (
 	"context"
 	"fmt"
@@ -27,8 +26,8 @@ import (
 //
 // 持有四维度路由引擎与多模态 Token 计量器，复用现有 Gateway 的 Provider 注册与负载均衡。
 type MultimodalExt struct {
-	gateway     *Gateway
-	routing     *routing.Engine
+	gateway      *Gateway
+	routing      *routing.Engine
 	tokenCounter *token.Counter
 }
 
@@ -98,10 +97,10 @@ func (e *MultimodalExt) ChatCompletion(ctx context.Context, req provider.Multimo
 	var mmResp *provider.MultimodalChatResponse
 	if resp != nil {
 		mmResp = &provider.MultimodalChatResponse{
-			ID:      resp.ID,
-			Object:  resp.Object,
-			Model:   resp.Model,
-			Provider: decision.Provider,
+			ID:          resp.ID,
+			Object:      resp.Object,
+			Model:       resp.Model,
+			Provider:    decision.Provider,
 			RouteReason: decision.Reason,
 			Choices: []provider.MultimodalChoice{
 				{
