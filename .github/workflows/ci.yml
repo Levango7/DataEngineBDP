@@ -61,9 +61,9 @@ jobs:
           go-version: '1.25'
           cache: true
 
-      - name: 安装 golangci-lint v1.64
+      - name: 安装 golangci-lint v1.64（用CI的Go构建，确保兼容go 1.25）
         run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.8
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
           golangci-lint --version
 
       - name: 对每个 Go 组件执行 golangci-lint
