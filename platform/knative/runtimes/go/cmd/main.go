@@ -1,4 +1,4 @@
-package main
+
 // Package main 是 Go 函数运行时入口 · 数擎大数据平台 T025.
 //
 // 封装为 Knative Service，使用 Gin 框架。

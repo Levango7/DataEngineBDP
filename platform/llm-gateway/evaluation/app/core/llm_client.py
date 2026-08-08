@@ -13,9 +13,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import time
-from dataclasses import dataclass
 from typing import Any, Optional
 
 import httpx
@@ -177,9 +177,7 @@ class LLMGatewayClient:
         }
 
     @staticmethod
-    def _mock_response(
-        model: str, messages: list[dict[str, Any]]
-    ) -> dict[str, Any]:
+    def _mock_response(model: str, messages: list[dict[str, Any]]) -> dict[str, Any]:
         """生成 Mock 响应（网关不可达时回退）。
 
         Mock 策略：
@@ -204,9 +202,7 @@ class LLMGatewayClient:
             mock_content = "B"
 
         # Token 估算：4 字符 ≈ 1 token
-        prompt_tokens = sum(
-            len(str(m.get("content", ""))) // 4 for m in messages
-        )
+        prompt_tokens = sum(len(str(m.get("content", ""))) // 4 for m in messages)
         completion_tokens = len(mock_content) // 4
 
         return {

@@ -18,8 +18,8 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from app.modes.base import EvalModeBase, JudgeResult
 from app.models import EvalSample
+from app.modes.base import EvalModeBase, JudgeResult
 
 logger = logging.getLogger(__name__)
 
@@ -71,9 +71,7 @@ class HumanMode(EvalModeBase):
                 )
 
         # 无预置标注，回退到规则判定
-        logger.info(
-            "人工模式样本 %s 无预置标注，回退到规则判定", sample.id
-        )
+        logger.info("人工模式样本 %s 无预置标注，回退到规则判定", sample.id)
         from app.modes.rule_mode import RuleMode
 
         rule = RuleMode()
@@ -81,9 +79,7 @@ class HumanMode(EvalModeBase):
         result.reason = f"human_fallback: {result.reason}"
         return result
 
-    def pending_samples(
-        self, samples: list[EvalSample]
-    ) -> list[EvalSample]:
+    def pending_samples(self, samples: list[EvalSample]) -> list[EvalSample]:
         """返回待人工标注的样本列表。
 
         Args:

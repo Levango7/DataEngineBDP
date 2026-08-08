@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from typing import Iterable
 
+from app.metrics.accuracy import AccuracyMetric
 from app.metrics.base import Metric
 from app.metrics.recall import RecallMetric
-from app.metrics.accuracy import AccuracyMetric
 from app.models import PredictionResult
 
 

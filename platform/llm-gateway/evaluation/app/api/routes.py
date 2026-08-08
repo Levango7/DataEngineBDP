@@ -17,8 +17,6 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 from app.core.executor import EvalExecutor
 from app.core.job_manager import JobManager
 from app.core.llm_client import LLMGatewayClient
@@ -34,6 +32,7 @@ from app.models import (
     SubmitJobRequest,
 )
 from app.report.generator import ABReportGenerator
+from fastapi import APIRouter, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -150,14 +149,10 @@ def create_router(
         """列出支持的标准集。"""
         return {
             "datasets": [
-                {"name": "mmlu", "language": "en",
-                 "description": "MMLU：英文多任务语言理解评测集"},
-                {"name": "cmmlu", "language": "zh",
-                 "description": "CMMLU：中文多任务语言理解评测集"},
-                {"name": "ceval", "language": "zh",
-                 "description": "CEval：中文大模型评测集"},
-                {"name": "custom", "language": "-",
-                 "description": "自定义数据集"},
+                {"name": "mmlu", "language": "en", "description": "MMLU：英文多任务语言理解评测集"},
+                {"name": "cmmlu", "language": "zh", "description": "CMMLU：中文多任务语言理解评测集"},
+                {"name": "ceval", "language": "zh", "description": "CEval：中文大模型评测集"},
+                {"name": "custom", "language": "-", "description": "自定义数据集"},
             ]
         }
 

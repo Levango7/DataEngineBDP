@@ -15,8 +15,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import os
-from dataclasses import dataclass, field
 
 
 def _env_bool(key: str, default: bool = False) -> bool:
@@ -64,14 +64,10 @@ class Settings:
         """从环境变量加载配置。"""
         return cls(
             port=int(os.environ.get("EVAL_PORT", "8086")),
-            llm_gateway_url=os.environ.get(
-                "LLM_GATEWAY_URL", "http://localhost:18085"
-            ),
+            llm_gateway_url=os.environ.get("LLM_GATEWAY_URL", "http://localhost:18085"),
             llm_gateway_api_key=os.environ.get("LLM_GATEWAY_API_KEY", "dummy"),
             llm_gateway_timeout=int(os.environ.get("LLM_GATEWAY_TIMEOUT", "30")),
-            dataset_cache_dir=os.environ.get(
-                "DATASET_CACHE_DIR", "./.cache/datasets"
-            ),
+            dataset_cache_dir=os.environ.get("DATASET_CACHE_DIR", "./.cache/datasets"),
             max_concurrency=int(os.environ.get("EVAL_MAX_CONCURRENCY", "4")),
             request_timeout=int(os.environ.get("EVAL_REQUEST_TIMEOUT", "30")),
             jwt_secret=os.environ.get(

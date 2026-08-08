@@ -11,10 +11,8 @@
 
 from __future__ import annotations
 
-import logging
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
+import logging
 
 from app.api.routes import create_router
 from app.config import get_settings
@@ -22,6 +20,7 @@ from app.core.executor import EvalExecutor
 from app.core.job_manager import JobManager
 from app.core.llm_client import LLMGatewayClient
 from app.report.generator import ABReportGenerator
+from fastapi import FastAPI
 
 # 配置日志
 logging.basicConfig(
@@ -55,7 +54,8 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     logger.info(
         "启动评测平台: port=%s, llm_gateway=%s",
-        settings.port, settings.llm_gateway_url,
+        settings.port,
+        settings.llm_gateway_url,
     )
 
     # 初始化组件

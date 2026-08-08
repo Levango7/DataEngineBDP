@@ -3,5 +3,9 @@
 # Helm 模板文件包含 Go template 语法 ({{ }})，不是纯 YAML，无法被 yamllint 解析
 extends: relaxed
 
+rules:
+  line-length:
+    max: 200
+
 ignore: |
   **/templates/**

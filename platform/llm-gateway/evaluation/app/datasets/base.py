@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Optional
 
 from app.models import EvalSample
 
@@ -72,9 +71,7 @@ class DatasetAdapter(abc.ABC):
             EvalSample 列表
         """
         samples = self._builtin_samples()
-        logger.info(
-            "[%s] 内置样例 %d 条", self.name, len(samples)
-        )
+        logger.info("[%s] 内置样例 %d 条", self.name, len(samples))
 
         # 若需要更多数据，尝试远程下载
         if limit > len(samples) or (limit == 0 and len(samples) < 50):
@@ -87,9 +84,7 @@ class DatasetAdapter(abc.ABC):
                         if s.id not in existing_ids:
                             samples.append(s)
                             existing_ids.add(s.id)
-                    logger.info(
-                        "[%s] 远程补充后共 %d 条", self.name, len(samples)
-                    )
+                    logger.info("[%s] 远程补充后共 %d 条", self.name, len(samples))
             except Exception as e:  # noqa: BLE001
                 logger.warning("[%s] 远程下载失败，仅使用内置数据: %s", self.name, e)
 
@@ -144,7 +139,5 @@ def get_adapter(name: str, cache_dir: str = "./.cache/datasets") -> DatasetAdapt
     }
     name_lower = name.lower()
     if name_lower not in registry:
-        raise ValueError(
-            f"不支持的标准集: {name}，支持: {list(registry.keys())}"
-        )
+        raise ValueError(f"不支持的标准集: {name}，支持: {list(registry.keys())}")
     return registry[name_lower](cache_dir=cache_dir)

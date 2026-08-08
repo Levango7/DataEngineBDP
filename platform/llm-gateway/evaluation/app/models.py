@@ -55,20 +55,20 @@ class JobStatus(str, Enum):
 class DatasetName(str, Enum):
     """支持的标准集名称。"""
 
-    MMLU = "mmlu"        # 英文多任务
-    CMMLU = "cmmlu"      # 中文多任务
-    CEVAL = "ceval"      # 中文评测
-    CUSTOM = "custom"    # 自定义数据集
+    MMLU = "mmlu"  # 英文多任务
+    CMMLU = "cmmlu"  # 中文多任务
+    CEVAL = "ceval"  # 中文评测
+    CUSTOM = "custom"  # 自定义数据集
 
 
 class MetricName(str, Enum):
     """六指标名称。"""
 
-    ACCURACY = "accuracy"            # 准确率
-    RECALL = "recall"                # 召回率
-    F1 = "f1"                         # F1
-    LATENCY_P95 = "latency_p95"      # P95 延迟（毫秒）
-    COST = "cost"                     # Token 成本
+    ACCURACY = "accuracy"  # 准确率
+    RECALL = "recall"  # 召回率
+    F1 = "f1"  # F1
+    LATENCY_P95 = "latency_p95"  # P95 延迟（毫秒）
+    COST = "cost"  # Token 成本
     HALLUCINATION = "hallucination"  # 幻觉率
 
 
@@ -159,17 +159,12 @@ class MetricsBundle(BaseModel):
     def to_list(self) -> list[MetricResult]:
         """转换为 MetricResult 列表，便于序列化与对比。"""
         return [
-            MetricResult(name=MetricName.ACCURACY.value, value=self.accuracy,
-                         description="准确率"),
-            MetricResult(name=MetricName.RECALL.value, value=self.recall,
-                         description="召回率"),
+            MetricResult(name=MetricName.ACCURACY.value, value=self.accuracy, description="准确率"),
+            MetricResult(name=MetricName.RECALL.value, value=self.recall, description="召回率"),
             MetricResult(name=MetricName.F1.value, value=self.f1, description="F1"),
-            MetricResult(name=MetricName.LATENCY_P95.value, value=self.latency_p95,
-                         description="P95 延迟（毫秒）"),
-            MetricResult(name=MetricName.COST.value, value=self.cost,
-                         description="Token 成本"),
-            MetricResult(name=MetricName.HALLUCINATION.value, value=self.hallucination,
-                         description="幻觉率"),
+            MetricResult(name=MetricName.LATENCY_P95.value, value=self.latency_p95, description="P95 延迟（毫秒）"),
+            MetricResult(name=MetricName.COST.value, value=self.cost, description="Token 成本"),
+            MetricResult(name=MetricName.HALLUCINATION.value, value=self.hallucination, description="幻觉率"),
         ]
 
 
@@ -269,7 +264,9 @@ class ABReportRequest(BaseModel):
     job_b: str = Field(..., description="模型 B 的评测任务 ID")
     format: str = Field(default="markdown", description="报告格式：markdown 或 html")
     highlight_threshold: float = Field(
-        default=0.05, ge=0.0, le=1.0,
+        default=0.05,
+        ge=0.0,
+        le=1.0,
         description="差异高亮阈值，差异大于此值则高亮",
     )
 

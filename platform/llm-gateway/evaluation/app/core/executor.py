@@ -21,7 +21,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from app.core.job_manager import JobManager
 from app.core.llm_client import LLMGatewayClient
@@ -91,12 +90,8 @@ class EvalExecutor:
         try:
             # 2. 加载数据集
             samples = self._load_dataset(request)
-            self.job_manager.add_log(
-                job_id, f"数据集 {request.dataset} 加载完成，共 {len(samples)} 条样本"
-            )
-            self.job_manager.update_status(
-                job_id, JobStatus.RUNNING, total_samples=len(samples)
-            )
+            self.job_manager.add_log(job_id, f"数据集 {request.dataset} 加载完成，共 {len(samples)} 条样本")
+            self.job_manager.update_status(job_id, JobStatus.RUNNING, total_samples=len(samples))
 
             # 3. 构造评测模式
             mode = self._build_mode(request)
@@ -115,14 +110,14 @@ class EvalExecutor:
 
                 # 更新进度
                 self.job_manager.update_status(
-                    job_id, JobStatus.RUNNING,
+                    job_id,
+                    JobStatus.RUNNING,
                     processed_samples=i + 1,
                 )
                 if (i + 1) % 5 == 0 or (i + 1) == len(samples):
                     self.job_manager.add_log(
                         job_id,
-                        f"进度: {i + 1}/{len(samples)}，"
-                        f"样本 {sample.id} correct={pred.correct}",
+                        f"进度: {i + 1}/{len(samples)}，" f"样本 {sample.id} correct={pred.correct}",
                     )
 
             # 5. 计算六指标
@@ -141,7 +136,8 @@ class EvalExecutor:
 
             # 6. 更新任务状态为 SUCCEEDED
             self.job_manager.update_status(
-                job_id, JobStatus.SUCCEEDED,
+                job_id,
+                JobStatus.SUCCEEDED,
                 results=metrics,
                 predictions=predictions,
             )
@@ -149,9 +145,7 @@ class EvalExecutor:
 
         except Exception as e:  # noqa: BLE001
             logger.exception("任务 %s 执行失败", job_id)
-            self.job_manager.update_status(
-                job_id, JobStatus.FAILED, error=str(e)
-            )
+            self.job_manager.update_status(job_id, JobStatus.FAILED, error=str(e))
             self.job_manager.add_log(job_id, f"评测任务执行失败: {e}")
 
     def _load_dataset(self, request: SubmitJobRequest) -> list[EvalSample]:
@@ -233,10 +227,7 @@ class EvalExecutor:
         对于开放域问答，直接输出问题。
         """
         if sample.choices:
-            choices_text = "\n".join(
-                f"{chr(ord('A') + i)}. {choice}"
-                for i, choice in enumerate(sample.choices)
-            )
+            choices_text = "\n".join(f"{chr(ord('A') + i)}. {choice}" for i, choice in enumerate(sample.choices))
             return (
                 f"请回答以下选择题，只输出选项字母（A/B/C/D）。\n\n"
                 f"问题：{sample.question}\n\n"

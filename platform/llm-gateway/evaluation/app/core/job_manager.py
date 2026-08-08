@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import logging
 import threading
-import uuid
 from typing import Any, Optional
+import uuid
 
 from app.models import (
     JobInfo,
@@ -66,8 +66,9 @@ class JobManager:
             self._requests[job_id] = request
             self._logs[job_id] = [f"[{now.isoformat()}] 任务已提交，job_id={job_id}"]
 
-        logger.info("提交评测任务 %s: model=%s, dataset=%s, mode=%s",
-                    job_id, request.model, request.dataset, request.mode)
+        logger.info(
+            "提交评测任务 %s: model=%s, dataset=%s, mode=%s", job_id, request.model, request.dataset, request.mode
+        )
         return job
 
     def get(self, job_id: str) -> Optional[JobInfo]:
@@ -128,9 +129,7 @@ class JobManager:
                 return None
             job.status = JobStatus.TERMINATED
             job.finished_at = utcnow()
-            self._add_log_unlocked(
-                job_id, f"任务被用户终止，原状态={job.status.value}"
-            )
+            self._add_log_unlocked(job_id, f"任务被用户终止，原状态={job.status.value}")
             return job
 
     def update_status(

@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from app.core.job_manager import JobManager
 from app.models import (
@@ -79,20 +78,14 @@ class ABReportGenerator:
         if job_b is None:
             raise ValueError(f"任务 {job_b_id} 不存在")
         if job_a.status != JobStatus.SUCCEEDED:
-            raise ValueError(
-                f"任务 {job_a_id} 状态为 {job_a.status.value}，需 SUCCEEDED"
-            )
+            raise ValueError(f"任务 {job_a_id} 状态为 {job_a.status.value}，需 SUCCEEDED")
         if job_b.status != JobStatus.SUCCEEDED:
-            raise ValueError(
-                f"任务 {job_b_id} 状态为 {job_b.status.value}，需 SUCCEEDED"
-            )
+            raise ValueError(f"任务 {job_b_id} 状态为 {job_b.status.value}，需 SUCCEEDED")
         if job_a.results is None or job_b.results is None:
             raise ValueError("任务结果为空")
 
         # 计算各指标差异
-        diffs = self._compute_diffs(
-            job_a.results, job_b.results, highlight_threshold
-        )
+        diffs = self._compute_diffs(job_a.results, job_b.results, highlight_threshold)
 
         # 生成总结
         summary = self._build_summary(job_a, job_b, diffs)
@@ -149,15 +142,17 @@ class ABReportGenerator:
             # 更优判定
             better = self._judge_better(name, value_a, value_b)
 
-            diffs.append(MetricDiff(
-                name=name,
-                value_a=value_a,
-                value_b=value_b,
-                diff=diff,
-                diff_percent=diff_percent,
-                highlighted=highlighted,
-                better=better,
-            ))
+            diffs.append(
+                MetricDiff(
+                    name=name,
+                    value_a=value_a,
+                    value_b=value_b,
+                    diff=diff,
+                    diff_percent=diff_percent,
+                    highlighted=highlighted,
+                    better=better,
+                )
+            )
         return diffs
 
     @staticmethod
@@ -216,8 +211,7 @@ class ABReportGenerator:
         highlighted_diffs = [d for d in diffs if d.highlighted]
         if highlighted_diffs:
             key_diffs = "; ".join(
-                f"{ReportTemplates.METRIC_CN.get(d.name, d.name)}"
-                f"(A={d.value_a:.4f}, B={d.value_b:.4f})"
+                f"{ReportTemplates.METRIC_CN.get(d.name, d.name)}" f"(A={d.value_a:.4f}, B={d.value_b:.4f})"
                 for d in highlighted_diffs[:3]
             )
             summary += f" 关键差异：{key_diffs}。"

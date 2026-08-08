@@ -1,4 +1,4 @@
-package main
+
 // Package metrics 提供 invocation 计量功能 · 数擎大数据平台 T025.
 //
 // 按 tenant 隔离记录函数 invocation 计量：

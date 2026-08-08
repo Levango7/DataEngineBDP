@@ -46,8 +46,12 @@ def compute_all(
 
     if not predictions:
         return MetricsBundle(
-            accuracy=0.0, recall=0.0, f1=0.0,
-            latency_p95=0.0, cost=0.0, hallucination=0.0,
+            accuracy=0.0,
+            recall=0.0,
+            f1=0.0,
+            latency_p95=0.0,
+            cost=0.0,
+            hallucination=0.0,
         )
 
     accuracy = AccuracyMetric().compute(predictions)

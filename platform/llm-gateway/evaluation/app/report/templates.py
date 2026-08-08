@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from app.models import ABReport, JobInfo, MetricDiff, MetricsBundle
+from app.models import ABReport
 
 
 class ReportTemplates:
@@ -39,7 +39,7 @@ class ReportTemplates:
     def render_markdown(cls, report: ABReport) -> str:
         """渲染 Markdown 报告。"""
         lines: list[str] = []
-        lines.append(f"# 模型 A/B 对比报告")
+        lines.append("# 模型 A/B 对比报告")
         lines.append("")
         lines.append(f"- **模型 A**：{report.model_a}（任务 {report.job_a}）")
         lines.append(f"- **模型 B**：{report.model_b}（任务 {report.job_b}）")
@@ -74,9 +74,7 @@ class ReportTemplates:
             lines.append("")
             for diff in highlighted:
                 name_cn = cls.METRIC_CN.get(diff.name, diff.name)
-                better_cn = {"a": "A", "b": "B", "tie": "持平"}.get(
-                    diff.better, "-"
-                )
+                better_cn = {"a": "A", "b": "B", "tie": "持平"}.get(diff.better, "-")
                 lines.append(
                     f"- ⚠️ **{name_cn}**：A={diff.value_a:.4f}, "
                     f"B={diff.value_b:.4f}, 差异={diff.diff:+.4f} "
@@ -130,10 +128,7 @@ class ReportTemplates:
                 f"<ul>{highlight_items}</ul>"
             )
         else:
-            highlight_section = (
-                "<h2>差异高亮</h2>"
-                "<p>所有指标差异均在阈值范围内，两模型表现接近。</p>"
-            )
+            highlight_section = "<h2>差异高亮</h2>" "<p>所有指标差异均在阈值范围内，两模型表现接近。</p>"
 
         html = f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -141,7 +136,8 @@ class ReportTemplates:
     <meta charset="UTF-8">
     <title>模型 A/B 对比报告</title>
     <style>
-        body {{ font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 40px; color: #333; }}
+        body {{ font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+               margin: 40px; color: #333; }}
         h1 {{ color: #1a1a1a; border-bottom: 2px solid #409eff; padding-bottom: 10px; }}
         h2 {{ color: #2c3e50; margin-top: 30px; }}
         table {{ border-collapse: collapse; width: 100%; margin: 20px 0; }}

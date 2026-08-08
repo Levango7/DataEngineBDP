@@ -142,7 +142,9 @@ class CMMLUAdapter(DatasetAdapter):
 
         try:
             ds = load_dataset(
-                "haonan-li/cmmlu", "all", split="test",
+                "haonan-li/cmmlu",
+                "all",
+                split="test",
                 cache_dir=self.cache_dir,
             )
             samples: list[EvalSample] = []
@@ -151,9 +153,7 @@ class CMMLUAdapter(DatasetAdapter):
                     break
                 choices = item.get("choices", [])
                 answer_idx = item.get("answer", 0)
-                answer_letter = chr(ord("A") + answer_idx) if isinstance(
-                    answer_idx, int
-                ) else str(answer_idx)
+                answer_letter = chr(ord("A") + answer_idx) if isinstance(answer_idx, int) else str(answer_idx)
                 samples.append(
                     EvalSample(
                         id=f"cmmlu-remote-{i:05d}",

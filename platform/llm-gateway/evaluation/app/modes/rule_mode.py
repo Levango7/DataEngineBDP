@@ -16,8 +16,8 @@ from __future__ import annotations
 import re
 from typing import Any, Optional
 
-from app.modes.base import EvalModeBase, JudgeResult, _is_correct_choice
 from app.models import EvalSample
+from app.modes.base import EvalModeBase, JudgeResult, _is_correct_choice
 
 
 class RuleMode(EvalModeBase):
@@ -80,10 +80,7 @@ class RuleMode(EvalModeBase):
         # 4. 幻觉判定（基于事实核查）
         hallucination = self._check_hallucination(sample, pred)
 
-        reason = (
-            f"rule_match: correct={correct}, "
-            f"hallucination={hallucination}"
-        )
+        reason = f"rule_match: correct={correct}, " f"hallucination={hallucination}"
         return JudgeResult(
             correct=correct,
             hallucination=hallucination,
@@ -114,9 +111,7 @@ class RuleMode(EvalModeBase):
         for neg in negation_words:
             if neg in pred_lower:
                 # 检查是否同时包含 context 的关键字
-                ctx_keywords = [
-                    w for w in ctx_lower.split() if len(w) > 1
-                ]
+                ctx_keywords = [w for w in ctx_lower.split() if len(w) > 1]
                 for kw in ctx_keywords:
                     if kw in pred_lower:
                         return True

@@ -14,7 +14,6 @@ MMLU（Massive Multitask Language Understanding）：英文多任务语言理解
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from app.datasets.base import DatasetAdapter
 from app.models import EvalSample
@@ -159,7 +158,9 @@ class MMLUAdapter(DatasetAdapter):
         try:
             # 加载 test split
             ds = load_dataset(
-                "cais/mmlu", "all", split="test",
+                "cais/mmlu",
+                "all",
+                split="test",
                 cache_dir=self.cache_dir,
             )
             samples: list[EvalSample] = []
@@ -169,9 +170,7 @@ class MMLUAdapter(DatasetAdapter):
                 choices = item.get("choices", [])
                 answer_idx = item.get("answer", 0)
                 # MMLU answer 是索引，转换为字母 A/B/C/D
-                answer_letter = chr(ord("A") + answer_idx) if isinstance(
-                    answer_idx, int
-                ) else str(answer_idx)
+                answer_letter = chr(ord("A") + answer_idx) if isinstance(answer_idx, int) else str(answer_idx)
                 samples.append(
                     EvalSample(
                         id=f"mmlu-remote-{i:05d}",

@@ -12,7 +12,7 @@ JudgeResult 包含：
 from __future__ import annotations
 
 import abc
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Optional
 
 from app.models import EvalSample
@@ -67,9 +67,7 @@ def _normalize_answer(answer: str) -> str:
     if len(text) == 1 and text in "ABCDEFGH":
         return text
     # 尝试提取首字母选项
-    if text and text[0] in "ABCDEFGH" and (
-        len(text) == 1 or text[1] in (".", ")", " ", "：", ":")
-    ):
+    if text and text[0] in "ABCDEFGH" and (len(text) == 1 or text[1] in (".", ")", " ", "：", ":")):
         return text[0]
     return text
 
@@ -118,7 +116,5 @@ def get_mode(name: str, **kwargs: Any) -> EvalModeBase:
     }
     name_lower = name.lower()
     if name_lower not in registry:
-        raise ValueError(
-            f"不支持的评测模式: {name}，支持: {list(registry.keys())}"
-        )
+        raise ValueError(f"不支持的评测模式: {name}，支持: {list(registry.keys())}")
     return registry[name_lower](**kwargs)

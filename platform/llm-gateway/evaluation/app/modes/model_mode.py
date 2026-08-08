@@ -27,8 +27,8 @@ import logging
 import re
 from typing import Any, Optional
 
-from app.modes.base import EvalModeBase, JudgeResult, _is_correct_choice
 from app.models import EvalSample
+from app.modes.base import EvalModeBase, JudgeResult
 
 logger = logging.getLogger(__name__)
 

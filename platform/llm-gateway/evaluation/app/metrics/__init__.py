@@ -11,8 +11,8 @@
 
 from __future__ import annotations
 
-from app.metrics.base import Metric, compute_all
 from app.metrics.accuracy import AccuracyMetric
+from app.metrics.base import Metric, compute_all
 from app.metrics.cost import CostMetric
 from app.metrics.f1 import F1Metric
 from app.metrics.hallucination import HallucinationMetric

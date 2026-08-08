@@ -147,7 +147,9 @@ class CEvalAdapter(DatasetAdapter):
 
         try:
             ds = load_dataset(
-                "ceval/ceval-exam", "all", split="test",
+                "ceval/ceval-exam",
+                "all",
+                split="test",
                 cache_dir=self.cache_dir,
             )
             samples: list[EvalSample] = []
