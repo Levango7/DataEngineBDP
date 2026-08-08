@@ -1,4 +1,3 @@
-
 // Package metrics 提供 invocation 计量功能 · 数擎大数据平台 T025.
 //
 // 按 tenant 隔离记录函数 invocation 计量：
@@ -63,13 +62,13 @@ func (r *InvocationRecorder) Record(tenantId, functionName, status string, durat
 	// 2. Loki 日志：结构化 JSON，由 Promtail 采集
 	//    LogQL 查询示例：{tenant="xxx"} |= "invocation"
 	logEntry := map[string]interface{}{
-		"type":            "invocation",
-		"tenant":          tenantId,
-		"runtime":         RuntimeName,
-		"function":        functionName,
-		"status":          status,
+		"type":             "invocation",
+		"tenant":           tenantId,
+		"runtime":          RuntimeName,
+		"function":         functionName,
+		"status":           status,
 		"duration_seconds": duration.Seconds(),
-		"timestamp":       time.Now().Unix(),
+		"timestamp":        time.Now().Unix(),
 	}
 	if data, err := json.Marshal(logEntry); err == nil {
 		fmt.Fprintln(os.Stdout, string(data))
