@@ -24,6 +24,7 @@ def _setup_asset_with_pricing(
             "type": "table",
             "owner": owner,
             "securityLevel": "internal",
+            "qualityScore": 85.0,
             "pricing": {"mode": mode, "price": price, "unit": unit},
         },
     )

@@ -13,6 +13,7 @@ def _list_asset(client, name="sub-test-asset", owner="tenant-A"):
             "type": "table",
             "owner": owner,
             "securityLevel": "internal",
+            "qualityScore": 85.0,
             "pricing": {"mode": "by_call", "price": 0.05, "unit": "次"},
         },
     )

@@ -66,6 +66,7 @@ def test_list_asset_with_tenant_id_input(client):
             "type": "table",
             "tenantId": "tenant-New",
             "securityLevel": "internal",
+            "qualityScore": 85.0,
         },
     )
     assert resp.status_code == 201, resp.text
@@ -84,6 +85,7 @@ def test_list_asset_owner_alias_backward_compat(client):
             "type": "table",
             "owner": "tenant-Legacy",
             "securityLevel": "internal",
+            "qualityScore": 85.0,
         },
     )
     assert resp.status_code == 201, resp.text
@@ -102,6 +104,7 @@ def test_list_assets_filter_by_tenant_id(client):
             "type": "table",
             "tenantId": "tenant-C",
             "securityLevel": "internal",
+            "qualityScore": 85.0,
         },
     )
     assert resp.status_code == 201
@@ -127,7 +130,7 @@ def test_list_asset_duplicate_name(client):
     _list_asset(client, name="dup")
     resp = client.post(
         "/api/v1/assets",
-        json={"name": "dup", "type": "table", "owner": "tenant-A"},
+        json={"name": "dup", "type": "table", "owner": "tenant-A", "qualityScore": 85.0},
     )
     assert resp.status_code == 409
 
@@ -141,6 +144,7 @@ def test_list_asset_sensitive_without_desensitize(client):
             "type": "table",
             "owner": "tenant-A",
             "securityLevel": "sensitive",
+            "qualityScore": 85.0,
         },
     )
     assert resp.status_code == 422
@@ -155,6 +159,7 @@ def test_list_asset_sensitive_with_desensitize(client):
             "type": "table",
             "owner": "tenant-A",
             "securityLevel": "sensitive",
+            "qualityScore": 85.0,
             "tags": {"desensitize": "true"},
         },
     )
@@ -176,7 +181,7 @@ def test_list_assets_filter_by_type(client):
     _list_asset(client, name="table-1")
     client.post(
         "/api/v1/assets",
-        json={"name": "api-1", "type": "api", "owner": "tenant-A"},
+        json={"name": "api-1", "type": "api", "owner": "tenant-A", "qualityScore": 85.0},
     )
     resp = client.get("/api/v1/assets?type=api")
     assert resp.status_code == 200

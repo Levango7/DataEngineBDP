@@ -331,13 +331,15 @@ class AssetService:
         """
         a = await self._asset_repo.get(asset_id)
         a.status = AssetStatus.OFFLINE
-        return await self._asset_repo.save(a)
+        await self._asset_repo.save(a)
+        return await self._asset_repo.get(asset_id)
 
     async def relist_asset(self, asset_id: str) -> Asset:
         """重新上架."""
         a = await self._asset_repo.get(asset_id)
         a.status = AssetStatus.LISTED
-        return await self._asset_repo.save(a)
+        await self._asset_repo.save(a)
+        return await self._asset_repo.get(asset_id)
 
     async def delete_asset(self, asset_id: str) -> None:
         """删除资产（仅允许 OFFLINE 状态删除）.
@@ -371,11 +373,13 @@ class AssetService:
         """订阅者数 +1（订阅服务调用）."""
         a = await self._asset_repo.get(asset_id)
         a.subscriberCount += 1
-        return await self._asset_repo.save(a)
+        await self._asset_repo.save(a)
+        return await self._asset_repo.get(asset_id)
 
     async def _decr_subscriber(self, asset_id: str) -> Asset:
         """订阅者数 -1（取消订阅时调用）."""
         a = await self._asset_repo.get(asset_id)
         if a.subscriberCount > 0:
             a.subscriberCount -= 1
-        return await self._asset_repo.save(a)
+        await self._asset_repo.save(a)
+        return await self._asset_repo.get(asset_id)

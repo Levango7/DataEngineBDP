@@ -13,6 +13,7 @@ def _setup_active_subscription(client, owner="tenant-A", subscriber="tenant-B"):
             "type": "table",
             "owner": owner,
             "securityLevel": "internal",
+            "qualityScore": 85.0,
             "pricing": {"mode": "by_call", "price": 0.01, "unit": "次"},
         },
     )
@@ -163,7 +164,7 @@ def test_deliver_pending_subscription(client):
     """待审批订阅不可交付."""
     resp = client.post(
         "/api/v1/assets",
-        json={"name": "x", "type": "table", "owner": "tenant-A"},
+        json={"name": "x", "type": "table", "owner": "tenant-A", "qualityScore": 85.0},
     )
     aid = resp.json()["id"]
     resp = client.post(
