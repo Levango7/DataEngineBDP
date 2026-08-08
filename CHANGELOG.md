@@ -62,5 +62,10 @@
 - **非 root 容器**：全部容器镜像以非 root 用户运行，降低容器逃逸风险。
 - **脱敏规则执行**：rule-engine 提供 MaskRuleExecutor 脱敏规则执行器，支持掩码 / 哈希 / 仅授权 / 假名四种脱敏函数。
 
+### 开发模式
+
+- 本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成
+- 所有代码均经过人工审查与验证
+
 [Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0

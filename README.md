@@ -6,7 +6,7 @@
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**v1.0.0**
-- 工程成熟度：约 95 / 100
+- 工程成熟度：约 85 / 100
 - 开源协议：Apache License 2.0
 
 ## 项目简介
@@ -48,14 +48,14 @@ ShuqingBigDataPlatform/
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 43 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 59 个 Helm Chart
+│   │   ├── charts/             # 60 个 Helm Chart
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（21 个）
+├── platform/                   # 自研组件（31 个）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -95,7 +95,7 @@ ShuqingBigDataPlatform/
 │   ├── profiles/               # 四环境 Profile
 │   ├── tuning/                 # 内核与系统调优
 │   └── wsl2/                   # WSL2 部署支持
-├── tests/integration/          # 集成测试（38 个）
+├── tests/integration/          # 集成测试（43 个）
 ├── scripts/poc/                # 端到端 PoC 验证脚本
 ├── docs/                       # 项目文档
 ├── CONVENTIONS.md              # 统一命名与约定
@@ -168,9 +168,9 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 21 个自研组件，覆盖封装层、引擎层、治理层、智能数据层与产品层。
+平台共包含 31 个自研组件，覆盖封装层、引擎层、治理层、智能数据层与产品层。
 
-### Java 组件（9 个）
+### Java 组件（12 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -184,8 +184,11 @@ bash scripts/poc/run-poc.sh
 | infra-provider-cloud | platform/infra-provider-cloud | 公有云环境供应 Driver | 70+ |
 | infra-provider-private | platform/infra-provider-private | 私有云环境供应 Driver | 70+ |
 | infra-orchestrator | platform/infra-orchestrator | 跨环境供给编排器 | 90+ |
+| finops | platform/finops | FinOps 成本运营服务，成本模型与资源用量采集 | 70+ |
+| flink-cdc | platform/flink-cdc | Flink CDC 实时数据集成组件 | 70+ |
+| stream-batch-scheduler | platform/stream-batch-scheduler | 流批统一调度组件 | 70+ |
 
-### Go 组件（3 个 + 1 CLI）
+### Go 组件（5 个 + 1 CLI）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -193,9 +196,10 @@ bash scripts/poc/run-poc.sh
 | vector-engine | platform/vector-engine | 向量引擎服务，Milvus 集合管理与检索 | 80+ |
 | llm-gateway | platform/llm-gateway | 大模型网关，多模型路由与推理 | 80+ |
 | infra-provider-baremetal | platform/infra-provider-baremetal | 裸金属环境供应 Driver | 70+ |
+| karmada | platform/karmada | 多集群联邦编排组件，基于 Karmada 二次封装 | 60+ |
 | dqctl (CLI) | platform/dqctl | 数据质量命令行工具 | 60+ |
 
-### Python 组件（8 个）
+### Python 组件（12 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -206,7 +210,18 @@ bash scripts/poc/run-poc.sh
 | business-portal | platform/business-portal | 对内业务线门户 | 70+ |
 | open-api-catalog | platform/open-api-catalog | 开放 API 服务目录 | 70+ |
 | asset-exchange | platform/asset-exchange | 数据资产流通 | 70+ |
-| operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 50+ |
+| chunker | platform/chunker | 文档分块服务，向量化预处理 | 60+ |
+| model-finetuning | platform/model-finetuning | 模型微调服务，支持 LoRA / 全参微调 | 60+ |
+| nl2sql | platform/nl2sql | 自然语言转 SQL 服务，Text2SQL 引擎 | 60+ |
+| registry | platform/registry | 元数据注册中心服务 | 60+ |
+| operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 0 |
+
+### 配置与部署组件（2 个）
+
+| 组件 | 目录 | 描述 |
+| --- | --- | --- |
+| knative | platform/knative | Knative Serverless 部署清单与事件源配置 |
+| observability | platform/observability | 可观测性配置（Grafana / Alertmanager / Prometheus） |
 
 ### 前端
 
@@ -232,15 +247,19 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件 | 21 个（9 Java + 4 Go + 1 CLI + 7 Python + 运营后台） |
-| Helm Chart | 59 个 |
+| 自研组件 | 31 个（12 Java + 5 Go + 1 CLI + 11 Python + 2 配置部署）+ 1 运营后台 |
+| Helm Chart | 60 个 |
 | 详细设计文档 | 43 份 |
 | 单元测试 | 2000+ |
-| 集成测试 | 38 个 |
+| 集成测试 | 43 个 |
 | 前端视图页面 | 14 个核心页面 |
 | 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云） |
 | 工程任务交付 | 99 / 99 |
-| 工程成熟度 | 约 95 / 100 |
+| 工程成熟度 | 约 85 / 100 |
+
+## 开发模式说明
+
+本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成代码编写、测试生成与文档撰写。所有代码均经过人工审查与验证，确保功能正确性与安全性。
 
 ## 贡献
 
