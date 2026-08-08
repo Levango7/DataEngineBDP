@@ -14,7 +14,7 @@
 |--------|------|------|
 | 部署模式 | Helm 直部署 | Helm + ArgoCD GitOps + Istio Service Mesh |
 | AI 能力 | 无 | NL2SQL、AI 助手、多模态切片器、混合检索重排 |
-| 数据联邦 | 无 | Calcite 优化器、跨源 Join、5 种外部源虚拟化 |
+| 数据联邦 | 无 | 手写 SQL 解析 + 跨源归并引擎、跨源 Join、5 种外部源虚拟化 |
 | 实时数仓 | 离线为主 | Flink CDC + Iceberg V2 upsert + Doris 物化视图 |
 | 行业模板 | 无 | 金融/能源/政务三个行业模板 |
 | 安全合规 | JWT + RBAC | 等保三级 + 国密（SM2/SM3/SM4） |

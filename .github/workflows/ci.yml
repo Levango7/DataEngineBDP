@@ -26,6 +26,24 @@ concurrency:
 
 jobs:
   # ============================================================
+  # Gitleaks 密钥扫描：扫描代码中的硬编码密钥/凭证/Token
+  # 阻断 CI：发现密钥泄露时 gitleaks-action 退出码非零，CI 整体失败
+  # ============================================================
+  gitleaks-scan:
+    name: Gitleaks Scan (密钥扫描)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ============================================================
   # Go 代码检查：golangci-lint
   # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 golangci-lint run
   # 配置文件：.golangci.yml（项目根目录）
@@ -218,20 +236,26 @@ jobs:
             echo "============================================"
             echo "  Java Lint: $mod_name ($mod_dir)"
             echo "============================================"
-            # Checkstyle 检查（若插件已配置则执行，否则跳过）
+            # Checkstyle 检查（阻断：检查失败则 CI 失败）
             if mvn -f "$pom" checkstyle:check -B -q 2>/dev/null; then
               echo "✓ $mod_name Checkstyle 通过"
             else
-              echo "::warning::$mod_name Checkstyle 未配置或检查失败，仅警告"
+              echo "::error::$mod_name Checkstyle 检查失败（或插件未配置），已阻断 CI"
+              fail_count=$((fail_count + 1))
             fi
-            # PMD 检查
+            # PMD 检查（阻断：检查失败则 CI 失败）
             if mvn -f "$pom" pmd:check -B -q 2>/dev/null; then
               echo "✓ $mod_name PMD 通过"
             else
-              echo "::warning::$mod_name PMD 未配置或检查失败，仅警告"
+              echo "::error::$mod_name PMD 检查失败（或插件未配置），已阻断 CI"
+              fail_count=$((fail_count + 1))
             fi
           done < <(find platform -name pom.xml -not -path "*/target/*")
-          echo "Java lint 检查完成"
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Java 组件 lint 失败，java-lint 阻断"
+            exit 1
+          fi
+          echo "Java lint 检查完成，全部通过"
 
   # ============================================================
   # YAML lint：校验所有 .yaml/.yml 文件语法与风格
@@ -479,7 +503,7 @@ jobs:
             mod_dir=$(dirname "$report")
             mod_name=$(basename "$(dirname "$mod_dir")")
             mkdir -p "java-test-reports/$mod_name"
-            cp "$report" "java-test-reports/$mod_name/" 2>/dev/null || true
+            cp "$report" "java-test-reports/$mod_name/" 2>/dev/null || echo "::warning::无法复制测试报告 $report"
           done < <(find platform -path "*/target/surefire-reports/*.xml" 2>/dev/null)
           echo "已收集测试报告到 java-test-reports/"
 
@@ -492,7 +516,7 @@ jobs:
             mod_dir=$(dirname "$(dirname "$cov")")
             mod_name=$(basename "$mod_dir")
             mkdir -p "java-coverage-reports/$mod_name"
-            cp "$cov" "java-coverage-reports/$mod_name/" 2>/dev/null || true
+            cp "$cov" "java-coverage-reports/$mod_name/" 2>/dev/null || echo "::warning::无法复制覆盖率报告 $cov"
             cov_count=$((cov_count + 1))
             echo "收集 JaCoCo XML: $cov -> java-coverage-reports/$mod_name/"
           done < <(find platform -path "*/target/site/jacoco/jacoco.xml" 2>/dev/null)
@@ -567,7 +591,7 @@ jobs:
             (cd "$mod_dir" && go test ./... -v -coverprofile="../go-coverage-reports/${mod_name}.cov" -covermode=atomic 2>&1 | tee "../go-test-reports/${mod_name}-test.log")
             (cd "$mod_dir" && go vet ./... 2>&1 | tee "../go-test-reports/${mod_name}-vet.log")
             # 将 coverage 转换为 HTML（便于人工查看）
-            (cd "$mod_dir" && go tool cover -html="../go-coverage-reports/${mod_name}.cov" -o "../go-coverage-reports/${mod_name}.html" 2>/dev/null) || true
+            (cd "$mod_dir" && go tool cover -html="../go-coverage-reports/${mod_name}.cov" -o "../go-coverage-reports/${mod_name}.html" 2>/dev/null) || echo "::warning::无法生成 $mod_name HTML 覆盖率报告"
           done < <(find platform -name go.mod -not -path "*/vendor/*")
 
       - name: 上传 Go 测试报告
@@ -653,17 +677,18 @@ jobs:
               pip install -r "$mod_dir/requirements.txt" -q 2>&1 | tail -5
             fi
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              pip install "$mod_dir[test,dev]" -q 2>&1 | tail -5 || pip install "$mod_dir" -q 2>&1 | tail -5 || true
+              pip install "$mod_dir[test,dev]" -q 2>&1 | tail -5 || pip install "$mod_dir" -q 2>&1 | tail -5 || echo "::warning::$mod_name 可选依赖安装失败，继续测试"
             fi
             pip install pytest pytest-html -q 2>&1 | tail -2
             # 执行 pytest 并生成覆盖率（XML + HTML）
+            # 不再使用 || true，测试失败必须阻断 CI
             (cd "$mod_dir" && pytest \
               --html="../python-test-reports/${mod_name}-report.html" \
               --self-contained-html \
               --cov=. --cov-report=xml:../python-coverage-reports/${mod_name}-coverage.xml \
               --cov-report=html:../python-coverage-reports/${mod_name}-html \
               --cov-branch \
-              -v 2>&1 | tee "../python-test-reports/${mod_name}-test.log") || true
+              -v 2>&1 | tee "../python-test-reports/${mod_name}-test.log")
           done < .python-modules.txt
 
       - name: 上传 Python 测试报告
@@ -798,10 +823,11 @@ jobs:
         working-directory: tests/integration
         run: |
           mkdir -p integration-reports
+          # 不再使用 || true，集成测试失败必须阻断 CI
           pytest \
             --html="integration-reports/integration-report.html" \
             --self-contained-html \
-            -v 2>&1 | tee integration-reports/integration-test.log || true
+            -v 2>&1 | tee integration-reports/integration-test.log
 
       - name: 上传集成测试报告
         if: env.it_skip != 'true' && always()
@@ -816,7 +842,7 @@ jobs:
         if: env.it_skip != 'true' && always()
         working-directory: tests/integration
         run: |
-          docker compose down -v || true
+          docker compose down -v || echo "::warning::docker compose down 清理失败"
           echo "集成测试环境已销毁"
 
   # ============================================================
@@ -826,8 +852,9 @@ jobs:
   markdown-lint:
     name: Markdown Lint
     runs-on: ubuntu-latest
-    # 依赖前 14 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
+    # 依赖前 15 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
     needs:
+      - gitleaks-scan
       - go-lint
       - python-lint
       - frontend-lint

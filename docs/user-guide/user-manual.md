@@ -15,7 +15,7 @@
 | 多平台多租户 | 信创/本地/公有云/私有云四环境零改动交付；基于 K8s Namespace + ResourceQuota + NetworkPolicy 三重隔离 |
 | 云原生 | K8s 1.28+ + Helm 3.14+ + ArgoCD GitOps + Service Mesh(Istio) |
 | AI 能力 | NL2SQL 自然语言查询、AI 助手、多模态切片器、混合检索重排 |
-| 数据联邦 | Calcite 优化器、跨源 Join、5 种外部源虚拟化（MySQL/Oracle/JDBC/Kafka/REST） |
+| 数据联邦 | 手写 SQL 解析 + 跨源归并引擎、跨源 Join、5 种外部源虚拟化（MySQL/Oracle/JDBC/Kafka/REST） |
 | 实时数仓 | Flink CDC + Iceberg V2 upsert + Doris 物化视图 |
 | 行业模板 | 金融/能源/政务三个行业开箱即用模板 |
 | 安全合规 | 等保三级 + 国密（SM2/SM3/SM4） |
@@ -244,7 +244,7 @@ ORDER BY total_amount DESC
 LIMIT 50;
 ```
 
-3. 平台自动识别跨源，调用 Calcite 优化器生成执行计划，单源直接代理、多源并行查询 + 内存归并
+3. 平台自动识别跨源，通过手写 SQL 解析 + 跨源归并引擎生成执行计划，单源直接代理、多源并行查询 + 内存归并
 
 ### 3.7 实时数仓
 

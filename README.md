@@ -18,10 +18,10 @@
 - **多平台交付**：一套主代码，四环境（信创 / 本地数据中心 / 公有云 / 私有云）通过 Profile 差异化配置实现零改动交付。
 - **多租户隔离**：基于 K8s Namespace + ResourceQuota + NetworkPolicy 的三重隔离机制，配合 JWT 鉴权与租户上下文，实现租户间资源、网络、数据完全隔离。
 - **湖仓集一体**：统一存储（Iceberg）+ 批计算（Spark）+ 流计算（Flink）+ 交互查询（Trino）+ OLAP（Doris）协同落地"湖 → 仓 → 集"三级数据流转。
-- **智能数据层**：向量库（Milvus）+ 知识工程（RAG）+ LLMOps + 大模型网关，构成旗舰版差异化能力。
+- **智能数据层**：向量库（Milvus）+ 知识图谱服务 + LLMOps + 大模型网关，构成旗舰版差异化能力。
 - **SaaS 产品层**：行业应用模板 + 业务线门户 + 开放 API 服务目录 + 数据资产流通，形成平台商业化闭环。
 - **自研 K8s 发行版 SKE**：基于 kubeadm 二次封装的深度定制高性能 K8s，非 KubeSphere / RKE2 / k3s / kind 原样。
-- **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 联邦优化器实现跨源联邦查询。
+- **统一 SQL 网关**：一个入口查全部引擎，基于手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询（Apache Calcite 集成规划中）。
 - **治理闭环**：元数据采集 → 质量校验 → 血缘解析 → 资产入目录，形成完整数据治理链路。
 
 ## 技术栈
@@ -73,7 +73,7 @@ ShuqingBigDataPlatform/
 │   ├── vector-engine/            # 向量引擎（Go）
 │   ├── llm-gateway/              # 大模型网关（Go）
 │   ├── llmops/                   # LLMOps（Python）
-│   ├── knowledge-engine/         # 知识工程（Python）
+│   ├── knowledge-engine/         # 知识图谱服务（Python）
 │   ├── ml-platform/              # 机器学习平台（Python）
 │   ├── industry-templates/       # 行业模板（Python）
 │   ├── business-portal/          # 业务线门户（Python）
@@ -175,7 +175,7 @@ bash scripts/poc/run-poc.sh
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
 | encaps-layer | platform/encaps-layer | 封装层，将客户概念翻译为 K8s 资源，租户 / 工作空间 / 项目 / 任务 CRUD | 120+ |
-| sql-gateway | platform/sql-gateway | 统一 SQL 网关，基于 Calcite 联邦优化器实现跨源查询 | 150+ |
+| sql-gateway | platform/sql-gateway | 统一 SQL 网关，基于手写 SQL 解析 + 跨源归并引擎实现跨源查询 | 150+ |
 | rule-engine | platform/rule-engine | 规则引擎，数据质量 / 告警 / 脱敏规则执行 | 130+ |
 | tag-engine | platform/tag-engine | 标签引擎，标签管理与人群圈选 | 90+ |
 | metadata-collector | platform/governance/metadata-collector | 元数据采集器，引擎 Hook 与定时抽取 | 80+ |
@@ -200,7 +200,7 @@ bash scripts/poc/run-poc.sh
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
 | llmops | platform/llmops | LLMOps，微调 / 部署 / 评测闭环 | 90+ |
-| knowledge-engine | platform/knowledge-engine | 知识工程，RAG 切片与向量化 | 90+ |
+| knowledge-engine | platform/knowledge-engine | 知识图谱服务，知识建模与图谱检索 | 90+ |
 | ml-platform | platform/ml-platform | 机器学习平台，MLflow 训练与 serving | 100+ |
 | industry-templates | platform/industry-templates | 行业应用模板，DDL + DAG + Dashboard | 70+ |
 | business-portal | platform/business-portal | 对内业务线门户 | 70+ |

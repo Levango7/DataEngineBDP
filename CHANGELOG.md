@@ -62,18 +62,5 @@
 - **非 root 容器**：全部容器镜像以非 root 用户运行，降低容器逃逸风险。
 - **脱敏规则执行**：rule-engine 提供 MaskRuleExecutor 脱敏规则执行器，支持掩码 / 哈希 / 仅授权 / 假名四种脱敏函数。
 
-## [0.1.0] - 2026-07-15
-
-初始预发布版本，包含设计文档骨架与 SKE 发行版引导脚本。
-
-### Added
-
-- 43 份模块详细设计文档。
-- SKE 发行版引导脚本骨架。
-- Vue3 前端工程框架。
-- 4 个自研后端组件 API 骨架（encaps-layer / sql-gateway / catalog / rule-engine）。
-- 13 个第三方引擎 Helm Chart。
-
 [Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0
-[0.1.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v0.1.0

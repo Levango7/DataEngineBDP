@@ -394,8 +394,8 @@ jobs:
             # 收集 dist/ 下的 wheel 和 sdist
             if [ -d "$mod_dir/dist" ]; then
               mkdir -p "release-python-packages/$mod_name"
-              cp "$mod_dir"/dist/*.whl "release-python-packages/$mod_name/" 2>/dev/null || true
-              cp "$mod_dir"/dist/*.tar.gz "release-python-packages/$mod_name/" 2>/dev/null || true
+              cp "$mod_dir"/dist/*.whl "release-python-packages/$mod_name/" 2>/dev/null || echo "::warning::$mod_name 无 wheel 文件"
+              cp "$mod_dir"/dist/*.tar.gz "release-python-packages/$mod_name/" 2>/dev/null || echo "::warning::$mod_name 无 sdist 文件"
               echo "✓ 收集 $mod_name 的 wheel/sdist"
             else
               echo "::warning::$mod_name 未生成 dist/ 目录"
@@ -443,7 +443,7 @@ jobs:
           cp sbom.cyclonedx.json release-sbom/ 2>/dev/null || echo "CycloneDX SBOM 不存在" 
           cp sbom.spdx.json release-sbom/ 2>/dev/null || echo "SPDX SBOM 不存在"
           echo "SBOM 文件已汇总到 release-sbom/"
-          ls -la release-sbom/ || true
+          ls -la release-sbom/ || echo "::warning::release-sbom/ 目录为空或不存在"
 
       - name: 上传 SBOM artifact
         uses: actions/upload-artifact@v4
@@ -488,30 +488,30 @@ jobs:
           # 将所有 artifact 内容平铺到统一目录
           if [ -d "release-assets/release-frontend-dist" ]; then
             mkdir -p github-release-assets/frontend
-            cp -r release-assets/release-frontend-dist/* github-release-assets/frontend/ 2>/dev/null || true
+            cp -r release-assets/release-frontend-dist/* github-release-assets/frontend/ 2>/dev/null || echo "::warning::release-frontend-dist 资产复制失败"
           fi
           if [ -d "release-assets/release-ske-scripts" ]; then
             mkdir -p github-release-assets/ske-scripts
-            cp -r release-assets/release-ske-scripts/* github-release-assets/ske-scripts/ 2>/dev/null || true
+            cp -r release-assets/release-ske-scripts/* github-release-assets/ske-scripts/ 2>/dev/null || echo "::warning::release-ske-scripts 资产复制失败"
           fi
           if [ -d "release-assets/release-helm-charts" ]; then
             mkdir -p github-release-assets/helm-charts
-            cp -r release-assets/release-helm-charts/* github-release-assets/helm-charts/ 2>/dev/null || true
+            cp -r release-assets/release-helm-charts/* github-release-assets/helm-charts/ 2>/dev/null || echo "::warning::release-helm-charts 资产复制失败"
           fi
           if [ -d "release-assets/release-java-artifacts" ]; then
             mkdir -p github-release-assets/java
-            cp -r release-assets/release-java-artifacts/* github-release-assets/java/ 2>/dev/null || true
+            cp -r release-assets/release-java-artifacts/* github-release-assets/java/ 2>/dev/null || echo "::warning::release-java-artifacts 资产复制失败"
           fi
           if [ -d "release-assets/release-go-binaries" ]; then
             mkdir -p github-release-assets/go
-            cp -r release-assets/release-go-binaries/* github-release-assets/go/ 2>/dev/null || true
+            cp -r release-assets/release-go-binaries/* github-release-assets/go/ 2>/dev/null || echo "::warning::release-go-binaries 资产复制失败"
           fi
           if [ -d "release-assets/release-python-packages" ]; then
             mkdir -p github-release-assets/python
-            cp -r release-assets/release-python-packages/* github-release-assets/python/ 2>/dev/null || true
+            cp -r release-assets/release-python-packages/* github-release-assets/python/ 2>/dev/null || echo "::warning::release-python-packages 资产复制失败"
           fi
           if [ -d "release-assets/release-sbom" ]; then
-            cp -r release-assets/release-sbom/* github-release-assets/ 2>/dev/null || true
+            cp -r release-assets/release-sbom/* github-release-assets/ 2>/dev/null || echo "::warning::release-sbom 资产复制失败"
           fi
           echo "============================================"
           echo "  Release 资产清单"

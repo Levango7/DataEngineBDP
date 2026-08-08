@@ -224,7 +224,7 @@ curl -X POST https://<platform-domain>/api/v1/workspaces \
 
 ## 第4章 SQL 网关 API
 
-SQL 网关（sql-gateway）提供统一 SQL 执行、路由管理、解析、优化、跨源查询能力，统一前缀 `/api/v1/sql`。
+SQL 网关（sql-gateway）提供统一 SQL 执行、路由管理、解析、优化、跨源查询能力，统一前缀 `/api/v1/sql`。SQL 网关基于手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询（Apache Calcite 集成规划中）。
 
 ### 4.1 POST /api/v1/sql/execute — 执行 SQL
 
