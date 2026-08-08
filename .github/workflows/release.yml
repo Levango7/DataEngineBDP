@@ -477,7 +477,7 @@ jobs:
           fetch-depth: 0
 
       - name: 下载所有构建制品
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: release-assets/
           merge-multiple: false
