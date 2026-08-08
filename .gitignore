@@ -35,5 +35,9 @@ platform/llm-gateway/evaluation/target/
 platform/model-finetuning/__pycache__/
 platform/model-finetuning/app/__pycache__/
 
+# test coverage reports
+**/coverage/
+**/.coverage
+
 # Temp test files
 .tmp/
