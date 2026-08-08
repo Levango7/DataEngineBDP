@@ -56,10 +56,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.24
+      - name: 安装 Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: true
 
       - name: 对每个 Go 组件执行 gofmt -l
@@ -512,7 +512,7 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================
-  # Go 构建与测试：Go 1.24
+  # Go 构建与测试：Go 1.25
   # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 go build ./...
   # 只编译不测试（避免依赖外部服务），上传构建报告
   # ============================================================
@@ -523,10 +523,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.24
+      - name: 安装 Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: '1.25'
           cache: true
 
       - name: 发现并遍历所有 Go 组件（含 go.mod）

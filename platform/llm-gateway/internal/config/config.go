@@ -1,4 +1,4 @@
-﻿// Package config 提供 llm-gateway 的配置加载与 Provider 构造。
+// Package config 提供 llm-gateway 的配置加载与 Provider 构造。
 //
 // 支持从 YAML 文件或环境变量加载配置，并据此构造各 Provider 实例。
 // 设计原则：真实大模型 API 凭据通过配置注入，不硬编码。

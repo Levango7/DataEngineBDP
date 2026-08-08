@@ -25,17 +25,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/shuqing/bigdata/failover-engine/internal/health"
 	"github.com/shuqing/bigdata/failover-engine/internal/karmada"
 	"github.com/shuqing/bigdata/failover-engine/internal/model"
-	"github.com/shuqing/bigdata/failover-engine/internal/health"
 	"github.com/shuqing/bigdata/failover-engine/internal/weight"
 )
 
 // Manager 故障迁移管理器。
 type Manager struct {
-	checker    *health.Checker
-	karmada    *karmada.Client
-	allocator  *weight.Allocator
+	checker   *health.Checker
+	karmada   *karmada.Client
+	allocator *weight.Allocator
 
 	mu sync.Mutex
 
@@ -247,9 +247,9 @@ func (m *Manager) triggerFailover(
 // selectTargetCluster 选择目标集群。
 //
 // 选择策略：
-//   1. 过滤掉 down 的备用集群
-//   2. 按优先级（BackupClusters 顺序）+ 健康状态 + 可用容量排序
-//   3. 选择最优集群
+//  1. 过滤掉 down 的备用集群
+//  2. 按优先级（BackupClusters 顺序）+ 健康状态 + 可用容量排序
+//  3. 选择最优集群
 func (m *Manager) selectTargetCluster(ctx context.Context, policy *model.FailoverPolicyConfig) (string, error) {
 	for _, candidate := range policy.BackupClusters {
 		health, err := m.checker.CheckCluster(ctx, candidate)
