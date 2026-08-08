@@ -61,6 +61,15 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
+          cache-dependency-path: |
+            platform/catalog/go.sum
+            platform/dqctl/go.sum
+            platform/infra-provider-baremetal/go.sum
+            platform/karmada/api/go.sum
+            platform/karmada/failover/api/go.sum
+            platform/llm-gateway/go.sum
+            platform/observability/query-api/go.sum
+            platform/vector-engine/go.sum
 
       - name: 对每个 Go 组件执行 gofmt -l
         run: |
@@ -208,13 +217,17 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 JDK 17 (Temurin) + Maven 3.9
-        uses: actions/setup-java@v4
+      - name: 安装 JDK 17 (Temurin)
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
+
+      - name: 安装 Maven 3.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.9
 
       - name: 对每个 Java 组件执行 checkstyle:check + pmd:check
         run: |
@@ -447,13 +460,17 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 JDK 17 (Temurin) + Maven 3.9
-        uses: actions/setup-java@v4
+      - name: 安装 JDK 17 (Temurin)
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
+
+      - name: 安装 Maven 3.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.9
 
       - name: 发现并遍历所有 Java 组件（含 pom.xml）
         run: |
@@ -477,13 +494,17 @@ jobs:
       - name: 对每个 Java 组件执行 mvn clean compile（只编译不测试，避免依赖外部服务）
         if: env.java_skip != 'true'
         run: |
+          mvn -version
+          echo "============================================"
+          echo "  开始 Java 编译"
+          echo "============================================"
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  构建: $mod_name ($mod_dir)"
             echo "============================================"
-            mvn -f "$pom" clean compile -B -V -DskipTests \
+            mvn -f "$pom" clean compile -B -DskipTests \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           done < <(find platform -name pom.xml -not -path "*/target/*")
 
@@ -528,6 +549,15 @@ jobs:
         with:
           go-version: '1.25'
           cache: true
+          cache-dependency-path: |
+            platform/catalog/go.sum
+            platform/dqctl/go.sum
+            platform/infra-provider-baremetal/go.sum
+            platform/karmada/api/go.sum
+            platform/karmada/failover/api/go.sum
+            platform/llm-gateway/go.sum
+            platform/observability/query-api/go.sum
+            platform/vector-engine/go.sum
 
       - name: 发现并遍历所有 Go 组件（含 go.mod）
         run: |
@@ -551,6 +581,7 @@ jobs:
       - name: 对每个 Go 组件执行 go build（只编译不测试，避免依赖外部服务）
         if: env.go_skip != 'true'
         run: |
+          go version
           mkdir -p go-build-reports
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
@@ -558,8 +589,8 @@ jobs:
             echo "============================================"
             echo "  构建: $mod_name ($mod_dir)"
             echo "============================================"
-            # 只执行 go build（编译验证），不运行 go test 和 go vet（避免下载依赖和外部服务）
-            if (cd "$mod_dir" && go build ./... 2>&1 | tee "../go-build-reports/${mod_name}-build.log"); then
+            # 先下载依赖，再编译验证
+            if (cd "$mod_dir" && go mod download 2>&1 && go build ./... 2>&1 | tee "../go-build-reports/${mod_name}-build.log"); then
               echo "✓ $mod_name go build 通过"
             else
               echo "✗ $mod_name go build 失败"
