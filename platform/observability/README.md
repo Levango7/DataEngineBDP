@@ -181,7 +181,7 @@ services:
 
 | 变量                    | 说明                         | 示例                             |
 |-------------------------|------------------------------|----------------------------------|
-| `JWT_SECRET`            | JWT 签名密钥（≥32 字节）     | `change-me-...`                  |
+| `JWT_SIGNING_KEY`       | JWT 签名密钥（≥32 字节，必需，fail-fast） | `<强随机密钥>`           |
 | `PROMETHEUS_URL`        | Prometheus 地址              | `http://prometheus:9090`         |
 | `PHONE_GATEWAY_URL`     | 电话网关地址                 | `http://phone-gateway:8088`      |
 | `SMS_GATEWAY_URL`       | 短信网关地址                 | `http://sms-gateway:8089`        |

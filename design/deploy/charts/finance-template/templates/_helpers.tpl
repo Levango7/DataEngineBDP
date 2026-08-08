@@ -1,4 +1,4 @@
-{{/*
+﻿{{/*
 ============================================================================
 finance-template Chart 辅助函数（T019）
 ============================================================================
@@ -35,9 +35,9 @@ Chart labels.
 {{- define "finance-template.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{ include "finance-template.selectorLabels" . }}
-{{- if .Chart.AppVersion -}}
+{{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end -}}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end -}}
 

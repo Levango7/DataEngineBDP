@@ -1,5 +1,7 @@
 package com.shuqing.bigdata.sqlgateway.virtual.adapter;
 
+import com.shuqing.bigdata.sqlgateway.virtual.DataSourceManager;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,9 +29,20 @@ public class OracleVirtualAdapter extends JdbcVirtualAdapter {
     private static final String ORACLE_DRIVER = "oracle.jdbc.OracleDriver";
 
     /**
-     * 构造适配器，设置默认驱动为 Oracle。
+     * Spring 构造器注入构造器。
+     *
+     * @param dataSourceManager HikariCP 连接池管理器
      */
-    public OracleVirtualAdapter() {
+    @Autowired
+    public OracleVirtualAdapter(DataSourceManager dataSourceManager) {
+        super(dataSourceManager);
+        this.defaultDriver = ORACLE_DRIVER;
+    }
+
+    /**
+     * 无参构造器（供无 Spring 环境的单元测试使用）。
+     */
+    protected OracleVirtualAdapter() {
         this.defaultDriver = ORACLE_DRIVER;
     }
 }

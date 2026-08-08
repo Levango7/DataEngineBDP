@@ -9,6 +9,7 @@
 package middleware
 
 import (
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -19,6 +20,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// mustGetenv 读取必需的环境变量，缺失则 fail-fast 退出。
+// 安全策略：不再提供任何弱默认值，强制部署方显式配置，
+// 避免因遗漏环境变量而使用弱密钥。
+func mustGetenv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		log.Fatalf("FATAL: environment variable %s is required", key)
+	}
+	return v
+}
 
 // tenantIDPattern 限制 tenant_id 仅允许字母数字下划线短横线，1-64 字符。
 // 防止 PromQL 注入（如 tenant_id="x} or up{" 可绕过隔离）。
@@ -32,10 +44,8 @@ type jwtConfig struct {
 }
 
 func loadJWTConfig() jwtConfig {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		secret = "dev-secret-key-change-in-production-at-least-256-bits"
-	}
+	// 安全止血：JWT_SIGNING_KEY 必须显式配置，缺失则启动 fatal。
+	secret := mustGetenv("JWT_SIGNING_KEY")
 	issuer := os.Getenv("JWT_ISSUER")
 	if issuer == "" {
 		issuer = "shuqing-bigdata"

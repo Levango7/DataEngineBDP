@@ -1,5 +1,12 @@
 # ShuqingBigDataPlatform - Bare Metal Infra Provider 配置
 # 本地数据中心裸金属供应Provider
+#
+# 安全说明：所有敏感字段（密钥/密码/DSN）通过 ${ENV_VAR} 引用环境变量，
+# 不再内联硬编码。部署方必须显式注入以下环境变量，缺失则启动 fatal：
+#   - JWT_SIGNING_KEY:           JWT 签名密钥（≥32 字节）
+#   - POSTGRES_DSN:              PostgreSQL 连接串（仅 driver=postgres 时生效）
+#   - REDFISH_DEFAULT_PASSWORD:  BMC 默认密码
+#   - REDFISH_INSECURE_SKIP_VERIFY: 是否跳过 BMC TLS 校验（true/false，生产建议 false）
 
 server:
   # HTTP服务监听端口
@@ -13,8 +20,8 @@ server:
 
 # JWT鉴权配置
 auth:
-  # JWT签名密钥(生产环境必须替换为强随机值)
-  secret: "shuqing-baremetal-provider-secret-change-me"
+  # JWT签名密钥(通过环境变量注入，不再硬编码)
+  secret: "${JWT_SIGNING_KEY}"
   # Token有效期(小时)
   token_ttl: 24
   # 默认签发主体
@@ -26,8 +33,8 @@ database:
   driver: sqlite
   # SQLite文件路径(仅driver=sqlite时生效)
   sqlite_path: "./data/baremetal.db"
-  # PostgreSQL DSN(仅driver=postgres时生效)
-  postgres_dsn: "host=localhost port=5432 user=baremetal password=baremetal dbname=baremetal sslmode=disable"
+  # PostgreSQL DSN(仅driver=postgres时生效，通过环境变量注入，不再硬编码密码)
+  postgres_dsn: "${POSTGRES_DSN}"
   # 最大打开连接数
   max_open_conns: 20
   # 最大空闲连接数
@@ -37,12 +44,12 @@ database:
 redfish:
   # 默认BMC用户名(可被节点配置覆盖)
   default_username: "admin"
-  # 默认BMC密码(可被节点配置覆盖)
-  default_password: "admin"
+  # 默认BMC密码(通过环境变量注入，不再硬编码)
+  default_password: "${REDFISH_DEFAULT_PASSWORD}"
   # HTTPS请求超时(秒)
   timeout: 30
-  # 是否校验BMC TLS证书(生产建议true)
-  insecure_skip_verify: true
+  # 是否校验BMC TLS证书(通过环境变量配置，生产建议 false 即严格校验)
+  insecure_skip_verify: ${REDFISH_INSECURE_SKIP_VERIFY}
 
 # K8s集群初始化配置
 k8s:
