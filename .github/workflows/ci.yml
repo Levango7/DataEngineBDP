@@ -56,10 +56,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.25
+      - name: 安装 Go 1.26
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
           cache: true
           cache-dependency-path: |
             platform/catalog/go.sum
@@ -498,15 +498,25 @@ jobs:
           echo "============================================"
           echo "  开始 Java 编译"
           echo "============================================"
+          fail_count=0
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  构建: $mod_name ($mod_dir)"
             echo "============================================"
-            mvn -f "$pom" clean compile -B -DskipTests \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+            if mvn -f "$pom" clean compile -B -DskipTests \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn; then
+              echo "✓ $mod_name 编译通过"
+            else
+              echo "✗ $mod_name 编译失败"
+              fail_count=$((fail_count + 1))
+            fi
           done < <(find platform -name pom.xml -not -path "*/target/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Java 组件编译失败"
+            exit 1
+          fi
 
       - name: 收集 Java 构建产物
         if: env.java_skip != 'true' && always()
@@ -533,7 +543,7 @@ jobs:
           if-no-files-found: warn
 
   # ============================================================
-  # Go 构建与测试：Go 1.25
+  # Go 构建与测试：Go 1.26
   # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 go build ./...
   # 只编译不测试（避免依赖外部服务），上传构建报告
   # ============================================================
@@ -544,10 +554,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.25
+      - name: 安装 Go 1.26
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26'
           cache: true
           cache-dependency-path: |
             platform/catalog/go.sum
@@ -589,13 +599,19 @@ jobs:
             echo "============================================"
             echo "  构建: $mod_name ($mod_dir)"
             echo "============================================"
-            # 先下载依赖，再编译验证
-            if (cd "$mod_dir" && go mod download 2>&1 && go build ./... 2>&1 | tee "../go-build-reports/${mod_name}-build.log"); then
-              echo "✓ $mod_name go build 通过"
-            else
-              echo "✗ $mod_name go build 失败"
-              exit 1
-            fi
+            # 先下载依赖，再编译验证（在子shell中执行，不影响主循环目录）
+            (
+              cd "$mod_dir"
+              echo "--- go mod download ---"
+              go mod download 2>&1 || { echo "✗ $mod_name go mod download 失败"; exit 1; }
+              echo "--- go build ---"
+              if go build ./... 2>&1 | tee "../go-build-reports/${mod_name}-build.log"; then
+                echo "✓ $mod_name go build 通过"
+              else
+                echo "✗ $mod_name go build 失败"
+                exit 1
+              fi
+            )
           done < <(find platform -name go.mod -not -path "*/vendor/*")
 
       - name: 上传 Go 构建报告
