@@ -5,7 +5,7 @@
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = Shuqing Kubernetes Engine），非 Shuqian。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
-- 当前版本：**v1.0.0**
+- 当前版本：**v2.0.0**
 - 工程成熟度：约 85 / 100
 - 开源协议：Apache License 2.0
 

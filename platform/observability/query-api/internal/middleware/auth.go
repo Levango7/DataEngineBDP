@@ -180,10 +180,39 @@ func LoggingMiddleware(logger *slog.Logger) gin.HandlerFunc {
 	}
 }
 
-// CorsMiddleware 是宽松 CORS 中间件（生产环境应按部署域收敛）。
+// CorsMiddleware 是 CORS 跨域中间件。
+//
+// 收敛策略：从环境变量 CORS_ALLOWED_ORIGINS 读取允许的来源，
+// 支持单域（如 https://console.shuqing.example.com）或逗号分隔多域。
+// 生产环境必须显式配置具体域名，禁止使用通配符 "*"。
+// 当请求 Origin 命中白名单时回写 Access-Control-Allow-Origin；
+// 未配置或未命中时不回写该头，浏览器将拒绝跨域请求（fail-secure）。
+//
+// 环境变量：
+//   - CORS_ALLOWED_ORIGINS: 允许的来源列表，逗号分隔，默认空（拒绝所有跨域）。
+//     示例：https://console.shuqing.example.com,https://ops.shuqing.example.com
 func CorsMiddleware() gin.HandlerFunc {
+	raw := os.Getenv("CORS_ALLOWED_ORIGINS")
+	allowed := make(map[string]struct{}, 4)
+	if raw != "" {
+		for _, o := range strings.Split(raw, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				allowed[o] = struct{}{}
+			}
+		}
+	}
+
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+		if origin != "" {
+			if _, ok := allowed[origin]; ok {
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Vary", "Origin")
+			}
+			// 未命中白名单时不回写 Access-Control-Allow-Origin，
+			// 浏览器将拒绝跨域请求，实现 fail-secure。
+		}
 		c.Header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
 		if c.Request.Method == http.MethodOptions {

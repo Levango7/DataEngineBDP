@@ -8,6 +8,51 @@
 
 暂无未发布变更。
 
+## [2.0.0] - 2026-08-08
+
+数擎大数据平台 v2.0.0 GA 发布。在 v1.0.0 基础上完成云原生与 AI 增强，53 个任务 755 人天交付，12 项整改全部完成，工程成熟度提升至约 85 / 100。
+
+### Added
+
+- **自研组件**：新增 10 个自研组件，云原生与 AI 能力补齐。
+  - chunker：文档分块服务，向量化预处理。
+  - finops：FinOps 成本运营服务，成本模型与资源用量采集。
+  - flink-cdc：Flink CDC 实时数据集成组件。
+  - karmada：多集群联邦编排组件，基于 Karmada 二次封装。
+  - knative：Knative Serverless 部署清单与事件源配置。
+  - model-finetuning：模型微调服务，支持 LoRA / 全参微调。
+  - nl2sql：自然语言转 SQL 服务，Text2SQL 引擎。
+  - observability：可观测性配置（Grafana / Alertmanager / Prometheus）与统一查询 API。
+  - registry：元数据注册中心服务。
+  - stream-batch-scheduler：流批统一调度组件。
+
+### Changed
+
+- **文档改进**：修正 Apache Calcite 集成口径（规划中而非已集成），knowledge-engine 模块改名对齐，README 勘误（版本号 v1.0.0 → v2.0.0）。
+- **开发模式说明**：README 与 CHANGELOG 明确标注 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成，所有代码经人工审查与验证。
+
+### Fixed
+
+- **部署改进**：60 个 Helm Chart 全部修复，消除模板渲染与 values 缺失问题。
+- **CORS 收敛**：observability/query-api 的 CorsMiddleware 由 Access-Control-Allow-Origin: * 收敛为环境变量 CORS_ALLOWED_ORIGINS 白名单匹配，生产环境按部署域显式配置，未命中时不回写头（fail-secure）。
+
+### Security
+
+- **密钥环境变量化**：JWT 签名密钥等敏感配置改为 mustGetenv 强制显式注入，移除弱默认值。
+- **SQL 注入防护**：tenant_id 正则白名单（^[a-zA-Z0-9_-]{1,64}$）防 PromQL 注入。
+- **HikariCP 连接池**：JDBC 连接池统一接入 HikariCP，约束连接数与超时。
+
+### CI
+
+- **gitleaks 集成**：CI 流水线接入 gitleaks 密钥扫描，阻断密钥入库。
+- **移除 || true**：清理 CI 步骤中的 || true 容错，确保失败可见。
+- **lint 阻断**：ESLint / golangci-lint 等检查失败即阻断流水线。
+
+### 开发模式
+
+- 本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成
+- 所有代码均经过人工审查与验证
+
 ## [1.0.0] - 2026-08-06
 
 数擎大数据平台 v1.0.0 首个正式版本。99 个工程任务全部交付，工程成熟度约 95 / 100。
@@ -67,5 +112,6 @@
 - 本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成
 - 所有代码均经过人工审查与验证
 
-[Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0
