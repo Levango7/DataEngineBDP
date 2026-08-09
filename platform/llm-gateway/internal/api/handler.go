@@ -21,8 +21,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/gateway"
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/gateway"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ Handler ============

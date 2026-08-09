@@ -25,10 +25,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shuqing/bigdata/failover-engine/internal/health"
-	"github.com/shuqing/bigdata/failover-engine/internal/karmada"
-	"github.com/shuqing/bigdata/failover-engine/internal/model"
-	"github.com/shuqing/bigdata/failover-engine/internal/weight"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/health"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/karmada"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/weight"
 )
 
 // Manager 故障迁移管理器。

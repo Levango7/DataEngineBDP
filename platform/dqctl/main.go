@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shuqing/bigdata/dqctl/cmd"
+	"github.com/Levango7/DataEngineBDP/dqctl/cmd"
 )
 
 func main() {

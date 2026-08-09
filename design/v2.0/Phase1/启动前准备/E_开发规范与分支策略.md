@@ -1,4 +1,4 @@
-# 数擎大数据平台 V2.0 Phase 1a · 开发规范与分支策略
+﻿# 数据引擎大数据平台 V2.0 Phase 1a · 开发规范与分支策略
 
 > 版本：v1.0
 > 文档状态：生效
@@ -188,7 +188,7 @@ perf(sql-gateway): Trino 代理连接池化，P95 从 1.2s 降至 0.4s
 | 命名-类 | PascalCase，后缀语义化 | `TenantServiceImpl`、`OrchestrationService`、`CryptoSpiFactory` |
 | 命名-方法/变量 | camelCase，动词开头 | `createTenant`、`tenantId`、`routeSql` |
 | 命名-常量 | UPPER_SNAKE_CASE | `MAX_RETRY_COUNT`、`DEFAULT_PAGE_SIZE` |
-| 命名-包 | 全小写，单层单词 | `com.shuqing.bigdata.encaps.tenant` |
+| 命名-包 | 全小写，单层单词 | `com.levango7.dataenginebdp.encaps.tenant` |
 | 命名-枚举 | UPPER_SNAKE_CASE | `TenantStatus.ACTIVE`、`CryptoProfile.GM` |
 | 异常处理 | 业务异常抛 `BusinessException`，系统异常抛 `SystemException`，禁止裸抛 `RuntimeException` / `Throwable` | `throw new BusinessException("TENANT_NOT_FOUND", "租户不存在: " + id);` |
 | 异常处理-捕获 | 不吞异常，catch 块必须日志或重新抛出；禁止 `catch (Exception e) {}` | — |

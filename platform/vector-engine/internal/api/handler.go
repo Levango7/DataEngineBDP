@@ -20,8 +20,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/service"
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/service"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
 
 // HealthHandler 处理健康检查请求。

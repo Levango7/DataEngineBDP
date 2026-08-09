@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // JWTAuthenticator JWT签发与校验器

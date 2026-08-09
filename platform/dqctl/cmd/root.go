@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/shuqing/bigdata/dqctl/internal/client"
-	"github.com/shuqing/bigdata/dqctl/internal/config"
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/client"
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/config"
 )
 
 // 全局配置实例，由 root 命令在 PersistentPreRun 中加载，供各子命令使用。

@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/query-api/internal/service"
+	"github.com/Levango7/DataEngineBDP/query-api/internal/service"
 )
 
 // QueryHandler 代理 Prometheus 查询，支持平台方/客户方双视图。

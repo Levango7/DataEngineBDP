@@ -1,4 +1,4 @@
-﻿# ArgoCD Application · Karmada 控制面 GitOps 同步
+# ArgoCD Application · Karmada 控制面 GitOps 同步
 # ============================================================================
 # 作用：将 Karmada Helm Chart 纳入 ArgoCD GitOps 管理
 # 集成：与 Phase 1 ArgoCD（T003）已部署的实例对接

@@ -84,7 +84,7 @@ platform/stream-batch-scheduler/
     │   └── resources/
     │       ├── application.yml                 # 配置文件
     │       └── META-INF/services/             # DolphinScheduler SPI 注册
-    │           └── com.shuqing.bigdata.streambatch.plugin.TaskChannelFactory
+    │           └── com.levango7.dataenginebdp.streambatch.plugin.TaskChannelFactory
     └── test/
         └── java/com/shuqing/bigdata/streambatch/  # 单元测试
 ```

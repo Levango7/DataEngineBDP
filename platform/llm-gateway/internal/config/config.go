@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ 顶层配置 ============

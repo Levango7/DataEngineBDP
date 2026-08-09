@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/llm-gateway
+module github.com/Levango7/DataEngineBDP/llm-gateway
 
 go 1.25.0
 

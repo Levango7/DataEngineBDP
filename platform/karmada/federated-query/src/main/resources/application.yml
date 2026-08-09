@@ -109,6 +109,6 @@ federated:
 logging:
   level:
     root: INFO
-    com.shuqing.bigdata.federated: DEBUG
+    com.levango7.dataenginebdp.federated: DEBUG
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n"

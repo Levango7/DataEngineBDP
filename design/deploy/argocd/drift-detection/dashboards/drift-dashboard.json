@@ -1,4 +1,4 @@
-{
+﻿{
   "annotations": {
     "list": [
       {
@@ -12,7 +12,7 @@
       }
     ]
   },
-  "description": "数擎大数据平台 · GitOps 配置漂移监控面板",
+  "description": "数据引擎大数据平台 · GitOps 配置漂移监控面板",
   "editable": true,
   "graphTooltip": 1,
   "id": null,

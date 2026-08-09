@@ -10,7 +10,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/karmada-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/model"
 )
 
 // Store 存储接口。

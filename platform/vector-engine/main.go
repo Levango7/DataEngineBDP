@@ -21,12 +21,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/api"
-	"github.com/shuqing/bigdata/vector-engine/internal/config"
-	"github.com/shuqing/bigdata/vector-engine/internal/middleware"
-	"github.com/shuqing/bigdata/vector-engine/internal/service"
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
-	"github.com/shuqing/bigdata/vector-engine/internal/store/mock"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/api"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/config"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/service"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store/mock"
 )
 
 // 服务常量。

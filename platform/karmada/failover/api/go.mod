@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/failover-api
+module github.com/Levango7/DataEngineBDP/failover-api
 
 go 1.25.0
 

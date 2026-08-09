@@ -16,7 +16,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/shuqing/bigdata/failover-engine/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/model"
 )
 
 // Allocator 副本权重分配器。

@@ -1,10 +1,10 @@
-# Phase 1a 启动前准备 · A 环境（开发环境与工具链）确认报告
+﻿# Phase 1a 启动前准备 · A 环境（开发环境与工具链）确认报告
 
 > 版本：v1.0
 > 文档状态：已完成
 > 检查日期：2026-08-06
 > 检查人：Phase1a 启动前准备工程师（任务 144）
-> 适用范围：数擎大数据平台 V2.0 Phase 1a（批次 1，2026-09-01 启动）8 个任务所需开发环境与工具链
+> 适用范围：数据引擎大数据平台 V2.0 Phase 1a（批次 1，2026-09-01 启动）8 个任务所需开发环境与工具链
 > 上游输入：
 > - `design/v2.0/Phase1/Phase1_详细执行计划.md`（§2.1~§2.6 任务技能要求与产出物）
 > - `design/v2.0/V2.0_架构设计文档.md`（12 新增 + 17 增强模块技术栈）
@@ -320,7 +320,7 @@ pip install pymilvus>=2.4 kafka-python nebula3-python==3.4.0 gmssl
 pip install pyiceberg apache-flink>=1.18 sentence-transformers rank-bm25
 
 # 6. 拉起 SKE K8s 集群（在 WSL2 中执行）
-wsl -d Ubuntu-24.04 -- bash -c "cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform && bash ske/ske.sh up --target wsl2"
+wsl -d Ubuntu-24.04 -- bash -c "cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP && bash ske/ske.sh up --target wsl2"
 
 # 7. 安装 Istio ≥1.20（通过 Helm，待 SKE 集群就绪后）
 helm repo add istio https://istio-release.storage.googleapis.com/charts

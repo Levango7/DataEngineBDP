@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # Helm Chart 定义 - 金融行业模板部署 Chart（T019）
 # ============================================================================
 # 模块：T019 金融模板 Helm Chart 打包 + values 多环境覆盖 + 部署验证
@@ -14,7 +14,7 @@
 apiVersion: v2
 name: finance-template
 description: |
-  数擎大数据平台 L5.3 行业应用模板 - 金融行业完整模板部署 Chart。
+  数据引擎大数据平台 L5.3 行业应用模板 - 金融行业完整模板部署 Chart。
   含 21 张 DDL 表、5 个 DAG 调度作业、3 个 Superset Dashboard、3 个 RBAC 角色，
   通过 ConfigMap 挂载模板资产，由导入 Job 完成一键部署。
   支持多环境（dev/staging/prod）values 覆盖与部署验证。
@@ -23,8 +23,8 @@ version: 1.0.0
 appVersion: "1.0.0"
 home: https://shuqing.com/industry-templates/finance
 sources:
-  - https://github.com/shuqing/ShuqingBigDataPlatform/platform/industry-templates/templates/finance
-  - https://github.com/shuqing/ShuqingBigDataPlatform/design/deploy/charts/finance-template
+  - https://github.com/shuqing/DataEngineBDP/platform/industry-templates/templates/finance
+  - https://github.com/shuqing/DataEngineBDP/design/deploy/charts/finance-template
 maintainers:
   - name: hw029373469
     email: hw029373469@shuqing.com

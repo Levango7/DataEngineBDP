@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-# 数擎大数据平台 · ArgoCD 安装脚本
+﻿#!/usr/bin/env bash
+# 数据引擎大数据平台 · ArgoCD 安装脚本
 # 目标：在 k3s 集群上安装 ArgoCD stable（manifest 方式）
 #
 # 用法：

@@ -29,7 +29,7 @@ import (
 	"github.com/milvus-io/milvus-sdk-go/v2/client"
 	"github.com/milvus-io/milvus-sdk-go/v2/entity"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
 
 // 集合 Schema 字段命名约定。

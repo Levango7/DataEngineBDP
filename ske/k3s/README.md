@@ -1,4 +1,4 @@
-# 数擎云核 SKE · k3s + Istio Service Mesh 控制面（轻量测试集群）
+﻿# 数擎云核 SKE · k3s + Istio Service Mesh 控制面（轻量测试集群）
 
 > 版本：v0.1 ｜ 日期：2026-08-07 ｜ 状态：可运行
 > 所属：T001 Service Mesh 控制面部署
@@ -47,12 +47,12 @@ ske/k3s/
 
 - **WSL2 Ubuntu 22.04+**，systemd 已开启（见 `ske/WSL2-QUICKSTART.md` §1）
 - 在 WSL2 Ubuntu 终端内执行（非 Windows PowerShell）
-- 项目挂载路径：`/mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform`
+- 项目挂载路径：`/mnt/f/Agent/workbuddy/workspace/DataEngineBDP`
 
 ### 3.2 一键部署
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform
+cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
 
 # 一键完成：k3s 安装 → Istio minimal → sidecar 注入 → mTLS 启用
 sudo bash ske/k3s/deploy-all.sh

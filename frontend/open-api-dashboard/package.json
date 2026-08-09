@@ -1,7 +1,7 @@
 {
   "name": "open-api-dashboard",
   "version": "0.1.0",
-  "description": "数擎大数据平台 - 开放 API 服务目录前端 (L5.5)",
+  "description": "数据引擎大数据平台 - 开放 API 服务目录前端 (L5.5)",
   "type": "module",
   "scripts": {
     "dev": "vite",

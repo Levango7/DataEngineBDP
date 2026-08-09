@@ -3,7 +3,7 @@
 // 封装为 Knative Service，使用 Gin 框架。
 // 冷启动优化：Go 静态编译单二进制，启动 < 0.5s。
 
-module github.com/shuqing/bigdata/function-runtime-go
+module github.com/Levango7/DataEngineBDP/function-runtime-go
 
 go 1.22
 

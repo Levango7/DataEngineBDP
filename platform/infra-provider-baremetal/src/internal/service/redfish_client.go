@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // RedfishClient Redfish API客户端

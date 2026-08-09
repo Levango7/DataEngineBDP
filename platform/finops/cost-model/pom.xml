@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.shuqing.bigdata</groupId>
+    <groupId>com.levango7.dataenginebdp</groupId>
     <artifactId>cost-model</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <name>cost-model</name>

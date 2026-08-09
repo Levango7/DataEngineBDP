@@ -1,8 +1,8 @@
-# FinOps 看板前端
+﻿# FinOps 看板前端
 
 ## 1. 概述
 
-数擎大数据平台 FinOps 看板前端，基于 Vue3 + ECharts + Element Plus 实现。
+数据引擎大数据平台 FinOps 看板前端，基于 Vue3 + ECharts + Element Plus 实现。
 
 ## 2. 技术栈
 

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <!--
   PMD 宽松规则集（CI 阻断级）
   适用于 platform/ 下所有 Java 组件（Spring Boot 3.2 + JDK 17）
@@ -10,7 +10,7 @@
          xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.net/ruleset_2_0_0.xsd">
-    <description>数擎大数据平台 PMD 宽松规则集 - 只保留能发现真实 bug 的规则</description>
+    <description>数据引擎大数据平台 PMD 宽松规则集 - 只保留能发现真实 bug 的规则</description>
 
     <!-- ============ empty：空代码（排除 EmptyCatchBlock，允许带注释的空 catch） ============ -->
     <rule ref="rulesets/java/empty.xml">

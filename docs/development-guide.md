@@ -1,6 +1,6 @@
-# 开发指南
+﻿# 开发指南
 
-> 本指南描述数擎大数据平台的开发环境搭建、各语言构建命令、测试命令、代码规范与调试技巧。
+> 本指南描述数据引擎大数据平台的开发环境搭建、各语言构建命令、测试命令、代码规范与调试技巧。
 
 ## 环境要求
 
@@ -51,7 +51,7 @@ nvm use 20
 ## 项目结构
 
 ```
-ShuqingBigDataPlatform/
+DataEngineBDP/
 ├── platform/          # 自研组件（21 个）
 │   ├── encaps-layer/  # Java / Spring Boot
 │   ├── sql-gateway/   # Java / Spring Boot

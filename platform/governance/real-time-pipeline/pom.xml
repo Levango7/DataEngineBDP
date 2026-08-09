@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.shuqing.bigdata</groupId>
+    <groupId>com.levango7.dataenginebdp</groupId>
     <artifactId>real-time-governance-pipeline</artifactId>
     <version>0.1.0</version>
     <name>real-time-governance-pipeline</name>

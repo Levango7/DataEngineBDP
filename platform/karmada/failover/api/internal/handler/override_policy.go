@@ -17,8 +17,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/failover-api/internal/model"
-	"github.com/shuqing/bigdata/failover-api/internal/store"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/store"
 )
 
 // OverridePolicyHandler 覆盖策略处理器。

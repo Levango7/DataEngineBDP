@@ -13,10 +13,10 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/catalog/internal/handler"
-	"github.com/shuqing/bigdata/catalog/internal/middleware"
-	"github.com/shuqing/bigdata/catalog/internal/model"
-	"github.com/shuqing/bigdata/catalog/internal/store"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/handler"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/store"
 )
 
 // 服务常量。

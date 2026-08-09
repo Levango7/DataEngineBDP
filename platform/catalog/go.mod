@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/catalog
+module github.com/Levango7/DataEngineBDP/catalog
 
 go 1.25.0
 

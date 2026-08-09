@@ -15,9 +15,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
-	"github.com/shuqing/bigdata/llm-gateway/internal/routing"
-	"github.com/shuqing/bigdata/llm-gateway/internal/token"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/routing"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/token"
 )
 
 // ============ 多模态网关扩展 ============

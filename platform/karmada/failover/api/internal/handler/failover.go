@@ -27,8 +27,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/failover-api/internal/model"
-	"github.com/shuqing/bigdata/failover-api/internal/store"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/store"
 )
 
 // FailoverHandler 故障迁移相关 handler 集合。

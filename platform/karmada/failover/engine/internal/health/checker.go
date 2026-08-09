@@ -19,9 +19,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/shuqing/bigdata/failover-engine/internal/karmada"
-	"github.com/shuqing/bigdata/failover-engine/internal/model"
-	"github.com/shuqing/bigdata/failover-engine/internal/prometheus"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/karmada"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/prometheus"
 )
 
 // Checker 集群健康检查器。

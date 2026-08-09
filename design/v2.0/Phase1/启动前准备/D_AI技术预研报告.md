@@ -1,4 +1,4 @@
-# 数擎大数据平台 V2.0 Phase 1a 启动前准备 — D：AI 技术预研报告
+﻿# 数据引擎大数据平台 V2.0 Phase 1a 启动前准备 — D：AI 技术预研报告
 
 > **文档编号**：D-PRERESEARCH-AI-V1.0
 > **任务编号**：147（Phase1a 启动前准备-D）
@@ -16,7 +16,7 @@
 
 ### 1.1 预研背景
 
-数擎大数据平台 V2.0 Phase 1a 涉及大量 AI 技术栈，T005（MAOP 编排引擎）、T008（多模态切片器）、T009（混合检索与重排序）、T010（NL2SQL 核心引擎）、T012（Calcite 联邦优化器）、T014（Flink CDC 管道）、T015（Iceberg V2 行级 upsert）等关键任务均依赖外部开源框架与模型。根据 Phase1 详细执行计划 §5.8 R-P1-007 风险评估，LangGraph、LangChain、Milvus SDK、多模态 Embedding 模型等新框架学习曲线可能影响开发效率，需在 2026-09-01 正式开工前完成技术预研，降低开发风险。
+数据引擎大数据平台 V2.0 Phase 1a 涉及大量 AI 技术栈，T005（MAOP 编排引擎）、T008（多模态切片器）、T009（混合检索与重排序）、T010（NL2SQL 核心引擎）、T012（Calcite 联邦优化器）、T014（Flink CDC 管道）、T015（Iceberg V2 行级 upsert）等关键任务均依赖外部开源框架与模型。根据 Phase1 详细执行计划 §5.8 R-P1-007 风险评估，LangGraph、LangChain、Milvus SDK、多模态 Embedding 模型等新框架学习曲线可能影响开发效率，需在 2026-09-01 正式开工前完成技术预研，降低开发风险。
 
 ### 1.2 预研目标
 
@@ -1135,7 +1135,7 @@ T012 需为五种数据源开发 Adapter，核心接口：
 代码示例：Calcite Adapter 骨架（Java）
 
 ```java
-package com.shuqing.bigdata.federation.adapter;
+package com.levango7.dataenginebdp.federation.adapter;
 
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.jdbc.CalciteConnection;
@@ -1176,7 +1176,7 @@ public class FederationSchema extends AbstractSchema {
 代码示例：FederationTable 实现（Java）
 
 ```java
-package com.shuqing.bigdata.federation.adapter;
+package com.levango7.dataenginebdp.federation.adapter;
 
 import org.apache.calcite.DataContext;
 import org.apache.calcite.linq4j.Enumerable;
@@ -1213,7 +1213,7 @@ T012 要求三种下推规则：谓词下推、投影下推、Join 下推。
 代码示例：谓词下推规则（Java）
 
 ```java
-package com.shuqing.bigdata.federation.rule;
+package com.levango7.dataenginebdp.federation.rule;
 
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleCall;

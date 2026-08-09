@@ -65,14 +65,14 @@ if [[ -n "${FLINK_JM_HOST}" ]]; then
   echo "提交作业到远程 Flink 集群: ${FLINK_JM_HOST}"
   "${FLINK_BIN}" run \
     --jobmanager "${FLINK_JM_HOST}" \
-    --class com.shuqing.bigdata.flinkcdc.CdcFrameworkMain \
+    --class com.levango7.dataenginebdp.flinkcdc.CdcFrameworkMain \
     "${CDC_JAR}" \
     --config "${CONFIG_FILE}"
 else
   # 本地或默认集群模式
   echo "提交作业到默认 Flink 集群"
   "${FLINK_BIN}" run \
-    --class com.shuqing.bigdata.flinkcdc.CdcFrameworkMain \
+    --class com.levango7.dataenginebdp.flinkcdc.CdcFrameworkMain \
     "${CDC_JAR}" \
     --config "${CONFIG_FILE}"
 fi

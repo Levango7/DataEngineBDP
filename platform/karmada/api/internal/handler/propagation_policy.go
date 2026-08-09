@@ -17,8 +17,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/karmada-api/internal/model"
-	"github.com/shuqing/bigdata/karmada-api/internal/store"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/store"
 )
 
 // PropagationPolicyHandler 传播策略处理器。

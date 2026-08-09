@@ -1,4 +1,4 @@
-# AppProject · dev 环境
+﻿# AppProject · dev 环境
 # ============================================================================
 # 作用：限制 dev 环境 Application 的源仓库、目标 namespace、可操作资源
 # 隔离维度：源仓库白名单 + 目标 namespace 通配 + 资源黑白名单 + RBAC
@@ -15,7 +15,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: "数擎大数据平台 · dev 环境 GitOps Project"
+  description: "数据引擎大数据平台 · dev 环境 GitOps Project"
   # 源仓库白名单：仅允许从 Levango7/DataEngineBDP 部署
   sourceRepos:
     - https://github.com/Levango7/DataEngineBDP

@@ -1,4 +1,4 @@
-# AppProject · staging 环境
+﻿# AppProject · staging 环境
 # ============================================================================
 # 作用：staging 预发布环境，比 dev 更严格
 # - 禁止创建集群级资源（Namespace 由平台预创建）
@@ -17,7 +17,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  description: "数擎大数据平台 · staging 预发布环境 GitOps Project"
+  description: "数据引擎大数据平台 · staging 预发布环境 GitOps Project"
   sourceRepos:
     - https://github.com/Levango7/DataEngineBDP
   destinations:

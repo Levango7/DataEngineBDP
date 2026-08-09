@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/dqctl
+module github.com/Levango7/DataEngineBDP/dqctl
 
 go 1.25.0
 

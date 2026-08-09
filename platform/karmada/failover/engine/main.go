@@ -31,12 +31,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/shuqing/bigdata/failover-engine/internal/failover"
-	"github.com/shuqing/bigdata/failover-engine/internal/health"
-	"github.com/shuqing/bigdata/failover-engine/internal/karmada"
-	"github.com/shuqing/bigdata/failover-engine/internal/model"
-	"github.com/shuqing/bigdata/failover-engine/internal/prometheus"
-	"github.com/shuqing/bigdata/failover-engine/internal/weight"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/failover"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/health"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/karmada"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/prometheus"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/weight"
 )
 
 // 服务常量。

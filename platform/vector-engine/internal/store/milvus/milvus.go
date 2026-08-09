@@ -18,7 +18,7 @@ package milvus
 import (
 	"context"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
 
 // open 在默认构建下为空操作。

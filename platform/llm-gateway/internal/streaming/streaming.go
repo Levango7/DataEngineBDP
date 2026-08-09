@@ -34,8 +34,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
-	"github.com/shuqing/bigdata/llm-gateway/internal/token"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/token"
 )
 
 // ============ SSE 常量 ============

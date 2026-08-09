@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/vector-engine
+module github.com/Levango7/DataEngineBDP/vector-engine
 
 go 1.23
 

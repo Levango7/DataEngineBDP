@@ -1,6 +1,6 @@
-# 部署指南
+﻿# 部署指南
 
-> 本指南描述数擎大数据平台在四环境（信创 / 本地数据中心 / 公有云 / 私有云）下的部署流程。部署以自研 K8s 发行版 SKE 为底座，通过 Helm Chart 编排全部 59 个组件。
+> 本指南描述数据引擎大数据平台在四环境（信创 / 本地数据中心 / 公有云 / 私有云）下的部署流程。部署以自研 K8s 发行版 SKE 为底座，通过 Helm Chart 编排全部 59 个组件。
 
 ## 前置条件
 
@@ -31,7 +31,7 @@
 
 ## SKE 集群拉起
 
-SKE（Shuqing Kubernetes Engine）是数擎大数据平台自研的 K8s 发行版，基于 kubeadm 二次封装。
+SKE（DataEngine Kubernetes Engine）是数据引擎大数据平台自研的 K8s 发行版，基于 kubeadm 二次封装。
 
 ### 环境准备
 
@@ -83,7 +83,7 @@ kubectl get sc
 
 ## Helm Chart 部署
 
-数擎大数据平台共提供 59 个 Helm Chart，位于 `design/deploy/charts/`。
+数据引擎大数据平台共提供 59 个 Helm Chart，位于 `design/deploy/charts/`。
 
 ### 部署顺序
 

@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-# 数擎大数据平台 · ArgoCD 回滚脚本
+﻿#!/usr/bin/env bash
+# 数据引擎大数据平台 · ArgoCD 回滚脚本
 # 目标：安全回滚指定 Application 到历史 revision
 #
 # 用法：

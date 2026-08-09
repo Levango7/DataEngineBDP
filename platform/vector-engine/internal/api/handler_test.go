@@ -12,9 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/service"
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
-	"github.com/shuqing/bigdata/vector-engine/internal/store/mock"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/service"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store/mock"
 )
 
 // setupRouter 创建一个用于测试的 Gin 引擎。

@@ -24,10 +24,10 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/karmada-api/internal/handler"
-	"github.com/shuqing/bigdata/karmada-api/internal/middleware"
-	"github.com/shuqing/bigdata/karmada-api/internal/model"
-	"github.com/shuqing/bigdata/karmada-api/internal/store"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/handler"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/karmada-api/internal/store"
 )
 
 // 服务常量。

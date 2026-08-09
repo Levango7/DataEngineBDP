@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/karmada-api
+module github.com/Levango7/DataEngineBDP/karmada-api
 
 go 1.25.0
 

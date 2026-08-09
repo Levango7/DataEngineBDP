@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ Gateway 核心结构 ============

@@ -1,8 +1,8 @@
-# 数擎大数据平台 · ShuqingBigDataPlatform
+# 数据引擎大数据平台 · DataEngineBDP
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
-> 拼音：数擎 = shù qíng → **Shuqing**（SKE = Shuqing Kubernetes Engine），非 Shuqian。
+> 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**v2.0.0**
@@ -11,7 +11,7 @@
 
 ## 项目简介
 
-数擎大数据平台（ShuqingBigDataPlatform）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以自研 K8s 发行版 SKE 为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
+数据引擎大数据平台（DataEngineBDP）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以自研 K8s 发行版 SKE 为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
 
 ## 核心特性
 
@@ -43,7 +43,7 @@
 ## 项目结构
 
 ```
-ShuqingBigDataPlatform/
+DataEngineBDP/
 ├── .github/workflows/          # CI/CD 流水线（ci.yml + release.yml）
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 43 份模块详细设计文档
@@ -54,7 +54,7 @@ ShuqingBigDataPlatform/
 │   │   ├── profiles/           # 四环境 Profile 配置
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
-│   └── 数擎大数据平台_控制台原型_v0.3.html
+│   └── 数据引擎大数据平台_控制台原型_v0.3.html
 ├── platform/                   # 自研组件（31 个）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）

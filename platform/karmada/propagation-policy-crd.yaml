@@ -1,4 +1,4 @@
-﻿# PropagationPolicy CRD 定义
+# PropagationPolicy CRD 定义
 # ============================================================================
 # 作用：定义 Karmada PropagationPolicy CRD，封装多集群调度语义
 # 来源：Karmada 1.10+ 自带此 CRD，本文件用于：

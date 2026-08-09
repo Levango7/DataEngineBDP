@@ -37,6 +37,6 @@ management:
 logging:
   level:
     root: ${LOG_LEVEL:INFO}
-    com.shuqing.bigdata.function: INFO
+    com.levango7.dataenginebdp.function: INFO
   pattern:
     console: '{"timestamp":"%d","level":"%p","logger":"%logger","msg":"%m","tenant":"%X{tenantId}"}'

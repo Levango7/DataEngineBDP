@@ -76,5 +76,5 @@ shuqing:
 
 logging:
   level:
-    com.shuqing.bigdata.streambatch: INFO
+    com.levango7.dataenginebdp.streambatch: INFO
     org.springframework.web: INFO

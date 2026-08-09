@@ -73,7 +73,7 @@ management:
 
 logging:
   level:
-    com.shuqing.bigdata.governance: INFO
+    com.levango7.dataenginebdp.governance: INFO
     org.apache.flink: WARN
     org.apache.iceberg: WARN
   pattern:

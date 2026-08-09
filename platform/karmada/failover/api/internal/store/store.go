@@ -10,7 +10,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/failover-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/model"
 )
 
 // Store 存储接口。

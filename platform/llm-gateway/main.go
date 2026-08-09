@@ -28,13 +28,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/api"
-	"github.com/shuqing/bigdata/llm-gateway/internal/config"
-	"github.com/shuqing/bigdata/llm-gateway/internal/gateway"
-	"github.com/shuqing/bigdata/llm-gateway/internal/middleware"
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
-	"github.com/shuqing/bigdata/llm-gateway/internal/routing"
-	"github.com/shuqing/bigdata/llm-gateway/internal/token"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/api"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/config"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/gateway"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/routing"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/token"
 )
 
 // 服务常量。

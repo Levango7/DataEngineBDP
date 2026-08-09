@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // K8sBootstrapper K8s集群初始化器

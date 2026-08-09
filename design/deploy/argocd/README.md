@@ -1,4 +1,4 @@
-# 数擎大数据平台 · ArgoCD GitOps 部署配置
+﻿# 数据引擎大数据平台 · ArgoCD GitOps 部署配置
 
 > 版本：v0.1 ｜ 日期：2026-08-07 ｜ 状态：可部署
 > 所属：T003 ArgoCD GitOps 部署
@@ -71,12 +71,12 @@ design/deploy/argocd/
 
 - T001 k3s 集群已就绪（`kubectl get nodes` 返回 Ready）
 - 在 WSL2 Ubuntu 终端内执行（k3s kubeconfig 已写入 `~/.kube/config`）
-- 项目挂载路径：`/mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform`
+- 项目挂载路径：`/mnt/f/Agent/workbuddy/workspace/DataEngineBDP`
 
 ### 3.2 一键部署
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform
+cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
 
 # Step 1: 创建 namespace
 kubectl apply -f design/deploy/argocd/install/namespace.yaml

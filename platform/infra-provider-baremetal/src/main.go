@@ -34,11 +34,11 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
-	"github.com/shuqing/infra-provider-baremetal/src/config"
-	"github.com/shuqing/infra-provider-baremetal/src/internal/handler"
-	"github.com/shuqing/infra-provider-baremetal/src/internal/middleware"
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
-	"github.com/shuqing/infra-provider-baremetal/src/internal/service"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/config"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/handler"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/service"
 )
 
 // Version 通过ldflags注入的版本号

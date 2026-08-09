@@ -1,4 +1,4 @@
-module github.com/shuqing/infra-provider-baremetal
+module github.com/Levango7/DataEngineBDP/infra-provider-baremetal
 
 go 1.25.0
 

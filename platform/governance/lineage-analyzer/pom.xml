@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.shuqing.bigdata</groupId>
+    <groupId>com.levango7.dataenginebdp</groupId>
     <artifactId>lineage-analyzer</artifactId>
     <version>0.1.0</version>
     <name>lineage-analyzer</name>
@@ -91,7 +91,7 @@
 
         <!-- 复用 sql-gateway 的 SQL 解析器（ASTNode / SqlParserService / SqlDialect） -->
         <dependency>
-            <groupId>com.shuqing.bigdata</groupId>
+            <groupId>com.levango7.dataenginebdp</groupId>
             <artifactId>sql-gateway</artifactId>
             <version>${sql-gateway.version}</version>
             <exclusions>

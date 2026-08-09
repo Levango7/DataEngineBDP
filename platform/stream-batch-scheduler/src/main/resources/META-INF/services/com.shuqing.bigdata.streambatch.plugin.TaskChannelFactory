@@ -1,2 +1,0 @@
-com.shuqing.bigdata.streambatch.plugin.SparkBatchTaskChannelFactory
-com.shuqing.bigdata.streambatch.plugin.FlinkStreamTaskChannelFactory

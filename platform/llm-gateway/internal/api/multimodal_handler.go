@@ -27,10 +27,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
-	"github.com/shuqing/bigdata/llm-gateway/internal/routing"
-	"github.com/shuqing/bigdata/llm-gateway/internal/streaming"
-	"github.com/shuqing/bigdata/llm-gateway/internal/token"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/routing"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/streaming"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/token"
 )
 
 // ============ 多模态 Handler ============

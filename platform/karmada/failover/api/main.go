@@ -24,10 +24,10 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/failover-api/internal/handler"
-	"github.com/shuqing/bigdata/failover-api/internal/middleware"
-	"github.com/shuqing/bigdata/failover-api/internal/model"
-	"github.com/shuqing/bigdata/failover-api/internal/store"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/handler"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-api/internal/store"
 )
 
 // 服务常量。

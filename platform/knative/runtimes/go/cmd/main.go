@@ -19,8 +19,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
-	"github.com/shuqing/bigdata/function-runtime-go/internal/handler"
-	"github.com/shuqing/bigdata/function-runtime-go/internal/metrics"
+	"github.com/Levango7/DataEngineBDP/function-runtime-go/internal/handler"
+	"github.com/Levango7/DataEngineBDP/function-runtime-go/internal/metrics"
 )
 
 func main() {

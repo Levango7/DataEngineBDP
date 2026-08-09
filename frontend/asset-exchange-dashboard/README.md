@@ -1,6 +1,6 @@
-# 数据资产流通看板 (Asset Exchange Dashboard)
+﻿# 数据资产流通看板 (Asset Exchange Dashboard)
 
-数擎大数据平台 · T039 数据资产流通前端看板（Vue3 + ECharts）。
+数据引擎大数据平台 · T039 数据资产流通前端看板（Vue3 + ECharts）。
 
 ## 功能
 

@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/shuqing/bigdata/failover-engine/internal/model"
+	"github.com/Levango7/DataEngineBDP/failover-engine/internal/model"
 )
 
 // Client Karmada 控制面客户端。

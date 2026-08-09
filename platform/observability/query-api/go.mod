@@ -1,4 +1,4 @@
-module github.com/shuqing/bigdata/query-api
+module github.com/Levango7/DataEngineBDP/query-api
 
 go 1.25.0
 

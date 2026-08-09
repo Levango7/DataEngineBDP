@@ -1,6 +1,6 @@
-# finance-template Helm Chart（T019）
+﻿# finance-template Helm Chart（T019）
 
-> 数擎大数据平台 L5.3 行业应用模板 - 金融行业模板部署 Chart
+> 数据引擎大数据平台 L5.3 行业应用模板 - 金融行业模板部署 Chart
 > 基于 T018 金融模板，提供 Helm Chart 打包 + 多环境 values 覆盖 + 部署验证。
 
 ## 1. 概述

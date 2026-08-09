@@ -33,9 +33,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/query-api/internal/handler"
-	"github.com/shuqing/bigdata/query-api/internal/middleware"
-	"github.com/shuqing/bigdata/query-api/internal/service"
+	"github.com/Levango7/DataEngineBDP/query-api/internal/handler"
+	"github.com/Levango7/DataEngineBDP/query-api/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/query-api/internal/service"
 )
 
 // 服务常量。
