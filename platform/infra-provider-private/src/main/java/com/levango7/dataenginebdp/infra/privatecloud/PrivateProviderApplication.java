@@ -1,10 +1,10 @@
-package com.levango7.dataenginebdp.infra.privatecloud;
+﻿package com.levango7.dataenginebdp.infra.privatecloud;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * 数擎大数据平台 - L0.4 私有云 VM 供应 Provider 主入口。
+ * 数据引擎大数据平台 - L0.4 私有云 VM 供应 Provider 主入口。
  *
  * <p>统一对接 vSphere（VMware vCenter 7.0+）与 OpenStack（Nova v2.1）两类私有云底座，
  * 提供 VM 创建、销毁、查询与 K8s 集群引导能力，对外暴露统一 REST API。</p>

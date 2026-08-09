@@ -1,11 +1,11 @@
-# 数擎大数据平台 · 集成测试
+﻿# 数据引擎大数据平台 · 集成测试
 
 > 基于 pytest 的 REST API 集成测试框架，验证 9 个自研组件的端点正确性。
 > 其中 4 个 Java/Go 组件通过 Docker Compose 运行，5 个 Python 组件通过本地 Python 直接运行。
 
 ## 集成测试概述
 
-本目录包含数擎大数据平台（ShuqingBigDataPlatform）9 个自研组件的集成测试：
+本目录包含数据引擎大数据平台（DataEngineBDP）9 个自研组件的集成测试：
 
 ### Java/Go 组件（Docker Compose 方式）
 

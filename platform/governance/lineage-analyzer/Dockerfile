@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
@@ -41,8 +41,8 @@ RUN --mount=type=cache,target=/root/.m2/repository \
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="lineage-analyzer" \
-      org.opencontainers.image.description="数擎大数据平台 - 数据血缘分析引擎" \
-      org.opencontainers.image.source="https://github.com/shuqing-bigdata/ShuqingBigDataPlatform"
+      org.opencontainers.image.description="数据引擎大数据平台 - 数据血缘分析引擎" \
+      org.opencontainers.image.source="https://github.com/shuqing-bigdata/DataEngineBDP"
 
 # 创建非 root 用户 (alpine busybox 语法)
 RUN addgroup -S -g 1001 appgroup \

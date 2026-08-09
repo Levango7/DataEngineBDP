@@ -1,4 +1,4 @@
-"""E2E 测试报告生成器（HTML + JSON 双格式）。
+﻿"""E2E 测试报告生成器（HTML + JSON 双格式）。
 
 功能：
 - 解析 pytest 的 junit-xml 结果文件，提取测试用例列表、通过/失败状态、耗时；
@@ -251,7 +251,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<title>E2E 测试报告 - 数擎大数据平台</title>
+<title>E2E 测试报告 - 数据引擎大数据平台</title>
 <style>
   body {{ font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; margin: 0; padding: 24px; background: #f5f7fa; color: #1f2937; }}
   h1 {{ color: #111827; border-bottom: 2px solid #4f46e5; padding-bottom: 8px; }}
@@ -283,7 +283,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 </style>
 </head>
 <body>
-<h1>E2E 测试报告 - 数擎大数据平台</h1>
+<h1>E2E 测试报告 - 数据引擎大数据平台</h1>
 <div class="meta">生成时间：{generated_at}　总耗时：{duration:.2f}s</div>
 <div class="summary">
   <div class="card total"><div class="num">{total}</div><div class="label">总用例</div></div>

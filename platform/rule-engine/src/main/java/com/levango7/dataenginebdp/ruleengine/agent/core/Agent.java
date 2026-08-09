@@ -1,9 +1,9 @@
-package com.levango7.dataenginebdp.ruleengine.agent.core;
+﻿package com.levango7.dataenginebdp.ruleengine.agent.core;
 
 /**
  * 内置 Agent 角色统一接口。
  *
- * <p>数擎大数据平台 V2.0 在规则引擎模块下提供 8 种内置 Agent 角色：
+ * <p>数据引擎大数据平台 V2.0 在规则引擎模块下提供 8 种内置 Agent 角色：
  * <ul>
  *   <li>{@link Role#PLANNING}      规划 Agent：任务分解 + 执行计划生成</li>
  *   <li>{@link Role#SQL}           SQL Agent：自然语言转 SQL（对接 T010 NL2SQL）</li>

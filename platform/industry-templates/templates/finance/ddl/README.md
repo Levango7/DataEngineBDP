@@ -1,6 +1,6 @@
-# 金融模板 DDL 表设计说明
+﻿# 金融模板 DDL 表设计说明
 
-> 归属：数擎大数据平台 · L5.3 行业应用模板 · 金融模板（finance）
+> 归属：数据引擎大数据平台 · L5.3 行业应用模板 · 金融模板（finance）
 > 任务：T018-2 DDL 表设计（≥20 张，4 人天）
 > 上游：T018-1 金融业务模型（`../docs/business-model.md`、`../docs/data-classification.md`）
 > 引擎：Apache Doris（主） / Apache Iceberg（备，注释中给出兼容写法）

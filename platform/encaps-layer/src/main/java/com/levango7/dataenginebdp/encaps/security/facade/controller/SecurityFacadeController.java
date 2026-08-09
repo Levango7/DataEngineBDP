@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.security.facade.controller;
+﻿package com.levango7.dataenginebdp.encaps.security.facade.controller;
 
 import com.levango7.dataenginebdp.encaps.security.facade.SecurityFacade;
 import com.levango7.dataenginebdp.encaps.security.facade.assessment.AssessmentReport;
@@ -180,7 +180,7 @@ public class SecurityFacadeController {
     /**
      * 导出测评报告。
      *
-     * <p>请求体：{@code {"type": "dengbao-2.0", "systemName": "数擎大数据平台"}}</p>
+     * <p>请求体：{@code {"type": "dengbao-2.0", "systemName": "数据引擎大数据平台"}}</p>
      *
      * @param request 导出请求
      * @return 报告路径与摘要

@@ -1,4 +1,4 @@
-// Package cmd 定义 dqctl 的所有命令行子命令。
+﻿// Package cmd 定义 dqctl 的所有命令行子命令。
 //
 // root.go 定义根命令及全局配置加载逻辑，包括 --config、--tenant、--verbose、--output 等全局 flag。
 package cmd
@@ -29,8 +29,8 @@ var (
 // rootCmd 是 dqctl 的根命令。
 var rootCmd = &cobra.Command{
 	Use:   "dqctl",
-	Short: "数擎大数据平台命令行管理工具",
-	Long:  "dqctl 是数擎大数据平台的声明式资源管理命令行工具",
+	Short: "数据引擎大数据平台命令行管理工具",
+	Long:  "dqctl 是数据引擎大数据平台的声明式资源管理命令行工具",
 	// PersistentPreRun 在所有子命令执行前加载配置文件。
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return loadConfig()

@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.function;
+﻿package com.levango7.dataenginebdp.function;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * invocation 计量组件 · 数擎大数据平台 T025.
+ * invocation 计量组件 · 数据引擎大数据平台 T025.
  *
  * <p>按 tenant 隔离记录函数 invocation 计量：
  * <ul>

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -15,7 +15,7 @@
     <artifactId>stream-batch-scheduler</artifactId>
     <version>0.1.0</version>
     <name>stream-batch-scheduler</name>
-    <description>数擎大数据平台 - T035 流批一体调度与统一入口（DolphinScheduler 流批统一编排 + Iceberg snapshot 隔离 + BI 自动选择视图路由器）</description>
+    <description>数据引擎大数据平台 - T035 流批一体调度与统一入口（DolphinScheduler 流批统一编排 + Iceberg snapshot 隔离 + BI 自动选择视图路由器）</description>
 
     <properties>
         <java.version>17</java.version>

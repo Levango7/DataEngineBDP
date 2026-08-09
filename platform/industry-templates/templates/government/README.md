@@ -1,6 +1,6 @@
-# 政务行业模板（Government Industry Template）
+﻿# 政务行业模板（Government Industry Template）
 
-> 数擎大数据平台 L5.3 行业应用模板 - 政务行业完整模板（T044）
+> 数据引擎大数据平台 L5.3 行业应用模板 - 政务行业完整模板（T044）
 >
 > Phase 2 Batch 1c | 版本 1.0.0 | 2026-08-08
 

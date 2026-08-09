@@ -1,6 +1,6 @@
-"""FastAPI 应用入口。
+﻿"""FastAPI 应用入口。
 
-数擎大数据平台 · T031 模型评测平台
+数据引擎大数据平台 · T031 模型评测平台
 
 启动：
     uvicorn app.main:app --host 0.0.0.0 --port 8086
@@ -93,7 +93,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """创建 FastAPI 应用。"""
     app = FastAPI(
-        title="数擎大数据平台 · 模型评测平台",
+        title="数据引擎大数据平台 · 模型评测平台",
         description="T031 模型评测平台与 A/B 对比：评测任务引擎 + 标准集 + 六指标 + 三模式 + A/B 报告",
         version="0.1.0",
         lifespan=lifespan,

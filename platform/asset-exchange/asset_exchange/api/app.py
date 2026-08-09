@@ -1,4 +1,4 @@
-"""FastAPI 应用工厂."""
+﻿"""FastAPI 应用工厂."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def create_app(
     app = FastAPI(
         title="Asset Exchange Platform",
         description=(
-            "数擎大数据平台 · L5 多租户产品层 · 数据资产流通平台 (L5.6)\n\n"
+            "数据引擎大数据平台 · L5 多租户产品层 · 数据资产流通平台 (L5.6)\n\n"
             "将平台内数据集、数据服务、数据模型、大模型四类资产统一登记、上架、流通、变现，\n"
             "构建 提供方—平台—消费方 三方市场。"
         ),

@@ -1,4 +1,4 @@
-# 数擎大数据平台 Python 工具配置中心
+# 数据引擎大数据平台 Python 工具配置中心
 # 此文件位于项目根目录，所有 platform/ 下的 Python 组件会向上查找并继承此配置
 # 各组件 pyproject.toml 仅声明 [project] 元信息和 [tool.pytest.ini_options] 测试配置
 # 工具配置（black/isort/coverage/mypy）统一在此声明，确保风格一致
@@ -159,7 +159,7 @@ partial_branches = [
 
 [tool.coverage.html]
 directory = "htmlcov"
-title = "数擎大数据平台 Python 覆盖率报告"
+title = "数据引擎大数据平台 Python 覆盖率报告"
 
 [tool.coverage.xml]
 output = "coverage.xml"

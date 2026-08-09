@@ -1,4 +1,4 @@
-# 金融行业模板 - RBAC 角色定义
+﻿# 金融行业模板 - RBAC 角色定义
 # ============================================================================
 # 模块：T018-5 RBAC 角色权限定义与模板打包
 # 格式：Keycloak realm role 格式（含 composite 复合角色支持）
@@ -12,7 +12,7 @@ realm: finance-template-realm
 realm_enabled: true
 realm_display_name: 金融行业模板 RBAC 域
 realm_description: |
-  数擎大数据平台 L5.3 行业应用模板 - 金融行业 RBAC 角色定义。
+  数据引擎大数据平台 L5.3 行业应用模板 - 金融行业 RBAC 角色定义。
   基于 T018-2 DDL（21 张表）、T018-3 DAG（5 个调度作业）、T018-4 Dashboard（3 个仪表盘）设计。
   遵循最小权限原则：每个角色仅授予完成其业务职责所需的最小权限集合。
 

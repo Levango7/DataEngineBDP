@@ -1,11 +1,11 @@
-package com.levango7.dataenginebdp.infra.cloud;
+﻿package com.levango7.dataenginebdp.infra.cloud;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
- * 数擎大数据平台 - L0.3 多云 VM 供应 Provider 主入口。
+ * 数据引擎大数据平台 - L0.3 多云 VM 供应 Provider 主入口。
  *
  * <p>统一封装华为云 ECS / 阿里云 ECS / 腾讯云 CVM 的 VM 生命周期管理，
  * 通过 SPI 接口 {@code CloudProvider} 实现多云适配，对外暴露统一 REST API

@@ -1,4 +1,4 @@
-# ShuqingBigDataPlatform - Bare Metal Infra Provider 配置
+﻿# DataEngineBDP - Bare Metal Infra Provider 配置
 # 本地数据中心裸金属供应Provider
 #
 # 安全说明：所有敏感字段（密钥/密码/DSN）通过 ${ENV_VAR} 引用环境变量，

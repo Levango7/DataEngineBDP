@@ -1,4 +1,4 @@
-"""微调→评测→部署闭环编排服务 FastAPI 主入口.
+﻿"""微调→评测→部署闭环编排服务 FastAPI 主入口.
 
 端口：18088
 路由前缀：/api/v1/loop
@@ -123,7 +123,7 @@ def create_app() -> FastAPI:
     """创建 FastAPI 应用."""
     settings = get_settings()
     app = FastAPI(
-        title="数擎大数据平台 · 微调→评测→部署闭环编排",
+        title="数据引擎大数据平台 · 微调→评测→部署闭环编排",
         description=(
             "T033 一键闭环编排服务<br/>"
             "集成 T032 微调引擎 + T031 评测平台 + 模型仓库部署，"

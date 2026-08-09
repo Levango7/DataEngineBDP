@@ -1,4 +1,4 @@
-"""数擎大数据平台（ShuqingBigDataPlatform）跨领域端到端（E2E）集成测试套件。
+﻿"""数据引擎大数据平台（DataEngineBDP）跨领域端到端（E2E）集成测试套件。
 
 本包覆盖：
 - 28 项需求的 E2E 验收测试（P0/P1/P2 三档）

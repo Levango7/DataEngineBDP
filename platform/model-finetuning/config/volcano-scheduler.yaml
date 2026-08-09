@@ -1,5 +1,5 @@
-# Volcano GPU 调度配置
-# 数擎大数据平台 · T032 微调引擎 GPU 节点池调度
+﻿# Volcano GPU 调度配置
+# 数据引擎大数据平台 · T032 微调引擎 GPU 节点池调度
 #
 # Volcano 是 CNCF 的高级调度器，支持 Gang Scheduling（成组调度），
 # 适合微调任务要求多卡同时就绪的场景。

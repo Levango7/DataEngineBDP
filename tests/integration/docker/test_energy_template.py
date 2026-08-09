@@ -1,4 +1,4 @@
-"""能源行业模板（Energy Industry Template, T043）集成测试.
+﻿"""能源行业模板（Energy Industry Template, T043）集成测试.
 
 被测对象：platform/industry-templates/templates/energy/ 全部交付物
          platform/industry-templates/charts/energy-template/ Helm Chart
@@ -46,7 +46,7 @@ import yaml
 # 测试文件所在目录：tests/integration/docker/
 _THIS_DIR = Path(__file__).resolve().parent
 
-# 项目根目录：ShuqingBigDataPlatform/
+# 项目根目录：DataEngineBDP/
 PROJECT_ROOT = _THIS_DIR.parents[2]
 
 # 能源模板根目录：platform/industry-templates/templates/energy/

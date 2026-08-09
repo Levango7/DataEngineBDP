@@ -1,4 +1,4 @@
-"""FastAPI 应用工厂."""
+﻿"""FastAPI 应用工厂."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def create_app(
     app = FastAPI(
         title="Business Portal",
         description=(
-            "数擎大数据平台 · L5.4 对内业务线门户\n\n"
+            "数据引擎大数据平台 · L5.4 对内业务线门户\n\n"
             '以"业务线-团队-项目"组织视图复用平台全部能力，免计费或走内部结算，'
             "不承诺 SLA，资源受部门预算软约束。仅适用于标准版+旗舰版。\n"
             "多业务线隔离（数据隔离 + 权限隔离）。"

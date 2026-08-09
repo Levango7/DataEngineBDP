@@ -1,10 +1,10 @@
-# NL2SQL 核心引擎 · 数擎大数据平台 L4.5.4
+﻿# NL2SQL 核心引擎 · 数据引擎大数据平台 L4.5.4
 
 > 将自然语言查询转换为 SQL，对接 Catalog 元数据与 SQL 网关，支持意图识别、Schema 上下文构建、语法校验、多轮澄清与槽位填充。
 
 ## 项目用途
 
-`nl2sql` 是数擎大数据平台（ShuqingBigDataPlatform）的 NL2SQL 核心引擎，提供：
+`nl2sql` 是数据引擎大数据平台（DataEngineBDP）的 NL2SQL 核心引擎，提供：
 
 - **Schema 上下文构建**：从 Catalog（Go :8082）拉取表结构，裁剪为 LLM prompt 上下文。
 - **意图识别**：识别聚合 / 过滤 / Join / 排序 / 分组等查询意图。

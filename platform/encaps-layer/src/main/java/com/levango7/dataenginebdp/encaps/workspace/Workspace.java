@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.workspace;
+﻿package com.levango7.dataenginebdp.encaps.workspace;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 /**
  * Workspace 模型 JPA Entity。
  *
- * <p>Workspace 是数擎大数据平台中租户下的工作空间（隔离边界），由封装层翻译为
+ * <p>Workspace 是数据引擎大数据平台中租户下的工作空间（隔离边界），由封装层翻译为
  * K8s Namespace + NetworkPolicy + RBAC + ResourceQuota 一组底层资源原语。
  * 客户无需感知 K8s/容器编排细节。</p>
  *

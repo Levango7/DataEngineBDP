@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.security.facade;
+﻿package com.levango7.dataenginebdp.encaps.security.facade;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoConfig;
@@ -102,11 +102,11 @@ class SecurityFacadeTest {
         List<EvidenceItem> evidence = facade.collectEvidence();
 
         AssessmentReport report = facade.generateAssessment(
-                AssessmentType.DENGBAO_2_0, evidence, "数擎大数据平台");
+                AssessmentType.DENGBAO_2_0, evidence, "数据引擎大数据平台");
 
         assertThat(report).isNotNull();
         assertThat(report.getControlItems()).isNotEmpty();
-        assertThat(report.getSystemName()).isEqualTo("数擎大数据平台");
+        assertThat(report.getSystemName()).isEqualTo("数据引擎大数据平台");
     }
 
     @Test
@@ -115,7 +115,7 @@ class SecurityFacadeTest {
         facade.audit().record("TEST").build();
         List<EvidenceItem> evidence = facade.collectEvidence();
 
-        Path path = facade.exportAssessment(AssessmentType.DENGBAO_2_0, evidence, "数擎大数据平台");
+        Path path = facade.exportAssessment(AssessmentType.DENGBAO_2_0, evidence, "数据引擎大数据平台");
 
         assertThat(path).exists();
         assertThat(path.getFileName().toString()).startsWith("dengbao-2.0-");
@@ -127,7 +127,7 @@ class SecurityFacadeTest {
         facade.audit().record("ENCRYPT").build();
         facade.audit().record("DECRYPT").build();
 
-        Path path = facade.collectAndExportAssessment(AssessmentType.MIPING, "数擎大数据平台");
+        Path path = facade.collectAndExportAssessment(AssessmentType.MIPING, "数据引擎大数据平台");
 
         assertThat(path).exists();
         assertThat(path.getFileName().toString()).startsWith("miping-");

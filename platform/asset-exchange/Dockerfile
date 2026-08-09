@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 # Asset Exchange Platform Dockerfile
-# 数擎大数据平台 L5.6 数据资产交易市场 - 资产交换平台
+# 数据引擎大数据平台 L5.6 数据资产交易市场 - 资产交换平台
 
 FROM python:3.11-slim
 

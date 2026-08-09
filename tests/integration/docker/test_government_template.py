@@ -1,4 +1,4 @@
-"""政务行业模板（Government Industry Template, T044）集成测试.
+﻿"""政务行业模板（Government Industry Template, T044）集成测试.
 
 被测对象：platform/industry-templates/templates/government/ 全部交付物
          platform/industry-templates/charts/government-template/ Helm Chart
@@ -34,7 +34,7 @@ import yaml
 # 测试文件所在目录：tests/integration/docker/
 _THIS_DIR = Path(__file__).resolve().parent
 
-# 项目根目录：ShuqingBigDataPlatform/
+# 项目根目录：DataEngineBDP/
 PROJECT_ROOT = _THIS_DIR.parents[2]
 
 # 政务模板根目录：platform/industry-templates/templates/government/

@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.governance.realtime;
+﻿package com.levango7.dataenginebdp.governance.realtime;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * 数擎大数据平台 - T036 实时治理管道主入口。
+ * 数据引擎大数据平台 - T036 实时治理管道主入口。
  *
  * <p>基于 Phase 1 Iceberg V2（T015）与 Flink CDC（T014），实现实时治理闭环：
  * <ol>

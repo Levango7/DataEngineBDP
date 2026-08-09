@@ -1,4 +1,4 @@
-"""Python 函数运行时 · FastAPI 入口 · 数擎大数据平台 T025。
+﻿"""Python 函数运行时 · FastAPI 入口 · 数据引擎大数据平台 T025。
 
 本模块是 Serverless Python 函数运行时的 FastAPI 入口，封装为 Knative Service。
 设计要点：

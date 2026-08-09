@@ -1,4 +1,4 @@
-# 能源行业模板 - RBAC 角色定义
+﻿# 能源行业模板 - RBAC 角色定义
 # ============================================================================
 # 模块：T043 能源行业模板 RBAC
 # 格式：Keycloak realm role 格式
@@ -12,7 +12,7 @@ realm: energy-template-realm
 realm_enabled: true
 realm_display_name: 能源行业模板 RBAC 域
 realm_description: |
-  数擎大数据平台 L5.3 行业应用模板 - 能源行业 RBAC 角色定义。
+  数据引擎大数据平台 L5.3 行业应用模板 - 能源行业 RBAC 角色定义。
   基于 DDL（31 张表）、DAG（5 个调度作业）、Dashboard（4 个仪表盘）设计。
   遵循最小权限原则：每个角色仅授予完成其业务职责所需的最小权限集合。
 

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
 # 默认 docker.m.daocloud.io 代理 Docker Hub 官方镜像，运行阶段基础镜像为
@@ -28,8 +28,8 @@ RUN --mount=type=cache,target=/root/.m2/repository \
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="infra-provider-private" \
-      org.opencontainers.image.description="数擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）" \
-      org.opencontainers.image.source="https://github.com/shuqing-bigdata/ShuqingBigDataPlatform"
+      org.opencontainers.image.description="数据引擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）" \
+      org.opencontainers.image.source="https://github.com/shuqing-bigdata/DataEngineBDP"
 
 # 创建非 root 用户（alpine 使用 addgroup/adduser）
 RUN addgroup --system --gid 1001 appgroup \

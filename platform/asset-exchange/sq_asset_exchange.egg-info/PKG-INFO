@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+﻿Metadata-Version: 2.4
 Name: sq-asset-exchange
 Version: 0.1.0
 Summary: Shuqing Big Data Platform - Data Asset Exchange (L5.6)
@@ -36,7 +36,7 @@ Requires-Dist: httpx==0.27.0; extra == "dev"
 
 # SQ Asset Exchange (L5.6 数据资产流通)
 
-数擎大数据平台 · L5 多租户产品层 · 数据资产流通平台（L5.6）。
+数据引擎大数据平台 · L5 多租户产品层 · 数据资产流通平台（L5.6）。
 
 将平台内**数据集 / 数据服务 / 数据模型 / 大模型**四类资产统一登记、上架、流通、变现，
 构建"提供方—平台—消费方"三方市场。

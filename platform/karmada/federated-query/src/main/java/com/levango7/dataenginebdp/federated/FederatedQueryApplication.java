@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.federated;
+﻿package com.levango7.dataenginebdp.federated;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
- * 数擎大数据平台 T034 - 跨集群查询路由与归并服务入口。
+ * 数据引擎大数据平台 T034 - 跨集群查询路由与归并服务入口。
  *
  * <p>基于 T026 Karmada 控制面（Batch 1a）与 Phase 1 T012 Calcite 联邦优化器，
  * 提供以下能力：

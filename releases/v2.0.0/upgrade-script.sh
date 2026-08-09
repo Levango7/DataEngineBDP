@@ -1,8 +1,8 @@
-#!/bin/bash
+﻿#!/bin/bash
 # =============================================================================
-# ShuqingBigDataPlatform V1.0 → V2.0 Upgrade Script
+# DataEngineBDP V1.0 → V2.0 Upgrade Script
 # =============================================================================
-# Description : 平滑升级数擎大数据平台从 V1.0.0 到 V2.0.0 GA
+# Description : 平滑升级数据引擎大数据平台从 V1.0.0 到 V2.0.0 GA
 # Usage       : ./upgrade-script.sh [--dry-run] [--namespace <ns>] [--backup-dir <dir>] [--env <xinchang|onprem|public-cloud|private-cloud>]
 # Author      : T049 发布工程师
 # Date        : 2026-08-08
@@ -392,7 +392,7 @@ log_info "无需回滚，升级成功"
 # ----------------------------------------------------------------------------
 log_step "升级完成"
 log_info "=============================================================="
-log_info "  数擎大数据平台升级成功"
+log_info "  数据引擎大数据平台升级成功"
 log_info "  V${SOURCE_VERSION}  →  V${TARGET_VERSION} (GA, Aurora)"
 log_info "  环境      : $ENV"
 log_info "  命名空间  : $NAMESPACE"

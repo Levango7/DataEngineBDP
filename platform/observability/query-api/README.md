@@ -1,8 +1,8 @@
-# 统一查询 API（query-api）
+﻿# 统一查询 API（query-api）
 
 ## 概述
 
-统一查询 API 是数擎大数据平台 Grafana 双视图与租户隔离的核心组件。
+统一查询 API 是数据引擎大数据平台 Grafana 双视图与租户隔离的核心组件。
 它封装后端 Prometheus 查询 API，按租户强制注入 `tenant_id` 标签过滤，
 确保租户间指标互不可见。
 

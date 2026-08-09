@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+﻿Metadata-Version: 2.4
 Name: sq-industry-templates
 Version: 0.1.0
 Summary: Shuqing Big Data Platform - Industry Templates Platform (L5.3)
@@ -35,7 +35,7 @@ Requires-Dist: httpx==0.27.0; extra == "dev"
 
 # Industry Templates Platform (L5.3)
 
-数擎大数据平台 · 行业应用模板平台 — 面向外部客户的预置分析模板。
+数据引擎大数据平台 · 行业应用模板平台 — 面向外部客户的预置分析模板。
 
 ## 定位
 

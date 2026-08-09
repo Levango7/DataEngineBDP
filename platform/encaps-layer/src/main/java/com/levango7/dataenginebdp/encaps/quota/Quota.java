@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.quota;
+﻿package com.levango7.dataenginebdp.encaps.quota;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,7 +18,7 @@ import java.time.LocalDateTime;
 /**
  * Quota 模型 JPA Entity。
  *
- * <p>Quota 是数擎大数据平台中对 Workspace 的资源配额抽象，由封装层翻译为
+ * <p>Quota 是数据引擎大数据平台中对 Workspace 的资源配额抽象，由封装层翻译为
  * K8s ResourceQuota + LimitRange 一组底层资源原语。客户无需感知 K8s 配额细节。</p>
  *
  * <p>核心字段分两组：</p>

@@ -1,5 +1,5 @@
 ﻿$ErrorActionPreference = "Continue"
-$base = "F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform"
+$base = "F:\Agent\workbuddy\workspace\DataEngineBDP\platform"
 $results = @()
 
 # 模块列表: name, dockerfilePath, image
@@ -23,7 +23,7 @@ $modules = @(
     @{Name="nl2sql"; Path="$base\nl2sql"; Image="sq/nl2sql:0.1.0"}
 )
 
-$logFile = "F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\deploy\k3s\build_log.txt"
+$logFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\build_log.txt"
 "Build Log - $(Get-Date)" | Out-File $logFile
 
 foreach ($m in $modules) {

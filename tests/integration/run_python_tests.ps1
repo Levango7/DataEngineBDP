@@ -1,7 +1,7 @@
 ﻿#!/usr/bin/env pwsh
 <#
 .SYNOPSIS
-    数擎大数据平台 · Python 组件集成测试本地运行脚本（Windows PowerShell）
+    数据引擎大数据平台 · Python 组件集成测试本地运行脚本（Windows PowerShell）
 
 .DESCRIPTION
     本脚本用于在本地环境运行 5 个 Python 组件的集成测试：
@@ -45,7 +45,7 @@ $ProjectRoot = Resolve-Path "$PSScriptRoot\..\.."
 $IntegrationDir = $PSScriptRoot
 
 Write-Host "================================================" -ForegroundColor Cyan
-Write-Host "  数擎大数据平台 · Python 组件集成测试" -ForegroundColor Cyan
+Write-Host "  数据引擎大数据平台 · Python 组件集成测试" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
 

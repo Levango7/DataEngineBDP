@@ -1,4 +1,4 @@
-"""FastAPI 应用工厂."""
+﻿"""FastAPI 应用工厂."""
 
 from __future__ import annotations
 
@@ -33,7 +33,7 @@ def create_app(
     app = FastAPI(
         title="Industry Templates Platform",
         description=(
-            "数擎大数据平台 · L5.3 行业应用模板平台\n\n"
+            "数据引擎大数据平台 · L5.3 行业应用模板平台\n\n"
             "面向外部客户的预置分析模板（金融风控/零售画像/制造质检），"
             "让客户开箱即用而非从零搭建。\n"
             "核心能力：TemplateEngine（模板解析 + 参数注入 + 一键部署）。"

@@ -1,4 +1,4 @@
-"""Knative Serving/Eventing 集成测试 · 数擎大数据平台。
+﻿"""Knative Serving/Eventing 集成测试 · 数据引擎大数据平台。
 
 本模块是 T024 Knative 部署的 pytest 集成测试，验证：
     1. Knative Serving KService 创建与 URL 分配

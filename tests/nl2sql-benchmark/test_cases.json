@@ -1,5 +1,5 @@
-{
-  "_comment": "NL2SQL 内部评测集 — 基于数擎大数据平台 Mock schema (default.orders / default.users / default.products)",
+﻿{
+  "_comment": "NL2SQL 内部评测集 — 基于数据引擎大数据平台 Mock schema (default.orders / default.users / default.products)",
   "schema": {
     "tables": [
       {"name": "default.orders",    "columns": ["order_id", "user_id", "amount", "status", "dt"]},

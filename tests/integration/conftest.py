@@ -1,6 +1,6 @@
-"""pytest 集成测试公共配置与 fixtures。
+﻿"""pytest 集成测试公共配置与 fixtures。
 
-本模块是数擎大数据平台（ShuqingBigDataPlatform）集成测试的入口配置：
+本模块是数据引擎大数据平台（DataEngineBDP）集成测试的入口配置：
 - 集中维护各组件 REST API 基础 URL；
 - 提供 ``api_client`` 通用 HTTP 客户端 fixture；
 - 提供 4 个 Java/Go 组件的 URL fixture（session 级别，避免重复创建）；

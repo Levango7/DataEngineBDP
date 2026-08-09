@@ -1,10 +1,10 @@
-package com.levango7.dataenginebdp.infra.orchestrator;
+﻿package com.levango7.dataenginebdp.infra.orchestrator;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * 数擎大数据平台 - L0.5 跨环境统一供给编排器 启动主类。
+ * 数据引擎大数据平台 - L0.5 跨环境统一供给编排器 启动主类。
  *
  * <p>L0.5 编排层位于四环境 Provider（L0.1 信创 / L0.2 裸金属 / L0.3 公有云 / L0.4 私有云）
  * 之上，对上暴露统一的 {@code /api/v1/clusters} REST API，通过请求体的 {@code environment}

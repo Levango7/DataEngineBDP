@@ -1,4 +1,4 @@
-# 数擎大数据平台 调优参数集
+﻿# 数据引擎大数据平台 调优参数集
 #
 # T046 全链路性能调优与压测 · 各组件推荐调优参数
 #
@@ -23,7 +23,7 @@
 meta:
   version: "v1.0"
   date: "2026-08-08"
-  project: "ShuqingBigDataPlatform"
+  project: "DataEngineBDP"
   description: "全链路性能调优参数集 - 覆盖 JVM/连接池/缓存/线程池/K8s 资源配额"
   sla_targets:
     api_p99_latency: "200ms"

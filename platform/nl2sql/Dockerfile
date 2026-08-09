@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 # NL2SQL Core Engine Dockerfile
-# 数擎大数据平台 · L4.5.4 NL2SQL 核心引擎
+# 数据引擎大数据平台 · L4.5.4 NL2SQL 核心引擎
 
 FROM python:3.11-slim
 

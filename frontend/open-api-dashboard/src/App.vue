@@ -1,9 +1,9 @@
-<template>
+﻿<template>
   <el-container class="app-container">
     <el-aside width="220px" class="app-aside">
       <div class="logo">
         <h2>开放 API 目录</h2>
-        <p class="logo-sub">数擎大数据平台 L5.5</p>
+        <p class="logo-sub">数据引擎大数据平台 L5.5</p>
       </div>
       <el-menu
         :default-active="activeMenu"

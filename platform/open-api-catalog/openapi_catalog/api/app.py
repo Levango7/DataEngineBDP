@@ -1,4 +1,4 @@
-"""FastAPI 应用工厂."""
+﻿"""FastAPI 应用工厂."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def create_app(
     app = FastAPI(
         title="Open API Service Catalog",
         description=(
-            "数擎大数据平台 · L5 多租户产品层 · 开放 API 服务目录 (L5.5)\n\n"
+            "数据引擎大数据平台 · L5 多租户产品层 · 开放 API 服务目录 (L5.5)\n\n"
             "将平台数据能力封装为 REST/gRPC API，经 APISIX 网关对外暴露；\n"
             "配套服务目录支持浏览、搜索、订阅、评分，形成"
             '"数据即 API、API 即资产"的开放生态。\n\n'

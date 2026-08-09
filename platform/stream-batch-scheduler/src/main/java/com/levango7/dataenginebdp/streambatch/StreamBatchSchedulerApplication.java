@@ -1,10 +1,10 @@
-package com.levango7.dataenginebdp.streambatch;
+﻿package com.levango7.dataenginebdp.streambatch;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * 数擎大数据平台 — T035 流批一体调度与统一入口 启动类。
+ * 数据引擎大数据平台 — T035 流批一体调度与统一入口 启动类。
  *
  * <p>本模块实现：
  * <ul>

@@ -1,4 +1,4 @@
-# 数擎大数据平台性能压测 Python 依赖
+﻿# 数据引擎大数据平台性能压测 Python 依赖
 #
 # 安装：pip install -r requirements.txt
 # 推荐 Python 版本：3.11+（使用 asyncio + httpx 异步压测）

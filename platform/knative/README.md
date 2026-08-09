@@ -1,6 +1,6 @@
-# Knative Serving/Eventing 部署配置
+﻿# Knative Serving/Eventing 部署配置
 
-> 任务 T024 · Knative Serving + Eventing 部署 · 数擎大数据平台
+> 任务 T024 · Knative Serving + Eventing 部署 · 数据引擎大数据平台
 > 版本：Knative Serving >= 1.12 · Eventing >= 1.12
 > 网络层：复用 Phase 1 Istio Ingress Gateway（T001）
 > GitOps：ArgoCD 集成（T003）

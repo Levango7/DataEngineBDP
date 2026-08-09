@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # ============================================================================
-# 数擎大数据平台 - Flink CDC MySQL 管道启动脚本
+# 数据引擎大数据平台 - Flink CDC MySQL 管道启动脚本
 # ----------------------------------------------------------------------------
 # 用法:
 #   ./start-cdc-mysql.sh <config.yaml> [flink-jobmanager-host]
@@ -47,7 +47,7 @@ if [[ -z "${CDC_JAR:-}" ]]; then
 fi
 
 echo "========================================"
-echo " 数擎大数据平台 - Flink CDC 启动"
+echo " 数据引擎大数据平台 - Flink CDC 启动"
 echo "========================================"
 echo " 配置文件: ${CONFIG_FILE}"
 echo " CDC JAR:  ${CDC_JAR}"

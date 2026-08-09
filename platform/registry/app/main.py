@@ -1,4 +1,4 @@
-"""模型仓库注册部署服务 FastAPI 主入口.
+﻿"""模型仓库注册部署服务 FastAPI 主入口.
 
 端口：18089
 路由前缀：/api/v1/registry
@@ -82,7 +82,7 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """创建 FastAPI 应用."""
     app = FastAPI(
-        title="数擎大数据平台 · 模型仓库注册部署",
+        title="数据引擎大数据平台 · 模型仓库注册部署",
         description=(
             "T033 模型仓库：微调后模型注册 + 一键部署 + "
             "部署管理 + 健康检查"

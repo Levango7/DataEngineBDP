@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.security.facade;
+﻿package com.levango7.dataenginebdp.encaps.security.facade;
 
 import com.levango7.dataenginebdp.encaps.security.facade.assessment.AssessmentExporter;
 import com.levango7.dataenginebdp.encaps.security.facade.assessment.AssessmentReport;
@@ -56,7 +56,7 @@ import java.util.List;
  * facade.archiveEvidence(evidence);
  *
  * // 导出等保测评报告
- * Path report = facade.exportAssessment(AssessmentType.DENGBAO_2_0, evidence, "数擎大数据平台");
+ * Path report = facade.exportAssessment(AssessmentType.DENGBAO_2_0, evidence, "数据引擎大数据平台");
  * }</pre>
  *
  * <h3>线程安全</h3>

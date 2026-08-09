@@ -1,6 +1,6 @@
-# 制造行业模板（Manufacturing Industry Template）
+﻿# 制造行业模板（Manufacturing Industry Template）
 
-> 数擎大数据平台 L5.3 行业应用模板 - 制造行业完整模板（T037）
+> 数据引擎大数据平台 L5.3 行业应用模板 - 制造行业完整模板（T037）
 >
 > Phase 2 Batch 1b | 版本 1.0.0 | 2026-08-08
 

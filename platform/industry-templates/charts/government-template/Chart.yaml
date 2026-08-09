@@ -1,4 +1,4 @@
-# Helm Chart 定义 - 政务行业模板包装
+﻿# Helm Chart 定义 - 政务行业模板包装
 # ============================================================================
 # 用途：使政务行业模板可被 helm install 引用部署
 # 说明：本 Chart 不部署实际工作负载（Doris/DS/Superset/Spark/Keycloak
@@ -9,7 +9,7 @@
 apiVersion: v2
 name: government-template
 description: |
-  数擎大数据平台 L5.3 行业应用模板 - 政务行业完整模板 Helm Chart。
+  数据引擎大数据平台 L5.3 行业应用模板 - 政务行业完整模板 Helm Chart。
   含 36 张 DDL 表、8 个 DAG 调度作业、4 个 Superset Dashboard、5 个 RBAC 角色，
   重点特色为政务合规预置（数据分级/脱敏/审计/访问控制），
   通过 ConfigMap 挂载模板资产，由平台侧 Job 完成导入。
@@ -18,7 +18,7 @@ version: 1.0.0
 appVersion: "1.0.0"
 home: https://shuqing.com/industry-templates/government
 sources:
-  - https://github.com/shuqing/ShuqingBigDataPlatform/platform/industry-templates/templates/government
+  - https://github.com/shuqing/DataEngineBDP/platform/industry-templates/templates/government
 maintainers:
   - name: hw029373469
     email: hw029373469@shuqing.com

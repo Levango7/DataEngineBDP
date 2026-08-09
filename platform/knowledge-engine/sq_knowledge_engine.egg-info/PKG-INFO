@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+﻿Metadata-Version: 2.4
 Name: sq-knowledge-engine
 Version: 0.1.0
 Summary: Shuqing Big Data Platform - Knowledge Engineering Engine (L4.5.2)
@@ -39,7 +39,7 @@ Requires-Dist: nebula3-python==3.4.0; extra == "dev"
 
 # sq-knowledge-engine
 
-数擎大数据平台 · 智能数据层 · 知识工程引擎 (L4.5.2)
+数据引擎大数据平台 · 智能数据层 · 知识工程引擎 (L4.5.2)
 
 ## 定位
 从文本中抽取实体与关系，构建知识图谱（NebulaGraph），并提供图查询 API。

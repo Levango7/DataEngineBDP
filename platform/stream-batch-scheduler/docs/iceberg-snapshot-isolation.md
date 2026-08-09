@@ -1,10 +1,10 @@
-# Iceberg snapshot 隔离配置与验证文档
+﻿# Iceberg snapshot 隔离配置与验证文档
 
 ## 第1章 概述
 
 ### 1.1 文档目的
 
-本文档描述数擎大数据平台 T035 流批一体调度模块中 Iceberg snapshot 隔离机制的配置方法与验证流程。
+本文档描述数据引擎大数据平台 T035 流批一体调度模块中 Iceberg snapshot 隔离机制的配置方法与验证流程。
 
 ### 1.2 snapshot 隔离原理
 

@@ -1,4 +1,4 @@
-# Helm Chart 定义 - 能源行业模板包装
+﻿# Helm Chart 定义 - 能源行业模板包装
 # ============================================================================
 # 用途：使能源行业模板可被 helm install 引用部署
 # 说明：本 Chart 不部署实际工作负载（Doris/DS/Superset/IoTDB/Flink/Spark/Keycloak
@@ -9,7 +9,7 @@
 apiVersion: v2
 name: energy-template
 description: |
-  数擎大数据平台 L5.3 行业应用模板 - 能源行业完整模板 Helm Chart。
+  数据引擎大数据平台 L5.3 行业应用模板 - 能源行业完整模板 Helm Chart。
   含 31 张 DDL 表、5 个 DAG 调度作业、4 个 Superset Dashboard、4 个 RBAC 角色，
   接入 IoTDB 时序数据，通过 ConfigMap 挂载模板资产，由平台侧 Job 完成导入。
 type: application
@@ -17,7 +17,7 @@ version: 1.0.0
 appVersion: "1.0.0"
 home: https://shuqing.com/industry-templates/energy
 sources:
-  - https://github.com/shuqing/ShuqingBigDataPlatform/platform/industry-templates/templates/energy
+  - https://github.com/shuqing/DataEngineBDP/platform/industry-templates/templates/energy
 mainters:
   - name: hw029373469
     email: hw029373469@shuqing.com

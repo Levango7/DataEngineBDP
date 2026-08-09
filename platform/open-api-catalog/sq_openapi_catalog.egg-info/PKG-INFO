@@ -1,4 +1,4 @@
-Metadata-Version: 2.4
+﻿Metadata-Version: 2.4
 Name: sq-openapi-catalog
 Version: 0.1.0
 Summary: Shuqing Big Data Platform - Open API Service Catalog (L5.5)
@@ -36,7 +36,7 @@ Requires-Dist: httpx==0.27.0; extra == "dev"
 
 # Open API Service Catalog (L5.5)
 
-数擎大数据平台 · 开放 API 服务目录
+数据引擎大数据平台 · 开放 API 服务目录
 
 ## 定位
 

@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.6
+﻿# syntax=docker/dockerfile:1.6
 # LLMOps Platform Dockerfile
-# 数擎大数据平台 L4.5.3 智能数据层 - LLMOps 运营平台
+# 数据引擎大数据平台 L4.5.3 智能数据层 - LLMOps 运营平台
 
 FROM python:3.11-slim AS builder
 

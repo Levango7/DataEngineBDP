@@ -1,4 +1,4 @@
-﻿$modules = Get-ChildItem 'F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform' -Directory
+﻿﻿$modules = Get-ChildItem 'F:\Agent\workbuddy\workspace\DataEngineBDP\platform' -Directory
 foreach ($m in $modules) {
     $name = $m.Name
     $hasPom = Test-Path (Join-Path $m.FullName 'pom.xml')

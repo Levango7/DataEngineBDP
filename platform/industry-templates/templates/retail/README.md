@@ -1,6 +1,6 @@
-# 零售行业大数据平台模板（retail-template）
+﻿# 零售行业大数据平台模板（retail-template）
 
-> 数擎大数据平台 V2.0 Phase 2 Batch 1b - T038 零售行业模板
+> 数据引擎大数据平台 V2.0 Phase 2 Batch 1b - T038 零售行业模板
 > 覆盖商品画像 + 会员分析 + 营销效果三大业务域，接入标签引擎，支持 RFM 分群/流失预测/LTV/A/B 实验/转化漏斗/ROI 分析，打包为 Helm Chart 一键部署。
 
 ## 1. 模板概览
@@ -103,4 +103,4 @@ helm uninstall retail-template -n retail
 
 - 工程师：T038 零售模板工程师
 - 邮箱：hw029373469@shuqing.com
-- 组织：数擎大数据平台团队
+- 组织：数据引擎大数据平台团队

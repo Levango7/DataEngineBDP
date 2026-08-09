@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -15,7 +15,7 @@
     <artifactId>infra-provider-private</artifactId>
     <version>0.1.0</version>
     <name>infra-provider-private</name>
-    <description>数擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）</description>
+    <description>数据引擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）</description>
 
     <properties>
         <java.version>17</java.version>

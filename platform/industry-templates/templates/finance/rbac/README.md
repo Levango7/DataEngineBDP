@@ -1,6 +1,6 @@
-# 金融行业模板 - RBAC 角色权限定义说明
+﻿# 金融行业模板 - RBAC 角色权限定义说明
 
-> 归属：数擎大数据平台 · L5.3 行业应用模板 · 金融模板（finance）
+> 归属：数据引擎大数据平台 · L5.3 行业应用模板 · 金融模板（finance）
 > 任务：T018-5 RBAC 角色权限定义与模板打包
 > 上游：T018-2 DDL（21 张表）、T018-3 DAG（5 个调度作业）、T018-4 Dashboard（3 个仪表盘）
 > 格式：Keycloak realm role + Resource-Based Permission

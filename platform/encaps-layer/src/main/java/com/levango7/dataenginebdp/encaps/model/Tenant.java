@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.encaps.model;
+﻿package com.levango7.dataenginebdp.encaps.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 /**
  * 租户模型 JPA Entity。
  *
- * <p>描述数擎大数据平台中一个租户的核心元数据，包括命名空间、配额档位与状态等。
+ * <p>描述数据引擎大数据平台中一个租户的核心元数据，包括命名空间、配额档位与状态等。
  * 通过 Spring Data JPA 持久化到关系型数据库（开发环境 H2，生产环境 PostgreSQL）。</p>
  */
 @Data

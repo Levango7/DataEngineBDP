@@ -1,4 +1,4 @@
-"""FastAPI 应用工厂."""
+﻿"""FastAPI 应用工厂."""
 
 from __future__ import annotations
 
@@ -41,7 +41,7 @@ def createApp(
     app = FastAPI(
         title="ML Platform",
         description=(
-            "数擎大数据平台 · 智能数据层 · 机器学习平台 (L4.5.6)\n\n"
+            "数据引擎大数据平台 · 智能数据层 · 机器学习平台 (L4.5.6)\n\n"
             "实验追踪 → 训练 → 评估 → 预测 一体化 MLOps；\n"
             "对齐 MLflow（开源 MLOps 标准）/ Spark MLlib / Scikit-learn。"
         ),

@@ -1,5 +1,5 @@
-# ============================================================================
-# Knative Service 示例 · 数擎大数据平台
+﻿# ============================================================================
+# Knative Service 示例 · 数据引擎大数据平台
 # ----------------------------------------------------------------------------
 # 作用：验证 Knative Serving KService 创建与 URL 分配
 # 特性：
@@ -49,7 +49,7 @@ spec:
         - name: app
           image: docker.m.daocloud.io/hashicorp/http-echo:1.0.0
           args:
-            - "-text=Hello from Knative Serving! 数擎大数据平台 Serverless"
+            - "-text=Hello from Knative Serving! 数据引擎大数据平台 Serverless"
           ports:
             - containerPort: 5678
               name: http1

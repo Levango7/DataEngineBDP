@@ -1,4 +1,4 @@
-"""FastAPI 应用工厂."""
+﻿"""FastAPI 应用工厂."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def create_app(
     app = FastAPI(
         title="Knowledge Engineering Engine",
         description=(
-            "数擎大数据平台 · 智能数据层 · 知识工程引擎 (L4.5.2)\n\n"
+            "数据引擎大数据平台 · 智能数据层 · 知识工程引擎 (L4.5.2)\n\n"
             "从文本中抽取实体与关系，构建知识图谱（NebulaGraph），并提供图查询 API。\n"
             "复用 governance/lineage-analyzer 的血缘图谱基础设施思路：接口抽象 + Mock 实现。"
         ),

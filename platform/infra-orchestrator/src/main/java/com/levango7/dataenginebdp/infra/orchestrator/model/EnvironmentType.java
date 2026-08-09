@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.infra.orchestrator.model;
+﻿package com.levango7.dataenginebdp.infra.orchestrator.model;
 
 import java.util.Arrays;
 import java.util.List;
@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 /**
  * 跨环境统一供给抽象 - 环境类型枚举。
  *
- * <p>L0.5 编排层定义 7 种环境类型，覆盖数擎大数据平台的全部基础设施供应场景。
+ * <p>L0.5 编排层定义 7 种环境类型，覆盖数据引擎大数据平台的全部基础设施供应场景。
  * 每个枚举值对应一个下游 Provider 的 REST 路由前缀与子类型：</p>
  *
  * <ul>

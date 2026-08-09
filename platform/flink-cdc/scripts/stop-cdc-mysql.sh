@@ -1,6 +1,6 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # ============================================================================
-# 数擎大数据平台 - Flink CDC MySQL 管道停止脚本
+# 数据引擎大数据平台 - Flink CDC MySQL 管道停止脚本
 # ----------------------------------------------------------------------------
 # 用法:
 #   ./stop-cdc-mysql.sh <job-id|job-name>
@@ -30,7 +30,7 @@ FLINK_HOME="${FLINK_HOME:-/opt/flink}"
 FLINK_BIN="${FLINK_HOME}/bin/flink"
 
 echo "========================================"
-echo " 数擎大数据平台 - Flink CDC 停止"
+echo " 数据引擎大数据平台 - Flink CDC 停止"
 echo "========================================"
 echo " 目标作业: ${JOB_TARGET}"
 echo " Flink:    ${FLINK_HOME}"

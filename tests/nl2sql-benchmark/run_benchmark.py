@@ -1,4 +1,4 @@
-"""NL2SQL 准确率评测脚本.
+﻿"""NL2SQL 准确率评测脚本.
 
 用法：
     python run_benchmark.py [--host 127.0.0.1] [--port 8093] [--report accuracy_report.md]
@@ -356,7 +356,7 @@ def renderReport(
     lines: list[str] = []
     lines.append("# NL2SQL 准确率评测报告")
     lines.append("")
-    lines.append("> 数擎大数据平台 · NL2SQL 引擎 (platform/nl2sql, FastAPI :8093) 准确率基准测试")
+    lines.append("> 数据引擎大数据平台 · NL2SQL 引擎 (platform/nl2sql, FastAPI :8093) 准确率基准测试")
     lines.append("")
     lines.append("## 1. 评测概览")
     lines.append("")

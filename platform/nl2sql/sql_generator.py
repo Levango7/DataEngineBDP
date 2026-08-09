@@ -1,4 +1,4 @@
-"""SQL 生成（LangChain + LLM）.
+﻿"""SQL 生成（LangChain + LLM）.
 
 职责：
     1. 基于 Schema 上下文 + 意图 + 槽位，构造 LLM prompt 生成 SQL。
@@ -32,7 +32,7 @@ from sql_validator import SqlValidator
 # ============================================================
 # Prompt 模板
 # ============================================================
-_SYSTEM_PROMPT = """你是数擎大数据平台的 NL2SQL 引擎。
+_SYSTEM_PROMPT = """你是数据引擎大数据平台的 NL2SQL 引擎。
 根据用户自然语言查询、数据库 schema 与已识别意图，生成一条标准 ANSI SQL。
 约束：
 1. 仅生成 SELECT 语句，禁止 DML/DDL。

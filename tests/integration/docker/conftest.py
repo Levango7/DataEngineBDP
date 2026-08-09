@@ -1,6 +1,6 @@
-"""Docker 集成测试公共配置与 fixtures。
+﻿"""Docker 集成测试公共配置与 fixtures。
 
-本模块是数擎大数据平台（ShuqingBigDataPlatform）Docker 集成测试的入口配置，
+本模块是数据引擎大数据平台（DataEngineBDP）Docker 集成测试的入口配置，
 针对 Docker 直接运行模式（已从 K3s 切换到 Docker）：
 
 - 集中维护 4 个核心模块（封装层/SQL网关/Catalog/规则引擎）的 Docker 容器信息；

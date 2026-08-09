@@ -428,24 +428,34 @@ jobs:
         with:
           version: 'latest'
 
-      - name: 对每个 Chart 执行 helm lint
+      - name: 对每个 Chart 执行 helm lint（阻断：lint 失败则 CI 失败）
         run: |
           if [ ! -d "design/deploy/charts" ]; then
             echo "design/deploy/charts/ 目录不存在，跳过 helm lint"
             exit 0
           fi
           chart_found=0
+          fail_count=0
           for chart_dir in design/deploy/charts/*/; do
             if [ -f "${chart_dir}Chart.yaml" ]; then
               chart_found=1
               echo "----------------------------------------"
               echo "校验 Chart: ${chart_dir}"
               echo "----------------------------------------"
-              helm lint "${chart_dir}"
+              if helm lint "${chart_dir}"; then
+                echo "✓ ${chart_dir} helm lint 通过"
+              else
+                echo "::error::${chart_dir} helm lint 失败"
+                fail_count=$((fail_count + 1))
+              fi
             fi
           done
           if [ "$chart_found" -eq 0 ]; then
             echo "design/deploy/charts/ 下未发现任何 Helm Chart，跳过"
+          fi
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Helm Chart lint 失败，helm-lint 阻断 CI"
+            exit 1
           fi
 
   # ============================================================

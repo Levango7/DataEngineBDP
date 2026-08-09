@@ -1,4 +1,4 @@
-"""微调任务引擎 FastAPI 主入口.
+﻿"""微调任务引擎 FastAPI 主入口.
 
 端口：8095
 路由前缀：/api/v1/finetune
@@ -65,7 +65,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="Model Finetuning Engine",
         description=(
-            "数擎大数据平台 · T032 LoRA/QLoRA/全参微调引擎<br/>"
+            "数据引擎大数据平台 · T032 LoRA/QLoRA/全参微调引擎<br/>"
             "接入 LLaMA-Factory / PEFT / DeepSpeed 三框架，"
             "支持 LoRA rank 8/16/32、QLoRA 4bit/8bit、全参微调，"
             "GPU 节点池调度与多卡并行。"

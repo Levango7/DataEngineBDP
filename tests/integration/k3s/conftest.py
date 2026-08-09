@@ -1,6 +1,6 @@
-"""K3s 端到端集成测试公共配置与 fixtures.
+﻿"""K3s 端到端集成测试公共配置与 fixtures.
 
-本模块是数擎大数据平台 K3s 集成测试的入口配置：
+本模块是数据引擎大数据平台 K3s 集成测试的入口配置：
 - 通过 ``kubectl get svc`` 自动发现 K3s 集群内各服务的 ClusterIP；
 - 支持通过环境变量 ``K3S_SVC_<NAME>`` 手动覆盖服务地址；
 - 提供 ``k3s_client`` 通用 HTTP 客户端 fixture（自动携带 JWT）；

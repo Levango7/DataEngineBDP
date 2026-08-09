@@ -1,4 +1,4 @@
-# Serverless 函数运行时与计量 · 数擎大数据平台 T025
+﻿# Serverless 函数运行时与计量 · 数据引擎大数据平台 T025
 
 > 任务 T025 · Python / Java / Go 三种函数运行时 + 冷启动优化 + RPS 自动伸缩 + invocation 计量
 > 依赖：T024 Knative Serving/Eventing（Batch 1a 已完成）
@@ -6,7 +6,7 @@
 
 ## 1. 概述
 
-本目录包含 Serverless 函数运行时的全部配置，为数擎大数据平台提供多语言函数执行能力。
+本目录包含 Serverless 函数运行时的全部配置，为数据引擎大数据平台提供多语言函数执行能力。
 
 ### 1.1 核心特性
 

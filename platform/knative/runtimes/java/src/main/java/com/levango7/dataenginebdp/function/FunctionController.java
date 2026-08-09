@@ -1,4 +1,4 @@
-package com.levango7.dataenginebdp.function;
+﻿package com.levango7.dataenginebdp.function;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 函数调用控制器 · 数擎大数据平台 T025.
+ * 函数调用控制器 · 数据引擎大数据平台 T025.
  *
  * <p>提供函数 invocation REST 端点，封装为 Knative Service。</p>
  *

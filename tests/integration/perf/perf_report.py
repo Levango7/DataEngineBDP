@@ -1,6 +1,6 @@
-"""性能压测报告生成器：HTML + JSON 双格式报告。
+﻿"""性能压测报告生成器：HTML + JSON 双格式报告。
 
-本模块生成数擎大数据平台全链路性能压测报告，包含：
+本模块生成数据引擎大数据平台全链路性能压测报告，包含：
 
 - **13 项非功能指标达标情况**：并发/延迟/吞吐/资源利用率/稳定性/扩展性/一致性/冷启动/故障恢复；
 - **10 项 SLA 验证结果**：API 可用性/SQL 延迟/AI 推理/微调/联邦查询/流处理/租户并发/治理/看板；
@@ -347,11 +347,11 @@ def build_report_data(
 
     return {
         "report_meta": {
-            "title": "数擎大数据平台 全链路性能压测报告",
+            "title": "数据引擎大数据平台 全链路性能压测报告",
             "version": "v1.0",
             "generated_at": datetime.now().isoformat(),
             "generator": "perf_report.py (T046)",
-            "project": "ShuqingBigDataPlatform",
+            "project": "DataEngineBDP",
         },
         "summary": {
             "perf_metrics": {
@@ -584,7 +584,7 @@ def generate_html_report(data: Dict[str, Any]) -> str:
     {''.join(suggestion_cards)}
 
     <div class="footer">
-        本报告由 perf_report.py 自动生成 · 数擎大数据平台 T046 全链路性能调优与压测
+        本报告由 perf_report.py 自动生成 · 数据引擎大数据平台 T046 全链路性能调优与压测
     </div>
 </div>
 </body>
@@ -613,7 +613,7 @@ def main() -> int:
         python perf_report.py --pytest-json results.json --output report.html
     """
     parser = argparse.ArgumentParser(
-        description="数擎大数据平台性能压测报告生成器",
+        description="数据引擎大数据平台性能压测报告生成器",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例:

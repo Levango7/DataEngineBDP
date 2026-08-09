@@ -1,4 +1,4 @@
-"""NL2SQL 引擎 FastAPI 服务入口.
+﻿"""NL2SQL 引擎 FastAPI 服务入口.
 
 端口：8093
 路由前缀：/api/v1
@@ -176,7 +176,7 @@ def create_app(
     app = FastAPI(
         title="NL2SQL Core Engine",
         description=(
-            "数擎大数据平台 · 智能数据层 · NL2SQL 核心引擎 (L4.5.4)\n\n"
+            "数据引擎大数据平台 · 智能数据层 · NL2SQL 核心引擎 (L4.5.4)\n\n"
             "将自然语言查询转换为 SQL，对接 Catalog 元数据与 SQL 网关，\n"
             "支持意图识别、Schema 上下文构建、语法校验、多轮澄清与槽位填充。"
         ),

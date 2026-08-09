@@ -1,6 +1,6 @@
-# NL2SQL 准确率评测报告
+﻿# NL2SQL 准确率评测报告
 
-> 数擎大数据平台 · NL2SQL 引擎 (platform/nl2sql, FastAPI :8093) 准确率基准测试
+> 数据引擎大数据平台 · NL2SQL 引擎 (platform/nl2sql, FastAPI :8093) 准确率基准测试
 
 ## 1. 评测概览
 

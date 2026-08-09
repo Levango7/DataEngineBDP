@@ -1,6 +1,6 @@
-# Model Finetuning Engine - Python Dependencies
+﻿# Model Finetuning Engine - Python Dependencies
 # Python 3.10+
-# 数擎大数据平台 · T032 LoRA/QLoRA/全参微调引擎
+# 数据引擎大数据平台 · T032 LoRA/QLoRA/全参微调引擎
 
 # ---- Web framework ----
 fastapi==0.110.0

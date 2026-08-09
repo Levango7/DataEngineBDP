@@ -1,8 +1,8 @@
 ﻿$ErrorActionPreference = "Continue"
-$logFile = "F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\deploy\k3s\java_build_log.txt"
+$logFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\java_build_log.txt"
 "Java Build Log - $(Get-Date)" | Out-File $logFile
 
-$base = "F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform"
+$base = "F:\Agent\workbuddy\workspace\DataEngineBDP\platform"
 
 # 6个Java模块,分2批每批3个
 $batches = @(
@@ -95,4 +95,4 @@ $allResults | Format-Table -AutoSize
 "=== Java Build Summary ===" | Out-File $logFile -Append
 $allResults | Format-Table -AutoSize | Out-File $logFile -Append
 
-$allResults | Export-Csv "F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\deploy\k3s\java_build_results.csv" -NoTypeInformation
+$allResults | Export-Csv "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\java_build_results.csv" -NoTypeInformation

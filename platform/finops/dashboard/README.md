@@ -1,8 +1,8 @@
-# FinOps 看板与优化建议服务
+﻿# FinOps 看板与优化建议服务
 
 ## 1. 概述
 
-本模块实现数擎大数据平台（ShuqingBigDataPlatform）的 FinOps 看板与优化建议服务，基于 T028 FinOps 成本采集（cost-model）的成本数据，提供 FinOps 看板（Top10/趋势/明细/闲置清单）、优化建议引擎（5 类闲置模式识别）、账单导出（CSV/Excel）、分账到子工作空间四大能力。
+本模块实现数据引擎大数据平台（DataEngineBDP）的 FinOps 看板与优化建议服务，基于 T028 FinOps 成本采集（cost-model）的成本数据，提供 FinOps 看板（Top10/趋势/明细/闲置清单）、优化建议引擎（5 类闲置模式识别）、账单导出（CSV/Excel）、分账到子工作空间四大能力。
 
 ### 1.1 核心能力
 
