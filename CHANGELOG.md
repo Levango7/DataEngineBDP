@@ -78,6 +78,7 @@
 
 ### Changed
 
+- **Java 模块命名统一化**：将所有 17 个 Java 模块的 groupId 从 `com.shuqing.bigdata` 统一为 `com.levango7.dataenginebdp`，重命名 29 个 Java 包目录（main+test），替换 830 个 Java 文件的 package 声明和 import 语句，修改 39 个配置文件包名引用，重命名 2 个 SPI 服务文件，去除 870 个文件的 UTF-8 BOM。全部 17 个模块 `mvn clean compile` 通过。
 - **README 诚实化**：完全重写 README.md，移除"3-5% 覆盖度"、"零代码实现"等过时表述，反映 v1.0.0 实际完成状态。
 - **设计文档一致性修复**：修复 43 份详细设计文档间的口径漂移，统一套餐命名（base / standard / flagship）、工作空间命名（ws-\<name>）、模块计数（49 模块）、版本号（SKE v0.1）。
 - **引擎版本对齐**：统一 Trino 428、Doris 2.0、Kafka 3.6、Spark 3.5、Flink 1.18、IoTDB 2.0、NebulaGraph 3.6、Keycloak 24.0 版本号，消除 CI 矩阵 / values / 部署清单文档三处版本漂移。
