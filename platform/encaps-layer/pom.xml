@@ -169,7 +169,7 @@
                     <excludes>
                         <exclude>**/model/**</exclude>
                         <exclude>**/*Application*</exclude>
-                        <exclude>org.bouncycastle.*</exclude>
+                        <exclude>org/bouncycastle/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

@@ -794,6 +794,20 @@ jobs:
           echo "所有 Docker 镜像构建验证通过"
 
   # ============================================================
+  # 版本对账：检查各组件版本一致性
+  # 检查 Go/Java/Node 版本是否统一，不一致则阻断 CI
+  # ============================================================
+  version-check:
+    name: Version Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 运行版本对账
+        run: bash scripts/check-versions.sh
+
+  # ============================================================
   # 集成测试：依赖 java-build-test 和 go-build-test 通过
   # 实际启动 docker-compose 并运行 pytest 集成测试
   # 通过步骤级别的 continue-on-error 处理 docker-compose 启动失败
