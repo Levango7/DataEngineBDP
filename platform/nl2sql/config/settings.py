@@ -80,7 +80,7 @@ class Settings(BaseSettings):
 
     # ---- llm ----
     llmMode: Literal["mock", "langchain"] = Field(
-        default="mock",
+        default="langchain",
         description="LLM 模式: mock（无外部依赖）/ langchain（经 llm-gateway）",
     )
     llmGatewayUrl: str = Field(

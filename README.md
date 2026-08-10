@@ -21,14 +21,14 @@
 - **智能数据层**：向量库（Milvus）+ 知识图谱服务 + LLMOps + 大模型网关，构成旗舰版差异化能力。
 - **SaaS 产品层**：行业应用模板 + 业务线门户 + 开放 API 服务目录 + 数据资产流通，形成平台商业化闭环。
 - **自研 K8s 发行版 SKE**：基于 kubeadm 二次封装的深度定制高性能 K8s，非 KubeSphere / RKE2 / k3s / kind 原样。
-- **统一 SQL 网关**：一个入口查全部引擎，基于手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询（Apache Calcite 集成规划中）。
+- **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 优化器 + 手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询。
 - **治理闭环**：元数据采集 → 质量校验 → 血缘解析 → 资产入目录，形成完整数据治理链路。
 
 ## 技术栈
 
 | 类别 | 技术选型 |
 | --- | --- |
-| 后端语言 | Java 17 / Go 1.23 / Python 3.11 |
+| 后端语言 | Java 17 / Go 1.26 / Python 3.11 |
 | 后端框架 | Spring Boot 3.2 / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |

@@ -16,8 +16,8 @@ func TestLoad_Defaults(t *testing.T) {
 
 	cfg := Load()
 
-	if cfg.StoreType != "mock" {
-		t.Errorf("default StoreType = %q, want %q", cfg.StoreType, "mock")
+	if cfg.StoreType != "milvus" {
+		t.Errorf("default StoreType = %q, want %q", cfg.StoreType, "milvus")
 	}
 	if cfg.HTTPPort != "8086" {
 		t.Errorf("default HTTPPort = %q, want %q", cfg.HTTPPort, "8086")

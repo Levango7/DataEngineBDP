@@ -5,9 +5,9 @@
     ML_PORT                    监听端口（默认 8080）
     ML_LOG_LEVEL               日志级别（默认 info）
     ML_RELOAD                  开发模式热重载（默认 false）
-    ML_BACKEND_TYPE            ML 后端类型: mock / sklearn / spark（默认 mock）
-    ML_FEATURE_STORE_TYPE      特征存储类型: mock / redis（默认 mock）
-    ML_EXPERIMENT_STORE_TYPE   实验存储类型: mock / mlflow（默认 mock）
+    ML_BACKEND_TYPE            ML 后端类型: mock / sklearn / spark（默认 sklearn）
+    ML_FEATURE_STORE_TYPE      特征存储类型: mock / redis（默认 redis）
+    ML_EXPERIMENT_STORE_TYPE   实验存储类型: mock / mlflow（默认 mlflow）
     ML_MLFLOW_URI              MLflow Tracking URI
     ML_MLFLOW_REGISTRY_URI     MLflow Registry URI（默认同 TRACKING_URI）
     ML_REDIS_URI               Redis URI（特征存储后端）
@@ -41,13 +41,13 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- backend ----
-    backendType: Literal["mock", "sklearn", "spark"] = Field(default="mock", description="ML 后端类型")
+    backendType: Literal["mock", "sklearn", "spark"] = Field(default="sklearn", description="ML 后端类型")
 
     # ---- feature store ----
-    featureStoreType: Literal["mock", "redis"] = Field(default="mock", description="特征存储类型")
+    featureStoreType: Literal["mock", "redis"] = Field(default="redis", description="特征存储类型")
 
     # ---- experiment store ----
-    experimentStoreType: Literal["mock", "mlflow"] = Field(default="mock", description="实验存储类型")
+    experimentStoreType: Literal["mock", "mlflow"] = Field(default="mlflow", description="实验存储类型")
 
     # ---- mlflow ----
     mlflowUri: str = Field(

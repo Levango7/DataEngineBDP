@@ -5,7 +5,7 @@
     LLMOPS_PORT              监听端口（默认 8080）
     LLMOPS_LOG_LEVEL         日志级别（默认 info）
     LLMOPS_RELOAD            开发模式热重载（默认 false）
-    LLMOPS_STORE_TYPE        存储类型: mock / mlflow（默认 mock）
+    LLMOPS_STORE_TYPE        存储类型: mock / mlflow（默认 mlflow）
     LLMOPS_MLFLOW_URI        MLflow Tracking URI
     LLMOPS_MLFLOW_REGISTRY_URI  MLflow Registry URI（默认同 TRACKING_URI）
     LLMOPS_API_PREFIX        API 路由前缀（默认 /api/v1）
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- store ----
-    storeType: Literal["mock", "mlflow"] = Field(default="mock", description="存储类型: mock / mlflow")
+    storeType: Literal["mock", "mlflow"] = Field(default="mlflow", description="存储类型: mock / mlflow")
 
     # ---- mlflow ----
     mlflowUri: str = Field(

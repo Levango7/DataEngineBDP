@@ -41,3 +41,9 @@ platform/model-finetuning/app/__pycache__/
 
 # Temp test files
 .tmp/
+
+# Database files (local development artifacts)
+*.db
+*.mv.db
+*.mv.db.trace.db
+platform/*/data/

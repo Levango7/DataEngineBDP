@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     apiPrefix: str = Field(default="/api/v1", description="API 路由前缀")
 
     # ---- deploy ----
-    deployMode: Literal["mock", "helm"] = Field(default="mock", description="部署模式: mock / helm")
+    deployMode: Literal["mock", "helm"] = Field(default="helm", description="部署模式: mock / helm")
     # ---- helm ----
     helmBin: str = Field(default="helm", description="helm 二进制路径")
     helmKubeconfig: str = Field(default="", description="KUBECONFIG 路径（空表示使用默认）")
