@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   PMD 宽松规则集（CI 阻断级）
   适用于 platform/ 下所有 Java 组件（Spring Boot 3.2 + JDK 17）
