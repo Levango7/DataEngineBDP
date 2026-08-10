@@ -530,23 +530,7 @@ jobs:
               echo "✓ $mod_name 测试通过"
             else
               echo "::error::$mod_name 测试失败"
-              # 精简诊断：只输出关键信息，不输出surefire测试统计行（避免占满annotations名额）
-              # 检查是否有checkstyle违规
-              if [ -f "$mod_dir/target/checkstyle-result.xml" ]; then
-                cv=$(grep -c "<violation" "$mod_dir/target/checkstyle-result.xml" 2>/dev/null || true)
-                if [ "$cv" -gt 0 ] 2>/dev/null; then echo "::error::$mod_name checkstyle violations: $cv"; fi
-              fi
-              # 检查是否有PMD违规
-              if [ -f "$mod_dir/target/pmd.xml" ]; then
-                pv=$(grep -c "<violation" "$mod_dir/target/pmd.xml" 2>/dev/null || true)
-                if [ "$pv" -gt 0 ] 2>/dev/null; then echo "::error::$mod_name PMD violations: $pv"; fi
-              fi
-              # 检查jacoco报告是否生成
-              if [ ! -f "$mod_dir/target/site/jacoco/index.html" ]; then
-                echo "::error::$mod_name jacoco report NOT generated"
-              fi
-              # 检查是否有BUILD FAILURE但没有测试失败（说明是插件失败）
-              echo "::error::$mod_name mvn test returned non-zero but all tests passed - likely plugin failure"
+
               fail_count=$((fail_count + 1))
             fi
           done < <(find platform -name pom.xml -not -path "*/target/*")
@@ -812,7 +796,7 @@ jobs:
   # ============================================================
   # 集成测试：依赖 java-build-test 和 go-build-test 通过
   # 实际启动 docker-compose 并运行 pytest 集成测试
-  # 设置 continue-on-error 避免因环境资源限制阻断 CI
+  # 通过步骤级别的 continue-on-error 处理 docker-compose 启动失败
   # ============================================================
   integration-test:
     name: Integration Test
@@ -820,7 +804,6 @@ jobs:
     needs:
       - java-build-test
       - go-build-test
-    continue-on-error: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -853,13 +836,19 @@ jobs:
       - name: 启动 docker-compose 服务
         if: env.it_skip != 'true'
         working-directory: tests/integration
+        continue-on-error: true
         run: |
           echo "启动 docker-compose 服务..."
-          docker compose up -d --wait
-          echo "✓ 所有服务已启动"
+          if docker compose up -d --wait; then
+            echo "✓ 所有服务已启动"
+            echo "it_services_ready=true" >> $GITHUB_ENV
+          else
+            echo "::warning::docker-compose 启动失败，跳过集成测试（CI 环境资源限制）"
+            echo "it_services_ready=false" >> $GITHUB_ENV
+          fi
 
       - name: 运行 pytest 集成测试
-        if: env.it_skip != 'true'
+        if: env.it_skip != 'true' && env.it_services_ready == 'true'
         working-directory: tests/integration
         run: |
           echo "运行集成测试..."
@@ -867,7 +856,7 @@ jobs:
           echo "集成测试执行完成"
 
       - name: 上传集成测试报告
-        if: env.it_skip != 'true' && always()
+        if: env.it_skip != 'true' && env.it_services_ready == 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-report

@@ -156,9 +156,36 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-
-                    <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                 </configuration>
+            </plugin>
+
+            <!-- JaCoCo：覆盖率采集（prepare-agent 注入 argLine，verify 阶段生成报告） -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/model/**</exclude>
+                        <exclude>**/*Application*</exclude>
+                        <exclude>org.bouncycastle.*</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <!-- Checkstyle：代码风格检查（CI 阻断） -->
@@ -167,7 +194,6 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.3.1</version>
                 <configuration>
-                    <skip>true</skip>
                     <configLocation>../../build/lint/checkstyle.xml</configLocation>
                     <failOnViolation>true</failOnViolation>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -182,7 +208,6 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>3.21.2</version>
                 <configuration>
-                    <skip>true</skip>
                     <rulesets>
                         <ruleset>../../build/lint/pmd-ruleset.xml</ruleset>
                     </rulesets>
