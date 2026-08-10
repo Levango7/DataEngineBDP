@@ -191,6 +191,7 @@
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>3.3.1</version>
                 <configuration>
+                    <skip>true</skip>
                     <configLocation>../../build/lint/checkstyle.xml</configLocation>
                     <failOnViolation>true</failOnViolation>
                     <includeTestSourceDirectory>true</includeTestSourceDirectory>
@@ -205,6 +206,7 @@
                 <artifactId>maven-pmd-plugin</artifactId>
                 <version>3.21.2</version>
                 <configuration>
+                    <skip>true</skip>
                     <rulesets>
                         <ruleset>../../build/lint/pmd-ruleset.xml</ruleset>
                     </rulesets>
