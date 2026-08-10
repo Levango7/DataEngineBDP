@@ -1,4 +1,4 @@
-﻿"""Open API Service Catalog (L5.5).
+"""Open API Service Catalog (L5.5).
 
 数据引擎大数据平台 · 开放 API 服务目录：
 - API 注册 + 鉴权 + 限流 + 计量

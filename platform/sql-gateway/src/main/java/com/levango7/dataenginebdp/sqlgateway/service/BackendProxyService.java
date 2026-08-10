@@ -217,6 +217,9 @@ public class BackendProxyService {
                 String msg = errorNode.has("message")
                         ? errorNode.get("message").asText()
                         : "Trino 执行错误";
+                // 修复：原代码定义 msg 后未使用，错误信息未传递给调用方，排障困难。
+                // 此处将原始错误信息记入日志，便于网关侧定位 Trino 执行失败原因。
+                log.error("Trino 执行失败 queryId={} msg={}", queryId, msg);
                 return SqlExecuteResponse.builder()
                         .queryId(queryId)
                         .status("FAILED")
@@ -305,7 +308,9 @@ public class BackendProxyService {
             JsonNode codeNode = root.get("code");
             if (codeNode != null && codeNode.asInt(0) != 0) {
                 String msg = root.has("msg") ? root.get("msg").asText() : "Doris 执行错误";
-                log.warn("Doris 返回错误码 queryId={} code={} msg={}", queryId, codeNode.asInt(), msg);
+                // 修复：原代码仅 warn 级别日志，错误信息未充分传递。
+                // Doris 业务错误应使用 error 级别，便于监控告警捕获。
+                log.error("Doris 返回错误码 queryId={} code={} msg={}", queryId, codeNode.asInt(), msg);
                 return SqlExecuteResponse.builder()
                         .queryId(queryId)
                         .status("FAILED")

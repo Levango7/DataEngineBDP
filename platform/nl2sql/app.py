@@ -1,4 +1,4 @@
-﻿"""NL2SQL 引擎 FastAPI 服务入口.
+"""NL2SQL 引擎 FastAPI 服务入口.
 
 端口：8093
 路由前缀：/api/v1

@@ -1,4 +1,4 @@
-﻿// Package main 是数据引擎大数据平台向量检索引擎（L4.5.1）的入口。
+// Package main 是数据引擎大数据平台向量检索引擎（L4.5.1）的入口。
 //
 // 该服务提供向量集合管理、向量 CRUD、ANN 近似检索与混合检索（向量+标量）能力，
 // 底层通过 VectorStore 接口抽象，支持 Mock（内存实现，用于测试）与 Milvus（生产实现）两种后端，
@@ -18,6 +18,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 
@@ -106,7 +107,9 @@ func main() {
 	<-quit
 	log.Printf("[%s] shutting down...", serviceName)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5)
+	// 优雅关闭超时 5 秒，确保在飞行中的请求能完成。
+	// 修复：原代码传入裸整数 5，time.Duration(5) 等于 5 纳秒，几乎立即超时。
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("[%s] server forced to shutdown: %v", serviceName, err)

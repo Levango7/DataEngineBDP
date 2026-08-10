@@ -1,4 +1,4 @@
-﻿"""示例函数 handler · Python 运行时 · 数据引擎大数据平台 T025。
+"""示例函数 handler · Python 运行时 · 数据引擎大数据平台 T025。
 
 用户函数约定：暴露 ``handle(event: dict) -> dict`` 入口。
 本示例实现一个简单的 echo 函数，供集成测试验证。

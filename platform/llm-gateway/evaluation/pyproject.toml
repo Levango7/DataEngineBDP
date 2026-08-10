@@ -1,4 +1,4 @@
-﻿# T031 模型评测平台 Python 项目配置
+# T031 模型评测平台 Python 项目配置
 [build-system]
 requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"

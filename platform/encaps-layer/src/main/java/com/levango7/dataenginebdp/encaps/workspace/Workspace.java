@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.encaps.workspace;
+package com.levango7.dataenginebdp.encaps.workspace;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

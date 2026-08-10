@@ -1,4 +1,4 @@
-﻿"""SQL 生成（LangChain + LLM）.
+"""SQL 生成（LangChain + LLM）.
 
 职责：
     1. 基于 Schema 上下文 + 意图 + 槽位，构造 LLM prompt 生成 SQL。

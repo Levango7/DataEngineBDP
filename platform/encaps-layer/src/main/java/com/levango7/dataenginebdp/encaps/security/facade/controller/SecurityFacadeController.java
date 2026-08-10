@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.encaps.security.facade.controller;
+package com.levango7.dataenginebdp.encaps.security.facade.controller;
 
 import com.levango7.dataenginebdp.encaps.security.facade.SecurityFacade;
 import com.levango7.dataenginebdp.encaps.security.facade.assessment.AssessmentReport;

@@ -101,9 +101,14 @@ func (s *SSEStreamer) StreamChat(
 	// 3. 调用底层获取完整响应
 	resp, err := chatFunc(c.Request.Context(), req)
 	if err != nil {
-		// 推送错误事件
+		// 推送错误事件。此处写入失败只能记录日志，不再向上传递二次错误。
 		errChunk := s.buildErrorChunk(err.Error())
-		_ = s.writeChunk(c.Writer, errChunk)
+		if writeErr := s.writeChunk(c.Writer, errChunk); writeErr != nil {
+			s.logger.Warn("sse write error chunk failed",
+				slog.String("originalError", err.Error()),
+				slog.String("writeError", writeErr.Error()),
+			)
+		}
 		c.Writer.Flush()
 		return err
 	}
@@ -153,7 +158,13 @@ func (s *SSEStreamer) StreamChat(
 	// 5. 推送 usage chunk（最终用量）
 	if totalTokens > 0 {
 		usageChunk := s.buildUsageChunk(resp.ID, resp.Usage)
-		_ = s.writeChunk(c.Writer, usageChunk)
+		// 写入失败时仅记录日志：usage chunk 是辅助信息，不应中断已完成的主流式响应。
+		if writeErr := s.writeChunk(c.Writer, usageChunk); writeErr != nil {
+			s.logger.Warn("sse write usage chunk failed",
+				slog.String("model", req.Model),
+				slog.String("writeError", writeErr.Error()),
+			)
+		}
 		c.Writer.Flush()
 	}
 

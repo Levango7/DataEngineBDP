@@ -295,9 +295,13 @@ func (s *BareMetalService) provisionNodeHardware(ctx context.Context, node *mode
 	node.RedfishSystemID = sys.ID
 
 	// 采集硬件信息
+	// 修复：原代码采集失败时静默忽略，运维无法定位硬件信息缺失原因。
+	// 此处记录警告日志，但不阻断供应流程（硬件信息为辅助元数据）。
 	hw, err := s.redfish.CollectHardwareInfo(ctx, bmc, sys.ID)
 	if err == nil {
 		node.HardwareInfo = *hw
+	} else {
+		s.logger.WithError(err).WithField("node", node.Hostname).Warn("采集硬件信息失败，继续供应流程")
 	}
 
 	node.State = model.NodeStatePoweringOn
@@ -401,6 +405,11 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 
 // scaleOut 扩容
 func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
+	// 防御性检查：specs 为空时直接返回，避免下方 specs[0] 越界 panic。
+	// 修复：原代码未校验 specs 长度，空切片会导致 index out of range。
+	if len(specs) == 0 {
+		return errors.New("扩容节点列表不能为空")
+	}
 	for _, spec := range specs {
 		node := buildNodeFromSpec(cluster.ID, spec)
 		if err := s.db.Create(node).Error; err != nil {

@@ -1,4 +1,4 @@
-﻿// Package main 是 dqctl 命令行工具的入口。
+// Package main 是 dqctl 命令行工具的入口。
 //
 // dqctl 是数据引擎大数据平台的声明式资源管理命令行工具，提供 init/apply/query/status 等子命令，
 // 用于初始化配置、应用声明式资源、执行 SQL 查询以及查询平台组件健康状态。

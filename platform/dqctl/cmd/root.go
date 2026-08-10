@@ -1,4 +1,4 @@
-﻿// Package cmd 定义 dqctl 的所有命令行子命令。
+// Package cmd 定义 dqctl 的所有命令行子命令。
 //
 // root.go 定义根命令及全局配置加载逻辑，包括 --config、--tenant、--verbose、--output 等全局 flag。
 package cmd

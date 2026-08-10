@@ -1,4 +1,4 @@
-﻿"""invocation 计量模块 · Python 运行时 · 数据引擎大数据平台 T025。
+"""invocation 计量模块 · Python 运行时 · 数据引擎大数据平台 T025。
 
 本模块负责按 tenant 隔离记录函数 invocation 计量：
     1. Prometheus 指标：invocation_count / invocation_duration_seconds（按 tenant 标签）；

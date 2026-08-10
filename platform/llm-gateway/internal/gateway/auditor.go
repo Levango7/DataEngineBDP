@@ -160,7 +160,8 @@ func (a *Auditor) append(rec AuditRecord) {
 	defer a.mu.Unlock()
 	a.records = append(a.records, rec)
 	if len(a.records) > a.maxRecords {
-		// 丢弃最旧的 1/4，避免频繁切片。
+		// 丢弃超出上限的最旧记录，避免审计日志无限增长。
+		// 注：原注释"丢弃最旧的 1/4"与实现不符，此处更正为按实际超出的数量丢弃。
 		drop := len(a.records) - a.maxRecords
 		a.records = a.records[drop:]
 	}

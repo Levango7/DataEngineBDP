@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.ruleengine;
+package com.levango7.dataenginebdp.ruleengine;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

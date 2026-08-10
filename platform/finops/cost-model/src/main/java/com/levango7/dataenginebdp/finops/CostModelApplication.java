@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.finops;
+package com.levango7.dataenginebdp.finops;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

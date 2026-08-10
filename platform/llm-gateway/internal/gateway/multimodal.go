@@ -96,24 +96,48 @@ func (e *MultimodalExt) ChatCompletion(ctx context.Context, req provider.Multimo
 	// 5. 构造多模态响应
 	var mmResp *provider.MultimodalChatResponse
 	if resp != nil {
-		mmResp = &provider.MultimodalChatResponse{
-			ID:          resp.ID,
-			Object:      resp.Object,
-			Model:       resp.Model,
-			Provider:    decision.Provider,
-			RouteReason: decision.Reason,
-			Choices: []provider.MultimodalChoice{
-				{
-					Index:        0,
-					Message:      provider.MultimodalMessage{Role: "assistant", Content: resp.Choices[0].Message.Content},
-					FinishReason: resp.Choices[0].FinishReason,
+		// 防御性检查：Provider 返回的 Choices 可能为空切片，直接访问 [0] 会 panic。
+		// 上游 Provider 实现应保证 Choices 非空，此处兜底避免网关进程崩溃。
+		if len(resp.Choices) == 0 {
+			mmResp = &provider.MultimodalChatResponse{
+				ID:          resp.ID,
+				Object:      resp.Object,
+				Model:       resp.Model,
+				Provider:    decision.Provider,
+				RouteReason: decision.Reason,
+				Choices: []provider.MultimodalChoice{
+					{
+						Index:        0,
+						Message:      provider.MultimodalMessage{Role: "assistant", Content: ""},
+						FinishReason: "stop",
+					},
 				},
-			},
-			Usage: provider.MultimodalUsage{
-				PromptTokens:     resp.Usage.PromptTokens,
-				CompletionTokens: resp.Usage.CompletionTokens,
-				TotalTokens:      resp.Usage.TotalTokens,
-			},
+				Usage: provider.MultimodalUsage{
+					PromptTokens:     resp.Usage.PromptTokens,
+					CompletionTokens: resp.Usage.CompletionTokens,
+					TotalTokens:      resp.Usage.TotalTokens,
+				},
+			}
+		} else {
+			mmResp = &provider.MultimodalChatResponse{
+				ID:          resp.ID,
+				Object:      resp.Object,
+				Model:       resp.Model,
+				Provider:    decision.Provider,
+				RouteReason: decision.Reason,
+				Choices: []provider.MultimodalChoice{
+					{
+						Index:        0,
+						Message:      provider.MultimodalMessage{Role: "assistant", Content: resp.Choices[0].Message.Content},
+						FinishReason: resp.Choices[0].FinishReason,
+					},
+				},
+				Usage: provider.MultimodalUsage{
+					PromptTokens:     resp.Usage.PromptTokens,
+					CompletionTokens: resp.Usage.CompletionTokens,
+					TotalTokens:      resp.Usage.TotalTokens,
+				},
+			}
 		}
 
 		// 多模态 Token 计量：在 Provider 返回的纯文本 Token 基础上，

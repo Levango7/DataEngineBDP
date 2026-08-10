@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.infra.orchestrator.model;
+package com.levango7.dataenginebdp.infra.orchestrator.model;
 
 import java.util.Arrays;
 import java.util.List;

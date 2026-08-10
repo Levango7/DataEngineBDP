@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.tagengine;
+package com.levango7.dataenginebdp.tagengine;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

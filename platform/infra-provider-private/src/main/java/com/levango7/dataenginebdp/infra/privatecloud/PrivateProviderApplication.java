@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.infra.privatecloud;
+package com.levango7.dataenginebdp.infra.privatecloud;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

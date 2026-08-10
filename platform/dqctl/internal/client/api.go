@@ -1,4 +1,4 @@
-﻿// Package client 封装数据引擎大数据平台 API 的 HTTP 客户端。
+// Package client 封装数据引擎大数据平台 API 的 HTTP 客户端。
 //
 // 提供基础 Get/Post 方法，自动注入租户 ID 与认证 token。
 package client

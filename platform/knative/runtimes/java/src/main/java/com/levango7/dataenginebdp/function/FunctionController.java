@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.function;
+package com.levango7.dataenginebdp.function;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

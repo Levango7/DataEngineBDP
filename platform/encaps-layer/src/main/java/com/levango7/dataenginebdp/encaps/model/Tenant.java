@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.encaps.model;
+package com.levango7.dataenginebdp.encaps.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;

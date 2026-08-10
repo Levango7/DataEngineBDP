@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -198,10 +199,14 @@ func (c *RedfishClient) ListSystems(ctx context.Context, bmc model.BMCCredential
 		}
 		sysBody, err := c.doRequest(ctx, http.MethodGet, sysURL, user, pass, nil)
 		if err != nil {
+			// 单个系统查询失败不应阻塞整个列表，但需记录便于排障。
+			// 修复：原代码静默 continue，错误被完全吞掉，运维无法定位问题。
+			log.Printf("[redfish] list systems: fetch %s failed: %v", sysURL, err)
 			continue
 		}
 		var sys RedfishSystem
 		if err := json.Unmarshal(sysBody, &sys); err != nil {
+			log.Printf("[redfish] list systems: unmarshal %s failed: %v", sysURL, err)
 			continue
 		}
 		systems = append(systems, sys)

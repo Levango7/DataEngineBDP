@@ -1,4 +1,4 @@
-﻿// Package metrics 提供 invocation 计量功能 · 数据引擎大数据平台 T025.
+// Package metrics 提供 invocation 计量功能 · 数据引擎大数据平台 T025.
 //
 // 按 tenant 隔离记录函数 invocation 计量：
 //   - Prometheus 指标：serverless_invocation_count / serverless_invocation_duration_seconds

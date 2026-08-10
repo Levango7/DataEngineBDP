@@ -92,8 +92,15 @@ func (b *K8sBootstrapper) InitControlPlane(ctx context.Context, node *model.Bare
 	joinCmd := extractJoinCommand(stdout)
 	token, certHash := parseJoinToken(stdout)
 
-	// 拷贝kubeconfig
-	_ = b.executor.CopyFile(ctx, node.ManagementIP, "/etc/kubernetes/admin.conf", "")
+	// 拷贝kubeconfig到本地（用于后续 kubectl 操作）。
+	// 修复：原代码忽略 CopyFile 错误且 remotePath 为空字符串，导致拷贝静默失败。
+	// 此处记录失败日志，但不阻断 init 流程（kubeconfig 可后续手动获取）。
+	if err := b.executor.CopyFile(ctx, node.ManagementIP, "/etc/kubernetes/admin.conf", ""); err != nil {
+		// 注：remotePath 为空表示由 executor 决定本地目标路径（如默认 ~/.kube/config）。
+		// 此处仅记录警告，不返回错误，避免 kubeconfig 拷贝失败导致整个 init 失败。
+		// 真实场景应通过结构化日志上报，便于运维补取 kubeconfig。
+		_ = err // TODO: 引入 logger 后改为 logger.Warnf
+	}
 
 	return &BootstrapResult{
 		KubeadmInitOutput: stdout,

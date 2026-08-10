@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.ruleengine.agent.core;
+package com.levango7.dataenginebdp.ruleengine.agent.core;
 
 /**
  * 内置 Agent 角色统一接口。

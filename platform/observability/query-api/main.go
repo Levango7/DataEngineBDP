@@ -1,4 +1,4 @@
-﻿// Package main 是数据引擎大数据平台统一查询 API 服务。
+// Package main 是数据引擎大数据平台统一查询 API 服务。
 //
 // 功能：
 //   - 封装 Prometheus 查询 API（/api/v1/query, /api/v1/query_range, /api/v1/labels, /api/v1/series）

@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.streambatch;
+package com.levango7.dataenginebdp.streambatch;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

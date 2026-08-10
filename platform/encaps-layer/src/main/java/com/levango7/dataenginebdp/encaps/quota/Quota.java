@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.encaps.quota;
+package com.levango7.dataenginebdp.encaps.quota;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

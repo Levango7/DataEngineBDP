@@ -1,4 +1,4 @@
-﻿"""微调任务引擎 FastAPI 主入口.
+"""微调任务引擎 FastAPI 主入口.
 
 端口：8095
 路由前缀：/api/v1/finetune

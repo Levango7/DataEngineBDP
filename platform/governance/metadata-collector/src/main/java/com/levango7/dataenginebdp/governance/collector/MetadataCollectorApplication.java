@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.governance.collector;
+package com.levango7.dataenginebdp.governance.collector;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

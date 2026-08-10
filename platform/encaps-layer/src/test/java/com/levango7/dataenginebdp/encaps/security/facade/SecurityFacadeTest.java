@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.encaps.security.facade;
+package com.levango7.dataenginebdp.encaps.security.facade;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encaps.crypto.CryptoConfig;

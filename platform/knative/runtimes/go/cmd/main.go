@@ -1,4 +1,4 @@
-﻿// Package main 是 Go 函数运行时入口 · 数据引擎大数据平台 T025.
+// Package main 是 Go 函数运行时入口 · 数据引擎大数据平台 T025.
 //
 // 封装为 Knative Service，使用 Gin 框架。
 // 冷启动优化：Go 静态编译单二进制，启动 < 0.5s（满足 ≤ 3s 目标）。

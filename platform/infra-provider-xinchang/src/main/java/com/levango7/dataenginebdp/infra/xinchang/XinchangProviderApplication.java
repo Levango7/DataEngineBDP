@@ -1,4 +1,4 @@
-﻿package com.levango7.dataenginebdp.infra.xinchang;
+package com.levango7.dataenginebdp.infra.xinchang;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
