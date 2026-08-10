@@ -7,6 +7,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -98,8 +99,7 @@ func (b *K8sBootstrapper) InitControlPlane(ctx context.Context, node *model.Bare
 	if err := b.executor.CopyFile(ctx, node.ManagementIP, "/etc/kubernetes/admin.conf", ""); err != nil {
 		// 注：remotePath 为空表示由 executor 决定本地目标路径（如默认 ~/.kube/config）。
 		// 此处仅记录警告，不返回错误，避免 kubeconfig 拷贝失败导致整个 init 失败。
-		// 真实场景应通过结构化日志上报，便于运维补取 kubeconfig。
-		_ = err // TODO: 引入 logger 后改为 logger.Warnf
+		log.Printf("[k8s] copy kubeconfig from %s failed: %v", node.ManagementIP, err)
 	}
 
 	return &BootstrapResult{

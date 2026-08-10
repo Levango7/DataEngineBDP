@@ -236,12 +236,19 @@ bash scripts/poc/run-poc.sh
 | [架构概览](docs/architecture.md) | 五层架构 + X 横切层，组件交互关系，多租户隔离机制 |
 | [部署指南](docs/deployment-guide.md) | SKE 集群拉起，Helm Chart 部署，四环境 Profile 配置 |
 | [开发指南](docs/development-guide.md) | 环境要求，构建命令，测试命令，代码规范，调试技巧 |
+| [用户手册](docs/user-guide/user-manual.md) | 平台概述、快速入门、控制台操作、数据开发、治理、分析 |
+| [API 参考文档](docs/user-guide/api-reference.md) | 封装层、SQL 网关、Catalog、规则引擎、数据虚拟化、行业模板 API 完整定义 |
+| [运维手册](docs/user-guide/ops-manual.md) | 部署架构、监控告警、日志、容量、备份恢复、安全运维 |
+| [升级指南](docs/user-guide/upgrade-guide.md) | V1.0 → V2.0 升级流程、回滚、验证 |
+| [行业模板使用指南](docs/user-guide/industry-template-guide.md) | 金融、能源、政务三个行业模板使用说明 |
 | [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
 | [变更日志](CHANGELOG.md) | 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
 | [路线图](ROADMAP.md) | v2.0 演进规划 |
 | [命名约定](CONVENTIONS.md) | 统一命名与版本号规范 |
 | [SKE 发行版](ske/README.md) | 自研 K8s 发行版说明 |
+| [SKE WSL2 快速上手](ske/WSL2-QUICKSTART.md) | WSL2 真实 kubeadm 部署手册 |
+| [部署骨架](design/deploy/README.md) | Helm Chart 部署设计态、四环境 Profile、多 Arch 镜像 |
 
 ## 仓库统计
 

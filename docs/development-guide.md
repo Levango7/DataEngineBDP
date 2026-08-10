@@ -52,7 +52,7 @@ nvm use 20
 
 ```
 DataEngineBDP/
-├── platform/          # 自研组件（21 个）
+├── platform/          # 自研组件（31 个）
 │   ├── encaps-layer/  # Java / Spring Boot
 │   ├── sql-gateway/   # Java / Spring Boot
 │   ├── rule-engine/   # Java / Spring Boot

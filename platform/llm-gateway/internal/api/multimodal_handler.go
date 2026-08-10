@@ -21,6 +21,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -125,7 +126,14 @@ func (h *MultimodalHandler) ChatCompletions(c *gin.Context) {
 
 	// 流式响应
 	if req.Stream {
-		_ = h.streamer.StreamChat(c, req, h.chatFunc)
+		if err := h.streamer.StreamChat(c, req, h.chatFunc); err != nil {
+			// SSE 响应头已发送，无法再向客户端返回 JSON 错误，仅记录日志便于排障。
+			slog.Warn("sse stream chat failed",
+				slog.String("model", req.Model),
+				slog.String("tenantId", req.TenantID),
+				slog.String("error", err.Error()),
+			)
+		}
 		return
 	}
 

@@ -53,10 +53,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Node.js 20
+      - name: 安装 Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
@@ -274,10 +274,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.23
+      - name: 安装 Go 1.26
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23'
+          go-version: '1.26'
           cache: true
 
       - name: 发现并遍历所有 Go 组件

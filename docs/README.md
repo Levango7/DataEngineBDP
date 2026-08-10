@@ -16,6 +16,29 @@
 | 命名约定 | `../CONVENTIONS.md` | 统一命名与版本号规范（单一事实来源） |
 | 开源协议 | `../LICENSE` | Apache License 2.0 全文 |
 
+## 用户指南
+
+用户指南位于 `user-guide/` 目录，面向不同角色提供详细使用说明。
+
+| 文档 | 路径 | 适用对象 | 内容 |
+| --- | --- | --- | --- |
+| 用户手册 | `user-guide/user-manual.md` | 数据工程师、数据分析师、业务用户、租户管理员 | 平台概述、快速入门、控制台操作、数据开发、治理、分析 |
+| API 参考文档 | `user-guide/api-reference.md` | 开发工程师 | 封装层、SQL 网关、Catalog、规则引擎、数据虚拟化、行业模板 API 完整定义 |
+| 运维手册 | `user-guide/ops-manual.md` | 平台运维工程师、SRE | 部署架构、监控告警、日志、容量、备份恢复、安全运维 |
+| 升级指南 | `user-guide/upgrade-guide.md` | 平台运维工程师 | V1.0 → V2.0 升级流程、回滚、验证 |
+| 行业模板使用指南 | `user-guide/industry-template-guide.md` | 行业交付工程师、解决方案架构师 | 金融、能源、政务三个行业模板使用说明 |
+
+## 合规文档
+
+合规文档位于 `compliance/` 目录，记录安全合规评估与整改。
+
+| 文档 | 路径 | 内容 |
+| --- | --- | --- |
+| 等保评估报告 | `compliance/dengbao-assessment-report.md` | 等保三级合规评估 |
+| 密码评估报告 | `compliance/crypto-assessment-report.md` | 国密算法合规评估 |
+| 整改记录 | `compliance/remediation-records.md` | 安全合规整改记录 |
+| 复测报告 | `compliance/retest-report.md` | 整改后复测结果 |
+
 ## 设计文档
 
 设计文档位于 `../design/` 目录。
@@ -25,8 +48,8 @@
 | 文档 | 路径 | 内容 |
 | --- | --- | --- |
 | 产品原型设计 | `../design/多平台多租户大数据平台_产品原型设计_v0.4.md` | 五层架构 + L4.5 智能数据层 + 49 模块清单 + 多环境适配 + K8s 封装层 |
-| 控制台原型 v0.3 | `../design/数据引擎大数据平台_控制台原型_v0.3.html` | 客户可见控制台 UI（小众线性图标 + 克制配色，可点击演示） |
-| 控制台原型 v0.1 | `../design/数据引擎大数据平台_控制台原型_v0.1.html` | 历史版本 |
+| 控制台原型 v0.3 | `../design/数擎大数据平台_控制台原型_v0.3.html` | 客户可见控制台 UI（小众线性图标 + 克制配色，可点击演示） |
+| 控制台原型 v0.1 | `../design/数擎大数据平台_控制台原型_v0.1.html` | 历史版本 |
 | 工程交付计划 | `../design/工程交付计划_缺口补全_v1.0.md` | 缺口补全计划 |
 
 ### 详细设计文档（43 份）
@@ -128,12 +151,12 @@
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
-| 自研组件 | `../platform/` | 21 个自研组件（9 Java + 4 Go + 1 CLI + 7 Python + 运营后台） |
+| 自研组件 | `../platform/` | 31 个自研组件（12 Java + 5 Go + 1 CLI + 12 Python + 2 配置部署 + 1 运营后台） |
 | 前端 | `../frontend/` | Vue3 + TypeScript strict 前端工程 |
 | SKE 发行版 | `../ske/` | 自研 K8s 发行版，详见 `../ske/README.md` |
 | 平台引导 | `../platform/bootstrap.sh` | 平台运行时引导脚本 |
-| Helm Chart | `../design/deploy/charts/` | 59 个 Helm Chart |
-| 集成测试 | `../tests/integration/` | 38 个集成测试 |
+| Helm Chart | `../design/deploy/charts/` | 60 个 Helm Chart |
+| 集成测试 | `../tests/integration/` | 43 个集成测试 |
 | PoC 脚本 | `../scripts/poc/` | 端到端 PoC 验证脚本 |
 | CI/CD | `../.github/workflows/` | GitHub Actions 工作流 |
 
@@ -141,4 +164,5 @@
 
 | 文档 | 路径 | 说明 |
 | --- | --- | --- |
-| 实现状态报告 | `../_IMPLEMENTATION_STATUS.md` | 设计文档与代码实现差距声明 |
+| V2.0 整改后评估报告 | `remediation/V2.0_整改后评估报告.md` | V2.0 GA 整改完成后商用就绪度评估 |
+| V2.0 GA 整改计划 | `remediation/V2.0_GA_整改计划.md` | V2.0 GA 发布前整改计划与任务清单 |

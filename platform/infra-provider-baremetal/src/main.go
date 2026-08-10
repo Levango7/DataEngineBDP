@@ -147,7 +147,9 @@ func main() {
 	}
 
 	if sqlDB, err := db.DB(); err == nil {
-		_ = sqlDB.Close()
+		if err := sqlDB.Close(); err != nil {
+			logger.Warnf("关闭数据库连接失败: %v", err)
+		}
 	}
 	logger.Info("服务已关闭")
 }
