@@ -54,7 +54,9 @@ class Settings(BaseSettings):
     nebulaHost: str = Field(default="127.0.0.1", description="NebulaGraph GraphD 主机")
     nebulaPort: int = Field(default=9669, ge=1, le=65535, description="NebulaGraph GraphD 端口")
     nebulaUser: str = Field(default="", description="NebulaGraph 用户名（生产环境必须通过 NEBULA_USER 环境变量设置）")
-    nebulaPassword: str = Field(default="", description="NebulaGraph 密码（生产环境必须通过 NEBULA_PASSWORD 环境变量设置）")
+    nebulaPassword: str = Field(
+        default="", description="NebulaGraph 密码（生产环境必须通过 NEBULA_PASSWORD 环境变量设置）"
+    )
     nebulaPoolSize: int = Field(default=10, ge=1, description="NebulaGraph 连接池大小")
 
     # ---- llm ----
@@ -83,9 +85,7 @@ class Settings(BaseSettings):
         """使用真实 NebulaGraph 存储时，用户名和密码必须非空."""
         if self.isNebulaStore:
             if not self.nebulaUser:
-                raise ValueError(
-                    "nebulaUser 不能为空：使用 NebulaGraph 存储时必须通过 NEBULA_USER 环境变量设置用户名"
-                )
+                raise ValueError("nebulaUser 不能为空：使用 NebulaGraph 存储时必须通过 NEBULA_USER 环境变量设置用户名")
             if not self.nebulaPassword:
                 raise ValueError(
                     "nebulaPassword 不能为空：使用 NebulaGraph 存储时必须通过 NEBULA_PASSWORD 环境变量设置密码"
