@@ -528,9 +528,10 @@ jobs:
             # 将mvn完整输出保存到日志文件，便于失败时提取ERROR行
             mvn_log="$mod_dir/target/mvn-test.log"
             mvn -f "$pom" test -B \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn 2>&1 | tee "$mvn_log"
-            # tee 总是成功，需用 PIPESTATUS[0] 获取 mvn 的真实退出码
-            if [ "${PIPESTATUS[0]}" -eq 0 ]; then
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn > "$mvn_log" 2>&1
+            mvn_exit=$?
+            cat "$mvn_log"
+            if [ "$mvn_exit" -eq 0 ]; then
               echo "✓ $mod_name 测试通过"
             else
               echo "::error::$mod_name 测试失败"
@@ -550,8 +551,8 @@ jobs:
                   fi
                 done
               fi
-              # 输出mvn日志中的所有ERROR行（捕获构建失败的真正原因，如编译错误、依赖缺失、插件异常等）
-              echo "--- mvn ERROR output (from $mvn_log) ---"
+              # 输出mvn日志中的所有ERROR行
+              echo "--- mvn ERROR output ---"
               grep -E "^\[ERROR\]|BUILD FAILURE|Failed to execute" "$mvn_log" 2>/dev/null | while IFS= read -r line; do
                 echo "::error::$line"
               done
