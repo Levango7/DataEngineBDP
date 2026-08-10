@@ -525,43 +525,26 @@ jobs:
             echo "============================================"
             echo "  测试: $mod_name ($mod_dir)"
             echo "============================================"
-            if mvn -f "$pom" test -B -e \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn; then
+            mvn_log="$mod_dir/target/mvn-test.log"
+            mvn -f "$pom" test -B -e \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn > "$mvn_log" 2>&1
+            mvn_exit=$?
+            if [ "$mvn_exit" -eq 0 ]; then
               echo "✓ $mod_name 测试通过"
             else
-              echo "::error::$mod_name 测试失败"
-              echo "✗ $mod_name 测试失败"
-              # 诊断：列出target目录内容
-              echo "--- target dir contents ---"
-              ls -la "$mod_dir/target/" 2>/dev/null | head -20
-              # 诊断：检查checkstyle报告
-              if [ -f "$mod_dir/target/checkstyle-result.xml" ]; then
-                violations=$(grep -c "<violation" "$mod_dir/target/checkstyle-result.xml" 2>/dev/null || echo "0")
-                echo "::error::$mod_name checkstyle violations: $violations"
-              fi
-              # 诊断：检查PMD报告
-              if [ -d "$mod_dir/target/pmd" ]; then
-                pmd_files=$(find "$mod_dir/target/pmd" -name "*.xml" 2>/dev/null)
-                if [ -n "$pmd_files" ]; then
-                  pmd_count=$(grep -c "<violation" $pmd_files 2>/dev/null || echo "0")
-                  echo "::error::$mod_name PMD violations: $pmd_count"
-                fi
-              fi
-              # 诊断：检查surefire报告
-              report_dir="$mod_dir/target/surefire-reports"
-              if [ -d "$report_dir" ]; then
-                for txt in "$report_dir"/*.txt; do
-                  if [ -f "$txt" ]; then
-                    fail_line=$(grep -E "Tests run.*[FE][ai][il]" "$txt" 2>/dev/null | head -1)
-                    if [ -n "$fail_line" ]; then
-                      echo "::error::$(basename "$txt" .txt) - $fail_line"
-                    fi
-                  fi
+              echo "::error::$mod_name 测试失败 (exit code: $mvn_exit)"
+              # 只输出mvn日志中的ERROR行和BUILD FAILURE行（限制30行避免annotations溢出）
+              error_lines=$(grep -E "^\[ERROR\]|BUILD FAILURE|Failed to execute|Caused by" "$mvn_log" 2>/dev/null | head -30)
+              if [ -n "$error_lines" ]; then
+                echo "$error_lines" | while IFS= read -r line; do
+                  echo "::error::$line"
                 done
-              fi
-              # 诊断：检查jacoco报告
-              if [ ! -f "$mod_dir/target/site/jacoco/index.html" ]; then
-                echo "::error::$mod_name jacoco report not generated"
+              else
+                # 如果没有ERROR行，输出最后30行日志
+                echo "::error::No [ERROR] lines found. Last 30 lines of mvn log:"
+                tail -30 "$mvn_log" 2>/dev/null | while IFS= read -r line; do
+                  echo "::error::$line"
+                done
               fi
               fail_count=$((fail_count + 1))
             fi
