@@ -525,7 +525,7 @@ jobs:
             echo "============================================"
             echo "  测试: $mod_name ($mod_dir)"
             echo "============================================"
-            if mvn -f "$pom" test -B \
+            if mvn -f "$pom" test -B -e \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn; then
               echo "✓ $mod_name 测试通过"
             else
