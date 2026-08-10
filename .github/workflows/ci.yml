@@ -531,6 +531,21 @@ jobs:
             else
               echo "::error::$mod_name 测试失败"
               echo "✗ $mod_name 测试失败"
+              # 输出surefire报告中的失败测试详情
+              report_dir="$mod_dir/target/surefire-reports"
+              if [ -d "$report_dir" ]; then
+                for txt in "$report_dir"/*.txt; do
+                  if [ -f "$txt" ]; then
+                    fail_line=$(grep -E "Tests run.*[FE][ai][il]" "$txt" 2>/dev/null | head -1)
+                    if [ -n "$fail_line" ]; then
+                      echo "::error::$(basename "$txt" .txt) - $fail_line"
+                      # 输出失败详情（异常信息）
+                      grep -A 20 "<<< FAILURE!" "$txt" 2>/dev/null | head -20
+                      grep -A 20 "<<< ERROR!" "$txt" 2>/dev/null | head -20
+                    fi
+                  fi
+                done
+              fi
               fail_count=$((fail_count + 1))
             fi
           done < <(find platform -name pom.xml -not -path "*/target/*")
