@@ -99,7 +99,7 @@ class DorisMetadataCollectorTest {
         when(descRs.next()).thenReturn(true, true, false);
         when(descRs.getString(1)).thenReturn("id", "name");
         when(descRs.getString(2)).thenReturn("BIGINT", "VARCHAR(100)");
-        doReturn(null, null).when(descRs).getString(3);
+        doReturn((Object) null, (Object) null).when(descRs).getString(3);
 
         ResultSet paramsRs = mock(ResultSet.class);
         when(paramsRs.next()).thenReturn(false);

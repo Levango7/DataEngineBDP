@@ -529,6 +529,7 @@ jobs:
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn; then
               echo "✓ $mod_name 测试通过"
             else
+              echo "::error::$mod_name 测试失败"
               echo "✗ $mod_name 测试失败"
               fail_count=$((fail_count + 1))
             fi
