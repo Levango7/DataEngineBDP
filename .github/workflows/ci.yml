@@ -525,7 +525,7 @@ jobs:
             echo "============================================"
             echo "  测试: $mod_name ($mod_dir)"
             echo "============================================"
-            mvn_log="$mod_dir/target/mvn-test.log"
+            mvn_log="/tmp/mvn-test-${mod_name}.log"
             mvn -f "$pom" test -B -e \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn > "$mvn_log" 2>&1
             mvn_exit=$?
