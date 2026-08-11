@@ -1,4 +1,4 @@
-﻿# NL2SQL Core Engine - Python Dependencies
+# NL2SQL Core Engine - Python Dependencies
 # Python 3.10+
 # 数据引擎大数据平台 · L4.5.4 NL2SQL 核心引擎
 
@@ -21,7 +21,7 @@ sqlparse==0.5.0
 # 仅使用核心 + LLM 抽象，避免引入重型向量/文档依赖
 langchain-core==0.1.45
 langchain==0.1.16
-langchain-community==0.0.34
+langchain-community==0.4.2
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
 openai==1.23.0
