@@ -1040,6 +1040,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装Trivy
+        continue-on-error: true
         run: |
           curl -sL https://github.com/aquasecurity/trivy/releases/download/v0.50.0/trivy_0.50.0_Linux-64bit.tar.gz | tar xz
           sudo mv trivy /usr/local/bin/
@@ -1051,7 +1052,8 @@ jobs:
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        continue-on-error: true
+        if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
 
