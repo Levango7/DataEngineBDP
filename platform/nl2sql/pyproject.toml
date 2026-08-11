@@ -43,7 +43,7 @@ langchain = [
     "langchain-core==0.1.45",
     "langchain==0.1.16",
     "langchain-community==0.0.34",
-    "openai==1.23.0",
+    "openai==2.53.0",
     "tiktoken==0.6.0",
 ]
 test = [
@@ -58,7 +58,7 @@ dev = [
     "langchain-core==0.1.45",
     "langchain==0.1.16",
     "langchain-community==0.0.34",
-    "openai==1.23.0",
+    "openai==2.53.0",
     "tiktoken==0.6.0",
 ]
 
