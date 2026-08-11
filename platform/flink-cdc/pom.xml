@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -21,7 +21,7 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flink.version>1.18.1</flink.version>
-        <flink.cdc.version>3.0.0</flink.cdc.version>
+        <flink.cdc.version>3.0.1</flink.cdc.version>
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
         <debezium.version>1.9.8.Final</debezium.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
