@@ -142,8 +142,7 @@ jobs:
       - name: 安装 Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          # 与 ci.yml 固定为同一版本，避免 latest 漂移导致行为不一致
-          version: v0.73.0
+          version: v0.71.1
 
       - name: 扫描代码库依赖（fs 模式）
         uses: aquasecurity/trivy-action@v0.36.0
