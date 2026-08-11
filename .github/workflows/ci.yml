@@ -1064,6 +1064,8 @@ jobs:
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3
+        # 该上传已由 security.yml 的 trivy-scan 负责；CI 侧重门禁。非阻断。
+        continue-on-error: true
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
