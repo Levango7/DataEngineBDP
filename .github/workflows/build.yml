@@ -201,6 +201,8 @@ jobs:
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=java-images" \
+              --cache-to "type=gha,mode=max,scope=java-images" \
               --push="$push_flag" \
               $dockerfile_arg \
               "$build_ctx"
@@ -215,6 +217,7 @@ jobs:
   build-go-images:
     name: Build & Push Go Images
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     needs: ci-gate
     steps:
       - name: 计算小写 GHCR 命名空间
@@ -263,6 +266,8 @@ jobs:
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=go-images" \
+              --cache-to "type=gha,mode=max,scope=go-images" \
               --push="$push_flag" \
               "$mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
@@ -313,6 +318,8 @@ jobs:
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=python-images" \
+              --cache-to "type=gha,mode=max,scope=python-images" \
               --push="$push_flag" \
               "$mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*")

@@ -17,8 +17,8 @@ ENV GOPROXY=https://goproxy.cn,direct
 # 复制源码。
 COPY . .
 
-# go mod tidy 自动补全 go.sum 及 indirect 依赖（auth.go 引用了 golang-jwt/jwt/v5）
-RUN go mod tidy
+# mod下载在 QEMU 下比在 host 慢得多，go mod tidy 也会联网校验，故使用 download（安全且稳态）
+RUN go mod download
 
 # 静态编译，禁用 cgo 以适配 alpine 运行时。
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/catalog .

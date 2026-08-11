@@ -16,8 +16,8 @@ ENV GOPROXY=https://goproxy.cn,direct
 # 复制源码。
 COPY . .
 
-# go mod tidy 自动补全 go.sum 及 indirect 依赖
-RUN go mod tidy
+# mod下载在 QEMU 下优化，避免 tidy 联网校验依赖。
+RUN go mod download
 
 # 静态编译，禁用 cgo 以适配 alpine 运行时。
 # 启用 milvus_enabled build tag，链接真实 Milvus Go SDK（github.com/milvus-io/milvus-sdk-go/v2），
