@@ -1042,7 +1042,7 @@ jobs:
       - name: 安装Trivy (与 security.yml 保持一致 @v0.36.0)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
-          version: v0.50.0
+          version: v0.73.0
 
       - name: Trivy扫描 - 文件系统模式
         run: trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
@@ -1052,6 +1052,20 @@ jobs:
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
+
+      # 同时输出 table 报告，便于在 Actions 日志中直接查看（不阻断）
+      - name: Trivy table 报告(供日志查看)
+        if: always()
+        run: trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format table . 2>&1 | tee trivy-table.txt || true
+
+      - name: 上传 Trivy table 报告 artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-table-report
+          path: trivy-table.txt
+          retention-days: 14
+          if-no-files-found: ignore
 
   # ============================================================
   # CycloneDX SBOM 生成：为 Java (Maven) 和前端 (npm) 组件生成软件物料清单
