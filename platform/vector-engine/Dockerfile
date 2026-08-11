@@ -5,6 +5,7 @@ ARG BASE_REGISTRY=docker.m.daocloud.io/library
 
 # ============ 构建阶段 ============
 FROM ${BASE_REGISTRY}/golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -21,7 +22,7 @@ RUN go mod tidy
 # 静态编译，禁用 cgo 以适配 alpine 运行时。
 # 启用 milvus_enabled build tag，链接真实 Milvus Go SDK（github.com/milvus-io/milvus-sdk-go/v2），
 # 而非内存 Mock 实现。连接失败时由 newMilvusStoreOrFallback 自动回退到 Mock。
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags milvus_enabled -trimpath -ldflags="-s -w" -o /out/vector-engine .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -tags milvus_enabled -trimpath -ldflags="-s -w" -o /out/vector-engine .
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/alpine:3.19 AS runtime

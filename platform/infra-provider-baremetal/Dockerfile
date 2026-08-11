@@ -9,6 +9,7 @@
 # 阶段1: 构建
 ###############################################################################
 FROM docker.m.daocloud.io/golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 # 安装构建依赖(纯Go无需gcc，但保留git用于私有模块)
 RUN apk add --no-cache git ca-certificates tzdata
@@ -26,7 +27,7 @@ COPY . .
 
 # 静态构建(CGO_ENABLED=0 纯Go)
 ARG VERSION=0.1.0
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build \
     -trimpath \
     -ldflags="-s -w -X main.Version=${VERSION}" \

@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 # LLMOps Platform Dockerfile
 # 数据引擎大数据平台 L4.5.3 智能数据层 - LLMOps 运营平台
 
