@@ -121,15 +121,15 @@ configMap:
 secret:
   # 是否创建占位 Secret（生产环境应使用外部 Secret 管理器如 External Secrets / Sealed Secrets）
   create: false
-  # 占位凭据（仅 dev 环境使用，生产环境必须覆盖为外部引用）
+  # 占位凭据（仅 dev 环境使用，生产环境必须覆盖为外部引用；禁止填入真实值）
   doris:
-    password: "changeme-doris"
+    password: "REPLACE_WITH_DORIS_PASSWORD"
   dolphinscheduler:
-    token: "changeme-ds"
+    token: "REPLACE_WITH_DOLPHINSCHEDULER_TOKEN"
   superset:
-    token: "changeme-superset"
+    token: "REPLACE_WITH_SUPERSET_TOKEN"
   keycloak:
-    adminPassword: "changeme-keycloak"
+    adminPassword: "REPLACE_WITH_KEYCLOAK_ADMIN_PASSWORD"
 
 # ============================================================================
 # 导入 Job 配置（核心：将模板资产导入到各组件）

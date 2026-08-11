@@ -956,7 +956,7 @@ jobs:
         working-directory: tests/integration
         run: |
           echo "运行集成测试..."
-          python -m pytest -v --tb=short --html=test-report.html --self-contained-html || true
+          python -m pytest -v --tb=short --html=test-report.html --self-contained-html
           echo "集成测试执行完成"
 
       - name: 上传集成测试报告
@@ -1039,20 +1039,16 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装Trivy
-        continue-on-error: true
-        run: |
-          curl -sL https://github.com/aquasecurity/trivy/releases/download/v0.50.0/trivy_0.50.0_Linux-64bit.tar.gz | tar xz
-          sudo mv trivy /usr/local/bin/
+      - name: 安装Trivy (与 security.yml 保持一致 @v0.36.0)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          version: v0.50.0
 
       - name: Trivy扫描 - 文件系统模式
-        continue-on-error: true
-        run: |
-          trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif . || true
+        run: trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3
-        continue-on-error: true
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
           sarif_file: 'trivy-results.sarif'
@@ -1119,4 +1115,4 @@ jobs:
       - name: 验证K8s清单
         run: |
           # 验证 ske manifests
-          find ske/manifests -name "*.yaml" -exec kubeconform -strict -kubernetes-version 1.29.0 {} \; 2>&1 || true
+          find ske/manifests -name "*.yaml" -exec kubeconform -strict -kubernetes-version 1.29.0 {} \;

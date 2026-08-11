@@ -113,7 +113,7 @@ DataEngineBDP/
 | --- | --- | --- |
 | JDK | 17 | Java 组件构建 |
 | Maven | 3.9 | Java 组件构建 |
-| Go | 1.23 | Go 组件构建 |
+| Go | 1.26 | Go 组件构建 |
 | Python | 3.11 | Python 组件构建 |
 | Node.js | 20 | 前端构建 |
 | Docker | 24.0 | 容器镜像构建 |
