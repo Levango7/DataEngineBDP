@@ -1039,10 +1039,12 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装Trivy (与 security.yml 保持一致 @v0.36.0)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          version: v0.71.1
+      - name: 安装Trivy (与 security.yml 保持一致，直装+重试3次)
+        run: |
+          curl -fSL --retry 3 --retry-delay 5 -o /tmp/trivy.tar.gz \
+            https://github.com/aquasecurity/trivy/releases/download/v0.71.1/trivy_0.71.1_Linux-64bit.tar.gz
+          sudo tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
+          trivy version
 
       - name: Trivy扫描 - 文件系统模式
         run: trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
