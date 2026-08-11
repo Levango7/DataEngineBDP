@@ -104,6 +104,9 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/sq-frontend:latest
             ghcr.io/${{ github.repository_owner }}/sq-frontend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: true
@@ -175,6 +178,8 @@ jobs:
             docker buildx build \
               -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:${{ github.sha }}" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
               --provenance=true --sbom=true \
               "$mod_dir"
@@ -232,6 +237,8 @@ jobs:
               --platform linux/amd64,linux/arm64 \
               -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:${{ github.sha }}" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
               --provenance=true --sbom=true \
               "$mod_dir"
@@ -278,6 +285,8 @@ jobs:
             docker buildx build \
               -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:${{ github.sha }}" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
               --provenance=true --sbom=true \
               "$mod_dir"
