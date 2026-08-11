@@ -8,7 +8,7 @@
 ###############################################################################
 # 阶段1: 构建
 ###############################################################################
-FROM docker.m.daocloud.io/golang:1.25-alpine AS builder
+FROM docker.m.daocloud.io/golang:1.26-alpine AS builder
 
 # 安装构建依赖(纯Go无需gcc，但保留git用于私有模块)
 RUN apk add --no-cache git ca-certificates tzdata

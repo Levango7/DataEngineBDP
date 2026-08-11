@@ -4,7 +4,7 @@
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
 
 # ============ 构建阶段 ============
-FROM ${BASE_REGISTRY}/golang:1.21-alpine AS builder
+FROM ${BASE_REGISTRY}/golang:1.26-alpine AS builder
 
 WORKDIR /build
 

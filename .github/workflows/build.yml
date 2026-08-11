@@ -187,6 +187,14 @@ jobs:
             echo "============================================"
             echo "  Docker build & push: $mod_name"
             echo "============================================"
+            # lineage-analyzer 的 Dockerfile 按 platform 根目录作为 context 书写
+            # (COPY sql-gateway/… 与 governance/lineage-analyzer/…)，需特判
+            build_ctx="$mod_dir"
+            dockerfile_arg=""
+            if [ "$mod_name" = "lineage-analyzer" ]; then
+              build_ctx="platform"
+              dockerfile_arg="-f platform/governance/lineage-analyzer/Dockerfile"
+            fi
             docker buildx build \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
@@ -194,7 +202,8 @@ jobs:
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
               --provenance=true --sbom=true \
-              "$mod_dir"
+              $dockerfile_arg \
+              "$build_ctx"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
           echo "共构建 $img_count 个 Java 镜像"
 
@@ -352,9 +361,20 @@ jobs:
               echo "============================================"
               # 打包为 tgz
               helm package "${chart_dir}" -d release-charts/
-              # 推送到 GHCR OCI Registry
+              # 推送到 GHCR OCI Registry（带限流间隔与重试，避免 GitHub secondary rate limit 403）
               if [ "${{ github.event.inputs.push_image != 'false' }}" = "true" ]; then
-                helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts"
+                push_ok=0
+                for attempt in 1 2 3; do
+                  if helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts"; then
+                    push_ok=1
+                    break
+                  else
+                    echo "::warning::chart ${chart_name} 推送失败(第 ${attempt} 次),60s 后重试(规避 GHCR 限流)"
+                    sleep 60
+                  fi
+                done
+                [ "$push_ok" -eq 1 ] || { echo "::error::chart ${chart_name} 重试 3 次仍失败"; exit 1; }
+                sleep 2  # 相邻推送节流，降低触发 secondary rate limit 概率
               fi
             fi
           done

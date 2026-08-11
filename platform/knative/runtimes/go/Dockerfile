@@ -10,7 +10,7 @@
 # 目标冷启动：≤ 0.5s（Go 静态二进制，远优于 ≤ 3s 目标）
 # ============================================================================
 # ---------- 阶段 1：Go 编译 ----------
-FROM docker.m.daocloud.io/library/golang:1.22-alpine AS builder
+FROM docker.m.daocloud.io/library/golang:1.26-alpine AS builder
 
 WORKDIR /build
 COPY go.mod go.sum* /build/
