@@ -113,8 +113,9 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
-          sbom: true
+          # 不在镜像构建期生成 provenance/sbom,避免拉取 buildkit-syft-scanner
+          # 时受 Docker Hub 瞬时故障(502)影响;SBOM 由 ci.yml CycloneDX
+          # 与 release.yml anchore/sbom-action 统一生成
 
   # ============================================================
   # 构建 Java 组件 Docker 镜像
@@ -201,7 +202,6 @@ jobs:
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
-              --provenance=true --sbom=true \
               $dockerfile_arg \
               "$build_ctx"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
@@ -264,7 +264,6 @@ jobs:
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
-              --provenance=true --sbom=true \
               "$mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
           echo "共构建 $img_count 个 Go 镜像（多架构）"
@@ -315,7 +314,6 @@ jobs:
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
               --label "org.opencontainers.image.revision=${{ github.sha }}" \
               --push="$push_flag" \
-              --provenance=true --sbom=true \
               "$mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
           echo "共构建 $img_count 个 Python 镜像"
