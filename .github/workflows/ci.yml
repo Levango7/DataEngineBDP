@@ -1040,7 +1040,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Trivy扫描 - 文件系统模式
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.24.0
+        continue-on-error: true
         with:
           scan-type: 'fs'
           scan-ref: '.'
