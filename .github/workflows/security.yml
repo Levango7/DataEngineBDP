@@ -139,6 +139,21 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      # 与 ci.yml 的 trivy-scan 对齐：预热 ~/.m2，防止 Trivy 解析 pom 时被 Maven Central 429 限流
+      - name: 安装 Maven 并预热本地缓存
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          maven-version: '3.9'
+          cache: 'maven'
+
+      - name: 预解析所有 Maven 依赖
+        run: |
+          while IFS= read -r pom; do
+            mvn -f "$pom" dependency:resolve -B -q -DskipTests || true
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+
       - name: 安装 Trivy
         run: |
           # 官方 action 的 find/download 对 GitHub 附件裸跑经常超时（社区已多次反馈），改为脚本着重试 3 次
