@@ -21,7 +21,7 @@ COPY src /build/src
 RUN mvn native:compile -B -DskipTests
 
 # ---------- 阶段 2：distroless 运行时 ----------
-FROM docker.m.daocloud.io/gcr.io/distroless/java17-debian12:nonroot
+FROM gcr.io/distroless/java17-debian12:nonroot
 
 COPY --from=builder /build/target/function-runtime-java /app/function-runtime
 

@@ -26,7 +26,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} \
     go build -trimpath -ldflags="-s -w" -o /function-runtime ./cmd
 
 # ---------- 阶段 2：distroless 运行时 ----------
-FROM docker.m.daocloud.io/gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /function-runtime /app/function-runtime
 
