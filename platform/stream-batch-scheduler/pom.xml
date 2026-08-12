@@ -25,7 +25,7 @@
         <!-- Iceberg 1.5.0（与 Phase 1 T015 Iceberg V2 upsert 对齐） -->
         <iceberg.version>1.5.0</iceberg.version>
         <!-- Spark 3.5.0（与 L2.2 批计算详细设计对齐） -->
-        <spark.version>3.5.0</spark.version>
+        <spark.version>3.5.9</spark.version>
         <!-- Flink 1.18.0（与 L2.3 流计算详细设计、T014 Flink CDC 对齐） -->
         <flink.version>1.18.0</flink.version>
         <!-- Doris 2.0.0（与 Phase 1 T016 Doris 物化视图对齐） -->
