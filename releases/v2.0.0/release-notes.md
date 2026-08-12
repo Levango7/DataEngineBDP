@@ -409,7 +409,54 @@ V2.0.0 GA 涉及的全部组件及其版本号如下，供升级与兼容性核�
 
 ---
 
-## 14. 发布签字
+## 14. 发布后更新记录（2026-08-13）
+
+V2.0.0 GA 发布后，团队继续处理遗留问题与质量提升项，以下变更已合入 main 分支并推送至远程仓库：
+
+### 14.1 Helm Chart BOM 损坏修复（P0）
+
+- **问题**：60 个 Chart.yaml 文件存在双重 BOM（`\xEF\xBB\xBF\xEF\xBB\xBF`）+ `apiVersion` 字段名损坏（`piVersion` 而非 `apiVersion`），导致 `helm lint` 仅 21/81 通过。
+- **修复**：去除双重 BOM，修复字段名，所有 81 个 Chart.yaml 第一行均为 `apiVersion: v2` 格式。
+- **提交**：`0e75706 fix(helm): repair double-BOM and apiVersion corruption in 60 Chart.yaml files`
+
+### 14.2 P0 模块单元测试补充
+
+- **目标**：为 7 个覆盖率最低模块（0%→50%）补充单元测试。
+- **完成情况**：
+
+| 模块 | 语言 | 修复前覆盖率 | 修复后覆盖率 | 测试数 |
+| --- | --- | --- | --- | --- |
+| observability/query-api | Go | 0% | handler 81.2% / service 93.5% / middleware 94.0% | 4 文件 |
+| karmada/api | Go | 0% | handler 71.6% / middleware 93.3% / model 100% | 5 文件 |
+| karmada/failover/api | Go | 0% | handler 54.1% / middleware 93.3% / model 100% | 4 文件 |
+| karmada/failover/engine | Go | 0% | health 90.7% / karmada 88.5% / weight 95.6% | 6 文件 |
+| knative/runtimes/go | Go | 0% | handler 100% / metrics 100% | 2 文件 |
+| llm-gateway/evaluation | Python | 0% | 92 个测试全部通过 | 7 文件 |
+| sql-gateway | Java | 0.25% | 70.49%（已有 1123 个测试） | 已有测试 |
+
+- **提交**：`6c22b1d test: add unit tests for P0 modules`（28 个新文件，5365 行新增）
+
+### 14.3 Dependabot PR 处理
+
+- **Major 升级 PR 审查**：31 个 major 版本升级 PR 全部分析，报告输出至 `docs/pr-review-major-upgrades.md`。
+- **安全合并**：
+  - PR #78（vue-router 4→5）：已在 GitHub 合并。
+  - PR #45（pinia 2→4）：本地合并并推送（`36b21dc`）。
+- **建议关闭**（21 个）：Spring Boot 3→4（14 个）、spring-cloud、langchain-core、openai、mlflow（2 个）、typescript、download-artifact。原因：需统一规划升级，建议单独立项处理。
+- **保持 open**（8 个）：kubernetes-client #9、pytest-asyncio（4 个）、hive-jdbc #12、native-maven-plugin #135、echarts #43。
+
+### 14.4 GA 检查清单验证
+
+- **通过率**：从 50%（27/54）提升至 70.4%（38/54）。
+- **提交**：`a94b58c docs: update GA checklist with verification results`
+
+### 14.5 PR 审查报告
+
+- **提交**：`8805c92 docs: add major upgrade PR review report (31 PRs analyzed)`
+
+---
+
+## 15. 发布签字
 
 | 角色 | 签字 | 日期 |
 | --- | --- | --- |
