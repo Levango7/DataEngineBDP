@@ -1,0 +1,199 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "retail_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_retail",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "product",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "商品基本信息主表 | DDL: product_profile_ddl.sql §1",
+      "columns": [
+        {"name": "product_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_sku", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_name", "type": "VARCHAR(256)", "is_dttm": false},
+        {"name": "category_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "brand_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "cost_price", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "retail_price", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "shelf_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "product_category",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "商品类目表 | DDL: product_profile_ddl.sql §2",
+      "columns": [
+        {"name": "category_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "category_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "category_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "category_level", "type": "INT", "is_dttm": false},
+        {"name": "parent_category_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "category_path", "type": "VARCHAR(512)", "is_dttm": false},
+        {"name": "is_leaf", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "category_id"
+    },
+    {
+      "table_name": "product_brand",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "商品品牌表 | DDL: product_profile_ddl.sql §3",
+      "columns": [
+        {"name": "brand_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "brand_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "brand_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "origin_country", "type": "VARCHAR(64)", "is_dttm": false}
+      ],
+      "main_dttm_col": "brand_id"
+    },
+    {
+      "table_name": "product_sales_stat",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "商品销量统计表 | DDL: product_profile_ddl.sql §4",
+      "columns": [
+        {"name": "product_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "stat_period", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "sales_qty", "type": "INT", "is_dttm": false},
+        {"name": "sales_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "net_sales_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "buyer_count", "type": "INT", "is_dttm": false},
+        {"name": "avg_unit_price", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "repurchase_rate", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "sales_rank", "type": "INT", "is_dttm": false},
+        {"name": "is_hot_product", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "is_long_tail", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "product_review_profile",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "商品评价画像表 | DDL: product_profile_ddl.sql §5",
+      "columns": [
+        {"name": "product_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "review_count", "type": "INT", "is_dttm": false},
+        {"name": "avg_score", "type": "DECIMAL(3,2)", "is_dttm": false},
+        {"name": "positive_rate", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "negative_rate", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "satisfaction_score", "type": "DECIMAL(5,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "product_tag",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "商品标签表 | DDL: product_profile_ddl.sql §6",
+      "columns": [
+        {"name": "tag_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tag_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tag_value", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "tag_category", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "tag_source", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "confidence", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "tagged_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "tagged_at"
+    }
+  ],
+  "dashboards": [
+    {
+      "slug": "product-profile-dashboard",
+      "title": "商品画像仪表盘",
+      "description": "零售行业模板 - 商品画像仪表盘：销量 TOP N、类目分布、品牌矩阵、评价词云、商品标签分布",
+      "owners": ["admin"],
+      "position": {"DASHBOARD_VERSION": "v2", "DASHBOARD_ROOT_ID": "PRODUCT_PROFILE_ROOT"},
+      "metadata": {
+        "industry": "retail",
+        "domain": "product_profile",
+        "template": "retail-template",
+        "version": "1.0.0"
+      },
+      "charts": [
+        {
+          "slice_name": "销量 TOP 20 商品",
+          "viz_type": "table",
+          "datasource": "product_sales_stat",
+          "params": {
+            "metrics": [{"expressionType": "SQL", "sqlExpression": "sales_qty", "label": "销量"}],
+            "groupby": ["product_id"],
+            "orderby": [{"column": "sales_qty", "direction": "desc"}],
+            "row_limit": 20,
+            "where": "stat_period = 'DAILY' AND stat_date = '{{ ds }}'"
+          }
+        },
+        {
+          "slice_name": "类目销量分布",
+          "viz_type": "pie",
+          "datasource": "product_sales_stat",
+          "params": {
+            "metrics": [{"expressionType": "SQL", "sqlExpression": "SUM(sales_amount)", "label": "销售额"}],
+            "groupby": ["category_id"],
+            "donut": true,
+            "where": "stat_period = 'MONTHLY'"
+          }
+        },
+        {
+          "slice_name": "品牌矩阵（销量 vs 评分）",
+          "viz_type": "scatter",
+          "datasource": "product_sales_stat",
+          "params": {
+            "x": {"datasource": "product_sales_stat", "column": "sales_qty"},
+            "y": {"datasource": "product_review_profile", "column": "avg_score"},
+            "groupby": ["brand_id"],
+            "where": "stat_period = 'MONTHLY'"
+          }
+        },
+        {
+          "slice_name": "商品评价词云",
+          "viz_type": "word_cloud",
+          "datasource": "product_review_profile",
+          "params": {
+            "series": "keywords",
+            "metric": {"expressionType": "SQL", "sqlExpression": "review_count", "label": "频次"},
+            "row_limit": 100
+          }
+        },
+        {
+          "slice_name": "商品标签分布",
+          "viz_type": "bar",
+          "datasource": "product_tag",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "商品数"}],
+            "groupby": ["tag_code"],
+            "adhoc_filters": [{"clause": "WHERE", "expressionType": "SQL", "sqlExpression": "tag_category = 'SALES'"}]
+          }
+        },
+        {
+          "slice_name": "爆款 vs 长尾商品占比",
+          "viz_type": "pie",
+          "datasource": "product_sales_stat",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "商品数"}],
+            "groupby": [{"label": "类型", "sqlExpression": "CASE WHEN is_hot_product THEN '爆款' WHEN is_long_tail THEN '长尾' ELSE '常规' END"}],
+            "donut": true
+          }
+        }
+      ]
+    }
+  ]
+}

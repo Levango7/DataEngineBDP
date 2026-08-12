@@ -1,0 +1,211 @@
+# Slack 消息模板 · 漂移告警专用
+# ============================================================================
+# 作用：定义 Slack 通知的消息格式（Block Kit）
+# 集成：被 argocd-notifications-cm 的 template.* 引用
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-slack-templates
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-alerting
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "Slack 漂移告警消息模板（Block Kit）"
+data:
+  # ============================================================================
+  # 1. Critical 漂移模板（红色 + @ 人）
+  # ============================================================================
+  template-slack-critical: |
+    {
+      "blocks": [
+        {
+          "type": "header",
+          "text": {
+            "type": "plain_text",
+            "text": "🚨 CRITICAL 配置漂移"
+          }
+        },
+        {
+          "type": "section",
+          "block_id": "summary",
+          "fields": [
+            {"type": "mrkdwn", "text": "*App:*\n{{.app.metadata.name}}"},
+            {"type": "mrkdwn", "text": "*环境:*\n{{.app.metadata.labels.environment}}"},
+            {"type": "mrkdwn", "text": "*漂移类型:*\n{{.context.driftType}}"},
+            {"type": "mrkdwn", "text": "*检测时间:*\n{{.context.timestamp}}"}
+          ]
+        },
+        {
+          "type": "section",
+          "block_id": "diff",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*差异摘要:*\n```{{.context.diffSummary}}```"
+          }
+        },
+        {
+          "type": "section",
+          "block_id": "action",
+          "text": {
+            "type": "mrkdwn",
+            "text": "<!subteam^SRE01> 请立即处理"
+          }
+        },
+        {
+          "type": "actions",
+          "elements": [
+            {
+              "type": "button",
+              "text": {"type": "plain_text", "text": "查看 ArgoCD"},
+              "url": "https://argocd.company.com/applications/{{.app.metadata.name}}"
+            },
+            {
+              "type": "button",
+              "text": {"type": "plain_text", "text": "确认修复"},
+              "url": "https://argocd.company.com/applications/{{.app.metadata.name}}?operation=sync"
+            }
+          ]
+        }
+      ]
+    }
+
+  # ============================================================================
+  # 2. High 漂移模板（橙色）
+  # ============================================================================
+  template-slack-high: |
+    {
+      "blocks": [
+        {
+          "type": "header",
+          "text": {
+            "type": "plain_text",
+            "text": "⚠️ HIGH 配置漂移"
+          }
+        },
+        {
+          "type": "section",
+          "fields": [
+            {"type": "mrkdwn", "text": "*App:*\n{{.app.metadata.name}}"},
+            {"type": "mrkdwn", "text": "*环境:*\n{{.app.metadata.labels.environment}}"},
+            {"type": "mrkdwn", "text": "*漂移类型:*\n{{.context.driftType}}"},
+            {"type": "mrkdwn", "text": "*检测时间:*\n{{.context.timestamp}}"}
+          ]
+        },
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "*差异摘要:*\n```{{.context.diffSummary}}```"
+          }
+        },
+        {
+          "type": "actions",
+          "elements": [
+            {
+              "type": "button",
+              "text": {"type": "plain_text", "text": "查看详情"},
+              "url": "https://argocd.company.com/applications/{{.app.metadata.name}}"
+            }
+          ]
+        }
+      ]
+    }
+
+  # ============================================================================
+  # 3. Medium 漂移模板（黄色）
+  # ============================================================================
+  template-slack-medium: |
+    {
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": ":warning: *Medium 漂移* · `{{.app.metadata.name}}` ({{.app.metadata.labels.environment}})"
+          }
+        },
+        {
+          "type": "section",
+          "fields": [
+            {"type": "mrkdwn", "text": "*类型:*\n{{.context.driftType}}"},
+            {"type": "mrkdwn", "text": "*时间:*\n{{.context.timestamp}}"}
+          ]
+        }
+      ]
+    }
+
+  # ============================================================================
+  # 4. Low 漂移模板（灰色，简洁）
+  # ============================================================================
+  template-slack-low: |
+    {
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": ":information_source: `{{.app.metadata.name}}` ({{.app.metadata.labels.environment}}) {{.context.driftType}} - {{.context.timestamp}}"
+          }
+        }
+      ]
+    }
+
+  # ============================================================================
+  # 5. 修复完成模板（绿色）
+  # ============================================================================
+  template-slack-remediated: |
+    {
+      "blocks": [
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": ":white_check_mark: *漂移修复完成* · `{{.app.metadata.name}}` ({{.app.metadata.labels.environment}})"
+          }
+        },
+        {
+          "type": "section",
+          "fields": [
+            {"type": "mrkdwn", "text": "*修复方式:*\n{{.context.remediationTrigger}}"},
+            {"type": "mrkdwn", "text": "*耗时:*\n{{.context.duration}}"},
+            {"type": "mrkdwn", "text": "*原漂移:*\n{{.context.originalDriftType}}"},
+            {"type": "mrkdwn", "text": "*时间:*\n{{.context.timestamp}}"}
+          ]
+        }
+      ]
+    }
+
+  # ============================================================================
+  # 6. 修复失败模板（红色 + @ 人）
+  # ============================================================================
+  template-slack-remediation-failed: |
+    {
+      "blocks": [
+        {
+          "type": "header",
+          "text": {
+            "type": "plain_text",
+            "text": "❌ 漂移修复失败"
+          }
+        },
+        {
+          "type": "section",
+          "fields": [
+            {"type": "mrkdwn", "text": "*App:*\n{{.app.metadata.name}}"},
+            {"type": "mrkdwn", "text": "*环境:*\n{{.app.metadata.labels.environment}}"},
+            {"type": "mrkdwn", "text": "*失败原因:*\n{{.context.failReason}}"},
+            {"type": "mrkdwn", "text": "*当前状态:*\n{{.app.status.sync.status}} / {{.app.status.health.status}}"}
+          ]
+        },
+        {
+          "type": "section",
+          "text": {
+            "type": "mrkdwn",
+            "text": "<!subteam^SRE01> 请立即处理 · <https://argocd.company.com/applications/{{.app.metadata.name}}|查看 ArgoCD>"
+          }
+        }
+      ]
+    }

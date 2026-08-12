@@ -2,6 +2,7 @@
 
 定义仓储层契约，由 repositories/mock 等具体实现落地。
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

@@ -1,8 +1,9 @@
 """API 端点测试."""
+
 from __future__ import annotations
 
-
 # ---------- health ----------
+
 
 def testHealth(client):
     resp = client.get("/health")
@@ -15,6 +16,7 @@ def testHealth(client):
 
 
 # ---------- experiments ----------
+
 
 def _createExperiment(client, name="exp-1"):
     resp = client.post(
@@ -42,9 +44,7 @@ def testCreateExperiment(client):
 
 def testCreateExperimentDuplicate(client):
     _createExperiment(client, name="dup")
-    resp = client.post(
-        "/api/v1/experiments", json={"name": "dup"}
-    )
+    resp = client.post("/api/v1/experiments", json={"name": "dup"})
     assert resp.status_code == 409
 
 
@@ -101,6 +101,7 @@ def testLogMetricsExperimentNotFound(client):
 
 
 # ---------- training ----------
+
 
 def _createTrainingJob(client, name="lr-1"):
     resp = client.post(
@@ -175,6 +176,7 @@ def testListTrainingJobs(client):
 
 
 # ---------- models ----------
+
 
 def _setupModel(client, name="lr-1"):
     job = _createTrainingJob(client, name=name)
@@ -272,6 +274,7 @@ def testEvaluateModelNotFound(client):
 
 # ---------- feature groups ----------
 
+
 def _createFeatureGroup(client, name="user_features"):
     resp = client.post(
         "/api/v1/feature-groups",
@@ -299,9 +302,7 @@ def testCreateFeatureGroup(client):
 
 def testCreateFeatureGroupDuplicate(client):
     _createFeatureGroup(client, name="dup")
-    resp = client.post(
-        "/api/v1/feature-groups", json={"name": "dup"}
-    )
+    resp = client.post("/api/v1/feature-groups", json={"name": "dup"})
     assert resp.status_code == 409
 
 
@@ -325,9 +326,7 @@ def testPutAndGetFeatures(client):
         json={"features": {"age": 30, "gender": "M"}},
     )
     assert resp.status_code == 204
-    resp = client.get(
-        f"/api/v1/feature-groups/{name}/features/user-1"
-    )
+    resp = client.get(f"/api/v1/feature-groups/{name}/features/user-1")
     assert resp.status_code == 200
     body = resp.json()
     assert body["features"]["age"] == 30
@@ -336,9 +335,7 @@ def testPutAndGetFeatures(client):
 
 def testGetFeaturesEntityNotFound(client):
     name = _createFeatureGroup(client)
-    resp = client.get(
-        f"/api/v1/feature-groups/{name}/features/nonexistent"
-    )
+    resp = client.get(f"/api/v1/feature-groups/{name}/features/nonexistent")
     assert resp.status_code == 404
 
 
@@ -356,17 +353,14 @@ def testDeleteFeatures(client):
         f"/api/v1/feature-groups/{name}/features/u1",
         json={"features": {"a": 1}},
     )
-    resp = client.delete(
-        f"/api/v1/feature-groups/{name}/features/u1"
-    )
+    resp = client.delete(f"/api/v1/feature-groups/{name}/features/u1")
     assert resp.status_code == 204
-    resp = client.get(
-        f"/api/v1/feature-groups/{name}/features/u1"
-    )
+    resp = client.get(f"/api/v1/feature-groups/{name}/features/u1")
     assert resp.status_code == 404
 
 
 # ---------- end-to-end ML flow ----------
+
 
 def testEndToEndMlFlow(client):
     """端到端 ML 流程：创建实验 → 特征准备 → 训练 → 评估 → 预测."""
@@ -423,6 +417,7 @@ def testEndToEndMlFlow(client):
 
 
 # ---------- docs ----------
+
 
 def testOpenapiDocsAccessible(client):
     """FastAPI 自动文档可访问."""

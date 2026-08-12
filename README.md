@@ -1,34 +1,34 @@
-# 数擎大数据平台 · ShuqingBigDataPlatform
+# 数据引擎大数据平台 · DataEngineBDP
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
-> 拼音：数擎 = shù qíng → **Shuqing**（SKE = Shuqing Kubernetes Engine），非 Shuqian。
+> 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
-- 当前版本：**v1.0.0**
-- 工程成熟度：约 95 / 100
+- 当前版本：**v2.0.0**
+- 工程成熟度：约 85 / 100
 - 开源协议：Apache License 2.0
 
 ## 项目简介
 
-数擎大数据平台（ShuqingBigDataPlatform）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以自研 K8s 发行版 SKE 为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
+数据引擎大数据平台（DataEngineBDP）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以自研 K8s 发行版 SKE 为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
 
 ## 核心特性
 
 - **多平台交付**：一套主代码，四环境（信创 / 本地数据中心 / 公有云 / 私有云）通过 Profile 差异化配置实现零改动交付。
 - **多租户隔离**：基于 K8s Namespace + ResourceQuota + NetworkPolicy 的三重隔离机制，配合 JWT 鉴权与租户上下文，实现租户间资源、网络、数据完全隔离。
 - **湖仓集一体**：统一存储（Iceberg）+ 批计算（Spark）+ 流计算（Flink）+ 交互查询（Trino）+ OLAP（Doris）协同落地"湖 → 仓 → 集"三级数据流转。
-- **智能数据层**：向量库（Milvus）+ 知识工程（RAG）+ LLMOps + 大模型网关，构成旗舰版差异化能力。
+- **智能数据层**：向量库（Milvus）+ 知识图谱服务 + LLMOps + 大模型网关，构成旗舰版差异化能力。
 - **SaaS 产品层**：行业应用模板 + 业务线门户 + 开放 API 服务目录 + 数据资产流通，形成平台商业化闭环。
 - **自研 K8s 发行版 SKE**：基于 kubeadm 二次封装的深度定制高性能 K8s，非 KubeSphere / RKE2 / k3s / kind 原样。
-- **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 联邦优化器实现跨源联邦查询。
+- **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 优化器 + 手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询。
 - **治理闭环**：元数据采集 → 质量校验 → 血缘解析 → 资产入目录，形成完整数据治理链路。
 
 ## 技术栈
 
 | 类别 | 技术选型 |
 | --- | --- |
-| 后端语言 | Java 17 / Go 1.23 / Python 3.11 |
+| 后端语言 | Java 17 / Go 1.26 / Python 3.11 |
 | 后端框架 | Spring Boot 3.2 / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |
@@ -43,19 +43,19 @@
 ## 项目结构
 
 ```
-ShuqingBigDataPlatform/
+DataEngineBDP/
 ├── .github/workflows/          # CI/CD 流水线（ci.yml + release.yml）
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 43 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 59 个 Helm Chart
+│   │   ├── charts/             # 60 个 Helm Chart
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
-│   └── 数擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（21 个）
+│   └── 数据引擎大数据平台_控制台原型_v0.3.html
+├── platform/                   # 自研组件（31 个）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -73,7 +73,7 @@ ShuqingBigDataPlatform/
 │   ├── vector-engine/            # 向量引擎（Go）
 │   ├── llm-gateway/              # 大模型网关（Go）
 │   ├── llmops/                   # LLMOps（Python）
-│   ├── knowledge-engine/         # 知识工程（Python）
+│   ├── knowledge-engine/         # 知识图谱服务（Python）
 │   ├── ml-platform/              # 机器学习平台（Python）
 │   ├── industry-templates/       # 行业模板（Python）
 │   ├── business-portal/          # 业务线门户（Python）
@@ -95,7 +95,7 @@ ShuqingBigDataPlatform/
 │   ├── profiles/               # 四环境 Profile
 │   ├── tuning/                 # 内核与系统调优
 │   └── wsl2/                   # WSL2 部署支持
-├── tests/integration/          # 集成测试（38 个）
+├── tests/integration/          # 集成测试（43 个）
 ├── scripts/poc/                # 端到端 PoC 验证脚本
 ├── docs/                       # 项目文档
 ├── CONVENTIONS.md              # 统一命名与约定
@@ -113,7 +113,7 @@ ShuqingBigDataPlatform/
 | --- | --- | --- |
 | JDK | 17 | Java 组件构建 |
 | Maven | 3.9 | Java 组件构建 |
-| Go | 1.23 | Go 组件构建 |
+| Go | 1.26 | Go 组件构建 |
 | Python | 3.11 | Python 组件构建 |
 | Node.js | 20 | 前端构建 |
 | Docker | 24.0 | 容器镜像构建 |
@@ -168,14 +168,14 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 21 个自研组件，覆盖封装层、引擎层、治理层、智能数据层与产品层。
+平台共包含 31 个自研组件，覆盖封装层、引擎层、治理层、智能数据层与产品层。
 
-### Java 组件（9 个）
+### Java 组件（12 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
 | encaps-layer | platform/encaps-layer | 封装层，将客户概念翻译为 K8s 资源，租户 / 工作空间 / 项目 / 任务 CRUD | 120+ |
-| sql-gateway | platform/sql-gateway | 统一 SQL 网关，基于 Calcite 联邦优化器实现跨源查询 | 150+ |
+| sql-gateway | platform/sql-gateway | 统一 SQL 网关，基于手写 SQL 解析 + 跨源归并引擎实现跨源查询 | 150+ |
 | rule-engine | platform/rule-engine | 规则引擎，数据质量 / 告警 / 脱敏规则执行 | 130+ |
 | tag-engine | platform/tag-engine | 标签引擎，标签管理与人群圈选 | 90+ |
 | metadata-collector | platform/governance/metadata-collector | 元数据采集器，引擎 Hook 与定时抽取 | 80+ |
@@ -184,8 +184,11 @@ bash scripts/poc/run-poc.sh
 | infra-provider-cloud | platform/infra-provider-cloud | 公有云环境供应 Driver | 70+ |
 | infra-provider-private | platform/infra-provider-private | 私有云环境供应 Driver | 70+ |
 | infra-orchestrator | platform/infra-orchestrator | 跨环境供给编排器 | 90+ |
+| finops | platform/finops | FinOps 成本运营服务，成本模型与资源用量采集 | 70+ |
+| flink-cdc | platform/flink-cdc | Flink CDC 实时数据集成组件 | 70+ |
+| stream-batch-scheduler | platform/stream-batch-scheduler | 流批统一调度组件 | 70+ |
 
-### Go 组件（3 个 + 1 CLI）
+### Go 组件（5 个 + 1 CLI）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -193,20 +196,32 @@ bash scripts/poc/run-poc.sh
 | vector-engine | platform/vector-engine | 向量引擎服务，Milvus 集合管理与检索 | 80+ |
 | llm-gateway | platform/llm-gateway | 大模型网关，多模型路由与推理 | 80+ |
 | infra-provider-baremetal | platform/infra-provider-baremetal | 裸金属环境供应 Driver | 70+ |
+| karmada | platform/karmada | 多集群联邦编排组件，基于 Karmada 二次封装 | 60+ |
 | dqctl (CLI) | platform/dqctl | 数据质量命令行工具 | 60+ |
 
-### Python 组件（8 个）
+### Python 组件（12 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
 | llmops | platform/llmops | LLMOps，微调 / 部署 / 评测闭环 | 90+ |
-| knowledge-engine | platform/knowledge-engine | 知识工程，RAG 切片与向量化 | 90+ |
+| knowledge-engine | platform/knowledge-engine | 知识图谱服务，知识建模与图谱检索 | 90+ |
 | ml-platform | platform/ml-platform | 机器学习平台，MLflow 训练与 serving | 100+ |
 | industry-templates | platform/industry-templates | 行业应用模板，DDL + DAG + Dashboard | 70+ |
 | business-portal | platform/business-portal | 对内业务线门户 | 70+ |
 | open-api-catalog | platform/open-api-catalog | 开放 API 服务目录 | 70+ |
 | asset-exchange | platform/asset-exchange | 数据资产流通 | 70+ |
-| operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 50+ |
+| chunker | platform/chunker | 文档分块服务，向量化预处理 | 60+ |
+| model-finetuning | platform/model-finetuning | 模型微调服务，支持 LoRA / 全参微调 | 60+ |
+| nl2sql | platform/nl2sql | 自然语言转 SQL 服务，Text2SQL 引擎 | 60+ |
+| registry | platform/registry | 元数据注册中心服务 | 60+ |
+| operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 0 |
+
+### 配置与部署组件（2 个）
+
+| 组件 | 目录 | 描述 |
+| --- | --- | --- |
+| knative | platform/knative | Knative Serverless 部署清单与事件源配置 |
+| observability | platform/observability | 可观测性配置（Grafana / Alertmanager / Prometheus） |
 
 ### 前端
 
@@ -221,26 +236,37 @@ bash scripts/poc/run-poc.sh
 | [架构概览](docs/architecture.md) | 五层架构 + X 横切层，组件交互关系，多租户隔离机制 |
 | [部署指南](docs/deployment-guide.md) | SKE 集群拉起，Helm Chart 部署，四环境 Profile 配置 |
 | [开发指南](docs/development-guide.md) | 环境要求，构建命令，测试命令，代码规范，调试技巧 |
+| [用户手册](docs/user-guide/user-manual.md) | 平台概述、快速入门、控制台操作、数据开发、治理、分析 |
+| [API 参考文档](docs/user-guide/api-reference.md) | 封装层、SQL 网关、Catalog、规则引擎、数据虚拟化、行业模板 API 完整定义 |
+| [运维手册](docs/user-guide/ops-manual.md) | 部署架构、监控告警、日志、容量、备份恢复、安全运维 |
+| [升级指南](docs/user-guide/upgrade-guide.md) | V1.0 → V2.0 升级流程、回滚、验证 |
+| [行业模板使用指南](docs/user-guide/industry-template-guide.md) | 金融、能源、政务三个行业模板使用说明 |
 | [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
 | [变更日志](CHANGELOG.md) | 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
 | [路线图](ROADMAP.md) | v2.0 演进规划 |
 | [命名约定](CONVENTIONS.md) | 统一命名与版本号规范 |
 | [SKE 发行版](ske/README.md) | 自研 K8s 发行版说明 |
+| [SKE WSL2 快速上手](ske/WSL2-QUICKSTART.md) | WSL2 真实 kubeadm 部署手册 |
+| [部署骨架](design/deploy/README.md) | Helm Chart 部署设计态、四环境 Profile、多 Arch 镜像 |
 
 ## 仓库统计
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件 | 21 个（9 Java + 4 Go + 1 CLI + 7 Python + 运营后台） |
-| Helm Chart | 59 个 |
+| 自研组件 | 31 个（12 Java + 5 Go + 1 CLI + 11 Python + 2 配置部署）+ 1 运营后台 |
+| Helm Chart | 60 个 |
 | 详细设计文档 | 43 份 |
 | 单元测试 | 2000+ |
-| 集成测试 | 38 个 |
+| 集成测试 | 43 个 |
 | 前端视图页面 | 14 个核心页面 |
 | 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云） |
 | 工程任务交付 | 99 / 99 |
-| 工程成熟度 | 约 95 / 100 |
+| 工程成熟度 | 约 85 / 100 |
+
+## 开发模式说明
+
+本项目采用 AI 辅助开发模式，由华为云码道(CodeArts)代码智能体协助完成代码编写、测试生成与文档撰写。所有代码均经过人工审查与验证，确保功能正确性与安全性。
 
 ## 贡献
 

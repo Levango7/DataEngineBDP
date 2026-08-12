@@ -1,4 +1,5 @@
 """工作台模型（待办/常用工具/最近任务）."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -48,8 +49,6 @@ class Workbench(BaseModel):
     blId: str
     todos: list[Task] = Field(default_factory=list, description="待办列表")
     tools: list[Tool] = Field(default_factory=list, description="常用工具")
-    recentTasks: list[RecentTask] = Field(
-        default_factory=list, description="最近任务"
-    )
+    recentTasks: list[RecentTask] = Field(default_factory=list, description="最近任务")
     updatedAt: datetime = Field(default_factory=utc_now)
     extra: dict[str, Any] = Field(default_factory=dict)

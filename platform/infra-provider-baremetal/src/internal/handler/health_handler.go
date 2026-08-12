@@ -8,8 +8,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/middleware"
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // HealthHandler 健康检查与系统API handler
@@ -129,8 +129,8 @@ func (h *HealthHandler) Refresh(c *gin.Context) {
 	username, _ := c.Get("username")
 	role, _ := c.Get("role")
 
-	userStr, _ := username.(string)
-	roleStr, _ := role.(string)
+	userStr, _ := username.(string) //nolint:errcheck // gin上下文值类型断言，空值已由后续空串判断覆盖
+	roleStr, _ := role.(string)     //nolint:errcheck // gin上下文值类型断言，空值已由后续空串判断覆盖
 	if userStr == "" {
 		c.JSON(http.StatusUnauthorized, model.APIResponse{
 			Code:    http.StatusUnauthorized,

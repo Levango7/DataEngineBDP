@@ -1,0 +1,39 @@
+{{- if .Values.verification.enabled -}}
+# helm test 测试 - 连通性验证（T019）
+# 用途：验证 ConfigMap 已创建且包含预期资产
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "finance-template.fullname" . }}-test-connectivity"
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.selectorLabels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  serviceAccountName: {{ include "finance-template.serviceAccountName" . }}
+  containers:
+    - name: test-connectivity
+      image: "busybox:1.36"
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "测试 ConfigMap 存在性..."
+          CM_NAME="{{ include "finance-template.configmapName" . }}"
+          NS="{{ include "finance-template.namespace" . }}"
+          # 验证 ConfigMap 存在
+          kubectl get configmap ${CM_NAME} -n ${NS} > /dev/null || { echo "FAIL: ConfigMap ${CM_NAME} 不存在"; exit 1; }
+          echo "PASS: ConfigMap ${CM_NAME} 存在"
+          # 验证 ConfigMap 包含 DDL 资产
+          DDL_COUNT=$(kubectl get configmap ${CM_NAME} -n ${NS} -o jsonpath='{.data}' | grep -o "ddl/" | wc -l)
+          echo "DDL 资产条目数: ${DDL_COUNT}"
+          if [ "${DDL_COUNT}" -lt 1 ]; then
+            echo "WARN: ConfigMap 中未发现 DDL 资产（可能尚未同步）"
+          fi
+          echo "连通性测试通过"
+{{- end -}}

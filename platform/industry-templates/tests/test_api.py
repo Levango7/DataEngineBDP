@@ -1,19 +1,21 @@
 """API 端点测试."""
-from __future__ import annotations
 
+from __future__ import annotations
 
 # ---------- health ----------
 
+
 def test_health(client):
-    resp = client.get("/health")
+    resp = client.get("/api/v1/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] == "ok"
+    assert body["status"] == "UP"
     assert body["deployMode"] == "mock"
     assert body["templateCount"] == 3
 
 
 # ---------- 列表 ----------
+
 
 def test_list_templates(client):
     resp = client.get("/api/v1/templates")
@@ -46,6 +48,7 @@ def test_list_templates_filter_keyword(client):
 
 # ---------- 详情 ----------
 
+
 def test_get_template(client):
     resp = client.get("/api/v1/templates/fin-risk-scorecard")
     assert resp.status_code == 200
@@ -64,6 +67,7 @@ def test_get_template_not_found(client):
 
 
 # ---------- 部署 ----------
+
 
 def _deploy_fin(client, tenant_id="tenant-001"):
     return client.post(
@@ -150,6 +154,7 @@ def test_deploy_mfg(client):
 
 # ---------- 预览 ----------
 
+
 def test_preview_template(client):
     resp = client.get("/api/v1/templates/fin-risk-scorecard/preview")
     assert resp.status_code == 200
@@ -168,6 +173,7 @@ def test_preview_not_found(client):
 
 # ---------- 分类 ----------
 
+
 def test_categories(client):
     resp = client.get("/api/v1/templates/categories")
     assert resp.status_code == 200
@@ -178,6 +184,7 @@ def test_categories(client):
 
 
 # ---------- 部署记录 ----------
+
 
 def test_list_deployments(client):
     _deploy_fin(client, tenant_id="tenant-x")
@@ -194,6 +201,7 @@ def test_list_deployments(client):
 
 # ---------- docs ----------
 
+
 def test_openapi_docs_accessible(client):
     """FastAPI 自动文档可访问."""
     resp = client.get("/docs")
@@ -209,4 +217,4 @@ def test_openapi_docs_accessible(client):
     assert "/api/v1/templates/{template_id}/deploy" in paths
     assert "/api/v1/templates/{template_id}/preview" in paths
     assert "/api/v1/templates/categories" in paths
-    assert "/health" in paths
+    assert "/api/v1/health" in paths

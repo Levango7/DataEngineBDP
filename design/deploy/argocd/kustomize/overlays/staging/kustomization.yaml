@@ -1,0 +1,29 @@
+# Kustomize overlay · staging 环境
+# ============================================================================
+# staging：2 副本 + 中资源 + INFO 日志 + stable 镜像
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: staging
+
+commonAnnotations:
+  environment: staging
+  description: "预发布环境 · 中等配置 · INFO 日志"
+
+namePrefix: staging-
+
+patches:
+  - path: patch.yaml
+    target:
+      kind: Deployment
+      name: encaps-layer
+
+# staging 镜像 tag：用 stable（最近 release 分支构建）
+images:
+  - name: ghcr.io/levango7/dataenginebdp/encaps-layer
+    newTag: stable

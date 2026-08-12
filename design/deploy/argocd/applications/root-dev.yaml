@@ -1,0 +1,66 @@
+# ArgoCD Application · dev 环境根应用
+# ============================================================================
+# 作用：dev 环境的根 Application，通过 Kustomize overlay 部署
+# 源：GitHub Levango7/DataEngineBDP → design/deploy/argocd/kustomize/overlays/dev
+# 同步策略：自动同步 + 自愈 + 修剪
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    app.kubernetes.io/managed-by: argocd
+  finalizers:
+    # 删除 Application 时级联清理其创建的资源
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # 所属 AppProject（dev 环境隔离）
+  project: platform-dev
+  # 源配置：Git 仓库 + Kustomize overlay 路径
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/argocd/kustomize/overlays/dev
+    # Kustomize 自动识别 overlay 目录下的 kustomization.yaml
+    kustomize:
+      # 传入环境参数（可被 patch 引用）
+      namePrefix: dev-
+      commonLabels:
+        environment: dev
+        managed-by: argocd
+      commonAnnotations:
+        managed-by: argocd
+        gitops-repo: Levango7/DataEngineBDP
+  # 目标集群 + namespace
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-platform
+  # 同步策略：自动同步 + 自愈 + 修剪
+  syncPolicy:
+    automated:
+      prune: true         # 修剪：Git 中删除的资源在集群中同步删除
+      selfHeal: true      # 自愈：集群漂移自动回滚到 Git 声明
+    syncOptions:
+      - CreateNamespace=true      # 自动创建目标 namespace
+      - ApplyOutOfSyncOnly=true   # 仅 apply 未同步的资源，减少 API 调用
+      - PrunePropagationPolicy=foreground  # 修剪用前台删除（等待依赖清理）
+      - PruneLast=true            # 修剪最后执行（先创建新资源再删旧）
+    # 失败重试
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  # 健康检查忽略的资源（不阻塞同步）
+  ignoreDifferences:
+    - jsonPointers:
+        - /status
+      kind: Deployment
+  # 资源过滤（仅同步这些资源）
+  # 适用于 dev：允许所有资源
+  revisionHistoryLimit: 10

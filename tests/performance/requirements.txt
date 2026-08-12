@@ -1,0 +1,4 @@
+# 性能压测依赖
+# Locust 分布式压测框架
+locust>=2.20.0
+# run_benchmark.py 仅使用 Python 标准库(urllib/json/statistics),无额外依赖

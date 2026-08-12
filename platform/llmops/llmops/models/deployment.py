@@ -1,4 +1,5 @@
 """部署相关数据模型."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -6,7 +7,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from llmops.models.base import DeploymentStatus, TimestampMixin, utc_now
+from llmops.models.base import DeploymentStatus, TimestampMixin
 
 
 class DeployConfig(BaseModel):
@@ -18,9 +19,7 @@ class DeployConfig(BaseModel):
     # 待部署模型 ID
     modelId: str = Field(..., description="待部署模型 ID")
     # 模型版本号（不指定则用当前生产版本）
-    modelVersion: Optional[int] = Field(
-        default=None, ge=1, description="模型版本号"
-    )
+    modelVersion: Optional[int] = Field(default=None, ge=1, description="模型版本号")
     # 副本数
     replica: int = Field(default=1, ge=1, le=32, description="副本数")
     # 每副本 GPU 卡数
@@ -53,14 +52,10 @@ class Deployment(TimestampMixin):
     modelId: str = Field(..., description="部署的模型 ID")
     modelVersion: int = Field(..., ge=1, description="部署的模型版本")
     config: DeployConfig
-    status: DeploymentStatusInfo = Field(
-        default_factory=lambda: DeploymentStatusInfo(status=DeploymentStatus.CREATING)
-    )
+    status: DeploymentStatusInfo = Field(default_factory=lambda: DeploymentStatusInfo(status=DeploymentStatus.CREATING))
     # 推理端点 URL（status=running 时有效）
     endpointUrl: Optional[str] = Field(default=None, description="推理端点 URL")
     # 部署到 L4.5.6 大模型网关后注册的路由名
-    gatewayRoute: Optional[str] = Field(
-        default=None, description="大模型网关路由名"
-    )
+    gatewayRoute: Optional[str] = Field(default=None, description="大模型网关路由名")
     startedAt: Optional[datetime] = Field(default=None)
     stoppedAt: Optional[datetime] = Field(default=None)

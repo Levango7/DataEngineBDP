@@ -1,0 +1,43 @@
+# prod 环境自愈配置 · 谨慎自愈（受 syncWindows 限制）
+# ============================================================================
+# 作用：patch 更新 root-prod Application 的 syncPolicy
+# 用法：kubectl apply -f self-heal-prod.yaml -n argocd
+# 策略：
+#   - selfHeal=true：检测到漂移即触发 sync
+#   - 但 AppProject 的 syncWindows 限制仅工作日 09:00-18:00 允许自动同步
+#   - 非窗口期漂移仅告警，不自动修复
+#   - ServerSideApply 避免覆盖集群侧字段
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-prod
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-remediation
+    environment: prod
+  annotations:
+    drift-remediation: "self-heal-windowed"
+    drift-remediation-policy: "windowed-auto"
+    drift-remediation-window: "weekday 09:00-18:00"
+spec:
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true       # prod：自愈开启，但受 syncWindows 限制
+    syncOptions:
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+      - Replace=false
+    retry:
+      limit: 2             # prod 重试次数最少
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 10m
+  revisionHistoryLimit: 50

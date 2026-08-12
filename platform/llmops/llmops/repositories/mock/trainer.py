@@ -7,24 +7,23 @@
 为便于测试，提供 advance() 方法手动推进状态；生产环境真实训练由
 MLflowModelTrainer 调用 MLflow Projects 提交作业。
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 from llmops.interfaces.trainer import ModelTrainer
-from llmops.models.base import utc_now
+from llmops.models.base import TrainingStatus, utc_now
 from llmops.models.training import (
     EvalMetrics,
     TrainingConfig,
     TrainingJob,
     TrainingJobStatus,
 )
-from llmops.models.base import TrainingStatus
 from llmops.repositories import (
-    TrainingJobNotFoundError,
     TrainingJobNotCancellableError,
     TrainingJobNotFinishedError,
+    TrainingJobNotFoundError,
 )
 
 
@@ -71,9 +70,7 @@ class MockModelTrainer(ModelTrainer):
     async def list_training_jobs(self) -> list[TrainingJob]:
         return sorted(self._jobs.values(), key=lambda j: j.createdAt, reverse=True)
 
-    async def evaluate_model(
-        self, job_id: str, eval_dataset: str | None = None
-    ) -> EvalMetrics:
+    async def evaluate_model(self, job_id: str, eval_dataset: str | None = None) -> EvalMetrics:
         job = await self.get_training_status(job_id)
         if job.status.status != TrainingStatus.SUCCEEDED:
             raise TrainingJobNotFinishedError(job_id, job.status.status)
@@ -119,9 +116,7 @@ class MockModelTrainer(ModelTrainer):
         job.updatedAt = utc_now()
         return job
 
-    async def mark_failed(
-        self, job_id: str, error_message: str
-    ) -> TrainingJob:
+    async def mark_failed(self, job_id: str, error_message: str) -> TrainingJob:
         """标记任务失败（Mock 专用）."""
         job = await self.get_training_status(job_id)
         job.status.status = TrainingStatus.FAILED

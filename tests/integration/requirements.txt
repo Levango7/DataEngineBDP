@@ -1,4 +1,4 @@
-# 数擎大数据平台集成测试 Python 依赖
+﻿# 数据引擎大数据平台集成测试 Python 依赖
 #
 # 安装：pip install -r requirements.txt
 # 推荐 Python 版本：3.10+
