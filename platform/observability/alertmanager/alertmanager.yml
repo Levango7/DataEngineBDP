@@ -1,0 +1,144 @@
+# Alertmanager 主配置 — P0/P1/P2 三级告警路由
+#
+# 告警分级策略：
+#   P0（严重）：电话 + 短信，7x24 立即通知，5 分钟重复。
+#   P1（重要）：邮件 + 企业微信 IM，工作时间通知，30 分钟重复。
+#   P2（一般）：钉钉 + 飞书 webhook，工作时间通知，4 小时重复。
+#
+# 路由匹配规则（按 severity label 分流）：
+#   severity=P0 → p0-pager receiver（电话网关 + 短信网关）
+#   severity=P1 → p1-email-im receiver（SMTP + 企业微信）
+#   severity=P2 → p2-dingtalk-feishu receiver（钉钉 + 飞书）
+#   其他      → default-info receiver（钉钉兜底）
+#
+# inhibit_rules：P0 触发时抑制同租户同组件的 P1/P2，避免告警风暴。
+global:
+  resolve_timeout: 5m
+  # SMTP 全局配置（P1 邮件）。
+  smtp_smarthost: '${SMTP_HOST}:${SMTP_PORT}'
+  smtp_from: 'alert@shuqing.bigdata'
+  smtp_auth_username: '${SMTP_USER}'
+  smtp_auth_password: '${SMTP_PASS}'
+  smtp_require_tls: true
+
+# 模板文件目录。
+templates:
+  - /etc/alertmanager/templates/*.tmpl
+
+# 主路由树：按 severity 分流到子路由。
+route:
+  receiver: default-info
+  group_by: ['alertname', 'tenant_id', 'component']
+  group_wait: 10s
+  group_interval: 30s
+  repeat_interval: 4h
+  routes:
+    # P0 严重告警：电话 + 短信
+    - matchers:
+        - severity = "P0"
+      receiver: p0-pager
+      group_wait: 0s
+      group_interval: 30s
+      repeat_interval: 5m
+      continue: false
+
+    # P1 重要告警：邮件 + 企业微信 IM
+    - matchers:
+        - severity = "P1"
+      receiver: p1-email-im
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 30m
+      continue: false
+
+    # P2 一般告警：钉钉 + 飞书
+    - matchers:
+        - severity = "P2"
+      receiver: p2-dingtalk-feishu
+      group_wait: 1m
+      group_interval: 30m
+      repeat_interval: 4h
+      continue: false
+
+# 抑制规则：P0 触发时抑制同源 P1/P2，避免告警风暴。
+inhibit_rules:
+  - source_matchers:
+      - severity = "P0"
+    target_matchers:
+      - severity =~ "P1|P2"
+    equal: ['tenant_id', 'component', 'alertname']
+
+  - source_matchers:
+      - severity = "P1"
+    target_matchers:
+      - severity = "P2"
+    equal: ['tenant_id', 'component', 'alertname']
+
+# ---------------------------------------------------------------------------
+# Receiver 定义
+# ---------------------------------------------------------------------------
+receivers:
+  # P0：电话网关 + 短信网关（webhook 调用外部网关服务）
+  - name: p0-pager
+    webhook_configs:
+      # 电话网关：调用外部电话通知服务（如阿里云语音通知）。
+      - url: '${PHONE_GATEWAY_URL}/api/v1/call'
+        send_resolved: true
+        max_alerts: 0
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '${PHONE_GATEWAY_TOKEN}'
+      # 短信网关：调用外部短信通知服务。
+      - url: '${SMS_GATEWAY_URL}/api/v1/sms'
+        send_resolved: true
+        max_alerts: 0
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '${SMS_GATEWAY_TOKEN}'
+
+  # P1：邮件 + 企业微信 IM
+  - name: p1-email-im
+    email_configs:
+      - to: '${P1_EMAIL_TO}'
+        headers:
+          Subject: '[P1 重要告警] {{ .GroupLabels.alertname }} — {{ .CommonLabels.tenant_id }}'
+        html: '{{ template "email.p1.html" . }}'
+        send_resolved: true
+    webhook_configs:
+      # 企业微信群机器人 webhook。
+      - url: '${WECOM_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '${WECOM_TOKEN}'
+
+  # P2：钉钉 + 飞书
+  - name: p2-dingtalk-feishu
+    webhook_configs:
+      # 钉钉群机器人 webhook。
+      - url: '${DINGTALK_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '${DINGTALK_TOKEN}'
+      # 飞书群机器人 webhook。
+      - url: '${FEISHU_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '${FEISHU_TOKEN}'
+
+  # 默认兜底：钉钉（未分级告警）
+  - name: default-info
+    webhook_configs:
+      - url: '${DINGTALK_WEBHOOK_URL}'
+        send_resolved: true
+        http_config:
+          authorization:
+            type: Bearer
+            credentials: '${DINGTALK_TOKEN}'

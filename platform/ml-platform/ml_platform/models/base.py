@@ -1,4 +1,5 @@
 """基础模型与枚举."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -54,12 +55,12 @@ class TrainingStatus(str, Enum):
 class ModelStatus(str, Enum):
     """模型状态."""
 
-    DRAFT = "draft"           # 草稿
-    READY = "ready"           # 可用
-    TRAINING = "training"     # 训练中
-    DEPLOYED = "deployed"     # 已部署
-    ARCHIVED = "archived"     # 归档
-    FAILED = "failed"         # 失败
+    DRAFT = "draft"  # 草稿
+    READY = "ready"  # 可用
+    TRAINING = "training"  # 训练中
+    DEPLOYED = "deployed"  # 已部署
+    ARCHIVED = "archived"  # 归档
+    FAILED = "failed"  # 失败
 
 
 class ExperimentStatus(str, Enum):

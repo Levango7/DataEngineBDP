@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.shuqing.bigdata</groupId>
+    <groupId>com.levango7.dataenginebdp</groupId>
     <artifactId>rule-engine</artifactId>
     <version>0.1.0</version>
     <name>rule-engine</name>
@@ -131,6 +131,19 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -152,7 +165,7 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.11</version>
+                <version>0.8.15</version>
                 <configuration>
                     <excludes>
                         <exclude>**/model/**</exclude>
@@ -173,6 +186,35 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Checkstyle：代码风格检查（CI 阻断） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <configLocation>../../build/lint/checkstyle.xml</configLocation>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <consoleOutput>false</consoleOutput>
+                    <violationSeverity>warning</violationSeverity>
+                    <resourceExcludes>**/*.yml,**/*.yaml,**/*.properties,**/*.xml,**/*.json</resourceExcludes>
+                </configuration>
+            </plugin>
+            <!-- PMD：静态分析（CI 阻断） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.21.2</version>
+                <configuration>
+                    <rulesets>
+                        <ruleset>../../build/lint/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTests>true</includeTests>
+                    <minimumPriority>5</minimumPriority>
+                    <skipPmdError>true</skipPmdError>
+                </configuration>
             </plugin>
         </plugins>
     </build>

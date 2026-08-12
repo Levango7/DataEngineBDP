@@ -3,12 +3,12 @@
 用于测试与离线开发，返回固定/伪随机的训练/预测/评估结果。
 线程安全说明：单进程内存态，配合 asyncio 单线程事件循环无需加锁。
 """
+
 from __future__ import annotations
 
 import hashlib
-import time
-import uuid
 from typing import Any
+import uuid
 
 from ml_platform.interfaces.backend import MLBackend
 from ml_platform.models import (
@@ -28,9 +28,7 @@ from ml_platform.repositories import (
 )
 
 
-def _deterministicPredict(
-    modelId: str, samples: list[dict[str, Any]]
-) -> list[float]:
+def _deterministicPredict(modelId: str, samples: list[dict[str, Any]]) -> list[float]:
     """基于模型 ID 哈希生成确定性预测值（便于测试断言）."""
     seed = int(hashlib.md5(modelId.encode()).hexdigest()[:8], 16)
     predictions: list[float] = []
@@ -64,9 +62,7 @@ def _defaultMetrics(algorithm: AlgorithmType) -> dict[str, float]:
     return {"rmse": 0.234, "mae": 0.182, "r2": 0.78}
 
 
-def _defaultEvalMetrics(
-    algorithm: AlgorithmType, requested: list[str]
-) -> dict[str, float]:
+def _defaultEvalMetrics(algorithm: AlgorithmType, requested: list[str]) -> dict[str, float]:
     """按算法类型与请求指标返回 mock 评估指标."""
     catalog = {
         "accuracy": 0.88,
@@ -134,9 +130,7 @@ class MockMLBackend(MLBackend):
 
     # ---------- 预测 ----------
 
-    async def predict(
-        self, modelId: str, data: dict
-    ) -> PredictionResult:
+    async def predict(self, modelId: str, data: dict) -> PredictionResult:
         if modelId not in self._models:
             raise ModelNotFoundError(modelId)
         samples = _normalizeSamples(data)
@@ -149,9 +143,7 @@ class MockMLBackend(MLBackend):
             AlgorithmType.RANDOM_FOREST.value,
             AlgorithmType.SVM.value,
         ):
-            probabilities = [
-                [1.0 - p, p] for p in predictions
-            ]
+            probabilities = [[1.0 - p, p] for p in predictions]
         return PredictionResult(
             modelId=modelId,
             predictions=predictions,
@@ -165,16 +157,12 @@ class MockMLBackend(MLBackend):
 
     # ---------- 评估 ----------
 
-    async def evaluate(
-        self, modelId: str, evalConfig: EvalConfig
-    ) -> EvalResult:
+    async def evaluate(self, modelId: str, evalConfig: EvalConfig) -> EvalResult:
         if modelId not in self._models:
             raise ModelNotFoundError(modelId)
         model = self._models[modelId]
         algorithm = AlgorithmType(model.algorithm)
-        metrics = _defaultEvalMetrics(
-            algorithm, evalConfig.metrics
-        )
+        metrics = _defaultEvalMetrics(algorithm, evalConfig.metrics)
         return EvalResult(
             modelId=modelId,
             dataset=evalConfig.dataset,
@@ -213,9 +201,7 @@ class MockMLBackend(MLBackend):
         return len(self._models)
 
 
-def _normalizeSamples(
-    data: dict[str, Any] | list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _normalizeSamples(data: dict[str, Any] | list[dict[str, Any]]) -> list[dict[str, Any]]:
     """把列优先 dict 或行优先 list 统一为行优先 list."""
     if isinstance(data, list):
         return data

@@ -1,4 +1,5 @@
 """基础模型与枚举."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone

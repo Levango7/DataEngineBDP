@@ -1,0 +1,5 @@
+# Helm 打包忽略列表
+.git/
+.gitignore
+*.md
+*.tar.gz

@@ -1,4 +1,5 @@
 """训练任务路由."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status

@@ -4,10 +4,10 @@
 大模型特有的训练数据预处理（tokenization / packing / chat template）由
 LLMOps 内置轻量流水线完成（设计文档明确不复用 Spark ETL）。
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 from llmops.interfaces.trainer import ModelTrainer
 from llmops.models.base import TrainingStatus, utc_now
@@ -18,9 +18,9 @@ from llmops.models.training import (
     TrainingJobStatus,
 )
 from llmops.repositories import (
-    TrainingJobNotFoundError,
     TrainingJobNotCancellableError,
     TrainingJobNotFinishedError,
+    TrainingJobNotFoundError,
 )
 from llmops.repositories.mlflow.client import MLflowClient
 
@@ -72,9 +72,7 @@ class MLflowModelTrainer(ModelTrainer):
     async def list_training_jobs(self) -> list[TrainingJob]:
         return sorted(self._jobs.values(), key=lambda j: j.createdAt, reverse=True)
 
-    async def evaluate_model(
-        self, job_id: str, eval_dataset: str | None = None
-    ) -> EvalMetrics:
+    async def evaluate_model(self, job_id: str, eval_dataset: str | None = None) -> EvalMetrics:
         job = await self.get_training_status(job_id)
         if job.status.status != TrainingStatus.SUCCEEDED:
             raise TrainingJobNotFinishedError(job_id, job.status.status)

@@ -1,0 +1,74 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+    "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+    "https://checkstyle.org/dtds/configuration_1_3.dtd">
+<!--
+  Checkstyle 宽松配置（CI 阻断级）
+  适用于 platform/ 下所有 Java 组件（Spring Boot 3.2 + JDK 17）
+  通过 Maven checkstyle 插件调用：mvn checkstyle:check -B -q
+  设计原则：只保留能发现真实 bug 或严重风格问题的规则，避免过度限制开发效率
+-->
+<module name="Checker">
+    <!-- 属性 -->
+    <property name="charset" value="UTF-8"/>
+    <property name="severity" value="error"/>
+    <property name="fileExtensions" value="java, properties, xml"/>
+
+    <!-- 文件长度检查（宽松：2000 行） -->
+    <module name="FileLength">
+        <property name="max" value="2000"/>
+    </module>
+
+    <!-- 行长度检查（宽松：200 字符，忽略 import/package/url） -->
+    <module name="LineLength">
+        <property name="max" value="200"/>
+        <property name="ignorePattern" value="^package.*|^import.*|a href|href|http://|https://|ftp://"/>
+    </module>
+
+    <!-- Tab 字符检查（禁止 Tab，必须用空格） -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!-- TreeWalker -->
+    <module name="TreeWalker">
+
+        <!-- ============ 命名规范（基本） ============ -->
+        <module name="PackageName">
+            <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
+        </module>
+        <module name="TypeName"/>
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$|logger|log|serialVersionUID"/>
+        </module>
+        <module name="MemberName"/>
+        <module name="MethodName">
+            <property name="format" value="^[a-z][a-zA-Z0-9_]*$"/>
+        </module>
+        <module name="ParameterName"/>
+        <module name="LocalVariableName"/>
+        <module name="StaticVariableName"/>
+
+        <!-- ============ Import 相关（基本） ============ -->
+        <module name="RedundantImport"/>
+        <!-- UnusedImports 移除：IDE 可自动清理，非 bug -->
+
+        <!-- ============ 大括号（基本，仅检查 while/do-while） ============ -->
+        <!-- NeedBraces 移除：很多单行 if 语句在已有代码中存在，不构成 bug -->
+
+        <!-- ============ 代码质量（能发现真实 bug） ============ -->
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <!-- MissingSwitchDefault 移除：Java 17 exhaustive enum switch 不需要 default -->
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <!-- OneStatementPerLine 移除：流式 API/lambda 中一行多语句常见，非 bug -->
+        <!-- UnusedImports 移除：IDE 可自动清理，非 bug，避免阻断 CI -->
+
+        <!-- ============ 大小写 L ============ -->
+        <module name="UpperEll"/>
+        <module name="ArrayTypeStyle"/>
+
+    </module>
+</module>

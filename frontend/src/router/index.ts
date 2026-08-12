@@ -42,6 +42,12 @@ const BusinessPortal = () => import('@/views/BusinessPortal.vue')
 const AssetMarket = () => import('@/views/AssetMarket.vue')
 // 批次8新增：开放 API 服务目录（L5.5）
 const APIMarket = () => import('@/views/APIMarket.vue')
+// 批次9新增：检索门户（T007 前端集成增强）
+const SearchPortal = () => import('@/views/SearchPortal.vue')
+// 批次10新增：编排 DAG 可视化（T007 viz）
+const DagVisualizer = () => import('@/views/orchestrator/DagVisualizer.vue')
+// 批次11新增：AI 助手（T011 自然语言→SQL→图表→解读 全链路）
+const AiAssistant = () => import('@/views/ai-assistant/AiAssistant.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
@@ -133,6 +139,30 @@ const routes: RouteRecordRaw[] = [
     name: 'APIMarket',
     component: APIMarket,
     meta: { title: '开放 API', icon: 'Connection' }
+  },
+
+  // 批次9新增：检索门户（T007 前端集成增强）
+  {
+    path: '/search',
+    name: 'SearchPortal',
+    component: SearchPortal,
+    meta: { title: '检索门户', icon: 'Search' }
+  },
+
+  // 批次10新增：编排 DAG 可视化（T007 viz）
+  {
+    path: '/orchestrator/dag',
+    name: 'DagVisualizer',
+    component: DagVisualizer,
+    meta: { title: '编排 DAG 可视化', icon: 'Share' }
+  },
+
+  // 批次11新增：AI 助手（T011 自然语言→SQL→图表→解读 全链路）
+  {
+    path: '/ai-assistant',
+    name: 'AiAssistant',
+    component: AiAssistant,
+    meta: { title: 'AI 数据助手', icon: 'ChatDotRound' }
   },
 
   // 占位页（Roadmap），通过 meta.title 传递模块名

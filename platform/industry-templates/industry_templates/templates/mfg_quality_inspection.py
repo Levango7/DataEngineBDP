@@ -5,6 +5,7 @@
 
 对齐设计文档第 3 节"行业模板清单"中的 mfg-line-quality。
 """
+
 from __future__ import annotations
 
 from industry_templates.models import (

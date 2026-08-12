@@ -3,10 +3,10 @@
 对应详细设计 §7 接口契约：
     GET /api/l5/v1/apis/{apiId}/stats { range } → { calls, successRate, p99, cost }
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import APIMetrics
 from openapi_catalog.repositories import CatalogError
@@ -17,6 +17,7 @@ router = APIRouter(prefix="/apis", tags=["metrics", "docs"])
 
 # ---------- 计量 ----------
 
+
 @router.get(
     "/{api_id}/metrics",
     response_model=APIMetrics,
@@ -25,21 +26,18 @@ router = APIRouter(prefix="/apis", tags=["metrics", "docs"])
 async def get_metrics(
     api_id: str,
     range: str = Query(default="7d", description="时间范围: 1h/24h/7d/30d"),
-    consumerTenantId: str | None = Query(
-        default=None, description="按消费者过滤"
-    ),
+    consumerTenantId: str | None = Query(default=None, description="按消费者过滤"),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> APIMetrics:
     """获取 API 调用计量（调用量/成功率/P99延迟/费用）."""
     try:
-        return await registry.meteringService.get_metrics(
-            api_id, range, consumerTenantId
-        )
+        return await registry.meteringService.get_metrics(api_id, range, consumerTenantId)
     except CatalogError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
 
 # ---------- 文档 ----------
+
 
 @router.get(
     "/{api_id}/docs",
@@ -47,9 +45,7 @@ async def get_metrics(
 )
 async def get_openapi_docs(
     api_id: str,
-    format: str = Query(
-        default="openapi", description="格式: openapi / markdown"
-    ),
+    format: str = Query(default="openapi", description="格式: openapi / markdown"),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> dict | str:
     """获取 API 文档（OpenAPI 3.0 Spec 或 Markdown）."""
@@ -62,6 +58,7 @@ async def get_openapi_docs(
 
 
 # ---------- APISIX 配置 ----------
+
 
 @router.get(
     "/{api_id}/apisix-config",

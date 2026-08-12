@@ -1,0 +1,203 @@
+﻿# 金融数据脱敏规则预置
+# 归属：数据引擎大数据平台 · L5.3 行业应用模板 · 金融模板（finance）
+# 对标：JR/T 0197《金融数据安全 数据安全分级指南》、JR/T 0171《个人金融信息保护技术规范》
+# 关联：data-classification.md（数据分级）；L3.7 安全脱敏（策略下推 L2.7 引擎）
+# 规则匹配：按 data_level 匹配资产 sensitiveLevel，按 applicable_fields 匹配字段，按 condition 决定是否生效
+# 生效方式：策略下推到 L2.7 统一 SQL 网关，查询时由网关注入脱敏函数，应用层不可绕过
+# 算法库：mask（正则替换）/ keep_first_char（保留首字符）/ keep_prefix_n（保留前 n 段）/ round_to_n（精度降级）/ hash（哈希）/ tokenize（假名化）
+---
+desensitize_rules:
+  # ============ L3 敏感数据 ============
+  - name: phone_number_mask
+    description: 手机号脱敏（保留前3后4）
+    algorithm: mask
+    pattern: '(\d{3})\d{4}(\d{4})'
+    replacement: '$1****$2'
+    applicable_fields:
+      - customer.phone
+      - account.contact_phone
+      - loan_applicant.phone
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer'"
+
+  - name: name_mask
+    description: 姓名脱敏（保留姓）
+    algorithm: keep_first_char
+    mask_char: '*'
+    applicable_fields:
+      - customer.name
+      - loan_applicant.name
+      - repayment_plan.payer_name
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer'"
+
+  - name: address_mask
+    description: 地址脱敏（保留省市两级）
+    algorithm: keep_prefix_2
+    separator: '/'
+    mask_char: '*'
+    applicable_fields:
+      - customer.address
+      - loan_applicant.address
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer'"
+
+  - name: amount_mask
+    description: 金额脱敏（精度降至千元）
+    algorithm: round_to_n
+    unit: 1000
+    applicable_fields:
+      - account_balance.amount
+      - account_transaction.amount
+      - transaction.amount
+      - transaction_detail.item_amount
+      - loan_application.apply_amount
+      - loan_contract.principal
+      - repayment_plan.due_principal
+      - repayment_plan.due_interest
+      - customer_profile.assets_total
+      - customer_profile.liabilities_total
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer' AND role != 'finance_officer'"
+
+  - name: transaction_counterparty_mask
+    description: 交易对手方脱敏（保留首尾各2字符）
+    algorithm: mask
+    pattern: '(\S{2}).*(\S{2})'
+    replacement: '$1****$2'
+    applicable_fields:
+      - transaction.counterparty_name
+      - account_transaction.counter_account_name
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer'"
+
+  - name: aml_report_mask
+    description: AML 可疑报告脱敏（仅风控/合规岗可见明文）
+    algorithm: mask
+    pattern: '(.+).*(.+)'
+    replacement: '$1****$2'
+    applicable_fields:
+      - aml_alert.report_content
+      - aml_alert.scenario_detail
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer'"
+
+  - name: risk_alert_detail_mask
+    description: 风控告警详情脱敏（涉客户/交易敏感）
+    algorithm: mask
+    pattern: '(.{2}).*(.{2})'
+    replacement: '$1****$2'
+    applicable_fields:
+      - risk_alert.detail
+      - risk_alert.evidence
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer'"
+
+  - name: external_credit_report_mask
+    description: 外部征信报告脱敏（保留摘要，明细打码）
+    algorithm: mask
+    pattern: '(.{4}).*(.{4})'
+    replacement: '$1****$2'
+    applicable_fields:
+      - credit_score.external_report
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'risk_officer' AND role != 'compliance_officer' AND role != 'credit_officer'"
+
+  # ============ L4 高敏感数据 ============
+  - name: id_card_mask
+    description: 身份证号脱敏（保留前6后4）
+    algorithm: mask
+    pattern: '(\d{6})\d{8}(\d{4})'
+    replacement: '$1********$2'
+    applicable_fields:
+      - customer.id_card
+      - loan_applicant.id_card
+    data_level: [L4]
+    scope: [query, export, storage_log]
+    condition: "role != 'compliance_officer' OR approval != 'dual_signed'"
+    # L4 默认强脱敏，仅合规岗在双人审批通过后可见明文
+
+  - name: bank_card_mask
+    description: 银行卡号脱敏（保留前4后4）
+    algorithm: mask
+    pattern: '(\d{4})\d{8,12}(\d{4})'
+    replacement: '$1************$2'
+    applicable_fields:
+      - account.account_no
+      - account_transaction.counter_account
+      - transaction.debit_account_no
+      - transaction.credit_account_no
+    data_level: [L4]
+    scope: [query, export, storage_log]
+    condition: "role != 'finance_officer' OR approval != 'dual_signed'"
+
+  - name: password_hash
+    description: 密码不可逆哈希存储（SM3）
+    algorithm: hash
+    hash_algo: SM3
+    salt_strategy: per_user
+    applicable_fields:
+      - user.password
+      - user.pay_password
+    data_level: [L4]
+    scope: [storage]
+    # 密码仅哈希存储，任何岗位查询均不可见明文
+
+  - name: cvv_mask
+    description: CVV/CVC 不存储不返回（恒脱敏）
+    algorithm: mask
+    pattern: '.*'
+    replacement: '***'
+    applicable_fields:
+      - card.cvv
+      - card.cvc
+    data_level: [L4]
+    scope: [query, export, storage]
+    # CVV 按银联/卡组织规范不得存储，本规则用于拦截误入库
+
+  - name: secret_key_mask
+    description: 系统密钥/Token 恒脱敏（仅运维岗在堡垒机下可见）
+    algorithm: mask
+    pattern: '(.{2}).*(.{2})'
+    replacement: '$1****$2'
+    applicable_fields:
+      - system.secret_key
+      - system.api_token
+      - system.db_password
+    data_level: [L4]
+    scope: [query, export, storage_log]
+    condition: "role != 'ops_via_bastion'"
+
+  - name: bio_feature_mask
+    description: 生物识别特征脱敏（假名化）
+    algorithm: tokenize
+    applicable_fields:
+      - customer.face_feature
+      - customer.fingerprint_template
+      - customer.voice_print
+    data_level: [L4]
+    scope: [query, export, storage_log]
+    condition: "role != 'compliance_officer' OR approval != 'dual_signed'"
+    # 生物特征假名化存储，比对时在可信执行环境内还原
+
+# ============ 规则元信息 ============
+meta:
+  version: 1.0.0
+  template_id: finance
+  standard: JR/T 0197
+  last_review_at: 2026-08-07
+  owner: finance-template-team
+  notes: |
+    - 规则按 data_level 从低到高匹配，命中即生效，不再向下匹配。
+    - applicable_fields 采用 "实体.字段" 形式，支持通配符 *（如 customer.*）。
+    - condition 表达式支持的变量：role（当前用户角色）、approval（审批状态）、env（环境标识）。
+    - scope 取值：query（查询时）/ export（导出时）/ storage（存储时）/ storage_log（存储日志脱敏）。
+    - L1/L2 数据默认不预置脱敏规则，由 L3.7 按需配置。

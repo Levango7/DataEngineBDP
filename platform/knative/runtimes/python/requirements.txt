@@ -1,0 +1,6 @@
+﻿# Python 函数运行时依赖 · 数据引擎大数据平台 T025
+# 钉版本以保证可重现构建，与 Dockerfile 多阶段构建配合
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+prometheus-client==0.20.0
+pydantic==2.8.2

@@ -1,0 +1,50 @@
+﻿# Helm Chart 定义 - 能源行业模板包装
+# ============================================================================
+# 用途：使能源行业模板可被 helm install 引用部署
+# 说明：本 Chart 不部署实际工作负载（Doris/DS/Superset/IoTDB/Flink/Spark/Keycloak
+#       由各自 Chart 部署），而是将模板资产（DDL/DAG/Dashboard/RBAC/IoTDB配置）
+#       打包为 ConfigMap/Secret，供平台侧的模板导入 Job 拉取并应用到对应组件。
+# ============================================================================
+
+apiVersion: v2
+name: energy-template
+description: |
+  数据引擎大数据平台 L5.3 行业应用模板 - 能源行业完整模板 Helm Chart。
+  含 31 张 DDL 表、5 个 DAG 调度作业、4 个 Superset Dashboard、4 个 RBAC 角色，
+  接入 IoTDB 时序数据，通过 ConfigMap 挂载模板资产，由平台侧 Job 完成导入。
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+home: https://shuqing.com/industry-templates/energy
+sources:
+  - https://github.com/shuqing/DataEngineBDP/platform/industry-templates/templates/energy
+mainters:
+  - name: hw029373469
+    email: hw029373469@shuqing.com
+    url: https://shuqing.com
+keywords:
+  - energy
+  - device-monitoring
+  - consumption-analysis
+  - carbon-emission
+  - forecast
+  - iotdb
+  - industry-template
+  - big-data
+  - doris
+  - flink
+  - spark
+  - superset
+  - dolphinscheduler
+  - keycloak
+  - rbac
+annotations:
+  category: industry-template
+  industry: energy
+  shuqing.platform/version: "5.3.0"
+  shuqing.template/business-domains: "device-monitoring,consumption-analysis,carbon-emission,forecast"
+  shuqing.template/tables: "31"
+  shuqing.template/dags: "5"
+  shuqing.template/dashboards: "4"
+  shuqing.template/roles: "4"
+  shuqing.template/iotdb: "true"

@@ -1,5 +1,5 @@
 /*
- * SqlGrammar.g4 — 数擎大数据平台 SQL 网关 ANTLR4 语法文件（简化版）
+ * SqlGrammar.g4 — 数据引擎大数据平台 SQL 网关 ANTLR4 语法文件（简化版）
  *
  * <p>本文件作为 SQL 语法的形式化定义文档，描述 ANSI SQL + Hive + Doris + Trino 方言
  * 的核心子集。实际解析由 {@code SqlParserService} 中的手写递归下降解析器完成，

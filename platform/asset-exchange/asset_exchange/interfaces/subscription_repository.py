@@ -1,8 +1,9 @@
 """订阅仓储抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Optional
+from typing import Any
 
 from asset_exchange.models.subscription import Subscription, SubscriptionFilter
 

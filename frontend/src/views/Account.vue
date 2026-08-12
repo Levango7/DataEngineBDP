@@ -2,54 +2,128 @@
   <div>
     <h1>账户与配额</h1>
     <div class="sub">套餐即容量边界；超额自动扩容或升级套餐，费用清晰可核算。</div>
+    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">正在加载账户信息...</div>
+    <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
+      加载失败：{{ error }}
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">重试</button>
+    </div>
+    <template v-else>
     <div class="card">
-      <h3>当前套餐：企业版</h3>
-      <div class="row"><span>CPU 配额</span><span>800 核 / 已用 464</span></div>
-      <div class="bar"><i style="width: 58%"></i></div>
-      <div class="row" style="margin-top: 12px"><span>内存配额</span><span>3 TB / 已用 2.1</span></div>
-      <div class="bar"><i class="a" style="width: 71%"></i></div>
-      <div class="row" style="margin-top: 12px"><span>存储配额</span><span>1 PB / 已用 486 TB</span></div>
-      <div class="bar"><i style="width: 43%"></i></div>
+      <h3>当前套餐：{{ plan?.planName ?? '—' }}</h3>
+      <template v-if="plan">
+        <div v-for="(q, idx) in plan.quotas" :key="q.name">
+          <div class="row" :style="idx > 0 ? 'margin-top: 12px' : ''">
+            <span>{{ q.name }}</span>
+            <span>{{ q.total }} / 已用 {{ q.used }}</span>
+          </div>
+          <div class="bar"><i :class="idx === 1 ? 'a' : ''" :style="{ width: q.usagePercent + '%' }"></i></div>
+        </div>
+      </template>
       <button class="btn ghost sm" style="margin-top: 10px" @click="modalVisible = true">升级套餐</button>
     </div>
     <div class="card" style="margin-top: 14px">
       <h3>本月计费明细</h3>
-      <table>
+      <div v-if="billingLoading" style="text-align: center; padding: 24px; color: #888">正在加载计费明细...</div>
+      <table v-else-if="billing">
         <thead>
           <tr><th>项</th><th>用量</th><th>费用</th></tr>
         </thead>
         <tbody>
-          <tr><td>计算(CPU·时)</td><td>38,400</td><td>¥ 19,200</td></tr>
-          <tr><td>存储(TB·月)</td><td>486</td><td>¥ 9,720</td></tr>
-          <tr><td>调用(API·万)</td><td>1,280</td><td>¥ 6,400</td></tr>
-          <tr><td><b>合计</b></td><td></td><td><b>¥ 35,320</b></td></tr>
+          <tr v-for="item in billing.items" :key="item.id">
+            <td>{{ item.name }}</td>
+            <td>{{ item.usage }}</td>
+            <td>¥ {{ item.cost.toLocaleString() }}</td>
+          </tr>
+          <tr><td><b>合计</b></td><td></td><td><b>¥ {{ billing.totalCost.toLocaleString() }}</b></td></tr>
         </tbody>
       </table>
       <div class="note">套餐由 ResourceQuota + 节点池租约实现，与 SKE 发行版解耦，客户仅见套餐概念。</div>
     </div>
+    </template>
 
     <Modal :visible="modalVisible" title="升级套餐" @close="modalVisible = false">
       <label>目标套餐</label>
-      <select><option>旗舰版</option><option>企业版+扩容包</option></select>
-      <label>预计月费</label><input value="¥ 58,000" />
+      <select v-model="upgradeForm.targetPlan"><option value="flagship">旗舰版</option><option value="enterprise">企业版+扩容包</option></select>
+      <label>预计月费</label><input :value="estimatedFee" disabled />
       <div class="note">升级后经 NodePoolLease 自动扩容，客户无感知停机。</div>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" @click="ok('套餐升级已提交')">确认升级</button>
+        <button class="btn" @click="submitUpgrade">确认升级</button>
       </template>
     </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Modal from '@/components/Modal.vue'
+import * as accountApi from '@/api/account'
+import type { AccountPlan, BillingDetail, PlanTier } from '@/api/account'
 
 const store = useAppStore()
 const modalVisible = ref(false)
-function ok(msg: string) {
-  modalVisible.value = false
-  store.showToast(msg)
+
+const plan = ref<AccountPlan | null>(null)
+const billing = ref<BillingDetail | null>(null)
+const loading = ref(false)
+const billingLoading = ref(false)
+const error = ref<string | null>(null)
+
+const upgradeForm = ref<{ targetPlan: PlanTier }>({
+  targetPlan: 'flagship',
+})
+
+const estimatedFee = computed(() => {
+  // 简单预估：旗舰版 58000，企业版+扩容包 35000
+  return upgradeForm.value.targetPlan === 'flagship' ? '¥ 58,000' : '¥ 35,000'
+})
+
+async function loadPlan() {
+  loading.value = true
+  error.value = null
+  try {
+    plan.value = await accountApi.getAccountPlan()
+  } catch (e) {
+    error.value = (e as Error).message || '加载账户套餐失败'
+  } finally {
+    loading.value = false
+  }
 }
+
+async function loadBilling() {
+  billingLoading.value = true
+  try {
+    billing.value = await accountApi.getBillingDetail()
+  } catch (e) {
+    billing.value = null
+  } finally {
+    billingLoading.value = false
+  }
+}
+
+async function loadAll() {
+  await Promise.all([loadPlan(), loadBilling()])
+}
+
+async function submitUpgrade() {
+  try {
+    const result = await accountApi.upgradePlan({
+      targetPlan: upgradeForm.value.targetPlan,
+    })
+    modalVisible.value = false
+    if (result.status === 'success' || result.status === 'submitted') {
+      store.showToast('套餐升级已提交')
+      await loadAll()
+    } else {
+      store.showToast('套餐升级失败')
+    }
+  } catch (e) {
+    store.showToast(`升级失败：${(e as Error).message}`)
+  }
+}
+
+onMounted(() => {
+  loadAll()
+})
 </script>

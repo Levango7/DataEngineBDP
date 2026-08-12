@@ -1,0 +1,31 @@
+{{/*
+  Alertmanager 默认通知模板（所有级别共用）
+
+  提供以下可复用片段：
+    {{ template "alert.summary" . }}        — 告警摘要（一行）
+    {{ template "alert.count" . }}          — 告警/恢复计数
+    {{ template "alert.list" . }}           — 告警列表（多行）
+    {{ template "alert.labels" . }}         — 公共标签
+    {{ template "alert.annotations" . }}    — 公共注解
+*/}}
+{{ define "alert.summary" }}{{ .Status | toUpper }}: {{ .CommonLabels.alertname }} (tenant={{ .CommonLabels.tenant_id }} severity={{ .CommonLabels.severity }}){{ end }}
+
+{{ define "alert.count" }}{{ .Alerts.Firing | len }} firing, {{ .Alerts.Resolved | len }} resolved{{ end }}
+
+{{ define "alert.list" }}{{ range .Alerts }}
+- status: {{ .Status }}
+  alertname: {{ .Labels.alertname }}
+  tenant_id: {{ .Labels.tenant_id }}
+  component: {{ .Labels.component }}
+  severity: {{ .Labels.severity }}
+  startsAt: {{ .StartsAt.Format "2006-01-02 15:04:05" }}
+{{ if .EndsAt }}  endsAt: {{ .EndsAt.Format "2006-01-02 15:04:05" }}
+{{ end }}  value: {{ .Annotations.value }}
+  description: {{ .Annotations.description }}
+  runbook: {{ .Annotations.runbook_url }}
+{{ end }}{{ end }}
+
+{{ define "alert.labels" }}{{ range .CommonLabels.SortedPairs }}{{ .Name }}={{ .Value }} {{ end }}{{ end }}
+
+{{ define "alert.annotations" }}{{ range .CommonAnnotations.SortedPairs }}{{ .Name }}: {{ .Value }}
+{{ end }}{{ end }}
