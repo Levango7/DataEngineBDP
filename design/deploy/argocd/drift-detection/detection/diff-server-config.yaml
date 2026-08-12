@@ -1,0 +1,65 @@
+# ArgoCD Diff Server 配置 · 增强字段级 diff
+# ============================================================================
+# 作用：配置 ArgoCD 的 diff 相关参数，启用 server-side diff
+# 集成：本 ConfigMap 内容需合并到 argocd-cm ConfigMap
+# 文档：https://argo-cd.readthedocs.io/en/stable/user-guide/diffing/
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-diff-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "ArgoCD diff server 配置（server-side diff + 增强选项）"
+data:
+  # 启用 server-side diff（v2.6+，更准确）
+  # server-side diff 会调用 kube-apiserver 的 dry-run，得到与 apply 一致的结果
+  resource.compareoptions: |
+    # 启用 server-side diff
+    serverSideDiff: true
+    # 忽略 AggregatedRoles 的 rules 字段（k8s 自动聚合）
+    ignoreAggregatedRoles: true
+
+  # ArgoCD 仓库 server 配置
+  repository.server: |
+    # diff 时启用 --server-side-generate
+    # 使 argocd app diff 输出与实际 apply 一致的 manifest
+    enableManifestGeneration: true
+
+  # 增强状态字段（Application status 中展示更多信息）
+  application.instance.labels: |
+    # 在 Application status 中暴露以下 label，便于漂移检测脚本过滤
+    - environment
+    - managed-by
+    - app.kubernetes.io/part-of
+
+  # diff 输出格式
+  diff.output.format: "unified"
+
+  # diff 忽略的 JSON Pointer（全局）
+  diff.ignore.jsonpointers: |
+    - /metadata/managedFields
+    - /metadata/resourceVersion
+    - /metadata/uid
+    - /metadata/creationTimestamp
+    - /metadata/generation
+    - /status
+    - /spec/clusterIP
+    - /spec/clusterIPs
+
+  # diff 忽略的 managedFieldsManagers（由这些 manager 管理的字段不视为漂移）
+  diff.ignore.managedfieldsmanagers: |
+    - kube-controller-manager
+    - kube-scheduler
+    - kubelet
+    - kubectl-client-side-apply
+    - kubectl-server-side-apply
+    - istio-sidecar-injector
+    - traefik
+    - node-controller
+    - endpoint-controller
+    - service-controller

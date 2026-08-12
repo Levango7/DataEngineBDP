@@ -4,14 +4,10 @@
     POST /api/l5/v1/apis/publish { spec, runtime, sla, billing } → apiId
     GET  /api/l5/v1/catalog { category?, keyword?, page } → [ApiEntry]
 """
+
 from __future__ import annotations
 
-import uuid
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
-
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
     APIDefinition,
@@ -26,13 +22,15 @@ from openapi_catalog.models import (
     HttpMethod,
     SLALevel,
 )
-from openapi_catalog.repositories import CatalogError, ValidationError
+from openapi_catalog.repositories import CatalogError
 from openapi_catalog.services.registry import ServiceRegistry
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/apis", tags=["apis"])
 
 
 # ---------- 请求模型 ----------
+
 
 class RegisterAPIRequest(BaseModel):
     """注册 API 请求."""
@@ -57,6 +55,7 @@ class RegisterAPIRequest(BaseModel):
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "",
@@ -88,12 +87,8 @@ async def list_apis(
     name: str | None = Query(default=None, description="名称模糊匹配"),
     category: str | None = Query(default=None, description="分类过滤"),
     tag: str | None = Query(default=None, description="标签过滤"),
-    status_: APIStatus | None = Query(
-        default=None, alias="status", description="状态过滤"
-    ),
-    providerTenantId: str | None = Query(
-        default=None, description="提供方租户过滤"
-    ),
+    status_: APIStatus | None = Query(default=None, alias="status", description="状态过滤"),
+    providerTenantId: str | None = Query(default=None, description="提供方租户过滤"),
     keyword: str | None = Query(default=None, description="全文搜索"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
@@ -163,6 +158,7 @@ async def delete_api(
 
 
 # ---------- 状态转换 ----------
+
 
 class StatusTransitionRequest:
     """状态转换请求（query 参数形式）."""

@@ -1,4 +1,5 @@
 """数据概览服务."""
+
 from __future__ import annotations
 
 from business_portal.interfaces.store import (

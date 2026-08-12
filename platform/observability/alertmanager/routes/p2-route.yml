@@ -1,0 +1,36 @@
+# P2 一般告警路由配置 — 钉钉 + 飞书
+#
+# 本文件是 alertmanager.yml 中 P2 路由的独立描述，便于测试与文档化。
+# 实际生效配置在 alertmanager.yml 的 route.routes[2] 与 receivers[p2-dingtalk-feishu]。
+#
+# 触发条件：severity label == "P2"
+# 通知渠道：钉钉群机器人 + 飞书群机器人
+# 时效要求：group_wait=1m，repeat_interval=4h
+# 典型场景：
+#   - 慢查询告警
+#   - 资源水位提醒
+#   - 作业重试提醒
+#   - 配置变更通知
+route:
+  matchers:
+    - severity = "P2"
+  receiver: p2-dingtalk-feishu
+  group_by: ['alertname', 'tenant_id', 'component']
+  group_wait: 1m
+  group_interval: 30m
+  repeat_interval: 4h
+  continue: false
+
+receiver:
+  name: p2-dingtalk-feishu
+  channels:
+    - type: dingtalk
+      description: 钉钉群机器人
+      url: '${DINGTALK_WEBHOOK_URL}'
+      auth: Bearer ${DINGTALK_TOKEN}
+      send_resolved: true
+    - type: feishu
+      description: 飞书群机器人
+      url: '${FEISHU_WEBHOOK_URL}'
+      auth: Bearer ${FEISHU_TOKEN}
+      send_resolved: true

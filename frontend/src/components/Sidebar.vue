@@ -90,9 +90,11 @@ const groups = computed<NavGroup[]>(() => [
   {
     title: '智能数据',
     items: [
+      { path: '/ai-assistant', label: 'AI 数据助手', icon: 'llmops' },
       { path: '/vector', label: '向量数据库', icon: 'vector' },
       { path: '/kb', label: '知识工程', icon: 'kb' },
       { path: '/llmops', label: 'LLMOps', icon: 'llmops' },
+      { path: '/orchestrator/dag', label: '编排 DAG 可视化', icon: 'lineage' },
       { path: '/gateway', label: '大模型接口', icon: 'gateway' }
     ]
   },
@@ -100,6 +102,7 @@ const groups = computed<NavGroup[]>(() => [
     title: '产品运营',
     items: [
       { path: '/dashboard', label: '统一控制台', icon: 'dash' },
+      { path: '/search', label: '检索门户', icon: 'kb' },
       { path: '/admin', label: '运营后台', icon: 'admin' },
       { path: '/ops-tpl', label: '行业应用模板', icon: 'proj' },
       { path: '/ops-portal', label: '业务线门户', icon: 'ws' },

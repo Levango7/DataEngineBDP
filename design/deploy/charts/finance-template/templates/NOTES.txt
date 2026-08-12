@@ -1,0 +1,51 @@
+###############################################################################
+# finance-template Chart 安装完成（T019）
+###############################################################################
+
+{{ .Chart.Name }} 已部署到命名空间 {{ include "finance-template.namespace" . }}。
+
+模板信息:
+  名称:     {{ .Values.template.name }}
+  版本:     {{ .Values.template.version }}
+  环境:     {{ .Values.env | default "unknown" }}
+  业务域:   risk, customer, account, transaction, credit
+
+资产清单:
+  DDL 表:       21 张（5 业务域）
+  DAG 调度:     5 个作业
+  Dashboard:    3 个仪表盘
+  RBAC 角色:    3 个（风控员/合规员/客户经理）
+
+部署状态:
+  ConfigMap:    {{ include "finance-template.configmapName" . }}
+  导入 Job:     {{ include "finance-template.importJobName" . }}
+
+后续操作:
+
+1. 查看导入 Job 状态:
+   kubectl get job {{ include "finance-template.importJobName" . }} -n {{ include "finance-template.namespace" . }}
+
+2. 查看导入 Job 日志:
+   kubectl logs job/{{ include "finance-template.importJobName" . }} -n {{ include "finance-template.namespace" . }}
+
+3. 运行部署验证（helm test）:
+   helm test {{ .Release.Name }} -n {{ include "finance-template.namespace" . }}
+
+4. 验证 DDL 表已创建（Doris）:
+   mysql -h {{ .Values.target.doris.feHost }} -P {{ .Values.target.doris.fePort }} -u {{ .Values.target.doris.user }} -p --execute "SHOW TABLES FROM {{ .Values.target.doris.database }}"
+
+5. 验证 DAG 已导入（DolphinScheduler）:
+   curl http://{{ .Values.target.dolphinscheduler.host }}:{{ .Values.target.dolphinscheduler.port }}/dolphinscheduler/projects -H "Authorization: Bearer <token>"
+
+6. 验证 Dashboard 已导入（Superset）:
+   curl http://{{ .Values.target.superset.host }}:{{ .Values.target.superset.port }}/api/v1/dashboard/ -H "Authorization: Bearer <token>"
+
+7. 验证 RBAC 角色已创建（Keycloak）:
+   curl http://{{ .Values.target.keycloak.host }}:{{ .Values.target.keycloak.port }}/admin/realms/{{ .Values.target.keycloak.realm }}/roles -H "Authorization: Bearer <admin_token>"
+
+###############################################################################
+# 多环境部署提示:
+#   dev:     helm upgrade --install {{ .Release.Name }} design/deploy/charts/finance-template -f values-dev.yaml -n finance-dev
+#   staging: helm upgrade --install {{ .Release.Name }} design/deploy/charts/finance-template -f values-staging.yaml -n finance-staging
+#   prod:    helm upgrade --install {{ .Release.Name }} design/deploy/charts/finance-template -f values-prod.yaml -n finance-prod
+###############################################################################

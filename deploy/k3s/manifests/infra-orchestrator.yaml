@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-orchestrator
+  namespace: shuqing
+  labels:
+    app: infra-orchestrator
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infra-orchestrator
+  template:
+    metadata:
+      labels:
+        app: infra-orchestrator
+    spec:
+      containers:
+      - name: infra-orchestrator
+        image: sq/infra-orchestrator:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8085
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8085"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8085
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8085
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-orchestrator
+  namespace: shuqing
+  labels:
+    app: infra-orchestrator
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: infra-orchestrator
+  ports:
+  - name: http
+    port: 8085
+    targetPort: 8085
+    protocol: TCP

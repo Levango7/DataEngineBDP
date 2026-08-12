@@ -1,4 +1,5 @@
 """业务线 CRUD 测试."""
+
 from __future__ import annotations
 
 import uuid
@@ -7,10 +8,10 @@ import pytest
 
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
+    Budget,
     BusinessLine,
     BusinessLineConfig,
     BusinessLineFilter,
-    Budget,
 )
 from business_portal.repositories import (
     BusinessLineAlreadyExistsError,
@@ -52,9 +53,7 @@ class TestBusinessLineCreate:
         assert result.status == BusinessLineStatus.ACTIVE
 
     @pytest.mark.asyncio
-    async def test_create_duplicate_name_raises(
-        self, mock_bl_store
-    ):
+    async def test_create_duplicate_name_raises(self, mock_bl_store):
         """同租户下业务线名称唯一."""
         svc = BusinessLineService(mock_bl_store)
         bl1 = _make_bl(name="风控线", tenant_id="t-1")
@@ -64,9 +63,7 @@ class TestBusinessLineCreate:
             await svc.create_business_line(bl2)
 
     @pytest.mark.asyncio
-    async def test_create_same_name_different_tenant_ok(
-        self, mock_bl_store
-    ):
+    async def test_create_same_name_different_tenant_ok(self, mock_bl_store):
         """不同租户下业务线名称可重复."""
         svc = BusinessLineService(mock_bl_store)
         bl1 = _make_bl(name="风控线", tenant_id="t-1")
@@ -93,9 +90,7 @@ class TestBusinessLineRead:
             await svc.get_business_line("nonexistent-id")
 
     @pytest.mark.asyncio
-    async def test_get_with_permission_check_member_ok(
-        self, mock_bl_store
-    ):
+    async def test_get_with_permission_check_member_ok(self, mock_bl_store):
         """成员可访问业务线."""
         svc = BusinessLineService(mock_bl_store)
         bl = _make_bl(member_ids=["user-1"])
@@ -104,9 +99,7 @@ class TestBusinessLineRead:
         assert result.id == bl.id
 
     @pytest.mark.asyncio
-    async def test_get_with_permission_check_non_member_denied(
-        self, mock_bl_store
-    ):
+    async def test_get_with_permission_check_non_member_denied(self, mock_bl_store):
         """非成员不可访问业务线（权限隔离）."""
         svc = BusinessLineService(mock_bl_store)
         bl = _make_bl(member_ids=["user-1"])
@@ -127,12 +120,8 @@ class TestBusinessLineRead:
     async def test_list_by_member(self, mock_bl_store):
         """按成员过滤：仅返回该成员可见的业务线（权限隔离）."""
         svc = BusinessLineService(mock_bl_store)
-        await svc.create_business_line(
-            _make_bl(name="bl-1", tenant_id="t-1", member_ids=["u-1", "u-2"])
-        )
-        await svc.create_business_line(
-            _make_bl(name="bl-2", tenant_id="t-1", member_ids=["u-2"])
-        )
+        await svc.create_business_line(_make_bl(name="bl-1", tenant_id="t-1", member_ids=["u-1", "u-2"]))
+        await svc.create_business_line(_make_bl(name="bl-2", tenant_id="t-1", member_ids=["u-2"]))
         result = await svc.list_business_lines(BusinessLineFilter(memberId="u-1"))
         assert len(result) == 1
         assert result[0].name == "bl-1"
@@ -154,9 +143,7 @@ class TestBusinessLineUpdate:
         svc = BusinessLineService(mock_bl_store)
         bl = _make_bl()
         await svc.create_business_line(bl)
-        result = await svc.update_business_line(
-            bl.id, {"status": BusinessLineStatus.SUSPENDED}
-        )
+        result = await svc.update_business_line(bl.id, {"status": BusinessLineStatus.SUSPENDED})
         assert result.status == BusinessLineStatus.SUSPENDED
 
     @pytest.mark.asyncio
@@ -166,18 +153,14 @@ class TestBusinessLineUpdate:
         bl = _make_bl(owner_ids=["admin-1"], member_ids=["admin-1", "user-1"])
         await svc.create_business_line(bl)
         with pytest.raises(PermissionDeniedError):
-            await svc.update_business_line(
-                bl.id, {"name": "x"}, user_id="user-1"
-            )
+            await svc.update_business_line(bl.id, {"name": "x"}, user_id="user-1")
 
     @pytest.mark.asyncio
     async def test_update_by_owner_ok(self, mock_bl_store):
         svc = BusinessLineService(mock_bl_store)
         bl = _make_bl(owner_ids=["admin-1"], member_ids=["admin-1"])
         await svc.create_business_line(bl)
-        result = await svc.update_business_line(
-            bl.id, {"name": "x"}, user_id="admin-1"
-        )
+        result = await svc.update_business_line(bl.id, {"name": "x"}, user_id="admin-1")
         assert result.name == "x"
 
     @pytest.mark.asyncio

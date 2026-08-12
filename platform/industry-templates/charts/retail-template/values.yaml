@@ -1,0 +1,106 @@
+# Helm Chart values - 零售行业模板默认配置
+# ============================================================================
+# 用途：定义 helm install retail-template 时的可配置参数
+# ============================================================================
+
+# 模板元信息
+template:
+  name: retail-template
+  version: 1.0.0
+  # 是否启用模板自动导入（部署后自动调用平台 Job 导入 DDL/DAG/Dashboard/RBAC/tag-engine-config）
+  autoImport: true
+
+# 目标命名空间
+namespace: retail
+
+# 各组件目标地址（用于平台侧 Job 导入资产）
+target:
+  doris:
+    feHost: doris-fe.doris.svc.cluster.local
+    fePort: 9030
+    database: db_retail
+    user: root
+    # 密码通过 Secret 引用，不在此明文配置
+    passwordSecret:
+      name: doris-credentials
+      key: password
+  dolphinscheduler:
+    host: dolphinscheduler-api.dolphinscheduler.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials
+      key: token
+  superset:
+    host: superset.superset.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials
+      key: token
+  keycloak:
+    host: keycloak.keycloak.svc.cluster.local
+    port: 8080
+    realm: retail-template-realm
+    adminSecret:
+      name: keycloak-credentials
+      key: admin-password
+  tagEngine:
+    host: tag-engine.tag-engine.svc.cluster.local
+    port: 8080
+    tokenSecret:
+      name: tag-engine-credentials
+      key: admin-token
+
+# ConfigMap 配置（模板资产挂载方式）
+configMap:
+  # 是否创建 ConfigMap 挂载模板资产
+  create: true
+  # ConfigMap 名称前缀
+  namePrefix: retail-template
+  # 资产子目录挂载配置
+  assets:
+    ddl:
+      enabled: true
+      mountPath: /templates/ddl
+    dag:
+      enabled: true
+      mountPath: /templates/dag
+    dashboards:
+      enabled: true
+      mountPath: /templates/dashboards
+    tagEngine:
+      enabled: true
+      mountPath: /templates/tag-engine
+
+# 导入 Job 配置
+importJob:
+  # 是否创建导入 Job
+  enabled: true
+  # 导入 Job 镜像（平台侧提供的模板导入器）
+  image:
+    repository: shuqing/template-importer
+    tag: "2.0.0"
+    pullPolicy: IfNotPresent
+  # Job 资源配置
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  # Job 重试次数
+  backoffLimit: 3
+  # Job 超时（秒）
+  activeDeadlineSeconds: 1800
+
+# RBAC 同步配置
+rbacSync:
+  enabled: true
+  # 是否在导入失败时回滚已创建角色
+  rollbackOnFailure: true
+
+# 标签引擎同步配置
+tagEngineSync:
+  enabled: true
+  # 是否在导入失败时回滚已创建标签
+  rollbackOnFailure: true

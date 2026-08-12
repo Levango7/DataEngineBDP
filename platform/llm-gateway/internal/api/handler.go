@@ -1,4 +1,4 @@
-﻿// Package api 实现大模型网关的 REST API handlers。
+// Package api 实现大模型网关的 REST API handlers。
 //
 // 暴露端点（OpenAI 兼容协议 + 网关治理端点）：
 //   - POST /api/v1/chat/completions  对话补全
@@ -21,8 +21,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/gateway"
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/gateway"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ Handler ============

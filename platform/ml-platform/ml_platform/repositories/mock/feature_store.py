@@ -1,8 +1,9 @@
 """Mock 特征存储 - 内存实现."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from ml_platform.interfaces.feature_store import FeatureStore
 from ml_platform.models import (
@@ -31,9 +32,7 @@ class MockFeatureStore(FeatureStore):
 
     # ---------- 特征组管理 ----------
 
-    async def create_feature_group(
-        self, config: FeatureGroupConfig
-    ) -> str:
+    async def create_feature_group(self, config: FeatureGroupConfig) -> str:
         if config.name in self._groups:
             raise FeatureGroupAlreadyExistsError(config.name)
         groupId = str(uuid.uuid4())
@@ -49,9 +48,7 @@ class MockFeatureStore(FeatureStore):
         self._features[config.name] = {}
         return groupId
 
-    async def get_feature_group(
-        self, groupName: str
-    ) -> FeatureGroup:
+    async def get_feature_group(self, groupName: str) -> FeatureGroup:
         if groupName not in self._groups:
             raise FeatureGroupNotFoundError(groupName)
         return self._groups[groupName]
@@ -65,9 +62,7 @@ class MockFeatureStore(FeatureStore):
 
     # ---------- 特征读写 ----------
 
-    async def get_features(
-        self, groupName: str, entityId: str
-    ) -> dict:
+    async def get_features(self, groupName: str, entityId: str) -> dict:
         if groupName not in self._groups:
             raise FeatureGroupNotFoundError(groupName)
         entityFeatures = self._features[groupName].get(entityId)
@@ -75,18 +70,14 @@ class MockFeatureStore(FeatureStore):
             raise EntityNotFoundError(groupName, entityId)
         return dict(entityFeatures)
 
-    async def put_features(
-        self, groupName: str, entityId: str, features: dict
-    ) -> None:
+    async def put_features(self, groupName: str, entityId: str, features: dict) -> None:
         if groupName not in self._groups:
             raise FeatureGroupNotFoundError(groupName)
         self._features[groupName][entityId] = dict(features)
         # 更新时间戳
         self._groups[groupName].updatedAt = utcNow()
 
-    async def delete_features(
-        self, groupName: str, entityId: str
-    ) -> None:
+    async def delete_features(self, groupName: str, entityId: str) -> None:
         if groupName not in self._groups:
             raise FeatureGroupNotFoundError(groupName)
         self._features[groupName].pop(entityId, None)

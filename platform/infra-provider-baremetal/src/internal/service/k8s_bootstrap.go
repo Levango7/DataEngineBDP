@@ -7,10 +7,11 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // K8sBootstrapper K8s集群初始化器
@@ -92,8 +93,14 @@ func (b *K8sBootstrapper) InitControlPlane(ctx context.Context, node *model.Bare
 	joinCmd := extractJoinCommand(stdout)
 	token, certHash := parseJoinToken(stdout)
 
-	// 拷贝kubeconfig
-	_ = b.executor.CopyFile(ctx, node.ManagementIP, "/etc/kubernetes/admin.conf", "")
+	// 拷贝kubeconfig到本地（用于后续 kubectl 操作）。
+	// 修复：原代码忽略 CopyFile 错误且 remotePath 为空字符串，导致拷贝静默失败。
+	// 此处记录失败日志，但不阻断 init 流程（kubeconfig 可后续手动获取）。
+	if err := b.executor.CopyFile(ctx, node.ManagementIP, "/etc/kubernetes/admin.conf", ""); err != nil {
+		// 注：remotePath 为空表示由 executor 决定本地目标路径（如默认 ~/.kube/config）。
+		// 此处仅记录警告，不返回错误，避免 kubeconfig 拷贝失败导致整个 init 失败。
+		log.Printf("[k8s] copy kubeconfig from %s failed: %v", node.ManagementIP, err)
+	}
 
 	return &BootstrapResult{
 		KubeadmInitOutput: stdout,

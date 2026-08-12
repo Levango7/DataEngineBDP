@@ -1,0 +1,73 @@
+# 审计日志导出 CronJob · 每日导出漂移审计到对象存储
+# ============================================================================
+# 作用：每日凌晨导出前一日漂移事件 / 修复事件到 MinIO/S3
+# 调度：每日 02:00 UTC
+# 保留：90 天（通过 S3 生命周期策略管理）
+# ============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-audit-export
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-audit
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移审计日志每日导出"
+    schedule: "每日 02:00 UTC"
+spec:
+  schedule: "0 2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 7
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: drift-audit-export
+        spec:
+          serviceAccountName: drift-audit-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: audit-exporter
+              image: bitnami/kubectl:1.28
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/scripts/export-audit.sh"]
+              env:
+                - name: ARGOCD_NS
+                  value: "argocd"
+                - name: MINIO_ENDPOINT
+                  value: "http://minio.storage.svc.cluster.local:9000"
+                - name: MINIO_BUCKET
+                  value: "shuqing-audit"
+                - name: RETENTION_DAYS
+                  value: "90"
+              envFrom:
+                - secretRef:
+                    name: drift-audit-storage-secret
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: audit-config
+                  mountPath: /etc/drift-audit
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 256Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: drift-audit-scripts
+                defaultMode: 0755
+            - name: audit-config
+              configMap:
+                name: drift-audit-config

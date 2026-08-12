@@ -5,11 +5,12 @@
 2. 权限隔离：通过 memberIds 校验当前用户是否可见该业务线。
 3. 业务线名称同租户下唯一。
 """
+
 from __future__ import annotations
 
 import threading
-import uuid
 from typing import Any
+import uuid
 
 from business_portal.interfaces.store import (
     BusinessLineStore,
@@ -19,7 +20,6 @@ from business_portal.interfaces.store import (
     WorkbenchStore,
 )
 from business_portal.models.base import (
-    BusinessLineStatus,
     CatalogNodeType,
     utc_now,
 )
@@ -35,7 +35,6 @@ from business_portal.models.dashboard import (
     RealtimeMonitor,
     TopProject,
     Trend,
-    TrendPoint,
 )
 from business_portal.models.report import Report, ReportFilter
 from business_portal.models.workbench import (
@@ -213,15 +212,9 @@ class MockDashboardStore(DashboardStore):
         ]
         # 实时监控
         realtime = [
-            RealtimeMonitor(
-                key="cpu", label="CPU 实时", status="ok", value=58.0, unit="%", threshold=80.0
-            ),
-            RealtimeMonitor(
-                key="mem", label="内存实时", status="ok", value=65.0, unit="%", threshold=85.0
-            ),
-            RealtimeMonitor(
-                key="jobFail", label="今日失败作业", status="warn", value=4.0, threshold=10.0
-            ),
+            RealtimeMonitor(key="cpu", label="CPU 实时", status="ok", value=58.0, unit="%", threshold=80.0),
+            RealtimeMonitor(key="mem", label="内存实时", status="ok", value=65.0, unit="%", threshold=85.0),
+            RealtimeMonitor(key="jobFail", label="今日失败作业", status="warn", value=4.0, threshold=10.0),
         ]
         # TopN 项目
         top_projects = [
