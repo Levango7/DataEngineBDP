@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: kafka
 description: Apache Kafka 消息中间件 - 数据引擎大数据平台
 type: application

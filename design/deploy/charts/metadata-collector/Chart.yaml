@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: metadata-collector
 description: "元数据采集 - 多源元数据自动抓取 - 数据引擎大数据平台"
 type: application

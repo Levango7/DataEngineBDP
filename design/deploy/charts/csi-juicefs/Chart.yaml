@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: csi-juicefs
 description: "JuiceFS CSI 驱动 - 云原生对象存储挂载 - 数据引擎大数据平台"
 type: application

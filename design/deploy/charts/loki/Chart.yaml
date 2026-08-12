@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: loki
 description: "Loki 日志 - 日志聚合与查询 - 数据引擎大数据平台"
 type: application

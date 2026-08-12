@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: keda
 description: "KEDA 弹性伸缩 - 事件驱动自动扩缩容 - 数据引擎大数据平台"
 type: application

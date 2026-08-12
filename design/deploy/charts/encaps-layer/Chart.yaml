@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: encaps-layer
 description: "封装层 - K8s 产品化业务语义翻译 - 数据引擎大数据平台"
 type: application

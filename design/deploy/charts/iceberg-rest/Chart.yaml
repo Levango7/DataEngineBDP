@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: iceberg-rest
 description: "Iceberg REST Catalog - 表格式 REST 元服务 - 数据引擎大数据平台"
 type: application

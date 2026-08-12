@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: vector-engine
 description: "向量检索引擎 - 嵌入向量存储与检索 - 数据引擎大数据平台"
 type: application

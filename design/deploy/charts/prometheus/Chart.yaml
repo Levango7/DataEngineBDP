@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: prometheus
 description: "Prometheus 监控 - 指标采集与时序存储 - 数据引擎大数据平台"
 type: application

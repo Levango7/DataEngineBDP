@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: asset-catalog
 description: "资产目录 - 数据资产编目与检索 - 数据引擎大数据平台"
 type: application

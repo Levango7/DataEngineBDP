@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: sql-gateway
 description: "SQL 网关 - Calcite/ANTLR 联邦查询 - 数据引擎大数据平台"
 type: application

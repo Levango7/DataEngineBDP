@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: lineage-analyzer
 description: "血缘分析 - 表级/字段级血缘与影响分析 - 数据引擎大数据平台"
 type: application

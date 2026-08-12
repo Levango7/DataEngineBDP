@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: hive-metastore
 description: "Hive Metastore 元数据服务 - 兼容 Hive 3.1 协议 - 数据引擎大数据平台"
 type: application

@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: elasticsearch
 description: "Elasticsearch 搜索引擎 - 全文检索与分析 - 数据引擎大数据平台"
 type: application

@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: llmops
 description: "LLMOps 平台 - 大模型训练部署运营 - 数据引擎大数据平台"
 type: application

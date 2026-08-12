@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: apisix
 description: Apache APISIX API 网关 - 数据引擎大数据平台
 type: application

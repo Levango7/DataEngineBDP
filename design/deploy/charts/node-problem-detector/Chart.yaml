@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: node-problem-detector
 description: "节点问题检测 - 内核与 kubelet 异常巡检 - 数据引擎大数据平台"
 type: application

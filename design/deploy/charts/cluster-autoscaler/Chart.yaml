@@ -1,4 +1,4 @@
-﻿﻿piVersion: v2
+apiVersion: v2
 name: cluster-autoscaler
 description: "集群自动扩缩容 - 节点池弹性扩容 - 数据引擎大数据平台"
 type: application
