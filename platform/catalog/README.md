@@ -1,10 +1,10 @@
-# Catalog — 数擎大数据平台自研元数据目录
+﻿# Catalog — 数据引擎大数据平台自研元数据目录
 
 > 轻量级 Catalog 服务，替代 Hive Metastore / DataHub，管理表 / 列 / 分区元数据。
 
 ## 项目用途
 
-`catalog` 是数擎大数据平台（ShuqingBigDataPlatform）的元数据目录服务，提供：
+`catalog` 是数据引擎大数据平台（DataEngineBDP）的元数据目录服务，提供：
 
 - 数据库（Database / Namespace）的 CRUD
 - 表（Table）元数据的 CRUD，含列定义、分区键、自定义属性

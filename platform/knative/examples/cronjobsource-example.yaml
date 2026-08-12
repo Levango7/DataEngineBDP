@@ -1,0 +1,43 @@
+﻿# ============================================================================
+# CronJobSource 定时触发示例 · 数据引擎大数据平台
+# ----------------------------------------------------------------------------
+# 作用：验证 CronJobSource 按 cron 表达式定时触发 KService
+# 依赖：
+#   1. Knative Eventing 已部署（knative-eventing namespace）
+#   2. KService hello-kservice 已创建（见 kservice-hello.yaml）
+# 流程：
+#   1. CronJobSource 按 cron 表达式（*/2 * * * *）每 2 分钟触发
+#   2. 生成 CloudEvent
+#   3. 发送到 sink（KService）
+#   4. KService 处理事件并响应
+# 验证：
+#   kubectl get cronjobsource cronjob-source-example -n knative-examples
+#   kubectl get pods -n knative-examples -l sources.knative.dev/cronjobsource-name=cronjob-source-example
+# ============================================================================
+apiVersion: sources.knative.dev/v1
+kind: CronJobSource
+metadata:
+  name: cronjob-source-example
+  namespace: knative-examples
+  labels:
+    app.kubernetes.io/name: cronjob-source-example
+    app.kubernetes.io/part-of: knative-examples
+    platform.shuqing.io/component: eventing
+    platform.shuqing.io/task: "T024"
+spec:
+  # cron 表达式：每 2 分钟触发
+  schedule: "*/2 * * * *"
+  # 事件数据
+  data: '{"message": "CronJobSource 定时触发事件", "source": "shuqing-platform", "timestamp": "auto"}'
+  # 事件接收者（sink）：KService
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: hello-kservice
+      namespace: knative-examples
+  # CloudEvent 属性
+  ceOverrides:
+    extensions:
+      source: cronjob://cronjob-source-example
+      type: com.shuqing.platform.cronjob.event

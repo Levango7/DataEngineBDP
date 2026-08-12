@@ -5,6 +5,7 @@
     - EntityExtractor: 实体抽取
     - RelationExtractor: 关系抽取
 """
+
 from __future__ import annotations
 
 from knowledge_engine.interfaces.entity_extractor import EntityExtractor

@@ -1,0 +1,40 @@
+# 网络流量 Exporter Deployment + Service + ConfigMap（单文档，按 kind 拆分见同目录其他文件）
+#
+# 用途：部署 node-exporter 作为网络流量采集器，暴露 /metrics 供 Prometheus 抓取。
+# 采集粒度 60s（≤ 1min 满足 FinOps 要求），按 tenant + namespace 标签隔离。
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-exporter
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: network-exporter
+    app.kubernetes.io/part-of: finops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: network-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: network-exporter
+    spec:
+      serviceAccountName: network-exporter
+      containers:
+        - name: network-exporter
+          image: prometheus/node-exporter:v1.8.2
+          args:
+            - --collector.netdev
+            - --collector.conntrack
+            - --web.listen-address=:9101
+          ports:
+            - name: metrics
+              containerPort: 9101
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi

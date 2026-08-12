@@ -9,9 +9,9 @@ package main
 import (
 	"log"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/config"
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
-	"github.com/shuqing/bigdata/vector-engine/internal/store/milvus"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/config"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store/milvus"
 )
 
 // newMilvusStore 创建真实 Milvus 存储实例。

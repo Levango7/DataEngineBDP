@@ -1,6 +1,6 @@
-module github.com/shuqing/bigdata/vector-engine
+module github.com/Levango7/DataEngineBDP/vector-engine
 
-go 1.23
+go 1.26
 
 require (
 	github.com/gin-gonic/gin v1.9.1

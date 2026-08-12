@@ -27,7 +27,9 @@ var applyCmd = &cobra.Command{
 func init() {
 	applyCmd.Flags().StringVarP(&applyFile, "file", "f", "", "声明式配置文件路径 (必填)")
 	applyCmd.Flags().BoolVar(&applyDryRun, "dry-run", false, "仅校验不实际执行")
-	applyCmd.MarkFlagRequired("file")
+	if err := applyCmd.MarkFlagRequired("file"); err != nil {
+		panic(fmt.Errorf("标记 file 为必填失败: %w", err))
+	}
 	rootCmd.AddCommand(applyCmd)
 }
 

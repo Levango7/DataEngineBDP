@@ -1,22 +1,23 @@
 """SQLite CatalogStore 实现."""
+
 from __future__ import annotations
 
-import json
-import sqlite3
-import secrets
 from collections import deque
 from datetime import timedelta
+import json
 from pathlib import Path
-from typing import Any, Optional
+import secrets
+import sqlite3
+from typing import Any
 
 from openapi_catalog.models import (
     APIDefinition,
     APIFilter,
     APIStatus,
     APISubscription,
+    CallMetric,
     SubscriptionFilter,
     SubscriptionStatus,
-    CallMetric,
 )
 from openapi_catalog.models.api import (
     APIParam,
@@ -24,12 +25,10 @@ from openapi_catalog.models.api import (
     APIUpstream,
 )
 from openapi_catalog.models.base import (
-    APIStatus,
     AuthType,
     CostStrategy,
     HttpMethod,
     SLALevel,
-    SubscriptionStatus,
     utc_now,
 )
 from openapi_catalog.repositories import (
@@ -70,8 +69,7 @@ class SQLiteConnection:
 
     def init_schema(self) -> None:
         """初始化全部表 schema."""
-        self._conn.executescript(
-            """
+        self._conn.executescript("""
             CREATE TABLE IF NOT EXISTS apis (
                 id                  TEXT PRIMARY KEY,
                 name                TEXT NOT NULL,
@@ -147,8 +145,7 @@ class SQLiteConnection:
             CREATE INDEX IF NOT EXISTS idx_metrics_api ON call_metrics(api_id);
             CREATE INDEX IF NOT EXISTS idx_metrics_ts ON call_metrics(timestamp);
             CREATE INDEX IF NOT EXISTS idx_metrics_sub ON call_metrics(subscription_id);
-            """
-        )
+            """)
 
 
 class SQLiteCatalogStore:
@@ -244,9 +241,7 @@ class SQLiteCatalogStore:
         return api
 
     async def get_api(self, api_id: str) -> APIDefinition:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM apis WHERE id = ?;", (api_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM apis WHERE id = ?;", (api_id,))
         row = cur.fetchone()
         if row is None:
             raise APINotFoundError(api_id)
@@ -281,23 +276,17 @@ class SQLiteCatalogStore:
             result = [
                 a
                 for a in result
-                if kw in a.name.lower()
-                or kw in (a.description or "").lower()
-                or any(kw in t.lower() for t in a.tags)
+                if kw in a.name.lower() or kw in (a.description or "").lower() or any(kw in t.lower() for t in a.tags)
             ]
         return result
 
     async def delete_api(self, api_id: str) -> None:
         # 先校验存在
-        cur = self._conn.conn.execute(
-            "SELECT id FROM apis WHERE id = ?;", (api_id,)
-        )
+        cur = self._conn.conn.execute("SELECT id FROM apis WHERE id = ?;", (api_id,))
         if cur.fetchone() is None:
             raise APINotFoundError(api_id)
         # 级联清理订阅
-        self._conn.conn.execute(
-            "DELETE FROM subscriptions WHERE api_id = ?;", (api_id,)
-        )
+        self._conn.conn.execute("DELETE FROM subscriptions WHERE api_id = ?;", (api_id,))
         self._conn.conn.execute("DELETE FROM apis WHERE id = ?;", (api_id,))
 
     # ---------- Subscription ----------
@@ -366,17 +355,13 @@ class SQLiteCatalogStore:
         return sub
 
     async def get_subscription(self, subscription_id: str) -> APISubscription:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM subscriptions WHERE id = ?;", (subscription_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM subscriptions WHERE id = ?;", (subscription_id,))
         row = cur.fetchone()
         if row is None:
             raise SubscriptionNotFoundError(subscription_id)
         return self._row_to_sub(row)
 
-    async def list_subscriptions(
-        self, filter_: SubscriptionFilter
-    ) -> list[APISubscription]:
+    async def list_subscriptions(self, filter_: SubscriptionFilter) -> list[APISubscription]:
         clauses: list[str] = []
         params: list[Any] = []
         if filter_.apiId:
@@ -397,12 +382,8 @@ class SQLiteCatalogStore:
         cur = self._conn.conn.execute(sql, params)
         return [self._row_to_sub(r) for r in cur.fetchall()]
 
-    async def find_subscription_by_key(
-        self, access_key: str
-    ) -> APISubscription | None:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM subscriptions WHERE access_key = ?;", (access_key,)
-        )
+    async def find_subscription_by_key(self, access_key: str) -> APISubscription | None:
+        cur = self._conn.conn.execute("SELECT * FROM subscriptions WHERE access_key = ?;", (access_key,))
         row = cur.fetchone()
         return self._row_to_sub(row) if row else None
 
@@ -437,9 +418,7 @@ class SQLiteCatalogStore:
         )
         self._metrics_buffer.append(metric)
         # 同步更新 API 聚合统计
-        cur = self._conn.conn.execute(
-            "SELECT * FROM apis WHERE id = ?;", (metric.apiId,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM apis WHERE id = ?;", (metric.apiId,))
         api_row = cur.fetchone()
         if api_row is not None:
             api = self._row_to_api(api_row)
@@ -450,9 +429,7 @@ class SQLiteCatalogStore:
                 api.errorCount += 1
             await self.save_api(api)
         # 同步更新订阅统计
-        cur = self._conn.conn.execute(
-            "SELECT * FROM subscriptions WHERE id = ?;", (metric.subscriptionId,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM subscriptions WHERE id = ?;", (metric.subscriptionId,))
         sub_row = cur.fetchone()
         if sub_row is not None:
             sub = self._row_to_sub(sub_row)
@@ -483,10 +460,7 @@ class SQLiteCatalogStore:
             for m in self._metrics_buffer
             if m.apiId == api_id
             and m.timestamp >= since
-            and (
-                consumer_tenant_id is None
-                or m.consumerTenantId == consumer_tenant_id
-            )
+            and (consumer_tenant_id is None or m.consumerTenantId == consumer_tenant_id)
         ]
 
     async def clear(self) -> None:
@@ -510,9 +484,7 @@ class SQLiteCatalogStore:
             method=HttpMethod(row["method"]),
             path=row["path"],
             params=[APIParam.model_validate(p) for p in json.loads(row["params_json"])],
-            responses=[
-                APIResponse.model_validate(r) for r in json.loads(row["responses_json"])
-            ],
+            responses=[APIResponse.model_validate(r) for r in json.loads(row["responses_json"])],
             authType=AuthType(row["auth_type"]),
             upstream=APIUpstream.model_validate_json(row["upstream_json"]),
             sla=SLALevel(row["sla"]),

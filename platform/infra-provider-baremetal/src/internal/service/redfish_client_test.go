@@ -8,7 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // newTestRedfishServer 创建模拟BMC Redfish服务器

@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lineage-analyzer
+  namespace: shuqing
+  labels:
+    app: lineage-analyzer
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: lineage-analyzer
+  template:
+    metadata:
+      labels:
+        app: lineage-analyzer
+    spec:
+      containers:
+      - name: lineage-analyzer
+        image: sq/lineage-analyzer:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8086
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8086"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8086
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8086
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lineage-analyzer
+  namespace: shuqing
+  labels:
+    app: lineage-analyzer
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: lineage-analyzer
+  ports:
+  - name: http
+    port: 8086
+    targetPort: 8086
+    protocol: TCP

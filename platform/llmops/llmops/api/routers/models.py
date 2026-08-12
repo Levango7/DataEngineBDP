@@ -1,4 +1,5 @@
 """模型管理路由."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -14,6 +15,7 @@ router = APIRouter(prefix="/models", tags=["models"])
 
 
 # ---------- 请求模型 ----------
+
 
 class RegisterModelRequest(BaseModel):
     """注册模型请求."""
@@ -49,6 +51,7 @@ class SetProductionVersionRequest(BaseModel):
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "",
@@ -95,9 +98,7 @@ async def list_models(
     registry: ServiceRegistry = Depends(get_registry),
 ) -> list[ModelInfo]:
     """按条件列出模型."""
-    filter_ = ModelFilter(
-        name=name, type=type, status=status_, tag=tag, limit=limit, offset=offset
-    )
+    filter_ = ModelFilter(name=name, type=type, status=status_, tag=tag, limit=limit, offset=offset)
     return await registry.modelService.list_models(filter_)
 
 
@@ -145,7 +146,6 @@ async def get_model_versions(
     registry: ServiceRegistry = Depends(get_registry),
 ) -> list:
     """获取模型的所有版本."""
-    from llmops.models.model import ModelVersion
 
     try:
         versions = await registry.modelService.get_model_versions(model_id)
@@ -166,8 +166,6 @@ async def set_production_version(
 ) -> ModelInfo:
     """设置模型的生产版本."""
     try:
-        return await registry.modelService.set_production_version(
-            model_id, req.version
-        )
+        return await registry.modelService.set_production_version(model_id, req.version)
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))

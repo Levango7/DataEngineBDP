@@ -6,10 +6,11 @@
 线程安全：sqlite3 默认禁止跨线程使用，这里关闭 check_same_thread 校验，
 依赖 asyncio 单线程事件循环；多线程场景请改用连接池或 aiosqlite。
 """
+
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
+import sqlite3
 from typing import Optional
 
 # 默认数据库文件路径（相对当前工作目录）
@@ -53,14 +54,23 @@ class SQLiteConnection:
         各仓储 save() 时也会 CREATE TABLE IF NOT EXISTS，
         这里集中调用一次以提前建表并验证 SQL。
         """
+        from asset_exchange.repositories.sqlite.allocation_repository import (
+            SQLiteAllocationRepository,
+        )
         from asset_exchange.repositories.sqlite.asset_repository import (
             SQLiteAssetRepository,
+        )
+        from asset_exchange.repositories.sqlite.audit_repository import (
+            SQLiteAuditRepository,
         )
         from asset_exchange.repositories.sqlite.billing_repository import (
             SQLiteBillingRepository,
         )
         from asset_exchange.repositories.sqlite.delivery_repository import (
             SQLiteDeliveryRepository,
+        )
+        from asset_exchange.repositories.sqlite.settlement_repository import (
+            SQLiteSettlementRepository,
         )
         from asset_exchange.repositories.sqlite.subscription_repository import (
             SQLiteSubscriptionRepository,
@@ -70,6 +80,9 @@ class SQLiteConnection:
         SQLiteSubscriptionRepository(self)._create_table()
         SQLiteDeliveryRepository(self)._create_table()
         SQLiteBillingRepository(self)._create_table()
+        SQLiteAuditRepository(self)._create_table()
+        SQLiteSettlementRepository(self)._create_table()
+        SQLiteAllocationRepository(self)._create_table()
 
 
 _default_conn: Optional[SQLiteConnection] = None

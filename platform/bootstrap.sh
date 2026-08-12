@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-# 数擎大数据平台 · 在 SKE 之上部署平台运行时
+﻿#!/usr/bin/env bash
+# 数据引擎大数据平台 · 在 SKE 之上部署平台运行时
 # 职责: 建平台运维命名空间 + 演示租户(封装层落地) + 本地存储(MinIO, local Profile)
 # 说明: 引擎/治理/智能层组件按各详细设计文档经 Helm/Operator 部署; 此处完成"封装层"骨架与存储底座
 set -uo pipefail

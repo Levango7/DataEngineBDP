@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.levango7.dataenginebdp</groupId>
+    <artifactId>stream-batch-scheduler</artifactId>
+    <version>0.1.0</version>
+    <name>stream-batch-scheduler</name>
+    <description>数据引擎大数据平台 - T035 流批一体调度与统一入口（DolphinScheduler 流批统一编排 + Iceberg snapshot 隔离 + BI 自动选择视图路由器）</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- DolphinScheduler 3.2.0 插件 SPI 版本 -->
+        <dolphinscheduler.version>3.2.0</dolphinscheduler.version>
+        <!-- Iceberg 1.5.0（与 Phase 1 T015 Iceberg V2 upsert 对齐） -->
+        <iceberg.version>1.5.0</iceberg.version>
+        <!-- Spark 3.5.0（与 L2.2 批计算详细设计对齐） -->
+        <spark.version>3.5.0</spark.version>
+        <!-- Flink 1.18.0（与 L2.3 流计算详细设计、T014 Flink CDC 对齐） -->
+        <flink.version>1.18.0</flink.version>
+        <!-- Doris 2.0.0（与 Phase 1 T016 Doris 物化视图对齐） -->
+        <doris.version>2.0.0</doris.version>
+    </properties>
+
+    <dependencies>
+        <!-- ===================== Spring Boot 基础 ===================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        <!-- Micrometer Prometheus：暴露 /actuator/prometheus -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
+        <!-- ===================== DolphinScheduler 插件 SPI ===================== -->
+        <!-- DolphinScheduler 任务插件 API：扩展 TaskChannel/TaskParameters/TaskChannelFactory -->
+        <dependency>
+            <groupId>org.apache.dolphinscheduler</groupId>
+            <artifactId>dolphinscheduler-task-api</artifactId>
+            <version>${dolphinscheduler.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- DolphinScheduler 插件 SPI 注解 -->
+        <dependency>
+            <groupId>org.apache.dolphinscheduler</groupId>
+            <artifactId>dolphinscheduler-spi</artifactId>
+            <version>${dolphinscheduler.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== Iceberg（snapshot 隔离，provided 由集群提供） ===================== -->
+        <!-- 注：代码通过 in-memory 模拟 + 配置构建实现 snapshot 管理，不直接引用 Iceberg SDK 类。
+             部署到集群时由 Spark/Flink 运行时提供 Iceberg 依赖。 -->
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-core</artifactId>
+            <version>${iceberg.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-api</artifactId>
+            <version>${iceberg.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== Spark 客户端（批读固定 snapshot，provided 由集群提供） ===================== -->
+        <!-- 注：代码通过构建 spark-submit 命令行实现提交，不直接引用 Spark SDK 类。
+             部署到集群时由 Spark 运行时提供依赖。 -->
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_2.12</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_2.12</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-launcher_2.12</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== Flink 客户端（流读最新 snapshot，provided 由集群提供） ===================== -->
+        <!-- 注：代码通过构建 Flink REST API JSON 实现提交，不直接引用 Flink SDK 类。
+             部署到集群时由 Flink 运行时提供依赖。 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-clients</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-streaming-java</artifactId>
+            <version>${flink.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- ===================== Doris 物化视图集成（FE REST API） ===================== -->
+        <!-- OkHttp：调用 Doris FE REST API（/api/<db>/<table>/_stream_load2、物化视图刷新） -->
+        <dependency>
+            <groupId>com.squareup.okhttp3</groupId>
+            <artifactId>okhttp</artifactId>
+            <version>4.12.0</version>
+        </dependency>
+
+        <!-- ===================== 工具库 ===================== -->
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- Jackson：JSON 序列化 -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!-- Apache Commons Lang3 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+        <!-- Apache Commons Collections4 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-collections4</artifactId>
+            <version>4.4</version>
+        </dependency>
+        <!-- SLF4J：日志门面 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+
+        <!-- ===================== 持久化（任务运维中心：DAG 运行历史落库） ===================== -->
+        <!-- Spring Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <!-- H2：本地开发与默认运行库（生产经 profile 切 MySQL） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- MySQL 驱动：生产环境数据源 -->
+        <dependency>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- ===================== 测试 ===================== -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <classifier>exec</classifier>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.15</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/model/**</exclude>
+                        <exclude>**/*Application*</exclude>
+                        <exclude>**/config/**</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Checkstyle：代码风格检查（CI 阻断） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <configLocation>../../build/lint/checkstyle.xml</configLocation>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <consoleOutput>false</consoleOutput>
+                    <violationSeverity>warning</violationSeverity>
+                    <resourceExcludes>**/*.yml,**/*.yaml,**/*.properties,**/*.xml,**/*.json</resourceExcludes>
+                </configuration>
+            </plugin>
+            <!-- PMD：静态分析（CI 阻断） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.28.0</version>
+                <configuration>
+                    <rulesets>
+                        <ruleset>../../build/lint/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTests>true</includeTests>
+                    <minimumPriority>5</minimumPriority>
+                    <skipPmdError>true</skipPmdError>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

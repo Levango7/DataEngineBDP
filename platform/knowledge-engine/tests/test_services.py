@@ -1,10 +1,10 @@
 """服务层单元测试."""
+
 from __future__ import annotations
 
 import pytest
 
 from knowledge_engine.models.entity import Entity
-from knowledge_engine.models.graph import GraphSchema
 from knowledge_engine.models.relation import Relation
 from knowledge_engine.repositories import SpaceNotFoundError
 from knowledge_engine.services.knowledge_service import KnowledgeService
@@ -98,7 +98,5 @@ class TestKnowledgeService:
     @pytest.mark.asyncio
     async def test_extract_with_type_filter(self, knowledge_service) -> None:
         await knowledge_service.create_space("kg1")
-        result = await knowledge_service.extract(
-            "kg1", "张三在北京工作", entity_types=["Person"]
-        )
+        result = await knowledge_service.extract("kg1", "张三在北京工作", entity_types=["Person"])
         assert all(e.type == "Person" for e in result.entities)

@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shuqing/bigdata/dqctl/internal/client"
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/client"
 )
 
 // statusCmd 实现 `dqctl status` 子命令：查询平台各组件健康状态。

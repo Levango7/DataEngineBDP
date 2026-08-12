@@ -1,5 +1,0 @@
-# Created at 2026-08-06T02:11:21.590
-Boot Manifest-JAR contains absolute paths in classpath 'F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\governance\metadata-collector\target\test-classes'
-Hint: <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-'other' has different root
-

@@ -10,8 +10,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/catalog/internal/model"
-	"github.com/shuqing/bigdata/catalog/internal/store"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/store"
 )
 
 // CatalogHandler 处理 Catalog 的 REST API 请求。

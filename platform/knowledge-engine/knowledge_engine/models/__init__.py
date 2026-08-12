@@ -2,6 +2,7 @@
 
 聚合所有 Pydantic 模型，便于上层导入。
 """
+
 from __future__ import annotations
 
 from knowledge_engine.models.base import utc_now

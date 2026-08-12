@@ -2,6 +2,7 @@
 
 核心流程：文本 → 实体抽取 → 关系抽取 → 图谱写入。
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -122,9 +123,7 @@ class KnowledgeService:
             relations=result.relations,
         )
 
-    async def insert_entities(
-        self, space: str, entities: list[Entity]
-    ) -> int:
+    async def insert_entities(self, space: str, entities: list[Entity]) -> int:
         """直接写入实体（跳过抽取）."""
         vertices: list[Vertex] = []
         seen: set[str] = set()
@@ -137,9 +136,7 @@ class KnowledgeService:
         await self.store.bulk_insert(space, vertices, [])
         return len(vertices)
 
-    async def insert_relations(
-        self, space: str, relations: list[Relation]
-    ) -> int:
+    async def insert_relations(self, space: str, relations: list[Relation]) -> int:
         """直接写入关系（跳过抽取）."""
         edges: list[Edge] = []
         seen: set[tuple[str, str, str]] = set()

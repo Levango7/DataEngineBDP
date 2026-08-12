@@ -4,7 +4,8 @@
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
 
 # ============ 构建阶段 ============
-FROM ${BASE_REGISTRY}/golang:1.23-alpine AS builder
+FROM ${BASE_REGISTRY}/golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -16,7 +17,7 @@ ENV GOPROXY=https://goproxy.cn,direct
 COPY . .
 
 # 静态编译，禁用 cgo 以适配 alpine 运行时。
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/llm-gateway .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/llm-gateway .
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/alpine:3.19 AS runtime

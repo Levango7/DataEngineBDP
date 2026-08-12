@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
 )
 
 // ErrNotFound 在资源不存在时返回。

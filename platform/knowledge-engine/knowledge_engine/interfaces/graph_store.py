@@ -5,6 +5,7 @@
     - 异步 API：适配 FastAPI 与高并发图查询场景。
     - 多空间隔离：每个知识空间对应一个图空间（Graph Space）。
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -68,9 +69,7 @@ class GraphStore(ABC):
     # ---------- 顶点 / 边写入 ----------
 
     @abstractmethod
-    async def insert_vertex(
-        self, space: str, label: str, vid: str, props: dict
-    ) -> None:
+    async def insert_vertex(self, space: str, label: str, vid: str, props: dict) -> None:
         """插入或更新顶点.
 
         Args:
@@ -137,9 +136,7 @@ class GraphStore(ABC):
         ...
 
     @abstractmethod
-    async def get_neighbors(
-        self, space: str, vid: str, edge_types: list[str] | None = None
-    ) -> list[Vertex]:
+    async def get_neighbors(self, space: str, vid: str, edge_types: list[str] | None = None) -> list[Vertex]:
         """获取顶点的邻居.
 
         Args:
@@ -157,9 +154,7 @@ class GraphStore(ABC):
         ...
 
     @abstractmethod
-    async def shortest_path(
-        self, space: str, src_id: str, dst_id: str
-    ) -> list[Vertex]:
+    async def shortest_path(self, space: str, src_id: str, dst_id: str) -> list[Vertex]:
         """最短路径查询（BFS）.
 
         Args:

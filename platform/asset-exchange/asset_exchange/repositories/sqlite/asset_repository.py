@@ -1,9 +1,10 @@
 """SQLite 资产仓储."""
+
 from __future__ import annotations
 
 import json
-import uuid
 from typing import Any
+import uuid
 
 from asset_exchange.interfaces.asset_repository import AssetRepository
 from asset_exchange.models.asset import Asset, AssetFilter, AssetPricing, AssetSchema
@@ -23,8 +24,7 @@ class SQLiteAssetRepository(AssetRepository):
         self._create_table()
 
     def _create_table(self) -> None:
-        self._conn.conn.execute(
-            """
+        self._conn.conn.execute("""
             CREATE TABLE IF NOT EXISTS assets (
                 id              TEXT PRIMARY KEY,
                 name            TEXT NOT NULL UNIQUE,
@@ -44,32 +44,21 @@ class SQLiteAssetRepository(AssetRepository):
                 created_at      TEXT NOT NULL,
                 updated_at      TEXT NOT NULL
             );
-            """
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_assets_owner ON assets(owner);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);"
-        )
-        self._conn.conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);"
-        )
+            """)
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_assets_owner ON assets(owner);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_assets_status ON assets(status);")
+        self._conn.conn.execute("CREATE INDEX IF NOT EXISTS idx_assets_type ON assets(type);")
 
     async def save(self, asset: Asset) -> str:
         if not asset.id:
             asset.id = str(uuid.uuid4())
         now = utc_now()
         # 检查是否已存在
-        cur = self._conn.conn.execute(
-            "SELECT id, name FROM assets WHERE id = ?;", (asset.id,)
-        )
+        cur = self._conn.conn.execute("SELECT id, name FROM assets WHERE id = ?;", (asset.id,))
         existing = cur.fetchone()
         # 同名校验（新增时）
         if existing is None:
-            cur2 = self._conn.conn.execute(
-                "SELECT id FROM assets WHERE name = ?;", (asset.name,)
-            )
+            cur2 = self._conn.conn.execute("SELECT id FROM assets WHERE name = ?;", (asset.name,))
             if cur2.fetchone() is not None:
                 raise AssetAlreadyExistsError(asset.name)
             asset.createdAt = now
@@ -103,7 +92,7 @@ class SQLiteAssetRepository(AssetRepository):
                 asset.id,
                 asset.name,
                 asset.type.value,
-                asset.owner,
+                asset.tenantId,
                 asset.description,
                 asset.status.value,
                 asset.qualityScore,
@@ -122,9 +111,7 @@ class SQLiteAssetRepository(AssetRepository):
         return asset.id
 
     async def get(self, asset_id: str) -> Asset:
-        cur = self._conn.conn.execute(
-            "SELECT * FROM assets WHERE id = ?;", (asset_id,)
-        )
+        cur = self._conn.conn.execute("SELECT * FROM assets WHERE id = ?;", (asset_id,))
         row = cur.fetchone()
         if row is None:
             raise AssetNotFoundError(asset_id)
@@ -145,9 +132,9 @@ class SQLiteAssetRepository(AssetRepository):
         if filter.securityLevel:
             clauses.append("security_level = ?")
             params.append(filter.securityLevel.value)
-        if filter.owner:
+        if filter.tenantId:
             clauses.append("owner = ?")
-            params.append(filter.owner)
+            params.append(filter.tenantId)
         where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
         sql = f"SELECT * FROM assets{where} ORDER BY created_at DESC LIMIT ? OFFSET ?;"
         params.extend([filter.limit, filter.offset])
@@ -155,9 +142,7 @@ class SQLiteAssetRepository(AssetRepository):
         return [self._row_to_asset(r) for r in cur.fetchall()]
 
     async def delete(self, asset_id: str) -> None:
-        cur = self._conn.conn.execute(
-            "DELETE FROM assets WHERE id = ?;", (asset_id,)
-        )
+        cur = self._conn.conn.execute("DELETE FROM assets WHERE id = ?;", (asset_id,))
         if cur.rowcount == 0:
             raise AssetNotFoundError(asset_id)
 
@@ -184,7 +169,9 @@ class SQLiteAssetRepository(AssetRepository):
             id=row["id"],
             name=row["name"],
             type=AssetType(row["type"]),
-            owner=row["owner"],
+            # SQL 列名 owner 保留（数据库内部结构）；
+            # 映射到统一的 tenantId 字段（MODEL-2）
+            tenantId=row["owner"],
             description=row["description"],
             status=AssetStatus(row["status"]),
             qualityScore=row["quality_score"],

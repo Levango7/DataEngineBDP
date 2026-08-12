@@ -11,8 +11,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/shuqing/bigdata/dqctl/internal/client"
-	"github.com/shuqing/bigdata/dqctl/internal/config"
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/client"
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/config"
 )
 
 // 全局配置实例，由 root 命令在 PersistentPreRun 中加载，供各子命令使用。
@@ -29,8 +29,8 @@ var (
 // rootCmd 是 dqctl 的根命令。
 var rootCmd = &cobra.Command{
 	Use:   "dqctl",
-	Short: "数擎大数据平台命令行管理工具",
-	Long:  "dqctl 是数擎大数据平台的声明式资源管理命令行工具",
+	Short: "数据引擎大数据平台命令行管理工具",
+	Long:  "dqctl 是数据引擎大数据平台的声明式资源管理命令行工具",
 	// PersistentPreRun 在所有子命令执行前加载配置文件。
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		return loadConfig()

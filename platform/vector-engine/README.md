@@ -1,6 +1,6 @@
-# Vector Engine (L4.5.1 向量检索引擎)
+﻿# Vector Engine (L4.5.1 向量检索引擎)
 
-数擎大数据平台向量检索引擎，提供向量集合管理、向量 CRUD、ANN 近似检索与混合检索（向量+标量）能力。
+数据引擎大数据平台向量检索引擎，提供向量集合管理、向量 CRUD、ANN 近似检索与混合检索（向量+标量）能力。
 
 ## 架构
 
@@ -61,7 +61,7 @@ vector-engine/
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET  | `/health` | 健康检查 |
+| GET  | `/api/v1/health` | 健康检查 |
 | POST | `/api/v1/collections` | 创建集合 |
 | DELETE | `/api/v1/collections/:name` | 删除集合 |
 | POST | `/api/v1/collections/:name/vectors` | 插入向量 |
@@ -77,7 +77,7 @@ vector-engine/
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `STORE_TYPE` | `mock` | 存储后端：`mock` 或 `milvus` |
-| `VECTOR_ENGINE_PORT` | `8084` | HTTP 服务端口 |
+| `VECTOR_ENGINE_PORT` | `8086` | HTTP 服务端口 |
 | `DEFAULT_TOP_K` | `10` | 默认检索 topK |
 | `MAX_VECTOR_DIM` | `32768` | 最大向量维度 |
 | `MILVUS_HOST` | `127.0.0.1` | Milvus 主机 |

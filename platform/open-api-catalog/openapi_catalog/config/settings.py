@@ -12,6 +12,7 @@
     OPENAPI_CATALOG_STORE_TYPE    存储类型: mock / sqlite（默认 sqlite）
     OPENAPI_CATALOG_DB_PATH       SQLite 数据库文件路径
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -58,17 +59,11 @@ class Settings(BaseSettings):
     )
 
     # ---- default policy ----
-    defaultQuota: int = Field(
-        default=100, ge=1, description="默认订阅配额（次/分钟）"
-    )
-    defaultRateLimit: int = Field(
-        default=100, ge=1, description="默认限流（次/秒）"
-    )
+    defaultQuota: int = Field(default=100, ge=1, description="默认订阅配额（次/分钟）")
+    defaultRateLimit: int = Field(default=100, ge=1, description="默认限流（次/秒）")
 
     # ---- store ----
-    storeType: Literal["mock", "sqlite"] = Field(
-        default="sqlite", description="存储类型: mock / sqlite"
-    )
+    storeType: Literal["mock", "sqlite"] = Field(default="sqlite", description="存储类型: mock / sqlite")
     dbPath: str = Field(
         default="data/openapi_catalog.db",
         description="SQLite 数据库文件路径（storeType=sqlite 时生效）",

@@ -41,7 +41,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
 
 app:
   security:
@@ -59,10 +59,10 @@ app:
       connect-timeout-ms: ${IPMI_CONNECT_TIMEOUT:5000}
       # 默认读取超时（毫秒）
       read-timeout-ms: ${IPMI_READ_TIMEOUT:30000}
-      # 默认 BMC 用户名（生产环境通过环境变量注入）
-      username: ${IPMI_USERNAME:ADMIN}
-      # 默认 BMC 密码（生产环境通过环境变量注入）
-      password: ${IPMI_PASSWORD:ADMIN}
+      # BMC 用户名（无默认值，必须通过环境变量注入；未配置时启动失败）
+      username: ${IPMI_USERNAME}
+      # BMC 密码（无默认值，必须通过环境变量注入；禁止使用公知默认凭据 ADMIN/ADMIN）
+      password: ${IPMI_PASSWORD}
     # PXE 网络启动配置
     pxe:
       # PXE 引导服务器地址
