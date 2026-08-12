@@ -1,4 +1,5 @@
 """数据目录服务（业务线隔离）."""
+
 from __future__ import annotations
 
 from business_portal.interfaces.store import (
@@ -6,7 +7,6 @@ from business_portal.interfaces.store import (
     CatalogStore,
 )
 from business_portal.models.catalog import CatalogNode, CatalogTree
-from business_portal.repositories import PermissionDeniedError
 
 
 class CatalogService:

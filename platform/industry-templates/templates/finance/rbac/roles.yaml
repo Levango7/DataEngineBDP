@@ -1,0 +1,205 @@
+﻿# 金融行业模板 - RBAC 角色定义
+# ============================================================================
+# 模块：T018-5 RBAC 角色权限定义与模板打包
+# 格式：Keycloak realm role 格式（含 composite 复合角色支持）
+# 角色数：3（风控员 / 合规员 / 客户经理）
+# 设计原则：最小权限原则（Least Privilege Principle）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# Keycloak realm 配置元信息
+realm: finance-template-realm
+realm_enabled: true
+realm_display_name: 金融行业模板 RBAC 域
+realm_description: |
+  数据引擎大数据平台 L5.3 行业应用模板 - 金融行业 RBAC 角色定义。
+  基于 T018-2 DDL（21 张表）、T018-3 DAG（5 个调度作业）、T018-4 Dashboard（3 个仪表盘）设计。
+  遵循最小权限原则：每个角色仅授予完成其业务职责所需的最小权限集合。
+
+# 角色定义列表
+roles:
+  # --------------------------------------------------------------------------
+  # 角色 1：风控员（risk_officer）
+  # 职责：风控模型管理、风控规则配置、风控特征计算、风控评估与告警处理
+  # 可访问：风控模型表、风控 DAG、风控 Dashboard
+  # 不可访问：客户隐私表（customer / customer_profile / customer_relation）
+  # --------------------------------------------------------------------------
+  - name: risk_officer
+    description: |
+      风控员：负责风控模型配置、风控规则维护、风控特征计算与风控评估告警处理。
+      可读写风控域全部 5 张表，可管理风控 DAG（risk_feature_daily），
+      可查看交易反洗钱 DAG（transaction_aml_check）以协同处理 AML 告警，
+      可访问风控 Dashboard。不可访问客户隐私表（customer / customer_profile / customer_relation）。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: risk_department
+      data_classification: confidential
+      max_session_count: "3"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - risk_model
+        - risk_rule
+        - risk_feature
+        - risk_evaluation
+        - risk_alert
+        - transaction_detail
+        - transaction_monitor
+        - aml_alert
+        - credit_score
+      tables_write:
+        - risk_model
+        - risk_rule
+        - risk_feature
+        - risk_evaluation
+        - risk_alert
+        - aml_alert
+      tables_denied:
+        - customer
+        - customer_profile
+        - customer_relation
+        - customer_tag
+      dags_manage:
+        - risk_feature_daily
+      dags_view:
+        - transaction_aml_check
+      dashboards_view:
+        - risk-dashboard
+      dashboards_denied:
+        - customer-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 2：合规员（compliance_officer）
+  # 职责：合规审计、数据合规检查、监管报表生成、全量数据只读审查
+  # 可访问：所有表的只读权限、所有 DAG 的查看权限、合规 Dashboard（含全部 3 个 Dashboard 只读）
+  # 不可访问：不可修改任何数据（无 INSERT/UPDATE/DELETE 权限）
+  # --------------------------------------------------------------------------
+  - name: compliance_officer
+    description: |
+      合规员：负责合规审计、数据合规检查、监管报表生成与全量数据只读审查。
+      可只读访问全部 21 张表，可查看全部 5 个 DAG（不可上线/下线/触发执行），
+      可只读访问全部 3 个 Dashboard（合规视角覆盖风控/客户/交易）。
+      不可修改任何数据，不可管理 DAG 调度。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: compliance_department
+      data_classification: restricted
+      max_session_count: "2"
+      session_timeout_seconds: "1800"
+      audit_log_required: "true"
+    permissions_scope:
+      tables_read:
+        - risk_model
+        - risk_rule
+        - risk_feature
+        - risk_evaluation
+        - risk_alert
+        - customer
+        - customer_tag
+        - customer_profile
+        - customer_relation
+        - account
+        - account_balance
+        - account_transaction
+        - account_status_log
+        - transaction
+        - transaction_detail
+        - aml_alert
+        - transaction_monitor
+        - loan_application
+        - loan_contract
+        - repayment_plan
+        - credit_score
+      tables_write: []
+      tables_denied: []
+      dags_manage: []
+      dags_view:
+        - risk_feature_daily
+        - customer_tag_update
+        - account_eod_settlement
+        - transaction_aml_check
+        - credit_score_monthly
+      dashboards_view:
+        - risk-dashboard
+        - customer-dashboard
+        - transaction-dashboard
+      dashboards_denied: []
+
+  # --------------------------------------------------------------------------
+  # 角色 3：客户经理（account_manager）
+  # 职责：客户关系维护、账户管理、交易查询、客户标签与画像应用
+  # 可访问：客户/账户/交易表、客户 DAG、客户 Dashboard
+  # 不可访问：风控模型表（risk_model / risk_rule / risk_feature / risk_evaluation / risk_alert）
+  # --------------------------------------------------------------------------
+  - name: account_manager
+    description: |
+      客户经理：负责客户关系维护、账户管理、交易查询与客户标签画像应用。
+      可读写客户域 4 张表、账户域 4 张表、交易域 4 张表（含 transaction / transaction_detail），
+      可管理客户标签更新 DAG（customer_tag_update），可查看账户日终清算 DAG（account_eod_settlement），
+      可访问客户 Dashboard 与交易 Dashboard。
+      不可访问风控模型表（risk_model / risk_rule / risk_feature / risk_evaluation / risk_alert），
+      不可访问信贷评分表（credit_score / loan_application / loan_contract / repayment_plan）。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: retail_banking_department
+      data_classification: internal
+      max_session_count: "5"
+      session_timeout_seconds: "7200"
+    permissions_scope:
+      tables_read:
+        - customer
+        - customer_tag
+        - customer_profile
+        - customer_relation
+        - account
+        - account_balance
+        - account_transaction
+        - account_status_log
+        - transaction
+        - transaction_detail
+      tables_write:
+        - customer
+        - customer_tag
+        - customer_profile
+        - customer_relation
+        - account
+        - account_balance
+        - account_transaction
+        - account_status_log
+      tables_denied:
+        - risk_model
+        - risk_rule
+        - risk_feature
+        - risk_evaluation
+        - risk_alert
+        - loan_application
+        - loan_contract
+        - repayment_plan
+        - credit_score
+        - aml_alert
+        - transaction_monitor
+      dags_manage:
+        - customer_tag_update
+      dags_view:
+        - account_eod_settlement
+      dashboards_view:
+        - customer-dashboard
+        - transaction-dashboard
+      dashboards_denied:
+        - risk-dashboard
+
+# 角色统计元信息
+role_statistics:
+  total_roles: 3
+  role_names:
+    - risk_officer
+    - compliance_officer
+    - account_manager
+  design_principle: 最小权限原则（Least Privilege Principle）
+  verification:
+    risk_officer_no_customer_privacy: true
+    compliance_officer_read_only: true
+    account_manager_no_risk_model: true

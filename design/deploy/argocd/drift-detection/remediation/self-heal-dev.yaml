@@ -1,0 +1,35 @@
+# dev 环境自愈配置 · 全量自愈
+# ============================================================================
+# 作用：patch 更新 root-dev Application 的 syncPolicy，开启全量自愈
+# 用法：kubectl apply -f self-heal-dev.yaml -n argocd
+# 策略：dev 环境 Git 即真理，selfHeal=true，秒级回滚任何漂移
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-dev
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-remediation
+    environment: dev
+  annotations:
+    drift-remediation: "self-heal-enabled"
+    drift-remediation-policy: "full-auto"
+spec:
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true       # dev：全量自愈，秒级回滚
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/
+
+# 数据集缓存
+.cache/datasets/
+data/
+
+# IDE
+.idea/
+.vscode/
+*.swp

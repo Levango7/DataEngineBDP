@@ -2,31 +2,108 @@
   <div>
     <h1>运营后台（平台侧）</h1>
     <div class="sub">仅平台运维可见；租户、计量、底座运维与多环境管理。</div>
+    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">正在加载运营数据...</div>
+    <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
+      加载失败：{{ error }}
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">重试</button>
+    </div>
+    <template v-else>
     <div class="grid g4">
-      <div class="card"><h3>租户总数</h3><div class="kpi">27</div><div class="meta">外部 19 · 内部 8</div></div>
-      <div class="card"><h3>集群实例</h3><div class="kpi">34</div><div class="meta">信创 12 · 本地 9 · 云VM 13</div></div>
-      <div class="card"><h3>本月营收</h3><div class="kpi s">¥ 4.2M</div></div>
-      <div class="card"><h3>底座告警</h3><div class="kpi s">2</div><div class="meta">已自动处置 2</div></div>
+      <div class="card"><h3>租户总数</h3><div class="kpi">{{ kpi?.tenantTotal ?? 0 }}</div><div class="meta">外部 {{ kpi?.tenantExternal ?? 0 }} · 内部 {{ kpi?.tenantInternal ?? 0 }}</div></div>
+      <div class="card"><h3>集群实例</h3><div class="kpi">{{ kpi?.clusterTotal ?? 0 }}</div><div class="meta">信创 {{ kpi?.clusterXinchuang ?? 0 }} · 本地 {{ kpi?.clusterOnprem ?? 0 }} · 云VM {{ kpi?.clusterCloudVm ?? 0 }}</div></div>
+      <div class="card"><h3>本月营收</h3><div class="kpi s">¥ {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}</div></div>
+      <div class="card"><h3>底座告警</h3><div class="kpi s">{{ kpi?.alertCount ?? 0 }}</div><div class="meta">已自动处置 {{ kpi?.alertAutoHandled ?? 0 }}</div></div>
     </div>
     <div class="card" style="margin-top: 14px">
       <h3>环境矩阵</h3>
-      <table>
+      <div v-if="envLoading" style="text-align: center; padding: 24px; color: #888">正在加载环境矩阵...</div>
+      <table v-else>
         <thead>
           <tr><th>环境</th><th>Namespace</th><th>节点</th><th>控制面</th><th>状态</th></tr>
         </thead>
         <tbody>
-          <tr><td>信创-华东</td><td>19</td><td>64</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
-          <tr><td>本地-华北</td><td>11</td><td>40</td><td>HA 3</td><td><span class="pill g">健康</span></td></tr>
-          <tr><td>云VM-华南</td><td>14</td><td>52</td><td>HA 3</td><td><span class="pill a">扩容中</span></td></tr>
+          <tr v-for="env in envMatrix" :key="env.id">
+            <td>{{ env.name }}</td>
+            <td>{{ env.namespaceCount }}</td>
+            <td>{{ env.nodeCount }}</td>
+            <td>{{ env.controlPlane }}</td>
+            <td><span class="pill" :class="envStatusClass(env.status)">{{ envStatusLabel(env.status) }}</span></td>
+          </tr>
         </tbody>
       </table>
       <div class="note">
         此处为平台运维视图，印证「自研 SKE 发行版封装层」将底层复杂度对客屏蔽；客户控制台仅见工作空间/项目/配额。
       </div>
     </div>
+    </template>
   </div>
 </template>
 
 <script setup lang="ts">
-// 静态展示页
+import { ref, onMounted } from 'vue'
+import * as adminApi from '@/api/admin'
+import type { AdminKpi, EnvMatrixItem, EnvStatus } from '@/api/admin'
+
+const kpi = ref<AdminKpi | null>(null)
+const envMatrix = ref<EnvMatrixItem[]>([])
+const loading = ref(false)
+const envLoading = ref(false)
+const error = ref<string | null>(null)
+
+function formatRevenue(v: number): string {
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`
+  return v.toFixed(0)
+}
+
+function envStatusLabel(s: EnvStatus): string {
+  const map: Record<EnvStatus, string> = {
+    healthy: '健康',
+    scaling: '扩容中',
+    warning: '告警',
+    critical: '严重',
+  }
+  return map[s] || s
+}
+
+function envStatusClass(s: EnvStatus): string {
+  const map: Record<EnvStatus, string> = {
+    healthy: 'g',
+    scaling: 'a',
+    warning: 'a',
+    critical: 'p',
+  }
+  return map[s] || ''
+}
+
+async function loadKpi() {
+  loading.value = true
+  error.value = null
+  try {
+    kpi.value = await adminApi.getKpi()
+  } catch (e) {
+    error.value = (e as Error).message || '加载运营 KPI 失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadEnvMatrix() {
+  envLoading.value = true
+  try {
+    envMatrix.value = await adminApi.getEnvMatrix()
+  } catch (e) {
+    envMatrix.value = []
+  } finally {
+    envLoading.value = false
+  }
+}
+
+async function loadAll() {
+  await Promise.all([loadKpi(), loadEnvMatrix()])
+}
+
+onMounted(() => {
+  loadAll()
+})
 </script>

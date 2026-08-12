@@ -3,6 +3,7 @@
 对齐设计：{ baseModel, dataset, epochs, gpu, lr } → 训练任务
 训练数据预处理由 LLMOps 内置轻量流水线完成（tokenization / packing / chat template）。
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -54,9 +55,7 @@ class ModelTrainer(ABC):
         ...
 
     @abstractmethod
-    async def evaluate_model(
-        self, job_id: str, eval_dataset: str | None = None
-    ) -> EvalMetrics:
+    async def evaluate_model(self, job_id: str, eval_dataset: str | None = None) -> EvalMetrics:
         """对训练产出模型进行评估，返回大模型特有指标.
 
         指标包含：accuracy / hallucinationRate / upliftVsBase。

@@ -1,0 +1,552 @@
+# 能源行业模板 - RBAC 权限定义
+# ============================================================================
+# 模块：T043 能源行业模板 RBAC
+# 格式：资源 + 操作组合权限定义
+# 资源数：40（31 表 + 5 DAG + 4 Dashboard）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 资源定义列表
+resources:
+  # --------------------------------------------------------------------------
+  # 表资源（31 张）
+  # --------------------------------------------------------------------------
+  # 设备监测域（8 张）
+  - name: energy_device
+    type: table
+    description: "能源设备主表"
+    domain: device-monitoring
+  - name: device_realtime_status
+    type: table
+    description: "设备实时状态表"
+    domain: device-monitoring
+  - name: device_alarm_record
+    type: table
+    description: "设备告警记录表"
+    domain: device-monitoring
+  - name: device_health_score
+    type: table
+    description: "设备健康度评分表"
+    domain: device-monitoring
+  - name: device_metric_history
+    type: table
+    description: "设备指标历史表"
+    domain: device-monitoring
+  - name: device_alarm_rule
+    type: table
+    description: "告警规则定义表"
+    domain: device-monitoring
+  - name: device_maintenance_log
+    type: table
+    description: "设备维护记录表"
+    domain: device-monitoring
+  - name: device_status_change
+    type: table
+    description: "设备状态变更日志表"
+    domain: device-monitoring
+  # 用能分析域（7 张）
+  - name: energy_consumption_detail
+    type: table
+    description: "能耗明细表"
+    domain: consumption-analysis
+  - name: energy_consumption_summary
+    type: table
+    description: "能耗汇总表"
+    domain: consumption-analysis
+  - name: energy_dimension_compare
+    type: table
+    description: "多维对比分析表"
+    domain: consumption-analysis
+  - name: energy_trend_data
+    type: table
+    description: "能耗趋势数据表"
+    domain: consumption-analysis
+  - name: energy_quota
+    type: table
+    description: "能耗定额表"
+    domain: consumption-analysis
+  - name: energy_balance
+    type: table
+    description: "能源平衡表"
+    domain: consumption-analysis
+  - name: energy_cost_analysis
+    type: table
+    description: "能源成本分析表"
+    domain: consumption-analysis
+  # 碳排放核算域（7 张）
+  - name: emission_factor_library
+    type: table
+    description: "排放因子库"
+    domain: carbon-emission
+  - name: emission_source
+    type: table
+    description: "排放源表"
+    domain: carbon-emission
+  - name: emission_calculation_result
+    type: table
+    description: "排放核算结果表"
+    domain: carbon-emission
+  - name: emission_calculation_model
+    type: table
+    description: "核算模型表"
+    domain: carbon-emission
+  - name: emission_scope_classification
+    type: table
+    description: "排放范围分类表"
+    domain: carbon-emission
+  - name: emission_reduction_target
+    type: table
+    description: "减排目标表"
+    domain: carbon-emission
+  - name: emission_report
+    type: table
+    description: "核算报告表"
+    domain: carbon-emission
+  # 趋势预测域（5 张）
+  - name: forecast_parameter
+    type: table
+    description: "预测参数表"
+    domain: forecast
+  - name: forecast_result
+    type: table
+    description: "预测结果表"
+    domain: forecast
+  - name: forecast_model_evaluation
+    type: table
+    description: "模型评估表"
+    domain: forecast
+  - name: forecast_model_registry
+    type: table
+    description: "模型注册表"
+    domain: forecast
+  - name: forecast_confidence_interval
+    type: table
+    description: "置信区间表"
+    domain: forecast
+  # RBAC 域（4 张）
+  - name: energy_role
+    type: table
+    description: "角色表"
+    domain: rbac
+  - name: energy_permission
+    type: table
+    description: "权限表"
+    domain: rbac
+  - name: energy_role_permission
+    type: table
+    description: "角色-权限关联表"
+    domain: rbac
+  - name: energy_user_role
+    type: table
+    description: "用户-角色关联表"
+    domain: rbac
+
+  # --------------------------------------------------------------------------
+  # DAG 资源（5 个）
+  # --------------------------------------------------------------------------
+  - name: device_status_monitoring
+    type: dag
+    description: "设备状态实时监控 DAG"
+    domain: device-monitoring
+  - name: energy_consumption_statistics
+    type: dag
+    description: "用能分析统计 DAG"
+    domain: consumption-analysis
+  - name: carbon_emission_calculation
+    type: dag
+    description: "碳排放核算 DAG"
+    domain: carbon-emission
+  - name: energy_trend_forecast
+    type: dag
+    description: "能耗趋势预测 DAG"
+    domain: forecast
+  - name: device_alert_routing
+    type: dag
+    description: "设备告警路由 DAG"
+    domain: device-monitoring
+
+  # --------------------------------------------------------------------------
+  # Dashboard 资源（4 个）
+  # --------------------------------------------------------------------------
+  - name: device-monitoring
+    type: dashboard
+    description: "能源设备监测看板"
+    domain: device-monitoring
+  - name: energy-consumption-analysis
+    type: dashboard
+    description: "用能分析看板"
+    domain: consumption-analysis
+  - name: carbon-emission-accounting
+    type: dashboard
+    description: "碳排放核算看板"
+    domain: carbon-emission
+  - name: energy-forecast
+    type: dashboard
+    description: "能耗趋势预测看板"
+    domain: forecast
+
+# 权限定义列表
+permissions:
+  # 通用操作权限模板
+  - code: "*:read"
+    name: "读取权限"
+    description: "读取资源"
+    operation: READ
+  - code: "*:write"
+    name: "写入权限"
+    description: "写入/修改资源"
+    operation: WRITE
+  - code: "*:exec"
+    name: "执行权限"
+    description: "执行资源（DAG/作业）"
+    operation: EXEC
+  - code: "*:admin"
+    name: "管理权限"
+    description: "管理资源（配置/删除/授权）"
+    operation: ADMIN
+
+  # 表级权限（节选关键权限，覆盖 31 表）
+  # 设备监测域
+  - code: "energy_device:read"
+    name: "读取能源设备主表"
+    resource_type: table
+    resource_name: energy_device
+    operation: READ
+  - code: "energy_device:write"
+    name: "写入能源设备主表"
+    resource_type: table
+    resource_name: energy_device
+    operation: WRITE
+  - code: "device_realtime_status:read"
+    name: "读取设备实时状态表"
+    resource_type: table
+    resource_name: device_realtime_status
+    operation: READ
+  - code: "device_alarm_record:read"
+    name: "读取设备告警记录表"
+    resource_type: table
+    resource_name: device_alarm_record
+    operation: READ
+  - code: "device_alarm_record:write"
+    name: "写入设备告警记录表"
+    resource_type: table
+    resource_name: device_alarm_record
+    operation: WRITE
+  - code: "device_health_score:read"
+    name: "读取设备健康度评分表"
+    resource_type: table
+    resource_name: device_health_score
+    operation: READ
+  - code: "device_metric_history:read"
+    name: "读取设备指标历史表"
+    resource_type: table
+    resource_name: device_metric_history
+    operation: READ
+  - code: "device_alarm_rule:read"
+    name: "读取告警规则定义表"
+    resource_type: table
+    resource_name: device_alarm_rule
+    operation: READ
+  - code: "device_alarm_rule:write"
+    name: "写入告警规则定义表"
+    resource_type: table
+    resource_name: device_alarm_rule
+    operation: WRITE
+  - code: "device_maintenance_log:read"
+    name: "读取设备维护记录表"
+    resource_type: table
+    resource_name: device_maintenance_log
+    operation: READ
+  - code: "device_maintenance_log:write"
+    name: "写入设备维护记录表"
+    resource_type: table
+    resource_name: device_maintenance_log
+    operation: WRITE
+  - code: "device_status_change:read"
+    name: "读取设备状态变更日志表"
+    resource_type: table
+    resource_name: device_status_change
+    operation: READ
+  - code: "device_status_change:write"
+    name: "写入设备状态变更日志表"
+    resource_type: table
+    resource_name: device_status_change
+    operation: WRITE
+  # 用能分析域
+  - code: "energy_consumption_detail:read"
+    name: "读取能耗明细表"
+    resource_type: table
+    resource_name: energy_consumption_detail
+    operation: READ
+  - code: "energy_consumption_summary:read"
+    name: "读取能耗汇总表"
+    resource_type: table
+    resource_name: energy_consumption_summary
+    operation: READ
+  - code: "energy_consumption_summary:write"
+    name: "写入能耗汇总表"
+    resource_type: table
+    resource_name: energy_consumption_summary
+    operation: WRITE
+  - code: "energy_dimension_compare:read"
+    name: "读取多维对比分析表"
+    resource_type: table
+    resource_name: energy_dimension_compare
+    operation: READ
+  - code: "energy_dimension_compare:write"
+    name: "写入多维对比分析表"
+    resource_type: table
+    resource_name: energy_dimension_compare
+    operation: WRITE
+  - code: "energy_trend_data:read"
+    name: "读取能耗趋势数据表"
+    resource_type: table
+    resource_name: energy_trend_data
+    operation: READ
+  - code: "energy_trend_data:write"
+    name: "写入能耗趋势数据表"
+    resource_type: table
+    resource_name: energy_trend_data
+    operation: WRITE
+  - code: "energy_quota:read"
+    name: "读取能耗定额表"
+    resource_type: table
+    resource_name: energy_quota
+    operation: READ
+  - code: "energy_quota:write"
+    name: "写入能耗定额表"
+    resource_type: table
+    resource_name: energy_quota
+    operation: WRITE
+  - code: "energy_balance:read"
+    name: "读取能源平衡表"
+    resource_type: table
+    resource_name: energy_balance
+    operation: READ
+  - code: "energy_balance:write"
+    name: "写入能源平衡表"
+    resource_type: table
+    resource_name: energy_balance
+    operation: WRITE
+  - code: "energy_cost_analysis:read"
+    name: "读取能源成本分析表"
+    resource_type: table
+    resource_name: energy_cost_analysis
+    operation: READ
+  - code: "energy_cost_analysis:write"
+    name: "写入能源成本分析表"
+    resource_type: table
+    resource_name: energy_cost_analysis
+    operation: WRITE
+  # 碳排放核算域
+  - code: "emission_factor_library:read"
+    name: "读取排放因子库"
+    resource_type: table
+    resource_name: emission_factor_library
+    operation: READ
+  - code: "emission_factor_library:write"
+    name: "写入排放因子库"
+    resource_type: table
+    resource_name: emission_factor_library
+    operation: WRITE
+  - code: "emission_source:read"
+    name: "读取排放源表"
+    resource_type: table
+    resource_name: emission_source
+    operation: READ
+  - code: "emission_source:write"
+    name: "写入排放源表"
+    resource_type: table
+    resource_name: emission_source
+    operation: WRITE
+  - code: "emission_calculation_result:read"
+    name: "读取排放核算结果表"
+    resource_type: table
+    resource_name: emission_calculation_result
+    operation: READ
+  - code: "emission_calculation_result:write"
+    name: "写入排放核算结果表"
+    resource_type: table
+    resource_name: emission_calculation_result
+    operation: WRITE
+  - code: "emission_calculation_model:read"
+    name: "读取核算模型表"
+    resource_type: table
+    resource_name: emission_calculation_model
+    operation: READ
+  - code: "emission_calculation_model:write"
+    name: "写入核算模型表"
+    resource_type: table
+    resource_name: emission_calculation_model
+    operation: WRITE
+  - code: "emission_scope_classification:read"
+    name: "读取排放范围分类表"
+    resource_type: table
+    resource_name: emission_scope_classification
+    operation: READ
+  - code: "emission_scope_classification:write"
+    name: "写入排放范围分类表"
+    resource_type: table
+    resource_name: emission_scope_classification
+    operation: WRITE
+  - code: "emission_reduction_target:read"
+    name: "读取减排目标表"
+    resource_type: table
+    resource_name: emission_reduction_target
+    operation: READ
+  - code: "emission_reduction_target:write"
+    name: "写入减排目标表"
+    resource_type: table
+    resource_name: emission_reduction_target
+    operation: WRITE
+  - code: "emission_report:read"
+    name: "读取核算报告表"
+    resource_type: table
+    resource_name: emission_report
+    operation: READ
+  - code: "emission_report:write"
+    name: "写入核算报告表"
+    resource_type: table
+    resource_name: emission_report
+    operation: WRITE
+  # 趋势预测域
+  - code: "forecast_parameter:read"
+    name: "读取预测参数表"
+    resource_type: table
+    resource_name: forecast_parameter
+    operation: READ
+  - code: "forecast_parameter:write"
+    name: "写入预测参数表"
+    resource_type: table
+    resource_name: forecast_parameter
+    operation: WRITE
+  - code: "forecast_result:read"
+    name: "读取预测结果表"
+    resource_type: table
+    resource_name: forecast_result
+    operation: READ
+  - code: "forecast_result:write"
+    name: "写入预测结果表"
+    resource_type: table
+    resource_name: forecast_result
+    operation: WRITE
+  - code: "forecast_model_evaluation:read"
+    name: "读取模型评估表"
+    resource_type: table
+    resource_name: forecast_model_evaluation
+    operation: READ
+  - code: "forecast_model_evaluation:write"
+    name: "写入模型评估表"
+    resource_type: table
+    resource_name: forecast_model_evaluation
+    operation: WRITE
+  - code: "forecast_model_registry:read"
+    name: "读取模型注册表"
+    resource_type: table
+    resource_name: forecast_model_registry
+    operation: READ
+  - code: "forecast_confidence_interval:read"
+    name: "读取置信区间表"
+    resource_type: table
+    resource_name: forecast_confidence_interval
+    operation: READ
+  # RBAC 域
+  - code: "energy_role:read"
+    name: "读取角色表"
+    resource_type: table
+    resource_name: energy_role
+    operation: READ
+  - code: "energy_role:write"
+    name: "写入角色表"
+    resource_type: table
+    resource_name: energy_role
+    operation: WRITE
+  - code: "energy_permission:read"
+    name: "读取权限表"
+    resource_type: table
+    resource_name: energy_permission
+    operation: READ
+  - code: "energy_role_permission:read"
+    name: "读取角色-权限关联表"
+    resource_type: table
+    resource_name: energy_role_permission
+    operation: READ
+  - code: "energy_user_role:read"
+    name: "读取用户-角色关联表"
+    resource_type: table
+    resource_name: energy_user_role
+    operation: READ
+
+  # DAG 权限（5 DAG × 2 操作 = 10 个）
+  - code: "device_status_monitoring:exec"
+    name: "执行设备状态实时监控 DAG"
+    resource_type: dag
+    resource_name: device_status_monitoring
+    operation: EXEC
+  - code: "device_status_monitoring:view"
+    name: "查看设备状态实时监控 DAG"
+    resource_type: dag
+    resource_name: device_status_monitoring
+    operation: READ
+  - code: "energy_consumption_statistics:exec"
+    name: "执行用能分析统计 DAG"
+    resource_type: dag
+    resource_name: energy_consumption_statistics
+    operation: EXEC
+  - code: "energy_consumption_statistics:view"
+    name: "查看用能分析统计 DAG"
+    resource_type: dag
+    resource_name: energy_consumption_statistics
+    operation: READ
+  - code: "carbon_emission_calculation:exec"
+    name: "执行碳排放核算 DAG"
+    resource_type: dag
+    resource_name: carbon_emission_calculation
+    operation: EXEC
+  - code: "carbon_emission_calculation:view"
+    name: "查看碳排放核算 DAG"
+    resource_type: dag
+    resource_name: carbon_emission_calculation
+    operation: READ
+  - code: "energy_trend_forecast:exec"
+    name: "执行能耗趋势预测 DAG"
+    resource_type: dag
+    resource_name: energy_trend_forecast
+    operation: EXEC
+  - code: "energy_trend_forecast:view"
+    name: "查看能耗趋势预测 DAG"
+    resource_type: dag
+    resource_name: energy_trend_forecast
+    operation: READ
+  - code: "device_alert_routing:exec"
+    name: "执行设备告警路由 DAG"
+    resource_type: dag
+    resource_name: device_alert_routing
+    operation: EXEC
+  - code: "device_alert_routing:view"
+    name: "查看设备告警路由 DAG"
+    resource_type: dag
+    resource_name: device_alert_routing
+    operation: READ
+
+  # Dashboard 权限（4 Dashboard × 8 操作 = 4 个）
+  - code: "device-monitoring:view"
+    name: "查看能源设备监测看板"
+    resource_type: dashboard
+    resource_name: device-monitoring
+    operation: READ
+  - code: "energy-consumption-analysis:view"
+    name: "查看用能分析看板"
+    resource_type: dashboard
+    resource_name: energy-consumption-analysis
+    operation: READ
+  - code: "carbon-emission-accounting:view"
+    name: "查看碳排放核算看板"
+    resource_type: dashboard
+    resource_name: carbon-emission-accounting
+    operation: READ
+  - code: "energy-forecast:view"
+    name: "查看能耗趋势预测看板"
+    resource_type: dashboard
+    resource_name: energy-forecast
+    operation: READ

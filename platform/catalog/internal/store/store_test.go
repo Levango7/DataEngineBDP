@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/shuqing/bigdata/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
 )
 
 // mockDB 是一个内存 map 实现的 Store，用于纯 Go 测试（无需 CGO）。

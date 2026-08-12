@@ -1,0 +1,66 @@
+# Grafana 平台方 Organization 数据源配置
+#
+# 用途：平台运维方使用，可见全平台所有租户的指标（不做 tenant 标签过滤）。
+# 数据源通过 Grafana provisioning 自动加载，删除 apiVersion 字段以兼容 Grafana 10.x。
+#
+# 安全约定：
+#   - 该 Organization 仅授予平台运维角色（platform-ops），禁止租户用户访问。
+#   - 数据源 URL 指向统一查询 API 的 platform 端点（绕过租户隔离）。
+apiVersion: 1
+
+# 删除已存在同名数据源后重建，避免配置漂移。
+deleteDatasources:
+  - name: Prometheus-Platform
+    orgId: 1
+  - name: Alertmanager-Platform
+    orgId: 1
+
+datasources:
+  # ---------------------------------------------------------------------------
+  # Prometheus 平台数据源（全平台指标，无 tenant 过滤）
+  # ---------------------------------------------------------------------------
+  - name: Prometheus-Platform
+    orgId: 1
+    type: prometheus
+    access: proxy
+    url: http://query-api:8090/platform
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+      # 关闭 manageAlerts，告警由 Alertmanager 统一管理。
+      manageAlerts: false
+      # 启用 Prometheus exemplars，便于关联 Jaeger 追踪。
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasource: Jaeger-Platform
+    secureJsonData: {}
+
+  # ---------------------------------------------------------------------------
+  # Alertmanager 平台数据源（全平台告警）
+  # ---------------------------------------------------------------------------
+  - name: Alertmanager-Platform
+    orgId: 1
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      handleGrafanaManagedAlerts: false
+      implementation: prometheus
+
+  # ---------------------------------------------------------------------------
+  # Jaeger 平台数据源（分布式追踪）
+  # ---------------------------------------------------------------------------
+  - name: Jaeger-Platform
+    orgId: 1
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: false
+    jsonData:
+      tracesToMetrics:
+        - datasourceUid: prometheus-platform-uid
+          spanStartTime: start
+          spanDuration: duration

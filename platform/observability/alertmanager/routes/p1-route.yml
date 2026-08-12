@@ -1,0 +1,37 @@
+# P1 重要告警路由配置 — 邮件 + 企业微信 IM
+#
+# 本文件是 alertmanager.yml 中 P1 路由的独立描述，便于测试与文档化。
+# 实际生效配置在 alertmanager.yml 的 route.routes[1] 与 receivers[p1-email-im]。
+#
+# 触发条件：severity label == "P1"
+# 通知渠道：SMTP 邮件 + 企业微信群机器人
+# 时效要求：group_wait=30s，repeat_interval=30m
+# 典型场景：
+#   - 作业失败率超阈值
+#   - 查询延迟 P95 超阈值
+#   - 存储水位 > 80%
+#   - 告警规则评估失败
+route:
+  matchers:
+    - severity = "P1"
+  receiver: p1-email-im
+  group_by: ['alertname', 'tenant_id', 'component']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 30m
+  continue: false
+
+receiver:
+  name: p1-email-im
+  channels:
+    - type: email
+      description: SMTP 邮件通知
+      to: '${P1_EMAIL_TO}'
+      subject: '[P1 重要告警] {{ .GroupLabels.alertname }} — {{ .CommonLabels.tenant_id }}'
+      html_template: email.p1.html
+      send_resolved: true
+    - type: wecom
+      description: 企业微信群机器人 IM
+      url: '${WECOM_WEBHOOK_URL}'
+      auth: Bearer ${WECOM_TOKEN}
+      send_resolved: true

@@ -1,0 +1,375 @@
+# PropagationPolicy CRD 定义
+# ============================================================================
+# 作用：定义 Karmada PropagationPolicy CRD，封装多集群调度语义
+# 来源：Karmada 1.10+ 自带此 CRD，本文件用于：
+#   1. 文档化调度语义，便于租户理解
+#   2. 通过 ArgoCD 纳入 GitOps（确保 CRD 在集群中存在）
+#   3. 作为控制台 API 后端操作的契约
+# 文档：https://karmada.io/docs/userguide/concepts/concept
+# ============================================================================
+# 注意：Karmada Helm Chart 已通过 installCRDs=true 自动安装此 CRD。
+# 本文件作为显式声明，便于审计与 GitOps 同步。
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# PropagationPolicy：命名空间级传播策略
+# ---------------------------------------------------------------------------
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: propagationpolicies.policy.karmada.io
+  labels:
+    app.kubernetes.io/name: "karmada"
+    app.kubernetes.io/component: "crd"
+    app.kubernetes.io/part-of: "multi-cluster"
+    # GitOps 标签：被 ArgoCD 识别为受管资源
+    app.kubernetes.io/managed-by: "argocd"
+  annotations:
+    # ArgoCD 同步波次：CRD 必须先于 CR 实例
+    argocd.argoproj.io/sync-wave: "-2"
+    # 说明
+    karmada.io/description: "命名空间级传播策略，描述资源如何分发到成员集群"
+spec:
+  group: policy.karmada.io
+  names:
+    kind: PropagationPolicy
+    plural: propagationpolicies
+    singular: propagationpolicy
+    shortNames:
+      - pp
+    categories:
+      - "karmada"
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              description: "传播策略规格"
+              properties:
+                # 资源选择器：匹配要传播的资源
+                resourceSelectors:
+                  type: array
+                  description: "选择要传播的资源列表"
+                  items:
+                    type: object
+                    properties:
+                      apiVersion:
+                        type: string
+                        description: "资源 API 版本，例如 apps/v1"
+                      kind:
+                        type: string
+                        description: "资源类型，例如 Deployment"
+                      name:
+                        type: string
+                        description: "资源名（可选，省略则匹配 namespace 下所有同类资源）"
+                      namespace:
+                        type: string
+                        description: "资源命名空间（可选，默认为策略所在 namespace）"
+                      labelSelector:
+                        type: object
+                        description: "标签选择器（可选，按标签匹配资源）"
+                        properties:
+                          matchLabels:
+                            type: object
+                            additionalProperties:
+                              type: string
+                          matchExpressions:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                key:
+                                  type: string
+                                operator:
+                                  type: string
+                                  enum: ["In", "NotIn", "Exists", "DoesNotExist"]
+                                values:
+                                  type: array
+                                  items:
+                                    type: string
+                # 调度策略：放置与副本分配
+                placement:
+                  type: object
+                  description: "调度策略：决定资源分发到哪些集群、各集群副本数"
+                  properties:
+                    # 集群亲和性：按标签选择目标集群
+                    clusterAffinity:
+                      type: object
+                      description: "集群亲和性：按 labelSelector 选择目标集群"
+                      properties:
+                        labelSelector:
+                          type: object
+                          properties:
+                            matchLabels:
+                              type: object
+                              additionalProperties:
+                                type: string
+                            matchExpressions:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  key:
+                                    type: string
+                                  operator:
+                                    type: string
+                                  values:
+                                    type: array
+                                    items:
+                                      type: string
+                        fieldSelector:
+                          type: object
+                          description: "按集群字段（如 region）选择"
+                          properties:
+                            matchExpressions:
+                              type: array
+                              items:
+                                type: object
+                                properties:
+                                  key:
+                                    type: string
+                                  operator:
+                                    type: string
+                                    enum: ["In", "NotIn"]
+                                  values:
+                                    type: array
+                                    items:
+                                      type: string
+                    # 集群污点容忍
+                    clusterTolerations:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          key:
+                            type: string
+                          operator:
+                            type: string
+                            enum: ["Equal", "Exists"]
+                          value:
+                            type: string
+                          effect:
+                            type: string
+                    # 副本调度：静态分配
+                    replicaScheduling:
+                      type: object
+                      description: "副本调度策略：静态/动态分配副本到多集群"
+                      properties:
+                        replicaDivisionPreference:
+                          type: string
+                          description: "副本分配偏好"
+                          enum:
+                            - "Aggregated"   # 聚合：尽量集中到少数集群
+                            - "Weighted"     # 加权：按权重分配
+                        replicaSchedulingType:
+                          type: string
+                          description: "调度类型"
+                          enum:
+                            - "Duplicated"   # 复制：每集群全副本
+                            - "Divided"      # 切分：副本总数按策略分配
+                        weightPreference:
+                          type: object
+                          description: "加权分配偏好"
+                          properties:
+                            staticWeightList:
+                              type: array
+                              description: "静态权重列表"
+                              items:
+                                type: object
+                                properties:
+                                  targetCluster:
+                                    type: object
+                                    properties:
+                                      clusterNames:
+                                        type: array
+                                        items:
+                                          type: string
+                                  weight:
+                                    type: integer
+                                    minimum: 1
+                    # 分散约束：跨集群分散以提升可用性
+                    spreadConstraints:
+                      type: array
+                      description: "分散约束：控制资源在集群间的分散程度"
+                      items:
+                        type: object
+                        properties:
+                          spreadByField:
+                            type: string
+                            description: "按集群字段分散"
+                            enum: ["cluster", "region", "zone", "provider"]
+                          spreadByLabel:
+                            type: string
+                            description: "按集群标签分散"
+                          minGroups:
+                            type: integer
+                            description: "最少分散到几个组"
+                          maxGroups:
+                            type: integer
+                            description: "最多分散到几个组"
+                # 优先级：策略抢占
+                priority:
+                  type: integer
+                  description: "策略优先级，数值越大优先级越高"
+                  default: 0
+                # 抢占策略
+                preemption:
+                  type: string
+                  description: "抢占行为"
+                  enum: ["Never", "Always"]
+                  default: "Never"
+            status:
+              type: object
+              description: "传播策略状态（由控制器写入）"
+              x-kubernetes-preserve-unknown-fields: true
+          required:
+            - spec
+      # 子资源：/status 用于控制器写入状态
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: AGE
+          type: date
+          jsonPath: .metadata.creationTimestamp
+
+---
+# ---------------------------------------------------------------------------
+# ClusterPropagationPolicy：集群级传播策略（跨 namespace 生效）
+# ---------------------------------------------------------------------------
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterpropagationpolicies.policy.karmada.io
+  labels:
+    app.kubernetes.io/name: "karmada"
+    app.kubernetes.io/component: "crd"
+    app.kubernetes.io/managed-by: "argocd"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    karmada.io/description: "集群级传播策略，可匹配任意 namespace 的资源"
+spec:
+  group: policy.karmada.io
+  names:
+    kind: ClusterPropagationPolicy
+    plural: clusterpropagationpolicies
+    singular: clusterpropagationpolicy
+    shortNames:
+      - cpp
+    categories:
+      - "karmada"
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}
+
+---
+# ---------------------------------------------------------------------------
+# OverridePolicy：覆盖策略（按集群差异化覆盖资源字段）
+# ---------------------------------------------------------------------------
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: overridepolicies.policy.karmada.io
+  labels:
+    app.kubernetes.io/name: "karmada"
+    app.kubernetes.io/component: "crd"
+    app.kubernetes.io/managed-by: "argocd"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    karmada.io/description: "覆盖策略：按集群差异化覆盖资源字段（如镜像、副本数）"
+spec:
+  group: policy.karmada.io
+  names:
+    kind: OverridePolicy
+    plural: overridepolicies
+    singular: overridepolicy
+    shortNames:
+      - op
+    categories:
+      - "karmada"
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+          properties:
+            spec:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}
+
+---
+# ---------------------------------------------------------------------------
+# 示例 PropagationPolicy：按权重 3:2:1 分配到信创/本地/公有云
+# ---------------------------------------------------------------------------
+apiVersion: policy.karmada.io/v1alpha1
+kind: PropagationPolicy
+metadata:
+  name: weighted-spread-example
+  namespace: default
+  labels:
+    app.kubernetes.io/managed-by: "argocd"
+  annotations:
+    karmada.io/description: "示例策略：按权重 3:2:1 将副本分配到信创/本地/公有云"
+spec:
+  # 匹配 default namespace 下所有 Deployment
+  resourceSelectors:
+    - apiVersion: "apps/v1"
+      kind: "Deployment"
+      namespace: "default"
+  placement:
+    # 集群亲和性：选择已纳管的 3 个集群
+    clusterAffinity:
+      labelSelector:
+        matchExpressions:
+          - key: "cluster.karmada.io/type"
+            operator: "In"
+            values: ["xinchang", "local", "cloud"]
+    # 副本调度：按静态权重分配
+    replicaScheduling:
+      replicaSchedulingType: "Divided"
+      replicaDivisionPreference: "Weighted"
+      weightPreference:
+        staticWeightList:
+          - targetCluster:
+              clusterNames: ["xinchang-cluster"]
+            weight: 3
+          - targetCluster:
+              clusterNames: ["local-cluster"]
+            weight: 2
+          - targetCluster:
+              clusterNames: ["cce-cluster"]
+            weight: 1
+    # 分散约束：至少分散到 2 个集群
+    spreadConstraints:
+      - spreadByField: "cluster"
+        minGroups: 2
+        maxGroups: 3

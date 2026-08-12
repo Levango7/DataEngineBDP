@@ -11,11 +11,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // RedfishClient Redfish API客户端
@@ -117,19 +118,19 @@ func baseURL(bmc model.BMCCredential) string {
 }
 
 // doRequest 执行Redfish HTTP请求
-func (c *RedfishClient) doRequest(ctx context.Context, method, url, username, password string, body interface{}) ([]byte, int, error) {
+func (c *RedfishClient) doRequest(ctx context.Context, method, url, username, password string, body interface{}) ([]byte, error) {
 	var reqBody io.Reader
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return nil, 0, fmt.Errorf("序列化请求体失败: %w", err)
+			return nil, fmt.Errorf("序列化请求体失败: %w", err)
 		}
 		reqBody = bytes.NewReader(data)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
-		return nil, 0, fmt.Errorf("创建请求失败: %w", err)
+		return nil, fmt.Errorf("创建请求失败: %w", err)
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -139,13 +140,13 @@ func (c *RedfishClient) doRequest(ctx context.Context, method, url, username, pa
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, 0, fmt.Errorf("Redfish请求失败: %w", err)
+		return nil, fmt.Errorf("Redfish请求失败: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, resp.StatusCode, fmt.Errorf("读取响应体失败: %w", err)
+		return nil, fmt.Errorf("读取响应体失败: %w", err)
 	}
 
 	if resp.StatusCode >= 400 {
@@ -155,10 +156,10 @@ func (c *RedfishClient) doRequest(ctx context.Context, method, url, username, pa
 		if msg == "" {
 			msg = string(respBody)
 		}
-		return respBody, resp.StatusCode, fmt.Errorf("Redfish返回错误: HTTP %d: %s", resp.StatusCode, msg)
+		return respBody, fmt.Errorf("Redfish返回错误: HTTP %d: %s", resp.StatusCode, msg)
 	}
 
-	return respBody, resp.StatusCode, nil
+	return respBody, nil
 }
 
 // resolveCredentials 解析凭据，使用默认值作为回退
@@ -180,7 +181,7 @@ func (c *RedfishClient) ListSystems(ctx context.Context, bmc model.BMCCredential
 	base := baseURL(bmc)
 	user, pass := c.resolveCredentials(bmc)
 
-	body, _, err := c.doRequest(ctx, http.MethodGet, base+"/Systems", user, pass, nil)
+	body, err := c.doRequest(ctx, http.MethodGet, base+"/Systems", user, pass, nil)
 	if err != nil {
 		return nil, fmt.Errorf("列出Systems失败: %w", err)
 	}
@@ -196,12 +197,16 @@ func (c *RedfishClient) ListSystems(ctx context.Context, bmc model.BMCCredential
 		if !strings.HasPrefix(sysURL, "https://") && !strings.HasPrefix(sysURL, "http://") {
 			sysURL = "https://" + sysURL
 		}
-		sysBody, _, err := c.doRequest(ctx, http.MethodGet, sysURL, user, pass, nil)
+		sysBody, err := c.doRequest(ctx, http.MethodGet, sysURL, user, pass, nil)
 		if err != nil {
+			// 单个系统查询失败不应阻塞整个列表，但需记录便于排障。
+			// 修复：原代码静默 continue，错误被完全吞掉，运维无法定位问题。
+			log.Printf("[redfish] list systems: fetch %s failed: %v", sysURL, err)
 			continue
 		}
 		var sys RedfishSystem
 		if err := json.Unmarshal(sysBody, &sys); err != nil {
+			log.Printf("[redfish] list systems: unmarshal %s failed: %v", sysURL, err)
 			continue
 		}
 		systems = append(systems, sys)
@@ -215,7 +220,7 @@ func (c *RedfishClient) GetSystem(ctx context.Context, bmc model.BMCCredential, 
 	base := baseURL(bmc)
 	user, pass := c.resolveCredentials(bmc)
 
-	body, _, err := c.doRequest(ctx, http.MethodGet, fmt.Sprintf("%s/Systems/%s", base, systemID), user, pass, nil)
+	body, err := c.doRequest(ctx, http.MethodGet, fmt.Sprintf("%s/Systems/%s", base, systemID), user, pass, nil)
 	if err != nil {
 		return nil, fmt.Errorf("获取System失败: %w", err)
 	}
@@ -237,7 +242,7 @@ func (c *RedfishClient) ResetSystem(ctx context.Context, bmc model.BMCCredential
 	payload := map[string]string{
 		"ResetType": string(resetType),
 	}
-	_, _, err := c.doRequest(ctx, http.MethodPost, url, user, pass, payload)
+	_, err := c.doRequest(ctx, http.MethodPost, url, user, pass, payload)
 	if err != nil {
 		return fmt.Errorf("电源控制失败(type=%s): %w", resetType, err)
 	}
@@ -257,7 +262,7 @@ func (c *RedfishClient) SetBootSource(ctx context.Context, bmc model.BMCCredenti
 			"BootSourceOverrideTarget":  string(target),
 		},
 	}
-	_, _, err := c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
+	_, err := c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
 	if err != nil {
 		return fmt.Errorf("设置启动源失败(target=%s): %w", target, err)
 	}
@@ -274,7 +279,7 @@ func (c *RedfishClient) SetBIOSAttribute(ctx context.Context, bmc model.BMCCrede
 	payload := map[string]interface{}{
 		"Attributes": attributes,
 	}
-	_, _, err := c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
+	_, err := c.doRequest(ctx, http.MethodPatch, url, user, pass, payload)
 	if err != nil {
 		return fmt.Errorf("设置BIOS属性失败: %w", err)
 	}
@@ -347,6 +352,6 @@ func (c *RedfishClient) PowerOffGracefully(ctx context.Context, bmc model.BMCCre
 func (c *RedfishClient) HealthCheck(ctx context.Context, bmc model.BMCCredential) error {
 	base := baseURL(bmc)
 	user, pass := c.resolveCredentials(bmc)
-	_, _, err := c.doRequest(ctx, http.MethodGet, base, user, pass, nil)
+	_, err := c.doRequest(ctx, http.MethodGet, base, user, pass, nil)
 	return err
 }

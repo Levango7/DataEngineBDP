@@ -1,4 +1,5 @@
 """通用依赖与错误处理."""
+
 from __future__ import annotations
 
 from fastapi import Request

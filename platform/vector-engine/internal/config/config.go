@@ -3,13 +3,13 @@
 // 配置来源优先级：环境变量 > 默认值。
 // 支持的配置项：
 //
-//	STORE_TYPE        - 存储后端类型，"mock" 或 "milvus"，默认 "mock"
+//	STORE_TYPE        - 存储后端类型，"mock" 或 "milvus"，默认 "milvus"
 //	MILVUS_HOST       - Milvus 主机地址，默认 "127.0.0.1"
 //	MILVUS_PORT       - Milvus 端口，默认 "19530"
 //	MILVUS_USERNAME   - Milvus 认证用户名（可选）
 //	MILVUS_PASSWORD   - Milvus 认证密码（可选）
 //	MILVUS_DATABASE   - Milvus 数据库（可选，默认 "default"）
-//	VECTOR_ENGINE_PORT - HTTP 服务端口，默认 "8084"
+//	VECTOR_ENGINE_PORT - HTTP 服务端口，默认 "8086"
 //	DEFAULT_TOP_K     - 默认检索 topK，默认 10
 //	MAX_VECTOR_DIM    - 最大向量维度，默认 32768
 package config
@@ -49,8 +49,8 @@ type MilvusConfig struct {
 // Load 从环境变量加载配置，未设置的项使用默认值。
 func Load() *Config {
 	cfg := &Config{
-		StoreType:    "mock",
-		HTTPPort:     "8084",
+		StoreType:    "milvus",
+		HTTPPort:     "8086",
 		DefaultTopK:  10,
 		MaxVectorDim: 32768,
 		Milvus: MilvusConfig{

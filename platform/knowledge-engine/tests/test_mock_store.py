@@ -1,12 +1,11 @@
 """Mock 图存储单元测试."""
+
 from __future__ import annotations
 
 import pytest
 
 from knowledge_engine.models.graph import (
-    Edge,
     GraphSchema,
-    Vertex,
     VertexLabelDefinition,
 )
 from knowledge_engine.repositories import (
@@ -25,9 +24,7 @@ def store_with_space(mock_store: MockGraphStore) -> MockGraphStore:
     asyncio.run(
         mock_store.create_space(
             "test",
-            GraphSchema(
-                vertexLabels=[VertexLabelDefinition(name="Person", properties={})]
-            ),
+            GraphSchema(vertexLabels=[VertexLabelDefinition(name="Person", properties={})]),
         )
     )
     return mock_store
@@ -43,9 +40,7 @@ class TestMockGraphStoreSpace:
         assert "kg1" in await mock_store.list_spaces()
 
     @pytest.mark.asyncio
-    async def test_create_duplicate_space(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_create_duplicate_space(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg1", GraphSchema())
         with pytest.raises(SpaceAlreadyExistsError):
             await mock_store.create_space("kg1", GraphSchema())
@@ -57,9 +52,7 @@ class TestMockGraphStoreSpace:
         assert "kg1" not in await mock_store.list_spaces()
 
     @pytest.mark.asyncio
-    async def test_drop_nonexistent_space(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_drop_nonexistent_space(self, mock_store: MockGraphStore) -> None:
         with pytest.raises(SpaceNotFoundError):
             await mock_store.drop_space("nope")
 
@@ -76,9 +69,7 @@ class TestMockGraphStoreVertex:
     """顶点写入与查询测试."""
 
     @pytest.mark.asyncio
-    async def test_insert_and_get_vertex(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_insert_and_get_vertex(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "Person", "p1", {"name": "张三"})
         v = await mock_store.get_vertex("kg", "p1")
@@ -96,17 +87,13 @@ class TestMockGraphStoreVertex:
         assert v.properties["age"] == 30  # 更新
 
     @pytest.mark.asyncio
-    async def test_get_vertex_not_found(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_get_vertex_not_found(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         with pytest.raises(VertexNotFoundError):
             await mock_store.get_vertex("kg", "nope")
 
     @pytest.mark.asyncio
-    async def test_insert_vertex_unknown_space(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_insert_vertex_unknown_space(self, mock_store: MockGraphStore) -> None:
         with pytest.raises(SpaceNotFoundError):
             await mock_store.insert_vertex("nope", "Person", "p1", {})
 
@@ -115,9 +102,7 @@ class TestMockGraphStoreEdge:
     """边写入与邻居查询测试."""
 
     @pytest.mark.asyncio
-    async def test_insert_edge_and_neighbors(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_insert_edge_and_neighbors(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "Person", "p1", {"name": "张三"})
         await mock_store.insert_vertex("kg", "City", "c1", {"name": "北京"})
@@ -128,9 +113,7 @@ class TestMockGraphStoreEdge:
         assert neighbors[0].id == "c1"
 
     @pytest.mark.asyncio
-    async def test_neighbors_with_edge_type_filter(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_neighbors_with_edge_type_filter(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "Person", "p1", {})
         await mock_store.insert_vertex("kg", "City", "c1", {})
@@ -146,9 +129,7 @@ class TestMockGraphStoreEdge:
         assert filtered[0].id == "c1"
 
     @pytest.mark.asyncio
-    async def test_neighbors_unknown_vertex(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_neighbors_unknown_vertex(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         with pytest.raises(VertexNotFoundError):
             await mock_store.get_neighbors("kg", "nope")
@@ -158,9 +139,7 @@ class TestMockGraphStoreShortestPath:
     """最短路径测试."""
 
     @pytest.mark.asyncio
-    async def test_shortest_path_direct(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_shortest_path_direct(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "P", "a", {})
         await mock_store.insert_vertex("kg", "P", "b", {})
@@ -169,9 +148,7 @@ class TestMockGraphStoreShortestPath:
         assert [v.id for v in path] == ["a", "b"]
 
     @pytest.mark.asyncio
-    async def test_shortest_path_two_hops(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_shortest_path_two_hops(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "P", "a", {})
         await mock_store.insert_vertex("kg", "P", "b", {})
@@ -182,9 +159,7 @@ class TestMockGraphStoreShortestPath:
         assert [v.id for v in path] == ["a", "b", "c"]
 
     @pytest.mark.asyncio
-    async def test_shortest_path_unreachable(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_shortest_path_unreachable(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "P", "a", {})
         await mock_store.insert_vertex("kg", "P", "b", {})
@@ -203,9 +178,7 @@ class TestMockGraphStoreQuery:
     """原生查询测试（Mock 子集）."""
 
     @pytest.mark.asyncio
-    async def test_query_match_vertices(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_query_match_vertices(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         await mock_store.insert_vertex("kg", "P", "a", {"name": "x"})
         await mock_store.insert_vertex("kg", "P", "b", {"name": "y"})
@@ -224,9 +197,7 @@ class TestMockGraphStoreQuery:
         assert len(result.rows) == 1
 
     @pytest.mark.asyncio
-    async def test_query_unknown_returns_empty(
-        self, mock_store: MockGraphStore
-    ) -> None:
+    async def test_query_unknown_returns_empty(self, mock_store: MockGraphStore) -> None:
         await mock_store.create_space("kg", GraphSchema())
         result = await mock_store.query("kg", "UNKNOWN STATEMENT")
         assert result.rows == []

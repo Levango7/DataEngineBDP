@@ -1,0 +1,16 @@
+# istio-system namespace · Service Mesh 控制面命名空间
+# 数擎云核 SKE · Istio 控制面专属 namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: istio-system
+  labels:
+    # 标识为 Istio 控制面 namespace（istiod 自身不注入 sidecar）
+    istio-injection: disabled
+    # 平台元数据
+    app.kubernetes.io/part-of: shuqing-bigdata
+    app.kubernetes.io/component: service-mesh-controlplane
+    # pod-security 标准（k3s 1.25+ 支持 Pod Security Admission）
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/audit: baseline
+    pod-security.kubernetes.io/warn: baseline

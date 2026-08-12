@@ -1,4 +1,5 @@
 """路由模块."""
+
 from openapi_catalog.api.routers import (
     apis,
     health,

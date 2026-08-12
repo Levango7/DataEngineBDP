@@ -18,7 +18,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
 
 // MockVectorStore 是 VectorStore 接口的内存 Mock 实现。

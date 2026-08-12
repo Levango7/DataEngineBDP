@@ -2,6 +2,7 @@
 
 对应详细设计 §4 契约 URL：OpenAPI Spec / Proto 托管地址。
 """
+
 from __future__ import annotations
 
 from typing import Any
@@ -14,7 +15,6 @@ from openapi_catalog.models import (
     ParamType,
 )
 from openapi_catalog.repositories.mock import MockCatalogStore
-
 
 # 参数类型映射到 OpenAPI 3.0 type
 _PARAM_TYPE_MAP: dict[ParamType, str] = {
@@ -53,10 +53,7 @@ class DocGeneratorService:
         api = await self.store.get_api(api_id)
 
         # 构建 parameters
-        parameters = [
-            self._build_parameter(p) for p in api.params
-            if p.location != ParamLocation.BODY
-        ]
+        parameters = [self._build_parameter(p) for p in api.params if p.location != ParamLocation.BODY]
 
         # 构建 request body
         request_body = self._build_request_body(api.params)
@@ -162,9 +159,7 @@ class DocGeneratorService:
             result["example"] = param.example
         return result
 
-    def _build_request_body(
-        self, params: list[APIParam]
-    ) -> dict[str, Any] | None:
+    def _build_request_body(self, params: list[APIParam]) -> dict[str, Any] | None:
         """构建 request body（仅 body 参数）."""
         body_params = [p for p in params if p.location == ParamLocation.BODY]
         if not body_params:
@@ -201,9 +196,7 @@ class DocGeneratorService:
             },
         }
 
-    def _build_responses(
-        self, responses: list[APIResponse]
-    ) -> dict[str, Any]:
+    def _build_responses(self, responses: list[APIResponse]) -> dict[str, Any]:
         """构建 OpenAPI responses."""
         result = {}
         for r in responses:
@@ -326,13 +319,14 @@ class DocGeneratorService:
             "",
             "## 调用方式",
             "",
-            f"```http",
+            "```http",
             f"{api.method.value} {api.path} HTTP/1.1",
-            f"Host: api.shuqing.example.com",
+            "Host: api.shuqing.example.com",
         ]
 
         # 认证头
         from openapi_catalog.models import AuthType
+
         if api.authType == AuthType.API_KEY:
             lines.append("X-API-Key: <your-access-key>")
         elif api.authType == AuthType.JWT:
@@ -363,6 +357,7 @@ class DocGeneratorService:
                 if r.example is not None:
                     lines.append("```json")
                     import json
+
                     lines.append(json.dumps(r.example, ensure_ascii=False, indent=2))
                     lines.append("```")
                     lines.append("")

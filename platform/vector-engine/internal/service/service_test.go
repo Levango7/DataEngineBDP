@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
-	"github.com/shuqing/bigdata/vector-engine/internal/store/mock"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store/mock"
 )
 
 // newTestService 创建一个基于 MockVectorStore 的测试用 VectorService。

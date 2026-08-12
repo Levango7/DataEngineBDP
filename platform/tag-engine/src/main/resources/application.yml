@@ -41,13 +41,13 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
 
 # 标签画像引擎配置
 app:
   tag-store:
     # 存储实现类型：mock（内存）/ doris（真实 Doris 集群）
-    type: ${TAG_STORE_TYPE:mock}
+    type: ${TAG_STORE_TYPE:doris}
   doris:
     # Doris FE JDBC 地址，仅当 tag-store.type=doris 时生效
     jdbc-url: ${DORIS_JDBC_URL:jdbc:mysql://doris-fe:9030}

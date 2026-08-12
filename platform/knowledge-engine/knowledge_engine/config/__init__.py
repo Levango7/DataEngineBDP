@@ -1,4 +1,5 @@
 """知识工程引擎配置."""
+
 from __future__ import annotations
 
 from knowledge_engine.config.settings import Settings, get_settings, reset_settings
