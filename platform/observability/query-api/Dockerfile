@@ -4,7 +4,8 @@
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
 
 # ============ 构建阶段 ============
-FROM ${BASE_REGISTRY}/golang:1.25-alpine AS builder
+FROM ${BASE_REGISTRY}/golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -15,11 +16,11 @@ ENV GOPROXY=https://goproxy.cn,direct
 # 复制源码。
 COPY . .
 
-# go mod tidy 自动补全 go.sum 及 indirect 依赖。
-RUN go mod tidy
+# mod下载在 QEMU 下比 host 耗时大数倍；tidy 属于网络操作，会扫帚连接失败，故改为 download
+RUN go mod download
 
 # 静态编译，禁用 cgo 以适配 alpine 运行时。
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/query-api .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -trimpath -ldflags="-s -w" -o /out/query-api .
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/alpine:3.19 AS runtime

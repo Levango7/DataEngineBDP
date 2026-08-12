@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 # Knowledge Engineering Engine Dockerfile
 # 数据引擎大数据平台 L4.5.2 智能数据层 - 知识工程引擎
 
