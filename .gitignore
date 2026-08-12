@@ -44,6 +44,23 @@ platform/model-finetuning/app/__pycache__/
 
 # Database files (local development artifacts)
 *.db
+*.db-wal
+*.db-shm
+*.db-journal
 *.mv.db
 *.mv.db.trace.db
 platform/*/data/
+
+# Test reports (generated artifacts, do not track)
+report.html
+htmlcov/
+coverage.xml
+coverage.json
+tests/**/report.html
+tests/**/docker_test_report.html
+tests/**/integration_test_report.md
+tests/**/pytest_html_report.html
+
+# InsCode agent metadata
+.inscode/
+.atomcode/

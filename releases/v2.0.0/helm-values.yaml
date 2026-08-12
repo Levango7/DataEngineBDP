@@ -397,7 +397,7 @@ monitoring:
     enabled: true
     replicaCount: 1
     resources: { requests: { cpu: "250m", memory: "512Mi" }, limits: { cpu: "500m", memory: "1Gi" } }
-    adminPassword: "CHANGE_ME"  # 生产环境必须修改
+    adminPassword: "REPLACE_WITH_GRAFANA_ADMIN_PASSWORD"  # 生产环境必须通过外部 Secret 注入，禁止填写真实值
   alertmanager:
     enabled: true
     replicaCount: 1
