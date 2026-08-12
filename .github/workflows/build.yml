@@ -65,6 +65,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: ci-gate
     steps:
+      # GHCR 仓库路径必须全小写；repository_owner 可能含大写（如 Levango7），统一小写化
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: 检出代码
         uses: actions/checkout@v4
 
@@ -102,12 +106,16 @@ jobs:
           file: frontend/Dockerfile
           push: ${{ github.event.inputs.push_image != 'false' }}
           tags: |
-            ghcr.io/${{ github.repository_owner }}/sq-frontend:latest
-            ghcr.io/${{ github.repository_owner }}/sq-frontend:${{ github.sha }}
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          provenance: true
-          sbom: true
+          # 不在镜像构建期生成 provenance/sbom,避免拉取 buildkit-syft-scanner
+          # 时受 Docker Hub 瞬时故障(502)影响;SBOM 由 ci.yml CycloneDX
+          # 与 release.yml anchore/sbom-action 统一生成
 
   # ============================================================
   # 构建 Java 组件 Docker 镜像
@@ -119,6 +127,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: ci-gate
     steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: 检出代码
         uses: actions/checkout@v4
 
@@ -137,6 +148,13 @@ jobs:
             echo "::warning::未发现任何 Java 组件，跳过"
             exit 0
           fi
+          # lineage-analyzer 依赖 sql-gateway，与 ci.yml 一致先装到本地仓库
+          if [ -f "platform/sql-gateway/pom.xml" ]; then
+            # PMD/Checkstyle 由 CI java-lint job 独立把关，打包/安装阶段跳过，避免 PMD 报错阻断镜像构建
+            mvn -f platform/sql-gateway/pom.xml install -B -DskipTests -q \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          fi
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
@@ -144,6 +162,7 @@ jobs:
             echo "  编译 Java 组件: $mod_name"
             echo "============================================"
             mvn -f "$pom" clean package -DskipTests -B -V \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           done < <(find platform -name pom.xml -not -path "*/target/*")
 
@@ -172,12 +191,24 @@ jobs:
             echo "============================================"
             echo "  Docker build & push: $mod_name"
             echo "============================================"
+            # lineage-analyzer 的 Dockerfile 按 platform 根目录作为 context 书写
+            # (COPY sql-gateway/… 与 governance/lineage-analyzer/…)，需特判
+            build_ctx="$mod_dir"
+            dockerfile_arg=""
+            if [ "$mod_name" = "lineage-analyzer" ]; then
+              build_ctx="platform"
+              dockerfile_arg="-f platform/governance/lineage-analyzer/Dockerfile"
+            fi
             docker buildx build \
-              -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:latest" \
-              -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:${{ github.sha }}" \
+              -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
+              -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=java-images" \
+              --cache-to "type=gha,mode=max,scope=java-images" \
               --push="$push_flag" \
-              --provenance=true --sbom=true \
-              "$mod_dir"
+              $dockerfile_arg \
+              "$build_ctx"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
           echo "共构建 $img_count 个 Java 镜像"
 
@@ -189,8 +220,12 @@ jobs:
   build-go-images:
     name: Build & Push Go Images
     runs-on: ubuntu-latest
+    timeout-minutes: 180
     needs: ci-gate
     steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: 检出代码
         uses: actions/checkout@v4
 
@@ -230,10 +265,13 @@ jobs:
             echo "============================================"
             docker buildx build \
               --platform linux/amd64,linux/arm64 \
-              -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:latest" \
-              -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:${{ github.sha }}" \
+              -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
+              -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=go-images" \
+              --cache-to "type=gha,mode=max,scope=go-images" \
               --push="$push_flag" \
-              --provenance=true --sbom=true \
               "$mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
           echo "共构建 $img_count 个 Go 镜像（多架构）"
@@ -247,6 +285,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: ci-gate
     steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: 检出代码
         uses: actions/checkout@v4
 
@@ -276,10 +317,13 @@ jobs:
             echo "  Docker build & push: $mod_name"
             echo "============================================"
             docker buildx build \
-              -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:latest" \
-              -t "ghcr.io/${{ github.repository_owner }}/sq-${mod_name}:${{ github.sha }}" \
+              -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
+              -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=python-images" \
+              --cache-to "type=gha,mode=max,scope=python-images" \
               --push="$push_flag" \
-              --provenance=true --sbom=true \
               "$mod_dir"
           done < <(find platform -name Dockerfile -not -path "*/target/*")
           echo "共构建 $img_count 个 Python 镜像"
@@ -293,6 +337,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: ci-gate
     steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: 检出代码
         uses: actions/checkout@v4
 
@@ -322,9 +369,20 @@ jobs:
               echo "============================================"
               # 打包为 tgz
               helm package "${chart_dir}" -d release-charts/
-              # 推送到 GHCR OCI Registry
+              # 推送到 GHCR OCI Registry（带限流间隔与重试，避免 GitHub secondary rate limit 403）
               if [ "${{ github.event.inputs.push_image != 'false' }}" = "true" ]; then
-                helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ github.repository_owner }}/charts"
+                push_ok=0
+                for attempt in 1 2 3; do
+                  if helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts"; then
+                    push_ok=1
+                    break
+                  else
+                    echo "::warning::chart ${chart_name} 推送失败(第 ${attempt} 次),60s 后重试(规避 GHCR 限流)"
+                    sleep 60
+                  fi
+                done
+                [ "$push_ok" -eq 1 ] || { echo "::error::chart ${chart_name} 重试 3 次仍失败"; exit 1; }
+                sleep 2  # 相邻推送节流，降低触发 secondary rate limit 概率
               fi
             fi
           done
@@ -351,6 +409,9 @@ jobs:
       - build-python-images
       - build-charts
     steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
       - name: 输出构建摘要
         run: |
           echo "============================================"
@@ -358,7 +419,7 @@ jobs:
           echo "============================================"
           echo "分支: ${{ github.ref_name }}"
           echo "Commit: ${{ github.sha }}"
-          echo "镜像仓库: ghcr.io/${{ github.repository_owner }}/"
+          echo "镜像仓库: ghcr.io/${{ env.REGISTRY_NS }}/"
           echo ""
           echo "已构建并推送的镜像："
           echo "  - sq-frontend (Nginx 静态站点)"

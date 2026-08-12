@@ -54,16 +54,18 @@ target:
     createRealm: true
 
 # ---- Secret 配置（dev 环境创建占位 Secret，便于快速启动）----
+# 生产环境禁止使用！先用 kubectl create secret / ExternalSecrets 创建真实凭据，
+# 并将 secret.create 置为 false 后再部署。
 secret:
   create: true
   doris:
-    password: "dev-doris-123"
+    password: "REPLACE_WITH_DORIS_PASSWORD"  # REPLACE_WITH_DORIS_PASSWORD
   dolphinscheduler:
-    token: "dev-ds-token"
+    token: "REPLACE_WITH_DOLPHINSCHEDULER_TOKEN"  # REPLACE_WITH_DOLPHINSCHEDULER_TOKEN
   superset:
-    token: "dev-superset-token"
+    token: "REPLACE_WITH_SUPERSET_TOKEN"  # REPLACE_WITH_SUPERSET_TOKEN
   keycloak:
-    adminPassword: "dev-keycloak-123"
+    adminPassword: "REPLACE_WITH_KEYCLOAK_ADMIN_PASSWORD"  # REPLACE_WITH_KEYCLOAK_ADMIN_PASSWORD
 
 # ---- 导入 Job（dev 环境降低资源，快速迭代）----
 importJob:

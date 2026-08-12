@@ -156,18 +156,20 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-
                     <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
+
+            <!-- JaCoCo：覆盖率采集（prepare-agent 注入 argLine，verify 阶段生成报告） -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.11</version>
+                <version>0.8.12</version>
                 <configuration>
                     <excludes>
                         <exclude>**/model/**</exclude>
                         <exclude>**/*Application*</exclude>
+                        <exclude>org/bouncycastle/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -178,13 +180,14 @@
                     </execution>
                     <execution>
                         <id>report</id>
-                        <phase>test</phase>
+                        <phase>verify</phase>
                         <goals>
                             <goal>report</goal>
                         </goals>
                     </execution>
                 </executions>
             </plugin>
+
             <!-- Checkstyle：代码风格检查（CI 阻断） -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
