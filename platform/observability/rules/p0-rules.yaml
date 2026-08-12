@@ -1,0 +1,125 @@
+# P0 严重告警规则模板
+#
+# 用途：平台核心组件/数据丢失风险/安全事件等严重故障，触发电话+短信通知。
+# 通知渠道：Alertmanager → p0-pager receiver → 电话网关 + 短信网关
+# 时效要求：7x24 立即通知，5 分钟重复
+#
+# 模板变量（租户自定义时替换）：
+#   {{tenant_id}}    — 租户 ID，平台方告警用 "platform" 或留空
+#   {{threshold}}    — 告警阈值，各规则有不同默认值
+#   {{duration}}     — 持续时间，默认 1m
+#
+# 使用方式：
+#   1. 平台方：直接加载本文件，tenant_id 留空或用 "platform"。
+#   2. 客户方：复制本文件，替换 {{tenant_id}} 为实际租户 ID，调整 threshold。
+groups:
+  - name: p0-critical-platform
+    interval: 30s
+    rules:
+      # ---------------------------------------------------------------------------
+      # 规则 1：集群节点宕机
+      # ---------------------------------------------------------------------------
+      - alert: NodeDown
+        expr: up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: P0
+          component: node
+          category: infrastructure
+        annotations:
+          summary: "节点 {{ $labels.instance }} 宕机"
+          description: "节点 {{ $labels.instance }} 已离线超过 1 分钟，可能影响业务。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/node-down"
+
+      # ---------------------------------------------------------------------------
+      # 规则 2：核心数据库不可达
+      # ---------------------------------------------------------------------------
+      - alert: DatabaseUnreachable
+        expr: up{job=~"postgres|mysql|doris-fe|doris-be"} == 0
+        for: 30s
+        labels:
+          severity: P0
+          component: database
+          category: data
+        annotations:
+          summary: "数据库 {{ $labels.instance }} 不可达"
+          description: "数据库 {{ $labels.instance }} ({{ $labels.job }}) 连接失败，可能影响所有依赖服务。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/db-unreachable"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：Kubernetes API Server 不可用
+      # ---------------------------------------------------------------------------
+      - alert: KubeAPIDown
+        expr: up{job="kube-apiserver"} == 0
+        for: 30s
+        labels:
+          severity: P0
+          component: kubernetes
+          category: infrastructure
+        annotations:
+          summary: "Kubernetes API Server {{ $labels.instance }} 不可用"
+          description: "API Server 不可用将导致集群无法调度和管理，需立即处理。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/kube-api-down"
+
+      # ---------------------------------------------------------------------------
+      # 规则 4：Prometheus 采集失败率过高（数据丢失风险）
+      # ---------------------------------------------------------------------------
+      - alert: PrometheusScrapeFailure
+        expr: |
+          (sum(rate(prometheus_scrape_samples_failed_total[5m])) by (job) /
+           sum(rate(prometheus_scrape_samples_posted_total[5m])) by (job)) > 0.1
+        for: 5m
+        labels:
+          severity: P0
+          component: prometheus
+          category: observability
+        annotations:
+          summary: "Prometheus 采集失败率过高: {{ $labels.job }}"
+          description: "job={{ $labels.job }} 的采集失败率超过 10%，存在数据丢失风险。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/scrape-failure"
+
+      # ---------------------------------------------------------------------------
+      # 规则 5：磁盘空间耗尽（< 5%）
+      # ---------------------------------------------------------------------------
+      - alert: DiskSpaceExhausted
+        expr: |
+          (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} /
+                node_filesystem_size_bytes{fstype!~"tmpfs|overlay"}) > 0.95
+        for: 1m
+        labels:
+          severity: P0
+          component: disk
+          category: infrastructure
+        annotations:
+          summary: "磁盘空间耗尽: {{ $labels.instance }} {{ $labels.mountpoint }}"
+          description: "磁盘使用率超过 95%，可能导致服务写入失败。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/disk-full"
+
+  # ---------------------------------------------------------------------------
+  # 租户级 P0 告警（租户可基于本 group 自定义阈值）
+  # ---------------------------------------------------------------------------
+  - name: p0-critical-tenant
+    interval: 30s
+    rules:
+      # 规则 6：租户核心作业全部失败
+      - alert: TenantAllJobsFailed
+        expr: |
+          shuqing_job_running{tenant_id="{{tenant_id}}"} == 0
+          and
+          shuqing_job_failed_total{tenant_id="{{tenant_id}}"} > 0
+        for: 5m
+        labels:
+          severity: P0
+          component: job
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 所有作业失败"
+          description: "租户 {{tenant_id}} 持续 5 分钟无运行中作业且有失败记录，可能影响业务数据产出。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-jobs-failed"

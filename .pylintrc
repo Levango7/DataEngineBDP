@@ -1,0 +1,235 @@
+# pylint 配置
+# 文档：https://pylint.readthedocs.io/en/latest/user_guide/configuration/all-options.html
+# 适用于 platform/ 下所有 Python 组件（business-portal/industry-templates/asset-exchange/open-api-catalog/ml-platform/knowledge-engine/llmops）
+# 通过 ci.yml python-lint job 调用：pylint --rcfile=../../.pylintrc --fail-under=7.0 .
+[MASTER]
+# 加载的插件
+load-plugins =
+    pylint.extensions.mccabe,
+    pylint.extensions.docstyle,
+    pylint.extensions.bad_builtin,
+    pylint.extensions.emptystring
+
+# 递归查找 Python 文件
+recursive = true
+
+# 忽略的目录
+ignore =
+    .venv,
+    venv,
+    __pycache__,
+    .pytest_cache,
+    .mypy_cache,
+    .tox,
+    build,
+    dist,
+    node_modules,
+    tests,
+    test
+
+# 忽略的文件模式
+ignore-patterns =
+    ^\..*,
+    .*_test\.py$,
+    test_.*\.py$,
+    conftest\.py$,
+    setup\.py$
+
+# 使用的字符编码
+input-encoding = utf-8
+
+[MESSAGES CONTROL]
+# 启用的检查器
+enable =
+    # 代码风格
+    C0103,  # invalid-name：命名规范
+    C0114,  # missing-module-docstring：模块文档字符串
+    C0115,  # missing-class-docstring：类文档字符串
+    C0116,  # missing-function-docstring：函数文档字符串
+    C0200,  # consider-iterating-dictionary：使用 .items() 而非 .keys()
+    # 设计
+    R0902,  # too-many-instance-attributes
+    R0903,  # too-few-public-methods
+    R0913,  # too-many-arguments
+    R0914,  # too-many-locals
+    R0915,  # too-many-statements
+    R0916,  # too-many-boolean-expressions
+    # 错误
+    E1101,  # no-member
+    E1120,  # no-value-for-parameter
+    E1123,  # unexpected-keyword-arg
+    E1124,  # no-keyword-arg
+    E1126,  # no-sequence-iter
+    # 警告
+    W0102,  # dangerous-default-value
+    W0105,  # pointless-string-statement
+    W0107,  # unnecessary-pass
+    W0108,  # unnecessary-lambda
+    W0212,  # protected-access
+    W0221,  # arguments-differ
+    W0223,  # abstract-method
+    W0233,  # useless-parent-delegation
+    W0401,  # wildcard-import
+    W0404,  # reimported
+    W0611,  # unused-import
+    W0612,  # unused-variable
+    W0613,  # unused-argument
+    W0621,  # redefined-outer-name
+    W0622,  # redefined-builtin
+    W0702,  # bare-except
+    W0703,  # broad-except
+    W0718,  # broad-exception-caught
+    W0719,  # broad-exception-raised
+    W1203,  # logging-fstring-interpolation
+    # 重构建议
+    R1701,  # consider-merging-isinstance
+    R1704,  # redefined-argument-from-local
+    R1705,  # return-in-init
+    R1706,  # ternary-expression
+    R1707,  # tuple-comprehension
+    R1708,  # trailing-comma-tuple
+    R1709,  # boolean-difference
+    R1710,  # if-exp
+    R1711,  # useless-if-else
+    R1714,  # consider-using-in
+    R1715,  # consider-using-get
+    R1716,  # chained-comparison
+    R1717,  # consider-using-set-comprehension
+    R1718,  # consider-using-enumerate
+    R1719,  # simplifiable-if-expression
+    R1720,  # simplifiable-if-statement
+    R1721,  # unnecessary-comprehension
+    R1722,  # consider-using-sys-exit
+    R1723,  # no-else-break
+    R1724,  # no-else-continue
+    R1725,  # super-without-arguments
+    R1726,  # simplifiable-condition
+    R1728,  # consider-using-generator
+    R1729,  # use-a-generator
+    R1730,  # consider-using-min-builtin
+    R1731,  # consider-using-max-builtin
+    R1732,  # consider-using-with
+    R1733,  # bad-chained-comparison
+    R1734,  # consider-using-dict-comprehension
+    R1735,  # use-dict-literal
+    R1736,  # unnecessary-lambda-assignment
+
+# 禁用的检查器
+disable =
+    # 与 black 冲突的格式相关
+    C0326,  # bad-whitespace
+    C0330,  # bad-continuation
+    # 与 isort 冲突
+    C0411,  # wrong-import-order
+    C0412,  # wrong-import-position
+    C0413,  # wrong-import-order
+    # 过于严格
+    R0801,  # similar-lines
+    # 与 mypy 重复
+    E1136,  # unsubscriptable-object
+    E1137,  # unsupported-assignment-operation
+    # FastAPI/Pydantic 常见模式
+    R0901,  # too-many-public-methods
+    # 项目允许使用 print（CLI 工具）
+    W1514,  # unspecified-encoding
+
+[REPORTS]
+# 不显示评分报告
+score = true
+# 不显示统计
+reports = no
+# 输出格式
+output-format = text
+
+[FORMAT]
+# 最大行长度（与 black 一致）
+max-line-length = 120
+# 缩进
+indent-string = '    '
+# 允许不规范的缩进
+no-space-check = trailing-comma,empty-line
+# 模块起始空行
+module-rgx = (([a-z_][a-z0-9_]*)|([A-Z][a-zA-Z0-9]+))$
+# 类名 PascalCase
+class-rgx = [A-Z][a-zA-Z0-9]+$
+# 方法名 camelCase
+method-rgx = [a-z_][a-z0-9_]{2,}$
+# 函数名 camelCase 或 snake_case
+function-rgx = [a-z_][a-z0-9_]{2,}$
+# 常量 UPPER_CASE
+const-rgx = ([A-Z_][A-Z0-9_]*)|(__.*__)$
+# 变量 snake_case
+variable-rgx = [a-z_][a-z0-9_]*$
+# 属性 snake_case
+attr-rgx = [a-z_][a-z0-9_]*$
+# 参数 snake_case
+argument-rgx = [a-z_][a-z0-9_]*$
+# 内联变量
+inlinevar-rgx = [A-Za-z_][A-Za-z0-9_]*$
+
+[VARIABLES]
+# 允许 1 字母变量名（如 i, j, k）
+good-names =
+    i, j, k, n, m, x, y, z,
+    id, db, ok,
+    T, V, K,
+    _, __,
+    logger,
+    app, api, cfg, env,
+    df, ds
+
+[BASIC]
+# 类型注释检查
+typevar-rgx = ^[A-Z][a-zA-Z0-9]*$
+# 必须的文档字符串
+no-docstring-rgx = __.*__|main|test_.*
+# 命名风格检查
+property-classes = abc.ABCMeta
+
+[DESIGN]
+# 最大行数
+max-line-length = 120
+# 类最大属性数
+max-attributes = 12
+# 类最大方法数
+max-methods = 20
+# 类最大公共方法数
+max-public-methods = 20
+# 函数最大参数数
+max-args = 8
+# 函数最大局部变量数
+max-locals = 20
+# 函数最大语句数
+max-statements = 60
+# 函数最大返回数
+max-returns = 8
+# 函数最大分支数
+max-branches = 15
+# 函数最大圈复杂度
+max-complexity = 15
+# 模块最大行数
+max-module-lines = 1500
+# 类最大行数
+max-parents = 8
+
+[EXCEPTIONS]
+# 允许的异常基类
+overgeneral-exceptions =
+    builtins.BaseException,
+    builtins.Exception
+
+[IMPORTS]
+# 允许的弃用模块
+deprecated-modules =
+    regsub, string, os.path, getopt, md5, sha, commands, statvfs
+
+[LOGGING]
+# 日志格式风格
+logging-format-style = fstr
+
+[SIMILARITIES]
+# 忽略相似代码检查
+min-similarity-lines = 8
+ignore-comments = yes
+ignore-docstrings = yes
+ignore-imports = yes

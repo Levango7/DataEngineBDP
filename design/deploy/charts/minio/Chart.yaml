@@ -1,12 +1,12 @@
-apiVersion: v2
+﻿apiVersion: v2
 name: minio
-description: "MinIO 对象存储 - S3 兼容私有存储 - 数擎大数据平台"
+description: "MinIO 对象存储 - S3 兼容私有存储 - 数据引擎大数据平台"
 type: application
 version: 0.1.0
 appVersion: "2024.8.3"
-home: https://github.com/ShuqingBigDataPlatform
+home: https://github.com/DataEngineBDP
 maintainers:
-  - name: ShuqingBigDataPlatform Team
+  - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:
   - minio

@@ -1,4 +1,4 @@
-﻿// Package provider 定义大模型 Provider 的统一抽象以及各厂商适配器。
+// Package provider 定义大模型 Provider 的统一抽象以及各厂商适配器。
 //
 // 设计策略：采用接口抽象 + Mock 实现策略。LLMProvider 接口定义统一能力，
 // 各厂商适配器（OpenAI / 文心 / 通义 / 智谱）通过 HTTP 调用对应大模型 API，

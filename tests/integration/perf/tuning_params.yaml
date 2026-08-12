@@ -1,0 +1,478 @@
+﻿# 数据引擎大数据平台 调优参数集
+#
+# T046 全链路性能调优与压测 · 各组件推荐调优参数
+#
+# 本文件提供各组件的性能调优参数推荐值，覆盖：
+# - JVM 参数（堆大小/GC 策略）
+# - 连接池参数（大小/超时）
+# - 缓存参数（容量/TTL）
+# - 线程池参数（核心/最大/队列）
+# - K8s 资源配额（requests/limits）
+#
+# 用法：
+# - 部署时将对应参数注入 application.yml / values.yaml / 环境变量；
+# - 压测时根据 PERF_THRESHOLDS 验证调优效果；
+# - 调优建议由 perf_report.py 基于压测结果自动生成。
+#
+# 版本: v1.0
+# 日期: 2026-08-08
+
+# ============================================================================
+# 全局元数据
+# ============================================================================
+meta:
+  version: "v1.0"
+  date: "2026-08-08"
+  project: "DataEngineBDP"
+  description: "全链路性能调优参数集 - 覆盖 JVM/连接池/缓存/线程池/K8s 资源配额"
+  sla_targets:
+    api_p99_latency: "200ms"
+    api_throughput: "1000 QPS"
+    error_rate: "0.1%"
+    availability: "99.9%"
+
+# ============================================================================
+# JVM 参数（Java 组件：封装层/SQL网关/规则引擎/流批一体）
+# ============================================================================
+jvm:
+  # 封装层（encaps-layer）JVM 参数
+  encaps_layer:
+    heap:
+      initial_size: "2g"          # -Xms2g
+      max_size: "4g"              # -Xmx4g
+      young_generation: "1g"      # -Xmn1g
+    gc:
+      strategy: "G1GC"            # -XX:+UseG1GC（推荐 G1 兼顾吞吐与延迟）
+      max_gc_pause: "200ms"       # -XX:MaxGCPauseMillis=200
+      gc_heap_region_size: "16m"  # -XX:G1HeapRegionSize=16m
+      parallel_gc_threads: 4      # -XX:ParallelGCThreads=4
+      conc_gc_threads: 2          # -XX:ConcGCThreads=2
+    other:
+      metaspace_size: "256m"      # -XX:MetaspaceSize=256m
+      max_metaspace_size: "512m"  # -XX:MaxMetaspaceSize=512m
+      thread_stack_size: "512k"   # -Xss512k
+      disable_explicit_gc: true   # -XX:+DisableExplicitGC
+    rationale: "封装层承载租户 CRUD，中等堆 + G1GC 平衡吞吐与延迟"
+
+  # SQL 网关 JVM 参数
+  sql_gateway:
+    heap:
+      initial_size: "2g"
+      max_size: "4g"
+      young_generation: "1g"
+    gc:
+      strategy: "G1GC"
+      max_gc_pause: "100ms"       # SQL 网关对延迟更敏感
+      gc_heap_region_size: "16m"
+      parallel_gc_threads: 4
+      conc_gc_threads: 2
+    other:
+      metaspace_size: "256m"
+      max_metaspace_size: "512m"
+      thread_stack_size: "512k"
+    rationale: "SQL 网关代理查询请求，需更低 GC 停顿保证 P99 延迟"
+
+  # 规则引擎 JVM 参数
+  rule_engine:
+    heap:
+      initial_size: "1g"
+      max_size: "2g"
+      young_generation: "512m"
+    gc:
+      strategy: "G1GC"
+      max_gc_pause: "200ms"
+      parallel_gc_threads: 2
+      conc_gc_threads: 1
+    other:
+      metaspace_size: "256m"
+      max_metaspace_size: "512m"
+    rationale: "规则引擎计算密集，中等堆即可"
+
+  # 流批一体 JVM 参数
+  stream_batch:
+    heap:
+      initial_size: "4g"
+      max_size: "8g"              # 流处理需要更大堆
+      young_generation: "2g"
+    gc:
+      strategy: "ZGC"             # 流处理用 ZGC 降低停顿
+      max_gc_pause: "10ms"        # ZGC 亚毫秒级停顿
+      parallel_gc_threads: 8
+      conc_gc_threads: 4
+    other:
+      metaspace_size: "512m"
+      max_metaspace_size: "1g"
+    rationale: "流处理需大堆 + ZGC 保证低延迟"
+
+# ============================================================================
+# 连接池参数（HikariCP / Tomcat / Go HTTP 客户端）
+# ============================================================================
+connection_pool:
+  # HikariCP 连接池（Java 组件数据库连接）
+  hikari_cp:
+    encaps_layer:
+      maximum_pool_size: 50       # 最大连接数
+      minimum_idle: 10            # 最小空闲连接
+      connection_timeout: "30s"   # 获取连接超时
+      idle_timeout: "10m"         # 空闲连接超时
+      max_lifetime: "30m"         # 连接最大生命周期
+      leak_detection_threshold: "60s"
+    sql_gateway:
+      maximum_pool_size: 100      # SQL 网关并发更高
+      minimum_idle: 20
+      connection_timeout: "10s"
+      idle_timeout: "5m"
+      max_lifetime: "20m"
+    rule_engine:
+      maximum_pool_size: 30
+      minimum_idle: 5
+      connection_timeout: "30s"
+      idle_timeout: "10m"
+      max_lifetime: "30m"
+
+  # Tomcat 线程池（Spring Boot 内嵌容器）
+  tomcat:
+    max_threads: 200              # 最大工作线程
+    min_spare_threads: 20         # 最小空闲线程
+    accept_count: 100             # 接收队列长度
+    connection_timeout: "20s"
+    keep_alive_timeout: "60s"
+
+  # Go HTTP 客户端连接池（Catalog）
+  go_http_client:
+    max_idle_conns: 100           # 最大空闲连接
+    max_idle_conns_per_host: 50   # 每主机最大空闲连接
+    idle_conn_timeout: "90s"
+    dial_timeout: "10s"
+    response_header_timeout: "30s"
+
+# ============================================================================
+# 缓存参数（Caffeine / Redis）
+# ============================================================================
+cache:
+  # Caffeine 本地缓存（Java 组件）
+  caffeine:
+    encaps_layer:
+      tenant_cache:
+        max_size: 10000           # 最大缓存条目
+        expire_after_write: "5m"  # 写入后过期时间
+        expire_after_access: "10m" # 访问后过期时间
+      quota_cache:
+        max_size: 5000
+        expire_after_write: "1m"
+    sql_gateway:
+      route_cache:
+        max_size: 2000
+        expire_after_write: "30s"
+      schema_cache:
+        max_size: 5000
+        expire_after_write: "10m"
+    rule_engine:
+      rule_cache:
+        max_size: 1000
+        expire_after_write: "1m"
+
+  # Redis 分布式缓存
+  redis:
+    pool:
+      max_active: 100             # 最大连接数
+      max_idle: 20                # 最大空闲连接
+      min_idle: 5                 # 最小空闲连接
+      max_wait: "5s"              # 获取连接最大等待
+      timeout: "3s"
+    ttl:
+      session: "30m"              # 会话缓存 TTL
+      tenant_config: "10m"        # 租户配置 TTL
+      api_quota: "1m"             # API 配额 TTL
+      hot_data: "5m"              # 热数据 TTL
+    cluster:
+      enabled: true
+      nodes: 6                    # 集群节点数
+      replicas: 1                 # 每主节点副本数
+
+# ============================================================================
+# 线程池参数（业务线程池 / 异步任务线程池）
+# ============================================================================
+thread_pool:
+  # 封装层业务线程池
+  encaps_layer:
+    core_pool_size: 20            # 核心线程数
+    max_pool_size: 200            # 最大线程数
+    queue_capacity: 500           # 队列容量
+    keep_alive_seconds: 60        # 空闲线程存活时间
+    thread_name_prefix: "encaps-worker-"
+    rejection_policy: "CallerRunsPolicy"  # 拒绝策略
+
+  # SQL 网关代理线程池
+  sql_gateway:
+    core_pool_size: 50
+    max_pool_size: 500            # SQL 网关需更高并发
+    queue_capacity: 1000
+    keep_alive_seconds: 30
+    thread_name_prefix: "sql-gateway-worker-"
+    rejection_policy: "CallerRunsPolicy"
+
+  # 规则引擎执行线程池
+  rule_engine:
+    core_pool_size: 10
+    max_pool_size: 100
+    queue_capacity: 200
+    keep_alive_seconds: 60
+    thread_name_prefix: "rule-engine-worker-"
+    rejection_policy: "AbortPolicy"
+
+  # 异步任务线程池（通用）
+  async_task:
+    core_pool_size: 10
+    max_pool_size: 50
+    queue_capacity: 100
+    keep_alive_seconds: 120
+    thread_name_prefix: "async-task-"
+
+# ============================================================================
+# K8s 资源配额（requests / limits）
+# ============================================================================
+k8s_resources:
+  # 封装层
+  encaps_layer:
+    requests:
+      cpu: "1000m"                # 1 核
+      memory: "2Gi"
+    limits:
+      cpu: "4000m"                # 4 核
+      memory: "4Gi"
+    replicas: 2                   # 副本数
+    hpa:
+      min_replicas: 2
+      max_replicas: 10
+      cpu_utilization: 70         # CPU 利用率阈值
+
+  # SQL 网关
+  sql_gateway:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "4000m"
+      memory: "4Gi"
+    replicas: 2
+    hpa:
+      min_replicas: 2
+      max_replicas: 8
+      cpu_utilization: 70
+
+  # Catalog（Go）
+  catalog:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "1Gi"
+    replicas: 2
+    hpa:
+      min_replicas: 2
+      max_replicas: 6
+      cpu_utilization: 70
+
+  # 规则引擎
+  rule_engine:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+    replicas: 2
+    hpa:
+      min_replicas: 2
+      max_replicas: 6
+      cpu_utilization: 70
+
+  # LLM 网关
+  llm_gateway:
+    requests:
+      cpu: "2000m"
+      memory: "4Gi"
+    limits:
+      cpu: "8000m"
+      memory: "16Gi"
+    replicas: 1
+    hpa:
+      min_replicas: 1
+      max_replicas: 4
+      cpu_utilization: 80
+
+  # 微调服务
+  finetuning:
+    requests:
+      cpu: "4000m"
+      memory: "8Gi"
+      nvidia_gpu: 1               # GPU 资源
+    limits:
+      cpu: "8000m"
+      memory: "16Gi"
+      nvidia_gpu: 1
+    replicas: 1
+
+  # 流批一体
+  stream_batch:
+    requests:
+      cpu: "2000m"
+      memory: "4Gi"
+    limits:
+      cpu: "8000m"
+      memory: "8Gi"
+    replicas: 1
+    hpa:
+      min_replicas: 1
+      max_replicas: 4
+      cpu_utilization: 75
+
+  # 治理服务
+  governance:
+    requests:
+      cpu: "1000m"
+      memory: "2Gi"
+    limits:
+      cpu: "4000m"
+      memory: "4Gi"
+    replicas: 2
+    hpa:
+      min_replicas: 2
+      max_replicas: 6
+      cpu_utilization: 70
+
+# ============================================================================
+# 大数据组件调优参数
+# ============================================================================
+bigdata_components:
+  # Spark
+  spark:
+    driver_memory: "4g"
+    executor_memory: "8g"
+    executor_cores: 4
+    num_executors: 10
+    sql_shuffle_partitions: 200
+    adaptive_query_execution: true
+    dynamic_allocation:
+      enabled: true
+      min_executors: 2
+      max_executors: 50
+
+  # Flink
+  flink:
+    jobmanager_memory: "4g"
+    taskmanager_memory: "8g"
+    task_slots: 4
+    parallelism: 16
+    checkpoint_interval: "60s"
+    state_backend: "rocksdb"
+    network_buffers: 2048
+
+  # Trino
+  trino:
+    query_max_memory: "100GB"
+    query_max_execution_time: "30m"
+    task_concurrency: 8
+    join_distribution_type: "AUTOMATIC"
+    spillover_enabled: true
+
+  # Doris
+  doris:
+    be_storage_root: "/data/doris"
+    be_max_disk_usage: 90
+    fe_max_query_cpu_time: "300s"
+    default_replication_num: 3
+    enable_vectorized: true
+
+  # Kafka
+  kafka:
+    num_partitions: 12
+    default_replication_factor: 3
+    min_insync_replicas: 2
+    log_retention_hours: 168
+    message_max_bytes: "10MB"
+    producer_batch_size: "64KB"
+    consumer_fetch_max_bytes: "50MB"
+
+  # IoTDB
+  iotdb:
+    flush_interval: "60s"
+    max_mem_usage: "4g"
+    enable_compression: true
+    compression_codec: "SNAPPY"
+    tsfile_threshold: "2GB"
+
+# ============================================================================
+# 网络与超时参数
+# ============================================================================
+network:
+  # API 网关（APISIX）
+  apisix:
+    worker_processes: "auto"
+    worker_connections: 10620
+    keepalive_timeout: "60s"
+    client_header_timeout: "60s"
+    client_body_timeout: "60s"
+    send_timeout: "60s"
+    upstream:
+      keepalive: 320
+      keepalive_requests: 1000
+      keepalive_timeout: "60s"
+      connect_timeout: "5s"
+      read_timeout: "60s"
+      send_timeout: "10s"
+
+  # 全局超时
+  global_timeouts:
+    api_request: "10s"
+    sql_query: "30s"
+    ai_inference: "30s"
+    finetuning_job: "3600s"
+    stream_processing: "5s"
+    federated_query: "60s"
+
+# ============================================================================
+# 调优场景建议
+# ============================================================================
+tuning_scenarios:
+  # 高并发场景（>500 QPS）
+  high_concurrency:
+    description: "高并发场景调优建议"
+    actions:
+      - "增加服务副本数（HPA max_replicas 调高）"
+      - "增大连接池 maximum_pool_size 至 200"
+      - "启用 HTTP/2 多路复用"
+      - "增加 Tomcat max_threads 至 500"
+      - "启用 Caffeine 本地缓存减少 DB 访问"
+
+  # 低延迟场景（P99 < 100ms）
+  low_latency:
+    description: "低延迟场景调优建议"
+    actions:
+      - "JVM 切换 ZGC（-XX:+UseZGC）"
+      - "减小 GC 停顿目标（MaxGCPauseMillis=10）"
+      - "启用堆外内存（Direct Buffer）"
+      - "优化序列化（Protobuf 替代 JSON）"
+      - "预热连接池（启动时建立 min_idle 连接）"
+
+  # 大数据量场景（>1TB）
+  large_data_volume:
+    description: "大数据量场景调优建议"
+    actions:
+      - "增加 Spark executor 数量与内存"
+      - "启用 Spark AQE（自适应查询执行）"
+      - "Doris 启用向量化执行"
+      - "Kafka 增加分区数提升并行度"
+      - "IoTDB 启用 SNAPPY 压缩"
+
+  # 多租户场景（>100 租户）
+  multi_tenant:
+    description: "多租户场景调优建议"
+    actions:
+      - "启用租户级资源配额（ResourceQuota）"
+      - "配置租户级 HPA 独立扩缩容"
+      - "Redis 集群按租户分片"
+      - "数据库按租户隔离 schema"
+      - "启用租户级限流（APISIX 插件）"

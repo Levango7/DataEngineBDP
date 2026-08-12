@@ -4,6 +4,7 @@
     大模型网关 → X4 APISIX（prometheus 插件）→ L5.2 运营后台账单引擎）
 本模块为骨架，通过 Prometheus client 拉取指标。
 """
+
 from __future__ import annotations
 
 from datetime import timedelta

@@ -1,0 +1,94 @@
+# DCGM Exporter Helm values — GPU Exporter（基于 NVIDIA DCGM）
+#
+# 用途：采集 GPU 五维度中的 GPU 用量指标，按 gpu_model 标签区分卡型号
+# （A100/V100/昇腾910 等），供成本模型服务差异化定价。
+#
+# 部署：helm install dcgm-exporter nvidia/dcgm-exporter -f dcgm-exporter-values.yaml
+#
+# 前置条件：
+#   - 集群已安装 NVIDIA GPU Operator 或 nvidia-device-plugin
+#   - 节点已安装 NVIDIA 驱动与 DCGM
+#
+# 暴露指标示例：
+#   DCGM_FI_DEV_GPU_UTIL{gpu="0",gpu_model="A100",tenant="t1",namespace="ns1"} 85
+#   DCGM_FI_DEV_MEM_COPY_UTIL{gpu="0",gpu_model="A100",tenant="t1",namespace="ns1"} 60
+
+image:
+  repository: nvcr.io/nvidia/k8s/dcgm-exporter
+  tag: "3.3.0-ubuntu22.04"
+  pullPolicy: IfNotPresent
+
+# 服务端口（Prometheus 抓取 /metrics）
+service:
+  port: 9400
+  targetPort: 9400
+
+# 资源限制
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# 仅调度到 GPU 节点
+nodeSelector:
+  nvidia.com/gpu.present: "true"
+
+tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+# DCGM 采集字段配置（含 GPU 利用率、显存利用率、温度、功耗）
+dcgmConfig:
+  # 采集间隔（毫秒），1000ms = 1min 粒度满足 FinOps 要求
+  updateInterval: 1000
+  # 采集字段计数器
+  counters:
+    - DCGM_FI_DEV_GPU_UTIL          # GPU 利用率（%）
+    - DCGM_FI_DEV_MEM_COPY_UTIL     # 显存复制利用率（%）
+    - DCGM_FI_DEV_GPU_TEMP          # GPU 温度（℃）
+    - DCGM_FI_DEV_POWER_USAGE       # GPU 功耗（W）
+    - DCGM_FI_PROF_PIPE_ACTIVE      # 流水线活跃度
+    - DCGM_FI_PROF_SM_ACTIVE        # SM 活跃度
+
+# 映射额外标签（tenant + namespace），由 kube-state-metrics 或 Pod 注解注入
+extraLabels:
+  enabled: true
+  # 从 Pod 注解或标签映射到 Prometheus 标签
+  # tenant 标签来自 Namespace 注解 finops.shuqing.com/tenant
+  # namespace 标签来自 Pod namespace
+  mappings:
+    - from: namespace
+      to: namespace
+    - from: annotation:finops.shuqing.com/tenant
+      to: tenant
+
+# ServiceMonitor（Prometheus Operator 自动发现）
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  interval: 60s          # 采集粒度 ≤ 1min
+  scrapeTimeout: 30s
+  labels:
+    release: prometheus  # 与 Prometheus Operator 匹配
+  # 按 tenant + namespace + gpu_model 标签隔离
+  metricRelabelings:
+    - sourceLabels: [gpu_model]
+      targetLabel: gpu_model
+      regex: "(A100|V100|Ascend910|T4|.*).*"
+      replacement: "${1}"
+
+# 支持昇腾 NPU（华为昇腾 910）通过 hccn_tool 采集，映射为 DCGM 兼容指标
+ascend:
+  enabled: false
+  image:
+    repository: swr.cn-east-3.myhuaweicloud.com/ascendhub/ascend-npu-exporter
+    tag: "v1.0.0"
+  # 昇腾 NPU 暴露指标映射到 DCGM 命名空间
+  # NPU_Utilization → DCGM_FI_DEV_GPU_UTIL
+  # NPU_Memory_Usage → DCGM_FI_DEV_MEM_COPY_UTIL
+  nodeSelector:
+    accelerator/huawei-npu: "true"

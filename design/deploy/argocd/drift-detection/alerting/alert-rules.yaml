@@ -1,0 +1,130 @@
+# 告警规则 · 漂移事件触发条件
+# ============================================================================
+# 作用：定义漂移告警的触发条件与严重程度映射
+# 集成：本 ConfigMap 被 argocd-notifications-cm 引用
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-alert-rules
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-alerting
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移告警触发规则"
+data:
+  # ============================================================================
+  # 1. 严重程度判定规则
+  # ============================================================================
+  severity-rules.yaml: |
+    rules:
+      # Critical：镜像漂移
+      - name: image-drift
+        severity: critical
+        condition:
+          field: spec.template.spec.containers[*].image
+          operator: changed
+        description: "运行中镜像与 Git 声明不一致"
+
+      # High：ConfigMap/Secret data 变更
+      - name: config-data-drift
+        severity: high
+        condition:
+          resourceKind: [ConfigMap, Secret]
+          field: data
+          operator: changed
+        description: "ConfigMap/Secret 内容被直接修改"
+
+      # High：资源缺失（Git 声明但集群缺失）
+      - name: resource-missing
+        severity: high
+        condition:
+          syncStatus: OutOfSync
+          diffType: missing
+        description: "Git 声明的资源在集群中缺失"
+
+      # High：多余资源（集群有但 Git 没有）
+      - name: resource-extra
+        severity: high
+        condition:
+          syncStatus: OutOfSync
+          diffType: extra
+        description: "集群中存在 Git 未声明的资源"
+
+      # Medium：副本数变更
+      - name: replica-drift
+        severity: medium
+        condition:
+          field: spec.replicas
+          operator: changed
+        description: "副本数与声明不一致"
+
+      # Medium：资源限额变更
+      - name: resource-limit-drift
+        severity: medium
+        condition:
+          field: spec.containers[*].resources
+          operator: changed
+        description: "资源限额被修改"
+
+      # Low：标签变更
+      - name: label-drift
+        severity: low
+        condition:
+          field: metadata.labels
+          operator: changed
+        description: "资源标签被修改"
+
+      # Low：注解变更
+      - name: annotation-drift
+        severity: low
+        condition:
+          field: metadata.annotations
+          operator: changed
+        description: "资源注解被修改"
+
+  # ============================================================================
+  # 2. 告警抑制规则
+  # ============================================================================
+  suppression-rules.yaml: |
+    suppressions:
+      # 同 App 同类型 5 分钟内仅告警 1 次
+      - name: dedup-same-app-type
+        window: 5m
+        groupBy: [app, driftType]
+        maxAlerts: 1
+
+      # 修复中不重复告警
+      - name: suppress-during-remediation
+        condition: remediationStatus == 'in-progress'
+        suppress: true
+
+      # 维护窗口不告警
+      - name: suppress-maintenance
+        condition: app.metadata.annotations.maintenance == 'true'
+        suppress: true
+
+      # 熔断后仅告警 1 次
+      - name: suppress-circuit-breaker
+        condition: circuitBreaker == 'true'
+        window: 30m
+        maxAlerts: 1
+
+  # ============================================================================
+  # 3. 告警升级规则
+  # ============================================================================
+  escalation-rules.yaml: |
+    escalations:
+      # Critical 5 分钟未处理 → 升级到电话呼叫
+      - name: critical-escalation
+        severity: critical
+        unacknowledgedWindow: 5m
+        escalateTo: [pagerduty, phone-call]
+
+      # High 30 分钟未处理 → 升级到 SRE 全员
+      - name: high-escalation
+        severity: high
+        unacknowledgedWindow: 30m
+        escalateTo: [slack-@sre-team-all, email-sre-all]

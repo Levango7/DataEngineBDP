@@ -8,14 +8,13 @@
 
 以及内部/外部租户间结算。
 """
-from __future__ import annotations
 
+from __future__ import annotations
 
 # ---------- 辅助函数 ----------
 
-def _setup_asset_with_pricing(
-    client, name="billing-asset", owner="tenant-A", mode="by_call", price=0.05, unit="次"
-):
+
+def _setup_asset_with_pricing(client, name="billing-asset", owner="tenant-A", mode="by_call", price=0.05, unit="次"):
     """上架带定价的资产，返回 asset_id."""
     resp = client.post(
         "/api/v1/assets",
@@ -24,6 +23,7 @@ def _setup_asset_with_pricing(
             "type": "table",
             "owner": owner,
             "securityLevel": "internal",
+            "qualityScore": 85.0,
             "pricing": {"mode": mode, "price": price, "unit": unit},
         },
     )
@@ -62,10 +62,9 @@ def _charge(client, subscription_id, usage=1.0, period=None):
 
 # ---------- 按调用量计费 ----------
 
+
 def test_charge_by_call(client):
-    aid = _setup_asset_with_pricing(
-        client, name="by-call-asset", mode="by_call", price=0.05
-    )
+    aid = _setup_asset_with_pricing(client, name="by-call-asset", mode="by_call", price=0.05)
     sid = _setup_active_subscription(client, aid)
     record = _charge(client, sid, usage=100)
     assert record["mode"] == "by_call"
@@ -81,10 +80,9 @@ def test_charge_by_call(client):
 
 # ---------- 按数据量计费 ----------
 
+
 def test_charge_by_data(client):
-    aid = _setup_asset_with_pricing(
-        client, name="by-data-asset", mode="by_data", price=2.0, unit="千行"
-    )
+    aid = _setup_asset_with_pricing(client, name="by-data-asset", mode="by_data", price=2.0, unit="千行")
     sid = _setup_active_subscription(client, aid)
     record = _charge(client, sid, usage=5000)  # 5000 行
     # 金额 = 2.0 * 5000 / 1000 = 10.0
@@ -95,10 +93,9 @@ def test_charge_by_data(client):
 
 # ---------- 按时间计费 ----------
 
+
 def test_charge_by_time(client):
-    aid = _setup_asset_with_pricing(
-        client, name="by-time-asset", mode="by_time", price=100.0, unit="月"
-    )
+    aid = _setup_asset_with_pricing(client, name="by-time-asset", mode="by_time", price=100.0, unit="月")
     sid = _setup_active_subscription(client, aid)
     record = _charge(client, sid, usage=1)  # 1 个月
     # 金额 = 100.0 * 1 = 100.0
@@ -109,10 +106,9 @@ def test_charge_by_time(client):
 
 # ---------- 一次性买断 ----------
 
+
 def test_charge_one_time(client):
-    aid = _setup_asset_with_pricing(
-        client, name="one-time-asset", mode="one_time", price=5000.0, unit="买断"
-    )
+    aid = _setup_asset_with_pricing(client, name="one-time-asset", mode="one_time", price=5000.0, unit="买断")
     sid = _setup_active_subscription(client, aid)
     record = _charge(client, sid, usage=1)
     # 一次性买断：金额 = 5000.0
@@ -123,15 +119,14 @@ def test_charge_one_time(client):
 
 # ---------- 内部租户间结算 ----------
 
+
 def test_internal_settlement(client):
     """内部租户间流通走内部结算（成本系数 0.3）.
 
     租户 ID 以 ":" 分隔组织前缀，同组织前缀视为内部。
     """
     # 同组织 "org1" 下的不同租户视为内部
-    aid = _setup_asset_with_pricing(
-        client, name="internal-asset", owner="org1:001", mode="by_call", price=1.0
-    )
+    aid = _setup_asset_with_pricing(client, name="internal-asset", owner="org1:001", mode="by_call", price=1.0)
     sid = _setup_active_subscription(client, aid, subscriber="org1:002")
     record = _charge(client, sid, usage=100)
     # 金额 = 1.0 * 100 = 100.0
@@ -146,9 +141,7 @@ def test_internal_settlement(client):
 
 def test_external_settlement(client):
     """外部租户间流通走外部结算."""
-    aid = _setup_asset_with_pricing(
-        client, name="external-asset", owner="tenant-A", mode="by_call", price=1.0
-    )
+    aid = _setup_asset_with_pricing(client, name="external-asset", owner="tenant-A", mode="by_call", price=1.0)
     sid = _setup_active_subscription(client, aid, subscriber="tenant-B")
     record = _charge(client, sid, usage=100)
     assert record["isInternal"] is False
@@ -159,11 +152,10 @@ def test_external_settlement(client):
 
 # ---------- 计费记录查询 ----------
 
+
 def test_get_asset_billing(client):
     """查询资产计费记录汇总."""
-    aid = _setup_asset_with_pricing(
-        client, name="billing-query-asset", mode="by_call", price=0.1
-    )
+    aid = _setup_asset_with_pricing(client, name="billing-query-asset", mode="by_call", price=0.1)
     sid = _setup_active_subscription(client, aid)
     _charge(client, sid, usage=50, period="2026-08")
     _charge(client, sid, usage=30, period="2026-08")
@@ -191,11 +183,10 @@ def test_get_asset_billing_empty(client):
 
 # ---------- 计费周期 ----------
 
+
 def test_charge_with_period(client):
     """指定计费周期."""
-    aid = _setup_asset_with_pricing(
-        client, name="period-asset", mode="by_call", price=1.0
-    )
+    aid = _setup_asset_with_pricing(client, name="period-asset", mode="by_call", price=1.0)
     sid = _setup_active_subscription(client, aid)
     record = _charge(client, sid, usage=10, period="2026-07")
     assert record["period"] == "2026-07"
@@ -203,9 +194,7 @@ def test_charge_with_period(client):
 
 def test_charge_default_period(client):
     """不指定周期时默认取当前年月."""
-    aid = _setup_asset_with_pricing(
-        client, name="default-period-asset", mode="by_call", price=1.0
-    )
+    aid = _setup_asset_with_pricing(client, name="default-period-asset", mode="by_call", price=1.0)
     sid = _setup_active_subscription(client, aid)
     record = _charge(client, sid, usage=10)
     # 周期格式 YYYY-MM
@@ -215,11 +204,10 @@ def test_charge_default_period(client):
 
 # ---------- 使用统计关联 ----------
 
+
 def test_usage_after_subscription(client):
     """订阅审批后使用统计更新."""
-    aid = _setup_asset_with_pricing(
-        client, name="usage-asset", mode="by_call", price=0.1
-    )
+    aid = _setup_asset_with_pricing(client, name="usage-asset", mode="by_call", price=0.1)
     sid = _setup_active_subscription(client, aid)
     # 触发计费
     _charge(client, sid, usage=100)

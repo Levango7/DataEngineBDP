@@ -1,0 +1,167 @@
+﻿# 政务数据分级配置
+# ============================================================================
+# 归属：数据引擎大数据平台 · L5.3 行业应用模板 · 政务模板（government）
+# 对标：GB/T 31075-2017《政务数据分级分类规范》、等保2.0、关基保护要求
+# 关联：rbac/permissions.yaml（资源 classification 字段）；compliance/access-control.yaml
+# 生效方式：策略下推到 L2.7 统一 SQL 网关，查询时由网关注入分级检查，应用层不可绕过
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 数据分级定义
+data_classification:
+  # 分级标准元信息
+  standard:
+    name: GB/T 31075-2017 政务数据分级分类规范
+    version: "2017"
+    description: |
+      政务数据按敏感程度分为 4 级：L1 公开 / L2 内部 / L3 秘密 / L4 机密。
+      每级对应不同的存储/传输/访问/销毁要求。
+
+  # 分级定义列表
+  levels:
+    # --------------------------------------------------------------------------
+    # L1：公开数据
+    # --------------------------------------------------------------------------
+    - level_code: L1
+      level_name: 公开
+      level_rank: 1
+      description: |
+        可向社会公开发布的数据，如政务服务事项清单、热点事项排行、政策法规。
+      handling_requirements:
+        storage: 无特殊要求
+        transmission: 明文传输
+        access: 无限制
+        destruction: 无特殊要求
+      allowed_operations:
+        - read
+        - write
+        - export
+        - share
+      encryption_required: false
+      audit_required: false
+      retention_days: null
+      examples:
+        - government_service（政务服务事项主表）
+        - service_hot_topic（热点事项表）
+        - service_category（服务事项类别表）
+        - service_channel（服务渠道表）
+
+    # --------------------------------------------------------------------------
+    # L2：内部数据
+    # --------------------------------------------------------------------------
+    - level_code: L2
+      level_name: 内部
+      level_rank: 2
+      description: |
+        政务内部业务数据，不对外公开但敏感度较低，如人口结构汇总、经济指标、服务统计。
+      handling_requirements:
+        storage: 加密存储
+        transmission: 加密传输（TLS）
+        access: 内部用户认证
+        destruction: 安全删除
+      allowed_operations:
+        - read
+        - write
+        - export
+      encryption_required: true
+      audit_required: true
+      retention_days: 3650
+      examples:
+        - population_structure（人口结构汇总表）
+        - population_flow（人口流动追踪表）
+        - gdp（GDP 核算表）
+        - service_statistics（政务服务统计表）
+
+    # --------------------------------------------------------------------------
+    # L3：秘密数据
+    # --------------------------------------------------------------------------
+    - level_code: L3
+      level_name: 秘密
+      level_rank: 3
+      description: |
+        含个人敏感信息或敏感运营数据，如人口基础信息（身份证号/姓名脱敏）、
+        财政收支、政务服务办理记录（申请人脱敏）。
+      handling_requirements:
+        storage: 加密存储 + 字段级脱敏
+        transmission: 加密传输（TLS）+ 端到端加密
+        access: 角色授权 + 审计
+        destruction: 安全删除 + 审计
+      allowed_operations:
+        - read
+        - write
+      encryption_required: true
+      audit_required: true
+      retention_days: 3650
+      examples:
+        - population_base（人口基础信息表，含身份证号/姓名脱敏）
+        - fiscal_revenue（财政收入表）
+        - fiscal_expenditure（财政支出表）
+        - service_transaction（政务服务办理记录表）
+
+    # --------------------------------------------------------------------------
+    # L4：机密数据
+    # --------------------------------------------------------------------------
+    - level_code: L4
+      level_name: 机密
+      level_rank: 4
+      description: |
+        最高保护级别，如审计日志、权限定义、角色权限关联。
+        不可篡改、不可删除，保留期 ≥ 180 天。
+      handling_requirements:
+        storage: 加密存储 + 不可篡改（WORM）
+        transmission: 加密传输（mTLS）
+        access: 严格角色授权 + 双因素认证 + 审计
+        destruction: 不可删除（合规保留期内）
+      allowed_operations:
+        - read
+      encryption_required: true
+      audit_required: true
+      retention_days: 1825
+      examples:
+        - audit_log（审计日志表）
+        - gov_permission（权限定义表）
+        - gov_role_permission（角色-权限关联表）
+
+  # 表-分级映射
+  table_classification:
+    # 人口分析域
+    - {table: population_base,                    classification: L3}
+    - {table: population_structure,               classification: L2}
+    - {table: population_flow,                    classification: L2}
+    - {table: population_forecast,                classification: L2}
+    - {table: population_age_distribution,        classification: L2}
+    - {table: population_gender_distribution,     classification: L2}
+    - {table: population_education_distribution,  classification: L2}
+    - {table: population_employment_distribution, classification: L2}
+    # 经济运行域
+    - {table: gdp,                       classification: L2}
+    - {table: industry_structure,        classification: L2}
+    - {table: fixed_asset_investment,    classification: L2}
+    - {table: social_retail_consumption, classification: L2}
+    - {table: foreign_trade,             classification: L2}
+    - {table: fiscal_revenue,            classification: L3}
+    - {table: fiscal_expenditure,        classification: L3}
+    - {table: economic_indicator,        classification: L2}
+    # 民生服务域
+    - {table: government_service,      classification: L1}
+    - {table: service_transaction,     classification: L3}
+    - {table: service_satisfaction,    classification: L2}
+    - {table: service_hot_topic,       classification: L1}
+    - {table: service_statistics,      classification: L2}
+    - {table: service_evaluation,      classification: L2}
+    - {table: service_category,        classification: L1}
+    - {table: service_channel,         classification: L1}
+    # 政务合规域
+    - {table: data_classification,      classification: L2}
+    - {table: desensitize_rule,         classification: L2}
+    - {table: audit_log,                classification: L4}
+    - {table: access_control_policy,    classification: L2}
+    - {table: access_control_record,    classification: L3}
+    - {table: compliance_risk_alert,    classification: L3}
+    - {table: compliance_check_record,  classification: L2}
+    - {table: compliance_policy,        classification: L2}
+    # RBAC 域
+    - {table: gov_role,            classification: L2}
+    - {table: gov_permission,      classification: L4}
+    - {table: gov_role_permission, classification: L4}
+    - {table: gov_user_role,       classification: L3}

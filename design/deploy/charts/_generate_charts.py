@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
 批量生成 33 个 Helm Chart 骨架（修复版）。
@@ -177,13 +177,13 @@ def gen_chart_yaml(name, desc, app_version, category, namespace, keywords):
     kw_list = "\n".join(f"  - {k}" for k in keywords.split(","))
     return f"""apiVersion: v2
 name: {name}
-description: "{desc} - 数擎大数据平台"
+description: "{desc} - 数据引擎大数据平台"
 type: application
 version: 0.1.0
 appVersion: "{app_version}"
-home: https://github.com/ShuqingBigDataPlatform
+home: https://github.com/DataEngineBDP
 maintainers:
-  - name: ShuqingBigDataPlatform Team
+  - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:
 {kw_list}

@@ -1,0 +1,200 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "retail_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_retail",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "member",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "会员基本信息主表 | DDL: member_analysis_ddl.sql §1",
+      "columns": [
+        {"name": "member_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "member_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "member_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "points_balance", "type": "INT", "is_dttm": false},
+        {"name": "register_channel", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "register_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "last_purchase_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "member_rfm",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "会员 RFM 分群表 | DDL: member_analysis_ddl.sql §2",
+      "columns": [
+        {"name": "member_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "recency_days", "type": "INT", "is_dttm": false},
+        {"name": "frequency", "type": "INT", "is_dttm": false},
+        {"name": "monetary", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "r_score", "type": "INT", "is_dttm": false},
+        {"name": "f_score", "type": "INT", "is_dttm": false},
+        {"name": "m_score", "type": "INT", "is_dttm": false},
+        {"name": "rfm_score", "type": "INT", "is_dttm": false},
+        {"name": "rfm_segment", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "segment_value_level", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "member_churn_prediction",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "会员流失预测表 | DDL: member_analysis_ddl.sql §3",
+      "columns": [
+        {"name": "member_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "predicted_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "churn_probability", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "churn_label", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "risk_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "model_name", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "model_version", "type": "VARCHAR(32)", "is_dttm": false}
+      ],
+      "main_dttm_col": "predicted_at"
+    },
+    {
+      "table_name": "member_ltv",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "会员生命周期价值表 | DDL: member_analysis_ddl.sql §4",
+      "columns": [
+        {"name": "member_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "computed_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "historical_value", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "predicted_value_365d", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "total_ltv", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "ltv_segment", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "predicted_p_alive", "type": "DECIMAL(5,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "computed_at"
+    },
+    {
+      "table_name": "member_tag",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "会员标签表 | DDL: member_analysis_ddl.sql §5",
+      "columns": [
+        {"name": "tag_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "member_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tag_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tag_value", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "tag_category", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "tag_source", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "tagged_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "tagged_at"
+    },
+    {
+      "table_name": "member_behavior_profile",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "会员行为画像表 | DDL: member_analysis_ddl.sql §6",
+      "columns": [
+        {"name": "member_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "computed_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "active_days_30d", "type": "INT", "is_dttm": false},
+        {"name": "purchase_count_30d", "type": "INT", "is_dttm": false},
+        {"name": "purchase_amount_30d", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "price_sensitivity", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "preferred_channel", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "activity_score", "type": "DECIMAL(5,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "computed_at"
+    }
+  ],
+  "dashboards": [
+    {
+      "slug": "member-dashboard",
+      "title": "会员分析仪表盘",
+      "description": "零售行业模板 - 会员分析仪表盘：RFM 8 分群、流失风险分布、LTV 分层、会员等级金字塔",
+      "owners": ["admin"],
+      "position": {"DASHBOARD_VERSION": "v2", "DASHBOARD_ROOT_ID": "MEMBER_ANALYSIS_ROOT"},
+      "metadata": {
+        "industry": "retail",
+        "domain": "member_analysis",
+        "template": "retail-template",
+        "version": "1.0.0"
+      },
+      "charts": [
+        {
+          "slice_name": "RFM 分群分布",
+          "viz_type": "bar",
+          "datasource": "member_rfm",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "会员数"}],
+            "groupby": ["rfm_segment"],
+            "orderby": [{"column": "rfm_segment", "direction": "asc"}],
+            "where": "stat_date = '{{ ds }}'"
+          }
+        },
+        {
+          "slice_name": "RFM 价值等级占比",
+          "viz_type": "pie",
+          "datasource": "member_rfm",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "会员数"}],
+            "groupby": ["segment_value_level"],
+            "donut": true,
+            "where": "stat_date = '{{ ds }}'"
+          }
+        },
+        {
+          "slice_name": "流失风险等级分布",
+          "viz_type": "bar",
+          "datasource": "member_churn_prediction",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "会员数"}],
+            "groupby": ["risk_level"],
+            "colors": {"HIGH": "#FF0000", "MEDIUM": "#FFA500", "LOW": "#00FF00"},
+            "where": "predicted_at >= '{{ ds }} 00:00:00'"
+          }
+        },
+        {
+          "slice_name": "LTV 分层金字塔",
+          "viz_type": "bar",
+          "datasource": "member_ltv",
+          "params": {
+            "metrics": [
+              {"expressionType": "SQL", "sqlExpression": "SUM(total_ltv)", "label": "总 LTV"}
+            ],
+            "groupby": ["ltv_segment"],
+            "orderby": [{"column": "ltv_segment", "direction": "asc"}]
+          }
+        },
+        {
+          "slice_name": "会员等级金字塔",
+          "viz_type": "bar",
+          "datasource": "member",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "会员数"}],
+            "groupby": ["member_level"],
+            "orderby": [{"column": "member_level", "direction": "asc"}]
+          }
+        },
+        {
+          "slice_name": "活跃度 vs 消费金额散点图",
+          "viz_type": "scatter",
+          "datasource": "member_behavior_profile",
+          "params": {
+            "x": {"datasource": "member_behavior_profile", "column": "activity_score"},
+            "y": {"datasource": "member_behavior_profile", "column": "purchase_amount_30d"},
+            "groupby": ["preferred_channel"]
+          }
+        }
+      ]
+    }
+  ]
+}

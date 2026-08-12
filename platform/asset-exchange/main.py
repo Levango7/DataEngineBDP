@@ -7,6 +7,7 @@ Usage:
     ASSET_EXCHANGE_STORE_TYPE=mock python main.py        # Mock 模式
     ASSET_EXCHANGE_HOST=127.0.0.1 ASSET_EXCHANGE_PORT=9000 python main.py
 """
+
 from __future__ import annotations
 
 import uvicorn

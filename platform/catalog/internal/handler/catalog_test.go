@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/shuqing/bigdata/catalog/internal/model"
-	"github.com/shuqing/bigdata/catalog/internal/store"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/store"
 )
 
 // mockStore 是 store.Store 接口的 mock 实现，用于 handler 测试。

@@ -1,4 +1,4 @@
-{{/*
+﻿{{/*
 Expand the name of the chart.
 */}}
 {{- define "cni-cilium.name" -}}
@@ -27,9 +27,9 @@ Chart labels.
 {{- define "cni-cilium.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{ include "cni-cilium.selectorLabels" . }}
-{{- if .Chart.AppVersion -}}
+{{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end -}}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end -}}
 

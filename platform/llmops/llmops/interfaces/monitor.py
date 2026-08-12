@@ -3,6 +3,7 @@
 提供运行时指标采集：综合指标 / 延迟 / 吞吐 / 错误率。
 对齐 L4.5.6 大模型网关的计量链路（Prometheus 采集）。
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

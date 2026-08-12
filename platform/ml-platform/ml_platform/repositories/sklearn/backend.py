@@ -11,11 +11,12 @@
 通过配置开关 ML_BACKEND_TYPE=sklearn 启用；sklearn 未安装时抛 BackendUnavailableError。
 模型产物以 joblib 序列化保存到 artifactUri 指向的路径（内存态时仅保留在内存）。
 """
+
 from __future__ import annotations
 
 import time
+from typing import Any
 import uuid
-from typing import Any, Optional
 
 from ml_platform.interfaces.backend import MLBackend
 from ml_platform.models import (
@@ -41,28 +42,24 @@ from ml_platform.repositories import (
 def _requireSklearn():
     """延迟导入 sklearn，未安装则抛 BackendUnavailableError."""
     try:
-        import sklearn  # noqa: F401
         import numpy  # noqa: F401
+        import sklearn  # noqa: F401
     except ImportError as e:
-        raise BackendUnavailableError(
-            f"scikit-learn 未安装: {e}。请安装 sq-ml-platform[sklearn]"
-        ) from e
+        raise BackendUnavailableError(f"scikit-learn 未安装: {e}。请安装 sq-ml-platform[sklearn]") from e
 
 
-def _buildEstimator(
-    algorithm: AlgorithmType, params: dict[str, Any], randomState: int
-):
+def _buildEstimator(algorithm: AlgorithmType, params: dict[str, Any], randomState: int):
     """根据算法类型与超参构造 sklearn 估计器."""
-    from sklearn.linear_model import (
-        LinearRegression,
-        LogisticRegression,
-    )
+    from sklearn.cluster import KMeans
     from sklearn.ensemble import (
         RandomForestClassifier,
         RandomForestRegressor,
     )
+    from sklearn.linear_model import (
+        LinearRegression,
+        LogisticRegression,
+    )
     from sklearn.svm import SVC, SVR
-    from sklearn.cluster import KMeans
 
     if algorithm == AlgorithmType.LINEAR_REGRESSION:
         return LinearRegression(**params)
@@ -106,9 +103,7 @@ def _isClustering(algorithm: AlgorithmType) -> bool:
     return algorithm == AlgorithmType.KMEANS
 
 
-def _normalizeSamples(
-    data: dict[str, Any] | list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def _normalizeSamples(data: dict[str, Any] | list[dict[str, Any]]) -> list[dict[str, Any]]:
     """把列优先 dict 或行优先 list 统一为行优先 list."""
     if isinstance(data, list):
         return data
@@ -116,14 +111,10 @@ def _normalizeSamples(
     if not columns:
         return []
     n = len(next(iter(columns.values())))
-    return [
-        {k: v[i] for k, v in columns.items()} for i in range(n)
-    ]
+    return [{k: v[i] for k, v in columns.items()} for i in range(n)]
 
 
-def _toMatrix(
-    samples: list[dict[str, Any]], features: list[str]
-):
+def _toMatrix(samples: list[dict[str, Any]], features: list[str]):
     """把样本列表转为 numpy 二维矩阵，按 features 列顺序."""
     import numpy as np
 
@@ -134,9 +125,7 @@ def _toMatrix(
     return np.array(matrix, dtype=float)
 
 
-def _computeMetrics(
-    yTrue, yPred, algorithm: AlgorithmType, requested: list[str]
-) -> dict[str, float]:
+def _computeMetrics(yTrue, yPred, algorithm: AlgorithmType, requested: list[str]) -> dict[str, float]:
     """按算法类型与请求指标计算评估指标."""
     import numpy as np
     from sklearn.metrics import (
@@ -210,9 +199,7 @@ class SklearnMLBackend(MLBackend):
             if not config.features:
                 # 默认使用所有特征列
                 config.features = [f"f{i}" for i in range(X.shape[1])]
-            estimator = _buildEstimator(
-                config.algorithm, dict(config.params), config.randomState
-            )
+            estimator = _buildEstimator(config.algorithm, dict(config.params), config.randomState)
             start = time.time()
             if _isClustering(config.algorithm):
                 estimator.fit(X)
@@ -229,7 +216,9 @@ class SklearnMLBackend(MLBackend):
             else:
                 yPred = estimator.predict(X)
                 trainMetrics = _computeMetrics(
-                    y, yPred, config.algorithm,
+                    y,
+                    yPred,
+                    config.algorithm,
                     ["accuracy"] if _isClassification(config.algorithm) else ["rmse", "r2"],
                 )
 
@@ -273,9 +262,7 @@ class SklearnMLBackend(MLBackend):
 
     # ---------- 预测 ----------
 
-    async def predict(
-        self, modelId: str, data: dict
-    ) -> PredictionResult:
+    async def predict(self, modelId: str, data: dict) -> PredictionResult:
         if modelId not in self._models:
             raise ModelNotFoundError(modelId)
         estimator = self._artifacts[modelId]
@@ -303,9 +290,7 @@ class SklearnMLBackend(MLBackend):
 
     # ---------- 评估 ----------
 
-    async def evaluate(
-        self, modelId: str, evalConfig: EvalConfig
-    ) -> EvalResult:
+    async def evaluate(self, modelId: str, evalConfig: EvalConfig) -> EvalResult:
         if modelId not in self._models:
             raise ModelNotFoundError(modelId)
         estimator = self._artifacts[modelId]
@@ -316,13 +301,9 @@ class SklearnMLBackend(MLBackend):
         yPred = estimator.predict(X)
         if _isClustering(algorithm):
             # 聚类：silhouette 需要 X 与 labels
-            metrics = _computeMetrics(
-                X, yPred, algorithm, evalConfig.metrics
-            )
+            metrics = _computeMetrics(X, yPred, algorithm, evalConfig.metrics)
         else:
-            metrics = _computeMetrics(
-                y, yPred, algorithm, evalConfig.metrics
-            )
+            metrics = _computeMetrics(y, yPred, algorithm, evalConfig.metrics)
         return EvalResult(
             modelId=modelId,
             dataset=evalConfig.dataset,
@@ -387,8 +368,7 @@ def _loadDataset(config: TrainingConfig):
     inline = config.params.get("_inline_data")
     if inline is None:
         raise ValidationError(
-            "sklearn 后端骨架要求 config.params['_inline_data'] 提供内联数据；"
-            "真实场景应实现数据集加载逻辑"
+            "sklearn 后端骨架要求 config.params['_inline_data'] 提供内联数据；" "真实场景应实现数据集加载逻辑"
         )
     X = np.array(inline["X"], dtype=float)
     y = None
@@ -401,11 +381,7 @@ def _loadDataset(config: TrainingConfig):
 
 def _loadDatasetForEval(evalConfig: EvalConfig):
     """从评估配置加载数据集（骨架）."""
-    import numpy as np
 
     # 简化：evalConfig.dataset 形如 "inline:<base64>" 暂不实现，
     # 测试通过服务层注入；此处返回空矩阵
-    raise ValidationError(
-        "sklearn 评估骨架需通过服务层注入评估数据；"
-        "真实场景应实现数据集加载逻辑"
-    )
+    raise ValidationError("sklearn 评估骨架需通过服务层注入评估数据；" "真实场景应实现数据集加载逻辑")

@@ -1,0 +1,147 @@
+# 漂移审计 ConfigMap · 审计配置与 SIEM 集成
+# ============================================================================
+# 作用：配置漂移审计的 SIEM 推送 / 报告生成 / 保留策略
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-audit-config
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-audit
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移审计配置"
+data:
+  # ============================================================================
+  # 1. SIEM 推送配置（实时推送审计事件到 SIEM）
+  # ============================================================================
+  siem-config.yaml: |
+    siem:
+      # ELK / Splunk webhook 接收审计事件
+      enabled: true
+      endpoint: http://elasticsearch.logging.svc.cluster.local:9200/drift-audit/_doc
+      method: POST
+      # 批量推送（每 10 秒或每 100 条）
+      batchSize: 100
+      flushInterval: 10s
+      # 失败重试
+      retry:
+        max: 3
+        backoff: 5s
+      # 推送的事件类型
+      events:
+        - drift-detected
+        - remediation-succeeded
+        - remediation-failed
+        - circuit-breaker-triggered
+        - compliance-violation
+
+  # ============================================================================
+  # 2. 审计日志保留策略
+  # ============================================================================
+  retention-config.yaml: |
+    retention:
+      # 集群内 ConfigMap 保留期
+      configmap:
+        drift-event: 7d
+        remediation-event: 7d
+        circuit-breaker: 1d
+      # 对象存储保留期
+      objectStorage:
+        audit-log: 90d
+        compliance-report: 365d
+      # 清理 CronJob 每日凌晨 03:00 执行
+      cleanupSchedule: "0 3 * * *"
+
+  # ============================================================================
+  # 3. 合规报告配置
+  # ============================================================================
+  report-config.yaml: |
+    report:
+      # 周报：每周一 08:00 生成
+      weeklySchedule: "0 8 * * 1"
+      # 月报：每月 1 日 08:00 生成
+      monthlySchedule: "0 8 1 * *"
+      # 报告内容
+      sections:
+        - drift-summary        # 漂移统计
+        - remediation-summary  # 修复统计
+        - compliance-violations # 违规变更
+        - circuit-breakers     # 熔断事件
+        - recommendations      # 合规建议
+      # 报告格式
+      format: html
+      # 报告接收人
+      recipients:
+        - sre-team@company.com
+        - compliance@company.com
+      # 报告存储
+      storage:
+        type: s3
+        bucket: shuqing-audit
+        path: reports/drift/
+
+  # ============================================================================
+  # 4. 对象存储配置（MinIO/S3）
+  # ============================================================================
+  storage-config.yaml: |
+    storage:
+      type: minio
+      endpoint: http://minio.storage.svc.cluster.local:9000
+      bucket: shuqing-audit
+      # 凭证从 Secret 引用
+      secretRef: drift-audit-storage-secret
+      # 路径模板
+      paths:
+        auditLog: "audit/drift/{{.Date}}.jsonl"
+        weeklyReport: "reports/drift/weekly-{{.Week}}.html"
+        monthlyReport: "reports/drift/monthly-{{.Month}}.html"
+
+  # ============================================================================
+  # 5. 审计事件 schema（用于校验）
+  # ============================================================================
+  event-schema.json: |
+    {
+      "type": "object",
+      "required": ["audit-id", "timestamp", "event-type", "app", "environment"],
+      "properties": {
+        "audit-id": {"type": "string"},
+        "timestamp": {"type": "string", "format": "date-time"},
+        "event-type": {
+          "type": "string",
+          "enum": ["drift-detected", "remediation-succeeded", "remediation-failed",
+                   "circuit-breaker-triggered", "compliance-violation"]
+        },
+        "app": {"type": "string"},
+        "environment": {"type": "string", "enum": ["dev", "staging", "prod"]},
+        "severity": {"type": "string", "enum": ["critical", "high", "medium", "low"]},
+        "drift-type": {"type": "string"},
+        "resource": {"type": "string"},
+        "source": {
+          "type": "object",
+          "properties": {
+            "user": {"type": "string"},
+            "operation": {"type": "string"},
+            "source-ip": {"type": "string"}
+          }
+        },
+        "remediation": {
+          "type": "object",
+          "properties": {
+            "action": {"type": "string"},
+            "status": {"type": "string"},
+            "duration": {"type": "string"},
+            "operator": {"type": "string"}
+          }
+        },
+        "compliance": {
+          "type": "object",
+          "properties": {
+            "rule-violated": {"type": "string"},
+            "compliant": {"type": "boolean"}
+          }
+        }
+      }
+    }

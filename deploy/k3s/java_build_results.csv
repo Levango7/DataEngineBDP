@@ -1,0 +1,7 @@
+"Name","Status"
+"infra-orchestrator","Success"
+"infra-provider-cloud","Success"
+"infra-provider-private","Success"
+"infra-provider-xinchang","Success"
+"lineage-analyzer","Failed"
+"metadata-collector","Success"

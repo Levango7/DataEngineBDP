@@ -5,6 +5,7 @@
     - Prompt 模板与解析逻辑分离，便于切换模型。
     - 网关不可用时抛 ExtractorUnavailableError，不静默失败。
 """
+
 from __future__ import annotations
 
 import json
@@ -53,13 +54,9 @@ class LLMEntityExtractor(EntityExtractor):
         self.api_key = api_key
         self.timeout = timeout
 
-    async def extract(
-        self, text: str, entity_types: list[str] | None = None
-    ) -> list[Entity]:
+    async def extract(self, text: str, entity_types: list[str] | None = None) -> list[Entity]:
         types = entity_types or ["Person", "Organization", "City", "Date"]
-        prompt = _PROMPT_TEMPLATE.format(
-            entity_types=", ".join(types), text=text
-        )
+        prompt = _PROMPT_TEMPLATE.format(entity_types=", ".join(types), text=text)
         payload = await self._call_llm(prompt)
         return self._parse_entities(payload, types)
 

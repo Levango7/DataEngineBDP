@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
 )
 
 // setupGormStore 创建内存 SQLite 测试存储（纯 Go 驱动，无需 CGO）。

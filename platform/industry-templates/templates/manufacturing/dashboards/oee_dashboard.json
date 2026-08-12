@@ -1,0 +1,231 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "manufacturing_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_manufacturing",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "equipment",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "设备主表 | 设备台账/产线归属/状态 | DDL: oee_ddl.sql §1",
+      "columns": [
+        {"name": "equipment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "equipment_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "equipment_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "equipment_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "line_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "rated_capacity", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "rated_speed", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "production_line",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "产线主表 | 产线定义/车间/班次模式 | DDL: oee_ddl.sql §2",
+      "columns": [
+        {"name": "line_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "line_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "line_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "workshop", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "target_oee", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "updated_at"
+    },
+    {
+      "table_name": "equipment_oee_daily",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "设备 OEE 日汇总表 | 可用率/性能率/质量率/OEE | DDL: oee_ddl.sql §5",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "equipment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "equipment_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "line_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "line_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "planned_time", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "run_time", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "down_time", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "availability", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "ideal_output", "type": "INT", "is_dttm": false},
+        {"name": "actual_output", "type": "INT", "is_dttm": false},
+        {"name": "performance", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "good_output", "type": "INT", "is_dttm": false},
+        {"name": "defect_output", "type": "INT", "is_dttm": false},
+        {"name": "quality", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "oee", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "target_oee", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "oee_gap", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "equipment_oee_shift",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "设备 OEE 班次汇总表 | 班次级 OEE | DDL: oee_ddl.sql §6",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "equipment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "line_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "shift_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "shift_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "availability", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "performance", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "quality", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "oee", "type": "DECIMAL(6,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "equipment_status_log",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "设备状态变更日志表 | 来源 IoTDB | DDL: oee_ddl.sql §4",
+      "columns": [
+        {"name": "log_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "equipment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "status_from", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "status_to", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "occurred_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "duration_sec", "type": "INT", "is_dttm": false},
+        {"name": "fault_code", "type": "VARCHAR(64)", "is_dttm": false}
+      ],
+      "main_dttm_col": "occurred_at"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "设备 OEE 分析仪表盘",
+      "slug": "oee-dashboard",
+      "description": "制造行业模板 - 设备综合效率(OEE)分析仪表盘。OEE=可用率×性能率×质量率。含 OEE 趋势、产线对比、设备排名、故障分析等图表。",
+      "owners": ["admin"],
+      "position": {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "DASHBOARD_ROOT_ID": {
+          "type": "DASHBOARD_ROOT",
+          "id": "DASHBOARD_ROOT_ID",
+          "children": [
+            {"type": "CHART", "id": "chart_oee_trend"},
+            {"type": "CHART", "id": "chart_oee_by_line"},
+            {"type": "CHART", "id": "chart_equipment_ranking"},
+            {"type": "CHART", "id": "chart_availability_performance_quality"},
+            {"type": "CHART", "id": "chart_downtime_analysis"},
+            {"type": "CHART", "id": "chart_oee_vs_target"}
+          ]
+        }
+      },
+      "charts": [
+        {
+          "id": "chart_oee_trend",
+          "slice_name": "OEE 日趋势",
+          "viz_type": "line",
+          "datasource_id": "equipment_oee_daily",
+          "params": {
+            "x_axis": "stat_date",
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "oee"}, "aggregate": "AVG"}],
+            "groupby": [],
+            "time_range": "Last 30 days",
+            "color_scheme": "supersetColors",
+            "y_axis_format": ".1%",
+            "x_axis_title": "日期",
+            "y_axis_title": "OEE"
+          }
+        },
+        {
+          "id": "chart_oee_by_line",
+          "slice_name": "产线 OEE 对比",
+          "viz_type": "bar",
+          "datasource_id": "equipment_oee_daily",
+          "params": {
+            "x_axis": "line_code",
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "oee"}, "aggregate": "AVG"}],
+            "groupby": ["line_code"],
+            "time_range": "Last 7 days",
+            "color_scheme": "supersetColors",
+            "y_axis_format": ".1%"
+          }
+        },
+        {
+          "id": "chart_equipment_ranking",
+          "slice_name": "设备 OEE 排名 Top10",
+          "viz_type": "table",
+          "datasource_id": "equipment_oee_daily",
+          "params": {
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "oee"}, "aggregate": "AVG", "label": "OEE"},
+              {"expressionType": "SIMPLE", "column": {"name": "availability"}, "aggregate": "AVG", "label": "可用率"},
+              {"expressionType": "SIMPLE", "column": {"name": "performance"}, "aggregate": "AVG", "label": "性能率"},
+              {"expressionType": "SIMPLE", "column": {"name": "quality"}, "aggregate": "AVG", "label": "质量率"}
+            ],
+            "groupby": ["equipment_code"],
+            "time_range": "Last 7 days",
+            "order_by": "AVG(oee) DESC",
+            "row_limit": 10
+          }
+        },
+        {
+          "id": "chart_availability_performance_quality",
+          "slice_name": "可用率/性能率/质量率雷达图",
+          "viz_type": "dist_bar",
+          "datasource_id": "equipment_oee_daily",
+          "params": {
+            "x_axis": "line_code",
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "availability"}, "aggregate": "AVG", "label": "可用率"},
+              {"expressionType": "SIMPLE", "column": {"name": "performance"}, "aggregate": "AVG", "label": "性能率"},
+              {"expressionType": "SIMPLE", "column": {"name": "quality"}, "aggregate": "AVG", "label": "质量率"}
+            ],
+            "groupby": ["line_code"],
+            "time_range": "Last 7 days",
+            "y_axis_format": ".1%"
+          }
+        },
+        {
+          "id": "chart_downtime_analysis",
+          "slice_name": "停机原因分析",
+          "viz_type": "pie",
+          "datasource_id": "equipment_status_log",
+          "params": {
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "duration_sec"}, "aggregate": "SUM", "label": "停机时长(秒)"}],
+            "groupby": ["status_to"],
+            "time_range": "Last 7 days",
+            "donut": true
+          }
+        },
+        {
+          "id": "chart_oee_vs_target",
+          "slice_name": "OEE 达成率（实际 vs 目标）",
+          "viz_type": "bar",
+          "datasource_id": "equipment_oee_daily",
+          "params": {
+            "x_axis": "line_code",
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "oee"}, "aggregate": "AVG", "label": "实际 OEE"},
+              {"expressionType": "SIMPLE", "column": {"name": "target_oee"}, "aggregate": "AVG", "label": "目标 OEE"}
+            ],
+            "groupby": ["line_code"],
+            "time_range": "Last 7 days",
+            "y_axis_format": ".1%"
+          }
+        }
+      ]
+    }
+  ]
+}
