@@ -63,3 +63,4 @@ tests/**/pytest_html_report.html
 
 # InsCode agent metadata
 .inscode/
+.atomcode/

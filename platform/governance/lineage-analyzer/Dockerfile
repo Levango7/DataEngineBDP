@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
@@ -32,8 +32,9 @@ COPY governance/lineage-analyzer/pom.xml ./
 COPY governance/lineage-analyzer/src ./src
 
 # 构建 lineage-analyzer
-RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q clean package -DskipTests
+# 注意：不能用 --mount=type=cache,target=/root/.m2/repository,
+# 那会遮蔽第 28 行 COPY 进来的 sql-gateway 构件（mount 后会指向 runner 上的空缓存目录）
+RUN mvn -B -q clean package -DskipTests
 
 # =============================================================================
 # 阶段 3: 运行
@@ -42,7 +43,7 @@ FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="lineage-analyzer" \
       org.opencontainers.image.description="数据引擎大数据平台 - 数据血缘分析引擎" \
-      org.opencontainers.image.source="https://github.com/shuqing-bigdata/DataEngineBDP"
+      org.opencontainers.image.source="https://github.com/Levango7/DataEngineBDP"
 
 # 创建非 root 用户 (alpine busybox 语法)
 RUN addgroup -S -g 1001 appgroup \
