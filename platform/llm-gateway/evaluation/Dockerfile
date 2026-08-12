@@ -1,4 +1,4 @@
-﻿# T031 模型评测平台 Dockerfile
+# T031 模型评测平台 Dockerfile
 # 数据引擎大数据平台 · 模型评测任务引擎 + A/B 对比报告
 #
 # 构建：docker build -t shuqing/evaluation:0.1.0 -f platform/llm-gateway/evaluation/Dockerfile platform/llm-gateway/evaluation

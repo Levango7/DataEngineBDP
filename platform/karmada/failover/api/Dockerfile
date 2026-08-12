@@ -6,7 +6,8 @@
 # ---------------------------------------------------------------------------
 # 阶段 1：编译
 # ---------------------------------------------------------------------------
-FROM golang:1.25-alpine AS builder
+FROM golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -18,7 +19,7 @@ RUN go mod download
 COPY . .
 
 # 编译静态二进制（CGO_ENABLED=0 适配 SQLite 纯 Go 驱动）。
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o failover-api .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o failover-api .
 
 # ---------------------------------------------------------------------------
 # 阶段 2：运行

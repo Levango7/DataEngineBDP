@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # 多阶段构建：构建阶段
-FROM golang:1.21-alpine AS builder
+FROM golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -10,7 +11,7 @@ RUN go mod download
 
 # 拷贝源码并构建静态二进制。
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o dqctl .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o dqctl .
 
 # 运行阶段：最小化镜像
 FROM alpine:3.19

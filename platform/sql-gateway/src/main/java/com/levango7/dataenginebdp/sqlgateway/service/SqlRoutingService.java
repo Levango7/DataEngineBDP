@@ -57,10 +57,17 @@ public class SqlRoutingService {
      */
     private final BackendProxyService backendProxyService;
 
+    /**
+     * 查询计量收集器（可选；未注入时计量静默跳过，不影响查询主链路）。
+     */
+    private final com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector;
+
     public SqlRoutingService(BackendProxyService backendProxyService,
-                             RouteRuleRepository routeRuleRepository) {
+                             RouteRuleRepository routeRuleRepository,
+                             com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector) {
         this.backendProxyService = backendProxyService;
         this.routeRuleRepository = routeRuleRepository;
+        this.meteringCollector = meteringCollector;
     }
 
     /**
@@ -109,6 +116,8 @@ public class SqlRoutingService {
 
             // 用网关生成的 queryId 覆盖后端响应中的 queryId，保证全局唯一可追踪
             response.setQueryId(queryId);
+            recordMetering(tenantId, targetEngine, sql, start,
+                    System.currentTimeMillis() - start, queryId);
             return response;
         } catch (IllegalStateException e) {
             // Mono.block 超时会抛 IllegalStateException("Timeout on blocking read...")
@@ -222,5 +231,34 @@ public class SqlRoutingService {
             return "<null>";
         }
         return s.length() <= maxLen ? s : s.substring(0, maxLen) + "...";
+    }
+
+    /**
+     * 记录查询计量（异步、不阻塞主链路）。
+     *
+     * <p>字节为估算值（耗时 × 引擎系数），标记 estimated=true；
+     * 后续接入 Trino QueryStats / Doris 审计后替换为真实值。
+     */
+    private void recordMetering(String tenantId, String engine, String sql,
+                                long startMs, long durationMs, String queryId) {
+        if (meteringCollector == null || tenantId == null || tenantId.isBlank()) {
+            return;
+        }
+        try {
+            // 估算扫描字节：约 10 MB/秒 引擎吞吐下限，避免低估
+            long estimatedBytes = Math.max(1L, durationMs * 10_000L);
+            String sqlHash = java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((sql == null ? "" : sql).getBytes(java.nio.charset.StandardCharsets.UTF_8))
+                    .toString();
+            meteringCollector.submit(new com.levango7.dataenginebdp.sqlgateway.metering.QueryMeter(
+                    tenantId, null, engine, sqlHash,
+                    estimatedBytes, true, durationMs, queryId));
+            log.debug("查询计量已记录: tenant={}, engine={}, estBytes={}, queryId={}",
+                    tenantId, engine, estimatedBytes, queryId);
+        } catch (Exception e) {
+            // 计量失败绝不影响主查询：仅记录日志
+            log.warn("查询计量记录失败(忽略): tenant={}, queryId={}, err={}",
+                    tenantId, queryId, e.getMessage());
+        }
     }
 }
