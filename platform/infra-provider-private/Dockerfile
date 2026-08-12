@@ -28,8 +28,8 @@ RUN --mount=type=cache,target=/root/.m2/repository \
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="infra-provider-private" \
-      org.opencontainers.image.description="数擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）" \
-      org.opencontainers.image.source="https://github.com/shuqing-bigdata/ShuqingBigDataPlatform"
+      org.opencontainers.image.description="数据引擎大数据平台 - L0.4 私有云 VM 供应 Provider（vSphere + OpenStack）" \
+      org.opencontainers.image.source="https://github.com/shuqing-bigdata/DataEngineBDP"
 
 # 创建非 root 用户（alpine 使用 addgroup/adduser）
 RUN addgroup --system --gid 1001 appgroup \

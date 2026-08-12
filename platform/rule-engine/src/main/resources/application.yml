@@ -36,7 +36,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
 
 otel:
   exporter:
@@ -62,3 +62,87 @@ app:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
+  rule-engine:
+    # DQ 规则执行器：质量检查数据源配置
+    # 默认复用主数据源（spring.datasource）；可通过下方独立配置覆盖以隔离检查库
+    dq:
+      # 是否启用独立 DQ 检查数据源；false 时复用主数据源 JdbcTemplate
+      dedicated-datasource-enabled: ${DQ_DEDICATED_DS:false}
+      datasource:
+        url: ${DQ_DB_URL:jdbc:h2:file:./data/rule-engine-dq-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+        username: ${DQ_DB_USERNAME:sa}
+        password: ${DQ_DB_PASSWORD:}
+        driver-class-name: ${DQ_DB_DRIVER:org.h2.Driver}
+      # SQL 执行超时（秒），0 表示使用 JDBC 默认
+      query-timeout-seconds: ${DQ_QUERY_TIMEOUT:30}
+    # ALERT 规则执行器：告警通知通道配置
+    alert:
+      # Webhook 通知（后续实现，当前仅日志）
+      webhook:
+        enabled: ${ALERT_WEBHOOK_ENABLED:false}
+        url: ${ALERT_WEBHOOK_URL:}
+        # 连接超时（毫秒）
+        connect-timeout-ms: ${ALERT_WEBHOOK_CONNECT_TIMEOUT:3000}
+        # 读取超时（毫秒）
+        read-timeout-ms: ${ALERT_WEBHOOK_READ_TIMEOUT:5000}
+      # 邮件通知（后续实现）
+      email:
+        enabled: ${ALERT_EMAIL_ENABLED:false}
+        from: ${ALERT_EMAIL_FROM:rule-engine@shuqing.local}
+    # MASK 规则执行器：脱敏默认参数
+    mask:
+      # 默认掩码字符
+      default-mask-char: ${MASK_DEFAULT_CHAR:*}
+      # 哈希默认算法
+      default-hash-algorithm: ${MASK_DEFAULT_HASH:SHA-256}
+  # 调度引擎配置（T006：多租户调度 + 资源隔离 + 优先级队列 + 弹性伸缩）
+  scheduler:
+    enabled: ${SCHEDULER_ENABLED:true}
+    worker:
+      initial-size: ${SCHEDULER_WORKER_INITIAL:2}
+      min-size: ${SCHEDULER_WORKER_MIN:1}
+      max-size: ${SCHEDULER_WORKER_MAX:8}
+      poll-timeout-ms: ${SCHEDULER_WORKER_POLL_TIMEOUT:1000}
+    elastic:
+      enabled: ${SCHEDULER_ELASTIC_ENABLED:true}
+      scale-up-threshold: ${SCHEDULER_SCALE_UP_THRESHOLD:2.0}
+      scale-down-threshold: ${SCHEDULER_SCALE_DOWN_THRESHOLD:0.5}
+      eval-interval-ms: ${SCHEDULER_EVAL_INTERVAL:5000}
+      cooldown-ms: ${SCHEDULER_COOLDOWN:10000}
+    default-quota:
+      max-cpu-cores: ${SCHEDULER_DEFAULT_MAX_CPU:4.0}
+      max-memory-mb: ${SCHEDULER_DEFAULT_MAX_MEM:4096}
+      max-concurrent-tasks: ${SCHEDULER_DEFAULT_MAX_CONCURRENT:4}
+  # T006 内置 Agent 模块配置：8 种角色 + 工具白名单 + 资源配额隔离
+  agent:
+    # 是否启用 Agent 模块
+    enabled: ${AGENT_ENABLED:true}
+    # 工具调用沙箱：隔离执行线程池与超时控制
+    sandbox:
+      pool-size: ${AGENT_SANDBOX_POOL:4}
+      default-timeout-ms: ${AGENT_SANDBOX_TIMEOUT:30000}
+    # 工具白名单：按角色限定可调用工具（最小权限原则）
+    # 未在配置中列出的角色使用 AgentConfig 中的内置默认白名单
+    whitelist:
+      PLANNING: [task_decompose, query_metadata]
+      SQL: [nl2sql, query_metadata]
+      VISUALIZATION: [recommend_chart, query_metadata]
+      QUALITY: [generate_dq_rule, query_metadata]
+      LINEAGE: [analyze_lineage, query_metadata]
+      DOCUMENTATION: [generate_doc, query_metadata]
+      CODE: [generate_code]
+      AUDIT: [audit_sql]
+    # 资源配额覆盖：按角色覆盖默认配额（未列出的字段保留默认值）
+    quota:
+      SQL:
+        max-tool-calls: 5
+        max-duration-ms: 30000
+        max-output-chars: 10000
+        max-concurrent-executions: 8
+        daily-call-limit: 500
+      AUDIT:
+        max-tool-calls: 4
+        max-duration-ms: 15000
+        max-output-chars: 10000
+        max-concurrent-executions: 2
+        daily-call-limit: 1000

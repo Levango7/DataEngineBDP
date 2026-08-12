@@ -1,0 +1,180 @@
+# ArgoCD 资源自定义配置 · 漂移检测忽略字段
+# ============================================================================
+# 作用：配置 ArgoCD 的 resource.customizations，告诉 ArgoCD 在 diff 时
+#       忽略哪些字段（系统注入 / sidecar 注入 / HPA 管理字段等）
+# 集成：本 ConfigMap 内容需合并到 argocd-cm ConfigMap 的
+#       data.resource.customizations 字段
+# 文档：https://argo-cd.readthedocs.io/en/stable/user-guide/diffing/
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-drift-customizations
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移检测资源自定义（忽略字段规则）"
+    note: "部署后需将内容合并到 argocd-cm 的 data.resource.customizations"
+data:
+  # ============================================================================
+  # 1. 全局忽略字段（所有资源类型适用）
+  # ============================================================================
+  resource.customizations: |
+    # 忽略 kubectl 注入的 last-applied-configuration
+    ignoreDifferences: |
+      jsonPointers:
+        - /metadata/annotations/kubectl.kubernetes.io~1last-applied-configuration
+
+  # ============================================================================
+  # 2. Deployment / StatefulSet / DaemonSet 忽略字段
+  # ============================================================================
+  resource.customizations.apps_Deployment: |
+    ignoreDifferences: |
+      jsonPointers:
+        # 系统字段
+        - /metadata/managedFields
+        - /metadata/resourceVersion
+        - /metadata/uid
+        - /metadata/creationTimestamp
+        - /metadata/generation
+        - /status
+        # HPA 管理的 replicas（若被 HPA 管理）
+        - /spec/replicas
+        # ArgoCD 注入的 revision 临时注解
+        - /metadata/annotations/argocd.argoproj.io~1sync-wave
+      # Istio sidecar 容器忽略
+      managedFieldsManagers:
+        - kube-controller-manager
+        - kubectl-client-side-apply
+
+  resource.customizations.apps_StatefulSet: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /metadata/managedFields
+        - /metadata/resourceVersion
+        - /status
+        - /spec/replicas
+
+  resource.customizations.apps_DaemonSet: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /metadata/managedFields
+        - /metadata/resourceVersion
+        - /status
+
+  # ============================================================================
+  # 3. Service 忽略字段（k3s 可能注入 clusterIP / nodePort）
+  # ============================================================================
+  resource.customizations.core_Service: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /spec/clusterIP
+        - /spec/clusterIPs
+        - /spec/externalTrafficPolicy
+        - /spec/sessionAffinity
+        - /status
+      # k3s kube-proxy 会管理这些字段
+      managedFieldsManagers:
+        - kube-controller-manager
+
+  # ============================================================================
+  # 4. ConfigMap / Secret 忽略字段（不忽略 data，data 变更即漂移）
+  # ============================================================================
+  resource.customizations.core_ConfigMap: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /metadata/managedFields
+        - /metadata/resourceVersion
+        - /metadata/uid
+        # 不忽略 data：data 变更即为漂移（需检测）
+
+  resource.customizations.core_Secret: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /metadata/managedFields
+        - /metadata/resourceVersion
+        - /metadata/uid
+        # 不忽略 data：data 变更即为漂移
+
+  # ============================================================================
+  # 5. Ingress 忽略字段（k3s traefik 注入）
+  # ============================================================================
+  resource.customizations.networking.k8s.io_Ingress: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /status
+        - /metadata/managedFields
+      managedFieldsManagers:
+        - traefik
+
+  # ============================================================================
+  # 6. Pod 忽略字段（大量系统注入）
+  # ============================================================================
+  resource.customizations.core_Pod: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /metadata/managedFields
+        - /metadata/resourceVersion
+        - /status
+        - /spec/nodeName
+        - /spec/serviceAccount
+        # Istio sidecar
+        - /spec/containers/name=istio-proxy
+        - /spec/initContainers/name=istio-init
+
+  # ============================================================================
+  # 7. ServiceAccount 忽略字段（kubernetes.io 自动注入 token）
+  # ============================================================================
+  resource.customizations.core_ServiceAccount: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /secrets
+        - /metadata/managedFields
+
+  # ============================================================================
+  # 8. HorizontalPodAutoscaler 忽略字段
+  # ============================================================================
+  resource.customizations.autoscaling_HorizontalPodAutoscaler: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /status
+        - /spec/minReplicas
+        - /spec/maxReplicas
+
+  # ============================================================================
+  # 9. Job 忽略字段（完成后 status 变更频繁）
+  # ============================================================================
+  resource.customizations.batch_Job: |
+    ignoreDifferences: |
+      jsonPointers:
+        - /status
+        - /spec/completionTime
+        - /spec/startTime
+
+  # ============================================================================
+  # 10. 健康检查自定义（判断资源是否 Healthy）
+  # ============================================================================
+  resource.customizations.health.batch_Job: |
+    hs = {}
+    if obj.status ~= nil then
+      if obj.status.succeeded ~= nil then
+        if obj.status.succeeded > 0 then
+          hs.status = "Healthy"
+          hs.message = "Job completed successfully"
+          return hs
+        end
+      end
+      if obj.status.failed ~= nil then
+        if obj.status.failed > 0 then
+          hs.status = "Degraded"
+          hs.message = "Job failed"
+          return hs
+        end
+      end
+    end
+    hs.status = "Progressing"
+    hs.message = "Job in progress"
+    return hs

@@ -1,0 +1,180 @@
+{
+  "projectName": "finance_risk",
+  "processDefinition": {
+    "name": "risk_feature_daily",
+    "description": "风控特征日计算DAG：从transaction_detail聚合交易特征，写入risk_feature表，供风控模型评估使用",
+    "tenantCode": "default",
+    "globalParams": "[{\"prop\":\"biz_date\",\"direct\":\"IN\",\"type\":\"DATETIME\",\"value\":\"$biz_date\"},{\"prop\":\"db_finance\",\"direct\":\"IN\",\"type\":\"VARCHAR\",\"value\":\"db_finance\"}]",
+    "timeout": 7200,
+    "releaseState": "ONLINE",
+    "executionType": "PARALLEL",
+    "schedule": {
+      "startTime": "2024-01-01 00:00:00",
+      "endTime": "2099-12-31 23:59:59",
+      "crontab": "0 2 * * * ?",
+      "timezoneId": "Asia/Shanghai",
+      "failureStrategy": "CONTINUE",
+      "warningType": "FAILURE",
+      "warningGroupId": 1,
+      "workerGroup": "default"
+    }
+  },
+  "processTaskRelationList": [
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 1001,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 1001,
+      "preTaskVersion": 1,
+      "postTaskCode": 1002,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 1002,
+      "preTaskVersion": 1,
+      "postTaskCode": 1003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 1003,
+      "preTaskVersion": 1,
+      "postTaskCode": 1004,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    }
+  ],
+  "taskDefinitionList": [
+    {
+      "code": 1001,
+      "version": 1,
+      "name": "extract_transaction_detail",
+      "description": "抽取当日transaction_detail明细到临时表tmp_risk_feature_src",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_risk_feature_src PARTITION (p_${biz_date}) SELECT transaction_id, customer_id, account_id, amount, currency, occurred_at FROM ${db_finance}.transaction_detail WHERE created_at >= '${biz_date} 00:00:00' AND created_at < '${biz_date} 23:59:59';",
+        "sqlFile": "../sql/risk_feature_daily/01_extract_transaction_detail.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 1800,
+      "delayTime": 0
+    },
+    {
+      "code": 1002,
+      "version": 1,
+      "name": "aggregate_risk_feature",
+      "description": "按customer_id聚合交易特征：当日交易笔数/金额/最大单笔/夜间交易占比等",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_risk_feature_agg PARTITION (p_${biz_date}) SELECT customer_id, COUNT(1) AS txn_cnt, SUM(amount) AS txn_amt_sum, MAX(amount) AS txn_amt_max, SUM(CASE WHEN HOUR(occurred_at) BETWEEN 0 AND 6 THEN 1 ELSE 0 END)/COUNT(1) AS night_txn_ratio, '${biz_date}' AS feature_date FROM ${db_finance}.tmp_risk_feature_src GROUP BY customer_id;",
+        "sqlFile": "../sql/risk_feature_daily/02_aggregate_risk_feature.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 1003,
+      "version": 1,
+      "name": "load_risk_feature",
+      "description": "将聚合特征写入risk_feature表，关联risk_model获取model_id",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.risk_feature (model_id, feature_name, feature_value, customer_id, stat_date, source_table, created_at, updated_at, created_by, updated_by) SELECT m.model_id, 'txn_cnt', CAST(a.txn_cnt AS VARCHAR), a.customer_id, a.feature_date, 'transaction_detail', NOW(), NOW(), 'dag_risk_feature_daily', 'dag_risk_feature_daily' FROM ${db_finance}.tmp_risk_feature_agg a JOIN ${db_finance}.risk_model m WHERE m.model_type = 'RULE' AND m.status = 'ACTIVE';",
+        "sqlFile": "../sql/risk_feature_daily/03_load_risk_feature.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 1004,
+      "version": 1,
+      "name": "notify_risk_feature_done",
+      "description": "通知风控特征计算完成，触发下游risk_evaluation评估",
+      "taskType": "SHELL",
+      "taskParams": {
+        "resourceList": [],
+        "localParams": [],
+        "rawScript": "echo \"[risk_feature_daily] biz_date=${biz_date} done at $(date '+%Y-%m-%d %H:%M:%S')\" >> /var/log/finance/dag_risk_feature_daily.log",
+        "sendEmail": true,
+        "emailConfig": {
+          "to": "risk-ops@finance.com",
+          "subject": "[DAG]risk_feature_daily完成通知-${biz_date}",
+          "content": "风控特征日计算已完成，业务日期：${biz_date}，请关注risk_feature表数据。"
+        }
+      },
+      "flag": "YES",
+      "taskPriority": "MEDIUM",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 1,
+      "failRetryInterval": 60,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 300,
+      "delayTime": 0
+    }
+  ],
+  "alertGroups": [
+    {
+      "id": 1,
+      "groupName": "finance-risk-alert",
+      "groupType": "FEISHU",
+      "feishuWebhook": "https://open.feishu.cn/open-apis/bot/v2/hook/risk-feature-daily",
+      "alertType": "FAILURE"
+    }
+  ]
+}

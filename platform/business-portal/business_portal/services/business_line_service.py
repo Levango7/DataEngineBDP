@@ -2,10 +2,11 @@
 
 封装业务线 CRUD + 用量概览，并强制多业务线隔离与权限隔离。
 """
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from business_portal.interfaces.store import BusinessLineStore
 from business_portal.models.business_line import (
@@ -14,10 +15,7 @@ from business_portal.models.business_line import (
     BusinessLineUsage,
 )
 from business_portal.repositories import (
-    BusinessLineAlreadyExistsError,
-    BusinessLineNotFoundError,
     PermissionDeniedError,
-    ValidationError,
 )
 
 
@@ -45,30 +43,20 @@ class BusinessLineService:
     @staticmethod
     def _has_access(bl: BusinessLine, user_id: str) -> bool:
         """检查用户是否可访问该业务线（沿树继承 + 越级授权）."""
-        return (
-            user_id in bl.ownerIds
-            or user_id in bl.memberIds
-            or user_id in bl.teamIds
-        )
+        return user_id in bl.ownerIds or user_id in bl.memberIds or user_id in bl.teamIds
 
-    async def list_business_lines(
-        self, filter_: BusinessLineFilter
-    ) -> list[BusinessLine]:
+    async def list_business_lines(self, filter_: BusinessLineFilter) -> list[BusinessLine]:
         """列出业务线（按 memberId 过滤即权限隔离）."""
         return await self._store.list(filter_)
 
-    async def update_business_line(
-        self, bl_id: str, patch: dict[str, Any], user_id: str | None = None
-    ) -> BusinessLine:
+    async def update_business_line(self, bl_id: str, patch: dict[str, Any], user_id: str | None = None) -> BusinessLine:
         """更新业务线（仅业务线管理员可操作）."""
         bl = await self._store.get(bl_id)
         if user_id and user_id not in bl.ownerIds:
             raise PermissionDeniedError(bl_id, user_id)
         return await self._store.update(bl_id, patch)
 
-    async def delete_business_line(
-        self, bl_id: str, user_id: str | None = None
-    ) -> None:
+    async def delete_business_line(self, bl_id: str, user_id: str | None = None) -> None:
         """删除业务线（仅业务线管理员可操作）."""
         bl = await self._store.get(bl_id)
         if user_id and user_id not in bl.ownerIds:

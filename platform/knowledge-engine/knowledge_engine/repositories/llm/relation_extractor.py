@@ -4,6 +4,7 @@
     - 复用 LLMEntityExtractor 的网关调用模式。
     - Prompt 中携带已识别实体列表，让模型聚焦于关系判定。
 """
+
 from __future__ import annotations
 
 import json
@@ -52,14 +53,10 @@ class LLMRelationExtractor(RelationExtractor):
         self.api_key = api_key
         self.timeout = timeout
 
-    async def extract(
-        self, text: str, entities: list[Entity]
-    ) -> list[Relation]:
+    async def extract(self, text: str, entities: list[Entity]) -> list[Relation]:
         if not entities:
             return []
-        entities_text = "\n".join(
-            f"- {e.id} / {e.name} / {e.type}" for e in entities
-        )
+        entities_text = "\n".join(f"- {e.id} / {e.name} / {e.type}" for e in entities)
         prompt = _PROMPT_TEMPLATE.format(entities=entities_text, text=text)
         payload = await self._call_llm(prompt)
         return self._parse_relations(payload, {e.id for e in entities})

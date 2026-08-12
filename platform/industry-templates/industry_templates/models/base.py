@@ -1,4 +1,5 @@
 """基础模型与枚举."""
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -22,11 +23,11 @@ class TimestampMixin(BaseModel):
 class Industry(str, Enum):
     """行业枚举."""
 
-    FINANCE = "finance"     # 金融
-    RETAIL = "retail"       # 零售
+    FINANCE = "finance"  # 金融
+    RETAIL = "retail"  # 零售
     MANUFACTURING = "manufacturing"  # 制造
-    GOVERNMENT = "government"        # 政务
-    IOT = "iot"                      # 物联网
+    GOVERNMENT = "government"  # 政务
+    IOT = "iot"  # 物联网
 
 
 class TemplateStatus(str, Enum):
@@ -37,9 +38,9 @@ class TemplateStatus(str, Enum):
         running → uninstall
     """
 
-    DEV = "dev"               # 开发中
-    REVIEW = "review"         # 审核中
-    CATALOG = "catalog"       # 已上架
+    DEV = "dev"  # 开发中
+    REVIEW = "review"  # 审核中
+    CATALOG = "catalog"  # 已上架
     DEPRECATED = "deprecated"  # 已下架
 
 

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PMD 宽松规则集（CI 阻断级）
+  适用于 platform/ 下所有 Java 组件（Spring Boot 3.2 + JDK 17）
+  通过 Maven pmd 插件调用：mvn pmd:check -B -q
+  适用于 PMD 6.55.x（maven-pmd-plugin 3.21.2）
+  设计原则：只保留能发现真实 bug 的规则，避免误报和风格偏好
+-->
+<ruleset name="shuqing-loose"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+    <description>数据引擎大数据平台 PMD 宽松规则集 - 只保留能发现真实 bug 的规则</description>
+
+    <!-- ============ empty：空代码（排除 EmptyCatchBlock，允许带注释的空 catch） ============ -->
+    <rule ref="rulesets/java/empty.xml">
+        <exclude name="EmptyCatchBlock"/>
+        <exclude name="EmptyStatementBlock"/>
+    </rule>
+
+    <!-- ============ basic：基本错误（选择性包含，排除风格类和误报类） ============ -->
+    <rule ref="rulesets/java/basic.xml">
+        <exclude name="AvoidBranchingStatementAsLastInLoop"/>
+        <exclude name="AvoidDecimalLiteralsInBigDecimalConstructor"/>
+        <exclude name="AvoidMultipleUnaryOperators"/>
+        <exclude name="AvoidUsingHardCodedIP"/>
+        <exclude name="AvoidUsingOctalValues"/>
+        <exclude name="BigIntegerInstantiation"/>
+        <exclude name="BooleanInstantiation"/>
+        <exclude name="BrokenNullCheck"/>
+        <exclude name="CheckResultSet"/>
+        <exclude name="ClassCastExceptionWithToArray"/>
+        <exclude name="CollapsibleIfStatements"/>
+        <exclude name="DontUseFloatTypeForLoopIndices"/>
+        <exclude name="DoubleLiteral"/>
+        <exclude name="ExtendsObject"/>
+        <exclude name="ForLoopShouldBeWhileLoop"/>
+        <exclude name="JumbledIncrementor"/>
+        <exclude name="MisplacedNullCheck"/>
+        <exclude name="OverrideBothEqualsAndHashcode"/>
+        <exclude name="ReturnFromFinallyBlock"/>
+        <exclude name="SimplifiedTernary"/>
+        <exclude name="UnconditionalIfStatement"/>
+        <exclude name="UnnecessaryBooleanAssertion"/>
+        <exclude name="UnnecessaryCaseChange"/>
+        <exclude name="UnnecessaryConversionTemporary"/>
+        <exclude name="UnusedNullCheckInEquals"/>
+    </rule>
+
+</ruleset>

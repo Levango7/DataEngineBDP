@@ -1,0 +1,57 @@
+{{- if .Values.verification.enabled -}}
+# helm test 测试 - 资产完整性验证（T019）
+# 用途：验证 ConfigMap 中的模板资产数量与预期一致
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "finance-template.fullname" . }}-test-assets"
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.selectorLabels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test
+    "helm.sh/hook-weight": "-3"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  serviceAccountName: {{ include "finance-template.serviceAccountName" . }}
+  containers:
+    - name: test-assets
+      image: "busybox:1.36"
+      command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          echo "测试资产完整性..."
+          CM_NAME="{{ include "finance-template.configmapName" . }}"
+          NS="{{ include "finance-template.namespace" . }}"
+          ERRORS=0
+          # 获取 ConfigMap 数据
+          CM_DATA=$(kubectl get configmap ${CM_NAME} -n ${NS} -o jsonpath='{.data}')
+          # 验证 DDL 资产（期望至少 5 个 SQL 文件）
+          DDL_COUNT=$(echo "${CM_DATA}" | grep -o "ddl/.*\.sql" | wc -l)
+          echo "DDL SQL 文件数: ${DDL_COUNT}（期望 >= 5）"
+          [ "${DDL_COUNT}" -ge 5 ] || { echo "FAIL: DDL 资产不足"; ERRORS=$((ERRORS+1)); }
+          # 验证 DAG 资产（期望至少 5 个 JSON 文件）
+          DAG_COUNT=$(echo "${CM_DATA}" | grep -o "dag/.*\.json" | wc -l)
+          echo "DAG JSON 文件数: ${DAG_COUNT}（期望 >= 5）"
+          [ "${DAG_COUNT}" -ge 5 ] || { echo "FAIL: DAG 资产不足"; ERRORS=$((ERRORS+1)); }
+          # 验证 Dashboard 资产（期望至少 3 个 JSON 文件）
+          DASH_COUNT=$(echo "${CM_DATA}" | grep -o "dashboard/.*\.json" | wc -l)
+          echo "Dashboard JSON 文件数: ${DASH_COUNT}（期望 >= 3）"
+          [ "${DASH_COUNT}" -ge 3 ] || { echo "FAIL: Dashboard 资产不足"; ERRORS=$((ERRORS+1)); }
+          # 验证 RBAC 资产（期望至少 3 个 YAML 文件）
+          RBAC_COUNT=$(echo "${CM_DATA}" | grep -o "rbac/.*\.yaml" | wc -l)
+          echo "RBAC YAML 文件数: ${RBAC_COUNT}（期望 >= 3）"
+          [ "${RBAC_COUNT}" -ge 3 ] || { echo "FAIL: RBAC 资产不足"; ERRORS=$((ERRORS+1)); }
+          # 验证模板元数据
+          echo "${CM_DATA}" | grep -q "template-metadata.yaml" || { echo "FAIL: 缺少模板元数据"; ERRORS=$((ERRORS+1)); }
+          if [ ${ERRORS} -eq 0 ]; then
+            echo "资产完整性测试通过"
+            exit 0
+          else
+            echo "资产完整性测试失败（${ERRORS} 个错误）"
+            exit 1
+          fi
+{{- end -}}

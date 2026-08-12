@@ -1,0 +1,220 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "manufacturing_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_manufacturing",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "product_batch",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "产品批次主表 | DDL: quality_trace_ddl.sql §1",
+      "columns": [
+        {"name": "batch_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "batch_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "planned_qty", "type": "INT", "is_dttm": false},
+        {"name": "actual_qty", "type": "INT", "is_dttm": false},
+        {"name": "good_qty", "type": "INT", "is_dttm": false},
+        {"name": "defect_qty", "type": "INT", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "start_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "end_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "process_record",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "工序执行记录表 | 正反向追溯核心 | DDL: quality_trace_ddl.sql §4",
+      "columns": [
+        {"name": "record_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "batch_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "batch_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "order_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "seq_no", "type": "INT", "is_dttm": false},
+        {"name": "process_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "equipment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "input_qty", "type": "INT", "is_dttm": false},
+        {"name": "output_qty", "type": "INT", "is_dttm": false},
+        {"name": "good_qty", "type": "INT", "is_dttm": false},
+        {"name": "defect_qty", "type": "INT", "is_dttm": false},
+        {"name": "occurred_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "occurred_at"
+    },
+    {
+      "table_name": "quality_parameter",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "质量参数表 | 参数级追溯 | DDL: quality_trace_ddl.sql §5",
+      "columns": [
+        {"name": "param_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "record_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "batch_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "param_name", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "standard_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "upper_limit", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "lower_limit", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "measured_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "judgment", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "deviation", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "cpk", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "measured_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "measured_at"
+    },
+    {
+      "table_name": "defect_record",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "缺陷记录表 | 反向追溯起点 | DDL: quality_trace_ddl.sql §6",
+      "columns": [
+        {"name": "defect_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "batch_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "batch_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "defect_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "defect_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "defect_category", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "defect_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "defect_qty", "type": "INT", "is_dttm": false},
+        {"name": "root_cause", "type": "VARCHAR(512)", "is_dttm": false},
+        {"name": "action", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "occurred_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "occurred_at"
+    },
+    {
+      "table_name": "quality_trace_link",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "质量追溯链路表 | 正反向追溯 | DDL: quality_trace_ddl.sql §7",
+      "columns": [
+        {"name": "link_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "source_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "source_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "target_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "target_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "relation", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "trace_direction", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "batch_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "质量追溯仪表盘",
+      "slug": "quality-dashboard",
+      "description": "制造行业模板 - 质量追溯仪表盘。含批次合格率、缺陷分布、Cpk 分析、追溯链路等图表。支持正反向追溯。",
+      "owners": ["admin"],
+      "position": {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "DASHBOARD_ROOT_ID": {
+          "type": "DASHBOARD_ROOT",
+          "id": "DASHBOARD_ROOT_ID",
+          "children": [
+            {"type": "CHART", "id": "chart_batch_pass_rate"},
+            {"type": "CHART", "id": "chart_defect_distribution"},
+            {"type": "CHART", "id": "chart_defect_by_category"},
+            {"type": "CHART", "id": "chart_cpk_analysis"},
+            {"type": "CHART", "id": "chart_defect_trend"},
+            {"type": "CHART", "id": "chart_trace_link_summary"}
+          ]
+        }
+      },
+      "charts": [
+        {
+          "id": "chart_batch_pass_rate",
+          "slice_name": "批次合格率趋势",
+          "viz_type": "line",
+          "datasource_id": "product_batch",
+          "params": {
+            "x_axis": "created_at",
+            "metrics": [
+              {"expressionType": "SQL", "sqlExpression": "SUM(good_qty)/NULLIF(SUM(actual_qty),0)", "label": "合格率"}
+            ],
+            "groupby": [],
+            "time_range": "Last 30 days",
+            "y_axis_format": ".1%"
+          }
+        },
+        {
+          "id": "chart_defect_distribution",
+          "slice_name": "缺陷类型分布",
+          "viz_type": "pie",
+          "datasource_id": "defect_record",
+          "params": {
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "defect_qty"}, "aggregate": "SUM", "label": "缺陷数量"}],
+            "groupby": ["defect_name"],
+            "time_range": "Last 30 days",
+            "donut": true
+          }
+        },
+        {
+          "id": "chart_defect_by_category",
+          "slice_name": "缺陷类别分析",
+          "viz_type": "bar",
+          "datasource_id": "defect_record",
+          "params": {
+            "x_axis": "defect_category",
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "defect_qty"}, "aggregate": "SUM", "label": "缺陷数量"}],
+            "groupby": ["defect_category"],
+            "time_range": "Last 30 days"
+          }
+        },
+        {
+          "id": "chart_cpk_analysis",
+          "slice_name": "工序能力指数 Cpk 分析",
+          "viz_type": "table",
+          "datasource_id": "quality_parameter",
+          "params": {
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "cpk"}, "aggregate": "AVG", "label": "Cpk"},
+              {"expressionType": "SIMPLE", "column": {"name": "deviation"}, "aggregate": "AVG", "label": "平均偏差"}
+            ],
+            "groupby": ["param_name"],
+            "time_range": "Last 7 days",
+            "order_by": "AVG(cpk) ASC"
+          }
+        },
+        {
+          "id": "chart_defect_trend",
+          "slice_name": "缺陷数量趋势",
+          "viz_type": "line",
+          "datasource_id": "defect_record",
+          "params": {
+            "x_axis": "occurred_at",
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "defect_qty"}, "aggregate": "SUM", "label": "缺陷数量"}],
+            "groupby": [],
+            "time_range": "Last 30 days"
+          }
+        },
+        {
+          "id": "chart_trace_link_summary",
+          "slice_name": "追溯链路统计",
+          "viz_type": "dist_bar",
+          "datasource_id": "quality_trace_link",
+          "params": {
+            "x_axis": "relation",
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "link_id"}, "aggregate": "COUNT", "label": "链路数"}],
+            "groupby": ["relation", "trace_direction"],
+            "time_range": "Last 7 days"
+          }
+        }
+      ]
+    }
+  ]
+}

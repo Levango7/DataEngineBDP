@@ -1,0 +1,93 @@
+﻿server:
+  port: 18086
+
+spring:
+  application:
+    name: stream-batch-scheduler
+  jackson:
+    default-property-inclusion: non_null
+  # ---------- 任务运维中心：运行历史持久化 ----------
+  datasource:
+    url: ${SCHEDULER_DB_URL:jdbc:h2:file:${user.home}/.shuqing/scheduler-data;AUTO_SERVER=TRUE}
+    driver-class-name: ${SCHEDULER_DB_DRIVER:org.h2.Driver}
+    username: ${SCHEDULER_DB_USERNAME:sa}
+    password: ${SCHEDULER_DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: ${SCHEDULER_DB_DIALECT:org.hibernate.dialect.H2Dialect}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+
+# ============================================================
+# 数据引擎大数据平台 - T035 流批一体调度配置
+# ============================================================
+shuqing:
+  stream-batch:
+    # -------------------- Iceberg snapshot 隔离配置 --------------------
+    iceberg:
+      catalog-type: hive
+      catalog-name: shuqing_catalog
+      catalog-uri: thrift://localhost:9083
+      warehouse: s3://shuqing-warehouse/iceberg
+      batch-snapshot-lock-mode: AT_JOB_START
+      stream-snapshot-mode: LATEST
+      s3-endpoint: http://localhost:9000
+      isolation-validation-enabled: true
+      isolation-tolerance-ms: 0
+
+    # -------------------- Spark 批作业配置 --------------------
+    spark:
+      master: spark://localhost:7077
+      deploy-mode: cluster
+      driver-memory: 2g
+      executor-memory: 4g
+      executor-cores: 3
+      executor-instances: 3
+
+    # -------------------- Flink 流作业配置 --------------------
+    flink:
+      job-manager-rest: http://localhost:8081
+      parallelism: 4
+      job-manager-memory: 1024m
+      task-manager-memory: 2048m
+      task-manager-slots: 2
+      checkpoint-interval-ms: 30000
+      checkpoint-path: s3://shuqing-warehouse/flink-checkpoints
+
+    # -------------------- BI 视图路由器配置 --------------------
+    router:
+      batch-view-suffix: _batch_v
+      stream-view-suffix: _stream_v
+      materialized-view-suffix: _mv
+      doris-fe-rest: http://localhost:8030
+      doris-user: root
+      default-query-mode: OFFLINE
+      realtime-latency-threshold-ms: 5000
+      # Doris 物化视图配置（与 Phase 1 T016 对齐）
+      materialized-views:
+        orders_db.orders_table:
+          view-name: orders_mv
+          base-table: orders_db.orders_table
+          refresh-mode: AUTO
+          enabled: true
+        analytics_db.user_events:
+          view-name: user_events_mv
+          base-table: analytics_db.user_events
+          refresh-mode: AUTO
+          enabled: true
+
+logging:
+  level:
+    com.levango7.dataenginebdp.streambatch: INFO
+    org.springframework.web: INFO

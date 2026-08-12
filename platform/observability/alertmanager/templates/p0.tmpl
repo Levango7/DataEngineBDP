@@ -1,0 +1,36 @@
+{{/*
+  P0 严重告警模板 — 电话/短信网关 webhook payload
+
+  电话网关期望 JSON payload：
+    {
+      "alertname": "...",
+      "tenant_id": "...",
+      "component": "...",
+      "severity": "P0",
+      "startsAt": "...",
+      "description": "...",
+      "runbook_url": "...",
+      "firing_count": N
+    }
+*/}}
+{{ define "phone.payload" }}{
+  "alertname": "{{ .CommonLabels.alertname }}",
+  "tenant_id": "{{ .CommonLabels.tenant_id }}",
+  "component": "{{ .CommonLabels.component }}",
+  "severity": "{{ .CommonLabels.severity }}",
+  "status": "{{ .Status }}",
+  "startsAt": "{{ .CommonAlert.StartsAt.Format "2006-01-02T15:04:05Z07:00" }}",
+  "description": "{{ .CommonAnnotations.description }}",
+  "runbook_url": "{{ .CommonAnnotations.runbook_url }}",
+  "firing_count": {{ .Alerts.Firing | len }}
+}{{ end }}
+
+{{/*
+  P0 短信通知文本（单条短信，< 500 字符）
+*/}}
+{{ define "sms.text" }}【数擎P0告警】{{ .CommonLabels.alertname }} | 租户:{{ .CommonLabels.tenant_id }} | 组件:{{ .CommonLabels.component }} | {{ .CommonAnnotations.description }} | 详情:{{ .CommonAnnotations.runbook_url }} | 时间:{{ .CommonAlert.StartsAt.Format "01-02 15:04" }}{{ end }}
+
+{{/*
+  P0 语音通知 TTS 文本
+*/}}
+{{ define "phone.tts" }}紧急告警。{{ .CommonLabels.alertname }}。租户 {{ .CommonLabels.tenant_id }} 的 {{ .CommonLabels.component }} 组件发生严重故障。{{ .CommonAnnotations.description }}。请立即处理。{{ end }}

@@ -1,12 +1,12 @@
-apiVersion: v2
+﻿apiVersion: v2
 name: apisix
-description: Apache APISIX API 网关 - 数擎大数据平台
+description: Apache APISIX API 网关 - 数据引擎大数据平台
 type: application
 version: 0.1.0
 appVersion: "3.9.0"
-home: https://github.com/ShuqingBigDataPlatform
+home: https://github.com/DataEngineBDP
 maintainers:
-  - name: ShuqingBigDataPlatform Team
+  - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:
   - big-data

@@ -1,0 +1,157 @@
+# FinOps 成本采集 Prometheus 规则 — 五维度采集（1min 粒度, tenant+namespace 标签）
+#
+# 用途：定义 FinOps 五维度资源用量的 PromQL 记录规则（recording rules），
+# 将高频查询预计算为低频指标，降低 Prometheus 查询压力。
+# 采集粒度 60s（≤ 1min 满足 FinOps 要求），按 tenant + namespace 标签隔离。
+#
+# 五维度：
+#   1. CPU    — 核时（rate(container_cpu_usage_seconds_total[1m])）
+#   2. 内存   — GB·时（container_memory_working_set_bytes / 1Gi）
+#   3. 存储   — GB·时（kubelet_volume_stats_capacity_bytes / 1Gi）
+#   4. GPU    — 卡时（DCGM_FI_DEV_GPU_UTIL / 100，按 gpu_model 差异化）
+#   5. 网络   — GB（receive + transmit bytes / 1Gi）
+#
+# 部署：kubectl apply -f cost-collection-rules.yaml -n monitoring
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: finops-cost-collection-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: finops-cost-collection
+    app.kubernetes.io/part-of: finops
+    release: prometheus          # 与 Prometheus Operator 匹配
+spec:
+  groups:
+    # ========== 五维度用量采集记录规则 ==========
+    - name: finops.resource_usage
+      interval: 60s              # 采集粒度 ≤ 1min
+      rules:
+        # 1. CPU 用量（核时）— 按 tenant + namespace 聚合
+        - record: finops:cpu_usage:rate1m
+          expr: |
+            sum by (tenant, namespace) (
+              rate(container_cpu_usage_seconds_total[1m])
+            )
+          labels:
+            dimension: cpu
+            unit: core_hours
+
+        # 2. 内存用量（GB·时）— 按 tenant + namespace 聚合
+        - record: finops:memory_usage:gauge
+          expr: |
+            sum by (tenant, namespace) (
+              container_memory_working_set_bytes / 1073741824
+            )
+          labels:
+            dimension: memory
+            unit: gb_hours
+
+        # 3. 存储用量（GB·时）— 按 tenant + namespace 聚合
+        - record: finops:storage_usage:gauge
+          expr: |
+            sum by (tenant, namespace) (
+              kubelet_volume_stats_capacity_bytes / 1073741824
+            )
+          labels:
+            dimension: storage
+            unit: gb_hours
+
+        # 4. GPU 用量（卡时）— 按 tenant + namespace + gpu_model 聚合，支持多卡型号差异化
+        - record: finops:gpu_usage:rate1m
+          expr: |
+            sum by (tenant, namespace, gpu_model) (
+              DCGM_FI_DEV_GPU_UTIL / 100
+            )
+          labels:
+            dimension: gpu
+            unit: card_hours
+
+        # 5. 网络流量（GB）— 按 tenant + namespace 聚合（入向 + 出向）
+        - record: finops:network_usage:rate1m
+          expr: |
+            sum by (tenant, namespace) (
+              rate(container_network_receive_bytes_total[1m])
+              + rate(container_network_transmit_bytes_total[1m])
+            ) / 1073741824
+          labels:
+            dimension: network
+            unit: gb
+
+    # ========== 五维度成本汇总规则（按默认按量单价预计算） ==========
+    - name: finops.cost_on_demand
+      interval: 60s
+      rules:
+        # CPU 成本（按量单价 0.5 元/核时）
+        - record: finops:cpu_cost_on_demand:rate1m
+          expr: |
+            finops:cpu_usage:rate1m * 0.5
+          labels:
+            dimension: cpu
+            billing_method: on_demand
+
+        # 内存成本（按量单价 0.2 元/GB·时）
+        - record: finops:memory_cost_on_demand:gauge
+          expr: |
+            finops:memory_usage:gauge * 0.2
+          labels:
+            dimension: memory
+            billing_method: on_demand
+
+        # 存储成本（按量单价 0.1 元/GB·时）
+        - record: finops:storage_cost_on_demand:gauge
+          expr: |
+            finops:storage_usage:gauge * 0.1
+          labels:
+            dimension: storage
+            billing_method: on_demand
+
+        # GPU 成本（按型号差异化定价：A100=12, V100=6, Ascend910=8, T4=3, default=8）
+        - record: finops:gpu_cost_on_demand:rate1m
+          expr: |
+            finops:gpu_usage:rate1m
+            * on (gpu_model) group_left
+            label_replace(
+              label_replace(
+                label_replace(
+                  label_replace(
+                    vector(8), "gpu_model", "default", "", ""
+                  ), "gpu_model", "T4", "gpu_model", "default"
+                ) * 0 + vector(3), "gpu_model", "T4", "", ""
+              ), "gpu_model", "A100", "", ""
+            )
+            * 0
+            + finops:gpu_usage:rate1m
+            * on (tenant, namespace, gpu_model) group_left
+            (
+              finops:gpu_usage:rate1m{gpu_model="A100"} * 12
+              or finops:gpu_usage:rate1m{gpu_model="V100"} * 6
+              or finops:gpu_usage:rate1m{gpu_model="Ascend910"} * 8
+              or finops:gpu_usage:rate1m{gpu_model="T4"} * 3
+              or finops:gpu_usage:rate1m * 8
+            )
+            / finops:gpu_usage:rate1m
+          labels:
+            dimension: gpu
+            billing_method: on_demand
+
+        # 网络成本（按量单价 0.5 元/GB）
+        - record: finops:network_cost_on_demand:rate1m
+          expr: |
+            finops:network_usage:rate1m * 0.5
+          labels:
+            dimension: network
+            billing_method: on_demand
+
+        # 五维度总成本汇总（按 tenant + namespace）
+        - record: finops:total_cost_on_demand:rate1m
+          expr: |
+            sum by (tenant, namespace) (
+              finops:cpu_cost_on_demand:rate1m
+              + finops:memory_cost_on_demand:gauge
+              + finops:storage_cost_on_demand:gauge
+              + finops:gpu_cost_on_demand:rate1m
+              + finops:network_cost_on_demand:rate1m
+            )
+          labels:
+            billing_method: on_demand

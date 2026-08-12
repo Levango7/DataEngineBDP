@@ -1,4 +1,5 @@
 """实验管理路由."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,16 +17,10 @@ class CreateExperimentRequest(BaseModel):
     """创建实验请求."""
 
     name: str = Field(..., description="实验名")
-    workspaceId: str | None = Field(
-        default=None, description="工作空间 ID"
-    )
-    projectId: str | None = Field(
-        default=None, description="项目 ID"
-    )
+    workspaceId: str | None = Field(default=None, description="工作空间 ID")
+    projectId: str | None = Field(default=None, description="项目 ID")
     description: str | None = Field(default=None, description="描述")
-    tags: dict[str, str] = Field(
-        default_factory=dict, description="标签"
-    )
+    tags: dict[str, str] = Field(default_factory=dict, description="标签")
 
 
 class LogMetricsRequest(BaseModel):
@@ -60,9 +55,7 @@ async def createExperiment(
         )
         return await registry.experimentService.createExperiment(config)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.get(
@@ -86,13 +79,9 @@ async def getExperiment(
     registry: ServiceRegistry = Depends(getRegistry),
 ):
     try:
-        return await registry.experimentService.getExperiment(
-            experimentId
-        )
+        return await registry.experimentService.getExperiment(experimentId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.delete(
@@ -107,9 +96,7 @@ async def deleteExperiment(
     try:
         await registry.experimentService.deleteExperiment(experimentId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.post(
@@ -123,13 +110,9 @@ async def logMetrics(
     registry: ServiceRegistry = Depends(getRegistry),
 ):
     try:
-        return await registry.experimentService.logMetrics(
-            experimentId, body.metrics
-        )
+        return await registry.experimentService.logMetrics(experimentId, body.metrics)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.post(
@@ -143,10 +126,6 @@ async def logParams(
     registry: ServiceRegistry = Depends(getRegistry),
 ):
     try:
-        return await registry.experimentService.logParams(
-            experimentId, body.params
-        )
+        return await registry.experimentService.logParams(experimentId, body.params)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))

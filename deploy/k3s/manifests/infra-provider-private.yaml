@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-provider-private
+  namespace: shuqing
+  labels:
+    app: infra-provider-private
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infra-provider-private
+  template:
+    metadata:
+      labels:
+        app: infra-provider-private
+    spec:
+      containers:
+      - name: infra-provider-private
+        image: sq/infra-provider-private:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8084
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8084"
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8084
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-provider-private
+  namespace: shuqing
+  labels:
+    app: infra-provider-private
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: infra-provider-private
+  ports:
+  - name: http
+    port: 8084
+    targetPort: 8084
+    protocol: TCP

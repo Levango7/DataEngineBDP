@@ -5,10 +5,10 @@
     RUNNING -> STOPPING -> STOPPED（卸载）
     CREATING/RUNNING -> FAILED（异常）
 """
+
 from __future__ import annotations
 
 import uuid
-from typing import Optional
 
 from llmops.interfaces.deployer import ModelDeployer
 from llmops.models.base import DeploymentStatus, utc_now
@@ -54,9 +54,7 @@ class MockModelDeployer(ModelDeployer):
             DeploymentStatus.STOPPED,
             DeploymentStatus.FAILED,
         }:
-            raise DeploymentNotUndeployableError(
-                deployment_id, dep.status.status
-            )
+            raise DeploymentNotUndeployableError(deployment_id, dep.status.status)
         dep.status.status = DeploymentStatus.STOPPING
         dep.updatedAt = utc_now()
 
@@ -66,9 +64,7 @@ class MockModelDeployer(ModelDeployer):
         return self._deployments[deployment_id]
 
     async def list_deployments(self) -> list[Deployment]:
-        return sorted(
-            self._deployments.values(), key=lambda d: d.createdAt, reverse=True
-        )
+        return sorted(self._deployments.values(), key=lambda d: d.createdAt, reverse=True)
 
     # ---------- 状态机推进（测试与 Mock 模式专用） ----------
 
@@ -94,9 +90,7 @@ class MockModelDeployer(ModelDeployer):
         dep.updatedAt = utc_now()
         return dep
 
-    async def mark_failed(
-        self, deployment_id: str, error_message: str
-    ) -> Deployment:
+    async def mark_failed(self, deployment_id: str, error_message: str) -> Deployment:
         """标记部署失败（Mock 专用）."""
         dep = await self.get_deployment_status(deployment_id)
         dep.status.status = DeploymentStatus.FAILED
