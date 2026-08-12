@@ -2,6 +2,7 @@
 
 聚合本业务线下所有项目的资源用量、作业成功率、成本趋势、TopN 项目排行。
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -38,9 +39,7 @@ class Trend(BaseModel):
     unit: str = Field(default="")
     points: list[TrendPoint] = Field(default_factory=list)
     # 简化版：直接给百分比高度的柱状图（前端 mini 渲染）
-    bars: list[float] = Field(
-        default_factory=list, description="0~100 的百分比高度列表"
-    )
+    bars: list[float] = Field(default_factory=list, description="0~100 的百分比高度列表")
 
 
 class RealtimeMonitor(BaseModel):

@@ -1,4 +1,5 @@
 """实体抽取抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -16,9 +17,7 @@ class EntityExtractor(ABC):
     """
 
     @abstractmethod
-    async def extract(
-        self, text: str, entity_types: list[str] | None = None
-    ) -> list[Entity]:
+    async def extract(self, text: str, entity_types: list[str] | None = None) -> list[Entity]:
         """从文本中抽取实体.
 
         Args:

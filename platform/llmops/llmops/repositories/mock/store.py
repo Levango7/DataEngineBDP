@@ -1,8 +1,9 @@
 """Mock 模型存储 - 内存字典实现."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from llmops.interfaces.store import ModelStore
 from llmops.models.base import ModelStatus, utc_now
@@ -78,9 +79,7 @@ class MockModelStore(ModelStore):
         m = await self.get_model(model_id)
         return sorted(m.versions, key=lambda v: v.version)
 
-    async def add_model_version(
-        self, model_id: str, version: ModelVersion
-    ) -> ModelVersion:
+    async def add_model_version(self, model_id: str, version: ModelVersion) -> ModelVersion:
         m = await self.get_model(model_id)
         # 版本号冲突校验
         existing_versions = {v.version for v in m.versions}
@@ -96,9 +95,7 @@ class MockModelStore(ModelStore):
             m.status = ModelStatus.READY
         return version
 
-    async def set_production_version(
-        self, model_id: str, version: int
-    ) -> ModelInfo:
+    async def set_production_version(self, model_id: str, version: int) -> ModelInfo:
         m = await self.get_model(model_id)
         target: ModelVersion | None = None
         for v in m.versions:

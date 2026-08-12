@@ -1,0 +1,68 @@
+# Grafana 客户方 Organization 数据源配置
+#
+# 用途：租户用户使用，仅可见本租户指标（通过统一查询 API 强制 tenant 标签过滤）。
+# 每个 Organization 对应一个租户，通过 orgId 隔离。
+#
+# 安全约定：
+#   - 数据源 URL 指向统一查询 API 的 /tenant 端点，由 API 在后端注入 tenant_id 标签。
+#   - 客户方 Organization 的 Service Account token 中携带 tenantId claim，无法伪造。
+#   - 该 Organization 仅授予租户 viewer/editor 角色，禁止访问平台方数据源。
+apiVersion: 1
+
+# 删除已存在同名数据源后重建。
+deleteDatasources:
+  - name: Prometheus-Tenant
+    orgId: 2
+  - name: Alertmanager-Tenant
+    orgId: 2
+
+datasources:
+  # ---------------------------------------------------------------------------
+  # Prometheus 租户数据源（仅本租户指标，由 query-api 强制注入 tenant_id 过滤）
+  # ---------------------------------------------------------------------------
+  - name: Prometheus-Tenant
+    orgId: 2
+    type: prometheus
+    access: proxy
+    url: http://query-api:8090/tenant
+    isDefault: true
+    editable: false
+    jsonData:
+      httpMethod: POST
+      timeInterval: 15s
+      manageAlerts: false
+      # 启用 exemplars 关联 Jaeger 追踪（仅本租户 trace）。
+      exemplarTraceIdDestinations:
+        - name: trace_id
+          datasource: Jaeger-Tenant
+    # secureJsonData 中存放该 Organization 对应租户的 Service Account token。
+    # token 由 query-api 签发，内含 tenantId claim，query-api 校验后注入 tenant 过滤。
+    secureJsonData:
+      httpHeaderValue: ${TENANT_SA_TOKEN}
+
+  # ---------------------------------------------------------------------------
+  # Alertmanager 租户数据源（仅本租户告警，由 Alertmanager receiver 过滤）
+  # ---------------------------------------------------------------------------
+  - name: Alertmanager-Tenant
+    orgId: 2
+    type: alertmanager
+    access: proxy
+    url: http://alertmanager:9093
+    editable: false
+    jsonData:
+      handleGrafanaManagedAlerts: false
+      implementation: prometheus
+
+  # ---------------------------------------------------------------------------
+  # Jaeger 租户数据源（仅本租户 trace，由 Jaeger tag=tenant_id 过滤）
+  # ---------------------------------------------------------------------------
+  - name: Jaeger-Tenant
+    orgId: 2
+    type: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: false
+    jsonData:
+      queries:
+        - query: "tenant_id=${TENANT_ID}"
+          refId: "A"

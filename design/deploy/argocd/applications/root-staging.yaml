@@ -1,0 +1,50 @@
+# ArgoCD Application · staging 环境根应用
+# ============================================================================
+# 作用：staging 预发布环境，自动同步但保留更谨慎的重试策略
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    app.kubernetes.io/managed-by: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/argocd/kustomize/overlays/staging
+    kustomize:
+      namePrefix: staging-
+      commonLabels:
+        environment: staging
+        managed-by: argocd
+      commonAnnotations:
+        managed-by: argocd
+        gitops-repo: Levango7/DataEngineBDP
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true    # staging 启用 ServerSideApply（更安全的合并策略）
+    retry:
+      limit: 3                  # staging 重试次数少于 dev
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  revisionHistoryLimit: 20      # staging 保留更多历史用于回滚

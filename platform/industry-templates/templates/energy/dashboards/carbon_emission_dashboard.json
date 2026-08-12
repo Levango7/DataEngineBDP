@@ -1,0 +1,211 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "energy_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_energy",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "emission_factor_library",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "排放因子库 | 默认因子/自定义因子/来源/版本 | DDL: 03_carbon_emission_ddl.sql §1",
+      "columns": [
+        {"name": "factor_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "factor_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "factor_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "gas_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "scope", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "category", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "fuel_or_activity", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "factor_value", "type": "DECIMAL(18,8)", "is_dttm": false},
+        {"name": "unit", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "gwp", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "source", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "is_custom", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "factor_id"
+    },
+    {
+      "table_name": "emission_calculation_result",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "排放核算结果表 | 活动数据×因子×GWP=排放量 | DDL: 03_carbon_emission_ddl.sql §3",
+      "columns": [
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "stat_period", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "source_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "scope", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "category", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "gas_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "activity_data", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "factor_value", "type": "DECIMAL(18,8)", "is_dttm": false},
+        {"name": "gwp", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "emission_amount", "type": "DECIMAL(18,6)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "emission_scope_classification",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "排放范围分类表 | Scope1/2/3 分类汇总 | DDL: 03_carbon_emission_ddl.sql §5",
+      "columns": [
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "stat_period", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "scope", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "scope_name", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "category", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "total_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "emission_ratio", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "yoy_growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "base_year_ratio", "type": "DECIMAL(8,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "emission_reduction_target",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "减排目标表 | 基准年/目标年/减排比例/路径 | DDL: 03_carbon_emission_ddl.sql §6",
+      "columns": [
+        {"name": "target_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "scope", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "base_year", "type": "INT", "is_dttm": false},
+        {"name": "base_year_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "target_year", "type": "INT", "is_dttm": false},
+        {"name": "reduction_ratio", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "target_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "reduction_path", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "progress", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "target_year"
+    },
+    {
+      "table_name": "emission_report",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "核算报告表 | 报告元数据/总排放/碳强度/审批状态 | DDL: 03_carbon_emission_ddl.sql §7",
+      "columns": [
+        {"name": "report_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "report_period", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "period_start", "type": "DATE", "is_dttm": true},
+        {"name": "period_end", "type": "DATE", "is_dttm": true},
+        {"name": "total_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "scope1_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "scope2_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "scope3_emission", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "carbon_intensity", "type": "DECIMAL(18,6)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "period_start"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "碳排放核算看板",
+      "slug": "carbon-emission-accounting",
+      "description": "碳排放核算看板：排放总量+排放结构+趋势+因子库+减排目标",
+      "owners": ["carbon-accountant"],
+      "position": {},
+      "metadata": {
+        "chart_configuration": {
+          "color_scheme": "carbon_theme",
+          "label_colors": {
+            "SCOPE1": "#FF4500",
+            "SCOPE2": "#FFD700",
+            "SCOPE3": "#4682B4",
+            "CO2": "#808080",
+            "CH4": "#FF6347",
+            "N2O": "#9370DB",
+            "ACTIVE": "#2E8B57",
+            "ACHIEVED": "#32CD32",
+            "AT_RISK": "#FFA500",
+            "EXCEEDED": "#DC143C"
+          }
+        }
+      },
+      "charts": [
+        {
+          "chart_id": "total_emission_trend",
+          "slice_name": "排放总量趋势",
+          "viz_type": "line_chart",
+          "datasource": "emission_scope_classification",
+          "params": {
+            "metrics": ["SUM(total_emission)"],
+            "groupby": ["stat_date"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "time_grain_sqla": "month",
+            "description": "月度碳排放总量趋势"
+          }
+        },
+        {
+          "chart_id": "scope_structure",
+          "slice_name": "排放结构（Scope1/2/3）",
+          "viz_type": "pie",
+          "datasource": "emission_scope_classification",
+          "params": {
+            "metrics": ["total_emission"],
+            "groupby": ["scope"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "description": "Scope1/2/3 排放量占比饼图"
+          }
+        },
+        {
+          "chart_id": "category_breakdown",
+          "slice_name": "类别明细",
+          "viz_type": "bar_chart",
+          "datasource": "emission_calculation_result",
+          "params": {
+            "metrics": ["SUM(emission_amount)"],
+            "groupby": ["category"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "description": "按排放类别的排放量柱状图"
+          }
+        },
+        {
+          "chart_id": "factor_library_table",
+          "slice_name": "排放因子库",
+          "viz_type": "table",
+          "datasource": "emission_factor_library",
+          "params": {
+            "metrics": ["factor_value"],
+            "groupby": ["factor_name", "gas_type", "scope", "category", "source", "is_custom"],
+            "row_limit": 100,
+            "description": "排放因子库列表"
+          }
+        },
+        {
+          "chart_id": "reduction_target_progress",
+          "slice_name": "减排目标进度",
+          "viz_type": "gauge_chart",
+          "datasource": "emission_reduction_target",
+          "params": {
+            "metrics": ["progress"],
+            "groupby": ["target_name"],
+            "description": "各减排目标当前进度仪表盘"
+          }
+        },
+        {
+          "chart_id": "base_year_compare",
+          "slice_name": "基准年对比",
+          "viz_type": "bar_chart",
+          "datasource": "emission_scope_classification",
+          "params": {
+            "metrics": ["base_year_ratio"],
+            "groupby": ["scope"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "YEAR"}],
+            "description": "各 Scope 相对基准年减排比例"
+          }
+        }
+      ]
+    }
+  ]
+}

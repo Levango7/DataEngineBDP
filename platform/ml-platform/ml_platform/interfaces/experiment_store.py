@@ -5,6 +5,7 @@
     - MockExperimentStore:  内存实验管理
     - MLflowExperimentStore: （可选）MLflow Tracking 后端
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -20,9 +21,7 @@ class ExperimentStore(ABC):
     """
 
     @abstractmethod
-    async def create_experiment(
-        self, config: ExperimentConfig
-    ) -> str:
+    async def create_experiment(self, config: ExperimentConfig) -> str:
         """创建实验，返回实验 ID.
 
         Args:
@@ -37,9 +36,7 @@ class ExperimentStore(ABC):
         ...
 
     @abstractmethod
-    async def get_experiment(
-        self, experimentId: str
-    ) -> ExperimentInfo:
+    async def get_experiment(self, experimentId: str) -> ExperimentInfo:
         """获取实验详情.
 
         Raises:
@@ -53,9 +50,7 @@ class ExperimentStore(ABC):
         ...
 
     @abstractmethod
-    async def delete_experiment(
-        self, experimentId: str
-    ) -> None:
+    async def delete_experiment(self, experimentId: str) -> None:
         """删除实验.
 
         Raises:
@@ -64,9 +59,7 @@ class ExperimentStore(ABC):
         ...
 
     @abstractmethod
-    async def log_metrics(
-        self, experimentId: str, metrics: dict[str, float]
-    ) -> None:
+    async def log_metrics(self, experimentId: str, metrics: dict[str, float]) -> None:
         """记录指标.
 
         Args:
@@ -79,9 +72,7 @@ class ExperimentStore(ABC):
         ...
 
     @abstractmethod
-    async def log_params(
-        self, experimentId: str, params: dict
-    ) -> None:
+    async def log_params(self, experimentId: str, params: dict) -> None:
         """记录参数.
 
         Args:
@@ -93,9 +84,7 @@ class ExperimentStore(ABC):
         """
         ...
 
-    async def find_experiment_by_name(
-        self, name: str
-    ) -> Optional[ExperimentInfo]:
+    async def find_experiment_by_name(self, name: str) -> Optional[ExperimentInfo]:
         """按名称查找实验（可选实现）."""
         experiments = await self.list_experiments()
         for e in experiments:

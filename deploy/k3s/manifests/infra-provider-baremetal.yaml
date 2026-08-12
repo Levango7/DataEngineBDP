@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infra-provider-baremetal
+  namespace: shuqing
+  labels:
+    app: infra-provider-baremetal
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infra-provider-baremetal
+  template:
+    metadata:
+      labels:
+        app: infra-provider-baremetal
+    spec:
+      containers:
+      - name: infra-provider-baremetal
+        image: sq/infra-provider-baremetal:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8080"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infra-provider-baremetal
+  namespace: shuqing
+  labels:
+    app: infra-provider-baremetal
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: infra-provider-baremetal
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP

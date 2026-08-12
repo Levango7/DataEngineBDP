@@ -1,0 +1,95 @@
+# ApplicationSet · 平台引擎多环境批量部署
+# ============================================================================
+# 作用：用一套模板生成 dev/staging/prod 三环境的引擎 Application
+# 引擎：trino / doris / spark / flink / kafka / superset 等
+# 优势：新增引擎只需在 list.elements 加一行，自动生成三环境 Application
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-engines
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+spec:
+  # 生成器：环境 × 引擎 矩阵
+  generators:
+    - matrix:
+        generators:
+          # 环境列表
+          - list:
+              elements:
+                - env: dev
+                  project: platform-dev
+                  namespace: dev-platform
+                  cluster: https://kubernetes.default.svc
+                  replicas: "1"
+                  resources: "low"
+                - env: staging
+                  project: platform-staging
+                  namespace: staging-platform
+                  cluster: https://kubernetes.default.svc
+                  replicas: "2"
+                  resources: "medium"
+                - env: prod
+                  project: platform-prod
+                  namespace: prod-platform
+                  cluster: https://kubernetes.default.svc
+                  replicas: "3"
+                  resources: "high"
+          # 引擎列表（按需增减）
+          - list:
+              elements:
+                - engine: trino
+                  chartPath: design/deploy/charts/trino
+                - engine: doris
+                  chartPath: design/deploy/charts/doris
+                - engine: spark
+                  chartPath: design/deploy/charts/spark
+                - engine: flink
+                  chartPath: design/deploy/charts/flink
+                - engine: kafka
+                  chartPath: design/deploy/charts/kafka
+                - engine: superset
+                  chartPath: design/deploy/charts/superset
+  # 模板：生成 Application
+  template:
+    metadata:
+      name: '{{engine}}-{{env}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: '{{engine}}'
+        environment: '{{env}}'
+        managed-by: argocd
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: '{{project}}'
+      source:
+        repoURL: https://github.com/Levango7/DataEngineBDP
+        targetRevision: main
+        path: '{{chartPath}}'
+        helm:
+          valueFiles:
+            - values.yaml
+            - 'values-{{env}}.yaml'
+          parameters:
+            - name: replicaCount
+              value: '{{replicas}}'
+      destination:
+        server: '{{cluster}}'
+        namespace: '{{namespace}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 3
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m

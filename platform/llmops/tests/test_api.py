@@ -1,10 +1,9 @@
 """API 端点测试."""
+
 from __future__ import annotations
 
-import uuid
-
-
 # ---------- health ----------
+
 
 def test_health(client):
     resp = client.get("/health")
@@ -15,6 +14,7 @@ def test_health(client):
 
 
 # ---------- models ----------
+
 
 def _register_model(client, name="qiong-7B"):
     """注册基座模型辅助函数，返回 model_id."""
@@ -51,9 +51,7 @@ def test_register_model_duplicate(client):
 
 def test_register_ft_without_base(client):
     """微调模型未指定 baseModelId 返回 422."""
-    resp = client.post(
-        "/api/v1/models", json={"name": "ft-bad", "type": "ft"}
-    )
+    resp = client.post("/api/v1/models", json={"name": "ft-bad", "type": "ft"})
     assert resp.status_code == 422
 
 
@@ -108,6 +106,7 @@ def test_get_model_versions_empty(client):
 
 
 # ---------- training ----------
+
 
 def _setup_base(client, name="qiong-7B"):
     resp = client.post("/api/v1/models", json={"name": name, "type": "base"})
@@ -187,6 +186,7 @@ def test_evaluate_unfinished(client):
 
 # ---------- deployments ----------
 
+
 def _setup_deployable_model(client, name="qiong-7B"):
     """注册一个带版本的模型，返回 model_id."""
     mid = _setup_base(client, name)
@@ -194,14 +194,11 @@ def _setup_deployable_model(client, name="qiong-7B"):
     # 这里通过训练完成注册版本的方式：略，直接用 service
     # 测试中通过 client.app.state 访问 registry
     import asyncio
+
     from llmops.models.model import ModelVersion
 
     registry = client.app.state.registry
-    asyncio.run(
-        registry.store.add_model_version(
-            mid, ModelVersion(version=1, modelId=mid)
-        )
-    )
+    asyncio.run(registry.store.add_model_version(mid, ModelVersion(version=1, modelId=mid)))
     return mid
 
 
@@ -258,6 +255,7 @@ def test_undeploy(client):
 
 # ---------- monitor ----------
 
+
 def test_get_metrics(client):
     dep_id = _deploy_model(client)
     resp = client.get(f"/api/v1/deployments/{dep_id}/metrics")
@@ -294,6 +292,7 @@ def test_metrics_unknown_deployment(client):
 
 
 # ---------- docs ----------
+
 
 def test_openapi_docs_accessible(client):
     """FastAPI 自动文档可访问."""

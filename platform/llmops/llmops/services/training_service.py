@@ -1,11 +1,12 @@
 """训练管理业务逻辑."""
+
 from __future__ import annotations
 
 from typing import Optional
 
 from llmops.interfaces.store import ModelStore
 from llmops.interfaces.trainer import ModelTrainer
-from llmops.models.base import ModelStatus, ModelType, utc_now
+from llmops.models.base import ModelStatus, ModelType
 from llmops.models.model import ModelInfo, ModelParams, ModelVersion
 from llmops.models.training import (
     EvalMetrics,
@@ -42,14 +43,10 @@ class TrainingService:
     async def list_training_jobs(self) -> list[TrainingJob]:
         return await self._trainer.list_training_jobs()
 
-    async def evaluate_model(
-        self, job_id: str, eval_dataset: Optional[str] = None
-    ) -> EvalMetrics:
+    async def evaluate_model(self, job_id: str, eval_dataset: Optional[str] = None) -> EvalMetrics:
         return await self._trainer.evaluate_model(job_id, eval_dataset)
 
-    async def complete_and_register(
-        self, job_id: str
-    ) -> tuple[ModelInfo, ModelVersion]:
+    async def complete_and_register(self, job_id: str) -> tuple[ModelInfo, ModelVersion]:
         """训练完成后将产出模型注册到 Store（编排逻辑）.
 
         Returns:

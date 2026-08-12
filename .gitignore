@@ -22,3 +22,45 @@ yarn-error.log*
 __pycache__/
 *.pyc
 .venv/
+
+# Maven build output (global exclusion)
+**/target/
+platform/finops/cost-model/target/
+platform/stream-batch-scheduler/target/
+platform/governance/real-time-pipeline/target/
+platform/finops/dashboard/target/
+platform/karmada/failover/target/
+platform/karmada/federated-query/target/
+platform/llm-gateway/evaluation/target/
+platform/model-finetuning/__pycache__/
+platform/model-finetuning/app/__pycache__/
+
+# test coverage reports
+**/coverage/
+**/.coverage
+
+# Temp test files
+.tmp/
+
+# Database files (local development artifacts)
+*.db
+*.db-wal
+*.db-shm
+*.db-journal
+*.mv.db
+*.mv.db.trace.db
+platform/*/data/
+
+# Test reports (generated artifacts, do not track)
+report.html
+htmlcov/
+coverage.xml
+coverage.json
+tests/**/report.html
+tests/**/docker_test_report.html
+tests/**/integration_test_report.md
+tests/**/pytest_html_report.html
+
+# InsCode agent metadata
+.inscode/
+.atomcode/

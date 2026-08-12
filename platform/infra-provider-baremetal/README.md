@@ -1,6 +1,6 @@
-# infra-provider-baremetal
+﻿# infra-provider-baremetal
 
-L0.2 本地数据中心裸金属供应 Provider，属于 ShuqingBigDataPlatform 平台的 `platform/` 模块。
+L0.2 本地数据中心裸金属供应 Provider，属于 DataEngineBDP 平台的 `platform/` 模块。
 
 ## 概述
 

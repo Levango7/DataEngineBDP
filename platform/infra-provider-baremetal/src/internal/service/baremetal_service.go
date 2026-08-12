@@ -20,7 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // BareMetalService 裸金属供应服务
@@ -151,10 +151,14 @@ func (s *BareMetalService) DeleteCluster(ctx context.Context, clusterID string) 
 	s.mu.Unlock()
 
 	cluster.State = model.ClusterStateDestroying
-	s.db.Save(&cluster)
+	if err := s.db.Save(&cluster).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster_id", clusterID).Warn("更新集群状态为destroying失败")
+	}
 
 	var nodes []model.BareMetalNode
-	s.db.Find(&nodes, "cluster_id = ?", clusterID)
+	if err := s.db.Find(&nodes, "cluster_id = ?", clusterID).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster_id", clusterID).Warn("查询集群节点失败")
+	}
 
 	// 并发销毁节点
 	var wg sync.WaitGroup
@@ -168,9 +172,13 @@ func (s *BareMetalService) DeleteCluster(ctx context.Context, clusterID string) 
 	wg.Wait()
 
 	// 删除DB记录
-	s.db.Where("cluster_id = ?", clusterID).Delete(&model.BareMetalNode{})
+	if err := s.db.Where("cluster_id = ?", clusterID).Delete(&model.BareMetalNode{}).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster_id", clusterID).Warn("删除集群节点记录失败")
+	}
 	cluster.State = model.ClusterStateDestroyed
-	s.db.Save(&cluster)
+	if err := s.db.Save(&cluster).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster_id", clusterID).Warn("更新集群状态为destroyed失败")
+	}
 
 	s.logger.WithField("cluster_id", clusterID).Info("集群销毁完成")
 	return nil
@@ -196,7 +204,9 @@ func (s *BareMetalService) ScaleCluster(ctx context.Context, clusterID string, r
 	}
 
 	cluster.State = model.ClusterStateScaling
-	s.db.Save(&cluster)
+	if err := s.db.Save(&cluster).Error; err != nil {
+		return fmt.Errorf("更新集群状态为scaling失败: %w", err)
+	}
 
 	switch req.Action {
 	case "add":
@@ -218,7 +228,7 @@ func (s *BareMetalService) ListClusters(ctx context.Context) ([]model.BareMetalC
 }
 
 // provisionCluster 异步供应流程
-func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID string, req *model.CreateClusterRequest) {
+func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID string, _ *model.CreateClusterRequest) {
 	logger := s.logger.WithField("cluster_id", clusterID)
 
 	var cluster model.BareMetalCluster
@@ -230,7 +240,11 @@ func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID strin
 	// 阶段1: 通过Redfish采集硬件信息并设置PXE启动
 	logger.Info("阶段1: 采集硬件信息并设置PXE启动")
 	var nodes []model.BareMetalNode
-	s.db.Find(&nodes, "cluster_id = ?", clusterID)
+	if err := s.db.Find(&nodes, "cluster_id = ?", clusterID).Error; err != nil {
+		logger.WithError(err).Error("查询集群节点失败")
+		s.markClusterFailed(clusterID, err)
+		return
+	}
 
 	for i := range nodes {
 		if ctx.Err() != nil {
@@ -241,7 +255,9 @@ func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID strin
 			logger.WithError(err).WithField("node", node.Hostname).Error("节点硬件供应失败")
 			node.State = model.NodeStateFailed
 			node.LastError = err.Error()
-			s.db.Save(node)
+			if saveErr := s.db.Save(node).Error; saveErr != nil {
+				logger.WithError(saveErr).Warn("保存节点失败状态失败")
+			}
 			s.markClusterFailed(clusterID, err)
 			return
 		}
@@ -251,13 +267,17 @@ func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID strin
 	logger.Info("阶段2: 等待OS安装完成")
 	for i := range nodes {
 		nodes[i].State = model.NodeStateReady
-		s.db.Save(&nodes[i])
+		if err := s.db.Save(&nodes[i]).Error; err != nil {
+			logger.WithError(err).WithField("node", nodes[i].Hostname).Warn("更新节点状态为ready失败")
+		}
 	}
 
 	// 阶段3: K8s集群初始化
 	logger.Info("阶段3: K8s集群初始化")
 	cluster.State = model.ClusterStateProvisioning
-	s.db.Save(&cluster)
+	if err := s.db.Save(&cluster).Error; err != nil {
+		logger.WithError(err).Warn("更新集群状态为provisioning失败")
+	}
 
 	if err := s.bootstrapK8s(ctx, &cluster, nodes); err != nil {
 		logger.WithError(err).Error("K8s初始化失败")
@@ -268,7 +288,9 @@ func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID strin
 	now := time.Now()
 	cluster.State = model.ClusterStateRunning
 	cluster.ProvisionedAt = &now
-	s.db.Save(&cluster)
+	if err := s.db.Save(&cluster).Error; err != nil {
+		logger.WithError(err).Warn("更新集群状态为running失败")
+	}
 	logger.Info("集群供应完成")
 }
 
@@ -295,13 +317,19 @@ func (s *BareMetalService) provisionNodeHardware(ctx context.Context, node *mode
 	node.RedfishSystemID = sys.ID
 
 	// 采集硬件信息
+	// 修复：原代码采集失败时静默忽略，运维无法定位硬件信息缺失原因。
+	// 此处记录警告日志，但不阻断供应流程（硬件信息为辅助元数据）。
 	hw, err := s.redfish.CollectHardwareInfo(ctx, bmc, sys.ID)
 	if err == nil {
 		node.HardwareInfo = *hw
+	} else {
+		s.logger.WithError(err).WithField("node", node.Hostname).Warn("采集硬件信息失败，继续供应流程")
 	}
 
 	node.State = model.NodeStatePoweringOn
-	s.db.Save(node)
+	if err := s.db.Save(node).Error; err != nil {
+		s.logger.WithError(err).WithField("node", node.Hostname).Warn("保存节点状态为powering_on失败")
+	}
 
 	// 设置PXE启动并开机
 	if err := s.redfish.EnsurePXEBoot(ctx, bmc, sys.ID, true); err != nil {
@@ -309,7 +337,9 @@ func (s *BareMetalService) provisionNodeHardware(ctx context.Context, node *mode
 	}
 
 	node.State = model.NodeStatePXEBooting
-	s.db.Save(node)
+	if err := s.db.Save(node).Error; err != nil {
+		s.logger.WithError(err).WithField("node", node.Hostname).Warn("保存节点状态为pxe_booting失败")
+	}
 
 	return nil
 }
@@ -337,7 +367,9 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 	// 初始化第一个控制平面
 	cp0 := &controlPlanes[0]
 	cp0.State = model.NodeStateJoining
-	s.db.Save(cp0)
+	if err := s.db.Save(cp0).Error; err != nil {
+		s.logger.WithError(err).WithField("node", cp0.Hostname).Warn("保存节点状态为joining失败")
+	}
 
 	result, err := s.k8s.InitControlPlane(ctx, cp0, cluster.K8sVersion, cluster.ControlPlaneVIP)
 	if err != nil {
@@ -346,13 +378,17 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 
 	cluster.JoinKey = result.JoinToken
 	cluster.JoinCertHash = result.JoinCertHash
-	s.db.Save(cluster)
+	if err := s.db.Save(cluster).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群join信息失败")
+	}
 
 	now := time.Now()
 	cp0.State = model.NodeStateRunning
 	cp0.JoinedAt = &now
 	cp0.K8sNodeName = cp0.Hostname
-	s.db.Save(cp0)
+	if err := s.db.Save(cp0).Error; err != nil {
+		s.logger.WithError(err).WithField("node", cp0.Hostname).Warn("保存节点状态为running失败")
+	}
 
 	// join endpoint
 	endpoint := s.k8s.GenerateJoinEndpoint(cluster.ControlPlaneVIP, controlPlanes)
@@ -361,46 +397,65 @@ func (s *BareMetalService) bootstrapK8s(ctx context.Context, cluster *model.Bare
 	for i := 1; i < len(controlPlanes); i++ {
 		cp := &controlPlanes[i]
 		cp.State = model.NodeStateJoining
-		s.db.Save(cp)
+		if err := s.db.Save(cp).Error; err != nil {
+			s.logger.WithError(err).WithField("node", cp.Hostname).Warn("保存节点状态为joining失败")
+		}
 		if err := s.k8s.JoinNode(ctx, cp, endpoint, result.JoinToken, result.JoinCertHash); err != nil {
 			cp.State = model.NodeStateFailed
 			cp.LastError = err.Error()
-			s.db.Save(cp)
+			if saveErr := s.db.Save(cp).Error; saveErr != nil {
+				s.logger.WithError(saveErr).WithField("node", cp.Hostname).Warn("保存节点失败状态失败")
+			}
 			return err
 		}
 		cp.State = model.NodeStateRunning
 		cp.JoinedAt = &now
 		cp.K8sNodeName = cp.Hostname
-		s.db.Save(cp)
+		if err := s.db.Save(cp).Error; err != nil {
+			s.logger.WithError(err).WithField("node", cp.Hostname).Warn("保存节点状态为running失败")
+		}
 	}
 
 	// 工作节点加入
 	for i := range workers {
 		w := &workers[i]
 		w.State = model.NodeStateJoining
-		s.db.Save(w)
+		if err := s.db.Save(w).Error; err != nil {
+			s.logger.WithError(err).WithField("node", w.Hostname).Warn("保存节点状态为joining失败")
+		}
 		if err := s.k8s.JoinNode(ctx, w, endpoint, result.JoinToken, result.JoinCertHash); err != nil {
 			w.State = model.NodeStateFailed
 			w.LastError = err.Error()
-			s.db.Save(w)
+			if saveErr := s.db.Save(w).Error; saveErr != nil {
+				s.logger.WithError(saveErr).WithField("node", w.Hostname).Warn("保存节点失败状态失败")
+			}
 			return err
 		}
 		w.State = model.NodeStateRunning
 		w.JoinedAt = &now
 		w.K8sNodeName = w.Hostname
-		s.db.Save(w)
+		if err := s.db.Save(w).Error; err != nil {
+			s.logger.WithError(err).WithField("node", w.Hostname).Warn("保存节点状态为running失败")
+		}
 	}
 
 	// 安装CNI
 	if cluster.NetworkPlugin != "" {
-		_ = s.k8s.InstallCNI(ctx, cp0, cluster.NetworkPlugin)
+		if err := s.k8s.InstallCNI(ctx, cp0, cluster.NetworkPlugin); err != nil {
+			s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("安装CNI插件失败，集群网络可能不可用")
+		}
 	}
 
 	return nil
 }
 
 // scaleOut 扩容
-func (s *BareMetalService) scaleOut(ctx context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
+func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
+	// 防御性检查：specs 为空时直接返回，避免下方 specs[0] 越界 panic。
+	// 修复：原代码未校验 specs 长度，空切片会导致 index out of range。
+	if len(specs) == 0 {
+		return errors.New("扩容节点列表不能为空")
+	}
 	for _, spec := range specs {
 		node := buildNodeFromSpec(cluster.ID, spec)
 		if err := s.db.Create(node).Error; err != nil {
@@ -413,7 +468,9 @@ func (s *BareMetalService) scaleOut(ctx context.Context, cluster *model.BareMeta
 			if err := s.provisionNodeHardware(provisionCtx, n); err != nil {
 				n.State = model.NodeStateFailed
 				n.LastError = err.Error()
-				s.db.Save(n)
+				if saveErr := s.db.Save(n).Error; saveErr != nil {
+					s.logger.WithError(saveErr).WithField("node", n.Hostname).Warn("保存节点失败状态失败")
+				}
 			}
 		}(node)
 	}
@@ -424,7 +481,9 @@ func (s *BareMetalService) scaleOut(ctx context.Context, cluster *model.BareMeta
 	} else {
 		cluster.ControlPlaneCount += len(specs)
 	}
-	s.db.Save(cluster)
+	if err := s.db.Save(cluster).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群扩容后状态失败")
+	}
 	return nil
 }
 
@@ -436,32 +495,44 @@ func (s *BareMetalService) scaleIn(ctx context.Context, cluster *model.BareMetal
 			continue
 		}
 		node.State = model.NodeStateRemoving
-		s.db.Save(&node)
+		if err := s.db.Save(&node).Error; err != nil {
+			s.logger.WithError(err).WithField("node", node.Hostname).Warn("保存节点状态为removing失败")
+		}
 		s.destroyNode(ctx, &node)
-		s.db.Delete(&node)
+		if err := s.db.Delete(&node).Error; err != nil {
+			s.logger.WithError(err).WithField("node", node.Hostname).Warn("删除节点记录失败")
+		}
 	}
 	cluster.State = model.ClusterStateRunning
 	cluster.NodeCount -= len(specs)
-	s.db.Save(cluster)
+	if err := s.db.Save(cluster).Error; err != nil {
+		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群缩容后状态失败")
+	}
 	return nil
 }
 
 // destroyNode 销毁单个节点
 func (s *BareMetalService) destroyNode(ctx context.Context, node *model.BareMetalNode) {
 	if s.k8s != nil {
-		_ = s.k8s.ResetNode(ctx, node)
+		if err := s.k8s.ResetNode(ctx, node); err != nil {
+			s.logger.WithError(err).WithField("node", node.Hostname).Warn("kubeadm reset 节点失败")
+		}
 	}
 	if node.RedfishSystemID != "" {
-		_ = s.redfish.PowerOffGracefully(ctx, node.ToSpec().BMC, node.RedfishSystemID)
+		if err := s.redfish.PowerOffGracefully(ctx, node.ToSpec().BMC, node.RedfishSystemID); err != nil {
+			s.logger.WithError(err).WithField("node", node.Hostname).Warn("Redfish 优雅关机失败")
+		}
 	}
 }
 
 // markClusterFailed 标记集群失败
 func (s *BareMetalService) markClusterFailed(clusterID string, err error) {
-	s.db.Model(&model.BareMetalCluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
+	if updateErr := s.db.Model(&model.BareMetalCluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
 		"state":      model.ClusterStateFailed,
 		"last_error": err.Error(),
-	})
+	}).Error; updateErr != nil {
+		s.logger.WithError(updateErr).WithField("cluster_id", clusterID).Warn("标记集群失败状态失败")
+	}
 }
 
 // validateCreateRequest 校验创建集群请求

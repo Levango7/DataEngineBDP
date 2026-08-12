@@ -1,0 +1,326 @@
+# 设备数据时序模型定义
+# ============================================================================
+# 用途：定义能源设备在 IoTDB 中的时序数据模型，包括测点/数据类型/编码/压缩
+# 引擎：Apache IoTDB 1.3.x
+# 字符集：UTF-8，YAML 2 空格缩进
+# 说明：本文件用于 IoTDB 元数据初始化（CREATE TIMESERIES）与文档化
+# ============================================================================
+
+# 时序模型元信息
+model:
+  name: "energy-device-model"
+  version: "1.0.0"
+  description: |
+    能源行业设备时序数据模型。
+    定义电力/水/天然气/蒸汽/压缩空气/冷量等能源计量设备的时序测点。
+    路径格式：root.energy.device.{device_code}.{metric_name}
+  rootPath: "root.energy.device"
+
+# 设备类型与对应测点定义
+deviceTypes:
+  # 电力计量设备
+  - type: ELECTRIC_METER
+    description: "电力计量设备（电表）"
+    metrics:
+      - name: voltage
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "V"
+        description: "电压"
+      - name: current
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "A"
+        description: "电流"
+      - name: power
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "kW"
+        description: "有功功率"
+      - name: reactive_power
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "kVar"
+        description: "无功功率"
+      - name: power_factor
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: ""
+        description: "功率因数"
+      - name: frequency
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "Hz"
+        description: "电网频率"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "kWh"
+        description: "累计电能量（用于差分计算）"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态（ONLINE/OFFLINE/FAULT/MAINT）"
+
+  # 水计量设备
+  - type: WATER_METER
+    description: "水计量设备（水表）"
+    metrics:
+      - name: flow_rate
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "m3/h"
+        description: "瞬时流量"
+      - name: pressure
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "MPa"
+        description: "管道压力"
+      - name: temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "水温"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "m3"
+        description: "累计用水量"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态"
+
+  # 燃气计量设备
+  - type: GAS_METER
+    description: "燃气计量设备（燃气表）"
+    metrics:
+      - name: flow_rate
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "m3/h"
+        description: "瞬时流量"
+      - name: pressure
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "MPa"
+        description: "管道压力"
+      - name: temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "燃气温度"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "m3"
+        description: "累计用气量"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态"
+
+  # 热量计量设备
+  - type: HEAT_METER
+    description: "热量计量设备（热表）"
+    metrics:
+      - name: flow_rate
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "t/h"
+        description: "瞬时流量"
+      - name: supply_temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "供水温度"
+      - name: return_temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "回水温度"
+      - name: power
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "kW"
+        description: "瞬时热功率"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "GJ"
+        description: "累计热量"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态"
+
+  # 冷量计量设备
+  - type: COLD_METER
+    description: "冷量计量设备（冷量表）"
+    metrics:
+      - name: flow_rate
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "t/h"
+        description: "瞬时流量"
+      - name: supply_temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "供水温度"
+      - name: return_temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "回水温度"
+      - name: power
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "kW"
+        description: "瞬时冷功率"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "GJ"
+        description: "累计冷量"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态"
+
+  # 蒸汽计量设备
+  - type: STEAM_METER
+    description: "蒸汽计量设备（蒸汽表）"
+    metrics:
+      - name: flow_rate
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "t/h"
+        description: "瞬时流量"
+      - name: pressure
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "MPa"
+        description: "蒸汽压力"
+      - name: temperature
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "℃"
+        description: "蒸汽温度"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "t"
+        description: "累计蒸汽量"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态"
+
+  # 压缩空气计量设备
+  - type: AIR_METER
+    description: "压缩空气计量设备"
+    metrics:
+      - name: flow_rate
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "m3/h"
+        description: "瞬时流量"
+      - name: pressure
+        dataType: FLOAT
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "MPa"
+        description: "管道压力"
+      - name: cumulative_value
+        dataType: DOUBLE
+        encoding: GORILLA
+        compressor: SNAPPY
+        unit: "m3"
+        description: "累计压缩空气量"
+      - name: status
+        dataType: TEXT
+        encoding: PLAIN
+        compressor: SNAPPY
+        unit: ""
+        description: "设备状态"
+
+# 通用测点（所有设备类型共有）
+commonMetrics:
+  - name: signal_strength
+    dataType: INT32
+    encoding: GORILLA
+    compressor: SNAPPY
+    unit: "dBm"
+    description: "信号强度"
+  - name: communication_status
+    dataType: TEXT
+    encoding: PLAIN
+    compressor: SNAPPY
+    unit: ""
+    description: "通信状态（NORMAL/ABNORMAL）"
+
+# 采样配置
+sampling:
+  # 默认采样间隔（秒）
+  defaultIntervalSeconds: 60
+  # 高频采样设备类型（5 秒间隔）
+  highFrequencyTypes:
+    - ELECTRIC_METER
+  highFrequencyIntervalSeconds: 5
+  # 低频采样设备类型（5 分钟间隔）
+  lowFrequencyTypes:
+    - WATER_METER
+    - GAS_METER
+  lowFrequencyIntervalSeconds: 300
+
+# 数据保留策略
+retention:
+  # 原始数据保留天数
+  rawDataRetentionDays: 90
+  # 降采样数据保留天数
+  downsampledRetentionDays: 3650
+  # 降采样粒度
+  downsampleGranularity: "1h"

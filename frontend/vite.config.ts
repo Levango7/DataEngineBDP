@@ -23,6 +23,20 @@ export default defineConfig({
       }
     }
   },
+  build: {
+    // 警告大 chunk（500KB）
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        // 手动分包，将大依赖拆分
+        manualChunks: {
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          'element-vendor': ['element-plus', '@element-plus/icons-vue'],
+          'echarts-vendor': ['echarts']
+        }
+      }
+    }
+  },
   test: {
     globals: true,
     environment: 'happy-dom',

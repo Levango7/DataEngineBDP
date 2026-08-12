@@ -1,0 +1,192 @@
+﻿{
+  "_comment": "NL2SQL 内部评测集 — 基于数据引擎大数据平台 Mock schema (default.orders / default.users / default.products)",
+  "schema": {
+    "tables": [
+      {"name": "default.orders",    "columns": ["order_id", "user_id", "amount", "status", "dt"]},
+      {"name": "default.users",     "columns": ["user_id", "name", "age", "city", "dt"]},
+      {"name": "default.products",  "columns": ["product_id", "name", "category", "price"]}
+    ]
+  },
+  "cases": [
+    {
+      "id": "TC-001",
+      "category": "simple_select",
+      "nl": "查询 orders 表的数据",
+      "tableHints": ["orders"],
+      "expectKeywords": ["SELECT", "FROM", "default.orders", "LIMIT"],
+      "expectIntent": "simple_select",
+      "description": "简单查询 — 全表扫描带 LIMIT"
+    },
+    {
+      "id": "TC-002",
+      "category": "count_aggregation",
+      "nl": "统计 orders 表有多少条订单",
+      "tableHints": ["orders"],
+      "expectKeywords": ["COUNT(*)", "FROM", "default.orders", "LIMIT"],
+      "expectIntent": "aggregation",
+      "description": "COUNT 聚合 — 统计订单总数"
+    },
+    {
+      "id": "TC-003",
+      "category": "sum_aggregation",
+      "nl": "求 orders 表 amount 字段的总和",
+      "tableHints": ["orders"],
+      "expectKeywords": ["SUM(amount)", "FROM", "default.orders"],
+      "expectIntent": "aggregation",
+      "description": "SUM 聚合 — 求订单金额总和"
+    },
+    {
+      "id": "TC-004",
+      "category": "avg_aggregation",
+      "nl": "计算 orders 表 amount 的平均值",
+      "tableHints": ["orders"],
+      "expectKeywords": ["AVG(amount)", "FROM", "default.orders"],
+      "expectIntent": "aggregation",
+      "description": "AVG 聚合 — 平均订单金额"
+    },
+    {
+      "id": "TC-005",
+      "category": "max_aggregation",
+      "nl": "查询 orders 表 amount 的最大值",
+      "tableHints": ["orders"],
+      "expectKeywords": ["MAX(amount)", "FROM", "default.orders"],
+      "expectIntent": "aggregation",
+      "description": "MAX 聚合 — 最高订单金额"
+    },
+    {
+      "id": "TC-006",
+      "category": "min_aggregation",
+      "nl": "查询 orders 表 amount 的最小值",
+      "tableHints": ["orders"],
+      "expectKeywords": ["MIN(amount)", "FROM", "default.orders"],
+      "expectIntent": "aggregation",
+      "description": "MIN 聚合 — 最低订单金额"
+    },
+    {
+      "id": "TC-007",
+      "category": "filter_time",
+      "nl": "查询 orders 表昨天的数据",
+      "tableHints": ["orders"],
+      "expectKeywords": ["SELECT", "FROM", "default.orders", "WHERE", "dt", "date_sub(current_date, 1)"],
+      "expectIntent": "simple_select",
+      "description": "时间过滤 — 昨天数据"
+    },
+    {
+      "id": "TC-008",
+      "category": "filter_time",
+      "nl": "查询 orders 表今天的数据",
+      "tableHints": ["orders"],
+      "expectKeywords": ["SELECT", "FROM", "default.orders", "WHERE", "dt", "current_date"],
+      "expectIntent": "simple_select",
+      "description": "时间过滤 — 今天数据"
+    },
+    {
+      "id": "TC-009",
+      "category": "filter_time",
+      "nl": "查询 orders 表最近7天的数据",
+      "tableHints": ["orders"],
+      "expectKeywords": ["SELECT", "FROM", "default.orders", "WHERE", "dt", "date_sub(current_date, 7)"],
+      "expectIntent": "simple_select",
+      "description": "时间过滤 — 最近7天"
+    },
+    {
+      "id": "TC-010",
+      "category": "group_by",
+      "nl": "按 city 分组统计 users 表的数量",
+      "tableHints": ["users"],
+      "expectKeywords": ["GROUP BY", "city", "COUNT(*)", "FROM", "default.users"],
+      "expectIntent": "group",
+      "description": "分组聚合 — 按城市分组统计用户数"
+    },
+    {
+      "id": "TC-011",
+      "category": "order_by",
+      "nl": "查询 orders 表按 amount 降序排列",
+      "tableHints": ["orders"],
+      "expectKeywords": ["ORDER BY", "amount", "desc", "FROM", "default.orders"],
+      "expectIntent": "sort",
+      "description": "排序 — 按金额降序"
+    },
+    {
+      "id": "TC-012",
+      "category": "order_by",
+      "nl": "查询 orders 表按 amount 升序排列",
+      "tableHints": ["orders"],
+      "expectKeywords": ["ORDER BY", "amount", "asc", "FROM", "default.orders"],
+      "expectIntent": "sort",
+      "description": "排序 — 按金额升序"
+    },
+    {
+      "id": "TC-013",
+      "category": "limit",
+      "nl": "查询 orders 表前 10 条数据",
+      "tableHints": ["orders"],
+      "expectKeywords": ["SELECT", "FROM", "default.orders", "LIMIT 10"],
+      "expectIntent": "limit",
+      "description": "行数限制 — 前10条"
+    },
+    {
+      "id": "TC-014",
+      "category": "limit",
+      "nl": "查询 users 表前 50 条数据",
+      "tableHints": ["users"],
+      "expectKeywords": ["SELECT", "FROM", "default.users", "LIMIT 50"],
+      "expectIntent": "limit",
+      "description": "行数限制 — 前50条"
+    },
+    {
+      "id": "TC-015",
+      "category": "join",
+      "nl": "关联 orders 和 users 表查询",
+      "tableHints": ["orders", "users"],
+      "expectKeywords": ["SELECT", "FROM", "default.orders", "JOIN", "default.users", "ON", "user_id"],
+      "expectIntent": "join",
+      "description": "Join — 订单关联用户（同名列 user_id 作为 ON 条件）"
+    },
+    {
+      "id": "TC-016",
+      "category": "count_aggregation",
+      "nl": "统计 users 表有多少个用户",
+      "tableHints": ["users"],
+      "expectKeywords": ["COUNT(*)", "FROM", "default.users"],
+      "expectIntent": "aggregation",
+      "description": "COUNT 聚合 — 统计用户总数"
+    },
+    {
+      "id": "TC-017",
+      "category": "simple_select",
+      "nl": "查询 products 表的数据",
+      "tableHints": ["products"],
+      "expectKeywords": ["SELECT", "FROM", "default.products", "LIMIT"],
+      "expectIntent": "simple_select",
+      "description": "简单查询 — 商品表全表扫描"
+    },
+    {
+      "id": "TC-018",
+      "category": "filter_time",
+      "nl": "查询 users 表本月的数据",
+      "tableHints": ["users"],
+      "expectKeywords": ["SELECT", "FROM", "default.users", "WHERE", "dt", "date_trunc('month', current_date)"],
+      "expectIntent": "simple_select",
+      "description": "时间过滤 — 本月数据"
+    },
+    {
+      "id": "TC-019",
+      "category": "sum_aggregation",
+      "nl": "求 products 表 price 字段的总和",
+      "tableHints": ["products"],
+      "expectKeywords": ["SUM(price)", "FROM", "default.products"],
+      "expectIntent": "aggregation",
+      "description": "SUM 聚合 — 商品价格总和"
+    },
+    {
+      "id": "TC-020",
+      "category": "group_by",
+      "nl": "按 category 分组统计 products 表的数量",
+      "tableHints": ["products"],
+      "expectKeywords": ["GROUP BY", "category", "COUNT(*)", "FROM", "default.products"],
+      "expectIntent": "group",
+      "description": "分组聚合 — 按类目分组统计商品数"
+    }
+  ]
+}

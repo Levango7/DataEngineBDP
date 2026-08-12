@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+﻿#!/usr/bin/env bash
 # 端到端演示一键串联：MySQL → Iceberg(湖) → Spark(仓) → Doris(集) → 统一 SQL 网关
 # 客户视角全程仅用封装层 CLI dqctl; K8s 资源由封装层翻译并交 Operator 托管 (客户无感)
 set -uo pipefail
@@ -14,7 +14,7 @@ if ! command -v "$DQCTL" >/dev/null 2>&1; then
 fi
 
 echo "============================================================"
-echo " 数擎大数据平台 · 端到端演示 (Profile=$PROFILE)"
+echo " 数据引擎大数据平台 · 端到端演示 (Profile=$PROFILE)"
 echo "============================================================"
 
 echo; echo "── [V1] 建工作空间 + 数据项目 (封装层 API) ──"

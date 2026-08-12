@@ -1,0 +1,180 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "government_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_government",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "service_statistics",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "政务服务统计表 | 办理量/办结率/平均时长/网办率 | DDL: 03_livelihood_service_ddl.sql §5",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "stat_period", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "department", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "service_category", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "total_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "completed_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "completion_rate", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "avg_processing_days", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "online_rate", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "avg_satisfaction", "type": "DECIMAL(4,2)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "service_evaluation",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "评价汇总表 | 各评分人数/平均分/满意度率 | DDL: 03_livelihood_service_ddl.sql §6",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "department", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "total_evaluations", "type": "BIGINT", "is_dttm": false},
+        {"name": "score_5_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "score_4_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "score_3_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "score_2_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "score_1_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "avg_score", "type": "DECIMAL(4,2)", "is_dttm": false},
+        {"name": "satisfaction_rate", "type": "DECIMAL(6,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "service_hot_topic",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "热点事项表 | 办理量/搜索量/投诉量/热度排名 | DDL: 03_livelihood_service_ddl.sql §4",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "service_name", "type": "VARCHAR(256)", "is_dttm": false},
+        {"name": "department", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "transaction_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "search_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "complaint_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "hot_rank", "type": "INT", "is_dttm": false},
+        {"name": "hot_score", "type": "DECIMAL(10,2)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "government_service",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "政务服务事项主表 | DDL: 03_livelihood_service_ddl.sql §1",
+      "columns": [
+        {"name": "service_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "service_name", "type": "VARCHAR(256)", "is_dttm": false},
+        {"name": "service_category", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "department", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "is_online", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "promised_time_limit", "type": "INT", "is_dttm": false}
+      ],
+      "main_dttm_col": "service_id"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "民生服务看板",
+      "slug": "livelihood-dashboard",
+      "description": "政务行业模板 - 民生服务看板：办理统计+满意度分布+热点排行+时效分析",
+      "owners": ["gov-ops@shuqing.com"],
+      "position": {},
+      "metadata": {
+        "refresh_frequency": 3600,
+        "color_scheme": "governmentOrange",
+        "chart_configuration": {"default_time_range": "Last 30 days"}
+      },
+      "charts": [
+        {
+          "chart_title": "办理量趋势",
+          "slice_name": "办理量趋势",
+          "viz_type": "line_chart",
+          "datasource": "service_statistics",
+          "params": {
+            "x_axis": "stat_date",
+            "y_axis": "total_count",
+            "color_scheme": "transactionColors",
+            "show_legend": true,
+            "description": "政务服务办理量日趋势"
+          }
+        },
+        {
+          "chart_title": "办结率与网办率",
+          "slice_name": "办结率与网办率",
+          "viz_type": "line_chart",
+          "datasource": "service_statistics",
+          "params": {
+            "x_axis": "stat_date",
+            "y_axis": ["completion_rate", "online_rate"],
+            "color_scheme": "rateColors",
+            "show_legend": true,
+            "description": "办结率与网办率日趋势"
+          }
+        },
+        {
+          "chart_title": "满意度分布",
+          "slice_name": "满意度分布",
+          "viz_type": "bar_chart",
+          "datasource": "service_evaluation",
+          "params": {
+            "x_axis": "department",
+            "y_axis": ["score_5_count", "score_4_count", "score_3_count", "score_2_count", "score_1_count"],
+            "color_scheme": "satisfactionColors",
+            "show_legend": true,
+            "description": "各部门 1-5 分评价分布堆叠图"
+          }
+        },
+        {
+          "chart_title": "热点事项排行",
+          "slice_name": "热点事项排行",
+          "viz_type": "table_view",
+          "datasource": "service_hot_topic",
+          "params": {
+            "columns": ["hot_rank", "service_name", "department", "transaction_count", "hot_score"],
+            "order_by": "hot_rank ASC",
+            "row_limit": 20,
+            "description": "热点事项 Top 20 排行表"
+          }
+        },
+        {
+          "chart_title": "平均办理时长",
+          "slice_name": "平均办理时长",
+          "viz_type": "bar_chart",
+          "datasource": "service_statistics",
+          "params": {
+            "x_axis": "department",
+            "y_axis": "avg_processing_days",
+            "color_scheme": "durationColors",
+            "show_legend": true,
+            "description": "各部门平均办理时长（工作日）"
+          }
+        },
+        {
+          "chart_title": "部门办理量对比",
+          "slice_name": "部门办理量对比",
+          "viz_type": "pie_chart",
+          "datasource": "service_statistics",
+          "params": {
+            "metric": "SUM(total_count)",
+            "group_by": "department",
+            "color_scheme": "departmentColors",
+            "description": "各部门办理量占比"
+          }
+        }
+      ]
+    }
+  ]
+}

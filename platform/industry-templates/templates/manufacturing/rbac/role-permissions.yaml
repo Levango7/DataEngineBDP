@@ -1,0 +1,120 @@
+# 制造行业模板 - 角色权限关联
+# ============================================================================
+# 格式：role → permission 映射
+# 关联数：4 角色 × 多权限
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 角色权限关联列表
+role_permissions:
+  # --------------------------------------------------------------------------
+  # 车间主任（workshop_director）
+  # --------------------------------------------------------------------------
+  - role: workshop_director
+    permissions:
+      # OEE 域表读写
+      - perm_table_equipment_read
+      - perm_table_equipment_write
+      - perm_table_production_line_read
+      - perm_table_production_line_write
+      - perm_table_shift_read
+      - perm_table_shift_write
+      - perm_table_equipment_status_log_read
+      - perm_table_equipment_oee_daily_read
+      - perm_table_equipment_oee_daily_write
+      - perm_table_equipment_oee_shift_read
+      - perm_table_equipment_oee_shift_write
+      - perm_table_equipment_sensor_metric_read
+      # 质量追溯域表（工单/工序/批次读写，其余只读）
+      - perm_table_work_order_read
+      - perm_table_work_order_write
+      - perm_table_process_record_read
+      - perm_table_process_record_write
+      - perm_table_product_batch_read
+      - perm_table_product_batch_write
+      - perm_table_process_route_read
+      # DAG 管理/查看
+      - perm_dag_oee_calculation_manage
+      - perm_dag_iotdb_ingestion_manage
+      - perm_dag_quality_trace_view
+      # Dashboard 查看
+      - perm_dashboard_oee_view
+
+  # --------------------------------------------------------------------------
+  # 质量员（quality_engineer）
+  # --------------------------------------------------------------------------
+  - role: quality_engineer
+    permissions:
+      # 质量追溯域表读写
+      - perm_table_product_batch_read
+      - perm_table_product_batch_write
+      - perm_table_work_order_read
+      - perm_table_work_order_write
+      - perm_table_process_route_read
+      - perm_table_process_route_write
+      - perm_table_process_record_read
+      - perm_table_process_record_write
+      - perm_table_quality_parameter_read
+      - perm_table_quality_parameter_write
+      - perm_table_defect_record_read
+      - perm_table_defect_record_write
+      - perm_table_quality_trace_link_read
+      - perm_table_quality_trace_link_write
+      # 设备 OEE 表只读
+      - perm_table_equipment_read
+      - perm_table_equipment_oee_daily_read
+      # DAG 管理/查看
+      - perm_dag_quality_trace_manage
+      - perm_dag_oee_calculation_view
+      # Dashboard 查看
+      - perm_dashboard_quality_view
+      - perm_dashboard_oee_view
+
+  # --------------------------------------------------------------------------
+  # 供应链经理（supply_chain_manager）
+  # --------------------------------------------------------------------------
+  - role: supply_chain_manager
+    permissions:
+      # 供应链协同域表读写
+      - perm_table_supplier_read
+      - perm_table_supplier_write
+      - perm_table_purchase_order_read
+      - perm_table_purchase_order_write
+      - perm_table_inventory_read
+      - perm_table_inventory_write
+      - perm_table_inventory_movement_read
+      - perm_table_inventory_movement_write
+      - perm_table_sales_order_read
+      - perm_table_sales_order_write
+      - perm_table_logistics_shipment_read
+      - perm_table_logistics_shipment_write
+      - perm_table_supply_chain_event_read
+      - perm_table_supply_chain_event_write
+      # 产品批次只读
+      - perm_table_product_batch_read
+      # DAG 管理
+      - perm_dag_supply_chain_sync_manage
+      # Dashboard 查看
+      - perm_dashboard_supply_chain_view
+
+  # --------------------------------------------------------------------------
+  # 设备工程师（equipment_engineer）
+  # --------------------------------------------------------------------------
+  - role: equipment_engineer
+    permissions:
+      # 设备域表读写
+      - perm_table_equipment_read
+      - perm_table_equipment_write
+      - perm_table_production_line_read
+      - perm_table_shift_read
+      - perm_table_equipment_status_log_read
+      - perm_table_equipment_status_log_write
+      - perm_table_equipment_oee_daily_read
+      - perm_table_equipment_oee_shift_read
+      - perm_table_equipment_sensor_metric_read
+      - perm_table_equipment_sensor_metric_write
+      # DAG 管理/查看
+      - perm_dag_iotdb_ingestion_manage
+      - perm_dag_oee_calculation_view
+      # Dashboard 查看
+      - perm_dashboard_oee_view

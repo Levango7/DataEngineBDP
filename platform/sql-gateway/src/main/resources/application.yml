@@ -41,7 +41,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
 
 otel:
   exporter:
@@ -83,3 +83,16 @@ app:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
+
+# 虚拟表模块配置
+virtual-table:
+  cache:
+    # 元数据缓存最大条数
+    maximum-size: 1000
+    # 元数据缓存写入后过期分钟数
+    expire-after-write-minutes: 10
+  materialization:
+    # 是否启用物化表定时刷新调度器
+    scheduler-enabled: true
+    # 默认刷新间隔秒数（虚拟表未指定时使用）
+    default-refresh-interval-seconds: 300

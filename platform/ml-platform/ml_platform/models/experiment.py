@@ -1,4 +1,5 @@
 """实验管理数据模型."""
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -24,14 +25,10 @@ class ExperimentConfig(BaseModel):
     """
 
     name: str = Field(..., description="实验名")
-    workspaceId: Optional[str] = Field(
-        default=None, description="工作空间 ID"
-    )
+    workspaceId: Optional[str] = Field(default=None, description="工作空间 ID")
     projectId: Optional[str] = Field(default=None, description="项目 ID")
     description: Optional[str] = Field(default=None, description="描述")
-    tags: dict[str, str] = Field(
-        default_factory=dict, description="标签"
-    )
+    tags: dict[str, str] = Field(default_factory=dict, description="标签")
 
 
 class ExperimentInfo(TimestampMixin):
@@ -49,16 +46,10 @@ class ExperimentInfo(TimestampMixin):
 
     id: str = Field(..., description="实验 ID")
     name: str = Field(..., description="实验名")
-    status: ExperimentStatus = Field(
-        default=ExperimentStatus.ACTIVE, description="状态"
-    )
+    status: ExperimentStatus = Field(default=ExperimentStatus.ACTIVE, description="状态")
     config: ExperimentConfig = Field(..., description="实验配置")
-    params: dict[str, Any] = Field(
-        default_factory=dict, description="累计参数"
-    )
-    metrics: dict[str, float] = Field(
-        default_factory=dict, description="累计指标"
-    )
+    params: dict[str, Any] = Field(default_factory=dict, description="累计参数")
+    metrics: dict[str, float] = Field(default_factory=dict, description="累计指标")
     runCount: int = Field(default=0, description="运行次数")
 
 
@@ -82,23 +73,13 @@ class ModelInfo(TimestampMixin):
     id: str = Field(..., description="模型 ID")
     name: str = Field(..., description="模型名")
     algorithm: str = Field(..., description="算法类型")
-    experimentId: Optional[str] = Field(
-        default=None, description="所属实验 ID"
-    )
+    experimentId: Optional[str] = Field(default=None, description="所属实验 ID")
     version: int = Field(default=1, ge=1, description="版本号")
     status: str = Field(default="ready", description="状态")
-    artifactUri: Optional[str] = Field(
-        default=None, description="模型产物 URI"
-    )
-    metrics: dict[str, float] = Field(
-        default_factory=dict, description="评估指标"
-    )
-    params: dict[str, Any] = Field(
-        default_factory=dict, description="训练参数"
-    )
-    tags: dict[str, str] = Field(
-        default_factory=dict, description="标签"
-    )
+    artifactUri: Optional[str] = Field(default=None, description="模型产物 URI")
+    metrics: dict[str, float] = Field(default_factory=dict, description="评估指标")
+    params: dict[str, Any] = Field(default_factory=dict, description="训练参数")
+    tags: dict[str, str] = Field(default_factory=dict, description="标签")
     description: Optional[str] = Field(default=None, description="描述")
 
 
@@ -112,9 +93,7 @@ class ModelMetrics(BaseModel):
     """
 
     modelId: str = Field(..., description="模型 ID")
-    metrics: dict[str, float] = Field(
-        default_factory=dict, description="指标值"
-    )
+    metrics: dict[str, float] = Field(default_factory=dict, description="指标值")
     capturedAt: str = Field(
         default_factory=lambda: utcNow().isoformat(),
         description="采集时间",
