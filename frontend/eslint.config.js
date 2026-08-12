@@ -57,8 +57,8 @@ export default [
       '@typescript-eslint/no-empty-object-type': 'off',
 
       // 通用规则
-      'no-console': ['warn', { allow: ['warn', 'error'] }],
-      'no-debugger': 'warn'
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      'no-debugger': 'error'
     }
   },
 

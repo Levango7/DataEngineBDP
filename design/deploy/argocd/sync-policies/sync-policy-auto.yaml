@@ -1,0 +1,38 @@
+# 同步策略模板一：自动同步 + 自愈 + 修剪（dev/staging 推荐）
+# ============================================================================
+# 适用于：dev/staging 环境，期望 Git 即真理
+# 风险：集群手动变更会被 selfHeal 自动回滚
+# 用法：复制此文件 spec.syncPolicy 到 Application 中
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sync-policy-template-auto
+  namespace: argocd
+  annotations:
+    description: "模板：自动同步 + 自愈 + 修剪（dev/staging）"
+    note: "此为模板，不实际部署，复制 spec.syncPolicy 到真实 Application"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/argocd/kustomize/overlays/dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-platform
+  syncPolicy:
+    automated:
+      prune: true         # 修剪：Git 中删除的资源在集群中同步删除
+      selfHeal: true      # 自愈：集群漂移自动回滚到 Git 声明
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m

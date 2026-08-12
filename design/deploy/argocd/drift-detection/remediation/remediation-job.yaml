@@ -1,0 +1,79 @@
+# 漂移修复 CronJob · 定时巡检 + 自动修复
+# ============================================================================
+# 作用：定时执行漂移检测 + 自动修复，覆盖 selfHeal 未覆盖的场景
+# 调度：每 3 分钟执行一次
+# 依赖：detect-drift.sh、remediate.sh 已挂载到 ConfigMap
+# 镜像：使用 ArgoCD 官方镜像（含 argocd CLI）
+# ============================================================================
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: drift-remediation
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-remediation
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移检测与自动修复定时任务"
+    schedule: "每 3 分钟"
+spec:
+  schedule: "*/3 * * * *"
+  concurrencyPolicy: Forbid       # 禁止并发（避免修复冲突）
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 10
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 240  # 单次执行最多 4 分钟
+      backoffLimit: 1             # 失败重试 1 次
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: drift-remediation
+        spec:
+          serviceAccountName: argocd-remediation-sa
+          restartPolicy: OnFailure
+          containers:
+            - name: drift-remediator
+              image: argoproj/argocd:v2.7.0
+              imagePullPolicy: IfNotPresent
+              command: ["/bin/bash", "/scripts/remediate.sh"]
+              args: ["--auto"]
+              env:
+                - name: ARGOCD_NS
+                  value: "argocd"
+                - name: ARGOCD_SERVER
+                  value: "argocd-server.argocd.svc.cluster.local"
+                - name: ARGOCD_AUTH_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: drift-remediation-token
+                      key: token
+                - name: REMEDIATION_TIMEOUT
+                  value: "180"
+                - name: MAX_CONCURRENT_REMEDIATIONS
+                  value: "5"
+                - name: REMEDIATION_RATE_LIMIT
+                  value: "3"  # 同一 App 5 分钟内最多修复 3 次
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: drift-policy
+                  mountPath: /etc/drift-policy
+                  readOnly: true
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+          volumes:
+            - name: scripts
+              configMap:
+                name: drift-remediation-scripts
+                defaultMode: 0755
+            - name: drift-policy
+              configMap:
+                name: drift-policy

@@ -5,14 +5,13 @@
 2. 权限隔离：非成员/非管理员不可访问/操作业务线
 3. 跨业务线访问默认拒绝
 """
-from __future__ import annotations
 
-import uuid
+from __future__ import annotations
 
 import pytest
 
 from business_portal.models.base import CatalogNodeType, ReportType
-from business_portal.models.business_line import BusinessLine, Budget
+from business_portal.models.business_line import Budget, BusinessLine
 from business_portal.models.catalog import CatalogNode
 from business_portal.models.report import Report, ReportConfig
 from business_portal.repositories import (
@@ -39,9 +38,7 @@ class TestDataIsolation:
     """数据隔离测试：不同业务线数据互不可见."""
 
     @pytest.mark.asyncio
-    async def test_report_isolation_between_business_lines(
-        self, mock_bl_store, mock_report_store
-    ):
+    async def test_report_isolation_between_business_lines(self, mock_bl_store, mock_report_store):
         """报表数据隔离：业务线 A 的报表在业务线 B 不可见."""
         report_svc = ReportService(mock_bl_store, mock_report_store)
         bl_a = _make_bl("bl-a", "风控线", "t-1", ["u-a"])
@@ -60,6 +57,7 @@ class TestDataIsolation:
 
         # 业务线 B 列表不应包含 A 的报表
         from business_portal.models.report import ReportFilter
+
         reports_in_b = await report_svc.list_reports(ReportFilter(blId="bl-b"))
         assert len(reports_in_b) == 0
 
@@ -69,9 +67,7 @@ class TestDataIsolation:
         assert reports_in_a[0].id == "r-a"
 
     @pytest.mark.asyncio
-    async def test_report_cross_bl_access_denied(
-        self, mock_bl_store, mock_report_store
-    ):
+    async def test_report_cross_bl_access_denied(self, mock_bl_store, mock_report_store):
         """跨业务线获取报表应抛 ReportNotFoundError（数据隔离）."""
         report_svc = ReportService(mock_bl_store, mock_report_store)
         bl_a = _make_bl("bl-a", "风控线", "t-1", ["u-a"])
@@ -91,9 +87,7 @@ class TestDataIsolation:
             await report_svc.get_report("bl-b", "r-a")
 
     @pytest.mark.asyncio
-    async def test_catalog_isolation_between_business_lines(
-        self, mock_bl_store, mock_catalog_store
-    ):
+    async def test_catalog_isolation_between_business_lines(self, mock_bl_store, mock_catalog_store):
         """数据目录隔离：业务线 A 的目录树与 B 完全独立."""
         catalog_svc = CatalogService(mock_bl_store, mock_catalog_store)
         bl_a = _make_bl("bl-a", "风控线", "t-1", ["u-a"])
@@ -116,9 +110,7 @@ class TestDataIsolation:
             assert n.blId == "bl-b"
 
     @pytest.mark.asyncio
-    async def test_catalog_node_cannot_cross_bl(
-        self, mock_bl_store, mock_catalog_store
-    ):
+    async def test_catalog_node_cannot_cross_bl(self, mock_bl_store, mock_catalog_store):
         """添加目录节点：node.blId 必须与目标业务线一致."""
         catalog_svc = CatalogService(mock_bl_store, mock_catalog_store)
         bl_a = _make_bl("bl-a", "风控线", "t-1", ["u-a"])
@@ -137,9 +129,7 @@ class TestDataIsolation:
         assert result.blId == "bl-a"
 
     @pytest.mark.asyncio
-    async def test_report_create_with_wrong_bl_id_raises(
-        self, mock_bl_store, mock_report_store
-    ):
+    async def test_report_create_with_wrong_bl_id_raises(self, mock_bl_store, mock_report_store):
         """报表 blId 指向不存在的业务线 → BusinessLineNotFoundError."""
         report_svc = ReportService(mock_bl_store, mock_report_store)
         report = Report(
@@ -158,6 +148,7 @@ class TestPermissionIsolation:
     async def test_non_member_cannot_read_bl(self, mock_bl_store):
         """非成员读取业务线详情 → PermissionDeniedError."""
         from business_portal.services.business_line_service import BusinessLineService
+
         svc = BusinessLineService(mock_bl_store)
         bl = _make_bl("bl-1", "风控线", "t-1", ["u-1", "u-2"])
         await svc.create_business_line(bl)
@@ -168,6 +159,7 @@ class TestPermissionIsolation:
     async def test_member_can_read_bl(self, mock_bl_store):
         """成员可读取业务线详情."""
         from business_portal.services.business_line_service import BusinessLineService
+
         svc = BusinessLineService(mock_bl_store)
         bl = _make_bl("bl-1", "风控线", "t-1", ["u-1", "u-2"])
         await svc.create_business_line(bl)
@@ -178,6 +170,7 @@ class TestPermissionIsolation:
     async def test_non_owner_cannot_update_bl(self, mock_bl_store):
         """非管理员不可更新业务线."""
         from business_portal.services.business_line_service import BusinessLineService
+
         svc = BusinessLineService(mock_bl_store)
         bl = BusinessLine(
             id="bl-1",
@@ -188,14 +181,13 @@ class TestPermissionIsolation:
         )
         await svc.create_business_line(bl)
         with pytest.raises(PermissionDeniedError):
-            await svc.update_business_line(
-                "bl-1", {"name": "x"}, user_id="user-1"
-            )
+            await svc.update_business_line("bl-1", {"name": "x"}, user_id="user-1")
 
     @pytest.mark.asyncio
     async def test_non_owner_cannot_delete_bl(self, mock_bl_store):
         """非管理员不可删除业务线."""
         from business_portal.services.business_line_service import BusinessLineService
+
         svc = BusinessLineService(mock_bl_store)
         bl = BusinessLine(
             id="bl-1",
@@ -209,25 +201,18 @@ class TestPermissionIsolation:
             await svc.delete_business_line("bl-1", user_id="user-1")
 
     @pytest.mark.asyncio
-    async def test_list_by_member_returns_only_visible(
-        self, mock_bl_store
-    ):
+    async def test_list_by_member_returns_only_visible(self, mock_bl_store):
         """按成员列出业务线：仅返回该成员可见的业务线."""
         from business_portal.models.business_line import BusinessLineFilter
         from business_portal.services.business_line_service import BusinessLineService
+
         svc = BusinessLineService(mock_bl_store)
         # 业务线 1：u-1 可见
-        await svc.create_business_line(
-            _make_bl("bl-1", "风控线", "t-1", ["u-1", "u-2"])
-        )
+        await svc.create_business_line(_make_bl("bl-1", "风控线", "t-1", ["u-1", "u-2"]))
         # 业务线 2：u-1 不可见
-        await svc.create_business_line(
-            _make_bl("bl-2", "增长线", "t-1", ["u-2"])
-        )
+        await svc.create_business_line(_make_bl("bl-2", "增长线", "t-1", ["u-2"]))
         # 业务线 3：u-1 可见
-        await svc.create_business_line(
-            _make_bl("bl-3", "营销线", "t-1", ["u-1"])
-        )
+        await svc.create_business_line(_make_bl("bl-3", "营销线", "t-1", ["u-1"]))
         result = await svc.list_business_lines(BusinessLineFilter(memberId="u-1"))
         ids = {bl.id for bl in result}
         assert ids == {"bl-1", "bl-3"}
@@ -237,9 +222,7 @@ class TestCrossBusinessLineIsolation:
     """跨业务线综合隔离测试."""
 
     @pytest.mark.asyncio
-    async def test_two_business_lines_completely_isolated(
-        self, mock_bl_store, mock_report_store, mock_catalog_store
-    ):
+    async def test_two_business_lines_completely_isolated(self, mock_bl_store, mock_report_store, mock_catalog_store):
         """两条业务线完全隔离：报表/目录互不可见."""
         report_svc = ReportService(mock_bl_store, mock_report_store)
         catalog_svc = CatalogService(mock_bl_store, mock_catalog_store)
@@ -250,12 +233,8 @@ class TestCrossBusinessLineIsolation:
         await mock_bl_store.create(bl_b)
 
         # 各自创建报表
-        await report_svc.create_report(
-            Report(id="r-a", blId="bl-a", name="风控报表")
-        )
-        await report_svc.create_report(
-            Report(id="r-b", blId="bl-b", name="增长报表")
-        )
+        await report_svc.create_report(Report(id="r-a", blId="bl-a", name="风控报表"))
+        await report_svc.create_report(Report(id="r-b", blId="bl-b", name="增长报表"))
 
         from business_portal.models.report import ReportFilter
 
@@ -283,11 +262,10 @@ class TestCrossBusinessLineIsolation:
         assert ids_a.isdisjoint(ids_b)
 
     @pytest.mark.asyncio
-    async def test_dashboard_isolated_per_bl(
-        self, mock_bl_store, mock_dashboard_store
-    ):
+    async def test_dashboard_isolated_per_bl(self, mock_bl_store, mock_dashboard_store):
         """仪表盘按业务线独立."""
         from business_portal.services.dashboard_service import DashboardService
+
         dashboard_svc = DashboardService(mock_bl_store, mock_dashboard_store)
         bl_a = _make_bl("bl-a", "风控线", "t-1", ["u-a"])
         bl_b = _make_bl("bl-b", "增长线", "t-1", ["u-b"])
@@ -303,11 +281,10 @@ class TestCrossBusinessLineIsolation:
         assert len(dashboard_b.kpis) > 0
 
     @pytest.mark.asyncio
-    async def test_workbench_isolated_per_bl(
-        self, mock_bl_store, mock_workbench_store
-    ):
+    async def test_workbench_isolated_per_bl(self, mock_bl_store, mock_workbench_store):
         """工作台按业务线独立."""
         from business_portal.services.workbench_service import WorkbenchService
+
         workbench_svc = WorkbenchService(mock_bl_store, mock_workbench_store)
         bl_a = _make_bl("bl-a", "风控线", "t-1", ["u-a"])
         bl_b = _make_bl("bl-b", "增长线", "t-1", ["u-b"])

@@ -55,10 +55,10 @@ jobs:
 
       # ============================================================
       # 初始化 CodeQL：根据 matrix.language 自动配置分析环境
-      # 使用 codeql-action/init@v3，queries 使用默认 + security-extended 套件
+      # 使用 codeql-action/init@v4，queries 使用默认 + security-extended 套件
       # ============================================================
       - name: 初始化 CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@v4
         with:
           languages: ${{ matrix.language }}
           # 使用 security-extended 套件，覆盖更多安全规则
@@ -67,14 +67,52 @@ jobs:
           debug: false
 
       # ============================================================
-      # 自动构建：CodeQL 会根据语言自动执行构建
-      # Java：自动检测 Maven/Gradle 并构建
+      # Java 构建准备：安装 JDK 17 + Maven 3.9
+      # 仅对 java 语言执行，为后续自定义构建步骤提供工具链
+      # autobuild 无法可靠检测多模块 Maven 布局，故改用自定义构建
+      # ============================================================
+      - name: 安装 JDK 17 + Maven 3.9（Java 专用）
+        if: matrix.language == 'java'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          maven-version: '3.9'
+          cache: 'maven'
+
+      # ============================================================
+      # 自定义 Java 构建：遍历 platform/ 下所有 pom.xml 执行 mvn compile
+      # 替代 autobuild，解决 "Could not detect build system" 问题
+      # ============================================================
+      - name: 自定义构建（Java Maven 多模块）
+        if: matrix.language == 'java'
+        run: |
+          java_count=$(find platform -name pom.xml -not -path "*/target/*" 2>/dev/null | wc -l)
+          if [ "$java_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Java 组件（pom.xml），跳过构建"
+            exit 0
+          fi
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  CodeQL 构建准备: mvn compile $mod_name"
+            echo "============================================"
+            mvn -f "$pom" compile -B -q \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
+              || echo "::warning::$mod_name 编译失败，继续下一个"
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+
+      # ============================================================
+      # 自动构建（非 Java 语言）：CodeQL 会根据语言自动执行构建
       # Go：自动检测 go.mod 并构建
       # Python：无需构建，直接分析源码
       # JavaScript：自动检测 npm/yarn 并构建
+      # Java 已由上述自定义步骤处理，此处跳过
       # ============================================================
-      - name: 自动构建（CodeQL autobuild）
-        uses: github/codeql-action/autobuild@v3
+      - name: 自动构建（CodeQL autobuild，非 Java）
+        if: matrix.language != 'java'
+        uses: github/codeql-action/autobuild@v4
         # 对非关键语言构建失败时继续执行，避免单语言失败阻塞整体分析
         continue-on-error: ${{ matrix.language == 'javascript' || matrix.language == 'python' }}
 
@@ -82,7 +120,7 @@ jobs:
       # 执行 CodeQL 分析：分析构建产物，生成 SARIF 结果
       # ============================================================
       - name: 执行 CodeQL 分析
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@v4
         with:
           category: '/language:${{ matrix.language }}'
           # 上传 SARIF 到 GitHub Security tab

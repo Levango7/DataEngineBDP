@@ -1,4 +1,5 @@
 """Mock 特征存储测试."""
+
 from __future__ import annotations
 
 import pytest
@@ -45,12 +46,8 @@ async def test_get_feature_group_not_found(mockFeatureStore):
 
 @pytest.mark.asyncio
 async def test_put_and_get_features(mockFeatureStore):
-    await mockFeatureStore.create_feature_group(
-        FeatureGroupConfig(name="g1")
-    )
-    await mockFeatureStore.put_features(
-        "g1", "user-1", {"age": 30, "gender": "M"}
-    )
+    await mockFeatureStore.create_feature_group(FeatureGroupConfig(name="g1"))
+    await mockFeatureStore.put_features("g1", "user-1", {"age": 30, "gender": "M"})
     features = await mockFeatureStore.get_features("g1", "user-1")
     assert features["age"] == 30
     assert features["gender"] == "M"
@@ -58,9 +55,7 @@ async def test_put_and_get_features(mockFeatureStore):
 
 @pytest.mark.asyncio
 async def test_get_features_entity_not_found(mockFeatureStore):
-    await mockFeatureStore.create_feature_group(
-        FeatureGroupConfig(name="g1")
-    )
+    await mockFeatureStore.create_feature_group(FeatureGroupConfig(name="g1"))
     with pytest.raises(EntityNotFoundError):
         await mockFeatureStore.get_features("g1", "nonexistent")
 
@@ -74,19 +69,13 @@ async def test_get_features_group_not_found(mockFeatureStore):
 @pytest.mark.asyncio
 async def test_put_features_group_not_found(mockFeatureStore):
     with pytest.raises(FeatureGroupNotFoundError):
-        await mockFeatureStore.put_features(
-            "nonexistent", "u1", {"a": 1}
-        )
+        await mockFeatureStore.put_features("nonexistent", "u1", {"a": 1})
 
 
 @pytest.mark.asyncio
 async def test_delete_features(mockFeatureStore):
-    await mockFeatureStore.create_feature_group(
-        FeatureGroupConfig(name="g1")
-    )
-    await mockFeatureStore.put_features(
-        "g1", "u1", {"a": 1}
-    )
+    await mockFeatureStore.create_feature_group(FeatureGroupConfig(name="g1"))
+    await mockFeatureStore.put_features("g1", "u1", {"a": 1})
     await mockFeatureStore.delete_features("g1", "u1")
     with pytest.raises(EntityNotFoundError):
         await mockFeatureStore.get_features("g1", "u1")
@@ -94,21 +83,15 @@ async def test_delete_features(mockFeatureStore):
 
 @pytest.mark.asyncio
 async def test_list_feature_groups(mockFeatureStore):
-    await mockFeatureStore.create_feature_group(
-        FeatureGroupConfig(name="g1")
-    )
-    await mockFeatureStore.create_feature_group(
-        FeatureGroupConfig(name="g2")
-    )
+    await mockFeatureStore.create_feature_group(FeatureGroupConfig(name="g1"))
+    await mockFeatureStore.create_feature_group(FeatureGroupConfig(name="g2"))
     groups = await mockFeatureStore.list_feature_groups()
     assert len(groups) == 2
 
 
 @pytest.mark.asyncio
 async def test_overwrite_features(mockFeatureStore):
-    await mockFeatureStore.create_feature_group(
-        FeatureGroupConfig(name="g1")
-    )
+    await mockFeatureStore.create_feature_group(FeatureGroupConfig(name="g1"))
     await mockFeatureStore.put_features("g1", "u1", {"a": 1})
     await mockFeatureStore.put_features("g1", "u1", {"a": 2, "b": 3})
     features = await mockFeatureStore.get_features("g1", "u1")

@@ -1,7 +1,7 @@
 """BI 报表模型."""
+
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -25,9 +25,7 @@ class ReportConfig(BaseModel):
     dimensions: list[str] = Field(default_factory=list, description="维度字段")
     measures: list[str] = Field(default_factory=list, description="度量字段")
     filters: dict[str, Any] = Field(default_factory=dict, description="过滤条件")
-    refreshInterval: int = Field(
-        default=0, ge=0, description="刷新间隔（秒），0=不自动刷新"
-    )
+    refreshInterval: int = Field(default=0, ge=0, description="刷新间隔（秒），0=不自动刷新")
     extra: dict[str, Any] = Field(default_factory=dict)
 
 

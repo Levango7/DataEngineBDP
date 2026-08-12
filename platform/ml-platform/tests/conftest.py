@@ -1,29 +1,30 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("ML_BACKEND_TYPE", "mock")
 os.environ.setdefault("ML_FEATURE_STORE_TYPE", "mock")
 os.environ.setdefault("ML_EXPERIMENT_STORE_TYPE", "mock")
 
-from ml_platform.api.app import createApp
-from ml_platform.config.settings import Settings, resetSettings
-from ml_platform.repositories.mock import (
+from ml_platform.api.app import createApp  # noqa: E402
+from ml_platform.config.settings import Settings, resetSettings  # noqa: E402
+from ml_platform.repositories.mock import (  # noqa: E402
     MockExperimentStore,
     MockFeatureStore,
     MockMLBackend,
 )
-from ml_platform.services.evaluation_service import EvaluationService
-from ml_platform.services.experiment_service import ExperimentService
-from ml_platform.services.feature_service import FeatureService
-from ml_platform.services.prediction_service import PredictionService
-from ml_platform.services.registry import ServiceRegistry
-from ml_platform.services.training_service import TrainingService
+from ml_platform.services.evaluation_service import EvaluationService  # noqa: E402
+from ml_platform.services.experiment_service import ExperimentService  # noqa: E402
+from ml_platform.services.feature_service import FeatureService  # noqa: E402
+from ml_platform.services.prediction_service import PredictionService  # noqa: E402
+from ml_platform.services.registry import ServiceRegistry  # noqa: E402
+from ml_platform.services.training_service import TrainingService  # noqa: E402
 
 
 @pytest.fixture
@@ -60,9 +61,7 @@ def registry(
         backend=mockBackend,
         featureStore=mockFeatureStore,
         experimentStore=mockExperimentStore,
-        trainingService=TrainingService(
-            mockBackend, mockExperimentStore
-        ),
+        trainingService=TrainingService(mockBackend, mockExperimentStore),
         predictionService=PredictionService(mockBackend),
         evaluationService=EvaluationService(mockBackend),
         featureService=FeatureService(mockFeatureStore),

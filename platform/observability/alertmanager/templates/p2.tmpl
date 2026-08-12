@@ -1,0 +1,40 @@
+{{/*
+  P2 一般告警模板 — 钉钉/飞书 markdown
+
+  钉钉与飞书均支持 markdown 消息，模板统一。
+*/}}
+{{ define "dingtalk.p2.markdown" }}
+### [P2 一般告警] {{ .CommonLabels.alertname }}
+- **租户**: {{ .CommonLabels.tenant_id }}
+- **组件**: {{ .CommonLabels.component }}
+- **状态**: {{ .Status | toUpper }}
+- **计数**: {{ template "alert.count" . }}
+- **描述**: {{ .CommonAnnotations.description }}
+
+{{ range .Alerts.Firing }}
+- ⚠️ {{ .Labels.alertname }} @ {{ .StartsAt.Format "15:04" }} — {{ .Annotations.value }}
+{{ end }}
+{{ range .Alerts.Resolved }}
+- ✅ {{ .Labels.alertname }} @ {{ .EndsAt.Format "15:04" }} — 已恢复
+{{ end }}
+
+[处置手册]({{ .CommonAnnotations.runbook_url }})
+{{ end }}
+
+{{ define "feishu.p2.markdown" }}
+### [P2 一般告警] {{ .CommonLabels.alertname }}
+- **租户**: {{ .CommonLabels.tenant_id }}
+- **组件**: {{ .CommonLabels.component }}
+- **状态**: {{ .Status | toUpper }}
+- **计数**: {{ template "alert.count" . }}
+- **描述**: {{ .CommonAnnotations.description }}
+
+{{ range .Alerts.Firing }}
+- ⚠️ {{ .Labels.alertname }} @ {{ .StartsAt.Format "15:04" }} — {{ .Annotations.value }}
+{{ end }}
+{{ range .Alerts.Resolved }}
+- ✅ {{ .Labels.alertname }} @ {{ .EndsAt.Format "15:04" }} — 已恢复
+{{ end }}
+
+[处置手册]({{ .CommonAnnotations.runbook_url }})
+{{ end }}

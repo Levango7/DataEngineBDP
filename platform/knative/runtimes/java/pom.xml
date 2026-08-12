@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ============================================================================
+     Java 函数运行时 pom.xml  数据引擎大数据平台 T025
+     Spring Boot 3.3 + GraalVM Native Image
+     冷启动优化：Native Image 编译为单二进制，启动小于 1s
+     ============================================================================ -->
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.3.4</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.levango7.dataenginebdp</groupId>
+    <artifactId>function-runtime-java</artifactId>
+    <version>0.1.0</version>
+    <name>function-runtime-java</name>
+    <description>Shuqing Serverless Java Function Runtime (Spring Boot Native)</description>
+
+    <properties>
+        <java.version>17</java.version>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+        <!-- Spring Boot Web (Native compatible) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- Spring Boot Actuator: health check + Prometheus metrics -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <!-- Micrometer Prometheus Registry: invocation metering -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+        <!-- Native Image support -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <!-- JSON processing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!-- Lombok: reduce boilerplate -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- Test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <excludes>
+                        <exclude>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </exclude>
+                    </excludes>
+                </configuration>
+            </plugin>
+            <!-- GraalVM Native Image plugin: cold start optimization core -->
+            <plugin>
+                <groupId>org.graalvm.buildtools</groupId>
+                <artifactId>native-maven-plugin</artifactId>
+                <version>0.10.2</version>
+                <configuration>
+                    <buildArgs>
+                        <buildArg>--enable-url-protocols=http</buildArg>
+                        <buildArg>-H:+SpawnIsolates</buildArg>
+                        <buildArg>-H:+ReportExceptionStackTraces</buildArg>
+                    </buildArgs>
+                </configuration>
+            </plugin>
+            <!-- Checkstyle：代码风格检查（CI 阻断） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <version>3.6.0</version>
+                <configuration>
+                    <configLocation>../../../../build/lint/checkstyle.xml</configLocation>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    <consoleOutput>false</consoleOutput>
+                    <violationSeverity>warning</violationSeverity>
+                    <resourceExcludes>**/*.yml,**/*.yaml,**/*.properties,**/*.xml,**/*.json</resourceExcludes>
+                </configuration>
+            </plugin>
+            <!-- PMD：静态分析（CI 阻断） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-pmd-plugin</artifactId>
+                <version>3.28.0</version>
+                <configuration>
+                    <rulesets>
+                        <ruleset>../../../../build/lint/pmd-ruleset.xml</ruleset>
+                    </rulesets>
+                    <failOnViolation>true</failOnViolation>
+                    <includeTests>true</includeTests>
+                    <minimumPriority>5</minimumPriority>
+                    <skipPmdError>true</skipPmdError>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

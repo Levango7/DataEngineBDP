@@ -1,11 +1,12 @@
 """FastAPI 应用工厂."""
+
 from __future__ import annotations
 
 from typing import Optional
 
 from fastapi import FastAPI
 
-from llmops.api.routers import models, training, deployments, monitor, health
+from llmops.api.routers import deployments, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
 from llmops.services.registry import ServiceRegistry, build_services
 
@@ -31,7 +32,7 @@ def create_app(
     app = FastAPI(
         title="LLMOps Platform",
         description=(
-            "数擎大数据平台 · 智能数据层 · LLMOps 运营平台 (L4.5.3)\n\n"
+            "数据引擎大数据平台 · 智能数据层 · LLMOps 运营平台 (L4.5.3)\n\n"
             "从微调、评估到部署的一体化大模型运营；基座模型与领域模型统一纳管。\n"
             "复用 L4.5.2 机器学习 MLflow Tracking/Registry 底座。"
         ),

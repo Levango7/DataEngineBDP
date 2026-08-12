@@ -1,0 +1,200 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "government_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_government",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "gdp",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "GDP 核算表 | 生产法/支出法/收入法 | DDL: 02_economic_operation_ddl.sql §1",
+      "columns": [
+        {"name": "gdp_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "stat_quarter", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "province", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "city", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "gdp_value", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "gdp_growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "gdp_per_capita", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "calculation_method", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "primary_industry_value", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "secondary_industry_value", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "tertiary_industry_value", "type": "DECIMAL(18,2)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "industry_structure",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "产业结构表 | DDL: 02_economic_operation_ddl.sql §2",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "industry_category", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "industry_name", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "added_value", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "value_ratio", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "contribution_rate", "type": "DECIMAL(6,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "fixed_asset_investment",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "固定资产投资表 | DDL: 02_economic_operation_ddl.sql §3",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "investment_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "investment_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "private_investment", "type": "DECIMAL(18,2)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "social_retail_consumption",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "社会消费品零售表 | DDL: 02_economic_operation_ddl.sql §4",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "consumption_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "retail_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "online_retail", "type": "DECIMAL(18,2)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "fiscal_revenue",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "财政收入表 | 数据分级=L3 | DDL: 02_economic_operation_ddl.sql §6",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "revenue_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "revenue_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "fiscal_expenditure",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "财政支出表 | 数据分级=L3 | DDL: 02_economic_operation_ddl.sql §7",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "expenditure_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "expenditure_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "function_category", "type": "VARCHAR(64)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "经济运行看板",
+      "slug": "economic-dashboard",
+      "description": "政务行业模板 - 经济运行看板：GDP趋势+产业结构+投资消费+财政收支",
+      "owners": ["gov-ops@shuqing.com"],
+      "position": {},
+      "metadata": {
+        "refresh_frequency": 86400,
+        "color_scheme": "governmentGreen",
+        "chart_configuration": {"default_time_range": "Last 10 years"}
+      },
+      "charts": [
+        {
+          "chart_title": "GDP 趋势图",
+          "slice_name": "GDP 趋势",
+          "viz_type": "line_chart",
+          "datasource": "gdp",
+          "params": {
+            "x_axis": "stat_year",
+            "y_axis": ["gdp_value", "gdp_growth_rate"],
+            "color_scheme": "gdpTrendColors",
+            "show_legend": true,
+            "description": "GDP 总值与同比增长率年度趋势"
+          }
+        },
+        {
+          "chart_title": "三次产业结构",
+          "slice_name": "三次产业结构",
+          "viz_type": "pie_chart",
+          "datasource": "gdp",
+          "params": {
+            "metric": "SUM(added_value)",
+            "group_by": "industry_category",
+            "color_scheme": "industryCategoryColors",
+            "description": "第一/第二/第三产业增加值占比"
+          }
+        },
+        {
+          "chart_title": "行业贡献度排行",
+          "slice_name": "行业贡献度排行",
+          "viz_type": "bar_chart",
+          "datasource": "industry_structure",
+          "params": {
+            "x_axis": "industry_name",
+            "y_axis": "contribution_rate",
+            "color_scheme": "contributionColors",
+            "order_by": "contribution_rate DESC",
+            "row_limit": 15,
+            "description": "各行业对 GDP 增长贡献度排行 Top 15"
+          }
+        },
+        {
+          "chart_title": "固定资产投资趋势",
+          "slice_name": "固定资产投资趋势",
+          "viz_type": "line_chart",
+          "datasource": "fixed_asset_investment",
+          "params": {
+            "x_axis": "stat_year",
+            "y_axis": "SUM(investment_amount)",
+            "color_scheme": "investmentColors",
+            "show_legend": true,
+            "description": "固定资产投资完成额年度趋势"
+          }
+        },
+        {
+          "chart_title": "社会消费品零售趋势",
+          "slice_name": "社会消费品零售趋势",
+          "viz_type": "line_chart",
+          "datasource": "social_retail_consumption",
+          "params": {
+            "x_axis": "stat_year",
+            "y_axis": ["SUM(retail_amount)", "SUM(online_retail)"],
+            "color_scheme": "consumptionColors",
+            "show_legend": true,
+            "description": "社会消费品零售额与网上零售额趋势"
+          }
+        },
+        {
+          "chart_title": "财政收支对比",
+          "slice_name": "财政收支对比",
+          "viz_type": "bar_chart",
+          "datasource": "fiscal_revenue",
+          "params": {
+            "x_axis": "stat_year",
+            "y_axis": "SUM(revenue_amount)",
+            "color_scheme": "fiscalColors",
+            "show_legend": true,
+            "description": "财政收入与支出年度对比"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 # 部署指南
 
-> 本指南描述数擎大数据平台在四环境（信创 / 本地数据中心 / 公有云 / 私有云）下的部署流程。部署以自研 K8s 发行版 SKE 为底座，通过 Helm Chart 编排全部 59 个组件。
+> 本指南描述数据引擎大数据平台在四环境（信创 / 本地数据中心 / 公有云 / 私有云）下的部署流程。部署以自研 K8s 发行版 SKE 为底座，通过 Helm Chart 编排全部 60 个组件。
 
 ## 前置条件
 
@@ -31,7 +31,7 @@
 
 ## SKE 集群拉起
 
-SKE（Shuqing Kubernetes Engine）是数擎大数据平台自研的 K8s 发行版，基于 kubeadm 二次封装。
+SKE（DataEngine Kubernetes Engine）是数据引擎大数据平台自研的 K8s 发行版，基于 kubeadm 二次封装。
 
 ### 环境准备
 
@@ -83,7 +83,7 @@ kubectl get sc
 
 ## Helm Chart 部署
 
-数擎大数据平台共提供 59 个 Helm Chart，位于 `design/deploy/charts/`。
+数据引擎大数据平台共提供 60 个 Helm Chart，位于 `design/deploy/charts/`。
 
 ### 部署顺序
 
@@ -406,3 +406,16 @@ kubectl create configmap frontend-dist --from-file=dist/ -n shuqing-system
 - 查看组件日志：`kubectl logs -n <namespace> <pod-name>`
 - 查看事件：`kubectl get events -n <namespace> --sort-by=.lastTimestamp`
 - 提交 Issue：https://github.com/Levango7/DataEngineBDP/issues
+## 生产环境安全加固清单
+
+生产部署前必须完成以下检查，缺失任一项都可能导致严重的安全风险：
+
+| 检查项 | 操作 | 不做的后果 |
+| --- | --- | --- |
+| JWT 密钥 | 导出强随机 `JWT_SECRET`（`openssl rand -base64 48`） | 使用可预测的默认密钥，任何人可伪造任意租户 Token |
+| IPMI 凭据 | 设置 `IPMI_USERNAME` / `IPMI_PASSWORD`（无默认值，未配置时进程退出） | 裸金属带外管理将使用公知的 `ADMIN/ADMIN` |
+| 运营后台 Token | 设置强随机 `ADMIN_TOKEN` | 已 fail-fast 保护，但仍须避免弱 Token |
+| dev 占位凭据 | 生产使用 `values-prod.yaml`，替换所有 `REPLACE_WITH_*` | dev 明文密码驻留 Git 仓库，镜面泄露风险 |
+| 密钥扫描复查 | 运行一次 `gitleaks detect` 确保无遗留 | 历史上的旧凭据可能仍在历史中，需轮换 |
+
+> 所有密钥均通过环境变量或外部密钥管理（如 Vault / Sealed Secrets / External Secrets）注入，禁止写入版本库。生产环境 `application-prod.yml` 对 JWT 已做无默认值 fail-fast。

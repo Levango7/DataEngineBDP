@@ -1,4 +1,5 @@
 """API 端点单元测试."""
+
 from __future__ import annotations
 
 from fastapi.testclient import TestClient
@@ -153,9 +154,7 @@ class TestQuery:
             json={"text": "张三在北京工作"},
         )
         # 取一个实体 ID 查询邻居
-        extract = client.post(
-            "/api/v1/spaces/kg1/extract", json={"text": "张三在北京工作"}
-        ).json()
+        extract = client.post("/api/v1/spaces/kg1/extract", json={"text": "张三在北京工作"}).json()
         # 找一个 Person 实体
         person = next(e for e in extract["entities"] if e["type"] == "Person")
         resp = client.get(f"/api/v1/spaces/kg1/vertices/{person['id']}/neighbors")

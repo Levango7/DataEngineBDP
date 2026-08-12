@@ -4,10 +4,10 @@
     POST /api/l5/v1/apis/{apiId}/subscribe { purpose, quotaExpect } → subscriptionId
     POST /api/l5/v1/subscriptions/{subId}/approve { approve, reason } → { ak, sk }
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
     APISubscription,
@@ -62,9 +62,7 @@ async def subscribe_api(
 )
 async def list_subscribers(
     api_id: str,
-    status_: SubscriptionStatus | None = Query(
-        default=None, alias="status", description="状态过滤"
-    ),
+    status_: SubscriptionStatus | None = Query(default=None, alias="status", description="状态过滤"),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> list[APISubscription]:
     """列出某 API 的所有订阅者."""
@@ -136,9 +134,7 @@ async def approve_subscription(
 ) -> APISubscription:
     """审批订阅申请（通过则发放 AK/SK）."""
     try:
-        sub = await registry.subscriptionService.approve_subscription(
-            subscription_id, req
-        )
+        sub = await registry.subscriptionService.approve_subscription(subscription_id, req)
         # 配置订阅级限流
         if sub.grantedQuota > 0:
             registry.rateLimiter.configure_subscription(sub.id, sub.grantedQuota)

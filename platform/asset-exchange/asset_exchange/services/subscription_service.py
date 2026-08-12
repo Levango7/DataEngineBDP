@@ -7,30 +7,27 @@
     APPROVED -> ACTIVE (开始生效)
     ACTIVE -> EXPIRED (到期)
 """
+
 from __future__ import annotations
 
 from datetime import timedelta
 from typing import Optional
 
-from asset_exchange.interfaces.asset_repository import AssetRepository
 from asset_exchange.interfaces.subscription_repository import (
     SubscriptionRepository,
 )
-from asset_exchange.models.asset import Asset
 from asset_exchange.models.base import (
     AssetStatus,
     SubscriptionStatus,
     utc_now,
 )
 from asset_exchange.models.subscription import (
+    SubscribeRequest,
     Subscription,
     SubscriptionFilter,
-    SubscribeRequest,
 )
 from asset_exchange.repositories import (
-    AssetNotFoundError,
     AssetNotListedError,
-    SubscriptionNotFoundError,
     SubscriptionNotApprovableError,
     ValidationError,
 )
@@ -48,14 +45,12 @@ class SubscriptionService:
         self._sub_repo = sub_repo
         self._asset_service = asset_service
 
-    async def subscribe(
-        self, asset_id: str, req: SubscribeRequest
-    ) -> Subscription:
+    async def subscribe(self, asset_id: str, req: SubscribeRequest) -> Subscription:
         """订阅资产.
 
         业务校验：
         - 资产必须为 LISTED 状态
-        - 不允许订阅自己的资产（owner != subscriberId）
+        - 不允许订阅自己的资产（tenantId != subscriberId）
 
         Raises:
             AssetNotFoundError: 资产不存在。
@@ -65,10 +60,10 @@ class SubscriptionService:
         asset = await self._asset_service.get_asset(asset_id)
         if asset.status != AssetStatus.LISTED:
             raise AssetNotListedError(asset_id, asset.status.value)
-        if asset.owner == req.subscriberId:
+        if asset.tenantId == req.subscriberId:
             raise ValidationError("不允许订阅自己的资产")
 
-        now = utc_now()
+        utc_now()
         sub = Subscription(
             assetId=asset_id,
             subscriberId=req.subscriberId,
@@ -96,9 +91,7 @@ class SubscriptionService:
         """
         sub = await self._sub_repo.get(subscription_id)
         if sub.status != SubscriptionStatus.PENDING:
-            raise SubscriptionNotApprovableError(
-                subscription_id, sub.status.value
-            )
+            raise SubscriptionNotApprovableError(subscription_id, sub.status.value)
 
         now = utc_now()
         # 查询订阅请求中的 durationDays（从 pullConfig 中取，或默认 30）
@@ -129,9 +122,7 @@ class SubscriptionService:
         """
         sub = await self._sub_repo.get(subscription_id)
         if sub.status != SubscriptionStatus.PENDING:
-            raise SubscriptionNotApprovableError(
-                subscription_id, sub.status.value
-            )
+            raise SubscriptionNotApprovableError(subscription_id, sub.status.value)
 
         sub.status = SubscriptionStatus.REJECTED
         sub.approverId = approver_id
@@ -143,9 +134,7 @@ class SubscriptionService:
     async def get_subscription(self, subscription_id: str) -> Subscription:
         return await self._sub_repo.get(subscription_id)
 
-    async def list_subscriptions(
-        self, filter: Optional[SubscriptionFilter] = None
-    ) -> list[Subscription]:
+    async def list_subscriptions(self, filter: Optional[SubscriptionFilter] = None) -> list[Subscription]:
         return await self._sub_repo.list(filter or SubscriptionFilter())
 
     async def list_by_asset(self, asset_id: str) -> list[Subscription]:

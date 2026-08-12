@@ -1,4 +1,5 @@
 """特征工程数据模型."""
+
 from __future__ import annotations
 
 from typing import Any, Optional
@@ -40,12 +41,8 @@ class FeatureGroupConfig(BaseModel):
     name: str = Field(..., description="特征组名")
     description: Optional[str] = Field(default=None, description="描述")
     entityKey: str = Field(default="entity_id", description="实体键列名")
-    features: list[FeatureSchema] = Field(
-        default_factory=list, description="特征 schema 列表"
-    )
-    tags: dict[str, str] = Field(
-        default_factory=dict, description="标签"
-    )
+    features: list[FeatureSchema] = Field(default_factory=list, description="特征 schema 列表")
+    tags: dict[str, str] = Field(default_factory=dict, description="标签")
 
 
 class FeatureGroup(TimestampMixin):

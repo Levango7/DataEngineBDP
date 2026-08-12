@@ -1,9 +1,11 @@
 """FastAPI 应用工厂."""
+
 from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from industry_templates.api.routers import categories, health, templates
 from industry_templates.config.settings import Settings, get_settings
@@ -31,7 +33,7 @@ def create_app(
     app = FastAPI(
         title="Industry Templates Platform",
         description=(
-            "数擎大数据平台 · L5.3 行业应用模板平台\n\n"
+            "数据引擎大数据平台 · L5.3 行业应用模板平台\n\n"
             "面向外部客户的预置分析模板（金融风控/零售画像/制造质检），"
             "让客户开箱即用而非从零搭建。\n"
             "核心能力：TemplateEngine（模板解析 + 参数注入 + 一键部署）。"
@@ -51,5 +53,24 @@ def create_app(
     # 被 /templates/{template_id} 抢先匹配
     app.include_router(categories.router, prefix=prefix)
     app.include_router(templates.router, prefix=prefix)
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        """全局异常处理器：统一 500 错误响应格式."""
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_error", "message": str(exc)},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        """HTTPException 处理器：统一错误响应格式为 {error, message}."""
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": (exc.detail.lower().replace(" ", "_") if isinstance(exc.detail, str) else "error"),
+                "message": str(exc.detail),
+            },
+        )
 
     return app

@@ -1,0 +1,67 @@
+# Kubernetes Audit Policy · 漂移审计
+# ============================================================================
+# 作用：配置 kube-apiserver 的 audit policy，记录所有写操作
+# 集成：写入 kube-apiserver 启动参数 --audit-policy-file
+#       k3s 中通过 /etc/rancher/k3s/audit.yaml 配置
+# 文档：https://kubernetes.io/docs/tasks/debug-application-cluster/audit/
+# ============================================================================
+apiVersion: audit.k8s.io/v1
+kind: Policy
+# 跳过以下阶段不记录（减少日志量）
+omitStages:
+  - RequestReceived
+# 保留所有元数据响应体（便于追溯）
+rules:
+  # ============================================================================
+  # 1. 高优先级：记录所有写操作（完整 RequestBody）
+  # ============================================================================
+  # 记录所有 apply/patch/create/update/delete 操作，含请求体
+  - level: RequestResponse
+    verbs: ["create", "update", "patch", "delete", "deletecollection"]
+    resources:
+      - group: ""          # core API
+        resources: ["pods", "configmaps", "secrets", "services", "serviceaccounts"]
+      - group: "apps"
+        resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+      - group: "argoproj.io"
+        resources: ["applications", "appprojects", "applicationsets"]
+      - group: "rbac.authorization.k8s.io"
+        resources: ["roles", "rolebindings", "clusterroles", "clusterrolebindings"]
+      - group: "networking.k8s.io"
+        resources: ["ingresses", "networkpolicies"]
+      - group: "autoscaling"
+        resources: ["horizontalpodautoscalers"]
+
+  # ============================================================================
+  # 2. 中优先级：记录 ArgoCD 相关读操作（仅元数据）
+  # ============================================================================
+  - level: Metadata
+    verbs: ["get", "list", "watch"]
+    resources:
+      - group: "argoproj.io"
+        resources: ["applications", "appprojects"]
+
+  # ============================================================================
+  # 3. 敏感资源：Secret 仅记录元数据（不记录 data 明文）
+  # ============================================================================
+  - level: Metadata
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["secrets"]
+
+  # ============================================================================
+  # 4. 低优先级：非关键资源仅记录元数据
+  # ============================================================================
+  - level: Metadata
+    verbs: ["create", "update", "patch", "delete"]
+    resources:
+      - group: ""
+        resources: ["events", "endpoints", "persistentvolumeclaims"]
+      - group: "batch"
+        resources: ["jobs", "cronjobs"]
+
+  # ============================================================================
+  # 5. 默认：不记录（减少日志量）
+  # ============================================================================
+  - level: None

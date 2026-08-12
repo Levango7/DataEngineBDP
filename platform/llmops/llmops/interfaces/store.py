@@ -2,6 +2,7 @@
 
 对齐 MLflow Model Registry 的注册/版本/Stage 概念，扩展大模型特有字段。
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -62,9 +63,7 @@ class ModelStore(ABC):
         ...
 
     @abstractmethod
-    async def add_model_version(
-        self, model_id: str, version: ModelVersion
-    ) -> ModelVersion:
+    async def add_model_version(self, model_id: str, version: ModelVersion) -> ModelVersion:
         """为模型新增一个版本（训练完成后调用）.
 
         Raises:
@@ -73,9 +72,7 @@ class ModelStore(ABC):
         ...
 
     @abstractmethod
-    async def set_production_version(
-        self, model_id: str, version: int
-    ) -> ModelInfo:
+    async def set_production_version(self, model_id: str, version: int) -> ModelInfo:
         """设置模型的生产版本.
 
         Raises:
