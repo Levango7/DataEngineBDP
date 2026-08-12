@@ -1,6 +1,6 @@
-# encaps-layer
+﻿# encaps-layer
 
-数擎大数据平台（ShuqingBigDataPlatform）**封装层（Encaps Layer）**。
+数据引擎大数据平台（DataEngineBDP）**封装层（Encaps Layer）**。
 
 ## 项目用途
 

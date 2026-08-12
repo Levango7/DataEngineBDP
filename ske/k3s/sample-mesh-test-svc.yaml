@@ -1,0 +1,19 @@
+# sidecar 注入验证示例 · Service
+# 数擎云核 SKE · Service Mesh sidecar 注入测试
+# 用法: kubectl apply -f ske/k3s/sample-mesh-test-svc.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: mesh-test
+  labels:
+    app: mesh-test
+    app.kubernetes.io/part-of: shuqing-bigdata
+    service: mesh-test
+spec:
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+      protocol: TCP
+  selector:
+    app: mesh-test

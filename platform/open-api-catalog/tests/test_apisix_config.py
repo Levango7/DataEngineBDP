@@ -1,16 +1,13 @@
 """APISIX 配置生成测试."""
+
 from __future__ import annotations
 
-import pytest
-
 from openapi_catalog.models import (
-    APIStatus,
-    APISIXRoute,
     AuthType,
-    CostStrategy,
     HttpMethod,
     SLALevel,
 )
+import pytest
 
 
 class TestAPISIXConfig:
@@ -104,12 +101,8 @@ class TestAPISIXConfig:
         api_silver.sla = SLALevel.SILVER
         saved_silver = await registry.apiRegistryService.register_api(api_silver)
 
-        route_platinum = await registry.apisixConfigService.generate_route(
-            saved_platinum.id
-        )
-        route_silver = await registry.apisixConfigService.generate_route(
-            saved_silver.id
-        )
+        route_platinum = await registry.apisixConfigService.generate_route(saved_platinum.id)
+        route_silver = await registry.apisixConfigService.generate_route(saved_silver.id)
 
         assert route_platinum.priority > route_silver.priority
 
@@ -161,17 +154,13 @@ class TestAPISIXConfig:
             purpose="测试",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
         approved = await registry.subscriptionService.approve_subscription(
             saved_sub.id,
             ApproveRequest(approve=True, approver="admin", grantedQuota=100),
         )
 
-        consumer = await registry.apisixConfigService.generate_consumer(
-            approved.id
-        )
+        consumer = await registry.apisixConfigService.generate_consumer(approved.id)
 
         assert consumer.username == f"sub-{approved.id}"
         assert "key-auth" in consumer.plugins
@@ -290,9 +279,7 @@ class TestDocGenerator:
         api = make_api_def(name="doc-openapi")
         saved_api = await registry.apiRegistryService.register_api(api)
 
-        spec = await registry.docGeneratorService.generate_openapi_spec(
-            saved_api.id
-        )
+        spec = await registry.docGeneratorService.generate_openapi_spec(saved_api.id)
 
         assert spec["openapi"] == "3.0.3"
         assert spec["info"]["title"] == "doc-openapi"
@@ -308,9 +295,7 @@ class TestDocGenerator:
         api = make_api_def(name="doc-security")
         saved_api = await registry.apiRegistryService.register_api(api)
 
-        spec = await registry.docGeneratorService.generate_openapi_spec(
-            saved_api.id
-        )
+        spec = await registry.docGeneratorService.generate_openapi_spec(saved_api.id)
 
         assert "securitySchemes" in spec["components"]
         assert "ApiKeyAuth" in spec["components"]["securitySchemes"]
@@ -323,9 +308,7 @@ class TestDocGenerator:
         api.authType = AuthType.JWT
         saved_api = await registry.apiRegistryService.register_api(api)
 
-        spec = await registry.docGeneratorService.generate_openapi_spec(
-            saved_api.id
-        )
+        spec = await registry.docGeneratorService.generate_openapi_spec(saved_api.id)
 
         assert "BearerAuth" in spec["components"]["securitySchemes"]
         assert spec["components"]["securitySchemes"]["BearerAuth"]["scheme"] == "bearer"
@@ -336,9 +319,7 @@ class TestDocGenerator:
         api = make_api_def(name="doc-params")
         saved_api = await registry.apiRegistryService.register_api(api)
 
-        spec = await registry.docGeneratorService.generate_openapi_spec(
-            saved_api.id
-        )
+        spec = await registry.docGeneratorService.generate_openapi_spec(saved_api.id)
 
         params = spec["paths"]["/test"]["get"]["parameters"]
         assert len(params) >= 1
@@ -353,9 +334,7 @@ class TestDocGenerator:
         api = make_api_def(name="doc-responses")
         saved_api = await registry.apiRegistryService.register_api(api)
 
-        spec = await registry.docGeneratorService.generate_openapi_spec(
-            saved_api.id
-        )
+        spec = await registry.docGeneratorService.generate_openapi_spec(saved_api.id)
 
         responses = spec["paths"]["/test"]["get"]["responses"]
         assert "200" in responses
@@ -367,9 +346,7 @@ class TestDocGenerator:
         api = make_api_def(name="doc-metadata")
         saved_api = await registry.apiRegistryService.register_api(api)
 
-        spec = await registry.docGeneratorService.generate_openapi_spec(
-            saved_api.id
-        )
+        spec = await registry.docGeneratorService.generate_openapi_spec(saved_api.id)
 
         assert "x-api-metadata" in spec
         assert spec["x-api-metadata"]["apiId"] == saved_api.id

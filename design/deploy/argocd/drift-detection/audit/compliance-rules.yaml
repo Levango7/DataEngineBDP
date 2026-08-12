@@ -1,0 +1,192 @@
+# 合规规则 · OPA/Rego 规则定义
+# ============================================================================
+# 作用：定义漂移合规校验规则，使用 OPA/Rego 语法
+# 集成：可对接 OPA Gatekeeper 或 ArgoCD 的 policy 校验
+# 文档：https://openpolicyagent.org/docs/latest/
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-compliance-rules
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-audit
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移合规校验规则（OPA/Rego）"
+data:
+  # ============================================================================
+  # 规则 1：仅允许 ArgoCD ServiceAccount 执行部署变更
+  # ============================================================================
+  rule-1-argocd-only.rego: |
+    package drift.compliance
+
+    # 违规：非 ArgoCD SA 对受管资源执行写操作
+    violation[argocd_unauthorized_change] {
+      # 读取审计事件
+      event := input.auditEvent
+      # 是写操作
+      write_op(event.verb)
+      # 操作者非 ArgoCD
+      not argocd_sa(event.user.userInfo)
+      # 资源是 ArgoCD 管理的
+      argocd_managed(event.resource)
+
+      argocd_unauthorized_change := {
+        "rule": "rule-1-argocd-only",
+        "severity": "high",
+        "message": sprintf("非 ArgoCD 来源变更: user=%v, resource=%v", [event.user.userInfo, event.resource]),
+        "event": event
+      }
+    }
+
+    write_op(verb) {
+      verb == "create"
+    }
+    write_op(verb) {
+      verb == "update"
+    }
+    write_op(verb) {
+      verb == "patch"
+    }
+    write_op(verb) {
+      verb == "delete"
+    }
+
+    argocd_sa(user) {
+      user.username == "argocd"
+    }
+    argocd_sa(user) {
+      startswith(user.username, "system:serviceaccount:argocd:")
+    }
+
+    argocd_managed(resource) {
+      resource.namespace == "dev-platform"
+    }
+    argocd_managed(resource) {
+      resource.namespace == "staging-platform"
+    }
+    argocd_managed(resource) {
+      resource.namespace == "prod-platform"
+    }
+
+  # ============================================================================
+  # 规则 2：prod 环境变更必须来自 Git main 分支
+  # ============================================================================
+  rule-2-prod-git-main.rego: |
+    package drift.compliance
+
+    violation[prod_direct_change] {
+      event := input.auditEvent
+      event.resource.namespace == "prod-platform"
+      write_op(event.verb)
+      # 非通过 ArgoCD sync（即直接 kubectl）
+      not event.annotations["argocd.argoproj.io/sync-source"]
+
+      prod_direct_change := {
+        "rule": "rule-2-prod-git-main",
+        "severity": "critical",
+        "message": sprintf("prod 环境直接变更（非 Git 来源）: user=%v", [event.user.userInfo]),
+        "event": event
+      }
+    }
+
+  # ============================================================================
+  # 规则 3：镜像必须来自受信 registry
+  # ============================================================================
+  rule-3-trusted-registry.rego: |
+    package drift.compliance
+
+    trusted_registries := {
+      "registry.company.com",
+      "docker.io/argoproj",
+    }
+
+    violation[untrusted_image] {
+      event := input.auditEvent
+      event.eventType == "drift-detected"
+      event.driftType == "image-drift"
+      image := event.diff.newImage
+      not trusted_registry(image)
+
+      untrusted_image := {
+        "rule": "rule-3-trusted-registry",
+        "severity": "critical",
+        "message": sprintf("非受信 registry 镜像: %v", [image]),
+        "event": event
+      }
+    }
+
+    trusted_registry(image) {
+      reg := trusted_registries[_]
+      startswith(image, reg)
+    }
+
+  # ============================================================================
+  # 规则 4：Secret 不允许明文存储
+  # ============================================================================
+  rule-4-no-plaintext-secret.rego: |
+    package drift.compliance
+
+    violation[plaintext_secret] {
+      event := input.auditEvent
+      event.resource.kind == "Secret"
+      event.verb == "create"
+      # 检查是否为 SealedSecret / ExternalSecret 生成
+      not startswith(event.resource.name, "sealedsecret-")
+      not startswith(event.resource.name, "external-secret-")
+      # 直接创建含 data 的 Secret
+      event.requestObject.data
+
+      plaintext_secret := {
+        "rule": "rule-4-no-plaintext-secret",
+        "severity": "high",
+        "message": sprintf("明文 Secret 创建: %v/%v", [event.resource.namespace, event.resource.name]),
+        "event": event
+      }
+    }
+
+  # ============================================================================
+  # 规则 5：资源必须包含合规标签
+  # ============================================================================
+  rule-5-required-labels.rego: |
+    package drift.compliance
+
+    required_labels := ["app.kubernetes.io/name", "app.kubernetes.io/part-of", "environment"]
+
+    violation[missing_labels] {
+      event := input.auditEvent
+      write_op(event.verb)
+      resource := event.requestObject
+      # 检查每个必需标签
+      label := required_labels[_]
+      not resource.metadata.labels[label]
+
+      missing_labels := {
+        "rule": "rule-5-required-labels",
+        "severity": "low",
+        "message": sprintf("缺少合规标签 %v: %v/%v", [label, resource.metadata.namespace, resource.metadata.name]),
+        "event": event
+      }
+    }
+
+  # ============================================================================
+  # 规则汇总：所有规则的合规状态
+  # ============================================================================
+  compliance-status.rego: |
+    package drift.compliance
+
+    # 合规状态：无违规即合规
+    compliant {
+      count(violation) == 0
+    }
+
+    # 违规数量
+    violation_count := count(violation)
+
+    # 按严重程度分组
+    violations_by_severity[severity] := items {
+      severity := {v.severity | v := violation[_]}
+      items := [v | v := violation[_]; v.severity == severity]
+    }

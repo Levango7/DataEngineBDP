@@ -5,11 +5,12 @@
       基于 SeaTunnel 可视化配置异构数据源同步至湖仓集一体存储，支持批流一体，无需搬运代码。
     </div>
     <div class="section-title">数据源连接器</div>
-    <div class="conn-grid">
-      <div class="conn" v-for="c in connectors" :key="c.name" @click="c.onClick()">
+    <div v-if="connectorsLoading" class="conn-grid" style="color: var(--muted)">加载连接器…</div>
+    <div v-else class="conn-grid">
+      <div class="conn" v-for="c in connectors" :key="c.name" @click="onConnectorClick(c)">
         <div class="logo">{{ c.logo }}</div>
         {{ c.name }}
-        <span class="pill" :class="c.pillClass" style="display: block; margin-top: 6px">{{ c.pillText }}</span>
+        <span class="pill" :class="connectorPillClass(c.status)" style="display: block; margin-top: 6px">{{ connectorPillText(c.status) }}</span>
       </div>
     </div>
     <div class="toolbar" style="margin-top: 16px">
@@ -18,11 +19,22 @@
       <span class="pill b">批流一体</span>
     </div>
     <div class="card">
-      <table>
+      <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">加载同步任务…</div>
+      <div v-else-if="tasksError" style="padding: 16px; color: var(--red)">
+        {{ tasksError }}，<a href="javascript:void(0)" @click="loadTasks">重试</a>
+      </div>
+      <table v-else>
         <tr><th>任务</th><th>源→目标</th><th>模式</th><th>状态</th><th>最近运行</th></tr>
-        <tr><td>订单全量</td><td>MySQL → Iceberg</td><td>批</td><td><span class="pill g">成功</span></td><td>04:00 · 12m</td></tr>
-        <tr><td>点击流CDC</td><td>Kafka → Doris</td><td>流</td><td><span class="pill a">运行中</span></td><td>持续</td></tr>
-        <tr><td>台账增量</td><td>Oracle → Iceberg</td><td>批</td><td><span class="pill g">成功</span></td><td>05:10 · 8m</td></tr>
+        <tr v-for="t in tasks" :key="t.id">
+          <td>{{ t.name }}</td>
+          <td>{{ t.sourceToTarget }}</td>
+          <td>{{ modeLabel(t.mode) }}</td>
+          <td><span class="pill" :class="statusPillClass(t.status)">{{ statusPillText(t.status) }}</span></td>
+          <td>{{ t.lastRunAt || '--' }}{{ t.lastRunDuration ? ' · ' + t.lastRunDuration : '' }}</td>
+        </tr>
+        <tr v-if="tasks.length === 0">
+          <td colspan="5" style="text-align: center; color: var(--muted)">暂无同步任务</td>
+        </tr>
       </table>
     </div>
 
@@ -56,26 +68,134 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Modal from '@/components/Modal.vue'
+import * as integrateApi from '@/api/integrate'
+import type { Connector, SyncTask, SyncMode, SyncStatus, ConnectorStatus } from '@/api/integrate'
 
 const store = useAppStore()
 const syncModal = ref(false)
 const srcModal = ref(false)
 
-const connectors = [
-  { name: 'MySQL', logo: 'My', pillClass: 'g', pillText: '已连通', onClick: () => store.showToast('已连通 MySQL') },
-  { name: 'Oracle', logo: 'Or', pillClass: 'g', pillText: '已连通', onClick: () => store.showToast('已连通 Oracle') },
-  { name: 'Kafka', logo: 'Ka', pillClass: 'g', pillText: '已连通', onClick: () => store.showToast('已连通 Kafka') },
-  { name: '新增源', logo: '+', pillClass: 'a', pillText: '待配置', onClick: () => (srcModal.value = true) },
-  { name: 'HDFS', logo: 'Hd', pillClass: 'g', pillText: '已连通', onClick: () => store.showToast('HDFS 已注册') },
-  { name: 'REST API', logo: 'API', pillClass: 'a', pillText: '待授权', onClick: () => store.showToast('API 待授权') }
-]
+// 连接器列表
+const connectors = ref<Connector[]>([])
+const connectorsLoading = ref(false)
+
+// 同步任务列表
+const tasks = ref<SyncTask[]>([])
+const tasksLoading = ref(false)
+const tasksError = ref('')
+
+/** 加载连接器列表 */
+async function loadConnectors() {
+  connectorsLoading.value = true
+  try {
+    connectors.value = await integrateApi.listConnectors()
+  } catch {
+    // 连接器加载失败不阻塞页面
+    connectors.value = []
+  } finally {
+    connectorsLoading.value = false
+  }
+}
+
+/** 加载同步任务列表 */
+async function loadTasks() {
+  tasksLoading.value = true
+  tasksError.value = ''
+  try {
+    const result = await integrateApi.listSyncTasks({ page: 1, pageSize: 100 })
+    tasks.value = result.list
+  } catch (err) {
+    tasksError.value = (err as Error).message || '同步任务加载失败'
+  } finally {
+
+    tasksLoading.value = false
+  }
+}
+
+/** 连接器点击处理 */
+function onConnectorClick(c: Connector) {
+  if (c.status === 'pending_config' || c.status === 'pending_auth') {
+    srcModal.value = true
+  } else {
+    store.showToast(`${c.name} ${connectorPillText(c.status)}`)
+  }
+}
+
+/** 连接器状态 → pill 样式 */
+function connectorPillClass(s: ConnectorStatus): string {
+  switch (s) {
+    case 'connected':
+      return 'g'
+    case 'pending_config':
+    case 'pending_auth':
+      return 'a'
+    default:
+      return 'b'
+  }
+}
+
+/** 连接器状态 → pill 文案 */
+function connectorPillText(s: ConnectorStatus): string {
+  switch (s) {
+    case 'connected':
+      return '已连通'
+    case 'pending_config':
+      return '待配置'
+    case 'pending_auth':
+      return '待授权'
+    default:
+      return '未连通'
+  }
+}
+
+/** 同步模式 → 中文 */
+function modeLabel(m: SyncMode): string {
+  return m === 'stream_cdc' ? '流' : '批'
+}
+
+/** 任务状态 → pill 样式 */
+function statusPillClass(s: SyncStatus): string {
+  switch (s) {
+    case 'success':
+      return 'g'
+    case 'running':
+      return 'a'
+    case 'failed':
+      return 'r'
+    default:
+      return 'b'
+  }
+}
+
+/** 任务状态 → pill 文案 */
+function statusPillText(s: SyncStatus): string {
+  switch (s) {
+    case 'success':
+      return '成功'
+    case 'running':
+      return '运行中'
+    case 'failed':
+      return '失败'
+    case 'pending':
+      return '等待中'
+    case 'stopped':
+      return '已停止'
+    default:
+      return s
+  }
+}
 
 function ok(msg: string) {
   syncModal.value = false
   srcModal.value = false
   store.showToast(msg)
 }
+
+onMounted(() => {
+  loadConnectors()
+  loadTasks()
+})
 </script>

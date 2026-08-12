@@ -1,8 +1,9 @@
 """订阅/审批流程测试."""
+
 from __future__ import annotations
 
-
 # ---------- 辅助函数 ----------
+
 
 def _list_asset(client, name="sub-test-asset", owner="tenant-A"):
     """上架资产，返回 asset_id."""
@@ -13,6 +14,7 @@ def _list_asset(client, name="sub-test-asset", owner="tenant-A"):
             "type": "table",
             "owner": owner,
             "securityLevel": "internal",
+            "qualityScore": 85.0,
             "pricing": {"mode": "by_call", "price": 0.05, "unit": "次"},
         },
     )
@@ -36,6 +38,7 @@ def _subscribe(client, asset_id, subscriber_id="tenant-B"):
 
 
 # ---------- 订阅 ----------
+
 
 def test_subscribe_asset(client):
     aid = _list_asset(client)
@@ -79,6 +82,7 @@ def test_subscribe_own_asset(client):
 
 
 # ---------- 审批 ----------
+
 
 def test_approve_subscription(client):
     aid = _list_asset(client)
@@ -150,6 +154,7 @@ def test_invalid_approval_action(client):
 
 
 # ---------- 订阅列表 ----------
+
 
 def test_list_asset_subscriptions(client):
     aid = _list_asset(client)

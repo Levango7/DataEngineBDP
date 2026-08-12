@@ -17,8 +17,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/sirupsen/logrus"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
-	"github.com/shuqing/infra-provider-baremetal/src/internal/service"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/service"
 )
 
 // ClusterHandler 集群API handler

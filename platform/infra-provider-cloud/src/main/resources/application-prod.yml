@@ -18,5 +18,5 @@ spring:
 
 logging:
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
     org.hibernate: WARN

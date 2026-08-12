@@ -1,0 +1,278 @@
+﻿# ============================================================================
+# ArgoCD Application · Knative Serving + Eventing · 数据引擎大数据平台
+# ----------------------------------------------------------------------------
+# 作用：通过 ArgoCD GitOps 部署 Knative Serving 与 Eventing
+# 源：Knative 官方 Helm 仓库 + 本仓库 values 文件
+# 同步策略：自动同步 + 自愈 + 修剪
+# sync wave 注解：
+#   - wave -2：创建 namespace（knative-serving, knative-eventing）
+#   - wave -1：部署 Knative Serving CRD + 控制面
+#   - wave  0：部署 Knative Eventing CRD + 控制面
+#   - wave  1：部署事件源示例（KafkaSource/CronJobSource）
+# 依赖：
+#   - T001 Istio Service Mesh 已部署（istio-system namespace）
+#   - T003 ArgoCD 已部署（argocd namespace）
+#   - Phase 1 Kafka 集群已就绪（kafka namespace）
+# ============================================================================
+---
+# ---------- Knative Serving Application ----------
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: knative-serving
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: knative-serving
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: serverless
+    environment: dev
+    app.kubernetes.io/managed-by: argocd
+    platform.shuqing.io/task: "T024"
+  annotations:
+    # sync wave：Serving 在 Eventing 之前部署（-1 < 0）
+    argocd.argoproj.io/sync-wave: "-1"
+    # 同步顺序：先 CRD 再控制面
+    argocd.argoproj.io/sync-options: "SkipDryRunOnMissingResource=true,ServerSideApply=true"
+  finalizers:
+    # 删除 Application 时级联清理其创建的资源
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # 所属 AppProject
+  project: platform-dev
+  # 源配置：Knative 官方 Helm 仓库
+  source:
+    repoURL: https://knative.github.io/docs/install/serving
+    chart: knative-serving
+    targetRevision: "1.12.0"
+    # Helm values 配置
+    helm:
+      # 版本
+      version: v3
+      # 传入参数（覆盖默认 values）
+      parameters:
+        - name: global.istioNamespace
+          value: istio-system
+        - name: global.knativeNamespace
+          value: knative-serving
+        - name: global.imageRegistry
+          value: docker.m.daocloud.io
+        # 自动伸缩：scale-to-zero
+        - name: serving.autoscalerConfig.enableScaleToZero
+          value: "true"
+        - name: serving.autoscalerConfig.scaleToZeroGracePeriod
+          value: "60s"
+        # KPA 基于 RPS 伸缩
+        - name: serving.autoscaler.enableKpa
+          value: "true"
+        - name: serving.autoscaler.enableRpsMetric
+          value: "true"
+        # 复用 Istio Ingress Gateway
+        - name: serving.network.ingressClass
+          value: istio.ingress.networking.knative.dev
+        - name: serving.network.istioIngressGatewayNamespace
+          value: istio-system
+        - name: serving.network.istioIngressGatewayName
+          value: istio-ingressgateway
+      # 通用标签
+      commonLabels:
+        environment: dev
+        managed-by: argocd
+        platform.shuqing.io/component: knative-serving
+      # 通用注解
+      commonAnnotations:
+        managed-by: argocd
+        gitops-repo: Levango7/DataEngineBDP
+        platform.shuqing.io/task: "T024"
+  # 目标集群 + namespace
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: knative-serving
+  # 同步策略：自动同步 + 自愈 + 修剪
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+    # 失败重试
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  # 健康检查忽略的资源（不阻塞同步）
+  ignoreDifferences:
+    - jsonPointers:
+        - /status
+      kind: Deployment
+    - jsonPointers:
+        - /status
+      kind: Service
+  revisionHistoryLimit: 10
+---
+# ---------- Knative Eventing Application ----------
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: knative-eventing
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: knative-eventing
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: serverless
+    environment: dev
+    app.kubernetes.io/managed-by: argocd
+    platform.shuqing.io/task: "T024"
+  annotations:
+    # sync wave：Eventing 在 Serving 之后部署（0 > -1）
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: "SkipDryRunOnMissingResource=true,ServerSideApply=true"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://knative.github.io/docs/install/eventing
+    chart: knative-eventing
+    targetRevision: "1.12.0"
+    helm:
+      version: v3
+      parameters:
+        - name: global.knativeNamespace
+          value: knative-eventing
+        - name: global.imageRegistry
+          value: docker.m.daocloud.io
+        # 启用 KafkaSource
+        - name: eventing.kafkaSource.enabled
+          value: "true"
+        - name: eventing.kafkaSource.bootstrapServers
+          value: kafka-bootstrap.kafka.svc.cluster.local:9092
+        # 启用 CronJobSource
+        - name: eventing.cronJobSource.enabled
+          value: "true"
+        # 启用 PingSource
+        - name: eventing.pingSource.enabled
+          value: "true"
+        # 启用 Kafka Channel
+        - name: eventing.kafkaChannel.enabled
+          value: "true"
+        - name: eventing.kafkaChannel.bootstrapServers
+          value: kafka-bootstrap.kafka.svc.cluster.local:9092
+      commonLabels:
+        environment: dev
+        managed-by: argocd
+        platform.shuqing.io/component: knative-eventing
+      commonAnnotations:
+        managed-by: argocd
+        gitops-repo: Levango7/DataEngineBDP
+        platform.shuqing.io/task: "T024"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: knative-eventing
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  ignoreDifferences:
+    - jsonPointers:
+        - /status
+      kind: Deployment
+    - jsonPointers:
+        - /status
+      kind: Service
+  revisionHistoryLimit: 10
+---
+# ---------- Knative 事件源示例 Application ----------
+# sync wave = 1：在 Serving/Eventing 控制面就绪后部署
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: knative-examples
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: knative-examples
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: serverless
+    environment: dev
+    app.kubernetes.io/managed-by: argocd
+    platform.shuqing.io/task: "T024"
+  annotations:
+    # sync wave：示例在 Serving/Eventing 之后部署（1 > 0）
+    argocd.argoproj.io/sync-wave: "1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    # 使用 Kustomize 部署示例 YAML
+    path: platform/knative/examples
+    kustomize:
+      namePrefix: dev-
+      commonLabels:
+        environment: dev
+        managed-by: argocd
+        platform.shuqing.io/component: knative-examples
+      commonAnnotations:
+        managed-by: argocd
+        gitops-repo: Levango7/DataEngineBDP
+        platform.shuqing.io/task: "T024"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: knative-examples
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 15s
+        factor: 2
+        maxDuration: 3m
+  ignoreDifferences:
+    - jsonPointers:
+        - /status
+      kind: KafkaSource
+    - jsonPointers:
+        - /status
+      kind: CronJobSource
+    - jsonPointers:
+        - /status
+      kind: Service
+  revisionHistoryLimit: 10
+# ============================================================================
+# 部署命令：
+#   kubectl apply -f platform/knative/argocd-application.yaml
+# 验证：
+#   kubectl get application -n argocd
+#   argocd app sync knative-serving
+#   argocd app sync knative-eventing
+#   argocd app sync knative-examples
+# sync wave 顺序：
+#   -1: knative-serving（CRD + 控制面）
+#    0: knative-eventing（CRD + 控制面）
+#    1: knative-examples（KafkaSource/CronJobSource 示例）
+# ============================================================================

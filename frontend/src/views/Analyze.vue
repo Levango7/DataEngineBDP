@@ -38,9 +38,16 @@
       </div>
       <div class="card">
         <h3>实时指标</h3>
-        <div class="kpi s">1,284 <span class="meta">笔/分</span></div>
-        <div class="meta" style="margin-top: 8px">流计算结果 · 延迟 &lt; 2s</div>
-        <button class="btn ghost sm" style="margin-top: 10px" @click="store.showToast('已打开组件库（mock）')">编辑组件</button>
+        <div v-if="metricsLoading" class="kpi s">--</div>
+        <div v-else-if="metricsError" class="meta" style="color: var(--red)">{{ metricsError }}</div>
+        <template v-else>
+          <div v-for="m in metrics" :key="m.key" style="margin-bottom: 8px">
+            <div class="kpi s">{{ m.value.toLocaleString() }} <span class="meta">{{ m.unit }}</span></div>
+            <div class="meta" style="margin-top: 4px">{{ m.label }} · 延迟 &lt; {{ m.latencySec }}s</div>
+          </div>
+          <div v-if="metrics.length === 0" class="meta">暂无实时指标</div>
+        </template>
+        <button class="btn ghost sm" style="margin-top: 10px" @click="store.showToast('已打开组件库')">编辑组件</button>
       </div>
     </div>
 
@@ -65,14 +72,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Modal from '@/components/Modal.vue'
+import * as analyzeApi from '@/api/analyze'
+import type { RealtimeMetric } from '@/api/analyze'
 
 const store = useAppStore()
 const modalVisible = ref(false)
+
+// 实时指标
+const metrics = ref<RealtimeMetric[]>([])
+const metricsLoading = ref(false)
+const metricsError = ref('')
+
+/** 加载实时指标 */
+async function loadMetrics() {
+  metricsLoading.value = true
+  metricsError.value = ''
+  try {
+    metrics.value = await analyzeApi.getRealtimeMetrics()
+  } catch (err) {
+    metricsError.value = (err as Error).message || '实时指标加载失败'
+  } finally {
+    metricsLoading.value = false
+  }
+}
+
 function ok(msg: string) {
   modalVisible.value = false
   store.showToast(msg)
 }
+
+onMounted(() => {
+  loadMetrics()
+})
 </script>

@@ -1,7 +1,6 @@
 """Mock 训练/部署/监控测试."""
-from __future__ import annotations
 
-import uuid
+from __future__ import annotations
 
 import pytest
 
@@ -10,13 +9,13 @@ from llmops.models.deployment import DeployConfig
 from llmops.models.training import TrainingConfig
 from llmops.repositories import (
     DeploymentNotFoundError,
-    TrainingJobNotFoundError,
     TrainingJobNotCancellableError,
     TrainingJobNotFinishedError,
+    TrainingJobNotFoundError,
 )
 
-
 # ---------- Trainer ----------
+
 
 @pytest.mark.asyncio
 async def test_create_training_job(mock_trainer):
@@ -75,9 +74,7 @@ async def test_cancel_pending_training(mock_trainer):
 
 @pytest.mark.asyncio
 async def test_cancel_finished_training_raises(mock_trainer):
-    cfg = TrainingConfig(
-        baseModelId="b", outputModelName="f", dataset="d", epochs=1
-    )
+    cfg = TrainingConfig(baseModelId="b", outputModelName="f", dataset="d", epochs=1)
     job_id = await mock_trainer.create_training_job(cfg)
     await mock_trainer.advance(job_id)  # -> RUNNING
     await mock_trainer.advance(job_id)  # -> SUCCEEDED
@@ -95,9 +92,7 @@ async def test_evaluate_unfinished_raises(mock_trainer):
 
 @pytest.mark.asyncio
 async def test_evaluate_returns_metrics(mock_trainer):
-    cfg = TrainingConfig(
-        baseModelId="b", outputModelName="f", dataset="d", epochs=3
-    )
+    cfg = TrainingConfig(baseModelId="b", outputModelName="f", dataset="d", epochs=3)
     job_id = await mock_trainer.create_training_job(cfg)
     for _ in range(4):  # PENDING->RUNNING + 3 epochs
         await mock_trainer.advance(job_id)
@@ -116,16 +111,13 @@ async def test_get_nonexistent_job_raises(mock_trainer):
 @pytest.mark.asyncio
 async def test_list_training_jobs(mock_trainer):
     for i in range(3):
-        await mock_trainer.create_training_job(
-            TrainingConfig(
-                baseModelId="b", outputModelName=f"f{i}", dataset="d"
-            )
-        )
+        await mock_trainer.create_training_job(TrainingConfig(baseModelId="b", outputModelName=f"f{i}", dataset="d"))
     jobs = await mock_trainer.list_training_jobs()
     assert len(jobs) == 3
 
 
 # ---------- Deployer ----------
+
 
 @pytest.mark.asyncio
 async def test_deploy_and_status(mock_deployer):
@@ -173,6 +165,7 @@ async def test_get_nonexistent_deployment_raises(mock_deployer):
 
 
 # ---------- Monitor ----------
+
 
 @pytest.mark.asyncio
 async def test_monitor_metrics(mock_monitor):

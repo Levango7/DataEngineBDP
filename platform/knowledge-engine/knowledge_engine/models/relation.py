@@ -1,9 +1,13 @@
 """关系模型."""
+
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, Field
+
+if TYPE_CHECKING:
+    from knowledge_engine.models.graph import Edge
 
 
 class Relation(BaseModel):

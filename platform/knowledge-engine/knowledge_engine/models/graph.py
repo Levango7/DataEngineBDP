@@ -1,4 +1,5 @@
 """图模型：顶点、边、Schema、查询结果."""
+
 from __future__ import annotations
 
 from typing import Any

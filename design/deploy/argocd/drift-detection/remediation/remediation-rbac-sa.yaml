@@ -1,0 +1,16 @@
+# 漂移修复 RBAC · ServiceAccount + Role + RoleBinding
+# ============================================================================
+# 作用：为 drift-remediation CronJob 授予最小权限
+# 权限：
+#   - application: get/list/sync（执行修复）
+#   - configmap: get/list/create/update/delete（读写漂移事件）
+#   - appproject: get（校验同步窗口）
+# ============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: argocd-remediation-sa
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-remediation
+    app.kubernetes.io/part-of: gitops

@@ -1,0 +1,234 @@
+# 政务行业模板 - RBAC 权限定义
+# ============================================================================
+# 格式：Keycloak permission 格式（resource + action + scope）
+# 权限模型：基于资源的权限（Resource-Based Permission）+ 数据分级访问控制
+# 资源类型：table（DDL 表）/ dag（调度作业）/ dashboard（仪表盘）
+# 资源总数：28 表 + 8 DAG + 4 Dashboard = 40 个资源
+# 字符集：UTF-8，YAML 2 空格缩进
+# 合规要求：每个资源标注数据分级（L1/L2/L3/L4），访问控制策略下推到 L2.7 SQL 网关
+# ============================================================================
+
+# 权限定义元信息
+permission_metadata:
+  total_resources: 40
+  resource_types:
+    - table
+    - dag
+    - dashboard
+  action_types:
+    - read    # 只读（SELECT）
+    - write   # 读写（INSERT/UPDATE/DELETE）
+    - manage  # 管理（DDL/调度上下线/触发执行）
+    - view    # 查看（DAG 详情 / Dashboard 渲染）
+    - export  # 导出（数据导出，受脱敏规则约束）
+  scope_types:
+    - government_template  # 政务模板范围
+  data_classification_levels:
+    - L1  # 公开
+    - L2  # 内部
+    - L3  # 秘密
+    - L4  # 机密
+
+# ============================================================================
+# 资源定义：28 张表 + 8 个 DAG + 4 个 Dashboard = 40 个资源
+# ============================================================================
+resources:
+  # --------------------------------------------------------------------------
+  # 人口分析域表资源（8 张）
+  # --------------------------------------------------------------------------
+  - {name: population_base,                    type: table, domain: population, classification: L3, description: "人口基础信息表（含身份证号/姓名脱敏）"}
+  - {name: population_structure,               type: table, domain: population, classification: L2, description: "人口结构汇总表"}
+  - {name: population_flow,                    type: table, domain: population, classification: L2, description: "人口流动追踪表"}
+  - {name: population_forecast,                type: table, domain: population, classification: L2, description: "人口预测表"}
+  - {name: population_age_distribution,        type: table, domain: population, classification: L2, description: "人口年龄分布表"}
+  - {name: population_gender_distribution,     type: table, domain: population, classification: L2, description: "人口性别分布表"}
+  - {name: population_education_distribution,  type: table, domain: population, classification: L2, description: "人口学历分布表"}
+  - {name: population_employment_distribution, type: table, domain: population, classification: L2, description: "人口就业分布表"}
+
+  # --------------------------------------------------------------------------
+  # 经济运行域表资源（8 张）
+  # --------------------------------------------------------------------------
+  - {name: gdp,                       type: table, domain: economic, classification: L2, description: "GDP 核算表"}
+  - {name: industry_structure,        type: table, domain: economic, classification: L2, description: "产业结构表"}
+  - {name: fixed_asset_investment,    type: table, domain: economic, classification: L2, description: "固定资产投资表"}
+  - {name: social_retail_consumption, type: table, domain: economic, classification: L2, description: "社会消费品零售表"}
+  - {name: foreign_trade,             type: table, domain: economic, classification: L2, description: "外贸进出口表"}
+  - {name: fiscal_revenue,            type: table, domain: economic, classification: L3, description: "财政收入表（敏感运营）"}
+  - {name: fiscal_expenditure,        type: table, domain: economic, classification: L3, description: "财政支出表（敏感运营）"}
+  - {name: economic_indicator,        type: table, domain: economic, classification: L2, description: "经济综合指标表"}
+
+  # --------------------------------------------------------------------------
+  # 民生服务域表资源（8 张）
+  # --------------------------------------------------------------------------
+  - {name: government_service,      type: table, domain: livelihood, classification: L1, description: "政务服务事项主表（公开）"}
+  - {name: service_transaction,     type: table, domain: livelihood, classification: L3, description: "政务服务办理记录表（含申请人脱敏）"}
+  - {name: service_satisfaction,    type: table, domain: livelihood, classification: L2, description: "满意度评价表"}
+  - {name: service_hot_topic,       type: table, domain: livelihood, classification: L1, description: "热点事项表（公开）"}
+  - {name: service_statistics,      type: table, domain: livelihood, classification: L2, description: "政务服务统计表"}
+  - {name: service_evaluation,      type: table, domain: livelihood, classification: L2, description: "评价汇总表"}
+  - {name: service_category,        type: table, domain: livelihood, classification: L1, description: "服务事项类别表（公开）"}
+  - {name: service_channel,         type: table, domain: livelihood, classification: L1, description: "服务渠道表（公开）"}
+
+  # --------------------------------------------------------------------------
+  # 政务合规域表资源（8 张）
+  # --------------------------------------------------------------------------
+  - {name: data_classification,      type: table, domain: compliance, classification: L2, description: "数据分级定义表"}
+  - {name: desensitize_rule,         type: table, domain: compliance, classification: L2, description: "脱敏规则表"}
+  - {name: audit_log,                type: table, domain: compliance, classification: L4, description: "审计日志表（机密）"}
+  - {name: access_control_policy,    type: table, domain: compliance, classification: L2, description: "访问控制策略表"}
+  - {name: access_control_record,    type: table, domain: compliance, classification: L3, description: "访问控制决策记录表"}
+  - {name: compliance_risk_alert,    type: table, domain: compliance, classification: L3, description: "合规风险预警表"}
+  - {name: compliance_check_record,  type: table, domain: compliance, classification: L2, description: "合规检查记录表"}
+  - {name: compliance_policy,        type: table, domain: compliance, classification: L2, description: "合规策略定义表"}
+
+  # --------------------------------------------------------------------------
+  # RBAC 域表资源（4 张）
+  # --------------------------------------------------------------------------
+  - {name: gov_role,            type: table, domain: rbac, classification: L2, description: "政务行业角色定义表"}
+  - {name: gov_permission,      type: table, domain: rbac, classification: L4, description: "政务行业权限定义表（机密）"}
+  - {name: gov_role_permission, type: table, domain: rbac, classification: L4, description: "角色-权限关联表（机密）"}
+  - {name: gov_user_role,       type: table, domain: rbac, classification: L3, description: "用户-角色关联表"}
+
+  # --------------------------------------------------------------------------
+  # DAG 资源（8 个）
+  # --------------------------------------------------------------------------
+  - {name: population_structure_analysis,    type: dag, domain: population, schedule: "0 2 * * *",           description: "人口结构分析 DAG"}
+  - {name: population_flow_tracking,         type: dag, domain: population, schedule: "0 3 * * *",           description: "人口流动追踪 DAG"}
+  - {name: population_forecast,              type: dag, domain: population, schedule: "0 4 1 * *",           description: "人口预测 DAG"}
+  - {name: gdp_calculation,                  type: dag, domain: economic,   schedule: "0 5 15 1,4,7,10 *",   description: "GDP 核算 DAG"}
+  - {name: industry_analysis,                type: dag, domain: economic,   schedule: "0 5 16 1,4,7,10 *",   description: "产业结构分析 DAG"}
+  - {name: investment_consumption_analysis,  type: dag, domain: economic,   schedule: "0 6 1 * *",           description: "投资消费分析 DAG"}
+  - {name: government_service_statistics,    type: dag, domain: livelihood, schedule: "0 7 * * *",           description: "政务服务统计 DAG"}
+  - {name: satisfaction_analysis,            type: dag, domain: livelihood, schedule: "0 8 * * *",           description: "满意度分析 DAG"}
+
+  # --------------------------------------------------------------------------
+  # Dashboard 资源（4 个）
+  # --------------------------------------------------------------------------
+  - {name: population-dashboard, type: dashboard, domain: population, charts_count: 6, description: "人口分析看板"}
+  - {name: economic-dashboard,   type: dashboard, domain: economic,   charts_count: 6, description: "经济运行看板"}
+  - {name: livelihood-dashboard, type: dashboard, domain: livelihood, charts_count: 6, description: "民生服务看板"}
+  - {name: compliance-dashboard, type: dashboard, domain: compliance, charts_count: 8, description: "合规审计看板"}
+
+# ============================================================================
+# 权限定义：基于资源 × 操作的笛卡尔积，按业务语义筛选
+# ============================================================================
+permissions:
+  # --------------------------------------------------------------------------
+  # 人口分析域表权限（8 张表 × 2 操作 = 16 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_population_base_read,                    name: "人口基础信息只读",  resource: population_base,                    action: read,  sql: "SELECT ON population_base"}
+  - {id: perm_table_population_base_write,                   name: "人口基础信息读写",  resource: population_base,                    action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_base"}
+  - {id: perm_table_population_structure_read,               name: "人口结构只读",      resource: population_structure,               action: read,  sql: "SELECT ON population_structure"}
+  - {id: perm_table_population_structure_write,              name: "人口结构读写",      resource: population_structure,               action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_structure"}
+  - {id: perm_table_population_flow_read,                    name: "人口流动只读",      resource: population_flow,                    action: read,  sql: "SELECT ON population_flow"}
+  - {id: perm_table_population_flow_write,                   name: "人口流动读写",      resource: population_flow,                    action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_flow"}
+  - {id: perm_table_population_forecast_read,                name: "人口预测只读",      resource: population_forecast,                action: read,  sql: "SELECT ON population_forecast"}
+  - {id: perm_table_population_forecast_write,               name: "人口预测读写",      resource: population_forecast,                action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_forecast"}
+  - {id: perm_table_population_age_distribution_read,        name: "年龄分布只读",      resource: population_age_distribution,        action: read,  sql: "SELECT ON population_age_distribution"}
+  - {id: perm_table_population_age_distribution_write,       name: "年龄分布读写",      resource: population_age_distribution,        action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_age_distribution"}
+  - {id: perm_table_population_gender_distribution_read,     name: "性别分布只读",      resource: population_gender_distribution,     action: read,  sql: "SELECT ON population_gender_distribution"}
+  - {id: perm_table_population_gender_distribution_write,    name: "性别分布读写",      resource: population_gender_distribution,     action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_gender_distribution"}
+  - {id: perm_table_population_education_distribution_read,  name: "学历分布只读",      resource: population_education_distribution,  action: read,  sql: "SELECT ON population_education_distribution"}
+  - {id: perm_table_population_education_distribution_write, name: "学历分布读写",      resource: population_education_distribution,  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_education_distribution"}
+  - {id: perm_table_population_employment_distribution_read,  name: "就业分布只读",     resource: population_employment_distribution,  action: read,  sql: "SELECT ON population_employment_distribution"}
+  - {id: perm_table_population_employment_distribution_write, name: "就业分布读写",     resource: population_employment_distribution,  action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON population_employment_distribution"}
+
+  # --------------------------------------------------------------------------
+  # 经济运行域表权限（8 张表 × 2 操作 = 16 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_gdp_read,                        name: "GDP只读",          resource: gdp,                       action: read,  sql: "SELECT ON gdp"}
+  - {id: perm_table_gdp_write,                       name: "GDP读写",          resource: gdp,                       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON gdp"}
+  - {id: perm_table_industry_structure_read,         name: "产业结构只读",     resource: industry_structure,         action: read,  sql: "SELECT ON industry_structure"}
+  - {id: perm_table_industry_structure_write,        name: "产业结构读写",     resource: industry_structure,         action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON industry_structure"}
+  - {id: perm_table_fixed_asset_investment_read,     name: "固定资产投资只读", resource: fixed_asset_investment,     action: read,  sql: "SELECT ON fixed_asset_investment"}
+  - {id: perm_table_fixed_asset_investment_write,    name: "固定资产投资读写", resource: fixed_asset_investment,     action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON fixed_asset_investment"}
+  - {id: perm_table_social_retail_consumption_read,  name: "社会消费品零售只读", resource: social_retail_consumption, action: read,  sql: "SELECT ON social_retail_consumption"}
+  - {id: perm_table_social_retail_consumption_write, name: "社会消费品零售读写", resource: social_retail_consumption, action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON social_retail_consumption"}
+  - {id: perm_table_foreign_trade_read,              name: "外贸进出口只读",   resource: foreign_trade,              action: read,  sql: "SELECT ON foreign_trade"}
+  - {id: perm_table_foreign_trade_write,             name: "外贸进出口读写",   resource: foreign_trade,              action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON foreign_trade"}
+  - {id: perm_table_fiscal_revenue_read,             name: "财政收入只读",     resource: fiscal_revenue,             action: read,  sql: "SELECT ON fiscal_revenue"}
+  - {id: perm_table_fiscal_revenue_write,            name: "财政收入读写",     resource: fiscal_revenue,             action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON fiscal_revenue"}
+  - {id: perm_table_fiscal_expenditure_read,         name: "财政支出只读",     resource: fiscal_expenditure,         action: read,  sql: "SELECT ON fiscal_expenditure"}
+  - {id: perm_table_fiscal_expenditure_write,        name: "财政支出读写",     resource: fiscal_expenditure,         action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON fiscal_expenditure"}
+  - {id: perm_table_economic_indicator_read,         name: "经济综合指标只读", resource: economic_indicator,         action: read,  sql: "SELECT ON economic_indicator"}
+  - {id: perm_table_economic_indicator_write,        name: "经济综合指标读写", resource: economic_indicator,         action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON economic_indicator"}
+
+  # --------------------------------------------------------------------------
+  # 民生服务域表权限（8 张表 × 2 操作 = 16 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_government_service_read,      name: "政务服务事项只读",   resource: government_service,      action: read,  sql: "SELECT ON government_service"}
+  - {id: perm_table_government_service_write,     name: "政务服务事项读写",   resource: government_service,      action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON government_service"}
+  - {id: perm_table_service_transaction_read,     name: "办理记录只读",       resource: service_transaction,     action: read,  sql: "SELECT ON service_transaction"}
+  - {id: perm_table_service_transaction_write,    name: "办理记录读写",       resource: service_transaction,     action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_transaction"}
+  - {id: perm_table_service_satisfaction_read,    name: "满意度评价只读",     resource: service_satisfaction,    action: read,  sql: "SELECT ON service_satisfaction"}
+  - {id: perm_table_service_satisfaction_write,   name: "满意度评价读写",     resource: service_satisfaction,    action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_satisfaction"}
+  - {id: perm_table_service_hot_topic_read,       name: "热点事项只读",       resource: service_hot_topic,       action: read,  sql: "SELECT ON service_hot_topic"}
+  - {id: perm_table_service_hot_topic_write,      name: "热点事项读写",       resource: service_hot_topic,       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_hot_topic"}
+  - {id: perm_table_service_statistics_read,      name: "服务统计只读",       resource: service_statistics,      action: read,  sql: "SELECT ON service_statistics"}
+  - {id: perm_table_service_statistics_write,     name: "服务统计读写",       resource: service_statistics,      action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_statistics"}
+  - {id: perm_table_service_evaluation_read,      name: "评价汇总只读",       resource: service_evaluation,      action: read,  sql: "SELECT ON service_evaluation"}
+  - {id: perm_table_service_evaluation_write,     name: "评价汇总读写",       resource: service_evaluation,      action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_evaluation"}
+  - {id: perm_table_service_category_read,        name: "服务类别只读",       resource: service_category,        action: read,  sql: "SELECT ON service_category"}
+  - {id: perm_table_service_category_write,       name: "服务类别读写",       resource: service_category,        action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_category"}
+  - {id: perm_table_service_channel_read,         name: "服务渠道只读",       resource: service_channel,         action: read,  sql: "SELECT ON service_channel"}
+  - {id: perm_table_service_channel_write,        name: "服务渠道读写",       resource: service_channel,         action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON service_channel"}
+
+  # --------------------------------------------------------------------------
+  # 政务合规域表权限（8 张表 × 2 操作 = 16 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_data_classification_read,       name: "数据分级只读",     resource: data_classification,       action: read,  sql: "SELECT ON data_classification"}
+  - {id: perm_table_data_classification_write,      name: "数据分级读写",     resource: data_classification,       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON data_classification"}
+  - {id: perm_table_desensitize_rule_read,          name: "脱敏规则只读",     resource: desensitize_rule,          action: read,  sql: "SELECT ON desensitize_rule"}
+  - {id: perm_table_desensitize_rule_write,         name: "脱敏规则读写",     resource: desensitize_rule,          action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON desensitize_rule"}
+  - {id: perm_table_audit_log_read,                 name: "审计日志只读",     resource: audit_log,                 action: read,  sql: "SELECT ON audit_log"}
+  - {id: perm_table_audit_log_write,                name: "审计日志读写",     resource: audit_log,                 action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON audit_log"}
+  - {id: perm_table_access_control_policy_read,     name: "访问控制策略只读", resource: access_control_policy,     action: read,  sql: "SELECT ON access_control_policy"}
+  - {id: perm_table_access_control_policy_write,    name: "访问控制策略读写", resource: access_control_policy,     action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON access_control_policy"}
+  - {id: perm_table_access_control_record_read,     name: "访问控制记录只读", resource: access_control_record,     action: read,  sql: "SELECT ON access_control_record"}
+  - {id: perm_table_access_control_record_write,    name: "访问控制记录读写", resource: access_control_record,     action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON access_control_record"}
+  - {id: perm_table_compliance_risk_alert_read,     name: "风险预警只读",     resource: compliance_risk_alert,     action: read,  sql: "SELECT ON compliance_risk_alert"}
+  - {id: perm_table_compliance_risk_alert_write,    name: "风险预警读写",     resource: compliance_risk_alert,     action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON compliance_risk_alert"}
+  - {id: perm_table_compliance_check_record_read,   name: "合规检查只读",     resource: compliance_check_record,   action: read,  sql: "SELECT ON compliance_check_record"}
+  - {id: perm_table_compliance_check_record_write,  name: "合规检查读写",     resource: compliance_check_record,   action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON compliance_check_record"}
+  - {id: perm_table_compliance_policy_read,         name: "合规策略只读",     resource: compliance_policy,         action: read,  sql: "SELECT ON compliance_policy"}
+  - {id: perm_table_compliance_policy_write,        name: "合规策略读写",     resource: compliance_policy,         action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON compliance_policy"}
+
+  # --------------------------------------------------------------------------
+  # RBAC 域表权限（4 张表 × 2 操作 = 8 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_table_gov_role_read,             name: "角色定义只读",     resource: gov_role,            action: read,  sql: "SELECT ON gov_role"}
+  - {id: perm_table_gov_role_write,            name: "角色定义读写",     resource: gov_role,            action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON gov_role"}
+  - {id: perm_table_gov_permission_read,       name: "权限定义只读",     resource: gov_permission,      action: read,  sql: "SELECT ON gov_permission"}
+  - {id: perm_table_gov_permission_write,      name: "权限定义读写",     resource: gov_permission,      action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON gov_permission"}
+  - {id: perm_table_gov_role_permission_read,  name: "角色权限关联只读", resource: gov_role_permission, action: read,  sql: "SELECT ON gov_role_permission"}
+  - {id: perm_table_gov_role_permission_write, name: "角色权限关联读写", resource: gov_role_permission, action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON gov_role_permission"}
+  - {id: perm_table_gov_user_role_read,        name: "用户角色关联只读", resource: gov_user_role,       action: read,  sql: "SELECT ON gov_user_role"}
+  - {id: perm_table_gov_user_role_write,       name: "用户角色关联读写", resource: gov_user_role,       action: write, sql: "SELECT,INSERT,UPDATE,DELETE ON gov_user_role"}
+
+  # --------------------------------------------------------------------------
+  # DAG 权限（8 个 DAG × 2 操作 = 16 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_dag_population_structure_analysis_view,    name: "人口结构分析DAG查看", resource: population_structure_analysis,    action: view,   sql: "VIEW DAG population_structure_analysis"}
+  - {id: perm_dag_population_structure_analysis_manage,  name: "人口结构分析DAG管理", resource: population_structure_analysis,    action: manage, sql: "MANAGE DAG population_structure_analysis"}
+  - {id: perm_dag_population_flow_tracking_view,         name: "人口流动追踪DAG查看", resource: population_flow_tracking,         action: view,   sql: "VIEW DAG population_flow_tracking"}
+  - {id: perm_dag_population_flow_tracking_manage,       name: "人口流动追踪DAG管理", resource: population_flow_tracking,         action: manage, sql: "MANAGE DAG population_flow_tracking"}
+  - {id: perm_dag_population_forecast_view,              name: "人口预测DAG查看",     resource: population_forecast,              action: view,   sql: "VIEW DAG population_forecast"}
+  - {id: perm_dag_population_forecast_manage,            name: "人口预测DAG管理",     resource: population_forecast,              action: manage, sql: "MANAGE DAG population_forecast"}
+  - {id: perm_dag_gdp_calculation_view,                 name: "GDP核算DAG查看",      resource: gdp_calculation,                  action: view,   sql: "VIEW DAG gdp_calculation"}
+  - {id: perm_dag_gdp_calculation_manage,               name: "GDP核算DAG管理",      resource: gdp_calculation,                  action: manage, sql: "MANAGE DAG gdp_calculation"}
+  - {id: perm_dag_industry_analysis_view,               name: "产业结构分析DAG查看", resource: industry_analysis,                action: view,   sql: "VIEW DAG industry_analysis"}
+  - {id: perm_dag_industry_analysis_manage,             name: "产业结构分析DAG管理", resource: industry_analysis,                action: manage, sql: "MANAGE DAG industry_analysis"}
+  - {id: perm_dag_investment_consumption_analysis_view,  name: "投资消费分析DAG查看", resource: investment_consumption_analysis,  action: view,   sql: "VIEW DAG investment_consumption_analysis"}
+  - {id: perm_dag_investment_consumption_analysis_manage, name: "投资消费分析DAG管理", resource: investment_consumption_analysis,  action: manage, sql: "MANAGE DAG investment_consumption_analysis"}
+  - {id: perm_dag_government_service_statistics_view,    name: "政务服务统计DAG查看", resource: government_service_statistics,    action: view,   sql: "VIEW DAG government_service_statistics"}
+  - {id: perm_dag_government_service_statistics_manage,  name: "政务服务统计DAG管理", resource: government_service_statistics,    action: manage, sql: "MANAGE DAG government_service_statistics"}
+  - {id: perm_dag_satisfaction_analysis_view,            name: "满意度分析DAG查看",   resource: satisfaction_analysis,            action: view,   sql: "VIEW DAG satisfaction_analysis"}
+  - {id: perm_dag_satisfaction_analysis_manage,          name: "满意度分析DAG管理",   resource: satisfaction_analysis,            action: manage, sql: "MANAGE DAG satisfaction_analysis"}
+
+  # --------------------------------------------------------------------------
+  # Dashboard 权限（4 个 Dashboard × 1 操作 = 4 个权限）
+  # --------------------------------------------------------------------------
+  - {id: perm_dashboard_population_view,  name: "人口分析看板查看", resource: population-dashboard,  action: view, sql: "VIEW DASHBOARD population-dashboard"}
+  - {id: perm_dashboard_economic_view,    name: "经济运行看板查看", resource: economic-dashboard,    action: view, sql: "VIEW DASHBOARD economic-dashboard"}
+  - {id: perm_dashboard_livelihood_view,  name: "民生服务看板查看", resource: livelihood-dashboard,  action: view, sql: "VIEW DASHBOARD livelihood-dashboard"}
+  - {id: perm_dashboard_compliance_view,  name: "合规审计看板查看", resource: compliance-dashboard,  action: view, sql: "VIEW DASHBOARD compliance-dashboard"}

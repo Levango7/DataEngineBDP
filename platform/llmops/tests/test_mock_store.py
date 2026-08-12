@@ -1,4 +1,5 @@
 """Mock 模型存储测试."""
+
 from __future__ import annotations
 
 import uuid
@@ -155,9 +156,7 @@ async def test_get_versions(mock_store):
     m = _make_base_model()
     mid = await mock_store.register_model(m)
     for i in range(1, 4):
-        await mock_store.add_model_version(
-            mid, ModelVersion(version=i, modelId=mid)
-        )
+        await mock_store.add_model_version(mid, ModelVersion(version=i, modelId=mid))
     versions = await mock_store.get_model_versions(mid)
     assert [v.version for v in versions] == [1, 2, 3]
 
@@ -166,9 +165,7 @@ async def test_get_versions(mock_store):
 async def test_update_model(mock_store):
     m = _make_base_model()
     mid = await mock_store.register_model(m)
-    updated = await mock_store.update_model(
-        mid, description="updated", tags={"env": "prod"}
-    )
+    updated = await mock_store.update_model(mid, description="updated", tags={"env": "prod"})
     assert updated.description == "updated"
     assert updated.tags["env"] == "prod"
 

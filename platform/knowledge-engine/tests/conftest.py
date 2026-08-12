@@ -1,27 +1,28 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("KE_STORE_TYPE", "mock")
 os.environ.setdefault("KE_EXTRACTOR_TYPE", "mock")
 
-from knowledge_engine.api.app import create_app
-from knowledge_engine.config.settings import Settings, reset_settings
-from knowledge_engine.repositories.mock import (
+from knowledge_engine.api.app import create_app  # noqa: E402
+from knowledge_engine.config.settings import Settings, reset_settings  # noqa: E402
+from knowledge_engine.repositories.mock import (  # noqa: E402
     MockEntityExtractor,
     MockGraphStore,
     MockRelationExtractor,
 )
-from knowledge_engine.services.entity_service import EntityService
-from knowledge_engine.services.knowledge_service import KnowledgeService
-from knowledge_engine.services.query_service import QueryService
-from knowledge_engine.services.relation_service import RelationService
-from knowledge_engine.services.registry import ServiceRegistry
+from knowledge_engine.services.entity_service import EntityService  # noqa: E402
+from knowledge_engine.services.knowledge_service import KnowledgeService  # noqa: E402
+from knowledge_engine.services.query_service import QueryService  # noqa: E402
+from knowledge_engine.services.registry import ServiceRegistry  # noqa: E402
+from knowledge_engine.services.relation_service import RelationService  # noqa: E402
 
 
 @pytest.fixture

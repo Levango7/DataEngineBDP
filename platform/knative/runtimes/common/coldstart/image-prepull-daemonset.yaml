@@ -1,0 +1,71 @@
+﻿# ============================================================================
+# 镜像预热 DaemonSet · 数据引擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：在每个节点上预先拉取三种运行时镜像，消除冷启动时的镜像拉取耗时
+# 冷启动优化策略：
+#   1. DaemonSet 在每个节点运行一个 Pod，仅做 image pull
+#   2. 镜像更新时自动滚动更新（shareProcessNamespace 便于调试）
+#   3. 资源占用极低（仅启动后 sleep）
+# 效果：冷启动时跳过 image pull（通常 2-5s），仅剩容器启动时间
+# ============================================================================
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: runtime-image-prepuller
+  namespace: knative-serving
+  labels:
+    app.kubernetes.io/name: runtime-image-prepuller
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: cold-start-optimization
+    platform.shuqing.io/task: "T025"
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: runtime-image-prepuller
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: runtime-image-prepuller
+    spec:
+      # 在所有节点运行（含 master，容忍所有 taint）
+      tolerations:
+        - operator: Exists
+      containers:
+        # ---------- Python 运行时镜像预热 ----------
+        - name: python-runtime-pull
+          image: shuqing/python-function-runtime:0.1.0
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+        # ---------- Java 运行时镜像预热 ----------
+        - name: java-runtime-pull
+          image: shuqing/java-function-runtime:0.1.0
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+        # ---------- Go 运行时镜像预热 ----------
+        - name: go-runtime-pull
+          image: shuqing/go-function-runtime:0.1.0
+          command: ["sleep", "infinity"]
+          resources:
+            requests:
+              cpu: "10m"
+              memory: "16Mi"
+            limits:
+              cpu: "50m"
+              memory: "64Mi"
+      terminationGracePeriodSeconds: 5

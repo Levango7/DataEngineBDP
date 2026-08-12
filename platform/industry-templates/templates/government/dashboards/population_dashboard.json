@@ -1,0 +1,202 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "government_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_government",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "population_structure",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "人口结构汇总表 | 总人口/性别/城乡/年龄结构 | DDL: 01_population_analysis_ddl.sql §2",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "province", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "city", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "district", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "total_population", "type": "BIGINT", "is_dttm": false},
+        {"name": "male_population", "type": "BIGINT", "is_dttm": false},
+        {"name": "female_population", "type": "BIGINT", "is_dttm": false},
+        {"name": "sex_ratio", "type": "DECIMAL(8,2)", "is_dttm": false},
+        {"name": "urbanization_rate", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "aging_rate", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "dependency_ratio", "type": "DECIMAL(8,2)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "population_age_distribution",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "人口年龄分布表 | 按年龄段/性别汇总，用于人口金字塔 | DDL: 01_population_analysis_ddl.sql §5",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "age_group", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "age_lower", "type": "INT", "is_dttm": false},
+        {"name": "male_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "female_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "total_count", "type": "BIGINT", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "population_flow",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "人口流动追踪表 | 迁入/迁出/净流动量 | DDL: 01_population_analysis_ddl.sql §3",
+      "columns": [
+        {"name": "flow_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "flow_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "flow_date", "type": "DATE", "is_dttm": true},
+        {"name": "from_district", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "to_district", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "flow_reason", "type": "VARCHAR(32)", "is_dttm": false}
+      ],
+      "main_dttm_col": "flow_date"
+    },
+    {
+      "table_name": "population_forecast",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "人口预测表 | 预测人口/置信区间 | DDL: 01_population_analysis_ddl.sql §4",
+      "columns": [
+        {"name": "forecast_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "forecast_year", "type": "INT", "is_dttm": true},
+        {"name": "forecast_method", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "forecast_population", "type": "BIGINT", "is_dttm": false},
+        {"name": "forecast_lower", "type": "BIGINT", "is_dttm": false},
+        {"name": "forecast_upper", "type": "BIGINT", "is_dttm": false}
+      ],
+      "main_dttm_col": "forecast_year"
+    },
+    {
+      "table_name": "population_education_distribution",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "人口学历分布表 | DDL: 01_population_analysis_ddl.sql §7",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "education_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "population_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "ratio", "type": "DECIMAL(6,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    },
+    {
+      "table_name": "population_employment_distribution",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "人口就业分布表 | DDL: 01_population_analysis_ddl.sql §8",
+      "columns": [
+        {"name": "stat_year", "type": "INT", "is_dttm": true},
+        {"name": "employment_status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "industry", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "population_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "unemployment_rate", "type": "DECIMAL(6,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_year"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "人口分析看板",
+      "slug": "population-dashboard",
+      "description": "政务行业模板 - 人口分析看板：人口结构金字塔+流动地图+预测趋势+多维分布",
+      "owners": ["gov-ops@shuqing.com"],
+      "position": {},
+      "metadata": {
+        "refresh_frequency": 86400,
+        "color_scheme": "governmentBlue",
+        "chart_configuration": {"default_time_range": "Last 10 years"}
+      },
+      "charts": [
+        {
+          "chart_title": "人口结构金字塔",
+          "slice_name": "人口结构金字塔",
+          "viz_type": "bar_chart",
+          "datasource": "population_age_distribution",
+          "params": {
+            "x_axis": "age_group",
+            "y_axis": ["male_count", "female_count"],
+            "color_scheme": "blueRedColors",
+            "show_legend": true,
+            "description": "按年龄段展示男女人口数，形成人口金字塔"
+          }
+        },
+        {
+          "chart_title": "人口流动地图",
+          "slice_name": "人口流动地图",
+          "viz_type": "deck_hex",
+          "datasource": "population_flow",
+          "params": {
+            "from_location": "from_district",
+            "to_location": "to_district",
+            "metric": "COUNT(*)",
+            "color_scheme": "governmentFlow",
+            "description": "人口迁入/迁出流向地图可视化"
+          }
+        },
+        {
+          "chart_title": "人口预测趋势",
+          "slice_name": "人口预测趋势",
+          "viz_type": "line_chart",
+          "datasource": "population_forecast",
+          "params": {
+            "x_axis": "forecast_year",
+            "y_axis": ["forecast_population", "forecast_lower", "forecast_upper"],
+            "color_scheme": "governmentForecast",
+            "show_legend": true,
+            "description": "未来 5 年人口预测趋势含 95% 置信区间"
+          }
+        },
+        {
+          "chart_title": "城镇化率与老龄化率趋势",
+          "slice_name": "城镇化老龄化趋势",
+          "viz_type": "line_chart",
+          "datasource": "population_structure",
+          "params": {
+            "x_axis": "stat_year",
+            "y_axis": ["urbanization_rate", "aging_rate"],
+            "color_scheme": "dualLineColors",
+            "show_legend": true,
+            "description": "城镇化率与老龄化率年度变化趋势"
+          }
+        },
+        {
+          "chart_title": "学历分布饼图",
+          "slice_name": "学历分布",
+          "viz_type": "pie_chart",
+          "datasource": "population_education_distribution",
+          "params": {
+            "metric": "SUM(population_count)",
+            "group_by": "education_level",
+            "color_scheme": "educationLevelColors",
+            "description": "按学历层次展示人口分布占比"
+          }
+        },
+        {
+          "chart_title": "就业状态分布",
+          "slice_name": "就业状态分布",
+          "viz_type": "bar_chart",
+          "datasource": "population_employment_distribution",
+          "params": {
+            "x_axis": "employment_status",
+            "y_axis": "SUM(population_count)",
+            "color_scheme": "employmentColors",
+            "show_legend": true,
+            "description": "按就业状态展示人口分布"
+          }
+        }
+      ]
+    }
+  ]
+}

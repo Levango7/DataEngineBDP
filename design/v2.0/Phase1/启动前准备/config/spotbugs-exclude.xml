@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  SpotBugs 排除配置
+  适用于 platform/ 下所有 Java 组件
+  通过 Maven spotbugs 插件调用：mvn spotbugs:check
+  排除 Spring Boot 框架代码、Lombok 生成代码、单元测试代码的常见误报
+-->
+<FindBugsFilter>
+    <!-- 排除所有测试代码 -->
+    <Match>
+        <Class name="~.*\.(Test|IT|IntegrationTest|.*TestCase|.*Test\$.*).*"/>
+    </Match>
+    <Match>
+        <Or>
+            <Class name="~.*\.test\..*"/>
+            <Class name="~.*\.integration\..*"/>
+        </Or>
+    </Match>
+
+    <!-- 排除 Spring Boot 主类（@SpringBootApplication） -->
+    <Match>
+        <Class annotation="org.springframework.boot.autoconfigure.SpringBootApplication"/>
+    </Match>
+
+    <!-- 排除 Lombok 生成代码 -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*\.(dto|model|entity|pojo)\..*"/>
+    </Match>
+
+    <!-- 排除 JPA Entity 的 getter/setter -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD"/>
+        <Class annotation="jakarta.persistence.Entity"/>
+    </Match>
+
+    <!-- 排除 DTO 的未写字段（反序列化场景） -->
+    <Match>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,URF_UNREAD_FIELD"/>
+        <Class name="~.*\.(dto|request|response|vo)\..*"/>
+    </Match>
+
+    <!-- 排除配置类（@ConfigurationProperties） -->
+    <Match>
+        <Class annotation="org.springframework.boot.context.properties.ConfigurationProperties"/>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,URF_UNREAD_FIELD"/>
+    </Match>
+
+    <!-- 排除 Controller 的字段注入 -->
+    <Match>
+        <Class annotation="~org\.springframework\.web\.bind\.annotation\.(RestController|Controller)"/>
+        <Bug pattern="MS_EXPOSE_REP"/>
+    </Match>
+
+    <!-- 排除异常类的构造器 -->
+    <Match>
+        <Class name="~.*Exception$"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- 排除 Builder 模式生成的代码 -->
+    <Match>
+        <Class name="~.*Builder$"/>
+        <Bug pattern="UWF_UNWRITTEN_FIELD,URF_UNREAD_FIELD"/>
+    </Match>
+
+    <!-- 排除 MapStruct 生成的 Mapper -->
+    <Match>
+        <Class name="~.*MapperImpl$"/>
+    </Match>
+
+    <!-- 排除 protobuf/avro 生成代码 -->
+    <Match>
+        <Or>
+            <Class name="~.*\.generated\..*"/>
+            <Class name="~.*\.proto\..*"/>
+        </Or>
+    </Match>
+</FindBugsFilter>

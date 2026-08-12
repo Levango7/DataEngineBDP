@@ -1,17 +1,16 @@
 """API 端点测试."""
-from __future__ import annotations
 
-import uuid
+from __future__ import annotations
 
 
 class TestHealth:
     """健康检查."""
 
     def test_health(self, client):
-        resp = client.get("/health")
+        resp = client.get("/api/v1/health")
         assert resp.status_code == 200
         data = resp.json()
-        assert data["status"] == "ok"
+        assert data["status"] == "UP"
         assert data["store"] == "mock"
         assert data["module"] == "business-portal"
         assert data["level"] == "L5.4"
@@ -104,14 +103,10 @@ class TestBusinessLineApi:
         )
         bl_id = create_resp.json()["id"]
         # 成员访问
-        resp = client.get(
-            f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "user-1"}
-        )
+        resp = client.get(f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "user-1"})
         assert resp.status_code == 200
         # 非成员访问
-        resp = client.get(
-            f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "intruder"}
-        )
+        resp = client.get(f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "intruder"})
         assert resp.status_code == 403
 
     def test_get_business_line_not_found(self, client):
@@ -124,9 +119,7 @@ class TestBusinessLineApi:
             json={"name": "风控线", "tenantId": "t-1", "ownerIds": ["admin-1"]},
         )
         bl_id = create_resp.json()["id"]
-        resp = client.put(
-            f"/api/v1/business-lines/{bl_id}", json={"name": "风控线-v2"}
-        )
+        resp = client.put(f"/api/v1/business-lines/{bl_id}", json={"name": "风控线-v2"})
         assert resp.status_code == 200
         assert resp.json()["name"] == "风控线-v2"
 
@@ -299,9 +292,7 @@ class TestReportApi:
             f"/api/v1/business-lines/{bl_id}/reports",
             json={"name": "r1"},
         ).json()["id"]
-        resp = client.get(
-            f"/api/v1/business-lines/{bl_id}/reports/{report_id}"
-        )
+        resp = client.get(f"/api/v1/business-lines/{bl_id}/reports/{report_id}")
         assert resp.status_code == 200
         assert resp.json()["id"] == report_id
 
@@ -330,14 +321,10 @@ class TestReportApi:
             f"/api/v1/business-lines/{bl_id}/reports",
             json={"name": "r1"},
         ).json()["id"]
-        resp = client.delete(
-            f"/api/v1/business-lines/{bl_id}/reports/{report_id}"
-        )
+        resp = client.delete(f"/api/v1/business-lines/{bl_id}/reports/{report_id}")
         assert resp.status_code == 204
         # 二次获取应 404
-        resp = client.get(
-            f"/api/v1/business-lines/{bl_id}/reports/{report_id}"
-        )
+        resp = client.get(f"/api/v1/business-lines/{bl_id}/reports/{report_id}")
         assert resp.status_code == 404
 
     def test_report_isolation_between_bl(self, client):
@@ -356,14 +343,10 @@ class TestReportApi:
             json={"name": "r-a"},
         ).json()["id"]
         # B 列表为空
-        reports_b = client.get(
-            f"/api/v1/business-lines/{bl_b}/reports"
-        ).json()
+        reports_b = client.get(f"/api/v1/business-lines/{bl_b}/reports").json()
         assert len(reports_b) == 0
         # B 视角获取 A 的报表 → 404
-        resp = client.get(
-            f"/api/v1/business-lines/{bl_b}/reports/{report_a_id}"
-        )
+        resp = client.get(f"/api/v1/business-lines/{bl_b}/reports/{report_a_id}")
         assert resp.status_code == 404
 
     def test_cross_bl_get_returns_404(self, client):
@@ -380,9 +363,7 @@ class TestReportApi:
             f"/api/v1/business-lines/{bl_a}/reports",
             json={"name": "r-a"},
         ).json()["id"]
-        resp = client.get(
-            f"/api/v1/business-lines/{bl_b}/reports/{report_a_id}"
-        )
+        resp = client.get(f"/api/v1/business-lines/{bl_b}/reports/{report_a_id}")
         assert resp.status_code == 404
 
 
@@ -396,7 +377,7 @@ class TestOpenApi:
         assert schema["info"]["title"] == "Business Portal"
         # 关键端点存在
         paths = schema["paths"]
-        assert "/health" in paths
+        assert "/api/v1/health" in paths
         assert "/api/v1/business-lines" in paths
         assert "/api/v1/business-lines/{bl_id}/dashboard" in paths
         assert "/api/v1/business-lines/{bl_id}/workbench" in paths

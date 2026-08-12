@@ -6,11 +6,12 @@
     后端路由：按 API 配置路由到 Trino / Doris / 大模型 / 自定义函数。
     租户隔离：网关层强制注入 consumer_tenant_id，后端按此过滤，杜绝跨租户越权。
 """
+
 from __future__ import annotations
 
 import time
-import uuid
 from typing import Any
+import uuid
 
 from openapi_catalog.models import (
     APIDefinition,
@@ -68,9 +69,7 @@ class APICallService:
         # 1. 校验 API 存在且运行中
         api = await self.store.get_api(api_id)
         if api.status != APIStatus.RUNNING:
-            raise APIStatusTransitionError(
-                api_id, api.status.value, "call"
-            )
+            raise APIStatusTransitionError(api_id, api.status.value, "call")
 
         # 2. 鉴权（认证 + 租户隔离）
         try:
@@ -139,9 +138,7 @@ class APICallService:
             )
 
         # 4. 转发到后端（Mock 实现）
-        result, status_code, error = await self._forward_to_upstream(
-            api, payload, headers
-        )
+        result, status_code, error = await self._forward_to_upstream(api, payload, headers)
 
         # 5. 计量
         latency = (time.monotonic() - start_time) * 1000
@@ -161,6 +158,7 @@ class APICallService:
 
         # 6. 计算费用
         from openapi_catalog.models import CostStrategy
+
         if api.costStrategy == CostStrategy.BY_CALL:
             cost = api.costUnitPrice
         elif api.costStrategy == CostStrategy.BY_BYTES:
@@ -218,6 +216,7 @@ def _estimate_size(obj: Any) -> int:
     if obj is None:
         return 0
     import json
+
     try:
         return len(json.dumps(obj, ensure_ascii=False, default=str).encode("utf-8"))
     except (TypeError, ValueError):
@@ -227,4 +226,5 @@ def _estimate_size(obj: Any) -> int:
 async def _async_sleep(seconds: float) -> None:
     """异步 sleep."""
     import asyncio
+
     await asyncio.sleep(seconds)

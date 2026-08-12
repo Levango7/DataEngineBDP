@@ -1,0 +1,87 @@
+﻿# ============================================================================
+# 数据引擎大数据平台 - Flink CDC MySQL 管道配置模板
+# ============================================================================
+# 本文件描述一条从 MySQL 同步变更到 Kafka 的 CDC 管道。
+# 使用方式：复制本文件并按实际环境修改，通过 start-cdc-mysql.sh 启动。
+# ============================================================================
+
+# ---- 作业级配置 ----
+job:
+  name: mysql-to-kafka
+  parallelism: 2
+
+# ---- 数据源（Source）配置：可配置多个 ----
+sources:
+  - name: mysql-orders
+    type: MYSQL                    # 数据源类型: MYSQL / POSTGRESQL / ORACLE
+    host: 127.0.0.1
+    port: 3306
+    username: cdc_user             # 需具备 REPLICATION SLAVE, REPLICATION CLIENT 权限
+    password: cdc_password
+    database: shop                 # 数据库名（支持正则）
+    table: shop.orders             # 表名（格式 db.table，支持正则）
+    serverId: 5400                 # MySQL Binlog 复制 server-id（多作业需唯一）
+    startupMode: initial           # initial / latest-offset / timestamp / specific-offset
+    # startupTimestampMillis: 1700000000000   # 仅 timestamp 模式需要
+    # binlogFilename: binlog.000001           # 仅 specific-offset 模式需要
+    # binlogPosition: 12345                   # 仅 specific-offset 模式需要
+    includeSchemaChanges: false    # 是否捕获 DDL 变更
+    parallelism: 2                 # Source 并行度（增量分片数）
+    splitColumn: id                # 全量快照分片列
+    # tableFilters:                # 精确表过滤（覆盖 table）
+    #   - shop.orders
+    #   - shop.order_items
+
+  # 示例：第二个数据源（多源同步）
+  # - name: mysql-products
+  #   type: MYSQL
+  #   host: 127.0.0.1
+  #   port: 3306
+  #   username: cdc_user
+  #   password: cdc_password
+  #   database: shop
+  #   table: shop.products
+  #   serverId: 5401
+  #   startupMode: initial
+  #   parallelism: 1
+
+# ---- 数据目标（Sink）配置：可配置多个 ----
+sinks:
+  - name: kafka-orders
+    type: KAFKA                    # 目标类型: KAFKA / ICEBERG / DORIS
+    host: 127.0.0.1
+    port: 9092
+    topic: cdc.shop.orders         # Kafka Topic 名称
+    writeMode: upsert              # append-only / upsert / overwrite
+    format: debezium-json          # debezium-json / canal-json / json / parquet
+    primaryKey: id                 # upsert 模式主键列（逗号分隔）
+    parallelism: 2
+    properties:                    # 额外 Kafka 生产者属性
+      acks: "1"
+      linger.ms: "10"
+      batch.size: "16384"
+
+  # 示例：写入 Iceberg 数据湖
+  # - name: iceberg-orders
+  #   type: ICEBERG
+  #   host: thrift://hive-metastore
+  #   port: 9083
+  #   topic: shop.orders
+  #   writeMode: upsert
+  #   format: parquet
+  #   primaryKey: id
+  #   properties:
+  #     catalog: hive
+  #     warehouse: hdfs:///warehouse/iceberg
+
+  # 示例：写入 Doris OLAP
+  # - name: doris-orders
+  #   type: DORIS
+  #   host: 127.0.0.1
+  #   port: 8030
+  #   topic: shop.orders
+  #   writeMode: upsert
+  #   format: json
+  #   primaryKey: id
+  #   username: root
+  #   password: ""

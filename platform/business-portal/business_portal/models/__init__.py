@@ -1,4 +1,5 @@
 """数据模型层."""
+
 from __future__ import annotations
 
 from business_portal.models.base import (
@@ -9,10 +10,10 @@ from business_portal.models.base import (
     utc_now,
 )
 from business_portal.models.business_line import (
+    Budget,
     BusinessLine,
     BusinessLineConfig,
     BusinessLineFilter,
-    Budget,
 )
 from business_portal.models.catalog import CatalogNode, CatalogTree
 from business_portal.models.dashboard import Dashboard, Kpi, Trend, TrendPoint

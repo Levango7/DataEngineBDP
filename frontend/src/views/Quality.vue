@@ -5,42 +5,163 @@
     <div class="toolbar">
       <button class="btn sm" @click="modalVisible = true">+ 新建规则</button>
       <div class="spacer"></div>
-      <span class="pill g">通过率 94%</span>
+      <span class="pill g">通过率 {{ summary?.passRate ?? '--' }}%</span>
     </div>
     <div class="card">
-      <table>
+      <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-else-if="error" style="padding: 16px; color: var(--red)">
+        {{ error }}，<a href="javascript:void(0)" @click="loadRules">重试</a>
+      </div>
+      <table v-else>
         <tr><th>规则</th><th>对象</th><th>校验</th><th>阈值</th><th>最近</th><th>状态</th></tr>
-        <tr><td>订单ID非空</td><td>dwd.order_wide</td><td>非空</td><td>100%</td><td>04:00</td><td><span class="pill g">通过</span></td></tr>
-        <tr><td>金额非负</td><td>dws.pay_summary</td><td>范围</td><td>≥0</td><td>04:05</td><td><span class="pill g">通过</span></td></tr>
-        <tr><td>用户数波动</td><td>ads.user_profile</td><td>波动</td><td>±15%</td><td>04:10</td><td><span class="pill r">告警</span></td></tr>
+        <tr v-for="r in rules" :key="r.id">
+          <td>{{ r.name }}</td>
+          <td>{{ r.targetTable }}</td>
+          <td>{{ checkTypeLabel(r.checkType) }}</td>
+          <td>{{ r.threshold }}</td>
+          <td>{{ r.lastCheckAt || '--' }}</td>
+          <td><span class="pill" :class="resultPillClass(r.lastResult)">{{ resultPillText(r.lastResult) }}</span></td>
+        </tr>
+        <tr v-if="rules.length === 0">
+          <td colspan="6" style="text-align: center; color: var(--muted)">暂无规则</td>
+        </tr>
       </table>
     </div>
 
     <Modal :visible="modalVisible" title="新建质量规则" @close="modalVisible = false">
-      <label>对象表</label><input placeholder="如 dwd.order_wide" />
-      <label>字段</label><input placeholder="如 order_id" />
+      <label>对象表</label><input v-model="form.targetTable" placeholder="如 dwd.order_wide" />
+      <label>字段</label><input v-model="form.targetField" placeholder="如 order_id" />
       <label>校验类型</label>
-      <select><option>非空</option><option>唯一</option><option>范围</option><option>波动</option></select>
-      <label>阈值</label><input value="100%" />
+      <select v-model="form.checkType"><option value="not_null">非空</option><option value="unique">唯一</option><option value="range">范围</option><option value="fluctuation">波动</option></select>
+      <label>阈值</label><input v-model="form.threshold" placeholder="如 100%" />
       <label>异常动作</label>
-      <select><option>告警</option><option>阻断下游</option></select>
+      <select v-model="form.actionOnFail"><option value="alert">告警</option><option value="block_downstream">阻断下游</option></select>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" @click="ok('规则已创建')">创建</button>
+        <button class="btn" :disabled="submitting" @click="handleSubmit">{{ submitting ? '创建中…' : '创建' }}</button>
       </template>
     </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Modal from '@/components/Modal.vue'
+import * as qualityApi from '@/api/quality'
+import type { QualityRule, QualitySummary, CheckType, ActionOnFail } from '@/api/quality'
 
 const store = useAppStore()
 const modalVisible = ref(false)
-function ok(msg: string) {
-  modalVisible.value = false
-  store.showToast(msg)
+const submitting = ref(false)
+
+// 规则列表
+const rules = ref<QualityRule[]>([])
+const summary = ref<QualitySummary | null>(null)
+const loading = ref(false)
+const error = ref('')
+
+/** 加载规则列表 */
+async function loadRules() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [result, sm] = await Promise.all([
+      qualityApi.listRules({ page: 1, pageSize: 100 }),
+      qualityApi.getSummary().catch(() => null)
+    ])
+    rules.value = result.list
+    summary.value = sm
+  } catch (err) {
+    error.value = (err as Error).message || '规则列表加载失败'
+  } finally {
+    loading.value = false
+  }
 }
+
+/** 校验类型 → 中文 */
+function checkTypeLabel(t: CheckType): string {
+  const map: Record<CheckType, string> = {
+    not_null: '非空',
+    unique: '唯一',
+    range: '范围',
+    fluctuation: '波动',
+    regex: '正则',
+    sql: 'SQL'
+  }
+  return map[t] || t
+}
+
+/** 校验结果 → pill 样式 */
+function resultPillClass(result?: string): string {
+  switch (result) {
+    case 'pass':
+      return 'g'
+    case 'warn':
+      return 'a'
+    case 'fail':
+      return 'r'
+    default:
+      return 'b'
+  }
+}
+
+/** 校验结果 → pill 文案 */
+function resultPillText(result?: string): string {
+  switch (result) {
+    case 'pass':
+      return '通过'
+    case 'warn':
+      return '告警'
+    case 'fail':
+      return '失败'
+    default:
+      return '未运行'
+  }
+}
+
+// 新建表单
+const form = reactive<{
+  targetTable: string
+  targetField: string
+  checkType: CheckType
+  threshold: string
+  actionOnFail: ActionOnFail
+}>({
+  targetTable: '',
+  targetField: '',
+  checkType: 'not_null',
+  threshold: '100%',
+  actionOnFail: 'alert'
+})
+
+/** 提交创建规则 */
+async function handleSubmit() {
+  if (!form.targetTable.trim()) {
+    store.showToast('请填写对象表')
+    return
+  }
+  submitting.value = true
+  try {
+    await qualityApi.createRule({
+      name: `${form.targetField || form.targetTable}_${form.checkType}`,
+      targetTable: form.targetTable,
+      targetField: form.targetField || undefined,
+      checkType: form.checkType,
+      threshold: form.threshold,
+      actionOnFail: form.actionOnFail
+    })
+    modalVisible.value = false
+    store.showToast('规则已创建')
+    await loadRules()
+  } catch {
+    // 错误提示已由拦截器统一处理
+  } finally {
+    submitting.value = false
+  }
+}
+
+onMounted(() => {
+  loadRules()
+})
 </script>

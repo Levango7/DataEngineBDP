@@ -3,6 +3,7 @@
 端点：
     GET /templates/categories  模板分类
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends
