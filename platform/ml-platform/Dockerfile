@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 # ML Platform Dockerfile
 # 数据引擎大数据平台 L4.5.6 智能数据层 - 机器学习平台
 
