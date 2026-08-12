@@ -1,0 +1,15 @@
+{
+  "_comment": "Go 模块覆盖率基线（2026-08-13 快照）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
+  "_source": "Task 4 覆盖率分析结果（go test -cover）",
+  "_threshold_note": "当前阈值：≥70%。当前整体 ~30%，远未达 85% GA 标准。",
+  "catalog": 35,
+  "dqctl": 30,
+  "vector-engine": 25,
+  "llm-gateway": 30,
+  "query-api": 28,
+  "infra-provider-baremetal": 20,
+  "api": 35,
+  "failover-api": 30,
+  "failover-engine": 25,
+  "knative-go-runtime": 20
+}

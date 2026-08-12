@@ -1,6 +1,10 @@
 # CI 持续集成工作流
 # 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
 # Phase1a 增强：新增多语言代码检查（golangci-lint/pylint/black/isort/Checkstyle/ESLint）+ 覆盖率收集（JaCoCo/go cover/pytest-cov）
+# 覆盖率门禁增强（2026-08-13）：
+#   - 全量模块门禁：Java 18个模块（行≥80%/分支≥70%）、Go 10个模块（≥70%）、Python 10个模块（≥75%）
+#   - 趋势阻断：覆盖率相比基线下降 > 2% 阻断 CI（基线文件位于 docs/coverage-baseline/）
+#   - 注：当前覆盖率远未达 85% GA 标准，保持现有阈值作为阻断门禁，逐步提升路线见 docs/coverage-roadmap.md
 name: CI
 
 on:
@@ -577,25 +581,133 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-      - name: JaCoCo覆盖率门禁检查
+      - name: JaCoCo覆盖率门禁检查（全量模块）
         if: env.java_skip != 'true'
         run: |
           echo "============================================"
           echo "  JaCoCo 覆盖率门禁检查 (阈值: 行≥80% 分支≥70%)"
+          echo "  覆盖范围：platform/ 下所有含 pom.xml 的 Java 模块"
           echo "============================================"
-          # 对 encaps-layer 模块生成覆盖率报告并执行门禁检查
-          if [ -f "platform/encaps-layer/pom.xml" ]; then
-            cd platform/encaps-layer
-            echo "—— 生成 JaCoCo 覆盖率报告 ——"
-            mvn jacoco:report -B -q || echo "::warning::JaCoCo report 生成失败（插件可能未配置）"
-            echo "—— 执行覆盖率门禁检查 ——"
-            # 使用 jacoco 的 check goal，阈值：行覆盖≥80%，分支覆盖≥70%
-            # 暂用 warning 模式（|| echo），不阻断 CI（现有代码可能达不到阈值）
-            mvn jacoco:check -B -Djacoco.minimum.line.coverage=0.80 -Djacoco.minimum.branch.coverage=0.70 || echo "::warning::encaps-layer 覆盖率低于阈值（行≥80% 分支≥70%），仅警告不阻断"
-            cd - > /dev/null
-          else
-            echo "::warning::platform/encaps-layer/pom.xml 不存在，跳过 JaCoCo 门禁检查"
+          # 阈值定义（保持当前值，不提升至 85%）
+          LINE_THRESHOLD=80
+          BRANCH_THRESHOLD=70
+          # 遍历所有 Java 模块生成 JaCoCo 报告并执行门禁检查
+          # 仅对存在 src/test 目录（有测试）的模块执行门禁；无测试的模块仅生成报告
+          fail_count=0
+          warn_count=0
+          mod_count=0
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            mod_count=$((mod_count + 1))
+            echo "--------------------------------------------"
+            echo "  JaCoCo: $mod_name ($mod_dir)"
+            echo "--------------------------------------------"
+            # 生成 JaCoCo 报告（如果插件未配置则跳过）
+            if ! mvn -f "$pom" jacoco:report -B -q 2>/dev/null; then
+              echo "::warning::$mod_name JaCoCo report 生成失败（插件可能未配置），跳过门禁"
+              warn_count=$((warn_count + 1))
+              continue
+            fi
+            # 检查是否存在 JaCoCo 报告（target/site/jacoco/jacoco.xml）
+            jacoco_xml="$mod_dir/target/site/jacoco/jacoco.xml"
+            if [ ! -f "$jacoco_xml" ]; then
+              echo "::warning::$mod_name 未生成 jacoco.xml（可能无测试或无字节码），跳过门禁"
+              warn_count=$((warn_count + 1))
+              continue
+            fi
+            # 从 jacoco.xml 解析行覆盖率和分支覆盖率
+            # JaCoCo XML 中 <counter type="LINE" missed="x" covered="y"/>，覆盖率 = covered/(missed+covered)*100
+            line_missed=$(grep -oP '<counter type="LINE"[^>]*missed="\K[0-9]+' "$jacoco_xml" | tail -1)
+            line_covered=$(grep -oP '<counter type="LINE"[^>]*covered="\K[0-9]+' "$jacoco_xml" | tail -1)
+            branch_missed=$(grep -oP '<counter type="BRANCH"[^>]*missed="\K[0-9]+' "$jacoco_xml" | tail -1)
+            branch_covered=$(grep -oP '<counter type="BRANCH"[^>]*covered="\K[0-9]+' "$jacoco_xml" | tail -1)
+            # 计算覆盖率（避免除零）
+            line_total=$((line_missed + line_covered))
+            branch_total=$((branch_missed + branch_covered))
+            if [ "$line_total" -gt 0 ]; then
+              line_pct=$((line_covered * 100 / line_total))
+            else
+              line_pct=0
+            fi
+            if [ "$branch_total" -gt 0 ]; then
+              branch_pct=$((branch_covered * 100 / branch_total))
+            else
+              branch_pct=0
+            fi
+            echo "$mod_name 行覆盖率: ${line_pct}% (阈值 ${LINE_THRESHOLD}%)，分支覆盖率: ${branch_pct}% (阈值 ${BRANCH_THRESHOLD}%)"
+            # 门禁检查：行覆盖率和分支覆盖率均需达标
+            # 注：当前覆盖率远未达 85% GA 标准，保持 80%/70% 作为阻断门禁
+            # 仅对有测试的模块（line_total > 0）执行阻断
+            if [ "$line_total" -gt 0 ]; then
+              if [ "$line_pct" -lt "$LINE_THRESHOLD" ] || [ "$branch_pct" -lt "$BRANCH_THRESHOLD" ]; then
+                echo "::error::$mod_name 覆盖率不达标：行 ${line_pct}%<${LINE_THRESHOLD}% 或 分支 ${branch_pct}%<${BRANCH_THRESHOLD}%，阻断 CI"
+                fail_count=$((fail_count + 1))
+              else
+                echo "✓ $mod_name 覆盖率达标"
+              fi
+            else
+              echo "::warning::$mod_name 无可统计的代码行（line_total=0），跳过门禁"
+              warn_count=$((warn_count + 1))
+            fi
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+          echo "============================================"
+          echo "  JaCoCo 门禁汇总：共 $mod_count 个模块，失败 $fail_count，警告 $warn_count"
+          echo "============================================"
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Java 模块覆盖率低于阈值（行≥${LINE_THRESHOLD}% 分支≥${BRANCH_THRESHOLD}%），JaCoCo 门禁阻断 CI"
+            exit 1
           fi
+
+      - name: 覆盖率趋势阻断检查（Java）
+        if: env.java_skip != 'true'
+        run: |
+          echo "============================================"
+          echo "  Java 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
+          echo "============================================"
+          # 从当前构建读取每个模块的行覆盖率，与基线文件对比
+          # 基线文件：docs/coverage-baseline/java.json（首次运行时自动生成）
+          # 如果基线不存在，跳过趋势检查（首次运行）
+          BASELINE_FILE="docs/coverage-baseline/java.json"
+          REGRESSION_THRESHOLD=2  # 下降超过 2% 阻断
+          if [ ! -f "$BASELINE_FILE" ]; then
+            echo "::warning::基线文件 $BASELINE_FILE 不存在，跳过趋势检查（首次运行）"
+            echo "提示：执行 scripts/coverage/update-baseline.sh java 生成基线"
+            exit 0
+          fi
+          echo "读取基线：$BASELINE_FILE"
+          fail_count=0
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            jacoco_xml="$mod_dir/target/site/jacoco/jacoco.xml"
+            if [ ! -f "$jacoco_xml" ]; then
+              continue
+            fi
+            # 当前覆盖率
+            line_missed=$(grep -oP '<counter type="LINE"[^>]*missed="\K[0-9]+' "$jacoco_xml" | tail -1)
+            line_covered=$(grep -oP '<counter type="LINE"[^>]*covered="\K[0-9]+' "$jacoco_xml" | tail -1)
+            line_total=$((line_missed + line_covered))
+            if [ "$line_total" -le 0 ]; then
+              continue
+            fi
+            current_pct=$((line_covered * 100 / line_total))
+            # 从基线读取（JSON 格式：{"module_name": line_pct}）
+            baseline_pct=$(python3 -c "import json; d=json.load(open('$BASELINE_FILE')); print(d.get('$mod_name', 0))" 2>/dev/null || echo "0")
+            # 计算下降幅度
+            drop=$((baseline_pct - current_pct))
+            if [ "$drop" -gt "$REGRESSION_THRESHOLD" ]; then
+              echo "::error::$mod_name 覆盖率下降 $drop%（基线 ${baseline_pct}% → 当前 ${current_pct}%），超过 ${REGRESSION_THRESHOLD}% 阈值，阻断 CI"
+              fail_count=$((fail_count + 1))
+            else
+              echo "✓ $mod_name 覆盖率趋势正常（基线 ${baseline_pct}% → 当前 ${current_pct}%，下降 $drop%）"
+            fi
+          done < <(find platform -name pom.xml -not -path "*/target/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Java 模块覆盖率下降超过 ${REGRESSION_THRESHOLD}%，趋势阻断 CI"
+            exit 1
+          fi
+          echo "✓ Java 覆盖率趋势检查通过"
 
   # ============================================================
   # Go 构建与测试：Go 1.26
@@ -678,38 +790,92 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-      - name: Go覆盖率门禁检查
+      - name: Go覆盖率门禁检查（全量模块）
         if: env.go_skip != 'true'
         run: |
           echo "============================================"
           echo "  Go 覆盖率门禁检查 (阈值: ≥70%)"
+          echo "  覆盖范围：platform/ 下所有含 go.mod 的 Go 模块"
           echo "============================================"
-          # 对每个 Go 模块检查覆盖率
-          total_coverage=0
+          # 阈值定义（保持当前值，不提升至 85%）
+          COVERAGE_THRESHOLD=70
+          fail_count=0
+          warn_count=0
           mod_count=0
-          for mod in platform/catalog platform/vector-engine platform/llm-gateway platform/observability/query-api platform/dqctl; do
-            if [ -f "$mod/go.mod" ]; then
-              mod_count=$((mod_count + 1))
-              echo "—— 检查 $mod 覆盖率 ——"
-              cd "$mod"
-              # 运行测试并收集覆盖率，提取 total 行的覆盖率百分比
-              cov=$(go test -cover ./... 2>/dev/null | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "0")
-              if [ -z "$cov" ]; then
-                cov="0"
-              fi
-              echo "$mod coverage: $cov%"
-              # 暂用 warning 模式，不阻断 CI（现有代码可能达不到 70% 阈值）
-              if [ "$(echo "$cov < 70.0" | bc -l 2>/dev/null || echo 1)" = "1" ]; then
-                echo "::warning::$mod 覆盖率 $cov% 低于阈值 70%，仅警告不阻断"
-              else
-                echo "✓ $mod 覆盖率 $cov% 达到阈值"
-              fi
-              cd - > /dev/null
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            mod_count=$((mod_count + 1))
+            echo "--------------------------------------------"
+            echo "  Go Coverage: $mod_name ($mod_dir)"
+            echo "--------------------------------------------"
+            # 运行测试并收集覆盖率，提取 total 行的覆盖率百分比
+            cov_output=$(cd "$mod_dir" && go test -cover ./... 2>/dev/null || true)
+            cov=$(echo "$cov_output" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
+            if [ -z "$cov" ]; then
+              cov="0"
+              echo "::warning::$mod_name 未生成覆盖率数据（可能无测试或测试失败），跳过门禁"
+              warn_count=$((warn_count + 1))
+              continue
             fi
-          done
-          if [ "$mod_count" -eq 0 ]; then
-            echo "::warning::未发现目标 Go 模块，跳过 Go 覆盖率门禁检查"
+            echo "$mod_name coverage: $cov%"
+            # 门禁检查：覆盖率需 ≥ 70%
+            # 使用 awk 进行浮点比较
+            below=$(awk -v c="$cov" -v t="$COVERAGE_THRESHOLD" 'BEGIN { print (c < t) ? 1 : 0 }')
+            if [ "$below" = "1" ]; then
+              echo "::error::$mod_name 覆盖率 $cov% 低于阈值 ${COVERAGE_THRESHOLD}%，阻断 CI"
+              fail_count=$((fail_count + 1))
+            else
+              echo "✓ $mod_name 覆盖率达标"
+            fi
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+          echo "============================================"
+          echo "  Go 门禁汇总：共 $mod_count 个模块，失败 $fail_count，警告 $warn_count"
+          echo "============================================"
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Go 模块覆盖率低于 ${COVERAGE_THRESHOLD}%，Go 门禁阻断 CI"
+            exit 1
           fi
+
+      - name: 覆盖率趋势阻断检查（Go）
+        if: env.go_skip != 'true'
+        run: |
+          echo "============================================"
+          echo "  Go 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
+          echo "============================================"
+          BASELINE_FILE="docs/coverage-baseline/go.json"
+          REGRESSION_THRESHOLD=2  # 下降超过 2% 阻断
+          if [ ! -f "$BASELINE_FILE" ]; then
+            echo "::warning::基线文件 $BASELINE_FILE 不存在，跳过趋势检查（首次运行）"
+            echo "提示：执行 scripts/coverage/update-baseline.sh go 生成基线"
+            exit 0
+          fi
+          echo "读取基线：$BASELINE_FILE"
+          fail_count=0
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            cov_output=$(cd "$mod_dir" && go test -cover ./... 2>/dev/null || true)
+            cov=$(echo "$cov_output" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
+            if [ -z "$cov" ]; then
+              continue
+            fi
+            baseline_pct=$(python3 -c "import json; d=json.load(open('$BASELINE_FILE')); print(d.get('$mod_name', 0))" 2>/dev/null || echo "0")
+            # 浮点下降计算
+            drop=$(python3 -c "print(round(float('$baseline_pct') - float('$cov'), 2))" 2>/dev/null || echo "0")
+            below=$(python3 -c "print(1 if float('$drop') > $REGRESSION_THRESHOLD else 0)" 2>/dev/null || echo "0")
+            if [ "$below" = "1" ]; then
+              echo "::error::$mod_name 覆盖率下降 $drop%（基线 ${baseline_pct}% → 当前 ${cov}%），超过 ${REGRESSION_THRESHOLD}% 阈值，阻断 CI"
+              fail_count=$((fail_count + 1))
+            else
+              echo "✓ $mod_name 覆盖率趋势正常（基线 ${baseline_pct}% → 当前 ${cov}%，下降 $drop%）"
+            fi
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Go 模块覆盖率下降超过 ${REGRESSION_THRESHOLD}%，趋势阻断 CI"
+            exit 1
+          fi
+          echo "✓ Go 覆盖率趋势检查通过"
 
   # ============================================================
   # Python 测试：Python 3.11
@@ -800,28 +966,114 @@ jobs:
           retention-days: 7
           if-no-files-found: warn
 
-      - name: Python覆盖率门禁检查
+      - name: Python覆盖率门禁检查（全量模块）
         if: env.py_skip != 'true'
         run: |
           echo "============================================"
           echo "  Python 覆盖率门禁检查 (阈值: ≥75%)"
+          echo "  覆盖范围：platform/ 下所有含 pytest 配置的 Python 模块"
           echo "============================================"
-          # 对 asset-exchange 模块执行覆盖率门禁检查
-          if [ -d "platform/asset-exchange" ]; then
-            cd platform/asset-exchange
-            # 安装 pytest-cov（如果未安装）
-            pip install pytest-cov -q 2>/dev/null || true
-            # 运行带覆盖率报告的 pytest，阈值 75%
-            # 暂用 warning 模式（|| echo），不阻断 CI（现有代码可能达不到 75% 阈值）
-            if [ -f "pytest.ini" ] || [ -f "pyproject.toml" ] || [ -f "setup.cfg" ]; then
-              pytest --cov=. --cov-report=term --cov-fail-under=75 || echo "::warning::asset-exchange 覆盖率低于 75%，仅警告不阻断"
-            else
-              echo "::warning::asset-exchange 未配置 pytest，跳过覆盖率门禁检查"
+          # 阈值定义（保持当前值，不提升至 85%）
+          COVERAGE_THRESHOLD=75
+          # 安装 pytest-cov
+          pip install pytest-cov -q 2>/dev/null || true
+          fail_count=0
+          warn_count=0
+          mod_count=0
+          while IFS= read -r mod_dir; do
+            mod_name=$(basename "$mod_dir")
+            mod_count=$((mod_count + 1))
+            echo "--------------------------------------------"
+            echo "  Python Coverage: $mod_name ($mod_dir)"
+            echo "--------------------------------------------"
+            # 检查是否有 pytest 配置
+            if [ ! -f "$mod_dir/pytest.ini" ] && [ ! -f "$mod_dir/pyproject.toml" ] && [ ! -f "$mod_dir/setup.cfg" ]; then
+              echo "::warning::$mod_name 未配置 pytest，跳过覆盖率门禁"
+              warn_count=$((warn_count + 1))
+              continue
             fi
-            cd - > /dev/null
-          else
-            echo "::warning::platform/asset-exchange 目录不存在，跳过 Python 覆盖率门禁检查"
+            # 安装依赖
+            if [ -f "$mod_dir/pyproject.toml" ]; then
+              pip install -e "$mod_dir" -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+            elif [ -f "$mod_dir/requirements.txt" ]; then
+              pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+            fi
+            # 运行带覆盖率报告的 pytest，提取总覆盖率
+            # 使用 --cov-report=term-missing 输出详细覆盖率
+            cov_output=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
+            # 从输出中提取 TOTAL 行的覆盖率百分比
+            cov=$(echo "$cov_output" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "")
+            if [ -z "$cov" ]; then
+              # 兼容不同 pytest-cov 输出格式
+              cov=$(echo "$cov_output" | grep -E "TOTAL" | grep -oE '[0-9]+%' | tr -d '%' | tail -1 || echo "")
+            fi
+            if [ -z "$cov" ]; then
+              cov="0"
+              echo "::warning::$mod_name 未生成覆盖率数据（可能无测试或测试失败），跳过门禁"
+              warn_count=$((warn_count + 1))
+              continue
+            fi
+            echo "$mod_name coverage: $cov%"
+            # 门禁检查：覆盖率需 ≥ 75%
+            below=$(python3 -c "print(1 if float('$cov') < $COVERAGE_THRESHOLD else 0)" 2>/dev/null || echo "0")
+            if [ "$below" = "1" ]; then
+              echo "::error::$mod_name 覆盖率 $cov% 低于阈值 ${COVERAGE_THRESHOLD}%，阻断 CI"
+              fail_count=$((fail_count + 1))
+            else
+              echo "✓ $mod_name 覆盖率达标"
+            fi
+          done < .python-modules.txt
+          echo "============================================"
+          echo "  Python 门禁汇总：共 $mod_count 个模块，失败 $fail_count，警告 $warn_count"
+          echo "============================================"
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Python 模块覆盖率低于 ${COVERAGE_THRESHOLD}%，Python 门禁阻断 CI"
+            exit 1
           fi
+
+      - name: 覆盖率趋势阻断检查（Python）
+        if: env.py_skip != 'true'
+        run: |
+          echo "============================================"
+          echo "  Python 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
+          echo "============================================"
+          BASELINE_FILE="docs/coverage-baseline/python.json"
+          REGRESSION_THRESHOLD=2  # 下降超过 2% 阻断
+          if [ ! -f "$BASELINE_FILE" ]; then
+            echo "::warning::基线文件 $BASELINE_FILE 不存在，跳过趋势检查（首次运行）"
+            echo "提示：执行 scripts/coverage/update-baseline.sh python 生成基线"
+            exit 0
+          fi
+          echo "读取基线：$BASELINE_FILE"
+          fail_count=0
+          while IFS= read -r mod_dir; do
+            mod_name=$(basename "$mod_dir")
+            if [ ! -f "$mod_dir/pytest.ini" ] && [ ! -f "$mod_dir/pyproject.toml" ] && [ ! -f "$mod_dir/setup.cfg" ]; then
+              continue
+            fi
+            cov_output=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
+            cov=$(echo "$cov_output" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "")
+            if [ -z "$cov" ]; then
+              cov=$(echo "$cov_output" | grep -E "TOTAL" | grep -oE '[0-9]+%' | tr -d '%' | tail -1 || echo "")
+            fi
+            if [ -z "$cov" ]; then
+              continue
+            fi
+            baseline_pct=$(python3 -c "import json; d=json.load(open('$BASELINE_FILE')); print(d.get('$mod_name', 0))" 2>/dev/null || echo "0")
+            drop=$(python3 -c "print(round(float('$baseline_pct') - float('$cov'), 2))" 2>/dev/null || echo "0")
+            below=$(python3 -c "print(1 if float('$drop') > $REGRESSION_THRESHOLD else 0)" 2>/dev/null || echo "0")
+            if [ "$below" = "1" ]; then
+              echo "::error::$mod_name 覆盖率下降 $drop%（基线 ${baseline_pct}% → 当前 ${cov}%），超过 ${REGRESSION_THRESHOLD}% 阈值，阻断 CI"
+              fail_count=$((fail_count + 1))
+            else
+              echo "✓ $mod_name 覆盖率趋势正常（基线 ${baseline_pct}% → 当前 ${cov}%，下降 $drop%）"
+            fi
+          done < .python-modules.txt
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Python 模块覆盖率下降超过 ${REGRESSION_THRESHOLD}%，趋势阻断 CI"
+            exit 1
+          fi
+          echo "✓ Python 覆盖率趋势检查通过"
 
   # ============================================================
   # Docker 镜像构建验证：遍历 platform/ 下所有含 Dockerfile 的组件

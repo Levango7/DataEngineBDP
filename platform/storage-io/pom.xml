@@ -59,10 +59,39 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <!-- 固定配置；本模块未启用 JaCoCo，不使用 @{argLine} 占位符（会导致 VM 启动失败） -->
-                    <argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+                    <!-- JaCoCo 通过 argLine 占位符注入 agent；保留 add-opens 用于 JDK 17 反射访问 -->
+                    <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
                 </configuration>
             </plugin>
+
+            <!-- JaCoCo：覆盖率采集（prepare-agent 注入 argLine，verify 阶段生成报告） -->
+            <!-- 2026-08-13 补充：原配置缺失，参考 encaps-layer 模块添加 -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.12</version>
+                <configuration>
+                    <excludes>
+                        <exclude>**/model/**</exclude>
+                        <exclude>**/*Application*</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
             <!-- Checkstyle：代码风格检查（CI 阻断） -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

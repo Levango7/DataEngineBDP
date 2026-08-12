@@ -1,0 +1,23 @@
+{
+  "_comment": "Java 模块覆盖率基线（2026-08-13 快照）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
+  "_source": "Task 4 覆盖率分析结果（JaCoCo Line 覆盖率）",
+  "_threshold_note": "当前阈值：行≥80% 分支≥70%。当前整体 42.26%，远未达 85% GA 标准。",
+  "encaps-layer": 80,
+  "sql-gateway": 45,
+  "lineage-analyzer": 40,
+  "metadata-collector": 35,
+  "real-time-pipeline": 30,
+  "storage-io": 50,
+  "stream-batch-scheduler": 35,
+  "flink-cdc": 30,
+  "tag-engine": 40,
+  "rule-engine": 45,
+  "infra-orchestrator": 35,
+  "infra-provider-private": 30,
+  "infra-provider-cloud": 30,
+  "infra-provider-xinchang": 30,
+  "federated-query": 35,
+  "dashboard": 40,
+  "cost-model": 40,
+  "function-runtime-java": 0
+}
