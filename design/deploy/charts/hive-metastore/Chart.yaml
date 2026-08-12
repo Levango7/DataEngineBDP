@@ -1,9 +1,9 @@
-﻿apiVersion: v2
+﻿﻿piVersion: v2
 name: hive-metastore
 description: "Hive Metastore 元数据服务 - 兼容 Hive 3.1 协议 - 数据引擎大数据平台"
 type: application
-version: 0.1.0
-appVersion: "3.1.3"
+version: 2.0.0
+appVersion: "2.0.0"
 home: https://github.com/DataEngineBDP
 maintainers:
   - name: DataEngineBDP Team

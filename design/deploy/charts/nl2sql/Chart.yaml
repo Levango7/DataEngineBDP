@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: nl2sql
+description: "NL2SQL 自然语言转 SQL - 智能查询辅助服务 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - nl2sql
+  - shuqing-platform
+  - platform
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-intelligent

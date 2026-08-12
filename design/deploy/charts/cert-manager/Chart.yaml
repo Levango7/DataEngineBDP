@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: cert-manager
+description: "证书管理控制器 - 自动化 TLS 证书签发与轮转 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - cert-manager
+  - shuqing-platform
+  - infra
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: cert-manager

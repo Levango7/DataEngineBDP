@@ -1,0 +1,18 @@
+﻿{{- if .Values.podDisruptionBudget.enabled -}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "nl2sql.fullname" . }}
+  labels:
+    {{- include "nl2sql.labels" . | nindent 4 }}
+spec:
+  {{- if .Values.podDisruptionBudget.minAvailable }}
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable | int }}
+  {{- end }}
+  {{- if .Values.podDisruptionBudget.maxUnavailable }}
+  maxUnavailable: {{ .Values.podDisruptionBudget.maxUnavailable | int }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "nl2sql.selectorLabels" . | nindent 6 }}
+{{- end -}}

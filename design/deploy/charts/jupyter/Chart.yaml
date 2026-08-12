@@ -1,9 +1,9 @@
-﻿apiVersion: v2
+﻿﻿piVersion: v2
 name: jupyter
 description: "Jupyter Notebook - 交互式数据科学环境 - 数据引擎大数据平台"
 type: application
-version: 0.1.0
-appVersion: "4.2.0"
+version: 2.0.0
+appVersion: "2.0.0"
 home: https://github.com/DataEngineBDP
 maintainers:
   - name: DataEngineBDP Team

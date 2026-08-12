@@ -1,9 +1,9 @@
-﻿apiVersion: v2
+﻿﻿piVersion: v2
 name: iceberg-rest
 description: "Iceberg REST Catalog - 表格式 REST 元服务 - 数据引擎大数据平台"
 type: application
-version: 0.1.0
-appVersion: "0.7.0"
+version: 2.0.0
+appVersion: "2.0.0"
 home: https://github.com/DataEngineBDP
 maintainers:
   - name: DataEngineBDP Team

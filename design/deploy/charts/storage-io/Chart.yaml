@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: storage-io
+description: "存储 IO 加速 - S3 对象存储高效读写网关 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - storage-io
+  - shuqing-platform
+  - platform
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-engine

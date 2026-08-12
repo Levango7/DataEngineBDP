@@ -1,9 +1,9 @@
-﻿apiVersion: v2
+﻿﻿piVersion: v2
 name: keycloak
 description: Keycloak 身份认证与访问管理 - 数据引擎大数据平台
 type: application
-version: 0.1.0
-appVersion: "24.0"
+version: 2.0.0
+appVersion: "2.0.0"
 home: https://github.com/DataEngineBDP
 maintainers:
   - name: DataEngineBDP Team

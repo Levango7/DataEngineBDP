@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: reloader
+description: "Reloader - ConfigMap/Secret 变更自动滚动重启 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - reloader
+  - shuqing-platform
+  - infra
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: reloader

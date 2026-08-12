@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: ingress-nginx
+description: "NGINX Ingress 控制器 - 南北向流量入口与负载均衡 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - ingress-nginx
+  - shuqing-platform
+  - infra
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: ingress-nginx

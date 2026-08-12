@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: asset-exchange
+description: "数据资产流通 - 数据交易与确权服务 (L5.6) - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - asset-exchange
+  - shuqing-platform
+  - business
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-console

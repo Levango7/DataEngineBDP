@@ -1,0 +1,15 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "karmada.serviceName" . }}
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port | int }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "karmada.selectorLabels" . | nindent 4 }}

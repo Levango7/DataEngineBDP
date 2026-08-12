@@ -1,0 +1,107 @@
+﻿# ============================================================================
+# asset-exchange Helm Chart 默认 values
+# 关联：design/deploy/values/asset-exchange-values.yaml（深度调优配置）
+# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+# ============================================================================
+
+# ---- 镜像配置（国内镜像源）----
+image:
+  repository: "harbor.shuqing.io/shuqing/asset-exchange"
+  tag: "2.0.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicaCount: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 8080
+  # 容器端口
+  containerPort: 8080
+
+# ---- 资源配额（默认 standard 档）----
+resources:
+  requests:
+    cpu: "500m"
+    memory: "512Mi"
+  limits:
+    cpu: "1000m"
+    memory: "1Gi"
+
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查 ----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /healthz
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /readyz
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 水平自动扩缩容 ----
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# ---- PodDisruptionBudget ----
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+
+# ---- Ingress ----
+ingress:
+  enabled: false
+  className: apisix
+  annotations: {}
+  hosts:
+    - host: asset-exchange.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ---- 环境变量 ----
+env:
+  LOG_LEVEL: info
+  JAVA_OPTS: ""
+
+# ---- ConfigMap 数据（骨架，按需扩展）----
+config:
+  application.conf: |
+    # asset-exchange 默认配置，完整配置请引用 design/deploy/values/asset-exchange-values.yaml
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/asset-exchange-values.yaml 覆盖
+# 渲染命令： helm template asset-exchange design/deploy/charts/asset-exchange -f design/deploy/values/asset-exchange-values.yaml

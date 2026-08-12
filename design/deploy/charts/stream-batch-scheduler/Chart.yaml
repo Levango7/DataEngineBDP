@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: stream-batch-scheduler
+description: "流批一体调度器 - 流批作业统一调度与资源管控 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - stream-batch-scheduler
+  - shuqing-platform
+  - platform
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-engine

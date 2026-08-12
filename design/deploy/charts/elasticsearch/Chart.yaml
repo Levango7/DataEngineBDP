@@ -1,9 +1,9 @@
-﻿apiVersion: v2
+﻿﻿piVersion: v2
 name: elasticsearch
 description: "Elasticsearch 搜索引擎 - 全文检索与分析 - 数据引擎大数据平台"
 type: application
-version: 0.1.0
-appVersion: "8.14.0"
+version: 2.0.0
+appVersion: "2.0.0"
 home: https://github.com/DataEngineBDP
 maintainers:
   - name: DataEngineBDP Team

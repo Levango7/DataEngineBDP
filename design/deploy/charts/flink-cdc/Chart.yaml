@@ -1,0 +1,17 @@
+﻿apiVersion: v2
+name: flink-cdc
+description: "Flink CDC 连接器 - 实时数据变更捕获与同步 - 数据引擎大数据平台"
+type: application
+version: 2.0.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - flink-cdc
+  - shuqing-platform
+  - platform
+  - integration
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-engine

@@ -1,9 +1,9 @@
-﻿apiVersion: v2
+﻿﻿piVersion: v2
 name: prometheus
 description: "Prometheus 监控 - 指标采集与时序存储 - 数据引擎大数据平台"
 type: application
-version: 0.1.0
-appVersion: "2.54.0"
+version: 2.0.0
+appVersion: "2.0.0"
 home: https://github.com/DataEngineBDP
 maintainers:
   - name: DataEngineBDP Team
