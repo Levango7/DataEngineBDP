@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: business-portal
+  namespace: shuqing
+  labels:
+    app: business-portal
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: business-portal
+  template:
+    metadata:
+      labels:
+        app: business-portal
+    spec:
+      containers:
+      - name: business-portal
+        image: sq/business-portal:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8088
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8088"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8088
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8088
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: business-portal
+  namespace: shuqing
+  labels:
+    app: business-portal
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: business-portal
+  ports:
+  - name: http
+    port: 8088
+    targetPort: 8088
+    protocol: TCP

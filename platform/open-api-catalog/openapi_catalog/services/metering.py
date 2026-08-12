@@ -3,17 +3,17 @@
 对应详细设计 §6 计量计费：
     网关每次调用记录计量明细，按计费策略汇总到 §11.5，月度出账。
 """
+
 from __future__ import annotations
 
-import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta
+import uuid
 
 from openapi_catalog.models import (
     APIDefinition,
     APIMetrics,
     CallMetric,
-    CallResult,
     ConsumerMetrics,
     CostStrategy,
     MetricPoint,
@@ -53,9 +53,7 @@ class MeteringService:
         Returns:
             计量记录.
         """
-        cost = self._compute_cost(
-            api, request_bytes, response_bytes
-        )
+        cost = self._compute_cost(api, request_bytes, response_bytes)
         metric = CallMetric(
             callId=str(uuid.uuid4()),
             apiId=api.id,
@@ -112,9 +110,7 @@ class MeteringService:
         Returns:
             聚合计量.
         """
-        metrics = await self.store.list_metrics(
-            api_id, range_str, consumer_tenant_id
-        )
+        metrics = await self.store.list_metrics(api_id, range_str, consumer_tenant_id)
 
         if not metrics:
             return APIMetrics(apiId=api_id)
@@ -130,9 +126,7 @@ class MeteringService:
         p99_idx = max(0, int(len(latencies) * 0.99) - 1)
         p99_latency = latencies[p99_idx] if latencies else 0.0
 
-        total_traffic = sum(
-            m.requestBytes + m.responseBytes for m in metrics
-        )
+        total_traffic = sum(m.requestBytes + m.responseBytes for m in metrics)
         total_cost = sum(m.costAmount for m in metrics)
         last_called = max(m.timestamp for m in metrics)
 
@@ -177,9 +171,7 @@ class MeteringService:
             timeseries=timeseries,
         )
 
-    def _build_timeseries(
-        self, metrics: list[CallMetric], range_str: str
-    ) -> list[MetricPoint]:
+    def _build_timeseries(self, metrics: list[CallMetric], range_str: str) -> list[MetricPoint]:
         """构建时间序列（按粒度聚合）."""
         if not metrics:
             return []

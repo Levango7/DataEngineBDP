@@ -4,12 +4,8 @@ from __future__ import annotations
 
 from industry_templates.models import Template
 from industry_templates.templates.fin_risk_scorecard import build_template as _build_fin
-from industry_templates.templates.mfg_quality_inspection import (
-    build_template as _build_mfg,
-)
-from industry_templates.templates.retail_user_profile import (
-    build_template as _build_retail,
-)
+from industry_templates.templates.mfg_quality_inspection import build_template as _build_mfg
+from industry_templates.templates.retail_user_profile import build_template as _build_retail
 
 
 def get_builtin_templates() -> list[Template]:

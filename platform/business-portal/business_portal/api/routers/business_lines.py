@@ -1,8 +1,9 @@
 """业务线管理路由."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -10,18 +11,19 @@ from pydantic import BaseModel, Field
 from business_portal.api.routers.deps import get_current_user, get_registry, status_for_error
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
+    Budget,
     BusinessLine,
     BusinessLineConfig,
     BusinessLineFilter,
-    Budget,
 )
-from business_portal.repositories import PortalError, ValidationError
+from business_portal.repositories import PortalError
 from business_portal.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/business-lines", tags=["business-lines"])
 
 
 # ---------- 请求模型 ----------
+
 
 class CreateBusinessLineRequest(BaseModel):
     """创建业务线请求."""
@@ -50,6 +52,7 @@ class UpdateBusinessLineRequest(BaseModel):
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "",
@@ -86,13 +89,9 @@ async def create_business_line(
 )
 async def list_business_lines(
     tenantId: str | None = Query(default=None, description="按租户过滤"),
-    status_: BusinessLineStatus | None = Query(
-        default=None, alias="status", description="按状态过滤"
-    ),
+    status_: BusinessLineStatus | None = Query(default=None, alias="status", description="按状态过滤"),
     name: str | None = Query(default=None, description="名称模糊匹配"),
-    memberId: str | None = Query(
-        default=None, description="按成员过滤（权限隔离：仅返回该成员可见的业务线）"
-    ),
+    memberId: str | None = Query(default=None, description="按成员过滤（权限隔离：仅返回该成员可见的业务线）"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
@@ -141,9 +140,7 @@ async def update_business_line(
     # 仅取非 None 字段
     patch: dict[str, Any] = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
-        return await registry.businessLineService.update_business_line(
-            bl_id, patch, user_id
-        )
+        return await registry.businessLineService.update_business_line(bl_id, patch, user_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 

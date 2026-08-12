@@ -1,0 +1,616 @@
+# 金融行业模板 - RBAC 权限定义
+# ============================================================================
+# 模块：T018-5 RBAC 角色权限定义与模板打包
+# 格式：Keycloak permission 格式（resource + action + scope）
+# 权限模型：基于资源的权限（Resource-Based Permission）
+# 资源类型：table（DDL 表）/ dag（调度作业）/ dashboard（仪表盘）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 权限定义元信息
+permission_metadata:
+  total_resources: 29
+  resource_types:
+    - table
+    - dag
+    - dashboard
+  action_types:
+    - read    # 只读（SELECT）
+    - write   # 读写（INSERT/UPDATE/DELETE）
+    - manage  # 管理（DDL/调度上下线/触发执行）
+    - view    # 查看（DAG 详情 / Dashboard 渲染）
+  scope_types:
+    - finance_template  # 金融模板范围
+
+# ============================================================================
+# 资源定义：21 张表 + 5 个 DAG + 3 个 Dashboard = 29 个资源
+# ============================================================================
+
+resources:
+  # --------------------------------------------------------------------------
+  # 表资源（21 张，来自 T018-2 DDL）
+  # --------------------------------------------------------------------------
+  # 风控域 5 张表
+  - name: risk_model
+    type: table
+    description: 风控模型主表，存储评分卡模型配置
+    domain: risk
+    classification: confidential
+  - name: risk_rule
+    type: table
+    description: 风控规则配置表，存储规则定义与命中次数
+    domain: risk
+    classification: confidential
+  - name: risk_feature
+    type: table
+    description: 风控特征表，存储客户交易特征向量
+    domain: risk
+    classification: confidential
+  - name: risk_evaluation
+    type: table
+    description: 风控评估结果表，存储评分与等级
+    domain: risk
+    classification: confidential
+  - name: risk_alert
+    type: table
+    description: 风控告警表，存储 FRAUD/AML/CREDIT/BEHAVIOR 告警
+    domain: risk
+    classification: confidential
+
+  # 客户域 4 张表
+  - name: customer
+    type: table
+    description: 客户主表，含个人敏感信息（姓名/证件号/手机号）
+    domain: customer
+    classification: restricted
+  - name: customer_tag
+    type: table
+    description: 客户标签表，含业务/风险/行为/营销标签
+    domain: customer
+    classification: internal
+  - name: customer_profile
+    type: table
+    description: 客户画像表，含生命周期与资产画像
+    domain: customer
+    classification: restricted
+  - name: customer_relation
+    type: table
+    description: 客户关系表，含担保/关联方关系
+    domain: customer
+    classification: restricted
+
+  # 账户域 4 张表
+  - name: account
+    type: table
+    description: 账户主表，含账户类型/状态/余额
+    domain: account
+    classification: confidential
+  - name: account_balance
+    type: table
+    description: 账户余额快照表，日终余额
+    domain: account
+    classification: confidential
+  - name: account_transaction
+    type: table
+    description: 账户流水表，借贷发生额明细
+    domain: account
+    classification: confidential
+  - name: account_status_log
+    type: table
+    description: 账户状态变更日志表
+    domain: account
+    classification: internal
+
+  # 交易域 4 张表
+  - name: transaction
+    type: table
+    description: 交易主表，含交易类型/金额/渠道
+    domain: transaction
+    classification: confidential
+  - name: transaction_detail
+    type: table
+    description: 交易明细表，含对手方/产品/扩展属性
+    domain: transaction
+    classification: confidential
+  - name: aml_alert
+    type: table
+    description: 反洗钱告警表，含 STR 标记
+    domain: transaction
+    classification: restricted
+  - name: transaction_monitor
+    type: table
+    description: 交易监控命中表，准实时扫描
+    domain: transaction
+    classification: confidential
+
+  # 信贷域 4 张表
+  - name: loan_application
+    type: table
+    description: 贷款申请表，含申请金额/期限/状态
+    domain: credit
+    classification: confidential
+  - name: loan_contract
+    type: table
+    description: 贷款合同表，含合同金额/利率/期限
+    domain: credit
+    classification: confidential
+  - name: repayment_plan
+    type: table
+    description: 还款计划表，含期次/应还/实还
+    domain: credit
+    classification: confidential
+  - name: credit_score
+    type: table
+    description: 信用评分表，300~850 分制 A/B/C/D 等级
+    domain: credit
+    classification: confidential
+
+  # --------------------------------------------------------------------------
+  # DAG 资源（5 个，来自 T018-3）
+  # --------------------------------------------------------------------------
+  - name: risk_feature_daily
+    type: dag
+    description: 风控特征日计算 DAG，每日凌晨 2:00 调度
+    domain: risk
+    schedule: "0 2 * * * ?"
+  - name: customer_tag_update
+    type: dag
+    description: 客户标签更新 DAG，每日凌晨 3:00 调度
+    domain: customer
+    schedule: "0 3 * * * ?"
+  - name: account_eod_settlement
+    type: dag
+    description: 账户日终清算 DAG，每日 23:30 调度
+    domain: account
+    schedule: "30 23 * * * ?"
+  - name: transaction_aml_check
+    type: dag
+    description: 交易反洗钱检查 DAG，每 30 分钟调度
+    domain: transaction
+    schedule: "0,30 * * * * ?"
+  - name: credit_score_monthly
+    type: dag
+    description: 信贷评分月度计算 DAG，每月 1 日凌晨 4:00 调度
+    domain: credit
+    schedule: "0 4 1 * * ?"
+
+  # --------------------------------------------------------------------------
+  # Dashboard 资源（3 个，来自 T018-4）
+  # --------------------------------------------------------------------------
+  - name: risk-dashboard
+    type: dashboard
+    description: 风控视角仪表盘，6 图表（评分分布/告警趋势/规则命中/覆盖率/级别分布）
+    domain: risk
+    charts_count: 6
+  - name: customer-dashboard
+    type: dashboard
+    description: 客户视角仪表盘，6 图表（总数增长/标签分布/等级分布/关系网络/活跃数/生命周期）
+    domain: customer
+    charts_count: 6
+  - name: transaction-dashboard
+    type: dashboard
+    description: 交易视角仪表盘，6 图表（金额趋势/类型分布/大额Top10/AML告警/日总额/渠道分布）
+    domain: transaction
+    charts_count: 6
+
+# ============================================================================
+# 权限定义：基于资源 × 操作的笛卡尔积，按业务语义筛选
+# ============================================================================
+permissions:
+  # --------------------------------------------------------------------------
+  # 表权限（21 张表 × 2 操作 = 42 个权限）
+  # --------------------------------------------------------------------------
+  # 风控域表权限
+  - id: perm_table_risk_model_read
+    name: 风控模型表只读
+    resource: risk_model
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON risk_model
+  - id: perm_table_risk_model_write
+    name: 风控模型表读写
+    resource: risk_model
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON risk_model
+  - id: perm_table_risk_rule_read
+    name: 风控规则表只读
+    resource: risk_rule
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON risk_rule
+  - id: perm_table_risk_rule_write
+    name: 风控规则表读写
+    resource: risk_rule
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON risk_rule
+  - id: perm_table_risk_feature_read
+    name: 风控特征表只读
+    resource: risk_feature
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON risk_feature
+  - id: perm_table_risk_feature_write
+    name: 风控特征表读写
+    resource: risk_feature
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON risk_feature
+  - id: perm_table_risk_evaluation_read
+    name: 风控评估表只读
+    resource: risk_evaluation
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON risk_evaluation
+  - id: perm_table_risk_evaluation_write
+    name: 风控评估表读写
+    resource: risk_evaluation
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON risk_evaluation
+  - id: perm_table_risk_alert_read
+    name: 风控告警表只读
+    resource: risk_alert
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON risk_alert
+  - id: perm_table_risk_alert_write
+    name: 风控告警表读写
+    resource: risk_alert
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON risk_alert
+
+  # 客户域表权限
+  - id: perm_table_customer_read
+    name: 客户主表只读
+    resource: customer
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON customer
+  - id: perm_table_customer_write
+    name: 客户主表读写
+    resource: customer
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON customer
+  - id: perm_table_customer_tag_read
+    name: 客户标签表只读
+    resource: customer_tag
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON customer_tag
+  - id: perm_table_customer_tag_write
+    name: 客户标签表读写
+    resource: customer_tag
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON customer_tag
+  - id: perm_table_customer_profile_read
+    name: 客户画像表只读
+    resource: customer_profile
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON customer_profile
+  - id: perm_table_customer_profile_write
+    name: 客户画像表读写
+    resource: customer_profile
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON customer_profile
+  - id: perm_table_customer_relation_read
+    name: 客户关系表只读
+    resource: customer_relation
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON customer_relation
+  - id: perm_table_customer_relation_write
+    name: 客户关系表读写
+    resource: customer_relation
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON customer_relation
+
+  # 账户域表权限
+  - id: perm_table_account_read
+    name: 账户主表只读
+    resource: account
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON account
+  - id: perm_table_account_write
+    name: 账户主表读写
+    resource: account
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON account
+  - id: perm_table_account_balance_read
+    name: 账户余额表只读
+    resource: account_balance
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON account_balance
+  - id: perm_table_account_balance_write
+    name: 账户余额表读写
+    resource: account_balance
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON account_balance
+  - id: perm_table_account_transaction_read
+    name: 账户流水表只读
+    resource: account_transaction
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON account_transaction
+  - id: perm_table_account_transaction_write
+    name: 账户流水表读写
+    resource: account_transaction
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON account_transaction
+  - id: perm_table_account_status_log_read
+    name: 账户状态日志表只读
+    resource: account_status_log
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON account_status_log
+  - id: perm_table_account_status_log_write
+    name: 账户状态日志表读写
+    resource: account_status_log
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON account_status_log
+
+  # 交易域表权限
+  - id: perm_table_transaction_read
+    name: 交易主表只读
+    resource: transaction
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON transaction
+  - id: perm_table_transaction_write
+    name: 交易主表读写
+    resource: transaction
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON transaction
+  - id: perm_table_transaction_detail_read
+    name: 交易明细表只读
+    resource: transaction_detail
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON transaction_detail
+  - id: perm_table_transaction_detail_write
+    name: 交易明细表读写
+    resource: transaction_detail
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON transaction_detail
+  - id: perm_table_aml_alert_read
+    name: AML告警表只读
+    resource: aml_alert
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON aml_alert
+  - id: perm_table_aml_alert_write
+    name: AML告警表读写
+    resource: aml_alert
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON aml_alert
+  - id: perm_table_transaction_monitor_read
+    name: 交易监控表只读
+    resource: transaction_monitor
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON transaction_monitor
+  - id: perm_table_transaction_monitor_write
+    name: 交易监控表读写
+    resource: transaction_monitor
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON transaction_monitor
+
+  # 信贷域表权限
+  - id: perm_table_loan_application_read
+    name: 贷款申请表只读
+    resource: loan_application
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON loan_application
+  - id: perm_table_loan_application_write
+    name: 贷款申请表读写
+    resource: loan_application
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON loan_application
+  - id: perm_table_loan_contract_read
+    name: 贷款合同表只读
+    resource: loan_contract
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON loan_contract
+  - id: perm_table_loan_contract_write
+    name: 贷款合同表读写
+    resource: loan_contract
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON loan_contract
+  - id: perm_table_repayment_plan_read
+    name: 还款计划表只读
+    resource: repayment_plan
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON repayment_plan
+  - id: perm_table_repayment_plan_write
+    name: 还款计划表读写
+    resource: repayment_plan
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON repayment_plan
+  - id: perm_table_credit_score_read
+    name: 信用评分表只读
+    resource: credit_score
+    resource_type: table
+    action: read
+    scope: finance_template
+    sql_equivalent: SELECT ON credit_score
+  - id: perm_table_credit_score_write
+    name: 信用评分表读写
+    resource: credit_score
+    resource_type: table
+    action: write
+    scope: finance_template
+    sql_equivalent: SELECT,INSERT,UPDATE,DELETE ON credit_score
+
+  # --------------------------------------------------------------------------
+  # DAG 权限（5 个 DAG × 2 操作 = 10 个权限）
+  # --------------------------------------------------------------------------
+  - id: perm_dag_risk_feature_daily_manage
+    name: 风控特征DAG管理
+    resource: risk_feature_daily
+    resource_type: dag
+    action: manage
+    scope: finance_template
+    sql_equivalent: 上线/下线/触发执行/编辑 risk_feature_daily DAG
+  - id: perm_dag_risk_feature_daily_view
+    name: 风控特征DAG查看
+    resource: risk_feature_daily
+    resource_type: dag
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看 risk_feature_daily DAG 详情/运行历史
+  - id: perm_dag_customer_tag_update_manage
+    name: 客户标签DAG管理
+    resource: customer_tag_update
+    resource_type: dag
+    action: manage
+    scope: finance_template
+    sql_equivalent: 上线/下线/触发执行/编辑 customer_tag_update DAG
+  - id: perm_dag_customer_tag_update_view
+    name: 客户标签DAG查看
+    resource: customer_tag_update
+    resource_type: dag
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看 customer_tag_update DAG 详情/运行历史
+  - id: perm_dag_account_eod_settlement_manage
+    name: 账户日终DAG管理
+    resource: account_eod_settlement
+    resource_type: dag
+    action: manage
+    scope: finance_template
+    sql_equivalent: 上线/下线/触发执行/编辑 account_eod_settlement DAG
+  - id: perm_dag_account_eod_settlement_view
+    name: 账户日终DAG查看
+    resource: account_eod_settlement
+    resource_type: dag
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看 account_eod_settlement DAG 详情/运行历史
+  - id: perm_dag_transaction_aml_check_manage
+    name: 反洗钱DAG管理
+    resource: transaction_aml_check
+    resource_type: dag
+    action: manage
+    scope: finance_template
+    sql_equivalent: 上线/下线/触发执行/编辑 transaction_aml_check DAG
+  - id: perm_dag_transaction_aml_check_view
+    name: 反洗钱DAG查看
+    resource: transaction_aml_check
+    resource_type: dag
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看 transaction_aml_check DAG 详情/运行历史
+  - id: perm_dag_credit_score_monthly_manage
+    name: 信贷评分DAG管理
+    resource: credit_score_monthly
+    resource_type: dag
+    action: manage
+    scope: finance_template
+    sql_equivalent: 上线/下线/触发执行/编辑 credit_score_monthly DAG
+  - id: perm_dag_credit_score_monthly_view
+    name: 信贷评分DAG查看
+    resource: credit_score_monthly
+    resource_type: dag
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看 credit_score_monthly DAG 详情/运行历史
+
+  # --------------------------------------------------------------------------
+  # Dashboard 权限（3 个 Dashboard × 1 操作 = 3 个权限，Dashboard 仅 view）
+  # --------------------------------------------------------------------------
+  - id: perm_dashboard_risk_view
+    name: 风控Dashboard查看
+    resource: risk-dashboard
+    resource_type: dashboard
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看/渲染 risk-dashboard 仪表盘
+  - id: perm_dashboard_customer_view
+    name: 客户Dashboard查看
+    resource: customer-dashboard
+    resource_type: dashboard
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看/渲染 customer-dashboard 仪表盘
+  - id: perm_dashboard_transaction_view
+    name: 交易Dashboard查看
+    resource: transaction-dashboard
+    resource_type: dashboard
+    action: view
+    scope: finance_template
+    sql_equivalent: 查看/渲染 transaction-dashboard 仪表盘
+
+# 权限统计
+permission_statistics:
+  total_permissions: 55
+  table_permissions: 42
+  dag_permissions: 10
+  dashboard_permissions: 3
+  by_action:
+    read: 21
+    write: 21
+    manage: 5
+    view: 8

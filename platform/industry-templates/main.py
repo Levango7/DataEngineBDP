@@ -7,6 +7,7 @@ Usage:
     INDUSTRY_TEMPLATES_DEPLOY_MODE=helm python main.py   # Helm 模式
     INDUSTRY_TEMPLATES_HOST=127.0.0.1 INDUSTRY_TEMPLATES_PORT=9000 python main.py
 """
+
 from __future__ import annotations
 
 import uvicorn

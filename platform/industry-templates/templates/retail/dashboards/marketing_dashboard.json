@@ -1,0 +1,217 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "retail_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_retail",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "ab_experiment",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "A/B 实验主表 | DDL: marketing_effect_ddl.sql §1",
+      "columns": [
+        {"name": "experiment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "experiment_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "primary_metric", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "start_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "end_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "significance_level", "type": "DECIMAL(5,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "start_at"
+    },
+    {
+      "table_name": "ab_experiment_variant",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "A/B 实验变体表 | DDL: marketing_effect_ddl.sql §2",
+      "columns": [
+        {"name": "variant_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "experiment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "variant_code", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "user_count", "type": "INT", "is_dttm": false},
+        {"name": "conversion_rate", "type": "DECIMAL(8,6)", "is_dttm": false},
+        {"name": "lift", "type": "DECIMAL(10,6)", "is_dttm": false},
+        {"name": "p_value", "type": "DECIMAL(10,8)", "is_dttm": false},
+        {"name": "z_score", "type": "DECIMAL(10,6)", "is_dttm": false},
+        {"name": "is_significant", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "is_winner", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "test_method", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "computed_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "computed_at"
+    },
+    {
+      "table_name": "conversion_funnel",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "转化漏斗表 | DDL: marketing_effect_ddl.sql §3",
+      "columns": [
+        {"name": "funnel_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "campaign_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "funnel_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "step_exposure_count", "type": "INT", "is_dttm": false},
+        {"name": "step_click_count", "type": "INT", "is_dttm": false},
+        {"name": "step_cart_count", "type": "INT", "is_dttm": false},
+        {"name": "step_order_count", "type": "INT", "is_dttm": false},
+        {"name": "step_pay_count", "type": "INT", "is_dttm": false},
+        {"name": "overall_conversion_rate", "type": "DECIMAL(8,6)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "marketing_campaign",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "营销活动主表 | DDL: marketing_effect_ddl.sql §4",
+      "columns": [
+        {"name": "campaign_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "campaign_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "campaign_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "budget_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "actual_cost", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "start_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "end_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "start_at"
+    },
+    {
+      "table_name": "marketing_roi",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "营销 ROI 分析表 | DDL: marketing_effect_ddl.sql §5",
+      "columns": [
+        {"name": "roi_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "campaign_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "investment_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "revenue_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "roi", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "roas", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "cpa", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "cpc", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "is_profitable", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "marketing_channel_stat",
+      "schema": "db_retail",
+      "database_name": "retail_doris",
+      "description": "营销渠道统计表 | DDL: marketing_effect_ddl.sql §6",
+      "columns": [
+        {"name": "stat_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "channel_code", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "channel_name", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "impression_count", "type": "INT", "is_dttm": false},
+        {"name": "click_count", "type": "INT", "is_dttm": false},
+        {"name": "conversion_count", "type": "INT", "is_dttm": false},
+        {"name": "investment_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "revenue_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "roas", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "channel_rank", "type": "INT", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    }
+  ],
+  "dashboards": [
+    {
+      "slug": "marketing-dashboard",
+      "title": "营销效果仪表盘",
+      "description": "零售行业模板 - 营销效果仪表盘：A/B 实验显著性矩阵、转化漏斗图、ROI 排行、渠道效能对比",
+      "owners": ["admin"],
+      "position": {"DASHBOARD_VERSION": "v2", "DASHBOARD_ROOT_ID": "MARKETING_EFFECT_ROOT"},
+      "metadata": {
+        "industry": "retail",
+        "domain": "marketing_effect",
+        "template": "retail-template",
+        "version": "1.0.0"
+      },
+      "charts": [
+        {
+          "slice_name": "A/B 实验显著性矩阵",
+          "viz_type": "table",
+          "datasource": "ab_experiment_variant",
+          "params": {
+            "metrics": [
+              {"expressionType": "SQL", "sqlExpression": "conversion_rate", "label": "转化率"},
+              {"expressionType": "SQL", "sqlExpression": "lift", "label": "提升度"},
+              {"expressionType": "SQL", "sqlExpression": "p_value", "label": "P 值"},
+              {"expressionType": "SQL", "sqlExpression": "z_score", "label": "Z 值"}
+            ],
+            "groupby": ["experiment_id", "variant_code"],
+            "columns": ["is_significant", "is_winner"]
+          }
+        },
+        {
+          "slice_name": "转化漏斗图",
+          "viz_type": "funnel",
+          "datasource": "conversion_funnel",
+          "params": {
+            "steps": [
+              {"name": "曝光", "column": "step_exposure_count"},
+              {"name": "点击", "column": "step_click_count"},
+              {"name": "加购", "column": "step_cart_count"},
+              {"name": "下单", "column": "step_order_count"},
+              {"name": "支付", "column": "step_pay_count"}
+            ],
+            "where": "stat_date = '{{ ds }}'"
+          }
+        },
+        {
+          "slice_name": "活动 ROI 排行",
+          "viz_type": "bar",
+          "datasource": "marketing_roi",
+          "params": {
+            "metrics": [{"expressionType": "SQL", "sqlExpression": "roi", "label": "ROI"}],
+            "groupby": ["campaign_id"],
+            "orderby": [{"column": "roi", "direction": "desc"}],
+            "row_limit": 20,
+            "where": "stat_date = '{{ ds }}'"
+          }
+        },
+        {
+          "slice_name": "渠道 ROAS 对比",
+          "viz_type": "bar",
+          "datasource": "marketing_channel_stat",
+          "params": {
+            "metrics": [{"expressionType": "SQL", "sqlExpression": "roas", "label": "ROAS"}],
+            "groupby": ["channel_code"],
+            "orderby": [{"column": "channel_rank", "direction": "asc"}],
+            "where": "stat_date = '{{ ds }}'"
+          }
+        },
+        {
+          "slice_name": "活动盈亏饼图",
+          "viz_type": "pie",
+          "datasource": "marketing_roi",
+          "params": {
+            "metrics": [{"expressionType": "COUNT", "label": "活动数"}],
+            "groupby": [{"label": "盈亏", "sqlExpression": "CASE WHEN is_profitable THEN '盈利' ELSE '亏损' END"}],
+            "donut": true
+          }
+        },
+        {
+          "slice_name": "渠道 CPC 对比",
+          "viz_type": "bar",
+          "datasource": "marketing_channel_stat",
+          "params": {
+            "metrics": [{"expressionType": "SQL", "sqlExpression": "cpc", "label": "CPC"}],
+            "groupby": ["channel_code"],
+            "where": "stat_date = '{{ ds }}'"
+          }
+        }
+      ]
+    }
+  ]
+}

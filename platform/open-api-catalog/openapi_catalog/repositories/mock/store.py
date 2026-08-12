@@ -1,20 +1,19 @@
 """Mock 仓储实现 - 内存存储，用于开发与测试."""
+
 from __future__ import annotations
 
+from collections import deque
+from datetime import timedelta
 import secrets
 import threading
-import time
-from collections import defaultdict, deque
-from datetime import datetime, timedelta
 
 from openapi_catalog.models import (
     APIDefinition,
     APIFilter,
-    APIStatus,
     APISubscription,
+    CallMetric,
     SubscriptionFilter,
     SubscriptionStatus,
-    CallMetric,
 )
 from openapi_catalog.repositories import (
     APIAlreadyExistsError,
@@ -40,11 +39,7 @@ class MockCatalogStore:
         with self._lock:
             # 检查同名同版本
             for existing in self._apis.values():
-                if (
-                    existing.name == api.name
-                    and existing.version == api.version
-                    and existing.id != api.id
-                ):
+                if existing.name == api.name and existing.version == api.version and existing.id != api.id:
                     raise APIAlreadyExistsError(api.name, api.version)
             self._apis[api.id] = api
             return api
@@ -76,9 +71,7 @@ class MockCatalogStore:
             if filter_.keyword:
                 kw = filter_.keyword.lower()
                 desc = (api.description or "").lower()
-                if kw not in api.name.lower() and kw not in desc and not any(
-                    kw in t.lower() for t in api.tags
-                ):
+                if kw not in api.name.lower() and kw not in desc and not any(kw in t.lower() for t in api.tags):
                     continue
             result.append(api)
 
@@ -93,11 +86,7 @@ class MockCatalogStore:
                 raise APINotFoundError(api_id)
             del self._apis[api_id]
             # 级联清理订阅
-            to_remove = [
-                sid
-                for sid, sub in self._subscriptions.items()
-                if sub.apiId == api_id
-            ]
+            to_remove = [sid for sid, sub in self._subscriptions.items() if sub.apiId == api_id]
             for sid in to_remove:
                 del self._subscriptions[sid]
 
@@ -126,9 +115,7 @@ class MockCatalogStore:
                 raise SubscriptionNotFoundError(subscription_id)
             return self._subscriptions[subscription_id]
 
-    async def list_subscriptions(
-        self, filter_: SubscriptionFilter
-    ) -> list[APISubscription]:
+    async def list_subscriptions(self, filter_: SubscriptionFilter) -> list[APISubscription]:
         """列出订阅."""
         with self._lock:
             items = list(self._subscriptions.values())
@@ -148,9 +135,7 @@ class MockCatalogStore:
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result[filter_.offset : filter_.offset + filter_.limit]
 
-    async def find_subscription_by_key(
-        self, access_key: str
-    ) -> APISubscription | None:
+    async def find_subscription_by_key(self, access_key: str) -> APISubscription | None:
         """根据 Access Key 查找订阅."""
         with self._lock:
             for sub in self._subscriptions.values():
@@ -190,6 +175,7 @@ class MockCatalogStore:
     ) -> list[CallMetric]:
         """列出计量记录."""
         from openapi_catalog.models.base import utc_now
+
         # 解析时间范围
         now = utc_now()
         if range_str.endswith("h"):
@@ -207,10 +193,7 @@ class MockCatalogStore:
                 for m in self._metrics
                 if m.apiId == api_id
                 and m.timestamp >= since
-                and (
-                    consumer_tenant_id is None
-                    or m.consumerTenantId == consumer_tenant_id
-                )
+                and (consumer_tenant_id is None or m.consumerTenantId == consumer_tenant_id)
             ]
 
     async def clear(self) -> None:

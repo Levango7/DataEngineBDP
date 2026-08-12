@@ -1,0 +1,232 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "manufacturing_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_manufacturing",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "supplier",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "供应商主表 | DDL: supply_chain_ddl.sql §1",
+      "columns": [
+        {"name": "supplier_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "supplier_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "supplier_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "supplier_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "lead_time_days", "type": "INT", "is_dttm": false},
+        {"name": "on_time_rate", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "quality_rate", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "updated_at"
+    },
+    {
+      "table_name": "purchase_order",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "采购订单表 | DDL: supply_chain_ddl.sql §2",
+      "columns": [
+        {"name": "po_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "po_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "supplier_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "material_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "quantity", "type": "INT", "is_dttm": false},
+        {"name": "total_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "plan_delivery", "type": "DATE", "is_dttm": true},
+        {"name": "actual_delivery", "type": "DATE", "is_dttm": true},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "inventory",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "库存主表 | DDL: supply_chain_ddl.sql §3",
+      "columns": [
+        {"name": "inventory_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "material_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "material_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "warehouse", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "quantity", "type": "INT", "is_dttm": false},
+        {"name": "safety_stock", "type": "INT", "is_dttm": false},
+        {"name": "max_stock", "type": "INT", "is_dttm": false},
+        {"name": "reorder_point", "type": "INT", "is_dttm": false},
+        {"name": "stock_status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "updated_at"
+    },
+    {
+      "table_name": "sales_order",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "销售订单表 | DDL: supply_chain_ddl.sql §5",
+      "columns": [
+        {"name": "so_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "so_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "customer_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "product_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "quantity", "type": "INT", "is_dttm": false},
+        {"name": "total_amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "plan_delivery", "type": "DATE", "is_dttm": true},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "logistics_shipment",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "物流发货表 | DDL: supply_chain_ddl.sql §6",
+      "columns": [
+        {"name": "shipment_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "shipment_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "so_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "carrier", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tracking_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "ship_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "actual_arrival", "type": "DATETIME", "is_dttm": true},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "supply_chain_event",
+      "schema": "db_manufacturing",
+      "database_name": "manufacturing_doris",
+      "description": "供应链事件表 | 协同响应触发 | DDL: supply_chain_ddl.sql §7",
+      "columns": [
+        {"name": "event_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "event_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "event_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "ref_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "ref_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "event_desc", "type": "VARCHAR(512)", "is_dttm": false},
+        {"name": "occurred_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "occurred_at"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "供应链协同仪表盘",
+      "slug": "supply-chain-dashboard",
+      "description": "制造行业模板 - 供应链协同仪表盘。含库存预警、订单状态、物流跟踪、供应商绩效、供应链事件等图表。",
+      "owners": ["admin"],
+      "position": {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "DASHBOARD_ROOT_ID": {
+          "type": "DASHBOARD_ROOT",
+          "id": "DASHBOARD_ROOT_ID",
+          "children": [
+            {"type": "CHART", "id": "chart_inventory_status"},
+            {"type": "CHART", "id": "chart_stock_alert"},
+            {"type": "CHART", "id": "chart_order_status"},
+            {"type": "CHART", "id": "chart_supplier_performance"},
+            {"type": "CHART", "id": "chart_logistics_tracking"},
+            {"type": "CHART", "id": "chart_sc_events"}
+          ]
+        }
+      },
+      "charts": [
+        {
+          "id": "chart_inventory_status",
+          "slice_name": "库存状态分布",
+          "viz_type": "pie",
+          "datasource_id": "inventory",
+          "params": {
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "inventory_id"}, "aggregate": "COUNT", "label": "物料数"}],
+            "groupby": ["stock_status"],
+            "color_scheme": "supersetColors",
+            "donut": true
+          }
+        },
+        {
+          "id": "chart_stock_alert",
+          "slice_name": "库存预警物料清单",
+          "viz_type": "table",
+          "datasource_id": "inventory",
+          "params": {
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "quantity"}, "aggregate": "SUM", "label": "当前库存"},
+              {"expressionType": "SIMPLE", "column": {"name": "safety_stock"}, "aggregate": "AVG", "label": "安全库存"}
+            ],
+            "groupby": ["material_code", "material_name", "warehouse", "stock_status"],
+            "filters": [{"col": "stock_status", "op": "NOT IN", "val": ["NORMAL"]}],
+            "order_by": "stock_status ASC",
+            "row_limit": 50
+          }
+        },
+        {
+          "id": "chart_order_status",
+          "slice_name": "采购/销售订单状态",
+          "viz_type": "dist_bar",
+          "datasource_id": "purchase_order",
+          "params": {
+            "x_axis": "status",
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "po_id"}, "aggregate": "COUNT", "label": "采购订单数"},
+              {"expressionType": "SIMPLE", "column": {"name": "total_amount"}, "aggregate": "SUM", "label": "总金额"}
+            ],
+            "groupby": ["status"],
+            "time_range": "Last 30 days"
+          }
+        },
+        {
+          "id": "chart_supplier_performance",
+          "slice_name": "供应商绩效排名",
+          "viz_type": "table",
+          "datasource_id": "supplier",
+          "params": {
+            "metrics": [
+              {"expressionType": "SIMPLE", "column": {"name": "on_time_rate"}, "aggregate": "AVG", "label": "准时交货率"},
+              {"expressionType": "SIMPLE", "column": {"name": "quality_rate"}, "aggregate": "AVG", "label": "来料合格率"},
+              {"expressionType": "SIMPLE", "column": {"name": "lead_time_days"}, "aggregate": "AVG", "label": "交货周期(天)"}
+            ],
+            "groupby": ["supplier_code", "supplier_name", "supplier_level"],
+            "order_by": "supplier_level ASC",
+            "row_limit": 20
+          }
+        },
+        {
+          "id": "chart_logistics_tracking",
+          "slice_name": "物流发货状态",
+          "viz_type": "pie",
+          "datasource_id": "logistics_shipment",
+          "params": {
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "shipment_id"}, "aggregate": "COUNT", "label": "发货单数"}],
+            "groupby": ["status"],
+            "time_range": "Last 30 days",
+            "donut": true
+          }
+        },
+        {
+          "id": "chart_sc_events",
+          "slice_name": "供应链事件统计",
+          "viz_type": "bar",
+          "datasource_id": "supply_chain_event",
+          "params": {
+            "x_axis": "event_type",
+            "metrics": [{"expressionType": "SIMPLE", "column": {"name": "event_id"}, "aggregate": "COUNT", "label": "事件数"}],
+            "groupby": ["event_type", "event_level"],
+            "time_range": "Last 7 days"
+          }
+        }
+      ]
+    }
+  ]
+}

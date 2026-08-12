@@ -1,4 +1,5 @@
 """训练任务路由."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -18,20 +19,12 @@ class CreateTrainingJobRequest(BaseModel):
     """创建训练任务请求."""
 
     algorithm: AlgorithmType = Field(..., description="算法类型")
-    experimentId: str | None = Field(
-        default=None, description="所属实验 ID"
-    )
+    experimentId: str | None = Field(default=None, description="所属实验 ID")
     dataset: str = Field(..., description="训练数据集标识")
-    features: list[str] = Field(
-        default_factory=list, description="特征列名列表"
-    )
+    features: list[str] = Field(default_factory=list, description="特征列名列表")
     target: str | None = Field(default=None, description="目标列名")
-    params: dict[str, Any] = Field(
-        default_factory=dict, description="算法超参"
-    )
-    validationSplit: float = Field(
-        default=0.2, ge=0.0, le=1.0, description="验证集比例"
-    )
+    params: dict[str, Any] = Field(default_factory=dict, description="算法超参")
+    validationSplit: float = Field(default=0.2, ge=0.0, le=1.0, description="验证集比例")
     randomState: int = Field(default=42, description="随机种子")
     outputModelName: str = Field(..., description="产出模型名")
     description: str | None = Field(default=None, description="描述")
@@ -62,9 +55,7 @@ async def createTrainingJob(
         )
         return await registry.trainingService.createTrainingJob(config)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -95,9 +86,7 @@ async def getTrainingStatus(
     try:
         return await registry.trainingService.getTrainingStatus(jobId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.delete(
@@ -112,9 +101,7 @@ async def cancelTraining(
     try:
         await registry.trainingService.cancelTraining(jobId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,

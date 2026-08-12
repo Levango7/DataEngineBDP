@@ -1,4 +1,5 @@
 """资产仓储抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

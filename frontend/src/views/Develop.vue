@@ -53,7 +53,7 @@
         <button class="btn" style="width: 100%; margin-top: 12px" @click="runJob">
           <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg> 运行
         </button>
-        <button class="btn ghost" style="width: 100%; margin-top: 8px" @click="store.showToast('已提交调度')">提交调度</button>
+        <button class="btn ghost" style="width: 100%; margin-top: 8px" @click="submitScheduleJob">提交调度</button>
         <div class="note">资源请求受工作空间 Quota 约束，超额自动排队或扩容。</div>
       </div>
     </div>
@@ -74,6 +74,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { runJob as apiRunJob, submitSchedule, type RunLogLine } from '@/api/develop'
 
 const store = useAppStore()
 
@@ -84,26 +85,68 @@ interface LogLine {
 
 const runlog = ref<LogLine[]>([{ cls: 'info', text: '[就绪] 点击「运行」提交至封装层调度…' }])
 const runlogEl = ref<HTMLElement | null>(null)
+const running = ref(false)
 
-function runJob() {
-  const lines: LogLine[] = [
-    { cls: 'info', text: '[提交] 封装层接收任务 → 翻译为 SparkApplication CR' },
-    { cls: 'info', text: '[调度] Operator 拉起 Pod（客户不可见）' },
-    { cls: 'ok', text: '[运行] Stage 1/3 扫描 12M 行' },
-    { cls: 'ok', text: '[运行] Stage 2/3 JOIN dim.user' },
-    { cls: 'warn', text: '[资源] 内存峰值 14.2G < 上限' },
-    { cls: 'ok', text: '[完成] 写入 dwd.order_wide，耗时 4m12s' }
-  ]
-  runlog.value = []
-  let i = 0
-  function step() {
-    if (i >= lines.length) return
-    runlog.value.push(lines[i++])
-    nextTick(() => {
-      if (runlogEl.value) runlogEl.value.scrollTop = runlogEl.value.scrollHeight
-    })
-    setTimeout(step, 500)
+/** 将 API 返回的日志级别映射为前端样式类 */
+function logLevelToClass(level: RunLogLine['level']): string {
+  switch (level) {
+    case 'ok':
+      return 'ok'
+    case 'warn':
+      return 'warn'
+    case 'error':
+      return 'info'
+    default:
+      return 'info'
   }
-  step()
+}
+
+/** 运行作业（调用真实 API） */
+async function runJob() {
+  running.value = true
+  runlog.value = [{ cls: 'info', text: '[提交] 封装层接收任务…' }]
+  try {
+    const result = await apiRunJob({
+      filePath: 'dwd/order_wide.sql',
+      engine: 'spark',
+      cpu: 4,
+      memory: 16,
+      parallelism: 8
+    })
+    // 渲染日志
+    const lines: LogLine[] = result.logs.map((l) => ({
+      cls: logLevelToClass(l.level),
+      text: l.text
+    }))
+    runlog.value = []
+    let i = 0
+    function step() {
+      if (i >= lines.length) return
+      runlog.value.push(lines[i++])
+      nextTick(() => {
+        if (runlogEl.value) runlogEl.value.scrollTop = runlogEl.value.scrollHeight
+      })
+      setTimeout(step, 500)
+    }
+    step()
+  } catch (err) {
+    runlog.value.push({ cls: 'info', text: `[错误] ${(err as Error).message || '运行失败'}` })
+  } finally {
+    running.value = false
+  }
+}
+
+/** 提交调度 */
+async function submitScheduleJob() {
+  try {
+    await submitSchedule({
+      filePath: 'dwd/order_wide.sql',
+      schedule: '0 4 * * *',
+      engine: 'spark'
+    })
+    store.showToast('已提交调度')
+  } catch {
+    // 错误提示已由拦截器统一处理
+  }
 }
 </script>

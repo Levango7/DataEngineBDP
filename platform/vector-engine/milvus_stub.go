@@ -13,8 +13,8 @@
 package main
 
 import (
-	"github.com/shuqing/bigdata/vector-engine/internal/config"
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/config"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
 
 // newMilvusStore 在默认构建下返回 nil，表示 Milvus 实现未启用。

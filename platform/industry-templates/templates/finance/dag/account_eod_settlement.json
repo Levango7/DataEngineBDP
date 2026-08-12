@@ -1,0 +1,252 @@
+{
+  "projectName": "finance_account",
+  "processDefinition": {
+    "name": "account_eod_settlement",
+    "description": "账户日终清算DAG：汇总account_transaction流水，更新account_balance日终余额快照，并记录账户状态变更日志",
+    "tenantCode": "default",
+    "globalParams": "[{\"prop\":\"biz_date\",\"direct\":\"IN\",\"type\":\"DATETIME\",\"value\":\"$biz_date\"},{\"prop\":\"db_finance\",\"direct\":\"IN\",\"type\":\"VARCHAR\",\"value\":\"db_finance\"}]",
+    "timeout": 10800,
+    "releaseState": "ONLINE",
+    "executionType": "PARALLEL",
+    "schedule": {
+      "startTime": "2024-01-01 00:00:00",
+      "endTime": "2099-12-31 23:59:59",
+      "crontab": "30 23 * * * ?",
+      "timezoneId": "Asia/Shanghai",
+      "failureStrategy": "CONTINUE",
+      "warningType": "FAILURE",
+      "warningGroupId": 3,
+      "workerGroup": "default"
+    }
+  },
+  "processTaskRelationList": [
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 3001,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 3001,
+      "preTaskVersion": 1,
+      "postTaskCode": 3002,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 3002,
+      "preTaskVersion": 1,
+      "postTaskCode": 3003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 3003,
+      "preTaskVersion": 1,
+      "postTaskCode": 3004,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 3004,
+      "preTaskVersion": 1,
+      "postTaskCode": 3005,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 3005,
+      "preTaskVersion": 1,
+      "postTaskCode": 3006,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    }
+  ],
+  "taskDefinitionList": [
+    {
+      "code": 3001,
+      "version": 1,
+      "name": "extract_account_transaction",
+      "description": "抽取当日account_transaction流水到临时表tmp_eod_flow",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_eod_flow PARTITION (p_${biz_date}) SELECT account_id, transaction_id, direction, amount, currency, posted_at FROM ${db_finance}.account_transaction WHERE posted_at >= '${biz_date} 00:00:00' AND posted_at < '${biz_date} 23:59:59';",
+        "sqlFile": "../sql/account_eod_settlement/01_extract_account_transaction.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 3002,
+      "version": 1,
+      "name": "aggregate_account_delta",
+      "description": "按account_id聚合当日借贷发生额：debit_sum/credit_sum/net_amount",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_eod_delta PARTITION (p_${biz_date}) SELECT account_id, SUM(CASE WHEN direction = 'DEBIT' THEN amount ELSE 0 END) AS debit_sum, SUM(CASE WHEN direction = 'CREDIT' THEN amount ELSE 0 END) AS credit_sum, SUM(CASE WHEN direction = 'CREDIT' THEN amount ELSE -amount END) AS net_amount, '${biz_date}' AS settle_date FROM ${db_finance}.tmp_eod_flow GROUP BY account_id;",
+        "sqlFile": "../sql/account_eod_settlement/02_aggregate_account_delta.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 3003,
+      "version": 1,
+      "name": "update_account_balance",
+      "description": "更新account_balance日终余额快照：上日余额+当日净额=当日余额",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.account_balance (account_id, balance, available_balance, frozen_amount, currency, snapshot_date, snapshot_type, created_at, updated_at, created_by, updated_by) SELECT a.account_id, COALESCE(prev.balance, 0) + d.net_amount AS balance, COALESCE(prev.available_balance, 0) + d.net_amount AS available_balance, COALESCE(prev.frozen_amount, 0) AS frozen_amount, a.currency, d.settle_date, 'EOD', NOW(), NOW(), 'dag_account_eod_settlement', 'dag_account_eod_settlement' FROM ${db_finance}.tmp_eod_delta d JOIN ${db_finance}.account a ON d.account_id = a.account_id LEFT JOIN (SELECT account_id, balance, available_balance, frozen_amount FROM ${db_finance}.account_balance WHERE snapshot_date = DATE_SUB('${biz_date}', INTERVAL 1 DAY) AND snapshot_type = 'EOD') prev ON d.account_id = prev.account_id;",
+        "sqlFile": "../sql/account_eod_settlement/03_update_account_balance.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 5400,
+      "delayTime": 0
+    },
+    {
+      "code": 3004,
+      "version": 1,
+      "name": "check_account_status",
+      "description": "检查账户状态变更：余额为0/负数/超额等触发状态变更，写入account_status_log",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.account_status_log (account_id, old_status, new_status, change_reason, changed_at, operator, created_at, updated_at, created_by, updated_by) SELECT b.account_id, a.status, CASE WHEN b.balance = 0 THEN 'ZERO_BALANCE' WHEN b.balance < 0 THEN 'OVERDRAWN' ELSE a.status END AS new_status, CASE WHEN b.balance = 0 THEN '余额归零' WHEN b.balance < 0 THEN '透支' ELSE '正常' END AS change_reason, NOW(), 'dag_account_eod_settlement', NOW(), NOW(), 'dag_account_eod_settlement', 'dag_account_eod_settlement' FROM ${db_finance}.account_balance b JOIN ${db_finance}.account a ON b.account_id = a.account_id WHERE b.snapshot_date = '${biz_date}' AND b.snapshot_type = 'EOD' AND (b.balance = 0 OR b.balance < 0);",
+        "sqlFile": "../sql/account_eod_settlement/04_check_account_status.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "MEDIUM",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 300,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 3005,
+      "version": 1,
+      "name": "reconcile_eod_report",
+      "description": "生成日终清算对账报告：总借贷平衡校验",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "SELECT '${biz_date}' AS settle_date, SUM(debit_sum) AS total_debit, SUM(credit_sum) AS total_credit, SUM(debit_sum) - SUM(credit_sum) AS balance_diff, CASE WHEN ABS(SUM(debit_sum) - SUM(credit_sum)) < 0.01 THEN 'PASS' ELSE 'FAIL' END AS reconcile_result FROM ${db_finance}.tmp_eod_delta;",
+        "sqlFile": "../sql/account_eod_settlement/05_reconcile_eod_report.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": true,
+        "displayResult": true
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 2,
+      "failRetryInterval": 180,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 1800,
+      "delayTime": 0
+    },
+    {
+      "code": 3006,
+      "version": 1,
+      "name": "notify_eod_settlement_done",
+      "description": "通知日终清算完成",
+      "taskType": "SHELL",
+      "taskParams": {
+        "resourceList": [],
+        "localParams": [],
+        "rawScript": "echo \"[account_eod_settlement] biz_date=${biz_date} done at $(date '+%Y-%m-%d %H:%M:%S')\" >> /var/log/finance/dag_account_eod_settlement.log",
+        "sendEmail": true,
+        "emailConfig": {
+          "to": "account-ops@finance.com",
+          "subject": "[DAG]account_eod_settlement完成通知-${biz_date}",
+          "content": "账户日终清算已完成，业务日期：${biz_date}，请关注account_balance与account_status_log表数据。"
+        }
+      },
+      "flag": "YES",
+      "taskPriority": "MEDIUM",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 1,
+      "failRetryInterval": 60,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 300,
+      "delayTime": 0
+    }
+  ],
+  "alertGroups": [
+    {
+      "id": 3,
+      "groupName": "finance-account-alert",
+      "groupType": "FEISHU",
+      "feishuWebhook": "https://open.feishu.cn/open-apis/bot/v2/hook/account-eod-settlement",
+      "alertType": "FAILURE"
+    }
+  ]
+}

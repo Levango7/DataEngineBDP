@@ -1,0 +1,199 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "energy_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_energy",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "forecast_parameter",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "预测参数表 | 模型类型/历史窗口/预测步长/超参 | DDL: 04_energy_forecast_ddl.sql §1",
+      "columns": [
+        {"name": "param_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "target_metric", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "dimension_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "granularity", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "history_window", "type": "INT", "is_dttm": false},
+        {"name": "forecast_horizon", "type": "INT", "is_dttm": false},
+        {"name": "model_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "enabled", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "param_name"
+    },
+    {
+      "table_name": "forecast_result",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "预测结果表 | 预测值/置信区间/实际值回填 | DDL: 04_energy_forecast_ddl.sql §2",
+      "columns": [
+        {"name": "param_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "target_metric", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "dimension_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "forecast_date", "type": "DATE", "is_dttm": true},
+        {"name": "granularity", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "forecast_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "lower_bound", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "upper_bound", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "actual_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "error_pct", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "is_out_of_bounds", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "forecast_date"
+    },
+    {
+      "table_name": "forecast_model_evaluation",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "模型评估表 | MAPE/RMSE/MAE/R² | DDL: 04_energy_forecast_ddl.sql §3",
+      "columns": [
+        {"name": "eval_date", "type": "DATE", "is_dttm": true},
+        {"name": "model_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "sample_count", "type": "INT", "is_dttm": false},
+        {"name": "mape", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "rmse", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "mae", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "r_squared", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "tracking_signal", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "grade", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "is_selected", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "eval_date"
+    },
+    {
+      "table_name": "forecast_model_registry",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "模型注册表 | 版本/训练参数/工件路径/状态 | DDL: 04_energy_forecast_ddl.sql §4",
+      "columns": [
+        {"name": "model_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "version", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "training_start", "type": "DATETIME", "is_dttm": true},
+        {"name": "training_duration_sec", "type": "INT", "is_dttm": false},
+        {"name": "training_sample_count", "type": "INT", "is_dttm": false},
+        {"name": "artifact_path", "type": "VARCHAR(512)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "is_production", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "training_start"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "能耗趋势预测看板",
+      "slug": "energy-forecast",
+      "description": "趋势预测看板：预测曲线+置信区间+模型评估+模型注册",
+      "owners": ["energy-analyst"],
+      "position": {},
+      "metadata": {
+        "chart_configuration": {
+          "color_scheme": "forecast_theme",
+          "label_colors": {
+            "ARIMA": "#1E90FF",
+            "PROPHET": "#32CD32",
+            "LSTM": "#FF4500",
+            "EXPONENTIAL_SMOOTHING": "#FFD700",
+            "LINEAR_REGRESSION": "#9370DB",
+            "ENSEMBLE": "#FF8C00",
+            "EXCELLENT": "#2E8B57",
+            "GOOD": "#32CD32",
+            "FAIR": "#FFD700",
+            "POOR": "#FF8C00",
+            "TRAINING": "#FFA500",
+            "READY": "#32CD32",
+            "DEPLOYED": "#2E8B57",
+            "FAILED": "#DC143C",
+            "ARCHIVED": "#808080"
+          }
+        }
+      },
+      "charts": [
+        {
+          "chart_id": "forecast_curve",
+          "slice_name": "预测曲线",
+          "viz_type": "line_chart",
+          "datasource": "forecast_result",
+          "params": {
+            "metrics": ["forecast_value", "actual_value"],
+            "groupby": ["forecast_date"],
+            "filters": [{"col": "granularity", "op": "==", "val": "DAY"}],
+            "time_grain_sqla": "day",
+            "description": "预测值与实际值对比曲线"
+          }
+        },
+        {
+          "chart_id": "confidence_interval",
+          "slice_name": "置信区间",
+          "viz_type": "area_chart",
+          "datasource": "forecast_result",
+          "params": {
+            "metrics": ["forecast_value", "lower_bound", "upper_bound"],
+            "groupby": ["forecast_date"],
+            "filters": [{"col": "granularity", "op": "==", "val": "DAY"}],
+            "time_grain_sqla": "day",
+            "description": "预测值与 95% 置信区间面积图"
+          }
+        },
+        {
+          "chart_id": "forecast_error",
+          "slice_name": "预测误差",
+          "viz_type": "line_chart",
+          "datasource": "forecast_result",
+          "params": {
+            "metrics": ["error_pct"],
+            "groupby": ["forecast_date"],
+            "filters": [
+              {"col": "granularity", "op": "==", "val": "DAY"},
+              {"col": "actual_value", "op": "IS NOT NULL"}
+            ],
+            "time_grain_sqla": "day",
+            "description": "日级预测误差百分比"
+          }
+        },
+        {
+          "chart_id": "model_evaluation_compare",
+          "slice_name": "模型评估对比",
+          "viz_type": "bar_chart",
+          "datasource": "forecast_model_evaluation",
+          "params": {
+            "metrics": ["mape", "rmse", "mae"],
+            "groupby": ["model_type"],
+            "description": "各模型 MAPE/RMSE/MAE 对比"
+          }
+        },
+        {
+          "chart_id": "model_registry_table",
+          "slice_name": "模型注册表",
+          "viz_type": "table",
+          "datasource": "forecast_model_registry",
+          "params": {
+            "metrics": ["training_duration_sec", "training_sample_count"],
+            "groupby": ["model_type", "version", "status", "is_production"],
+            "order_by": ["training_start DESC"],
+            "row_limit": 50,
+            "description": "已注册模型版本列表"
+          }
+        },
+        {
+          "chart_id": "out_of_bounds_count",
+          "slice_name": "超界预测数",
+          "viz_type": "indicator",
+          "datasource": "forecast_result",
+          "params": {
+            "metrics": ["COUNT(CASE WHEN is_out_of_bounds THEN 1 END)"],
+            "filters": [{"col": "forecast_date", "op": ">=", "val": "最近30天"}],
+            "description": "最近 30 天实际值超出置信区间的预测数"
+          }
+        }
+      ]
+    }
+  ]
+}

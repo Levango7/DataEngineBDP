@@ -1,18 +1,19 @@
 """通用依赖与错误处理."""
+
 from __future__ import annotations
 
 from fastapi import Request
 
 from asset_exchange.repositories import (
-    AssetExchangeError,
     AssetAlreadyExistsError,
+    AssetExchangeError,
     AssetNotFoundError,
     AssetNotListedError,
-    DeliveryNotFoundError,
     DeliveryFailedError,
-    SubscriptionNotFoundError,
+    DeliveryNotFoundError,
     SubscriptionNotApprovableError,
     SubscriptionNotDeliverableError,
+    SubscriptionNotFoundError,
     ValidationError,
 )
 from asset_exchange.services.registry import ServiceRegistry

@@ -1,4 +1,4 @@
-{{/*
+﻿{{/*
 Expand the name of the chart.
 */}}
 {{- define "node-problem-detector.name" -}}
@@ -27,9 +27,9 @@ Chart labels.
 {{- define "node-problem-detector.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{ include "node-problem-detector.selectorLabels" . }}
-{{- if .Chart.AppVersion -}}
+{{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end -}}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end -}}
 

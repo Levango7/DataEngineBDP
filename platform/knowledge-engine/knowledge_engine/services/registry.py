@@ -5,6 +5,7 @@
     KE_STORE_TYPE=mock / nebula
     KE_EXTRACTOR_TYPE=mock / llm
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

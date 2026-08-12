@@ -1,27 +1,26 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
 
-import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("OPENAPI_CATALOG_STORE_TYPE", "mock")
 
-from openapi_catalog.api.app import create_app
-from openapi_catalog.config.settings import Settings, reset_settings
-from openapi_catalog.repositories.mock import MockCatalogStore
-from openapi_catalog.services.api_call import APICallService
-from openapi_catalog.services.api_registry import APIRegistryService
-from openapi_catalog.services.apisix_config import APISIXConfigService
-from openapi_catalog.services.doc_generator import DocGeneratorService
-from openapi_catalog.services.metering import MeteringService
-from openapi_catalog.services.rate_limiter import RateLimiter
-from openapi_catalog.services.registry import ServiceRegistry
-from openapi_catalog.services.subscription import SubscriptionService
+from openapi_catalog.api.app import create_app  # noqa: E402
+from openapi_catalog.config.settings import Settings, reset_settings  # noqa: E402
+from openapi_catalog.repositories.mock import MockCatalogStore  # noqa: E402
+from openapi_catalog.services.api_call import APICallService  # noqa: E402
+from openapi_catalog.services.api_registry import APIRegistryService  # noqa: E402
+from openapi_catalog.services.apisix_config import APISIXConfigService  # noqa: E402
+from openapi_catalog.services.doc_generator import DocGeneratorService  # noqa: E402
+from openapi_catalog.services.metering import MeteringService  # noqa: E402
+from openapi_catalog.services.rate_limiter import RateLimiter  # noqa: E402
+from openapi_catalog.services.registry import ServiceRegistry  # noqa: E402
+from openapi_catalog.services.subscription import SubscriptionService  # noqa: E402
 
 
 @pytest.fixture
@@ -52,9 +51,7 @@ def registry(
     metering_service = MeteringService(mock_store)
     apisix_config_service = APISIXConfigService(mock_store, settings)
     doc_generator_service = DocGeneratorService(mock_store)
-    api_call_service = APICallService(
-        mock_store, subscription_service, rate_limiter, metering_service
-    )
+    api_call_service = APICallService(mock_store, subscription_service, rate_limiter, metering_service)
     return ServiceRegistry(
         settings=settings,
         store=mock_store,
@@ -80,6 +77,7 @@ def client(app) -> TestClient:
 
 
 # ---------- 测试辅助工厂 ----------
+
 
 @pytest.fixture
 def make_api_def():
@@ -153,8 +151,10 @@ def make_api_def():
 @pytest.fixture
 def publish_api():
     """发布 API 的 helper（走完审核流程）."""
+
     async def _publish(registry, api_id):
         await registry.apiRegistryService.submit_for_review(api_id)
         await registry.apiRegistryService.approve(api_id)
         return await registry.apiRegistryService.publish(api_id)
+
     return _publish

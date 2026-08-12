@@ -6,6 +6,7 @@
     ML_FEATURE_STORE_TYPE=mock / redis
     ML_EXPERIMENT_STORE_TYPE=mock / mlflow
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -77,18 +78,22 @@ def buildServices(
 def _buildBackend(settings: Settings) -> MLBackend:
     if settings.isMockBackend:
         from ml_platform.repositories.mock import MockMLBackend
+
         return MockMLBackend()
     if settings.isSklearnBackend:
         from ml_platform.repositories.sklearn import (
             SklearnMLBackend,
         )
+
         return SklearnMLBackend()
     if settings.isSparkBackend:
         # Spark MLlib 后端骨架，暂未实现，回退到 Mock
         from ml_platform.repositories.mock import MockMLBackend
+
         return MockMLBackend()
     # 默认 Mock
     from ml_platform.repositories.mock import MockMLBackend
+
     return MockMLBackend()
 
 
@@ -97,9 +102,11 @@ def _buildFeatureStore(settings: Settings) -> FeatureStore:
         from ml_platform.repositories.mock import (
             MockFeatureStore,
         )
+
         return MockFeatureStore()
     # Redis 后端骨架，暂未实现，回退到 Mock
     from ml_platform.repositories.mock import MockFeatureStore
+
     return MockFeatureStore()
 
 
@@ -110,9 +117,11 @@ def _buildExperimentStore(
         from ml_platform.repositories.mock import (
             MockExperimentStore,
         )
+
         return MockExperimentStore()
     # MLflow 后端骨架，暂未实现，回退到 Mock
     from ml_platform.repositories.mock import (
         MockExperimentStore,
     )
+
     return MockExperimentStore()
