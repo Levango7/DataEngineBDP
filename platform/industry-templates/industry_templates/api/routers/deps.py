@@ -1,4 +1,5 @@
 """通用依赖与错误处理."""
+
 from __future__ import annotations
 
 from fastapi import Request
@@ -8,8 +9,8 @@ from industry_templates.services.exceptions import (
     ParameterValidationError,
     RenderError,
     TemplateError,
-    TemplateNotFoundError,
     TemplateNotDeployableError,
+    TemplateNotFoundError,
 )
 from industry_templates.services.registry import ServiceRegistry
 

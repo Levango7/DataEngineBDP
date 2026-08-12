@@ -1,8 +1,9 @@
 """Mock 订阅仓储 - 内存字典实现."""
+
 from __future__ import annotations
 
+from typing import Any
 import uuid
-from typing import Any, Optional
 
 from asset_exchange.interfaces.subscription_repository import SubscriptionRepository
 from asset_exchange.models.base import utc_now

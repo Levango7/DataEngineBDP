@@ -2,6 +2,7 @@
 
 对齐 MLflow Tracking 的 Experiment → metrics/params 概念。
 """
+
 from __future__ import annotations
 
 import uuid
@@ -31,9 +32,7 @@ class MockExperimentStore(ExperimentStore):
         self._experiments: dict[str, ExperimentInfo] = {}
         self._nameIndex: dict[str, str] = {}
 
-    async def create_experiment(
-        self, config: ExperimentConfig
-    ) -> str:
+    async def create_experiment(self, config: ExperimentConfig) -> str:
         if config.name in self._nameIndex:
             raise ExperimentAlreadyExistsError(config.name)
         experimentId = str(uuid.uuid4())
@@ -50,9 +49,7 @@ class MockExperimentStore(ExperimentStore):
         self._nameIndex[config.name] = experimentId
         return experimentId
 
-    async def get_experiment(
-        self, experimentId: str
-    ) -> ExperimentInfo:
+    async def get_experiment(self, experimentId: str) -> ExperimentInfo:
         if experimentId not in self._experiments:
             raise ExperimentNotFoundError(experimentId)
         return self._experiments[experimentId]
@@ -64,25 +61,19 @@ class MockExperimentStore(ExperimentStore):
             reverse=True,
         )
 
-    async def delete_experiment(
-        self, experimentId: str
-    ) -> None:
+    async def delete_experiment(self, experimentId: str) -> None:
         if experimentId not in self._experiments:
             raise ExperimentNotFoundError(experimentId)
         info = self._experiments.pop(experimentId)
         self._nameIndex.pop(info.name, None)
 
-    async def log_metrics(
-        self, experimentId: str, metrics: dict[str, float]
-    ) -> None:
+    async def log_metrics(self, experimentId: str, metrics: dict[str, float]) -> None:
         info = await self.get_experiment(experimentId)
         info.metrics.update(metrics)
         info.runCount += 1
         info.updatedAt = utcNow()
 
-    async def log_params(
-        self, experimentId: str, params: dict
-    ) -> None:
+    async def log_params(self, experimentId: str, params: dict) -> None:
         info = await self.get_experiment(experimentId)
         info.params.update(params)
         info.updatedAt = utcNow()

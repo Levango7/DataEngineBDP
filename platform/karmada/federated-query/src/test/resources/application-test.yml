@@ -1,0 +1,53 @@
+server:
+  port: 8094
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:federated-test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+# 测试环境配置：集群 URL 指向 pytest fixture 启动的 mock 端口
+federated:
+  local-cluster: local-cluster
+  catalog:
+    base-url: http://localhost:18080/api/v1/catalog
+    cache-enabled: false
+  mtls:
+    enabled: false
+  degrade:
+    enabled: true
+    failure-threshold: 3
+    cooldown: 5s
+    query-timeout: 10s
+  merge:
+    strategy: CONCAT
+  clusters:
+    xinchang-cluster:
+      url: http://localhost:18091
+      type: xinchang
+      vendor: kylin
+      arch: arm64
+      region: on-premise
+      env: production
+      enabled: true
+      local: false
+    local-cluster:
+      url: http://localhost:18092
+      type: local
+      vendor: kubernetes
+      arch: amd64
+      region: on-premise
+      env: staging
+      enabled: true
+      local: true
+    cce-cluster:
+      url: http://localhost:18093
+      type: cloud
+      vendor: huawei-cce
+      arch: amd64
+      region: cn-north-4
+      env: production
+      enabled: true
+      local: false

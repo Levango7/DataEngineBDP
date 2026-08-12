@@ -1,0 +1,29 @@
+# 漂移修复 Role · 最小权限集
+# ============================================================================
+# 作用：定义 drift-remediation 所需的权限
+# ============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: drift-remediation-role
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-remediation
+    app.kubernetes.io/part-of: gitops
+rules:
+  # Application：读取 + 触发 sync
+  - apiGroups: ["argoproj.io"]
+    resources: ["applications"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  # AppProject：读取（校验同步窗口）
+  - apiGroups: ["argoproj.io"]
+    resources: ["appprojects"]
+    verbs: ["get", "list"]
+  # ConfigMap：读写漂移事件 / 修复事件 / 熔断状态
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Event：写入修复事件
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "patch"]

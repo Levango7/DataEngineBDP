@@ -7,6 +7,7 @@ Usage:
     BP_STORE_TYPE=sqlite python main.py  # SQLite 模式
     BP_HOST=127.0.0.1 BP_PORT=9000 python main.py
 """
+
 from __future__ import annotations
 
 import uvicorn

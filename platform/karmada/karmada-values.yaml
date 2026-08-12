@@ -1,0 +1,204 @@
+# Karmada Helm Chart values · 控制面配置
+# ============================================================================
+# 作用：通过 Helm Chart 部署 Karmada 控制面到主集群（host cluster）
+# 版本：Karmada >= 1.10
+# 仓库：https://github.com/karmada-io/karmada/tree/master/charts/karmada
+# 部署模式：push 模式（控制面主动把工作负载推送到成员集群）
+# ============================================================================
+# 部署命令示例：
+#   helm repo add karmada https://raw.githubusercontent.com/karmada-io/karmada/master/charts
+#   helm repo update
+#   helm install karmada karmada/karmada \
+#     -n karmada-system --create-namespace \
+#     -f platform/karmada/karmada-values.yaml
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# 全局配置
+# ---------------------------------------------------------------------------
+global:
+  # 镜像仓库前缀，信创环境可替换为内部 Harbor
+  imageRegistry: "registry.k8s.io"
+  # 镜像拉取策略
+  imagePullPolicy: "IfNotPresent"
+  # 信创环境（鲲鹏）镜像仓库覆盖示例：
+  # imageRegistry: "harbor.xinchang.example.com/karmada"
+
+# ---------------------------------------------------------------------------
+# 控制面组件配置
+# ---------------------------------------------------------------------------
+# karmada-apiserver：聚合 API server，暴露 Karmada 控制面 API
+apiServer:
+  image:
+    registry: "registry.k8s.io"
+    repository: "karmada/karmada-apiserver"
+    tag: "v1.10.0"
+  # 副本数（控制面 HA）
+  replicas: 3
+  # 资源配额
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+  # 服务类型：生产用 LoadBalancer，本地模拟用 NodePort
+  serviceType: "NodePort"
+  serviceNodePort: "32443"
+
+# etcd：Karmada 控制面元数据存储
+etcd:
+  image:
+    registry: "registry.k8s.io"
+    repository: "etcd"
+    tag: "3.5.16-0"
+  # 多副本保证 HA
+  replicas: 3
+  # 持久化存储
+  persistence:
+    enabled: true
+    storageClass: "standard"
+    size: "5Gi"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# karmada-aggregated-apiserver：聚合 API server 扩展
+aggregatedApiServer:
+  image:
+    registry: "registry.k8s.io"
+    repository: "karmada/karmada-aggregated-apiserver"
+    tag: "v1.10.0"
+  replicas: 2
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# karmada-controller-manager：核心调度控制器
+controllerManager:
+  image:
+    registry: "registry.k8s.io"
+    repository: "karmada/karmada-controller-manager"
+    tag: "v1.10.0"
+  replicas: 2
+  # 调度器特性门控
+  featureGates:
+    PropagateDeps: "true"        # 自动传播依赖（ConfigMap/Secret）
+    GracefulEviction: "true"     # 优雅驱逐
+    ResourceQuotaScope: "true"   # 资源配额作用域
+    PropagationPolicyPreemption: "true"  # 策略抢占
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+# karmada-scheduler：多集群调度器
+scheduler:
+  image:
+    registry: "registry.k8s.io"
+    repository: "karmada/karmada-scheduler"
+    tag: "v1.10.0"
+  replicas: 2
+  # 调度策略：支持 ClusterAffinity、SpreadConstraints、TaintToleration
+  policy:
+    # 默认调度策略：跨集群分散
+    defaultSchedulerName: "default-scheduler"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# karmada-descheduler：反调度器（副本重平衡）
+descheduler:
+  image:
+    registry: "registry.k8s.io"
+    repository: "karmada/karmada-descheduler"
+    tag: "v1.10.0"
+  replicas: 2
+  # 反调度策略
+  deschedulingPolicy:
+    enabled: true
+    interval: "5m"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
+
+# karmada-webhook：准入 webhook
+webhook:
+  image:
+    registry: "registry.k8s.io"
+    repository: "karmada/karmada-webhook"
+    tag: "v1.10.0"
+  replicas: 2
+  serviceType: "ClusterIP"
+  resources:
+    requests:
+      cpu: "250m"
+      memory: "256Mi"
+    limits:
+      cpu: "1000m"
+      memory: "1Gi"
+
+# karmada-agent：pull 模式可选（本方案采用 push 模式，不启用）
+agent:
+  enabled: false
+
+# ---------------------------------------------------------------------------
+# CRD 安装配置
+# ---------------------------------------------------------------------------
+installCRDs: true
+# Karmada 自身管理的 CRD（PropagationPolicy/OverridePolicy/ResourceBinding 等）
+crds:
+  # 是否通过 Helm 安装 CRD
+  install: true
+  # 保留策略：卸载 Helm release 时保留 CRD，避免误删多集群资源
+  keep: true
+
+# ---------------------------------------------------------------------------
+# 控制面证书配置
+# ---------------------------------------------------------------------------
+certs:
+  # 自动生成自签证书（生产环境建议替换为组织 CA 签发）
+  autoGenerate: true
+  # 证书有效期（天）
+  validityDays: 365
+
+# ---------------------------------------------------------------------------
+# 可观测性
+# ---------------------------------------------------------------------------
+# Prometheus ServiceMonitor（与 Phase 1 ArgoCD 监控栈集成）
+prometheus:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    # 监控命名空间（与 Phase 1 部署的 Prometheus 对齐）
+    namespace: "monitoring"
+    interval: "30s"
+
+# ---------------------------------------------------------------------------
+# 多集群 RBAC（控制面访问成员集群的 ServiceAccount）
+# ---------------------------------------------------------------------------
+rbac:
+  # 控制面在成员集群中使用的 ServiceAccount 名
+  serviceAccount: "karmada-controller-manager"
+  # 集群角色：需要管理 Deployment/StatefulSet/Service/ConfigMap/Secret 等
+  clusterRole: "karmada-controller-manager"

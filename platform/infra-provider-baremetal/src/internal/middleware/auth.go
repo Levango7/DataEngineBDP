@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/shuqing/infra-provider-baremetal/src/internal/model"
+	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
 // JWTAuthenticator JWT签发与校验器
@@ -150,7 +150,7 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 			})
 			return
 		}
-		roleStr, _ := role.(string)
+		roleStr, _ := role.(string) //nolint:errcheck // gin上下文值类型断言，空值映射为空串由allowed判断
 		if _, ok := allowed[roleStr]; !ok {
 			c.AbortWithStatusJSON(http.StatusForbidden, model.APIResponse{
 				Code:    http.StatusForbidden,

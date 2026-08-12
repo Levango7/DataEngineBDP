@@ -3,10 +3,11 @@
 对应详细设计 §3 API 发布流程状态机：
     [定义] → [安全审核] → [审批] → [发布到网关] → [运行中] → [下线] → [归档]
 """
+
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
+import uuid
 
 from openapi_catalog.models import (
     APIDefinition,
@@ -15,12 +16,9 @@ from openapi_catalog.models import (
     APIUpdateRequest,
 )
 from openapi_catalog.repositories import (
-    APIAlreadyExistsError,
-    APINotFoundError,
     APIStatusTransitionError,
 )
 from openapi_catalog.repositories.mock import MockCatalogStore
-
 
 # 合法状态转换
 _VALID_TRANSITIONS: dict[APIStatus, set[APIStatus]] = {
@@ -73,9 +71,7 @@ class APIRegistryService:
         """列出 API."""
         return await self.store.list_apis(filter_)
 
-    async def update_api(
-        self, api_id: str, update: APIUpdateRequest
-    ) -> APIDefinition:
+    async def update_api(self, api_id: str, update: APIUpdateRequest) -> APIDefinition:
         """更新 API（部分字段）."""
         api = await self.store.get_api(api_id)
 
@@ -84,9 +80,7 @@ class APIRegistryService:
         if not editable:
             # 仅允许更新 description/tags/category 等元数据
             if update.params is not None or update.responses is not None or update.upstream is not None:
-                raise APIStatusTransitionError(
-                    api_id, api.status.value, "update_contract"
-                )
+                raise APIStatusTransitionError(api_id, api.status.value, "update_contract")
 
         if update.description is not None:
             api.description = update.description
@@ -116,21 +110,15 @@ class APIRegistryService:
         """注销 API（仅允许在 DRAFT/REJECTED/ARCHIVED 状态）."""
         api = await self.store.get_api(api_id)
         if api.status not in (APIStatus.DRAFT, APIStatus.REJECTED, APIStatus.ARCHIVED):
-            raise APIStatusTransitionError(
-                api_id, api.status.value, "delete"
-            )
+            raise APIStatusTransitionError(api_id, api.status.value, "delete")
         await self.store.delete_api(api_id)
 
-    async def transition_status(
-        self, api_id: str, target: APIStatus
-    ) -> APIDefinition:
+    async def transition_status(self, api_id: str, target: APIStatus) -> APIDefinition:
         """状态转换（校验合法性）."""
         api = await self.store.get_api(api_id)
         current = api.status
         if target not in _VALID_TRANSITIONS.get(current, set()):
-            raise APIStatusTransitionError(
-                api_id, current.value, target.value
-            )
+            raise APIStatusTransitionError(api_id, current.value, target.value)
         api.status = target
         api.updatedAt = datetime.now()
         return await self.store.save_api(api)

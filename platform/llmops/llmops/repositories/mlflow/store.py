@@ -4,13 +4,13 @@
 LLMOps 在 MLflow 之上扩展大模型特有的字段（type/base/params），通过 MLflow
 Registered Model 的 tags 与 description 持久化。
 """
+
 from __future__ import annotations
 
-import uuid
 from typing import Any, Optional
+import uuid
 
 from llmops.interfaces.store import ModelStore
-from llmops.models.base import ModelStatus, utc_now
 from llmops.models.model import ModelFilter, ModelInfo, ModelVersion
 from llmops.repositories import (
     ModelAlreadyExistsError,
@@ -18,7 +18,6 @@ from llmops.repositories import (
     VersionNotFoundError,
 )
 from llmops.repositories.mlflow.client import MLflowClient
-
 
 # MLflow tag 前缀，避免与 MLflow 内置 tag 冲突
 _TAG_PREFIX = "sq.llmops."
@@ -46,7 +45,7 @@ class MLflowModelStore(ModelStore):
         # 创建 Registered Model
         if not model_info.id:
             model_info.id = str(uuid.uuid4())
-        rm = client.create_registered_model(
+        client.create_registered_model(
             model_info.name,
             tags=self._encode_tags(model_info),
             description=model_info.description or "",
@@ -94,9 +93,7 @@ class MLflowModelStore(ModelStore):
         m = await self.get_model(model_id)
         return sorted(m.versions, key=lambda v: v.version)
 
-    async def add_model_version(
-        self, model_id: str, version: ModelVersion
-    ) -> ModelVersion:
+    async def add_model_version(self, model_id: str, version: ModelVersion) -> ModelVersion:
         m = await self.get_model(model_id)
         # MLflow create_model_version 需要 source（artifact uri）
         mv = self._client.client.create_model_version(
@@ -112,9 +109,7 @@ class MLflowModelStore(ModelStore):
         version.modelId = model_id
         return version
 
-    async def set_production_version(
-        self, model_id: str, version: int
-    ) -> ModelInfo:
+    async def set_production_version(self, model_id: str, version: int) -> ModelInfo:
         m = await self.get_model(model_id)
         client = self._client.client
         try:
@@ -131,14 +126,10 @@ class MLflowModelStore(ModelStore):
         m = await self.get_model(model_id)
         client = self._client.client
         if "description" in fields:
-            client.update_registered_model(
-                m.name, description=fields["description"]
-            )
+            client.update_registered_model(m.name, description=fields["description"])
         if "tags" in fields:
             for k, v in fields["tags"].items():
-                client.set_registered_model_tag(
-                    m.name, f"{_TAG_PREFIX}{k}", v
-                )
+                client.set_registered_model_tag(m.name, f"{_TAG_PREFIX}{k}", v)
         return await self.get_model(model_id)
 
     # ---------- 内部工具 ----------
@@ -171,7 +162,7 @@ class MLflowModelStore(ModelStore):
                 biz_tags[k[len(prefix) :]] = v
         # 版本
         versions: list[ModelVersion] = []
-        for mv in (rm.latest_versions or []):
+        for mv in rm.latest_versions or []:
             versions.append(
                 ModelVersion(
                     version=mv.version,

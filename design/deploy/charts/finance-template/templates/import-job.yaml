@@ -1,0 +1,263 @@
+{{- if .Values.importJob.enabled -}}
+# Job - 模板导入作业（T019 核心）
+# 用途：部署一个 Job，拉取 ConfigMap 中的模板资产，依次导入到
+#       Doris（DDL）→ DolphinScheduler（DAG）→ Superset（Dashboard）→ Keycloak（RBAC）
+# Helm hook：post-install, post-upgrade（自动触发）
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "finance-template.importJobName" . }}
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.labels" . | nindent 4 }}
+    {{- include "finance-template.templateLabels" . | nindent 4 }}
+  annotations:
+    {{- include "finance-template.templateAnnotations" . | nindent 4 }}
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.importJob.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.importJob.activeDeadlineSeconds }}
+  parallelism: {{ .Values.importJob.parallelism }}
+  template:
+    metadata:
+      labels:
+        {{- include "finance-template.selectorLabels" . | nindent 8 }}
+        {{- include "finance-template.templateLabels" . | nindent 8 }}
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "finance-template.serviceAccountName" . }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: template-assets
+          configMap:
+            name: {{ include "finance-template.configmapName" . }}
+      containers:
+        - name: template-importer
+          image: "{{ .Values.importJob.image.repository }}:{{ .Values.importJob.image.tag }}"
+          imagePullPolicy: {{ .Values.importJob.image.pullPolicy }}
+          volumeMounts:
+            - name: template-assets
+              mountPath: /templates
+              readOnly: true
+          env:
+            # ---- 模板信息 ----
+            - name: TEMPLATE_NAME
+              value: {{ .Values.template.name | quote }}
+            - name: TEMPLATE_VERSION
+              value: {{ .Values.template.version | quote }}
+            - name: ENV
+              value: {{ .Values.env | default "unknown" | quote }}
+            # ---- Doris 连接 ----
+            - name: DORIS_FE_HOST
+              value: {{ .Values.target.doris.feHost | quote }}
+            - name: DORIS_FE_PORT
+              value: {{ .Values.target.doris.fePort | quote }}
+            - name: DORIS_DATABASE
+              value: {{ .Values.target.doris.database | quote }}
+            - name: DORIS_USER
+              value: {{ .Values.target.doris.user | quote }}
+            - name: DORIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.doris.passwordSecret.name }}
+                  key: {{ .Values.target.doris.passwordSecret.key }}
+            - name: DORIS_CONNECT_TIMEOUT
+              value: {{ .Values.target.doris.connectTimeout | quote }}
+            # ---- DolphinScheduler 连接 ----
+            - name: DS_HOST
+              value: {{ .Values.target.dolphinscheduler.host | quote }}
+            - name: DS_PORT
+              value: {{ .Values.target.dolphinscheduler.port | quote }}
+            - name: DS_PROJECT_NAME
+              value: {{ .Values.target.dolphinscheduler.projectName | quote }}
+            - name: DS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.dolphinscheduler.tokenSecret.name }}
+                  key: {{ .Values.target.dolphinscheduler.tokenSecret.key }}
+            # ---- Superset 连接 ----
+            - name: SUPERSET_HOST
+              value: {{ .Values.target.superset.host | quote }}
+            - name: SUPERSET_PORT
+              value: {{ .Values.target.superset.port | quote }}
+            - name: SUPERSET_DATABASE_NAME
+              value: {{ .Values.target.superset.databaseName | quote }}
+            - name: SUPERSET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.superset.tokenSecret.name }}
+                  key: {{ .Values.target.superset.tokenSecret.key }}
+            # ---- Keycloak 连接 ----
+            - name: KEYCLOAK_HOST
+              value: {{ .Values.target.keycloak.host | quote }}
+            - name: KEYCLOAK_PORT
+              value: {{ .Values.target.keycloak.port | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.target.keycloak.realm | quote }}
+            - name: KEYCLOAK_CREATE_REALM
+              value: {{ .Values.target.keycloak.createRealm | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.keycloak.adminSecret.name }}
+                  key: {{ .Values.target.keycloak.adminSecret.key }}
+            # ---- RBAC 同步配置 ----
+            - name: RBAC_SYNC_ENABLED
+              value: {{ .Values.rbacSync.enabled | quote }}
+            - name: RBAC_ROLLBACK_ON_FAILURE
+              value: {{ .Values.rbacSync.rollbackOnFailure | quote }}
+            - name: RBAC_SYNC_TO_DORIS
+              value: {{ .Values.rbacSync.syncToDoris | quote }}
+            # ---- 失败处理 ----
+            - name: ON_FAILURE_ROLLBACK
+              value: {{ .Values.importJob.onFailure.rollback | quote }}
+            - name: ON_FAILURE_CONTINUE
+              value: {{ .Values.importJob.onFailure.continueOnError | quote }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=========================================="
+              echo "金融行业模板导入开始"
+              echo "模板: ${TEMPLATE_NAME} v${TEMPLATE_VERSION}"
+              echo "环境: ${ENV}"
+              echo "=========================================="
+              FAIL_STEP=""
+              import_ddl() {
+                echo "[1/4] 导入 DDL 到 Doris..."
+                local count=0
+                for sql_file in /templates/ddl/*.sql; do
+                  if [ -f "$sql_file" ]; then
+                    echo "  执行: $(basename $sql_file)"
+                    mysql -h ${DORIS_FE_HOST} -P ${DORIS_FE_PORT} -u ${DORIS_USER} -p${DORIS_PASSWORD} ${DORIS_DATABASE} < $sql_file
+                    count=$((count + 1))
+                  fi
+                done
+                echo "[1/4] DDL 导入完成（${count} 个文件）"
+              }
+              import_dag() {
+                echo "[2/4] 导入 DAG 到 DolphinScheduler..."
+                local count=0
+                for dag_file in /templates/dag/*.json; do
+                  if [ -f "$dag_file" ]; then
+                    echo "  导入: $(basename $dag_file)"
+                    curl -s -X POST "http://${DS_HOST}:${DS_PORT}/dolphinscheduler/projects/${DS_PROJECT_NAME}/import" \
+                      -H "Authorization: Bearer ${DS_TOKEN}" \
+                      -F "file=@${dag_file}"
+                    count=$((count + 1))
+                  fi
+                done
+                echo "[2/4] DAG 导入完成（${count} 个文件）"
+              }
+              import_dashboard() {
+                echo "[3/4] 导入 Dashboard 到 Superset..."
+                local count=0
+                for dash_file in /templates/dashboard/*.json; do
+                  if [ -f "$dash_file" ]; then
+                    echo "  导入: $(basename $dash_file)"
+                    curl -s -X POST "http://${SUPERSET_HOST}:${SUPERSET_PORT}/api/v1/dashboard/import/" \
+                      -H "Authorization: Bearer ${SUPERSET_TOKEN}" \
+                      -F "formData=@${dash_file}"
+                    count=$((count + 1))
+                  fi
+                done
+                echo "[3/4] Dashboard 导入完成（${count} 个文件）"
+              }
+              import_rbac() {
+                if [ "${RBAC_SYNC_ENABLED}" = "true" ]; then
+                  echo "[4/4] 导入 RBAC 到 Keycloak..."
+                  KC_ADMIN_TOKEN=$(curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/realms/master/protocol/openid-connect/token" \
+                    -d "client_id=admin-cli" \
+                    -d "username=admin" \
+                    -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+                    -d "grant_type=password" | jq -r .access_token)
+                  if [ "${KEYCLOAK_CREATE_REALM}" = "true" ]; then
+                    echo "  创建 realm: ${KEYCLOAK_REALM}"
+                    curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/admin/realms" \
+                      -H "Authorization: Bearer ${KC_ADMIN_TOKEN}" \
+                      -H "Content-Type: application/json" \
+                      -d "{\"realm\":\"${KEYCLOAK_REALM}\",\"enabled\":true}" || true
+                  fi
+                  for rbac_file in /templates/rbac/*.yaml; do
+                    if [ -f "$rbac_file" ]; then
+                      echo "  导入: $(basename $rbac_file)"
+                      curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/admin/realms/${KEYCLOAK_REALM}/roles" \
+                        -H "Authorization: Bearer ${KC_ADMIN_TOKEN}" \
+                        -H "Content-Type: application/json" \
+                        -d "$(yaml2json $rbac_file)" || true
+                    fi
+                  done
+                  echo "[4/4] RBAC 导入完成"
+                else
+                  echo "[4/4] RBAC 同步已禁用，跳过"
+                fi
+              }
+              rollback() {
+                if [ "${ON_FAILURE_ROLLBACK}" = "true" ]; then
+                  echo "=========================================="
+                  echo "导入失败，执行回滚: ${FAIL_STEP}"
+                  echo "=========================================="
+                  # 回滚逻辑由 template-importer 镜像内置脚本处理
+                fi
+              }
+              run_step() {
+                local step_name=$1
+                local step_func=$2
+                if [ "${FAIL_STEP}" = "" ] || [ "${ON_FAILURE_CONTINUE}" = "true" ]; then
+                  ${step_func} || {
+                    FAIL_STEP="${step_name}"
+                    echo "ERROR: ${step_name} 失败"
+                    if [ "${ON_FAILURE_CONTINUE}" != "true" ]; then
+                      rollback
+                      exit 1
+                    fi
+                  }
+                fi
+              }
+              run_step "ddl" import_ddl
+              run_step "dag" import_dag
+              run_step "dashboard" import_dashboard
+              run_step "rbac" import_rbac
+              if [ "${FAIL_STEP}" != "" ]; then
+                echo "=========================================="
+                echo "导入完成（部分失败: ${FAIL_STEP}）"
+                echo "=========================================="
+                if [ "${ON_FAILURE_CONTINUE}" != "true" ]; then
+                  exit 1
+                fi
+              else
+                echo "=========================================="
+                echo "金融行业模板导入完成"
+                echo "=========================================="
+              fi
+          resources:
+            {{- toYaml .Values.importJob.resources | nindent 12 }}
+{{- if .Values.securityContext.enabled }}
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+            runAsGroup: {{ .Values.securityContext.runAsGroup }}
+            fsGroup: {{ .Values.securityContext.fsGroup }}
+            allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+            readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+            capabilities:
+              drop:
+{{- range .Values.securityContext.capabilities.drop }}
+                - {{ . }}
+{{- end }}
+{{- end }}
+{{- end -}}

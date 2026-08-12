@@ -1,0 +1,119 @@
+# APISIX limit-req 插件配置 - 限流（令牌桶）
+#
+# 对应详细设计 §5 网关拦截第三步：限流
+#     APISIX 插件链依次做认证 → 租户隔离 → 限流 → 熔断 → 计量 → 转发。
+#
+# 工作原理：
+#     1. 采用令牌桶算法：以 rate 速率向桶中添加令牌，桶容量为 rate + burst
+#     2. 每个请求消耗一个令牌，桶空时拒绝
+#     3. key 字段决定限流维度：consumer_name（按订阅）/ remote_addr（按 IP）
+#     4. policy: local（单机）/ redis-cluster（分布式，多 APISIX 实例共享）
+#
+# 限流层级：
+#     - API 级限流：路由级 limit-req，所有消费者共享
+#     - 订阅级限流：Consumer 级 limit-req，单个消费者配额
+#     - 并发限制：limit-conn 插件，限制同时在途请求数
+
+# 插件元数据
+plugin_name: limit-req
+plugin_type: traffic-control
+
+# 默认限流配置（API 级）
+default_api_level:
+  rate: 100              # 100 QPS
+  burst: 200             # 突发 200
+  key_type: var
+  key: consumer_name     # 按消费者限流
+  rejected_code: 429
+  rejected_msg: "请求频率超限，请降低调用频率或升级订阅"
+  policy: local          # 单机限流（生产环境用 redis-cluster）
+
+# 订阅级限流配置模板（按 SLA 等级）
+subscription_level_by_sla:
+  # 铂金 SLA：高配额
+  platinum:
+    rate: 1000
+    burst: 2000
+    key_type: var
+    key: consumer_name
+    rejected_code: 429
+    rejected_msg: "铂金订阅请求频率超限"
+    policy: redis-cluster
+    redis_cluster:
+      name: apisix-redis-cluster
+      config_id: redis-cluster-config
+
+  # 金 SLA：中配额
+  gold:
+    rate: 200
+    burst: 400
+    key_type: var
+    key: consumer_name
+    rejected_code: 429
+    rejected_msg: "金级订阅请求频率超限"
+    policy: redis-cluster
+
+  # 银 SLA：基础配额
+  silver:
+    rate: 50
+    burst: 100
+    key_type: var
+    key: consumer_name
+    rejected_code: 429
+    rejected_msg: "银级订阅请求频率超限"
+    policy: local
+
+# 按数据源/模型类型/函数运行时的差异化限流
+rate_limit_by_source:
+  # SQL 查询：中等频率
+  sql:
+    rate: 100
+    burst: 200
+  # 模型推理：低频率（计算密集）
+  model_llm:
+    rate: 20
+    burst: 40
+  model_embedding:
+    rate: 100
+    burst: 200
+  model_rerank:
+    rate: 50
+    burst: 100
+  # 函数计算：高频率（轻量）
+  function:
+    rate: 500
+    burst: 1000
+
+# 错误响应格式
+error_response:
+  status_code: 429
+  headers:
+    Retry-After: "1"  # 建议客户端 1 秒后重试
+    X-RateLimit-Limit: "${rate}"
+    X-RateLimit-Remaining: "${remaining}"
+    X-RateLimit-Reset: "${reset_timestamp}"
+  body:
+    error: rate_limit_exceeded
+    message: "请求频率超限"
+    retryAfter: 1
+
+# Redis 集群配置（生产环境分布式限流）
+redis_cluster_config:
+  name: apisix-redis-cluster
+  config_id: redis-cluster-config
+  nodes:
+    - host: redis-0.redis-svc
+      port: 6379
+    - host: redis-1.redis-svc
+      port: 6379
+    - host: redis-2.redis-svc
+      port: 6379
+  auth: "${REDIS_CLUSTER_PASSWORD}"
+  timeout: 1000
+  keepalive: 60000
+
+# 监控指标
+metrics:
+  - rate_limit_triggered_total
+  - rate_limit_passed_total
+  - rate_limit_rejected_total

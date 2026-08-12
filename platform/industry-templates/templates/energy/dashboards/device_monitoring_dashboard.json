@@ -1,0 +1,201 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "energy_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_energy",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "energy_device",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "能源设备主表 | 设备台账/计量介质/位置/状态 | DDL: 01_device_monitoring_ddl.sql §1",
+      "columns": [
+        {"name": "device_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "device_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "location_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "department", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "rated_power", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "device_realtime_status",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "设备实时状态表 | 最新采集值/瞬时值/数据质量 | DDL: 01_device_monitoring_ddl.sql §2",
+      "columns": [
+        {"name": "device_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "current_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "instantaneous_rate", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "voltage", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "current", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "power_factor", "type": "DECIMAL(6,4)", "is_dttm": false},
+        {"name": "temperature", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "pressure", "type": "DECIMAL(10,2)", "is_dttm": false},
+        {"name": "flow_rate", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "online_status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "data_quality", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "last_collect_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "updated_at"
+    },
+    {
+      "table_name": "device_alarm_record",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "设备告警记录表 | 告警级别/触发值/确认/恢复 | DDL: 01_device_monitoring_ddl.sql §3",
+      "columns": [
+        {"name": "alarm_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "alarm_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "alarm_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "metric_name", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "trigger_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "threshold_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "alarm_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "recover_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "duration_seconds", "type": "INT", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "alarm_time"
+    },
+    {
+      "table_name": "device_health_score",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "设备健康度评分表 | 可用率/性能/告警三维度融合评分 | DDL: 01_device_monitoring_ddl.sql §4",
+      "columns": [
+        {"name": "device_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "availability_score", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "performance_score", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "alarm_score", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "health_score", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "health_grade", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "alarm_count", "type": "INT", "is_dttm": false},
+        {"name": "critical_alarm_count", "type": "INT", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "能源设备监测看板",
+      "slug": "energy-device-monitoring",
+      "description": "能源设备实时监测看板：设备地图+实时状态+告警列表+健康度分布",
+      "owners": ["energy-ops"],
+      "position": {},
+      "metadata": {
+        "chart_configuration": {
+          "color_scheme": "energy_theme",
+          "label_colors": {
+            "ONLINE": "#2E8B57",
+            "OFFLINE": "#808080",
+            "FAULT": "#FF4500",
+            "MAINT": "#FFA500",
+            "EXCELLENT": "#2E8B57",
+            "GOOD": "#32CD32",
+            "FAIR": "#FFD700",
+            "POOR": "#FF8C00",
+            "CRITICAL": "#DC143C"
+          }
+        }
+      },
+      "charts": [
+        {
+          "chart_id": "device_map",
+          "slice_name": "设备分布地图",
+          "viz_type": "deck_multi",
+          "datasource": "energy_device",
+          "params": {
+            "metrics": ["count"],
+            "groupby": ["location_name", "device_type"],
+            "filters": [{"col": "status", "op": "in", "val": ["ONLINE", "OFFLINE", "FAULT"]}],
+            "mapbox_style": "mapbox://styles/light",
+            "description": "按位置展示设备分布，颜色编码设备状态"
+          }
+        },
+        {
+          "chart_id": "realtime_status_table",
+          "slice_name": "设备实时状态表",
+          "viz_type": "table",
+          "datasource": "device_realtime_status",
+          "params": {
+            "metrics": ["instantaneous_rate", "voltage", "current", "temperature", "pressure"],
+            "groupby": ["device_code", "measure_medium", "online_status", "data_quality"],
+            "order_by": ["last_collect_time DESC"],
+            "row_limit": 100,
+            "description": "实时展示所有设备最新采集值与在线状态"
+          }
+        },
+        {
+          "chart_id": "alarm_list",
+          "slice_name": "告警列表",
+          "viz_type": "table",
+          "datasource": "device_alarm_record",
+          "params": {
+            "metrics": ["trigger_value", "threshold_value", "duration_seconds"],
+            "groupby": ["device_code", "alarm_type", "alarm_level", "status", "alarm_time"],
+            "filters": [{"col": "status", "op": "in", "val": ["ACTIVE", "ACKED"]}],
+            "order_by": ["alarm_time DESC"],
+            "row_limit": 50,
+            "description": "活跃告警列表，按时间倒序"
+          }
+        },
+        {
+          "chart_id": "health_score_distribution",
+          "slice_name": "健康度分布",
+          "viz_type": "pie",
+          "datasource": "device_health_score",
+          "params": {
+            "metrics": ["count"],
+            "groupby": ["health_grade"],
+            "filters": [{"col": "stat_date", "op": "==", "val": "最新日期"}],
+            "description": "设备健康度等级分布饼图"
+          }
+        },
+        {
+          "chart_id": "health_score_trend",
+          "slice_name": "健康度趋势",
+          "viz_type": "line_chart",
+          "datasource": "device_health_score",
+          "params": {
+            "metrics": ["AVG(health_score)"],
+            "groupby": ["stat_date"],
+            "time_grain_sqla": "day",
+            "description": "全厂平均健康度日趋势"
+          }
+        },
+        {
+          "chart_id": "alarm_count_by_level",
+          "slice_name": "告警分级统计",
+          "viz_type": "bar_chart",
+          "datasource": "device_alarm_record",
+          "params": {
+            "metrics": ["count"],
+            "groupby": ["alarm_level"],
+            "filters": [{"col": "alarm_time", "op": ">=", "val": "最近7天"}],
+            "description": "最近 7 天各级别告警数量柱状图"
+          }
+        }
+      ]
+    }
+  ]
+}

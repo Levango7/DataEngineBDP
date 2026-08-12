@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.shuqing.bigdata.governance.collector.collector.DorisMetadataCollectorTest
--------------------------------------------------------------------------------
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 5.535 s -- in com.shuqing.bigdata.governance.collector.collector.DorisMetadataCollectorTest

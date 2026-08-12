@@ -1,0 +1,169 @@
+﻿# 政务数据脱敏规则预置
+# ============================================================================
+# 归属：数据引擎大数据平台 · L5.3 行业应用模板 · 政务模板（government）
+# 对标：GB/T 35273-2020《个人信息安全规范》、GB/T?T?37988-2019《数据安全能力成熟度模型》
+# 关联：compliance/data-classification.yaml（数据分级）；L3.7 安全!脱敏（策略下推 L2.7 引擎）
+# 规则匹配：按 data_level 匹配资产 sensitiveLevel，按 applicable_fields 匹配字段，按 condition 决定是否生效
+# 生效方式：策略下推到 L2.7 统一 SQL 网关，查询时由网关注入脱敏函数，应用层不可绕过
+# 算法库：mask（正则替换）/ keep_first_char（保留首字符）/ keep_prefix_n（保留前 n 段）/ round_to_n（精度降级）/ hash（哈希）/ tokenize（假名化）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 脱敏规则定义
+desensitize_rules:
+  # ============ L3 敏感数据 ============
+  # --------------------------------------------------------------------------
+  # 身份证号脱敏（保留前6后4）
+  # --------------------------------------------------------------------------
+  - name: id_card_mask
+    description: 身份证号脱敏（保留前6后4，如 110101********1234）
+    algorithm: mask
+    pattern: '(\d{6})\d{8}(\d{4})0-9Xx'
+    replacement: '$1********$2'
+    applicable_fields:
+      - population_base.id_card_masked
+      - service_transaction.applicant_id_masked
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 10
+
+  # --------------------------------------------------------------------------
+  # 姓名脱敏（保留姓）
+  # --------------------------------------------------------------------------
+  - name: name_mask
+    description: 姓名脱敏（保留姓，如 张**）
+    algorithm: keep_first_char
+    mask_char: '*'
+    applicable_fields:
+      - population_base.name_masked
+      - service_transaction.applicant_name_masked
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 20
+
+  # --------------------------------------------------------------------------
+  # 手机号脱敏（保留前3后4）
+  # --------------------------------------------------------------------------
+  - name: phone_number_mask
+    description: 手机号脱敏（保留前3后4，如 138****5678）
+    algorithm: mask
+    pattern: '(\d{3})\d{4}(\d{4})'
+    replacement: '$1****$2'
+    applicable_fields:
+      - service_transaction.applicant_phone_masked
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 30
+
+  # --------------------------------------------------------------------------
+  # 地址脱敏（保留省市两级）
+  # --------------------------------------------------------------------------
+  - name: address_mask
+    description: 地址脱敏（保留省市两级，详细地址用 * 替换）
+    algorithm: keep_prefix_2
+    separator: '/'
+    mask_char: '*'
+    applicable_fields:
+      - population_base.resident_address_masked
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 40
+
+  # --------------------------------------------------------------------------
+  # 金额脱敏（精度降至千元）
+  # --------------------------------------------------------------------------
+  - name: amount_round
+    description: 金额脱敏（精度降至千元，避免精确金额泄露）
+    algorithm: round_to_n
+    unit: 1000
+    applicable_fields:
+      - fiscal_revenue.revenue_amount
+      - fiscal_expenditure.expenditure_amount
+      - fixed_asset_investment.investment_amount
+      - social_retail_consumption.retail_amount
+      - foreign_trade.trade_amount
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role == 'data_analyst' OR role == 'dept_user'"
+    priority: 50
+
+  # --------------------------------------------------------------------------
+  # 收入脱敏（精度降至万元）
+  # --------------------------------------------------------------------------
+  - name: income_round
+    description: 收入脱敏（精度降至万元，避免个人精确收入泄露）
+    algorithm: round_to4
+    unit: 10000
+    applicable_fields:
+      - population_employment_distribution.avg_income
+    data_level: [L3]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 60
+
+  # ============ L4 机密数据 ============
+  # --------------------------------------------------------------------------
+  # 审计日志请求参数脱敏（完全哈希）
+  # --------------------------------------------------------------------------
+  - name: audit_params_hash
+    description: 审计日志请求参数脱敏（SHA-256 哈希，避免敏感参数泄露）
+    algorithm: hash
+    hash_algorithm: SHA-256
+    applicable_fields:
+      - audit_log.request_params
+    data_level: [L4]
+    scope: [query, export]
+    condition: "role != 'auditor'"
+    priority: 5
+
+  # --------------------------------------------------------------------------
+  # 权限定义 SQL 表达脱敏（假名化）
+  # --------------------------------------------------------------------------
+  - name: permission_sql_tokenize
+    description: 权限定义 SQL 表达脱敏（假名化，避免权限逻辑泄露）
+    algorithm: tokenize
+    applicable_fields:
+      - gov_permission.sql_expression
+    data_level: [L4]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 15
+
+  # --------------------------------------------------------------------------
+  # 访问控制策略条件脱敏
+  # --------------------------------------------------------------------------
+  - name: access_control_condition_hash
+    description: 访问控制策略条件脱敏（SHA-256 哈希）
+    algorithm: hash
+    hash_algorithm: SHA-256
+    applicable_fields:
+      - access_control_policy.condition
+    data_level: [L4]
+    scope: [query, export]
+    condition: "role != 'auditor' AND role != 'gov_admin'"
+    priority: 25
+
+# 脱敏算法说明
+algorithms:
+  - name: mask
+    description: 正则替换脱敏，按 pattern 匹配后用 replacement 替换
+    params: [pattern, replacement]
+  - name: keep_first_char
+    description: 保留首字符，其余用 mask_char 替换
+    params: [mask_char]
+  - name: keep_prefix_2
+    description: 保留前 2 段（按 separator 分割），其余用 mask_char 替换
+    params: [separator, mask_char]
+  - name: round_to_n
+    description: 精度降级至指定单位（如 1000 元）
+    params: [unit]
+  - name: hash
+    description: 哈希脱敏（SHA-256），不可逆
+    params: [hash_algorithm]
+  - name: tokenize
+    description: 假名化脱敏，用假名替换原值，保持引用关系
+    params: []

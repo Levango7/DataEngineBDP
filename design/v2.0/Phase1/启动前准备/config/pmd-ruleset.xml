@@ -1,0 +1,110 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  PMD 规则集配置
+  适用于 platform/ 下所有 Java 组件
+  通过 Maven pmd 插件调用：mvn pmd:check
+  规则集参考：https://pmd.github.io/latest/pmd_rules_java.html
+-->
+<ruleset name="ShuqingBigData Custom Rules"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0 https://pmd.sourceforge.net/ruleset_2_0_0.xsd"
+         xsi:noNamespaceSchemaLocation="https://pmd.sourceforge.net/ruleset_2_0_0.xsd">
+
+    <description>数据引擎大数据平台 Java 代码质量规则集</description>
+
+    <!-- 代码风格 -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- 排除与 Checkstyle 重复的规则 -->
+        <exclude name="CommentDefaultAccessModifier"/>
+        <exclude name="DefaultPackage"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="FieldDeclarationsShouldBeAtStartOfClass"/>
+    </rule>
+
+    <!-- 设计 -->
+    <rule ref="category/java/design.xml">
+        <exclude name="LawOfDemeter"/>
+        <exclude name="LoosePackageCoupling"/>
+        <exclude name="UselessOverridingMethod"/>
+        <!-- Spring Boot 控制器允许较多方法 -->
+        <exclude name="TooManyMethods"/>
+    </rule>
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="methodReportLevel" value="15"/>
+            <property name="classReportLevel" value="80"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/design.xml/TooManyFields">
+        <properties>
+            <property name="maxfields" value="20"/>
+        </properties>
+    </rule>
+    <rule ref="category/java/design.xml/NPathComplexity">
+        <properties>
+            <property name="reportLevel" value="200"/>
+        </properties>
+    </rule>
+
+    <!-- 最佳实践 -->
+    <rule ref="category/java/bestpractices.xml">
+        <exclude name="AbstractClassWithoutAbstractMethod"/>
+        <exclude name="AccessorClassGeneration"/>
+        <exclude name="AvoidPrintStackTrace"/>
+        <exclude name="GuardDebugStatement"/>
+        <exclude name="JUnit5TestCouldBeJUnit4"/>
+    </rule>
+    <rule ref="category/java/bestpractices.xml/AvoidReassigningParameters"/>
+    <rule ref="category/java/bestpractices.xml/UseCollectionIsEmpty"/>
+    <rule ref="category/java/bestpractices.xml/ReplaceHashtableWithMap"/>
+    <rule ref="category/java/bestpractices.xml/ReplaceVectorWithList"/>
+
+    <!-- 错误预防 -->
+    <rule ref="category/java/errorprone.xml">
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <exclude name="AvoidCatchingThrowable"/>
+        <exclude name="DataflowAnomalyAnalysis"/>
+        <exclude name="NullAssignment"/>
+    </rule>
+    <rule ref="category/java/errorprone.xml/EmptyCatchBlock"/>
+    <rule ref="category/java/errorprone.xml/CloseResource"/>
+    <rule ref="category/java/errorprone.xml/UnusedLocalVariable"/>
+    <rule ref="category/java/errorprone.xml/UnusedPrivateField"/>
+    <rule ref="category/java/errorprone.xml/UnusedPrivateMethod"/>
+
+    <!-- 性能 -->
+    <rule ref="category/java/performance.xml">
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+        <exclude name="SimplifyStartsWith"/>
+    </rule>
+    <rule ref="category/java/performance.xml/UseStringBufferForStringAppends"/>
+    <rule ref="category/java/performance.xml/InefficientEmptyStringCheck"/>
+    <rule ref="category/java/performance.xml/UseArrayListInsteadOfVector"/>
+
+    <!-- 安全 -->
+    <rule ref="category/java/security.xml">
+        <exclude name="InsecureCryptoIv"/>
+    </rule>
+
+    <!-- 文档 -->
+    <rule ref="category/java/documentation.xml">
+        <exclude name="CommentSize"/>
+    </rule>
+    <rule ref="category/java/documentation.xml/CommentRequired">
+        <properties>
+            <property name="methodWithOverrideCommentRequirement" value="Unwanted"/>
+            <property name="fieldCommentRequirement" value="Unwanted"/>
+            <property name="publicMethodCommentRequirement" value="Required"/>
+            <property name="protectedMethodCommentRequirement" value="Required"/>
+        </properties>
+    </rule>
+
+    <!-- 多线程 -->
+    <rule ref="category/java/multithreading.xml">
+        <exclude name="UseConcurrentHashMap"/>
+        <exclude name="DoNotUseThreads"/>
+    </rule>
+
+</ruleset>

@@ -14,23 +14,17 @@
     - proxy-rewrite: 重写
     - consumer-restriction: 消费者限制
 """
+
 from __future__ import annotations
 
 from openapi_catalog.config.settings import Settings
 from openapi_catalog.models import (
     APIDefinition,
-    APIStatus,
     APISIXConsumer,
     APISIXRoute,
     APISIXUpstream,
-    APISubscription,
     AuthType,
-    CostStrategy,
-    HttpMethod,
     SubscriptionStatus,
-)
-from openapi_catalog.repositories import (
-    APINotFoundError,
 )
 from openapi_catalog.repositories.mock import MockCatalogStore
 
@@ -79,9 +73,7 @@ class APISIXConfigService:
             priority=self._compute_priority(api),
         )
 
-    async def generate_consumer(
-        self, subscription_id: str
-    ) -> APISIXConsumer:
+    async def generate_consumer(self, subscription_id: str) -> APISIXConsumer:
         """为订阅生成 APISIX Consumer（绑定 API Key）.
 
         Args:

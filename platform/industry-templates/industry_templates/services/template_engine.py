@@ -3,23 +3,28 @@
 核心职责：
     1. 模板解析：从模板库加载模板，校验完整性
     2. 参数注入：将租户 values 渲染到模板占位符（${...}）
-    3. 一键部署：参数校验 → 渲染 → 模拟 helm install → 模拟 instantiate
+    3. 一键部署：参数校验 → 渲染 → helm install（mock 或真实）→ instantiate
 
 对齐设计文档第 5 节"安装与实例化"。
+
+部署模式：
+    - mock: 不真正调用 helm，仅生成部署记录（开发/测试默认）
+    - helm: 通过 HelmExecutor 调用真实 helm CLI（生产/集成环境）
 """
+
 from __future__ import annotations
 
-import re
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Optional
+import os
+import re
+from typing import Any, Literal, Optional
+import uuid
 
 from industry_templates.models import (
     DeploymentRecord,
     DeploymentRequest,
     DeploymentStatus,
     Template,
-    TemplateParameter,
     TemplatePreview,
     TemplateStatus,
 )
@@ -28,8 +33,8 @@ from industry_templates.services.exceptions import (
     ParameterValidationError,
     RenderError,
     TemplateError,
-    TemplateNotFoundError,
     TemplateNotDeployableError,
+    TemplateNotFoundError,
 )
 
 # 占位符正则：${param.name} 或 ${param.name:default}
@@ -40,21 +45,58 @@ class TemplateEngine:
     """模板引擎：解析 + 参数注入 + 一键部署.
 
     Attributes:
-        templates: 模板库 dict[id -> Template]
+        templates:   模板库 dict[id -> Template]
         deployments: 部署记录 dict[deploymentId -> DeploymentRecord]
+        deployMode:  部署模式: mock / helm
+        helmExecutor: Helm 执行器（deployMode=helm 时使用）
+        chartBase:   Chart 查找基础路径
     """
 
-    def __init__(self, templates: Optional[list[Template]] = None) -> None:
+    def __init__(
+        self,
+        templates: Optional[list[Template]] = None,
+        deployMode: Literal["mock", "helm"] = "mock",
+        helmExecutor: Optional[Any] = None,
+        chartBase: str = "./charts",
+    ) -> None:
         """初始化模板引擎.
 
         Args:
-            templates: 初始模板列表，不传则空。
+            templates:    初始模板列表，不传则空
+            deployMode:   部署模式: mock / helm
+            helmExecutor: HelmExecutor 实例（helm 模式下使用，不传则惰性构建）
+            chartBase:    Chart 查找基础路径
         """
         self.templates: dict[str, Template] = {}
         self.deployments: dict[str, DeploymentRecord] = {}
+        self.deployMode: Literal["mock", "helm"] = deployMode
+        self.chartBase = chartBase
+        self._helmExecutor = helmExecutor
         if templates:
             for t in templates:
                 self.register_template(t)
+
+    # ---------- Helm 执行器 ----------
+
+    @property
+    def helmExecutor(self):
+        """惰性构建 HelmExecutor（helm 模式下首次访问时构建）."""
+        if self._helmExecutor is None:
+            from industry_templates.services.helm_executor import HelmExecutor
+
+            self._helmExecutor = HelmExecutor()
+        return self._helmExecutor
+
+    def _resolve_chart_path(self, templateId: str) -> str:
+        """解析模板对应的 Chart 路径.
+
+        约定：{chartBase}/{templateId} 即为 Helm Chart 目录。
+        若不存在则回退为模板 ID（让 helm 自行解析，可能命中仓库中的 chart）。
+        """
+        candidate = os.path.join(self.chartBase, templateId)
+        if os.path.isdir(candidate):
+            return candidate
+        return templateId
 
     # ---------- 模板注册 ----------
 
@@ -132,10 +174,7 @@ class TemplateEngine:
                 "industry": ind,
                 "name": industry_names.get(ind, ind),
                 "count": len(items),
-                "templates": [
-                    {"id": t.id, "name": t.meta.name, "version": t.meta.version}
-                    for t in items
-                ],
+                "templates": [{"id": t.id, "name": t.meta.name, "version": t.meta.version} for t in items],
             }
             for ind, items in groups.items()
         ]
@@ -154,6 +193,7 @@ class TemplateEngine:
             渲染后的值。占位符未提供时保留原占位符。
         """
         if isinstance(value, str):
+
             def _replace(match: re.Match[str]) -> str:
                 key = match.group(1)
                 default = match.group(2)
@@ -165,10 +205,7 @@ class TemplateEngine:
 
             return _PLACEHOLDER_RE.sub(_replace, value)
         if isinstance(value, dict):
-            return {
-                k: TemplateEngine.render_value(v, values)
-                for k, v in value.items()
-            }
+            return {k: TemplateEngine.render_value(v, values) for k, v in value.items()}
         if isinstance(value, list):
             return [TemplateEngine.render_value(v, values) for v in value]
         return value
@@ -283,9 +320,7 @@ class TemplateEngine:
 
         # 2. 校验模板状态
         if template.meta.status != TemplateStatus.CATALOG:
-            raise TemplateNotDeployableError(
-                templateId, template.meta.status.value
-            )
+            raise TemplateNotDeployableError(templateId, template.meta.status.value)
 
         # 3. 合并默认值
         merged_values = self.merge_default_values(template, request.values)
@@ -295,11 +330,11 @@ class TemplateEngine:
 
         # 5. 渲染模板
         try:
-            rendered = self.render_template(template, merged_values)
+            self.render_template(template, merged_values)
         except Exception as e:
             raise RenderError(f"模板渲染失败: {e}") from e
 
-        # 6. 生成部署记录并模拟 helm install
+        # 6. 生成部署记录
         deployment_id = f"dep-{uuid.uuid4().hex[:12]}"
         namespace = request.namespace or f"tenant-{request.tenantId}"
         record = DeploymentRecord(
@@ -314,19 +349,64 @@ class TemplateEngine:
         )
         self.deployments[deployment_id] = record
 
-        # 7. 模拟 instantiate（首次作业运行 + 仪表盘快照）
-        record.status = DeploymentStatus.INSTANTIATING
-        record.jobRunId = f"job-{uuid.uuid4().hex[:12]}"
-        record.status = DeploymentStatus.RUNNING
-        record.dashboardSnapshotUrl = (
-            f"/dashboards/{deployment_id}/snapshot.png"
-        )
-        record.finishedAt = datetime.now(timezone.utc)
+        # 7. 执行部署：mock 模式模拟，helm 模式真实调用 helm CLI
+        try:
+            if self.deployMode == "helm":
+                self._helm_deploy(record, template, merged_values)
+            else:
+                self._mock_deploy(record)
+        except TemplateError:
+            record.status = DeploymentStatus.FAILED
+            record.finishedAt = datetime.now(timezone.utc)
+            raise
 
         # 8. 模板安装计数 +1
         template.meta.installCount += 1
 
         return record
+
+    def _mock_deploy(
+        self,
+        record: DeploymentRecord,
+    ) -> None:
+        """Mock 部署：模拟 helm install + instantiate（不真正调用 helm）."""
+        record.status = DeploymentStatus.INSTANTIATING
+        record.jobRunId = f"job-{uuid.uuid4().hex[:12]}"
+        record.status = DeploymentStatus.RUNNING
+        record.dashboardSnapshotUrl = f"/dashboards/{record.deploymentId}/snapshot.png"
+        record.finishedAt = datetime.now(timezone.utc)
+
+    def _helm_deploy(
+        self,
+        record: DeploymentRecord,
+        template: Template,
+        values: dict[str, Any],
+    ) -> None:
+        """真实 Helm 部署：调用 helm upgrade --install + 模拟 instantiate.
+
+        Args:
+            record:  部署记录（已生成 deploymentId/namespace/releaseName）
+            template: 模板对象（用于定位 Chart）
+            values:   渲染后的 values 字典
+
+        Raises:
+            HelmCommandError: helm 命令失败。
+        """
+        chart = self._resolve_chart_path(template.id)
+        # 真实 helm install / upgrade
+        self.helmExecutor.install_or_upgrade(
+            releaseName=record.releaseName,
+            chart=chart,
+            namespace=record.namespace,
+            values=values,
+        )
+        # helm 成功后进入 instantiate（首次作业 + 仪表盘快照）
+        # instantiate 仍走平台内部逻辑（非 helm 范畴）
+        record.status = DeploymentStatus.INSTANTIATING
+        record.jobRunId = f"job-{uuid.uuid4().hex[:12]}"
+        record.status = DeploymentStatus.RUNNING
+        record.dashboardSnapshotUrl = f"/dashboards/{record.deploymentId}/snapshot.png"
+        record.finishedAt = datetime.now(timezone.utc)
 
     def get_deployment(self, deploymentId: str) -> DeploymentRecord:
         """获取部署记录.
@@ -428,9 +508,19 @@ class TemplateEngine:
             DeploymentNotFoundError: 部署记录不存在
         """
         record = self.get_deployment(deploymentId)
+        # helm 模式：真实调用 helm uninstall
+        if self.deployMode == "helm":
+            try:
+                self.helmExecutor.uninstall(
+                    releaseName=record.releaseName,
+                    namespace=record.namespace,
+                )
+            except TemplateError as e:
+                # release 不存在不视为致命错误，继续标记为 STOPPED
+                record.errorMessage = f"helm uninstall 警告: {e}"
         record.status = DeploymentStatus.STOPPED
         record.finishedAt = datetime.now(timezone.utc)
         if purgeData:
-            # 模拟物理删除：清除渲染值
+            # 物理删除：清除渲染值
             record.renderedValues = {}
         return record

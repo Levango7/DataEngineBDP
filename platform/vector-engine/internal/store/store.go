@@ -45,10 +45,10 @@ const (
 type Collection struct {
 	Name       string `json:"name"`
 	Dimension  int    `json:"dimension"`
-	MetricType string `json:"metric_type"`
-	IndexType  string `json:"index_type"`
+	MetricType string `json:"metricType"`
+	IndexType  string `json:"indexType"`
 	// VectorCount 集合中向量数量（由后端维护，可能为近似值）。
-	VectorCount int64 `json:"vector_count"`
+	VectorCount int64 `json:"vectorCount"`
 }
 
 // Vector 表示一条向量记录。
@@ -69,21 +69,21 @@ type SearchResult struct {
 type CreateCollectionRequest struct {
 	Name       string `json:"name"`
 	Dimension  int    `json:"dimension"`
-	MetricType string `json:"metric_type"` // L2, IP, COSINE
-	IndexType  string `json:"index_type"`  // FLAT, IVF_FLAT, HNSW, IVF_PQ
+	MetricType string `json:"metricType"` // L2, IP, COSINE
+	IndexType  string `json:"indexType"`  // FLAT, IVF_FLAT, HNSW, IVF_PQ
 }
 
 // InsertRequest 插入向量请求。
 type InsertRequest struct {
-	CollectionName string   `json:"collection_name"`
+	CollectionName string   `json:"collectionName"`
 	Vectors        []Vector `json:"vectors"`
 }
 
 // SearchRequest 向量检索请求。
 type SearchRequest struct {
-	CollectionName string    `json:"collection_name"`
+	CollectionName string    `json:"collectionName"`
 	Vector         []float32 `json:"vector"`
-	TopK           int       `json:"top_k"`
+	TopK           int       `json:"topK"`
 	// Filter 可选的标量过滤表达式（语法依后端实现而定，Milvus 使用其表达式语法）。
 	Filter string `json:"filter,omitempty"`
 }
@@ -92,22 +92,22 @@ type SearchRequest struct {
 //
 // 混合检索在向量召回的基础上叠加标量条件过滤，常用于 RAG 场景的元数据筛选。
 type HybridSearchRequest struct {
-	CollectionName string    `json:"collection_name"`
+	CollectionName string    `json:"collectionName"`
 	Vector         []float32 `json:"vector"`
-	TopK           int       `json:"top_k"`
+	TopK           int       `json:"topK"`
 	// Filter 必填的标量过滤表达式。
 	Filter string `json:"filter"`
 	// MinScore 最小分数阈值，低于此分数的结果被过滤。
-	MinScore float32 `json:"min_score,omitempty"`
+	MinScore float32 `json:"minScore,omitempty"`
 }
 
 // CollectionStats 集合统计信息。
 type CollectionStats struct {
 	Name        string `json:"name"`
 	Dimension   int    `json:"dimension"`
-	MetricType  string `json:"metric_type"`
-	IndexType   string `json:"index_type"`
-	VectorCount int64  `json:"vector_count"`
+	MetricType  string `json:"metricType"`
+	IndexType   string `json:"indexType"`
+	VectorCount int64  `json:"vectorCount"`
 }
 
 // VectorStore 向量存储抽象接口。

@@ -2,10 +2,11 @@
 
 对应详细设计 §5 消费者订阅与调用流程.
 """
+
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
+import uuid
 
 from openapi_catalog.models import (
     APISubscription,
@@ -14,9 +15,7 @@ from openapi_catalog.models import (
     SubscriptionStatus,
 )
 from openapi_catalog.repositories import (
-    APINotFoundError,
     InvalidAPIKeyError,
-    SubscriptionNotFoundError,
     SubscriptionStatusError,
 )
 from openapi_catalog.repositories.mock import MockCatalogStore, generate_ak_sk
@@ -28,9 +27,7 @@ class SubscriptionService:
     def __init__(self, store: MockCatalogStore) -> None:
         self.store = store
 
-    async def apply_subscription(
-        self, api_id: str, request: APISubscription
-    ) -> APISubscription:
+    async def apply_subscription(self, api_id: str, request: APISubscription) -> APISubscription:
         """提交订阅申请.
 
         Args:
@@ -50,9 +47,7 @@ class SubscriptionService:
         request.updatedAt = datetime.now()
         return await self.store.save_subscription(request)
 
-    async def approve_subscription(
-        self, subscription_id: str, request: ApproveRequest
-    ) -> APISubscription:
+    async def approve_subscription(self, subscription_id: str, request: ApproveRequest) -> APISubscription:
         """审批订阅.
 
         Args:
@@ -70,11 +65,7 @@ class SubscriptionService:
             sub.status = SubscriptionStatus.ACTIVE
             sub.approvedBy = request.approver
             sub.approveReason = request.reason
-            sub.grantedQuota = (
-                request.grantedQuota
-                if request.grantedQuota is not None
-                else sub.quotaExpect
-            )
+            sub.grantedQuota = request.grantedQuota if request.grantedQuota is not None else sub.quotaExpect
             # 发放 AK/SK
             ak, sk = generate_ak_sk()
             sub.accessKey = ak
@@ -91,17 +82,13 @@ class SubscriptionService:
         """获取订阅详情."""
         return await self.store.get_subscription(subscription_id)
 
-    async def list_subscriptions(
-        self, filter_: SubscriptionFilter
-    ) -> list[APISubscription]:
+    async def list_subscriptions(self, filter_: SubscriptionFilter) -> list[APISubscription]:
         """列出订阅."""
         return await self.store.list_subscriptions(filter_)
 
     async def list_subscribers(self, api_id: str) -> list[APISubscription]:
         """列出某 API 的所有订阅者."""
-        return await self.store.list_subscriptions(
-            SubscriptionFilter(apiId=api_id, limit=1000)
-        )
+        return await self.store.list_subscriptions(SubscriptionFilter(apiId=api_id, limit=1000))
 
     async def suspend_subscription(self, subscription_id: str) -> APISubscription:
         """暂停订阅."""

@@ -1,21 +1,18 @@
 """鉴权和限流测试."""
+
 from __future__ import annotations
 
-import pytest
-
 from openapi_catalog.models import (
-    APIStatus,
-    ApproveRequest,
     APISubscription,
-    SubscribeRequest,
+    ApproveRequest,
     SubscriptionStatus,
 )
 from openapi_catalog.repositories import (
     InvalidAPIKeyError,
     QuotaExceededError,
     RateLimitExceededError,
-    SubscriptionStatusError,
 )
+import pytest
 
 
 class TestSubscription:
@@ -36,9 +33,7 @@ class TestSubscription:
             purpose="数据查询",
             quotaExpect=100,
         )
-        result = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        result = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
 
         assert result.id != ""
         assert result.status == SubscriptionStatus.PENDING
@@ -59,9 +54,7 @@ class TestSubscription:
             purpose="数据查询",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
 
         # 审批通过
         approve_req = ApproveRequest(
@@ -70,9 +63,7 @@ class TestSubscription:
             grantedQuota=200,
             approver="admin",
         )
-        approved = await registry.subscriptionService.approve_subscription(
-            saved_sub.id, approve_req
-        )
+        approved = await registry.subscriptionService.approve_subscription(saved_sub.id, approve_req)
 
         assert approved.status == SubscriptionStatus.ACTIVE
         assert approved.accessKey is not None
@@ -96,18 +87,14 @@ class TestSubscription:
             purpose="数据查询",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
 
         reject_req = ApproveRequest(
             approve=False,
             reason="配额不足",
             approver="admin",
         )
-        rejected = await registry.subscriptionService.approve_subscription(
-            saved_sub.id, reject_req
-        )
+        rejected = await registry.subscriptionService.approve_subscription(saved_sub.id, reject_req)
 
         assert rejected.status == SubscriptionStatus.REJECTED
         assert rejected.accessKey is None
@@ -127,18 +114,14 @@ class TestSubscription:
             purpose="测试",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
         approved = await registry.subscriptionService.approve_subscription(
             saved_sub.id,
             ApproveRequest(approve=True, approver="admin"),
         )
 
         # 鉴权
-        result = await registry.subscriptionService.authenticate(
-            approved.accessKey
-        )
+        result = await registry.subscriptionService.authenticate(approved.accessKey)
         assert result.id == approved.id
 
     @pytest.mark.asyncio
@@ -162,9 +145,7 @@ class TestSubscription:
             purpose="测试",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
         approved = await registry.subscriptionService.approve_subscription(
             saved_sub.id,
             ApproveRequest(approve=True, approver="admin"),
@@ -193,24 +174,18 @@ class TestSubscription:
             purpose="测试",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
         approved = await registry.subscriptionService.approve_subscription(
             saved_sub.id,
             ApproveRequest(approve=True, approver="admin"),
         )
 
         # 暂停
-        suspended = await registry.subscriptionService.suspend_subscription(
-            approved.id
-        )
+        suspended = await registry.subscriptionService.suspend_subscription(approved.id)
         assert suspended.status == SubscriptionStatus.SUSPENDED
 
         # 恢复
-        resumed = await registry.subscriptionService.resume_subscription(
-            approved.id
-        )
+        resumed = await registry.subscriptionService.resume_subscription(approved.id)
         assert resumed.status == SubscriptionStatus.ACTIVE
 
     @pytest.mark.asyncio
@@ -228,9 +203,7 @@ class TestSubscription:
             purpose="测试",
             quotaExpect=100,
         )
-        await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub1
-        )
+        await registry.subscriptionService.apply_subscription(saved_api.id, sub1)
 
         sub2 = APISubscription(
             id="",
@@ -242,10 +215,9 @@ class TestSubscription:
             quotaExpect=200,
         )
         from openapi_catalog.repositories import SubscriptionAlreadyExistsError
+
         with pytest.raises(SubscriptionAlreadyExistsError):
-            await registry.subscriptionService.apply_subscription(
-                saved_api.id, sub2
-            )
+            await registry.subscriptionService.apply_subscription(saved_api.id, sub2)
 
 
 class TestRateLimiter:
@@ -313,9 +285,7 @@ class TestAPICall:
             purpose="测试",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
         approved = await registry.subscriptionService.approve_subscription(
             saved_sub.id,
             ApproveRequest(approve=True, approver="admin", grantedQuota=100),
@@ -360,6 +330,7 @@ class TestAPICall:
         # 未发布，状态 DRAFT
 
         from openapi_catalog.repositories import APIStatusTransitionError
+
         with pytest.raises(APIStatusTransitionError):
             await registry.apiCallService.call_api(
                 api_id=saved_api.id,
@@ -388,9 +359,7 @@ class TestAPICall:
             purpose="测试",
             quotaExpect=100,
         )
-        saved_sub = await registry.subscriptionService.apply_subscription(
-            saved_api.id, sub
-        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
         approved = await registry.subscriptionService.approve_subscription(
             saved_sub.id,
             ApproveRequest(approve=True, approver="admin", grantedQuota=100),

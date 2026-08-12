@@ -1,0 +1,217 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "government_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_government",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "audit_log",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "审计日志表 | 数据分级=L4 | DDL: 04_government_compliance_ddl.sql §3",
+      "columns": [
+        {"name": "log_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "operate_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "operator_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "operator_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "operate_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "target_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "target_name", "type": "VARCHAR(256)", "is_dttm": false},
+        {"name": "operate_result", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "source_ip", "type": "VARCHAR(64)", "is_dttm": false}
+      ],
+      "main_dttm_col": "operate_time"
+    },
+    {
+      "table_name": "compliance_risk_alert",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "合规风险预警表 | 数据分级=L3 | DDL: 04_government_compliance_ddl.sql §6",
+      "columns": [
+        {"name": "alert_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "alert_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "risk_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "risk_level", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "risk_score", "type": "DECIMAL(6,2)", "is_dttm": false},
+        {"name": "target_object", "type": "VARCHAR(256)", "is_dttm": false},
+        {"name": "handling_status", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "alert_time"
+    },
+    {
+      "table_name": "access_control_record",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "访问控制决策记录表 | 数据分级=L3 | DDL: 04_government_compliance_ddl.sql §5",
+      "columns": [
+        {"name": "record_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "decision_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "requester_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "target_table", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "target_level", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "decision", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "decision_time"
+    },
+    {
+      "table_name": "desensitize_rule",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "脱敏规则表 | DDL: 04_government_compliance_ddl.sql §2",
+      "columns": [
+        {"name": "rule_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "rule_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "algorithm", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "applicable_fields", "type": "VARCHAR(1024)", "is_dttm": false},
+        {"name": "is_active", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "rule_id"
+    },
+    {
+      "table_name": "data_classification",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "数据分级定义表 | DDL: 04_government_compliance_ddl.sql §1",
+      "columns": [
+        {"name": "classification_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "level_code", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "level_name", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "level_rank", "type": "INT", "is_dttm": false},
+        {"name": "encryption_required", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "audit_required", "type": "BOOLEAN", "is_dttm": false}
+      ],
+      "main_dttm_col": "classification_id"
+    },
+    {
+      "table_name": "compliance_check_record",
+      "schema": "db_government",
+      "database_name": "government_doris",
+      "description": "合规检查记录表 | DDL: 04_government_compliance_ddl.sql §7",
+      "columns": [
+        {"name": "check_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "check_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "check_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "check_result", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "non_compliant_count", "type": "INT", "is_dttm": false}
+      ],
+      "main_dttm_col": "check_time"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "合规审计看板",
+      "slug": "compliance-dashboard",
+      "description": "政务行业模板 - 合规审计看板：数据访问+脱敏统计+审计日志+风险预警",
+      "owners": ["gov-ops@shuqing.com", "auditor@shuqing.com"],
+      "position": {},
+      "metadata": {
+        "refresh_frequency": 300,
+        "color_scheme": "governmentRed",
+        "chart_configuration": {"default_time_range": "Last 7 days"}
+      },
+      "charts": [
+        {
+          "chart_title": "数据访问审计日志",
+          "slice_name": "数据访问审计日志",
+          "viz_type": "table_view",
+          "datasource": "audit_log",
+          "params": {
+            "columns": ["operate_time", "operator_name", "operate_type", "target_name", "operate_result", "source_ip"],
+            "order_by": "operate_time DESC",
+            "row_limit": 50,
+            "description": "最近 50 条数据访问审计日志"
+          }
+        },
+        {
+          "chart_title": "操作类型分布",
+          "slice_name": "操作类型分布",
+          "viz_type": "pie_chart",
+          "datasource": "audit_log",
+          "params": {
+            "metric": "COUNT(*)",
+            "group_by": "operate_type",
+            "color_scheme": "operateTypeColors",
+            "description": "审计日志按操作类型分布"
+          }
+        },
+        {
+          "chart_title": "合规风险预警",
+          "slice_name": "合规风险预警",
+          "viz_type": "table_view",
+          "datasource": "compliance_risk_alert",
+          "params": {
+            "columns": ["alert_time", "risk_type", "risk_level", "risk_score", "target_object", "handling_status"],
+            "order_by": "alert_time DESC",
+            "row_limit": 30,
+            "description": "最近 30 条合规风险预警"
+          }
+        },
+        {
+          "chart_title": "风险级别分布",
+          "slice_name": "风险级别分布",
+          "viz_type": "bar_chart",
+          "datasource": "compliance_risk_alert",
+          "params": {
+            "x_axis": "risk_level",
+            "y_axis": "COUNT(*)",
+            "color_scheme": "riskLevelColors",
+            "show_legend": true,
+            "description": "合规风险按级别（低/中/高/严重）分布"
+          }
+        },
+        {
+          "chart_title": "访问控制决策统计",
+          "slice_name": "访问控制决策统计",
+          "viz_type": "pie_chart",
+          "datasource": "access_control_record",
+          "params": {
+            "metric": "COUNT(*)",
+            "group_by": "decision",
+            "color_scheme": "decisionColors",
+            "description": "访问控制 ALLOW/DENY 决策占比"
+          }
+        },
+        {
+          "chart_title": "脱敏规则统计",
+          "slice_name": "脱敏规则统计",
+          "viz_type": "table_view",
+          "datasource": "desensitize_rule",
+          "params": {
+            "columns": ["rule_name", "algorithm", "applicable_fields", "is_active"],
+            "description": "所有脱敏规则列表"
+          }
+        },
+        {
+          "chart_title": "合规检查结果趋势",
+          "slice_name": "合规检查结果趋势",
+          "viz_type": "line_chart",
+          "datasource": "compliance_check_record",
+          "params": {
+            "x_axis": "check_time",
+            "y_axis": "non_compliant_count",
+            "color_scheme": "checkResultColors",
+            "show_legend": true,
+            "description": "合规检查不符合项数趋势"
+          }
+        },
+        {
+          "chart_title": "数据分级分布",
+          "slice_name": "数据分级分布",
+          "viz_type": "table_view",
+          "datasource": "data_classification",
+          "params": {
+            "columns": ["level_code", "level_name", "level_rank", "encryption_required", "audit_required"],
+            "description": "数据分级定义（L1公开/L2内部/L3秘密/L4机密）"
+          }
+        }
+      ]
+    }
+  ]
+}

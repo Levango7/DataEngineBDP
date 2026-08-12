@@ -1,0 +1,145 @@
+# Prometheus 指标规则 · 漂移监控指标
+# ============================================================================
+# 作用：定义 Prometheus Recording Rules + Alerting Rules
+# 集成：部署到 monitoring namespace，被 Prometheus 加载
+# 依赖：ArgoCD 已暴露 metrics（argocd-metrics 服务）
+# ============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: drift-detection-rules
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: drift-detection
+    app.kubernetes.io/part-of: gitops
+    prometheus: k8s
+    role: alert-rules
+  annotations:
+    description: "漂移检测 Prometheus 指标与告警规则"
+spec:
+  groups:
+    # ============================================================================
+    # 1. Recording Rules · 漂移指标聚合
+    # ============================================================================
+    - name: drift.recording
+      interval: 30s
+      rules:
+        # 漂移中的 App 数量
+        - record: drift:apps_out_of_sync:count
+          expr: |
+            sum(argocd_app_info{sync_status!="Synced"})
+
+        # 按环境分组的漂移 App 数
+        - record: drift:apps_out_of_sync:by_env
+          expr: |
+            sum by (environment) (argocd_app_info{sync_status!="Synced"})
+
+        # 按严重程度分组的漂移数
+        - record: drift:events:by_severity
+          expr: |
+            sum by (severity) (argocd_drift_detected)
+
+        # 漂移持续时间（秒）
+        - record: drift:duration_seconds:avg
+          expr: |
+            avg(argocd_drift_duration_seconds)
+
+        # 修复成功率
+        - record: drift:remediation_success:rate
+          expr: |
+            sum(rate(argocd_remediation_total{result="success"}[5m]))
+            /
+            sum(rate(argocd_remediation_total[5m]))
+
+        # 熔断次数
+        - record: drift:circuit_breaker:count
+          expr: |
+            sum(argocd_circuit_breaker_triggered)
+
+    # ============================================================================
+    # 2. Alerting Rules · 漂移告警
+    # ============================================================================
+    - name: drift.alerting
+      interval: 30s
+      rules:
+        # 任意 App 漂移超过 5 分钟
+        - alert: ArgoCDDriftDetected
+          expr: drift:apps_out_of_sync:count > 0
+          for: 5m
+          labels:
+            severity: warning
+            category: drift
+          annotations:
+            summary: "检测到 ArgoCD 配置漂移"
+            description: "{{ $value }} 个 App 处于 OutOfSync 状态超过 5 分钟"
+            runbook: "https://wiki.company.com/sre/drift-detection"
+
+        # prod 环境漂移
+        - alert: ArgoCDProdDriftDetected
+          expr: drift:apps_out_of_sync:by_env{environment="prod"} > 0
+          for: 1m
+          labels:
+            severity: critical
+            category: drift
+            environment: prod
+          annotations:
+            summary: "prod 环境检测到配置漂移"
+            description: "prod 环境 {{ $value }} 个 App 处于 OutOfSync"
+            runbook: "https://wiki.company.com/sre/drift-detection-prod"
+
+        # Critical 漂移（镜像漂移）
+        - alert: ArgoCDCriticalDrift
+          expr: drift:events:by_severity{severity="critical"} > 0
+          for: 1m
+          labels:
+            severity: critical
+            category: drift
+          annotations:
+            summary: "检测到 Critical 配置漂移"
+            description: "{{ $value }} 个 Critical 漂移事件（可能是镜像漂移）"
+
+        # 修复失败率过高
+        - alert: ArgoCDRemediationFailureRate
+          expr: |
+            1 - drift:remediation_success:rate > 0.3
+          for: 10m
+          labels:
+            severity: warning
+            category: drift
+          annotations:
+            summary: "漂移修复失败率过高"
+            description: "过去 10 分钟修复失败率 {{ $value | humanizePercentage }}"
+
+        # 熔断触发
+        - alert: ArgoCDCircuitBreakerTriggered
+          expr: drift:circuit_breaker:count > 0
+          for: 0m
+          labels:
+            severity: critical
+            category: drift
+          annotations:
+            summary: "漂移修复熔断触发"
+            description: "{{ $value }} 个 App 触发熔断，自动修复已暂停"
+
+        # ArgoCD Application 不健康
+        - alert: ArgoCDAppDegraded
+          expr: argocd_app_info{health_status!="Healthy"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            category: drift
+          annotations:
+            summary: "ArgoCD Application 不健康"
+            description: "App {{ $labels.name }} ({{ $labels.environment }}) 处于 {{ $labels.health_status }}"
+
+        # 同步操作失败
+        - alert: ArgoCDSyncFailed
+          expr: |
+            rate(argocd_app_sync_total{phase="Error"}[5m]) > 0
+          for: 1m
+          labels:
+            severity: warning
+            category: drift
+          annotations:
+            summary: "ArgoCD 同步失败"
+            description: "App {{ $labels.name }} 同步失败"

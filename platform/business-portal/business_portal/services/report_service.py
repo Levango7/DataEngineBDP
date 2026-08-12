@@ -1,15 +1,16 @@
 """BI 报表服务（业务线隔离）."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from business_portal.interfaces.store import (
     BusinessLineStore,
     ReportStore,
 )
 from business_portal.models.report import Report, ReportFilter
-from business_portal.repositories import PermissionDeniedError, ValidationError
+from business_portal.repositories import PermissionDeniedError
 
 
 class ReportService:
@@ -40,9 +41,7 @@ class ReportService:
         await self._bl_store.get(filter_.blId)
         return await self._report_store.list(filter_)
 
-    async def update_report(
-        self, bl_id: str, report_id: str, patch: dict[str, Any]
-    ) -> Report:
+    async def update_report(self, bl_id: str, report_id: str, patch: dict[str, Any]) -> Report:
         """更新报表."""
         await self._bl_store.get(bl_id)
         return await self._report_store.update(bl_id, report_id, patch)
