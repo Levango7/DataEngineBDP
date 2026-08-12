@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.shuqing.bigdata.governance.collector.security.JwtAuthFilterTest
--------------------------------------------------------------------------------
-Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.237 s -- in com.shuqing.bigdata.governance.collector.security.JwtAuthFilterTest

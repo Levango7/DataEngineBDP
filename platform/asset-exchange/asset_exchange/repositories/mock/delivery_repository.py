@@ -1,8 +1,9 @@
 """Mock 交付仓储 - 内存字典实现."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any, Optional
+import uuid
 
 from asset_exchange.interfaces.delivery_repository import DeliveryRepository
 from asset_exchange.models.base import utc_now
@@ -31,12 +32,8 @@ class MockDeliveryRepository(DeliveryRepository):
             raise DeliveryNotFoundError(delivery_id)
         return self._deliveries[delivery_id]
 
-    async def get_by_subscription(
-        self, subscription_id: str
-    ) -> Optional[Delivery]:
-        candidates = [
-            d for d in self._deliveries.values() if d.subscriptionId == subscription_id
-        ]
+    async def get_by_subscription(self, subscription_id: str) -> Optional[Delivery]:
+        candidates = [d for d in self._deliveries.values() if d.subscriptionId == subscription_id]
         if not candidates:
             return None
         # 返回最新的一条
@@ -51,12 +48,8 @@ class MockDeliveryRepository(DeliveryRepository):
         d.updatedAt = utc_now()
         return d
 
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[Delivery]:
-        result = [
-            d for d in self._deliveries.values() if d.subscriptionId == subscription_id
-        ]
+    async def list_by_subscription(self, subscription_id: str) -> list[Delivery]:
+        result = [d for d in self._deliveries.values() if d.subscriptionId == subscription_id]
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result
 

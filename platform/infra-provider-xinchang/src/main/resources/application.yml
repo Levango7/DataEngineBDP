@@ -41,7 +41,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
 
 app:
   security:
@@ -59,10 +59,10 @@ app:
       connect-timeout-ms: ${IPMI_CONNECT_TIMEOUT:5000}
       # 默认读取超时（毫秒）
       read-timeout-ms: ${IPMI_READ_TIMEOUT:30000}
-      # 默认 BMC 用户名（生产环境通过环境变量注入）
-      username: ${IPMI_USERNAME:ADMIN}
-      # 默认 BMC 密码（生产环境通过环境变量注入）
-      password: ${IPMI_PASSWORD:ADMIN}
+      # BMC 用户名（无默认值，必须通过环境变量注入；未配置时启动失败）
+      username: ${IPMI_USERNAME}
+      # BMC 密码（无默认值，必须通过环境变量注入；禁止使用公知默认凭据 ADMIN/ADMIN）
+      password: ${IPMI_PASSWORD}
     # PXE 网络启动配置
     pxe:
       # PXE 引导服务器地址
@@ -81,3 +81,19 @@ app:
       service-cidr: ${SERVICE_CIDR:10.96.0.0/12}
       # 默认 K8s 版本
       version: ${K8S_VERSION:v1.28.9}
+      # 控制平面 VIP（keepalived/负载均衡器地址）；为空时使用首个 control-plane 节点 hostname
+      control-plane-vip: ${K8S_CONTROL_PLANE_VIP:}
+    # SSH 远程执行配置：通过 SSH 到信创节点执行 kubeadm 命令
+    ssh:
+      # 默认 SSH 主机（可选，节点未提供 hostname 时兜底；正常应使用节点 hostname）
+      host: ${SSH_HOST:}
+      # SSH 端口
+      port: ${SSH_PORT:22}
+      # SSH 登录用户名（需具备 kubeadm 执行权限，通常为 root）
+      username: ${SSH_USERNAME:root}
+      # SSH 密码认证（与 key-file 二选一；生产环境建议用 key-file）
+      password: ${SSH_PASSWORD:}
+      # SSH 私钥文件路径（PKCS8 格式；优先于 password 认证）
+      key-file: ${SSH_KEY_FILE:}
+      # 是否在远程命令前加 sudo（SSH 用户非 root 时需要）
+      use-sudo: ${SSH_USE_SUDO:true}

@@ -1,0 +1,22 @@
+# PeerAuthentication · mesh-wide mTLS 策略
+# 数擎云核 SKE · Service Mesh mTLS 配置
+#
+# 阶段一（当前）：PERMISSIVE — 允许明文 + 密文，避免破坏尚未注入 sidecar 的服务
+# 阶段二（全量 sidecar 就绪后）：切 STRICT — 强制 mTLS，拒绝明文
+#   切换方法：将下方 mtls.mode 改为 STRICT，重新 kubectl apply
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default-mtls
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/part-of: shuqing-bigdata
+    app.kubernetes.io/component: service-mesh-mtls
+spec:
+  # mtls.mode:
+  #   UNSET        — 继承父级/默认
+  #   DISABLE      — 不启用 mTLS
+  #   PERMISSIVE   — 明文+密文都接受（过渡期）
+  #   STRICT       — 仅接受 mTLS（目标态）
+  mtls:
+    mode: PERMISSIVE

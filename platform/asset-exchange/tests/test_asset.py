@@ -1,18 +1,20 @@
 """资产上架/下架/浏览/更新测试."""
-from __future__ import annotations
 
+from __future__ import annotations
 
 # ---------- health ----------
 
+
 def test_health(client):
-    resp = client.get("/health")
+    resp = client.get("/api/v1/health")
     assert resp.status_code == 200
     body = resp.json()
-    assert body["status"] == "ok"
+    assert body["status"] == "UP"
     assert body["store"] == "mock"
 
 
 # ---------- 上架 ----------
+
 
 def _list_asset(client, name="user-events", owner="tenant-A"):
     """上架资产辅助函数，返回 asset_id."""
@@ -51,9 +53,78 @@ def test_list_asset(client):
     assert body["name"] == "user-events"
     assert body["type"] == "table"
     assert body["status"] == "listed"
-    assert body["owner"] == "tenant-A"
+    # 租户标识字段统一为 tenantId（MODEL-2）：响应体使用 tenantId 字段名
+    assert body["tenantId"] == "tenant-A"
     assert body["qualityScore"] == 85.0
     assert body["pricing"]["price"] == 0.01
+
+
+def test_list_asset_with_tenant_id_input(client):
+    """验证新契约：请求体使用 tenantId 字段名可正常上架."""
+    resp = client.post(
+        "/api/v1/assets",
+        json={
+            "name": "tenant-id-input-asset",
+            "type": "table",
+            "tenantId": "tenant-New",
+            "securityLevel": "internal",
+            "qualityScore": 85.0,
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    assert body["tenantId"] == "tenant-New"
+    # 确认旧字段名 owner 不再出现在响应中（字段已统一为 tenantId）
+    assert "owner" not in body
+
+
+def test_list_asset_owner_alias_backward_compat(client):
+    """验证向后兼容：请求体使用旧字段名 owner 仍可正常上架."""
+    resp = client.post(
+        "/api/v1/assets",
+        json={
+            "name": "owner-alias-asset",
+            "type": "table",
+            "owner": "tenant-Legacy",
+            "securityLevel": "internal",
+            "qualityScore": 85.0,
+        },
+    )
+    assert resp.status_code == 201, resp.text
+    body = resp.json()
+    # 即使输入用 owner，响应统一为 tenantId
+    assert body["tenantId"] == "tenant-Legacy"
+
+
+def test_list_assets_filter_by_tenant_id(client):
+    """验证查询参数 tenantId 过滤生效."""
+    _list_asset(client, name="asset-for-tenant-a", owner="tenant-A")
+    resp = client.post(
+        "/api/v1/assets",
+        json={
+            "name": "asset-for-tenant-c",
+            "type": "table",
+            "tenantId": "tenant-C",
+            "securityLevel": "internal",
+            "qualityScore": 85.0,
+        },
+    )
+    assert resp.status_code == 201
+    # 用 tenantId 查询参数过滤
+    resp = client.get("/api/v1/assets?tenantId=tenant-A")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert len(body) == 1
+    assert body[0]["name"] == "asset-for-tenant-a"
+
+
+def test_list_assets_filter_by_owner_backward_compat(client):
+    """验证向后兼容：查询参数 owner 仍可过滤."""
+    _list_asset(client, name="asset-for-owner-filter", owner="tenant-A")
+    resp = client.get("/api/v1/assets?owner=tenant-A")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert all(a["tenantId"] == "tenant-A" for a in body)
 
 
 def test_list_asset_duplicate_name(client):
@@ -61,7 +132,7 @@ def test_list_asset_duplicate_name(client):
     _list_asset(client, name="dup")
     resp = client.post(
         "/api/v1/assets",
-        json={"name": "dup", "type": "table", "owner": "tenant-A"},
+        json={"name": "dup", "type": "table", "owner": "tenant-A", "qualityScore": 85.0},
     )
     assert resp.status_code == 409
 
@@ -75,6 +146,7 @@ def test_list_asset_sensitive_without_desensitize(client):
             "type": "table",
             "owner": "tenant-A",
             "securityLevel": "sensitive",
+            "qualityScore": 85.0,
         },
     )
     assert resp.status_code == 422
@@ -89,6 +161,7 @@ def test_list_asset_sensitive_with_desensitize(client):
             "type": "table",
             "owner": "tenant-A",
             "securityLevel": "sensitive",
+            "qualityScore": 85.0,
             "tags": {"desensitize": "true"},
         },
     )
@@ -96,6 +169,7 @@ def test_list_asset_sensitive_with_desensitize(client):
 
 
 # ---------- 浏览 ----------
+
 
 def test_list_assets(client):
     _list_asset(client, name="a1")
@@ -110,7 +184,7 @@ def test_list_assets_filter_by_type(client):
     _list_asset(client, name="table-1")
     client.post(
         "/api/v1/assets",
-        json={"name": "api-1", "type": "api", "owner": "tenant-A"},
+        json={"name": "api-1", "type": "api", "owner": "tenant-A", "qualityScore": 85.0},
     )
     resp = client.get("/api/v1/assets?type=api")
     assert resp.status_code == 200
@@ -138,6 +212,7 @@ def test_list_assets_default_only_listed(client):
 
 # ---------- 详情 ----------
 
+
 def test_get_asset(client):
     aid = _list_asset(client)
     resp = client.get(f"/api/v1/assets/{aid}")
@@ -151,6 +226,7 @@ def test_get_asset_not_found(client):
 
 
 # ---------- 更新 ----------
+
 
 def test_update_asset(client):
     aid = _list_asset(client)
@@ -174,6 +250,7 @@ def test_update_asset_not_found(client):
 
 # ---------- 下架 ----------
 
+
 def test_offline_asset(client):
     aid = _list_asset(client)
     resp = client.delete(f"/api/v1/assets/{aid}")
@@ -190,6 +267,7 @@ def test_offline_asset_not_found(client):
 
 # ---------- 使用统计 ----------
 
+
 def test_get_asset_usage(client):
     aid = _list_asset(client)
     resp = client.get(f"/api/v1/assets/{aid}/usage")
@@ -202,6 +280,7 @@ def test_get_asset_usage(client):
 
 # ---------- docs ----------
 
+
 def test_openapi_docs_accessible(client):
     """FastAPI 自动文档可访问."""
     resp = client.get("/docs")
@@ -213,4 +292,4 @@ def test_openapi_docs_accessible(client):
     assert spec["info"]["title"] == "Asset Exchange Platform"
     paths = spec["paths"]
     assert "/api/v1/assets" in paths
-    assert "/health" in paths
+    assert "/api/v1/health" in paths

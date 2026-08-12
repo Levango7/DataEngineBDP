@@ -1,0 +1,201 @@
+# 能源行业模板 - 角色-权限映射
+# ============================================================================
+# 模块：T043 能源行业模板 RBAC
+# 格式：角色 → 权限编码列表
+# 角色数：4
+# 设计原则：最小权限原则（Least Privilege Principle）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 角色-权限映射列表
+role_permissions:
+  # --------------------------------------------------------------------------
+  # 角色 1：能源管理员（energy_admin）- 全部权限
+  # --------------------------------------------------------------------------
+  - role: energy_admin
+    description: "能源管理员：拥有全部权限"
+    permissions:
+      # 设备监测域（读写全部 8 张表）
+      - "energy_device:read"
+      - "energy_device:write"
+      - "device_realtime_status:read"
+      - "device_alarm_record:read"
+      - "device_alarm_record:write"
+      - "device_health_score:read"
+      - "device_metric_history:read"
+      - "device_alarm_rule:read"
+      - "device_alarm_rule:write"
+      - "device_maintenance_log:read"
+      - "device_maintenance_log:write"
+      - "device_status_change:read"
+      - "device_status_change:write"
+      # 用能分析域（读写全部 7 张表）
+      - "energy_consumption_detail:read"
+      - "energy_consumption_summary:read"
+      - "energy_consumption_summary:write"
+      - "energy_dimension_compare:read"
+      - "energy_dimension_compare:write"
+      - "energy_trend_data:read"
+      - "energy_trend_data:write"
+      - "energy_quota:read"
+      - "energy_quota:write"
+      - "energy_balance:read"
+      - "energy_balance:write"
+      - "energy_cost_analysis:read"
+      - "energy_cost_analysis:write"
+      # 碳排放核算域（读写全部 7 张表）
+      - "emission_factor_library:read"
+      - "emission_factor_library:write"
+      - "emission_source:read"
+      - "emission_source:write"
+      - "emission_calculation_result:read"
+      - "emission_calculation_result:write"
+      - "emission_calculation_model:read"
+      - "emission_calculation_model:write"
+      - "emission_scope_classification:read"
+      - "emission_scope_classification:write"
+      - "emission_reduction_target:read"
+      - "emission_reduction_target:write"
+      - "emission_report:read"
+      - "emission_report:write"
+      # 趋势预测域（读写全部 5 张表）
+      - "forecast_parameter:read"
+      - "forecast_parameter:write"
+      - "forecast_result:read"
+      - "forecast_result:write"
+      - "forecast_model_evaluation:read"
+      - "forecast_model_evaluation:write"
+      - "forecast_model_registry:read"
+      - "forecast_confidence_interval:read"
+      # RBAC 域（读写全部 4 张表）
+      - "energy_role:read"
+      - "energy_role:write"
+      - "energy_permission:read"
+      - "energy_role_permission:read"
+      - "energy_user_role:read"
+      # DAG（执行+查看全部 5 个）
+      - "device_status_monitoring:exec"
+      - "device_status_monitoring:view"
+      - "energy_consumption_statistics:exec"
+      - "energy_consumption_statistics:view"
+      - "carbon_emission_calculation:exec"
+      - "carbon_emission_calculation:view"
+      - "energy_trend_forecast:exec"
+      - "energy_trend_forecast:view"
+      - "device_alert_routing:exec"
+      - "device_alert_routing:view"
+      # Dashboard（查看全部 4 个）
+      - "device-monitoring:view"
+      - "energy-consumption-analysis:view"
+      - "carbon-emission-accounting:view"
+      - "energy-forecast:view"
+
+  # --------------------------------------------------------------------------
+  # 角色 2：能源分析师（energy_analyst）- 用能分析+趋势预测+只读
+  # --------------------------------------------------------------------------
+  - role: energy_analyst
+    description: "能源分析师：用能分析+趋势预测+只读设备/碳排放"
+    permissions:
+      # 设备监测域（只读）
+      - "energy_device:read"
+      - "device_realtime_status:read"
+      - "device_alarm_record:read"
+      - "device_health_score:read"
+      - "device_metric_history:read"
+      # 用能分析域（读写）
+      - "energy_consumption_detail:read"
+      - "energy_consumption_summary:read"
+      - "energy_consumption_summary:write"
+      - "energy_dimension_compare:read"
+      - "energy_dimension_compare:write"
+      - "energy_trend_data:read"
+      - "energy_trend_data:write"
+      - "energy_quota:read"
+      - "energy_balance:read"
+      - "energy_balance:write"
+      - "energy_cost_analysis:read"
+      - "energy_cost_analysis:write"
+      # 碳排放核算域（只读结果）
+      - "emission_calculation_result:read"
+      - "emission_scope_classification:read"
+      - "emission_report:read"
+      # 趋势预测域（读写）
+      - "forecast_parameter:read"
+      - "forecast_parameter:write"
+      - "forecast_result:read"
+      - "forecast_result:write"
+      - "forecast_model_evaluation:read"
+      - "forecast_model_evaluation:write"
+      - "forecast_model_registry:read"
+      - "forecast_confidence_interval:read"
+      # DAG（管理用能分析与预测，查看设备监控与碳排放）
+      - "energy_consumption_statistics:exec"
+      - "energy_consumption_statistics:view"
+      - "energy_trend_forecast:exec"
+      - "energy_trend_forecast:view"
+      - "device_status_monitoring:view"
+      - "carbon_emission_calculation:view"
+      # Dashboard（全部 4 个）
+      - "device-monitoring:view"
+      - "energy-consumption-analysis:view"
+      - "carbon-emission-accounting:view"
+      - "energy-forecast:view"
+
+  # --------------------------------------------------------------------------
+  # 角色 3：设备运维员（device_operator）- 设备运维+告警确认
+  # --------------------------------------------------------------------------
+  - role: device_operator
+    description: "设备运维员：设备运维+告警确认+维护记录"
+    permissions:
+      # 设备监测域（读写告警/维护/状态变更，只读设备/规则）
+      - "energy_device:read"
+      - "device_realtime_status:read"
+      - "device_alarm_record:read"
+      - "device_alarm_record:write"
+      - "device_health_score:read"
+      - "device_metric_history:read"
+      - "device_alarm_rule:read"
+      - "device_maintenance_log:read"
+      - "device_maintenance_log:write"
+      - "device_status_change:read"
+      - "device_status_change:write"
+      # 用能分析域（只读明细）
+      - "energy_consumption_detail:read"
+      # DAG（管理告警路由，查看设备监控）
+      - "device_alert_routing:exec"
+      - "device_alert_routing:view"
+      - "device_status_monitoring:view"
+      # Dashboard（只看设备监测）
+      - "device-monitoring:view"
+
+  # --------------------------------------------------------------------------
+  # 角色 4：碳排放核算员（carbon_accountant）- 碳排放核算+因子管理
+  # --------------------------------------------------------------------------
+  - role: carbon_accountant
+    description: "碳排放核算员：碳排放核算+排放因子管理+减排目标+核算报告"
+    permissions:
+      # 用能分析域（只读汇总，作为活动数据源）
+      - "energy_consumption_summary:read"
+      - "energy_consumption_detail:read"
+      # 碳排放核算域（读写全部 7 张表）
+      - "emission_factor_library:read"
+      - "emission_factor_library:write"
+      - "emission_source:read"
+      - "emission_source:write"
+      - "emission_calculation_result:read"
+      - "emission_calculation_result:write"
+      - "emission_calculation_model:read"
+      - "emission_calculation_model:write"
+      - "emission_scope_classification:read"
+      - "emission_scope_classification:write"
+      - "emission_reduction_target:read"
+      - "emission_reduction_target:write"
+      - "emission_report:read"
+      - "emission_report:write"
+      # DAG（管理碳排放核算，查看用能统计）
+      - "carbon_emission_calculation:exec"
+      - "carbon_emission_calculation:view"
+      - "energy_consumption_statistics:view"
+      # Dashboard（碳排放+用能分析）
+      - "carbon-emission-accounting:view"
+      - "energy-consumption-analysis:view"

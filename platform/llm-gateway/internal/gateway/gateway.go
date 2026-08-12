@@ -1,4 +1,4 @@
-﻿// Package gateway 实现大模型网关核心：路由 / 负载均衡 / Token 计量 / 安全审计。
+// Package gateway 实现大模型网关核心：路由 / 负载均衡 / Token 计量 / 安全审计。
 //
 // 网关只做治理，不直接持有模型——与封装层"客户只见能力不见底座"思想一致。
 // 路由：根据模型名 / 租户 / 优先级路由到对应 Provider 实例。
@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ Gateway 核心结构 ============

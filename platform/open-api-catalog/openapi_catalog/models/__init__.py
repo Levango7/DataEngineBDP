@@ -1,11 +1,12 @@
 """Open API Catalog 数据模型."""
+
 from openapi_catalog.models.api import (
+    APIDefinition,
     APIFilter,
     APIParam,
     APIResponse,
-    APIDefinition,
-    APIUpstream,
     APIUpdateRequest,
+    APIUpstream,
 )
 from openapi_catalog.models.apisix import (
     APISIXConsumer,
@@ -34,8 +35,8 @@ from openapi_catalog.models.metrics import (
     MetricsQuery,
 )
 from openapi_catalog.models.subscription import (
-    ApproveRequest,
     APISubscription,
+    ApproveRequest,
     SubscribeRequest,
     SubscriptionFilter,
 )

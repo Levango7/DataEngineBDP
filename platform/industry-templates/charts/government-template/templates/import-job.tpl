@@ -1,0 +1,188 @@
+{{- /*
+Helm Chart 模板 - 政务模板导入 Job
+用途：部署一个 Job，拉取 ConfigMap 中的模板资产，依次导入到 Doris/DolphinScheduler/Superset/Keycloak/SQL网关
+特色：增加政务合规配置同步步骤（数据分级/脱敏规则/审计策略/访问控制 → SQL 网关）
+*/ -}}
+{{- if .Values.importJob.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Values.configMap.namePrefix }}-import
+  namespace: {{ .Values.namespace }}
+  labels:
+    app.kubernetes.io/name: government-template
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    shuqing.io/template: government-template
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  backoffLimit: {{ .Values.importJob.backoffLimit }}
+  activeDeadlineSeconds: {{ .Values.importJob.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: government-template
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      restartPolicy: OnFailure
+      volumes:
+        - name: template-assets
+          configMap:
+            name: {{ .Values.configMap.namePrefix }}-assets
+      containers:
+        - name: template-importer
+          image: "{{ .Values.importJob.image.repository }}:{{ .Values.importJob.image.tag }}"
+          imagePullPolicy: {{ .Values.importJob.image.pullPolicy }}
+          volumeMounts:
+            - name: template-assets
+              mountPath: /templates
+              readOnly: true
+          env:
+            - name: TEMPLATE_NAME
+              value: {{ .Values.template.name | quote }}
+            - name: TEMPLATE_VERSION
+              value: {{ .Values.template.version | quote }}
+            - name: DORIS_FE_HOST
+              value: {{ .Values.target.doris.feHost | quote }}
+            - name: DORIS_FE_PORT
+              value: {{ .Values.target.doris.fePort | quote }}
+            - name: DORIS_DATABASE
+              value: {{ .Values.target.doris.database | quote }}
+            - name: DORIS_USER
+              value: {{ .Values.target.doris.user | quote }}
+            - name: DORIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.doris.passwordSecret.name }}
+                  key: {{ .Values.target.doris.passwordSecret.key }}
+            - name: DS_HOST
+              value: {{ .Values.target.dolphinscheduler.host | quote }}
+            - name: DS_PORT
+              value: {{ .Values.target.dolphinscheduler.port | quote }}
+            - name: DS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.dolphinscheduler.tokenSecret.name }}
+                  key: {{ .Values.target.dolphinscheduler.tokenSecret.key }}
+            - name: SUPERSET_HOST
+              value: {{ .Values.target.superset.host | quote }}
+            - name: SUPERSET_PORT
+              value: {{ .Values.target.superset.port | quote }}
+            - name: SUPERSET_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.superset.tokenSecret.name }}
+                  key: {{ .Values.target.superset.tokenSecret.key }}
+            - name: KEYCLOAK_HOST
+              value: {{ .Values.target.keycloak.host | quote }}
+            - name: KEYCLOAK_PORT
+              value: {{ .Values.target.keycloak.port | quote }}
+            - name: KEYCLOAK_REALM
+              value: {{ .Values.target.keycloak.realm | quote }}
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.target.keycloak.adminSecret.name }}
+                  key: {{ .Values.target.keycloak.adminSecret.key }}
+            - name: SPARK_MASTER_HOST
+              value: {{ .Values.target.spark.masterHost | quote }}
+            - name: SPARK_MASTER_PORT
+              value: {{ .Values.target.spark.masterPort | quote }}
+            - name: RBAC_SYNC_ENABLED
+              value: {{ .Values.rbacSync.enabled | quote }}
+            - name: RBAC_ROLLBACK_ON_FAILURE
+              value: {{ .Values.rbacSync.rollbackOnFailure | quote }}
+            - name: COMPLIANCE_SYNC_ENABLED
+              value: {{ .Values.complianceSync.enabled | quote }}
+            - name: COMPLIANCE_ROLLBACK_ON_FAILURE
+              value: {{ .Values.complianceSync.rollbackOnFailure | quote }}
+            - name: SQL_GATEWAY_HOST
+              value: {{ .Values.complianceSync.sqlGateway.host | quote }}
+            - name: SQL_GATEWAY_PORT
+              value: {{ .Values.complianceSync.sqlGateway.port | quote }}
+            - name: SQL_GATEWAY_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.complianceSync.sqlGateway.tokenSecret.name }}
+                  key: {{ .Values.complianceSync.sqlGateway.tokenSecret.key }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+              echo "=========================================="
+              echo "政务行业模板导入开始"
+              echo "模板: ${TEMPLATE_NAME} v${TEMPLATE_VERSION}"
+              echo "=========================================="
+              echo "[1/6] 导入 DDL 到 Doris..."
+              for sql_file in /templates/ddl/*.sql; do
+                echo "  执行: $(basename $sql_file)"
+                mysql -h ${DORIS_FE_HOST} -P ${DORIS_FE_PORT} -u ${DORIS_USER} -p${DORIS_PASSWORD} ${DORIS_DATABASE} < $sql_file
+              done
+              echo "[1/6] DDL 导入完成"
+              echo "[2/6] 导入 DAG 到 DolphinScheduler..."
+              for dag_file in /templates/dag/*.py; do
+                echo "  导入: $(basename $dag_file)"
+                curl -s -X POST "http://${DS_HOST}:${DS_PORT}/dolphinscheduler/projects/import" \
+                  -H "Authorization: Bearer ${DS_TOKEN}" \
+                  -F "file=@${dag_file}"
+              done
+              echo "[2/6] DAG 导入完成"
+              echo "[3/6] 导入 Dashboard 到 Superset..."
+              for dash_file in /templates/dashboards/*.json; do
+                echo "  导入: $(basename $dash_file)"
+                curl -s -X POST "http://${SUPERSET_HOST}:${SUPERSET_PORT}/api/v1/dashboard/import/" \
+                  -H "Authorization: Bearer ${SUPERSET_TOKEN}" \
+                  -F "formData=@${dash_file}"
+              done
+              echo "[3/6] Dashboard 导入完成"
+              if [ "${RBAC_SYNC_ENABLED}" = "true" ]; then
+                echo "[4/6] 导入 RBAC 到 Keycloak..."
+                KC_ADMIN_TOKEN=$(curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/realms/master/protocol/openid-connect/token" \
+                  -d "client_id=admin-cli" \
+                  -d "username=admin" \
+                  -d "password=${KEYCLOAK_ADMIN_PASSWORD}" \
+                  -d "grant_type=password" | jq -r .access_token)
+                curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/admin/realms" \
+                  -H "Authorization: Bearer ${KC_ADMIN_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"realm\":\"${KEYCLOAK_REALM}\",\"enabled\":true}"
+                for rbac_file in /templates/rbac/*.yaml; do
+                  echo "  导入 RBAC: $(basename $rbac_file)"
+                  curl -s -X POST "http://${KEYCLOAK_HOST}:${KEYCLOAK_PORT}/admin/realms/${KEYCLOAK_REALM}/import" \
+                    -H "Authorization: Bearer ${KC_ADMIN_TOKEN}" \
+                    -H "Content-Type: application/yaml" \
+                    --data-binary "@${rbac_file}"
+                done
+                echo "[4/6] RBAC 导入完成"
+              else
+                echo "[4/6] RBAC 同步已禁用，跳过"
+              fi
+              if [ "${COMPLIANCE_SYNC_ENABLED}" = "true" ]; then
+                echo "[5/6] 同步政务合规配置到 SQL 网关..."
+                for compliance_file in /templates/compliance/*.yaml; do
+                  echo "  同步合规配置: $(basename $compliance_file)"
+                  curl -s -X POST "http://${SQL_GATEWAY_HOST}:${SQL_GATEWAY_PORT}/api/v1/compliance/import" \
+                    -H "Authorization: Bearer ${SQL_GATEWAY_TOKEN}" \
+                    -H "Content-Type: application/yaml" \
+                    --data-binary "@${compliance_file}"
+                done
+                echo "[5/6] 政务合规配置同步完成"
+              else
+                echo "[5/6] 政务合规配置同步已禁用，跳过"
+              fi
+              echo "[6/6] 验证导入结果..."
+              echo "  DDL 表数: $(mysql -h ${DORIS_FE_HOST} -P ${DORIS_FE_PORT} -u ${DORIS_USER} -p${DORIS_PASSWORD} ${DORIS_DATABASE} -e 'SHOW TABLES' | wc -l)"
+              echo "  DAG 文件数: $(ls /templates/dag/*.py | wc -l)"
+              echo "  Dashboard 文件数: $(ls /templates/dashboards/*.json | wc -l)"
+              echo "  合规配置文件数: $(ls /templates/compliance/*.yaml | wc -l)"
+              echo "=========================================="
+              echo "政务行业模板导入完成"
+              echo "=========================================="
+          resources:
+            {{- toYaml .Values.importJob.resources | nindent 12 }}
+{{- end }}

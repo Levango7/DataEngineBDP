@@ -1,0 +1,78 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sq-nl2sql"
+version = "0.1.0"
+description = "Shuqing Big Data Platform - NL2SQL Core Engine (L4.5.4)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Shuqing Big Data Platform Team"},
+]
+keywords = ["nl2sql", "text-to-sql", "langchain", "llm", "natural-language"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Framework :: FastAPI",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "fastapi==0.110.0",
+    "uvicorn[standard]==0.29.0",
+    "pydantic==2.6.4",
+    "pydantic-settings==2.2.1",
+    "httpx==0.27.0",
+    "loguru==0.7.2",
+    "sqlparse==0.5.0",
+    "python-dateutil==2.9.0",
+    "jinja2==3.1.3",
+]
+
+[project.optional-dependencies]
+# LangChain SQL 生成（生产模式）
+langchain = [
+    "langchain-core==0.1.45",
+    "langchain==0.1.16",
+    "langchain-community==0.0.34",
+    "openai==1.23.0",
+    "tiktoken==0.6.0",
+]
+test = [
+    "pytest==8.1.1",
+    "pytest-asyncio==0.23.6",
+    "httpx==0.27.0",
+]
+dev = [
+    "pytest==8.1.1",
+    "pytest-asyncio==0.23.6",
+    "httpx==0.27.0",
+    "langchain-core==0.1.45",
+    "langchain==0.1.16",
+    "langchain-community==0.0.34",
+    "openai==1.23.0",
+    "tiktoken==0.6.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/shuqing/sq-nl2sql"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

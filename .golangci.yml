@@ -1,0 +1,206 @@
+# golangci-lint 配置
+# 文档：https://golangci-lint.run/usage/configuration/
+# 适用于 platform/ 下所有 Go 组件（catalog/dqctl/vector-engine/llm-gateway/infra-provider-baremetal）
+# 启用 30+ linter，覆盖代码质量、安全、性能、风格
+run:
+  # 超时时间
+  timeout: 10m
+  # 跳过的目录（使用 issues.exclude-dirs 替代）
+  # 跳过的文件（使用 issues.exclude-files 替代）
+  # Go 版本
+  go: "1.25"
+  # 模块路径
+  modules-download-mode: readonly
+
+linters:
+  disable-all: true
+  enable:
+    # === 代码质量 ===
+    - errcheck        # 检查未处理的错误返回值
+    - gosimple        # 简化代码
+    - govet           # go vet 检查
+    - ineffassign     # 检测无效赋值
+    - staticcheck     # 静态检查全家桶
+    - typecheck       # 类型检查
+    - unused          # 未使用代码
+    - unconvert       # 检测不必要的类型转换
+    - gofmt           # 格式检查
+    - gofumpt         # 更严格的 gofmt
+    - goimports       # import 顺序检查
+    - misspell        # 拼写检查
+    - revive          # golint 替代品，风格建议
+    - prealloc        # 切片预分配检查
+    - unparam         # 未使用的函数参数
+    - nakedret        # 裸 return 检查
+    - nolintlint      # //nolint 注释检查
+    - gocritic        # 综合性代码检查
+    - gocyclo         # 圈复杂度
+    - gocognit        # 认知复杂度
+    - maintidx        # 可维护性指数
+    - funlen          # 函数长度
+    - lll             # 行长度
+    - nestif          # if 嵌套深度
+    - nilerr          # nil 错误检查
+    - nilnil          # 同时返回 nil, nil 检查
+    - sqlclosecheck   # sql.Rows.Close() 检查
+    - rowserrcheck    # sql.Rows.Err() 检查
+    - noctx           # http.Request 缺少 ctx 检查
+    - bodyclose       # http.Response.Body.Close() 检查
+    - gosec           # 安全检查
+    - errorlint       # 错误处理最佳实践
+    - exhaustive      # enum switch 完整性检查
+    - goconst         # 重复字面量提取为常量
+    - dupl            # 重复代码检测
+    - gochecknoinits  # 禁止 init 函数
+    - gochecknoglobals # 禁止全局变量
+    - godot           # 注释末尾句点检查
+    - godox           # TODO/FIXME 检查
+    - whitespace      # 多余空行检查
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+  gocognit:
+    min-complexity: 20
+  maintidx:
+    under: 20
+  funlen:
+    lines: 80
+    statements: 50
+  lll:
+    line-length: 120
+  nestif:
+    min-complexity: 4
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - experimental
+      - opinionated
+    disabled-checks:
+      - hugeParam
+      - rangeValCopy
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked (允许忽略错误)
+    config:
+      global:
+        nosec: true
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+  staticcheck:
+    checks: ["all"]
+  revive:
+    rules:
+      - name: var-naming
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: empty-block
+      - name: superfluous-else
+      - name: unused-parameter
+      - name: unreachable-code
+      - name: redefines-builtin-id
+  misspell:
+    locale: US
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+  govet:
+    enable:
+      - asmdecl
+      - assign
+      - atomic
+      - atomicalign
+      - bools
+      - buildtag
+      - cgocall
+      - composites
+      - copylocks
+      - deepequalerrors
+      - errorsas
+      - fieldalignment
+      - findcall
+      - framepointer
+      - httpresponse
+      - ifaceassert
+      - loopcond
+      - lostcancel
+      - nilfunc
+      - nilness
+      - printf
+      - reflectvaluecompare
+      - shift
+      - sigchanyzer
+      - slog
+      - stdmethods
+      - stringintconv
+      - structtag
+      - testinggoroutine
+      - tests
+      - timeformat
+      - tls
+      - unmarshal
+      - unreachable
+      - unsafeptr
+      - unusedresult
+      - unusedwrite
+
+issues:
+  # 最大问题数
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  # 排除的目录
+  exclude-dirs:
+    - vendor
+    - testdata
+    - generated
+  # 排除的文件
+  exclude-files:
+    - ".*_test\\.go"
+  # 排除的规则
+  exclude-rules:
+    # 测试文件允许使用全局变量和 init
+    - path: _test\.go
+      linters:
+        - gochecknoglobals
+        - gochecknoinits
+        - errcheck
+        - gosec
+        - dupl
+        - funlen
+        - gocyclo
+        - gocognit
+    # main.go 允许使用 Println
+    - path: cmd/main\.go
+      linters:
+        - forbidigo
+    # 排除错误处理样式的特定模式
+    - linters:
+        - errorlint
+      text: "non-wrapping format error"
+  # 修复建议
+  fix: false
+
+output:
+  # 输出格式
+  formats:
+    - format: colored-line-number
+  # 排序方式
+  sort-results: true
+  # 显示问题统计
+  print-issued-lines: true
+  print-linter-name: true

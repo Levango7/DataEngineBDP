@@ -1,0 +1,79 @@
+# 基础 Deployment · 平台核心服务示例（encaps-layer）
+# ============================================================================
+# 此为 base 模板，副本数/资源/镜像 tag 由 overlays/<env>/patch.yaml 覆盖
+# 实际生产中，base 可包含多个 Deployment/Service/ConfigMap
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: encaps-layer
+  labels:
+    app.kubernetes.io/name: encaps-layer
+    app.kubernetes.io/instance: platform
+spec:
+  # 副本数：base 默认 1，由 overlay 覆盖
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: encaps-layer
+      app.kubernetes.io/instance: platform
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: encaps-layer
+        app.kubernetes.io/instance: platform
+    spec:
+      # pod 安全上下文（restricted 标准）
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: encaps-layer
+          # 镜像 tag：base 用 latest 占位，由 overlay 覆盖为具体版本
+          image: ghcr.io/levango7/dataenginebdp/encaps-layer:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          # 资源：base 用最小值，由 overlay 覆盖
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # 环境变量：base 默认 dev 级别，由 overlay 覆盖
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: LOG_LEVEL
+              value: DEBUG
+            - name: K8S_MOCK_ENABLED
+              value: "false"
+          # 健康检查
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 3
+          # 安全上下文
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

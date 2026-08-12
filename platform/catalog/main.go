@@ -8,15 +8,16 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
-	"github.com/shuqing/bigdata/catalog/internal/handler"
-	"github.com/shuqing/bigdata/catalog/internal/middleware"
-	"github.com/shuqing/bigdata/catalog/internal/model"
-	"github.com/shuqing/bigdata/catalog/internal/store"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/handler"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/middleware"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/store"
 )
 
 // 服务常量。
@@ -119,7 +120,9 @@ func main() {
 	<-quit
 	log.Printf("[%s] shutting down...", serviceName)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5)
+	// 优雅关闭超时 5 秒，确保在飞行中的请求能完成。
+	// 修复：原代码传入裸整数 5，time.Duration(5) 等于 5 纳秒，几乎立即超时。
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Printf("[%s] server forced to shutdown: %v", serviceName, err)

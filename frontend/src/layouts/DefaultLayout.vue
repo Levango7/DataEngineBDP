@@ -4,9 +4,11 @@
     <section class="main">
       <TopBar />
       <div class="view">
-        <router-view v-slot="{ Component }">
-          <component :is="Component" />
-        </router-view>
+        <ErrorBoundary>
+          <router-view v-slot="{ Component }">
+            <component :is="Component" />
+          </router-view>
+        </ErrorBoundary>
       </div>
     </section>
     <Toast />
@@ -17,4 +19,5 @@
 import Sidebar from '@/components/Sidebar.vue'
 import TopBar from '@/components/TopBar.vue'
 import Toast from '@/components/Toast.vue'
+import ErrorBoundary from '@/components/ErrorBoundary.vue'
 </script>

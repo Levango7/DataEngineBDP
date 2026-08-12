@@ -1,0 +1,29 @@
+﻿# ============================================================================
+# PingSource 定时触发示例 · 数据引擎大数据平台
+# ----------------------------------------------------------------------------
+# 作用：验证 PingSource 轻量定时事件源（每分钟触发）
+# 依赖：Knative Eventing 已部署
+# 与 CronJobSource 区别：PingSource 更轻量，仅发送空 CloudEvent
+# ============================================================================
+apiVersion: sources.knative.dev/v1
+kind: PingSource
+metadata:
+  name: ping-source-example
+  namespace: knative-examples
+  labels:
+    app.kubernetes.io/name: ping-source-example
+    app.kubernetes.io/part-of: knative-examples
+    platform.shuqing.io/component: eventing
+    platform.shuqing.io/task: "T024"
+spec:
+  # 每分钟触发
+  schedule: "*/1 * * * *"
+  # 事件数据
+  data: '{"message": "PingSource 每分钟触发"}'
+  # 事件接收者
+  sink:
+    ref:
+      apiVersion: serving.knative.dev/v1
+      kind: Service
+      name: hello-kservice
+      namespace: knative-examples

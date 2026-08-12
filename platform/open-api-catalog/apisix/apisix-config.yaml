@@ -1,0 +1,152 @@
+# APISIX 部署配置 - 开放 API 服务目录 (L5.5)
+#
+# 对应详细设计 §3 网关下发：
+#     APISIX 路由 + 插件链一次性下发到 APISIX Admin API。
+#
+# 启动顺序：
+#     1. APISIX 启动（加载本配置）
+#     2. open-api-catalog 启动
+#     3. open-api-catalog 通过 Admin API 下发路由 + Consumer
+#     4. 流量进入 APISIX → 插件链执行 → 转发到后端
+
+# APISIX 版本
+apisix_version: 3.8.0
+
+# Admin API 配置
+admin:
+  listen: 0.0.0.0:9180
+  admin_key:
+    - name: admin
+      key: edd1c9f034335f136f87ad84b625c8ab
+      role: admin
+    - name: viewer
+      key: 4053f7cf6d5e9b6e6e9b6e6e9b6e6e9b
+      role: viewer
+
+# 插件启用列表（按执行顺序）
+plugins:
+  # 认证插件
+  - key-auth
+  - jwt-auth
+  - basic-auth
+  # 限流插件
+  - limit-req
+  - limit-conn
+  - limit-count
+  # 熔断插件
+  - circuit-breaker
+  # 重写插件
+  - proxy-rewrite
+  - response-rewrite
+  # 路由插件
+  - traffic-split
+  - redirect
+  # 可观测插件
+  - prometheus
+  - http-logger
+  - serverless-metering    # 自定义计量插件
+  # 安全插件
+  - consumer-restriction
+  - cors
+  - ip-restriction
+
+# 插件链执行顺序（按声明顺序）
+plugin_order:
+  request_phase:
+    - key-auth              # 1. 认证
+    - jwt-auth
+    - consumer-restriction  # 2. 消费者限制
+    - ip-restriction        # 3. IP 限制
+    - cors                  # 4. CORS
+    - limit-req             # 5. 限流
+    - limit-conn
+    - limit-count
+    - circuit-breaker       # 6. 熔断
+    - proxy-rewrite         # 7. 重写（注入租户头）
+    - traffic-split         # 8. 流量分割（灰度）
+  response_phase:
+    - response-rewrite      # 响应重写
+  log_phase:
+    - serverless-metering   # 9. 计量
+    - prometheus            # 10. Prometheus 指标
+    - http-logger           # 11. 日志采集
+
+# 监听端口
+listen:
+  - port: 9080              # HTTP
+    enable_http2: true
+  - port: 9443              # HTTPS
+    enable_http2: true
+    ssl_cert: /etc/apisix/ssl/apisix.crt
+    ssl_key: /etc/apisix/ssl/apisix.key
+
+# 上游默认配置
+upstream_defaults:
+  type: roundrobin
+  timeout:
+    connect: 6
+    send: 6
+    read: 30
+  retries: 2
+  # 主动健康检查
+  checks:
+    active:
+      type: http
+      timeout: 5
+      http_path: /health
+      healthy:
+        interval: 5
+        successes: 2
+      unhealthy:
+        interval: 5
+        http_failures: 3
+        tcp_failures: 3
+    passive:
+      type: http
+      healthy:
+        successes: 2
+      unhealthy:
+        http_failures: 3
+        tcp_failures: 3
+
+# Redis 配置（分布式限流用）
+redis:
+  host: redis
+  port: 6379
+  password: "${REDIS_PASSWORD}"
+  timeout: 1000
+  database: 1
+
+# Prometheus 指标暴露
+prometheus:
+  listen: 0.0.0.0:9091
+  export_addr:
+    ip: 0.0.0.0
+    port: 9091
+  # 自定义指标
+  custom_metrics:
+    - name: apisix_api_call_total
+      type: counter
+      labels: [api_id, consumer_name, status]
+    - name: apisix_api_latency_ms
+      type: histogram
+      labels: [api_id]
+      buckets: [10, 50, 100, 500, 1000, 5000]
+
+# 日志配置
+log:
+  level: warn
+  access_log: /dev/stdout
+  error_log: /dev/stderr
+  # JSON 格式日志
+  log_format: |
+    {
+      "time": "$time_iso8601",
+      "remote_addr": "$remote_addr",
+      "request_method": "$request_method",
+      "request_uri": "$request_uri",
+      "status": "$status",
+      "latency": "$upstream_response_time",
+      "consumer": "$consumer_name",
+      "api_id": "$upstream_api_id"
+    }

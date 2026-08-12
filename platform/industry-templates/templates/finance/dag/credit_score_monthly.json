@@ -1,0 +1,261 @@
+{
+  "projectName": "finance_credit",
+  "processDefinition": {
+    "name": "credit_score_monthly",
+    "description": "信贷评分月度计算DAG：从loan_application申请数据与customer_profile客户画像计算信用评分，写入credit_score表",
+    "tenantCode": "default",
+    "globalParams": "[{\"prop\":\"biz_month\",\"direct\":\"IN\",\"type\":\"VARCHAR\",\"value\":\"$biz_month\"},{\"prop\":\"db_finance\",\"direct\":\"IN\",\"type\":\"VARCHAR\",\"value\":\"db_finance\"}]",
+    "timeout": 14400,
+    "releaseState": "ONLINE",
+    "executionType": "PARALLEL",
+    "schedule": {
+      "startTime": "2024-01-01 00:00:00",
+      "endTime": "2099-12-31 23:59:59",
+      "crontab": "0 4 1 * * ?",
+      "timezoneId": "Asia/Shanghai",
+      "failureStrategy": "CONTINUE",
+      "warningType": "FAILURE",
+      "warningGroupId": 5,
+      "workerGroup": "default"
+    }
+  },
+  "processTaskRelationList": [
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 5001,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 5002,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 5001,
+      "preTaskVersion": 1,
+      "postTaskCode": 5003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 5002,
+      "preTaskVersion": 1,
+      "postTaskCode": 5003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 5003,
+      "preTaskVersion": 1,
+      "postTaskCode": 5004,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 5004,
+      "preTaskVersion": 1,
+      "postTaskCode": 5005,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 5005,
+      "preTaskVersion": 1,
+      "postTaskCode": 5006,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    }
+  ],
+  "taskDefinitionList": [
+    {
+      "code": 5001,
+      "version": 1,
+      "name": "extract_loan_application",
+      "description": "抽取当月loan_application申请数据到临时表tmp_credit_app_src",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_credit_app_src SELECT application_id, customer_id, apply_amount, apply_term, product_type, credit_score_id, applied_at, approval_status FROM ${db_finance}.loan_application WHERE DATE_FORMAT(applied_at, '%Y-%m') = '${biz_month}';",
+        "sqlFile": "../sql/credit_score_monthly/01_extract_loan_application.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 600,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 5002,
+      "version": 1,
+      "name": "extract_customer_profile",
+      "description": "抽取最新customer_profile客户画像指标到临时表tmp_credit_profile_src",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_credit_profile_src SELECT p.customer_id, p.age, p.income_monthly, p.asset_total, p.debt_total, p.overdue_cnt_12m, p.credit_utilization, p.computed_at FROM ${db_finance}.customer_profile p INNER JOIN (SELECT customer_id, MAX(computed_at) AS max_computed_at FROM ${db_finance}.customer_profile WHERE computed_at < DATE_ADD(CONCAT('${biz_month}', '-01'), INTERVAL 1 MONTH) GROUP BY customer_id) latest ON p.customer_id = latest.customer_id AND p.computed_at = latest.max_computed_at;",
+        "sqlFile": "../sql/credit_score_monthly/02_extract_customer_profile.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 600,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 5003,
+      "version": 1,
+      "name": "compute_credit_score",
+      "description": "根据客户画像与申请数据计算信用评分：评分卡模型(年龄/收入/资产/负债/逾期/额度使用率)",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_credit_score_calc SELECT a.application_id, a.customer_id, ROUND( 300 + CASE WHEN p.age BETWEEN 25 AND 45 THEN 80 WHEN p.age BETWEEN 46 AND 60 THEN 60 ELSE 30 END + CASE WHEN p.income_monthly >= 50000 THEN 100 WHEN p.income_monthly >= 20000 THEN 70 WHEN p.income_monthly >= 10000 THEN 40 ELSE 20 END + CASE WHEN p.asset_total >= 1000000 THEN 80 WHEN p.asset_total >= 500000 THEN 50 ELSE 20 END - CASE WHEN p.debt_total / NULLIF(p.asset_total, 0) >= 0.7 THEN 100 WHEN p.debt_total / NULLIF(p.asset_total, 0) >= 0.4 THEN 50 ELSE 10 END - CASE WHEN p.overdue_cnt_12m >= 3 THEN 120 WHEN p.overdue_cnt_12m >= 1 THEN 60 ELSE 0 END - CASE WHEN p.credit_utilization >= 0.9 THEN 80 WHEN p.credit_utilization >= 0.7 THEN 40 ELSE 0 END, 0) AS score_value, CASE WHEN p.overdue_cnt_12m >= 3 OR p.credit_utilization >= 0.9 THEN 'D' WHEN p.overdue_cnt_12m >= 1 OR p.credit_utilization >= 0.7 THEN 'C' WHEN p.income_monthly < 10000 THEN 'B' ELSE 'A' END AS grade, NOW() AS computed_at FROM ${db_finance}.tmp_credit_app_src a LEFT JOIN ${db_finance}.tmp_credit_profile_src p ON a.customer_id = p.customer_id;",
+        "sqlFile": "../sql/credit_score_monthly/03_compute_credit_score.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 600,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 5400,
+      "delayTime": 0
+    },
+    {
+      "code": 5004,
+      "version": 1,
+      "name": "load_credit_score",
+      "description": "将计算评分写入credit_score表，含评分来源/版本/有效期",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.credit_score (score_id, customer_id, application_id, score_value, grade, score_source, model_version, valid_from, valid_to, computed_at, created_at, updated_at, created_by, updated_by) SELECT CONCAT('CS', DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'), LPAD(ROW_NUMBER() OVER(), 6, '0')) AS score_id, customer_id, application_id, score_value, grade, 'INTERNAL_SCORECARD' AS score_source, 'v1.0' AS model_version, NOW() AS valid_from, DATE_ADD(NOW(), INTERVAL 6 MONTH) AS valid_to, computed_at, NOW(), NOW(), 'dag_credit_score_monthly', 'dag_credit_score_monthly' FROM ${db_finance}.tmp_credit_score_calc;",
+        "sqlFile": "../sql/credit_score_monthly/04_load_credit_score.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 600,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 5005,
+      "version": 1,
+      "name": "update_loan_application_score",
+      "description": "回写loan_application.credit_score_id，建立申请与评分关联",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "UPDATE ${db_finance}.loan_application a JOIN ${db_finance}.credit_score cs ON a.application_id = cs.application_id AND cs.created_by = 'dag_credit_score_monthly' SET a.credit_score_id = cs.score_id, a.updated_at = NOW(), a.updated_by = 'dag_credit_score_monthly' WHERE DATE_FORMAT(a.applied_at, '%Y-%m') = '${biz_month}';",
+        "sqlFile": "../sql/credit_score_monthly/05_update_loan_application_score.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "MEDIUM",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 600,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 3600,
+      "delayTime": 0
+    },
+    {
+      "code": 5006,
+      "version": 1,
+      "name": "notify_credit_score_done",
+      "description": "通知信贷评分月度计算完成",
+      "taskType": "SHELL",
+      "taskParams": {
+        "resourceList": [],
+        "localParams": [],
+        "rawScript": "echo \"[credit_score_monthly] biz_month=${biz_month} done at $(date '+%Y-%m-%d %H:%M:%S')\" >> /var/log/finance/dag_credit_score_monthly.log",
+        "sendEmail": true,
+        "emailConfig": {
+          "to": "credit-ops@finance.com,risk-ops@finance.com",
+          "subject": "[DAG]credit_score_monthly完成通知-${biz_month}",
+          "content": "信贷评分月度计算已完成，业务月份：${biz_month}，请关注credit_score表数据并复核评分分布。"
+        }
+      },
+      "flag": "YES",
+      "taskPriority": "MEDIUM",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 1,
+      "failRetryInterval": 60,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 300,
+      "delayTime": 0
+    }
+  ],
+  "alertGroups": [
+    {
+      "id": 5,
+      "groupName": "finance-credit-alert",
+      "groupType": "FEISHU",
+      "feishuWebhook": "https://open.feishu.cn/open-apis/bot/v2/hook/credit-score-monthly",
+      "alertType": "FAILURE"
+    }
+  ]
+}

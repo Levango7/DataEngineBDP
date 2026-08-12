@@ -4,7 +4,8 @@
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
 
 # ============ 构建阶段 ============
-FROM ${BASE_REGISTRY}/golang:1.23-alpine AS builder
+FROM ${BASE_REGISTRY}/golang:1.26-alpine AS builder
+ARG TARGETARCH
 
 WORKDIR /build
 
@@ -15,12 +16,13 @@ ENV GOPROXY=https://goproxy.cn,direct
 # 复制源码。
 COPY . .
 
-# go mod tidy 自动补全 go.sum 及 indirect 依赖
-RUN go mod tidy
+# mod下载在 QEMU 下优化，避免 tidy 联网校验依赖。
+RUN go mod download
 
 # 静态编译，禁用 cgo 以适配 alpine 运行时。
-# 默认使用 Mock 实现；如需启用 Milvus，添加 build tag: -tags milvus_enabled
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o /out/vector-engine .
+# 启用 milvus_enabled build tag，链接真实 Milvus Go SDK（github.com/milvus-io/milvus-sdk-go/v2），
+# 而非内存 Mock 实现。连接失败时由 newMilvusStoreOrFallback 自动回退到 Mock。
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -tags milvus_enabled -trimpath -ldflags="-s -w" -o /out/vector-engine .
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/alpine:3.19 AS runtime
@@ -38,10 +40,10 @@ RUN chown -R app:app /app
 
 USER app
 
-EXPOSE 8084
+EXPOSE 8086
 
 # 健康检查（容器层）。
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:8084/health || exit 1
+    CMD wget -qO- http://127.0.0.1:8086/health || exit 1
 
 ENTRYPOINT ["/app/vector-engine"]

@@ -1,0 +1,235 @@
+﻿# ============================================================================
+# Knative Eventing Helm values · 数据引擎大数据平台
+# ----------------------------------------------------------------------------
+# 版本：Knative Eventing >= 1.12
+# 仓库：knative-eventing Helm Chart
+#   https://knative.dev/docs/install/yaml-install/eventing/installation-with-helm/
+# 事件源：
+#   1. KafkaSource（对接 Phase 1 Kafka 集群，design/deploy/charts/kafka）
+#   2. CronJobSource（定时触发，无外部依赖）
+#   3. PingSource（轻量定时事件源）
+# Channel：Kafka Channel（与 KafkaSource 共享 Kafka 集群）
+# 集成：与 ArgoCD（T003）GitOps 同步，见同目录 argocd-application.yaml
+# 渲染命令：
+#   helm template knative-eventing knative-eventing \
+#     -n knative-eventing \
+#     -f platform/knative/knative-eventing-values.yaml
+# ============================================================================
+
+# ---------- 全局 ----------
+global:
+  knativeNamespace: knative-eventing
+  # 国内镜像加速
+  imageRegistry: docker.m.daocloud.io
+  # 标签
+  labels:
+    app.kubernetes.io/part-of: shuqing-platform
+    app.kubernetes.io/managed-by: helm
+    platform.shuqing.io/component: knative-eventing
+
+# ---------- Knative Eventing 核心配置 ----------
+eventing:
+  # 版本
+  version: "1.12.0"
+
+  # ---------- 控制面 ----------
+  controller:
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing/cmd/controller
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "200Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    enableLeaderElection: true
+
+  # ---------- Webhook ----------
+  webhook:
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing/cmd/webhook
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "100Mi"
+      limits:
+        cpu: "500m"
+        memory: "500Mi"
+
+  # ---------- 事件源：KafkaSource ----------
+  kafkaSource:
+    enabled: true
+    # KafkaSource Controller 镜像
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing-kafka/cmd/controller
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    # 接收数据 Dispatcher 镜像
+    dispatcherImage:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing-kafka/cmd/dispatcher
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    # 对接 Phase 1 Kafka 集群（design/deploy/charts/kafka）
+    # bootstrap servers 由 KafkaSource 实例引用，此处仅配置默认值
+    bootstrapServers: "kafka-bootstrap.kafka.svc.cluster.local:9092"
+    # 消费者组前缀
+    consumerGroupPrefix: "knative-kafka-source-"
+    # 副本数
+    replicas: 2
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "200Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    # Kafka 消费者配置
+    config:
+      # 自动偏移提交
+      enableAutoCommit: "false"
+      # 消费者会话超时
+      sessionTimeoutMs: "10000"
+      # 最大 poll 记录数
+      maxPollRecords: "500"
+      # fetch 最小字节数
+      fetchMinBytes: "1"
+      # fetch 最大等待
+      fetchMaxWaitMs: "500"
+
+  # ---------- 事件源：CronJobSource ----------
+  cronJobSource:
+    enabled: true
+    # CronJobSource Controller 镜像
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing/cmd/heartbeats
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    # 默认调度
+    schedule: "*/2 * * * *"
+    # 事件数据
+    data: "CronJobSource 触发事件"
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "50Mi"
+      limits:
+        cpu: "200m"
+        memory: "200Mi"
+
+  # ---------- 事件源：PingSource ----------
+  pingSource:
+    enabled: true
+    image:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing/cmd/heartbeats
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    # 默认调度（每分钟）
+    schedule: "*/1 * * * *"
+    resources:
+      requests:
+        cpu: "50m"
+        memory: "50Mi"
+      limits:
+        cpu: "200m"
+        memory: "200Mi"
+
+  # ---------- Channel：Kafka Channel ----------
+  kafkaChannel:
+    enabled: true
+    # Kafka Channel Controller 镜像
+    controllerImage:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing-kafka/cmd/channel_controller
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    # Kafka Channel Dispatcher 镜像
+    dispatcherImage:
+      repository: docker.m.daocloud.io/gcr.io/knative-releases/knative.dev/eventing-kafka/cmd/channel_dispatcher
+      tag: "v1.12.0"
+      pullPolicy: IfNotPresent
+    # 对接 Phase 1 Kafka 集群
+    bootstrapServers: "kafka-bootstrap.kafka.svc.cluster.local:9092"
+    # 默认 topic 副本数
+    topicReplicationCount: 3
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "200Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+
+  # ---------- 默认 Channel 类型 ----------
+  # 默认使用 Kafka Channel
+  defaultChannel:
+    apiVersion: "messaging.knative.dev/v1beta1"
+    kind: "KafkaChannel"
+    # Kafka Channel 配置
+    spec:
+      numPartitions: 3
+      replicationFactor: 3
+
+  # ---------- Broker 默认配置 ----------
+  broker:
+    # 默认 Broker 后端：Kafka
+    defaultBrokerClass: "Kafka"
+    # Broker 配置（ConfigMap: config-br-defaults）
+    config:
+      # 默认 Channel 模板
+      channelTemplate:
+        apiVersion: "messaging.knative.dev/v1beta1"
+        kind: "KafkaChannel"
+
+  # ---------- 事件追踪 ----------
+  tracing:
+    enabled: true
+    # 复用 Phase 1 Istio / Tempo 链路追踪
+    zipkinEndpoint: "http://tempo-collector.monitoring.svc.cluster.local:9411/api/v2/spans"
+    sampleRate: "0.1"
+
+  # ---------- Pod 调度 ----------
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+# ---------- 监控 ----------
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    namespace: monitoring
+    interval: "30s"
+    scrapeTimeout: "10s"
+  grafanaDashboard:
+    enabled: true
+    namespace: monitoring
+
+# ---------- 资源配额（namespace 级）----------
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "5"
+    requests.memory: "10Gi"
+    limits.cpu: "10"
+    limits.memory: "20Gi"
+
+# ---------- PodDisruptionBudget ----------
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# ---------- 引用提示 ----------
+# 前置依赖：
+#   1. Knative Serving 已部署（见 knative-serving-values.yaml）
+#   2. Phase 1 Kafka 集群已就绪（design/deploy/charts/kafka）
+#   3. Phase 1 Istio 已部署（网络层）
+# 验证：
+#   kubectl get pods -n knative-eventing
+#   kubectl get kafkasource,cronjobsource,pingsource -A
+# ============================================================================

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  JaCoCo Maven 插件共享配置片段
+  用途：供 platform/ 下所有 Java 组件 pom.xml 引用，统一覆盖率配置
+  使用方式：在组件 pom.xml 的 <build><plugins> 中粘贴此片段
+  
+  功能：
+  1. prepare-agent：在 test 阶段注入 JaCoCo agent
+  2. report：在 test 阶段生成 XML/HTML 覆盖率报告
+  3. check：在 verify 阶段执行覆盖率门禁（最低 70%）
+  
+  覆盖率报告路径：target/site/jacoco/jacoco.xml
+  CI 收集：ci.yml java-build-test job 自动收集
+-->
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.11</version>
+    <configuration>
+        <!-- 排除的类：模型类、配置类、主类 -->
+        <excludes>
+            <exclude>**/model/**</exclude>
+            <exclude>**/dto/**</exclude>
+            <exclude>**/entity/**</exclude>
+            <exclude>**/config/**</exclude>
+            <exclude>**/*Application*</exclude>
+            <exclude>**/generated/**</exclude>
+            <exclude>**/*MapperImpl*</exclude>
+        </excludes>
+        <!-- 输出目录 -->
+        <outputDirectory>${project.build.directory}/site/jacoco</outputDirectory>
+    </configuration>
+    <executions>
+        <!-- 1. prepare-agent：注入 JaCoCo agent 到 surefire -->
+        <execution>
+            <id>prepare-agent</id>
+            <goals>
+                <goal>prepare-agent</goal>
+            </goals>
+        </execution>
+        <!-- 2. report：生成 XML + HTML 报告 -->
+        <execution>
+            <id>report</id>
+            <phase>test</phase>
+            <goals>
+                <goal>report</goal>
+            </goals>
+        </execution>
+        <!-- 3. check：覆盖率门禁（最低 70%） -->
+        <execution>
+            <id>check</id>
+            <phase>verify</phase>
+            <goals>
+                <goal>check</goal>
+            </goals>
+            <configuration>
+                <rules>
+                    <rule>
+                        <element>BUNDLE</element>
+                        <limits>
+                            <!-- 行覆盖率 ≥ 70% -->
+                            <limit>
+                                <counter>LINE</counter>
+                                <value>COVEREDRATIO</value>
+                                <minimum>0.70</minimum>
+                            </limit>
+                            <!-- 分支覆盖率 ≥ 60% -->
+                            <limit>
+                                <counter>BRANCH</counter>
+                                <value>COVEREDRATIO</value>
+                                <minimum>0.60</minimum>
+                            </limit>
+                            <!-- 方法覆盖率 ≥ 70% -->
+                            <limit>
+                                <counter>METHOD</counter>
+                                <value>COVEREDRATIO</value>
+                                <minimum>0.70</minimum>
+                            </limit>
+                        </limits>
+                    </rule>
+                </rules>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
