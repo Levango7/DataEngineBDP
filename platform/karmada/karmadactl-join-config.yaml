@@ -1,0 +1,127 @@
+# karmadactl join 成员集群纳管配置
+# ============================================================================
+# 作用：将 3 个成员集群（信创/本地/公有云）纳管到 Karmada 控制面
+# 工具：karmadactl >= 1.10
+# 模式：push 模式（控制面主动推送工作负载到成员集群）
+# ============================================================================
+# 纳管命令示例：
+#   # 1. 获取控制面 kubeconfig
+#   kubectl get secret karmada-kubeconfig -n karmada-system \
+#     -o jsonpath='{.data.value}' | base64 -d > karmada-apiserver.config
+#
+#   # 2. 纳管 3 个成员集群
+#   karmadactl join xinchang-cluster --cluster-kubeconfig=xinchang.kubeconfig \
+#     --karmada-kubeconfig=karmada-apiserver.config \
+#     --cluster-namespace=karmada-cluster \
+#     -f platform/karmada/karmadactl-join-config.yaml
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# 全局纳管参数（所有成员集群共享）
+# ---------------------------------------------------------------------------
+# 控制面所在 namespace
+karmadaSystemNamespace: "karmada-system"
+# 成员集群注册信息所在 namespace
+clusterNamespace: "karmada-cluster"
+
+# ---------------------------------------------------------------------------
+# 成员集群 1：信创集群（麒麟 OS + 鲲鹏 ARM）
+# ---------------------------------------------------------------------------
+xinchangCluster:
+  # 集群名（Karmada 内唯一标识）
+  name: "xinchang-cluster"
+  # 集群类型标签
+  labels:
+    cluster.karmada.io/type: "xinchang"
+    cluster.karmada.io/vendor: "kylin"
+    cluster.karmada.io/arch: "arm64"
+    cluster.karmada.io/region: "on-premise"
+    cluster.karmada.io/env: "production"
+  # 集群注解
+  annotations:
+    # 鲲鹏镜像兼容性说明：所有镜像需提供 arm64 清单
+    karmada.io/arch-compat: "arm64-only"
+    # 麲鹏镜像仓库（多架构镜像或 arm64 专用镜像）
+    karmada.io/image-registry: "harbor.xinchang.example.com"
+  # 集群容量（用于调度决策）
+  maxReplicas: 100
+  # 纳管时安装的 CRD 范围
+  enableCRDs:
+    - "deployments.apps"
+    - "statefulsets.apps"
+    - "daemonsets.apps"
+    - "services"
+    - "configmaps"
+    - "secrets"
+    - "ingresses.networking.k8s.io"
+    - "persistentvolumeclaims"
+  # 集群 kubeconfig 路径（纳管命令通过 --cluster-kubeconfig 传入）
+  kubeconfigPath: "xinchang.kubeconfig"
+
+# ---------------------------------------------------------------------------
+# 成员集群 2：本地集群（标准 K8s x86_64）
+# ---------------------------------------------------------------------------
+localCluster:
+  name: "local-cluster"
+  labels:
+    cluster.karmada.io/type: "local"
+    cluster.karmada.io/vendor: "kubernetes"
+    cluster.karmada.io/arch: "amd64"
+    cluster.karmada.io/region: "on-premise"
+    cluster.karmada.io/env: "staging"
+  annotations:
+    karmada.io/arch-compat: "amd64-only"
+  maxReplicas: 50
+  enableCRDs:
+    - "deployments.apps"
+    - "statefulsets.apps"
+    - "daemonsets.apps"
+    - "services"
+    - "configmaps"
+    - "secrets"
+    - "ingresses.networking.k8s.io"
+    - "persistentvolumeclaims"
+  kubeconfigPath: "local.kubeconfig"
+
+# ---------------------------------------------------------------------------
+# 成员集群 3：公有云集群（华为云 CCE）
+# ---------------------------------------------------------------------------
+cloudCluster:
+  name: "cce-cluster"
+  labels:
+    cluster.karmada.io/type: "cloud"
+    cluster.karmada.io/vendor: "huawei-cce"
+    cluster.karmada.io/arch: "amd64"
+    cluster.karmada.io/region: "cn-north-4"
+    cluster.karmada.io/env: "production"
+  annotations:
+    karmada.io/arch-compat: "amd64-only"
+    # 华为云 CCE 集群 ID（纳管时记录）
+    karmada.io/cce-cluster-id: "placeholder-replace-with-real-cce-id"
+  maxReplicas: 200
+  enableCRDs:
+    - "deployments.apps"
+    - "statefulsets.apps"
+    - "daemonsets.apps"
+    - "services"
+    - "configmaps"
+    - "secrets"
+    - "ingresses.networking.k8s.io"
+    - "persistentvolumeclaims"
+    # CCE 特有：支持 LoadBalancer 服务类型
+    - "serviceaccounts"
+  kubeconfigPath: "cce.kubeconfig"
+
+# ---------------------------------------------------------------------------
+# 纳管后健康检查
+# ---------------------------------------------------------------------------
+healthCheck:
+  # 纳管后轮询 Cluster 资源状态直到 Ready
+  timeout: "120s"
+  interval: "5s"
+  # 期望状态
+  expectedConditions:
+    - type: "Ready"
+      status: "True"
+    - type: "Syncable"
+      status: "True"

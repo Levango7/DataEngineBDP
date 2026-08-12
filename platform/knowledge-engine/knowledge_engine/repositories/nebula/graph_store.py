@@ -6,6 +6,7 @@
     - SDK 调用封装在私有方法中，便于 Mock 测试。
     - 连接池复用，避免每次查询建立连接。
 """
+
 from __future__ import annotations
 
 import time
@@ -13,14 +14,12 @@ from typing import Any
 
 from knowledge_engine.interfaces.graph_store import GraphStore
 from knowledge_engine.models.graph import (
-    Edge,
     GraphSchema,
     QueryResult,
     Vertex,
 )
 from knowledge_engine.repositories import (
     QuerySyntaxError,
-    SpaceNotFoundError,
     StoreUnavailableError,
     VertexNotFoundError,
 )
@@ -66,12 +65,10 @@ class NebulaGraphStore(GraphStore):
             StoreUnavailableError: SDK 未安装或连接失败。
         """
         try:
-            from nebula3.gclient.net import ConnectionPool  # type: ignore
             from nebula3.Config import Config  # type: ignore
+            from nebula3.gclient.net import ConnectionPool  # type: ignore
         except ImportError as exc:
-            raise StoreUnavailableError(
-                "nebula3-python 未安装，请 pip install nebula3-python"
-            ) from exc
+            raise StoreUnavailableError("nebula3-python 未安装，请 pip install nebula3-python") from exc
 
         try:
             config = Config()
@@ -79,9 +76,7 @@ class NebulaGraphStore(GraphStore):
             pool = ConnectionPool()
             ok = pool.init([(self.host, self.port)], config)
             if not ok:
-                raise StoreUnavailableError(
-                    f"NebulaGraph 连接初始化失败: {self.host}:{self.port}"
-                )
+                raise StoreUnavailableError(f"NebulaGraph 连接初始化失败: {self.host}:{self.port}")
             session = pool.get_session(self.user, self.password)
             self._session = session
             return pool
@@ -115,20 +110,14 @@ class NebulaGraphStore(GraphStore):
         )
         # 应用 Schema：顶点标签
         for vl in schema.vertexLabels:
-            props = ", ".join(
-                f"`{k}` {self._nebula_type(v)}" for k, v in vl.properties.items()
-            )
+            props = ", ".join(f"`{k}` {self._nebula_type(v)}" for k, v in vl.properties.items())
             cols = f", {props}" if props else ""
             self._execute(f"USE `{space_name}`; CREATE TAG IF NOT EXISTS `{vl.name}`({cols});")
         # 边类型
         for et in schema.edgeTypes:
-            props = ", ".join(
-                f"`{k}` {self._nebula_type(v)}" for k, v in et.properties.items()
-            )
+            props = ", ".join(f"`{k}` {self._nebula_type(v)}" for k, v in et.properties.items())
             cols = f", {props}" if props else ""
-            self._execute(
-                f"USE `{space_name}`; CREATE EDGE IF NOT EXISTS `{et.name}`({cols});"
-            )
+            self._execute(f"USE `{space_name}`; CREATE EDGE IF NOT EXISTS `{et.name}`({cols});")
 
     async def drop_space(self, space_name: str) -> None:
         self._execute(f"DROP SPACE IF EXISTS `{space_name}`;")
@@ -143,17 +132,12 @@ class NebulaGraphStore(GraphStore):
 
     # ---------- 顶点 / 边写入 ----------
 
-    async def insert_vertex(
-        self, space: str, label: str, vid: str, props: dict
-    ) -> None:
+    async def insert_vertex(self, space: str, label: str, vid: str, props: dict) -> None:
         cols = ", ".join(f"`{k}`" for k in props.keys())
         vals = ", ".join(self._nebula_value(v) for v in props.values())
         col_clause = f"({cols})" if cols else "()"
         val_clause = f"({vals})" if vals else "()"
-        self._execute(
-            f"USE `{space}`; INSERT VERTEX `{label}`{col_clause} VALUES "
-            f"\"{vid}\":{val_clause};"
-        )
+        self._execute(f"USE `{space}`; INSERT VERTEX `{label}`{col_clause} VALUES " f'"{vid}":{val_clause};')
 
     async def insert_edge(
         self,
@@ -168,14 +152,11 @@ class NebulaGraphStore(GraphStore):
         col_clause = f"({cols})" if cols else "()"
         val_clause = f"({vals})" if vals else "()"
         self._execute(
-            f"USE `{space}`; INSERT EDGE `{edge_type}`{col_clause} VALUES "
-            f"\"{src_id}\"->\"{dst_id}\":{val_clause};"
+            f"USE `{space}`; INSERT EDGE `{edge_type}`{col_clause} VALUES " f'"{src_id}"->"{dst_id}":{val_clause};'
         )
 
     async def get_vertex(self, space: str, vid: str) -> Vertex:
-        resp = self._execute(
-            f"USE `{space}`; FETCH PROP ON * \"{vid}\" YIELD vertex AS v;"
-        )
+        resp = self._execute(f'USE `{space}`; FETCH PROP ON * "{vid}" YIELD vertex AS v;')
         if resp.rows() is None or len(resp.rows()) == 0:
             raise VertexNotFoundError(vid)
         # 简化：返回最小顶点（实际应解析 ResultSet）
@@ -199,25 +180,17 @@ class NebulaGraphStore(GraphStore):
             latencyMs=(time.perf_counter() - start) * 1000,
         )
 
-    async def get_neighbors(
-        self, space: str, vid: str, edge_types: list[str] | None = None
-    ) -> list[Vertex]:
+    async def get_neighbors(self, space: str, vid: str, edge_types: list[str] | None = None) -> list[Vertex]:
         edge_clause = "::" if not edge_types else ":" + "|".join(f"`{e}`" for e in edge_types) + ":"
-        resp = self._execute(
-            f"USE `{space}`; GO 1 STEPS FROM \"{vid}\" OVER {edge_clause} YIELD dst(edge) AS dst;"
-        )
+        resp = self._execute(f'USE `{space}`; GO 1 STEPS FROM "{vid}" OVER {edge_clause} YIELD dst(edge) AS dst;')
         result: list[Vertex] = []
         for row in resp.rows():
             dst = row.values[0].get_s_val().decode()
             result.append(Vertex(id=dst, label="_unknown", properties={}))
         return result
 
-    async def shortest_path(
-        self, space: str, src_id: str, dst_id: str
-    ) -> list[Vertex]:
-        resp = self._execute(
-            f"USE `{space}`; FIND SHORTEST PATH FROM \"{src_id}\" TO \"{dst_id}\" OVER * YIELD path AS p;"
-        )
+    async def shortest_path(self, space: str, src_id: str, dst_id: str) -> list[Vertex]:
+        self._execute(f'USE `{space}`; FIND SHORTEST PATH FROM "{src_id}" TO "{dst_id}" OVER * YIELD path AS p;')
         # 简化：返回空列表（实际应解析 path）
         return []
 

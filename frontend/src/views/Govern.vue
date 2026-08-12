@@ -9,18 +9,25 @@
       <button class="btn sm" @click="modalVisible = true">+ 登记资产</button>
     </div>
     <div class="card">
-      <table>
+      <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-else-if="error" style="padding: 16px; color: var(--red)">
+        {{ error }}，<a href="javascript:void(0)" @click="loadAssets">重试</a>
+      </div>
+      <table v-else>
         <thead>
           <tr><th>资产名</th><th>分层</th><th>负责人</th><th>质量分</th><th>敏感</th><th></th></tr>
         </thead>
         <tbody>
-          <tr class="click" v-for="a in assets" :key="a.name" @click="openDrawer(a)">
+          <tr class="click" v-for="a in assets" :key="a.id" @click="openDrawer(a)">
             <td>{{ a.name }}</td>
             <td>{{ a.layer }}</td>
             <td>{{ a.owner }}</td>
             <td>{{ a.score }}</td>
-            <td><span class="pill" :class="a.pillClass">{{ a.pillText }}</span></td>
+            <td><span class="pill" :class="sensitivityPillClass(a.sensitivity)">{{ sensitivityPillText(a.sensitivity) }}</span></td>
             <td><span class="pill b">详情</span></td>
+          </tr>
+          <tr v-if="assets.length === 0">
+            <td colspan="6" style="text-align: center; color: var(--muted)">暂无资产</td>
           </tr>
         </tbody>
       </table>
@@ -29,7 +36,7 @@
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
       <template #header>
         资产：{{ current?.name }}
-        <span class="pill r">{{ current?.pillText }}</span>
+        <span class="pill r">{{ current ? sensitivityPillText(current.sensitivity) : '' }}</span>
       </template>
       <div class="tabbar">
         <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">元数据</div>
@@ -41,29 +48,41 @@
         <div class="kv"><span>分层</span><span>{{ current?.layer }}</span></div>
         <div class="kv"><span>负责人</span><span>{{ current?.owner }}</span></div>
         <div class="kv"><span>质量分</span><span>{{ current?.score }}</span></div>
-        <div class="kv"><span>更新频率</span><span>日</span></div>
+        <div class="kv"><span>更新频率</span><span>{{ current?.refreshFrequency || '日' }}</span></div>
       </div>
       <div v-if="tab === 1">
-        <table>
+        <div v-if="schemaLoading" style="color: var(--muted)">加载 Schema…</div>
+        <table v-else>
           <thead>
             <tr><th>字段</th><th>类型</th><th>敏感</th></tr>
           </thead>
           <tbody>
-            <tr><td>order_id</td><td>bigint</td><td>—</td></tr>
-            <tr><td>user_id</td><td>bigint</td><td>—</td></tr>
-            <tr><td>id_card</td><td>string</td><td><span class="pill r">PII</span></td></tr>
-            <tr><td>amount</td><td>decimal</td><td>—</td></tr>
+            <tr v-for="f in schemaFields" :key="f.name">
+              <td>{{ f.name }}</td>
+              <td>{{ f.type }}</td>
+              <td v-if="f.sensitive"><span class="pill r">{{ f.sensitivity || 'PII' }}</span></td>
+              <td v-else>—</td>
+            </tr>
+            <tr v-if="schemaFields.length === 0">
+              <td colspan="3" style="text-align: center; color: var(--muted)">暂无 Schema</td>
+            </tr>
           </tbody>
         </table>
       </div>
       <div v-if="tab === 2">
-        <div class="kv"><span>订单ID非空</span><span><span class="pill g">通过</span></span></div>
-        <div class="kv"><span>金额非负</span><span><span class="pill g">通过</span></span></div>
-        <div class="kv"><span>行数波动</span><span><span class="pill g">通过</span></span></div>
+        <div v-if="qualityLoading" style="color: var(--muted)">加载质量检查…</div>
+        <div v-else v-for="(q, idx) in qualityItems" :key="idx" class="kv">
+          <span>{{ q.ruleName }}</span>
+          <span><span class="pill" :class="q.passed ? 'g' : 'r'">{{ q.passed ? '通过' : '未通过' }}</span></span>
+        </div>
+        <div v-if="!qualityLoading && qualityItems.length === 0" style="color: var(--muted)">暂无质量检查结果</div>
       </div>
       <div v-if="tab === 3">
-        <div class="kv"><span>当前权限</span><span>张工(读写) · 李工(读)</span></div>
-        <button class="btn sm" style="margin-top: 10px" @click="store.showToast('权限申请已提交，等待审批')">申请读权限</button>
+        <div v-if="permLoading" style="color: var(--muted)">加载权限…</div>
+        <div v-else>
+          <div class="kv"><span>当前权限</span><span>{{ permissions.map(p => `${p.user}(${p.permission})`).join(' · ') || '无' }}</span></div>
+          <button class="btn sm" style="margin-top: 10px" @click="applyReadPermission">申请读权限</button>
+        </div>
         <div class="note">申请经审批流，不直连底层存储。</div>
       </div>
     </Drawer>
@@ -84,40 +103,121 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
+import * as governanceApi from '@/api/governance'
+import type { Asset, AssetSchemaField, AssetQualityItem, AssetPermission } from '@/api/governance'
 
 const store = useAppStore()
 
-interface Asset {
-  name: string
-  layer: string
-  owner: string
-  score: number
-  pillClass: string
-  pillText: string
+// 资产列表
+const assets = ref<Asset[]>([])
+const loading = ref(false)
+const error = ref('')
+
+/** 加载资产列表 */
+async function loadAssets() {
+  loading.value = true
+  error.value = ''
+  try {
+    const result = await governanceApi.listAssets({ page: 1, pageSize: 100 })
+    assets.value = result.list
+  } catch (err) {
+    error.value = (err as Error).message || '资产列表加载失败'
+  } finally {
+    loading.value = false
+  }
 }
 
-const assets: Asset[] = [
-  { name: 'dwd.order_wide', layer: 'DWD', owner: '张工', score: 96, pillClass: 'r', pillText: 'PII' },
-  { name: 'ads.user_profile', layer: 'ADS', owner: '李工', score: 91, pillClass: 'a', pillText: '受限' },
-  { name: 'dws.pay_summary', layer: 'DWS', owner: '赵工', score: 88, pillClass: 'g', pillText: '无' }
-]
+/** 敏感级别 → pill 样式 */
+function sensitivityPillClass(s: string): string {
+  switch (s) {
+    case 'PII':
+      return 'r'
+    case 'restricted':
+      return 'a'
+    default:
+      return 'g'
+  }
+}
+
+/** 敏感级别 → pill 文案 */
+function sensitivityPillText(s: string): string {
+  switch (s) {
+    case 'PII':
+      return 'PII'
+    case 'restricted':
+      return '受限'
+    default:
+      return '无'
+  }
+}
 
 const drawerVisible = ref(false)
 const modalVisible = ref(false)
 const tab = ref(0)
 const current = ref<Asset | null>(null)
 
-function openDrawer(a: Asset) {
+// Schema、质量、权限
+const schemaFields = ref<AssetSchemaField[]>([])
+const schemaLoading = ref(false)
+const qualityItems = ref<AssetQualityItem[]>([])
+const qualityLoading = ref(false)
+const permissions = ref<AssetPermission[]>([])
+const permLoading = ref(false)
+
+/** 打开抽屉并加载详情 */
+async function openDrawer(a: Asset) {
   current.value = a
   tab.value = 0
   drawerVisible.value = true
+  // 并行加载 Schema、质量、权限
+  schemaLoading.value = true
+  qualityLoading.value = true
+  permLoading.value = true
+  try {
+    const schema = await governanceApi.getAssetSchema(a.id)
+    schemaFields.value = schema.fields
+  } catch {
+    schemaFields.value = []
+  } finally {
+    schemaLoading.value = false
+  }
+  try {
+    qualityItems.value = await governanceApi.getAssetQuality(a.id)
+  } catch {
+    qualityItems.value = []
+  } finally {
+    qualityLoading.value = false
+  }
+  try {
+    permissions.value = await governanceApi.getAssetPermissions(a.id)
+  } catch {
+    permissions.value = []
+  } finally {
+    permLoading.value = false
+  }
 }
+
+/** 申请读权限 */
+async function applyReadPermission() {
+  if (!current.value) return
+  try {
+    await governanceApi.applyAssetPermission(current.value.id, 'read')
+    store.showToast('权限申请已提交，等待审批')
+  } catch {
+    // 错误提示已由拦截器统一处理
+  }
+}
+
 function ok(msg: string) {
   modalVisible.value = false
   store.showToast(msg)
 }
+
+onMounted(() => {
+  loadAssets()
+})
 </script>

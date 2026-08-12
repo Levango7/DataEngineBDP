@@ -1,4 +1,5 @@
 """Mock ML 后端测试."""
+
 from __future__ import annotations
 
 import pytest
@@ -112,9 +113,7 @@ async def test_evaluate(mockBackend):
 @pytest.mark.asyncio
 async def test_evaluate_model_not_found(mockBackend):
     with pytest.raises(ModelNotFoundError):
-        await mockBackend.evaluate(
-            "nonexistent", EvalConfig(dataset="eval-1")
-        )
+        await mockBackend.evaluate("nonexistent", EvalConfig(dataset="eval-1"))
 
 
 @pytest.mark.asyncio

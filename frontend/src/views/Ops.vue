@@ -3,38 +3,50 @@
     <h1>运维中心</h1>
     <div class="sub">客户视角运行态监控；底层自研 SKE 发行版自愈、扩容对客户透明。</div>
     <div class="grid g4">
-      <div class="card"><h3>集群健康</h3><div class="kpi s"><span class="pill g">健康</span></div></div>
-      <div class="card"><h3>运行作业</h3><div class="kpi">326</div></div>
-      <div class="card"><h3>今日失败</h3><div class="kpi s">3</div></div>
-      <div class="card"><h3>平均延迟</h3><div class="kpi s">1.8s</div></div>
+      <div class="card"><h3>集群健康</h3><div class="kpi s"><span class="pill" :class="healthPillClass(overview?.clusterHealth)">{{ healthPillText(overview?.clusterHealth) }}</span></div></div>
+      <div class="card"><h3>运行作业</h3><div class="kpi">{{ overview?.runningJobCount ?? '--' }}</div></div>
+      <div class="card"><h3>今日失败</h3><div class="kpi s">{{ overview?.todayFailedCount ?? '--' }}</div></div>
+      <div class="card"><h3>平均延迟</h3><div class="kpi s">{{ overview?.avgLatencySec ?? '--' }}s</div></div>
     </div>
     <div class="card" style="margin-top: 14px">
       <h3>作业监控</h3>
-      <table>
+      <div v-if="jobsLoading" style="color: var(--muted)">加载中…</div>
+      <div v-else-if="jobsError" style="color: var(--red)">{{ jobsError }}</div>
+      <table v-else>
         <tr><th>作业</th><th>类型</th><th>运行时长</th><th>状态</th><th></th></tr>
-        <tr><td>实时风控流</td><td>流(Flink)</td><td>持续</td><td><span class="pill a">运行中</span></td><td><button class="btn ghost sm" @click="openLog('实时风控流')">日志</button></td></tr>
-        <tr><td>日汇总DAG</td><td>批(Spark)</td><td>12m</td><td><span class="pill g">成功</span></td><td><button class="btn ghost sm" @click="openLog('日汇总DAG')">日志</button></td></tr>
-        <tr><td>报表T+1</td><td>批(Spark)</td><td>0m48s</td><td><span class="pill r">失败</span></td><td><button class="btn ghost sm" @click="openLog('报表T+1')">日志</button></td></tr>
+        <tr v-for="j in jobs" :key="j.id">
+          <td>{{ j.name }}</td>
+          <td>{{ jobTypeLabel(j.type) }}</td>
+          <td>{{ j.duration }}</td>
+          <td><span class="pill" :class="jobStatusPillClass(j.status)">{{ jobStatusPillText(j.status) }}</span></td>
+          <td><button class="btn ghost sm" @click="openLog(j)">日志</button></td>
+        </tr>
+        <tr v-if="jobs.length === 0">
+          <td colspan="5" style="text-align: center; color: var(--muted)">暂无作业</td>
+        </tr>
       </table>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>告警 <span class="pill r">2</span></h3>
-      <table>
+      <h3>告警 <span class="pill r">{{ alerts.length }}</span></h3>
+      <div v-if="alertsLoading" style="color: var(--muted)">加载中…</div>
+      <table v-else>
         <tr><th>告警</th><th>级别</th><th></th></tr>
-        <tr><td>内存水位 71% 接近阈值</td><td><span class="pill a">警告</span></td><td><button class="btn sm" @click="store.showToast('已确认并派单')">处理</button></td></tr>
-        <tr><td>报表T+1 作业失败</td><td><span class="pill r">严重</span></td><td><button class="btn sm" @click="store.showToast('已触发重跑')">处理</button></td></tr>
+        <tr v-for="a in alerts" :key="a.id">
+          <td>{{ a.content }}</td>
+          <td><span class="pill" :class="alertLevelPillClass(a.level)">{{ alertLevelPillText(a.level) }}</span></td>
+          <td><button class="btn sm" @click="handleAlert(a)">处理</button></td>
+        </tr>
+        <tr v-if="alerts.length === 0">
+          <td colspan="3" style="text-align: center; color: var(--muted)">暂无告警</td>
+        </tr>
       </table>
     </div>
 
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
-      <template #header>作业日志：{{ currentJob }}</template>
+      <template #header>作业日志：{{ currentJob?.name }}</template>
       <div class="runlog" style="height: auto">
-        <span class="ok">[INFO] Flink 作业启动 · 并行度 8</span>
-        <span class="info">[INFO] 消费 Kafka topic clickstream offset=88214</span>
-        <span class="ok">[INFO] checkpoint 12 完成 1.2s</span>
-        <span class="warn">[WARN] 反压中等，自动扩容至并行度 12</span>
-        <span class="ok">[INFO] 写入 Doris 在线表 user_risk 12,480 行</span>
-        <span class="info">[INFO] 作业健康，时延 1.6s</span>
+        <div v-if="logLoading" style="color: var(--muted)">加载日志…</div>
+        <pre v-else style="white-space: pre-wrap; font-family: monospace">{{ logContent || '暂无日志' }}</pre>
       </div>
       <div class="note">日志由封装层归一化输出，隐藏 Pod/容器细节。</div>
     </Drawer>
@@ -42,16 +54,191 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Drawer from '@/components/Drawer.vue'
+import * as opsApi from '@/api/ops'
+import type { OpsOverview, OpsJob, Alert, OpsJobType, OpsJobStatus, AlertLevel } from '@/api/ops'
 
 const store = useAppStore()
 const drawerVisible = ref(false)
-const currentJob = ref('')
 
-function openLog(job: string) {
+// 概览
+const overview = ref<OpsOverview | null>(null)
+
+// 作业列表
+const jobs = ref<OpsJob[]>([])
+const jobsLoading = ref(false)
+const jobsError = ref('')
+
+// 告警列表
+const alerts = ref<Alert[]>([])
+const alertsLoading = ref(false)
+
+// 日志
+const currentJob = ref<OpsJob | null>(null)
+const logContent = ref('')
+const logLoading = ref(false)
+
+/** 加载概览 */
+async function loadOverview() {
+  try {
+    overview.value = await opsApi.getOverview()
+  } catch {
+    // 概览加载失败不阻塞页面
+  }
+}
+
+/** 加载作业列表 */
+async function loadJobs() {
+  jobsLoading.value = true
+  jobsError.value = ''
+  try {
+    jobs.value = await opsApi.listJobs()
+  } catch (err) {
+    jobsError.value = (err as Error).message || '作业列表加载失败'
+  } finally {
+    jobsLoading.value = false
+  }
+}
+
+/** 加载告警列表 */
+async function loadAlerts() {
+  alertsLoading.value = true
+  try {
+    alerts.value = await opsApi.listAlerts()
+  } catch {
+    alerts.value = []
+  } finally {
+    alertsLoading.value = false
+  }
+}
+
+/** 打开日志抽屉 */
+async function openLog(job: OpsJob) {
   currentJob.value = job
   drawerVisible.value = true
+  logLoading.value = true
+  logContent.value = ''
+  try {
+    logContent.value = await opsApi.getJobLogs(job.id)
+  } catch (err) {
+    logContent.value = `日志加载失败：${(err as Error).message}`
+  } finally {
+    logLoading.value = false
+  }
 }
+
+/** 处理告警 */
+async function handleAlert(alert: Alert) {
+  try {
+    await opsApi.handleAlert(alert.id, '处理')
+    store.showToast('已处理')
+    await loadAlerts()
+  } catch {
+    // 错误提示已由拦截器统一处理
+  }
+}
+
+/** 健康状态 → pill 样式 */
+function healthPillClass(s?: string): string {
+  switch (s) {
+    case 'healthy':
+      return 'g'
+    case 'warning':
+      return 'a'
+    case 'critical':
+      return 'r'
+    default:
+      return 'b'
+  }
+}
+
+/** 健康状态 → pill 文案 */
+function healthPillText(s?: string): string {
+  switch (s) {
+    case 'healthy':
+      return '健康'
+    case 'warning':
+      return '警告'
+    case 'critical':
+      return '故障'
+    default:
+      return '--'
+  }
+}
+
+/** 作业类型 → 中文 */
+function jobTypeLabel(t: OpsJobType): string {
+  switch (t) {
+    case 'stream_flink':
+      return '流(Flink)'
+    case 'batch_spark':
+      return '批(Spark)'
+    case 'batch_dag':
+      return '批(DAG)'
+    default:
+      return t
+  }
+}
+
+/** 作业状态 → pill 样式 */
+function jobStatusPillClass(s: OpsJobStatus): string {
+  switch (s) {
+    case 'running':
+      return 'a'
+    case 'success':
+      return 'g'
+    case 'failed':
+      return 'r'
+    default:
+      return 'b'
+  }
+}
+
+/** 作业状态 → pill 文案 */
+function jobStatusPillText(s: OpsJobStatus): string {
+  switch (s) {
+    case 'running':
+      return '运行中'
+    case 'success':
+      return '成功'
+    case 'failed':
+      return '失败'
+    case 'pending':
+      return '等待中'
+    default:
+      return s
+  }
+}
+
+/** 告警级别 → pill 样式 */
+function alertLevelPillClass(l: AlertLevel): string {
+  switch (l) {
+    case 'warn':
+      return 'a'
+    case 'critical':
+      return 'r'
+    default:
+      return 'b'
+  }
+}
+
+/** 告警级别 → pill 文案 */
+function alertLevelPillText(l: AlertLevel): string {
+  switch (l) {
+    case 'warn':
+      return '警告'
+    case 'critical':
+      return '严重'
+    default:
+      return '信息'
+  }
+}
+
+onMounted(() => {
+  loadOverview()
+  loadJobs()
+  loadAlerts()
+})
 </script>

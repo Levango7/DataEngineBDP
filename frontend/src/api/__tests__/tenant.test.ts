@@ -46,7 +46,7 @@ describe('api/tenant.ts', () => {
 
   it('createTenant 应调用 POST /tenants', async () => {
     const { createTenant } = await import('@/api/tenant')
-    const data = { name: '新租户', code: 'new-tenant', plan: 'enterprise' }
+    const data = { name: '新租户', code: 'new-tenant', plan: 'enterprise' as const }
     await createTenant(data)
     expect(mockPost).toHaveBeenCalledWith('/tenants', data)
   })

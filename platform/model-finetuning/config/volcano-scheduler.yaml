@@ -1,0 +1,97 @@
+﻿# Volcano GPU 调度配置
+# 数据引擎大数据平台 · T032 微调引擎 GPU 节点池调度
+#
+# Volcano 是 CNCF 的高级调度器，支持 Gang Scheduling（成组调度），
+# 适合微调任务要求多卡同时就绪的场景。
+#
+# 部署方式：
+#   kubectl apply -f config/volcano-scheduler.yaml
+#   kubectl apply -f config/volcano-podgroup-example.yaml
+#
+# 配置说明：
+# - gang：Gang Scheduling，微调任务的所有 Pod 必须同时调度成功
+# - bin-packing：GPU 二项装箱策略，优先填满单节点减少碎片
+# - gpu-node-affinity：多卡亲和性，要求同节点多卡
+# - proportion：按队列权重分配资源
+apiVersion: scheduling.volcano.sh/v1beta1
+kind: Configuration
+metadata:
+  name: volcano-config
+  namespace: volcano-system
+spec:
+  # 调度器插件配置
+  scheduler:
+    # 调度策略优先级（从高到低）
+    policies:
+      - name: gang
+        arguments:
+          # Gang Scheduling：微调任务的所有 Pod 必须同时调度成功
+          # 避免部分 Pod 调度成功但因资源不足无法启动训练
+          placeholder:
+            image: volcano-sh/volcano-pod-placeholder:latest
+            request:
+              cpu: "1"
+              memory: "2Gi"
+      - name: priority
+      - name: bin-packing
+        arguments:
+          # GPU 装箱策略：优先填满已使用的节点，减少资源碎片
+          binpacking.weight: 10
+      - name: proportion
+      - name: tdm
+      - name: drf
+
+  # GPU 节点池配置
+  # 按 GPU 型号划分节点池，微调任务通过 nodeSelector 选择目标池
+  nodePools:
+    # A100 训练池（高性能训练）
+    - name: gpu-a100-pool
+      nodeSelector:
+        gpu-type: a100
+        pool: training
+      taints:
+        - key: gpu-pool
+          value: a100
+          effect: NoSchedule
+      resources:
+        nvidia.com/gpu: 8        # 每节点 8 卡
+        memory: 512Gi
+      # 多卡亲和性：要求同节点多卡（避免跨节点 NVLink 缺失）
+      affinity:
+        multiCardSameNode: true
+
+    # V100 训练池（中等规模训练）
+    - name: gpu-v100-pool
+      nodeSelector:
+        gpu-type: v100
+        pool: training
+      taints:
+        - key: gpu-pool
+          value: v100
+          effect: NoSchedule
+      resources:
+        nvidia.com/gpu: 4
+        memory: 256Gi
+      affinity:
+        multiCardSameNode: true
+
+    # 推理/小规模微调池
+    - name: gpu-t4-pool
+      nodeSelector:
+        gpu-type: t4
+        pool: inference
+      resources:
+        nvidia.com/gpu: 4
+        memory: 128Gi
+
+  # 微调任务队列配置
+  queues:
+    - name: finetune-high
+      weight: 100          # 高优先级队列（生产微调）
+      reclaimable: true
+    - name: finetune-normal
+      weight: 50           # 普通队列（日常实验）
+      reclaimable: true
+    - name: finetune-low
+      weight: 10           # 低优先级队列（调试/回测）
+      reclaimable: true

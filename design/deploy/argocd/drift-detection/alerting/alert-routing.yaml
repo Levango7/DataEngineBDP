@@ -1,0 +1,118 @@
+# 告警路由 · 按环境 + 严重程度路由到不同渠道
+# ============================================================================
+# 作用：定义漂移告警的路由规则，通过 Application annotations 订阅
+# 集成：以下 annotations 需添加到 T003 applications/root-*.yaml
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-alert-routing
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-alerting
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移告警路由规则（按环境 + 严重程度）"
+data:
+  # ============================================================================
+  # 1. 路由规则定义（文档化，实际路由通过 annotations 实现）
+  # ============================================================================
+  routing-rules.yaml: |
+    routes:
+      # Critical 漂移路由
+      - name: critical-prod
+        match: {severity: critical, env: prod}
+        channels:
+          - {service: slack, target: "#prod-alerts"}
+          - {service: dingtalk, target: "sre-group"}
+          - {service: email, target: "sre-team@company.com"}
+          - {service: pagerduty, target: "sre-on-call"}
+
+      - name: critical-staging
+        match: {severity: critical, env: staging}
+        channels:
+          - {service: slack, target: "#prod-alerts"}
+          - {service: email, target: "sre-team@company.com"}
+
+      - name: critical-dev
+        match: {severity: critical, env: dev}
+        channels:
+          - {service: slack, target: "#drift-warnings"}
+
+      # High 漂移路由
+      - name: high-prod
+        match: {severity: high, env: prod}
+        channels:
+          - {service: slack, target: "#prod-alerts"}
+          - {service: dingtalk, target: "sre-group"}
+          - {service: email, target: "sre-team@company.com"}
+
+      - name: high-staging
+        match: {severity: high, env: staging}
+        channels:
+          - {service: slack, target: "#drift-warnings"}
+          - {service: email, target: "dev-team@company.com"}
+
+      - name: high-dev
+        match: {severity: high, env: dev}
+        channels:
+          - {service: slack, target: "#drift-warnings"}
+
+      # Medium 漂移路由
+      - name: medium-all
+        match: {severity: medium}
+        channels:
+          - {service: slack, target: "#drift-warnings"}
+
+      # Low 漂移路由
+      - name: low-all
+        match: {severity: low}
+        channels:
+          - {service: slack, target: "#drift-info"}
+
+  # ============================================================================
+  # 2. Application annotations 模板（复制到 root-*.yaml）
+  # ============================================================================
+  # dev 环境 Application 需添加以下 annotations：
+  annotations-dev.yaml: |
+    metadata:
+      annotations:
+        # 漂移检测订阅
+        notifications.argoproj.io/subscribe.on-drift-detected.slack: drift-warnings
+        notifications.argoproj.io/subscribe.on-drift-critical.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: drift-warnings
+        notifications.argoproj.io/subscribe.on-health-degraded.slack: drift-warnings
+        notifications.argoproj.io/subscribe.on-remediation-failed.slack: drift-warnings
+
+  # staging 环境 Application 需添加以下 annotations：
+  annotations-staging.yaml: |
+    metadata:
+      annotations:
+        notifications.argoproj.io/subscribe.on-drift-detected.slack: drift-warnings
+        notifications.argoproj.io/subscribe.on-drift-critical.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: drift-warnings
+        notifications.argoproj.io/subscribe.on-health-degraded.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-remediation-failed.slack: prod-alerts
+
+  # prod 环境 Application 需添加以下 annotations：
+  annotations-prod.yaml: |
+    metadata:
+      annotations:
+        # 全量订阅（prod 最严格）
+        notifications.argoproj.io/subscribe.on-drift-detected.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-drift-critical.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-sync-succeeded.slack: prod-deploy
+        notifications.argoproj.io/subscribe.on-health-degraded.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-remediation-failed.slack: prod-alerts
+        notifications.argoproj.io/subscribe.on-circuit-breaker.slack: prod-alerts
+        # 钉钉订阅（仅 prod）
+        notifications.argoproj.io/subscribe.on-drift-critical.dingtalk: sre-group
+        notifications.argoproj.io/subscribe.on-sync-failed.dingtalk: sre-group
+        # 邮件订阅（仅 prod）
+        notifications.argoproj.io/subscribe.on-drift-critical.email: sre-team@company.com
+        notifications.argoproj.io/subscribe.on-sync-failed.email: sre-team@company.com
+        # PagerDuty 订阅（仅 prod Critical）
+        notifications.argoproj.io/subscribe.on-drift-critical.pagerduty: sre-on-call

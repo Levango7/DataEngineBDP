@@ -3,11 +3,11 @@
 为运行中的部署生成确定性的"合理"指标，便于前端联调与测试。
 真实环境由 Prometheus 采集（对齐 L4.5.6 计量链路）。
 """
+
 from __future__ import annotations
 
-import hashlib
-import time
 from datetime import timedelta
+import hashlib
 
 from llmops.interfaces.monitor import ModelMonitor
 from llmops.models.base import utc_now

@@ -1,9 +1,8 @@
 """API 定义模型."""
+
 from __future__ import annotations
 
 from typing import Any
-
-from pydantic import BaseModel, Field, model_validator
 
 from openapi_catalog.models.base import (
     APIStatus,
@@ -15,6 +14,7 @@ from openapi_catalog.models.base import (
     SLALevel,
     TimestampMixin,
 )
+from pydantic import BaseModel, Field, model_validator
 
 
 class APIParam(BaseModel):
@@ -35,9 +35,7 @@ class APIResponse(BaseModel):
 
     statusCode: int = Field(..., ge=100, le=599, description="HTTP 状态码")
     description: str | None = Field(default=None, description="响应描述")
-    schema: dict[str, Any] | None = Field(
-        default=None, description="响应 Schema（OpenAPI 3.0）"
-    )
+    schema: dict[str, Any] | None = Field(default=None, description="响应 Schema（OpenAPI 3.0）")
     example: Any | None = Field(default=None, description="响应示例")
 
 
@@ -61,52 +59,36 @@ class APIDefinition(TimestampMixin):
 
     id: str = Field(default="", description="API 唯一标识")
     name: str = Field(..., min_length=1, max_length=128, description="API 名称")
-    version: str = Field(
-        ..., pattern=r"^\d+\.\d+\.\d+$", description="语义化版本号 v1.2.3"
-    )
+    version: str = Field(..., pattern=r"^\d+\.\d+\.\d+$", description="语义化版本号 v1.2.3")
     description: str | None = Field(default=None, description="API 描述")
     category: str = Field(default="default", description="分类")
     tags: list[str] = Field(default_factory=list, description="标签列表")
 
     # 路由
     method: HttpMethod = Field(..., description="HTTP 方法")
-    path: str = Field(
-        ..., pattern=r"^/", description="API 路径（必须以 / 开头）"
-    )
+    path: str = Field(..., pattern=r"^/", description="API 路径（必须以 / 开头）")
 
     # 契约
     params: list[APIParam] = Field(default_factory=list, description="参数列表")
     responses: list[APIResponse] = Field(
-        default_factory=lambda: [
-            APIResponse(statusCode=200, description="成功")
-        ],
+        default_factory=lambda: [APIResponse(statusCode=200, description="成功")],
         description="响应列表",
     )
 
     # 鉴权
-    authType: AuthType = Field(
-        default=AuthType.API_KEY, description="认证方式"
-    )
+    authType: AuthType = Field(default=AuthType.API_KEY, description="认证方式")
 
     # 上游
     upstream: APIUpstream = Field(..., description="后端上游")
 
     # SLA & 计费
     sla: SLALevel = Field(default=SLALevel.SILVER, description="SLA 等级")
-    costStrategy: CostStrategy = Field(
-        default=CostStrategy.BY_CALL, description="计费策略"
-    )
-    costUnitPrice: float = Field(
-        default=0.0, ge=0, description="单价（按次:元/次；按量:元/KB；月包:元/月）"
-    )
-    monthlyQuota: int | None = Field(
-        default=None, ge=0, description="月包配额（仅 monthly_package）"
-    )
+    costStrategy: CostStrategy = Field(default=CostStrategy.BY_CALL, description="计费策略")
+    costUnitPrice: float = Field(default=0.0, ge=0, description="单价（按次:元/次；按量:元/KB；月包:元/月）")
+    monthlyQuota: int | None = Field(default=None, ge=0, description="月包配额（仅 monthly_package）")
 
     # 状态
-    status: APIStatus = Field(
-        default=APIStatus.DRAFT, description="发布状态"
-    )
+    status: APIStatus = Field(default=APIStatus.DRAFT, description="发布状态")
 
     # 租户
     providerTenantId: str = Field(..., description="提供方租户 ID")
@@ -114,12 +96,8 @@ class APIDefinition(TimestampMixin):
     # 调用统计（运行时填充）
     callCount: int = Field(default=0, ge=0, description="累计调用次数")
     errorCount: int = Field(default=0, ge=0, description="累计错误次数")
-    totalLatencyMs: float = Field(
-        default=0.0, ge=0, description="累计延迟(ms)"
-    )
-    totalTrafficBytes: int = Field(
-        default=0, ge=0, description="累计流量(bytes)"
-    )
+    totalLatencyMs: float = Field(default=0.0, ge=0, description="累计延迟(ms)")
+    totalTrafficBytes: int = Field(default=0, ge=0, description="累计流量(bytes)")
 
     @model_validator(mode="after")
     def _validate_monthly_quota(self) -> "APIDefinition":
@@ -156,9 +134,7 @@ class APIFilter(BaseModel):
     category: str | None = Field(default=None, description="分类过滤")
     tag: str | None = Field(default=None, description="标签过滤")
     status: APIStatus | None = Field(default=None, description="状态过滤")
-    providerTenantId: str | None = Field(
-        default=None, description="提供方租户过滤"
-    )
+    providerTenantId: str | None = Field(default=None, description="提供方租户过滤")
     keyword: str | None = Field(default=None, description="全文搜索关键词")
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)

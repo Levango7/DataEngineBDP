@@ -1,4 +1,5 @@
 """关系抽取抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -17,9 +18,7 @@ class RelationExtractor(ABC):
     """
 
     @abstractmethod
-    async def extract(
-        self, text: str, entities: list[Entity]
-    ) -> list[Relation]:
+    async def extract(self, text: str, entities: list[Entity]) -> list[Relation]:
         """在实体集合上抽取关系.
 
         Args:

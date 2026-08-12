@@ -86,7 +86,7 @@ func TestLoad_InvalidYAML(t *testing.T) {
 	err := os.WriteFile(configPath, []byte("invalid: [yaml: content"), 0o644)
 	require.NoError(t, err)
 
-	_, err = Load(configPath)
+	_, _ = Load(configPath)
 	// viper 对无效 YAML 可能不报错，但 Unmarshal 可能失败
 	// 这里只验证不 panic
 	assert.NotPanics(t, func() {

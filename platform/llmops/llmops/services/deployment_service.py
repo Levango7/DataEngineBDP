@@ -1,4 +1,5 @@
 """部署管理业务逻辑."""
+
 from __future__ import annotations
 
 from typing import Optional
@@ -24,9 +25,7 @@ class DeploymentService:
         self._store = store
         self._monitor = monitor
 
-    async def deploy_model(
-        self, model_id: str, config: DeployConfig
-    ) -> Deployment:
+    async def deploy_model(self, model_id: str, config: DeployConfig) -> Deployment:
         # 业务校验：模型必须存在且有可用版本
         try:
             m = await self._store.get_model(model_id)

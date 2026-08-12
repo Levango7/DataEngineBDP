@@ -1,0 +1,429 @@
+﻿# 政务行业模板 - 模板元数据
+# ============================================================================
+# 模块：T044 政务行业模板
+# 用途：描述政务行业模板的元信息，供模板管理、版本控制与依赖检查使用
+# 格式：YAML 2 空格缩进
+# 字符集：UTF-8
+# ============================================================================
+
+# 模板基本信息
+template:
+  name: government-template
+  display_name: 政务行业大数据平台模板
+  version: 1.0.0
+  description: |
+    数据引擎大数据平台 L5.3 行业应用模板 - 政务行业完整模板。
+    覆盖人口分析、经济运行、民生服务、政务合规 4 大业务域，
+    含 36 张 DDL 表、8 个 DAG 调度作业、4 个 Superset Dashboard、5 个 RBAC 角色，
+    重点特色为政务合规预置（数据分级/脱敏/审计/访问控制），
+    遵循最小权限原则与数据分级访问控制（对标 GB/T 31075-2017），
+    可一键部署到 Doris + DolphinScheduler + Superset + Keycloak 技术栈。
+  category: government
+  industry: 政府/公共事业/政务服务
+  language: zh-CN
+
+# 作者与版本信息
+author:
+  name: hw029373469
+  email: hw029373469@shuqing.com
+  organization: 数据引擎大数据平台团队
+  role: T044 政务行业模板工程师
+
+# 创建与更新日期（ISO 8601 格式）
+dates:
+  created: 2026-08-08
+  updated: 2026-08-08
+  release: 2026-08-08
+
+# 模板版本与兼容性
+version_info:
+  template_version: 1.0.0
+  schema_version: 1.0.0
+  minimum_platform_version: 5.3.0
+  recommended_platform_version: 5.3.0
+  changelog:
+    - version: 1.0.0
+      date: 2026-08-08
+      changes:
+        - 初始版本，含 36 张 DDL 表（4 业务域 + RBAC）
+        - 含 8 个 DAG 调度作业（人口结构/人口流动/人口预测/GDP/产业结构/投资消费/政务统计/满意度）
+        - 含 4 个 Superset Dashboard（人口/经济/民生/合规视角）
+        - 含 5 个 RBAC 角色（政务管理员/数据分析师/部门用户/审计员/公众用户）
+        - 含政务合规预置（数据分级/脱敏规则/审计策略/访问控制，对标 GB/T 31075-2017）
+        - 支持 Helm 打包部署
+
+# ============================================================================
+# 依赖组件清单
+# ============================================================================
+dependencies:
+  # 大数据存储与计算引擎
+  - name: apache-doris
+    display_name: Apache Doris
+    version: 2.1.x
+    role: 存储与计算引擎
+    required: true
+    purpose: 提供 36 张表的存储与 SQL 查询，支持 Superset 数据源
+    helm_chart: apache/doris
+    min_version: 2.1.0
+    max_version: 2.1.99
+
+  # 调度引擎
+  - name: apache-dolphinscheduler
+    display_name: Apache DolphinScheduler
+    version: 3.2.x
+    role: 调度引擎
+    required: true
+    purpose: 执行 8 个 DAG 调度作业，支持 Python 导入
+    helm_chart: apache/dolphinscheduler
+    min_version: 3.2.0
+    max_version: 3.2.99
+
+  # BI 可视化
+  - name: apache-superset
+    display_name: Apache Superset
+    version: 4.0.x
+    role: BI 可视化
+    required: true
+    purpose: 渲染 4 个 Dashboard 仪表盘，支持 JSON 导入
+    helm_chart: apache/superset
+    min_version: 4.0.0
+    max_version: 4.0.99
+
+  # 身份认证与授权
+  - name: keycloak
+    display_name: Keycloak
+    version: 24.x
+    role: 身份认证与授权
+    required: true
+    purpose: 提供 RBAC 角色权限管理，支持 realm role 导入
+    helm_chart: codecentric/keycloak
+    min_version: 24.0.0
+    max_version: 24.99
+
+  # 统一 SQL 网关（合规策略下推）
+  - name: sql-gateway
+    display_name: 数擎 SQL 网关
+    version: 5.3.x
+    role: 合规策略执行
+    required: true
+    purpose: 接收政务合规配置（数据分级/脱敏/审计/访问控制），查询时注入分级检查
+    min_version: 5.3.0
+    max_version: 5.3.99
+
+  # 权限管理插件
+  - name: apache-ranger
+    display_name: Apache Ranger
+    version: 2.4.x
+    role: 细粒度权限管理
+    required: false
+    purpose: 提供 Doris 表级细粒度权限控制（可选，Keycloak 已可满足）
+    helm_chart: apache/ranger
+    min_version: 2.4.0
+    max_version: 2.4.99
+
+  # 容器编排
+  - name: kubernetes
+    display_name: Kubernetes
+    version: 1.28.x
+    role: 容器编排
+    required: true
+    purpose: 运行所有依赖组件，支持 Helm 部署
+    min_version: 1.28.0
+    max_version: 1.30.99
+
+  # Helm 包管理
+  - name: helm
+    display_name: Helm
+    version: 3.14.x
+    role: 包管理
+    required: true
+    purpose: 模板打包与部署，支持 helm install
+    min_version: 3.14.0
+    max_version: "3.99"
+
+# ============================================================================
+# 模板内容清单
+# ============================================================================
+contents:
+  # DDL 表定义
+  ddl:
+    path: ddl/
+    files:
+      - name: 01_population_analysis_ddl.sql
+        description: 人口分析域 DDL（8 张表 population_base/structure/flow/forecast/age/gender/education/employment）
+        table_count: 8
+        source_task: T044
+      - name: 02_economic_operation_ddl.sql
+        description: 经济运行域 DDL（8 张表 gdp/industry_structure/fixed_asset_investment/social_retail/foreign_trade/fiscal_revenue/fiscal_expenditure/economic_indicator）
+        table_count: 8
+        source_task: T044
+      - name: 03_livelihood_service_ddl.sql
+        description: 民生服务域 DDL（8 张表 government_service/service_transaction/satisfaction/hot_topic/statistics/evaluation/category/channel）
+        table_count: 8
+        source_task: T044
+      - name: 04_government_compliance_ddl.sql
+        description: 政务合规域 DDL（8 张表 data_classification/desensitize_rule/audit_log/access_control_policy/record/risk_alert/check_record/compliance_policy）
+        table_count: 8
+        source_task: T044
+      - name: rbac_ddl.sql
+        description: RBAC 域 DDL（4 张表 gov_role/gov_permission/gov_role_permission/gov_user_role）
+        table_count: 4
+        source_task: T044
+    total_tables: 36
+
+  # DAG 调度作业
+  dag:
+    path: dag/
+    files:
+      - name: population_structure_analysis.py
+        description: 人口结构分析 DAG（年龄/性别/学历/就业分布计算）
+        domain: population
+        source_task: T044
+      - name: population_flow_tracking.py
+        description: 人口流动追踪 DAG（流入流出/净流量/趋势分析）
+        domain: population
+        source_task: T044
+      - name: population_forecast.py
+        description: 人口预测 DAG（基于历史数据的趋势预测）
+        domain: population
+        source_task: T044
+      - name: gdp_calculation.py
+        description: GDP 核算 DAG（季度 GDP/累计 GDP/同比增长计算）
+        domain: economic
+        source_task: T044
+      - name: industry_analysis.py
+        description: 产业结构分析 DAG（三次产业占比/产业贡献率）
+        domain: economic
+        source_task: T044
+      - name: investment_consumption_analysis.py
+        description: 投资消费分析 DAG（固定资产投资/社会消费品零售分析）
+        domain: economic
+        source_task: T044
+      - name: government_service_statistics.py
+        description: 政务服务统计 DAG（事项办理量/办理时效/渠道分布）
+        domain: livelihood
+        source_task: T044
+      - name: satisfaction_analysis.py
+        description: 满意度分析 DAG（满意度评分/热点分析/评价处理）
+        domain: livelihood
+        source_task: T044
+    total_dags: 8
+
+  # Dashboard 仪表盘
+  dashboard:
+    path: dashboards/
+    files:
+      - name: population_dashboard.json
+        description: 人口分析仪表盘（人口结构/流动/预测可视化）
+        domain: population
+        source_task: T044
+      - name: economic_dashboard.json
+        description: 经济运行仪表盘（GDP/产业结构/投资消费可视化）
+        domain: economic
+        source_task: T044
+      - name: livelihood_dashboard.json
+        description: 民生服务仪表盘（政务服务/满意度/热点可视化）
+        domain: livelihood
+        source_task: T044
+      - name: compliance_dashboard.json
+        description: 政务合规仪表盘（数据分级/审计/访问控制可视化）
+        domain: compliance
+        source_task: T044
+    total_dashboards: 4
+
+  # RBAC 角色权限定义
+  rbac:
+    path: rbac/
+    files:
+      - name: roles.yaml
+        description: 角色定义（5 个角色 政务管理员/数据分析师/部门用户/审计员/公众用户）
+        source_task: T044
+      - name: permissions.yaml
+        description: 权限定义（40 个资源，含数据分级标注）
+        source_task: T044
+      - name: role-permissions.yaml
+        description: 角色-权限映射（5 个角色的权限矩阵）
+        source_task: T044
+    total_roles: 5
+    total_resources: 40
+
+  # 政务合规配置
+  compliance:
+    path: compliance/
+    files:
+      - name: data-classification.yaml
+        description: 数据分级配置（L1/L2/L3/L4 四级分级，对标 GB/T 31075-2017）
+        source_task: T044
+      - name: desensitize-rules.yaml
+        description: 脱敏规则（姓名/证件号/手机号/地址等字段脱敏）
+        source_task: T044
+      - name: audit-policy.yaml
+        description: 审计策略（审计日志记录/审计范围/留存策略）
+        source_task: T044
+      - name: access-control.yaml
+        description: 访问控制策略（基于数据分级的访问控制规则）
+        source_task: T044
+    total_compliance_configs: 4
+
+# ============================================================================
+# 兼容性说明
+# ============================================================================
+compatibility:
+  # 平台兼容性
+  platform:
+    minimum_version: 5.3.0
+    recommended_version: 5.3.0
+    notes: |
+      本模板需要数据引擎大数据平台 L5.3 行业应用模板模块支持。
+      L5.3 以下版本不支持行业模板导入功能。
+
+  # 数据库兼容性
+  database:
+    supported:
+      - name: Apache Doris
+        versions: [2.1.x, 2.2.x]
+        notes: 主要支持，DDL 使用 Doris OLAP 引擎语法（DUPLICATE KEY/动态分区）
+    unsupported:
+      - MySQL 5.7（不支持 Doris 特有语法）
+      - PostgreSQL 12（不支持 Doris 特有语法）
+
+  # 调度引擎兼容性
+  scheduler:
+    supported:
+      - name: Apache DolphinScheduler
+        versions: [3.2.x, 3.3.x]
+        notes: 主要支持，DAG 采用 Airflow 兼容的 Python 格式
+    unsupported:
+      - Azkaban（DAG 格式不兼容）
+
+  # BI 兼容性
+  bi:
+    supported:
+      - name: Apache Superset
+        versions: [4.0.x, 4.1.x]
+        notes: 主要支持，Dashboard JSON 采用 Superset 4.x 导入格式
+    unsupported:
+      - Apache Superset 3.x（JSON 格式不兼容）
+      - Tableau（需手动重建 Dashboard）
+
+  # 身份认证兼容性
+  identity:
+    supported:
+      - name: Keycloak
+        versions: [24.x, 25.x]
+        notes: 主要支持，RBAC 采用 Keycloak realm role 格式
+      - name: Apache Ranger
+        versions: [2.4.x]
+        notes: 可选，用于 Doris 表级细粒度权限控制
+    unsupported:
+      - LDAP 直接授权（需通过 Keycloak LDAP federation 桥接）
+
+# ============================================================================
+# 部署说明
+# ============================================================================
+deployment:
+  # Helm Chart 信息
+  helm_chart:
+    name: government-template
+    version: 1.0.0
+    app_version: 1.0.0
+    description: 政务行业大数据平台模板 Helm Chart
+    maintainers:
+      - name: hw029373469
+        email: hw029373469@shuqing.com
+    install_command: |
+      # 解压模板包
+      tar -xzf government-template.tar.gz
+      # 进入 Chart 目录
+      cd government-template
+      # 安装模板（dry-run 验证）
+      helm install government-template . --dry-run
+      # 实际安装
+      helm install government-template . -n government
+    upgrade_command: |
+      helm upgrade government-template . -n government
+    uninstall_command: |
+      helm uninstall government-template -n government
+
+  # 部署前置条件
+  prerequisites:
+    - Kubernetes 集群已就绪（版本 ≥ 1.28）
+    - Helm 3.14+ 已安装
+    - Apache Doris 2.1+ 已部署（通过 helm install apache/doris）
+    - Apache DolphinScheduler 3.2+ 已部署（通过 helm install apache/dolphinscheduler）
+    - Apache Superset 4.0+ 已部署（通过 helm install apache/superset）
+    - Keycloak 24+ 已部署（通过 helm install codecentric/keycloak）
+    - 数擎 SQL 网关 5.3+ 已部署（用于合规策略下推）
+    - 目标命名空间 government 已创建（kubectl create namespace government）
+
+  # 部署后验证
+  post_deploy_verification:
+    - name: DDL 表创建验证
+      command: |
+        # 通过 Doris FE 验证 36 张表已创建
+        mysql -h <doris_fe_host> -P 9030 -u root -p --execute "SHOW TABLES FROM db_government"
+    - name: DAG 导入验证
+      command: |
+        # 通过 DolphinScheduler API 验证 8 个 DAG 已导入
+        curl http://<ds_host>:12345/dolphinscheduler/projects -H "Authorization Bearer <token>"
+    - name: Dashboard 导入验证
+      command: |
+        # 通过 Superset API 验证 4 个 Dashboard 已导入
+        curl http://<superset_host>/api/v1/dashboard/ -H "Authorization Bearer <token>"
+    - name: RBAC 角色验证
+      command: |
+        # 通过 Keycloak API 验证 5 个角色已创建
+        curl http://<keycloak_host>:8080/admin/realms/government-template-realm/roles \
+          -H "Authorization Bearer <admin_token>"
+    - name: 合规配置验证
+      command: |
+        # 通过 SQL 网关 API 验证合规配置已同步
+        curl http://<sql_gateway_host>:18081/api/v1/compliance/config \
+          -H "Authorization Bearer <token>"
+
+# ============================================================================
+# 模板统计
+# ============================================================================
+statistics:
+  total_files: 30
+  total_size_kb: 350
+  business_domains: 4
+  total_tables: 36
+  total_dags: 8
+  total_dashboards: 4
+  total_roles: 5
+  total_resources: 40
+  compliance_configs: 4
+  data_classification_levels: 4
+
+# ============================================================================
+# 质量保证
+# ============================================================================
+quality:
+  review_status: passed
+  review_date: 2026-08-08
+  review_items:
+    - item: DDL 表设计
+      status: passed
+      reviewer: T044 工程师
+    - item: DAG 调度设计
+      status: passed
+      reviewer: T044 工程师
+    - item: Dashboard 图表设计
+      status: passed
+      reviewer: T044 工程师
+    - item: RBAC 最小权限原则
+      status: passed
+      reviewer: T044 工程师
+    - item: 政务合规预置完整性
+      status: passed
+      reviewer: T044 工程师
+    - item: 数据分级访问控制
+      status: passed
+      reviewer: T044 工程师
+    - item: 模板打包完整性
+      status: passed
+      reviewer: T044 工程师
+    - item: Helm Chart 可部署性
+      status: passed
+      reviewer: T044 工程师

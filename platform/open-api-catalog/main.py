@@ -6,11 +6,11 @@ Usage:
     python main.py                          # 默认监听 0.0.0.0:8090
     OPENAPI_CATALOG_HOST=127.0.0.1 OPENAPI_CATALOG_PORT=9000 python main.py
 """
+
 from __future__ import annotations
 
-import uvicorn
-
 from openapi_catalog.config.settings import get_settings
+import uvicorn
 
 
 def main() -> None:

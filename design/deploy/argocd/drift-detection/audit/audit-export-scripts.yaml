@@ -1,0 +1,177 @@
+﻿# 审计导出脚本 ConfigMap
+# ============================================================================
+# 作用：存放审计导出脚本，被 audit-export-job 挂载执行
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-audit-scripts
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-audit
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+data:
+  export-audit.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    ARGOCD_NS="${ARGOCD_NS:-argocd}"
+    MINIO_ENDPOINT="${MINIO_ENDPOINT:-http://minio.storage.svc.cluster.local:9000}"
+    MINIO_BUCKET="${MINIO_BUCKET:-shuqing-audit}"
+    RETENTION_DAYS="${RETENTION_DAYS:-90}"
+
+    # 前一日日期
+    YESTERDAY=$(date -u -d 'yesterday' +%Y-%m-%d)
+    OUTPUT_FILE="/tmp/drift-audit-${YESTERDAY}.jsonl"
+
+    echo "[$(date -u +%FT%TZ)] 开始导出 ${YESTERDAY} 漂移审计日志"
+
+    # 收集漂移事件
+    kubectl get configmap -n "$ARGOCD_NS" \
+      -l drift-event=true \
+      --field-selector=metadata.creationTimestamp>=$(date -u -d "$YESTERDAY" +%FT%TZ),metadata.creationTimestamp<$(date -u -d 'today' +%FT%TZ) \
+      -o json | jq -c '.items[] | {
+        audit_id: .metadata.name,
+        timestamp: .metadata.creationTimestamp,
+        event_type: "drift-detected",
+        app: .data.app,
+        environment: .data.environment,
+        severity: .data.severity,
+        drift_type: .data["drift-type"],
+        diff_summary: .data["diff-summary"],
+        remediation_status: .data["remediation-status"]
+      }' >> "$OUTPUT_FILE"
+
+    # 收集修复事件
+    kubectl get configmap -n "$ARGOCD_NS" \
+      -l drift-remediation=true \
+      --field-selector=metadata.creationTimestamp>=$(date -u -d "$YESTERDAY" +%FT%TZ),metadata.creationTimestamp<$(date -u -d 'today' +%FT%TZ) \
+      -o json | jq -c '.items[] | {
+        audit_id: .metadata.name,
+        timestamp: .metadata.creationTimestamp,
+        event_type: "remediation-" + (.data.result // "unknown"),
+        app: .data.app,
+        environment: .data.environment,
+        result: .data.result,
+        duration: .data.duration,
+        trigger: .data.trigger,
+        operator: .data.operator
+      }' >> "$OUTPUT_FILE"
+
+    EVENT_COUNT=$(wc -l < "$OUTPUT_FILE")
+    echo "[$(date -u +%FT%TZ)] 收集到 $EVENT_COUNT 条审计事件"
+
+    # 上传到 MinIO/S3（使用 mc 或 aws cli）
+    if command -v mc &>/dev/null; then
+      mc alias set minio "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+      mc cp "$OUTPUT_FILE" "minio/$MINIO_BUCKET/audit/drift/${YESTERDAY}.jsonl"
+    elif command -v aws &>/dev/null; then
+      aws --endpoint-url "$MINIO_ENDPOINT" s3 cp "$OUTPUT_FILE" \
+        "s3://$MINIO_BUCKET/audit/drift/${YESTERDAY}.jsonl"
+    else
+      echo "[$(date -u +%FT%TZ)] 警告: 未找到 mc/aws CLI，审计日志仅保留在本地"
+      cp "$OUTPUT_FILE" "/tmp/drift-audit-${YESTERDAY}.jsonl"
+    fi
+
+    # 清理超过保留期的集群内 ConfigMap
+    echo "[$(date -u +%FT%TZ)] 清理 ${RETENTION_DAYS} 天前的审计 ConfigMap"
+    CUTOFF=$(date -u -d "${RETENTION_DAYS} days ago" +%FT%TZ)
+    kubectl get configmap -n "$ARGOCD_NS" \
+      -l 'drift-event in (true)' \
+      --field-selector=metadata.creationTimestamp<$CUTOFF \
+      -o name | xargs -r kubectl delete -n "$ARGOCD_NS"
+
+    kubectl get configmap -n "$ARGOCD_NS" \
+      -l 'drift-remediation in (true)' \
+      --field-selector=metadata.creationTimestamp<$CUTOFF \
+      -o name | xargs -r kubectl delete -n "$ARGOCD_NS"
+
+    echo "[$(date -u +%FT%TZ)] 审计导出完成"
+
+  # ============================================================================
+  # 合规周报生成脚本
+  # ============================================================================
+  generate-weekly-report.sh: |
+    #!/bin/bash
+    set -euo pipefail
+
+    ARGOCD_NS="${ARGOCD_NS:-argocd}"
+    WEEK_START=$(date -u -d '7 days ago' +%Y-%m-%d)
+    WEEK_END=$(date -u -d 'yesterday' +%Y-%m-%d)
+    REPORT_FILE="/tmp/drift-compliance-weekly-${WEEK_END}.html"
+
+    echo "[$(date -u +%FT%TZ)] 生成合规周报: ${WEEK_START} ~ ${WEEK_END}"
+
+    # 统计漂移事件
+    DRIFT_EVENTS=$(kubectl get configmap -n "$ARGOCD_NS" -l drift-event=true \
+      --field-selector=metadata.creationTimestamp>=$(date -u -d "$WEEK_START" +%FT%TZ) \
+      -o json)
+
+    TOTAL_DRIFTS=$(echo "$DRIFT_EVENTS" | jq '.items | length')
+    PROD_DRIFTS=$(echo "$DRIFT_EVENTS" | jq '[.items[] | select(.data.environment=="prod")] | length')
+    STAGING_DRIFTS=$(echo "$DRIFT_EVENTS" | jq '[.items[] | select(.data.environment=="staging")] | length')
+    DEV_DRIFTS=$(echo "$DRIFT_EVENTS" | jq '[.items[] | select(.data.environment=="dev")] | length')
+
+    # 统计修复事件
+    REMEDIATION_EVENTS=$(kubectl get configmap -n "$ARGOCD_NS" -l drift-remediation=true \
+      --field-selector=metadata.creationTimestamp>=$(date -u -d "$WEEK_START" +%FT%TZ) \
+      -o json)
+
+    TOTAL_REMEDIATIONS=$(echo "$REMEDIATION_EVENTS" | jq '.items | length')
+    SUCCESS_REMEDIATIONS=$(echo "$REMEDIATION_EVENTS" | jq '[.items[] | select(.data.result=="success")] | length')
+
+    if [[ "$TOTAL_REMEDIATIONS" -gt 0 ]]; then
+      SUCCESS_RATE=$(echo "scale=1; $SUCCESS_REMEDIATIONS * 100 / $TOTAL_REMEDIATIONS" | bc)
+    else
+      SUCCESS_RATE="N/A"
+    fi
+
+    # 生成 HTML 报告
+    cat > "$REPORT_FILE" << EOF
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"><title>漂移合规周报 ${WEEK_START} ~ ${WEEK_END}</title></head>
+    <body>
+    <h1>数据引擎大数据平台 · GitOps 漂移合规周报</h1>
+    <p>周期：${WEEK_START} ~ ${WEEK_END}</p>
+    <h2>一、漂移统计</h2>
+    <table border="1">
+      <tr><th>环境</th><th>漂移次数</th></tr>
+      <tr><td>prod</td><td>${PROD_DRIFTS}</td></tr>
+      <tr><td>staging</td><td>${STAGING_DRIFTS}</td></tr>
+      <tr><td>dev</td><td>${DEV_DRIFTS}</td></tr>
+      <tr><td><strong>合计</strong></td><td><strong>${TOTAL_DRIFTS}</strong></td></tr>
+    </table>
+    <h2>二、修复统计</h2>
+    <table border="1">
+      <tr><th>指标</th><th>值</th></tr>
+      <tr><td>修复总次数</td><td>${TOTAL_REMEDIATIONS}</td></tr>
+      <tr><td>修复成功数</td><td>${SUCCESS_REMEDIATIONS}</td></tr>
+      <tr><td>修复成功率</td><td>${SUCCESS_RATE}%</td></tr>
+    </table>
+    </body>
+    </html>
+    EOF
+
+    echo "[$(date -u +%FT%TZ)] 周报已生成: $REPORT_FILE"
+
+    # 上传到对象存储
+    if command -v mc &>/dev/null; then
+      mc alias set minio "$MINIO_ENDPOINT" "$MINIO_ACCESS_KEY" "$MINIO_SECRET_KEY"
+      mc cp "$REPORT_FILE" "minio/$MINIO_BUCKET/reports/drift/weekly-${WEEK_END}.html"
+    fi
+
+    # 发送邮件通知
+    if command -v mailx &>/dev/null; then
+      mailx -s "漂移合规周报 ${WEEK_START} ~ ${WEEK_END}" \
+        -a "$REPORT_FILE" \
+        sre-team@company.com compliance@company.com << EOF2
+    附件为本周漂移合规周报。
+    周期：${WEEK_START} ~ ${WEEK_END}
+    漂移总次数：${TOTAL_DRIFTS}
+    修复成功率：${SUCCESS_RATE}%
+    EOF2
+    fi
+
+    echo "[$(date -u +%FT%TZ)] 周报发送完成"
