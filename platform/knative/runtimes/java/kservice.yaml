@@ -1,0 +1,75 @@
+﻿# ============================================================================
+# Java 函数运行时 Knative Service · 数据引擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：将 Java Spring Boot Native 函数运行时封装为 Knative Service
+# 特性：
+#   1. KPA 自动伸缩：target=10 RPS，min-scale=0（允许 scale-to-zero）
+#   2. 无流量 60s 缩容到 0
+#   3. Native Image：冷启动 < 1s（无需 JVM 预热）
+#   4. invocation 计量：/actuator/prometheus 供 Prometheus 采集
+#   5. tenant 隔离：通过 X-Tenant-Id 请求头传入
+# ============================================================================
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: java-function-runtime
+  namespace: serverless-functions
+  labels:
+    app.kubernetes.io/name: java-function-runtime
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: serverless
+    platform.shuqing.io/runtime: java
+    platform.shuqing.io/task: "T025"
+  annotations:
+    serving.knative.dev/autoscaler-class: "kpa.autoscaling.knative.dev"
+    autoscaling.knative.dev/target: "10"
+    autoscaling.knative.dev/target-burst-capacity: "11"
+    autoscaling.knative.dev/min-scale: "0"
+    autoscaling.knative.dev/max-scale: "20"
+    autoscaling.knative.dev/scale-to-zero-pod-retention-period: "60s"
+    autoscaling.knative.dev/metric: "rps"
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/autoscale: "true"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      timeoutSeconds: 30
+      containerConcurrency: 10
+      containers:
+        - name: app
+          image: shuqing/java-function-runtime:0.1.0
+          ports:
+            - containerPort: 8080
+              name: http1
+          env:
+            - name: FUNCTION_NAME
+              value: "default"
+            - name: TENANT_ID
+              value: "default-tenant"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            failureThreshold: 3

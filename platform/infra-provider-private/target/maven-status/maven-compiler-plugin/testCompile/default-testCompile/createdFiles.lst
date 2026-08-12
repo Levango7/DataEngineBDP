@@ -1,9 +1,0 @@
-com\shuqing\bigdata\infra\privatecloud\provider\vsphere\VSphereProviderTest.class
-com\shuqing\bigdata\infra\privatecloud\controller\HealthControllerTest.class
-com\shuqing\bigdata\infra\privatecloud\config\PrivateCloudPropertiesTest.class
-com\shuqing\bigdata\infra\privatecloud\provider\openstack\OpenStackProviderTest.class
-com\shuqing\bigdata\infra\privatecloud\PrivateProviderApplicationTest.class
-com\shuqing\bigdata\infra\privatecloud\security\TenantContextTest.class
-com\shuqing\bigdata\infra\privatecloud\model\PrivateClusterRequestTest.class
-com\shuqing\bigdata\infra\privatecloud\model\PrivateClusterInfoTest.class
-com\shuqing\bigdata\infra\privatecloud\service\K8sBootstrapServiceTest.class

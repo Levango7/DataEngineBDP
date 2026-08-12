@@ -1,9 +1,11 @@
 """FastAPI 应用工厂."""
+
 from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from business_portal.api.routers import (
     business_lines,
@@ -38,8 +40,8 @@ def create_app(
     app = FastAPI(
         title="Business Portal",
         description=(
-            "数擎大数据平台 · L5.4 对内业务线门户\n\n"
-            "以\"业务线-团队-项目\"组织视图复用平台全部能力，免计费或走内部结算，"
+            "数据引擎大数据平台 · L5.4 对内业务线门户\n\n"
+            '以"业务线-团队-项目"组织视图复用平台全部能力，免计费或走内部结算，'
             "不承诺 SLA，资源受部门预算软约束。仅适用于标准版+旗舰版。\n"
             "多业务线隔离（数据隔离 + 权限隔离）。"
         ),
@@ -54,11 +56,29 @@ def create_app(
     app.state.registry = registry
 
     prefix = settings.apiPrefix
-    app.include_router(health.router)
+    app.include_router(health.router, prefix=prefix)
     app.include_router(business_lines.router, prefix=prefix)
     app.include_router(dashboard.router, prefix=prefix)
     app.include_router(workbench.router, prefix=prefix)
     app.include_router(catalog.router, prefix=prefix)
     app.include_router(reports.router, prefix=prefix)
+
+    # ---- 全局异常处理器：统一错误响应格式 {error, message} ----
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception):
+        return JSONResponse(
+            status_code=500,
+            content={"error": "internal_error", "message": str(exc)},
+        )
+
+    @app.exception_handler(HTTPException)
+    async def http_exception_handler(request: Request, exc: HTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.detail.lower().replace(" ", "_") if isinstance(exc.detail, str) else "error",
+                "message": str(exc.detail),
+            },
+        )
 
     return app

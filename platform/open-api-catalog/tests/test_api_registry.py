@@ -1,14 +1,11 @@
 """API 注册和管理测试."""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from openapi_catalog.models import (
     APIFilter,
     APIStatus,
     APIUpdateRequest,
-    CostStrategy,
-    HttpMethod,
     SLALevel,
 )
 from openapi_catalog.repositories import (
@@ -16,6 +13,7 @@ from openapi_catalog.repositories import (
     APINotFoundError,
     APIStatusTransitionError,
 )
+import pytest
 
 
 class TestAPIRegistry:
@@ -71,9 +69,7 @@ class TestAPIRegistry:
         assert len(apis) == 5
 
         # 按名称过滤
-        apis = await registry.apiRegistryService.list_apis(
-            APIFilter(name="list-api-1")
-        )
+        apis = await registry.apiRegistryService.list_apis(APIFilter(name="list-api-1"))
         assert len(apis) == 1
         assert apis[0].name == "list-api-1"
 
@@ -88,9 +84,7 @@ class TestAPIRegistry:
         await registry.apiRegistryService.register_api(api1)
         await registry.apiRegistryService.register_api(api2)
 
-        apis = await registry.apiRegistryService.list_apis(
-            APIFilter(category="weather")
-        )
+        apis = await registry.apiRegistryService.list_apis(APIFilter(category="weather"))
         assert len(apis) == 1
         assert apis[0].name == "cat-1"
 
@@ -102,15 +96,11 @@ class TestAPIRegistry:
         await registry.apiRegistryService.register_api(api)
 
         # 按名称搜索
-        apis = await registry.apiRegistryService.list_apis(
-            APIFilter(keyword="weather")
-        )
+        apis = await registry.apiRegistryService.list_apis(APIFilter(keyword="weather"))
         assert len(apis) == 1
 
         # 按描述搜索
-        apis = await registry.apiRegistryService.list_apis(
-            APIFilter(keyword="预报")
-        )
+        apis = await registry.apiRegistryService.list_apis(APIFilter(keyword="预报"))
         assert len(apis) == 1
 
     @pytest.mark.asyncio
@@ -369,8 +359,8 @@ class TestAPIRegistryHTTP:
 
     def test_health_check(self, client):
         """测试健康检查."""
-        response = client.get("/health")
+        response = client.get("/api/v1/health")
         assert response.status_code == 200
         data = response.json()
-        assert data["status"] == "ok"
+        assert data["status"] == "UP"
         assert data["module"] == "open-api-catalog"

@@ -1,4 +1,4 @@
-"""ML Platform - 数擎大数据平台 L4.5.6 机器学习平台.
+"""ML Platform - 数据引擎大数据平台 L4.5.6 机器学习平台.
 
 模块层次：
     interfaces/   - 抽象接口（MLBackend / FeatureStore / ExperimentStore）

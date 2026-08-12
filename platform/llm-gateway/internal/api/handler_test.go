@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/gateway"
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/gateway"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ API Handler 测试 ============

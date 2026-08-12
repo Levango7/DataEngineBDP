@@ -3,6 +3,7 @@
 设计模式：依赖注入 + 工厂。
 配置开关：LLMOPS_STORE_TYPE=mock / mlflow
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

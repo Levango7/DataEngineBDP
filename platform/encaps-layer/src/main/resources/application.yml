@@ -41,7 +41,7 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
   level:
-    com.shuqing.bigdata: INFO
+    com.levango7.dataenginebdp: INFO
 
 otel:
   exporter:
@@ -68,6 +68,16 @@ app:
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
 
-  # K8s 客户端配置：mock-enabled=true 时不连接真实集群（开发/测试环境默认 true）
+  # K8s 客户端配置：mock-enabled=true 时不连接真实集群，使用 mock 数据
+  # 开发环境设 K8S_MOCK_ENABLED=true 使用 mock；生产/Service Mesh 环境设 false 连接真实 K8s
+  # Service Mesh 模式（k3s + Istio）下，fabric8 KubernetesClient 从 KUBECONFIG 或 ~/.kube/config
+  # 自动发现集群连接信息；k3s 安装脚本已将 kubeconfig 写入 ~/.kube/config（见 ske/k3s/install-k3s.sh）
   k8s:
-    mock-enabled: ${K8S_MOCK_ENABLED:true}
+    # 切真实模式：false 表示连接真实 K8s 集群（k3s/ Istio Service Mesh 控制面已就绪）
+    mock-enabled: ${K8S_MOCK_ENABLED:false}
+    # 集群连接覆盖项（留空则走 fabric8 默认 KUBECONFIG 发现）
+    # k3s 默认 API 端口 6443；如需显式指定：
+    # master-url: ${K8S_MASTER_URL:https://127.0.0.1:6443}
+    # kubeconfig: ${K8S_KUBECONFIG:~/.kube/config}
+    # Service Mesh 相关：sidecar 由 Istio 自动注入（namespace 标签 istio-injection=enabled）
+    # mTLS 由 PeerAuthentication 管理（见 ske/k3s/peer-authentication-mtls.yaml），应用无需感知

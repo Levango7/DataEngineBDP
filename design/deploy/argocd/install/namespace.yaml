@@ -1,0 +1,17 @@
+# argocd namespace
+# 不注入 Istio sidecar（控制面避免循环依赖）
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    # pod-security 标准（restricted 最严）
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    # 禁用 Istio sidecar 注入（ArgoCD 控制面不进 Mesh）
+    istio-injection: disabled
+    # ArgoCD 标识
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: argocd

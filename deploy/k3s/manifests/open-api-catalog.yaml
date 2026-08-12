@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: open-api-catalog
+  namespace: shuqing
+  labels:
+    app: open-api-catalog
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: open-api-catalog
+  template:
+    metadata:
+      labels:
+        app: open-api-catalog
+    spec:
+      containers:
+      - name: open-api-catalog
+        image: sq/open-api-catalog:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8090
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8090"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8090
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8090
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: open-api-catalog
+  namespace: shuqing
+  labels:
+    app: open-api-catalog
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: open-api-catalog
+  ports:
+  - name: http
+    port: 8090
+    targetPort: 8090
+    protocol: TCP

@@ -1,0 +1,142 @@
+# 字段忽略规则 · ignore-differences
+# ============================================================================
+# 作用：定义 diff 时忽略的字段（按资源类型）
+# 集成：被 ArgoCD Application spec.ignoreDifferences 引用
+#       或通过 argocd-cm 的 resource.customizations 全局配置
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-ignore-differences
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-policy
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移检测字段忽略规则"
+data:
+  # ============================================================================
+  # 1. 通用忽略字段（所有资源类型）
+  # ============================================================================
+  common-ignore.yaml: |
+    # 系统注入字段（不视为漂移）
+    ignoreDifferences:
+      - group: "*"
+        kind: "*"
+        jsonPointers:
+          - /metadata/managedFields
+          - /metadata/resourceVersion
+          - /metadata/uid
+          - /metadata/creationTimestamp
+          - /metadata/generation
+          - /status
+        # 由以下 manager 管理的字段不视为漂移
+        managedFieldsManagers:
+          - kube-controller-manager
+          - kubelet
+          - kubectl-client-side-apply
+          - kubectl-server-side-apply
+
+  # ============================================================================
+  # 2. Deployment 专属忽略
+  # ============================================================================
+  deployment-ignore.yaml: |
+    ignoreDifferences:
+      - group: "apps"
+        kind: "Deployment"
+        jsonPointers:
+          # HPA 管理的 replicas
+          - /spec/replicas
+          # kubectl 注解
+          - /metadata/annotations/kubectl.kubernetes.io~1last-applied-configuration
+          # ArgoCD 注入
+          - /metadata/annotations/argocd.argoproj.io~1sync-wave
+        # Istio sidecar 注入由 istio-sidecar-injector 管理
+        managedFieldsManagers:
+          - istio-sidecar-injector
+
+  # ============================================================================
+  # 3. Service 专属忽略
+  # ============================================================================
+  service-ignore.yaml: |
+    ignoreDifferences:
+      - group: ""
+        kind: "Service"
+        jsonPointers:
+          # k3s 自动分配
+          - /spec/clusterIP
+          - /spec/clusterIPs
+          - /spec/externalTrafficPolicy
+          - /spec/sessionAffinity
+          # NodePort 自动分配
+          - /spec/ports/*/nodePort
+        managedFieldsManagers:
+          - kube-controller-manager
+          - service-controller
+
+  # ============================================================================
+  # 4. Ingress 专属忽略（traefik 管理）
+  # ============================================================================
+  ingress-ignore.yaml: |
+    ignoreDifferences:
+      - group: "networking.k8s.io"
+        kind: "Ingress"
+        jsonPointers:
+          - /status
+        managedFieldsManagers:
+          - traefik
+
+  # ============================================================================
+  # 5. Pod 专属忽略（大量系统注入）
+  # ============================================================================
+  pod-ignore.yaml: |
+    ignoreDifferences:
+      - group: ""
+        kind: "Pod"
+        jsonPointers:
+          - /spec/nodeName
+          - /spec/serviceAccount
+          - /spec/containers/*/resources    # 资源限额可能被 cgroup 调整
+        # Istio sidecar
+        jqPathExpressions:
+          - '.spec.containers[] | select(.name=="istio-proxy")'
+          - '.spec.initContainers[] | select(.name=="istio-init")'
+
+  # ============================================================================
+  # 6. ServiceAccount 专属忽略
+  # ============================================================================
+  sa-ignore.yaml: |
+    ignoreDifferences:
+      - group: ""
+        kind: "ServiceAccount"
+        jsonPointers:
+          # kubernetes.io 自动注入 token Secret
+          - /secrets
+        managedFieldsManagers:
+          - kube-controller-manager
+
+  # ============================================================================
+  # 7. HPA 专属忽略
+  # ============================================================================
+  hpa-ignore.yaml: |
+    ignoreDifferences:
+      - group: "autoscaling"
+        kind: "HorizontalPodAutoscaler"
+        jsonPointers:
+          - /status
+          - /spec/minReplicas
+          - /spec/maxReplicas
+          - /metrics/*/current  # 当前指标值实时变化
+
+  # ============================================================================
+  # 8. Job 专属忽略
+  # ============================================================================
+  job-ignore.yaml: |
+    ignoreDifferences:
+      - group: "batch"
+        kind: "Job"
+        jsonPointers:
+          - /status
+          - /spec/completionTime
+          - /spec/startTime

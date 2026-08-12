@@ -6,6 +6,7 @@
     POST /api/v1/models/{id}/predict { data }
     POST /api/v1/feature-groups      { name, entityKey, features }
 """
+
 from ml_platform.models.base import (
     AlgorithmType,
     BackendType,

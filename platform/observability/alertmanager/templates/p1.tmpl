@@ -1,0 +1,38 @@
+{{/*
+  P1 重要告警模板 — 邮件 HTML + 企业微信 markdown
+
+  邮件模板 email.p1.html 渲染为 HTML 表格，便于邮件客户端阅读。
+  企业微信模板 wecom.p1.markdown 渲染为 markdown 文本。
+*/}}
+{{ define "email.p1.html" }}
+<html><body style="font-family: sans-serif;">
+<h2 style="color: #e6a700;">[P1 重要告警] {{ .CommonLabels.alertname }}</h2>
+<table border="1" cellpadding="6" cellspacing="0" style="border-collapse: collapse;">
+  <tr><td><b>状态</b></td><td>{{ .Status | toUpper }}</td></tr>
+  <tr><td><b>租户</b></td><td>{{ .CommonLabels.tenant_id }}</td></tr>
+  <tr><td><b>组件</b></td><td>{{ .CommonLabels.component }}</td></tr>
+  <tr><td><b>严重级别</b></td><td>{{ .CommonLabels.severity }}</td></tr>
+  <tr><td><b>告警计数</b></td><td>{{ template "alert.count" . }}</td></tr>
+  <tr><td><b>描述</b></td><td>{{ .CommonAnnotations.description }}</td></tr>
+  <tr><td><b>处置手册</b></td><td><a href="{{ .CommonAnnotations.runbook_url }}">{{ .CommonAnnotations.runbook_url }}</a></td></tr>
+</table>
+<h3>告警详情</h3>
+<pre>{{ template "alert.list" . }}</pre>
+<hr><p style="color: #888; font-size: 12px;">本邮件由数据引擎大数据平台 Alertmanager 自动发送，请勿直接回复。</p>
+</body></html>
+{{ end }}
+
+{{ define "wecom.p1.markdown" }}
+## [P1 重要告警] {{ .CommonLabels.alertname }}
+> **状态**: {{ .Status | toUpper }} | **租户**: {{ .CommonLabels.tenant_id }} | **组件**: {{ .CommonLabels.component }}
+> **描述**: {{ .CommonAnnotations.description }}
+> **计数**: {{ template "alert.count" . }}
+> **处置手册**: [查看]({{ .CommonAnnotations.runbook_url }})
+
+{{ range .Alerts.Firing }}
+- 🔴 {{ .Labels.alertname }} @ {{ .StartsAt.Format "15:04:05" }} — {{ .Annotations.description }}
+{{ end }}
+{{ range .Alerts.Resolved }}
+- 🟢 {{ .Labels.alertname }} @ {{ .EndsAt.Format "15:04:05" }} — 已恢复
+{{ end }}
+{{ end }}

@@ -6,10 +6,11 @@
     - 最短路径使用 BFS（无权图），与 NebulaGraph 的 FIND ALL PATH 风格对齐。
     - 线程安全：单进程内存态 + asyncio 单线程事件循环，无需加锁。
 """
+
 from __future__ import annotations
 
-import time
 from collections import deque
+import time
 
 from knowledge_engine.interfaces.graph_store import GraphStore
 from knowledge_engine.models.graph import (
@@ -21,7 +22,6 @@ from knowledge_engine.models.graph import (
 from knowledge_engine.repositories import (
     SpaceAlreadyExistsError,
     SpaceNotFoundError,
-    StoreUnavailableError,
     VertexNotFoundError,
 )
 
@@ -67,9 +67,7 @@ class MockGraphStore(GraphStore):
 
     # ---------- 顶点 / 边写入 ----------
 
-    async def insert_vertex(
-        self, space: str, label: str, vid: str, props: dict
-    ) -> None:
+    async def insert_vertex(self, space: str, label: str, vid: str, props: dict) -> None:
         data = self._require_space(space)
         # upsert：保留并更新属性
         existing = data.vertices.get(vid)
@@ -105,9 +103,7 @@ class MockGraphStore(GraphStore):
         if key in data.edges:
             data.edges[key].properties.update(props)
         else:
-            data.edges[key] = Edge(
-                srcId=src_id, dstId=dst_id, type=edge_type, properties=dict(props)
-            )
+            data.edges[key] = Edge(srcId=src_id, dstId=dst_id, type=edge_type, properties=dict(props))
             data.out_adj[src_id].append((edge_type, dst_id))
             data.in_adj[dst_id].append((edge_type, src_id))
 
@@ -164,9 +160,7 @@ class MockGraphStore(GraphStore):
             latencyMs=(time.perf_counter() - start) * 1000,
         )
 
-    async def get_neighbors(
-        self, space: str, vid: str, edge_types: list[str] | None = None
-    ) -> list[Vertex]:
+    async def get_neighbors(self, space: str, vid: str, edge_types: list[str] | None = None) -> list[Vertex]:
         data = self._require_space(space)
         if vid not in data.vertices:
             raise VertexNotFoundError(vid)
@@ -182,9 +176,7 @@ class MockGraphStore(GraphStore):
             result.append(data.vertices[dst_id])
         return result
 
-    async def shortest_path(
-        self, space: str, src_id: str, dst_id: str
-    ) -> list[Vertex]:
+    async def shortest_path(self, space: str, src_id: str, dst_id: str) -> list[Vertex]:
         data = self._require_space(space)
         if src_id not in data.vertices or dst_id not in data.vertices:
             return []

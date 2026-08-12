@@ -1,0 +1,337 @@
+﻿# 政务行业模板 - RBAC 角色定义
+# ============================================================================
+# 模块：T044 政务行业模板 RBAC
+# 格式：Keycloak realm role 格式
+# 角色数：5（政务管理员 / 数据分析师 / 部门用户 / 审计员 / 公众用户）
+# 设计原则：最小权限原则（Least Privilege Principle）+ 数据分级访问控制
+# 字符集：UTF-8，YAML 2 空格缩进
+# 合规要求：基于数据分级（L1/L2/L3/L4）的访问控制，对标 GB/T 31075-2017
+# ============================================================================
+
+# Keycloak realm 配置元信息
+realm: government-template-realm
+realm_enabled: true
+realm_display_name: 政务行业模板 RBAC 域
+realm_description: |
+  数据引擎大数据平台 L5.3 行业应用模板 - 政务行业 RBAC 角色定义。
+  基于 DDL（28 张表）、DAG（8 个调度作业）、Dashboard（4 个仪表盘）设计。
+  遵循最小权限原则与数据分级访问控制：
+    - 政务管理员：可访问 L1/L2/L3 数据，不可访问 L4 审计日志
+    - 数据分析师：可访问 L1/L2 数据，不可访问 L3/L4 敏感数据
+    - 部门用户：仅可访问本部门 L1/L2 业务数据
+    - 审计员：可访问 L4 审计日志与合规资源，不可修改业务数据
+    - 公众用户：仅可访问 L1 公开数据
+
+# 角色定义列表
+roles:
+  # --------------------------------------------------------------------------
+  # 角色 1：政务管理员（gov_admin）
+  # 职责：政务数据管理、模板配置、用户管理、DAG 调度管理
+  # 可访问：L1/L2/L3 数据（人口/经济/民生业务表），不可访问 L4 审计日志
+  # 不可访问：审计日志表（audit_log）、权限定义表（gov_permission）
+  # --------------------------------------------------------------------------
+  - name: gov_admin
+    description: |
+      政务管理员：负责政务数据管理、模板配置、用户管理与 DAG 调度管理。
+      可读写人口/经济/民生业务表（L1/L2/L3），可管理 DAG 调度作业，
+      可访问人口/经济/民生 Dashboard。不可访问 L4 审计日志与权限定义。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: government_admin
+      data_classification: L3
+      max_session_count: "3"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - population_base
+        - population_structure
+        - population_flow
+        - population_forecast
+        - population_age_distribution
+        - population_gender_distribution
+        - population_education_distribution
+        - population_employment_distribution
+        - gdp
+        - industry_structure
+        - fixed_asset_investment
+        - social_retail_consumption
+        - foreign_trade
+        - fiscal_revenue
+        - fiscal_expenditure
+        - economic_indicator
+        - government_service
+        - service_transaction
+        - service_satisfaction
+        - service_hot_topic
+        - service_statistics
+        - service_evaluation
+        - service_category
+        - service_channel
+        - data_classification
+        - desensitize_rule
+        - access_control_policy
+        - compliance_policy
+        - gov_role
+        - gov_user_role
+      tables_write:
+        - population_structure
+        - population_flow
+        - population_forecast
+        - population_age_distribution
+        - population_gender_distribution
+        - population_education_distribution
+        - population_employment_distribution
+        - gdp
+        - industry_structure
+        - fixed_asset_investment
+        - social_retail_consumption
+        - foreign_trade
+        - fiscal_revenue
+        - fiscal_expenditure
+        - economic_indicator
+        - government_service
+        - service_statistics
+        - service_evaluation
+        - service_hot_topic
+        - service_category
+        - service_channel
+      tables_denied:
+        - audit_log
+        - gov_permission
+        - gov_role_permission
+        - access_control_record
+        - compliance_risk_alert
+        - compliance_check_record
+      dags_manage:
+        - population_structure_analysis
+        - population_flow_tracking
+        - population_forecast
+        - gdp_calculation
+        - industry_analysis
+        - investment_consumption_analysis
+        - government_service_statistics
+        - satisfaction_analysis
+      dashboards_view:
+        - population-dashboard
+        - economic-dashboard
+        - livelihood-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 2：数据分析师（data_analyst）
+  # 职责：政务数据分析、报表生成、Dashboard 查看
+  # 可访问：L1/L2 汇总数据（不含个体敏感信息）
+  # 不可访问：L3 敏感个人数据（population_base/service_transaction）、L4 审计
+  # --------------------------------------------------------------------------
+  - name: data_analyst
+    description: |
+      数据分析师：负责政务数据分析、报表生成与 Dashboard 查看。
+      可读 L1/L2 汇总数据（人口结构/经济指标/服务统计），不可访问 L3 个体敏感数据。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: data_analysis
+      data_classification: L2
+      max_session_count: "5"
+      session_timeout_seconds: "7200"
+    permissions_scope:
+      tables_read:
+        - population_structure
+        - population_flow
+        - population_forecast
+        - population_age_distribution
+        - population_gender_distribution
+        - population_education_distribution
+        - population_employment_distribution
+        - gdp
+        - industry_structure
+        - fixed_asset_investment
+        - social_retail_consumption
+        - foreign_trade
+        - economic_indicator
+        - government_service
+        - service_hot_topic
+        - service_statistics
+        - service_evaluation
+        - service_category
+        - service_channel
+      tables_write: []
+      tables_denied:
+        - population_base
+        - service_transaction
+        - service_satisfaction
+        - fiscal_revenue
+        - fiscal_expenditure
+        - audit_log
+        - gov_permission
+        - gov_role_permission
+        - access_control_record
+        - compliance_risk_alert
+      dags_view:
+        - population_structure_analysis
+        - population_flow_tracking
+        - population_forecast
+        - gdp_calculation
+        - industry_analysis
+        - investment_consumption_analysis
+        - government_service_statistics
+        - satisfaction_analysis
+      dashboards_view:
+        - population-dashboard
+        - economic-dashboard
+        - livelihood-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 3：部门用户（dept_user）
+  # 职责：本部门政务服务办理、查看本部门业务数据
+  # 可访问：本部门 L1/L2 业务数据
+  # 不可访问：其他部门数据、L3 敏感个人数据、L4 审计
+  # --------------------------------------------------------------------------
+  - name: dept_user
+    description: |
+      部门用户：负责本部门政务服务办理，可查看本部门业务数据。
+      仅可访问本部门 L1/L2 业务数据，不可访问其他部门数据与敏感数据。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: department_specific
+      data_classification: L2
+      max_session_count: "10"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - government_service
+        - service_transaction
+        - service_satisfaction
+        - service_hot_topic
+        - service_statistics
+        - service_evaluation
+        - service_category
+        - service_channel
+      tables_write:
+        - service_transaction
+        - service_satisfaction
+      tables_denied:
+        - population_base
+        - population_structure
+        - population_flow
+        - population_forecast
+        - gdp
+        - industry_structure
+        - fiscal_revenue
+        - fiscal_expenditure
+        - audit_log
+        - gov_permission
+        - gov_role_permission
+        - access_control_record
+        - compliance_risk_alert
+      dags_view:
+        - government_service_statistics
+        - satisfaction_analysis
+      dashboards_view:
+        - livelihood-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 4：审计员（auditor）
+  # 职责：合规审计、风险监控、审计日志查看、合规检查
+  # 可访问：L4 审计日志、L3 合规资源（风险预警/访问控制记录）
+  # 不可访问：业务数据写权限（只读所有业务表）
+  # --------------------------------------------------------------------------
+  - name: auditor
+    description: |
+      审计员：负责合规审计、风险监控与审计日志查看。
+      可读 L4 审计日志与 L3 合规资源，可管理合规检查 DAG，不可修改任何业务数据。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: audit
+      data_classification: L4
+      max_session_count: "2"
+      session_timeout_seconds: "1800"
+    permissions_scope:
+      tables_read:
+        - audit_log
+        - access_control_record
+        - compliance_risk_alert
+        - compliance_check_record
+        - compliance_policy
+        - data_classification
+        - desensitize_rule
+        - access_control_policy
+        - gov_role
+        - gov_permission
+        - gov_role_permission
+        - gov_user_role
+      tables_write:
+        - compliance_risk_alert
+        - compliance_check_record
+      tables_denied: []
+      dags_manage:
+        - satisfaction_analysis
+      dags_view:
+        - population_structure_analysis
+        - population_flow_tracking
+        - gdp_calculation
+        - government_service_statistics
+      dashboards_view:
+        - compliance-dashboard
+
+  # --------------------------------------------------------------------------
+  # 角色 5：公众用户（public_user）
+  # 职责：查看公开政务数据（政务服务事项清单、热点事项排行）
+  # 可访问：仅 L1 公开数据
+  # 不可访问：L2/L3/L4 任何非公开数据
+  # --------------------------------------------------------------------------
+  - name: public_user
+    description: |
+      公众用户：可查看公开政务数据（政务服务事项清单、热点事项排行）。
+      仅可访问 L1 公开数据，不可访问任何内部/敏感/机密数据。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: public
+      data_classification: L1
+      max_session_count: "1"
+      session_timeout_seconds: "1800"
+    permissions_scope:
+      tables_read:
+        - government_service
+        - service_hot_topic
+        - service_category
+        - service_channel
+      tables_write: []
+      tables_denied:
+        - population_base
+        - population_structure
+        - population_flow
+        - population_forecast
+        - population_age_distribution
+        - population_gender_distribution
+        - population_education_distribution
+        - population_employment_distribution
+        - gdp
+        - industry_structure
+        - fixed_asset_investment
+        - social_retail_consumption
+        - foreign_trade
+        - fiscal_revenue
+        - fiscal_expenditure
+        - economic_indicator
+        - service_transaction
+        - service_satisfaction
+        - service_statistics
+        - service_evaluation
+        - audit_log
+        - gov_role
+        - gov_permission
+        - gov_role_permission
+        - gov_user_role
+        - data_classification
+        - desensitize_rule
+        - access_control_policy
+        - access_control_record
+        - compliance_risk_alert
+        - compliance_check_record
+        - compliance_policy
+      dags_view: []
+      dashboards_view: []

@@ -1,24 +1,11 @@
 """计量测试."""
+
 from __future__ import annotations
 
-import pytest
-
 from openapi_catalog.models import (
-    APIDefinition,
-    APIParam,
-    APIResponse,
-    APIStatus,
-    APIUpstream,
-    ApproveRequest,
-    APISubscription,
-    AuthType,
     CostStrategy,
-    HttpMethod,
-    ParamLocation,
-    ParamType,
-    SLALevel,
 )
-from openapi_catalog.services.metering import MeteringService
+import pytest
 
 
 class TestMetering:
@@ -236,9 +223,7 @@ class TestMetering:
                 status_code=200,
             )
 
-        metrics = await registry.meteringService.get_metrics(
-            saved_api.id, range_str="1h"
-        )
+        metrics = await registry.meteringService.get_metrics(saved_api.id, range_str="1h")
         assert len(metrics.timeseries) >= 1
         total = sum(p.callCount for p in metrics.timeseries)
         assert total == 5

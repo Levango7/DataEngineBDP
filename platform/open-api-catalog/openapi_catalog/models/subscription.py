@@ -1,9 +1,9 @@
 """API 订阅模型."""
+
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
-
 from openapi_catalog.models.base import SubscriptionStatus, TimestampMixin
+from pydantic import BaseModel, Field
 
 
 class APISubscription(TimestampMixin):
@@ -22,13 +22,9 @@ class APISubscription(TimestampMixin):
     providerTenantId: str = Field(..., description="提供方租户 ID")
 
     purpose: str = Field(..., min_length=1, description="订阅用途")
-    quotaExpect: int = Field(
-        ..., ge=1, description="期望配额（次/分钟）"
-    )
+    quotaExpect: int = Field(..., ge=1, description="期望配额（次/分钟）")
 
-    status: SubscriptionStatus = Field(
-        default=SubscriptionStatus.PENDING, description="订阅状态"
-    )
+    status: SubscriptionStatus = Field(default=SubscriptionStatus.PENDING, description="订阅状态")
 
     # AK/SK（审批通过后发放）
     accessKey: str | None = Field(default=None, description="Access Key")
@@ -39,16 +35,12 @@ class APISubscription(TimestampMixin):
     approvedBy: str | None = Field(default=None, description="审批人")
 
     # 实际配额
-    grantedQuota: int = Field(
-        default=0, ge=0, description="实际授予配额（次/分钟）"
-    )
+    grantedQuota: int = Field(default=0, ge=0, description="实际授予配额（次/分钟）")
 
     # 调用统计
     callCount: int = Field(default=0, ge=0, description="累计调用次数")
     errorCount: int = Field(default=0, ge=0, description="累计错误次数")
-    lastCalledAt: str | None = Field(
-        default=None, description="最后调用时间"
-    )
+    lastCalledAt: str | None = Field(default=None, description="最后调用时间")
 
 
 class SubscribeRequest(BaseModel):
@@ -65,9 +57,7 @@ class ApproveRequest(BaseModel):
 
     approve: bool = Field(..., description="是否通过")
     reason: str | None = Field(default=None, description="审批意见")
-    grantedQuota: int | None = Field(
-        default=None, ge=1, description="实际授予配额"
-    )
+    grantedQuota: int | None = Field(default=None, ge=1, description="实际授予配额")
     approver: str = Field(..., description="审批人")
 
 

@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"sync"
 	"time"
@@ -83,6 +84,9 @@ var (
 
 // Load 从指定路径加载YAML配置文件。
 // 若path为空，使用默认配置。
+//
+// 安全策略：配置文件中的 ${ENV_VAR} 占位符会通过 os.ExpandEnv 展开，
+// 敏感字段（JWT密钥/DSN/密码）必须通过环境变量显式注入，缺失则 fail-fast。
 func Load(path string) (*Config, error) {
 	cfg := &Config{}
 	if path == "" {
@@ -95,12 +99,24 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("读取配置文件失败: %w", err)
 	}
 
-	if err := yaml.Unmarshal(data, cfg); err != nil {
+	// 展开配置文件中的 ${ENV_VAR} 占位符为环境变量实际值。
+	expanded := os.ExpandEnv(string(data))
+
+	if err := yaml.Unmarshal([]byte(expanded), cfg); err != nil {
 		return nil, fmt.Errorf("解析配置文件失败: %w", err)
 	}
 
 	setDefaults(cfg)
 	return cfg, nil
+}
+
+// mustGetenv 读取必需的环境变量，缺失则 fail-fast 退出。
+func mustGetenv(key string) string {
+	v := os.Getenv(key)
+	if v == "" {
+		log.Fatalf("FATAL: environment variable %s is required", key)
+	}
+	return v
 }
 
 // setDefaults 填充未设置字段的默认值
@@ -118,7 +134,8 @@ func setDefaults(cfg *Config) {
 		cfg.Server.WriteTimeout = 60
 	}
 	if cfg.Auth.Secret == "" {
-		cfg.Auth.Secret = "change-me"
+		// 安全止血：JWT 签名密钥必须显式配置，不再提供弱默认值。
+		cfg.Auth.Secret = mustGetenv("JWT_SIGNING_KEY")
 	}
 	if cfg.Auth.TokenTTL == 0 {
 		cfg.Auth.TokenTTL = 24

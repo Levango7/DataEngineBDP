@@ -1,8 +1,8 @@
 """通用依赖与错误处理."""
+
 from __future__ import annotations
 
 from fastapi import Request
-
 from openapi_catalog.repositories import (
     APIAlreadyExistsError,
     APINotFoundError,

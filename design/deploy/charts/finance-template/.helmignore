@@ -1,0 +1,8 @@
+# Helm 打包忽略列表（T019 finance-template）
+.git/
+.gitignore
+*.tar.gz
+dist/
+# 开发临时文件
+*.tmp
+*.bak

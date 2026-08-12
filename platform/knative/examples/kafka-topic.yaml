@@ -1,0 +1,23 @@
+﻿# ============================================================================
+# Kafka Topic（测试用）· 数据引擎大数据平台
+# ----------------------------------------------------------------------------
+# 作用：为 KafkaSource 示例创建测试 Topic
+# 依赖：Phase 1 Strimzi Kafka 集群（kafka namespace）
+# 验证：
+#   kubectl get kafkatopic knative-test-topic -n kafka
+# ============================================================================
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: knative-test-topic
+  namespace: kafka
+  labels:
+    app.kubernetes.io/name: knative-test-topic
+    app.kubernetes.io/part-of: knative-examples
+    platform.shuqing.io/task: "T024"
+spec:
+  partitions: 3
+  replicas: 3
+  # 保留 7 天
+  config:
+    retention.ms: "604800000"

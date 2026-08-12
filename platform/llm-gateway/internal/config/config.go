@@ -1,4 +1,4 @@
-﻿// Package config 提供 llm-gateway 的配置加载与 Provider 构造。
+// Package config 提供 llm-gateway 的配置加载与 Provider 构造。
 //
 // 支持从 YAML 文件或环境变量加载配置，并据此构造各 Provider 实例。
 // 设计原则：真实大模型 API 凭据通过配置注入，不硬编码。
@@ -12,7 +12,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/shuqing/bigdata/llm-gateway/internal/provider"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
 // ============ 顶层配置 ============
@@ -102,14 +102,16 @@ func LoadFromJSON(s string) (*Config, error) {
 //
 // 环境变量：
 //   - LLM_GATEWAY_PORT: 服务端口（默认 8084）
-//   - LLM_GATEWAY_VERSION: 版本（默认 0.1.0）
+//   - LLM_GATEWAY_VERSION: 版本（默认 0.2.0，与 main.go defaultVersion 保持一致）
 //   - LLM_GATEWAY_PROVIDERS: 逗号分隔的 Provider 类型列表（默认 "mock"）
 //   - LLM_GATEWAY_MOCK_MODE: "true" 时强制启用 Mock Provider（默认 true）
 func LoadFromEnv() *Config {
 	cfg := &Config{
 		Server: ServerConfig{
-			Port:    envOr("LLM_GATEWAY_PORT", "8084"),
-			Version: envOr("LLM_GATEWAY_VERSION", "0.1.0"),
+			Port: envOr("LLM_GATEWAY_PORT", "8084"),
+			// 修复：原默认 "0.1.0" 与 main.go 中 defaultVersion="0.2.0" 不一致，
+			// 导致环境变量未显式设置时，/health 返回的版本与日志中的版本不匹配。
+			Version: envOr("LLM_GATEWAY_VERSION", "0.2.0"),
 		},
 		Providers: nil,
 		RateLimit: RateLimitConfig{Enabled: false},
@@ -157,7 +159,8 @@ func (c *Config) applyDefaults() {
 		c.Server.Port = "8084"
 	}
 	if c.Server.Version == "" {
-		c.Server.Version = "0.1.0"
+		// 修复：与 main.go defaultVersion 保持一致，避免 /health 返回版本与日志不匹配。
+		c.Server.Version = "0.2.0"
 	}
 	for i := range c.Providers {
 		if c.Providers[i].Weight <= 0 {

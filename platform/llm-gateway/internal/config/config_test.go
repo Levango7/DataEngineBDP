@@ -30,7 +30,8 @@ func TestLoadFromJSON_Defaults(t *testing.T) {
 	cfg, err := LoadFromJSON(`{"providers": [{"name": "m", "type": "mock"}]}`)
 	require.NoError(t, err)
 	assert.Equal(t, "8084", cfg.Server.Port)
-	assert.Equal(t, "0.1.0", cfg.Server.Version)
+	// 默认版本与 main.go defaultVersion 保持一致（Phase 2 多模态增强）。
+	assert.Equal(t, "0.2.0", cfg.Server.Version)
 	assert.Equal(t, 1, cfg.Providers[0].Weight) // 默认权重 1
 }
 

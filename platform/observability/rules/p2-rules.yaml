@@ -1,0 +1,127 @@
+# P2 一般告警规则模板
+#
+# 用途：慢查询/资源水位提醒/作业重试/配置变更等一般通知，触发钉钉+飞书通知。
+# 通知渠道：Alertmanager → p2-dingtalk-feishu receiver → 钉钉 + 飞书 webhook
+# 时效要求：1 分钟聚合，4 小时重复
+#
+# 模板变量（租户自定义时替换）：
+#   {{tenant_id}}        — 租户 ID
+#   {{slow_query_threshold}} — 慢查询阈值，默认 30 秒
+#   {{retry_threshold}}  — 重试次数阈值，默认 3
+groups:
+  - name: p2-normal-platform
+    interval: 1m
+    rules:
+      # ---------------------------------------------------------------------------
+      # 规则 1：组件 GC 耗时过长
+      # ---------------------------------------------------------------------------
+      - alert: HighGCTime
+        expr: |
+          rate(process_gc_seconds_total[5m]) > 0.1
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.job }}"
+          category: performance
+        annotations:
+          summary: "GC 耗时过长: {{ $labels.job }}"
+          description: "组件 {{ $labels.job }} GC 耗时占比超过 10%，可能影响吞吐。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/high-gc"
+
+      # ---------------------------------------------------------------------------
+      # 规则 2：HTTP 5xx 错误率提醒
+      # ---------------------------------------------------------------------------
+      - alert: HTTP5xxRate
+        expr: |
+          (
+            sum(rate(http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total[5m]))
+          ) > 0.01
+        for: 15m
+        labels:
+          severity: P2
+          component: "{{ $labels.job }}"
+          category: availability
+        annotations:
+          summary: "HTTP 5xx 错误率提醒: {{ $labels.job }}"
+          description: "组件 {{ $labels.job }} 5xx 错误率超过 1%，持续 15 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/http-5xx"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：配置变更通知（Grafana datasource 变更）
+      # ---------------------------------------------------------------------------
+      - alert: GrafanaConfigChanged
+        expr: |
+          increase(grafana_config_reload_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: P2
+          component: grafana
+          category: config
+        annotations:
+          summary: "Grafana 配置已变更"
+          description: "Grafana provisioning 配置在过去 1 小时内发生重载。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/grafana-config-change"
+
+  # ---------------------------------------------------------------------------
+  # 租户级 P2 告警（租户可基于本 group 自定义阈值）
+  # ---------------------------------------------------------------------------
+  - name: p2-normal-tenant
+    interval: 1m
+    rules:
+      # 规则 4：租户慢查询提醒
+      - alert: TenantSlowQuery
+        expr: |
+          histogram_quantile(0.99,
+            sum by (le) (rate(shuqing_query_duration_seconds_bucket{tenant_id="{{tenant_id}}"}[5m]))
+          ) > {{slow_query_threshold}}
+        for: 15m
+        labels:
+          severity: P2
+          component: query
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 慢查询提醒"
+          description: "租户 {{tenant_id}} 查询 P99 延迟超过 {{slow_query_threshold}} 秒，持续 15 分钟。"
+          value: "{{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-slow-query"
+
+      # 规则 5：租户作业重试提醒
+      - alert: TenantJobRetry
+        expr: |
+          increase(shuqing_job_retry_total{tenant_id="{{tenant_id}}"}[1h]) > {{retry_threshold}}
+        for: 5m
+        labels:
+          severity: P2
+          component: job
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 作业重试提醒"
+          description: "租户 {{tenant_id}} 作业 1 小时内重试超过 {{retry_threshold}} 次。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-job-retry"
+
+      # 规则 6：租户 API 配额使用率提醒
+      - alert: TenantQuotaUsage
+        expr: |
+          shuqing_tenant_api_calls_total{tenant_id="{{tenant_id}}"}
+          /
+          shuqing_tenant_api_quota{tenant_id="{{tenant_id}}"}
+          > 0.8
+        for: 30m
+        labels:
+          severity: P2
+          component: quota
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} API 配额使用率提醒"
+          description: "租户 {{tenant_id}} API 配额使用率超过 80%，持续 30 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-quota"

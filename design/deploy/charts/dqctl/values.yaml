@@ -29,6 +29,20 @@ resources:
     cpu: "1"
     memory: "1Gi"
 
+
+# ---- 安全上下文（Pod/Container 安全加固）----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
 # ---- 健康检查 ----
 probes:
   liveness:

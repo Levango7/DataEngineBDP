@@ -5,6 +5,7 @@
 
 对齐设计文档第 3 节"行业模板清单"中的 fin-risk-scorecard。
 """
+
 from __future__ import annotations
 
 from industry_templates.models import (
@@ -159,9 +160,13 @@ def build_template() -> Template:
                 outputs=["dwd.risk_feature"],
                 config={
                     "features": [
-                        "age", "income_monthly", "employment_years",
-                        "credit_history_months", "overdue_count_12m",
-                        "debt_to_income", "credit_utilization",
+                        "age",
+                        "income_monthly",
+                        "employment_years",
+                        "credit_history_months",
+                        "overdue_count_12m",
+                        "debt_to_income",
+                        "credit_utilization",
                     ],
                 },
             ),
@@ -263,8 +268,7 @@ def build_template() -> Template:
                 inputs=["ads.risk_decision"],
                 outputs=["alert.high_risk"],
                 code=(
-                    "if decision == 'HIGH_RISK' and ${alert.webhook}:\n"
-                    "    notify(${alert.webhook}, order_id, score)"
+                    "if decision == 'HIGH_RISK' and ${alert.webhook}:\n" "    notify(${alert.webhook}, order_id, score)"
                 ),
             ),
         ],

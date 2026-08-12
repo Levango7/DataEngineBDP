@@ -1,15 +1,16 @@
 """通用依赖与错误处理."""
+
 from __future__ import annotations
 
 from fastapi import Request
 
 from knowledge_engine.repositories import (
+    ExtractorUnavailableError,
     KnowledgeEngineError,
     QuerySyntaxError,
     SpaceAlreadyExistsError,
     SpaceNotFoundError,
     StoreUnavailableError,
-    ExtractorUnavailableError,
     ValidationError,
     VertexNotFoundError,
 )
