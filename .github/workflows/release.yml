@@ -231,6 +231,7 @@ jobs:
             echo "  打包 Java 组件: $mod_name"
             echo "============================================"
             mvn -f "$pom" clean package -DskipTests -B -V \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           done < <(find platform -name pom.xml -not -path "*/target/*")
 

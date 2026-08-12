@@ -3,6 +3,8 @@ package com.levango7.dataenginebdp.streambatch.service;
 import com.levango7.dataenginebdp.streambatch.dag.StreamBatchDagOrchestrator;
 import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
+import com.levango7.dataenginebdp.streambatch.run.DagRunService;
+import com.levango7.dataenginebdp.streambatch.run.DagRunType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,12 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class StreamBatchOrchestrationService {
 
     private final StreamBatchDagOrchestrator orchestrator;
+    private final DagRunService dagRunService;
 
     /** DAG 执行历史（dagId → 执行结果，in-memory）。 */
     private final Map<String, DagExecutionResult> executionHistory = new ConcurrentHashMap<>();
 
     /**
-     * 提交并执行流批 DAG。
+     * 提交并执行流批 DAG（手动触发）。
      *
      * @param dag 流批 DAG
      * @return 执行结果
@@ -36,6 +39,8 @@ public class StreamBatchOrchestrationService {
         log.info("提交流批 DAG: dagId={}, name={}", dag.getDagId(), dag.getName());
         DagExecutionResult result = orchestrator.orchestrate(dag);
         executionHistory.put(dag.getDagId(), result);
+        // 任务运维中心：执行完成落库（手动触发类型）
+        dagRunService.recordRun(dag, result, DagRunType.MANUAL, "api", null, null);
         return result;
     }
 

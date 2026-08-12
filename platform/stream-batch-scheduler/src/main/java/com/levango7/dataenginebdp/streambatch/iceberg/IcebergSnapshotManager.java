@@ -251,7 +251,7 @@ public class IcebergSnapshotManager {
         sparkConf.put("spark.sql.catalog." + config.getCatalogName() + ".type",
                 config.getCatalogType());
         sparkConf.put("spark.sql.catalog." + config.getCatalogName() + ".uri",
-                config.getCatalogUri());
+                config.getEffectiveCatalogUri());
         sparkConf.put("spark.sql.catalog." + config.getCatalogName() + ".warehouse",
                 config.getWarehouse());
         // 固定 snapshot 标记（实际通过 SQL history(snapshot_id => ...) 引用）
