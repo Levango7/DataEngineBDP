@@ -1,0 +1,371 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "finance_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_finance",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "risk_model",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "风控模型主表 | 评分卡/ML模型/规则集元信息与版本 | DDL: 01_risk_control_ddl.sql §1",
+      "columns": [
+        {"name": "model_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "model_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "model_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "version", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "owner", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "dept_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "algorithm", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "weight", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "effective_from", "type": "DATETIME", "is_dttm": true},
+        {"name": "effective_to", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "risk_rule",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "风控规则表 | 规则集/阈值/命中动作 | DDL: 01_risk_control_ddl.sql §2",
+      "columns": [
+        {"name": "rule_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "model_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "rule_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "rule_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "expression", "type": "STRING", "is_dttm": false},
+        {"name": "action", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "priority", "type": "INT", "is_dttm": false},
+        {"name": "threshold", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "hit_count", "type": "BIGINT", "is_dttm": false},
+        {"name": "enabled", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "updated_at"
+    },
+    {
+      "table_name": "risk_feature",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "风控特征表 | 特征定义/来源/统计口径 | DDL: 01_risk_control_ddl.sql §3",
+      "columns": [
+        {"name": "feature_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "model_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "feature_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "feature_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "source_table", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "source_field", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "dtype", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "is_online", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "updated_at"
+    },
+    {
+      "table_name": "risk_evaluation",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "风控评估结果表 | 一次评估的输入/命中/决策 | DDL: 01_risk_control_ddl.sql §4",
+      "columns": [
+        {"name": "eval_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "model_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "biz_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "biz_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "decision", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "score", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "grade", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "hit_rules", "type": "STRING", "is_dttm": false},
+        {"name": "eval_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "duration_ms", "type": "INT", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "eval_at"
+    },
+    {
+      "table_name": "risk_alert",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "风控告警表 | 评估产生的告警，含命中规则/告警级别/处置状态 | DDL: 01_risk_control_ddl.sql §5",
+      "columns": [
+        {"name": "alert_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "eval_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "rule_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "alert_level", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "alert_status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "alert_type", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "alert_detail", "type": "STRING", "is_dttm": false},
+        {"name": "handle_opinion", "type": "VARCHAR(512)", "is_dttm": false},
+        {"name": "handled_by", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "handled_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "alert_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "alert_at"
+    }
+  ],
+  "charts": [
+    {
+      "slice_name": "风控评分分布",
+      "viz_type": "bar",
+      "datasource_type": "table",
+      "datasource_name": "risk_evaluation",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按评分区间统计客户数，柱状图，X轴=评分区间，Y轴=客户数",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "eval_at >= '{{ from_dttm }}' AND eval_at < '{{ to_dttm }}'"
+          }
+        ],
+        "x_axis": "score_bucket",
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "客户数"}],
+        "groupby": ["score_bucket"],
+        "time_range": "Last 30 days",
+        "row_limit": 100,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "评分区间",
+        "y_axis_label": "客户数",
+        "show_legend": true
+      },
+      "query": "SELECT CASE WHEN score < 300 THEN '0-300' WHEN score < 500 THEN '300-500' WHEN score < 600 THEN '500-600' WHEN score < 700 THEN '600-700' WHEN score < 800 THEN '700-800' ELSE '800-1000' END AS score_bucket, COUNT(DISTINCT biz_id) AS customer_count FROM risk_evaluation WHERE biz_type IN ('APPLICATION','LOAN') AND eval_at >= '{{ from_dttm }}' AND eval_at < '{{ to_dttm }}' GROUP BY score_bucket ORDER BY score_bucket"
+    },
+    {
+      "slice_name": "风险告警趋势",
+      "viz_type": "line",
+      "datasource_type": "table",
+      "datasource_name": "risk_alert",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按日统计告警数量趋势，线图，X轴=日期，Y轴=告警数",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "alert_at >= '{{ from_dttm }}' AND alert_at < '{{ to_dttm }}'"
+          }
+        ],
+        "x_axis": "alert_date",
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "告警数"}],
+        "groupby": ["alert_date"],
+        "time_grain_sqla": "DAY",
+        "time_range": "Last 90 days",
+        "row_limit": 365,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "日期",
+        "y_axis_label": "告警数",
+        "show_legend": true,
+        "line_interpolation": "linear"
+      },
+      "query": "SELECT DATE(alert_at) AS alert_date, COUNT(1) AS alert_count FROM risk_alert WHERE alert_at >= '{{ from_dttm }}' AND alert_at < '{{ to_dttm }}' GROUP BY DATE(alert_at) ORDER BY alert_date"
+    },
+    {
+      "slice_name": "告警类型占比",
+      "viz_type": "pie",
+      "datasource_type": "table",
+      "datasource_name": "risk_alert",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按告警类型分类占比，饼图，维度=alert_type",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "alert_at >= '{{ from_dttm }}' AND alert_at < '{{ to_dttm }}'"
+          }
+        ],
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "告警数"}],
+        "groupby": ["alert_type"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "donut": true,
+        "show_legend": true,
+        "labels_outside": false
+      },
+      "query": "SELECT COALESCE(alert_type,'UNKNOWN') AS alert_type, COUNT(1) AS alert_count FROM risk_alert WHERE alert_at >= '{{ from_dttm }}' AND alert_at < '{{ to_dttm }}' GROUP BY alert_type ORDER BY alert_count DESC"
+    },
+    {
+      "slice_name": "风控规则命中Top10",
+      "viz_type": "table",
+      "datasource_type": "table",
+      "datasource_name": "risk_rule",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "规则命中次数降序Top10，表格，列=规则名/编码/命中次数/优先级/动作",
+      "params": {
+        "adhoc_filters": [],
+        "metrics": [{"expressionType": "SIMPLE", "column": {"name": "hit_count"}, "aggregate": "SUM", "label": "命中次数"}],
+        "groupby": ["rule_name", "rule_code", "priority", "action"],
+        "order_by": [{"column": "hit_count", "direction": "desc"}],
+        "row_limit": 10,
+        "page_length": 10,
+        "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
+        "show_cell_bars": true
+      },
+      "query": "SELECT rule_name, rule_code, SUM(hit_count) AS hit_count, priority, action FROM risk_rule WHERE enabled = TRUE GROUP BY rule_name, rule_code, priority, action ORDER BY hit_count DESC LIMIT 10"
+    },
+    {
+      "slice_name": "风控覆盖率",
+      "viz_type": "big_number",
+      "datasource_type": "table",
+      "datasource_name": "risk_evaluation",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "已评估客户/总客户比率，指标卡，单数值",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "eval_at >= '{{ from_dttm }}' AND eval_at < '{{ to_dttm }}'"
+          }
+        ],
+        "metric": {"expressionType": "SQL", "sqlExpression": "ROUND(COUNT(DISTINCT biz_id) * 100.0 / NULLIF((SELECT COUNT(1) FROM customer WHERE status='ACTIVE'),0), 2)", "label": "风控覆盖率(%)"},
+        "time_range": "Last 30 days",
+        "compare_lag": 7,
+        "compare_suffix": "vs 7d ago",
+        "header_format": "{{ value }}%",
+        "subheader": "已评估客户/活跃客户"
+      },
+      "query": "SELECT ROUND(COUNT(DISTINCT biz_id) * 100.0 / NULLIF((SELECT COUNT(1) FROM customer WHERE status='ACTIVE'),0), 2) AS coverage_rate FROM risk_evaluation WHERE eval_at >= '{{ from_dttm }}' AND eval_at < '{{ to_dttm }}'"
+    },
+    {
+      "slice_name": "告警级别分布",
+      "viz_type": "bar",
+      "datasource_type": "table",
+      "datasource_name": "risk_alert",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按告警级别(LOW/MEDIUM/HIGH/CRITICAL)统计告警数，堆叠柱状图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "alert_at >= '{{ from_dttm }}' AND alert_at < '{{ to_dttm }}'"
+          }
+        ],
+        "x_axis": "alert_level",
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "告警数"}],
+        "groupby": ["alert_level"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "告警级别",
+        "y_axis_label": "告警数"
+      },
+      "query": "SELECT alert_level, COUNT(1) AS alert_count FROM risk_alert WHERE alert_at >= '{{ from_dttm }}' AND alert_at < '{{ to_dttm }}' GROUP BY alert_level ORDER BY CASE alert_level WHEN 'LOW' THEN 1 WHEN 'MEDIUM' THEN 2 WHEN 'HIGH' THEN 3 WHEN 'CRITICAL' THEN 4 ELSE 5 END"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "风控视角仪表盘",
+      "slug": "risk-dashboard",
+      "description": "风控视角仪表盘 | 覆盖风控评分分布/告警趋势/告警类型/规则命中/覆盖率等核心指标 | 数据源：risk_model/risk_rule/risk_feature/risk_evaluation/risk_alert | DDL: 01_risk_control_ddl.sql",
+      "owners": ["admin"],
+      "position": {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "DASHBOARD_ROOT_ID": "GRID_ID",
+        "DASHBOARD_GRID_RATIO": "1:1",
+        "GRID_ID": {
+          "type": "GRID",
+          "id": "GRID_ID",
+          "children": [
+            "ROW_ID_1",
+            "ROW_ID_2"
+          ],
+          "parents": ["ROOT_ID"],
+          "meta": {}
+        },
+        "ROW_ID_1": {
+          "type": "ROW",
+          "id": "ROW_ID_1",
+          "children": ["CHART_1", "CHART_2", "CHART_3"],
+          "parents": ["GRID_ID"],
+          "meta": {"background": "BACKGROUND_TRANSPARENT"}
+        },
+        "ROW_ID_2": {
+          "type": "ROW",
+          "id": "ROW_ID_2",
+          "children": ["CHART_4", "CHART_5", "CHART_6"],
+          "parents": ["GRID_ID"],
+          "meta": {"background": "BACKGROUND_TRANSPARENT"}
+        },
+        "CHART_1": {"type": "CHART", "id": "CHART_1", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "风控评分分布"}},
+        "CHART_2": {"type": "CHART", "id": "CHART_2", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "风险告警趋势"}},
+        "CHART_3": {"type": "CHART", "id": "CHART_3", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "告警类型占比"}},
+        "CHART_4": {"type": "CHART", "id": "CHART_4", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "风控规则命中Top10"}},
+        "CHART_5": {"type": "CHART", "id": "CHART_5", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "风控覆盖率"}},
+        "CHART_6": {"type": "CHART", "id": "CHART_6", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "告警级别分布"}}
+      },
+      "metadata": {
+        "chart_configuration": {
+          "CHART_1": {"id": 1, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_2": {"id": 2, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_3": {"id": 3, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_4": {"id": 4, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_5": {"id": 5, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_6": {"id": 6, "crossFilters": {"scope": {"exclude": [], "include": []}}}
+        },
+        "global_chart_configuration": {
+          "scope": {"label": "All charts", "supersetCharts": [1, 2, 3, 4, 5, 6]}
+        },
+        "color_namespace": "superset_colors",
+        "color_scheme_domain": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+        "expanded_slices": {},
+        "label_colors": {},
+        "refresh_frequency": 300,
+        "timed_refresh_immune_slices": [],
+        "filter_immune_slice_fields": {},
+        "chart_ids": [1, 2, 3, 4, 5, 6],
+        "default_filters": "{}",
+        "native_filter_configuration": [
+          {
+            "id": "NATIVE_FILTER_TIME_RANGE",
+            "name": "时间范围",
+            "filterType": "filter_time",
+            "targets": [{"datasetId": 4, "column": {"name": "eval_at"}}],
+            "defaultDataMask": {"timeRange": "Last 30 days"},
+            "controlValues": {"label": "时间范围", "defaultToEmpty": false}
+          },
+          {
+            "id": "NATIVE_FILTER_BIZ_LINE",
+            "name": "业务条线",
+            "filterType": "filter_select",
+            "targets": [{"datasetId": 4, "column": {"name": "biz_type"}}],
+            "defaultDataMask": null,
+            "controlValues": {"label": "业务条线", "defaultToEmpty": false, "multiSelect": true, "searchAllOptions": true}
+          },
+          {
+            "id": "NATIVE_FILTER_ORG",
+            "name": "机构",
+            "filterType": "filter_select",
+            "targets": [{"datasetId": 1, "column": {"name": "dept_code"}}],
+            "defaultDataMask": null,
+            "controlValues": {"label": "机构", "defaultToEmpty": false, "multiSelect": true, "searchAllOptions": true}
+          }
+        ]
+      },
+      "charts": ["风控评分分布", "风险告警趋势", "告警类型占比", "风控规则命中Top10", "风控覆盖率", "告警级别分布"]
+    }
+  ]
+}

@@ -1,0 +1,113 @@
+﻿# ============================================================================
+# Python 函数运行时 Knative Service · 数据引擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：将 Python FastAPI 函数运行时封装为 Knative Service
+# 特性：
+#   1. KPA 自动伸缩：target=10 RPS，min-scale=0（允许 scale-to-zero）
+#   2. 无流量 60s 缩容到 0（继承 config-autoscaler 全局配置）
+#   3. init container 预加载函数依赖（冷启动优化）
+#   4. invocation 计量：/metrics 端点供 Prometheus 采集，日志供 Promtail 采集
+#   5. tenant 隔离：通过 X-Tenant-Id 请求头传入
+# 验证：
+#   kubectl get ksvc python-function-runtime -n serverless-functions
+#   curl -H "X-Tenant-Id: tenant-a" http://python-function-runtime.serverless-functions.shuqing.local/invoke -d '{"key":"value"}'
+# ============================================================================
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: python-function-runtime
+  namespace: serverless-functions
+  labels:
+    app.kubernetes.io/name: python-function-runtime
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: serverless
+    platform.shuqing.io/runtime: python
+    platform.shuqing.io/task: "T025"
+  annotations:
+    # 强制使用 KPA（Knative Pod Autoscaler）
+    serving.knative.dev/autoscaler-class: "kpa.autoscaling.knative.dev"
+    # KPA 目标 RPS：每个 Pod 10 RPS
+    autoscaling.knative.dev/target: "10"
+    autoscaling.knative.dev/target-burst-capacity: "11"
+    # 最小副本数（0 = 允许 scale-to-zero）
+    autoscaling.knative.dev/min-scale: "0"
+    # 最大副本数
+    autoscaling.knative.dev/max-scale: "20"
+    # scale-to-zero 优雅期（覆盖全局 60s）
+    autoscaling.knative.dev/scale-to-zero-pod-retention-period: "60s"
+    # 使用 RPS 伸缩指标
+    autoscaling.knative.dev/metric: "rps"
+spec:
+  template:
+    metadata:
+      annotations:
+        # 代理资源
+        autoscaling.knative.dev/autoscale: "true"
+        # Prometheus 采集注解（供 ServiceMonitor 发现）
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
+    spec:
+      timeoutSeconds: 30
+      containerConcurrency: 10
+      # init container：预加载函数依赖（冷启动优化）
+      initContainers:
+        - name: dep-prewarmer
+          image: docker.m.daocloud.io/library/python:3.12-slim
+          command: ["python", "-c"]
+          args:
+            - |
+              import sys, importlib
+              # 预加载关键依赖，触发共享库加载到 page cache
+              for mod in ["fastapi", "uvicorn", "prometheus_client"]:
+                  try:
+                      importlib.import_module(mod)
+                      print(f"preloaded: {mod}", flush=True)
+                  except ImportError:
+                      print(f"skip: {mod}", flush=True)
+              print("dep prewarmer done", flush=True)
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+      containers:
+        - name: app
+          image: shuqing/python-function-runtime:0.1.0
+          ports:
+            - containerPort: 8080
+              name: http1
+          env:
+            - name: FUNCTION_NAME
+              value: "default"
+            - name: TENANT_ID
+              value: "default-tenant"
+            - name: FUNCTIONS_DIR
+              value: "/app/functions"
+            - name: LOG_LEVEL
+              value: "INFO"
+            - name: PROMETHEUS_PUSHGATEWAY
+              value: ""
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 1
+            periodSeconds: 3
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3

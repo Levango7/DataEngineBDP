@@ -1,0 +1,148 @@
+﻿# 能源行业模板元数据
+# ============================================================================
+# 模块：T043 能源行业模板
+# 用途：模板元信息，供平台侧模板管理服务读取
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 模板基本信息
+name: energy-template
+displayName: 能源行业模板
+version: 1.0.0
+appVersion: "1.0.0"
+description: |
+  数据引擎大数据平台 L5.3 行业应用模板 - 能源行业完整模板。
+  覆盖设备监测、用能分析、碳排放核算、趋势预测四大业务域，
+  含 31 张 DDL 表、5 个 DAG 调度作业、4 个 Superset Dashboard、4 个 RBAC 角色，
+  接入 IoTDB 时序数据，打包为 Helm Chart 支持一键部署。
+author: hw029373469
+authorEmail: hw029373469@shuqing.com
+homepage: https://shuqing.com/industry-templates/energy
+license: Apache-2.0
+
+# 模板分类
+category: industry-template
+industry: energy
+phase: Phase2-Batch1c
+
+# 业务域
+businessDomains:
+  - name: device-monitoring
+    displayName: 设备监测
+    description: 能源设备实时监测、告警、健康度评分与维护管理
+    tables: 8
+    dags: 2
+    dashboards: 1
+  - name: consumption-analysis
+    displayName: 用能分析
+    description: 多维度能耗聚合、对比分析、能源平衡与成本分析
+    tables: 7
+    dags: 1
+    dashboards: 1
+  - name: carbon-emission
+    displayName: 碳排放核算
+    description: 依据 ISO 14064/GHG Protocol 进行温室气体排放核算
+    tables: 7
+    dags: 1
+    dashboards: 1
+  - name: forecast
+    displayName: 趋势预测
+    description: 基于 ARIMA/Prophet/LSTM 等模型的能耗趋势预测
+    tables: 5
+    dags: 1
+    dashboards: 1
+
+# 资产统计
+assets:
+  tables: 31
+  dags: 5
+  dashboards: 4
+  roles: 4
+  iotdb: true
+  helmChart: true
+
+# 关键公式
+formulas:
+  - name: 健康度评分
+    formula: "health_score = 0.4 × availability + 0.4 × performance + 0.2 × alarm_score"
+    description: 设备健康度三维度融合评分，取值范围 [0, 100]
+  - name: 排放量计算
+    formula: "E = AD × EF × GWP"
+    description: 排放量 = 活动数据 × 排放因子 × 全球变暖潜势
+  - name: 同比增长率
+    formula: "yoy = (本期值 - 同期值) / 同期值"
+    description: 与去年同期对比的增长率
+  - name: 环比增长率
+    formula: "mom = (本期值 - 上期值) / 上期值"
+    description: 与上一周期对比的增长率
+  - name: MAPE
+    formula: "MAPE = mean(|actual - forecast| / |actual|) × 100%"
+    description: 预测模型平均绝对百分比误差
+
+# 依赖组件
+dependencies:
+  - name: doris
+    version: "2.0.x"
+    purpose: OLAP 存储（DDL 31 张表）
+    required: true
+  - name: iotdb
+    version: "1.3.x"
+    purpose: 时序引擎（设备传感器数据）
+    required: true
+  - name: flink
+    version: "1.18.x"
+    purpose: 流计算（实时状态更新/告警触发）
+    required: true
+  - name: spark
+    version: "3.5.x"
+    purpose: Spark 批计算（能耗聚合/碳排放核算/预测训练）
+    required: true
+  - name: dolphinscheduler
+    version: "3.2.x"
+    purpose: 调度编排（5 个 DAG）
+    required: true
+  - name: superset
+    version: "4.0.x"
+    purpose: BI 可视化（4 个 Dashboard）
+    required: true
+  - name: keycloak
+    version: "24.x"
+    purpose: RBAC（4 个角色）
+    required: true
+  - name: mlflow
+    version: "2.9.x"
+    purpose: 模型注册（预测模型版本管理）
+    required: false
+
+# 关键字
+keywords:
+  - energy
+  - device-monitoring
+  - consumption-analysis
+  - carbon-emission
+  - forecast
+  - iotdb
+  - industry-template
+  - big-data
+  - doris
+  - flink
+  - spark
+  - superset
+  - dolphinscheduler
+  - keycloak
+  - rbac
+  - health-score
+  - emission-factor
+  - arima
+  - prophet
+  - lstm
+
+# 平台集成
+platform:
+  name: shuqing-bigdata-platform
+  version: "5.3.0"
+  module: L5.3
+
+# 创建时间
+createdAt: "2026-08-08"
+updatedAt: "2026-08-08"

@@ -1,4 +1,5 @@
 """工作台服务."""
+
 from __future__ import annotations
 
 from business_portal.interfaces.store import (

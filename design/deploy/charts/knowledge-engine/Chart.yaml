@@ -1,12 +1,12 @@
-apiVersion: v2
+﻿apiVersion: v2
 name: knowledge-engine
-description: "知识工程引擎 - RAG 与知识图谱融合 - 数擎大数据平台"
+description: "知识工程引擎 - RAG 与知识图谱融合 - 数据引擎大数据平台"
 type: application
 version: 0.1.0
 appVersion: "0.1.0"
-home: https://github.com/ShuqingBigDataPlatform
+home: https://github.com/DataEngineBDP
 maintainers:
-  - name: ShuqingBigDataPlatform Team
+  - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:
   - knowledge

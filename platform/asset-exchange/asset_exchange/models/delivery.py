@@ -5,6 +5,7 @@
 - 文件交付：生成数据文件供下载（交易模式）
 - 数据库直连交付：授权访问源库（高价值数据集）
 """
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -16,7 +17,6 @@ from asset_exchange.models.base import (
     DeliveryMethod,
     DeliveryStatus,
     TimestampMixin,
-    utc_now,
 )
 
 
@@ -30,9 +30,7 @@ class DeliveryConfig(BaseModel):
     """
 
     method: DeliveryMethod = Field(..., description="交付方式")
-    params: dict[str, Any] = Field(
-        default_factory=dict, description="交付参数"
-    )
+    params: dict[str, Any] = Field(default_factory=dict, description="交付参数")
 
 
 class Delivery(TimestampMixin):
@@ -41,20 +39,12 @@ class Delivery(TimestampMixin):
     id: str = Field(default="", description="交付 ID")
     subscriptionId: str = Field(..., description="订阅 ID")
     method: DeliveryMethod = Field(..., description="交付方式")
-    config: dict[str, Any] = Field(
-        default_factory=dict, description="交付配置参数"
-    )
-    status: DeliveryStatus = Field(
-        default=DeliveryStatus.PENDING, description="交付状态"
-    )
+    config: dict[str, Any] = Field(default_factory=dict, description="交付配置参数")
+    status: DeliveryStatus = Field(default=DeliveryStatus.PENDING, description="交付状态")
 
     # 交付产物
-    artifactUrl: Optional[str] = Field(
-        default=None, description="交付产物 URL（文件/API 端点）"
-    )
-    artifactMeta: dict[str, Any] = Field(
-        default_factory=dict, description="交付产物元数据"
-    )
+    artifactUrl: Optional[str] = Field(default=None, description="交付产物 URL（文件/API 端点）")
+    artifactMeta: dict[str, Any] = Field(default_factory=dict, description="交付产物元数据")
 
     # 量统计
     dataRows: int = Field(default=0, ge=0, description="交付数据行数")
@@ -70,9 +60,7 @@ class DeliveryRequest(BaseModel):
     """交付请求."""
 
     method: DeliveryMethod = Field(..., description="交付方式")
-    config: dict[str, Any] = Field(
-        default_factory=dict, description="交付配置参数"
-    )
+    config: dict[str, Any] = Field(default_factory=dict, description="交付配置参数")
 
 
 class DeliveryStatusResponse(BaseModel):

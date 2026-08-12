@@ -6,11 +6,12 @@
     POST   /templates/{id}/deploy    部署模板
     GET    /templates/{id}/preview   预览模板架构
 """
+
 from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from industry_templates.api.routers.deps import get_registry, status_for_error
 from industry_templates.models import DeploymentRequest
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/templates", tags=["templates"])
 
 
 # ---------- 列表 ----------
+
 
 @router.get("", summary="列出所有模板")
 async def list_templates(
@@ -34,13 +36,12 @@ async def list_templates(
     Returns:
         模板元信息列表
     """
-    templates = registry.engine.list_templates(
-        industry=industry, keyword=keyword, status=status
-    )
+    templates = registry.engine.list_templates(industry=industry, keyword=keyword, status=status)
     return [t.meta.model_dump() for t in templates]
 
 
 # ---------- 详情 ----------
+
 
 @router.get("/{template_id}", summary="模板详情")
 async def get_template(
@@ -56,6 +57,7 @@ async def get_template(
 
 
 # ---------- 部署 ----------
+
 
 @router.post("/{template_id}/deploy", summary="部署模板", status_code=201)
 async def deploy_template(
@@ -81,6 +83,7 @@ async def deploy_template(
 
 # ---------- 预览 ----------
 
+
 @router.get("/{template_id}/preview", summary="预览模板架构")
 async def preview_template(
     template_id: str,
@@ -100,6 +103,7 @@ async def preview_template(
 
 # ---------- 部署记录 ----------
 
+
 @router.get("/{template_id}/deployments", summary="列出模板的部署记录")
 async def list_deployments(
     template_id: str,
@@ -108,6 +112,4 @@ async def list_deployments(
 ) -> list[dict]:
     """列出指定模板的部署记录."""
     records = registry.engine.list_deployments(tenantId=tenantId)
-    return [
-        r.model_dump() for r in records if r.templateId == template_id
-    ]
+    return [r.model_dump() for r in records if r.templateId == template_id]

@@ -5,6 +5,7 @@
     - MockFeatureStore:  内存特征存储
     - RedisFeatureStore: （可选）Redis 后端
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -22,9 +23,7 @@ class FeatureStore(ABC):
     # ---------- 特征组管理 ----------
 
     @abstractmethod
-    async def create_feature_group(
-        self, config: FeatureGroupConfig
-    ) -> str:
+    async def create_feature_group(self, config: FeatureGroupConfig) -> str:
         """创建特征组，返回特征组 ID.
 
         Args:
@@ -39,9 +38,7 @@ class FeatureStore(ABC):
         ...
 
     @abstractmethod
-    async def get_feature_group(
-        self, groupName: str
-    ) -> FeatureGroup:
+    async def get_feature_group(self, groupName: str) -> FeatureGroup:
         """获取特征组详情.
 
         Raises:
@@ -57,9 +54,7 @@ class FeatureStore(ABC):
     # ---------- 特征读写 ----------
 
     @abstractmethod
-    async def get_features(
-        self, groupName: str, entityId: str
-    ) -> dict:
+    async def get_features(self, groupName: str, entityId: str) -> dict:
         """获取指定实体在某特征组的特征值.
 
         Args:
@@ -76,9 +71,7 @@ class FeatureStore(ABC):
         ...
 
     @abstractmethod
-    async def put_features(
-        self, groupName: str, entityId: str, features: dict
-    ) -> None:
+    async def put_features(self, groupName: str, entityId: str, features: dict) -> None:
         """写入/更新指定实体在某特征组的特征值.
 
         Args:
@@ -92,9 +85,7 @@ class FeatureStore(ABC):
         ...
 
     @abstractmethod
-    async def delete_features(
-        self, groupName: str, entityId: str
-    ) -> None:
+    async def delete_features(self, groupName: str, entityId: str) -> None:
         """删除指定实体在某特征组的特征.
 
         Raises:
@@ -102,9 +93,7 @@ class FeatureStore(ABC):
         """
         ...
 
-    async def find_feature_group(
-        self, groupName: str
-    ) -> Optional[FeatureGroup]:
+    async def find_feature_group(self, groupName: str) -> Optional[FeatureGroup]:
         """按名称查找特征组（可选实现，默认基于 list）."""
         groups = await self.list_feature_groups()
         for g in groups:

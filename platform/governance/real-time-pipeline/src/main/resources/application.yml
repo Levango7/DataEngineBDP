@@ -1,0 +1,80 @@
+server:
+  port: 18090
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: real-time-governance-pipeline
+  datasource:
+    # 开发环境使用 H2 内存数据库；生产环境通过环境变量切换到 PostgreSQL
+    url: jdbc:h2:mem:governance;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: false
+
+# 实时治理管道配置
+governance:
+  # Iceberg REST Catalog 端点（监听 commit 事件）
+  iceberg:
+    rest-catalog-url: ${ICEBERG_REST_CATALOG_URL:http://localhost:8181}
+    # 事件轮询间隔（毫秒），生产环境建议改为 webhook 推送
+    poll-interval-ms: ${ICEBERG_POLL_INTERVAL_MS:1000}
+  # Flink SQL Gateway 端点（提交 CDC 血缘解析与 CEP 质量规则作业）
+  flink:
+    sql-gateway-url: ${FLINK_SQL_GATEWAY_URL:http://localhost:8083}
+    # 作业提交超时（毫秒）
+    submit-timeout-ms: ${FLINK_SUBMIT_TIMEOUT_MS:10000}
+  # NebulaGraph 血缘图存储
+  nebula:
+    graphd-host: ${NEBULA_GRAPHD_HOST:localhost}
+    graphd-port: ${NEBULA_GRAPHD_PORT:9669}
+    space: ${NEBULA_SPACE:lineage}
+    # 血缘图 schema：节点 Tag + 边 Edge Type
+    node-tag: TableField
+    edge-type: FieldLineage
+  # 治理闭环性能目标
+  pipeline:
+    # 元数据采集超时（≤ 5s）
+    metadata-collect-timeout-ms: ${METADATA_COLLECT_TIMEOUT_MS:5000}
+    # 告警延迟目标（≤ 5s）
+    alert-latency-target-ms: ${ALERT_LATENCY_TARGET_MS:5000}
+    # 治理闭环 P95 目标（≤ 10s）
+    pipeline闭环-p95-target-ms: ${PIPELINE_P95_TARGET_MS:10000}
+
+# JWT 配置（与平台其他组件保持一致）
+security:
+  jwt:
+    secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+    issuer: ${JWT_ISSUER:shuqing-bigdata}
+
+# Actuator 端点
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    com.levango7.dataenginebdp.governance: INFO
+    org.apache.flink: WARN
+    org.apache.iceberg: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"

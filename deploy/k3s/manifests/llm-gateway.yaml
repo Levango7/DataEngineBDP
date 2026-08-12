@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-gateway
+  namespace: shuqing
+  labels:
+    app: llm-gateway
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llm-gateway
+  template:
+    metadata:
+      labels:
+        app: llm-gateway
+    spec:
+      containers:
+      - name: llm-gateway
+        image: sq/llm-gateway:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8084
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8084"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8084
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-gateway
+  namespace: shuqing
+  labels:
+    app: llm-gateway
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: llm-gateway
+  ports:
+  - name: http
+    port: 8084
+    targetPort: 8084
+    protocol: TCP

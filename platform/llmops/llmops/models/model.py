@@ -1,4 +1,5 @@
 """模型相关数据模型."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -50,9 +51,7 @@ class ModelInfo(TimestampMixin):
     name: str = Field(..., min_length=1, max_length=128, description="模型名称")
     type: ModelType = Field(..., description="模型类型: base/ft")
     # 微调模型的基座模型 ID（type=ft 时必填）
-    baseModelId: Optional[str] = Field(
-        default=None, description="基座模型 ID（仅 type=ft 时有效）"
-    )
+    baseModelId: Optional[str] = Field(default=None, description="基座模型 ID（仅 type=ft 时有效）")
     params: ModelParams = Field(default_factory=ModelParams, description="模型参数")
     status: ModelStatus = Field(default=ModelStatus.DRAFT, description="模型状态")
     description: Optional[str] = Field(default=None, description="模型描述")
@@ -79,8 +78,6 @@ class ModelFilter(BaseModel):
     name: Optional[str] = Field(default=None, description="按名称模糊匹配")
     type: Optional[ModelType] = Field(default=None, description="按类型过滤")
     status: Optional[ModelStatus] = Field(default=None, description="按状态过滤")
-    tag: Optional[str] = Field(
-        default=None, description="按标签过滤，格式 key=value"
-    )
+    tag: Optional[str] = Field(default=None, description="按标签过滤，格式 key=value")
     limit: int = Field(default=100, ge=1, le=1000, description="返回上限")
     offset: int = Field(default=0, ge=0, description="偏移量")

@@ -1,4 +1,5 @@
 """预测服务业务逻辑."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -13,8 +14,6 @@ class PredictionService:
     def __init__(self, backend: MLBackend) -> None:
         self._backend = backend
 
-    async def predict(
-        self, modelId: str, data: dict[str, Any]
-    ) -> PredictionResult:
+    async def predict(self, modelId: str, data: dict[str, Any]) -> PredictionResult:
         """调用模型预测."""
         return await self._backend.predict(modelId, data)

@@ -1,0 +1,301 @@
+﻿# 能源行业模板 - RBAC 角色定义
+# ============================================================================
+# 模块：T043 能源行业模板 RBAC
+# 格式：Keycloak realm role 格式
+# 角色数：4（能源管理员 / 能源分析师 / 设备运维员 / 碳排放核算员）
+# 设计原则：最小权限原则（Least Privilege Principle）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# Keycloak realm 配置元信息
+realm: energy-template-realm
+realm_enabled: true
+realm_display_name: 能源行业模板 RBAC 域
+realm_description: |
+  数据引擎大数据平台 L5.3 行业应用模板 - 能源行业 RBAC 角色定义。
+  基于 DDL（31 张表）、DAG（5 个调度作业）、Dashboard（4 个仪表盘）设计。
+  遵循最小权限原则：每个角色仅授予完成其业务职责所需的最小权限集合。
+
+# 角色定义列表
+roles:
+  # --------------------------------------------------------------------------
+  # 角色 1：能源管理员（energy_admin）
+  # 职责：能源系统全局管理、设备配置、告警规则、定额、用户权限
+  # 可访问：全部 31 张表、5 个 DAG、4 个 Dashboard
+  # 不可访问：无（管理员拥有全部权限）
+  # --------------------------------------------------------------------------
+  - name: energy_admin
+    description: |
+      能源管理员：负责能源系统全局管理，包括设备配置、告警规则、能耗定额、
+      用户权限等。可读写全部 31 张表，可管理全部 5 个 DAG 与 4 个 Dashboard。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: energy-management
+      data_classification: confidential
+      max_session_count: "3"
+      session_timeout_seconds: "3600"
+    permissions_scope:
+      tables_read:
+        - energy_device
+        - device_realtime_status
+        - device_alarm_record
+        - device_health_score
+        - device_metric_history
+        - device_alarm_rule
+        - device_maintenance_log
+        - device_status_change
+        - energy_consumption_detail
+        - energy_consumption_summary
+        - energy_dimension_compare
+        - energy_trend_data
+        - energy_quota
+        - energy_balance
+        - energy_cost_analysis
+        - emission_factor_library
+        - emission_source
+        - emission_calculation_result
+        - emission_calculation_model
+        - emission_scope_classification
+        - emission_reduction_target
+        - emission_report
+        - forecast_parameter
+        - forecast_result
+        - forecast_model_evaluation
+        - forecast_model_registry
+        - forecast_confidence_interval
+        - energy_role
+        - energy_permission
+        - energy_role_permission
+        - energy_user_role
+      tables_write:
+        - energy_device
+        - device_alarm_rule
+        - device_maintenance_log
+        - energy_quota
+        - emission_factor_library
+        - emission_source
+        - emission_calculation_model
+        - emission_reduction_target
+        - forecast_parameter
+        - energy_role
+        - energy_permission
+        - energy_role_permission
+        - energy_user_role
+      tables_denied: []
+      dags_manage:
+        - device_status_monitoring
+        - energy_consumption_statistics
+        - carbon_emission_calculation
+        - energy_trend_forecast
+        - device_alert_routing
+      dags_view:
+        - device_status_monitoring
+        - energy_consumption_statistics
+        - carbon_emission_calculation
+        - energy_trend_forecast
+        - device_alert_routing
+      dashboards_view:
+        - device-monitoring
+        - energy-consumption-analysis
+        - carbon-emission-accounting
+        - energy-forecast
+      dashboards_denied: []
+
+  # --------------------------------------------------------------------------
+  # 角色 2：能源分析师（energy_analyst）
+  # 职责：能耗分析、能源平衡、成本分析、趋势预测、报告生成
+  # 可访问：用能分析域+趋势预测域+碳排放只读，4 个 Dashboard
+  # 不可访问：设备配置写权限、告警规则写权限、RBAC 表
+  # --------------------------------------------------------------------------
+  - name: energy_analyst
+    description: |
+      能源分析师：负责能耗分析、能源平衡、成本分析与趋势预测。
+      可读写用能分析域 7 张表与趋势预测域 5 张表，只读设备监测域，
+      只读碳排放核算结果，可访问用能分析与预测 Dashboard。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: energy-analysis
+      data_classification: confidential
+      max_session_count: "5"
+      session_timeout_seconds: "7200"
+    permissions_scope:
+      tables_read:
+        - energy_device
+        - device_realtime_status
+        - device_alarm_record
+        - device_health_score
+        - device_metric_history
+        - energy_consumption_detail
+        - energy_consumption_summary
+        - energy_dimension_compare
+        - energy_trend_data
+        - energy_quota
+        - energy_balance
+        - energy_cost_analysis
+        - emission_calculation_result
+        - emission_scope_classification
+        - emission_report
+        - forecast_parameter
+        - forecast_result
+        - forecast_model_evaluation
+        - forecast_model_registry
+        - forecast_confidence_interval
+      tables_write:
+        - energy_consumption_summary
+        - energy_dimension_compare
+        - energy_trend_data
+        - energy_balance
+        - energy_cost_analysis
+        - forecast_parameter
+        - forecast_result
+        - forecast_model_evaluation
+      tables_denied:
+        - device_alarm_rule
+        - energy_role
+        - energy_permission
+        - energy_role_permission
+        - energy_user_role
+      dags_manage:
+        - energy_consumption_statistics
+        - energy_trend_forecast
+      dags_view:
+        - device_status_monitoring
+        - carbon_emission_calculation
+      dashboards_view:
+        - energy-consumption-analysis
+        - energy-forecast
+        - device-monitoring
+        - carbon-emission-accounting
+      dashboards_denied: []
+
+  # --------------------------------------------------------------------------
+  # 角色 3：设备运维员（device_operator）
+  # 职责：设备运维、告警确认、维护记录、设备状态监控
+  # 可访问：设备监测域 8 张表，设备监测 Dashboard
+  # 不可访问：用能分析写权限、碳排放表、预测表、RBAC 表
+  # --------------------------------------------------------------------------
+  - name: device_operator
+    description: |
+      设备运维员：负责能源设备运维、告警确认、维护记录与设备状态监控。
+      可读写设备监测域 8 张表，可确认告警、记录维护，可访问设备监测 Dashboard。
+      不可访问用能分析写权限、碳排放表、预测表与 RBAC 表。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: device-operations
+      data_classification: internal
+      max_session_count: "10"
+      session_timeout_seconds: "14400"
+    permissions_scope:
+      tables_read:
+        - energy_device
+        - device_realtime_status
+        - device_alarm_record
+        - device_health_score
+        - device_metric_history
+        - device_alarm_rule
+        - device_maintenance_log
+        - device_status_change
+        - energy_consumption_detail
+      tables_write:
+        - device_alarm_record
+        - device_maintenance_log
+        - device_status_change
+      tables_denied:
+        - energy_consumption_summary
+        - energy_dimension_compare
+        - energy_balance
+        - energy_cost_analysis
+        - emission_factor_library
+        - emission_source
+        - emission_calculation_result
+        - emission_calculation_model
+        - emission_scope_classification
+        - emission_reduction_target
+        - emission_report
+        - forecast_parameter
+        - forecast_result
+        - forecast_model_evaluation
+        - forecast_model_registry
+        - forecast_confidence_interval
+        - energy_role
+        - energy_permission
+        - energy_role_permission
+        - energy_user_role
+      dags_manage:
+        - device_alert_routing
+      dags_view:
+        - device_status_monitoring
+      dashboards_view:
+        - device-monitoring
+      dashboards_denied:
+        - carbon-emission-accounting
+        - energy-forecast
+
+  # --------------------------------------------------------------------------
+  # 角色 4：碳排放核算员（carbon_accountant）
+  # 职责：碳排放核算、排放因子管理、减排目标、核算报告
+  # 可访问：碳排放核算域 7 张表+排放因子库，碳排放看板
+  # 不可访问：设备配置写权限、用能分析写权限、预测表、RBAC 表
+  # --------------------------------------------------------------------------
+  - name: carbon_accountant
+    description: |
+      碳排放核算员：负责碳排放核算、排放因子管理、减排目标与核算报告。
+      可读写碳排放核算域 7 张表，只读用能分析汇总（作为活动数据源），
+      可访问碳排放看板。不可访问设备配置写权限、预测表与 RBAC 表。
+    composite: false
+    composite_role_ids: []
+    attributes:
+      department: carbon-management
+      data_classification: confidential
+      max_session_count: "5"
+      session_timeout_seconds: "7200"
+    permissions_scope:
+      tables_read:
+        - energy_consumption_summary
+        - energy_consumption_detail
+        - emission_factor_library
+        - emission_source
+        - emission_calculation_result
+        - emission_calculation_model
+        - emission_scope_classification
+        - emission_reduction_target
+        - emission_report
+      tables_write:
+        - emission_factor_library
+        - emission_source
+        - emission_calculation_result
+        - emission_calculation_model
+        - emission_scope_classification
+        - emission_reduction_target
+        - emission_report
+      tables_denied:
+        - energy_device
+        - device_realtime_status
+        - device_alarm_record
+        - device_health_score
+        - device_metric_history
+        - device_alarm_rule
+        - device_maintenance_log
+        - device_status_change
+        - forecast_parameter
+        - forecast_result
+        - forecast_model_evaluation
+        - forecast_model_registry
+        - forecast_confidence_interval
+        - energy_role
+        - energy_permission
+        - energy_role_permission
+        - energy_user_role
+      dags_manage:
+        - carbon_emission_calculation
+      dags_view:
+        - energy_consumption_statistics
+      dashboards_view:
+        - carbon-emission-accounting
+        - energy-consumption-analysis
+      dashboards_denied:
+        - device-monitoring
+        - energy-forecast

@@ -6,6 +6,7 @@
     - SklearnMLBackend: 调用 scikit-learn 进行真实训练/预测
     - SparkMLBackend:   （可选）调用 Spark MLlib 分布式训练
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -45,9 +46,7 @@ class MLBackend(ABC):
     # ---------- 预测 ----------
 
     @abstractmethod
-    async def predict(
-        self, modelId: str, data: dict
-    ) -> PredictionResult:
+    async def predict(self, modelId: str, data: dict) -> PredictionResult:
         """使用指定模型进行预测.
 
         Args:
@@ -62,9 +61,7 @@ class MLBackend(ABC):
     # ---------- 评估 ----------
 
     @abstractmethod
-    async def evaluate(
-        self, modelId: str, evalConfig: EvalConfig
-    ) -> EvalResult:
+    async def evaluate(self, modelId: str, evalConfig: EvalConfig) -> EvalResult:
         """评估模型.
 
         Args:

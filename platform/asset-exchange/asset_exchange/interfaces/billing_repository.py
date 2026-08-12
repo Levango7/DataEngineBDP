@@ -1,8 +1,8 @@
 """计费仓储抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from asset_exchange.models.billing import BillingRecord
 
@@ -30,9 +30,7 @@ class BillingRepository(ABC):
         ...
 
     @abstractmethod
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[BillingRecord]:
+    async def list_by_subscription(self, subscription_id: str) -> list[BillingRecord]:
         """列出某订阅的所有计费记录."""
         ...
 

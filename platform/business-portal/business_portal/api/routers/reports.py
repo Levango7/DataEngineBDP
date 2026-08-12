@@ -1,8 +1,9 @@
 """业务线 BI 报表路由."""
+
 from __future__ import annotations
 
-import uuid
 from typing import Any
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -22,6 +23,7 @@ router = APIRouter(prefix="/business-lines", tags=["reports"])
 
 
 # ---------- 请求模型 ----------
+
 
 class CreateReportRequest(BaseModel):
     """创建报表请求."""
@@ -46,6 +48,7 @@ class UpdateReportRequest(BaseModel):
 
 # ---------- 路由 ----------
 
+
 @router.get(
     "/{bl_id}/reports",
     response_model=list[Report],
@@ -53,9 +56,7 @@ class UpdateReportRequest(BaseModel):
 )
 async def list_reports(
     bl_id: str,
-    status_: ReportStatus | None = Query(
-        default=None, alias="status", description="按状态过滤"
-    ),
+    status_: ReportStatus | None = Query(default=None, alias="status", description="按状态过滤"),
     type: ReportType | None = Query(default=None, description="按类型过滤"),
     name: str | None = Query(default=None, description="名称模糊匹配"),
     creatorId: str | None = Query(default=None, description="按创建人过滤"),
