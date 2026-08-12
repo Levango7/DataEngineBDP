@@ -3,12 +3,13 @@
 对应详细设计 §5 网关拦截：
     APISIX 插件链依次做认证 → 租户隔离 → 限流 → 熔断 → 计量 → 转发。
 """
+
 from __future__ import annotations
 
-import threading
-import time
 from collections import defaultdict, deque
 from dataclasses import dataclass
+import threading
+import time
 
 from openapi_catalog.repositories import (
     QuotaExceededError,
@@ -20,9 +21,9 @@ from openapi_catalog.repositories import (
 class _TokenBucket:
     """令牌桶."""
 
-    capacity: float        # 桶容量（最大突发）
-    rate: float            # 令牌生成速率（个/秒）
-    tokens: float = 0.0    # 当前令牌数
+    capacity: float  # 桶容量（最大突发）
+    rate: float  # 令牌生成速率（个/秒）
+    tokens: float = 0.0  # 当前令牌数
     lastRefill: float = 0.0  # 上次补充时间
 
     def __post_init__(self) -> None:
@@ -56,6 +57,8 @@ class RateLimiter:
         self._apiBuckets: dict[str, _TokenBucket] = {}
         # subscriptionId -> 滑动窗口（最近 60s 的调用时间戳）
         self._subWindows: dict[str, deque[float]] = defaultdict(deque)
+        # subscriptionId -> QPS 令牌桶（按秒限流）
+        self._subBuckets: dict[str, _TokenBucket] = {}
         # 配置缓存
         self._apiLimits: dict[str, int] = {}
         self._subQuotas: dict[str, int] = {}
@@ -69,12 +72,25 @@ class RateLimiter:
                 rate=float(rate_per_second),
             )
 
-    def configure_subscription(
-        self, subscription_id: str, quota_per_minute: int
-    ) -> None:
+    def configure_subscription(self, subscription_id: str, quota_per_minute: int) -> None:
         """配置订阅配额（次/分钟）."""
         with self._lock:
             self._subQuotas[subscription_id] = quota_per_minute
+
+    def configure_subscription_rate(self, subscription_id: str, qps: int, burst: int = 0) -> None:
+        """配置订阅级 QPS 限流（次/秒，令牌桶）.
+
+        Args:
+            subscription_id: 订阅 ID.
+            qps: 每秒请求数.
+            burst: 突发容量，0 表示与 qps 相同.
+        """
+        with self._lock:
+            capacity = float(burst) if burst > 0 else float(qps)
+            self._subBuckets[subscription_id] = _TokenBucket(
+                capacity=capacity,
+                rate=float(qps),
+            )
 
     def check_api(self, api_id: str) -> None:
         """检查 API 限流.
@@ -92,12 +108,19 @@ class RateLimiter:
                 raise RateLimitExceededError(api_id, limit)
 
     def check_subscription(self, subscription_id: str) -> None:
-        """检查订阅配额.
+        """检查订阅配额与 QPS 限流.
 
         Raises:
+            RateLimitExceededError: 超出 QPS 限流.
             QuotaExceededError: 超出配额.
         """
         with self._lock:
+            # 1. QPS 令牌桶检查（按秒限流）
+            bucket = self._subBuckets.get(subscription_id)
+            if bucket is not None and not bucket.consume(1):
+                raise RateLimitExceededError(subscription_id, int(bucket.rate))
+
+            # 2. 滑动窗口配额检查（按分钟限流）
             quota = self._subQuotas.get(subscription_id)
             if quota is None:
                 return
@@ -116,5 +139,6 @@ class RateLimiter:
         with self._lock:
             self._apiBuckets.clear()
             self._subWindows.clear()
+            self._subBuckets.clear()
             self._apiLimits.clear()
             self._subQuotas.clear()

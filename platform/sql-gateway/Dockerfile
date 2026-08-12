@@ -26,8 +26,8 @@ RUN --mount=type=cache,target=/root/.m2/repository \
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
 
 LABEL org.opencontainers.image.title="sql-gateway" \
-      org.opencontainers.image.description="数擎大数据平台 - 统一SQL网关" \
-      org.opencontainers.image.source="https://github.com/shuqing-bigdata/ShuqingBigDataPlatform"
+      org.opencontainers.image.description="数据引擎大数据平台 - 统一SQL网关" \
+      org.opencontainers.image.source="https://github.com/shuqing-bigdata/DataEngineBDP"
 
 # 创建非 root 用户
 RUN groupadd --system --gid 1001 appgroup \

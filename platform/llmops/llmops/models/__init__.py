@@ -5,36 +5,37 @@
     POST /api/llmops/v1/fine-tunes  { baseModel, dataset, epochs, gpu, lr }
     POST /api/llmops/v1/endpoints   { model, replica, gpu }
 """
+
 from llmops.models.base import (
-    TimestampMixin,
-    ResourceType,
-    ModelType,
-    ModelStatus,
-    TrainingStatus,
     DeploymentStatus,
-)
-from llmops.models.model import (
-    ModelInfo,
-    ModelVersion,
-    ModelFilter,
-    ModelParams,
-)
-from llmops.models.training import (
-    TrainingConfig,
-    TrainingJob,
-    TrainingJobStatus,
-    EvalMetrics,
+    ModelStatus,
+    ModelType,
+    ResourceType,
+    TimestampMixin,
+    TrainingStatus,
 )
 from llmops.models.deployment import (
     DeployConfig,
     Deployment,
     DeploymentStatusInfo,
 )
+from llmops.models.model import (
+    ModelFilter,
+    ModelInfo,
+    ModelParams,
+    ModelVersion,
+)
 from llmops.models.monitor import (
-    ModelMetrics,
-    LatencyStats,
-    ThroughputStats,
     ErrorStats,
+    LatencyStats,
+    ModelMetrics,
+    ThroughputStats,
+)
+from llmops.models.training import (
+    EvalMetrics,
+    TrainingConfig,
+    TrainingJob,
+    TrainingJobStatus,
 )
 
 __all__ = [

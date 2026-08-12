@@ -1,0 +1,216 @@
+{
+  "projectName": "finance_aml",
+  "processDefinition": {
+    "name": "transaction_aml_check",
+    "description": "交易反洗钱检查DAG：扫描transaction_monitor监控命中记录，匹配AML规则，写入aml_alert与risk_alert告警表",
+    "tenantCode": "default",
+    "globalParams": "[{\"prop\":\"biz_date\",\"direct\":\"IN\",\"type\":\"DATETIME\",\"value\":\"$biz_date\"},{\"prop\":\"db_finance\",\"direct\":\"IN\",\"type\":\"VARCHAR\",\"value\":\"db_finance\"}]",
+    "timeout": 3600,
+    "releaseState": "ONLINE",
+    "executionType": "PARALLEL",
+    "schedule": {
+      "startTime": "2024-01-01 00:00:00",
+      "endTime": "2099-12-31 23:59:59",
+      "crontab": "0,30 * * * * ?",
+      "timezoneId": "Asia/Shanghai",
+      "failureStrategy": "CONTINUE",
+      "warningType": "FAILURE",
+      "warningGroupId": 4,
+      "workerGroup": "default"
+    }
+  },
+  "processTaskRelationList": [
+    {
+      "preTaskCode": 0,
+      "preTaskVersion": 0,
+      "postTaskCode": 4001,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 4001,
+      "preTaskVersion": 1,
+      "postTaskCode": 4002,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 4002,
+      "preTaskVersion": 1,
+      "postTaskCode": 4003,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 4003,
+      "preTaskVersion": 1,
+      "postTaskCode": 4004,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    },
+    {
+      "preTaskCode": 4004,
+      "preTaskVersion": 1,
+      "postTaskCode": 4005,
+      "postTaskVersion": 1,
+      "name": "",
+      "conditionType": "NONE",
+      "conditionParams": "{}"
+    }
+  ],
+  "taskDefinitionList": [
+    {
+      "code": 4001,
+      "version": 1,
+      "name": "extract_transaction_monitor",
+      "description": "抽取近30分钟transaction_monitor命中记录到临时表tmp_aml_monitor_src",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_aml_monitor_src SELECT monitor_id, transaction_id, customer_id, rule_id, hit_score, checked_at FROM ${db_finance}.transaction_monitor WHERE checked_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND alert_status = 'HIT';",
+        "sqlFile": "../sql/transaction_aml_check/01_extract_transaction_monitor.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 120,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 900,
+      "delayTime": 0
+    },
+    {
+      "code": 4002,
+      "version": 1,
+      "name": "match_aml_rules",
+      "description": "匹配AML规则：大额交易/频繁交易/拆分交易/跨境交易等，关联transaction_detail获取明细",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.tmp_aml_alert_candidate SELECT m.monitor_id, m.transaction_id, m.customer_id, m.rule_id, m.hit_score, t.amount, t.currency, t.counterparty_account, t.counterparty_bank, CASE WHEN t.amount >= 50000 THEN 'LARGE_AMOUNT' WHEN t.cross_border_flag = 'Y' THEN 'CROSS_BORDER' ELSE 'SUSPICIOUS_PATTERN' END AS aml_rule_type, NOW() AS detected_at FROM ${db_finance}.tmp_aml_monitor_src m JOIN ${db_finance}.transaction t ON m.transaction_id = t.transaction_id WHERE t.amount >= 20000 OR t.cross_border_flag = 'Y';",
+        "sqlFile": "../sql/transaction_aml_check/02_match_aml_rules.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 120,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 1200,
+      "delayTime": 0
+    },
+    {
+      "code": 4003,
+      "version": 1,
+      "name": "load_aml_alert",
+      "description": "将AML告警写入aml_alert表，含可疑交易报告STR信息",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.aml_alert (alert_id, transaction_id, customer_id, alert_type, risk_level, alert_status, detected_at, report_deadline, str_flag, created_at, updated_at, created_by, updated_by) SELECT CONCAT('AML', DATE_FORMAT(NOW(), '%Y%m%d%H%i%s'), LPAD(ROW_NUMBER() OVER(), 6, '0')) AS alert_id, transaction_id, customer_id, aml_rule_type AS alert_type, CASE WHEN hit_score >= 80 THEN 'HIGH' WHEN hit_score >= 50 THEN 'MEDIUM' ELSE 'LOW' END AS risk_level, 'OPEN' AS alert_status, detected_at, DATE_ADD(detected_at, INTERVAL 3 DAY) AS report_deadline, CASE WHEN hit_score >= 80 THEN 1 ELSE 0 END AS str_flag, NOW(), NOW(), 'dag_transaction_aml_check', 'dag_transaction_aml_check' FROM ${db_finance}.tmp_aml_alert_candidate;",
+        "sqlFile": "../sql/transaction_aml_check/03_load_aml_alert.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 120,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 1200,
+      "delayTime": 0
+    },
+    {
+      "code": 4004,
+      "version": 1,
+      "name": "load_risk_alert",
+      "description": "同步AML告警到risk_alert表，触发风控评估流程",
+      "taskType": "SQL",
+      "taskParams": {
+        "type": "DORIS",
+        "datasource": 1,
+        "sql": "INSERT INTO ${db_finance}.risk_alert (alert_id, eval_id, rule_id, alert_type, alert_level, alert_status, alert_at, handle_deadline, created_at, updated_at, created_by, updated_by) SELECT CONCAT('RKA', alert_id) AS alert_id, NULL AS eval_id, rule_id, 'AML' AS alert_type, risk_level AS alert_level, 'OPEN' AS alert_status, detected_at AS alert_at, DATE_ADD(detected_at, INTERVAL 1 DAY) AS handle_deadline, NOW(), NOW(), 'dag_transaction_aml_check', 'dag_transaction_aml_check' FROM ${db_finance}.aml_alert WHERE detected_at >= DATE_SUB(NOW(), INTERVAL 30 MINUTE) AND created_by = 'dag_transaction_aml_check';",
+        "sqlFile": "../sql/transaction_aml_check/04_load_risk_alert.sql",
+        "preStatements": [],
+        "postStatements": [],
+        "sendEmail": false,
+        "displayResult": false
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 3,
+      "failRetryInterval": 120,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 1200,
+      "delayTime": 0
+    },
+    {
+      "code": 4005,
+      "version": 1,
+      "name": "notify_aml_alert",
+      "description": "通知AML告警生成，高风险告警实时飞书告警",
+      "taskType": "SHELL",
+      "taskParams": {
+        "resourceList": [],
+        "localParams": [],
+        "rawScript": "echo \"[transaction_aml_check] biz_date=${biz_date} done at $(date '+%Y-%m-%d %H:%M:%S')\" >> /var/log/finance/dag_transaction_aml_check.log",
+        "sendEmail": true,
+        "emailConfig": {
+          "to": "aml-ops@finance.com,risk-ops@finance.com",
+          "subject": "[DAG-AML告警]transaction_aml_check-${biz_date}",
+          "content": "交易反洗钱检查已完成，业务日期：${biz_date}，已生成aml_alert与risk_alert告警，请及时处理高风险告警。"
+        }
+      },
+      "flag": "YES",
+      "taskPriority": "HIGH",
+      "workerGroup": "default",
+      "environmentCode": 0,
+      "failRetryTimes": 1,
+      "failRetryInterval": 60,
+      "timeoutFlag": "OPEN",
+      "timeoutNotifyStrategy": "WARN",
+      "timeout": 300,
+      "delayTime": 0
+    }
+  ],
+  "alertGroups": [
+    {
+      "id": 4,
+      "groupName": "finance-aml-alert",
+      "groupType": "FEISHU",
+      "feishuWebhook": "https://open.feishu.cn/open-apis/bot/v2/hook/transaction-aml-check",
+      "alertType": "FAILURE"
+    }
+  ]
+}

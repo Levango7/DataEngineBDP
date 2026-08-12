@@ -322,21 +322,22 @@ interface ComponentStatus {
   meta: string
 }
 
-/** 大数据组件状态（mock 数据，实际可由后端接口返回） */
-const components = ref<ComponentStatus[]>([
-  { name: 'Spark', status: 'healthy', meta: '3.3.2 · 12 Executor' },
-  { name: 'Flink', status: 'healthy', meta: '1.18.1 · 4 TaskManager' },
-  { name: 'Trino', status: 'healthy', meta: '425 · 8 Worker' },
-  { name: 'Doris', status: 'warning', meta: '2.0.2 · BE 磁盘 85%' },
-  { name: 'Kafka', status: 'healthy', meta: '3.6.0 · 5 Broker' },
-  { name: 'HDFS', status: 'healthy', meta: '3.3.4 · 6 DataNode' },
-  { name: 'IoTDB', status: 'healthy', meta: '1.3.2 · 2 节点' },
-  { name: 'DolphinScheduler', status: 'healthy', meta: '3.2.0 · 6 Worker' },
-  { name: 'Redis', status: 'healthy', meta: '7.2 · 主从' },
-  { name: 'PostgreSQL', status: 'healthy', meta: '15.4 · 主备' },
-  { name: 'MinIO', status: 'warning', meta: '4 节点 · 容量 78%' },
-  { name: 'ElasticSearch', status: 'error', meta: '7.17 · 1 节点离线' }
-])
+/** 大数据组件状态 */
+const components = ref<ComponentStatus[]>([])
+const componentsLoading = ref(false)
+
+/** 拉取大数据组件状态 */
+async function loadComponents() {
+  componentsLoading.value = true
+  try {
+    components.value = await clusterApi.listComponentStatuses()
+  } catch {
+    // 组件状态加载失败不阻塞页面，保留空列表
+    components.value = []
+  } finally {
+    componentsLoading.value = false
+  }
+}
 
 /** 组件状态 → 中文 */
 function compStatusLabel(status: ComponentStatus['status']): string {
@@ -385,6 +386,7 @@ function usageColor(percentage: number): string {
 onMounted(() => {
   loadOverview()
   loadNodes()
+  loadComponents()
   window.addEventListener('resize', handleResize)
 })
 

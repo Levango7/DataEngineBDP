@@ -1,0 +1,44 @@
+{{- if and .Values.serviceAccount.create .Values.serviceAccount.rbacBind -}}
+# Role + RoleBinding - 导入 Job 所需的最小权限（T019）
+# 用途：允许导入 Job 读取 ConfigMap、创建 Pod 日志等
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "finance-template.fullname" . }}-role
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.labels" . | nindent 4 }}
+    {{- include "finance-template.templateLabels" . | nindent 4 }}
+rules:
+  # 读取模板资产 ConfigMap
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames:
+      - {{ include "finance-template.configmapName" . | quote }}
+    verbs: ["get", "list", "watch"]
+  # 读取自身 Job 状态
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "watch"]
+  # 创建 Pod 日志（用于排查）
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "finance-template.fullname" . }}-binding
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.labels" . | nindent 4 }}
+    {{- include "finance-template.templateLabels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "finance-template.serviceAccountName" . }}
+    namespace: {{ include "finance-template.namespace" . }}
+roleRef:
+  kind: Role
+  name: {{ include "finance-template.fullname" . }}-role
+  apiGroup: rbac.authorization.k8s.io
+{{- end -}}

@@ -1,4 +1,5 @@
 """服务层测试."""
+
 from __future__ import annotations
 
 import uuid
@@ -36,13 +37,9 @@ async def test_model_service_delete_deployed_raises(registry):
     m = _make_base()
     await registry.modelService.register_model(m)
     # 添加版本
-    await registry.store.add_model_version(
-        m.id, ModelVersion(version=1, modelId=m.id)
-    )
+    await registry.store.add_model_version(m.id, ModelVersion(version=1, modelId=m.id))
     # 部署
-    await registry.deploymentService.deploy_model(
-        m.id, DeployConfig(modelId=m.id, modelVersion=1)
-    )
+    await registry.deploymentService.deploy_model(m.id, DeployConfig(modelId=m.id, modelVersion=1))
     with pytest.raises(ValueError, match="已部署"):
         await registry.modelService.delete_model(m.id)
 
@@ -119,9 +116,7 @@ async def test_training_service_full_flow(registry):
 async def test_deployment_service_requires_model(registry):
     """部署不存在的模型应失败."""
     with pytest.raises(ValueError, match="模型不存在"):
-        await registry.deploymentService.deploy_model(
-            "no-such", DeployConfig(modelId="no-such")
-        )
+        await registry.deploymentService.deploy_model("no-such", DeployConfig(modelId="no-such"))
 
 
 @pytest.mark.asyncio
@@ -130,9 +125,7 @@ async def test_deployment_service_requires_version(registry):
     m = _make_base()
     await registry.modelService.register_model(m)
     with pytest.raises(ValueError, match="没有可用版本"):
-        await registry.deploymentService.deploy_model(
-            m.id, DeployConfig(modelId=m.id)
-        )
+        await registry.deploymentService.deploy_model(m.id, DeployConfig(modelId=m.id))
 
 
 @pytest.mark.asyncio
@@ -140,13 +133,9 @@ async def test_deployment_service_flow(registry):
     """完整部署流程."""
     m = _make_base()
     await registry.modelService.register_model(m)
-    await registry.store.add_model_version(
-        m.id, ModelVersion(version=1, modelId=m.id)
-    )
+    await registry.store.add_model_version(m.id, ModelVersion(version=1, modelId=m.id))
 
-    dep = await registry.deploymentService.deploy_model(
-        m.id, DeployConfig(modelId=m.id, replica=2)
-    )
+    dep = await registry.deploymentService.deploy_model(m.id, DeployConfig(modelId=m.id, replica=2))
     assert dep.status.status == "creating"
 
     # 模型状态应更新为 DEPLOYED
@@ -164,12 +153,8 @@ async def test_monitor_service(registry):
     """监控服务指标获取."""
     m = _make_base()
     await registry.modelService.register_model(m)
-    await registry.store.add_model_version(
-        m.id, ModelVersion(version=1, modelId=m.id)
-    )
-    dep = await registry.deploymentService.deploy_model(
-        m.id, DeployConfig(modelId=m.id, modelVersion=1)
-    )
+    await registry.store.add_model_version(m.id, ModelVersion(version=1, modelId=m.id))
+    dep = await registry.deploymentService.deploy_model(m.id, DeployConfig(modelId=m.id, modelVersion=1))
 
     metrics = await registry.monitorService.get_metrics(dep.id)
     assert metrics.deploymentId == dep.id

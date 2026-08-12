@@ -1,0 +1,35 @@
+﻿# 数据引擎大数据平台性能压测 Python 依赖
+#
+# 安装：pip install -r requirements.txt
+# 推荐 Python 版本：3.11+（使用 asyncio + httpx 异步压测）
+#
+# 本文件在 tests/integration/requirements.txt 基础上追加性能压测专用依赖。
+
+# ---- 测试框架（继承自集成测试）----
+pytest>=8.0
+pytest-html>=4.1
+pytest-xdist>=3.5
+pytest-asyncio>=0.23
+
+# ---- HTTP 客户端 ----
+# requests：同步 HTTP 调用（健康检查/简单验证）
+requests>=2.31
+# httpx：异步 HTTP 客户端，支撑高并发压测（替代 locust 的轻量方案）
+httpx>=0.27
+
+# ---- 压测框架（可选，自研异步压测已足够）----
+# locust：分布式压测框架，用于超大规模（>1000 并发）场景
+locust>=2.20
+
+# ---- 性能指标采集 ----
+# psutil：CPU/内存/磁盘/网络资源利用率采集
+psutil>=5.9
+
+# ---- 数据处理与报告 ----
+# PyYAML：解析 tuning_params.yaml 调优参数集
+PyYAML>=6.0
+# numpy：延迟分位数（P95/P99）计算
+numpy>=1.26
+
+# ---- JWT 鉴权 ----
+PyJWT>=2.8

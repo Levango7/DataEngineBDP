@@ -1,4 +1,5 @@
 """特征组与特征读写路由."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -23,15 +24,9 @@ class CreateFeatureGroupRequest(BaseModel):
 
     name: str = Field(..., description="特征组名")
     description: str | None = Field(default=None, description="描述")
-    entityKey: str = Field(
-        default="entity_id", description="实体键列名"
-    )
-    features: list[FeatureSchema] = Field(
-        default_factory=list, description="特征 schema 列表"
-    )
-    tags: dict[str, str] = Field(
-        default_factory=dict, description="标签"
-    )
+    entityKey: str = Field(default="entity_id", description="实体键列名")
+    features: list[FeatureSchema] = Field(default_factory=list, description="特征 schema 列表")
+    tags: dict[str, str] = Field(default_factory=dict, description="标签")
 
 
 class PutFeaturesRequest(BaseModel):
@@ -60,9 +55,7 @@ async def createFeatureGroup(
         )
         return await registry.featureService.createFeatureGroup(config)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.get(
@@ -88,9 +81,7 @@ async def getFeatureGroup(
     try:
         return await registry.featureService.getFeatureGroup(groupName)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.get(
@@ -103,18 +94,14 @@ async def getFeatures(
     registry: ServiceRegistry = Depends(getRegistry),
 ):
     try:
-        features = await registry.featureService.getFeatures(
-            groupName, entityId
-        )
+        features = await registry.featureService.getFeatures(groupName, entityId)
         return {
             "groupName": groupName,
             "entityId": entityId,
             "features": features,
         }
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.put(
@@ -129,13 +116,9 @@ async def putFeatures(
     registry: ServiceRegistry = Depends(getRegistry),
 ):
     try:
-        await registry.featureService.putFeatures(
-            groupName, entityId, body.features
-        )
+        await registry.featureService.putFeatures(groupName, entityId, body.features)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))
 
 
 @router.delete(
@@ -149,10 +132,6 @@ async def deleteFeatures(
     registry: ServiceRegistry = Depends(getRegistry),
 ):
     try:
-        await registry.featureService.deleteFeatures(
-            groupName, entityId
-        )
+        await registry.featureService.deleteFeatures(groupName, entityId)
     except MlPlatformError as e:
-        raise HTTPException(
-            status_code=statusForError(e), detail=str(e)
-        )
+        raise HTTPException(status_code=statusForError(e), detail=str(e))

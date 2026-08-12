@@ -1,0 +1,56 @@
+# prod 环境 patch
+# ============================================================================
+# prod：3 副本 + 高资源 + WARN 日志 + 优雅停机 + 严格安全
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: encaps-layer
+  annotations:
+    # 通知配置
+    notifications.argoproj.io/subscribe.on-sync-failed.slack: prod-alerts
+spec:
+  replicas: 3
+  # 生产滚动更新策略（渐进式）
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    spec:
+      # 优雅停机（给流量排空时间）
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: encaps-layer
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2
+              memory: 2Gi
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: prod
+            - name: LOG_LEVEL
+              value: WARN
+            - name: K8S_MOCK_ENABLED
+              value: "false"
+          # 生产就绪探针更严格
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            failureThreshold: 2
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5

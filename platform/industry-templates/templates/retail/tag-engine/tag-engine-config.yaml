@@ -1,0 +1,299 @@
+# 零售行业模板 - 标签引擎接入配置
+# ============================================================================
+# 模块：T038 零售行业模板 - 标签引擎接入
+# 用途：复用 Phase 1 platform/tag-engine（T000a Mock 已清零），配置会员/商品标签计算
+# 引擎：platform/tag-engine（Spring Boot 3.2，端口 8080）
+# 字符集：UTF-8，YAML 2 空格缩进
+# ============================================================================
+
+# 标签引擎连接配置
+tag_engine:
+  # 引擎服务地址（K8s 内通过 Service 访问）
+  host: tag-engine.tag-engine.svc.cluster.local
+  port: 8080
+  # API 路径前缀
+  api_base: /api/v1
+  # 鉴权 token（通过 Secret 引用）
+  auth_token_secret:
+    name: tag-engine-credentials
+    key: admin-token
+  # 存储类型：mock（内存）/ doris（真实 Doris 集群）
+  store_type: doris
+  # Doris 连接（仅当 store_type=doris 时生效）
+  doris:
+    jdbc_url: jdbc:mysql://doris-fe.doris.svc.cluster.local:9030
+    username: root
+    password_secret:
+      name: doris-credentials
+      key: password
+    database: db_retail
+    # 会员标签宽表
+    member_wide_table: dws_member_tag_wide
+    # 商品标签宽表
+    product_wide_table: dws_product_tag_wide
+    select_limit: 100000
+    query_timeout_ms: 5000
+
+# ============================================================================
+# 会员标签定义
+# ============================================================================
+member_tags:
+  # 目标表
+  target_table: member_tag
+  # 标签计算周期
+  schedule: "0 2 * * ?"  # 每日凌晨 02:00
+  # 标签列表
+  tags:
+    # ----- RFM 分群标签 -----
+    - code: RFM_CHAMPION
+      name: RFM 冠军会员
+      category: RFM
+      source: MODEL
+      description: 最近购买 + 高频 + 高金额的冠军会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_rfm WHERE rfm_segment = 'CHAMPION' AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 7
+
+    - code: RFM_LOYAL
+      name: RFM 忠诚会员
+      category: RFM
+      source: MODEL
+      description: 高频 + 高金额的忠诚会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_rfm WHERE rfm_segment = 'LOYAL' AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 7
+
+    - code: RFM_LOST
+      name: RFM 流失会员
+      category: RFM
+      source: MODEL
+      description: 久未购买 + 低频 + 低金额的流失会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_rfm WHERE rfm_segment IN ('LOST', 'LOST_CHEAP') AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 7
+
+    # ----- 流失风险标签 -----
+    - code: CHURN_HIGH_RISK
+      name: 高流失风险
+      category: CHURN
+      source: MODEL
+      description: 流失概率 > 0.7 的高风险会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_churn_prediction WHERE risk_level = 'HIGH' AND predicted_at >= '${biz_date} 00:00:00'"
+      confidence: 0.9
+      expire_days: 1
+
+    - code: CHURN_MEDIUM_RISK
+      name: 中流失风险
+      category: CHURN
+      source: MODEL
+      description: 流失概率 0.3~0.7 的中风险会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_churn_prediction WHERE risk_level = 'MEDIUM' AND predicted_at >= '${biz_date} 00:00:00'"
+      confidence: 0.7
+      expire_days: 1
+
+    # ----- LTV 分层标签 -----
+    - code: LTV_VIP
+      name: LTV 超高层
+      category: LTV
+      source: MODEL
+      description: 总 LTV > 10000 的超高层会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_ltv WHERE ltv_segment = 'VIP' AND computed_at >= '${biz_date} 00:00:00'"
+      confidence: 0.85
+      expire_days: 7
+
+    - code: LTV_HIGH
+      name: LTV 高层
+      category: LTV
+      source: MODEL
+      description: 总 LTV 5000~10000 的高层会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_ltv WHERE ltv_segment = 'HIGH' AND computed_at >= '${biz_date} 00:00:00'"
+      confidence: 0.85
+      expire_days: 7
+
+    # ----- 行为标签 -----
+    - code: PRICE_SENSITIVE
+      name: 价格敏感型
+      category: BEHAVIOR
+      source: RULE
+      description: 价格敏感度 > 0.7 的会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_behavior_profile WHERE price_sensitivity > 0.7 AND computed_at >= '${biz_date} 00:00:00'"
+      confidence: 1.0
+      expire_days: 7
+
+    - code: HIGH_ACTIVE
+      name: 高活跃会员
+      category: BEHAVIOR
+      source: RULE
+      description: 活跃度评分 > 0.8 的会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_behavior_profile WHERE activity_score > 0.8 AND computed_at >= '${biz_date} 00:00:00'"
+      confidence: 1.0
+      expire_days: 1
+
+    # ----- 偏好标签 -----
+    - code: CATEGORY_FASHION_LOVER
+      name: 服饰爱好者
+      category: PREFERENCE
+      source: RULE
+      description: 最常购买类目为服饰的会员
+      rule:
+        type: SQL
+        expression: "SELECT member_id FROM member_behavior_profile WHERE favorite_category IN ('服饰', '男装', '女装') AND computed_at >= '${biz_date} 00:00:00'"
+      confidence: 1.0
+      expire_days: 30
+
+# ============================================================================
+# 商品标签定义
+# ============================================================================
+product_tags:
+  # 目标表
+  target_table: product_tag
+  # 标签计算周期
+  schedule: "0 7 * * ?"  # 每日凌晨 07:00
+  # 标签列表
+  tags:
+    # ----- 销量标签 -----
+    - code: HOT_PRODUCT
+      name: 爆款商品
+      category: SALES
+      source: RULE
+      description: 销量 TOP 10% 的爆款商品
+      rule:
+        type: SQL
+        expression: "SELECT product_id FROM product_sales_stat WHERE is_hot_product = TRUE AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 1
+
+    - code: LONG_TAIL
+      name: 长尾商品
+      category: SALES
+      source: RULE
+      description: 销量后 30% 的长尾商品
+      rule:
+        type: SQL
+        expression: "SELECT product_id FROM product_sales_stat WHERE is_long_tail = TRUE AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 1
+
+    # ----- 评价标签 -----
+    - code: HIGH_RATED
+      name: 高评分商品
+      category: REVIEW
+      source: RULE
+      description: 平均评分 >= 4.5 的商品
+      rule:
+        type: SQL
+        expression: "SELECT product_id FROM product_review_profile WHERE avg_score >= 4.5 AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 7
+
+    - code: LOW_RATED
+      name: 低评分商品
+      category: REVIEW
+      source: RULE
+      description: 平均评分 < 3.0 的商品（需关注）
+      rule:
+        type: SQL
+        expression: "SELECT product_id FROM product_review_profile WHERE avg_score < 3.0 AND stat_date = '${biz_date}'"
+      confidence: 1.0
+      expire_days: 7
+
+    # ----- 生命周期标签 -----
+    - code: NEW_ARRIVAL
+      name: 新品
+      category: LIFECYCLE
+      source: RULE
+      description: 上架 30 天内的新品
+      rule:
+        type: SQL
+        expression: "SELECT product_id FROM product WHERE status = 'ON_SALE' AND DATEDIFF('${biz_date}', shelf_at) <= 30"
+      confidence: 1.0
+      expire_days: 1
+
+    - code: DISCONTINUED
+      name: 停售商品
+      category: LIFECYCLE
+      source: RULE
+      description: 已停售的商品
+      rule:
+        type: SQL
+        expression: "SELECT product_id FROM product WHERE status = 'DISCONTINUED'"
+      confidence: 1.0
+      expire_days: 30
+
+# ============================================================================
+# 圈选人群定义（用于营销活动定向）
+# ============================================================================
+audiences:
+  - code: VIP_MEMBERS
+    name: VIP 会员人群
+    description: LTV 超高层 + RFM 冠军会员
+    rule:
+      type: COMPOSITE
+      expression: "LTV_VIP OR RFM_CHAMPION"
+    expected_size: 1000
+
+  - code: CHURN_RISK_MEMBERS
+    name: 流失风险人群
+    description: 高流失风险 + 中流失风险会员
+    rule:
+      type: COMPOSITE
+      expression: "CHURN_HIGH_RISK OR CHURN_MEDIUM_RISK"
+    expected_size: 5000
+
+  - code: PRICE_SENSITIVE_BUYERS
+    name: 价格敏感型买家
+    description: 价格敏感度 > 0.7 的会员（适合折扣营销）
+    rule:
+      type: SIMPLE
+      expression: "PRICE_SENSITIVE"
+    expected_size: 8000
+
+  - code: FASHION_LOVERS
+    name: 服饰爱好者人群
+    description: 最常购买类目为服饰的会员
+    rule:
+      type: SIMPLE
+      expression: "CATEGORY_FASHION_LOVER"
+    expected_size: 12000
+
+# ============================================================================
+# 计算资源配置
+# ============================================================================
+compute:
+  # 批量计算并发度
+  batch_concurrency: 4
+  # 单次批计算最大标签数
+  batch_max_size: 100
+  # 计算超时（秒）
+  timeout_seconds: 3600
+  # 重试次数
+  retry_times: 3
+
+# ============================================================================
+# 监控配置
+# ============================================================================
+monitoring:
+  # 标签计算成功率告警阈值
+  success_rate_threshold: 0.95
+  # 标签覆盖率告警阈值
+  coverage_threshold: 0.8
+  # Prometheus 指标前缀
+  metrics_prefix: retail_tag_engine

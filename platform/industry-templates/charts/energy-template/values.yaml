@@ -1,0 +1,122 @@
+# Helm Chart values - 能源行业模板默认配置
+# ============================================================================
+# 用途：定义 helm install energy-template 时的可配置参数
+# ============================================================================
+
+# 模板元信息
+template:
+  name: energy-template
+  version: 1.0.0
+  # 是否启用模板自动导入（部署后自动调用平台 Job 导入 DDL/DAG/Dashboard/RBAC）
+  autoImport: true
+
+# 目标命名空间
+namespace: energy
+
+# 各组件目标地址（用于平台侧 Job 导入资产）
+target:
+  doris:
+    feHost: doris-fe.doris.svc.cluster.local
+    fePort: 9030
+    database: db_energy
+    user: root
+    # 密码通过 Secret 引用，不在此明文配置
+    passwordSecret:
+      name: doris-credentials
+      key: password
+  dolphinscheduler:
+    host: dolphinscheduler-api.dolphinscheduler.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials
+      key: token
+  superset:
+    host: superset.superset.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials
+      key: token
+  keycloak:
+    host: keycloak.keycloak.svc.cluster.local
+    port: 8080
+    realm: energy-template-realm
+    adminSecret:
+      name: keycloak-credentials
+      key: admin-password
+  iotdb:
+    host: iotdb.iotdb.svc.cluster.local
+    port: 6667
+    user: root
+    passwordSecret:
+      name: iotdb-credentials
+      key: password
+  flink:
+    jobmanagerHost: flink-jobmanager.flink.svc.cluster.local
+    jobmanagerPort: 8081
+  spark:
+    masterHost: spark-master.spark.svc.cluster.local
+    masterPort: 7077
+  mlflow:
+    host: mlflow.mlflow.svc.cluster.local
+    port: 5000
+
+# ConfigMap 配置（模板资产挂载方式）
+configMap:
+  # 是否创建 ConfigMap 挂载模板资产
+  create: true
+  # ConfigMap 名称前缀
+  namePrefix: energy-template
+  # 资产子目录挂载配置
+  assets:
+    ddl:
+      enabled: true
+      mountPath: /templates/ddl
+    dag:
+      enabled: true
+      mountPath: /templates/dag
+    dashboards:
+      enabled: true
+      mountPath: /templates/dashboards
+    iotdb:
+      enabled: true
+      mountPath: /templates/iotdb
+    rbac:
+      enabled: true
+      mountPath: /templates/rbac
+
+# 导入 Job 配置
+importJob:
+  # 是否创建导入 Job
+  enabled: true
+  # 导入 Job 镜像（平台侧提供的模板导入器）
+  image:
+    repository: shuqing/template-importer
+    tag: "5.3.0"
+    pullPolicy: IfNotPresent
+  # Job 资源配置
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  # Job 重试次数
+  backoffLimit: 3
+  # Job 超时（秒）
+  activeDeadlineSeconds: 1800
+
+# RBAC 同步配置
+rbacSync:
+  enabled: true
+  # 是否在导入失败时回滚已创建角色
+  rollbackOnFailure: true
+
+# IoTDB 数据接入配置
+iotdbIngestion:
+  # 是否启用 IoTDB 数据接入
+  enabled: true
+  # Flink 作业并行度
+  flinkParallelism: 4
+  # 接入间隔（分钟）
+  ingestionIntervalMinutes: 5

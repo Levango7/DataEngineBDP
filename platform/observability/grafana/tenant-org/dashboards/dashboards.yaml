@@ -1,0 +1,17 @@
+# Grafana 客户方 Organization 仪表板 provisioning 配置
+#
+# 从 tenant-org/dashboards/ 目录自动加载所有 JSON 仪表板。
+# 每个租户 Organization 独立加载本目录，仪表板中变量受 tenant 数据源过滤。
+apiVersion: 1
+
+providers:
+  - name: tenant-dashboards
+    orgId: 2
+    folder: 我的租户
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/tenant-org
+      foldersFromFilesStructure: true

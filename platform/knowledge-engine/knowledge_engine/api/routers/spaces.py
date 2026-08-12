@@ -13,6 +13,7 @@
     POST   /spaces/{name}/query                 原生图查询
     POST   /spaces/{name}/shortest-path         最短路径查询
 """
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -21,7 +22,6 @@ from pydantic import BaseModel, Field
 from knowledge_engine.api.routers.deps import get_registry, status_for_error
 from knowledge_engine.models.entity import Entity
 from knowledge_engine.models.graph import (
-    Edge,
     GraphSchema,
     QueryResult,
     Vertex,
@@ -35,13 +35,12 @@ router = APIRouter(prefix="/spaces", tags=["spaces"])
 
 # ---------- 请求/响应模型 ----------
 
+
 class CreateSpaceRequest(BaseModel):
     """创建知识空间请求."""
 
     name: str = Field(..., min_length=1, max_length=64, description="空间名")
-    schema_: GraphSchema = Field(
-        default_factory=GraphSchema, alias="schema", description="图模式"
-    )
+    schema_: GraphSchema = Field(default_factory=GraphSchema, alias="schema", description="图模式")
 
     model_config = {"populate_by_name": True}
 
@@ -109,6 +108,7 @@ class InsertSummaryResponse(BaseModel):
 
 
 # ---------- 路由 ----------
+
 
 @router.post(
     "",
@@ -204,12 +204,8 @@ async def extract(
 ) -> ExtractResponse:
     """从文本抽取实体与关系（不写入图存储）."""
     try:
-        result = await registry.knowledgeService.extract(
-            name, req.text, req.entityTypes
-        )
-        return ExtractResponse(
-            entities=result.entities, relations=result.relations
-        )
+        result = await registry.knowledgeService.extract(name, req.text, req.entityTypes)
+        return ExtractResponse(entities=result.entities, relations=result.relations)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -226,9 +222,7 @@ async def build(
 ) -> BuildResponse:
     """从文本构建知识图谱：抽取 + 写入图存储."""
     try:
-        result = await registry.knowledgeService.build(
-            name, req.text, req.entityTypes
-        )
+        result = await registry.knowledgeService.build(name, req.text, req.entityTypes)
         return BuildResponse(
             space=result.space,
             insertedVertices=result.insertedVertices,
@@ -265,9 +259,7 @@ async def get_vertex(
 async def get_neighbors(
     name: str,
     vid: str,
-    edgeType: list[str] | None = Query(
-        default=None, description="限定边类型（可多次传）"
-    ),
+    edgeType: list[str] | None = Query(default=None, description="限定边类型（可多次传）"),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> list[Vertex]:
     """查询顶点的邻居."""

@@ -1,0 +1,49 @@
+﻿# ============================================================================
+# KPA 自动伸缩注解模板 · 数据引擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：提供 KService 的 KPA 自动伸缩注解模板
+# 使用方式：将 annotations 复制到 KService metadata.annotations 或 template.metadata.annotations
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kpa-annotation-template
+  namespace: knative-serving
+  labels:
+    app.kubernetes.io/name: kpa-annotation-template
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: kpa-autoscaling
+    platform.shuqing.io/task: "T025"
+data:
+  # KService metadata.annotations 模板
+  kservice-annotations.yaml: |
+    # 强制使用 KPA
+    serving.knative.dev/autoscaler-class: "kpa.autoscaling.knative.dev"
+    # 目标 RPS：每个 Pod 10 RPS
+    autoscaling.knative.dev/target: "10"
+    autoscaling.knative.dev/target-burst-capacity: "11"
+    # 最小副本数（0 = 允许 scale-to-zero）
+    autoscaling.knative.dev/min-scale: "0"
+    # 最大副本数
+    autoscaling.knative.dev/max-scale: "20"
+    # scale-to-zero 优雅期
+    autoscaling.knative.dev/scale-to-zero-pod-retention-period: "60s"
+    # 使用 RPS 伸缩指标
+    autoscaling.knative.dev/metric: "rps"
+
+  # 伸缩决策说明
+  scaling-policy-doc: |
+    KPA 自动伸缩策略（target=10 RPS）：
+    1. 当 RPS > 10 时，自动扩 Pod（每 Pod 承载 10 RPS）
+    2. 当 RPS = 0 持续 60s 时，缩容到 0（scale-to-zero）
+    3. 扩容速率：最多每秒新增 1000 Pod（应对突发流量）
+    4. 缩容速率：最多每秒减少 2 Pod（平滑缩容）
+    5. 稳定窗口：60s（伸缩决策前观察 60s）
+    6. Panic 模式：当指标超过目标 200% 时进入 panic 模式，6s 窗口快速响应
+
+    示例：
+    - 10 RPS  → 1 Pod
+    - 50 RPS  → 5 Pods
+    - 100 RPS → 10 Pods
+    - 200 RPS → 20 Pods（max-scale 上限）
+    - 0 RPS   → 0 Pods（60s 后 scale-to-zero）

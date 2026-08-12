@@ -1,29 +1,28 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
 
-import pytest
-import pytest_asyncio
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("LLMOPS_STORE_TYPE", "mock")
 
-from llmops.api.app import create_app
-from llmops.config.settings import Settings, reset_settings
-from llmops.repositories.mock import (
+from llmops.api.app import create_app  # noqa: E402
+from llmops.config.settings import Settings, reset_settings  # noqa: E402
+from llmops.repositories.mock import (  # noqa: E402
     MockModelDeployer,
     MockModelMonitor,
     MockModelStore,
     MockModelTrainer,
 )
-from llmops.services.deployment_service import DeploymentService
-from llmops.services.model_service import ModelService
-from llmops.services.monitor_service import MonitorService
-from llmops.services.registry import ServiceRegistry
-from llmops.services.training_service import TrainingService
+from llmops.services.deployment_service import DeploymentService  # noqa: E402
+from llmops.services.model_service import ModelService  # noqa: E402
+from llmops.services.monitor_service import MonitorService  # noqa: E402
+from llmops.services.registry import ServiceRegistry  # noqa: E402
+from llmops.services.training_service import TrainingService  # noqa: E402
 
 
 @pytest.fixture

@@ -2,6 +2,7 @@
 
 惰性导入 mlflow 包，避免在 Mock 模式下强制依赖 mlflow。
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -14,11 +15,10 @@ def _import_mlflow() -> Any:
     """惰性导入 mlflow，未安装时抛 StoreUnavailableError."""
     try:
         import mlflow  # noqa: WPS433
+
         return mlflow
     except ImportError as exc:
-        raise StoreUnavailableError(
-            "mlflow 未安装，请 pip install mlflow 或使用 LLMOPS_STORE_TYPE=mock"
-        ) from exc
+        raise StoreUnavailableError("mlflow 未安装，请 pip install mlflow 或使用 LLMOPS_STORE_TYPE=mock") from exc
 
 
 class MLflowClient:

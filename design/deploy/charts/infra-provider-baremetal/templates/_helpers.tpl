@@ -1,4 +1,4 @@
-{{/*
+﻿{{/*
 Expand the name of the chart.
 */}}
 {{- define "infra-provider-baremetal.name" -}}
@@ -27,9 +27,9 @@ Chart labels.
 {{- define "infra-provider-baremetal.labels" -}}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{ include "infra-provider-baremetal.selectorLabels" . }}
-{{- if .Chart.AppVersion -}}
+{{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
-{{- end -}}
+{{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 {{- end -}}
 

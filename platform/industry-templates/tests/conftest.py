@@ -1,17 +1,18 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("INDUSTRY_TEMPLATES_DEPLOY_MODE", "mock")
 
-from industry_templates.api.app import create_app
-from industry_templates.config.settings import Settings, reset_settings
-from industry_templates.services.registry import ServiceRegistry, build_services
+from industry_templates.api.app import create_app  # noqa: E402
+from industry_templates.config.settings import Settings, reset_settings  # noqa: E402
+from industry_templates.services.registry import ServiceRegistry, build_services  # noqa: E402
 
 
 @pytest.fixture

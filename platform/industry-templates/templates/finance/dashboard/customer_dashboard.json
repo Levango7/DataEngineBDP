@@ -1,0 +1,357 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "finance_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_finance",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "customer",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "客户基本信息主表 | 自然人/对公客户法定属性 | DDL: 02_customer_ddl.sql §1",
+      "columns": [
+        {"name": "customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "customer_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "customer_no", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "id_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "gender", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "birth_date", "type": "DATE", "is_dttm": true},
+        {"name": "nationality", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "occupation", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "industry_code", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "risk_level", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "status", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "blacklist_flag", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    },
+    {
+      "table_name": "customer_tag",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "客户标签表 | 业务标签/风险标签 | DDL: 02_customer_ddl.sql §2",
+      "columns": [
+        {"name": "tag_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tag_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "tag_value", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "tag_category", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "tag_source", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "confidence", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "expire_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "tagged_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "tagged_at"
+    },
+    {
+      "table_name": "customer_profile",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "客户画像表 | 计算型画像指标(资产/负债/风险等级汇总) | DDL: 02_customer_ddl.sql §3",
+      "columns": [
+        {"name": "profile_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "assets_total", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "liabilities_total", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "net_assets", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "aum", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "avg_balance_30d", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "txn_count_30d", "type": "INT", "is_dttm": false},
+        {"name": "txn_amount_30d", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "risk_level", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "risk_score", "type": "DECIMAL(10,4)", "is_dttm": false},
+        {"name": "lifecycle_stage", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "computed_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "computed_at"
+    },
+    {
+      "table_name": "customer_relation",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "客户关系表 | 担保/关联/家庭等客户间关系 | DDL: 02_customer_ddl.sql §4",
+      "columns": [
+        {"name": "relation_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "subject_customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "object_customer_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "relation_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "relation_subtype", "type": "VARCHAR(32)", "is_dttm": false},
+        {"name": "amount", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "guarantee_ratio", "type": "DECIMAL(5,4)", "is_dttm": false},
+        {"name": "valid_from", "type": "DATETIME", "is_dttm": true},
+        {"name": "valid_to", "type": "DATETIME", "is_dttm": true},
+        {"name": "is_active", "type": "BOOLEAN", "is_dttm": false},
+        {"name": "created_at", "type": "DATETIME", "is_dttm": true},
+        {"name": "updated_at", "type": "DATETIME", "is_dttm": true}
+      ],
+      "main_dttm_col": "created_at"
+    }
+  ],
+  "charts": [
+    {
+      "slice_name": "客户总数增长",
+      "viz_type": "line",
+      "datasource_type": "table",
+      "datasource_name": "customer",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按月统计客户总数增长，线图，X轴=月份，Y轴=累计客户数",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "created_at >= '{{ from_dttm }}' AND created_at < '{{ to_dttm }}'"
+          }
+        ],
+        "x_axis": "month_start",
+        "metrics": [{"expressionType": "SQL", "sqlExpression": "COUNT(1)", "label": "累计客户数"}],
+        "groupby": ["month_start"],
+        "time_grain_sqla": "MONTH",
+        "time_range": "Last 12 months",
+        "row_limit": 36,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "月份",
+        "y_axis_label": "累计客户数",
+        "show_legend": true,
+        "line_interpolation": "linear"
+      },
+      "query": "SELECT DATE_TRUNC('MONTH', created_at) AS month_start, COUNT(1) AS cumulative_customers FROM customer WHERE created_at >= '{{ from_dttm }}' AND created_at < '{{ to_dttm }}' GROUP BY month_start ORDER BY month_start"
+    },
+    {
+      "slice_name": "客户标签分布",
+      "viz_type": "pie",
+      "datasource_type": "table",
+      "datasource_name": "customer_tag",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按标签分类(tag_category)统计标签数，饼图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "tagged_at >= '{{ from_dttm }}' AND tagged_at < '{{ to_dttm }}'"
+          }
+        ],
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "标签数"}],
+        "groupby": ["tag_category"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "donut": true,
+        "show_legend": true,
+        "labels_outside": false
+      },
+      "query": "SELECT COALESCE(tag_category,'UNKNOWN') AS tag_category, COUNT(1) AS tag_count FROM customer_tag WHERE tagged_at >= '{{ from_dttm }}' AND tagged_at < '{{ to_dttm }}' GROUP BY tag_category ORDER BY tag_count DESC"
+    },
+    {
+      "slice_name": "客户等级分布",
+      "viz_type": "bar",
+      "datasource_type": "table",
+      "datasource_name": "customer",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按客户风险等级(A/B/C/D/E)统计客户数，柱状图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "created_at >= '{{ from_dttm }}' AND created_at < '{{ to_dttm }}' AND status='ACTIVE'"
+          }
+        ],
+        "x_axis": "risk_level",
+        "metrics": [{"expressionType": "SIMPLE", "metric": "COUNT", "label": "客户数"}],
+        "groupby": ["risk_level"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "x_axis_label": "客户风险等级",
+        "y_axis_label": "客户数",
+        "show_legend": true
+      },
+      "query": "SELECT COALESCE(risk_level,'UNKNOWN') AS risk_level, COUNT(1) AS customer_count FROM customer WHERE created_at >= '{{ from_dttm }}' AND created_at < '{{ to_dttm }}' AND status='ACTIVE' GROUP BY risk_level ORDER BY CASE risk_level WHEN 'A' THEN 1 WHEN 'B' THEN 2 WHEN 'C' THEN 3 WHEN 'D' THEN 4 WHEN 'E' THEN 5 ELSE 6 END"
+    },
+    {
+      "slice_name": "客户关系网络Top10",
+      "viz_type": "table",
+      "datasource_type": "table",
+      "datasource_name": "customer_relation",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按关系类型聚合统计Top10，表格，列=主体客户/客体客户/关系类型/担保金额",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "is_active = TRUE AND created_at >= '{{ from_dttm }}' AND created_at < '{{ to_dttm }}'"
+          }
+        ],
+        "metrics": [{"expressionType": "SIMPLE", "column": {"name": "amount"}, "aggregate": "SUM", "label": "担保金额"}],
+        "groupby": ["subject_customer_id", "object_customer_id", "relation_type"],
+        "order_by": [{"column": "amount", "direction": "desc"}],
+        "row_limit": 10,
+        "page_length": 10,
+        "table_timestamp_format": "%Y-%m-%d %H:%M:%S",
+        "show_cell_bars": true
+      },
+      "query": "SELECT subject_customer_id, object_customer_id, relation_type, SUM(amount) AS total_amount, COUNT(1) AS relation_count FROM customer_relation WHERE is_active = TRUE AND created_at >= '{{ from_dttm }}' AND created_at < '{{ to_dttm }}' GROUP BY subject_customer_id, object_customer_id, relation_type ORDER BY total_amount DESC LIMIT 10"
+    },
+    {
+      "slice_name": "活跃客户数",
+      "viz_type": "big_number",
+      "datasource_type": "table",
+      "datasource_name": "customer_profile",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "近30天活跃客户数(lifecycle_stage=ACTIVE)，指标卡",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "computed_at >= '{{ from_dttm }}' AND computed_at < '{{ to_dttm }}' AND lifecycle_stage='ACTIVE'"
+          }
+        ],
+        "metric": {"expressionType": "SQL", "sqlExpression": "COUNT(DISTINCT customer_id)", "label": "活跃客户数"},
+        "time_range": "Last 30 days",
+        "compare_lag": 7,
+        "compare_suffix": "vs 7d ago",
+        "header_format": "{{ value }}",
+        "subheader": "近30天活跃客户"
+      },
+      "query": "SELECT COUNT(DISTINCT customer_id) AS active_customer_count FROM customer_profile WHERE computed_at >= '{{ from_dttm }}' AND computed_at < '{{ to_dttm }}' AND lifecycle_stage='ACTIVE'"
+    },
+    {
+      "slice_name": "客户生命周期分布",
+      "viz_type": "pie",
+      "datasource_type": "table",
+      "datasource_name": "customer_profile",
+      "schema": "db_finance",
+      "database_name": "finance_doris",
+      "description": "按生命周期阶段(NEW/ACTIVE/DORMANT/LOST)统计客户数，饼图",
+      "params": {
+        "adhoc_filters": [
+          {
+            "clause": "WHERE",
+            "expressionType": "SQL",
+            "sqlExpression": "computed_at >= '{{ from_dttm }}' AND computed_at < '{{ to_dttm }}'"
+          }
+        ],
+        "metrics": [{"expressionType": "SQL", "sqlExpression": "COUNT(DISTINCT customer_id)", "label": "客户数"}],
+        "groupby": ["lifecycle_stage"],
+        "time_range": "Last 30 days",
+        "row_limit": 50,
+        "color_scheme": "supersetColors",
+        "donut": true,
+        "show_legend": true
+      },
+      "query": "SELECT COALESCE(lifecycle_stage,'UNKNOWN') AS lifecycle_stage, COUNT(DISTINCT customer_id) AS customer_count FROM customer_profile WHERE computed_at >= '{{ from_dttm }}' AND computed_at < '{{ to_dttm }}' GROUP BY lifecycle_stage ORDER BY customer_count DESC"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "客户视角仪表盘",
+      "slug": "customer-dashboard",
+      "description": "客户视角仪表盘 | 覆盖客户增长/标签分布/等级分布/关系网络/活跃客户等核心指标 | 数据源：customer/customer_tag/customer_profile/customer_relation | DDL: 02_customer_ddl.sql",
+      "owners": ["admin"],
+      "position": {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "DASHBOARD_ROOT_ID": "GRID_ID",
+        "DASHBOARD_GRID_RATIO": "1:1",
+        "GRID_ID": {
+          "type": "GRID",
+          "id": "GRID_ID",
+          "children": ["ROW_ID_1", "ROW_ID_2"],
+          "parents": ["ROOT_ID"],
+          "meta": {}
+        },
+        "ROW_ID_1": {
+          "type": "ROW",
+          "id": "ROW_ID_1",
+          "children": ["CHART_1", "CHART_2", "CHART_3"],
+          "parents": ["GRID_ID"],
+          "meta": {"background": "BACKGROUND_TRANSPARENT"}
+        },
+        "ROW_ID_2": {
+          "type": "ROW",
+          "id": "ROW_ID_2",
+          "children": ["CHART_4", "CHART_5", "CHART_6"],
+          "parents": ["GRID_ID"],
+          "meta": {"background": "BACKGROUND_TRANSPARENT"}
+        },
+        "CHART_1": {"type": "CHART", "id": "CHART_1", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "客户总数增长"}},
+        "CHART_2": {"type": "CHART", "id": "CHART_2", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "客户标签分布"}},
+        "CHART_3": {"type": "CHART", "id": "CHART_3", "children": [], "parents": ["ROW_ID_1"], "meta": {"width": 4, "height": 50, "chartName": "客户等级分布"}},
+        "CHART_4": {"type": "CHART", "id": "CHART_4", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "客户关系网络Top10"}},
+        "CHART_5": {"type": "CHART", "id": "CHART_5", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "活跃客户数"}},
+        "CHART_6": {"type": "CHART", "id": "CHART_6", "children": [], "parents": ["ROW_ID_2"], "meta": {"width": 4, "height": 50, "chartName": "客户生命周期分布"}}
+      },
+      "metadata": {
+        "chart_configuration": {
+          "CHART_1": {"id": 1, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_2": {"id": 2, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_3": {"id": 3, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_4": {"id": 4, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_5": {"id": 5, "crossFilters": {"scope": {"exclude": [], "include": []}}},
+          "CHART_6": {"id": 6, "crossFilters": {"scope": {"exclude": [], "include": []}}}
+        },
+        "global_chart_configuration": {
+          "scope": {"label": "All charts", "supersetCharts": [1, 2, 3, 4, 5, 6]}
+        },
+        "color_namespace": "superset_colors",
+        "color_scheme_domain": ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"],
+        "expanded_slices": {},
+        "label_colors": {},
+        "refresh_frequency": 300,
+        "timed_refresh_immune_slices": [],
+        "filter_immune_slice_fields": {},
+        "chart_ids": [1, 2, 3, 4, 5, 6],
+        "default_filters": "{}",
+        "native_filter_configuration": [
+          {
+            "id": "NATIVE_FILTER_TIME_RANGE",
+            "name": "时间范围",
+            "filterType": "filter_time",
+            "targets": [{"datasetId": 1, "column": {"name": "created_at"}}],
+            "defaultDataMask": {"timeRange": "Last 30 days"},
+            "controlValues": {"label": "时间范围", "defaultToEmpty": false}
+          },
+          {
+            "id": "NATIVE_FILTER_BIZ_LINE",
+            "name": "业务条线",
+            "filterType": "filter_select",
+            "targets": [{"datasetId": 1, "column": {"name": "customer_type"}}],
+            "defaultDataMask": null,
+            "controlValues": {"label": "业务条线", "defaultToEmpty": false, "multiSelect": true, "searchAllOptions": true}
+          },
+          {
+            "id": "NATIVE_FILTER_ORG",
+            "name": "机构",
+            "filterType": "filter_select",
+            "targets": [{"datasetId": 1, "column": {"name": "industry_code"}}],
+            "defaultDataMask": null,
+            "controlValues": {"label": "机构", "defaultToEmpty": false, "multiSelect": true, "searchAllOptions": true}
+          }
+        ]
+      },
+      "charts": ["客户总数增长", "客户标签分布", "客户等级分布", "客户关系网络Top10", "活跃客户数", "客户生命周期分布"]
+    }
+  ]
+}

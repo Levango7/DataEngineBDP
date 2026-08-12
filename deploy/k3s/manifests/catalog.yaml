@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog
+  namespace: shuqing
+  labels:
+    app: catalog
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog
+  template:
+    metadata:
+      labels:
+        app: catalog
+    spec:
+      containers:
+      - name: catalog
+        image: sq/catalog:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8082
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8082"
+        readinessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8082
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /api/v1/health
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog
+  namespace: shuqing
+  labels:
+    app: catalog
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: catalog
+  ports:
+  - name: http
+    port: 8082
+    targetPort: 8082
+    protocol: TCP

@@ -9,9 +9,10 @@
     PENDING -> RUNNING -> SUCCEEDED
     PENDING/RUNNING -> FAILED
 """
+
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from asset_exchange.interfaces.delivery_repository import DeliveryRepository
 from asset_exchange.interfaces.subscription_repository import (
@@ -30,7 +31,6 @@ from asset_exchange.models.delivery import (
 )
 from asset_exchange.repositories import (
     DeliveryNotFoundError,
-    SubscriptionNotFoundError,
     SubscriptionNotDeliverableError,
 )
 
@@ -46,9 +46,7 @@ class DeliveryService:
         self._delivery_repo = delivery_repo
         self._sub_repo = sub_repo
 
-    async def deliver(
-        self, subscription_id: str, req: DeliveryRequest
-    ) -> Delivery:
+    async def deliver(self, subscription_id: str, req: DeliveryRequest) -> Delivery:
         """发起数据交付.
 
         业务校验：
@@ -60,9 +58,7 @@ class DeliveryService:
         """
         sub = await self._sub_repo.get(subscription_id)
         if sub.status not in (SubscriptionStatus.APPROVED, SubscriptionStatus.ACTIVE):
-            raise SubscriptionNotDeliverableError(
-                subscription_id, sub.status.value
-            )
+            raise SubscriptionNotDeliverableError(subscription_id, sub.status.value)
 
         # 创建交付记录
         delivery = Delivery(
@@ -96,17 +92,11 @@ class DeliveryService:
 
         try:
             if delivery.method == DeliveryMethod.API:
-                artifact_url, meta, rows, bytes_ = self._deliver_via_api(
-                    delivery.config
-                )
+                artifact_url, meta, rows, bytes_ = self._deliver_via_api(delivery.config)
             elif delivery.method == DeliveryMethod.FILE:
-                artifact_url, meta, rows, bytes_ = self._deliver_via_file(
-                    delivery.config
-                )
+                artifact_url, meta, rows, bytes_ = self._deliver_via_file(delivery.config)
             elif delivery.method == DeliveryMethod.DATABASE_DIRECT:
-                artifact_url, meta, rows, bytes_ = (
-                    self._deliver_via_database_direct(delivery.config)
-                )
+                artifact_url, meta, rows, bytes_ = self._deliver_via_database_direct(delivery.config)
             else:
                 raise ValueError(f"不支持的交付方式: {delivery.method}")
 
@@ -131,9 +121,7 @@ class DeliveryService:
             )
             return delivery
 
-    def _deliver_via_api(
-        self, config: dict[str, Any]
-    ) -> tuple[str, dict[str, Any], int, int]:
+    def _deliver_via_api(self, config: dict[str, Any]) -> tuple[str, dict[str, Any], int, int]:
         """API 交付：生成 API 端点与凭证.
 
         Returns:
@@ -153,9 +141,7 @@ class DeliveryService:
         bytes_ = rows * 256  # 假设每行 256 字节
         return artifact_url, meta, rows, bytes_
 
-    def _deliver_via_file(
-        self, config: dict[str, Any]
-    ) -> tuple[str, dict[str, Any], int, int]:
+    def _deliver_via_file(self, config: dict[str, Any]) -> tuple[str, dict[str, Any], int, int]:
         """文件交付：生成数据文件 URL.
 
         Returns:
@@ -174,9 +160,7 @@ class DeliveryService:
         bytes_ = rows * 256
         return artifact_url, meta, rows, bytes_
 
-    def _deliver_via_database_direct(
-        self, config: dict[str, Any]
-    ) -> tuple[str, dict[str, Any], int, int]:
+    def _deliver_via_database_direct(self, config: dict[str, Any]) -> tuple[str, dict[str, Any], int, int]:
         """数据库直连交付：生成授权访问凭证.
 
         Returns:
@@ -197,9 +181,7 @@ class DeliveryService:
         bytes_ = rows * 256
         return artifact_url, meta, rows, bytes_
 
-    async def get_delivery_status(
-        self, subscription_id: str
-    ) -> DeliveryStatusResponse:
+    async def get_delivery_status(self, subscription_id: str) -> DeliveryStatusResponse:
         """获取交付状态（按订阅 ID 查最新交付）.
 
         Raises:

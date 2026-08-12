@@ -30,3 +30,25 @@ export function listPods(namespace?: string): Promise<Pod[]> {
   if (namespace) params.namespace = namespace
   return get<Pod[]>(`${BASE}/pods`, params)
 }
+
+/* ------------------------------ 大数据组件状态 ------------------------------ */
+
+/** 组件健康状态 */
+export type ComponentHealth = 'healthy' | 'warning' | 'error'
+
+/** 大数据组件运行状态 */
+export interface ComponentStatus {
+  /** 组件名 */
+  name: string
+  /** 健康状态 */
+  status: ComponentHealth
+  /** 元信息（版本、节点数等） */
+  meta: string
+}
+
+/**
+ * 查询大数据组件状态列表（Spark/Flink/Trino/Doris/Kafka 等）
+ */
+export function listComponentStatuses(): Promise<ComponentStatus[]> {
+  return get<ComponentStatus[]>(`${BASE}/components`)
+}

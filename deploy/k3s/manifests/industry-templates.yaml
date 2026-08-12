@@ -1,0 +1,67 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: industry-templates
+  namespace: shuqing
+  labels:
+    app: industry-templates
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: industry-templates
+  template:
+    metadata:
+      labels:
+        app: industry-templates
+    spec:
+      containers:
+      - name: industry-templates
+        image: sq/industry-templates:0.1.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8091
+          name: http
+        env:
+        - name: SERVER_PORT
+          value: "8091"
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8091
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          failureThreshold: 6
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8091
+          initialDelaySeconds: 30
+          periodSeconds: 20
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            cpu: 1000m
+            memory: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: industry-templates
+  namespace: shuqing
+  labels:
+    app: industry-templates
+    app.kubernetes.io/part-of: shuqing-bigdata-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: industry-templates
+  ports:
+  - name: http
+    port: 8091
+    targetPort: 8091
+    protocol: TCP

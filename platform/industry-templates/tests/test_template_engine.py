@@ -1,4 +1,5 @@
 """TemplateEngine 单元测试：模板解析 + 参数注入 + 一键部署."""
+
 from __future__ import annotations
 
 import pytest
@@ -11,13 +12,12 @@ from industry_templates.models import (
 from industry_templates.services.exceptions import (
     ParameterValidationError,
     TemplateNotFoundError,
-    TemplateNotDeployableError,
 )
 from industry_templates.services.template_engine import TemplateEngine
 from industry_templates.templates import get_builtin_templates
 
-
 # ---------- 模板解析 ----------
+
 
 class TestTemplateParsing:
     """模板解析测试."""
@@ -91,14 +91,13 @@ class TestTemplateParsing:
 
 # ---------- 参数注入（渲染） ----------
 
+
 class TestParameterRendering:
     """参数注入/渲染测试."""
 
     def test_render_string_placeholder(self):
         """渲染字符串占位符."""
-        result = TemplateEngine.render_value(
-            "jdbc://${host}:${port}/db", {"host": "1.2.3.4", "port": 3306}
-        )
+        result = TemplateEngine.render_value("jdbc://${host}:${port}/db", {"host": "1.2.3.4", "port": 3306})
         assert result == "jdbc://1.2.3.4:3306/db"
 
     def test_render_placeholder_with_default(self):
@@ -113,16 +112,12 @@ class TestParameterRendering:
 
     def test_render_dict(self):
         """渲染 dict."""
-        result = TemplateEngine.render_value(
-            {"host": "${h}", "port": 8080}, {"h": "localhost"}
-        )
+        result = TemplateEngine.render_value({"host": "${h}", "port": 8080}, {"h": "localhost"})
         assert result == {"host": "localhost", "port": 8080}
 
     def test_render_list(self):
         """渲染 list."""
-        result = TemplateEngine.render_value(
-            ["${a}", "${b}", "literal"], {"a": "X", "b": "Y"}
-        )
+        result = TemplateEngine.render_value(["${a}", "${b}", "literal"], {"a": "X", "b": "Y"})
         assert result == ["X", "Y", "literal"]
 
     def test_render_nested(self):
@@ -131,9 +126,7 @@ class TestParameterRendering:
             {"config": {"url": "${u}", "opts": ["${o1}", "fixed"]}},
             {"u": "http://api", "o1": "opt1"},
         )
-        assert result == {
-            "config": {"url": "http://api", "opts": ["opt1", "fixed"]}
-        }
+        assert result == {"config": {"url": "http://api", "opts": ["opt1", "fixed"]}}
 
     def test_render_non_string_value(self):
         """非字符串值原样返回."""
@@ -157,6 +150,7 @@ class TestParameterRendering:
 
 
 # ---------- 参数校验 ----------
+
 
 class TestParameterValidation:
     """参数校验测试."""
@@ -219,6 +213,7 @@ class TestParameterValidation:
 
 
 # ---------- 一键部署 ----------
+
 
 class TestDeployment:
     """一键部署测试."""
@@ -284,17 +279,13 @@ class TestDeployment:
 
     def test_deploy_not_found(self, engine: TemplateEngine):
         """部署不存在的模板."""
-        req = DeploymentRequest(
-            tenantId="t1", releaseName="r1", values={}
-        )
+        req = DeploymentRequest(tenantId="t1", releaseName="r1", values={})
         with pytest.raises(TemplateNotFoundError):
             engine.deploy("nonexistent", req)
 
     def test_deploy_missing_required_params(self, engine: TemplateEngine):
         """缺少必填参数部署失败."""
-        req = DeploymentRequest(
-            tenantId="t1", releaseName="r1", values={}
-        )
+        req = DeploymentRequest(tenantId="t1", releaseName="r1", values={})
         with pytest.raises(ParameterValidationError):
             engine.deploy("fin-risk-scorecard", req)
 
@@ -324,6 +315,7 @@ class TestDeployment:
 
 # ---------- 预览 ----------
 
+
 class TestPreview:
     """模板预览测试."""
 
@@ -345,6 +337,7 @@ class TestPreview:
 
 
 # ---------- 分类 ----------
+
 
 class TestCategories:
     """模板分类测试."""
