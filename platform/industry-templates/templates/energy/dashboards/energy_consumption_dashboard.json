@@ -1,0 +1,227 @@
+{
+  "version": "1.0",
+  "databases": [
+    {
+      "database_name": "energy_doris",
+      "sqlalchemy_uri": "doris://doris_user:doris_pwd@doris-fe:9030/db_energy",
+      "engine": "doris",
+      "allow_run_async": true,
+      "allow_csv_upload": false,
+      "expose_in_sqllab": true
+    }
+  ],
+  "datasets": [
+    {
+      "table_name": "energy_consumption_detail",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "能耗明细表 | 设备级/小时级能耗 | DDL: 02_energy_consumption_ddl.sql §1",
+      "columns": [
+        {"name": "device_id", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "device_code", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "location_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "department", "type": "VARCHAR(64)", "is_dttm": false},
+        {"name": "stat_time", "type": "DATETIME", "is_dttm": true},
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "consumption", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "unit", "type": "VARCHAR(16)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_time"
+    },
+    {
+      "table_name": "energy_consumption_summary",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "能耗汇总表 | 多维度/多周期汇总 | 含同比环比与折标煤 | DDL: 02_energy_consumption_ddl.sql §2",
+      "columns": [
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "stat_period", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "dimension_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "dimension_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "total_consumption", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "standard_coal", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "yoy_growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "mom_growth_rate", "type": "DECIMAL(8,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "energy_dimension_compare",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "多维对比分析表 | 跨部门/跨位置/跨介质/跨周期/对标 | DDL: 02_energy_consumption_ddl.sql §3",
+      "columns": [
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "compare_type", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "base_dimension", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "compare_dimension", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "base_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "compare_value", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "diff_rate", "type": "DECIMAL(8,4)", "is_dttm": false},
+        {"name": "rank", "type": "INT", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "energy_trend_data",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "能耗趋势数据表 | 多粒度时序聚合 | 含移动平均 | DDL: 02_energy_consumption_ddl.sql §4",
+      "columns": [
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "granularity", "type": "VARCHAR(8)", "is_dttm": false},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "dimension_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "consumption", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "standard_coal", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "moving_avg_7d", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "moving_avg_30d", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "trend_direction", "type": "VARCHAR(8)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    },
+    {
+      "table_name": "energy_cost_analysis",
+      "schema": "db_energy",
+      "database_name": "energy_doris",
+      "description": "能源成本分析表 | 单价/总成本/单位产品成本 | DDL: 02_energy_consumption_ddl.sql §7",
+      "columns": [
+        {"name": "stat_date", "type": "DATE", "is_dttm": true},
+        {"name": "measure_medium", "type": "VARCHAR(16)", "is_dttm": false},
+        {"name": "dimension_name", "type": "VARCHAR(128)", "is_dttm": false},
+        {"name": "consumption", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "unit_price", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "total_cost", "type": "DECIMAL(18,2)", "is_dttm": false},
+        {"name": "unit_product_cost", "type": "DECIMAL(18,4)", "is_dttm": false},
+        {"name": "cost_ratio", "type": "DECIMAL(8,4)", "is_dttm": false}
+      ],
+      "main_dttm_col": "stat_date"
+    }
+  ],
+  "dashboards": [
+    {
+      "dashboard_title": "用能分析看板",
+      "slug": "energy-consumption-analysis",
+      "description": "用能分析看板：能耗趋势+多维对比+TopN+同比环比+成本分析",
+      "owners": ["energy-analyst"],
+      "position": {},
+      "metadata": {
+        "chart_configuration": {
+          "color_scheme": "energy_theme",
+          "label_colors": {
+            "ELECTRIC": "#FFD700",
+            "WATER": "#1E90FF",
+            "GAS": "#FF6347",
+            "STEAM": "#FF8C00",
+            "AIR": "#9370DB",
+            "COLD": "#00CED1",
+            "HEAT": "#FF4500",
+            "UP": "#FF4500",
+            "DOWN": "#2E8B57",
+            "FLAT": "#808080"
+          }
+        }
+      },
+      "charts": [
+        {
+          "chart_id": "consumption_trend",
+          "slice_name": "能耗趋势",
+          "viz_type": "line_chart",
+          "datasource": "energy_trend_data",
+          "params": {
+            "metrics": ["consumption", "moving_avg_7d", "moving_avg_30d"],
+            "groupby": ["stat_date"],
+            "filters": [{"col": "granularity", "op": "==", "val": "DAY"}],
+            "time_grain_sqla": "day",
+            "description": "日级能耗趋势，含 7 日/30 日移动平均"
+          }
+        },
+        {
+          "chart_id": "medium_compare",
+          "slice_name": "介质对比",
+          "viz_type": "bar_chart",
+          "datasource": "energy_consumption_summary",
+          "params": {
+            "metrics": ["standard_coal"],
+            "groupby": ["measure_medium"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "description": "各能源介质折标煤消耗量对比"
+          }
+        },
+        {
+          "chart_id": "department_compare",
+          "slice_name": "部门能耗对比",
+          "viz_type": "bar_chart",
+          "datasource": "energy_consumption_summary",
+          "params": {
+            "metrics": ["total_consumption"],
+            "groupby": ["dimension_name"],
+            "filters": [
+              {"col": "dimension_type", "op": "==", "val": "DEPARTMENT"},
+              {"col": "stat_period", "op": "==", "val": "MONTH"}
+            ],
+            "order_by": ["total_consumption DESC"],
+            "row_limit": 20,
+            "description": "各部门月度能耗对比（降序）"
+          }
+        },
+        {
+          "chart_id": "topn_devices",
+          "slice_name": "TopN 高耗能设备",
+          "viz_type": "table",
+          "datasource": "energy_consumption_summary",
+          "params": {
+            "metrics": ["total_consumption"],
+            "groupby": ["dimension_name"],
+            "filters": [
+              {"col": "dimension_type", "op": "==", "val": "DEVICE"},
+              {"col": "stat_period", "op": "==", "val": "MONTH"}
+            ],
+            "order_by": ["total_consumption DESC"],
+            "row_limit": 10,
+            "description": "月度能耗 Top10 设备"
+          }
+        },
+        {
+          "chart_id": "yoy_mom",
+          "slice_name": "同比环比分析",
+          "viz_type": "mixed_period",
+          "datasource": "energy_consumption_summary",
+          "params": {
+            "metrics": ["total_consumption", "yoy_growth_rate", "mom_growth_rate"],
+            "groupby": ["stat_date", "measure_medium"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "description": "月度能耗同比环比增长率"
+          }
+        },
+        {
+          "chart_id": "cost_breakdown",
+          "slice_name": "成本构成",
+          "viz_type": "pie",
+          "datasource": "energy_cost_analysis",
+          "params": {
+            "metrics": ["total_cost"],
+            "groupby": ["measure_medium"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "description": "各能源介质成本占比饼图"
+          }
+        },
+        {
+          "chart_id": "unit_product_cost",
+          "slice_name": "单位产品能耗成本",
+          "viz_type": "line_chart",
+          "datasource": "energy_cost_analysis",
+          "params": {
+            "metrics": ["unit_product_cost"],
+            "groupby": ["stat_date"],
+            "filters": [{"col": "stat_period", "op": "==", "val": "MONTH"}],
+            "time_grain_sqla": "month",
+            "description": "月度单位产品能耗成本趋势"
+          }
+        }
+      ]
+    }
+  ]
+}

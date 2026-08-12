@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/shuqing/bigdata/dqctl/internal/config"
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/config"
 )
 
 // initCmd 实现 `dqctl init` 子命令：交互式生成配置文件模板。

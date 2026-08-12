@@ -1,4 +1,4 @@
-# 数擎云核 SKE · WSL2 真 kubeadm 上手手册
+﻿# 数擎云核 SKE · WSL2 真 kubeadm 上手手册
 
 > 目标：在一个**独立的 WSL2 Ubuntu 发行版（开 systemd）**里跑**真实的 kubeadm**，完整验证 SKE 的 kubeadm / kubelet / scheduler / Cilium 深度定制。
 > 这比 `kind` 更忠实于 SKE「自研 K8s 发行版」的身份，又比独立虚拟机更轻。
@@ -50,10 +50,10 @@ ps -p 1 -o comm=     # 应输出 systemd
 
 ## 2. 挂载项目并准备宿主
 
-项目在 Windows 的 `F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform`，在 WSL2 内通常挂载为 `/mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform`。
+项目在 Windows 的 `F:\Agent\workbuddy\workspace\DataEngineBDP`，在 WSL2 内通常挂载为 `/mnt/f/Agent/workbuddy/workspace/DataEngineBDP`。
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform
+cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
 
 # 一键装 containerd + kubeadm/kubelet/kubectl + cri-tools, 关 swap, 载模块, 设 sysctl
 sudo bash ske/wsl2/setup-host.sh
@@ -64,7 +64,7 @@ sudo bash ske/wsl2/setup-host.sh
 ## 3. 拉起 SKE（真实 kubeadm）
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform
+cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
 
 # 1) 宿主内核/网络栈/大页尽力调优 (WSL2 部分项受限会提示, 不影响起停)
 sudo bash ske/ske.sh tune-host

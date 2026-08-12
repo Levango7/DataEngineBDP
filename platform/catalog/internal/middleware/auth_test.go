@@ -31,9 +31,9 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "test-secret-key-at-least-256-bits-long"
 	issuer := "shuqing-bigdata"
-	os.Setenv("JWT_SECRET", secret)
+	os.Setenv("JWT_SIGNING_KEY", secret)
 	os.Setenv("JWT_ISSUER", issuer)
-	defer os.Unsetenv("JWT_SECRET")
+	defer os.Unsetenv("JWT_SIGNING_KEY")
 	defer os.Unsetenv("JWT_ISSUER")
 
 	token := generateTestToken(secret, issuer, "tenant-001", "user-001")
@@ -60,8 +60,8 @@ func TestAuthMiddleware_ValidToken(t *testing.T) {
 // TestAuthMiddleware_MissingHeader 测试缺少 Authorization 头。
 func TestAuthMiddleware_MissingHeader(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	os.Setenv("JWT_SECRET", "test-secret-key-at-least-256-bits-long")
-	defer os.Unsetenv("JWT_SECRET")
+	os.Setenv("JWT_SIGNING_KEY", "test-secret-key-at-least-256-bits-long")
+	defer os.Unsetenv("JWT_SIGNING_KEY")
 
 	r := gin.New()
 	r.Use(AuthMiddleware())
@@ -79,8 +79,8 @@ func TestAuthMiddleware_MissingHeader(t *testing.T) {
 // TestAuthMiddleware_InvalidToken 测试无效 JWT token。
 func TestAuthMiddleware_InvalidToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	os.Setenv("JWT_SECRET", "test-secret-key-at-least-256-bits-long")
-	defer os.Unsetenv("JWT_SECRET")
+	os.Setenv("JWT_SIGNING_KEY", "test-secret-key-at-least-256-bits-long")
+	defer os.Unsetenv("JWT_SIGNING_KEY")
 
 	r := gin.New()
 	r.Use(AuthMiddleware())
@@ -99,8 +99,8 @@ func TestAuthMiddleware_InvalidToken(t *testing.T) {
 // TestAuthMiddleware_NonBearerScheme 测试非 Bearer 认证方案。
 func TestAuthMiddleware_NonBearerScheme(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	os.Setenv("JWT_SECRET", "test-secret-key-at-least-256-bits-long")
-	defer os.Unsetenv("JWT_SECRET")
+	os.Setenv("JWT_SIGNING_KEY", "test-secret-key-at-least-256-bits-long")
+	defer os.Unsetenv("JWT_SIGNING_KEY")
 
 	r := gin.New()
 	r.Use(AuthMiddleware())
@@ -121,9 +121,9 @@ func TestAuthMiddleware_ExpiredToken(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "test-secret-key-at-least-256-bits-long"
 	issuer := "shuqing-bigdata"
-	os.Setenv("JWT_SECRET", secret)
+	os.Setenv("JWT_SIGNING_KEY", secret)
 	os.Setenv("JWT_ISSUER", issuer)
-	defer os.Unsetenv("JWT_SECRET")
+	defer os.Unsetenv("JWT_SIGNING_KEY")
 	defer os.Unsetenv("JWT_ISSUER")
 
 	// 生成一个已过期的 token
@@ -156,9 +156,9 @@ func TestAuthMiddleware_ExtractsClaims(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	secret := "test-secret-key-at-least-256-bits-long"
 	issuer := "shuqing-bigdata"
-	os.Setenv("JWT_SECRET", secret)
+	os.Setenv("JWT_SIGNING_KEY", secret)
 	os.Setenv("JWT_ISSUER", issuer)
-	defer os.Unsetenv("JWT_SECRET")
+	defer os.Unsetenv("JWT_SIGNING_KEY")
 	defer os.Unsetenv("JWT_ISSUER")
 
 	token := generateTestToken(secret, issuer, "tenant-42", "user-42")

@@ -11,6 +11,15 @@
       <div class="card"><h3>平台抽成</h3><div class="kpi s">¥{{ totalPlatformRevenue.toFixed(2) }}</div><div class="meta">20% 分账</div></div>
     </div>
 
+    <!-- 加载与错误状态 -->
+    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
+      正在加载资产列表...
+    </div>
+    <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
+      加载失败：{{ error }}
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">重试</button>
+    </div>
+
     <!-- Tab 切换 -->
     <div class="toolbar" style="margin-top: 14px">
       <button :class="['btn', 'sm', tab === 'market' ? '' : 'ghost']" @click="tab = 'market'">资产市场</button>
@@ -71,6 +80,14 @@
     <div v-if="tab === 'mine'">
       <div class="card">
         <h3>订阅列表</h3>
+        <div v-if="subsLoading" style="text-align: center; padding: 24px; color: #888">
+          正在加载订阅列表...
+        </div>
+        <div v-else-if="subsError" style="text-align: center; padding: 24px; color: #d4380d">
+          加载失败：{{ subsError }}
+          <button class="btn ghost sm" style="margin-left: 8px" @click="loadMySubscriptions">重试</button>
+        </div>
+        <template v-else>
         <table>
           <thead>
             <tr><th>资产</th><th>提供方</th><th>状态</th><th>生效时间</th><th>交付状态</th><th>操作</th></tr>
@@ -92,6 +109,7 @@
         <div v-if="mySubscriptions.length === 0" style="text-align: center; padding: 24px; color: #888">
           暂无订阅，去资产市场看看吧
         </div>
+        </template>
       </div>
     </div>
 
@@ -235,7 +253,8 @@
 
     <!-- 账单弹窗 -->
     <Modal :visible="billingModalVisible" title="计费记录" @close="billingModalVisible = false">
-      <div v-if="billingRecords.length">
+      <div v-if="billingLoading" style="color: #888; text-align: center; padding: 24px">正在加载计费记录...</div>
+      <div v-else-if="billingRecords.length">
         <table>
           <thead><tr><th>周期</th><th>计费方式</th><th>使用量</th><th>金额</th><th>提供方收益</th></tr></thead>
           <tbody>
@@ -260,54 +279,28 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 import Modal from '@/components/Modal.vue'
+import * as assetMarketApi from '@/api/assetMarket'
+import type {
+  Asset,
+  Subscription,
+  BillingRecord
+} from '@/api/assetMarket'
 
 const store = useAppStore()
+const authStore = useAuthStore()
 
 // Tab 状态
 const tab = ref<'market' | 'mine' | 'listed'>('market')
 
 // 资产列表
-interface Asset {
-  id: string
-  name: string
-  type: string
-  owner: string
-  description?: string
-  status: string
-  qualityScore: number
-  securityLevel: string
-  schema?: { fields: Array<{ name: string; type: string; description?: string }> }
-  sample?: Array<Record<string, unknown>>
-  updateFrequency: string
-  tags: Record<string, string>
-  pricing: { mode: string; price: number; unit: string }
-  subscriberCount: number
-}
 const assets = ref<Asset[]>([])
 
 // 订阅列表
-interface Subscription {
-  id: string
-  assetId: string
-  subscriberId: string
-  status: string
-  startTime?: string
-  endTime?: string
-  deliveryStatus?: string
-}
 const mySubscriptions = ref<Subscription[]>([])
 
 // 计费记录
-interface BillingRecord {
-  id: string
-  period: string
-  mode: string
-  usage: number
-  unit: string
-  amount: number
-  providerRevenue: number
-}
 const billingRecords = ref<BillingRecord[]>([])
 
 // 筛选
@@ -315,8 +308,15 @@ const searchQuery = ref('')
 const filterType = ref('')
 const filterSecurity = ref('')
 
-// 当前用户（Mock）
-const currentTenant = 'tenant-B'
+// 加载与错误状态
+const loading = ref(false)
+const error = ref<string | null>(null)
+const subsLoading = ref(false)
+const subsError = ref<string | null>(null)
+const billingLoading = ref(false)
+
+// 当前租户 ID（从 auth store 获取，回退到 'tenant-B'）
+const currentTenant = computed(() => authStore.user?.tenantId || 'tenant-B')
 
 // 弹窗状态
 const detailVisible = ref(false)
@@ -327,7 +327,14 @@ const deliverSub = ref<Subscription | null>(null)
 const billingModalVisible = ref(false)
 
 // 新建资产表单
-const newAsset = ref({
+const newAsset = ref<{
+  name: string
+  type: assetMarketApi.AssetType
+  securityLevel: assetMarketApi.SecurityLevel
+  description: string
+  pricing: assetMarketApi.AssetPricing
+  deliveryMethod: assetMarketApi.DeliveryMethod
+}>({
   name: '',
   type: 'table',
   securityLevel: 'internal',
@@ -337,7 +344,15 @@ const newAsset = ref({
 })
 
 // 交付请求
-const deliverReq = ref({
+const deliverReq = ref<{
+  method: assetMarketApi.DeliveryMethod
+  config: {
+    endpoint: string
+    format: string
+    jdbcUrl: string
+    tableName: string
+  }
+}>({
   method: 'api',
   config: {
     endpoint: '/api/v1/data/query',
@@ -357,7 +372,7 @@ const filteredAssets = computed(() => {
   })
 })
 
-const myAssets = computed(() => assets.value.filter((a) => a.owner === currentTenant))
+const myAssets = computed(() => assets.value.filter((a) => a.owner === currentTenant.value))
 
 const activeSubCount = computed(
   () => mySubscriptions.value.filter((s) => s.status === 'active').length
@@ -482,15 +497,16 @@ function openDetail(a: Asset) {
 }
 
 async function subscribeAsset(a: Asset) {
-  detailVisible.value = false
-  store.showToast(`已订阅 ${a.name}，等待审批`)
-  // Mock: 添加到订阅列表
-  mySubscriptions.value.push({
-    id: 'sub-' + Date.now(),
-    assetId: a.id,
-    subscriberId: currentTenant,
-    status: 'pending',
-  })
+  try {
+    const sub = await assetMarketApi.subscribeAsset(a.id, {
+      subscriberId: currentTenant.value,
+    })
+    mySubscriptions.value.push(sub)
+    detailVisible.value = false
+    store.showToast(`已订阅 ${a.name}，等待审批`)
+  } catch (e) {
+    store.showToast(`订阅失败：${(e as Error).message}`)
+  }
 }
 
 function openDeliver(s: Subscription) {
@@ -498,28 +514,32 @@ function openDeliver(s: Subscription) {
   deliverModalVisible.value = true
 }
 
-function submitDeliver() {
-  deliverModalVisible.value = false
-  if (deliverSub.value) {
-    deliverSub.value.deliveryStatus = 'succeeded'
+async function submitDeliver() {
+  if (!deliverSub.value) return
+  try {
+    const updated = await assetMarketApi.deliverAsset(deliverSub.value.id, {
+      method: deliverReq.value.method,
+      config: deliverReq.value.config,
+    })
+    Object.assign(deliverSub.value, updated)
+    deliverModalVisible.value = false
+    store.showToast('数据交付完成')
+  } catch (e) {
+    store.showToast(`交付失败：${(e as Error).message}`)
   }
-  store.showToast('数据交付完成')
 }
 
-function openBilling(s: Subscription) {
+async function openBilling(s: Subscription) {
   billingModalVisible.value = true
-  // Mock: 生成示例计费记录
-  billingRecords.value = [
-    {
-      id: 'b1',
-      period: '2026-08',
-      mode: 'by_call',
-      usage: 1200,
-      unit: '次',
-      amount: 12.0,
-      providerRevenue: 9.6,
-    },
-  ]
+  billingLoading.value = true
+  try {
+    billingRecords.value = await assetMarketApi.getBillingRecords(s.id)
+  } catch (e) {
+    store.showToast(`加载计费记录失败：${(e as Error).message}`)
+    billingRecords.value = []
+  } finally {
+    billingLoading.value = false
+  }
 }
 
 async function submitListAsset() {
@@ -527,112 +547,82 @@ async function submitListAsset() {
     store.showToast('请填写资产名称')
     return
   }
-  listModalVisible.value = false
-  // Mock: 添加到资产列表
-  assets.value.push({
-    id: 'asset-' + Date.now(),
-    name: newAsset.value.name,
-    type: newAsset.value.type,
-    owner: currentTenant,
-    description: newAsset.value.description,
-    status: 'listed',
-    qualityScore: 80,
-    securityLevel: newAsset.value.securityLevel,
-    updateFrequency: 'static',
-    tags: {},
-    pricing: { ...newAsset.value.pricing },
-    subscriberCount: 0,
-  })
-  store.showToast(`资产 ${newAsset.value.name} 已上架`)
-  // 重置表单
-  newAsset.value = {
-    name: '',
-    type: 'table',
-    securityLevel: 'internal',
-    description: '',
-    pricing: { mode: 'by_call', price: 0.01, unit: '次' },
-    deliveryMethod: 'api',
+  try {
+    const created = await assetMarketApi.listAsset({
+      name: newAsset.value.name,
+      type: newAsset.value.type,
+      securityLevel: newAsset.value.securityLevel,
+      description: newAsset.value.description,
+      pricing: { ...newAsset.value.pricing },
+      deliveryMethod: newAsset.value.deliveryMethod,
+    })
+    assets.value.push(created)
+    listModalVisible.value = false
+    store.showToast(`资产 ${newAsset.value.name} 已上架`)
+    // 重置表单
+    newAsset.value = {
+      name: '',
+      type: 'table',
+      securityLevel: 'internal',
+      description: '',
+      pricing: { mode: 'by_call', price: 0.01, unit: '次' },
+      deliveryMethod: 'api',
+    }
+  } catch (e) {
+    store.showToast(`上架失败：${(e as Error).message}`)
   }
 }
 
-function offlineAsset(a: Asset) {
-  a.status = 'offline'
-  store.showToast(`资产 ${a.name} 已下架`)
+async function offlineAsset(a: Asset) {
+  try {
+    const updated = await assetMarketApi.offlineAsset(a.id)
+    Object.assign(a, updated)
+    store.showToast(`资产 ${a.name} 已下架`)
+  } catch (e) {
+    store.showToast(`下架失败：${(e as Error).message}`)
+  }
 }
 
-function relistAsset(a: Asset) {
-  a.status = 'listed'
-  store.showToast(`资产 ${a.name} 已重新上架`)
+async function relistAsset(a: Asset) {
+  try {
+    const updated = await assetMarketApi.relistAsset(a.id)
+    Object.assign(a, updated)
+    store.showToast(`资产 ${a.name} 已重新上架`)
+  } catch (e) {
+    store.showToast(`重新上架失败：${(e as Error).message}`)
+  }
 }
 
-// 初始化：加载 Mock 示例数据
+// 初始化：从后端加载资产与订阅列表
+async function loadAssets() {
+  loading.value = true
+  error.value = null
+  try {
+    assets.value = await assetMarketApi.listAssets()
+  } catch (e) {
+    error.value = (e as Error).message || '加载资产列表失败'
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadMySubscriptions() {
+  subsLoading.value = true
+  subsError.value = null
+  try {
+    mySubscriptions.value = await assetMarketApi.listSubscriptions({
+      subscriberId: currentTenant.value,
+    })
+  } catch (e) {
+    subsError.value = (e as Error).message || '加载订阅列表失败'
+  } finally {
+    subsLoading.value = false
+  }
+}
+
 onMounted(() => {
-  assets.value = [
-    {
-      id: 'a1',
-      name: 'user-events',
-      type: 'table',
-      owner: 'tenant-A',
-      description: '用户行为事件表，含点击、浏览、购买等事件',
-      status: 'listed',
-      qualityScore: 92,
-      securityLevel: 'internal',
-      schema: {
-        fields: [
-          { name: 'user_id', type: 'string', description: '用户ID' },
-          { name: 'event', type: 'string', description: '事件名' },
-          { name: 'ts', type: 'timestamp', description: '时间戳' },
-        ],
-      },
-      sample: [{ user_id: 'u1', event: 'click', ts: '2026-08-01T00:00:00Z' }],
-      updateFrequency: 'daily',
-      tags: { domain: 'marketing' },
-      pricing: { mode: 'by_call', price: 0.01, unit: '次' },
-      subscriberCount: 3,
-    },
-    {
-      id: 'a2',
-      name: 'risk-model-v2',
-      type: 'model',
-      owner: 'tenant-C',
-      description: '风控评分模型 v2，基于 XGBoost 训练',
-      status: 'listed',
-      qualityScore: 88,
-      securityLevel: 'sensitive',
-      updateFrequency: 'monthly',
-      tags: { domain: 'risk' },
-      pricing: { mode: 'by_call', price: 0.5, unit: '次' },
-      subscriberCount: 2,
-    },
-    {
-      id: 'a3',
-      name: 'realtime-trades',
-      type: 'stream',
-      owner: 'tenant-A',
-      description: '实时交易流，Kafka topic',
-      status: 'listed',
-      qualityScore: 95,
-      securityLevel: 'internal',
-      updateFrequency: 'realtime',
-      tags: { domain: 'finance' },
-      pricing: { mode: 'by_data', price: 2.0, unit: '千行' },
-      subscriberCount: 5,
-    },
-    {
-      id: 'a4',
-      name: 'sales-dashboard',
-      type: 'dashboard',
-      owner: 'tenant-D',
-      description: '销售看板，含 GMV、转化率等指标',
-      status: 'listed',
-      qualityScore: 78,
-      securityLevel: 'public',
-      updateFrequency: 'hourly',
-      tags: { domain: 'sales' },
-      pricing: { mode: 'by_time', price: 100, unit: '月' },
-      subscriberCount: 1,
-    },
-  ]
+  loadAssets()
+  loadMySubscriptions()
 })
 </script>
 

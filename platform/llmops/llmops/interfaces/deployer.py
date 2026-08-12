@@ -2,6 +2,7 @@
 
 对齐设计：{ model, replica, gpu } → 部署端点（注册到 L4.5.6 大模型网关）
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

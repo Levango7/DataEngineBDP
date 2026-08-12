@@ -2,8 +2,10 @@
 
 业务线为顶层组织维度（如"风控线""增长线"），由 L5.2 运营后台创建并分配预算额度。
 """
+
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
@@ -13,7 +15,6 @@ from business_portal.models.base import (
     TimestampMixin,
     utc_now,
 )
-from datetime import datetime
 
 
 class Budget(BaseModel):
@@ -59,12 +60,8 @@ class BusinessLineConfig(BaseModel):
     - tags: 自由标签
     """
 
-    dataIsolation: str = Field(
-        default="strict", description="数据隔离级别: strict/relaxed"
-    )
-    permissionScope: str = Field(
-        default="bl", description="权限范围: bl/team/project"
-    )
+    dataIsolation: str = Field(default="strict", description="数据隔离级别: strict/relaxed")
+    permissionScope: str = Field(default="bl", description="权限范围: bl/team/project")
     features: dict[str, bool] = Field(
         default_factory=lambda: {
             "dashboard": True,
@@ -82,9 +79,7 @@ class BusinessLineConfig(BaseModel):
         if self.dataIsolation not in {"strict", "relaxed"}:
             raise ValueError(f"dataIsolation 必须为 strict/relaxed，得到 {self.dataIsolation}")
         if self.permissionScope not in {"bl", "team", "project"}:
-            raise ValueError(
-                f"permissionScope 必须为 bl/team/project，得到 {self.permissionScope}"
-            )
+            raise ValueError(f"permissionScope 必须为 bl/team/project，得到 {self.permissionScope}")
         return self
 
 
@@ -107,13 +102,9 @@ class BusinessLine(TimestampMixin):
     name: str = Field(..., min_length=1, max_length=128, description="业务线名称")
     tenantId: str = Field(..., min_length=1, description="所属租户 ID")
     description: str | None = Field(default=None, description="描述")
-    status: BusinessLineStatus = Field(
-        default=BusinessLineStatus.ACTIVE, description="状态"
-    )
+    status: BusinessLineStatus = Field(default=BusinessLineStatus.ACTIVE, description="状态")
     budget: Budget = Field(default_factory=Budget, description="预算")
-    config: BusinessLineConfig = Field(
-        default_factory=BusinessLineConfig, description="配置"
-    )
+    config: BusinessLineConfig = Field(default_factory=BusinessLineConfig, description="配置")
     ownerIds: list[str] = Field(default_factory=list, description="业务线管理员")
     teamIds: list[str] = Field(default_factory=list, description="下属团队")
     memberIds: list[str] = Field(default_factory=list, description="全部成员")
@@ -125,9 +116,7 @@ class BusinessLineFilter(BaseModel):
     tenantId: str | None = None
     status: BusinessLineStatus | None = None
     name: str | None = Field(default=None, description="名称模糊匹配")
-    memberId: str | None = Field(
-        default=None, description="按成员过滤（仅返回该成员可见的业务线）"
-    )
+    memberId: str | None = Field(default=None, description="按成员过滤（仅返回该成员可见的业务线）")
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
 

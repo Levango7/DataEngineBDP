@@ -1,4 +1,5 @@
 """知识工程引擎仓储层异常定义."""
+
 from __future__ import annotations
 
 

@@ -1,0 +1,142 @@
+# 严重程度分级规则 · severity-rules
+# ============================================================================
+# 作用：定义漂移事件的严重程度分级标准
+# 集成：被 detection/detect-drift.sh 与 alerting 模块引用
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: drift-severity-rules
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: drift-policy
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-detection
+  annotations:
+    description: "漂移严重程度分级规则"
+data:
+  # ============================================================================
+  # 1. 严重程度定义
+  # ============================================================================
+  severity-levels.yaml: |
+    levels:
+      critical:
+        score: 100
+        description: "严重漂移，需立即处理"
+        sla: "5 分钟内响应"
+        channels: [slack, email, dingtalk, pagerduty]
+      high:
+        score: 75
+        description: "高严重漂移，需尽快处理"
+        sla: "30 分钟内响应"
+        channels: [slack, email, dingtalk]
+      medium:
+        score: 50
+        description: "中等漂移，工作时间内处理"
+        sla: "4 小时内响应"
+        channels: [slack, email]
+      low:
+        score: 25
+        description: "低严重漂移，可延后处理"
+        sla: "24 小时内响应"
+        channels: [slack]
+      none:
+        score: 0
+        description: "无漂移"
+        channels: []
+
+  # ============================================================================
+  # 2. 分级规则（按漂移类型 + 字段）
+  # ============================================================================
+  classification-rules.yaml: |
+    rules:
+      # ─── Critical ───
+      - severity: critical
+        conditions:
+          - driftType: image-drift
+            description: "运行中镜像与 Git 声明不一致"
+          - driftType: resource-missing
+            resourceKind: [Deployment, StatefulSet]
+            description: "关键工作负载资源缺失"
+          - driftType: secret-drift
+            description: "Secret 内容被篡改"
+
+      # ─── High ───
+      - severity: high
+        conditions:
+          - driftType: config-drift
+            description: "ConfigMap 内容被直接修改"
+          - driftType: resource-missing
+            description: "Git 声明的资源在集群中缺失"
+          - driftType: resource-extra
+            description: "集群中存在 Git 未声明的资源"
+          - driftType: resource-quota-drift
+            description: "ResourceQuota 被修改"
+
+      # ─── Medium ───
+      - severity: medium
+        conditions:
+          - driftType: replica-drift
+            description: "副本数与声明不一致"
+          - driftType: resource-limit-drift
+            description: "资源限额被修改"
+          - driftType: env-var-drift
+            description: "环境变量被修改"
+          - driftType: probe-drift
+            description: "健康检查探针被修改"
+
+      # ─── Low ───
+      - severity: low
+        conditions:
+          - driftType: label-drift
+            description: "资源标签被修改"
+          - driftType: annotation-drift
+            description: "资源注解被修改"
+          - driftType: toleration-drift
+            description: "容忍度被修改"
+
+  # ============================================================================
+  # 3. 环境加权（prod 漂移严重程度提升一级）
+  # ============================================================================
+  env-weighting.yaml: |
+    weighting:
+      # prod 环境漂移严重程度提升
+      prod:
+        boost: 1    # low→medium, medium→high, high→critical
+      staging:
+        boost: 0    # 不提升
+      dev:
+        boost: 0    # 不提升
+
+    # 提升后的映射
+    boostMapping:
+      1:
+        low: medium
+        medium: high
+        high: critical
+        critical: critical   # 已最高
+      0:
+        low: low
+        medium: medium
+        high: high
+        critical: critical
+
+  # ============================================================================
+  # 4. 降级规则（特定情况下降低严重程度）
+  # ============================================================================
+  downgrade-rules.yaml: |
+    downgrades:
+      # 维护窗口内的漂移降级
+      - condition: app.metadata.annotations.maintenance == 'true'
+        downgradeTo: low
+        reason: "维护窗口内变更"
+
+      # 临时调试标签的 Pod 漂移降级
+      - condition: resource.metadata.labels.debug == 'true'
+        downgradeTo: low
+        reason: "调试资源"
+
+      # ArgoCD 自身管理的注解变更不告警
+      - condition: driftType == 'annotation-drift' && field startswith 'argocd.argoproj.io/'
+        downgradeTo: none
+        reason: "ArgoCD 管理字段"

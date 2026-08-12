@@ -2,14 +2,16 @@
 
 支持配置项：
     BP_HOST              监听地址（默认 0.0.0.0）
-    BP_PORT              监听端口（默认 8084）
+    BP_PORT              监听端口（默认 8088）
     BP_LOG_LEVEL         日志级别（默认 info）
     BP_RELOAD            开发模式热重载（默认 false）
-    BP_STORE_TYPE        存储类型: mock / sqlite（默认 mock）
+    BP_STORE_TYPE        存储类型: mock / sqlite（默认 sqlite）
+    BP_DB_PATH           SQLite 数据库文件路径（默认 data/business_portal.db）
     BP_API_PREFIX        API 路由前缀（默认 /api/v1）
     BP_INTERNAL_FACTOR   内部结算系数（默认 0.3，§11.5 定价模型）
     BP_BUDGET_SOFT_LIMIT 预算软限制开关（默认 true，超限告警不阻断）
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -32,13 +34,15 @@ class Settings(BaseSettings):
 
     # ---- server ----
     host: str = Field(default="0.0.0.0", description="监听地址")
-    port: int = Field(default=8084, ge=1, le=65535, description="监听端口")
+    port: int = Field(default=8088, ge=1, le=65535, description="监听端口")
     logLevel: str = Field(default="info", description="日志级别")
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- store ----
-    storeType: Literal["mock", "sqlite"] = Field(
-        default="mock", description="存储类型: mock / sqlite"
+    storeType: Literal["mock", "sqlite"] = Field(default="sqlite", description="存储类型: mock / sqlite")
+    dbPath: str = Field(
+        default="data/business_portal.db",
+        description="SQLite 数据库文件路径（storeType=sqlite 时生效）",
     )
 
     # ---- api ----
@@ -46,13 +50,9 @@ class Settings(BaseSettings):
 
     # ---- 业务参数 ----
     # 内部结算系数：成本 × 0.3 推财务（§11.5 定价模型）
-    internalFactor: float = Field(
-        default=0.3, ge=0.0, le=1.0, description="内部结算系数"
-    )
+    internalFactor: float = Field(default=0.3, ge=0.0, le=1.0, description="内部结算系数")
     # 预算软限制：true=超限告警不阻断，false=超限阻断
-    budgetSoftLimit: bool = Field(
-        default=True, description="预算软限制开关"
-    )
+    budgetSoftLimit: bool = Field(default=True, description="预算软限制开关")
 
     @field_validator("logLevel")
     @classmethod

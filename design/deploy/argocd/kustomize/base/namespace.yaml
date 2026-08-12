@@ -1,0 +1,11 @@
+# 基础 namespace · 被各环境 overlay 通过 patch 改名
+# ============================================================================
+# 注意：ArgoCD Application 的 destination.namespace 已指定具体环境 namespace
+# 此 namespace 资源作为占位，实际名称由 overlay 的 namePrefix 或 patch 决定
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+  labels:
+    app.kubernetes.io/part-of: shuqing-bigdata-platform

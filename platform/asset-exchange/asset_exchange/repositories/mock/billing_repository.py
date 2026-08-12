@@ -1,8 +1,8 @@
 """Mock 计费仓储 - 内存字典实现."""
+
 from __future__ import annotations
 
 import uuid
-from typing import Any
 
 from asset_exchange.interfaces.billing_repository import BillingRepository
 from asset_exchange.models.base import utc_now
@@ -32,18 +32,12 @@ class MockBillingRepository(BillingRepository):
         return self._records[record_id]
 
     async def list_by_asset(self, asset_id: str) -> list[BillingRecord]:
-        result = [
-            r for r in self._records.values() if r.assetId == asset_id
-        ]
+        result = [r for r in self._records.values() if r.assetId == asset_id]
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result
 
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[BillingRecord]:
-        result = [
-            r for r in self._records.values() if r.subscriptionId == subscription_id
-        ]
+    async def list_by_subscription(self, subscription_id: str) -> list[BillingRecord]:
+        result = [r for r in self._records.values() if r.subscriptionId == subscription_id]
         result.sort(key=lambda x: x.createdAt, reverse=True)
         return result
 

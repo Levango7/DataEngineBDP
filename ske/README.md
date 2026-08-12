@@ -1,7 +1,7 @@
-# 数擎云核 SKE（Shuqing Kubernetes Engine）· 深度定制高性能 K8s 发行版
+﻿# 数擎云核 SKE（DataEngine Kubernetes Engine）· 深度定制高性能 K8s 发行版
 
 > 版本：v0.1 ｜ 日期：2026-08-02 ｜ 状态：发行版设计 + 可运行 bootstrap
-> 所属：数擎大数据平台（Shuqing BigData Platform）运行时底座
+> 所属：数据引擎大数据平台（Shuqing BigData Platform）运行时底座
 > 定位：**不是开源内置默认款（kubeadm/k3s/kind 原样），而是深度定制、高度封装、性能优先的自有 K8s 发行版**。客户完全感知不到 K8s 的存在。
 
 ---
@@ -11,9 +11,9 @@
 | 项 | 值 |
 | --- | --- |
 | 中文名 | **数擎云核** |
-| 代号 | **SKE（Shuqing Kubernetes Engine）** |
-| 项目根目录 | `F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform`（本机运行时） |
-| 角色 | 数擎大数据平台的**唯一、不可见、高性能**资源底座 |
+| 代号 | **SKE（DataEngine Kubernetes Engine）** |
+| 项目根目录 | `F:\Agent\workbuddy\workspace\DataEngineBDP`（本机运行时） |
+| 角色 | 数据引擎大数据平台的**唯一、不可见、高性能**资源底座 |
 | 对标 | 星环 TCOS（自研云原生操作系统）、华为 FusionInsight 底座 |
 | 差异化 | 标准上游 K8s 二进制 + 自有深度调优与封装层，**不绑云、不绑单一发行版、可四环境一致交付** |
 
@@ -85,7 +85,7 @@
 
 ---
 
-## 4. 与数擎大数据平台的关系
+## 4. 与数据引擎大数据平台的关系
 
 ```
 客户业务 ──> 控制台(L5) ──> 封装层(L1.6) ──> 数擎云核 SKE ──> 物理/虚拟资源
@@ -136,7 +136,7 @@ SKE 有两种本地拉起方式，底层都落在 WSL2：
 > 前置：安装并启动 **Docker Desktop**（你已具备）；本机有 `kubectl`（你已具备）。
 
 ```bash
-cd /f/Agent/workbuddy/workspace/ShuqingBigDataPlatform
+cd /f/Agent/workbuddy/workspace/DataEngineBDP
 bash ske/ske.sh tune-host                       # 宿主机尽力调优（受限项会提示）
 bash ske/ske.sh up --profile local --mode dev   # 单节点 kind + 自定义节点镜像 + Cilium
 bash platform/bootstrap.sh --profile local      # 封装层骨架 + 本地 MinIO
@@ -149,7 +149,7 @@ bash ske/ske.sh down
 ```bash
 # 在 Windows 侧：wsl --install -d Ubuntu；并在 Ubuntu 内开 systemd（见 WSL2-QUICKSTART.md）
 # 进入 WSL2 Ubuntu 后：
-cd /mnt/f/Agent/workbuddy/workspace/ShuqingBigDataPlatform                 # 项目挂载路径
+cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP                 # 项目挂载路径
 sudo bash ske/wsl2/setup-host.sh                 # 装 containerd + kubeadm/kubelet/kubectl
 sudo bash ske/ske.sh tune-host                   # 内核/网络栈/大页尽力调优
 sudo bash ske/ske.sh up --target wsl2 --profile local   # 真实 kubeadm 拉起 SKE

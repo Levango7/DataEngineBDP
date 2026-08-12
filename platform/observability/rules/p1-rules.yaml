@@ -1,0 +1,145 @@
+# P1 重要告警规则模板
+#
+# 用途：作业失败率/查询延迟/存储水位等重要异常，触发邮件+企业微信通知。
+# 通知渠道：Alertmanager → p1-email-im receiver → SMTP 邮件 + 企业微信 IM
+# 时效要求：30 秒聚合，30 分钟重复
+#
+# 模板变量（租户自定义时替换）：
+#   {{tenant_id}}       — 租户 ID
+#   {{fail_threshold}}  — 失败率阈值，默认 0.1（10%）
+#   {{latency_p95}}     — 延迟 P95 阈值，默认 5 秒
+#   {{disk_threshold}}  — 磁盘使用率阈值，默认 0.8（80%）
+groups:
+  - name: p1-important-platform
+    interval: 30s
+    rules:
+      # ---------------------------------------------------------------------------
+      # 规则 1：组件实例 CPU 使用率过高
+      # ---------------------------------------------------------------------------
+      - alert: HighCPUUsage
+        expr: |
+          (rate(process_cpu_seconds_total[5m]) * 100) > 80
+        for: 10m
+        labels:
+          severity: P1
+          component: "{{ $labels.job }}"
+          category: resource
+        annotations:
+          summary: "CPU 使用率过高: {{ $labels.job }} @ {{ $labels.instance }}"
+          description: "组件 {{ $labels.job }} ({{ $labels.instance }}) CPU 使用率持续 10 分钟超过 80%。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/high-cpu"
+
+      # ---------------------------------------------------------------------------
+      # 规则 2：组件内存使用率过高
+      # ---------------------------------------------------------------------------
+      - alert: HighMemoryUsage
+        expr: |
+          (process_resident_memory_bytes / process_memory_limit_bytes) > 0.85
+        for: 10m
+        labels:
+          severity: P1
+          component: "{{ $labels.job }}"
+          category: resource
+        annotations:
+          summary: "内存使用率过高: {{ $labels.job }} @ {{ $labels.instance }}"
+          description: "组件 {{ $labels.job }} ({{ $labels.instance }}) 内存使用率持续 10 分钟超过 85%，有 OOM 风险。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/high-memory"
+
+      # ---------------------------------------------------------------------------
+      # 规则 3：Prometheus 规则评估失败
+      # ---------------------------------------------------------------------------
+      - alert: PrometheusRuleEvaluationFailures
+        expr: |
+          rate(prometheus_rule_evaluation_failures_total[5m]) > 0
+        for: 5m
+        labels:
+          severity: P1
+          component: prometheus
+          category: observability
+        annotations:
+          summary: "Prometheus 规则评估失败: {{ $labels.rule_group }}"
+          description: "规则组 {{ $labels.rule_group }} 评估持续失败，可能导致告警漏报。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/rule-eval-fail"
+
+      # ---------------------------------------------------------------------------
+      # 规则 4：Kubernetes Pod 重启次数过多
+      # ---------------------------------------------------------------------------
+      - alert: PodRestartTooFrequent
+        expr: |
+          increase(kube_pod_container_status_restarts_total[1h]) > 5
+        for: 5m
+        labels:
+          severity: P1
+          component: kubernetes
+          category: infrastructure
+        annotations:
+          summary: "Pod 频繁重启: {{ $labels.namespace }}/{{ $labels.pod }}"
+          description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} 1 小时内重启超过 5 次。"
+          value: "{{ $value }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/pod-restart"
+
+  # ---------------------------------------------------------------------------
+  # 租户级 P1 告警（租户可基于本 group 自定义阈值）
+  # ---------------------------------------------------------------------------
+  - name: p1-important-tenant
+    interval: 30s
+    rules:
+      # 规则 5：租户作业失败率超阈值
+      - alert: TenantJobFailureRateHigh
+        expr: |
+          (
+            sum(rate(shuqing_job_failed_total{tenant_id="{{tenant_id}}"}[15m]))
+            /
+            sum(rate(shuqing_job_total{tenant_id="{{tenant_id}}"}[15m]))
+          ) > {{fail_threshold}}
+        for: 10m
+        labels:
+          severity: P1
+          component: job
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 作业失败率过高"
+          description: "租户 {{tenant_id}} 作业失败率超过 {{fail_threshold}}，持续 10 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-job-fail"
+
+      # 规则 6：租户查询延迟 P95 超阈值
+      - alert: TenantQueryLatencyHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le) (rate(shuqing_query_duration_seconds_bucket{tenant_id="{{tenant_id}}"}[5m]))
+          ) > {{latency_p95}}
+        for: 10m
+        labels:
+          severity: P1
+          component: query
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 查询延迟 P95 过高"
+          description: "租户 {{tenant_id}} 查询 P95 延迟超过 {{latency_p95}} 秒，持续 10 分钟。"
+          value: "{{ $value | humanizeDuration }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-query-latency"
+
+      # 规则 7：租户存储水位超阈值
+      - alert: TenantStorageHigh
+        expr: |
+          shuqing_tenant_storage_used_bytes{tenant_id="{{tenant_id}}"}
+          /
+          shuqing_tenant_storage_quota_bytes{tenant_id="{{tenant_id}}"}
+          > {{disk_threshold}}
+        for: 30m
+        labels:
+          severity: P1
+          component: storage
+          category: tenant
+          tenant_id: "{{tenant_id}}"
+        annotations:
+          summary: "租户 {{tenant_id}} 存储水位过高"
+          description: "租户 {{tenant_id}} 存储使用率超过 {{disk_threshold}}，持续 30 分钟。"
+          value: "{{ $value | humanizePercentage }}"
+          runbook_url: "https://wiki.shuqing.bigdata/runbook/tenant-storage"

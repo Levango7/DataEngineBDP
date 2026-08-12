@@ -4,6 +4,7 @@
 部署完成后注册到 L4.5.6 大模型网关。
 本模块为骨架，提供接口签名。
 """
+
 from __future__ import annotations
 
 import uuid
@@ -40,9 +41,7 @@ class MLflowModelDeployer(ModelDeployer):
             modelId=model_id,
             modelVersion=config.modelVersion or 1,
             config=config,
-            status=DeploymentStatusInfo(
-                status=DeploymentStatus.CREATING, readyReplica=0
-            ),
+            status=DeploymentStatusInfo(status=DeploymentStatus.CREATING, readyReplica=0),
         )
         self._deployments[deployment_id] = deployment
         return deployment_id
@@ -53,9 +52,7 @@ class MLflowModelDeployer(ModelDeployer):
             DeploymentStatus.STOPPED,
             DeploymentStatus.FAILED,
         }:
-            raise DeploymentNotUndeployableError(
-                deployment_id, dep.status.status
-            )
+            raise DeploymentNotUndeployableError(deployment_id, dep.status.status)
         # 骨架：实际应通过 K8s API 删除 Deployment + Service
         dep.status.status = DeploymentStatus.STOPPING
         dep.updatedAt = utc_now()
@@ -67,6 +64,4 @@ class MLflowModelDeployer(ModelDeployer):
         return self._deployments[deployment_id]
 
     async def list_deployments(self) -> list[Deployment]:
-        return sorted(
-            self._deployments.values(), key=lambda d: d.createdAt, reverse=True
-        )
+        return sorted(self._deployments.values(), key=lambda d: d.createdAt, reverse=True)

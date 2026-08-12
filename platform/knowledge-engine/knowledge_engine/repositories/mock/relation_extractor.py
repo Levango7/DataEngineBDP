@@ -5,6 +5,7 @@
     - 内置常见关系模式（located_in / works_for / founded_in / on_date）。
     - 关系两端实体类型约束：避免无意义组合。
 """
+
 from __future__ import annotations
 
 import re
@@ -12,7 +13,6 @@ import re
 from knowledge_engine.interfaces.relation_extractor import RelationExtractor
 from knowledge_engine.models.entity import Entity
 from knowledge_engine.models.relation import Relation
-
 
 # 关系规则：(关系类型, 起点实体类型, 终点实体类型, 触发词正则)
 # 触发词在原文出现即认为存在该关系（同句子/邻近简化为全文匹配）。
@@ -43,9 +43,7 @@ class MockRelationExtractor(RelationExtractor):
     ) -> None:
         self.patterns = patterns if patterns is not None else _RELATION_PATTERNS
 
-    async def extract(
-        self, text: str, entities: list[Entity]
-    ) -> list[Relation]:
+    async def extract(self, text: str, entities: list[Entity]) -> list[Relation]:
         # 按类型索引实体
         by_type: dict[str, list[Entity]] = {}
         for e in entities:

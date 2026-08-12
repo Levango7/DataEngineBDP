@@ -1,4 +1,5 @@
 """通用依赖与错误处理."""
+
 from __future__ import annotations
 
 from fastapi import Request
@@ -9,9 +10,9 @@ from llmops.repositories import (
     LlmopsError,
     ModelAlreadyExistsError,
     ModelNotFoundError,
-    TrainingJobNotFoundError,
     TrainingJobNotCancellableError,
     TrainingJobNotFinishedError,
+    TrainingJobNotFoundError,
     ValidationError,
     VersionNotFoundError,
 )

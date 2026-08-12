@@ -2,6 +2,7 @@
 //
 // API 端点（前缀 /api/v1）：
 //
+//	GET    /health                            健康检查
 //	POST   /collections                       创建集合
 //	DELETE /collections/:name                 删除集合
 //	POST   /collections/:name/vectors         插入向量
@@ -10,7 +11,7 @@
 //	DELETE /collections/:name/vectors         删除向量
 //	GET    /collections/:name/stats           集合统计
 //
-// 健康检查：GET /health
+// 健康检查：GET /api/v1/health
 package api
 
 import (
@@ -19,8 +20,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/shuqing/bigdata/vector-engine/internal/service"
-	"github.com/shuqing/bigdata/vector-engine/internal/store"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/service"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
 
 // HealthHandler 处理健康检查请求。
@@ -35,7 +36,7 @@ func NewHealthHandler(version, component string) *HealthHandler {
 }
 
 // Health 返回服务健康状态。
-// GET /health
+// GET /api/v1/health
 func (h *HealthHandler) Health(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"status":    "UP",
@@ -70,7 +71,7 @@ func (h *VectorHandler) RegisterRoutes(rg *gin.RouterGroup) {
 func (h *VectorHandler) CreateCollection(c *gin.Context) {
 	var req store.CreateCollectionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
 	if err := h.svc.CreateCollection(c.Request.Context(), req); err != nil {
@@ -78,10 +79,10 @@ func (h *VectorHandler) CreateCollection(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
-		"name":        req.Name,
-		"dimension":   req.Dimension,
-		"metric_type": req.MetricType,
-		"index_type":  req.IndexType,
+		"name":       req.Name,
+		"dimension":  req.Dimension,
+		"metricType": req.MetricType,
+		"indexType":  req.IndexType,
 	})
 }
 
@@ -104,7 +105,7 @@ func (h *VectorHandler) InsertVectors(c *gin.Context) {
 		Vectors []store.Vector `json:"vectors"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
 	req := store.InsertRequest{
@@ -126,11 +127,11 @@ func (h *VectorHandler) Search(c *gin.Context) {
 	name := c.Param("name")
 	var body struct {
 		Vector []float32 `json:"vector"`
-		TopK   int       `json:"top_k"`
+		TopK   int       `json:"topK"`
 		Filter string    `json:"filter"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
 	req := store.SearchRequest{
@@ -156,12 +157,12 @@ func (h *VectorHandler) HybridSearch(c *gin.Context) {
 	name := c.Param("name")
 	var body struct {
 		Vector   []float32 `json:"vector"`
-		TopK     int       `json:"top_k"`
+		TopK     int       `json:"topK"`
 		Filter   string    `json:"filter"`
-		MinScore float32   `json:"min_score"`
+		MinScore float32   `json:"minScore"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
 	req := store.HybridSearchRequest{
@@ -191,7 +192,7 @@ func (h *VectorHandler) DeleteVectors(c *gin.Context) {
 		IDs []string `json:"ids"`
 	}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
 	if err := h.svc.Delete(c.Request.Context(), name, body.IDs); err != nil {
@@ -215,20 +216,26 @@ func (h *VectorHandler) GetStats(c *gin.Context) {
 	c.JSON(http.StatusOK, stats)
 }
 
-// writeStoreError 将 store 层错误映射为合适的 HTTP 状态码。
+// writeStoreError 将 store 层错误映射为统一的 HTTP 错误响应格式：
+//
+//	{"error": "<errorCode>", "message": "<errorMessage>"}
+//
+// error 为机器可读的错误码（snake_case），message 为人类可读的错误描述。
 func (h *VectorHandler) writeStoreError(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, store.ErrCollectionNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": "collection_not_found", "message": err.Error()})
 	case errors.Is(err, store.ErrCollectionAlreadyExists):
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		c.JSON(http.StatusConflict, gin.H{"error": "collection_already_exists", "message": err.Error()})
 	case errors.Is(err, store.ErrVectorNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": "vector_not_found", "message": err.Error()})
 	case errors.Is(err, store.ErrInvalidDimension):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-	case errors.Is(err, store.ErrInvalidMetricType), errors.Is(err, store.ErrInvalidIndexType):
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_dimension", "message": err.Error()})
+	case errors.Is(err, store.ErrInvalidMetricType):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_metric_type", "message": err.Error()})
+	case errors.Is(err, store.ErrInvalidIndexType):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_index_type", "message": err.Error()})
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "bad_request", "message": err.Error()})
 	}
 }

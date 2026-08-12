@@ -1,0 +1,186 @@
+﻿{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": "-- Grafana --",
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "数据引擎大数据平台 · GitOps 配置漂移监控面板",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "schemaVersion": 38,
+  "style": "light",
+  "tags": ["argocd", "gitops", "drift-detection"],
+  "title": "GitOps 漂移检测",
+  "uid": "drift-detection",
+  "version": 1,
+  "panels": [
+    {
+      "id": 1,
+      "title": "漂移概览",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "drift:apps_out_of_sync:count",
+          "legendFormat": "漂移 App 数"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "yellow", "value": 1},
+              {"color": "red", "value": 5}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "按环境分组",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+      "targets": [
+        {
+          "expr": "drift:apps_out_of_sync:by_env",
+          "legendFormat": "{{environment}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "按严重程度分组",
+      "type": "piechart",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "drift:events:by_severity",
+          "legendFormat": "{{severity}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "修复成功率",
+      "type": "gauge",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 0},
+      "targets": [
+        {
+          "expr": "drift:remediation_success:rate * 100",
+          "legendFormat": "成功率%"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "steps": [
+              {"color": "red", "value": null},
+              {"color": "yellow", "value": 70},
+              {"color": "green", "value": 90}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "漂移 App 列表",
+      "type": "table",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "targets": [
+        {
+          "expr": "argocd_app_info{sync_status!=\"Synced\"}",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {"Time": true, "Value": true}
+          }
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "漂移趋势（24h）",
+      "type": "timeseries",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "targets": [
+        {
+          "expr": "drift:apps_out_of_sync:by_env",
+          "legendFormat": "{{environment}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineInterpolation": "linear",
+            "fillOpacity": 20,
+            "stacking": {"mode": "normal"}
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "修复耗时分布",
+      "type": "histogram",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(argocd_remediation_duration_bucket[5m])) by (le))",
+          "legendFormat": "P95 修复耗时"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "熔断事件",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {
+          "expr": "drift:circuit_breaker:count",
+          "legendFormat": "熔断次数"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "red", "value": 1}
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "time": {"from": "now-24h", "to": "now"},
+  "timepicker": {},
+  "refresh": "30s"
+}

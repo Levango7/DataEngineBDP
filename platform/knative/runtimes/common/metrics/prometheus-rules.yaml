@@ -1,0 +1,77 @@
+﻿# ============================================================================
+# Prometheus 报警规则 · 数据引擎大数据平台 T025
+# ----------------------------------------------------------------------------
+# 作用：基于 invocation 指标定义报警规则，按 tenant 隔离
+# 指标来源：serverless_invocation_count / serverless_invocation_duration_seconds
+# 查询示例（按租户）：
+#   sum by (tenant) (rate(serverless_invocation_count[5m]))
+#   histogram_quantile(0.99, sum by (le, tenant) (rate(serverless_invocation_duration_seconds_bucket[5m])))
+# ============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: serverless-invocation-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: serverless-invocation-alerts
+    app.kubernetes.io/part-of: serverless-runtime
+    platform.shuqing.io/component: invocation-metering
+    platform.shuqing.io/task: "T025"
+spec:
+  groups:
+    - name: serverless-invocation
+      interval: 30s
+      rules:
+        # 报警 1：函数错误率 > 5%（5 分钟窗口）
+        - alert: ServerlessHighErrorRate
+          expr: |
+            sum by (tenant, function) (rate(serverless_invocation_count{status="error"}[5m]))
+            /
+            sum by (tenant, function) (rate(serverless_invocation_count[5m]))
+            > 0.05
+          for: 2m
+          labels:
+            severity: warning
+            category: serverless
+          annotations:
+            summary: "Serverless 函数错误率过高"
+            description: "租户 {{ $labels.tenant }} 的函数 {{ $labels.function }} 错误率超过 5%，持续 2 分钟"
+
+        # 报警 2：P99 延迟 > 2s
+        - alert: ServerlessHighLatency
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le, tenant, function) (rate(serverless_invocation_duration_seconds_bucket[5m]))
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+            category: serverless
+          annotations:
+            summary: "Serverless 函数 P99 延迟过高"
+            description: "租户 {{ $labels.tenant }} 的函数 {{ $labels.function }} P99 延迟超过 2s"
+
+        # 报警 3：冷启动过多（warmup 状态计数高）
+        - alert: ServerlessExcessiveColdStarts
+          expr: |
+            sum by (tenant, runtime) (increase(serverless_invocation_count{status="warmup"}[10m]))
+            > 50
+          for: 5m
+          labels:
+            severity: info
+            category: serverless
+          annotations:
+            summary: "Serverless 冷启动次数过多"
+            description: "租户 {{ $labels.tenant }} 的 {{ $labels.runtime }} 运行时 10 分钟内冷启动超过 50 次"
+
+        # 报警 4：租户无调用（可能配置问题）
+        - alert: ServerlessNoInvocations
+          expr: |
+            sum by (tenant) (rate(serverless_invocation_count[30m])) == 0
+          for: 30m
+          labels:
+            severity: info
+            category: serverless
+          annotations:
+            summary: "租户无 Serverless 调用"
+            description: "租户 {{ $labels.tenant }} 30 分钟内无任何函数调用"

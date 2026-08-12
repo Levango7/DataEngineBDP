@@ -1,0 +1,29 @@
+# 同步策略模板三：自动同步但关闭自愈（prod 漂移容忍）
+# ============================================================================
+# 适用于：prod 紧急手动修复期间，暂时容忍集群与 Git 差异
+# 操作：修复后 Git 提交相同配置，再恢复 selfHeal
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sync-policy-template-auto-no-heal
+  namespace: argocd
+  annotations:
+    description: "模板：自动同步 + 修剪，但关闭自愈（prod 紧急修复期）"
+    note: "此为模板，不实际部署，复制 spec.syncPolicy 到真实 Application"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/argocd/kustomize/overlays/prod
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-platform
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: false     # 关闭自愈：容忍集群漂移
+    syncOptions:
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
