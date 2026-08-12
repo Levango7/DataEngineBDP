@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 # Model Finetuning Engine Dockerfile
 # 数据引擎大数据平台 · T032 LoRA/QLoRA/全参微调引擎
 #

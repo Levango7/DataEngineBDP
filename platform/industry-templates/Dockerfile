@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 # Industry Templates Platform Dockerfile
 # 数据引擎大数据平台 L5.7 行业应用模板 - 行业应用模板平台
 

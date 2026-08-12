@@ -2,6 +2,9 @@
 # 多阶段构建：构建阶段
 FROM node:22-alpine AS build
 
+LABEL org.opencontainers.image.source="https://github.com/Levango7/DataEngineBDP"
+LABEL org.opencontainers.image.description="DataEngineBDP frontend console"
+
 # 上下文已提前设置为 frontend/，构建过程与原生完全一致
 WORKDIR /build
 
