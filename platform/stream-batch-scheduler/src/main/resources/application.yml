@@ -6,6 +6,19 @@ spring:
     name: stream-batch-scheduler
   jackson:
     default-property-inclusion: non_null
+  # ---------- 任务运维中心：运行历史持久化 ----------
+  datasource:
+    url: ${SCHEDULER_DB_URL:jdbc:h2:file:${user.home}/.shuqing/scheduler-data;AUTO_SERVER=TRUE}
+    driver-class-name: ${SCHEDULER_DB_DRIVER:org.h2.Driver}
+    username: ${SCHEDULER_DB_USERNAME:sa}
+    password: ${SCHEDULER_DB_PASSWORD:}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        dialect: ${SCHEDULER_DB_DIALECT:org.hibernate.dialect.H2Dialect}
 
 management:
   endpoints:
