@@ -1,0 +1,1574 @@
+{
+  "summary": {
+    "total_charts": 81,
+    "lint_passed": 21,
+    "lint_failed": 60,
+    "dry_run_passed": 81,
+    "dry_run_failed": 0,
+    "readme_present": 81,
+    "readme_missing": 0,
+    "version_distribution": {
+      "2.0.0": 80,
+      "unknown": 1
+    },
+    "version_uniform": false
+  },
+  "charts": [
+    {
+      "name": "airflow",
+      "path": "design\\deploy\\charts\\airflow",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "apisix",
+      "path": "design\\deploy\\charts\\apisix",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 1,
+        "valid_manifests": 1
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "asset-catalog",
+      "path": "design\\deploy\\charts\\asset-catalog",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "asset-exchange",
+      "path": "design\\deploy\\charts\\asset-exchange",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "business-portal",
+      "path": "design\\deploy\\charts\\business-portal",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "catalog",
+      "path": "design\\deploy\\charts\\catalog",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "cert-manager",
+      "path": "design\\deploy\\charts\\cert-manager",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "chunker",
+      "path": "design\\deploy\\charts\\chunker",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "cluster-autoscaler",
+      "path": "design\\deploy\\charts\\cluster-autoscaler",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "cni-cilium",
+      "path": "design\\deploy\\charts\\cni-cilium",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "csi-ceph",
+      "path": "design\\deploy\\charts\\csi-ceph",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "csi-juicefs",
+      "path": "design\\deploy\\charts\\csi-juicefs",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "data-quality",
+      "path": "design\\deploy\\charts\\data-quality",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "descheduler",
+      "path": "design\\deploy\\charts\\descheduler",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "dolphinscheduler",
+      "path": "design\\deploy\\charts\\dolphinscheduler",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "doris",
+      "path": "design\\deploy\\charts\\doris",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "dqctl",
+      "path": "design\\deploy\\charts\\dqctl",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "elasticsearch",
+      "path": "design\\deploy\\charts\\elasticsearch",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "encaps-layer",
+      "path": "design\\deploy\\charts\\encaps-layer",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "external-secrets",
+      "path": "design\\deploy\\charts\\external-secrets",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "finance-template",
+      "path": "design\\deploy\\charts\\finance-template",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "YAML 解析错误: expected '<document start>', but found '<block mapping start>'\n  in \"design\\deploy\\charts\\finance-template\\Chart.yaml\", line 14, column 1"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": null,
+      "chart_api_version": null
+    },
+    {
+      "name": "finops",
+      "path": "design\\deploy\\charts\\finops",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "flink",
+      "path": "design\\deploy\\charts\\flink",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "flink-cdc",
+      "path": "design\\deploy\\charts\\flink-cdc",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "governance",
+      "path": "design\\deploy\\charts\\governance",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "grafana",
+      "path": "design\\deploy\\charts\\grafana",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "hive-metastore",
+      "path": "design\\deploy\\charts\\hive-metastore",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "iceberg-rest",
+      "path": "design\\deploy\\charts\\iceberg-rest",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "industry-templates",
+      "path": "design\\deploy\\charts\\industry-templates",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "infra-orchestrator",
+      "path": "design\\deploy\\charts\\infra-orchestrator",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "infra-provider-baremetal",
+      "path": "design\\deploy\\charts\\infra-provider-baremetal",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "infra-provider-cloud",
+      "path": "design\\deploy\\charts\\infra-provider-cloud",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "infra-provider-private",
+      "path": "design\\deploy\\charts\\infra-provider-private",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "infra-provider-xinchang",
+      "path": "design\\deploy\\charts\\infra-provider-xinchang",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "ingress-nginx",
+      "path": "design\\deploy\\charts\\ingress-nginx",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "iotdb",
+      "path": "design\\deploy\\charts\\iotdb",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "jupyter",
+      "path": "design\\deploy\\charts\\jupyter",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "kafka",
+      "path": "design\\deploy\\charts\\kafka",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "karmada",
+      "path": "design\\deploy\\charts\\karmada",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "keda",
+      "path": "design\\deploy\\charts\\keda",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "keycloak",
+      "path": "design\\deploy\\charts\\keycloak",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "knative-serving",
+      "path": "design\\deploy\\charts\\knative-serving",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "knowledge-engine",
+      "path": "design\\deploy\\charts\\knowledge-engine",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "lineage-analyzer",
+      "path": "design\\deploy\\charts\\lineage-analyzer",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "llm-gateway",
+      "path": "design\\deploy\\charts\\llm-gateway",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "llmops",
+      "path": "design\\deploy\\charts\\llmops",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "loki",
+      "path": "design\\deploy\\charts\\loki",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "metadata-collector",
+      "path": "design\\deploy\\charts\\metadata-collector",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "metallb",
+      "path": "design\\deploy\\charts\\metallb",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "metrics-server",
+      "path": "design\\deploy\\charts\\metrics-server",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "milvus",
+      "path": "design\\deploy\\charts\\milvus",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "minio",
+      "path": "design\\deploy\\charts\\minio",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "ml-platform",
+      "path": "design\\deploy\\charts\\ml-platform",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "mlflow",
+      "path": "design\\deploy\\charts\\mlflow",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "model-finetuning",
+      "path": "design\\deploy\\charts\\model-finetuning",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "nebula-graph",
+      "path": "design\\deploy\\charts\\nebula-graph",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "nl2sql",
+      "path": "design\\deploy\\charts\\nl2sql",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "node-problem-detector",
+      "path": "design\\deploy\\charts\\node-problem-detector",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "observability",
+      "path": "design\\deploy\\charts\\observability",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "open-api-catalog",
+      "path": "design\\deploy\\charts\\open-api-catalog",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "postgresql",
+      "path": "design\\deploy\\charts\\postgresql",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "prometheus",
+      "path": "design\\deploy\\charts\\prometheus",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "redis",
+      "path": "design\\deploy\\charts\\redis",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "registry",
+      "path": "design\\deploy\\charts\\registry",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "reloader",
+      "path": "design\\deploy\\charts\\reloader",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "rule-engine",
+      "path": "design\\deploy\\charts\\rule-engine",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "seatunnel",
+      "path": "design\\deploy\\charts\\seatunnel",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "ske-infra",
+      "path": "design\\deploy\\charts\\ske-infra",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "spark",
+      "path": "design\\deploy\\charts\\spark",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "sql-gateway",
+      "path": "design\\deploy\\charts\\sql-gateway",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "storage-io",
+      "path": "design\\deploy\\charts\\storage-io",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "stream-batch-scheduler",
+      "path": "design\\deploy\\charts\\stream-batch-scheduler",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "superset",
+      "path": "design\\deploy\\charts\\superset",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "tag-engine",
+      "path": "design\\deploy\\charts\\tag-engine",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "tempo",
+      "path": "design\\deploy\\charts\\tempo",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "theia",
+      "path": "design\\deploy\\charts\\theia",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "trino",
+      "path": "design\\deploy\\charts\\trino",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "vector-engine",
+      "path": "design\\deploy\\charts\\vector-engine",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "velero",
+      "path": "design\\deploy\\charts\\velero",
+      "lint": {
+        "passed": true,
+        "issues": []
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": "v2"
+    },
+    {
+      "name": "vscode-server",
+      "path": "design\\deploy\\charts\\vscode-server",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    },
+    {
+      "name": "zookeeper",
+      "path": "design\\deploy\\charts\\zookeeper",
+      "lint": {
+        "passed": false,
+        "issues": [
+          "Chart.yaml 缺少必填字段: apiVersion",
+          "Chart.yaml apiVersion 非法: None（应为 v1 或 v2）"
+        ]
+      },
+      "dry_run": {
+        "passed": true,
+        "issues": [],
+        "total_manifests": 0,
+        "valid_manifests": 0
+      },
+      "readme": true,
+      "chart_version": "2.0.0",
+      "chart_api_version": null
+    }
+  ]
+}
