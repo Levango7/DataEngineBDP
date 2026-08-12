@@ -34,8 +34,11 @@ public class SnapshotIsolationConfig {
     /** Iceberg Catalog 名称。 */
     private String catalogName = "shuqing_catalog";
 
-    /** Iceberg Catalog URI（Hive Metastore Thrift URI 或 REST Catalog URI）。 */
-    private String catalogUri = "thrift://localhost:9083";
+    /** REST Catalog URI（当 catalogType=rest 时生效，默认指向 iceberg-rest chart）。 */
+    private String restCatalogUri = "http://iceberg-rest.shuqing-system.svc.cluster.local:8181";
+
+    /** Hive Metastore URI（当 catalogType=hive 时生效，兼容回退）。 */
+    private String hiveMetastoreUri = "thrift://localhost:9083";
 
     /** Iceberg Warehouse 路径。 */
     private String warehouse = "s3://shuqing-warehouse/iceberg";
@@ -83,15 +86,36 @@ public class SnapshotIsolationConfig {
     private Map<String, Map<String, String>> tableProperties = new HashMap<>();
 
     /**
-     * 构建 Iceberg Catalog 配置 Map（传给 Spark/Flink 作业）。
+     * 返回当前生效的 Catalog URI（按 catalogType 动态选择）。
+     *
+     * @return REST 模式下为 restCatalogUri，否则为 hiveMetastoreUri
+     */
+    public String getEffectiveCatalogUri() {
+        return "rest".equalsIgnoreCase(catalogType) ? restCatalogUri : hiveMetastoreUri;
+    }
+
+    /**
+     * 构建 Iceberg Catalog 配置 Map，用于传给 Spark/Flink 作业。
+     * <p>规则按 catalogType 标准化：
+     * <ul>
+     *   <li>{@code hive} → type=hive, uri=hiveMetastoreUri</li>
+     *   <li>{@code rest} → type=rest, uri=restCatalogUri，且强制带 warehouse</li>
+     * </ul>
      *
      * @return Catalog 配置键值对
      */
     public Map<String, String> buildCatalogProperties() {
         Map<String, String> props = new HashMap<>();
-        props.put("type", catalogType);
+        String catalogUri;
+        if ("rest".equalsIgnoreCase(catalogType)) {
+            props.put("type", "rest");
+            catalogUri = restCatalogUri;
+            props.put("warehouse", warehouse);
+        } else {
+            props.put("type", "hive");
+            catalogUri = hiveMetastoreUri;
+        }
         props.put("uri", catalogUri);
-        props.put("warehouse", warehouse);
         if (s3AccessKey != null) {
             props.put("s3.access-key-id", s3AccessKey);
             props.put("s3.secret-access-key", s3SecretKey);

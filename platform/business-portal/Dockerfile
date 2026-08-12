@@ -1,4 +1,4 @@
-﻿# syntax=docker/dockerfile:1.6
+# syntax=docker/dockerfile:1.6
 # Business Portal Dockerfile
 # 数据引擎大数据平台 L5.4 业务门户 - 多租户业务门户
 
