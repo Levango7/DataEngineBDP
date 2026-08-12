@@ -8,6 +8,7 @@
     - 可视化完整（面板数 >= 3）
     - README 非空
 """
+
 from __future__ import annotations
 
 import pytest
@@ -27,6 +28,7 @@ def templates() -> list[Template]:
 
 
 # ---------- 通用完整性 ----------
+
 
 class TestTemplateIntegrity:
     """所有模板通用完整性校验."""
@@ -55,6 +57,7 @@ class TestTemplateIntegrity:
 
 # ---------- 金融风控 ----------
 
+
 class TestFinRiskScorecard:
     """金融风控评分卡模板完整性."""
 
@@ -70,9 +73,7 @@ class TestFinRiskScorecard:
     def test_parameters(self, tpl):
         """参数定义完整."""
         # 至少包含数据源参数
-        ds_params = [
-            p for p in tpl.parameters if p.type == ParameterType.DATASOURCE
-        ]
+        ds_params = [p for p in tpl.parameters if p.type == ParameterType.DATASOURCE]
         assert len(ds_params) >= 2  # order_db + user_db
         # 至少包含阈值参数
         threshold_params = [p for p in tpl.parameters if "threshold" in p.name]
@@ -128,6 +129,7 @@ class TestFinRiskScorecard:
 
 # ---------- 零售画像 ----------
 
+
 class TestRetailUserProfile:
     """零售用户画像模板完整性."""
 
@@ -143,9 +145,7 @@ class TestRetailUserProfile:
         ds_params = [p for p in tpl.parameters if p.type == ParameterType.DATASOURCE]
         assert len(ds_params) >= 2  # trade + user
         # 推荐算法参数为 enum
-        algo = next(
-            p for p in tpl.parameters if p.name == "recommend.algorithm"
-        )
+        algo = next(p for p in tpl.parameters if p.name == "recommend.algorithm")
         assert algo.type == ParameterType.ENUM
         assert algo.enumOptions is not None
         assert "item_cf" in algo.enumOptions
@@ -177,6 +177,7 @@ class TestRetailUserProfile:
 
 # ---------- 制造质检 ----------
 
+
 class TestMfgQualityInspection:
     """制造产线质检模板完整性."""
 
@@ -192,9 +193,7 @@ class TestMfgQualityInspection:
         ds_params = [p for p in tpl.parameters if p.type == ParameterType.DATASOURCE]
         assert len(ds_params) >= 2  # image + mes
         # 缺陷检测模型为 enum
-        model = next(
-            p for p in tpl.parameters if p.name == "defect.model_type"
-        )
+        model = next(p for p in tpl.parameters if p.name == "defect.model_type")
         assert model.type == ParameterType.ENUM
         assert "yolov8" in (model.enumOptions or [])
 
@@ -227,6 +226,7 @@ class TestMfgQualityInspection:
 
 
 # ---------- 可部署性 ----------
+
 
 class TestDeployability:
     """3 个模板均可解析、可部署."""

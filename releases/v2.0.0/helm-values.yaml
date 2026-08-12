@@ -1,0 +1,444 @@
+﻿# =============================================================================
+# DataEngineBDP V2.0.0 GA - Helm Values
+# =============================================================================
+# Description : V2.0 GA 版本完整 Helm 配置
+# Version     : 2.0.0 (Aurora)
+# Date        : 2026-08-08
+# 四环境零改动交付：通过 global.env 切换 Profile，Chart 无需修改
+#   global.env=xinchang      信创环境（ARM64，国密，国产存储）
+#   global.env=onprem        本地数据中心
+#   global.env=public-cloud  公有云（AWS/阿里云/华为云）
+#   global.env=private-cloud 私有云（VMware/OpenStack）
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 全局配置
+# -----------------------------------------------------------------------------
+global:
+  # 部署环境标识：xinchang | onprem | public-cloud | private-cloud
+  env: onprem
+
+  # 产品版本
+  version: "2.0.0"
+  versionCodename: "aurora"
+
+  # 镜像仓库（四环境统一，私有 Harbor）
+  imageRegistry: "harbor.shuqing.io/shuqing"
+  imagePullPolicy: "IfNotPresent"
+  imagePullSecrets:
+    - name: harbor-pull-secret
+
+  # 存储类（按环境自动选择，此处为默认值，Chart 模板会根据 global.env 覆盖）
+  #   xinchang      -> local-path 或国产分布式存储
+  #   onprem        -> local-path 或 nfs-client
+  #   public-cloud  -> 云盘存储类（如 gp2、cloud-ssd）
+  #   private-cloud -> vsphere-csi 或 cinder-csi
+  storageClass: "local-path"
+
+  # 服务网格
+  serviceMesh:
+    enabled: true
+    mtlsMode: "STRICT"          # 等保三级要求 STRICT
+
+  # 国密配置
+  crypto:
+    provider: "GM"              # GM(国密SM2/SM3/SM4) | BC(国际RSA/AES)
+    enabled: true               # 信创/本地默认开启；公有云可降级为 BC
+    tls:
+      algorithm: "SM2"
+    digest:
+      algorithm: "SM3"
+    symmetric:
+      algorithm: "SM4"
+
+  # 等保三级合规开关
+  compliance:
+    dengbaoLevel3: true         # 等保三级
+    auditLog:
+      enabled: true
+      retentionDays: 180        # 审计日志留存 180 天
+    networkPolicy:
+      enabled: true             # 默认 deny-all
+    nonRoot: true               # 容器非 root 运行
+
+  # 多租户默认配额
+  defaultTenantQuota:
+    cpu: "16"
+    memory: "32Gi"
+    pods: "100"
+    storage: "500Gi"
+    services: "50"
+
+# -----------------------------------------------------------------------------
+# 封装层 (encaps-layer)
+# -----------------------------------------------------------------------------
+encapsLayer:
+  enabled: true
+  image:
+    repository: "encaps-layer"
+    tag: "2.0.0"
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "1Gi"
+    limits:
+      cpu: "2000m"
+      memory: "4Gi"
+  jvm:
+    heapMin: "512m"
+    heapMax: "2g"
+    gc: "G1GC"
+  hpa:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    cpuUtilization: 75
+  k8sClient:
+    mode: "informer"            # V2.0 使用 informer watch 模式
+
+# -----------------------------------------------------------------------------
+# SQL 网关 (sql-gateway)
+# -----------------------------------------------------------------------------
+sqlGateway:
+  enabled: true
+  image:
+    repository: "sql-gateway"
+    tag: "2.0.0"
+  replicaCount: 3
+  resources:
+    requests: { cpu: "500m", memory: "1Gi" }
+    limits:   { cpu: "2000m", memory: "4Gi" }
+  jvm:
+    heapMin: "512m"
+    heapMax: "2g"
+  routing:
+    defaultBackend: "trino"
+    backends:
+      - name: "trino"
+        weight: 50
+      - name: "doris"
+        weight: 30
+      - name: "spark"
+        weight: 20
+  calcite:
+    enabled: true               # V2.0 Calcite 优化器
+    rewriteRules: 12
+  cache:
+    enabled: true
+    ttl: "300s"
+
+# -----------------------------------------------------------------------------
+# Catalog
+# -----------------------------------------------------------------------------
+catalog:
+  enabled: true
+  image:
+    repository: "catalog"
+    tag: "2.0.0"
+  replicaCount: 2
+  resources:
+    requests: { cpu: "250m", memory: "512Mi" }
+    limits:   { cpu: "1000m", memory: "2Gi" }
+  storage:
+    type: "postgres"            # V2.0 PostgreSQL 持久化
+    postgres:
+      host: "catalog-postgres"
+      port: 5432
+      database: "catalog"
+  externalSources:
+    - "mysql"
+    - "postgresql"
+    - "oracle"
+    - "hive"
+    - "kafka"
+
+# -----------------------------------------------------------------------------
+# 规则引擎 (rule-engine)
+# -----------------------------------------------------------------------------
+ruleEngine:
+  enabled: true
+  image:
+    repository: "rule-engine"
+    tag: "2.0.0"
+  replicaCount: 2
+  resources:
+    requests: { cpu: "250m", memory: "512Mi" }
+    limits:   { cpu: "1000m", memory: "2Gi" }
+  jvm:
+    heapMin: "256m"
+    heapMax: "1g"
+  execution:
+    mode: "async-batch"         # V2.0 异步批量执行
+    streaming: true             # 流式质量校验
+
+# -----------------------------------------------------------------------------
+# Spark
+# -----------------------------------------------------------------------------
+spark:
+  enabled: true
+  image: "spark:3.5.1"
+  master:
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2000m", memory: "4Gi" } }
+  worker:
+    replicaCount: 3
+    resources: { requests: { cpu: "1", memory: "2Gi" }, limits: { cpu: "4", memory: "8Gi" } }
+  dynamicAllocation:
+    enabled: true               # V2.0 动态分配
+    minExecutors: 1
+    maxExecutors: 20
+
+# -----------------------------------------------------------------------------
+# Flink
+# -----------------------------------------------------------------------------
+flink:
+  enabled: true
+  image: "flink:1.18.1"
+  jobmanager:
+    replicaCount: 1
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2000m", memory: "4Gi" } }
+  taskmanager:
+    replicaCount: 3
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2000m", memory: "4Gi" } }
+    taskSlots: 4
+  cdc:
+    enabled: true               # V2.0 Flink CDC
+    sources: ["mysql", "postgresql", "oracle", "sqlserver"]
+
+# -----------------------------------------------------------------------------
+# Trino
+# -----------------------------------------------------------------------------
+trino:
+  enabled: true
+  image: "trino:428"
+  coordinator:
+    resources: { requests: { cpu: "500m", memory: "2Gi" }, limits: { cpu: "2000m", memory: "8Gi" } }
+  worker:
+    replicaCount: 3
+    resources: { requests: { cpu: "1", memory: "4Gi" }, limits: { cpu: "4", memory: "16Gi" } }
+  hpa:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 10
+
+# -----------------------------------------------------------------------------
+# Doris
+# -----------------------------------------------------------------------------
+doris:
+  enabled: true
+  fe:
+    replicaCount: 3
+    resources: { requests: { cpu: "500m", memory: "2Gi" }, limits: { cpu: "2000m", memory: "8Gi" } }
+  be:
+    replicaCount: 3
+    resources: { requests: { cpu: "1", memory: "4Gi" }, limits: { cpu: "4", memory: "16Gi" } }
+  materializedView:
+    enabled: true               # V2.0 物化视图自动改写
+    autoRewrite: true
+
+# -----------------------------------------------------------------------------
+# Kafka
+# -----------------------------------------------------------------------------
+kafka:
+  enabled: true
+  image: "kafka:3.6.1"
+  broker:
+    replicaCount: 3
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2000m", memory: "4Gi" } }
+    storage: "100Gi"
+  zookeeper:
+    replicaCount: 3
+
+# -----------------------------------------------------------------------------
+# IoTDB
+# -----------------------------------------------------------------------------
+iotdb:
+  enabled: true
+  image: "iotdb:2.0.1"
+  replicaCount: 3
+  resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "2000m", memory: "4Gi" } }
+
+# -----------------------------------------------------------------------------
+# Keycloak（身份认证 + 国密）
+# -----------------------------------------------------------------------------
+keycloak:
+  enabled: true
+  image: "keycloak:24.0.3"
+  replicaCount: 2
+  resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+  postgres:
+    enabled: true
+    storage: "20Gi"
+  realm:
+    name: "shuqing"
+    sslRequired: "external"
+  crypto:
+    gmEnabled: true             # 国密 SM2 签发
+
+# -----------------------------------------------------------------------------
+# SeaTunnel
+# -----------------------------------------------------------------------------
+seatunnel:
+  enabled: true
+  image: "seatunnel:2.7.2"
+  replicaCount: 2
+  resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+
+# -----------------------------------------------------------------------------
+# DolphinScheduler
+# -----------------------------------------------------------------------------
+dolphinscheduler:
+  enabled: true
+  image: "dolphinscheduler:3.2.1"
+  master:
+    replicaCount: 1
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+  worker:
+    replicaCount: 2
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+
+# -----------------------------------------------------------------------------
+# Superset
+# -----------------------------------------------------------------------------
+superset:
+  enabled: true
+  image: "superset:4.0.1"
+  replicaCount: 2
+  resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+  postgres:
+    storage: "20Gi"
+
+# -----------------------------------------------------------------------------
+# APISIX（API 网关）
+# -----------------------------------------------------------------------------
+apisix:
+  enabled: true
+  image: "apisix:3.9.0"
+  replicaCount: 2
+  resources: { requests: { cpu: "500m", memory: "512Mi" }, limits: { cpu: "1000m", memory: "1Gi" } }
+  plugins:
+    - "jwt-auth"
+    - "keycloak-auth"
+    - "limit-req"
+    - "prometheus"
+    - "quota"
+    - "ip-restriction"
+  ssl:
+    gmEnabled: true             # 国密 TLS
+
+# -----------------------------------------------------------------------------
+# Istio（Service Mesh）
+# -----------------------------------------------------------------------------
+istio:
+  enabled: true
+  version: "1.20.0"
+  meshConfig:
+    defaultConfig:
+      holdApplicationUntilProxyStarts: true
+    mtls:
+      mode: "STRICT"            # 等保三级要求
+  pilot:
+    resources: { requests: { cpu: "500m", memory: "512Mi" }, limits: { cpu: "1000m", memory: "1Gi" } }
+
+# -----------------------------------------------------------------------------
+# ArgoCD（GitOps）
+# -----------------------------------------------------------------------------
+argocd:
+  enabled: true
+  version: "2.7.6"
+  applicationSet:
+    enabled: true
+    envs: ["xinchang", "onprem", "public-cloud", "private-cloud"]
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+
+# -----------------------------------------------------------------------------
+# Elasticsearch（资产目录检索）
+# -----------------------------------------------------------------------------
+elasticsearch:
+  enabled: true
+  image: "elasticsearch:8.12.0"
+  replicaCount: 3
+  resources: { requests: { cpu: "1", memory: "2Gi" }, limits: { cpu: "2000m", memory: "4Gi" } }
+  storage: "100Gi"
+
+# -----------------------------------------------------------------------------
+# NebulaGraph（血缘存储）
+# -----------------------------------------------------------------------------
+nebulagraph:
+  enabled: true
+  image: "nebulagraph:3.6.2"
+  replicaCount: 3
+  resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+
+# -----------------------------------------------------------------------------
+# Iceberg（统一存储，V2 表格式）
+# -----------------------------------------------------------------------------
+iceberg:
+  enabled: true
+  version: "1.5.0"
+  tableFormat: "V2"             # V2.0 upsert 支持
+  restCatalog:
+    enabled: true
+
+# -----------------------------------------------------------------------------
+# 监控配置
+# -----------------------------------------------------------------------------
+monitoring:
+  prometheus:
+    enabled: true
+    replicaCount: 1
+    resources: { requests: { cpu: "500m", memory: "1Gi" }, limits: { cpu: "1000m", memory: "2Gi" } }
+    retention: "30d"
+    storage: "100Gi"
+  grafana:
+    enabled: true
+    replicaCount: 1
+    resources: { requests: { cpu: "250m", memory: "512Mi" }, limits: { cpu: "500m", memory: "1Gi" } }
+    adminPassword: "REPLACE_WITH_GRAFANA_ADMIN_PASSWORD"  # 生产环境必须通过外部 Secret 注入，禁止填写真实值
+  alertmanager:
+    enabled: true
+    replicaCount: 1
+
+# -----------------------------------------------------------------------------
+# 安全配置
+# -----------------------------------------------------------------------------
+security:
+  networkPolicy:
+    enabled: true               # 默认 deny-all
+    defaultDeny: true
+  audit:
+    enabled: true
+    logLevel: "info"
+    retentionDays: 180
+  rbac:
+    enforce: true
+  podSecurity:
+    standard: "restricted"      # Pod Security Standards restricted
+
+# -----------------------------------------------------------------------------
+# 多租户配置
+# -----------------------------------------------------------------------------
+multiTenancy:
+  enabled: true
+  isolation:
+    mode: "namespace"           # Namespace + ResourceQuota + NetworkPolicy
+    resourceQuota: true
+    networkPolicy: true
+  defaultQuota:
+    cpu: "16"
+    memory: "32Gi"
+    pods: "100"
+    storage: "500Gi"
+
+# =============================================================================
+# 四环境差异说明（由 Chart 模板根据 global.env 自动渲染，无需手动修改）
+# =============================================================================
+# | 环境          | storageClass        | network CNI | LB 类型     | 证书签发   |
+# | xinchang      | local-path/国产存储 | Cilium      | MetalLB    | 国密SM2    |
+# | onprem        | local-path/nfs     | Cilium      | MetalLB    | SM2/RSA    |
+# | public-cloud  | 云盘(gp2/ssd)      | 云VPC-CNI   | 云SLB      | 云CA+SM2   |
+# | private-cloud | vsphere/cinder     | Cilium      | NSX/Haproxy| 内部CA+SM2 |
+# =============================================================================

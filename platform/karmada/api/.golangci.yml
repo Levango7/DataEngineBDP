@@ -1,0 +1,36 @@
+# golangci-lint 配置 - karmada/api 组件
+# 启用核心 linters：errcheck/gosimple/govet/ineffassign/staticcheck/unused
+
+run:
+  timeout: 5m
+  go: "1.25"
+
+linters:
+  enable:
+    - errcheck       # 检查未处理的错误返回值
+    - gosimple       # 简化代码建议
+    - govet          # go vet 检查
+    - ineffassign    # 无效赋值检查
+    - staticcheck    # 综合静态分析
+    - unused         # 未使用代码检查
+
+linters-settings:
+  errcheck:
+    exclude-functions:
+      - fmt.Fprintf
+      - fmt.Printf
+      - fmt.Print
+      - fmt.Println
+      - fmt.Scanf
+      - fmt.Fscanf
+  staticcheck:
+    checks: ["all"]
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+  max-issues-per-linter: 50
+  max-same-issues: 10

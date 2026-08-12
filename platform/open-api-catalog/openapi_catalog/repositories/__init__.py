@@ -1,4 +1,5 @@
 """开放 API 服务目录 仓储层异常定义."""
+
 from __future__ import annotations
 
 
@@ -30,9 +31,7 @@ class APIStatusTransitionError(CatalogError):
         self.apiId = api_id
         self.current = current
         self.target = target
-        super().__init__(
-            f"API 状态转换非法: {api_id} {current} -> {target}"
-        )
+        super().__init__(f"API 状态转换非法: {api_id} {current} -> {target}")
 
 
 class SubscriptionNotFoundError(CatalogError):

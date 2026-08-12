@@ -1,11 +1,11 @@
 """API 调用计量模型."""
+
 from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
-
 from openapi_catalog.models.base import CostStrategy, utc_now
+from pydantic import BaseModel, Field
 
 
 class CallMetric(BaseModel):
@@ -52,23 +52,15 @@ class APIMetrics(BaseModel):
     successRate: float = Field(default=1.0, ge=0, le=1, description="成功率")
     avgLatencyMs: float = Field(default=0.0, ge=0, description="平均延迟(ms)")
     p99LatencyMs: float = Field(default=0.0, ge=0, description="P99 延迟(ms)")
-    totalTrafficBytes: int = Field(
-        default=0, ge=0, description="总流量(bytes)"
-    )
+    totalTrafficBytes: int = Field(default=0, ge=0, description="总流量(bytes)")
     totalCost: float = Field(default=0.0, ge=0, description="总费用")
-    lastCalledAt: datetime | None = Field(
-        default=None, description="最后调用时间"
-    )
+    lastCalledAt: datetime | None = Field(default=None, description="最后调用时间")
 
     # 按消费者聚合
-    byConsumer: list["ConsumerMetrics"] = Field(
-        default_factory=list, description="按消费者聚合"
-    )
+    byConsumer: list["ConsumerMetrics"] = Field(default_factory=list, description="按消费者聚合")
 
     # 时间序列（用于图表）
-    timeseries: list["MetricPoint"] = Field(
-        default_factory=list, description="时间序列"
-    )
+    timeseries: list["MetricPoint"] = Field(default_factory=list, description="时间序列")
 
 
 class ConsumerMetrics(BaseModel):
@@ -94,15 +86,9 @@ class MetricPoint(BaseModel):
 class MetricsQuery(BaseModel):
     """计量查询参数."""
 
-    range: str = Field(
-        default="7d", description="时间范围: 1h/24h/7d/30d"
-    )
-    consumerTenantId: str | None = Field(
-        default=None, description="按消费者过滤"
-    )
-    granularity: str = Field(
-        default="1h", description="聚合粒度: 1m/1h/1d"
-    )
+    range: str = Field(default="7d", description="时间范围: 1h/24h/7d/30d")
+    consumerTenantId: str | None = Field(default=None, description="按消费者过滤")
+    granularity: str = Field(default="1h", description="聚合粒度: 1m/1h/1d")
 
 
 class CallResult(BaseModel):

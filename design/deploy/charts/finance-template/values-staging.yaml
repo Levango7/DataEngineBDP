@@ -1,0 +1,105 @@
+# ============================================================================
+# finance-template Helm Chart · staging 环境覆盖 values
+# ============================================================================
+# 适用：预发布环境（接近生产配置，使用外部 Secret 管理器）
+# 渲染： helm template finance-template design/deploy/charts/finance-template \
+#          -f design/deploy/charts/finance-template/values-staging.yaml
+# 说明：在 base values.yaml 之上覆盖环境差异项，业务逻辑零改动。
+# ============================================================================
+
+# ---- 环境标识 ----
+env: staging
+
+# ---- 命名空间 ----
+namespace: finance-staging
+
+# ---- 全局配置 ----
+global:
+  imagePullSecrets:
+    - name: sq-registry-staging
+  storageClass: "fast-ssd"
+  guomiEnabled: false
+
+# ---- 目标组件地址（staging 环境独立集群）----
+target:
+  doris:
+    feHost: doris-fe.doris-staging.svc.cluster.local
+    fePort: 9030
+    database: db_finance_staging
+    user: root
+    passwordSecret:
+      name: doris-credentials-staging
+      key: password
+    connectTimeout: 20
+  dolphinscheduler:
+    host: dolphinscheduler-api.ds-staging.svc.cluster.local
+    port: 12345
+    tokenSecret:
+      name: ds-credentials-staging
+      key: token
+    projectName: finance-template-staging
+  superset:
+    host: superset.superset-staging.svc.cluster.local
+    port: 8088
+    tokenSecret:
+      name: superset-credentials-staging
+      key: token
+    databaseName: db_finance_staging
+  keycloak:
+    host: keycloak.keycloak-staging.svc.cluster.local
+    port: 8080
+    realm: finance-template-realm-staging
+    adminSecret:
+      name: keycloak-credentials-staging
+      key: admin-password
+    createRealm: true
+
+# ---- Secret 配置（staging 使用外部 Secret 管理器，不创建占位）----
+secret:
+  create: false
+  # 凭据由 External Secrets Operator 从 Vault/Sealed Secrets 注入
+
+# ---- 导入 Job（staging 环境中等资源）----
+importJob:
+  enabled: true
+  image:
+    repository: shuqing/template-importer
+    tag: "5.3.0-staging"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
+  backoffLimit: 3
+  activeDeadlineSeconds: 1200
+  onFailure:
+    rollback: true
+    continueOnError: false
+
+# ---- 部署验证（staging 环境启用，严格校验）----
+verification:
+  enabled: true
+  image:
+    repository: shuqing/template-verifier
+    tag: "5.3.0-staging"
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+  timeout: 300
+
+# ---- Pod 调度（staging 优先调度到 staging 节点池）----
+nodeSelector:
+  sq.io/env: staging
+tolerations:
+  - key: sq.io/env
+    value: staging
+    effect: NoSchedule
+affinity: {}

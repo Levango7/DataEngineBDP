@@ -1,0 +1,16 @@
+# DestinationRule · mesh-wide mTLS 客户端侧
+# 数擎云核 SKE · Service Mesh mTLS 客户端配置
+# 与 PeerAuthentication 配合：客户端发起 mTLS 连接
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: default-mtls
+  namespace: istio-system
+  labels:
+    app.kubernetes.io/part-of: shuqing-bigdata
+    app.kubernetes.io/component: service-mesh-mtls
+spec:
+  host: "*.local"
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL

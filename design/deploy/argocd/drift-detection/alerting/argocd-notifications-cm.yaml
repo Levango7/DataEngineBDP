@@ -1,0 +1,187 @@
+# ArgoCD Notifications ConfigMap · 漂移告警配置
+# ============================================================================
+# 作用：配置 ArgoCD Notifications 控制器的通知服务与触发器
+# 集成：替换/合并 ArgoCD 默认 argocd-notifications-cm ConfigMap
+# 文档：https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd-notifications
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-alerting
+  annotations:
+    description: "ArgoCD 通知配置（漂移告警）"
+data:
+  # ============================================================================
+  # 1. 通知服务定义
+  # ============================================================================
+
+  # Slack 服务
+  service.slack: |
+    token: $slack-token
+    apiURL: https://slack.com/api/chat.postMessage
+    username: "ArgoCD Drift Bot"
+    icon: ":rotating_light:"
+
+  # 邮件服务
+  service.email: |
+    server: smtp.company.com
+    port: 587
+    from: argocd-drift@company.com
+    username: $email-username
+    password: $email-password
+
+  # 钉钉服务（通过 webhook）
+  service.webhook.dingtalk: |
+    url: https://oapi.dingtalk.com/robot/send?access_token=$dingtalk-token
+    method: POST
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # 通用 Webhook（对接 Alertmanager）
+  service.webhook.alertmanager: |
+    url: http://alertmanager.monitoring.svc.cluster.local:9093/api/v2/alerts
+    method: POST
+    headers:
+      - name: Content-Type
+        value: application/json
+
+  # PagerDuty 服务（Critical 电话呼叫）
+  service.pagerduty: |
+    serviceKey: $pagerduty-key
+    apiURL: https://events.pagerduty.com/v2/enqueue
+
+  # ============================================================================
+  # 2. 通知模板定义
+  # ============================================================================
+
+  # 漂移检测通知模板
+  template.app-drift-detected: |
+    message: |
+      🚨 配置漂移检测
+      ─────────────────────────
+      App:        {{.app.metadata.name}}
+      环境:       {{.app.metadata.labels.environment}}
+      严重程度:   {{.context.severity}}
+      漂移类型:   {{.context.driftType}}
+      Sync 状态:  {{.app.status.sync.status}}
+      Health:     {{.app.status.health.status}}
+      检测时间:   {{.context.timestamp}}
+      ─────────────────────────
+      查看详情: https://argocd.company.com/applications/{{.app.metadata.name}}
+
+  # Critical 漂移通知模板（含 @ 人）
+  template.app-drift-critical: |
+    message: |
+      🚨🚨🚨 CRITICAL 配置漂移 🚨🚨🚨
+      ─────────────────────────
+      App:        {{.app.metadata.name}}
+      环境:       {{.app.metadata.labels.environment}}
+      漂移类型:   {{.context.driftType}}
+      差异摘要:   {{.context.diffSummary}}
+      检测时间:   {{.context.timestamp}}
+      修复策略:   需人工确认
+      ─────────────────────────
+      <!subteam^SRE01> 请立即处理
+      查看详情: https://argocd.company.com/applications/{{.app.metadata.name}}
+
+  # 修复完成通知模板
+  template.app-remediation-succeeded: |
+    message: |
+      ✅ 漂移修复完成
+      ─────────────────────────
+      App:        {{.app.metadata.name}}
+      环境:       {{.app.metadata.labels.environment}}
+      修复方式:   {{.context.remediationTrigger}}
+      耗时:       {{.context.duration}}
+      Sync 状态:  Synced
+      Health:     Healthy
+      ─────────────────────────
+
+  # 修复失败通知模板
+  template.app-remediation-failed: |
+    message: |
+      ❌ 漂移修复失败
+      ─────────────────────────
+      App:        {{.app.metadata.name}}
+      环境:       {{.app.metadata.labels.environment}}
+      失败原因:   {{.context.failReason}}
+      当前状态:   {{.app.status.sync.status}} / {{.app.status.health.status}}
+      建议操作:   人工介入，检查 Git 配置
+      ─────────────────────────
+      <!subteam^SRE01> 请立即处理
+
+  # 熔断通知模板
+  template.app-circuit-breaker: |
+    message: |
+      ⛔ 漂移修复熔断
+      ─────────────────────────
+      App:        {{.app.metadata.name}}
+      环境:       {{.app.metadata.labels.environment}}
+      连续失败:   {{.context.failCount}} 次
+      熔断时长:   30 分钟
+      ─────────────────────────
+      自动修复已暂停，需人工介入
+      <!subteam^SRE01> 请检查 App 配置
+
+  # ============================================================================
+  # 3. 触发器定义
+  # ============================================================================
+
+  # 漂移检测触发器（OutOfSync 即触发）
+  trigger.on-drift-detected: |
+    - send: [app-drift-detected]
+      when: app.status.sync.status == 'OutOfSync'
+
+  # Critical 漂移触发器
+  trigger.on-drift-critical: |
+    - send: [app-drift-critical]
+      when: app.status.sync.status == 'OutOfSync' && context.severity == 'critical'
+
+  # sync 失败触发器
+  trigger.on-sync-failed: |
+    - send: [app-sync-failed]
+      when: app.status.operationState.phase in ['Error', 'Failed']
+
+  # sync 成功触发器
+  trigger.on-sync-succeeded: |
+    - send: [app-remediation-succeeded]
+      when: app.status.operationState.phase in ['Succeeded'] && app.status.sync.status == 'Synced'
+
+  # health degraded 触发器
+  trigger.on-health-degraded: |
+    - send: [app-health-degraded]
+      when: app.status.health.status == 'Degraded'
+
+  # 修复失败触发器
+  trigger.on-remediation-failed: |
+    - send: [app-remediation-failed]
+      when: context.remediationResult == 'failed'
+
+  # 熔断触发器
+  trigger.on-circuit-breaker: |
+    - send: [app-circuit-breaker]
+      when: context.circuitBreaker == 'true'
+
+  # ============================================================================
+  # 4. 抑制规则（避免告警风暴）
+  # ============================================================================
+
+  # 同 App 5 分钟内仅通知 1 次
+  subscription.suppression: |
+    # 同一 App 同一触发器 5 分钟内仅通知一次
+    conditions:
+      - trigger: on-drift-detected
+        window: 5m
+        max: 1
+      - trigger: on-sync-failed
+        window: 10m
+        max: 1
+      - trigger: on-remediation-failed
+        window: 5m
+        max: 1

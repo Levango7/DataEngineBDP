@@ -1,4 +1,5 @@
 """部署管理路由."""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -23,9 +24,7 @@ async def deploy_model(
 ) -> Deployment:
     """部署模型到推理端点（注册到 L4.5.6 大模型网关）."""
     try:
-        return await registry.deploymentService.deploy_model(
-            config.modelId, config
-        )
+        return await registry.deploymentService.deploy_model(config.modelId, config)
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
     except ValueError as exc:

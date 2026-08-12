@@ -1,0 +1,28 @@
+# dev 环境 patch · 覆盖 Deployment 配置
+# ============================================================================
+# dev：1 副本 + 低资源 + DEBUG 日志 + K8S_MOCK_ENABLED=false（连真实 k3s）
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: encaps-layer
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: encaps-layer
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+            - name: LOG_LEVEL
+              value: DEBUG
+            - name: K8S_MOCK_ENABLED
+              value: "false"

@@ -1,0 +1,36 @@
+# staging 环境自愈配置 · 全量自愈 + 较长退避
+# ============================================================================
+# 作用：patch 更新 root-staging Application 的 syncPolicy
+# 用法：kubectl apply -f self-heal-staging.yaml -n argocd
+# 策略：staging 全量自愈，但退避时间更长，避免修复风暴
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-staging
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/component: drift-remediation
+    environment: staging
+  annotations:
+    drift-remediation: "self-heal-enabled"
+    drift-remediation-policy: "full-auto-conservative"
+spec:
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true       # staging：全量自愈
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

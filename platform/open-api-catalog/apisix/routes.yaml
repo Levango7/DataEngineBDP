@@ -1,0 +1,291 @@
+# APISIX 全局路由配置 - 开放 API 服务目录 (L5.5)
+#
+# 对应详细设计 §3 网关下发：
+#     APISIX 路由 + 插件链（认证/限流/计量/路由）一次性下发。
+#
+# 插件链执行顺序（APISIX 按声明顺序执行）：
+#     1. key-auth        - 认证（API Key 校验）
+#     2. limit-req       - 限流（令牌桶 QPS）
+#     3. limit-conn      - 并发限制
+#     4. circuit-breaker - 熔断
+#     5. proxy-rewrite   - 重写（注入租户隔离头）
+#     6. serverless-metering - 计量（自定义插件，记录调用明细）
+#     7. prometheus      - 指标暴露
+#     8. http-logger     - 日志采集
+#
+# 路由匹配优先级：
+#     priority 越高越优先；SLA 越高优先级越高，版本越新优先级越高。
+
+# 全局配置
+global_rule:
+  id: global-open-api-catalog
+  plugins:
+    # 全局计量插件：所有路由都记录调用明细
+    serverless-metering:
+      phase: log
+      functions:
+        - name: record-call-metric
+          source: |
+            local core = require("apisix.core")
+            local http = require("resty.http")
+            function(phase, ctx)
+              local metric = {
+                callId = ctx.var.request_id,
+                apiId = ngx.var.upstream_api_id,
+                consumerTenantId = ctx.var.consumer_name,
+                latencyMs = ngx.var.upstream_response_time * 1000,
+                statusCode = ngx.var.status,
+                timestamp = ngx.time(),
+              }
+              local httpc = http.new()
+              httpc:request_uri("http://open-api-catalog:8090/api/v1/internal/metrics/record", {
+                method = "POST",
+                body = core.json.encode(metric),
+                headers = {["Content-Type"] = "application/json"},
+              })
+            end
+    # 全局 Prometheus 指标
+    prometheus:
+      prefer_name: true
+
+# 路由列表（由 open-api-catalog 服务动态下发，此处为示例模板）
+routes:
+  # ---------- SQL 查询 API 路由示例 ----------
+  - id: route-sql-query-template
+    name: sql-query-api
+    uri: /sql/*
+    methods: [POST]
+    priority: 100
+    upstream:
+      type: roundrobin
+      nodes:
+        "trino:8080": 1
+      timeout:
+        connect: 6
+        send: 6
+        read: 30
+      retries: 2
+    plugins:
+      key-auth: {}
+      limit-req:
+        rate: 100
+        burst: 200
+        key_type: var
+        key: consumer_name
+        rejected_code: 429
+        rejected_msg: "请求频率超限，请降低调用频率或升级订阅"
+        policy: local
+      limit-conn:
+        count: 50
+        key: consumer_name
+        rejected_code: 429
+      circuit-breaker:
+        break_response_code: 502
+        unhealthy:
+          http_statuses: [500, 502, 503, 504]
+          failures: 3
+        healthy:
+          http_statuses: [200, 201, 202, 204]
+          successes: 2
+        time: 5
+      proxy-rewrite:
+        headers:
+          set:
+            X-Provider-Tenant: "${provider_tenant_id}"
+            X-API-Source: "sql"
+      prometheus:
+        prefer_name: true
+      http-logger:
+        uri: http://log-collector:9200/logs/api
+        batch_max_size: 100
+        max_retry_count: 3
+        retry_delay: 1
+        buffer_duration: 60
+        inactive_timeout: 5
+        name: sql-api-logger
+    labels:
+      api_source: sql
+      layer: L5.5
+
+  # ---------- 模型推理 API 路由示例 ----------
+  - id: route-model-inference-template
+    name: model-inference-api
+    uri: /model/*
+    methods: [POST]
+    priority: 200
+    upstream:
+      type: roundrobin
+      nodes:
+        "llm-gateway:8000": 1
+      timeout:
+        connect: 6
+        send: 6
+        read: 60
+      retries: 1
+    plugins:
+      key-auth: {}
+      limit-req:
+        rate: 50
+        burst: 100
+        key_type: var
+        key: consumer_name
+        rejected_code: 429
+        rejected_msg: "模型推理请求频率超限"
+        policy: local
+      limit-conn:
+        count: 10
+        key: consumer_name
+        rejected_code: 429
+      circuit-breaker:
+        break_response_code: 502
+        unhealthy:
+          http_statuses: [500, 502, 503, 504]
+          failures: 5
+        healthy:
+          http_statuses: [200]
+          successes: 3
+        time: 10
+      proxy-rewrite:
+        headers:
+          set:
+            X-Provider-Tenant: "${provider_tenant_id}"
+            X-API-Source: "model"
+      prometheus:
+        prefer_name: true
+      http-logger:
+        uri: http://log-collector:9200/logs/api
+        batch_max_size: 50
+        max_retry_count: 3
+        retry_delay: 1
+        buffer_duration: 60
+        inactive_timeout: 5
+        name: model-api-logger
+    labels:
+      api_source: model
+      layer: L5.5
+
+  # ---------- 函数计算 API 路由示例 ----------
+  - id: route-function-invoke-template
+    name: function-invoke-api
+    uri: /function/*
+    methods: [POST]
+    priority: 50
+    upstream:
+      type: roundrobin
+      nodes:
+        "function-runtime:9000": 1
+      timeout:
+        connect: 3
+        send: 3
+        read: 30
+      retries: 0
+    plugins:
+      key-auth: {}
+      limit-req:
+        rate: 200
+        burst: 400
+        key_type: var
+        key: consumer_name
+        rejected_code: 429
+        rejected_msg: "函数调用频率超限"
+        policy: local
+      limit-conn:
+        count: 100
+        key: consumer_name
+        rejected_code: 429
+      proxy-rewrite:
+        headers:
+          set:
+            X-Provider-Tenant: "${provider_tenant_id}"
+            X-API-Source: "function"
+      prometheus:
+        prefer_name: true
+      http-logger:
+        uri: http://log-collector:9200/logs/api
+        batch_max_size: 200
+        max_retry_count: 2
+        retry_delay: 1
+        buffer_duration: 30
+        inactive_timeout: 3
+        name: function-api-logger
+    labels:
+      api_source: function
+      layer: L5.5
+
+# 消费者列表（由订阅审批后动态创建）
+consumers:
+  - username: sub-template
+    plugins:
+      key-auth:
+        key: "REPLACE_WITH_ACTUAL_AK"
+      limit-req:
+        rate: 100
+        burst: 200
+        key_type: var
+        key: consumer_name
+        rejected_code: 429
+        policy: local
+
+# 上游健康检查
+upstreams:
+  - id: upstream-trino
+    name: trino-cluster
+    type: roundrobin
+    nodes:
+      "trino:8080": 1
+    checks:
+      active:
+        type: http
+        http_path: /v1/info
+        healthy:
+          interval: 5
+          successes: 2
+        unhealthy:
+          interval: 5
+          http_failures: 3
+      passive:
+        type: http
+        healthy:
+          successes: 2
+        unhealthy:
+          http_failures: 3
+
+  - id: upstream-llm-gateway
+    name: llm-gateway-cluster
+    type: roundrobin
+    nodes:
+      "llm-gateway:8000": 1
+    checks:
+      active:
+        type: http
+        http_path: /health
+        healthy:
+          interval: 10
+          successes: 2
+        unhealthy:
+          interval: 5
+          http_failures: 3
+
+  - id: upstream-function-runtime
+    name: function-runtime-cluster
+    type: roundrobin
+    nodes:
+      "function-python:9000": 1
+      "function-nodejs:9000": 1
+    checks:
+      active:
+        type: http
+        http_path: /health
+        healthy:
+          interval: 15
+          successes: 1
+        unhealthy:
+          interval: 5
+          http_failures: 2
+
+# SSL 配置（如需 HTTPS）
+# ssl:
+#   - id: ssl-api-shuqing
+#     cert: /etc/apisix/ssl/api.shuqing.crt
+#     key: /etc/apisix/ssl/api.shuqing.key
+#     sni: api.shuqing.example.com

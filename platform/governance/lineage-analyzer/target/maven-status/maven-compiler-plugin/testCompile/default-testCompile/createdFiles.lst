@@ -1,6 +1,0 @@
-com\shuqing\bigdata\governance\lineage\model\LineageGraphTest.class
-com\shuqing\bigdata\governance\lineage\analyzer\ColumnLineageExtractorTest.class
-com\shuqing\bigdata\governance\lineage\analyzer\TableLineageExtractorTest.class
-com\shuqing\bigdata\governance\lineage\service\LineageAnalyzerServiceTest.class
-com\shuqing\bigdata\governance\lineage\controller\LineageControllerTest.class
-com\shuqing\bigdata\governance\lineage\service\LineageQueryServiceTest.class

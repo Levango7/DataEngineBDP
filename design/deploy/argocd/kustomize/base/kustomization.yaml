@@ -1,0 +1,22 @@
+# Kustomize base · 三环境共享基础资源
+# ============================================================================
+# 作用：定义 dev/staging/prod 三环境共享的基础 K8s 资源
+# 环境差异通过 overlays/<env>/patch.yaml 覆盖
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 基础资源
+resources:
+  - namespace.yaml
+  - deployment.yaml
+
+# 基础标签（所有资源继承）
+commonLabels:
+  app.kubernetes.io/part-of: shuqing-bigdata-platform
+  app.kubernetes.io/managed-by: argocd-gitops
+
+# 基础注解
+commonAnnotations:
+  gitops-repo: Levango7/DataEngineBDP
+  documentation: https://github.com/Levango7/DataEngineBDP/blob/main/design/deploy/argocd/README.md

@@ -440,3 +440,106 @@ updates:
     commit-message:
       prefix: '[deps-pip]'
       include: scope
+  # ============================================================
+  # 补全：以下为审核发现的 Dependabot 覆盖缺口（v2 补全）
+  # ============================================================
+  # maven 缺失组件
+  - package-ecosystem: maven
+    directory: /platform/finops/cost-model
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  - package-ecosystem: maven
+    directory: /platform/finops/dashboard
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  - package-ecosystem: maven
+    directory: /platform/flink-cdc
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  - package-ecosystem: maven
+    directory: /platform/governance/real-time-pipeline
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  - package-ecosystem: maven
+    directory: /platform/karmada/federated-query
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  - package-ecosystem: maven
+    directory: /platform/knative/runtimes/java
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  - package-ecosystem: maven
+    directory: /platform/stream-batch-scheduler
+    schedule: { interval: weekly, day: tuesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, maven, java]
+    commit-message: { prefix: '[deps-maven]', include: scope }
+
+  # gomod 缺失组件
+  - package-ecosystem: gomod
+    directory: /platform/karmada/api
+    schedule: { interval: weekly, day: wednesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, gomod, go]
+    commit-message: { prefix: '[deps-go]', include: scope }
+
+  - package-ecosystem: gomod
+    directory: /platform/karmada/failover/api
+    schedule: { interval: weekly, day: wednesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, gomod, go]
+    commit-message: { prefix: '[deps-go]', include: scope }
+
+  - package-ecosystem: gomod
+    directory: /platform/karmada/failover/engine
+    schedule: { interval: weekly, day: wednesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, gomod, go]
+    commit-message: { prefix: '[deps-go]', include: scope }
+
+  - package-ecosystem: gomod
+    directory: /platform/knative/runtimes/go
+    schedule: { interval: weekly, day: wednesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, gomod, go]
+    commit-message: { prefix: '[deps-go]', include: scope }
+
+  - package-ecosystem: gomod
+    directory: /platform/observability/query-api
+    schedule: { interval: weekly, day: wednesday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, gomod, go]
+    commit-message: { prefix: '[deps-go]', include: scope }
+
+  # pip 缺失组件
+  - package-ecosystem: pip
+    directory: /platform/chunker
+    schedule: { interval: weekly, day: thursday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, pip, python]
+    commit-message: { prefix: '[deps-pip]', include: scope }
+
+  - package-ecosystem: pip
+    directory: /platform/nl2sql
+    schedule: { interval: weekly, day: thursday, time: '03:00', timezone: Asia/Shanghai }
+    open-pull-requests-limit: 5
+    labels: [dependencies, pip, python]
+    commit-message: { prefix: '[deps-pip]', include: scope }

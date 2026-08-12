@@ -1,0 +1,29 @@
+# Kustomize overlay · prod 生产环境
+# ============================================================================
+# prod：3 副本 + 高资源 + WARN 日志 + 固定版本镜像 + PDB + 严格安全
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+commonLabels:
+  environment: prod
+
+commonAnnotations:
+  environment: prod
+  description: "生产环境 · 高可用配置 · WARN 日志 · 固定版本"
+
+namePrefix: prod-
+
+patches:
+  - path: patch.yaml
+    target:
+      kind: Deployment
+      name: encaps-layer
+
+# prod 镜像 tag：固定版本（由 CI 在 release 时更新）
+images:
+  - name: ghcr.io/levango7/dataenginebdp/encaps-layer
+    newTag: v1.0.0

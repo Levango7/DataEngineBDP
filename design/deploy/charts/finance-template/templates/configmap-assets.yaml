@@ -1,0 +1,68 @@
+{{- if .Values.configMap.create -}}
+# ConfigMap - 挂载金融模板资产（T019）
+# 用途：将 DDL/DAG/Dashboard/RBAC/docs 资产打包为 ConfigMap，供导入 Job 挂载使用
+# 资产来源：chart 内 assets/ 目录（由 sync-assets.sh 从 T018 同步）
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "finance-template.configmapName" . }}
+  namespace: {{ include "finance-template.namespace" . }}
+  labels:
+    {{- include "finance-template.labels" . | nindent 4 }}
+    {{- include "finance-template.templateLabels" . | nindent 4 }}
+  annotations:
+    {{- include "finance-template.templateAnnotations" . | nindent 4 }}
+    shuqing.io/asset-source: {{ .Values.template.source.path | quote }}
+data:
+  # ---- DDL 资产（21 张表）----
+{{- if .Values.configMap.assets.ddl.enabled }}
+{{- range $path, $_ := .Files.Glob "assets/ddl/**" }}
+  {{ $path | replace "assets/" "" }}: |-
+{{ .Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
+  # ---- DAG 资产（5 个调度作业）----
+{{- if .Values.configMap.assets.dag.enabled }}
+{{- range $path, $_ := .Files.Glob "assets/dag/**" }}
+  {{ $path | replace "assets/" "" }}: |-
+{{ .Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
+  # ---- Dashboard 资产（3 个仪表盘）----
+{{- if .Values.configMap.assets.dashboard.enabled }}
+{{- range $path, $_ := .Files.Glob "assets/dashboard/**" }}
+  {{ $path | replace "assets/" "" }}: |-
+{{ .Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
+  # ---- RBAC 资产（3 个角色）----
+{{- if .Values.configMap.assets.rbac.enabled }}
+{{- range $path, $_ := .Files.Glob "assets/rbac/**" }}
+  {{ $path | replace "assets/" "" }}: |-
+{{ .Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
+  # ---- 文档资产 ----
+{{- if .Values.configMap.assets.docs.enabled }}
+{{- range $path, $_ := .Files.Glob "assets/docs/**" }}
+  {{ $path | replace "assets/" "" }}: |-
+{{ .Files.Get $path | indent 4 }}
+{{- end }}
+{{- end }}
+  # ---- 模板元数据 ----
+{{- if .Values.configMap.includeMetadata }}
+  template-metadata.yaml: |-
+    # 模板元信息（运行时生成）
+    template:
+      name: {{ .Values.template.name | quote }}
+      version: {{ .Values.template.version | quote }}
+      env: {{ .Values.env | default "unknown" | quote }}
+      namespace: {{ include "finance-template.namespace" . | quote }}
+      release: {{ .Release.Name | quote }}
+    statistics:
+      tables: 21
+      dags: 5
+      dashboards: 3
+      roles: 3
+{{- end }}
+{{- end }}

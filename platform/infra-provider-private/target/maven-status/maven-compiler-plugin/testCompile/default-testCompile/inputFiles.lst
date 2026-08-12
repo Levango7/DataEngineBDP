@@ -1,9 +1,0 @@
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\config\PrivateCloudPropertiesTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\model\PrivateClusterInfoTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\controller\HealthControllerTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\model\PrivateClusterRequestTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\security\TenantContextTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\PrivateProviderApplicationTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\service\K8sBootstrapServiceTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\provider\openstack\OpenStackProviderTest.java
-F:\Agent\workbuddy\workspace\ShuqingBigDataPlatform\platform\infra-provider-private\src\test\java\com\shuqing\bigdata\infra\privatecloud\provider\vsphere\VSphereProviderTest.java

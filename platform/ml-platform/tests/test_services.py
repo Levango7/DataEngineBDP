@@ -1,4 +1,5 @@
 """服务层测试."""
+
 from __future__ import annotations
 
 import pytest
@@ -15,7 +16,6 @@ from ml_platform.repositories import (
     FeatureGroupNotFoundError,
     TrainingJobNotFoundError,
 )
-
 
 # ---------- TrainingService ----------
 
@@ -36,9 +36,7 @@ async def test_training_service_creates_job(registry):
 @pytest.mark.asyncio
 async def test_training_service_with_experiment(registry):
     """训练完成后自动记录参数与指标到实验."""
-    exp = await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-1")
-    )
+    exp = await registry.experimentService.createExperiment(ExperimentConfig(name="exp-1"))
     config = TrainingConfig(
         algorithm=AlgorithmType.RANDOM_FOREST,
         experimentId=exp.id,
@@ -110,9 +108,7 @@ async def test_prediction_service(registry):
             outputModelName="lr-1",
         )
     )
-    result = await registry.predictionService.predict(
-        job.result.modelId, {"f1": [1.0, 2.0]}
-    )
+    result = await registry.predictionService.predict(job.result.modelId, {"f1": [1.0, 2.0]})
     assert len(result.predictions) == 2
 
 
@@ -140,20 +136,14 @@ async def test_evaluation_service(registry):
 
 @pytest.mark.asyncio
 async def test_feature_service_create(registry):
-    group = await registry.featureService.createFeatureGroup(
-        FeatureGroupConfig(name="g1", entityKey="user_id")
-    )
+    group = await registry.featureService.createFeatureGroup(FeatureGroupConfig(name="g1", entityKey="user_id"))
     assert group.name == "g1"
 
 
 @pytest.mark.asyncio
 async def test_feature_service_put_get(registry):
-    await registry.featureService.createFeatureGroup(
-        FeatureGroupConfig(name="g1")
-    )
-    await registry.featureService.putFeatures(
-        "g1", "u1", {"age": 30}
-    )
+    await registry.featureService.createFeatureGroup(FeatureGroupConfig(name="g1"))
+    await registry.featureService.putFeatures("g1", "u1", {"age": 30})
     features = await registry.featureService.getFeatures("g1", "u1")
     assert features["age"] == 30
 
@@ -169,51 +159,35 @@ async def test_feature_service_not_found(registry):
 
 @pytest.mark.asyncio
 async def test_experiment_service_create(registry):
-    info = await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-1")
-    )
+    info = await registry.experimentService.createExperiment(ExperimentConfig(name="exp-1"))
     assert info.name == "exp-1"
 
 
 @pytest.mark.asyncio
 async def test_experiment_service_log_metrics(registry):
-    info = await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-1")
-    )
-    updated = await registry.experimentService.logMetrics(
-        info.id, {"accuracy": 0.9}
-    )
+    info = await registry.experimentService.createExperiment(ExperimentConfig(name="exp-1"))
+    updated = await registry.experimentService.logMetrics(info.id, {"accuracy": 0.9})
     assert updated.metrics["accuracy"] == 0.9
 
 
 @pytest.mark.asyncio
 async def test_experiment_service_log_params(registry):
-    info = await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-1")
-    )
-    updated = await registry.experimentService.logParams(
-        info.id, {"lr": 0.01}
-    )
+    info = await registry.experimentService.createExperiment(ExperimentConfig(name="exp-1"))
+    updated = await registry.experimentService.logParams(info.id, {"lr": 0.01})
     assert updated.params["lr"] == 0.01
 
 
 @pytest.mark.asyncio
 async def test_experiment_service_list(registry):
-    await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-1")
-    )
-    await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-2")
-    )
+    await registry.experimentService.createExperiment(ExperimentConfig(name="exp-1"))
+    await registry.experimentService.createExperiment(ExperimentConfig(name="exp-2"))
     experiments = await registry.experimentService.listExperiments()
     assert len(experiments) == 2
 
 
 @pytest.mark.asyncio
 async def test_experiment_service_delete(registry):
-    info = await registry.experimentService.createExperiment(
-        ExperimentConfig(name="exp-1")
-    )
+    info = await registry.experimentService.createExperiment(ExperimentConfig(name="exp-1"))
     await registry.experimentService.deleteExperiment(info.id)
     with pytest.raises(ExperimentNotFoundError):
         await registry.experimentService.getExperiment(info.id)

@@ -1,4 +1,5 @@
 """实体/关系抽取器单元测试."""
+
 from __future__ import annotations
 
 import pytest
@@ -49,9 +50,7 @@ class TestMockEntityExtractor:
     @pytest.mark.asyncio
     async def test_extract_with_type_filter(self) -> None:
         extractor = MockEntityExtractor()
-        entities = await extractor.extract(
-            "张三在北京工作", entity_types=["Person"]
-        )
+        entities = await extractor.extract("张三在北京工作", entity_types=["Person"])
         assert all(e.type == "Person" for e in entities)
         assert len(entities) >= 1
 
@@ -137,9 +136,7 @@ class TestLLMEntityExtractorParsing:
         assert result == []
 
     def test_parse_entities_filter_type(self) -> None:
-        payload = (
-            '[{"name": "a", "type": "Person"}, {"name": "b", "type": "Unknown"}]'
-        )
+        payload = '[{"name": "a", "type": "Person"}, {"name": "b", "type": "Unknown"}]'
         result = LLMEntityExtractor._parse_entities(payload, ["Person"])
         assert len(result) == 1
         assert result[0].name == "a"
@@ -154,18 +151,12 @@ class TestLLMRelationExtractorParsing:
     """LLM 关系抽取器解析逻辑测试."""
 
     def test_parse_relations_valid(self) -> None:
-        payload = (
-            '[{"srcId": "a", "dstId": "b", "type": "r"}, '
-            '{"srcId": "a", "dstId": "c", "type": "r"}]'
-        )
+        payload = '[{"srcId": "a", "dstId": "b", "type": "r"}, ' '{"srcId": "a", "dstId": "c", "type": "r"}]'
         result = LLMRelationExtractor._parse_relations(payload, {"a", "b", "c"})
         assert len(result) == 2
 
     def test_parse_relations_filter_unknown_id(self) -> None:
-        payload = (
-            '[{"srcId": "a", "dstId": "b", "type": "r"}, '
-            '{"srcId": "x", "dstId": "y", "type": "r"}]'
-        )
+        payload = '[{"srcId": "a", "dstId": "b", "type": "r"}, ' '{"srcId": "x", "dstId": "y", "type": "r"}]'
         result = LLMRelationExtractor._parse_relations(payload, {"a", "b"})
         assert len(result) == 1
         assert result[0].srcId == "a"

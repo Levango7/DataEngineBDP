@@ -1,4 +1,5 @@
 """交付仓储抽象接口."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -25,9 +26,7 @@ class DeliveryRepository(ABC):
         ...
 
     @abstractmethod
-    async def get_by_subscription(
-        self, subscription_id: str
-    ) -> Optional[Delivery]:
+    async def get_by_subscription(self, subscription_id: str) -> Optional[Delivery]:
         """根据订阅 ID 获取最新交付记录.
 
         Returns:
@@ -45,8 +44,6 @@ class DeliveryRepository(ABC):
         ...
 
     @abstractmethod
-    async def list_by_subscription(
-        self, subscription_id: str
-    ) -> list[Delivery]:
+    async def list_by_subscription(self, subscription_id: str) -> list[Delivery]:
         """列出某订阅的所有交付记录."""
         ...

@@ -1,0 +1,10 @@
+# sidecar 注入验证示例 · ServiceAccount
+# 数擎云核 SKE · Service Mesh sidecar 注入测试
+# 用法: kubectl apply -f ske/k3s/sample-mesh-test-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mesh-test
+  labels:
+    app: mesh-test
+    app.kubernetes.io/part-of: shuqing-bigdata

@@ -1,29 +1,30 @@
 """pytest 共享 fixtures."""
+
 from __future__ import annotations
 
 import os
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("BP_STORE_TYPE", "mock")
 
-from business_portal.api.app import create_app
-from business_portal.config.settings import Settings, reset_settings
-from business_portal.repositories.mock import (
+from business_portal.api.app import create_app  # noqa: E402
+from business_portal.config.settings import Settings, reset_settings  # noqa: E402
+from business_portal.repositories.mock import (  # noqa: E402
     MockBusinessLineStore,
     MockCatalogStore,
     MockDashboardStore,
     MockReportStore,
     MockWorkbenchStore,
 )
-from business_portal.services.business_line_service import BusinessLineService
-from business_portal.services.catalog_service import CatalogService
-from business_portal.services.dashboard_service import DashboardService
-from business_portal.services.registry import ServiceRegistry
-from business_portal.services.report_service import ReportService
-from business_portal.services.workbench_service import WorkbenchService
+from business_portal.services.business_line_service import BusinessLineService  # noqa: E402
+from business_portal.services.catalog_service import CatalogService  # noqa: E402
+from business_portal.services.dashboard_service import DashboardService  # noqa: E402
+from business_portal.services.registry import ServiceRegistry  # noqa: E402
+from business_portal.services.report_service import ReportService  # noqa: E402
+from business_portal.services.workbench_service import WorkbenchService  # noqa: E402
 
 
 @pytest.fixture
