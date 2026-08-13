@@ -114,3 +114,20 @@ export async function executeAllocation(
   const res = await http.get('/allocation/execute', { params })
   return res.data
 }
+/**
+ * 查询计费账单（透传 cost-model 聚合结果）。
+ * @param params 时间窗口
+ */
+export async function getQueryBilling(
+  params: { start?: string; end?: string }
+): Promise<{
+  tenant: string
+  start: string
+  end: string
+  totalCost: number
+  usages?: Record<string, number>
+  note?: string
+}> {
+  const res = await http.get('/billing/tenant', { params })
+  return res.data
+}

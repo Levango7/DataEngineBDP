@@ -2,6 +2,9 @@ package com.levango7.dataenginebdp.finops.repository;
 
 import com.levango7.dataenginebdp.finops.model.QueryMeteringRecord;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -30,4 +33,14 @@ public interface QueryMeteringRepository extends JpaRepository<QueryMeteringReco
      * 删除某租户指定时间前的计量（保留期清理）。
      */
     long deleteByTenantIdAndCreatedAtBefore(String tenantId, Instant before);
+
+    /**
+     * 删除所有创建时间早于指定时刻的计量记录（保留期清理，全租户）。
+     *
+     * @param cutoff 保留截止时间（严格早于）
+     * @return 删除条数
+     */
+    @Modifying
+    @Query("delete from QueryMeteringRecord r where r.createdAt < :cutoff")
+    int deleteAllBeforeCutoff(@Param("cutoff") Instant cutoff);
 }

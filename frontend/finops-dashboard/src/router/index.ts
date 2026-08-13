@@ -8,6 +8,7 @@ const IdleResources = () => import('@/views/IdleResources.vue')
 const OptimizationSuggestions = () => import('@/views/OptimizationSuggestions.vue')
 const BillExport = () => import('@/views/BillExport.vue')
 const AllocationConfig = () => import('@/views/AllocationConfig.vue')
+const QueryBilling = () => import('@/views/QueryBilling.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
@@ -58,6 +59,12 @@ const routes: RouteRecordRaw[] = [
     name: 'AllocationConfig',
     component: AllocationConfig,
     meta: { title: '分账配置' }
+  },
+  {
+    path: '/billing',
+    name: 'QueryBilling',
+    component: QueryBilling,
+    meta: { title: '查询计费账单' }
   }
 ]
 
