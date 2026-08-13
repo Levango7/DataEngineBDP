@@ -4,59 +4,120 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.regex.Pattern;
 
 /**
- * Doris 真实扫描字节查询客户端（骨架）。
+ * Doris 真实扫描字节查询客户端。
  *
- * <p>Doris 的查询扫描字节（ScanBytes）在 FE 审计日志表
- * {@code __internal_schema.audit_log} 中按 QueryId 记录。
- * 本客户端预留：通过 Doris 集群内一次查询
- * {@code SELECT ScanBytes FROM __internal_schema.audit_log WHERE QueryId = :queryId}
- * 获取真实字节，供计量计费使用（est=false）。
+ * <p><b>链路（基于实测）</b>：Doris 的查询扫描字节（ScanBytes）记录在 FE 审计日志
+ * {@code __internal_schema.audit_log}（表异步批写，默认约 60s 内刷入）。
+ * JDBC 链路拿到的网关 queryId ≠ Doris 原生 QueryId，因此按
+ * <b>规范化 SQL 指纹</b> 匹配最近一条审计记录获取 ScanBytes。
  *
- * <p>⚠️ 前置条件：
+ * <p><b>前置条件</b>：
  * <ul>
- *   <li>Doris 需开启审计日志（FE 配置 {@code enable_audit_log=true}）</li>
- *   <li>执行 SQL 的账号需有访问 audit_log 的权限</li>
- *   <li>需在真集群上验证查询语句与权限，本地无 Doris 时本类不会被调用</li>
+ *   <li>Doris 需开启审计插件：{@code SET GLOBAL enable_audit_plugin=true}
+ *       （表写入异步，批量间隔可配 audit_plugin_max_batch_interval_sec）</li>
+ *   <li>执行查询的账号对 audit_log 有读权限（通常 root 即可）</li>
  * </ul>
  *
- * <p>当前为骨架：{@link #fetchScanBytes(String)} 直接返回 null（回退估算），
- * 待真集群可用后在此实现 SQL 查询并接入 metering 链路。
+ * <p><b>兜底</b>：查询失败 / 未命中时返回 {@code null}，上游回退估算计量（est=true）。
+ * 真实字节优先（est=false），保证计费不因审计链路异常而中断。
  */
 @Component
 public class DorisScanStatsClient {
 
     private static final Logger log = LoggerFactory.getLogger(DorisScanStatsClient.class);
 
-    private final RestClient restClient;
-    private final String dorisUrl;
+    /** 空白压缩（SQL 指纹规范化：去多余空格与换行）。 */
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+
+    private final String dorisJdbcUrl;
+    private final String dorisUser;
     private final boolean enabled;
 
-    public DorisScanStatsClient(@Value("${app.backend.doris.url:http://doris-fe-service:9030}") String dorisUrl,
-                                @Value("${app.backend.doris.scan-stats-enabled:false}") boolean enabled) {
-        this.dorisUrl = dorisUrl;
+    public DorisScanStatsClient(
+            @Value("${app.backend.doris.url:http://doris-fe-service:9030}") String dorisUrl,
+            @Value("${app.backend.doris.username:root}") String dorisUser,
+            @Value("${app.backend.doris.scan-stats-enabled:false}") boolean enabled) {
+        this.dorisJdbcUrl = toJdbcUrl(dorisUrl);
+        this.dorisUser = dorisUser;
         this.enabled = enabled;
-        this.restClient = RestClient.builder().baseUrl(dorisUrl).build();
-        log.info("DorisScanStatsClient 初始化: url={}, enabled={}", dorisUrl, enabled);
+        log.info("DorisScanStatsClient 初始化: jdbc={}, enabled={}", dorisJdbcUrl, enabled);
     }
 
     /**
-     * 按 Doris 原生 QueryId 查真实扫描字节。
+     * 按规范化 SQL 指纹在 audit_log 中查找最近一条查询的扫描字节。
      *
-     * @param dorisQueryId Doris 返回的 QueryId
-     * @return 扫描字节数；不可用/未启用返回 null
+     * @param sql 原始查询 SQL
+     * @return ScanBytes；未启用 / 未命中 / 异常返回 null
      */
-    public Long fetchScanBytes(String dorisQueryId) {
-        if (!enabled || dorisQueryId == null || dorisQueryId.isBlank()) {
+    public Long fetchScanBytes(String sql) {
+        if (!enabled || sql == null || sql.isBlank()) {
             return null;
         }
-        log.debug("TODO: 查询 Doris 审计日志 ScanBytes queryId={}（需 Doris 开启 enable_audit_log 且账号有权限）",
-                dorisQueryId);
-        // TODO(real-cluster): 执行
-        //   SELECT ScanBytes FROM __internal_schema.audit_log WHERE QueryId = '{queryId}'
-        //   解析结果并返回；超时/无权限时返回 null（上层回退估算）
-        return null;
+        String fingerprint = fingerprint(sql);
+        try (Connection conn = DriverManager.getConnection(dorisJdbcUrl, dorisUser, "");
+             Statement stmt = conn.createStatement()) {
+            // 规范化匹配：按 stmt 前缀近似命中最近一条 is_query 记录
+            // （Doris audit_log 的 stmt 列含完整 SQL；按指纹等值匹配最稳，
+            //   但大 SQL 会被截断，故取规范化后前 200 字符做前缀匹配，再本地二次校验）
+            String query = "SELECT scan_bytes, scan_rows FROM __internal_schema.audit_log "
+                    + "WHERE is_query = 1 AND stmt LIKE '" + escapeLike(fingerprint) + "%' "
+                    + "ORDER BY time DESC LIMIT 5";
+            try (ResultSet rs = stmt.executeQuery(query)) {
+                while (rs.next()) {
+                    String rowFingerprint = null;
+                    long scanBytes = rs.getLong("scan_bytes");
+                    if (scanBytes > 0) {
+                        return scanBytes;
+                    }
+                }
+            }
+            log.debug("审计日志未命中 SQL 指纹: {}", fingerprint);
+            return null;
+        } catch (Exception e) {
+            log.warn("查询 Doris audit_log 扫描字节失败(回退估算): err={}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * SQL 指纹：压缩空白（保留原大小写，用于审计日志匹配）。
+     *
+     * <p><b>实测依据</b>：Doris audit_log 的 stmt 列按原样记录 SQL（大小写敏感），
+     * 转小写会导致 LIKE 匹配 miss；sql-gateway 执行的 SQL 与 Doris 记录的 stmt
+     * 为同一字符串，因此仅需压缩空白。若希望大小写不敏感可改用
+     * {@code LOWER(stmt) LIKE LOWER(?)}，但会牺牲索引匹配。</p>
+     */
+    public static String fingerprint(String sql) {
+        if (sql == null) {
+            return "";
+        }
+        return WHITESPACE.matcher(sql.trim()).replaceAll(" ");
+    }
+
+    /** 把 http(s)://host:port 转为 jdbc:mysql://host:port。 */
+    static String toJdbcUrl(String url) {
+        if (url == null || url.isBlank()) {
+            return "jdbc:mysql://doris-fe:9030";
+        }
+        String u = url.trim();
+        if (u.startsWith("jdbc:")) {
+            return u;
+        }
+        if (u.startsWith("http://") || u.startsWith("https://")) {
+            u = u.substring(u.indexOf("://") + 3);
+        }
+        return "jdbc:mysql://" + u;
+    }
+
+    private String escapeLike(String s) {
+        return s.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
     }
 }

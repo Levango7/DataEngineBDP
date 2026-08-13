@@ -12,11 +12,15 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import reactor.core.publisher.Mono;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,8 +32,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * <ul>
  *   <li>Trino：POST {@code /v1/statement}，请求体为 SQL 文本，
  *       通过 {@code X-Trino-User} 头传递租户标识；</li>
- *   <li>Doris：POST {@code /api/query}，请求体为 JSON {@code {"sql":"..."}}，
- *       通过 {@code X-Tenant-Id} 头传递租户标识。</li>
+ *   <li>Doris：JDBC（MySQL 兼容协议，FE query_port），连接串来自
+ *       {@code sql-gateway.backends.doris.url}，如 {@code jdbc:mysql://doris-fe:9030}，
+ *       兼容 {@code http://host:port} 写法自动转换。</li>
  * </ul>
  *
  * <p>内置轻量级熔断器：连续失败达到阈值后熔断一段时间，期间直接返回错误响应，
@@ -147,13 +152,14 @@ public class BackendProxyService {
     }
 
     /**
-     * 代理 SQL 到 Doris 后端。
+     * 代理 SQL 到 Doris 后端（JDBC / MySQL 兼容协议）。
      *
-     * <p>调用 Doris FE HTTP API：{@code POST /api/query}，
-     * 请求体为 JSON {@code {"sql":"..."}}，通过 {@code X-Tenant-Id} 头传递租户标识。</p>
+     * <p>Doris 2.x 已不提供旧版 {@code POST /api/query} HTTP SQL 接口，
+     * 改用 MySQL 兼容协议（FE query_port 9030）执行 SQL，接入方式与
+     * tag-engine / metadata-collector 保持一致。</p>
      *
      * @param sql      待执行的 SQL
-     * @param tenantId 租户 ID（写入 X-Tenant-Id 头）
+     * @param tenantId 租户 ID（当前预留：后续可通过 setVar 写入 Doris 会话变量，用于审计隔离）
      * @return 后端执行响应（异步）
      */
     public Mono<SqlExecuteResponse> proxyToDoris(String sql, String tenantId) {
@@ -166,26 +172,34 @@ public class BackendProxyService {
         }
 
         long start = System.currentTimeMillis();
-        Map<String, Object> requestBody = new LinkedHashMap<>();
-        requestBody.put("sql", sql);
-        if (tenantId != null) {
-            requestBody.put("tenant", tenantId);
+        try (Connection conn = DriverManager.getConnection(resolveDorisJdbcUrl(), "root", "");
+             Statement stmt = conn.createStatement()) {
+            applyQueryTimeout(stmt);
+            boolean hasResultSet = stmt.execute(sql);
+            if (hasResultSet) {
+                try (ResultSet rs = stmt.getResultSet()) {
+                    SqlExecuteResponse response = buildDorisResponse(rs, queryId,
+                            System.currentTimeMillis() - start);
+                    resetFailures(dorisFailures, dorisOpenSince);
+                    return Mono.just(response);
+                }
+            }
+            // DML/DDL：无结果集，返回成功（影响行数暂不返回，留待后续扩展）
+            resetFailures(dorisFailures, dorisOpenSince);
+            return Mono.just(SqlExecuteResponse.builder()
+                    .queryId(queryId)
+                    .status("SUCCESS")
+                    .columns(List.of())
+                    .rows(List.of())
+                    .durationMs(System.currentTimeMillis() - start)
+                    .engine("doris")
+                    .build());
+        } catch (Exception e) {
+            recordFailure(dorisFailures, dorisOpenSince, "doris");
+            log.error("proxyToDoris 失败 queryId={} sql={} err={}", queryId, sql, e.toString());
+            return Mono.just(errorResponse(queryId, "doris",
+                    "Doris 调用失败: " + e.getMessage()));
         }
-
-        return dorisClient.post()
-                .uri("/api/query")
-                .header("X-Tenant-Id", tenantId == null ? "default" : tenantId)
-                .bodyValue(requestBody)
-                .retrieve()
-                .bodyToMono(String.class)
-                .timeout(Duration.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
-                .map(json -> parseDorisResponse(json, queryId, System.currentTimeMillis() - start))
-                .onErrorResume(e -> {
-                    recordFailure(dorisFailures, dorisOpenSince, "doris");
-                    log.error("proxyToDoris 失败 queryId={} err={}", queryId, e.toString());
-                    return Mono.just(errorResponse(queryId, "doris",
-                            "Doris 调用失败: " + e.getMessage()));
-                });
     }
 
     /**
@@ -281,98 +295,80 @@ public class BackendProxyService {
     }
 
     /**
-     * 解析 Doris FE HTTP API 响应。
+     * 解析 Doris JDBC 连接串。
      *
-     * <p>预期 Doris 返回 JSON 结构：</p>
-     * <pre>
-     * {
-     *   "code": 0,
-     *   "msg": "OK",
-     *   "data": {
-     *     "columns": ["col1","col2"],
-     *     "rows": [["v1","v2"], ...]
-     *   }
-     * }
-     * </pre>
-     * <p>若实际 Doris 返回结构不同，可在此处适配。</p>
+     * <p>配置项 {@code sql-gateway.backends.doris.url} 兼容两种写法：</p>
+     * <ul>
+     *   <li>{@code jdbc:mysql://host:port[/db]}：直接使用；</li>
+     *   <li>{@code http://host:port}：自动转换为 {@code jdbc:mysql://host:port}。</li>
+     * </ul>
+     * <p>自动附加 connectTimeout / socketTimeout，避免后端不可达时长时间阻塞。</p>
      *
-     * @param json       Doris 返回的 JSON 文本
-     * @param queryId    网关生成的查询 ID
+     * @return Doris JDBC 连接串
+     */
+    private String resolveDorisJdbcUrl() {
+        String url = (dorisConfig == null || dorisConfig.getUrl() == null)
+                ? "jdbc:mysql://doris-fe:9030" : dorisConfig.getUrl();
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            url = "jdbc:mysql://" + url.substring(url.indexOf("://") + 3);
+        }
+        int timeout = dorisConfig == null ? 30 : dorisConfig.getTimeout();
+        if (!url.contains("connectTimeout=")) {
+            url += (url.contains("?") ? "&" : "?")
+                    + "connectTimeout=" + Math.max(timeout, 3) + "000"
+                    + "&socketTimeout=" + timeout + "000";
+        }
+        return url;
+    }
+
+    /**
+     * 设置语句查询超时（Connector/J 不支持 Statement 级查询超时，忽略异常）。
+     *
+     * @param stmt 已创建的 Statement
+     */
+    private void applyQueryTimeout(Statement stmt) {
+        try {
+            int timeout = dorisConfig == null ? 30 : dorisConfig.getTimeout();
+            stmt.setQueryTimeout(timeout);
+        } catch (SQLException ignored) {
+            // Connector/J 不支持 setQueryTimeout，依赖 socketTimeout 兜底
+        }
+    }
+
+    /**
+     * 从 JDBC ResultSet 构建网关响应。
+     *
+     * @param rs        Doris 查询结果集
+     * @param queryId   网关生成的查询 ID
      * @param durationMs 已耗时（毫秒）
      * @return 解析后的 SqlExecuteResponse
      */
-    private SqlExecuteResponse parseDorisResponse(String json, String queryId, long durationMs) {
-        try {
-            JsonNode root = objectMapper.readTree(json);
-
-            // Doris 错误码判断（code != 0 视为失败）
-            JsonNode codeNode = root.get("code");
-            if (codeNode != null && codeNode.asInt(0) != 0) {
-                String msg = root.has("msg") ? root.get("msg").asText() : "Doris 执行错误";
-                // 修复：原代码仅 warn 级别日志，错误信息未充分传递。
-                // Doris 业务错误应使用 error 级别，便于监控告警捕获。
-                log.error("Doris 返回错误码 queryId={} code={} msg={}", queryId, codeNode.asInt(), msg);
-                return SqlExecuteResponse.builder()
-                        .queryId(queryId)
-                        .status("FAILED")
-                        .columns(List.of())
-                        .rows(List.of())
-                        .durationMs(durationMs)
-                        .engine("doris")
-                        .build();
-            }
-
-            JsonNode dataNode = root.get("data");
-            List<String> columns = new ArrayList<>();
-            List<List<Object>> rows = new ArrayList<>();
-
-            if (dataNode != null) {
-                // 解析列名
-                JsonNode columnsNode = dataNode.get("columns");
-                if (columnsNode != null && columnsNode.isArray()) {
-                    for (JsonNode col : columnsNode) {
-                        columns.add(col.isTextual() ? col.asText() : col.toString());
-                    }
-                }
-
-                // 解析数据行
-                JsonNode rowsNode = dataNode.get("rows");
-                if (rowsNode != null && rowsNode.isArray()) {
-                    for (JsonNode row : rowsNode) {
-                        List<Object> rowValues = new ArrayList<>();
-                        if (row.isArray()) {
-                            for (JsonNode cell : row) {
-                                rowValues.add(jsonNodeToObject(cell));
-                            }
-                        }
-                        rows.add(rowValues);
-                    }
-                }
-            }
-
-            // 成功时重置熔断计数
-            resetFailures(dorisFailures, dorisOpenSince);
-
-            return SqlExecuteResponse.builder()
-                    .queryId(queryId)
-                    .status("SUCCESS")
-                    .columns(columns)
-                    .rows(rows)
-                    .durationMs(durationMs)
-                    .engine("doris")
-                    .rawInputBytes(extractDorisScanBytes(root))
-                    .build();
-        } catch (JsonProcessingException e) {
-            log.error("解析 Doris 响应失败 queryId={} err={}", queryId, e.getMessage());
-            return SqlExecuteResponse.builder()
-                    .queryId(queryId)
-                    .status("FAILED")
-                    .columns(List.of())
-                    .rows(List.of())
-                    .durationMs(durationMs)
-                    .engine("doris")
-                    .build();
+    private SqlExecuteResponse buildDorisResponse(ResultSet rs, String queryId, long durationMs)
+            throws SQLException {
+        List<String> columns = new ArrayList<>();
+        ResultSetMetaData meta = rs.getMetaData();
+        int columnCount = meta.getColumnCount();
+        for (int i = 1; i <= columnCount; i++) {
+            columns.add(meta.getColumnLabel(i));
         }
+
+        List<List<Object>> rows = new ArrayList<>();
+        while (rs.next()) {
+            List<Object> row = new ArrayList<>(columnCount);
+            for (int i = 1; i <= columnCount; i++) {
+                row.add(rs.getObject(i));
+            }
+            rows.add(row);
+        }
+
+        return SqlExecuteResponse.builder()
+                .queryId(queryId)
+                .status("SUCCESS")
+                .columns(columns)
+                .rows(rows)
+                .durationMs(durationMs)
+                .engine("doris")
+                .build();
     }
 
     /**

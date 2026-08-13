@@ -1,0 +1,80 @@
+# ============================================================================
+# 超轻量 Doris 实测环境（单 FE + 单 BE，最小资源）
+# 用途: sql-gateway Doris 真实扫描字节采集实测 / 本地联调
+# 关联: platform/sql-gateway (后端 doris.url = http://localhost:18030)
+#
+# 启动: docker compose -f docker-compose-doris-lite.yml up -d
+# 验证: docker compose -f docker-compose-doris-lite.yml ps
+# 停止: docker compose -f docker-compose-doris-lite.yml down -v
+#
+# Doris 2.1.7+ 官方镜像拆分为 doris-fe / doris-be 两个镜像。
+# 官方 entrypoint 需要 FE_SERVERS/FE_ID（FE）与 FE_SERVERS/BE_ADDR（BE），
+# 采用固定 IP 的 ELECTION 模式（容器 IP 即注册 IP，免 hostname 解析问题）。
+#
+# 端口:
+#   FE HTTP  18031 -> 8030 (WEB UI / 状态)
+#   FE MySQL 18030 -> 9030 (JDBC/ODBC 兼容协议, Doris FE 对外服务口)
+#   BE HTTP  18032 -> 8040 (BE Web, 查询 profile)
+#   FE 内部  18035 -> 9050 (edit_log/心跳, 暴露便于排查)
+# ============================================================================
+services:
+  doris-fe:
+    image: docker.m.daocloud.io/apache/doris:doris-fe-2.1.7
+    container_name: sq-doris-lite-fe
+    restart: unless-stopped
+    environment:
+      # 官方 entrypoint ELECTION 模式: FE_SERVERS=名称:IP:edit_log_port
+      FE_SERVERS: "fe1:172.30.88.2:9010"
+      FE_ID: "1"
+      # FE 内存上限（轻量实测用 1g）
+      JAVA_OPTS: "-Xmx1024m -XX:+UseG1GC"
+    ports:
+      - "18031:8030"   # FE HTTP
+      - "18030:9030"   # FE MySQL
+      - "18035:9010"   # FE edit_log(暴露,便于排查)
+    volumes:
+      - sq-doris-fe-data:/opt/apache-doris/fe/doris-meta
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8030/api/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    networks:
+      sq-doris-lite-net:
+        ipv4_address: 172.30.88.2
+
+  doris-be:
+    image: docker.m.daocloud.io/apache/doris:doris-be-2.1.7
+    container_name: sq-doris-lite-be
+    restart: unless-stopped
+    depends_on:
+      - doris-fe
+    environment:
+      # 官方 entrypoint ELECTION 模式: FE_SERVERS + BE_ADDR=BE_IP:heartbeat_port
+      FE_SERVERS: "fe1:172.30.88.2:9010"
+      BE_ADDR: "172.30.88.3:9050"
+    ports:
+      - "18032:8040"   # BE HTTP(暴露,便于排查)
+    volumes:
+      - sq-doris-be-data:/opt/apache-doris/be/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8040/api/health || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+      start_period: 60s
+    networks:
+      sq-doris-lite-net:
+        ipv4_address: 172.30.88.3
+
+volumes:
+  sq-doris-fe-data:
+  sq-doris-be-data:
+
+networks:
+  sq-doris-lite-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.88.0/24

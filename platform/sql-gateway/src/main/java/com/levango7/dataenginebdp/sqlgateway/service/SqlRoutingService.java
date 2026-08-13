@@ -62,12 +62,19 @@ public class SqlRoutingService {
      */
     private final com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector;
 
+    /**
+     * Doris 审计日志扫描字节客户端（可选；audit_log 表查 ScanBytes，未开启时返回 null → 估算）。
+     */
+    private final DorisScanStatsClient dorisScanStatsClient;
+
     public SqlRoutingService(BackendProxyService backendProxyService,
                              RouteRuleRepository routeRuleRepository,
-                             com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector) {
+                             com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector,
+                             DorisScanStatsClient dorisScanStatsClient) {
         this.backendProxyService = backendProxyService;
         this.routeRuleRepository = routeRuleRepository;
         this.meteringCollector = meteringCollector;
+        this.dorisScanStatsClient = dorisScanStatsClient;
     }
 
     /**
@@ -116,8 +123,13 @@ public class SqlRoutingService {
 
             // 用网关生成的 queryId 覆盖后端响应中的 queryId，保证全局唯一可追踪
             response.setQueryId(queryId);
+            // Doris：优先按 SQL 指纹查审计日志真实扫描字节；未开启/未命中回退估算（Trino：沿用响应 rawInputBytes）
+            Long dorisRealBytes = "doris".equalsIgnoreCase(targetEngine)
+                    ? resolveDorisScanBytes(sql)
+                    : null;
             recordMetering(tenantId, targetEngine, sql, start,
-                    System.currentTimeMillis() - start, queryId, response.getRawInputBytes());
+                    System.currentTimeMillis() - start, queryId,
+                    dorisRealBytes != null ? dorisRealBytes : response.getRawInputBytes());
             return response;
         } catch (IllegalStateException e) {
             // Mono.block 超时会抛 IllegalStateException("Timeout on blocking read...")
@@ -234,10 +246,25 @@ public class SqlRoutingService {
     }
 
     /**
+     * 解析 Doris 真实扫描字节：按 SQL 指纹查审计日志（未开启/未命中返回 null，上层估算兜底）。
+     */
+    private Long resolveDorisScanBytes(String sql) {
+        try {
+            if (dorisScanStatsClient == null) {
+                return null;
+            }
+            return dorisScanStatsClient.fetchScanBytes(sql);
+        } catch (Exception e) {
+            log.warn("Doris 扫描字节解析失败(估算兜底): err={}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 记录查询计量（异步、不阻塞主链路）。
      *
-     * <p>字节来源：Trino 响应带有真实扫描字节(rawInputBytes)时使用真实值（est=false），
-     * 否则用耗时×系数估算并标记 est=true；后续 Doris 侧接入后同样走真实值。</p>
+     * <p>字节来源：真实扫描字节（Trino rawInputBytes / Doris 审计日志）优先，
+     * 否则用耗时×系数估算并标记 est=true。</p>
      */
     private void recordMetering(String tenantId, String engine, String sql,
                                 long startMs, long durationMs, String queryId,
