@@ -137,4 +137,65 @@ public class BillingAggregatorService {
         }
         return buckets;
     }
+
+    /**
+     * 按日趋势聚合：将 [start, end) 窗口内的计量按天分组，逐日计算
+     * 扫描字节、查询次数与成本（分层定价）。
+     *
+     * <p>单次查询 + 内存分组，避免按天循环查库。</p>
+     *
+     * @param tenantId 租户 ID
+     * @param start    窗口起始（含）
+     * @param end      窗口结束（不含）
+     * @return 按日账单点列表（按时间升序，缺数据的日期不产生点）
+     */
+    @Transactional(readOnly = true)
+    public List<com.levango7.dataenginebdp.finops.model.DailyBillingPoint> aggregateDailyQueryBilling(
+            String tenantId, Instant start, Instant end) {
+        List<QueryMeteringRecord> records = meteringRepository
+                .findByTenantIdAndCreatedAtBetweenOrderByCreatedAtAsc(tenantId, start, end);
+        if (records.isEmpty()) {
+            return List.of();
+        }
+
+        // 按天分组：dayKey(yyyy-MM-dd) → list
+        Map<String, List<QueryMeteringRecord>> byDay = new HashMap<>();
+        for (QueryMeteringRecord r : records) {
+            String day = r.getCreatedAt().toString().substring(0, 10); // ISO-8601 UTC 日
+            byDay.computeIfAbsent(day, k -> new ArrayList<>()).add(r);
+        }
+
+        List<com.levango7.dataenginebdp.finops.model.DailyBillingPoint> points = new ArrayList<>();
+        byDay.entrySet().stream()
+                .sorted(Map.Entry.comparingByKey())
+                .forEach(e -> {
+                    String day = e.getKey();
+                    List<QueryMeteringRecord> dayRecords = e.getValue();
+                    long bytes = dayRecords.stream().mapToLong(QueryMeteringRecord::getBytesScanned).sum();
+                    double tb = bytes / BYTES_PER_TB;
+
+                    List<ResourceUsage> usages = new ArrayList<>();
+                    if (tb > 0) {
+                        usages.add(ResourceUsage.builder()
+                                .tenant(tenantId)
+                                .namespace("query-metering")
+                                .dimension(ResourceDimension.SCANNED_DATA)
+                                .amount(tb)
+                                .start(start)
+                                .end(end)
+                                .build());
+                    }
+                    BigDecimal cost = tieredBillingStrategy.calculate(
+                            usages, pricingConfigService.getDefault()).getTotalCost();
+                    points.add(com.levango7.dataenginebdp.finops.model.DailyBillingPoint.builder()
+                            .day(day)
+                            .bytesScanned(bytes)
+                            .tbScanned(tb)
+                            .queryCount(dayRecords.size())
+                            .cost(cost)
+                            .build());
+                });
+        log.info("租户按日账单趋势聚合完成: tenant={}, 天数={}", tenantId, points.size());
+        return points;
+    }
 }

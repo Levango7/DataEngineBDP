@@ -61,6 +61,32 @@ public class QueryBillingClient {
     }
 
     /**
+     * 拉取某租户的按日账单趋势（透传 cost-model）。
+     *
+     * @param tenantId  租户（通常来自 TenantContext）
+     * @param startDate 起始日期（含，可空，默认近 7 天）
+     * @param endDate   结束日期（含，可空）
+     * @return cost-model 返回的趋势 Map（含 points 列表）
+     */
+    public Map<String, Object> fetchTenantBillingTrend(String tenantId,
+                                                       LocalDate startDate, LocalDate endDate) {
+        return restClient.get()
+                .uri(uriBuilder -> {
+                    var builder = uriBuilder.path("/api/v1/finops/billing/tenant/trend");
+                    if (startDate != null) {
+                        builder.queryParam("startDate", startDate.toString());
+                    }
+                    if (endDate != null) {
+                        builder.queryParam("endDate", endDate.toString());
+                    }
+                    return builder.build();
+                })
+                .header("X-Tenant-Id", tenantId)
+                .retrieve()
+                .body(Map.class);
+    }
+
+    /**
      * 获取客户端连接超时（供监控使用）。
      */
     public Duration getTimeout() {

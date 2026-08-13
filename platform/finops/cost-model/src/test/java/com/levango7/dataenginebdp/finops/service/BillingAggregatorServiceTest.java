@@ -118,4 +118,46 @@ class BillingAggregatorServiceTest {
         assertThat(deleted).isEqualTo(1); // 只删 30 天前那一条
         assertThat(meteringRepository.count()).isEqualTo(1);
     }
+
+    @Test
+    void aggregateDailyQueryBilling_groupsByDaySorted() {
+        Instant now = Instant.now();
+        // 同一天两条 + 前一天一条
+        meteringRepository.save(record("tenant_a", 100L, true, "trino", now.minus(10, ChronoUnit.MINUTES)));
+        meteringRepository.save(record("tenant_a", 200L, true, "trino", now.minus(5, ChronoUnit.MINUTES)));
+        meteringRepository.save(record("tenant_a", 300L, true, "trino", now.minus(1, ChronoUnit.DAYS)));
+        // 其他租户不参与
+        meteringRepository.save(record("tenant_b", 999L, true, "doris", now.minus(1, ChronoUnit.MINUTES)));
+
+        when(tieredBillingStrategy.calculate(any(), any()))
+                .thenReturn(CostResult.builder()
+                        .totalCost(BigDecimal.valueOf(1.0))
+                        .dimensionUsages(new java.util.HashMap<>())
+                        .build());
+
+        var points = billingAggregatorService.aggregateDailyQueryBilling(
+                "tenant_a", now.minus(2, ChronoUnit.DAYS), now.plusSeconds(60));
+
+        // 2 个不同的日点，升序（先旧后新）
+        assertThat(points).hasSize(2);
+        assertThat(points.get(0).getDay()).isLessThan(points.get(1).getDay());
+        // 最新日包含两条记录 → queryCount=2, 字节=300
+        var latest = points.get(1);
+        assertThat(latest.getQueryCount()).isEqualTo(2);
+        assertThat(latest.getBytesScanned()).isEqualTo(300L);
+        // 旧日 queryCount=1
+        assertThat(points.get(0).getQueryCount()).isEqualTo(1);
+        assertThat(points.get(0).getBytesScanned()).isEqualTo(300L);
+    }
+
+    @Test
+    void aggregateDailyQueryBilling_emptyReturnsEmptyList() {
+        when(tieredBillingStrategy.calculate(any(), any()))
+                .thenReturn(CostResult.builder().totalCost(BigDecimal.ZERO).dimensionUsages(new java.util.HashMap<>()).build());
+
+        var points = billingAggregatorService.aggregateDailyQueryBilling(
+                "tenant_a", Instant.now().minus(1, ChronoUnit.DAYS), Instant.now());
+
+        assertThat(points).isEmpty();
+    }
 }

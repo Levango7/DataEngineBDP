@@ -55,19 +55,27 @@
       </el-col>
     </el-row>
 
-    <el-card shadow="never" style="margin-top: 16px">
+    <el-card shadow="never">
       <template #header>账单明细说明</template>
       <el-descriptions :column="1" border v-if="billing.note">
         <el-descriptions-item label="计费说明">{{ billing.note }}</el-descriptions-item>
       </el-descriptions>
       <el-empty v-else :image-size="60" description="暂无账单数据，请选择日期查询" />
     </el-card>
+
+    <el-card shadow="never" style="margin-top: 16px">
+      <template #header>按日扫描趋势（TB）</template>
+      <EChart v-if="trendOption" :option="trendOption" height="420px" />
+      <el-empty v-else :image-size="60" description="暂无趋势数据" />
+    </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { getQueryBilling } from '@/api/finops'
+import type { EChartsOption } from 'echarts'
+import EChart from '@/components/EChart.vue'
+import { getQueryBilling, getQueryBillingTrend } from '@/api/finops'
 
 const startDate = ref<string | null>(null)
 const endDate = ref<string | null>(null)
@@ -80,6 +88,44 @@ const billing = ref<{
   usages?: Record<string, number>
   note?: string
 }>({})
+
+type TrendPoint = {
+  day: string
+  bytesScanned: number
+  tbScanned: number
+  queryCount: number
+  cost: number
+}
+const trendPoints = ref<TrendPoint[]>([])
+
+const trendOption = computed<EChartsOption | null>(() => {
+  if (!trendPoints.value.length) return null
+  const xData = trendPoints.value.map((p) => p.day)
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['扫描量 (TB)', '成本 (元)'] },
+    xAxis: { type: 'category', data: xData },
+    yAxis: [
+      { type: 'value', name: 'TB' },
+      { type: 'value', name: '元' }
+    ],
+    series: [
+      {
+        name: '扫描量 (TB)',
+        type: 'line',
+        smooth: true,
+        areaStyle: { opacity: 0.15 },
+        data: trendPoints.value.map((p) => p.tbScanned)
+      },
+      {
+        name: '成本 (元)',
+        type: 'bar',
+        yAxisIndex: 1,
+        data: trendPoints.value.map((p) => Number(p.cost))
+      }
+    ]
+  }
+})
 
 const formattedCost = computed(() =>
   billing.value.totalCost == null ? '—' : Number(billing.value.totalCost).toFixed(4)
@@ -98,8 +144,18 @@ async function loadBilling() {
     if (startDate.value) params.start = startDate.value
     if (endDate.value) params.end = endDate.value
     billing.value = await getQueryBilling(params)
+    // 趋势图：与账单同窗口
+    const trend = await getQueryBillingTrend(params)
+    trendPoints.value = (trend.points ?? []).map((p) => ({
+      day: p.day,
+      bytesScanned: p.bytesScanned,
+      tbScanned: p.tbScanned,
+      queryCount: p.queryCount,
+      cost: p.cost
+    }))
   } catch (e) {
     billing.value = { note: `账单查询失败: ${(e as Error)?.message ?? e}` }
+    trendPoints.value = []
   } finally {
     loading.value = false
   }

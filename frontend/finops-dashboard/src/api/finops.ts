@@ -131,3 +131,25 @@ export async function getQueryBilling(
   const res = await http.get('/billing/tenant', { params })
   return res.data
 }
+
+/**
+ * 查询计费账单按日趋势（透传 cost-model trend 端点）。
+ * @param params 时间窗口
+ */
+export async function getQueryBillingTrend(
+  params: { start?: string; end?: string }
+): Promise<{
+  tenant?: string
+  start?: string
+  end?: string
+  points?: Array<{
+    day: string
+    bytesScanned: number
+    tbScanned: number
+    queryCount: number
+    cost: number
+  }>
+}> {
+  const res = await http.get('/billing/tenant/trend', { params })
+  return res.data
+}

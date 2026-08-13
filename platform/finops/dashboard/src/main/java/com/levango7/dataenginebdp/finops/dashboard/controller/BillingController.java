@@ -58,4 +58,34 @@ public class BillingController {
                     .body(Map.of("error", "账单服务暂不可用: " + e.getMessage()));
         }
     }
+
+    /**
+     * 查询当前租户的按日账单趋势（透传 cost-model）。
+     *
+     * @param startDate 起始日期（yyyy-MM-dd，可空）
+     * @param endDate   结束日期（yyyy-MM-dd，可空）
+     * @return cost-model 透传响应（含 points）
+     */
+    @GetMapping("/tenant/trend")
+    public ResponseEntity<?> tenantBillingTrend(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "缺少租户上下文（TenantContext 未设置）"));
+        }
+
+        try {
+            Map<String, Object> trend = queryBillingClient.fetchTenantBillingTrend(tenantId, startDate, endDate);
+            return ResponseEntity.ok(trend);
+        } catch (Exception e) {
+            log.warn("账单趋势查询失败: tenant={}, err={}", tenantId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                    .body(Map.of("error", "账单趋势服务暂不可用: " + e.getMessage()));
+        }
+    }
 }

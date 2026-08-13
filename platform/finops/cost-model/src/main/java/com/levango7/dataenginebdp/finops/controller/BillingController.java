@@ -71,4 +71,37 @@ public class BillingController {
                 "usages", result.getDimensionUsages(),
                 "note", result.getNote()));
     }
+
+    /**
+     * 查询当前租户的按日账单趋势（趋势图数据源）。
+     *
+     * @param startDate 起始日期（yyyy-MM-dd，可空）
+     * @param endDate   结束日期（yyyy-MM-dd，可空）
+     * @return 按日账单点列表
+     */
+    @GetMapping("/tenant/trend")
+    public ResponseEntity<?> currentTenantBillingTrend(
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "缺少租户上下文（TenantContext 未设置）"));
+        }
+
+        LocalDate startDay = startDate == null ? LocalDate.now(ZoneOffset.UTC).minusDays(6) : startDate;
+        LocalDate endDay = endDate == null ? LocalDate.now(ZoneOffset.UTC) : endDate;
+        Instant start = startDay.atStartOfDay().toInstant(ZoneOffset.UTC);
+        Instant end = endDay.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+
+        var points = billingAggregatorService.aggregateDailyQueryBilling(tenantId, start, end);
+        return ResponseEntity.ok(Map.of(
+                "tenant", tenantId,
+                "start", start.toString(),
+                "end", end.toString(),
+                "points", points));
+    }
 }
