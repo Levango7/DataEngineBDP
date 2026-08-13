@@ -23,11 +23,21 @@ global:
   guomiAlgos: ["AES", "SHA256"]
 
 storage:
+  # 统一对象存储抽象（storage-io 0.1.0）: driver 与 values-base.yaml 注入约定对齐
   objectStore:
-    driver: "s3"                     # S3Driver；客户提供密钥，不绑云托管
+    driver: s3                      # S3Driver；客户提供密钥，不绑云托管
     endpoint: "https://s3.<region>.example.com"
     csi: "csi-s3"
     binding: "customer-provided-credentials"   # 关键：密钥由客户提供，不依赖云 IAM 托管
+    # ---- storage-io 对接字段（S3 兼容）----
+    pathStyle: false                # 云 S3 用虚拟主机风格
+    region: "<region>"              # Profile 部署时替换为实际区域
+    accessKeySource: customer-provided   # env | secret | customer-provided
+    encryption: aes                 # aes | sm4
+  # Iceberg Catalog 策略: hive 保留（兼容存量）; 生产/多租户可切 rest
+  catalog:
+    mode: hive                      # hive | rest
+    restUri: ""                     # mode=rest 时必填, 如 http://iceberg-rest:8181
 
 network:
   cni: "cilium"

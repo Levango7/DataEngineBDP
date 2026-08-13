@@ -22,10 +22,20 @@ global:
   guomiAlgos: ["SM2", "SM3", "SM4"]
 
 storage:
+  # 统一对象存储抽象（storage-io 0.1.0）: driver 与 values-base.yaml 注入约定对齐
   objectStore:
-    driver: "xcobject"               # XCObjectDriver（国产对象存储 CSI）
+    driver: xcobject                 # 国产对象存储（S3 兼容 CSI）
     endpoint: "https://xc-obj.internal"
     csi: "csi-xc"
+    # ---- storage-io 对接字段（S3 兼容）----
+    pathStyle: true                 # 国产对象存储多需 path-style
+    region: "us-east-1"
+    accessKeySource: secret         # env | secret | customer-provided; 信创走昆仑/内部 secret
+    encryption: sm4                 # 国密 SM4 加密
+  # Iceberg Catalog 策略: hive 保留（兼容存量）; 信创/多租户建议 rest
+  catalog:
+    mode: hive                      # hive | rest
+    restUri: ""                     # mode=rest 时必填, 如 http://iceberg-rest:8181
 
 network:
   cni: "cilium"

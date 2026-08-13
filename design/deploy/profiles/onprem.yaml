@@ -21,10 +21,20 @@ global:
   guomiAlgos: ["AES", "SHA256"]
 
 storage:
+  # 统一对象存储抽象（storage-io 0.1.0）: driver 与 values-base.yaml 注入约定对齐
   objectStore:
-    driver: "ceph"                   # CephDriver（RGW/MinIO 兼容 S3）
+    driver: ceph                    # 枚举: minio | ceph | s3 | xcobject; Ceph RGW/MinIO 兼容 S3
     endpoint: "http://ceph-rgw.internal"
     csi: "ceph-csi"
+    # ---- storage-io 对接字段（S3 兼容）----
+    pathStyle: true                 # Ceph RGW 需 path-style 访问
+    region: "us-east-1"
+    accessKeySource: secret         # env | secret | customer-provided; 内部 Ceph 用 secret 注入
+    encryption: aes                 # aes | sm4
+  # Iceberg Catalog 策略: hive 保留（兼容存量）; 生产/多租户可切 rest
+  catalog:
+    mode: hive                      # hive | rest
+    restUri: ""                     # mode=rest 时必填, 如 http://iceberg-rest:8181
 
 network:
   cni: "cilium"

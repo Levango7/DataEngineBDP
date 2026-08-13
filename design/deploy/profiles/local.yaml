@@ -23,12 +23,22 @@ global:
   guomiEnabled: false  # 笔记本无国密卡, 走标准算法
 
 storage:
+  # 统一对象存储抽象（storage-io 0.1.0）: driver 与 values-base.yaml 注入约定对齐
   objectStore:
-    driver: MinIODriver        # 本地 MinIO 替代 Ceph (onprem 用 CephDriver)
+    driver: minio               # 枚举: minio | ceph | s3 | xcobject; 本地单机用 MinIO
     endpoint: "http://minio.local:9000"
     bucket: "lakehouse"
     accessKey: "minio"
     secretKey: "minio123"
+    # ---- storage-io 对接字段（S3 兼容）----
+    pathStyle: true              # MinIO/Ceph 需 path-style 访问
+    region: "us-east-1"
+    accessKeySource: env         # env | secret | customer-provided
+    encryption: aes              # aes | sm4（xinchuang 用 sm4）
+  # Iceberg Catalog 策略: hive 保留（兼容存量）; 生产/多租户可切 rest
+  catalog:
+    mode: hive                   # hive | rest
+    restUri: ""                  # mode=rest 时必填, 如 http://iceberg-rest:8181
 
 network:
   lb: nodeport        # 单机用 NodePort / Port-Forward, 不用云 LB
