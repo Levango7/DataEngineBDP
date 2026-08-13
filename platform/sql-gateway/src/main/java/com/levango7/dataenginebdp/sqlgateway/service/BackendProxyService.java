@@ -265,6 +265,7 @@ public class BackendProxyService {
                     .rows(rows)
                     .durationMs(durationMs)
                     .engine("trino")
+                    .rawInputBytes(extractRawInputBytes(root))
                     .build();
         } catch (JsonProcessingException e) {
             log.error("解析 Trino 响应失败 queryId={} err={}", queryId, e.getMessage());
@@ -442,6 +443,34 @@ public class BackendProxyService {
     private void resetFailures(AtomicInteger failures, AtomicLong openSince) {
         failures.set(0);
         openSince.set(0L);
+    }
+
+    /**
+     * 从 Trino 响应 JSON 中提取真实扫描字节数（stats.rawInputBytes）。
+     *
+     * <p>容错：缺失/非数值/异常时返回 null（上层回退估算计量）。</p>
+     *
+     * @param root Trino 响应 JSON 根节点
+     * @return 扫描字节数；不可用时为 null
+     */
+    private Long extractRawInputBytes(JsonNode root) {
+        try {
+            if (root == null) {
+                return null;
+            }
+            JsonNode stats = root.get("stats");
+            if (stats == null || !stats.isObject()) {
+                return null;
+            }
+            JsonNode rawInputBytes = stats.get("rawInputBytes");
+            if (rawInputBytes == null || !rawInputBytes.isNumber()) {
+                return null;
+            }
+            return rawInputBytes.asLong();
+        } catch (Exception e) {
+            log.debug("提取 Trino rawInputBytes 失败: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**

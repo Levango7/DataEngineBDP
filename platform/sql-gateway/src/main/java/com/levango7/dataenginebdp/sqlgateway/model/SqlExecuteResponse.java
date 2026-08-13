@@ -43,4 +43,10 @@ public class SqlExecuteResponse {
      * 实际执行引擎：{@code trino} / {@code doris}。
      */
     private String engine;
+
+    /**
+     * 真实扫描字节数（来自 Trino stats.rawInputBytes；null 表示未获取或需估算）。
+     * <p>用于计量计费：为 null 时按估算计费（est=true），非 null 时按真实值（est=false）。</p>
+     */
+    private Long rawInputBytes;
 }
