@@ -360,6 +360,7 @@ public class BackendProxyService {
                     .rows(rows)
                     .durationMs(durationMs)
                     .engine("doris")
+                    .rawInputBytes(extractDorisScanBytes(root))
                     .build();
         } catch (JsonProcessingException e) {
             log.error("解析 Doris 响应失败 queryId={} err={}", queryId, e.getMessage());
@@ -469,6 +470,48 @@ public class BackendProxyService {
             return rawInputBytes.asLong();
         } catch (Exception e) {
             log.debug("提取 Trino rawInputBytes 失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 从 Doris 响应 JSON 中提取真实扫描字节数。
+     *
+     * <p>Doris HTTP 响应不固定携带扫描字节；优先识别常见字段
+     * (scanBytes / ScanBytes / processedBytes / bytesRead)，
+     * 取不到时返回 null，由上层回退估算计量（est=true）。
+     *
+     * @param root Doris 响应 JSON 根节点
+     * @return 扫描字节数；不可用时为 null
+     */
+    private Long extractDorisScanBytes(JsonNode root) {
+        try {
+            if (root == null) {
+                return null;
+            }
+            // Doris 审计/统计字段可能在根或 data 下
+            for (String candidate : new String[]{"scanBytes", "ScanBytes", "processedBytes", "bytesRead"}) {
+                JsonNode node = root.get(candidate);
+                if (node == null || !node.isNumber() && !node.isIntegralNumber()) {
+                    continue;
+                }
+                long v = node.asLong();
+                if (v > 0) {
+                    return v;
+                }
+            }
+            JsonNode data = root.get("data");
+            if (data != null && data.isObject()) {
+                for (String candidate : new String[]{"scanBytes", "ScanBytes", "processedBytes", "bytesRead"}) {
+                    JsonNode node = data.get(candidate);
+                    if (node != null && node.isNumber() && node.asLong() > 0) {
+                        return node.asLong();
+                    }
+                }
+            }
+            return null;
+        } catch (Exception e) {
+            log.debug("提取 Doris scanBytes 失败: {}", e.getMessage());
             return null;
         }
     }
