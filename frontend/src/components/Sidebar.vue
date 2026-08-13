@@ -81,6 +81,7 @@ const groups = computed<NavGroup[]>(() => [
     items: [
       { path: '/integrate', label: '数据集成（SeaTunnel）', icon: 'integrate' },
       { path: '/dev-sched', label: '调度编排（DolphinScheduler）', icon: 'develop' },
+      { path: '/scheduler-ops', label: '任务运维中心', icon: 'ops' },
       { path: '/develop', label: '数据开发 IDE', icon: 'develop' },
       { path: '/analyze', label: 'BI 可视化', icon: 'analyze' },
       { path: '/dev-tag', label: '标签画像', icon: 'vector' },

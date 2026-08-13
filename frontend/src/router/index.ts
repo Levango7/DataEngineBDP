@@ -28,6 +28,7 @@ const TenantManagement = () => import('@/views/TenantManagement.vue')
 const ClusterOverview = () => import('@/views/ClusterOverview.vue')
 const DataSourceManagement = () => import('@/views/DataSourceManagement.vue')
 const JobManagement = () => import('@/views/JobManagement.vue')
+const SchedulerOps = () => import('@/views/SchedulerOps.vue')
 // 批次5新增：Workspace 管理（封装层 K8s 翻译）
 const WorkspaceManagement = () => import('@/views/WorkspaceManagement.vue')
 // 批次6新增：Quota 管理（封装层 K8s ResourceQuota + LimitRange 翻译）
@@ -99,6 +100,13 @@ const routes: RouteRecordRaw[] = [
     component: JobManagement,
 
     meta: { title: '作业管理', icon: 'Tickets' }
+  },
+
+  {
+    path: '/scheduler-ops',
+    name: 'SchedulerOps',
+    component: SchedulerOps,
+    meta: { title: '任务运维中心', icon: 'AlarmClock' }
   },
 
   // 批次5新增：Workspace 管理（封装层 K8s 翻译）
