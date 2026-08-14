@@ -5,6 +5,7 @@ import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.StandardRepository;
 import com.levango7.dataenginebdp.encaps.repository.TemplateRepository;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -27,9 +28,9 @@ import java.util.Map;
 /**
  * 检索门户端点（ROADMAP 前后端接线：前端 /search）。
  *
- * <p>跨资产表（assets/apis/standards/templates）按名称/描述 LIKE 检索，
- * 返回前端 SearchResponse 契约。轻量实现；生产可替换为 ES/全文检索
- * （见 ROADMAP「Elasticsearch 规划中」）。</p>
+ * <p>ES 全文检索优先（本地 ES 容器 7.17 实测），ES 不可用时回退
+ * 跨资产表 LIKE 检索。ES 索引由 {@link ElasticsearchIndexer} 维护，
+ * 文档在资产/API/标准/模板写入时同步（见各 Controller 调用 index 方法）。</p>
  */
 @Slf4j
 @RestController
@@ -41,6 +42,7 @@ public class SearchController {
     private final ApiDefinitionRepository apiRepository;
     private final StandardRepository standardRepository;
     private final TemplateRepository templateRepository;
+    private final ElasticsearchIndexer esIndexer;
 
     /** 检索请求体（对齐前端 SearchQuery 最小字段）。 */
     public record SearchRequest(
@@ -50,7 +52,7 @@ public class SearchController {
             Integer pageSize) {
     }
 
-    /** 执行检索（跨资产表 LIKE）。 */
+    /** 执行检索（ES 全文检索优先，不可用时回退 LIKE）。 */
     @PostMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> search(@RequestBody SearchRequest req) {
@@ -60,56 +62,120 @@ public class SearchController {
         int page = req.page() != null && req.page() > 0 ? req.page() : 1;
         int pageSize = req.pageSize() != null && req.pageSize() > 0 ? req.pageSize() : 20;
 
-        List<Map<String, Object>> results = new ArrayList<>();
-        if (!q.isEmpty()) {
-            // 数据资产
-            assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
-                    .filter(a -> contains(a.getName(), q) || contains(a.getDescription(), q))
-                    .forEach(a -> results.add(Map.of(
-                            "id", String.valueOf(a.getId()),
-                            "name", a.getName(),
-                            "type", a.getType(),
-                            "source", "asset")));
-            // API
-            apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
-                    .filter(a -> contains(a.getName(), q) || contains(a.getPath(), q))
-                    .forEach(a -> results.add(Map.of(
-                            "id", String.valueOf(a.getId()),
-                            "name", a.getName(),
-                            "type", "api",
-                            "source", "api")));
-            // 标准
-            standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
-                    .filter(s -> contains(s.getName(), q) || contains(s.getRule(), q))
-                    .forEach(s -> results.add(Map.of(
-                            "id", String.valueOf(s.getId()),
-                            "name", s.getName(),
-                            "type", s.getType(),
-                            "source", "standard")));
-            // 模板
-            templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
-                    .filter(t -> contains(t.getName(), q) || contains(t.getDescription(), q))
-                    .forEach(t -> results.add(Map.of(
-                            "id", String.valueOf(t.getId()),
-                            "name", t.getName(),
-                            "type", "template",
-                            "source", "template")));
+        List<Map<String, Object>> results;
+        boolean usedEs = false;
+        if (!q.isEmpty() && esIndexer.isAvailable()) {
+            usedEs = true;
+            try {
+                esIndexer.ensureIndex();
+                syncIndexes(tenantId); // 幂等全量同步（文档 upsert，开销低）
+                results = esIndexer.search(q, (page - 1) * pageSize, pageSize);
+            } catch (Exception e) {
+                log.warn("ES 检索异常，回退 LIKE: {}", e.getMessage());
+                results = likeSearch(tenantId, q);
+            }
+        } else {
+            results = likeSearch(tenantId, q);
         }
 
         int total = results.size();
-        int startIdx = Math.min((page - 1) * pageSize, total);
-        int endIdx = Math.min(startIdx + pageSize, total);
         long tookMs = Duration.between(start, Instant.now()).toMillis();
 
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("list", results.subList(startIdx, endIdx));
+        body.put("list", results);
         body.put("total", total);
         body.put("page", page);
         body.put("pageSize", pageSize);
         body.put("tookMs", tookMs);
-        body.put("hasMore", endIdx < total);
+        body.put("hasMore", usedEs && results.size() >= pageSize);
         body.put("suggestions", List.of());
+        body.put("engine", usedEs ? "elasticsearch" : "like");
         return ResponseEntity.ok(body);
+    }
+
+    /** 全量同步：将 4 类资产写入 ES 索引（幂等 upsert）。 */
+    private void syncIndexes(String tenantId) {
+        assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(a -> {
+            Map<String, Object> doc = new LinkedHashMap<>();
+            doc.put("docId", "asset-" + a.getId());
+            doc.put("name", a.getName());
+            doc.put("type", a.getType());
+            doc.put("source", "asset");
+            doc.put("description", a.getDescription());
+            doc.put("tags", List.of());
+            doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
+            esIndexer.indexDoc(doc);
+        });
+        apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(a -> {
+            Map<String, Object> doc = new LinkedHashMap<>();
+            doc.put("docId", "api-" + a.getId());
+            doc.put("name", a.getName());
+            doc.put("type", "api");
+            doc.put("source", "api");
+            doc.put("description", a.getPath());
+            doc.put("tags", List.of());
+            doc.put("createdAt", a.getCreatedAt() == null ? "" : a.getCreatedAt().toString());
+            esIndexer.indexDoc(doc);
+        });
+        standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(s -> {
+            Map<String, Object> doc = new LinkedHashMap<>();
+            doc.put("docId", "standard-" + s.getId());
+            doc.put("name", s.getName());
+            doc.put("type", s.getType());
+            doc.put("source", "standard");
+            doc.put("description", s.getRule());
+            doc.put("tags", List.of());
+            doc.put("createdAt", s.getCreatedAt() == null ? "" : s.getCreatedAt().toString());
+            esIndexer.indexDoc(doc);
+        });
+        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).forEach(t -> {
+            Map<String, Object> doc = new LinkedHashMap<>();
+            doc.put("docId", "template-" + t.getId());
+            doc.put("name", t.getName());
+            doc.put("type", "template");
+            doc.put("source", "template");
+            doc.put("description", t.getDescription());
+            doc.put("tags", List.of());
+            doc.put("createdAt", t.getCreatedAt() == null ? "" : t.getCreatedAt().toString());
+            esIndexer.indexDoc(doc);
+        });
+    }
+
+    /** LIKE 回退检索（跨资产表）。 */
+    private List<Map<String, Object>> likeSearch(String tenantId, String q) {
+        List<Map<String, Object>> results = new ArrayList<>();
+        if (q.isEmpty()) {
+            return results;
+        }
+        assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(a -> contains(a.getName(), q) || contains(a.getDescription(), q))
+                .forEach(a -> results.add(Map.of(
+                        "id", String.valueOf(a.getId()),
+                        "name", a.getName(),
+                        "type", a.getType(),
+                        "source", "asset")));
+        apiRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(a -> contains(a.getName(), q) || contains(a.getPath(), q))
+                .forEach(a -> results.add(Map.of(
+                        "id", String.valueOf(a.getId()),
+                        "name", a.getName(),
+                        "type", "api",
+                        "source", "api")));
+        standardRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(s -> contains(s.getName(), q) || contains(s.getRule(), q))
+                .forEach(s -> results.add(Map.of(
+                        "id", String.valueOf(s.getId()),
+                        "name", s.getName(),
+                        "type", s.getType(),
+                        "source", "standard")));
+        templateRepository.findByTenantIdOrderByCreatedAtDesc(tenantId).stream()
+                .filter(t -> contains(t.getName(), q) || contains(t.getDescription(), q))
+                .forEach(t -> results.add(Map.of(
+                        "id", String.valueOf(t.getId()),
+                        "name", t.getName(),
+                        "type", "template",
+                        "source", "template")));
+        return results;
     }
 
     /** 过滤器候选项（从各表聚合名称去重）。 */

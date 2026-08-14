@@ -5,6 +5,7 @@ import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.StandardRepository;
 import com.levango7.dataenginebdp.encaps.repository.TemplateRepository;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,16 @@ class RestWiringControllerTest {
     @Autowired private ApiDefinitionRepository apiRepository;
     @Autowired private AssetRepository assetRepository;
     @Autowired private TemplateRepository templateRepository;
+
+    private ElasticsearchIndexer unavailableEs() {
+        // mock ES 不可用（测试走 LIKE 回退路径）
+        return new ElasticsearchIndexer("http://127.0.0.1:1") {
+            @Override
+            public boolean isAvailable() {
+                return false;
+            }
+        };
+    }
 
     @BeforeEach
     void setUpTenant() {
@@ -99,7 +110,7 @@ class RestWiringControllerTest {
                 .status("active").tenantId("tenant_a")
                 .createdAt(java.time.Instant.now()).updatedAt(java.time.Instant.now()).build());
 
-        var c = new SearchController(assetRepository, apiRepository, standardRepository, templateRepository);
+        var c = new SearchController(assetRepository, apiRepository, standardRepository, templateRepository, unavailableEs());
         var resp = c.search(new SearchController.SearchRequest("订单", "keyword", 1, 20));
         List<Map<String, Object>> list = (List<Map<String, Object>>) resp.getBody().get("list");
         assertThat(list).isNotEmpty(); // 命中"订单明细表"与"订单号标准"
@@ -114,7 +125,7 @@ class RestWiringControllerTest {
                 .qualityScore(80).securityLevel("L2").fullJson("{}").tenantId("tenant_a")
                 .createdAt(java.time.Instant.now()).updatedAt(java.time.Instant.now()).build());
 
-        var c = new SearchController(assetRepository, apiRepository, standardRepository, templateRepository);
+        var c = new SearchController(assetRepository, apiRepository, standardRepository, templateRepository, unavailableEs());
         var resp = c.suggest("用户");
         assertThat(resp.getBody()).contains("用户画像表");
     }
