@@ -1,0 +1,137 @@
+package com.levango7.dataenginebdp.encaps.controller;
+
+import com.levango7.dataenginebdp.encaps.model.MaskPolicyEntity;
+import com.levango7.dataenginebdp.encaps.repository.MaskPolicyRepository;
+import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * 数据安全端点（ROADMAP 前后端接线：前端 /sec）。
+ */
+@Slf4j
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/sec")
+public class SecController {
+
+    private final MaskPolicyRepository repository;
+
+    /** 创建/更新请求体（对齐前端 CreateMaskPolicyParams）。 */
+    public record MaskPolicyRequest(
+            @NotBlank String fieldName,
+            @NotBlank String assetName,
+            @NotBlank String strategy,
+            @NotBlank String algorithm) {
+    }
+
+    /** 策略列表。 */
+    @GetMapping("/policies")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> listPolicies(
+            @RequestParam(required = false) String assetName) {
+        String tenantId = requireTenant();
+        List<MaskPolicyEntity> list = (assetName == null || assetName.isBlank())
+                ? repository.findByTenantIdOrderByCreatedAtDesc(tenantId)
+                : repository.findByTenantIdAndAssetNameOrderByCreatedAtDesc(tenantId, assetName);
+        return ResponseEntity.ok(list.stream().map(this::toView).toList());
+    }
+
+    /** 策略详情。 */
+    @GetMapping("/policies/{id}")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getPolicy(@PathVariable Long id) {
+        String tenantId = requireTenant();
+        return repository.findByIdAndTenantId(id, tenantId)
+                .map(p -> ResponseEntity.ok((Object) toView(p)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /** 创建策略。 */
+    @PostMapping("/policies")
+    @Transactional
+    public ResponseEntity<Map<String, Object>> createPolicy(@Valid @RequestBody MaskPolicyRequest req) {
+        String tenantId = requireTenant();
+        MaskPolicyEntity entity = MaskPolicyEntity.builder()
+                .fieldName(req.fieldName())
+                .assetName(req.assetName())
+                .strategy(req.strategy())
+                .algorithm(req.algorithm())
+                .status("active")
+                .tenantId(tenantId)
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        MaskPolicyEntity saved = repository.save(entity);
+        log.info("创建脱敏策略: id={}, field={}, asset={}, tenant={}",
+                saved.getId(), saved.getFieldName(), saved.getAssetName(), tenantId);
+        return ResponseEntity.ok(toView(saved));
+    }
+
+    /** 更新策略。 */
+    @PutMapping("/policies/{id}")
+    @Transactional
+    public ResponseEntity<?> updatePolicy(@PathVariable Long id, @Valid @RequestBody MaskPolicyRequest req) {
+        String tenantId = requireTenant();
+        return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            entity.setFieldName(req.fieldName());
+            entity.setAssetName(req.assetName());
+            entity.setStrategy(req.strategy());
+            entity.setAlgorithm(req.algorithm());
+            entity.setUpdatedAt(Instant.now());
+            return ResponseEntity.ok((Object) toView(repository.save(entity)));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /** 删除策略。 */
+    @DeleteMapping("/policies/{id}")
+    @Transactional
+    public ResponseEntity<?> deletePolicy(@PathVariable Long id) {
+        String tenantId = requireTenant();
+        return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            repository.delete(entity);
+            log.info("删除脱敏策略: id={}, tenant={}", id, tenantId);
+            return ResponseEntity.ok(Map.of("deleted", true));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
+
+    /** 视图映射。 */
+    private Map<String, Object> toView(MaskPolicyEntity e) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", String.valueOf(e.getId()));
+        m.put("fieldName", e.getFieldName());
+        m.put("assetName", e.getAssetName());
+        m.put("strategy", e.getStrategy());
+        m.put("algorithm", e.getAlgorithm());
+        m.put("status", e.getStatus());
+        m.put("createdAt", e.getCreatedAt() == null ? null : e.getCreatedAt().toString());
+        m.put("updatedAt", e.getUpdatedAt() == null ? null : e.getUpdatedAt().toString());
+        return m;
+    }
+}
