@@ -39,6 +39,7 @@ public class VirtualAdapterRegistry {
      */
     public VirtualAdapterRegistry(MysqlVirtualAdapter mysqlAdapter,
                                   OracleVirtualAdapter oracleAdapter,
+                                  @org.springframework.beans.factory.annotation.Qualifier("jdbcVirtualAdapter")
                                   JdbcVirtualAdapter jdbcAdapter,
                                   KafkaVirtualAdapter kafkaAdapter,
                                   RestVirtualAdapter restAdapter) {

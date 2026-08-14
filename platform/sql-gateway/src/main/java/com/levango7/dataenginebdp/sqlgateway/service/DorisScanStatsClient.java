@@ -42,7 +42,7 @@ public class DorisScanStatsClient {
     private final boolean enabled;
 
     public DorisScanStatsClient(
-            @Value("${app.backend.doris.url:http://doris-fe-service:9030}") String dorisUrl,
+            @Value("${app.backend.doris.url:${DORIS_URL:http://doris-fe-service:9030}}") String dorisUrl,
             @Value("${app.backend.doris.username:root}") String dorisUser,
             @Value("${app.backend.doris.scan-stats-enabled:false}") boolean enabled) {
         this.dorisJdbcUrl = toJdbcUrl(dorisUrl);
