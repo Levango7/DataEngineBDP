@@ -83,6 +83,57 @@ class TenantTest {
     }
 
     @Test
+    @DisplayName("equals — 不同字段的对象不相等")
+    void equals_differentFields_shouldNotBeEqual() {
+        Tenant other = new Tenant();
+        other.setId(2L); // 仅 id 不同
+        other.setName("test-tenant");
+        other.setDisplayName("Test Tenant");
+        other.setNamespace("ns-test");
+        other.setQuotaProfile("medium");
+        other.setStatus("ACTIVE");
+        other.setCreatedAt(tenant.getCreatedAt());
+        other.setUpdatedAt(tenant.getUpdatedAt());
+
+        assertThat(tenant).isNotEqualTo(other);
+    }
+
+    @Test
+    @DisplayName("hashCode — equals 相等的对象 hashCode 必须一致（契约）")
+    void hashCode_equalObjects_shouldHaveSameHash() {
+        Tenant other = new Tenant();
+        other.setId(1L);
+        other.setName("test-tenant");
+        other.setDisplayName("Test Tenant");
+        other.setNamespace("ns-test");
+        other.setQuotaProfile("medium");
+        other.setStatus("ACTIVE");
+        other.setCreatedAt(tenant.getCreatedAt());
+        other.setUpdatedAt(tenant.getUpdatedAt());
+
+        // equals 相等 → hashCode 必须相等（equals/hashCode 契约）
+        assertThat(tenant).isEqualTo(other);
+        assertThat(tenant.hashCode()).isEqualTo(other.hashCode());
+    }
+
+    @Test
+    @DisplayName("hashCode — 不相等对象 hashCode 不同（合理分布）")
+    void hashCode_unequalObjects_shouldDiffer() {
+        Tenant other = new Tenant();
+        other.setId(2L);
+        other.setName("test-tenant");
+        other.setDisplayName("Test Tenant");
+        other.setNamespace("ns-test");
+        other.setQuotaProfile("medium");
+        other.setStatus("ACTIVE");
+        other.setCreatedAt(tenant.getCreatedAt());
+        other.setUpdatedAt(tenant.getUpdatedAt());
+
+        assertThat(tenant).isNotEqualTo(other);
+        assertThat(tenant.hashCode()).isNotEqualTo(other.hashCode());
+    }
+
+    @Test
     @DisplayName("toString — 包含字段信息")
     void toString_shouldContainFieldInfo() {
         String str = tenant.toString();
