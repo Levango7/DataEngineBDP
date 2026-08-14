@@ -222,9 +222,9 @@ graph LR
 - [x] **工作空间 /workspaces、项目 /projects**：封装层已有多租户实体，需暴露 REST 端点。
 - [x] **集群 /cluster**：节点/组件状态聚合（observability query-api 已有组件健康，可扩展）。
 - [x] **数据质量 /quality/rules**：rule-engine 已有规则实体，需补 REST 端点。
-- [ ] **分析看板 /dashboards、API 目录 /apis、资产流通 /assets**：catalog/asset-exchange 扩展。
-- [ ] **知识 /knowledge、LLMOps /llmops、向量 /vector**：对应组件已有实现，补 HTTP 端点。
-- [ ] **检索 /search、安全 /sec、标准 /standards、配额 /quotas、模板 /templates**：对应组件补 REST。
+- [x] **分析看板 /dashboards、API 目录 /apis、资产流通 /assets**：catalog/asset-exchange 扩展。
+- [x] **知识 /knowledge**（LLMOps/向量待续）：对应组件已有实现，补 HTTP 端点。
+- [x] **检索 /search、安全 /sec、标准 /standards、配额 /quotas、模板 /templates**：对应组件补 REST。
 
 完成标准：上述每个 BASE 路径在 platform/ 下有对应 controller/router，且前端页面真实交互（非 toast 占位）。
 
