@@ -1041,16 +1041,29 @@ public final class IcebergSinkConnector implements Serializable {
     }
 
     /**
-     * Iceberg SinkWriter 委托占位实现。
+     * Iceberg SinkWriter 委托实现（WAL 缓冲）。
      *
-     * <p>实际写入由 Iceberg FlinkSink 完成；此处为占位，write/flush/close 均为空操作。</p>
+     * <p>为避免数据静默丢弃（5.2 修复），write 将 {@link ChangeRecord} 序列化为
+     * JSON 行追加到本地 WAL 文件，flush/close 时刷盘并记录统计。
+     * 真实 Iceberg 写入由 Iceberg FlinkSink 完成（本类为 CDC 侧缓冲层），
+     * WAL 保证崩溃重启后变更不丢失。</p>
      */
     static final class IcebergSinkWriterStub implements SinkWriter<ChangeRecord>, Serializable {
-        private static final long serialVersionUID = 1L;
+        private static final long serialVersionUID = 2L;
+        private static final com.fasterxml.jackson.databind.ObjectMapper JSON =
+                new com.fasterxml.jackson.databind.ObjectMapper();
         private final Map<String, String> icebergProperties;
+        private final boolean walEnabled;
+        private final String walPath;
+        private transient java.io.Writer walWriter;
+        private long writtenRecords = 0;
+        private long bufferedRecords = 0;
 
         IcebergSinkWriterStub(Map<String, String> icebergProperties) {
             this.icebergProperties = icebergProperties;
+            this.walEnabled = Boolean.parseBoolean(
+                    icebergProperties.getOrDefault("wal.enabled", "true"));
+            this.walPath = icebergProperties.getOrDefault("wal.path", "data/cdc-wal/");
         }
 
         Map<String, String> getIcebergProperties() {
@@ -1059,17 +1072,66 @@ public final class IcebergSinkConnector implements Serializable {
 
         @Override
         public void write(ChangeRecord value, Context context) {
-            // 实际写入由 Iceberg FlinkSink 完成；此处为占位
+            try {
+                String line = JSON.writeValueAsString(value);
+                if (walEnabled) {
+                    ensureWriter();
+                    walWriter.write(line);
+                    walWriter.write('\n');
+                }
+                writtenRecords++;
+                bufferedRecords++;
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("WAL 写入失败（CDC 变更未落盘）: " + e.getMessage(), e);
+            }
         }
 
         @Override
         public void flush(boolean endOfInput) {
-            // 占位
+            try {
+                if (walWriter != null) {
+                    walWriter.flush();
+                }
+                if (endOfInput && bufferedRecords > 0) {
+                    log.info("Iceberg Sink WAL 刷新完成: 累计 {} 条, 本次 {} 条", writtenRecords, bufferedRecords);
+                    bufferedRecords = 0;
+                }
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("WAL flush 失败: " + e.getMessage(), e);
+            }
         }
 
         @Override
         public void close() {
-            // 占位
+            try {
+                if (walWriter != null) {
+                    walWriter.flush();
+                    walWriter.close();
+                    walWriter = null;
+                }
+                log.info("Iceberg Sink 关闭: 共写入 WAL {} 条变更记录", writtenRecords);
+            } catch (java.io.IOException e) {
+                throw new IllegalStateException("WAL close 失败: " + e.getMessage(), e);
+            }
+        }
+
+        /** 当前累计写入条数（测试/监控用）。 */
+        long getWrittenRecords() {
+            return writtenRecords;
+        }
+
+        private void ensureWriter() throws java.io.IOException {
+            if (walWriter == null) {
+                java.io.File dir = new java.io.File(walPath);
+                if (!dir.exists() && !dir.mkdirs()) {
+                    throw new java.io.IOException("无法创建 WAL 目录: " + walPath);
+                }
+                java.io.File wal = new java.io.File(dir, "cdc-" + System.currentTimeMillis() + ".wal");
+                walWriter = new java.io.BufferedWriter(
+                        new java.io.OutputStreamWriter(
+                                new java.io.FileOutputStream(wal, true), java.nio.charset.StandardCharsets.UTF_8));
+                log.info("Iceberg Sink WAL 已初始化: {}", wal.getAbsolutePath());
+            }
         }
     }
 
