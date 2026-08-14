@@ -34,7 +34,8 @@ class JwtAuthFilterTest {
         SecurityContextHolder.clearContext();
         TenantContext.clear();
         signingKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-        jwtAuthFilter = new JwtAuthFilter(SECRET, ISSUER);
+        jwtAuthFilter = new JwtAuthFilter(SECRET, ISSUER,
+                new OidcJwtDecoder(false, "", ""));
     }
 
     private String buildValidToken(String subject, String tenantId) {

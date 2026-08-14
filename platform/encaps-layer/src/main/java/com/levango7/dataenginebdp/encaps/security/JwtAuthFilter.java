@@ -44,17 +44,21 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final SecretKey signingKey;
     private final String issuer;
+    private final OidcJwtDecoder oidcJwtDecoder;
 
     /**
      * 构造过滤器。
      *
      * @param secret  JWT 签名密钥（HMAC-SHA），至少 256 bit（32 字节）
      * @param issuer  JWT issuer，校验 {@code iss} claim 必须匹配
+     * @param oidcJwtDecoder OIDC 解码器（Keycloak RS256；未启用时为回退模式）
      */
     public JwtAuthFilter(@Value("${app.security.jwt.secret}") String secret,
-                         @Value("${app.security.jwt.issuer}") String issuer) {
+                         @Value("${app.security.jwt.issuer}") String issuer,
+                         OidcJwtDecoder oidcJwtDecoder) {
         this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.issuer = issuer;
+        this.oidcJwtDecoder = oidcJwtDecoder;
     }
 
     @Override
@@ -69,26 +73,35 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(BEARER_PREFIX.length()).trim();
         try {
-            Claims claims = Jwts.parser()
+            Claims claims;
+            String tenantId;
+            String userId;
+
+            // 双模式验证：OIDC(Keycloak RS256) 优先；未启用或 OIDC 验证失败时回退 HMAC
+            if (oidcJwtDecoder != null && oidcJwtDecoder.isEnabled()) {
+                try {
+                    var jwt = oidcJwtDecoder.decode(token);
+                    tenantId = oidcJwtDecoder.extractTenantId(jwt);
+                    userId = jwt.getSubject();
+                    log.debug("OIDC 验证通过: sub={}, tenant={}", userId, tenantId);
+                    setAuthentication(userId, tenantId);
+                    filterChain.doFilter(request, response);
+                    return;
+                } catch (org.springframework.security.oauth2.jwt.JwtException e) {
+                    log.debug("OIDC 验证失败，回退 HMAC: {}", e.getMessage());
+                }
+            }
+
+            claims = Jwts.parser()
                     .verifyWith(signingKey)
                     .requireIssuer(issuer)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
 
-            String tenantId = claims.get(CLAIM_TENANT_ID, String.class);
-            String userId = claims.getSubject();
-
-            // 写入租户上下文（ThreadLocal），供业务层获取。
-            TenantContext.setTenantId(tenantId);
-            TenantContext.setUserId(userId);
-
-            // 写入 Spring Security 上下文，使 @PreAuthorize 等可用。
-            List<SimpleGrantedAuthority> authorities = Collections.singletonList(
-                    new SimpleGrantedAuthority("ROLE_USER"));
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            tenantId = claims.get(CLAIM_TENANT_ID, String.class);
+            userId = claims.getSubject();
+            setAuthentication(userId, tenantId);
 
             filterChain.doFilter(request, response);
         } catch (JwtException | IllegalArgumentException e) {
@@ -99,6 +112,20 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             TenantContext.clear();
             SecurityContextHolder.clearContext();
         }
+    }
+
+    /**
+     * 写入租户上下文与 Spring Security 上下文。
+     */
+    private void setAuthentication(String userId, String tenantId) {
+        TenantContext.setTenantId(tenantId);
+        TenantContext.setUserId(userId);
+
+        List<SimpleGrantedAuthority> authorities = Collections.singletonList(
+                new SimpleGrantedAuthority("ROLE_USER"));
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(userId, null, authorities);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     /**

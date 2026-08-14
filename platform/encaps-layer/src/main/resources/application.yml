@@ -60,6 +60,11 @@ app:
       secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
       issuer: ${JWT_ISSUER:shuqing-bigdata}
       expiry: 3600
+    # Keycloak OIDC：enabled=true 时优先 RS256/JWKS 验证，失败回退 HMAC（默认关闭，保持兼容）
+    oidc:
+      enabled: ${OIDC_ENABLED:false}
+      jwks-uri: ${OIDC_JWKS_URI:}
+      issuer-uri: ${OIDC_ISSUER_URI:}
     cors:
       # 允许的前端源，逗号分隔；默认放行 Vite 开发服务器
       allowed-origins: ${CORS_ORIGINS:http://localhost:5173}
