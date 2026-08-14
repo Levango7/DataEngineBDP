@@ -7,10 +7,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 
@@ -60,7 +62,14 @@ func main() {
 	if dbPath == "" {
 		dbPath = defaultDBPath
 	}
-	gormDB, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	var gormDB *gorm.DB
+	if strings.HasPrefix(dbPath, "postgres://") || strings.HasPrefix(dbPath, "postgresql://") {
+		// 生产：PostgreSQL（CATALOG_DB=postgres://user:pass@host:5432/db）
+		gormDB, err = gorm.Open(postgres.Open(dbPath), &gorm.Config{})
+	} else {
+		// 开发：SQLite 文件
+		gormDB, err = gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+	}
 	if err != nil {
 		log.Fatalf("failed to open database %s: %v", dbPath, err)
 	}
