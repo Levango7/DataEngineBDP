@@ -113,7 +113,7 @@ L2 层提供湖仓集一体的数据引擎能力，通过统一 SQL 网关对外
 | L2.7 统一 SQL 网关 | ANTLR4 解析、Calcite 联邦优化、引擎 Adapter、跨源结果归并 | sql-gateway |
 | L2.8 消息流接入 | Kafka 3.6 KRaft 模式、Schema Registry、Topic 多租户隔离 | kafka |
 | L2.9 时序引擎 | IoTDB 2.0、ConfigNode / DataNode 分离、冷数据降采样归档 | iotdb |
-| L2.10 多模型引擎 | NebulaGraph（图）、Milvus（向量）、Elasticsearch（搜索）、Redis（键值） | nebula-graph, milvus, elasticsearch, redis |
+| L2.10 多模型引擎 | NebulaGraph（图）、Milvus（向量）、Redis（键值）；Elasticsearch（搜索，规划中） | nebula-graph, milvus, redis |
 
 ### L3 数据治理层
 

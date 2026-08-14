@@ -205,7 +205,7 @@ helm install milvus design/deploy/charts/milvus -n shuqing-system
 # 部署 NebulaGraph 图库
 helm install nebula-graph design/deploy/charts/nebula-graph -n shuqing-system
 
-# 部署 Elasticsearch
+# 部署 Elasticsearch（⚠️ 规划中：当前代码无 ES 引用，仅预留部署骨架）
 helm install elasticsearch design/deploy/charts/elasticsearch -n shuqing-system
 
 # 部署 Redis
