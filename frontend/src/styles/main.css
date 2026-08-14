@@ -814,3 +814,53 @@ label {
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
+/* 统一运维台：组件健康网格 */
+.health-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--c-surface);
+  cursor: default;
+}
+.health-item:hover {
+  border-color: var(--c-primary, #2f6f6a);
+}
+.health-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.health-dot.st-up {
+  background: #52c41a;
+}
+.health-dot.st-warn {
+  background: #faad14;
+}
+.health-dot.st-down {
+  background: #f5222d;
+}
+.health-dot.st-unknown {
+  background: #bfbfbf;
+}
+.health-name {
+  font-size: 12.5px;
+  color: var(--c-slate-700);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.health-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #909399);
+}

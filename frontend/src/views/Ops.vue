@@ -8,6 +8,31 @@
       <div class="card"><h3>今日失败</h3><div class="kpi s">{{ overview?.todayFailedCount ?? '--' }}</div></div>
       <div class="card"><h3>平均延迟</h3><div class="kpi s">{{ overview?.avgLatencySec ?? '--' }}s</div></div>
     </div>
+
+    <!-- 统一运维台：组件健康总览（红黄绿） -->
+    <div class="card" style="margin-top: 14px">
+      <h3>组件健康总览
+        <span v-if="healthSummary" style="font-size: 12px; color: var(--muted); font-weight: normal">
+          （{{ healthSummary.up }}/{{ healthSummary.total }} UP
+          <span v-if="healthSummary.warn">· {{ healthSummary.warn }} WARN</span>
+          <span v-if="healthSummary.down" style="color: var(--red)">· {{ healthSummary.down }} DOWN</span>）
+        </span>
+      </h3>
+      <div v-if="healthLoading" style="color: var(--muted)">加载中…</div>
+      <div v-else-if="healthError" style="color: var(--red)">{{ healthError }}</div>
+      <div v-else class="health-grid">
+        <div
+          v-for="c in healthComponents"
+          :key="c.name"
+          class="health-item"
+          :title="`${c.url} · ${c.latencyMs}ms${c.detail ? ' · ' + c.detail : ''}`"
+        >
+          <span class="health-dot" :class="'st-' + c.status.toLowerCase()"></span>
+          <span class="health-name">{{ c.name }}</span>
+          <span class="health-status">{{ c.status }}</span>
+        </div>
+      </div>
+    </div>
     <div class="card" style="margin-top: 14px">
       <h3>作业监控</h3>
       <div v-if="jobsLoading" style="color: var(--muted)">加载中…</div>
@@ -58,13 +83,42 @@ import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import Drawer from '@/components/Drawer.vue'
 import * as opsApi from '@/api/ops'
-import type { OpsOverview, OpsJob, Alert, OpsJobType, OpsJobStatus, AlertLevel } from '@/api/ops'
+import type {
+  OpsOverview,
+  OpsJob,
+  Alert,
+  OpsJobType,
+  OpsJobStatus,
+  AlertLevel,
+  ComponentHealth,
+  HealthOverview
+} from '@/api/ops'
 
 const store = useAppStore()
 const drawerVisible = ref(false)
 
 // 概览
 const overview = ref<OpsOverview | null>(null)
+
+// 组件健康总览（统一运维台）
+const healthLoading = ref(false)
+const healthError = ref('')
+const healthComponents = ref<ComponentHealth[]>([])
+const healthSummary = ref<HealthOverview['summary'] | null>(null)
+
+async function loadHealth() {
+  healthLoading.value = true
+  healthError.value = ''
+  try {
+    const data = await opsApi.getHealthOverview()
+    healthComponents.value = data.components ?? []
+    healthSummary.value = data.summary ?? null
+  } catch (e) {
+    healthError.value = `组件健康加载失败: ${(e as Error)?.message ?? e}（query-api 未就绪）`
+  } finally {
+    healthLoading.value = false
+  }
+}
 
 // 作业列表
 const jobs = ref<OpsJob[]>([])
@@ -240,5 +294,6 @@ onMounted(() => {
   loadOverview()
   loadJobs()
   loadAlerts()
+  loadHealth()
 })
 </script>

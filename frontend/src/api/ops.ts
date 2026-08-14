@@ -93,3 +93,27 @@ export function handleAlert(id: string, action: string): Promise<void> {
 export function getJobLogs(jobId: string): Promise<string> {
   return get<string>(`${BASE}/jobs/${jobId}/logs`)
 }
+/* ---------------- 统一运维台：组件健康总览 ---------------- */
+
+/** 组件健康状态 */
+export interface ComponentHealth {
+  name: string
+  group: string
+  status: 'UP' | 'WARN' | 'DOWN' | 'UNKNOWN'
+  url: string
+  latencyMs: number
+  detail?: string
+}
+
+/** 健康总览响应 */
+export interface HealthOverview {
+  summary: { total: number; up: number; warn: number; down: number; unknown: number }
+  components: ComponentHealth[]
+}
+
+/**
+ * 拉取组件健康总览（query-api /api/v1/ops/health/overview）。
+ */
+export async function getHealthOverview(): Promise<HealthOverview> {
+  return get<HealthOverview>('/ops/health/overview')
+}
