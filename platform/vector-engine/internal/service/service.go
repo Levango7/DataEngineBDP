@@ -99,6 +99,11 @@ func (s *VectorService) Delete(ctx context.Context, collectionName string, ids [
 	return s.store.Delete(ctx, collectionName, ids)
 }
 
+// ListCollections 列出全部集合（前端 /vector 列表）。
+func (s *VectorService) ListCollections(ctx context.Context) ([]store.Collection, error) {
+	return s.store.ListCollections(ctx)
+}
+
 // GetStats 返回集合统计信息。
 func (s *VectorService) GetStats(ctx context.Context, collectionName string) (*store.CollectionStats, error) {
 	if collectionName == "" {

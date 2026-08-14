@@ -81,6 +81,19 @@ func (m *MockVectorStore) DropCollection(_ context.Context, collectionName strin
 	return nil
 }
 
+// ListCollections 列出全部集合。
+func (m *MockVectorStore) ListCollections(_ context.Context) ([]store.Collection, error) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]store.Collection, 0, len(m.collections))
+	for _, cd := range m.collections {
+		meta := cd.meta
+		meta.VectorCount = int64(len(cd.vectors))
+		out = append(out, meta)
+	}
+	return out, nil
+}
+
 // Insert 插入向量到指定集合。
 func (m *MockVectorStore) Insert(_ context.Context, req store.InsertRequest) error {
 	if req.CollectionName == "" {

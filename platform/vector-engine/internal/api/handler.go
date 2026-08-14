@@ -64,6 +64,90 @@ func (h *VectorHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/collections/:name/hybrid-search", h.HybridSearch)
 	rg.DELETE("/collections/:name/vectors", h.DeleteVectors)
 	rg.GET("/collections/:name/stats", h.GetStats)
+
+	// 前端契约端点（frontend/src/api/vector.ts BASE=/vector）：
+	// GET /vector 列表集合、POST /vector/search 全局检索
+	rg.GET("/vector", h.ListCollections)
+	rg.POST("/vector/search", h.GlobalSearch)
+}
+
+// ListCollections 列出全部集合。
+// GET /api/v1/vector
+func (h *VectorHandler) ListCollections(c *gin.Context) {
+	collections, err := h.svc.ListCollections(c.Request.Context())
+	if err != nil {
+		h.writeStoreError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, collections)
+}
+
+// GlobalSearch 全局检索（不指定集合时遍历全部，取 topK）。
+// POST /api/v1/vector/search  body: {"query":"...","topK":5}
+//
+// 前端 query 为文本，底层 SearchRequest.Vector 为向量：
+// 以文本确定性哈希生成固定维度向量（mock 可复现，生产接向量化模型）。
+func (h *VectorHandler) GlobalSearch(c *gin.Context) {
+	var req struct {
+		Query string `json:"query"`
+		TopK  int    `json:"topK"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	if req.Query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query 不能为空"})
+		return
+	}
+	topK := req.TopK
+	if topK <= 0 {
+		topK = 5
+	}
+
+	collections, err := h.svc.ListCollections(c.Request.Context())
+	if err != nil {
+		h.writeStoreError(c, err)
+		return
+	}
+	queryVector := textToVector(req.Query, 8)
+	out := make([]map[string]interface{}, 0, topK)
+	for _, col := range collections {
+		if len(out) >= topK {
+			break
+		}
+		results, err := h.svc.Search(c.Request.Context(), store.SearchRequest{
+			CollectionName: col.Name,
+			Vector:         queryVector,
+			TopK:           topK - len(out),
+		})
+		if err != nil {
+			continue
+		}
+		for _, r := range results {
+			out = append(out, map[string]interface{}{
+				"id":         r.ID,
+				"score":      r.Score,
+				"payload":    r.Metadata,
+				"collection": col.Name,
+			})
+		}
+	}
+	c.JSON(http.StatusOK, out)
+}
+
+// textToVector 文本确定性哈希 → 固定维度向量（无向量化模型时的轻量实现）。
+func textToVector(text string, dim int) []float32 {
+	vec := make([]float32, dim)
+	sum := 0
+	for _, ch := range text {
+		sum += int(ch)
+	}
+	for i := 0; i < dim; i++ {
+		seed := sum*31 + i*17
+		vec[i] = float32(seed%1000)/1000 - 0.5
+	}
+	return vec
 }
 
 // CreateCollection 创建向量集合。

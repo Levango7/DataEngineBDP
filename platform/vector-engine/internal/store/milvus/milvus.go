@@ -39,6 +39,11 @@ func (s *MilvusVectorStore) DropCollection(_ context.Context, _ string) error {
 	return ErrNotImplemented
 }
 
+// ListCollections 列出全部集合。
+func (s *MilvusVectorStore) ListCollections(_ context.Context) ([]store.Collection, error) {
+	return nil, ErrNotImplemented
+}
+
 // Insert 插入向量。
 func (s *MilvusVectorStore) Insert(_ context.Context, _ store.InsertRequest) error {
 	return ErrNotImplemented

@@ -119,6 +119,9 @@ type VectorStore interface {
 	// 若同名集合已存在，返回 ErrCollectionAlreadyExists。
 	CreateCollection(ctx context.Context, req CreateCollectionRequest) error
 
+	// ListCollections 列出全部集合（前端 /vector 列表契约）。
+	ListCollections(ctx context.Context) ([]Collection, error)
+
 	// DropCollection 删除向量集合。
 	// 若集合不存在，返回 ErrCollectionNotFound。
 	DropCollection(ctx context.Context, collectionName string) error

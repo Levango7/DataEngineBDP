@@ -382,3 +382,32 @@ func TestErrorsSentinels(t *testing.T) {
 	err = s.DropCollection(context.Background(), "nope")
 	assert.True(t, errors.Is(err, store.ErrCollectionNotFound))
 }
+
+// ListCollections 应返回创建的全部集合（含向量计数）。
+func TestListCollections_ReturnsAll(t *testing.T) {
+	m := NewMockVectorStore()
+	ctx := context.Background()
+
+	_ = m.CreateCollection(ctx, store.CreateCollectionRequest{Name: "docs", Dimension: 8, MetricType: "COSINE", IndexType: "FLAT"})
+	_ = m.CreateCollection(ctx, store.CreateCollectionRequest{Name: "images", Dimension: 8, MetricType: "IP", IndexType: "FLAT"})
+
+	cols, err := m.ListCollections(ctx)
+	if err != nil {
+		t.Fatalf("ListCollections 失败: %v", err)
+	}
+	if len(cols) != 2 {
+		t.Errorf("集合数=%d, 期望 2", len(cols))
+	}
+}
+
+// 空 store 返回空切片而非 nil。
+func TestListCollections_Empty(t *testing.T) {
+	m := NewMockVectorStore()
+	cols, err := m.ListCollections(context.Background())
+	if err != nil {
+		t.Fatalf("ListCollections 失败: %v", err)
+	}
+	if cols == nil || len(cols) != 0 {
+		t.Errorf("空 store 应返回空切片, got %v", cols)
+	}
+}
