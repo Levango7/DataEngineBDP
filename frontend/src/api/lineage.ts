@@ -63,7 +63,8 @@ export interface LineageQueryResult {
  * @param dialect 方言（ANSI/HIVE/DORIS/TRINO），缺省自动检测
  */
 export function analyzeLineage(sql: string, dialect?: string): Promise<LineageGraph> {
-  return post<LineageGraph>('/lineage/api/v1/lineage/analyze', { sql, dialect })
+  // lineage-analyzer 独立服务前缀 /lineage，绕过 client 实例 baseURL(/api/v1)
+  return post<LineageGraph>('/lineage/api/v1/lineage/analyze', { sql, dialect }, { baseURL: '' })
 }
 
 /**
@@ -72,7 +73,11 @@ export function analyzeLineage(sql: string, dialect?: string): Promise<LineageGr
  * @param depth 遍历深度，默认 5
  */
 export function getUpstream(table: string, depth = 5): Promise<LineageQueryResult> {
-  return get<LineageQueryResult>(`/lineage/api/v1/lineage/upstream/${encodeURIComponent(table)}`, { depth })
+  return get<LineageQueryResult>(
+    `/lineage/api/v1/lineage/upstream/${encodeURIComponent(table)}`,
+    { depth },
+    { baseURL: '' }
+  )
 }
 
 /**
@@ -81,7 +86,11 @@ export function getUpstream(table: string, depth = 5): Promise<LineageQueryResul
  * @param depth 遍历深度，默认 5
  */
 export function getDownstream(table: string, depth = 5): Promise<LineageQueryResult> {
-  return get<LineageQueryResult>(`/lineage/api/v1/lineage/downstream/${encodeURIComponent(table)}`, { depth })
+  return get<LineageQueryResult>(
+    `/lineage/api/v1/lineage/downstream/${encodeURIComponent(table)}`,
+    { depth },
+    { baseURL: '' }
+  )
 }
 
 /**
@@ -89,5 +98,9 @@ export function getDownstream(table: string, depth = 5): Promise<LineageQueryRes
  * @param table 表全名
  */
 export function impactAnalysis(table: string): Promise<LineageQueryResult> {
-  return get<LineageQueryResult>(`/lineage/api/v1/lineage/impact/${encodeURIComponent(table)}`)
+  return get<LineageQueryResult>(
+    `/lineage/api/v1/lineage/impact/${encodeURIComponent(table)}`,
+    undefined,
+    { baseURL: '' }
+  )
 }

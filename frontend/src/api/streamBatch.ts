@@ -45,7 +45,8 @@ export function listDagRuns(
   dagId: string,
   params: { status?: string; page?: number; size?: number } = {}
 ): Promise<DagRunPage> {
-  return get(`/stream-batch/dags/${encodeURIComponent(dagId)}/runs`, { params })
+  // client.get 签名: get(url, params?, config?); params 为第二参, 直接传对象
+  return get(`/stream-batch/dags/${encodeURIComponent(dagId)}/runs`, params)
 }
 
 /** 失败重跑：按 runId 复原参数重新执行 */

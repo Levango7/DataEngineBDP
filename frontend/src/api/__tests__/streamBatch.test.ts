@@ -6,8 +6,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock client 模块
-const mockGet = vi.fn(() => Promise.resolve({ content: [], totalElements: 0 }))
-const mockPost = vi.fn(() => Promise.resolve({ created: 3 }))
+const mockGet = vi.fn<() => Promise<{ content: Array<Record<string, unknown>>; totalElements: number }>>(
+  () => Promise.resolve({ content: [], totalElements: 0 })
+)
+const mockPost = vi.fn<() => Promise<{ created: number }>>(() => Promise.resolve({ created: 3 }))
 
 vi.mock('@/api/client', () => ({
   get: mockGet,
@@ -26,7 +28,9 @@ describe('api/streamBatch.ts', () => {
     mockGet.mockResolvedValueOnce({ content: [{ id: 1 }], totalElements: 1 })
     const res = await listDagRuns('dag-001', { status: 'FAILED', page: 0, size: 20 })
     expect(mockGet).toHaveBeenCalledWith('/stream-batch/dags/dag-001/runs', {
-      params: { status: 'FAILED', page: 0, size: 20 }
+      status: 'FAILED',
+      page: 0,
+      size: 20
     })
     expect(res.totalElements).toBe(1)
   })
