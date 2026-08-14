@@ -25,7 +25,7 @@
     "element-plus": "^2.7.0",
     "pinia": "^4.0.2",
     "vue": "^3.4.21",
-    "vue-router": "^5.2.0"
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@element-plus/icons-vue": "^2.3.1",
