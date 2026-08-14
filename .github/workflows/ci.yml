@@ -941,6 +941,7 @@ jobs:
       - name: 对每个 Python 组件执行 pytest（运行单元测试）
         if: env.py_skip != 'true'
         run: |
+          set -o pipefail  # 管道退出码取 pytest 而非 tee（修复 pytest 失败被吞）
           mkdir -p python-syntax-reports
           # 安装依赖并运行 pytest
           fail_count=0
