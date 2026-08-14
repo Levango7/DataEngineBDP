@@ -71,6 +71,7 @@ jobs:
           go-version: '1.26'
           cache: true
           cache-dependency-path: |
+            platform/ai-assistant/go.sum
             platform/catalog/go.sum
             platform/dqctl/go.sum
             platform/infra-provider-baremetal/go.sum
@@ -736,6 +737,7 @@ jobs:
           go-version: '1.26'
           cache: true
           cache-dependency-path: |
+            platform/ai-assistant/go.sum
             platform/catalog/go.sum
             platform/dqctl/go.sum
             platform/infra-provider-baremetal/go.sum
