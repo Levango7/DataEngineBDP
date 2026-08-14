@@ -22,7 +22,7 @@
         </el-button>
         <div v-if="error" class="error">{{ error }}</div>
       </el-form>
-      <div class="tip">默认开发环境账号：admin / admin123（生产接入 Keycloak 后由此处跳转 OIDC）</div>
+      <div class="tip">Keycloak 本地实例账号：demo / demo123（realm: shuqing，见 docs/user-guide/keycloak-oidc-verify.md）</div>
     </div>
   </div>
 </template>
@@ -37,7 +37,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-const form = ref({ username: 'admin', password: 'admin123' })
+const form = ref({ username: 'demo', password: 'demo123' })
 const loading = ref(false)
 const error = ref('')
 
