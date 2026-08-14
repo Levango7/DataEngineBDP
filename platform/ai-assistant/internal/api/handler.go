@@ -28,6 +28,8 @@ func RegisterRoutes(r *gin.Engine, svc *service.AssistantService, cfg *config.Co
 	{
 		// 对话（非流式，聚合 NL→SQL→执行→回复）
 		g.POST("/chat", h.chat)
+		// 对话（SSE 流式，对齐前端 chatStream）
+		g.POST("/chat/stream", h.chatStream)
 
 		// SQL 生成 / 执行 / 图表推荐 / 数据解读 / 仪表盘（P1 骨架：返回结构化占位或调用下游）
 		g.POST("/nl2sql", h.nl2sql)
