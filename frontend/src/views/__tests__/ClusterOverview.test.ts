@@ -64,7 +64,14 @@ const mockNodes = [
 vi.mock('@/api/cluster', () => ({
   getClusterOverview: vi.fn(() => Promise.resolve(mockOverview)),
   listNodes: vi.fn(() => Promise.resolve(mockNodes)),
-  listPods: vi.fn(() => Promise.resolve([]))
+  listPods: vi.fn(() => Promise.resolve([])),
+  listComponentStatuses: vi.fn(() =>
+    Promise.resolve([
+      { name: 'Spark', status: 'healthy', meta: '3/3 运行' },
+      { name: 'Flink', status: 'warning', meta: '2/3 运行' },
+      { name: 'Doris', status: 'error', meta: '1/3 运行' }
+    ])
+  )
 }))
 
 describe('ClusterOverview.vue', () => {

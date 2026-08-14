@@ -413,6 +413,10 @@ jobs:
       - name: 构建前端
         run: npm run build
 
+      - name: 前端单元测试（vitest）
+        # 130 个 API/视图测试；失败即阻断（防止前端回归被吞）
+        run: npm run test -- --run
+
       - name: 检查 bundle 大小
         run: |
           # 检查 dist 目录下是否有超过 1MB 的 chunk
