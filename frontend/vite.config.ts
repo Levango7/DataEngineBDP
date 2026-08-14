@@ -15,10 +15,10 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
-      // 将 /api 请求代理到后端 API 网关（开发环境默认 APISIX :9080）
-      // 可通过环境变量 VITE_API_TARGET 覆盖目标地址
+      // 将 /api 请求代理到后端 API 网关（开发环境默认 encaps-layer :8080，
+      // 支持本地直接登录验证；生产经 APISIX 网关，用 VITE_API_TARGET 覆盖）
       '/api': {
-        target: process.env.VITE_API_TARGET || 'http://localhost:9080',
+        target: process.env.VITE_API_TARGET || 'http://localhost:8080',
         changeOrigin: true
       }
     }
