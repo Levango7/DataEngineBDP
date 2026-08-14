@@ -33,7 +33,7 @@
         <label>AI 辅助（自然语言 → SQL）</label>
         <div style="display: flex; gap: 6px">
           <input placeholder="如：各城市 GMV 排名" style="flex: 1" />
-          <button class="btn ghost sm" @click="store.showToast('已生成 SQL（mock）')">生成</button>
+          <button class="btn ghost sm" @click="store.showToast('已生成 SQL（mock）（待接入）')">生成</button>
         </div>
         <button class="btn" style="width: 100%; margin-top: 12px" @click="runSql">
           <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg> 执行

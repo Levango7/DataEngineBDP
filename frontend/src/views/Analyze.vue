@@ -47,7 +47,7 @@
           </div>
           <div v-if="metrics.length === 0" class="meta">暂无实时指标</div>
         </template>
-        <button class="btn ghost sm" style="margin-top: 10px" @click="store.showToast('已打开组件库')">编辑组件</button>
+        <button class="btn ghost sm" style="margin-top: 10px" @click="store.showToast('已打开组件库（待接入）')">编辑组件</button>
       </div>
     </div>
 

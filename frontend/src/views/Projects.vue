@@ -91,7 +91,7 @@
       <div v-if="tab === 4">
         <label>项目名</label><input :value="current?.name" />
         <label>描述</label><textarea rows="3">{{ current?.description || '' }}</textarea>
-        <button class="btn sm" style="margin-top: 10px" @click="store.showToast('已保存')">保存</button>
+        <button class="btn sm" style="margin-top: 10px" @click="store.showToast('已保存（待接入）')">保存</button>
       </div>
     </Drawer>
 

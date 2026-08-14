@@ -78,7 +78,7 @@
           <tr><td>李工</td><td>开发</td></tr>
           <tr><td>王工</td><td>开发</td></tr>
         </table>
-        <button class="btn ghost sm" style="margin-top: 8px" @click="store.showToast('已邀请成员（mock）')">+ 邀请</button>
+        <button class="btn ghost sm" style="margin-top: 8px" @click="store.showToast('已邀请成员（mock）（待接入）')">+ 邀请</button>
       </div>
       <div v-if="tab === 2">
         <div class="row"><span>CPU</span><span>{{ current?.cpuUsage ?? 0 }}%</span></div>
