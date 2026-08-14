@@ -6,7 +6,7 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/k8s.gcr.io/descheduler"
+  repository: "docker.m.daocloud.io/registry.k8s.io/descheduler"
   tag: "v0.30.0"
   pullPolicy: IfNotPresent
 

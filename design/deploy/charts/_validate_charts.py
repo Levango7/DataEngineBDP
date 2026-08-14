@@ -112,13 +112,45 @@ def validate_chart(chart_dir, chart_name):
                     if key not in img:
                         warnings.append(f"values.yaml image 缺少: {key}")
 
+    # 2.1 幽灵镜像检测：sq-* 引用需有对应 platform 组件 Dockerfile（6.1 修复）
+    values_path = os.path.join(chart_dir, "values.yaml")
+    if os.path.exists(values_path):
+        try:
+            with open(values_path, "r", encoding="utf-8") as f:
+                values_data = yaml.safe_load(f)
+            img_repo = (values_data.get("image") or {}).get("repository", "")
+            if img_repo.startswith("sq-"):
+                # 真实自研镜像名：platform 下含 Dockerfile 的目录名（sq-{dir}）
+                platform_root = os.path.abspath(os.path.join(chart_dir, "..", "..", "..", "..", "platform"))
+                real_names = set()
+                if os.path.isdir(platform_root):
+                    for root, dirs, files in os.walk(platform_root):
+                        if "Dockerfile" in files:
+                            mod = os.path.basename(root)
+                            real_names.add(f"sq-{mod}")
+                            # 嵌套模块（如 governance/metadata-collector）取两级名
+                            parent = os.path.basename(os.path.dirname(root))
+                            if parent not in ("src", "docker", "deploy", "platform", "api", "cmd"):
+                                real_names.add(f"sq-{parent}-{mod}")
+                if img_repo not in real_names:
+                    warnings.append(
+                        f"幽灵镜像: {img_repo} 无对应 platform 组件 Dockerfile（可能是第三方组件误用 sq- 前缀，应改官方镜像）"
+                    )
+        except Exception as e:
+            warnings.append(f"幽灵镜像检测异常: {e}")
+
     # 3. 检查 templates 目录
     templates_dir = os.path.join(chart_dir, "templates")
     if not os.path.isdir(templates_dir):
         errors.append(f"缺失 templates/ 目录")
     else:
+        # Job 型 Chart（如 finance-template 用 import-job/verification-job）豁免 deployment/service
+        is_job_chart = os.path.exists(os.path.join(templates_dir, "import-job.yaml")) or \
+                       os.path.exists(os.path.join(templates_dir, "verification-job.yaml"))
         # 必需模板
         for tpl in REQUIRED_TEMPLATES:
+            if is_job_chart and tpl in ("deployment.yaml", "service.yaml"):
+                continue  # Job 型 chart 无需 Deployment/Service
             tpl_path = os.path.join(templates_dir, tpl)
             if not os.path.exists(tpl_path):
                 errors.append(f"缺失必需模板 templates/{tpl}")

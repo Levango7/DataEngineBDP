@@ -6,7 +6,7 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/k8s.gcr.io/cluster-autoscaler"
+  repository: "docker.m.daocloud.io/registry.k8s.io/cluster-autoscaler"
   tag: "v1.28.0"
   pullPolicy: IfNotPresent
 

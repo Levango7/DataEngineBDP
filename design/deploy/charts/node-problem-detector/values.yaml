@@ -6,7 +6,7 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/k8s.gcr.io/node-problem-detector"
+  repository: "docker.m.daocloud.io/registry.k8s.io/node-problem-detector"
   tag: "v0.8.0"
   pullPolicy: IfNotPresent
 
