@@ -71,12 +71,15 @@ spec:
         targetRevision: main
         path: '{{chartPath}}'
         helm:
+          # 修复 10.3：原引用 values-{{env}}.yaml，但 79/81 chart 均无此文件 → sync 必失败。
+          # 改为使用 chart 自带 values.yaml + parameters 覆盖（环境差异由 parameters 表达）。
           valueFiles:
             - values.yaml
-            - 'values-{{env}}.yaml'
           parameters:
             - name: replicaCount
               value: '{{replicas}}'
+            - name: resources.requests.memory
+              value: '{{resources}}'
       destination:
         server: '{{cluster}}'
         namespace: '{{namespace}}'
