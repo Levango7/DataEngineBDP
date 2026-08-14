@@ -1,6 +1,7 @@
 ﻿$ErrorActionPreference = "Continue"
-$base = "F:\Agent\workbuddy\workspace\DataEngineBDP\platform"
-$logFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\build_log2.txt"
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$base = "$repoRoot\platform"
+$logFile = "$repoRoot\deploy\k3s\build_log2.txt"
 "Parallel Build Log - $(Get-Date)" | Out-File $logFile
 
 # 分批构建，每批4个并行
@@ -107,4 +108,4 @@ $allResults | Format-Table -AutoSize
 $allResults | Format-Table -AutoSize | Out-File $logFile -Append
 
 # 返回结果供外部使用
-$allResults | Export-Csv "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\build_results.csv" -NoTypeInformation
+$allResults | Export-Csv "$repoRoot\deploy\k3s\build_results.csv" -NoTypeInformation

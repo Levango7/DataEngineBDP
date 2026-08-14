@@ -1,6 +1,7 @@
 ﻿$ErrorActionPreference = "Continue"
-$base = "F:\Agent\workbuddy\workspace\DataEngineBDP\platform"
-$logFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\build_remaining_log.txt"
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$base = "$repoRoot\platform"
+$logFile = "$repoRoot\deploy\k3s\build_remaining_log.txt"
 "Remaining Build Log - $(Get-Date)" | Out-File $logFile
 
 # 待构建的12个模块
@@ -108,5 +109,5 @@ $allResults | Format-Table -AutoSize
 $allResults | Format-Table -AutoSize | Out-File $logFile -Append
 
 # 返回结果
-$allResults | Export-Csv "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\build_remaining_results.csv" -NoTypeInformation
+$allResults | Export-Csv "$repoRoot\deploy\k3s\build_remaining_results.csv" -NoTypeInformation
 Write-Output "`nResults saved to build_remaining_results.csv"

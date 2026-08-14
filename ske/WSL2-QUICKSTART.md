@@ -50,10 +50,10 @@ ps -p 1 -o comm=     # 应输出 systemd
 
 ## 2. 挂载项目并准备宿主
 
-项目在 Windows 的 `F:\Agent\workbuddy\workspace\DataEngineBDP`，在 WSL2 内通常挂载为 `/mnt/f/Agent/workbuddy/workspace/DataEngineBDP`。
+项目在 Windows 的实际路径（如 `F:\Nexus\DataEngineBDP`），在 WSL2 内通常挂载为 `/mnt/f/Nexus/DataEngineBDP`（按实际盘符调整）。
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
+cd /mnt/f/Nexus/DataEngineBDP
 
 # 一键装 containerd + kubeadm/kubelet/kubectl + cri-tools, 关 swap, 载模块, 设 sysctl
 sudo bash ske/wsl2/setup-host.sh
@@ -64,7 +64,7 @@ sudo bash ske/wsl2/setup-host.sh
 ## 3. 拉起 SKE（真实 kubeadm）
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
+cd /mnt/f/Nexus/DataEngineBDP
 
 # 1) 宿主内核/网络栈/大页尽力调优 (WSL2 部分项受限会提示, 不影响起停)
 sudo bash ske/ske.sh tune-host

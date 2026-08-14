@@ -9,10 +9,14 @@ $images = @(
 
 foreach ($img in $images) {
     Write-Output "Importing $img..."
-    $tmpFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\tmp_image.tar"
+    # 修复：脚本所在目录推导仓库根（评估报告 10.2），不再硬编码旧沙箱路径
+    $k3sDir = $PSScriptRoot
+    $tmpFile = Join-Path $k3sDir "tmp_image.tar"
     docker save -o $tmpFile $img 2>&1
     if ($LASTEXITCODE -eq 0) {
-        $wslPath = "/mnt/f/Agent/workbuddy/workspace/DataEngineBDP/deploy/k3s/tmp_image.tar"
+        # 转换为 WSL 路径：C:\foo → /mnt/c/foo
+        $driveLetter = $k3sDir.Substring(0, 1).ToLower()
+        $wslPath = "/mnt/" + $driveLetter + "/" + ($k3sDir.Substring(3) -replace '\\', '/') + "/tmp_image.tar"
         wsl -d Ubuntu-24.04 -- bash -c "sudo k3s ctr images import $wslPath" 2>&1
         Write-Output "  -> Imported $img"
     } else {

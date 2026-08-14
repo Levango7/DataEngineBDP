@@ -1,5 +1,8 @@
 ﻿$ErrorActionPreference = "Continue"
-$base = "F:\Agent\workbuddy\workspace\DataEngineBDP\platform"
+# 修复：不再硬编码旧沙箱路径 F:\Agent\workbuddy（评估报告 10.2），
+# 改为脚本所在目录推导仓库根，可在任意工作区运行
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$base = Join-Path $repoRoot "platform"
 $results = @()
 
 # 模块列表: name, dockerfilePath, image
@@ -23,7 +26,7 @@ $modules = @(
     @{Name="nl2sql"; Path="$base\nl2sql"; Image="sq/nl2sql:0.1.0"}
 )
 
-$logFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\build_log.txt"
+$logFile = Join-Path $repoRoot "deploy\k3s\build_log.txt"
 "Build Log - $(Get-Date)" | Out-File $logFile
 
 foreach ($m in $modules) {

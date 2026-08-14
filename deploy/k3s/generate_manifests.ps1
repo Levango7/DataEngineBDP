@@ -1,5 +1,6 @@
 ﻿$ErrorActionPreference = "Stop"
-$base = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\manifests"
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$base = "$repoRoot\deploy\k3s\manifests"
 
 # 模块定义: name, image, port, type(Java/Python/Go)
 $modules = @(

@@ -1,4 +1,4 @@
-﻿# Phase 1a 启动前准备 · A 环境（开发环境与工具链）确认报告
+# Phase 1a 启动前准备 · A 环境（开发环境与工具链）确认报告
 
 > 版本：v1.0
 > 文档状态：已完成
@@ -320,7 +320,7 @@ pip install pymilvus>=2.4 kafka-python nebula3-python==3.4.0 gmssl
 pip install pyiceberg apache-flink>=1.18 sentence-transformers rank-bm25
 
 # 6. 拉起 SKE K8s 集群（在 WSL2 中执行）
-wsl -d Ubuntu-24.04 -- bash -c "cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP && bash ske/ske.sh up --target wsl2"
+wsl -d Ubuntu-24.04 -- bash -c "cd /mnt/f/Nexus/DataEngineBDP && bash ske/ske.sh up --target wsl2"
 
 # 7. 安装 Istio ≥1.20（通过 Helm，待 SKE 集群就绪后）
 helm repo add istio https://istio-release.storage.googleapis.com/charts

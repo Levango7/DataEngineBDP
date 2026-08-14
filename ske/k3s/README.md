@@ -47,12 +47,12 @@ ske/k3s/
 
 - **WSL2 Ubuntu 22.04+**，systemd 已开启（见 `ske/WSL2-QUICKSTART.md` §1）
 - 在 WSL2 Ubuntu 终端内执行（非 Windows PowerShell）
-- 项目挂载路径：`/mnt/f/Agent/workbuddy/workspace/DataEngineBDP`
+- 项目挂载路径：`/mnt/f/Nexus/DataEngineBDP`（按实际盘符/目录调整）
 
 ### 3.2 一键部署
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
+cd /mnt/f/Nexus/DataEngineBDP
 
 # 一键完成：k3s 安装 → Istio minimal → sidecar 注入 → mTLS 启用
 sudo bash ske/k3s/deploy-all.sh

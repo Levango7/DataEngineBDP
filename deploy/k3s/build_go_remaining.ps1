@@ -1,5 +1,6 @@
 ﻿$ErrorActionPreference = "Continue"
-$logFile = "F:\Agent\workbuddy\workspace\DataEngineBDP\deploy\k3s\go_build_log.txt"
+$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$logFile = "$repoRoot\deploy\k3s\go_build_log.txt"
 "Go Build Log - $(Get-Date)" | Out-File $logFile
 
 $jobs = @()
@@ -8,7 +9,7 @@ $jobs = @()
 Write-Output "Starting: llm-gateway"
 "Starting: llm-gateway" | Out-File $logFile -Append
 $job1 = Start-Job -Name "llm-gateway" -ScriptBlock {
-    $output = docker build -t sq/llm-gateway:0.1.0 "F:\Agent\workbuddy\workspace\DataEngineBDP\platform\llm-gateway" 2>&1
+    $output = docker build -t sq/llm-gateway:0.1.0 "$repoRoot\platform\llm-gateway" 2>&1
     $code = $LASTEXITCODE
     return @{Name="llm-gateway"; Code=$code; Output=($output | Select-Object -Last 5)}
 }
@@ -18,7 +19,7 @@ $jobs += @{Job=$job1; Name="llm-gateway"}
 Write-Output "Starting: infra-provider-baremetal"
 "Starting: infra-provider-baremetal" | Out-File $logFile -Append
 $job2 = Start-Job -Name "baremetal" -ScriptBlock {
-    $output = docker build -t sq/infra-provider-baremetal:0.1.0 "F:\Agent\workbuddy\workspace\DataEngineBDP\platform\infra-provider-baremetal" 2>&1
+    $output = docker build -t sq/infra-provider-baremetal:0.1.0 "$repoRoot\platform\infra-provider-baremetal" 2>&1
     $code = $LASTEXITCODE
     return @{Name="infra-provider-baremetal"; Code=$code; Output=($output | Select-Object -Last 5)}
 }

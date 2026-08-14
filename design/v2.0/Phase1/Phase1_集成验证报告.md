@@ -1,10 +1,10 @@
-﻿# 数据引擎大数据平台 V2.0 Phase 1 集成验证总结报告
+# 数据引擎大数据平台 V2.0 Phase 1 集成验证总结报告
 
 > **版本**：v2.0.0-phase1-integration-verified
 > **报告日期**：2026-08-07
 > **报告范围**：Phase 1（含 1a + 1b 子阶段）24 个任务 + 4 个高风险项（R1~R4）闭环验证
 > **作者**：集成验证报告生成师（GLM-5.2）
-> **项目路径**：`F:\Agent\workbuddy\workspace\DataEngineBDP`
+> **项目路径**：`F:\Nexus\DataEngineBDP`
 > **上游报告**：
 > - `tests/integration/integration_test_report.md`（Task 209 集成测试）
 > - `tests/performance/benchmark_report.md`（Task 208 性能压测）

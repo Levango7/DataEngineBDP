@@ -1,4 +1,4 @@
-﻿# 数据引擎大数据平台 · GitOps 配置漂移检测与自愈
+# 数据引擎大数据平台 · GitOps 配置漂移检测与自愈
 
 > 版本：v0.1 ｜ 日期：2026-08-07 ｜ 状态：可部署
 > 所属：T004 GitOps 漂移检测
@@ -107,7 +107,7 @@ design/deploy/argocd/drift-detection/
 ### 4.2 一键部署
 
 ```bash
-cd /mnt/f/Agent/workbuddy/workspace/DataEngineBDP
+cd /mnt/f/Nexus/DataEngineBDP
 DRIFT_DIR=design/deploy/argocd/drift-detection
 
 # Step 1: 部署漂移策略（字段忽略 / 严重程度规则）

@@ -1,9 +1,0 @@
-﻿Build Log - 08/07/2026 15:02:39
-[15:02:39] Building tag-engine from F:\Agent\workbuddy\workspace\DataEngineBDP\platform\tag-engine
-  #19 unpacking to docker.io/sq/tag-engine:0.1.0
-  #19 unpacking to docker.io/sq/tag-engine:0.1.0 0.7s done
-  #19 DONE 3.5s
-  System.Management.Automation.RemoteException
-  View build details: docker-desktop://dashboard/build/desktop-linux/desktop-linux/4l2ycmaii0z60c1daxuu1zzz5
-  -> SUCCESS (502.1987983s)
-[15:11:02] Building infra-orchestrator from F:\Agent\workbuddy\workspace\DataEngineBDP\platform\infra-orchestrator
