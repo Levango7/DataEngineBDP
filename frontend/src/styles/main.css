@@ -444,6 +444,25 @@ label {
   color: var(--c-slate-700);
   min-height: 200px;
 }
+.code-editor {
+  width: 100%;
+  min-height: 200px;
+  padding: 12px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre;
+  color: var(--c-slate-700);
+  background: var(--c-surface-alt);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.code-editor:focus {
+  outline: none;
+  border-color: var(--c-primary, #2f6f6a);
+}
 .code .k {
   color: var(--c-violet);
 }

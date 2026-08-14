@@ -10,11 +10,12 @@
           <div class="tab on">联邦查询</div>
           <div class="tab">+ 新查询</div>
         </div>
-        <div class="code"><span class="c">-- 跨引擎联邦：Iceberg 明细 + Doris 维表</span>
-<span class="k">SELECT</span> u.city, <span class="k">SUM</span>(p.amount) gmv
-<span class="k">FROM</span> iceberg.ods.orders o
-<span class="k">JOIN</span> doris.dim.user u <span class="k">ON</span> o.user_id = u.user_id
-<span class="k">GROUP BY</span> u.city <span class="k">ORDER BY</span> gmv <span class="k">DESC</span>;</div>
+        <textarea
+          v-model="sqlText"
+          class="code-editor"
+          spellcheck="false"
+          placeholder="-- 输入 SQL，如：SELECT city, COUNT(*) cnt FROM doris.dim.user GROUP BY city"
+        ></textarea>
         <div class="runlog" ref="sqllogEl">
           <div v-for="(line, i) in sqllog" :key="i" :class="line.cls">{{ line.text }}</div>
         </div>
@@ -86,6 +87,12 @@ function formatCell(val: unknown): string {
   return String(val)
 }
 
+/** 可编辑 SQL（打通链路：用户输入 → 网关 → 引擎） */
+const sqlText = ref('SELECT city, COUNT(*) cnt FROM doris.dim.user GROUP BY city')
+
+/** 路由引擎选择 */
+const selectedEngine = ref('auto')
+
 /** 示例 SQL（与模板中展示的联邦查询保持一致） */
 const SAMPLE_SQL =
   'SELECT u.city, SUM(p.amount) gmv FROM iceberg.ods.orders o JOIN doris.dim.user u ON o.user_id = u.user_id GROUP BY u.city ORDER BY gmv DESC'
@@ -95,7 +102,8 @@ async function runSql() {
   queryError.value = ''
   sqllog.value = [{ cls: 'info', text: '[网关] 提交查询…' }]
   try {
-    const result = await executeCrossSourceSql({ sql: SAMPLE_SQL, dialect: 'ANSI' })
+    const sql = sqlText.value.trim() || SAMPLE_SQL
+    const result = await executeCrossSourceSql({ sql, dialect: 'ANSI' })
     queryResult.value = result
     // 根据返回结果追加日志
     const lines: LogLine[] = [

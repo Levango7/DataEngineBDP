@@ -56,11 +56,11 @@ otel:
 sql-gateway:
   backends:
     trino:
-      url: http://trino-service:8080
+      url: ${TRINO_URL:http://trino-service:8080}
       timeout: 30
       max-retries: 3
     doris:
-      url: http://doris-fe-service:9030
+      url: ${DORIS_URL:http://doris-fe-service:9030}
       timeout: 30
       max-retries: 3
   default-engine: trino
