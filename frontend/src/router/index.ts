@@ -1,7 +1,14 @@
-import { createRouter, createWebHashHistory, type RouteRecordRaw } from 'vue-router'
+import {
+  createRouter,
+  createWebHashHistory,
+  type RouteLocationNormalized,
+  type RouteRecordRaw
+} from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
 // 路由懒加载
 const Dashboard = () => import('@/views/Dashboard.vue')
+const Login = () => import('@/views/Login.vue')
 const Workspaces = () => import('@/views/Workspaces.vue')
 const Projects = () => import('@/views/Projects.vue')
 const Integrate = () => import('@/views/Integrate.vue')
@@ -52,6 +59,12 @@ const AiAssistant = () => import('@/views/ai-assistant/AiAssistant.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
+  {
+    path: '/login',
+    name: 'Login',
+    component: Login,
+    meta: { title: '登录', public: true }
+  },
 
   // 有实际内容的页面
   { path: '/dashboard', name: 'dashboard', component: Dashboard },
@@ -205,6 +218,38 @@ const router = createRouter({
   scrollBehavior() {
     return { top: 0 }
   }
+})
+
+// ============================================================
+// 鉴权闭环（修复评估报告 §5.7：无路由守卫，任何人可直接访问全部页面）
+// 白名单：/login 及无需认证的公开页
+// 提取为纯函数以便单元测试（避免 jsdom 下懒加载组件挂起）
+// ============================================================
+const PUBLIC_PATHS = new Set(['/login'])
+
+/**
+ * 鉴权守卫（纯函数）。
+ *
+ * @param to            目标路由
+ * @param isAuthenticated 是否已登录（测试可注入）
+ * @returns 放行 true，或重定向目标
+ */
+export function authGuard(to: RouteLocationNormalized, isAuthenticated: boolean): boolean | Record<string, unknown> {
+  if (PUBLIC_PATHS.has(to.path)) {
+    if (isAuthenticated) {
+      return { path: '/dashboard' }
+    }
+    return true
+  }
+  if (!isAuthenticated) {
+    return { path: '/login', query: { redirect: to.fullPath } }
+  }
+  return true
+}
+
+router.beforeEach((to) => {
+  const authStore = useAuthStore()
+  return authGuard(to, authStore.isAuthenticated)
 })
 
 export default router
