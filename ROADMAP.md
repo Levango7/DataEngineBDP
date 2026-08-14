@@ -227,3 +227,18 @@ graph LR
 - [ ] **检索 /search、安全 /sec、标准 /standards、配额 /quotas、模板 /templates**：对应组件补 REST。
 
 完成标准：上述每个 BASE 路径在 platform/ 下有对应 controller/router，且前端页面真实交互（非 toast 占位）。
+
+### 基础设施层"半真实实现"待接线（评估报告 6.4）
+
+以下为骨架/半实现，依赖真实外部环境才能完整（与"前后端接线缺口"并列的待办）：
+
+- [ ] **infra-provider-cloud/private**: `waitForVMsRunning` 恒 true、SKE 引导仅打日志。
+      需接真实云 API 轮询 VM 状态 + SSH 执行 /opt/ske/bootstrap.sh。
+- [ ] **karmada/federated-query**: 远端为 mock-cluster（按 SQL 关键字返回硬编码行）。
+      需接真实 Karmada 联邦查询。
+- [ ] **lineage-analyzer**: NebulaGraph `enabled:false` 默认不连（本地用内存邻接表）。
+      需接真实 NebulaGraph 存储。
+- [ ] **business-portal / ml-platform**: 仓库 mock（jobCount=120、accuracy=0.875 硬编码）。
+      需接真实指标来源。
+- [ ] **stream-batch-scheduler Flink/Spark**: 真实提交路径已实现（realSubmitEnabled=true），
+      但需真实 Flink/Spark 集群验证。
