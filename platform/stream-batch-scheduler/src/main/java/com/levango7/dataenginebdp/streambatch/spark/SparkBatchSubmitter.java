@@ -70,21 +70,94 @@ public class SparkBatchSubmitter {
                 table, batchSnapshot.getSnapshotId());
         sparkConf.putAll(sparkConfig.getExtraConf());
 
-        // 3. 构建提交命令（模拟 SparkLauncher）
+        // 3. 真实提交路径：SparkLauncher（spark-submit 等价）解析真实 appId
+        if (sparkConfig.isRealSubmitEnabled()) {
+            try {
+                String realAppId = submitViaLauncher(
+                        table, mainResource, mainClass, args, sparkConf);
+                log.info("Spark 批作业真实提交成功: table={}, appId={}, snapshotId={}",
+                        table, realAppId, batchSnapshot.getSnapshotId());
+                return SparkSubmitResult.builder()
+                        .appId(realAppId)
+                        .snapshotId(batchSnapshot.getSnapshotId())
+                        .submitCommand(buildSubmitCommand(table, mainResource, mainClass, args, sparkConf))
+                        .success(true)
+                        .build();
+            } catch (Exception e) {
+                log.error("Spark 真实提交失败(不回退模拟): table={}, err={}", table, e.getMessage());
+                return SparkSubmitResult.builder()
+                        .appId(null)
+                        .snapshotId(batchSnapshot.getSnapshotId())
+                        .success(false)
+                        .errorMessage("Spark 真实提交失败: " + e.getMessage())
+                        .build();
+            }
+        }
+
+        // 4. 日志模拟路径（默认，本地无集群）
         String appId = "spark-" + UUID.randomUUID().toString().substring(0, 8);
         String submitCmd = buildSubmitCommand(table, mainResource, mainClass, args, sparkConf);
 
-        log.info("提交 Spark 批作业: table={}, snapshotId={}, appId={}", table,
+        log.info("提交 Spark 批作业(模拟): table={}, snapshotId={}, appId={}", table,
                 batchSnapshot.getSnapshotId(), appId);
         log.debug("Spark 提交命令: {}", submitCmd);
 
-        // 4. 返回提交结果（实际场景等待 SparkLauncher.launch() 返回 appId）
+        // 5. 返回提交结果（实际场景等待 SparkLauncher.launch() 返回 appId）
         return SparkSubmitResult.builder()
                 .appId(appId)
                 .snapshotId(batchSnapshot.getSnapshotId())
                 .submitCommand(submitCmd)
                 .success(true)
                 .build();
+    }
+
+    /**
+     * 通过 SparkLauncher 真实提交作业，等待 appId。
+     *
+     * <p>仅 realSubmitEnabled=true 时调用；集群不可达 / 启动失败抛异常，
+     * 由调用方包装为失败结果（不回退模拟）。
+     */
+    private String submitViaLauncher(String table, String mainResource, String mainClass,
+                                     String args, Map<String, String> sparkConf) throws Exception {
+        if (mainResource == null || mainResource.isBlank()) {
+            throw new IllegalArgumentException("mainResource 不能为空（realSubmitEnabled=true 需要作业 jar/SQL）");
+        }
+        org.apache.spark.launcher.SparkLauncher launcher = new org.apache.spark.launcher.SparkLauncher()
+                .setMaster(sparkConfig.getMaster())
+                .setDeployMode(sparkConfig.getDeployMode())
+                .setAppResource(mainResource)
+                .setMainClass(mainClass != null ? mainClass : "org.apache.spark.deploy.SparkSubmit")
+                .addAppArgs(args != null && !args.isEmpty() ? args.split("\\s+") : new String[0])
+                .setConf("spark.driver.memory", sparkConfig.getDriverMemory())
+                .setConf("spark.executor.memory", sparkConfig.getExecutorMemory())
+                .setConf("spark.executor.cores", String.valueOf(sparkConfig.getExecutorCores()))
+                .setConf("spark.executor.instances", String.valueOf(sparkConfig.getExecutorInstances()))
+                .setVerbose(false);
+
+        // Iceberg Catalog 配置 + 固定 snapshot 引用
+        sparkConf.forEach((k, v) -> {
+            if (!k.startsWith("__")) {
+                launcher.setConf(k, v);
+            }
+        });
+        if (sparkConfig.getSparkHome() != null && !sparkConfig.getSparkHome().isBlank()) {
+            launcher.setSparkHome(sparkConfig.getSparkHome());
+        }
+
+        // 固定 snapshot 通过 Spark SQL session 配置传递
+        launcher.setConf("spark.iceberg.batch.snapshot_id",
+                sparkConf.getOrDefault("__iceberg_batch_snapshot_id__", ""));
+
+        org.apache.spark.launcher.SparkAppHandle handle = launcher.startApplication();
+        // 等待提交完成（获取 appId）；最多 60s，超时抛异常
+        for (int i = 0; i < 60; i++) {
+            String appId = handle.getAppId();
+            if (appId != null && !appId.isBlank()) {
+                return appId;
+            }
+            Thread.sleep(1000);
+        }
+        throw new IllegalStateException("Spark 作业 60s 内未获取 appId，table=" + table);
     }
 
     /**

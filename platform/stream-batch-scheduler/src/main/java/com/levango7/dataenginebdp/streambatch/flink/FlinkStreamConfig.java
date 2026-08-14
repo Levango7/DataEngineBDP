@@ -41,6 +41,12 @@ public class FlinkStreamConfig {
     /** Iceberg Flink Connector jar 路径。 */
     private String flinkJars = "";
 
+    /**
+     * 真实提交开关：true 通过 Flink REST API 真实提交并解析真实 jobId；
+     * false 使用日志模拟（本地无 Flink 集群时默认）。
+     */
+    private boolean realSubmitEnabled = false;
+
     /** Flink Conf 额外配置。 */
     private java.util.Map<String, String> extraConf = new java.util.HashMap<>();
 }

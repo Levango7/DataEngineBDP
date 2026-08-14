@@ -34,9 +34,14 @@ public class FlinkStreamSubmitter {
 
     private final FlinkStreamConfig flinkConfig;
     private final IcebergSnapshotManager snapshotManager;
+    private final FlinkRestClient flinkRestClient;
 
     /**
      * 提交 Flink 流作业（读 Iceberg 最新 snapshot，streaming 模式）。
+     *
+     * <p>realSubmitEnabled=true 时通过 {@link FlinkRestClient} 真实提交
+     * （上传 jar + POST /jars/:id/run，解析真实 jobId）；
+     * false 时保留日志模拟（本地无 Flink 集群）。
      *
      * @param table        Iceberg 表全名（database.table）
      * @param mainResource 作业主资源（jar 路径）
@@ -60,16 +65,43 @@ public class FlinkStreamSubmitter {
         flinkConf.putAll(flinkConfig.getExtraConf());
         int parallel = parallelism != null ? parallelism : flinkConfig.getParallelism();
 
-        // 3. 构建提交请求（模拟 Flink REST API）
+        // 3. 真实提交路径：上传 jar → run → 解析真实 jobId
+        if (flinkConfig.isRealSubmitEnabled()) {
+            try {
+                String jarId = flinkRestClient.uploadJar(mainResource);
+                String realJobId = flinkRestClient.runJar(
+                        jarId, entryClass, args, parallel, flinkConf);
+                log.info("Flink 流作业真实提交成功: table={}, jobId={}, startSnapshotId={}",
+                        table, realJobId, startSnapshot.getSnapshotId());
+                return FlinkSubmitResult.builder()
+                        .jobId(realJobId)
+                        .startSnapshotId(startSnapshot.getSnapshotId())
+                        .submitPayload(buildSubmitPayload(table, mainResource, entryClass, args,
+                                parallel, flinkConf))
+                        .parallelism(parallel)
+                        .success(true)
+                        .build();
+            } catch (Exception e) {
+                log.error("Flink 真实提交失败(不回退模拟): table={}, err={}", table, e.getMessage());
+                return FlinkSubmitResult.builder()
+                        .jobId(null)
+                        .startSnapshotId(startSnapshot.getSnapshotId())
+                        .parallelism(parallel)
+                        .success(false)
+                        .errorMessage("Flink 真实提交失败: " + e.getMessage())
+                        .build();
+            }
+        }
+
+        // 4. 日志模拟路径（默认，本地无集群）
         String jobId = UUID.randomUUID().toString();
         String submitPayload = buildSubmitPayload(table, mainResource, entryClass, args,
                 parallel, flinkConf);
 
-        log.info("提交 Flink 流作业: table={}, startSnapshotId={}, jobId={}, parallelism={}",
+        log.info("提交 Flink 流作业(模拟): table={}, startSnapshotId={}, jobId={}, parallelism={}",
                 table, startSnapshot.getSnapshotId(), jobId, parallel);
         log.debug("Flink 提交请求: {}", submitPayload);
 
-        // 4. 返回提交结果
         return FlinkSubmitResult.builder()
                 .jobId(jobId)
                 .startSnapshotId(startSnapshot.getSnapshotId())

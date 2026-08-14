@@ -38,6 +38,15 @@ public class SparkBatchConfig {
     /** Spark 驱动类路径资源（Iceberg Spark Runtime jar）。 */
     private String sparkJars = "";
 
+    /**
+     * 真实提交开关：true 通过 SparkLauncher 真实提交（spark-submit 等价）并解析真实 appId；
+     * false 使用日志模拟（本地无 Spark 集群时默认）。
+     */
+    private boolean realSubmitEnabled = false;
+
+    /** Spark Launcher 可执行文件路径（realSubmitEnabled=true 时需要；默认走 PATH 的 spark-submit）。 */
+    private String sparkHome = "";
+
     /** Spark Conf 额外配置。 */
     private java.util.Map<String, String> extraConf = new java.util.HashMap<>();
 }
