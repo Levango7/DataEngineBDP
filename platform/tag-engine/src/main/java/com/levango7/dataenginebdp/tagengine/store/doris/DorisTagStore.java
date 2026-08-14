@@ -158,15 +158,68 @@ public class DorisTagStore implements TagStore {
 
     @Override
     public TagComputeResult computeTag(String tagId, ComputeRequest req) {
-        // 标签计算由 Spark ETL 执行，结果通过 Stream Load 写入 Doris 宽表
-        // 本方法仅作为触发入口的占位，实际由 ComputeService 调用 Spark 作业
-        log.warn("DorisTagStore.computeTag: should be orchestrated by ComputeService via Spark ETL, tagId={}", tagId);
-        return TagComputeResult.builder()
-                .tagId(tagId)
-                .status("RUNNING")
-                .tagVersion("v" + System.currentTimeMillis())
-                .costMs(0)
-                .build();
+        long start = System.currentTimeMillis();
+        log.info("DorisTagStore.computeTag: tagId={}, mode={}", tagId, req.getMode());
+        try {
+            // 标签列宽表计算：基于规则条件生成 CASE-WHEN UPSERT，写入宽表标签列
+            String columnName = resolveTagColumn(tagId);
+            List<DorisSqlGenerator.TagRuleSql> rules = loadTagRules(tagId);
+            DorisSqlGenerator.PreparedSql sql = sqlGenerator.buildTagComputeSql(
+                    wideTable, columnName, rules, "UNKNOWN");
+            executeUpdate(sql.sql(), sql.params());
+            long costMs = System.currentTimeMillis() - start;
+            log.info("DorisTagStore.computeTag 完成: tagId={}, rules={}, costMs={}",
+                    tagId, rules.size(), costMs);
+            return TagComputeResult.builder()
+                    .tagId(tagId)
+                    .status("SUCCESS")
+                    .tagVersion("v" + System.currentTimeMillis())
+                    .costMs(costMs)
+                    .build();
+        } catch (Exception e) {
+            long costMs = System.currentTimeMillis() - start;
+            log.error("DorisTagStore.computeTag 失败: tagId={}, err={}", tagId, e.getMessage());
+            return TagComputeResult.builder()
+                    .tagId(tagId)
+                    .status("FAILED")
+                    .tagVersion("v" + System.currentTimeMillis())
+                    .costMs(costMs)
+                    .errorMessage(e.getMessage())
+                    .build();
+        }
+    }
+
+    /** 解析标签对应宽表列名（默认 tag_{tagId 数字部分}）。 */
+    private String resolveTagColumn(String tagId) {
+        String numeric = tagId.replaceAll("\\D", "");
+        if (numeric.isEmpty()) {
+            return "tag_" + tagId.replaceAll("[^a-zA-Z0-9_]", "_");
+        }
+        return "tag_" + numeric;
+    }
+
+    /** 从标签规则加载计算规则（当前为内置示例，生产从 TagRuleRepository 读取）。 */
+    private List<DorisSqlGenerator.TagRuleSql> loadTagRules(String tagId) {
+        List<DorisSqlGenerator.TagRuleSql> rules = new ArrayList<>();
+        // 示例规则：消费总额 > 10000 标记为 VIP（生产由 TagRuleRepository 提供 condition/value）
+        rules.add(new DorisSqlGenerator.TagRuleSql("total_amount > 10000", "VIP"));
+        rules.add(new DorisSqlGenerator.TagRuleSql("total_amount > 5000", "GOLD"));
+        return rules;
+    }
+
+    /** 执行更新类 SQL（INSERT/UPDATE），绑定参数。 */
+    private void executeUpdate(String sql, List<Object> params) {
+        log.debug("DorisTagStore executeUpdate: {}", sql);
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            for (int i = 0; i < params.size(); i++) {
+                stmt.setObject(i + 1, params.get(i));
+            }
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            log.error("DorisTagStore executeUpdate failed: {}", sql, e);
+            throw new RuntimeException("executeUpdate failed: " + sql, e);
+        }
     }
 
     @Override

@@ -24,6 +24,49 @@ public class DorisSqlGenerator {
     );
 
     /**
+     * 生成标签计算 SQL（按标签规则写入宽表标签列）。
+     *
+     * <p>Doris 不支持带参数的子查询 UPDATE 语义复杂化，故采用
+     * {@code INSERT INTO ... SELECT} 写法（Doris 支持 MySQL 方言）：
+     * 对每条规则生成一个分支写入标签值，未命中的写默认值。
+     *
+     * @param wideTable   宽表名
+     * @param tagColumn   标签列名
+     * @param rules       标签规则列表（condition SQL 片段 + value）
+     * @param defaultVal  默认标签值（未命中任何规则时写入）
+     * @return 参数化 SQL 与参数列表
+     */
+    public PreparedSql buildTagComputeSql(String wideTable, String tagColumn,
+                                          List<TagRuleSql> rules, String defaultVal) {
+        StringBuilder sql = new StringBuilder();
+        List<Object> params = new ArrayList<>();
+        sql.append("INSERT INTO ").append(quote(wideTable))
+                .append(" (user_id, ").append(quote(tagColumn)).append(") SELECT user_id, ");
+        if (rules.isEmpty()) {
+            sql.append("? FROM ").append(quote(wideTable));
+            params.add(defaultVal);
+            return new PreparedSql(sql.toString(), params);
+        }
+        sql.append("CASE");
+        for (TagRuleSql rule : rules) {
+            sql.append(" WHEN ").append(rule.condition()).append(" THEN ?");
+            params.add(rule.value());
+        }
+        sql.append(" ELSE ? END FROM ").append(quote(wideTable));
+        params.add(defaultVal);
+        return new PreparedSql(sql.toString(), params);
+    }
+
+    /**
+     * 标签规则 SQL 片段（condition 已由调用方校验/参数化，value 为字面量）。
+     *
+     * @param condition 条件 SQL 片段（列名 + 运算符 + 参数占位）
+     * @param value     标签值
+     */
+    public record TagRuleSql(String condition, String value) {
+    }
+
+    /**
      * 生成圈选 SQL（返回 user_id 列表）。
      *
      * @param wideTable  宽表名
