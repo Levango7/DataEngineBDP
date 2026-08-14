@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-iotdb"
-  tag: "2.0-0.1.0"
+  repository: "apache/iotdb"
+  tag: "2.0.2"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

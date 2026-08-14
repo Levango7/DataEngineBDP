@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-keycloak"
-  tag: "24.0-0.1.0"
+  repository: "quay.io/keycloak/keycloak"
+  tag: "24.0.4"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

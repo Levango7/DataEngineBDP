@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-spark"
-  tag: "3.5-0.1.0"
+  repository: "spark-operator"
+  tag: "1.4.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

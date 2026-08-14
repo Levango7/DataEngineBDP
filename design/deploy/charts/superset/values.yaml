@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-superset"
-  tag: "4.0-0.1.0"
+  repository: "apache/superset"
+  tag: "3.1.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

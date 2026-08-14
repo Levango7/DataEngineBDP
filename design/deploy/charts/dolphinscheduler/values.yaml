@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-dolphinscheduler"
-  tag: "3.2-0.1.0"
+  repository: "apache/dolphinscheduler"
+  tag: "3.2.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

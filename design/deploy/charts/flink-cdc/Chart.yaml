@@ -4,8 +4,8 @@ description: "Flink CDC 连接器 - 实时数据变更捕获与同步 - 数据�
 type: application
 version: 2.0.0
 appVersion: "2.0.0"
-home: https://github.com/DataEngineBDP
-mainters:
+home: https://github.com/Levango7/DataEngineBDP
+maintainers:
   - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:

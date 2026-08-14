@@ -6,8 +6,8 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/sq-hive-metastore"
-  tag: "3.1.3-0.1.0"
+  repository: "docker.m.daocloud.io/bitsondatadev/hive-metastore"
+  tag: "2.3.9"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

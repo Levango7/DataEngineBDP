@@ -6,8 +6,8 @@
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
-  repository: "docker.m.daocloud.io/sq-mlflow"
-  tag: "2.14.0-0.1.0"
+  repository: "docker.m.daocloud.io/ghcr.io/mlflow/mlflow"
+  tag: "2.16.1"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

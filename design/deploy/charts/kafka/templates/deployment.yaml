@@ -42,18 +42,17 @@ spec:
                 name: {{ include "kafka.configmapName" . }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
-            httpGet:
-              path: {{ .Values.probes.liveness.httpGet.path | quote }}
-              port: {{ .Values.probes.liveness.httpGet.port | int }}
+            # Kafka 9092 为二进制 TCP 协议，无 HTTP 端点；使用 TCP 探针（评估报告 6.3 修复）
+            tcpSocket:
+              port: {{ .Values.probes.liveness.tcpSocket.port | int }}
             initialDelaySeconds: {{ .Values.probes.liveness.initialDelaySeconds | int }}
             periodSeconds: {{ .Values.probes.liveness.periodSeconds | int }}
             failureThreshold: {{ .Values.probes.liveness.failureThreshold | int }}
           {{- end }}
           {{- if .Values.probes.readiness.enabled }}
           readinessProbe:
-            httpGet:
-              path: {{ .Values.probes.readiness.httpGet.path | quote }}
-              port: {{ .Values.probes.readiness.httpGet.port | int }}
+            tcpSocket:
+              port: {{ .Values.probes.readiness.tcpSocket.port | int }}
             initialDelaySeconds: {{ .Values.probes.readiness.initialDelaySeconds | int }}
             periodSeconds: {{ .Values.probes.readiness.periodSeconds | int }}
             failureThreshold: {{ .Values.probes.readiness.failureThreshold | int }}

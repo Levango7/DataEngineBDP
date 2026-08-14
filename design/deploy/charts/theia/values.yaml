@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-theia"
-  tag: "1.45-0.1.0"
+  repository: "docker.m.daocloud.io/theiaide/theia"
+  tag: "1.49.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

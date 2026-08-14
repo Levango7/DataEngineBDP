@@ -4,10 +4,10 @@
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
 # ============================================================================
 
-# ---- 镜像配置 ----
+# ---- 镜像配置（官方镜像；sq-* 为自研包，构建未发布前用官方兜底） ----
 image:
-  repository: "sq-kafka"
-  tag: "3.7-0.1.0"
+  repository: "apache/kafka"
+  tag: "3.7.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----
@@ -47,16 +47,14 @@ securityContext:
 probes:
   liveness:
     enabled: true
-    httpGet:
-      path: /healthz
+    tcpSocket:
       port: 9092
     initialDelaySeconds: 30
     periodSeconds: 10
     failureThreshold: 3
   readiness:
     enabled: true
-    httpGet:
-      path: /readyz
+    tcpSocket:
       port: 9092
     initialDelaySeconds: 10
     periodSeconds: 5

@@ -6,8 +6,8 @@
 
 # ---- 镜像配置 ----
 image:
-  repository: "sq-seatunnel"
-  tag: "2.3-0.1.0"
+  repository: "apache/seatunnel"
+  tag: "2.3.8"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----
