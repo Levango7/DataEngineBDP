@@ -43,7 +43,7 @@ graph LR
 - [ ] 封装层批量 K8s API 调用改为 informer watch 模式，降低 API Server 压力。
 - [ ] SQL 网关引入查询结果缓存（基于 Calcite 物化视图）。
 - [ ] 规则引擎规则执行改为异步 + 批量模式。
-- [ ] 资产目录检索引入 Elasticsearch 倒排索引加速。
+- [x] 资产目录检索引入 Elasticsearch 倒排索引加速（encaps-layer /search 已接本地 ES 7.17 容器，d11c9f9）。
 - [ ] 前端路由懒加载细化至组件级，减小首屏 bundle 体积。
 - [ ] Helm Chart 全部启用资源 requests / limits 与 HPA。
 

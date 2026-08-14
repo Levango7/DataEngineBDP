@@ -38,7 +38,7 @@
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
-| 治理与智能 | NebulaGraph 3.6 / Milvus / Redis（Elasticsearch 规划中） |
+| 治理与智能 | NebulaGraph 3.6 / Milvus / Redis / Elasticsearch 7.17（本地容器实测） |
 | 认证与网关 | Keycloak 24.0 / Apache APISIX |
 | 调度与集成 | DolphinScheduler / SeaTunnel / Airflow |
 | 开发与可视化 | Eclipse Theia 二开 / Apache Superset / ECharts |
