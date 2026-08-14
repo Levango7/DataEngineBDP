@@ -214,6 +214,17 @@ public class CloudProviderService {
     }
 
     /**
+     * 按名称获取 provider（供 K8sBootstrapService 轮询 VM 状态等场景）。
+     *
+     * @param providerName provider 名（ali/huawei/tencent）
+     * @return CloudProvider
+     * @throws IllegalArgumentException 不支持的 provider
+     */
+    public CloudProvider getProvider(String providerName) {
+        return resolveProvider(providerName);
+    }
+
+    /**
      * 路由解析 provider。
      *
      * @throws IllegalArgumentException 不支持的 provider

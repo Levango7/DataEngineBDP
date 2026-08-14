@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.infra.cloud.service;
 
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterEntity;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterInfo;
+import com.levango7.dataenginebdp.infra.cloud.provider.CloudProvider;
 import com.levango7.dataenginebdp.infra.cloud.repository.CloudClusterRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,7 @@ public class K8sBootstrapService {
     private static final int POLL_MAX_ATTEMPTS = 30;
 
     private final CloudClusterRepository repository;
+    private final CloudProviderService providerService;
     private final String bootstrapScript;
     private final int k8sApiPort;
 
@@ -46,13 +48,16 @@ public class K8sBootstrapService {
      * 构造 K8s 引导服务。
      *
      * @param repository      集群元数据 Repository
+     * @param providerService 云 Provider 路由（真实 VM 状态查询）
      * @param bootstrapScript SKE 引导脚本路径
      * @param k8sApiPort      K8s API Server 端口
      */
     public K8sBootstrapService(CloudClusterRepository repository,
+                               CloudProviderService providerService,
                                @Value("${app.k8s.bootstrap-script:/opt/ske/bootstrap.sh}") String bootstrapScript,
                                @Value("${app.k8s.api-port:6443}") int k8sApiPort) {
         this.repository = repository;
+        this.providerService = providerService;
         this.bootstrapScript = bootstrapScript;
         this.k8sApiPort = k8sApiPort;
     }
@@ -112,16 +117,51 @@ public class K8sBootstrapService {
     /**
      * 等待所有 VM 进入 RUNNING 状态。
      *
-     * <p>骨架实现：实际应通过 Provider 轮询 VM 状态。
-     * 此处简化为直接返回 true，假定 VM 已就绪。</p>
+     * <p>真实实现：轮询 {@link CloudProvider#getVMInfo} 直到所有节点
+     * status=RUNNING（POLL_MAX_ATTEMPTS 次 × POLL_INTERVAL_SECONDS）。
+     * 无节点或 Provider 不可用时按现有状态处理（不静默假定就绪）。</p>
      *
      * @return true 若所有 VM 进入 RUNNING；false 若超时
      */
     private boolean waitForVMsRunning(CloudClusterInfo clusterInfo) {
-        // 骨架：实际应轮询 CloudProvider.getVMInfo() 直到所有节点 status=RUNNING
-        // 此处简化为直接返回 true
-        log.debug("waitForVMsRunning: skeleton implementation, assuming VMs are ready");
-        return true;
+        if (clusterInfo.getNodes() == null || clusterInfo.getNodes().isEmpty()) {
+            log.warn("waitForVMsRunning: 无节点可轮询, clusterId={}", clusterInfo.getClusterId());
+            return false;
+        }
+        for (int attempt = 0; attempt < POLL_MAX_ATTEMPTS; attempt++) {
+            try {
+                CloudProvider provider = providerService.getProvider(clusterInfo.getProvider());
+                CloudClusterInfo latest = provider.getVMInfo(clusterInfo.getClusterId());
+                if (latest != null && latest.getNodes() != null) {
+                    boolean allRunning = true;
+                    for (CloudClusterInfo.VMInfo vm : latest.getNodes()) {
+                        if (!"RUNNING".equalsIgnoreCase(vm.getStatus())) {
+                            allRunning = false;
+                            log.info("等待 VM 就绪: cluster={}, vm={}, status={} (第 {} 次)",
+                                    clusterInfo.getClusterId(), vm.getInstanceId(), vm.getStatus(), attempt + 1);
+                            break;
+                        }
+                    }
+                    if (allRunning) {
+                        log.info("所有 VM 已就绪: cluster={}, nodes={}",
+                                clusterInfo.getClusterId(), latest.getNodes().size());
+                        return true;
+                    }
+                } else {
+                    log.debug("getVMInfo 返回空, clusterId={} (第 {} 次)", clusterInfo.getClusterId(), attempt + 1);
+                }
+            } catch (Exception e) {
+                log.warn("查询 VM 状态失败(第 {} 次): {}", attempt + 1, e.getMessage());
+            }
+            try {
+                Thread.sleep(POLL_INTERVAL_SECONDS * 1000L);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        log.warn("等待 VM 就绪超时: clusterId={}", clusterInfo.getClusterId());
+        return false;
     }
 
     /**
