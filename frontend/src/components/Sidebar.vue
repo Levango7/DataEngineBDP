@@ -14,6 +14,7 @@
           <svg class="ic"><use :href="`#i-${item.icon}`" /></svg>
           <span>{{ item.label }}</span>
           <span v-if="item.badge" class="badge">{{ item.badge }}</span>
+          <span v-else-if="item.placeholder" class="badge ghost">规划中</span>
         </router-link>
       </template>
     </nav>
@@ -34,6 +35,8 @@ interface NavItem {
   label: string
   icon: string
   badge?: number
+  /** 占位页标记：页面仅展示"规划中"，无真实功能 */
+  placeholder?: boolean
 }
 interface NavGroup {
   title: string
@@ -45,32 +48,35 @@ const groups = computed<NavGroup[]>(() => [
   {
     title: '基础设施',
     items: [
-      { path: '/infra-machine', label: '机器供应', icon: 'ws' },
-      { path: '/infra-k8s', label: 'K8s 集群', icon: 'ops' },
-      { path: '/infra-net', label: '容器网络', icon: 'integrate' },
-      { path: '/infra-store', label: '容器存储', icon: 'folder' },
-      { path: '/infra-sched', label: '弹性调度', icon: 'develop' }
+      { path: '/infra-machine', label: '机器供应', icon: 'ws', placeholder: true },
+      { path: '/infra-k8s', label: 'K8s 集群', icon: 'ops', placeholder: true },
+      { path: '/cluster', label: '集群总览', icon: 'ops' },
+      { path: '/datasources', label: '数据源管理', icon: 'integrate' },
+      { path: '/infra-net', label: '容器网络', icon: 'integrate', placeholder: true },
+      { path: '/infra-store', label: '容器存储', icon: 'folder', placeholder: true },
+      { path: '/infra-sched', label: '弹性调度', icon: 'develop', placeholder: true }
     ]
   },
   {
     title: '数据引擎',
     items: [
-      { path: '/eng-storage', label: '统一存储', icon: 'folder' },
-      { path: '/eng-spark', label: '批计算（Spark）', icon: 'develop' },
-      { path: '/eng-flink', label: '流计算（Flink）', icon: 'develop' },
+      { path: '/eng-storage', label: '统一存储', icon: 'folder', placeholder: true },
+      { path: '/eng-spark', label: '批计算（Spark）', icon: 'develop', placeholder: true },
+      { path: '/eng-flink', label: '流计算（Flink）', icon: 'develop', placeholder: true },
       { path: '/sql', label: '交互查询（Trino）', icon: 'sql' },
-      { path: '/eng-doris', label: 'OLAP（Doris）', icon: 'analyze' },
-      { path: '/eng-kafka', label: '消息流接入（Kafka）', icon: 'integrate' },
-      { path: '/eng-iotdb', label: '时序引擎（IoTDB）', icon: 'ops' },
-      { path: '/eng-mmg', label: '多模型引擎', icon: 'vector' }
+      { path: '/eng-doris', label: 'OLAP（Doris）', icon: 'analyze', placeholder: true },
+      { path: '/eng-kafka', label: '消息流接入（Kafka）', icon: 'integrate', placeholder: true },
+      { path: '/eng-iotdb', label: '时序引擎（IoTDB）', icon: 'ops', placeholder: true },
+      { path: '/eng-mmg', label: '多模型引擎', icon: 'vector', placeholder: true }
     ]
   },
   {
     title: '数据治理',
     items: [
-      { path: '/govern-meta', label: '元数据管理', icon: 'standard' },
+      { path: '/govern-meta', label: '元数据管理', icon: 'standard', placeholder: true },
       { path: '/quality', label: '数据质量', icon: 'quality' },
       { path: '/lineage', label: '数据血缘', icon: 'lineage' },
+      { path: '/data-lineage', label: '血缘可视化', icon: 'lineage' },
       { path: '/govern', label: '资产目录', icon: 'govern' },
       { path: '/standard', label: '主数据管理', icon: 'standard' },
       { path: '/sec', label: '数据安全', icon: 'sec', badge: store.todoCount }
@@ -80,12 +86,25 @@ const groups = computed<NavGroup[]>(() => [
     title: '开发工具',
     items: [
       { path: '/integrate', label: '数据集成（SeaTunnel）', icon: 'integrate' },
-      { path: '/dev-sched', label: '调度编排（DolphinScheduler）', icon: 'develop' },
+      { path: '/dev-sched', label: '调度编排（DolphinScheduler）', icon: 'develop', placeholder: true },
       { path: '/scheduler-ops', label: '任务运维中心', icon: 'ops' },
+      { path: '/jobs', label: '作业管理', icon: 'develop' },
       { path: '/develop', label: '数据开发 IDE', icon: 'develop' },
+      { path: '/sql-workbench', label: 'SQL 工作台', icon: 'sql' },
       { path: '/analyze', label: 'BI 可视化', icon: 'analyze' },
-      { path: '/dev-tag', label: '标签画像', icon: 'vector' },
-      { path: '/dev-ml', label: '机器学习', icon: 'llmops' }
+      { path: '/dev-tag', label: '标签画像', icon: 'vector', placeholder: true },
+      { path: '/dev-ml', label: '机器学习', icon: 'llmops', placeholder: true }
+    ]
+  },
+  {
+    title: '租户与配额',
+    items: [
+      { path: '/tenants', label: '租户管理', icon: 'ws' },
+      { path: '/workspaces', label: '工作空间', icon: 'ws' },
+      { path: '/workspace-management', label: 'Workspace 管理', icon: 'ws' },
+      { path: '/quota-management', label: '配额管理', icon: 'ops' },
+      { path: '/projects', label: '项目管理', icon: 'proj' },
+      { path: '/account', label: '账户与配额', icon: 'admin' }
     ]
   },
   {
