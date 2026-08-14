@@ -211,3 +211,19 @@ graph LR
 ## 反馈
 
 路线图会根据社区反馈与实际进展动态调整。欢迎在 GitHub Issue 中提出建议，标注 `roadmap` 标签。
+## 前后端接线缺口（评估报告 §5.3/§7 待办）
+
+> 前端 24 个 API 模块均为真实 axios 调用，但部分模块后端尚未实现（"前端先行、后端待补"）。
+> 已接通后端：ai-assistant（新服务）、ops/health-overview、sql-gateway、encaps-layer(auth/tenants)。
+> 以下为待补后端（按优先级）：
+
+- [ ] **作业管理 /jobs**：stream-batch-scheduler 已有 /dags 端点，需将 develop.ts runJob 语义映射到 DAG 提交。
+- [ ] **数据源 /datasources**：连接元数据 CRUD（复用 encaps-layer 数据源实体）。
+- [ ] **工作空间 /workspaces、项目 /projects**：封装层已有多租户实体，需暴露 REST 端点。
+- [ ] **集群 /cluster**：节点/组件状态聚合（observability query-api 已有组件健康，可扩展）。
+- [ ] **数据质量 /quality/rules**：rule-engine 已有规则实体，需补 REST 端点。
+- [ ] **分析看板 /dashboards、API 目录 /apis、资产流通 /assets**：catalog/asset-exchange 扩展。
+- [ ] **知识 /knowledge、LLMOps /llmops、向量 /vector**：对应组件已有实现，补 HTTP 端点。
+- [ ] **检索 /search、安全 /sec、标准 /standards、配额 /quotas、模板 /templates**：对应组件补 REST。
+
+完成标准：上述每个 BASE 路径在 platform/ 下有对应 controller/router，且前端页面真实交互（非 toast 占位）。
