@@ -113,6 +113,18 @@
             <artifactId>kubernetes-client</artifactId>
             <version>6.13.4</version>
         </dependency>
+        <!-- BouncyCastle：fabric8 解析 kubeconfig EC 私钥必需（缺它 encaps-layer 启动失败，
+             表现为登录 500「服务器内部错误」；JcaPEMKeyConverter 在 bcutil 包） -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.78.1</version>
+        </dependency>
         <!-- H2：开发环境零配置内存/文件数据库 -->
         <dependency>
             <groupId>com.h2database</groupId>
