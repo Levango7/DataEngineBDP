@@ -146,21 +146,11 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'SQL 工作台', icon: 'EditPen' }
   },
 
-  // 批次8新增：行业应用模板市场（L5.3）
-  {
-    path: '/template-market',
-    name: 'TemplateMarket',
-    component: TemplateMarket,
-    meta: { title: '行业应用模板', icon: 'Files' }
-  },
+  // 批次8新增：行业应用模板市场（L5.3）——入口为 /ops-tpl（见 /ops-tpl 路由）
+  // 原 /template-market 与 /ops-tpl 指向同一组件（重复路由，已合并至 /ops-tpl）
 
-  // 批次8新增：开放 API 服务目录（L5.5）
-  {
-    path: '/api-market',
-    name: 'APIMarket',
-    component: APIMarket,
-    meta: { title: '开放 API', icon: 'Connection' }
-  },
+  // 批次8新增：开放 API 服务目录（L5.5）——入口为 /ops-api（见 /ops-api 路由）
+  // 原 /api-market 与 /ops-api 指向同一组件（重复路由，已合并至 /ops-api）
 
   // 批次9新增：检索门户（T007 前端集成增强）
   {
