@@ -69,17 +69,29 @@ export async function chatStream(
   signal?: AbortSignal
 ): Promise<ChatResponse> {
   const url = `${buildBase()}${BASE}/chat/stream`
+  // 与 client 拦截器一致：自动携带 Bearer token（auth store 持久化键 sq_token）
+  const token = localStorage.getItem('sq_token')
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    Accept: 'text/event-stream'
+  }
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
   const resp = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'text/event-stream'
-    },
+    headers,
     body: JSON.stringify(req),
     signal
   })
 
   if (!resp.ok) {
+    // 401 → 与 client 拦截器一致跳转登录页（修复评估报告 7.1：SSE 错误不触发全局 401）
+    if (resp.status === 401) {
+      const redirect = encodeURIComponent(window.location.hash.replace(/^#/, '') || '/dashboard')
+      window.location.hash = `#/login?redirect=${redirect}`
+      throw new Error('登录已过期，请重新登录')
+    }
     throw new Error(`AI 助手流式请求失败：HTTP ${resp.status}`)
   }
   if (!resp.body) {
