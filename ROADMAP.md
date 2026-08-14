@@ -232,7 +232,7 @@ graph LR
 
 以下为骨架/半实现，依赖真实外部环境才能完整（与"前后端接线缺口"并列的待办）：
 
-- [ ] **infra-provider-cloud/private**: `waitForVMsRunning` 恒 true、SKE 引导仅打日志。
+- [x] **infra-provider-cloud**: `waitForVMsRunning` 真实轮询（9580423）。SKE 引导打日志部分仍需真实 SSH 执行。
       需接真实云 API 轮询 VM 状态 + SSH 执行 /opt/ske/bootstrap.sh。
 - [ ] **karmada/federated-query**: 远端为 mock-cluster（按 SQL 关键字返回硬编码行）。
       需接真实 Karmada 联邦查询。
