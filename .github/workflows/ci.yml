@@ -81,6 +81,33 @@ jobs:
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum
 
+      - name: 对每个 Go 组件执行 go vet
+        # 评估报告 9: 注释声称 go vet + gofmt 但实际只跑 gofmt；补上 go vet
+        run: |
+          go_count=$(find platform -name go.mod -not -path "*/vendor/*" | wc -l)
+          if [ "$go_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Go 组件，跳过 go vet"
+            exit 0
+          fi
+          fail_count=0
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  go vet: $mod_name ($mod_dir)"
+            echo "============================================"
+            if (cd "$mod_dir" && go vet ./... 2>&1); then
+              echo "✓ $mod_name go vet 通过"
+            else
+              echo "✗ $mod_name go vet 发现问题"
+              fail_count=$((fail_count + 1))
+            fi
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Go 组件 go vet 失败"
+            exit 1
+          fi
+
       - name: 对每个 Go 组件执行 gofmt -l
         run: |
           go_count=$(find platform -name go.mod -not -path "*/vendor/*" | wc -l)

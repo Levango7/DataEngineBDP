@@ -26,14 +26,19 @@ deploy/
 # 1) 选环境（xinchuang / onprem / publiccloud / privatecloud）
 ENV=onprem
 
-# 2) 渲染 P0 组件（封装层 + 统一存储 + 引擎 + 统一 SQL + 控制台）
-helm template sq-bigdata deploy/charts \
-  -f deploy/values-base.yaml \
-  -f deploy/profiles/$ENV.yaml \
-  > rendered/$ENV.yaml
+# 2) 渲染：逐 Chart 渲染（无顶层聚合 Chart；80 个骨架 Chart 需先补全镜像/探针，见各 Chart README）
+mkdir -p rendered
+for chart in encaps-layer sql-gateway catalog; do
+  helm template "$chart" "charts/$chart" \
+    -f values-base.yaml \
+    -f profiles/$ENV.yaml \
+    > "rendered/$ENV-$chart.yaml"
+done
+# 说明：design/deploy/charts 下 81 个 Chart 为独立部署单元，无顶层 sq-bigdata 聚合 Chart。
+# 生产建议使用 ArgoCD ApplicationSet（argocd/applicationsets/platform-engines.yaml）批量编排。
 
 # 3) 部署（封装层先于平台组件，见 values-base.yaml encapsulation.enabled）
-kubectl apply -f rendered/$ENV.yaml
+kubectl apply -f rendered/$ENV-encaps-layer.yaml
 ```
 
 ## 多 Arch 镜像

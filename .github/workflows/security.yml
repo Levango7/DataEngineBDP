@@ -415,19 +415,15 @@ jobs:
         if: steps.zap_check.outputs.skip != 'true'
         uses: zaproxy/action-baseline@v0.12.0
         with:
-          target: 'http://localhost:8080'
+          # 修复：compose 映射 encaps-layer 到本机 18080（见 tests/integration/docker-compose.yml），
+          # 原扫 localhost:8080 是空靶（报告 9）
+          target: 'http://localhost:18080'
           cmd_options: '-a -j'
           artifact_name: 'zap-baseline-report'
           allow_issue_writing: false
 
-      - name: 执行 ZAP API 扫描（封装层 OpenAPI）
-        if: steps.zap_check.outputs.skip != 'true'
-        uses: zaproxy/action-api-scan@v0.11.0
-        with:
-          target: 'http://localhost:8080/v3/api-docs'
-          format: 'openapi'
-          artifact_name: 'zap-api-report'
-          allow_issue_writing: false
+      # API 扫描暂移除：encaps-layer 未集成 springdoc（无 /v3/api-docs），
+      # 原 /v3/api-docs 目标为空靶。待引入 OpenAPI 端点后恢复（见 ROADMAP）。
 
       - name: 销毁被测服务
         if: steps.zap_check.outputs.skip != 'true' && always()
