@@ -84,9 +84,12 @@ class WorkspaceControllerTest {
 
         when(workspaceService.listWorkspaces(null)).thenReturn(List.of(w1, w2));
 
+        // 分页契约：返回 {list,total,page,size}（对齐前端 PagedResult）
         mockMvc.perform(get("/api/v1/workspaces"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.list.length()").value(2))
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.page").value(1));
     }
 
     @Test
@@ -98,8 +101,9 @@ class WorkspaceControllerTest {
 
         mockMvc.perform(get("/api/v1/workspaces").param("tenantId", "100"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].tenantId").value(100));
+                .andExpect(jsonPath("$.list.length()").value(1))
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.list[0].tenantId").value(100));
     }
 
     @Test

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,12 +59,30 @@ public class WorkspaceController {
     /**
      * 列出 Workspace，可选按租户 ID 过滤。
      *
+     * <p>返回前端 {@code PagedResult} 契约（list/total/page），对齐
+     * frontend/src/api/workspace.ts 的 listWorkspaces。</p>
+     *
      * @param tenantId 租户 ID（可选）
-     * @return 200 + Workspace 列表
+     * @param page     页码（1 起）
+     * @param size     每页大小
+     * @return 200 + 分页 Workspace 列表
      */
     @GetMapping
-    public ResponseEntity<List<Workspace>> list(@RequestParam(required = false) Long tenantId) {
-        return ResponseEntity.ok(workspaceService.listWorkspaces(tenantId));
+    public ResponseEntity<Map<String, Object>> list(
+            @RequestParam(required = false) Long tenantId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        List<Workspace> all = workspaceService.listWorkspaces(tenantId);
+        int total = all.size();
+        int start = Math.min((page - 1) * size, total);
+        int end = Math.min(start + size, total);
+        List<Workspace> pageItems = all.subList(start, end);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("list", pageItems);
+        result.put("total", total);
+        result.put("page", page);
+        result.put("size", size);
+        return ResponseEntity.ok(result);
     }
 
     /**
