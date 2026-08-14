@@ -103,8 +103,9 @@ func LoadFromJSON(s string) (*Config, error) {
 // 环境变量：
 //   - LLM_GATEWAY_PORT: 服务端口（默认 8084）
 //   - LLM_GATEWAY_VERSION: 版本（默认 0.2.0，与 main.go defaultVersion 保持一致）
-//   - LLM_GATEWAY_PROVIDERS: 逗号分隔的 Provider 类型列表（默认 "mock"）
-//   - LLM_GATEWAY_MOCK_MODE: "true" 时强制启用 Mock Provider（默认 true）
+//   - LLM_GATEWAY_PROVIDERS: 逗号分隔的 Provider 类型列表（默认 "openai,qianwen"）
+//   - LLM_GATEWAY_MOCK_MODE: "true" 时强制启用 Mock Provider（默认 false，
+//     与评估报告 6.3 对齐：开箱即用不再静默 mock；未配置任何 provider 时仍兜底 mock）
 func LoadFromEnv() *Config {
 	cfg := &Config{
 		Server: ServerConfig{
@@ -118,8 +119,8 @@ func LoadFromEnv() *Config {
 		Audit:     AuditConfig{Enabled: true, SensitiveWords: []string{}},
 	}
 
-	mockMode := envOr("LLM_GATEWAY_MOCK_MODE", "true")
-	providersList := envOr("LLM_GATEWAY_PROVIDERS", "mock")
+	mockMode := envOr("LLM_GATEWAY_MOCK_MODE", "false")
+	providersList := envOr("LLM_GATEWAY_PROVIDERS", "openai,qianwen")
 
 	if strings.EqualFold(mockMode, "true") {
 		// 强制 Mock 模式

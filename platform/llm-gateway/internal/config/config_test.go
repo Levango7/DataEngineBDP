@@ -77,10 +77,11 @@ func TestBuildProviders_Empty(t *testing.T) {
 	assert.Error(t, err)
 }
 
-// TestLoadFromEnv_Default 验证环境变量默认配置（Mock 模式）。
+// TestLoadFromEnv_Default 验证环境变量默认配置（真实 Provider 优先，不再强制 Mock）。
 func TestLoadFromEnv_Default(t *testing.T) {
 	cfg := LoadFromEnv()
 	assert.Equal(t, "8084", cfg.Server.Port)
 	assert.NotEmpty(t, cfg.Providers)
-	assert.Equal(t, "mock", cfg.Providers[0].Type)
+	assert.Equal(t, "openai", cfg.Providers[0].Type)
+	assert.Equal(t, "qianwen", cfg.Providers[1].Type)
 }
