@@ -78,6 +78,12 @@ func main() {
 	queryH := handler.NewQueryHandler(promClient, tenantFilter)
 	opsHealthH := handler.NewOpsHealthHandler()
 
+	// 集群状态查询（真实接 k3s；k3s 不可达时 handler 返回 503）。
+	clusterH, clusterErr := handler.NewClusterHandler()
+	if clusterErr != nil {
+		log.Printf("[warn] 集群查询未启用: %v", clusterErr)
+	}
+
 	// 初始化 Gin 路由。
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -92,6 +98,16 @@ func main() {
 	opsGroup.Use(middleware.AuthMiddleware())
 	opsGroup.Use(middleware.PlatformRoleMiddleware(platformRole))
 	opsGroup.GET("/health/overview", opsHealthH.Overview)
+
+	// 集群状态端点（k3s 可用时注册）。
+	if clusterH != nil {
+		clusterGroup := r.Group("/api/v1/cluster")
+		clusterGroup.Use(middleware.AuthMiddleware())
+		clusterGroup.GET("/overview", clusterH.Overview)
+		clusterGroup.GET("/nodes", clusterH.Nodes)
+		clusterGroup.GET("/pods", clusterH.Pods)
+		clusterGroup.GET("/components", clusterH.Components)
+	}
 
 	// 平台方视图：/platform/** 要求 platform-ops 角色，不做 tenant 过滤。
 	platformGroup := r.Group("/platform")
