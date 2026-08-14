@@ -136,6 +136,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String path = request.getServletPath();
         return path != null
                 && (path.startsWith("/api/v1/health")
+                    || path.startsWith("/api/v1/auth/login")   // 登录端点放行（Keycloak 代理）
                     || path.startsWith("/actuator"));
     }
 
