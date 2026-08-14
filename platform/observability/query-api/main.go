@@ -76,6 +76,7 @@ func main() {
 	// 初始化 handlers。
 	healthH := handler.NewHealthHandler(version)
 	queryH := handler.NewQueryHandler(promClient, tenantFilter)
+	opsHealthH := handler.NewOpsHealthHandler()
 
 	// 初始化 Gin 路由。
 	r := gin.New()
@@ -85,6 +86,12 @@ func main() {
 
 	// 健康检查（无需认证）。
 	r.GET("/api/v1/health", healthH.Health)
+
+	// 统一运维台：组件健康总览（平台运维角色认证后访问）。
+	opsGroup := r.Group("/api/v1/ops")
+	opsGroup.Use(middleware.AuthMiddleware())
+	opsGroup.Use(middleware.PlatformRoleMiddleware(platformRole))
+	opsGroup.GET("/health/overview", opsHealthH.Overview)
 
 	// 平台方视图：/platform/** 要求 platform-ops 角色，不做 tenant 过滤。
 	platformGroup := r.Group("/platform")
