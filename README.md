@@ -16,7 +16,7 @@
 
 ## 项目简介
 
-数据引擎大数据平台（DataEngineBDP）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以自研 K8s 发行版 SKE 为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
+数据引擎大数据平台（DataEngineBDP）是一个面向企业级数据治理与分析场景的多平台多租户大数据平台。平台以 SKE 交付底座（基于 kubeadm/kind 封装的 K8s）为底座，通过封装层将客户概念翻译为 K8s 资源，向上提供湖仓集一体的数据引擎层、数据治理层、数据开发与分析层，最终以多租户 SaaS 产品层对外交付。平台支持信创、本地数据中心、公有云、私有云四种环境零改动交付，并通过 Namespace + Quota + NetworkPolicy 实现租户隔离。
 
 ## 核心特性
 
@@ -25,7 +25,7 @@
 - **湖仓集一体**：统一存储（Iceberg）+ 批计算（Spark）+ 流计算（Flink）+ 交互查询（Trino）+ OLAP（Doris）协同落地"湖 → 仓 → 集"三级数据流转。
 - **智能数据层**：向量库（Milvus）+ 知识图谱服务 + LLMOps + 大模型网关，构成旗舰版差异化能力。
 - **SaaS 产品层**：行业应用模板 + 业务线门户 + 开放 API 服务目录 + 数据资产流通，形成平台商业化闭环。
-- **自研 K8s 发行版 SKE**：基于 kubeadm 二次封装的深度定制高性能 K8s，非 KubeSphere / RKE2 / k3s / kind 原样。
+- **SKE 交付底座**：基于 kubeadm 封装的 K8s 交付底座，dev 模式基于 kind 节点镜像（烘焙 kubelet/Cilium 调优配置），prod 目标为自有 VM 镜像 / 裸金属 kubeadm 全量调优。当前为脚本封装 + 调优配置层（无自研 K8s 核心代码），详见 [ske/README.md](ske/README.md)。
 - **统一 SQL 网关**：一个入口查全部引擎，基于 Apache Calcite 优化器 + 手写 SQL 解析 + 跨源归并引擎实现跨源联邦查询。
 - **治理闭环**：元数据采集 → 质量校验 → 血缘解析 → 资产入目录，形成完整数据治理链路。
 
@@ -94,7 +94,7 @@ DataEngineBDP/
 │       ├── stores/             # Pinia 状态管理
 │       ├── router/             # 路由配置
 │       └── composables/        # 组合式函数
-├── ske/                        # 自研 K8s 发行版 SKE
+├── ske/                        # SKE 交付底座（kubeadm/kind 封装）
 │   ├── ske.sh                  # SKE 主控脚本
 │   ├── manifests/              # K8s 调优清单
 │   ├── profiles/               # 四环境 Profile
@@ -252,7 +252,7 @@ bash scripts/poc/run-poc.sh
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
 | [路线图](ROADMAP.md) | v2.0 演进规划 |
 | [命名约定](CONVENTIONS.md) | 统一命名与版本号规范 |
-| [SKE 发行版](ske/README.md) | 自研 K8s 发行版说明 |
+| [SKE 交付底座](ske/README.md) | kubeadm/kind 封装的 K8s 底座说明 |
 | [SKE WSL2 快速上手](ske/WSL2-QUICKSTART.md) | WSL2 真实 kubeadm 部署手册 |
 | [部署骨架](design/deploy/README.md) | Helm Chart 部署设计态、四环境 Profile、多 Arch 镜像 |
 

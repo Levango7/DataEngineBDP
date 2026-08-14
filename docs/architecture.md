@@ -91,7 +91,7 @@ L0 层是平台的运行底座，负责将物理或虚拟资源抽象为统一�
 | L0.3 公有云 VM 供应 | 云 VM Driver、cloud-init bootstrap、云对象存储密钥管理 | infra-provider-cloud |
 | L0.4 私有云 VM 供应 | OpenStack / HuaweiStack / Domestic Driver 适配 | infra-provider-private |
 | L0.5 跨环境供给抽象 | NodePool / StoragePool / NetworkPool 三原语与四环境 Driver 抽象 | infra-orchestrator |
-| L0.6 SKE 发行版 | 自研 K8s 发行版，内核与 etcd 调优、七大支柱 | ske/ |
+| L0.6 SKE 交付底座 | kubeadm/kind 封装的 K8s 底座（内核与 etcd 调优、封装层，无自研 K8s 核心代码） | ske/ |
 | L0.7 Cilium 网络 | eBPF 高性能网络、socketLB、多租户网络隔离 | ske/manifests/cilium-values.yaml |
 | L0.8 容器存储 | JuiceFS CSI、多环境 CSI 驱动、NVMe 直通、IO_uring 加速 | ske/manifests/ |
 | L0.9 可观测基座 | Prometheus + Grafana + Loki + Tempo 统一可观测 | ske/manifests/ |

@@ -1,4 +1,4 @@
-﻿# 数擎云核 SKE（DataEngine Kubernetes Engine）· 深度定制高性能 K8s 发行版
+# 数擎云核 SKE（DataEngine Kubernetes Engine）· kubeadm/kind 封装的 K8s 交付底座
 
 > 版本：v0.1 ｜ 日期：2026-08-02 ｜ 状态：发行版设计 + 可运行 bootstrap
 > 所属：数据引擎大数据平台（Shuqing BigData Platform）运行时底座
