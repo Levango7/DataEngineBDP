@@ -309,3 +309,50 @@ def test_openapi_docs_accessible(client):
     assert "/api/v1/training/jobs" in paths
     assert "/api/v1/deployments" in paths
     assert "/health" in paths
+
+
+# ---------- frontend 契约端点（ROADMAP /llmops 接线） ----------
+
+
+def test_frontend_eval_metrics(client):
+    """GET /api/v1/llmops/eval-metrics 返回指标列表."""
+    resp = client.get("/api/v1/llmops/eval-metrics")
+    assert resp.status_code == 200
+    metrics = resp.json()
+    assert isinstance(metrics, list)
+    assert len(metrics) > 0
+    assert metrics[0]["metric"] in ("rouge_l", "bleu", "accuracy")
+
+
+def test_frontend_eval_metrics_filtered(client):
+    """按 modelName 过滤."""
+    resp = client.get("/api/v1/llmops/eval-metrics", params={"model_name": "shuqing-7b"})
+    assert resp.status_code == 200
+    assert all(m["modelName"] == "shuqing-7b" for m in resp.json())
+
+
+def test_frontend_finetune(client):
+    """POST /api/v1/llmops/finetune 提交微调任务（需先注册基座模型）."""
+    base_model_id = _register_model(client, name="qiong-7B")
+    resp = client.post(
+        "/api/v1/llmops/finetune",
+        json={
+            "baseModelId": base_model_id,
+            "outputModelName": "shuqing-7b-finetuned",
+            "dataset": "train.jsonl",
+            "epochs": 3,
+            "learningRate": 2e-4,
+            "batchSize": 8,
+        },
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["status"] in ("queued", "created")
+    assert body["jobId"]
+
+
+def test_frontend_human_eval(client):
+    """POST /api/v1/llmops/human-eval 触发人工评估."""
+    resp = client.post("/api/v1/llmops/human-eval", json={"modelName": "shuqing-7b"})
+    assert resp.status_code == 200
+    assert resp.json()["status"] == "created"

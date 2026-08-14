@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import FastAPI
 
-from llmops.api.routers import deployments, health, models, monitor, training
+from llmops.api.routers import deployments, frontend, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
 from llmops.services.registry import ServiceRegistry, build_services
 
@@ -52,5 +52,6 @@ def create_app(
     app.include_router(training.router, prefix=prefix)
     app.include_router(deployments.router, prefix=prefix)
     app.include_router(monitor.router, prefix=prefix)
+    app.include_router(frontend.router, prefix=prefix)
 
     return app
