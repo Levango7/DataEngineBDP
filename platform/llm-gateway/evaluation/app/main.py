@@ -98,6 +98,12 @@ def create_app() -> FastAPI:
         version="0.1.0",
         lifespan=lifespan,
     )
+
+    @app.get("/health", tags=["health"])
+    async def health() -> dict:
+        """健康检查（供 Docker HEALTHCHECK / K8s 探针）。"""
+        return {"status": "UP", "service": "llm-evaluation", "version": "0.1.0"}
+
     return app
 
 

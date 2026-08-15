@@ -54,7 +54,7 @@ EXPOSE 8080
 
 # 健康检查（Knative readinessProbe 使用）
 HEALTHCHECK --interval=5s --timeout=3s --start-period=2s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/v1/health')" || exit 1
 
 # 启动命令：uvicorn 单 worker（Knative 通过 KPA 横向扩 Pod）
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1", "--no-access-log"]

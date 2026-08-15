@@ -24,7 +24,7 @@ RUN pip install --no-cache-dir -e .
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD curl -fsS http://localhost:8088/health || exit 1
+    CMD curl -fsS http://localhost:8088/api/v1/health || exit 1
 
 EXPOSE 8088
 
