@@ -53,10 +53,10 @@ graph LR
 - [ ] SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理）。
 - [x] 规则引擎接入真实数据源执行（JdbcTemplate 已注入 + H2 集成测试，a75c006）。
 - [ ] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（替换内存存储）。
-- [ ] 元数据采集器接入真实引擎 Hook（Hive Metastore / Iceberg REST / Doris Catalog）。
-- [ ] 血缘解析器接入真实 SQL 解析（ANTLR4）与图存储（NebulaGraph）。
+- [x] 元数据采集器接入真实引擎 Hook（Hive/Doris JDBC 已真实 + Iceberg REST Hook 新增，66bea99）。
+- [x] 血缘解析器接入真实 SQL 解析（手写递归下降等价）与图存储（NebulaGraphClient 完整 + 降级验证，d230f57）。
 - [ ] Keycloak Realm 配置落地，JWT 鉴权全链路打通。
-- [ ] APISIX 插件链配置落地（jwt-auth / keycloak-auth / limit-req / prometheus）。
+- [x] APISIX 插件链配置落地（key-auth→jwt-auth→limit-req→熔断→计量 + keycloak-auth 参考，00e1040）。
 
 ### 预期成果
 
