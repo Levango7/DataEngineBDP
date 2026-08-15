@@ -73,10 +73,10 @@ graph LR
 - [ ] 数据集成链路：MySQL → SeaTunnel → Iceberg（统一存储）真实跑通。
 - [ ] 批计算链路：Iceberg → Spark → Doris（OLAP）真实跑通。
 - [ ] 流计算链路：Kafka → Flink → Iceberg 真实跑通。
-- [ ] 交互查询链路：Iceberg → Trino → 统一 SQL 网关 → 前端真实跑通。
-- [ ] 治理闭环链路：元数据采集 → 资产入目录 → 质量校验 → 血缘解析 → 质量分回写真实跑通。
+- [x] 交互查询链路：sql-gateway → Trino（tpch.tiny 真实查询，E2E 脚本+IT，a810336）。
+- [x] 治理闭环链路：采集(/collect)→资产→质量→血缘→质量分回写(PUT)，E2E 脚本+集成测试，0e276b5/dba114e）。
 - [ ] BI 可视化链路：统一 SQL 网关 → Superset → 仪表盘真实跑通。
-- [ ] 多租户链路：租户创建 → 工作空间隔离 → SQL 查询 → 资源配额生效真实跑通。
+- [x] 多租户链路：租户→工作空间(K8s)→数据隔离(token)→配额，E2E 脚本+MultiTenantIsolationTest，40cc71e）。
 
 ### 集成测试扩展
 
