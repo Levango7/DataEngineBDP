@@ -1,5 +1,7 @@
 package com.levango7.dataenginebdp.ruleengine.controller;
 
+import com.levango7.dataenginebdp.ruleengine.model.BatchRuleExecutionRequest;
+import com.levango7.dataenginebdp.ruleengine.model.BatchRuleExecutionResult;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
 import com.levango7.dataenginebdp.ruleengine.model.RuleExecutionRequest;
 import com.levango7.dataenginebdp.ruleengine.model.RuleExecutionResult;
@@ -90,6 +92,13 @@ public class RuleController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(result);
         }
         return ResponseEntity.ok(result);
+    }
+
+    /** 批量执行规则（任务 F：并行 + 单条失败隔离） */
+    @PostMapping("/execute/batch")
+    public ResponseEntity<BatchRuleExecutionResult> executeBatch(
+            @RequestBody BatchRuleExecutionRequest request) {
+        return ResponseEntity.ok(ruleExecutionService.executeBatch(request));
     }
 
     /** 列出规则类型 */
