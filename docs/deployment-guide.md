@@ -326,6 +326,32 @@ kubectl get pods -n shuqing-system
 
 ## 验证步骤
 
+### 可选中间件部署（本地开发/演示）
+
+```bash
+# Elasticsearch 7.17 + IK 中文分词（/search 全文检索；9201 避开本机其他 ES）
+docker run -d --name sq-elasticsearch -p 9201:9200 \
+  -e discovery.type=single-node -e xpack.security.enabled=false \
+  docker.elastic.co/elasticsearch/elasticsearch:7.17.25
+# 容器内安装 IK（中文语义分词；name/description 字段用 ik_max_word）
+docker exec sq-elasticsearch bash -c \
+  'cd /usr/share/elasticsearch && ./bin/elasticsearch-plugin install --batch \
+   https://release.infinilabs.com/analysis-ik/stable/elasticsearch-analysis-ik-7.17.25.zip'
+docker restart sq-elasticsearch
+# 启动 encaps-layer 时加 APP_ES_URL=http://127.0.0.1:9201（ES 不可用自动回退 LIKE 检索）
+
+# PostgreSQL 16（真实存储；替代开发默认 H2）
+docker run -d --name sq-postgres -p 5432:5432 \
+  -e POSTGRES_USER=shuqing -e POSTGRES_PASSWORD=shuqing123 \
+  postgres:16-alpine
+# 各组件 DB_URL 指向 PG（Spring 按 URL 自动推断驱动）：
+#   encaps-layer:     DB_URL=jdbc:postgresql://127.0.0.1:5432/encaps_layer
+#   finops-dashboard: DB_URL=jdbc:postgresql://127.0.0.1:5432/finops
+#   scheduler:        SCHEDULER_DB_URL=jdbc:postgresql://127.0.0.1:5432/scheduler
+#   rule-engine(prod): DB_URL=jdbc:postgresql://127.0.0.1:5432/rule_engine DDL_AUTO=update
+#   catalog(Go):      CATALOG_DB=postgres://shuqing:shuqing123@127.0.0.1:5432/catalog
+```
+
 ### 组件健康检查
 
 ```bash
