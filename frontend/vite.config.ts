@@ -13,6 +13,7 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '127.0.0.1', // 强制 IPv4：默认 localhost 只绑 ::1(IPv6)，浏览器走 127.0.0.1 连不上
     open: true,
     proxy: {
       // 后端 API 网关（开发环境默认 encaps-layer :8080，支持本地登录；
