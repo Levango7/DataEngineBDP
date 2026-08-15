@@ -9,7 +9,8 @@ spring:
   # ---------- 任务运维中心：运行历史持久化 ----------
   datasource:
     url: ${SCHEDULER_DB_URL:jdbc:h2:file:${user.home}/.shuqing/scheduler-data;AUTO_SERVER=TRUE}
-    driver-class-name: ${SCHEDULER_DB_DRIVER:org.h2.Driver}
+    # 不写死驱动类：Spring Boot 按 JDBC URL 自动推断（H2/PostgreSQL 均可）。
+    driver-class-name: ${SCHEDULER_DB_DRIVER:}
     username: ${SCHEDULER_DB_USERNAME:sa}
     password: ${SCHEDULER_DB_PASSWORD:}
   jpa:

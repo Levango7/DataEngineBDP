@@ -171,6 +171,12 @@
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
+        <!-- PostgreSQL：生产环境通过 DB_URL 切换（全 Java 组件对齐） -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
         <!-- MySQL 驱动：生产环境数据源 -->
         <dependency>
             <groupId>com.mysql</groupId>
