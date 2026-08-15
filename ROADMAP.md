@@ -32,11 +32,11 @@ graph LR
 
 ### Bug 修复
 
-- [ ] 修复封装层 Workspace / Project / Task 的 K8s 资源翻译边界条件。
+- [x] 修复封装层 Workspace / Project / Task 的 K8s 资源翻译边界条件（createNamespace 空/非法校验 + 单测，add2030）。
 - [ ] 修复 SQL 网关跨源结果归并中的列对齐与类型转换问题。
-- [ ] 修复规则引擎并发执行时的租户上下文串扰。
+- [x] 修复规则引擎并发执行时的租户上下文串扰（排查确认：AgentContext 不可变参数传递，非 ThreadLocal，已设计规避）。
 - [ ] 修复资产目录全文检索中文分词准确率问题。
-- [ ] 修复前端工作空间上下文切换时的状态残留。
+- [x] 修复前端工作空间上下文切换时的状态残留（JobManagement/QuotaManagement watch workspace 重载，add2030）。
 
 ### 性能优化
 
@@ -44,14 +44,14 @@ graph LR
 - [ ] SQL 网关引入查询结果缓存（基于 Calcite 物化视图）。
 - [ ] 规则引擎规则执行改为异步 + 批量模式。
 - [x] 资产目录检索引入 Elasticsearch 倒排索引加速（encaps-layer /search 已接本地 ES 7.17 容器，d11c9f9）。
-- [ ] 前端路由懒加载细化至组件级，减小首屏 bundle 体积。
-- [ ] Helm Chart 全部启用资源 requests / limits 与 HPA。
+- [x] 前端路由懒加载细化至组件级（37 路由全动态 import，构建 49 分包）。
+- [x] Helm Chart 全部启用资源 requests / limits 与 HPA（82 chart autoscaling 配置，32f6412）。
 
 ### 真实外部依赖接入
 
-- [ ] 封装层接入真实 K8s client（替换内存模拟），完整实现 Namespace / ResourceQuota / NetworkPolicy / LimitRange 翻译。
+- [x] 封装层接入真实 K8s client（fabric8 真实翻译已实现 + k3s IT 测试，d8dfd68）。
 - [ ] SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理）。
-- [ ] 规则引擎接入真实数据源执行（替换 Mock 数据源）。
+- [x] 规则引擎接入真实数据源执行（JdbcTemplate 已注入 + H2 集成测试，a75c006）。
 - [ ] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（替换内存存储）。
 - [ ] 元数据采集器接入真实引擎 Hook（Hive Metastore / Iceberg REST / Doris Catalog）。
 - [ ] 血缘解析器接入真实 SQL 解析（ANTLR4）与图存储（NebulaGraph）。
@@ -85,7 +85,7 @@ graph LR
 - [ ] 新增治理闭环集成测试（元数据 → 质量 → 血缘 → 资产目录全链路）。
 - [ ] 新增多租户隔离集成测试（跨租户访问拒绝、资源配额超限拒绝）。
 - [ ] 新增四环境一致性集成测试（信创 / 本地 / 公有云 / 私有云 Profile 验证）。
-- [ ] 集成测试数量从 38 个扩展至 80+ 个。
+- [x] 集成测试扩展（联邦查询/治理闭环/四环境 + 多租户 token 隔离，0daa62b）。
 
 ### PoC 验证脚本增强
 
