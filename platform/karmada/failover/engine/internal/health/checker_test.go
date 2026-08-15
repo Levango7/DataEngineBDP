@@ -24,7 +24,7 @@ func newMockKarmadaServer(t *testing.T, status int, body string) *httptest.Serve
 // TestNewChecker 构造函数应设置默认阈值。
 func TestNewChecker(t *testing.T) {
 	kc := karmada.NewClient("http://karmada", "")
-	pc := prometheus.NewClient("http://prom", )
+	pc := prometheus.NewClient("http://prom")
 	c := NewChecker(kc, pc)
 	if c.cpuDegradedThreshold != 90.0 {
 		t.Fatalf("expected default cpu threshold=90.0, got %f", c.cpuDegradedThreshold)

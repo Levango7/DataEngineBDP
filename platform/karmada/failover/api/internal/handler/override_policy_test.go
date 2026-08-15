@@ -24,16 +24,16 @@ func init() {
 type mockStore struct {
 	mu sync.Mutex
 
-	op      map[string]*model.OverridePolicy
-	opSeq   uint
-	events  map[string]*model.FailoverEvent
-	evSeq   uint
-	health  []model.ClusterHealthRecord
-	hSeq    uint
-	plans   map[string]*model.ReplicaWeightPlan
-	plSeq   uint
+	op       map[string]*model.OverridePolicy
+	opSeq    uint
+	events   map[string]*model.FailoverEvent
+	evSeq    uint
+	health   []model.ClusterHealthRecord
+	hSeq     uint
+	plans    map[string]*model.ReplicaWeightPlan
+	plSeq    uint
 	policies map[string]*model.FailoverPolicy
-	fpSeq   uint
+	fpSeq    uint
 }
 
 func newMockStore() *mockStore {
@@ -48,188 +48,309 @@ func newMockStore() *mockStore {
 // 确保 mockStore 实现 store.Store 接口。
 var _ store.Store = (*mockStore)(nil)
 
-func (m *mockStore) opKey(t, ns, n string) string  { return t + "|" + ns + "|" + n }
-func (m *mockStore) evKey(t, e string) string       { return t + "|" + e }
-func (m *mockStore) plKey(t, p string) string       { return t + "|" + p }
-func (m *mockStore) fpKey(t, ns, n string) string   { return t + "|" + ns + "|" + n }
+func (m *mockStore) opKey(t, ns, n string) string { return t + "|" + ns + "|" + n }
+func (m *mockStore) evKey(t, e string) string     { return t + "|" + e }
+func (m *mockStore) plKey(t, p string) string     { return t + "|" + p }
+func (m *mockStore) fpKey(t, ns, n string) string { return t + "|" + ns + "|" + n }
 
 // OverridePolicy CRUD
 func (m *mockStore) CreateOverridePolicy(op *model.OverridePolicy) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.opKey(op.TenantID, op.Namespace, op.Name)
-	if _, ok := m.op[k]; ok { return errors.New("duplicate") }
-	m.opSeq++; op.ID = m.opSeq
-	cp := *op; m.op[k] = &cp; return nil
+	if _, ok := m.op[k]; ok {
+		return errors.New("duplicate")
+	}
+	m.opSeq++
+	op.ID = m.opSeq
+	cp := *op
+	m.op[k] = &cp
+	return nil
 }
 func (m *mockStore) GetOverridePolicy(t, ns, n string) (*model.OverridePolicy, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	op, ok := m.op[m.opKey(t, ns, n)]
-	if !ok { return nil, store.ErrNotFound }
-	cp := *op; return &cp, nil
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	cp := *op
+	return &cp, nil
 }
 func (m *mockStore) ListOverridePolicies(t, ns string, limit, offset int) ([]model.OverridePolicy, int64, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	var all []model.OverridePolicy
 	for _, op := range m.op {
-		if op.TenantID != t { continue }
-		if ns != "" && op.Namespace != ns { continue }
+		if op.TenantID != t {
+			continue
+		}
+		if ns != "" && op.Namespace != ns {
+			continue
+		}
 		all = append(all, *op)
 	}
 	total := int64(len(all))
-	if offset >= len(all) { return nil, total, nil }
+	if offset >= len(all) {
+		return nil, total, nil
+	}
 	end := offset + limit
-	if limit <= 0 || end > len(all) { end = len(all) }
-	if limit <= 0 { return all[offset:], total, nil }
+	if limit <= 0 || end > len(all) {
+		end = len(all)
+	}
+	if limit <= 0 {
+		return all[offset:], total, nil
+	}
 	return all[offset:end], total, nil
 }
 func (m *mockStore) UpdateOverridePolicy(op *model.OverridePolicy) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.opKey(op.TenantID, op.Namespace, op.Name)
-	if _, ok := m.op[k]; !ok { return store.ErrNotFound }
-	cp := *op; m.op[k] = &cp; return nil
+	if _, ok := m.op[k]; !ok {
+		return store.ErrNotFound
+	}
+	cp := *op
+	m.op[k] = &cp
+	return nil
 }
 func (m *mockStore) DeleteOverridePolicy(t, ns, n string) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.opKey(t, ns, n)
-	if _, ok := m.op[k]; !ok { return store.ErrNotFound }
-	delete(m.op, k); return nil
+	if _, ok := m.op[k]; !ok {
+		return store.ErrNotFound
+	}
+	delete(m.op, k)
+	return nil
 }
 
 // FailoverEvent CRUD
 func (m *mockStore) CreateFailoverEvent(e *model.FailoverEvent) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.evKey(e.TenantID, e.EventID)
-	if _, ok := m.events[k]; ok { return errors.New("duplicate") }
-	m.evSeq++; e.ID = m.evSeq
-	cp := *e; m.events[k] = &cp; return nil
+	if _, ok := m.events[k]; ok {
+		return errors.New("duplicate")
+	}
+	m.evSeq++
+	e.ID = m.evSeq
+	cp := *e
+	m.events[k] = &cp
+	return nil
 }
 func (m *mockStore) GetFailoverEvent(t, e string) (*model.FailoverEvent, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	ev, ok := m.events[m.evKey(t, e)]
-	if !ok { return nil, store.ErrNotFound }
-	cp := *ev; return &cp, nil
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	cp := *ev
+	return &cp, nil
 }
 func (m *mockStore) ListFailoverEvents(t string, limit, offset int) ([]model.FailoverEvent, int64, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	var all []model.FailoverEvent
 	for _, ev := range m.events {
-		if ev.TenantID != t { continue }
+		if ev.TenantID != t {
+			continue
+		}
 		all = append(all, *ev)
 	}
 	total := int64(len(all))
-	if offset >= len(all) { return nil, total, nil }
+	if offset >= len(all) {
+		return nil, total, nil
+	}
 	end := offset + limit
-	if limit <= 0 || end > len(all) { end = len(all) }
-	if limit <= 0 { return all[offset:], total, nil }
+	if limit <= 0 || end > len(all) {
+		end = len(all)
+	}
+	if limit <= 0 {
+		return all[offset:], total, nil
+	}
 	return all[offset:end], total, nil
 }
 func (m *mockStore) UpdateFailoverEvent(e *model.FailoverEvent) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.evKey(e.TenantID, e.EventID)
-	if _, ok := m.events[k]; !ok { return store.ErrNotFound }
-	cp := *e; m.events[k] = &cp; return nil
+	if _, ok := m.events[k]; !ok {
+		return store.ErrNotFound
+	}
+	cp := *e
+	m.events[k] = &cp
+	return nil
 }
 
 // ClusterHealthRecord CRUD
 func (m *mockStore) CreateClusterHealthRecord(r *model.ClusterHealthRecord) error {
-	m.mu.Lock(); defer m.mu.Unlock()
-	m.hSeq++; r.ID = m.hSeq
-	m.health = append(m.health, *r); return nil
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.hSeq++
+	r.ID = m.hSeq
+	m.health = append(m.health, *r)
+	return nil
 }
 func (m *mockStore) LatestClusterHealth(t string) ([]model.ClusterHealthRecord, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	// 简化：返回该租户所有记录。
 	var out []model.ClusterHealthRecord
 	for _, r := range m.health {
-		if r.TenantID == t { out = append(out, r) }
+		if r.TenantID == t {
+			out = append(out, r)
+		}
 	}
 	return out, nil
 }
 func (m *mockStore) ListClusterHealth(t, c string, limit int) ([]model.ClusterHealthRecord, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
-	if limit <= 0 || limit > 1000 { limit = 100 }
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if limit <= 0 || limit > 1000 {
+		limit = 100
+	}
 	var out []model.ClusterHealthRecord
 	for _, r := range m.health {
-		if r.TenantID != t { continue }
-		if c != "" && r.ClusterName != c { continue }
+		if r.TenantID != t {
+			continue
+		}
+		if c != "" && r.ClusterName != c {
+			continue
+		}
 		out = append(out, r)
 	}
-	if len(out) > limit { out = out[:limit] }
+	if len(out) > limit {
+		out = out[:limit]
+	}
 	return out, nil
 }
 
 // ReplicaWeightPlan CRUD
 func (m *mockStore) CreateReplicaWeightPlan(p *model.ReplicaWeightPlan) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.plKey(p.TenantID, p.PolicyName)
-	if _, ok := m.plans[k]; ok { return errors.New("duplicate") }
-	m.plSeq++; p.ID = m.plSeq
-	cp := *p; m.plans[k] = &cp; return nil
+	if _, ok := m.plans[k]; ok {
+		return errors.New("duplicate")
+	}
+	m.plSeq++
+	p.ID = m.plSeq
+	cp := *p
+	m.plans[k] = &cp
+	return nil
 }
 func (m *mockStore) GetReplicaWeightPlan(t, p string) (*model.ReplicaWeightPlan, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	pl, ok := m.plans[m.plKey(t, p)]
-	if !ok { return nil, store.ErrNotFound }
-	cp := *pl; return &cp, nil
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	cp := *pl
+	return &cp, nil
 }
 func (m *mockStore) ListReplicaWeightPlans(t string, limit, offset int) ([]model.ReplicaWeightPlan, int64, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	var all []model.ReplicaWeightPlan
 	for _, pl := range m.plans {
-		if pl.TenantID == t { all = append(all, *pl) }
+		if pl.TenantID == t {
+			all = append(all, *pl)
+		}
 	}
 	total := int64(len(all))
-	if offset >= len(all) { return nil, total, nil }
+	if offset >= len(all) {
+		return nil, total, nil
+	}
 	end := offset + limit
-	if limit <= 0 || end > len(all) { end = len(all) }
-	if limit <= 0 { return all[offset:], total, nil }
+	if limit <= 0 || end > len(all) {
+		end = len(all)
+	}
+	if limit <= 0 {
+		return all[offset:], total, nil
+	}
 	return all[offset:end], total, nil
 }
 func (m *mockStore) UpdateReplicaWeightPlan(p *model.ReplicaWeightPlan) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.plKey(p.TenantID, p.PolicyName)
-	if _, ok := m.plans[k]; !ok { return store.ErrNotFound }
-	cp := *p; m.plans[k] = &cp; return nil
+	if _, ok := m.plans[k]; !ok {
+		return store.ErrNotFound
+	}
+	cp := *p
+	m.plans[k] = &cp
+	return nil
 }
 
 // FailoverPolicy CRUD
 func (m *mockStore) CreateFailoverPolicy(p *model.FailoverPolicy) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.fpKey(p.TenantID, p.Namespace, p.Name)
-	if _, ok := m.policies[k]; ok { return errors.New("duplicate") }
-	m.fpSeq++; p.ID = m.fpSeq
-	cp := *p; m.policies[k] = &cp; return nil
+	if _, ok := m.policies[k]; ok {
+		return errors.New("duplicate")
+	}
+	m.fpSeq++
+	p.ID = m.fpSeq
+	cp := *p
+	m.policies[k] = &cp
+	return nil
 }
 func (m *mockStore) GetFailoverPolicy(t, ns, n string) (*model.FailoverPolicy, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	p, ok := m.policies[m.fpKey(t, ns, n)]
-	if !ok { return nil, store.ErrNotFound }
-	cp := *p; return &cp, nil
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	cp := *p
+	return &cp, nil
 }
 func (m *mockStore) ListFailoverPolicies(t string, limit, offset int) ([]model.FailoverPolicy, int64, error) {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	var all []model.FailoverPolicy
 	for _, p := range m.policies {
-		if p.TenantID == t { all = append(all, *p) }
+		if p.TenantID == t {
+			all = append(all, *p)
+		}
 	}
 	total := int64(len(all))
-	if offset >= len(all) { return nil, total, nil }
+	if offset >= len(all) {
+		return nil, total, nil
+	}
 	end := offset + limit
-	if limit <= 0 || end > len(all) { end = len(all) }
-	if limit <= 0 { return all[offset:], total, nil }
+	if limit <= 0 || end > len(all) {
+		end = len(all)
+	}
+	if limit <= 0 {
+		return all[offset:], total, nil
+	}
 	return all[offset:end], total, nil
 }
 func (m *mockStore) UpdateFailoverPolicy(p *model.FailoverPolicy) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.fpKey(p.TenantID, p.Namespace, p.Name)
-	if _, ok := m.policies[k]; !ok { return store.ErrNotFound }
-	cp := *p; m.policies[k] = &cp; return nil
+	if _, ok := m.policies[k]; !ok {
+		return store.ErrNotFound
+	}
+	cp := *p
+	m.policies[k] = &cp
+	return nil
 }
 func (m *mockStore) DeleteFailoverPolicy(t, ns, n string) error {
-	m.mu.Lock(); defer m.mu.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	k := m.fpKey(t, ns, n)
-	if _, ok := m.policies[k]; !ok { return store.ErrNotFound }
-	delete(m.policies, k); return nil
+	if _, ok := m.policies[k]; !ok {
+		return store.ErrNotFound
+	}
+	delete(m.policies, k)
+	return nil
 }
 
 // setTenant 在 gin.Context 注入 tenantId。

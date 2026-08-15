@@ -79,7 +79,7 @@ func TestStore_ListPropagationPolicies_Success(t *testing.T) {
 	s := newMockStore()
 	for i := 0; i < 5; i++ {
 		pp := &model.PropagationPolicy{
-			Name: "policy-" + string(rune('a'+i)),
+			Name:      "policy-" + string(rune('a'+i)),
 			Namespace: "default", TenantID: "tenant-1", Spec: "{}",
 		}
 		if err := s.CreatePropagationPolicy(pp); err != nil {
