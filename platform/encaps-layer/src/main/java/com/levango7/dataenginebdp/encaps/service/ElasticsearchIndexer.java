@@ -34,7 +34,7 @@ public class ElasticsearchIndexer {
     /** 统一索引名。 */
     public static final String INDEX = "shuqing_catalog";
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final String esUrl;
@@ -42,6 +42,13 @@ public class ElasticsearchIndexer {
 
     public ElasticsearchIndexer(@Value("${app.elasticsearch.url:http://127.0.0.1:9201}") String esUrl) {
         this.esUrl = esUrl;
+        // RestTemplate 必须设置超时（默认无超时会无限挂起，曾导致 /search 卡死）。
+        // 用 JDK HttpURLConnection 工厂，零额外依赖。
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+        this.restTemplate = new RestTemplate(factory);
     }
 
     /** ES 是否可用（探测 / 端点，缓存 10s 内结果）。 */
@@ -67,7 +74,7 @@ public class ElasticsearchIndexer {
         return availableCache;
     }
 
-    /** 确保索引存在（若不存在则创建 mapping）。 */
+    /** 确保索引存在（若不存在则创建 mapping，中文用 IK 分词器）。 */
     public void ensureIndex() {
         try {
             ResponseEntity<String> resp = restTemplate.getForEntity(esUrl + "/" + INDEX, String.class);
@@ -75,16 +82,23 @@ public class ElasticsearchIndexer {
                 ObjectNode mapping = objectMapper.createObjectNode();
                 ObjectNode props = mapping.putObject("mappings").putObject("properties");
                 props.putObject("id").put("type", "keyword");
-                props.putObject("name").put("type", "text");
+                // 中文全文检索：IK 分词（ik_max_word 最大分词，召回高）
+                ObjectNode name = props.putObject("name");
+                name.put("type", "text");
+                name.put("analyzer", "ik_max_word");
+                name.put("search_analyzer", "ik_smart");
                 props.putObject("type").put("type", "keyword");
                 props.putObject("source").put("type", "keyword");
-                props.putObject("description").put("type", "text");
+                ObjectNode desc = props.putObject("description");
+                desc.put("type", "text");
+                desc.put("analyzer", "ik_max_word");
+                desc.put("search_analyzer", "ik_smart");
                 props.putObject("tags").put("type", "keyword");
                 props.putObject("createdAt").put("type", "date");
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
                 restTemplate.put(esUrl + "/" + INDEX, new HttpEntity<>(mapping.toString(), headers));
-                log.info("ES 索引 {} 已创建", INDEX);
+                log.info("ES 索引 {} 已创建（IK 中文分词）", INDEX);
             }
         } catch (RestClientException e) {
             log.warn("ensureIndex 失败: {}", e.getMessage());
