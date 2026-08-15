@@ -45,4 +45,20 @@ public class K8sClientConfig {
         log.info("Initializing KubernetesClient from default KUBECONFIG");
         return new KubernetesClientBuilder().build();
     }
+
+    /**
+     * K8s informer watch 缓存（任务 E）。
+     *
+     * <p>默认关闭（{@code app.k8s.informer-enabled=false}，保持现有直连行为）；
+     * 开启后对 Namespace 注册 informer，本地缓存 name→phase（读路径降 API 压力）。</p>
+     *
+     * @param informerEnabled 是否启用 informer（默认 false）
+     * @return K8sInformerManager（mock 模式下返回禁用实例）
+     */
+    @Bean
+    public K8sInformerManager k8sInformerManager(
+            @Value("${app.k8s.informer-enabled:false}") boolean informerEnabled,
+            KubernetesClient kubernetesClient) {
+        return new K8sInformerManager(kubernetesClient, informerEnabled);
+    }
 }

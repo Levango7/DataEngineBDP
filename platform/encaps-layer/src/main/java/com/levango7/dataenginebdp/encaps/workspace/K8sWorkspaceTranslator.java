@@ -70,6 +70,8 @@ public class K8sWorkspaceTranslator {
     private static final String MANAGED_BY = "encaps-layer";
 
     private final KubernetesClient k8sClient;
+    /** informer 缓存（任务 E，可选注入；未启用时直连 API）。 */
+    private K8sInformerManager informerManager;
 
     /**
      * 构造翻译器。
@@ -79,6 +81,12 @@ public class K8sWorkspaceTranslator {
     @Autowired
     public K8sWorkspaceTranslator(KubernetesClient k8sClient) {
         this.k8sClient = k8sClient;
+    }
+
+    /** informer 缓存（任务 E，可选注入；未启用时 getNamespaceStatus 直连 API）。 */
+    @Autowired(required = false)
+    public void setInformerManager(K8sInformerManager informerManager) {
+        this.informerManager = informerManager;
     }
 
     /**
@@ -283,6 +291,13 @@ public class K8sWorkspaceTranslator {
      */
     public String getNamespaceStatus(Workspace workspace) {
         String ns = workspace.getNamespace();
+        // informer 缓存优先（任务 E）：本地缓存命中不触发 API 调用
+        if (informerManager != null && informerManager.isEnabled()) {
+            String cached = informerManager.getNamespacePhase(ns);
+            if (cached != null) {
+                return cached;
+            }
+        }
         try {
             Namespace namespace = k8sClient.namespaces().withName(ns).get();
             if (namespace == null) {
