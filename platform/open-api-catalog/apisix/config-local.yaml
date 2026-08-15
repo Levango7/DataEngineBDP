@@ -1,0 +1,26 @@
+# APISIX 3.8 配置（本地验证用，etcd 指向宿主）
+# 完整配置请参考官方 config-default.yaml；此处仅覆盖关键项
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+  admin:
+    allow_admin:
+      - 0.0.0.0/0
+    admin_key:
+      - name: "admin"
+        key: edd1c9f034335f136f87ad84b625c8f1
+        role: admin
+  etcd:
+    host:
+      - "http://host.docker.internal:2379"
+    prefix: /apisix
+    timeout: 30
+
+apisix:
+  node_listen: 9080
+  enable_admin: true
+
+nginx_config:
+  error_log: /dev/stderr
+  worker_processes: 1
