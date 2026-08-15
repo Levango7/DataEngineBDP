@@ -1,0 +1,55 @@
+# APISIX keycloak-auth 插件配置 - Keycloak OIDC 认证（#15）
+#
+# 对应详细设计 §5 网关拦截认证链第二层：
+#     jwt-auth（自签 HS256）→ keycloak-auth（Keycloak RS256）→ 限流 → 计量
+#
+# 实现方式：APISIX serverless 插件（access 阶段）调 Keycloak JWKS 端点
+# 获取公钥，验证 RS256 JWT 签名 + issuer + 过期时间。
+#
+# 与 encaps-layer 的 OidcJwtDecoder 对齐（同一 Keycloak realm/客户端）：
+#   - realm: shuqing
+#   - JWKS:  {KEYCLOAK_URL}/realms/shuqing/protocol/openid-connect/certs
+#   - issuer: {KEYCLOAK_URL}/realms/shuqing
+#
+# 工作原理：
+#     1. access 阶段提取 Authorization: Bearer <token>
+#     2. 从 JWKS 端点获取 RS256 公钥（缓存 TTL 内）
+#     3. 验证签名 / iss / exp
+#     4. 验签失败返回 401
+#
+# 部署：
+#   将本插件注册为 APISIX 自定义插件（lua 实现）或使用
+#   authz-keycloak / openid-connect 插件替代（APISIX 生态）。
+
+# 插件元数据
+plugin_name: keycloak-auth
+plugin_type: auth
+phase: access
+
+# Keycloak 连接配置（与 encaps-layer OIDC 配置一致）
+keycloak:
+  realm: shuqing
+  # 由环境变量注入（生产禁止明文）
+  issuer_uri: ${KEYCLOAK_ISSUER_URI:http://keycloak:18040/realms/shuqing}
+  jwks_uri: ${KEYCLOAK_JWKS_URI:http://keycloak:18040/realms/shuqing/protocol/openid-connect/certs}
+  client_id: sq-console
+  # JWKS 公钥缓存
+  cache_ttl_seconds: 3600
+  connect_timeout_ms: 3000
+  read_timeout_ms: 5000
+
+# 行为配置
+config:
+  # token 提取位置
+  header: authorization
+  # 失败响应
+  unauthorized_code: 401
+  unauthorized_msg: "Keycloak 认证失败：token 无效或已过期"
+  # 是否校验 iss（严格模式）
+  verify_issuer: true
+  # 是否将 sub/tenantId 注入上游 header（透传租户上下文）
+  inject_headers:
+    - name: X-Tenant-Id
+      claim: tenantId
+    - name: X-User-Id
+      claim: sub

@@ -67,6 +67,10 @@ routes:
       retries: 2
     plugins:
       key-auth: {}
+      # 第二认证层：jwt-auth（自签 HS256 与 Keycloak RS256 双签发者，#15）
+      # 注：APISIX 插件链串联全通过，不叠加 keycloak-auth（避免三重凭证）
+      #    Keycloak RS256 通过 Consumer 级 jwt-secret 配置承载（见 jwt-auth.yaml）
+      jwt-auth: {}
       limit-req:
         rate: 100
         burst: 200
@@ -124,6 +128,10 @@ routes:
       retries: 1
     plugins:
       key-auth: {}
+      # 第二认证层：jwt-auth（自签 HS256 与 Keycloak RS256 双签发者，#15）
+      # 注：APISIX 插件链串联全通过，不叠加 keycloak-auth（避免三重凭证）
+      #    Keycloak RS256 通过 Consumer 级 jwt-secret 配置承载（见 jwt-auth.yaml）
+      jwt-auth: {}
       limit-req:
         rate: 50
         burst: 100
@@ -181,6 +189,10 @@ routes:
       retries: 0
     plugins:
       key-auth: {}
+      # 第二认证层：jwt-auth（自签 HS256 与 Keycloak RS256 双签发者，#15）
+      # 注：APISIX 插件链串联全通过，不叠加 keycloak-auth（避免三重凭证）
+      #    Keycloak RS256 通过 Consumer 级 jwt-secret 配置承载（见 jwt-auth.yaml）
+      jwt-auth: {}
       limit-req:
         rate: 200
         burst: 400

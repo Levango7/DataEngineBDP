@@ -1,0 +1,47 @@
+# APISIX jwt-auth 插件配置 - JWT 认证（#15）
+#
+# 对应详细设计 §5 网关拦截认证链（jwt-auth 作为 key-auth 之后/之内的
+# 第二认证层，支持两种签发者）：
+#     1. 自签 JWT（HS256）：与 encaps-layer 的 dev 密钥一致，本地/内部服务认证
+#     2. Keycloak JWT（RS256/JWKS）：外部用户经 Keycloak 签发的 token
+#
+# 工作原理：
+#     1. 客户端在 Authorization: Bearer <token> 携带 JWT
+#     2. APISIX jwt-auth 插件按 key 查找 Consumer 的 jwt-secret
+#     3. HS256 用共享密钥验签；RS256 用公钥/JWKS 验签
+#     4. 验签失败返回 401
+#
+# Consumer 创建示例（自签 HS256）：
+#     POST /apisix/admin/consumers -d '{
+#       "username": "internal-svc",
+#       "plugins": {
+#         "jwt-auth": {"key": "sq-internal", "secret": "<JWT_SECRET>"}
+#       }
+#     }'
+
+# 插件元数据
+plugin_name: jwt-auth
+plugin_type: auth
+
+# 全局配置（APISIX 内置 jwt-auth 插件的全局配置）
+config:
+  # 从 Header 提取 token
+  header: authorization
+  # Bearer 前缀剥离
+  query: jwt
+  cookie: jwt
+  # 反向映射：从 token 中提取的 claim 注入到 consumer 上下文
+  # 签名算法：HS256 与 encaps-layer 一致（dev 密钥）
+  secret_ttl: 86400
+
+# 签名密钥说明（与 encaps-layer application.yml 对齐）：
+#   app.security.jwt.secret → 自签 HS256 共享密钥
+#   app.security.oidc.jwks-uri → Keycloak RS256 公钥（JWKS 端点）
+#
+# 双签发者场景在 APISIX 3.8 中通过 Consumer 级 secret 区分：
+#   - 自签服务：jwt-auth.consumer.jwt-secret = dev-secret-key-...
+#   - Keycloak 用户：jwt-auth.consumer.jwt-secret = <Keycloak 公钥>
+#
+# ⚠️ 生产安全提示：
+#   自签 HS256 密钥与 Keycloak RS256 需分离管理；生产环境应通过环境变量
+#   注入（APISIX env 插件），禁止明文写入配置文件。
