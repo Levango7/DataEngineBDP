@@ -40,9 +40,9 @@ graph LR
 
 ### 性能优化
 
-- [ ] 封装层批量 K8s API 调用改为 informer watch 模式，降低 API Server 压力。
-- [ ] SQL 网关引入查询结果缓存（基于 Calcite 物化视图）。
-- [ ] 规则引擎规则执行改为异步 + 批量模式。
+- [x] 封装层 informer watch（Namespace phase cache-aside，默认关，513b58c）。
+- [x] SQL 网关引入查询结果缓存（Caffeine 60s TTL + 租户隔离键，495f65c；物化视图待续）。
+- [x] 规则引擎异步批量（parallelStream 并行 + 失败隔离 + 批量端点，8fa64d1）。
 - [x] 资产目录检索引入 Elasticsearch 倒排索引加速（encaps-layer /search 已接本地 ES 7.17 容器，d11c9f9）。
 - [x] 前端路由懒加载细化至组件级（37 路由全动态 import，构建 49 分包）。
 - [x] Helm Chart 全部启用资源 requests / limits 与 HPA（82 chart autoscaling 配置，32f6412）。
