@@ -89,3 +89,11 @@ config:
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/trino-values.yaml 覆盖
 # 渲染命令： helm template trino design/deploy/charts/trino -f design/deploy/values/trino-values.yaml
+
+# ---- 弹性伸缩（默认关闭，开启后按 CPU 使用率自动扩缩）----
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
