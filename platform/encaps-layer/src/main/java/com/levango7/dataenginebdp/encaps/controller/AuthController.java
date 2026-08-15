@@ -41,7 +41,7 @@ import java.util.Map;
 public class AuthController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = buildRestTemplate();
 
     @Value("${app.security.oidc.token-uri:http://127.0.0.1:18040/realms/shuqing/protocol/openid-connect/token}")
     private String tokenUri;
@@ -133,5 +133,17 @@ public class AuthController {
         String payload = parts[1];
         byte[] bytes = java.util.Base64.getUrlDecoder().decode(payload);
         return objectMapper.readTree(bytes);
+    }
+
+    /**
+     * RestTemplate 必须设置超时（默认无超时会无限挂起——与 ElasticsearchIndexer
+     * 同类问题，曾导致登录请求卡死）。
+     */
+    private RestTemplate buildRestTemplate() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+        return new RestTemplate(factory);
     }
 }
