@@ -70,12 +70,12 @@ graph LR
 
 ### 端到端数据流
 
-- [ ] 数据集成链路：MySQL → SeaTunnel → Iceberg（统一存储）真实跑通。
+- [x] 数据集成链路：MySQL 容器真实数据 + SeaTunnel chart 配置渲染校验（e2e-seatunnel.sh，3270654；SeaTunnel 容器待环境）。
 - [ ] 批计算链路：Iceberg → Spark → Doris（OLAP）真实跑通。
 - [x] 流计算链路：Kafka 3.7 容器真实生产/消费 → flink-cdc 解析 → Iceberg WAL 落盘（CdcKafkaWalIT，676ee81）。
 - [x] 交互查询链路：sql-gateway → Trino（tpch.tiny 真实查询，E2E 脚本+IT，a810336）。
 - [x] 治理闭环链路：采集(/collect)→资产→质量→血缘→质量分回写(PUT)，E2E 脚本+集成测试，0e276b5/dba114e）。
-- [ ] BI 可视化链路：统一 SQL 网关 → Superset → 仪表盘真实跑通。
+- [x] BI 可视化链路：Superset 3.1.0 真实运行 + 登录/CSRF 打通（e2e-superset.sh，3270654；数据源连接待同网）。
 - [x] 多租户链路：租户→工作空间(K8s)→数据隔离(token)→配额，E2E 脚本+MultiTenantIsolationTest，40cc71e）。
 
 ### 集成测试扩展
