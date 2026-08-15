@@ -1,0 +1,79 @@
+# ============================================================================
+# ai-assistant Helm Chart 默认 values
+# 说明：Chart 骨架级默认值（对齐 catalog 同构模板）。
+# ============================================================================
+
+# ---- 镜像配置（自研组件由 build.yml 构建为 sq-ai-assistant）----
+image:
+  repository: "docker.m.daocloud.io/sq-ai-assistant"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数 ----
+replicaCount: 1
+
+# ---- Service 配置 ----
+service:
+  type: ClusterIP
+  port: 18110
+  containerPort: 18110
+
+# ---- 资源配额 ----
+resources:
+  requests:
+    cpu: "0.5"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+# ---- 安全上下文 ----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 健康检查（/sessions 需认证，探针用 /health 无需认证）----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /api/v1/health
+      port: 18110
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /api/v1/health
+      port: 18110
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+
+# ---- 环境变量 ----
+env:
+  LLM_GATEWAY_URL: "http://llm-gateway:8092"
+  NL2SQL_URL: "http://nl2sql:18095"
+  SQL_GATEWAY_URL: "http://sql-gateway:8081"
+  AI_ASSISTANT_DB: "/app/data/ai-assistant.db"
+
+# ---- 持久化（会话 SQLite）----
+persistence:
+  enabled: true
+  storageClass: ""
+  size: 1Gi
+  mountPath: /app/data
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+affinity: {}
+tolerations: []

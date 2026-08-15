@@ -39,6 +39,6 @@ USER app
 EXPOSE 18110
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -fsS http://localhost:18110/api/v1/ai-assistant/sessions || exit 1
+    CMD curl -fsS http://localhost:18110/api/v1/health || exit 1
 
 ENTRYPOINT ["/app/ai-assistant"]

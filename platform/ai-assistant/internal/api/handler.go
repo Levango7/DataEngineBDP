@@ -24,6 +24,12 @@ func NewAssistantHandler(svc *service.AssistantService, proxy *service.Downstrea
 func RegisterRoutes(r *gin.Engine, svc *service.AssistantService, cfg *config.Config) {
 	proxy := service.NewDownstreamProxy(cfg)
 	h := NewAssistantHandler(svc, proxy)
+
+	// 健康检查（无认证，供 K8s 探针/Docker HEALTHCHECK）
+	r.GET("/api/v1/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "UP", "service": "ai-assistant"})
+	})
+
 	g := r.Group("/api/v1/ai-assistant")
 	{
 		// 对话（非流式，聚合 NL→SQL→执行→回复）
