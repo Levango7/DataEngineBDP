@@ -164,7 +164,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as jobApi from '@/api/job'
@@ -181,6 +182,14 @@ const pageSize = ref(20)
 const activeTab = ref<string>('all')
 
 /** 拉取作业列表 */
+const appStore = useAppStore()
+
+// 工作空间切换时重载列表（修复 #4：切换后残留旧工作空间数据）
+watch(() => appStore.workspace, () => {
+  currentPage.value = 1
+  loadList()
+})
+
 async function loadList() {
   loading.value = true
   error.value = false
@@ -269,7 +278,7 @@ async function handleSubmit() {
       })
       await jobApi.submitJob({
         name: submitForm.name,
-        workspaceId: 'default',
+        workspaceId: appStore.workspace,
         type: submitForm.type,
         config,
         schedule: submitForm.schedule || undefined,

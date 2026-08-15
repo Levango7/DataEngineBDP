@@ -93,6 +93,14 @@ public class K8sWorkspaceTranslator {
      */
     public Namespace createNamespace(Workspace workspace) {
         String ns = workspace.getNamespace();
+        // 边界校验（#1）：空/非法 namespace 在调 K8s API 前拦截，避免底层异常
+        if (ns == null || ns.isBlank()) {
+            throw new K8sTranslationException("Workspace namespace 不能为空, workspaceId=" + workspace.getId());
+        }
+        if (!ns.matches("[a-z0-9]([-a-z0-9]*[a-z0-9])?")) {
+            throw new K8sTranslationException(
+                    "Workspace namespace 非法（须小写字母/数字/连字符，且首尾字母数字）: " + ns);
+        }
         log.info("Creating K8s Namespace {} for workspace {}", ns, workspace.getId());
         try {
             Namespace namespace = new NamespaceBuilder()
@@ -353,6 +361,10 @@ public class K8sWorkspaceTranslator {
 
         public K8sTranslationException(String message, Throwable cause) {
             super(message, cause);
+        }
+
+        public K8sTranslationException(String message) {
+            super(message);
         }
     }
 }

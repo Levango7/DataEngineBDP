@@ -346,4 +346,45 @@ class K8sWorkspaceTranslatorTest {
 
         assertThat(result).isSameAs(created);
     }
+
+    /* ==================== #1 边界条件 ==================== */
+
+    @Test
+    @DisplayName("createNamespace — 空 namespace 抛 K8sTranslationException（边界拦截）")
+    void createNamespace_blankNamespace_shouldThrow() {
+        Workspace ws = sampleWorkspace();
+        ws.setNamespace(null);
+
+        assertThatThrownBy(() -> translator.createNamespace(ws))
+                .isInstanceOf(K8sWorkspaceTranslator.K8sTranslationException.class)
+                .hasMessageContaining("不能为空");
+    }
+
+    @Test
+    @DisplayName("createNamespace — 非法字符 namespace 抛 K8sTranslationException")
+    void createNamespace_invalidChars_shouldThrow() {
+        Workspace ws = sampleWorkspace();
+        ws.setNamespace("Ws_With_UpperCase_and-空格");
+
+        assertThatThrownBy(() -> translator.createNamespace(ws))
+                .isInstanceOf(K8sWorkspaceTranslator.K8sTranslationException.class)
+                .hasMessageContaining("非法");
+    }
+
+    @Test
+    @DisplayName("createNamespace — 合法 namespace 正常创建（边界校验放行）")
+    void createNamespace_validName_shouldCreate() {
+        Workspace ws = sampleWorkspace();
+        ws.setNamespace("ws-k3s-valid-01");
+
+        Namespace ns = new Namespace();
+        MixedOperation rawNsOp = mock(MixedOperation.class);
+        Resource rawNsRes = mock(Resource.class);
+        when(k8sClient.namespaces()).thenReturn(rawNsOp);
+        when(rawNsOp.resource(any(Namespace.class))).thenReturn(rawNsRes);
+        when(rawNsRes.create()).thenReturn(ns);
+
+        Namespace result = translator.createNamespace(ws);
+        assertThat(result).isSameAs(ns);
+    }
 }

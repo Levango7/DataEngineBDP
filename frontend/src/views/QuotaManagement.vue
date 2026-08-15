@@ -209,7 +209,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
+import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as quotaApi from '@/api/quota'
@@ -539,6 +540,14 @@ function statusTagType(status: Quota['status']): 'success' | 'warning' | 'info' 
 }
 
 /* ------------------------------ 初始化 ------------------------------ */
+
+const appStore = useAppStore()
+
+// 工作空间切换时刷新配额列表（修复 #4）
+watch(() => appStore.workspace, () => {
+  filterWorkspaceId.value = ''
+  loadList()
+})
 
 onMounted(() => {
   loadList()
