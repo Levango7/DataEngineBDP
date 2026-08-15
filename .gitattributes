@@ -1,0 +1,6 @@
+# 强制关键脚本类文件使用 LF（防 Windows CRLF 干扰 shell/bash 语法）
+.github/workflows/*.yml text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+ske/**/*.sh text eol=lf
+scripts/*.sh text eol=lf
