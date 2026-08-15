@@ -50,17 +50,17 @@ else
   echo "  realm/client/用户 已就绪（demo/demo123）"
 fi
 
-echo "=== 3. 构建并启动 encaps-layer（OIDC 模式）==="
-cd "$ROOT/platform/encaps-layer"
-mvn -B -q clean package -DskipTests
-OIDC_ENABLED=true \
-OIDC_JWKS_URI="http://127.0.0.1:18040/realms/shuqing/protocol/openid-connect/certs" \
-OIDC_ISSUER_URI="http://127.0.0.1:18040/realms/shuqing" \
-KEYCLOAK_TOKEN_URI="http://127.0.0.1:18040/realms/shuqing/protocol/openid-connect/token" \
-nohup java -jar target/encaps-layer-0.1.0-SNAPSHOT.jar > /tmp/encaps-layer.log 2>&1 &
-echo "  encaps-layer 启动中（日志: /tmp/encaps-layer.log）..."
-until curl -s -o /dev/null "http://127.0.0.1:8080/api/v1/health"; do sleep 3; done
-echo "  encaps-layer 就绪"
+echo "=== 3. 启动 encaps-layer（OIDC 模式）==="
+echo "  Windows 下后台进程会被 bash 清理，请另开终端运行（进程保持）："
+echo "    scripts/start-encaps.bat    # 双击或 cmd 运行（前台保持）"
+echo "  等待 encaps 就绪（最多 90s）..."
+for i in $(seq 1 30); do
+  if curl -s -o /dev/null "http://127.0.0.1:8080/api/v1/health"; then
+    echo "  encaps-layer 就绪"
+    break
+  fi
+  sleep 3
+done
 
 echo ""
 echo "✅ 环境就绪！登录账号: demo / demo123"
