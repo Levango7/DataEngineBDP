@@ -67,3 +67,6 @@ tests/**/pytest_html_report.html
 
 # 本地评估报告附件（不入库）
 attachments/
+
+# 会话期分析资产（含外部项目路径，不入库）
+docs/_盘点_*.md
