@@ -33,14 +33,15 @@ class MetadataCollectorApplicationTest {
     private CollectionSchedulerService schedulerService;
 
     @Test
-    @DisplayName("应注册 4 个 Collector Bean")
+    @DisplayName("应注册 5 个 Collector Bean（含 Iceberg REST）")
     void shouldRegisterFourCollectors() {
-        assertEquals(4, collectors.size());
+        assertEquals(5, collectors.size());
         List<String> types = collectors.stream().map(MetadataCollector::getType).sorted().toList();
         assertTrue(types.contains("HIVE"));
         assertTrue(types.contains("DORIS"));
         assertTrue(types.contains("KAFKA"));
         assertTrue(types.contains("FILESYSTEM"));
+        assertTrue(types.contains("ICEBERG"));
     }
 
     @Test
@@ -48,6 +49,6 @@ class MetadataCollectorApplicationTest {
     void schedulerService_shouldExposeRegisteredTypes() {
         assertNotNull(schedulerService);
         List<String> types = schedulerService.getRegisteredTypes();
-        assertEquals(4, types.size());
+        assertEquals(5, types.size());
     }
 }

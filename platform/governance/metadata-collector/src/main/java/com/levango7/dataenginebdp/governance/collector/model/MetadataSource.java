@@ -33,6 +33,7 @@ public class MetadataSource {
     public static final String TYPE_HIVE = "HIVE";
     /** 数据源类型常量：Doris FE */
     public static final String TYPE_DORIS = "DORIS";
+    public static final String TYPE_ICEBERG = "ICEBERG";
     /** 数据源类型常量：Kafka 集群 */
     public static final String TYPE_KAFKA = "KAFKA";
     /** 数据源类型常量：HDFS/对象存储文件系统 */
