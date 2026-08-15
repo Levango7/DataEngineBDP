@@ -16,9 +16,9 @@ replicaCount: 2
 # ---- Service 配置 ----
 service:
   type: ClusterIP
-  port: 8080
+  port: 8082
   # 容器端口
-  containerPort: 8080
+  containerPort: 8082
 
 # ---- 资源配额（默认 standard 档）----
 resources:
@@ -48,16 +48,16 @@ probes:
   liveness:
     enabled: true
     httpGet:
-      path: /healthz
-      port: 8080
+      path: /api/v1/health
+      port: 8082
     initialDelaySeconds: 30
     periodSeconds: 10
     failureThreshold: 3
   readiness:
     enabled: true
     httpGet:
-      path: /readyz
-      port: 8080
+      path: /api/v1/health
+      port: 8082
     initialDelaySeconds: 10
     periodSeconds: 5
     failureThreshold: 3
