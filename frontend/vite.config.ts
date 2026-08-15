@@ -15,10 +15,34 @@ export default defineConfig({
     port: 5173,
     open: true,
     proxy: {
-      // 将 /api 请求代理到后端 API 网关（开发环境默认 encaps-layer :8080，
-      // 支持本地直接登录验证；生产经 APISIX 网关，用 VITE_API_TARGET 覆盖）
+      // 后端 API 网关（开发环境默认 encaps-layer :8080，支持本地登录；
+      // 生产经 APISIX 网关，用 VITE_API_TARGET 覆盖）
       '/api': {
         target: process.env.VITE_API_TARGET || 'http://localhost:8080',
+        changeOrigin: true
+      },
+      // 路径分流：查询类 API 由 observability query-api 提供（组件独立部署）
+      '/api/v1/ops': {
+        target: process.env.VITE_OPS_TARGET || 'http://localhost:8090',
+        changeOrigin: true
+      },
+      '/api/v1/cluster': {
+        target: process.env.VITE_OPS_TARGET || 'http://localhost:8090',
+        changeOrigin: true
+      },
+      // 向量引擎（vector-engine :8086）
+      '/api/v1/vector': {
+        target: process.env.VITE_VECTOR_TARGET || 'http://localhost:8086',
+        changeOrigin: true
+      },
+      // AI 助手（ai-assistant :18110）
+      '/api/v1/ai-assistant': {
+        target: process.env.VITE_AI_TARGET || 'http://localhost:18110',
+        changeOrigin: true
+      },
+      // BI 看板（finops-dashboard :8085）
+      '/api/v1/dashboards': {
+        target: process.env.VITE_BI_TARGET || 'http://localhost:8085',
         changeOrigin: true
       }
     }

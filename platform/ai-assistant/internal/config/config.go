@@ -20,8 +20,8 @@ func Load() *Config {
 	return &Config{
 		Port:          getenv("AI_ASSISTANT_PORT", "18110"),
 		SessionDBPath: getenv("AI_ASSISTANT_DB", "./data/ai-assistant.db"),
-		LlmGatewayURL: getenv("LLM_GATEWAY_URL", "http://localhost:18090"),
-		Nl2SqlURL:     getenv("NL2SQL_URL", "http://localhost:18095"),
+		LlmGatewayURL: getenv("LLM_GATEWAY_URL", "http://localhost:18085"),
+		Nl2SqlURL:     getenv("NL2SQL_URL", "http://localhost:8093"),
 		SqlGatewayURL: getenv("SQL_GATEWAY_URL", "http://localhost:18081"),
 	}
 }
