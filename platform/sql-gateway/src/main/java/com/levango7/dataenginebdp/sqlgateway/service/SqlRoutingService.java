@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.sqlgateway.service;
 
+import com.levango7.dataenginebdp.sqlgateway.config.CacheConfig;
 import com.levango7.dataenginebdp.sqlgateway.model.RouteRule;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteRequest;
 import com.levango7.dataenginebdp.sqlgateway.model.SqlExecuteResponse;
@@ -7,6 +8,8 @@ import com.levango7.dataenginebdp.sqlgateway.repository.RouteRuleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 
 import java.util.Comparator;
@@ -67,14 +70,18 @@ public class SqlRoutingService {
      */
     private final DorisScanStatsClient dorisScanStatsClient;
 
+    private final CacheManager cacheManager;
+
     public SqlRoutingService(BackendProxyService backendProxyService,
                              RouteRuleRepository routeRuleRepository,
                              com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector,
-                             DorisScanStatsClient dorisScanStatsClient) {
+                             DorisScanStatsClient dorisScanStatsClient,
+                             CacheManager cacheManager) {
         this.backendProxyService = backendProxyService;
         this.routeRuleRepository = routeRuleRepository;
         this.meteringCollector = meteringCollector;
         this.dorisScanStatsClient = dorisScanStatsClient;
+        this.cacheManager = cacheManager;
     }
 
     /**
@@ -103,6 +110,60 @@ public class SqlRoutingService {
                 abbreviate(sql, 80),
                 request.getLimit() == null ? "" : " limit=" + request.getLimit());
 
+        // 查询结果缓存（任务 D）：仅只读 SQL + 租户隔离键，DML 永不缓存
+        if (CacheConfig.isReadOnly(sql)) {
+            String cacheKey = buildCacheKey(targetEngine, sql, tenantId);
+            Cache cache = cacheManager.getCache(CacheConfig.SQL_QUERY_CACHE);
+            SqlExecuteResponse cached = cache == null ? null : cache.get(cacheKey, SqlExecuteResponse.class);
+            if (cached != null) {
+                log.info("queryId={} 命中查询缓存 key={}", queryId, cacheKey);
+                // 返回副本并标记 cached（不污染缓存对象：缓存对象被多请求共享，
+                // 直接 setCached(true) 会让并发请求/首次请求也读到 cached=true）
+                SqlExecuteResponse hit = SqlExecuteResponse.builder()
+                        .queryId(cached.getQueryId())
+                        .status(cached.getStatus())
+                        .columns(cached.getColumns())
+                        .rows(cached.getRows())
+                        .durationMs(cached.getDurationMs())
+                        .engine(cached.getEngine())
+                        .rawInputBytes(cached.getRawInputBytes())
+                        .cached(true)
+                        .build();
+                return hit;
+            }
+            try {
+                SqlExecuteResponse response = doExecute(targetEngine, sql, tenantId, queryId, start);
+                if (response != null && "SUCCESS".equals(response.getStatus()) && cache != null) {
+                    cache.put(cacheKey, response);
+                }
+                return response;
+            } finally {
+                // doExecute 内部已记录 metering
+            }
+        }
+        return doExecute(targetEngine, sql, tenantId, queryId, start);
+    }
+
+    /** 构建缓存键（engine+sql+tenantId SHA-256，含租户隔离；JDK 实现零依赖）。 */
+    private String buildCacheKey(String engine, String sql, String tenantId) {
+        String raw = engine + "|" + sql.trim() + "|" + (tenantId == null ? "" : tenantId);
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = md.digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hex = new StringBuilder();
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            // 不可能发生（JDK 必含 SHA-256）
+            return Integer.toHexString(raw.hashCode());
+        }
+    }
+
+    /** 执行真实查询（缓存未命中路径）。 */
+    private SqlExecuteResponse doExecute(String targetEngine, String sql, String tenantId,
+                                         String queryId, long start) {
         try {
             SqlExecuteResponse response;
             if ("doris".equalsIgnoreCase(targetEngine)) {

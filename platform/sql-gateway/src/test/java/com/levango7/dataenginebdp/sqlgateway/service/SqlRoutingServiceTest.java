@@ -34,6 +34,9 @@ class SqlRoutingServiceTest {
     @Mock
     private RouteRuleRepository routeRuleRepository;
 
+    @Mock
+    private org.springframework.cache.CacheManager cacheManager;
+
     @InjectMocks
     private SqlRoutingService sqlRoutingService;
 
@@ -156,5 +159,94 @@ class SqlRoutingServiceTest {
 
         assertThat(result.getEnabled()).isTrue();
         assertThat(result.getPriority()).isEqualTo(100);
+    }
+    /* ==================== 任务 D：查询结果缓存 ==================== */
+
+    private SqlExecuteResponse okResponse() {
+        return SqlExecuteResponse.builder()
+                .queryId("q-x")
+                .status("SUCCESS")
+                .columns(List.of("1"))
+                .rows(List.of(List.of(1)))
+                .durationMs(50L)
+                .engine("trino")
+                .build();
+    }
+
+    private SqlRoutingService withRealCache() {
+        // 用真实 Caffeine CacheManager 替代 mock（验证缓存行为）
+        com.github.benmanes.caffeine.cache.Caffeine<Object, Object> caffeine =
+                com.github.benmanes.caffeine.cache.Caffeine.newBuilder().maximumSize(100);
+        org.springframework.cache.caffeine.CaffeineCacheManager mgr =
+                new org.springframework.cache.caffeine.CaffeineCacheManager("sqlQuery");
+        mgr.setCaffeine(caffeine);
+        return new SqlRoutingService(backendProxyService, routeRuleRepository,
+                null, null, mgr);
+    }
+
+    @Test
+    @DisplayName("缓存 — 相同只读 SQL 二次查询命中（cached=true）")
+    void cache_readOnlySql_secondQueryHits() {
+        SqlRoutingService svc = withRealCache();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT 1 AS id");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString()))
+                .thenAnswer(inv -> Mono.just(okResponse())); // 每次新实例
+
+        SqlExecuteResponse first = svc.execute(req);
+        SqlExecuteResponse second = svc.execute(req);
+
+        assertThat(first.isCached()).isFalse(); // 首次执行
+        assertThat(second.isCached()).isTrue(); // 二次命中缓存
+        // 后端只被调用一次（第二次走缓存）
+        org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(1))
+                .proxyToTrino(anyString(), anyString());
+    }
+
+    @Test
+    @DisplayName("缓存 — 不同租户同 SQL 不互相命中（隔离）")
+    void cache_differentTenant_isolated() {
+        SqlRoutingService svc = withRealCache();
+        SqlExecuteRequest reqA = new SqlExecuteRequest();
+        reqA.setSql("SELECT secret FROM t");
+        reqA.setEngine("trino");
+        reqA.setTenantId("tenant-a");
+
+        SqlExecuteRequest reqB = new SqlExecuteRequest();
+        reqB.setSql("SELECT secret FROM t");
+        reqB.setEngine("trino");
+        reqB.setTenantId("tenant-b");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString()))
+                .thenAnswer(inv -> Mono.just(okResponse()));
+
+        svc.execute(reqA);
+        SqlExecuteResponse respB = svc.execute(reqB);
+
+        // 租户 B 查询不应命中 A 的缓存（缓存键含 tenantId）
+        assertThat(respB.isCached()).isFalse();
+    }
+
+    @Test
+    @DisplayName("缓存 — DML 写入型 SQL 永不缓存")
+    void cache_dmlSql_neverCached() {
+        SqlRoutingService svc = withRealCache();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("UPDATE t SET x = 1");
+        req.setEngine("trino");
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString()))
+                .thenAnswer(inv -> Mono.just(okResponse()));
+
+        svc.execute(req);
+        svc.execute(req); // 再次执行同 SQL
+
+        // DML 永不缓存 → 后端被调用 2 次
+        org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(2))
+                .proxyToTrino(anyString(), anyString());
     }
 }

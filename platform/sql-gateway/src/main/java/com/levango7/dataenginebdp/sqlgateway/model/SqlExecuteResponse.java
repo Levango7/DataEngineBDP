@@ -49,4 +49,7 @@ public class SqlExecuteResponse {
      * <p>用于计量计费：为 null 时按估算计费（est=true），非 null 时按真实值（est=false）。</p>
      */
     private Long rawInputBytes;
+
+    /** 是否命中查询缓存（任务 D：SQL 网关查询结果缓存）。 */
+    private boolean cached;
 }

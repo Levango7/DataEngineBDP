@@ -150,6 +150,11 @@
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
         </dependency>
+        <!-- Spring Cache：查询结果缓存（任务 D） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
 
         <!-- HikariCP：JDBC 连接池，用于虚拟表外部数据源连接管理 -->
         <dependency>
