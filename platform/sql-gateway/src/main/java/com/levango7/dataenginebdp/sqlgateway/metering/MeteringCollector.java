@@ -36,7 +36,8 @@ public class MeteringCollector {
     private static final int BATCH_SIZE = 64;
 
     private final BlockingQueue<QueryMeter> buffer = new LinkedBlockingQueue<>(MAX_BUFFER);
-    private final RestTemplate restTemplate = new RestTemplate();
+    // 必须设置超时：cost-model 不可达时无超时会阻塞上报线程
+    private final RestTemplate restTemplate = buildRestTemplate();
 
     /** 上报目标（cost-model）。 */
     private final String meteringEndpoint;
@@ -139,5 +140,14 @@ public class MeteringCollector {
             doBatchUpload(rest);
         }
         log.info("计量收集器已关闭, 残留 {} 条已尽力上报", rest.size());
+    }
+
+    /** RestTemplate 设置超时（无超时会阻塞上报线程）。 */
+    private RestTemplate buildRestTemplate() {
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+        return new RestTemplate(factory);
     }
 }

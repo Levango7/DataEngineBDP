@@ -37,7 +37,12 @@ public class FlinkRestClient {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private RestTemplate restTemplate() {
-        return new RestTemplate();
+        // 必须设置超时：Flink 集群不可达时无超时会无限挂起
+        org.springframework.http.client.SimpleClientHttpRequestFactory factory =
+                new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(5000);
+        factory.setReadTimeout(15000);
+        return new RestTemplate(factory);
     }
 
     /**
