@@ -54,12 +54,14 @@ class ElasticsearchIndexerIkTest {
         }
 
         // IK 语义分词：搜"订单明细"应命中"销售订单明细表"（拆词 [订单,明细] 匹配）
-        List<Map<String, Object>> results = indexer.search("订单明细", 0, 10);
+        var sr = indexer.search("订单明细", 0, 10);
+        List<Map<String, Object>> results = sr.list();
         boolean hit = results.stream().anyMatch(r -> "test-ik-1".equals(r.get("id")));
         assertThat(hit).as("IK 中文检索应命中 test-ik-1，实际: %s", results).isTrue();
 
         // 搜"画像"应命中"用户画像表"
-        List<Map<String, Object>> results2 = indexer.search("画像", 0, 10);
+        var sr2 = indexer.search("画像", 0, 10);
+        List<Map<String, Object>> results2 = sr2.list();
         boolean hit2 = results2.stream().anyMatch(r -> "test-ik-2".equals(r.get("id")));
         assertThat(hit2).as("IK 中文检索应命中 test-ik-2，实际: %s", results2).isTrue();
     }

@@ -114,7 +114,7 @@ class RestWiringControllerTest {
         var resp = c.search(new SearchController.SearchRequest("订单", "keyword", 1, 20));
         List<Map<String, Object>> list = (List<Map<String, Object>>) resp.getBody().get("list");
         assertThat(list).isNotEmpty(); // 命中"订单明细表"与"订单号标准"
-        assertThat((Integer) resp.getBody().get("total")).isGreaterThanOrEqualTo(1);
+        assertThat(((Number) resp.getBody().get("total")).longValue()).isGreaterThanOrEqualTo(1L);
         assertThat(resp.getBody()).containsKey("tookMs");
     }
 

@@ -39,6 +39,7 @@ public class ElasticsearchIndexer {
 
     private final String esUrl;
     private volatile Boolean availableCache;
+    private volatile long availableCheckedAt;
 
     public ElasticsearchIndexer(@Value("${app.elasticsearch.url:http://127.0.0.1:9201}") String esUrl) {
         this.esUrl = esUrl;
@@ -53,7 +54,9 @@ public class ElasticsearchIndexer {
 
     /** ES 是否可用（探测 / 端点，缓存 10s 内结果）。 */
     public boolean isAvailable() {
-        if (availableCache != null) {
+        long now = System.currentTimeMillis();
+        // 10s 缓存：缓存有效直接返回，避免每次请求都探测 ES
+        if (availableCache != null && now - availableCheckedAt < 10_000) {
             return availableCache;
         }
         try {
@@ -63,14 +66,7 @@ public class ElasticsearchIndexer {
             availableCache = false;
             log.debug("Elasticsearch 不可达: {}", e.getMessage());
         }
-        // 定期刷新（下个请求重新探测）
-        new Thread(() -> {
-            try {
-                Thread.sleep(10_000);
-                availableCache = null;
-            } catch (InterruptedException ignored) {
-            }
-        }).start();
+        availableCheckedAt = now;
         return availableCache;
     }
 
@@ -129,9 +125,16 @@ public class ElasticsearchIndexer {
         }
     }
 
-    /** 全文检索（query_string），返回命中文档列表。 */
-    public List<Map<String, Object>> search(String keyword, int from, int size) {
+    /**
+     * ES 检索结果（命中列表 + 总数，供分页 hasMore 判断）。
+     */
+    public record SearchResult(List<Map<String, Object>> list, long total) {
+    }
+
+    /** 全文检索（query_string），返回命中文档列表 + 总数。 */
+    public SearchResult search(String keyword, int from, int size) {
         List<Map<String, Object>> out = new ArrayList<>();
+        long total = 0;
         try {
             ObjectNode query = objectMapper.createObjectNode();
             ObjectNode qs = query.putObject("query").putObject("query_string");
@@ -148,9 +151,10 @@ public class ElasticsearchIndexer {
                     esUrl + "/" + INDEX + "/_search",
                     new HttpEntity<>(query.toString(), headers), String.class);
             if (!resp.getStatusCode().is2xxSuccessful()) {
-                return out;
+                return new SearchResult(out, 0);
             }
             JsonNode root = objectMapper.readTree(resp.getBody());
+            total = root.path("hits").path("total").path("value").asLong(0);
             JsonNode hits = root.path("hits").path("hits");
             for (JsonNode hit : hits) {
                 JsonNode src = hit.path("_source");
@@ -166,6 +170,6 @@ public class ElasticsearchIndexer {
         } catch (Exception e) {
             log.warn("ES 检索失败: {}", e.getMessage());
         }
-        return out;
+        return new SearchResult(out, total);
     }
 }

@@ -63,22 +63,27 @@ public class SearchController {
         int pageSize = req.pageSize() != null && req.pageSize() > 0 ? req.pageSize() : 20;
 
         List<Map<String, Object>> results;
+        long total = 0;
         boolean usedEs = false;
         if (!q.isEmpty() && esIndexer.isAvailable()) {
             usedEs = true;
             try {
                 esIndexer.ensureIndex();
                 syncIndexes(tenantId); // 幂等全量同步（文档 upsert，开销低）
-                results = esIndexer.search(q, (page - 1) * pageSize, pageSize);
+                ElasticsearchIndexer.SearchResult sr =
+                        esIndexer.search(q, (page - 1) * pageSize, pageSize);
+                results = sr.list();
+                total = sr.total();
             } catch (Exception e) {
                 log.warn("ES 检索异常，回退 LIKE: {}", e.getMessage());
                 results = likeSearch(tenantId, q);
+                total = results.size();
             }
         } else {
             results = likeSearch(tenantId, q);
+            total = results.size();
         }
 
-        int total = results.size();
         long tookMs = Duration.between(start, Instant.now()).toMillis();
 
         Map<String, Object> body = new LinkedHashMap<>();
@@ -87,7 +92,7 @@ public class SearchController {
         body.put("page", page);
         body.put("pageSize", pageSize);
         body.put("tookMs", tookMs);
-        body.put("hasMore", usedEs && results.size() >= pageSize);
+        body.put("hasMore", (long) page * pageSize < total);
         body.put("suggestions", List.of());
         body.put("engine", usedEs ? "elasticsearch" : "like");
         return ResponseEntity.ok(body);
