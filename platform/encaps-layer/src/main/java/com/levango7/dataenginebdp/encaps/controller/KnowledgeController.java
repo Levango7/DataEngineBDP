@@ -106,6 +106,54 @@ public class KnowledgeController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 获取 RAG 策略。
+     *
+     * <p>对齐前端 {@code knowledge.ts} 的 {@code getRagStrategy}。
+     * TODO: 接入 RAG 策略存储，当前返回默认配置占位。</p>
+     *
+     * @return 200 + RAG 策略
+     */
+    @GetMapping("/rag-strategy")
+    public ResponseEntity<Map<String, Object>> getRagStrategy() {
+        // TODO: 从策略存储查询租户级 RAG 配置
+        log.info("获取 RAG 策略: tenant={}", TenantContext.getTenantId());
+        Map<String, Object> strategy = new LinkedHashMap<>();
+        strategy.put("topK", 5);
+        strategy.put("scoreThreshold", 0.7);
+        strategy.put("rerankerModel", "bge-reranker-large");
+        strategy.put("citationEnabled", true);
+        return ResponseEntity.ok(strategy);
+    }
+
+    /** 上传文档请求体（对齐前端 UploadDocParams）。 */
+    public record UploadDocRequest(
+            String kbId,
+            String fileName,
+            String content) {
+    }
+
+    /**
+     * 上传文档。
+     *
+     * <p>对齐前端 {@code knowledge.ts} 的 {@code uploadDoc}。
+     * TODO: 转交 knowledge-engine 切片 + 向量化，当前返回占位结果。</p>
+     *
+     * @param req 上传请求
+     * @return 200 + 上传结果
+     */
+    @PostMapping("/upload")
+    public ResponseEntity<Map<String, Object>> uploadDoc(@RequestBody UploadDocRequest req) {
+        // TODO: 转交 knowledge-engine 处理（切片 + 向量化 + 入库）
+        log.info("上传文档: kb={}, file={}, tenant={}",
+                req.kbId(), req.fileName(), TenantContext.getTenantId());
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("docId", "doc-" + System.currentTimeMillis());
+        result.put("kbId", req.kbId());
+        result.put("status", "parsed");
+        return ResponseEntity.ok(result);
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

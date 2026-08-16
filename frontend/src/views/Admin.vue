@@ -4,7 +4,7 @@
     <div class="sub">仅平台运维可见；租户、计量、底座运维与多环境管理。</div>
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">正在加载运营数据...</div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
-      加载失败：{{ error }}
+      加载失败：{{ error.message }}
       <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">重试</button>
     </div>
     <template v-else>
@@ -41,14 +41,24 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useApi } from '@/composables/useApi'
 import * as adminApi from '@/api/admin'
 import type { AdminKpi, EnvMatrixItem, EnvStatus } from '@/api/admin'
 
-const kpi = ref<AdminKpi | null>(null)
-const envMatrix = ref<EnvMatrixItem[]>([])
-const loading = ref(false)
-const envLoading = ref(false)
-const error = ref<string | null>(null)
+// 运营 KPI：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: kpi,
+  loading,
+  error,
+  execute: loadKpi
+} = useApi<AdminKpi>(() => adminApi.getKpi())
+
+// 环境矩阵：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: envMatrix,
+  loading: envLoading,
+  execute: loadEnvMatrix
+} = useApi<EnvMatrixItem[]>(() => adminApi.getEnvMatrix(), { initialData: [] })
 
 function formatRevenue(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
@@ -76,34 +86,12 @@ function envStatusClass(s: EnvStatus): string {
   return map[s] || ''
 }
 
-async function loadKpi() {
-  loading.value = true
-  error.value = null
-  try {
-    kpi.value = await adminApi.getKpi()
-  } catch (e) {
-    error.value = (e as Error).message || '加载运营 KPI 失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadEnvMatrix() {
-  envLoading.value = true
-  try {
-    envMatrix.value = await adminApi.getEnvMatrix()
-  } catch (e) {
-    envMatrix.value = []
-  } finally {
-    envLoading.value = false
-  }
-}
-
+/** 加载全部数据 */
 async function loadAll() {
-  await Promise.all([loadKpi(), loadEnvMatrix()])
+  await Promise.all([void loadKpi(), void loadEnvMatrix()])
 }
 
 onMounted(() => {
-  loadAll()
+  void loadAll()
 })
 </script>

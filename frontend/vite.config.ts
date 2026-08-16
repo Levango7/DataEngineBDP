@@ -16,6 +16,81 @@ export default defineConfig({
     host: '127.0.0.1', // 强制 IPv4：默认 localhost 只绑 ::1(IPv6)，浏览器走 127.0.0.1 连不上
     open: true,
     proxy: {
+      // ============================================================
+      // 以下为按服务拆分的细粒度 proxy 条目（更具体路径优先匹配）
+      // 必须放在通用 /api 条目之前，否则会被 /api 默认转发到 encaps-layer
+      // ============================================================
+
+      // stream-batch-scheduler 作业管理（JobController :8087）
+      '/api/v1/jobs': {
+        target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
+        changeOrigin: true
+      },
+      // 元数据采集（metadata-collector :8093）
+      '/api/v1/metadata': {
+        target: process.env.VITE_METADATA_TARGET || 'http://127.0.0.1:8093',
+        changeOrigin: true
+      },
+      // 标签引擎（tag-engine :8094）：标签/画像/受众
+      '/api/v1/tags': {
+        target: process.env.VITE_TAG_ENGINE_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/profiles': {
+        target: process.env.VITE_TAG_ENGINE_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      '/api/v1/audiences': {
+        target: process.env.VITE_TAG_ENGINE_TARGET || 'http://127.0.0.1:8094',
+        changeOrigin: true
+      },
+      // 行业模板（industry-templates Python :8095）
+      '/api/v1/templates': {
+        target: process.env.VITE_TEMPLATES_TARGET || 'http://127.0.0.1:8095',
+        changeOrigin: true
+      },
+      // 业务线门户（business-portal Python :8096）
+      '/api/v1/business-lines': {
+        target: process.env.VITE_BUSINESS_PORTAL_TARGET || 'http://127.0.0.1:8096',
+        changeOrigin: true
+      },
+      // 开放 API 目录（open-api-catalog Python :8097）
+      '/api/v1/apis': {
+        target: process.env.VITE_API_CATALOG_TARGET || 'http://127.0.0.1:8097',
+        changeOrigin: true
+      },
+      // 虚拟表（sql-gateway VirtualTableController :8088）
+      '/api/v1/virtual-tables': {
+        target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8088',
+        changeOrigin: true
+      },
+      // 物化视图（flink-cdc MaterializedViewController :8098）
+      // 注意：前端 engine.ts 使用 baseURL:'/api' 调用 /materialized-views，故路径无 /v1
+      '/api/materialized-views': {
+        target: process.env.VITE_FLINK_CDC_TARGET || 'http://127.0.0.1:8098',
+        changeOrigin: true
+      },
+      // 基础设施编排（infra-orchestrator :8099）
+      '/api/v1/clusters': {
+        target: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:8099',
+        changeOrigin: true
+      },
+      // 编排可视化（rule-engine OrchestratorController :8091）
+      '/api/v1/orchestrator': {
+        target: process.env.VITE_RULE_ENGINE_TARGET || 'http://127.0.0.1:8091',
+        changeOrigin: true
+      },
+      // 数据资产治理（encaps-layer AssetController :8080）
+      // governance.ts 使用 /governance/assets 路径，避免与 assetMarket.ts 的 /assets 冲突
+      '/api/v1/governance': {
+        target: process.env.VITE_API_TARGET || 'http://127.0.0.1:8080',
+        changeOrigin: true
+      },
+
+      // ============================================================
+      // 以下为原有 proxy 条目（保留不变）
+      // ============================================================
+
       // 后端 API 网关（开发环境默认 encaps-layer :8080，支持本地登录；
       // 生产经 APISIX 网关，用 VITE_API_TARGET 覆盖）
       '/api': {

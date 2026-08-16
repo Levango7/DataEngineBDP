@@ -9,7 +9,7 @@
     <div class="grid g4">
       <div class="card">
         <h3>已发布 API</h3>
-        <div class="kpi s">{{ apiList.length }}</div>
+        <div class="kpi s">{{ apiList?.length ?? 0 }}</div>
         <div class="meta">运行中 {{ runningCount }} · 草稿 {{ draftCount }}</div>
       </div>
       <div class="card">
@@ -55,10 +55,10 @@
     <div v-if="loading" class="card" style="margin-top: 14px">
       <div class="meta" style="color: var(--muted)">加载中…</div>
     </div>
-    <div v-else-if="apiList.length === 0" class="card" style="margin-top: 14px">
+    <div v-else-if="apiList && apiList.length === 0" class="card" style="margin-top: 14px">
       <div class="meta" style="color: var(--muted)">暂无 API，点击「+ 注册 API」创建</div>
     </div>
-    <div v-else class="api-grid" style="margin-top: 14px">
+    <div v-else-if="apiList" class="api-grid" style="margin-top: 14px">
       <div
         v-for="api in apiList"
         :key="api.id"
@@ -286,6 +286,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import {
   listApis,
@@ -311,45 +312,63 @@ import {
 const store = useAppStore()
 
 // ---------- 列表 ----------
-const loading = ref(false)
-const apiList = ref<APIDefinition[]>([])
 const keyword = ref('')
 const categoryFilter = ref('')
 const statusFilter = ref('')
 
-const categories = computed(() => {
-  const set = new Set<string>()
-  apiList.value.forEach((a) => set.add(a.category))
-  return Array.from(set).sort()
-})
-
-const runningCount = computed(() => apiList.value.filter((a) => a.status === 'running').length)
-const draftCount = computed(() => apiList.value.filter((a) => a.status === 'draft').length)
-const totalCalls = computed(() => apiList.value.reduce((sum, a) => sum + a.callCount, 0))
-const totalSuccessRate = computed(() => {
-  const total = apiList.value.reduce((sum, a) => sum + a.callCount, 0)
-  const errors = apiList.value.reduce((sum, a) => sum + a.errorCount, 0)
-  return total > 0 ? (total - errors) / total : 1
-})
-const platinumCount = computed(() => apiList.value.filter((a) => a.sla === 'platinum').length)
-const goldCount = computed(() => apiList.value.filter((a) => a.sla === 'gold').length)
-const silverCount = computed(() => apiList.value.filter((a) => a.sla === 'silver').length)
-const activeSubscriptions = ref(0)
-const pendingSubscriptions = ref(0)
-
-async function refreshList() {
-  loading.value = true
-  try {
+// API 列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+// 后端未启动时使用 Mock 数据
+const {
+  data: apiList,
+  loading,
+  execute: refreshList
+} = useApi<APIDefinition[]>(
+  () => {
     const params: Record<string, unknown> = {}
     if (keyword.value) params.keyword = keyword.value
     if (categoryFilter.value) params.category = categoryFilter.value
     if (statusFilter.value) params.status = statusFilter.value
-    apiList.value = await listApis(params)
-  } catch (e) {
-    // 后端未启动时使用 Mock 数据
-    apiList.value = mockApiList
+    return listApis(params)
+  },
+  {
+    initialData: [],
+    onError: () => {
+      // 后端未启动时使用 Mock 数据
+      apiList.value = mockApiList
+    }
+  }
+)
+
+const categories = computed(() => {
+  const set = new Set<string>()
+  ;(apiList.value ?? []).forEach((a) => set.add(a.category))
+  return Array.from(set).sort()
+})
+
+const runningCount = computed(() => (apiList.value ?? []).filter((a) => a.status === 'running').length)
+const draftCount = computed(() => (apiList.value ?? []).filter((a) => a.status === 'draft').length)
+const totalCalls = computed(() => (apiList.value ?? []).reduce((sum, a) => sum + a.callCount, 0))
+const totalSuccessRate = computed(() => {
+  const list = apiList.value ?? []
+  const total = list.reduce((sum, a) => sum + a.callCount, 0)
+  const errors = list.reduce((sum, a) => sum + a.errorCount, 0)
+  return total > 0 ? (total - errors) / total : 1
+})
+const platinumCount = computed(() => (apiList.value ?? []).filter((a) => a.sla === 'platinum').length)
+const goldCount = computed(() => (apiList.value ?? []).filter((a) => a.sla === 'gold').length)
+const silverCount = computed(() => (apiList.value ?? []).filter((a) => a.sla === 'silver').length)
+const activeSubscriptions = ref(0)
+const pendingSubscriptions = ref(0)
+
+async function loadMetrics() {
+  if (!selectedApi.value) return
+  metricsLoading.value = true
+  try {
+    metrics.value = await getMetrics(selectedApi.value.id, { range: '7d' })
+  } catch {
+    metrics.value = null
   } finally {
-    loading.value = false
+    metricsLoading.value = false
   }
 }
 
@@ -434,17 +453,6 @@ async function applySubscribe() {
   }
 }
 
-async function loadMetrics() {
-  if (!selectedApi.value) return
-  metricsLoading.value = true
-  try {
-    metrics.value = await getMetrics(selectedApi.value.id, { range: '7d' })
-  } catch {
-    metrics.value = null
-  } finally {
-    metricsLoading.value = false
-  }
-}
 
 async function publishFlow(api: APIDefinition) {
   try {
@@ -693,7 +701,7 @@ const mockApiList: APIDefinition[] = [
 ]
 
 onMounted(() => {
-  refreshList()
+  void refreshList()
 })
 </script>
 

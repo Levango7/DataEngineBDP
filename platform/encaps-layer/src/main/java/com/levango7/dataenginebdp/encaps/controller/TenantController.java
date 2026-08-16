@@ -49,6 +49,18 @@ public class TenantController {
         return ResponseEntity.ok(tenantService.list());
     }
 
+    /**
+     * 列出全部租户（不分页，用于前端下拉选择）。
+     *
+     * <p>对齐前端 {@code tenant.ts} 的 {@code listAllTenants}。</p>
+     *
+     * @return 200 + 全部租户列表
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<Tenant>> listAll() {
+        return ResponseEntity.ok(tenantService.list());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Tenant> get(@PathVariable Long id) {
         return tenantService.get(id)

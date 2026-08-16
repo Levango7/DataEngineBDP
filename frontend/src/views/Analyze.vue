@@ -39,8 +39,10 @@
       <div class="card">
         <h3>实时指标</h3>
         <div v-if="metricsLoading" class="kpi s">--</div>
-        <div v-else-if="metricsError" class="meta" style="color: var(--red)">{{ metricsError }}</div>
-        <template v-else>
+        <div v-else-if="metricsError" class="meta" style="color: var(--red)">
+          {{ metricsError.message }}，<a href="javascript:void(0)" @click="loadMetrics">重试</a>
+        </div>
+        <template v-else-if="metrics">
           <div v-for="m in metrics" :key="m.key" style="margin-bottom: 8px">
             <div class="kpi s">{{ m.value.toLocaleString() }} <span class="meta">{{ m.unit }}</span></div>
             <div class="meta" style="margin-top: 4px">{{ m.label }} · 延迟 &lt; {{ m.latencySec }}s</div>
@@ -74,6 +76,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as analyzeApi from '@/api/analyze'
 import type { RealtimeMetric } from '@/api/analyze'
@@ -81,23 +84,13 @@ import type { RealtimeMetric } from '@/api/analyze'
 const store = useAppStore()
 const modalVisible = ref(false)
 
-// 实时指标
-const metrics = ref<RealtimeMetric[]>([])
-const metricsLoading = ref(false)
-const metricsError = ref('')
-
-/** 加载实时指标 */
-async function loadMetrics() {
-  metricsLoading.value = true
-  metricsError.value = ''
-  try {
-    metrics.value = await analyzeApi.getRealtimeMetrics()
-  } catch (err) {
-    metricsError.value = (err as Error).message || '实时指标加载失败'
-  } finally {
-    metricsLoading.value = false
-  }
-}
+// 实时指标：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: metrics,
+  loading: metricsLoading,
+  error: metricsError,
+  execute: loadMetrics
+} = useApi<RealtimeMetric[]>(() => analyzeApi.getRealtimeMetrics(), { initialData: [] })
 
 function ok(msg: string) {
   modalVisible.value = false
@@ -105,6 +98,6 @@ function ok(msg: string) {
 }
 
 onMounted(() => {
-  loadMetrics()
+  void loadMetrics()
 })
 </script>

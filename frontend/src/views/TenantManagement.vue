@@ -147,48 +147,45 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useApi } from '@/composables/useApi'
 import * as tenantApi from '@/api/tenant'
-import type { Tenant, PlanTier, TenantStatus } from '@/api/types'
+import type { Tenant, PlanTier, TenantStatus, PagedResult } from '@/api/types'
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
-const loading = ref(false)
-const error = ref(false)
-const tenantList = ref<Tenant[]>([])
-const total = ref(0)
+// 租户列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: tenantPaged,
+  loading,
+  error,
+  execute: loadList
+} = useApi<PagedResult<Tenant>>(
+  () =>
+    tenantApi.listTenants({
+      keyword: searchKeyword.value || undefined,
+      status: filterStatus.value || undefined,
+      page: currentPage.value,
+      pageSize: pageSize.value
+    }),
+  {
+    onError: () => ElMessage.error('租户列表加载失败')
+  }
+)
+
+const tenantList = computed<Tenant[]>(() => tenantPaged.value?.list ?? [])
+const total = computed<number>(() => tenantPaged.value?.total ?? 0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const searchKeyword = ref('')
 const filterStatus = ref<TenantStatus | ''>('')
 
-/** 拉取租户列表 */
-async function loadList() {
-  loading.value = true
-  error.value = false
-  try {
-    const result = await tenantApi.listTenants({
-      keyword: searchKeyword.value || undefined,
-      status: filterStatus.value || undefined,
-      page: currentPage.value,
-      pageSize: pageSize.value
-    })
-    tenantList.value = result.list
-    total.value = result.total
-  } catch (e) {
-    error.value = true
-    ElMessage.error('租户列表加载失败')
-  } finally {
-    loading.value = false
-  }
-}
-
 /** 搜索按钮 */
 function handleSearch() {
   currentPage.value = 1
-  loadList()
+  void loadList()
 }
 
 /* ------------------------------ 创建/编辑 ------------------------------ */
@@ -371,7 +368,7 @@ function usageColor(percentage: number): string {
 /* ------------------------------ 初始化 ------------------------------ */
 
 onMounted(() => {
-  loadList()
+  void loadList()
 })
 </script>
 

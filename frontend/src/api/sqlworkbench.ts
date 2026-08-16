@@ -6,7 +6,7 @@
  * - 跨源执行计划（POST /sql/cross-source/explain）
  * - SQL 解析/校验/优化（复用现有端点）
  */
-import { post } from './client'
+import { get, post } from './client'
 
 /** SQL 方言 */
 export type SqlDialect = 'ANSI' | 'HIVE' | 'DORIS' | 'TRINO'
@@ -160,7 +160,10 @@ export function explainSql(params: SqlParseParams): Promise<SqlOptimizeResult> {
 
 /**
  * 列出可用引擎
+ *
+ * 注意：后端 SqlGatewayController 使用 GET /sql/engines，前端原误用 POST，
+ * 此处修正为 GET 以与后端保持一致。
  */
 export function listEngines(): Promise<string[]> {
-  return post<string[]>('/sql/engines')
+  return get<string[]>('/sql/engines')
 }

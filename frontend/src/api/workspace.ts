@@ -18,6 +18,7 @@ import type {
   WorkspaceK8sStatus,
   PagedResult
 } from './types'
+// 类型定义见 @/api/types.ts（项目约定：避免循环依赖）
 
 /** 工作空间资源根路径 */
 const BASE = '/workspaces'

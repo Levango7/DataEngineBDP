@@ -123,6 +123,21 @@ public class BiDashboardController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 查询实时指标。
+     *
+     * <p>对齐前端 {@code analyze.ts} 的 {@code getRealtimeMetrics}。
+     * TODO: 接入实时指标流（Prometheus/时序库），当前返回空列表占位。</p>
+     *
+     * @return 200 + 实时指标列表
+     */
+    @GetMapping("/realtime")
+    public ResponseEntity<List<Map<String, Object>>> realtime() {
+        // TODO: 从实时指标流查询
+        log.info("查询实时指标: tenant={}", TenantContext.getTenantId());
+        return ResponseEntity.ok(List.of());
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

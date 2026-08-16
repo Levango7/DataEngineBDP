@@ -113,8 +113,15 @@ export interface AssetListQuery extends PageQuery {
   status?: AssetStatus
 }
 
-/** 资源根路径 */
-const BASE = '/assets'
+/**
+ * 资源根路径
+ *
+ * 注意：原路径 `/assets` 与 assetMarket.ts（资产流通市场，走 asset-exchange :8092）
+ * 在 Vite proxy 上存在冲突。此处改为 `/governance/assets`，由 Vite proxy
+ * `/api/v1/governance` 转发至 encaps-layer :8080 的 AssetController，避免冲突。
+ * 后端 AssetController 的 @RequestMapping 需同步调整为 `/api/v1/governance/assets`。
+ */
+const BASE = '/governance/assets'
 
 /**
  * 查询资产列表（分页）

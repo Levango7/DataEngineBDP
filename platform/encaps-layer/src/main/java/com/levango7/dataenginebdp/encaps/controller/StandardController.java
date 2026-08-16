@@ -123,6 +123,30 @@ public class StandardController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 查询落标率统计。
+     *
+     * <p>对齐前端 {@code standard.ts} 的 {@code getSummary}。
+     * TODO: 接入真实落标率统计，当前返回占位统计。</p>
+     *
+     * @return 200 + 落标率统计
+     */
+    @GetMapping("/summary")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Map<String, Object>> summary() {
+        String tenantId = requireTenant();
+        List<StandardEntity> all = repository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        int total = all.size();
+        // TODO: 计算真实已落标数（需关联资产元数据）
+        int applied = 0;
+        double applyRate = total == 0 ? 0.0 : (applied * 100.0 / total);
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("total", total);
+        summary.put("applied", applied);
+        summary.put("applyRate", applyRate);
+        return ResponseEntity.ok(summary);
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

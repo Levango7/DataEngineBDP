@@ -209,10 +209,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useApi } from '@/composables/useApi'
 import * as quotaApi from '@/api/quota'
 import * as tenantApi from '@/api/tenant'
 import * as workspaceApi from '@/api/workspace'
@@ -220,48 +221,37 @@ import type { Quota, Tenant, Workspace, QuotaUsage } from '@/api/types'
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
-const loading = ref(false)
-const error = ref(false)
-const quotaList = ref<Quota[]>([])
 const filterTenantId = ref<string | ''>('')
 const filterWorkspaceId = ref<string | ''>('')
 
-/** 租户下拉选项 */
-const tenantOptions = ref<Tenant[]>([])
-/** Workspace 下拉选项 */
-const workspaceOptions = ref<Workspace[]>([])
-
-/** 拉取配额列表 */
-async function loadList() {
-  loading.value = true
-  error.value = false
-  try {
-    const result = await quotaApi.listQuotas({
+// 配额列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: quotaList,
+  loading,
+  error,
+  execute: loadList
+} = useApi<Quota[]>(
+  () =>
+    quotaApi.listQuotas({
       tenantId: filterTenantId.value || undefined,
       workspaceId: filterWorkspaceId.value || undefined
-    })
-    quotaList.value = result
-  } catch (e) {
-    error.value = true
-    ElMessage.error('配额列表加载失败')
-  } finally {
-    loading.value = false
+    }),
+  {
+    initialData: [],
+    onError: () => ElMessage.error('配额列表加载失败')
   }
-}
+)
 
-/** 拉取下拉选项 */
-async function loadOptions() {
-  try {
-    const [tenants, workspaces] = await Promise.all([
-      tenantApi.listAllTenants(),
-      workspaceApi.listAllWorkspaces()
-    ])
-    tenantOptions.value = tenants
-    workspaceOptions.value = workspaces
-  } catch {
-    // 选项加载失败不阻塞页面
-  }
-}
+// 下拉选项：通过 useApi 包装并行加载，失败时不阻塞页面
+const {
+  data: optionsData,
+  execute: loadOptions
+} = useApi<[Tenant[], Workspace[]]>(
+  () => Promise.all([tenantApi.listAllTenants(), workspaceApi.listAllWorkspaces()]),
+  { initialData: [[], []] }
+)
+const tenantOptions = computed<Tenant[]>(() => optionsData.value?.[0] ?? [])
+const workspaceOptions = computed<Workspace[]>(() => optionsData.value?.[1] ?? [])
 
 /** Workspace ID → 名称 */
 function workspaceName(id: string): string {
@@ -271,7 +261,7 @@ function workspaceName(id: string): string {
 
 /** 搜索按钮 */
 function handleSearch() {
-  loadList()
+  void loadList()
 }
 
 /* ------------------------------ 设置/编辑 ------------------------------ */
@@ -430,23 +420,25 @@ async function handleDelete(row: Quota) {
 /* ------------------------------ 用量查询 ------------------------------ */
 
 const usageDialogVisible = ref(false)
-const usageLoading = ref(false)
 const usageQuota = ref<Quota | null>(null)
-const usageData = ref<QuotaUsage | null>(null)
+
+// 用量数据：通过 useApi 包装按需加载
+const {
+  data: usageData,
+  loading: usageLoading,
+  execute: loadUsage
+} = useApi<QuotaUsage, [string]>(
+  (workspaceId: string) => quotaApi.getQuotaUsage(workspaceId),
+  {
+    onError: () => ElMessage.error('用量查询失败')
+  }
+)
 
 /** 查询用量 */
 async function handleViewUsage(row: Quota) {
   usageQuota.value = row
   usageDialogVisible.value = true
-  usageLoading.value = true
-  usageData.value = null
-  try {
-    usageData.value = await quotaApi.getQuotaUsage(row.workspaceId)
-  } catch {
-    ElMessage.error('用量查询失败')
-  } finally {
-    usageLoading.value = false
-  }
+  await loadUsage(row.workspaceId)
 }
 
 /** 用量百分比 */
@@ -546,12 +538,12 @@ const appStore = useAppStore()
 // 工作空间切换时刷新配额列表（修复 #4）
 watch(() => appStore.workspace, () => {
   filterWorkspaceId.value = ''
-  loadList()
+  void loadList()
 })
 
 onMounted(() => {
-  loadList()
-  loadOptions()
+  void loadList()
+  void loadOptions()
 })
 </script>
 

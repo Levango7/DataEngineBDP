@@ -44,7 +44,9 @@
     <div class="card" style="margin-top: 14px">
       <h3>结果预览</h3>
       <div v-if="queryLoading" class="note">查询中…</div>
-      <div v-else-if="queryError" class="note" style="color: var(--red)">{{ queryError }}</div>
+      <div v-else-if="queryError" class="note" style="color: var(--red)">
+        {{ queryError.message }}，<a href="javascript:void(0)" @click="runSql">重试</a>
+      </div>
       <table v-else-if="queryResult && queryResult.rows.length > 0">
         <thead>
           <tr><th v-for="(col, idx) in queryResult.columns" :key="idx">{{ col }}</th></tr>
@@ -63,6 +65,7 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import { executeCrossSourceSql, type CrossSourceQueryResult } from '@/api/sqlworkbench'
 
 const store = useAppStore()
@@ -75,10 +78,15 @@ interface LogLine {
 const sqllog = ref<LogLine[]>([{ cls: 'info', text: '[就绪] 点击「执行」经统一 SQL 网关路由…' }])
 const sqllogEl = ref<HTMLElement | null>(null)
 
-// 查询结果三态
-const queryResult = ref<CrossSourceQueryResult | null>(null)
-const queryLoading = ref(false)
-const queryError = ref('')
+// 查询结果：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: queryResult,
+  loading: queryLoading,
+  error: queryError,
+  execute: executeQuery
+} = useApi<CrossSourceQueryResult, [string]>(
+  (sql: string) => executeCrossSourceSql({ sql, dialect: 'ANSI' })
+)
 
 /** 格式化单元格显示 */
 function formatCell(val: unknown): string {
@@ -97,14 +105,26 @@ const selectedEngine = ref('auto')
 const SAMPLE_SQL =
   'SELECT u.city, SUM(p.amount) gmv FROM iceberg.ods.orders o JOIN doris.dim.user u ON o.user_id = u.user_id GROUP BY u.city ORDER BY gmv DESC'
 
+/** 渐进式渲染日志（逐行 push，自动滚动到底部） */
+function renderLogs(lines: LogLine[]): void {
+  sqllog.value = []
+  let i = 0
+  function step(): void {
+    if (i >= lines.length) return
+    sqllog.value.push(lines[i++])
+    nextTick(() => {
+      if (sqllogEl.value) sqllogEl.value.scrollTop = sqllogEl.value.scrollHeight
+    })
+    setTimeout(step, 500)
+  }
+  step()
+}
+
 async function runSql() {
-  queryLoading.value = true
-  queryError.value = ''
   sqllog.value = [{ cls: 'info', text: '[网关] 提交查询…' }]
-  try {
-    const sql = sqlText.value.trim() || SAMPLE_SQL
-    const result = await executeCrossSourceSql({ sql, dialect: 'ANSI' })
-    queryResult.value = result
+  const sql = sqlText.value.trim() || SAMPLE_SQL
+  const result = await executeQuery(sql)
+  if (result) {
     // 根据返回结果追加日志
     const lines: LogLine[] = [
       { cls: 'info', text: `[网关] 解析查询 → 涉及源 ${result.sources.join(', ')}` },
@@ -113,22 +133,9 @@ async function runSql() {
     if (result.error) {
       lines.push({ cls: 'info', text: `[错误] ${result.error}` })
     }
-    sqllog.value = []
-    let i = 0
-    function step() {
-      if (i >= lines.length) return
-      sqllog.value.push(lines[i++])
-      nextTick(() => {
-        if (sqllogEl.value) sqllogEl.value.scrollTop = sqllogEl.value.scrollHeight
-      })
-      setTimeout(step, 500)
-    }
-    step()
-  } catch (err) {
-    queryError.value = (err as Error).message || '查询失败'
-    sqllog.value.push({ cls: 'info', text: `[错误] ${queryError.value}` })
-  } finally {
-    queryLoading.value = false
+    renderLogs(lines)
+  } else if (queryError.value) {
+    sqllog.value.push({ cls: 'info', text: `[错误] ${queryError.value.message}` })
   }
 }
 </script>

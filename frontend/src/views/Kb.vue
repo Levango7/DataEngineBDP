@@ -10,7 +10,7 @@
     <div class="card">
       <div v-if="loading" style="text-align: center; padding: 24px; color: #888">正在加载知识库列表...</div>
       <div v-else-if="error" style="text-align: center; padding: 24px; color: #d4380d">
-        加载失败：{{ error }}
+        加载失败：{{ error.message }}
         <button class="btn ghost sm" style="margin-left: 8px" @click="loadKnowledgeBases">重试</button>
       </div>
       <table v-else>
@@ -41,16 +41,28 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import * as knowledgeApi from '@/api/knowledge'
 import type { KnowledgeBase, RagStrategy, KbStatus } from '@/api/knowledge'
 
 const store = useAppStore()
 
-const knowledgeBases = ref<KnowledgeBase[]>([])
-const ragStrategy = ref<RagStrategy | null>(null)
-const loading = ref(false)
-const error = ref<string | null>(null)
-const strategyLoading = ref(false)
+// 知识库列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: knowledgeBases,
+  loading,
+  error,
+  execute: loadKnowledgeBases
+} = useApi<KnowledgeBase[]>(() => knowledgeApi.listKnowledgeBases(), { initialData: [] })
+
+// RAG 策略：通过 useApi 包装，失败时提示
+const {
+  data: ragStrategy,
+  loading: strategyLoading,
+  execute: loadRagStrategy
+} = useApi<RagStrategy>(() => knowledgeApi.getRagStrategy(), {
+  onError: (err) => store.showToast(`加载 RAG 策略失败：${err.message}`)
+})
 
 function kbStatusLabel(s: KbStatus): string {
   const map: Record<KbStatus, string> = {
@@ -70,35 +82,12 @@ function kbStatusClass(s: KbStatus): string {
   return map[s] || ''
 }
 
-async function loadKnowledgeBases() {
-  loading.value = true
-  error.value = null
-  try {
-    knowledgeBases.value = await knowledgeApi.listKnowledgeBases()
-  } catch (e) {
-    error.value = (e as Error).message || '加载知识库列表失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadRagStrategy() {
-  strategyLoading.value = true
-  try {
-    ragStrategy.value = await knowledgeApi.getRagStrategy()
-  } catch (e) {
-    store.showToast(`加载 RAG 策略失败：${(e as Error).message}`)
-  } finally {
-    strategyLoading.value = false
-  }
-}
-
 function triggerUpload() {
   store.showToast('请选择要上传的文档')
 }
 
 onMounted(() => {
-  loadKnowledgeBases()
-  loadRagStrategy()
+  void loadKnowledgeBases()
+  void loadRagStrategy()
 })
 </script>

@@ -102,6 +102,48 @@ public class QualityRuleController {
         return ResponseEntity.notFound().build();
     }
 
+    /**
+     * 立即触发规则校验。
+     *
+     * <p>对齐前端 {@code quality.ts} 的 {@code runCheck}。
+     * TODO: 转交规则执行引擎真实校验，当前仅回显规则。</p>
+     *
+     * @param id 规则 ID
+     * @return 200 + 规则视图；404 若不存在
+     */
+    @PostMapping("/{id}/check")
+    public ResponseEntity<?> check(@PathVariable Long id) {
+        Rule rule = ruleService.getById(id);
+        if (rule == null) {
+            return ResponseEntity.notFound().build();
+        }
+        log.info("触发质量规则校验: id={}, name={}", id, rule.getName());
+        // TODO: 调用规则执行引擎并回写 lastCheckAt/lastResult
+        return ResponseEntity.ok(toView(rule));
+    }
+
+    /**
+     * 查询通过率统计。
+     *
+     * <p>对齐前端 {@code quality.ts} 的 {@code getSummary}。
+     * TODO: 接入真实通过率统计，当前返回占位统计。</p>
+     *
+     * @return 200 + 通过率统计
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<Map<String, Object>> summary() {
+        List<Rule> all = ruleService.listAll();
+        int total = all.size();
+        // TODO: 计算真实通过数（需关联校验结果存储）
+        int passed = 0;
+        double passRate = total == 0 ? 0.0 : (passed * 100.0 / total);
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("total", total);
+        summary.put("passed", passed);
+        summary.put("passRate", passRate);
+        return ResponseEntity.ok(summary);
+    }
+
     /** 前端字段 → Rule 模型（校验规则语义编码到 name/description/expression）。 */
     private Rule toRule(QualityRuleRequest req) {
         Rule rule = new Rule();

@@ -1,813 +1,751 @@
-# 前端 API 对接审计报告
+# 前端页面全面审计报告
 
-> 任务编号：#357  
-> 审计时间：2026-08-16  
-> 审计范围：`frontend/` 目录下 34 个功能页面、32 个 API 模块、vite proxy 配置  
-> 审计模式：只读静态审计（未修改任何源码）  
-> 参考实现：`Dashboard.vue`（loading / error / data 三态 + useApi + onMounted + TS 类型）
+## 1. 审计概览
 
----
+- 审计日期：2026-08-16
+- 项目路径：`F:\nexus\DataEngineBDP`
+- 审计范围：前端 34 个现有页面与后端 API 的对接情况
+- 前端路由总数：53 条（含 1 条根重定向 + 1 条兜底重定向 + 51 条业务路由）
+- 前端实际功能页面：34 个（已全部接入实际 Vue 组件，无 Roadmap.vue 占位）
+- 前端框架页面：2 个（Login、Dashboard）
+- 前端 API 模块总数：36 个（含 `client.ts` 与 `types.ts`，业务模块 34 个）
+- 后端 Java Controller 总数：60 个（含 HealthController/GlobalExceptionHandler）
+- 后端 Java 业务 Controller：约 35 个（去重后）
+- 后端 Go 服务：4 个（catalog、ai-assistant、vector-engine、observability query-api）
+- 后端 Python FastAPI 服务：4 个（business-portal、asset-exchange、open-api-catalog、industry-templates）
+- 后端 REST API 端点总数：约 220 个
+- Vite proxy 条目数：11 个
+- 审计结论：**所有 34 个功能页面已替换原 Roadmap 占位，但存在 40 处前后端 API 不匹配问题**
 
-## 第1章 审计概要
+## 2. 路由配置审计
 
-### 1.1 总体数据
+### 2.1 所有路由清单
 
-| 指标 | 数值 | 说明 |
-| --- | --- | --- |
-| 审计页面总数 | 34 | 含 `views/`、`views/orchestrator/`、`views/ai-assistant/` 子目录 |
-| 审计 API 模块总数 | 32 | 不含 `client.ts`、`types.ts` 基础设施 |
-| vite proxy 配置总数 | 6 | `/api`、`/api/v1/ops`、`/api/v1/cluster`、`/api/v1/vector`、`/api/v1/ai-assistant`、`/api/v1/dashboards` |
-| 后端服务总数（按 Controller 归属） | 19 | encaps-layer、finops/dashboard、finops/cost-model、rule-engine、stream-batch-scheduler、sql-gateway、tag-engine、knative、karmada、infra-provider-xinchang、infra-provider-private、infra-provider-cloud、infra-orchestrator、governance/real-time-pipeline、governance/metadata-collector、governance/lineage-analyzer、flink-cdc、observability query-api、ai-assistant |
-| 完全通过页面数 | 4 | Dashboard、Workspaces、BusinessPortal、AiAssistant |
-| 存在问题页面数 | 30 | 详见第4章 |
-| 问题总数 | 47 | P0=0、P1=11、P2=36 |
-| 页面通过率 | 11.8% | 4/34 |
-| API 模块通过率 | 87.5% | 28/32（4 个缺类型定义） |
-| vite proxy 覆盖率 | 60% | 6/10（4 个后端服务缺独立 proxy） |
+| 序号 | 路由 path | 组件 | 类型 | 状态 |
+|---:|---|---|---|---|
+| 1 | `/` | — | 重定向 | → /dashboard |
+| 2 | `/login` | Login.vue | 框架页 | 正常 |
+| 3 | `/dashboard` | Dashboard.vue | 框架页 | 正常 |
+| 4 | `/workspaces` | Workspaces.vue | 功能页 | 正常 |
+| 5 | `/projects` | Projects.vue | 功能页 | 正常 |
+| 6 | `/integrate` | Integrate.vue | 功能页 | 正常 |
+| 7 | `/develop` | Develop.vue | 功能页 | 正常 |
+| 8 | `/sql` | Sql.vue | 功能页 | 正常 |
+| 9 | `/govern` | Govern.vue | 功能页 | 正常 |
+| 10 | `/standard` | Standard.vue | 功能页 | 正常 |
+| 11 | `/quality` | Quality.vue | 功能页 | 正常 |
+| 12 | `/lineage` | Lineage.vue | 功能页 | 正常 |
+| 13 | `/data-lineage` | DataLineage.vue | 功能页 | 正常 |
+| 14 | `/sec` | Sec.vue | 功能页 | 正常 |
+| 15 | `/vector` | Vector.vue | 功能页 | 正常 |
+| 16 | `/kb` | Kb.vue | 功能页 | 正常 |
+| 17 | `/llmops` | Llmops.vue | 功能页 | 正常 |
+| 18 | `/gateway` | Gateway.vue | 功能页 | 正常 |
+| 19 | `/analyze` | Analyze.vue | 功能页 | 正常 |
+| 20 | `/ops` | Ops.vue | 功能页 | 正常 |
+| 21 | `/account` | Account.vue | 功能页 | 正常 |
+| 22 | `/admin` | Admin.vue | 功能页 | 正常 |
+| 23 | `/tenants` | TenantManagement.vue | 功能页 | 正常 |
+| 24 | `/cluster` | ClusterOverview.vue | 功能页 | 正常 |
+| 25 | `/datasources` | DataSourceManagement.vue | 功能页 | 正常 |
+| 26 | `/jobs` | JobManagement.vue | 功能页 | 正常 |
+| 27 | `/scheduler-ops` | SchedulerOps.vue | 功能页 | 正常 |
+| 28 | `/workspace-management` | WorkspaceManagement.vue | 功能页 | 正常 |
+| 29 | `/quota-management` | QuotaManagement.vue | 功能页 | 正常 |
+| 30 | `/sql-workbench` | SqlWorkbench.vue | 功能页 | 正常 |
+| 31 | `/search` | SearchPortal.vue | 功能页 | 正常 |
+| 32 | `/orchestrator/dag` | DagVisualizer.vue | 功能页 | 正常 |
+| 33 | `/ai-assistant` | AiAssistant.vue | 功能页 | 正常 |
+| 34 | `/infra-machine` | InfraMachine.vue | 基础设施层 | 正常 |
+| 35 | `/infra-k8s` | InfraK8s.vue | 基础设施层 | 正常 |
+| 36 | `/infra-net` | InfraNet.vue | 基础设施层 | 正常 |
+| 37 | `/infra-store` | InfraStore.vue | 基础设施层 | 正常 |
+| 38 | `/infra-sched` | InfraSched.vue | 基础设施层 | 正常 |
+| 39 | `/eng-storage` | EngStorage.vue | 引擎层 | 正常 |
+| 40 | `/eng-spark` | EngSpark.vue | 引擎层 | 正常 |
+| 41 | `/eng-flink` | EngFlink.vue | 引擎层 | 正常 |
+| 42 | `/eng-doris` | EngDoris.vue | 引擎层 | 正常 |
+| 43 | `/eng-kafka` | EngKafka.vue | 引擎层 | 正常 |
+| 44 | `/eng-iotdb` | EngIotdb.vue | 引擎层 | 正常 |
+| 45 | `/eng-mmg` | EngMmg.vue | 引擎层 | 正常 |
+| 46 | `/govern-meta` | GovernMeta.vue | 治理/开发层 | 正常 |
+| 47 | `/dev-sched` | DevSched.vue | 治理/开发层 | 正常 |
+| 48 | `/dev-tag` | DevTag.vue | 治理/开发层 | 正常 |
+| 49 | `/dev-ml` | DevMl.vue | 治理/开发层 | 正常 |
+| 50 | `/ops-tpl` | TemplateMarket.vue | 行业应用 | 正常 |
+| 51 | `/ops-portal` | BusinessPortal.vue | 业务线门户 | 正常 |
+| 52 | `/ops-api` | APIMarket.vue | 开放API | 正常 |
+| 53 | `/ops-flow` | AssetMarket.vue | 资产流通 | 正常 |
+| 54 | `/:pathMatch(.*)*` | — | 兜底重定向 | → /dashboard |
 
-### 1.2 审计维度
+### 2.2 路由配置问题
 
-每个页面按以下 6 个维度检查：
+| 问题 | 严重程度 | 说明 |
+|---|---|---|
+| **Roadmap.vue 未被路由引用** | P0 | 任务描述称有 16 个占位页面使用 Roadmap.vue，但实际路由文件中所有路由均引用实际 Vue 组件。Roadmap.vue 文件仍存在（24 行）但已成为死代码 |
+| 部分路由缺少 `name` 属性 | P2 | 批次 12 新增的 16 个路由（infra-*、eng-*、govern-meta、dev-*、ops-tpl）未设置 `name` 字段，不利于编程式导航 |
+| 路由 `meta` 不统一 | P2 | 早期 19 个路由（dashboard~admin）未设置 `meta.title` 与 `meta.icon`，仅批次 4+ 路由有完整 meta |
+| 路由鉴权白名单仅 `/login` | P2 | `PUBLIC_PATHS` 只含 `/login`，无公开页（如健康检查、文档页） |
+| `createWebHashHistory` 使用 Hash 模式 | P2 | 生产环境 Hash 路由不利于 SEO 与 URL 美观，建议评估切换 History 模式 |
 
-1. **API 调用匹配**：页面调用的 API 是否对应到正确的后端 Controller
-2. **三态处理**：是否具备 loading / error / data 三态（参考 Dashboard.vue）
-3. **错误处理**：是否有 try/catch 错误捕获与重试机制
-4. **useApi 使用**：是否使用 `@/composables/useApi` 组合式函数
-5. **TypeScript 类型**：是否有 TS 类型定义
-6. **onMounted 触发**：是否在挂载时主动拉取数据
+## 3. API 对接审计
 
-每个 API 模块按以下 3 个维度检查：
+### 3.1 前端 API 模块清单
 
-1. **client.ts 复用**：是否使用 `@/api/client.ts` 的 `get/post/put/del` 方法
-2. **路径规范**：API 路径是否与后端 Controller `@RequestMapping` 对齐
-3. **TypeScript 类型**：是否导出 interface/type 定义
+| 序号 | 模块文件 | BASE 路径 | 导出函数数 | 对接后端服务 |
+|---:|---|---|---:|---|
+| 1 | `client.ts` | — | 4 (get/post/put/del) | Axios 封装 |
+| 2 | `types.ts` | — | — | 公共类型定义 |
+| 3 | `account.ts` | `/account` | 3 | encaps-layer AccountController |
+| 4 | `admin.ts` | `/admin` | 2 | encaps-layer AdminController |
+| 5 | `ai-assistant.ts` | `/ai-assistant` | 13 | ai-assistant Go :18110 |
+| 6 | `analyze.ts` | `/dashboards` | 6 | finops-dashboard :8085 |
+| 7 | `apiCatalog.ts` | `/apis`、`/subscriptions` | 18 | open-api-catalog Python |
+| 8 | `assetMarket.ts` | `/assets`、`/asset-subscriptions` | 9 | asset-exchange Python |
+| 9 | `businessPortal.ts` | `/business-lines` | 10 | business-portal Python |
+| 10 | `cluster.ts` | `/cluster` | 4 | observability query-api :8090 |
+| 11 | `datasource.ts` | `/datasources` | 6 | encaps-layer DataSourceController |
+| 12 | `dev-ml.ts` | `/jobs`、`/ml` | 9 | encaps-layer MLController |
+| 13 | `dev-sched.ts` | `/jobs`、`/stream-batch/dags` | 12 | stream-batch-scheduler :8087 |
+| 14 | `dev-tag.ts` | `/tags`、`/profiles`、`/audiences` | 13 | tag-engine |
+| 15 | `develop.ts` | `/develop` | 5 | **缺失后端** |
+| 16 | `engine.ts` | `/virtual-tables`、`/materialized-views`、`/jobs`、`/flink/jobs`、`/doris/*`、`/kafka/*`、`/iotdb/*` | 36 | sql-gateway + flink-cdc + 多引擎 |
+| 17 | `gateway.ts` | `/gateway` | 5 | **缺失后端** |
+| 18 | `govern-meta.ts` | `/metadata` | 12 | metadata-collector |
+| 19 | `governance.ts` | `/assets` | 9 | encaps-layer AssetController |
+| 20 | `infra.ts` | `/clusters/xinchang`、`/clusters/private`、`/clusters/cloud`、`/clusters` | 40 | infra-orchestrator + 3 个 provider |
+| 21 | `integrate.ts` | `/integrate` | 8 | encaps-layer IntegrateController |
+| 22 | `job.ts` | `/jobs` | 7 | stream-batch JobController |
+| 23 | `knowledge.ts` | `/knowledge` | 3 | encaps-layer KnowledgeController |
+| 24 | `lineage.ts` | `/lineage/api/v1/lineage` | 4 | lineage-analyzer :8089 |
+| 25 | `llmops.ts` | `/llmops` | 4 | **缺失后端** |
+| 26 | `ops.ts` | `/ops` | 5 | observability query-api :8090 |
+| 27 | `orchestrator-viz.ts` | `/orchestrator/dags` | 18 | rule-engine OrchestratorController |
+| 28 | `project.ts` | `/projects` | 8 | encaps-layer ProjectController |
+| 29 | `quality.ts` | `/quality/rules` | 7 | rule-engine QualityRuleController |
+| 30 | `quota.ts` | `/quotas` | 6 | encaps-layer QuotaController |
+| 31 | `search.ts` | `/search` | 7 | encaps-layer SearchController |
+| 32 | `sec.ts` | `/sec` | 7 | encaps-layer SecController |
+| 33 | `sqlworkbench.ts` | `/sql/*` | 7 | sql-gateway :8088 |
+| 34 | `standard.ts` | `/standards` | 6 | encaps-layer StandardController |
+| 35 | `streamBatch.ts` | `/stream-batch/dags` | 3 | stream-batch-scheduler :8087 |
+| 36 | `template.ts` | `/templates` | 5 | industry-templates Python |
+| 37 | `tenant.ts` | `/tenants` | 6 | encaps-layer TenantController |
+| 38 | `vector.ts` | `/vector` | 3 | vector-engine :8086 |
+| 39 | `workspace.ts` | `/workspaces` | 7 | encaps-layer WorkspaceController |
 
----
+**前端 API 函数总数：约 270 个**
 
-## 第2章 vite proxy 配置审计
+### 3.2 后端 API 端点清单
 
-### 2.1 现有配置（`frontend/vite.config.ts` 第 18–49 行）
+#### 3.2.1 encaps-layer（Java，:8080）
 
-| Proxy 路径 | 目标服务 | 默认端口 | 环境变量覆盖 | 用途 |
-| --- | --- | --- | --- | --- |
-| `/api` | encaps-layer | 8080 | `VITE_API_TARGET` | 主 API 网关（Auth/Admin/Integrate/Account/Search/Asset/ApiCatalog/Knowledge/Template/Sec/Standard/Project/DataSource/Tenant/Workspace/Quota/SecurityFacade） |
-| `/api/v1/ops` | observability query-api | 8090 | `VITE_OPS_TARGET` | 运维查询（Ops.vue 健康总览） |
-| `/api/v1/cluster` | observability query-api | 8090 | `VITE_OPS_TARGET` | 集群查询（ClusterOverview.vue 节点/组件） |
-| `/api/v1/vector` | vector-engine | 8086 | `VITE_VECTOR_TARGET` | 向量检索（Vector.vue） |
-| `/api/v1/ai-assistant` | ai-assistant | 18110 | `VITE_AI_TARGET` | AI 助手（AiAssistant.vue） |
-| `/api/v1/dashboards` | finops-dashboard | 8085 | `VITE_BI_TARGET` | BI 看板（Analyze.vue） |
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| AuthController | `/api/v1/auth` | POST /login |
+| TenantController | `/api/v1/tenants` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| WorkspaceController | `/api/v1/workspaces` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id}、GET/{id}/status |
+| QuotaController | `/api/v1/quotas` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id}、GET/workspace/{wid}/usage |
+| DataSourceController | `/api/v1/datasources` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| ProjectController | `/api/v1/projects` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| IntegrateController | `/api/v1/integrate` | GET/tasks、GET/tasks/{id}、POST/tasks、PUT/tasks/{id}、DELETE/tasks/{id} |
+| StandardController | `/api/v1/standards` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| SecController | `/api/v1/sec` | GET/policies、GET/policies/{id}、POST/policies、PUT/policies/{id}、DELETE/policies/{id} |
+| AssetController | `/api/v1/assets` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| KnowledgeController | `/api/v1/knowledge` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| TemplateController | `/api/v1/templates` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| ApiCatalogController | `/api/v1/apis` | GET、POST、GET/{id}、PUT/{id}、DELETE/{id} |
+| SearchController | `/api/v1/search` | POST、GET/facets、GET/suggest、GET/history |
+| AccountController | `/api/v1/account` | GET/plan、GET/billing、POST/upgrade |
+| AdminController | `/api/v1/admin` | GET/kpi、GET/env-matrix |
+| MLController | `/api/v1/ml` | GET/models、GET/models/{id}、POST/models、DELETE/models/{id}、GET/models/{name}/versions、GET/inference-services、POST/inference-services、DELETE/inference-services/{id}、POST/inference-services/{id}/scale |
+| SecurityFacadeController | `/api/v1/security` | GET/status、POST/mask、GET/audit/events、GET/auth/check、POST/evidence/collect、POST/assessment/export |
 
-### 2.2 配置正确性评估
+#### 3.2.2 sql-gateway（Java，:8088）
 
-| 检查项 | 结果 | 说明 |
-| --- | --- | --- |
-| `changeOrigin: true` | ✅ 全部启用 | 跨域转发正确 |
-| 环境变量覆盖能力 | ✅ 全部支持 | 生产可通过 `VITE_*_TARGET` 切换 |
-| IPv4 强制绑定 | ✅ `host: '127.0.0.1'` | 避免 localhost 走 IPv6 |
-| 路径冲突 | ⚠️ `/api` 与子路径同时存在 | Vite proxy 按声明顺序匹配，子路径优先级依赖配置顺序，当前顺序正确（子路径在前），但**未显式声明 `rewrite`，依赖后端兼容 `/api/v1` 前缀** |
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| SqlGatewayController | `/api/v1/sql` | POST/execute、GET/routes、POST/routes、GET/engines、POST/parse、POST/validate、POST/convert、POST/optimize、POST/explain、GET/optimize/rules、POST/cross-source、POST/cross-source/explain |
+| VirtualTableController | `/api/v1/virtual-tables` | GET/{tableName}、PUT/{tableName}、DELETE/{tableName}、POST/{tableName}/query、GET/{tableName}/schema、POST/{tableName}/test-connection、POST/{tableName}/refresh、GET/cache/stats、GET/types |
+| RewriteController | `/api/v1/rewrite` | POST/execute、POST/route、POST/candidates、GET/views、GET/views/{viewName}、POST/views、PUT/views/{viewName}、DELETE/views/{viewName}、POST/views/{viewName}/refresh、GET/rules、GET/rules/{ruleName}、POST/rules、DELETE/rules/{ruleName} |
 
-### 2.3 后端服务覆盖缺口（P1）
+#### 3.2.3 rule-engine（Java，:8091）
 
-以下后端服务在 34 个页面或 32 个 API 模块中被引用，但 vite proxy **未独立配置**，依赖 `/api` 兜底转发到 encaps-layer :8080：
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| QualityRuleController | `/api/v1/quality/rules` | GET/{id}、PUT/{id}、DELETE/{id} |
+| RuleController | `/api/v1/rules` | GET/{id}、PUT/{id}、DELETE/{id}、POST/execute、POST/execute/batch、GET/types |
+| SchedulerController | `/api/v1/scheduler` | POST/tasks、GET/tasks/{id}、GET/tasks、DELETE/tasks/{id}、GET/status、POST/tenants、GET/tenants、PUT/tenants/{tid}/enabled、GET/quotas、PUT/quotas/{tid} |
+| AgentController | `/api/v1/agents` | POST/{role}/execute、GET/describe、GET/{role}/describe |
+| OrchestratorController | `/api/v1/orchestrator/dags` | GET/{id}、POST/{id}/run、POST/{id}/stop、GET/{id}/results、GET/{id}/mermaid、GET/{id}/json、DELETE/{id} |
 
-| 缺失服务 | 引用方 | 期望端口 | 风险 |
-| --- | --- | --- | --- |
-| **stream-batch-scheduler** | `api/streamBatch.ts`（`/stream-batch/dags/...`）、`SchedulerOps.vue` | 8087（推测） | P1：开发环境若该服务独立部署，请求会错误转发到 encaps-layer |
-| **sql-gateway** | `api/sqlworkbench.ts`（`/sql/cross-source`、`/sql/parse`、`/sql/optimize` 等）、`Sql.vue`、`SqlWorkbench.vue` | 8088（推测） | P1：跨源 SQL 网关独立服务，未配置 proxy |
-| **governance/lineage-analyzer** | `api/lineage.ts`（`/lineage/api/v1/lineage/analyze`）、`Lineage.vue`、`DataLineage.vue` | 8089（推测） | P1：lineage.ts 已用 `{ baseURL: '' }` 绕过 client，但 vite 仍需 proxy `/lineage` 前缀 |
-| **rule-engine** | `api/quality.ts`（`/quality/rules`）、`Quality.vue` | 8091（推测） | P2：若 rule-engine 与 encaps-layer 同 Pod 部署则无影响；独立部署时需补 proxy |
-| **governance/real-time-pipeline** | `api/governance.ts`（`/assets`）、`Govern.vue` | 8092（推测） | P2：同上 |
-| **finops/cost-model** | `api/account.ts`（`/account/billing`）、`Account.vue` | 8085（与 finops-dashboard 同） | P2：可复用 `VITE_BI_TARGET`，但路径未在 proxy 列表 |
-| **tag-engine** | 暂无前端引用 | — | 无风险 |
-| **knative / karmada / flink-cdc** | 暂无前端引用 | — | 无风险 |
-| **infra-provider-*** | 暂无前端引用 | — | 无风险 |
+#### 3.2.4 stream-batch-scheduler（Java，:8087）
 
-### 2.4 修复建议
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| JobController | `/api/v1/jobs` | GET/{id}、PUT/{id}、DELETE/{id}、POST/{id}/run |
+| StreamBatchSchedulerController | `/api/v1/stream-batch` | POST/dags、GET/dags/{dagId}、GET/dags、GET/dags/{dagId}/runs、POST/dags/{dagId}/runs/{runId}/rerun、POST/dags/{dagId}/backfill、POST/router/route |
 
-```ts
-// frontend/vite.config.ts → server.proxy 增补
-'/api/v1/stream-batch': {
-  target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
+#### 3.2.5 governance（Java）
+
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| CollectorController（metadata-collector） | `/api/v1/metadata` | POST/sources、GET/sources、GET/sources/{id}、PUT/sources/{id}、DELETE/sources/{id}、POST/collect/{sourceId}、GET/collect/status/{sourceId}、POST/collect/test/{sourceId}、POST/collect/schedule/{sourceId}、DELETE/collect/schedule/{sourceId}、GET/collectors |
+| LineageController（lineage-analyzer :8089） | `/api/v1/lineage` | POST/analyze、GET/upstream/{table}、GET/downstream/{table}、GET/impact/{table} |
+| GovernanceController（real-time-pipeline :8092） | `/api/v1/governance` | POST/metadata/collect、GET/metadata/{tableIdentifier}、POST/lineage/parse、GET/lineage/{targetTable}、GET/lineage、POST/quality/rules、DELETE/quality/rules/{ruleId}、GET/quality/rules、POST/quality/evaluate、GET/alerts、GET/alerts/{tableIdentifier}、GET/pipeline/metrics、GET/pipeline/history |
+
+#### 3.2.6 infra（Java）
+
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| ClusterController（infra-orchestrator） | `/api/v1/clusters` | DELETE/{env}/{cid}、GET/{env}/{cid}、POST/{env}/{cid}/scale、GET/{env}、GET/providers、GET/environments、GET/profiles |
+| XinchangClusterController | `/api/v1/clusters/xinchang` | DELETE/{cid}、GET/{cid}、POST/{cid}/scale |
+| PrivateClusterController | `/api/v1/clusters/private` | POST/{provider}、DELETE/{provider}/{id}、GET/{provider}/{id}、GET/{provider}、POST/{provider}/{id}/scale |
+| CloudClusterController | `/api/v1/clusters/cloud` | POST/{provider}、DELETE/{provider}/{id}、GET/{provider}/{id}、GET/{provider}、POST/{provider}/{id}/scale、POST/{provider}/{id}/start、POST/{provider}/{id}/stop、GET/providers |
+
+#### 3.2.7 finops（Java）
+
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| BiDashboardController（dashboard :8085） | `/api/v1/dashboards` | GET/{id}、PUT/{id}、DELETE/{id} |
+| DashboardController | `/api/v1/dashboard` | GET/top10、GET/trend、GET/details |
+| BillingController | `/api/v1/dashboard/billing` | GET/tenant、GET/tenant/trend |
+| AllocationController | `/api/v1/allocation` | GET/configs、GET/configs/{id}、POST/configs、DELETE/configs/{id}、GET/execute |
+| SuggestionController | `/api/v1/suggestions` | GET/idle、GET/list |
+| BillExportController | `/api/v1/bill/export` | GET/csv、GET/excel |
+| CostController（cost-model） | `/api/v1/cost` | POST/calculate、GET/report |
+| PricingController | `/api/v1/pricing` | GET/{name}、PUT/{name} |
+| MeteringController | `/api/v1/finops/metering` | POST/query |
+| BillingController（cost-model） | `/api/v1/finops/billing` | GET/tenant、GET/tenant/trend |
+
+#### 3.2.8 tag-engine（Java）
+
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| TagController | `/api/v1/tags` | GET/{id}、DELETE/{id}、POST/{id}/rules、GET/{id}/rules、POST/{id}/compute、POST/batch-compute |
+| ProfileController | `/api/v1/profiles` | GET/{userId}、POST/query、POST/count |
+| AudienceController | `/api/v1/audiences` | POST/select |
+
+#### 3.2.9 flink-cdc（Java）
+
+| Controller | 前缀 | 端点 |
+|---|---|---|
+| MaterializedViewController | `/api/materialized-views` | GET/{name}、PUT/{name}、DELETE/{name}、POST/{name}/refresh、GET/{name}/status、GET/status |
+
+#### 3.2.10 Go 服务
+
+| 服务 | 端口 | 端点 |
+|---|---|---|
+| catalog | — | GET/POST/DELETE `/api/v1/catalog/databases`、GET/POST/PUT/DELETE `/api/v1/catalog/tables` |
+| ai-assistant | :18110 | POST `/api/v1/ai-assistant/chat`、POST `/chat/stream`、POST `/nl2sql`、POST `/execute`、POST `/recommend-chart`、POST `/summarize`、POST `/dashboard`、GET/POST `/sessions`、GET/DELETE `/sessions/:id` |
+| vector-engine | :8086 | POST/DELETE `/collections`、POST `/collections/:name/vectors`、POST `/collections/:name/search`、POST `/collections/:name/hybrid-search`、DELETE `/collections/:name/vectors`、GET `/collections/:name/stats`、GET `/vector`、POST `/vector/search` |
+| observability query-api | :8090 | GET `/api/v1/ops/health/overview`、GET `/api/v1/cluster/overview`、GET `/cluster/nodes`、GET `/cluster/pods`、GET `/cluster/components`、GET `/platform/api/v1/query` 等 |
+
+#### 3.2.11 Python FastAPI 服务
+
+| 服务 | 前缀 | 端点 |
+|---|---|---|
+| business-portal | `/api/v1/business-lines` | POST/GET/PUT/DELETE 业务线 CRUD、GET/{id}/dashboard、GET/{id}/workbench、GET/{id}/catalog、GET/POST/DELETE/{id}/reports |
+| asset-exchange | `/api/v1/assets`、`/api/v1/subscriptions`、`/api/v1/audit-logs` | 资产 CRUD、订阅、审计日志 |
+| open-api-catalog | `/api/v1/apis`、`/api/v1/subscriptions` | API CRUD、订阅、调用、计量、文档、APISIX 配置 |
+| industry-templates | `/api/v1/templates` | GET 模板列表、GET/{id}、POST/{id}/deploy、GET/{id}/preview、GET/{id}/deployments、GET/categories |
+
+### 3.3 不匹配的 API 调用
+
+#### 3.3.1 前端调用但后端缺失的端点
+
+| 前端模块 | 调用 URL | HTTP 方法 | 后端是否存在 | 问题 |
+|---|---|---|---|---|
+| `tenant.ts` | `/tenants/all` | GET | ❌ | TenantController 无 /all 端点，前端用于下拉选择 |
+| `workspace.ts` | `/workspaces/all` | GET | ❌ | WorkspaceController 无 /all 端点 |
+| `datasource.ts` | `/datasources/{id}/test` | POST | ❌ | DataSourceController 无 test 端点 |
+| `job.ts` | `/jobs` (列表) | GET | ❌ | JobController 无 GET 列表端点（仅有 GET/{id}） |
+| `job.ts` | `/jobs` (创建) | POST | ❌ | JobController 无 POST 创建端点 |
+| `job.ts` | `/jobs/{id}/cancel` | POST | ❌ | JobController 无 cancel 端点 |
+| `job.ts` | `/jobs/{id}/logs` | GET | ❌ | Job9 JobController 无 logs 端点 |
+| `job.ts` | `/jobs/{id}/status` | GET | ❌ | JobController 无 status 端点 |
+| `project.ts` | `/projects/{id}/datasets` | GET | ❌ | ProjectController 无 datasets 子资源 |
+| `project.ts` | `/projects/{id}/jobs` | GET | ❌ | ProjectController 无 jobs 子资源 |
+| `project.ts` | `/projects/{id}/members` | GET | ❌ | ProjectController 无 members 子资源 |
+| `integrate.ts` | `/integrate/connectors` | GET | ❌ | IntegrateController 无 connectors 端点 |
+| `integrate.ts` | `/integrate/tasks/{id}/run` | POST | ❌ | IntegrateController 无 run 端点 |
+| `integrate.ts` | `/integrate/tasks/{id}/stop` | POST | ❌ | IntegrateController 无 stop 端点 |
+| `develop.ts` | `/develop/files` | GET | ❌ | **后端完全缺失 DevelopController** |
+| `develop.ts` | `/develop/files/content` | GET | ❌ | 同上 |
+| `develop.ts` | `/develop/run` | POST | ❌ | 同上 |
+| `develop.ts` | `/develop/schedule` | POST | ❌ | 同上 |
+| `develop.ts` | `/develop/dag` | GET | ❌ | 同上 |
+| `governance.ts` | `/assets/{id}/schema` | GET | ❌ | AssetController 无 schema 端点 |
+| `governance.ts` | `/assets/{id}/quality` | GET | ❌ | AssetController 无 quality 端点 |
+| `governance.ts` | `/assets/{id}/permissions` | GET | ❌ | AssetController 无 permissions 端点 |
+| `governance.ts` | `/assets/{id}/apply-permission` | POST | ❌ | AssetController 无 apply-permission 端点 |
+| `standard.ts` | `/standards/summary` | GET | ❌ | StandardController 无 summary 端点 |
+| `quality.ts` | `/quality/rules` (列表) | GET | ❌ | QualityRuleController 无 GET 列表端点 |
+| `quality.ts` | `/quality/rules` (创建) | POST | ❌ | QualityRuleController 无 POST 创建端点 |
+| `quality.ts` | `/quality/rules/{id}/check` | POST | ❌ | QualityRuleController 无 check 端点 |
+| `quality.ts` | `/quality/rules/summary` | GET | ❌ | QualityRuleController 无 summary �8 端点 |
+| `sec.ts` | `/sec/approvals` | GET | ❌ | SecController 无 approvals 端点 |
+| `sec.ts` | `/sec/approvals/{id}/approve` | POST | ❌ | 同上 |
+| `sec.ts` | `/sec/approvals/{id}/reject` | POST | ❌ | 同上 |
+| `knowledge.ts` | `/knowledge/rag-strategy` | GET | ❌ | KnowledgeController 无 rag-strategy 端点 |
+| `knowledge.ts` | `/knowledge/upload` | POST | ❌ | KnowledgeController 无 upload 端点 |
+| `llmops.ts` | `/llmops/models` | GET | ❌ | **后端完全缺失 LLMOpsController** |
+| `llmops.ts` | `/llmops/eval-metrics` | GET | ❌ | 同上 |
+| `llmops.ts` | `/llmops/finetune` | POST | ❌ | 同上 |
+| `llmops.ts` | `/llmops/human-eval` | POST | ❌ | 同上 |
+| `gateway.ts` | `/gateway/stats` | GET | ❌ | **后端完全缺失 GatewayController** |
+| `gateway.ts` | `/gateway/keys` | GET/POST | ❌ | 同上 |
+| `analyze.ts` | `/dashboards` (列表) | GET | ❌ | BiDashboardController 无 GET 列表端点 |
+| `analyze.ts` | `/dashboards` (创建) | POST | ❌ | BiDashboardController 无 POST 创建端点 |
+| `analyze.ts` | `/dashboards/realtime` | GET | ❌ | BiDashboardController 无 realtime 端点 |
+| `ops.ts` | `/ops/overview` | GET | ❌ | query-api 无 /ops/overview 端点 |
+| `ops.ts` | `/ops/jobs` | GET | ❌ | query-api 无 /ops/jobs 端点 |
+| `ops.ts` | `/ops/alerts` | GET | ❌ | query-api 无 /ops/alerts 端点 |
+| `ops.ts` | `/ops/alerts/{id}/handle` | POST | ❌ | 同上 |
+| `ops.ts` | `/ops/jobs/{id}/logs` | GET | ❌ | 同上 |
+| `ai-assistant.ts` | `/ai-assistant/sessions/{id}/pin` | POST | ❌ | ai-assistant Go 无 pin 端点 |
+| `ai-assistant.ts` | `/ai-assistant/sessions/{id}/rename` | POST | ❌ | 同上 |
+| `ai-assistant.ts` | `/ai-assistant/messages/{id}/feedback` | POST | ❌ | 同上 |
+| `ai-assistant.ts` | `/ai-assistant/example-prompts` | GET | ❌ | 同上 |
+| `ai-assistant.ts` | `/ai-assistant/superset/datasources` | GET | ❌ | 同上 |
+| `search.ts` | `/search/export` | POST | ❌ | SearchController 无 export 端点 |
+| `search.ts` | `/search/history/clear` | POST | ❌ | SearchController 无 history/clear 端点 |
+| `search.ts` | `/search/history/{id}/delete` | POST | ❌ | SearchController 无 history/{id}/delete 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags` (列表) | GET | ❌ | OrchestratorController 无 GET 列表端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags` (提交) | POST | ❌ | OrchestratorController 无 POST 提交端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/thoughts` | GET | ❌ | 无 thoughts 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/tool-calls` | GET | ❌ | 无 tool-calls 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/intervention` | GET | ❌ | 无 intervention 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/intervene` | POST | ❌ | 无 intervene 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/checkpoints` | GET | ❌ | 无 checkpoints 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/checkpoint` | POST | ❌ | 无 checkpoint 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/resume` | POST | ❌ | 无 resume 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/executions` | GET | ❌ | 无 executions 端点 |
+| `orchestrator-viz.ts` | `/orchestrator/dags/{id}/replay/{execId}` | GET | ❌ | 无 replay 端点 |
+| `infra.ts` | `/clusters/{env}/{cid}/nodes` | GET | ❌ | ClusterController 无 nodes 子资源 |
+| `infra.ts` | `/clusters/{env}/{cid}/components` | GET | ❌ | ClusterController 无 components 子资源 |
+| `infra.ts` | `/clusters/{env}/{cid}/network` | GET/PUT | ❌ | ClusterController 无 network 子资源 |
+| `infra.ts` | `/clusters/{env}/{cid}/network/policies` | GET/POST/DELETE | ❌ | 同上 |
+| `infra.ts` | `/clusters/{env}/{cid}/network/cnis` | GET | ❌ | 同上 |
+| `infra.ts` | `/clusters/{env}/{cid}/storage/*` | GET/POST/DELETE | ❌ | ClusterController 无 storage 子资源 |
+| `infra.ts` | `/clusters/{env}/{cid}/hpa` | GET/POST/PUT/DELETE | ❌ | ClusterController 无 hpa 子资源 |
+| `infra.ts` | `/clusters/{env}/{cid}/scale/events` | GET | ❌ | 同上 |
+| `infra.ts` | `/clusters/{env}/{cid}/scale/summary` | GET | ❌ | 同上 |
+| `engine.ts` | `/jobs` (Spark 列表/创建) | GET/POST | ❌ | JobController 在 stream-batch，但前端 engine.ts 调用 `/jobs` 走 encaps-layer :8080，**端口不匹配** |
+| `engine.ts` | `/flink/jobs/{id}/checkpoints` | GET | ❌ | 无 Flink 专用 Controller |
+| `engine.ts` | `/flink/jobs/{id}/savepoints` | GET | ❌ | 同上 |
+| `engine.ts` | `/flink/jobs/{id}/backpressure` | GET | ❌ | 同上 |
+| `engine.ts` | `/doris/nodes` | GET | ❌ | 无 Doris 专用 Controller |
+| `engine.ts` | `/doris/databases` | GET | ❌ | 同上 |
+| `engine.ts` | `/doris/queries` | GET | ❌ | 同上 |
+| `engine.ts` | `/kafka/{cid}/brokers` | GET | ❌ | 无 Kafka 专用 Controller |
+| `engine.ts` | `/kafka/{cid}/topics` | GET/POST/DELETE | ❌ | 同上 |
+| `engine.ts` | `/kafka/{cid}/consumer-groups` | GET | ❌ | 同上 |
+| `engine.ts` | `/iotdb/{id}/storage-groups` | GET | ❌ | 无 IoTDB 专用 Controller |
+| `engine.ts` | `/iotdb/{id}/devices` | GET | ❌ | 同上 |
+| `engine.ts` | `/iotdb/{id}/timeseries` | GET | ❌ | 同上 |
+
+#### 3.3.2 路径冲突问题
+
+| 冲突路径 | 前端模块 1 | 前端模块 2 | 后端服务 1 | 后端服务 2 | 问题 |
+|---|---|---|---|---|---|
+| `/api/v1/assets` | `governance.ts`（资产治理 CRUD） | `assetMarket.ts`（资产流通市场） | encaps-layer AssetController :8080 | asset-exchange Python :8092 | **同一前端 baseURL `/api/v1` 下两个模块共用 `/assets` 路径，但 Vite proxy `/api/v1/assets` → :8092，导致 governance.ts 调用被错误转发到 real-time-pipeline 而非 encaps-layer** |
+| `/api/v1/jobs` | `job.ts`（作业管理） | `dev-sched.ts`（调度编排） | stream-batch JobController :8087 | encaps-layer :8080 | **Vite proxy 无 `/api/v1/jobs` 条目，默认走 :8080，但 JobController 在 :8087** |
+
+#### 3.3.3 HTTP 方法不匹配
+
+| 前端模块 | URL | 前端方法 | 后端方法 | 问题 |
+|---|---|---|---|---|
+| `sqlworkbench.ts` | `/sql/engines` | POST | GET | 前端 `listEngines` 用 POST，后端 SqlGatewayController 用 GET |
+
+### 3.4 未使用的后端端点
+
+以下后端端点前端未调用：
+
+| 后端服务 | 端点 | 说明 |
+|---|---|---|
+| encaps-layer SecurityFacadeController | `/api/v1/security/*`（6 个端点） | 安全门面控制器，前端无对应模块 |
+| encaps-layer AuthController | `/api/v1/auth/login` | 由 `stores/auth.ts` 直接调用，未走 api/ 模块 |
+| sql-gateway RewriteController | `/api/v1/rewrite/*`（14 个端点） | SQL 重写控制器，前端无对应模块 |
+| rule-engine RuleController | `/api/v1/rules/*`（7 个端点） | 通用规则控制器，前端 quality.ts 走 `/quality/rules` |
+| rule-engine SchedulerController | `/api/v1/scheduler/*`（11 个端点） | 调度控制器，前端 dev-sched.ts 走 `/jobs` |
+| rule-engine AgentController | `/api/v1/agents/*`（3 个端点） | Agent 控制器，前端无对应模块 |
+| finops DashboardController | `/api/v1/dashboard/*`（3 个端点） | 旧版 Dashboard，前端 analyze.ts 走 `/dashboards` |
+| finops BillingController | `/api/v1/dashboard/billing/*`（2 个端点） | 计费，前端 account.ts 走 `/account/billing` |
+| finops AllocationController | `/api/v1/allocation/*`（5 个端点） | 分摊，前端无对应模块 |
+| finops SuggestionController | `/api/v1/suggestions/*`（2 个端点） | 闲置建议，前端无对应模块 |
+| finops BillExportController | `/api/v1/bill/export/*`（2 个端点） | 账单导出，前端无对应模块 |
+| finops CostController | `/api/v1/cost/*`（2 个端点） | 成本计算，前端无对应模块 |
+| finops PricingController | `/api/v1/pricing/*`（2 个端点） | 定价，前端无对应模块 |
+| finops MeteringController | `/api/v1/finops/metering/*`（1 个端点） | 计量，前端无对应模块 |
+| finops BillingController（cost-model） | `/api/v1/finops/billing/*`（2 个端点） | 计费，前端无对应模块 |
+| governance GovernanceController | `/api/v1/governance/*`（14 个端点） | 实时治理，前端无对应模块 |
+| governance CatalogEventListener | `/api/v1/governance/catalog/events` | 事件监听，前端无对应模块 |
+| karmada FederatedQueryController | `/api/v1/federated/*`（5 个端点） | 联邦查询，前端无对应模块 |
+| knative FunctionController | `/api/v1/invoke`、`/api/v1/health` | 函数调用，前端无对应模块 |
+| catalog Go | `/api/v1/catalog/*`（9 个端点） | 数据目录，前端无对应模块 |
+| observability query-api | `/platform/api/v1/query` 等 | Prometheus 代理，前端无对应模块 |
+
+## 4. Vite 配置审计
+
+### 4.1 Proxy 配置清单
+
+| Proxy 路径 | 目标端口 | 后端服务 | 状态 |
+|---|---|---|---|
+| `/api` | :8080 | encaps-layer | ✅ 正常 |
+| `/api/v1/ops` | :8090 | observability query-api | ✅ 正常 |
+| `/api/v1/cluster` | :8090 | observability query-api | ✅ 正常 |
+| `/api/v1/vector` | :8086 | vector-engine | ✅ 正常 |
+| `/api/v1/ai-assistant` | :18110 | ai-assistant | ✅ 正常 |
+| `/api/v1/dashboards` | :8085 | finops-dashboard | ✅ 正常 |
+| `/api/v1/stream-batch` | :8087 | stream-batch-scheduler | ✅ 正常 |
+| `/api/v1/sql` | :8088 | sql-gateway | ✅ 正常 |
+| `/lineage` | :8089 | lineage-analyzer | ✅ 正常 |
+| `/api/v1/quality` | :8091 | rule-engine | ✅ 正常 |
+| `/api/v1/assets` | :8092 | real-time-pipeline | ⚠️ 路径冲突 |
+
+### 4.2 Proxy 配置问题
+
+| 问题 | 严重程度 | 说明 |
+|---|---|---|
+| **`/api/v1/assets` 路径冲突** | P0 | 该 proxy 将所有 `/api/v1/assets` 请求转发到 :8092（real-time-pipeline），但前端 `governance.ts` 也调用 `/api/v1/assets`（期望走 :8080 encaps-layer AssetController），导致 Govern.vue 页面资产 CRUD 功能失效 |
+| **缺少 `/api/v1/jobs` proxy** | P1 | 前端 `job.ts` 和 `engine.ts`（Spark/Flink）调用 `/api/v1/jobs`，但无对应 proxy，默认走 :8080 encaps-layer，而 JobController 实际在 :8087 stream-batch-scheduler |
+| **缺少 `/api/v1/metadata` proxy** | P1 | 前端 `govern-meta.ts` 调用 `/api/v1/metadata`，无对应 proxy，默认走 :8080，但 CollectorController 在 metadata-collector 独立服务 |
+| **缺少 `/api/v1/tags`、`/api/v1/profiles`、`/api/v1/audiences` proxy** | P1 | 前端 `dev-tag.ts` 调用这些路径，无对应 proxy，默认走 :8080，但 TagController 在 tag-engine 独立服务 |
+| **缺少 `/api/v1/ml` proxy** | P1 | 前端 `dev-ml.ts` 调用 `/api/v1/ml`，无对应 proxy，默认走 :8080，但 MLController 在 encaps-layer（实际匹配，但语义不明确） |
+| **缺少 `/api/v1/templates` proxy** | P1 | 前端 `template.ts` 调用 `/api/v1/templates`，无对应 proxy，默认走 :8080，但 industry-templates 是 Python 服务 |
+| **缺少 `/api/v1/business-lines` proxy** | P1 | 前端 `businessPortal.ts` 调用 `/api/v1/business-lines`，无对应 proxy，默认走 :8080，但 business-portal 是 Python 服务 |
+| **缺少 `/api/v1/apis` proxy** | P1 | 前端 `apiCatalog.ts` 调用 `/api/v1/apis`，无对应 proxy，默认走 :8080，但 open-api-catalog 是 Python 服务 |
+| **缺少 `/api/v1/virtual-tables` proxy** | P1 | 前端 `engine.ts` 调用 `/api/v1/virtual-tables`，无对应 proxy，默认走 :8080，但 VirtualTableController 在 sql-gateway :8088 |
+| **缺少 `/api/materialized-views` proxy** | P1 | 前端 `engine.ts` 用 `baseURL: '/api'` 调用 `/materialized-views`，无对应 proxy，默认走 :8080，但 MaterializedViewController 在 flink-cdc 独立服务 |
+| **缺少 `/api/v1/clusters` proxy** | P1 | 前端 `infra.ts` 调用 `/api/v1/clusters`，无对应 proxy，默认走 :8080，但 ClusterController 在 infra-orchestrator 独立服务 |
+| **缺少 `/api/v1/orchestrator` proxy** | P1 | 前端 `orchestrator-viz.ts` 调用 `/api/v1/orchestrator/dags`，无对应 proxy，默认走 :8080，但 OrchestratorController 在 rule-engine :8091 |
+| **缺少 `/api/v1/search` proxy** | P2 | 前端 `search.ts` 调用 `/api/v1/search`，无对应 proxy，默认走 :8080 encaps-layer SearchController（实际匹配） |
+| **`/lineage` proxy 未带 `/api/v1` 前缀** | P2 | proxy 路径为 `/lineage` 而非 `/api/v1/lineage`，前端 lineage.ts 需用 `{ baseURL: '' }` 覆盖默认 baseURL，配置不一致 |
+
+### 4-4.3 Proxy rewrite 规则
+
+- **所有 proxy 条目均未配置 `rewrite` 规则**：意味着后端服务需完整接收前端发送的路径（含 `/api/v1` 前缀）。这与后端 Controller 的 `@RequestMapping("/api/v1/...")` 一致，无需 rewrite。
+- **`changeOrigin: true`**：所有条目均启用，正确。
+
+## 5. 页面组件质量审计
+
+### 5.1 三态处理检查
+
+| 页面 | loading 处理 | error 处理 | empty 处理 | useApi 使用 | 综合评价 |
+|---|---|---|---|---|---|
+| Dashboard.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| Workspaces.vue | ✅ | ✅ | ✅ | ✅ | 优 |
+| Projects.vue | ✅ v-if="loading" | ✅ | ⚠️ 无 empty | ✅ | 良 |
+| Integrate.vue | ✅ | ✅ | ⚠️ | ✅ | 良 |
+| Develop.vue | ✅ | ✅ | ⚠️ | ❌ 直接调用 | 良 |
+| Sql.vue | ✅ | ✅ | ✅ | ❌ 直接调用 | 良 |
+| Govern.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Standard.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Quality.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Lineage.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| DataLineage.vue | ✅ | ✅ | ✅ | ✅ | 优 |
+| Sec.vue | ✅ | ✅ | ⚠️ | ✅ | 良 |
+| Vector.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Kb.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Llmops.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Gateway.vue | ✅ | ✅ | ⚠️ | ✅ | 良 |
+| Analyze.vue | ✅ | ✅ | ⚠️ | ✅ | 良 |
+| Ops.vue | ✅ | ✅ | ⚠️ | ✅ | 良 |
+| Account.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| Admin.vue | ✅ v-if="loading" | ✅ | ⚠️ | ✅ | 良 |
+| TenantManagement.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| ClusterOverview.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| DataSourceManagement.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| JobManagement.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| SchedulerOps.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| WorkspaceManagement.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| QuotaManagement.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| SqlWorkbench.vue | ✅ | ✅ | ✅ el-empty | ✅ | 优 |
+| SearchPortal.vue | ✅ v-if="loading" | ✅ v-if="error" | ✅ | ✅ | 优 |
+| DagVisualizer.vue | ✅ | ✅ | ✅ empty-state | ✅ | 优 |
+| AiAssistant.vue | ✅ | ✅ | ✅ | ✅ | 优 |
+| TemplateMarket.vue | ✅ v-loading | ✅ el-empty | ✅ el-empty | ✅ | 优 |
+| BusinessPortal.vue | ✅ | ✅ | ✅ | ✅ | 优 |
+| APIMarket.vue | ✅ v-if="loading" | ✅ | ✅ | ✅ | 优 |
+| AssetMarket.vue | ✅ v-if="loading" | ✅ v-if="error" | ✅ | ✅ | 优 |
+| InfraMachine.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| InfraK8s.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| InfraNet.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| InfraStore.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| InfraSched.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| EngStorage.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| EngSpark.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| EngFlink.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| EngDoris.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| EngKafka.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| EngIotdb.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| EngMmg.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| GovernMeta.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| DevSched.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+| DevTag.vue | ✅ v-loading | ✅ | ✅ el-empty | ✅ | 优 |
+| DevMl.vue | ✅ v-loading | ✅ | ✅ | ✅ | 优 |
+
+### 5.2 组件结构问题
+
+| 问题 | 影响页面 | 严重程度 | 说明 |
+|---|---|---|---|
+| Develop.vue 未使用 useApi | Develop.vue | P2 | 直接调用 `runJob`、`submitSchedule`，未走 useApi 三态包装 |
+| Sql.vue 未使用 useApi | Sql.vue | P2 | 直接调用 `executeCrossSourceSql`，未走 useApi 三态包装 |
+| 部分早期页面缺少 empty 状态 | Projects/Integrate/Develop/Sql/Govern/Standard/Quality/Lineage/Sec/Vector/Kb/Llmops/Gateway/Analyze/Ops/Account/Admin | P2 | 19 个早期页面（批次 1-3）仅有 loading/error 两态，无 empty 提示 |
+| 批次 12+ 页面质量优于早期页面 | infra-*/engine-*/govern-meta/dev-* | — | 批次 12+ 新增页面三态处理完整，使用 el-empty 组件，质量明显优于早期页面 |
+
+### 5.3 Composition API 规范检查
+
+- **所有 34 个功能页面均使用 `<script setup lang="ts">`**：✅ 符合 Vue 3 Composition API 规范
+- **响应式数据管理**：所有页面使用 `ref`/`reactive`/`computed`，✅ 符合规范
+- **API 模块导入**：32/34 页面通过 `import * as xxxApi from '@/api/xxx'` 导入，2 个页面（Develop、Sql）直接导入函数
+- **useApi composable 使用率**：32/34 页面使用 useApi（94%），2 个页面直接调用
+
+## 6. 占位页面分析
+
+### 6.1 重要发现
+
+**任务描述与实际代码不符**：2：任务描述称有 16 个占位页面使用 Roadmap.vue，但实际路由文件 `frontend/src/router/index.ts` 中**所有路由均引用实际 Vue 组件**，无任何路由使用 Roadmap.vue。
+
+Roadmap.vue 文件仍存在于 `frontend/src/views/Roadmap.vue`（24 行），但已成为**死代码**，未被任何路由引用。
+
+### 6.2 批次 12 新增的 16 个页面（原占位页面已替换为实际组件）
+
+#### 6.2.1 基础设施层（5 个）
+
+| 路由 path | 组件 | 后端模块 | 后端状态 | 需暴露的 API 端点 |
+|---|---|---|---|---|
+| `/infra-machine` | InfraMachine.vue | infra-provider-xinchang/private/cloud | ✅ 存在 | 集群 CRUD（已有） |
+| `/infra-k8s` | InfraK8s.vue | infra-orchestrator ClusterController | ✅ 存在 | 集群列表/详情（已有） |
+| `/infra-net` | InfraNet.vue | infra-orchestrator | ❌ 缺失 | `/clusters/{env}/{cid}/network`、`/network/policies`、`/network/cnis` |
+| `/infra-store` | InfraStore.vue | infra-orchestrator | ❌ 缺失 | `/clusters/{env}/{cid}/storage/classes`、`/storage/pvcs`、`/storage/usage` |
+| `/infra-sched` | InfraSched.vue | infra-orchestrator | ❌ 缺失 | `/clusters/{env}/{cid}/hpa`、`/scale/events`、`/scale/summary` |
+
+#### 6.2.2 引擎层（7 个）
+
+| 路由 path | 组件 | 后端模块 | 后端状态 | 需暴露的 API 端点 |
+|---|---|---|---|---|
+| `/eng-storage;storage` | EngStorage.vue | sql-gateway VirtualTableController + flink-cdc MaterializedViewController | ✅ 存在 | 虚拟表 + 物化视图（已有） |
+| `/eng-spark` | EngSpark.vue | stream-batch-scheduler JobController | ⚠️ 端口不匹配 | Spark 作业 CRUD（需 proxy 修正） |
+| `/eng-flink` | EngFlink.vue | **缺失** | ❌ | `/flink/jobs/*`、checkpoints、savepoints、backpressure |
+| `/eng-doris` | EngDoris.vue | **缺失** | ❌ | `/doris/nodes`、`/doris/databases`、`/doris/queries` |
+| `/eng-kafka` | EngKafka.vue | **缺失** | ❌ | `/kafka/{cid}/brokers`、`/topics`、`/consumer-groups` |
+| `/eng-iotdb` | EngIotdb.vue | **缺失** | ❌ | `/iotdb/{id}/storage-groups`、`/devices`、`/timeseries` |
+| `/eng-mmg` | EngMmg.vue | sql-gateway VirtualTableController | ✅ 存在 | 多模型虚拟表（已有） |
+
+#### 6.2.3 治理/开发层（4 个）
+
+| 路由 path | 组件 | 后端模块 | 后端状态 | 需暴露的 API 端点 |
+|---|---|---|---|---|
+| `/govern-meta` | GovernMeta.vue | governance metadata-collector CollectorController | ✅ 存在 | 元数据采集（已有，需 proxy 修正） |
+| `/dev-sched` | DevSched.vue | stream-batch-scheduler + encaps-layer | ✅ 存在 | DAG CRUD + 运行历史（已有） |
+| `/dev-tag` | DevTag.vue | tag-engine TagController/ProfileController/AudienceController | ✅ 存在 | 标签/画像/受众（已有，需 proxy 修正） |
+| `/dev-ml` | DevMl.vue | encaps-layer MLController | ✅ 存在 | ML 模型/推理服务（已有） |
+
+## 7. 问题汇总与优先级
+
+### P0 - 严重问题（页面无法加载/功能完全失效）
+
+| 序号 | 问题 | 影响范围 | 根因 |
+|---:|---|---|---|
+| 1 | **`/api/v1/assets` proxy 路径冲突** | Govern.vue（资产治理 CRUD） | Vite proxy `/api/v1/assets` → :8092（real-time-pipeline），导致前端 `governance.ts` 调用 `/api/v1/assets` 被错误转发到 real-time-pipeline 而非 encaps-layer AssetController :8080 |
+| 2 | **后端缺失 DevelopController** | Develop.vue（数据开发 Web IDE） | 前端 `develop.ts` 调用 `/develop/files`、`/develop/run`、`/develop/schedule`、`/develop/dag`，后端无对应 Controller |
+| 3 | **后端缺失 LLMOpsController** | Llmops.vue（大模型运营） | 前端 `llmops.ts` 调用 `/llmops/models`、`/llmops/eval-metrics`、`/llmops/finetune`、`/llmops/human-eval`，后端无对应 Controller（注意：encaps-layer 有 MLController `/api/v1/ml`，但路径不同） |
+| 4 | **后端缺失 GatewayController** | Gateway.vue（大模型网关） | 前端 `gateway.ts` 调用 `/gateway/stats`、`/gateway/keys`，后端无对应 Controller |
+
+### P1 - 重要问题（功能不正常/部分功能缺失）
+
+| 序号 | 问题 | 影响范围 | 根因 |
+|---:|---|---|---|
+| 5 | **缺少 `/api/v1/jobs` proxy** | JobManagement.vue、EngSpark.vue、EngFlink.vue | 前端调用 `/api/v1/jobs` 默认走 :8080，但 JobController 在 :8087 stream-batch-scheduler |
+| 6 | **缺少 `/api/v1/metadata` proxy** | GovernMeta.vue | 前端调用 `/api/v1/metadata` 默认走 :8080，但 CollectorController 在 metadata-collector 独立服务 |
+| 7 | **缺少 `/api/v1/tags`、`/profiles`、`/audiences` proxy** | DevTag.vue | 前端调用这些路径默认走 :8080，但 TagController 在 tag-engine 独立服务 |
+| 8 | **缺少 `/api/v1/templates` proxy** | TemplateMarket.vue | 前端调用 `/api/v1/templates` 默认走 :8080，但 industry-templates 是 Python 服务 |
+| 9 | **缺少 `/api/v1/business-lines` proxy** | BusinessPortal.vue | 前端调用 `/api/v1/business-lines` 默认走 :8080，但 business-portal 是 Python 服务 |
+| 10 | **缺少 `/api/v1/apis` proxy** | APIMarket.vue | 前端调用 `/api/v1/apis` 默认走 :8080，但 open-api-catalog 是 Python 服务 |
+| 11 | **缺少 `/api/v1/virtual-tables` proxy** | EngStorage.vue、EngMmg.vue | 前端调用 `/api/v1/virtual-tables` 默认走 :8080，但 VirtualTableController 在 sql-gateway :8088 |
+| 12 | **缺少 `/api/materialized-views` proxy** | EngStorage.vue | 前端用 `baseURL: '/api'` 调用 `/materialized-views` 默认走 :8080，但 MaterializedViewController 在 flink-cdc 独立服务 |
+| 13 | **缺少 `/api/v1/clusters` proxy** | InfraMachine/K8s/Net/Store/Sched.vue | 前端调用 `/api/v1/clusters` 默认走 :8080，但 ClusterController 在 infra-orchestrator 独立服务 |
+| 14 | **缺少 `/api/v1/orchestrator` proxy** | DagVisualizer.vue | 前端调用 `/api/v1/orchestrator/dags` 默认走 :8080，但 OrchestratorController 在 rule-engine :8091 |
+| 15 | **后端缺失 Flink/Doris/Kafka/IoTDB 专用 Controller** | EngFlink/Doris/Kafka/Iotdb.vue | 前端 `engine.ts` 调用 `/flink/jobs/*`、`/doris/*`、`/kafka/*`、`/iotdb/*`，后端无对应 Controller |
+| 16 | **JobController 端点不完整** | JobManagement.vue | 前端 `job.ts` 调用列表/创建/cancel/logs/status，后端 JobController 仅有 GET/{id}、PUT/{id}、DELETE/{id}、POST/{id}/run |
+| 17 | **QualityRuleController 端点不完整** | Quality.vue | 前端 `quality.ts` 调用列表/创建/check/summary，后端 QualityRuleController 仅有 GET/{id}、PUT/{id}、DELETE/{id} |
+| 18 | **OrchestratorController 端点不完整** | DagVisualizer.vue | 前端 `orchestrator-viz.ts` 调用 18 个端点（含 thoughts/tool-calls/intervention/checkpoints/executions/replay），后端仅有 7 个基础端点 |
+| 19 | **ProjectController 缺少子资源端点** | Projects.vue | 前端 `project.ts` 调用 `/{id}/datasets`、`/{id}/jobs`、`/{id}/members`，后端无这些子资源端点 |
+| 20 | **AssetController 缺少扩展端点** | Govern.vue | 前端 `governance.ts` 调用 `/{id}/schema`、`/{id}/quality`、`/{id}/permissions`、`/{id}/apply-permission`，后端无这些端点 |
+| 21 | **SecController 缺少 approvals 端点** | Sec.vue | 前端 `sec.ts` 调用 `/sec/approvals`、`/sec/approvals/{id}/approve`、`/sec/approvals/{id}/reject`，后端无这些端点 |
+| 22 | **KnowledgeController 缺少扩展端点** | Kb.vue | 前端 `knowledge.ts` 调用 `/knowledge/rag-strategy`、`/knowledge/upload`，后端无这些端点 |
+| 23 | **IntegrateController 缺少扩展端点** | Integrate.vue | 前端 `integrate.ts` 调用 `/integrate/connectors`、`/integrate/tasks/{id}/run`、`/integrate/tasks/{id}/stop`，后端无这些端点 |
+| 24 | **StandardController 缺少 summary 端点** | Standard.vue | 前端 `standard.ts` 调用 `/standards/summary`，后端无此端点 |
+| 25 | **ops.ts 多个端点缺失** | Ops.vue | 前端 `ops.ts` 调用 `/ops/overview`、`/ops/jobs`、`/ops/alerts`、`/ops/alerts/{id}/handle`、`/ops/jobs/{id}/logs`，后端 query-api 仅有 `/ops/health/overview` |
+| 26 | **ai-assistant 缺少扩展端点** | AiAssistant.vue | 前端调用 `sessions/{id}/pin`、`sessions/{id}/rename`、`messages/{id}/feedback`、`example-prompts`、`superset/datasources`，后端 Go 服务无这些端点 |
+| 27 | **search.ts 缺少扩展端点** | SearchPortal.vue | 前端调用 `/search/export`、`/search/history/clear`、`/search/history/{id}/delete`，后端无这些端点 |
+| 28 | **BiDashboardController 端点不完整** | Analyze.vue | 前端 `analyze.ts` 调用列表/创建/realtime，后端 BiDashboardController 仅有 GET/{id}、PUT/{id}、DELETE/{id} |
+| 29 | **TenantController/WorkspaceController 缺少 /all 端点** | TenantManagement/WorkspaceManagement/QuotaManagement.vue | 前端调用 `/tenants/all`、`/workspaces/all`（用于下拉选择），后端无这些端点 |
+| 30 | **DataSourceController 缺少 test 端点** | DataSourceManagement.vue | 前端调用 `/datasources/{id}/test`，后端无此端点 |
+| 31 | **ClusterController 缺少 nodes/components/network/storage/hpa 子资源** | InfraK8s/Net/Store/Sched.vue | 前端 `infra.ts` 调用 40 个函数，后端 ClusterController 仅有 8 个基础端点 |
+
+### P2 - 改进建议（体验优化）
+
+| 序号 | 问题 | 影响范围 | 建议 |
+|---:|---|---|---|
+| 32 | **Roadmap.vue 死代码** | — | 删除 `frontend/src/views/Roadmap.vue`（24 行），未被任何路由引用 |
+| 33 | **部分路由缺少 name 属性** | 16 个批次 12+ 路由 | 为 infra-*/eng-*/govern-meta/dev-*/ops-tpl 路由补充 `name` 字段 |
+| 34 | **早期路由缺少 meta** | 19 个批次 1-3 路由 | 为 dashboard~admin 路由补充 `meta.title` 与 `meta.icon` |
+| 35 | **Develop.vue/Sql.vue 未使用 useApi** | Develop.vue、Sql.vue | 改用 useApi 包装 API 调用，统一三态处理 |
+| 36 | **19 个早期页面缺少 empty 状态** | 批次 1-3 页面 | 补充< el-empty 组件或空状态提示 |
+| 37 | **`/lineage` proxy 未带 `/api/v1` 前缀** | Lineage.vue/DataLineage.vue | 评估统一为 `/api/v1/lineage` proxy，避免 baseURL 覆盖 |
+| 38 | **`sqlworkbench.ts` listEngines 方法用 POST** | SqlWorkbench.vue | 后端 SqlGatewayController `GET/engines`，前端应用 GET |
+| 39 | **Hash 路由模式** | 全局 | 评估切换为 History 模式，利于 SEO 与 URL 美观 |
+| 40 | **鉴权白名单仅 `/login`** | 全局 | 如有公开页（健康检查、文档），加入 PUBLIC_PATHS |
+
+## 8. 修复建议
+
+### 8.1 P0 修复（紧急）
+
+#### 8.1.1 修复 `/api/v1/assets` 路径冲突
+
+**方案 A（推荐）**：修改前端 `governance.ts` 的 BASE 路径，避免与 `assetMarket.ts` 冲突
+
+```typescript
+// frontend/src/api/governance.ts
+const BASE = '/governance/assets'  // 原 '/assets'
+```
+
+后端 `AssetController` 的 `@RequestMapping` 同步改为 `/api/v1/governance/assets`。
+
+**方案 B**：修改 Vite proxy，将 `/api/v1/assets` 保留给 asset-exchange，新增 `/api/v1/governance/assets` → :8080
+
+#### 8.1.2 新增 DevelopController
+
+在 `platform/encaps-layer` 新增 `DevelopController`，实现：
+- `GET /api/v1/develop/files` — 文件树
+- `GET /apiF1/develop/files/content` — 读文件
+- `POST /api/v1/develop/run` — 运行作业
+- `POST /api/v1/develop/schedule` — 提交调度
+- `GET /api/v1/develop/dag` — 任务 DAG
+
+#### 8.1.3 新增 LLMOpsController
+
+在 `platform/encaps-layer` 新增 `LLMOpsController`（或复用 MLController 并扩展路径），实现：
+- `GET /api/v1/llmops/models`
+- `GET /api/v1/llmops/eval-metrics`
+- `POST /api/v1/llmops/finetune`
+- `POST /api/v1/llmops/human-eval`
+
+#### 8.1.4 新增 GatewayController
+
+在 `platform/encaps-layer` 新增 `GatewayController`，实现：
+- `GET /api/v1/gateway/stats`
+- `GET /api/v1/gateway/keys`
+- `POST /api/v1/gateway/keys`
+- `PUT /api/v1/gateway/keys/{id}`
+- `DELETE /api/v1/gateway/keys/{id}`
+
+### 8.2 P1 修复（重要）
+
+#### 8.2.1 补充 Vite proxy 条目
+
+在 `frontend/vite.config.ts` 的 `server.proxy` 中新增：
+
+```typescript
+'/api/v1/jobs': {
+  target2 target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
   changeOrigin: true
 },
-'/api/v1/sql': {
+'/api/v1/metadata': {
+  target: process.env.VITE_METADATA_TARGET || 'http://127.0.0.1:8093',
+  changeOrigin: true
+},
+'/api/v1/tags': {
+  target: process.env.VITE_TAG_ENGINE_TARGET || 'http://127.0.0.1:8094',
+  changeOrigin: true
+},
+'/api/v1/profiles': {
+  target: process.env.VITE_TAG_ENGINE_TARGET || 'http://127.0.0.1:8094',
+  changeOrigin: true
+},
+'/api/v1/audiences': {
+  target: process.env.VITE_TAG_ENGINE_TARGET || 'http://127.0.0.1:8094',
+  changeOrigin: true
+},
+'/api/v1/templates': {
+  target: process.env.VITE_TEMPLATES_TARGET || '"http://127.0.0.1:8095',
+  changeOrigin: true
+},
+'/api/v1/business-lines': {
+  target: process.env.VITE_BUSINESS_PORTAL_TARGET || 'http://127.0.0.1:8096',
+  changeOrigin: true
+},
+'/api/v1/apis': {
+  target: process.env.VITE_API_CATALOG_TARGET || 'http://127.0.0.1:8097',
+  changeOrigin: true
+},
+'/api/v1/virtual-tables': {
   target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8088',
   changeOrigin: true
 },
-'/lineage': {
-  target: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:8089',
+'/api/materialized-views': {
+  target: process.env.VITE_FLINK_CDC_TARGET || 'http://127.0.0.1:8098',
   changeOrigin: true
 },
-'/api/v1/quality': {
+'/api/v1/clusters': {
+  target: process.env.VITE_INFRA_ORCHESTRATOR_TARGET || 'http://127.0.0.1:8099',
+  changeOrigin: true
+},
+'/api/v1/orchestrator': {
   target: process.env.VITE_RULE_ENGINE_TARGET || 'http://127.0.0.1:8091',
   changeOrigin: true
 }
 ```
 
----
+#### 8.2.2 补充后端 Controller 缺失端点
 
-## 第3章 API 模块审计（32 个）
+按 P1 问题清单（序号 15-31），在各后端 Controller 中补充前端调用但后端缺失的端点。优先级：
+1. JobController 补充列表/创建/cancel/logs/status
+2. QualityRuleController 补充列表/创建/check/summary
+3. ProjectController 补充 datasets/jobs/members 子资源
+4. AssetController 补充 schema/quality/permissions/apply-permission
+5. ClusterController 补充 nodes/components/network/storage/hpa 子资源
+6. OrchestratorController 补充 thoughts/tool-calls/intervention/checkpoints/executions/replay
+7. 新增 Flink/Doris/Kafka/IoTDB 专用 Controller
 
-### 3.1 审计结果总表
+### 8.3 P2 修复（优化）
 
-| # | 模块 | client.ts 复用 | 路径前缀 | 后端 Controller | TS 类型 | 问题 |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | account.ts | ✅ get/post | `/account` | encaps-layer AccountController | ✅ | 无 |
-| 2 | admin.ts | ✅ get | `/admin` | encaps-layer AdminController | ✅ | 无 |
-| 3 | ai-assistant.ts | ✅ get/post/del | `/ai-assistant` | ai-assistant | ✅ | 无（含 SSE 流式 `chatStream`） |
-| 4 | analyze.ts | ✅ get/post/put/del | `/dashboards` | finops-dashboard BiDashboard/Dashboard | ✅ | 无 |
-| 5 | apiCatalog.ts | ✅ get/post/put/del | `/apis`、`/subscriptions` | encaps-layer ApiCatalogController | ✅ | 无 |
-| 6 | assetMarket.ts | ✅ get/post/put/del | `/assets`、`/asset-subscriptions` | encaps-layer AssetController | ✅ | 无 |
-| 7 | businessPortal.ts | ✅ get/post/put/del | `/business-lines` | encaps-layer BusinessPortalController | ✅ | 无 |
-| 8 | cluster.ts | ✅ get | `/cluster` | observability query-api | ✅ | 无 |
-| 9 | datasource.ts | ✅ get/post/put/del | `/datasources` | encaps-layer DataSourceController | ✅ | 无 |
-| 10 | develop.ts | ✅ get/post | `/develop` | encaps-layer DevelopController | ✅ | 无 |
-| 11 | gateway.ts | ✅ get/post/put/del | `/gateway` | encaps-layer GatewayController | ✅ | 无 |
-| 12 | governance.ts | ✅ get/post/put/del | `/assets` | governance/real-time-pipeline GovernanceController | ✅ | **P2**：路径与 assetMarket.ts `/assets` 冲突，需后端按 Host/Path 路由 |
-| 13 | integrate.ts | ✅ get/post/put/del | `/integrate` | encaps-layer IntegrateController | ✅ | 无 |
-| 14 | job.ts | ✅ get/post/del | `/jobs` | stream-batch-scheduler JobController | ❌ | **P2**：类型从 `./types` 导入，但本文件未声明 interface |
-| 15 | knowledge.ts | ✅ get/post | `/knowledge` | encaps-layer KnowledgeController | ✅ | 无 |
-| 16 | lineage.ts | ✅ post/get | `/lineage/api/v1/lineage`（绝对路径） | governance/lineage-analyzer | ✅ | **P1**：使用 `{ baseURL: '' }` 绕过 client，vite 需补 `/lineage` proxy |
-| 17 | llmops.ts | ✅ get/post | `/llmops` | encaps-layer LlmopsController | ✅ | 无 |
-| 18 | ops.ts | ✅ get/post | `/ops`、`/ops/health/overview` | observability query-api | ✅ | 无 |
-| 19 | orchestrator-viz.ts | ✅ get/post/del | `/orchestrator/dags` | rule-engine OrchestratorController | ✅ | 无 |
-| 20 | project.ts | ✅ get/post/put/del | `/projects` | encaps-layer ProjectController | ✅ | 无 |
-| 21 | quality.ts | ✅ get/post/put/del | `/quality/rules` | rule-engine QualityRuleController | ✅ | 无 |
-| 22 | quota.ts | ✅ get/post/put/del | `/quotas` | encaps-layer QuotaController | ❌ | **P2**：类型从 `./types` 导入，本文件未声明 interface |
-| 23 | search.ts | ✅ get/post | `/search` | encaps-layer SearchController | ❌ | **P2**：类型从 `@/types/search` 导入，本文件未声明 interface |
-| 24 | sec.ts | ✅ get/post/put/del | `/sec` | encaps-layer SecController | ✅ | 无 |
-| 25 | sqlworkbench.ts | ✅ post | `/sql/cross-source`、`/sql/parse`、`/sql/validate`、`/sql/optimize`、`/sql/explain`、`/sql/engines` | sql-gateway VirtualTable/SqlGateway | ✅ | **P1**：`/sql` 前缀无 vite proxy，依赖 `/api` 兜底 |
-| 26 | standard.ts | ✅ get/post/put/del | `/standards` | encaps-layer StandardController | ✅ | 无 |
-| 27 | streamBatch.ts | ✅ get/post | `/stream-batch/dags` | stream-batch-scheduler StreamBatchScheduler | ✅ | **P1**：`/stream-batch` 前缀无 vite proxy |
-| 28 | template.ts | ✅ get/post | `/templates` | encaps-layer TemplateController | ✅ | 无 |
-| 29 | tenant.ts | ✅ get/post/put/del | `/tenants` | encaps-layer TenantController | ❌ | **P2**：类型从 `./types` 导入，本文件未声明 interface |
-| 30 | vector.ts | ✅ get/post | `/vector` | vector-engine | ✅ | 无 |
-| 31 | workspace.ts | ✅ get/post/put/del | `/workspaces` | encaps-layer WorkspaceController | ❌ | **P2**：类型从 `./types` 导入，本文件未声明 interface |
-| 32 | develop.ts（重复） | — | — | — | — | 已在第 10 行计入 |
+1. 删除 `frontend/src/views/Roadmap.vue` 死代码
+2. 为批次 12+ 路由补充 `name` 字段
+3. 为批次# 批次 1-3 路由补充 `meta.title` 与 `meta.icon`
+4. Develop.vue/Sql.vue 改用 useApi 包装
+5. 19 个早期页面补充 empty 状态
+6. 修正 `sqlworkbench.ts` listEngines 方法为 GET
+7. 评估切换 History 路由模式
 
-### 3.2 API 模块问题汇总
+## 9. 审计结论
 
-| 严重级别 | 数量 | 问题 |
-| --- | --- | --- |
-| P0 | 0 | — |
-| P1 | 3 | lineage.ts 绝对路径绕过 client、sqlworkbench.ts 缺 proxy、streamBatch.ts 缺 proxy |
-| P2 | 5 | governance.ts 与 assetMarket.ts 路径冲突；job.ts/quota.ts/search.ts/tenant.ts/workspace.ts 类型定义外置到 `types.ts`（非阻塞，但不符合"模块自包含"最佳实践） |
+### 9.1 总体评价
 
-### 3.3 修复建议
+- **前端质量**：批次 4+ 页面（TenantManagement、ClusterOverview 等 15 个）质量优秀，三态处理完整，useApi 使用规范；批次 1-3 页面（19 个）质量良好但缺少 empty 状态。
+- **后端覆盖**：encaps-layer 作为统一 API 网关，覆盖了大部分前端模块，但仍有 4 个 Controller 完全缺失（Develop/LLMOps/Gateway + 引擎专用）。
+- **Vite proxy**：11 个 proxy 条目覆盖! 覆盖了主要后端服务，但缺少 12 个 proxy 条目导致多个页面请求被错误转发到 :8080。
+- **API 对接**：约 270 个前端 API 函数中，约 80 个（30%）调用的后端端点缺失或不匹配。
 
-**P1-1 lineage.ts**：保留 `{ baseURL: '' }` 写法（lineage-analyzer 独立服务前缀 `/lineage`），但在 `vite.config.ts` 增补 `/lineage` proxy（见 2.4）。
+### 9.2 关键问题数量
 
-**P1-2 sqlworkbench.ts**：在 `vite.config.ts` 增补 `/api/v1/sql` proxy（见 2.4）。
+| 优先级 | 数量 | 说明 |
+|---|---:|---|
+| P0 严重 | 4 | 路径冲突 + 3 个后端 Controller 缺失 |
+| P1 重要 | 27 | proxy 缺失 + 端点不完整 + 引擎 Controller 缺失 |
+| P2 改进 | 9 | 死代码 + 路由配置 + 三态处理 + 体验优化 |
+| **合计** | **40** | — |
 
-**P1-3 streamBatch.ts**：在 `vite.config.ts` 增补 `/api/v1/stream-batch` proxy（见 2.4）。
+### 9.3 修复优先级建议
 
-**P2 路径冲突**：`governance.ts` 与 `assetMarket.ts` 均以 `/assets` 为根。建议后端通过 APISIX 按 Host 或子路径区分（如 `/api/v1/governance/assets` vs `/api/v1/assets`），前端同步调整 `governance.ts` 的 `BASE`。
-
-**P2 类型外置**：`job.ts`、`quota.ts`、`search.ts`、`tenant.ts`、`workspace.ts` 将类型放在 `api/types.ts` 或 `@/types/*`。这是项目既有约定（避免循环依赖），**可保留现状**，但建议在模块文件顶部补 `// 类型见 @/api/types` 注释以提升可读性。
+1. **立即修复**（P0）：4 个问题，预计 2-3 人日
+2. **本周修复**（P1 proxy 相关）：12 个 proxy 缺失问题，预计 1 人日（仅改 vite.config.ts）
+3. **下周修复**（P1 端点补充）：15 个端点不完整问题，预计 5-10 人日
+4. **迭代优化**（P2）：9 个改进建议，预计 2-3 人日
 
 ---
 
-## 第4章 页面审计（34 个）
-
-### 4.1 审计结果总表
-
-| # | 页面 | API 模块 | useApi | loading | error | retry | tryCatch | onMounted | TS | 问题级别 |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | Dashboard.vue | cluster | ✅ | ✅ | ✅ | ✅ | — | ✅ | ✅ | **通过**（参考实现） |
-| 2 | Login.vue | auth store | ❌ | ✅ | ✅ | ❌ | ✅ | — | ✅ | **P2**：未用 useApi（登录场景特殊，可接受） |
-| 3 | Workspaces.vue | workspace | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **通过** |
-| 4 | Projects.vue | project | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi，三态手动维护 |
-| 5 | Integrate.vue | integrate | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 6 | Develop.vue | develop | ❌ | ❌ | ✅ | ❌ | ✅ | — | ✅ | **P1**：缺 loading 三态、缺重试、未用 useApi |
-| 7 | Sql.vue | sqlworkbench | ❌ | ✅ | ✅ | ❌ | ✅ | — | ✅ | **P2**：未用 useApi、缺重试 |
-| 8 | Govern.vue | governance | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 9 | Standard.vue | standard | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 10 | Quality.vue | quality | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 11 | Lineage.vue | lineage | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 12 | DataLineage.vue | lineage | ❌ | ❌ | ✅ | ❌ | ✅ | — | ✅ | **P1**：缺 loading 三态（仅 `analyzing` 局部态）、缺重试、未用 useApi |
-| 13 | Sec.vue | sec | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 14 | Vector.vue | vector | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 15 | Kb.vue | knowledge | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 16 | Llmops.vue | llmops | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 17 | Gateway.vue | gateway | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：未用 useApi、缺重试 |
-| 18 | Analyze.vue | analyze | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：未用 useApi、缺重试 |
-| 19 | Ops.vue | ops | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：未用 useApi、缺重试 |
-| 20 | Account.vue | account | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 21 | Admin.vue | admin | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 22 | TenantManagement.vue | tenant | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi（用 el-table v-loading） |
-| 23 | ClusterOverview.vue | cluster | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：未用 useApi、缺重试 |
-| 24 | DataSourceManagement.vue | datasource | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 25 | JobManagement.vue | job | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 26 | SchedulerOps.vue | streamBatch | ❌ | ✅ | ✅ | ✅ | ✅ | — | ✅ | **P2**：未用 useApi、无 onMounted（按需查询） |
-| 27 | WorkspaceManagement.vue | workspace, tenant | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 28 | QuotaManagement.vue | quota, tenant, workspace | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 29 | SqlWorkbench.vue | sqlworkbench | ❌ | ✅ | ✅ | ❌ | ✅ | — | ✅ | **P2**：未用 useApi、缺重试、无 onMounted |
-| 30 | TemplateMarket.vue | template | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：未用 useApi、缺重试 |
-| 31 | BusinessPortal.vue | businessPortal | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **通过** |
-| 32 | AssetMarket.vue | assetMarket | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 33 | APIMarket.vue | apiCatalog | ❌ | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：未用 useApi、缺重试 |
-| 34 | SearchPortal.vue | useSearch（封装 search） | ❌（间接） | ✅ | ✅ | ❌ | — | ✅ | ✅ | **P2**：通过 `useSearch` 组合式函数间接调用，未直接用 useApi |
-| 35 | orchestrator/DagVisualizer.vue | orchestrator-viz | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | **P2**：未用 useApi |
-| 36 | ai-assistant/AiAssistant.vue | ai-assistant | ❌（用 useAiAssistant） | ✅ | ✅ | ❌ | ✅ | ✅ | ✅ | **P2**：通过 `useAiAssistant` 组合式函数间接调用 |
-
-### 4.2 页面问题汇总
-
-| 严重级别 | 数量 | 主要问题 |
-| --- | --- | --- |
-| P0 | 0 | — |
-| P1 | 2 | Develop.vue、DataLineage.vue 缺 loading 三态 |
-| P2 | 28 | 大量页面未使用 useApi 组合式函数，手动维护 loading/error/data 三态；部分页面缺重试按钮 |
-
-### 4.3 逐页面详细问题与修复建议
-
-#### 4.3.1 Dashboard.vue（通过，参考实现）
-
-- **API 调用**：`clusterApi.getClusterOverview()` → `/api/v1/cluster/overview` → observability query-api ClusterController ✅
-- **三态**：`v-if="overviewLoading"` / `v-else-if="overviewError"` / `v-else-if="overview"` 完整 ✅
-- **重试**：`reloadOverview` 函数 + `<a @click="reloadOverview">重试</a>` ✅
-- **useApi**：`useApi<ClusterOverview>(() => clusterApi.getClusterOverview())` ✅
-- **TS 类型**：`ClusterOverview` 从 `@/api/types` 导入 ✅
-
-#### 4.3.2 Login.vue（P2）
-
-- **问题**：未使用 useApi，手动维护 `loading` / `error` ref
-- **修复建议**：登录场景需控制 `redirect` 参数与 `ElMessage`，可保留现状；或用 `useApi` 包装 `auth.login` 并在 `onSuccess` 中跳转
-- **API 调用**：`auth.login()` → `/api/v1/auth/login` → encaps-layer AuthController ✅
-
-#### 4.3.3 Workspaces.vue（通过）
-
-- 完整 useApi + 三态 + 重试 + onMounted + TS 类型 ✅
-
-#### 4.3.4 Projects.vue（P2）
-
-- **问题**：未用 useApi，手动 `loading` / `error` ref
-- **修复建议**：将 `loadProjects` 改为 `useApi(() => projectApi.listProjects(...))`，三态由 useApi 托管
-- **API 调用**：`projectApi.listProjects/getProject/createProject/listDatasets/listJobs/listMembers` → `/api/v1/projects/...` → encaps-layer ProjectController ✅
-
-#### 4.3.5 Integrate.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`integrateApi.listSyncTasks/listConnectors` → `/api/v1/integrate/...` → encaps-layer IntegrateController ✅
-
-#### 4.3.6 Develop.vue（P1）
-
-- **问题**：
-  1. **缺 loading 三态**：仅有 `running` 局部态，无全局 loading 显示
-  2. **缺重试**：运行失败后无重试入口
-  3. **未用 useApi**
-  4. **无 onMounted**：页面加载时不主动拉取文件树
-- **修复建议**：
-  ```ts
-  const { data: fileTree, loading, error, execute: loadFileTree } = useApi(() => developApi.getFileTree())
-  onMounted(loadFileTree)
-  ```
-  模板增补 `<div v-if="loading">加载中…</div><div v-else-if="error">{{ error.message }}，<a @click="loadFileTree">重试</a></div>`
-- **API 调用**：`developApi.runJob/submitSchedule/getFileTree/readFile/getTaskDag` → `/api/v1/develop/...` → encaps-layer DevelopController ✅
-
-#### 4.3.7 Sql.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：用 useApi 包装 `executeCrossSourceSql`
-- **API 调用**：`sqlworkbenchApi.executeCrossSourceSql` → `/api/v1/sql/cross-source` → sql-gateway SqlGatewayController ✅（依赖 vite proxy 补全）
-
-#### 4.3.8 Govern.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：用 useApi 包装 `listAssets`，详情子请求（Schema/Quality/Permissions）可保留手动 try/catch
-- **API 调用**：`governanceApi.listAssets/getAsset/getAssetSchema/getAssetQuality/getAssetPermissions/applyAssetPermission` → `/api/v1/assets/...` → governance/real-time-pipeline GovernanceController ✅
-
-#### 4.3.9 Standard.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`standardApi.listStandards/getSummary/createStandard` → `/api/v1/standards/...` → encaps-layer StandardController ✅
-
-#### 4.3.10 Quality.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`qualityApi.listRules/getSummary/createRule` → `/api/v1/quality/rules/...` → rule-engine QualityRuleController ✅
-
-#### 4.3.11 Lineage.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：用 useApi 包装 `Promise.all([getUpstream, getDownstream, impactAnalysis])`
-- **API 调用**：`lineageApi.getUpstream/getDownstream/impactAnalysis` → `/lineage/api/v1/lineage/...` → governance/lineage-analyzer ✅（依赖 vite proxy 补全 `/lineage`）
-
-#### 4.3.12 DataLineage.vue（P1）
-
-- **问题**：
-  1. **缺 loading 三态**：仅有 `analyzing` 局部态，SQL 分析结果区无独立 loading/error/data 三态包裹
-  2. **缺重试**：分析失败后无重试入口
-  3. **未用 useApi**
-  4. **无 onMounted**：用户主动输入 SQL 后才触发分析（设计如此，可接受）
-- **修复建议**：
-  ```ts
-  const { data: graph, loading: analyzing, error: analyzeError, execute: handleAnalyze } = useApi(
-    (sql: string, dialect?: string) => analyzeLineage(sql, dialect)
-  )
-  ```
-  模板增补重试链接
-- **API 调用**：`lineageApi.analyzeLineage/getUpstream/getDownstream/impactAnalysis` → `/lineage/api/v1/lineage/...` → governance/lineage-analyzer ✅
-
-#### 4.3.13 Sec.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`secApi.listMaskPolicies/listApprovals/createMaskPolicy/approveApproval/rejectApproval` → `/api/v1/sec/...` → encaps-layer SecController ✅
-
-#### 4.3.14 Vector.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`vectorApi.listCollections/createCollection/search` → `/api/v1/vector/...` → vector-engine ✅
-
-#### 4.3.15 Kb.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`knowledgeApi.listKnowledgeBases/getRagStrategy/uploadDoc` → `/api/v1/knowledge/...` → encaps-layer KnowledgeController ✅
-
-#### 4.3.16 Llmops.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`llmopsApi.listModels/getEvalMetrics/submitFinetune/triggerHumanEval` → `/api/v1/llmops/...` → encaps-layer LlmopsController ✅
-
-#### 4.3.17 Gateway.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：同 4.3.4
-- **API 调用**：`gatewayApi.getStats/listApiKeys/createApiKey` → `/api/v1/gateway/...` → encaps-layer GatewayController ✅
-
-#### 4.3.18 Analyze.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：同 4.3.4
-- **API 调用**：`analyzeApi.getRealtimeMetrics` → `/api/v1/dashboards/realtime` → finops-dashboard BiDashboardController ✅
-
-#### 4.3.19 Ops.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：同 4.3.4
-- **API 调用**：`opsApi.getOverview/listJobs/listAlerts/handleAlert/getJobLogs/getHealthOverview` → `/api/v1/ops/...` → observability query-api ✅
-
-#### 4.3.20 Account.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`accountApi.getAccountPlan/getBillingDetail/upgradePlan` → `/api/v1/account/...` → encaps-layer AccountController ✅
-
-#### 4.3.21 Admin.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`adminApi.getKpi/getEnvMatrix` → `/api/v1/admin/...` → encaps-layer AdminController ✅
-
-#### 4.3.22 TenantManagement.vue（P2）
-
-- **问题**：未用 useApi（使用 el-table `v-loading` 指令，三态由 Element Plus 托管）
-- **修复建议**：可保留现状（el-table v-loading 已提供加载态），但错误态建议补重试按钮
-- **API 调用**：`tenantApi.listTenants/createTenant/updateTenant/deleteTenant` → `/api/v1/tenants/...` → encaps-layer TenantController ✅
-
-#### 4.3.23 ClusterOverview.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：同 4.3.4
-- **API 调用**：`clusterApi.getClusterOverview/listNodes/listComponentStatuses` → `/api/v1/cluster/...` → observability query-api ✅
-
-#### 4.3.24 DataSourceManagement.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`datasourceApi.listDataSources/createDataSource/updateDataSource/deleteDataSource/testDataSource` → `/api/v1/datasources/...` → encaps-layer DataSourceController ✅
-
-#### 4.3.25 JobManagement.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`jobApi.listJobs/getJob/submitJob/cancelJob/deleteJob/getJobLogs/getJobStatus` → `/api/v1/jobs/...` → stream-batch-scheduler JobController ✅
-
-#### 4.3.26 SchedulerOps.vue（P2）
-
-- **问题**：未用 useApi、无 onMounted（按需查询，设计如此）
-- **修复建议**：用 useApi 包装 `listDagRuns`，onMounted 可省略
-- **API 调用**：`streamBatchApi.listDagRuns/rerunDagRun/backfillDag` → `/api/v1/stream-batch/dags/...` → stream-batch-scheduler StreamBatchSchedulerController ✅（依赖 vite proxy 补全）
-
-#### 4.3.27 WorkspaceManagement.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`workspaceApi.listWorkspaces/createWorkspace/updateWorkspace/deleteWorkspace/getWorkspaceK8sStatus` + `tenantApi.listAllTenants` → `/api/v1/workspaces/...` + `/api/v1/tenants/all` → encaps-layer WorkspaceController + TenantController ✅
-
-#### 4.3.28 QuotaManagement.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`quotaApi.listQuotas/setQuota/updateQuota/deleteQuota/getQuotaUsage` + `tenantApi.listAllTenants` + `workspaceApi.listAllWorkspaces` → `/api/v1/quotas/...` → encaps-layer QuotaController ✅
-
-#### 4.3.29 SqlWorkbench.vue（P2）
-
-- **问题**：未用 useApi、缺重试、无 onMounted
-- **修复建议**：用 useApi 包装 `executeCrossSourceSql/explainCrossSourceSql/validateSql`
-- **API 调用**：`sqlworkbenchApi.executeCrossSourceSql/explainCrossSourceSql/parseSql/validateSql/optimizeSql/explainSql/listEngines` → `/api/v1/sql/...` → sql-gateway ✅（依赖 vite proxy 补全）
-
-#### 4.3.30 TemplateMarket.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：同 4.3.4
-- **API 调用**：`templateApi.listTemplates/getTemplate/deployTemplate/previewTemplate/listCategories/listDeployments` → `/api/v1/templates/...` → encaps-layer TemplateController ✅
-
-#### 4.3.31 BusinessPortal.vue（通过）
-
-- 完整 useApi + 三态 + 重试 + onMounted + TS 类型 ✅
-
-#### 4.3.32 AssetMarket.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：同 4.3.4
-- **API 调用**：`assetMarketApi.listAssets/getAsset/listAsset/offlineAsset/relistAsset/listSubscriptions/subscribeAsset/deliverAsset/getBillingRecords` → `/api/v1/assets/...` + `/api/v1/asset-subscriptions/...` → encaps-layer AssetController ✅
-
-#### 4.3.33 APIMarket.vue（P2）
-
-- **问题**：未用 useApi、缺重试
-- **修复建议**：同 4.3.4
-- **API 调用**：`apiCatalogApi.listApis/getApi/registerApi/submitReview/approveApi/publishApi/subscribeApi/listSubscriptions/callApi/getMetrics/getApiDocs/deployApisixRoute` → `/api/v1/apis/...` + `/api/v1/subscriptions/...` → encaps-layer ApiCatalogController ✅
-
-#### 4.3.34 SearchPortal.vue（P2）
-
-- **问题**：通过 `useSearch` 组合式函数间接调用 `searchApi`，未直接用 useApi
-- **修复建议**：`useSearch` 内部已封装 loading/error/results 三态与 300ms 防抖，**可保留现状**；建议在 `useSearch` 内部用 useApi 替换手动 ref
-- **API 调用**：`searchApi.search/getFacets/suggest/exportResults/getHistory/clearHistory/deleteHistory` → `/api/v1/search/...` → encaps-layer SearchController ✅
-
-#### 4.3.35 orchestrator/DagVisualizer.vue（P2）
-
-- **问题**：未用 useApi
-- **修复建议**：用 useApi 包装 `listDags/getDagJson/runDag/stopDag`
-- **API 调用**：`orchestratorVizApi.listDags/submitDag/getDag/deleteDag/runDag/stopDag/getDagJson/getDagMermaid/getResults/getThoughtChain/getToolCalls/getInterventions/submitIntervention/getCheckpoints/createCheckpoint/resumeFromCheckpoint/getExecutions/getReplayTrace` → `/api/v1/orchestrator/dags/...` → rule-engine OrchestratorController ✅
-
-#### 4.3.36 ai-assistant/AiAssistant.vue（P2）
-
-- **问题**：通过 `useAiAssistant` 组合式函数间接调用 `aiApi`，未直接用 useApi
-- **修复建议**：`useAiAssistant` 内部已封装会话状态、流式 SSE、SQL/图表/解读全链路，**可保留现状**；建议在 `useAiAssistant` 内部用 useApi 替换手动 ref
-- **API 调用**：`aiApi.chat/chatStream/nl2Sql/executeSql/recommendChart/summarize/createDashboard/listSupersetDatasources/listSessions/getSession/deleteSession/pinSession/renameSession/feedbackMessage/getExamplePrompts` → `/api/v1/ai-assistant/...` → ai-assistant ✅
-
----
-
-## 第5章 问题汇总（按严重程度分类）
-
-### 5.1 P0（阻断级，0 个）
-
-无。
-
-### 5.2 P1（严重级，11 个）
-
-| # | 类别 | 位置 | 问题 | 修复优先级 |
-| --- | --- | --- | --- | --- |
-| 1 | vite proxy | `vite.config.ts` | 缺 `/api/v1/stream-batch` proxy，SchedulerOps.vue 请求会错误转发到 encaps-layer | 高 |
-| 2 | vite proxy | `vite.config.ts` | 缺 `/api/v1/sql` proxy，Sql.vue / SqlWorkbench.vue 跨源 SQL 请求无独立路由 | 高 |
-| 3 | vite proxy | `vite.config.ts` | 缺 `/lineage` proxy，lineage.ts 已用 `{ baseURL: '' }` 绕过 client，但 vite 仍需转发 | 高 |
-| 4 | API 模块 | `api/lineage.ts` | 使用绝对路径 `/lineage/api/v1/lineage/analyze` + `{ baseURL: '' }` 绕过 client.ts，与项目约定不一致 | 中 |
-| 5 | API 模块 | `api/sqlworkbench.ts` | `/sql` 前缀无 vite proxy，依赖 `/api` 兜底 | 中 |
-| 6 | API 模块 | `api/streamBatch.ts` | `/stream-batch` 前缀无 vite proxy | 中 |
-| 7 | 页面 | `views/Develop.vue` | 缺 loading 三态、缺重试、未用 useApi、无 onMounted | 中 |
-| 8 | 页面 | `views/DataLineage.vue` | 缺 loading 三态（仅局部 analyzing）、缺重试、未用 useApi | 中 |
-| 9 | vite proxy | `vite.config.ts` | 缺 `/api/v1/quality` proxy（若 rule-engine 独立部署） | 低 |
-| 10 | vite proxy | `vite.config.ts` | 缺 `/api/v1/governance` proxy（若 governance 独立部署） | 低 |
-| 11 | API 模块 | `api/governance.ts` vs `api/assetMarket.ts` | 路径 `/assets` 冲突，需后端按子路径区分 | 低 |
-
-### 5.3 P2（建议级，36 个）
-
-| # | 类别 | 位置 | 问题 |
-| --- | --- | --- | --- |
-| 1–28 | 页面 | 28 个页面（见 4.1 表） | 未使用 useApi 组合式函数，手动维护 loading/error/data 三态 |
-| 29–34 | 页面 | Develop/Sql/Gateway/Analyze/Ops/ClusterOverview/SqlWorkbench/TemplateMarket/APIMarket/DataLineage | 缺重试按钮 |
-| 35 | API 模块 | `job.ts` | 类型外置到 `api/types.ts` |
-| 36 | API 模块 | `quota.ts` | 类型外置到 `api/types.ts` |
-| 37 | API 模块 | `search.ts` | 类型外置到 `@/types/search` |
-| 38 | API 模块 | `tenant.ts` | 类型外置到 `api/types.ts` |
-| 39 | API 模块 | `workspace.ts` | 类型外置到 `api/types.ts` |
-| 40 | 页面 | Login.vue | 未用 useApi（登录场景特殊，可接受） |
-| 41 | 页面 | SchedulerOps.vue | 无 onMounted（按需查询，设计如此） |
-| 42 | 页面 | SqlWorkbench.vue | 无 onMounted（按需查询） |
-| 43 | 页面 | SearchPortal.vue | 通过 useSearch 间接调用，未直接用 useApi |
-| 44 | 页面 | AiAssistant.vue | 通过 useAiAssistant 间接调用，未直接用 useApi |
-| 45 | 页面 | TenantManagement.vue | 用 el-table v-loading 替代三态（可接受） |
-| 46 | 页面 | Develop.vue | 无 onMounted（不主动拉取文件树） |
-| 47 | 页面 | DataLineage.vue | 无 onMounted（用户主动输入 SQL） |
-
----
-
-## 第6章 修复建议
-
-### 6.1 优先级 P1 修复方案
-
-#### 6.1.1 补全 vite proxy（修复 P1-1/2/3/9/10）
-
-在 `frontend/vite.config.ts` 的 `server.proxy` 中增补：
-
-```ts
-// stream-batch-scheduler（SchedulerOps.vue）
-'/api/v1/stream-batch': {
-  target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
-  changeOrigin: true
-},
-// sql-gateway（Sql.vue / SqlWorkbench.vue）
-'/api/v1/sql': {
-  target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8088',
-  changeOrigin: true
-},
-// lineage-analyzer（Lineage.vue / DataLineage.vue）
-'/lineage': {
-  target: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:8089',
-  changeOrigin: true
-},
-// rule-engine（Quality.vue，若独立部署）
-'/api/v1/quality': {
-  target: process.env.VITE_RULE_ENGINE_TARGET || 'http://127.0.0.1:8091',
-  changeOrigin: true
-},
-// governance（Govern.vue，若独立部署）
-'/api/v1/governance': {
-  target: process.env.VITE_GOVERNANCE_TARGET || 'http://127.0.0.1:8092',
-  changeOrigin: true
-}
-```
-
-#### 6.1.2 修复 lineage.ts 路径约定（修复 P1-4）
-
-保留 `{ baseURL: '' }` 写法（lineage-analyzer 独立服务前缀 `/lineage`），但补充注释说明原因，并在 vite proxy 增补 `/lineage` 转发。
-
-#### 6.1.3 修复 Develop.vue 三态（修复 P1-7）
-
-```vue
-<script setup lang="ts">
-import { useApi } from '@/composables/useApi'
-import * as developApi from '@/api/develop'
-
-const { data: fileTree, loading, error, execute: loadFileTree } = useApi(
-  () => developApi.getFileTree()
-)
-onMounted(loadFileTree)
-</script>
-
-<template>
-  <div v-if="loading">加载中…</div>
-  <div v-else-if="error">
-    {{ error.message }}，<a href="javascript:void(0)" @click="loadFileTree">重试</a>
-  </div>
-  <div v-else><!-- 文件树渲染 --></div>
-</template>
-```
-
-#### 6.1.4 修复 DataLineage.vue 三态（修复 P1-8）
-
-将 `analyzing` / `analyzeError` / `graph` 三个 ref 替换为 useApi：
-
-```ts
-const {
-  data: graph,
-  loading: analyzing,
-  error: analyzeError,
-  execute: doAnalyze
-} = useApi((sql: string, dialect?: string) => analyzeLineage(sql, dialect))
-
-async function handleAnalyze() {
-  if (!sqlText.value.trim()) {
-    analyzeError.value = new Error('请输入 SQL')
-    return
-  }
-  const result = await doAnalyze(sqlText.value, dialect.value || undefined)
-  if (result) {
-    activeTab.value = 'table'
-    await nextTick()
-    renderChart(result)
-    store.showToast(`血缘分析完成：${result.meta.nodeCount} 节点 / ${result.meta.edgeCount} 边`)
-  }
-}
-```
-
-### 6.2 优先级 P2 修复方案
-
-#### 6.2.1 批量迁移到 useApi（修复 P2-1～28）
-
-对 28 个未用 useApi 的页面，按以下模式重构：
-
-**模式 A（列表页，单主请求）**：
-
-```ts
-// 旧
-const list = ref([])
-const loading = ref(false)
-const error = ref('')
-async function loadList() {
-  loading.value = true
-  error.value = ''
-  try {
-    const result = await api.list({ page: 1, pageSize: 100 })
-    list.value = result.list
-  } catch (err) {
-    error.value = (err as Error).message
-  } finally {
-    loading.value = false
-  }
-}
-
-// 新
-const { data: paged, loading, error, execute: loadList } = useApi(
-  () => api.list({ page: 1, pageSize: 100 })
-)
-const list = computed(() => paged.value?.list ?? [])
-```
-
-**模式 B（详情页，多请求并行）**：
-
-```ts
-const { data: detail, loading, error, execute: loadDetail } = useApi(
-  (id: string) => Promise.all([
-    api.getDetail(id),
-    api.getSchema(id),
-    api.getQuality(id)
-  ])
-)
-```
-
-**模式 C（操作页，无 onMounted）**：保留手动 ref，仅用 useApi 包装主请求。
-
-#### 6.2.2 补全重试按钮（修复 P2-29～34）
-
-在错误态模板中增补：
-
-```vue
-<div v-else-if="error">
-  {{ error.message }}，<a href="javascript:void(0)" @click="reload">重试</a>
-</div>
-```
-
-#### 6.2.3 API 模块类型自包含（修复 P2-35～39）
-
-将 `job.ts`、`quota.ts`、`search.ts`、`tenant.ts`、`workspace.ts` 的类型从 `types.ts` / `@/types/*` 内联到本模块，或在模块顶部补注释：
-
-```ts
-// job.ts
-// 类型定义见 @/api/types.ts（项目约定：避免循环依赖）
-import type { Job, JobListQuery, SubmitJobParams, PagedResult, JobStatus } from './types'
-```
-
-#### 6.2.4 governance.ts 路径冲突（修复 P2-11）
-
-建议后端 APISIX 按子路径区分：
-
-- 治理资产：`/api/v1/governance/assets`（governance/real-time-pipeline）
-- 流通市场：`/api/v1/assets`（encaps-layer AssetController）
-
-前端 `governance.ts` 同步调整 `BASE = '/governance/assets'`。
-
-### 6.3 修复优先级建议
-
-| 阶段 | 内容 | 预计工作量 |
-| --- | --- | --- |
-| 阶段 1（紧急） | 补全 vite proxy 5 条（6.1.1） | 0.5 人时 |
-| 阶段 2（高优） | 修复 Develop.vue、DataLineage.vue 三态（6.1.3、6.1.4） | 2 人时 |
-| 阶段 3（中优） | 28 个页面批量迁移到 useApi（6.2.1） | 8 人时 |
-| 阶段 4（低优） | 补全重试按钮、API 模块类型自包含、governance 路径调整 | 4 人时 |
-
----
-
-## 第7章 审计结论
-
-### 7.1 总体评价
-
-前端 API 对接整体**规范度较高**：
-
-- ✅ **API 模块层**：32 个模块全部复用 `client.ts` 的 `get/post/put/del`，路径前缀与后端 Controller 命名对齐，TS 类型覆盖率 87.5%
-- ✅ **页面层**：34 个页面均通过 `@/api/*` 模块间接调用后端，未发现直接 `fetch`/`axios` 调用（除 ai-assistant.ts 的 SSE 流式，已合理处理 401 跳转）
-- ✅ **错误处理**：`client.ts` 拦截器统一处理 401/403/500/404/网络异常，业务码非 0 自动提示
-- ✅ **TypeScript**：所有页面使用 `<script setup lang="ts">`，类型定义完备
-- ⚠️ **三态一致性**：仅 4 个页面完全符合 Dashboard.vue 参考模式（useApi + 三态 + 重试），28 个页面手动维护三态
-- ⚠️ **vite proxy**：6 条配置覆盖主流程，但 stream-batch、sql-gateway、lineage-analyzer 3 个独立服务缺 proxy
-
-### 7.2 风险评估
-
-| 风险 | 影响 | 概率 |
-| --- | --- | --- |
-| stream-batch/sql-gateway/lineage-analyzer 独立部署时请求转发错误 | 开发环境请求 404 | 高（若服务独立部署） |
-| 28 个页面手动三态维护，易遗漏 error 态 | 用户体验不一致 | 中 |
-| governance.ts 与 assetMarket.ts 路径冲突 | 后端路由歧义 | 低（当前 encaps-layer 兜底） |
-
-### 7.3 建议后续行动
-
-1. **立即**：补全 vite proxy 5 条（阶段 1）
-2. **本周**：修复 Develop.vue、DataLineage.vue 三态（阶段 2）
-3. **下周**：批量迁移 28 个页面到 useApi（阶段 3）
-4. **后续**：补全重试按钮、API 模块类型自包含、governance 路径调整（阶段 4）
-
----
-
-## 附录 A：审计文件清单
-
-### A.1 已审计页面（34 个）
-
-```
-frontend/src/views/
-├── Dashboard.vue              ✅ 通过（参考实现）
-├── Login.vue                  P2
-├── Workspaces.vue             ✅ 通过
-├── Projects.vue               P2
-├── Integrate.vue              P2
-├── Develop.vue                P1
-├── Sql.vue                    P2
-├── Govern.vue                 P2
-├── Standard.vue               P2
-├── Quality.vue                P2
-├── Lineage.vue                P2
-├── DataLineage.vue            P1
-├── Sec.vue                    P2
-├── Vector.vue                 P2
-├── Kb.vue                     P2
-├── Llmops.vue                 P2
-├── Gateway.vue                P2
-├── Analyze.vue                P2
-├── Ops.vue                    P2
-├── Account.vue                P2
-├── Admin.vue                  P2
-├── TenantManagement.vue       P2
-├── ClusterOverview.vue        P2
-├── DataSourceManagement.vue   P2
-├── JobManagement.vue          P2
-├── SchedulerOps.vue           P2
-├── WorkspaceManagement.vue    P2
-├── QuotaManagement.vue        P2
-├── SqlWorkbench.vue           P2
-├── TemplateMarket.vue         P2
-├── BusinessPortal.vue         ✅ 通过
-├── AssetMarket.vue            P2
-├── APIMarket.vue              P2
-├── SearchPortal.vue           P2
-├── orchestrator/
-│   └── DagVisualizer.vue      P2
-└── ai-assistant/
-    └── AiAssistant.vue        P2
-```
-
-### A.2 已审计 API 模块（32 个）
-
-```
-frontend/src/api/
-├── account.ts                 ✅
-├── admin.ts                   ✅
-├── ai-assistant.ts            ✅
-├── analyze.ts                 ✅
-├── apiCatalog.ts              ✅
-├── assetMarket.ts             ✅
-├── businessPortal.ts          ✅
-├── cluster.ts                 ✅
-├── datasource.ts              ✅
-├── develop.ts                 ✅
-├── gateway.ts                 ✅
-├── governance.ts              P2（路径冲突）
-├── integrate.ts               ✅
-├── job.ts                     P2（类型外置）
-├── knowledge.ts               ✅
-├── lineage.ts                 P1（绝对路径绕过 client）
-├── llmops.ts                  ✅
-├── ops.ts                     ✅
-├── orchestrator-viz.ts        ✅
-├── project.ts                 ✅
-├── quality.ts                 ✅
-├── quota.ts                   P2（类型外置）
-├── search.ts                  P2（类型外置）
-├── sec.ts                     ✅
-├── sqlworkbench.ts            P1（缺 proxy）
-├── standard.ts                ✅
-├── streamBatch.ts             P1（缺 proxy）
-├── template.ts                ✅
-├── tenant.ts                  P2（类型外置）
-├── vector.ts                  ✅
-└── workspace.ts               P2（类型外置）
-```
-
-### A.3 vite proxy 配置（现有 6 条 + 建议 5 条）
-
-```
-现有：
-  /api                    → encaps-layer:8080
-  /api/v1/ops             → observability query-api:8090
-  /api/v1/cluster         → observability query-api:8090
-  /api/v1/vector          → vector-engine:8086
-  /api/v1/ai-assistant    → ai-assistant:18110
-  /api/v1/dashboards      → finops-dashboard:8085
-
-建议增补：
-  /api/v1/stream-batch    → stream-batch-scheduler:8087
-  /api/v1/sql             → sql-gateway:8088
-  /lineage                → lineage-analyzer:8089
-  /api/v1/quality         → rule-engine:8091
-  /api/v1/governance      → governance/real-time-pipeline:8092
-```
-
----
-
-**审计报告生成完毕。**  
-**任务 #357 已完成。**
+**审计报告生成完毕。审计人：前端审计工程师。审计时间：2026-08-16。**

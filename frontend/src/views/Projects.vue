@@ -11,7 +11,7 @@
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error }}，<a href="javascript:void(0)" @click="loadProjects">重试</a>
+        {{ error.message }}，<a href="javascript:void(0)" @click="loadProjects">重试</a>
       </div>
       <table v-else>
         <tr><th>项目</th><th>域</th><th>数据集</th><th>作业</th><th>负责人</th><th>状态</th></tr>
@@ -108,33 +108,27 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as projectApi from '@/api/project'
 import type { Project, ProjectDataset, ProjectJob, ProjectMember, ProjectStatus } from '@/api/project'
+import type { PagedResult } from '@/api/types'
 
 const store = useAppStore()
 
-// 项目列表
-const projects = ref<Project[]>([])
-const loading = ref(false)
-const error = ref('')
+// 项目列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: paged,
+  loading,
+  error,
+  execute: loadProjects
+} = useApi<PagedResult<Project>>(() => projectApi.listProjects({ page: 1, pageSize: 100 }))
 
-/** 加载项目列表 */
-async function loadProjects() {
-  loading.value = true
-  error.value = ''
-  try {
-    const result = await projectApi.listProjects({ page: 1, pageSize: 100 })
-    projects.value = result.list
-  } catch (err) {
-    error.value = (err as Error).message || '项目列表加载失败'
-  } finally {
-    loading.value = false
-  }
-}
+// 项目列表（从 paged 中提取）
+const projects = computed<Project[]>(() => paged.value?.list ?? [])
 
 /** 状态 → pill 样式 */
 function statusPillClass(s: ProjectStatus): string {
@@ -171,44 +165,37 @@ const modalVisible = ref(false)
 const tab = ref(0)
 const current = ref<Project | null>(null)
 
-// 项目详情：数据集、作业、成员
-const datasets = ref<ProjectDataset[]>([])
-const projJobs = ref<ProjectJob[]>([])
-const members = ref<ProjectMember[]>([])
-const datasetsLoading = ref(false)
-const jobsLoading = ref(false)
-const membersLoading = ref(false)
+// 项目详情：数据集、作业、成员 —— 通过 useApi 包装并行加载
+const {
+  data: detailData,
+  loading: detailLoading,
+  execute: loadDetail
+} = useApi<[ProjectDataset[], ProjectJob[], ProjectMember[]], [string]>(
+  (id: string) =>
+    Promise.all([
+      projectApi.listDatasets(id).catch(() => [] as ProjectDataset[]),
+      projectApi.listJobs(id).catch(() => [] as ProjectJob[]),
+      projectApi.listMembers(id).catch(() => [] as ProjectMember[])
+    ])
+)
+
+// 数据集列表
+const datasets = computed<ProjectDataset[]>(() => detailData.value?.[0] ?? [])
+// 项目作业列表
+const projJobs = computed<ProjectJob[]>(() => detailData.value?.[1] ?? [])
+// 成员列表
+const members = computed<ProjectMember[]>(() => detailData.value?.[2] ?? [])
+// 各 tab 的 loading 状态（统一由 detailLoading 控制）
+const datasetsLoading = computed(() => detailLoading.value)
+const jobsLoading = computed(() => detailLoading.value)
+const membersLoading = computed(() => detailLoading.value)
 
 /** 打开抽屉并加载详情 */
 async function openDrawer(p: Project) {
   current.value = p
   tab.value = 0
   drawerVisible.value = true
-  // 并行加载详情
-  datasetsLoading.value = true
-  jobsLoading.value = true
-  membersLoading.value = true
-  try {
-    datasets.value = await projectApi.listDatasets(p.id)
-  } catch {
-    datasets.value = []
-  } finally {
-    datasetsLoading.value = false
-  }
-  try {
-    projJobs.value = await projectApi.listJobs(p.id)
-  } catch {
-    projJobs.value = []
-  } finally {
-    jobsLoading.value = false
-  }
-  try {
-    members.value = await projectApi.listMembers(p.id)
-  } catch {
-    members.value = []
-  } finally {
-    membersLoading.value = false
-  }
+  await loadDetail(p.id)
 }
 
 // 新建表单
@@ -247,6 +234,6 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
-  loadProjects()
+  void loadProjects()
 })
 </script>

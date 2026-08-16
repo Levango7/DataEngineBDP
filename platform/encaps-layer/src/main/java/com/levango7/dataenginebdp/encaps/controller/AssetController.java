@@ -27,12 +27,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 数据资产流通端点（ROADMAP 前后端接线：前端 /assets）。
+ * 数据资产治理端点（ROADMAP 前后端接线：前端 /governance/assets）。
+ *
+ * <p>路径前缀由 {@code /api/v1/assets} 调整为 {@code /api/v1/governance/assets}，
+ * 以避免与 asset-exchange（Python，{@code /api/v1/assets}）路径冲突。
+ * 前端 governance.ts 已同步使用 {@code /governance/assets} 前缀。</p>
  */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/assets")
+@RequestMapping("/api/v1/governance/assets")
 public class AssetController {
 
     private final AssetRepository repository;
@@ -139,6 +143,79 @@ public class AssetController {
             log.info("删除资产: id={}, tenant={}", id, tenantId);
             return ResponseEntity.ok(Map.of("deleted", true));
         }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 获取资产 Schema。
+     *
+     * <p>对齐前端 {@code governance.ts} 的 {@code getAssetSchema}。
+     * TODO: 接入元数据存储查询字段定义，当前返回空 Schema 占位。</p>
+     *
+     * @param id 资产 ID
+     * @return 200 + 资产 Schema
+     */
+    @GetMapping("/{id}/schema")
+    @Transactional(readOnly = true)
+    public ResponseEntity<?> getSchema(@PathVariable Long id) {
+        String tenantId = requireTenant();
+        return repository.findByIdAndTenantId(id, tenantId)
+                .<ResponseEntity<?>>map(a -> ResponseEntity.ok(Map.of(
+                        "assetId", String.valueOf(a.getId()),
+                        "fields", List.of())))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 获取资产质量检查结果。
+     *
+     * <p>对齐前端 {@code governance.ts} 的 {@code getAssetQuality}。
+     * TODO: 接入质量结果存储，当前返回空列表占位。</p>
+     *
+     * @param id 资产 ID
+     * @return 200 + 质量检查项列表
+     */
+    @GetMapping("/{id}/quality")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> getQuality(@PathVariable Long id) {
+        requireTenant();
+        // TODO: 从质量结果存储查询
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 获取资产权限列表。
+     *
+     * <p>对齐前端 {@code governance.ts} 的 {@code getAssetPermissions}。
+     * TODO: 接入权限存储，当前返回空列表占位。</p>
+     *
+     * @param id 资产 ID
+     * @return 200 + 权限列表
+     */
+    @GetMapping("/{id}/permissions")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> getPermissions(@PathVariable Long id) {
+        requireTenant();
+        // TODO: 从权限存储查询
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 申请资产读/写权限。
+     *
+     * <p>对齐前端 {@code governance.ts} 的 {@code applyAssetPermission}。
+     * TODO: 转交审批流引擎，当前仅记录日志。</p>
+     *
+     * @param id         资产 ID
+     * @param permission 权限类型（read/write）
+     * @return 200
+     */
+    @PostMapping("/{id}/apply-permission")
+    public ResponseEntity<Void> applyPermission(@PathVariable Long id,
+                                                @RequestBody Map<String, String> permission) {
+        // TODO: 转交审批流引擎创建申请
+        log.info("申请资产权限: id={}, permission={}, tenant={}",
+                id, permission.get("permission"), TenantContext.getTenantId());
+        return ResponseEntity.ok().build();
     }
 
     private String requireTenant() {

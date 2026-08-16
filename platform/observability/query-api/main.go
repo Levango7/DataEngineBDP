@@ -77,6 +77,7 @@ func main() {
 	healthH := handler.NewHealthHandler(version)
 	queryH := handler.NewQueryHandler(promClient, tenantFilter)
 	opsHealthH := handler.NewOpsHealthHandler()
+	opsH := handler.NewOpsHandler()
 
 	// 集群状态查询（真实接 k3s；k3s 不可达时 handler 返回 503）。
 	clusterH, clusterErr := handler.NewClusterHandler()
@@ -93,11 +94,16 @@ func main() {
 	// 健康检查（无需认证）。
 	r.GET("/api/v1/health", healthH.Health)
 
-	// 统一运维台：组件健康总览（平台运维角色认证后访问）。
+	// 统一运维台：组件健康总览 + 业务运维视图（平台运维角色认证后访问）。
 	opsGroup := r.Group("/api/v1/ops")
 	opsGroup.Use(middleware.AuthMiddleware())
 	opsGroup.Use(middleware.PlatformRoleMiddleware(platformRole))
 	opsGroup.GET("/health/overview", opsHealthH.Overview)
+	opsGroup.GET("/overview", opsH.Overview)
+	opsGroup.GET("/jobs", opsH.Jobs)
+	opsGroup.GET("/alerts", opsH.Alerts)
+	opsGroup.POST("/alerts/:id/handle", opsH.HandleAlert)
+	opsGroup.GET("/jobs/:id/logs", opsH.JobLogs)
 
 	// 集群状态端点（k3s 可用时注册）。
 	if clusterH != nil {

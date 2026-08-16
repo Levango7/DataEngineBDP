@@ -113,6 +113,55 @@ public class SecController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 查询权限申请列表。
+     *
+     * <p>对齐前端 {@code sec.ts} 的 {@code listApprovals}。
+     * TODO: 接入审批流存储，当前返回空列表占位。</p>
+     *
+     * @param status 状态过滤（可选）
+     * @return 200 + 审批列表
+     */
+    @GetMapping("/approvals")
+    public ResponseEntity<List<Map<String, Object>>> listApprovals(
+            @RequestParam(required = false) String status) {
+        // TODO: 从审批流存储查询
+        log.info("查询权限申请: status={}, tenant={}", status, TenantContext.getTenantId());
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 批准权限申请。
+     *
+     * <p>对齐前端 {@code sec.ts} 的 {@code approveApproval}。
+     * TODO: 转交审批流引擎，当前仅记录日志。</p>
+     *
+     * @param id 申请 ID
+     * @return 200
+     */
+    @PostMapping("/approvals/{id}/approve")
+    public ResponseEntity<Void> approve(@PathVariable Long id) {
+        // TODO: 转交审批流引擎更新状态
+        log.info("批准权限申请: id={}, tenant={}", id, TenantContext.getTenantId());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 拒绝权限申请。
+     *
+     * <p>对齐前端 {@code sec.ts} 的 {@code rejectApproval}。
+     * TODO: 转交审批流引擎，当前仅记录日志。</p>
+     *
+     * @param id 申请 ID
+     * @return 200
+     */
+    @PostMapping("/approvals/{id}/reject")
+    public ResponseEntity<Void> reject(@PathVariable Long id) {
+        // TODO: 转交审批流引擎更新状态
+        log.info("拒绝权限申请: id={}, tenant={}", id, TenantContext.getTenantId());
+        return ResponseEntity.ok().build();
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

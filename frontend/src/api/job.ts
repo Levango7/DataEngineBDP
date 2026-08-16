@@ -3,6 +3,7 @@
  */
 import { get, post, del } from './client'
 import type { Job, JobListQuery, SubmitJobParams, PagedResult, JobStatus } from './types'
+// 类型定义见 @/api/types.ts（项目约定：避免循环依赖）
 
 /** 作业资源根路径 */
 const BASE = '/jobs'

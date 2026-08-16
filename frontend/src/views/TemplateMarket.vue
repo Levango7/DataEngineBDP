@@ -36,7 +36,10 @@
 
       <!-- 模板卡片网格 -->
       <div v-loading="loading" class="template-grid">
-        <el-empty v-if="!loading && filteredTemplates.length === 0" description="暂无匹配模板" />
+        <el-empty v-if="error" description="加载失败，请重试">
+          <el-button type="primary" @click="loadAll">重试</el-button>
+        </el-empty>
+        <el-empty v-else-if="!loading && filteredTemplates.length === 0" description="暂无匹配模板" />
         <el-card
           v-for="tpl in filteredTemplates"
           :key="tpl.id"
@@ -360,6 +363,7 @@ import {
   Check,
   DataLine
 } from '@element-plus/icons-vue'
+import { useApi } from '@/composables/useApi'
 import * as templateApi from '@/api/template'
 import type {
   TemplateMeta,
@@ -375,28 +379,24 @@ import type {
 
 /* ------------------------------ 列表与分类 ------------------------------ */
 
-const loading = ref(false)
-const templateList = ref<TemplateMeta[]>([])
-const categories = ref<TemplateCategory[]>([])
 const filterIndustry = ref<Industry | ''>('')
 const searchKeyword = ref('')
 
-/** 拉取模板列表 + 分类 */
-async function loadAll() {
-  loading.value = true
-  try {
-    const [tpls, cats] = await Promise.all([
-      templateApi.listTemplates(),
-      templateApi.listCategories()
-    ])
-    templateList.value = tpls
-    categories.value = cats
-  } catch {
-    ElMessage.error('模板列表加载失败')
-  } finally {
-    loading.value = false
+// �' api 包装并行加载，自动维护 loading / error / data 三态
+const {
+  data: listData,
+  loading,
+  error,
+  execute: loadAll
+} = useApi<[TemplateMeta[], TemplateCategory[]]>(
+  () => Promise.all([templateApi.listTemplates(), templateApi.listCategories()]),
+  {
+    initialData: [[], []],
+    onError: () => ElMessage.error('模板列表加载失败')
   }
-}
+)
+const templateList = computed<TemplateMeta[]>(() => listData.value?.[0] ?? [])
+const categories = computed<TemplateCategory[]>(() => listData.value?.[1] ?? [])
 
 /** 过滤后的模板列表 */
 const filteredTemplates = computed(() => {
@@ -424,31 +424,30 @@ function handleFilter() {
 /* ------------------------------ 模板详情 ------------------------------ */
 
 const detailVisible = ref(false)
-const detailLoading = ref(false)
-const detailTemplate = ref<Template | null>(null)
-const preview = ref<TemplatePreview | null>(null)
 const activeTab = ref('arch')
+
+// 模板详情 + 预览：通过 useApi 包装并行加载
+const {
+  data: detailData,
+  loading: detailLoading,
+  execute: loadDetail
+} = useApi<[Template, TemplatePreview], [string]>(
+  (id: string) => Promise.all([templateApi.getTemplate(id), templateApi.previewTemplate(id)]),
+  {
+    onError: () => {
+      ElMessage.error('模板详情加载失败')
+      detailVisible.value = false
+    }
+  }
+)
+const detailTemplate = computed<Template | null>(() => detailData.value?.[0] ?? null)
+const preview = computed<TemplatePreview | null>(() => detailData.value?.[1] ?? null)
 
 /** 打开模板详情 */
 async function openDetail(id: string) {
   detailVisible.value = true
-  detailLoading.value = true
   activeTab.value = 'arch'
-  detailTemplate.value = null
-  preview.value = null
-  try {
-    const [tpl, prev] = await Promise.all([
-      templateApi.getTemplate(id),
-      templateApi.previewTemplate(id)
-    ])
-    detailTemplate.value = tpl
-    preview.value = prev
-  } catch {
-    ElMessage.error('模板详情加载失败')
-    detailVisible.value = false
-  } finally {
-    detailLoading.value = false
-  }
+  await loadDetail(id)
 }
 
 /* ------------------------------ 部署 ------------------------------ */
@@ -601,7 +600,7 @@ function paramTypeTag(type: string): 'primary' | 'success' | 'warning' | 'info' 
 /* ------------------------------ 初始化 ------------------------------ */
 
 onMounted(() => {
-  loadAll()
+  void loadAll()
 })
 </script>
 

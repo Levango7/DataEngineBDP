@@ -202,6 +202,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { VideoPlay, VideoPause, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useApi } from '@/composables/useApi'
 import {
   listDags,
   getDagJson,
@@ -219,15 +220,32 @@ import ExecutionReplay from './ExecutionReplay.vue'
 
 /* ------------------------------ 状态 ------------------------------ */
 
-const dagList = ref<DagGraphDto[]>([])
 const selectedDagId = ref<string>('')
-const graph = ref<DagGraphDto | null>(null)
-const results = ref<Record<string, TaskResultDto>>({})
 const running = ref(false)
 const autoPoll = ref(false)
 const activeTab = ref<'node' | 'thought' | 'tool' | 'replay'>('node')
 const selectedNode = ref<DagNodeDto | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
+
+// DAG 列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: dagList,
+  execute: loadDagList
+} = useApi<DagGraphDto[]>(() => listDags(), { initialData: [] })
+
+// DAG 图谱 + 结果：通过 useApi 包装并行加载
+const {
+  data: graphAndResults,
+  execute: loadGraphRaw
+} = useApi<[DagGraphDto, Record<string, TaskResultDto>], [string]>(
+  (id: string) =>
+    Promise.all([
+      getDagJson(id),
+      getResults(id).catch(() => ({} as Record<string, TaskResultDto>))
+    ])
+)
+const graph = computed<DagGraphDto | null>(() => graphAndResults.value?.[0] ?? null)
+const results = ref<Record<string, TaskResultDto>>({})
 
 /* ------------------------------ 布局计算 ------------------------------ */
 
@@ -405,32 +423,19 @@ function onNodeClick(n: LayoutNode) {
   activeTab.value = 'node'
 }
 
-async function loadDagList() {
-  try {
-    dagList.value = await listDags()
-  } catch (e) {
-    // 错误已由拦截器提示
+async function loadGraph() {
+  if (!selectedDagId.value) {
+    return
+  }
+  await loadGraphRaw(selectedDagId.value)
+  if (graphAndResults.value) {
+    results.value = graphAndResults.value[1]
+    running.value = graphAndResults.value[0].status === 'RUNNING'
+  } else {
+    results.value = {}
   }
 }
 
-async function loadGraph() {
-  if (!selectedDagId.value) {
-    graph.value = null
-    return
-  }
-  try {
-    graph.value = await getDagJson(selectedDagId.value)
-    // 同步拉取结果（若已执行过）
-    try {
-      results.value = await getResults(selectedDagId.value)
-    } catch {
-      results.value = {}
-    }
-    running.value = graph.value.status === 'RUNNING'
-  } catch {
-    graph.value = null
-  }
-}
 
 async function onSelectDag() {
   selectedNode.value = null
@@ -479,10 +484,10 @@ watch(autoPoll, (v) => {
 })
 
 onMounted(() => {
-  loadDagList().then(() => {
-    if (dagList.value.length > 0) {
-      selectedDagId.value = dagList.value[0].id
-      loadGraph()
+  void loadDagList().then(() => {
+    if ((dagList.value ?? []).length > 0) {
+      selectedDagId.value = (dagList.value ?? [])[0].id
+      void loadGraph()
     }
   })
 })

@@ -149,6 +149,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useApi } from '@/composables/useApi'
 import * as datasourceApi from '@/api/datasource'
 import type {
   DataSource,
@@ -156,6 +157,7 @@ import type {
   DataSourceStatus,
   SaveDataSourceParams
 } from '@/api/datasource'
+import type { PagedResult } from '@/api/types'
 
 /* ------------------------------ 类型选项 ------------------------------ */
 
@@ -186,40 +188,36 @@ const defaultPortMap: Record<DataSourceType, number> = {
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
-const loading = ref(false)
-const error = ref(false)
-const dsList = ref<DataSource[]>([])
-const total = ref(0)
+// 数据源列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: dsPaged,
+  loading,
+  error,
+  execute: loadList
+} = useApi<PagedResult<DataSource>>(
+  () =>
+    datasourceApi.listDataSources({
+      keyword: searchKeyword.value || undefined,
+      type: filterType.value || undefined,
+      page: currentPage.value,
+      pageSize: pageSize.value
+    }),
+  {
+    onError: () => ElMessage.error('数据源列表加载失败')
+  }
+)
+
+const dsList = computed<DataSource[]>(() => dsPaged.value?.list ?? [])
+const total = computed<number>(() => dsPaged.value?.total ?? 0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const searchKeyword = ref('')
 const filterType = ref<DataSourceType | ''>('')
 
-/** 拉取数据源列表 */
-async function loadList() {
-  loading.value = true
-  error.value = false
-  try {
-    const result = await datasourceApi.listDataSources({
-      keyword: searchKeyword.value || undefined,
-      type: filterType.value || undefined,
-      page: currentPage.value,
-      pageSize: pageSize.value
-    })
-    dsList.value = result.list
-    total.value = result.total
-  } catch {
-    error.value = true
-    ElMessage.error('数据源列表加载失败')
-  } finally {
-    loading.value = false
-  }
-}
-
 /** 搜索 */
 function handleSearch() {
   currentPage.value = 1
-  loadList()
+  void loadList()
 }
 
 /* ------------------------------ 创建/编辑 ------------------------------ */
@@ -422,7 +420,7 @@ function statusTagType(status: DataSourceStatus): 'success' | 'info' | 'warning'
 /* ------------------------------ 初始化 ------------------------------ */
 
 onMounted(() => {
-  loadList()
+  void loadList()
 })
 </script>
 

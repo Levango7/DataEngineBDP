@@ -15,7 +15,7 @@
     <div class="card">
       <div v-if="loading" style="text-align: center; padding: 24px; color: #888">正在加载向量集合...</div>
       <div v-else-if="error" style="text-align: center; padding: 24px; color: #d4380d">
-        加载失败：{{ error }}
+        加载失败：{{ error.message }}
         <button class="btn ghost sm" style="margin-left: 8px" @click="loadCollections">重试</button>
       </div>
       <table v-else>
@@ -51,6 +51,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as vectorApi from '@/api/vector'
 import type { VectorCollection, IndexType } from '@/api/vector'
@@ -58,9 +59,14 @@ import type { VectorCollection, IndexType } from '@/api/vector'
 const store = useAppStore()
 const modalVisible = ref(false)
 
-const collections = ref<VectorCollection[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
+// 向量集合列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: collections,
+  loading,
+  error,
+  execute: loadCollections
+} = useApi<VectorCollection[]>(() => vectorApi.listCollections(), { initialData: [] })
+
 const searchText = ref('')
 
 const newCollection = ref({
@@ -69,18 +75,6 @@ const newCollection = ref({
   index: 'HNSW' as IndexType,
   relatedKb: '',
 })
-
-async function loadCollections() {
-  loading.value = true
-  error.value = null
-  try {
-    collections.value = await vectorApi.listCollections()
-  } catch (e) {
-    error.value = (e as Error).message || '加载向量集合失败'
-  } finally {
-    loading.value = false
-  }
-}
 
 async function submitCreate() {
   if (!newCollection.value.name) {
@@ -94,7 +88,9 @@ async function submitCreate() {
       index: newCollection.value.index,
       relatedKb: newCollection.value.relatedKb,
     })
-    collections.value.push(created)
+    if (collections.value) {
+      collections.value.push(created)
+    }
     modalVisible.value = false
     store.showToast('向量集合已创建')
     // 重置表单
@@ -115,6 +111,6 @@ async function doSearch() {
 }
 
 onMounted(() => {
-  loadCollections()
+  void loadCollections()
 })
 </script>

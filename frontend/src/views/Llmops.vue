@@ -11,7 +11,7 @@
       <h3>模型注册表</h3>
       <div v-if="loading" style="text-align: center; padding: 24px; color: #888">正在加载模型列表...</div>
       <div v-else-if="error" style="text-align: center; padding: 24px; color: #d4380d">
-        加载失败：{{ error }}
+        加载失败：{{ error.message }}
         <button class="btn ghost sm" style="margin-left: 8px" @click="loadModels">重试</button>
       </div>
       <table v-else>
@@ -56,6 +56,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as llmopsApi from '@/api/llmops'
 import type { ModelRegistry, EvalMetric, ModelType, ModelStatus } from '@/api/llmops'
@@ -63,11 +64,23 @@ import type { ModelRegistry, EvalMetric, ModelType, ModelStatus } from '@/api/ll
 const store = useAppStore()
 const modalVisible = ref(false)
 
-const models = ref<ModelRegistry[]>([])
-const evalMetrics = ref<EvalMetric[]>([])
-const loading = ref(false)
-const error = ref<string | null>(null)
-const metricsLoading = ref(false)
+// 模型列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: models,
+  loading,
+  error,
+  execute: loadModels
+} = useApi<ModelRegistry[]>(() => llmopsApi.listModels(), { initialData: [] })
+
+// 评估指标：通过 useApi 包装，失败时提示
+const {
+  data: evalMetrics,
+  loading: metricsLoading,
+  execute: loadEvalMetrics
+} = useApi<EvalMetric[]>(() => llmopsApi.getEvalMetrics(), {
+  initialData: [],
+  onError: (err) => store.showToast(`加载评估指标失败：${err.message}`)
+})
 
 const finetuneForm = ref({
   modelName: '',
@@ -77,7 +90,7 @@ const finetuneForm = ref({
   epochs: 3,
 })
 
-const deployedCount = computed(() => models.value.filter((m) => m.status === 'deployed').length)
+const deployedCount = computed(() => (models.value ?? []).filter((m) => m.status === 'deployed').length)
 
 function typeLabel(t: ModelType): string {
   const map: Record<ModelType, string> = {
@@ -107,29 +120,6 @@ function statusClass(s: ModelStatus): string {
   return map[s] || ''
 }
 
-async function loadModels() {
-  loading.value = true
-  error.value = null
-  try {
-    models.value = await llmopsApi.listModels()
-  } catch (e) {
-    error.value = (e as Error).message || '加载模型列表失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadEvalMetrics() {
-  metricsLoading.value = true
-  try {
-    evalMetrics.value = await llmopsApi.getEvalMetrics()
-  } catch (e) {
-    store.showToast(`加载评估指标失败：${(e as Error).message}`)
-  } finally {
-    metricsLoading.value = false
-  }
-}
-
 async function submitFinetune() {
   if (!finetuneForm.value.modelName) {
     store.showToast('请填写模型名')
@@ -152,7 +142,7 @@ async function submitFinetune() {
 }
 
 async function triggerHumanEval() {
-  const modelName = evalMetrics.value[0]?.modelName
+  const modelName = (evalMetrics.value ?? [])[0]?.modelName
   if (!modelName) {
     store.showToast('暂无模型可评估')
     return
@@ -166,7 +156,7 @@ async function triggerHumanEval() {
 }
 
 onMounted(() => {
-  loadModels()
-  loadEvalMetrics()
+  void loadModels()
+  void loadEvalMetrics()
 })
 </script>

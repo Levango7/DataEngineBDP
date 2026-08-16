@@ -144,19 +144,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { listDagRuns, rerunDagRun, backfillDag, type DagRunRecord } from '@/api/streamBatch'
+import { useApi } from '@/composables/useApi'
+import { listDagRuns, rerunDagRun, backfillDag, type DagRunRecord, type DagRunPage } from '@/api/streamBatch'
 
 const dagId = ref('')
-const runs = ref<DagRunRecord[]>([])
-const loading = ref(false)
-const error = ref('')
 const activeStatus = ref('')
 const page = ref(1)
 const size = ref(20)
-const total = ref(0)
+
+// DAG 运行历史：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: runsPage,
+  loading,
+  error,
+  execute: loadRuns
+} = useApi<DagRunPage>(
+  () =>
+    listDagRuns(dagId.value, {
+      status: activeStatus.value || undefined,
+      page: page.value - 1,
+      size: size.value
+    })
+  )
+
+const runs = computed<DagRunRecord[]>(() => runsPage.value?.content ?? [])
+const total = computed<number>(() => runsPage.value?.totalElements ?? 0)
 
 const rerunningId = ref<number | null>(null)
 const backfillVisible = ref(false)
@@ -168,27 +183,13 @@ const detail = ref<DagRunRecord | null>(null)
 
 async function handleQuery() {
   page.value = 1
-  await loadRuns()
+  await doQuery()
 }
 
-async function loadRuns() {
+/** 查询入口：仅当 dagId 有值时触发 */
+async function doQuery() {
   if (!dagId.value) return
-  loading.value = true
-  error.value = ''
-  try {
-    const data = await listDagRuns(dagId.value, {
-      status: activeStatus.value || undefined,
-      page: page.value - 1,
-      size: size.value
-    })
-    runs.value = data.content ?? []
-    total.value = data.totalElements ?? 0
-  } catch (e) {
-    error.value = String(e)
-    runs.value = []
-  } finally {
-    loading.value = false
-  }
+  await loadRuns()
 }
 
 async function doRerun(row: DagRunRecord) {

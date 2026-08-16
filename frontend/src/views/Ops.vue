@@ -19,7 +19,9 @@
         </span>
       </h3>
       <div v-if="healthLoading" style="color: var(--muted)">加载中…</div>
-      <div v-else-if="healthError" style="color: var(--red)">{{ healthError }}</div>
+      <div v-else-if="healthError" style="color: var(--red)">
+        {{ healthError.message }}，<a href="javascript:void(0)" @click="loadHealth">重试</a>
+      </div>
       <div v-else class="health-grid">
         <div
           v-for="c in healthComponents"
@@ -36,8 +38,10 @@
     <div class="card" style="margin-top: 14px">
       <h3>作业监控</h3>
       <div v-if="jobsLoading" style="color: var(--muted)">加载中…</div>
-      <div v-else-if="jobsError" style="color: var(--red)">{{ jobsError }}</div>
-      <table v-else>
+      <div v-else-if="jobsError" style="color: var(--red)">
+        {{ jobsError.message }}，<a href="javascript:void(0)" @click="loadJobs">重试</a>
+      </div>
+      <table v-else-if="jobs">
         <tr><th>作业</th><th>类型</th><th>运行时长</th><th>状态</th><th></th></tr>
         <tr v-for="j in jobs" :key="j.id">
           <td>{{ j.name }}</td>
@@ -52,9 +56,9 @@
       </table>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>告警 <span class="pill r">{{ alerts.length }}</span></h3>
+      <h3>告警 <span class="pill r">{{ alerts?.length ?? 0 }}</span></h3>
       <div v-if="alertsLoading" style="color: var(--muted)">加载中…</div>
-      <table v-else>
+      <table v-else-if="alerts">
         <tr><th>告警</th><th>级别</th><th></th></tr>
         <tr v-for="a in alerts" :key="a.id">
           <td>{{ a.content }}</td>
@@ -79,8 +83,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
 import * as opsApi from '@/api/ops'
 import type {
@@ -97,90 +102,55 @@ import type {
 const store = useAppStore()
 const drawerVisible = ref(false)
 
-// 概览
-const overview = ref<OpsOverview | null>(null)
+// 概览：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: overview,
+  execute: loadOverview
+} = useApi<OpsOverview>(() => opsApi.getOverview())
 
-// 组件健康总览（统一运维台）
-const healthLoading = ref(false)
-const healthError = ref('')
-const healthComponents = ref<ComponentHealth[]>([])
-const healthSummary = ref<HealthOverview['summary'] | null>(null)
+// 组件健康总览：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: healthData,
+  loading: healthLoading,
+  error: healthError,
+  execute: loadHealth
+} = useApi<HealthOverview>(() => opsApi.getHealthOverview())
+const healthComponents = computed<ComponentHealth[]>(() => healthData.value?.components ?? [])
+const healthSummary = computed<HealthOverview['summary'] | null>(() => healthData.value?.summary ?? null)
 
-async function loadHealth() {
-  healthLoading.value = true
-  healthError.value = ''
-  try {
-    const data = await opsApi.getHealthOverview()
-    healthComponents.value = data.components ?? []
-    healthSummary.value = data.summary ?? null
-  } catch (e) {
-    healthError.value = `组件健康加载失败: ${(e as Error)?.message ?? e}（query-api 未就绪）`
-  } finally {
-    healthLoading.value = false
-  }
-}
+// 作业列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: jobs,
+  loading: jobsLoading,
+  error: jobsError,
+  execute: loadJobs
+} = useApi<OpsJob[]>(() => opsApi.listJobs(), { initialData: [] })
 
-// 作业列表
-const jobs = ref<OpsJob[]>([])
-const jobsLoading = ref(false)
-const jobsError = ref('')
+// 告警列表：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: alerts,
+  loading: alertsLoading,
+  execute: loadAlerts
+} = useApi<Alert[]>(() => opsApi.listAlerts(), { initialData: [] })
 
-// 告警列表
-const alerts = ref<Alert[]>([])
-const alertsLoading = ref(false)
+// 日志：通过 useApi 包装，按需加载
+const {
+  data: logContent,
+  loading: logLoading,
+  execute: loadLog
+} = useApi<string, [string]>(
+  (id: string) => opsApi.getJobLogs(id),
+  { initialData: '' }
+)
 
-// 日志
+// 当前查看日志的作业
 const currentJob = ref<OpsJob | null>(null)
-const logContent = ref('')
-const logLoading = ref(false)
-
-/** 加载概览 */
-async function loadOverview() {
-  try {
-    overview.value = await opsApi.getOverview()
-  } catch {
-    // 概览加载失败不阻塞页面
-  }
-}
-
-/** 加载作业列表 */
-async function loadJobs() {
-  jobsLoading.value = true
-  jobsError.value = ''
-  try {
-    jobs.value = await opsApi.listJobs()
-  } catch (err) {
-    jobsError.value = (err as Error).message || '作业列表加载失败'
-  } finally {
-    jobsLoading.value = false
-  }
-}
-
-/** 加载告警列表 */
-async function loadAlerts() {
-  alertsLoading.value = true
-  try {
-    alerts.value = await opsApi.listAlerts()
-  } catch {
-    alerts.value = []
-  } finally {
-    alertsLoading.value = false
-  }
-}
 
 /** 打开日志抽屉 */
 async function openLog(job: OpsJob) {
   currentJob.value = job
   drawerVisible.value = true
-  logLoading.value = true
-  logContent.value = ''
-  try {
-    logContent.value = await opsApi.getJobLogs(job.id)
-  } catch (err) {
-    logContent.value = `日志加载失败：${(err as Error).message}`
-  } finally {
-    logLoading.value = false
-  }
+  await loadLog(job.id)
 }
 
 /** 处理告警 */
@@ -291,9 +261,9 @@ function alertLevelPillText(l: AlertLevel): string {
 }
 
 onMounted(() => {
-  loadOverview()
-  loadJobs()
-  loadAlerts()
-  loadHealth()
+  void loadOverview()
+  void loadJobs()
+  void loadAlerts()
+  void loadHealth()
 })
 </script>

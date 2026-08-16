@@ -4,7 +4,7 @@
     <div class="sub">套餐即容量边界；超额自动扩容或升级套餐，费用清晰可核算。</div>
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">正在加载账户信息...</div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
-      加载失败：{{ error }}
+      加载失败：{{ error.message }}
       <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">重试</button>
     </div>
     <template v-else>
@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as accountApi from '@/api/account'
 import type { AccountPlan, BillingDetail, PlanTier } from '@/api/account'
@@ -64,11 +65,20 @@ import type { AccountPlan, BillingDetail, PlanTier } from '@/api/account'
 const store = useAppStore()
 const modalVisible = ref(false)
 
-const plan = ref<AccountPlan | null>(null)
-const billing = ref<BillingDetail | null>(null)
-const loading = ref(false)
-const billingLoading = ref(false)
-const error = ref<string | null>(null)
+// 账户套餐：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: plan,
+  loading,
+  error,
+  execute: loadPlan
+} = useApi<AccountPlan>(() => accountApi.getAccountPlan())
+
+// 计费明细：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: billing,
+  loading: billingLoading,
+  execute: loadBilling
+} = useApi<BillingDetail>(() => accountApi.getBillingDetail())
 
 const upgradeForm = ref<{ targetPlan: PlanTier }>({
   targetPlan: 'flagship',
@@ -79,31 +89,9 @@ const estimatedFee = computed(() => {
   return upgradeForm.value.targetPlan === 'flagship' ? '¥ 58,000' : '¥ 35,000'
 })
 
-async function loadPlan() {
-  loading.value = true
-  error.value = null
-  try {
-    plan.value = await accountApi.getAccountPlan()
-  } catch (e) {
-    error.value = (e as Error).message || '加载账户套餐失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadBilling() {
-  billingLoading.value = true
-  try {
-    billing.value = await accountApi.getBillingDetail()
-  } catch (e) {
-    billing.value = null
-  } finally {
-    billingLoading.value = false
-  }
-}
-
+/** 加载全部数据 */
 async function loadAll() {
-  await Promise.all([loadPlan(), loadBilling()])
+  await Promise.all([void loadPlan(), void loadBilling()])
 }
 
 async function submitUpgrade() {
@@ -124,6 +112,6 @@ async function submitUpgrade() {
 }
 
 onMounted(() => {
-  loadAll()
+  void loadAll()
 })
 </script>

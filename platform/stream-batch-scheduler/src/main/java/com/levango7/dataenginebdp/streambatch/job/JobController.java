@@ -112,6 +112,55 @@ public class JobController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 取消作业。
+     *
+     * <p>对齐前端 {@code job.ts} 的 {@code cancelJob}。</p>
+     *
+     * @param id 作业 ID
+     * @return 200 若已取消；404 若不存在
+     */
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<?> cancel(@PathVariable Long id) {
+        if (jobService.cancel(id)) {
+            return ResponseEntity.ok(Map.of("cancelled", true));
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    /**
+     * 获取作业运行日志。
+     *
+     * <p>对齐前端 {@code job.ts} 的 {@code getJobLogs}。
+     * TODO: 接入日志存储（Loki/ES），当前返回占位文本。</p>
+     *
+     * @param id 作业 ID
+     * @return 200 + 日志文本
+     */
+    @GetMapping("/{id}/logs")
+    public ResponseEntity<String> logs(@PathVariable Long id) {
+        // TODO: 从日志存储查询作业运行日志
+        log.info("查询作业日志: id={}", id);
+        return ResponseEntity.ok("# 作业 " + id + " 日志占位\n# TODO: 接入日志存储后返回真实日志\n");
+    }
+
+    /**
+     * 查询作业当前状态。
+     *
+     * <p>对齐前端 {@code job.ts} 的 {@code getJobStatus}。</p>
+     *
+     * @param id 作业 ID
+     * @return 200 + 状态对象；404 若不存在
+     */
+    @GetMapping("/{id}/status")
+    public ResponseEntity<?> status(@PathVariable Long id) {
+        return jobService.get(id)
+                .<ResponseEntity<?>>map(j -> ResponseEntity.ok(Map.of(
+                        "status", j.getStatus() == null ? "unknown" : j.getStatus(),
+                        "progress", 0)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     /** 作业视图。 */
     private Map<String, Object> toView(JobEntity j) {
         Map<String, Object> m = new LinkedHashMap<>();

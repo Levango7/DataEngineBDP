@@ -192,62 +192,54 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useApi } from '@/composables/useApi'
 import * as workspaceApi from '@/api/workspace'
 import * as tenantApi from '@/api/tenant'
-import type { Workspace, Tenant } from '@/api/types'
+import type { Workspace, Tenant, PagedResult } from '@/api/types'
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
-const loading = ref(false)
-const error = ref(false)
-const workspaceList = ref<Workspace[]>([])
-const total = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const searchKeyword = ref('')
 const filterTenantId = ref<string | ''>('')
 const filterStatus = ref<string | ''>('')
 
-/** 租户下拉选项 */
-const tenantOptions = ref<Tenant[]>([])
-
-/** 拉取工作空间列表 */
-async function loadList() {
-  loading.value = true
-  error.value = false
-  try {
-    const result = await workspaceApi.listWorkspaces({
+// 工作空间列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: wsPaged,
+  loading,
+  error,
+  execute: loadList
+} = useApi<PagedResult<Workspace>>(
+  () =>
+    workspaceApi.listWorkspaces({
       tenantId: filterTenantId.value || undefined,
       status: (filterStatus.value as Workspace['status']) || undefined,
       page: currentPage.value,
       pageSize: pageSize.value
-    })
-    workspaceList.value = result.list
-    total.value = result.total
-  } catch (e) {
-    error.value = true
-    ElMessage.error('工作空间列表加载失败')
-  } finally {
-    loading.value = false
+    }),
+  {
+    onError: () => ElMessage.error('工作空间列表加载失败')
   }
-}
+)
 
-/** 拉取租户选项（用于下拉筛选） */
-async function loadTenantOptions() {
-  try {
-    tenantOptions.value = await tenantApi.listAllTenants()
-  } catch {
-    // 租户列表加载失败不阻塞页面
-  }
-}
+const workspaceList = computed<Workspace[]>(() => wsPaged.value?.list ?? [])
+const total = computed<number>(() => wsPaged.value?.total ?? 0)
+
+/** 租户下拉选项：通过 useApi 包装，失败时不阻塞页面 */
+const {
+  data: tenantOptions,
+  execute: loadTenantOptions
+} = useApi<Tenant[]>(() => tenantApi.listAllTenants(), { initialData: [] })
 
 /** 搜索按钮 */
 function handleSearch() {
   currentPage.value = 1
-  loadList()
+  void loadList()
 }
 
 /* ------------------------------ 创建/编辑 ------------------------------ */
@@ -369,23 +361,28 @@ async function handleDelete(row: Workspace) {
 /* ------------------------------ K8s 状态查询 ------------------------------ */
 
 const statusDialogVisible = ref(false)
-const statusLoading = ref(false)
 const statusWorkspace = ref<Workspace | null>(null)
+
+// K8s 状态：通过 useApi 包装按需加载
+const {
+  data: k8sStatusData,
+  loading: statusLoading,
+  execute: loadK8sStatus
+} = useApi<{ status: string }, [string]>(
+  (id: string) => workspaceApi.getWorkspaceK8sStatus(id)
+)
 const k8sStatus = ref<string>('Unknown')
 
 /** 查询 K8s Namespace 实时状态 */
 async function handleViewStatus(row: Workspace) {
   statusWorkspace.value = row
   statusDialogVisible.value = true
-  statusLoading.value = true
   k8sStatus.value = 'Unknown'
-  try {
-    const result = await workspaceApi.getWorkspaceK8sStatus(row.id)
-    k8sStatus.value = result.status
-  } catch {
+  await loadK8sStatus(row.id)
+  if (k8sStatusData.value) {
+    k8sStatus.value = k8sStatusData.value.status
+  } else {
     ElMessage.error('K8s 状态查询失败')
-  } finally {
-    statusLoading.value = false
   }
 }
 
@@ -438,8 +435,8 @@ function k8sStatusTagType(status: string): 'success' | 'warning' | 'info' | 'dan
 /* ------------------------------ 初始化 ------------------------------ */
 
 onMounted(() => {
-  loadList()
-  loadTenantOptions()
+  void loadList()
+  void loadTenantOptions()
 })
 </script>
 

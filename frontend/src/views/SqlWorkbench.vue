@@ -99,7 +99,11 @@
           </div>
 
           <div v-if="result?.error" class="error-box">
-            <el-alert :title="result.error" type="error" :closable="false" show-icon />
+            <el-alert :title="result.error" type="error" :closable="false" show-icon>
+              <template #default>
+                <a href="javascript:void(0)" @click="handleExecute" style="color: var(--el-color-primary)">重试</a>
+              </template>
+            </el-alert>
           </div>
 
           <el-table
@@ -254,6 +258,7 @@ import {
   Right
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { useApi } from '@/composables/useApi'
 import {
   executeCrossSourceSql,
   explainCrossSourceSql,
@@ -268,13 +273,53 @@ const dialect = ref<'ANSI' | 'HIVE' | 'DORIS' | 'TRINO'>('ANSI')
 const tenantId = ref('')
 const timeoutSeconds = ref(30)
 
-const executeLoading = ref(false)
-const explainLoading = ref(false)
-const validateLoading = ref(false)
+// 跨源查询：通过 useApi 包装，自动维护 loading / error / data 三态
+const {
+  data: result,
+  loading: executeLoading,
+  execute: executeQuery
+} = useApi<CrossSourceQueryResult>(
+  () =>
+    executeCrossSourceSql({
+      sql: sql.value,
+      dialect: dialect.value,
+      tenantId: tenantId.value || undefined,
+      timeoutSeconds: timeoutSeconds.value
+    }),
+  {
+    onError: (err) => ElMessage.error(`查询异常: ${err.message}`)
+  }
+)
 
-const result = ref<CrossSourceQueryResult | null>(null)
-const explainResult = ref<CrossSourceExplainResult | null>(null)
-const validateResult = ref<{ valid: boolean; dialect: string; error?: string } | null>(null)
+// 执行计划：通过 useApi 包装
+const {
+  data: explainResult,
+  loading: explainLoading,
+  execute: explainQuery
+} = useApi<CrossSourceExplainResult>(
+  () =>
+    explainCrossSourceSql({
+      sql: sql.value,
+      dialect: dialect.value,
+      tenantId: tenantId.value || undefined,
+      timeoutSeconds: timeoutSeconds.value
+    }),
+  {
+    onError: (err) => ElMessage.error(`执行计划异常: ${err.message}`)
+  }
+)
+
+// 语法校验：通过 useApi 包装
+const {
+  data: validateResult,
+  loading: validateLoading,
+  execute: validateQuery
+} = useApi<{ valid: boolean; dialect: string; error?: string }>(
+  () => validateSql({ sql: sql.value, dialect: dialect.value }),
+  {
+    onError: (err) => ElMessage.error(`校验异常: ${err.message}`)
+  }
+)
 
 const activeTab = ref('result')
 const explainCollapse = ref(['tables', 'sources', 'viz'])
@@ -302,26 +347,14 @@ async function handleExecute(): Promise<void> {
     ElMessage.warning('请输入 SQL')
     return
   }
-  executeLoading.value = true
   activeTab.value = 'result'
-  try {
-    result.value = await executeCrossSourceSql({
-      sql: sql.value,
-      dialect: dialect.value,
-      tenantId: tenantId.value || undefined,
-      timeoutSeconds: timeoutSeconds.value
-    })
-    if (result.value.status !== 'SUCCESS') {
-      ElMessage.error(`查询失败: ${result.value.error || '未知错误'}`)
-    } else if (result.value.crossSource) {
-      ElMessage.success(`跨源查询完成，返回 ${result.value.rowCount} 行`)
-    } else {
-      ElMessage.success(`查询完成，返回 ${result.value.rowCount} 行`)
-    }
-  } catch (err) {
-    ElMessage.error(`查询异常: ${(err as Error).message}`)
-  } finally {
-    executeLoading.value = false
+  await executeQuery()
+  if (result.value && result.value.status !== 'SUCCESS') {
+    ElMessage.error(`查询失败: ${result.value.error || '未知错误'}`)
+  } else if (result.value?.crossSource) {
+    ElMessage.success(`跨源查询完成，返回 ${result.value.rowCount} 行`)
+  } else if (result.value) {
+    ElMessage.success(`查询完成，返回 ${result.value.rowCount} 行`)
   }
 }
 
@@ -331,28 +364,16 @@ async function handleExplain(): Promise<void> {
     ElMessage.warning('请输入 SQL')
     return
   }
-  explainLoading.value = true
   activeTab.value = 'explain'
-  try {
-    explainResult.value = await explainCrossSourceSql({
-      sql: sql.value,
-      dialect: dialect.value,
-      tenantId: tenantId.value || undefined,
-      timeoutSeconds: timeoutSeconds.value
-    })
-    if (explainResult.value.error) {
-      ElMessage.error(`执行计划生成失败: ${explainResult.value.error}`)
-    } else {
-      ElMessage.success(
-        explainResult.value.crossSource
-          ? `跨源查询，涉及 ${explainResult.value.sources?.length || 0} 个源`
-          : '单源查询'
-      )
-    }
-  } catch (err) {
-    ElMessage.error(`执行计划异常: ${(err as Error).message}`)
-  } finally {
-    explainLoading.value = false
+  await explainQuery()
+  if (explainResult.value?.error) {
+    ElMessage.error(`执行计划生成失败: ${explainResult.value.error}`)
+  } else if (explainResult.value) {
+    ElMessage.success(
+      explainResult.value.crossSource
+        ? `跨源查询，涉及 ${explainResult.value.sources?.length || 0} 个源`
+        : '单源查询'
+    )
   }
 }
 
@@ -362,18 +383,8 @@ async function handleValidate(): Promise<void> {
     ElMessage.warning('请输入 SQL')
     return
   }
-  validateLoading.value = true
   activeTab.value = 'validate'
-  try {
-    validateResult.value = await validateSql({
-      sql: sql.value,
-      dialect: dialect.value
-    })
-  } catch (err) {
-    ElMessage.error(`校验异常: ${(err as Error).message}`)
-  } finally {
-    validateLoading.value = false
-  }
+  await validateQuery()
 }
 
 /** 同步行号滚动 */

@@ -164,19 +164,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useApi } from '@/composables/useApi'
 import * as jobApi from '@/api/job'
-import type { Job, JobStatus, JobType } from '@/api/types'
+import type { Job, JobStatus, JobType, PagedResult } from '@/api/types'
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
-const loading = ref(false)
-const error = ref(false)
-const jobList = ref<Job[]>([])
-const total = ref(0)
+// 作业列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: jobPaged,
+  loading,
+  error,
+  execute: loadList
+} = useApi<PagedResult<Job>>(
+  () =>
+    jobApi.listJobs({
+      status: activeTab.value === 'all' ? undefined : (activeTab.value as JobStatus),
+      page: currentPage.value,
+      pageSize: pageSize.value
+    }),
+  {
+    onError: () => ElMessage.error('作业列表加载失败')
+  }
+)
+
+const jobList = computed<Job[]>(() => jobPaged.value?.list ?? [])
+const total = computed<number>(() => jobPaged.value?.total ?? 0)
 const currentPage = ref(1)
 const pageSize = ref(20)
 const activeTab = ref<string>('all')
@@ -187,33 +204,13 @@ const appStore = useAppStore()
 // 工作空间切换时重载列表（修复 #4：切换后残留旧工作空间数据）
 watch(() => appStore.workspace, () => {
   currentPage.value = 1
-  loadList()
+  void loadList()
 })
-
-async function loadList() {
-  loading.value = true
-  error.value = false
-  try {
-    const status = activeTab.value === 'all' ? undefined : (activeTab.value as JobStatus)
-    const result = await jobApi.listJobs({
-      status,
-      page: currentPage.value,
-      pageSize: pageSize.value
-    })
-    jobList.value = result.list
-    total.value = result.total
-  } catch {
-    error.value = true
-    ElMessage.error('作业列表加载失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 /** tab 切换 */
 function handleTabChange() {
   currentPage.value = 1
-  loadList()
+  void loadList()
 }
 
 /* ------------------------------ 提交作业 ------------------------------ */
@@ -330,9 +327,17 @@ function canCancel(status: JobStatus): boolean {
 /* ------------------------------ 查看日志 ------------------------------ */
 
 const logDialogVisible = ref(false)
-const logLoading = ref(false)
-const logContent = ref<string>('')
 const currentLogJob = ref<Job | null>(null)
+
+// 作业日志：通过 useApi 包装按需加载
+const {
+  data: logContent,
+  loading: logLoading,
+  execute: loadLog
+} = useApi<string, [string]>(
+  (id: string) => jobApi.getJobLogs(id),
+  { initialData: '' }
+)
 
 /** 打开日志弹窗 */
 async function openLogDialog(row: Job) {
@@ -344,16 +349,8 @@ async function openLogDialog(row: Job) {
 /** 刷新日志 */
 async function refreshLog() {
   if (!currentLogJob.value) return
-  logLoading.value = true
-  try {
-    const logs = await jobApi.getJobLogs(currentLogJob.value.id)
-    logContent.value = logs || '暂无日志'
-    scrollLogToBottom()
-  } catch {
-    logContent.value = '日志加载失败'
-  } finally {
-    logLoading.value = false
-  }
+  await loadLog(currentLogJob.value.id)
+  scrollLogToBottom()
 }
 
 /** 日志滚动到底部 */
@@ -417,7 +414,7 @@ function formatDuration(seconds?: number): string {
 /* ------------------------------ 初始化 ------------------------------ */
 
 onMounted(() => {
-  loadList()
+  void loadList()
 })
 </script>
 

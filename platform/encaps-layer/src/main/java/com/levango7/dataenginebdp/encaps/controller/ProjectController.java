@@ -125,6 +125,57 @@ public class ProjectController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 列出项目数据集。
+     *
+     * <p>对齐前端 {@code project.ts} 的 {@code listDatasets}。
+     * TODO: 接入真实数据集元数据存储，当前返回空列表占位。</p>
+     *
+     * @param id 项目 ID
+     * @return 200 + 数据集列表
+     */
+    @GetMapping("/{id}/datasets")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> listDatasets(@PathVariable Long id) {
+        requireTenant();
+        // TODO: 从元数据存储查询项目关联数据集
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 列出项目作业。
+     *
+     * <p>对齐前端 {@code project.ts} 的 {@code listJobs}。
+     * TODO: 接入作业存储，当前返回空列表占位。</p>
+     *
+     * @param id 项目 ID
+     * @return 200 + 作业列表
+     */
+    @GetMapping("/{id}/jobs")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> listJobs(@PathVariable Long id) {
+        requireTenant();
+        // TODO: 从作业存储查询项目关联作业
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 列出项目成员。
+     *
+     * <p>对齐前端 {@code project.ts} 的 {@code listMembers}。
+     * TODO: 接入成员存储，当前返回空列表占位。</p>
+     *
+     * @param id 项目 ID
+     * @return 200 + 成员列表
+     */
+    @GetMapping("/{id}/members")
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<Map<String, Object>>> listMembers(@PathVariable Long id) {
+        requireTenant();
+        // TODO: 从成员存储查询项目关联成员
+        return ResponseEntity.ok(List.of());
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

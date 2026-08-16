@@ -74,7 +74,7 @@
         :data="nodeList"
         stripe
         border
-        :empty-text="nodesError ? '节点列表加载失败' : '暂无节点'"
+        :empty-text="nodesError ? '节点列表加载失败，请重试' : '暂无节点'"
       >
         <el-table-column prop="name" label="节点名" min-width="180" />
         <el-table-column label="角色" width="120">
@@ -159,27 +159,28 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
+import { useApi } from '@/composables/useApi'
 import * as clusterApi from '@/api/cluster'
 import type { ClusterOverview, Node, NodeStatus } from '@/api/types'
+import type { ComponentStatus } from '@/api/cluster'
 
 /* ------------------------------ 集群概览 ------------------------------ */
 
-const overviewLoading = ref(false)
-const overview = ref<ClusterOverview | null>(null)
+// 集群概览：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: overview,
+  loading: overviewLoading,
+  execute: loadOverviewRaw
+} = useApi<ClusterOverview>(() => clusterApi.getClusterOverview(), {
+  onError: () => ElMessage.error('集群概览加载失败')
+})
 
-/** 拉取集群概览 */
+/** 拉取集群概览（数据就绪后渲染趋势图） */
 async function loadOverview() {
-  overviewLoading.value = true
-  try {
-    const data = await clusterApi.getClusterOverview()
-    overview.value = data
-    // 数据就绪后渲染趋势图
+  await loadOverviewRaw()
+  if (overview.value) {
     await nextTick()
     renderTrendChart()
-  } catch {
-    ElMessage.error('集群概览加载失败')
-  } finally {
-    overviewLoading.value = false
   }
 }
 
@@ -205,23 +206,16 @@ const healthRate = computed(() => {
 
 /* ------------------------------ 节点列表 ------------------------------ */
 
-const nodesLoading = ref(false)
-const nodesError = ref(false)
-const nodeList = ref<Node[]>([])
-
-/** 拉取节点列表 */
-async function loadNodes() {
-  nodesLoading.value = true
-  nodesError.value = false
-  try {
-    nodeList.value = await clusterApi.listNodes()
-  } catch {
-    nodesError.value = true
-    ElMessage.error('节点列表加载失败')
-  } finally {
-    nodesLoading.value = false
-  }
-}
+// 节点列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: nodeList,
+  loading: nodesLoading,
+  error: nodesError,
+  execute: loadNodes
+} = useApi<Node[]>(() => clusterApi.listNodes(), {
+  initialData: [],
+  onError: () => ElMessage.error('节点列表加载失败')
+})
 
 /** 节点 CPU 使用率 */
 function nodeCpuPercent(node: Node): number {
@@ -316,28 +310,14 @@ function handleResize() {
 
 /* ------------------------------ 组件状态 ------------------------------ */
 
-interface ComponentStatus {
-  name: string
-  status: 'healthy' | 'warning' | 'error'
-  meta: string
-}
-
-/** 大数据组件状态 */
-const components = ref<ComponentStatus[]>([])
-const componentsLoading = ref(false)
-
-/** 拉取大数据组件状态 */
-async function loadComponents() {
-  componentsLoading.value = true
-  try {
-    components.value = await clusterApi.listComponentStatuses()
-  } catch {
-    // 组件状态加载失败不阻塞页面，保留空列表
-    components.value = []
-  } finally {
-    componentsLoading.value = false
-  }
-}
+// 大数据组件状态：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: components,
+  loading: componentsLoading,
+  execute: loadComponents
+} = useApi<ComponentStatus[]>(() => clusterApi.listComponentStatuses(), {
+  initialData: []
+})
 
 /** 组件状态 → 中文 */
 function compStatusLabel(status: ComponentStatus['status']): string {
@@ -384,9 +364,9 @@ function usageColor(percentage: number): string {
 /* ------------------------------ 生命周期 ------------------------------ */
 
 onMounted(() => {
-  loadOverview()
-  loadNodes()
-  loadComponents()
+  void loadOverview()
+  void loadNodes()
+  void loadComponents()
   window.addEventListener('resize', handleResize)
 })
 

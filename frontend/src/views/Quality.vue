@@ -10,7 +10,7 @@
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error }}，<a href="javascript:void(0)" @click="loadRules">重试</a>
+        {{ error.message }}，<a href="javascript:void(0)" @click="loadRules">重试</a>
       </div>
       <table v-else>
         <tr><th>规则</th><th>对象</th><th>校验</th><th>阈值</th><th>最近</th><th>状态</th></tr>
@@ -45,39 +45,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as qualityApi from '@/api/quality'
 import type { QualityRule, QualitySummary, CheckType, ActionOnFail } from '@/api/quality'
+import type { PagedResult } from '@/api/types'
 
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
 
-// 规则列表
-const rules = ref<QualityRule[]>([])
-const summary = ref<QualitySummary | null>(null)
-const loading = ref(false)
-const error = ref('')
-
-/** 加载规则列表 */
-async function loadRules() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [result, sm] = await Promise.all([
+// 规则列表 + 通过率：通过 useApi 包装并行加载，自动维护 loading / error / data 三态
+const {
+  data: rulesData,
+  loading,
+  error,
+  execute: loadRules
+} = useApi<[PagedResult<QualityRule>, QualitySummary | null]>(
+  () =>
+    Promise.all([
       qualityApi.listRules({ page: 1, pageSize: 100 }),
       qualityApi.getSummary().catch(() => null)
     ])
-    rules.value = result.list
-    summary.value = sm
-  } catch (err) {
-    error.value = (err as Error).message || '规则列表加载失败'
-  } finally {
-    loading.value = false
-  }
-}
+)
+
+// 规则列表
+const rules = computed<QualityRule[]>(() => rulesData.value?.[0]?.list ?? [])
+// 通过率
+const summary = computed<QualitySummary | null>(() => rulesData.value?.[1] ?? null)
 
 /** 校验类型 → 中文 */
 function checkTypeLabel(t: CheckType): string {
@@ -162,6 +159,6 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
-  loadRules()
+  void loadRules()
 })
 </script>

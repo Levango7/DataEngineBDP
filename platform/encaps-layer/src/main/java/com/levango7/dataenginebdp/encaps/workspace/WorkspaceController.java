@@ -86,6 +86,19 @@ public class WorkspaceController {
     }
 
     /**
+     * 列出全部 Workspace（不分页，用于前端下拉选择）。
+     *
+     * <p>对齐前端 {@code workspace.ts} 的 {@code listAllWorkspaces}。</p>
+     *
+     * @param tenantId 租户 ID（可选）
+     * @return 200 + 全部 Workspace 列表
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<Workspace>> listAll(@RequestParam(required = false) Long tenantId) {
+        return ResponseEntity.ok(workspaceService.listWorkspaces(tenantId));
+    }
+
+    /**
      * 获取单个 Workspace 详情。
      *
      * @param id Workspace ID

@@ -21,7 +21,7 @@
     <div class="card">
       <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">加载同步任务…</div>
       <div v-else-if="tasksError" style="padding: 16px; color: var(--red)">
-        {{ tasksError }}，<a href="javascript:void(0)" @click="loadTasks">重试</a>
+        {{ tasksError.message }}，<a href="javascript:void(0)" @click="loadTasks">重试</a>
       </div>
       <table v-else>
         <tr><th>任务</th><th>源→目标</th><th>模式</th><th>状态</th><th>最近运行</th></tr>
@@ -68,52 +68,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as integrateApi from '@/api/integrate'
 import type { Connector, SyncTask, SyncMode, SyncStatus, ConnectorStatus } from '@/api/integrate'
+import type { PagedResult } from '@/api/types'
 
 const store = useAppStore()
 const syncModal = ref(false)
 const srcModal = ref(false)
 
-// 连接器列表
-const connectors = ref<Connector[]>([])
-const connectorsLoading = ref(false)
+// 连接器列表：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: connectorsData,
+  loading: connectorsLoading,
+  execute: loadConnectors
+} = useApi<Connector[]>(() => integrateApi.listConnectors(), {
+  initialData: []
+})
+const connectors = computed<Connector[]>(() => connectorsData.value ?? [])
 
-// 同步任务列表
-const tasks = ref<SyncTask[]>([])
-const tasksLoading = ref(false)
-const tasksError = ref('')
-
-/** 加载连接器列表 */
-async function loadConnectors() {
-  connectorsLoading.value = true
-  try {
-    connectors.value = await integrateApi.listConnectors()
-  } catch {
-    // 连接器加载失败不阻塞页面
-    connectors.value = []
-  } finally {
-    connectorsLoading.value = false
-  }
-}
-
-/** 加载同步任务列表 */
-async function loadTasks() {
-  tasksLoading.value = true
-  tasksError.value = ''
-  try {
-    const result = await integrateApi.listSyncTasks({ page: 1, pageSize: 100 })
-    tasks.value = result.list
-  } catch (err) {
-    tasksError.value = (err as Error).message || '同步任务加载失败'
-  } finally {
-
-    tasksLoading.value = false
-  }
-}
+// 同步任务列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: tasksPaged,
+  loading: tasksLoading,
+  error: tasksError,
+  execute: loadTasks
+} = useApi<PagedResult<SyncTask>>(() => integrateApi.listSyncTasks({ page: 1, pageSize: 100 }))
+const tasks = computed<SyncTask[]>(() => tasksPaged.value?.list ?? [])
 
 /** 连接器点击处理 */
 function onConnectorClick(c: Connector) {
@@ -195,7 +179,7 @@ function ok(msg: string) {
 }
 
 onMounted(() => {
-  loadConnectors()
-  loadTasks()
+  void loadConnectors()
+  void loadTasks()
 })
 </script>

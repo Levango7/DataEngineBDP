@@ -10,7 +10,7 @@
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error }}，<a href="javascript:void(0)" @click="loadStandards">重试</a>
+        {{ error.message }}，<a href="javascript:void(0)" @click="loadStandards">重试</a>
       </div>
       <table v-else>
         <tr><th>标准项</th><th>类型</th><th>码值/规则</th><th>引用资产</th></tr>
@@ -40,39 +40,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as standardApi from '@/api/standard'
 import type { Standard, StandardSummary, StandardType } from '@/api/standard'
+import type { PagedResult } from '@/api/types'
 
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
 
-// 标准列表
-const standards = ref<Standard[]>([])
-const summary = ref<StandardSummary | null>(null)
-const loading = ref(false)
-const error = ref('')
-
-/** 加载标准列表 */
-async function loadStandards() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [result, sm] = await Promise.all([
+// 标准列表 + 落标率：通过 useApi 包装并行加载，自动维护 loading / error / data 三态
+const {
+  data: standardsData,
+  loading,
+  error,
+  execute: loadStandards
+} = useApi<[PagedResult<Standard>, StandardSummary | null]>(
+  () =>
+    Promise.all([
       standardApi.listStandards({ page: 1, pageSize: 100 }),
       standardApi.getSummary().catch(() => null)
     ])
-    standards.value = result.list
-    summary.value = sm
-  } catch (err) {
-    error.value = (err as Error).message || '标准列表加载失败'
-  } finally {
-    loading.value = false
-  }
-}
+)
+
+// 标准列表
+const standards = computed<Standard[]>(() => standardsData.value?.[0]?.list ?? [])
+// 落标率
+const summary = computed<StandardSummary | null>(() => standardsData.value?.[1] ?? null)
 
 /** 类型 → 中文 */
 function typeLabel(t: StandardType): string {
@@ -122,6 +119,6 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
-  loadStandards()
+  void loadStandards()
 })
 </script>

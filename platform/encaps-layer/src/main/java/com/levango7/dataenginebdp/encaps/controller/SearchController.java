@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -231,6 +232,56 @@ public class SearchController {
     @GetMapping("/history")
     public ResponseEntity<List<Object>> history(@RequestParam(defaultValue = "20") int limit) {
         return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 触发后端导出，返回下载链接。
+     *
+     * <p>对齐前端 {@code search.ts} 的 {@code exportResults}。
+     * TODO: 接入异步导出任务，当前返回占位链接。</p>
+     *
+     * @param req 导出请求
+     * @return 200 + 导出结果
+     */
+    @PostMapping("/export")
+    public ResponseEntity<Map<String, Object>> export(@RequestBody Map<String, Object> req) {
+        // TODO: 触发异步导出任务并返回下载链接
+        log.info("触发检索导出: req={}", req);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("downloadUrl", "/api/v1/search/export/" + System.currentTimeMillis());
+        result.put("status", "pending");
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 清空检索历史。
+     *
+     * <p>对齐前端 {@code search.ts} 的 {@code clearHistory}（POST 方法）。
+     * TODO: 接入检索历史存储，当前为空操作。</p>
+     *
+     * @return 200
+     */
+    @PostMapping("/history/clear")
+    public ResponseEntity<Void> clearHistory() {
+        // TODO: 清空当前租户检索历史
+        log.info("清空检索历史: tenant={}", TenantContext.getTenantId());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 删除单条检索历史。
+     *
+     * <p>对齐前端 {@code search.ts} 的 {@code deleteHistory}（POST 方法）。
+     * TODO: 接入检索历史存储，当前为空操作。</p>
+     *
+     * @param id 历史 ID
+     * @return 200
+     */
+    @PostMapping("/history/{id}/delete")
+    public ResponseEntity<Void> deleteHistory(@PathVariable String id) {
+        // TODO: 删除指定历史记录
+        log.info("删除检索历史: id={}, tenant={}", id, TenantContext.getTenantId());
+        return ResponseEntity.ok().build();
     }
 
     private boolean contains(String value, String keyword) {

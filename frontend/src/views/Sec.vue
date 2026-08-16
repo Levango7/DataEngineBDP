@@ -10,7 +10,7 @@
     <div class="card">
       <div v-if="policiesLoading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="policiesError" style="padding: 16px; color: var(--red)">
-        {{ policiesError }}，<a href="javascript:void(0)" @click="loadPolicies">重试</a>
+        {{ policiesError.message }}，<a href="javascript:void(0)" @click="loadPolicies">重试</a>
       </div>
       <table v-else>
         <tr><th>字段</th><th>所属资产</th><th>策略</th><th>算法</th><th>状态</th></tr>
@@ -62,8 +62,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as secApi from '@/api/sec'
 import type { MaskPolicy, PermissionApproval, MaskStrategy, MaskAlgorithm, StrategyStatus } from '@/api/sec'
@@ -72,39 +73,22 @@ const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
 
-// 脱敏策略列表
-const policies = ref<MaskPolicy[]>([])
-const policiesLoading = ref(false)
-const policiesError = ref('')
+// 脱敏策略列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: policiesData,
+  loading: policiesLoading,
+  error: policiesError,
+  execute: loadPolicies
+} = useApi<MaskPolicy[]>(() => secApi.listMaskPolicies(), { initialData: [] })
+const policies = computed<MaskPolicy[]>(() => policiesData.value ?? [])
 
-// 审批列表
-const approvals = ref<PermissionApproval[]>([])
-const approvalsLoading = ref(false)
-
-/** 加载脱敏策略列表 */
-async function loadPolicies() {
-  policiesLoading.value = true
-  policiesError.value = ''
-  try {
-    policies.value = await secApi.listMaskPolicies()
-  } catch (err) {
-    policiesError.value = (err as Error).message || '脱敏策略加载失败'
-  } finally {
-    policiesLoading.value = false
-  }
-}
-
-/** 加载待审批列表 */
-async function loadApprovals() {
-  approvalsLoading.value = true
-  try {
-    approvals.value = await secApi.listApprovals('pending')
-  } catch {
-    approvals.value = []
-  } finally {
-    approvalsLoading.value = false
-  }
-}
+// 审批列表：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: approvalsData,
+  loading: approvalsLoading,
+  execute: loadApprovals
+} = useApi<PermissionApproval[]>(() => secApi.listApprovals('pending'), { initialData: [] })
+const approvals = computed<PermissionApproval[]>(() => approvalsData.value ?? [])
 
 /** 批准申请 */
 async function handleApprove(id: string) {
@@ -203,7 +187,7 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
-  loadPolicies()
-  loadApprovals()
+  void loadPolicies()
+  void loadApprovals()
 })
 </script>

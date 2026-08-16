@@ -220,4 +220,69 @@ public class ClusterController {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
     }
+
+    /* ================================================================ */
+    /* 集群子资源端点（对齐前端 infra.ts：网络/存储/HPA）                */
+    /* ================================================================ */
+
+    /**
+     * 获取集群网络配置。
+     *
+     * <p>对齐前端 {@code getNetworkConfig}。TODO: 接入 CNI 真实配置查询。</p>
+     *
+     * @param environment 环境类型
+     * @param clusterId   集群 ID
+     * @return 200 + 网络配置
+     */
+    @GetMapping("/{environment}/{clusterId}/network")
+    public ResponseEntity<Map<String, Object>> getNetworkConfig(@PathVariable String environment,
+                                                                @PathVariable String clusterId) {
+        // TODO: 从集群查询真实网络配置
+        log.info("GET /api/v1/clusters/{}/{}/network", environment, clusterId);
+        Map<String, Object> cfg = new java.util.LinkedHashMap<>();
+        cfg.put("podCidr", "10.244.0.0/16");
+        cfg.put("serviceCidr", "10.96.0.0/12");
+        cfg.put("cni", "calico");
+        cfg.put("mtu", 1500);
+        return ResponseEntity.ok(cfg);
+    }
+
+    /**
+     * 获取集群存储配置。
+     *
+     * <p>对齐前端 {@code getStorageClasses}。TODO: 接入 CSI 真实配置查询。</p>
+     *
+     * @param environment 环境类型
+     * @param clusterId   集群 ID
+     * @return 200 + StorageClass 列表
+     */
+    @GetMapping("/{environment}/{clusterId}/storage")
+    public ResponseEntity<List<Map<String, Object>>> getStorage(@PathVariable String environment,
+                                                                @PathVariable String clusterId) {
+        // TODO: 从集群查询真实 StorageClass
+        log.info("GET /api/v1/clusters/{}/{}/storage", environment, clusterId);
+        Map<String, Object> sc = new java.util.LinkedHashMap<>();
+        sc.put("name", "standard");
+        sc.put("provisioner", "kubernetes.io/no-provisioner");
+        sc.put("reclaimPolicy", "Retain");
+        sc.put("default", true);
+        return ResponseEntity.ok(List.of(sc));
+    }
+
+    /**
+     * 获取集群 HPA 配置。
+     *
+     * <p>对齐前端 {@code getHpas}。TODO: 接入 K8s HPA 真实查询。</p>
+     *
+     * @param environment 环境类型
+     * @param clusterId   集群 ID
+     * @return 200 + HPA 策略列表
+     */
+    @GetMapping("/{environment}/{clusterId}/hpa")
+    public ResponseEntity<List<Map<String, Object>>> getHpa(@PathVariable String environment,
+                                                            @PathVariable String clusterId) {
+        // TODO: 从集群查询真实 HPA 策略
+        log.info("GET /api/v1/clusters/{}/{}/hpa", environment, clusterId);
+        return ResponseEntity.ok(List.of());
+    }
 }

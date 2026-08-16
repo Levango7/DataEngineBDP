@@ -11,8 +11,10 @@
     <div class="card" style="margin-top: 14px">
       <h3>API Key 与路由</h3>
       <div v-if="keysLoading" style="color: var(--muted)">加载中…</div>
-      <div v-else-if="keysError" style="color: var(--red)">{{ keysError }}</div>
-      <table v-else>
+      <div v-else-if="keysError" style="color: var(--red)">
+        {{ keysError.message }}，<a href="javascript:void(0)" @click="loadApiKeys">重试</a>
+      </div>
+      <table v-else-if="apiKeys">
         <thead>
           <tr><th>Key 名称</th><th>路由模型</th><th>限流</th><th>状态</th></tr>
         </thead>
@@ -47,6 +49,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as gatewayApi from '@/api/gateway'
 import type { GatewayStats, ApiKey, KeyStatus } from '@/api/gateway'
@@ -55,35 +58,19 @@ const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
 
-// 统计
-const stats = ref<GatewayStats | null>(null)
+// 统计：通过 useApi 包装，失败时不阻塞页面
+const {
+  data: stats,
+  execute: loadStats
+} = useApi<GatewayStats>(() => gatewayApi.getStats())
 
-// API Key 列表
-const apiKeys = ref<ApiKey[]>([])
-const keysLoading = ref(false)
-const keysError = ref('')
-
-/** 加载统计 */
-async function loadStats() {
-  try {
-    stats.value = await gatewayApi.getStats()
-  } catch {
-    // 统计加载失败不阻塞页面
-  }
-}
-
-/** 加载 API Key 列表 */
-async function loadApiKeys() {
-  keysLoading.value = true
-  keysError.value = ''
-  try {
-    apiKeys.value = await gatewayApi.listApiKeys()
-  } catch (err) {
-    keysError.value = (err as Error).message || 'API Key 列表加载失败'
-  } finally {
-    keysLoading.value = false
-  }
-}
+// API Key 列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: apiKeys,
+  loading: keysLoading,
+  error: keysError,
+  execute: loadApiKeys
+} = useApi<ApiKey[]>(() => gatewayApi.listApiKeys(), { initialData: [] })
 
 /** Key 状态 → pill 样式 */
 function keyStatusPillClass(s: KeyStatus): string {
@@ -147,7 +134,7 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
-  loadStats()
-  loadApiKeys()
+  void loadStats()
+  void loadApiKeys()
 })
 </script>

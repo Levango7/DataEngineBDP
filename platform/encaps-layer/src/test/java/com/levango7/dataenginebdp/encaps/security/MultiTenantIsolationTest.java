@@ -85,8 +85,8 @@ class MultiTenantIsolationTest {
 
     @Test
     void tenantA_data_invisibleToTenantB() throws Exception {
-        // 租户 A 创建资产
-        mockMvc.perform(post("/api/v1/assets")
+        // 租户 A 创建资产（路径已调整为 /api/v1/governance/assets，避免与 asset-exchange 冲突）
+        mockMvc.perform(post("/api/v1/governance/assets")
                         .header("Authorization", "Bearer " + token("tenant-a"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"secret-orders\",\"type\":\"table\",\"owner\":\"a\","
@@ -94,14 +94,14 @@ class MultiTenantIsolationTest {
                 .andExpect(status().isOk());
 
         // 租户 A 能看到自己的资产
-        mockMvc.perform(get("/api/v1/assets")
+        mockMvc.perform(get("/api/v1/governance/assets")
                         .header("Authorization", "Bearer " + token("tenant-a")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(1))
                 .andExpect(jsonPath("$.list[0].name").value("secret-orders"));
 
         // 租户 B 看不到 A 的资产（隔离生效）
-        mockMvc.perform(get("/api/v1/assets")
+        mockMvc.perform(get("/api/v1/governance/assets")
                         .header("Authorization", "Bearer " + token("tenant-b")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(0));
@@ -136,7 +136,7 @@ class MultiTenantIsolationTest {
 
     @Test
     void withoutToken_returns401() throws Exception {
-        mockMvc.perform(get("/api/v1/assets"))
+        mockMvc.perform(get("/api/v1/governance/assets"))
                 .andExpect(status().isUnauthorized());
     }
 }

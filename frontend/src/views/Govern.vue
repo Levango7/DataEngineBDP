@@ -11,7 +11,7 @@
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error }}，<a href="javascript:void(0)" @click="loadAssets">重试</a>
+        {{ error.message }}，<a href="javascript:void(0)" @click="loadAssets">重试</a>
       </div>
       <table v-else>
         <thead>
@@ -103,33 +103,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as governanceApi from '@/api/governance'
-import type { Asset, AssetSchemaField, AssetQualityItem, AssetPermission } from '@/api/governance'
+import type { Asset, AssetSchemaField, AssetQualityItem, AssetPermission, AssetSchema } from '@/api/governance'
+import type { PagedResult } from '@/api/types'
 
 const store = useAppStore()
 
-// 资产列表
-const assets = ref<Asset[]>([])
-const loading = ref(false)
-const error = ref('')
-
-/** 加载资产列表 */
-async function loadAssets() {
-  loading.value = true
-  error.value = ''
-  try {
-    const result = await governanceApi.listAssets({ page: 1, pageSize: 100 })
-    assets.value = result.list
-  } catch (err) {
-    error.value = (err as Error).message || '资产列表加载失败'
-  } finally {
-    loading.value = false
-  }
-}
+// 资产列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: paged,
+  loading,
+  error,
+  execute: loadAssets
+} = useApi<PagedResult<Asset>>(() => governanceApi.listAssets({ page: 1, pageSize: 100 }))
+const assets = computed<Asset[]>(() => paged.value?.list ?? [])
 
 /** 敏感级别 → pill 样式 */
 function sensitivityPillClass(s: string): string {
@@ -160,45 +152,37 @@ const modalVisible = ref(false)
 const tab = ref(0)
 const current = ref<Asset | null>(null)
 
-// Schema、质量、权限
-const schemaFields = ref<AssetSchemaField[]>([])
-const schemaLoading = ref(false)
-const qualityItems = ref<AssetQualityItem[]>([])
-const qualityLoading = ref(false)
-const permissions = ref<AssetPermission[]>([])
-const permLoading = ref(false)
+// Schema、质量、权限：通过 useApi 包装并行加载
+const {
+  data: detailData,
+  loading: detailLoading,
+  execute: loadDetail
+} = useApi<[AssetSchemaField[], AssetQualityItem[], AssetPermission[]], [string]>(
+  (id: string) =>
+    Promise.all([
+      governanceApi.getAssetSchema(id).then((s: AssetSchema) => s.fields).catch(() => [] as AssetSchemaField[]),
+      governanceApi.getAssetQuality(id).catch(() => [] as AssetQualityItem[]),
+      governanceApi.getAssetPermissions(id).catch(() => [] as AssetPermission[])
+    ])
+)
+
+// Schema 字段
+const schemaFields = computed<AssetSchemaField[]>(() => detailData.value?.[0] ?? [])
+// 质量检查结果
+const qualityItems = computed<AssetQualityItem[]>(() => detailData.value?.[1] ?? [])
+// 权限列表
+const permissions = computed<AssetPermission[]>(() => detailData.value?.[2] ?? [])
+// 各 tab 的 loading 状态（统一由 detailLoading 控制）
+const schemaLoading = computed(() => detailLoading.value)
+const qualityLoading = computed(() => detailLoading.value)
+const permLoading = computed(() => detailLoading.value)
 
 /** 打开抽屉并加载详情 */
 async function openDrawer(a: Asset) {
   current.value = a
   tab.value = 0
   drawerVisible.value = true
-  // 并行加载 Schema、质量、权限
-  schemaLoading.value = true
-  qualityLoading.value = true
-  permLoading.value = true
-  try {
-    const schema = await governanceApi.getAssetSchema(a.id)
-    schemaFields.value = schema.fields
-  } catch {
-    schemaFields.value = []
-  } finally {
-    schemaLoading.value = false
-  }
-  try {
-    qualityItems.value = await governanceApi.getAssetQuality(a.id)
-  } catch {
-    qualityItems.value = []
-  } finally {
-    qualityLoading.value = false
-  }
-  try {
-    permissions.value = await governanceApi.getAssetPermissions(a.id)
-  } catch {
-    permissions.value = []
-  } finally {
-    permLoading.value = false
-  }
+  await loadDetail(a.id)
 }
 
 /** 申请读权限 */
@@ -218,6 +202,6 @@ function ok(msg: string) {
 }
 
 onMounted(() => {
-  loadAssets()
+  void loadAssets()
 })
 </script>

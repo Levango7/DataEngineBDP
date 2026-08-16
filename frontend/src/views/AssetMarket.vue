@@ -5,8 +5,8 @@
 
     <!-- 顶部 KPI -->
     <div class="grid g4">
-      <div class="card"><h3>在架资产</h3><div class="kpi s">{{ assets.length }}</div><div class="meta">可流通</div></div>
-      <div class="card"><h3>我的订阅</h3><div class="kpi s">{{ mySubscriptions.length }}</div><div class="meta">生效中 {{ activeSubCount }}</div></div>
+      <div class="card"><h3>在架资产</h3><div class="kpi s">{{ assets?.length ?? 0 }}</div><div class="meta">可流通</div></div>
+      <div class="card"><h3>我的订阅</h3><div class="kpi s">{{ mySubscriptions?.length ?? 0 }}</div><div class="meta">生效中 {{ activeSubCount }}</div></div>
       <div class="card"><h3>累计收益</h3><div class="kpi s">¥{{ totalRevenue.toFixed(2) }}</div><div class="meta">提供方入账</div></div>
       <div class="card"><h3>平台抽成</h3><div class="kpi s">¥{{ totalPlatformRevenue.toFixed(2) }}</div><div class="meta">20% 分账</div></div>
     </div>
@@ -16,7 +16,7 @@
       正在加载资产列表...
     </div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
-      加载失败：{{ error }}
+      加载失败：{{ error.message }}
       <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">重试</button>
     </div>
 
@@ -84,10 +84,10 @@
           正在加载订阅列表...
         </div>
         <div v-else-if="subsError" style="text-align: center; padding: 24px; color: #d4380d">
-          加载失败：{{ subsError }}
+          加载失败：{{ subsError.message }}
           <button class="btn ghost sm" style="margin-left: 8px" @click="loadMySubscriptions">重试</button>
         </div>
-        <template v-else>
+        <template v-else-if="mySubscriptions">
         <table>
           <thead>
             <tr><th>资产</th><th>提供方</th><th>状态</th><th>生效时间</th><th>交付状态</th><th>操作</th></tr>
@@ -280,6 +280,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as assetMarketApi from '@/api/assetMarket'
 import type {
@@ -294,25 +295,32 @@ const authStore = useAuthStore()
 // Tab 状态
 const tab = ref<'market' | 'mine' | 'listed'>('market')
 
-// 资产列表
-const assets = ref<Asset[]>([])
-
-// 订阅列表
-const mySubscriptions = ref<Subscription[]>([])
-
-// 计费记录
-const billingRecords = ref<BillingRecord[]>([])
-
 // 筛选
 const searchQuery = ref('')
 const filterType = ref('')
 const filterSecurity = ref('')
 
-// 加载与错误状态
-const loading = ref(false)
-const error = ref<string | null>(null)
-const subsLoading = ref(false)
-const subsError = ref<string | null>(null)
+// 资产列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: assets,
+  loading,
+  error,
+  execute: loadAssets
+} = useApi<Asset[]>(() => assetMarketApi.listAssets(), { initialData: [] })
+
+// 订阅列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
+const {
+  data: mySubscriptions,
+  loading: subsLoading,
+  error: subsError,
+  execute: loadMySubscriptions
+} = useApi<Subscription[]>(
+  () => assetMarketApi.listSubscriptions({ subscriberId: currentTenant.value }),
+  { initialData: [] }
+)
+
+// 计费记录
+const billingRecords = ref<BillingRecord[]>([])
 const billingLoading = ref(false)
 
 // 当前租户 ID（从 auth store 获取，回退到 'tenant-B'）
@@ -364,7 +372,7 @@ const deliverReq = ref<{
 
 // 计算属性
 const filteredAssets = computed(() => {
-  return assets.value.filter((a) => {
+  return (assets.value ?? []).filter((a) => {
     if (searchQuery.value && !a.name.includes(searchQuery.value)) return false
     if (filterType.value && a.type !== filterType.value) return false
     if (filterSecurity.value && a.securityLevel !== filterSecurity.value) return false
@@ -372,10 +380,10 @@ const filteredAssets = computed(() => {
   })
 })
 
-const myAssets = computed(() => assets.value.filter((a) => a.owner === currentTenant.value))
+const myAssets = computed(() => (assets.value ?? []).filter((a) => a.owner === currentTenant.value))
 
 const activeSubCount = computed(
-  () => mySubscriptions.value.filter((s) => s.status === 'active').length
+  () => (mySubscriptions.value ?? []).filter((s) => s.status === 'active').length
 )
 
 const totalRevenue = computed(() =>
@@ -478,11 +486,11 @@ function billingModeLabel(m: string): string {
 }
 
 function assetName(id: string): string {
-  return assets.value.find((a) => a.id === id)?.name || id
+  return (assets.value ?? []).find((a) => a.id === id)?.name || id
 }
 
 function assetOwner(id: string): string {
-  return assets.value.find((a) => a.id === id)?.owner || '—'
+  return (assets.value ?? []).find((a) => a.id === id)?.owner || '—'
 }
 
 function formatDate(d?: string): string {
@@ -501,7 +509,7 @@ async function subscribeAsset(a: Asset) {
     const sub = await assetMarketApi.subscribeAsset(a.id, {
       subscriberId: currentTenant.value,
     })
-    mySubscriptions.value.push(sub)
+    mySubscriptions.value?.push(sub)
     detailVisible.value = false
     store.showToast(`已订阅 ${a.name}，等待审批`)
   } catch (e) {
@@ -556,7 +564,7 @@ async function submitListAsset() {
       pricing: { ...newAsset.value.pricing },
       deliveryMethod: newAsset.value.deliveryMethod,
     })
-    assets.value.push(created)
+    assets.value?.push(created)
     listModalVisible.value = false
     store.showToast(`资产 ${newAsset.value.name} 已上架`)
     // 重置表单
@@ -594,35 +602,9 @@ async function relistAsset(a: Asset) {
 }
 
 // 初始化：从后端加载资产与订阅列表
-async function loadAssets() {
-  loading.value = true
-  error.value = null
-  try {
-    assets.value = await assetMarketApi.listAssets()
-  } catch (e) {
-    error.value = (e as Error).message || '加载资产列表失败'
-  } finally {
-    loading.value = false
-  }
-}
-
-async function loadMySubscriptions() {
-  subsLoading.value = true
-  subsError.value = null
-  try {
-    mySubscriptions.value = await assetMarketApi.listSubscriptions({
-      subscriberId: currentTenant.value,
-    })
-  } catch (e) {
-    subsError.value = (e as Error).message || '加载订阅列表失败'
-  } finally {
-    subsLoading.value = false
-  }
-}
-
 onMounted(() => {
-  loadAssets()
-  loadMySubscriptions()
+  void loadAssets()
+  void loadMySubscriptions()
 })
 </script>
 

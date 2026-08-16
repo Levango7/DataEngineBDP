@@ -9,6 +9,7 @@ import type {
   UpdateTenantParams,
   PagedResult
 } from './types'
+// 类型定义见 @/api/types.ts（项目约定：避免循环依赖）
 
 /** 租户资源根路径 */
 const BASE = '/tenants'

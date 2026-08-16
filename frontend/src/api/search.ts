@@ -22,6 +22,7 @@ import type {
   ExportResult,
   SearchHistoryItem
 } from '@/types/search'
+// 类型定义见 @/types/search.ts（项目约定：避免循环依赖）
 
 /** 检索资源根路径 */
 const BASE = '/search'

@@ -10,7 +10,7 @@
     </div>
     <div v-if="loading" class="card" style="padding: 16px; color: var(--muted)">加载血缘中…</div>
     <div v-else-if="error" class="card" style="padding: 16px; color: var(--red)">
-      {{ error }}，<a href="javascript:void(0)" @click="loadLineage">重试</a>
+      {{ error.message }}，<a href="javascript:void(0)" @click="loadLineage(highlightTable)">重试</a>
     </div>
     <div v-else class="card">
       <div class="lineage">
@@ -35,45 +35,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { getUpstream, getDownstream, impactAnalysis } from '@/api/lineage'
+import { useApi } from '@/composables/useApi'
+import { getUpstream, getDownstream, impactAnalysis, type LineageQueryResult } from '@/api/lineage'
 
 const store = useAppStore()
 
 // 当前高亮表（示例使用 dwd.order_wide）
 const highlightTable = ref('dwd.order_wide')
 
-// 血缘数据
-const upstreamTables = ref<string[]>([])
-const downstreamTables = ref<string[]>([])
-const impactTables = ref<string[]>([])
-
-// 加载状态
-const loading = ref(false)
-const error = ref('')
-
-/** 加载血缘数据 */
-async function loadLineage() {
-  loading.value = true
-  error.value = ''
-  try {
-    const [upstream, downstream, impact] = await Promise.all([
-      getUpstream(highlightTable.value).catch(() => null),
-      getDownstream(highlightTable.value).catch(() => null),
-      impactAnalysis(highlightTable.value).catch(() => null)
+// 血缘数据：通过 useApi 包装并行加载，自动维护 loading / error / data 三态
+const {
+  data: lineageData,
+  loading,
+  error,
+  execute: loadLineage
+} = useApi<[LineageQueryResult | null, LineageQueryResult | null, LineageQueryResult | null], [string]>(
+  (table: string) =>
+    Promise.all([
+      getUpstream(table).catch(() => null),
+      getDownstream(table).catch(() => null),
+      impactAnalysis(table).catch(() => null)
     ])
-    upstreamTables.value = upstream?.tables ?? []
-    downstreamTables.value = downstream?.tables ?? []
-    impactTables.value = impact?.tables ?? []
-  } catch (err) {
-    error.value = (err as Error).message || '血缘加载失败'
-  } finally {
-    loading.value = false
-  }
-}
+)
+
+// 上游表
+const upstreamTables = computed<string[]>(() => lineageData.value?.[0]?.tables ?? [])
+// 下游表
+const downstreamTables = computed<string[]>(() => lineageData.value?.[1]?.tables ?? [])
+// 影响表
+const impactTables = computed<string[]>(() => lineageData.value?.[2]?.tables ?? [])
 
 onMounted(() => {
-  loadLineage()
+  void loadLineage(highlightTable.value)
 })
 </script>

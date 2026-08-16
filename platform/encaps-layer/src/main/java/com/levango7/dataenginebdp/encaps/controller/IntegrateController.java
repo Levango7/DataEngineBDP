@@ -126,6 +126,72 @@ public class IntegrateController {
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * 列出数据源连接器。
+     *
+     * <p>对齐前端 {@code integrate.ts} 的 {@code listConnectors}。
+     * TODO: 接入真实连接器注册表，当前返回内置连接器占位。</p>
+     *
+     * @return 200 + 连接器列表
+     */
+    @GetMapping("/connectors")
+    public ResponseEntity<List<Map<String, Object>>> listConnectors() {
+        // TODO: 从连接器注册表查询真实状态
+        List<Map<String, Object>> connectors = List.of(
+                Map.of("name", "MySQL", "logo", "MySQL", "status", "connected", "type", "rdbms"),
+                Map.of("name", "PostgreSQL", "logo", "PG", "status", "connected", "type", "rdbms"),
+                Map.of("name", "Kafka", "logo", "Kafka", "status", "connected", "type", "stream"),
+                Map.of("name", "HDFS", "logo", "HDFS", "status", "connected", "type", "fs"),
+                Map.of("name", "Hive", "logo", "Hive", "status", "connected", "type", "warehouse"),
+                Map.of("name", "Doris", "logo", "Doris", "status", "connected", "type", "olap")
+        );
+        return ResponseEntity.ok(connectors);
+    }
+
+    /**
+     * 立即运行同步任务。
+     *
+     * <p>对齐前端 {@code integrate.ts} 的 {@code runSyncTask}。
+     * TODO: 转交 SeaTunnel 真实提交，当前仅更新状态。</p>
+     *
+     * @param id 任务 ID
+     * @return 200 若已触发；404 若不存在
+     */
+    @PostMapping("/tasks/{id}/run")
+    @Transactional
+    public ResponseEntity<?> runTask(@PathVariable Long id) {
+        String tenantId = requireTenant();
+        return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            entity.setStatus("running");
+            entity.setUpdatedAt(Instant.now());
+            repository.save(entity);
+            log.info("运行同步任务: id={}, tenant={}", id, tenantId);
+            return ResponseEntity.ok(Map.of("triggered", true));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * 停止同步任务。
+     *
+     * <p>对齐前端 {@code integrate.ts} 的 {@code stopSyncTask}。
+     * TODO: 转交 SeaTunnel 真实停止，当前仅更新状态。</p>
+     *
+     * @param id 任务 ID
+     * @return 200 若已停止；404 若不存在
+     */
+    @PostMapping("/tasks/{id}/stop")
+    @Transactional
+    public ResponseEntity<?> stopTask(@PathVariable Long id) {
+        String tenantId = requireTenant();
+        return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            entity.setStatus("stopped");
+            entity.setUpdatedAt(Instant.now());
+            repository.save(entity);
+            log.info("停止同步任务: id={}, tenant={}", id, tenantId);
+            return ResponseEntity.ok(Map.of("stopped", true));
+        }).orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

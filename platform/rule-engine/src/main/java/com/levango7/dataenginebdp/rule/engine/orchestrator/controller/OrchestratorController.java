@@ -115,6 +115,157 @@ public class OrchestratorController {
         return ResponseEntity.noContent().build();
     }
 
+    /* ================================================================ */
+    /* DAG 可视化扩展端点（对齐前端 orchestrator-viz.ts）                */
+    /* ================================================================ */
+
+    /**
+     * 拉取 Agent 思考链。
+     *
+     * <p>对齐前端 {@code getThoughtChain}。TODO: 接入 Agent 推理记录存储。</p>
+     *
+     * @param id DAG ID
+     * @return 200 + 思考步骤列表
+     */
+    @GetMapping("/{id}/thoughts")
+    public ResponseEntity<List<Map<String, Object>>> thoughts(@PathVariable String id) {
+        // TODO: 从 Agent 推理记录存储查询
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 拉取工具调用记录。
+     *
+     * <p>对齐前端 {@code getToolCalls}。TODO: 接入工具调用记录存储。</p>
+     *
+     * @param id DAG ID
+     * @return 200 + 工具调用记录列表
+     */
+    @GetMapping("/{id}/tool-calls")
+    public ResponseEntity<List<Map<String, Object>>> toolCalls(@PathVariable String id) {
+        // TODO: 从工具调用记录存储查询
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 查询待处理人工介入请求。
+     *
+     * <p>对齐前端 {@code getInterventions}。TODO: 接入人工介入存储。</p>
+     *
+     * @param id DAG ID
+     * @return 200 + 介入请求列表
+     */
+    @GetMapping("/{id}/intervention")
+    public ResponseEntity<List<Map<String, Object>>> intervention(@PathVariable String id) {
+        // TODO: 从人工介入存储查询待审批节点
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 提交人工审批。
+     *
+     * <p>对齐前端 {@code submitIntervention}（POST /intervene）。TODO: 转交审批引擎。</p>
+     *
+     * @param id      DAG ID
+     * @param payload 审批载荷
+     * @return 200 + 更新后的介入请求
+     */
+    @PostMapping("/{id}/intervene")
+    public ResponseEntity<Map<String, Object>> intervene(@PathVariable String id,
+                                                         @RequestBody Map<String, Object> payload) {
+        // TODO: 转交审批引擎处理
+        Map<String, Object> result = new java.util.LinkedHashMap<>(payload);
+        result.put("dagId", id);
+        result.put("status", payload.get("decision"));
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 拉取检查点列表。
+     *
+     * <p>对齐前端 {@code getCheckpoints}。TODO: 接入检查点存储。</p>
+     *
+     * @param id DAG ID
+     * @return 200 + 检查点列表
+     */
+    @GetMapping("/{id}/checkpoints")
+    public ResponseEntity<List<Map<String, Object>>> checkpoints(@PathVariable String id) {
+        // TODO: 从检查点存储查询
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 手动打检查点。
+     *
+     * <p>对齐前端 {@code createCheckpoint}（POST /checkpoint）。TODO: 接入检查点存储。</p>
+     *
+     * @param id   DAG ID
+     * @param body 含 note 字段
+     * @return 200 + 检查点
+     */
+    @PostMapping("/{id}/checkpoint")
+    public ResponseEntity<Map<String, Object>> checkpoint(@PathVariable String id,
+                                                          @RequestBody Map<String, Object> body) {
+        // TODO: 创建检查点并持久化
+        Map<String, Object> cp = new java.util.LinkedHashMap<>();
+        cp.put("id", "cp-" + System.currentTimeMillis());
+        cp.put("dagId", id);
+        cp.put("kind", "MANUAL");
+        cp.put("note", body.get("note"));
+        return ResponseEntity.ok(cp);
+    }
+
+    /**
+     * 从检查点恢复执行。
+     *
+     * <p>对齐前端 {@code resumeFromCheckpoint}（POST /resume）。TODO: 接入断点续跑。</p>
+     *
+     * @param id   DAG ID
+     * @param body 含 checkpointId 字段
+     * @return 200 + 节点结果映射
+     */
+    @PostMapping("/{id}/resume")
+    public ResponseEntity<Map<String, Object>> resume(@PathVariable String id,
+                                                      @RequestBody Map<String, Object> body) {
+        // TODO: 从检查点恢复 DAG 执行
+        return ResponseEntity.ok(Map.of("dagId", id, "resumed", true,
+                "checkpointId", body.getOrDefault("checkpointId", "")));
+    }
+
+    /**
+     * 拉取执行历史。
+     *
+     * <p>对齐前端 {@code getExecutions}。TODO: 接入执行历史存储。</p>
+     *
+     * @param id DAG ID
+     * @return 200 + 执行历史列表
+     */
+    @GetMapping("/{id}/executions")
+    public ResponseEntity<List<Map<String, Object>>> executions(@PathVariable String id) {
+        // TODO: 从执行历史存储查询
+        return ResponseEntity.ok(List.of());
+    }
+
+    /**
+     * 拉取单次回放轨迹。
+     *
+     * <p>对齐前端 {@code getReplayTrace}。TODO: 接入回放事件流存储。</p>
+     *
+     * @param id     DAG ID
+     * @param execId 执行 ID
+     * @return 200 + 回放轨迹
+     */
+    @GetMapping("/{id}/replay/{execId}")
+    public ResponseEntity<Map<String, Object>> replay(@PathVariable String id,
+                                                      @PathVariable String execId) {
+        // TODO: 从事件流存储查询回放轨迹
+        Map<String, Object> trace = new java.util.LinkedHashMap<>();
+        trace.put("execId", execId);
+        trace.put("dagId", id);
+        trace.put("events", List.of());
+        return ResponseEntity.ok(trace);
+    }
+
     /**
      * 异常处理：非法参数（如 DAG 不存在、存在环）返回 400。
      */
