@@ -6,13 +6,23 @@
 
 ## [Unreleased]
 
-### 状态修订（2026-08）
-- 修订对外宣称：本项目定位为**高保真原型 + 设计资产 + 开发中框架**，
-  当前版本调整为 v0.1.0（尚未发布正式版本）。
-- 澄清工程成熟度：代码骨架完成度约 50%，服务级实现约 30%
-  （详见 [项目体检报告](docs/项目体检报告.md)）。
-- 修订仓库统计口径：32 个组件目录、81 个 Helm Chart（80 骨架 + 1 完整）、
-  单元测试约 5000+、集成测试 43 文件。
+### v2.1.0 进行中 — 行业生态扩展与生产化加固
+
+#### Added
+- **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
+- **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）
+- **v1.1性能优化**：SQL网关查询结果缓存（Caffeine 60s TTL）、封装层K8s informer watch、规则引擎异步批量执行、82 Chart HPA autoscaling
+- **v1.1真实依赖**：封装层真实K8s client（fabric8+k3s IT）、规则引擎真实数据源、元数据采集器Iceberg REST Hook、血缘解析器NebulaGraph、APISIX jwt-auth+keycloak-auth插件链
+- **v1.2 E2E链路**：7条端到端链路全部落地（SeaTunnel/Spark/Kafka-CDC/Trino/治理闭环/Superset/多租户）
+
+#### Changed
+- **ROADMAP更新**：v1.1/v1.2/v2.1进展项标记完成
+- **前后端接线**：24个API模块全部接通后端
+
+#### Fixed
+- **K8s翻译边界**：createNamespace空/非法校验（add2030）
+- **前端状态残留**：工作空间切换watch重载（add2030）
+- **开发环境**：vite bind 127.0.0.1修复IPv6问题、Windows原生启动脚本、RestTemplate超时修复
 
 ## [2.0.0] - 2026-08-08
 
