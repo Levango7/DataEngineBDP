@@ -28,7 +28,7 @@ const Analyze = () => import('@/views/Analyze.vue')
 const Ops = () => import('@/views/Ops.vue')
 const Account = () => import('@/views/Account.vue')
 const Admin = () => import('@/views/Admin.vue')
-const Roadmap = () => import('@/views/Roadmap.vue')
+
 
 // 批次4新增：核心功能页面
 const TenantManagement = () => import('@/views/TenantManagement.vue')
@@ -56,6 +56,26 @@ const SearchPortal = () => import('@/views/SearchPortal.vue')
 const DagVisualizer = () => import('@/views/orchestrator/DagVisualizer.vue')
 // 批次11新增：AI 助手（T011 自然语言→SQL→图表→解读 全链路）
 const AiAssistant = () => import('@/views/ai-assistant/AiAssistant.vue')
+
+// 批次12新增：基础设施层 5 个页面
+const InfraMachine = () => import('@/views/infra/InfraMachine.vue')
+const InfraK8s = () => import('@/views/infra/InfraK8s.vue')
+const InfraNet = () => import('@/views/infra/InfraNet.vue')
+const InfraStore = () => import('@/views/infra/InfraStore.vue')
+const InfraSched = () => import('@/views/infra/InfraSched.vue')
+// 批次12新增：引擎层 7 个页面
+const EngStorage = () => import('@/views/engine/EngStorage.vue')
+const EngSpark = () => import('@/views/engine/EngSpark.vue')
+const EngFlink = () => import('@/views/engine/EngFlink.vue')
+const EngDoris = () => import('@/views/engine/EngDoris.vue')
+const EngKafka = () => import('@/views/engine/EngKafka.vue')
+const EngIotdb = () => import('@/views/engine/EngIotdb.vue')
+const EngMmg = () => import('@/views/engine/EngMmg.vue')
+// 批次12新增：治理/开发层 4 个页面
+const GovernMeta = () => import('@/views/govern/GovernMeta.vue')
+const DevSched = () => import('@/views/dev/DevSched.vue')
+const DevTag = () => import('@/views/dev/DevTag.vue')
+const DevMl = () => import('@/views/dev/DevMl.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/dashboard' },
@@ -176,23 +196,25 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'AI 数据助手', icon: 'ChatDotRound' }
   },
 
-  // 占位页（Roadmap），通过 meta.title 传递模块名
-  { path: '/infra-machine', component: Roadmap, meta: { title: '机器供应' } },
-  { path: '/infra-k8s', component: Roadmap, meta: { title: 'K8s 集群' } },
-  { path: '/infra-net', component: Roadmap, meta: { title: '容器网络' } },
-  { path: '/infra-store', component: Roadmap, meta: { title: '容器存储' } },
-  { path: '/infra-sched', component: Roadmap, meta: { title: '弹性调度' } },
-  { path: '/eng-storage', component: Roadmap, meta: { title: '统一存储' } },
-  { path: '/eng-spark', component: Roadmap, meta: { title: '批计算（Spark）' } },
-  { path: '/eng-flink', component: Roadmap, meta: { title: '流计算（Flink）' } },
-  { path: '/eng-doris', component: Roadmap, meta: { title: 'OLAP（Doris）' } },
-  { path: '/eng-kafka', component: Roadmap, meta: { title: '消息流接入（Kafka）' } },
-  { path: '/eng-iotdb', component: Roadmap, meta: { title: '时序引擎（IoTDB）' } },
-  { path: '/eng-mmg', component: Roadmap, meta: { title: '多模型引擎' } },
-  { path: '/govern-meta', component: Roadmap, meta: { title: '元数据管理' } },
-  { path: '/dev-sched', component: Roadmap, meta: { title: '调度编排（DolphinScheduler）' } },
-  { path: '/dev-tag', component: Roadmap, meta: { title: '标签画像' } },
-  { path: '/dev-ml', component: Roadmap, meta: { title: '机器学习' } },
+  // 批次12新增：基础设施层 5 个页面（替换原 Roadmap 占位）
+  { path: '/infra-machine', component: InfraMachine, meta: { title: '机器供应', icon: 'Monitor' } },
+  { path: '/infra-k8s', component: InfraK8s, meta: { title: 'K8s 集群', icon: 'Cpu' } },
+  { path: '/infra-net', component: InfraNet, meta: { title: '容器网络', icon: 'Connection' } },
+  { path: '/infra-store', component: InfraStore, meta: { title: '容器存储', icon: 'Files' } },
+  { path: '/infra-sched', component: InfraSched, meta: { title: '弹性调度', icon: 'Operation' } },
+  // 批次12新增：引擎层 7 个页面（替换原 Roadmap 占位）
+  { path: '/eng-storage', component: EngStorage, meta: { title: '统一存储', icon: 'FolderOpened' } },
+  { path: '/eng-spark', component: EngSpark, meta: { title: '批计算（Spark）', icon: 'Histogram' } },
+  { path: '/eng-flink', component: EngFlink, meta: { title: '流计算（Flink）', icon: 'DataLine' } },
+  { path: '/eng-doris', component: EngDoris, meta: { title: 'OLAP（Doris）', icon: 'Grid' } },
+  { path: '/eng-kafka', component: EngKafka, meta: { title: '消息流接入（Kafka）', icon: 'ChatLineSquare' } },
+  { path: '/eng-iotdb', component: EngIotdb, meta: { title: '时序引擎（IoTDB）', icon: 'Timer' } },
+  { path: '/eng-mmg', component: EngMmg, meta: { title: '多模型引擎', icon: 'Box' } },
+  // 批次12新增：治理/开发层 4 个页面（替换原 Roadmap 占位）
+  { path: '/govern-meta', component: GovernMeta, meta: { title: '元数据管理', icon: 'Collection' } },
+  { path: '/dev-sched', component: DevSched, meta: { title: '调度编排', icon: 'Calendar' } },
+  { path: '/dev-tag', component: DevTag, meta: { title: '标签画像', icon: 'PriceTag' } },
+  { path: '/dev-ml', component: DevMl, meta: { title: '机器学习', icon: 'Cpu' } },
   { path: '/ops-tpl', component: TemplateMarket, meta: { title: '行业应用模板' } },
   { path: '/ops-portal', name: 'BusinessPortal', component: BusinessPortal, meta: { title: '业务线门户', icon: 'Grid' } },
   { path: '/ops-api', name: 'APIMarketLegacy', component: APIMarket, meta: { title: '开放 API', icon: 'Connection' } },

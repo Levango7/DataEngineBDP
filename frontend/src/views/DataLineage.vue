@@ -29,11 +29,21 @@
         </button>
         <button class="btn-ghost" @click="loadSample">载入示例</button>
       </div>
-      <div v-if="analyzeError" class="error-tip">{{ analyzeError }}</div>
+      <div v-if="analyzeError" class="error-tip">{{ analyzeError.message }}</div>
     </section>
 
-    <!-- 血缘图谱可视化 -->
-    <section v-if="graph" class="card graph-card">
+    <!-- 血缘图谱可视化：三态 loading / error / data -->
+    <section v-if="analyzing" class="card graph-card">
+      <div class="card-title">血缘图谱</div>
+      <div class="state-tip">分析中…</div>
+    </section>
+    <section v-else-if="analyzeError" class="card graph-card">
+      <div class="card-title">血缘图谱</div>
+      <div class="state-tip error">
+        加载失败：{{ analyzeError.message }}，<a href="javascript:void(0)" @click="handleAnalyze">重试</a>
+      </div>
+    </section>
+    <section v-else-if="graph" class="card graph-card">
       <div class="card-title">
         血缘图谱
         <span class="meta-tag">{{ graph.meta.nodeCount }} 节点 · {{ graph.meta.edgeCount }} 边 · {{ graph.meta.analyzeTimeMs }}ms</span>
@@ -41,8 +51,16 @@
       <div ref="chartRef" class="chart"></div>
     </section>
 
-    <!-- 表级 + 字段级血缘列表 -->
-    <section v-if="graph" class="card relation-list">
+    <!-- 表级 + 字段级血缘列表：三态 -->
+    <section v-if="analyzing" class="card relation-list">
+      <div class="card-title">血缘关系明细</div>
+      <div class="state-tip">加载中…</div>
+    </section>
+    <section v-else-if="analyzeError" class="card relation-list">
+      <div class="card-title">血缘关系明细</div>
+      <div class="state-tip error">加载失败</div>
+    </section>
+    <section v-else-if="graph" class="card relation-list">
       <div class="card-title">血缘关系明细</div>
       <div class="relation-tabs">
         <button
@@ -77,7 +95,7 @@
       </table>
     </section>
 
-    <!-- 上下游查询 -->
+    <!-- 上下游查询：三态 loading / error / data -->
     <section class="card query-card">
       <div class="card-title">上下游查询 & 影响分析</div>
       <div class="query-row">
@@ -90,7 +108,18 @@
         <button class="btn-secondary" :disabled="querying" @click="handleQuery('downstream')">下游</button>
         <button class="btn-warn" :disabled="querying" @click="handleQuery('impact')">影响分析</button>
       </div>
-      <div v-if="queryResult" class="query-result">
+      <!-- 三态：loading -->
+      <div v-if="querying" class="query-result">
+        <div class="state-tip">查询中…</div>
+      </div>
+      <!-- 三态：error -->
+      <div v-else-if="queryError" class="query-result">
+        <div class="state-tip error">
+          查询失败：{{ queryError.message }}，<a href="javascript:void(0)" @click="retryQuery">重试</a>
+        </div>
+      </div>
+      <!-- 三态：data -->
+      <div v-else-if="queryResult" class="query-result">
         <div class="result-summary">
           <span class="badge" :class="queryResult.direction.toLowerCase()">
             {{ directionLabel(queryResult.direction) }}
@@ -112,6 +141,7 @@
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import { useAppStore } from '@/stores/app'
+import { useApi } from '@/composables/useApi'
 import {
   analyzeLineage,
   getUpstream,
@@ -127,9 +157,6 @@ const store = useAppStore()
 // SQL 输入
 const sqlText = ref('')
 const dialect = ref('')
-const analyzing = ref(false)
-const analyzeError = ref('')
-const graph = ref<LineageGraph | null>(null)
 
 // 图谱 ECharts 实例
 const chartRef = ref<HTMLDivElement>()
@@ -137,6 +164,22 @@ let chartInstance: echarts.ECharts | null = null
 
 // 关系明细 Tab
 const activeTab = ref<'table' | 'column'>('table')
+
+// 血缘分析：通过 useApi 包装，自动维护 loading / error / data 三态
+const {
+  data: graph,
+  loading: analyzing,
+  error: analyzeError,
+  execute: executeAnalyze
+} = useApi<LineageGraph>(() => analyzeLineage(sqlText.value, dialect.value || undefined), {
+  onSuccess: (result) => {
+    activeTab.value = 'table'
+    // DOM 更新后渲染 ECharts
+    nextTick(() => renderChart(result))
+    store.showToast(`血缘分析完成：${result.meta.nodeCount} 节点 / ${result.meta.edgeCount} 边`)
+  }
+})
+
 const tableEdges = computed<LineageGraphLink[]>(() =>
   graph.value?.links.filter((l) => l.relationType === 'TABLE_LINEAGE') ?? []
 )
@@ -145,10 +188,21 @@ const columnEdges = computed<LineageGraphLink[]>(() =>
 )
 const activeEdges = computed(() => (activeTab.value === 'table' ? tableEdges.value : columnEdges.value))
 
-// 查询
+// 上下游/影响查询：通过 useApi 包装，自动维护 loading / error / data 三态
+type QueryKind = 'upstream' | 'downstream' | 'impact'
 const queryTable = ref('')
-const querying = ref(false)
-const queryResult = ref<LineageQueryResult | null>(null)
+let lastQueryKind: QueryKind = 'upstream'
+const {
+  data: queryResult,
+  loading: querying,
+  error: queryError,
+  execute: executeQuery
+} = useApi<LineageQueryResult, [kind: QueryKind]>((kind) => {
+  lastQueryKind = kind
+  if (kind === 'upstream') return getUpstream(queryTable.value)
+  if (kind === 'downstream') return getDownstream(queryTable.value)
+  return impactAnalysis(queryTable.value)
+})
 
 /** 载入示例 SQL */
 function loadSample(): void {
@@ -160,26 +214,28 @@ function loadSample(): void {
   dialect.value = ''
 }
 
-/** 执行血缘分析 */
+/** 执行血缘分析（触发 useApi execute） */
 async function handleAnalyze(): Promise<void> {
   if (!sqlText.value.trim()) {
-    analyzeError.value = '请输入 SQL'
+    // 通过临时 error 状态提示；useApi 的 error 在 execute 时会被清空，这里直接用 store 提示
+    store.showToast('请输入 SQL')
     return
   }
-  analyzing.value = true
-  analyzeError.value = ''
-  try {
-    const result = await analyzeLineage(sqlText.value, dialect.value || undefined)
-    graph.value = result
-    activeTab.value = 'table'
-    await nextTick()
-    renderChart(result)
-    store.showToast(`血缘分析完成：${result.meta.nodeCount} 节点 / ${result.meta.edgeCount} 边`)
-  } catch (e: unknown) {
-    analyzeError.value = (e as Error).message || '分析失败'
-  } finally {
-    analyzing.value = false
+  await executeAnalyze()
+}
+
+/** 执行上下游/影响查询（触发 useApi execute） */
+async function handleQuery(kind: QueryKind): Promise<void> {
+  if (!queryTable.value.trim()) {
+    store.showToast('请输入表名')
+    return
   }
+  await executeQuery(kind)
+}
+
+/** 重试上一次查询 */
+async function retryQuery(): Promise<void> {
+  await executeQuery(lastQueryKind)
 }
 
 /** 渲染 ECharts 关系图 */
@@ -248,29 +304,6 @@ function renderChart(g: LineageGraph): void {
     ]
   }
   chartInstance.setOption(option)
-}
-
-/** 执行上下游/影响查询 */
-async function handleQuery(kind: 'upstream' | 'downstream' | 'impact'): Promise<void> {
-  if (!queryTable.value.trim()) {
-    store.showToast('请输入表名')
-    return
-  }
-  querying.value = true
-  queryResult.value = null
-  try {
-    if (kind === 'upstream') {
-      queryResult.value = await getUpstream(queryTable.value)
-    } else if (kind === 'downstream') {
-      queryResult.value = await getDownstream(queryTable.value)
-    } else {
-      queryResult.value = await impactAnalysis(queryTable.value)
-    }
-  } catch (e: unknown) {
-    store.showToast((e as Error).message || '查询失败')
-  } finally {
-    querying.value = false
-  }
 }
 
 /** 方向标签中文 */
@@ -418,6 +451,18 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   color: var(--red);
   font-size: 12px;
+}
+.state-tip {
+  font-size: 13px;
+  color: var(--muted);
+  padding: 16px 0;
+}
+.state-tip.error {
+  color: var(--red);
+}
+.state-tip a {
+  color: var(--primary);
+  cursor: pointer;
 }
 .chart {
   width: 100%;

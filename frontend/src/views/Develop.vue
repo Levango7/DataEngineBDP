@@ -38,7 +38,18 @@
 <span class="k">JOIN</span> dws.pay p <span class="k">ON</span> o.order_id = p.order_id
 <span class="k">WHERE</span> o.dt = <span class="s">'${bizdate}'</span>;</div>
         <div class="runlog" ref="runlogEl">
-          <div v-for="(line, i) in runlog" :key="i" :class="line.cls">{{ line.text }}</div>
+          <!-- 三态：loading -->
+          <template v-if="runLoading">
+            <div class="info">{{ runlog[0]?.text || '[运行中] 封装层接收任务…' }}</div>
+          </template>
+          <!-- 三态：error -->
+          <template v-else-if="runError">
+            <div class="info">[错误] {{ runError.message || '运行失败' }}</div>
+          </template>
+          <!-- 三态：data（成功后渐进式渲染日志） -->
+          <template v-else>
+            <div v-for="(line, i) in runlog" :key="i" :class="line.cls">{{ line.text }}</div>
+          </template>
         </div>
       </div>
       <div class="params">
@@ -50,10 +61,16 @@
         <label>并发度</label><input value="8" />
         <label>调度</label>
         <select><option>手动</option><option>每日 04:00</option><option>Cron</option></select>
-        <button class="btn" style="width: 100%; margin-top: 12px" @click="runJob">
-          <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg> 运行
+        <button class="btn" style="width: 100%; margin-top: 12px" :disabled="runLoading" @click="handleRunJob">
+          <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg>
+          {{ runLoading ? '运行中…' : '运行' }}
         </button>
-        <button class="btn ghost" style="width: 100%; margin-top: 8px" @click="submitScheduleJob">提交调度</button>
+        <button class="btn ghost" style="width: 100%; margin-top: 8px" :disabled="scheduleLoading" @click="handleSubmitSchedule">
+          {{ scheduleLoading ? '提交中…' : '提交调度' }}
+        </button>
+        <div v-if="scheduleError" class="note" style="color: var(--red)">
+          调度提交失败：{{ scheduleError.message }}
+        </div>
         <div class="note">资源请求受工作空间 Quota 约束，超额自动排队或扩容。</div>
       </div>
     </div>
@@ -74,7 +91,8 @@
 <script setup lang="ts">
 import { ref, nextTick } from 'vue'
 import { useAppStore } from '@/stores/app'
-import { runJob as apiRunJob, submitSchedule, type RunLogLine } from '@/api/develop'
+import { useApi } from '@/composables/useApi'
+import { runJob as apiRunJob, submitSchedule, type RunLogLine, type RunResult } from '@/api/develop'
 
 const store = useAppStore()
 
@@ -85,7 +103,6 @@ interface LogLine {
 
 const runlog = ref<LogLine[]>([{ cls: 'info', text: '[就绪] 点击「运行」提交至封装层调度…' }])
 const runlogEl = ref<HTMLElement | null>(null)
-const running = ref(false)
 
 /** 将 API 返回的日志级别映射为前端样式类 */
 function logLevelToClass(level: RunLogLine['level']): string {
@@ -101,52 +118,75 @@ function logLevelToClass(level: RunLogLine['level']): string {
   }
 }
 
-/** 运行作业（调用真实 API） */
-async function runJob() {
-  running.value = true
-  runlog.value = [{ cls: 'info', text: '[提交] 封装层接收任务…' }]
-  try {
-    const result = await apiRunJob({
+/** 渐进式渲染运行日志（逐行 push，自动滚动到底部） */
+function renderLogs(result: RunResult): void {
+  const lines: LogLine[] = result.logs.map((l) => ({
+    cls: logLevelToClass(l.level),
+    text: l.text
+  }))
+  runlog.value = []
+  let i = 0
+  function step(): void {
+    if (i >= lines.length) return
+    runlog.value.push(lines[i++])
+    nextTick(() => {
+      if (runlogEl.value) runlogEl.value.scrollTop = runlogEl.value.scrollHeight
+    })
+    setTimeout(step, 500)
+  }
+  step()
+}
+
+// 运行作业：通过 useApi 包装，自动维护 loading / error / data 三态
+const {
+  loading: runLoading,
+  error: runError,
+  execute: executeRunJob
+} = useApi<RunResult>(
+  () =>
+    apiRunJob({
       filePath: 'dwd/order_wide.sql',
       engine: 'spark',
       cpu: 4,
       memory: 16,
       parallelism: 8
-    })
-    // 渲染日志
-    const lines: LogLine[] = result.logs.map((l) => ({
-      cls: logLevelToClass(l.level),
-      text: l.text
-    }))
-    runlog.value = []
-    let i = 0
-    function step() {
-      if (i >= lines.length) return
-      runlog.value.push(lines[i++])
-      nextTick(() => {
-        if (runlogEl.value) runlogEl.value.scrollTop = runlogEl.value.scrollHeight
-      })
-      setTimeout(step, 500)
+    }),
+  {
+    onSuccess: (result) => {
+      renderLogs(result)
+      store.showToast(`运行完成：${result.status}`)
     }
-    step()
-  } catch (err) {
-    runlog.value.push({ cls: 'info', text: `[错误] ${(err as Error).message || '运行失败'}` })
-  } finally {
-    running.value = false
   }
+)
+
+/** 运行作业（触发 useApi execute） */
+async function handleRunJob(): Promise<void> {
+  runlog.value = [{ cls: 'info', text: '[提交] 封装层接收任务…' }]
+  await executeRunJob()
 }
 
-/** 提交调度 */
-async function submitScheduleJob() {
-  try {
-    await submitSchedule({
+// 提交调度：通过 useApi 包装，自动维护 loading / error / data 三态
+const {
+  loading: scheduleLoading,
+  error: scheduleError,
+  execute: executeSubmitSchedule
+} = useApi<void>(
+  () =>
+    submitSchedule({
       filePath: 'dwd/order_wide.sql',
       schedule: '0 4 * * *',
       engine: 'spark'
-    })
-    store.showToast('已提交调度')
-  } catch {
-    // 错误提示已由拦截器统一处理
+    }),
+  {
+    onSuccess: () => {
+      store.showToast('已提交调度')
+    }
   }
+)
+
+/** 提交调度（触发 useApi execute） */
+async function handleSubmitSchedule(): Promise<void> {
+  await executeSubmitSchedule()
+  // 错误提示已由拦截器统一处理，scheduleError 用于模板展示
 }
 </script>

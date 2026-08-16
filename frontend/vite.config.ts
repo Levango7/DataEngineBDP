@@ -45,6 +45,31 @@ export default defineConfig({
       '/api/v1/dashboards': {
         target: process.env.VITE_BI_TARGET || 'http://127.0.0.1:8085',
         changeOrigin: true
+      },
+      // stream-batch-scheduler（流批调度服务 :8087）
+      '/api/v1/stream-batch': {
+        target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
+        changeOrigin: true
+      },
+      // sql-gateway（SQL 网关服务 :8088）
+      '/api/v1/sql': {
+        target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8088',
+        changeOrigin: true
+      },
+      // governance/lineage-analyzer（血缘分析服务 :8089）
+      '/lineage': {
+        target: process.env.VITE_LINEAGE_TARGET || 'http://127.0.0.1:8089',
+        changeOrigin: true
+      },
+      // rule-engine（规则引擎服务 :8091）
+      '/api/v1/quality': {
+        target: process.env.VITE_RULE_ENGINE_TARGET || 'http://127.0.0.1:8091',
+        changeOrigin: true
+      },
+      // governance/real-time-pipeline（实时治理服务 :8092）
+      '/api/v1/assets': {
+        target: process.env.VITE_GOVERNANCE_TARGET || 'http://127.0.0.1:8092',
+        changeOrigin: true
       }
     }
   },

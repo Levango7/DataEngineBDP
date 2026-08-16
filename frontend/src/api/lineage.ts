@@ -1,8 +1,15 @@
 /**
  * 数据血缘分析 API 封装
  *
- * 对接后端 lineage-analyzer 服务（默认 /lineage/api/v1/lineage）。
- * 由于后端独立服务前缀为 /lineage，此处使用绝对路径绕过 client.ts 的 baseURL。
+ * 对接后端 lineage-analyzer 服务（独立部署于 :8089，前缀 /lineage）。
+ *
+ * 说明：lineage-analyzer 是独立服务，路径前缀为 `/lineage`，不在 client.ts
+ * 默认 baseURL（`/api/v1`）覆盖范围内。因此通过 `{ baseURL: '' }` 覆盖默认
+ * baseURL，使请求路径保持为 `/lineage/api/v1/lineage/...`，由 vite proxy
+ * 的 `/lineage` 规则转发到 8089 端口。
+ *
+ * 注意：此处仍走 client.ts 的 get/post 方法，请求/响应拦截器、统一错误处理、
+ * 401 跳登录、Bearer token 注入等封装均正常生效，仅 baseURL 被覆盖。
  */
 import { post, get } from './client'
 
@@ -63,7 +70,7 @@ export interface LineageQueryResult {
  * @param dialect 方言（ANSI/HIVE/DORIS/TRINO），缺省自动检测
  */
 export function analyzeLineage(sql: string, dialect?: string): Promise<LineageGraph> {
-  // lineage-analyzer 独立服务前缀 /lineage，绕过 client 实例 baseURL(/api/v1)
+  // lineage-analyzer 独立服务前缀 /lineage，覆盖 client 默认 baseURL(/api/v1)
   return post<LineageGraph>('/lineage/api/v1/lineage/analyze', { sql, dialect }, { baseURL: '' })
 }
 
