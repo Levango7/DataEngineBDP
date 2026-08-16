@@ -56,6 +56,10 @@ public class SyncTaskEntity {
     @Column(nullable = false, length = 16)
     private String status;
 
+    /** SeaTunnel 作业 ID（运行时由 SeaTunnelClient 写入，停止时使用）。 */
+    @Column(length = 128)
+    private String seatunnelJobId;
+
     /** 租户隔离。 */
     @Column(nullable = false, length = 64)
     private String tenantId;

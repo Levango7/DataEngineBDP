@@ -164,7 +164,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
@@ -413,8 +413,39 @@ function formatDuration(seconds?: number): string {
 
 /* ------------------------------ 初始化 ------------------------------ */
 
+/* ------------------------------ 自动刷新（5 秒轮询） ------------------------------ */
+
+let pollTimer: ReturnType<typeof setInterval> | null = null
+
+/** 启动轮询：仅当存在运行中/等待中作业时才刷新列表，避免无谓请求 */
+function startPolling(): void {
+  if (pollTimer) return
+  pollTimer = setInterval(() => {
+    // 日志弹窗打开时不刷新列表（避免分页跳动）
+    if (logDialogVisible.value) return
+    const hasActive = jobList.value.some(
+      (j) => j.status === 'running' || j.status === 'pending' || j.status === 'scheduled'
+    )
+    if (hasActive) {
+      void loadList()
+    }
+  }, 5000)
+}
+
+function stopPolling(): void {
+  if (pollTimer) {
+    clearInterval(pollTimer)
+    pollTimer = null
+  }
+}
+
 onMounted(() => {
   void loadList()
+  startPolling()
+})
+
+onUnmounted(() => {
+  stopPolling()
 })
 </script>
 

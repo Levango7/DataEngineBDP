@@ -32,6 +32,7 @@ import java.util.Map;
 public class JobController {
 
     private final JobService jobService;
+    private final JobLogService jobLogService;
 
     /** 创建/更新请求体（对齐前端 SubmitJobParams）。 */
     public record JobRequest(
@@ -115,7 +116,9 @@ public class JobController {
     /**
      * 取消作业。
      *
-     * <p>对齐前端 {@code job.ts} 的 {@code cancelJob}。</p>
+     * <p>对齐前端 {@code job.ts} 的 {@code cancelJob}。
+     * 调用 {@link JobService#cancel} 更新作业状态为 paused，
+     * 并将 lastRunStatus 置为 CANCELLED。</p>
      *
      * @param id 作业 ID
      * @return 200 若已取消；404 若不存在
@@ -123,6 +126,7 @@ public class JobController {
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id) {
         if (jobService.cancel(id)) {
+            log.info("作业已取消: id={}", id);
             return ResponseEntity.ok(Map.of("cancelled", true));
         }
         return ResponseEntity.notFound().build();
@@ -132,33 +136,34 @@ public class JobController {
      * 获取作业运行日志。
      *
      * <p>对齐前端 {@code job.ts} 的 {@code getJobLogs}。
-     * TODO: 接入日志存储（Loki/ES），当前返回占位文本。</p>
+     * 从 DAG 运行历史（{@code dag_run} 表）聚合节点结果与错误信息，
+     * 真实生产环境可扩展为从 Loki/ES 拉取实时日志。</p>
      *
      * @param id 作业 ID
      * @return 200 + 日志文本
      */
     @GetMapping("/{id}/logs")
     public ResponseEntity<String> logs(@PathVariable Long id) {
-        // TODO: 从日志存储查询作业运行日志
         log.info("查询作业日志: id={}", id);
-        return ResponseEntity.ok("# 作业 " + id + " 日志占位\n# TODO: 接入日志存储后返回真实日志\n");
+        return ResponseEntity.ok(jobLogService.getJobLogs(id));
     }
 
     /**
      * 查询作业当前状态。
      *
-     * <p>对齐前端 {@code job.ts} 的 {@code getJobStatus}。</p>
+     * <p>对齐前端 {@code job.ts} 的 {@code getJobStatus}。
+     * 从 {@link JobService} 查询作业元数据，并推导进度百分比。</p>
      *
      * @param id 作业 ID
      * @return 200 + 状态对象；404 若不存在
      */
     @GetMapping("/{id}/status")
     public ResponseEntity<?> status(@PathVariable Long id) {
-        return jobService.get(id)
-                .<ResponseEntity<?>>map(j -> ResponseEntity.ok(Map.of(
-                        "status", j.getStatus() == null ? "unknown" : j.getStatus(),
-                        "progress", 0)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        java.util.Map<String, Object> status = jobLogService.getJobStatus(id);
+        if (status == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(status);
     }
 
     /** 作业视图。 */

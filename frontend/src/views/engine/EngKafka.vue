@@ -1,7 +1,7 @@
 <template>
   <div class="eng-kafka-page">
     <h1>消息流接入（Kafka）</h1>
-    <div class="sub">Broker · Topic · 消费组 · Lag 监控 · 15 秒自动刷新</div>
+    <div class="sub">Broker · Topic · 消费组 · Lag 监控 · 10 秒自动刷新</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
@@ -106,9 +106,17 @@
 
       <!-- Tab2 Topic 列表 -->
       <template v-else-if="activeTab === 'topics'">
+        <div class="search-bar">
+          <el-input
+            v-model="topicKeyword"
+            placeholder="搜索 Topic 名称"
+            clearable
+            style="width: 240px"
+          />
+        </div>
         <el-table
           v-loading="topicsLoading"
-          :data="topics ?? []"
+          :data="filteredTopics"
           stripe
           border
           style="width: 100%"
@@ -138,9 +146,17 @@
 
       <!-- Tab3 消费组列表 -->
       <template v-else>
+        <div class="search-bar">
+          <el-input
+            v-model="groupKeyword"
+            placeholder="搜索消费组名称"
+            clearable
+            style="width: 240px"
+          />
+        </div>
         <el-table
           v-loading="groupsLoading"
-          :data="consumerGroups ?? []"
+          :data="filteredGroups"
           stripe
           border
           style="width: 100%"
@@ -265,6 +281,11 @@ const {
 const selectedClusterId = ref<string>('')
 const activeTab = ref<'brokers' | 'topics' | 'groups'>('brokers')
 
+/** Topic 搜索关键字 */
+const topicKeyword = ref<string>('')
+/** 消费组搜索关键字 */
+const groupKeyword = ref<string>('')
+
 /* ------------------------------ Broker / Topic / 消费组 ------------------------------ */
 
 const {
@@ -327,6 +348,22 @@ const brokerAliveCount = computed(
 const totalLag = computed(() =>
   (consumerGroups.value ?? []).reduce((s, g) => s + g.lag, 0)
 )
+
+/** Topic 列表按关键字过滤 */
+const filteredTopics = computed(() => {
+  const list = topics.value ?? []
+  const kw = topicKeyword.value.trim().toLowerCase()
+  if (!kw) return list
+  return list.filter((t) => t.name.toLowerCase().includes(kw))
+})
+
+/** 消费组列表按关键字过滤 */
+const filteredGroups = computed(() => {
+  const list = consumerGroups.value ?? []
+  const kw = groupKeyword.value.trim().toLowerCase()
+  if (!kw) return list
+  return list.filter((g) => g.groupId.toLowerCase().includes(kw))
+})
 
 /* ------------------------------ 创建 Topic ------------------------------ */
 
@@ -469,8 +506,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   void reloadClusters()
-  // 15s 轮询刷新
-  timer = setInterval(() => void reloadCurrent(), 15000)
+  // 10s 轮询刷新
+  timer = setInterval(() => void reloadCurrent(), 10000)
 })
 
 onUnmounted(() => {
@@ -552,6 +589,12 @@ onUnmounted(() => {
 }
 .main-tabs {
   margin-left: 8px;
+}
+.search-bar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 12px;
 }
 .lag-warn {
   color: #c08a2e;

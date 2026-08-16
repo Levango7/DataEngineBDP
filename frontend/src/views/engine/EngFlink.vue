@@ -1,7 +1,7 @@
 <template>
   <div class="eng-flink-page">
     <h1>流计算（Flink）</h1>
-    <div class="sub">Flink 流作业 · Checkpoint · 反压监控 · 15 秒自动刷新</div>
+    <div class="sub">Flink 流作业 · Checkpoint · 反压监控 · 10 秒自动刷新</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
@@ -622,8 +622,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   loadList()
-  // 15s 轮询刷新
-  timer = setInterval(() => loadList(), 15000)
+  // 10s 轮询刷新
+  timer = setInterval(() => loadList(), 10000)
 })
 
 onUnmounted(() => {

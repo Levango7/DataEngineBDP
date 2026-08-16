@@ -72,6 +72,8 @@ export interface DagNode {
   name: string
   /** 是否高亮 */
   highlight?: boolean
+  /** 数据分层（ods/dwd/dws/ads/other，由后端 DAG 解析推导） */
+  layer?: string
 }
 
 /** DAG 边 */

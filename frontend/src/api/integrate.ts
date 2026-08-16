@@ -56,6 +56,10 @@ export interface Connector {
   status: ConnectorStatus
   /** 类型 */
   type: string
+  /** 分类：source（源）/ sink（目标），由后端连接器服务返回 */
+  category?: 'source' | 'sink'
+  /** SeaTunnel 插件名（如 Jdbc、Kafka、Iceberg） */
+  plugin?: string
 }
 
 /** 创建同步任务参数 */

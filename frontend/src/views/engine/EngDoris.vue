@@ -1,7 +1,7 @@
 <template>
   <div class="eng-doris-page">
     <h1>OLAP（Doris）</h1>
-    <div class="sub">MPP 引擎 · FE/BE 节点 · 查询负载 · 15 秒自动刷新</div>
+    <div class="sub">MPP 引擎 · FE/BE 节点 · 查询负载 · 10 秒自动刷新</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
@@ -401,8 +401,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   void reloadAll()
-  // 15s 轮询刷新
-  timer = setInterval(() => void reloadAll(), 15000)
+  // 10s 轮询刷新
+  timer = setInterval(() => void reloadAll(), 10000)
 })
 
 onUnmounted(() => {

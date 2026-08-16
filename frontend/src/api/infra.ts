@@ -410,15 +410,44 @@ export type IpFamily = 'IPv4' | 'IPv6' | 'DualStack'
 /** 集群网络配置 */
 export interface NetworkConfig {
   /** CNI 插件 */
-  cni: CniPlugin
+  cni: CniPlugin | string
   /** Pod CIDR */
   podCidr: string
   /** Service CIDR */
   serviceCidr: string
   /** IP 协议族 */
-  ipFamily: IpFamily
+  ipFamily?: IpFamily
   /** MTU */
   mtu: number
+  /** NetworkPolicy 列表（后端聚合返回） */
+  policies?: NetworkPolicy[]
+  /** Service 列表（后端聚合返回） */
+  services?: ServiceResource[]
+  /** Ingress 列表（后端聚合返回） */
+  ingresses?: IngressResource[]
+  /** NetworkPolicy 数量 */
+  policyCount?: number
+  /** Service 数量 */
+  serviceCount?: number
+  /** Ingress 数量 */
+  ingressCount?: number
+}
+
+/** Service 资源（后端聚合返回） */
+export interface ServiceResource {
+  name: string
+  namespace: string
+  type: string
+  clusterIP: string
+  ports: number
+}
+
+/** Ingress 资源（后端聚合返回） */
+export interface IngressResource {
+  name: string
+  namespace: string
+  className: string
+  hosts: number
 }
 
 /** NetworkPolicy 类型 */

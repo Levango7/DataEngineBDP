@@ -37,6 +37,16 @@ export interface ApiKey {
   status: KeyStatus
   /** 创建时间 */
   createdAt: string
+  /** 更新时间 */
+  updatedAt?: string
+  /** 权限范围 */
+  scope?: string
+  /** apiKey（调用方持有） */
+  apiKey?: string
+  /** secret（仅创建时一次性返回明文，之后为 ***） */
+  secret?: string
+  /** 是否一次性展示 secret（仅创建响应为 true） */
+  secretShownOnce?: boolean
 }
 
 /** 创建 Key 参数 */
@@ -44,6 +54,8 @@ export interface CreateApiKeyParams {
   name: string
   routeModel: string
   rateLimit: number
+  /** 权限范围（可选） */
+  scope?: string
 }
 
 /** 更新 Key 参数 */
@@ -52,6 +64,8 @@ export interface UpdateApiKeyParams {
   routeModel?: string
   rateLimit?: number
   status?: KeyStatus
+  /** 权限范围 */
+  scope?: string
 }
 
 /** 资源根路径 */

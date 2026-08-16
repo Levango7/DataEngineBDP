@@ -1,7 +1,7 @@
 <template>
   <div class="eng-iotdb-page">
     <h1>时序引擎（IoTDB）</h1>
-    <div class="sub">存储组 · 设备 · 测点 · 时序查询 · 15 秒自动刷新</div>
+    <div class="sub">存储组 · 设备 · 测点 · 时序查询 · 10 秒自动刷新</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
@@ -419,8 +419,8 @@ let timer: ReturnType<typeof setInterval> | null = null
 
 onMounted(() => {
   void reloadInstances()
-  // 15s 轮询刷新
-  timer = setInterval(() => void reloadCurrent(), 15000)
+  // 10s 轮询刷新
+  timer = setInterval(() => void reloadCurrent(), 10000)
 })
 
 onUnmounted(() => {

@@ -56,21 +56,38 @@
       </table>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>告警 <span class="pill r">{{ alerts?.length ?? 0 }}</span></h3>
+      <h3>告警
+        <span class="pill r">{{ filteredAlerts.length }}</span>
+        <select v-model="alertLevelFilter" style="margin-left: 8px; font-size: 12px">
+          <option value="all">全部级别</option>
+          <option value="critical">严重</option>
+          <option value="warn">警告</option>
+          <option value="info">信息</option>
+        </select>
+        <button class="btn ghost sm" style="margin-left: 8px" @click="loadAlerts">刷新</button>
+      </h3>
       <div v-if="alertsLoading" style="color: var(--muted)">加载中…</div>
-      <table v-else-if="alerts">
-        <tr><th>告警</th><th>级别</th><th></th></tr>
-        <tr v-for="a in alerts" :key="a.id">
+      <table v-else-if="filteredAlerts">
+        <tr><th>告警</th><th>级别</th><th>触发时间</th><th>状态</th><th></th></tr>
+        <tr v-for="a in filteredAlerts" :key="a.id">
           <td>{{ a.content }}</td>
           <td><span class="pill" :class="alertLevelPillClass(a.level)">{{ alertLevelPillText(a.level) }}</span></td>
-          <td><button class="btn sm" @click="handleAlert(a)">处理</button></td>
+          <td>{{ formatAlertTime(a.triggeredAt) }}</td>
+          <td>
+            <span class="pill" :class="a.handled ? 'g' : 'a'">{{ a.handled ? '已处理' : '活跃' }}</span>
+          </td>
+          <td>
+            <button class="btn ghost sm" @click="openAlertDetail(a)">详情</button>
+            <button class="btn sm" @click="handleAlert(a)">处理</button>
+          </td>
         </tr>
-        <tr v-if="alerts.length === 0">
-          <td colspan="3" style="text-align: center; color: var(--muted)">暂无告警</td>
+        <tr v-if="filteredAlerts.length === 0">
+          <td colspan="5" style="text-align: center; color: var(--muted)">暂无告警</td>
         </tr>
       </table>
     </div>
 
+    <!-- 作业日志抽屉 -->
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
       <template #header>作业日志：{{ currentJob?.name }}</template>
       <div class="runlog" style="height: auto">
@@ -79,14 +96,39 @@
       </div>
       <div class="note">日志由封装层归一化输出，隐藏 Pod/容器细节。</div>
     </Drawer>
+
+    <!-- 告警详情弹窗 -->
+    <Modal :visible="alertDetailVisible" title="告警详情" @close="alertDetailVisible = false">
+      <div v-if="currentAlert">
+        <label>告警内容</label>
+        <div class="alert-detail-row">{{ currentAlert.content }}</div>
+        <label>级别</label>
+        <div class="alert-detail-row">
+          <span class="pill" :class="alertLevelPillClass(currentAlert.level)">{{ alertLevelPillText(currentAlert.level) }}</span>
+        </div>
+        <label>触发时间</label>
+        <div class="alert-detail-row">{{ formatAlertTime(currentAlert.triggeredAt) }}</div>
+        <label>状态</label>
+        <div class="alert-detail-row">
+          <span class="pill" :class="currentAlert.handled ? 'g' : 'a'">{{ currentAlert.handled ? '已处理' : '活跃' }}</span>
+        </div>
+        <label>告警 ID</label>
+        <div class="alert-detail-row"><code>{{ currentAlert.id }}</code></div>
+      </div>
+      <template #footer>
+        <button class="btn ghost" @click="alertDetailVisible = false">关闭</button>
+        <button v-if="currentAlert && !currentAlert.handled" class="btn" @click="handleAlert(currentAlert)">处理告警</button>
+      </template>
+    </Modal>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
+import Modal from '@/components/Modal.vue'
 import * as opsApi from '@/api/ops'
 import type {
   OpsOverview,
@@ -101,6 +143,9 @@ import type {
 
 const store = useAppStore()
 const drawerVisible = ref(false)
+const alertDetailVisible = ref(false)
+const currentAlert = ref<Alert | null>(null)
+const alertLevelFilter = ref<'all' | AlertLevel>('all')
 
 // 概览：通过 useApi 包装，失败时不阻塞页面
 const {
@@ -133,6 +178,13 @@ const {
   execute: loadAlerts
 } = useApi<Alert[]>(() => opsApi.listAlerts(), { initialData: [] })
 
+/** 按级别筛选告警 */
+const filteredAlerts = computed<Alert[]>(() => {
+  if (!alerts.value) return []
+  if (alertLevelFilter.value === 'all') return alerts.value
+  return alerts.value.filter(a => a.level === alertLevelFilter.value)
+})
+
 // 日志：通过 useApi 包装，按需加载
 const {
   data: logContent,
@@ -147,20 +199,38 @@ const {
 const currentJob = ref<OpsJob | null>(null)
 
 /** 打开日志抽屉 */
-async function openLog(job: OpsJob) {
+async function openLog(job: OpsJob): Promise<void> {
   currentJob.value = job
   drawerVisible.value = true
   await loadLog(job.id)
 }
 
+/** 打开告警详情弹窗 */
+function openAlertDetail(alert: Alert): void {
+  currentAlert.value = alert
+  alertDetailVisible.value = true
+}
+
 /** 处理告警 */
-async function handleAlert(alert: Alert) {
+async function handleAlert(alert: Alert): Promise<void> {
   try {
     await opsApi.handleAlert(alert.id, '处理')
     store.showToast('已处理')
+    alertDetailVisible.value = false
     await loadAlerts()
+    await loadOverview()
   } catch {
     // 错误提示已由拦截器统一处理
+  }
+}
+
+/** 格式化告警时间 */
+function formatAlertTime(iso: string): string {
+  if (!iso) return '--'
+  try {
+    return new Date(iso).toLocaleString('zh-CN')
+  } catch {
+    return iso
   }
 }
 
@@ -260,10 +330,35 @@ function alertLevelPillText(l: AlertLevel): string {
   }
 }
 
+/* ------------------------------ 15 秒轮询自动刷新 ------------------------------ */
+let refreshTimer: ReturnType<typeof setInterval> | null = null
+
 onMounted(() => {
   void loadOverview()
   void loadJobs()
   void loadAlerts()
   void loadHealth()
+  // 15 秒轮询刷新概览和告警
+  refreshTimer = setInterval(() => {
+    void loadOverview()
+    void loadAlerts()
+  }, 15000)
+})
+
+onUnmounted(() => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
 })
 </script>
+
+<style scoped>
+.alert-detail-row {
+  margin-bottom: 12px;
+  padding: 6px 8px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 13px;
+}
+</style>

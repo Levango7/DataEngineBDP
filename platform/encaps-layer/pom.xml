@@ -145,6 +145,13 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- Kafka 客户端：KafkaController 调用 AdminClient/KafkaConsumer 管理集群 -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>3.6.1</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

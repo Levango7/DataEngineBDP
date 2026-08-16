@@ -151,6 +151,106 @@
         </el-col>
       </el-row>
     </el-card>
+
+    <!-- 集群资源配置：网络 / 存储 / HPA -->
+    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+      <template #header>
+        <div class="card-header">
+          <span>集群资源配置</span>
+          <el-select v-model="selectedEnv" size="small" style="width: 120px; margin-right: 8px" @change="loadClusterResources">
+            <el-option label="信创" value="xinchuang" />
+            <el-option label="私有" value="private" />
+            <el-option label="公有" value="cloud" />
+          </el-select>
+          <el-input v-model="selectedClusterId" size="small" style="width: 180px" placeholder="集群 ID" @change="loadClusterResources" />
+        </div>
+      </template>
+      <el-tabs v-model="resourceTab" @tab-change="loadClusterResources">
+        <!-- 网络配置 Tab -->
+        <el-tab-pane label="网络配置" name="network">
+          <div v-if="networkLoading" class="tab-loading">加载中…</div>
+          <div v-else-if="networkError" class="tab-error">加载失败：{{ networkError.message }}</div>
+          <div v-else-if="networkConfig">
+            <el-descriptions :column="4" border size="small" style="margin-bottom: 12px">
+              <el-descriptions-item label="Pod CIDR">{{ networkConfig.podCidr }}</el-descriptions-item>
+              <el-descriptions-item label="Service CIDR">{{ networkConfig.serviceCidr }}</el-descriptions-item>
+              <el-descriptions-item label="CNI">{{ networkConfig.cni }}</el-descriptions-item>
+              <el-descriptions-item label="MTU">{{ networkConfig.mtu }}</el-descriptions-item>
+            </el-descriptions>
+            <h4>NetworkPolicy 列表（{{ networkConfig.policies?.length ?? 0 }}）</h4>
+            <el-table :data="networkConfig.policies || []" stripe size="small" border empty-text="暂无 NetworkPolicy">
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column prop="namespace" label="命名空间" min-width="100" />
+              <el-table-column prop="type" label="类型" width="80" />
+              <el-table-column prop="selector" label="选择器" min-width="120" />
+            </el-table>
+            <h4 style="margin-top: 12px">Service 列表（{{ networkConfig.services?.length ?? 0 }}）</h4>
+            <el-table :data="networkConfig.services || []" stripe size="small" border empty-text="暂无 Service">
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column prop="namespace" label="命名空间" min-width="100" />
+              <el-table-column prop="type" label="类型" width="80" />
+              <el-table-column prop="clusterIP" label="ClusterIP" min-width="120" />
+              <el-table-column prop="ports" label="端口数" width="80" align="center" />
+            </el-table>
+            <h4 style="margin-top: 12px">Ingress 列表（{{ networkConfig.ingresses?.length ?? 0 }}）</h4>
+            <el-table :data="networkConfig.ingresses || []" stripe size="small" border empty-text="暂无 Ingress">
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column prop="namespace" label="命名空间" min-width="100" />
+              <el-table-column prop="className" label="IngressClass" min-width="100" />
+              <el-table-column prop="hosts" label="主机数" width="80" align="center" />
+            </el-table>
+          </div>
+        </el-tab-pane>
+
+        <!-- 存储配置 Tab -->
+        <el-tab-pane label="存储配置" name="storage">
+          <div v-if="storageLoading" class="tab-loading">加载中…</div>
+          <div v-else-if="storageError" class="tab-error">加载失败：{{ storageError.message }}</div>
+          <div v-else>
+            <h4>StorageClass 列表（{{ storageClasses?.length ?? 0 }}）</h4>
+            <el-table :data="storageClasses || []" stripe size="small" border empty-text="暂无 StorageClass">
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column prop="provisioner" label="Provisioner" min-width="160" />
+              <el-table-column prop="reclaimPolicy" label="回收策略" width="100" />
+              <el-table-column label="默认" width="60" align="center">
+                <template #default="{ row }">
+                  <el-tag v-if="row.default" type="success" size="small">是</el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+            <h4 style="margin-top: 12px">PVC 列表（{{ pvcs?.length ?? 0 }}）</h4>
+            <el-table :data="pvcs || []" stripe size="small" border empty-text="暂无 PVC">
+              <el-table-column prop="name" label="名称" min-width="120" />
+              <el-table-column prop="namespace" label="命名空间" min-width="100" />
+              <el-table-column prop="storageClassName" label="StorageClass" min-width="100" />
+              <el-table-column prop="capacity" label="容量" width="100" />
+              <el-table-column prop="status" label="状态" width="80" />
+            </el-table>
+          </div>
+        </el-tab-pane>
+
+        <!-- HPA 配置 Tab -->
+        <el-tab-pane label="HPA 自动伸缩" name="hpa">
+          <div v-if="hpaLoading" class="tab-loading">加载中…</div>
+          <div v-else-if="hpaError" class="tab-error">加载失败：{{ hpaError.message }}</div>
+          <el-table v-else :data="hpas || []" stripe size="small" border empty-text="暂无 HPA 策略">
+            <el-table-column prop="name" label="名称" min-width="120" />
+            <el-table-column prop="namespace" label="命名空间" min-width="100" />
+            <el-table-column prop="targetDeployment" label="目标 Deployment" min-width="120" />
+            <el-table-column prop="minReplicas" label="最小副本" width="90" align="center" />
+            <el-table-column prop="maxReplicas" label="最大副本" width="90" align="center" />
+            <el-table-column prop="currentReplicas" label="当前副本" width="90" align="center" />
+            <el-table-column label="状态" width="80">
+              <template #default="{ row }">
+                <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
+                  {{ row.status === 'active' ? '活跃' : '暂停' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+      </el-tabs>
+    </el-card>
   </div>
 </template>
 
@@ -161,8 +261,10 @@ import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useApi } from '@/composables/useApi'
 import * as clusterApi from '@/api/cluster'
+import * as infraApi from '@/api/infra'
 import type { ClusterOverview, Node, NodeStatus } from '@/api/types'
 import type { ComponentStatus } from '@/api/cluster'
+import type { ClusterEnv, NetworkConfig, StorageClass, PersistentVolumeClaim, HpaPolicy } from '@/api/infra'
 
 /* ------------------------------ 集群概览 ------------------------------ */
 
@@ -325,6 +427,71 @@ function compStatusLabel(status: ComponentStatus['status']): string {
   return map[status]
 }
 
+/* ------------------------------ 集群资源配置（网络/存储/HPA） ------------------------------ */
+
+const resourceTab = ref<'network' | 'storage' | 'hpa'>('network')
+const selectedEnv = ref<ClusterEnv>('xinchuang')
+const selectedClusterId = ref('default')
+
+// 网络配置
+const {
+  data: networkConfig,
+  loading: networkLoading,
+  error: networkError,
+  execute: loadNetworkConfig
+} = useApi<NetworkConfig>(
+  () => infraApi.getNetworkConfig(selectedEnv.value, selectedClusterId.value),
+  { initialData: null as unknown as NetworkConfig }
+)
+
+// StorageClass 列表
+const {
+  data: storageClasses,
+  loading: storageLoading,
+  error: storageError,
+  execute: loadStorageClasses
+} = useApi<StorageClass[]>(
+  () => infraApi.getStorageClasses(selectedEnv.value, selectedClusterId.value),
+  { initialData: [] }
+)
+
+// PVC 列表
+const {
+  data: pvcs,
+  loading: pvcLoading,
+  execute: loadPvcs
+} = useApi<PersistentVolumeClaim[]>(
+  () => infraApi.getPersistentVolumes(selectedEnv.value, selectedClusterId.value),
+  { initialData: [] }
+)
+
+// HPA 列表
+const {
+  data: hpas,
+  loading: hpaLoading,
+  error: hpaError,
+  execute: loadHpas
+} = useApi<HpaPolicy[]>(
+  () => infraApi.getHpas(selectedEnv.value, selectedClusterId.value),
+  { initialData: [] }
+)
+
+/** 加载当前 Tab 的集群资源数据 */
+async function loadClusterResources(): Promise<void> {
+  if (!selectedClusterId.value) return
+  switch (resourceTab.value) {
+    case 'network':
+      await loadNetworkConfig()
+      break
+    case 'storage':
+      await Promise.all([loadStorageClasses(), loadPvcs()])
+      break
+    case 'hpa':
+      await loadHpas()
+      break
+  }
+}
+
 /* ------------------------------ 辅助函数 ------------------------------ */
 
 /** 节点状态 → 中文 */
@@ -367,6 +534,7 @@ onMounted(() => {
   void loadOverview()
   void loadNodes()
   void loadComponents()
+  void loadClusterResources()
   window.addEventListener('resize', handleResize)
 })
 
@@ -495,5 +663,15 @@ onUnmounted(() => {
 .comp-meta {
   font-size: 11px;
   color: #717a80;
+}
+.tab-loading {
+  color: #717a80;
+  text-align: center;
+  padding: 20px;
+}
+.tab-error {
+  color: #c0504d;
+  text-align: center;
+  padding: 20px;
 }
 </style>

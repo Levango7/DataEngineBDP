@@ -101,6 +101,19 @@
             <scope>runtime</scope>
         </dependency>
 
+        <!-- fabric8 Kubernetes Client：查询 NetworkPolicy/Service/Ingress/PV/PVC/StorageClass/HPA -->
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client</artifactId>
+            <version>6.13.4</version>
+        </dependency>
+        <!-- fabric8 Kubernetes Model：自动生成的 K8s 资源 POJO（含 autoscaling/v2 HPA） -->
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-model</artifactId>
+            <version>6.13.4</version>
+        </dependency>
+
         <!-- 测试 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

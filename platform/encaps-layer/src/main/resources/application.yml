@@ -75,6 +75,18 @@ app:
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
 
+  # 数据开发（Web IDE）配置
+  develop:
+    # 工作空间根路径：扫描文件树的基准目录（相对路径基于服务启动目录解析）
+    workspace-root: ${DEVELOP_WORKSPACE_ROOT:./data/develop-workspace}
+    # stream-batch-scheduler 基地址：作业提交目标
+    scheduler-base-url: ${DEVELOP_SCHEDULER_URL:http://localhost:18086}
+
+  # 数据集成（SeaTunnel）配置
+  integrate:
+    # SeaTunnel REST API 基地址
+    seatunnel-base-url: ${SEATUNNEL_URL:http://localhost:5801}
+
   # K8s 客户端配置：mock-enabled=true 时不连接真实集群，使用 mock 数据
   # 开发环境设 K8S_MOCK_ENABLED=true 使用 mock；生产/Service Mesh 环境设 false 连接真实 K8s
   # Service Mesh 模式（k3s + Istio）下，fabric8 KubernetesClient 从 KUBECONFIG 或 ~/.kube/config

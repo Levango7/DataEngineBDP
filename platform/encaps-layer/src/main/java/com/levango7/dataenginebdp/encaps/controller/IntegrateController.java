@@ -3,6 +3,8 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.encaps.model.SyncTaskEntity;
 import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.service.IntegrateConnectorService;
+import com.levango7.dataenginebdp.encaps.service.SeaTunnelClient;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,8 @@ import java.util.Map;
 public class IntegrateController {
 
     private final SyncTaskRepository repository;
+    private final IntegrateConnectorService connectorService;
+    private final SeaTunnelClient seaTunnelClient;
 
     /** 创建/更新请求体（对齐前端 CreateSyncTaskParams）。 */
     public record SyncTaskRequest(
@@ -130,29 +134,21 @@ public class IntegrateController {
      * 列出数据源连接器。
      *
      * <p>对齐前端 {@code integrate.ts} 的 {@code listConnectors}。
-     * TODO: 接入真实连接器注册表，当前返回内置连接器占位。</p>
+     * 返回 SeaTunnel 内置 Source/Sink 连接器列表（含插件名、类型、状态）。</p>
      *
      * @return 200 + 连接器列表
      */
     @GetMapping("/connectors")
     public ResponseEntity<List<Map<String, Object>>> listConnectors() {
-        // TODO: 从连接器注册表查询真实状态
-        List<Map<String, Object>> connectors = List.of(
-                Map.of("name", "MySQL", "logo", "MySQL", "status", "connected", "type", "rdbms"),
-                Map.of("name", "PostgreSQL", "logo", "PG", "status", "connected", "type", "rdbms"),
-                Map.of("name", "Kafka", "logo", "Kafka", "status", "connected", "type", "stream"),
-                Map.of("name", "HDFS", "logo", "HDFS", "status", "connected", "type", "fs"),
-                Map.of("name", "Hive", "logo", "Hive", "status", "connected", "type", "warehouse"),
-                Map.of("name", "Doris", "logo", "Doris", "status", "connected", "type", "olap")
-        );
-        return ResponseEntity.ok(connectors);
+        log.info("列出连接器: tenant={}", TenantContext.getTenantId());
+        return ResponseEntity.ok(connectorService.listConnectors());
     }
 
     /**
      * 立即运行同步任务。
      *
      * <p>对齐前端 {@code integrate.ts} 的 {@code runSyncTask}。
-     * TODO: 转交 SeaTunnel 真实提交，当前仅更新状态。</p>
+     * 调用 SeaTunnel REST API 启动作业，并将返回的 jobId 落库。</p>
      *
      * @param id 任务 ID
      * @return 200 若已触发；404 若不存在
@@ -162,11 +158,19 @@ public class IntegrateController {
     public ResponseEntity<?> runTask(@PathVariable Long id) {
         String tenantId = requireTenant();
         return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            // 调用 SeaTunnel 启动作业
+            String seatunnelJobId = seaTunnelClient.startJob(
+                    id, entity.getSourceType(), entity.getTargetType(),
+                    entity.getSourceTable(), entity.getTargetTable());
             entity.setStatus("running");
+            entity.setSeatunnelJobId(seatunnelJobId);
             entity.setUpdatedAt(Instant.now());
             repository.save(entity);
-            log.info("运行同步任务: id={}, tenant={}", id, tenantId);
-            return ResponseEntity.ok(Map.of("triggered", true));
+            log.info("运行同步任务: id={}, tenant={}, seatunnelJobId={}", id, tenantId, seatunnelJobId);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("triggered", true);
+            body.put("seatunnelJobId", seatunnelJobId);
+            return ResponseEntity.ok((Object) body);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
@@ -174,7 +178,7 @@ public class IntegrateController {
      * 停止同步任务。
      *
      * <p>对齐前端 {@code integrate.ts} 的 {@code stopSyncTask}。
-     * TODO: 转交 SeaTunnel 真实停止，当前仅更新状态。</p>
+     * 调用 SeaTunnel REST API 停止作业，并更新任务状态。</p>
      *
      * @param id 任务 ID
      * @return 200 若已停止；404 若不存在
@@ -184,11 +188,17 @@ public class IntegrateController {
     public ResponseEntity<?> stopTask(@PathVariable Long id) {
         String tenantId = requireTenant();
         return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            // 调用 SeaTunnel 停止作业
+            boolean stopped = seaTunnelClient.stopJob(entity.getSeatunnelJobId());
             entity.setStatus("stopped");
             entity.setUpdatedAt(Instant.now());
             repository.save(entity);
-            log.info("停止同步任务: id={}, tenant={}", id, tenantId);
-            return ResponseEntity.ok(Map.of("stopped", true));
+            log.info("停止同步任务: id={}, tenant={}, seatunnelJobId={}, stopped={}",
+                    id, tenantId, entity.getSeatunnelJobId(), stopped);
+            Map<String, Object> body = new LinkedHashMap<>();
+            body.put("stopped", true);
+            body.put("seatunnelStopped", stopped);
+            return ResponseEntity.ok((Object) body);
         }).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
