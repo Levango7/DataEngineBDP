@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "argo-rollouts.name" . }}
+  labels:
+    app: {{ include "argo-rollouts.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "argo-rollouts.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "argo-rollouts.name" . }}
+    spec:
+      containers:
+        - name: argo-rollouts
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--namespaced=false"]
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.containerPort }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+        readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+        capabilities:
+          drop: {{ .Values.securityContext.capabilities.drop | toYaml | nindent 10 }}
+      {{- end }}

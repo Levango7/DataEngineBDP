@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "argo-rollouts.name" . }}
+  labels:
+    app: {{ include "argo-rollouts.name" . }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.containerPort }}
+      name: http
+  selector:
+    app: {{ include "argo-rollouts.name" . }}

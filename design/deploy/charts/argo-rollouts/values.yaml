@@ -1,0 +1,89 @@
+# ============================================================================
+# argo-rollouts Helm Chart 默认 values（v2.1 灰度发布）
+# 说明：安装控制器 + 默认 Rollout 策略示例。
+# ============================================================================
+
+# ---- 镜像（自研组件用 sq-*，第三方用官方镜像）----
+image:
+  repository: "docker.m.daocloud.io/argoproj/argo-rollouts"
+  tag: "v1.7.1"
+  pullPolicy: IfNotPresent
+
+# ---- 控制器副本 ----
+replicaCount: 1
+
+# ---- 服务端口 ----
+service:
+  type: ClusterIP
+  port: 8080
+  containerPort: 8080
+
+# ---- 资源配额 ----
+resources:
+  requests:
+    cpu: "0.2"
+    memory: "256Mi"
+  limits:
+    cpu: "1"
+    memory: "512Mi"
+
+# ---- 安全上下文 ----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- 弹性伸缩（默认关闭）----
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+
+# ---- 灰度发布策略（金丝雀示例）----
+# 业务 Workload 使用 Rollout 资源（非 Deployment），参考：
+# apiVersion: argoproj.io/v1alpha1
+# kind: Rollout
+# metadata:
+#   name: sq-encaps-canary
+# spec:
+#   replicas: 3
+#   strategy:
+#     canary:
+#       steps:
+#         - setWeight: 20
+#         - pause: {duration: 5m}
+#         - setWeight: 50
+#         - pause: {duration: 5m}
+#         - setWeight: 100
+#   template:
+#     metadata:
+#       labels: {app: sq-encaps}
+#     spec:
+#       containers:
+#         - name: encaps
+#           image: sq-encaps-layer:latest
+#   selector:
+#     matchLabels: {app: sq-encaps}
+strategy:
+  canary:
+    steps:
+      - setWeight: 20
+      - pause:
+          duration: 5m
+      - setWeight: 50
+      - pause:
+          duration: 5m
+      - setWeight: 100
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+affinity: {}
+tolerations: []
