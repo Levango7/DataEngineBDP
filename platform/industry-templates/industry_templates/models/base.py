@@ -28,6 +28,10 @@ class Industry(str, Enum):
     MANUFACTURING = "manufacturing"  # 制造
     GOVERNMENT = "government"  # 政务
     IOT = "iot"  # 物联网
+    MEDICAL = "medical"  # 医疗
+    TRANSPORTATION = "transportation"  # 交通
+    EDUCATION = "education"  # 教育
+    AGRICULTURE = "agriculture"  # 农牧
 
 
 class TemplateStatus(str, Enum):

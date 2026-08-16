@@ -23,9 +23,9 @@ class TestTemplateParsing:
     """模板解析测试."""
 
     def test_builtin_templates_count(self):
-        """内置模板数量 = 3."""
+        """内置模板数量 = 7（3 旧 + 医疗/交通/教育/农牧）。"""
         templates = get_builtin_templates()
-        assert len(templates) == 3
+        assert len(templates) == 7
 
     def test_builtin_template_ids(self):
         """内置模板 ID 正确."""
@@ -35,16 +35,24 @@ class TestTemplateParsing:
             "fin-risk-scorecard",
             "retail-user-profile",
             "mfg-quality-inspection",
+            "med-emr-quality",
+            "trans-traffic-flow",
+            "edu-student-profile",
+            "agri-crop-yield",
         }
 
     def test_builtin_template_industries(self):
-        """内置模板覆盖 3 个行业."""
+        """内置模板覆盖 7 个行业."""
         templates = get_builtin_templates()
         industries = {t.meta.industry for t in templates}
         assert industries == {
             Industry.FINANCE,
             Industry.RETAIL,
             Industry.MANUFACTURING,
+            Industry.MEDICAL,
+            Industry.TRANSPORTATION,
+            Industry.EDUCATION,
+            Industry.AGRICULTURE,
         }
 
     def test_all_templates_in_catalog_status(self):
@@ -55,7 +63,7 @@ class TestTemplateParsing:
     def test_engine_list_templates(self, engine: TemplateEngine):
         """引擎列出所有模板."""
         templates = engine.list_templates()
-        assert len(templates) == 3
+        assert len(templates) == 7
 
     def test_engine_list_filter_by_industry(self, engine: TemplateEngine):
         """按行业过滤."""
@@ -345,9 +353,9 @@ class TestCategories:
     def test_list_categories(self, engine: TemplateEngine):
         """列出分类."""
         cats = engine.list_categories()
-        assert len(cats) == 3
+        assert len(cats) == 7
         industries = {c["industry"] for c in cats}
-        assert industries == {"finance", "retail", "manufacturing"}
+        assert industries == {"finance", "retail", "manufacturing", "medical", "transportation", "education", "agriculture"}
         for c in cats:
             assert c["count"] == 1
             assert len(c["templates"]) == 1
