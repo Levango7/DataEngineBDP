@@ -1,0 +1,1862 @@
+# 数擎大数据平台 OpenAPI 规范
+# 归属：数据引擎大数据平台 · 接口规范
+# 关联文档：统一API规范.md、错误码定义.md
+# 版本：v1.0  日期：2026-08-17
+# 说明：覆盖核心 API（auth/tenants/datasources/jobs/sql/cluster/llm）
+#       所有响应统一包装为 ApiResponse<T>，详见统一API规范.md §2
+
+openapi: 3.0.3
+info:
+  title: 数擎大数据平台 API
+  version: 1.0.0
+  description: |
+    数擎大数据平台统一 REST API 规范定义。
+
+    ## 约定
+    - 所有响应统一包装为 `ApiResponse<T>`，含 code/message/data/traceId/timestamp 五字段
+    - 业务成功：code=0, message="OK", data=T
+    - 业务失败：code=业务错误码, message=错误描述, data=null
+    - 列表查询统一返回 `PagedResult<T>`，含 list/total/page/pageSize 四字段
+    - 认证：除白名单外，所有接口需 `Authorization: Bearer <jwt>`
+    - 多租户：租户 ID 从 JWT tenantId claim 解析，禁止信任客户端头
+    - 幂等：写接口支持 `Idempotency-Key` 头，24h 去重
+    - 限流：按 (tenantId, apiPath) 维度限流，超限返回 429 + code=42901
+
+    ## 错误码
+    详见错误码定义.md。常用码：
+    - 0: 成功
+    - 40001: 参数校验失败
+    - 40101: 未认证/token 过期
+    - 40301: 无权限
+    - 40401: 资源不存在
+    - 40901: 资源冲突
+    - 42901: 限流
+    - 50001: 内部错误
+  contact:
+    name: 数擎大数据平台团队
+    url: https://github.com/levango7/dataenginebdp
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: https://api.shuqing.example/api/v1
+    description: 生产环境
+  - url: https://api-staging.shuqing.example/api/v1
+    description: 预发环境
+  - url: http://localhost:8080/api/v1
+    description: 本地开发
+
+tags:
+  - name: Auth
+    description: 认证与授权
+  - name: Tenant
+    description: 租户管理
+  - name: DataSource
+    description: 数据源管理
+  - name: Job
+    description: 作业与调度
+  - name: SQL
+    description: SQL 网关
+  - name: Cluster
+    description: 集群与基础设施
+  - name: LLM
+    description: LLMOps 大模型运营
+
+paths:
+
+  # ============================================================
+  # 认证
+  # ============================================================
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: 用户登录
+      description: |
+        代理 Keycloak direct grant，返回 JWT token 与用户信息。
+        Keycloak 不可达时回退本地预设用户（admin/admin、user/user）。
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: admin
+              password: admin
+              captcha: null
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_LoginResult'
+              example:
+                code: 0
+                message: OK
+                data:
+                  token: eyJhbGciOiJIUzI1NiJ9...
+                  expiresIn: 3600
+                  refreshToken: eyJhbGciOiJIUzI1NiJ9...
+                  user:
+                    id: admin
+                    username: admin
+                    nickname: 管理员
+                    email: admin@local
+                    tenantId: default
+                    roles: [admin]
+                    status: active
+                traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+                timestamp: 1723891234567
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: 刷新 token
+      description: 使用 refresh token 换取新的 access token。
+      operationId: refreshToken
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  description: 登录时返回的 refresh token
+      responses:
+        '200':
+          description: 刷新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_LoginResult'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: 注销
+      description: 注销当前会话，使 token 失效。
+      operationId: logout
+      responses:
+        '200':
+          $ref: '#/components/responses/Success'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ============================================================
+  # 租户
+  # ============================================================
+  /tenants:
+    get:
+      tags: [Tenant]
+      summary: 分页查询租户列表
+      operationId: listTenants
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+        - $ref: '#/components/parameters/SortBy'
+        - $ref: '#/components/parameters/Order'
+      responses:
+        '200':
+          description: 租户分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PagedResult_Tenant'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags: [Tenant]
+      summary: 创建租户
+      operationId: createTenant
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreateRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Tenant'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /tenants/{id}:
+    parameters:
+      - $ref: '#/components/parameters/TenantId'
+    get:
+      tags: [Tenant]
+      summary: 查询租户详情
+      operationId: getTenant
+      responses:
+        '200':
+          description: 租户详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Tenant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Tenant]
+      summary: 更新租户
+      operationId: updateTenant
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TenantCreateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Tenant'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [Tenant]
+      summary: 删除租户
+      operationId: deleteTenant
+      responses:
+        '204':
+          description: 删除成功（无响应体）
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tenants/all:
+    get:
+      tags: [Tenant]
+      summary: 查询全部租户（不分页，用于下拉选择）
+      operationId: listAllTenants
+      responses:
+        '200':
+          description: 全部租户列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_List_Tenant'
+
+  # ============================================================
+  # 数据源
+  # ============================================================
+  /datasources:
+    get:
+      tags: [DataSource]
+      summary: 分页查询数据源列表
+      operationId: listDataSources
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+        - name: type
+          in: query
+          schema:
+            type: string
+          description: 数据源类型过滤（mysql/postgres/oracle/doris/kafka...）
+      responses:
+        '200':
+          description: 数据源分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PagedResult_DataSource'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [DataSource]
+      summary: 创建数据源
+      operationId: createDataSource
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSourceRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DataSource'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /datasources/{id}:
+    parameters:
+      - $ref: '#/components/parameters/DataSourceId'
+    get:
+      tags: [DataSource]
+      summary: 查询数据源详情
+      operationId: getDataSource
+      responses:
+        '200':
+          description: 数据源详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DataSource'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [DataSource]
+      summary: 更新数据源
+      operationId: updateDataSource
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataSourceRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_DataSource'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [DataSource]
+      summary: 删除数据源
+      operationId: deleteDataSource
+      responses:
+        '204':
+          description: 删除成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /datasources/{id}/test:
+    parameters:
+      - $ref: '#/components/parameters/DataSourceId'
+    post:
+      tags: [DataSource]
+      summary: 测试数据源连接
+      description: TCP 探测 + JDBC 校验（JDBC 型），返回延迟与连通性。
+      operationId: testDataSource
+      responses:
+        '200':
+          description: 测试结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ConnectionTestResult'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ============================================================
+  # 作业
+  # ============================================================
+  /jobs:
+    get:
+      tags: [Job]
+      summary: 分页查询作业列表
+      operationId: listJobs
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/JobStatus'
+      responses:
+        '200':
+          description: 作业分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PagedResult_Job'
+    post:
+      tags: [Job]
+      summary: 创建作业
+      operationId: createJob
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/JobCreateRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Job'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /jobs/{id}:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    get:
+      tags: [Job]
+      summary: 查询作业详情
+      operationId: getJob
+      responses:
+        '200':
+          description: 作业详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Job'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /jobs/{id}/start:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    post:
+      tags: [Job]
+      summary: 启动作业
+      operationId: startJob
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      responses:
+        '200':
+          description: 启动成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Job'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /jobs/{id}/stop:
+    parameters:
+      - $ref: '#/components/parameters/JobId'
+    post:
+      tags: [Job]
+      summary: 停止作业
+      operationId: stopJob
+      responses:
+        '200':
+          description: 停止成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_Job'
+
+  # ============================================================
+  # SQL 网关
+  # ============================================================
+  /sql/execute:
+    post:
+      tags: [SQL]
+      summary: 执行 SQL
+      description: 路由到指定引擎执行 SQL，返回结果集。
+      operationId: executeSql
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SqlExecuteRequest'
+            example:
+              sql: SELECT * FROM dwd_fin_customer LIMIT 10
+              dialect: trino
+              dataSourceId: '1'
+      responses:
+        '200':
+          description: 执行结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SqlExecuteResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /sql/parse:
+    post:
+      tags: [SQL]
+      summary: 解析 SQL 为 AST
+      operationId: parseSql
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SqlParseRequest'
+      responses:
+        '200':
+          description: 解析结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SqlParseResponse'
+
+  /sql/validate:
+    post:
+      tags: [SQL]
+      summary: 校验 SQL 语法
+      operationId: validateSql
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SqlParseRequest'
+      responses:
+        '200':
+          description: 校验结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SqlValidateResponse'
+
+  /sql/optimize:
+    post:
+      tags: [SQL]
+      summary: 优化 SQL 并返回执行计划
+      operationId: optimizeSql
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SqlOptimizeRequest'
+      responses:
+        '200':
+          description: 优化结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_SqlOptimizeResponse'
+
+  /sql/cross-source:
+    post:
+      tags: [SQL]
+      summary: 跨源 SQL 查询
+      description: 解析 SQL 提取表 → 查询每个表的源 → 单源直接代理 / 多源并行查询 + 内存归并。
+      operationId: crossSourceExecute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrossSourceRequest'
+      responses:
+        '200':
+          description: 跨源查询结果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_CrossSourceResponse'
+
+  /sql/engines:
+    get:
+      tags: [SQL]
+      summary: 列出可用引擎
+      operationId: listEngines
+      responses:
+        '200':
+          description: 引擎列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_List_String'
+
+  # ============================================================
+  # 集群
+  # ============================================================
+  /clusters:
+    get:
+      tags: [Cluster]
+      summary: 列出所有集群（跨环境）
+      operationId: listClusters
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: 集群分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PagedResult_ClusterInfo'
+    post:
+      tags: [Cluster]
+      summary: 创建集群
+      description: 跨环境统一供应入口，请求体含 environment 字段决定路由到哪个 Provider。
+      operationId: createCluster
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterCreateRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ClusterInfo'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '429':
+          $ref: '#/components/responses/RateLimited'
+
+  /clusters/{environment}/{clusterId}:
+    parameters:
+      - $ref: '#/components/parameters/Environment'
+      - $ref: '#/components/parameters/ClusterId'
+    get:
+      tags: [Cluster]
+      summary: 查询集群详情
+      operationId: getCluster
+      responses:
+        '200':
+          description: 集群详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ClusterInfo'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [Cluster]
+      summary: 销毁集群
+      operationId: destroyCluster
+      responses:
+        '204':
+          description: 销毁成功
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /clusters/{environment}/{clusterId}/scale:
+    parameters:
+      - $ref: '#/components/parameters/Environment'
+      - $ref: '#/components/parameters/ClusterId'
+    post:
+      tags: [Cluster]
+      summary: 扩缩容集群
+      operationId: scaleCluster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ClusterScaleRequest'
+      responses:
+        '200':
+          description: 扩缩容成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_ClusterInfo'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /clusters/providers:
+    get:
+      tags: [Cluster]
+      summary: 列出已注册 Provider
+      operationId: listProviders
+      responses:
+        '200':
+          description: Provider 列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_List_ProviderDescriptor'
+
+  # ============================================================
+  # LLMOps
+  # ============================================================
+  /llm/models:
+    get:
+      tags: [LLM]
+      summary: 查询模型列表
+      operationId: listModels
+      parameters:
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - $ref: '#/components/parameters/Keyword'
+      responses:
+        '200':
+          description: 模型分页列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PagedResult_MlModel'
+    post:
+      tags: [LLM]
+      summary: 注册新模型
+      operationId: registerModel
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRegisterRequest'
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_MlModel'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /llm/models/{modelId}:
+    parameters:
+      - $ref: '#/components/parameters/ModelId'
+    get:
+      tags: [LLM]
+      summary: 查询模型详情
+      operationId: getModel
+      responses:
+        '200':
+          description: 模型详情
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_MlModel'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /llm/finetune:
+    post:
+      tags: [LLM]
+      summary: 提交微调任务
+      operationId: submitFinetune
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinetuneRequest'
+      responses:
+        '201':
+          description: 提交成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_FinetuneTask'
+
+  /llm/finetune/{taskId}:
+    parameters:
+      - $ref: '#/components/parameters/TaskId'
+    get:
+      tags: [LLM]
+      summary: 查询微调任务状态
+      operationId: getFinetuneStatus
+      responses:
+        '200':
+          description: 任务状态
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_FinetuneTask'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /llm/inference-services:
+    get:
+      tags: [LLM]
+      summary: 查询推理服务列表
+      operationId: listInferenceServices
+      responses:
+        '200':
+          description: 推理服务列表
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse_PagedResult_InferenceService'
+
+components:
+
+  # ============================================================
+  # 安全方案
+  # ============================================================
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT Bearer 认证。token 由 POST /auth/login 获取。
+        payload 含 sub/iss/iat/exp/tenantId/preferred_username/email/roles claim。
+        默认有效期 3600 秒，过期前 5 分钟调用 POST /auth/refresh 刷新。
+
+  security:
+    - BearerAuth: []
+
+  # ============================================================
+  # 通用参数
+  # ============================================================
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+      description: 页码，从 1 开始
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: 每页条数，最大 100
+    Keyword:
+      name: keyword
+      in: query
+      schema:
+        type: string
+      description: 关键字搜索
+    SortBy:
+      name: sortBy
+      in: query
+      schema:
+        type: string
+      description: 排序字段（camelCase）
+    Order:
+      name: order
+      in: query
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: desc
+      description: 排序方向
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      schema:
+        type: string
+        format: uuid
+      description: 幂等键，24h 内同租户同键命中返回首次结果
+      required: false
+    TenantId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 租户 ID
+    DataSourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 数据源 ID
+    JobId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 作业 ID
+    ClusterId:
+      name: clusterId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 集群 ID
+    Environment:
+      name: environment
+      in: path
+      required: true
+      schema:
+        type: string
+        enum: [private, cloud, xinchang]
+      description: 环境类型
+    ModelId:
+      name: modelId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 模型 ID
+    TaskId:
+      name: taskId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: 任务 ID
+
+  # ============================================================
+  # 通用响应
+  # ============================================================
+  responses:
+    Success:
+      description: 操作成功
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Void'
+    BadRequest:
+      description: 参数校验失败
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 40001
+            message: 参数校验失败
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+    Unauthorized:
+      description: 未认证或 token 过期
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 40101
+            message: 登录已过期，请重新登录
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+    Forbidden:
+      description: 无权限
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 40301
+            message: 无权限访问该资源
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 40401
+            message: 资源不存在
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+    Conflict:
+      description: 资源冲突
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 40901
+            message: 资源已存在或状态冲突
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+    RateLimited:
+      description: 限流
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: 重试等待秒数
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 42901
+            message: 请求过于频繁，请稍后重试
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+    InternalError:
+      description: 内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiResponse_Error'
+          example:
+            code: 50001
+            message: 内部错误，请联系管理员
+            data: null
+            traceId: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+            timestamp: 1723891234567
+
+  # ============================================================
+  # 数据模型
+  # ============================================================
+  schemas:
+
+    # ---------- 通用包装 ----------
+    ApiResponse_Void:
+      type: object
+      required: [code, message, data, traceId, timestamp]
+      properties:
+        code:
+          type: integer
+          example: 0
+        message:
+          type: string
+          example: OK
+        data:
+          nullable: true
+        traceId:
+          type: string
+          format: uuid
+        timestamp:
+          type: integer
+          format: int64
+          description: 服务器时间戳（毫秒）
+
+    ApiResponse_Error:
+      type: object
+      required: [code, message, data, traceId, timestamp]
+      properties:
+        code:
+          type: integer
+          description: 5 位业务错误码
+        message:
+          type: string
+        data:
+          nullable: true
+        traceId:
+          type: string
+          format: uuid
+        timestamp:
+          type: integer
+          format: int64
+
+    PagedResult_Tenant:
+      type: object
+      required: [list, total, page, pageSize]
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tenant'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    PagedResult_DataSource:
+      type: object
+      required: [list, total, page, pageSize]
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/DataSource'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    PagedResult_Job:
+      type: object
+      required: [list, total, page, pageSize]
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/Job'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    PagedResult_ClusterInfo:
+      type: object
+      required: [list, total, page, pageSize]
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClusterInfo'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    PagedResult_MlModel:
+      type: object
+      required: [list, total, page, pageSize]
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/MlModel'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    PagedResult_InferenceService:
+      type: object
+      required: [list, total, page, pageSize]
+      properties:
+        list:
+          type: array
+          items:
+            $ref: '#/components/schemas/InferenceService'
+        total:
+          type: integer
+          format: int64
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    # ---------- ApiResponse 包装（按 T 命名） ----------
+    ApiResponse_LoginResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/LoginResult'
+
+    ApiResponse_Tenant:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Tenant'
+
+    ApiResponse_DataSource:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/DataSource'
+
+    ApiResponse_ConnectionTestResult:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ConnectionTestResult'
+
+    ApiResponse_Job:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/Job'
+
+    ApiResponse_SqlExecuteResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/SqlExecuteResponse'
+
+    ApiResponse_SqlParseResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/SqlParseResponse'
+
+    ApiResponse_SqlValidateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/SqlValidateResponse'
+
+    ApiResponse_SqlOptimizeResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/SqlOptimizeResponse'
+
+    ApiResponse_CrossSourceResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/CrossSourceResponse'
+
+    ApiResponse_ClusterInfo:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/ClusterInfo'
+
+    ApiResponse_MlModel:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/MlModel'
+
+    ApiResponse_FinetuneTask:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/FinetuneTask'
+
+    ApiResponse_PagedResult_Tenant:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PagedResult_Tenant'
+
+    ApiResponse_PagedResult_DataSource:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PagedResult_DataSource'
+
+    ApiResponse_PagedResult_Job:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PagedResult_Job'
+
+    ApiResponse_PagedResult_ClusterInfo:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PagedResult_ClusterInfo'
+
+    ApiResponse_PagedResult_MlModel:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PagedResult_MlModel'
+
+    ApiResponse_PagedResult_InferenceService:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              $ref: '#/components/schemas/PagedResult_InferenceService'
+
+    ApiResponse_List_Tenant:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/Tenant'
+
+    ApiResponse_List_String:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: string
+
+    ApiResponse_List_ProviderDescriptor:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponseBase'
+        - type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProviderDescriptor'
+
+    ApiResponseBase:
+      type: object
+      required: [code, message, data, traceId, timestamp]
+      properties:
+        code:
+          type: integer
+          description: 业务状态码，0 表示成功
+          example: 0
+        message:
+          type: string
+          example: OK
+        data:
+          description: 业务数据，失败时为 null
+        traceId:
+          type: string
+          format: uuid
+          description: 链路追踪 ID
+        timestamp:
+          type: integer
+          format: int64
+          description: 服务器时间戳（毫秒）
+
+    # ---------- 业务模型 ----------
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+        captcha:
+          type: string
+          description: 验证码（可选）
+
+    LoginResult:
+      type: object
+      required: [token, expiresIn, user]
+      properties:
+        token:
+          type: string
+          description: JWT access token
+        expiresIn:
+          type: integer
+          description: token 过期时间（秒）
+        refreshToken:
+          type: string
+          description: refresh token
+        user:
+          $ref: '#/components/schemas/User'
+
+    User:
+      type: object
+      required: [id, username, nickname, email, tenantId, roles, status]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        nickname:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        avatar:
+          type: string
+          format: uri
+        tenantId:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, disabled]
+        lastLoginAt:
+          type: string
+          format: date-time
+
+    Tenant:
+      type: object
+      required: [id, name, planTier, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        planTier:
+          type: string
+          enum: [standard, enterprise, flagship, internal]
+          description: 套餐版本
+        status:
+          type: string
+          enum: [active, disabled]
+        quota:
+          type: integer
+          description: 用户数上限
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    TenantCreateRequest:
+      type: object
+      required: [name, planTier]
+      properties:
+        name:
+          type: string
+        planTier:
+          type: string
+          enum: [standard, enterprise, flagship, internal]
+        quota:
+          type: integer
+
+    DataSource:
+      type: object
+      required: [id, name, type, host, port, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+          description: mysql/postgres/oracle/doris/kafka...
+        host:
+          type: string
+        port:
+          type: integer
+        database:
+          type: string
+        username:
+          type: string
+        status:
+          type: string
+          enum: [connected, disconnected]
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DataSourceRequest:
+      type: object
+      required: [name, type, host, port]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        host:
+          type: string
+        port:
+          type: integer
+        database:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+
+    ConnectionTestResult:
+      type: object
+      required: [success, latency, message]
+      properties:
+        success:
+          type: boolean
+        latency:
+          type: integer
+          description: 延迟（毫秒）
+        message:
+          type: string
+
+    JobStatus:
+      type: string
+      enum: [pending, running, succeeded, failed, stopped]
+
+    Job:
+      type: object
+      required: [id, name, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: '#/components/schemas/JobStatus'
+        cron:
+          type: string
+        lastRunAt:
+          type: string
+          format: date-time
+        nextRunAt:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+
+    JobCreateRequest:
+      type: object
+      required: [name, type]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        cron:
+          type: string
+        config:
+          type: object
+          additionalProperties: true
+
+    SqlExecuteRequest:
+      type: object
+      required: [sql]
+      properties:
+        sql:
+          type: string
+        dialect:
+          type: string
+          enum: [trino, doris, hive, spark, mysql, postgres]
+          default: trino
+        dataSourceId:
+          type: string
+        timeout:
+          type: integer
+          default: 30
+
+    SqlExecuteResponse:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            type: array
+            items:
+              type: object
+              nullable: true
+        rowCount:
+          type: integer
+        durationMs:
+          type: integer
+
+    SqlParseRequest:
+      type: object
+      required: [sql]
+      properties:
+        sql:
+          type: string
+        dialect:
+          type: string
+
+    SqlParseResponse:
+      type: object
+      properties:
+        dialect:
+          type: string
+        statementType:
+          type: string
+        tables:
+          type: array
+          items:
+            type: string
+        columns:
+          type: array
+          items:
+            type: string
+
+    SqlValidateResponse:
+      type: object
+      properties:
+        valid:
+          type: boolean
+        dialect:
+          type: string
+        error:
+          type: string
+
+    SqlOptimizeRequest:
+      type: object
+      required: [sql]
+      properties:
+        sql:
+          type: string
+        dialect:
+          type: string
+        enableAllRules:
+          type: boolean
+
+    SqlOptimizeResponse:
+      type: object
+      properties:
+        originalSql:
+          type: string
+        optimizedSql:
+          type: string
+        executionPlan:
+          type: string
+        rulesApplied:
+          type: array
+          items:
+            type: string
+        estimatedCost:
+          type: number
+        estimatedRows:
+          type: number
+        success:
+          type: boolean
+        error:
+          type: string
+        dialect:
+          type: string
+
+    CrossSourceRequest:
+      type: object
+      required: [sql]
+      properties:
+        sql:
+          type: string
+        dialect:
+          type: string
+        tenantId:
+          type: string
+
+    CrossSourceResponse:
+      type: object
+      properties:
+        queryId:
+          type: string
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+        columns:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            type: array
+        rowCount:
+          type: integer
+        crossSource:
+          type: boolean
+        sources:
+          type: array
+          items:
+            type: string
+        durationMs:
+          type: integer
+        error:
+          type: string
+
+    ClusterInfo:
+      type: object
+      required: [id, name, environment, status]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        environment:
+          type: string
+          enum: [private, cloud, xinchang]
+        status:
+          type: string
+          enum: [pending, running, stopped, failed]
+        version:
+          type: string
+        nodeCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    ClusterCreateRequest:
+      type: object
+      required: [name, environment]
+      properties:
+        name:
+          type: string
+        environment:
+          type: string
+          enum: [private, cloud, xinchang]
+        version:
+          type: string
+        nodeCount:
+          type: integer
+        config:
+          type: object
+          additionalProperties: true
+
+    ClusterScaleRequest:
+      type: object
+      required: [targetNodeCount]
+      properties:
+        targetNodeCount:
+          type: integer
+
+    ProviderDescriptor:
+      type: object
+      properties:
+        name:
+          type: string
+        environments:
+          type: array
+          items:
+            type: string
+        version:
+          type: string
+
+    MlModel:
+      type: object
+      required: [id, name, algorithm]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        algorithm:
+          type: string
+        version:
+          type: string
+        modelPath:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ModelRegisterRequest:
+      type: object
+      required: [name, algorithm]
+      properties:
+        name:
+          type: string
+        algorithm:
+          type: string
+        version:
+          type: string
+        trainJobId:
+          type: string
+        modelPath:
+          type: string
+        description:
+          type: string
+
+    FinetuneRequest:
+      type: object
+      properties:
+        modelName:
+          type: string
+        baseModel:
+          type: string
+        trainingData:
+          type: string
+        gpuConfig:
+          type: string
+        epochs:
+          type: integer
+
+    FinetuneTask:
+      type: object
+      properties:
+        taskId:
+          type: string
+        status:
+          type: string
+          enum: [pending, running, succeeded, failed]
+        progress:
+          type: number
+        startedAt:
+          type: string
+          format: date-time
+        finishedAt:
+          type: string
+          format: date-time
+
+    InferenceService:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        modelId:
+          type: string
+        status:
+          type: string
+          enum: [deploying, running, stopped, failed]
+        endpoint:
+          type: string
