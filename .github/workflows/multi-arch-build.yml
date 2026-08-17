@@ -100,7 +100,7 @@ jobs:
           fi
 
       - name: 构建并推送前端多架构镜像
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: frontend/
           file: frontend/Dockerfile
@@ -175,7 +175,7 @@ jobs:
           fi
 
       - name: 构建并推送 ${{ matrix.module }} 多架构镜像
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
@@ -234,7 +234,7 @@ jobs:
           fi
 
       - name: 构建并推送 catalog 多架构镜像
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: platform/catalog
           file: platform/catalog/Dockerfile
