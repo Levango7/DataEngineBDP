@@ -11,7 +11,9 @@
       <div class="view">
         <ErrorBoundary>
           <router-view v-slot="{ Component }">
-            <component :is="Component" />
+            <transition name="page" mode="out-in">
+              <component :is="Component" />
+            </transition>
           </router-view>
         </ErrorBoundary>
       </div>
@@ -33,3 +35,13 @@ const route = useRoute()
 /** 公共页（登录等）：meta.public=true 时不显示布局框架 */
 const isPublicRoute = computed(() => !!route.meta.public)
 </script>
+
+<style>
+/* 路由切换过渡：淡入滑动入场 + 淡出离场（非 scoped 以确保 transition 类名作用于子组件根元素） */
+.page-enter-active {
+  animation: fadeInSlide 0.25s var(--ease-smooth);
+}
+.page-leave-active {
+  animation: fadeInSlide 0.15s var(--ease-smooth) reverse;
+}
+</style>

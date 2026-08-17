@@ -28,19 +28,20 @@ public class K8sClientConfig {
     /**
      * 创建 KubernetesClient Bean。
      *
-     * <p>当 {@code app.k8s.mock-enabled=true} 时返回 {@code null}，由测试上下文覆盖。
-     * 否则使用默认 KUBECONFIG 路径自动发现集群连接信息。</p>
+     * <p>当 {@code app.k8s.mock-enabled=true} 时返回一个不连接真实集群的空 client
+     *（fabric8 懒连接，构建时不发起网络请求），避免下游 bean（如 K8sQuotaTranslator）
+     * 因 null 注入失败。否则使用默认 KUBECONFIG 路径自动发现集群连接信息。</p>
      *
      * @param mockEnabled 是否启用 mock 模式
-     * @return KubernetesClient 实例；mock 模式下返回 {@code null}
+     * @return KubernetesClient 实例
      */
     @Bean
     public KubernetesClient kubernetesClient(
             @Value("${app.k8s.mock-enabled:false}") boolean mockEnabled) {
         if (mockEnabled) {
-            log.warn("K8s mock mode enabled, KubernetesClient bean will be null; "
-                    + "tests should inject a mock client");
-            return null;
+            log.warn("K8s mock mode enabled, returning a non-connected KubernetesClient "
+                    + "(lazy connect; API calls will fail until a real cluster is available)");
+            return new KubernetesClientBuilder().build();
         }
         log.info("Initializing KubernetesClient from default KUBECONFIG");
         return new KubernetesClientBuilder().build();

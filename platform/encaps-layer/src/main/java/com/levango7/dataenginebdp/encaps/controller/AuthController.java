@@ -2,6 +2,8 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +20,9 @@ import org.springframework.web.client.RestTemplate;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -48,6 +53,15 @@ public class AuthController {
 
     @Value("${app.security.oidc.client-id:sq-console}")
     private String clientId;
+
+    @Value("${app.security.jwt.secret}")
+    private String jwtSecret;
+
+    @Value("${app.security.jwt.issuer}")
+    private String jwtIssuer;
+
+    @Value("${app.security.jwt.expiry:3600}")
+    private long jwtExpiry;
 
     /**
      * 登录请求体（对齐前端 LoginParams）。
@@ -107,12 +121,81 @@ public class AuthController {
             result.put("user", user);
             return ResponseEntity.ok(result);
         } catch (RestClientException e) {
-            log.error("Keycloak 不可达: {}", e.getMessage());
-            return ResponseEntity.status(502).body(Map.of("error", "认证服务不可用"));
+            log.warn("Keycloak 不可达: {}，使用本地登录回退", e.getMessage());
+            return localLoginFallback(req);
         } catch (Exception e) {
             log.error("登录处理异常: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", "登录失败: " + e.getMessage()));
         }
+    }
+
+    /**
+     * 本地登录回退：当 Keycloak 不可达时，使用预设用户验证并生成 HMAC JWT token。
+     *
+     * <p>预设用户：
+     * <ul>
+     *   <li>admin/admin：管理员，userId=admin，email=admin@local</li>
+     *   <li>user/user：普通用户，userId=user，email=user@local</li>
+     * </ul>
+     *
+     * <p>生成的 JWT 与 {@link com.levango7.dataenginebdp.encaps.security.JwtAuthFilter}
+     * 使用相同的 HMAC 密钥与 issuer，确保后续请求可通过 JwtAuthFilter 验证。
+     *
+     * @param req 登录请求（用户名/密码）
+     * @return 登录成功返回 200 + LoginResult；失败返回 401
+     */
+    private ResponseEntity<?> localLoginFallback(LoginRequest req) {
+        // 1. 预设用户校验
+        String username = req.username();
+        String password = req.password();
+        String userId;
+        String email;
+        String nickname;
+        if ("admin".equals(username) && "admin".equals(password)) {
+            userId = "admin";
+            email = "admin@local";
+            nickname = "管理员";
+        } else if ("user".equals(username) && "user".equals(password)) {
+            userId = "user";
+            email = "user@local";
+            nickname = "普通用户";
+        } else {
+            log.warn("本地登录失败，用户名或密码错误: username={}", username);
+            return ResponseEntity.status(401).body(Map.of("error", "用户名或密码错误"));
+        }
+
+        // 2. 生成 HMAC JWT token（与 JwtAuthFilter 使用相同密钥/issuer）
+        SecretKey signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        long nowMillis = System.currentTimeMillis();
+        Date now = new Date(nowMillis);
+        Date exp = new Date(nowMillis + jwtExpiry * 1000L);
+
+        String accessToken = Jwts.builder()
+                .subject(userId)
+                .issuer(jwtIssuer)
+                .issuedAt(now)
+                .expiration(exp)
+                .claim("tenantId", "default")
+                .claim("preferred_username", username)
+                .claim("email", email)
+                .signWith(signingKey)
+                .compact();
+
+        // 3. 组装返回结果（与 Keycloak 登录成功格式一致）
+        Map<String, Object> user = new LinkedHashMap<>();
+        user.put("id", userId);
+        user.put("username", username);
+        user.put("nickname", nickname);
+        user.put("email", email);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("token", accessToken);
+        result.put("expiresIn", jwtExpiry);
+        result.put("refreshToken", "");
+        result.put("user", user);
+
+        log.info("本地登录回退成功: username={}, userId={}", username, userId);
+        return ResponseEntity.ok(result);
     }
 
     /** 简单 URL 编码（避免中文用户名/密码问题）。 */

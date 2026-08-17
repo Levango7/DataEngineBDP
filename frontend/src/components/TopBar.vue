@@ -76,18 +76,23 @@ function handleLogout() {
   position: relative;
   user-select: none;
 }
+/* 工作空间下拉菜单：毛玻璃 + 弹簧入场 */
 .ws-menu {
   position: absolute;
   top: 100%;
   left: 0;
   margin-top: 6px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18), var(--shadow-glow);
   min-width: 180px;
   z-index: 30;
   overflow: hidden;
+  animation: springIn 0.32s var(--ease-spring);
+  transform-origin: top left;
 }
 .ws-item {
   padding: 8px 12px;
@@ -95,23 +100,27 @@ function handleLogout() {
   font-weight: 500;
   color: var(--ink);
   cursor: pointer;
+  transition: background 0.18s var(--ease-smooth), color 0.18s var(--ease-smooth);
 }
 .ws-item:hover {
   background: var(--primary-soft);
+  color: var(--primary);
 }
 .ws-item.on {
   color: var(--primary);
   background: var(--primary-soft);
+  font-weight: 600;
 }
 /* 用户菜单 */
 .user-menu {
   position: relative;
 }
+/* 头像：渐变背景 + 发光 */
 .avatar {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: var(--primary, #2f6f6a);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -120,19 +129,30 @@ function handleLogout() {
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-smooth);
 }
+.avatar:hover {
+  transform: scale(1.06);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55), var(--shadow-glow);
+}
+/* 用户弹出层：毛玻璃 + 弹簧入场 */
 .user-pop {
   position: absolute;
   top: 100%;
   right: 0;
   margin-top: 6px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18), var(--shadow-glow);
   min-width: 200px;
   z-index: 30;
   overflow: hidden;
+  animation: springIn 0.32s var(--ease-spring);
+  transform-origin: top right;
 }
 .user-info {
   padding: 12px;
@@ -145,7 +165,7 @@ function handleLogout() {
 }
 .user-email {
   font-size: 12px;
-  color: #909399;
+  color: var(--muted);
   margin-top: 2px;
 }
 .user-actions {
@@ -162,8 +182,10 @@ function handleLogout() {
   border: none;
   text-align: left;
   cursor: pointer;
+  transition: background 0.18s var(--ease-smooth), color 0.18s var(--ease-smooth);
 }
 .user-action:hover {
   background: var(--primary-soft);
+  color: var(--primary);
 }
 </style>

@@ -425,7 +425,7 @@ onUnmounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--muted);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -451,39 +451,39 @@ onUnmounted(() => {
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--line);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--panel);
 }
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--muted);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ink);
   line-height: 1.2;
 }
 .kpi.s {
-  color: #2f9e6f;
+  color: var(--green);
 }
 .kpi.w {
-  color: #c08a2e;
+  color: var(--amber);
 }
 .kpi.d {
-  color: #c0504d;
+  color: var(--red);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--muted);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--line);
   border-radius: 10px;
 }
 .toolbar {

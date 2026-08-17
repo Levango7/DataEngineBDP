@@ -21,9 +21,9 @@ export default defineConfig({
       // 必须放在通用 /api 条目之前，否则会被 /api 默认转发到 encaps-layer
       // ============================================================
 
-      // stream-batch-scheduler 作业管理（JobController :8087）
+      // stream-batch-scheduler 作业管理（JobController :18086）
       '/api/v1/jobs': {
-        target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
+        target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18086',
         changeOrigin: true
       },
       // 元数据采集（metadata-collector :8093）
@@ -59,9 +59,9 @@ export default defineConfig({
         target: process.env.VITE_API_CATALOG_TARGET || 'http://127.0.0.1:8097',
         changeOrigin: true
       },
-      // 虚拟表（sql-gateway VirtualTableController :8088）
+      // 虚拟表（sql-gateway VirtualTableController :8081）
       '/api/v1/virtual-tables': {
-        target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8088',
+        target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8081',
         changeOrigin: true
       },
       // 物化视图（flink-cdc MaterializedViewController :8098）
@@ -121,14 +121,14 @@ export default defineConfig({
         target: process.env.VITE_BI_TARGET || 'http://127.0.0.1:8085',
         changeOrigin: true
       },
-      // stream-batch-scheduler（流批调度服务 :8087）
+      // stream-batch-scheduler（流批调度服务 :18086）
       '/api/v1/stream-batch': {
-        target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:8087',
+        target: process.env.VITE_STREAM_BATCH_TARGET || 'http://127.0.0.1:18086',
         changeOrigin: true
       },
-      // sql-gateway（SQL 网关服务 :8088）
+      // sql-gateway（SQL 网关服务 :8081）
       '/api/v1/sql': {
-        target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8088',
+        target: process.env.VITE_SQL_GATEWAY_TARGET || 'http://127.0.0.1:8081',
         changeOrigin: true
       },
       // governance/lineage-analyzer（血缘分析服务 :8089）

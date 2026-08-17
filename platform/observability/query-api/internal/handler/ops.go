@@ -27,9 +27,9 @@ import (
 //
 // 与 OpsHealthHandler（组件健康总览）互补，本 handler 面向业务运维视图。
 type OpsHandler struct {
-	promClient   *PrometheusQueryClient
-	alertClient  *AlertmanagerClient
-	jobsConfig   []OpsJobDefinition
+	promClient  *PrometheusQueryClient
+	alertClient *AlertmanagerClient
+	jobsConfig  []OpsJobDefinition
 }
 
 // OpsJobDefinition 是作业定义（从配置读取）。
