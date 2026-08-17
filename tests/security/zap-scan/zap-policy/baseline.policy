@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ZAP 基线扫描策略：仅启用被动规则，不发送攻击载荷。
+  riskcode: 3=High, 2=Medium, 1=Low, 0=Informational
+-->
+<scan-policy>
+    <name>baseline-policy</name>
+    <defaultThreshold>MEDIUM</defaultThreshold>
+    <rules>
+        <!-- 被动规则：HTTP 头检查 -->
+        <rule id="10010" enabled="true"/>  <!-- Cookie No HttpOnly -->
+        <rule id="10011" enabled="true"/>  <!-- Cookie No Secure -->
+        <rule id="10015" enabled="true"/>  <!-- Insecure Redirect -->
+        <rule id="10017" enabled="true"/>  <!-- Missing Anti-clicking -->
+        <rule id="10019" enabled="true"/>  <!-- X-Content-Type-Options -->
+        <rule id="10020" enabled="true"/>  <!-- X-Frame-Options -->
+        <rule id="10021" enabled="true"/>  <!-- X-XSS-Protection -->
+        <rule id="10023" enabled="true"/>  <!-- Information Disclosure -->
+        <rule id="10024" enabled="true"/>  <!-- RFC 1918 IP -->
+        <rule id="10025" enabled="true"/>  <!-- Modern Web Application -->
+        <rule id="10027" enabled="true"/>  <!-- Image Placeholder -->
+        <rule id="10028" enabled="true"/>  <!-- Open Redirect -->
+        <rule id="10029" enabled="true"/>  <!-- HTTP Parameter Poll -->
+        <rule id="10030" enabled="true"/>  <!-- User Agent Fuzzer -->
+        <rule id="10032" enabled="true"/>  <!-- View Source -->
+        <rule id="10033" enabled="true"/>  <!-- Directory Browsing -->
+        <rule id="10034" enabled="true"/>  <!-- Heartbleed -->
+        <rule id="10035" enabled="true"/>  <!-- Strict-Transport-Security -->
+        <rule id="10036" enabled="true"/>  <!-- TLS RC4 Cipher -->
+        <rule id="10037" enabled="true"/>  <!-- TLS Weak Cipher -->
+        <rule id="10038" enabled="true"/>  <!-- SHA-1 Hash -->
+        <rule id="10039" enabled="true"/>  <!-- Host Header -->
+        <rule id="10040" enabled="true"/>  <!-- CSP -->
+        <rule id="10041" enabled="true"/>  <!-- Auto Complete -->
+        <rule id="10042" enabled="true"/>  <!-- Application Errors -->
+        <rule id="10043" enabled="true"/>  <!-- Robots.txt -->
+        <rule id="10044" enabled="true"/>  <!-- Source Code Disclosure -->
+        <rule id="10045" enabled="true"/>  <!-- Sub Resource Integrity -->
+        <rule id="10050" enabled="true"/>  <!-- Vulnerable JS Library -->
+        <rule id="10052" enabled="true"/>  <!-- X-Backend-Server -->
+        <rule id="10054" enabled="true"/>  <!-- Cookie without SameSite -->
+        <rule id="10056" enabled="true"/>  <!-- Referrer Policy -->
+        <rule id="10057" enabled="true"/>  <!-- Username Hash -->
+        <rule id="10058" enabled="true"/>  <!-- Authentication Request -->
+        <rule id="10062" enabled="true"/>  <!-- No Anti-CSRF Tokens -->
+        <rule id="10063" enabled="true"/>  <!-- Permissions Policy Header -->
+        <rule id="10096" enabled="true"/>  <!-- Timestamp Disclosure -->
+        <rule id="10097" enabled="true"/>  <!-- Hash Disclosure -->
+        <rule id="10202" enabled="true"/>  <!-- Absence of Anti-CSRF Tokens -->
+        <rule id="10203" enabled="true"/>  <!-- Weak Authentication -->
+        <rule id="10204" enabled="true"/>  <!-- Site uses HTTPS -->
+        <rule id="10205" enabled="true"/>  <!-- Authentication Response Spoofing -->
+        <rule id="90001" enabled="true"/>  <!-- Insecure JSF ViewState -->
+        <rule id="90002" enabled="true"/>  <!-- JSP Comments -->
+        <rule id="90003" enabled="true"/>  <!-- Sub Resource Integrity Attribute -->
+        <rule id="90011" enabled="true"/>  <!-- Charset Mismatch -->
+        <rule id="90012" enabled="true"/>  <!-- Content-Type Mismatch -->
+        <rule id="90022" enabled="true"/>  <!-- Application Error -->
+        <rule id="90033" enabled="true"/>  <!-- Loose Cookie Validation -->
+        <rule id="90034" enabled="true"/>  <!-- Session ID in URL -->
+    </rules>
+</scan-policy>

@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ZAP 完整扫描策略：被动规则 + 主动攻击规则。
+  覆盖 OWASP Top 10：
+    A01 失效访问控制  - 10202, 10205, 20019, 20020
+    A02 加密失败      - 10011, 10035, 10036, 10037, 10038
+    A03 注入          - 40018, 40019, 40020, 40024, 40025, 40026, 40028, 40029
+    A04 不安全设计    - 10050, 10057
+    A05 安全配置错误  - 10017, 10019, 10020, 10021, 10035, 10040, 10054, 10056
+    A06 易受攻击组件  - 10050
+    A07 认证失败      - 10058, 10203, 10205, 40017
+    A08 数据完整性    - 10045
+    A09 日志监控      - 10023, 10042
+    A10 SSRF          - 40021
+-->
+<scan-policy>
+    <name>full-policy</name>
+    <defaultThreshold>HIGH</defaultThreshold>
+    <rules>
+        <!-- ===== 被动规则（同 baseline） ===== -->
+        <rule id="10010" enabled="true"/>
+        <rule id="10011" enabled="true"/>
+        <rule id="10015" enabled="true"/>
+        <rule id="10017" enabled="true"/>
+        <rule id="10019" enabled="true"/>
+        <rule id="10020" enabled="true"/>
+        <rule id="10021" enabled="true"/>
+        <rule id="10023" enabled="true"/>
+        <rule id="10024" enabled="true"/>
+        <rule id="10025" enabled="true"/>
+        <rule id="10027" enabled="true"/>
+        <rule id="10028" enabled="true"/>
+        <rule id="10035" enabled="true"/>
+        <rule id="10036" enabled="true"/>
+        <rule id="10037" enabled="true"/>
+        <rule id="10038" enabled="true"/>
+        <rule id="10040" enabled="true"/>
+        <rule id="10041" enabled="true"/>
+        <rule id="10042" enabled="true"/>
+        <rule id="10050" enabled="true"/>
+        <rule id="10054" enabled="true"/>
+        <rule id="10056" enabled="true"/>
+        <rule id="10057" enabled="true"/>
+        <rule id="10058" enabled="true"/>
+        <rule id="10062" enabled="true"/>
+        <rule id="10063" enabled="true"/>
+        <rule id="10202" enabled="true"/>
+        <rule id="10203" enabled="true"/>
+        <rule id="10205" enabled="true"/>
+
+        <!-- ===== 主动规则 ===== -->
+        <!-- A03 注入 -->
+        <rule id="40018" enabled="true"/>  <!-- SQL Injection -->
+        <rule id="40019" enabled="true"/>  <!-- SQL Injection - SQLite -->
+        <rule id="40020" enabled="true"/>  <!-- SQL Injection - Hypersonic -->
+        <rule id="40024" enabled="true"/>  <!-- SQL Injection - Postgres -->
+        <rule id="40025" enabled="true"/>  <!-- SQL Injection - MySQL -->
+        <rule id="40026" enabled="true"/>  <!-- SQL Injection - Oracle -->
+        <rule id="40028" enabled="true"/>  <!-- SQL Injection - MsSQL -->
+        <rule id="40029" enabled="true"/>  <!-- SQL Injection - DB2 -->
+        <rule id="40014" enabled="true"/>  <!-- OS Command Injection -->
+        <rule id="40016" enabled="true"/>  <!-- Cross Site Scripting (Reflected) -->
+        <rule id="40017" enabled="true"/>  <!-- Cross Site Scripting (Stored) -->
+        <rule id="40034" enabled="true"/>  <!-- NULL Byte Bytes -->
+        <rule id="40035" enabled="true"/>  <!-- HTTP Parameter Pollution -->
+        <rule id="40037" enabled="true"/>  <!-- CRLF Injection -->
+        <rule id="40038" enabled="true"/>  <!-- Path Traversal -->
+        <rule id="40040" enabled="true"/>  <!-- Cross Site Scripting (Persistent) -->
+        <rule id="40041" enabled="true"/>  <!-- Source Code Disclosure - File -->
+        <rule id="40042" enabled="true"/>  <!-- Source Code Disclosure - Git -->
+        <rule id="40043" enabled="true"/>  <!-- Session Fixation -->
+        <rule id="40044" enabled="true"/>  <!-- External Redirect -->
+        <rule id="40047" enabled="true"/>  <!-- XPath Injection -->
+        <rule id="40053" enabled="true"/>  <!-- File Parameter -->
+        <rule id="40055" enabled="true"/>  <!-- .HTACCESS Sensitive Info -->
+        <rule id="40056" enabled="true"/>  <!-- .DS_Store Disclosure -->
+        <rule id="40057" enabled="true"/>  <!-- Authorization Bearer Token -->
+        <rule id="40060" enabled="true"/>  <!-- Reverse Proxy -->
+        <rule id="40063" enabled="true"/>  <!-- Session ID in HTML -->
+        <rule id="40064" enabled="true"/>  <!-- Username Enumeration -->
+        <rule id="40065" enabled="true"/>  <!-- Weak Password -->
+        <rule id="40066" enabled="true"/>  <!-- NoSQL Injection - MongoDB -->
+        <rule id="40068" enabled="true"/>  <!-- NoSQL Injection - MongoDB Alternate -->
+        <rule id="40069" enabled="true"/>  <!-- HTTP Request Smuggling -->
+        <rule id="40070" enabled="true"/>  <!-- HTTP Response Splitting -->
+        <rule id="40072" enabled="true"/>  <!-- Heartbleed OpenSSL -->
+        <rule id="40074" enabled="true"/>  <!-- Hidden File/Folder -->
+        <rule id="40075" enabled="true"/>  <!-- .env Disclosure -->
+        <rule id="40076" enabled="true"/>  <!-- .git Disclosure -->
+        <rule id="40077" enabled="true"/>  <!-- .svn Disclosure -->
+        <rule id="40078" enabled="true"/>  <!-- .DS_Store Disclosure -->
+        <rule id="40079" enabled="true"/>  <!-- Backup File Disclosure -->
+        <rule id="40080" enabled="true"/>  <!-- Spring Boot Actuator -->
+        <rule id="40081" enabled="true"/>  <!-- .DS_Store Disclosure -->
+        <rule id="40082" enabled="true"/>  <!-- Bypassing 403 -->
+        <rule id="40083" enabled="true"/>  <!-- LDAP Injection -->
+        <rule id="40084" enabled="true"/>  <!-- Log4Shell -->
+        <rule id="40085" enabled="true"/>  <!-- Trace.axd -->
+        <rule id="40086" enabled="true"/>  <!-- Local File Inclusion -->
+        <rule id="40087" enabled="true"/>  <!-- Remote File Inclusion -->
+
+        <!-- A10 SSRF -->
+        <rule id="40021" enabled="true"/>  <!-- Server Side Request Forgery -->
+
+        <!-- A01 失效访问控制 -->
+        <rule id="20019" enabled="true"/>  <!-- Anti-CSRF Tokens Check -->
+        <rule id="20020" enabled="true"/>  <!-- Anti-CSRF Tokens Check -->
+
+        <!-- A05 安全配置 -->
+        <rule id="90001" enabled="true"/>
+        <rule id="90002" enabled="true"/>
+        <rule id="90003" enabled="true"/>
+        <rule id="90011" enabled="true"/>
+        <rule id="90012" enabled="true"/>
+        <rule id="90022" enabled="true"/>
+        <rule id="90033" enabled="true"/>
+        <rule id="90034" enabled="true"/>
+    </rules>
+</scan-policy>

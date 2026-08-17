@@ -1,0 +1,464 @@
+{
+  "summary": {
+    "scenario": "enterprise",
+    "description": "大型 toB 制造企业场景：3 万员工+5 工厂+5 事业部+多源集成+OEE+质量追溯+ML 预测",
+    "industry": "manufacturing",
+    "totalSteps": 12,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 2,
+    "durationMs": 416,
+    "overall": "PASS"
+  },
+  "steps": [
+    {
+      "index": 1,
+      "name": "登录并建立制造集团租户上下文",
+      "description": "admin/admin 登录，切换到 mfg-group 租户",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 10,
+      "checks": [
+        {
+          "name": "登录成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "健康检查通过",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "total": 2
+      }
+    },
+    {
+      "index": 2,
+      "name": "3 万员工组织架构 - 创建集团项目空间",
+      "description": "为集团总部 + 5 个工厂创建项目空间，承载多事业部数据",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 126,
+      "checks": [
+        {
+          "name": "创建项目「集团总部-共享数据湖」成功",
+          "status": "PASS",
+          "detail": "status=200"
+        },
+        {
+          "name": "创建项目「华东工厂-生产」成功",
+          "status": "PASS",
+          "detail": "status=200"
+        },
+        {
+          "name": "创建项目「华南工厂-生产」成功",
+          "status": "PASS",
+          "detail": "status=200"
+        },
+        {
+          "name": "创建项目「华北工厂-生产」成功",
+          "status": "PASS",
+          "detail": "status=200"
+        },
+        {
+          "name": "创建项目「西南工厂-生产」成功",
+          "status": "PASS",
+          "detail": "status=200"
+        },
+        {
+          "name": "创建项目「东北工厂-生产」成功",
+          "status": "PASS",
+          "detail": "status=200"
+        },
+        {
+          "name": "按 production 域过滤返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "production 项目数 >= 5",
+          "status": "PASS",
+          "detail": "actual=5"
+        }
+      ],
+      "summary": {
+        "projectsCreated": 6
+      }
+    },
+    {
+      "index": 3,
+      "name": "多工厂数据集成 - MES/ERP/SCADA/WMS/TMS 接入",
+      "description": "为 5 个工厂创建多源数据集成任务（MySQL-CDC/JDBC/OPC UA）",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 27,
+      "checks": [
+        {
+          "name": "连接器列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "连接器 MySQL 可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "连接器 Oracle 可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "连接器 Kafka 可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "连接器 Iceberg 可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "连接器 Doris 可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 华东 MES CDC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 华东 ERP JDBC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 华南 MES CDC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 华南 ERP JDBC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 华北 MES CDC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 华北 ERP JDBC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 西南 MES CDC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 西南 ERP JDBC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 东北 MES CDC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 东北 ERP JDBC 任务成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "MES 任务数 = 5",
+          "status": "PASS",
+          "detail": "actual=5"
+        },
+        {
+          "name": "ERP 任务数 = 5",
+          "status": "PASS",
+          "detail": "actual=5"
+        }
+      ],
+      "summary": {
+        "mesTasks": 5,
+        "erpTasks": 5
+      }
+    },
+    {
+      "index": 4,
+      "name": "多事业部租户隔离 - 事业部+业务线两级隔离",
+      "description": "验证事业部隔离能力；当前后端 tenantId 来自 JWT(default)，多租户需 Keycloak 多 Realm",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 5,
+      "checks": [
+        {
+          "name": "生产事业部创建 OEE 资产成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "资产列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "当前租户可见 OEE 资产",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "事业部隔离需不同 JWT 登录",
+          "status": "SKIP",
+          "detail": "当前后端 tenantId 来自 JWT claim，事业部隔离需 Keycloak 多 Realm 登录支持"
+        }
+      ],
+      "summary": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 1,
+        "total": 4
+      }
+    },
+    {
+      "index": 5,
+      "name": "生产质量分析 - OEE 计算（可用率×性能率×质量率）",
+      "description": "验证 OEE = (420/480) × (8000/(420×20)) × (7800/8000) = 0.812",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 1,
+      "checks": []
+    },
+    {
+      "index": 6,
+      "name": "供应链数据治理 - 库存周转/供应商评估资产注册",
+      "description": "注册供应链 DWS 资产到数据资产目录",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 9,
+      "checks": [
+        {
+          "name": "注册供应链资产「dws_scm_inventory_turnover」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册供应链资产「dws_scm_supplier_eval」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "total": 2
+      }
+    },
+    {
+      "index": 7,
+      "name": "质量追溯 - 批次→工序→参数→缺陷 正反向追溯",
+      "description": "验证从缺陷反向追溯到根因批次和供应商来料",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 0,
+      "checks": []
+    },
+    {
+      "index": 8,
+      "name": "BI 报表 - 各事业部门户看板数据集注册",
+      "description": "为 5 大事业部注册 BI 看板数据集到数据资产目录",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 29,
+      "checks": [
+        {
+          "name": "注册看板数据集「ads_prod_dashboard」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册看板数据集「ads_scm_dashboard」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册看板数据集「ads_qa_dashboard」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册看板数据集「ads_energy_dashboard」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册看板数据集「ads_fin_dashboard」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "dashboards": 5
+      }
+    },
+    {
+      "index": 9,
+      "name": "数据 API 服务目录 - 设备 OEE/质量追溯/库存周转 API 发布",
+      "description": "注册多事业部数据 API 到 open-api-catalog",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 21,
+      "checks": [
+        {
+          "name": "发布 API「设备 OEE 查询」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「质量追溯查询」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「库存周转查询」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「订单履约推送」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "scm 分类 API 列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "scm 分类 API 数 >= 2",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "apisPublished": 4
+      }
+    },
+    {
+      "index": 10,
+      "name": "ML 模型注册 - 设备故障预测/能耗预测模型",
+      "description": "注册 XGBoost 故障预测 + LightGBM 能耗预测模型到模型仓库",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 18,
+      "checks": [
+        {
+          "name": "注册模型「equipment_failure_xgb」成功",
+          "status": "PASS",
+          "detail": "status=201"
+        },
+        {
+          "name": "注册模型「energy_consumption_lgbm」成功",
+          "status": "PASS",
+          "detail": "status=201"
+        },
+        {
+          "name": "模型列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "模型数 >= 2",
+          "status": "PASS",
+          "detail": "actual=2"
+        }
+      ],
+      "summary": {
+        "modelsRegistered": 2
+      }
+    },
+    {
+      "index": 11,
+      "name": "ML 推理服务部署 - 故障预测在线推理",
+      "description": "部署设备故障预测模型为在线推理服务",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 140,
+      "checks": [
+        {
+          "name": "部署推理服务成功",
+          "status": "PASS",
+          "detail": "status=201"
+        },
+        {
+          "name": "推理服务列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "推理服务数 >= 1",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "扩缩容推理服务成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "total": 4
+      }
+    },
+    {
+      "index": 12,
+      "name": "数据产品交付 - 跨事业部订阅审批流",
+      "description": "能源事业部申请订阅生产事业部 OEE 资产，审批通过后可访问",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 29,
+      "checks": [
+        {
+          "name": "能源事业部申请订阅 OEE 资产成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "审批列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "审批列表跨控制器查询",
+          "status": "SKIP",
+          "detail": "当前后端 AssetController 与 SecController 审批流存储独立，需统一存储（待修复）"
+        },
+        {
+          "name": "SecController 策略列表可用",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 3,
+        "failed": 0,
+        "skipped": 1,
+        "total": 4
+      }
+    }
+  ]
+}

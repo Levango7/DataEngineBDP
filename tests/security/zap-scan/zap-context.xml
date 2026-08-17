@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ZAP 上下文配置：定义 DataEngineBDP 安全扫描目标、认证方式与包含/排除 URL。
+
+  目标：http://localhost:18086
+  认证：Bearer JWT（POST /api/v1/auth/login 获取 token，写入 Authorization 头）
+  公开端点：/api/v1/health, /api/v1/auth/login, /actuator/**
+  受保护端点：/api/v1/** 其他全部
+
+  使用方式：
+    zap.sh -cmd -context zap-context.xml -quickout report.html
+-->
+<configuration>
+  <context>
+    <name>dataenginebdp-context</name>
+    <desc>DataEngineBDP encaps-layer 安全扫描上下文</desc>
+    <site>http://localhost:18086</site>
+    <include>http://localhost:18086/api/v1/.*</include>
+    <include>http://localhost:18086/actuator/.*</include>
+    <exclude>http://localhost:18086/actuator/heapdump</exclude>
+    <exclude>http://localhost:18086/actuator/threaddump</exclude>
+
+    <!-- 认证配置 -->
+    <authentication>
+      <type>httpAuthentication</type>
+      <authHeader>Authorization</authHeader>
+      <authHeaderPrefix>Bearer </authHeaderPrefix>
+      <loginRequestUrl>http://localhost:18086/api/v1/auth/login</loginRequestUrl>
+      <loginRequestMethod>POST</loginRequestMethod>
+      <loginRequestBody>{"username":"admin","password":"admin"}</loginRequestBody>
+      <loginBodyContentType>application/json</loginBodyContentType>
+      <!-- 从登录响应中提取 token：$.data.token -->
+      <tokenJsonPath>$.data.token</tokenJsonPath>
+    </authentication>
+
+    <!-- 用户会话 -->
+    <users>
+      <user>
+        <name>admin</name>
+        <credentials>
+          <username>admin</username>
+          <password>admin</password>
+        </credentials>
+      </user>
+      <user>
+        <name>user</name>
+        <credentials>
+          <username>user</username>
+          <password>user</password>
+        </credentials>
+      </user>
+    </users>
+
+    <!-- 受保护 URL 模式：未认证应返回 401 -->
+    <forcedUser>
+      <name>admin</name>
+    </forcedUser>
+  </context>
+</configuration>

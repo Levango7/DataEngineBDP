@@ -1,67 +1,89 @@
-# 性能基准测试 (tests/performance)
+# 性能测试套件
 
-> R3: 舒清大数据平台核心服务性能基准测试
+> DataEngineBDP 平台 P1 性能测试，验证 API P99 < 200ms，并发 1000 连接。
 
-## 文件清单
+## 目录结构
 
-| 文件 | 说明 |
+```
+tests/performance/
+├── k6-scripts/              # k6 压测脚本（ES 模块）
+│   ├── common.js            # 共享配置与工具函数
+│   ├── login-stress.js      # 登录接口阶梯压测
+│   ├── api-baseline.js      # 5 核心 API 基线测试
+│   └── mixed-workload.js    # 1000 并发混合工作负载
+├── jmeter/                  # JMeter 测试计划
+│   └── api-baseline.jmx     # 1000 线程测试计划
+├── reports/                 # 压测报告
+│   └── performance-report.md
+├── results/                 # 原始结果数据
+│   ├── stress-results.json
+│   ├── stress-results.csv
+│   └── intermediate_vu*.json
+├── run-stress-httpclient.ps1  # PowerShell HttpClient 压测脚本（推荐）
+├── run-stress.ps1             # PowerShell Invoke-WebRequest 版（已弃用）
+└── README.md
+```
+
+## 前置条件
+
+1. 后端服务运行在 `http://localhost:18086`
+2. 登录账号：admin / admin
+3. 健康检查：`GET /actuator/health` 返回 200
+
+## 运行方式
+
+### 方式一：PowerShell（无需额外安装）
+
+```powershell
+# 完整阶梯压测 100→500→1000
+.\run-stress-httpclient.ps1
+
+# 自定义参数
+.\run-stress-httpclient.ps1 -ConcurrencySteps @(100,500,1000) -DurationSec 20 -RampUpSec 5
+```
+
+### 方式二：k6（需安装 k6）
+
+```bash
+# 安装 k6
+choco install k6          # Windows
+brew install k6           # macOS
+
+# 运行登录压测
+k6 run --env VUS=100  DURATION=30s k6-scripts/login-stress.js
+k6 run --env VUS=1000 DURATION=60s k6-scripts/login-stress.js
+
+# 运行 API 基线
+k6 run --env VUS=100  DURATION=30s k6-scripts/api-baseline.js
+
+# 运行混合工作负载
+k6 run --env VUS=1000 DURATION=60s k6-scripts/mixed-workload.js
+```
+
+### 方式三：JMeter（需安装 JMeter 5.6+）
+
+```bash
+# GUI 模式打开
+jmeter -t jmeter/api-baseline.jmx
+
+# 非 GUI 模式运行
+jmeter -n -t jmeter/api-baseline.jmx -l results.jtl -e -o report-html
+```
+
+## 性能目标
+
+| 指标 | 目标 |
 |------|------|
-| `locustfile.py` | Locust 分布式压测脚本,覆盖三个 P0 核心服务全部主要端点 |
-| `run_benchmark.py` | 自动压测+报告生成脚本(标准库实现,无外部依赖) |
-| `requirements.txt` | Locust 依赖 |
-| `benchmark_report.md` | 性能基准测试报告(自动生成) |
+| P99 延迟 | < 200ms |
+| 并发连接 | 1000 |
+| 错误率 | < 1% |
+| 业务成功率 | > 99% |
 
-## 被测服务
+## 最新结果摘要
 
-| 服务 | 端口 | 核心端点 |
-|------|------|---------|
-| encaps-layer | 8080 | `/actuator/health`, `/api/v1/health` |
-| sql-gateway | 8081 | `/api/v1/sql/execute`, `/api/v1/sql/parse`, `/api/v1/sql/validate` |
-| rule-engine | 8083 | `/api/v1/rules/execute`, `/api/v1/rules`, `/api/v1/rules/types` |
+详见 `reports/performance-report.md`。
 
-## P95 延迟基准
-
-| 场景 | P95 基准 |
-|------|---------|
-| RAG 检索 | ≤ 2000 ms |
-| 数据入仓 | ≤ 5000 ms |
-| 联邦查询 | ≤ 10000 ms |
-| 物化视图 | ≤ 100 ms |
-
-## 快速开始
-
-### 方式一: 自动压测(推荐)
-
-```bash
-# 在 WSL2 中运行(可访问 K3s Pod CIDR)
-python3 run_benchmark.py --requests 100
-
-# 仅理论分析(服务不可达时)
-python3 run_benchmark.py --mode theoretical
-```
-
-### 方式二: Locust 压测
-
-```bash
-pip install -r requirements.txt
-
-# 通过 kubectl port-forward 建立本地隧道
-kubectl port-forward -n shuqing svc/encaps-layer 18080:8080 &
-kubectl port-forward -n shuqing svc/sql-gateway  18081:8081 &
-kubectl port-forward -n shuqing svc/rule-engine  18083:8083 &
-
-# 运行 Locust(headless 模式)
-locust -f locustfile.py --headless -u 10 -r 2 -t 30s --only-summary
-
-# 或启动 Web UI
-locust -f locustfile.py  # 浏览器访问 http://localhost:8089
-```
-
-## 输出
-
-`benchmark_report.md` 包含:
-1. 服务可达性总览
-2. 各端点 P50/P95/P99 延迟实测/理论值
-3. P95 延迟基准对照(达标判定)
-4. 结论与优化建议
-5. 测试环境与端点清单附录
+- 100 并发：5/5 API 达标，TPS 3,807 ~ 7,472
+- 500 并发：4/5 API 达标（登录 P99=950ms 未达标）
+- 1000 并发：3/5 API 达标（登录 P99=992ms，standards P99=206ms 未达标）
+- 错误率：全部 0%

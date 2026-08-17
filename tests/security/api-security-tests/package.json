@@ -1,0 +1,19 @@
+{
+  "name": "dataenginebdp-security-tests",
+  "version": "1.0.0",
+  "description": "DataEngineBDP 安全测试套件 - OWASP Top 10 + 等保三级",
+  "private": true,
+  "scripts": {
+    "test:auth": "node auth-security.test.js",
+    "test:injection": "node injection-tests.test.js",
+    "test:csrf": "node csrf-tests.test.js",
+    "test:access": "node access-control-tests.test.js",
+    "test:p0": "node p0-security-mechanisms.test.js",
+    "test:all": "node run-all.js",
+    "test:all:json": "node run-all.js --json"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,365 @@
+{
+  "summary": {
+    "scenario": "finance",
+    "description": "城商行金融风控：实时决策+AML+信贷风控+模型监控+数据分级",
+    "industry": "finance",
+    "totalSteps": 12,
+    "passed": 8,
+    "failed": 0,
+    "skipped": 4,
+    "durationMs": 196,
+    "overall": "PASS"
+  },
+  "steps": [
+    {
+      "index": 1,
+      "name": "登录并建立城商行风控租户上下文",
+      "description": "admin/admin 登录，切换到 bank-finance 租户",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 74,
+      "checks": [
+        {
+          "name": "登录成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "健康检查通过",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "total": 2
+      }
+    },
+    {
+      "index": 2,
+      "name": "交易数据实时接入 - 核心/信贷/支付系统 CDC",
+      "description": "为客户/账户/交易/信贷 4 类业务表创建 CDC 集成任务",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 17,
+      "checks": [
+        {
+          "name": "连接器列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "MySQL-CDC 连接器可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "Kafka 连接器可用",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 CDC 任务「fin.core.customer.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 CDC 任务「fin.core.account.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 CDC 任务「fin.core.transaction.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建 CDC 任务「fin.credit.loan_application.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "cdcTasks": 4
+      }
+    },
+    {
+      "index": 3,
+      "name": "风控规则引擎 - 大额转账/深夜异地/高频分散规则配置",
+      "description": "配置 3 类风控规则（ALERT/REJECT/MANUAL）",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 18,
+      "checks": [
+        {
+          "name": "注册风控规则「大额转账告警」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册风控规则「深夜异地交易拒绝」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册风控规则「高频小额分散转入」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "规则动作覆盖 ALERT/REJECT/MANUAL",
+          "status": "PASS",
+          "detail": "actions=ALERT/REJECT/MANUAL"
+        }
+      ],
+      "summary": {
+        "rulesConfigured": 3,
+        "actions": [
+          "ALERT",
+          "REJECT",
+          "MANUAL"
+        ]
+      }
+    },
+    {
+      "index": 4,
+      "name": "风控规则热更新 - Flink 监听 binlog 动态重载",
+      "description": "修改 risk_rule 阈值，Flink 5 秒内热重载，无需重启作业",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 1,
+      "checks": []
+    },
+    {
+      "index": 5,
+      "name": "实时风控决策 - 深夜异地 20 万转账 50ms 内 REJECT",
+      "description": "验证 Flink 实时流 + 规则引擎 + ML 推理组合决策",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 0,
+      "checks": []
+    },
+    {
+      "index": 6,
+      "name": "反欺诈检测 - XGBoost 模型注册与版本管理",
+      "description": "注册反欺诈 XGBoost 模型 + 信用评分卡 LR 模型",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 27,
+      "checks": [
+        {
+          "name": "注册模型「fraud_xgb」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册模型「credit_score_lr」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册模型「default_prob_xgb」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "反欺诈模型 AUC > 0.85",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "反欺诈模型 KS > 0.4",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "反欺诈模型 PSI < 0.1",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "modelsRegistered": 3
+      }
+    },
+    {
+      "index": 7,
+      "name": "实时画像计算 - 客户画像/特征/关系资产注册",
+      "description": "注册 customer_profile/risk_feature/customer_relation 资产",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 14,
+      "checks": [
+        {
+          "name": "注册资产「customer_profile」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册资产「risk_feature」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册资产「customer_relation」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册资产「risk_evaluation」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册资产「aml_alert」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "assetsRegistered": 5
+      }
+    },
+    {
+      "index": 8,
+      "name": "AML 场景识别 - 分散转入集中转出/快进快出/结构化/化整为零",
+      "description": "Flink CEP 识别 4 类 AML 可疑场景，生成 aml_alert",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 0,
+      "checks": []
+    },
+    {
+      "index": 9,
+      "name": "信贷风控 - 评分卡+ML+规则集组合决策",
+      "description": "贷款申请进件 → 特征工程 → 评分卡 → ML → 规则集 → 组合决策",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 0,
+      "checks": []
+    },
+    {
+      "index": 10,
+      "name": "风控看板 - 决策大盘/规则命中/模型效果/AML 统计 API",
+      "description": "注册风控看板数据集和决策 API",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 15,
+      "checks": [
+        {
+          "name": "注册看板「ads_risk_dashboard」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册看板「ads_aml_report_stat」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「风控决策 API」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「AML 告警查询」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「客户风险等级查询」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "dashboards": 2,
+        "apis": 3
+      }
+    },
+    {
+      "index": 11,
+      "name": "数据分级与脱敏 - 身份证/账户号 SM4 加密+强脱敏",
+      "description": "验证敏感字段脱敏策略配置（SM4 加密+掩码）",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 20,
+      "checks": [
+        {
+          "name": "创建脱敏策略「id_card」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建脱敏策略「account_no」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建脱敏策略「phone」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建脱敏策略「counter_account」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "脱敏策略列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "脱敏策略数 >= 4",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0,
+        "total": 6
+      }
+    },
+    {
+      "index": 12,
+      "name": "ML 推理服务部署 - 反欺诈/信用评分在线推理",
+      "description": "部署反欺诈 XGBoost + 信用评分 LR 推理服务",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 9,
+      "checks": [
+        {
+          "name": "部署推理服务「fraud-detect」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "部署推理服务「credit-score」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "推理服务列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "推理服务数 >= 2",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "total": 4
+      }
+    }
+  ]
+}

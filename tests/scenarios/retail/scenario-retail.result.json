@@ -1,0 +1,422 @@
+{
+  "summary": {
+    "scenario": "retail",
+    "description": "零售营销场景：500 门店+2800 万会员+RFM 画像+推荐+A/B 实验+效果分析",
+    "industry": "retail",
+    "totalSteps": 13,
+    "passed": 10,
+    "failed": 0,
+    "skipped": 3,
+    "durationMs": 249,
+    "overall": "PASS"
+  },
+  "steps": [
+    {
+      "index": 1,
+      "name": "登录并建立零售集团租户上下文",
+      "description": "admin/admin 登录，切换到 retail-group 租户",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 28,
+      "checks": [
+        {
+          "name": "登录成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "健康检查通过",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0,
+        "total": 2
+      }
+    },
+    {
+      "index": 2,
+      "name": "500 门店 POS/CRM 实时接入 - CDC 集成任务",
+      "description": "为 POS 订单/支付 + CRM 会员/营销 + 行为事件创建集成任务",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 37,
+      "checks": [
+        {
+          "name": "连接器列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建集成任务「retail.pos.order.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建集成任务「retail.pos.payment.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建集成任务「retail.crm.member.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建集成任务「retail.crm.campaign.cdc」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "创建集成任务「retail.behavior.event」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "tasksCreated": 5
+      }
+    },
+    {
+      "index": 3,
+      "name": "500 门店 RFM 画像 - 会员画像资产注册",
+      "description": "注册 member_rfm/member_churn_prediction/member_ltv/member_tag 资产",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 24,
+      "checks": [
+        {
+          "name": "注册会员画像资产「member_rfm」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册会员画像资产「member_churn_prediction」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册会员画像资产「member_ltv」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册会员画像资产「member_tag」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册会员画像资产「member_behavior_profile」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "10 大 RFM 分群已定义",
+          "status": "PASS",
+          "detail": "segments=CHAMPION/LOYAL/POTENTIAL_LOYAL/NEW/PROMISING/NEED_ATTENTION/ABOUT_TO_SLEEP/HIBERNATING/LOST/LOST_CHEAP"
+        }
+      ],
+      "summary": {
+        "assetsRegistered": 5,
+        "rfmSegments": 10
+      }
+    },
+    {
+      "index": 4,
+      "name": "RFM 分群计算 - R/F/M 评分+10 大分群映射",
+      "description": "验证某会员近 365 天购买 12 次、累计 8500 元、最近 5 天前 → CHAMPION",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 1,
+      "checks": []
+    },
+    {
+      "index": 5,
+      "name": "会员标签体系 - RFM/流失/LTV/行为/人口 5 类标签",
+      "description": "验证会员标签资产可注册，5 类标签体系完整",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 30,
+      "checks": [
+        {
+          "name": "注册会员标签资产成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "标签类别数 = 5",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "标签总数 = 14",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "tagCategories": 5
+      }
+    },
+    {
+      "index": 6,
+      "name": "营销活动效果分析 - ROI/ROAS/CPA/CPC + 5 步漏斗",
+      "description": "注册 marketing_roi/conversion_funnel/ab_experiment_variant 资产",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 15,
+      "checks": [
+        {
+          "name": "注册营销资产「marketing_roi」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册营销资产「conversion_funnel」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册营销资产「ab_experiment」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册营销资产「ab_experiment_variant」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册营销资产「marketing_channel_stat」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "5 步漏斗已定义",
+          "status": "PASS",
+          "detail": "steps=曝光→点击→加购→下单→支付"
+        }
+      ],
+      "summary": {
+        "assetsRegistered": 5,
+        "funnelSteps": 5
+      }
+    },
+    {
+      "index": 7,
+      "name": "商品关联分析 - 商品画像+关联规则资产注册",
+      "description": "注册 product_sales_stat/product_review_profile/product_tag 资产",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 11,
+      "checks": [
+        {
+          "name": "注册商品画像资产「product_sales_stat」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册商品画像资产「product_review_profile」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册商品画像资产「product_tag」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册商品画像资产「product_association_rules」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "assetsRegistered": 4
+      }
+    },
+    {
+      "index": 8,
+      "name": "A/B 实验配置 - 首页推荐算法对比实验",
+      "description": "配置 exp_001：新版协同过滤 vs 旧版热门推荐，假设 CTR 提升 5%",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 10,
+      "checks": [
+        {
+          "name": "注册 A/B 实验资产成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "对照组转化率 = 2.5%",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "实验组转化率 = 2.75%",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "提升度 = 10%",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "P 值 < 0.05（统计显著）",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "实验组获胜，可全量上线",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "pValue": 0.000123,
+        "isSignificant": true,
+        "isWinner": true
+      }
+    },
+    {
+      "index": 9,
+      "name": "推荐引擎 - 多路召回+精排+重排",
+      "description": "协同/内容/热门/个性化/实时行为 5 路召回 + LightGBM 精排 + 业务重排",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 0,
+      "checks": []
+    },
+    {
+      "index": 10,
+      "name": "实时库存监控 - 500 门店库存实时汇总",
+      "description": "Flink 实时计算 500 门店库存，触发低库存预警",
+      "status": "SKIP",
+      "reason": "需完整 K8s 集群环境（Spark/Flink/Doris/Kafka/Iceberg）",
+      "durationMs": 0,
+      "checks": []
+    },
+    {
+      "index": 11,
+      "name": "流失预测 + LTV 预测 ML 模型注册",
+      "description": "注册 LightGBM 流失预测 + BG/NBD+Gamma-Gamma LTV 预测模型",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 34,
+      "checks": [
+        {
+          "name": "注册模型「churn_lgbm_lr_ensemble」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册模型「ltv_bgnbd_gamma」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "注册模型「recommend_lightgbm_rank」成功",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "modelsRegistered": 3
+      }
+    },
+    {
+      "index": 12,
+      "name": "推荐 API + 营销 API 发布到开放目录",
+      "description": "首页推荐/购物车推荐/消息推送/优惠券 API 发布",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 41,
+      "checks": [
+        {
+          "name": "发布 API「首页推荐」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「购物车推荐」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「消息推送推荐」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「优惠券发放」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「营销活动效果查询」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "发布 API「A/B 实验效果查询」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "recommend 分类 API 列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "recommend 分类 API 数 >= 3",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "apisPublished": 6
+      }
+    },
+    {
+      "index": 13,
+      "name": "ML 推理服务部署 - 流失预测+推荐精排在线推理",
+      "description": "部署流失预测+推荐精排推理服务",
+      "status": "PASS",
+      "reason": "",
+      "durationMs": 16,
+      "checks": [
+        {
+          "name": "部署推理服务「churn-predict」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "部署推理服务「recommend-rank」成功",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "推理服务列表返回 200",
+          "status": "PASS",
+          "detail": ""
+        },
+        {
+          "name": "推理服务数 >= 2",
+          "status": "PASS",
+          "detail": ""
+        }
+      ],
+      "summary": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0,
+        "total": 4
+      }
+    }
+  ]
+}

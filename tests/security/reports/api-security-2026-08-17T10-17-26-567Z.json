@@ -1,0 +1,375 @@
+{
+  "timestamp": "2026-08-17T10:17:26.567Z",
+  "target": "http://localhost:18086",
+  "durationMs": 2648,
+  "summary": {
+    "total": 79,
+    "pass": 78,
+    "fail": 0,
+    "warn": 1
+  },
+  "suites": [
+    {
+      "name": "P0 安全机制验证",
+      "pass": 31,
+      "fail": 0,
+      "warn": 0,
+      "total": 31,
+      "results": [
+        {
+          "label": "SmCryptoUtil 国密工具类文件存在",
+          "status": "PASS"
+        },
+        {
+          "label": "SmCryptoUtil 包含 SM2/SM3/SM4 方法",
+          "status": "PASS"
+        },
+        {
+          "label": "SmCryptoUtil 引用国标 Provider",
+          "status": "PASS"
+        },
+        {
+          "label": "@Encrypt 注解类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "@Decrypt 注解类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "FieldEncryptAspect 切面类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "FieldEncryptAspect 标注 @Aspect @Component",
+          "status": "PASS"
+        },
+        {
+          "label": "FieldEncryptAspect 拦截 @Encrypt @Decrypt",
+          "status": "PASS"
+        },
+        {
+          "label": "FieldEncryptAspect 使用 SmCryptoUtil",
+          "status": "PASS"
+        },
+        {
+          "label": "@AuditLog 注解类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "AuditLogAspect 切面类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "AuditLogAspect 标注 @Aspect @Component",
+          "status": "PASS"
+        },
+        {
+          "label": "AuditLogAspect 记录完整审计字段（等保 8.1.4.3）",
+          "status": "PASS"
+        },
+        {
+          "label": "AuditLogAspect 使用独立审计 logger",
+          "status": "PASS"
+        },
+        {
+          "label": "JwtAuthFilter 类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "JwtAuthFilter 验证签名 + issuer + 过期",
+          "status": "PASS"
+        },
+        {
+          "label": "JwtAuthFilter 清理 ThreadLocal（防串号）",
+          "status": "PASS"
+        },
+        {
+          "label": "SecurityConfig 类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "SecurityConfig 配置 STATELESS 会话",
+          "status": "PASS"
+        },
+        {
+          "label": "SecurityConfig 放行 health + login + actuator",
+          "status": "PASS"
+        },
+        {
+          "label": "SecurityConfig 其他请求要求认证",
+          "status": "PASS"
+        },
+        {
+          "label": "SecurityConfig 配置 CORS",
+          "status": "PASS"
+        },
+        {
+          "label": "TenantContext 类存在",
+          "status": "PASS"
+        },
+        {
+          "label": "动态：未认证访问受保护 API 返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "动态：合法 token 访问受保护 API 返回 2xx",
+          "status": "PASS"
+        },
+        {
+          "label": "动态：公开端点可匿名访问",
+          "status": "PASS"
+        },
+        {
+          "label": "代码中存在 @AuditLog 使用点",
+          "status": "PASS"
+        },
+        {
+          "label": "代码中存在 @Encrypt 使用点",
+          "status": "PASS"
+        },
+        {
+          "label": "application.yml 包含安全配置",
+          "status": "PASS"
+        },
+        {
+          "label": "审计日志文件应被创建（运行时）",
+          "status": "PASS"
+        },
+        {
+          "label": "SecurityFacade 统一安全门面存在",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "认证安全测试",
+      "pass": 14,
+      "fail": 0,
+      "warn": 0,
+      "total": 14,
+      "results": [
+        {
+          "label": "未认证访问受保护 API 应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "错误格式 Authorization 头应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "错误密码登录应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "篡改 JWT payload 应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "随机签名 JWT 应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "过期 JWT 应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "篡改 issuer 应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "篡改 tenantId 应返回 401（签名不匹配）",
+          "status": "PASS"
+        },
+        {
+          "label": "空 Authorization 头应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "非 Bearer 前缀应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "公开端点 /api/v1/health 应可匿名访问",
+          "status": "PASS"
+        },
+        {
+          "label": "公开端点 /actuator/health 应可匿名访问",
+          "status": "PASS"
+        },
+        {
+          "label": "合法 token 可访问受保护 API",
+          "status": "PASS"
+        },
+        {
+          "label": "JWT payload 不应包含敏感信息（password/secret）",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "注入安全测试",
+      "pass": 14,
+      "fail": 0,
+      "warn": 0,
+      "total": 14,
+      "results": [
+        {
+          "label": "SQL 注入载荷不应触发 SQL 错误",
+          "status": "PASS"
+        },
+        {
+          "label": "SQL 注入路径参数不应触发错误",
+          "status": "PASS"
+        },
+        {
+          "label": "SQL 注入 POST body 不应触发错误",
+          "status": "PASS"
+        },
+        {
+          "label": "XSS 反射型载荷不应在响应中未转义回显",
+          "status": "PASS"
+        },
+        {
+          "label": "XSS 存储型载荷不应导致 500",
+          "status": "PASS"
+        },
+        {
+          "label": "命令注入载荷不应执行命令",
+          "status": "PASS"
+        },
+        {
+          "label": "路径遍历载荷不应泄露系统文件",
+          "status": "PASS"
+        },
+        {
+          "label": "CRLF 注入载荷不应污染响应头",
+          "status": "PASS"
+        },
+        {
+          "label": "NoSQL 注入载荷不应触发错误",
+          "status": "PASS"
+        },
+        {
+          "label": "LDAP 注入载荷不应触发错误",
+          "status": "PASS"
+        },
+        {
+          "label": "SSRF 载荷不应访问内网/云元数据",
+          "status": "PASS"
+        },
+        {
+          "label": "模板注入载荷不应被求值",
+          "status": "PASS"
+        },
+        {
+          "label": "XXE 载荷不应解析外部实体",
+          "status": "PASS"
+        },
+        {
+          "label": "所有注入响应不应泄露 SQL 错误或堆栈",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "CSRF 安全测试",
+      "pass": 8,
+      "fail": 0,
+      "warn": 0,
+      "total": 8,
+      "results": [
+        {
+          "label": "响应不应设置会话 Cookie（STATELESS）",
+          "status": "PASS"
+        },
+        {
+          "label": "CORS 不应允许任意源（*）+ credentials",
+          "status": "PASS"
+        },
+        {
+          "label": "OPTIONS 预检应返回 2xx 或 403",
+          "status": "PASS"
+        },
+        {
+          "label": "无 Authorization 头的 POST 应返回 401",
+          "status": "PASS"
+        },
+        {
+          "label": "application/x-www-form-urlencoded 跨域请求应被拦截或要求认证",
+          "status": "PASS"
+        },
+        {
+          "label": "响应应包含安全头（X-Content-Type-Options: nosniff）",
+          "status": "PASS"
+        },
+        {
+          "label": "响应应包含 X-Frame-Options（防点击劫持）",
+          "status": "PASS"
+        },
+        {
+          "label": "敏感 API 响应应包含 Cache-Control: no-store",
+          "status": "PASS"
+        }
+      ]
+    },
+    {
+      "name": "访问控制安全测试",
+      "pass": 11,
+      "fail": 0,
+      "warn": 1,
+      "total": 12,
+      "results": [
+        {
+          "label": "admin token 可访问受保护 API",
+          "status": "PASS"
+        },
+        {
+          "label": "普通用户 token 可访问普通 API",
+          "status": "PASS"
+        },
+        {
+          "label": "普通用户不应能访问管理员 API（垂直越权）",
+          "status": "PASS"
+        },
+        {
+          "label": "IDOR：访问不存在的资源 ID 应返回 404 而非 500",
+          "status": "PASS"
+        },
+        {
+          "label": "IDOR：超大 ID 不应触发 500",
+          "status": "PASS"
+        },
+        {
+          "label": "篡改 tenantId 不应访问其他租户数据",
+          "status": "PASS"
+        },
+        {
+          "label": "删除不存在的资源 ID 应返回 404 而非 500",
+          "status": "PASS"
+        },
+        {
+          "label": "PUT 不存在的资源 ID 应返回 404 而非 500",
+          "status": "PASS"
+        },
+        {
+          "label": "普通用户不应能创建管理员账户",
+          "status": "PASS"
+        },
+        {
+          "label": "JWT sub 应为当前用户 ID",
+          "status": "PASS"
+        },
+        {
+          "label": "重复登录返回相同 token",
+          "status": "WARN",
+          "reason": "JWT iat 不同应导致 token 不同"
+        },
+        {
+          "label": "重复登录应返回不同 token（无状态）",
+          "status": "PASS"
+        }
+      ]
+    }
+  ]
+}
