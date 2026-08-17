@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.workspace;
 
+import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -50,6 +51,7 @@ public class WorkspaceController {
      * @param workspace 创建请求体
      * @return 201 + 已创建的 Workspace
      */
+    @AuditLog(action = "CREATE_WORKSPACE", resource = "workspace")
     @PostMapping
     public ResponseEntity<Workspace> create(@Valid @RequestBody Workspace workspace) {
         Workspace created = workspaceService.createWorkspace(workspace);
@@ -118,6 +120,7 @@ public class WorkspaceController {
      * @param workspace 新字段值
      * @return 200 + 更新后的 Workspace；404 若不存在
      */
+    @AuditLog(action = "UPDATE_WORKSPACE", resource = "workspace")
     @PutMapping("/{id}")
     public ResponseEntity<Workspace> update(@PathVariable Long id,
                                             @Valid @RequestBody Workspace workspace) {
@@ -132,6 +135,7 @@ public class WorkspaceController {
      * @param id Workspace ID
      * @return 204 若已删除；404 若不存在
      */
+    @AuditLog(action = "DELETE_WORKSPACE", resource = "workspace")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (workspaceService.deleteWorkspace(id)) {

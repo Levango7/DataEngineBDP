@@ -415,6 +415,9 @@ jobs:
   # ============================================================
   # 生成 SBOM（软件物料清单）：使用 anchore/sbom-action
   # 对整个代码库生成 SBOM，上传为 artifact 供 Release 使用
+  # 注：本作业生成源码级 SBOM（用于 Release 资产归档）；
+  #     镜像级 SBOM（SPDX/CycloneDX）由 image-sign-sbom.yml 流水线
+  #     使用 Syft 针对已推送镜像生成，详见 design/deploy/镜像签名与SBOM指南.md
   # ============================================================
   generate-sbom:
     name: Generate SBOM

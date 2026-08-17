@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.quota.Quota;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
+import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -81,6 +82,7 @@ public class AccountController {
     }
 
     /** 升级套餐（轻量：记录并返回目标档费用；真实支付见 ROADMAP）。 */
+    @AuditLog(action = "UPGRADE_PLAN", resource = "account")
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, Object>> upgrade(@RequestBody Map<String, String> req) {
         String target = req.getOrDefault("targetPlan", "pro");

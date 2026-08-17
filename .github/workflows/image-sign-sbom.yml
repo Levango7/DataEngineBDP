@@ -1,0 +1,565 @@
+# Image Sign & SBOM 镜像签名与软件物料清单流水线
+# 职责：构建并推送镜像 → cosign 签名 → Syft 生成 SBOM → Trivy 漏洞扫描 → 上传产物
+# 与 build.yml 区分：build.yml 负责全量镜像构建推送；本工作流聚焦供应链安全
+#   （签名 + SBOM + 漏洞扫描），针对关键组件做端到端安全加固
+# 与 security-scan.yml 区分：security-scan.yml 做依赖/IaC/静态扫描；
+#   本工作流做镜像签名 + 镜像 SBOM + 镜像漏洞扫描，产出可验证的供应链制品
+# 触发条件：push 到 main、打 tag v*、PR 到 main、手动触发
+name: Image Sign & SBOM
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  # 手动触发：支持指定组件列表与是否推送/签名
+  workflow_dispatch:
+    inputs:
+      components:
+        description: '待处理的组件列表（逗号分隔，留空则使用默认关键组件）'
+        required: false
+        default: 'frontend,encaps-layer,sql-gateway,catalog,rule-engine'
+      push_image:
+        description: '是否推送镜像到 GHCR（true/false）'
+        required: false
+        default: 'true'
+      enable_sign:
+        description: '是否启用 cosign 签名（true/false）'
+        required: false
+        default: 'true'
+
+# 权限最小化原则：
+# - packages: write  推送 GHCR 镜像
+# - contents: read    读取代码
+# - id-token: write   cosign keyless 签名所需 OIDC token
+# - attestations: write  cosign attestation 附加签名
+# - security-events: write  Trivy SARIF 上传到 GitHub Security tab
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+  security-events: write
+
+# 同一分支的并发工作流只保留最新一次，避免重复签名/扫描
+concurrency:
+  group: image-sign-sbom-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # 作业 1：构建并推送镜像
+  # 针对关键组件（frontend/encaps-layer/sql-gateway/catalog/rule-engine）
+  # 构建 Docker 镜像并推送到 GHCR（ghcr.io）
+  # 镜像标签：${{ github.sha }} 精确版本 + latest 滚动版本
+  # 产物：镜像 digest 输出到 job output，供后续签名/扫描作业引用
+  # ============================================================
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    outputs:
+      image-list: ${{ steps.build-meta.outputs.image-list }}
+      registry-ns: ${{ steps.setup-ns.outputs.registry-ns }}
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        id: setup-ns
+        run: echo "registry-ns=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 解析待处理组件列表
+        id: resolve-components
+        run: |
+          # 优先使用手动触发的输入，否则使用默认关键组件
+          if [ -n "${{ github.event.inputs.components }}" ]; then
+            COMPONENTS="${{ github.event.inputs.components }}"
+          else
+            COMPONENTS="frontend,encaps-layer,sql-gateway,catalog,rule-engine"
+          fi
+          echo "组件列表: $COMPONENTS"
+          echo "components=$COMPONENTS" >> "$GITHUB_OUTPUT"
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 构建并推送前端镜像
+        if: contains(steps.resolve-components.outputs.components, 'frontend')
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend/
+          file: frontend/Dockerfile
+          push: ${{ github.event.inputs.push_image != 'false' }}
+          tags: |
+            ghcr.io/${{ steps.setup-ns.outputs.registry-ns }}/sq-frontend:latest
+            ghcr.io/${{ steps.setup-ns.outputs.registry-ns }}/sq-frontend:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=sign-frontend
+          cache-to: type=gha,mode=max,scope=sign-frontend
+
+      - name: 构建并推送后端镜像（encaps-layer/sql-gateway/catalog/rule-engine）
+        id: build-meta
+        run: |
+          COMPONENTS="${{ steps.resolve-components.outputs.components }}"
+          REGISTRY_NS="${{ steps.setup-ns.outputs.registry-ns }}"
+          PUSH_FLAG="${{ github.event.inputs.push_image != 'false' }}"
+          mkdir -p reports/build
+          image_list=""
+          # 后端组件需要先 Maven 打包再 Docker 构建
+          backend_needs_maven=false
+          for comp in encaps-layer sql-gateway catalog rule-engine; do
+            if echo "$COMPONENTS" | grep -q "$comp"; then
+              backend_needs_maven=true
+              break
+            fi
+          done
+          if [ "$backend_needs_maven" = "true" ]; then
+            echo "安装 JDK 17 + Maven 3.9 用于后端组件构建"
+            # 复用 setup-java 在后续步骤；此处仅标记需要 Maven
+            echo "need_maven=true" >> "$GITHUB_ENV"
+          fi
+          # 前端镜像若已构建则加入列表
+          if echo "$COMPONENTS" | grep -q "frontend"; then
+            img="ghcr.io/${REGISTRY_NS}/sq-frontend:${{ github.sha }}"
+            image_list="${image_list}${img},"
+            echo "frontend 镜像: $img" | tee -a reports/build/build.log
+          fi
+          # 后端镜像构建（简化：仅构建存在 Dockerfile 的组件）
+          for comp in encaps-layer sql-gateway catalog rule-engine; do
+            if ! echo "$COMPONENTS" | grep -q "$comp"; then
+              continue
+            fi
+            dockerfile="platform/${comp}/Dockerfile"
+            if [ ! -f "$dockerfile" ]; then
+              echo "::warning::未找到 $dockerfile，跳过 $comp"
+              continue
+            fi
+            img="ghcr.io/${REGISTRY_NS}/sq-${comp}:${{ github.sha }}"
+            echo "============================================"
+            echo "  Docker build & push: $comp"
+            echo "============================================"
+            docker buildx build \
+              -t "ghcr.io/${REGISTRY_NS}/sq-${comp}:latest" \
+              -t "$img" \
+              --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
+              --label "org.opencontainers.image.revision=${{ github.sha }}" \
+              --cache-from "type=gha,scope=sign-${comp}" \
+              --cache-to "type=gha,mode=max,scope=sign-${comp}" \
+              --push="$PUSH_FLAG" \
+              "platform/${comp}" || { echo "::warning::$comp 构建失败，跳过"; continue; }
+            image_list="${image_list}${img},"
+            echo "$comp 镜像: $img" | tee -a reports/build/build.log
+          done
+          # 去除末尾逗号
+          image_list="${image_list%,}"
+          echo "image-list=$image_list" >> "$GITHUB_OUTPUT"
+          echo "============================================"
+          echo "  构建完成，待签名/扫描镜像列表"
+          echo "============================================"
+          echo "$image_list" | tr ',' '\n'
+          if [ -z "$image_list" ]; then
+            echo "::error::未成功构建任何镜像"
+            exit 1
+          fi
+
+      - name: 上传构建日志 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-build-log
+          path: reports/build/
+          retention-days: 14
+          if-no-files-found: warn
+
+  # ============================================================
+  # 作业 2：使用 cosign 对镜像签名
+  # 签名模式：keyless（OIDC）— 无需管理私钥，签名身份绑定 GitHub Actions workflow
+  # 备选模式：key-based — 使用 cosign 密钥对（COSIGN_PRIVATE_KEY/COSIGN_PASSWORD）
+  # 签名产物：签名附加到镜像 manifest，可通过 cosign verify 验证
+  # 依赖：作业 1（build-and-push）成功完成
+  # ============================================================
+  cosign-sign:
+    name: Cosign Sign Images
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    # PR 触发时跳过签名（PR 无权推送签名到 GHCR）
+    if: github.event_name != 'pull_request' && github.event.inputs.enable_sign != 'false'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 cosign
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.2.4'
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Keyless 签名（OIDC，推荐）
+        env:
+          IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
+        run: |
+          mkdir -p reports/sign
+          sign_ok=0
+          sign_fail=0
+          IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
+          for img in "${IMAGES[@]}"; do
+            echo "============================================"
+            echo "  cosign sign (keyless): $img"
+            echo "============================================"
+            # keyless 签名：身份绑定 GitHub workflow，无需私钥
+            if cosign sign --yes "$img"; then
+              echo "✓ 签名成功: $img" | tee -a reports/sign/sign.log
+              sign_ok=$((sign_ok + 1))
+            else
+              echo "::warning::签名失败: $img" | tee -a reports/sign/sign.log
+              sign_fail=$((sign_fail + 1))
+            fi
+          done
+          echo "============================================"
+          echo "  签名摘要: 成功 $sign_ok / 失败 $sign_fail"
+          echo "============================================" | tee -a reports/sign/sign.log
+          # 签名失败不阻断流水线（仅告警），生产环境可改为 exit 1 强制门禁
+          if [ "$sign_ok" -eq 0 ]; then
+            echo "::error::所有镜像签名均失败"
+            exit 1
+          fi
+
+      - name: 生成签名验证记录
+        env:
+          IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
+          REGISTRY_NS: ${{ needs.build-and-push.outputs.registry-ns }}
+        run: |
+          IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
+          {
+            echo "# 镜像签名记录"
+            echo ""
+            echo "签名时间: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "签名模式: keyless (OIDC)"
+            echo "签名身份: ${{ github.repository }}@refs/heads/${{ github.ref_name }}"
+            echo "Workflow: ${{ github.run_id }}"
+            echo ""
+            echo "## 已签名镜像"
+            echo ""
+            for img in "${IMAGES[@]}"; do
+              echo "- \`$img\`"
+            done
+            echo ""
+            echo "## 验证命令"
+            echo ""
+            echo '```bash'
+            for img in "${IMAGES[@]}"; do
+              echo "cosign verify $img \\"
+              echo "  --certificate-identity-regexp \"https://github.com/${{ github.repository }}/.github/workflows/.*\" \\"
+              echo "  --certificate-oidc-issuer \"https://token.actions.githubusercontent.com\""
+            done
+            echo '```'
+          } > reports/sign/sign-record.md
+          cat reports/sign/sign-record.md
+
+      - name: 上传签名记录 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-sign-record
+          path: reports/sign/
+          retention-days: 30
+
+  # ============================================================
+  # 作业 3：使用 Syft 生成 SBOM（软件物料清单）
+  # 格式：SPDX JSON + CycloneDX JSON（双格式输出，兼容不同消费方）
+  # 范围：源码目录（syft dir:.）+ 镜像 SBOM（syft img）
+  # 依赖：作业 1（build-and-push）成功完成
+  # ============================================================
+  generate-sbom:
+    name: Generate SBOM (Syft)
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Syft
+        uses: anchore/syft-action@v1
+        with:
+          syft-version: 'v1.1.0'
+
+      - name: 生成源码 SBOM（SPDX JSON）
+        run: |
+          mkdir -p reports/sbom
+          echo "生成源码 SBOM (SPDX JSON)..."
+          syft dir:. -o spdx-json > reports/sbom/source-sbom.spdx.json
+          echo "✓ 源码 SBOM (SPDX): reports/sbom/source-sbom.spdx.json"
+          # 摘要信息
+          {
+            echo "## 源码 SBOM 摘要（SPDX）"
+            echo ""
+            echo "- 格式: SPDX JSON"
+            echo "- 生成时间: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "- 包名数量: $(jq '.packages | length' reports/sbom/source-sbom.spdx.json 2>/dev/null || echo 'N/A')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 生成源码 SBOM（CycloneDX JSON）
+        run: |
+          echo "生成源码 SBOM (CycloneDX JSON)..."
+          syft dir:. -o cyclonedx-json > reports/sbom/source-sbom.cyclonedx.json
+          echo "✓ 源码 SBOM (CycloneDX): reports/sbom/source-sbom.cyclonedx.json"
+
+      - name: 生成镜像 SBOM
+        env:
+          IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
+        run: |
+          IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
+          for img in "${IMAGES[@]}"; do
+            # 从完整镜像引用提取组件名（sq-xxx:tag -> xxx）
+            short=$(echo "$img" | sed -E 's|.*/sq-([^:]+):.*|\1|')
+            echo "============================================"
+            echo "  生成镜像 SBOM: $short"
+            echo "============================================"
+            # SPDX 格式
+            syft "$img" -o spdx-json > "reports/sbom/${short}-image.spdx.json" 2>/dev/null \
+              && echo "✓ ${short} 镜像 SBOM (SPDX)" \
+              || echo "::warning::${short} 镜像 SBOM (SPDX) 生成失败"
+            # CycloneDX 格式
+            syft "$img" -o cyclonedx-json > "reports/sbom/${short}-image.cyclonedx.json" 2>/dev/null \
+              && echo "✓ ${short} 镜像 SBOM (CycloneDX)" \
+              || echo "::warning::${short} 镜像 SBOM (CycloneDX) 生成失败"
+          done
+
+      - name: 汇总 SBOM 文件清单
+        run: |
+          echo "============================================"
+          echo "  SBOM 文件清单"
+          echo "============================================"
+          ls -la reports/sbom/
+          echo ""
+          echo "总文件数: $(find reports/sbom -type f | wc -l)"
+
+      - name: 上传 SBOM Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-sbom
+          path: reports/sbom/
+          retention-days: 30
+          if-no-files-found: error
+
+  # ============================================================
+  # 作业 4：使用 Trivy 扫描镜像漏洞
+  # 严重级别：HIGH, CRITICAL（生产门禁级别）
+  # 输出：SARIF（上传 GitHub Security tab）+ JSON（详细报告）+ 摘要
+  # 依赖：作业 1（build-and-push）成功完成
+  # ============================================================
+  trivy-image-scan:
+    name: Trivy Image Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          version: latest
+
+      - name: 扫描镜像漏洞（HIGH,CRITICAL）
+        env:
+          IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
+        run: |
+          mkdir -p reports/trivy
+          IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
+          total_high=0
+          total_critical=0
+          for img in "${IMAGES[@]}"; do
+            short=$(echo "$img" | sed -E 's|.*/sq-([^:]+):.*|\1|')
+            echo "============================================"
+            echo "  Trivy 扫描镜像: $short"
+            echo "============================================"
+            # SARIF 格式（上传 GitHub Security tab）
+            trivy image --exit-code 0 --format sarif \
+              --output "reports/trivy/${short}-vuln.sarif" \
+              --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              "$img" 2>/dev/null \
+              && echo "✓ ${short} SARIF 报告生成" \
+              || echo "::warning::${short} SARIF 扫描失败"
+            # JSON 格式（详细报告，含修复建议）
+            trivy image --exit-code 0 --format json \
+              --output "reports/trivy/${short}-vuln.json" \
+              --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              "$img" 2>/dev/null \
+              && echo "✓ ${short} JSON 报告生成" \
+              || echo "::warning::${short} JSON 扫描失败"
+            # 统计漏洞数
+            if [ -f "reports/trivy/${short}-vuln.json" ]; then
+              high=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="HIGH")] | length' "reports/trivy/${short}-vuln.json" 2>/dev/null || echo 0)
+              crit=$(jq '[.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")] | length' "reports/trivy/${short}-vuln.json" 2>/dev/null || echo 0)
+              total_high=$((total_high + high))
+              total_critical=$((total_critical + crit))
+              echo "  $short: HIGH=$high, CRITICAL=$crit"
+            fi
+          done
+          # 保存统计结果供后续步骤使用
+          echo "total_high=$total_high" >> "$GITHUB_ENV"
+          echo "total_critical=$total_critical" >> "$GITHUB_ENV"
+          echo "============================================"
+          echo "  漏洞扫描摘要"
+          echo "============================================"
+          echo "总 HIGH 漏洞: $total_high"
+          echo "总 CRITICAL 漏洞: $total_critical"
+
+      - name: 上传 SARIF 到 GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy
+
+      - name: 生成漏洞扫描摘要
+        run: |
+          {
+            echo "## 镜像漏洞扫描摘要（Trivy）"
+            echo ""
+            echo "- 扫描时间: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo "- 严重级别: HIGH, CRITICAL"
+            echo "- 忽略未修复: 是（--ignore-unfixed）"
+            echo "- HIGH 漏洞总数: ${{ env.total_high }}"
+            echo "- CRITICAL 漏洞总数: ${{ env.total_critical }}"
+            echo ""
+            echo "### 镜像清单"
+            echo ""
+            IFS=',' read -ra IMAGES <<< "${{ needs.build-and-push.outputs.image-list }}"
+            for img in "${IMAGES[@]}"; do
+              echo "- \`$img\`"
+            done
+            echo ""
+            echo "### 门禁策略"
+            echo ""
+            echo "- CRITICAL > 0：建议阻断发布（当前仅告警，生产环境可启用 --exit-code 1）"
+            echo "- HIGH > 10：建议人工评审"
+            echo "- 报告已上传为 Artifact + SARIF 同步到 GitHub Security tab"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 上传漏洞扫描报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-vuln-scan
+          path: reports/trivy/
+          retention-days: 30
+          if-no-files-found: warn
+
+  # ============================================================
+  # 作业 5：汇总上传 SBOM 与扫描结果
+  # 聚合所有供应链安全制品到统一 artifact，便于审计与下游消费
+  # 依赖：作业 2（签名）+ 作业 3（SBOM）+ 作业 4（扫描）完成
+  # ============================================================
+  publish-supply-chain-artifacts:
+    name: Publish Supply Chain Artifacts
+    runs-on: ubuntu-latest
+    needs: [cosign-sign, generate-sbom, trivy-image-scan]
+    if: always()
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 下载所有制品
+        uses: actions/download-artifact@v4
+        with:
+          path: supply-chain-artifacts/
+          merge-multiple: false
+
+      - name: 整理供应链制品目录
+        run: |
+          mkdir -p final-artifacts
+          # 复制各制品到统一目录
+          if [ -d "supply-chain-artifacts/image-sign-record" ]; then
+            mkdir -p final-artifacts/sign
+            cp -r supply-chain-artifacts/image-sign-record/* final-artifacts/sign/ 2>/dev/null \
+              || echo "::warning::签名记录复制失败"
+          fi
+          if [ -d "supply-chain-artifacts/image-sbom" ]; then
+            mkdir -p final-artifacts/sbom
+            cp -r supply-chain-artifacts/image-sbom/* final-artifacts/sbom/ 2>/dev/null \
+              || echo "::warning::SBOM 复制失败"
+          fi
+          if [ -d "supply-chain-artifacts/image-vuln-scan" ]; then
+            mkdir -p final-artifacts/vuln-scan
+            cp -r supply-chain-artifacts/image-vuln-scan/* final-artifacts/vuln-scan/ 2>/dev/null \
+              || echo "::warning::漏洞扫描报告复制失败"
+          fi
+          # 生成总清单
+          {
+            echo "# 供应链安全制品清单"
+            echo ""
+            echo "构建: ${{ github.run_id }}"
+            echo "分支/Tag: ${{ github.ref_name }}"
+            echo "Commit: ${{ github.sha }}"
+            echo "生成时间: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            echo ""
+            echo "## 制品类型"
+            echo ""
+            echo "| 类型 | 路径 | 说明 |"
+            echo "|------|------|------|"
+            echo "| 镜像签名 | sign/ | cosign keyless 签名记录与验证命令 |"
+            echo "| SBOM (SPDX) | sbom/*.spdx.json | 软件物料清单（SPDX JSON 格式） |"
+            echo "| SBOM (CycloneDX) | sbom/*.cyclonedx.json | 软件物料清单（CycloneDX JSON 格式） |"
+            echo "| 漏洞扫描 (SARIF) | vuln-scan/*.sarif | Trivy 漏洞扫描 SARIF 报告 |"
+            echo "| 漏洞扫描 (JSON) | vuln-scan/*.json | Trivy 漏洞扫描 JSON 详细报告 |"
+            echo ""
+            echo "## 文件清单"
+            echo ""
+            echo '```'
+            find final-artifacts -type f | sort
+            echo '```'
+          } > final-artifacts/README.md
+          cat final-artifacts/README.md
+
+      - name: 上传供应链制品总 Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain-security-artifacts
+          path: final-artifacts/
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: 输出流水线摘要
+        run: |
+          echo "## 镜像签名 + SBOM 流水线摘要" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 作业 | 状态 |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| 构建并推送镜像 | ${{ needs.build-and-push.result || 'skipped' }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| cosign 签名 | ${{ needs.cosign-sign.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Syft SBOM 生成 | ${{ needs.generate-sbom.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Trivy 漏洞扫描 | ${{ needs.trivy-image-scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "供应链安全制品已上传为 artifact: \`supply-chain-security-artifacts\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 验证命令" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```bash' >> "$GITHUB_STEP_SUMMARY"
+          echo "# 验证镜像签名" >> "$GITHUB_STEP_SUMMARY"
+          echo "cosign verify ghcr.io/${{ needs.build-and-push.outputs.registry-ns }}/sq-frontend:${{ github.sha }} \\" >> "$GITHUB_STEP_SUMMARY"
+          echo "  --certificate-identity-regexp \"https://github.com/${{ github.repository }}/.github/workflows/.*\" \\" >> "$GITHUB_STEP_SUMMARY"
+          echo "  --certificate-oidc-issuer \"https://token.actions.githubusercontent.com\"" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

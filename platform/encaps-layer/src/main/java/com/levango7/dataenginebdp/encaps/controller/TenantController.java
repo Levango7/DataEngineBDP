@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.Tenant;
+import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.encaps.service.TenantService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -38,6 +39,7 @@ public class TenantController {
         this.tenantService = tenantService;
     }
 
+    @AuditLog(action = "CREATE_TENANT", resource = "tenant")
     @PostMapping
     public ResponseEntity<Tenant> create(@Valid @RequestBody Tenant tenant) {
         Tenant created = tenantService.create(tenant);
@@ -68,6 +70,7 @@ public class TenantController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @AuditLog(action = "UPDATE_TENANT", resource = "tenant")
     @PutMapping("/{id}")
     public ResponseEntity<Tenant> update(@PathVariable Long id,
                                          @Valid @RequestBody Tenant tenant) {
@@ -76,6 +79,7 @@ public class TenantController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @AuditLog(action = "DELETE_TENANT", resource = "tenant")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (tenantService.delete(id)) {

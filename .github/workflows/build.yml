@@ -429,3 +429,8 @@ jobs:
           echo "镜像标签："
           echo "  - latest（滚动更新）"
           echo "  - ${{ github.sha }}（精确版本回滚）"
+          echo ""
+          echo "供应链安全（签名/SBOM/漏洞扫描）："
+          echo "  - 镜像签名 + SBOM + Trivy 扫描由 image-sign-sbom.yml 流水线完成"
+          echo "  - 详见 .github/workflows/image-sign-sbom.yml"
+          echo "  - 指南文档：design/deploy/镜像签名与SBOM指南.md"

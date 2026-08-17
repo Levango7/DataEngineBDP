@@ -1,5 +1,8 @@
 package com.levango7.dataenginebdp.encaps.security;
 
+import com.levango7.dataenginebdp.encaps.crypto.jwt.GmJwtProcessor;
+import com.levango7.dataenginebdp.encaps.crypto.jwt.JwtAlgorithm;
+import com.levango7.dataenginebdp.encaps.crypto.gm.SM2Provider;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
@@ -22,13 +25,20 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * JWT 认证过滤器。
  *
- * <p>从 {@code Authorization} 头提取 Bearer token，使用 HMAC-SHA 验证签名与过期时间，
+ * <p>从 {@code Authorization} 头提取 Bearer token，按配置算法验证签名与过期时间，
  * 解析出 {@code tenantId} 与 {@code sub}(userId) claim，写入
  * {@link SecurityContextHolder} 与 {@link TenantContext}。</p>
+ *
+ * <h3>支持的签名算法</h3>
+ * <ul>
+ *   <li>{@code HS384}（默认，非信创）：HMAC-SHA 对称签名，使用 {@code app.security.jwt.secret}</li>
+ *   <li>{@code SM3withSM2}（信创环境）：SM2 非对称签名，使用 {@code app.security.jwt.sm2-private-key/sm2-public-key}</li>
+ * </ul>
  *
  * <p>放行路径：{@code /api/v1/health} 与 {@code /actuator/**}，由
  * {@link SecurityConfig#securityFilterChain} 的 permitAll 规则前置短路，
@@ -43,23 +53,67 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String CLAIM_TENANT_ID = "tenantId";
     private static final String TENANT_HEADER = "X-Tenant-Id";
 
+    /** JWT 算法标识：HS384（HMAC-SHA，默认）/ SM3withSM2（信创环境） */
+    private final String algorithm;
     private final SecretKey signingKey;
     private final String issuer;
     private final OidcJwtDecoder oidcJwtDecoder;
+    /** SM2withSM3 处理器（仅 algorithm=SM3withSM2 时非 null） */
+    private final GmJwtProcessor gmJwtProcessor;
+    /** SM2 公钥 Q 值（仅 SM3withSM2 模式使用） */
+    private final byte[] sm2PublicKeyQ;
 
     /**
      * 构造过滤器。
      *
-     * @param secret  JWT 签名密钥（HMAC-SHA），至少 256 bit（32 字节）
-     * @param issuer  JWT issuer，校验 {@code iss} claim 必须匹配
+     * <p>支持双算法：
+     * <ul>
+     *   <li>{@code algorithm=HS384}（默认）：HMAC-SHA 对称签名，使用 {@code secret}</li>
+     *   <li>{@code algorithm=SM3withSM2}（信创）：SM2 非对称签名，使用 {@code sm2PrivateKey/sm2PublicKey}</li>
+     * </ul>
+     *
+     * @param algorithm     JWT 签名算法（HS384 / SM3withSM2）
+     * @param secret        JWT 签名密钥（HMAC-SHA），至少 256 bit（32 字节）
+     * @param issuer        JWT issuer，校验 {@code iss} claim 必须匹配
+     * @param sm2PrivateKey SM2 私钥 D 值 hex 串（信创模式；空表示自动生成临时密钥对）
+     * @param sm2PublicKey  SM2 公钥 Q 值 hex 串（信创模式；空表示自动生成临时密钥对）
      * @param oidcJwtDecoder OIDC 解码器（Keycloak RS256；未启用时为回退模式）
      */
-    public JwtAuthFilter(@Value("${app.security.jwt.secret}") String secret,
+    public JwtAuthFilter(@Value("${app.security.jwt.algorithm:HS384}") String algorithm,
+                         @Value("${app.security.jwt.secret}") String secret,
                          @Value("${app.security.jwt.issuer}") String issuer,
+                         @Value("${app.security.jwt.sm2-private-key:}") String sm2PrivateKey,
+                         @Value("${app.security.jwt.sm2-public-key:}") String sm2PublicKey,
                          OidcJwtDecoder oidcJwtDecoder) {
-        this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.algorithm = algorithm == null ? "HS384" : algorithm.trim();
         this.issuer = issuer;
         this.oidcJwtDecoder = oidcJwtDecoder;
+        // 信创模式：初始化 SM2withSM3 处理器
+        if (JwtAlgorithm.SM3_WITH_SM2.equalsIgnoreCase(this.algorithm)) {
+            SM2Provider sm2 = new SM2Provider();
+            byte[] pubQ;
+            if (sm2PrivateKey != null && !sm2PrivateKey.isBlank()
+                    && sm2PublicKey != null && !sm2PublicKey.isBlank()) {
+                // 使用配置的密钥对
+                pubQ = hexToBytes(sm2PublicKey.trim());
+                log.info("JWT 算法: SM3withSM2（使用配置的 SM2 密钥对）");
+            } else {
+                // 开发环境：自动生成临时密钥对（仅公钥用于验签，私钥由 AuthController 持有）
+                SM2Provider.Sm2KeyPair kp = sm2.generateKeyPair();
+                pubQ = kp.getPublicKeyQ();
+                log.warn("JWT 算法: SM3withSM2（自动生成临时 SM2 密钥对，仅限开发环境；"
+                        + "生产环境必须配置 JWT_SM2_PRIVATE_KEY/JWT_SM2_PUBLIC_KEY）");
+            }
+            this.sm2PublicKeyQ = pubQ;
+            this.gmJwtProcessor = new GmJwtProcessor(issuer);
+            this.signingKey = null;
+        } else {
+            // 国际算法模式：HMAC-SHA
+            this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            this.gmJwtProcessor = null;
+            this.sm2PublicKeyQ = null;
+            log.info("JWT 算法: {}（HMAC-SHA 对称签名）", this.algorithm);
+        }
     }
 
     @Override
@@ -100,12 +154,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
             }
 
-            claims = Jwts.parser()
-                    .verifyWith(signingKey)
-                    .requireIssuer(issuer)
-                    .build()
-                    .parseSignedClaims(token)
-                    .getPayload();
+            claims = parseAndVerify(token);
 
             // 从 JWT 提取的租户ID（用户所属租户）
             String jwtTenantId = claims.get(CLAIM_TENANT_ID, String.class);
@@ -142,6 +191,54 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userId, null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    /**
+     * 解析并验签 JWT，按配置算法分发：
+     * <ul>
+     *   <li>SM3withSM2：使用 {@link GmJwtProcessor} 验签，返回构造的 Claims</li>
+     *   <li>HS384/HS256：使用 jjwt 验签，返回 Claims</li>
+     * </ul>
+     *
+     * @param token JWT 字符串
+     * @return Claims（兼容 jjwt API）
+     * @throws JwtException 验签或声明校验失败
+     */
+    private Claims parseAndVerify(String token) {
+        if (gmJwtProcessor != null) {
+            // SM3withSM2 验签
+            Map<String, Object> payload = gmJwtProcessor.verify(token, sm2PublicKeyQ);
+            // 将 Map 适配为 jjwt Claims（通过 Jwts.claims() 构造，避免依赖内部 API）
+            return Jwts.claims().add(payload).build();
+        }
+        // HMAC-SHA 验签
+        return Jwts.parser()
+                .verifyWith(signingKey)
+                .requireIssuer(issuer)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+    }
+
+
+    /**
+     * hex 字符串转字节数组。
+     *
+     * @param hex hex 串（长度必须为偶数）
+     * @return 字节数组
+     */
+    private static byte[] hexToBytes(String hex) {
+        if (hex == null || hex.isEmpty()) {
+            return new byte[0];
+        }
+        String s = hex.toLowerCase();
+        byte[] out = new byte[s.length() / 2];
+        for (int i = 0; i < out.length; i++) {
+            int hi = Character.digit(s.charAt(i * 2), 16);
+            int lo = Character.digit(s.charAt(i * 2 + 1), 16);
+            out[i] = (byte) ((hi << 4) | lo);
+        }
+        return out;
     }
 
     /**

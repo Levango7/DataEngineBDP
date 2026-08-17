@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.MaskPolicyEntity;
 import com.levango7.dataenginebdp.encaps.repository.MaskPolicyRepository;
+import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -71,6 +72,7 @@ public class SecController {
     }
 
     /** 创建策略。 */
+    @AuditLog(action = "CREATE_MASK_POLICY", resource = "mask_policy")
     @PostMapping("/policies")
     @Transactional
     public ResponseEntity<Map<String, Object>> createPolicy(@Valid @RequestBody MaskPolicyRequest req) {
@@ -92,6 +94,7 @@ public class SecController {
     }
 
     /** 更新策略。 */
+    @AuditLog(action = "UPDATE_MASK_POLICY", resource = "mask_policy")
     @PutMapping("/policies/{id}")
     @Transactional
     public ResponseEntity<?> updatePolicy(@PathVariable Long id, @Valid @RequestBody MaskPolicyRequest req) {
@@ -107,6 +110,7 @@ public class SecController {
     }
 
     /** 删除策略。 */
+    @AuditLog(action = "DELETE_MASK_POLICY", resource = "mask_policy")
     @DeleteMapping("/policies/{id}")
     @Transactional
     public ResponseEntity<?> deletePolicy(@PathVariable Long id) {
@@ -148,6 +152,7 @@ public class SecController {
      * @param id 申请 ID
      * @return 200
      */
+    @AuditLog(action = "APPROVE_PERMISSION", resource = "approval")
     @PostMapping("/approvals/{id}/approve")
     public ResponseEntity<Void> approve(@PathVariable Long id) {
         String tenantId = requireTenant();
@@ -165,6 +170,7 @@ public class SecController {
      * @param id 申请 ID
      * @return 200
      */
+    @AuditLog(action = "REJECT_PERMISSION", resource = "approval")
     @PostMapping("/approvals/{id}/reject")
     public ResponseEntity<Void> reject(@PathVariable Long id) {
         String tenantId = requireTenant();

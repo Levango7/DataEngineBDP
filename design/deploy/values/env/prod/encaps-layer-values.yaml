@@ -42,6 +42,19 @@ ingress:
     - secretName: encaps-layer-tls
       hosts:
         - encaps-layer.prod.shuqing.local
+  # ----------------------------------------------------------------------------
+  # Ingress TLCP 配置（信创环境专用，R-021）
+  # ----------------------------------------------------------------------------
+  # 启用方式：在 xinchuang profile 下设置 ingress.tls.protocol=TLCP
+  # 国密双证书由 K8s Secret 提供（cert-manager 国密 issuer 签发）：
+  #   - sm2-sign-cert：SM2 签名证书（ssl_sign_certificate）
+  #   - sm2-enc-cert：SM2 加密证书（ssl_enc_certificate）
+  # 非信创环境保持 TLS1.3（默认），无需以下配置
+  # xinchangTlcp:
+  #   enabled: true
+  #   signSecretName: platform-sm2-sign-cert
+  #   encSecretName: platform-sm2-enc-cert
+  #   cipher: "ECDHE-SM2-SM4-SM3"
 
 env:
   LOG_LEVEL: warn

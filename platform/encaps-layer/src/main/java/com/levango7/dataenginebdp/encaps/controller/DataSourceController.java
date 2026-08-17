@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.DataSourceEntity;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
+import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -73,6 +74,7 @@ public class DataSourceController {
     }
 
     /** 创建。 */
+    @AuditLog(action = "CREATE_DATASOURCE", resource = "datasource")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody DataSourceRequest req) {
@@ -97,6 +99,7 @@ public class DataSourceController {
     }
 
     /** 更新。 */
+    @AuditLog(action = "UPDATE_DATASOURCE", resource = "datasource")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody DataSourceRequest req) {
@@ -117,6 +120,7 @@ public class DataSourceController {
     }
 
     /** 删除。 */
+    @AuditLog(action = "DELETE_DATASOURCE", resource = "datasource")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {
@@ -129,6 +133,7 @@ public class DataSourceController {
     }
 
     /** 连接测试（TCP 探测 + JDBC 校验（JDBC 型））。 */
+    @AuditLog(action = "TEST_DATASOURCE", resource = "datasource")
     @PostMapping("/{id}/test")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> testConnection(@PathVariable Long id) {

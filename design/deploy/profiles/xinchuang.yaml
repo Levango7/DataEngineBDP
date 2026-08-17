@@ -40,6 +40,26 @@ storage:
 network:
   cni: "cilium"
   lb: "metallb"
+  # ----------------------------------------------------------------------------
+  # Ingress TLCP 配置（信创环境专用，R-021）
+  # ----------------------------------------------------------------------------
+  # 国密传输安全协议 TLCP（GB/T 38636）双证书配置：
+  #   - 签名证书（sm2_sign）：SM2 签名证书，用于握手签名
+  #   - 加密证书（sm2_enc）：SM2 加密证书，用于密钥交换与数据加密
+  # 启用后 Ingress 强制 TLCP 协议，禁用 RSA/AES/SHA-1 等国际算法；
+  # 非信创环境降级为 TLS1.3（见 publiccloud/onprem profile）。
+  # 证书由商密 CA 签发，托管于 KMS（见 kms.driver=GuomiKMS）。
+  # 关联：design/安全/国密认证材料/SM2SM3SM4技术实现说明.md §5
+  ingress:
+    tls:
+      enabled: true
+      protocol: TLCP                  # 国密 TLS（GB/T 38636）；非信创环境使用 TLS1.3
+      cipher: "ECDHE-SM2-SM4-SM3"     # 国密套件：SM2 密钥交换 + SM4 加密 + SM3 摘要
+      # 国密双证书（K8s Secret 引用，由 cert-manager 国密 issuer 签发）
+      signSecretName: "platform-sm2-sign-cert"   # SM2 签名证书 Secret
+      encSecretName: "platform-sm2-enc-cert"     # SM2 加密证书 Secret
+      # 降级配置：非信创客户端兼容（可选）
+      fallbackTls: false              # 信创环境建议 false（强制 TLCP）；混合环境可设 true
 
 kms:
   driver: "GuomiKMS"                 # CryptoDriver 国密实现

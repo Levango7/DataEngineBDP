@@ -1,5 +1,7 @@
 package com.levango7.dataenginebdp.encaps.workspace;
 
+import com.levango7.dataenginebdp.encaps.security.Decrypt;
+import com.levango7.dataenginebdp.encaps.security.Encrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -51,6 +53,7 @@ public class WorkspaceService {
      * @param req 创建请求（id 由 DB 生成，createdAt/updatedAt 由服务层填充）
      * @return 已落地的 Workspace（含 id、namespace、status）
      */
+    @Encrypt
     public Workspace createWorkspace(Workspace req) {
         LocalDateTime now = LocalDateTime.now();
         req.setId(null);
@@ -121,6 +124,7 @@ public class WorkspaceService {
      * @param tenantId 租户 ID；为 null 时返回全部
      * @return Workspace 列表（不会返回 null）
      */
+    @Decrypt
     public List<Workspace> listWorkspaces(Long tenantId) {
         if (tenantId == null) {
             return workspaceRepository.findAll();
@@ -134,6 +138,7 @@ public class WorkspaceService {
      * @param id Workspace ID
      * @return Optional 包装的 Workspace
      */
+    @Decrypt
     public Optional<Workspace> getWorkspace(Long id) {
         return workspaceRepository.findById(id);
     }
@@ -145,6 +150,7 @@ public class WorkspaceService {
      * @param updated 新字段值
      * @return 更新后的 Workspace；若 ID 不存在则返回 Optional.empty()
      */
+    @Encrypt
     public Optional<Workspace> updateWorkspace(Long id, Workspace updated) {
         Optional<Workspace> opt = workspaceRepository.findById(id);
         if (opt.isEmpty()) {

@@ -1,0 +1,286 @@
+# Multi-Arch Build 多架构镜像构建流水线
+# 触发条件：push 到 main 分支、打 tag v*、手动触发
+# 职责：构建 linux/amd64 + linux/arm64 多架构镜像并推送到 GHCR
+# 支持信创 ARM 服务器部署，与 build.yml 区分：
+#   - build.yml：日常主分支构建，Go 镜像多架构，Java/前端单架构（快速）
+#   - multi-arch-build.yml：对所有核心组件做多架构构建（含 Java/前端），用于发布与信创部署
+name: Multi-Arch Build
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  # 支持手动触发，便于按需重建多架构镜像
+  workflow_dispatch:
+    inputs:
+      push_image:
+        description: '是否推送镜像到 Registry（true/false）'
+        required: false
+        default: 'true'
+      platforms:
+        description: '目标架构（如 linux/amd64,linux/arm64）'
+        required: false
+        default: 'linux/amd64,linux/arm64'
+
+# 权限：packages: write 推送 GHCR 镜像；contents: read 读取代码；id-token: write 用于 OIDC 镜像签名
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+# 同一分支/标签的并发构建只保留最新一次
+concurrency:
+  group: multi-arch-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # 门禁检查：等待 CI 工作流在对应 commit 上通过后才允许构建
+  # 防止在 CI 失败的情况下推送镜像
+  # ============================================================
+  ci-gate:
+    name: CI Gate (等待 CI 通过)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 等待 CI 工作流通过
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: 'Frontend Build'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 30
+          verbose: true
+
+      - name: CI 门禁通过
+        run: echo "CI 工作流已通过，开始执行多架构构建流水线"
+
+  # ============================================================
+  # 构建前端多架构镜像（Vue3 + Nginx）
+  # 基础镜像 node:22-alpine / nginx:alpine 均为官方多架构镜像
+  # 构建过程 npm ci + npm run build 不依赖特定架构
+  # ============================================================
+  build-frontend:
+    name: Multi-Arch Frontend (amd64+arm64)
+    runs-on: ubuntu-latest
+    needs: ci-gate
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（多架构构建前置）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 计算镜像标签
+        id: tags
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建并推送前端多架构镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: frontend/
+          file: frontend/Dockerfile
+          platforms: ${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event.inputs.push_image != 'false' }}
+          tags: |
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:${{ steps.tags.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architectures=linux/amd64,linux/arm64
+          cache-from: type=gha,scope=multi-arch-frontend
+          cache-to: type=gha,mode=max,scope=multi-arch-frontend
+          provenance: false
+          sbom: false
+
+  # ============================================================
+  # 构建 Java 组件多架构镜像
+  # 基础镜像 maven:3.9-eclipse-temurin-17 / eclipse-temurin:17-jre 均支持 amd64+arm64
+  # 包含：encaps-layer、sql-gateway、rule-engine
+  # 注意：QEMU 模拟下 Maven 构建较慢，timeout 设为 360min
+  # ============================================================
+  build-java-images:
+    name: Multi-Arch Java Images (amd64+arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    needs: ci-gate
+    strategy:
+      matrix:
+        include:
+          - module: encaps-layer
+            context: platform/encaps-layer
+            dockerfile: platform/encaps-layer/Dockerfile
+            image: sq-encaps-layer
+          - module: sql-gateway
+            context: platform/sql-gateway
+            dockerfile: platform/sql-gateway/Dockerfile
+            image: sq-sql-gateway
+          - module: rule-engine
+            context: platform/rule-engine
+            dockerfile: platform/rule-engine/Dockerfile
+            image: sq-rule-engine
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（多架构构建前置）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 计算镜像标签
+        id: tags
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建并推送 ${{ matrix.module }} 多架构镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event.inputs.push_image != 'false' }}
+          tags: |
+            ghcr.io/${{ env.REGISTRY_NS }}/${{ matrix.image }}:latest
+            ghcr.io/${{ env.REGISTRY_NS }}/${{ matrix.image }}:${{ steps.tags.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architectures=linux/amd64,linux/arm64
+          cache-from: type=gha,scope=multi-arch-${{ matrix.module }}
+          cache-to: type=gha,mode=max,scope=multi-arch-${{ matrix.module }}
+          provenance: false
+          sbom: false
+
+  # ============================================================
+  # 构建 Go Catalog 多架构镜像
+  # Dockerfile 已使用 TARGETARCH + GOARCH 交叉编译，天然支持多架构
+  # 基础镜像 golang:1.26-alpine / alpine:3.19 均支持 amd64+arm64
+  # ============================================================
+  build-catalog:
+    name: Multi-Arch Catalog (amd64+arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: ci-gate
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（多架构构建前置）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 计算镜像标签
+        id: tags
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建并推送 catalog 多架构镜像
+        uses: docker/build-push-action@v6
+        with:
+          context: platform/catalog
+          file: platform/catalog/Dockerfile
+          platforms: ${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event.inputs.push_image != 'false' }}
+          tags: |
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-catalog:latest
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-catalog:${{ steps.tags.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architectures=linux/amd64,linux/arm64
+          cache-from: type=gha,scope=multi-arch-catalog
+          cache-to: type=gha,mode=max,scope=multi-arch-catalog
+          provenance: false
+          sbom: false
+
+  # ============================================================
+  # 构建汇总：输出多架构镜像清单
+  # ============================================================
+  build-summary:
+    name: Multi-Arch Build Summary
+    runs-on: ubuntu-latest
+    needs:
+      - build-frontend
+      - build-java-images
+      - build-catalog
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: 输出多架构镜像清单
+        run: |
+          echo "============================================"
+          echo "  多架构镜像构建完成 (linux/amd64 + linux/arm64)"
+          echo "============================================"
+          echo ""
+          echo "镜像清单（GHCR）："
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-encaps-layer:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-sql-gateway:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-catalog:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-rule-engine:latest"
+          echo ""
+          echo "验证命令："
+          echo "  docker buildx imagetools inspect ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest"
+          echo ""
+          echo "信创 ARM 部署拉取："
+          echo "  docker pull --platform linux/arm64 ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest"
