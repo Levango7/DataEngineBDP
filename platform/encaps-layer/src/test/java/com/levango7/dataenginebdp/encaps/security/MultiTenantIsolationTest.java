@@ -97,14 +97,14 @@ class MultiTenantIsolationTest {
         mockMvc.perform(get("/api/v1/governance/assets")
                         .header("Authorization", "Bearer " + token("tenant-a")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(1))
-                .andExpect(jsonPath("$.list[0].name").value("secret-orders"));
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.list[0].name").value("secret-orders"));
 
         // 租户 B 看不到 A 的资产（隔离生效）
         mockMvc.perform(get("/api/v1/governance/assets")
                         .header("Authorization", "Bearer " + token("tenant-b")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(0));
+                .andExpect(jsonPath("$.data.total").value(0));
     }
 
     @Test
@@ -123,7 +123,7 @@ class MultiTenantIsolationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode aBody = MAPPER.readTree(aResult.getResponse().getContentAsString());
-        org.assertj.core.api.Assertions.assertThat(aBody.size()).isEqualTo(1);
+        org.assertj.core.api.Assertions.assertThat(aBody.path("data").size()).isEqualTo(1);
 
         // 租户 B 列表为空（看不到 A 的数据源）
         MvcResult bResult = mockMvc.perform(get("/api/v1/datasources")
@@ -131,12 +131,104 @@ class MultiTenantIsolationTest {
                 .andExpect(status().isOk())
                 .andReturn();
         JsonNode bBody = MAPPER.readTree(bResult.getResponse().getContentAsString());
-        org.assertj.core.api.Assertions.assertThat(bBody.size()).isZero();
+        org.assertj.core.api.Assertions.assertThat(bBody.path("data").size()).isZero();
     }
 
     @Test
     void withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/governance/assets"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // ==================== 多租户隔离修复（M-F-05）测试 ====================
+
+    /**
+     * 验证本地登录回退：admin 映射 tenant-001，user 映射 tenant-002（不再硬编码 default）。
+     */
+    @Test
+    void localLogin_adminAndUser_mapToDifferentTenants() throws Exception {
+        // admin 登录 → tenant-001
+        MvcResult adminResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"admin\",\"password\":\"admin\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.user.tenantId").value("tenant-001"))
+                .andReturn();
+        String adminToken = MAPPER.readTree(adminResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        // user 登录 → tenant-002
+        MvcResult userResult = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"user\",\"password\":\"user\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.user.tenantId").value("tenant-002"))
+                .andReturn();
+        String userToken = MAPPER.readTree(userResult.getResponse().getContentAsString())
+                .path("data").path("token").asText();
+
+        // 两个 token 不同
+        org.assertj.core.api.Assertions.assertThat(adminToken).isNotEqualTo(userToken);
+    }
+
+    /**
+     * 验证 X-Tenant-Id header 与 JWT claim 一致时放行（200 OK）。
+     */
+    @Test
+    void xTenantIdHeader_matchesJwtClaim_returns200() throws Exception {
+        mockMvc.perform(get("/api/v1/governance/assets")
+                        .header("Authorization", "Bearer " + token("tenant-001"))
+                        .header("X-Tenant-Id", "tenant-001"))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * 验证 X-Tenant-Id header 与 JWT claim 不一致时拒绝（403 Forbidden，越权防护）。
+     */
+    @Test
+    void xTenantIdHeader_mismatchesJwtClaim_returns403() throws Exception {
+        mockMvc.perform(get("/api/v1/governance/assets")
+                        .header("Authorization", "Bearer " + token("tenant-001"))
+                        .header("X-Tenant-Id", "tenant-002"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.error").value(
+                        org.hamcrest.Matchers.containsString("tenant mismatch")));
+    }
+
+    /**
+     * 验证无 X-Tenant-Id header 时向后兼容：使用 JWT claim 中的 tenantId（200 OK）。
+     */
+    @Test
+    void noXTenantIdHeader_usesJwtClaim_returns200() throws Exception {
+        mockMvc.perform(get("/api/v1/governance/assets")
+                        .header("Authorization", "Bearer " + token("tenant-001")))
+                .andExpect(status().isOk());
+    }
+
+    /**
+     * 验证数据隔离：tenant-001 创建的资产，tenant-002 不可见。
+     */
+    @Test
+    void tenant001_data_invisibleToTenant002() throws Exception {
+        // tenant-001 创建资产
+        mockMvc.perform(post("/api/v1/governance/assets")
+                        .header("Authorization", "Bearer " + token("tenant-001"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"tenant001-secret\",\"type\":\"table\",\"owner\":\"admin\","
+                                + "\"qualityScore\":90,\"securityLevel\":\"L2\"}"))
+                .andExpect(status().isOk());
+
+        // tenant-001 能看到自己的资产
+        mockMvc.perform(get("/api/v1/governance/assets")
+                        .header("Authorization", "Bearer " + token("tenant-001")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(1))
+                .andExpect(jsonPath("$.data.list[0].name").value("tenant001-secret"));
+
+        // tenant-002 看不到 tenant-001 的资产（隔离生效）
+        mockMvc.perform(get("/api/v1/governance/assets")
+                        .header("Authorization", "Bearer " + token("tenant-002")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.total").value(0));
     }
 }

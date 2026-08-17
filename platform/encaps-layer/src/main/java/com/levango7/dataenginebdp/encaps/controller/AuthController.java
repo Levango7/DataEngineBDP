@@ -132,10 +132,10 @@ public class AuthController {
     /**
      * 本地登录回退：当 Keycloak 不可达时，使用预设用户验证并生成 HMAC JWT token。
      *
-     * <p>预设用户：
+     * <p>预设用户（多租户隔离：不同用户归属不同租户）：
      * <ul>
-     *   <li>admin/admin：管理员，userId=admin，email=admin@local</li>
-     *   <li>user/user：普通用户，userId=user，email=user@local</li>
+     *   <li>admin/admin：管理员，userId=admin，email=admin@local，tenantId=tenant-001</li>
+     *   <li>user/user：普通用户，userId=user，email=user@local，tenantId=tenant-002</li>
      * </ul>
      *
      * <p>生成的 JWT 与 {@link com.levango7.dataenginebdp.encaps.security.JwtAuthFilter}
@@ -145,7 +145,7 @@ public class AuthController {
      * @return 登录成功返回 200 + LoginResult；失败返回 401
      */
     private ResponseEntity<?> localLoginFallback(LoginRequest req) {
-        // 1. 预设用户校验
+        // 1. 预设用户校验（admin 属于 tenant-001，user 属于 tenant-002，实现多租户隔离）
         String username = req.username();
         String password = req.password();
         String userId;
@@ -155,16 +155,20 @@ public class AuthController {
             userId = "admin";
             email = "admin@local";
             nickname = "管理员";
+            // admin 属于 tenant-001
         } else if ("user".equals(username) && "user".equals(password)) {
             userId = "user";
             email = "user@local";
             nickname = "普通用户";
+            // user 属于 tenant-002
         } else {
             log.warn("本地登录失败，用户名或密码错误: username={}", username);
             return ResponseEntity.status(401).body(Map.of("error", "用户名或密码错误"));
         }
 
         // 2. 生成 HMAC JWT token（与 JwtAuthFilter 使用相同密钥/issuer）
+        //    多租户映射：admin -> tenant-001, user -> tenant-002（修复 M-F-05：避免硬编码 default）
+        String tenantId = "admin".equals(userId) ? "tenant-001" : "tenant-002";
         SecretKey signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
         long nowMillis = System.currentTimeMillis();
         Date now = new Date(nowMillis);
@@ -175,7 +179,7 @@ public class AuthController {
                 .issuer(jwtIssuer)
                 .issuedAt(now)
                 .expiration(exp)
-                .claim("tenantId", "default")
+                .claim("tenantId", tenantId)
                 .claim("preferred_username", username)
                 .claim("email", email)
                 .signWith(signingKey)
@@ -187,6 +191,7 @@ public class AuthController {
         user.put("username", username);
         user.put("nickname", nickname);
         user.put("email", email);
+        user.put("tenantId", tenantId);
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("token", accessToken);
@@ -194,7 +199,7 @@ public class AuthController {
         result.put("refreshToken", "");
         result.put("user", user);
 
-        log.info("本地登录回退成功: username={}, userId={}", username, userId);
+        log.info("本地登录回退成功: username={}, userId={}, tenantId={}", username, userId, tenantId);
         return ResponseEntity.ok(result);
     }
 

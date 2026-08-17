@@ -41,6 +41,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
     private static final String CLAIM_TENANT_ID = "tenantId";
+    private static final String TENANT_HEADER = "X-Tenant-Id";
 
     private final SecretKey signingKey;
     private final String issuer;
@@ -74,17 +75,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         String token = authHeader.substring(BEARER_PREFIX.length()).trim();
         try {
             Claims claims;
-            String tenantId;
+
             String userId;
 
             // 双模式验证：OIDC(Keycloak RS256) 优先；未启用或 OIDC 验证失败时回退 HMAC
             if (oidcJwtDecoder != null && oidcJwtDecoder.isEnabled()) {
                 try {
                     var jwt = oidcJwtDecoder.decode(token);
-                    tenantId = oidcJwtDecoder.extractTenantId(jwt);
+                    String jwtTenantId = oidcJwtDecoder.extractTenantId(jwt);
                     userId = jwt.getSubject();
-                    log.debug("OIDC 验证通过: sub={}, tenant={}", userId, tenantId);
-                    setAuthentication(userId, tenantId);
+                    log.debug("OIDC 验证通过: sub={}, tenant={}", userId, jwtTenantId);
+
+                    // 多租户隔离校验：X-Tenant-Id header 必须与 JWT claim 一致（若提供）
+                    String effectiveTenantId = resolveTenantWithHeaderCheck(request, response, jwtTenantId, userId);
+                    if (effectiveTenantId == null) {
+                        // header 校验失败已写入 403 响应，直接返回
+                        return;
+                    }
+                    setAuthentication(userId, effectiveTenantId);
                     filterChain.doFilter(request, response);
                     return;
                 } catch (org.springframework.security.oauth2.jwt.JwtException e) {
@@ -99,9 +107,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     .parseSignedClaims(token)
                     .getPayload();
 
-            tenantId = claims.get(CLAIM_TENANT_ID, String.class);
+            // 从 JWT 提取的租户ID（用户所属租户）
+            String jwtTenantId = claims.get(CLAIM_TENANT_ID, String.class);
             userId = claims.getSubject();
-            setAuthentication(userId, tenantId);
+
+            // 多租户隔离校验：X-Tenant-Id header 必须与 JWT claim 一致（若提供）
+            String effectiveTenantId = resolveTenantWithHeaderCheck(request, response, jwtTenantId, userId);
+            if (effectiveTenantId == null) {
+                // header 校验失败已写入 403 响应，直接返回
+                return;
+            }
+            setAuthentication(userId, effectiveTenantId);
 
             filterChain.doFilter(request, response);
         } catch (JwtException | IllegalArgumentException e) {
@@ -129,11 +145,48 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     /**
+     * 多租户隔离校验：读取 {@code X-Tenant-Id} header 并与 JWT claim 中的 tenantId 比对。
+     *
+     * <p>规则（修复 M-F-05）：
+     * <ul>
+     *   <li>header 存在且与 JWT claim 一致 → 使用 header 值（即 JWT 值）</li>
+     *   <li>header 存在但与 JWT claim 不一致 → 越权，返回 null 并写入 403 响应</li>
+     *   <li>header 不存在 → 向后兼容，使用 JWT claim 中的 tenantId</li>
+     * </ul>
+     *
+     * @param request      HTTP 请求（读取 header）
+     * @param response     HTTP 响应（校验失败时写入 403）
+     * @param jwtTenantId  JWT claim 中的 tenantId（用户所属租户）
+     * @param userId       用户 ID（仅用于审计日志）
+     * @return 生效的 tenantId；若 header 校验失败返回 null（调用方应直接 return）
+     */
+    private String resolveTenantWithHeaderCheck(HttpServletRequest request,
+                                                HttpServletResponse response,
+                                                String jwtTenantId,
+                                                String userId) throws IOException {
+        String headerTenantId = request.getHeader(TENANT_HEADER);
+        if (headerTenantId != null && !headerTenantId.isBlank()) {
+            if (!headerTenantId.equals(jwtTenantId)) {
+                log.warn("租户隔离校验失败: jwtTenant={}, headerTenant={}, user={}",
+                        jwtTenantId, headerTenantId, userId);
+                sendForbidden(response, "tenant mismatch: X-Tenant-Id does not match JWT claim");
+                return null;
+            }
+            return headerTenantId;
+        }
+        // header 不存在：向后兼容，使用 JWT 中的 tenantId
+        return jwtTenantId;
+    }
+
+    /**
      * 健康检查与 actuator 端点不走 JWT，直接放行。
      */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getServletPath();
+        // 用 getRequestURI 而非 getServletPath：MockMvc 中 getServletPath 返回空串，
+        // 会导致 /api/v1/auth/login 等放行路径被误拦截。getRequestURI 在 MockMvc 与
+        // 真实容器（无 contextPath）中均返回完整路径，行为一致。
+        String path = request.getRequestURI();
         return path != null
                 && (path.startsWith("/api/v1/health")
                     || path.startsWith("/api/v1/auth/login")   // 登录端点放行（Keycloak 代理）
@@ -142,6 +195,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json;charset=UTF-8");
+        response.getWriter().write("{\"error\":\"" + message + "\"}");
+    }
+
+    private void sendForbidden(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"error\":\"" + message + "\"}");
     }
