@@ -70,3 +70,7 @@ attachments/
 
 # 会话期分析资产（含外部项目路径，不入库）
 docs/_盘点_*.md
+
+# 子代理验证产物（不入库）
+.resultverify/
+.build-verify/

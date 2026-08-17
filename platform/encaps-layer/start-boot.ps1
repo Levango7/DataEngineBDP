@@ -1,0 +1,6 @@
+﻿$env:K8S_MOCK_ENABLED = "true"
+$env:OTEL_TRACES_EXPORTER = "none"
+$env:OTEL_METRICS_EXPORTER = "none"
+$env:OTEL_LOGS_EXPORTER = "none"
+Set-Location "F:\nexus\DataEngineBDP\platform\encaps-layer"
+mvn spring-boot:run -DskipTests 2>&1 | Tee-Object -FilePath "F:\nexus\DataEngineBDP\platform\encaps-layer\boot.log"

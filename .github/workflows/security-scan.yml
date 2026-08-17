@@ -1,0 +1,240 @@
+# Security Scan 安全扫描流水线（Trivy 镜像扫描 + 依赖漏洞扫描 + 代码静态扫描）
+# 触发条件：push 到 main、PR 到 main、每周定时、手动触发
+# 与 security.yml 互补：security.yml 做 SonarQube/ZAP 工程化扫描，
+# 本工作流聚焦 Trivy 镜像/依赖扫描 + Semgrep 静态扫描，结果上传为 Artifact + SARIF
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  schedule:
+    # 每周三 03:00 UTC 全量扫描
+    - cron: '0 3 * * 3'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Trivy 依赖漏洞扫描：扫描 Maven 依赖、Python 依赖、npm 依赖
+  # 输出：SARIF 上传到 GitHub Security tab + Artifact
+  # ============================================================
+  trivy-dependency:
+    name: Trivy Dependency Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Trivy
+        uses: aquasecurity/trivy-action@0.20.0
+        with:
+          version: latest
+
+      - name: 扫描 Maven 依赖（platform/**/pom.xml）
+        run: |
+          mkdir -p reports/trivy
+          while IFS= read -r pom; do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  Trivy 扫描 Maven 依赖: $mod_name"
+            echo "============================================"
+            trivy fs --exit-code 0 --format sarif \
+              --output "reports/trivy/${mod_name}-deps.sarif" \
+              --scanners vuln --severity HIGH,CRITICAL \
+              "$mod_dir" || echo "::warning::$mod_name 依赖扫描失败，继续下一个"
+          done < <(find platform -name pom.xml -not -path "*/target/*" 2>/dev/null)
+
+      - name: 扫描 Python 依赖（pyproject.toml / requirements.txt）
+        run: |
+          if [ -f pyproject.toml ]; then
+            echo "Trivy 扫描 pyproject.toml"
+            trivy fs --exit-code 0 --format sarif \
+              --output reports/trivy/python-deps.sarif \
+              --scanners vuln --severity HIGH,CRITICAL \
+              . || echo "::warning::Python 依赖扫描失败"
+          fi
+
+      - name: 扫描前端依赖（frontend/package-lock.json）
+        run: |
+          if [ -f frontend/package-lock.json ]; then
+            echo "Trivy 扫描前端 npm 依赖"
+            trivy fs --exit-code 0 --format sarif \
+              --output reports/trivy/npm-deps.sarif \
+              --scanners vuln --severity HIGH,CRITICAL \
+              frontend || echo "::warning::npm 依赖扫描失败"
+          fi
+
+      - name: 上传 SARIF 到 GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy
+
+      - name: 上传扫描报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-dependency-reports
+          path: reports/trivy/
+          retention-days: 30
+
+  # ============================================================
+  # Trivy 镜像扫描：扫描 Dockerfile 构建的镜像
+  # 仅扫描 encaps-layer（含 Dockerfile 的模块），避免重复构建
+  # ============================================================
+  trivy-image:
+    name: Trivy Image Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: 构建 encaps-layer 镜像
+        run: |
+          if [ -f platform/encaps-layer/Dockerfile ]; then
+            cd platform/encaps-layer
+            # 先用 Maven 打包，再构建镜像（Dockerfile 通常 FROM openjdk + COPY jar）
+            mvn -B -q -Dmaven.test.skip=true package || echo "::warning::Maven 打包失败，跳过镜像构建"
+            docker build -t encaps-layer:scan . || echo "::warning::Docker 构建失败，跳过镜像扫描"
+          else
+            echo "未找到 Dockerfile，跳过镜像扫描"
+          fi
+
+      - name: Trivy 扫描镜像
+        if: always()
+        run: |
+          mkdir -p reports/trivy
+          if docker image inspect encaps-layer:scan > /dev/null 2>&1; then
+            trivy image --exit-code 0 --format sarif \
+              --output reports/trivy/encaps-layer-image.sarif \
+              --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              encaps-layer:scan
+          else
+            echo "镜像未构建，跳过扫描"
+          fi
+
+      - name: 上传镜像扫描 SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy
+
+      - name: 上传镜像扫描报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-reports
+          path: reports/trivy/
+          retention-days: 30
+
+  # ============================================================
+  # Semgrep 静态代码扫描：基于规则集检测常见安全反模式
+  # 规则集：security-audit + java + python + javascript
+  # ============================================================
+  semgrep:
+    name: Semgrep SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/java
+            p/python
+            p/javascript
+          output: reports/semgrep/semgrep.sarif
+          # 不阻断流水线：发现问题仅报告，由人工评审决定是否阻断
+          auditMode: true
+
+      - name: 上传 Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/semgrep/semgrep.sarif
+
+      - name: 上传 Semgrep 报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-reports
+          path: reports/semgrep/
+          retention-days: 30
+
+  # ============================================================
+  # Trivy 文件系统配置扫描：扫描 IaC（K8s YAML / Dockerfile / Terraform）配置错误
+  # ============================================================
+  trivy-config:
+    name: Trivy Config Scan (IaC)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: Trivy 扫描 IaC 配置
+        run: |
+          mkdir -p reports/trivy
+          trivy fs --exit-code 0 --format sarif \
+            --output reports/trivy/config.sarif \
+            --scanners misconfig \
+            --severity HIGH,CRITICAL \
+            deploy/ ske/ 2>/dev/null || echo "::warning::IaC 配置扫描失败或目录不存在"
+
+      - name: 上传配置扫描 SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy
+
+      - name: 上传配置扫描报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-config-reports
+          path: reports/trivy/
+          retention-days: 30
+
+  # ============================================================
+  # 汇总报告：聚合所有扫描结果，输出摘要到 Job Summary
+  # ============================================================
+  summary:
+    name: Security Scan Summary
+    runs-on: ubuntu-latest
+    needs: [trivy-dependency, trivy-image, semgrep, trivy-config]
+    if: always()
+    steps:
+      - name: 生成扫描摘要
+        run: |
+          echo "## Security Scan 摘要" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 扫描项 | 状态 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy 依赖扫描 | ${{ needs.trivy-dependency.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy 镜像扫描 | ${{ needs.trivy-image.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep SAST   | ${{ needs.semgrep.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy IaC 配置 | ${{ needs.trivy-config.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "扫描报告已上传为 Artifact，SARIF 已同步到 GitHub Security tab。" >> $GITHUB_STEP_SUMMARY

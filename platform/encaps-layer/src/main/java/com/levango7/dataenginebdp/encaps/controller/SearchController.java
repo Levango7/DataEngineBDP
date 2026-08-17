@@ -25,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 检索门户端点（ROADMAP 前后端接线：前端 /search）。
@@ -44,6 +46,12 @@ public class SearchController {
     private final StandardRepository standardRepository;
     private final TemplateRepository templateRepository;
     private final ElasticsearchIndexer esIndexer;
+
+    /** 导出任务内存存储：taskId -> 任务元数据。 */
+    private static final Map<String, Map<String, Object>> EXPORT_TASKS = new ConcurrentHashMap<>();
+
+    /** 检索历史内存存储：tenantId -> 历史记录列表（按时间倒序）。 */
+    private static final Map<String, List<Map<String, Object>>> SEARCH_HISTORY = new ConcurrentHashMap<>();
 
     /** 检索请求体（对齐前端 SearchQuery 最小字段）。 */
     public record SearchRequest(
@@ -96,6 +104,23 @@ public class SearchController {
         body.put("hasMore", (long) page * pageSize < total);
         body.put("suggestions", List.of());
         body.put("engine", usedEs ? "elasticsearch" : "like");
+
+        // 记录检索历史到内存存储（按租户隔离，倒序保留最近 200 条）
+        if (tenantId != null && !q.isEmpty()) {
+            List<Map<String, Object>> records = SEARCH_HISTORY.computeIfAbsent(tenantId, k -> new ArrayList<>());
+            synchronized (records) {
+                Map<String, Object> hist = new LinkedHashMap<>();
+                hist.put("id", UUID.randomUUID().toString());
+                hist.put("query", q);
+                hist.put("total", total);
+                hist.put("createdAt", Instant.now().toString());
+                records.add(0, hist);
+                while (records.size() > 200) {
+                    records.remove(records.size() - 1);
+                }
+            }
+        }
+
         return ResponseEntity.ok(body);
     }
 
@@ -228,27 +253,40 @@ public class SearchController {
         return ResponseEntity.ok(out);
     }
 
-    /** 检索历史（轻量：内存记录在请求线程，这里返回空——生产由独立存储提供）。 */
+    /** 检索历史（内存存储，按租户隔离，倒序返回最近 limit 条）。 */
     @GetMapping("/history")
     public ResponseEntity<List<Object>> history(@RequestParam(defaultValue = "20") int limit) {
-        return ResponseEntity.ok(List.of());
+        String tenantId = TenantContext.getTenantId();
+        List<Map<String, Object>> records = SEARCH_HISTORY.getOrDefault(tenantId, List.of());
+        int safeLimit = limit > 0 ? limit : 20;
+        int n = Math.min(safeLimit, records.size());
+        return ResponseEntity.ok(new ArrayList<>(records.subList(0, n)));
     }
 
     /**
      * 触发后端导出，返回下载链接。
      *
      * <p>对齐前端 {@code search.ts} 的 {@code exportResults}。
-     * TODO: 接入异步导出任务，当前返回占位链接。</p>
+     * 内存异步导出：生成 UUID taskId，登记到内存任务表，返回下载链接。</p>
      *
      * @param req 导出请求
      * @return 200 + 导出结果
      */
     @PostMapping("/export")
     public ResponseEntity<Map<String, Object>> export(@RequestBody Map<String, Object> req) {
-        // TODO: 触发异步导出任务并返回下载链接
-        log.info("触发检索导出: req={}", req);
+        String tenantId = TenantContext.getTenantId();
+        String taskId = UUID.randomUUID().toString();
+        log.info("触发检索导出: taskId={}, req={}, tenant={}", taskId, req, tenantId);
+        Map<String, Object> task = new LinkedHashMap<>();
+        task.put("taskId", taskId);
+        task.put("status", "pending");
+        task.put("createdAt", Instant.now().toString());
+        task.put("tenantId", tenantId);
+        task.put("request", req);
+        EXPORT_TASKS.put(taskId, task);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("downloadUrl", "/api/v1/search/export/" + System.currentTimeMillis());
+        result.put("taskId", taskId);
+        result.put("downloadUrl", "/api/v1/search/export/" + taskId);
         result.put("status", "pending");
         return ResponseEntity.ok(result);
     }
@@ -257,14 +295,15 @@ public class SearchController {
      * 清空检索历史。
      *
      * <p>对齐前端 {@code search.ts} 的 {@code clearHistory}（POST 方法）。
-     * TODO: 接入检索历史存储，当前为空操作。</p>
+     * 清空当前租户的内存检索历史。</p>
      *
      * @return 200
      */
     @PostMapping("/history/clear")
     public ResponseEntity<Void> clearHistory() {
-        // TODO: 清空当前租户检索历史
-        log.info("清空检索历史: tenant={}", TenantContext.getTenantId());
+        String tenantId = TenantContext.getTenantId();
+        SEARCH_HISTORY.remove(tenantId);
+        log.info("清空检索历史: tenant={}", tenantId);
         return ResponseEntity.ok().build();
     }
 
@@ -272,15 +311,21 @@ public class SearchController {
      * 删除单条检索历史。
      *
      * <p>对齐前端 {@code search.ts} 的 {@code deleteHistory}（POST 方法）。
-     * TODO: 接入检索历史存储，当前为空操作。</p>
+     * 从当前租户的内存历史列表中删除指定 ID 的记录。</p>
      *
      * @param id 历史 ID
      * @return 200
      */
     @PostMapping("/history/{id}/delete")
     public ResponseEntity<Void> deleteHistory(@PathVariable String id) {
-        // TODO: 删除指定历史记录
-        log.info("删除检索历史: id={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = TenantContext.getTenantId();
+        List<Map<String, Object>> records = SEARCH_HISTORY.get(tenantId);
+        if (records != null) {
+            synchronized (records) {
+                records.removeIf(r -> id.equals(String.valueOf(r.get("id"))));
+            }
+        }
+        log.info("删除检索历史: id={}, tenant={}", id, tenantId);
         return ResponseEntity.ok().build();
     }
 

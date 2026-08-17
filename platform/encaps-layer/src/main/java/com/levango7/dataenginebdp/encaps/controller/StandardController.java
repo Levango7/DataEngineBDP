@@ -1,6 +1,10 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.encaps.model.AssetEntity;
 import com.levango7.dataenginebdp.encaps.model.StandardEntity;
+import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.StandardRepository;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
 import jakarta.validation.Valid;
@@ -20,9 +24,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 主数据标准端点（ROADMAP 前后端接线：前端 /standards）。
@@ -34,6 +40,8 @@ import java.util.Map;
 public class StandardController {
 
     private final StandardRepository repository;
+    private final AssetRepository assetRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** 创建/更新请求体（对齐前端 CreateStandardParams）。 */
     public record StandardRequest(
@@ -127,7 +135,9 @@ public class StandardController {
      * 查询落标率统计。
      *
      * <p>对齐前端 {@code standard.ts} 的 {@code getSummary}。
-     * TODO: 接入真实落标率统计，当前返回占位统计。</p>
+     * 已落标数 = 当前租户标准中被资产 fullJson.standardId 引用的标准数；
+     * 落标率 = applied / total * 100。AssetEntity 暂无 standardId 列，
+     * 故从 fullJson 解析关联。</p>
      *
      * @return 200 + 落标率统计
      */
@@ -137,8 +147,23 @@ public class StandardController {
         String tenantId = requireTenant();
         List<StandardEntity> all = repository.findByTenantIdOrderByCreatedAtDesc(tenantId);
         int total = all.size();
-        // TODO: 计算真实已落标数（需关联资产元数据）
-        int applied = 0;
+        // 计算已落标数：遍历资产 fullJson 中的 standardId 字段，统计被引用的标准数
+        Set<String> appliedStandardIds = new HashSet<>();
+        List<AssetEntity> assets = assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        for (AssetEntity a : assets) {
+            try {
+                JsonNode full = objectMapper.readTree(a.getFullJson());
+                JsonNode sid = full.get("standardId");
+                if (sid != null && !sid.isNull()) {
+                    appliedStandardIds.add(sid.asText());
+                }
+            } catch (Exception ignored) {
+                // fullJson 非法时跳过
+            }
+        }
+        int applied = (int) all.stream()
+                .filter(s -> appliedStandardIds.contains(String.valueOf(s.getId())))
+                .count();
         double applyRate = total == 0 ? 0.0 : (applied * 100.0 / total);
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("total", total);

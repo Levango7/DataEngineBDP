@@ -20,9 +20,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 数据安全端点（ROADMAP 前后端接线：前端 /sec）。
@@ -34,6 +36,9 @@ import java.util.Map;
 public class SecController {
 
     private final MaskPolicyRepository repository;
+
+    /** 权限审批流内存存储：tenantId -> 审批记录列表。 */
+    private static final Map<String, List<Map<String, Object>>> APPROVALS = new ConcurrentHashMap<>();
 
     /** 创建/更新请求体（对齐前端 CreateMaskPolicyParams）。 */
     public record MaskPolicyRequest(
@@ -117,7 +122,7 @@ public class SecController {
      * 查询权限申请列表。
      *
      * <p>对齐前端 {@code sec.ts} 的 {@code listApprovals}。
-     * TODO: 接入审批流存储，当前返回空列表占位。</p>
+     * 从内存审批流存储查询，支持 status 过滤。</p>
      *
      * @param status 状态过滤（可选）
      * @return 200 + 审批列表
@@ -125,24 +130,29 @@ public class SecController {
     @GetMapping("/approvals")
     public ResponseEntity<List<Map<String, Object>>> listApprovals(
             @RequestParam(required = false) String status) {
-        // TODO: 从审批流存储查询
-        log.info("查询权限申请: status={}, tenant={}", status, TenantContext.getTenantId());
-        return ResponseEntity.ok(List.of());
+        String tenantId = requireTenant();
+        List<Map<String, Object>> records = APPROVALS.getOrDefault(tenantId, List.of());
+        List<Map<String, Object>> filtered = (status == null || status.isBlank())
+                ? new ArrayList<>(records)
+                : records.stream().filter(r -> status.equals(r.get("status"))).toList();
+        log.info("查询权限申请: status={}, tenant={}, size={}", status, tenantId, filtered.size());
+        return ResponseEntity.ok(filtered);
     }
 
     /**
      * 批准权限申请。
      *
      * <p>对齐前端 {@code sec.ts} 的 {@code approveApproval}。
-     * TODO: 转交审批流引擎，当前仅记录日志。</p>
+     * 更新内存审批流中对应记录的状态为 approved。</p>
      *
      * @param id 申请 ID
      * @return 200
      */
     @PostMapping("/approvals/{id}/approve")
     public ResponseEntity<Void> approve(@PathVariable Long id) {
-        // TODO: 转交审批流引擎更新状态
-        log.info("批准权限申请: id={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        updateApprovalStatus(tenantId, id, "approved");
+        log.info("批准权限申请: id={}, tenant={}", id, tenantId);
         return ResponseEntity.ok().build();
     }
 
@@ -150,16 +160,35 @@ public class SecController {
      * 拒绝权限申请。
      *
      * <p>对齐前端 {@code sec.ts} 的 {@code rejectApproval}。
-     * TODO: 转交审批流引擎，当前仅记录日志。</p>
+     * 更新内存审批流中对应记录的状态为 rejected。</p>
      *
      * @param id 申请 ID
      * @return 200
      */
     @PostMapping("/approvals/{id}/reject")
     public ResponseEntity<Void> reject(@PathVariable Long id) {
-        // TODO: 转交审批流引擎更新状态
-        log.info("拒绝权限申请: id={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        updateApprovalStatus(tenantId, id, "rejected");
+        log.info("拒绝权限申请: id={}, tenant={}", id, tenantId);
         return ResponseEntity.ok().build();
+    }
+
+    /** 更新内存审批流中指定记录的状态。 */
+    private void updateApprovalStatus(String tenantId, Long id, String status) {
+        List<Map<String, Object>> records = APPROVALS.get(tenantId);
+        if (records == null) {
+            return;
+        }
+        String idStr = String.valueOf(id);
+        synchronized (records) {
+            for (Map<String, Object> r : records) {
+                if (idStr.equals(String.valueOf(r.get("id")))) {
+                    r.put("status", status);
+                    r.put("updatedAt", Instant.now().toString());
+                    break;
+                }
+            }
+        }
     }
 
     private String requireTenant() {

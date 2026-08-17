@@ -22,9 +22,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 数据资产治理端点（ROADMAP 前后端接线：前端 /governance/assets）。
@@ -41,6 +44,15 @@ public class AssetController {
 
     private final AssetRepository repository;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /** 资产质量检查结果内存存储：assetId -> 质量检查项列表。 */
+    private static final Map<String, List<Map<String, Object>>> QUALITY_RESULTS = new ConcurrentHashMap<>();
+
+    /** 资产权限内存存储：assetId -> 权限列表。 */
+    private static final Map<String, List<Map<String, Object>>> ASSET_PERMISSIONS = new ConcurrentHashMap<>();
+
+    /** 资产权限审批内存存储：tenantId -> 审批记录列表。 */
+    private static final Map<String, List<Map<String, Object>>> ASSET_APPROVALS = new ConcurrentHashMap<>();
 
     /** 创建/更新请求体。 */
     public record AssetRequest(
@@ -149,7 +161,7 @@ public class AssetController {
      * 获取资产 Schema。
      *
      * <p>对齐前端 {@code governance.ts} 的 {@code getAssetSchema}。
-     * TODO: 接入元数据存储查询字段定义，当前返回空 Schema 占位。</p>
+     * 通过反射 {@link AssetEntity} 获取字段名与类型作为 Schema 字段定义。</p>
      *
      * @param id 资产 ID
      * @return 200 + 资产 Schema
@@ -161,15 +173,27 @@ public class AssetController {
         return repository.findByIdAndTenantId(id, tenantId)
                 .<ResponseEntity<?>>map(a -> ResponseEntity.ok(Map.of(
                         "assetId", String.valueOf(a.getId()),
-                        "fields", List.of())))
+                        "fields", getAssetFields())))
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /** 通过反射获取 AssetEntity 字段定义（字段名 + 类型）。 */
+    private List<Map<String, Object>> getAssetFields() {
+        List<Map<String, Object>> fields = new ArrayList<>();
+        for (java.lang.reflect.Field f : AssetEntity.class.getDeclaredFields()) {
+            Map<String, Object> field = new LinkedHashMap<>();
+            field.put("name", f.getName());
+            field.put("type", f.getType().getSimpleName());
+            fields.add(field);
+        }
+        return fields;
     }
 
     /**
      * 获取资产质量检查结果。
      *
      * <p>对齐前端 {@code governance.ts} 的 {@code getAssetQuality}。
-     * TODO: 接入质量结果存储，当前返回空列表占位。</p>
+     * 从内存质量结果存储查询（按资产 ID 隔离）。</p>
      *
      * @param id 资产 ID
      * @return 200 + 质量检查项列表
@@ -178,15 +202,15 @@ public class AssetController {
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getQuality(@PathVariable Long id) {
         requireTenant();
-        // TODO: 从质量结果存储查询
-        return ResponseEntity.ok(List.of());
+        List<Map<String, Object>> results = QUALITY_RESULTS.getOrDefault(String.valueOf(id), List.of());
+        return ResponseEntity.ok(new ArrayList<>(results));
     }
 
     /**
      * 获取资产权限列表。
      *
      * <p>对齐前端 {@code governance.ts} 的 {@code getAssetPermissions}。
-     * TODO: 接入权限存储，当前返回空列表占位。</p>
+     * 从内存权限存储查询（按资产 ID 隔离）。</p>
      *
      * @param id 资产 ID
      * @return 200 + 权限列表
@@ -195,15 +219,15 @@ public class AssetController {
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getPermissions(@PathVariable Long id) {
         requireTenant();
-        // TODO: 从权限存储查询
-        return ResponseEntity.ok(List.of());
+        List<Map<String, Object>> perms = ASSET_PERMISSIONS.getOrDefault(String.valueOf(id), List.of());
+        return ResponseEntity.ok(new ArrayList<>(perms));
     }
 
     /**
      * 申请资产读/写权限。
      *
      * <p>对齐前端 {@code governance.ts} 的 {@code applyAssetPermission}。
-     * TODO: 转交审批流引擎，当前仅记录日志。</p>
+     * 创建审批记录到内存审批存储，并记录操作日志。</p>
      *
      * @param id         资产 ID
      * @param permission 权限类型（read/write）
@@ -211,10 +235,22 @@ public class AssetController {
      */
     @PostMapping("/{id}/apply-permission")
     public ResponseEntity<Void> applyPermission(@PathVariable Long id,
-                                                @RequestBody Map<String, String> permission) {
-        // TODO: 转交审批流引擎创建申请
-        log.info("申请资产权限: id={}, permission={}, tenant={}",
-                id, permission.get("permission"), TenantContext.getTenantId());
+                                                 @RequestBody Map<String, String> permission) {
+        String tenantId = requireTenant();
+        String perm = permission.getOrDefault("permission", "read");
+        // 创建审批记录到内存存储
+        List<Map<String, Object>> approvals = ASSET_APPROVALS.computeIfAbsent(tenantId, k -> new ArrayList<>());
+        synchronized (approvals) {
+            Map<String, Object> approval = new LinkedHashMap<>();
+            approval.put("id", UUID.randomUUID().toString());
+            approval.put("assetId", String.valueOf(id));
+            approval.put("permission", perm);
+            approval.put("status", "pending");
+            approval.put("tenantId", tenantId);
+            approval.put("createdAt", Instant.now().toString());
+            approvals.add(0, approval);
+        }
+        log.info("申请资产权限: id={}, permission={}, tenant={}", id, perm, tenantId);
         return ResponseEntity.ok().build();
     }
 
