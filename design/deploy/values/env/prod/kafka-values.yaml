@@ -1,0 +1,41 @@
+﻿# ============================================================================
+# kafka · prod 环境 values
+# 策略：broker=3,controller=3 · 资源充足 · kraft · retention 168h · PVC+HPA
+# ============================================================================
+
+image:
+  repository: "apache/kafka"
+  tag: "3.7.0"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: "2", memory: "4Gi" }
+  limits:   { cpu: "4", memory: "8Gi" }
+
+config:
+  broker:
+    replicas: 3
+    minInSyncReplicas: 2
+    defaultReplicationFactor: 3
+    compressionType: lz4
+    logRetentionHours: 168
+    logSegmentBytes: 1073741824
+  metadata:
+    mode: kraft
+    kraft:
+      controllers: 3
+  log:
+    level: WARN
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  size: 200Gi

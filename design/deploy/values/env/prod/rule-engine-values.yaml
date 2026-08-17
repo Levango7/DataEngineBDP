@@ -1,0 +1,65 @@
+﻿# ============================================================================
+# rule-engine · prod 环境 values
+# 覆盖：design/deploy/charts/rule-engine/values.yaml
+# 策略：资源充足 · 日志WARN · 2副本 · PostgreSQL+PVC+HPA+PDB+TLS
+# ============================================================================
+
+image:
+  repository: "docker.m.daocloud.io/sq-rule-engine"
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: "1"
+    memory: "2Gi"
+  limits:
+    cpu: "2"
+    memory: "4Gi"
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+ingress:
+  enabled: true
+  className: apisix
+  hosts:
+    - host: rule-engine.prod.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: rule-engine-tls
+      hosts:
+        - rule-engine.prod.shuqing.local
+
+env:
+  LOG_LEVEL: warn
+  JAVA_OPTS: "-Xms2g -Xmx4g -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+
+config:
+  application.conf: |
+    # rule-engine prod 配置 - PostgreSQL + 连接池调优
+    db.driver = postgresql
+    db.url = "jdbc:postgresql://pg-rule-engine.prod.svc:5432/rule-engine"
+    db.pool.hikari.maximumPoolSize = 20
+    db.pool.hikari.connectionTimeout = 30000
+    log.level = warn
+    feature.persistentVolume = true
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  accessModes:
+    - ReadWriteOnce
+  size: 50Gi

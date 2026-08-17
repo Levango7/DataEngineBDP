@@ -1,0 +1,1468 @@
+﻿# ============================================================================
+# ArgoCD Applications · 10 个关键组件 × 3 环境 = 30 个 Application
+# ============================================================================
+# 仓库：https://github.com/Levango7/DataEngineBDP
+# 分支：main
+# 同步策略：automated(prune + selfHeal) + retry(5, exponential backoff)
+# 同步波次：确保依赖顺序（数据存储 → 计算引擎 → 业务服务 → 应用层）
+#
+# 同步波次说明：
+#   wave -3：数据存储层（kafka, doris）
+#   wave -2：计算引擎层（spark, flink, trino）
+#   wave  0：业务服务层（encaps-layer, sql-gateway, catalog, rule-engine）
+#   wave  1：应用层（superset）
+# 注：ArgoCD 中 wave 值小的先同步，负数先于正数
+# ============================================================================
+
+# ============================================================================
+# dev 环境 Applications
+# ============================================================================
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-kafka
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: kafka
+    sync-wave: "-3"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/kafka
+    helm:
+      releaseName: kafka
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/kafka-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-doris
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: doris
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: doris
+    sync-wave: "-3"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/doris
+    helm:
+      releaseName: doris
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/doris-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-spark
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: spark
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: spark
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/spark
+    helm:
+      releaseName: spark
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/spark-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-flink
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: flink
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: flink
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/flink
+    helm:
+      releaseName: flink
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/flink-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-trino
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: trino
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: trino
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/trino
+    helm:
+      releaseName: trino
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/trino-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-encaps-layer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: encaps-layer
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: encaps-layer
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/encaps-layer
+    helm:
+      releaseName: encaps-layer
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/encaps-layer-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-sql-gateway
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: sql-gateway
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: sql-gateway
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/sql-gateway
+    helm:
+      releaseName: sql-gateway
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/sql-gateway-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-catalog
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: catalog
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/catalog
+    helm:
+      releaseName: catalog
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/catalog-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-rule-engine
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: rule-engine
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: rule-engine
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/rule-engine
+    helm:
+      releaseName: rule-engine
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/rule-engine-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dev-superset
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: superset
+    app.kubernetes.io/part-of: gitops
+    environment: dev
+    component: superset
+    sync-wave: "1"
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-dev
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/superset
+    helm:
+      releaseName: superset
+      valueFiles:
+        - values.yaml
+        - ../../values/env/dev/superset-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dev-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+# ============================================================================
+# staging 环境 Applications
+# ============================================================================
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-kafka
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: kafka
+    sync-wave: "-3"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/kafka
+    helm:
+      releaseName: kafka
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/kafka-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-doris
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: doris
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: doris
+    sync-wave: "-3"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/doris
+    helm:
+      releaseName: doris
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/doris-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-spark
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: spark
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: spark
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/spark
+    helm:
+      releaseName: spark
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/spark-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-flink
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: flink
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: flink
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/flink
+    helm:
+      releaseName: flink
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/flink-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-trino
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: trino
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: trino
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/trino
+    helm:
+      releaseName: trino
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/trino-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-encaps-layer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: encaps-layer
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: encaps-layer
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/encaps-layer
+    helm:
+      releaseName: encaps-layer
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/encaps-layer-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-sql-gateway
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: sql-gateway
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: sql-gateway
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/sql-gateway
+    helm:
+      releaseName: sql-gateway
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/sql-gateway-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-catalog
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: catalog
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/catalog
+    helm:
+      releaseName: catalog
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/catalog-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-rule-engine
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: rule-engine
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: rule-engine
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/rule-engine
+    helm:
+      releaseName: rule-engine
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/rule-engine-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: staging-superset
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: superset
+    app.kubernetes.io/part-of: gitops
+    environment: staging
+    component: superset
+    sync-wave: "1"
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-staging
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/superset
+    helm:
+      releaseName: superset
+      valueFiles:
+        - values.yaml
+        - ../../values/env/staging/superset-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: staging-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+# ============================================================================
+# prod 环境 Applications
+# ============================================================================
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-kafka
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: kafka
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: kafka
+    sync-wave: "-3"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/kafka
+    helm:
+      releaseName: kafka
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/kafka-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-doris
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: doris
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: doris
+    sync-wave: "-3"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/doris
+    helm:
+      releaseName: doris
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/doris-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-spark
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: spark
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: spark
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/spark
+    helm:
+      releaseName: spark
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/spark-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-flink
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: flink
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: flink
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/flink
+    helm:
+      releaseName: flink
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/flink-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-trino
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: trino
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: trino
+    sync-wave: "-2"
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/trino
+    helm:
+      releaseName: trino
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/trino-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-encaps-layer
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: encaps-layer
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: encaps-layer
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/encaps-layer
+    helm:
+      releaseName: encaps-layer
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/encaps-layer-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-sql-gateway
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: sql-gateway
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: sql-gateway
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/sql-gateway
+    helm:
+      releaseName: sql-gateway
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/sql-gateway-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-catalog
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: catalog
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: catalog
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/catalog
+    helm:
+      releaseName: catalog
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/catalog-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-rule-engine
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: rule-engine
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: rule-engine
+    sync-wave: "0"
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/rule-engine
+    helm:
+      releaseName: rule-engine
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/rule-engine-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-engine
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: prod-superset
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: superset
+    app.kubernetes.io/part-of: gitops
+    environment: prod
+    component: superset
+    sync-wave: "1"
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform-prod
+  source:
+    repoURL: https://github.com/Levango7/DataEngineBDP
+    targetRevision: main
+    path: design/deploy/charts/superset
+    helm:
+      releaseName: superset
+      valueFiles:
+        - values.yaml
+        - ../../values/env/prod/superset-values.yaml
+      version: v2
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: prod-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - PruneLast=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+

@@ -1,0 +1,49 @@
+﻿# ============================================================================
+# encaps-layer · dev 环境 values
+# 覆盖：design/deploy/charts/encaps-layer/values.yaml
+# 策略：资源最小 · 日志DEBUG · 单副本 · H2内存库 · 无PVC/HPA/PDB
+# ============================================================================
+
+image:
+  repository: "docker.m.daocloud.io/sq-encapsulation"
+  tag: "0.1.0-dev"
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: false
+
+ingress:
+  enabled: true
+  className: apisix
+  hosts:
+    - host: encaps-layer.dev.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+env:
+  LOG_LEVEL: debug
+  JAVA_OPTS: "-Xms256m -Xmx512m"
+
+config:
+  application.conf: |
+    # encaps-layer dev 配置 - H2 内存数据库
+    db.driver = h2
+    db.url = "jdbc:h2:mem:encaps-layer;DB_CLOSE_DELAY=-1;MODE=PostgreSQL"
+    db.pool.hikari.maximumPoolSize = 5
+    log.level = debug
+    feature.persistentVolume = false

@@ -1,0 +1,36 @@
+﻿# ============================================================================
+# doris · staging 环境 values
+# 策略：fe=2,be=2 · 资源中等 · compaction开启 · 无PVC
+# ============================================================================
+
+image:
+  repository: "apache/doris"
+  tag: "2.1.7"
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+resources:
+  requests: { cpu: "1", memory: "2Gi" }
+  limits:   { cpu: "2", memory: "4Gi" }
+
+config:
+  fe:
+    replicas: 2
+    queryPort: 9030
+    httpPort: 8030
+    editLogPort: 9010
+  be:
+    replicas: 2
+    webserverPort: 8040
+    brpcPort: 8060
+  compaction:
+    maxConcurrency: 4
+    rateLimit:
+      enabled: true
+      maxBytesPerSecond: 200MB
+  log:
+    level: INFO
+
+autoscaling:
+  enabled: false

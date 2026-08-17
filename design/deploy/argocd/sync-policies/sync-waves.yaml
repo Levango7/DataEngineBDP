@@ -1,0 +1,60 @@
+# ============================================================================
+# 同步波次策略 · Sync Waves
+# ============================================================================
+# 作用：定义 ArgoCD Application 的同步顺序，确保依赖关系
+# 机制：ArgoCD 按 sync-wave 注解值升序同步（负数先于正数）
+# 注解：argocd.argoproj.io/sync-wave: "N"
+# ----------------------------------------------------------------------------
+# 同步波次分层（适用于全量 83 个组件）：
+# ----------------------------------------------------------------------------
+#
+#   wave -10 │ 基础设施（集群级 CRD/控制器）
+#            │ cert-manager, cni-cilium, csi-ceph, csi-juicefs,
+#            │ metallb, metrics-server, cluster-autoscaler, descheduler,
+#            │ node-problem-detector, reloader, velero
+#
+#   wave  -5 │ 存储与消息中间件
+#            │ postgresql, redis, minio, elasticsearch, zookeeper,
+#            │ kafka, hive-metastore, iceberg-rest
+#
+#   wave  -3 │ 数据存储引擎
+#            │ doris, iotdb, nebula-graph, milvus
+#
+#   wave  -2 │ 计算引擎
+#            │ spark, flink, trino, seatunnel, flink-cdc,
+#            │ dolphinscheduler, airflow, stream-batch-scheduler
+#
+#   wave  -1 │ 平台网关与安全
+#            │ keycloak, apisix, ingress-nginx, external-secrets,
+#            │ knative-serving, karmada, keda
+#
+#   wave   0 │ 业务服务层
+#            │ encaps-layer, sql-gateway, catalog, rule-engine,
+#            │ governance, lineage-analyzer, metadata-collector,
+#            │ tag-engine, knowledge-engine, nl2sql, llm-gateway,
+#            │ llmops, dqctl, data-quality, asset-catalog, asset-exchange,
+#            │ open-api-catalog, business-portal, chunker
+#
+#   wave   1 │ 应用与可视化层
+#            │ superset, jupyter, mlflow, ml-platform, model-finetuning,
+#            │ ai-assistant, theia, vscode-server, vector-engine
+#
+#   wave   2 │ 行业模板与可观测性
+#            │ finance-template, industry-templates,
+#            │ grafana, prometheus, loki, tempo, observability,
+#            │ argo-rollouts, finops, registry, storage-io
+#
+#   wave   3 │ 基础设施 Provider（最后部署，可能依赖集群已有资源）
+#            │ infra-orchestrator, infra-provider-baremetal,
+#            │ infra-provider-cloud, infra-provider-private,
+#            │ infra-provider-xinchang, ske-infra
+# ============================================================================
+# 在 Application 中使用：
+#   metadata:
+#     annotations:
+#       argocd.argoproj.io/sync-wave: "-2"
+# ============================================================================
+# 验证同步顺序：
+#   argocd app sync --dry-run
+#   argocd app wait --sync
+# ============================================================================

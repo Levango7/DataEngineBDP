@@ -1,0 +1,50 @@
+﻿# ============================================================================
+# sql-gateway · staging 环境 values
+# 覆盖：design/deploy/charts/sql-gateway/values.yaml
+# 策略：资源中等 · 日志INFO · 双副本 · PostgreSQL · PDB · 无PVC/HPA
+# ============================================================================
+
+image:
+  repository: "docker.m.daocloud.io/sq-sql-gateway"
+  tag: "0.1.0-staging"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "1"
+    memory: "2Gi"
+
+autoscaling:
+  enabled: false
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: true
+  className: apisix
+  hosts:
+    - host: sql-gateway.staging.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+env:
+  LOG_LEVEL: info
+  JAVA_OPTS: "-Xms1g -Xmx2g -XX:+UseG1GC"
+
+config:
+  application.conf: |
+    # sql-gateway staging 配置 - PostgreSQL
+    db.driver = postgresql
+    db.url = "jdbc:postgresql://pg-sql-gateway.staging.svc:5432/sql-gateway"
+    db.pool.hikari.maximumPoolSize = 10
+    log.level = info
+    feature.persistentVolume = false

@@ -74,3 +74,16 @@ docs/_盘点_*.md
 # 子代理验证产物（不入库）
 .resultverify/
 .build-verify/
+
+# Playwright测试产物（不入库）
+frontend/playwright-report/
+frontend/test-results/
+
+# 冒烟验证临时文件（不入库）
+smoke-*.csv
+smoke-*.json
+smoke-*.txt
+smoke-*.ps1
+smoke-*.bat
+run-backend.bat
+backend-boot.log

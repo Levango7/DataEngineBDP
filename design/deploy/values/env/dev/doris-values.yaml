@@ -1,0 +1,35 @@
+﻿# ============================================================================
+# doris · dev 环境 values
+# 策略：fe=1,be=1 · 资源最小 · compaction关闭 · 无PVC
+# ============================================================================
+
+image:
+  repository: "apache/doris"
+  tag: "2.1.7"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests: { cpu: "500m", memory: "1Gi" }
+  limits:   { cpu: "1",    memory: "2Gi" }
+
+config:
+  fe:
+    replicas: 1
+    queryPort: 9030
+    httpPort: 8030
+    editLogPort: 9010
+  be:
+    replicas: 1
+    webserverPort: 8040
+    brpcPort: 8060
+  compaction:
+    maxConcurrency: 2
+    rateLimit:
+      enabled: false
+  log:
+    level: DEBUG
+
+autoscaling:
+  enabled: false

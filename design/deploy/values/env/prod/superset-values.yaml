@@ -1,0 +1,51 @@
+﻿# ============================================================================
+# superset · prod 环境 values
+# 策略：web=3,celery=3 · 资源充足 · PostgreSQL+PVC · redis集群 · HPA
+# ============================================================================
+
+image:
+  repository: "apache/superset"
+  tag: "3.1.0"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: "1", memory: "2Gi" }
+  limits:   { cpu: "2", memory: "4Gi" }
+
+config:
+  web:
+    replicas: 3
+    gunicornWorkers: 8
+    gunicornTimeout: 120
+  celery:
+    worker:
+      replicas: 3
+      workerConcurrency: 8
+    beat:
+      enabled: true
+      replicas: 1
+  database:
+    type: postgresql
+    host: pg-superset.prod.svc
+    port: 5432
+    name: superset
+    poolSize: 20
+  cache:
+    type: redis
+    host: redis-superset-cluster.prod.svc
+    port: 6379
+  log:
+    level: WARN
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  size: 50Gi

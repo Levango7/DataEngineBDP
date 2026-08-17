@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "数擎大数据平台巡检报告",
+  "description": "自动化巡检 CronJob 输出的 JSON 报告模板",
+  "type": "object",
+  "required": ["timestamp", "cluster", "checks", "summary"],
+  "properties": {
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "巡检报告生成时间（ISO 8601）"
+    },
+    "cluster": {
+      "type": "string",
+      "description": "K8s 集群名称（current-context）"
+    },
+    "checks": {
+      "type": "array",
+      "description": "巡检项结果列表",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "severity", "command", "expect", "actual", "passed", "duration_ms"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "巡检项名称"
+          },
+          "description": {
+            "type": "string",
+            "description": "巡检项描述"
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["P0", "P1", "P2"],
+            "description": "告警级别"
+          },
+          "command": {
+            "type": "string",
+            "description": "执行的巡检命令"
+          },
+          "expect": {
+            "type": "string",
+            "description": "期望结果表达式"
+          },
+          "actual": {
+            "type": "string",
+            "description": "实际结果值"
+          },
+          "passed": {
+            "type": "boolean",
+            "description": "是否通过"
+          },
+          "duration_ms": {
+            "type": "integer",
+            "description": "巡检耗时（毫秒）"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total", "passed", "failed", "pass_rate"],
+      "properties": {
+        "total": { "type": "integer", "description": "巡检项总数" },
+        "passed": { "type": "integer", "description": "通过数" },
+        "failed": { "type": "integer", "description": "失败数" },
+        "pass_rate": { "type": "string", "description": "通过率（百分比）" }
+      }
+    }
+  },
+  "example": {
+    "timestamp": "2026-08-17T02:00:00+08:00",
+    "cluster": "kubernetes-admin@shuqing-prod",
+    "checks": [
+      {
+        "name": "node-ready",
+        "description": "所有节点 Ready",
+        "severity": "P0",
+        "command": "kubectl get nodes -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' | tr ' ' '\\n' | grep -vc True",
+        "expect": "== 0",
+        "actual": "0",
+        "passed": true,
+        "duration_ms": 120
+      },
+      {
+        "name": "disk-space",
+        "description": "所有节点磁盘使用率 < 85%",
+        "severity": "P1",
+        "command": "kubectl get nodes ...",
+        "expect": "> 0",
+        "actual": "0",
+        "passed": false,
+        "duration_ms": 3500
+      }
+    ],
+    "summary": {
+      "total": 25,
+      "passed": 23,
+      "failed": 2,
+      "pass_rate": "92.0%"
+    }
+  }
+}

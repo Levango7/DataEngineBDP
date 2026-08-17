@@ -1,0 +1,42 @@
+﻿# ============================================================================
+# flink · prod 环境 values
+# 策略：3副本 · 资源充足 · rocksdb+incremental · checkpoint 60s · PVC+HPA
+# ============================================================================
+
+image:
+  repository: "flink"
+  tag: "1.18.0"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: "2", memory: "4Gi" }
+  limits:   { cpu: "4", memory: "8Gi" }
+
+config:
+  stateBackend:
+    type: rocksdb
+    incremental: true
+  checkpoint:
+    interval: 60s
+    timeout: 10m
+    externalized: true
+    minPause: 10s
+  network:
+    netty:
+      numNetworkBuffers: 2048
+      segmentSize: 32KB
+  log:
+    level: WARN
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  size: 100Gi

@@ -1,0 +1,205 @@
+# ============================================================================
+# 巡检项配置 - 数据引擎大数据平台
+# 关联：design/运维/运维手册.md §8 巡检 SOP
+# 命名空间：sq-monitor
+# 巡检维度：集群健康 / 组件健康 / 数据健康 / 安全健康
+# 部署：kubectl apply -f health-check.yaml -n sq-monitor
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: health-check-config
+  namespace: sq-monitor
+  labels:
+    app.kubernetes.io/name: inspector
+    app.kubernetes.io/part-of: shuqing-platform
+    shuqing-platform/monitor-component: inspector
+data:
+  health-check.yaml: |
+    # 巡检全局配置
+    global:
+      # 巡检超时
+      timeout: 300s
+      # 失败重试次数
+      retry: 2
+      # 关联的命名空间范围
+      namespaces:
+        - sq-platform       # 控制台
+        - sq-engine         # 引擎（Spark/Flink/Trino/Doris/Kafka）
+        - sq-governance     # 治理（元数据/血缘/质量/资产）
+        - sq-ai             # AI（向量/知识/LLMOps）
+        - sq-monitor        # 监控
+        - sq-infra          # 基础设施
+        - kube-system       # K8s 系统
+      # 报告输出
+      report:
+        format: both          # json + html
+        output: /tmp/inspector-report
+        retainDays: 30
+
+    # ==========================================================================
+    # 维度 1: 集群健康巡检
+    # ==========================================================================
+    cluster:
+      # 节点数检查
+      - name: node-count
+        description: "集群节点数 >= 3"
+        command: "kubectl get nodes --no-headers | wc -l"
+        expect: ">= 3"
+        severity: P1
+      # 节点 Ready 状态
+      - name: node-ready
+        description: "所有节点 Ready"
+        command: "kubectl get nodes -o jsonpath='{.items[*].status.conditions[?(@.type==\"Ready\")].status}' | tr ' ' '\\n' | grep -vc True"
+        expect: "== 0"
+        severity: P0
+      # 节点版本一致性
+      - name: node-version-consistency
+        description: "所有节点 K8s 版本一致"
+        command: "kubectl get nodes -o jsonpath='{.items[*].status.nodeInfo.kubeletVersion}' | tr ' ' '\\n' | sort -u | wc -l"
+        expect: "== 1"
+        severity: P1
+      # 控制面健康
+      - name: control-plane-health
+        description: "控制面组件健康"
+        command: "kubectl get componentstatuses -o jsonpath='{.items[?(@.status.conditions[0].type!=\"Healthy\")].metadata.name}'"
+        expect: "== \"\""
+        severity: P0
+      # etcd 延迟
+      - name: etcd-latency
+        description: "etcd commit 延迟 < 100ms"
+        command: "curl -s http://etcd:2379/metrics | grep etcd_disk_backend_commit_duration_seconds | awk -F' ' '{print $2}'"
+        expect: "< 0.1"
+        severity: P1
+
+    # ==========================================================================
+    # 维度 2: 组件健康巡检
+    # ==========================================================================
+    components:
+      # 所有 Deployment 可用副本数
+      - name: deployment-replicas
+        description: "所有 Deployment 可用副本数 == 期望副本数"
+        command: "kubectl get deployments -A -o json | jq '.items[] | select(.status.availableReplicas != .spec.replicas) | .metadata.name' | wc -l"
+        expect: "== 0"
+        severity: P1
+      # 异常 Pod（CrashLoopBackOff / ImagePullBackOff）
+      - name: pod-abnormal
+        description: "无 CrashLoopBackOff / ImagePullBackOff Pod"
+        command: "kubectl get pods -A --field-selector=status.phase!=Running,status.phase!=Succeeded --no-headers | wc -l"
+        expect: "== 0"
+        severity: P1
+      # Pod 重启次数
+      - name: pod-restarts
+        description: "无 Pod 1 小时内重启 > 5 次"
+        command: "kubectl get pods -A -o json | jq '.items[] | select(.status.containerStatuses[]?.restartCount > 5) | .metadata.name' | wc -l"
+        expect: "== 0"
+        severity: P2
+      # 引擎组件健康（Spark/Flink/Trino/Doris）
+      - name: spark-master-health
+        description: "Spark Master 可用"
+        command: "curl -s http://spark-master.sq-engine.svc:8080/health | jq -r .status"
+        expect: "== \"HEALTHY\""
+        severity: P1
+      - name: flink-jm-health
+        description: "Flink JobManager 可用"
+        command: "curl -s http://flink-jm.sq-engine.svc:8081/overview | jq -r .flink-version"
+        expect: "!= null"
+        severity: P1
+      - name: trino-coordinator-health
+        description: "Trino Coordinator 可用"
+        command: "curl -s http://trino.sq-engine.svc:8080/v1/info | jq -r .starting"
+        expect: "== false"
+        severity: P1
+      - name: doris-fe-health
+        description: "Doris FE 可用"
+        command: "curl -s http://doris-fe.sq-engine.svc:8030/api/health"
+        expect: "== \"ok\""
+        severity: P1
+      # Kafka 集群健康
+      - name: kafka-broker-count
+        description: "Kafka Broker 数 >= 3"
+        command: "kubectl get pods -n sq-engine -l app=kafka-broker --no-headers | wc -l"
+        expect: ">= 3"
+        severity: P1
+
+    # ==========================================================================
+    # 维度 3: 数据健康巡检
+    # ==========================================================================
+    data:
+      # PostgreSQL 连接
+      - name: postgres-connectivity
+        description: "PostgreSQL 可连接"
+        command: "kubectl exec -n sq-engine postgresql-0 -- psql -U postgres -c 'SELECT 1' | grep -c '1 row'"
+        expect: "== 1"
+        severity: P0
+      # PostgreSQL 连接池使用率
+      - name: postgres-conn-pool
+        description: "PG 连接池使用率 < 80%"
+        command: "kubectl exec -n sq-engine postgresql-0 -- psql -U postgres -t -c \"SELECT count(*)::float / setting::float FROM pg_settings, pg_stat_activity WHERE name='max_connections'\""
+        expect: "< 0.8"
+        severity: P1
+      # 磁盘空间（所有节点）
+      - name: disk-space
+        description: "所有节点磁盘使用率 < 85%"
+        command: "kubectl get nodes -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\\n' | xargs -I{} kubectl debug node/{} -it --image=busybox -- df -h | grep -vE '(8[5-9]|9[0-9])%' | wc -l"
+        expect: "> 0"
+        severity: P1
+      # Kafka 消费者 lag
+      - name: kafka-consumer-lag
+        description: "所有消费者 lag < 10000"
+        command: "kubectl exec -n sq-engine kafka-0 -- kafka-consumer-groups --bootstrap-server localhost:9092 --describe --all-groups | awk '{print $NF}' | grep -vE '^$|-' | awk '$1>10000' | wc -l"
+        expect: "== 0"
+        severity: P1
+      # 对象存储连通
+      - name: minio-health
+        description: "MinIO 对象存储可访问"
+        command: "curl -s http://minio.sq-engine.svc:9000/minio/health/live"
+        expect: "== 200"
+        severity: P0
+      # 备份最新成功时间
+      - name: backup-freshness
+        description: "最近备份成功时间 < 25h"
+        command: "curl -s http://backup-exporter:9100/metrics | grep backup_last_success_timestamp_seconds | awk -F' ' '{print systime()-$2}'"
+        expect: "< 90000"
+        severity: P1
+
+    # ==========================================================================
+    # 维度 4: 安全健康巡检
+    # ==========================================================================
+    security:
+      # 证书过期检查
+      - name: cert-expiry
+        description: "所有 TLS 证书剩余有效期 > 30 天"
+        command: "kubectl get secret -A -o json | jq -r '.items[] | select(.type==\"kubernetes.io/tls\") | .metadata.namespace + \"/\" + .metadata.name' | xargs -I{} sh -c 'kubectl get secret {} -o jsonpath=\"{.data.tls\\.crt}\" | base64 -d | openssl x509 -enddate -noout' | while read line; do date -d \"$(echo $line | cut -d= -f2)\" +%s; done | xargs -I{} sh -c 'echo $(({} - $(date +%s)))' | awk '$1<2592000' | wc -l"
+        expect: "== 0"
+        severity: P1
+      # RBAC 完整性
+      - name: rbac-completeness
+        description: "关键 ServiceAccount 有对应 RoleBinding"
+        command: "kubectl get serviceaccounts -A -o json | jq -r '.items[] | select(.metadata.name | test(\"sq-\")) | .metadata.name' | while read sa; do kubectl get rolebindings,clusterrolebindings -A -o json | jq -r --arg sa \"$sa\" '.items[] | select(.subjects[]?.name==$sa) | .metadata.name' | grep -q . || echo $sa; done | wc -l"
+        expect: "== 0"
+        severity: P2
+      # NetworkPolicy 覆盖率
+      - name: networkpolicy-coverage
+        description: "sq-* namespace 有 NetworkPolicy"
+        command: "for ns in sq-platform sq-engine sq-governance sq-ai; do kubectl get networkpolicy -n $ns --no-headers | wc -l; done | grep -c '^0$'"
+        expect: "== 0"
+        severity: P2
+      # 容器特权模式检查
+      - name: privileged-containers
+        description: "无特权模式容器"
+        command: "kubectl get pods -A -o json | jq -r '.items[] | select(.spec.containers[]?.securityContext.privileged==true) | .metadata.name' | wc -l"
+        expect: "== 0"
+        severity: P1
+      # 镜像 latest 标签检查
+      - name: latest-tag-images
+        description: "无使用 latest 标签的镜像"
+        command: "kubectl get pods -A -o json | jq -r '.items[].spec.containers[].image' | grep ':latest' | wc -l"
+        expect: "== 0"
+        severity: P2
+      # 审计日志写入
+      - name: audit-log-active
+        description: "审计日志在过去 5 分钟有写入"
+        command: "kubectl logs -n sq-infra audit-service --since=5m | wc -l"
+        expect: "> 0"
+        severity: P1

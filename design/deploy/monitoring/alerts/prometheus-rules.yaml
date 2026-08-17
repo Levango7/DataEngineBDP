@@ -1,0 +1,550 @@
+# ============================================================================
+# Prometheus 告警规则 - 数据引擎大数据平台
+# 关联：design/运维/运维手册.md §2.3 告警规则
+# 命名空间：sq-monitor
+# 阈值原则：避免告警风暴，P0/P1/P2 分级，for 持续时间抑制抖动
+# 部署：kubectl apply -f prometheus-rules.yaml -n sq-monitor
+# ============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: shuqing-platform-alerts
+  namespace: sq-monitor
+  labels:
+    app.kubernetes.io/name: prometheus
+    app.kubernetes.io/part-of: shuqing-platform
+    app.kubernetes.io/managed-by: helm
+    shuqing-platform/monitor-component: alerting
+spec:
+  groups:
+    # ==========================================================================
+    # Group 1: 节点资源告警（主机层）
+    # ==========================================================================
+    - name: node-resource
+      interval: 30s
+      rules:
+        # 节点宕机 - P0
+        - alert: NodeDown
+          expr: up{job="node-exporter"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} 宕机"
+            description: "节点 {{ $labels.instance }} 已离线超过 1 分钟，请立即排查。"
+            runbook: "https://wiki.shuqing.example.com/runbook/NodeDown"
+        # CPU 使用率 > 80% 持续 5 分钟 - P1
+        - alert: NodeCPUUsageHigh
+          expr: |
+            100 - (avg by(instance) (rate(node_cpu_seconds_total{job="node-exporter",mode="idle"}[5m])) * 100) > 80
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} CPU 使用率过高"
+            description: "CPU 使用率 {{ $value | humanize }}% > 80%，持续 5 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/NodeCPUUsageHigh"
+        # 内存使用率 > 85% 持续 5 分钟 - P1
+        - alert: NodeMemoryUsageHigh
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"})) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} 内存使用率过高"
+            description: "内存使用率 {{ $value | humanize }}% > 85%，持续 5 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/NodeMemoryUsageHigh"
+        # 内存使用率 > 95% 持续 1 分钟 - P0（即将 OOM）
+        - alert: NodeMemoryCritical
+          expr: |
+            (1 - (node_memory_MemAvailable_bytes{job="node-exporter"} / node_memory_MemTotal_bytes{job="node-exporter"})) * 100 > 95
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} 内存临界"
+            description: "内存使用率 {{ $value | humanize }}% > 95%，可能触发 OOM Killer。"
+            runbook: "https://wiki.shuqing.example.com/runbook/NodeMemoryCritical"
+        # 磁盘使用率 > 90% 持续 5 分钟 - P1
+        - alert: NodeDiskUsageHigh
+          expr: |
+            (1 - (node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{job="node-exporter",fstype!~"tmpfs|overlay"})) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} 磁盘 {{ $labels.mountpoint }} 使用率过高"
+            description: "磁盘使用率 {{ $value | humanize }}% > 90%，持续 5 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/NodeDiskUsageHigh"
+        # 磁盘使用率 > 95% 持续 1 分钟 - P0（即将写满）
+        - alert: NodeDiskCritical
+          expr: |
+            (1 - (node_filesystem_avail_bytes{job="node-exporter",fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{job="node-exporter",fstype!~"tmpfs|overlay"})) * 100 > 95
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} 磁盘 {{ $labels.mountpoint }} 临界"
+            description: "磁盘使用率 {{ $value | humanize }}% > 95%，即将写满。"
+            runbook: "https://wiki.shuqing.example.com/runbook/NodeDiskCritical"
+        # 磁盘 inode 耗尽 > 90% - P1
+        - alert: NodeDiskInodesHigh
+          expr: |
+            (1 - (node_filesystem_files_free{job="node-exporter",fstype!~"tmpfs|overlay"} / node_filesystem_files{job="node-exporter",fstype!~"tmpfs|overlay"})) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} inode 使用率过高"
+            description: "inode 使用率 {{ $value | humanize }}% > 90%，可能无法创建新文件。"
+        # 节点负载过高 - P2
+        - alert: NodeLoadHigh
+          expr: |
+            node_load15{job="node-exporter"} / count without(cpu, mode) (node_cpu_seconds_total{job="node-exporter",mode="idle"}) > 1.5
+          for: 10m
+          labels:
+            severity: info
+            level: P2
+            category: node
+          annotations:
+            summary: "节点 {{ $labels.instance }} 负载过高"
+            description: "15 分钟负载 / CPU 核数 = {{ $value | humanize }}，持续 10 分钟。"
+
+    # ==========================================================================
+    # Group 2: Pod / 容器状态告警（K8s 工作负载层）
+    # ==========================================================================
+    - name: pod-status
+      interval: 30s
+      rules:
+        # Pod CrashLoopBackOff - P1
+        - alert: PodCrashLooping
+          expr: |
+            increase(kube_pod_container_status_restarts_total{namespace=~"sq-.*"}[15m]) > 3
+          for: 1m
+          labels:
+            severity: warning
+            level: P1
+            category: pod
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} 重启循环"
+            description: "容器 {{ $labels.container }} 15 分钟内重启 {{ $value }} 次，疑似 CrashLoopBackOff。"
+            runbook: "https://wiki.shuqing.example.com/runbook/PodCrashLooping"
+        # Pod Not Ready 持续 5 分钟 - P1
+        - alert: PodNotReady
+          expr: |
+            kube_pod_status_phase{phase=~"Pending|Unknown",namespace=~"sq-.*"} == 1
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: pod
+          annotations:
+            summary: "Pod {{ $labels.namespace }}/{{ $labels.pod }} 未就绪"
+            description: "Pod 处于 {{ $labels.phase }} 状态超过 5 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/PodNotReady"
+        # 容器被 OOMKilled - P0
+        - alert: ContainerOOMKilled
+          expr: |
+            increase(kube_pod_container_status_last_terminated_reason{reason="OOMKilled",namespace=~"sq-.*"}[5m]) > 0
+          for: 0m
+          labels:
+            severity: critical
+            level: P0
+            category: pod
+          annotations:
+            summary: "容器 {{ $labels.namespace }}/{{ $labels.pod }}/{{ $labels.container }} 被 OOMKilled"
+            description: "容器因内存超限被内核杀死，需调整 memory limit 或排查内存泄漏。"
+            runbook: "https://wiki.shuqing.example.com/runbook/ContainerOOMKilled"
+        # Deployment 可用副本数不足 - P1
+        - alert: DeploymentReplicasMismatch
+          expr: |
+            kube_deployment_status_replicas_available{namespace=~"sq-.*"}
+              < kube_deployment_spec_replicas{namespace=~"sq-.*"}
+          for: 10m
+          labels:
+            severity: warning
+            level: P1
+            category: pod
+          annotations:
+            summary: "Deployment {{ $labels.namespace }}/{{ $labels.deployment }} 副本数不足"
+            description: "可用副本数少于期望副本数，持续 10 分钟。"
+        # PVC 即将写满 > 85% - P1
+        - alert: PVCUsageHigh
+          expr: |
+            (1 - (kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes)) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: pod
+          annotations:
+            summary: "PVC {{ $labels.namespace }}/{{ $labels.persistentvolumeclaim }} 使用率过高"
+            description: "PVC 使用率 {{ $value | humanize }}% > 85%，请扩容或清理。"
+
+    # ==========================================================================
+    # Group 3: API 延迟与错误率告警（业务接口层）
+    # ==========================================================================
+    - name: api-latency
+      interval: 30s
+      rules:
+        # API P99 延迟 > 500ms 持续 5 分钟 - P1
+        - alert: APIP99LatencyHigh
+          expr: |
+            histogram_quantile(0.99,
+              sum by (le, service, route) (rate(http_request_duration_seconds_bucket{service=~"sq-.*"}[5m])))
+              > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: api
+          annotations:
+            summary: "API {{ $labels.service }} {{ $labels.route }} P99 延迟过高"
+            description: "P99 延迟 {{ $value | humanize }}s > 500ms，持续 5 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/APIP99LatencyHigh"
+        # API 错误率 > 1% 持续 5 分钟 - P1
+        - alert: APIErrorRateHigh
+          expr: |
+            (
+              sum by (service, route) (rate(http_requests_total{service=~"sq-.*",status=~"5.."}[5m]))
+              /
+              sum by (service, route) (rate(http_requests_total{service=~"sq-.*"}[5m]))
+            ) * 100 > 1
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: api
+          annotations:
+            summary: "API {{ $labels.service }} {{ $labels.route }} 错误率过高"
+            description: "5xx 错误率 {{ $value | humanize }}% > 1%，持续 5 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/APIErrorRateHigh"
+        # API 4xx 错误率 > 5% 持续 10 分钟 - P2
+        - alert: APIClientErrorHigh
+          expr: |
+            (
+              sum by (service, route) (rate(http_requests_total{service=~"sq-.*",status=~"4.."}[5m]))
+              /
+              sum by (service, route) (rate(http_requests_total{service=~"sq-.*"}[5m]))
+            ) * 100 > 5
+          for: 10m
+          labels:
+            severity: info
+            level: P2
+            category: api
+          annotations:
+            summary: "API {{ $labels.service }} {{ $labels.route }} 客户端错误率过高"
+            description: "4xx 错误率 {{ $value | humanize }}% > 5%，持续 10 分钟。"
+        # 网关 5xx 错误率 > 2% - P0（影响全局）
+        - alert: GatewayErrorRateCritical
+          expr: |
+            (
+              sum by (route) (rate(apisix_http_status{status=~"5.."}[5m]))
+              /
+              sum by (route) (rate(apisix_http_status[5m]))
+            ) * 100 > 2
+          for: 2m
+          labels:
+            severity: critical
+            level: P0
+            category: api
+          annotations:
+            summary: "网关路由 {{ $labels.route }} 5xx 错误率临界"
+            description: "网关 5xx 错误率 {{ $value | humanize }}% > 2%，影响全局流量。"
+
+    # ==========================================================================
+    # Group 4: 数据库告警（PostgreSQL / 元数据库）
+    # ==========================================================================
+    - name: database
+      interval: 30s
+      rules:
+        # 连接池使用率 > 90% - P1
+        - alert: PostgresConnectionPoolExhausted
+          expr: |
+            (pg_stat_activity_count / pg_settings_max_connections) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: database
+          annotations:
+            summary: "PostgreSQL {{ $labels.instance }} 连接池即将耗尽"
+            description: "连接使用率 {{ $value | humanize }}% > 90%，可能拒绝新连接。"
+            runbook: "https://wiki.shuqing.example.com/runbook/PostgresConnectionPoolExhausted"
+        # 慢查询 / 长事务 > 10s 持续 5 分钟 - P1
+        - alert: PostgresSlowQueries
+          expr: |
+            pg_stat_activity_max_tx_duration > 10
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: database
+          annotations:
+            summary: "PostgreSQL {{ $labels.instance }} 慢查询"
+            description: "存在执行超过 10 秒的长事务，可能阻塞 VACUUM 和复制。"
+        # 主从复制延迟 > 30s - P1
+        - alert: PostgresReplicationLag
+          expr: |
+            pg_replication_lag_seconds > 30
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: database
+          annotations:
+            summary: "PostgreSQL {{ $labels.instance }} 主从复制延迟"
+            description: "复制延迟 {{ $value | humanize }}s > 30s，从库数据落后。"
+        # 数据库宕机 - P0
+        - alert: PostgresDown
+          expr: pg_up == 0
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: database
+          annotations:
+            summary: "PostgreSQL {{ $labels.instance }} 不可用"
+            description: "PostgreSQL exporter 无法连接数据库，持续 1 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/PostgresDown"
+        # 死锁频发 - P1
+        - alert: PostgresDeadlocks
+          expr: |
+            increase(pg_stat_database_deadlocks[5m]) > 0
+          for: 0m
+          labels:
+            severity: warning
+            level: P1
+            category: database
+          annotations:
+            summary: "PostgreSQL {{ $labels.instance }} 发生死锁"
+            description: "5 分钟内发生 {{ $value }} 次死锁，请排查事务顺序。"
+
+    # ==========================================================================
+    # Group 5: Kafka 告警（消息中间件层）
+    # ==========================================================================
+    - name: kafka
+      interval: 30s
+      rules:
+        # 消费者 lag > 10000 持续 10 分钟 - P1
+        - alert: KafkaConsumerLagHigh
+          expr: |
+            sum by (topic, consumer_group) (kafka_consumer_lag) > 10000
+          for: 10m
+          labels:
+            severity: warning
+            level: P1
+            category: kafka
+          annotations:
+            summary: "Kafka 消费者 {{ $labels.consumer_group }} lag 过高"
+            description: "topic {{ $labels.topic }} 消费 lag {{ $value }} > 10000，持续 10 分钟。"
+            runbook: "https://wiki.shuqing.example.com/runbook/KafkaConsumerLagHigh"
+        # under-replicated 分区 - P0
+        - alert: KafkaUnderReplicatedPartitions
+          expr: |
+            kafka_cluster_partition_under_replicated_partition > 0
+          for: 2m
+          labels:
+            severity: critical
+            level: P0
+            category: kafka
+          annotations:
+            summary: "Kafka 存在 under-replicated 分区"
+            description: "{{ $value }} 个分区副本不足，可能丢失数据。"
+            runbook: "https://wiki.shuqing.example.com/runbook/KafkaUnderReplicatedPartitions"
+        # 分区无 leader - P0
+        - alert: KafkaOfflinePartitions
+          expr: |
+            kafka_controller_kafkacontroller_offline_partitions_count > 0
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: kafka
+          annotations:
+            summary: "Kafka 存在无 leader 分区"
+            description: "{{ $value }} 个分区无 leader，对应 topic 不可读写。"
+        # Broker 宕机 - P0
+        - alert: KafkaBrokerDown
+          expr: |
+            up{job="kafka-broker"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: kafka
+          annotations:
+            summary: "Kafka Broker {{ $labels.instance }} 宕机"
+            description: "Broker 离线超过 1 分钟，可能触发分区重平衡。"
+        # ISR 缩减 - P1
+        - alert: KafkaISRShrink
+          expr: |
+            rate(kafka_cluster_partition_isr_shrinks_total[5m]) > 0
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: kafka
+          annotations:
+            summary: "Kafka ISR 持续缩减"
+            description: "5 分钟内 ISR 持续缩减，副本同步异常。"
+
+    # ==========================================================================
+    # Group 6: JVM 告警（Java 服务层）
+    # ==========================================================================
+    - name: jvm
+      interval: 30s
+      rules:
+        # GC 暂停 > 500ms 持续 5 分钟 - P1
+        - alert: JVMGCPauseTooLong
+          expr: |
+            rate(jvm_gc_pause_seconds_sum{action="end of major GC"}[5m]) > 0.5
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: jvm
+          annotations:
+            summary: "JVM {{ $labels.application }} GC 暂停过长"
+            description: "Full GC 平均暂停 {{ $value | humanize }}s > 500ms。"
+            runbook: "https://wiki.shuqing.example.com/runbook/JVMGCPauseTooLong"
+        # 堆使用率 > 85% 持续 5 分钟 - P1
+        - alert: JVMHeapUsageHigh
+          expr: |
+            (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: jvm
+          annotations:
+            summary: "JVM {{ $labels.application }} 堆使用率过高"
+            description: "堆使用率 {{ $value | humanize }}% > 85%，可能触发频繁 GC。"
+        # 堆使用率 > 95% - P0（即将 OOM）
+        - alert: JVMHeapCritical
+          expr: |
+            (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) * 100 > 95
+          for: 1m
+          labels:
+            severity: critical
+            level: P0
+            category: jvm
+          annotations:
+            summary: "JVM {{ $labels.application }} 堆临界"
+            description: "堆使用率 {{ $value | humanize }}% > 95%，即将 OOM。"
+        # 线程数过多 > 1000 - P2
+        - alert: JVMThreadsHigh
+          expr: |
+            jvm_threads_live_threads > 1000
+          for: 10m
+          labels:
+            severity: info
+            level: P2
+            category: jvm
+          annotations:
+            summary: "JVM {{ $labels.application }} 线程数过多"
+            description: "活跃线程 {{ $value }} > 1000，可能存在线程泄漏。"
+        # 元空间使用率 > 90% - P1
+        - alert: JVMMetaspaceUsageHigh
+          expr: |
+            (jvm_memory_used_bytes{area="nonheap",id="Metaspace"} / jvm_memory_max_bytes{area="nonheap",id="Metaspace"}) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: jvm
+          annotations:
+            summary: "JVM {{ $labels.application }} 元空间使用率过高"
+            description: "Metaspace 使用率 {{ $value | humanize }}% > 90%，可能触发 Full GC。"
+
+    # ==========================================================================
+    # Group 7: 证书与安全告警
+    # ==========================================================================
+    - name: cert-security
+      interval: 1m
+      rules:
+        # 证书将过期 < 14 天 - P1
+        - alert: CertificateExpiringSoon
+          expr: |
+            cert_manager_certificate_expiration_timestamp_seconds - time() < 1209600
+          for: 1h
+          labels:
+            severity: warning
+            level: P1
+            category: security
+          annotations:
+            summary: "证书 {{ $labels.name }} 即将过期"
+            description: "证书剩余 {{ $value | humanize }} 秒，少于 14 天。"
+            runbook: "https://wiki.shuqing.example.com/runbook/CertificateExpiringSoon"
+        # 证书将过期 < 3 天 - P0
+        - alert: CertificateExpiringCritical
+          expr: |
+            cert_manager_certificate_expiration_timestamp_seconds - time() < 259200
+          for: 1h
+          labels:
+            severity: critical
+            level: P0
+            category: security
+          annotations:
+            summary: "证书 {{ $labels.name }} 即将过期（紧急）"
+            description: "证书剩余 {{ $value | humanize }} 秒，少于 3 天，需立即续期。"
+        # 审计日志异常 - P0
+        - alert: AuditLogAnomaly
+          expr: |
+            audit_log_anomaly_detected == 1
+          for: 0m
+          labels:
+            severity: critical
+            level: P0
+            category: security
+          annotations:
+            summary: "审计日志检测到异常"
+            description: "审计系统检测到异常行为，请立即核查。"
+            runbook: "https://wiki.shuqing.example.com/runbook/AuditLogAnomaly"
+
+    # ==========================================================================
+    # Group 8: 备份与运维任务告警
+    # ==========================================================================
+    - name: backup
+      interval: 1m
+      rules:
+        # 备份失败 - P1
+        - alert: BackupFailed
+          expr: |
+            backup_success == 0
+          for: 5m
+          labels:
+            severity: warning
+            level: P1
+            category: backup
+          annotations:
+            summary: "备份任务 {{ $labels.job }} 失败"
+            description: "备份任务 {{ $labels.job }} 失败，请检查备份脚本与存储后端。"
+            runbook: "https://wiki.shuqing.example.com/runbook/BackupFailed"
+        # 备份超过 RPO - P0
+        - alert: BackupRPOExceeded
+          expr: |
+            time() - backup_last_success_timestamp_seconds > 3600
+          for: 5m
+          labels:
+            severity: critical
+            level: P0
+            category: backup
+          annotations:
+            summary: "备份超过 RPO（1 小时）"
+            description: "上次成功备份距今 {{ $value | humanize }} 秒，超过 RPO 1 小时。"

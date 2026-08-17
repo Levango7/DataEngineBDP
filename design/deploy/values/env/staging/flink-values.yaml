@@ -1,0 +1,33 @@
+﻿# ============================================================================
+# flink · staging 环境 values
+# 策略：2副本 · 资源中等 · rocksdb stateBackend · checkpoint 60s · 无PVC
+# ============================================================================
+
+image:
+  repository: "flink"
+  tag: "1.18.0"
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+resources:
+  requests: { cpu: "1", memory: "2Gi" }
+  limits:   { cpu: "2", memory: "4Gi" }
+
+config:
+  stateBackend:
+    type: rocksdb
+    incremental: true
+  checkpoint:
+    interval: 60s
+    timeout: 10m
+    externalized: true
+  network:
+    netty:
+      numNetworkBuffers: 1024
+      segmentSize: 32KB
+  log:
+    level: INFO
+
+autoscaling:
+  enabled: false

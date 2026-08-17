@@ -1,0 +1,32 @@
+﻿# ============================================================================
+# spark · dev 环境 values
+# 策略：单副本 · 资源最小 · AQE关闭 · offHeap 1g · 无PVC
+# ============================================================================
+
+image:
+  repository: "spark-operator"
+  tag: "1.4.0"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests: { cpu: "500m", memory: "1Gi" }
+  limits:   { cpu: "1",    memory: "2Gi" }
+
+config:
+  serializer: org.apache.spark.serializer.KryoSerializer
+  memory:
+    fraction: 0.6
+    storageFraction: 0.3
+    offHeapEnabled: false
+    offHeapSize: 0
+  aqe:
+    enabled: false
+    coalescePartitions: false
+    skewJoin: false
+  log:
+    level: DEBUG
+
+autoscaling:
+  enabled: false

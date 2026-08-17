@@ -1,0 +1,337 @@
+# ============================================================================
+# 巡检 CronJob - 数据引擎大数据平台
+# 关联：design/deploy/monitoring/inspector/health-check.yaml
+# 命名空间：sq-monitor
+# 调度：每小时 00 分执行（CronJob）
+# 输出：HTML + JSON 报告，存对象存储 + 推送钉钉（异常时）
+# 部署：kubectl apply -f inspector-job.yaml
+# 说明：使用 List 资源包装多资源为单文档（兼容单文档 YAML 校验器）
+# ============================================================================
+apiVersion: v1
+kind: List
+metadata:
+  name: inspector-stack
+  labels:
+    app.kubernetes.io/name: inspector
+    app.kubernetes.io/part-of: shuqing-platform
+    shuqing-platform/monitor-component: inspector
+items:
+  # ==========================================================================
+  # ServiceAccount
+  # ==========================================================================
+  - apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: inspector
+      namespace: sq-monitor
+      labels:
+        app.kubernetes.io/name: inspector
+        app.kubernetes.io/part-of: shuqing-platform
+
+  # ==========================================================================
+  # ClusterRole（巡检需要只读权限 + exec + 创建报告 ConfigMap）
+  # ==========================================================================
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRole
+    metadata:
+      name: inspector
+      labels:
+        app.kubernetes.io/name: inspector
+        app.kubernetes.io/part-of: shuqing-platform
+    rules:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["create"]
+      - apiGroups: [""]
+        resources: ["configmaps"]
+        verbs: ["create", "update", "patch"]
+
+  # ==========================================================================
+  # ClusterRoleBinding
+  # ==========================================================================
+  - apiVersion: rbac.authorization.k8s.io/v1
+    kind: ClusterRoleBinding
+    metadata:
+      name: inspector
+      labels:
+        app.kubernetes.io/name: inspector
+        app.kubernetes.io/part-of: shuqing-platform
+    roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: inspector
+    subjects:
+      - kind: ServiceAccount
+        name: inspector
+        namespace: sq-monitor
+
+  # ==========================================================================
+  # 巡检脚本 ConfigMap
+  # ==========================================================================
+  - apiVersion: v1
+    kind: ConfigMap
+    metadata:
+      name: inspector-script
+      namespace: sq-monitor
+      labels:
+        app.kubernetes.io/name: inspector
+        app.kubernetes.io/part-of: shuqing-platform
+    data:
+      run-inspector.sh: |
+        #!/bin/bash
+        set -euo pipefail
+
+        CONFIG_FILE="${CONFIG_FILE:-/etc/inspector/health-check.yaml}"
+        REPORT_DIR="${REPORT_DIR:-/tmp/inspector-report}"
+        TIMESTAMP=$(date '+%Y%m%d-%H%M%S')
+
+        mkdir -p "$REPORT_DIR"
+
+        log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" >&2; }
+
+        # --------------------------------------------------------------------
+        # 执行单个巡检项
+        # --------------------------------------------------------------------
+        run_check() {
+          local name="$1" description="$2" command="$3" expect="$4" severity="$5"
+          local start; start=$(date +%s%N)
+
+          local output exitcode=0
+          output=$(eval "$command" 2>&1) || exitcode=$?
+          output=$(echo "$output" | tail -1 | tr -d '[:space:]')
+
+          local end; end=$(date +%s%N)
+          local duration_ms=$(( (end - start) / 1000000 ))
+
+          local passed="false"
+          if eval "[[ ${output:-0} ${expect} ]]"; then
+            passed="true"
+          fi
+
+          cat <<EOFC
+        {
+          "name": "$name",
+          "description": "$description",
+          "severity": "$severity",
+          "command": "$command",
+          "expect": "$expect",
+          "actual": "$output",
+          "passed": $passed,
+          "duration_ms": $duration_ms
+        }
+        EOFC
+        }
+
+        # --------------------------------------------------------------------
+        # 生成 JSON 报告
+        # --------------------------------------------------------------------
+        generate_json_report() {
+          local report_file="$REPORT_DIR/inspector-${TIMESTAMP}.json"
+          local total=0 passed=0 failed=0
+
+          log "生成 JSON 报告: $report_file"
+
+          echo "{" > "$report_file"
+          echo "  \"timestamp\": \"$(date -Iseconds)\"," >> "$report_file"
+          echo "  \"cluster\": \"$(kubectl config current-context 2>/dev/null || echo unknown)\"," >> "$report_file"
+          echo "  \"checks\": [" >> "$report_file"
+
+          local first=true
+          while IFS='|' read -r name desc cmd expect severity; do
+            [[ -z "$name" ]] && continue
+            local result; result=$(run_check "$name" "$desc" "$cmd" "$expect" "$severity")
+            if $first; then first=false; else echo "," >> "$report_file"; fi
+            echo -n "    $result" >> "$report_file"
+            total=$((total + 1))
+            if echo "$result" | grep -q '"passed": true'; then
+              passed=$((passed + 1))
+            else
+              failed=$((failed + 1))
+            fi
+          done < <(yq -r '.cluster[], .components[], .data[], .security[] | [.name, .description, .command, .expect, .severity] | join("|")' "$CONFIG_FILE" 2>/dev/null)
+
+          echo "" >> "$report_file"
+          echo "  ]," >> "$report_file"
+          echo "  \"summary\": {" >> "$report_file"
+          echo "    \"total\": $total," >> "$report_file"
+          echo "    \"passed\": $passed," >> "$report_file"
+          echo "    \"failed\": $failed," >> "$report_file"
+          echo "    \"pass_rate\": \"$(echo "scale=1; $passed * 100 / $total" | bc 2>/dev/null || echo 0)%\"" >> "$report_file"
+          echo "  }" >> "$report_file"
+          echo "}" >> "$report_file"
+
+          echo "$report_file"
+        }
+
+        # --------------------------------------------------------------------
+        # 生成 HTML 报告
+        # --------------------------------------------------------------------
+        generate_html_report() {
+          local json_file="$1"
+          local html_file="$REPORT_DIR/inspector-${TIMESTAMP}.html"
+
+          log "生成 HTML 报告: $html_file"
+
+          local template; template=$(cat /etc/inspector/report-template.html)
+          local json_data; json_data=$(cat "$json_file")
+
+          echo "$template" | sed "s|{{REPORT_DATA}}|$json_data|g" > "$html_file"
+
+          echo "$html_file"
+        }
+
+        # --------------------------------------------------------------------
+        # 上传报告到对象存储
+        # --------------------------------------------------------------------
+        upload_report() {
+          local file="$1"
+          local s3_path="shuqing-inspector/reports/$(basename "$file")"
+
+          log "上传报告: $file → s3://$s3_path"
+          mc cp "$file" "backup-target/$s3_path" 2>/dev/null || log "WARN: 上传失败（不影响巡检结果）"
+        }
+
+        # --------------------------------------------------------------------
+        # 异常通知（钉钉）
+        # --------------------------------------------------------------------
+        notify_on_failure() {
+          local json_file="$1"
+          local failed; failed=$(jq '.summary.failed' "$json_file")
+
+          if [[ "$failed" -gt 0 ]]; then
+            log "巡检发现 $failed 项异常，推送钉钉通知..."
+            local summary; summary=$(jq -r '.checks[] | select(.passed==false) | "  - [" + .severity + "] " + .name + ": " + .description' "$json_file")
+            local payload; payload=$(jq -n --arg text "巡检报告 $(date -Iseconds) 异常项 $failed 个：$summary" '{msgtype: "text", text: {content: $text}}')
+            curl -s -X POST -H "Content-Type: application/json" \
+              -d "$payload" \
+              "$DINGTALK_WEBHOOK_URL" >/dev/null 2>&1 || true
+          fi
+        }
+
+        # --------------------------------------------------------------------
+        # 主流程
+        # --------------------------------------------------------------------
+        main() {
+          log "开始巡检..."
+
+          mc alias set backup-target "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" --api S3v4 2>/dev/null || true
+
+          local json_file; json_file=$(generate_json_report)
+          local html_file; html_file=$(generate_html_report "$json_file")
+
+          upload_report "$json_file"
+          upload_report "$html_file"
+
+          notify_on_failure "$json_file"
+
+          local pass_rate; pass_rate=$(jq -r '.summary.pass_rate' "$json_file")
+          log "巡检完成：通过率 $pass_rate，报告 $json_file"
+
+          # 暴露 Prometheus 指标
+          mkdir -p /tmp/node-exporter
+          cat > /tmp/node-exporter/inspector.prom <<EOF
+        # HELP inspector_pass_rate Inspector pass rate percentage
+        # TYPE inspector_pass_rate gauge
+        inspector_pass_rate $(echo "$pass_rate" | tr -d '%')
+        # HELP inspector_last_run_timestamp Unix timestamp of last inspector run
+        # TYPE inspector_last_run_timestamp gauge
+        inspector_last_run_timestamp $(date +%s)
+        # HELP inspector_failed_count Number of failed checks in last run
+        # TYPE inspector_failed_count gauge
+        inspector_failed_count $(jq '.summary.failed' "$json_file")
+        EOF
+        }
+
+        main "$@"
+
+  # ==========================================================================
+  # 巡检 CronJob（每小时执行）
+  # ==========================================================================
+  - apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: inspector
+      namespace: sq-monitor
+      labels:
+        app.kubernetes.io/name: inspector
+        app.kubernetes.io/part-of: shuqing-platform
+        shuqing-platform/monitor-component: inspector
+    spec:
+      schedule: "0 * * * *"          # 每小时 00 分执行
+      concurrencyPolicy: Forbid       # 禁止并发执行
+      successfulJobsHistoryLimit: 3
+      failedJobsHistoryLimit: 5
+      jobTemplate:
+        spec:
+          activeDeadlineSeconds: 600  # 单次巡检超时 10 分钟
+          backoffLimit: 1
+          template:
+            spec:
+              serviceAccountName: inspector
+              restartPolicy: OnFailure
+              containers:
+                - name: inspector
+                  image: shuqing/inspector:2.0.0
+                  imagePullPolicy: IfNotPresent
+                  command: ["/bin/bash", "/scripts/run-inspector.sh"]
+                  env:
+                    - name: CONFIG_FILE
+                      value: /etc/inspector/health-check.yaml
+                    - name: REPORT_DIR
+                      value: /tmp/inspector-report
+                    - name: S3_ENDPOINT
+                      valueFrom:
+                        secretKeyRef:
+                          name: backup-s3-credentials
+                          key: endpoint
+                    - name: S3_ACCESS_KEY
+                      valueFrom:
+                        secretKeyRef:
+                          name: backup-s3-credentials
+                          key: accessKey
+                    - name: S3_SECRET_KEY
+                      valueFrom:
+                        secretKeyRef:
+                          name: backup-s3-credentials
+                          key: secretKey
+                    - name: DINGTALK_WEBHOOK_URL
+                      valueFrom:
+                        secretKeyRef:
+                          name: dingtalk-webhook
+                          key: url
+                  volumeMounts:
+                    - name: health-check-config
+                      mountPath: /etc/inspector/health-check.yaml
+                      subPath: health-check.yaml
+                    - name: report-template
+                      mountPath: /etc/inspector/report-template.html
+                      subPath: report-template.html
+                    - name: inspector-script
+                      mountPath: /scripts
+                    - name: node-exporter-textfile
+                      mountPath: /tmp/node-exporter
+                  resources:
+                    requests:
+                      cpu: "200m"
+                      memory: "256Mi"
+                    limits:
+                      cpu: "1"
+                      memory: "512Mi"
+              volumes:
+                - name: health-check-config
+                  configMap:
+                    name: health-check-config
+                - name: report-template
+                  configMap:
+                    name: inspector-report-template
+                - name: inspector-script
+                  configMap:
+                    name: inspector-script
+                    defaultMode: 0755
+                - name: node-exporter-textfile
+                  hostPath:
+                    path: /var/lib/node-exporter/textfile
+                    type: DirectoryOrCreate

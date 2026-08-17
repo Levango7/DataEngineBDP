@@ -1,0 +1,38 @@
+﻿# ============================================================================
+# trino · staging 环境 values
+# 策略：2副本 · 资源中等 · 全catalog · resourceGroups · 无PVC
+# ============================================================================
+
+image:
+  repository: "trino"
+  tag: "438"
+  pullPolicy: IfNotPresent
+
+replicas: 2
+
+resources:
+  requests: { cpu: "1", memory: "2Gi" }
+  limits:   { cpu: "2", memory: "4Gi" }
+
+config:
+  catalogs:
+    iceberg:
+      enabled: true
+      connector: iceberg
+      warehouse: s3://sq-iceberg-staging/warehouse
+    doris:
+      enabled: true
+      connector: doris
+      feHost: doris-fe.staging.svc:9030
+    hive:
+      enabled: true
+      connector: hive
+      metastoreUri: thrift://hive-metastore.staging.svc:9083
+  resourceGroups:
+    enabled: true
+    managerType: legacy
+  log:
+    level: INFO
+
+autoscaling:
+  enabled: false

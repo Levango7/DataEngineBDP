@@ -1,0 +1,46 @@
+﻿# ============================================================================
+# trino · prod 环境 values
+# 策略：3副本 · 资源充足 · 全catalog · resourceGroups · PVC+HPA
+# ============================================================================
+
+image:
+  repository: "trino"
+  tag: "438"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: "2", memory: "4Gi" }
+  limits:   { cpu: "4", memory: "8Gi" }
+
+config:
+  catalogs:
+    iceberg:
+      enabled: true
+      connector: iceberg
+      warehouse: s3://sq-iceberg-prod/warehouse
+    doris:
+      enabled: true
+      connector: doris
+      feHost: doris-fe.prod.svc:9030
+    hive:
+      enabled: true
+      connector: hive
+      metastoreUri: thrift://hive-metastore.prod.svc:9083
+  resourceGroups:
+    enabled: true
+    managerType: legacy
+  log:
+    level: WARN
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  size: 50Gi

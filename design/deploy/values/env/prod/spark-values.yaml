@@ -1,0 +1,40 @@
+﻿# ============================================================================
+# spark · prod 环境 values
+# 策略：3副本 · 资源充足 · AQE+skewJoin · offHeap 4g · PVC+HPA
+# ============================================================================
+
+image:
+  repository: "spark-operator"
+  tag: "1.4.0"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: "2", memory: "4Gi" }
+  limits:   { cpu: "4", memory: "8Gi" }
+
+config:
+  serializer: org.apache.spark.serializer.KryoSerializer
+  memory:
+    fraction: 0.8
+    storageFraction: 0.5
+    offHeapEnabled: true
+    offHeapSize: 4g
+  aqe:
+    enabled: true
+    coalescePartitions: true
+    skewJoin: true
+  log:
+    level: WARN
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  size: 100Gi

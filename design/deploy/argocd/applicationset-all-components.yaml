@@ -1,0 +1,100 @@
+# ============================================================================
+# ArgoCD ApplicationSet · 全量 83 个组件 × 3 环境
+# ============================================================================
+# 作用：自动发现 design/deploy/charts/ 下所有 Chart 目录，为每个组件
+#       在 dev/staging/prod 三环境生成 Application。
+# 优势：新增 Chart 自动纳入 GitOps，无需手动添加 Application。
+# 与 applications.yaml 的关系：
+#   - applications.yaml：10 个关键组件手动定义，带 syncWave + env values 覆盖
+#   - 本文件：全量 83 个组件自动生成，使用 Chart 默认 values.yaml
+#   - 部署时二选一：若需 env values 覆盖 + syncWave，用 applications.yaml；
+#                    若需全量快速部署，用本 ApplicationSet。
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-all-components
+  namespace: argocd
+  labels:
+    app.kubernetes.io/name: argocd
+    app.kubernetes.io/part-of: gitops
+    app.kubernetes.io/managed-by: applicationset
+spec:
+  # matrix 生成器：git 目录 × 环境列表
+  generators:
+    - matrix:
+        generators:
+          # git 目录生成器：扫描所有 Chart 目录
+          - git:
+              repoURL: https://github.com/Levango7/DataEngineBDP
+              targetRevision: main
+              directories:
+                - path: design/deploy/charts/*
+                  # 排除 finance-template（由 applications.yaml 手动管理）
+                  exclude: false
+          # 环境列表生成器：dev / staging / prod
+          - list:
+              elements:
+                - env: dev
+                  project: platform-dev
+                  namespacePrefix: dev
+                  syncWave: "0"
+                - env: staging
+                  project: platform-staging
+                  namespacePrefix: staging
+                  syncWave: "0"
+                - env: prod
+                  project: platform-prod
+                  namespacePrefix: prod
+                  syncWave: "0"
+  # Application 模板
+  template:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Application
+    metadata:
+      name: '{{namespacePrefix}}-{{path.basename}}'
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: '{{path.basename}}'
+        app.kubernetes.io/part-of: gitops
+        environment: '{{env}}'
+        component: '{{path.basename}}'
+        managed-by: applicationset
+      annotations:
+        argocd.argoproj.io/sync-wave: '{{syncWave}}'
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: '{{project}}'
+      source:
+        repoURL: https://github.com/Levango7/DataEngineBDP
+        targetRevision: main
+        path: '{{path}}'
+        helm:
+          releaseName: '{{path.basename}}'
+          valueFiles:
+            - values.yaml
+          # 若存在环境 values 则覆盖，不存在则忽略（不报错）
+          ignoreMissingValueFiles: true
+          version: v2
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{namespacePrefix}}-platform'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+          - PruneLast=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+  # 同步策略：仅生成不存在的 Application（不覆盖手动定义的）
+  strategy:
+    type: AllAtOnce

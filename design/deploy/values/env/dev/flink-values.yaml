@@ -1,0 +1,33 @@
+﻿# ============================================================================
+# flink · dev 环境 values
+# 策略：单副本 · 资源最小 · filesystem stateBackend · checkpoint 30s · 无PVC
+# ============================================================================
+
+image:
+  repository: "flink"
+  tag: "1.18.0"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests: { cpu: "500m", memory: "1Gi" }
+  limits:   { cpu: "1",    memory: "2Gi" }
+
+config:
+  stateBackend:
+    type: filesystem
+    incremental: false
+  checkpoint:
+    interval: 30s
+    timeout: 5m
+    externalized: true
+  network:
+    netty:
+      numNetworkBuffers: 512
+      segmentSize: 32KB
+  log:
+    level: DEBUG
+
+autoscaling:
+  enabled: false

@@ -1,0 +1,230 @@
+# ============================================================================
+# Alertmanager 路由配置 - 数据引擎大数据平台
+# 关联：design/运维/运维手册.md §2.4 告警分级与响应
+# 命名空间：sq-monitor
+# 路由策略：
+#   P0 critical → PagerDuty + 钉钉（电话升级）
+#   P1 warning  → 钉钉 + 邮件
+#   P2 info     → Slack + 邮件归档
+# 抑制：同 alert + 同 instance 高级别抑制低级别
+# 部署：kubectl apply -f alertmanager-config.yaml -n sq-monitor
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: sq-monitor
+  labels:
+    app.kubernetes.io/name: alertmanager
+    app.kubernetes.io/part-of: shuqing-platform
+    shuqing-platform/monitor-component: alerting
+data:
+  alertmanager.yaml: |
+    global:
+      resolve_timeout: 5m
+      # SMTP 邮件全局配置
+      smtp_smarthost: "smtp.shuqing.example.com:587"
+      smtp_from: "alertmanager@shuqing.example.com"
+      smtp_auth_username: "alertmanager@shuqing.example.com"
+      smtp_auth_password: "ALERTMANAGER_SMTP_PASSWORD"
+      smtp_require_tls: true
+      # 钉钉 webhook（通过 prometheus-webhook-dingtalk 中转）
+      # Slack webhook
+
+    # ==========================================================================
+    # 模板：告警通知文案
+    # ==========================================================================
+    templates:
+      - "/etc/alertmanager/templates/*.tmpl"
+
+    # ==========================================================================
+    # 路由树
+    # ==========================================================================
+    route:
+      group_by: ["alertname", "namespace", "service", "instance"]
+      group_wait: 30s          # 首次告警等待 30s 聚合同组
+      group_interval: 5m       # 同组后续告警间隔
+      repeat_interval: 4h      # 重复告警间隔（避免告警疲劳）
+      receiver: "default-mail" # 兜底接收器
+
+      routes:
+        # ----------------------------------------------------------------------
+        # P0 紧急：critical → PagerDuty + 钉钉 + 邮件
+        # ----------------------------------------------------------------------
+        - matchers:
+            - severity = critical
+          receiver: "critical-pagerduty"
+          group_wait: 0s          # P0 立即通知，不等待聚合
+          repeat_interval: 1h     # 1h 重复一次确保不遗漏
+          routes:
+            # 证书 / 安全类 P0 走专用安全值班
+            - matchers:
+                - category = security
+              receiver: "security-oncall"
+
+        # ----------------------------------------------------------------------
+        # P1 重要：warning → 钉钉 + 邮件
+        # ----------------------------------------------------------------------
+        - matchers:
+            - severity = warning
+          receiver: "warning-dingtalk"
+          group_wait: 30s
+          repeat_interval: 4h
+
+        # ----------------------------------------------------------------------
+        # P2 一般：info → Slack + 邮件归档
+        # ----------------------------------------------------------------------
+        - matchers:
+            - severity = info
+          receiver: "info-slack"
+          group_wait: 5m
+          repeat_interval: 12h
+
+        # ----------------------------------------------------------------------
+        # 按组件细分路由（覆盖 severity 路由的子路由）
+        # ----------------------------------------------------------------------
+        - matchers:
+            - category = database
+          receiver: "dba-dingtalk"
+        - matchers:
+            - category = kafka
+          receiver: "mq-dingtalk"
+        - matchers:
+            - category = backup
+          receiver: "ops-dingtalk"
+
+    # ==========================================================================
+    # 抑制规则：高级别抑制同源低级别
+    # ==========================================================================
+    inhibit_rules:
+      # 节点宕机时抑制该节点的所有其他告警
+      - source_matchers:
+          - alertname = NodeDown
+        target_matchers:
+          - category = node
+        equal: ["instance"]
+      # 内存临界抑制内存高
+      - source_matchers:
+          - alertname = NodeMemoryCritical
+        target_matchers:
+          - alertname = NodeMemoryUsageHigh
+        equal: ["instance"]
+      # 磁盘临界抑制磁盘高
+      - source_matchers:
+          - alertname = NodeDiskCritical
+        target_matchers:
+          - alertname = NodeDiskUsageHigh
+        equal: ["instance", "mountpoint"]
+      # JVM 堆临界抑制堆高
+      - source_matchers:
+          - alertname = JVMHeapCritical
+        target_matchers:
+          - alertname = JVMHeapUsageHigh
+        equal: ["application"]
+      # 证书紧急抑制证书将过期
+      - source_matchers:
+          - alertname = CertificateExpiringCritical
+        target_matchers:
+          - alertname = CertificateExpiringSoon
+        equal: ["name"]
+      # Postgres 宕机抑制其他 PG 告警
+      - source_matchers:
+          - alertname = PostgresDown
+        target_matchers:
+          - category = database
+        equal: ["instance"]
+      # Kafka Broker 宕机抑制其他 Kafka 告警
+      - source_matchers:
+          - alertname = KafkaBrokerDown
+        target_matchers:
+          - category = kafka
+        equal: ["instance"]
+
+    # ==========================================================================
+    # 接收器定义
+    # ==========================================================================
+    receivers:
+      # 兜底：默认邮件
+      - name: "default-mail"
+        email_configs:
+          - to: "sre-team@shuqing.example.com"
+            send_resolved: true
+
+      # P0 紧急：PagerDuty + 钉钉 + 邮件
+      - name: "critical-pagerduty"
+        pagerduty_configs:
+          - routing_key: "PAGERDUTY_CRITICAL_ROUTING_KEY"
+            severity: critical
+            description: "{{ .CommonAnnotations.summary }}"
+            send_resolved: true
+        webhook_configs:
+          - url: "http://prometheus-webhook-dingtalk.monitoring.svc:8060/dingtalk/critical"
+            send_resolved: true
+        email_configs:
+          - to: "sre-oncall@shuqing.example.com"
+            headers:
+              Subject: '[P0 紧急] {{ .CommonAnnotations.summary }}'
+            send_resolved: true
+
+      # P1 重要：钉钉 + 邮件
+      - name: "warning-dingtalk"
+        webhook_configs:
+          - url: "http://prometheus-webhook-dingtalk.monitoring.svc:8060/dingtalk/warning"
+            send_resolved: true
+        email_configs:
+          - to: "sre-team@shuqing.example.com"
+            headers:
+              Subject: '[P1 重要] {{ .CommonAnnotations.summary }}'
+            send_resolved: true
+
+      # P2 一般：Slack + 邮件归档
+      - name: "info-slack"
+        slack_configs:
+          - api_url: "SLACK_WEBHOOK_URL"
+            channel: "#shuqing-alerts-info"
+            title: "[P2] {{ .CommonAnnotations.summary }}"
+            text: "{{ .CommonAnnotations.description }}"
+            send_resolved: true
+        email_configs:
+          - to: "sre-archive@shuqing.example.com"
+            headers:
+              Subject: '[P2 归档] {{ .CommonAnnotations.summary }}'
+            send_resolved: true
+
+      # 安全值班专用
+      - name: "security-oncall"
+        pagerduty_configs:
+          - routing_key: "PAGERDUTY_SECURITY_ROUTING_KEY"
+            severity: critical
+            description: "[安全] {{ .CommonAnnotations.summary }}"
+            send_resolved: true
+        webhook_configs:
+          - url: "http://prometheus-webhook-dingtalk.monitoring.svc:8060/dingtalk/security"
+            send_resolved: true
+
+      # DBA 钉钉
+      - name: "dba-dingtalk"
+        webhook_configs:
+          - url: "http://prometheus-webhook-dingtalk.monitoring.svc:8060/dingtalk/dba"
+            send_resolved: true
+        email_configs:
+          - to: "dba-team@shuqing.example.com"
+            send_resolved: true
+
+      # MQ 团队钉钉
+      - name: "mq-dingtalk"
+        webhook_configs:
+          - url: "http://prometheus-webhook-dingtalk.monitoring.svc:8060/dingtalk/mq"
+            send_resolved: true
+        email_configs:
+          - to: "mq-team@shuqing.example.com"
+            send_resolved: true
+
+      # 运维团队钉钉（备份类）
+      - name: "ops-dingtalk"
+        webhook_configs:
+          - url: "http://prometheus-webhook-dingtalk.monitoring.svc:8060/dingtalk/ops"
+            send_resolved: true
+        email_configs:
+          - to: "ops-team@shuqing.example.com"
+            send_resolved: true

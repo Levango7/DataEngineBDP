@@ -1,0 +1,33 @@
+﻿# ============================================================================
+# trino · dev 环境 values
+# 策略：单副本 · 资源最小 · 仅iceberg catalog · 无PVC
+# ============================================================================
+
+image:
+  repository: "trino"
+  tag: "438"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests: { cpu: "500m", memory: "1Gi" }
+  limits:   { cpu: "1",    memory: "2Gi" }
+
+config:
+  catalogs:
+    iceberg:
+      enabled: true
+      connector: iceberg
+      warehouse: s3://sq-iceberg-dev/warehouse
+    doris:
+      enabled: false
+    hive:
+      enabled: false
+  resourceGroups:
+    enabled: false
+  log:
+    level: DEBUG
+
+autoscaling:
+  enabled: false

@@ -1,0 +1,325 @@
+# ============================================================================
+# Loki Stack Helm Values - 数据引擎大数据平台
+# 关联：design/运维/运维手册.md §3 日志管理；design/deploy/charts/loki/Chart.yaml
+# 命名空间：sq-monitor
+# 组件：Loki（日志存储+查询） + Promtail（采集 agent） + Grafana（可视化）
+# 日志保留：7 天热数据 + 30 天温数据 + 90 天冷数据
+# 日志标签：tenant / service / level / pod / namespace
+# 部署：helm install loki-stack grafana/loki-stack -n sq-monitor -f loki-values.yaml
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Loki 配置（日志存储 + 查询引擎）
+# ---------------------------------------------------------------------------
+loki:
+  enabled: true
+  image:
+    repository: grafana/loki
+    tag: "3.0.0"
+    pullPolicy: IfNotPresent
+
+  # 资源配额（生产环境调大）
+  resources:
+    requests:
+      cpu: "1"
+      memory: "2Gi"
+    limits:
+      cpu: "4"
+      memory: "8Gi"
+
+  # 持久化存储（chunks + index + compactor）
+  persistence:
+    enabled: true
+    storageClassName: "sq-fast-ssd"  # 信创: openeuler-lvm; 公有云: gp3
+    size: 100Gi
+
+  # 对象存储后端（chunks 长期存储）
+  # 信创环境用国产对象存储（JuiceFS / MinIO）；非信创用 S3 兼容存储
+  objectStorage:
+    type: s3
+    s3:
+      endpoint: "http://minio.sq-engine.svc.cluster.local:9000"
+      bucketName: "shuqing-loki"
+      region: "default"
+      accessKey: "LOKI_S3_ACCESS_KEY"      # 经 KMS / Secret 注入
+      secretKey: "LOKI_S3_SECRET_KEY"
+      s3ForcePathStyle: true
+
+  # ==========================================================================
+  # 日志保留策略（7 天热 + 30 天温 + 90 天冷）
+  # ==========================================================================
+  # 通过 compactor retention 配置实现分级保留
+  config:
+    compactor:
+      working_directory: /data/compactor
+      compaction_interval: 10m
+      retention_enabled: true
+      retention_delete_delay: 2h
+      retention_delete_worker_count: 150
+      delete_request_store: s3
+
+    limits_config:
+      # 按 tenant 配置保留期
+      retention:
+        - tenant_id: default
+          # 7 天热数据（SSD，快速查询）
+          stream_retention:
+            - selector: '{level=~"error|warn"}'
+              period: 30d   # 错误/告警日志保留 30 天
+            - selector: '{level="info"}'
+              period: 14d   # info 日志保留 14 天
+            - selector: '{level="debug"}'
+              period: 7d    # debug 日志保留 7 天
+          # 90 天冷数据（对象存储，低成本）
+          chunk_retention_period: 90d
+
+      # 查询限制（防止单查询打爆 Loki）
+      max_query_series: 5000
+      max_query_parallelism: 32
+      max_query_length: 720h          # 单次查询最长 30 天
+      query_timeout: 5m
+      ingestion_rate_mb: 20           # 每租户每秒写入 20MB
+      ingestion_burst_size_mb: 40
+      max_streams_per_user: 10000
+      max_global_streams_per_user: 0
+
+    # 分级存储：热数据本地 SSD，冷数据对象存储
+    chunk_store_config:
+      max_look_back_period: 90d
+
+    table_manager:
+      retention_deletes_enabled: true
+      retention_period: 90d
+
+  # ==========================================================================
+  # 日志标签设计
+  # ==========================================================================
+  # Promtail 提取的标签（见下方 promtail 配置）：
+  #   tenant   - 租户 ID（多租户隔离）
+  #   service  - 服务名（如 console / catalog / lineage-analyzer）
+  #   level    - 日志级别（debug / info / warn / error）
+  #   pod      - Pod 名
+  #   namespace - K8s 命名空间
+  # 标签基数控制：pod 标签设为 dynamic（不索引），避免高基数
+
+  # 节点亲和性：Loki 调度到监控专用节点
+  nodeSelector:
+    node-role.kubernetes.io/monitoring: "true"
+  tolerations:
+    - key: "node-role.kubernetes.io/monitoring"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+  # 安全上下文
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    fsGroup: 10001
+
+# ---------------------------------------------------------------------------
+# Promtail 配置（日志采集 agent，DaemonSet 部署到每个节点）
+# ---------------------------------------------------------------------------
+promtail:
+  enabled: true
+  image:
+    repository: grafana/promtail
+    tag: "3.0.0"
+    pullPolicy: IfNotPresent
+
+  # DaemonSet 资源配额（每节点）
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "256Mi"
+    limits:
+      cpu: "500m"
+      memory: "1Gi"
+
+  # ==========================================================================
+  # Promtail 采集配置
+  # ==========================================================================
+  config:
+    clients:
+      - url: http://loki.sq-monitor.svc.cluster.local:3100/loki/api/v1/push
+        tenant_id: default
+        backoff_config:
+          min_period: 500ms
+          max_period: 5m
+          max_retries: 10
+        batchwait: 1s
+        batchsize: 1048576  # 1MB
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    # 采集目标
+    scrape_configs:
+      # ----------------------------------------------------------------------
+      # 1. K8s Pod 日志（容器 stdout/stderr）
+      # ----------------------------------------------------------------------
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        pipeline_stages:
+          # 提取结构化 JSON 日志字段
+          - json:
+              expressions:
+                level: level
+                service: service
+                tenant: tenant
+                traceId: traceId
+                msg: msg
+          # 缺失 level 时默认 info
+          - template:
+              source: level
+              template: '{{ if .level }}{{ .level }}{{ else }}info{{ end }}'
+          # 提取 Java 异常栈（多行合并）
+          - multiline:
+              firstline: '^\d{4}-\d{2}-\d{2}'
+              max_wait_time: 3s
+          # 限制标签基数（pod 名不作为标签，避免高基数）
+          - labels:
+              level:
+              service:
+              tenant:
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+            target_label: app
+          # 只采集 sq-* 命名空间的日志
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: sq-.*
+            action: keep
+
+      # ----------------------------------------------------------------------
+      # 2. 系统日志（节点 /var/log）
+      # ----------------------------------------------------------------------
+      - job_name: system-logs
+        static_configs:
+          - targets: [localhost]
+            labels:
+              job: system
+              level: info
+        pipeline_stages:
+          - regex:
+              expression: '^(?P<timestamp>\S+)\s+(?P<level>\w+)\s+(?P<msg>.*)$'
+          - labels:
+              level:
+        file_sd_configs:
+          - files: ["/var/log/syslog", "/var/log/messages"]
+
+      # ----------------------------------------------------------------------
+      # 3. 审计日志（单独标签，180 天保留）
+      # ----------------------------------------------------------------------
+      - job_name: audit-logs
+        static_configs:
+          - targets: [localhost]
+            labels:
+              job: audit
+              level: info
+              tenant: audit
+        pipeline_stages:
+          - json:
+              expressions:
+                actor: actor
+                action: action
+                resource: resource
+          - labels:
+              actor:
+              action:
+        file_sd_configs:
+          - files: ["/var/log/audit/*.log"]
+
+  # 安全上下文（Promtail 需读取节点日志，需适当权限）
+  securityContext:
+    runAsUser: 0
+    runAsGroup: 0
+
+  # 容忍所有污点（DaemonSet 需部署到每个节点）
+  tolerations:
+    - operator: "Exists"
+
+# ---------------------------------------------------------------------------
+# Grafana 配置（日志可视化）
+# ---------------------------------------------------------------------------
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.4.0"
+    pullPolicy: IfNotPresent
+
+  adminUser: admin
+  adminPassword: "GRAFANA_ADMIN_PASSWORD"  # 经 Secret 注入
+
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2"
+      memory: "2Gi"
+
+  persistence:
+    enabled: true
+    storageClassName: "sq-fast-ssd"
+    size: 10Gi
+
+  # Loki 数据源自动配置
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Loki
+          type: loki
+          access: proxy
+          url: http://loki.sq-monitor.svc.cluster.local:3100
+          isDefault: true
+          jsonData:
+            maxLines: 5000
+            derivedFields:
+              # traceId 自动关联 Tempo 追踪
+              - datasourceUid: tempo
+                matcherRegex: "traceId=(\\w+)"
+                name: TraceID
+                url: "$${__value.raw}"
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus.sq-monitor.svc.cluster.local:9090
+        - name: Tempo
+          type: tempo
+          access: proxy
+          url: http://tempo.sq-monitor.svc.cluster.local:3200
+          uid: tempo
+
+  # 预置仪表盘
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: shuqing-logs
+          folder: 数擎日志
+          type: file
+          disableDeletion: false
+          updateIntervalSeconds: 30
+          options:
+            path: /var/lib/grafana/dashboards/shuqing-logs
+
+  nodeSelector:
+    node-role.kubernetes.io/monitoring: "true"
+  tolerations:
+    - key: "node-role.kubernetes.io/monitoring"
+      operator: "Exists"
+      effect: "NoSchedule"
+
+# ---------------------------------------------------------------------------
+# 全局配置
+# ---------------------------------------------------------------------------
+# 信创环境适配：镜像替换为 openEuler 基础镜像变体
+# 通过 profile 覆盖：
+#   xinchuang.yaml: image.repository 替换为国产镜像仓库
+#   xinchuang.yaml: objectStorage.type 替换为 juicefs

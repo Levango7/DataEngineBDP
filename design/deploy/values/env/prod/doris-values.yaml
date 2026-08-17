@@ -1,0 +1,44 @@
+﻿# ============================================================================
+# doris · prod 环境 values
+# 策略：fe=3,be=3 · 资源充足 · compaction调优 · PVC+HPA
+# ============================================================================
+
+image:
+  repository: "apache/doris"
+  tag: "2.1.7"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests: { cpu: "2", memory: "4Gi" }
+  limits:   { cpu: "4", memory: "8Gi" }
+
+config:
+  fe:
+    replicas: 3
+    queryPort: 9030
+    httpPort: 8030
+    editLogPort: 9010
+  be:
+    replicas: 3
+    webserverPort: 8040
+    brpcPort: 8060
+  compaction:
+    maxConcurrency: 8
+    rateLimit:
+      enabled: true
+      maxBytesPerSecond: 500MB
+  log:
+    level: WARN
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 75
+
+persistence:
+  enabled: true
+  storageClass: "sq-fast-ssd"
+  size: 200Gi

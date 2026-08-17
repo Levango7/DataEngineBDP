@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数擎大数据平台 - 巡检报告</title>
+    <style>
+        /* 收敛低调的设计风格，避免浮夸 */
+        :root {
+            --color-bg: #f5f5f5;
+            --color-surface: #ffffff;
+            --color-text: #333333;
+            --color-text-secondary: #666666;
+            --color-border: #e0e0e0;
+            --color-pass: #2e7d32;
+            --color-fail: #c62828;
+            --color-warn: #f57f17;
+            --color-p0: #b71c1c;
+            --color-p1: #e65100;
+            --color-p2: #f9a825;
+            --color-info: #1565c0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, "Microsoft YaHei", "Segoe UI", sans-serif;
+            background: var(--color-bg);
+            color: var(--color-text);
+            line-height: 1.6;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            background: var(--color-surface);
+            border-radius: 8px;
+            padding: 24px 32px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+        }
+        .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .header .meta { color: var(--color-text-secondary); font-size: 14px; }
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: var(--color-surface);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid var(--color-border);
+        }
+        .summary-card .value { font-size: 32px; font-weight: 700; }
+        .summary-card .label { font-size: 13px; color: var(--color-text-secondary); margin-top: 4px; }
+        .summary-card.pass .value { color: var(--color-pass); }
+        .summary-card.fail .value { color: var(--color-fail); }
+        .summary-card.total .value { color: var(--color-info); }
+        .summary-card.rate .value { color: var(--color-info); }
+        .section {
+            background: var(--color-surface);
+            border-radius: 8px;
+            padding: 24px 32px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+        }
+        .section h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--color-border); }
+        th { background: #fafafa; font-weight: 600; color: var(--color-text-secondary); font-size: 13px; }
+        td .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge.pass { background: #e8f5e9; color: var(--color-pass); }
+        .badge.fail { background: #ffebee; color: var(--color-fail); }
+        .badge.p0 { background: #ffebee; color: var(--color-p0); }
+        .badge.p1 { background: #fff3e0; color: var(--color-p1); }
+        .badge.p2 { background: #fffde7; color: var(--color-p2); }
+        .footer { text-align: center; color: var(--color-text-secondary); font-size: 12px; padding: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>数擎大数据平台 - 巡检报告</h1>
+        <div class="meta">
+            生成时间：<span id="timestamp"></span> ｜
+            集群：<span id="cluster"></span>
+        </div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-card total">
+            <div class="value" id="total">-</div>
+            <div class="label">巡检项总数</div>
+        </div>
+        <div class="summary-card pass">
+            <div class="value" id="passed">-</div>
+            <div class="label">通过</div>
+        </div>
+        <div class="summary-card fail">
+            <div class="value" id="failed">-</div>
+            <div class="label">失败</div>
+        </div>
+        <div class="summary-card rate">
+            <div class="value" id="rate">-</div>
+            <div class="label">通过率</div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>巡检详情</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>状态</th>
+                    <th>级别</th>
+                    <th>巡检项</th>
+                    <th>描述</th>
+                    <th>期望</th>
+                    <th>实际值</th>
+                    <th>耗时(ms)</th>
+                </tr>
+            </thead>
+            <tbody id="checks-body"></tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        数擎大数据平台 · 自动化巡检 · 报告由 inspector CronJob 自动生成
+    </div>
+</div>
+
+<script>
+    // 报告数据由 inspector 脚本注入
+    const reportData = {{REPORT_DATA}};
+
+    // 渲染头部
+    document.getElementById('timestamp').textContent = reportData.timestamp;
+    document.getElementById('cluster').textContent = reportData.cluster;
+
+    // 渲染摘要
+    const s = reportData.summary;
+    document.getElementById('total').textContent = s.total;
+    document.getElementById('passed').textContent = s.passed;
+    document.getElementById('failed').textContent = s.failed;
+    document.getElementById('rate').textContent = s.pass_rate;
+
+    // 渲染巡检详情
+    const tbody = document.getElementById('checks-body');
+    reportData.checks.forEach(c => {
+        const tr = document.createElement('tr');
+        const statusBadge = c.passed
+            ? '<span class="badge pass">通过</span>'
+            : '<span class="badge fail">失败</span>';
+        const severityClass = c.severity.toLowerCase();
+        tr.innerHTML = `
+            <td>${statusBadge}</td>
+            <td><span class="badge ${severityClass}">${c.severity}</span></td>
+            <td>${c.name}</td>
+            <td>${c.description}</td>
+            <td>${c.expect}</td>
+            <td>${c.actual}</td>
+            <td>${c.duration_ms}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+</script>
+</body>
+</html>

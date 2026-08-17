@@ -1,0 +1,30 @@
+# ============================================================================
+# ArgoCD GitOps 总入口 · Kustomize
+# ============================================================================
+# 作用：统一引用所有 ArgoCD 资源（AppProject + Application + ApplicationSet）
+# 使用：kubectl apply -k design/deploy/argocd/
+# 或在 ArgoCD 中创建 root Application 指向本目录
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# 资源引用顺序：AppProject → Application → ApplicationSet
+resources:
+  # 1. AppProject（三环境隔离）
+  - projects/platform-dev.yaml
+  - projects/platform-staging.yaml
+  - projects/platform-prod.yaml
+  # 2. Application（10 个关键组件 × 3 环境 = 30 个，带 syncWave + env values）
+  - applications.yaml
+  # 3. ApplicationSet（全量 83 个组件 × 3 环境，自动发现）
+  - applicationset-all-components.yaml
+
+# 全局标签
+commonLabels:
+  app.kubernetes.io/part-of: gitops
+  app.kubernetes.io/managed-by: kustomize
+
+# 全局注解
+commonAnnotations:
+  gitops-repo: Levango7/DataEngineBDP
+  documentation: design/deploy/DEPLOY_GUIDE.md
