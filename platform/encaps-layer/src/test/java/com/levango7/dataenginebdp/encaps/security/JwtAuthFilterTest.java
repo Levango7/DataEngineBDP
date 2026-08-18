@@ -34,7 +34,7 @@ class JwtAuthFilterTest {
         SecurityContextHolder.clearContext();
         TenantContext.clear();
         signingKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
-        jwtAuthFilter = new JwtAuthFilter(SECRET, ISSUER,
+        jwtAuthFilter = new JwtAuthFilter("HS384", SECRET, ISSUER, "", "",
                 new OidcJwtDecoder(false, "", ""));
     }
 
@@ -103,7 +103,7 @@ class JwtAuthFilterTest {
     @DisplayName("shouldNotFilter — 健康检查路径不走JWT过滤")
     void shouldNotFilter_healthPath_shouldReturnTrue() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServletPath("/api/v1/health");
+        request.setRequestURI("/api/v1/health");
 
         assertThat(jwtAuthFilter.shouldNotFilter(request)).isTrue();
     }
@@ -112,7 +112,7 @@ class JwtAuthFilterTest {
     @DisplayName("shouldNotFilter — actuator路径不走JWT过滤")
     void shouldNotFilter_actuatorPath_shouldReturnTrue() {
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setServletPath("/actuator/health");
+        request.setRequestURI("/actuator/health");
 
         assertThat(jwtAuthFilter.shouldNotFilter(request)).isTrue();
     }

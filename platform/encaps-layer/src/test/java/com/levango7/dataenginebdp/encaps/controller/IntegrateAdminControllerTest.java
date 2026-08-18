@@ -7,9 +7,12 @@ import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
 import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
 import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.encaps.service.IntegrateConnectorService;
+import com.levango7.dataenginebdp.encaps.service.SeaTunnelClient;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
@@ -47,7 +50,9 @@ class IntegrateAdminControllerTest {
 
     @Test
     void integrate_syncTaskCrud() {
-        var c = new IntegrateController(syncTaskRepository);
+        var c = new IntegrateController(syncTaskRepository,
+                Mockito.mock(IntegrateConnectorService.class),
+                Mockito.mock(SeaTunnelClient.class));
         var created = c.createTask(new IntegrateController.SyncTaskRequest(
                 "订单同步", "mysql", "iceberg", "ods.orders", "ods_orders", "0 */5 * * * ?"));
         assertThat(created.getStatusCode().is2xxSuccessful()).isTrue();

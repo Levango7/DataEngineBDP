@@ -53,7 +53,7 @@ class RestWiringControllerTest {
 
     @Test
     void standard_crud() {
-        var c = new StandardController(standardRepository);
+        var c = new StandardController(standardRepository, assetRepository);
         var created = c.create(new StandardController.StandardRequest("user_id", "string", "^[A-Z0-9]+$", "用户ID标准"));
         assertThat(created.getStatusCode().is2xxSuccessful()).isTrue();
         String id = (String) created.getBody().get("id");
