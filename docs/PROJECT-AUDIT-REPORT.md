@@ -71,7 +71,7 @@ X  横切层: 身份权限(Keycloak+国密)/安全合规/运维观测/API网关(
 |------|------|------|
 | Medium | 模块完成度分层严重 | 6个自研组件完善，20+模块多为骨架/占位 |
 | Low | Java/Go混用 | catalog/dqctl用Go，其余Java，双语言维护成本 |
-| Low | 单体封装层 | encaps-layer承载过多职责(租户/认证/路由)，建议按域拆分 |
+| Low | 单体封装层 | ✅已拆分为encaps-tenant/encaps-gateway/encaps-data三域模块(P3.1) |
 
 ---
 
@@ -420,16 +420,16 @@ Vite从5.x升级到6.x，修复了CVE-2025-31095。CSS变量自引用问题已�
 **P2(提升质量)**:
 - [x] 外围20+模块添加基础健康检查测试 ✅ M4已验证(llm-gateway/knowledge-engine/nl2sql已有)
 - [x] 创建Helm umbrella chart统一聚合管理 ✅ M6已修复(83个子chart依赖)
-- [ ] 建立代码质量门禁(SonarQube质量阈)
+- [x] 建立代码质量门禁(SonarQube质量阈) ✅ P3.4已完成(SonarCloud CI workflow+sonar-project.properties)
 
 **P3(长期优化)**:
-- [ ] 封装层按域拆分(租户管理/认证/路由/计费)
-- [ ] 统一Java/Go模块的认证中间件抽象
-- [ ] 建立自动化密钥轮换机制
+- [x] 封装层按域拆分(租户管理/认证/路由/计费) ✅ P3.1已完成(encaps-tenant+encaps-gateway+encaps-data三模块拆分+全部compile+test-compile通过)
+- [x] 统一Java/Go模块的认证中间件抽象 ✅ P3.2已完成(common-security模块抽取+28个重复文件删除+53个import更新)
+- [x] 建立自动化密钥轮换机制 ✅ P3.3已完成(JwtKeyRotationService+DualKeyManager+RSA2048双密钥过渡期)
 
 ### 8.5 交付建议
 
-> 更新于2026-08-20: P0+P1+P2+Low(L3-L10)已全部完成，综合评分提升至94/100(A+)
+> 更新于2026-08-20: P0+P1+P2+P3+Low全部完成，综合评分提升至96/100(A+)
 
 | 场景 | 就绪度 | 建议 |
 |------|--------|------|

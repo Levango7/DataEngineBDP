@@ -187,6 +187,20 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <!-- 生成普通 jar 供其他模块依赖，可执行 jar 带 exec classifier -->
+                    <classifier>exec</classifier>
+                </configuration>
+            </plugin>
+            <!-- 确保普通 jar 也被安装到本地仓库供其他模块依赖 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                    </archive>
                 </configuration>
             </plugin>
             <plugin>

@@ -1,0 +1,96 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: encaps-data
+  datasource:
+    url: ${DB_URL:jdbc:h2:file:./data/encaps-data-db;DB_CLOSE_DELAY=-1;MODE=PostgreSQL}
+    username: ${DB_USERNAME:sa}
+    password: ${DB_PASSWORD:}
+    driver-class-name: ${DB_DRIVER:}
+  jpa:
+    hibernate:
+      ddl-auto: ${DDL_AUTO:update}
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"
+  level:
+    com.levango7.dataenginebdp: INFO
+
+otel:
+  exporter:
+    otlp:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4317}
+  resource:
+    attributes:
+      service.name: ${spring.application.name}
+  traces:
+    exporter: otlp
+
+app:
+  security:
+    jwt:
+      algorithm: ${JWT_ALG:HS384}
+      secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+      issuer: ${JWT_ISSUER:shuqing-bigdata}
+      expiry: 3600
+      sm2-private-key: ${JWT_SM2_PRIVATE_KEY:}
+      sm2-public-key: ${JWT_SM2_PUBLIC_KEY:}
+    oidc:
+      enabled: ${OIDC_ENABLED:false}
+      jwks-uri: ${OIDC_JWKS_URI:}
+      issuer-uri: ${OIDC_ISSUER_URI:}
+    cors:
+      allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+    encrypt-key: ${ENCRYPT_KEY:0123456789abcdef0123456789abcdef}
+    keycloak:
+      realm: ${KEYCLOAK_REALM:shuqing}
+      auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
+      resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
+
+  # 数据服务引擎配置
+  engine:
+    doris:
+      endpoint: ${DORIS_ENDPOINT:http://localhost:8030}
+    flink:
+      endpoint: ${FLINK_ENDPOINT:http://localhost:8081}
+    iotdb:
+      endpoint: ${IOTDB_ENDPOINT:localhost:6667}
+    kafka:
+      bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    elasticsearch:
+      endpoint: ${ELASTICSEARCH_ENDPOINT:http://localhost:9200}
+
+security:
+  jwt:
+    rotation:
+      enabled: ${JWT_ROTATION_ENABLED:false}
+      interval-days: 90
+      overlap-days: 7
+      interval-millis: 7776000000
+      key-store-path: ${user.home}/.dataenginebdp/keys
