@@ -67,18 +67,25 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 
-# ---- 水平自动扩缩容 ----
-autoscaling:
+# ---- 水平自动扩缩容（HPA）----
+# 字段名 hpa 对应 templates/hpa.yaml，条件渲染 values.hpa.enabled
+hpa:
   enabled: false
   minReplicas: 1
   maxReplicas: 3
+  # CPU 利用率阈值（百分比），超过则扩容；留空则不生成 CPU 指标
   targetCPUUtilizationPercentage: 80
+  # Memory 利用率阈值（百分比），超过则扩容；留空则不生成 Memory 指标
   targetMemoryUtilizationPercentage: 80
 
-# ---- PodDisruptionBudget ----
-podDisruptionBudget:
+# ---- PodDisruptionBudget（PDB）----
+# 字段名 pdb 对应 templates/pdb.yaml，条件渲染 values.pdb.enabled
+# 保障滚动更新与节点维护期间最少可用副本数
+pdb:
   enabled: false
+  # minAvailable 与 maxUnavailable 二选一；此处默认保底 1 副本可用
   minAvailable: 1
+  # maxUnavailable: 1  # 如需按比例不可用，可改用 maxUnavailable
 
 # ---- Ingress ----
 ingress:

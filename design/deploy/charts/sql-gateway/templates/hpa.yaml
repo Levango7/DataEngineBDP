@@ -1,4 +1,6 @@
-{{- if .Values.autoscaling.enabled -}}
+{{- if .Values.hpa.enabled -}}
+# HorizontalPodAutoscaler：条件渲染 values.hpa.enabled
+# 配置 minReplicas/maxReplicas 及 CPU/Memory 利用率指标，scaleTargetRef 指向本 Chart Deployment。
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -10,23 +12,23 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ include "sql-gateway.fullname" . }}
-  minReplicas: {{ .Values.autoscaling.minReplicas | int }}
-  maxReplicas: {{ .Values.autoscaling.maxReplicas | int }}
+  minReplicas: {{ .Values.hpa.minReplicas | int }}
+  maxReplicas: {{ .Values.hpa.maxReplicas | int }}
   metrics:
-    {{- if .Values.autoscaling.targetCPUUtilizationPercentage }}
+    {{- if .Values.hpa.targetCPUUtilizationPercentage }}
     - type: Resource
       resource:
         name: cpu
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetCPUUtilizationPercentage | int }}
+          averageUtilization: {{ .Values.hpa.targetCPUUtilizationPercentage | int }}
     {{- end }}
-    {{- if .Values.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- if .Values.hpa.targetMemoryUtilizationPercentage }}
     - type: Resource
       resource:
         name: memory
         target:
           type: Utilization
-          averageUtilization: {{ .Values.autoscaling.targetMemoryUtilizationPercentage | int }}
+          averageUtilization: {{ .Values.hpa.targetMemoryUtilizationPercentage | int }}
     {{- end }}
 {{- end -}}

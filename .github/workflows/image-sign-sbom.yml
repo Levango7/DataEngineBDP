@@ -187,9 +187,13 @@ jobs:
   # ============================================================
   # 作业 2：使用 cosign 对镜像签名
   # 签名模式：keyless（OIDC）— 无需管理私钥，签名身份绑定 GitHub Actions workflow
+  # 透明日志：签名记录上传到 Sigstore 公共 Rekor（https://rekor.sigstore.dev）
+  #   - 任何人都可从 Rekor 公开审计签名来源、时间戳与证书身份
+  #   - 验证时 cosign 自动从 Rekor 检索签名记录并校验一致性
   # 备选模式：key-based — 使用 cosign 密钥对（COSIGN_PRIVATE_KEY/COSIGN_PASSWORD）
-  # 签名产物：签名附加到镜像 manifest，可通过 cosign verify 验证
+  # 签名产物：签名附加到镜像 manifest + Rekor 透明日志条目，可通过 cosign verify 验证
   # 依赖：作业 1（build-and-push）成功完成
+  # 详见：docs/COSIGN-TLOG-SETUP.md
   # ============================================================
   cosign-sign:
     name: Cosign Sign Images
@@ -213,21 +217,30 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Keyless 签名（OIDC，推荐）
+      - name: Keyless 签名（OIDC + Rekor 透明日志，推荐）
         env:
           IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
+          # Sigstore 公共 Rekor 透明日志端点
+          # 签名记录将上传到该透明日志，供全球公开审计与独立验证
+          REKOR_URL: https://rekor.sigstore.dev
+          # Sigstore 公共 Fulcio OIDC 签发者（keyless 证书来源）
+          FULCIO_URL: https://fulcio.sigstore.dev
         run: |
           mkdir -p reports/sign
           sign_ok=0
           sign_fail=0
           IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
+          echo "Rekor 透明日志端点: $REKOR_URL"
+          echo "Fulcio OIDC 签发者: $FULCIO_URL"
           for img in "${IMAGES[@]}"; do
             echo "============================================"
-            echo "  cosign sign (keyless): $img"
+            echo "  cosign sign (keyless + tlog): $img"
             echo "============================================"
             # keyless 签名：身份绑定 GitHub workflow，无需私钥
-            if cosign sign --yes "$img"; then
-              echo "✓ 签名成功: $img" | tee -a reports/sign/sign.log
+            # --tlog-upload=true 显式启用 Rekor 透明日志上传（cosign v2 默认为 true）
+            # 签名记录写入公共 Rekor 后，任何人都可独立验证签名来源与时间戳
+            if cosign sign --yes --tlog-upload=true "$img"; then
+              echo "✓ 签名成功（已上传 Rekor 透明日志）: $img" | tee -a reports/sign/sign.log
               sign_ok=$((sign_ok + 1))
             else
               echo "::warning::签名失败: $img" | tee -a reports/sign/sign.log
@@ -247,15 +260,18 @@ jobs:
         env:
           IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
           REGISTRY_NS: ${{ needs.build-and-push.outputs.registry-ns }}
+          REKOR_URL: https://rekor.sigstore.dev
         run: |
           IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
           {
             echo "# 镜像签名记录"
             echo ""
             echo "签名时间: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-            echo "签名模式: keyless (OIDC)"
+            echo "签名模式: keyless (OIDC) + Rekor 透明日志"
             echo "签名身份: ${{ github.repository }}@refs/heads/${{ github.ref_name }}"
             echo "Workflow: ${{ github.run_id }}"
+            echo "Rekor 透明日志: $REKOR_URL"
+            echo "OIDC 签发者: https://token.actions.githubusercontent.com"
             echo ""
             echo "## 已签名镜像"
             echo ""
@@ -263,7 +279,10 @@ jobs:
               echo "- \`$img\`"
             done
             echo ""
-            echo "## 验证命令"
+            echo "## 验证命令（keyless + Rekor 透明日志）"
+            echo ""
+            echo "验证时 cosign 会自动从 Rekor 透明日志检索签名记录，"
+            echo "并校验证书身份与 OIDC 签发者是否匹配。"
             echo ""
             echo '```bash'
             for img in "${IMAGES[@]}"; do
@@ -274,6 +293,53 @@ jobs:
             echo '```'
           } > reports/sign/sign-record.md
           cat reports/sign/sign-record.md
+
+      - name: 验证签名（Rekor 透明日志校验）
+        env:
+          IMAGE_LIST: ${{ needs.build-and-push.outputs.image-list }}
+          # 验证时显式指定 Rekor 端点，确保从公共透明日志检索签名记录
+          REKOR_URL: https://rekor.sigstore.dev
+          # GitHub Actions OIDC 签发者（keyless 证书来源）
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          mkdir -p reports/sign
+          verify_ok=0
+          verify_fail=0
+          IFS=',' read -ra IMAGES <<< "$IMAGE_LIST"
+          # keyless 签名验证所需的身份与签发者
+          IDENTITY_REGEXP="https://github.com/${{ github.repository }}/.github/workflows/.*"
+          OIDC_ISSUER="https://token.actions.githubusercontent.com"
+          echo "============================================"
+          echo "  cosign verify (Rekor 透明日志校验)"
+          echo "============================================"
+          echo "Rekor 端点: $REKOR_URL"
+          echo "身份匹配: $IDENTITY_REGEXP"
+          echo "OIDC 签发者: $OIDC_ISSUER"
+          for img in "${IMAGES[@]}"; do
+            echo "--------------------------------------------"
+            echo "  验证镜像: $img"
+            echo "--------------------------------------------"
+            # cosign verify 会自动从 Rekor 透明日志检索签名记录
+            # --certificate-identity-regexp 匹配 GitHub workflow 签名身份
+            # --certificate-oidc-issuer 校验证书由可信 OIDC 签发者签发
+            if cosign verify "$img" \
+              --certificate-identity-regexp "$IDENTITY_REGEXP" \
+              --certificate-oidc-issuer "$OIDC_ISSUER"; then
+              echo "✓ 验证通过（签名与 Rekor 透明日志一致）: $img" | tee -a reports/sign/verify.log
+              verify_ok=$((verify_ok + 1))
+            else
+              echo "::warning::验证失败: $img" | tee -a reports/sign/verify.log
+              verify_fail=$((verify_fail + 1))
+            fi
+          done
+          echo "============================================"
+          echo "  验证摘要: 通过 $verify_ok / 失败 $verify_fail"
+          echo "============================================" | tee -a reports/sign/verify.log
+          # 验证失败仅告警，不阻断流水线；生产门禁可改为 exit 1
+          if [ "$verify_ok" -eq 0 ]; then
+            echo "::error::所有镜像签名验证均失败"
+            exit 1
+          fi
 
       - name: 上传签名记录 Artifact
         if: always()
@@ -520,7 +586,7 @@ jobs:
             echo ""
             echo "| 类型 | 路径 | 说明 |"
             echo "|------|------|------|"
-            echo "| 镜像签名 | sign/ | cosign keyless 签名记录与验证命令 |"
+            echo "| 镜像签名 | sign/ | cosign keyless 签名 + Rekor 透明日志记录与验证 |"
             echo "| SBOM (SPDX) | sbom/*.spdx.json | 软件物料清单（SPDX JSON 格式） |"
             echo "| SBOM (CycloneDX) | sbom/*.cyclonedx.json | 软件物料清单（CycloneDX JSON 格式） |"
             echo "| 漏洞扫描 (SARIF) | vuln-scan/*.sarif | Trivy 漏洞扫描 SARIF 报告 |"

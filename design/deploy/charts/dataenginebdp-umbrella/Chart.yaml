@@ -1,0 +1,365 @@
+apiVersion: v2
+name: dataenginebdp-umbrella
+description: "DataEngineBDP统一部署Chart - 大数据平台一键式Helm Umbrella编排"
+type: application
+version: 0.1.0
+appVersion: "2.0.0"
+home: https://github.com/DataEngineBDP
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - dataenginebdp
+  - umbrella
+  - big-data
+  - shuqing-platform
+# 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
+namespace: sq-system
+
+# ============================================================================
+# 依赖声明（Helm v3 标准；与 requirements.yaml 保持一致，兼容 Helm v2）
+# 每个子 Chart 通过 condition: <name>.enabled 控制是否渲染。
+# 本地依赖使用 file://../<name> 相对路径，指向同级目录下的子 Chart。
+# ============================================================================
+dependencies:
+  # ---- 自研核心组件（默认启用） ----
+  - name: encaps-layer
+    version: "2.0.0"
+    repository: "file://../encaps-layer"
+    condition: encaps-layer.enabled
+  - name: sql-gateway
+    version: "2.0.0"
+    repository: "file://../sql-gateway"
+    condition: sql-gateway.enabled
+  - name: catalog
+    version: "2.0.0"
+    repository: "file://../catalog"
+    condition: catalog.enabled
+  - name: rule-engine
+    version: "2.0.0"
+    repository: "file://../rule-engine"
+    condition: rule-engine.enabled
+  # ---- 自研治理组件（默认启用） ----
+  - name: governance
+    version: "2.0.0"
+    repository: "file://../governance"
+    condition: governance.enabled
+  - name: metadata-collector
+    version: "2.0.0"
+    repository: "file://../metadata-collector"
+    condition: metadata-collector.enabled
+  - name: lineage-analyzer
+    version: "2.0.0"
+    repository: "file://../lineage-analyzer"
+    condition: lineage-analyzer.enabled
+  - name: data-quality
+    version: "2.0.0"
+    repository: "file://../data-quality"
+    condition: data-quality.enabled
+  - name: asset-catalog
+    version: "2.0.0"
+    repository: "file://../asset-catalog"
+    condition: asset-catalog.enabled
+  # ---- 自研智能/AI组件（默认禁用） ----
+  - name: ai-assistant
+    version: "2.0.0"
+    repository: "file://../ai-assistant"
+    condition: ai-assistant.enabled
+  - name: knowledge-engine
+    version: "2.0.0"
+    repository: "file://../knowledge-engine"
+    condition: knowledge-engine.enabled
+  - name: llm-gateway
+    version: "2.0.0"
+    repository: "file://../llm-gateway"
+    condition: llm-gateway.enabled
+  - name: llmops
+    version: "2.0.0"
+    repository: "file://../llmops"
+    condition: llmops.enabled
+  - name: ml-platform
+    version: "2.0.0"
+    repository: "file://../ml-platform"
+    condition: ml-platform.enabled
+  - name: nl2sql
+    version: "2.0.0"
+    repository: "file://../nl2sql"
+    condition: nl2sql.enabled
+  - name: tag-engine
+    version: "2.0.0"
+    repository: "file://../tag-engine"
+    condition: tag-engine.enabled
+  - name: vector-engine
+    version: "2.0.0"
+    repository: "file://../vector-engine"
+    condition: vector-engine.enabled
+  # ---- 大数据引擎（默认禁用，按需启用） ----
+  - name: spark
+    version: "2.0.0"
+    repository: "file://../spark"
+    condition: spark.enabled
+  - name: flink
+    version: "2.0.0"
+    repository: "file://../flink"
+    condition: flink.enabled
+  - name: trino
+    version: "2.0.0"
+    repository: "file://../trino"
+    condition: trino.enabled
+  - name: doris
+    version: "2.0.0"
+    repository: "file://../doris"
+    condition: doris.enabled
+  - name: kafka
+    version: "2.0.0"
+    repository: "file://../kafka"
+    condition: kafka.enabled
+  - name: zookeeper
+    version: "2.0.0"
+    repository: "file://../zookeeper"
+    condition: zookeeper.enabled
+  - name: hive-metastore
+    version: "2.0.0"
+    repository: "file://../hive-metastore"
+    condition: hive-metastore.enabled
+  - name: iceberg-rest
+    version: "2.0.0"
+    repository: "file://../iceberg-rest"
+    condition: iceberg-rest.enabled
+  - name: seatunnel
+    version: "2.0.0"
+    repository: "file://../seatunnel"
+    condition: seatunnel.enabled
+  - name: flink-cdc
+    version: "2.0.0"
+    repository: "file://../flink-cdc"
+    condition: flink-cdc.enabled
+  - name: iotdb
+    version: "2.0.0"
+    repository: "file://../iotdb"
+    condition: iotdb.enabled
+  - name: elasticsearch
+    version: "2.0.0"
+    repository: "file://../elasticsearch"
+    condition: elasticsearch.enabled
+  - name: redis
+    version: "2.0.0"
+    repository: "file://../redis"
+    condition: redis.enabled
+  - name: postgresql
+    version: "2.0.0"
+    repository: "file://../postgresql"
+    condition: postgresql.enabled
+  - name: minio
+    version: "2.0.0"
+    repository: "file://../minio"
+    condition: minio.enabled
+  - name: nebula-graph
+    version: "2.0.0"
+    repository: "file://../nebula-graph"
+    condition: nebula-graph.enabled
+  - name: milvus
+    version: "2.0.0"
+    repository: "file://../milvus"
+    condition: milvus.enabled
+  # ---- 调度编排（默认禁用） ----
+  - name: airflow
+    version: "2.0.0"
+    repository: "file://../airflow"
+    condition: airflow.enabled
+  - name: dolphinscheduler
+    version: "2.0.0"
+    repository: "file://../dolphinscheduler"
+    condition: dolphinscheduler.enabled
+  - name: stream-batch-scheduler
+    version: "2.0.0"
+    repository: "file://../stream-batch-scheduler"
+    condition: stream-batch-scheduler.enabled
+  # ---- 可视化与监控（默认禁用） ----
+  - name: superset
+    version: "2.0.0"
+    repository: "file://../superset"
+    condition: superset.enabled
+  - name: grafana
+    version: "2.0.0"
+    repository: "file://../grafana"
+    condition: grafana.enabled
+  - name: prometheus
+    version: "2.0.0"
+    repository: "file://../prometheus"
+    condition: prometheus.enabled
+  - name: loki
+    version: "2.0.0"
+    repository: "file://../loki"
+    condition: loki.enabled
+  - name: tempo
+    version: "2.0.0"
+    repository: "file://../tempo"
+    condition: tempo.enabled
+  - name: observability
+    version: "2.0.0"
+    repository: "file://../observability"
+    condition: observability.enabled
+  # ---- 基础设施（默认禁用） ----
+  - name: ske-infra
+    version: "2.0.0"
+    repository: "file://../ske-infra"
+    condition: ske-infra.enabled
+  - name: cni-cilium
+    version: "2.0.0"
+    repository: "file://../cni-cilium"
+    condition: cni-cilium.enabled
+  - name: csi-juicefs
+    version: "2.0.0"
+    repository: "file://../csi-juicefs"
+    condition: csi-juicefs.enabled
+  - name: csi-ceph
+    version: "2.0.0"
+    repository: "file://../csi-ceph"
+    condition: csi-ceph.enabled
+  - name: metallb
+    version: "2.0.0"
+    repository: "file://../metallb"
+    condition: metallb.enabled
+  - name: ingress-nginx
+    version: "2.0.0"
+    repository: "file://../ingress-nginx"
+    condition: ingress-nginx.enabled
+  - name: apisix
+    version: "2.0.0"
+    repository: "file://../apisix"
+    condition: apisix.enabled
+  - name: cert-manager
+    version: "2.0.0"
+    repository: "file://../cert-manager"
+    condition: cert-manager.enabled
+  - name: external-secrets
+    version: "2.0.0"
+    repository: "file://../external-secrets"
+    condition: external-secrets.enabled
+  - name: cluster-autoscaler
+    version: "2.0.0"
+    repository: "file://../cluster-autoscaler"
+    condition: cluster-autoscaler.enabled
+  - name: keda
+    version: "2.0.0"
+    repository: "file://../keda"
+    condition: keda.enabled
+  - name: descheduler
+    version: "2.0.0"
+    repository: "file://../descheduler"
+    condition: descheduler.enabled
+  - name: node-problem-detector
+    version: "2.0.0"
+    repository: "file://../node-problem-detector"
+    condition: node-problem-detector.enabled
+  - name: metrics-server
+    version: "2.0.0"
+    repository: "file://../metrics-server"
+    condition: metrics-server.enabled
+  - name: velero
+    version: "2.0.0"
+    repository: "file://../velero"
+    condition: velero.enabled
+  - name: karmada
+    version: "2.0.0"
+    repository: "file://../karmada"
+    condition: karmada.enabled
+  - name: knative-serving
+    version: "2.0.0"
+    repository: "file://../knative-serving"
+    condition: knative-serving.enabled
+  - name: argo-rollouts
+    version: "1.0.0"
+    repository: "file://../argo-rollouts"
+    condition: argo-rollouts.enabled
+  - name: reloader
+    version: "2.0.0"
+    repository: "file://../reloader"
+    condition: reloader.enabled
+  # ---- 开发工具（默认禁用） ----
+  - name: jupyter
+    version: "2.0.0"
+    repository: "file://../jupyter"
+    condition: jupyter.enabled
+  - name: vscode-server
+    version: "2.0.0"
+    repository: "file://../vscode-server"
+    condition: vscode-server.enabled
+  - name: theia
+    version: "2.0.0"
+    repository: "file://../theia"
+    condition: theia.enabled
+  - name: mlflow
+    version: "2.0.0"
+    repository: "file://../mlflow"
+    condition: mlflow.enabled
+  - name: model-finetuning
+    version: "2.0.0"
+    repository: "file://../model-finetuning"
+    condition: model-finetuning.enabled
+  - name: chunker
+    version: "2.0.0"
+    repository: "file://../chunker"
+    condition: chunker.enabled
+  # ---- 业务与平台组件（默认禁用） ----
+  - name: business-portal
+    version: "2.0.0"
+    repository: "file://../business-portal"
+    condition: business-portal.enabled
+  - name: asset-exchange
+    version: "2.0.0"
+    repository: "file://../asset-exchange"
+    condition: asset-exchange.enabled
+  - name: finance-template
+    version: "2.0.0"
+    repository: "file://../finance-template"
+    condition: finance-template.enabled
+  - name: industry-templates
+    version: "2.0.0"
+    repository: "file://../industry-templates"
+    condition: industry-templates.enabled
+  - name: finops
+    version: "2.0.0"
+    repository: "file://../finops"
+    condition: finops.enabled
+  - name: open-api-catalog
+    version: "2.0.0"
+    repository: "file://../open-api-catalog"
+    condition: open-api-catalog.enabled
+  - name: registry
+    version: "2.0.0"
+    repository: "file://../registry"
+    condition: registry.enabled
+  - name: storage-io
+    version: "2.0.0"
+    repository: "file://../storage-io"
+    condition: storage-io.enabled
+  - name: infra-orchestrator
+    version: "2.0.0"
+    repository: "file://../infra-orchestrator"
+    condition: infra-orchestrator.enabled
+  - name: infra-provider-baremetal
+    version: "2.0.0"
+    repository: "file://../infra-provider-baremetal"
+    condition: infra-provider-baremetal.enabled
+  - name: infra-provider-cloud
+    version: "2.0.0"
+    repository: "file://../infra-provider-cloud"
+    condition: infra-provider-cloud.enabled
+  - name: infra-provider-private
+    version: "2.0.0"
+    repository: "file://../infra-provider-private"
+    condition: infra-provider-private.enabled
+  - name: infra-provider-xinchang
+    version: "2.0.0"
+    repository: "file://../infra-provider-xinchang"
+    condition: infra-provider-xinchang.enabled
+  - name: dqctl
+    version: "2.0.0"
+    repository: "file://../dqctl"
+    condition: dqctl.enabled
+  - name: keycloak
+    version: "2.0.0"
+    repository: "file://../keycloak"
+    condition: keycloak.enabled

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardEntity;
 import com.levango7.dataenginebdp.finops.dashboard.repository.DashboardRepository;
 import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.finops.dashboard.service.RealtimeMetricsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +40,7 @@ import java.util.Map;
 public class BiDashboardController {
 
     private final DashboardRepository repository;
+    private final RealtimeMetricsService realtimeMetricsService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /** 创建/更新请求体（对齐前端 CreateDashboardParams）。 */
@@ -127,15 +129,16 @@ public class BiDashboardController {
      * 查询实时指标。
      *
      * <p>对齐前端 {@code analyze.ts} 的 {@code getRealtimeMetrics}。
-     * TODO: 接入实时指标流（Prometheus/时序库），当前返回空列表占位。</p>
+     * 调用 {@link RealtimeMetricsService#getRealtimeMetrics(String)} 返回实时指标列表
+     * （CPU/内存/QPS/延迟/活跃任务），后续可替换为 Prometheus 查询。</p>
      *
      * @return 200 + 实时指标列表
      */
     @GetMapping("/realtime")
     public ResponseEntity<List<Map<String, Object>>> realtime() {
-        // TODO: 从实时指标流查询
-        log.info("查询实时指标: tenant={}", TenantContext.getTenantId());
-        return ResponseEntity.ok(List.of());
+        String tenantId = TenantContext.getTenantId();
+        log.info("查询实时指标: tenant={}", tenantId);
+        return ResponseEntity.ok(realtimeMetricsService.getRealtimeMetrics(tenantId));
     }
 
     private String requireTenant() {

@@ -1,0 +1,287 @@
+# ============================================================================
+# DataEngineBDP Umbrella Chart 默认 values
+# 说明：本文件仅控制各子 Chart 的启用开关与全局配置。
+#       各子 Chart 的详细配置请参阅：
+#         - design/deploy/charts/<name>/values.yaml（Chart 骨架默认值）
+#         - design/deploy/values/env/<env>/<name>-values.yaml（环境覆盖值）
+# 用法：helm install dataenginebdp . -f values.yaml -f design/deploy/values/env/prod/xxx.yaml
+# ============================================================================
+
+# ---- 全局配置（传递给所有子 Chart，子 Chart 通过 .Values.global 引用）----
+global:
+  imageRegistry: "docker.m.daocloud.io"  # 国内镜像源前缀
+  storageClass: "sq-fast-ssd"            # 默认 StorageClass
+  ingressClassName: "apisix"            # 默认 Ingress Class
+  imagePullSecrets: []                  # 私有仓库拉取凭证
+
+# ---- 各子 Chart 启用开关 ----
+# 每个子 Chart 至少包含 enabled 字段；如需覆盖子 Chart 详细配置，
+# 在对应键下追加配置，或通过 -f 环境values文件覆盖。
+
+# ===== 自研核心组件（默认启用） =====
+encaps-layer:
+  enabled: true  # 封装层 - K8s产品化业务语义翻译
+  # 详细配置见 design/deploy/charts/encaps-layer/values.yaml
+sql-gateway:
+  enabled: true  # SQL网关 - 统一SQL接入与路由
+  # 详细配置见 design/deploy/charts/sql-gateway/values.yaml
+catalog:
+  enabled: true  # 目录服务 - 元数据目录与检索
+  # 详细配置见 design/deploy/charts/catalog/values.yaml
+rule-engine:
+  enabled: true  # 规则引擎 - 数据质量规则执行
+  # 详细配置见 design/deploy/charts/rule-engine/values.yaml
+
+# ===== 自研治理组件（默认启用） =====
+governance:
+  enabled: true  # 数据治理 - 统一治理框架
+  # 详细配置见 design/deploy/charts/governance/values.yaml
+metadata-collector:
+  enabled: true  # 元数据采集 - 多源元数据抓取
+  # 详细配置见 design/deploy/charts/metadata-collector/values.yaml
+lineage-analyzer:
+  enabled: true  # 血缘分析 - 表级/字段级血缘
+  # 详细配置见 design/deploy/charts/lineage-analyzer/values.yaml
+data-quality:
+  enabled: true  # 数据质量 - 规则引擎质量稽核
+  # 详细配置见 design/deploy/charts/data-quality/values.yaml
+asset-catalog:
+  enabled: true  # 资产目录 - 数据资产编目
+  # 详细配置见 design/deploy/charts/asset-catalog/values.yaml
+
+# ===== 自研智能/AI组件（默认禁用） =====
+ai-assistant:
+  enabled: false  # AI助手 - 智能问答与辅助
+  # 详细配置见 design/deploy/charts/ai-assistant/values.yaml
+knowledge-engine:
+  enabled: false  # 知识引擎 - 知识图谱与推理
+  # 详细配置见 design/deploy/charts/knowledge-engine/values.yaml
+llm-gateway:
+  enabled: false  # LLM网关 - 大模型统一接入
+  # 详细配置见 design/deploy/charts/llm-gateway/values.yaml
+llmops:
+  enabled: false  # LLMOps - 大模型运维平台
+  # 详细配置见 design/deploy/charts/llmops/values.yaml
+ml-platform:
+  enabled: false  # ML平台 - 机器学习平台
+  # 详细配置见 design/deploy/charts/ml-platform/values.yaml
+nl2sql:
+  enabled: false  # NL2SQL - 自然语言转SQL
+  # 详细配置见 design/deploy/charts/nl2sql/values.yaml
+tag-engine:
+  enabled: false  # 标签引擎 - 标签计算与画像
+  # 详细配置见 design/deploy/charts/tag-engine/values.yaml
+vector-engine:
+  enabled: false  # 向量引擎 - 向量检索服务
+  # 详细配置见 design/deploy/charts/vector-engine/values.yaml
+
+# ===== 大数据引擎（默认禁用，按需启用） =====
+spark:
+  enabled: false  # Spark - 统一内存计算引擎
+  # 详细配置见 design/deploy/charts/spark/values.yaml
+flink:
+  enabled: false  # Flink - 流式计算引擎
+  # 详细配置见 design/deploy/charts/flink/values.yaml
+trino:
+  enabled: false  # Trino - 交互式SQL查询引擎
+  # 详细配置见 design/deploy/charts/trino/values.yaml
+doris:
+  enabled: false  # Doris - MPP分析型数据仓库
+  # 详细配置见 design/deploy/charts/doris/values.yaml
+kafka:
+  enabled: false  # Kafka - 消息队列与流存储
+  # 详细配置见 design/deploy/charts/kafka/values.yaml
+zookeeper:
+  enabled: false  # ZooKeeper - 分布式协调服务
+  # 详细配置见 design/deploy/charts/zookeeper/values.yaml
+hive-metastore:
+  enabled: false  # Hive Metastore - 元数据服务
+  # 详细配置见 design/deploy/charts/hive-metastore/values.yaml
+iceberg-rest:
+  enabled: false  # Iceberg REST Catalog - 表格式REST服务
+  # 详细配置见 design/deploy/charts/iceberg-rest/values.yaml
+seatunnel:
+  enabled: false  # SeaTunnel - 数据集成引擎
+  # 详细配置见 design/deploy/charts/seatunnel/values.yaml
+flink-cdc:
+  enabled: false  # Flink CDC - 变更数据捕获
+  # 详细配置见 design/deploy/charts/flink-cdc/values.yaml
+iotdb:
+  enabled: false  # IoTDB - 时序数据库
+  # 详细配置见 design/deploy/charts/iotdb/values.yaml
+elasticsearch:
+  enabled: false  # Elasticsearch - 全文检索引擎
+  # 详细配置见 design/deploy/charts/elasticsearch/values.yaml
+redis:
+  enabled: false  # Redis - 缓存与键值存储
+  # 详细配置见 design/deploy/charts/redis/values.yaml
+postgresql:
+  enabled: false  # PostgreSQL - 关系型数据库
+  # 详细配置见 design/deploy/charts/postgresql/values.yaml
+minio:
+  enabled: false  # MinIO - S3兼容对象存储
+  # 详细配置见 design/deploy/charts/minio/values.yaml
+nebula-graph:
+  enabled: false  # NebulaGraph - 图数据库
+  # 详细配置见 design/deploy/charts/nebula-graph/values.yaml
+milvus:
+  enabled: false  # Milvus - 向量数据库
+  # 详细配置见 design/deploy/charts/milvus/values.yaml
+
+# ===== 调度编排（默认禁用） =====
+airflow:
+  enabled: false  # Airflow - DAG工作流调度
+  # 详细配置见 design/deploy/charts/airflow/values.yaml
+dolphinscheduler:
+  enabled: false  # DolphinScheduler - 可视化调度
+  # 详细配置见 design/deploy/charts/dolphinscheduler/values.yaml
+stream-batch-scheduler:
+  enabled: false  # 流批统一调度
+  # 详细配置见 design/deploy/charts/stream-batch-scheduler/values.yaml
+
+# ===== 可视化与监控（默认禁用） =====
+superset:
+  enabled: false  # Superset - BI可视化平台
+  # 详细配置见 design/deploy/charts/superset/values.yaml
+grafana:
+  enabled: false  # Grafana - 监控可视化
+  # 详细配置见 design/deploy/charts/grafana/values.yaml
+prometheus:
+  enabled: false  # Prometheus - 指标采集
+  # 详细配置见 design/deploy/charts/prometheus/values.yaml
+loki:
+  enabled: false  # Loki - 日志聚合
+  # 详细配置见 design/deploy/charts/loki/values.yaml
+tempo:
+  enabled: false  # Tempo - 分布式链路追踪
+  # 详细配置见 design/deploy/charts/tempo/values.yaml
+observability:
+  enabled: false  # 统一可观测性套件
+  # 详细配置见 design/deploy/charts/observability/values.yaml
+
+# ===== 基础设施（默认禁用） =====
+ske-infra:
+  enabled: false  # SKE发行版基础配置
+  # 详细配置见 design/deploy/charts/ske-infra/values.yaml
+cni-cilium:
+  enabled: false  # Cilium CNI - eBPF网络栈
+  # 详细配置见 design/deploy/charts/cni-cilium/values.yaml
+csi-juicefs:
+  enabled: false  # JuiceFS CSI - 对象存储挂载
+  # 详细配置见 design/deploy/charts/csi-juicefs/values.yaml
+csi-ceph:
+  enabled: false  # Ceph CSI - RBD/CephFS存储
+  # 详细配置见 design/deploy/charts/csi-ceph/values.yaml
+metallb:
+  enabled: false  # MetalLB - 裸金属LoadBalancer
+  # 详细配置见 design/deploy/charts/metallb/values.yaml
+ingress-nginx:
+  enabled: false  # NGINX Ingress Controller
+  # 详细配置见 design/deploy/charts/ingress-nginx/values.yaml
+apisix:
+  enabled: false  # APISIX - API网关
+  # 详细配置见 design/deploy/charts/apisix/values.yaml
+cert-manager:
+  enabled: false  # cert-manager - 证书管理
+  # 详细配置见 design/deploy/charts/cert-manager/values.yaml
+external-secrets:
+  enabled: false  # External Secrets - 密钥同步
+  # 详细配置见 design/deploy/charts/external-secrets/values.yaml
+cluster-autoscaler:
+  enabled: false  # Cluster Autoscaler - 节点弹性扩容
+  # 详细配置见 design/deploy/charts/cluster-autoscaler/values.yaml
+keda:
+  enabled: false  # KEDA - 事件驱动扩缩容
+  # 详细配置见 design/deploy/charts/keda/values.yaml
+descheduler:
+  enabled: false  # Descheduler - 重调度均衡
+  # 详细配置见 design/deploy/charts/descheduler/values.yaml
+node-problem-detector:
+  enabled: false  # 节点问题检测
+  # 详细配置见 design/deploy/charts/node-problem-detector/values.yaml
+metrics-server:
+  enabled: false  # Metrics Server - 指标聚合
+  # 详细配置见 design/deploy/charts/metrics-server/values.yaml
+velero:
+  enabled: false  # Velero - 备份与恢复
+  # 详细配置见 design/deploy/charts/velero/values.yaml
+karmada:
+  enabled: false  # Karmada - 多集群联邦
+  # 详细配置见 design/deploy/charts/karmada/values.yaml
+knative-serving:
+  enabled: false  # Knative Serving - Serverless
+  # 详细配置见 design/deploy/charts/knative-serving/values.yaml
+argo-rollouts:
+  enabled: false  # Argo Rollouts - 渐进式发布
+  # 详细配置见 design/deploy/charts/argo-rollouts/values.yaml
+reloader:
+  enabled: false  # Reloader - ConfigMap/Secret热更新
+  # 详细配置见 design/deploy/charts/reloader/values.yaml
+
+# ===== 开发工具（默认禁用） =====
+jupyter:
+  enabled: false  # Jupyter - 交互式数据科学
+  # 详细配置见 design/deploy/charts/jupyter/values.yaml
+vscode-server:
+  enabled: false  # VSCode Server - 在线IDE
+  # 详细配置见 design/deploy/charts/vscode-server/values.yaml
+theia:
+  enabled: false  # Theia - 云原生IDE
+  # 详细配置见 design/deploy/charts/theia/values.yaml
+mlflow:
+  enabled: false  # MLflow - 模型追踪与注册
+  # 详细配置见 design/deploy/charts/mlflow/values.yaml
+model-finetuning:
+  enabled: false  # 模型微调服务
+  # 详细配置见 design/deploy/charts/model-finetuning/values.yaml
+chunker:
+  enabled: false  # 文档分块服务
+  # 详细配置见 design/deploy/charts/chunker/values.yaml
+
+# ===== 业务与平台组件（默认禁用） =====
+business-portal:
+  enabled: false  # 业务门户
+  # 详细配置见 design/deploy/charts/business-portal/values.yaml
+asset-exchange:
+  enabled: false  # 资产交换
+  # 详细配置见 design/deploy/charts/asset-exchange/values.yaml
+finance-template:
+  enabled: false  # 金融模板
+  # 详细配置见 design/deploy/charts/finance-template/values.yaml
+industry-templates:
+  enabled: false  # 行业模板
+  # 详细配置见 design/deploy/charts/industry-templates/values.yaml
+finops:
+  enabled: false  # FinOps成本运营
+  # 详细配置见 design/deploy/charts/finops/values.yaml
+open-api-catalog:
+  enabled: false  # 开放API目录
+  # 详细配置见 design/deploy/charts/open-api-catalog/values.yaml
+registry:
+  enabled: false  # 镜像与制品仓库
+  # 详细配置见 design/deploy/charts/registry/values.yaml
+storage-io:
+  enabled: false  # 存储IO服务
+  # 详细配置见 design/deploy/charts/storage-io/values.yaml
+infra-orchestrator:
+  enabled: false  # 基础设施编排
+  # 详细配置见 design/deploy/charts/infra-orchestrator/values.yaml
+infra-provider-baremetal:
+  enabled: false  # 裸金属Provider
+  # 详细配置见 design/deploy/charts/infra-provider-baremetal/values.yaml
+infra-provider-cloud:
+  enabled: false  # 云Provider
+  # 详细配置见 design/deploy/charts/infra-provider-cloud/values.yaml
+infra-provider-private:
+  enabled: false  # 私有云Provider
+  # 详细配置见 design/deploy/charts/infra-provider-private/values.yaml
+infra-provider-xinchang:
+  enabled: false  # 信创Provider
+  # 详细配置见 design/deploy/charts/infra-provider-xinchang/values.yaml
+dqctl:
+  enabled: false  # 数据质量管控CLI
+  # 详细配置见 design/deploy/charts/dqctl/values.yaml
+keycloak:
+  enabled: false  # Keycloak - 身份认证与SSO
+  # 详细配置见 design/deploy/charts/keycloak/values.yaml
+

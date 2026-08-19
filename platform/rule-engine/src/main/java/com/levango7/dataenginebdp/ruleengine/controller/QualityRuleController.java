@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.ruleengine.controller;
 
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
+import com.levango7.dataenginebdp.ruleengine.service.QualityCheckExecutionService;
 import com.levango7.dataenginebdp.ruleengine.service.RuleService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -34,6 +35,7 @@ import java.util.Map;
 public class QualityRuleController {
 
     private final RuleService ruleService;
+    private final QualityCheckExecutionService executionService;
 
     /** 创建/更新请求体（对齐前端 CreateRuleParams）。 */
     public record QualityRuleRequest(
@@ -106,10 +108,11 @@ public class QualityRuleController {
      * 立即触发规则校验。
      *
      * <p>对齐前端 {@code quality.ts} 的 {@code runCheck}。
-     * TODO: 转交规则执行引擎真实校验，当前仅回显规则。</p>
+     * 调用 {@link QualityCheckExecutionService#executeCheck(Rule)} 执行校验，
+     * 并在返回视图中回写 {@code lastCheckAt} 与 {@code lastResult}。</p>
      *
      * @param id 规则 ID
-     * @return 200 + 规则视图；404 若不存在
+     * @return 200 + 规则视图（含校验结果）；404 若不存在
      */
     @PostMapping("/{id}/check")
     public ResponseEntity<?> check(@PathVariable Long id) {
@@ -118,15 +121,20 @@ public class QualityRuleController {
             return ResponseEntity.notFound().build();
         }
         log.info("触发质量规则校验: id={}, name={}", id, rule.getName());
-        // TODO: 调用规则执行引擎并回写 lastCheckAt/lastResult
-        return ResponseEntity.ok(toView(rule));
+        QualityCheckExecutionService.CheckResult result = executionService.executeCheck(rule);
+        Map<String, Object> view = toView(rule);
+        view.put("lastCheckAt", result.lastCheckAt().toString());
+        view.put("lastResult", Map.of(
+                "passed", result.passed(),
+                "message", result.message()));
+        return ResponseEntity.ok(view);
     }
 
     /**
      * 查询通过率统计。
      *
      * <p>对齐前端 {@code quality.ts} 的 {@code getSummary}。
-     * TODO: 接入真实通过率统计，当前返回占位统计。</p>
+     * 对所有规则执行校验后，从 {@link QualityCheckExecutionService} 获取真实通过数与通过率。</p>
      *
      * @return 200 + 通过率统计
      */
@@ -134,8 +142,9 @@ public class QualityRuleController {
     public ResponseEntity<Map<String, Object>> summary() {
         List<Rule> all = ruleService.listAll();
         int total = all.size();
-        // TODO: 计算真实通过数（需关联校验结果存储）
-        int passed = 0;
+        // 对所有规则执行校验，获取真实通过数（确保通过率反映当前规则集状态）
+        all.forEach(executionService::executeCheck);
+        long passed = executionService.getPassedCount();
         double passRate = total == 0 ? 0.0 : (passed * 100.0 / total);
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("total", total);

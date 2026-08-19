@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardEntity;
 import com.levango7.dataenginebdp.finops.dashboard.repository.DashboardRepository;
 import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.finops.dashboard.service.RealtimeMetricsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ class BiDashboardControllerTest {
     private DashboardRepository repository;
 
     private ObjectMapper objectMapper = new ObjectMapper();
+    private RealtimeMetricsService realtimeMetricsService = new RealtimeMetricsService();
 
     @BeforeEach
     void setUpTenant() {
@@ -40,7 +42,7 @@ class BiDashboardControllerTest {
     }
 
     private BiDashboardController controller() {
-        return new BiDashboardController(repository);
+        return new BiDashboardController(repository, realtimeMetricsService);
     }
 
     private DashboardEntity seed(String name, String tenantId) {

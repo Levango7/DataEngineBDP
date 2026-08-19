@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.ruleengine.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
+import com.levango7.dataenginebdp.ruleengine.service.QualityCheckExecutionService;
 import com.levango7.dataenginebdp.ruleengine.service.RuleService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +33,9 @@ class QualityRuleControllerTest {
 
     @Mock
     private RuleService ruleService;
+
+    @Mock
+    private QualityCheckExecutionService executionService;
 
     @InjectMocks
     private QualityRuleController qualityRuleController;

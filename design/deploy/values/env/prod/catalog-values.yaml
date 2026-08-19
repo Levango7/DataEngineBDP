@@ -19,14 +19,14 @@ resources:
     cpu: "2"
     memory: "4Gi"
 
-autoscaling:
+hpa:
   enabled: true
   minReplicas: 3
   maxReplicas: 10
   targetCPUUtilizationPercentage: 70
   targetMemoryUtilizationPercentage: 80
 
-podDisruptionBudget:
+pdb:
   enabled: true
   minAvailable: 2
 
