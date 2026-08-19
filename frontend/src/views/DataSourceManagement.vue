@@ -1,5 +1,5 @@
 <template>
-  <div class="ds-page">
+  <div class="ds-page" role="main" aria-label="数据源管理页面">
     <h1>数据源管理</h1>
     <div class="sub">
       统一管理平台数据接入源，支持 MySQL / PostgreSQL / ClickHouse / Kafka
@@ -8,13 +8,14 @@
 
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
-      <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">+ 新增数据源</el-button>
+      <div class="toolbar" role="toolbar" aria-label="数据源列表操作栏">
+        <el-button type="primary" aria-label="新增数据源" @click="openCreateDialog">+ 新增数据源</el-button>
         <el-input
           v-model="searchKeyword"
           placeholder="按名称搜索"
           clearable
           style="width: 220px"
+          aria-label="按数据源名称搜索"
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
@@ -23,12 +24,13 @@
           placeholder="类型筛选"
           clearable
           style="width: 160px"
+          aria-label="按数据源类型筛选"
           @change="handleSearch"
         >
           <el-option v-for="t in typeOptions" :key="t.value" :label="t.label" :value="t.value" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="loadList" />
+        <el-button :icon="Refresh" circle aria-label="刷新数据源列表" @click="loadList" />
       </div>
 
       <!-- 数据源列表 -->
@@ -37,6 +39,8 @@
         :data="dsList"
         stripe
         border
+        role="table"
+        aria-label="数据源列表表格"
         :empty-text="error ? '加载失败，请重试' : '暂无数据源'"
       >
         <el-table-column prop="id" label="ID" width="120" />
@@ -61,17 +65,17 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link type="success" :loading="testingId === row.id" @click="handleTest(row)">
+            <el-button link type="primary" :aria-label="`编辑数据源 ${row.name}`" @click="openEditDialog(row)">编辑</el-button>
+            <el-button link type="success" :loading="testingId === row.id" :aria-label="`测试数据源 ${row.name} 连接`" @click="handleTest(row)">
               测试连接
             </el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="danger" :aria-label="`删除数据源 ${row.name}`" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap">
+      <div class="pagination-wrap" role="navigation" aria-label="数据源列表分页">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -79,6 +83,7 @@
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
           background
+          aria-label="分页导航"
           @size-change="loadList"
           @current-change="loadList"
         />
@@ -91,6 +96,9 @@
       :title="isEdit ? '编辑数据源' : '新增数据源'"
       width="560px"
       :close-on-click-modal="false"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="isEdit ? '编辑数据源弹窗' : '新增数据源弹窗'"
       @closed="resetForm"
     >
       <el-form
@@ -101,15 +109,15 @@
         label-position="right"
       >
         <el-form-item label="数据源名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如 业务订单库" />
+          <el-input v-model="formData.name" placeholder="如 业务订单库" aria-label="数据源名称" />
         </el-form-item>
         <el-form-item label="类型" prop="type">
-          <el-select v-model="formData.type" style="width: 100%" @change="onTypeChange">
+          <el-select v-model="formData.type" style="width: 100%" aria-label="数据源类型" @change="onTypeChange">
             <el-option v-for="t in typeOptions" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="主机地址" prop="host">
-          <el-input v-model="formData.host" placeholder="如 192.168.1.10" />
+          <el-input v-model="formData.host" placeholder="如 192.168.1.10" aria-label="主机地址" />
         </el-form-item>
         <el-form-item label="端口" prop="port">
           <el-input-number
@@ -118,13 +126,14 @@
             :max="65535"
             controls-position="right"
             style="width: 100%"
+            aria-label="端口号"
           />
         </el-form-item>
         <el-form-item v-if="needDatabase" label="数据库" prop="database">
-          <el-input v-model="formData.database" placeholder="数据库名 / Kafka topic 前缀" />
+          <el-input v-model="formData.database" placeholder="数据库名 / Kafka topic 前缀" aria-label="数据库名或Kafka topic前缀" />
         </el-form-item>
         <el-form-item label="用户名" prop="username">
-          <el-input v-model="formData.username" placeholder="登录用户名" />
+          <el-input v-model="formData.username" placeholder="登录用户名" aria-label="登录用户名" />
         </el-form-item>
         <el-form-item label="密码" prop="password">
           <el-input
@@ -132,12 +141,13 @@
             type="password"
             show-password
             :placeholder="isEdit ? '不修改请留空' : '登录密码'"
+            aria-label="登录密码"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <el-button aria-label="取消操作" @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" :aria-label="isEdit ? '保存数据源' : '创建数据源'" @click="handleSubmit">
           {{ isEdit ? '保存' : '创建' }}
         </el-button>
       </template>

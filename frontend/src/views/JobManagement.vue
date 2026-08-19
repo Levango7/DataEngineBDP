@@ -1,5 +1,5 @@
 <template>
-  <div class="job-page">
+  <div class="job-page" role="main" aria-label="作业管理页面">
     <h1>作业管理</h1>
     <div class="sub">
       提交与运维批/流/SQL/Python 作业，支持 Spark / Flink / Trino / Doris
@@ -8,14 +8,14 @@
 
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
-      <div class="toolbar">
-        <el-button type="primary" @click="openSubmitDialog">+ 提交作业</el-button>
+      <div class="toolbar" role="toolbar" aria-label="作业列表操作栏">
+        <el-button type="primary" aria-label="提交作业" @click="openSubmitDialog">+ 提交作业</el-button>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="loadList" />
+        <el-button :icon="Refresh" circle aria-label="刷新作业列表" @click="loadList" />
       </div>
 
       <!-- 状态筛选 tabs -->
-      <el-tabs v-model="activeTab" @tab-change="handleTabChange">
+      <el-tabs v-model="activeTab" role="tablist" aria-label="按作业状态筛选" @tab-change="handleTabChange">
         <el-tab-pane label="全部" name="all" />
         <el-tab-pane label="运行中" name="running" />
         <el-tab-pane label="已完成" name="success" />
@@ -29,6 +29,8 @@
         :data="jobList"
         stripe
         border
+        role="table"
+        aria-label="作业列表表格"
         :empty-text="error ? '加载失败，请重试' : '暂无作业'"
       >
         <el-table-column prop="id" label="ID" width="120" />
@@ -55,12 +57,13 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openLogDialog(row)">查看日志</el-button>
+            <el-button link type="primary" :aria-label="`查看作业 ${row.name} 日志`" @click="openLogDialog(row)">查看日志</el-button>
             <el-button
               v-if="canCancel(row.status)"
               link
               type="warning"
               :loading="cancelingId === row.id"
+              :aria-label="`取消作业 ${row.name}`"
               @click="handleCancel(row)"
             >
               取消
@@ -70,7 +73,7 @@
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap">
+      <div class="pagination-wrap" role="navigation" aria-label="作业列表分页">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -78,6 +81,7 @@
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
           background
+          aria-label="分页导航"
           @size-change="loadList"
           @current-change="loadList"
         />
@@ -90,6 +94,9 @@
       title="提交作业"
       width="640px"
       :close-on-click-modal="false"
+      role="dialog"
+      aria-modal="true"
+      aria-label="提交作业弹窗"
       @closed="resetSubmitForm"
     >
       <el-form
@@ -100,10 +107,10 @@
         label-position="right"
       >
         <el-form-item label="作业名称" prop="name">
-          <el-input v-model="submitForm.name" placeholder="如 订单宽表 ETL" />
+          <el-input v-model="submitForm.name" placeholder="如 订单宽表 ETL" aria-label="作业名称" />
         </el-form-item>
         <el-form-item label="作业类型" prop="type">
-          <el-select v-model="submitForm.type" style="width: 100%">
+          <el-select v-model="submitForm.type" style="width: 100%" aria-label="作业类型">
             <el-option label="批作业（Batch）" value="batch" />
             <el-option label="流作业（Stream）" value="stream" />
             <el-option label="SQL 作业" value="sql" />
@@ -112,7 +119,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="执行引擎" prop="engine">
-          <el-select v-model="submitForm.engine" style="width: 100%">
+          <el-select v-model="submitForm.engine" style="width: 100%" aria-label="执行引擎">
             <el-option label="Spark" value="spark" />
             <el-option label="Flink" value="flink" />
             <el-option label="Trino" value="trino" />
@@ -120,12 +127,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="负责人" prop="owner">
-          <el-input v-model="submitForm.owner" placeholder="负责人姓名" />
+          <el-input v-model="submitForm.owner" placeholder="负责人姓名" aria-label="负责人姓名" />
         </el-form-item>
         <el-form-item label="Cron 表达式" prop="schedule">
           <el-input
             v-model="submitForm.schedule"
             placeholder="如 0 0 * * *（每日 0 点），留空表示手动触发"
+            aria-label="Cron 调度表达式"
           />
         </el-form-item>
         <el-form-item label="作业代码" prop="code">
@@ -134,13 +142,14 @@
             type="textarea"
             :rows="10"
             placeholder="SQL 语句或代码内容"
+            aria-label="作业代码内容"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">提交</el-button>
+        <el-button aria-label="取消提交" @click="submitDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" aria-label="提交作业" @click="handleSubmit">提交</el-button>
       </template>
     </el-dialog>
 
@@ -150,14 +159,17 @@
       :title="`作业日志 - ${currentLogJob?.name || ''}`"
       width="800px"
       :close-on-click-modal="true"
+      role="dialog"
+      aria-modal="true"
+      aria-label="作业日志查看弹窗"
       @opened="scrollLogToBottom"
     >
-      <div v-loading="logLoading" class="log-container">
-        <pre class="log-content">{{ logContent || '暂无日志' }}</pre>
+      <div v-loading="logLoading" class="log-container" role="region" aria-label="日志内容区域">
+        <pre class="log-content" aria-label="作业运行日志">{{ logContent || '暂无日志' }}</pre>
       </div>
       <template #footer>
-        <el-button @click="logDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="refreshLog">刷新</el-button>
+        <el-button aria-label="关闭日志弹窗" @click="logDialogVisible = false">关闭</el-button>
+        <el-button type="primary" aria-label="刷新日志" @click="refreshLog">刷新</el-button>
       </template>
     </el-dialog>
   </div>

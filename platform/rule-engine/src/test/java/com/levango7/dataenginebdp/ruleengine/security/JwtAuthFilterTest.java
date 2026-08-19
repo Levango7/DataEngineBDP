@@ -21,8 +21,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  */
 class JwtAuthFilterTest {
 
-    private static final String SECRET = "test-secret-key-for-unit-tests-at-least-256-bits-long";
-    private static final String ISSUER = "shuqing-bigdata";
+    // JWT 签名密钥从环境变量 TEST_JWT_SECRET 读取，未设置时使用默认值（仅用于单元测试）
+    // 生产环境必须通过环境变量或密钥管理系统注入，禁止硬编码
+    private static final String SECRET = System.getenv()
+            .getOrDefault("TEST_JWT_SECRET", "test-secret-key-for-unit-tests-at-least-256-bits-long");
+    private static final String ISSUER = System.getenv()
+            .getOrDefault("TEST_JWT_ISSUER", "shuqing-bigdata");
 
     private JwtAuthFilter jwtAuthFilter;
     private SecretKey signingKey;

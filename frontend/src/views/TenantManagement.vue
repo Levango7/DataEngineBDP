@@ -1,5 +1,5 @@
 <template>
-  <div class="tenant-page">
+  <div class="tenant-page" role="main" aria-label="租户管理页面">
     <h1>租户管理</h1>
     <div class="sub">
       管理平台多租户的创建、配额、状态与基本信息，底层自动映射为 K8s Namespace 与资源配额。
@@ -7,13 +7,14 @@
 
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
-      <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">+ 新建租户</el-button>
+      <div class="toolbar" role="toolbar" aria-label="租户列表操作栏">
+        <el-button type="primary" aria-label="新建租户" @click="openCreateDialog">+ 新建租户</el-button>
         <el-input
           v-model="searchKeyword"
           placeholder="按租户名称搜索"
           clearable
           style="width: 240px"
+          aria-label="按租户名称搜索"
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
@@ -22,6 +23,7 @@
           placeholder="状态筛选"
           clearable
           style="width: 140px"
+          aria-label="按状态筛选租户"
           @change="handleSearch"
         >
           <el-option label="活跃" value="active" />
@@ -29,7 +31,7 @@
           <el-option label="已删除" value="deleted" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="loadList" />
+        <el-button :icon="Refresh" circle aria-label="刷新租户列表" @click="loadList" />
       </div>
 
       <!-- 租户列表表格 -->
@@ -39,6 +41,8 @@
         stripe
         border
         style="width: 100%"
+        role="table"
+        aria-label="租户列表表格"
         :empty-text="error ? '加载失败，请重试' : '暂无租户数据'"
       >
         <el-table-column prop="id" label="ID" width="120" />
@@ -72,14 +76,14 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="primary" :aria-label="`编辑租户 ${row.name}`" @click="openEditDialog(row)">编辑</el-button>
+            <el-button link type="danger" :aria-label="`删除租户 ${row.name}`" @click="handleDelete(row)">删除</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap">
+      <div class="pagination-wrap" role="navigation" aria-label="租户列表分页">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -87,6 +91,7 @@
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
           background
+          aria-label="分页导航"
           @size-change="loadList"
           @current-change="loadList"
         />
@@ -99,6 +104,9 @@
       :title="isEdit ? '编辑租户' : '新建租户'"
       width="520px"
       :close-on-click-modal="false"
+      role="dialog"
+      aria-modal="true"
+      :aria-label="isEdit ? '编辑租户弹窗' : '新建租户弹窗'"
       @closed="resetForm"
     >
       <el-form
@@ -109,13 +117,13 @@
         label-position="right"
       >
         <el-form-item label="租户名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如 华东生产集群" />
+          <el-input v-model="formData.name" placeholder="如 华东生产集群" aria-label="租户名称" />
         </el-form-item>
         <el-form-item label="租户编码" prop="code">
-          <el-input v-model="formData.code" placeholder="如 east-prod" :disabled="isEdit" />
+          <el-input v-model="formData.code" placeholder="如 east-prod" :disabled="isEdit" aria-label="租户编码" />
         </el-form-item>
         <el-form-item label="套餐版本" prop="plan">
-          <el-select v-model="formData.plan" style="width: 100%">
+          <el-select v-model="formData.plan" style="width: 100%" aria-label="套餐版本">
             <el-option label="标准版" value="standard" />
             <el-option label="企业版" value="enterprise" />
             <el-option label="旗舰版" value="flagship" />
@@ -123,22 +131,22 @@
           </el-select>
         </el-form-item>
         <el-form-item v-if="isEdit" label="状态" prop="status">
-          <el-select v-model="formData.status" style="width: 100%">
+          <el-select v-model="formData.status" style="width: 100%" aria-label="租户状态">
             <el-option label="活跃" value="active" />
             <el-option label="已暂停" value="suspended" />
             <el-option label="已删除" value="deleted" />
           </el-select>
         </el-form-item>
         <el-form-item label="联系人" prop="contact">
-          <el-input v-model="formData.contact" placeholder="联系人姓名" />
+          <el-input v-model="formData.contact" placeholder="联系人姓名" aria-label="联系人姓名" />
         </el-form-item>
         <el-form-item label="联系电话" prop="contactPhone">
-          <el-input v-model="formData.contactPhone" placeholder="联系电话" />
+          <el-input v-model="formData.contactPhone" placeholder="联系电话" aria-label="联系电话" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <el-button aria-label="取消操作" @click="dialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" :aria-label="isEdit ? '保存租户' : '创建租户'" @click="handleSubmit">
           {{ isEdit ? '保存' : '创建' }}
         </el-button>
       </template>

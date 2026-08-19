@@ -1,0 +1,9 @@
+# PySpark 数据管道
+# 需求: ${requirement}
+
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder.appName('pipeline').getOrCreate()
+df = spark.read.parquet('s3://bucket/source')
+df.filter(df['amount'] > 0).write.parquet('s3://bucket/target')
+spark.stop()

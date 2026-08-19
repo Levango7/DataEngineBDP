@@ -1,29 +1,45 @@
 <template>
-  <aside class="side">
-    <div class="brand"><span class="dot"></span>数擎 · 大数据平台</div>
-    <nav class="nav">
+  <aside class="side" role="complementary" aria-label="平台侧边栏">
+    <div class="brand" aria-label="数擎大数据平台品牌标识"><span class="dot" aria-hidden="true"></span>数擎 · 大数据平台</div>
+    <nav class="nav" role="navigation" aria-label="主导航菜单">
       <template v-for="(group, gi) in groups" :key="group.title">
-        <div class="grp" @click="toggleGroup(gi)">
-          <span class="grp-arrow" :class="{ open: isOpen(gi) }">▸</span>
+        <div
+          class="grp"
+          role="button"
+          :aria-expanded="isOpen(gi)"
+          :aria-controls="`nav-group-${gi}`"
+          :aria-label="`${group.title} 分组，共 ${group.items.length} 项`"
+          tabindex="0"
+          @click="toggleGroup(gi)"
+          @keyup.enter="toggleGroup(gi)"
+        >
+          <span class="grp-arrow" :class="{ open: isOpen(gi) }" aria-hidden="true">▸</span>
           <span class="grp-label">{{ group.title }}</span>
-          <span class="grp-count">{{ group.items.length }}</span>
+          <span class="grp-count" aria-hidden="true">{{ group.items.length }}</span>
         </div>
-        <div class="grp-items" :class="{ collapsed: !isOpen(gi) }">
+        <div
+          class="grp-items"
+          :class="{ collapsed: !isOpen(gi) }"
+          :id="`nav-group-${gi}`"
+          role="group"
+          :aria-label="`${group.title} 导航项`"
+        >
           <router-link
             v-for="item in group.items"
             :key="item.path"
             :to="item.path"
             class="nav-item"
             active-class="active"
+            :aria-label="item.label"
           >
-            <svg class="ic"><use :href="`#i-${item.icon}`" /></svg>
+            <svg class="ic" aria-hidden="true"><use :href="`#i-${item.icon}`" /></svg>
             <span class="nav-label">{{ item.label }}</span>
-            <span v-if="item.badge" class="badge">{{ item.badge }}</span>
+            <span v-if="item.badge" class="badge" aria-label="待办数量">{{ item.badge }}</span>
           </router-link>
         </div>
       </template>
     </nav>
-    <div class="side-foot">
+    <div class="side-foot" aria-label="平台版本信息">
       原型 v0.3 · 客户无感知底座<br />自研 SKE 发行版 · 环境: 信创
     </div>
   </aside>

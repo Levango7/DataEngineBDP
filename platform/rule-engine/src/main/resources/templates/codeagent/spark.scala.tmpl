@@ -1,0 +1,9 @@
+// Spark Scala 数据管道
+// 需求: ${requirement}
+
+import org.apache.spark.sql.SparkSession
+
+val spark = SparkSession.builder().appName("pipeline").getOrCreate()
+val df = spark.read.parquet("s3://bucket/source")
+df.filter(df("amount") > 0).write.parquet("s3://bucket/target")
+spark.stop()

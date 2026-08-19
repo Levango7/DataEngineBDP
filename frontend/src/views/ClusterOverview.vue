@@ -1,12 +1,12 @@
 <template>
-  <div class="cluster-page">
+  <div class="cluster-page" role="main" aria-label="集群概览页面">
     <h1>集群概览</h1>
     <div class="sub">实时监控 Kubernetes 集群节点健康状态、资源使用率与大数据组件运行情况。</div>
 
     <!-- 顶部统计卡片 -->
-    <el-row :gutter="16" class="stat-row">
+    <el-row :gutter="16" class="stat-row" role="region" aria-label="集群统计卡片">
       <el-col :xs="24" :sm="12" :md="6">
-        <el-card v-loading="overviewLoading" shadow="never" class="stat-card">
+        <el-card v-loading="overviewLoading" shadow="never" class="stat-card" role="region" aria-label="总节点数">
           <div class="stat-content">
             <div class="stat-label">总节点数</div>
             <div class="stat-value">{{ overview?.nodeTotal ?? '--' }}</div>
@@ -18,7 +18,7 @@
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :md="6">
-        <el-card v-loading="overviewLoading" shadow="never" class="stat-card">
+        <el-card v-loading="overviewLoading" shadow="never" class="stat-card" role="region" aria-label="健康节点数">
           <div class="stat-content">
             <div class="stat-label">健康节点数</div>
             <div class="stat-value healthy">{{ overview?.nodeReady ?? '--' }}</div>
@@ -27,7 +27,7 @@
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :md="6">
-        <el-card v-loading="overviewLoading" shadow="never" class="stat-card">
+        <el-card v-loading="overviewLoading" shadow="never" class="stat-card" role="region" aria-label="CPU 使用率">
           <div class="stat-content">
             <div class="stat-label">CPU 使用率</div>
             <div class="stat-value" :class="usageLevel(cpuPercent)">{{ cpuPercent }}%</div>
@@ -38,7 +38,7 @@
         </el-card>
       </el-col>
       <el-col :xs="24" :sm="12" :md="6">
-        <el-card v-loading="overviewLoading" shadow="never" class="stat-card">
+        <el-card v-loading="overviewLoading" shadow="never" class="stat-card" role="region" aria-label="内存使用率">
           <div class="stat-content">
             <div class="stat-label">内存使用率</div>
             <div class="stat-value" :class="usageLevel(memPercent)">{{ memPercent }}%</div>
@@ -51,22 +51,22 @@
     </el-row>
 
     <!-- 资源使用趋势图 -->
-    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+    <el-card shadow="never" class="page-card" style="margin-top: 16px" role="region" aria-label="资源使用趋势">
       <template #header>
         <div class="card-header">
           <span>资源使用趋势（近 7 日）</span>
           <el-tag type="info" effect="plain" size="small">CPU / 内存</el-tag>
         </div>
       </template>
-      <div ref="trendChartRef" v-loading="overviewLoading" class="trend-chart"></div>
+      <div ref="trendChartRef" v-loading="overviewLoading" class="trend-chart" role="img" aria-label="资源使用趋势图表"></div>
     </el-card>
 
     <!-- 节点列表 -->
-    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+    <el-card shadow="never" class="page-card" style="margin-top: 16px" role="region" aria-label="节点列表">
       <template #header>
         <div class="card-header">
           <span>节点列表</span>
-          <el-button :icon="Refresh" circle size="small" @click="loadNodes" />
+          <el-button :icon="Refresh" circle size="small" aria-label="刷新节点列表" @click="loadNodes" />
         </div>
       </template>
       <el-table
@@ -74,6 +74,8 @@
         :data="nodeList"
         stripe
         border
+        role="table"
+        aria-label="节点列表表格"
         :empty-text="nodesError ? '节点列表加载失败，请重试' : '暂无节点'"
       >
         <el-table-column prop="name" label="节点名" min-width="180" />
@@ -132,18 +134,18 @@
     </el-card>
 
     <!-- 组件状态 -->
-    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+    <el-card shadow="never" class="page-card" style="margin-top: 16px" role="region" aria-label="大数据组件状态">
       <template #header>
         <div class="card-header">
           <span>大数据组件状态</span>
         </div>
       </template>
-      <el-row :gutter="12">
+      <el-row :gutter="12" role="list" aria-label="大数据组件状态列表">
         <el-col v-for="comp in components" :key="comp.name" :xs="12" :sm="8" :md="6" :lg="4">
-          <div class="comp-card" :class="comp.status">
+          <div class="comp-card" :class="comp.status" role="listitem" :aria-label="`组件 ${comp.name} 状态：${compStatusLabel(comp.status)}`">
             <div class="comp-name">{{ comp.name }}</div>
             <div class="comp-status">
-              <span class="dot"></span>
+              <span class="dot" aria-hidden="true"></span>
               {{ compStatusLabel(comp.status) }}
             </div>
             <div class="comp-meta">{{ comp.meta }}</div>
@@ -153,23 +155,23 @@
     </el-card>
 
     <!-- 集群资源配置：网络 / 存储 / HPA -->
-    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+    <el-card shadow="never" class="page-card" style="margin-top: 16px" role="region" aria-label="集群资源配置">
       <template #header>
         <div class="card-header">
           <span>集群资源配置</span>
-          <el-select v-model="selectedEnv" size="small" style="width: 120px; margin-right: 8px" @change="loadClusterResources">
+          <el-select v-model="selectedEnv" size="small" style="width: 120px; margin-right: 8px" aria-label="环境选择" @change="loadClusterResources">
             <el-option label="信创" value="xinchuang" />
             <el-option label="私有" value="private" />
             <el-option label="公有" value="cloud" />
           </el-select>
-          <el-input v-model="selectedClusterId" size="small" style="width: 180px" placeholder="集群 ID" @change="loadClusterResources" />
+          <el-input v-model="selectedClusterId" size="small" style="width: 180px" placeholder="集群 ID" aria-label="集群 ID" @change="loadClusterResources" />
         </div>
       </template>
-      <el-tabs v-model="resourceTab" @tab-change="loadClusterResources">
+      <el-tabs v-model="resourceTab" role="tablist" aria-label="集群资源配置分类" @tab-change="loadClusterResources">
         <!-- 网络配置 Tab -->
         <el-tab-pane label="网络配置" name="network">
-          <div v-if="networkLoading" class="tab-loading">加载中…</div>
-          <div v-else-if="networkError" class="tab-error">加载失败：{{ networkError.message }}</div>
+          <div v-if="networkLoading" class="tab-loading" role="status" aria-live="polite">加载中…</div>
+          <div v-else-if="networkError" class="tab-error" role="alert">加载失败：{{ networkError.message }}</div>
           <div v-else-if="networkConfig">
             <el-descriptions :column="4" border size="small" style="margin-bottom: 12px">
               <el-descriptions-item label="Pod CIDR">{{ networkConfig.podCidr }}</el-descriptions-item>
@@ -178,14 +180,14 @@
               <el-descriptions-item label="MTU">{{ networkConfig.mtu }}</el-descriptions-item>
             </el-descriptions>
             <h4>NetworkPolicy 列表（{{ networkConfig.policies?.length ?? 0 }}）</h4>
-            <el-table :data="networkConfig.policies || []" stripe size="small" border empty-text="暂无 NetworkPolicy">
+            <el-table :data="networkConfig.policies || []" stripe size="small" border role="table" aria-label="NetworkPolicy 列表" empty-text="暂无 NetworkPolicy">
               <el-table-column prop="name" label="名称" min-width="120" />
               <el-table-column prop="namespace" label="命名空间" min-width="100" />
               <el-table-column prop="type" label="类型" width="80" />
               <el-table-column prop="selector" label="选择器" min-width="120" />
             </el-table>
             <h4 style="margin-top: 12px">Service 列表（{{ networkConfig.services?.length ?? 0 }}）</h4>
-            <el-table :data="networkConfig.services || []" stripe size="small" border empty-text="暂无 Service">
+            <el-table :data="networkConfig.services || []" stripe size="small" border role="table" aria-label="Service 列表" empty-text="暂无 Service">
               <el-table-column prop="name" label="名称" min-width="120" />
               <el-table-column prop="namespace" label="命名空间" min-width="100" />
               <el-table-column prop="type" label="类型" width="80" />
@@ -193,7 +195,7 @@
               <el-table-column prop="ports" label="端口数" width="80" align="center" />
             </el-table>
             <h4 style="margin-top: 12px">Ingress 列表（{{ networkConfig.ingresses?.length ?? 0 }}）</h4>
-            <el-table :data="networkConfig.ingresses || []" stripe size="small" border empty-text="暂无 Ingress">
+            <el-table :data="networkConfig.ingresses || []" stripe size="small" border role="table" aria-label="Ingress 列表" empty-text="暂无 Ingress">
               <el-table-column prop="name" label="名称" min-width="120" />
               <el-table-column prop="namespace" label="命名空间" min-width="100" />
               <el-table-column prop="className" label="IngressClass" min-width="100" />
@@ -204,11 +206,11 @@
 
         <!-- 存储配置 Tab -->
         <el-tab-pane label="存储配置" name="storage">
-          <div v-if="storageLoading" class="tab-loading">加载中…</div>
-          <div v-else-if="storageError" class="tab-error">加载失败：{{ storageError.message }}</div>
+          <div v-if="storageLoading" class="tab-loading" role="status" aria-live="polite">加载中…</div>
+          <div v-else-if="storageError" class="tab-error" role="alert">加载失败：{{ storageError.message }}</div>
           <div v-else>
             <h4>StorageClass 列表（{{ storageClasses?.length ?? 0 }}）</h4>
-            <el-table :data="storageClasses || []" stripe size="small" border empty-text="暂无 StorageClass">
+            <el-table :data="storageClasses || []" stripe size="small" border role="table" aria-label="StorageClass 列表" empty-text="暂无 StorageClass">
               <el-table-column prop="name" label="名称" min-width="120" />
               <el-table-column prop="provisioner" label="Provisioner" min-width="160" />
               <el-table-column prop="reclaimPolicy" label="回收策略" width="100" />
@@ -219,7 +221,7 @@
               </el-table-column>
             </el-table>
             <h4 style="margin-top: 12px">PVC 列表（{{ pvcs?.length ?? 0 }}）</h4>
-            <el-table :data="pvcs || []" stripe size="small" border empty-text="暂无 PVC">
+            <el-table :data="pvcs || []" stripe size="small" border role="table" aria-label="PVC 列表" empty-text="暂无 PVC">
               <el-table-column prop="name" label="名称" min-width="120" />
               <el-table-column prop="namespace" label="命名空间" min-width="100" />
               <el-table-column prop="storageClassName" label="StorageClass" min-width="100" />
@@ -231,9 +233,9 @@
 
         <!-- HPA 配置 Tab -->
         <el-tab-pane label="HPA 自动伸缩" name="hpa">
-          <div v-if="hpaLoading" class="tab-loading">加载中…</div>
-          <div v-else-if="hpaError" class="tab-error">加载失败：{{ hpaError.message }}</div>
-          <el-table v-else :data="hpas || []" stripe size="small" border empty-text="暂无 HPA 策略">
+          <div v-if="hpaLoading" class="tab-loading" role="status" aria-live="polite">加载中…</div>
+          <div v-else-if="hpaError" class="tab-error" role="alert">加载失败：{{ hpaError.message }}</div>
+          <el-table v-else :data="hpas || []" stripe size="small" border role="table" aria-label="HPA 自动伸缩策略列表" empty-text="暂无 HPA 策略">
             <el-table-column prop="name" label="名称" min-width="120" />
             <el-table-column prop="namespace" label="命名空间" min-width="100" />
             <el-table-column prop="targetDeployment" label="目标 Deployment" min-width="120" />

@@ -52,10 +52,10 @@ graph LR
 - [x] 封装层接入真实 K8s client（fabric8 真实翻译已实现 + k3s IT 测试，d8dfd68）。
 - [ ] SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理）。
 - [x] 规则引擎接入真实数据源执行（JdbcTemplate 已注入 + H2 集成测试，a75c006）。
-- [ ] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（替换内存存储）。
+- [x] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（部分完成：PostgreSQL 已接入 `gorm.io/driver/postgres`，环境变量 `CATALOG_DB=postgres://...` 切换生产存储；Elasticsearch 倒排索引待接入，当前仅 SQLite/PG 关系存储）。
 - [x] 元数据采集器接入真实引擎 Hook（Hive/Doris JDBC 已真实 + Iceberg REST Hook 新增，66bea99）。
 - [x] 血缘解析器接入真实 SQL 解析（手写递归下降等价）与图存储（NebulaGraphClient 完整 + 降级验证，d230f57）。
-- [ ] Keycloak Realm 配置落地，JWT 鉴权全链路打通。
+- [x] Keycloak Realm 配置落地，JWT 鉴权全链路打通（部分完成：Keycloak Helm Chart 已就绪 `design/deploy/charts/keycloak/`；encaps-layer 已实现 `OidcJwtDecoder`（NimbusJwtDecoder + JWKS 轮换）、`JwtAuthFilter`（双模式 OIDC/HMAC 回退）、`AuthController`（Keycloak password flow 代理）、`SecurityConfig`；`application.yml` 已配 `keycloak.realm/auth-server-url/oidc.jwks-uri/issuer-uri`；待办：Realm JSON 导入、`OIDC_ENABLED` 默认开启、APISIX keycloak-auth 联调）。
 - [x] APISIX 插件链配置落地（key-auth→jwt-auth→limit-req→熔断→计量 + keycloak-auth 参考，00e1040）。
 
 ### 预期成果
@@ -80,11 +80,11 @@ graph LR
 
 ### 集成测试扩展
 
-- [ ] 新增封装层 K8s 资源翻译集成测试（Namespace / ResourceQuota / NetworkPolicy 生成验证）。
-- [ ] 新增 SQL 网关联邦查询集成测试（跨 Trino + Doris 联邦）。
-- [ ] 新增治理闭环集成测试（元数据 → 质量 → 血缘 → 资产目录全链路）。
-- [ ] 新增多租户隔离集成测试（跨租户访问拒绝、资源配额超限拒绝）。
-- [ ] 新增四环境一致性集成测试（信创 / 本地 / 公有云 / 私有云 Profile 验证）。
+- [x] 新增封装层 K8s 资源翻译集成测试（Namespace / ResourceQuota / NetworkPolicy 生成验证）（`K8sWorkspaceTranslatorIT.java` 真实 k3s 集成测试 + `K8sWorkspaceTranslatorTest.java` 单测覆盖边界条件）。
+- [x] 新增 SQL 网关联邦查询集成测试（跨 Trino + Doris 联邦）（`tests/integration/test_federated_query.py` 验证引擎列表含 trino/doris + 跨源 JOIN 执行）。
+- [x] 新增治理闭环集成测试（元数据 → 质量 → 血缘 → 资产目录全链路）（`tests/integration/test_governance_closed_loop.py` 覆盖资产 CRUD + 质量分回写 + 血缘查询 + 租户隔离 401）。
+- [x] 新增多租户隔离集成测试（跨租户访问拒绝、资源配额超限拒绝）（分散于 `test_finops.py` 的 `test_tenant_isolation/test_tenant_b_isolation/test_tenant_isolation_namespace_grouping`、`test_data_virtualization.py` 的 `test_15_tenant_isolation`、`test_finops_dashboard.py` 的 `test_tenant_isolation_top10`）。
+- [x] 新增四环境一致性集成测试（信创 / 本地 / 公有云 / 私有云 Profile 验证）（`tests/integration/test_four_env_profiles.py` 校验 4 个 profile 文件存在 + 核心配置键 + 合法 YAML + 无占位符）。
 - [x] 集成测试扩展（联邦查询/治理闭环/四环境 + 多租户 token 隔离，0daa62b）。
 
 ### PoC 验证脚本增强

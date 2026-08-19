@@ -1,20 +1,20 @@
 <template>
-  <div class="login-page">
+  <div class="login-page" role="main" aria-label="登录页面">
     <!-- 网格动效背景层 -->
-    <div class="grid-bg-layer"></div>
+    <div class="grid-bg-layer" aria-hidden="true"></div>
     <!-- 星点闪烁背景层 -->
-    <div class="stars-layer"></div>
+    <div class="stars-layer" aria-hidden="true"></div>
     <!-- 顶部光晕装饰 -->
-    <div class="glow-orb orb-1"></div>
-    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-1" aria-hidden="true"></div>
+    <div class="glow-orb orb-2" aria-hidden="true"></div>
 
     <!-- 登录卡片 (毛玻璃 + 弹簧入场) -->
-    <div class="login-card glass animate-springIn">
-      <div class="brand gradient-text"><span class="dot"></span>数擎 · 大数据平台</div>
+    <div class="login-card glass animate-springIn" role="region" aria-label="登录卡片">
+      <div class="brand gradient-text" aria-label="数擎大数据平台品牌"><span class="dot" aria-hidden="true"></span>数擎 · 大数据平台</div>
       <h2>登录</h2>
-      <el-form :model="form" @submit.prevent="handleLogin" label-position="top">
+      <el-form :model="form" @submit.prevent="handleLogin" label-position="top" aria-label="登录表单">
         <el-form-item label="用户名">
-          <el-input v-model="form.username" placeholder="请输入用户名" autocomplete="username" />
+          <el-input v-model="form.username" placeholder="请输入用户名" autocomplete="username" aria-label="用户名" />
         </el-form-item>
         <el-form-item label="密码">
           <el-input
@@ -23,6 +23,7 @@
             show-password
             placeholder="请输入密码"
             autocomplete="current-password"
+            aria-label="密码"
             @keyup.enter="handleLogin"
           />
         </el-form-item>
@@ -31,13 +32,14 @@
           :loading="loading"
           class="login-btn"
           style="width: 100%"
+          aria-label="登录按钮"
           @click="handleLogin"
         >
           登 录
         </el-button>
-        <div v-if="error" class="error">{{ error }}</div>
+        <div v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</div>
       </el-form>
-      <div class="tip">本地开发账号：admin / admin（管理员）或 user / user（普通用户）</div>
+      <div class="tip" aria-label="本地开发账号提示">本地开发账号：admin / admin（管理员）或 user / user（普通用户）</div>
     </div>
   </div>
 </template>

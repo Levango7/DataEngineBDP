@@ -1,34 +1,56 @@
 <template>
-  <div class="topbar">
-    <div class="ws-switch" @click="toggleWsMenu">
+  <div class="topbar" role="banner" aria-label="平台顶栏">
+    <div
+      class="ws-switch"
+      role="button"
+      aria-haspopup="true"
+      :aria-expanded="wsMenuOpen"
+      aria-label="工作空间切换"
+      tabindex="0"
+      @click="toggleWsMenu"
+      @keyup.enter="toggleWsMenu"
+    >
       ▾ 工作空间：{{ store.workspace }}
-      <div v-if="wsMenuOpen" class="ws-menu" @click.stop>
+      <div v-if="wsMenuOpen" class="ws-menu" role="menu" aria-label="工作空间列表" @click.stop>
         <div
           v-for="ws in wsList"
           :key="ws"
           class="ws-item"
+          role="menuitem"
           :class="{ on: ws === store.workspace }"
+          :aria-current="ws === store.workspace ? 'true' : undefined"
+          tabindex="0"
           @click="chooseWs(ws)"
+          @keyup.enter="chooseWs(ws)"
         >
           {{ ws }}
         </div>
       </div>
     </div>
     <div class="spacer"></div>
-    <span class="env-tag">● {{ store.envTag }}</span>
+    <span class="env-tag" aria-label="当前环境标识">● {{ store.envTag }}</span>
     <!-- 用户菜单（登录用户 + 退出登录） -->
     <div class="user-menu" @click.stop>
-      <div class="avatar" @click="toggleUserMenu">{{ avatarText }}</div>
-      <div v-if="userMenuOpen" class="user-pop">
-        <div class="user-info">
+      <div
+        class="avatar"
+        role="button"
+        aria-haspopup="true"
+        :aria-expanded="userMenuOpen"
+        :aria-label="`用户菜单，当前用户：${auth.user?.username || '未登录'}`"
+        tabindex="0"
+        @click="toggleUserMenu"
+        @keyup.enter="toggleUserMenu"
+      >{{ avatarText }}</div>
+      <div v-if="userMenuOpen" class="user-pop" role="menu" aria-label="用户操作菜单">
+        <div class="user-info" aria-label="用户信息">
           <div class="user-name">{{ auth.user?.username || '未登录' }}</div>
           <div class="user-email">{{ auth.user?.email || '—' }}</div>
         </div>
-        <div class="user-actions">
-          <router-link to="/account" class="user-action" @click="userMenuOpen = false">
+        <div class="user-actions" role="group" aria-label="用户操作">
+          <router-link to="/account" class="user-action" role="menuitem" @click="userMenuOpen = false">
             账户与配额
           </router-link>
-          <button class="user-action" @click="handleLogout">退出登录</button>
+          <button class="user-action" role="menuitem" aria-label="退出登录" @click="handleLogout">退出登录</button>
         </div>
       </div>
     </div>

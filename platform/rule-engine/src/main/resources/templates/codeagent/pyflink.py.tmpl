@@ -1,0 +1,9 @@
+# PyFlink 数据管道
+# 需求: ${requirement}
+
+from pyflink.datastream import StreamExecutionEnvironment
+
+env = StreamExecutionEnvironment.get_execution_environment()
+ds = env.from_elements([])
+ds.map(lambda x: x).print()
+env.execute('pipeline')
