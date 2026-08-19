@@ -1,0 +1,28 @@
+# 简化多架构Dockerfile - 直接使用本地预构建的jar包
+# 跳过Stage 1 maven构建，加速多架构镜像构建
+# 基础镜像eclipse-temurin:17-jre官方支持amd64+arm64多架构
+
+ARG BASE_REGISTRY=docker.m.daocloud.io/library
+
+FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime
+WORKDIR /app
+
+# 创建非 root 用户运行应用
+RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
+
+# 直接复制本地预构建的jar包（避免在容器内重新执行maven构建）
+COPY target/encaps-layer-0.1.0-SNAPSHOT.jar /app/app.jar
+
+# 创建数据目录并赋权，确保 appuser 可写（H2 文件库 / 日志落盘）
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+
+# 暴露服务端口
+EXPOSE 8080
+
+# 切换非 root 用户
+USER appuser
+
+# JVM 参数：容器感知，限制堆内存
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75.0 -XX:+ExitOnOutOfMemoryError"
+
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

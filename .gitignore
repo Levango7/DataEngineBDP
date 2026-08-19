@@ -92,3 +92,20 @@ smoke-*.ps1
 smoke-*.bat
 run-backend.bat
 backend-boot.log
+
+# cosign签名密钥（安全敏感，绝对不入库）
+cosign.key
+cosign.pub
+
+# SBOM产物（大型JSON，作为构建产物不入库）
+*.spdx.json
+*.spdx.xml
+*.cyclonedx.json
+*.cyclonedx.xml
+
+# 工具安装包（临时下载，不入库）
+k6.tar.gz
+*.tar.gz.bak
+
+# E2E测试报告产物（不入库，仅保留脚本和手写报告）
+frontend/tests/e2e-report/
