@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.sqlgateway.virtual.rewrite;
 
-import com.levango7.dataenginebdp.sqlgateway.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.sqlgateway.virtual.VirtualTableDefinition;
 import com.levango7.dataenginebdp.sqlgateway.virtual.VirtualTableService;
 import org.slf4j.Logger;

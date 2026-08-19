@@ -2,7 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.ProjectEntity;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;

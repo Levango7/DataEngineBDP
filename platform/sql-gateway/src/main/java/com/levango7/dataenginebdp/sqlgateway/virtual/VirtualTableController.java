@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.sqlgateway.virtual;
 
-import com.levango7.dataenginebdp.sqlgateway.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.sqlgateway.virtual.adapter.VirtualAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

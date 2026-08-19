@@ -55,7 +55,7 @@ graph LR
 - [x] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（部分完成：PostgreSQL 已接入 `gorm.io/driver/postgres`，环境变量 `CATALOG_DB=postgres://...` 切换生产存储；Elasticsearch 倒排索引待接入，当前仅 SQLite/PG 关系存储）。
 - [x] 元数据采集器接入真实引擎 Hook（Hive/Doris JDBC 已真实 + Iceberg REST Hook 新增，66bea99）。
 - [x] 血缘解析器接入真实 SQL 解析（手写递归下降等价）与图存储（NebulaGraphClient 完整 + 降级验证，d230f57）。
-- [x] Keycloak Realm 配置落地，JWT 鉴权全链路打通（部分完成：Keycloak Helm Chart 已就绪 `design/deploy/charts/keycloak/`；encaps-layer 已实现 `OidcJwtDecoder`（NimbusJwtDecoder + JWKS 轮换）、`JwtAuthFilter`（双模式 OIDC/HMAC 回退）、`AuthController`（Keycloak password flow 代理）、`SecurityConfig`；`application.yml` 已配 `keycloak.realm/auth-server-url/oidc.jwks-uri/issuer-uri`；待办：Realm JSON 导入、`OIDC_ENABLED` 默认开启、APISIX keycloak-auth 联调）。
+- [x] Keycloak Realm 配置落地，JWT 鉴权全链路打通（部分完成：Keycloak Helm Chart 已就绪 `design/deploy/charts/keycloak/`；encaps-layer 已实现 `OidcJwtDecoder`（NimbusJwtDecoder + JWKS 轮换）、`JwtAuthFilter`（双模式 OIDC/HMAC 回退）、`AuthController`（Keycloak password flow 代理）、`SecurityConfig`、`JwtKeyRotationService`+`DualKeyManager`（P3.3 RSA 2048 双密钥自动轮换调度，@Scheduled 90 天周期 + 7 天过渡期，默认关 `security.jwt.rotation.enabled`）；`application.yml` 已配 `keycloak.realm/auth-server-url/oidc.jwks-uri/issuer-uri`；待办：Realm JSON 导入、`OIDC_ENABLED` 默认开启、APISIX keycloak-auth 联调）。
 - [x] APISIX 插件链配置落地（key-auth→jwt-auth→limit-req→熔断→计量 + keycloak-auth 参考，00e1040）。
 
 ### 预期成果

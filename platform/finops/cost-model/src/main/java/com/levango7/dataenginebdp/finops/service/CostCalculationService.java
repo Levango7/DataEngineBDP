@@ -6,7 +6,7 @@ import com.levango7.dataenginebdp.finops.model.CostCalculationResponse;
 import com.levango7.dataenginebdp.finops.model.CostResult;
 import com.levango7.dataenginebdp.finops.model.PricingConfig;
 import com.levango7.dataenginebdp.finops.model.ResourceUsage;
-import com.levango7.dataenginebdp.finops.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

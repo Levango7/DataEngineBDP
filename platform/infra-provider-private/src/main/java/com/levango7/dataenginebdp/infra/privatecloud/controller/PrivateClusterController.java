@@ -5,7 +5,7 @@ import com.levango7.dataenginebdp.infra.privatecloud.model.PrivateClusterRequest
 import com.levango7.dataenginebdp.infra.privatecloud.model.PrivateClusterRepository;
 import com.levango7.dataenginebdp.infra.privatecloud.model.ScaleRequest;
 import com.levango7.dataenginebdp.infra.privatecloud.provider.PrivateCloudProvider;
-import com.levango7.dataenginebdp.infra.privatecloud.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.infra.privatecloud.service.K8sBootstrapService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

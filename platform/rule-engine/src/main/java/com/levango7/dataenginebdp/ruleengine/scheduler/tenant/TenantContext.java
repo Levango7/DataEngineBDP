@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.ruleengine.scheduler.tenant;
 /**
  * 调度域租户上下文持有器。
  *
- * <p>与 {@code com.levango7.dataenginebdp.ruleengine.security.TenantContext} 区分：</p>
+ * <p>与 {@code com.levango7.dataenginebdp.common.security.TenantContext} 区分：</p>
  * <ul>
  *   <li>{@code security.TenantContext}：HTTP 请求级，在 {@code JwtAuthFilter} 中
  *       从 JWT claim 解析 tenantId/userId，用于鉴权与数据隔离</li>

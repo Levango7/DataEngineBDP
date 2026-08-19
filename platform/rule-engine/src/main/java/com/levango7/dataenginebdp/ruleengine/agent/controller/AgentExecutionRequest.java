@@ -13,7 +13,7 @@ import java.util.Set;
  * Agent 执行请求体。
  *
  * <p>对应 {@code POST /api/v1/agents/{role}/execute} 请求体。
- * 租户与用户 ID 不在请求体中传递，由 JWT（{@link com.levango7.dataenginebdp.ruleengine.security.TenantContext}）解析。</p>
+ * 租户与用户 ID 不在请求体中传递，由 JWT（{@link com.levango7.dataenginebdp.common.security.TenantContext}）解析。</p>
  *
  * @author shuqing-bigdata
  */

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardEntity;
 import com.levango7.dataenginebdp.finops.dashboard.repository.DashboardRepository;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.dashboard.service.RealtimeMetricsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

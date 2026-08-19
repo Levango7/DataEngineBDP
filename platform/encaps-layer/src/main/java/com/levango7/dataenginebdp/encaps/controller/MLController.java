@@ -6,7 +6,7 @@ import com.levango7.dataenginebdp.encaps.model.InferenceServiceEntity;
 import com.levango7.dataenginebdp.encaps.model.MlModelEntity;
 import com.levango7.dataenginebdp.encaps.repository.InferenceServiceRepository;
 import com.levango7.dataenginebdp.encaps.repository.MlModelRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;

@@ -1,7 +1,7 @@
 package com.levango7.dataenginebdp.finops.dashboard.controller;
 
 import com.levango7.dataenginebdp.finops.dashboard.collector.QueryBillingClient;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;

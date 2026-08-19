@@ -6,7 +6,7 @@ import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import com.levango7.dataenginebdp.encaps.repository.ProjectRepository;
 import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.IntegrateConnectorService;
 import com.levango7.dataenginebdp.encaps.service.SeaTunnelClient;
 import org.junit.jupiter.api.AfterEach;

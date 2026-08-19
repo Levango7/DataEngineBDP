@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.finops.dashboard.exporter.CsvBillExporter;
 import com.levango7.dataenginebdp.finops.dashboard.exporter.ExcelBillExporter;
 import com.levango7.dataenginebdp.finops.dashboard.model.BillSummary;
 import com.levango7.dataenginebdp.finops.dashboard.model.ResourceCostDetail;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.dashboard.service.BillSummaryService;
 import com.levango7.dataenginebdp.finops.dashboard.service.CostDataService;
 import org.slf4j.Logger;

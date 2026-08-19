@@ -2,7 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.SyncTaskEntity;
 import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.IntegrateConnectorService;
 import com.levango7.dataenginebdp.encaps.service.SeaTunnelClient;
 import jakarta.validation.Valid;

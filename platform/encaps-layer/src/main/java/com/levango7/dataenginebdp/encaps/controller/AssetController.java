@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encaps.model.AssetEntity;
 import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;

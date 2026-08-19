@@ -2,7 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.DataSourceEntity;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.engine.EngineUnavailableException;
 import com.levango7.dataenginebdp.encaps.service.engine.KafkaAdminService;
 import lombok.RequiredArgsConstructor;

@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.ruleengine.security;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

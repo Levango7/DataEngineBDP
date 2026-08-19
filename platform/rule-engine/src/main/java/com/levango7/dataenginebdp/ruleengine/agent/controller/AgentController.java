@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.ruleengine.agent.core.Agent;
 import com.levango7.dataenginebdp.ruleengine.agent.core.AgentContext;
 import com.levango7.dataenginebdp.ruleengine.agent.core.AgentResult;
 import com.levango7.dataenginebdp.ruleengine.agent.service.AgentService;
-import com.levango7.dataenginebdp.ruleengine.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.finops.dashboard.model.AllocationConfig;
 import com.levango7.dataenginebdp.finops.dashboard.model.AllocationItem;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardResponse;
 import com.levango7.dataenginebdp.finops.dashboard.model.ResourceCostDetail;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.dashboard.service.AllocationService;
 import com.levango7.dataenginebdp.finops.dashboard.service.CostDataService;
 import jakarta.validation.Valid;

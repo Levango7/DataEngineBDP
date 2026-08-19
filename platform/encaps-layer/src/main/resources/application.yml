@@ -116,3 +116,20 @@ app:
     # kubeconfig: ${K8S_KUBECONFIG:~/.kube/config}
     # Service Mesh 相关：sidecar 由 Istio 自动注入（namespace 标签 istio-injection=enabled）
     # mTLS 由 PeerAuthentication 管理（见 ske/k3s/peer-authentication-mtls.yaml），应用无需感知
+
+# JWT 密钥自动轮换（见 docs/JWT-KEY-ROTATION-GUIDE.md）
+# 默认关闭（enabled=false），不影响现有 HMAC/OIDC 验签链路；生产环境设 true 开启
+# 轮换策略：生成新 RSA 2048 密钥对 → 发布到双密钥池 → 过渡期后废弃旧密钥（零停机）
+security:
+  jwt:
+    rotation:
+      # 是否启用自动轮换（默认关闭，生产环境通过环境变量 JWT_ROTATION_ENABLED=true 开启）
+      enabled: ${JWT_ROTATION_ENABLED:false}
+      # 轮换间隔（天），默认 90 天（等保三级与 JR/T 0071-2012 合规上限）
+      interval-days: 90
+      # 新旧密钥并行验签过渡期（天），默认 7 天；须 ≥ 最长 token TTL（本平台 24h）
+      overlap-days: 7
+      # 调度间隔（毫秒）= interval-days × 86400000，供 @Scheduled 使用；默认 90 天
+      interval-millis: 7776000000
+      # 密钥持久化目录（PEM 文件落盘，便于审计与跨实例共享）
+      key-store-path: ${user.home}/.dataenginebdp/keys

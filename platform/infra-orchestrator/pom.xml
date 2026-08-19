@@ -53,6 +53,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
+        <!-- 公共安全 Starter：统一 JwtAuthFilter / TenantContext / SecurityConfig 自动装配 -->
+        <dependency>
+            <groupId>com.levango7.dataenginebdp</groupId>
+            <artifactId>common-security</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
         <!-- OAuth2 Resource Server：JOSE/JWT 支持 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

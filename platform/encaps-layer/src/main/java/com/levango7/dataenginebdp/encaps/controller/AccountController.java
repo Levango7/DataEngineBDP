@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.encaps.quota.Quota;
 import com.levango7.dataenginebdp.encaps.quota.QuotaRepository;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;

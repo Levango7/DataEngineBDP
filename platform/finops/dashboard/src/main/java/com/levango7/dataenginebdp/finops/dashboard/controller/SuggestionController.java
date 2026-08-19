@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.finops.dashboard.controller;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardResponse;
 import com.levango7.dataenginebdp.finops.dashboard.model.IdleResource;
 import com.levango7.dataenginebdp.finops.dashboard.model.OptimizationSuggestion;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.dashboard.service.OptimizationEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

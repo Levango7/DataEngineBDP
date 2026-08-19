@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.infra.xinchang.controller;
 import com.levango7.dataenginebdp.infra.xinchang.model.ClusterCreateRequest;
 import com.levango7.dataenginebdp.infra.xinchang.model.ClusterInfo;
 import com.levango7.dataenginebdp.infra.xinchang.model.ClusterScaleRequest;
-import com.levango7.dataenginebdp.infra.xinchang.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.infra.xinchang.service.XinchangProviderService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

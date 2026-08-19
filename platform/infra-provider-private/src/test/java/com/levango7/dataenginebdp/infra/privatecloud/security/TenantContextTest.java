@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.infra.privatecloud.security;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

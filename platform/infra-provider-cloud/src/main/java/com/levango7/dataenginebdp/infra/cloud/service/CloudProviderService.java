@@ -7,7 +7,7 @@ import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterInfo;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterRequest;
 import com.levango7.dataenginebdp.infra.cloud.provider.CloudProvider;
 import com.levango7.dataenginebdp.infra.cloud.repository.CloudClusterRepository;
-import com.levango7.dataenginebdp.infra.cloud.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

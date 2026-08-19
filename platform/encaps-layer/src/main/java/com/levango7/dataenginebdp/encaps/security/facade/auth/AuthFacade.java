@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.encaps.security.facade.auth;
 
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.security.facade.config.SecurityFacadeConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

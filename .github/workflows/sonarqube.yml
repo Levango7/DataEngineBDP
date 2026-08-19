@@ -1,0 +1,195 @@
+# SonarQube 代码质量分析工作流
+# 集成 SonarCloud 对 Java 后端模块和前端执行静态代码质量分析
+# 触发条件：push 到 main、PR 到 main、手动触发
+#
+# 设计原则：
+#   1. 不修改任何 pom.xml，所有 SonarCloud 配置通过命令行参数传入
+#   2. SONAR_TOKEN 通过 GitHub Secrets 注入，绝不硬编码
+#   3. 分析失败仅告警不阻断 CI，待 SONAR_TOKEN 配置稳定后再启用阻断
+#   4. Java 模块逐个分析，单模块失败不影响其他模块
+#   5. 前端使用 sonar-scanner CLI，独立于 Java 分析
+name: SonarQube Analysis
+
+on:
+  # 推送到 main 分支时触发
+  push:
+    branches:
+      - main
+  # 向 main 分支发起 PR 时触发
+  pull_request:
+    branches:
+      - main
+  # 支持手动触发（便于按需验证 SonarCloud 配置）
+  workflow_dispatch:
+
+# 权限最小化：
+#   - contents: read  检出代码
+#   - pull-requests: write  在 PR 上发布 SonarCloud 质量门禁评论
+#   - checks: write  创建 Check Run 用于 SonarCloud 状态展示
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+# 同一分支的并发分析只保留最新一次，避免重复消耗 SonarCloud 配额
+concurrency:
+  group: sonarqube-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonarqube:
+    name: SonarCloud Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      # ============================================================
+      # 检出代码：fetch-depth: 0 获取完整提交历史
+      # SonarQube 需要完整历史以正确计算"新代码"引入的问题
+      # （New Code Definition = previous version，需历史 commit 支持 blame）
+      # ============================================================
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ============================================================
+      # 安装 JDK 17：与项目主构建保持一致（build.yml/codeql.yml 均使用 temurin 17）
+      # 启用 Maven 缓存以加速后续 mvn verify
+      # ============================================================
+      - name: 安装 JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      # ============================================================
+      # 安装 Maven 3.9.9：与 build.yml 保持一致，避免版本漂移
+      # 使用 stCarolas/setup-maven@v5 显式指定版本
+      # ============================================================
+      - name: 安装 Maven 3.9
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: 3.9.9
+
+      # ============================================================
+      # 缓存 SonarCloud Scanner 包：避免每次下载 sonar-scanner-cli
+      # 缓存键按 OS 区分，restore-keys 允许跨分支复用
+      # ============================================================
+      - name: 缓存 SonarCloud 包
+        uses: actions/cache@v4
+        with:
+          path: ~/.sonar/cache
+          key: ${{ runner.os }}-sonar
+          restore-keys: ${{ runner.os }}-sonar
+
+      # ============================================================
+      # Java 模块 SonarCloud 分析
+      # 遍历 platform/ 下所有 pom.xml（排除 target/ 下的构建产物 pom）
+      # 每个模块独立执行 mvn verify sonar:sonar，关键参数：
+      #   -Dsonar.projectKey=Levango7_DataEngineBDP_<模块名>  SonarCloud 项目唯一标识
+      #   -Dsonar.projectName="<模块名>"                       SonarCloud 显示名称
+      #   -Dsonar.organization=levango7                       SonarCloud 组织
+      #   -Dsonar.host.url=https://sonarcloud.io              SonarCloud 公共云地址
+      #   -Dsonar.coverage.jacoco.xmlReportPaths=...          JaCoCo 覆盖率报告路径
+      #   -Dmaven.test.failure.ignore=true                    测试失败仍生成覆盖率并分析
+      #   -B -q                                                批量模式 + 静默输出
+      # 单模块失败仅告警（::warning::），不阻断整体 CI
+      # ============================================================
+      - name: SonarCloud 分析（Java模块）
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          set -euo pipefail
+          java_count=$(find platform -name pom.xml -not -path "*/target/*" 2>/dev/null | wc -l)
+          if [ "$java_count" -eq 0 ]; then
+            echo "::warning::未发现任何 Java 组件（pom.xml），跳过 Java SonarCloud 分析"
+            exit 0
+          fi
+          echo "发现 $java_count 个 Java 模块，开始逐个 SonarCloud 分析"
+          echo ""
+          fail_count=0
+          for pom in $(find platform -name pom.xml -not -path "*/target/*"); do
+            mod_dir=$(dirname "$pom")
+            mod_name=$(basename "$mod_dir")
+            echo "========== SonarCloud: $mod_name =========="
+            mvn -f "$pom" verify sonar:sonar \
+              -Dsonar.projectKey=Levango7_DataEngineBDP_$mod_name \
+              -Dsonar.projectName="$mod_name" \
+              -Dsonar.organization=levango7 \
+              -Dsonar.host.url=https://sonarcloud.io \
+              -Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml \
+              -Dmaven.test.failure.ignore=true \
+              -B -q \
+              || {
+                echo "::warning::$mod_name SonarCloud 分析失败（可能缺少 SONAR_TOKEN 或网络问题），仅警告不阻断 CI"
+                fail_count=$((fail_count + 1))
+              }
+            echo ""
+          done
+          echo "Java SonarCloud 分析完成：成功 $((java_count - fail_count)) / $java_count，失败 $fail_count"
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::warning::共有 $fail_count 个 Java 模块 SonarCloud 分析失败，详见上方日志"
+          fi
+
+      # ============================================================
+      # 前端 SonarCloud 分析
+      # 仅当 frontend/ 目录存在且包含 package-lock.json 时执行
+      # 使用 npx sonar-scanner 调用 SonarCloud Scanner CLI
+      # 关键参数：
+      #   -Dsonar.sources=src                       前端源码目录
+      #   -Dsonar.javascript.lcov.reportPaths=...   LCOV 覆盖率报告路径
+      # 失败仅告警，不阻断 CI
+      # ============================================================
+      - name: 前端 SonarCloud 分析
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          if [ ! -d "frontend" ] || [ ! -f "frontend/package-lock.json" ]; then
+            echo "::warning::frontend/ 目录或 package-lock.json 不存在，跳过前端 SonarCloud 分析"
+            exit 0
+          fi
+          cd frontend
+          echo "========== 前端依赖安装 (npm ci) =========="
+          npm ci
+          echo ""
+          echo "========== 前端 SonarCloud 分析 =========="
+          npx sonar-scanner \
+            -Dsonar.projectKey=Levango7_DataEngineBDP_frontend \
+            -Dsonar.projectName="frontend" \
+            -Dsonar.organization=levango7 \
+            -Dsonar.sources=src \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+            || echo "::warning::前端 SonarCloud 分析失败，仅警告不阻断 CI"
+
+      # ============================================================
+      # 汇总报告：在 job summary 中输出 SonarCloud 仪表盘链接
+      # 便于开发者点击直达查看分析结果
+      # ============================================================
+      - name: 输出 SonarCloud 仪表盘链接
+        if: always()
+        run: |
+          {
+            echo "## SonarCloud 代码质量分析报告"
+            echo ""
+            echo "**组织**：[levango7](https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP)"
+            echo ""
+            echo "### Java 模块"
+            echo ""
+            echo "| 模块 | 仪表盘链接 |"
+            echo "|------|------------|"
+            for mod in $(find platform -mindepth 1 -maxdepth 1 -type d); do
+              mod_name=$(basename "$mod")
+              if [ -f "$mod/pom.xml" ]; then
+                echo "| $mod_name | [查看](https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP_$mod_name) |"
+              fi
+            done
+            echo ""
+            echo "### 前端"
+            echo ""
+            echo "- [frontend 仪表盘](https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP_frontend)"
+            echo ""
+            echo "> **注意**：若链接显示 404，请确认 SONAR_TOKEN 已配置且对应项目已在 SonarCloud 初始化。"
+          } >> "$GITHUB_STEP_SUMMARY"

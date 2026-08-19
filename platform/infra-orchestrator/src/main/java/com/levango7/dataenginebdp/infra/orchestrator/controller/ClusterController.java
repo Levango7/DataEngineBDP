@@ -7,7 +7,7 @@ import com.levango7.dataenginebdp.infra.orchestrator.model.EnvironmentType;
 import com.levango7.dataenginebdp.infra.orchestrator.model.SupplyResult;
 import com.levango7.dataenginebdp.infra.orchestrator.registry.EnvironmentProfile;
 import com.levango7.dataenginebdp.infra.orchestrator.registry.ProviderDescriptor;
-import com.levango7.dataenginebdp.infra.orchestrator.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.infra.orchestrator.service.K8sClientService;
 import com.levango7.dataenginebdp.infra.orchestrator.service.ProviderRegistryService;
 import com.levango7.dataenginebdp.infra.orchestrator.service.SupplyOrchestrator;

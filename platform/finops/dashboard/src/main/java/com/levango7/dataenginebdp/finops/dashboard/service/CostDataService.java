@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.finops.dashboard.collector.PrometheusQueryClie
 import com.levango7.dataenginebdp.finops.dashboard.model.CostTrendPoint;
 import com.levango7.dataenginebdp.finops.dashboard.model.ResourceCostDetail;
 import com.levango7.dataenginebdp.finops.dashboard.model.TopCostResource;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

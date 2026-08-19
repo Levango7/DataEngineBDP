@@ -6,7 +6,7 @@ import com.levango7.dataenginebdp.finops.model.CostCalculationRequest;
 import com.levango7.dataenginebdp.finops.model.CostCalculationResponse;
 import com.levango7.dataenginebdp.finops.model.CostResult;
 import com.levango7.dataenginebdp.finops.model.ResourceUsage;
-import com.levango7.dataenginebdp.finops.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.service.CostCalculationService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

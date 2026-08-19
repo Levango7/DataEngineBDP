@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.encaps.model.MaskPolicyEntity;
 import com.levango7.dataenginebdp.encaps.repository.MaskPolicyRepository;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;

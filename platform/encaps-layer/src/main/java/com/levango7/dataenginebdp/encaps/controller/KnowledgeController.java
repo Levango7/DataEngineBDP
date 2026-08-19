@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.encaps.model.KnowledgeBaseEntity;
 import com.levango7.dataenginebdp.encaps.model.KnowledgeDocumentEntity;
 import com.levango7.dataenginebdp.encaps.model.RagStrategyEntity;
 import com.levango7.dataenginebdp.encaps.repository.KnowledgeBaseRepository;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.KnowledgeUploadService;
 import com.levango7.dataenginebdp.encaps.service.RagStrategyService;
 import jakarta.validation.Valid;

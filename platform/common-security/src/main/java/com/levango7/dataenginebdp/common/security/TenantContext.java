@@ -1,14 +1,16 @@
-package com.levango7.dataenginebdp.ruleengine.security;
+package com.levango7.dataenginebdp.common.security;
 
 /**
- * 租户上下文持有器。
+ * 租户上下文持有器（公共安全 Starter 提供的统一实现）。
  *
- * <p>基于 {@link ThreadLocal} 在当前请求线程内传递租户 ID，
+ * <p>基于 {@link ThreadLocal} 在当前请求线程内传递租户 ID 与用户 ID，
  * 必须在请求结束时通过 {@link #clear()} 清理，避免线程池复用导致的租户串号与内存泄漏。</p>
  *
  * <p>典型用法：在 {@code JwtAuthFilter} 的 {@code doFilterInternal} 中
  * 解析 JWT 后调用 {@link #setTenantId(String)}，并在 finally 块或
  * {@code OncePerRequestFilter#afterCompletion} 中调用 {@link #clear()}。</p>
+ *
+ * <p>本类由 {@code common-security} Starter 自动装配，各业务模块无需再各自复制。</p>
  */
 public final class TenantContext {
 

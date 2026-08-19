@@ -10,7 +10,7 @@ import com.levango7.dataenginebdp.infra.orchestrator.model.SupplyResult;
 import com.levango7.dataenginebdp.infra.orchestrator.registry.EnvironmentProfile;
 import com.levango7.dataenginebdp.infra.orchestrator.registry.ProviderDescriptor;
 import com.levango7.dataenginebdp.infra.orchestrator.registry.ProviderRegistry;
-import com.levango7.dataenginebdp.infra.orchestrator.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;

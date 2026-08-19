@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.DevelopFileService;
 import com.levango7.dataenginebdp.encaps.service.DevelopJobService;
 import com.levango7.dataenginebdp.encaps.service.DevelopScheduleService;

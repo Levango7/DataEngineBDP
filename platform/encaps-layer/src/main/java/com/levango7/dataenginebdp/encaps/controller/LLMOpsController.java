@@ -4,7 +4,7 @@ import com.levango7.dataenginebdp.encaps.model.EvalMetricEntity;
 import com.levango7.dataenginebdp.encaps.model.FinetuneTaskEntity;
 import com.levango7.dataenginebdp.encaps.model.InferenceServiceEntity;
 import com.levango7.dataenginebdp.encaps.model.MlModelEntity;
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.LLMOpsService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;

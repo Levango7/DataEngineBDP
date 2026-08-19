@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.encaps.security.facade.auth;
 
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.security.facade.config.SecurityFacadeConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

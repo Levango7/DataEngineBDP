@@ -3,7 +3,7 @@ package com.levango7.dataenginebdp.finops.dashboard.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.finops.dashboard.model.DashboardEntity;
 import com.levango7.dataenginebdp.finops.dashboard.repository.DashboardRepository;
-import com.levango7.dataenginebdp.finops.dashboard.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.dashboard.service.RealtimeMetricsService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

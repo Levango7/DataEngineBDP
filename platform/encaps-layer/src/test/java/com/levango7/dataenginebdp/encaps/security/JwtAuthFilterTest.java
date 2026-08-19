@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.security;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;

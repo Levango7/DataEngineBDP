@@ -1,6 +1,6 @@
 package com.levango7.dataenginebdp.encaps.controller;
 
-import com.levango7.dataenginebdp.encaps.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.engine.DorisClient;
 import com.levango7.dataenginebdp.encaps.service.engine.EngineUnavailableException;
 import lombok.RequiredArgsConstructor;

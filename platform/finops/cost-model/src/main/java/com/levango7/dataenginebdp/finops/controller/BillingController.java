@@ -1,7 +1,7 @@
 package com.levango7.dataenginebdp.finops.controller;
 
 import com.levango7.dataenginebdp.finops.model.CostResult;
-import com.levango7.dataenginebdp.finops.security.TenantContext;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.service.BillingAggregatorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

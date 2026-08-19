@@ -84,7 +84,7 @@ public class SchedulerService implements TaskHandler {
         }
         if (task.getTenantId() == null || task.getTenantId().isBlank()) {
             // 回退到 security.TenantContext（HTTP 请求级）
-            task.setTenantId(com.levango7.dataenginebdp.ruleengine.security.TenantContext.getTenantId());
+            task.setTenantId(com.levango7.dataenginebdp.common.security.TenantContext.getTenantId());
         }
         if (task.getPriority() == null) {
             task.setPriority(com.levango7.dataenginebdp.ruleengine.scheduler.priority.TaskPriority.MEDIUM);
