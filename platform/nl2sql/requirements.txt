@@ -19,7 +19,7 @@ sqlparse==0.5.0
 
 # ---- LangChain SQL 生成 ----
 # 仅使用核心 + LLM 抽象，避免引入重型向量/文档依赖
-langchain-core==0.1.45
+langchain-core==1.5.5
 langchain==0.1.16
 langchain-community==0.0.34
 
