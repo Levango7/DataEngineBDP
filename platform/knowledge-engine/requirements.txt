@@ -3,7 +3,7 @@
 
 # Web framework
 fastapi==0.110.0
-uvicorn[standard]==0.29.0
+uvicorn[standard]==0.52.3
 pydantic==2.13.4
 pydantic-settings==2.2.1
 
