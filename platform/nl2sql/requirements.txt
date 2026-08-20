@@ -24,7 +24,7 @@ langchain==0.1.16
 langchain-community==0.0.34
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
-openai==1.23.0
+openai==3.1.0
 tiktoken==0.6.0
 
 # ---- Utilities ----
