@@ -97,7 +97,7 @@
             <plugin>
                 <groupId>org.graalvm.buildtools</groupId>
                 <artifactId>native-maven-plugin</artifactId>
-                <version>0.10.2</version>
+                <version>1.1.9</version>
                 <configuration>
                     <buildArgs>
                         <buildArg>--enable-url-protocols=http</buildArg>
