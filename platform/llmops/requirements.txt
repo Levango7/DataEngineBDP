@@ -2,7 +2,7 @@
 # Python 3.10+
 
 # Web framework
-fastapi==0.110.0
+fastapi==0.141.1
 uvicorn[standard]==0.29.0
 pydantic==2.13.4
 pydantic-settings==2.2.1
