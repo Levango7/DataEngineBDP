@@ -27,7 +27,7 @@
         <mysql.connector.version>8.0.33</mysql.connector.version>
         <postgres.connector.version>42.7.3</postgres.connector.version>
         <oracle.connector.version>23.26.3.0.0</oracle.connector.version>
-        <kafka.clients.version>3.6.1</kafka.clients.version>
+        <kafka.clients.version>4.3.1</kafka.clients.version>
         <snakeyaml.version>2.2</snakeyaml.version>
         <jackson.version>2.16.1</jackson.version>
         <flink.scope>provided</flink.scope>
