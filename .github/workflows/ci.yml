@@ -150,7 +150,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -351,7 +351,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -928,7 +928,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
@@ -1215,7 +1215,7 @@ jobs:
 
       - name: 安装 Python 3.11 和 pytest
         if: env.it_skip != 'true'
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
 
@@ -1457,7 +1457,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip'
