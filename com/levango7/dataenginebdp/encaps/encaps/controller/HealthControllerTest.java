@@ -68,6 +68,26 @@ class HealthControllerTest {
     }
 
     @Test
+    @DisplayName("GET /api/v1/health/readiness — 租户仓储异常时返回DOWN与503")
+    @SuppressWarnings("unchecked")
+    void readiness_shouldReturnDown503WhenRepositoryThrows() throws Exception {
+        ObjectProvider<BuildProperties> bpProvider = mock(ObjectProvider.class);
+        when(bpProvider.getIfAvailable()).thenReturn(null);
+        TenantRepository tenantRepository = mock(TenantRepository.class);
+        when(tenantRepository.count()).thenThrow(new RuntimeException("db connection lost"));
+        HealthController controller = new HealthController(bpProvider, tenantRepository);
+        MockMvc downMockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setMessageConverters(new MappingJackson2HttpMessageConverter())
+                .build();
+
+        downMockMvc.perform(get("/api/v1/health/readiness"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value("DOWN"))
+                .andExpect(jsonPath("$.details.error").value("RuntimeException"))
+                .andExpect(jsonPath("$.details.message").value("db connection lost"));
+    }
+
+    @Test
     @DisplayName("GET /api/v1/health — Content-Type为JSON")
     void health_shouldReturnJsonContentType() throws Exception {
         mockMvc.perform(get("/api/v1/health"))
