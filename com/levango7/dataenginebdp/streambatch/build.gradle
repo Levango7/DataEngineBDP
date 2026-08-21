@@ -28,9 +28,17 @@ dependencies {
     // Spring Boot
     implementation libs.springBootStarterWeb
     implementation libs.springBootStarterValidation
-    // 注意：spring-boot-starter-actuator 已移除，因为 streambatch 不使用 Actuator API，
-    // 且其传递依赖（HdrHistogram/LatencyUtils）在 Gradle 离线缓存中元数据不完整，
-    // 导致 bootJar 在离线模式下失败。有网络时可恢复 implementation libs.springBootStarterActuator。
+    // spring-boot-starter-actuator：健康检查基础设施（HealthIndicator 等类）。
+    // 之前因 actuator 传递依赖（HdrHistogram/LatencyUtils）在 Gradle 离线缓存中
+    // 元数据不完整导致 bootJar runtimeClasspath 解析失败而移除。
+    // 现接入 common-health 体系（Indicator 继承 LivenessHealthIndicator/ReadinessHealthIndicator，
+    // 其父接口 HealthIndicator 来自 actuator），compileClasspath 需 actuator 类。
+    // 离线构建下 enableBootJar() 已禁用 bootJar，actuator runtime 传递依赖不影响 compileJava。
+    // 有网络时 bootJar 启用后此依赖同样正常。
+    implementation libs.springBootStarterActuator
+
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
 
     // Flink — 流提交（运行时由 Flink 集群提供）
     // 离线构建：org.apache.flink 不在缓存中，注释掉

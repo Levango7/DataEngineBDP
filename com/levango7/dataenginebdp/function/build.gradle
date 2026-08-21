@@ -14,6 +14,9 @@ dependencies {
     // Spring Boot
     implementation libs.springBootStarterWeb
     implementation libs.springBootStarterActuator
+
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
 }
 
 // 离线构建：禁用 bootJar，因为 Actuator 传递依赖（HdrHistogram/LatencyUtils）
