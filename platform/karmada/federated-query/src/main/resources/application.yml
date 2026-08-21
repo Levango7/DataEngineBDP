@@ -76,6 +76,31 @@ federated:
     max-rows-per-shard: 10000
     parallelism: 4
 
+  # ============================================================================
+  # 联邦集群接入配置（mock/real 切换）
+  # ============================================================================
+  cluster:
+    # 运行模式：mock（返回空数据，本地开发）或 real（接入真实 Karmada 联邦）
+    mode: ${FEDERATED_CLUSTER_MODE:mock}
+    # Karmada 控制面 API 端点（mode=real 时使用）
+    karmada-api: ${KARMADA_API:https://localhost:5443}
+    # Karmada kubeconfig 路径（可选，用于 mTLS 认证）
+    karmada-kubeconfig: ${KARMADA_KUBECONFIG:}
+    connect-timeout: 5s
+    response-timeout: 15s
+    # 集群列表（mode=real 时使用）
+    clusters:
+      - name: cluster-a
+        catalog-url: http://localhost:8090
+        lineage-url: http://localhost:8090/api/v1/lineage
+        quality-url: http://localhost:8090/api/v1/quality
+        enabled: true
+      - name: cluster-b
+        catalog-url: http://localhost:8091
+        lineage-url: http://localhost:8091/api/v1/lineage
+        quality-url: http://localhost:8091/api/v1/quality
+        enabled: true
+
   # 集群拓扑（与 platform/karmada/docker/docker-compose.yml 对齐）
   clusters:
     xinchang-cluster:

@@ -1,0 +1,86 @@
+server:
+  port: 8094
+  shutdown: graceful
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:federated-it;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+# ============================================================================
+# 集成测试配置（接入真实 Karmada 联邦集群）
+# ============================================================================
+# 运行方式：
+#   1. bash scripts/infra/test-karmada-it.sh  （自动创建 kind 多集群 + Karmada）
+#   2. mvn test -Dtest=RealClusterIT -Dinfra.it=true -Dspring.profiles.active=it
+#
+# 集群端点由 test-karmada-it.sh 通过 port-forward 暴露到 localhost:
+#   - cluster-a Catalog/Lineage/Quality API: http://localhost:18090
+#   - cluster-b Catalog/Lineage/Quality API: http://localhost:18091
+#   - Karmada 控制面 API: https://localhost:5443
+federated:
+  local-cluster: cluster-a
+
+  catalog:
+    base-url: http://localhost:18090/api/v1/catalog
+    cache-enabled: false
+    connect-timeout: 10s
+    response-timeout: 30s
+
+  mtls:
+    # 集成测试禁用 mTLS（kind 集群使用自签证书，Karmada API 走 port-forward）
+    enabled: false
+
+  degrade:
+    enabled: false
+    query-timeout: 30s
+
+  merge:
+    strategy: CONCAT
+    parallelism: 2
+
+  # 联邦集群接入：real 模式
+  cluster:
+    mode: real
+    karmada-api: ${KARMADA_API:https://localhost:5443}
+    karmada-kubeconfig: ${KARMADA_KUBECONFIG:}
+    connect-timeout: 10s
+    response-timeout: 30s
+    clusters:
+      - name: cluster-a
+        catalog-url: http://localhost:18090
+        lineage-url: http://localhost:18090/api/v1/lineage
+        quality-url: http://localhost:18090/api/v1/quality
+        enabled: true
+      - name: cluster-b
+        catalog-url: http://localhost:18091
+        lineage-url: http://localhost:18091/api/v1/lineage
+        quality-url: http://localhost:18091/api/v1/quality
+        enabled: true
+
+  clusters:
+    cluster-a:
+      url: http://localhost:18090
+      type: local
+      vendor: kubernetes
+      arch: amd64
+      region: on-premise
+      env: staging
+      enabled: true
+      local: true
+    cluster-b:
+      url: http://localhost:18091
+      type: local
+      vendor: kubernetes
+      arch: amd64
+      region: on-premise
+      env: staging
+      enabled: true
+      local: false
+
+logging:
+  level:
+    root: INFO
+    com.levango7.dataenginebdp.federated: DEBUG
