@@ -1,0 +1,49 @@
+################################################################################
+# Flink 1.20.0 配置
+# 用于流计算测试，JobManager + 2 TaskManager
+################################################################################
+
+# JobManager 配置
+jobmanager.rpc.address: de-flink-jobmanager
+jobmanager.rpc.port: 6123
+jobmanager.bind.host: 0.0.0.0
+jobmanager.memory.process.size: 1600m
+jobmanager.web.address: 0.0.0.0
+jobmanager.web.port: 8081
+jobmanager.web.submit.enabled: true
+jobmanager.web.cancel.enabled: true
+jobmanager.archive.fs.dir: file:///opt/flink/checkpoints
+
+# TaskManager 配置
+taskmanager.bind.host: 0.0.0.0
+taskmanager.host: de-flink-taskmanager
+taskmanager.memory.process.size: 1728m
+taskmanager.memory.flink.size: 1280m
+taskmanager.numberOfTaskSlots: 4
+taskmanager.data.port: 6124
+taskmanager.rpc.port: 6122
+
+# 并行度配置
+parallelism.default: 4
+max-parallelism.default: 128
+
+# 网络配置
+rest.address: 0.0.0.0
+rest.bind-address: 0.0.0.0
+rest.port: 8081
+
+# 高可用配置（单机模式关闭）
+high-availability: none
+
+# 状态后端配置（内存，测试用）
+state.backend: hashmap
+state.checkpoints.dir: file:///opt/flink/checkpoints
+state.savepoints.dir: file:///opt/flink/savepoints
+execution.checkpointing.interval: 60000
+execution.checkpointing.mode: EXACTLY_ONCE
+
+# 类加载配置
+classloader.resolve-order: parent-first
+
+# 日志配置
+env.java.opts: -Dlog4j2.formatMsgNoLookups=true

@@ -1,0 +1,4 @@
+# Spark workers 文件
+# 列出所有worker节点（容器名）
+de-spark-worker-1
+de-spark-worker-2
