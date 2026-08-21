@@ -50,7 +50,7 @@ graph LR
 ### 真实外部依赖接入
 
 - [x] 封装层接入真实 K8s client（fabric8 真实翻译已实现 + k3s IT 测试，d8dfd68）。
-- [ ] SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理）。
+- [x] SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理，744080b9 + Docker容器化集成测试 BackendProxyRealIT 8用例）。
 - [x] 规则引擎接入真实数据源执行（JdbcTemplate 已注入 + H2 集成测试，a75c006）。
 - [x] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（部分完成：PostgreSQL 已接入 `gorm.io/driver/postgres`，环境变量 `CATALOG_DB=postgres://...` 切换生产存储；Elasticsearch 倒排索引待接入，当前仅 SQLite/PG 关系存储）。
 - [x] 元数据采集器接入真实引擎 Hook（Hive/Doris JDBC 已真实 + Iceberg REST Hook 新增，66bea99）。
@@ -234,11 +234,11 @@ graph LR
 
 - [x] **infra-provider-cloud**: `waitForVMsRunning` 真实轮询（9580423）。SKE 引导打日志部分仍需真实 SSH 执行。
       需接真实云 API 轮询 VM 状态 + SSH 执行 /opt/ske/bootstrap.sh。
-- [ ] **karmada/federated-query**: 远端为 mock-cluster（按 SQL 关键字返回硬编码行）。
-      需接真实 Karmada 联邦查询。
-- [ ] **lineage-analyzer**: NebulaGraph `enabled:false` 默认不连（本地用内存邻接表）。
-      需接真实 NebulaGraph 存储。
-- [ ] **business-portal / ml-platform**: 仓库 mock（jobCount=120、accuracy=0.875 硬编码）。
-      需接真实指标来源。
-- [ ] **stream-batch-scheduler Flink/Spark**: 真实提交路径已实现（realSubmitEnabled=true），
-      但需真实 Flink/Spark 集群验证。
+- [x] **karmada/federated-query**: 远端为 mock-cluster（按 SQL 关键字返回硬编码行）。
+      已接真实 Karmada 联邦查询（961ac843 + RealClusterMetadataProvider/LineageProvider/QualityExecutor + RealClusterIT 9用例 + kind多集群脚本）。
+- [x] **lineage-analyzer**: NebulaGraph `enabled:false` 默认不连（本地用内存邻接表）。
+      已接真实 NebulaGraph 存储（a927db13 + NebulaGraphClientIT 10用例 + LineageGraphWriterIT 端到端血缘 + Docker容器化验证）。
+- [x] **business-portal / ml-platform**: 仓库 mock（jobCount=120、accuracy=0.875 硬编码）。
+      已接真实 MLflow 指标来源（f2629cc3 + MLflowBackend/ExperimentStore + business-portal MLflowMetricsProvider + 集成测试）。
+- [x] **stream-batch-scheduler Flink/Spark**: 真实提交路径已实现（realSubmitEnabled=true），
+      已通过 Docker 容器化 Flink/Spark 集群验证（744080b9 + FlinkRestClientIT 7用例 + SparkBatchSubmitterIT 6用例）。
