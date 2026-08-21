@@ -1,0 +1,63 @@
+# ==================================================================================================
+# MAOP 数据引擎 BDP — .dockerignore
+#
+# 排除不需要进入 Docker 构建上下文的文件与目录，减小上下文体积、加速构建。
+# ==================================================================================================
+
+# --- 版本控制 ---
+.git/
+.gitignore
+
+# --- 构建产物 ---
+build/
+.gradle/
+
+# --- IDE 与工具缓存 ---
+.arts/
+.codeartsdoer/
+.codegraph/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.pyc
+
+# --- 文档 ---
+*.md
+docs/
+doc_optimization/
+
+# --- 日志 ---
+logs/
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# --- Python 相关（本项目为 Java，排除 Python 文件）---
+*.py
+py/
+requirements_music.txt
+__pycache__/
+
+# --- 测试与临时文件 ---
+test_*.py
+test_music*/
+test_music_v*/
+debug_*.py
+compile_*.log
+gradle_projects3.log
+wget-log
+UTF8
+
+# --- Go 安装包（与 Java 构建无关）---
+go/
+go-installer.msi
+go.zip
+setup-go.ps1
+
+# --- 下载资源 ---
+downloaded_music/
+data/
+
+# --- Docker 自身文件（避免递归）---
+# 注意：不排除 Dockerfile 和 docker-compose.yml，它们由 build 系统直接引用

@@ -1,0 +1,300 @@
+# ==================================================================================================
+# MAOP 数据引擎 BDP — Docker Compose 编排
+#
+# 定义 13 个微服务 + PostgreSQL + Redis 基础设施
+#
+# 端口分配（主机:容器）：
+#   postgres        5432:5432
+#   redis           6379:6379
+#   bigdata-encaps  8081:8080
+#   encaps          8082:8080
+#   federated       8083:8080
+#   finops          8084:8080
+#   function        8086:8080
+#   governance      8087:8080
+#   infra           8088:8080
+#   ruleengine      8090:8080
+#   sqlgateway      8091:8080
+#   streambatch     8092:8080
+#   tagengine       8093:8080
+#   flinkcdc        无 HTTP 端口（Flink CDC 作业）
+#   rule            无 HTTP 端口（库模块 jar 分发）
+#
+# 使用方式：
+#   docker compose build       # 构建全部镜像
+#   docker compose up -d       # 后台启动全部服务
+#   docker compose up encaps   # 仅启动 encaps + 依赖
+#   docker compose logs -f     # 查看日志
+#   docker compose down        # 停止并移除容器
+# ==================================================================================================
+
+services:
+  # ------------------------------------------------------------------------------------------------
+  # 基础设施层
+  # ------------------------------------------------------------------------------------------------
+  postgres:
+    image: postgres:16-alpine
+    container_name: dataenginebdp-postgres
+    environment:
+      POSTGRES_DB: dataenginebdp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d dataenginebdp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: dataenginebdp-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+  # ------------------------------------------------------------------------------------------------
+  # 微服务层 — 12 个 Spring Boot + 1 个 Flink CDC + 1 个规则库
+  # ------------------------------------------------------------------------------------------------
+
+  # bigdata-encaps — 大数据封装层
+  bigdata-encaps:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/bigdata/encaps/Dockerfile
+    image: dataenginebdp/bigdata-encaps:latest
+    container_name: dataenginebdp-bigdata-encaps
+    ports:
+      - "8081:8080"
+    environment: &spring-boot-env
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dataenginebdp
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.postgresql.Driver
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: "6379"
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # encaps — 封装层（含 crypto 国密）
+  encaps:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/encaps/Dockerfile
+    image: dataenginebdp/encaps:latest
+    container_name: dataenginebdp-encaps
+    ports:
+      - "8082:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # federated — 联邦查询（Calcite）
+  federated:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/federated/Dockerfile
+    image: dataenginebdp/federated:latest
+    container_name: dataenginebdp-federated
+    ports:
+      - "8083:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # finops — 成本运营
+  finops:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/finops/Dockerfile
+    image: dataenginebdp/finops:latest
+    container_name: dataenginebdp-finops
+    ports:
+      - "8084:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # function — 函数服务
+  function:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/function/Dockerfile
+    image: dataenginebdp/function:latest
+    container_name: dataenginebdp-function
+    ports:
+      - "8086:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # governance — 治理（含 lineage 血缘）
+  governance:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/governance/Dockerfile
+    image: dataenginebdp/governance:latest
+    container_name: dataenginebdp-governance
+    ports:
+      - "8087:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # infra — 基础设施（含 orchestrator 编排）
+  infra:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/infra/Dockerfile
+    image: dataenginebdp/infra:latest
+    container_name: dataenginebdp-infra
+    ports:
+      - "8088:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ruleengine — 规则引擎
+  ruleengine:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/ruleengine/Dockerfile
+    image: dataenginebdp/ruleengine:latest
+    container_name: dataenginebdp-ruleengine
+    ports:
+      - "8090:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rule:
+        condition: service_started
+    restart: unless-stopped
+
+  # sqlgateway — SQL 网关（Calcite + HikariCP）
+  sqlgateway:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/sqlgateway/Dockerfile
+    image: dataenginebdp/sqlgateway:latest
+    container_name: dataenginebdp-sqlgateway
+    ports:
+      - "8091:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # streambatch — 流批一体（Flink + Spark + Iceberg）
+  streambatch:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/streambatch/Dockerfile
+    image: dataenginebdp/streambatch:latest
+    container_name: dataenginebdp-streambatch
+    ports:
+      - "8092:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # tagengine — 标签引擎
+  tagengine:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/tagengine/Dockerfile
+    image: dataenginebdp/tagengine:latest
+    container_name: dataenginebdp-tagengine
+    ports:
+      - "8093:8080"
+    environment: *spring-boot-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # flinkcdc — Flink CDC 数据同步（库模块，无 HTTP 端口）
+  flinkcdc:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/flinkcdc/Dockerfile
+    image: dataenginebdp/flinkcdc:latest
+    container_name: dataenginebdp-flinkcdc
+    volumes:
+      - ./data/flinkcdc-config:/app/config:ro
+    environment:
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    restart: "no"
+
+  # rule — 规则库（库模块 jar 分发，无 HTTP 端口）
+  rule:
+    build:
+      context: .
+      dockerfile: com/levango7/dataenginebdp/rule/Dockerfile
+    image: dataenginebdp/rule:latest
+    container_name: dataenginebdp-rule
+    restart: unless-stopped
+
+# ------------------------------------------------------------------------------------------------
+# 命名卷 — 持久化存储
+# ------------------------------------------------------------------------------------------------
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
