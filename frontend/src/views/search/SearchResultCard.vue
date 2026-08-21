@@ -37,11 +37,11 @@
       </div>
     </div>
 
-    <!-- 标题（高亮） -->
-    <h3 class="card-title" v-html="highlightedName" />
+    <!-- 标题（高亮，已通过 DOMPurify 净化防 XSS） -->
+    <h3 class="card-title" v-html="sanitizedName" />
 
-    <!-- 描述（高亮） -->
-    <p class="card-desc" v-html="highlightedDesc" />
+    <!-- 描述（高亮，已通过 DOMPurify 净化防 XSS） -->
+    <p class="card-desc" v-html="sanitizedDesc" />
 
     <!-- 元信息 -->
     <div class="card-meta">
@@ -83,6 +83,7 @@
 import { computed, ref } from 'vue'
 import { ElButton, ElIcon, ElTag, ElTooltip } from 'element-plus'
 import { Star, User, Clock, Collection } from '@element-plus/icons-vue'
+import DOMPurify from 'dompurify'
 import type { SearchResultItem, AssetType } from '@/types/search'
 
 /* ------------------------------ Props / Emits ------------------------------ */
@@ -125,6 +126,20 @@ const highlightedDesc = computed<string>(() => {
   const desc = props.item.description || ''
   return escapeHtml(desc.length > 200 ? desc.slice(0, 200) + '…' : desc)
 })
+
+/**
+ * 净化后的高亮内容：使用 DOMPurify 过滤潜在 XSS payload，
+ * 仅保留高亮所需的 <mark> 标签及文本节点。
+ */
+const ALLOWED_TAGS = ['mark']
+
+const sanitizedName = computed<string>(() =>
+  DOMPurify.sanitize(highlightedName.value, { ALLOWED_TAGS, ALLOWED_ATTR: [] })
+)
+
+const sanitizedDesc = computed<string>(() =>
+  DOMPurify.sanitize(highlightedDesc.value, { ALLOWED_TAGS, ALLOWED_ATTR: [] })
+)
 
 /** HTML 转义，防止 XSS */
 function escapeHtml(s: string): string {

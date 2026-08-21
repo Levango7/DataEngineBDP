@@ -49,9 +49,9 @@
       </div>
     </div>
 
-    <!-- SQL 代码 -->
+    <!-- SQL 代码（已通过 DOMPurify 净化防 XSS） -->
     <div v-show="!collapsed" class="sql-code-wrap">
-      <pre class="sql-code" v-html="highlightedSql"></pre>
+      <pre class="sql-code" v-html="sanitizedSql"></pre>
     </div>
 
     <!-- 元信息 -->
@@ -106,6 +106,7 @@ import {
   ArrowUp,
   ArrowDown
 } from '@element-plus/icons-vue'
+import DOMPurify from 'dompurify'
 import type { SqlMeta, Locale, SqlDialect } from '@/types/ai-assistant'
 import { SQL_DIALECT_LABELS } from '@/types/ai-assistant'
 
@@ -184,6 +185,17 @@ const highlightedSql = computed(() => {
   }
   return html
 })
+
+/**
+ * 净化后的 SQL 高亮 HTML：使用 DOMPurify 仅保留语法高亮所需的 <span> 标签，
+ * 防止 SQL 文本中潜在的 HTML 片段引发 XSS。
+ */
+const sanitizedSql = computed(() =>
+  DOMPurify.sanitize(highlightedSql.value, {
+    ALLOWED_TAGS: ['span'],
+    ALLOWED_ATTR: ['class']
+  })
+)
 
 function escapeHtml(s: string): string {
   return s

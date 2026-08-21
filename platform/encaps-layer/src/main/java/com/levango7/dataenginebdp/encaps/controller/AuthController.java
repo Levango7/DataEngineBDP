@@ -52,7 +52,7 @@ public class AuthController {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = buildRestTemplate();
 
-    @Value("${app.security.oidc.token-uri:http://127.0.0.1:18040/realms/shuqing/protocol/openid-connect/token}")
+    @Value("${app.security.oidc.token-uri}")
     private String tokenUri;
 
     @Value("${app.security.oidc.client-id:sq-console}")

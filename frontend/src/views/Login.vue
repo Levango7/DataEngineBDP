@@ -54,7 +54,7 @@ const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
 
-const form = ref({ username: 'admin', password: 'admin' })
+const form = ref({ username: '', password: '' })
 const loading = ref(false)
 const error = ref('')
 

@@ -80,6 +80,11 @@ public class DqRuleExecutor implements RuleExecutor {
         if (sql.isEmpty()) {
             return buildResult(rule, "ERROR", "EMPTY_SQL", details, start);
         }
+        // 安全校验：仅允许 SELECT / WITH 开头的只读查询，防止注入非查询语句
+        String upperSql = sql.toUpperCase().trim();
+        if (!upperSql.startsWith("SELECT") && !upperSql.startsWith("WITH")) {
+            return buildResult(rule, "ERROR", "NON_SELECT_SQL_NOT_ALLOWED", details, start);
+        }
         if (jdbcTemplate == null) {
             log.warn("DQ SQL mode requires JdbcTemplate but none configured: ruleId={}", rule.getId());
             return buildResult(rule, "ERROR", "DATA_SOURCE_NOT_CONFIGURED", details, start);

@@ -62,6 +62,21 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
         return "SHOW DATABASES";
     }
 
+    /** 标识符白名单正则：仅允许字母、数字、下划线，防止 SQL 注入。 */
+    private static final java.util.regex.Pattern VALID_IDENTIFIER = java.util.regex.Pattern.compile("^[a-zA-Z0-9_]+$");
+
+    /**
+     * 校验标识符（库名/表名）是否合法，非法时抛出 {@link IllegalArgumentException}。
+     *
+     * @param name 待校验的标识符
+     * @param type 标识符类型描述（用于异常消息）
+     */
+    private static void validateIdentifier(String name, String type) {
+        if (name == null || !VALID_IDENTIFIER.matcher(name).matches()) {
+            throw new IllegalArgumentException("Invalid " + type + " name: " + name);
+        }
+    }
+
     /**
      * 子类返回列出指定库下所有表的 SQL，结果集第一列为表名。
      *
@@ -69,6 +84,7 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
      * @return SQL
      */
     protected String getTablesSql(String database) {
+        validateIdentifier(database, "database");
         return "SHOW TABLES IN " + database;
     }
 
@@ -81,6 +97,8 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
      * @return SQL
      */
     protected String getDescribeSql(String database, String table) {
+        validateIdentifier(database, "database");
+        validateIdentifier(table, "table");
         return "DESCRIBE " + database + "." + table;
     }
 

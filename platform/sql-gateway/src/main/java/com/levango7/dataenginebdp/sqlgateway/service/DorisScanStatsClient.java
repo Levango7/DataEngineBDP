@@ -7,8 +7,8 @@ import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Statement;
 import java.util.regex.Pattern;
 
 /**
@@ -62,20 +62,23 @@ public class DorisScanStatsClient {
             return null;
         }
         String fingerprint = fingerprint(sql);
-        try (Connection conn = DriverManager.getConnection(dorisJdbcUrl, dorisUser, "");
-             Statement stmt = conn.createStatement()) {
+        try (Connection conn = DriverManager.getConnection(dorisJdbcUrl, dorisUser, "")) {
             // 规范化匹配：按 stmt 前缀近似命中最近一条 is_query 记录
             // （Doris audit_log 的 stmt 列含完整 SQL；按指纹等值匹配最稳，
             //   但大 SQL 会被截断，故取规范化后前 200 字符做前缀匹配，再本地二次校验）
+            // 使用 PreparedStatement 参数化查询，避免 LIKE 拼接导致的 SQL 注入
             String query = "SELECT scan_bytes, scan_rows FROM __internal_schema.audit_log "
-                    + "WHERE is_query = 1 AND stmt LIKE '" + escapeLike(fingerprint) + "%' "
+                    + "WHERE is_query = 1 AND stmt LIKE ? "
                     + "ORDER BY time DESC LIMIT 5";
-            try (ResultSet rs = stmt.executeQuery(query)) {
-                while (rs.next()) {
-                    String rowFingerprint = null;
-                    long scanBytes = rs.getLong("scan_bytes");
-                    if (scanBytes > 0) {
-                        return scanBytes;
+            try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+                pstmt.setString(1, escapeLike(fingerprint) + "%");
+                try (ResultSet rs = pstmt.executeQuery()) {
+                    while (rs.next()) {
+                        String rowFingerprint = null;
+                        long scanBytes = rs.getLong("scan_bytes");
+                        if (scanBytes > 0) {
+                            return scanBytes;
+                        }
                     }
                 }
             }
