@@ -126,7 +126,7 @@
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
-            <version>6.13.4</version>
+            <version>7.8.0</version>
         </dependency>
         <!-- BouncyCastle：fabric8 解析 kubeconfig EC 私钥必需（缺它 encaps-layer 启动失败，
              表现为登录 500「服务器内部错误」；JcaPEMKeyConverter 在 bcutil 包） -->
