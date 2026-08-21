@@ -231,7 +231,7 @@ class CrossSourceExecutorTest {
     @DisplayName("配置 — 自定义超时与行数上限")
     void config_customTimeoutAndMaxRows() {
         CrossSourceExecutor executor = new CrossSourceExecutor(
-                new SqlParserService(), null, null, 60, 5000, 4);
+                new SqlParserService(), null, null, 60, 5000, 4, null);
 
         assertThat(executor.getTimeoutSeconds()).isEqualTo(60);
         assertThat(executor.getMaxRows()).isEqualTo(5000);
@@ -242,7 +242,7 @@ class CrossSourceExecutorTest {
     @DisplayName("配置 — 默认值当参数为 0 或负数")
     void config_defaultValuesWhenInvalid() {
         CrossSourceExecutor executor = new CrossSourceExecutor(
-                new SqlParserService(), null, null, 0, 0, 0);
+                new SqlParserService(), null, null, 0, 0, 0, null);
 
         assertThat(executor.getTimeoutSeconds()).isEqualTo(CrossSourceExecutor.DEFAULT_TIMEOUT_SECONDS);
         assertThat(executor.getMaxRows()).isEqualTo(CrossSourceExecutor.DEFAULT_MAX_ROWS);
@@ -288,7 +288,7 @@ class CrossSourceExecutorTest {
             CrossSourceExecutor.SourceResolver resolver) {
         return new CrossSourceExecutor(
                 new SqlParserService(), null, resolver,
-                10, 1000, 4);
+                10, 1000, 4, null);
     }
 
     /**
@@ -298,7 +298,7 @@ class CrossSourceExecutorTest {
             MockSourceResolver resolver) {
         return new CrossSourceExecutor(
                 new SqlParserService(), null, resolver,
-                10, 1000, 4);
+                10, 1000, 4, null);
     }
 
     /**
