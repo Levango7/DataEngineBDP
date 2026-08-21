@@ -18,6 +18,9 @@ dependencies {
     implementation libs.springBootStarterValidation
     implementation libs.springBootStarterActuator
 
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
+
     // H2 内存数据库（JPA 测试用）
     runtimeOnly 'com.h2database:h2'
 }

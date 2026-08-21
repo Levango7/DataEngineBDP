@@ -36,6 +36,7 @@ rootProject.name = 'dataenginebdp'
 
 // 13 个子项目声明
 include ':bigdata-encaps'
+include ':common-health'
 include ':encaps'
 include ':federated'
 include ':finops'
@@ -52,6 +53,7 @@ include ':tagengine'
 // 模块目录映射：将 Gradle 项目目录指向实际源码位置
 // 源码根：com/levango7/dataenginebdp/<module>/
 project(':bigdata-encaps').projectDir = file('com/levango7/dataenginebdp/bigdata/encaps')
+project(':common-health').projectDir  = file('com/levango7/dataenginebdp/common-health')
 project(':encaps').projectDir         = file('com/levango7/dataenginebdp/encaps')
 project(':federated').projectDir      = file('com/levango7/dataenginebdp/federated')
 project(':finops').projectDir         = file('com/levango7/dataenginebdp/finops')

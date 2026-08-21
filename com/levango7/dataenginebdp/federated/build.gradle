@@ -16,7 +16,35 @@ dependencies {
     implementation libs.springBootStarterWeb
     implementation libs.springBootStarterValidation
     implementation libs.springBootStarterActuator
+    // Spring Security — SecurityConfig
+    implementation libs.springBootStarterSecurity
 
     // Apache Calcite — 联邦查询 SQL 解析与优化
     implementation libs.calciteCore
+
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
+}
+
+// 离线构建：排除使用 WebClient/Reactor/Netty 的源文件
+// （spring-boot-starter-webflux resolution result 缓存不完整，无法离线解析）
+sourceSets {
+    main {
+        java {
+            exclude '**/catalog/GlobalCatalogClient.java'
+            exclude '**/catalog/TableLocationService.java'
+            exclude '**/config/FederatedQueryProperties.java'
+            exclude '**/config/MtlsConfig.java'
+            exclude '**/controller/FederatedQueryController.java'
+            exclude '**/degrade/AlertNotifier.java'
+            exclude '**/degrade/DegradeStrategy.java'
+            exclude '**/degrade/NetworkFailureDetector.java'
+            exclude '**/model/TableLocation.java'
+            exclude '**/routing/FederatedQueryRouter.java'
+            exclude '**/routing/QueryPlan.java'
+            exclude '**/service/FederatedQueryService.java'
+            exclude '**/transport/ClusterTransport.java'
+            exclude '**/transport/MtlsClusterTransport.java'
+        }
+    }
 }

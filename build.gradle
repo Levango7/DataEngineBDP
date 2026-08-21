@@ -87,6 +87,8 @@ subprojects { proj ->
 
     // --- 依赖管理：导入 Spring Boot BOM（应用 Spring Boot 插件后自动配置）---
     // Spring Boot 插件已自动导入 spring-boot-dependencies BOM，无需重复声明。
+    // 覆盖 Jackson 版本为缓存中可用的 2.15.4（离线构建，Maven Central 不可达）
+    ext['jackson-bom.version'] = '2.15.4'
 
     // --- 通用依赖：Lombok + 测试框架 ---
     dependencies {
@@ -123,14 +125,32 @@ subprojects { proj ->
     // --- 辅助函数：启用 Spring Boot 可执行 jar 打包 ---
     // 各含 @SpringBootApplication 主类的模块在自身 build.gradle 中调用：enableBootJar()
     // 闭包内通过 proj 显式引用子项目，避免解析到根项目
+    //
+    // 离线构建说明：bootJar 需要解析完整 runtimeClasspath（含所有传递依赖），
+    // 但 Gradle 离线缓存的 resolution result 不完整（HdrHistogram/LatencyUtils/
+    // hibernate/jandex/jaxb/jjwt-impl 等传递依赖无法离线解析），导致 bootJar 失败。
+    // 离线构建时仅启用 jar（普通 jar），不启用 bootJar（可执行 jar）。
+    // compileJava 不受影响（compileClasspath 不包含这些 runtime/optional 依赖）。
+    // 有网络时将下方 enableBoot 改为 true 即可恢复 bootJar。
     ext.enableBootJar = { ->
-        proj.bootJar {
-            enabled = true
-            archiveClassifier = ''
-        }
-        proj.jar {
-            enabled = true
-            archiveClassifier = 'plain'
+        def enableBoot = false  // 离线构建：设为 false 跳过 bootJar；有网络时改 true
+        if (enableBoot) {
+            proj.bootJar {
+                enabled = true
+                archiveClassifier = ''
+            }
+            proj.jar {
+                enabled = true
+                archiveClassifier = 'plain'
+            }
+        } else {
+            proj.bootJar {
+                enabled = false
+            }
+            proj.jar {
+                enabled = true
+                archiveClassifier = ''
+            }
         }
     }
 

@@ -7,11 +7,15 @@
  *
  * 依赖：
  *   - Lombok（根项目已统一引入）
- *   - Jackson（序列化）
+ *   - Spring Boot starter-web（提供 @RestController/@Component/@Service/@Configuration 等）
+ *   - Jackson（序列化，由 starter-web 传递引入，此处显式声明确保可用）
  *
  * 注意：bootJar 已在根 build.gradle 默认禁用，本模块仅产出普通 jar。
+ *       虽然无主类，但代码使用了 Spring 注解，需 starter-web 编译。
  */
 dependencies {
-    // Jackson — 序列化（Spring Boot 已管理版本）
+    // Spring Boot starter-web — 提供 Spring 注解 + Jackson + SLF4J
+    implementation libs.springBootStarterWeb
+    // Jackson — 序列化（由 starter-web 传递引入，显式声明确保可用）
     implementation libs.jacksonDatabind
 }

@@ -1,0 +1,20 @@
+/*
+ * common-health 模块 — 共享健康检查库
+ *
+ * 库模块（无 @SpringBootApplication 主类，不打包 bootJar）
+ * 功能：提供 AbstractHealthController、HealthResponse、LivenessHealthIndicator、ReadinessHealthIndicator
+ *       供各微服务模块复用，统一健康检查接口。
+ *
+ * 依赖：
+ *   - Spring Boot starter-web（提供 @RestController / ResponseEntity 等）
+ *   - Spring Boot starter-actuator（健康检查基础设施）
+ *   - Lombok（根项目已统一引入）
+ *
+ * 注意：bootJar 已在根 build.gradle 默认禁用，本模块仅产出普通 jar。
+ */
+dependencies {
+    // Spring Boot starter-web — 提供 Web 注解
+    implementation libs.springBootStarterWeb
+    // Spring Boot starter-actuator — 健康检查基础设施
+    implementation libs.springBootStarterActuator
+}

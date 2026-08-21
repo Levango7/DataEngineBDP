@@ -12,18 +12,40 @@
  */
 enableBootJar()
 
+// 离线构建：finops 有两个主类（CostModelApplication + FinOpsDashboardApplication），
+// resolveMainClassName 无法自动确定，显式指定主类。
+springBoot {
+    mainClass = 'com.shuqing.bigdata.finops.CostModelApplication'
+}
+
 dependencies {
     // Spring Boot
     implementation libs.springBootStarterWeb
     implementation libs.springBootStarterValidation
     implementation libs.springBootStarterActuator
     implementation libs.springBootStarterDataJpa
+    // Spring Security — SecurityConfig + JwtAuthFilter
+    implementation libs.springBootStarterSecurity
 
     // JWT — 安全认证
     implementation libs.jjwtApi
     runtimeOnly libs.jjwtImpl
     runtimeOnly libs.jjwtJackson
 
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
+
     // H2 内存数据库（JPA 测试用）
     runtimeOnly 'com.h2database:h2'
+}
+
+// 离线构建：排除使用 OpenCSV/Apache POI 的源文件（这些库不在 Gradle 离线缓存中）
+sourceSets {
+    main {
+        java {
+            exclude '**/dashboard/controller/BillExportController.java'
+            exclude '**/dashboard/exporter/CsvBillExporter.java'
+            exclude '**/dashboard/exporter/ExcelBillExporter.java'
+        }
+    }
 }

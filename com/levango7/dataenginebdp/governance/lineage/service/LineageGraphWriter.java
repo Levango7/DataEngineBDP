@@ -5,7 +5,7 @@ import com.shuqing.bigdata.governance.lineage.model.LineageGraph;
 import com.shuqing.bigdata.governance.lineage.model.LineageNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.ObjectProvider;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -26,8 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li><b>H2/JPA</b>：通过 {@link LineageNodeRepository}/{@link LineageEdgeRepository}
  *       持久化，重启后可恢复</li>
  *   <li><b>NebulaGraph</b>（可选）：通过配置 {@code nebula.enabled=true} 启用，
- *       由 {@link NebulaGraphClient} 执行真实 nGQL 写入（INSERT VERTEX/EDGE），
- *       写入失败时降级为 H2-only，不影响主流程</li>
+ *       由 NebulaGraphClient 执行真实 nGQL 写入（INSERT VERTEX/EDGE），
+ *       写入失败时降级为 H2-only，不影响主流程。
+ *       <br><b>离线构建说明</b>：com.vesoft nebula-spark-connector 不在 Gradle 离线缓存中，
+ *       NebulaGraphClient.java 已从编译中排除，nebulaEnabled 恒为 false（见下方逻辑）。</li>
  * </ul>
  *
  * <p>内存图结构：{@code upstreamMap} 键为目标表，值为上游表集合；
@@ -42,8 +44,8 @@ public class LineageGraphWriter {
 
     private final LineageNodeRepository nodeRepository;
     private final LineageEdgeRepository edgeRepository;
-    /** NebulaGraph 可选图存储后端客户端（仅 nebula.enabled=true 时存在） */
-    private final NebulaGraphClient nebulaClient;
+    // NebulaGraph 可选图存储后端客户端（离线构建时 NebulaGraphClient 已排除，恒为 null）
+    private final Object nebulaClient = null;
 
     /** 内存图：target → {source1, source2, ...} 上游 */
     private final Map<String, Set<String>> upstreamMap = new ConcurrentHashMap<>();
@@ -61,15 +63,12 @@ public class LineageGraphWriter {
      *
      * @param nodeRepository       节点 Repository
      * @param edgeRepository       边 Repository
-     * @param nebulaClientProvider NebulaGraph 客户端 Provider（nebula.enabled=false 时为空）
      */
     @Autowired
     public LineageGraphWriter(LineageNodeRepository nodeRepository,
-                              LineageEdgeRepository edgeRepository,
-                              ObjectProvider<NebulaGraphClient> nebulaClientProvider) {
+                              LineageEdgeRepository edgeRepository) {
         this.nodeRepository = nodeRepository;
         this.edgeRepository = edgeRepository;
-        this.nebulaClient = nebulaClientProvider.getIfAvailable();
     }
 
     /**
@@ -126,22 +125,11 @@ public class LineageGraphWriter {
         }
 
         // 3. NebulaGraph（可选真实写入，失败降级为 H2-only，不影响主流程）
-        if (nebulaEnabled && nebulaClient != null && nebulaClient.isAvailable()) {
-            int nodeOk = 0;
-            int edgeOk = 0;
-            // 先写顶点，再写边（INSERT EDGE 要求端点顶点已存在）
-            for (LineageNode node : graph.getNodes()) {
-                if (nebulaClient.writeNode(node)) {
-                    nodeOk++;
-                }
-            }
-            for (LineageEdge edge : graph.getEdges()) {
-                if (nebulaClient.writeEdge(edge)) {
-                    edgeOk++;
-                }
-            }
-            log.info("NebulaGraph 写入完成: {}/{} 节点, {}/{} 边",
-                    nodeOk, graph.getNodes().size(), edgeOk, graph.getEdges().size());
+        // 离线构建：NebulaGraphClient 已从编译中排除（com.vesoft 不在缓存中），
+        // nebulaClient 恒为 null，此分支不执行。有网络时恢复 NebulaGraphClient.java +
+        // nebula 依赖即可启用。
+        if (nebulaEnabled && nebulaClient != null) {
+            log.debug("NebulaGraph 后端已启用（当前离线构建不支持，跳过写入）");
         }
 
         log.debug("图谱写入完成: {} 节点, {} 边", graph.getNodes().size(), graph.getEdges().size());

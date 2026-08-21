@@ -18,11 +18,16 @@ dependencies {
     implementation libs.springBootStarterDataJpa
     implementation libs.springBootStarterValidation
     implementation libs.springBootStarterActuator
+    // Spring Security — SecurityConfig + JwtAuthFilter
+    implementation libs.springBootStarterSecurity
 
     // JWT — 安全认证
     implementation libs.jjwtApi
     runtimeOnly libs.jjwtImpl
     runtimeOnly libs.jjwtJackson
+
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
 
     // H2 内存数据库（JPA 测试用）
     runtimeOnly 'com.h2database:h2'

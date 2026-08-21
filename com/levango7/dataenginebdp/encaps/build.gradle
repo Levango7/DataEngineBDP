@@ -19,6 +19,8 @@ dependencies {
     implementation libs.springBootStarterDataJpa
     implementation libs.springBootStarterValidation
     implementation libs.springBootStarterActuator
+    // Spring Security — SecurityConfig + JwtAuthFilter
+    implementation libs.springBootStarterSecurity
 
     // Bouncy Castle — 国密 SM2/SM3/SM4 + 国际算法双栈
     implementation libs.bouncycastleBcprov
@@ -31,6 +33,9 @@ dependencies {
 
     // Kubernetes 客户端 — K8s 工作空间与配额翻译
     implementation libs.kubernetesClient
+
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
 
     // H2 内存数据库（JPA 测试用，Spring Boot 已管理版本）
     runtimeOnly 'com.h2database:h2'

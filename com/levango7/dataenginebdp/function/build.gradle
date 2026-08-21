@@ -15,3 +15,15 @@ dependencies {
     implementation libs.springBootStarterWeb
     implementation libs.springBootStarterActuator
 }
+
+// 离线构建：禁用 bootJar，因为 Actuator 传递依赖（HdrHistogram/LatencyUtils）
+// 在 Gradle 离线缓存中元数据不完整，导致 bootJar runtimeClasspath 解析失败。
+// compileJava 不受影响（compileClasspath 不包含这些 runtime/optional 依赖）。
+// 有网络时可移除此行恢复 bootJar。
+bootJar {
+    enabled = false
+}
+jar {
+    enabled = true
+    archiveClassifier = ''
+}

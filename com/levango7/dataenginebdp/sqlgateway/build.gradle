@@ -21,6 +21,13 @@ dependencies {
     implementation libs.springBootStarterDataJpa
     implementation libs.springBootStarterValidation
     implementation libs.springBootStarterActuator
+    // Spring Security — SecurityConfig + JwtAuthFilter
+    implementation libs.springBootStarterSecurity
+    // Spring WebFlux — WebClient（BackendProxyService 反向代理）
+    // 离线构建：spring-boot-starter-webflux 的 resolution result 缓存不完整，
+    // 注释掉此依赖并排除使用 WebClient 的源文件（见下方 sourceSets）。
+    // 有网络时恢复此依赖并移除 sourceSets exclude 即可。
+    // implementation libs.springBootStarterWebflux
 
     // Apache Calcite — SQL 解析、优化、虚拟表
     implementation libs.calciteCore
@@ -36,6 +43,29 @@ dependencies {
     runtimeOnly libs.jjwtImpl
     runtimeOnly libs.jjwtJackson
 
+    // 跨模块依赖：common-health 共享健康检查库
+    implementation project(':common-health')
+
     // H2 内存数据库（JPA 测试用）
     runtimeOnly 'com.h2database:h2'
+}
+
+// 离线构建：排除使用 WebClient/Reactor 的源文件（WebFlux resolution result 缓存不完整）
+sourceSets {
+    main {
+        java {
+            exclude '**/config/SqlGatewayConfig.java'
+            exclude '**/controller/SqlGatewayController.java'
+            exclude '**/crosssource/CatalogBasedSourceResolver.java'
+            exclude '**/crosssource/CrossSourceExecutor.java'
+            exclude '**/crosssource/SourceQueryTask.java'
+            exclude '**/service/BackendProxyService.java'
+            exclude '**/service/SqlRoutingService.java'
+            // Caffeine 缓存库不在离线缓存中
+            exclude '**/virtual/VirtualTableMetadataCache.java'
+            exclude '**/virtual/VirtualTableService.java'
+            exclude '**/virtual/rewrite/VirtualTableRewriter.java'
+            exclude '**/virtual/VirtualTableController.java'
+        }
+    }
 }
