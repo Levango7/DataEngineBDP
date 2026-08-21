@@ -1,0 +1,64 @@
+# =============================================================================
+# lineage-analyzer 集成测试配置（NebulaGraph 真实容器）
+# =============================================================================
+# 用途：-Dspring.profiles.active=it 时激活，连接本地 Docker NebulaGraph 容器
+# 运行：mvn test -Dtest=NebulaGraphClientIT,LineageGraphWriterIT \
+#       -Dnebula.it=true -Dspring.profiles.active=it
+# =============================================================================
+server:
+  port: 0  # 随机端口，避免本地占用
+
+spring:
+  application:
+    name: lineage-analyzer-it
+  datasource:
+    # H2 内存库（IT 仅验证 NebulaGraph 写入，H2 仅作 fallback）
+    url: jdbc:h2:mem:lineage_it;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  h2:
+    console:
+      enabled: false
+
+# JWT 鉴权：IT 关闭
+app:
+  security:
+    jwt:
+      secret: it-lineage-test-secret-32bytes-please-change-in-production
+      enabled: false
+
+# NebulaGraph 真实容器配置（nebula.enabled=true 启用 NebulaGraphClient Bean）
+nebula:
+  enabled: true
+  host: 127.0.0.1
+  port: 9669
+  username: root
+  password: nebula
+  space: it_lineage
+
+# 血缘分析配置
+lineage:
+  max-depth: 10
+  max-impact-nodes: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    com.levango7.dataenginebdp.governance.lineage: INFO
+    org.hibernate.SQL: WARN
