@@ -13,6 +13,7 @@ import (
 
 	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
 	"github.com/Levango7/DataEngineBDP/catalog/internal/store"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/tokenizer"
 )
 
 // mockStore 是 store.Store 接口的 mock 实现，用于 handler 测试。
@@ -105,6 +106,42 @@ func (m *mockStore) DeleteTable(id string) error {
 	}
 	delete(m.tables, id)
 	return nil
+}
+
+// SearchTables 在 mock 上实现中文分词检索，逻辑与 GormStore.SearchTables 一致。
+func (m *mockStore) SearchTables(query string, limit int) ([]*model.SearchResult, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	queryTokens := tokenizer.Tokenize(query)
+	if len(queryTokens) == 0 {
+		return []*model.SearchResult{}, nil
+	}
+	results := make([]*model.SearchResult, 0, len(m.tables))
+	for _, t := range m.tables {
+		docText := t.TableName
+		if t.Description != "" {
+			docText += " " + t.Description
+		}
+		docTokens := tokenizer.Tokenize(docText)
+		score := tokenizer.Score(queryTokens, docTokens)
+		if score > 0 {
+			results = append(results, &model.SearchResult{Table: t, Score: score})
+		}
+	}
+	// 按分数降序，同分按表名升序
+	for i := 0; i < len(results); i++ {
+		for j := i + 1; j < len(results); j++ {
+			if results[j].Score > results[i].Score ||
+				(results[j].Score == results[i].Score && results[j].Table.TableName < results[i].Table.TableName) {
+				results[i], results[j] = results[j], results[i]
+			}
+		}
+	}
+	if len(results) > limit {
+		results = results[:limit]
+	}
+	return results, nil
 }
 
 // setupTestRouterWithMock 创建使用 mock store 的测试路由。
@@ -557,4 +594,148 @@ func TestDeleteTable_NotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+// ============ 全文检索 Handler 测试 ============
+
+// TestSearchTables_MissingQuery 测试缺少 q 参数返回 400。
+func TestSearchTables_MissingQuery(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	var resp map[string]string
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Contains(t, resp["error"], "q' is required")
+}
+
+// TestSearchTables_EmptyQuery 测试空白 q 返回 400。
+func TestSearchTables_EmptyQuery(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=%20%20", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestSearchTables_InvalidLimit 测试非法 limit 返回 400。
+func TestSearchTables_InvalidLimit(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=abc&limit=xyz", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestSearchTables_ChineseSemanticMatch 核心修复验证：
+// 搜“订单明细”应命中“销售订单明细表”，而非仅 LIKE 子串能命中的场景。
+func TestSearchTables_ChineseSemanticMatch(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	ms.tables["s-001"] = &model.Table{
+		ID: "s-001", DatabaseName: "db1", TableName: "销售订单明细表",
+		Description: "包含订单明细与金额",
+	}
+	ms.tables["s-002"] = &model.Table{
+		ID: "s-002", DatabaseName: "db1", TableName: "用户画像表",
+		Description: "用户标签与行为",
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=%E8%AE%A2%E5%8D%95%E6%98%8E%E7%BB%86", nil)
+	// q=订单明细（URL 编码）
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Data []struct {
+			Table struct {
+				ID        string `json:"id"`
+				TableName string `json:"tableName"`
+			} `json:"table"`
+			Score float64 `json:"score"`
+		} `json:"data"`
+		Total int    `json:"total"`
+		Query string `json:"query"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, "订单明细", resp.Query)
+
+	// 应命中 s-001（销售订单明细表）
+	require.NotEmpty(t, resp.Data, "应至少命中一条")
+	assert.Equal(t, "s-001", resp.Data[0].Table.ID)
+	assert.Greater(t, resp.Data[0].Score, 0.0)
+}
+
+// TestSearchTables_OrderByScoreDesc 验证结果按分数降序排列。
+func TestSearchTables_OrderByScoreDesc(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	// “订单”在“销售订单明细表”中命中 1 个 bigram（订单）
+	// “订单”在“订单订单订单”中命中 1 个 bigram（订单），同分
+	// 用不同查询区分：搜“订单明细”，全命中的排前
+	ms.tables["o-001"] = &model.Table{
+		ID: "o-001", DatabaseName: "db1", TableName: "销售订单明细表",
+	}
+	ms.tables["o-002"] = &model.Table{
+		ID: "o-002", DatabaseName: "db1", TableName: "订单",
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=%E8%AE%A2%E5%8D%95%E6%98%8E%E7%BB%86", nil)
+	// q=订单明细
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Data []struct {
+			Table struct {
+				ID string `json:"id"`
+			} `json:"table"`
+			Score float64 `json:"score"`
+		} `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Len(t, resp.Data, 2)
+	// o-001 全命中（score=1.0）应排第一
+	assert.Equal(t, "o-001", resp.Data[0].Table.ID)
+	assert.GreaterOrEqual(t, resp.Data[0].Score, resp.Data[1].Score)
+}
+
+// TestSearchTables_NoMatch 验证无命中返回空列表。
+func TestSearchTables_NoMatch(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	ms.tables["n-001"] = &model.Table{ID: "n-001", DatabaseName: "db1", TableName: "用户画像"}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=xyz", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	var resp struct {
+		Data  []interface{} `json:"data"`
+		Total int           `json:"total"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, 0, resp.Total)
+	assert.Empty(t, resp.Data)
+}
+
+// TestSearchTables_LimitCap 验证 limit 上限 200 被尊重（不报错）。
+func TestSearchTables_LimitCap(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=test&limit=1000", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
 }

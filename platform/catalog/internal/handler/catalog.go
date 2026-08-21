@@ -36,6 +36,10 @@ func (h *CatalogHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/tables/:id", h.GetTable)
 	rg.PUT("/tables/:id", h.UpdateTable)
 	rg.DELETE("/tables/:id", h.DeleteTable)
+
+	// 全文检索（中文分词）：使用独立路径 /search/tables 避免与 /tables/:id 路径冲突。
+	// GET /api/v1/catalog/search/tables?q=keyword&limit=20
+	rg.GET("/search/tables", h.SearchTables)
 }
 
 // newUUID 生成一个 RFC 4122 v4 UUID 字符串，仅依赖标准库。
@@ -239,4 +243,54 @@ func (h *CatalogHandler) DeleteTable(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusNoContent, nil)
+}
+
+// ============ 全文检索端点 ============
+
+// defaultSearchLimit 是 handler 层的默认检索结果上限。
+const defaultSearchLimit = 50
+
+// SearchTables 对表名 + 描述进行中文分词全文检索。
+//
+// GET /api/v1/catalog/search/tables?q={keyword}&limit={n}
+//
+// 参数：
+//   - q: 查询关键字（必填，空则返回空列表）
+//   - limit: 返回结果上限，默认 50，上限 200（防止拉爆内存）
+//
+// 返回按相关性分数降序排列的命中表列表，每项包含 table 与 score 字段。
+//
+// 该端点解决了“搜中文子串命中不准”的问题：例如搜“订单明细”可命中
+// “销售订单明细表”（基于 bigram 分词的语义匹配，而非简单 LIKE 子串）。
+func (h *CatalogHandler) SearchTables(c *gin.Context) {
+	q := strings.TrimSpace(c.Query("q"))
+	if q == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
+		return
+	}
+
+	limit := defaultSearchLimit
+	if limitStr := c.Query("limit"); limitStr != "" {
+		var parsed int
+		if _, err := fmt.Sscanf(limitStr, "%d", &parsed); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid limit parameter"})
+			return
+		}
+		if parsed > 0 {
+			limit = parsed
+		}
+	}
+	// 上限 200，防止拉爆内存
+	const maxLimit = 200
+	if limit > maxLimit {
+		limit = maxLimit
+	}
+
+	results, err := h.store.SearchTables(q, limit)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": results, "total": len(results), "query": q})
 }

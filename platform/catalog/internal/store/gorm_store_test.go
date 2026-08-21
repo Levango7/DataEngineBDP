@@ -295,3 +295,103 @@ func TestGormStore_NewGormStore(t *testing.T) {
 	assert.NotNil(t, s)
 	assert.Equal(t, db, s.DB())
 }
+
+// ============ GormStore SearchTables 测试（真实 SQLite） ============
+
+// TestGormStore_SearchTables_EmptyQuery 测试空查询返回空列表。
+func TestGormStore_SearchTables_EmptyQuery(t *testing.T) {
+	s := setupGormStore()
+	results, err := s.SearchTables("", 10)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+// TestGormStore_SearchTables_ChineseSemanticMatch 核心修复验证（真实 SQLite）：
+// 搜“订单明细”应命中“销售订单明细表”。
+func TestGormStore_SearchTables_ChineseSemanticMatch(t *testing.T) {
+	s := setupGormStore()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "gs-001", DatabaseName: "db1", TableName: "销售订单明细表",
+		Description: "包含订单明细与金额",
+		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt:   gormFixedTime(), UpdatedAt: gormFixedTime(),
+	}))
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "gs-002", DatabaseName: "db1", TableName: "用户画像表",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+	}))
+
+	results, err := s.SearchTables("订单明细", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "gs-001", results[0].Table.ID)
+	assert.Greater(t, results[0].Score, 0.0)
+}
+
+// TestGormStore_SearchTables_OrderByScoreDesc 验证按分数降序（真实 SQLite）。
+func TestGormStore_SearchTables_OrderByScoreDesc(t *testing.T) {
+	s := setupGormStore()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "go-001", DatabaseName: "db1", TableName: "销售订单明细表",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+	}))
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "go-002", DatabaseName: "db1", TableName: "订单",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+	}))
+
+	results, err := s.SearchTables("订单明细", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	assert.Equal(t, "go-001", results[0].Table.ID)
+	assert.GreaterOrEqual(t, results[0].Score, results[1].Score)
+}
+
+// TestGormStore_SearchTables_Limit 验证 limit 截断（真实 SQLite）。
+func TestGormStore_SearchTables_Limit(t *testing.T) {
+	s := setupGormStore()
+	for i := 0; i < 5; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			ID: "gl-" + string(rune('0'+i)), DatabaseName: "db" + string(rune('0'+i)), TableName: "订单明细",
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+		}))
+	}
+
+	results, err := s.SearchTables("订单明细", 3)
+	require.NoError(t, err)
+	assert.Len(t, results, 3)
+}
+
+// TestGormStore_SearchTables_NoMatch 验证无命中返回空（真实 SQLite）。
+func TestGormStore_SearchTables_NoMatch(t *testing.T) {
+	s := setupGormStore()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "gn-001", DatabaseName: "db1", TableName: "用户画像",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+	}))
+
+	results, err := s.SearchTables("xyz", 10)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+// TestGormStore_SearchTables_DescriptionMatch 验证描述字段参与匹配（真实 SQLite）。
+func TestGormStore_SearchTables_DescriptionMatch(t *testing.T) {
+	s := setupGormStore()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "gd-001", DatabaseName: "db1", TableName: "t1",
+		Description: "订单明细记录",
+		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt:   gormFixedTime(), UpdatedAt: gormFixedTime(),
+	}))
+
+	results, err := s.SearchTables("订单明细", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "gd-001", results[0].Table.ID)
+}

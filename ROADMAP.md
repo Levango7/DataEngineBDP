@@ -35,7 +35,7 @@ graph LR
 - [x] 修复封装层 Workspace / Project / Task 的 K8s 资源翻译边界条件（createNamespace 空/非法校验 + 单测，add2030）。
 - [ ] 修复 SQL 网关跨源结果归并中的列对齐与类型转换问题。
 - [x] 修复规则引擎并发执行时的租户上下文串扰（排查确认：AgentContext 不可变参数传递，非 ThreadLocal，已设计规避）。
-- [ ] 修复资产目录全文检索中文分词准确率问题。
+- [x] 修复资产目录全文检索中文分词准确率问题。
 - [x] 修复前端工作空间上下文切换时的状态残留（JobManagement/QuotaManagement watch workspace 重载，add2030）。
 
 ### 性能优化

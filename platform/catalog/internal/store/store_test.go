@@ -1,6 +1,7 @@
 package store
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/tokenizer"
 )
 
 // mockDB 是一个内存 map 实现的 Store，用于纯 Go 测试（无需 CGO）。
@@ -118,6 +120,39 @@ func (m *mockDB) DeleteTable(id string) error {
 	}
 	delete(m.tables, id)
 	return nil
+}
+
+// SearchTables 在 mockDB 上实现中文分词检索，逻辑与 GormStore.SearchTables 一致。
+func (m *mockDB) SearchTables(query string, limit int) ([]*model.SearchResult, error) {
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	queryTokens := tokenizer.Tokenize(query)
+	if len(queryTokens) == 0 {
+		return []*model.SearchResult{}, nil
+	}
+	results := make([]*model.SearchResult, 0, len(m.tables))
+	for _, t := range m.tables {
+		docText := t.TableName
+		if t.Description != "" {
+			docText += " " + t.Description
+		}
+		docTokens := tokenizer.Tokenize(docText)
+		score := tokenizer.Score(queryTokens, docTokens)
+		if score > 0 {
+			results = append(results, &model.SearchResult{Table: t, Score: score})
+		}
+	}
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].Score != results[j].Score {
+			return results[i].Score > results[j].Score
+		}
+		return results[i].Table.TableName < results[j].Table.TableName
+	})
+	if len(results) > limit {
+		results = results[:limit]
+	}
+	return results, nil
 }
 
 // fixedTime 返回一个固定的测试时间。
@@ -354,4 +389,120 @@ func TestErrAlreadyExists(t *testing.T) {
 // TestStoreInterface 测试 mockDB 实现了 Store 接口。
 func TestStoreInterface(t *testing.T) {
 	var _ Store = newMockDB()
+}
+
+// ============ SearchTables 测试（mock） ============
+
+// TestStore_SearchTables_EmptyQuery 测试空查询返回空列表。
+func TestStore_SearchTables_EmptyQuery(t *testing.T) {
+	s := newMockDB()
+	results, err := s.SearchTables("", 10)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+// TestStore_SearchTables_NoMatch 测试无命中返回空。
+func TestStore_SearchTables_NoMatch(t *testing.T) {
+	s := newMockDB()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "sn-001", DatabaseName: "db1", TableName: "用户画像",
+		Columns: []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+	}))
+
+	results, err := s.SearchTables("xyz", 10)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+}
+
+// TestStore_SearchTables_ChineseSemanticMatch 核心修复验证：
+// 搜“订单明细”应命中“销售订单明细表”。
+func TestStore_SearchTables_ChineseSemanticMatch(t *testing.T) {
+	s := newMockDB()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "sc-001", DatabaseName: "db1", TableName: "销售订单明细表",
+		Description: "包含订单明细与金额",
+		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt:   fixedTime(), UpdatedAt: fixedTime(),
+	}))
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "sc-002", DatabaseName: "db1", TableName: "用户画像表",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+	}))
+
+	results, err := s.SearchTables("订单明细", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "sc-001", results[0].Table.ID)
+	assert.Greater(t, results[0].Score, 0.0)
+}
+
+// TestStore_SearchTables_OrderByScoreDesc 验证按分数降序。
+func TestStore_SearchTables_OrderByScoreDesc(t *testing.T) {
+	s := newMockDB()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "so-001", DatabaseName: "db1", TableName: "销售订单明细表",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+	}))
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "so-002", DatabaseName: "db1", TableName: "订单",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+	}))
+
+	results, err := s.SearchTables("订单明细", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 2)
+	// 全命中的排第一
+	assert.Equal(t, "so-001", results[0].Table.ID)
+	assert.GreaterOrEqual(t, results[0].Score, results[1].Score)
+}
+
+// TestStore_SearchTables_Limit 验证 limit 截断。
+func TestStore_SearchTables_Limit(t *testing.T) {
+	s := newMockDB()
+	for i := 0; i < 5; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			ID: "sl-" + string(rune('0'+i)), DatabaseName: "db1", TableName: "订单明细",
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+		}))
+	}
+
+	results, err := s.SearchTables("订单明细", 3)
+	require.NoError(t, err)
+	assert.Len(t, results, 3)
+}
+
+// TestStore_SearchTables_DefaultLimit 验证 limit<=0 用默认值。
+func TestStore_SearchTables_DefaultLimit(t *testing.T) {
+	s := newMockDB()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "sd-001", DatabaseName: "db1", TableName: "订单",
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+	}))
+
+	// limit=0 应使用默认值，不 panic 且返回结果
+	results, err := s.SearchTables("订单", 0)
+	require.NoError(t, err)
+	assert.Len(t, results, 1)
+}
+
+// TestStore_SearchTables_DescriptionMatch 验证描述字段也参与匹配。
+func TestStore_SearchTables_DescriptionMatch(t *testing.T) {
+	s := newMockDB()
+	require.NoError(t, s.CreateTable(&model.Table{
+		ID: "sd-002", DatabaseName: "db1", TableName: "t1",
+		Description: "订单明细记录",
+		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
+		CreatedAt:   fixedTime(), UpdatedAt: fixedTime(),
+	}))
+
+	results, err := s.SearchTables("订单明细", 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "sd-002", results[0].Table.ID)
 }

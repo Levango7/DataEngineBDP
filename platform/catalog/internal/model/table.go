@@ -32,3 +32,12 @@ type Table struct {
 	CreatedAt     time.Time         `json:"createdAt"`
 	UpdatedAt     time.Time         `json:"updatedAt"`
 }
+
+// SearchResult 描述一次全文检索命中的结果项。
+//
+// 包含命中的 Table 及其相关性分数（0~1，越高越相关）。
+// Score 由 tokenizer.Score 基于 bigram token 交集计算得出。
+type SearchResult struct {
+	Table *Table `json:"table"`
+	Score float64 `json:"score"`
+}

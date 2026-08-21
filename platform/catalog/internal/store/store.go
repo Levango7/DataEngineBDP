@@ -3,10 +3,12 @@ package store
 import (
 	"errors"
 	"fmt"
+	"sort"
 
 	"gorm.io/gorm"
 
 	"github.com/Levango7/DataEngineBDP/catalog/internal/model"
+	"github.com/Levango7/DataEngineBDP/catalog/internal/tokenizer"
 )
 
 // ErrNotFound 在资源不存在时返回。
@@ -30,6 +32,12 @@ type Store interface {
 	ListTables(dbName string) ([]*model.Table, error)
 	UpdateTable(t *model.Table) error
 	DeleteTable(id string) error
+
+	// Table 全文检索
+	// SearchTables 根据查询关键字对表名 + 描述进行中文分词匹配，
+	// 返回按相关性分数降序排列的命中结果。
+	// query 为空时返回空列表；limit <= 0 时使用默认上限 50。
+	SearchTables(query string, limit int) ([]*model.SearchResult, error)
 }
 
 // GormStore 使用 GORM 实现的 Store 接口。
@@ -221,6 +229,63 @@ func (s *GormStore) DeleteTable(id string) error {
 		return fmt.Errorf("%w: table %s", ErrNotFound, id)
 	}
 	return nil
+}
+
+// ============ Table 全文检索 ============
+
+// defaultSearchLimit 是 SearchTables 在 limit <= 0 时使用的默认上限。
+const defaultSearchLimit = 50
+
+// SearchTables 对表名 + 描述进行中文分词全文检索。
+//
+// 实现策略（无 ES 依赖的轻量倒排匹配）：
+//  1. 用 tokenizer.Tokenize 对 query 切分为 bigram tokens
+//  2. 拉取全部表（生产环境可按 limit * 倍率 + 过滤下推优化）
+//  3. 对每张表，将其 TableName + Description 拼接后切分 tokens，计算与 query tokens 的 Score
+//  4. 过滤 score > 0 的命中项，按 score 降序排序，截断至 limit 返回
+//
+// 该实现解决了“搜中文子串命中不准”的问题：
+// 例如搜“订单明细”可命中“销售订单明细表”（bigram 交集 [订单 单明 明细]）。
+func (s *GormStore) SearchTables(query string, limit int) ([]*model.SearchResult, error) {
+	if limit <= 0 {
+		limit = defaultSearchLimit
+	}
+	queryTokens := tokenizer.Tokenize(query)
+	if len(queryTokens) == 0 {
+		return []*model.SearchResult{}, nil
+	}
+
+	var tables []*model.Table
+	if err := s.db.Find(&tables).Error; err != nil {
+		return nil, err
+	}
+
+	results := make([]*model.SearchResult, 0, len(tables))
+	for _, t := range tables {
+		// 文档文本 = 表名 + 空格 + 描述（描述可能为空）
+		docText := t.TableName
+		if t.Description != "" {
+			docText += " " + t.Description
+		}
+		docTokens := tokenizer.Tokenize(docText)
+		score := tokenizer.Score(queryTokens, docTokens)
+		if score > 0 {
+			results = append(results, &model.SearchResult{Table: t, Score: score})
+		}
+	}
+
+	// 按分数降序排序；同分按表名升序保证稳定输出。
+	sort.Slice(results, func(i, j int) bool {
+		if results[i].Score != results[j].Score {
+			return results[i].Score > results[j].Score
+		}
+		return results[i].Table.TableName < results[j].Table.TableName
+	})
+
+	if len(results) > limit {
+		results = results[:limit]
+	}
+	return results, nil
 }
 
 // ============ 兼容性：保留 MemoryStore 类型别名 ============
