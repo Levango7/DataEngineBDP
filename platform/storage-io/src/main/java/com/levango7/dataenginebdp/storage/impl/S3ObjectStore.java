@@ -39,8 +39,6 @@ public class S3ObjectStore implements ObjectStore {
         this.profile = profile;
         this.tenantPathMapper = tenantPathMapper;
 
-        createBucketIfNotExists(profile.getBucket());
-
         S3Configuration config = S3Configuration.builder()
                 .pathStyleAccessEnabled(profile.isPathStyleAccess())
                 .build();
@@ -53,6 +51,8 @@ public class S3ObjectStore implements ObjectStore {
                         AwsBasicCredentials.create(profile.getAccessKey(), profile.getSecretKey())))
                 .serviceConfiguration(config)
                 .build();
+
+        createBucketIfNotExists(profile.getBucket());
     }
 
     private String toFullKey(String key) {

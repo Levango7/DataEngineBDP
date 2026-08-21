@@ -138,8 +138,9 @@ public class AuthController {
             result.put("user", user);
             return ResponseEntity.ok(result);
         } catch (RestClientException e) {
-            log.warn("Keycloak 不可达: {}，使用本地登录回退", e.getMessage());
-            return localLoginFallback(req);
+            log.error("Keycloak 不可达: {}", e.getMessage());
+            return ResponseEntity.status(503)
+                    .body(Map.of("error", "认证服务暂时不可用，请稍后重试"));
         } catch (Exception e) {
             log.error("登录处理异常: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body(Map.of("error", "登录失败: " + e.getMessage()));
@@ -147,67 +148,7 @@ public class AuthController {
     }
 
     /**
-     * 本地登录回退：当 Keycloak 不可达时，使用预设用户验证并生成 HMAC JWT token。
-     *
-     * <p>预设用户（多租户隔离：不同用户归属不同租户）：
-     * <ul>
-     *   <li>admin/admin：管理员，userId=admin，email=admin@local，tenantId=tenant-001</li>
-     *   <li>user/user：普通用户，userId=user，email=user@local，tenantId=tenant-002</li>
-     * </ul>
-     *
-     * <p>生成的 JWT 与 {@link com.levango7.dataenginebdp.encaps.security.JwtAuthFilter}
-     * 使用相同的 HMAC 密钥与 issuer，确保后续请求可通过 JwtAuthFilter 验证。
-     *
-     * @param req 登录请求（用户名/密码）
-     * @return 登录成功返回 200 + LoginResult；失败返回 401
-     */
-    private ResponseEntity<?> localLoginFallback(LoginRequest req) {
-        // 1. 预设用户校验（admin 属于 tenant-001，user 属于 tenant-002，实现多租户隔离）
-        String username = req.username();
-        String password = req.password();
-        String userId;
-        String email;
-        String nickname;
-        if ("admin".equals(username) && "admin".equals(password)) {
-            userId = "admin";
-            email = "admin@local";
-            nickname = "管理员";
-            // admin 属于 tenant-001
-        } else if ("user".equals(username) && "user".equals(password)) {
-            userId = "user";
-            email = "user@local";
-            nickname = "普通用户";
-            // user 属于 tenant-002
-        } else {
-            log.warn("本地登录失败，用户名或密码错误: username={}", username);
-            return ResponseEntity.status(401).body(Map.of("error", "用户名或密码错误"));
-        }
-
-        // 2. 生成 JWT token（与 JwtAuthFilter 使用相同密钥/issuer/算法）
-        //    多租户映射：admin -> tenant-001, user -> tenant-002（修复 M-F-05：避免硬编码 default）
-        String tenantId = "admin".equals(userId) ? "tenant-001" : "tenant-002";
-
-        String accessToken = signJwt(userId, tenantId, username, email);
-
-        // 3. 组装返回结果（与 Keycloak 登录成功格式一致）
-        Map<String, Object> user = new LinkedHashMap<>();
-        user.put("id", userId);
-        user.put("username", username);
-        user.put("nickname", nickname);
-        user.put("email", email);
-        user.put("tenantId", tenantId);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("token", accessToken);
-        result.put("expiresIn", jwtExpiry);
-        result.put("refreshToken", "");
-        result.put("user", user);
-
-        log.info("本地登录回退成功: username={}, userId={}, tenantId={}", username, userId, tenantId);
-        return ResponseEntity.ok(result);
-    }
-
-    /** 简单 URL 编码（避免中文用户名/密码问题）。 */
+     * 简单 URL 编码（避免中文用户名/密码问题）。 */
     private String urlEncode(String s) {
         try {
             return java.net.URLEncoder.encode(s, java.nio.charset.StandardCharsets.UTF_8);

@@ -97,10 +97,28 @@ public class DorisController {
     public record QueryRequest(String sql) {
     }
 
-    /** 执行 SQL 查询（任务要求）。 */
+    /** 执行 SQL 查询（仅允许 SELECT/SHOW/DESCRIBE/EXPLAIN）。 */
     @PostMapping("/query")
     public ResponseEntity<?> executeQuery(@RequestBody QueryRequest req) {
         log.info("执行 Doris SQL: tenant={}", TenantContext.getTenantId());
+        // SQL 安全校验：只允许只读查询
+        String sql = req.sql();
+        if (sql == null || sql.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "SQL 不能为空"));
+        }
+        String trimmed = sql.trim().toUpperCase();
+        String[] dangerous = {"DROP", "ALTER", "DELETE", "INSERT", "UPDATE", "TRUNCATE", "CREATE", "GRANT", "REVOKE"};
+        for (String d : dangerous) {
+            if (trimmed.startsWith(d) || trimmed.contains(" " + d + " ")) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("error", "不允许执行此类 SQL 操作: " + d));
+            }
+        }
+        if (!trimmed.startsWith("SELECT") && !trimmed.startsWith("SHOW")
+                && !trimmed.startsWith("DESCRIBE") && !trimmed.startsWith("EXPLAIN")) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "只允许执行 SELECT/SHOW/DESCRIBE/EXPLAIN 查询"));
+        }
         try {
             return ResponseEntity.ok(dorisClient.executeQuery(req.sql()));
         } catch (EngineUnavailableException e) {
