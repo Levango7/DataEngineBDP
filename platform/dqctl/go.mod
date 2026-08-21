@@ -1,9 +1,9 @@
 module github.com/Levango7/DataEngineBDP/dqctl
 
-go 1.26
+go 1.25.0
 
 require (
-	github.com/spf13/cobra v1.10.2
+	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.12.0
 )
