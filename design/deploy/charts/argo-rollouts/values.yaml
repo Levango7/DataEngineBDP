@@ -6,7 +6,7 @@
 # ---- 镜像（自研组件用 sq-*，第三方用官方镜像）----
 image:
   repository: "docker.m.daocloud.io/argoproj/argo-rollouts"
-  tag: "v1.7.1"
+  tag: "v1.8.0"
   pullPolicy: IfNotPresent
 
 # ---- 控制器副本 ----

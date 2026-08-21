@@ -7,7 +7,7 @@
 # ---- 镜像配置 ----
 image:
   repository: "apache/superset"
-  tag: "3.1.0"
+  tag: "4.1.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

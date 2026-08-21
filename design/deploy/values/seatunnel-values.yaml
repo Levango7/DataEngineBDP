@@ -54,7 +54,7 @@ integration:
         cdc: true
       kafka:
         enabled: true
-        version: "3.7.1"
+        version: "3.8.1"
       iceberg:
         enabled: true
         catalogUri: "http://iceberg-catalog:8181"

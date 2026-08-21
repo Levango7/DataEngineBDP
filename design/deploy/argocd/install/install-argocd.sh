@@ -4,7 +4,7 @@
 #
 # 用法：
 #   bash design/deploy/argocd/install/install-argocd.sh                # 默认 stable
-#   bash design/deploy/argocd/install/install-argocd.sh --version v2.11.0
+#   bash design/deploy/argocd/install/install-argocd.sh --version v2.13.0
 #
 # 前置：k3s 集群已就绪，kubectl 可用
 set -uo pipefail

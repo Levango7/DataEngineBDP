@@ -1,5 +1,5 @@
 # ============================================================================
-# Flink 1.18 定制 Helm values
+# Flink 1.20 定制 Helm values
 # 关联：部署清单 v0.1 §6.2 流式计算 / §10 可观测 / §9 资源配额
 # 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/flink-values.yaml
 # 说明：在 values-base.engines.flink 之上做深度调优；状态后端 RocksDB 增量，
@@ -15,8 +15,8 @@ engines:
       resources:
         requests: { cpu: "500m", memory: "1Gi" }
         limits:   { cpu: "1",    memory: "2Gi" }
-    flinkImage: "sq-flink:1.18-0.1.0"
-    flinkVersion: "1.18.0"
+    flinkImage: "sq-flink:1.20.0-0.1.0"
+    flinkVersion: "1.20.0"
 
     # ---- 套餐分档 ----
     tierProfiles:

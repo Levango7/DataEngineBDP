@@ -5,7 +5,7 @@
 
 image:
   repository: "flink"
-  tag: "1.18.0"
+  tag: "1.20.0"
   pullPolicy: IfNotPresent
 
 replicas: 2

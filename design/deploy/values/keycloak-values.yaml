@@ -10,7 +10,7 @@
 keycloak:
   enabled: true
   image: "sq-keycloak:24.0-0.1.0"
-  version: "24.0.5"
+  version: "25.0.0"
   # P2-E6 修复：显式声明端口（与 superset-values.yaml security.sso.keycloakUrl 对齐）
   port: 8080
   # HTTPS/TLS 端口（Ingress 终止 TLS 后内部走 HTTP）

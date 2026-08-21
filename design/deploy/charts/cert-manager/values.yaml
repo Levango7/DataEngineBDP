@@ -7,7 +7,7 @@
 # ---- 镜像配置（国内镜像源）----
 image:
   repository: "quay.io/jetstack/cert-manager-controller"
-  tag: "v1.14.0"
+  tag: "v1.16.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

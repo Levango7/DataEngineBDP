@@ -7,7 +7,7 @@
 # ---- 镜像配置 ----
 image:
   repository: "trino"
-  tag: "438"
+  tag: "460"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

@@ -10,7 +10,7 @@
 superset:
   enabled: true
   image: "sq-superset:4.0-0.1.0"
-  version: "4.0.2"
+  version: "4.1.0"
 
   # ---- 套餐分档 ----
   # P1-C10：base 档不含 L4 组件，enabled=false（仅 standard/flagship 启用 L4 BI 可视化）

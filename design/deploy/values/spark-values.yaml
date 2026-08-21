@@ -18,8 +18,8 @@ engines:
       webhook:
         enabled: true
         failurePolicy: Fail
-    sparkImage: "sq-spark:3.5-0.1.0"
-    sparkVersion: "3.5.1"
+    sparkImage: "sq-spark:3.5.3-0.1.0"
+    sparkVersion: "3.5.3"
     hadoopVersion: "3.3.4"
 
     # ---- 套餐分档（按 NodePool 自动选择）----
@@ -71,7 +71,7 @@ engines:
     shuffleService:
       enabled: true
       mode: DaemonSet
-      image: "sq-spark-shuffle:3.5-0.1.0"
+      image: "sq-spark-shuffle:3.5.3-0.1.0"
       ioUring: true
       ports: { shuffle: 7337 }
       resources:

@@ -7,7 +7,7 @@
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
   repository: "docker.m.daocloud.io/cilium/cilium"
-  tag: "v1.15.0"
+  tag: "v1.16.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

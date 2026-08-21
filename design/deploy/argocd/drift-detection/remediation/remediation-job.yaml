@@ -35,7 +35,7 @@ spec:
           restartPolicy: OnFailure
           containers:
             - name: drift-remediator
-              image: argoproj/argocd:v2.7.0
+              image: argoproj/argocd:v2.13.0
               imagePullPolicy: IfNotPresent
               command: ["/bin/bash", "/scripts/remediate.sh"]
               args: ["--auto"]

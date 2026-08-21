@@ -18,7 +18,7 @@ localAPIEndpoint:
 ---
 apiVersion: kubeadm.k8s.io/v1beta3
 kind: ClusterConfiguration
-kubernetesVersion: v1.30.0
+kubernetesVersion: v1.31.0
 clusterName: shuqing-ske
 controlPlaneEndpoint: ""   # 多节点 HA 时由 ske.sh 注入 VIP; 单节点留空
 networking:

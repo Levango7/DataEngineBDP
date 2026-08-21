@@ -7,7 +7,7 @@
 # ---- 镜像配置（官方镜像；sq-* 为自研包，构建未发布前用官方兜底） ----
 image:
   repository: "flink"
-  tag: "1.18.0"
+  tag: "1.20.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

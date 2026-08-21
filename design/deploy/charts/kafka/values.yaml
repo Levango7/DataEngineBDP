@@ -7,7 +7,7 @@
 # ---- 镜像配置（官方镜像；sq-* 为自研包，构建未发布前用官方兜底） ----
 image:
   repository: "apache/kafka"
-  tag: "3.7.0"
+  tag: "3.8.1"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

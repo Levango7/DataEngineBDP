@@ -1,5 +1,5 @@
 # ============================================================================
-# Trino 438 定制 Helm values
+# Trino 460 定制 Helm values
 # 关联：部署清单 v0.1 §6.3 联邦查询 / §10 可观测 / §9 资源配额
 # 渲染： helm template . -f deploy/values-base.yaml -f deploy/values/trino-values.yaml
 # 说明：在 values-base.engines.trino 之上做深度调优；coordinator/worker 分离，
@@ -8,7 +8,7 @@
 
 engines:
   trino:
-    image: "trino:438"
+    image: "trino:460"
     version: "438"
 
     # ---- 套餐分档 ----

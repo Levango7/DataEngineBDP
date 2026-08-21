@@ -7,7 +7,7 @@
 # ---- 镜像配置（国内镜像源）----
 image:
   repository: "velero/velero"
-  tag: "v1.13.0"
+  tag: "v1.15.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

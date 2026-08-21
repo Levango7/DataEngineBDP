@@ -7,7 +7,7 @@
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
   repository: "docker.m.daocloud.io/sq-ske-infra"
-  tag: "1.28.0-0.1.0"
+  tag: "1.31.0-0.1.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

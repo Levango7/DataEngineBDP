@@ -7,7 +7,7 @@
 # ---- 镜像配置 ----
 image:
   repository: "quay.io/keycloak/keycloak"
-  tag: "24.0.4"
+  tag: "25.0.0"
   pullPolicy: IfNotPresent
 
 # ---- 副本数 ----

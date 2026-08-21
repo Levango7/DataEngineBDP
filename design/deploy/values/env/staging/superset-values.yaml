@@ -5,7 +5,7 @@
 
 image:
   repository: "apache/superset"
-  tag: "3.1.0"
+  tag: "4.1.0"
   pullPolicy: IfNotPresent
 
 replicas: 2
