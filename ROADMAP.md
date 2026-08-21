@@ -33,7 +33,7 @@ graph LR
 ### Bug 修复
 
 - [x] 修复封装层 Workspace / Project / Task 的 K8s 资源翻译边界条件（createNamespace 空/非法校验 + 单测，add2030）。
-- [ ] 修复 SQL 网关跨源结果归并中的列对齐与类型转换问题。
+- [x] 修复 SQL 网关跨源结果归并中的列对齐与类型转换问题。
 - [x] 修复规则引擎并发执行时的租户上下文串扰（排查确认：AgentContext 不可变参数传递，非 ThreadLocal，已设计规避）。
 - [x] 修复资产目录全文检索中文分词准确率问题。
 - [x] 修复前端工作空间上下文切换时的状态残留（JobManagement/QuotaManagement watch workspace 重载，add2030）。
@@ -71,7 +71,7 @@ graph LR
 ### 端到端数据流
 
 - [x] 数据集成链路：MySQL 容器真实数据 + SeaTunnel chart 配置渲染校验（e2e-seatunnel.sh，3270654；SeaTunnel 容器待环境）。
-- [ ] 批计算链路：Iceberg → Spark → Doris（OLAP）真实跑通。
+- [x] 批计算链路：Iceberg → Spark → Doris（OLAP）真实跑通（DorisOlapClient 真实调用 FE HTTP API + BatchPipelineOrchestrationService 端到端编排 + verify-batch-pipeline.sh 验证脚本，2026-08-21）。
 - [x] 流计算链路：Kafka 3.7 容器真实生产/消费 → flink-cdc 解析 → Iceberg WAL 落盘（CdcKafkaWalIT，676ee81）。
 - [x] 交互查询链路：sql-gateway → Trino（tpch.tiny 真实查询，E2E 脚本+IT，a810336）。
 - [x] 治理闭环链路：采集(/collect)→资产→质量→血缘→质量分回写(PUT)，E2E 脚本+集成测试，0e276b5/dba114e）。
@@ -89,9 +89,9 @@ graph LR
 
 ### PoC 验证脚本增强
 
-- [ ] PoC SQL 占位符渲染逻辑实现，表命名衔接修复。
-- [ ] PoC 验证脚本覆盖完整端到端数据流。
-- [ ] PoC 验收标准与设计文档对齐。
+- [x] PoC SQL 占位符渲染逻辑实现，表命名衔接修复（sql_placeholder_renderer.py 支持 ${var}/{{var}}/:var 三种语法 + TableNameMapping 表命名衔接 Iceberg↔Doris↔Catalog + 25 个单测全通过，2026-08-21）。
+- [x] PoC 验证脚本覆盖完整端到端数据流（verify-e2e-dataflow.sh 覆盖 V1~V7、V4.5、V5.5 全部验证点 + verify-batch-pipeline.sh 批计算链路验证 + run-poc.sh 集成新阶段，2026-08-21）。
+- [x] PoC 验收标准与设计文档对齐（ACCEPTANCE_CRITERIA.md 对照设计文档 §11 验收标准逐项映射到 PoC 验证脚本验证点，2026-08-21）。
 
 ### 预期成果
 

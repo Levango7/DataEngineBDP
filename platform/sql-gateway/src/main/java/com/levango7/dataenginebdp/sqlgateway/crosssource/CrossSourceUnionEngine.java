@@ -68,21 +68,25 @@ public class CrossSourceUnionEngine {
         }
         long start = System.currentTimeMillis();
 
-        // 校验列数一致
-        validateColumnCounts(results);
+        // 计算并集列定义（按首次出现顺序，大小写无关去重）
+        List<String> outColumns = ColumnAligner.unionColumns(results);
+        if (outColumns.isEmpty()) {
+            throw new CrossSourceException(CrossSourceException.MERGE_ERROR,
+                    "UNION 输入结果列定义为空");
+        }
 
-        // 取第一个结果的列定义作为输出列
-        List<String> outColumns = new ArrayList<>(results.get(0).getColumns());
+        // 对齐 + 类型归一化每个结果集
+        List<MergeResult> aligned = alignAndConvertAll(results, outColumns);
 
         switch (unionType) {
             case UNION_ALL:
-                return unionAll(results, outColumns, start);
+                return unionAll(aligned, outColumns, start);
             case UNION_DISTINCT:
-                return unionDistinct(results, outColumns, start);
+                return unionDistinct(aligned, outColumns, start);
             case INTERSECT:
-                return intersect(results, outColumns, start);
+                return intersect(aligned, outColumns, start);
             case EXCEPT:
-                return except(results, outColumns, start);
+                return except(aligned, outColumns, start);
             default:
                 throw new CrossSourceException(CrossSourceException.UNSUPPORTED,
                         "不支持的 UNION 类型: " + unionType);
@@ -194,26 +198,34 @@ public class CrossSourceUnionEngine {
     // ===================== 内部工具 =====================
 
     /**
-     * 校验所有结果集列数一致。
+     * 对所有结果集执行列对齐 + 类型归一化。
+     *
+     * @param results    原始结果集列表
+     * @param outColumns 目标列定义
+     * @return 对齐且类型归一化后的结果集列表
      */
-    private void validateColumnCounts(List<MergeResult> results) {
-        if (results.size() == 1) {
-            return;
-        }
-        int expected = results.get(0).getColumns().size();
-        for (int i = 1; i < results.size(); i++) {
-            int actual = results.get(i).getColumns().size();
-            if (actual != expected) {
-                throw new CrossSourceException(CrossSourceException.MERGE_ERROR,
-                        "UNION 输入结果列数不一致: result[0]=" + expected
-                                + ", result[" + i + "]=" + actual);
+    private List<MergeResult> alignAndConvertAll(List<MergeResult> results,
+                                                 List<String> outColumns) {
+        List<MergeResult> aligned = new ArrayList<>(results.size());
+        for (MergeResult r : results) {
+            if (r == null) {
+                continue;
             }
+            // 1. 列对齐：按 outColumns 顺序重新排列每行
+            MergeResult alignedResult = ColumnAligner.alignResult(outColumns, r);
+            // 2. 类型归一化：统一数值/字符串/布尔类型
+            List<List<Object>> convertedRows = ColumnTypeConverter.convertRows(alignedResult.getRows());
+            alignedResult.setRows(convertedRows);
+            aligned.add(alignedResult);
         }
+        return aligned;
     }
 
     /**
      * 计算行的指纹（用于去重/集合比较）。
-     * <p>将每列值转为字符串并用分隔符拼接，null 转为 {@code <NULL>}。</p>
+     *
+     * <p>每列值经 {@link ColumnTypeConverter#convertValue} 归一化后转为字符串并用分隔符拼接，
+     * null 转为 {@code <NULL>}。由于归一化已在上游完成，此处直接使用值的 toString()。</p>
      */
     private String fingerprint(List<Object> row) {
         if (row == null) {
@@ -224,11 +236,11 @@ public class CrossSourceUnionEngine {
         for (Object cell : row) {
             if (cell == null) {
                 sb.append("<NULL>");
-            } else if (cell instanceof Number n) {
-                // 数值统一为 Double 字符串，避免 1 vs 1.0 误判
-                sb.append(n.doubleValue());
+            } else if (cell instanceof java.math.BigDecimal bd) {
+                // BigDecimal 用 compareTo 语义（1.0 == 1.00）
+                sb.append(bd.stripTrailingZeros().toPlainString());
             } else if (cell instanceof String s) {
-                sb.append(s.trim().toUpperCase(Locale.ROOT));
+                sb.append(s);
             } else {
                 sb.append(cell.toString());
             }

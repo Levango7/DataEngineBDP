@@ -3,8 +3,8 @@ package com.levango7.dataenginebdp.sqlgateway.crosssource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -94,9 +94,13 @@ public class CrossSourceJoinEngine {
         int probeKeyIdx = leftAsBuild ? rightKeyIdx : leftKeyIdx;
 
         // 构建 Hash 表：key → 行列表（允许重复键）
+        // SQL 语义：NULL = NULL 为 UNKNOWN，不匹配 → 跳过键为 null 的 build 行
         Map<Object, List<List<Object>>> hashTable = new LinkedHashMap<>();
         for (List<Object> row : build.getRows()) {
             Object key = normalizeKey(row.get(buildKeyIdx));
+            if (key == null) {
+                continue;
+            }
             hashTable.computeIfAbsent(key, k -> new ArrayList<>()).add(row);
         }
 
@@ -104,6 +108,10 @@ public class CrossSourceJoinEngine {
         List<List<Object>> mergedRows = new ArrayList<>();
         for (List<Object> probeRow : probe.getRows()) {
             Object key = normalizeKey(probeRow.get(probeKeyIdx));
+            // SQL 语义：NULL 键不参与匹配
+            if (key == null) {
+                continue;
+            }
             List<List<Object>> matches = hashTable.get(key);
             if (matches == null) {
                 continue;
@@ -207,6 +215,17 @@ public class CrossSourceJoinEngine {
         while (i < leftRows.size() && j < rightRows.size()) {
             Object leftKey = normalizeKey(leftRows.get(i).get(leftKeyIdx));
             Object rightKey = normalizeKey(rightRows.get(j).get(rightKeyIdx));
+
+            // SQL 语义：NULL 键不参与等值匹配 → 跳过 null 键的行
+            if (leftKey == null) {
+                i++;
+                continue;
+            }
+            if (rightKey == null) {
+                j++;
+                continue;
+            }
+
             int cmp = compareForSort(leftKey, rightKey);
 
             if (cmp < 0) {
@@ -267,13 +286,24 @@ public class CrossSourceJoinEngine {
 
     /**
      * 合并列定义（左 + 右）。
-     * <p>若左右列名冲突，右侧列名追加 {@code _right} 后缀。</p>
+     * <p>若左右列名冲突（大小写无关），右侧列名追加 {@code _right} 后缀。</p>
      */
     private List<String> combineColumns(List<String> leftCols, List<String> rightCols) {
         List<String> result = new ArrayList<>(leftCols);
-        Set<String> leftSet = new HashSet<>(leftCols);
+        // 大小写无关的列名集合，避免 ID 与 id 被视为不同列导致冲突检测遗漏
+        Set<String> leftLowerSet = new LinkedHashSet<>();
+        for (String col : leftCols) {
+            if (col != null) {
+                leftLowerSet.add(col.trim().toLowerCase(Locale.ROOT));
+            }
+        }
         for (String col : rightCols) {
-            if (leftSet.contains(col)) {
+            if (col == null) {
+                result.add(null);
+                continue;
+            }
+            String lower = col.trim().toLowerCase(Locale.ROOT);
+            if (leftLowerSet.contains(lower)) {
                 result.add(col + "_right");
             } else {
                 result.add(col);
@@ -284,33 +314,38 @@ public class CrossSourceJoinEngine {
 
     /**
      * 合并行（左 + 右）。
+     * <p>对左右行数据应用类型归一化，避免不同源返回类型不一致导致下游消费异常。</p>
      */
     private List<Object> combineRow(List<Object> leftRow, List<Object> rightRow) {
-        List<Object> out = new ArrayList<>(leftRow.size() + rightRow.size());
-        out.addAll(leftRow);
-        out.addAll(rightRow);
+        List<Object> leftConverted = ColumnTypeConverter.convertRow(leftRow);
+        List<Object> rightConverted = ColumnTypeConverter.convertRow(rightRow);
+        List<Object> out = new ArrayList<>(leftConverted.size() + rightConverted.size());
+        out.addAll(leftConverted);
+        out.addAll(rightConverted);
         return out;
     }
 
     /**
      * 归一化 JOIN 键（用于 Hash 表查找）。
-     * <p>字符串去首尾空格并转大写，数值统一为 Double，null 保持 null。</p>
+     * <p>先通过 {@link ColumnTypeConverter#convertValue} 统一类型（数值→BigDecimal，
+     * 字符串 trim），再对字符串额外转大写以实现大小写无关匹配。null 保持 null。</p>
      */
     private Object normalizeKey(Object value) {
         if (value == null) {
             return null;
         }
-        if (value instanceof Number n) {
-            return n.doubleValue();
+        Object converted = ColumnTypeConverter.convertValue(value);
+        if (converted instanceof String s) {
+            return s.toUpperCase(Locale.ROOT);
         }
-        if (value instanceof String s) {
-            return s.trim().toUpperCase(Locale.ROOT);
-        }
-        return value.toString();
+        return converted;
     }
 
     /**
      * 比较两个值是否满足操作符关系。
+     *
+     * <p>比较前先通过 {@link ColumnTypeConverter#convertValue} 统一类型，
+     * 避免不同源返回类型不一致（如 Integer vs Long）导致比较失败。</p>
      */
     @SuppressWarnings("unchecked")
     private boolean compareValues(Object left, Object right, String op) {
@@ -318,15 +353,18 @@ public class CrossSourceJoinEngine {
             // null 比较语义：null = null 视为 false（SQL 中 NULL 比较结果为 UNKNOWN）
             return false;
         }
+        // 统一类型后再比较
+        Object leftNorm = ColumnTypeConverter.convertValue(left);
+        Object rightNorm = ColumnTypeConverter.convertValue(right);
         try {
             int cmp;
-            if (left instanceof Number && right instanceof Number) {
-                cmp = Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue());
-            } else if (left instanceof Comparable && right.getClass().equals(left.getClass())) {
-                cmp = ((Comparable<Object>) left).compareTo(right);
+            if (leftNorm instanceof java.math.BigDecimal ld && rightNorm instanceof java.math.BigDecimal rd) {
+                cmp = ld.compareTo(rd);
+            } else if (leftNorm instanceof Comparable && rightNorm.getClass().equals(leftNorm.getClass())) {
+                cmp = ((Comparable<Object>) leftNorm).compareTo(rightNorm);
             } else {
                 // 类型不一致时按字符串比较
-                cmp = String.valueOf(left).compareTo(String.valueOf(right));
+                cmp = String.valueOf(leftNorm).compareTo(String.valueOf(rightNorm));
             }
             return switch (op) {
                 case "=" -> cmp == 0;
@@ -344,6 +382,8 @@ public class CrossSourceJoinEngine {
 
     /**
      * 用于 Sort-Merge 的比较（返回 -1/0/1）。
+     *
+     * <p>比较前先通过 {@link ColumnTypeConverter#convertValue} 统一类型。</p>
      */
     private int compareForSort(Object left, Object right) {
         if (left == null && right == null) {
@@ -355,10 +395,12 @@ public class CrossSourceJoinEngine {
         if (right == null) {
             return 1;
         }
-        if (left instanceof Number && right instanceof Number) {
-            return Double.compare(((Number) left).doubleValue(), ((Number) right).doubleValue());
+        Object leftNorm = ColumnTypeConverter.convertValue(left);
+        Object rightNorm = ColumnTypeConverter.convertValue(right);
+        if (leftNorm instanceof java.math.BigDecimal ld && rightNorm instanceof java.math.BigDecimal rd) {
+            return ld.compareTo(rd);
         }
-        return String.valueOf(left).compareTo(String.valueOf(right));
+        return String.valueOf(leftNorm).compareTo(String.valueOf(rightNorm));
     }
 
     /**

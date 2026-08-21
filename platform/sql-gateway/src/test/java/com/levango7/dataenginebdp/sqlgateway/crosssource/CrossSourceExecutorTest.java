@@ -6,6 +6,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -63,10 +64,12 @@ class CrossSourceExecutorTest {
 
         assertThat(result.getRowCount()).isEqualTo(4);
         assertThat(result.getSource()).isEqualTo("merged");
-        // 验证所有 id 都出现
+        // 验证所有 id 都出现（数值经类型归一化为 BigDecimal）
         List<Object> ids = new ArrayList<>();
         result.getRows().forEach(row -> ids.add(row.get(0)));
-        assertThat(ids).containsExactlyInAnyOrder(1, 2, 3, 4);
+        assertThat(ids).containsExactlyInAnyOrder(
+                BigDecimal.valueOf(1), BigDecimal.valueOf(2),
+                BigDecimal.valueOf(3), BigDecimal.valueOf(4));
     }
 
     @Test

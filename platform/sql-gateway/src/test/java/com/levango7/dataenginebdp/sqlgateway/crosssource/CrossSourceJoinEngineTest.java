@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.sqlgateway.crosssource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.List;
 
@@ -45,10 +46,12 @@ class CrossSourceJoinEngineTest {
 
         assertThat(result.getRowCount()).isEqualTo(2);
         assertThat(result.getColumns()).containsExactly("id", "name", "uid", "age");
-        // 第一行：id=1, name=alice, uid=1, age=30
-        assertThat(result.getRows().get(0)).containsExactly(1, "alice", 1, 30);
+        // 第一行：id=1, name=alice, uid=1, age=30（数值经类型归一化为 BigDecimal）
+        assertThat(result.getRows().get(0))
+                .containsExactly(BigDecimal.valueOf(1), "alice", BigDecimal.valueOf(1), BigDecimal.valueOf(30));
         // 第二行：id=2, name=bob, uid=2, age=25
-        assertThat(result.getRows().get(1)).containsExactly(2, "bob", 2, 25);
+        assertThat(result.getRows().get(1))
+                .containsExactly(BigDecimal.valueOf(2), "bob", BigDecimal.valueOf(2), BigDecimal.valueOf(25));
         assertThat(result.getSource()).isEqualTo("merged");
     }
 
@@ -93,7 +96,8 @@ class CrossSourceJoinEngineTest {
                 new CrossSourceJoinEngine.JoinCondition("id", "id"));
 
         assertThat(result.getColumns()).containsExactly("id", "value", "id_right", "value_right");
-        assertThat(result.getRows().get(0)).containsExactly(1, "L1", 1, "R1");
+        assertThat(result.getRows().get(0))
+                .containsExactly(BigDecimal.valueOf(1), "L1", BigDecimal.valueOf(1), "R1");
     }
 
     @Test
@@ -262,7 +266,8 @@ class CrossSourceJoinEngineTest {
                 new CrossSourceJoinEngine.JoinCondition("id", "id"));
 
         assertThat(result.getRowCount()).isEqualTo(3);
-        assertThat(result.getRows().get(0)).containsExactly(1, "alice", 1, 30);
+        assertThat(result.getRows().get(0))
+                .containsExactly(BigDecimal.valueOf(1), "alice", BigDecimal.valueOf(1), BigDecimal.valueOf(30));
     }
 
     @Test
