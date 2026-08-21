@@ -1,0 +1,124 @@
+{{- if .Values.disasterRecovery.enabled -}}
+# ============================================================================
+# FederatedBackupPolicy CRD - 跨集群联邦备份策略
+# 功能：
+#   1. 定义跨集群备份策略（自定义资源）
+#   2. 备份范围（namespace/label 选择器）
+#   3. 备份调度和保留
+#   4. 恢复优先级
+# 注意：FederatedBackupPolicy 为自定义 CRD，需先部署 CRD 定义
+# ============================================================================
+# 1. FederatedBackupPolicy CRD 定义
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: federatedbackuppolicies.dr.karmada.io
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    disaster-recovery: "federated-backup"
+spec:
+  group: dr.karmada.io
+  names:
+    kind: FederatedBackupPolicy
+    listKind: FederatedBackupPolicyList
+    plural: federatedbackuppolicies
+    singular: federatedbackuppolicy
+    shortNames:
+      - fbp
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                # 备份范围 - namespace 选择器
+                namespaceSelector:
+                  type: object
+                  properties:
+                    matchNames:
+                      type: array
+                      items:
+                        type: string
+                    matchLabels:
+                      type: object
+                      additionalProperties:
+                        type: string
+                # 备份范围 - label 选择器
+                labelSelector:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
+                # 目标集群列表
+                targetClusters:
+                  type: array
+                  items:
+                    type: string
+                # 备份调度
+                schedule:
+                  type: string
+                # 备份保留天数
+                retentionDays:
+                  type: integer
+                # 恢复优先级（数字越小优先级越高）
+                restorePriority:
+                  type: integer
+                  default: 100
+                # 是否包含集群级资源
+                includeClusterResources:
+                  type: boolean
+                  default: false
+                # 存储位置
+                storageLocation:
+                  type: string
+                # RTO 目标（分钟）
+                rtoMinutes:
+                  type: integer
+                # RPO 目标（分钟）
+                rpoMinutes:
+                  type: integer
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}
+---
+# 2. 默认联邦备份策略实例
+apiVersion: dr.karmada.io/v1alpha1
+kind: FederatedBackupPolicy
+metadata:
+  name: {{ include "karmada.fullname" . }}-default-policy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    disaster-recovery: "federated"
+  annotations:
+    "description": "默认跨集群联邦备份策略"
+spec:
+  # 备份范围：业务 namespace
+  namespaceSelector:
+    matchNames:
+      {{- range .Values.disasterRecovery.businessNamespaces }}
+      - {{ . | quote }}
+      {{- end }}
+  # 目标集群：所有 Karmada 成员集群
+  targetClusters:
+    {{- range .Values.disasterRecovery.targetClusters }}
+    - {{ . | quote }}
+    {{- end }}
+  # 备份调度：每日凌晨 02:00
+  schedule: {{ .Values.disasterRecovery.backupSchedule | default "0 2 * * *" | quote }}
+  # 保留 30 天
+  retentionDays: {{ .Values.disasterRecovery.retentionDays | default 30 }}
+  # 恢复优先级
+  restorePriority: 1
+  includeClusterResources: false
+  storageLocation: velero-bsl
+  # RTO/RPO 目标
+  rtoMinutes: {{ .Values.disasterRecovery.rto | default 30 }}
+  rpoMinutes: {{ .Values.disasterRecovery.rpo | default 60 }}
+{{- end -}}

@@ -1,0 +1,158 @@
+{{- if .Values.disasterRecovery.enabled -}}
+# ============================================================================
+# 集群故障切换配置 - ClusterFailoverConfig CRD 与默认配置
+# 功能：
+#   1. 故障检测阈值（连续失败次数/超时时间）
+#   2. 自动切换开关
+#   3. 切换流程 Hook
+#   4. 通知配置（Webhook/邮件）
+# ============================================================================
+# 1. ClusterFailoverConfig CRD 定义
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: clusterfailoverconfigs.dr.karmada.io
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    disaster-recovery: "failover-config"
+spec:
+  group: dr.karmada.io
+  names:
+    kind: ClusterFailoverConfig
+    listKind: ClusterFailoverConfigList
+    plural: clusterfailoverconfigs
+    singular: clusterfailoverconfig
+    shortNames:
+      - cfc
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                # 故障检测配置
+                detection:
+                  type: object
+                  properties:
+                    # 连续失败次数阈值
+                    failureThreshold:
+                      type: integer
+                      default: 3
+                    # 检测间隔（秒）
+                    intervalSeconds:
+                      type: integer
+                      default: 30
+                    # 超时时间（秒）
+                    timeoutSeconds:
+                      type: integer
+                      default: 60
+                # 自动切换开关
+                autoFailover:
+                  type: boolean
+                  default: false
+                # 切换流程 Hook
+                hooks:
+                  type: object
+                  properties:
+                    preFailover:
+                      type: string
+                    postFailover:
+                      type: string
+                    onFailoverFailure:
+                      type: string
+                # 通知配置
+                notification:
+                  type: object
+                  properties:
+                    webhook:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                        url:
+                          type: string
+                    email:
+                      type: object
+                      properties:
+                        enabled:
+                          type: boolean
+                        to:
+                          type: array
+                          items:
+                            type: string
+                        smtpServer:
+                          type: string
+                # RTO 目标（分钟）
+                rtoMinutes:
+                  type: integer
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}
+---
+# 2. 默认故障切换配置实例
+apiVersion: dr.karmada.io/v1alpha1
+kind: ClusterFailoverConfig
+metadata:
+  name: {{ include "karmada.fullname" . }}-failover-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    disaster-recovery: "failover"
+  annotations:
+    "description": "默认集群故障切换配置"
+spec:
+  # 故障检测：连续 3 次失败（每次间隔 30s，超时 60s）即判定故障
+  detection:
+    failureThreshold: {{ .Values.disasterRecovery.failover.failureThreshold | default 3 }}
+    intervalSeconds: {{ .Values.disasterRecovery.failover.intervalSeconds | default 30 }}
+    timeoutSeconds: {{ .Values.disasterRecovery.failover.timeoutSeconds | default 60 }}
+  # 自动切换开关（生产环境建议 false，由人工确认后脚本触发）
+  autoFailover: {{ .Values.disasterRecovery.failover.autoFailover | default false }}
+  # 切换流程 Hook
+  hooks:
+    # 故障切换前：标记故障集群不可调度
+    preFailover: |
+      #!/bin/bash
+      set -euo pipefail
+      echo "[failover-hook] 故障切换前：标记故障集群不可调度"
+      kubectl karmada taint cluster $FAILED_CLUSTER node.kubernetes.io/unreachable:NoSchedule
+    # 故障切换后：验证目标集群业务正常
+    postFailover: |
+      #!/bin/bash
+      set -euo pipefail
+      echo "[failover-hook] 故障切换后：验证目标集群业务正常"
+      kubectl get deploy --all-namespaces --kubeconfig=$TARGET_KUBECONFIG
+    # 切换失败时：告警并回滚
+    onFailoverFailure: |
+      #!/bin/bash
+      set -euo pipefail
+      echo "[failover-hook] CRITICAL: 故障切换失败，请立即人工介入！"
+  # 通知配置
+  notification:
+    webhook:
+      enabled: {{ .Values.disasterRecovery.failover.notification.webhook.enabled | default false }}
+      {{- if .Values.disasterRecovery.failover.notification.webhook.url }}
+      url: {{ .Values.disasterRecovery.failover.notification.webhook.url | quote }}
+      {{- end }}
+    email:
+      enabled: {{ .Values.disasterRecovery.failover.notification.email.enabled | default false }}
+      {{- if .Values.disasterRecovery.failover.notification.email.to }}
+      to:
+        {{- range .Values.disasterRecovery.failover.notification.email.to }}
+        - {{ . | quote }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.disasterRecovery.failover.notification.email.smtpServer }}
+      smtpServer: {{ .Values.disasterRecovery.failover.notification.email.smtpServer | quote }}
+      {{- end }}
+  # RTO 目标
+  rtoMinutes: {{ .Values.disasterRecovery.rto | default 30 }}
+{{- end -}}

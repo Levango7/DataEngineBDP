@@ -102,6 +102,91 @@ config:
   application.conf: |
     # velero 默认配置，完整配置请引用 design/deploy/values/velero-values.yaml
 
+# ============================================================================
+# 灾备配置（disasterRecovery）- 跨集群备份与恢复
+# 关联：scripts/disaster-recovery/ 目录下的灾备脚本
+# ============================================================================
+disasterRecovery:
+  # 灾备总开关
+  enabled: false
+
+  # RTO（Recovery Time Objective，恢复时间目标，分钟）
+  # 定义：故障发生后系统恢复运行所需最大时间
+  # 业务影响：RTO 越小，业务中断时间越短，但成本越高
+  # 推荐值：核心业务 30，重要业务 60，一般业务 120
+  rto: 30
+
+  # RPO（Recovery Point Objective，恢复点目标，分钟）
+  # 定义：故障发生时允许丢失的最大数据量（时间维度）
+  # 业务影响：RPO 越小，数据丢失越少，但备份频率越高、存储成本越大
+  # 推荐值：核心业务 15，重要业务 60，一般业务 360
+  rpo: 60
+
+  # 备份调度策略（Cron 表达式）
+  backupSchedule:
+    # 每日全量备份（默认凌晨 02:00）
+    daily: "0 2 * * *"
+    # 每小时增量备份（默认每整点）
+    hourly: "0 * * * *"
+    # 每周归档备份（默认周日凌晨 03:00）
+    weekly: "0 3 * * 0"
+
+  # 备份保留天数（全量备份）
+  retentionDays: 30
+
+  # 增量备份保留小时数
+  incrementalRetentionHours: 24
+
+  # 归档备份保留天数（异地容灾）
+  archiveRetentionDays: 90
+
+  # 业务 namespace 列表（增量备份仅覆盖这些 namespace）
+  businessNamespaces:
+    - default
+    - production
+    - staging
+
+  # 标签选择器（可选，用于精细化备份范围）
+  # labelSelector:
+  #   matchLabels:
+  #     backup: "true"
+
+  # 卷快照位置名称
+  # volumeSnapshotLocation: velero-vsl
+
+  # ---- 备份存储位置（S3/MinIO）----
+  backupStorage:
+    # S3 bucket 名称
+    bucket: "velero-backups"
+    # bucket 前缀（多集群共享 bucket 时区分）
+    prefix: ""
+    # S3 region
+    region: "us-east-1"
+    # S3 endpoint（MinIO 时填写 MinIO 地址）
+    endpoint: "https://s3.amazonaws.com"
+    # 是否使用 path style（MinIO 需要 true）
+    forcePathStyle: true
+    # KMS 加密 key ID（可选）
+    # kmsKeyId: "arn:aws:kms:us-east-1:123456789012:key/xxx"
+    # CA 证书（可选，自签名证书时填写）
+    # caCert: ""
+
+  # ---- 跨 region 复制（异地容灾）----
+  crossRegionReplication:
+    enabled: false
+    # 目标 region
+    targetRegion: "us-west-2"
+    # 目标 bucket
+    targetBucket: "velero-backups-archive"
+    # 目标 bucket 前缀
+    prefix: "archive"
+    # 目标 S3 endpoint
+    endpoint: "https://s3.amazonaws.com"
+    # 是否使用 path style
+    forcePathStyle: true
+    # KMS 加密 key ID（可选）
+    # kmsKeyId: "arn:aws:kms:us-west-2:123456789012:key/yyy"
+
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/velero-values.yaml 覆盖
 # 渲染命令： helm template velero design/deploy/charts/velero -f design/deploy/values/velero-values.yaml

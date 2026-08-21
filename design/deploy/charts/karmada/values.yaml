@@ -102,6 +102,71 @@ config:
   application.conf: |
     # karmada 默认配置，完整配置请引用 design/deploy/values/karmada-values.yaml
 
+# ============================================================================
+# 灾备配置（disasterRecovery）- 跨集群联邦备份与故障切换
+# 关联：scripts/disaster-recovery/ 目录下的灾备脚本
+# ============================================================================
+disasterRecovery:
+  # 灾备总开关
+  enabled: false
+
+  # RTO（Recovery Time Objective，恢复时间目标，分钟）
+  rto: 30
+
+  # RPO（Recovery Point Objective，恢复点目标，分钟）
+  rpo: 60
+
+  # 备份调度（Cron 表达式，默认每日凌晨 02:00）
+  backupSchedule: "0 2 * * *"
+
+  # 备份保留天数
+  retentionDays: 30
+
+  # 业务 namespace 列表
+  businessNamespaces:
+    - default
+    - production
+    - staging
+
+  # 目标集群列表（Karmada 成员集群）
+  targetClusters:
+    - cluster-beijing
+    - cluster-shanghai
+    - cluster-shenzhen
+
+  # ---- 故障切换配置 ----
+  failover:
+    # 连续失败次数阈值（达到后判定集群故障）
+    failureThreshold: 3
+    # 检测间隔（秒）
+    intervalSeconds: 30
+    # 超时时间（秒）
+    timeoutSeconds: 60
+    # 自动切换开关（生产环境建议 false，由人工确认后脚本触发）
+    autoFailover: false
+
+    # ---- 通知配置 ----
+    notification:
+      # Webhook 通知
+      webhook:
+        enabled: false
+        # url: "https://hooks.slack.com/services/xxx"
+      # 邮件通知
+      email:
+        enabled: false
+        # to:
+        #   - oncall@shuqing.example.com
+        # smtpServer: "smtp.shuqing.example.com:587"
+
+  # ---- 跨 region 复制 ----
+  crossRegionReplication:
+    enabled: false
+    targetRegion: "us-west-2"
+    targetBucket: "velero-backups-archive"
+    prefix: "archive"
+    endpoint: "https://s3.amazonaws.com"
+    forcePathStyle: true
+
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/karmada-values.yaml 覆盖
 # 渲染命令： helm template karmada design/deploy/charts/karmada -f design/deploy/values/karmada-values.yaml

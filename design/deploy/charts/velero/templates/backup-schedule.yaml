@@ -1,0 +1,128 @@
+{{- if .Values.disasterRecovery.enabled -}}
+# ============================================================================
+# 备份调度模板 - 定期备份策略
+# 功能：
+#   1. 每日全量备份（Schedule CR）
+#   2. 每小时增量备份（按 namespace）
+#   3. 每周归档备份（异地容灾）
+#   4. 备份保留策略（保留 30 天）
+# ============================================================================
+# 1. 每日全量备份调度
+#    - 覆盖所有 namespace 与集群级资源
+#    - 默认凌晨 02:00 执行，避开业务高峰
+#    - 保留期由 retentionDays 控制（默认 30 天）
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: {{ include "velero.fullname" . }}-daily-full
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "full"
+    backup-frequency: "daily"
+  annotations:
+    "description": "每日全量备份调度，覆盖所有 namespace 与集群级资源"
+    "rpo-minutes": "{{ .Values.disasterRecovery.rpo | default 1440 }}"
+spec:
+  schedule: {{ .Values.disasterRecovery.backupSchedule.daily | default "0 2 * * *" | quote }}
+  template:
+    namePrefix: daily-full
+    includedNamespaces:
+      - "*"
+    includeClusterResources: true
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - kube-node-lease
+      - {{ .Release.Namespace }}
+      - "velero"
+    excludedResources:
+      - "events"
+      - "jobs"
+      - "cronjobs"
+      - "pods"
+    {{- if .Values.disasterRecovery.labelSelector }}
+    labelSelector:
+      {{- toYaml .Values.disasterRecovery.labelSelector | nindent 6 }}
+    {{- end }}
+    storageLocation: {{ include "velero.fullname" . }}-bsl
+    {{- if .Values.disasterRecovery.volumeSnapshotLocation }}
+    volumeSnapshotLocations:
+      - {{ .Values.disasterRecovery.volumeSnapshotLocation }}
+    {{- end }}
+    ttl: {{ mul (.Values.disasterRecovery.retentionDays | default 30) 24 | printf "%dh" | quote }}
+    defaultVolumesToFsBackup: true
+---
+# 2. 每小时增量备份调度（按 namespace 分组）
+#    - 仅备份业务 namespace
+#    - RPO 由 disasterRecovery.rpo 控制（默认 60 分钟）
+#    - 保留期较短（默认 24 小时）
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: {{ include "velero.fullname" . }}-hourly-incremental
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "incremental"
+    backup-frequency: "hourly"
+  annotations:
+    "description": "每小时增量备份调度，仅覆盖业务 namespace"
+    "rpo-minutes": "{{ .Values.disasterRecovery.rpo | default 60 }}"
+spec:
+  schedule: {{ .Values.disasterRecovery.backupSchedule.hourly | default "0 * * * *" | quote }}
+  template:
+    namePrefix: hourly-incr
+    includedNamespaces:
+      {{- range .Values.disasterRecovery.businessNamespaces }}
+      - {{ . | quote }}
+      {{- end }}
+    includeClusterResources: false
+    excludedNamespaces:
+      - kube-system
+      - {{ .Release.Namespace }}
+    excludedResources:
+      - "events"
+      - "jobs"
+      - "cronjobs"
+    storageLocation: {{ include "velero.fullname" . }}-bsl
+    {{- if .Values.disasterRecovery.volumeSnapshotLocation }}
+    volumeSnapshotLocations:
+      - {{ .Values.disasterRecovery.volumeSnapshotLocation }}
+    {{- end }}
+    ttl: {{ printf "%dh" (.Values.disasterRecovery.incrementalRetentionHours | default 24) | quote }}
+    defaultVolumesToFsBackup: true
+{{- if .Values.disasterRecovery.crossRegionReplication.enabled }}
+---
+# 3. 每周归档备份（长期保留，异地容灾）
+#    - 每周日凌晨 03:00 执行
+#    - 保留 90 天（可配置）
+#    - 启用跨 region 复制
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  name: {{ include "velero.fullname" . }}-weekly-archive
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "archive"
+    backup-frequency: "weekly"
+  annotations:
+    "description": "每周归档备份，长期保留并复制到异地 S3"
+    "cross-region": {{ .Values.disasterRecovery.crossRegionReplication.targetRegion | default "remote" | quote }}
+spec:
+  schedule: {{ .Values.disasterRecovery.backupSchedule.weekly | default "0 3 * * 0" | quote }}
+  template:
+    namePrefix: weekly-archive
+    includedNamespaces:
+      - "*"
+    includeClusterResources: true
+    excludedNamespaces:
+      - kube-system
+      - kube-public
+      - {{ .Release.Namespace }}
+    storageLocation: {{ include "velero.fullname" . }}-bsl-archive
+    ttl: {{ mul (.Values.disasterRecovery.archiveRetentionDays | default 90) 24 | printf "%dh" | quote }}
+    defaultVolumesToFsBackup: true
+{{- end }}
+{{- end -}}

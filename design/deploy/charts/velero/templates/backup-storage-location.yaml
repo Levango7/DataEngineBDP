@@ -1,0 +1,132 @@
+{{- if .Values.disasterRecovery.enabled -}}
+# ============================================================================
+# 跨集群备份存储位置（BSL）模板
+# 功能：
+#   1. 主集群备份存储位置（S3/MinIO）
+#   2. 备份同步到异地（跨 region S3 复制）
+#   3. 存储加密配置
+#   4. 卷快照位置（VSL）
+# ============================================================================
+# 1. 主备份存储位置 - S3/MinIO
+#    - 用于每日全量与每小时增量备份
+#    - 启用服务端加密（SSE-S3）
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: {{ include "velero.fullname" . }}-bsl
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "primary"
+  annotations:
+    "description": "主备份存储位置，使用 S3/MinIO"
+spec:
+  provider: aws
+  default: true
+  credential:
+    name: {{ include "velero.fullname" . }}-cloud-credentials
+    key: cloud
+  objectStorage:
+    bucket: {{ .Values.disasterRecovery.backupStorage.bucket | default "velero-backups" | quote }}
+    {{- if .Values.disasterRecovery.backupStorage.prefix }}
+    prefix: {{ .Values.disasterRecovery.backupStorage.prefix | quote }}
+    {{- end }}
+    {{- if .Values.disasterRecovery.backupStorage.caCert }}
+    caCert: {{ .Values.disasterRecovery.backupStorage.caCert | b64enc | quote }}
+    {{- end }}
+  config:
+    region: {{ .Values.disasterRecovery.backupStorage.region | default "us-east-1" | quote }}
+    s3ForcePathStyle: {{ .Values.disasterRecovery.backupStorage.forcePathStyle | default true }}
+    s3Url: {{ .Values.disasterRecovery.backupStorage.endpoint | default "https://s3.amazonaws.com" | quote }}
+    {{- if .Values.disasterRecovery.backupStorage.kmsKeyId }}
+    kmsKeyId: {{ .Values.disasterRecovery.backupStorage.kmsKeyId | quote }}
+    {{- end }}
+  # 默认备份保留期（与 Schedule TTL 配合）
+  defaultBackupToTTL: true
+---
+# 2. 卷快照位置 - 用于 PV 数据快照
+apiVersion: velero.io/v1
+kind: VolumeSnapshotLocation
+metadata:
+  name: {{ include "velero.fullname" . }}-vsl
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "primary"
+spec:
+  provider: aws
+  credential:
+    name: {{ include "velero.fullname" . }}-cloud-credentials
+    key: cloud
+  config:
+    region: {{ .Values.disasterRecovery.backupStorage.region | default "us-east-1" | quote }}
+    {{- if .Values.disasterRecovery.backupStorage.endpoint }}
+    s3Url: {{ .Values.disasterRecovery.backupStorage.endpoint | quote }}
+    {{- end }}
+{{- if .Values.disasterRecovery.crossRegionReplication.enabled }}
+---
+# 3. 异地归档存储位置 - 跨 region 容灾
+#    - 用于每周归档备份
+#    - 跨 region S3 复制由 S3 跨 region 复制规则或 lifecycle 策略实现
+apiVersion: velero.io/v1
+kind: BackupStorageLocation
+metadata:
+  name: {{ include "velero.fullname" . }}-bsl-archive
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "archive"
+  annotations:
+    "description": "异地归档存储位置，跨 region 容灾"
+    "cross-region": {{ .Values.disasterRecovery.crossRegionReplication.targetRegion | quote }}
+spec:
+  provider: aws
+  credential:
+    name: {{ include "velero.fullname" . }}-cloud-credentials-archive
+    key: cloud
+  objectStorage:
+    bucket: {{ .Values.disasterRecovery.crossRegionReplication.targetBucket | default "velero-backups-archive" | quote }}
+    prefix: {{ .Values.disasterRecovery.crossRegionReplication.prefix | default "archive" | quote }}
+  config:
+    region: {{ .Values.disasterRecovery.crossRegionReplication.targetRegion | default "us-west-2" | quote }}
+    s3ForcePathStyle: {{ .Values.disasterRecovery.crossRegionReplication.forcePathStyle | default true }}
+    s3Url: {{ .Values.disasterRecovery.crossRegionReplication.endpoint | default "https://s3.amazonaws.com" | quote }}
+    {{- if .Values.disasterRecovery.crossRegionReplication.kmsKeyId }}
+    kmsKeyId: {{ .Values.disasterRecovery.crossRegionReplication.kmsKeyId | quote }}
+    {{- end }}
+  defaultBackupToTTL: true
+---
+# 4. 跨 region 复制配置 ConfigMap
+#    - 记录复制规则，供运维参考与脚本读取
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "velero.fullname" . }}-cross-region-replication
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "cross-region-replication"
+data:
+  replication-policy.yaml: |
+    # 跨 region S3 复制策略
+    sourceRegion: {{ .Values.disasterRecovery.backupStorage.region | default "us-east-1" }}
+    targetRegion: {{ .Values.disasterRecovery.crossRegionReplication.targetRegion | default "us-west-2" }}
+    sourceBucket: {{ .Values.disasterRecovery.backupStorage.bucket | default "velero-backups" }}
+    targetBucket: {{ .Values.disasterRecovery.crossRegionReplication.targetBucket | default "velero-backups-archive" }}
+    # 复制规则（由 S3 跨 region 复制或 lifecycle 实现）
+    replicationRule:
+      # 复制优先级
+      priority: 0
+      # 复制状态（Enabled / Disabled）
+      status: Enabled
+      # 删除标记是否同步
+      deleteMarkerReplication: true
+      # 历史版本是否同步
+      existingObjectReplication: true
+    # 加密配置
+    encryption:
+      # SSE-KMS 加密
+      sseAlgorithm: aws:kms
+      kmsKeyId: {{ .Values.disasterRecovery.crossRegionReplication.kmsKeyId | default "" }}
+{{- end }}
+{{- end -}}

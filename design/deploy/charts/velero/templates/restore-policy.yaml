@@ -1,0 +1,111 @@
+{{- if .Values.disasterRecovery.enabled -}}
+# ============================================================================
+# 恢复策略模板 - 定义多种恢复场景的 Restore CR 与 ConfigMap
+# 功能：
+#   1. 按 namespace 恢复（业务隔离恢复）
+#   2. 按 label 选择恢复（精细化恢复）
+#   3. 资源排除/包含规则
+#   4. 恢复后 Hook（健康检查）
+# 注意：Restore CR 通常在故障时手动或脚本触发，此处提供模板化策略
+# ============================================================================
+# 1. 恢复策略 ConfigMap - 集中管理恢复规则
+#    - 脚本 restore-cluster.sh 会读取此 ConfigMap 决定恢复行为
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "velero.fullname" . }}-restore-policy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "restore-policy"
+  annotations:
+    "description": "灾备恢复策略配置，由 restore-cluster.sh 读取"
+data:
+  # 默认恢复策略：按 namespace 恢复
+  default-policy.yaml: |
+    # 恢复模式：namespace / label / full
+    mode: namespace
+    # 是否覆盖已有资源
+    existingResourcePolicy: none
+    # 恢复后健康检查超时（秒）
+    healthCheckTimeout: 300
+    # 恢复后健康检查间隔（秒）
+    healthCheckInterval: 10
+    # 排除的资源类型（避免覆盖系统资源）
+    excludedResources:
+      - nodes
+      - persistentvolumes
+      - storageclasses
+    # 包含的 namespace（空表示全部）
+    includedNamespaces: []
+  # 业务连续性恢复策略：仅恢复核心业务
+  business-critical.yaml: |
+    mode: label
+    labelSelector:
+      matchLabels:
+        priority: critical
+    existingResourcePolicy: backup
+    healthCheckTimeout: 600
+    healthCheckInterval: 5
+    # 恢复优先级（高优先级先恢复）
+    priority: high
+  # 全量恢复策略：灾难性故障后完整恢复
+  full-recovery.yaml: |
+    mode: full
+    existingResourcePolicy: none
+    healthCheckTimeout: 1800
+    healthCheckInterval: 10
+    # 恢复后执行的 Hook
+    postHooks:
+      - name: verify-deployments
+        command: "kubectl get deployments --all-namespaces"
+      - name: verify-pods
+        command: "kubectl get pods --all-namespaces"
+---
+# 2. 健康检查 Hook ConfigMap - 恢复后自动执行
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "velero.fullname" . }}-restore-hooks
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "velero.labels" . | nindent 4 }}
+    disaster-recovery: "restore-hooks"
+data:
+  # 恢复后健康检查脚本
+  post-restore-check.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    echo "[restore-hook] 开始恢复后健康检查..."
+    # 检查所有 Deployment 是否就绪
+    UNREADY_DEPLOY=$(kubectl get deploy --all-namespaces -o json \
+      | jq -r '.items[] | select(.status.unavailableReplicas != null) | .metadata.namespace + "/" + .metadata.name' || true)
+    if [ -n "$UNREADY_DEPLOY" ]; then
+      echo "[restore-hook] WARNING: 以下 Deployment 未就绪:"
+      echo "$UNREADY_DEPLOY"
+      exit 1
+    fi
+    # 检查 Pod 状态
+    CRASHED_PODS=$(kubectl get pods --all-namespaces --field-selector status.phase=Failed -o json \
+      | jq -r '.items[] | .metadata.namespace + "/" + .metadata.name' || true)
+    if [ -n "$CRASHED_PODS" ]; then
+      echo "[restore-hook] WARNING: 以下 Pod 处于 Failed 状态:"
+      echo "$CRASHED_PODS"
+    fi
+    echo "[restore-hook] 健康检查完成"
+  # 恢复前清理脚本
+  pre-restore-cleanup.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    echo "[restore-hook] 开始恢复前清理..."
+    # 清理可能冲突的最终izers残留
+    kubectl get pods --all-namespaces -o json \
+      | jq -r '.items[] | select(.metadata.deletionTimestamp != null) | .metadata.namespace + "/" + .metadata.name' \
+      | while read pod; do
+          ns=$(echo "$pod" | cut -d/ -f1)
+          name=$(echo "$pod" | cut -d/ -f2)
+          echo "[restore-hook] 强制删除残留 Pod: $pod"
+          kubectl -n "$ns" delete pod "$name" --force --grace-period=0 || true
+        done
+    echo "[restore-hook] 恢复前清理完成"
+{{- end -}}
