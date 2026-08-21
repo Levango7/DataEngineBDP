@@ -1,12 +1,12 @@
 module github.com/Levango7/DataEngineBDP/karmada-api
 
-go 1.23.0
+go 1.25.0
 
 require (
-	github.com/gin-gonic/gin v1.10.0
+	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.25.12
+	gorm.io/gorm v1.30.0
 )
 
 require (
