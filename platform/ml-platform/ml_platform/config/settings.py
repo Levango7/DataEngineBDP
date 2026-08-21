@@ -5,11 +5,13 @@
     ML_PORT                    监听端口（默认 8080）
     ML_LOG_LEVEL               日志级别（默认 info）
     ML_RELOAD                  开发模式热重载（默认 false）
-    ML_BACKEND_TYPE            ML 后端类型: mock / sklearn / spark（默认 sklearn）
+    ML_BACKEND_TYPE            ML 后端类型: mock / sklearn / spark / mlflow（默认 sklearn）
     ML_FEATURE_STORE_TYPE      特征存储类型: mock / redis（默认 redis）
     ML_EXPERIMENT_STORE_TYPE   实验存储类型: mock / mlflow（默认 mlflow）
     ML_MLFLOW_URI              MLflow Tracking URI
     ML_MLFLOW_REGISTRY_URI     MLflow Registry URI（默认同 TRACKING_URI）
+    ML_MLFLOW_ENABLED          MLflow 总开关: true / false（默认 false）
+                               true 时 backend 与 experiment_store 优先使用 mlflow
     ML_REDIS_URI               Redis URI（特征存储后端）
     ML_API_PREFIX              API 路由前缀（默认 /api/v1）
 """
@@ -41,7 +43,9 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- backend ----
-    backendType: Literal["mock", "sklearn", "spark"] = Field(default="sklearn", description="ML 后端类型")
+    backendType: Literal["mock", "sklearn", "spark", "mlflow"] = Field(
+        default="sklearn", description="ML 后端类型"
+    )
 
     # ---- feature store ----
     featureStoreType: Literal["mock", "redis"] = Field(default="redis", description="特征存储类型")
@@ -57,6 +61,10 @@ class Settings(BaseSettings):
     mlflowRegistryUri: str = Field(
         default="",
         description="MLflow Registry URI（空则同 tracking uri）",
+    )
+    mlflowEnabled: bool = Field(
+        default=False,
+        description="MLflow 总开关：true 时 backend 与 experiment_store 优先使用 mlflow",
     )
 
     # ---- redis ----
@@ -95,12 +103,22 @@ class Settings(BaseSettings):
         return self.backendType == "spark"
 
     @property
+    def isMlflowBackend(self) -> bool:
+        return self.backendType == "mlflow" or (
+            self.mlflowEnabled and self.backendType != "mock"
+        )
+
+    @property
     def isMockFeatureStore(self) -> bool:
         return self.featureStoreType == "mock"
 
     @property
     def isMockExperimentStore(self) -> bool:
-        return self.experimentStoreType == "mock"
+        return self.experimentStoreType == "mock" and not self.mlflowEnabled
+
+    @property
+    def isMlflowExperimentStore(self) -> bool:
+        return self.experimentStoreType == "mlflow" or self.mlflowEnabled
 
 
 @lru_cache(maxsize=1)

@@ -1,7 +1,11 @@
 """服务注册表 - 根据配置构建 Mock 或 SQLite 实现并注入服务层.
 
 设计模式：依赖注入 + 工厂。
-配置开关：BP_STORE_TYPE=mock / sqlite
+配置开关：
+    BP_STORE_TYPE=mock / sqlite
+    BP_MLFLOW_ENABLED=true / false
+        true 时构建 MLflowMetricsProvider 并注入 Mock/SqLite Store，
+        jobCount/accuracy 从真实 MLflow 拉取，替换硬编码 120 / 0.875。
 """
 
 from __future__ import annotations
@@ -53,13 +57,22 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     if settings is None:
         settings = get_settings()
 
+    # 可选构建 MLflow 指标提供者
+    mlflowProvider = _build_mlflow_provider(settings)
+
     if settings.isMock:
-        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock()
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock(
+            mlflowProvider
+        )
     elif settings.isSqlite:
-        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_sqlite(settings.dbPath)
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_sqlite(
+            settings.dbPath, mlflowProvider
+        )
     else:
         # 兜底：未知类型回退 Mock
-        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock()
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock(
+            mlflowProvider
+        )
 
     bl_service = BusinessLineService(bl_store)
     dashboard_service = DashboardService(bl_store, dashboard_store)
@@ -82,7 +95,18 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     )
 
 
-def _build_mock() -> tuple[
+def _build_mlflow_provider(settings: Settings):
+    """根据配置构建 MLflowMetricsProvider；未启用返回 None."""
+    if not settings.mlflowEnabled:
+        return None
+    from business_portal.repositories.mlflow import MLflowMetricsProvider
+
+    return MLflowMetricsProvider(trackingUri=settings.mlflowUri)
+
+
+def _build_mock(
+    mlflowProvider=None,
+) -> tuple[
     BusinessLineStore,
     DashboardStore,
     WorkbenchStore,
@@ -97,8 +121,8 @@ def _build_mock() -> tuple[
         MockWorkbenchStore,
     )
 
-    bl_store = MockBusinessLineStore()
-    dashboard_store = MockDashboardStore(bl_store)
+    bl_store = MockBusinessLineStore(mlflowProvider=mlflowProvider)
+    dashboard_store = MockDashboardStore(bl_store, mlflowProvider=mlflowProvider)
     workbench_store = MockWorkbenchStore()
     catalog_store = MockCatalogStore()
     report_store = MockReportStore()
@@ -113,6 +137,7 @@ def _build_mock() -> tuple[
 
 def _build_sqlite(
     db_path: str,
+    mlflowProvider=None,
 ) -> tuple[
     BusinessLineStore,
     DashboardStore,

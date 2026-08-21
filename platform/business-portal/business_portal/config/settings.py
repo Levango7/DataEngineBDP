@@ -10,6 +10,8 @@
     BP_API_PREFIX        API 路由前缀（默认 /api/v1）
     BP_INTERNAL_FACTOR   内部结算系数（默认 0.3，§11.5 定价模型）
     BP_BUDGET_SOFT_LIMIT 预算软限制开关（默认 true，超限告警不阻断）
+    BP_MLFLOW_ENABLED    MLflow 指标采集开关: true / false（默认 false）
+    BP_MLFLOW_URI        MLflow Tracking URI（默认 http://localhost:5000）
 """
 
 from __future__ import annotations
@@ -53,6 +55,16 @@ class Settings(BaseSettings):
     internalFactor: float = Field(default=0.3, ge=0.0, le=1.0, description="内部结算系数")
     # 预算软限制：true=超限告警不阻断，false=超限阻断
     budgetSoftLimit: bool = Field(default=True, description="预算软限制开关")
+
+    # ---- mlflow 指标采集 ----
+    mlflowEnabled: bool = Field(
+        default=False,
+        description="MLflow 指标采集开关：true 时从真实 MLflow 拉取 jobCount/accuracy",
+    )
+    mlflowUri: str = Field(
+        default="http://localhost:5000",
+        description="MLflow Tracking URI",
+    )
 
     @field_validator("logLevel")
     @classmethod

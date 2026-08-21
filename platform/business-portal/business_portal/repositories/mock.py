@@ -4,12 +4,14 @@
 1. 多业务线隔离：所有数据按 blId 分桶，跨业务线访问默认拒绝。
 2. 权限隔离：通过 memberIds 校验当前用户是否可见该业务线。
 3. 业务线名称同租户下唯一。
+4. MLflow 指标注入：MockBusinessLineStore 可选接收 MLflowMetricsProvider，
+   启用后 jobCount/accuracy 从真实 MLflow 拉取，替换硬编码 120 / 0.875。
 """
 
 from __future__ import annotations
 
 import threading
-from typing import Any
+from typing import Any, Optional
 import uuid
 
 from business_portal.interfaces.store import (
@@ -92,10 +94,20 @@ class _LockableDict:
 class MockBusinessLineStore(BusinessLineStore):
     """Mock 业务线存储."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        mlflowProvider: Optional[Any] = None,
+    ) -> None:
+        """
+        Args:
+            mlflowProvider: 可选的 MLflowMetricsProvider 实例。
+                注入后 get_usage 的 jobCount 从真实 MLflow 拉取，
+                替换硬编码 jobCount=120。
+        """
         self._store: _LockableDict = _LockableDict()
         # 名称索引：(tenantId, name) -> blId，保证同租户下名称唯一
         self._name_index: _LockableDict = _LockableDict()
+        self._mlflowProvider = mlflowProvider
 
     async def create(self, bl: BusinessLine) -> BusinessLine:
         # 校验同租户下名称唯一
@@ -161,14 +173,34 @@ class MockBusinessLineStore(BusinessLineStore):
     async def get_usage(self, bl_id: str) -> BusinessLineUsage:
         # Mock：返回基于业务线成员/团队数的概览
         bl = await self.get(bl_id)
+        # 默认硬编码值（与原实现一致）
+        jobCount = 120
+        jobSuccessToday = 98
+        jobFailToday = 4
+        # 若注入了 MLflow 指标提供者，从真实 MLflow 拉取 jobCount
+        if self._mlflowProvider is not None:
+            try:
+                mlflowJobCount = await self._mlflowProvider.getJobCount()
+                # 用真实 MLflow run 总数替换硬编码 120
+                jobCount = mlflowJobCount
+                # 同步调整成功/失败数（保持比例）
+                if jobCount > 0:
+                    jobSuccessToday = int(jobCount * 0.82)
+                    jobFailToday = max(0, jobCount - jobSuccessToday - int(jobCount * 0.15))
+                else:
+                    jobSuccessToday = 0
+                    jobFailToday = 0
+            except Exception:
+                # MLflow 不可用时回退硬编码
+                pass
         return BusinessLineUsage(
             blId=bl_id,
             projectCount=len(bl.teamIds) * 3,  # 假设每团队 3 个项目
             teamCount=len(bl.teamIds),
             memberCount=len(bl.memberIds),
-            jobCount=120,
-            jobSuccessToday=98,
-            jobFailToday=4,
+            jobCount=jobCount,
+            jobSuccessToday=jobSuccessToday,
+            jobFailToday=jobFailToday,
             storageUsed=12.5,
             costToday=bl.budget.used * 0.1,
             costMonth=bl.budget.used,
@@ -178,8 +210,19 @@ class MockBusinessLineStore(BusinessLineStore):
 class MockDashboardStore(DashboardStore):
     """Mock 仪表盘存储."""
 
-    def __init__(self, bl_store: MockBusinessLineStore) -> None:
+    def __init__(
+        self,
+        bl_store: MockBusinessLineStore,
+        mlflowProvider: Optional[Any] = None,
+    ) -> None:
+        """
+        Args:
+            bl_store: 业务线存储
+            mlflowProvider: 可选的 MLflowMetricsProvider。
+                注入后仪表盘新增 accuracy KPI，从真实 MLflow best run 拉取。
+        """
         self._bl_store = bl_store
+        self._mlflowProvider = mlflowProvider
 
     async def get_dashboard(self, bl_id: str) -> Dashboard:
         usage = await self._bl_store.get_usage(bl_id)
@@ -201,6 +244,23 @@ class MockDashboardStore(DashboardStore):
             ),
             Kpi(key="costMonth", label="本月成本", value=usage.costMonth, unit="元"),
         ]
+        # 若注入了 MLflow 指标提供者，新增 accuracy KPI（真实指标）
+        accuracyValue: Optional[float] = None
+        if self._mlflowProvider is not None:
+            try:
+                accuracyValue = await self._mlflowProvider.getAccuracy()
+            except Exception:
+                accuracyValue = None
+        if accuracyValue is not None:
+            kpis.append(
+                Kpi(
+                    key="accuracy",
+                    label="模型准确率",
+                    value=round(accuracyValue, 4),
+                    unit="",
+                    description="来自 MLflow best run 的真实指标",
+                )
+            )
         # 趋势图（近 7 日 CPU/内存）
         cpu_bars = [42, 55, 48, 67, 71, 63, 58]
         mem_bars = [50, 62, 60, 70, 75, 68, 65]

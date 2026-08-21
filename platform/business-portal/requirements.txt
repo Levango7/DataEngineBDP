@@ -10,6 +10,9 @@ pydantic-settings==2.15.0
 # HTTP client
 httpx==0.27.0
 
+# MLflow integration (optional, enabled when BP_MLFLOW_ENABLED=true)
+mlflow==3.15.1
+
 # Testing
 pytest==8.1.1
 pytest-asyncio==1.4.0

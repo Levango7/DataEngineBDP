@@ -76,6 +76,13 @@ def buildServices(
 
 
 def _buildBackend(settings: Settings) -> MLBackend:
+    if settings.isMlflowBackend:
+        from ml_platform.repositories.mlflow import MLflowMLBackend
+
+        return MLflowMLBackend(
+            trackingUri=settings.mlflowUri,
+            registryUri=settings.effectiveRegistryUri,
+        )
     if settings.isMockBackend:
         from ml_platform.repositories.mock import MockMLBackend
 
@@ -113,13 +120,19 @@ def _buildFeatureStore(settings: Settings) -> FeatureStore:
 def _buildExperimentStore(
     settings: Settings,
 ) -> ExperimentStore:
+    if settings.isMlflowExperimentStore:
+        from ml_platform.repositories.mlflow import (
+            MLflowExperimentStore,
+        )
+
+        return MLflowExperimentStore(trackingUri=settings.mlflowUri)
     if settings.isMockExperimentStore:
         from ml_platform.repositories.mock import (
             MockExperimentStore,
         )
 
         return MockExperimentStore()
-    # MLflow 后端骨架，暂未实现，回退到 Mock
+    # 兜底 Mock
     from ml_platform.repositories.mock import (
         MockExperimentStore,
     )
