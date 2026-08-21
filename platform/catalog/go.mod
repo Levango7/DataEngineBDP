@@ -1,12 +1,12 @@
 module github.com/Levango7/DataEngineBDP/catalog
 
-go 1.26
+go 1.23.0
 
 require (
-	github.com/gin-gonic/gin v1.9.1
+	github.com/gin-gonic/gin v1.10.0
 	github.com/glebarez/sqlite v1.11.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
-	github.com/prometheus/client_golang v1.24.1
+	github.com/prometheus/client_golang v1.20.0
 	github.com/stretchr/testify v1.11.1
 	go.opentelemetry.io/otel v1.45.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.45.0
@@ -15,7 +15,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.45.0
 	gorm.io/driver/postgres v1.6.2
 	gorm.io/driver/sqlite v1.6.0
-	gorm.io/gorm v1.31.2
+	gorm.io/gorm v1.25.12
 )
 
 require (
