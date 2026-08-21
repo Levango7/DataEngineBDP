@@ -13,7 +13,7 @@
 
     <properties>
         <java.version>17</java.version>
-        <spring-boot.version>3.2.5</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -28,6 +28,31 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <modules>
+        <module>platform/common-security</module>
+        <module>platform/encaps-data</module>
+        <module>platform/encaps-gateway</module>
+        <module>platform/encaps-layer</module>
+        <module>platform/encaps-tenant</module>
+        <module>platform/finops/cost-model</module>
+        <module>platform/finops/dashboard</module>
+        <module>platform/flink-cdc</module>
+        <module>platform/governance/lineage-analyzer</module>
+        <module>platform/governance/metadata-collector</module>
+        <module>platform/governance/real-time-pipeline</module>
+        <module>platform/infra-orchestrator</module>
+        <module>platform/infra-provider-cloud</module>
+        <module>platform/infra-provider-private</module>
+        <module>platform/infra-provider-xinchang</module>
+        <module>platform/karmada/federated-query</module>
+        <module>platform/knative/runtimes/java</module>
+        <module>platform/rule-engine</module>
+        <module>platform/sql-gateway</module>
+        <module>platform/storage-io</module>
+        <module>platform/stream-batch-scheduler</module>
+        <module>platform/tag-engine</module>
+    </modules>
 
     <build>
         <pluginManagement>
