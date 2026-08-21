@@ -1,0 +1,64 @@
+# =============================================================================
+# stream-batch-scheduler 集成测试配置（真实 Flink/Spark 集群）
+# =============================================================================
+# 启用方式：mvn test -Dtest=FlinkRestClientIT,SparkBatchSubmitterIT -Dinfra.it=true
+# 前置条件：Docker 基础设施已启动（bash scripts/infra/start-infra.sh --no-init）
+#   - Flink JobManager REST: http://localhost:8081
+#   - Spark Master RPC:      spark://localhost:7077
+#   - Spark Master WebUI:    http://localhost:18080
+# =============================================================================
+server:
+  port: 0
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:scheduler-it;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+# ============================================================
+# 真实提交配置：real-submit-enabled=true
+# ============================================================
+shuqing:
+  stream-batch:
+    # -------------------- Iceberg snapshot 隔离配置（测试用最小配置） --------------------
+    iceberg:
+      catalog-type: hive
+      catalog-name: shuqing_catalog
+      catalog-uri: thrift://localhost:9083
+      warehouse: s3://shuqing-warehouse/iceberg
+      batch-snapshot-lock-mode: AT_JOB_START
+      stream-snapshot-mode: LATEST
+      isolation-validation-enabled: false
+
+    # -------------------- Spark 批作业配置（真实提交） --------------------
+    spark:
+      master: spark://localhost:7077
+      deploy-mode: client
+      driver-memory: 512m
+      executor-memory: 512m
+      executor-cores: 1
+      executor-instances: 1
+      real-submit-enabled: true
+      # spark-home 通过环境变量 SPARK_HOME 覆盖（本地有 spark-submit 时启用 SparkLauncher 真实提交）
+      spark-home: ${SPARK_HOME:}
+
+    # -------------------- Flink 流作业配置（真实提交） --------------------
+    flink:
+      job-manager-rest: http://localhost:8081
+      parallelism: 1
+      job-manager-memory: 1024m
+      task-manager-memory: 1024m
+      task-manager-slots: 2
+      checkpoint-interval-ms: 30000
+      checkpoint-path: file:///tmp/flink-checkpoints-it
+      real-submit-enabled: true
+
+logging:
+  level:
+    com.levango7.dataenginebdp.streambatch: INFO
+    org.springframework.web: INFO

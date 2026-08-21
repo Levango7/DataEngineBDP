@@ -1,0 +1,71 @@
+# =============================================================================
+# SQL 网关集成测试配置（连接真实 Docker Trino + Doris 后端）
+# =============================================================================
+# 用途：BackendProxyRealIT 使用，要求 Docker 基础设施已启动：
+#   bash scripts/infra/start-infra.sh
+# 端口约定（与 docker-compose.infra.yml 一致）：
+#   - Trino 8080（Statement API：POST /v1/statement）
+#   - Doris FE HTTP 8030（UI / REST）
+#   - Doris FE MySQL 9030（JDBC 查询端口，MySQL 兼容协议）
+# 激活方式：
+#   mvn test -Dtest=BackendProxyRealIT -Dinfra.it=true \
+#            -Dspring.profiles.active=it
+# =============================================================================
+server:
+  port: 0
+
+spring:
+  application:
+    name: sql-gateway-it
+  datasource:
+    # 集成测试仍使用 H2 内存库作为网关自身元数据库
+    url: jdbc:h2:mem:itdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+sql-gateway:
+  backends:
+    # Trino Statement API 端点（docker-compose.infra.yml: de-trino 8080）
+    trino:
+      url: ${TRINO_URL:http://localhost:8080}
+      # 连接超时 10s，读取超时 30s（BackendConfig.timeout 同时用于两者）
+      timeout: 30
+      max-retries: 1
+    # Doris FE 端点：HTTP 8030 用于 UI/REST；JDBC 9030 用于 SQL 执行
+    # BackendProxyService.resolveDorisJdbcUrl 会将 http://host:port 自动转为
+    # jdbc:mysql://host:port，因此这里配置 9030（查询端口）
+    doris:
+      url: ${DORIS_URL:http://localhost:9030}
+      timeout: 30
+      max-retries: 1
+  default-engine: trino
+  circuit-breaker:
+    enabled: true
+    failure-threshold: 5
+    reset-timeout: 60
+
+# 关闭 OpenTelemetry 导出（集成测试无需收集链路）
+otel:
+  traces:
+    exporter: none
+
+logging:
+  level:
+    com.levango7.dataenginebdp: INFO
+    org.springframework.web.reactive.function.client: INFO
+
+app:
+  security:
+    jwt:
+      secret: it-secret-key-for-integration-tests-at-least-256-bits-long
+      issuer: shuqing-bigdata
+    cors:
+      allowed-origins: http://localhost:5173
