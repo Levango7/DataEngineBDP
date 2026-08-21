@@ -23,7 +23,7 @@
         <!-- DolphinScheduler 3.2.0 插件 SPI 版本 -->
         <dolphinscheduler.version>3.4.2</dolphinscheduler.version>
         <!-- Iceberg 1.5.0（与 Phase 1 T015 Iceberg V2 upsert 对齐） -->
-        <iceberg.version>1.5.2</iceberg.version>
+        <iceberg.version>1.11.0</iceberg.version>
         <!-- Spark 3.5.0（与 L2.2 批计算详细设计对齐） -->
         <spark.version>3.5.3</spark.version>
         <!-- Flink 1.18.0（与 L2.3 流计算详细设计、T014 Flink CDC 对齐） -->
