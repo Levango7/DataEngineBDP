@@ -1,0 +1,53 @@
+﻿# 默认 PropagationPolicy：为核心服务创建跨集群副本分布策略。
+# 关联：platform/karmada/federated-query/scheduling/PropagationPolicyGenerator.java
+{{- if .Values.propagationPolicy.enabled }}
+apiVersion: policy.karmada.io/v1alpha1
+kind: PropagationPolicy
+metadata:
+  name: {{ include "karmada.fullname" . }}-default
+  namespace: {{ .Values.propagationPolicy.namespace | default "default" }}
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    scheduling.policy/type: {{ .Values.propagationPolicy.type | default "topology-aware" }}
+spec:
+  resourceSelectors:
+    {{- range .Values.propagationPolicy.targetResources }}
+    - apiVersion: {{ .apiVersion }}
+      kind: {{ .kind }}
+      name: {{ .name }}
+    {{- end }}
+  placement:
+    {{- with .Values.propagationPolicy.clusterAffinity }}
+    clusterAffinity:
+      labelSelector:
+        matchLabels:
+          {{- toYaml . | nindent 10 }}
+    {{- end }}
+    {{- with .Values.propagationPolicy.clusterTolerations }}
+    clusterTolerations:
+      {{- toYaml . | nindent 6 }}
+    {{- end }}
+    replicaScheduling:
+      replicaSchedulingType: {{ .Values.propagationPolicy.replicaSchedulingType | default "Divided" }}
+      replicaDivisionPreference: {{ .Values.propagationPolicy.replicaDivisionPreference | default "Weighted" }}
+      {{- if eq .Values.propagationPolicy.replicaDivisionPreference "Weighted" }}
+      weightPreference:
+        staticWeightList:
+          {{- range .Values.propagationPolicy.staticWeights }}
+          - targetCluster:
+              clusterNames:
+                - {{ .cluster }}
+            weight: {{ .weight | int }}
+          {{- end }}
+      {{- end }}
+    placementPolicyType: {{ .Values.propagationPolicy.placementPolicyType | default "Spread" }}
+    {{- if .Values.propagationPolicy.topologySpreadConstraints }}
+    topologySpreadConstraints:
+      {{- range .Values.propagationPolicy.topologySpreadConstraints }}
+      - maxSkew: {{ .maxSkew | int }}
+        topologyKey: {{ .topologyKey }}
+        whenUnsatisfiable: {{ .whenUnsatisfiable | default "DoNotSchedule" }}
+        minDomains: {{ .minDomains | int }}
+      {{- end }}
+    {{- end }}
+{{- end }}

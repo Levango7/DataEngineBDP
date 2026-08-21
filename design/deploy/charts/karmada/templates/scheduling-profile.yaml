@@ -1,0 +1,68 @@
+﻿# 调度 Profile：定义多种调度策略组合（latency-first/cost-first/availability-first/balanced）。
+# 关联：platform/karmada/federated-query/scheduling/SchedulingPolicy.java
+# 每个 ConfigMap 项对应一种 Profile，由 FederatedScheduler 在调度决策时引用。
+{{- if .Values.schedulingProfile.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "karmada.fullname" . }}-scheduling-profiles
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    scheduling.karmada.io/component: scheduling-profile
+data:
+  latency-first.yaml: |
+    # 延迟优先：优先调度到低延迟集群，副本分散以降低单点延迟
+    policyTypes:
+      - AFFINITY
+      - TOPOLOGY_AWARE
+    replicaDistribution: SPREAD
+    latencyFirst: true
+    crossRegionSpread: true
+    crossZoneSpread: true
+    sameZoneAggregation: false
+    weight: 60
+    topologyDomain: ZONE
+    minTopologySpread: 2
+  cost-first.yaml: |
+    # 成本优先：优先调度到低成本集群，副本聚集以节省资源
+    policyTypes:
+      - AFFINITY
+      - TOPOLOGY_AWARE
+    replicaDistribution: AGGREGATED
+    costFirst: true
+    crossRegionSpread: false
+    crossZoneSpread: false
+    sameZoneAggregation: true
+    weight: 40
+    topologyDomain: ZONE
+    minTopologySpread: 1
+  availability-first.yaml: |
+    # 可用性优先：跨 region 分布以最大化容灾能力
+    policyTypes:
+      - ANTI_AFFINITY
+      - TOPOLOGY_AWARE
+    replicaDistribution: SPREAD
+    availabilityFirst: true
+    crossRegionSpread: true
+    crossZoneSpread: true
+    sameZoneAggregation: false
+    weight: 80
+    topologyDomain: REGION
+    minTopologySpread: 3
+  balanced.yaml: |
+    # 均衡：在延迟/成本/可用性间取折中
+    policyTypes:
+      - AFFINITY
+      - ANTI_AFFINITY
+      - TOPOLOGY_AWARE
+    replicaDistribution: SPREAD
+    latencyFirst: false
+    costFirst: false
+    availabilityFirst: false
+    crossRegionSpread: true
+    crossZoneSpread: true
+    sameZoneAggregation: false
+    weight: 50
+    topologyDomain: ZONE
+    minTopologySpread: 2
+{{- end }}

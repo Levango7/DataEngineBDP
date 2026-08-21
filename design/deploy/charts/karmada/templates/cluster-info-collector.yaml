@@ -1,0 +1,64 @@
+﻿# 集群信息采集 DaemonSet：采集集群拓扑信息（region/zone/az）并上报到 Karmada 控制面。
+# 关联：platform/karmada/federated-query/scheduling/TopologyAwareScheduler.java
+# 采集的拓扑信息供 TopologyAwareScheduler 在调度决策时使用。
+{{- if .Values.clusterInfoCollector.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "karmada.fullname" . }}-cluster-info-collector
+  labels:
+    {{- include "karmada.labels" . | nindent 4 }}
+    scheduling.karmada.io/component: cluster-info-collector
+spec:
+  selector:
+    matchLabels:
+      {{- include "karmada.selectorLabels" . | nindent 6 }}
+      scheduling.karmada.io/component: cluster-info-collector
+  template:
+    metadata:
+      labels:
+        {{- include "karmada.selectorLabels" . | nindent 8 }}
+        scheduling.karmada.io/component: cluster-info-collector
+    spec:
+      serviceAccountName: {{ include "karmada.serviceAccountName" . }}
+      {{- with .Values.clusterInfoCollector.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.clusterInfoCollector.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: cluster-info-collector
+          image: "{{ .Values.clusterInfoCollector.image.repository }}:{{ .Values.clusterInfoCollector.image.tag | default "v0.1.0" }}"
+          imagePullPolicy: {{ .Values.clusterInfoCollector.image.pullPolicy | default "IfNotPresent" }}
+          env:
+            - name: KARMADA_HOST
+              value: {{ .Values.clusterInfoCollector.karmadaHost | quote }}
+            - name: REPORT_INTERVAL
+              value: {{ .Values.clusterInfoCollector.reportInterval | default "60s" | quote }}
+            - name: CLUSTER_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['cluster.x-k8s.io/cluster-name']
+          command:
+            - /bin/sh
+            - -c
+            - |
+              while true; do
+                REGION=$(kubectl get node "$NODE_NAME" -o jsonpath='{.metadata.labels.topology.kubernetes.io/region}' 2>/dev/null || echo "default-region")
+                ZONE=$(kubectl get node "$NODE_NAME" -o jsonpath='{.metadata.labels.topology.kubernetes.io/zone}' 2>/dev/null || echo "default-zone")
+                AZ=$(kubectl get node "$NODE_NAME" -o jsonpath='{.metadata.labels/topology.kubernetes.io/az}' 2>/dev/null || echo "default-az")
+                echo "{\"cluster\":\"$CLUSTER_NAME\",\"region\":\"$REGION\",\"zone\":\"$ZONE\",\"az\":\"$AZ\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+                sleep "${REPORT_INTERVAL%?}"
+              done
+          resources:
+            {{- toYaml .Values.clusterInfoCollector.resources | nindent 12 }}
+          volumeMounts:
+            - name: topology-report
+              mountPath: /var/lib/cluster-info
+      volumes:
+        - name: topology-report
+          emptyDir: {}
+{{- end }}
