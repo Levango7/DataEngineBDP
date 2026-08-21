@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "iceberg-compaction.fullname" . }}-config
+  labels:
+    {{- include "iceberg-compaction.labels" . | nindent 4 }}
+data:
+  compaction.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    echo "[$(date -Is)] Iceberg 小文件合并开始"
+    TRINO_URL="{{ .Values.trino.url }}"
+    CATALOG="{{ .Values.trino.catalog }}"
+    USER="{{ .Values.trino.user }}"
+    STRATEGY="{{ .Values.compaction.strategy }}"
+    TARGET_SIZE_MB="{{ .Values.compaction.targetFileSizeMB }}"
+    SMALL_THRESHOLD_MB="{{ .Values.compaction.smallFileThresholdMB }}"
+    MAX_FILES="{{ .Values.compaction.maxFilesPerCompaction }}"
+    PARALLELISM="{{ .Values.compaction.parallelism }}"
+    MIN_SNAPSHOTS="{{ .Values.compaction.minSnapshotsToKeep }}"
+    MAX_SNAPSHOT_AGE_H="{{ .Values.compaction.maxSnapshotAgeHours }}"
+    COMPACT_SQL="CALL ${CATALOG}.system.rewrite_data_files(table => '%s', mode => '${STRATEGY}', target_file_size_bytes => $((TARGET_SIZE_MB * 1024 * 1024)), min_input_files => 1, max_concurrent_file_writes => ${PARALLELISM})"
+    {{- if .Values.compaction.tables }}
+    TABLES="{{ join " " .Values.compaction.tables }}"
+    {{- else }}
+    TABLES=$(curl -s -u "${USER}:" "${TRINO_URL}/v1/query" -d "{\"query\":\"SELECT table_schema || '.' || table_name FROM ${CATALOG}.information_schema.tables WHERE table_type = 'BASE TABLE'\"}" | jq -r '.data[].[]')
+    {{- end }}
+    for TBL in ${TABLES}; do
+      {{- if .Values.compaction.excludeTables }}
+      case "${TBL}" in
+        {{- range .Values.compaction.excludeTables }}
+        {{ . }}) echo "skip: ${TBL}"; continue;;
+        {{- end }}
+      esac
+      {{- end }}
+      echo "[$(date -Is)] compact: ${TBL}"
+      curl -s -X POST -u "${USER}:" -H "Content-Type: application/json" "${TRINO_URL}/v1/query" -d "{\"query\":\"$(printf "${COMPACT_SQL}" "${TBL}")\"}" || echo "WARN: compact ${TBL} failed"
+    done
+    if [ "{{ .Values.compaction.removeOrphanFiles }}" = "true" ]; then
+      echo "[$(date -Is)] cleanup orphan files"
+      for TBL in ${TABLES}; do
+        curl -s -X POST -u "${USER}:" -H "Content-Type: application/json" "${TRINO_URL}/v1/query" -d "{\"query\":\"CALL ${CATALOG}.system.expire_snapshots('${TBL}', ${MAX_SNAPSHOT_AGE_H} * interval '1' hour, ${MIN_SNAPSHOTS})\"}" || true
+        curl -s -X POST -u "${USER}:" -H "Content-Type: application/json" "${TRINO_URL}/v1/query" -d "{\"query\":\"CALL ${CATALOG}.system.remove_orphan_files('${TBL}', '{{ .Values.compaction.orphanFileAgeHours }}' * interval '1' hour)\"}" || true
+      done
+    fi
+    echo "[$(date -Is)] Iceberg compaction done"
+  cbo-stats.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    echo "[$(date -Is)] CBO stats collection start"
+    TRINO_URL="{{ .Values.trino.url }}"
+    CATALOG="{{ .Values.trino.catalog }}"
+    USER="{{ .Values.trino.user }}"
+    MODE="{{ .Values.cbo.mode }}"
+    SAMPLE_RATE="{{ .Values.cbo.sampleRate }}"
+    {{- if .Values.cbo.tables }}
+    TABLES="{{ join " " .Values.cbo.tables }}"
+    {{- else }}
+    TABLES=$(curl -s -u "${USER}:" "${TRINO_URL}/v1/query" -d "{\"query\":\"SELECT table_schema || '.' || table_name FROM ${CATALOG}.information_schema.tables WHERE table_type = 'BASE TABLE'\"}" | jq -r '.data[].[]')
+    {{- end }}
+    for TBL in ${TABLES}; do
+      echo "[$(date -Is)] analyze: ${TBL}"
+      if [ "${MODE}" = "sample" ]; then
+        ANALYZE_SQL="ANALYZE ${TBL} WITH (sampleRatio = ${SAMPLE_RATE})"
+      else
+        ANALYZE_SQL="ANALYZE ${TBL}"
+      fi
+      curl -s -X POST -u "${USER}:" -H "Content-Type: application/json" "${TRINO_URL}/v1/query" -d "{\"query\":\"${ANALYZE_SQL}\"}" || echo "WARN: analyze ${TBL} failed"
+    done
+    echo "[$(date -Is)] CBO stats collection done"
+  catalog.properties: |
+    catalog-impl={{ .Values.catalog.type }}-catalog
+    {{- if eq .Values.catalog.type "rest" }}
+    uri={{ .Values.catalog.uri }}
+    warehouse={{ .Values.catalog.warehouse }}
+    {{- if .Values.catalog.s3.endpoint }}
+    s3.endpoint={{ .Values.catalog.s3.endpoint }}
+    s3.region={{ .Values.catalog.s3.region }}
+    {{- end }}
+    {{- end }}

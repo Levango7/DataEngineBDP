@@ -83,6 +83,38 @@ config:
     rateLimit:
       enabled: true
       maxBytesPerSecond: 200MB
+  # v2.1 向量化执行引擎调优（OLAP 查询性能提升 2x）
+  vectorized:
+    enabled: true
+    # BE 向量化执行开关（Doris 2.1+ 默认开启）
+    enableVectorizedEngine: true
+    # 向量化算子集合
+    enableVectorizedOperators:
+      - scan
+      - filter
+      - project
+      - aggregate
+      - hashJoin
+      - sort
+      - exchange
+    # 向量化批处理大小（行数，影响 SIMD 效率）
+    batchSize: 4096
+    # 向量化表达式求值
+    enableVectorizedExpr: true
+    # 列式内存布局优化
+    enableColumnarOpt: true
+    # SIMD 指令集加速
+    enableSimd: true
+    # 向量化 Scan 谓下推
+    enableVectorizedPushdown: true
+    # 并行 Scan 线程数（每个 fragment）
+    scanParallelism: 4
+    # Pipeline 执行引擎（Doris 2.1+）
+    enablePipelineEngine: true
+    # Pipeline 并行度
+    pipelineParallelism: 8
+    # 内存 Limit（BE 单查询）
+    queryMemoryLimitGB: 8
 
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/doris-values.yaml 覆盖

@@ -75,6 +75,94 @@ autoscaling:
   targetCPUUtilizationPercentage: 80
   targetMemoryUtilizationPercentage: 80
 
+# ---- v2.1 资源弹性：KEDA ScaledObject 配置 ----
+# 基于自定义 Prometheus 指标触发弹性伸缩，峰值响应延迟 < 30s
+scaledObjects:
+  enabled: true
+  # Prometheus TriggerAuthentication（Bearer Token 认证）
+  prometheusTriggerAuth:
+    secretName: prometheus-keda-token
+    secretKey: token
+  # 核心服务弹性伸缩配置
+  services:
+    # SQL 网关：基于并发查询数 + 查询延迟弹性扩缩
+    sql-gateway:
+      targetDeployment: sql-gateway
+      minReplicas: 2
+      maxReplicas: 10
+      pollingInterval: 10  # 10s 轮询，峰值响应延迟 < 30s
+      cooldownPeriod: 60
+      triggers:
+        # 并发查询数指标
+        - type: prometheus
+          metadata:
+            serverAddress: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            metricName: "sql_gateway_concurrent_queries"
+            threshold: "50"
+            query: "sum(sql_gateway_concurrent_queries{application=\"sql-gateway\"})"
+        # 查询延迟 P95 指标
+        - type: prometheus
+          metadata:
+            serverAddress: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            metricName: "sql_gateway_query_p95"
+            threshold: "5000"
+            query: "histogram_quantile(0.95, sum(rate(sql_gateway_query_duration_seconds_bucket[5m])) by (le)) * 1000"
+        # CPU 使用率兜底
+        - type: cpu
+          metadata:
+            type: Utilization
+            value: "80"
+
+    # Trino：基于排队查询数 + 内存使用率弹性扩缩
+    trino:
+      targetDeployment: trino
+      minReplicas: 2
+      maxReplicas: 8
+      pollingInterval: 15
+      cooldownPeriod: 120
+      triggers:
+        - type: prometheus
+          metadata:
+            serverAddress: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            metricName: "trino_queued_queries"
+            threshold: "10"
+            query: "trino_execution_cluster_manager_running_queries"
+        - type: prometheus
+          metadata:
+            serverAddress: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            metricName: "trino_memory_usage"
+            threshold: "0.8"
+            query: "trino_memory_pool_general_reserved_bytes / trino_memory_pool_general_total_bytes"
+        - type: cpu
+          metadata:
+            type: Utilization
+            value: "75"
+
+    # Doris FE：基于查询 QPS + 并发数弹性扩缩
+    doris-fe:
+      targetDeployment: doris-fe
+      minReplicas: 1
+      maxReplicas: 5
+      pollingInterval: 15
+      cooldownPeriod: 90
+      triggers:
+        - type: prometheus
+          metadata:
+            serverAddress: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            metricName: "doris_query_qps"
+            threshold: "100"
+            query: "sum(rate(doris_be_query_total[1m]))"
+        - type: prometheus
+          metadata:
+            serverAddress: "http://prometheus-server.monitoring.svc.cluster.local:9090"
+            metricName: "doris_running_queries"
+            threshold: "50"
+            query: "doris_fe_query_duration"
+        - type: cpu
+          metadata:
+            type: Utilization
+            value: "80"
+
 # ---- PodDisruptionBudget ----
 podDisruptionBudget:
   enabled: false

@@ -1,0 +1,151 @@
+# ============================================================================
+# iceberg-compaction Helm Chart 默认 values
+# 功能：Iceberg 小文件合并 + CBO 统计信息自动采集（v2.1 性能调优）
+# 关联：design/deploy/values/iceberg-compaction-values.yaml（深度调优配置）
+# ============================================================================
+
+# ---- 镜像配置（Trino + Iceberg Action Runner）----
+image:
+  repository: "docker.m.daocloud.io/apache/trino"
+  tag: "435"
+  pullPolicy: IfNotPresent
+
+# ---- 副本数（Compaction 作业以 CronJob 形式运行，单副本串行避免写冲突）----
+replicaCount: 1
+
+# ---- Service 配置（用于健康检查 + metrics 暴露）----
+service:
+  type: ClusterIP
+  port: 8080
+  containerPort: 8080
+
+# ---- 资源配额（Compaction 是 IO 密集型作业，需要较大内存）----
+resources:
+  requests:
+    cpu: "1"
+    memory: "2Gi"
+  limits:
+    cpu: "4"
+    memory: "8Gi"
+
+# ---- 安全上下文 ----
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# ---- Iceberg 小文件合并策略 ----
+compaction:
+  enabled: true
+  # 调度：每 6 小时执行一次合并
+  schedule: "0 */6 * * *"
+  # 小文件阈值（MB）：小于此值的文件视为小文件，需合并
+  smallFileThresholdMB: 10
+  # 目标文件大小（MB）：合并后单文件目标大小
+  targetFileSizeMB: 128
+  # 单次合并最大文件数（防止一次合并过多导致 OOM）
+  maxFilesPerCompaction: 5000
+  # 并行度：合并作业并行任务数
+  parallelism: 4
+  # 保留的快照数（旧快照过期清理）
+  minSnapshotsToKeep: 3
+  # 快照最大保留时长（小时）
+  maxSnapshotAgeHours: 24
+  # 需要合并的表（命名空间.表名列表，空表示全部表）
+  tables: []
+  # 排除的表（不参与合并的表列表）
+  excludeTables: []
+  # 合并策略：binpack（默认）/sort/rewrite_data_files
+  strategy: "binpack"
+  # 是否清理孤儿文件（orphan files）
+  removeOrphanFiles: true
+  # 孤儿文件保留时长（小时）：超过此时长的孤儿文件才清理
+  orphanFileAgeHours: 12
+
+# ---- CBO 统计信息自动采集 ----
+cbo:
+  enabled: true
+  # 调度：每 3 小时采集一次统计信息
+  schedule: "0 */3 * * *"
+  # 统计信息采集方式：full（全量）/sample（采样）
+  mode: "sample"
+  # 采样率（mode=sample 时生效，0.0~1.0）
+  sampleRate: 0.1
+  # 需要采集统计信息的表
+  tables: []
+  # 并行度
+  parallelism: 2
+  # 采集的统计信息类型
+  stats:
+    - rowCount
+    - distinctValues
+    - nullCount
+    - minMax
+    - dataSize
+  # 是否采集列级统计信息（更精细但开销更大）
+  columnLevel: true
+  # 列级统计采样阈值（列基数超过此值才采样）
+  columnDistinctThreshold: 10000
+
+# ---- Iceberg Catalog 配置 ----
+catalog:
+  # Catalog 类型：hive/rest/jdbc/glue
+  type: "rest"
+  # REST Catalog URI
+  uri: "http://iceberg-rest-service:8181"
+  # 仓库类型：s3/hdfs/azure/gcs
+  warehouse: "s3://data-lakehouse/iceberg-warehouse"
+  # S3 配置
+  s3:
+    endpoint: "http://minio-service:9000"
+    region: "us-east-1"
+    accessKey: ""
+    secretKey: ""
+
+# ---- Trino 连接配置（执行合并 SQL）----
+trino:
+  url: "http://trino-service:8080"
+  catalog: "iceberg"
+  user: "compaction"
+  # 查询超时
+  queryTimeoutSeconds: 3600
+
+# ---- 健康检查 ----
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /v1/info
+      port: 8080
+    initialDelaySeconds: 30
+    periodSeconds: 30
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /v1/info
+      port: 8080
+    initialDelaySeconds: 10
+    periodSeconds: 10
+    failureThreshold: 3
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+# ---- 环境变量 ----
+env:
+  LOG_LEVEL: info
+  JAVA_OPTS: "-Xmx4g -XX:+UseG1GC"
+
+# ---- 引用提示 ----
+# 完整配置请通过 -f design/deploy/values/iceberg-compaction-values.yaml 覆盖
+# 渲染命令： helm template iceberg-compaction design/deploy/charts/iceberg-compaction

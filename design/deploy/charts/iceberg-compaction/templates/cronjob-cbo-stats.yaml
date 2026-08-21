@@ -1,0 +1,75 @@
+{{- if .Values.cbo.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "iceberg-compaction.fullname" . }}-cbo-stats
+  labels:
+    {{- include "iceberg-compaction.labels" . | nindent 4 }}
+    component: cbo-stats
+spec:
+  schedule: "{{ .Values.cbo.schedule }}"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      template:
+        metadata:
+          labels:
+            {{- include "iceberg-compaction.labels" . | nindent 12 }}
+            component: cbo-stats
+        spec:
+          restartPolicy: OnFailure
+          {{- with .Values.nodeSelector }}
+          nodeSelector:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.tolerations }}
+          tolerations:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.affinity }}
+          affinity:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+            - name: cbo-stats
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["/bin/bash", "/scripts/cbo-stats.sh"]
+              env:
+                - name: TRINO_URL
+                  value: "{{ .Values.trino.url }}"
+                - name: JAVA_OPTS
+                  value: "{{ .Values.env.JAVA_OPTS }}"
+              volumeMounts:
+                - name: scripts
+                  mountPath: /scripts
+                  readOnly: true
+                - name: catalog-config
+                  mountPath: /etc/iceberg/catalog.properties
+                  subPath: catalog.properties
+                  readOnly: true
+              resources:
+                {{- toYaml .Values.resources | nindent 16 }}
+              {{- if .Values.securityContext.enabled }}
+              securityContext:
+                runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+                runAsUser: {{ .Values.securityContext.runAsUser }}
+                runAsGroup: {{ .Values.securityContext.runAsGroup }}
+                fsGroup: {{ .Values.securityContext.fsGroup }}
+                allowPrivilegeEscalation: {{ .Values.securityContext.allowPrivilegeEscalation }}
+                readOnlyRootFilesystem: {{ .Values.securityContext.readOnlyRootFilesystem }}
+                capabilities:
+                  drop:
+                    {{- toYaml .Values.securityContext.capabilities.drop | nindent 20 }}
+              {{- end }}
+          volumes:
+            - name: scripts
+              configMap:
+                name: {{ include "iceberg-compaction.fullname" . }}-config
+                defaultMode: 0755
+            - name: catalog-config
+              configMap:
+                name: {{ include "iceberg-compaction.fullname" . }}-config
+{{- end }}

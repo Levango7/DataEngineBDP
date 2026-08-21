@@ -1,0 +1,38 @@
+{{- if .Values.scaledObjects.enabled }}
+# ============================================================================
+# v2.1 资源弹性：为核心服务创建 KEDA ScaledObject
+# 基于 Prometheus 自定义指标触发弹性伸缩，峰值响应延迟 < 30s
+# ============================================================================
+{{- range $name, $svc := .Values.scaledObjects.services }}
+
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ $name }}-scaledobject
+  labels:
+    {{- include "keda.labels" $ | nindent 4 }}
+    app.kubernetes.io/managed-component: {{ $name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $svc.targetDeployment | default $name }}
+  minReplicaCount: {{ $svc.minReplicas | default 1 }}
+  maxReplicaCount: {{ $svc.maxReplicas | default 10 }}
+  pollingInterval: {{ $svc.pollingInterval | default 15 }}
+  cooldownPeriod: {{ $svc.cooldownPeriod | default 60 }}
+  triggers:
+    {{- range $trigger := $svc.triggers }}
+    - type: {{ $trigger.type }}
+      metadata:
+        {{- range $key, $val := $trigger.metadata }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end }}
+      {{- if $trigger.authenticationRef }}
+      authenticationRef:
+        name: {{ $trigger.authenticationRef }}
+      {{- end }}
+    {{- end }}
+{{- end }}
+{{- end }}

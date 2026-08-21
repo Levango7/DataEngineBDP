@@ -102,6 +102,86 @@ config:
   application.conf: |
     # cni-cilium 默认配置，完整配置请引用 design/deploy/values/cni-cilium-values.yaml
 
+# ---- v2.1 网络优化：Cilium eBPF 数据路径调优 ----
+# 目标：跨节点吞吐提升 40%
+ebpf:
+  enabled: true
+  # 数据路径模式：full / legacy
+  # full = eBPF 替代 kube-proxy + iptables，全 eBPF 数据路径
+  # legacy = 保留 iptables 兜底
+  datapathMode: "full"
+  # 替代 kube-proxy（eBPF 直接处理 Service 负载均衡）
+  kubeProxyReplacement: true
+  # eBPF Masquerading（替代 iptables MASQUERADE）
+  enableBpfMasquerade: true
+  # eBPF NodePort（高性能 NodePort 处理）
+  enableNodePort: true
+  # eBPF HostReachableServices（Pod → Service → Pod 直达，跳过协议栈）
+  enableHostReachableServices: true
+  # eBPF TPROXY（透明代理加速）
+  enableTproxy: true
+  # Socket Layer Load Balancing（同节点 Pod 通信走 socket 层，零拷贝）
+  enableSocketLB: true
+  # BPF Map 扩容（默认 map 容量不足导致大规模集群丢包）
+  bpfMaps:
+    # Conntrack 表大小（连接追踪）
+    ctMaxEntries: 524288
+    # NAT 表大小
+    natMaxEntries: 524288
+    # Neighbor 表大小
+    neighMaxEntries: 524288
+    # Policy 表大小
+    policyMaxEntries: 16384
+    # Service 表大小
+    serviceMapMaxEntries: 65536
+    # Endpoint 表大小
+    endpointMapMaxEntries: 65536
+  # XDP（eXpress Data Path）加速：网卡层包处理
+  xdp:
+    enabled: true
+    # XDP 模式：native（网卡驱动支持）/ generic（软件兜底）
+    mode: "native"
+    # XDP 加速场景
+    accelerate: true
+  # Big TCP（大 TCP 包支持，提升跨节点吞吐）
+  bigTcp:
+    enabled: true
+    # 最大 GSO 大小
+    maxGsoSize: 65536
+  # 带宽管理（BBR 拥塞控制）
+  bandwidth:
+    enabled: true
+    # 拥塞控制算法：BBR（更适合高吞吐跨节点）
+    congestionControl: "bbr"
+    # MTU
+    mtu: 9000  # Jumbo Frame
+  # 多集群路由（Cluster Mesh）
+  clustermesh:
+    enabled: false
+    # Global Service 跨集群负载均衡
+    globalService: true
+  # 可观测性（Hubble）
+  hubble:
+    enabled: true
+    # 流量指标导出
+    metrics:
+      - "flow"
+      - "tcp"
+      - "port-distribution"
+      - "drop"
+      - "forward"
+    # Prometheus 指标端口
+    metricsPort: 9965
+  # 性能调优：IRQ 亲和性（网卡中断绑定到特定 CPU）
+  irqAffinity:
+    enabled: true
+    # RPS（Receive Packet Steering）
+    rps: true
+    # RFS（Receive Flow Steering）
+    rfs: true
+    # XPS（Transmit Packet Steering）
+    xps: true
+
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/cni-cilium-values.yaml 覆盖
 # 渲染命令： helm template cni-cilium design/deploy/charts/cni-cilium -f design/deploy/values/cni-cilium-values.yaml

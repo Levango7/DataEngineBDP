@@ -25,6 +25,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.ThreadPoolExecutor.AbortPolicy;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 跨源执行器。
@@ -68,6 +72,16 @@ public class CrossSourceExecutor {
     private final int maxRows;
 
     /**
+     * 跨源查询线程池队列容量（v2.1：防止无界队列堆积导致 OOM）。
+     */
+    private final int queueCapacity;
+
+    /**
+     * 性能指标收集器（可选；未注入时指标静默跳过）。
+     */
+    private final com.levango7.dataenginebdp.sqlgateway.metering.PerformanceMetrics performanceMetrics;
+
+    /**
      * 默认构造（使用默认配置）。
      *
      * <p>本构造不注入 BackendProxyService 与 SourceResolver，仅适用于
@@ -77,7 +91,7 @@ public class CrossSourceExecutor {
      */
     public CrossSourceExecutor(SqlParserService parserService) {
         this(parserService, null, null,
-                DEFAULT_TIMEOUT_SECONDS, DEFAULT_MAX_ROWS, DEFAULT_THREAD_POOL_SIZE);
+                DEFAULT_TIMEOUT_SECONDS, DEFAULT_MAX_ROWS, DEFAULT_THREAD_POOL_SIZE, null);
     }
 
     /**
@@ -96,9 +110,11 @@ public class CrossSourceExecutor {
             SourceResolver sourceResolver,
             @Value("${sql-gateway.cross-source.timeout-seconds:30}") long timeoutSeconds,
             @Value("${sql-gateway.cross-source.max-rows:10000}") int maxRows,
-            @Value("${sql-gateway.cross-source.thread-pool-size:8}") int threadPoolSize) {
+            @Value("${sql-gateway.cross-source.thread-pool-size:8}") int threadPoolSize,
+            org.springframework.beans.factory.ObjectProvider<
+                    com.levango7.dataenginebdp.sqlgateway.metering.PerformanceMetrics> metricsProvider) {
         this(new SqlParserService(), null, sourceResolver,
-                timeoutSeconds, maxRows, threadPoolSize);
+                timeoutSeconds, maxRows, threadPoolSize, metricsProvider.getIfAvailable());
     }
 
     /**
@@ -116,18 +132,33 @@ public class CrossSourceExecutor {
                                SourceResolver sourceResolver,
                                long timeoutSeconds,
                                int maxRows,
-                               int threadPoolSize) {
+                               int threadPoolSize,
+                               com.levango7.dataenginebdp.sqlgateway.metering.PerformanceMetrics performanceMetrics) {
         this.parserService = parserService == null ? new SqlParserService() : parserService;
         this.backendProxyService = backendProxyService;
         this.sourceResolver = sourceResolver;
         this.timeoutSeconds = timeoutSeconds > 0 ? timeoutSeconds : DEFAULT_TIMEOUT_SECONDS;
         this.maxRows = maxRows > 0 ? maxRows : DEFAULT_MAX_ROWS;
         int poolSize = threadPoolSize > 0 ? threadPoolSize : DEFAULT_THREAD_POOL_SIZE;
-        this.threadPool = Executors.newFixedThreadPool(poolSize);
+        // v2.1：使用 ThreadPoolExecutor 替代 newFixedThreadPool，配置有界队列 + 拒绝策略 + 命名线程
+        // 队列容量 = poolSize * 4，溢出时 AbortPolicy 快速失败（调用方降级而非堆积）
+        this.queueCapacity = poolSize * 4;
+        AtomicInteger threadCounter = new AtomicInteger(0);
+        this.threadPool = new ThreadPoolExecutor(
+                poolSize, poolSize,
+                60L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(this.queueCapacity),
+                r -> {
+                    Thread t = new Thread(r, "cross-source-exec-" + threadCounter.incrementAndGet());
+                    t.setDaemon(true);
+                    return t;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy());  // 队列满时由调用线程执行，反压
         this.joinEngine = new CrossSourceJoinEngine(this.maxRows);
         this.unionEngine = new CrossSourceUnionEngine(this.maxRows);
-        log.info("CrossSourceExecutor 初始化完成: timeout={}s, maxRows={}, poolSize={}",
-                this.timeoutSeconds, this.maxRows, poolSize);
+        this.performanceMetrics = performanceMetrics;
+        log.info("CrossSourceExecutor 初始化完成: timeout={}s, maxRows={}, poolSize={}, queueCapacity={}",
+                this.timeoutSeconds, this.maxRows, poolSize, this.queueCapacity);
     }
 
     /**
@@ -244,7 +275,8 @@ public class CrossSourceExecutor {
             return r;
         }
 
-        // 多任务并行执行
+        // 多任务并行执行（v2.1：记录性能指标）
+        long metricsStart = performanceMetrics == null ? 0L : performanceMetrics.recordQueryStart();
         List<CompletableFuture<MergeResult>> futures = new ArrayList<>();
         for (SourceQueryTask task : tasks) {
             CompletableFuture<MergeResult> f = CompletableFuture.supplyAsync(task::call, threadPool);
@@ -292,6 +324,11 @@ public class CrossSourceExecutor {
         MergeResult merged = unionEngine.union(partialResults,
                 CrossSourceUnionEngine.UnionType.UNION_ALL);
         merged.setDurationMs(System.currentTimeMillis() - start);
+        // v2.1：记录跨源查询性能指标
+        if (performanceMetrics != null) {
+            long bytes = merged.getRows() == null ? 0L : merged.getRows().size() * 1024L;
+            performanceMetrics.recordQueryEnd(metricsStart, "cross-source", true, true, bytes);
+        }
         log.info("跨源查询完成 durationMs={} rowCount={}", merged.getDurationMs(), merged.getRowCount());
         return merged;
     }

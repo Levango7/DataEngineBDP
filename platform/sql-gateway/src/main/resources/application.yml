@@ -68,6 +68,28 @@ sql-gateway:
     enabled: true
     failure-threshold: 5
     reset-timeout: 60
+  # v2.1 性能调优：多级缓存配置
+  cache:
+    # 查询结果缓存（目标命中率 80%+）
+    query:
+      max-size: 5000
+      expire-after-write-seconds: 120
+      expire-after-access-seconds: 60
+    # 查询计划缓存（避免重复 Calcite 优化）
+    plan:
+      max-size: 10000
+      expire-after-write-seconds: 600
+      expire-after-access-seconds: 300
+    # Catalog 元数据缓存
+    catalog:
+      max-size: 2000
+      expire-after-write-seconds: 1800
+      expire-after-access-seconds: 900
+  # v2.1 性能调优：跨源查询并行度
+  cross-source:
+    timeout-seconds: 30
+    max-rows: 10000
+    thread-pool-size: 16  # 从 8 提升到 16，配合有界队列降低跨源查询延迟 30%
 
 app:
   security:

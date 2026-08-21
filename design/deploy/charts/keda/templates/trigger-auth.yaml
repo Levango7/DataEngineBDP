@@ -1,0 +1,16 @@
+{{- if .Values.scaledObjects.enabled }}
+{{- if .Values.scaledObjects.prometheusTriggerAuth }}
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: prometheus-trigger-auth
+  labels:
+    {{- include "keda.labels" . | nindent 4 }}
+spec:
+  secretTargetRef:
+    - parameter: bearerToken
+      name: {{ .Values.scaledObjects.prometheusTriggerAuth.secretName | default "prometheus-keda-token" }}
+      key: {{ .Values.scaledObjects.prometheusTriggerAuth.secretKey | default "token" }}
+{{- end }}
+{{- end }}

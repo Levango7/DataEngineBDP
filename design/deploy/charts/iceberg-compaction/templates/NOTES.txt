@@ -1,0 +1,17 @@
+Iceberg Compaction + CBO Stats Chart 已部署。
+
+{{- if .Values.compaction.enabled }}
+✓ 小文件合并 CronJob: {{ include "iceberg-compaction.fullname" . }}-compact
+  调度: {{ .Values.compaction.schedule }}
+  策略: {{ .Values.compaction.strategy }}（目标文件 {{ .Values.compaction.targetFileSizeMB }}MB，小文件阈值 {{ .Values.compaction.smallFileThresholdMB }}MB）
+{{- end }}
+
+{{- if .Values.cbo.enabled }}
+✓ CBO 统计信息采集 CronJob: {{ include "iceberg-compaction.fullname" . }}-cbo-stats
+  调度: {{ .Values.cbo.schedule }}
+  模式: {{ .Values.cbo.mode }}{{- if eq .Values.cbo.mode "sample" }}（采样率 {{ .Values.cbo.sampleRate }}）{{- end }}
+{{- end }}
+
+验证:
+  kubectl get cronjobs -n {{ .Release.Namespace }}
+  kubectl get jobs -n {{ .Release.Namespace }}

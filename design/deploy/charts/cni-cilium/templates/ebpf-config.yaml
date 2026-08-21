@@ -1,0 +1,83 @@
+{{- if .Values.ebpf.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "cni-cilium.fullname" . }}-ebpf-tuning
+  labels:
+    {{- include "cni-cilium.labels" . | nindent 4 }}
+    component: ebpf-tuning
+data:
+  # Cilium eBPF 数据路径调优配置（v2.1 网络优化）
+  cilium-config.yaml: |
+    # 数据路径模式：full = 全 eBPF（替代 kube-proxy + iptables）
+    datapath-mode: {{ .Values.ebpf.datapathMode }}
+    kube-proxy-replacement: {{ .Values.ebpf.kubeProxyReplacement }}
+    enable-bpf-masquerade: {{ .Values.ebpf.enableBpfMasquerade }}
+    enable-node-port: {{ .Values.ebpf.enableNodePort }}
+    enable-host-reachable-services: {{ .Values.ebpf.enableHostReachableServices }}
+    enable-tproxy: {{ .Values.ebpf.enableTproxy }}
+    enable-socket-lb: {{ .Values.ebpf.enableSocketLB }}
+
+    # BPF Map 扩容（防止大规模集群丢包）
+    bpf-ct-global-any-max: {{ .Values.ebpf.bpfMaps.ctMaxEntries }}
+    bpf-ct-global-tcp-max: {{ .Values.ebpf.bpfMaps.ctMaxEntries }}
+    bpf-nat-global-max: {{ .Values.ebpf.bpfMaps.natMaxEntries }}
+    bpf-neigh-global-max: {{ .Values.ebpf.bpfMaps.neighMaxEntries }}
+    bpf-policy-map-max: {{ .Values.ebpf.bpfMaps.policyMaxEntries }}
+    bpf-lb-map-max: {{ .Values.ebpf.bpfMaps.serviceMapMaxEntries }}
+    bpf-lb-external-map-max: {{ .Values.ebpf.bpfMaps.serviceMapMaxEntries }}
+
+    {{- if .Values.ebpf.xdp.enabled }}
+    # XDP 加速
+    enable-xdp: true
+    xdp-mode: {{ .Values.ebpf.xdp.mode }}
+    {{- end }}
+
+    {{- if .Values.ebpf.bigTcp.enabled }}
+    # Big TCP（大包支持，提升跨节点吞吐）
+    enable-big-tcp: true
+    big-tcp-gso-max-size: {{ .Values.ebpf.bigTcp.maxGsoSize }}
+    {{- end }}
+
+    {{- if .Values.ebpf.bandwidth.enabled }}
+    # 带宽管理（BBR 拥塞控制 + Jumbo Frame）
+    congestion-control: {{ .Values.ebpf.bandwidth.congestionControl }}
+    mtu: {{ .Values.ebpf.bandwidth.mtu }}
+    {{- end }}
+
+    {{- if .Values.ebpf.hubble.enabled }}
+    # Hubble 可观测性
+    enable-hubble: true
+    hubble-metrics:
+      {{- range .Values.ebpf.hubble.metrics }}
+      - {{ . }}
+      {{- end }}
+    hubble-metrics-port: {{ .Values.ebpf.hubble.metricsPort }}
+    {{- end }}
+
+    {{- if .Values.ebpf.irqAffinity.enabled }}
+    # IRQ 亲和性调优
+    enable-rps: {{ .Values.ebpf.irqAffinity.rps }}
+    enable-rfs: {{ .Values.ebpf.irqAffinity.rfs }}
+    enable-xps: {{ .Values.ebpf.irqAffinity.xps }}
+    {{- end }}
+
+  # 性能基准测试脚本
+  bench-network.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    echo "[$(date -Is)] Cilium eBPF 网络性能基准测试"
+    TARGET="${1:-}"
+    if [ -z "${TARGET}" ]; then echo "Usage: $0 <target-pod-ip>"; exit 1; fi
+    # 跨节点吞吐测试（iperf3）
+    echo "=== iperf3 跨节点吞吐 ==="
+    iperf3 -c "${TARGET}" -t 30 -P 8 -J || echo "WARN: iperf3 not available"
+    # 延迟测试（ping + tcp ping）
+    echo "=== Ping 延迟 ==="
+    ping -c 100 -i 0.1 "${TARGET}" | tail -5
+    # Hubble 流量统计
+    echo "=== Hubble 流量 ==="
+    hubble observe --since 30s --type flow --output json 2>/dev/null | \
+      jq -r '.flow | .destination | .pod_name' | sort | uniq -c | sort -rn | head -10 || true
+    echo "[$(date -Is)] 基准测试完成"
+{{- end }}

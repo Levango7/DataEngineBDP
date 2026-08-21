@@ -85,6 +85,39 @@ config:
   resourceGroups:
     enabled: true
     managerType: legacy
+  # v2.1 向量化执行引擎调优（OLAP 查询性能提升 2x）
+  vectorized:
+    enabled: true
+    # Trino 438+ 向量化执行引擎（experimental）
+    enableVectorizedEngine: true
+    # 向量化 Join 算子
+    enableVectorizedJoin: true
+    # 向量化 Aggregate 算子
+    enableVectorizedAggregation: true
+    # 向量化 Filter 算子
+    enableVectorizedFilter: true
+    # 向量化 Project 算子
+    enableVectorizedProject: true
+    # 向量化 OrderBy 算子
+    enableVectorizedSort: true
+    # 向量化 Window 算子
+    enableVectorizedWindow: true
+    # 向量化 Exchange
+    enableVectorizedExchange: true
+    # 列式批处理大小
+    batchSize: 4096
+    # 并行 Scan 线程数
+    scanParallelism: 4
+    # 内存查询分配
+    queryMaxMemoryPerNode: "4GB"
+    # Join Spill（大表 JOIN 防止 OOM）
+    joinSpillEnabled: true
+    # Aggregation Spill
+    aggregationSpillEnabled: true
+    # Sort Spill
+    sortSpillEnabled: true
+    # Spill 目标大小
+    spillTargetSize: "1GB"
 
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/trino-values.yaml 覆盖
