@@ -14,7 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * {@link HealthController} 集成测试。
  *
- * <p>验证 {@code GET /api/v1/health} 端点无需鉴权可访问，返回编排层运行态。</p>
+ * <p>验证 {@code GET /api/v1/health} 端点无需鉴权可访问，返回编排层运行态。
+ * 重构后响应收敛为统一 {@link com.shuqing.bigdata.common.health.dto.HealthResponse} 结构，
+ * 业务字段 {@code layer} / {@code totalEnvironments} / {@code registeredProviders}
+ * 移入 {@code details}。</p>
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -38,8 +41,24 @@ class HealthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"))
                 .andExpect(jsonPath("$.service").value("infra-orchestrator"))
-                .andExpect(jsonPath("$.layer").value("L0.5"))
-                .andExpect(jsonPath("$.totalEnvironments").value(7))
-                .andExpect(jsonPath("$.registeredProviders").value(7));
+                .andExpect(jsonPath("$.details.layer").value("L0.5"))
+                .andExpect(jsonPath("$.details.totalEnvironments").value(7))
+                .andExpect(jsonPath("$.details.registeredProviders").value(7));
+    }
+
+    @Test
+    void livenessShouldReturnUp() throws Exception {
+        mockMvc.perform(get("/api/v1/health/liveness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.service").value("infra-orchestrator"));
+    }
+
+    @Test
+    void readinessShouldReturnUpWithProviderStats() throws Exception {
+        mockMvc.perform(get("/api/v1/health/readiness"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("UP"))
+                .andExpect(jsonPath("$.details.registeredProviders").value(7));
     }
 }

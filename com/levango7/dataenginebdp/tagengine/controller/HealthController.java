@@ -1,30 +1,72 @@
 package com.shuqing.bigdata.tagengine.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
+import com.shuqing.bigdata.common.health.controller.AbstractHealthController;
+import com.shuqing.bigdata.common.health.dto.HealthResponse;
+import com.shuqing.bigdata.tagengine.store.TagStore;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 标签画像引擎健康检查端点。
+ * 标签画像引擎健康检查控制器。
  *
- * <p>GET {@code /health} 返回引擎存活状态与版本信息，供 K8s 探针与运维大盘使用。</p>
+ * <p>基于 {@link AbstractHealthController} 模板方法，提供三个端点：</p>
+ * <ul>
+ *   <li>{@code GET /api/v1/health/liveness} - 存活探针，仅检查进程存活，始终快速返回 UP。</li>
+ *   <li>{@code GET /api/v1/health/readiness} - 就绪探针，探测标签存储连通性。</li>
+ *   <li>{@code GET /api/v1/health} - 统一向后兼容端点，委托就绪探针。</li>
+ * </ul>
+ *
+ * <p>readiness 通过 {@link TagStore#listTagDefinitions(String)} 以探测租户
+ * {@code __health_probe__} 发起一次只读查询，探测标签存储（Mock/Doris）连通性，
+ * 异常时返回 DOWN 供 K8s readinessProbe 摘除流量。</p>
+ *
+ * <p>原 {@code GET /health} 端点由 {@link TagEngineLegacyHealthController} 保留向后兼容，
+ * 委托本控制器的就绪探针结果。</p>
+ *
+ * <p>版本号从 {@link BuildProperties} 动态读取，未配置 build-info 时降级为 {@code "unknown"}。</p>
+ *
+ * @author shuqing-bigdata
  */
 @RestController
-public class HealthController {
+public class HealthController extends AbstractHealthController {
+
+    /** readiness 探测使用的只读探测租户，不产生任何写入副作用。 */
+    private static final String HEALTH_PROBE_TENANT = "__health_probe__";
+
+    private final TagStore tagStore;
 
     /**
-     * 健康检查。
+     * 构造控制器。
      *
-     * @return 包含 status / component / version 的健康信息
+     * @param buildPropertiesProvider BuildProperties 可选注入提供者
+     * @param tagStore                标签存储，用于探测存储连通性
      */
-    @GetMapping("/health")
-    public Map<String, Object> health() {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("status", "UP");
-        body.put("component", "tag-engine");
-        body.put("version", "0.1.0");
-        return body;
+    public HealthController(ObjectProvider<BuildProperties> buildPropertiesProvider,
+                            TagStore tagStore) {
+        super(buildPropertiesProvider);
+        this.tagStore = tagStore;
+    }
+
+    @Override
+    protected String serviceName() {
+        return "tag-engine";
+    }
+
+    @Override
+    protected HealthResponse probeReadiness() {
+        try {
+            int definitionCount = tagStore.listTagDefinitions(HEALTH_PROBE_TENANT).size();
+            return HealthResponse.up(serviceName(), resolveVersion(),
+                    Map.of("tagDefinitionCount", definitionCount));
+        } catch (Exception ex) {
+            Map<String, Object> details = new LinkedHashMap<>();
+            details.put("error", ex.getClass().getSimpleName());
+            details.put("message", String.valueOf(ex.getMessage()));
+            return HealthResponse.down(serviceName(), resolveVersion(), details);
+        }
     }
 }

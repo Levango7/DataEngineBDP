@@ -1,55 +1,79 @@
 package com.shuqing.bigdata.infra.orchestrator.controller;
 
+import com.shuqing.bigdata.common.health.controller.AbstractHealthController;
+import com.shuqing.bigdata.common.health.dto.HealthResponse;
 import com.shuqing.bigdata.infra.orchestrator.model.EnvironmentType;
 import com.shuqing.bigdata.infra.orchestrator.registry.ProviderRegistry;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.boot.info.BuildProperties;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 健康检查 Controller。
+ * 编排层健康检查 Controller。
  *
- * <p>对应 {@code GET /api/v1/health}，无需鉴权，由 SecurityConfig permitAll 放行。
- * 返回编排层运行态、已注册 Provider 数量与缺失环境列表。</p>
+ * <p>基于 {@link AbstractHealthController} 模板方法，提供三个端点：</p>
+ * <ul>
+ *   <li>{@code GET /api/v1/health/liveness} - 存活探针，仅检查进程存活，始终快速返回 UP。</li>
+ *   <li>{@code GET /api/v1/health/readiness} - 就绪探针，探测 Provider 注册表完整性。</li>
+ *   <li>{@code GET /api/v1/health} - 向后兼容端点，委托就绪探针。</li>
+ * </ul>
+ *
+ * <p>readiness 通过 {@link ProviderRegistry#missingEnvironments()} 探测已注册 Provider
+ * 覆盖度：全部 7 种环境均已注册返回 UP；存在缺失环境返回 DEGRADED（可服务流量但需告警），
+ * 供 K8s readinessProbe 与运维大盘识别编排层降级状态。</p>
+ *
+ * <p>原响应顶层字段 {@code layer} / {@code totalEnvironments} / {@code registeredProviders} /
+ * {@code missingEnvironments} / {@code registeredEnvironments} 已统一收敛至 {@code details}，
+ * 顶层仅保留 {@code status} / {@code service} / {@code version} / {@code timestamp}。</p>
+ *
+ * <p>版本号从 {@link BuildProperties} 动态读取，未配置 build-info 时降级为 {@code "unknown"}。</p>
+ *
+ * @author shuqing-bigdata
  */
 @RestController
-@RequestMapping("/api/v1/health")
-public class HealthController {
+public class HealthController extends AbstractHealthController {
+
+    private static final String LAYER = "L0.5";
 
     private final ProviderRegistry registry;
 
     /**
      * 构造 Controller。
      *
-     * @param registry Provider 注册表
+     * @param buildPropertiesProvider BuildProperties 可选注入提供者
+     * @param registry                Provider 注册表，用于探测就绪状态
      */
-    public HealthController(ProviderRegistry registry) {
+    public HealthController(ObjectProvider<BuildProperties> buildPropertiesProvider,
+                            ProviderRegistry registry) {
+        super(buildPropertiesProvider);
         this.registry = registry;
     }
 
-    /**
-     * 健康检查。
-     *
-     * @return 健康状态
-     */
-    @GetMapping
-    public ResponseEntity<Map<String, Object>> health() {
+    @Override
+    protected String serviceName() {
+        return "infra-orchestrator";
+    }
+
+    @Override
+    protected HealthResponse probeReadiness() {
         int total = EnvironmentType.values().length;
         int registered = registry.size();
         List<EnvironmentType> missing = registry.missingEnvironments();
-        String status = missing.isEmpty() ? "UP" : "DEGRADED";
 
-        return ResponseEntity.ok(Map.of(
-                "status", status,
-                "service", "infra-orchestrator",
-                "layer", "L0.5",
-                "totalEnvironments", total,
-                "registeredProviders", registered,
-                "missingEnvironments", missing,
-                "registeredEnvironments", registry.registeredEnvironments()));
+        Map<String, Object> details = new LinkedHashMap<>();
+        details.put("layer", LAYER);
+        details.put("totalEnvironments", total);
+        details.put("registeredProviders", registered);
+        details.put("missingEnvironments", missing);
+        details.put("registeredEnvironments", registry.registeredEnvironments());
+
+        if (missing.isEmpty()) {
+            return HealthResponse.up(serviceName(), resolveVersion(), details);
+        }
+        return HealthResponse.degraded(serviceName(), resolveVersion(), details);
     }
 }
