@@ -305,95 +305,19 @@ if [[ "${SKIP_E2E}" == "true" ]]; then
   echo_warn "阶段 [E2E-FLOW] 已跳过 (--skip-e2e)"
   STAGE_NAMES+=("E2E-FLOW"); STAGE_RCS+=("0"); STAGE_ELAPSEDS+=("0"); STAGE_LOGS+=("(skipped)")
 else
-  # 端到端: 创建租户 → 在 Catalog 建表 → 经 SQL 网关查询 → 触发 DQ 规则 → 验证结果
-  E2E_CMD=$(cat <<'EOF'
-set -e
-HOST="__HOST__"
-TS=$$
-TENANT_NAME="e2e-tenant-${TS}"
-DB_NAME="e2e_db_${TS}"
-TABLE_NAME="e2e_orders_${TS}"
-
-echo "[E2E] 步骤1: 封装层创建租户 ${TENANT_NAME}"
-TENANT_RESP=$(curl -s -X POST "http://${HOST}:8080/api/v1/tenants" \
-  -H "Content-Type: application/json" \
-  -d "{\"name\":\"${TENANT_NAME}\",\"displayName\":\"E2E租户\",\"namespace\":\"ws-e2e-${TS}\",\"quotaProfile\":\"base\"}" \
-  -w "\n%{http_code}")
-TENANT_CODE=$(echo "${TENANT_RESP}" | tail -1)
-TENANT_BODY=$(echo "${TENANT_RESP}" | sed '$d')
-echo "  HTTP ${TENANT_CODE}  body=${TENANT_BODY}"
-if [[ "${TENANT_CODE}" != "201" && "${TENANT_CODE}" != "200" ]]; then
-  echo "[FAIL] 创建租户失败"; exit 1
-fi
-echo "[PASS] 租户创建成功"
-
-echo "[E2E] 步骤2: Catalog 创建数据库 ${DB_NAME}"
-DB_RESP=$(curl -s -X POST "http://${HOST}:8082/api/v1/catalog/databases" \
-  -H "Content-Type: application/json" \
-  -d "{\"name\":\"${DB_NAME}\",\"description\":\"E2E\",\"owner\":\"${TENANT_NAME}\"}" \
-  -w "\n%{http_code}")
-DB_CODE=$(echo "${DB_RESP}" | tail -1)
-echo "  HTTP ${DB_CODE}"
-if [[ "${DB_CODE}" != "201" && "${DB_CODE}" != "200" ]]; then
-  echo "[WARN] 创建数据库返回 ${DB_CODE}, 继续"
-fi
-
-echo "[E2E] 步骤3: Catalog 创建表 ${TABLE_NAME}"
-TBL_RESP=$(curl -s -X POST "http://${HOST}:8082/api/v1/catalog/tables" \
-  -H "Content-Type: application/json" \
-  -d "{\"databaseName\":\"${DB_NAME}\",\"tableName\":\"${TABLE_NAME}\",\"columns\":[{\"name\":\"id\",\"type\":\"bigint\",\"nullable\":false},{\"name\":\"amt\",\"type\":\"double\",\"nullable\":true}],\"partitionKeys\":[\"dt\"]}" \
-  -w "\n%{http_code}")
-TBL_CODE=$(echo "${TBL_RESP}" | tail -1)
-echo "  HTTP ${TBL_CODE}"
-if [[ "${TBL_CODE}" != "201" && "${TBL_CODE}" != "200" ]]; then
-  echo "[WARN] 创建表返回 ${TBL_CODE}, 继续"
-fi
-
-echo "[E2E] 步骤4: SQL 网关执行 SELECT 1 (engine=trino, tenant=${TENANT_NAME})"
-SQL_RESP=$(curl -s -X POST "http://${HOST}:8081/api/v1/sql/execute" \
-  -H "Content-Type: application/json" \
-  -d "{\"sql\":\"SELECT 1 AS one\",\"engine\":\"trino\",\"tenantId\":\"${TENANT_NAME}\",\"limit\":10}" \
-  -w "\n%{http_code}")
-SQL_CODE=$(echo "${SQL_RESP}" | tail -1)
-SQL_BODY=$(echo "${SQL_RESP}" | sed '$d')
-echo "  HTTP ${SQL_CODE}  body=${SQL_BODY}"
-if [[ "${SQL_CODE}" != "200" ]]; then
-  echo "[FAIL] SQL 执行失败"; exit 1
-fi
-echo "[PASS] SQL 执行成功"
-
-echo "[E2E] 步骤5: 规则引擎创建 DQ 规则"
-RULE_RESP=$(curl -s -X POST "http://${HOST}:8083/api/v1/rules" \
-  -H "Content-Type: application/json" \
-  -d "{\"name\":\"e2e-dq-${TS}\",\"type\":\"DQ\",\"expression\":\"id IS NOT NULL\",\"severity\":\"ERROR\",\"enabled\":true}" \
-  -w "\n%{http_code}")
-RULE_CODE=$(echo "${RULE_RESP}" | tail -1)
-RULE_BODY=$(echo "${RULE_RESP}" | sed '$d')
-echo "  HTTP ${RULE_CODE}  body=${RULE_BODY}"
-RULE_ID=$(echo "${RULE_BODY}" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('id',d.get('name','')))" 2>/dev/null || echo "1")
-echo "  规则ID: ${RULE_ID}"
-
-echo "[E2E] 步骤6: 规则引擎执行规则"
-EXEC_RESP=$(curl -s -X POST "http://${HOST}:8083/api/v1/rules/execute" \
-  -H "Content-Type: application/json" \
-  -d "{\"ruleId\":${RULE_ID},\"context\":{\"table\":\"${TABLE_NAME}\",\"tenantId\":\"${TENANT_NAME}\"},\"tenantId\":\"${TENANT_NAME}\"}" \
-  -w "\n%{http_code}")
-EXEC_CODE=$(echo "${EXEC_RESP}" | tail -1)
-EXEC_BODY=$(echo "${EXEC_RESP}" | sed '$d')
-echo "  HTTP ${EXEC_CODE}  body=${EXEC_BODY}"
-if [[ "${EXEC_CODE}" != "200" ]]; then
-  echo "[FAIL] 规则执行失败"; exit 1
-fi
-echo "[PASS] 规则执行成功"
-
-echo "[E2E] 步骤7: 清理 — 删除租户"
-curl -s -X DELETE "http://${HOST}:8080/api/v1/tenants/${TENANT_NAME}" -o /dev/null -w "  删除租户 HTTP %{http_code}\n" || true
-
-echo "[PASS] 端到端数据流验证通过: 创建租户 → 建表 → SQL 查询 → DQ 规则 → 清理"
-EOF
-)
-  E2E_CMD="${E2E_CMD//__HOST__/${HOST}}"
-  run_stage "E2E-FLOW" "${STAGE_TIMEOUT}" "${E2E_CMD}" || true
+  # 端到端完整数据流验证（覆盖设计文档 §3-§10 全链路）
+  # 调用 verify-e2e-dataflow.sh，覆盖 V1~V7、V4.5、V5.5 全部验证点：
+  #   步骤1: 封装层建工作空间（V1）
+  #   步骤2: Flink CDC 实时入湖（V2）
+  #   步骤3: Spark 湖→仓主题建模（V3）
+  #   步骤4: Doris 湖仓集联动（V4）
+  #   步骤4.5: 治理闭环 元数据/质量/血缘（V4.5）
+  #   步骤5: 统一 SQL 联邦查询（V5）
+  #   步骤5.5: BI 可视化（V5.5）
+  #   步骤6: 客户无感知（V6）
+  #   步骤7: 四环境一致性（V7）
+  run_stage "E2E-FLOW" "${STAGE_TIMEOUT}" \
+    "bash '${SCRIPT_DIR}/verify-e2e-dataflow.sh' --host ${HOST} --timeout ${STAGE_TIMEOUT}" || true
 fi
 
 # ----------------------------- 汇总报告 -----------------------------

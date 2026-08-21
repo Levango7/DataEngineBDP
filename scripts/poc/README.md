@@ -23,14 +23,19 @@
 
 ```
 scripts/poc/
-├── run-poc.sh                # 主编排脚本, 按顺序执行 7 个阶段
-├── verify-encaps.sh          # 封装层 API 验证 (port 8080)
-├── verify-sql-gateway.sh     # SQL 网关 API 验证 (port 8081)
-├── verify-catalog.sh         # Catalog API 验证 (port 8082)
-├── verify-rule-engine.sh     # 规则引擎 API 验证 (port 8083)
-├── README.md                 # 本文档
-├── logs/                     # 运行日志 (poc-YYYYMMDD-HHMMSS.log + 各阶段日志)
-└── reports/                  # Markdown 汇总报告 (poc-report-YYYYMMDD-HHMMSS.md)
+├── run-poc.sh                      # 主编排脚本, 按顺序执行 8 个阶段
+├── verify-encaps.sh                # 封装层 API 验证 (port 8080)
+├── verify-sql-gateway.sh           # SQL 网关 API 验证 (port 8081)
+├── verify-catalog.sh               # Catalog API 验证 (port 8082)
+├── verify-rule-engine.sh           # 规则引擎 API 验证 (port 8083)
+├── verify-batch-pipeline.sh        # 批计算链路验证 (port 8084, Iceberg→Spark→Doris)
+├── verify-e2e-dataflow.sh          # 端到端数据流完整验证 (V1~V7, V4.5, V5.5)
+├── sql_placeholder_renderer.py     # PoC SQL 占位符渲染器（表命名衔接修复）
+├── test_sql_placeholder_renderer.py # 占位符渲染器单元测试
+├── ACCEPTANCE_CRITERIA.md          # 验收标准对齐表（对照设计文档 §11）
+├── README.md                       # 本文档
+├── logs/                           # 运行日志 (poc-YYYYMMDD-HHMMSS.log + 各阶段日志)
+└── reports/                        # Markdown 汇总报告 (poc-report-YYYYMMDD-HHMMSS.md)
 ```
 
 ## 3. 前置条件
@@ -199,19 +204,44 @@ scripts/poc/
 
 ### 阶段 7: 端到端数据流验证
 
-完整链路：
+完整链路（对应设计文档 §3-§10，覆盖 V1~V7、V4.5、V5.5 全部验证点）：
 
 ```
-封装层创建租户
+步骤1: 封装层建工作空间与数据项目（V1）
     ↓
-Catalog 创建数据库 + 表
+步骤2: Flink CDC 实时入湖 MySQL → Iceberg ods 层（V2）
     ↓
-SQL 网关执行 SELECT 1 (engine=trino, tenant=新租户)
+步骤3: Spark 湖→仓主题建模 ods → dwd → dws（V3）
     ↓
-规则引擎创建 DQ 规则 + 执行
+步骤4: Doris 湖仓集联动 External Catalog + 物化视图（V4）
     ↓
-清理 (删除租户)
+步骤4.5: 治理闭环 元数据/质量/血缘/资产目录（V4.5）
+    ↓
+步骤5: 统一 SQL 网关联邦查询（V5）
+    ↓
+步骤5.5: BI 可视化 Superset 经网关建看板（V5.5）
+    ↓
+步骤6: 客户无感知验证（V6）
+    ↓
+步骤7: 四环境一致性验证（V7）
+    ↓
+步骤8: 端到端时延验证（V-LATENCY）
+    ↓
+步骤9: 存储共享验证（V-STORAGE）
 ```
+
+### 阶段 6.5: 批计算链路验证（`verify-batch-pipeline.sh`）
+
+对应 ROADMAP v1.2「批计算链路：Iceberg → Spark → Doris（OLAP）真实跑通」。
+
+| 步骤 | 验证内容 | 实现类 |
+|------|----------|--------|
+| 1 | 健康检查 | `StreamBatchSchedulerController` |
+| 2 | Spark 批作业提交 | `SparkBatchSubmitter.submitBatch` |
+| 3 | 批计算链路完整编排 | `BatchPipelineOrchestrationService.executePipeline` |
+| 4 | snapshot 隔离验证 | `IcebergSnapshotManager.verifySnapshotIsolation` |
+| 5 | Doris 物化视图刷新 | `DorisOlapClient.refreshMaterializedView` |
+| 6 | Doris OLAP 查询 | `DorisOlapClient.query` |
 
 ## 6. 输出与日志
 
