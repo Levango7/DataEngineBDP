@@ -1,0 +1,23 @@
+/*
+ * governance 模块 — 数据治理
+ *
+ * Spring Boot 微服务，主类：LineageAnalyzerApplication（位于 lineage 子目录）
+ *   嵌套子模块：governance/lineage（血缘分析）
+ * 功能：数据血缘分析、治理控制器、模型、服务
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / data-jpa / validation
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterDataJpa
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // H2 内存数据库（JPA 测试用）
+    runtimeOnly 'com.h2database:h2'
+}

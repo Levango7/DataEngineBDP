@@ -1,0 +1,155 @@
+/*
+ * MAOP 数据引擎 BDP — 根 build.gradle
+ *
+ * 统一插件与依赖管理，所有子项目共享以下约定：
+ *   - Java 17 工具链
+ *   - 编译器参数 -parameters（保留参数名供反射使用）+ UTF-8 编码
+ *   - Spring Boot 3.2.x + spring-dependency-management 插件
+ *   - Lombok（compileOnly + annotationProcessor）
+ *   - JUnit 5 测试平台
+ *   - 非标准源码布局：源文件与测试文件混合在模块目录下，通过文件名模式分离
+ *
+ * 注意：
+ *   1. 源码包名为 com.shuqing.bigdata.*，目录为 com/levango7/dataenginebdp/<module>/。
+ *      javac 不强制目录与包名一致，Gradle sourceSets 只需指向源码根即可编译。
+ *   2. 测试文件（*Test.java）与源文件同目录，通过 include/exclude 模式分离到 main/test 源集。
+ *   3. 构建输出重定向到根项目 build/<module>/ 下，避免污染源码树。
+ *   4. 默认禁用 bootJar；含 @SpringBootApplication 主类的模块在各模块 build.gradle 中启用。
+ */
+
+// --------------------------------------------------------------------------------------------------
+// 插件声明：Spring Boot + dependency-management（apply false 延迟到子项目应用）
+// --------------------------------------------------------------------------------------------------
+plugins {
+    id 'org.springframework.boot' version '3.2.5' apply false
+    id 'io.spring.dependency-management' version '1.1.5' apply false
+}
+
+// --------------------------------------------------------------------------------------------------
+// 所有子项目通用配置
+// --------------------------------------------------------------------------------------------------
+subprojects { proj ->
+
+    // --- 插件：Java + Spring Boot + 依赖管理 ---
+    apply plugin: 'java'
+    apply plugin: 'org.springframework.boot'
+    apply plugin: 'io.spring.dependency-management'
+
+    // --- 构建输出重定向到根项目 build/<module>/，避免污染源码目录 ---
+    buildDir = rootProject.file("build/${proj.name}")
+
+    // --- Java 17 工具链 ---
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(17)
+        }
+    }
+
+    // --- 编译器配置：-parameters + UTF-8 ---
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-parameters'
+        options.compilerArgs << '-Xlint:unchecked'
+        options.compilerArgs << '-Xlint:deprecation'
+    }
+
+    // --- 源集配置：非标准布局 ---
+    // 源码与测试文件混合在模块目录下，通过文件名模式分离：
+    //   - main：排除 *Test.java / *Tests.java / IT*.java / *IntegrationTest.java
+    //   - test：仅包含上述测试文件模式
+    sourceSets {
+        main {
+            java {
+                srcDirs = ['.']
+                exclude '**/*Test.java'
+                exclude '**/*Tests.java'
+                exclude '**/IT*.java'
+                exclude '**/*IntegrationTest.java'
+            }
+            // 资源目录：模块下若有 resources/ 则纳入
+            resources {
+                srcDirs = ['resources']
+            }
+        }
+        test {
+            java {
+                srcDirs = ['.']
+                include '**/*Test.java'
+                include '**/*Tests.java'
+                include '**/IT*.java'
+                include '**/*IntegrationTest.java'
+            }
+            resources {
+                srcDirs = ['test-resources']
+            }
+        }
+    }
+
+    // --- 依赖管理：导入 Spring Boot BOM（应用 Spring Boot 插件后自动配置）---
+    // Spring Boot 插件已自动导入 spring-boot-dependencies BOM，无需重复声明。
+
+    // --- 通用依赖：Lombok + 测试框架 ---
+    dependencies {
+        // Lombok：编译期 + 注解处理器
+        compileOnly libs.lombok
+        annotationProcessor libs.lombok
+        testCompileOnly libs.lombok
+        testAnnotationProcessor libs.lombok
+
+        // 测试框架：JUnit 5 + Mockito + AssertJ（Spring Boot starter-test 已包含，显式声明确保可用）
+        testImplementation libs.springBootStarterTest
+        testRuntimeOnly libs.junitJupiter
+    }
+
+    // --- 测试配置：JUnit 5 平台 ---
+    tasks.named('test', Test) {
+        useJUnitPlatform()
+        testLogging {
+            events 'passed', 'skipped', 'failed'
+            exceptionFormat 'full'
+        }
+    }
+
+    // --- 默认禁用 bootJar：库模块（flinkcdc、rule）不打包可执行 jar ---
+    // 含 @SpringBootApplication 主类的模块在各模块 build.gradle 中通过 enableBootJar() 启用
+    bootJar {
+        enabled = false
+    }
+    // 库模块仍需普通 jar
+    jar {
+        enabled = true
+    }
+
+    // --- 辅助函数：启用 Spring Boot 可执行 jar 打包 ---
+    // 各含 @SpringBootApplication 主类的模块在自身 build.gradle 中调用：enableBootJar()
+    // 闭包内通过 proj 显式引用子项目，避免解析到根项目
+    ext.enableBootJar = { ->
+        proj.bootJar {
+            enabled = true
+            archiveClassifier = ''
+        }
+        proj.jar {
+            enabled = true
+            archiveClassifier = 'plain'
+        }
+    }
+
+    // --- 仓库配置 ---
+    repositories {
+        mavenCentral()
+        // Spring 里程碑仓库（如需 SNAPSHOT 可启用）
+        maven { url 'https://repo.spring.io/milestone' }
+    }
+}
+
+// --------------------------------------------------------------------------------------------------
+// 根项目配置：仅作聚合，不产出构建物
+// --------------------------------------------------------------------------------------------------
+// 根项目不应用 java 插件，仅作为多项目构建的聚合根。
+tasks.register('allJavadoc', Javadoc) {
+    group = 'documentation'
+    description = '聚合所有子项目的 Javadoc'
+    source subprojects.collect { it.sourceSets.main.allJava }
+    classpath = files(subprojects.collect { it.sourceSets.main.compileClasspath })
+    destinationDir = file("${rootProject.buildDir}/docs/javadoc")
+}

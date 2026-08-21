@@ -1,0 +1,41 @@
+/*
+ * sqlgateway 模块 — SQL 网关
+ *
+ * Spring Boot 微服务，主类：SqlGatewayApplication
+ *   嵌套子模块：sqlgateway/calcite、crosssource、optimizer、parser、rewrite、virtual
+ * 功能：SQL 解析、优化、改写、跨源查询、虚拟表、Calcite 适配、Kafka 虚拟适配
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / data-jpa / validation
+ *   - Apache Calcite（SQL 解析与优化）
+ *   - HikariCP（虚拟数据源连接池）
+ *   - Kafka（KafkaVirtualAdapter）
+ *   - JJWT（安全认证）
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterDataJpa
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // Apache Calcite — SQL 解析、优化、虚拟表
+    implementation libs.calciteCore
+
+    // HikariCP — 虚拟数据源连接池
+    implementation libs.hikaricp
+
+    // Kafka — KafkaVirtualAdapter
+    implementation libs.kafkaClients
+
+    // JWT — 安全认证
+    implementation libs.jjwtApi
+    runtimeOnly libs.jjwtImpl
+    runtimeOnly libs.jjwtJackson
+
+    // H2 内存数据库（JPA 测试用）
+    runtimeOnly 'com.h2database:h2'
+}

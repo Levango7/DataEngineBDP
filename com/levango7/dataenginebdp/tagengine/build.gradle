@@ -1,0 +1,23 @@
+/*
+ * tagengine 模块 — 标签引擎
+ *
+ * Spring Boot 微服务，主类：TagEngineApplication
+ *   嵌套子模块：tagengine/controller、entity、model、repository、service、store
+ * 功能：标签管理、标签存储、控制器、服务、模型
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / data-jpa / validation
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterDataJpa
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // H2 内存数据库（JPA 测试用）
+    runtimeOnly 'com.h2database:h2'
+}

@@ -1,0 +1,38 @@
+/*
+ * bigdata-encaps 模块 — 大数据封装层
+ *
+ * Spring Boot 微服务，主类：EncapsLayerApplication
+ * 功能：多租户工作空间、K8s 配额翻译、安全门面、国密 crypto（SM2/SM3/SM4）+ JWT
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / data-jpa / validation
+ *   - Bouncy Castle（国密双栈）
+ *   - JJWT（认证过滤器）
+ *   - Fabric8 K8s Client（工作空间/配额翻译）
+ *   - Lombok（根项目已统一引入）
+ */
+
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterDataJpa
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // Bouncy Castle — 国密 SM2/SM3/SM4 + 国际算法双栈
+    implementation libs.bouncycastleBcprov
+    implementation libs.bouncycastleBcpkix
+
+    // JWT — JwtAuthFilter
+    implementation libs.jjwtApi
+    runtimeOnly libs.jjwtImpl
+    runtimeOnly libs.jjwtJackson
+
+    // Kubernetes 客户端 — K8s 工作空间与配额翻译
+    implementation libs.kubernetesClient
+
+    // H2 内存数据库（JPA 测试用，Spring Boot 已管理版本）
+    runtimeOnly 'com.h2database:h2'
+}

@@ -1,0 +1,66 @@
+/*
+ * MAOP 数据引擎 BDP — Gradle 多项目构建设置
+ *
+ * 13 个顶层模块，源码统一位于 com/levango7/dataenginebdp/<module>/ 下。
+ * 注意：源码包名为 com.shuqing.bigdata.*（与目录路径 com.levango7.dataenginebdp 不一致，
+ * 但 javac 不强制要求目录结构与包名匹配，Gradle sourceSets 只需指向源码根目录即可）。
+ *
+ * 模块清单（12 个 Spring Boot 微服务 + 2 个非 Boot 库模块）：
+ *   - bigdata-encaps : bigdata/encaps 嵌套模块（Spring Boot）
+ *   - encaps        : 封装层（Spring Boot，含 crypto 国密）
+ *   - federated     : 联邦查询（Spring Boot，Calcite）
+ *   - finops        : 成本运营（Spring Boot）
+ *   - flinkcdc      : Flink CDC（库模块，Flink + Kafka + Debezium）
+ *   - function      : 函数服务（Spring Boot）
+ *   - governance    : 治理（Spring Boot，含 lineage 血缘）
+ *   - infra         : 基础设施（Spring Boot，含 orchestrator 编排）
+ *   - rule          : 规则（库模块）
+ *   - ruleengine    : 规则引擎（Spring Boot）
+ *   - sqlgateway    : SQL 网关（Spring Boot，Calcite + HikariCP）
+ *   - streambatch   : 流批一体（Spring Boot，Flink + Spark + Iceberg）
+ *   - tagengine     : 标签引擎（Spring Boot）
+ */
+
+// --------------------------------------------------------------------------------------------------
+// 插件管理：声明插件仓库来源
+// --------------------------------------------------------------------------------------------------
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
+    }
+}
+
+rootProject.name = 'dataenginebdp'
+
+// 13 个子项目声明
+include ':bigdata-encaps'
+include ':encaps'
+include ':federated'
+include ':finops'
+include ':flinkcdc'
+include ':function'
+include ':governance'
+include ':infra'
+include ':rule'
+include ':ruleengine'
+include ':sqlgateway'
+include ':streambatch'
+include ':tagengine'
+
+// 模块目录映射：将 Gradle 项目目录指向实际源码位置
+// 源码根：com/levango7/dataenginebdp/<module>/
+project(':bigdata-encaps').projectDir = file('com/levango7/dataenginebdp/bigdata/encaps')
+project(':encaps').projectDir         = file('com/levango7/dataenginebdp/encaps')
+project(':federated').projectDir      = file('com/levango7/dataenginebdp/federated')
+project(':finops').projectDir         = file('com/levango7/dataenginebdp/finops')
+project(':flinkcdc').projectDir       = file('com/levango7/dataenginebdp/flinkcdc')
+project(':function').projectDir       = file('com/levango7/dataenginebdp/function')
+project(':governance').projectDir     = file('com/levango7/dataenginebdp/governance')
+project(':infra').projectDir          = file('com/levango7/dataenginebdp/infra')
+project(':rule').projectDir           = file('com/levango7/dataenginebdp/rule')
+project(':ruleengine').projectDir     = file('com/levango7/dataenginebdp/ruleengine')
+project(':sqlgateway').projectDir     = file('com/levango7/dataenginebdp/sqlgateway')
+project(':streambatch').projectDir    = file('com/levango7/dataenginebdp/streambatch')
+project(':tagengine').projectDir      = file('com/levango7/dataenginebdp/tagengine')

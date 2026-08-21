@@ -1,0 +1,25 @@
+/*
+ * infra 模块 — 基础设施编排
+ *
+ * Spring Boot 微服务，主类：OrchestratorApplication（位于 orchestrator 子目录）
+ *   嵌套子模块：infra/orchestrator（任务编排）
+ * 功能：任务编排、控制器、模型、注册表、服务
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / validation
+ *   - JJWT（安全认证）
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // JWT — 安全认证
+    implementation libs.jjwtApi
+    runtimeOnly libs.jjwtImpl
+    runtimeOnly libs.jjwtJackson
+}

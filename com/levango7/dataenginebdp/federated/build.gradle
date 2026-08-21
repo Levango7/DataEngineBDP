@@ -1,0 +1,22 @@
+/*
+ * federated 模块 — 联邦查询
+ *
+ * Spring Boot 微服务，主类：FederatedQueryApplication
+ * 功能：跨集群联邦查询、全局 Catalog、查询路由、结果合并、降级告警、mTLS 传输
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / validation
+ *   - Apache Calcite（联邦查询计划与优化）
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // Apache Calcite — 联邦查询 SQL 解析与优化
+    implementation libs.calciteCore
+}

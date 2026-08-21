@@ -1,0 +1,29 @@
+/*
+ * ruleengine 模块 — 规则引擎
+ *
+ * Spring Boot 微服务，主类：RuleEngineApplication
+ *   嵌套子模块：ruleengine/agent（智能体）、scheduler（调度）
+ * 功能：规则引擎、智能体编排、多租户调度（弹性/优先级/资源）、安全、服务
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / data-jpa / validation
+ *   - JJWT（安全认证）
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterDataJpa
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // JWT — 安全认证
+    implementation libs.jjwtApi
+    runtimeOnly libs.jjwtImpl
+    runtimeOnly libs.jjwtJackson
+
+    // H2 内存数据库（JPA 测试用）
+    runtimeOnly 'com.h2database:h2'
+}

@@ -1,0 +1,51 @@
+/*
+ * flinkcdc 模块 — Flink CDC 数据同步框架
+ *
+ * 库模块（无 @SpringBootApplication 主类，不打包 bootJar）
+ *   嵌套子模块：flinkcdc/debezium、exactlyonce、kafka、materializedview、schema、sink、source
+ * 功能：CDC 框架、Debezium 反序列化、精确一次、Kafka Topic 管理、物化视图、Schema 演进
+ *
+ * 依赖：
+ *   - Apache Flink（流处理）
+ *   - Flink Connector Kafka
+ *   - Kafka Clients + Connect API
+ *   - Debezium（CDC 源）
+ *   - Iceberg（sink）
+ *   - Avro（schema 序列化）
+ *   - Jackson（ChangeRecordJsonSerializer）
+ *   - Lombok（根项目已统一引入）
+ *
+ * 注意：bootJar 已在根 build.gradle 默认禁用，本模块仅产出普通 jar。
+ *       Flink 依赖通过 provided 引入（运行时由 Flink 集群提供），避免与 Spring Boot 依赖冲突。
+ */
+dependencies {
+    // Flink — 流处理核心（运行时由 Flink 集群提供，此处用 compileOnly 避免打包冲突）
+    compileOnly libs.flinkStreamingJava
+    compileOnly libs.flinkClients
+    compileOnly libs.flinkConnectorKafka
+
+    // Kafka — 客户端 + Connect API（Debezium 依赖）
+    compileOnly libs.kafkaClients
+    compileOnly libs.kafkaConnectApi
+
+    // Debezium — CDC 源
+    compileOnly libs.debeziumCore
+    compileOnly libs.debeziumEmbedded
+
+    // Iceberg — sink 连接器
+    compileOnly libs.icebergCore
+    compileOnly libs.icebergApi
+
+    // Avro — schema 序列化
+    compileOnly libs.avro
+
+    // Jackson — ChangeRecordJsonSerializer
+    implementation libs.jacksonDatabind
+
+    // 测试时需要 Flink 运行时
+    testImplementation libs.flinkStreamingJava
+    testImplementation libs.flinkClients
+    testImplementation libs.flinkConnectorKafka
+    testImplementation libs.kafkaClients
+    testImplementation libs.kafkaConnectApi
+}

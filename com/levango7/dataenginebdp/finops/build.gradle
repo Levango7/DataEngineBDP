@@ -1,0 +1,29 @@
+/*
+ * finops 模块 — 成本运营（FinOps）
+ *
+ * Spring Boot 微服务，主类：CostModelApplication
+ *   嵌套子模块：finops/dashboard（主类 FinOpsDashboardApplication）
+ * 功能：成本采集、成本模型、成本控制器、仪表盘、资源优化建议
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / validation
+ *   - JJWT（安全认证）
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+    implementation libs.springBootStarterDataJpa
+
+    // JWT — 安全认证
+    implementation libs.jjwtApi
+    runtimeOnly libs.jjwtImpl
+    runtimeOnly libs.jjwtJackson
+
+    // H2 内存数据库（JPA 测试用）
+    runtimeOnly 'com.h2database:h2'
+}

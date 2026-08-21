@@ -1,0 +1,41 @@
+/*
+ * streambatch 模块 — 流批一体调度
+ *
+ * Spring Boot 微服务，主类：StreamBatchSchedulerApplication
+ *   嵌套子模块：streambatch/dag、flink、spark、iceberg、plugin、router、service
+ * 功能：DAG 编排、Flink 流提交、Spark 批提交、Iceberg 快照隔离、双视图路由、插件
+ *
+ * 依赖：
+ *   - spring-boot-starter-web / validation
+ *   - Flink（流提交，运行时由集群提供）
+ *   - Spark（批提交，运行时由集群提供）
+ *   - Iceberg（快照管理）
+ *   - Lombok（根项目已统一引入）
+ *
+ * 注意：Flink/Spark/Iceberg 通过 compileOnly 引入（运行时由集群提供），
+ *       避免与 Spring Boot 依赖冲突及打包膨胀。
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterValidation
+    implementation libs.springBootStarterActuator
+
+    // Flink — 流提交（运行时由 Flink 集群提供）
+    compileOnly libs.flinkStreamingJava
+    compileOnly libs.flinkClients
+
+    // Spark — 批提交（运行时由 Spark 集群提供）
+    compileOnly libs.sparkCore
+    compileOnly libs.sparkSql
+
+    // Iceberg — 快照隔离管理
+    compileOnly libs.icebergCore
+    compileOnly libs.icebergApi
+
+    // 测试时需要运行时
+    testImplementation libs.icebergCore
+    testImplementation libs.icebergApi
+}

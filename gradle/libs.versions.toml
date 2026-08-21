@@ -1,0 +1,129 @@
+# --------------------------------------------------------------------------------------------------
+# MAOP 数据引擎 BDP — Gradle 版本目录
+#
+# 统一管理所有第三方依赖版本，供根 build.gradle 与各模块 build.gradle 通过 libs 引用。
+# 技术栈：Java 17 + Spring Boot 3.2.x + Lombok + Bouncy Castle（国密 SM2/SM3/SM4）
+# --------------------------------------------------------------------------------------------------
+
+[versions]
+# --- Spring 生态 ---
+springBoot = "3.2.5"
+springDependencyManagement = "1.1.5"
+
+# --- 语言与工具链 ---
+javaVersion = "17"
+lombok = "1.18.32"
+
+# --- 安全与加密 ---
+# Bouncy Castle：用于 encaps/crypto 国密算法（SM2/SM3/SM4）与国际算法双栈
+bouncycastle = "1.78.1"
+# JWT：io.jsonwebtoken（JJWT），多模块的 JwtAuthFilter 使用
+jjwt = "0.12.5"
+
+# --- Kubernetes 客户端 ---
+# Fabric8 K8s Client：bigdata/encaps、encaps 模块的 K8s 工作空间与配额翻译使用
+kubernetesClient = "6.13.4"
+
+# --- 数据库与连接池 ---
+# HikariCP：sqlgateway 虚拟数据源管理使用（Spring Boot 自带，此处显式声明版本对齐）
+hikaricp = "5.0.1"
+# JDBC 驱动（按需引入）
+postgresql = "42.7.3"
+mysql = "8.3.0"
+
+# --- SQL 引擎 ---
+# Apache Calcite：federated 联邦查询与 sqlgateway SQL 网关使用
+calcite = "1.36.0"
+
+# --- 流处理与 CDC ---
+# Flink：flinkcdc 与 streambatch 使用
+flink = "1.18.1"
+# Kafka：flinkcdc 与 sqlgateway 使用
+kafka = "3.7.0"
+# Debezium：flinkcdc CDC 源使用
+debezium = "2.7.0.Final"
+# Iceberg：flinkcdc sink 与 streambatch 快照管理使用
+iceberg = "1.5.2"
+# Spark：streambatch 批处理使用
+spark = "3.5.1"
+
+# --- 序列化 ---
+# Avro：Flink/Debezium schema 使用
+avro = "1.11.3"
+
+# --- 工具库 ---
+# Jackson：Spring Boot 自带，此处显式声明版本对齐
+jackson = "2.17.0"
+
+# --- 测试 ---
+junit = "5.10.2"
+mockito = "5.11.0"
+assertj = "3.25.3"
+
+[libraries]
+# --- Spring Boot starters（通过 dependency-management 插件管理版本，此处仅声明坐标）---
+springBootStarterWeb = { module = "org.springframework.boot:spring-boot-starter-web" }
+springBootStarterDataJpa = { module = "org.springframework.boot:spring-boot-starter-data-jpa" }
+springBootStarterValidation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+springBootStarterActuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+springBootStarterTest = { module = "org.springframework.boot:spring-boot-starter-test" }
+
+# --- Lombok ---
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
+
+# --- Bouncy Castle（国密 SM2/SM3/SM4）---
+bouncycastleBcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+bouncycastleBcpkix = { module = "org.bouncycastle:bcpkix-jdk18on", version.ref = "bouncycastle" }
+
+# --- JWT（JJWT 0.12.x API + Impl + Jackson 运行时）---
+jjwtApi = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwtImpl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwtJackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+
+# --- Kubernetes 客户端（Fabric8）---
+kubernetesClient = { module = "io.fabric8:kubernetes-client", version.ref = "kubernetesClient" }
+
+# --- 连接池与 JDBC 驱动 ---
+hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+mysql = { module = "com.mysql:mysql-connector-j", version.ref = "mysql" }
+
+# --- Apache Calcite ---
+calciteCore = { module = "org.apache.calcite:calcite-core", version.ref = "calcite" }
+
+# --- Flink（按模块引入，flinkcdc/streambatch 按需声明）---
+flinkStreamingJava = { module = "org.apache.flink:flink-streaming-java_2.12", version.ref = "flink" }
+flinkClients = { module = "org.apache.flink:flink-clients_2.12", version.ref = "flink" }
+flinkConnectorKafka = { module = "org.apache.flink:flink-connector-kafka_2.12", version.ref = "flink" }
+
+# --- Kafka ---
+kafkaClients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
+kafkaConnectApi = { module = "org.apache.kafka:connect-api", version.ref = "kafka" }
+
+# --- Debezium ---
+debeziumCore = { module = "io.debezium:debezium-core", version.ref = "debezium" }
+debeziumEmbedded = { module = "io.debezium:debezium-embedded-engine", version.ref = "debezium" }
+
+# --- Iceberg ---
+icebergCore = { module = "org.apache.iceberg:iceberg-core", version.ref = "iceberg" }
+icebergApi = { module = "org.apache.iceberg:iceberg-api", version.ref = "iceberg" }
+
+# --- Spark ---
+sparkCore = { module = "org.apache.spark:spark-core_2.12", version.ref = "spark" }
+sparkSql = { module = "org.apache.spark:spark-sql_2.12", version.ref = "spark" }
+
+# --- Avro ---
+avro = { module = "org.apache.avro:avro", version.ref = "avro" }
+
+# --- Jackson（显式对齐 Spring Boot 版本，通常无需单独引入）---
+jacksonDatabind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
+
+# --- 测试框架（JUnit 5 + Mockito + AssertJ，Spring Boot starter-test 已包含）---
+junitJupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+mockitoCore = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+mockitoJunitJupiter = { module = "org.mockito:mockito-junit-jupiter", version.ref = "mockito" }
+assertjCore = { module = "org.assertj:assertj-core", version.ref = "assertj" }
+
+[plugins]
+springBoot = { id = "org.springframework.boot", version.ref = "springBoot" }
+springDependencyManagement = { id = "io.spring.dependency-management", version.ref = "springDependencyManagement" }

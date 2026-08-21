@@ -1,0 +1,17 @@
+/*
+ * rule 模块 — 规则库
+ *
+ * 库模块（无 @SpringBootApplication 主类，不打包 bootJar）
+ *   嵌套子模块：rule/engine（规则引擎编排）
+ * 功能：规则引擎编排、DAG、调度、重试、告警、可视化
+ *
+ * 依赖：
+ *   - Lombok（根项目已统一引入）
+ *   - Jackson（序列化）
+ *
+ * 注意：bootJar 已在根 build.gradle 默认禁用，本模块仅产出普通 jar。
+ */
+dependencies {
+    // Jackson — 序列化（Spring Boot 已管理版本）
+    implementation libs.jacksonDatabind
+}

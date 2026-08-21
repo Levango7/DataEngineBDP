@@ -1,0 +1,17 @@
+/*
+ * function 模块 — 函数服务
+ *
+ * Spring Boot 微服务，主类：FunctionApplication
+ * 功能：函数调用、调用度量、请求/响应模型
+ *
+ * 依赖：
+ *   - spring-boot-starter-web
+ *   - Lombok（根项目已统一引入）
+ */
+enableBootJar()
+
+dependencies {
+    // Spring Boot
+    implementation libs.springBootStarterWeb
+    implementation libs.springBootStarterActuator
+}
