@@ -406,7 +406,7 @@ func TestStore_SearchTables_NoMatch(t *testing.T) {
 	s := newMockDB()
 	require.NoError(t, s.CreateTable(&model.Table{
 		ID: "sn-001", DatabaseName: "db1", TableName: "用户画像",
-		Columns: []model.Column{{Name: "id", Type: "BIGINT"}},
+		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
 	}))
 
