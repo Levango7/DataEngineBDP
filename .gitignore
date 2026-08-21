@@ -1,0 +1,84 @@
+# === Build Artifacts ===
+build/
+target/
+*.jar
+*.war
+*.class
+*.bootjar
+
+# === Gradle ===
+.gradle/
+gradle-app.setting
+!gradle/wrapper/gradle-wrapper.jar
+
+# === IDE ===
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+
+# === Python ===
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+venv/
+.venv/
+env/
+
+# === Caches ===
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.ruff/
+htmlcov/
+.coverage
+.coverage.*
+
+# === Logs ===
+logs/
+*.log
+hs_err_pid*.log
+replay_pid*.log
+
+# === Test Data & Downloads ===
+downloaded_music/
+test_music/
+test_music_v1/
+test_music_v2/
+data/*.db
+data/*.log
+
+# === Installers & Archives (should not be in git) ===
+*.msi
+*.zip
+go/
+go-installer.msi
+go.zip
+jdk17.msi
+wget-log
+wget-log.*
+
+# === OS Files ===
+.DS_Store
+Thumbs.db
+desktop.ini
+UTF8
+
+# === Docker ===
+# Keep Dockerfiles and docker-compose.yml tracked
+# But ignore docker runtime data
+docker-data/
+
+# === Secrets ===
+*.pem
+*.key
+*.p12
+.env
+.env.local
+data/agent.id
