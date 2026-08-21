@@ -1,0 +1,94 @@
+﻿{{- if .Values.experiments.podKill.enabled }}
+# ============================================================================
+# 故障注入：Pod 杀实验（v2.1 故障演练）
+# 说明：随机杀死目标 Pod，验证自愈与多副本高可用。
+# ============================================================================
+apiVersion: chaos-mesh.org/v1alpha1
+kind: PodChaos
+metadata:
+  name: pod-kill-experiment
+  namespace: {{ .Values.experiments.podKill.targetNamespace }}
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    chaos-mesh.org/experiment: pod-kill
+  annotations:
+    chaos-mesh.org/description: "Pod随机杀死-验证自愈与多副本高可用"
+spec:
+  action: pod-kill
+  mode: {{ .Values.experiments.podKill.mode | quote }}
+  selector:
+    namespaces:
+      - {{ .Values.experiments.podKill.targetNamespace }}
+    labelSelectors:
+      {{- range $k, $v := (split "=" .Values.experiments.podKill.targetLabel) }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  gracePeriodSeconds: {{ .Values.experiments.podKill.gracePeriodSeconds }}
+  duration: {{ .Values.experiments.podKill.duration | quote }}
+  {{- if .Values.experiments.podKill.scheduler }}
+  scheduler:
+    cron: {{ .Values.experiments.podKill.scheduler.cron | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.experiments.memoryStress.enabled }}
+# ============================================================================
+# 故障注入：内存压力实验（v2.1 故障演练）
+# 说明：对目标 Pod 注入内存压力，验证 OOM 处理与内存限制。
+# ============================================================================
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: memory-stress-experiment
+  namespace: {{ .Values.experiments.memoryStress.targetNamespace }}
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    chaos-mesh.org/experiment: memory-stress
+  annotations:
+    chaos-mesh.org/description: "内存压力注入-验证OOM处理与内存限制"
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - {{ .Values.experiments.memoryStress.targetNamespace }}
+    labelSelectors:
+      {{- range $k, $v := (split "=" .Values.experiments.memoryStress.targetLabel) }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  stressors:
+    memory:
+      workers: {{ .Values.experiments.memoryStress.workers }}
+      size: {{ .Values.experiments.memoryStress.size | quote }}
+  duration: {{ .Values.experiments.memoryStress.duration | quote }}
+{{- end }}
+---
+{{- if .Values.experiments.cpuStress.enabled }}
+# ============================================================================
+# 故障注入：CPU 压力实验（v2.1 故障演练）
+# 说明：对目标 Pod 注入 CPU 压力，验证 CPU 限流与弹性伸缩。
+# ============================================================================
+apiVersion: chaos-mesh.org/v1alpha1
+kind: StressChaos
+metadata:
+  name: cpu-stress-experiment
+  namespace: {{ .Values.experiments.cpuStress.targetNamespace }}
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    chaos-mesh.org/experiment: cpu-stress
+  annotations:
+    chaos-mesh.org/description: "CPU压力注入-验证CPU限流与弹性伸缩"
+spec:
+  mode: all
+  selector:
+    namespaces:
+      - {{ .Values.experiments.cpuStress.targetNamespace }}
+    labelSelectors:
+      {{- range $k, $v := (split "=" .Values.experiments.cpuStress.targetLabel) }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  stressors:
+    cpu:
+      workers: {{ .Values.experiments.cpuStress.workers }}
+      load: {{ .Values.experiments.cpuStress.load }}
+  duration: {{ .Values.experiments.cpuStress.duration | quote }}
+{{- end }}

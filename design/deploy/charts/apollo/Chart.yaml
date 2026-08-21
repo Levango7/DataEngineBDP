@@ -1,0 +1,17 @@
+apiVersion: v2
+name: apollo
+description: "配置中心 - Apollo 集中化管理多环境配置，支持热更新与回滚（v2.1 生产化加固）"
+type: application
+version: 1.0.0
+appVersion: "2.3.0"
+home: https://www.apolloconfig.com/
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - apollo
+  - config-center
+  - configuration-management
+  - hot-reload
+  - rollback
+  - v2.1

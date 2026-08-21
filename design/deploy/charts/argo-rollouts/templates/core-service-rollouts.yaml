@@ -1,0 +1,140 @@
+﻿{{- if .Values.coreServices.enabled }}
+{{- range $name, $svc := .Values.coreServices.items }}
+# ============================================================================
+# 核心服务 Rollout CRD 示例 - {{ $name }}（v2.1 灰度发布增强）
+# 说明：将核心服务从 Deployment 迁移到 Rollout，启用渐进式发布。
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ $name }}
+  labels:
+    app: {{ $name }}
+    app.kubernetes.io/part-of: dataenginebdp
+    rollout-strategy: {{ $svc.strategy | default "canary" }}
+    app.kubernetes.io/managed-by: helm
+  annotations:
+    rollout.argoproj.io/strategy: {{ $svc.strategy | default "canary" | quote }}
+spec:
+  replicas: {{ $svc.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  strategy:
+    {{- if eq ($svc.strategy | default "canary") "canary" }}
+    canary:
+      canaryService: {{ $name }}-preview
+      stableService: {{ $name }}-stable
+      trafficRouting:
+        istio:
+          virtualService:
+            name: {{ $name }}-vsvc
+            routes:
+              - primary
+      maxSurge: "25%"
+      maxUnavailable: 0
+      steps:
+        - setWeight: 20
+        - pause:
+            duration: 2m
+        - analysis:
+            templates:
+              - templateName: success-rate
+            args:
+              - name: service-name
+                value: {{ $name }}-preview
+        - setWeight: 50
+        - pause:
+            duration: 2m
+        - analysis:
+            templates:
+              - templateName: success-rate
+            args:
+              - name: service-name
+                value: {{ $name }}-preview
+        - setWeight: 80
+        - pause:
+            duration: 2m
+        - setWeight: 100
+    {{- else if eq ($svc.strategy | default "canary") "blueGreen" }}
+    blueGreen:
+      activeService: {{ $name }}-active
+      previewService: {{ $name }}-preview
+      autoPromotionEnabled: false
+      previewReplicaCount: 1
+      scaleDownDelaySeconds: 30
+      prePromotionAnalysis:
+        templates:
+          - templateName: success-rate
+        args:
+          - name: service-name
+            value: {{ $name }}-preview
+    {{- else if eq ($svc.strategy | default "canary") "mirror" }}
+    canary:
+      canaryService: {{ $name }}-preview
+      stableService: {{ $name }}-stable
+      trafficRouting:
+        istio:
+          virtualService:
+            name: {{ $name }}-vsvc
+            routes:
+              - primary
+      steps:
+        - setCanaryScale:
+            weight: 100
+        - setMirrorRoute:
+            name: primary
+        - pause:
+            duration: 10m
+        - analysis:
+            templates:
+              - templateName: mirror-error-rate
+            args:
+              - name: service-name
+                value: {{ $name }}-preview
+        - removeManagedRoutes
+        - setWeight: 50
+        - pause:
+            duration: 2m
+        - setWeight: 100
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+        app.kubernetes.io/part-of: dataenginebdp
+    spec:
+      containers:
+        - name: {{ $name }}
+          image: "{{ $svc.image.repository }}:{{ $svc.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ $svc.containerPort | default 8080 }}
+          env:
+            - name: APP_NAME
+              value: {{ $name | quote }}
+            - name: JAVA_OPTS
+              value: "-XX:+UseG1GC -XX:MaxRAMPercentage=75.0"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: {{ $svc.resources.requests.cpu | default "500m" | quote }}
+              memory: {{ $svc.resources.requests.memory | default "1Gi" | quote }}
+            limits:
+              cpu: {{ $svc.resources.limits.cpu | default "2" | quote }}
+              memory: {{ $svc.resources.limits.memory | default "4Gi" | quote }}
+---
+{{- end }}
+{{- end }}

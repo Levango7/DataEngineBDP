@@ -1,0 +1,32 @@
+﻿{{- if .Values.experiments.diskIO.enabled }}
+# ============================================================================
+# 故障注入：磁盘 IO 延迟实验（v2.1 故障演练）
+# 说明：对目标 Pod 注入磁盘 IO 延迟，验证 IO 超时与降级处理。
+# ============================================================================
+apiVersion: chaos-mesh.org/v1alpha1
+kind: IOChaos
+metadata:
+  name: disk-io-delay-experiment
+  namespace: {{ .Values.experiments.diskIO.targetNamespace }}
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    chaos-mesh.org/experiment: disk-io-delay
+  annotations:
+    chaos-mesh.org/description: "磁盘IO延迟注入-验证IO超时与降级处理"
+spec:
+  action: {{ .Values.experiments.diskIO.action | quote }}
+  mode: all
+  selector:
+    namespaces:
+      - {{ .Values.experiments.diskIO.targetNamespace }}
+    labelSelectors:
+      {{- range $k, $v := (split "=" .Values.experiments.diskIO.targetLabel) }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  delay: {{ .Values.experiments.diskIO.delay | quote }}
+  path: {{ .Values.experiments.diskIO.path | quote }}
+  volumePath: {{ .Values.experiments.diskIO.volumePath | quote }}
+  percent: 100
+  containerNames: ["*"]
+  duration: {{ .Values.experiments.diskIO.duration | quote }}
+{{- end }}

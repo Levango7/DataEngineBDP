@@ -1,0 +1,66 @@
+﻿{{- if .Values.experiments.networkDelay.enabled }}
+# ============================================================================
+# 故障注入：网络延迟实验（v2.1 故障演练）
+# 说明：对目标服务注入网络延迟，验证服务降级与超时重试机制。
+# ============================================================================
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-delay-experiment
+  namespace: {{ .Values.experiments.networkDelay.targetNamespace }}
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    chaos-mesh.org/experiment: network-delay
+  annotations:
+    chaos-mesh.org/description: "网络延迟注入-验证服务降级与超时重试"
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces:
+      - {{ .Values.experiments.networkDelay.targetNamespace }}
+    labelSelectors:
+      {{- range $k, $v := (split "=" .Values.experiments.networkDelay.targetLabel) }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  delay:
+    latency: {{ .Values.experiments.networkDelay.delay.latency | quote }}
+    jitter: {{ .Values.experiments.networkDelay.delay.jitter | quote }}
+    correlation: {{ .Values.experiments.networkDelay.delay.correlation | quote }}
+  duration: {{ .Values.experiments.networkDelay.duration | quote }}
+  {{- if .Values.experiments.networkDelay.scheduler }}
+  scheduler:
+    cron: {{ .Values.experiments.networkDelay.scheduler.cron | quote }}
+  {{- end }}
+{{- end }}
+---
+{{- if .Values.experiments.networkLoss.enabled }}
+# ============================================================================
+# 故障注入：网络丢包实验（v2.1 故障演练）
+# 说明：对目标服务注入网络丢包，验证重试与熔断机制。
+# ============================================================================
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: network-loss-experiment
+  namespace: {{ .Values.experiments.networkLoss.targetNamespace }}
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    chaos-mesh.org/experiment: network-loss
+  annotations:
+    chaos-mesh.org/description: "网络丢包注入-验证重试与熔断"
+spec:
+  action: loss
+  mode: all
+  selector:
+    namespaces:
+      - {{ .Values.experiments.networkLoss.targetNamespace }}
+    labelSelectors:
+      {{- range $k, $v := (split "=" .Values.experiments.networkLoss.targetLabel) }}
+      {{ $k }}: {{ $v }}
+      {{- end }}
+  loss:
+    loss: {{ .Values.experiments.networkLoss.loss.loss | quote }}
+    correlation: {{ .Values.experiments.networkLoss.loss.correlation | quote }}
+  duration: {{ .Values.experiments.networkLoss.duration | quote }}
+{{- end }}

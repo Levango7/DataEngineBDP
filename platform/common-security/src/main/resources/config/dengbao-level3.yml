@@ -1,0 +1,121 @@
+# ============================================================================
+# 等保三级合规检查配置（v2.1 审计合规增强）
+# 说明：依据 GB/T 22239-2019《信息安全技术 网络安全等级保护基本要求》三级要求，
+#       定义审计合规检查项与基线配置。
+# ============================================================================
+
+# 等保三级合规配置
+dengbao:
+  level: 3
+  # 标准版本
+  standard: "GB/T 22239-2019"
+  # 合规检查项
+  controls:
+    # 8.1.4.1 身份鉴别
+    identity-auth:
+      enabled: true
+      requirements:
+        - "a) 应对登录的用户进行身份标识和鉴别，身份标识具有唯一性，身份鉴别信息具有复杂度要求并定期更换"
+        - "b) 应具有登录失败处理功能，配置并启用结束会话、限制非法登录次数和登录连接超时自动退出等措施"
+        - "c) 当远程管理时，应采取必要措施防止鉴别信息在网络传输过程中被窃听"
+        - "d) 应采用口令、密码技术、生物技术等两种或两种以上组合的鉴别技术对用户进行身份鉴别"
+      config:
+        password-min-length: 8
+        password-complexity: true
+        password-expire-days: 90
+        login-fail-max-attempts: 5
+        login-lock-duration-minutes: 30
+        session-timeout-minutes: 30
+    # 8.1.4.2 访问控制
+    access-control:
+      enabled: true
+      requirements:
+        - "a) 应对登录的用户分配账户和权限，重命名或删除默认账户，修改默认账户的默认口令"
+        - "b) 应及时删除或停用多余的、过期的账户，取消或冻结不必要的权限"
+        - "c) 应授予管理用户所需的最小权限，实现管理用户的权限分离"
+      config:
+        default-accounts-disabled: true
+        least-privilege: true
+        permission-separation: true
+    # 8.1.4.3 安全审计
+    security-audit:
+      enabled: true
+      requirements:
+        - "a) 应启用安全审计功能，审计覆盖到每个用户，对重要的用户行为和重要安全事件进行审计"
+        - "b) 应对审计记录进行保护，定期备份，避免受到未预期的删除、修改或覆盖等"
+        - "c) 应对审计进程进行保护，防止未经授权的中断"
+      config:
+        audit-enabled: true
+        audit-coverage: full
+        audit-record-protection: true
+        audit-backup-enabled: true
+        audit-backup-interval-days: 7
+        audit-retention-days: 2555
+        audit-tamper-proof: true
+    # 8.1.4.4 入侵防范
+    intrusion-prevention:
+      enabled: true
+      requirements:
+        - "a) 应能发现可能存在的已知漏洞，并在经过充分测试评估后，在保证系统正常工作的情况下修补漏洞"
+        - "b) 应能够检测到对重要节点进行入侵的行为，并在发生严重入侵事件时提供报警"
+      config:
+        vulnerability-scan-enabled: true
+        intrusion-detection-enabled: true
+        alert-enabled: true
+    # 8.1.4.5 恶意代码防范
+    malware-prevention:
+      enabled: true
+      requirements:
+        - "a) 应采用防恶意代码技术或采用可信计算技术建立从系统到应用的信任链"
+      config:
+        image-scan-enabled: true
+        trusted-image-only: true
+    # 8.1.4.6 数据完整性
+    data-integrity:
+      enabled: true
+      requirements:
+        - "a) 应采用校验技术或密码技术保证重要数据在存储过程中的完整性"
+        - "b) 应采用校验技术或密码技术保证重要数据在传输过程中的完整性"
+      config:
+        storage-integrity-check: true
+        transport-integrity-check: true
+        hmac-enabled: true
+    # 8.1.4.7 数据保密性
+    data-confidentiality:
+      enabled: true
+      requirements:
+        - "a) 应采用密码技术保证重要数据在存储过程中的保密性"
+        - "b) 应采用密码技术保证重要数据在传输过程中的保密性"
+      config:
+        storage-encryption: true
+        transport-encryption: true
+        tls-enabled: true
+        sensitive-data-masking: true
+    # 8.1.4.8 数据备份恢复
+    data-backup:
+      enabled: true
+      requirements:
+        - "a) 应提供数据本地备份与恢复功能"
+        - "b) 应提供异地数据备份功能"
+      config:
+        local-backup-enabled: true
+        remote-backup-enabled: true
+        backup-interval-days: 1
+        backup-retention-days: 90
+
+# 金融行业审计增强配置
+finance-audit:
+  enabled: true
+  # 金融行业标准
+  standard: "JR/T 0071-2012 金融行业网络安全等级保护实施指引"
+  requirements:
+    - "操作审计日志应覆盖所有重要业务操作"
+    - "审计日志应保留至少 7 年"
+    - "审计日志应防篡改，采用 HMAC 或数字签名"
+    - "敏感数据应脱敏存储，如银行卡号、身份证号、手机号"
+    - "重要操作应记录操作人、操作时间、操作内容、操作结果"
+  config:
+    retention-years: 7
+    tamper-proof: true
+    sensitive-masking: true
+    full-chain-coverage: true

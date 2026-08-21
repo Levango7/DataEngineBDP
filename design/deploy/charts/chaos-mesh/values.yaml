@@ -1,0 +1,144 @@
+# ============================================================================
+# chaos-mesh Helm Chart 默认 values（v2.1 故障演练）
+# 说明：安装 Chaos Mesh 控制器 + 故障注入实验配置 + SLO 稳态验证。
+# ============================================================================
+
+# ---- Chaos Mesh 控制器镜像 ----
+image:
+  chaosDaemon:
+    repository: "docker.m.daocloud.io/chaos-mesh/chaos-daemon"
+    tag: "v2.7.0"
+  chaosController:
+    repository: "docker.m.daocloud.io/chaos-mesh/chaos-mesh"
+    tag: "v2.7.0"
+  chaosDashboard:
+    repository: "docker.m.daocloud.io/chaos-mesh/chaos-dashboard"
+    tag: "v2.7.0"
+  pullPolicy: IfNotPresent
+
+# ---- 命名空间 ----
+namespace:
+  create: true
+  name: "chaos-mesh"
+
+# ---- 控制器配置 ----
+controller:
+  replicaCount: 1
+  resources:
+    requests:
+      cpu: "0.2"
+      memory: "256Mi"
+    limits:
+      cpu: "1"
+      memory: "512Mi"
+
+# ---- Dashboard 配置 ----
+dashboard:
+  enabled: true
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 2333
+  resources:
+    requests:
+      cpu: "0.1"
+      memory: "128Mi"
+    limits:
+      cpu: "0.5"
+      memory: "256Mi"
+
+# ---- 安全上下文 ----
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# ---- CRD 安装开关 ----
+crd:
+  install: true
+
+# ---- 故障注入实验配置 ----
+experiments:
+  # 网络延迟实验
+  networkDelay:
+    enabled: true
+    targetNamespace: "default"
+    targetLabel: "app=sq-encaps-layer"
+    delay:
+      latency: "200ms"
+      jitter: "50ms"
+      correlation: "0"
+    duration: "5m"
+    scheduler:
+      cron: "@every 1h"
+  # 网络丢包实验
+  networkLoss:
+    enabled: true
+    targetNamespace: "default"
+    targetLabel: "app=sq-sql-gateway"
+    loss:
+      loss: "10"
+      correlation: "0"
+    duration: "2m"
+  # Pod 杀实验
+  podKill:
+    enabled: true
+    targetNamespace: "default"
+    targetLabel: "app=sq-rule-engine"
+    mode: "all"
+    gracePeriodSeconds: 0
+    duration: "30s"
+    scheduler:
+      cron: "@every 30m"
+  # 磁盘 IO 读写延迟实验
+  diskIO:
+    enabled: true
+    targetNamespace: "default"
+    targetLabel: "app=sq-encaps-layer"
+    action: "latency"
+    delay: "100ms"
+    path: "/data"
+    volumePath: "/var/lib/kubelet/pods"
+    duration: "3m"
+  # 内存压力实验
+  memoryStress:
+    enabled: true
+    targetNamespace: "default"
+    targetLabel: "app=sq-sql-gateway"
+    size: "512MB"
+    workers: 4
+    duration: "2m"
+  # CPU 压力实验
+  cpuStress:
+    enabled: true
+    targetNamespace: "default"
+    targetLabel: "app=sq-rule-engine"
+    load: 80
+    workers: 4
+    duration: "2m"
+
+# ---- SLO 稳态验证 ----
+steadyState:
+  enabled: true
+  prometheus:
+    address: "http://prometheus-server.observability.svc.cluster.local:9090"
+  # SLO 基线（故障注入期间需保持）
+  slos:
+    availability:
+      threshold: 0.99       # 可用性 ≥ 99%
+      window: "5m"
+    p99Latency:
+      threshold: 1000       # P99 延迟 ≤ 1000ms
+      window: "5m"
+    errorRate:
+      threshold: 0.05       # 错误率 ≤ 5%
+      window: "5m"
+    throughput:
+      minThreshold: 100     # 吞吐量 ≥ 100 req/s
+      window: "5m"
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+affinity: {}
+tolerations: []

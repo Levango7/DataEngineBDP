@@ -1,0 +1,17 @@
+apiVersion: v2
+name: chaos-mesh
+description: "故障演练 - Chaos Mesh 稳态验证与故障注入测试，建立 SLO 量化基线（v2.1 生产化加固）"
+type: application
+version: 1.0.0
+appVersion: "2.7.0"
+home: https://chaos-mesh.org/
+maintainers:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - chaos-mesh
+  - chaos-engineering
+  - fault-injection
+  - slo
+  - steady-state
+  - v2.1

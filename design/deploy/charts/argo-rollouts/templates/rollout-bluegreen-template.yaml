@@ -1,0 +1,66 @@
+﻿{{- if .Values.strategyTemplates.blueGreen.enabled }}
+# ============================================================================
+# 蓝绿发布策略模板（v2.1 灰度发布增强）
+# 说明：同时维护蓝/绿两套环境，通过 Service selector 切换流量，秒级回滚。
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "argo-rollouts.name" . }}-bluegreen-template
+  labels:
+    app: {{ include "argo-rollouts.name" . }}
+    rollout-strategy: blue-green
+    app.kubernetes.io/managed-by: helm
+  annotations:
+    rollout.argoproj.io/strategy: "blue-green"
+    rollout.argoproj.io/description: "蓝绿发布模板-秒级切流与回滚"
+spec:
+  replicas: {{ .Values.strategyTemplates.blueGreen.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app: {{ include "argo-rollouts.name" . }}-bluegreen
+  strategy:
+    blueGreen:
+      activeService: {{ include "argo-rollouts.name" . }}-bluegreen-active
+      previewService: {{ include "argo-rollouts.name" . }}-bluegreen-preview
+      autoPromotionEnabled: {{ .Values.strategyTemplates.blueGreen.autoPromotion | default false }}
+      autoPromotionSeconds: {{ .Values.strategyTemplates.blueGreen.autoPromotionSeconds | default 30 }}
+      scaleDownDelaySeconds: {{ .Values.strategyTemplates.blueGreen.scaleDownDelaySeconds | default 30 }}
+      previewReplicaCount: {{ .Values.strategyTemplates.blueGreen.previewReplicaCount | default 1 }}
+      prePromotionAnalysis:
+        templates:
+          - templateName: success-rate
+        args:
+          - name: service-name
+            value: {{ include "argo-rollouts.name" . }}-bluegreen-preview
+      postPromotionAnalysis:
+        templates:
+          - templateName: success-rate
+        args:
+          - name: service-name
+            value: {{ include "argo-rollouts.name" . }}-bluegreen-active
+  template:
+    metadata:
+      labels:
+        app: {{ include "argo-rollouts.name" . }}-bluegreen
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.strategyTemplates.blueGreen.image.repository }}:{{ .Values.strategyTemplates.blueGreen.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+{{- end }}

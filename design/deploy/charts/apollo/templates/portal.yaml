@@ -1,0 +1,80 @@
+﻿# ============================================================================
+# Apollo Portal（v2.1 配置中心）
+# 说明：管理界面，提供配置管理、发布、回滚、灰度发布等 Web UI。
+# ============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "apollo.name" . }}-portal
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ include "apollo.name" . }}-portal
+    app.kubernetes.io/part-of: apollo
+spec:
+  replicas: {{ .Values.portal.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "apollo.name" . }}-portal
+  template:
+    metadata:
+      labels:
+        app: {{ include "apollo.name" . }}-portal
+    spec:
+      containers:
+        - name: portal
+          image: "{{ .Values.image.portal.repository }}:{{ .Values.image.portal.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "github,auth"
+            - name: APOLLO_PORTAL_ENVS
+              value: {{ join "," .Values.portal.envs | quote }}
+            {{- if .Values.db.internal.enabled }}
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://{{ include "apollo.name" . }}-mysql.{{ .Values.namespace.name }}.svc.cluster.local:3306/ApolloPortalDB?characterEncoding=utf8"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: "apollo"
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: "apollo"
+            {{- else }}
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://{{ .Values.db.external.host }}:{{ .Values.db.external.port }}/ApolloPortalDB?characterEncoding=utf8"
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.db.external.username | quote }}
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: {{ .Values.db.external.password | quote }}
+            {{- end }}
+          ports:
+            - containerPort: 8070
+              name: http
+          resources:
+            {{- toYaml .Values.portal.resources | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "apollo.name" . }}-portal
+  namespace: {{ .Values.namespace.name }}
+  labels:
+    app: {{ include "apollo.name" . }}-portal
+    app.kubernetes.io/part-of: apollo
+spec:
+  type: {{ .Values.portal.service.type }}
+  ports:
+    - port: {{ .Values.portal.service.port }}
+      targetPort: 8070
+      name: http
+  selector:
+    app: {{ include "apollo.name" . }}-portal

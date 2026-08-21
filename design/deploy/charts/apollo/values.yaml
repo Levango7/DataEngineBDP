@@ -1,0 +1,176 @@
+# ============================================================================
+# apollo Helm Chart 默认 values（v2.1 配置中心）
+# 说明：安装 Apollo 配置中心（Portal + ConfigService + AdminService），
+#       集中化管理多环境配置，支持热更新与回滚。
+# ============================================================================
+
+# ---- Apollo 镜像 ----
+image:
+  portal:
+    repository: "docker.m.daocloud.io/apolloconfig/apollo-portal"
+    tag: "2.3.0"
+  configService:
+    repository: "docker.m.daocloud.io/apolloconfig/apollo-configservice"
+    tag: "2.3.0"
+  adminService:
+    repository: "docker.m.daocloud.io/apolloconfig/apollo-adminservice"
+    tag: "2.3.0"
+  pullPolicy: IfNotPresent
+
+# ---- 命名空间 ----
+namespace:
+  create: true
+  name: "apollo"
+
+# ---- Portal 配置 ----
+portal:
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8070
+  resources:
+    requests:
+      cpu: "0.2"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+  # 管理环境列表
+  envs:
+    - "dev"
+    - "fat"
+    - "uat"
+    - "pro"
+  # 管理员账号
+  admin:
+    username: "apollo"
+    password: "admin"
+    # 生产环境必须通过环境变量覆盖
+    passwordFromSecret: ""
+
+# ---- ConfigService 配置 ----
+configService:
+  replicaCount: 2
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: "0.2"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+# ---- AdminService 配置 ----
+adminService:
+  replicaCount: 1
+  service:
+    type: ClusterIP
+    port: 8090
+  resources:
+    requests:
+      cpu: "0.2"
+      memory: "512Mi"
+    limits:
+      cpu: "1"
+      memory: "1Gi"
+
+# ---- 数据库配置 ----
+# Apollo 需要 MySQL 存储配置数据
+db:
+  # 使用已存在的外部 MySQL
+  external:
+    enabled: false
+    host: ""
+    port: 3306
+    username: "apollo"
+    password: ""
+    database: "ApolloConfigDB"
+  # 内置 MySQL（仅开发环境）
+  internal:
+    enabled: true
+    image:
+      repository: "docker.m.daocloud.io/library/mysql"
+      tag: "8.0"
+    resources:
+      requests:
+        cpu: "0.2"
+        memory: "512Mi"
+      limits:
+        cpu: "1"
+        memory: "1Gi"
+    persistence:
+      enabled: true
+      size: 10Gi
+      storageClass: ""
+
+# ---- 配置热更新 ----
+hotReload:
+  enabled: true
+  # 配置变更监听间隔（秒）
+  refreshInterval: 5
+  # 热更新通知方式：http / kafka
+  notifyType: "http"
+
+# ---- 配置回滚 ----
+rollback:
+  enabled: true
+  # 保留历史版本数
+  maxHistoryVersions: 50
+  # 自动回滚开关（配置加载失败时）
+  autoRollbackOnFailure: true
+
+# ---- 多环境配置 ----
+environments:
+  dev:
+    metaServer: "http://apollo-configservice.apollo.svc.cluster.local:8080"
+    branches: ["default"]
+  fat:
+    metaServer: "http://apollo-configservice.apollo.svc.cluster.local:8080"
+    branches: ["default"]
+  uat:
+    metaServer: "http://apollo-configservice.apollo.svc.cluster.local:8080"
+    branches: ["default"]
+  pro:
+    metaServer: "http://apollo-configservice.apollo.svc.cluster.local:8080"
+    branches: ["default", "gray"]
+
+# ---- 核心服务接入示例 ----
+# 为核心服务预置 Apollo 命名空间与应用配置
+coreServices:
+  enabled: true
+  items:
+    sq-encaps-layer:
+      appId: "sq-encaps-layer"
+      cluster: "default"
+      namespaces:
+        - "application"
+        - "datasource"
+        - "redis"
+    sq-sql-gateway:
+      appId: "sq-sql-gateway"
+      cluster: "default"
+      namespaces:
+        - "application"
+        - "datasource"
+        - "trino"
+        - "doris"
+    sq-rule-engine:
+      appId: "sq-rule-engine"
+      cluster: "default"
+      namespaces:
+        - "application"
+        - "datasource"
+
+# ---- 安全上下文 ----
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+affinity: {}
+tolerations: []

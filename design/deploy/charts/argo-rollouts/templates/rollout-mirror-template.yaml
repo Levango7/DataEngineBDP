@@ -1,0 +1,85 @@
+﻿{{- if .Values.strategyTemplates.mirror.enabled }}
+# ============================================================================
+# 流量镜像策略模板（v2.1 灰度发布增强）
+# 说明：将生产流量实时镜像到新版本（不返回响应），用于无风险验证新版本承载能力。
+# 依赖：Istio VirtualService + DestinationRule 配置 mirror 字段。
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "argo-rollouts.name" . }}-mirror-template
+  labels:
+    app: {{ include "argo-rollouts.name" . }}
+    rollout-strategy: mirror
+    app.kubernetes.io/managed-by: helm
+  annotations:
+    rollout.argoproj.io/strategy: "mirror"
+    rollout.argoproj.io/description: "流量镜像发布模板-无风险验证新版本"
+spec:
+  replicas: {{ .Values.strategyTemplates.mirror.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app: {{ include "argo-rollouts.name" . }}-mirror
+  strategy:
+    canary:
+      canaryService: {{ include "argo-rollouts.name" . }}-mirror-preview
+      stableService: {{ include "argo-rollouts.name" . }}-mirror-stable
+      trafficRouting:
+        istio:
+          virtualService:
+            name: {{ include "argo-rollouts.name" . }}-mirror-vsvc
+            routes:
+              - primary
+          destinationRule:
+            name: {{ include "argo-rollouts.name" . }}-mirror-dr
+            canarySubsetName: canary
+            stableSubsetName: stable
+      steps:
+        - setCanaryScale:
+            weight: 100
+        - setMirrorRoute:
+            match:
+              - method:
+                  exact: GET
+            name: primary
+        - pause:
+            duration: {{ .Values.strategyTemplates.mirror.mirrorDuration | default "10m" }}
+        - analysis:
+            templates:
+              - templateName: mirror-error-rate
+            args:
+              - name: service-name
+                value: {{ include "argo-rollouts.name" . }}-mirror-preview
+        - removeManagedRoutes
+        - setWeight: 10
+        - pause:
+            duration: {{ .Values.strategyTemplates.mirror.canaryStepPause | default "2m" }}
+        - setWeight: 50
+        - pause:
+            duration: {{ .Values.strategyTemplates.mirror.canaryStepPause | default "2m" }}
+        - setWeight: 100
+  template:
+    metadata:
+      labels:
+        app: {{ include "argo-rollouts.name" . }}-mirror
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.strategyTemplates.mirror.image.repository }}:{{ .Values.strategyTemplates.mirror.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+{{- end }}

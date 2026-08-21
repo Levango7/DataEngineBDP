@@ -1,0 +1,80 @@
+﻿{{- if .Values.steadyState.enabled }}
+# ============================================================================
+# SLO 稳态验证 - 可用性检查（v2.1 故障演练）
+# 说明：故障注入期间持续检查 SLO 指标，超出阈值即告警。
+# ============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: slo-steady-state-alerts
+  namespace: observability
+  labels:
+    app.kubernetes.io/part-of: chaos-mesh
+    prometheus: kube-prometheus
+    role: alert-rules
+  annotations:
+    chaos-mesh.org/description: "SLO稳态验证告警规则-故障注入期间持续监控"
+spec:
+  groups:
+    - name: slo-availability
+      rules:
+        - alert: SLOAvailabilityViolation
+          expr: |
+            1 - (
+              sum(rate(http_server_requests_seconds_count{status=~"5.."}[{{ .Values.steadyState.slos.availability.window }}]))
+              /
+              sum(rate(http_server_requests_seconds_count[{{ .Values.steadyState.slos.availability.window }}]))
+            ) < {{ .Values.steadyState.slos.availability.threshold }}
+          for: 1m
+          labels:
+            severity: critical
+            slo: availability
+            chaos_experiment: "true"
+          annotations:
+            summary: "SLO 可用性违反"
+            description: "可用性低于 {{ .Values.steadyState.slos.availability.threshold }}，故障注入期间服务降级超出 SLO 基线"
+    - name: slo-latency
+      rules:
+        - alert: SLOLatencyViolation
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_server_requests_seconds_bucket[{{ .Values.steadyState.slos.p99Latency.window }}])) by (le)
+            ) * 1000 > {{ .Values.steadyState.slos.p99Latency.threshold }}
+          for: 1m
+          labels:
+            severity: warning
+            slo: p99-latency
+            chaos_experiment: "true"
+          annotations:
+            summary: "SLO P99 延迟违反"
+            description: "P99 延迟高于 {{ .Values.steadyState.slos.p99Latency.threshold }}ms"
+    - name: slo-error-rate
+      rules:
+        - alert: SLOErrorRateViolation
+          expr: |
+            sum(rate(http_server_requests_seconds_count{status=~"5.."}[{{ .Values.steadyState.slos.errorRate.window }}]))
+            /
+            sum(rate(http_server_requests_seconds_count[{{ .Values.steadyState.slos.errorRate.window }}]))
+            > {{ .Values.steadyState.slos.errorRate.threshold }}
+          for: 1m
+          labels:
+            severity: critical
+            slo: error-rate
+            chaos_experiment: "true"
+          annotations:
+            summary: "SLO 错误率违反"
+            description: "错误率高于 {{ .Values.steadyState.slos.errorRate.threshold }}"
+    - name: slo-throughput
+      rules:
+        - alert: SLOThroughputDrop
+          expr: |
+            sum(rate(http_server_requests_seconds_count[{{ .Values.steadyState.slos.throughput.window }}])) < {{ .Values.steadyState.slos.throughput.minThreshold }}
+          for: 2m
+          labels:
+            severity: warning
+            slo: throughput
+            chaos_experiment: "true"
+          annotations:
+            summary: "SLO 吞吐量下降"
+            description: "吞吐量低于 {{ .Values.steadyState.slos.throughput.minThreshold }} req/s"
+{{- end }}

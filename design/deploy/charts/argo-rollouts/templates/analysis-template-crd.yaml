@@ -1,0 +1,34 @@
+﻿{{- if .Values.crd.install }}
+# ============================================================================
+# Argo Rollouts CRD - AnalysisTemplate 资源定义（v2.1 灰度发布增强）
+# 说明：定义分析模板，用于在发布过程中基于 Prometheus 指标自动推进/回滚。
+# ============================================================================
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: analysistemplates.argoproj.io
+  labels:
+    app.kubernetes.io/name: argo-rollouts
+    app.kubernetes.io/part-of: argo-rollouts
+spec:
+  group: argoproj.io
+  names:
+    kind: AnalysisTemplate
+    listKind: AnalysisTemplateList
+    plural: analysistemplates
+    singular: analysistemplate
+    shortNames:
+      - at
+      - analysistemplate
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          x-kubernetes-preserve-unknown-fields: true
+      subresources:
+        status: {}
+{{- end }}

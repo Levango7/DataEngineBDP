@@ -1,0 +1,84 @@
+﻿{{- if .Values.analysisTemplates.enabled }}
+# ============================================================================
+# AnalysisTemplate - 成功率分析（v2.1 灰度发布增强）
+# 说明：基于 Prometheus 指标在发布过程中自动判断是否推进/回滚。
+# 指标：HTTP 5xx 比例 < 5% 且成功率 > 95%。
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+  labels:
+    app.kubernetes.io/name: argo-rollouts
+    app.kubernetes.io/part-of: argo-rollouts
+spec:
+  args:
+    - name: service-name
+      value: ""
+  metrics:
+    - name: success-rate
+      interval: 30s
+      successCondition: result[0] >= 0.95
+      failureCondition: result[0] < 0.90
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: {{ .Values.analysisTemplates.prometheus.address | quote }}
+          query: |
+            sum(rate(http_server_requests_seconds_count{service="{{`{{args.service-name}}`}}",status!~"5.."}[2m]))
+            /
+            sum(rate(http_server_requests_seconds_count{service="{{`{{args.service-name}}`}}"}[2m]))
+    - name: error-rate
+      interval: 30s
+      successCondition: result[0] <= 0.05
+      failureCondition: result[0] > 0.10
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: {{ .Values.analysisTemplates.prometheus.address | quote }}
+          query: |
+            sum(rate(http_server_requests_seconds_count{service="{{`{{args.service-name}}`}}",status=~"5.."}[2m]))
+            /
+            sum(rate(http_server_requests_seconds_count{service="{{`{{args.service-name}}`}}"}[2m]))
+    - name: p99-latency
+      interval: 30s
+      successCondition: result[0] <= 500
+      failureCondition: result[0] > 1000
+      failureLimit: 3
+      provider:
+        prometheus:
+          address: {{ .Values.analysisTemplates.prometheus.address | quote }}
+          query: |
+            histogram_quantile(0.99,
+              sum(rate(http_server_requests_seconds_bucket{service="{{`{{args.service-name}}`}}"}[2m])) by (le)
+            ) * 1000
+---
+# ============================================================================
+# AnalysisTemplate - 流量镜像错误率分析（v2.1 灰度发布增强）
+# 说明：流量镜像阶段对比新版本与稳定版的错误率，确保新版本无异常。
+# ============================================================================
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: mirror-error-rate
+  labels:
+    app.kubernetes.io/name: argo-rollouts
+    app.kubernetes.io/part-of: argo-rollouts
+spec:
+  args:
+    - name: service-name
+      value: ""
+  metrics:
+    - name: mirror-error-rate
+      interval: 1m
+      successCondition: result[0] <= 0.02
+      failureCondition: result[0] > 0.05
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: {{ .Values.analysisTemplates.prometheus.address | quote }}
+          query: |
+            sum(rate(http_server_requests_seconds_count{service="{{`{{args.service-name}}`}}",status=~"5.."}[2m]))
+            /
+            sum(rate(http_server_requests_seconds_count{service="{{`{{args.service-name}}`}}"}[2m]))
+{{- end }}
