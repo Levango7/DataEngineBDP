@@ -24,3 +24,8 @@ app:
       issuer: ${JWT_ISSUER:shuqing-bigdata}
     cors:
       allowed-origins: ${CORS_ORIGINS}
+
+management:
+  endpoint:
+    health:
+      show-details: when-authorized  # 生产环境：健康详情仅认证用户可见
