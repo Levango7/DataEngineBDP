@@ -21,7 +21,7 @@ spring:
         dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
   h2:
     console:
-      enabled: true
+      enabled: false  # 生产环境关闭H2控制台；开发环境通过 --spring.h2.console.enabled=true 或 application-dev.yml 开启
       path: /h2-console
 
 management:
