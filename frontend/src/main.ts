@@ -4,7 +4,7 @@ import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
 import App from './App.vue'
 import router from './router'
-import './styles/main.css'
+import './styles/index.css'
 
 // API 客户端接线：注入 token 获取器、错误提示器、401 跳登录
 import { setTokenGetter, setErrorNotifier, setUnauthorizedHandler } from './api/client'

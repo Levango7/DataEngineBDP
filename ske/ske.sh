@@ -101,6 +101,10 @@ nodes:
           certSANs:
             - localhost
             - 127.0.0.1
+            - kubernetes
+            - kubernetes.default
+            - kubernetes.default.svc
+            - kubernetes.default.svc.cluster.local
           extraArgs:
             max-requests-inflight: "3000"
             max-mutating-requests-inflight: "2000"

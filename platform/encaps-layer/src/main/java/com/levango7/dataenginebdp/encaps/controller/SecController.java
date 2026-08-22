@@ -4,6 +4,8 @@ import com.levango7.dataenginebdp.encaps.model.MaskPolicyEntity;
 import com.levango7.dataenginebdp.encaps.repository.MaskPolicyRepository;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/sec")
+@Tag(name = "安全管理", description = "安全脱敏规则管理")
 public class SecController {
 
     private final MaskPolicyRepository repository;
@@ -50,6 +53,7 @@ public class SecController {
     }
 
     /** 策略列表。 */
+    @Operation(summary = "查询脱敏策略列表", description = "查询脱敏策略列表，支持 assetName 过滤")
     @GetMapping("/policies")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listPolicies(
@@ -62,6 +66,7 @@ public class SecController {
     }
 
     /** 策略详情。 */
+    @Operation(summary = "查询脱敏策略详情", description = "按 ID 获取脱敏策略详情")
     @GetMapping("/policies/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getPolicy(@PathVariable Long id) {
@@ -73,6 +78,7 @@ public class SecController {
 
     /** 创建策略。 */
     @AuditLog(action = "CREATE_MASK_POLICY", resource = "mask_policy")
+    @Operation(summary = "创建脱敏策略", description = "创建字段级脱敏策略（status=active）")
     @PostMapping("/policies")
     @Transactional
     public ResponseEntity<Map<String, Object>> createPolicy(@Valid @RequestBody MaskPolicyRequest req) {
@@ -95,6 +101,7 @@ public class SecController {
 
     /** 更新策略。 */
     @AuditLog(action = "UPDATE_MASK_POLICY", resource = "mask_policy")
+    @Operation(summary = "更新脱敏策略", description = "按 ID 更新脱敏策略（fieldName/assetName/strategy/algorithm）")
     @PutMapping("/policies/{id}")
     @Transactional
     public ResponseEntity<?> updatePolicy(@PathVariable Long id, @Valid @RequestBody MaskPolicyRequest req) {
@@ -111,6 +118,7 @@ public class SecController {
 
     /** 删除策略。 */
     @AuditLog(action = "DELETE_MASK_POLICY", resource = "mask_policy")
+    @Operation(summary = "删除脱敏策略", description = "按 ID 删除脱敏策略（租户隔离）")
     @DeleteMapping("/policies/{id}")
     @Transactional
     public ResponseEntity<?> deletePolicy(@PathVariable Long id) {
@@ -131,6 +139,7 @@ public class SecController {
      * @param status 状态过滤（可选）
      * @return 200 + 审批列表
      */
+    @Operation(summary = "查询权限申请列表", description = "从内存审批流查询，支持 status 过滤")
     @GetMapping("/approvals")
     public ResponseEntity<List<Map<String, Object>>> listApprovals(
             @RequestParam(required = false) String status) {
@@ -153,6 +162,7 @@ public class SecController {
      * @return 200
      */
     @AuditLog(action = "APPROVE_PERMISSION", resource = "approval")
+    @Operation(summary = "批准权限申请", description = "更新内存审批流中对应记录的状态为 approved")
     @PostMapping("/approvals/{id}/approve")
     public ResponseEntity<Void> approve(@PathVariable Long id) {
         String tenantId = requireTenant();
@@ -171,6 +181,7 @@ public class SecController {
      * @return 200
      */
     @AuditLog(action = "REJECT_PERMISSION", resource = "approval")
+    @Operation(summary = "拒绝权限申请", description = "更新内存审批流中对应记录的状态为 rejected")
     @PostMapping("/approvals/{id}/reject")
     public ResponseEntity<Void> reject(@PathVariable Long id) {
         String tenantId = requireTenant();

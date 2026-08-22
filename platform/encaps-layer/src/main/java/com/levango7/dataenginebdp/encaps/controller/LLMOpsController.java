@@ -6,6 +6,8 @@ import com.levango7.dataenginebdp.encaps.model.InferenceServiceEntity;
 import com.levango7.dataenginebdp.encaps.model.MlModelEntity;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.LLMOpsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +48,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/llmops")
+@Tag(name = "LLMOps", description = "大模型运维管理")
 public class LLMOpsController {
 
     private final LLMOpsService llmOpsService;
@@ -89,6 +92,7 @@ public class LLMOpsController {
     /* ============================ 模型管理端点 ============================ */
 
     /** 模型列表。 */
+    @Operation(summary = "查询大模型列表", description = "查询大模型列表，支持 modelName 过滤")
     @GetMapping("/models")
     public ResponseEntity<List<Map<String, Object>>> listModels(
             @RequestParam(required = false) String modelName) {
@@ -100,6 +104,7 @@ public class LLMOpsController {
     }
 
     /** 注册新模型。 */
+    @Operation(summary = "注册大模型", description = "注册新大模型（status=REGISTERED）；version 未指定时默认 v1")
     @PostMapping("/models")
     public ResponseEntity<Map<String, Object>> registerModel(
             @Valid @RequestBody ModelRegisterRequest req) {
@@ -124,6 +129,7 @@ public class LLMOpsController {
     /* ============================ 评估指标端点 ============================ */
 
     /** 评估指标列表。 */
+    @Operation(summary = "查询评估指标列表", description = "查询评估指标列表，支持 modelName 过滤")
     @GetMapping("/eval-metrics")
     public ResponseEntity<List<Map<String, Object>>> getEvalMetrics(
             @RequestParam(required = false) String modelName) {
@@ -135,6 +141,7 @@ public class LLMOpsController {
     }
 
     /** 创建评估指标。 */
+    @Operation(summary = "创建评估指标", description = "创建模型评估指标（accuracy/hallucinationRate/baseLiftPt 等）")
     @PostMapping("/eval-metrics")
     public ResponseEntity<Map<String, Object>> createEvalMetric(
             @Valid @RequestBody EvalMetricCreateRequest req) {
@@ -156,6 +163,7 @@ public class LLMOpsController {
     /* ============================ 微调任务端点 ============================ */
 
     /** 提交微调任务。 */
+    @Operation(summary = "提交微调任务", description = "提交大模型微调任务（baseModel/trainingData/gpuConfig/epochs）")
     @PostMapping("/finetune")
     public ResponseEntity<Map<String, Object>> submitFinetune(@RequestBody FinetuneRequest req) {
         String tenantId = requireTenant();
@@ -172,6 +180,7 @@ public class LLMOpsController {
     }
 
     /** 微调任务列表。 */
+    @Operation(summary = "查询微调任务列表", description = "查询当前租户全部微调任务")
     @GetMapping("/finetune")
     public ResponseEntity<List<Map<String, Object>>> listFinetuneTasks() {
         String tenantId = requireTenant();
@@ -180,6 +189,7 @@ public class LLMOpsController {
     }
 
     /** 查询微调任务状态。 */
+    @Operation(summary = "查询微调任务状态", description = "按 taskId 查询微调任务状态与进度")
     @GetMapping("/finetune/{taskId}")
     public ResponseEntity<?> getFinetuneStatus(@PathVariable String taskId) {
         String tenantId = requireTenant();
@@ -191,6 +201,7 @@ public class LLMOpsController {
     /* ============================ 人工评估端点 ============================ */
 
     /** 发起人工评估。 */
+    @Operation(summary = "发起人工评估", description = "对指定模型发起人工评估（evalType=human）")
     @PostMapping("/human-eval")
     public ResponseEntity<Map<String, Object>> triggerHumanEval(@RequestBody HumanEvalRequest req) {
         String tenantId = requireTenant();
@@ -213,6 +224,7 @@ public class LLMOpsController {
     /* ============================ 推理服务端点 ============================ */
 
     /** 推理服务列表。 */
+    @Operation(summary = "查询推理服务列表", description = "查询大模型推理服务列表，支持 status 过滤")
     @GetMapping("/inference-services")
     public ResponseEntity<List<Map<String, Object>>> listInferenceServices(
             @RequestParam(required = false) String status) {

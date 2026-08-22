@@ -4,6 +4,8 @@ import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.DevelopFileService;
 import com.levango7.dataenginebdp.encaps.service.DevelopJobService;
 import com.levango7.dataenginebdp.encaps.service.DevelopScheduleService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +37,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/develop")
+@Tag(name = "数据开发", description = "数据开发IDE")
 public class DevelopController {
 
     private final DevelopFileService fileService;
@@ -42,6 +45,7 @@ public class DevelopController {
     private final DevelopScheduleService scheduleService;
 
     /** 文件树（扫描工作空间目录，返回真实文件结构）。 */
+    @Operation(summary = "获取文件树", description = "扫描工作空间目录，返回真实文件结构")
     @GetMapping("/files")
     public ResponseEntity<List<Map<String, Object>>> getFileTree() {
         log.info("获取文件树: tenant={}", TenantContext.getTenantId());
@@ -49,6 +53,7 @@ public class DevelopController {
     }
 
     /** 读取文件内容（参数：path，相对工作空间根）。 */
+    @Operation(summary = "读取文件内容", description = "按 path（相对工作空间根）读取文件内容")
     @GetMapping("/files/content")
     public ResponseEntity<String> readFile(@RequestParam String path) {
         log.info("读取文件内容: path={}, tenant={}", path, TenantContext.getTenantId());
@@ -74,6 +79,7 @@ public class DevelopController {
     }
 
     /** 运行作业：转交 stream-batch-scheduler 真实提交。 */
+    @Operation(summary = "运行作业", description = "转交 stream-batch-scheduler 真实提交作业（filePath/engine/cpu/memory/parallelism）")
     @PostMapping("/run")
     public ResponseEntity<Map<String, Object>> runJob(@RequestBody RunRequest req) {
         String tenantId = TenantContext.getTenantId();
@@ -91,6 +97,7 @@ public class DevelopController {
     }
 
     /** 提交调度：落库 develop_schedule 表。 */
+    @Operation(summary = "提交调度", description = "落库 develop_schedule 表（filePath/schedule/engine）")
     @PostMapping("/schedule")
     public ResponseEntity<Void> submitSchedule(@RequestBody ScheduleRequest req) {
         String tenantId = TenantContext.getTenantId();
@@ -106,6 +113,7 @@ public class DevelopController {
     }
 
     /** 获取任务 DAG：按数据分层（ods/dwd/dws/ads）推导依赖关系。 */
+    @Operation(summary = "获取任务 DAG", description = "按数据分层（ods/dwd/dws/ads）推导任务依赖关系")
     @GetMapping("/dag")
     public ResponseEntity<Map<String, Object>> getTaskDag(@RequestParam String filePath) {
         String tenantId = TenantContext.getTenantId();

@@ -5,6 +5,8 @@ import com.levango7.dataenginebdp.encaps.repository.SyncTaskRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.IntegrateConnectorService;
 import com.levango7.dataenginebdp.encaps.service.SeaTunnelClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/integrate")
+@Tag(name = "数据集成", description = "数据集成任务管理")
 public class IntegrateController {
 
     private final SyncTaskRepository repository;
@@ -50,6 +53,7 @@ public class IntegrateController {
     }
 
     /** 同步任务列表（分页契约）。 */
+    @Operation(summary = "查询同步任务列表", description = "分页查询同步任务列表")
     @GetMapping("/tasks")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> listTasks(
@@ -69,6 +73,7 @@ public class IntegrateController {
     }
 
     /** 任务详情。 */
+    @Operation(summary = "查询同步任务详情", description = "按 ID 获取同步任务详情")
     @GetMapping("/tasks/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getTask(@PathVariable Long id) {
@@ -79,6 +84,7 @@ public class IntegrateController {
     }
 
     /** 创建任务。 */
+    @Operation(summary = "创建同步任务", description = "创建数据同步任务（status=pending）")
     @PostMapping("/tasks")
     @Transactional
     public ResponseEntity<Map<String, Object>> createTask(@Valid @RequestBody SyncTaskRequest req) {
@@ -102,6 +108,7 @@ public class IntegrateController {
     }
 
     /** 更新任务。 */
+    @Operation(summary = "更新同步任务", description = "按 ID 更新同步任务（name/sourceType/targetType/tables/schedule）")
     @PutMapping("/tasks/{id}")
     @Transactional
     public ResponseEntity<?> updateTask(@PathVariable Long id, @Valid @RequestBody SyncTaskRequest req) {
@@ -119,6 +126,7 @@ public class IntegrateController {
     }
 
     /** 删除任务。 */
+    @Operation(summary = "删除同步任务", description = "按 ID 删除同步任务（租户隔离）")
     @DeleteMapping("/tasks/{id}")
     @Transactional
     public ResponseEntity<?> deleteTask(@PathVariable Long id) {
@@ -138,6 +146,7 @@ public class IntegrateController {
      *
      * @return 200 + 连接器列表
      */
+    @Operation(summary = "查询数据源连接器列表", description = "返回 SeaTunnel 内置 Source/Sink 连接器列表")
     @GetMapping("/connectors")
     public ResponseEntity<List<Map<String, Object>>> listConnectors() {
         log.info("列出连接器: tenant={}", TenantContext.getTenantId());
@@ -153,6 +162,7 @@ public class IntegrateController {
      * @param id 任务 ID
      * @return 200 若已触发；404 若不存在
      */
+    @Operation(summary = "运行同步任务", description = "调用 SeaTunnel REST API 启动作业，并将返回的 jobId 落库")
     @PostMapping("/tasks/{id}/run")
     @Transactional
     public ResponseEntity<?> runTask(@PathVariable Long id) {
@@ -183,6 +193,7 @@ public class IntegrateController {
      * @param id 任务 ID
      * @return 200 若已停止；404 若不存在
      */
+    @Operation(summary = "停止同步任务", description = "调用 SeaTunnel REST API 停止作业，并更新任务状态")
     @PostMapping("/tasks/{id}/stop")
     @Transactional
     public ResponseEntity<?> stopTask(@PathVariable Long id) {

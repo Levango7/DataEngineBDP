@@ -10,6 +10,8 @@ import com.levango7.dataenginebdp.encaps.security.facade.auth.AuthResult;
 import com.levango7.dataenginebdp.encaps.security.facade.evidence.EvidenceItem;
 import com.levango7.dataenginebdp.encaps.security.facade.mask.MaskFacade;
 import com.levango7.dataenginebdp.encaps.security.facade.mask.MaskType;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -52,6 +54,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/security")
+@Tag(name = "安全门面", description = "安全统一门面接口")
 public class SecurityFacadeController {
 
     private static final Logger log = LoggerFactory.getLogger(SecurityFacadeController.class);
@@ -72,6 +75,7 @@ public class SecurityFacadeController {
      *
      * @return 状态信息
      */
+    @Operation(summary = "查询 SecurityFacade 状态", description = "查询 crypto/mask/audit/auth 各能力启用状态与当前上下文")
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> status() {
         Map<String, Object> body = new LinkedHashMap<>();
@@ -114,6 +118,7 @@ public class SecurityFacadeController {
      * @param request 脱敏请求
      * @return 脱敏结果
      */
+    @Operation(summary = "执行脱敏", description = "按脱敏类型（PHONE/IDCARD 等）对输入执行脱敏")
     @PostMapping("/mask")
     public ResponseEntity<Map<String, Object>> mask(@RequestBody MaskRequest request) {
         MaskType type = MaskType.valueOf(request.type().toUpperCase());
@@ -130,6 +135,7 @@ public class SecurityFacadeController {
      * @param level 可选级别过滤
      * @return 事件列表
      */
+    @Operation(summary = "查询审计事件", description = "查询审计事件列表，支持 level 过滤")
     @GetMapping("/audit/events")
     public ResponseEntity<List<Map<String, Object>>> auditEvents(
             @RequestParam(required = false) String level) {
@@ -148,6 +154,7 @@ public class SecurityFacadeController {
      *
      * @return 鉴权结果
      */
+    @Operation(summary = "鉴权检查", description = "检查当前 principal 是否具备完整访问权限")
     @GetMapping("/auth/check")
     public ResponseEntity<Map<String, Object>> authCheck() {
         AuthResult result = securityFacade.auth().checkFullAccess();
@@ -167,6 +174,7 @@ public class SecurityFacadeController {
      * @return 归档结果（证据数量与 ID 列表）
      * @throws IOException 归档失败
      */
+    @Operation(summary = "收集并归档证据", description = "收集安全证据并归档到 evidence.archiveDir")
     @PostMapping("/evidence/collect")
     public ResponseEntity<Map<String, Object>> collectEvidence() throws IOException {
         List<EvidenceItem> archived = securityFacade.collectAndArchiveEvidence();
@@ -186,6 +194,7 @@ public class SecurityFacadeController {
      * @return 报告路径与摘要
      * @throws IOException 导出失败
      */
+    @Operation(summary = "导出测评报告", description = "按测评类型（dengbao-2.0 等）生成并落盘测评报告，返回报告摘要")
     @PostMapping("/assessment/export")
     public ResponseEntity<Map<String, Object>> exportAssessment(
             @RequestBody AssessmentExportRequest request) throws IOException {

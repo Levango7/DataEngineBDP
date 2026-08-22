@@ -60,6 +60,13 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- Springdoc OpenAPI：生成 /v3/api-docs 与 /swagger-ui.html（OpenAPI 3 规范 + Swagger UI） -->
+        <!-- 兼容性：springdoc 2.6.0 支持 Spring Boot 3.2.x~3.4.x；Spring Boot 4.x 需 2.7.0+ -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.6.0</version>
+        </dependency>
         <!-- Spring AOP：提供 @Aspect/@Around 切面支持，用于字段级加解密与审计日志切面 -->
         <dependency>
             <groupId>org.springframework</groupId>

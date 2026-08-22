@@ -7,6 +7,8 @@ import com.levango7.dataenginebdp.encaps.repository.KnowledgeBaseRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.KnowledgeUploadService;
 import com.levango7.dataenginebdp.encaps.service.RagStrategyService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -51,6 +53,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/knowledge")
+@Tag(name = "知识库", description = "知识库管理")
 public class KnowledgeController {
 
     private final KnowledgeBaseRepository repository;
@@ -84,6 +87,7 @@ public class KnowledgeController {
     /* ============================ 知识库 CRUD ============================ */
 
     /** 列表。 */
+    @Operation(summary = "查询知识库列表", description = "查询当前租户全部知识库")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> list() {
@@ -93,6 +97,7 @@ public class KnowledgeController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询知识库详情", description = "按 ID 获取知识库详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -103,6 +108,7 @@ public class KnowledgeController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建知识库", description = "创建知识库（docCount=0, status=active）")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody KnowledgeRequest req) {
@@ -123,6 +129,7 @@ public class KnowledgeController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新知识库", description = "按 ID 更新知识库（name/chunkStrategy/retrieval）")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody KnowledgeRequest req) {
@@ -137,6 +144,7 @@ public class KnowledgeController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除知识库", description = "按 ID 删除知识库（租户隔离）")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {
@@ -151,6 +159,7 @@ public class KnowledgeController {
     /* ============================ RAG 策略 ============================ */
 
     /** 获取 RAG 策略（不存在则初始化默认配置）。 */
+    @Operation(summary = "获取 RAG 策略", description = "获取当前租户 RAG 策略（不存在则初始化默认配置）")
     @GetMapping("/rag-strategy")
     public ResponseEntity<Map<String, Object>> getRagStrategy() {
         String tenantId = requireTenant();
@@ -159,6 +168,7 @@ public class KnowledgeController {
     }
 
     /** 更新 RAG 策略。 */
+    @Operation(summary = "更新 RAG 策略", description = "更新 RAG 策略（topK/scoreThreshold/rerankerModel/citationEnabled 等）")
     @PutMapping("/rag-strategy")
     public ResponseEntity<Map<String, Object>> updateRagStrategy(
             @RequestBody RagStrategyRequest req) {
@@ -183,6 +193,7 @@ public class KnowledgeController {
      * @param id   知识库 ID
      * @param file 上传的文件
      */
+    @Operation(summary = "上传文档（multipart）", description = "上传文档到指定知识库（multipart/form-data），自动分块与向量化")
     @PostMapping("/{id}/documents")
     public ResponseEntity<Map<String, Object>> uploadDocument(
             @PathVariable Long id,
@@ -197,6 +208,7 @@ public class KnowledgeController {
      *
      * <p>不保存实际文件，仅记录元数据；推荐使用 {@code /{id}/documents} multipart 上传。</p>
      */
+    @Operation(summary = "上传文档（JSON 兼容）", description = "兼容旧版 JSON 上传（仅记录元数据，推荐使用 multipart 上传）")
     @PostMapping("/upload")
     public ResponseEntity<Map<String, Object>> uploadDoc(@RequestBody UploadDocRequest req) {
         String tenantId = requireTenant();
@@ -211,6 +223,7 @@ public class KnowledgeController {
     }
 
     /** 知识库文档列表。 */
+    @Operation(summary = "查询知识库文档列表", description = "按知识库 ID 查询文档列表")
     @GetMapping("/{id}/documents")
     public ResponseEntity<List<Map<String, Object>>> listDocuments(@PathVariable Long id) {
         String tenantId = requireTenant();
@@ -219,6 +232,7 @@ public class KnowledgeController {
     }
 
     /** 删除文档。 */
+    @Operation(summary = "删除文档", description = "按知识库 ID 与文档 ID 删除文档")
     @DeleteMapping("/{id}/documents/{docId}")
     public ResponseEntity<?> deleteDocument(
             @PathVariable Long id,

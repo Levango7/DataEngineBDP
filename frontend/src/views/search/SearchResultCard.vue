@@ -38,9 +38,11 @@
     </div>
 
     <!-- 标题（高亮，已通过 DOMPurify 净化防 XSS） -->
+    <!-- eslint-disable-next-line vue/no-v-html -- 已通过 DOMPurify 净化，安全使用 v-html -->
     <h3 class="card-title" v-html="sanitizedName" />
 
     <!-- 描述（高亮，已通过 DOMPurify 净化防 XSS） -->
+    <!-- eslint-disable-next-line vue/no-v-html -- 已通过 DOMPurify 净化，安全使用 v-html -->
     <p class="card-desc" v-html="sanitizedDesc" />
 
     <!-- 元信息 -->

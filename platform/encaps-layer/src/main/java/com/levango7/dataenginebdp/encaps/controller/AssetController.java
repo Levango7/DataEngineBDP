@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encaps.model.AssetEntity;
 import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +42,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/governance/assets")
+@Tag(name = "资产目录", description = "数据资产管理")
 public class AssetController {
 
     private final AssetRepository repository;
@@ -66,6 +69,7 @@ public class AssetController {
     }
 
     /** 列表（分页契约 + type 过滤）。 */
+    @Operation(summary = "查询资产列表", description = "分页查询数据资产列表，支持 type 过滤")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> list(
@@ -88,6 +92,7 @@ public class AssetController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询资产详情", description = "按 ID 获取数据资产详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -98,6 +103,7 @@ public class AssetController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建数据资产", description = "创建数据资产（status=published, securityLevel 默认 L2）")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody AssetRequest req) {
@@ -122,6 +128,7 @@ public class AssetController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新数据资产", description = "按 ID 更新数据资产（name/type/owner/description/qualityScore/securityLevel/full）")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody AssetRequest req) {
@@ -146,6 +153,7 @@ public class AssetController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除数据资产", description = "按 ID 删除数据资产（租户隔离）")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {
@@ -166,6 +174,7 @@ public class AssetController {
      * @param id 资产 ID
      * @return 200 + 资产 Schema
      */
+    @Operation(summary = "获取资产 Schema", description = "通过反射 AssetEntity 获取字段名与类型作为 Schema 字段定义")
     @GetMapping("/{id}/schema")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getSchema(@PathVariable Long id) {
@@ -198,6 +207,7 @@ public class AssetController {
      * @param id 资产 ID
      * @return 200 + 质量检查项列表
      */
+    @Operation(summary = "获取资产质量检查结果", description = "从内存质量结果存储查询（按资产 ID 隔离）")
     @GetMapping("/{id}/quality")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getQuality(@PathVariable Long id) {
@@ -215,6 +225,7 @@ public class AssetController {
      * @param id 资产 ID
      * @return 200 + 权限列表
      */
+    @Operation(summary = "获取资产权限列表", description = "从内存权限存储查询（按资产 ID 隔离）")
     @GetMapping("/{id}/permissions")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getPermissions(@PathVariable Long id) {
@@ -233,6 +244,7 @@ public class AssetController {
      * @param permission 权限类型（read/write）
      * @return 200
      */
+    @Operation(summary = "申请资产权限", description = "申请资产读/写权限，创建审批记录到内存审批存储")
     @PostMapping("/{id}/apply-permission")
     public ResponseEntity<Void> applyPermission(@PathVariable Long id,
                                                  @RequestBody Map<String, String> permission) {

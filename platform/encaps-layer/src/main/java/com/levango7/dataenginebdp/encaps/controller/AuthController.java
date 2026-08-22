@@ -3,6 +3,8 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +41,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/auth")
+@Tag(name = "认证管理", description = "用户认证与授权端点")
 public class AuthController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -67,6 +70,8 @@ public class AuthController {
      * @return LoginResult（token/expiresIn/refreshToken/user）
      */
     @AuditLog(action = "LOGIN", resource = "auth")
+    @Operation(summary = "用户登录", description = "代理 Keycloak direct grant（password flow），"
+            + "返回前端 LoginResult 契约（token/expiresIn/refreshToken/user）")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         try {

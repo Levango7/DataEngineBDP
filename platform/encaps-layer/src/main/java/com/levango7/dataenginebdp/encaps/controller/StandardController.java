@@ -7,6 +7,8 @@ import com.levango7.dataenginebdp.encaps.model.StandardEntity;
 import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.StandardRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +39,7 @@ import java.util.Set;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/standards")
+@Tag(name = "标准管理", description = "数据标准管理")
 public class StandardController {
 
     private final StandardRepository repository;
@@ -52,6 +55,7 @@ public class StandardController {
     }
 
     /** 列表（分页契约 + type 过滤）。 */
+    @Operation(summary = "查询标准列表", description = "分页查询，支持 type 过滤")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> list(
@@ -74,6 +78,7 @@ public class StandardController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询标准详情", description = "按 ID 获取标准详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -84,6 +89,7 @@ public class StandardController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建标准", description = "创建数据标准（status=active）")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody StandardRequest req) {
@@ -105,6 +111,7 @@ public class StandardController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新标准", description = "按 ID 更新标准（name/type/rule/description）")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody StandardRequest req) {
@@ -120,6 +127,7 @@ public class StandardController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除标准", description = "按 ID 删除标准（租户隔离）")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {
@@ -141,6 +149,8 @@ public class StandardController {
      *
      * @return 200 + 落标率统计
      */
+    @Operation(summary = "查询落标率统计", description = "统计当前租户标准的落标率"
+            + "（已落标数 / 总数 × 100，关联来自资产 fullJson.standardId）")
     @GetMapping("/summary")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> summary() {

@@ -1,0 +1,233 @@
+/* ============================================================
+ * 设计系统 Design Tokens
+ * 统一使用 --ds- 前缀，避免与 main.css 既有变量冲突
+ * 包含：颜色 / 间距 / 字体 / 圆角 / 阴影 / 过渡 / z-index
+ * 支持：亮色默认 + 暗色主题 (prefers-color-scheme: dark)
+ * ============================================================ */
+
+:root {
+  /* ============================================================
+   * 1. 颜色系统 - 品牌色 (primary, blue 系)
+   * ============================================================ */
+  --ds-color-primary-50:  #eff6ff;
+  --ds-color-primary-100: #dbeafe;
+  --ds-color-primary-200: #bfdbfe;
+  --ds-color-primary-300: #93c5fd;
+  --ds-color-primary-400: #60a5fa;
+  --ds-color-primary-500: #3b82f6;
+  --ds-color-primary-600: #2563eb;
+  --ds-color-primary-700: #1d4ed8;
+  --ds-color-primary-800: #1e40af;
+  --ds-color-primary-900: #1e3a8a;
+  --ds-color-primary-950: #172554;
+
+  /* ============================================================
+   * 2. 颜色系统 - 语义色 (success / warning / error / info)
+   * ============================================================ */
+  /* success - emerald */
+  --ds-color-success-50:  #ecfdf5;
+  --ds-color-success-100: #d1fae5;
+  --ds-color-success-200: #a7f3d0;
+  --ds-color-success-300: #6ee7b7;
+  --ds-color-success-400: #34d399;
+  --ds-color-success-500: #10b981;
+  --ds-color-success-600: #059669;
+  --ds-color-success-700: #047857;
+  --ds-color-success-800: #065f46;
+  --ds-color-success-900: #064e3b;
+
+  /* warning - amber */
+  --ds-color-warning-50:  #fffbeb;
+  --ds-color-warning-100: #fef3c7;
+  --ds-color-warning-200: #fde68a;
+  --ds-color-warning-300: #fcd34d;
+  --ds-color-warning-400: #fbbf24;
+  --ds-color-warning-500: #f59e0b;
+  --ds-color-warning-600: #d97706;
+  --ds-color-warning-700: #b45309;
+  --ds-color-warning-800: #92400e;
+  --ds-color-warning-900: #78350f;
+
+  /* error - red */
+  --ds-color-error-50:  #fef2f2;
+  --ds-color-error-100: #fee2e2;
+  --ds-color-error-200: #fecaca;
+  --ds-color-error-300: #fca5a5;
+  --ds-color-error-400: #f87171;
+  --ds-color-error-500: #ef4444;
+  --ds-color-error-600: #dc2626;
+  --ds-color-error-700: #b91c1c;
+  --ds-color-error-800: #991b1b;
+  --ds-color-error-900: #7f1d1d;
+
+  /* info - indigo */
+  --ds-color-info-50:  #eef2ff;
+  --ds-color-info-100: #e0e7ff;
+  --ds-color-info-200: #c7d2fe;
+  --ds-color-info-300: #a5b4fc;
+  --ds-color-info-400: #818cf8;
+  --ds-color-info-500: #6366f1;
+  --ds-color-info-600: #4f46e5;
+  --ds-color-info-700: #4338ca;
+  --ds-color-info-800: #3730a3;
+  --ds-color-info-900: #312e81;
+
+  /* ============================================================
+   * 3. 颜色系统 - 中性色 (gray, slate 系)
+   * ============================================================ */
+  --ds-color-gray-50:  #f8fafc;
+  --ds-color-gray-100: #f1f5f9;
+  --ds-color-gray-200: #e2e8f0;
+  --ds-color-gray-300: #cbd5e1;
+  --ds-color-gray-400: #94a3b8;
+  --ds-color-gray-500: #64748b;
+  --ds-color-gray-600: #475569;
+  --ds-color-gray-700: #334155;
+  --ds-color-gray-800: #1e293b;
+  --ds-color-gray-900: #0f172a;
+  --ds-color-gray-950: #020617;
+
+  /* ============================================================
+   * 4. 颜色系统 - 语义化背景/文字/边框 (亮色默认)
+   * ============================================================ */
+  --ds-bg-base:     #f8fafc;   /* 应用底色 */
+  --ds-bg-surface:  #ffffff;   /* 卡片/面板表面 */
+  --ds-bg-subtle:   #f1f5f9;   /* 次级表面 (hover/active) */
+  --ds-bg-muted:    #e2e8f0;   /* 静音背景 */
+
+  --ds-text-primary:   #0f172a;  /* 主文字 */
+  --ds-text-secondary: #475569;  /* 次文字 */
+  --ds-text-tertiary:  #64748b;  /* 三级文字 (muted) */
+  --ds-text-inverse:   #ffffff;  /* 反白文字 */
+
+  --ds-border-default:  #e2e8f0;  /* 默认边框 */
+  --ds-border-subtle:   #f1f5f9;  /* 次级边框 */
+  --ds-border-strong:   #cbd5e1;  /* 强调边框 */
+  --ds-border-focus:    #3b82f6;  /* 聚焦边框 */
+
+  /* ============================================================
+   * 5. 间距系统 - 4px 基准 (spacing-0 ~ spacing-20)
+   * ============================================================ */
+  --ds-spacing-0:  0px;
+  --ds-spacing-1:  4px;
+  --ds-spacing-2:  8px;
+  --ds-spacing-3:  12px;
+  --ds-spacing-4:  16px;
+  --ds-spacing-5:  20px;
+  --ds-spacing-6:  24px;
+  --ds-spacing-7:  28px;
+  --ds-spacing-8:  32px;
+  --ds-spacing-9:  36px;
+  --ds-spacing-10: 40px;
+  --ds-spacing-11: 44px;
+  --ds-spacing-12: 48px;
+  --ds-spacing-13: 52px;
+  --ds-spacing-14: 56px;
+  --ds-spacing-15: 60px;
+  --ds-spacing-16: 64px;
+  --ds-spacing-17: 68px;
+  --ds-spacing-18: 72px;
+  --ds-spacing-19: 76px;
+  --ds-spacing-20: 80px;
+
+  /* ============================================================
+   * 6. 字体系统
+   * ============================================================ */
+  /* font-family */
+  --ds-font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  --ds-font-family-mono: "SFMono-Regular", Consolas, "Liberation Mono",
+    Menlo, "Courier New", monospace;
+
+  /* font-size */
+  --ds-font-size-xs:   12px;
+  --ds-font-size-sm:   13px;
+  --ds-font-size-base: 14px;
+  --ds-font-size-lg:   16px;
+  --ds-font-size-xl:   18px;
+  --ds-font-size-2xl:  20px;
+  --ds-font-size-3xl:  24px;
+  --ds-font-size-4xl:  30px;
+
+  /* font-weight */
+  --ds-font-weight-normal:   400;
+  --ds-font-weight-medium:   500;
+  --ds-font-weight-semibold: 600;
+  --ds-font-weight-bold:     700;
+
+  /* line-height */
+  --ds-line-height-tight:   1.25;
+  --ds-line-height-normal:  1.5;
+  --ds-line-height-relaxed: 1.75;
+
+  /* ============================================================
+   * 7. 圆角系统
+   * ============================================================ */
+  --ds-radius-sm:   4px;
+  --ds-radius-md:   8px;
+  --ds-radius-lg:   12px;
+  --ds-radius-xl:   16px;
+  --ds-radius-2xl:  20px;
+  --ds-radius-full: 9999px;
+
+  /* ============================================================
+   * 8. 阴影系统
+   * ============================================================ */
+  --ds-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --ds-shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.08),
+                  0 2px 4px -1px rgba(15, 23, 42, 0.04);
+  --ds-shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.10),
+                  0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  --ds-shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.12),
+                  0 10px 10px -5px rgba(15, 23, 42, 0.04);
+
+  /* ============================================================
+   * 9. 过渡系统
+   * ============================================================ */
+  --ds-transition-fast:   150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-transition-slow:   400ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ============================================================
+   * 10. Z-index 层级
+   * ============================================================ */
+  --ds-z-dropdown:        1000;
+  --ds-z-sticky:          1100;
+  --ds-z-fixed:           1200;
+  --ds-z-modal-backdrop:  1300;
+  --ds-z-modal:           1310;
+  --ds-z-popover:         1500;
+  --ds-z-tooltip:         1600;
+}
+
+/* ============================================================
+ * 暗色主题 - 覆盖背景/文字/边框色
+ * ============================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* 语义化背景/文字/边框 (暗色) */
+    --ds-bg-base:     #0f172a;
+    --ds-bg-surface:  #1e293b;
+    --ds-bg-subtle:   #334155;
+    --ds-bg-muted:    #475569;
+
+    --ds-text-primary:   #f1f5f9;
+    --ds-text-secondary: #cbd5e1;
+    --ds-text-tertiary:  #94a3b8;
+    --ds-text-inverse:   #0f172a;
+
+    --ds-border-default:  #334155;
+    --ds-border-subtle:   #1e293b;
+    --ds-border-strong:   #475569;
+    --ds-border-focus:    #60a5fa;
+
+    /* 阴影在暗色下使用更深的基础色 */
+    --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+    --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45),
+                    0 2px 4px -1px rgba(0, 0, 0, 0.30);
+    --ds-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.50),
+                    0 4px 6px -2px rgba(0, 0, 0, 0.35);
+    --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.55),
+                    0 10px 10px -5px rgba(0, 0, 0, 0.40);
+  }
+}

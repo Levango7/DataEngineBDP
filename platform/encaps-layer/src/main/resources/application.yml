@@ -39,6 +39,27 @@ management:
     tags:
       application: ${spring.application.name}
 
+# Springdoc OpenAPI 配置（/v3/api-docs + /swagger-ui.html）
+springdoc:
+  # API 文档分组：默认 default 组包含全部 Controller
+  api-docs:
+    path: /v3/api-docs
+    # 分组端点（可选）：/v3/api-docs/{group} 按组返回
+    groups:
+      enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    # API 文档 URL（默认 /v3/api-docs，显式声明便于反代）
+    url: /v3/api-docs
+    # 启用持久化授权（localStorage 存储 Bearer token）
+    persist-authorization: true
+    # 默认展开深度（-1 全部展开，0 折叠，1 展开一层）
+    default-expanded-depth: 1
+  # 仅扫描 @RestController 注解的类
+  packages-to-scan: com.levango7.dataenginebdp.encaps
+  # 不扫描 actuator 端点
+  paths-to-exclude: /actuator/**
+
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} [traceId=%X{traceId}] - %msg%n"

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.levango7.dataenginebdp.encaps.model.TemplateEntity;
 import com.levango7.dataenginebdp.encaps.repository.TemplateRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/templates")
+@Tag(name = "模板管理", description = "行业应用模板CRUD")
 public class TemplateController {
 
     private final TemplateRepository repository;
@@ -52,6 +55,7 @@ public class TemplateController {
     }
 
     /** 列表（分页契约 + industry 过滤，返回 meta 视图）。 */
+    @Operation(summary = "查询模板列表", description = "分页查询，支持 industry 过滤，返回 meta 视图")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> list(
@@ -74,6 +78,7 @@ public class TemplateController {
     }
 
     /** 详情（完整 Template 视图）。 */
+    @Operation(summary = "查询模板详情", description = "按 ID 获取完整 Template 视图（meta + fullJson 展开）")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -84,6 +89,7 @@ public class TemplateController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建模板", description = "创建行业应用模板（新版本，status=dev）")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody TemplateRequest req) {
@@ -108,6 +114,7 @@ public class TemplateController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新模板", description = "按 ID 更新模板（name/industry/version/description/author/full）")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody TemplateRequest req) {
@@ -129,6 +136,7 @@ public class TemplateController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除模板", description = "按 ID 删除模板（租户隔离）")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {

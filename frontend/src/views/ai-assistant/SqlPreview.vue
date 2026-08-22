@@ -51,6 +51,7 @@
 
     <!-- SQL 代码（已通过 DOMPurify 净化防 XSS） -->
     <div v-show="!collapsed" class="sql-code-wrap">
+      <!-- eslint-disable-next-line vue/no-v-html -- 已通过 DOMPurify 净化，安全使用 v-html -->
       <pre class="sql-code" v-html="sanitizedSql"></pre>
     </div>
 

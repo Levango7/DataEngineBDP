@@ -7,6 +7,8 @@ import com.levango7.dataenginebdp.encaps.model.MlModelEntity;
 import com.levango7.dataenginebdp.encaps.repository.InferenceServiceRepository;
 import com.levango7.dataenginebdp.encaps.repository.MlModelRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/ml")
+@Tag(name = "机器学习", description = "ML模型管理")
 public class MLController {
 
     private final MlModelRepository modelRepository;
@@ -89,6 +92,7 @@ public class MLController {
     /* ============================ 模型仓库端点 ============================ */
 
     /** 列出模型仓库（按 name 聚合，取最新版本作为 latestVersion）。 */
+    @Operation(summary = "查询模型仓库列表", description = "按 name 聚合，每组取最新版本作为 latestVersion；支持 keyword/algorithm 过滤")
     @GetMapping("/models")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listModels(
@@ -112,6 +116,7 @@ public class MLController {
     }
 
     /** 获取模型详情（按 id 取某版本）。 */
+    @Operation(summary = "查询模型详情", description = "按 ID 获取模型某版本详情")
     @GetMapping("/models/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> getModel(@PathVariable Long id) {
@@ -122,6 +127,7 @@ public class MLController {
     }
 
     /** 注册模型（新版本）。 */
+    @Operation(summary = "注册模型", description = "注册模型新版本（status=REGISTERED）；version 未指定时自动生成 v{n+1}")
     @PostMapping("/models")
     @Transactional
     public ResponseEntity<Map<String, Object>> registerModel(
@@ -148,6 +154,7 @@ public class MLController {
     }
 
     /** 删除模型某版本。 */
+    @Operation(summary = "删除模型版本", description = "按 ID 删除模型某版本（租户隔离）")
     @DeleteMapping("/models/{id}")
     @Transactional
     public ResponseEntity<Void> deleteModel(@PathVariable Long id) {
@@ -162,6 +169,7 @@ public class MLController {
     }
 
     /** 列出模型全部版本（对齐前端 listModelVersions）。 */
+    @Operation(summary = "查询模型全部版本", description = "按 name 列出模型全部版本（registeredAt 倒序）")
     @GetMapping("/models/{name}/versions")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listModelVersions(
@@ -178,6 +186,7 @@ public class MLController {
     /* ============================ 推理服务端点 ============================ */
 
     /** 列出推理服务。 */
+    @Operation(summary = "查询推理服务列表", description = "列出推理服务，支持 status 过滤")
     @GetMapping("/inference-services")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listInferenceServices(
@@ -193,6 +202,7 @@ public class MLController {
     }
 
     /** 部署推理服务。 */
+    @Operation(summary = "部署推理服务", description = "部署推理服务（status=RUNNING）；serviceName 未指定时按 modelName-version 生成")
     @PostMapping("/inference-services")
     @Transactional
     public ResponseEntity<Map<String, Object>> deployInference(
@@ -225,6 +235,7 @@ public class MLController {
     }
 
     /** 停止/删除推理服务。 */
+    @Operation(summary = "停止推理服务", description = "按 ID 停止/删除推理服务（租户隔离）")
     @DeleteMapping("/inference-services/{id}")
     @Transactional
     public ResponseEntity<Void> stopInference(@PathVariable Long id) {
@@ -240,6 +251,7 @@ public class MLController {
     }
 
     /** 扩缩容推理服务（对齐前端 scaleInference）。 */
+    @Operation(summary = "扩缩容推理服务", description = "按 ID 调整推理服务期望副本数（status=SCALING）")
     @PostMapping("/inference-services/{id}/scale")
     @Transactional
     public ResponseEntity<?> scaleInference(
