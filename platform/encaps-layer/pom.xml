@@ -122,14 +122,7 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- fabric8 Kubernetes Client：用于将 Workspace 翻译为 K8s Namespace/NetworkPolicy/RBAC/ResourceQuota -->
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-client</artifactId>
-            <version>7.8.0</version>
-        </dependency>
-        <!-- BouncyCastle：fabric8 解析 kubeconfig EC 私钥必需（缺它 encaps-layer 启动失败，
-             表现为登录 500「服务器内部错误」；JcaPEMKeyConverter 在 bcutil 包） -->
+        <!-- BouncyCastle：国密算法 SM2/SM3/SM4 与 PEM 密钥解析（JcaPEMKeyConverter 在 bcutil 包） -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcprov-jdk18on</artifactId>
@@ -140,13 +133,7 @@
             <artifactId>bcpkix-jdk18on</artifactId>
             <version>1.78.1</version>
         </dependency>
-        <!-- fabric8 mock server：测试中提供 mock KubernetesClient（多租户隔离等集成测试） -->
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-server-mock</artifactId>
-            <version>6.13.4</version>
-            <scope>test</scope>
-        </dependency>
+
         <!-- H2：开发环境零配置内存/文件数据库 -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -170,6 +157,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Boot 4.x：@DataJpaTest 已拆分到 spring-boot-data-jpa-test 模块
+             （包路径由 org.springframework.boot.test.autoconfigure.orm.jpa 变更为
+             org.springframework.boot.data.jpa.test.autoconfigure） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

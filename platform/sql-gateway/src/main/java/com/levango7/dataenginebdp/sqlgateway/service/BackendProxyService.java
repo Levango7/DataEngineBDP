@@ -172,7 +172,12 @@ public class BackendProxyService {
         }
 
         long start = System.currentTimeMillis();
-        try (Connection conn = DriverManager.getConnection(resolveDorisJdbcUrl(), "root", "");
+        // 凭证从配置注入，避免硬编码；缺省回退到 root/空密码（仅开发环境）
+        String dorisUser = dorisConfig != null && dorisConfig.getUsername() != null
+                ? dorisConfig.getUsername() : "root";
+        String dorisPass = dorisConfig != null && dorisConfig.getPassword() != null
+                ? dorisConfig.getPassword() : "";
+        try (Connection conn = DriverManager.getConnection(resolveDorisJdbcUrl(), dorisUser, dorisPass);
              Statement stmt = conn.createStatement()) {
             applyQueryTimeout(stmt);
             boolean hasResultSet = stmt.execute(sql);

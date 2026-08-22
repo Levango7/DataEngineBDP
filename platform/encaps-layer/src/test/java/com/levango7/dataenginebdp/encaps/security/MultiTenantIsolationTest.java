@@ -6,13 +6,13 @@ import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
-import io.fabric8.kubernetes.client.KubernetesClient;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -45,9 +45,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class MultiTenantIsolationTest {
 
-    /** mock KubernetesClient：mock 模式下主配置返回 null，用 @MockBean 提供。 */
-    @MockBean
-    private KubernetesClient kubernetesClient;
 
     private static final String SECRET = "dev-secret-key-change-in-production-at-least-256-bits";
     private static final String ISSUER = "shuqing-bigdata";

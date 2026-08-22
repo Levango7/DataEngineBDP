@@ -16,7 +16,11 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 
 /**
- * 默认国密 Provider（信创 Profile）。
+ * <p><b>⚠️ 占位实现警告：</b>本 Provider 使用 RSA/AES/SHA-256 冒充 SM2/SM3/SM4，
+ * <b>不具备国密合规资质</b>。信创合规场景必须替换为 BC-SM 等认证实现。
+ * 当前实现仅保证功能可运行，不满足等保/密评要求。</p>
+ *
+ * <p>默认国密 Provider（信创 Profile）。
  *
  * <p>作为 SPI 框架的默认实现，提供 SM2/SM3/SM4 算法的占位实现。
  * 真实生产环境应替换为对接 BC-SM 等国密库的实现。</p>

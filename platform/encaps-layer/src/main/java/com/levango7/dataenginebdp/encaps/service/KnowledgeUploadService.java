@@ -166,10 +166,12 @@ public class KnowledgeUploadService {
     /**
      * 向量化占位实现。
      *
-     * <p>真实场景下应调用向量引擎 API（如 knowledge-engine）完成：
-     * 切片 → 调用 embedding 模型 → 写入向量库。此处仅模拟成功状态。</p>
+     * <p><b>⚠️ 占位实现警告：</b>当前按文件大小估算切片数后直接标记为"vectorized"，
+     * 不调用 embedding 模型，不具备语义检索能力。生产环境应配置真实向量引擎 API
+     * （通过 {@code app.knowledge.embedding-api} 配置），完成 切片→embedding→写入向量库 全流程。</p>
      */
     private void vectorize(KnowledgeDocumentEntity doc, KnowledgeBaseEntity kb) {
+        log.warn("使用占位向量化实现（按文件大小估算），未调用 embedding 模型。生产环境请配置 app.knowledge.embedding-api");
         // 模拟切片：按文件大小估算切片数（每 2KB 一个切片，最少 1 个）
         long size = doc.getFileSize() == null ? 0L : doc.getFileSize();
         int chunkCount = Math.max(1, (int) (size / 2048));

@@ -51,6 +51,6 @@ ENV ML_HOST=0.0.0.0 \
     ML_LOG_LEVEL=info \
     ML_BACKEND_TYPE=mock \
     ML_FEATURE_STORE_TYPE=mock \
-    ML_EXPERIMENT_STORE_TYPE=mock
+    ML_EXPERIMENT_STORE_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为sklearn/spark/mlflow
 
 CMD ["python", "main.py"]

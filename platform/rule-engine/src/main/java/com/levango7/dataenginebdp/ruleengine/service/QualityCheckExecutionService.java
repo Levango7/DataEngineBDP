@@ -1,11 +1,14 @@
 package com.levango7.dataenginebdp.ruleengine.service;
 
+import com.levango7.dataenginebdp.ruleengine.engine.DqRuleExecutor;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
+import com.levango7.dataenginebdp.ruleengine.model.RuleExecutionResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -16,22 +19,36 @@ import java.util.concurrent.ConcurrentHashMap;
  * 供 {@link com.levango7.dataenginebdp.ruleengine.controller.QualityRuleController}
  * 的 {@code check} 与 {@code summary} 端点使用。</p>
  *
- * <p>MVP 阶段采用基于规则 expression/severity 的模拟判断逻辑：
+ * <p>校验执行分两条路径：
  * <ul>
- *   <li>expression 缺失 → 不通过（缺少校验表达式）</li>
- *   <li>threshold=100% 或 threshold=0 → 通过（严格阈值已满足）</li>
- *   <li>severity=BLOCK 且未满足严格阈值 → 不通过（阻断级别未达标）</li>
- *   <li>其他场景 → 通过</li>
- * </ul>
- * 后续可替换为真实规则执行引擎调用（参见 {@link RuleExecutionService}）。</p>
+ *   <li><b>SQL 规则</b>（expression 以 {@code sql:} 前缀开头）：委托给
+ *       {@link DqRuleExecutor} 执行真实 SQL 校验，通过 JdbcTemplate 查询违规数据数量，
+ *       {@code count=0} 表示 PASS，{@code count>0} 表示 FAIL。需配置数据源。</li>
+ *   <li><b>非 SQL 规则</b>（expression 不以 {@code sql:} 开头）：走基于 expression/severity
+ *       的降级判断逻辑（expression 缺失 → 不通过；threshold=100% 或 threshold=0 → 通过；
+ *       severity=BLOCK 且未满足严格阈值 → 不通过；其他 → 通过）。无需数据源。</li>
+ * </ul></p>
  */
 @Service
 public class QualityCheckExecutionService {
 
     private static final Logger log = LoggerFactory.getLogger(QualityCheckExecutionService.class);
+    private static final String SQL_PREFIX = "sql:";
+
+    /** DQ 规则执行器，用于执行真实 SQL 校验（构造器注入）。 */
+    private final DqRuleExecutor dqRuleExecutor;
 
     /** 按 ruleId 缓存最近一次校验结果（线程安全）。 */
     private final Map<Long, CheckResult> results = new ConcurrentHashMap<>();
+
+    /**
+     * 构造器注入 {@link DqRuleExecutor}。
+     *
+     * @param dqRuleExecutor DQ 规则执行器
+     */
+    public QualityCheckExecutionService(DqRuleExecutor dqRuleExecutor) {
+        this.dqRuleExecutor = dqRuleExecutor;
+    }
 
     /**
      * 执行规则校验并缓存结果。
@@ -50,7 +67,16 @@ public class QualityCheckExecutionService {
 
         boolean passed;
         String message;
-        if (expr == null || expr.isBlank()) {
+        if (expr != null && !expr.isBlank() && expr.startsWith(SQL_PREFIX)) {
+            // SQL 规则走真实执行：委托给 DqRuleExecutor 通过 JdbcTemplate 执行 SQL，
+            // count=0 表示无违规数据 → PASS，count>0 表示发现违规 → FAIL。
+            RuleExecutionResult execResult = dqRuleExecutor.execute(rule, Collections.emptyMap());
+            passed = "PASS".equals(execResult.getStatus());
+            message = "SQL 规则真实校验：" + execResult.getMessage();
+            log.info("委托 DqRuleExecutor 执行 SQL 规则: ruleId={}, status={}, message={}",
+                    rule.getId(), execResult.getStatus(), execResult.getMessage());
+        } else if (expr == null || expr.isBlank()) {
+            // 非 SQL 规则走表达式匹配降级处理
             passed = false;
             message = "缺少校验表达式";
         } else if (expr.contains("threshold=100%") || expr.contains("threshold=0")) {

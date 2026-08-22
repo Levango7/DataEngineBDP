@@ -175,7 +175,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'  # 不阻断 CI，仅报告
+          exit-code: '1'  # 阻断 CI（CRITICAL/HIGH/MEDIUM 漏洞）
           ignore-unfixed: true
 
       - name: 扫描 IaC 配置（YAML/K8s/Helm）
@@ -185,7 +185,7 @@ jobs:
           scan-ref: 'ske/manifests/'
           format: 'sarif'
           output: 'trivy-iac-results.sarif'
-          exit-code: '0'
+          exit-code: '1'
 
       - name: 扫描 design/deploy/values/ IaC
         uses: aquasecurity/trivy-action@v0.36.0
@@ -194,7 +194,7 @@ jobs:
           scan-ref: 'design/deploy/values/'
           format: 'sarif'
           output: 'trivy-values-results.sarif'
-          exit-code: '0'
+          exit-code: '1'
 
       - name: 上传 SARIF 到 GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -466,5 +466,5 @@ jobs:
           echo "  - 详细报告见各 job 的 artifact"
           echo ""
           echo "门禁策略："
-          echo "  - CRITICAL/HIGH 漏洞：报告但不阻断（exit-code=0）"
+          echo "  - CRITICAL/HIGH 漏洞：阻断 CI（exit-code=1）"
           echo "  - 后续可配置 quality gate 阻断合并"

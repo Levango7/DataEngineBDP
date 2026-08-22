@@ -110,6 +110,8 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 		h.writeStoreError(c, err)
 		return
 	}
+	// TODO: 生产环境应通过 VECTOR_EMBEDDING_API 环境变量配置真实 embedding 服务
+	// 当前为字符哈希占位实现，仅用于无 embedding 服务时的可运行降级
 	queryVector := textToVector(req.Query, 8)
 	out := make([]map[string]interface{}, 0, topK)
 	for _, col := range collections {
@@ -136,7 +138,10 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 	c.JSON(http.StatusOK, out)
 }
 
-// textToVector 文本确定性哈希 → 固定维度向量（无向量化模型时的轻量实现）。
+// textToVector 文本确定性哈希 → 固定维度向量。
+// ⚠️ 占位实现：使用字符码求和哈希，不具备语义检索能力。
+// 生产环境应配置真实 embedding 模型 API（如 text-embedding-3-small），
+// 通过 VECTOR_EMBEDDING_API 环境变量切换。当前实现仅保证可运行。
 func textToVector(text string, dim int) []float32 {
 	vec := make([]float32, dim)
 	sum := 0

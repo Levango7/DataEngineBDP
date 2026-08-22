@@ -49,6 +49,6 @@ EXPOSE 8080
 ENV LLMOPS_HOST=0.0.0.0 \
     LLMOPS_PORT=8080 \
     LLMOPS_LOG_LEVEL=info \
-    LLMOPS_STORE_TYPE=mock
+    LLMOPS_STORE_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为mlflow
 
 CMD ["python", "main.py"]

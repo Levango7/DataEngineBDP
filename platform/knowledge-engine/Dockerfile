@@ -50,6 +50,6 @@ ENV KE_HOST=0.0.0.0 \
     KE_PORT=8080 \
     KE_LOG_LEVEL=info \
     KE_STORE_TYPE=mock \
-    KE_EXTRACTOR_TYPE=mock
+    KE_EXTRACTOR_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为nebula/llm
 
 CMD ["python", "main.py"]

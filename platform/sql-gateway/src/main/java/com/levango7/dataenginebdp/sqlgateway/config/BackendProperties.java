@@ -59,5 +59,15 @@ public class BackendProperties {
          * 最大重试次数（当前版本预留，由调用方实现），默认 3。
          */
         private int maxRetries = 3;
+
+        /**
+         * 后端用户名（Doris 默认 root）。
+         */
+        private String username = "root";
+
+        /**
+         * 后端密码（生产环境必须通过配置或环境变量注入）。
+         */
+        private String password = "";
     }
 }

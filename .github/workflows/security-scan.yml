@@ -50,7 +50,7 @@ jobs:
             echo "============================================"
             echo "  Trivy 扫描 Maven 依赖: $mod_name"
             echo "============================================"
-            trivy fs --exit-code 0 --format sarif \
+            trivy fs --exit-code 1 --format sarif \
               --output "reports/trivy/${mod_name}-deps.sarif" \
               --scanners vuln --severity HIGH,CRITICAL \
               "$mod_dir" || echo "::warning::$mod_name 依赖扫描失败，继续下一个"
@@ -60,7 +60,7 @@ jobs:
         run: |
           if [ -f pyproject.toml ]; then
             echo "Trivy 扫描 pyproject.toml"
-            trivy fs --exit-code 0 --format sarif \
+            trivy fs --exit-code 1 --format sarif \
               --output reports/trivy/python-deps.sarif \
               --scanners vuln --severity HIGH,CRITICAL \
               . || echo "::warning::Python 依赖扫描失败"
@@ -70,7 +70,7 @@ jobs:
         run: |
           if [ -f frontend/package-lock.json ]; then
             echo "Trivy 扫描前端 npm 依赖"
-            trivy fs --exit-code 0 --format sarif \
+            trivy fs --exit-code 1 --format sarif \
               --output reports/trivy/npm-deps.sarif \
               --scanners vuln --severity HIGH,CRITICAL \
               frontend || echo "::warning::npm 依赖扫描失败"
@@ -124,7 +124,7 @@ jobs:
         run: |
           mkdir -p reports/trivy
           if docker image inspect encaps-layer:scan > /dev/null 2>&1; then
-            trivy image --exit-code 0 --format sarif \
+            trivy image --exit-code 1 --format sarif \
               --output reports/trivy/encaps-layer-image.sarif \
               --scanners vuln --severity HIGH,CRITICAL \
               --ignore-unfixed \
@@ -197,7 +197,7 @@ jobs:
       - name: Trivy 扫描 IaC 配置
         run: |
           mkdir -p reports/trivy
-          trivy fs --exit-code 0 --format sarif \
+          trivy fs --exit-code 1 --format sarif \
             --output reports/trivy/config.sarif \
             --scanners misconfig \
             --severity HIGH,CRITICAL \

@@ -6,8 +6,8 @@ import * as secApi from '@/api/sec'
  * 应用全局状态：工作空间、环境标签、待办计数、Toast
  */
 export const useAppStore = defineStore('app', () => {
-  // 是否使用 mock 数据：环境变量 VITE_USE_MOCK='false' 时切换为真实 API
-  const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+  // 是否使用 mock 数据：仅当显式设置 VITE_USE_MOCK='true' 时启用（默认关闭，使用真实 API）
+  const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
   // 工作空间
   const workspace = ref('华东生产集群')

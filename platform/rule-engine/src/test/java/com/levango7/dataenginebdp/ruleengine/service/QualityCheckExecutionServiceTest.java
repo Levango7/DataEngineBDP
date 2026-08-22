@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.ruleengine.service;
 
+import com.levango7.dataenginebdp.ruleengine.engine.DqRuleExecutor;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,7 +22,9 @@ class QualityCheckExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new QualityCheckExecutionService();
+        // DqRuleExecutor 无参构造器内部 jdbcTemplate=null，SQL 模式会返回 ERROR；
+        // 本测试用例均为非 SQL 规则（threshold= 表达式），走降级路径，不受影响。
+        service = new QualityCheckExecutionService(new DqRuleExecutor());
     }
 
     private Rule rule(Long id, String expression, String severity) {

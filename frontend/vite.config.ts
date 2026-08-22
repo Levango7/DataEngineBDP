@@ -88,15 +88,10 @@ export default defineConfig({
       },
 
       // ============================================================
-      // 以下为原有 proxy 条目（保留不变）
+      // 以下为原有 proxy 条目中的细粒度代理（更具体路径优先匹配）
+      // 必须放在通用 /api 条目之前，否则会被 /api 默认转发到 encaps-layer
       // ============================================================
 
-      // 后端 API 网关（开发环境默认 encaps-layer :8080，支持本地登录；
-      // 生产经 APISIX 网关，用 VITE_API_TARGET 覆盖）
-      '/api': {
-        target: process.env.VITE_API_TARGET || 'http://127.0.0.1:8080',
-        changeOrigin: true
-      },
       // 路径分流：查询类 API 由 observability query-api 提供（组件独立部署）
       '/api/v1/ops': {
         target: process.env.VITE_OPS_TARGET || 'http://127.0.0.1:8090',
@@ -144,6 +139,16 @@ export default defineConfig({
       // governance/real-time-pipeline（实时治理服务 :8092）
       '/api/v1/assets': {
         target: process.env.VITE_GOVERNANCE_TARGET || 'http://127.0.0.1:8092',
+        changeOrigin: true
+      },
+
+      // ============================================================
+      // 通用 /api 代理（兜底，必须放在所有细粒度代理之后）
+      // 后端 API 网关（开发环境默认 encaps-layer :8080，支持本地登录；
+      // 生产经 APISIX 网关，用 VITE_API_TARGET 覆盖）
+      // ============================================================
+      '/api': {
+        target: process.env.VITE_API_TARGET || 'http://127.0.0.1:8080',
         changeOrigin: true
       }
     }

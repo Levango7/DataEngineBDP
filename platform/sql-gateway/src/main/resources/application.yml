@@ -61,6 +61,10 @@ sql-gateway:
       max-retries: 3
     doris:
       url: ${DORIS_URL:http://doris-fe-service:9030}
+      # Doris 用户名：生产环境必须通过环境变量 DORIS_USERNAME 注入，默认 root 仅用于开发
+      username: ${DORIS_USERNAME:root}
+      # Doris 密码：生产环境必须通过环境变量 DORIS_PASSWORD 注入，默认空仅用于开发
+      password: ${DORIS_PASSWORD:}
       timeout: 30
       max-retries: 3
   default-engine: trino
