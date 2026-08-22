@@ -2,12 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.levango7.dataenginebdp.encaps.crypto.jwt.GmJwtProcessor;
-import com.levango7.dataenginebdp.encaps.crypto.jwt.JwtAlgorithm;
-import com.levango7.dataenginebdp.encaps.crypto.gm.SM2Provider;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,9 +19,6 @@ import org.springframework.web.client.RestTemplate;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import javax.crypto.SecretKey;
-import java.nio.charset.StandardCharsets;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -52,32 +44,12 @@ public class AuthController {
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final RestTemplate restTemplate = buildRestTemplate();
 
-    @Value("${app.security.oidc.token-uri}")
+    @Value("${app.security.oidc.token-uri:}")
     private String tokenUri;
 
     @Value("${app.security.oidc.client-id:sq-console}")
     private String clientId;
 
-    @Value("${app.security.jwt.secret}")
-    private String jwtSecret;
-
-    @Value("${app.security.jwt.issuer}")
-    private String jwtIssuer;
-
-    @Value("${app.security.jwt.expiry:3600}")
-    private long jwtExpiry;
-
-    /** JWT 签名算法：HS384（默认）/ SM3withSM2（信创环境） */
-    @Value("${app.security.jwt.algorithm:HS384}")
-    private String jwtAlgorithm;
-
-    /** SM2 私钥 D 值 hex 串（信创模式；空表示自动生成临时密钥对） */
-    @Value("${app.security.jwt.sm2-private-key:}")
-    private String sm2PrivateKeyHex;
-
-    /** SM2 公钥 Q 值 hex 串（信创模式；空表示自动生成临时密钥对） */
-    @Value("${app.security.jwt.sm2-public-key:}")
-    private String sm2PublicKeyHex;
 
     /**
      * 登录请求体（对齐前端 LoginParams）。
@@ -142,8 +114,8 @@ public class AuthController {
             return ResponseEntity.status(503)
                     .body(Map.of("error", "认证服务暂时不可用，请稍后重试"));
         } catch (Exception e) {
-            log.error("登录处理异常: {}", e.getMessage(), e);
-            return ResponseEntity.status(500).body(Map.of("error", "登录失败: " + e.getMessage()));
+            log.error("登录处理异常", e);
+            return ResponseEntity.status(500).body(Map.of("error", "登录失败，请稍后重试"));
         }
     }
 
@@ -157,77 +129,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * 签发 JWT，按配置算法分发：
-     * <ul>
-     *   <li>SM3withSM2（信创）：使用 {@link GmJwtProcessor} 签发</li>
-     *   <li>HS384/HS256（默认）：使用 jjwt 签发</li>
-     * </ul>
-     *
-     * @param userId   用户 ID（subject）
-     * @param tenantId 租户 ID（写入 tenantId claim）
-     * @param username 用户名（写入 preferred_username claim）
-     * @param email    邮箱（写入 email claim）
-     * @return JWT 字符串
-     */
-    private String signJwt(String userId, String tenantId, String username, String email) {
-        // SM3withSM2（信创环境）
-        if (JwtAlgorithm.SM3_WITH_SM2.equalsIgnoreCase(jwtAlgorithm)) {
-            byte[] privateKeyD;
-            if (sm2PrivateKeyHex != null && !sm2PrivateKeyHex.isBlank()) {
-                privateKeyD = hexToBytes(sm2PrivateKeyHex.trim());
-            } else {
-                // 开发环境：自动生成临时密钥对
-                SM2Provider sm2 = new SM2Provider();
-                SM2Provider.Sm2KeyPair kp = sm2.generateKeyPair();
-                privateKeyD = kp.getPrivateKeyD();
-                log.warn("自动生成临时 SM2 密钥对签发 JWT，仅限开发环境；"
-                        + "生产环境必须配置 JWT_SM2_PRIVATE_KEY/JWT_SM2_PUBLIC_KEY");
-            }
-            GmJwtProcessor processor = new GmJwtProcessor(jwtIssuer);
-            Map<String, Object> claims = new LinkedHashMap<>();
-            claims.put("tenantId", tenantId);
-            claims.put("preferred_username", username);
-            claims.put("email", email);
-            return processor.sign(privateKeyD, userId, claims, jwtExpiry);
-        }
-
-        // HMAC-SHA（默认/非信创）
-        SecretKey signingKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
-        long nowMillis = System.currentTimeMillis();
-        Date now = new Date(nowMillis);
-        Date exp = new Date(nowMillis + jwtExpiry * 1000L);
-        return Jwts.builder()
-                .subject(userId)
-                .issuer(jwtIssuer)
-                .issuedAt(now)
-                .expiration(exp)
-                .claim("tenantId", tenantId)
-                .claim("preferred_username", username)
-                .claim("email", email)
-                .signWith(signingKey)
-                .compact();
-    }
-
-    /**
-     * hex 字符串转字节数组。
-     *
-     * @param hex hex 串
-     * @return 字节数组
-     */
-    private static byte[] hexToBytes(String hex) {
-        if (hex == null || hex.isEmpty()) {
-            return new byte[0];
-        }
-        String s = hex.toLowerCase();
-        byte[] out = new byte[s.length() / 2];
-        for (int i = 0; i < out.length; i++) {
-            int hi = Character.digit(s.charAt(i * 2), 16);
-            int lo = Character.digit(s.charAt(i * 2 + 1), 16);
-            out[i] = (byte) ((hi << 4) | lo);
-        }
-        return out;
-    }
 
     /** 解码 JWT payload（base64url），不校验签名（签名由 JwtAuthFilter 负责）。 */
     private JsonNode decodeJwtPayload(String token) throws Exception {

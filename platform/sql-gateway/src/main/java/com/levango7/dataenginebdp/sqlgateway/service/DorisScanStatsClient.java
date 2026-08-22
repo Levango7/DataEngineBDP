@@ -39,14 +39,17 @@ public class DorisScanStatsClient {
 
     private final String dorisJdbcUrl;
     private final String dorisUser;
+    private final String dorisPassword;
     private final boolean enabled;
 
     public DorisScanStatsClient(
             @Value("${app.backend.doris.url:${DORIS_URL:http://doris-fe-service:9030}}") String dorisUrl,
             @Value("${app.backend.doris.username:root}") String dorisUser,
+            @Value("${app.backend.doris.password:${DORIS_PASSWORD:}}") String dorisPassword,
             @Value("${app.backend.doris.scan-stats-enabled:false}") boolean enabled) {
         this.dorisJdbcUrl = toJdbcUrl(dorisUrl);
         this.dorisUser = dorisUser;
+        this.dorisPassword = dorisPassword;
         this.enabled = enabled;
         log.info("DorisScanStatsClient 初始化: jdbc={}, enabled={}", dorisJdbcUrl, enabled);
     }
@@ -62,7 +65,7 @@ public class DorisScanStatsClient {
             return null;
         }
         String fingerprint = fingerprint(sql);
-        try (Connection conn = DriverManager.getConnection(dorisJdbcUrl, dorisUser, "")) {
+        try (Connection conn = DriverManager.getConnection(dorisJdbcUrl, dorisUser, dorisPassword)) {
             // 规范化匹配：按 stmt 前缀近似命中最近一条 is_query 记录
             // （Doris audit_log 的 stmt 列含完整 SQL；按指纹等值匹配最稳，
             //   但大 SQL 会被截断，故取规范化后前 200 字符做前缀匹配，再本地二次校验）
@@ -74,7 +77,7 @@ public class DorisScanStatsClient {
                 pstmt.setString(1, escapeLike(fingerprint) + "%");
                 try (ResultSet rs = pstmt.executeQuery()) {
                     while (rs.next()) {
-                        String rowFingerprint = null;
+
                         long scanBytes = rs.getLong("scan_bytes");
                         if (scanBytes > 0) {
                             return scanBytes;

@@ -55,7 +55,7 @@ governance:
 # JWT 配置（与平台其他组件保持一致）
 security:
   jwt:
-    secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+    secret: ${JWT_SECRET}
     issuer: ${JWT_ISSUER:shuqing-bigdata}
 
 # Actuator 端点

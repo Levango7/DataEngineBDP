@@ -95,7 +95,7 @@ app:
   security:
     jwt:
       # HMAC-SHA 签名密钥，至少 32 字节（256 bit）；生产环境必须通过环境变量覆盖
-      secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+      secret: ${JWT_SECRET}
       issuer: ${JWT_ISSUER:shuqing-bigdata}
       expiry: 3600
     cors:

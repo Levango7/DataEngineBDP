@@ -139,6 +139,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -285,7 +286,17 @@ async function handleRunTask(task: SyncTask): Promise<void> {
 
 /** 停止任务 */
 async function handleStopTask(task: SyncTask): Promise<void> {
-  if (!confirm(`确定停止任务「${task.name}」吗？`)) return
+  try {
+    await ElMessageBox.confirm(`确定停止任务「${task.name}」吗？`, '停止确认', {
+      type: 'warning',
+      confirmButtonText: '停止',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
+  } catch {
+    // 用户取消
+    return
+  }
   actingId.value = task.id
   try {
     await integrateApi.stopSyncTask(task.id)

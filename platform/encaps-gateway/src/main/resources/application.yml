@@ -56,7 +56,7 @@ app:
   security:
     jwt:
       algorithm: ${JWT_ALG:HS384}
-      secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+      secret: ${JWT_SECRET}
       issuer: ${JWT_ISSUER:shuqing-bigdata}
       expiry: 3600
       sm2-private-key: ${JWT_SM2_PRIVATE_KEY:}
@@ -67,7 +67,7 @@ app:
       issuer-uri: ${OIDC_ISSUER_URI:}
     cors:
       allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
-    encrypt-key: ${ENCRYPT_KEY:0123456789abcdef0123456789abcdef}
+    encrypt-key: ${ENCRYPT_KEY}
     keycloak:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}

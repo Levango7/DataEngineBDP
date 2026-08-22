@@ -43,7 +43,7 @@ services:
       KARMADA_API_VERSION: "0.1.0"
       KARMADA_API_PORT: "8090"
       KARMADA_API_DB: ":memory:"
-      JWT_SECRET: ${JWT_SECRET:-dev-secret-key-change-in-production-at-least-256-bits}
+      JWT_SECRET: ${JWT_SECRET}
       JWT_ISSUER: "shuqing-bigdata"
     networks:
       - karmada-net

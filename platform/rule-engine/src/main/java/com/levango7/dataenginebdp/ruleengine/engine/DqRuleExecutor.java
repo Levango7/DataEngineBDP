@@ -66,9 +66,9 @@ public class DqRuleExecutor implements RuleExecutor {
                 return executeConditionMode(rule, expression, context, details, start);
             }
         } catch (Exception e) {
-            log.error("DQ rule execution failed: ruleId={}, expr={}", rule.getId(), expression, e);
-            details.put("error", e.getMessage());
-            return buildResult(rule, "ERROR", "DQ_EXECUTION_ERROR: " + e.getMessage(),
+            log.error("DQ规则执行异常: rule={}, error={}", rule.getName(), e.getMessage(), e);
+            details.put("error", "DQ执行内部错误");
+            return buildResult(rule, "ERROR", "DQ_EXECUTION_ERROR",
                     details, start);
         }
     }
@@ -83,6 +83,12 @@ public class DqRuleExecutor implements RuleExecutor {
         // 安全校验：仅允许 SELECT / WITH 开头的只读查询，防止注入非查询语句
         String upperSql = sql.toUpperCase().trim();
         if (!upperSql.startsWith("SELECT") && !upperSql.startsWith("WITH")) {
+            return buildResult(rule, "ERROR", "NON_SELECT_SQL_NOT_ALLOWED", details, start);
+        }
+        // 防止CTE绕过：检查是否包含数据修改语句
+        if (upperSql.contains("INSERT") || upperSql.contains("UPDATE") || upperSql.contains("DELETE")
+                || upperSql.contains("DROP") || upperSql.contains("CREATE") || upperSql.contains("ALTER")
+                || upperSql.contains("TRUNCATE") || upperSql.contains("MERGE")) {
             return buildResult(rule, "ERROR", "NON_SELECT_SQL_NOT_ALLOWED", details, start);
         }
         if (jdbcTemplate == null) {

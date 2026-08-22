@@ -20,8 +20,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import javax.crypto.SecretKey;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 /**
  * JWT 认证过滤器（公共安全 Starter 提供的统一实现）。
@@ -95,10 +97,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             // 多租户隔离校验：X-Tenant-Id header 必须与 JWT claim 一致（若提供）
             String effectiveTenantId = resolveTenantWithHeaderCheck(request, response, jwtTenantId, userId);
             if (effectiveTenantId == null) {
-                // header 校验失败已写入 403 响应，直接返回
+                // 如果response未提交（header校验未写403），说明是jwtTenantId为null
+                if (!response.isCommitted()) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"error\":\"Missing tenant identity\"}");
+                }
                 return;
             }
-            setAuthentication(userId, effectiveTenantId);
+            setAuthentication(userId, effectiveTenantId, extractAuthorities(claims));
 
             filterChain.doFilter(request, response);
         } catch (JwtException | IllegalArgumentException e) {
@@ -114,15 +121,39 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     /**
      * 写入租户上下文与 Spring Security 上下文。
      */
-    private void setAuthentication(String userId, String tenantId) {
+    private void setAuthentication(String userId, String tenantId, List<SimpleGrantedAuthority> authorities) {
         TenantContext.setTenantId(tenantId);
         TenantContext.setUserId(userId);
 
-        List<SimpleGrantedAuthority> authorities = Collections.singletonList(
-                new SimpleGrantedAuthority("ROLE_USER"));
         UsernamePasswordAuthenticationToken authentication =
                 new UsernamePasswordAuthenticationToken(userId, null, authorities);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    /**
+     * 从 JWT claims 读取角色信息（realm_access.roles），构造 Spring Security 权限列表。
+     *
+     * <p>修复 M-F-14：不再硬编码 ROLE_USER，而是从 Keycloak 标准 claim
+     * {@code realm_access.roles} 读取实际角色。若无角色信息则回退 ROLE_USER。</p>
+     *
+     * @param claims JWT claims（Map 形式）
+     * @return 权限列表（至少包含一个角色）
+     */
+    private List<SimpleGrantedAuthority> extractAuthorities(Map<String, Object> claims) {
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+        Object realmAccess = claims.get("realm_access");
+        if (realmAccess instanceof Map<?, ?> map) {
+            Object roles = map.get("roles");
+            if (roles instanceof List<?> roleList) {
+                for (Object role : roleList) {
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toString()));
+                }
+            }
+        }
+        if (authorities.isEmpty()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+        return authorities;
     }
 
     /**
@@ -169,9 +200,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     public boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
         return path != null
-                && (path.startsWith("/api/v1/health")
-                    || path.startsWith("/api/v1/auth/login")   // 登录端点放行（Keycloak 代理）
-                    || path.startsWith("/actuator"));
+                && (path.equals("/api/v1/health")
+                    || path.equals("/api/v1/auth/login")   // 登录端点放行（Keycloak 代理）
+                    || path.startsWith("/actuator/"));
     }
 
     private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {

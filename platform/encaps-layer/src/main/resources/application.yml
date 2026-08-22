@@ -63,7 +63,7 @@ app:
       algorithm: ${JWT_ALG:HS384}
       # HMAC-SHA 签名密钥，至少 32 字节（256 bit）；生产环境必须通过环境变量覆盖
       # 仅在 algorithm=HS384/HS256 时使用
-      secret: ${JWT_SECRET:dev-secret-key-change-in-production-at-least-256-bits}
+      secret: ${JWT_SECRET}
       issuer: ${JWT_ISSUER:shuqing-bigdata}
       expiry: 3600
       # SM2withSM3 签名密钥对（信创环境专用）
@@ -85,7 +85,7 @@ app:
     # 配置方式：export ENCRYPT_KEY=0123456789abcdef0123456789abcdef（32 字符 hex）
     # 留空时 @Encrypt/@Decrypt 切面在调用时抛 CryptoException（生产环境必须配置）
     # 注意：密钥由 KMS 生成，禁止硬编码到代码仓库；轮换周期 1 年（见 R-024）
-    encrypt-key: ${ENCRYPT_KEY:0123456789abcdef0123456789abcdef}
+    encrypt-key: ${ENCRYPT_KEY}
     keycloak:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}

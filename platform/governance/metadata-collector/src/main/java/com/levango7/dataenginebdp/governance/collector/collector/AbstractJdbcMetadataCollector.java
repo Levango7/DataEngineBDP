@@ -62,8 +62,8 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
         return "SHOW DATABASES";
     }
 
-    /** 标识符白名单正则：仅允许字母、数字、下划线，防止 SQL 注入。 */
-    private static final java.util.regex.Pattern VALID_IDENTIFIER = java.util.regex.Pattern.compile("^[a-zA-Z0-9_]+$");
+    /** 标识符白名单正则：允许字母、数字、下划线、点、减号，防止 SQL 注入。 */
+    private static final java.util.regex.Pattern VALID_IDENTIFIER = java.util.regex.Pattern.compile("^[a-zA-Z0-9_.-]+$");
 
     /**
      * 校验标识符（库名/表名）是否合法，非法时抛出 {@link IllegalArgumentException}。
@@ -143,12 +143,21 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
 
             List<TableMetadata> tables = new ArrayList<>();
             for (String db : databases) {
-                for (String table : listTables(conn, db)) {
+                List<String> tablesInDb;
+                try {
+                    tablesInDb = listTables(conn, db);
+                } catch (RuntimeException e) {
+                    log.warn("Failed to list tables in database {}: {}", db, e.getMessage());
+                    continue;
+                }
+                for (String table : tablesInDb) {
                     try {
                         TableMetadata tm = collectTable(conn, db, table);
                         tm.setSourceType(getType());
                         tables.add(tm);
                     } catch (SQLException e) {
+                        log.warn("Failed to collect table {}.{}: {}", db, table, e.getMessage());
+                    } catch (RuntimeException e) {
                         log.warn("Failed to collect table {}.{}: {}", db, table, e.getMessage());
                     }
                 }

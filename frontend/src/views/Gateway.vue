@@ -111,6 +111,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ElMessageBox } from 'element-plus'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -276,7 +277,15 @@ async function handleSubmit(): Promise<void> {
 
 /** 删除 Key */
 async function handleDelete(key: ApiKey): Promise<void> {
-  if (!confirm(`确认删除 Key "${key.name}"？此操作不可撤销。`)) {
+  try {
+    await ElMessageBox.confirm(`确认删除 Key "${key.name}"？此操作不可撤销。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
+  } catch {
+    // 用户取消
     return
   }
   try {
