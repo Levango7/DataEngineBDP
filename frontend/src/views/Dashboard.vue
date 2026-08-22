@@ -27,7 +27,7 @@
         <div class="card" role="region" aria-label="数据项目数">
           <h3>数据项目</h3>
           <div class="kpi">{{ overview.projectCount }}</div>
-          <div class="meta">运行中 {{ Math.round(overview.projectCount * 0.78) }} · 暂停 {{ overview.projectCount - Math.round(overview.projectCount * 0.78) }}</div>
+          <div class="meta">运行中 {{ runningProjects }} · 暂停 {{ overview.projectCount - runningProjects }}</div>
         </div>
         <div class="card" role="region" aria-label="调度作业数">
           <h3>调度作业</h3>
@@ -134,6 +134,17 @@ const memPercent = computed(() => {
   if (!overview.value) return 0
   const cap = overview.value.memCapacity || 1
   return Math.round((overview.value.memUsed / cap) * 100)
+})
+
+// 运行中项目数（API 未返回 projectRunning 字段时，按 Pod 运行率估算）
+const runningProjects = computed(() => {
+  if (!overview.value) return 0
+  // 优先使用 API 返回的精确值（如果未来添加 projectRunning 字段）
+  const ov = overview.value as any
+  if (typeof ov.projectRunning === 'number') return ov.projectRunning
+  // fallback：按 Pod 运行率估算项目运行数
+  const podRate = ov.podTotal > 0 ? ov.podRunning / ov.podTotal : 0.78
+  return Math.round(ov.projectCount * podRate)
 })
 
 // 重新拉取集群概览

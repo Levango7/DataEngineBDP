@@ -1,10 +1,14 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import * as secApi from '@/api/sec'
 
 /**
  * 应用全局状态：工作空间、环境标签、待办计数、Toast
  */
 export const useAppStore = defineStore('app', () => {
+  // 是否使用 mock 数据：环境变量 VITE_USE_MOCK='false' 时切换为真实 API
+  const USE_MOCK = import.meta.env.VITE_USE_MOCK !== 'false'
+
   // 工作空间
   const workspace = ref('华东生产集群')
   const envTag = ref('信创环境 · 健康')
@@ -51,7 +55,16 @@ export const useAppStore = defineStore('app', () => {
     }, 2200)
   }
 
-  function approve(id: string) {
+  async function approve(id: string) {
+    // 非 mock 模式：先调用后端审批 API，失败则中止本地状态变更
+    if (!USE_MOCK) {
+      try {
+        await secApi.approveApproval(id)
+      } catch (e) {
+        showToast('审批失败')
+        return
+      }
+    }
     // 先尝试 dashboard 待办
     const inTodos = todos.value.some((t) => t.id === id)
     if (inTodos) {
@@ -62,7 +75,16 @@ export const useAppStore = defineStore('app', () => {
     showToast('已批准')
   }
 
-  function reject(id: string) {
+  async function reject(id: string) {
+    // 非 mock 模式：先调用后端审批 API，失败则中止本地状态变更
+    if (!USE_MOCK) {
+      try {
+        await secApi.rejectApproval(id)
+      } catch (e) {
+        showToast('驳回失败')
+        return
+      }
+    }
     const inTodos = todos.value.some((t) => t.id === id)
     if (inTodos) {
       todos.value = todos.value.filter((t) => t.id !== id)
@@ -77,6 +99,25 @@ export const useAppStore = defineStore('app', () => {
     showToast(`已切换工作空间：${name}`)
   }
 
+  /**
+   * 拉取安全审批列表（非 mock 模式生效）
+   * API 不可用时保留现有 mock 数据，保证页面可用
+   */
+  async function fetchSecApprovals() {
+    if (USE_MOCK) return
+    try {
+      const approvals = await secApi.listApprovals('pending')
+      secApprovals.value = approvals.map((a) => ({
+        id: a.id,
+        applicant: a.applicant,
+        asset: a.asset,
+        perm: a.permission
+      }))
+    } catch (e) {
+      // API 不可用时保留现有数据（mock 初始值），不抛错
+    }
+  }
+
   return {
     workspace,
     envTag,
@@ -87,6 +128,7 @@ export const useAppStore = defineStore('app', () => {
     showToast,
     approve,
     reject,
-    setWorkspace
+    setWorkspace,
+    fetchSecApprovals
   }
 })

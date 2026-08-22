@@ -244,6 +244,8 @@ export interface ClusterOverview {
   storageUsed: number
   /** 数据项目数 */
   projectCount: number
+  /** 运行中项目数（API 未返回时前端按 Pod 运行率估算） */
+  projectRunning?: number
   /** 调度作业数 */
   jobCount: number
   /** 今日作业成功数 */

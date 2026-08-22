@@ -7,11 +7,12 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.expression.MethodBasedEvaluationContext;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 
 import java.lang.reflect.Method;
 import java.time.Instant;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -125,9 +126,15 @@ public class AuditLogAspect {
             if (args == null || args.length == 0) {
                 return "";
             }
-            MethodBasedEvaluationContext context = new MethodBasedEvaluationContext(
-                    joinPoint.getTarget(), method, args, parameterNameDiscoverer);
-            return objectMapper.writeValueAsString(context.getVariables());
+            // Spring Framework 7 移除了 MethodBasedEvaluationContext.getVariables()，
+            // 改用 DefaultParameterNameDiscoverer 直接解析参数名构建映射
+            String[] paramNames = parameterNameDiscoverer.getParameterNames(method);
+            Map<String, Object> params = new LinkedHashMap<>();
+            for (int i = 0; i < args.length; i++) {
+                String name = (paramNames != null && i < paramNames.length) ? paramNames[i] : "arg" + i;
+                params.put(name, args[i]);
+            }
+            return objectMapper.writeValueAsString(params);
         } catch (Exception e) {
             return "[params serialization failed: " + e.getMessage() + "]";
         }
