@@ -84,12 +84,12 @@ frontend/test-results/
 tests/performance/stress/results/
 tests/disaster-recovery/results/
 
-# 冒烟验证临时文件（不入库）
-smoke-*.csv
-smoke-*.json
-smoke-*.txt
-smoke-*.ps1
-smoke-*.bat
+# 冒烟验证临时文件（不入库，仅忽略根目录下的临时产物，保留 scripts/smoke/ 下的脚本）
+/smoke-*.csv
+/smoke-*.json
+/smoke-*.txt
+/smoke-*.ps1
+/smoke-*.bat
 run-backend.bat
 backend-boot.log
 

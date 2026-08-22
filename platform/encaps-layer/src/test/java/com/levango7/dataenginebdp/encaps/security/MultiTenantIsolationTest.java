@@ -10,13 +10,14 @@ import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.WebApplicationContext;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * → 仓储过滤的完整链路。</p>
  */
 @SpringBootTest
-@AutoConfigureMockMvc
+
 @TestPropertySource(properties = {
         "app.security.jwt.secret=dev-secret-key-change-in-production-at-least-256-bits",
         "app.security.jwt.issuer=shuqing-bigdata",
@@ -51,6 +52,8 @@ class MultiTenantIsolationTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
+    private WebApplicationContext webApplicationContext;
+
     private MockMvc mockMvc;
 
     @Autowired
@@ -63,6 +66,7 @@ class MultiTenantIsolationTest {
 
     @BeforeEach
     void setUp() {
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
         signingKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         assetRepository.deleteAll();
         dataSourceRepository.deleteAll();
