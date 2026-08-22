@@ -324,46 +324,33 @@ async function handleDelete(row: Tenant) {
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-/** 套餐 → 中文 */
+const PLAN_MAP: Record<PlanTier, { label: string; type: 'primary' | 'success' | 'warning' | 'info' }> = {
+  standard: { label: '标准版', type: 'info' },
+  enterprise: { label: '企业版', type: 'primary' },
+  flagship: { label: '旗舰版', type: 'warning' },
+  internal: { label: '内部无限', type: 'success' },
+}
+
 function planLabel(plan: PlanTier): string {
-  const map: Record<PlanTier, string> = {
-    standard: '标准版',
-    enterprise: '企业版',
-    flagship: '旗舰版',
-    internal: '内部无限'
-  }
-  return map[plan] || plan
+  return PLAN_MAP[plan]?.label ?? plan
 }
 
-/** 套餐 → tag 类型 */
 function planTagType(plan: PlanTier): 'primary' | 'success' | 'warning' | 'info' {
-  const map: Record<PlanTier, 'primary' | 'success' | 'warning' | 'info'> = {
-    standard: 'info',
-    enterprise: 'primary',
-    flagship: 'warning',
-    internal: 'success'
-  }
-  return map[plan] || 'info'
+  return PLAN_MAP[plan]?.type ?? 'info'
 }
 
-/** 状态 → 中文 */
+const STATUS_MAP: Record<TenantStatus, { label: string; type: 'success' | 'warning' | 'info' | 'danger' }> = {
+  active: { label: '活跃', type: 'success' },
+  suspended: { label: '已暂停', type: 'warning' },
+  deleted: { label: '已删除', type: 'info' },
+}
+
 function statusLabel(status: TenantStatus): string {
-  const map: Record<TenantStatus, string> = {
-    active: '活跃',
-    suspended: '已暂停',
-    deleted: '已删除'
-  }
-  return map[status] || status
+  return STATUS_MAP[status]?.label ?? status
 }
 
-/** 状态 → tag 类型 */
 function statusTagType(status: TenantStatus): 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<TenantStatus, 'success' | 'warning' | 'info' | 'danger'> = {
-    active: 'success',
-    suspended: 'warning',
-    deleted: 'info'
-  }
-  return map[status] || 'info'
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** 资源消耗 → 进度条颜色 */

@@ -113,35 +113,12 @@ function toggleBookmark(): void {
 
 /* ------------------------------ 高亮渲染 ------------------------------ */
 /**
- * 优先使用后端返回的 snippets（已转义 HTML），
- * 否则降级为纯文本（避免 XSS）。
- */
-const highlightedName = computed<string>(() => {
-  return props.item.snippets?.name ?? escapeHtml(props.item.name)
-})
-
-const highlightedDesc = computed<string>(() => {
-  const snip = props.item.snippets?.description
-  if (snip) return snip
-  const desc = props.item.description || ''
-  return escapeHtml(desc.length > 200 ? desc.slice(0, 200) + '…' : desc)
-})
-
-/**
- * 净化后的高亮内容：使用 DOMPurify 过滤潜在 XSS payload，
- * 仅保留高亮所需的 <mark> 标签及文本节点。
+ * 优先用后端返回的 snippets（已转义 HTML），否则降级为纯文本避免 XSS。
+ * 仅保留 <mark> 标签，使用 DOMPurify 净化。
  */
 const ALLOWED_TAGS = ['mark']
+const SANITIZE_OPTS = { ALLOWED_TAGS, ALLOWED_ATTR: [] }
 
-const sanitizedName = computed<string>(() =>
-  DOMPurify.sanitize(highlightedName.value, { ALLOWED_TAGS, ALLOWED_ATTR: [] })
-)
-
-const sanitizedDesc = computed<string>(() =>
-  DOMPurify.sanitize(highlightedDesc.value, { ALLOWED_TAGS, ALLOWED_ATTR: [] })
-)
-
-/** HTML 转义，防止 XSS */
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -150,6 +127,18 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
+
+const sanitizedName = computed(() =>
+  DOMPurify.sanitize(props.item.snippets?.name ?? escapeHtml(props.item.name), SANITIZE_OPTS)
+)
+
+const sanitizedDesc = computed(() => {
+  const snip = props.item.snippets?.description
+  if (snip) return DOMPurify.sanitize(snip, SANITIZE_OPTS)
+  const desc = props.item.description || ''
+  const truncated = desc.length > 200 ? desc.slice(0, 200) + '…' : desc
+  return DOMPurify.sanitize(escapeHtml(truncated), SANITIZE_OPTS)
+})
 
 /* ------------------------------ 标签 ------------------------------ */
 const displayTags = computed(() => props.item.tags.slice(0, props.maxTags))

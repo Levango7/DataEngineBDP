@@ -66,27 +66,21 @@ function formatRevenue(v: number): string {
   return v.toFixed(0)
 }
 
+const ENV_STATUS_MAP: Record<EnvStatus, { label: string; cls: string }> = {
+  healthy: { label: '健康', cls: 'g' },
+  scaling: { label: '扩容中', cls: 'a' },
+  warning: { label: '告警', cls: 'a' },
+  critical: { label: '严重', cls: 'p' },
+}
+
 function envStatusLabel(s: EnvStatus): string {
-  const map: Record<EnvStatus, string> = {
-    healthy: '健康',
-    scaling: '扩容中',
-    warning: '告警',
-    critical: '严重',
-  }
-  return map[s] || s
+  return ENV_STATUS_MAP[s]?.label ?? s
 }
 
 function envStatusClass(s: EnvStatus): string {
-  const map: Record<EnvStatus, string> = {
-    healthy: 'g',
-    scaling: 'a',
-    warning: 'a',
-    critical: 'p',
-  }
-  return map[s] || ''
+  return ENV_STATUS_MAP[s]?.cls ?? ''
 }
 
-/** 加载全部数据 */
 async function loadAll() {
   await Promise.all([void loadKpi(), void loadEnvMatrix()])
 }

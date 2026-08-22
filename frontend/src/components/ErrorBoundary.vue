@@ -10,14 +10,8 @@ interface ErrorInfo {
 const error = ref<ErrorInfo | null>(null)
 
 onErrorCaptured((err: Error, _instance, info) => {
-  error.value = {
-    message: err.message,
-    stack: err.stack,
-    component: info
-  }
-  // 上报错误到监控平台（预留）
+  error.value = { message: err.message, stack: err.stack, component: info }
   console.error('[ErrorBoundary]', err, info)
-  // 阻止错误继续向上传播
   return false
 })
 

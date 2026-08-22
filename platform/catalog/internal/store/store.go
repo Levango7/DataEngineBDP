@@ -287,19 +287,3 @@ func (s *GormStore) SearchTables(query string, limit int) ([]*model.SearchResult
 	}
 	return results, nil
 }
-
-// ============ 兼容性：保留 MemoryStore 类型别名 ============
-//
-// 为兼容可能存在的旧调用方，保留 MemoryStore 类型与 NewMemoryStore 函数，
-// 但内部实现改为基于 GORM。如果调用方未传入 *gorm.DB，将 panic 提示。
-// 推荐使用 NewGormStore 显式传入 *gorm.DB。
-
-// MemoryStore 是 GormStore 的兼容别名。
-type MemoryStore = GormStore
-
-// NewMemoryStore 已废弃，请使用 NewGormStore。
-//
-// Deprecated: 使用 NewGormStore(db) 替代。
-func NewMemoryStore() *GormStore {
-	panic("NewMemoryStore is deprecated, use NewGormStore(db *gorm.DB) instead")
-}

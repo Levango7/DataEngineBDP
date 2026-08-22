@@ -148,8 +148,3 @@ class InvocationRecorder:
         if _HAS_PROMETHEUS:
             return generate_latest(self._registry), "text/plain; version=0.0.4; charset=utf-8"
         return b"# prometheus_client not installed\n", "text/plain; charset=utf-8"
-
-
-def init_recorder(runtime: str, pushgatewayUrl: str = "") -> InvocationRecorder:
-    """初始化 InvocationRecorder（模块级工厂函数）。"""
-    return InvocationRecorder(runtime=runtime, pushgatewayUrl=pushgatewayUrl)

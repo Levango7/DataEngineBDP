@@ -85,11 +85,9 @@ const upgradeForm = ref<{ targetPlan: PlanTier }>({
 })
 
 const estimatedFee = computed(() => {
-  // 简单预估：旗舰版 58000，企业版+扩容包 35000
   return upgradeForm.value.targetPlan === 'flagship' ? '¥ 58,000' : '¥ 35,000'
 })
 
-/** 加载全部数据 */
 async function loadAll() {
   await Promise.all([void loadPlan(), void loadBilling()])
 }

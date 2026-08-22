@@ -268,8 +268,6 @@ function emitReset(): void {
 }
 
 /* ------------------------------ 摘要 ------------------------------ */
-const hasActiveFilter = computed(() => activeCount.value > 0)
-
 const activeCount = computed(() => {
   let n = 0
   if (local.time.preset !== '') n++
@@ -278,6 +276,8 @@ const activeCount = computed(() => {
   if (local.tags.length > 0) n++
   return n
 })
+
+const hasActiveFilter = computed(() => activeCount.value > 0)
 </script>
 
 <style scoped>

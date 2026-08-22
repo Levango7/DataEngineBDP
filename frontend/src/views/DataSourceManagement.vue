@@ -401,30 +401,23 @@ async function handleDelete(row: DataSource) {
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-/** 类型 → 中文 */
 function typeLabel(type: DataSourceType): string {
   const item = typeOptions.find((t) => t.value === type)
   return item?.label || type
 }
 
-/** 状态 → 中文 */
-function statusLabel(status: DataSourceStatus): string {
-  const map: Record<DataSourceStatus, string> = {
-    connected: '已连接',
-    disconnected: '未连接',
-    testing: '测试中'
-  }
-  return map[status] || status
+const STATUS_MAP: Record<DataSourceStatus, { label: string; type: 'success' | 'info' | 'warning' }> = {
+  connected: { label: '已连接', type: 'success' },
+  disconnected: { label: '未连接', type: 'info' },
+  testing: { label: '测试中', type: 'warning' },
 }
 
-/** 状态 → tag 类型 */
+function statusLabel(status: DataSourceStatus): string {
+  return STATUS_MAP[status]?.label ?? status
+}
+
 function statusTagType(status: DataSourceStatus): 'success' | 'info' | 'warning' {
-  const map: Record<DataSourceStatus, 'success' | 'info' | 'warning'> = {
-    connected: 'success',
-    disconnected: 'info',
-    testing: 'warning'
-  }
-  return map[status] || 'info'
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
 /* ------------------------------ 初始化 ------------------------------ */

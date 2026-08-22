@@ -506,61 +506,47 @@ async function handleDestroy(row: CrossEnvClusterInfo) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 状态 → 中文 */
+const STATUS_MAP: Record<ClusterStatus, { label: string; type: 'success' | 'warning' | 'danger' | 'info' }> = {
+  CREATING: { label: '创建中', type: 'warning' },
+  RUNNING: { label: '运行中', type: 'success' },
+  FAILED: { label: '异常', type: 'danger' },
+  DESTROYED: { label: '已销毁', type: 'info' },
+  UPDATING: { label: '更新中', type: 'warning' },
+}
+
 function statusLabel(status: ClusterStatus): string {
-  const map: Record<ClusterStatus, string> = {
-    CREATING: '创建中',
-    RUNNING: '运行中',
-    FAILED: '异常',
-    DESTROYED: '已销毁',
-    UPDATING: '更新中'
-  }
-  return map[status] ?? status
+  return STATUS_MAP[status]?.label ?? status
 }
 
-/** 状态 → tag 类型 */
 function statusTagType(status: ClusterStatus): 'success' | 'warning' | 'danger' | 'info' {
-  const map: Record<ClusterStatus, 'success' | 'warning' | 'danger' | 'info'> = {
-    CREATING: 'warning',
-    RUNNING: 'success',
-    FAILED: 'danger',
-    DESTROYED: 'info',
-    UPDATING: 'warning'
-  }
-  return map[status] ?? 'info'
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
-/** 环境 → 中文 */
+const ENV_MAP: Record<ClusterEnv, { label: string; type: 'primary' | 'success' | 'warning' }> = {
+  private: { label: '私有云', type: 'primary' },
+  cloud: { label: '公有云', type: 'success' },
+  xinchuang: { label: '信创', type: 'warning' },
+}
+
 function envLabel(env: ClusterEnv): string {
-  const map: Record<ClusterEnv, string> = {
-    private: '私有云',
-    cloud: '公有云',
-    xinchuang: '信创'
-  }
-  return map[env] ?? env
+  return ENV_MAP[env]?.label ?? env
 }
 
-/** 环境 → tag 类型 */
 function envTagType(env: ClusterEnv): 'primary' | 'success' | 'warning' {
-  const map: Record<ClusterEnv, 'primary' | 'success' | 'warning'> = {
-    private: 'primary',
-    cloud: 'success',
-    xinchuang: 'warning'
-  }
-  return map[env] ?? 'primary'
+  return ENV_MAP[env]?.type ?? 'primary'
 }
 
-/** Provider → 中文 */
+const PROVIDER_LABELS: Record<ProviderKind, string> = {
+  vsphere: 'vSphere',
+  openstack: 'OpenStack',
+  huawei: '华为云',
+  ali: '阿里云',
+  tencent: '腾讯云',
+  xinchang: '信创',
+}
+
 function providerLabel(p: ProviderKind): string {
-  const map: Record<ProviderKind, string> = {
-    vsphere: 'vSphere',
-    openstack: 'OpenStack',
-    huawei: '华为云',
-    ali: '阿里云',
-    tencent: '腾讯云',
-    xinchang: '信创'
-  }
-  return map[p] ?? p
+  return PROVIDER_LABELS[p] ?? p
 }
 
 /** 节点状态 → tag 类型 */
@@ -570,14 +556,14 @@ function nodeStatusType(status: string): 'success' | 'danger' | 'info' {
   return 'info'
 }
 
-/** 组件状态 → 中文 */
+const COMP_STATUS_LABELS: Record<ComponentHealth, string> = {
+  healthy: '健康',
+  warning: '警告',
+  error: '故障',
+}
+
 function compStatusLabel(status: ComponentHealth): string {
-  const map: Record<ComponentHealth, string> = {
-    healthy: '健康',
-    warning: '警告',
-    error: '故障'
-  }
-  return map[status]
+  return COMP_STATUS_LABELS[status]
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */

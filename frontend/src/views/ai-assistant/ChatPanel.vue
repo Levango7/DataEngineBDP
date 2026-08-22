@@ -324,41 +324,29 @@ function onEnter(e: Event): void {
 }
 
 /* ------------------------------ 自动滚动到底部 ------------------------------ */
-watch(
-  () => props.messages.length,
-  () => {
-    void nextTick(() => {
-      if (scrollRef.value) {
-        scrollRef.value.scrollTop = scrollRef.value.scrollHeight
-      }
-    })
-  }
-)
-
-// 流式时持续滚动
-let scrollTimer: ReturnType<typeof setInterval> | null = null
-watch(
-  () => props.streaming,
-  (streaming) => {
-    if (scrollTimer) {
-      clearInterval(scrollTimer)
-      scrollTimer = null
-    }
-    if (streaming) {
-      scrollTimer = setInterval(() => {
-        if (scrollRef.value) {
-          scrollRef.value.scrollTop = scrollRef.value.scrollHeight
-        }
-      }, 100)
-    }
-  }
-)
-
-onMounted(() => {
+function scrollToBottom() {
   if (scrollRef.value) {
     scrollRef.value.scrollTop = scrollRef.value.scrollHeight
   }
+}
+
+watch(() => props.messages.length, () => {
+  void nextTick(scrollToBottom)
 })
+
+// 流式时持续滚动
+let scrollTimer: ReturnType<typeof setInterval> | null = null
+watch(() => props.streaming, (streaming) => {
+  if (scrollTimer) {
+    clearInterval(scrollTimer)
+    scrollTimer = null
+  }
+  if (streaming) {
+    scrollTimer = setInterval(scrollToBottom, 100)
+  }
+})
+
+onMounted(scrollToBottom)
 
 /* ------------------------------ 文案 ------------------------------ */
 const t = computed(() => {

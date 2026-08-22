@@ -27,7 +27,7 @@ from typing import Any, Callable, Dict, Optional
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 
-from app.metrics import InvocationRecorder, init_recorder
+from app.metrics import InvocationRecorder
 
 # ---------------------------------------------------------------------------
 # 配置
@@ -55,23 +55,23 @@ app = FastAPI(
 )
 
 # invocation 计量记录器（Prometheus 指标 + Loki 日志）
-recorder: InvocationRecorder = init_recorder(
+recorder = InvocationRecorder(
     runtime="python",
-    pushgateway_url=os.environ.get("PROMETHEUS_PUSHGATEWAY", ""),
+    pushgatewayUrl=os.environ.get("PROMETHEUS_PUSHGATEWAY", ""),
 )
 
 # 已加载的函数 handler 缓存：function_name -> callable
-_loadedHandlers: Dict[str, Callable[..., Any]] = {}
+_handlers: Dict[str, Callable[..., Any]] = {}
 
 
-def loadFunctionHandler(functionName: str) -> Callable[..., Any]:
+def load_handler(function_name: str) -> Callable[..., Any]:
     """动态加载用户函数 handler。
 
     约定：函数代码位于 ``/functions/<function_name>/handler.py``，需暴露 ``handle(event)`` 函数。
-    加载后缓存到 ``_loadedHandlers``，避免重复 import 开销（冷启动后热路径加速）。
+    加载后缓存到 ``_handlers``，避免重复 import 开销（冷启动后热路径加速）。
 
     Args:
-        functionName: 函数名。
+        function_name: 函数名。
 
     Returns:
         可调用对象 ``handle(event: dict) -> dict``。
@@ -79,33 +79,33 @@ def loadFunctionHandler(functionName: str) -> Callable[..., Any]:
     Raises:
         ImportError: 函数模块不存在或未定义 handle。
     """
-    if functionName in _loadedHandlers:
-        return _loadedHandlers[functionName]
+    if function_name in _handlers:
+        return _handlers[function_name]
 
-    modulePath = FUNCTIONS_DIR / functionName / "handler.py"
-    if not modulePath.exists():
-        raise ImportError(f"函数 handler 不存在: {modulePath}")
+    module_path = FUNCTIONS_DIR / function_name / "handler.py"
+    if not module_path.exists():
+        raise ImportError(f"函数 handler 不存在: {module_path}")
 
     # 动态导入：以 app.functions.<name>.handler 为模块名
-    moduleName = f"app.functions.{functionName}.handler"
-    spec = importlib.util.spec_from_file_location(moduleName, modulePath)
+    module_name = f"app.functions.{function_name}.handler"
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
     if spec is None or spec.loader is None:
-        raise ImportError(f"无法加载函数模块: {modulePath}")
+        raise ImportError(f"无法加载函数模块: {module_path}")
     module = importlib.util.module_from_spec(spec)
-    sys.modules[moduleName] = module
+    sys.modules[module_name] = module
     spec.loader.exec_module(module)
 
     handler = getattr(module, "handle", None)
     if handler is None or not callable(handler):
-        raise ImportError(f"函数 {functionName} 未定义 handle(event) 入口")
+        raise ImportError(f"函数 {function_name} 未定义 handle(event) 入口")
 
-    _loadedHandlers[functionName] = handler
-    logger.info("函数 handler 加载完成: %s", functionName, extra={"tenant_id": "-"})
+    _handlers[function_name] = handler
+    logger.info("函数 handler 加载完成: %s", function_name, extra={"tenant_id": "-"})
     return handler
 
 
 @app.on_event("startup")
-async def _onStartup() -> None:
+async def _on_startup() -> None:
     """启动钩子：预热函数 handler，降低首次请求延迟。
 
     冷启动优化策略：
@@ -115,7 +115,7 @@ async def _onStartup() -> None:
     """
     start = time.monotonic()
     try:
-        loadFunctionHandler(FUNCTION_NAME)
+        load_handler(FUNCTION_NAME)
     except ImportError as exc:
         logger.warning("启动预热失败（不影响运行，首次请求时再加载）: %s", exc,
                        extra={"tenant_id": "-"})
@@ -163,7 +163,7 @@ async def invoke(request: Request) -> Response:
     statusCode = 200
     result: Any
     try:
-        handler = loadFunctionHandler(functionName)
+        handler = load_handler(functionName)
         result = handler(event)
         if result is None:
             result = {}

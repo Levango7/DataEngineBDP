@@ -631,73 +631,50 @@ async function handleBackfill() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 状态 → 中文 */
+const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  DRAFT: { label: '草稿', type: 'info' },
+  PENDING: { label: '等待中', type: 'info' },
+  SCHEDULED: { label: '已调度', type: 'warning' },
+  RUNNING: { label: '运行中', type: 'primary' },
+  SUCCESS: { label: '成功', type: 'success' },
+  FAILED: { label: '失败', type: 'danger' },
+  KILLED: { label: '已取消', type: 'info' },
+  PAUSED: { label: '已暂停', type: 'warning' },
+}
+
 function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    DRAFT: '草稿',
-    PENDING: '等待中',
-    SCHEDULED: '已调度',
-    RUNNING: '运行中',
-    SUCCESS: '成功',
-    FAILED: '失败',
-    KILLED: '已取消',
-    PAUSED: '已暂停'
-  }
-  return map[status] ?? status
+  return STATUS_MAP[status]?.label ?? status
 }
 
-/** 状态 → tag 类型 */
-function statusTagType(
-  status: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    DRAFT: 'info',
-    PENDING: 'info',
-    SCHEDULED: 'warning',
-    RUNNING: 'primary',
-    SUCCESS: 'success',
-    FAILED: 'danger',
-    KILLED: 'info',
-    PAUSED: 'warning'
-  }
-  return map[status] ?? 'info'
+function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
-/** 运行状态 → 中文 */
+const RUN_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  RUNNING: { label: '运行中', type: 'primary' },
+  SUCCESS: { label: '成功', type: 'success' },
+  FAILED: { label: '失败', type: 'danger' },
+  KILLED: { label: '已取消', type: 'info' },
+  PENDING: { label: '等待中', type: 'info' },
+}
+
 function runStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    RUNNING: '运行中',
-    SUCCESS: '成功',
-    FAILED: '失败',
-    KILLED: '已取消',
-    PENDING: '等待中'
-  }
-  return map[status] ?? status
+  return RUN_STATUS_MAP[status]?.label ?? status
 }
 
-/** 运行状态 → tag 类型 */
-function runStatusTagType(
-  status: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    RUNNING: 'primary',
-    SUCCESS: 'success',
-    FAILED: 'danger',
-    KILLED: 'info',
-    PENDING: 'info'
-  }
-  return map[status] ?? 'info'
+function runStatusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+  return RUN_STATUS_MAP[status]?.type ?? 'info'
 }
 
-/** 触发方式 → 中文 */
+const RUN_TYPE_LABELS: Record<string, string> = {
+  MANUAL: '手动',
+  SCHEDULED: '调度',
+  RERUN: '重跑',
+  BACKFILL: '补数据',
+}
+
 function runTypeLabel(runType: string): string {
-  const map: Record<string, string> = {
-    MANUAL: '手动',
-    SCHEDULED: '调度',
-    RERUN: '重跑',
-    BACKFILL: '补数据'
-  }
-  return map[runType] ?? runType
+  return RUN_TYPE_LABELS[runType] ?? runType
 }
 
 /** 耗时格式化（毫秒） */

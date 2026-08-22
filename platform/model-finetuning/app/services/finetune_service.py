@@ -317,22 +317,10 @@ class FinetuneService:
     # ============================================================
     def list_adapters(self) -> list[dict]:
         """列出所有适配器描述."""
-        from app.adapters.factory import list_adapters as _list
-
-        names = _list()
         result = []
-        for name in names:
-            # 找到对应框架枚举
-            for fw in FinetuneFramework:
-                if fw.value.replace("_", "") in name.replace("_", "") or name in fw.value:
-                    adapter = get_adapter(
-                        fw, workDir=self.workDir, mockMode=self.mockMode
-                    )
-                    result.append(adapter.describe())
-                    break
-        # 兜底：若匹配失败，直接列出名称
-        if len(result) != len(names):
-            result = [{"name": n, "mockMode": self.mockMode} for n in names]
+        for fw in FinetuneFramework:
+            adapter = get_adapter(fw, workDir=self.workDir, mockMode=self.mockMode)
+            result.append(adapter.describe())
         return result
 
     def list_nodes(self) -> list[dict]:

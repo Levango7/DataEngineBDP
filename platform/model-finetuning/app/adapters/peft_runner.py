@@ -194,9 +194,5 @@ def main_with_args(args: list[str]) -> int:
     return run_training(cfg)
 
 
-def main() -> int:
-    return main_with_args(sys.argv[1:])
-
-
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main_with_args(sys.argv[1:]))

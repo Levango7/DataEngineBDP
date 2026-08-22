@@ -97,7 +97,7 @@ function formatTime(ts: string): string {
 }
 
 watch(() => props.dagId, load)
-watch(() => props.nodeId, () => { /* filtered 自动重算 */ })
+
 onMounted(load)
 </script>
 

@@ -256,13 +256,17 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
   function buildAssistantContents(resp: ChatResponse): MessageContent[] {
     const contents: MessageContent[] = []
 
-    // SQL + 表格 + 图表 + 摘要合并为 card；若仅有部分则分别推送
-    const hasSql = !!resp.sql
-    const hasTable = !!resp.execution
-    const hasChart = !!resp.chart
-    const hasSummary = !!resp.summary
+    if (resp.sql || resp.execution || resp.chart || resp.summary) {
+      // 摘要元信息（card 与 summary 共用）
+      const summaryMeta = resp.summary
+        ? {
+            rowCount: resp.execution?.table.total ?? 0,
+            columnCount: resp.execution?.table.columns.length ?? 0,
+            dimensions: resp.summary.metrics.map((m) => m.label.zh),
+            durationMs: resp.summary.durationMs
+          }
+        : undefined
 
-    if (hasSql || hasTable || hasChart || hasSummary) {
       contents.push({
         type: 'card',
         text: resp.sql?.sql,
@@ -278,33 +282,19 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
           : undefined,
         table: resp.execution?.table,
         chart: resp.chart ?? undefined,
-        summaryMeta: resp.summary
-          ? {
-              rowCount: resp.execution?.table.total ?? 0,
-              columnCount: resp.execution?.table.columns.length ?? 0,
-              dimensions: resp.summary.metrics.map((m) => m.label.zh),
-              durationMs: resp.summary.durationMs
-            }
-          : undefined
+        summaryMeta
       })
       // 摘要正文单独再放一份，便于组件渲染
       if (resp.summary) {
         contents.push({
           type: 'summary',
           text: pickBilingual(resp.summary.summary, locale.value),
-          summaryMeta: {
-            rowCount: resp.execution?.table.total ?? 0,
-            columnCount: resp.execution?.table.columns.length ?? 0,
-            dimensions: resp.summary.metrics.map((m) => m.label.zh),
-            durationMs: resp.summary.durationMs
-          }
+          summaryMeta
         })
       }
     } else if (resp.message?.contents?.length) {
-      // 后端直接返回 message
       contents.push(...resp.message.contents)
     } else {
-      // 兜底：占位文本
       contents.push(createTextContent(locale.value === 'zh' ? '已处理完成。' : 'Done.'))
     }
 
@@ -539,11 +529,8 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
       const msg = lastAssistantMessage.value
       if (msg) {
         const card = msg.contents.find((c) => c.type === 'card')
-        if (card) {
-          card.table = resp.table
-        } else {
-          msg.contents.push({ type: 'table', table: resp.table })
-        }
+        if (card) card.table = resp.table
+        else msg.contents.push({ type: 'table', table: resp.table })
       }
     } catch (e) {
       error.value = e instanceof Error ? e : new Error(String(e))
@@ -568,11 +555,8 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
         card.chart = cfg
       } else {
         const chartContent = msg.contents.find((c) => c.type === 'chart')
-        if (chartContent) {
-          chartContent.chart = cfg
-        } else {
-          msg.contents.push({ type: 'chart', chart: cfg })
-        }
+        if (chartContent) chartContent.chart = cfg
+        else msg.contents.push({ type: 'chart', chart: cfg })
       }
     }
     return cfg

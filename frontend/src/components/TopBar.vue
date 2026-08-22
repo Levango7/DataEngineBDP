@@ -70,7 +70,6 @@ const wsMenuOpen = ref(false)
 const userMenuOpen = ref(false)
 const wsList = ['华东生产集群', '华北测试集群', '内部数据中枢']
 
-/** 头像首字（优先用户名首字母） */
 const avatarText = computed(() => {
   const name = auth.user?.username
   return name ? name.charAt(0).toUpperCase() : '租'
@@ -79,13 +78,16 @@ const avatarText = computed(() => {
 function toggleWsMenu() {
   wsMenuOpen.value = !wsMenuOpen.value
 }
+
 function toggleUserMenu() {
   userMenuOpen.value = !userMenuOpen.value
 }
+
 function chooseWs(ws: string) {
   store.setWorkspace(ws)
   wsMenuOpen.value = false
 }
+
 function handleLogout() {
   auth.logout()
   userMenuOpen.value = false

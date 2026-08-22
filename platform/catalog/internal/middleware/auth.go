@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -81,6 +80,3 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Next()
 	}
 }
-
-// _ 确保 time 包被使用（保留以备后续在中间件中加请求耗时日志）。
-var _ = time.Now

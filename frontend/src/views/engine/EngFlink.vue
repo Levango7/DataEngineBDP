@@ -528,68 +528,51 @@ async function loadBackpressure(jobId: string) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 状态 → 中文 */
+const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  RUNNING: { label: '运行中', type: 'primary' },
+  FAILED: { label: '失败', type: 'danger' },
+  CANCELED: { label: '已取消', type: 'info' },
+  FINISHED: { label: '已完成', type: 'success' },
+  RESTARTING: { label: '重启中', type: 'warning' },
+  CREATED: { label: '已创建', type: 'info' },
+  SCHEDULED: { label: '已调度', type: 'warning' },
+}
+
 function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    RUNNING: '运行中',
-    FAILED: '失败',
-    CANCELED: '已取消',
-    FINISHED: '已完成',
-    RESTARTING: '重启中',
-    CREATED: '已创建',
-    SCHEDULED: '已调度'
-  }
-  return map[status] ?? status
+  return STATUS_MAP[status]?.label ?? status
 }
 
-/** 状态 → tag 类型 */
-function statusTagType(
-  status: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    RUNNING: 'primary',
-    FAILED: 'danger',
-    CANCELED: 'info',
-    FINISHED: 'success',
-    RESTARTING: 'warning',
-    CREATED: 'info',
-    SCHEDULED: 'warning'
-  }
-  return map[status] ?? 'info'
+function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
-/** Checkpoint 状态 → tag 类型 */
+const CP_STATUS_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
+  COMPLETED: 'success',
+  IN_PROGRESS: 'warning',
+  FAILED: 'danger',
+  DISCARDED: 'info',
+}
+
 function cpStatusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
-  const map: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
-    COMPLETED: 'success',
-    IN_PROGRESS: 'warning',
-    FAILED: 'danger',
-    DISCARDED: 'info'
-  }
-  return map[status] ?? 'info'
+  return CP_STATUS_MAP[status] ?? 'info'
 }
 
-/** 反压等级 → 中文 */
+const BACKPRESSURE_MAP: Record<BackpressureLevel, { label: string; type: 'success' | 'warning' | 'danger' }> = {
+  ok: { label: '正常', type: 'success' },
+  low: { label: '低', type: 'warning' },
+  high: { label: '高', type: 'danger' },
+}
+
 function backpressureLabel(level: BackpressureLevel): string {
-  const map: Record<BackpressureLevel, string> = {
-    ok: '正常',
-    low: '低',
-    high: '高'
-  }
-  return map[level] ?? level
+  return BACKPRESSURE_MAP[level]?.label ?? level
 }
 
-/** 反压等级 → tag 类型 */
 function backpressureTagType(level: BackpressureLevel): 'success' | 'warning' | 'danger' {
-  const map: Record<BackpressureLevel, 'success' | 'warning' | 'danger'> = {
-    ok: 'success',
-    low: 'warning',
-    high: 'danger'
-  }
-  return map[level] ?? 'success'
+  return BACKPRESSURE_MAP[level]?.type ?? 'success'
 }
 
 /** 耗时格式化（毫秒） */
+
 function formatDuration(ms?: number): string {
   if (!ms && ms !== 0) return '--'
   const seconds = Math.floor(ms / 1000)

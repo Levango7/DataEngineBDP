@@ -497,23 +497,18 @@ async function loadClusterResources(): Promise<void> {
 /* ------------------------------ 辅助函数 ------------------------------ */
 
 /** 节点状态 → 中文 */
-function nodeStatusLabel(status: NodeStatus): string {
-  const map: Record<NodeStatus, string> = {
-    ready: '就绪',
-    'not-ready': '未就绪',
-    unknown: '未知'
-  }
-  return map[status] || status
+const NODE_STATUS_MAP: Record<NodeStatus, { label: string; type: 'success' | 'danger' | 'info' }> = {
+  ready: { label: '就绪', type: 'success' },
+  'not-ready': { label: '未就绪', type: 'danger' },
+  unknown: { label: '未知', type: 'info' },
 }
 
-/** 节点状态 → tag 类型 */
+function nodeStatusLabel(status: NodeStatus): string {
+  return NODE_STATUS_MAP[status]?.label ?? status
+}
+
 function nodeStatusType(status: NodeStatus): 'success' | 'danger' | 'info' {
-  const map: Record<NodeStatus, 'success' | 'danger' | 'info'> = {
-    ready: 'success',
-    'not-ready': 'danger',
-    unknown: 'info'
-  }
-  return map[status] || 'info'
+  return NODE_STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** 使用率 → 颜色等级 */

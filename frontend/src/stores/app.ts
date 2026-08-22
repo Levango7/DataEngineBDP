@@ -65,13 +65,7 @@ export const useAppStore = defineStore('app', () => {
         return
       }
     }
-    // 先尝试 dashboard 待办
-    const inTodos = todos.value.some((t) => t.id === id)
-    if (inTodos) {
-      todos.value = todos.value.filter((t) => t.id !== id)
-    } else {
-      secApprovals.value = secApprovals.value.filter((s) => s.id !== id)
-    }
+    removeApproval(id)
     showToast('已批准')
   }
 
@@ -85,13 +79,17 @@ export const useAppStore = defineStore('app', () => {
         return
       }
     }
-    const inTodos = todos.value.some((t) => t.id === id)
-    if (inTodos) {
+    removeApproval(id)
+    showToast('已驳回')
+  }
+
+  /** 从待办或安全审批列表中移除指定项 */
+  function removeApproval(id: string) {
+    if (todos.value.some((t) => t.id === id)) {
       todos.value = todos.value.filter((t) => t.id !== id)
     } else {
       secApprovals.value = secApprovals.value.filter((s) => s.id !== id)
     }
-    showToast('已驳回')
   }
 
   function setWorkspace(name: string) {

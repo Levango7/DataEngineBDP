@@ -375,42 +375,33 @@ function scrollLogToBottom() {
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-/** 类型 → 中文 */
+const TYPE_LABELS: Record<JobType, string> = {
+  batch: '批作业',
+  stream: '流作业',
+  sql: 'SQL',
+  python: 'Python',
+  shell: 'Shell',
+}
+
 function typeLabel(type: JobType): string {
-  const map: Record<JobType, string> = {
-    batch: '批作业',
-    stream: '流作业',
-    sql: 'SQL',
-    python: 'Python',
-    shell: 'Shell'
-  }
-  return map[type] || type
+  return TYPE_LABELS[type] ?? type
 }
 
-/** 状态 → 中文 */
+const STATUS_MAP: Record<JobStatus, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  running: { label: '运行中', type: 'primary' },
+  success: { label: '已完成', type: 'success' },
+  failed: { label: '失败', type: 'danger' },
+  canceled: { label: '已取消', type: 'info' },
+  pending: { label: '等待中', type: 'info' },
+  scheduled: { label: '已调度', type: 'warning' },
+}
+
 function statusLabel(status: JobStatus): string {
-  const map: Record<JobStatus, string> = {
-    running: '运行中',
-    success: '已完成',
-    failed: '失败',
-    canceled: '已取消',
-    pending: '等待中',
-    scheduled: '已调度'
-  }
-  return map[status] || status
+  return STATUS_MAP[status]?.label ?? status
 }
 
-/** 状态 → tag 类型 */
 function statusTagType(status: JobStatus): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<JobStatus, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    running: 'primary',
-    success: 'success',
-    failed: 'danger',
-    canceled: 'info',
-    pending: 'info',
-    scheduled: 'warning'
-  }
-  return map[status] || 'info'
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** 耗时格式化 */

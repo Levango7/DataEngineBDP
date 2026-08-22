@@ -103,7 +103,7 @@ public class DevelopFileService {
      * @throws IllegalStateException    文件过大或读取失败
      */
     public String readFile(String relativePath) {
-        Path target = resolveAndValidate(relativePath);
+        Path target = resolve(relativePath);
         if (!Files.exists(target)) {
             throw new IllegalArgumentException("文件不存在: " + relativePath);
         }
@@ -124,7 +124,7 @@ public class DevelopFileService {
     /**
      * 解析并校验路径：规范化后必须仍位于工作空间根下。
      */
-    private Path resolveAndValidate(String relativePath) {
+    private Path resolve(String relativePath) {
         if (relativePath == null || relativePath.isBlank()) {
             throw new IllegalArgumentException("路径不能为空");
         }

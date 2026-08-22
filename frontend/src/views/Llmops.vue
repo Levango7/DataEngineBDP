@@ -698,50 +698,35 @@ async function handleHumanEval() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 模型状态 → 中文 */
+const MODEL_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  DRAFT: { label: '草稿', type: 'info' },
+  REGISTERED: { label: '已注册', type: 'primary' },
+  DEPLOYED: { label: '已部署', type: 'success' },
+  ARCHIVED: { label: '已归档', type: 'info' },
+  FAILED: { label: '失败', type: 'danger' },
+}
+
 function modelStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    DRAFT: '草稿',
-    REGISTERED: '已注册',
-    DEPLOYED: '已部署',
-    ARCHIVED: '已归档',
-    FAILED: '失败'
-  }
-  return map[status] ?? status
+  return MODEL_STATUS_MAP[status]?.label ?? status
 }
 
-/** 模型状态 → tag 类型 */
 function modelStatusType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    DRAFT: 'info',
-    REGISTERED: 'primary',
-    DEPLOYED: 'success',
-    ARCHIVED: 'info',
-    FAILED: 'danger'
-  }
-  return map[status] ?? 'info'
+  return MODEL_STATUS_MAP[status]?.type ?? 'info'
 }
 
-/** 微调状态 → 中文 */
+const FINETUNE_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  SUBMITTED: { label: '已提交', type: 'info' },
+  RUNNING: { label: '运行中', type: 'primary' },
+  SUCCEEDED: { label: '成功', type: 'success' },
+  FAILED: { label: '失败', type: 'danger' },
+}
+
 function finetuneStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    SUBMITTED: '已提交',
-    RUNNING: '运行中',
-    SUCCEEDED: '成功',
-    FAILED: '失败'
-  }
-  return map[status] ?? status
+  return FINETUNE_STATUS_MAP[status]?.label ?? status
 }
 
-/** 微调状态 → tag 类型 */
 function finetuneStatusType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    SUBMITTED: 'info',
-    RUNNING: 'primary',
-    SUCCEEDED: 'success',
-    FAILED: 'danger'
-  }
-  return map[status] ?? 'info'
+  return FINETUNE_STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** 微调状态 → 进度条状态 */
@@ -751,38 +736,26 @@ function progressStatus(status: string): '' | 'success' | 'exception' | 'warning
   return ''
 }
 
-/** 推理服务状态 → 中文 */
-function svcStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    DEPLOYING: '部署中',
-    RUNNING: '运行中',
-    STOPPED: '已停止',
-    FAILED: '失败',
-    SCALING: '扩缩容'
-  }
-  return map[status] ?? status
+const SVC_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  DEPLOYING: { label: '部署中', type: 'warning' },
+  RUNNING: { label: '运行中', type: 'success' },
+  STOPPED: { label: '已停止', type: 'info' },
+  FAILED: { label: '失败', type: 'danger' },
+  SCALING: { label: '扩缩容', type: 'primary' },
 }
 
-/** 推理服务状态 → tag 类型 */
+function svcStatusLabel(status: string): string {
+  return SVC_STATUS_MAP[status]?.label ?? status
+}
+
 function svcStatusType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    DEPLOYING: 'warning',
-    RUNNING: 'success',
-    STOPPED: 'info',
-    FAILED: 'danger',
-    SCALING: 'primary'
-  }
-  return map[status] ?? 'info'
+  return SVC_STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** 时间格式化（ISO → 本地可读） */
 function formatTime(iso?: string): string {
   if (!iso) return '--'
-  try {
-    return new Date(iso).toLocaleString('zh-CN', { hour12: false })
-  } catch {
-    return iso
-  }
+  return new Date(iso).toLocaleString('zh-CN', { hour12: false })
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */

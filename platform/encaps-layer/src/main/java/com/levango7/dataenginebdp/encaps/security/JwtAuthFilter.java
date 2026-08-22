@@ -155,7 +155,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 }
             }
 
-            claims = parseAndVerify(token);
+            claims = parseToken(token);
 
             // 从 JWT 提取的租户ID（用户所属租户）
             String jwtTenantId = claims.get(CLAIM_TENANT_ID, String.class);
@@ -205,7 +205,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
      * @return Claims（兼容 jjwt API）
      * @throws JwtException 验签或声明校验失败
      */
-    private Claims parseAndVerify(String token) {
+    private Claims parseToken(String token) {
         if (gmJwtProcessor != null) {
             // SM3withSM2 验签
             Map<String, Object> payload = gmJwtProcessor.verify(token, sm2PublicKeyQ);

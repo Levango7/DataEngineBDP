@@ -145,68 +145,42 @@ async function reloadList() {
 
 /* ------------------------------ 状态映射辅助 ------------------------------ */
 
-/** 工作空间状态 → pill 样式类 */
+const WS_STATUS_MAP: Record<WorkspaceStatus, { cls: string; text: string }> = {
+  running: { cls: 'g', text: '运行中' },
+  limited: { cls: 'a', text: '受限' },
+  stopped: { cls: 'r', text: '已停止' },
+  creating: { cls: '', text: '创建中' },
+  failed: { cls: '', text: '失败' },
+}
+
 function statusPillClass(status: WorkspaceStatus): string {
-  switch (status) {
-    case 'running':
-      return 'g'
-    case 'limited':
-      return 'a'
-    case 'stopped':
-      return 'r'
-    default:
-      return ''
-  }
+  return WS_STATUS_MAP[status]?.cls ?? ''
 }
 
-/** 工作空间状态 → pill 文案 */
 function statusPillText(status: WorkspaceStatus): string {
-  switch (status) {
-    case 'running':
-      return '运行中'
-    case 'limited':
-      return '受限'
-    case 'stopped':
-      return '已停止'
-    case 'creating':
-      return '创建中'
-    case 'failed':
-      return '失败'
-    default:
-      return status
-  }
+  return WS_STATUS_MAP[status]?.text ?? status
 }
 
-/** 套餐 → 中文标签 */
+const PLAN_LABELS: Record<PlanTier, string> = {
+  standard: '标准版',
+  enterprise: '企业版',
+  flagship: '旗舰版',
+  internal: '内部无限',
+}
+
 function planLabel(plan?: PlanTier): string {
-  switch (plan) {
-    case 'standard':
-      return '标准版'
-    case 'enterprise':
-      return '企业版'
-    case 'flagship':
-      return '旗舰版'
-    case 'internal':
-      return '内部无限'
-    default:
-      return '--'
-  }
+  return plan ? (PLAN_LABELS[plan] ?? '--') : '--'
 }
 
-/** 部署环境 → 中文标签 */
+const ENV_LABELS: Record<DeployEnv, string> = {
+  xinchuang: '信创',
+  onprem: '本地数据中心',
+  'public-cloud': '公有云 VM',
+  'private-cloud': '私有云',
+}
+
 function envLabel(env?: DeployEnv): string {
-  switch (env) {
-    case 'xinchuang':
-      return '信创'
-    case 'onprem':
-      return '本地数据中心'
-    case 'public-cloud':
-      return '公有云 VM'
-    case 'private-cloud':
-      return '私有云'
-    default:
-      return '--'
-  }
+  return env ? (ENV_LABELS[env] ?? '--') : '--'
 }
 
 /* ------------------------------ 详情抽屉 ------------------------------ */

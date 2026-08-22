@@ -469,32 +469,21 @@ function scrollLogToBottom() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 状态 → 中文 */
-function statusLabel(status: string): string {
-  const map: Record<string, string> = {
-    RUNNING: '运行中',
-    FINISHED: '已完成',
-    FAILED: '失败',
-    KILLED: '已取消',
-    PENDING: '等待中',
-    SCHEDULED: '已调度'
-  }
-  return map[status] ?? status
+const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  RUNNING: { label: '运行中', type: 'primary' },
+  FINISHED: { label: '已完成', type: 'success' },
+  FAILED: { label: '失败', type: 'danger' },
+  KILLED: { label: '已取消', type: 'info' },
+  PENDING: { label: '等待中', type: 'info' },
+  SCHEDULED: { label: '已调度', type: 'warning' },
 }
 
-/** 状态 → tag 类型 */
-function statusTagType(
-  status: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    RUNNING: 'primary',
-    FINISHED: 'success',
-    FAILED: 'danger',
-    KILLED: 'info',
-    PENDING: 'info',
-    SCHEDULED: 'warning'
-  }
-  return map[status] ?? 'info'
+function statusLabel(status: string): string {
+  return STATUS_MAP[status]?.label ?? status
+}
+
+function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+  return STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** Stage 进度百分比 */

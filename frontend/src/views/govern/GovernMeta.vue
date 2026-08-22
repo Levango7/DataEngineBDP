@@ -562,54 +562,36 @@ async function handleUnschedule() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 状态 → 中文 */
+const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  ACTIVE: { label: '活跃', type: 'success' },
+  INACTIVE: { label: '停用', type: 'info' },
+  ERROR: { label: '异常', type: 'danger' },
+}
+
 function statusLabel(status?: string): string {
-  const map: Record<string, string> = {
-    ACTIVE: '活跃',
-    INACTIVE: '停用',
-    ERROR: '异常'
-  }
-  return map[status ?? ''] ?? (status ?? '--')
+  return STATUS_MAP[status ?? '']?.label ?? (status ?? '--')
 }
 
-/** 状态 → tag 类型 */
-function statusTagType(
-  status?: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    ACTIVE: 'success',
-    INACTIVE: 'info',
-    ERROR: 'danger'
-  }
-  return map[status ?? ''] ?? 'info'
+function statusTagType(status?: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+  return STATUS_MAP[status ?? '']?.type ?? 'info'
 }
 
-/** 采集历史状态 → 中文 */
+const HISTORY_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+  RUNNING: { label: '运行中', type: 'primary' },
+  SUCCESS: { label: '成功', type: 'success' },
+  FAILED: { label: '失败', type: 'danger' },
+}
+
 function historyStatusLabel(status: string): string {
-  const map: Record<string, string> = {
-    RUNNING: '运行中',
-    SUCCESS: '成功',
-    FAILED: '失败'
-  }
-  return map[status] ?? status
+  return HISTORY_STATUS_MAP[status]?.label ?? status
 }
 
-/** 采集历史状态 → tag 类型 */
-function historyTagType(
-  status: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    RUNNING: 'primary',
-    SUCCESS: 'success',
-    FAILED: 'danger'
-  }
-  return map[status] ?? 'info'
+function historyTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+  return HISTORY_STATUS_MAP[status]?.type ?? 'info'
 }
 
 /** 采集历史状态 → timeline 类型 */
-function historyTimelineType(
-  status: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+function historyTimelineType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
   return historyTagType(status)
 }
 

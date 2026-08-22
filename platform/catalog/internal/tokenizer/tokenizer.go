@@ -14,7 +14,6 @@ package tokenizer
 import (
 	"strings"
 	"unicode"
-	"unicode/utf8"
 )
 
 // Tokenize 将输入文本切分为 token 列表。
@@ -162,6 +161,3 @@ func Match(query, doc []string) bool {
 	}
 	return false
 }
-
-// _ 确保 utf8 包被引用（保留以备后续扩展 rune 边界处理）。
-var _ = utf8.RuneError

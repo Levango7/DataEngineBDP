@@ -164,8 +164,7 @@ function toggleGroup(idx: number): void {
   } else {
     collapsed.value = [...collapsed.value, idx]
   }
-}
-</script>
+}</script>
 
 <style scoped>
 /* === 分组标题：可点击 + 折叠箭头 === */

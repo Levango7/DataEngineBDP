@@ -102,9 +102,7 @@ public class BillingAggregatorService {
                              long estimatedBytes, long realBytes, BigDecimal cost) {
         StringBuilder sb = new StringBuilder();
         sb.append("查询计量账单：共 ").append(queryCount).append(" 次查询；");
-        sb.append("估算扫描 ").append(estimatedBytes / BYTES_PER_TB == 0
-                ? String.format("%.3f TB", estimatedBytes / BYTES_PER_TB)
-                : String.format("%.3f TB", estimatedBytes / BYTES_PER_TB)).append("；");
+        sb.append("估算扫描 ").append(String.format("%.3f TB", estimatedBytes / BYTES_PER_TB)).append("；");
         sb.append("真实扫描 ").append(String.format("%.3f TB", realBytes / BYTES_PER_TB)).append("；");
         sb.append("引擎分布 ").append(engineCounts).append("；");
         sb.append("金额（分层定价）").append(cost == null ? "0" : cost.toPlainString()).append(" 元");

@@ -19,7 +19,7 @@
         <div class="card" style="grid-column: span 4" role="alert" aria-live="assertive">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ overviewError.message }}，<a href="javascript:void(0)" @click="reloadOverview" aria-label="重新加载集群概览">重试</a>
+            {{ overviewError.message }}，<a href="javascript:void(0)" @click="loadOverview" aria-label="重新加载集群概览">重试</a>
           </div>
         </div>
       </template>
@@ -136,23 +136,15 @@ const memPercent = computed(() => {
   return Math.round((overview.value.memUsed / cap) * 100)
 })
 
-// 运行中项目数（API 未返回 projectRunning 字段时，按 Pod 运行率估算）
+// 运行中项目数：优先用 API 精确值，否则按 Pod 运行率估算
 const runningProjects = computed(() => {
-  if (!overview.value) return 0
-  // 优先使用 API 返回的精确值（如果未来添加 projectRunning 字段）
   const ov = overview.value as any
+  if (!ov) return 0
   if (typeof ov.projectRunning === 'number') return ov.projectRunning
-  // fallback：按 Pod 运行率估算项目运行数
   const podRate = ov.podTotal > 0 ? ov.podRunning / ov.podTotal : 0.78
   return Math.round(ov.projectCount * podRate)
 })
 
-// 重新拉取集群概览
-function reloadOverview() {
-  void loadOverview()
-}
-
-// 挂载时拉取集群概览
 onMounted(() => {
   void loadOverview()
 })

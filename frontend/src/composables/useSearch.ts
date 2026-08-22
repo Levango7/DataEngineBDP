@@ -173,13 +173,14 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
     query.paging = { page: page.value, pageSize: pageSize.value }
 
     // 空查询不发起请求
+    const f = query.filter
     const hasQuery =
       query.query.trim().length > 0 ||
       query.conditions.length > 0 ||
-      query.filter.sources.length > 0 ||
-      query.filter.types.length > 0 ||
-      query.filter.tags.length > 0 ||
-      query.filter.time.preset !== ''
+      f.sources.length > 0 ||
+      f.types.length > 0 ||
+      f.tags.length > 0 ||
+      f.time.preset !== ''
 
     if (!hasQuery) {
       results.value = []
