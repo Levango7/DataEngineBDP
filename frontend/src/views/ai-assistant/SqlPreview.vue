@@ -189,12 +189,19 @@ const highlightedSql = computed(() => {
 /**
  * 净化后的 SQL 高亮 HTML：使用 DOMPurify 仅保留语法高亮所需的 <span> 标签，
  * 防止 SQL 文本中潜在的 HTML 片段引发 XSS。
+ *
+ * 安全策略：白名单（ALLOWED_TAGS/ALLOWED_ATTR）+ 黑名单（FORBID_TAGS/FORBID_ATTR）双层防御。
+ * 白名单已只允许 <span class>，黑名单显式禁止脚本/表单/嵌入等危险标签与事件属性，
+ * 防止未来误扩展白名单时引入 XSS 向量。
  */
+const SANITIZE_OPTS = {
+  ALLOWED_TAGS: ['span'],
+  ALLOWED_ATTR: ['class'],
+  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'style', 'link', 'meta', 'base'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'onabort', 'onanimationstart', 'style', 'src', 'href', 'xlink:href']
+}
 const sanitizedSql = computed(() =>
-  DOMPurify.sanitize(highlightedSql.value, {
-    ALLOWED_TAGS: ['span'],
-    ALLOWED_ATTR: ['class']
-  })
+  DOMPurify.sanitize(highlightedSql.value, SANITIZE_OPTS)
 )
 
 function escapeHtml(s: string): string {

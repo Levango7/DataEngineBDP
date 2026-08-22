@@ -1,12 +1,15 @@
 package com.levango7.dataenginebdp.sqlgateway.service;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.regex.Pattern;
@@ -42,6 +45,9 @@ public class DorisScanStatsClient {
     private final String dorisPassword;
     private final boolean enabled;
 
+    /** Doris 审计日志查询专用连接池（避免每次查询新建连接、不可达主机长时间挂起）。 */
+    private HikariDataSource dorisPool;
+
     public DorisScanStatsClient(
             @Value("${app.backend.doris.url:${DORIS_URL:http://doris-fe-service:9030}}") String dorisUrl,
             @Value("${app.backend.doris.username:root}") String dorisUser,
@@ -55,6 +61,44 @@ public class DorisScanStatsClient {
     }
 
     /**
+     * 初始化 HikariCP 连接池。
+     *
+     * <p>仅在启用时建立池，避免未启用场景下创建无用资源。
+     * 连接超时 5s，防止不可达主机长时间挂起；池大小 5 适配审计查询低频场景。</p>
+     */
+    @PostConstruct
+    public void initPool() {
+        if (!enabled) {
+            log.info("DorisScanStatsClient 未启用，跳过连接池初始化");
+            return;
+        }
+        HikariConfig config = new HikariConfig();
+        config.setJdbcUrl(dorisJdbcUrl);
+        config.setUsername(dorisUser);
+        config.setPassword(dorisPassword);
+        config.setMaximumPoolSize(5);
+        config.setMinimumIdle(1);
+        config.setConnectionTimeout(5000);  // 5s 超时，防止不可达主机挂起
+        config.setIdleTimeout(60000);       // 60s 空闲连接回收
+        config.setMaxLifetime(300000);      // 5min 连接最大生命周期
+        config.setPoolName("DorisScanStatsPool");
+        dorisPool = new HikariDataSource(config);
+        log.info("DorisScanStatsClient 连接池已初始化: jdbc={}, maxPoolSize=5, connectionTimeout=5s",
+                dorisJdbcUrl);
+    }
+
+    /**
+     * 销毁连接池，释放底层 JDBC 连接。
+     */
+    @PreDestroy
+    public void closePool() {
+        if (dorisPool != null && !dorisPool.isClosed()) {
+            dorisPool.close();
+            log.info("DorisScanStatsClient 连接池已关闭");
+        }
+    }
+
+    /**
      * 按规范化 SQL 指纹在 audit_log 中查找最近一条查询的扫描字节。
      *
      * @param sql 原始查询 SQL
@@ -64,8 +108,12 @@ public class DorisScanStatsClient {
         if (!enabled || sql == null || sql.isBlank()) {
             return null;
         }
+        if (dorisPool == null) {
+            log.warn("DorisScanStatsClient 连接池未初始化，跳过审计查询(回退估算)");
+            return null;
+        }
         String fingerprint = fingerprint(sql);
-        try (Connection conn = DriverManager.getConnection(dorisJdbcUrl, dorisUser, dorisPassword)) {
+        try (Connection conn = dorisPool.getConnection()) {
             // 规范化匹配：按 stmt 前缀近似命中最近一条 is_query 记录
             // （Doris audit_log 的 stmt 列含完整 SQL；按指纹等值匹配最稳，
             //   但大 SQL 会被截断，故取规范化后前 200 字符做前缀匹配，再本地二次校验）

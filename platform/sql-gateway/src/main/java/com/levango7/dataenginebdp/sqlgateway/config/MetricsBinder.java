@@ -26,20 +26,30 @@ import jakarta.annotation.PostConstruct;
 @Configuration
 public class MetricsBinder {
 
-    @Autowired
-    private org.springframework.beans.factory.ObjectProvider<MeterRegistry> registryProvider;
+    private final org.springframework.beans.factory.ObjectProvider<MeterRegistry> registryProvider;
 
-    @Autowired
-    private org.springframework.beans.factory.ObjectProvider<
+    private final org.springframework.beans.factory.ObjectProvider<
             com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlQueryCacheProvider;
 
-    @Autowired
-    private org.springframework.beans.factory.ObjectProvider<
+    private final org.springframework.beans.factory.ObjectProvider<
             com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlPlanCacheProvider;
 
-    @Autowired
-    private org.springframework.beans.factory.ObjectProvider<
+    private final org.springframework.beans.factory.ObjectProvider<
             com.github.benmanes.caffeine.cache.Cache<Object, Object>> catalogMetaCacheProvider;
+
+    public MetricsBinder(
+            org.springframework.beans.factory.ObjectProvider<MeterRegistry> registryProvider,
+            org.springframework.beans.factory.ObjectProvider<
+                    com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlQueryCacheProvider,
+            org.springframework.beans.factory.ObjectProvider<
+                    com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlPlanCacheProvider,
+            org.springframework.beans.factory.ObjectProvider<
+                    com.github.benmanes.caffeine.cache.Cache<Object, Object>> catalogMetaCacheProvider) {
+        this.registryProvider = registryProvider;
+        this.sqlQueryCacheProvider = sqlQueryCacheProvider;
+        this.sqlPlanCacheProvider = sqlPlanCacheProvider;
+        this.catalogMetaCacheProvider = catalogMetaCacheProvider;
+    }
 
     @PostConstruct
     public void bind() {

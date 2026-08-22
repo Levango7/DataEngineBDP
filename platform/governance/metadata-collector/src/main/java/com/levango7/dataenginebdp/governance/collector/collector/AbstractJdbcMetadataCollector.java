@@ -180,10 +180,12 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
         Connection conn = null;
         try {
             conn = openConnection(source);
-            // 执行简单查询验证连接可用
+            // 执行简单查询验证连接可用，并验证结果集可推进（rs.next() 不抛异常即说明连接健康）
             try (Statement stmt = conn.createStatement();
                  ResultSet rs = stmt.executeQuery(getDatabasesSql())) {
-                return true; // 即使空库也视为连接成功（rs.next() 仅验证可执行性）
+                // 主动推进结果集游标，若连接异常（如游标失效、协议错误）会在此抛出 SQLException
+                rs.next();
+                return true; // 即使空库也视为连接成功（rs.next() 返回 false 亦属正常）
             }
         } catch (SQLException e) {
             log.warn("Connection test failed for source {}: {}", source.getName(), e.getMessage());

@@ -40,6 +40,22 @@ export function setUnauthorizedHandler(handler: () => void): void {
   unauthorizedHandler = handler
 }
 
+/**
+ * 触发 401 未授权处理（与响应拦截器复用同一回调）。
+ *
+ * <p>供非 axios 通道（如 SSE/fetch 流式请求）在收到 401 时调用，
+ * 保证全局 401 行为一致：清理登录态 + 跳转登录页。
+ * 若未注入 handler 则回退到硬跳转 `/account`，避免静默丢失。</p>
+ */
+export function triggerUnauthorized(): void {
+  if (unauthorizedHandler) {
+    unauthorizedHandler()
+  } else {
+    // 兜底：未注入 handler 时直接跳转 /account，避免 401 被静默吞掉
+    window.location.href = '/account'
+  }
+}
+
 /** token 获取函数，由 auth store 注入，避免循环依赖 */
 let tokenGetter: (() => string | null) | null = null
 

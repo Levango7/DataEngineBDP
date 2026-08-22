@@ -115,9 +115,18 @@ function toggleBookmark(): void {
 /**
  * 优先用后端返回的 snippets（已转义 HTML），否则降级为纯文本避免 XSS。
  * 仅保留 <mark> 标签，使用 DOMPurify 净化。
+ *
+ * 安全策略：白名单（ALLOWED_TAGS/ALLOWED_ATTR）+ 黑名单（FORBID_TAGS/FORBID_ATTR）双层防御。
+ * 白名单已只允许 <mark>，黑名单显式禁止脚本/表单/嵌入等危险标签与事件属性，
+ * 防止未来误扩展白名单时引入 XSS 向量。
  */
 const ALLOWED_TAGS = ['mark']
-const SANITIZE_OPTS = { ALLOWED_TAGS, ALLOWED_ATTR: [] }
+const SANITIZE_OPTS = {
+  ALLOWED_TAGS,
+  ALLOWED_ATTR: [],
+  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'style', 'link', 'meta', 'base'],
+  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'onabort', 'onanimationstart', 'style', 'src', 'href', 'xlink:href']
+}
 
 function escapeHtml(s: string): string {
   return s

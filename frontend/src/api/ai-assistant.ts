@@ -15,7 +15,7 @@
  * - 类型从 @/types/ai-assistant 集中导出，避免循环依赖
  * - 流式对话通过 chatStream 提供，基于 fetch + ReadableStream
  */
-import { get, post, del } from './client'
+import { get, post, del, triggerUnauthorized } from './client'
 import type {
   ChatRequest,
   ChatResponse,
@@ -86,10 +86,10 @@ export async function chatStream(
   })
 
   if (!resp.ok) {
-    // 401 → 与 client 拦截器一致跳转登录页（修复评估报告 7.1：SSE 错误不触发全局 401）
+    // 401 → 复用 client 响应拦截器的 unauthorizedHandler，保证全局 401 行为一致
+    // （统一清理登录态 + 跳转 /account，避免 SSE 通道绕过主拦截器导致行为分叉）
     if (resp.status === 401) {
-      const redirect = encodeURIComponent(window.location.hash.replace(/^#/, '') || '/dashboard')
-      window.location.hash = `#/login?redirect=${redirect}`
+      triggerUnauthorized()
       throw new Error('登录已过期，请重新登录')
     }
     throw new Error(`AI 助手流式请求失败：HTTP ${resp.status}`)

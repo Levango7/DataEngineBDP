@@ -34,14 +34,15 @@ public class DqRuleExecutor implements RuleExecutor {
     private static final String SQL_PREFIX = "sql:";
 
     /** 数据源 JdbcTemplate，可选注入（单元测试或无数据源环境时为 null） */
-    @Autowired(required = false)
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
 
     /** Spring 注入用构造函数 */
     public DqRuleExecutor() {
+        this.jdbcTemplate = null;
     }
 
-    /** 测试用构造函数，显式传入 JdbcTemplate */
+    /** 主构造函数，显式传入 JdbcTemplate（Spring 4.3+ 构造器注入） */
+    @Autowired(required = false)
     public DqRuleExecutor(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
