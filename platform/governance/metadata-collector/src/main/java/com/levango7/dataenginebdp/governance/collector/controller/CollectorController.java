@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ import java.util.Optional;
  * </ul></p>
  */
 @RestController
+@Tag(name = "数据治理-元数据采集", description = "数据源管理与元数据采集")
 @RequestMapping("/api/v1/metadata")
 public class CollectorController {
 

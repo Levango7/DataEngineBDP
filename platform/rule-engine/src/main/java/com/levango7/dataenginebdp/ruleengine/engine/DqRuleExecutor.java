@@ -33,6 +33,16 @@ public class DqRuleExecutor implements RuleExecutor {
     private static final Logger log = LoggerFactory.getLogger(DqRuleExecutor.class);
     private static final String SQL_PREFIX = "sql:";
 
+    /**
+     * 禁止的 SQL 关键字正则（单词边界匹配）。
+     *
+     * <p>使用 {@code \b} 单词边界，避免误判列名/表名中包含的关键字子串，
+     * 如 {@code SELECT * FROM update_log} 中的 {@code update} 不会被误拦。</p>
+     */
+    private static final java.util.regex.Pattern FORBIDDEN_KEYWORDS =
+            java.util.regex.Pattern.compile(
+                    "\\b(INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|TRUNCATE|MERGE|GRANT|REVOKE|EXEC|CALL)\\b");
+
     /** 数据源 JdbcTemplate，可选注入（单元测试或无数据源环境时为 null） */
     private final JdbcTemplate jdbcTemplate;
 
@@ -86,10 +96,17 @@ public class DqRuleExecutor implements RuleExecutor {
         if (!upperSql.startsWith("SELECT") && !upperSql.startsWith("WITH")) {
             return buildResult(rule, "ERROR", "NON_SELECT_SQL_NOT_ALLOWED", details, start);
         }
-        // 防止CTE绕过：检查是否包含数据修改语句
-        if (upperSql.contains("INSERT") || upperSql.contains("UPDATE") || upperSql.contains("DELETE")
-                || upperSql.contains("DROP") || upperSql.contains("CREATE") || upperSql.contains("ALTER")
-                || upperSql.contains("TRUNCATE") || upperSql.contains("MERGE")) {
+        // 检查分号：允许末尾单个分号，但禁止中间分号（防止多语句注入）
+        String withoutTrailingSemicolon = upperSql;
+        if (withoutTrailingSemicolon.endsWith(";")) {
+            withoutTrailingSemicolon = withoutTrailingSemicolon
+                    .substring(0, withoutTrailingSemicolon.length() - 1).trim();
+        }
+        if (withoutTrailingSemicolon.contains(";")) {
+            return buildResult(rule, "ERROR", "MULTI_STATEMENT_NOT_ALLOWED", details, start);
+        }
+        // 防止 CTE 绕过：用单词边界检查是否包含数据修改语句（避免误判 update_log 等表名/列名）
+        if (FORBIDDEN_KEYWORDS.matcher(upperSql).find()) {
             return buildResult(rule, "ERROR", "NON_SELECT_SQL_NOT_ALLOWED", details, start);
         }
         if (jdbcTemplate == null) {

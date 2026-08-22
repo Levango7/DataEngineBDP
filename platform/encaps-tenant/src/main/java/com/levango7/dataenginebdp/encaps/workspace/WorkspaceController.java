@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.Optional;
  * 租户上下文由 {@code TenantContext} 提供，但本控制器允许显式 {@code tenantId} 查询参数覆盖。</p>
  */
 @RestController
+@Tag(name = "封装租户-工作空间", description = "Workspace CRUD与K8s Namespace状态")
 @RequestMapping("/api/v1/workspaces")
 public class WorkspaceController {
 

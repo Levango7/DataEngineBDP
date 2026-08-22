@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -42,6 +43,7 @@ import java.util.Map;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "基础设施供应-私有云集群", description = "vSphere/OpenStack集群供应")
 @RequestMapping("/api/v1/clusters/private")
 public class PrivateClusterController {
 

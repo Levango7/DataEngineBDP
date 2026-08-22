@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.Map;
  * <p>提供规则 CRUD、执行与类型枚举端点。</p>
  */
 @RestController
+@Tag(name = "规则引擎-规则管理", description = "规则CRUD与执行")
 @RequestMapping("/api/v1/rules")
 public class RuleController {
 

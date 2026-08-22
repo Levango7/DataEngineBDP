@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.Map;
  * </p>
  */
 @RestController
+@Tag(name = "规则引擎-编排引擎", description = "DAG提交/执行/可视化")
 @RequestMapping("/api/v1/orchestrator/dags")
 public class OrchestratorController {
 

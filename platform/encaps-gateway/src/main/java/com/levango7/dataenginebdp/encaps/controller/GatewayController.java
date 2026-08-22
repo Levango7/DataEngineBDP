@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -45,6 +46,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装网关-大模型网关", description = "API Key管理与调用统计")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/gateway")
 public class GatewayController {

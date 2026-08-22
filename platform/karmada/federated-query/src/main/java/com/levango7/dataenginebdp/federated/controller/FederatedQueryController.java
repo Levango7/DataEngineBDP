@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.concurrent.CompletableFuture;
  */
 @Slf4j
 @RestController
+@Tag(name = "多集群联邦-跨集群查询", description = "跨集群SQL查询与降级路由")
 @RequestMapping("/api/v1/federated")
 public class FederatedQueryController {
 

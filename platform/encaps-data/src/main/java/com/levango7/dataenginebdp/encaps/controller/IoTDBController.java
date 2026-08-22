@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装数据-IoTDB引擎", description = "IoTDB时序数据查询与管理")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/iotdb")
 public class IoTDBController {

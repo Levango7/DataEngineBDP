@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.List;
  * </ul>
  */
 @RestController
+@Tag(name = "成本运营-成本计算", description = "成本计算与报告生成")
 @RequestMapping("/api/v1/cost")
 public class CostController {
 

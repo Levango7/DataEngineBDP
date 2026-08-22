@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.Map;
  * 返回编排层运行态、已注册 Provider 数量与缺失环境列表。</p>
  */
 @RestController
+@Tag(name = "基础设施编排-健康检查", description = "编排层与Provider注册表探针")
 @RequestMapping("/api/v1/health")
 public class HealthController {
 

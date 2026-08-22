@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import java.util.Map;
  * {@link IllegalStateException}（如重复设置）映射为 409 Conflict。</p>
  */
 @RestController
+@Tag(name = "封装租户-配额管理", description = "Quota CRUD与用量查询")
 @RequestMapping("/api/v1/quotas")
 public class QuotaController {
 

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -32,6 +33,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装租户-项目管理", description = "项目CRUD与租户隔离")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/projects")
 public class ProjectController {

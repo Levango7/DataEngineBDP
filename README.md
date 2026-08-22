@@ -5,12 +5,12 @@
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
-- 当前版本：**0.3.0-SNAPSHOT（开发中，非 GA）**，生产化加固进行中
-- 工程成熟度：综合评分 评估中，3900+ 后端测试 + 155 前端测试全通过，7 条端到端链路落地（详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
+- 当前版本：**2.1.0-SNAPSHOT（开发中，非 GA）**，基于 v2.0.0 GA 继续生产化加固
+- 工程成熟度：综合评分 评估中，6000+ 后端测试 + 183 前端测试全通过，7 条端到端链路落地（详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
 - 开源协议：Apache License 2.0
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
-> 0.3.0-SNAPSHOT 开发中（非 GA），核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
+> 2.1.0-SNAPSHOT 开发中（非 GA），基于 v2.0.0 GA 继续核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
 > v2.1 进行中（灰度发布 / 故障演练 / 性能调优 / 多集群联邦增强等 14 项生产化加固）。
 > 详见 [路线图](ROADMAP.md)。
 
@@ -34,7 +34,7 @@
 | 类别 | 技术选型 |
 | --- | --- |
 | 后端语言 | Java 17 / Go 1.26 / Python 3.11 |
-| 后端框架 | Spring Boot 3.2 / Gin / FastAPI / Pydantic |
+| 后端框架 | Spring Boot 4.1 / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
@@ -51,16 +51,16 @@
 DataEngineBDP/
 ├── .github/workflows/          # CI/CD 流水线（ci.yml + release.yml）
 ├── design/                     # 设计文档
-│   ├── 详细设计/               # 43 份模块详细设计文档
+│   ├── 详细设计/               # 51 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 81 个 Helm Chart（80 骨架 + 1 完整）
+│   │   ├── charts/             # 87 个 Helm Chart（86 骨架 + 1 完整）
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（31 个）
+├── platform/                   # 自研组件（36 个）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -260,12 +260,12 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件目录 | 32 个 |
-| Helm Chart | 81 个（其中 80 个为骨架级，1 个为完整实现） |
-| 详细设计文档 | 43 份 |
-| 单元测试 | 约 5000+（Java 3400+ / Go 530+ / Python 1500+） |
-| 集成测试 | 43 个文件（800+ 方法） |
-| 前端视图页面 | 66 个 .vue（其中约 20% 为占位/假交互） |
+| 自研组件目录 | 36 个 |
+| Helm Chart | 87 个（其中 86 个为骨架级，1 个为完整实现） |
+| 详细设计文档 | 51 份 |
+| 单元测试 | 约 6000+（Java 3900+ / Go 580+ / Python 1550+） |
+| 集成测试 | 14 个文件（89 个方法） |
+| 前端视图页面 | 66 个 .vue（全部有实质内容，无占位页面） |
 | 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云，均为配置模板） |
 | 工程成熟度 | 代码骨架约 50% / 服务级实现约 30% |
 

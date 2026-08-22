@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.finops.dashboard.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.Map;
@@ -13,6 +14,7 @@ import java.util.Map;
  * <p>提供 GET /api/v1/health 端点，无需认证。</p>
  */
 @RestController
+@Tag(name = "成本运营-健康检查", description = "FinOps看板服务探针")
 @RequestMapping("/api/v1/health")
 public class HealthController {
 

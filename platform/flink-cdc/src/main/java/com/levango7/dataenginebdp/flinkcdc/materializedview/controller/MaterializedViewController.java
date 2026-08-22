@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +42,7 @@ import java.util.Objects;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "Flink CDC-物化视图", description = "物化视图CRUD与刷新管理")
 @RequestMapping("/api/materialized-views")
 public class MaterializedViewController {
 

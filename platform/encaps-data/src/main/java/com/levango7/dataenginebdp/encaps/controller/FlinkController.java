@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -36,6 +37,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装数据-Flink引擎", description = "Flink作业管理与监控")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/flink")
 public class FlinkController {

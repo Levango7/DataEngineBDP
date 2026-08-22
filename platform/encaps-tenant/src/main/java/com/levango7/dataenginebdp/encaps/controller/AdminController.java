@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装租户-运营后台", description = "KPI总览与环境矩阵")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/admin")
 public class AdminController {

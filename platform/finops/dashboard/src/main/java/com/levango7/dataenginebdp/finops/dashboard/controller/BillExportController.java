@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -40,6 +41,7 @@ import java.util.List;
  * </ul>
  */
 @RestController
+@Tag(name = "成本运营-账单导出", description = "CSV/Excel账单导出")
 @RequestMapping("/api/v1/bill/export")
 public class BillExportController {
 

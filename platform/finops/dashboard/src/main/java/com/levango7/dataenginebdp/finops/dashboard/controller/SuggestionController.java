@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
@@ -28,6 +29,7 @@ import java.util.Map;
  * </ul>
  */
 @RestController
+@Tag(name = "成本运营-优化建议", description = "闲置资源与优化建议查询")
 @RequestMapping("/api/v1/suggestions")
 public class SuggestionController {
 

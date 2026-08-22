@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +26,7 @@ import java.util.Map;
  * </ul>
  */
 @RestController
+@Tag(name = "基础设施编排-容量规划", description = "容量预测与扩容预警")
 @RequestMapping("/api/v1/capacity")
 public class CapacityController {
 

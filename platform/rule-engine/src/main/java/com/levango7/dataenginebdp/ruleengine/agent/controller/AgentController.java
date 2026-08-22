@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +42,7 @@ import java.util.UUID;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "规则引擎-Agent", description = "内置Agent角色执行与元数据")
 @RequestMapping("/api/v1/agents")
 public class AgentController {
 

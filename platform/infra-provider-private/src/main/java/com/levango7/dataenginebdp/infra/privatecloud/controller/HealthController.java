@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.infra.privatecloud.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Map;
 
@@ -15,6 +16,7 @@ import java.util.Map;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "基础设施供应-私有云健康检查", description = "私有云Provider探针")
 @RequestMapping("/api/v1/health")
 public class HealthController {
 

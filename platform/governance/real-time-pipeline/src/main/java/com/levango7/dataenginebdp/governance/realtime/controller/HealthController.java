@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.governance.realtime.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Map;
 
@@ -12,6 +13,7 @@ import java.util.Map;
  * 与平台其他组件（Catalog Go 组件）保持一致的健康检查路径。
  */
 @RestController
+@Tag(name = "数据治理-实时管道健康检查", description = "实时治理管道探针")
 public class HealthController {
 
     @GetMapping("/api/v1/health")

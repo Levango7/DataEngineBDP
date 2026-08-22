@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -37,6 +38,7 @@ import java.util.List;
  * 此处不再重复定义，避免与全局健康检查控制器产生路径冲突。</p>
  */
 @RestController
+@Tag(name = "基础设施供应-信创集群", description = "信创(KUNPENG/ZHAOXIN)集群供应")
 @RequestMapping("/api/v1/clusters/xinchang")
 public class XinchangClusterController {
 

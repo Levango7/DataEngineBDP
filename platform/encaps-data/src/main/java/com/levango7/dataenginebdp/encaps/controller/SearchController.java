@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,6 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装数据-检索门户", description = "全文检索与跨资产搜索")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/search")
 public class SearchController {

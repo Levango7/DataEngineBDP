@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -27,6 +28,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "流批调度-作业管理", description = "作业CRUD与运行控制")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/jobs")
 public class JobController {

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ import java.util.Optional;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "SQL网关-虚拟表", description = "虚拟表CRUD与查询/物化刷新")
 @RequestMapping("/api/v1/virtual-tables")
 public class VirtualTableController {
 

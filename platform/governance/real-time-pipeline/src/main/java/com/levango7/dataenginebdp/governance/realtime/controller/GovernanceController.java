@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.Map;
  * </ul>
  */
 @RestController
+@Tag(name = "数据治理-实时管道", description = "实时治理编排与质量规则")
 @RequestMapping("/api/v1/governance")
 public class GovernanceController {
 

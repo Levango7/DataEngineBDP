@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
@@ -37,6 +38,7 @@ import java.util.List;
  * </ul>
  */
 @RestController
+@Tag(name = "成本运营-分账管理", description = "子工作空间分账配置与执行")
 @RequestMapping("/api/v1/allocation")
 public class AllocationController {
 

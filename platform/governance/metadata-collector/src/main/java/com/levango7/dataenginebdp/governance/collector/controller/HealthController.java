@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.governance.collector.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +16,7 @@ import java.util.Map;
  * 供上层平台探针与运维大盘使用。</p>
  */
 @RestController
+@Tag(name = "数据治理-采集健康检查", description = "元数据采集服务探针")
 @RequestMapping("/api/v1/health")
 public class HealthController {
 

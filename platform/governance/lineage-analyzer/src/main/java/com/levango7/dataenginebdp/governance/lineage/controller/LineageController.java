@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -37,6 +38,7 @@ import java.util.Map;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "数据治理-血缘分析", description = "SQL血缘分析与影响评估")
 @RequestMapping("/api/v1/lineage")
 public class LineageController {
 

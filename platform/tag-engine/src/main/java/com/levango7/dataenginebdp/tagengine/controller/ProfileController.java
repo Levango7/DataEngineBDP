@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -27,6 +28,7 @@ import java.util.List;
  * <p>对应详细设计 §6 接口 {@code GET /api/tag/v1/portrait/{userId}}。</p>
  */
 @RestController
+@Tag(name = "标签引擎-用户画像", description = "用户画像查询与标签筛选")
 @RequestMapping("/api/v1/profiles")
 public class ProfileController {
 

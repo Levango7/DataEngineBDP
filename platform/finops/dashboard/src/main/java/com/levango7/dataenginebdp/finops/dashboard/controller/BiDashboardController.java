@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -35,6 +36,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "成本运营-BI看板", description = "BI看板CRUD与实时指标")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/dashboards")
 public class BiDashboardController {

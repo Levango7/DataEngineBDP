@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -32,6 +33,7 @@ import java.util.Map;
  * </ul>
  */
 @RestController
+@Tag(name = "成本运营-成本看板", description = "Top10/趋势/明细看板")
 @RequestMapping("/api/v1/dashboard")
 public class DashboardController {
 

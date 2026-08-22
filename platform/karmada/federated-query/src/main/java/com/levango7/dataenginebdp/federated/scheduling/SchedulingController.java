@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -30,6 +31,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "多集群联邦-调度策略", description = "联邦调度决策与PropagationPolicy")
 @RequestMapping("/api/v1/federated/scheduling")
 public class SchedulingController {
 

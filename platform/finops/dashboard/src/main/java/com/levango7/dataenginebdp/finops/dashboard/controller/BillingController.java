@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -23,6 +24,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "成本运营-账单代理", description = "dashboard侧计费账单透传")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/dashboard/billing")
 public class BillingController {

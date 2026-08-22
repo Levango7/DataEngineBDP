@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,7 @@ import java.util.Map;
  * <p>对应 {@code GET /api/v1/health}，无需鉴权，由 SecurityConfig permitAll 放行。</p>
  */
 @RestController
+@Tag(name = "基础设施供应-信创健康检查", description = "信创Provider探针")
 @RequestMapping("/api/v1/health")
 public class HealthController {
 

@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -56,6 +57,7 @@ import java.util.Optional;
  * @author shuqing-bigdata
  */
 @RestController
+@Tag(name = "SQL网关-查询改写", description = "SQL改写与物化视图路由")
 @RequestMapping("/api/v1/rewrite")
 public class RewriteController {
 

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -30,6 +31,7 @@ import java.util.List;
  * </ul>
  */
 @RestController
+@Tag(name = "封装租户-租户管理", description = "租户CRUD")
 @RequestMapping("/api/v1/tenants")
 public class TenantController {
 

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import java.util.Map;
  * </ul>
  */
 @RestController
+@Tag(name = "基础设施供应-云集群", description = "多云VM集群供应(华为/阿里/腾讯)")
 @RequestMapping("/api/v1/clusters/cloud")
 public class CloudClusterController {
 

@@ -68,10 +68,14 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
     /**
      * 校验标识符（库名/表名）是否合法，非法时抛出 {@link IllegalArgumentException}。
      *
+     * <p>本方法为 {@code protected}，子类在自行拼接 SQL（如 {@code SHOW CREATE TABLE}）
+     * 时应主动调用此方法进行白名单校验，避免 SQL 注入。</p>
+     *
      * @param name 待校验的标识符
      * @param type 标识符类型描述（用于异常消息）
+     * @throws IllegalArgumentException 标识符为 null 或含白名单以外的字符
      */
-    private static void validateIdentifier(String name, String type) {
+    protected static void validateIdentifier(String name, String type) {
         if (name == null || !VALID_IDENTIFIER.matcher(name).matches()) {
             throw new IllegalArgumentException("Invalid " + type + " name: " + name);
         }

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -31,6 +32,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装网关-API目录", description = "API定义CRUD与目录管理")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/apis")
 public class ApiCatalogController {

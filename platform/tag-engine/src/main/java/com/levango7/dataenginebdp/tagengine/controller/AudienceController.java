@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 /**
  * 人群圈选 REST 控制器。
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * <p>对应详细设计 §5 人群圈选、§6 接口 {@code POST /api/tag/v1/segment}。</p>
  */
 @RestController
+@Tag(name = "标签引擎-人群圈选", description = "按标签条件圈选人群")
 @RequestMapping("/api/v1/audiences")
 public class AudienceController {
 

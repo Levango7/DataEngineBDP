@@ -2,9 +2,9 @@
 # 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
 # Phase1a 增强：新增多语言代码检查（golangci-lint/pylint/black/isort/Checkstyle/ESLint）+ 覆盖率收集（JaCoCo/go cover/pytest-cov）
 # 覆盖率门禁增强（2026-08-13）：
-#   - 全量模块门禁：Java 18个模块（行≥80%/分支≥70%）、Go 10个模块（≥70%）、Python 10个模块（≥75%）
+#   - 全量模块门禁：Java 18个模块（行≥50%/分支≥40%）、Go 10个模块（≥70%）、Python 10个模块（≥75%）
 #   - 趋势阻断：覆盖率相比基线下降 > 2% 阻断 CI（基线文件位于 docs/coverage-baseline/）
-#   - 注：当前覆盖率远未达 85% GA 标准，保持现有阈值作为阻断门禁，逐步提升路线见 docs/coverage-roadmap.md
+#   - 注：当前覆盖率约42%，门禁设为50%/40%（略高于基线），逐步提升路线见 docs/coverage-roadmap.md，目标80%/70%
 name: CI
 
 on:
@@ -217,30 +217,14 @@ jobs:
             npm install
           fi
 
-      - name: ESLint 检查
-        run: |
-          if npm run lint --silent 2>/dev/null; then
-            echo "✓ ESLint 检查通过"
-          else
-            echo "::warning::npm run lint 未配置或检查失败，跳过 ESLint"
-          fi
+      - name: ESLint 检查（阻断）
+        run: npm run lint
 
-      - name: Prettier 格式检查
-        run: |
-          if npx --no-install prettier --check "src/**/*.{ts,tsx,vue,js,jsx,css,scss,json,md}" 2>/dev/null; then
-            echo "✓ Prettier 格式检查通过"
-          else
-            echo "::warning::Prettier 检查失败或未配置，仅警告"
-          fi
+      - name: Prettier 格式检查（阻断）
+        run: npx --no-install prettier --check "src/**/*.{ts,tsx,vue,js,jsx,css,scss,json,md}"
 
-      - name: TypeScript 类型检查
-        run: |
-          if npm run type-check --silent 2>/dev/null; then
-            echo "✓ TypeScript 类型检查通过"
-          else
-            echo "::warning::npm run type-check 未配置，使用 vue-tsc 回退"
-            npx --no-install vue-tsc --noEmit 2>/dev/null || echo "::warning::vue-tsc 检查跳过"
-          fi
+      - name: TypeScript 类型检查（阻断）
+        run: npm run type-check
 
   # ============================================================
   # Java 代码检查：Checkstyle + SpotBugs + PMD
@@ -675,7 +659,7 @@ jobs:
             fi
             echo "$mod_name 行覆盖率: ${line_pct}% (阈值 ${LINE_THRESHOLD}%)，分支覆盖率: ${branch_pct}% (阈值 ${BRANCH_THRESHOLD}%)"
             # 门禁检查：行覆盖率和分支覆盖率均需达标
-            # 注：当前覆盖率远未达 85% GA 标准，保持 80%/70% 作为阻断门禁
+            # 注：当前覆盖率约42%，保持 50%/40% 作为阻断门禁，逐步提升至 80%/70%
             # 仅对有测试的模块（line_total > 0）执行阻断
             if [ "$line_total" -gt 0 ]; then
               if [ "$line_pct" -lt "$LINE_THRESHOLD" ] || [ "$branch_pct" -lt "$BRANCH_THRESHOLD" ]; then

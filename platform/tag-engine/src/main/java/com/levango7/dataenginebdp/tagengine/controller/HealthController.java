@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.tagengine.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -12,6 +13,7 @@ import java.util.Map;
  * <p>GET {@code /health} 返回引擎存活状态与版本信息，供 K8s 探针与运维大盘使用。</p>
  */
 @RestController
+@Tag(name = "标签引擎-健康检查", description = "标签画像引擎探针")
 public class HealthController {
 
     /**

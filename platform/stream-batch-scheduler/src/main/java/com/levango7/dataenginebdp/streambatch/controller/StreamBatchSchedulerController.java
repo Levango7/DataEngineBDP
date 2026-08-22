@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -34,6 +35,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "流批调度-统一编排", description = "流批DAG提交与BI视图路由")
 @RequestMapping("/api/v1/stream-batch")
 @RequiredArgsConstructor
 public class StreamBatchSchedulerController {

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -35,6 +36,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装数据-数据源管理", description = "数据源CRUD与连接测试")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/datasources")
 public class DataSourceController {

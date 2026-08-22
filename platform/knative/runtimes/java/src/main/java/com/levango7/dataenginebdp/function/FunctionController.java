@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.annotation.PostConstruct;
 
@@ -28,6 +29,7 @@ import java.util.Map;
  * </ul></p>
  */
 @RestController
+@Tag(name = "Serverless运行时-函数调用", description = "Knative函数invocation入口")
 @RequestMapping("/api/v1")
 public class FunctionController {
 

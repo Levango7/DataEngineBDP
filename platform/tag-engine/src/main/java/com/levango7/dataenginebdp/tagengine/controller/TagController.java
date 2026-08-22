@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -41,6 +42,7 @@ import java.util.List;
  * <p>对应详细设计 §6 接口契约。</p>
  */
 @RestController
+@Tag(name = "标签引擎-标签管理", description = "标签定义CRUD与计算")
 @RequestMapping("/api/v1/tags")
 public class TagController {
 

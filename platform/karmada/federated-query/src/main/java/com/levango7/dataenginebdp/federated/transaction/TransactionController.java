@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
@@ -33,6 +34,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @RestController
+@Tag(name = "多集群联邦-跨集群事务", description = "分布式事务协调(2PC)")
 @RequestMapping("/api/v1/federated/transactions")
 public class TransactionController {
 

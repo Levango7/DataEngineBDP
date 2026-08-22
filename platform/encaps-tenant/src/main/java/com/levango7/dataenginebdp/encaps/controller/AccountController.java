@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.Map;
  */
 @Slf4j
 @RestController
+@Tag(name = "封装租户-账户管理", description = "套餐/账单/配额查询")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/account")
 public class AccountController {

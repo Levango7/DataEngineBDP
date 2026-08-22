@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
 
@@ -26,6 +27,7 @@ import java.util.List;
  * </ul>
  */
 @RestController
+@Tag(name = "成本运营-定价配置", description = "动态单价配置管理")
 @RequestMapping("/api/v1/pricing")
 public class PricingController {
 

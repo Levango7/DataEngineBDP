@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -55,6 +56,7 @@ import java.util.Map;
  * </ul>
  */
 @RestController
+@Tag(name = "基础设施编排-集群供应", description = "跨环境集群创建/销毁/扩缩容")
 @RequestMapping("/api/v1/clusters")
 public class ClusterController {
 
