@@ -83,6 +83,30 @@ strategy:
           duration: 5m
       - setWeight: 100
 
+# ---- CRD 安装配置 ----
+crd:
+  install: true
+
+# ---- 分析模板（默认关闭）----
+analysisTemplates:
+  enabled: false
+  prometheus:
+    address: ""
+
+# ---- 核心服务 Rollout（默认关闭）----
+coreServices:
+  enabled: false
+  items: []
+
+# ---- 策略模板（默认关闭，按需启用）----
+strategyTemplates:
+  mirror:
+    enabled: false
+  canary:
+    enabled: false
+  blueGreen:
+    enabled: false
+
 # ---- Pod 调度 ----
 nodeSelector: {}
 affinity: {}

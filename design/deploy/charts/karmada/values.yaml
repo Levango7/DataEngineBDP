@@ -167,6 +167,37 @@ disasterRecovery:
     endpoint: "https://s3.amazonaws.com"
     forcePathStyle: true
 
+# ---- 集群信息采集器（默认关闭）----
+clusterInfoCollector:
+  enabled: false
+  image:
+    repository: "registry.k8s.io/karmada/karmada-agent"
+    tag: "v1.12.0"
+    pullPolicy: IfNotPresent
+  karmadaHost: ""
+  reportInterval: "60s"
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+
+# ---- 传播策略（默认关闭）----
+propagationPolicy:
+  enabled: false
+  type: "config"
+  namespace: "default"
+  clusterAffinity: []
+  clusterTolerations: []
+  placementPolicyType: "Duplicated"
+  replicaSchedulingType: "Duplicated"
+  replicaDivisionPreference: "Weighted"
+  staticWeights: []
+  targetResources: []
+  topologySpreadConstraints: []
+
+# ---- 调度Profile（默认关闭，按需启用）----
+schedulingProfile:
+  enabled: false
+
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/karmada-values.yaml 覆盖
 # 渲染命令： helm template karmada design/deploy/charts/karmada -f design/deploy/values/karmada-values.yaml

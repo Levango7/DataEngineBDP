@@ -27,8 +27,8 @@ function reset() {
     <p class="error-boundary__message">{{ error.message }}</p>
     <details class="error-boundary__details">
       <summary>错误详情</summary>
-      <pre>{{ error.stack }}</pre>
-      <pre>组件: {{ error.component }}</pre>
+      <pre v-text="error.stack"></pre>
+      <pre v-text="'组件: ' + error.component"></pre>
     </details>
     <button class="error-boundary__retry" @click="reset">重试</button>
   </div>
