@@ -111,6 +111,8 @@ public abstract class AbstractJdbcMetadataCollector implements MetadataCollector
      * @return SQL
      */
     protected String getTableParamsSql(String database, String table) {
+        validateIdentifier(database, "database");
+        validateIdentifier(table, "table");
         return "SHOW TBLPROPERTIES " + database + "." + table;
     }
 

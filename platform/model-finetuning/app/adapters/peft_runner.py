@@ -21,9 +21,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
 from dataclasses import dataclass, field
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -69,7 +72,7 @@ def run_training(cfg: RunnerConfig) -> int:
             TrainingArguments,
         )
     except ImportError as e:  # pragma: no cover - 环境缺依赖
-        print(f"[peft_runner] 缺少训练依赖: {e}（需安装 torch/transformers/peft/datasets）")
+        logger.error(f"[peft_runner] 缺少训练依赖: {e}（需安装 torch/transformers/peft/datasets）")
         return 2
 
     # ---------- 模型加载 ----------
@@ -78,7 +81,7 @@ def run_training(cfg: RunnerConfig) -> int:
         # 迷你模型：CI/单测快速验证链路，不下载大模型
         base_model = "hf-internal-testing/tiny-random-gpt2"
 
-    print(f"[peft_runner] 加载基座模型: {base_model} (task={cfg.task_id})")
+    logger.info(f"[peft_runner] 加载基座模型: {base_model} (task={cfg.task_id})")
     device_map = "auto" if torch.cuda.is_available() else "cpu"
     kwargs: dict = {"device_map": device_map, "trust_remote_code": True}
     # QLoRA 场景需要 4bit/8bit 量化
@@ -90,7 +93,7 @@ def run_training(cfg: RunnerConfig) -> int:
             try:
                 import bitsandbytes  # noqa: F401
             except ImportError:
-                print("[peft_runner] QLoRA 需要 bitsandbytes")
+                logger.error("[peft_runner] QLoRA 需要 bitsandbytes")
                 return 2
 
     model = AutoModelForCausalLM.from_pretrained(base_model, **kwargs)
@@ -172,21 +175,21 @@ def run_training(cfg: RunnerConfig) -> int:
     try:
         model.save_pretrained(output_dir)
         tokenizer.save_pretrained(output_dir)
-        print(f"[peft_runner] 训练完成，adapter 已保存至 {output_dir}")
+        logger.info(f"[peft_runner] 训练完成，adapter 已保存至 {output_dir}")
     except Exception as e:
-        print(f"[peft_runner] adapter 保存失败（训练已完成）: {e}")
+        logger.error(f"[peft_runner] adapter 保存失败（训练已完成）: {e}")
     return 0
 
 
 def main_with_args(args: list[str]) -> int:
     """可测试入口：显式传参（单测用），避免直接读 sys.argv。"""
     if len(args) < 1:
-        print("用法: python -m app.adapters.peft_runner <config.json>")
+        logger.error("用法: python -m app.adapters.peft_runner <config.json>")
         return 1
     try:
         cfg = RunnerConfig.from_json(args[0])
     except Exception as e:
-        print(f"[peft_runner] 配置解析失败: {e}")
+        logger.error(f"[peft_runner] 配置解析失败: {e}")
         return 1
     return run_training(cfg)
 

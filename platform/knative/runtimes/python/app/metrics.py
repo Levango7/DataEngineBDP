@@ -125,7 +125,7 @@ class InvocationRecorder:
             "duration_seconds": round(duration, 6),
             "timestamp": time.time(),
         }
-        print(json.dumps(logEntry, ensure_ascii=False), flush=True)
+        logger.info(json.dumps(logEntry, ensure_ascii=False))
 
         # 3. 可选：推送到 Pushgateway（适用于短生命周期 Pod）
         if _HAS_PROMETHEUS and self.pushgatewayUrl:
