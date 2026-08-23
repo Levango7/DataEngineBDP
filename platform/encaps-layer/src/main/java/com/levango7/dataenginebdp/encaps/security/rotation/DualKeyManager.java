@@ -193,10 +193,12 @@ public class DualKeyManager {
     /**
      * 当前所有验签接受的 kid 集合（active + 过渡期内旧密钥）。
      *
-     * @return 不可变 kid 集合
+     * <p>返回快照副本，避免调用方迭代时因并发修改抛出 {@code ConcurrentModificationException}。</p>
+     *
+     * @return 不可变 kid 集合的快照
      */
     public Set<String> getAcceptedKids() {
-        return Collections.unmodifiableSet(this.keys.keySet());
+        return Collections.unmodifiableSet(new java.util.HashSet<>(this.keys.keySet()));
     }
 
     /**

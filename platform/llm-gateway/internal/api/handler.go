@@ -102,8 +102,13 @@ func (h *Handler) ChatCompletions(c *gin.Context) {
 	}
 
 	// 从 JWT 注入租户与用户身份。
+	// 校验：dev 模式下 tenantId/userId 为 "dev"，生产模式必须非空。
 	req.TenantID = ctxString(c, "tenantId")
 	req.UserID = ctxString(c, "userId")
+	if req.TenantID == "" || req.UserID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing tenantId or userId in JWT claims"})
+		return
+	}
 
 	resp, err := h.gateway.ChatCompletion(c.Request.Context(), req)
 	if err != nil {
@@ -133,6 +138,10 @@ func (h *Handler) Embeddings(c *gin.Context) {
 
 	req.TenantID = ctxString(c, "tenantId")
 	req.UserID = ctxString(c, "userId")
+	if req.TenantID == "" || req.UserID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing tenantId or userId in JWT claims"})
+		return
+	}
 
 	resp, err := h.gateway.Embeddings(c.Request.Context(), req)
 	if err != nil {

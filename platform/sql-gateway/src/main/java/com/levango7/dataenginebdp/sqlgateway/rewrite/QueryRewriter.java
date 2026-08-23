@@ -143,10 +143,10 @@ public class QueryRewriter {
     }
 
     /**
-     * 将 SQL 中 FROM 子句里的源表引用替换为视图名。
+     * 将 SQL 中 FROM/JOIN 子句里的源表引用替换为视图名。
      *
-     * <p>使用正则匹配 {@code FROM <sourceTable>}（忽略大小写、容许别名与 schema 前缀），
-     * 仅替换 FROM 后第一个匹配的表名，避免误替换列名或字符串字面量中的同名词。</p>
+     * <p>使用正则匹配，容许 schema 前缀（db.table）与别名。
+     * 替换所有匹配（包括 self-join 中的多个引用），保证语义等价。</p>
      *
      * @param sql         原始 SQL
      * @param sourceTable 源表名
@@ -157,24 +157,24 @@ public class QueryRewriter {
         // 转义正则特殊字符
         String escapedTable = Pattern.quote(sourceTable);
         // 匹配 FROM/JOIN 后的表引用，容许 schema 前缀（db.table）与别名
-        // 仅替换表名部分，保留可能的别名
-        Pattern pattern = Pattern.compile(
+        // \b 确保词边界，避免误匹配列名或字符串字面量中的同名词
+        // 全局替换（replaceFirst → replaceAll）以支持 self-join 场景
+        Pattern fromPattern = Pattern.compile(
                 "(\\bFROM\\s+)(?:\\w+\\.)?" + escapedTable + "(\\b)",
                 Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(sql);
-        if (matcher.find()) {
-            return matcher.replaceFirst("$1" + Matcher.quoteReplacement(viewName) + "$2");
-        }
+        String result = fromPattern.matcher(sql).replaceAll("$1" + Matcher.quoteReplacement(viewName) + "$2");
+
         // JOIN 子句中的表引用
         Pattern joinPattern = Pattern.compile(
                 "(\\bJOIN\\s+)(?:\\w+\\.)?" + escapedTable + "(\\b)",
                 Pattern.CASE_INSENSITIVE);
-        Matcher joinMatcher = joinPattern.matcher(sql);
-        if (joinMatcher.find()) {
-            return joinMatcher.replaceFirst("$1" + Matcher.quoteReplacement(viewName) + "$2");
+        result = joinPattern.matcher(result).replaceAll("$1" + Matcher.quoteReplacement(viewName) + "$2");
+
+        if (!result.equals(sql)) {
+            log.debug("表名替换: {} → {} (命中 {} 处)", sourceTable, viewName,
+                    (fromPattern.matcher(sql).results().count() + joinPattern.matcher(sql).results().count()));
         }
-        log.debug("表名替换未找到源表 {} 在 SQL 中", sourceTable);
-        return sql;
+        return result;
     }
 
     /**

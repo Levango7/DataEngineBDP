@@ -195,12 +195,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Boot Data JPA Test：@DataJpaTest（SB4.x 从 spring-boot-data-jpa-test 模块提供） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-data-jpa-test</artifactId>
-            <scope>test</scope>
-        </dependency>
         <!-- OkHttp MockWebServer：模拟 Doris FE HTTP API（DorisOlapClientTest） -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>

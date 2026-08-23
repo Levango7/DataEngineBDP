@@ -146,7 +146,9 @@ public class SqlRoutingService {
 
     /** 构建缓存键（engine+sql+tenantId SHA-256，含租户隔离；JDK 实现零依赖）。 */
     private String buildCacheKey(String engine, String sql, String tenantId) {
-        String raw = engine + "|" + sql.trim() + "|" + (tenantId == null ? "" : tenantId);
+        // 归一化：压缩空白、去掉注释、统一大小写，使语义等价的 SQL 产生相同缓存键
+        String normalized = normalizeSql(sql);
+        String raw = engine + "|" + normalized + "|" + (tenantId == null ? "" : tenantId);
         try {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -159,6 +161,19 @@ public class SqlRoutingService {
             // 不可能发生（JDK 必含 SHA-256）
             return Integer.toHexString(raw.hashCode());
         }
+    }
+
+    /**
+     * 归一化 SQL：压缩空白、去掉单行/多行注释、去掉尾部分号，使语义等价的 SQL 产生相同键。
+     */
+    private static String normalizeSql(String sql) {
+        if (sql == null) return "";
+        // 去掉 SQL 注释（-- 行注释 / /* */ 块注释）
+        // (?s) 启用 DOTALL 模式，使 . 能匹配换行符（用于跨行块注释）
+        String noComments = sql.replaceAll("--[^\n]*", " ")
+                .replaceAll("(?s)/\\*.*?\\*/", " ");
+        // 压缩连续空白为单空格
+        return noComments.replaceAll("\\s+", " ").trim();
     }
 
     /** 执行真实查询（缓存未命中路径）。 */
@@ -292,6 +307,15 @@ public class SqlRoutingService {
                 .build();
     }
 
+    /** 将字节数组转为十六进制字符串。 */
+    private static String toHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
     /**
      * 截断 SQL 用于日志输出，避免过长。
      *
@@ -344,9 +368,8 @@ public class SqlRoutingService {
                 bytes = Math.max(1L, durationMs * 10_000L);
                 estimated = true;
             }
-            String sqlHash = java.security.MessageDigest.getInstance("SHA-256")
-                    .digest((sql == null ? "" : sql).getBytes(java.nio.charset.StandardCharsets.UTF_8))
-                    .toString();
+            String sqlHash = toHex(java.security.MessageDigest.getInstance("SHA-256")
+                    .digest((sql == null ? "" : sql).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
             meteringCollector.submit(new com.levango7.dataenginebdp.sqlgateway.metering.QueryMeter(
                     tenantId, null, engine, sqlHash,
                     bytes, estimated, durationMs, queryId));

@@ -141,14 +141,41 @@ public class CatalogBasedSourceResolver implements CrossSourceExecutor.SourceRes
      * <p>简化策略：{@code SELECT * FROM <t1>, <t2>, ... LIMIT 10000}。
      * 真实场景应保留原始 SQL 的 SELECT 列、WHERE 条件等。</p>
      *
+     * <p>安全：表名通过反引号转义，禁止包含非标识符字符，防止 SQL 注入。</p>
+     *
      * @param tables 表名列表
      * @return 单源查询 SQL
      */
     private String buildSingleSourceQuery(List<String> tables) {
         StringBuilder sb = new StringBuilder("SELECT * FROM ");
-        sb.append(String.join(", ", tables));
+        boolean first = true;
+        for (String table : tables) {
+            if (!first) {
+                sb.append(", ");
+            }
+            sb.append("`").append(escapeBacktick(table)).append("`");
+            first = false;
+        }
         sb.append(" LIMIT ").append(MergeResult.DEFAULT_MAX_ROWS);
         return sb.toString();
+    }
+
+    /**
+     * 转义表名中的反引号（`` → `` ``），并校验只包含合法标识符字符。
+     *
+     * @param identifier 原始标识符
+     * @return 转义后的安全标识符
+     * @throws IllegalArgumentException 包含非法字符时抛出
+     */
+    private static String escapeBacktick(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            throw new IllegalArgumentException("表名不能为空");
+        }
+        // 允许：字母、数字、下划线、点号（用于 catalog.schema.table）、反引号
+        if (!identifier.matches("[a-zA-Z0-9_\\.\\`]+")) {
+            throw new IllegalArgumentException("表名包含非法字符: " + identifier);
+        }
+        return identifier.replace("`", "``");
     }
 
     /**

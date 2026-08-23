@@ -11,13 +11,14 @@ import { ref, computed } from 'vue'
 import { post } from '@/api/client'
 import type { LoginParams, LoginResult, User } from '@/api/types'
 
-/** localStorage 持久化键 */
+/** sessionStorage 持久化键（token 用 sessionStorage 降低 XSS 风险） */
 const TOKEN_KEY = 'sq_token'
+/** localStorage 持久化键（仅存非敏感用户信息） */
 const USER_KEY = 'sq_user'
 
-/** 读取本地存储的 token */
+/** 读取 session 存储的 token */
 function loadToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return sessionStorage.getItem(TOKEN_KEY)
 }
 
 /** 读取本地存储的用户信息 */
@@ -51,7 +52,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     token.value = result.token
     user.value = result.user
-    localStorage.setItem(TOKEN_KEY, result.token)
+    // 安全：token 存入 sessionStorage（关闭标签页自动清除），降低 XSS 持久化风险。
+    // 如需持久登录可改用 localStorage，但需配合 httpOnly cookie 方案。
+    sessionStorage.setItem(TOKEN_KEY, result.token)
     localStorage.setItem(USER_KEY, JSON.stringify(result.user))
 
     return result
@@ -61,7 +64,7 @@ export const useAuthStore = defineStore('auth', () => {
   function logout(): void {
     token.value = null
     user.value = null
-    localStorage.removeItem(TOKEN_KEY)
+    sessionStorage.removeItem(TOKEN_KEY)
     localStorage.removeItem(USER_KEY)
   }
 

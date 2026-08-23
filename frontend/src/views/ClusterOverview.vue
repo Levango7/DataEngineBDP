@@ -348,11 +348,12 @@ function renderTrendChart() {
   trendChart.setOption({
     tooltip: {
       trigger: 'axis',
-      formatter: (params: any) => {
-        let html = `${params[0].axisValue}<br/>`
-        params.forEach((p: any) => {
-          html += `${p.marker}${p.seriesName}：${p.value}%<br/>`
-        })
+      formatter: (params: unknown[]) => {
+        const series = params as Array<Record<string, unknown>>
+        let html = `${series[0]?.axisValue as string}<br/>`
+        for (const p of series) {
+          html += `${p.marker as string}${p.seriesName as string}：${p.value as number}%<br/>`
+        }
         return html
       }
     },

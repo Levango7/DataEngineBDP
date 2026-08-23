@@ -226,9 +226,10 @@ function closeModal(): void {
   editingKey.value = null
 }
 
-/** 关闭 secret 展示弹窗 */
+/** 关闭 secret 展示弹窗（同时清除内存中的明文 secret） */
 function closeSecretModal(): void {
   secretModalVisible.value = false
+  // 安全：用户关闭弹窗后立即清除内存中的明文 secret，防止 devtools 泄漏
   createdKey.value = null
 }
 

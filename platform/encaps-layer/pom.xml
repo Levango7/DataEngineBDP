@@ -129,12 +129,7 @@
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- BouncyCastle：国密算法 SM2/SM3/SM4 与 PEM 密钥解析（JcaPEMKeyConverter 在 bcutil 包） -->
-        <dependency>
-            <groupId>org.bouncycastle</groupId>
-            <artifactId>bcprov-jdk18on</artifactId>
-            <version>1.78.1</version>
-        </dependency>
+        <!-- BouncyCastle：PEM 密钥解析（JcaPEMKeyConverter 在 bcpkix 包） -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
@@ -166,14 +161,7 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Boot 4.x：@DataJpaTest 已拆分到 spring-boot-data-jpa-test 模块
-             （包路径由 org.springframework.boot.test.autoconfigure.orm.jpa 变更为
-             org.springframework.boot.data.jpa.test.autoconfigure） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-data-jpa-test</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <!-- Spring Security Test：配合 @DataJpaTest 进行安全上下文测试 -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>

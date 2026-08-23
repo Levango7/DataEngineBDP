@@ -497,6 +497,18 @@ jobs:
             exit 1
           fi
 
+      - name: 校验 Helm Chart 生成脚本一致性（防止骨架漂移）
+        # 运行 _validate_charts.py 检查 Chart 目录结构完整性和模板括号配对
+        run: |
+          if [ -f "design/deploy/charts/_validate_charts.py" ]; then
+            python design/deploy/charts/_validate_charts.py || {
+              echo "::error::Helm Chart 结构校验失败，请运行 python design/deploy/charts/_generate_charts.py 重新生成"
+              exit 1
+            }
+          else
+            echo "⚠ _validate_charts.py 不存在，跳过结构校验"
+          fi
+
   # ============================================================
   # Java 构建与测试：JDK 17 + Maven 3.9
   # 遍历 platform/ 下所有含 pom.xml 的子目录，逐个执行 mvn test -B

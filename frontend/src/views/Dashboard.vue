@@ -138,11 +138,11 @@ const memPercent = computed(() => {
 
 // 运行中项目数：优先用 API 精确值，否则按 Pod 运行率估算
 const runningProjects = computed(() => {
-  const ov = overview.value as any
+  const ov = overview.value
   if (!ov) return 0
   if (typeof ov.projectRunning === 'number') return ov.projectRunning
   const podRate = ov.podTotal > 0 ? ov.podRunning / ov.podTotal : 0.78
-  return Math.round(ov.projectCount * podRate)
+  return Math.round((ov.projectCount ?? 0) * podRate)
 })
 
 onMounted(() => {

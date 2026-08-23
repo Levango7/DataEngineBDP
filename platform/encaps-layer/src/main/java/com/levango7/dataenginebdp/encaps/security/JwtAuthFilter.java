@@ -106,15 +106,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 log.warn("JWT 算法: SM3withSM2（自动生成临时 SM2 密钥对，仅限开发环境；"
                         + "生产环境必须配置 JWT_SM2_PRIVATE_KEY/JWT_SM2_PUBLIC_KEY）");
             }
+            if (pubQ == null || pubQ.length == 0) {
+                throw new IllegalStateException("SM2 公钥解析失败，无法启动 JWT 认证");
+            }
             this.sm2PublicKeyQ = pubQ;
             this.gmJwtProcessor = new GmJwtProcessor(issuer);
             this.signingKey = null;
         } else {
             // 国际算法模式：HMAC-SHA
-            this.signingKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+            byte[] secretBytes = (secret == null ? "" : secret).getBytes(StandardCharsets.UTF_8);
+            if (secretBytes.length < 32) {
+                throw new IllegalStateException(
+                        "JWT_SECRET 长度不足：至少需要 32 字节（256 bit），当前 " + secretBytes.length + " 字节");
+            }
+            this.signingKey = Keys.hmacShaKeyFor(secretBytes);
             this.gmJwtProcessor = null;
             this.sm2PublicKeyQ = null;
-            log.info("JWT 算法: {}（HMAC-SHA 对称签名）", this.algorithm);
+            log.info("JWT 算法: {}（HMAC-SHA 对称签名，密钥长度={} bytes）", this.algorithm, secretBytes.length);
         }
     }
 
@@ -260,14 +268,23 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     /**
      * hex 字符串转字节数组。
      *
-     * @param hex hex 串（长度必须为偶数）
+     * @param hex hex 串（长度必须为偶数，仅允许 0-9a-fA-F）
      * @return 字节数组
+     * @throws IllegalArgumentException 输入不合法时抛出
      */
     private static byte[] hexToBytes(String hex) {
         if (hex == null || hex.isEmpty()) {
-            return new byte[0];
+            throw new IllegalArgumentException("hex 输入不能为空");
         }
-        String s = hex.toLowerCase();
+        String s = hex.trim().toLowerCase();
+        if (s.length() % 2 != 0) {
+            throw new IllegalArgumentException("hex 字符串长度必须为偶数，当前长度: " + s.length());
+        }
+        for (int i = 0; i < s.length(); i++) {
+            if (Character.digit(s.charAt(i), 16) == -1) {
+                throw new IllegalArgumentException("hex 字符串包含非法字符: '" + s.charAt(i) + "' at position " + i);
+            }
+        }
         byte[] out = new byte[s.length() / 2];
         for (int i = 0; i < out.length; i++) {
             int hi = Character.digit(s.charAt(i * 2), 16);

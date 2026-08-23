@@ -79,10 +79,13 @@ func main() {
 	// 初始化 Gin 路由。
 	r := gin.New()
 
-	// 全局中间件链：Recovery → Logging → CORS。
+	// 全局中间件链：Recovery → Logging → CORS → Auth。
 	r.Use(gin.Recovery())
 	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(middleware.CorsMiddleware())
+	// 注：不绑定 AuthMiddleware，因 vector-engine 依赖外部网关（encaps-layer）统一鉴权。
+	// 直接暴露场景下请取消下面注释并配置 JWT_SIGNING_KEY：
+	// r.Use(middleware.AuthMiddleware())
 
 	// API v1 group。
 	v1 := r.Group("/api/v1")

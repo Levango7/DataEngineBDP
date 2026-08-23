@@ -47,7 +47,7 @@ class DorisScanStatsClientTest {
     @Test
     void disabledClientReturnsNullWithoutNetwork() {
         // enabled=false 时 fetchScanBytes 应直接返回 null，不触发 JDBC 连接
-        DorisScanStatsClient client = new DorisScanStatsClient("http://doris:9030", "root", false);
+        DorisScanStatsClient client = new DorisScanStatsClient("http://doris:9030", "root", "", false);
         assertThat(client.fetchScanBytes("SELECT 1")).isNull();
     }
 }

@@ -275,7 +275,7 @@ interface Layout {
   edges: LayoutEdge[]
 }
 
-/** 计算拓扑分层（最长路径分层） */
+/** 计算拓扑分层（最长路径分层），检测到环时降级为全节点层 0 */
 function computeLayers(g: DagGraphDto): Map<string, number> {
   const layers = new Map<string, number>()
   // 入度表
@@ -298,6 +298,7 @@ function computeLayers(g: DagGraphDto): Map<string, number> {
   }
   // 拷贝入度用于消减
   const rem = new Map(inDeg)
+  let processed = 0
   while (queue.length > 0) {
     const id = queue.shift()!
     const layer = layers.get(id) ?? 0
@@ -306,9 +307,17 @@ function computeLayers(g: DagGraphDto): Map<string, number> {
       rem.set(t, (rem.get(t) ?? 1) - 1)
       if ((rem.get(t) ?? 0) === 0) queue.push(t)
     }
+    processed++
   }
-  // 孤立节点兜底为 0
-  for (const n of g.nodes) if (!layers.has(n.id)) layers.set(n.id, 0)
+  // 环检测：若有节点未被处理，说明存在循环依赖，将其降为层 0 并告警
+  const cycleNodes = g.nodes.filter(n => !layers.has(n.id))
+  if (cycleNodes.length > 0) {
+    console.warn(
+      `[DagVisualizer] 检测到 ${cycleNodes.length} 个节点存在循环依赖，降级为层 0: `,
+      cycleNodes.map(n => n.id).join(', ')
+    )
+    for (const n of cycleNodes) layers.set(n.id, 0)
+  }
   return layers
 }
 

@@ -74,7 +74,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(this.allowedOrigins));
+        // 使用可变列表，避免 Spring 内部修改不可变 List 导致 UnsupportedOperationException
+        configuration.setAllowedOrigins(new java.util.ArrayList<>(List.of(this.allowedOrigins)));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

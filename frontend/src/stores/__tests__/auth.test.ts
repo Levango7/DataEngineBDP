@@ -48,11 +48,31 @@ const localStorageMock = (() => {
 
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock })
 
+// Mock sessionStorage（token 改存 sessionStorage 以降低 XSS 风险）
+const sessionStorageMock = (() => {
+  let store: Record<string, string> = {}
+  return {
+    getItem: vi.fn((key: string) => store[key] ?? null),
+    setItem: vi.fn((key: string, value: string) => {
+      store[key] = value
+    }),
+    removeItem: vi.fn((key: string) => {
+      delete store[key]
+    }),
+    clear: vi.fn(() => {
+      store = {}
+    })
+  }
+})()
+
+Object.defineProperty(globalThis, 'sessionStorage', { value: sessionStorageMock })
+
 describe('stores/auth.ts', () => {
   let useAuthStore: (typeof import('../auth'))['useAuthStore']
 
   beforeEach(async () => {
     localStorageMock.clear()
+    sessionStorageMock.clear()
     vi.clearAllMocks()
     setActivePinia(createPinia())
     const mod = await import('../auth')
@@ -79,10 +99,10 @@ describe('stores/auth.ts', () => {
     expect(store.user?.username).toBe('admin')
   })
 
-  it('login 应持久化 token 和 user 到 localStorage', async () => {
+  it('login 应持久化 token 到 sessionStorage、user 到 localStorage', async () => {
     const store = useAuthStore()
     await store.login('admin', 'password123')
-    expect(localStorageMock.setItem).toHaveBeenCalledWith('sq_token', 'mock-jwt-token')
+    expect(sessionStorageMock.setItem).toHaveBeenCalledWith('sq_token', 'mock-jwt-token')
     expect(localStorageMock.setItem).toHaveBeenCalledWith('sq_user', expect.any(String))
   })
 
@@ -96,11 +116,11 @@ describe('stores/auth.ts', () => {
     expect(store.isAuthenticated).toBe(false)
   })
 
-  it('logout 应移除 localStorage 中的 token 和 user', async () => {
+  it('logout 应清除 sessionStorage 中的 token 和 localStorage 中的 user', async () => {
     const store = useAuthStore()
     await store.login('admin', 'password123')
     store.logout()
-    expect(localStorageMock.removeItem).toHaveBeenCalledWith('sq_token')
+    expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('sq_token')
     expect(localStorageMock.removeItem).toHaveBeenCalledWith('sq_user')
   })
 

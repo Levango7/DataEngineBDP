@@ -33,22 +33,25 @@ func mustGetenv(key string) string {
 // 开发模式：若 JWT_DEV_MODE=true，跳过校验，注入默认 tenantId=dev / userId=dev，
 // 便于本地无 JWT 时快速联调。生产环境切勿开启 JWT_DEV_MODE。
 func AuthMiddleware() gin.HandlerFunc {
+	devMode := strings.EqualFold(os.Getenv("JWT_DEV_MODE"), "true")
+
+	// 开发模式：跳过校验，注入默认身份，不要求 JWT_SIGNING_KEY。
+	if devMode {
+		return func(c *gin.Context) {
+			c.Set("tenantId", "dev")
+			c.Set("userId", "dev")
+			c.Next()
+		}
+	}
+
 	// 安全止血：JWT_SIGNING_KEY 必须显式配置，缺失则启动 fatal。
 	secret := mustGetenv("JWT_SIGNING_KEY")
 	issuer := os.Getenv("JWT_ISSUER")
 	if issuer == "" {
 		issuer = "shuqing-bigdata"
 	}
-	devMode := strings.EqualFold(os.Getenv("JWT_DEV_MODE"), "true")
 
 	return func(c *gin.Context) {
-		// 开发模式：跳过校验，注入默认身份。
-		if devMode {
-			c.Set("tenantId", "dev")
-			c.Set("userId", "dev")
-			c.Next()
-			return
-		}
 
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" || !strings.HasPrefix(authHeader, "Bearer ") {

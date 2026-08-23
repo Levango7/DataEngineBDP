@@ -117,3 +117,7 @@ k6.tar.gz
 
 # E2E测试报告产物（不入库，仅保留脚本和手写报告）
 frontend/tests/e2e-report/
+
+# JVM 崩溃转储（hs_err_pid*.log / replay_pid*.log）
+hs_err_pid*.log
+replay_pid*.log

@@ -11,7 +11,12 @@ const error = ref<ErrorInfo | null>(null)
 
 onErrorCaptured((err: Error, _instance, info) => {
   error.value = { message: err.message, stack: err.stack, component: info }
-  console.error('[ErrorBoundary]', err, info)
+  // 生产环境不打印 stack trace，仅记录错误消息
+  if (import.meta.env.DEV) {
+    console.error('[ErrorBoundary]', err, info)
+  } else {
+    console.warn('[ErrorBoundary]', err.message, '| component:', info)
+  }
   return false
 })
 
