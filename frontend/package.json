@@ -3,6 +3,13 @@
   "version": "0.3.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "finops-dashboard",
+    "asset-exchange-dashboard",
+    "finetuning-monitor",
+    "multi-cluster-dashboard",
+    "open-api-dashboard"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
@@ -18,7 +25,14 @@
     "test:e2e:report": "playwright show-report tests/e2e-report",
     "lint": "eslint src/",
     "lint:fix": "eslint src/ --fix",
-    "format": "prettier --write \"src/**/*.{ts,vue,css}\""
+    "format": "prettier --write \"src/**/*.{ts,vue,css}\"",
+    "build:all": "npm run build && npm run build --workspace finops-dashboard && npm run build --workspace asset-exchange-dashboard && npm run build --workspace finetuning-monitor && npm run build --workspace multi-cluster-dashboard && npm run build --workspace open-api-dashboard",
+    "dev:finops": "npm run dev --workspace finops-dashboard",
+    "dev:asset": "npm run dev --workspace asset-exchange-dashboard",
+    "dev:finetuning": "npm run dev --workspace finetuning-monitor",
+    "dev:multicluster": "npm run dev --workspace multi-cluster-dashboard",
+    "dev:openapi": "npm run dev --workspace open-api-dashboard",
+    "type-check:all": "npm run type-check && npm run type-check --workspace finops-dashboard && npm run type-check --workspace asset-exchange-dashboard && npm run type-check --workspace finetuning-monitor && npm run type-check --workspace multi-cluster-dashboard && npm run type-check --workspace open-api-dashboard"
   },
   "engines": {
     "node": ">=22.0.0"
