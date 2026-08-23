@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -66,6 +67,7 @@ public class LineageController {
      * @param request 请求体（sql + dialect）
      * @return 血缘图谱（ECharts 友好格式）
      */
+    @Operation(summary = "分析 SQL 血缘")
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, Object>> analyze(@RequestBody AnalyzeRequest request) {
         if (request == null || request.getSql() == null || request.getSql().isBlank()) {
@@ -85,6 +87,7 @@ public class LineageController {
      * @param depth 深度（默认 5）
      * @return 上游查询结果
      */
+    @Operation(summary = "查询上游依赖表")
     @GetMapping("/upstream/{table}")
     public ResponseEntity<LineageQueryResult> upstream(
             @PathVariable String table,
@@ -99,6 +102,7 @@ public class LineageController {
      * @param depth 深度（默认 5）
      * @return 下游查询结果
      */
+    @Operation(summary = "查询下游依赖表")
     @GetMapping("/downstream/{table}")
     public ResponseEntity<LineageQueryResult> downstream(
             @PathVariable String table,
@@ -112,6 +116,7 @@ public class LineageController {
      * @param table 表全名
      * @return 影响分析结果
      */
+    @Operation(summary = "影响分析血缘")
     @GetMapping("/impact/{table}")
     public ResponseEntity<LineageQueryResult> impact(@PathVariable String table) {
         return ResponseEntity.ok(queryService.impactAnalysis(table));

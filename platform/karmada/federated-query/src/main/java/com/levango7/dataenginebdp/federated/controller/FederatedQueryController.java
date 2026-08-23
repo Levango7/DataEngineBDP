@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -40,6 +41,7 @@ public class FederatedQueryController {
      *
      * <p>POST /api/v1/federated/query
      */
+    @Operation(summary = "提交跨集群查询（异步）")
     @PostMapping("/query")
     public CompletableFuture<ResponseEntity<FederatedQueryResponse>> query(@Valid @RequestBody FederatedQueryRequest request) {
         log.info("Federated query submitted: sql={} database={}", abbreviate(request.getSql()), request.getDatabase());
@@ -52,6 +54,7 @@ public class FederatedQueryController {
      *
      * <p>POST /api/v1/federated/query/sync
      */
+    @Operation(summary = "同步跨集群查询")
     @PostMapping("/query/sync")
     public ResponseEntity<FederatedQueryResponse> querySync(@Valid @RequestBody FederatedQueryRequest request) {
         log.info("Federated sync query: sql={} database={}", abbreviate(request.getSql()), request.getDatabase());
@@ -63,6 +66,7 @@ public class FederatedQueryController {
      *
      * <p>GET /api/v1/federated/health
      */
+    @Operation(summary = "联邦健康检查")
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         return ResponseEntity.ok(Map.of(
@@ -77,6 +81,7 @@ public class FederatedQueryController {
      *
      * <p>GET /api/v1/federated/clusters
      */
+    @Operation(summary = "列出已知集群")
     @GetMapping("/clusters")
     public ResponseEntity<Map<String, Object>> clusters() {
         List<Map<String, Object>> list = service.listClusters();
@@ -90,6 +95,7 @@ public class FederatedQueryController {
      *
      * <p>GET /api/v1/federated/degradations
      */
+    @Operation(summary = "列出降级告警事件")
     @GetMapping("/degradations")
     public ResponseEntity<Map<String, Object>> degradations(@RequestParam(defaultValue = "100") int limit) {
         List<DegradationAlert> alerts = service.listDegradeAlerts(limit);

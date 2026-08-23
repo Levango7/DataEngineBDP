@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -49,6 +50,7 @@ public class SchedulingController {
      * @param policy 调度策略
      * @return 注册后的策略
      */
+    @Operation(summary = "创建/注册调度策略")
     @PostMapping("/policies")
     public ResponseEntity<Map<String, Object>> createPolicy(@Valid @RequestBody SchedulingPolicy policy) {
         log.info("Create scheduling policy: name={}, types={}", policy.getName(), policy.getPolicyTypes());
@@ -64,6 +66,7 @@ public class SchedulingController {
      *
      * <p>GET /api/v1/federated/scheduling/policies
      */
+    @Operation(summary = "列出所有调度策略")
     @GetMapping("/policies")
     public ResponseEntity<Map<String, Object>> listPolicies() {
         List<SchedulingPolicy> policies = scheduler.listPolicies();
@@ -81,6 +84,7 @@ public class SchedulingController {
      * @param input 调度输入
      * @return 调度决策
      */
+    @Operation(summary = "执行调度决策")
     @PostMapping("/decide")
     public ResponseEntity<Map<String, Object>> decide(@Valid @RequestBody FederatedScheduler.SchedulingInput input) {
         log.info("Scheduling decide: workload={}, replicas={}, candidates={}",
@@ -102,6 +106,7 @@ public class SchedulingController {
      * @param clusters 集群名列表（逗号分隔，可选）
      * @return region → zone → cluster names
      */
+    @Operation(summary = "获取集群拓扑视图")
     @GetMapping("/topology")
     public ResponseEntity<Map<String, Object>> topology(
             @RequestParam(name = "clusters", required = false) String clusters) {
@@ -118,6 +123,7 @@ public class SchedulingController {
      *
      * <p>GET /api/v1/federated/scheduling/decisions
      */
+    @Operation(summary = "列出调度决策历史")
     @GetMapping("/decisions")
     public ResponseEntity<Map<String, Object>> decisions(
             @RequestParam(name = "limit", defaultValue = "100") int limit) {
@@ -136,6 +142,7 @@ public class SchedulingController {
      * @param request 包含 policyName
      * @return PropagationPolicy YAML
      */
+    @Operation(summary = "生成 PropagationPolicy YAML")
     @PostMapping("/propagation-policy")
     public ResponseEntity<Map<String, Object>> generatePropagationPolicy(
             @RequestBody Map<String, String> request) {

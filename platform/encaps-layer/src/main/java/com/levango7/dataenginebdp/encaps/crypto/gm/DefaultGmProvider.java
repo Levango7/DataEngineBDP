@@ -39,6 +39,15 @@ public class DefaultGmProvider implements CryptoProvider {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultGmProvider.class);
 
+    static {
+        // 启动时输出醒目警告，确保运维知晓国密占位实现不满足合规要求
+        log.warn("╔══════════════════════════════════════════════════════════════════╗");
+        log.warn("║ ⚠️  DefaultGmProvider 使用 RSA/AES/SHA-256 冒充 SM2/SM3/SM4      ║");
+        log.warn("║    不具备国密合规资质，不满足等保/密评要求                        ║");
+        log.warn("║    信创合规场景必须替换为 BC-SM 等认证实现                        ║");
+        log.warn("╚══════════════════════════════════════════════════════════════════╝");
+    }
+
     private static final String PROVIDER_NAME = "GM-Provider";
     private static final String DIGEST_ALGORITHM = "SHA-256";
     private static final String SIGN_ALGORITHM = "SHA256withRSA";

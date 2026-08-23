@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -39,6 +40,7 @@ public class MeteringController {
      * @param request 计量请求
      * @return 201（首次落库）或 200（已存在幂等跳过）
      */
+    @Operation(summary = "接收单条查询计量")
     @PostMapping("/query")
     @Transactional
     public ResponseEntity<Map<String, Object>> recordQuery(@Valid @RequestBody QueryMeteringRequest request) {

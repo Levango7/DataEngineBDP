@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -47,6 +48,7 @@ public class JobController {
     }
 
     /** 列表（分页契约 + workspace 过滤）。 */
+    @Operation(summary = "列表（分页契约 + workspace 过滤）")
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(required = false) String workspaceId,
@@ -62,6 +64,7 @@ public class JobController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询作业详情")
     @GetMapping("/{id}")
     public ResponseEntity<?> get(@PathVariable Long id) {
         return jobService.get(id)
@@ -70,6 +73,7 @@ public class JobController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建作业")
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody JobRequest req) {
         JobEntity job = JobEntity.builder()
@@ -84,6 +88,7 @@ public class JobController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新作业")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody JobRequest req) {
         JobEntity patch = JobEntity.builder()
@@ -99,6 +104,7 @@ public class JobController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除作业")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (jobService.delete(id)) {
@@ -108,6 +114,7 @@ public class JobController {
     }
 
     /** 运行（转 DAG 提交）。 */
+    @Operation(summary = "运行（转 DAG 提交）")
     @PostMapping("/{id}/run")
     public ResponseEntity<?> run(@PathVariable Long id) {
         return jobService.run(id)
@@ -125,6 +132,7 @@ public class JobController {
      * @param id 作业 ID
      * @return 200 若已取消；404 若不存在
      */
+    @Operation(summary = "取消作业")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id) {
         if (jobService.cancel(id)) {
@@ -144,6 +152,7 @@ public class JobController {
      * @param id 作业 ID
      * @return 200 + 日志文本
      */
+    @Operation(summary = "获取作业运行日志")
     @GetMapping("/{id}/logs")
     public ResponseEntity<String> logs(@PathVariable Long id) {
         log.info("查询作业日志: id={}", id);
@@ -159,6 +168,7 @@ public class JobController {
      * @param id 作业 ID
      * @return 200 + 状态对象；404 若不存在
      */
+    @Operation(summary = "查询作业当前状态")
     @GetMapping("/{id}/status")
     public ResponseEntity<?> status(@PathVariable Long id) {
         java.util.Map<String, Object> status = jobLogService.getJobStatus(id);

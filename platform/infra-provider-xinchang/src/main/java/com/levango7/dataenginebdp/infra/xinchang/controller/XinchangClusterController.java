@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -61,6 +62,7 @@ public class XinchangClusterController {
      * @param request 创建请求（含节点规格、K8s 版本、网段等）
      * @return 集群信息（201 Created）
      */
+    @Operation(summary = "创建信创集群")
     @PostMapping
     public ResponseEntity<ClusterInfo> createCluster(@Valid @RequestBody ClusterCreateRequest request) {
         // JWT 注入的 tenantId 覆盖请求体中的 tenantId，防止越权
@@ -79,6 +81,7 @@ public class XinchangClusterController {
      * @param clusterId 集群 ID
      * @return 集群信息（DESTROYED）
      */
+    @Operation(summary = "销毁信创集群")
     @DeleteMapping("/{clusterId}")
     public ResponseEntity<ClusterInfo> destroyCluster(@PathVariable String clusterId) {
         String tenantId = TenantContext.getTenantId();
@@ -93,6 +96,7 @@ public class XinchangClusterController {
      * @param clusterId 集群 ID
      * @return 集群信息
      */
+    @Operation(summary = "查询信创集群状态")
     @GetMapping("/{clusterId}")
     public ResponseEntity<ClusterInfo> getClusterInfo(@PathVariable String clusterId) {
         String tenantId = TenantContext.getTenantId();
@@ -108,6 +112,7 @@ public class XinchangClusterController {
      * @param request   扩缩容请求
      * @return 集群信息
      */
+    @Operation(summary = "扩缩容信创集群")
     @PostMapping("/{clusterId}/scale")
     public ResponseEntity<ClusterInfo> scaleCluster(@PathVariable String clusterId,
                                                     @Valid @RequestBody ClusterScaleRequest request) {
@@ -122,6 +127,7 @@ public class XinchangClusterController {
      *
      * @return 集群列表
      */
+    @Operation(summary = "列出当前租户的全部信创集群")
     @GetMapping
     public ResponseEntity<List<ClusterInfo>> listClusters() {
         String tenantId = TenantContext.getTenantId();

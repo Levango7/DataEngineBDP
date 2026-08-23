@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -41,6 +42,7 @@ public class TenantController {
         this.tenantService = tenantService;
     }
 
+    @Operation(summary = "创建租户")
     @AuditLog(action = "CREATE_TENANT", resource = "tenant")
     @PostMapping
     public ResponseEntity<Tenant> create(@Valid @RequestBody Tenant tenant) {
@@ -48,6 +50,7 @@ public class TenantController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
+    @Operation(summary = "查询租户列表")
     @GetMapping
     public ResponseEntity<List<Tenant>> list() {
         return ResponseEntity.ok(tenantService.list());
@@ -60,11 +63,13 @@ public class TenantController {
      *
      * @return 200 + 全部租户列表
      */
+    @Operation(summary = "列出全部租户（不分页，用于前端下拉选择）")
     @GetMapping("/all")
     public ResponseEntity<List<Tenant>> listAll() {
         return ResponseEntity.ok(tenantService.list());
     }
 
+    @Operation(summary = "查询租户详情")
     @GetMapping("/{id}")
     public ResponseEntity<Tenant> get(@PathVariable Long id) {
         return tenantService.get(id)
@@ -72,6 +77,7 @@ public class TenantController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "更新租户")
     @AuditLog(action = "UPDATE_TENANT", resource = "tenant")
     @PutMapping("/{id}")
     public ResponseEntity<Tenant> update(@PathVariable Long id,
@@ -81,6 +87,7 @@ public class TenantController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @Operation(summary = "删除租户")
     @AuditLog(action = "DELETE_TENANT", resource = "tenant")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {

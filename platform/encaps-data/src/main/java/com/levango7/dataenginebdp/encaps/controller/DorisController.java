@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -44,6 +45,7 @@ public class DorisController {
     private final DorisClient dorisClient;
 
     /** Doris 节点列表。 */
+    @Operation(summary = "Doris 节点列表")
     @GetMapping("/nodes")
     public ResponseEntity<?> listNodes() {
         log.info("列出 Doris 节点: tenant={}", TenantContext.getTenantId());
@@ -57,6 +59,7 @@ public class DorisController {
     }
 
     /** 数据库列表。 */
+    @Operation(summary = "查询Doris列表")
     @GetMapping("/databases")
     public ResponseEntity<?> listDatabases() {
         log.info("列出 Doris 数据库: tenant={}", TenantContext.getTenantId());
@@ -70,6 +73,7 @@ public class DorisController {
     }
 
     /** 表列表（query 参数指定数据库，任务要求）。 */
+    @Operation(summary = "表列表（query 参数指定数据库，任务要求）")
     @GetMapping("/tables")
     public ResponseEntity<?> listTables(@RequestParam String database) {
         log.info("列出 Doris 表: db={}, tenant={}", database, TenantContext.getTenantId());
@@ -83,6 +87,7 @@ public class DorisController {
     }
 
     /** 指定数据库下的表列表（路径参数，前端用）。 */
+    @Operation(summary = "指定数据库下的表列表（路径参数，前端用）")
     @GetMapping("/databases/{db}/tables")
     public ResponseEntity<?> listTablesByDb(@PathVariable String db) {
         log.info("列出 Doris 表: db={}, tenant={}", db, TenantContext.getTenantId());
@@ -100,6 +105,7 @@ public class DorisController {
     }
 
     /** 执行 SQL 查询（仅允许 SELECT/SHOW/DESCRIBE/EXPLAIN）。 */
+    @Operation(summary = "执行Doris")
     @PostMapping("/query")
     public ResponseEntity<?> executeQuery(@RequestBody QueryRequest req) {
         log.info("执行 Doris SQL: tenant={}", TenantContext.getTenantId());
@@ -131,6 +137,7 @@ public class DorisController {
     }
 
     /** 查询记录（前端用，Doris 暂未提供查询历史接口，返回空列表）。 */
+    @Operation(summary = "查询记录（前端用，Doris 暂未提供查询历史接口，返回空列表）")
     @GetMapping("/queries")
     public ResponseEntity<List<Map<String, Object>>> listQueries() {
         log.info("列出 Doris 查询: tenant={}", TenantContext.getTenantId());

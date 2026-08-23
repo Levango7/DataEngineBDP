@@ -460,15 +460,14 @@ jobs:
             echo "============================================"
             echo "  Trivy 扫描镜像: $short"
             echo "============================================"
-            # SARIF 格式（上传 GitHub Security tab）
-            trivy image --exit-code 0 --format sarif \
+            # SARIF 格式（上传 GitHub Security tab）——门禁：发现 HIGH/CRITICAL 漏洞时 exit 1 阻断流水线
+            trivy image --exit-code 1 --format sarif \
               --output "reports/trivy/${short}-vuln.sarif" \
               --scanners vuln --severity HIGH,CRITICAL \
               --ignore-unfixed \
-              "$img" 2>/dev/null \
-              && echo "✓ ${short} SARIF 报告生成" \
-              || echo "::warning::${short} SARIF 扫描失败"
-            # JSON 格式（详细报告，含修复建议）
+              "$img" 2>/dev/null
+            echo "✓ ${short} SARIF 报告生成"
+            # JSON 格式（详细报告，含修复建议）——不阻断：exit-code 0 仅生成报告，门禁已由 SARIF 步骤承担
             trivy image --exit-code 0 --format json \
               --output "reports/trivy/${short}-vuln.json" \
               --scanners vuln --severity HIGH,CRITICAL \

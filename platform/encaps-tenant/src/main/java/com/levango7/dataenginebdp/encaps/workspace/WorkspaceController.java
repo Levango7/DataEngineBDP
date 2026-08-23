@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -53,6 +54,7 @@ public class WorkspaceController {
      * @param workspace 创建请求体
      * @return 201 + 已创建的 Workspace
      */
+    @Operation(summary = "创建 Workspace")
     @AuditLog(action = "CREATE_WORKSPACE", resource = "workspace")
     @PostMapping
     public ResponseEntity<Workspace> create(@Valid @RequestBody Workspace workspace) {
@@ -71,6 +73,7 @@ public class WorkspaceController {
      * @param size     每页大小
      * @return 200 + 分页 Workspace 列表
      */
+    @Operation(summary = "列出 Workspace，可选按租户 ID 过滤")
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(required = false) Long tenantId,
@@ -97,6 +100,7 @@ public class WorkspaceController {
      * @param tenantId 租户 ID（可选）
      * @return 200 + 全部 Workspace 列表
      */
+    @Operation(summary = "列出全部 Workspace（不分页，用于前端下拉选择）")
     @GetMapping("/all")
     public ResponseEntity<List<Workspace>> listAll(@RequestParam(required = false) Long tenantId) {
         return ResponseEntity.ok(workspaceService.listWorkspaces(tenantId));
@@ -108,6 +112,7 @@ public class WorkspaceController {
      * @param id Workspace ID
      * @return 200 + Workspace；404 若不存在
      */
+    @Operation(summary = "获取单个 Workspace 详情")
     @GetMapping("/{id}")
     public ResponseEntity<Workspace> get(@PathVariable Long id) {
         return workspaceService.getWorkspace(id)
@@ -122,6 +127,7 @@ public class WorkspaceController {
      * @param workspace 新字段值
      * @return 200 + 更新后的 Workspace；404 若不存在
      */
+    @Operation(summary = "更新 Workspace（仅可变字段）")
     @AuditLog(action = "UPDATE_WORKSPACE", resource = "workspace")
     @PutMapping("/{id}")
     public ResponseEntity<Workspace> update(@PathVariable Long id,
@@ -137,6 +143,7 @@ public class WorkspaceController {
      * @param id Workspace ID
      * @return 204 若已删除；404 若不存在
      */
+    @Operation(summary = "删除工作空间")
     @AuditLog(action = "DELETE_WORKSPACE", resource = "workspace")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
@@ -152,6 +159,7 @@ public class WorkspaceController {
      * @param id Workspace ID
      * @return 200 + {@code {"status": "Active"|"Terminating"|"NotFound"}}
      */
+    @Operation(summary = "查询 Workspace 对应 K8s Namespace 的实时状态")
     @GetMapping("/{id}/status")
     public ResponseEntity<Map<String, String>> status(@PathVariable Long id) {
         String k8sStatus = workspaceService.getK8sStatus(id);

@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -61,6 +62,7 @@ public class AgentController {
      * @param request 执行请求
      * @return 执行结果
      */
+    @Operation(summary = "执行指定角色 Agent")
     @PostMapping("/{role}/execute")
     public ResponseEntity<AgentResult> execute(
             @PathVariable("role") String roleStr,
@@ -108,6 +110,7 @@ public class AgentController {
      *
      * @return 角色名列表
      */
+    @Operation(summary = "列出所有可用角色")
     @GetMapping
     public ResponseEntity<List<String>> listRoles() {
         Set<Agent.Role> roles = agentService.listRoles();
@@ -120,6 +123,7 @@ public class AgentController {
      *
      * @return 角色 → 元数据
      */
+    @Operation(summary = "查询所有智能体角色元数据")
     @GetMapping("/describe")
     public ResponseEntity<Map<Agent.Role, Map<String, Object>>> describeAll() {
         return ResponseEntity.ok(agentService.describe());
@@ -131,6 +135,7 @@ public class AgentController {
      * @param roleStr 角色名
      * @return 元数据；未知角色返回 404
      */
+    @Operation(summary = "描述单个角色元数据")
     @GetMapping("/{role}/describe")
     public ResponseEntity<?> describeOne(@PathVariable("role") String roleStr) {
         Agent.Role role = parseRole(roleStr);

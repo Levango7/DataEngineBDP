@@ -151,6 +151,7 @@ public class StandardController {
      */
     @Operation(summary = "查询落标率统计", description = "统计当前租户标准的落标率"
             + "（已落标数 / 总数 × 100，关联来自资产 fullJson.standardId）")
+    @Operation(summary = "查询标准")
     @GetMapping("/summary")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> summary() {

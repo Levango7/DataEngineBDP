@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.math.BigDecimal;
@@ -48,6 +49,7 @@ public class DashboardController {
     /**
      * Top10 成本资源。
      */
+    @Operation(summary = "Top10 成本资源")
     @GetMapping("/top10")
     public ResponseEntity<DashboardResponse<TopCostResource>> top10(
             @RequestParam(required = false) String namespace,
@@ -76,6 +78,7 @@ public class DashboardController {
     /**
      * 成本趋势。
      */
+    @Operation(summary = "成本趋势仪表盘")
     @GetMapping("/trend")
     public ResponseEntity<DashboardResponse<CostTrendPoint>> trend(
             @RequestParam(required = false) String namespace,
@@ -105,6 +108,7 @@ public class DashboardController {
     /**
      * 成本明细。
      */
+    @Operation(summary = "成本明细仪表盘")
     @GetMapping("/details")
     public ResponseEntity<DashboardResponse<ResourceCostDetail>> details(
             @RequestParam(required = false) String namespace,

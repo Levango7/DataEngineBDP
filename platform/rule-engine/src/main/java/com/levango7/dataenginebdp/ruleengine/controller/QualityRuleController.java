@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -50,6 +51,7 @@ public class QualityRuleController {
     }
 
     /** 列表（分页契约，对齐前端 PagedResult）。 */
+    @Operation(summary = "列表（分页契约，对齐前端 PagedResult）")
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") int page,
@@ -67,6 +69,7 @@ public class QualityRuleController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询质量详情")
     @GetMapping("/{id}")
     public ResponseEntity<?> get(@PathVariable Long id) {
         Rule rule = ruleService.getById(id);
@@ -77,6 +80,7 @@ public class QualityRuleController {
     }
 
     /** 创建（映射到 Rule 模型）。 */
+    @Operation(summary = "创建（映射到 Rule 模型）")
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody QualityRuleRequest req) {
         Rule rule = toRule(req);
@@ -86,6 +90,7 @@ public class QualityRuleController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新质量")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody QualityRuleRequest req) {
         Rule existing = ruleService.getById(id);
@@ -98,6 +103,7 @@ public class QualityRuleController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除质量")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (ruleService.delete(id)) {
@@ -116,6 +122,7 @@ public class QualityRuleController {
      * @param id 规则 ID
      * @return 200 + 规则视图（含校验结果）；404 若不存在
      */
+    @Operation(summary = "立即触发规则校验")
     @PostMapping("/{id}/check")
     public ResponseEntity<?> check(@PathVariable Long id) {
         Rule rule = ruleService.getById(id);
@@ -140,6 +147,7 @@ public class QualityRuleController {
      *
      * @return 200 + 通过率统计
      */
+    @Operation(summary = "查询通过率统计")
     @GetMapping("/summary")
     public ResponseEntity<Map<String, Object>> summary() {
         List<Rule> all = ruleService.listAll();

@@ -3,34 +3,50 @@ package middleware
 // HTTP 中间件：认证、日志、CORS。
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
 // JWT 配置（与各组件保持一致）。
+//
+// 安全策略：JWT_SECRET 必须显式配置，缺失则 fail-fast 退出，
+// 避免因遗漏环境变量而使用弱密钥（与 observability/query-api 保持一致）。
+// 使用 sync.Once 延迟初始化，允许包被导入（如测试）而不立即退出，
+// 首次调用 AuthMiddleware 时才校验环境变量。
 var (
-	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-	jwtIssuer = os.Getenv("JWT_ISSUER")
+	jwtSecret []byte
+	jwtIssuer string
+	jwtOnce   sync.Once
 )
 
-func init() {
-	// 默认值（与 docker 测试 conftest 保持一致）。
-	if len(jwtSecret) == 0 {
-		jwtSecret = []byte("dev-secret-key-change-in-production-at-least-256-bits")
-	}
-	if jwtIssuer == "" {
-		jwtIssuer = "shuqing-bigdata"
-	}
+func ensureJWTConfig() {
+	jwtOnce.Do(func() {
+		secret := os.Getenv("JWT_SECRET")
+		if len(secret) == 0 {
+			log.Fatalf("FATAL: environment variable JWT_SECRET is required (at least 32 bytes)")
+		}
+		if len(secret) < 32 {
+			log.Fatalf("FATAL: JWT_SECRET must be at least 32 bytes, got %d", len(secret))
+		}
+		jwtSecret = []byte(secret)
+		jwtIssuer = os.Getenv("JWT_ISSUER")
+		if jwtIssuer == "" {
+			jwtIssuer = "shuqing-bigdata"
+		}
+	})
 }
 
 // AuthMiddleware JWT 认证中间件。
 //
 // 校验 Authorization: Bearer <token> 头，解析 JWT 并将 tenantId 注入 context。
 func AuthMiddleware() gin.HandlerFunc {
+	ensureJWTConfig()
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -94,9 +110,37 @@ func LoggingMiddleware() gin.HandlerFunc {
 }
 
 // CorsMiddleware CORS 中间件。
+//
+// 收敛策略：从环境变量 CORS_ALLOWED_ORIGINS 读取允许的来源，
+// 支持单域或逗号分隔多域。生产环境必须显式配置具体域名，禁止使用通配符 "*"。
+// 当请求 Origin 命中白名单时回写 Access-Control-Allow-Origin；
+// 未配置或未命中时不回写该头，浏览器将拒绝跨域请求（fail-secure）。
+//
+// 环境变量：
+//   - CORS_ALLOWED_ORIGINS: 允许的来源列表，逗号分隔，默认空（拒绝所有跨域）。
+//     示例：https://console.shuqing.example.com,https://ops.shuqing.example.com
 func CorsMiddleware() gin.HandlerFunc {
+	raw := os.Getenv("CORS_ALLOWED_ORIGINS")
+	allowed := make(map[string]struct{}, 4)
+	if raw != "" {
+		for _, o := range strings.Split(raw, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				allowed[o] = struct{}{}
+			}
+		}
+	}
+
 	return func(c *gin.Context) {
-		c.Header("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+		if origin != "" {
+			if _, ok := allowed[origin]; ok {
+				c.Header("Access-Control-Allow-Origin", origin)
+				c.Header("Vary", "Origin")
+			}
+			// 未命中白名单时不回写 Access-Control-Allow-Origin，
+			// 浏览器将拒绝跨域请求，实现 fail-secure。
+		}
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		c.Header("Access-Control-Allow-Headers", "Authorization, Content-Type")
 

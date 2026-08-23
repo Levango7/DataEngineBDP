@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Collection;
@@ -71,6 +72,7 @@ public class SchedulerController {
     // ==================== 任务 API ====================
 
     /** 提交调度任务 */
+    @Operation(summary = "提交调度任务")
     @PostMapping("/tasks")
     public ResponseEntity<TaskSubmitResponse> submitTask(@RequestBody TaskSubmitRequest request) {
         SchedulerTask task = SchedulerTask.builder()
@@ -96,6 +98,7 @@ public class SchedulerController {
     }
 
     /** 查询单个任务 */
+    @Operation(summary = "查询单个任务")
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity<?> getTask(@PathVariable String taskId) {
         SchedulerTask task = schedulerService.getTask(taskId);
@@ -107,6 +110,7 @@ public class SchedulerController {
     }
 
     /** 列出全部任务 */
+    @Operation(summary = "列出全部任务")
     @GetMapping("/tasks")
     public ResponseEntity<List<TaskStatusResponse>> listTasks() {
         List<TaskStatusResponse> list = schedulerService.listTasks().stream()
@@ -116,6 +120,7 @@ public class SchedulerController {
     }
 
     /** 取消任务 */
+    @Operation(summary = "取消调度器")
     @DeleteMapping("/tasks/{taskId}")
     public ResponseEntity<?> cancelTask(@PathVariable String taskId) {
         boolean cancelled = schedulerService.cancel(taskId);
@@ -130,6 +135,7 @@ public class SchedulerController {
     // ==================== 调度器状态 ====================
 
     /** 查询调度引擎运行状态 */
+    @Operation(summary = "查询调度引擎运行状态")
     @GetMapping("/status")
     public ResponseEntity<SchedulerStatusResponse> status() {
         SchedulerStatusResponse resp = SchedulerStatusResponse.builder()
@@ -148,6 +154,7 @@ public class SchedulerController {
     // ==================== 租户管理 ====================
 
     /** 注册/更新租户 */
+    @Operation(summary = "注册/更新租户")
     @PostMapping("/tenants")
     public ResponseEntity<TenantInfo> registerTenant(@RequestBody Map<String, Object> body) {
         String tenantId = (String) body.get("tenantId");
@@ -166,12 +173,14 @@ public class SchedulerController {
     }
 
     /** 列出全部租户 */
+    @Operation(summary = "列出全部租户")
     @GetMapping("/tenants")
     public ResponseEntity<Collection<TenantInfo>> listTenants() {
         return ResponseEntity.ok(tenantManager.listAll());
     }
 
     /** 启用/禁用租户 */
+    @Operation(summary = "启用/禁用租户")
     @PutMapping("/tenants/{tenantId}/enabled")
     public ResponseEntity<?> setTenantEnabled(@PathVariable String tenantId,
                                               @RequestParam boolean enabled) {
@@ -186,12 +195,14 @@ public class SchedulerController {
     // ==================== 资源配额管理 ====================
 
     /** 列出全部资源配额 */
+    @Operation(summary = "列出全部资源配额")
     @GetMapping("/quotas")
     public ResponseEntity<Collection<ResourceQuota>> listQuotas() {
         return ResponseEntity.ok(resourceAllocator.listAll());
     }
 
     /** 设置租户资源配额 */
+    @Operation(summary = "设置租户资源配额")
     @PutMapping("/quotas/{tenantId}")
     public ResponseEntity<ResourceQuota> setQuota(@PathVariable String tenantId,
                                                   @RequestBody Map<String, Object> body) {

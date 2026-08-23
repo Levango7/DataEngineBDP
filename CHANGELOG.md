@@ -23,6 +23,10 @@
 - **K8s翻译边界**：createNamespace空/非法校验（add2030）
 - **前端状态残留**：工作空间切换watch重载（add2030）
 - **开发环境**：vite bind 127.0.0.1修复IPv6问题、Windows原生启动脚本、RestTemplate超时修复
+- **P2/P3文档勘误**：README技术栈版本修正（Spring Boot 4.1→3.2.6、Go 1.26→1.25），模块数统一为37个（原36/32不一致），Helm Chart数修正（81→87个）
+- **P2文档矛盾**：docs/README.md、docs/development-guide.md、docs/deployment-guide.md中模块数与Helm Chart数对齐实际值
+- **P2 gitignore完善**：补充.env/.env.*环境变量文件忽略规则，防止敏感配置入库
+- **P2构建产物审计**：确认git索引中无target/、.coverage、*.log等构建产物入库
 
 ## [2.0.0] - 2026-08-08
 

@@ -45,10 +45,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 8080
 
-# 默认 Mock 模式；生产通过环境变量切换到 mlflow
+# ⚠️ LLMOPS_STORE_TYPE 必须由部署环境通过 -e 或 docker-compose 注入
+# 不设默认值：未配置时应用应 fail-fast 而非静默降级为 mock
 ENV LLMOPS_HOST=0.0.0.0 \
     LLMOPS_PORT=8080 \
-    LLMOPS_LOG_LEVEL=info \
-    LLMOPS_STORE_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为mlflow
+    LLMOPS_LOG_LEVEL=info
 
 CMD ["python", "main.py"]

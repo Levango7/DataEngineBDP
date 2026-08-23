@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -52,6 +53,7 @@ public class CapacityController {
      * @param service 服务名
      * @return 容量预测结果
      */
+    @Operation(summary = "预测单个服务容量需求")
     @GetMapping("/forecast/{service}")
     public ResponseEntity<CapacityForecast> forecast(@PathVariable String service) {
         log.info("API 调用: 容量预测服务[{}]", service);
@@ -69,6 +71,7 @@ public class CapacityController {
      *
      * @return 预测结果列表
      */
+    @Operation(summary = "批量预测所有目标服务")
     @GetMapping("/forecast")
     public ResponseEntity<List<CapacityForecast>> forecastAll() {
         log.info("API 调用: 批量容量预测 {} 个服务", config.getTargetServices().size());
@@ -84,6 +87,7 @@ public class CapacityController {
      * @param service 可选服务名过滤
      * @return 预警列表
      */
+    @Operation(summary = "查询所有扩容预警")
     @GetMapping("/alerts")
     public ResponseEntity<List<CapacityAlert>> alerts(
             @RequestParam(required = false) String service) {
@@ -107,6 +111,7 @@ public class CapacityController {
      * @param service 服务名
      * @return 预警列表
      */
+    @Operation(summary = "查询单个服务扩容预警")
     @GetMapping("/alerts/{service}")
     public ResponseEntity<List<CapacityAlert>> alertsByService(@PathVariable String service) {
         log.info("API 调用: 查询服务[{}]扩容预警", service);
@@ -122,6 +127,7 @@ public class CapacityController {
      *
      * @return 配置信息
      */
+    @Operation(summary = "查询容量规划配置")
     @GetMapping("/config")
     public ResponseEntity<Map<String, Object>> config() {
         return ResponseEntity.ok(Map.of(

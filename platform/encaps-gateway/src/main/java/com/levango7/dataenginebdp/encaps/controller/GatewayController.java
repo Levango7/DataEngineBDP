@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,7 @@ public class GatewayController {
     private static final SecureRandom RNG = new SecureRandom();
 
     /** 网关调用统计。 */
+    @Operation(summary = "网关调用统计")
     @GetMapping("/stats")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> getStats() {
@@ -68,6 +70,7 @@ public class GatewayController {
     }
 
     /** API 密钥列表。 */
+    @Operation(summary = "API 密钥列表")
     @GetMapping("/keys")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listApiKeys() {
@@ -87,6 +90,7 @@ public class GatewayController {
     }
 
     /** 创建 API Key。secret 仅本次响应返回，之后不再泄露。 */
+    @Operation(summary = "创建 API Key。secret 仅本次响应返回，之后不再泄露")
     @PostMapping("/keys")
     @Transactional
     public ResponseEntity<Map<String, Object>> createApiKey(@RequestBody CreateKeyRequest req) {
@@ -127,6 +131,7 @@ public class GatewayController {
     }
 
     /** 更新 API Key。 */
+    @Operation(summary = "更新 API Key")
     @PutMapping("/keys/{id}")
     @Transactional
     public ResponseEntity<?> updateApiKey(@PathVariable Long id,
@@ -156,6 +161,7 @@ public class GatewayController {
     }
 
     /** 删除 API Key。 */
+    @Operation(summary = "删除 API Key")
     @DeleteMapping("/keys/{id}")
     @Transactional
     public ResponseEntity<?> deleteApiKey(@PathVariable Long id) {

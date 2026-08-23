@@ -6,6 +6,7 @@ package middleware
 import (
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -163,9 +164,34 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 }
 
 // CORSMiddleware 跨域中间件
+//
+// 收敛策略：从环境变量 CORS_ALLOWED_ORIGINS 读取允许的来源，
+// 支持单域或逗号分隔多域。生产环境必须显式配置具体域名，禁止使用通配符 "*"。
+// 当请求 Origin 命中白名单时回写 Access-Control-Allow-Origin；
+// 未配置或未命中时不回写该头，浏览器将拒绝跨域请求（fail-secure）。
+//
+// 环境变量：
+//   - CORS_ALLOWED_ORIGINS: 允许的来源列表，逗号分隔，默认空（拒绝所有跨域）。
 func CORSMiddleware() gin.HandlerFunc {
+	raw := os.Getenv("CORS_ALLOWED_ORIGINS")
+	allowed := make(map[string]struct{}, 4)
+	if raw != "" {
+		for _, o := range strings.Split(raw, ",") {
+			o = strings.TrimSpace(o)
+			if o != "" {
+				allowed[o] = struct{}{}
+			}
+		}
+	}
+
 	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := c.GetHeader("Origin")
+		if origin != "" {
+			if _, ok := allowed[origin]; ok {
+				c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+				c.Writer.Header().Set("Vary", "Origin")
+			}
+		}
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, PATCH")
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
 		c.Writer.Header().Set("Access-Control-Max-Age", "86400")

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -44,6 +45,7 @@ public class ProfileController {
      * @param userId 用户 ID
      * @return 用户画像
      */
+    @Operation(summary = "获取单用户画像")
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfile> getProfile(@PathVariable String userId) {
         UserProfile profile = profileService.getProfile(userId);
@@ -59,6 +61,7 @@ public class ProfileController {
      * @param query 标签查询条件
      * @return 命中用户画像列表
      */
+    @Operation(summary = "按标签条件查询用户列表")
     @PostMapping("/query")
     public ResponseEntity<List<UserProfile>> queryByTags(@RequestBody TagQuery query) {
         return ResponseEntity.ok(profileService.queryByTags(query));
@@ -70,6 +73,7 @@ public class ProfileController {
      * @param query 标签查询条件
      * @return 命中用户数
      */
+    @Operation(summary = "按标签条件统计人数")
     @PostMapping("/count")
     public ResponseEntity<CountResponse> countByTags(@RequestBody TagQuery query) {
         long count = profileService.countByTags(query);

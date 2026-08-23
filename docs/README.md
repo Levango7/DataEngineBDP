@@ -151,11 +151,11 @@
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
-| 自研组件 | `../platform/` | 32 个组件目录（约 1/3 真实实现，详见项目体检报告） |
+| 自研组件 | `../platform/` | 37 个组件目录（约 1/3 真实实现，详见项目体检报告） |
 | 前端 | `../frontend/` | Vue3 + TypeScript strict 前端工程 |
 | SKE 交付底座 | `../ske/` | kubeadm/kind 封装的 K8s 底座，详见 `../ske/README.md` |
 | 平台引导 | `../platform/bootstrap.sh` | 平台运行时引导脚本 |
-| Helm Chart | `../design/deploy/charts/` | 81 个 Helm Chart（80 骨架 + 1 完整） |
+| Helm Chart | `../design/deploy/charts/` | 87 个 Helm Chart（86 骨架 + 1 完整） |
 | 集成测试 | `../tests/integration/` | 43 个集成测试 |
 | PoC 脚本 | `../scripts/poc/` | 端到端 PoC 验证脚本 |
 | CI/CD | `../.github/workflows/` | GitHub Actions 工作流 |

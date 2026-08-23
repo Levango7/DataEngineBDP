@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -56,6 +57,7 @@ public class AllocationController {
     /**
      * 列出所有分账配置。
      */
+    @Operation(summary = "列出所有分账配置")
     @GetMapping("/configs")
     public ResponseEntity<List<AllocationConfig>> listConfigs() {
         return ResponseEntity.ok(allocationService.listConfigs());
@@ -64,6 +66,7 @@ public class AllocationController {
     /**
      * 获取指定分账配置。
      */
+    @Operation(summary = "获取指定分账配置")
     @GetMapping("/configs/{id}")
     public ResponseEntity<AllocationConfig> getConfig(@PathVariable String id) {
         return ResponseEntity.ok(allocationService.getConfig(id));
@@ -72,6 +75,7 @@ public class AllocationController {
     /**
      * 新建或更新分账配置。
      */
+    @Operation(summary = "新建或更新分账配置")
     @PostMapping("/configs")
     public ResponseEntity<AllocationConfig> saveConfig(@Valid @RequestBody AllocationConfig config) {
         log.info("保存分账配置: id={}, parent={}, dimension={}, ratios={}",
@@ -82,6 +86,7 @@ public class AllocationController {
     /**
      * 删除分账配置。
      */
+    @Operation(summary = "删除分账配置")
     @DeleteMapping("/configs/{id}")
     public ResponseEntity<Void> deleteConfig(@PathVariable String id) {
         allocationService.deleteConfig(id);
@@ -91,6 +96,7 @@ public class AllocationController {
     /**
      * 执行分账。
      */
+    @Operation(summary = "执行分摊")
     @GetMapping("/execute")
     public ResponseEntity<DashboardResponse<AllocationItem>> execute(
             @RequestParam String configId,

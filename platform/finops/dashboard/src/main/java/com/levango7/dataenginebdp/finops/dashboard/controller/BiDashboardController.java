@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -53,6 +54,7 @@ public class BiDashboardController {
     }
 
     /** 列表（分页契约 + 租户隔离）。 */
+    @Operation(summary = "列表（分页契约 + 租户隔离）")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> list(
@@ -72,6 +74,7 @@ public class BiDashboardController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询仪表盘详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -82,6 +85,7 @@ public class BiDashboardController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建仪表盘")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody DashboardRequest req) {
@@ -100,6 +104,7 @@ public class BiDashboardController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新仪表盘")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody DashboardRequest req) {
@@ -116,6 +121,7 @@ public class BiDashboardController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除仪表盘")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {
@@ -136,6 +142,7 @@ public class BiDashboardController {
      *
      * @return 200 + 实时指标列表
      */
+    @Operation(summary = "查询实时指标")
     @GetMapping("/realtime")
     public ResponseEntity<List<Map<String, Object>>> realtime() {
         String tenantId = TenantContext.getTenantId();

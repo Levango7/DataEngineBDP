@@ -72,6 +72,7 @@ public class AuthController {
     @AuditLog(action = "LOGIN", resource = "auth")
     @Operation(summary = "用户登录", description = "代理 Keycloak direct grant（password flow），"
             + "返回前端 LoginResult 契约（token/expiresIn/refreshToken/user）")
+    @Operation(summary = "登录认证")
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         try {

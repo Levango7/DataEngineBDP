@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -89,6 +90,7 @@ public class ClusterController {
      * @param request 创建请求
      * @return 供应结果（201 Created）
      */
+    @Operation(summary = "创建集群 - 统一入口")
     @PostMapping
     public ResponseEntity<SupplyResult> createCluster(@Valid @RequestBody ClusterCreateRequest request) {
         String tenantId = TenantContext.getTenantId();
@@ -111,6 +113,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 集群信息
      */
+    @Operation(summary = "销毁集群")
     @DeleteMapping("/{environment}/{clusterId}")
     public ResponseEntity<ClusterInfo> destroyCluster(@PathVariable String environment,
                                                       @PathVariable String clusterId) {
@@ -127,6 +130,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 集群信息
      */
+    @Operation(summary = "查询集群信息")
     @GetMapping("/{environment}/{clusterId}")
     public ResponseEntity<ClusterInfo> getClusterInfo(@PathVariable String environment,
                                                       @PathVariable String clusterId) {
@@ -144,6 +148,7 @@ public class ClusterController {
      * @param scaleReq    扩缩容请求
      * @return 集群信息
      */
+    @Operation(summary = "扩缩容集群")
     @PostMapping("/{environment}/{clusterId}/scale")
     public ResponseEntity<ClusterInfo> scaleCluster(@PathVariable String environment,
                                                     @PathVariable String clusterId,
@@ -161,6 +166,7 @@ public class ClusterController {
      * @param environment 环境类型字符串
      * @return 集群列表
      */
+    @Operation(summary = "列出指定环境的全部集群")
     @GetMapping("/{environment}")
     public ResponseEntity<List<ClusterInfo>> listClustersByEnvironment(@PathVariable String environment) {
         EnvironmentType env = EnvironmentType.fromString(environment);
@@ -174,6 +180,7 @@ public class ClusterController {
      *
      * @return 集群列表
      */
+    @Operation(summary = "列出所有集群（跨环境聚合）")
     @GetMapping
     public ResponseEntity<List<ClusterInfo>> listAllClusters() {
         log.info("GET /api/v1/clusters - listAllClusters");
@@ -186,6 +193,7 @@ public class ClusterController {
      *
      * @return Provider 描述符列表
      */
+    @Operation(summary = "列出已注册 Provider")
     @GetMapping("/providers")
     public ResponseEntity<Map<String, Object>> listProviders() {
         List<ProviderDescriptor> providers = providerRegistryService.listProviders();
@@ -200,6 +208,7 @@ public class ClusterController {
      *
      * @return 环境类型列表
      */
+    @Operation(summary = "列出支持的全部环境类型")
     @GetMapping("/environments")
     public ResponseEntity<Map<String, Object>> listEnvironments() {
         List<Map<String, String>> envs = java.util.Arrays.stream(EnvironmentType.values())
@@ -217,6 +226,7 @@ public class ClusterController {
      *
      * @return 环境 → 默认配置
      */
+    @Operation(summary = "查询环境默认配置Profile列表")
     @GetMapping("/profiles")
     public ResponseEntity<Map<EnvironmentType, EnvironmentProfile.ProfileDefaults>> listProfiles() {
         return ResponseEntity.ok(providerRegistryService.getEnvironmentProfile().allProfiles());
@@ -249,6 +259,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 200 + 网络配置（含 policies / services / ingresses 三列表）
      */
+    @Operation(summary = "获取集群网络配置")
     @GetMapping("/{environment}/{clusterId}/network")
     public ResponseEntity<Map<String, Object>> getNetworkConfig(@PathVariable String environment,
                                                                 @PathVariable String clusterId) {
@@ -286,6 +297,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 200 + StorageClass / PV / PVC 列表
      */
+    @Operation(summary = "获取集群存储配置")
     @GetMapping("/{environment}/{clusterId}/storage")
     public ResponseEntity<List<Map<String, Object>>> getStorage(@PathVariable String environment,
                                                                 @PathVariable String clusterId) {
@@ -303,6 +315,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 200 + StorageClass 列表
      */
+    @Operation(summary = "查询详情集群")
     @GetMapping("/{environment}/{clusterId}/storage/classes")
     public ResponseEntity<List<Map<String, Object>>> getStorageClasses(@PathVariable String environment,
                                                                        @PathVariable String clusterId) {
@@ -316,6 +329,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 200 + PVC 列表
      */
+    @Operation(summary = "获取集群 PVC 列表")
     @GetMapping("/{environment}/{clusterId}/storage/pvcs")
     public ResponseEntity<List<Map<String, Object>>> getPvcs(@PathVariable String environment,
                                                              @PathVariable String clusterId) {
@@ -332,6 +346,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 200 + PV 列表
      */
+    @Operation(summary = "获取集群 PV 列表")
     @GetMapping("/{environment}/{clusterId}/storage/pvs")
     public ResponseEntity<List<Map<String, Object>>> getPvs(@PathVariable String environment,
                                                             @PathVariable String clusterId) {
@@ -350,6 +365,7 @@ public class ClusterController {
      * @param clusterId   集群 ID
      * @return 200 + HPA 策略列表
      */
+    @Operation(summary = "获取集群 HPA 配置")
     @GetMapping("/{environment}/{clusterId}/hpa")
     public ResponseEntity<List<Map<String, Object>>> getHpa(@PathVariable String environment,
                                                             @PathVariable String clusterId) {

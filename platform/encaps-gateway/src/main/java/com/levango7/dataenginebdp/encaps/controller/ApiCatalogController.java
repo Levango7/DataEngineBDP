@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -52,6 +53,7 @@ public class ApiCatalogController {
     }
 
     /** 列表（分页契约 + category 过滤）。 */
+    @Operation(summary = "列表（分页契约 + category 过滤）")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> list(
@@ -74,6 +76,7 @@ public class ApiCatalogController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询API详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -84,6 +87,7 @@ public class ApiCatalogController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建API")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody ApiRequest req) {
@@ -107,6 +111,7 @@ public class ApiCatalogController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新API")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody ApiRequest req) {
@@ -129,6 +134,7 @@ public class ApiCatalogController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除API")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {

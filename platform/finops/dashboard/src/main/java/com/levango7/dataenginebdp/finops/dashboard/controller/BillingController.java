@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDate;
@@ -38,6 +39,7 @@ public class BillingController {
      * @param endDate   结束日期（yyyy-MM-dd，可空）
      * @return cost-model 透传响应
      */
+    @Operation(summary = "查询当前租户的查询计费账单")
     @GetMapping("/tenant")
     public ResponseEntity<?> tenantBilling(
             @RequestParam(required = false)
@@ -68,6 +70,7 @@ public class BillingController {
      * @param endDate   结束日期（yyyy-MM-dd，可空）
      * @return cost-model 透传响应（含 points）
      */
+    @Operation(summary = "查询当前租户的按日账单趋势（透传 cost-model）")
     @GetMapping("/tenant/trend")
     public ResponseEntity<?> tenantBillingTrend(
             @RequestParam(required = false)

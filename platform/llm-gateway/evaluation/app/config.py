@@ -51,7 +51,9 @@ class Settings:
     request_timeout: int = 30
 
     # 认证
-    jwt_secret: str = "dev-secret-key-change-in-production-at-least-256-bits"
+    # 安全策略：jwt_secret 默认空字符串，生产环境（dev_mode=False）必须通过
+    # JWT_SECRET 环境变量显式配置，缺失则 fail-fast 抛异常。
+    jwt_secret: str = ""
     jwt_issuer: str = "shuqing-bigdata"
     dev_mode: bool = False
 
@@ -70,14 +72,23 @@ class Settings:
             dataset_cache_dir=os.environ.get("DATASET_CACHE_DIR", "./.cache/datasets"),
             max_concurrency=int(os.environ.get("EVAL_MAX_CONCURRENCY", "4")),
             request_timeout=int(os.environ.get("EVAL_REQUEST_TIMEOUT", "30")),
-            jwt_secret=os.environ.get(
-                "JWT_SECRET",
-                "dev-secret-key-change-in-production-at-least-256-bits",
-            ),
+            jwt_secret=os.environ.get("JWT_SECRET", ""),
             jwt_issuer=os.environ.get("JWT_ISSUER", "shuqing-bigdata"),
             dev_mode=_env_bool("EVAL_DEV_MODE", False),
             token_price_per_1k=float(os.environ.get("TOKEN_PRICE_PER_1K", "0.01")),
         )
+
+    def validate(self) -> "Settings":
+        """校验配置安全性：非 dev_mode 下 jwt_secret 必须显式配置。"""
+        if not self.dev_mode and not self.jwt_secret:
+            raise RuntimeError(
+                "JWT_SECRET environment variable is required when EVAL_DEV_MODE=false"
+            )
+        if not self.dev_mode and len(self.jwt_secret) < 32:
+            raise RuntimeError(
+                f"JWT_SECRET must be at least 32 bytes, got {len(self.jwt_secret)}"
+            )
+        return self
 
 
 # 全局单例（启动时加载）
@@ -88,7 +99,7 @@ def get_settings() -> Settings:
     """获取全局配置单例。"""
     global _settings
     if _settings is None:
-        _settings = Settings.from_env()
+        _settings = Settings.from_env().validate()
     return _settings
 
 

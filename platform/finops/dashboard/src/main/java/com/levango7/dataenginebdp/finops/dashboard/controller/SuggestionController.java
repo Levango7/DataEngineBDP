@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -44,6 +45,7 @@ public class SuggestionController {
     /**
      * 闲置资源清单。
      */
+    @Operation(summary = "闲置资源清单")
     @GetMapping("/idle")
     public ResponseEntity<DashboardResponse<IdleResource>> idle(
             @RequestParam(required = false) String namespace,
@@ -75,6 +77,7 @@ public class SuggestionController {
     /**
      * 优化建议列表。
      */
+    @Operation(summary = "优化建议列表")
     @GetMapping("/list")
     public ResponseEntity<DashboardResponse<OptimizationSuggestion>> list(
             @RequestParam(required = false) String namespace,

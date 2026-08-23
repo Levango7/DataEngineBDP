@@ -93,12 +93,15 @@ def create_app() -> FastAPI:
         redoc_url="/redoc",
     )
 
+    # CORS 配置：从环境变量读取白名单，禁止 * + credentials 组合
+    cors_origins = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:5173").split(",")
+    cors_origins = [o.strip() for o in cors_origins if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "X-Tenant-Id"],
     )
 
     @app.get("/health", tags=["health"])

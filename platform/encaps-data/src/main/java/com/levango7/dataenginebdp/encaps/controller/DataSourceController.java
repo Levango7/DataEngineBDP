@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.net.InetSocketAddress;
@@ -55,6 +56,7 @@ public class DataSourceController {
     }
 
     /** 列表（租户隔离 + 可选类型过滤）。 */
+    @Operation(summary = "列表（租户隔离 + 可选类型过滤）")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> list(String type) {
@@ -66,6 +68,7 @@ public class DataSourceController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询数据源详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -76,6 +79,7 @@ public class DataSourceController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建数据源")
     @AuditLog(action = "CREATE_DATASOURCE", resource = "datasource")
     @PostMapping
     @Transactional
@@ -101,6 +105,7 @@ public class DataSourceController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新数据源")
     @AuditLog(action = "UPDATE_DATASOURCE", resource = "datasource")
     @PutMapping("/{id}")
     @Transactional
@@ -122,6 +127,7 @@ public class DataSourceController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除数据源")
     @AuditLog(action = "DELETE_DATASOURCE", resource = "datasource")
     @DeleteMapping("/{id}")
     @Transactional
@@ -135,6 +141,7 @@ public class DataSourceController {
     }
 
     /** 连接测试（TCP 探测 + JDBC 校验（JDBC 型））。 */
+    @Operation(summary = "连接测试（TCP 探测 + JDBC 校验（JDBC 型））")
     @AuditLog(action = "TEST_DATASOURCE", resource = "datasource")
     @PostMapping("/{id}/test")
     @Transactional(readOnly = true)

@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -59,6 +60,7 @@ public class CloudClusterController {
      * @param request  集群创建请求
      * @return 集群信息（HTTP 201）
      */
+    @Operation(summary = "创建云集群")
     @PostMapping("/{provider}")
     public ResponseEntity<CloudClusterInfo> createCluster(
             @PathVariable String provider,
@@ -76,6 +78,7 @@ public class CloudClusterController {
      * @param id       集群 ID
      * @return 销毁后的集群信息（HTTP 200）；集群不存在返回 HTTP 404
      */
+    @Operation(summary = "销毁云集群")
     @DeleteMapping("/{provider}/{id}")
     public ResponseEntity<CloudClusterInfo> destroyCluster(
             @PathVariable String provider,
@@ -96,6 +99,7 @@ public class CloudClusterController {
      * @param id       集群 ID
      * @return 集群信息（HTTP 200）；集群不存在返回 HTTP 404
      */
+    @Operation(summary = "查询云集群")
     @GetMapping("/{provider}/{id}")
     public ResponseEntity<CloudClusterInfo> getCluster(
             @PathVariable String provider,
@@ -113,6 +117,7 @@ public class CloudClusterController {
      * @param provider 云 provider 标识
      * @return 集群列表
      */
+    @Operation(summary = "列出指定 provider 的所有集群")
     @GetMapping("/{provider}")
     public ResponseEntity<List<CloudClusterInfo>> listClusters(@PathVariable String provider) {
         return ResponseEntity.ok(cloudProviderService.listClusters(provider));
@@ -126,6 +131,7 @@ public class CloudClusterController {
      * @param request  扩缩容请求（含目标节点数）
      * @return 集群信息
      */
+    @Operation(summary = "扩缩容云集群")
     @PostMapping("/{provider}/{id}/scale")
     public ResponseEntity<CloudClusterInfo> scaleCluster(
             @PathVariable String provider,
@@ -144,6 +150,7 @@ public class CloudClusterController {
      * @param id       集群 ID
      * @return 集群信息
      */
+    @Operation(summary = "启动云集群")
     @PostMapping("/{provider}/{id}/start")
     public ResponseEntity<CloudClusterInfo> startCluster(
             @PathVariable String provider,
@@ -159,6 +166,7 @@ public class CloudClusterController {
      * @param id       集群 ID
      * @return 集群信息
      */
+    @Operation(summary = "停止云集群")
     @PostMapping("/{provider}/{id}/stop")
     public ResponseEntity<CloudClusterInfo> stopCluster(
             @PathVariable String provider,
@@ -172,6 +180,7 @@ public class CloudClusterController {
      *
      * @return provider 列表（如 ["huawei","ali","tencent"]）
      */
+    @Operation(summary = "列出所有支持的云 provider")
     @GetMapping("/providers")
     public ResponseEntity<Map<String, List<String>>> listProviders() {
         return ResponseEntity.ok(Map.of("providers", cloudProviderService.listSupportedProviders()));

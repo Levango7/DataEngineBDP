@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -60,6 +61,7 @@ public class TagController {
      * @param req 创建请求
      * @return 已创建的标签定义
      */
+    @Operation(summary = "创建标签定义")
     @PostMapping
     public ResponseEntity<TagDefinition> create(@Valid @RequestBody TagDefinitionRequest req) {
         TagDefinition created = tagService.createTagDefinition(req);
@@ -72,6 +74,7 @@ public class TagController {
      * @param tenantId 租户 ID
      * @return 标签定义列表
      */
+    @Operation(summary = "列出指定租户的标签定义")
     @GetMapping
     public ResponseEntity<List<TagDefinition>> list(@RequestParam String tenantId) {
         return ResponseEntity.ok(tagService.listTagDefinitions(tenantId));
@@ -83,6 +86,7 @@ public class TagController {
      * @param id 标签 ID
      * @return 标签定义
      */
+    @Operation(summary = "获取标签详情")
     @GetMapping("/{id}")
     public ResponseEntity<TagDefinition> get(@PathVariable String id) {
         return tagService.getTagDefinition(id)
@@ -96,6 +100,7 @@ public class TagController {
      * @param id 标签 ID
      * @return 204 或 404
      */
+    @Operation(summary = "删除标签")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         if (tagService.deleteTagDefinition(id)) {
@@ -111,6 +116,7 @@ public class TagController {
      * @param req 规则创建请求
      * @return 已创建的规则
      */
+    @Operation(summary = "添加标签规则")
     @PostMapping("/{id}/rules")
     public ResponseEntity<TagRule> addRule(@PathVariable String id,
                                            @Valid @RequestBody TagRuleRequest req) {
@@ -124,6 +130,7 @@ public class TagController {
      * @param id 标签 ID
      * @return 规则列表
      */
+    @Operation(summary = "列出标签规则")
     @GetMapping("/{id}/rules")
     public ResponseEntity<List<TagRule>> listRules(@PathVariable String id) {
         return ResponseEntity.ok(tagService.getTagRules(id));
@@ -136,6 +143,7 @@ public class TagController {
      * @param req 计算请求
      * @return 计算结果
      */
+    @Operation(summary = "计算单个标签")
     @PostMapping("/{id}/compute")
     public ResponseEntity<TagComputeResult> compute(@PathVariable String id,
                                                     @RequestBody ComputeRequest req) {
@@ -148,6 +156,7 @@ public class TagController {
      * @param body 请求体（含 tagIds 与计算参数）
      * @return 批量计算结果
      */
+    @Operation(summary = "批量计算标签")
     @PostMapping("/batch-compute")
     public ResponseEntity<BatchComputeResult> batchCompute(@RequestBody BatchComputeBody body) {
         ComputeRequest req = body.req() != null ? body.req() : new ComputeRequest();

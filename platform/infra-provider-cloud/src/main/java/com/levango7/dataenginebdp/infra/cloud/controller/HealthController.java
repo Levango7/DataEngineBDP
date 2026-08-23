@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.infra.cloud.controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Map;
@@ -22,6 +23,7 @@ public class HealthController {
      *
      * @return 服务状态
      */
+    @Operation(summary = "健康检查端点")
     @GetMapping
     public Map<String, Object> health() {
         return Map.of(

@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -52,6 +53,7 @@ public class QuotaController {
      * @param quota 设置请求体
      * @return 201 + 已创建的 Quota；409 若同一 Workspace 已存在活跃 Quota
      */
+    @Operation(summary = "设置 Quota")
     @PostMapping
     public ResponseEntity<Quota> setQuota(@Valid @RequestBody Quota quota) {
         Quota created = quotaService.setQuota(quota);
@@ -65,6 +67,7 @@ public class QuotaController {
      * @param workspaceId Workspace ID（可选）
      * @return 200 + Quota 列表
      */
+    @Operation(summary = "列出 Quota，可选按租户 ID 与 Workspace ID 过滤")
     @GetMapping
     public ResponseEntity<List<Quota>> list(
             @RequestParam(required = false) Long tenantId,
@@ -78,6 +81,7 @@ public class QuotaController {
      * @param id Quota ID
      * @return 200 + Quota；404 若不存在
      */
+    @Operation(summary = "获取单个 Quota 详情")
     @GetMapping("/{id}")
     public ResponseEntity<Quota> get(@PathVariable Long id) {
         return quotaService.getQuota(id)
@@ -92,6 +96,7 @@ public class QuotaController {
      * @param quota 新字段值
      * @return 200 + 更新后的 Quota；404 若不存在
      */
+    @Operation(summary = "更新 Quota（仅可变字段：配额字段 + per-Pod 限制）")
     @PutMapping("/{id}")
     public ResponseEntity<Quota> update(@PathVariable Long id,
                                         @Valid @RequestBody Quota quota) {
@@ -106,6 +111,7 @@ public class QuotaController {
      * @param id Quota ID
      * @return 204 若已删除；404 若不存在
      */
+    @Operation(summary = "删除配额")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         if (quotaService.deleteQuota(id)) {
@@ -120,6 +126,7 @@ public class QuotaController {
      * @param workspaceId Workspace ID
      * @return 200 + {@code {"used": {...}, "hard": {...}}}
      */
+    @Operation(summary = "查询 Workspace 当前资源用量（已用 / 配额）")
     @GetMapping("/workspace/{workspaceId}/usage")
     public ResponseEntity<Map<String, Map<String, String>>> usage(@PathVariable Long workspaceId) {
         return ResponseEntity.ok(quotaService.getUsage(workspaceId));

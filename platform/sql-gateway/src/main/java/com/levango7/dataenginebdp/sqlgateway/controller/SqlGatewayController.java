@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Arrays;
@@ -74,6 +75,7 @@ public class SqlGatewayController {
      * @param request SQL 执行请求
      * @return SQL 执行响应
      */
+    @Operation(summary = "执行 SQL")
     @PostMapping("/execute")
     public ResponseEntity<SqlExecuteResponse> execute(@Valid @RequestBody SqlExecuteRequest request) {
         SqlExecuteResponse response = routingService.execute(request);
@@ -85,6 +87,7 @@ public class SqlGatewayController {
      *
      * @return 路由规则列表
      */
+    @Operation(summary = "列出当前所有路由规则")
     @GetMapping("/routes")
     public ResponseEntity<List<RouteRule>> listRoutes() {
         return ResponseEntity.ok(routingService.listRoutes());
@@ -96,6 +99,7 @@ public class SqlGatewayController {
      * @param rule 路由规则
      * @return 已保存的路由规则
      */
+    @Operation(summary = "添加一条路由规则")
     @PostMapping("/routes")
     public ResponseEntity<RouteRule> addRoute(@RequestBody RouteRule rule) {
         return ResponseEntity.ok(routingService.addRoute(rule));
@@ -106,6 +110,7 @@ public class SqlGatewayController {
      *
      * @return 引擎名称列表
      */
+    @Operation(summary = "列出可用引擎")
     @GetMapping("/engines")
     public ResponseEntity<List<String>> listEngines() {
         return ResponseEntity.ok(Arrays.asList("trino", "doris"));
@@ -119,6 +124,7 @@ public class SqlGatewayController {
      * @param request SQL 解析请求
      * @return SQL 解析响应
      */
+    @Operation(summary = "解析 SQL 并返回 AST")
     @PostMapping("/parse")
     public ResponseEntity<SqlParseResponse> parse(@Valid @RequestBody SqlParseRequest request) {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
@@ -142,6 +148,7 @@ public class SqlGatewayController {
      * @param request SQL 解析请求
      * @return 校验响应
      */
+    @Operation(summary = "校验 SQL 语法")
     @PostMapping("/validate")
     public ResponseEntity<SqlValidateResponse> validate(@Valid @RequestBody SqlParseRequest request) {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
@@ -166,6 +173,7 @@ public class SqlGatewayController {
      * @param request 转换请求
      * @return 转换响应
      */
+    @Operation(summary = "转换SQL")
     @PostMapping("/convert")
     public ResponseEntity<SqlConvertResponse> convert(@Valid @RequestBody SqlConvertRequest request) {
         SqlDialect from = SqlDialect.fromString(request.getFromDialect());
@@ -204,6 +212,7 @@ public class SqlGatewayController {
      * @param request SQL 优化请求
      * @return SQL 优化响应
      */
+    @Operation(summary = "优化 SQL 并返回执行计划")
     @PostMapping("/optimize")
     public ResponseEntity<SqlOptimizeResponse> optimize(@Valid @RequestBody SqlOptimizeRequest request) {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
@@ -233,6 +242,7 @@ public class SqlGatewayController {
      * @param request SQL 解析请求（复用 SqlParseRequest）
      * @return SQL 优化响应（仅含执行计划）
      */
+    @Operation(summary = "生成 SQL 执行计划（EXPLAIN 等价）")
     @PostMapping("/explain")
     public ResponseEntity<SqlOptimizeResponse> explain(@Valid @RequestBody SqlParseRequest request) {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
@@ -257,6 +267,7 @@ public class SqlGatewayController {
      *
      * @return 规则描述列表
      */
+    @Operation(summary = "列出所有可用的优化规则")
     @GetMapping("/optimize/rules")
     public ResponseEntity<List<String>> listOptimizeRules() {
         return ResponseEntity.ok(optimizerService.listAvailableRules());
@@ -273,6 +284,7 @@ public class SqlGatewayController {
      * @param request 跨源查询请求
      * @return 跨源查询响应
      */
+    @Operation(summary = "执行跨源 SQL 查询")
     @PostMapping("/cross-source")
     public ResponseEntity<CrossSourceResponse> crossSourceExecute(
             @Valid @RequestBody CrossSourceRequest request) {
@@ -336,6 +348,7 @@ public class SqlGatewayController {
      * @param request 跨源查询请求
      * @return 执行计划响应
      */
+    @Operation(summary = "生成跨源 SQL 执行计划（不实际执行）")
     @PostMapping("/cross-source/explain")
     public ResponseEntity<CrossSourceExplainResponse> crossSourceExplain(
             @Valid @RequestBody CrossSourceRequest request) {

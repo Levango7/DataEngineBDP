@@ -25,7 +25,7 @@
 | sq-frontend | Vue3 前端控制台 | Node.js 22 + Nginx | node:22-alpine / nginx:alpine | 官方镜像天然支持 |
 | sq-encaps-layer | Java 后端封装层 | Spring Boot 3 + JDK 17 | maven:3.9-eclipse-temurin-17 / eclipse-temurin:17-jre | 官方镜像天然支持 |
 | sq-sql-gateway | SQL 网关 | Spring Boot 3 + JDK 17 | 同上 | 官方镜像天然支持 |
-| sq-catalog | 元数据 Catalog | Go 1.26 | golang:1.26-alpine / alpine:3.19 | TARGETARCH 交叉编译 |
+| sq-catalog | 元数据 Catalog | Go 1.25 | golang:1.25-alpine / alpine:3.19 | TARGETARCH 交叉编译 |
 | sq-rule-engine | 规则引擎 | Spring Boot 3 + JDK 17 | 同 encaps-layer | 官方镜像天然支持 |
 
 ---

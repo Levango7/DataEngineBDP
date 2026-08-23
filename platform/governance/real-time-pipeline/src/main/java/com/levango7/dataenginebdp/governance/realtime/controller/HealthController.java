@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.governance.realtime.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.Map;
 @Tag(name = "数据治理-实时管道健康检查", description = "实时治理管道探针")
 public class HealthController {
 
+    @Operation(summary = "健康检查API")
     @GetMapping("/api/v1/health")
     public Map<String, Object> health() {
         return Map.of(

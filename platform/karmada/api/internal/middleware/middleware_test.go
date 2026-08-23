@@ -20,9 +20,10 @@ func init() {
 	if os.Getenv("JWT_ISSUER") == "" {
 		_ = os.Setenv("JWT_ISSUER", "shuqing-bigdata")
 	}
-	// 重新加载配置（init 已在包加载时执行，但测试可能后于设置环境变量）。
-	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
-	jwtIssuer = os.Getenv("JWT_ISSUER")
+	// 延迟初始化 JWT 配置（ensureJWTConfig 使用 sync.Once，
+	// 首次调用 AuthMiddleware 时自动触发；此处主动调用确保
+	// signToken 等测试辅助函数可直接使用 jwtSecret 变量）。
+	ensureJWTConfig()
 }
 
 // signToken 用测试密钥生成 JWT。
@@ -188,19 +189,47 @@ func TestCorsMiddleware_OptionsRequest(t *testing.T) {
 }
 
 // TestCorsMiddleware_SetsHeaders CORS 头应被设置。
+//
+// 收敛策略：CORS_ALLOWED_ORIGINS 白名单命中时回写 ACAO；未配置时不回写（fail-secure）。
 func TestCorsMiddleware_SetsHeaders(t *testing.T) {
+	// 设置白名单
+	old := os.Getenv("CORS_ALLOWED_ORIGINS")
+	_ = os.Setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+	defer func() { _ = os.Setenv("CORS_ALLOWED_ORIGINS", old) }()
+
 	r := gin.New()
 	r.Use(CorsMiddleware())
 	r.GET("/ping", func(c *gin.Context) { c.String(http.StatusOK, "pong") })
 
 	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "*" {
-		t.Fatalf("expected ACAO=*, got %q", got)
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Fatalf("expected ACAO=http://localhost:5173, got %q", got)
 	}
 	if got := w.Header().Get("Access-Control-Allow-Methods"); got == "" {
 		t.Fatal("expected non-empty ACAM")
+	}
+}
+
+// TestCorsMiddleware_UnmatchedOrigin 未命中白名单时不回写 ACAO（fail-secure）。
+func TestCorsMiddleware_UnmatchedOrigin(t *testing.T) {
+	old := os.Getenv("CORS_ALLOWED_ORIGINS")
+	_ = os.Setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+	defer func() { _ = os.Setenv("CORS_ALLOWED_ORIGINS", old) }()
+
+	r := gin.New()
+	r.Use(CorsMiddleware())
+	r.GET("/ping", func(c *gin.Context) { c.String(http.StatusOK, "pong") })
+
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	req.Header.Set("Origin", "http://evil.example.com")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("expected empty ACAO for unmatched origin, got %q", got)
 	}
 }

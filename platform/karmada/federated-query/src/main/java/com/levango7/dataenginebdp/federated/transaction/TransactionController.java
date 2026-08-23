@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -49,6 +50,7 @@ public class TransactionController {
      *
      * <p>POST /api/v1/federated/transactions
      */
+    @Operation(summary = "开启跨集群事务")
     @PostMapping
     public ResponseEntity<TransactionResponse> begin(@Valid @RequestBody BeginTransactionRequest request) {
         log.info("Begin transaction: participants={} tables={}",
@@ -63,6 +65,7 @@ public class TransactionController {
      *
      * <p>POST /api/v1/federated/transactions/{txId}/prepare
      */
+    @Operation(summary = "准备阶段（2PC 阶段 1）")
     @PostMapping("/{txId}/prepare")
     public ResponseEntity<TransactionResponse> prepare(@PathVariable String txId) {
         log.info("Prepare transaction: txId={}", txId);
@@ -79,6 +82,7 @@ public class TransactionController {
      *
      * <p>POST /api/v1/federated/transactions/{txId}/commit
      */
+    @Operation(summary = "提交事务（2PC 阶段 2）")
     @PostMapping("/{txId}/commit")
     public ResponseEntity<TransactionResponse> commit(@PathVariable String txId) {
         log.info("Commit transaction: txId={}", txId);
@@ -96,6 +100,7 @@ public class TransactionController {
      *
      * <p>POST /api/v1/federated/transactions/{txId}/rollback
      */
+    @Operation(summary = "回滚联邦")
     @PostMapping("/{txId}/rollback")
     public ResponseEntity<TransactionResponse> rollback(@PathVariable String txId) {
         log.info("Rollback transaction: txId={}", txId);
@@ -112,6 +117,7 @@ public class TransactionController {
      *
      * <p>GET /api/v1/federated/transactions/{txId}
      */
+    @Operation(summary = "查询事务状态")
     @GetMapping("/{txId}")
     public ResponseEntity<TransactionResponse> getStatus(@PathVariable String txId) {
         TransactionLog logEntry = coordinator.getTransactionStatus(txId);
@@ -126,6 +132,7 @@ public class TransactionController {
      *
      * <p>GET /api/v1/federated/transactions
      */
+    @Operation(summary = "列出所有事务")
     @GetMapping
     public ResponseEntity<Map<String, Object>> list() {
         List<TransactionResponse> txs = coordinator.listTransactions().stream()

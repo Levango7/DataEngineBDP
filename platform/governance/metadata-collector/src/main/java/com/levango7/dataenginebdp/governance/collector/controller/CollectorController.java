@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
@@ -80,6 +81,7 @@ public class CollectorController {
      * @param source 数据源配置
      * @return 创建后的数据源（含 ID），201 状态码
      */
+    @Operation(summary = "创建元数据")
     @PostMapping("/sources")
     public ResponseEntity<MetadataSource> addSource(@Valid @RequestBody MetadataSource source) {
         LocalDateTime now = LocalDateTime.now();
@@ -101,6 +103,7 @@ public class CollectorController {
      *
      * @return 数据源列表
      */
+    @Operation(summary = "列出全部数据源")
     @GetMapping("/sources")
     public ResponseEntity<List<MetadataSource>> listSources() {
         return ResponseEntity.ok(sourceRepository.findAll());
@@ -112,6 +115,7 @@ public class CollectorController {
      * @param id 数据源 ID
      * @return 数据源；不存在返回 404
      */
+    @Operation(summary = "获取单个数据源")
     @GetMapping("/sources/{id}")
     public ResponseEntity<MetadataSource> getSource(@PathVariable Long id) {
         return sourceRepository.findById(id)
@@ -126,6 +130,7 @@ public class CollectorController {
      * @param source 新配置
      * @return 更新后的数据源；不存在返回 404
      */
+    @Operation(summary = "更新元数据")
     @PutMapping("/sources/{id}")
     public ResponseEntity<MetadataSource> updateSource(@PathVariable Long id,
                                                        @Valid @RequestBody MetadataSource source) {
@@ -152,6 +157,7 @@ public class CollectorController {
      * @param id 数据源 ID
      * @return 204；不存在返回 404
      */
+    @Operation(summary = "删除元数据")
     @DeleteMapping("/sources/{id}")
     public ResponseEntity<Void> deleteSource(@PathVariable Long id) {
         if (!sourceRepository.existsById(id)) {
@@ -170,6 +176,7 @@ public class CollectorController {
      * @param sourceId 数据源 ID
      * @return 采集结果；数据源不存在返回 404
      */
+    @Operation(summary = "手动触发指定数据源采集")
     @PostMapping("/collect/{sourceId}")
     public ResponseEntity<CollectionResult> triggerCollection(@PathVariable Long sourceId) {
         Optional<CollectionResult> result = schedulerService.triggerCollection(sourceId, "MANUAL");
@@ -183,6 +190,7 @@ public class CollectorController {
      * @param sourceId 数据源 ID
      * @return 最近一条采集历史；无记录返回 404
      */
+    @Operation(summary = "查询指定数据源最近采集状态")
     @GetMapping("/collect/status/{sourceId}")
     public ResponseEntity<CollectionHistory> getCollectionStatus(@PathVariable Long sourceId) {
         return schedulerService.getCollectionStatus(sourceId)
@@ -196,6 +204,7 @@ public class CollectorController {
      * @param sourceId 数据源 ID
      * @return {@code {"connected": true/false}}；数据源不存在返回 404
      */
+    @Operation(summary = "测试数据源连接")
     @PostMapping("/collect/test/{sourceId}")
     public ResponseEntity<Map<String, Object>> testConnection(@PathVariable Long sourceId) {
         Optional<MetadataSource> sourceOpt = sourceRepository.findById(sourceId);
@@ -225,6 +234,7 @@ public class CollectorController {
      * @param body     请求体，包含 {@code cron} 字段
      * @return 注册结果
      */
+    @Operation(summary = "注册定时采集")
     @PostMapping("/collect/schedule/{sourceId}")
     public ResponseEntity<Map<String, Object>> scheduleCollection(@PathVariable Long sourceId,
                                                                   @RequestBody Map<String, String> body) {
@@ -243,6 +253,7 @@ public class CollectorController {
      * @param sourceId 数据源 ID
      * @return 取消结果
      */
+    @Operation(summary = "取消定时采集")
     @DeleteMapping("/collect/schedule/{sourceId}")
     public ResponseEntity<Map<String, Object>> unscheduleCollection(@PathVariable Long sourceId) {
         boolean success = schedulerService.unscheduleCollection(sourceId);
@@ -257,6 +268,7 @@ public class CollectorController {
      *
      * @return 类型列表
      */
+    @Operation(summary = "列出已注册的 Collector 类型")
     @GetMapping("/collectors")
     public ResponseEntity<List<String>> listCollectors() {
         return ResponseEntity.ok(schedulerService.getRegisteredTypes());

@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -43,6 +44,7 @@ public class AdminController {
     private final SyncTaskRepository syncTaskRepository;
 
     /** KPI 总览。 */
+    @Operation(summary = "KPI 总览")
     @GetMapping("/kpi")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> kpi() {
@@ -73,6 +75,7 @@ public class AdminController {
     }
 
     /** 环境矩阵（四环境交付视图）。 */
+    @Operation(summary = "环境矩阵（四环境交付视图）")
     @GetMapping("/env-matrix")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> envMatrix() {

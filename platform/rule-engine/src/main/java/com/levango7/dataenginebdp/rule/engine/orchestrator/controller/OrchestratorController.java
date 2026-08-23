@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -54,6 +55,7 @@ public class OrchestratorController {
     }
 
     /** 提交 DAG */
+    @Operation(summary = "提交 DAG")
     @PostMapping
     public ResponseEntity<DagGraph> submit(@RequestBody DagGraph graph) {
         DagGraph saved = orchestratorService.submit(graph);
@@ -61,12 +63,14 @@ public class OrchestratorController {
     }
 
     /** 列出所有 DAG */
+    @Operation(summary = "列出所有 DAG")
     @GetMapping
     public ResponseEntity<List<DagGraph>> listAll() {
         return ResponseEntity.ok(orchestratorService.listAll());
     }
 
     /** 查询 DAG 详情 */
+    @Operation(summary = "查询 DAG 详情")
     @GetMapping("/{id}")
     public ResponseEntity<DagGraph> getDag(@PathVariable String id) {
         DagGraph graph = orchestratorService.getDag(id);
@@ -77,12 +81,14 @@ public class OrchestratorController {
     }
 
     /** 执行 DAG */
+    @Operation(summary = "执行 DAG")
     @PostMapping("/{id}/run")
     public ResponseEntity<Map<String, TaskResult>> run(@PathVariable String id) {
         return ResponseEntity.ok(orchestratorService.runDag(id));
     }
 
     /** 停止 DAG */
+    @Operation(summary = "停止 DAG")
     @PostMapping("/{id}/stop")
     public ResponseEntity<Void> stop(@PathVariable String id) {
         orchestratorService.stop(id);
@@ -90,6 +96,7 @@ public class OrchestratorController {
     }
 
     /** 查询执行结果 */
+    @Operation(summary = "查询执行结果")
     @GetMapping("/{id}/results")
     public ResponseEntity<Map<String, TaskResult>> results(@PathVariable String id) {
         Map<String, TaskResult> results = orchestratorService.getResults(id);
@@ -100,18 +107,21 @@ public class OrchestratorController {
     }
 
     /** 生成 Mermaid 可视化文本 */
+    @Operation(summary = "生成 Mermaid 可视化文本")
     @GetMapping("/{id}/mermaid")
     public ResponseEntity<String> mermaid(@PathVariable String id) {
         return ResponseEntity.ok(orchestratorService.visualize(id));
     }
 
     /** 导出 JSON 结构 */
+    @Operation(summary = "导出 JSON 结构")
     @GetMapping("/{id}/json")
     public ResponseEntity<Map<String, Object>> json(@PathVariable String id) {
         return ResponseEntity.ok(orchestratorService.exportJson(id));
     }
 
     /** 删除 DAG */
+    @Operation(summary = "删除 DAG")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
         boolean removed = orchestratorService.delete(id);
@@ -133,6 +143,7 @@ public class OrchestratorController {
      * @param id DAG ID
      * @return 200 + 思考步骤列表
      */
+    @Operation(summary = "拉取 Agent 思考链")
     @GetMapping("/{id}/thoughts")
     public ResponseEntity<List<Map<String, Object>>> thoughts(@PathVariable String id) {
         return ResponseEntity.ok(extensionService.getThoughts(id));
@@ -146,6 +157,7 @@ public class OrchestratorController {
      * @param id DAG ID
      * @return 200 + 工具调用记录列表
      */
+    @Operation(summary = "拉取工具调用记录")
     @GetMapping("/{id}/tool-calls")
     public ResponseEntity<List<Map<String, Object>>> toolCalls(@PathVariable String id) {
         return ResponseEntity.ok(extensionService.getToolCalls(id));
@@ -159,6 +171,7 @@ public class OrchestratorController {
      * @param id DAG ID
      * @return 200 + 介入请求列表
      */
+    @Operation(summary = "查询待处理人工介入请求")
     @GetMapping("/{id}/intervention")
     public ResponseEntity<List<Map<String, Object>>> intervention(@PathVariable String id) {
         return ResponseEntity.ok(extensionService.getInterventions(id));
@@ -173,6 +186,7 @@ public class OrchestratorController {
      * @param payload 审批载荷
      * @return 200 + 更新后的介入请求
      */
+    @Operation(summary = "提交人工审批")
     @PostMapping("/{id}/intervene")
     public ResponseEntity<Map<String, Object>> intervene(@PathVariable String id,
                                                          @RequestBody Map<String, Object> payload) {
@@ -187,6 +201,7 @@ public class OrchestratorController {
      * @param id DAG ID
      * @return 200 + 检查点列表
      */
+    @Operation(summary = "拉取检查点列表")
     @GetMapping("/{id}/checkpoints")
     public ResponseEntity<List<Map<String, Object>>> checkpoints(@PathVariable String id) {
         return ResponseEntity.ok(extensionService.getCheckpoints(id));
@@ -201,6 +216,7 @@ public class OrchestratorController {
      * @param body 含 note 字段
      * @return 200 + 检查点
      */
+    @Operation(summary = "手动打检查点")
     @PostMapping("/{id}/checkpoint")
     public ResponseEntity<Map<String, Object>> checkpoint(@PathVariable String id,
                                                           @RequestBody Map<String, Object> body) {
@@ -216,6 +232,7 @@ public class OrchestratorController {
      * @param body 含 checkpointId 字段
      * @return 200 + 节点结果映射
      */
+    @Operation(summary = "从检查点恢复执行")
     @PostMapping("/{id}/resume")
     public ResponseEntity<Map<String, Object>> resume(@PathVariable String id,
                                                       @RequestBody Map<String, Object> body) {
@@ -230,6 +247,7 @@ public class OrchestratorController {
      * @param id DAG ID
      * @return 200 + 执行历史列表
      */
+    @Operation(summary = "拉取执行历史")
     @GetMapping("/{id}/executions")
     public ResponseEntity<List<Map<String, Object>>> executions(@PathVariable String id) {
         return ResponseEntity.ok(extensionService.getExecutions(id));
@@ -244,6 +262,7 @@ public class OrchestratorController {
      * @param execId 执行 ID
      * @return 200 + 回放轨迹
      */
+    @Operation(summary = "拉取单次回放轨迹")
     @GetMapping("/{id}/replay/{execId}")
     public ResponseEntity<Map<String, Object>> replay(@PathVariable String id,
                                                       @PathVariable String execId) {

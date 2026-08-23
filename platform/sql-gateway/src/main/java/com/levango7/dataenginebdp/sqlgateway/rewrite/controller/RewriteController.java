@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -85,6 +86,7 @@ public class RewriteController {
      * @param request 改写请求
      * @return 改写结果
      */
+    @Operation(summary = "对 SQL 执行自动改写")
     @PostMapping("/execute")
     public ResponseEntity<RewriteResult> execute(@Valid @RequestBody RewriteRequest request) {
         long start = System.currentTimeMillis();
@@ -101,6 +103,7 @@ public class RewriteController {
      * @param request 改写请求
      * @return 路由决策信息；无匹配返回 200 + notMatched 标记
      */
+    @Operation(summary = "仅返回路由决策（不改写 SQL），用于调试与可观测")
     @PostMapping("/route")
     public ResponseEntity<Map<String, Object>> route(@Valid @RequestBody RewriteRequest request) {
         Optional<ViewMatcher.MatchResult> match = rewriteService.route(request.getSql());
@@ -128,6 +131,7 @@ public class RewriteController {
      * @param request 改写请求
      * @return 候选匹配列表
      */
+    @Operation(summary = "列出所有候选匹配结果（按评分降序），用于调试")
     @PostMapping("/candidates")
     public ResponseEntity<List<Map<String, Object>>> candidates(
             @Valid @RequestBody RewriteRequest request) {
@@ -150,6 +154,7 @@ public class RewriteController {
      *
      * @return 视图定义列表
      */
+    @Operation(summary = "列出所有物化视图定义")
     @GetMapping("/views")
     public ResponseEntity<List<MaterializedViewDefinition>> listViews() {
         return ResponseEntity.ok(rewriteService.listViews());
@@ -161,6 +166,7 @@ public class RewriteController {
      * @param viewName 视图名
      * @return 视图定义；不存在返回 404
      */
+    @Operation(summary = "按视图名获取物化视图定义")
     @GetMapping("/views/{viewName}")
     public ResponseEntity<MaterializedViewDefinition> getView(@PathVariable String viewName) {
         Optional<MaterializedViewDefinition> view = rewriteService.getView(viewName);
@@ -174,6 +180,7 @@ public class RewriteController {
      * @param view 视图定义
      * @return 已保存的视图定义；视图名已存在返回 409
      */
+    @Operation(summary = "新增物化视图定义")
     @PostMapping("/views")
     public ResponseEntity<?> addView(@RequestBody MaterializedViewDefinition view) {
         try {
@@ -193,6 +200,7 @@ public class RewriteController {
      * @param view     新的视图定义字段
      * @return 更新后的视图定义；不存在返回 404
      */
+    @Operation(summary = "更新物化视图定义")
     @PutMapping("/views/{viewName}")
     public ResponseEntity<MaterializedViewDefinition> updateView(
             @PathVariable String viewName,
@@ -208,6 +216,7 @@ public class RewriteController {
      * @param viewName 视图名
      * @return 204 删除成功；不存在返回 404
      */
+    @Operation(summary = "删除物化视图定义")
     @DeleteMapping("/views/{viewName}")
     public ResponseEntity<Void> deleteView(@PathVariable String viewName) {
         boolean deleted = rewriteService.deleteView(viewName);
@@ -221,6 +230,7 @@ public class RewriteController {
      * @param viewName 视图名
      * @return 更新后的视图定义；不存在返回 404
      */
+    @Operation(summary = "刷新物化视图的最近刷新时间")
     @PostMapping("/views/{viewName}/refresh")
     public ResponseEntity<MaterializedViewDefinition> refreshView(@PathVariable String viewName) {
         Optional<MaterializedViewDefinition> refreshed = rewriteService.refreshView(viewName);
@@ -235,6 +245,7 @@ public class RewriteController {
      *
      * @return 改写规则列表
      */
+    @Operation(summary = "列出所有改写规则")
     @GetMapping("/rules")
     public ResponseEntity<List<RewriteRule>> listRules() {
         return ResponseEntity.ok(rewriteService.listRules());
@@ -246,6 +257,7 @@ public class RewriteController {
      * @param ruleName 规则名
      * @return 改写规则；不存在返回 404
      */
+    @Operation(summary = "按规则名获取改写规则")
     @GetMapping("/rules/{ruleName}")
     public ResponseEntity<RewriteRule> getRule(@PathVariable String ruleName) {
         Optional<RewriteRule> rule = rewriteService.getRule(ruleName);
@@ -259,6 +271,7 @@ public class RewriteController {
      * @param rule 改写规则
      * @return 已保存的改写规则；规则名已存在返回 409
      */
+    @Operation(summary = "新增改写规则")
     @PostMapping("/rules")
     public ResponseEntity<?> addRule(@RequestBody RewriteRule rule) {
         try {
@@ -277,6 +290,7 @@ public class RewriteController {
      * @param ruleName 规则名
      * @return 204 删除成功；不存在返回 404
      */
+    @Operation(summary = "删除改写规则")
     @DeleteMapping("/rules/{ruleName}")
     public ResponseEntity<Void> deleteRule(@PathVariable String ruleName) {
         boolean deleted = rewriteService.deleteRule(ruleName);

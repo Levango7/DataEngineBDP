@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.HashMap;
@@ -66,6 +67,7 @@ public class MaterializedViewController {
      * @param def 物化视图定义
      * @return 201 创建成功；409 名称冲突
      */
+    @Operation(summary = "注册物化视图")
     @PostMapping
     public ResponseEntity<Map<String, Object>> registerView(@RequestBody MaterializedViewDef def) {
         try {
@@ -96,6 +98,7 @@ public class MaterializedViewController {
      *
      * @return 200 视图列表
      */
+    @Operation(summary = "列出所有物化视图")
     @GetMapping
     public ResponseEntity<List<MaterializedViewDef>> listViews() {
         return ResponseEntity.ok(service.listViews());
@@ -107,6 +110,7 @@ public class MaterializedViewController {
      * @param name 视图名称
      * @return 200 视图定义；404 不存在
      */
+    @Operation(summary = "查询单个物化视图")
     @GetMapping("/{name}")
     public ResponseEntity<?> getView(@PathVariable String name) {
         MaterializedViewDef def = service.getView(name);
@@ -126,6 +130,7 @@ public class MaterializedViewController {
      * @param def  新的视图定义
      * @return 200 成功；404 不存在
      */
+    @Operation(summary = "更新物化视图")
     @PutMapping("/{name}")
     public ResponseEntity<Map<String, Object>> updateView(@PathVariable String name,
                                                           @RequestBody MaterializedViewDef def) {
@@ -159,6 +164,7 @@ public class MaterializedViewController {
      * @param name 视图名称
      * @return 200 成功；404 不存在
      */
+    @Operation(summary = "删除物化视图")
     @DeleteMapping("/{name}")
     public ResponseEntity<Map<String, Object>> removeView(@PathVariable String name) {
         boolean success = service.removeView(name);
@@ -182,6 +188,7 @@ public class MaterializedViewController {
      * @param operator 操作人（query param，默认 "api"）
      * @return 200 触发成功；404 视图不存在
      */
+    @Operation(summary = "手动触发物化视图刷新")
     @PostMapping("/{name}/refresh")
     public ResponseEntity<Map<String, Object>> refreshView(@PathVariable String name,
                                                            @RequestParam(defaultValue = "api") String operator) {
@@ -206,6 +213,7 @@ public class MaterializedViewController {
      * @param name 视图名称
      * @return 200 状态信息
      */
+    @Operation(summary = "查询单个物化视图的刷新状态")
     @GetMapping("/{name}/status")
     public ResponseEntity<Map<String, Object>> getViewStatus(@PathVariable String name) {
         Map<String, Object> status = new HashMap<>();
@@ -231,6 +239,7 @@ public class MaterializedViewController {
      *
      * @return 200 全局状态
      */
+    @Operation(summary = "查询全局状态")
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getGlobalStatus() {
         Map<String, Object> status = new HashMap<>();

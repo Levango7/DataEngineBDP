@@ -4,6 +4,7 @@ package middleware
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -126,20 +127,37 @@ func TestAuthMiddleware_MalformedHeader(t *testing.T) {
 
 func TestCORSMiddleware(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+
+	// 设置白名单
+	old := os.Getenv("CORS_ALLOWED_ORIGINS")
+	_ = os.Setenv("CORS_ALLOWED_ORIGINS", "http://localhost:5173")
+	defer func() { _ = os.Setenv("CORS_ALLOWED_ORIGINS", old) }()
+
 	r := gin.New()
 	r.Use(CORSMiddleware())
 	r.GET("/test", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
+	// OPTIONS 预检请求
 	req := httptest.NewRequest(http.MethodOptions, "/test", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
 	if w.Code != http.StatusNoContent {
 		t.Errorf("OPTIONS期望204，得到 %d", w.Code)
 	}
-	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
-		t.Error("缺少CORS头")
+	if got := w.Header().Get("Access-Control-Allow-Origin"); got != "http://localhost:5173" {
+		t.Errorf("期望ACAO=http://localhost:5173，得到 %q", got)
+	}
+
+	// 未命中白名单的来源不回写 ACAO（fail-secure）
+	req2 := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req2.Header.Set("Origin", "http://evil.example.com")
+	w2 := httptest.NewRecorder()
+	r.ServeHTTP(w2, req2)
+	if got := w2.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Errorf("未命中白名单时期望空ACAO，得到 %q", got)
 	}
 }

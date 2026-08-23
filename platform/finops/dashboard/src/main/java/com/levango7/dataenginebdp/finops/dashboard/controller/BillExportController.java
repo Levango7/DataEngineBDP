@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.io.IOException;
@@ -65,6 +66,7 @@ public class BillExportController {
     /**
      * CSV 账单导出。
      */
+    @Operation(summary = "CSV 账单导出")
     @GetMapping("/csv")
     public ResponseEntity<byte[]> exportCsv(
             @RequestParam(defaultValue = "details") String type,
@@ -105,6 +107,7 @@ public class BillExportController {
     /**
      * Excel 账单导出。
      */
+    @Operation(summary = "Excel 账单导出")
     @GetMapping("/excel")
     public ResponseEntity<byte[]> exportExcel(
             @RequestParam(defaultValue = "details") String type,

@@ -127,7 +127,10 @@ services:
     container_name: de-doris-fe
     hostname: de-doris-fe
     restart: unless-stopped
-    privileged: true
+    # privileged 已移除：使用最小 cap_add 替代，遵循最小权限原则
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
     environment:
       TZ: Asia/Shanghai
       FE_SERVERS: "fe1:de-doris-fe:9010"
@@ -163,7 +166,10 @@ services:
     container_name: de-doris-be
     hostname: de-doris-be
     restart: unless-stopped
-    privileged: true
+    # privileged 已移除：使用最小 cap_add 替代，遵循最小权限原则
+    cap_add:
+      - SYS_NICE
+      - NET_ADMIN
     environment:
       TZ: Asia/Shanghai
       FE_SERVERS: "fe1:de-doris-fe:9010"

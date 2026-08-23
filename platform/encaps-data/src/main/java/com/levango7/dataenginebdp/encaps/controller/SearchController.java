@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Duration;
@@ -64,6 +65,7 @@ public class SearchController {
     }
 
     /** 执行检索（ES 全文检索优先，不可用时回退 LIKE）。 */
+    @Operation(summary = "执行检索（ES 全文检索优先，不可用时回退 LIKE）")
     @PostMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> search(@RequestBody SearchRequest req) {
@@ -212,6 +214,7 @@ public class SearchController {
     }
 
     /** 过滤器候选项（从各表聚合名称去重）。 */
+    @Operation(summary = "过滤器候选项（从各表聚合名称去重）")
     @GetMapping("/facets")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> facets() {
@@ -234,6 +237,7 @@ public class SearchController {
     }
 
     /** 检索建议（基于名称前缀）。 */
+    @Operation(summary = "检索建议（基于名称前缀）")
     @GetMapping("/suggest")
     @Transactional(readOnly = true)
     public ResponseEntity<List<String>> suggest(@RequestParam String keyword) {
@@ -256,6 +260,7 @@ public class SearchController {
     }
 
     /** 检索历史（内存存储，按租户隔离，倒序返回最近 limit 条）。 */
+    @Operation(summary = "检索历史（内存存储，按租户隔离，倒序返回最近 limit 条）")
     @GetMapping("/history")
     public ResponseEntity<List<Object>> history(@RequestParam(defaultValue = "20") int limit) {
         String tenantId = TenantContext.getTenantId();
@@ -274,6 +279,7 @@ public class SearchController {
      * @param req 导出请求
      * @return 200 + 导出结果
      */
+    @Operation(summary = "触发后端导出，返回下载链接")
     @PostMapping("/export")
     public ResponseEntity<Map<String, Object>> export(@RequestBody Map<String, Object> req) {
         String tenantId = TenantContext.getTenantId();
@@ -301,6 +307,7 @@ public class SearchController {
      *
      * @return 200
      */
+    @Operation(summary = "清空检索历史")
     @PostMapping("/history/clear")
     public ResponseEntity<Void> clearHistory() {
         String tenantId = TenantContext.getTenantId();
@@ -318,6 +325,7 @@ public class SearchController {
      * @param id 历史 ID
      * @return 200
      */
+    @Operation(summary = "删除单条检索历史")
     @PostMapping("/history/{id}/delete")
     public ResponseEntity<Void> deleteHistory(@PathVariable String id) {
         String tenantId = TenantContext.getTenantId();

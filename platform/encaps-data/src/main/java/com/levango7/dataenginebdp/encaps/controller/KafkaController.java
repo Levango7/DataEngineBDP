@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -51,6 +52,7 @@ public class KafkaController {
     private final DataSourceRepository dataSourceRepository;
 
     /** Broker 列表。 */
+    @Operation(summary = "Broker 列表")
     @GetMapping("/{clusterId}/brokers")
     public ResponseEntity<?> listBrokers(@PathVariable String clusterId) {
         log.info("列出 Kafka Broker: cluster={}, tenant={}", clusterId, TenantContext.getTenantId());
@@ -65,6 +67,7 @@ public class KafkaController {
     }
 
     /** Topic 列表。 */
+    @Operation(summary = "Topic 列表")
     @GetMapping("/{clusterId}/topics")
     public ResponseEntity<?> listTopics(@PathVariable String clusterId) {
         log.info("列出 Kafka Topic: cluster={}, tenant={}", clusterId, TenantContext.getTenantId());
@@ -86,6 +89,7 @@ public class KafkaController {
     }
 
     /** 创建 Topic。 */
+    @Operation(summary = "创建 Topic")
     @PostMapping("/{clusterId}/topics")
     public ResponseEntity<?> createTopic(@PathVariable String clusterId,
                                          @RequestBody CreateTopicRequest req) {
@@ -104,6 +108,7 @@ public class KafkaController {
     }
 
     /** 删除 Topic。 */
+    @Operation(summary = "删除 Topic")
     @DeleteMapping("/{clusterId}/topics/{name}")
     public ResponseEntity<?> deleteTopic(@PathVariable String clusterId,
                                          @PathVariable String name) {
@@ -121,6 +126,7 @@ public class KafkaController {
     }
 
     /** 消费组列表。 */
+    @Operation(summary = "查询Kafka列表")
     @GetMapping("/{clusterId}/consumer-groups")
     public ResponseEntity<?> listConsumerGroups(@PathVariable String clusterId) {
         log.info("列出 Kafka 消费组: cluster={}, tenant={}", clusterId, TenantContext.getTenantId());
@@ -135,6 +141,7 @@ public class KafkaController {
     }
 
     /** 查询 Topic 消息（任务要求，默认采样 100 条）。 */
+    @Operation(summary = "查询 Topic 消息（任务要求，默认采样 100 条）")
     @GetMapping("/{clusterId}/topics/{topic}/messages")
     public ResponseEntity<?> listMessages(@PathVariable String clusterId,
                                           @PathVariable String topic,
@@ -156,6 +163,7 @@ public class KafkaController {
     }
 
     /** 消息采样（前端用，POST 方式）。 */
+    @Operation(summary = "消息采样（前端用，POST 方式）")
     @PostMapping("/{clusterId}/topics/{topic}/sample")
     public ResponseEntity<?> sampleMessages(@PathVariable String clusterId,
                                             @PathVariable String topic,

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -57,6 +58,7 @@ public class CostController {
      * @param request 成本计算请求
      * @return 成本计算响应
      */
+    @Operation(summary = "计算成本")
     @PostMapping("/calculate")
     public ResponseEntity<CostCalculationResponse> calculate(
             @Valid @RequestBody CostCalculationRequest request) {
@@ -80,6 +82,7 @@ public class CostController {
      * @param end             窗口结束时间（ISO-8601）
      * @return 成本计算响应
      */
+    @Operation(summary = "生成成本报告")
     @GetMapping("/report")
     public ResponseEntity<CostCalculationResponse> report(
             @RequestParam String namespace,

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.LocalDateTime;
@@ -85,6 +86,7 @@ public class PrivateClusterController {
      * @param request  集群创建请求
      * @return 创建的集群信息
      */
+    @Operation(summary = "创建私有云 K8s 集群")
     @PostMapping("/{provider}")
     public ResponseEntity<PrivateClusterInfo> createCluster(@PathVariable String provider,
                                                             @Valid @RequestBody PrivateClusterRequest request) {
@@ -140,6 +142,7 @@ public class PrivateClusterController {
      * @param id       集群 ID
      * @return 204 成功 / 404 不存在
      */
+    @Operation(summary = "销毁私有云 K8s 集群")
     @DeleteMapping("/{provider}/{id}")
     public ResponseEntity<Void> destroyCluster(@PathVariable String provider,
                                                @PathVariable Long id) {
@@ -174,6 +177,7 @@ public class PrivateClusterController {
      * @param id       集群 ID
      * @return 集群信息（含 VM 实时状态）
      */
+    @Operation(summary = "查询私有云 K8s 集群")
     @GetMapping("/{provider}/{id}")
     public ResponseEntity<PrivateClusterInfo> getCluster(@PathVariable String provider,
                                                         @PathVariable Long id) {
@@ -200,6 +204,7 @@ public class PrivateClusterController {
      * @param provider 云平台类型
      * @return 集群列表
      */
+    @Operation(summary = "列出指定 provider 的所有集群")
     @GetMapping("/{provider}")
     public ResponseEntity<List<PrivateClusterInfo>> listClusters(@PathVariable String provider) {
         resolveProvider(provider);
@@ -224,6 +229,7 @@ public class PrivateClusterController {
      * @param request  扩缩容请求
      * @return 变更后的集群信息
      */
+    @Operation(summary = "扩缩容集群工作节点")
     @PostMapping("/{provider}/{id}/scale")
     public ResponseEntity<PrivateClusterInfo> scaleCluster(@PathVariable String provider,
                                                            @PathVariable Long id,

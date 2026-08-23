@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -41,6 +42,7 @@ public class RuleController {
     }
 
     /** 创建规则 */
+    @Operation(summary = "创建规则")
     @PostMapping
     public ResponseEntity<Rule> createRule(@RequestBody Rule rule) {
         Rule created = ruleService.create(rule);
@@ -48,12 +50,14 @@ public class RuleController {
     }
 
     /** 列出所有规则 */
+    @Operation(summary = "列出所有规则")
     @GetMapping
     public ResponseEntity<List<Rule>> listRules() {
         return ResponseEntity.ok(ruleService.listAll());
     }
 
     /** 获取单个规则 */
+    @Operation(summary = "获取单个规则")
     @GetMapping("/{id}")
     public ResponseEntity<?> getRule(@PathVariable Long id) {
         Rule rule = ruleService.getById(id);
@@ -65,6 +69,7 @@ public class RuleController {
     }
 
     /** 更新规则 */
+    @Operation(summary = "更新规则")
     @PutMapping("/{id}")
     public ResponseEntity<?> updateRule(@PathVariable Long id, @RequestBody Rule rule) {
         Rule updated = ruleService.update(id, rule);
@@ -76,6 +81,7 @@ public class RuleController {
     }
 
     /** 删除规则 */
+    @Operation(summary = "删除规则")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteRule(@PathVariable Long id) {
         boolean removed = ruleService.delete(id);
@@ -87,6 +93,7 @@ public class RuleController {
     }
 
     /** 执行规则 */
+    @Operation(summary = "执行规则")
     @PostMapping("/execute")
     public ResponseEntity<RuleExecutionResult> executeRule(@RequestBody RuleExecutionRequest request) {
         RuleExecutionResult result = ruleExecutionService.execute(request);
@@ -97,6 +104,7 @@ public class RuleController {
     }
 
     /** 批量执行规则（任务 F：并行 + 单条失败隔离） */
+    @Operation(summary = "批量执行规则（任务 F：并行 + 单条失败隔离）")
     @PostMapping("/execute/batch")
     public ResponseEntity<BatchRuleExecutionResult> executeBatch(
             @RequestBody BatchRuleExecutionRequest request) {
@@ -104,6 +112,7 @@ public class RuleController {
     }
 
     /** 列出规则类型 */
+    @Operation(summary = "列出规则类型")
     @GetMapping("/types")
     public ResponseEntity<List<String>> listRuleTypes() {
         return ResponseEntity.ok(List.of("DQ", "MASK", "ALERT"));

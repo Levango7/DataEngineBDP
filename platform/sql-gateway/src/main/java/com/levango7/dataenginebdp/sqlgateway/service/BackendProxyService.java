@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -177,34 +178,39 @@ public class BackendProxyService {
                 ? dorisConfig.getUsername() : "root";
         String dorisPass = dorisConfig != null && dorisConfig.getPassword() != null
                 ? dorisConfig.getPassword() : "";
-        try (Connection conn = DriverManager.getConnection(resolveDorisJdbcUrl(), dorisUser, dorisPass);
-             Statement stmt = conn.createStatement()) {
-            applyQueryTimeout(stmt);
-            boolean hasResultSet = stmt.execute(sql);
-            if (hasResultSet) {
-                try (ResultSet rs = stmt.getResultSet()) {
-                    SqlExecuteResponse response = buildDorisResponse(rs, queryId,
-                            System.currentTimeMillis() - start);
-                    resetFailures(dorisFailures, dorisOpenSince);
-                    return Mono.just(response);
-                }
-            }
-            // DML/DDL：无结果集，返回成功（影响行数暂不返回，留待后续扩展）
-            resetFailures(dorisFailures, dorisOpenSince);
-            return Mono.just(SqlExecuteResponse.builder()
-                    .queryId(queryId)
-                    .status("SUCCESS")
-                    .columns(List.of())
-                    .rows(List.of())
-                    .durationMs(System.currentTimeMillis() - start)
-                    .engine("doris")
-                    .build());
-        } catch (Exception e) {
-            recordFailure(dorisFailures, dorisOpenSince, "doris");
-            log.error("proxyToDoris 失败 queryId={} sql={} err={}", queryId, sql, e.toString());
-            return Mono.just(errorResponse(queryId, "doris",
-                    "Doris 调用失败: " + e.getMessage()));
-        }
+
+        // JDBC 为阻塞调用，包装到 Mono.fromCallable 并调度到 boundedElastic 弹性线程池，
+        // 避免阻塞 Reactor 事件循环线程；成功时重置熔断计数，失败时记录并降级返回。
+        return Mono.fromCallable(() -> {
+                    try (Connection conn = DriverManager.getConnection(resolveDorisJdbcUrl(), dorisUser, dorisPass);
+                         Statement stmt = conn.createStatement()) {
+                        applyQueryTimeout(stmt);
+                        boolean hasResultSet = stmt.execute(sql);
+                        if (hasResultSet) {
+                            try (ResultSet rs = stmt.getResultSet()) {
+                                return buildDorisResponse(rs, queryId,
+                                        System.currentTimeMillis() - start);
+                            }
+                        }
+                        // DML/DDL：无结果集，返回成功（影响行数暂不返回，留待后续扩展）
+                        return SqlExecuteResponse.builder()
+                                .queryId(queryId)
+                                .status("SUCCESS")
+                                .columns(List.of())
+                                .rows(List.of())
+                                .durationMs(System.currentTimeMillis() - start)
+                                .engine("doris")
+                                .build();
+                    }
+                })
+                .subscribeOn(Schedulers.boundedElastic())
+                .doOnSuccess(r -> resetFailures(dorisFailures, dorisOpenSince))
+                .onErrorResume(e -> {
+                    recordFailure(dorisFailures, dorisOpenSince, "doris");
+                    log.error("proxyToDoris 失败 queryId={} sql={} err={}", queryId, sql, e.toString());
+                    return Mono.just(errorResponse(queryId, "doris",
+                            "Doris 调用失败: " + e.getMessage()));
+                });
     }
 
     /**

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -72,6 +73,7 @@ public class VirtualTableController {
      * @param definition 虚拟表定义
      * @return 已注册的虚拟表定义；表名已存在返回 409
      */
+    @Operation(summary = "注册虚拟表")
     @PostMapping
     public ResponseEntity<?> register(@RequestBody VirtualTableDefinition definition) {
         String tenantId = resolveTenantId(definition.getTenantId());
@@ -93,6 +95,7 @@ public class VirtualTableController {
      * @param dataSourceType 可选过滤：数据源类型
      * @return 虚拟表定义列表
      */
+    @Operation(summary = "列出当前租户的全部虚拟表")
     @GetMapping
     public ResponseEntity<List<VirtualTableDefinition>> list(
             @RequestParam(required = false) String dataSourceType) {
@@ -110,6 +113,7 @@ public class VirtualTableController {
      * @param tableName 虚拟表名
      * @return 虚拟表定义；不存在返回 404
      */
+    @Operation(summary = "获取单个虚拟表定义")
     @GetMapping("/{tableName}")
     public ResponseEntity<VirtualTableDefinition> get(@PathVariable String tableName) {
         String tenantId = resolveTenantId(null);
@@ -125,6 +129,7 @@ public class VirtualTableController {
      * @param definition    新字段值
      * @return 更新后的虚拟表定义；不存在返回 404
      */
+    @Operation(summary = "更新虚拟表定义")
     @PutMapping("/{tableName}")
     public ResponseEntity<?> update(@PathVariable String tableName,
                                     @RequestBody VirtualTableDefinition definition) {
@@ -144,6 +149,7 @@ public class VirtualTableController {
      * @param tableName 虚拟表名
      * @return 204 删除成功；不存在返回 404
      */
+    @Operation(summary = "删除虚拟表")
     @DeleteMapping("/{tableName}")
     public ResponseEntity<Void> delete(@PathVariable String tableName) {
         String tenantId = resolveTenantId(null);
@@ -159,6 +165,7 @@ public class VirtualTableController {
      * @param request   查询请求（predicate、limit）
      * @return 查询结果
      */
+    @Operation(summary = "查询虚拟表数据")
     @PostMapping("/{tableName}/query")
     public ResponseEntity<?> query(@PathVariable String tableName,
                                    @RequestBody(required = false) QueryRequest request) {
@@ -185,6 +192,7 @@ public class VirtualTableController {
      * @param tableName 虚拟表名
      * @return 列定义列表
      */
+    @Operation(summary = "获取虚拟表 schema")
     @GetMapping("/{tableName}/schema")
     public ResponseEntity<List<ColumnDefinition>> getSchema(@PathVariable String tableName) {
         String tenantId = resolveTenantId(null);
@@ -197,6 +205,7 @@ public class VirtualTableController {
      * @param tableName 虚拟表名
      * @return {@code {"connected": true/false}}
      */
+    @Operation(summary = "测试虚拟表连接")
     @PostMapping("/{tableName}/test-connection")
     public ResponseEntity<Map<String, Object>> testConnection(@PathVariable String tableName) {
         String tenantId = resolveTenantId(null);
@@ -214,6 +223,7 @@ public class VirtualTableController {
      * @param tableName 虚拟表名
      * @return 刷新结果（行数）
      */
+    @Operation(summary = "手动刷新物化表")
     @PostMapping("/{tableName}/refresh")
     public ResponseEntity<Map<String, Object>> refresh(@PathVariable String tableName) {
         String tenantId = resolveTenantId(null);
@@ -230,6 +240,7 @@ public class VirtualTableController {
      *
      * @return 缓存统计
      */
+    @Operation(summary = "获取元数据缓存统计信息")
     @GetMapping("/cache/stats")
     public ResponseEntity<Map<String, Object>> cacheStats() {
         return ResponseEntity.ok(virtualTableService.getCacheStats());
@@ -240,6 +251,7 @@ public class VirtualTableController {
      *
      * @return 数据源类型列表
      */
+    @Operation(summary = "列出支持的数据源类型")
     @GetMapping("/types")
     public ResponseEntity<List<String>> listTypes() {
         return ResponseEntity.ok(java.util.Arrays.stream(DataSourceType.values())

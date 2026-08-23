@@ -1216,7 +1216,8 @@ jobs:
       - name: 启动 docker-compose 服务
         if: env.it_skip != 'true'
         working-directory: tests/integration
-        continue-on-error: true
+        # docker-compose 启动失败应阻断 CI：服务不可用时后续集成测试无意义
+        continue-on-error: false
         run: |
           echo "启动 docker-compose 服务..."
           if docker compose up -d --wait; then
@@ -1345,7 +1346,8 @@ jobs:
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3
-        # 该上传已由 security.yml 的 trivy-scan 负责；CI 侧重门禁。非阻断。
+        # 上传 SARIF 到 GitHub Security tab 为辅助功能，失败不阻断构建；
+        # Trivy 扫描本身（上一步）已通过 sarif 输出报告完成门禁。
         continue-on-error: true
         if: always() && hashFiles('trivy-results.sarif') != ''
         with:
@@ -1435,7 +1437,7 @@ jobs:
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    # 性能测试失败不阻断 CI（允许失败，仅作趋势观测）
+    # 性能测试允许失败：仅作趋势观测，不阻断 CI 主流水线
     continue-on-error: true
     steps:
       - name: 检出代码

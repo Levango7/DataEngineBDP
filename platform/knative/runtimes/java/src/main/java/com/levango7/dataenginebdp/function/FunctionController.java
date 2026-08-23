@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.annotation.PostConstruct;
@@ -67,6 +68,7 @@ public class FunctionController {
      * @param event      调用事件
      * @return 调用响应
      */
+    @Operation(summary = "函数调用入口")
     @PostMapping("/invoke")
     public ResponseEntity<Map<String, Object>> invoke(
             @RequestHeader(value = "X-Tenant-Id", defaultValue = "default-tenant")
@@ -110,6 +112,7 @@ public class FunctionController {
      *
      * @return 健康状态
      */
+    @Operation(summary = "健康检查端点")
     @GetMapping("/health")
     public ResponseEntity<Map<String, Object>> health() {
         Map<String, Object> body = new HashMap<>();

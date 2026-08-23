@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -45,6 +46,7 @@ public class FlinkController {
     private final FlinkClient flinkClient;
 
     /** Flink 作业列表。 */
+    @Operation(summary = "Flink 作业列表")
     @GetMapping("/jobs")
     public ResponseEntity<?> listJobs(@RequestParam(required = false) String status) {
         log.info("列出 Flink 作业: status={}, tenant={}", status, TenantContext.getTenantId());
@@ -67,6 +69,7 @@ public class FlinkController {
     }
 
     /** 提交 Flink 作业。 */
+    @Operation(summary = "提交 Flink 作业")
     @PostMapping("/jobs")
     public ResponseEntity<?> submitJob(@RequestBody SubmitJobRequest req) {
         log.info("提交 Flink 作业: name={}, tenant={}", req.name(), TenantContext.getTenantId());
@@ -83,6 +86,7 @@ public class FlinkController {
     }
 
     /** 取消 Flink 作业。 */
+    @Operation(summary = "取消 Flink 作业")
     @PostMapping("/jobs/{id}/cancel")
     public ResponseEntity<?> cancelJob(@PathVariable String id) {
         log.info("取消 Flink 作业: jobId={}, tenant={}", id, TenantContext.getTenantId());
@@ -97,6 +101,7 @@ public class FlinkController {
     }
 
     /** 获取作业状态。 */
+    @Operation(summary = "获取作业状态")
     @GetMapping("/jobs/{id}/status")
     public ResponseEntity<?> getJobStatus(@PathVariable String id) {
         log.info("查询 Flink 作业状态: jobId={}, tenant={}", id, TenantContext.getTenantId());
@@ -110,6 +115,7 @@ public class FlinkController {
     }
 
     /** Checkpoint 历史。 */
+    @Operation(summary = "Checkpoint 历史")
     @GetMapping("/jobs/{id}/checkpoints")
     public ResponseEntity<?> getCheckpoints(@PathVariable String id) {
         log.info("查询 Flink Checkpoint: jobId={}, tenant={}", id, TenantContext.getTenantId());
@@ -124,6 +130,7 @@ public class FlinkController {
     }
 
     /** Savepoint 历史。 */
+    @Operation(summary = "Savepoint 历史")
     @GetMapping("/jobs/{id}/savepoints")
     public ResponseEntity<List<Map<String, Object>>> getSavepoints(@PathVariable String id) {
         log.info("查询 Flink Savepoint: jobId={}, tenant={}", id, TenantContext.getTenantId());
@@ -132,6 +139,7 @@ public class FlinkController {
     }
 
     /** 反压指标。 */
+    @Operation(summary = "查询Flink作业详情")
     @GetMapping("/jobs/{id}/backpressure")
     public ResponseEntity<?> getBackpressure(@PathVariable String id) {
         log.info("查询 Flink 反压: jobId={}, tenant={}", id, TenantContext.getTenantId());

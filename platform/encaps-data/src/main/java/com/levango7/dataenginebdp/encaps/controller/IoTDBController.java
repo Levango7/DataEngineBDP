@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -48,6 +49,7 @@ public class IoTDBController {
     private final DataSourceRepository dataSourceRepository;
 
     /** 存储组列表。 */
+    @Operation(summary = "查询IoTDB列表")
     @GetMapping("/{id}/storage-groups")
     public ResponseEntity<?> listStorageGroups(@PathVariable String id) {
         log.info("列出 IoTDB 存储组: id={}, tenant={}", id, TenantContext.getTenantId());
@@ -62,6 +64,7 @@ public class IoTDBController {
     }
 
     /** 设备列表。 */
+    @Operation(summary = "查询IoTDB列表")
     @GetMapping("/{id}/devices")
     public ResponseEntity<?> listDevices(@PathVariable String id) {
         log.info("列出 IoTDB 设备: id={}, tenant={}", id, TenantContext.getTenantId());
@@ -76,6 +79,7 @@ public class IoTDBController {
     }
 
     /** 时序列表。 */
+    @Operation(summary = "查询IoTDB列表")
     @GetMapping("/{id}/timeseries")
     public ResponseEntity<?> listTimeseries(
             @PathVariable String id,
@@ -97,6 +101,7 @@ public class IoTDBController {
     }
 
     /** 执行 SQL 查询（任务要求）。 */
+    @Operation(summary = "执行 SQL 查询（任务要求）")
     @PostMapping("/{id}/query")
     public ResponseEntity<?> executeQuery(@PathVariable String id,
                                           @RequestBody QueryRequest req) {
@@ -112,6 +117,7 @@ public class IoTDBController {
     }
 
     /** 写入吞吐。 */
+    @Operation(summary = "查询IoTDB详情")
     @GetMapping("/{id}/write-throughput")
     public ResponseEntity<?> getWriteThroughput(@PathVariable String id) {
         log.info("查询 IoTDB 写入吞吐: id={}, tenant={}", id, TenantContext.getTenantId());

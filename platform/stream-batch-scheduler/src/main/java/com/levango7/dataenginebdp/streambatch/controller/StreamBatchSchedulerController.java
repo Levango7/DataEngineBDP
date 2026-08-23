@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import jakarta.validation.Valid;
@@ -50,6 +51,7 @@ public class StreamBatchSchedulerController {
      * @param dag 流批 DAG
      * @return 执行结果
      */
+    @Operation(summary = "提交流批 DAG")
     @PostMapping("/dags")
     public ResponseEntity<DagExecutionResult> submitDag(@Valid @RequestBody StreamBatchDag dag) {
         log.info("收到 DAG 提交请求: dagId={}, name={}", dag.getDagId(), dag.getName());
@@ -63,6 +65,7 @@ public class StreamBatchSchedulerController {
      * @param dagId DAG ID
      * @return 执行结果
      */
+    @Operation(summary = "查询 DAG 执行结果")
     @GetMapping("/dags/{dagId}")
     public ResponseEntity<DagExecutionResult> getDagResult(@PathVariable String dagId) {
         DagExecutionResult result = orchestrationService.getDagResult(dagId);
@@ -77,6 +80,7 @@ public class StreamBatchSchedulerController {
      *
      * @return DAG 执行历史 Map
      */
+    @Operation(summary = "查询所有 DAG 执行历史")
     @GetMapping("/dags")
     public ResponseEntity<Map<String, DagExecutionResult>> getAllHistory() {
         return ResponseEntity.ok(orchestrationService.getAllHistory());
@@ -91,6 +95,7 @@ public class StreamBatchSchedulerController {
      * @param size   每页大小
      * @return 分页运行历史
      */
+    @Operation(summary = "分页查询某 DAG 的运行历史（任务运维中心）")
     @GetMapping("/dags/{dagId}/runs")
     public ResponseEntity<?> listRuns(
             @PathVariable String dagId,
@@ -112,6 +117,7 @@ public class StreamBatchSchedulerController {
      * @param triggeredBy 触发人（header X-Operator）
      * @return 新执行结果
      */
+    @Operation(summary = "失败重跑：按历史 runId 复原参数重新执行")
     @PostMapping("/dags/{dagId}/runs/{runId}/rerun")
     public ResponseEntity<DagExecutionResult> rerun(
             @PathVariable String dagId,
@@ -129,6 +135,7 @@ public class StreamBatchSchedulerController {
      * @param triggeredBy 触发人
      * @return 生成实例数
      */
+    @Operation(summary = "补数据：按时间区间生成回填实例")
     @PostMapping("/dags/{dagId}/backfill")
     public ResponseEntity<Map<String, Object>> backfill(
             @PathVariable String dagId,
@@ -159,6 +166,7 @@ public class StreamBatchSchedulerController {
      * @param latencyRequirementMs 延迟要求（毫秒，AUTO 模式用）
      * @return 视图选择结果
      */
+    @Operation(summary = "BI 视图路由")
     @PostMapping("/router/route")
     public ResponseEntity<ViewSelectionResult> routeQuery(
             @RequestParam String table,

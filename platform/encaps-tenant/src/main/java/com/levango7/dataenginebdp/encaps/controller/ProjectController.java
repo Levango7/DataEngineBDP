@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -48,6 +49,7 @@ public class ProjectController {
     }
 
     /** 列表（分页契约，支持 domain 过滤）。 */
+    @Operation(summary = "列表（分页契约，支持 domain 过滤）")
     @GetMapping
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> list(
@@ -70,6 +72,7 @@ public class ProjectController {
     }
 
     /** 详情。 */
+    @Operation(summary = "查询项目详情")
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public ResponseEntity<?> get(@PathVariable Long id) {
@@ -80,6 +83,7 @@ public class ProjectController {
     }
 
     /** 创建。 */
+    @Operation(summary = "创建项目")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody ProjectRequest req) {
@@ -102,6 +106,7 @@ public class ProjectController {
     }
 
     /** 更新。 */
+    @Operation(summary = "更新项目")
     @PutMapping("/{id}")
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody ProjectRequest req) {
@@ -116,6 +121,7 @@ public class ProjectController {
     }
 
     /** 删除。 */
+    @Operation(summary = "删除项目")
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> delete(@PathVariable Long id) {
@@ -136,6 +142,7 @@ public class ProjectController {
      * @param id 项目 ID
      * @return 200 + 数据集列表
      */
+    @Operation(summary = "列出项目数据集")
     @GetMapping("/{id}/datasets")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listDatasets(@PathVariable Long id) {
@@ -153,6 +160,7 @@ public class ProjectController {
      * @param id 项目 ID
      * @return 200 + 作业列表
      */
+    @Operation(summary = "列出项目作业")
     @GetMapping("/{id}/jobs")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listJobs(@PathVariable Long id) {
@@ -170,6 +178,7 @@ public class ProjectController {
      * @param id 项目 ID
      * @return 200 + 成员列表
      */
+    @Operation(summary = "列出项目成员")
     @GetMapping("/{id}/members")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> listMembers(@PathVariable Long id) {

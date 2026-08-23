@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -65,6 +66,7 @@ public class GovernanceController {
      * @param event commit 事件
      * @return 采集到的元数据
      */
+    @Operation(summary = "手动触发元数据采集")
     @PostMapping("/metadata/collect")
     public ResponseEntity<TableMetadata> collectMetadata(@RequestBody CatalogCommitEvent event) {
         if (event.getReceivedTimestamp() == null) {
@@ -80,6 +82,7 @@ public class GovernanceController {
     /**
      * 查询缓存的表元数据。
      */
+    @Operation(summary = "查询缓存的表元数据")
     @GetMapping("/metadata/{tableIdentifier}")
     public ResponseEntity<TableMetadata> getMetadata(@PathVariable String tableIdentifier) {
         TableMetadata metadata = metadataCollector.getCached(tableIdentifier);
@@ -99,6 +102,7 @@ public class GovernanceController {
      * @param request 包含 sqlText 和 jobId
      * @return 解析得到的字段级血缘
      */
+    @Operation(summary = "解析 Flink CDC SQL 并更新血缘图")
     @PostMapping("/lineage/parse")
     public ResponseEntity<FieldLineage> parseLineage(@RequestBody ParseLineageRequest request) {
         FieldLineage lineage = lineageAnalyzer.parseAndUpdate(request.sqlText(), request.jobId());
@@ -108,6 +112,7 @@ public class GovernanceController {
     /**
      * 查询指定目标表的血缘。
      */
+    @Operation(summary = "查询指定目标表的血缘")
     @GetMapping("/lineage/{targetTable}")
     public ResponseEntity<FieldLineage> queryLineage(@PathVariable String targetTable) {
         FieldLineage lineage = lineageAnalyzer.getGraphClient().queryLineage(targetTable);
@@ -120,6 +125,7 @@ public class GovernanceController {
     /**
      * 查询所有血缘。
      */
+    @Operation(summary = "查询所有血缘")
     @GetMapping("/lineage")
     public ResponseEntity<Map<String, FieldLineage>> getAllLineage() {
         return ResponseEntity.ok(lineageAnalyzer.getGraphClient().getAllCachedLineage());
@@ -132,6 +138,7 @@ public class GovernanceController {
     /**
      * 注册质量规则。
      */
+    @Operation(summary = "注册质量规则")
     @PostMapping("/quality/rules")
     public ResponseEntity<String> registerRule(@RequestBody QualityRule rule) {
         qualityEngine.registerRule(rule);
@@ -141,6 +148,7 @@ public class GovernanceController {
     /**
      * 注销质量规则。
      */
+    @Operation(summary = "注销质量规则")
     @DeleteMapping("/quality/rules/{ruleId}")
     public ResponseEntity<String> unregisterRule(@PathVariable String ruleId) {
         qualityEngine.unregisterRule(ruleId);
@@ -150,6 +158,7 @@ public class GovernanceController {
     /**
      * 查询所有质量规则。
      */
+    @Operation(summary = "查询所有质量规则")
     @GetMapping("/quality/rules")
     public ResponseEntity<Map<String, QualityRule>> getAllRules() {
         return ResponseEntity.ok(qualityEngine.getRuleRegistry());
@@ -158,6 +167,7 @@ public class GovernanceController {
     /**
      * 评估单条记录（同步模式）。
      */
+    @Operation(summary = "评估质量规则单条记录")
     @PostMapping("/quality/evaluate")
     public ResponseEntity<StreamingQualityRuleEngine.EvaluationOutcome> evaluate(
             @RequestBody EvaluateRequest request) {
@@ -176,6 +186,7 @@ public class GovernanceController {
     /**
      * 查询所有告警。
      */
+    @Operation(summary = "查询所有告警")
     @GetMapping("/alerts")
     public ResponseEntity<List<QualityAlert>> getAllAlerts() {
         return ResponseEntity.ok(qualityEngine.getAlertEmitter().getAlertBuffer());
@@ -184,6 +195,7 @@ public class GovernanceController {
     /**
      * 查询指定表的告警。
      */
+    @Operation(summary = "查询指定表的告警")
     @GetMapping("/alerts/{tableIdentifier}")
     public ResponseEntity<List<QualityAlert>> getAlertsByTable(
             @PathVariable String tableIdentifier,
@@ -198,6 +210,7 @@ public class GovernanceController {
     /**
      * 查询治理闭环指标（P95 延迟、执行统计等）。
      */
+    @Operation(summary = "查询治理闭环指标（P95 延迟、执行统计等）")
     @GetMapping("/pipeline/metrics")
     public ResponseEntity<Map<String, Object>> getPipelineMetrics() {
         Map<String, Object> metrics = new java.util.HashMap<>();
@@ -212,6 +225,7 @@ public class GovernanceController {
     /**
      * 查询治理闭环执行历史。
      */
+    @Operation(summary = "查询治理闭环执行历史")
     @GetMapping("/pipeline/history")
     public ResponseEntity<List<GovernancePipelineOrchestrator.PipelineExecution>> getHistory() {
         return ResponseEntity.ok(orchestrator.getExecutionHistory());

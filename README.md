@@ -33,8 +33,8 @@
 
 | 类别 | 技术选型 |
 | --- | --- |
-| 后端语言 | Java 17 / Go 1.26 / Python 3.11 |
-| 后端框架 | Spring Boot 4.1 / Gin / FastAPI / Pydantic |
+| 后端语言 | Java 17 / Go 1.25 / Python 3.11 |
+| 后端框架 | Spring Boot 3.2.6 / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
@@ -60,7 +60,7 @@ DataEngineBDP/
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（36 个）
+├── platform/                   # 自研组件（37 个）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -118,7 +118,7 @@ DataEngineBDP/
 | --- | --- | --- |
 | JDK | 17 | Java 组件构建 |
 | Maven | 3.9 | Java 组件构建 |
-| Go | 1.26 | Go 组件构建 |
+| Go | 1.25 | Go 组件构建 |
 | Python | 3.11 | Python 组件构建 |
 | Node.js | 20 | 前端构建 |
 | Docker | 24.0 | 容器镜像构建 |
@@ -173,7 +173,7 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 32 个自研组件目录，覆盖封装层、引擎层、治理层、智能数据层与产品层。
+平台共包含 37 个自研组件目录，覆盖封装层、引擎层、治理层、智能数据层与产品层。
 （注：其中约 1/3 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
 
 ### Java 组件（22 个）
@@ -260,7 +260,7 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件目录 | 36 个 |
+| 自研组件目录 | 37 个 |
 | Helm Chart | 87 个（其中 86 个为骨架级，1 个为完整实现） |
 | 详细设计文档 | 51 份 |
 | 单元测试 | 约 6000+（Java 3900+ / Go 580+ / Python 1550+） |

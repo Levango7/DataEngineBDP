@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.List;
@@ -38,24 +39,28 @@ public class PricingController {
     }
 
     /** 列出所有定价配置名 */
+    @Operation(summary = "列出所有定价配置名")
     @GetMapping
     public ResponseEntity<List<String>> listNames() {
         return ResponseEntity.ok(pricingConfigService.listNames());
     }
 
     /** 获取指定定价配置 */
+    @Operation(summary = "获取指定定价配置")
     @GetMapping("/{name}")
     public ResponseEntity<PricingConfig> get(@PathVariable String name) {
         return ResponseEntity.ok(pricingConfigService.getByName(name));
     }
 
     /** 新建定价配置 */
+    @Operation(summary = "新建定价配置")
     @PostMapping
     public ResponseEntity<PricingConfig> create(@Valid @RequestBody PricingConfig config) {
         return ResponseEntity.ok(pricingConfigService.save(config));
     }
 
     /** 更新定价配置 */
+    @Operation(summary = "更新定价配置")
     @PutMapping("/{name}")
     public ResponseEntity<PricingConfig> update(@PathVariable String name,
                                                 @Valid @RequestBody PricingConfig config) {

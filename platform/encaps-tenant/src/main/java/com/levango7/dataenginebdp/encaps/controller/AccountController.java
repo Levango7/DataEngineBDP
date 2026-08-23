@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.util.LinkedHashMap;
@@ -41,6 +42,7 @@ public class AccountController {
             "enterprise", Map.of("name", "企业版", "monthlyFee", 9999, "cpu", "64", "memory", "128Gi"));
 
     /** 当前套餐（根据配额量推断档位，轻量）。 */
+    @Operation(summary = "当前套餐（根据配额量推断档位，轻量）")
     @GetMapping("/plan")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> plan() {
@@ -65,6 +67,7 @@ public class AccountController {
     }
 
     /** 账单明细（轻量：按配额套餐月费汇总）。 */
+    @Operation(summary = "账单明细（轻量：按配额套餐月费汇总）")
     @GetMapping("/billing")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> billing() {
@@ -84,6 +87,7 @@ public class AccountController {
     }
 
     /** 升级套餐（轻量：记录并返回目标档费用；真实支付见 ROADMAP）。 */
+    @Operation(summary = "升级套餐（轻量：记录并返回目标档费用；真实支付见 ROADMAP）")
     @AuditLog(action = "UPGRADE_PLAN", resource = "account")
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, Object>> upgrade(@RequestBody Map<String, String> req) {

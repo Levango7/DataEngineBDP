@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
@@ -66,6 +67,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/metadata/tables
      */
+    @Operation(summary = "跨集群元数据表列表")
     @GetMapping("/metadata/tables")
     public ResponseEntity<Map<String, Object>> getFederatedTables(
             @RequestParam(required = false) String cluster) {
@@ -81,6 +83,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/metadata/tables/{tableId}
      */
+    @Operation(summary = "表详情（合并多集群信息）")
     @GetMapping("/metadata/tables/{tableId}")
     public ResponseEntity<Map<String, Object>> getFederatedTable(@PathVariable String tableId) {
         FederatedGovernanceView.TableMetadata table = metadataService.getFederatedTable(tableId);
@@ -95,6 +98,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/metadata/conflicts
      */
+    @Operation(summary = "元数据冲突检测")
     @GetMapping("/metadata/conflicts")
     public ResponseEntity<Map<String, Object>> getMetadataConflicts() {
         List<FederatedGovernanceView.MetadataConflict> conflicts = metadataService.detectConflicts();
@@ -113,6 +117,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/lineage/{tableId}
      */
+    @Operation(summary = "跨集群血缘（完整图）")
     @GetMapping("/lineage/{tableId}")
     public ResponseEntity<Map<String, Object>> getFederatedLineage(@PathVariable String tableId) {
         FederatedGovernanceView.LineageView view = lineageService.getFederatedLineage(tableId);
@@ -124,6 +129,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/lineage/{tableId}/upstream
      */
+    @Operation(summary = "上游血缘（数据来源链）")
     @GetMapping("/lineage/{tableId}/upstream")
     public ResponseEntity<Map<String, Object>> getUpstreamLineage(@PathVariable String tableId) {
         FederatedGovernanceView.LineageGraph graph = lineageService.getUpstreamLineage(tableId);
@@ -135,6 +141,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/lineage/{tableId}/downstream
      */
+    @Operation(summary = "下游血缘（数据消费链）")
     @GetMapping("/lineage/{tableId}/downstream")
     public ResponseEntity<Map<String, Object>> getDownstreamLineage(@PathVariable String tableId) {
         FederatedGovernanceView.LineageGraph graph = lineageService.getDownstreamLineage(tableId);
@@ -150,6 +157,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/quality/reports
      */
+    @Operation(summary = "质量报告列表")
     @GetMapping("/quality/reports")
     public ResponseEntity<Map<String, Object>> getQualityReports(
             @RequestParam(required = false) String tableId) {
@@ -170,6 +178,7 @@ public class GovernanceController {
      *
      * <p>POST /api/v1/federated/governance/quality/rules
      */
+    @Operation(summary = "创建质量规则")
     @PostMapping("/quality/rules")
     public ResponseEntity<Map<String, Object>> createQualityRule(@Valid @RequestBody FederatedGovernanceView.QualityRule rule) {
         log.info("Create quality rule: name={} dimension={}", rule.getName(), rule.getDimension());
@@ -182,6 +191,7 @@ public class GovernanceController {
      *
      * <p>POST /api/v1/federated/governance/quality/rules/{ruleId}/apply
      */
+    @Operation(summary = "跨集群应用质量规则")
     @PostMapping("/quality/rules/{ruleId}/apply")
     public ResponseEntity<Map<String, Object>> applyQualityRule(
             @PathVariable String ruleId, @RequestBody List<String> clusterIds) {
@@ -198,6 +208,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/quality/score
      */
+    @Operation(summary = "联邦质量评分")
     @GetMapping("/quality/score")
     public ResponseEntity<Map<String, Object>> getFederatedQualityScore() {
         FederatedGovernanceView.FederatedQualityScore score = qualityService.getFederatedQualityScore();
@@ -209,6 +220,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/quality/alerts
      */
+    @Operation(summary = "质量告警列表")
     @GetMapping("/quality/alerts")
     public ResponseEntity<Map<String, Object>> getQualityAlerts() {
         List<FederatedGovernanceView.QualityAlert> alerts = qualityService.getQualityAlerts();
@@ -223,6 +235,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/quality/templates
      */
+    @Operation(summary = "质量规则模板库")
     @GetMapping("/quality/templates")
     public ResponseEntity<Map<String, Object>> getRuleTemplates() {
         List<FederatedGovernanceView.QualityRule> templates = qualityService.getRuleTemplates();
@@ -241,6 +254,7 @@ public class GovernanceController {
      *
      * <p>GET /api/v1/federated/governance/dashboard
      */
+    @Operation(summary = "治理仪表盘（聚合元数据/血缘/质量视图）")
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboard() {
         FederatedGovernanceView.MetadataView metadata = metadataService.buildMetadataView();
@@ -264,6 +278,7 @@ public class GovernanceController {
      *
      * <p>POST /api/v1/federated/governance/sync
      */
+    @Operation(summary = "触发元数据同步")
     @PostMapping("/sync")
     public ResponseEntity<Map<String, Object>> syncMetadata(@Valid @RequestBody FederatedGovernanceView.SyncRequest request) {
         log.info("Trigger metadata sync: cluster={} force={}", request.getClusterId(), request.isForce());
