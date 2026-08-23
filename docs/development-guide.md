@@ -10,9 +10,9 @@
 | --- | --- | --- | --- |
 | JDK | 17 | 17.0.10 (LTS) | [Adoptium](https://adoptium.net/) |
 | Maven | 3.9 | 3.9.6 | [maven.apache.org](https://maven.apache.org/download.cgi) |
-| Go | 1.23 | 1.23.4 | [go.dev](https://go.dev/dl/) |
+| Go | 1.25 | 1.25.0 | [go.dev](https://go.dev/dl/) |
 | Python | 3.11 | 3.11.8 | [python.org](https://www.python.org/downloads/) |
-| Node.js | 20 | 20.11 LTS | [nodejs.org](https://nodejs.org/) |
+| Node.js | 22 | 22 LTS | [nodejs.org](https://nodejs.org/) |
 | Git | 2.40 | 2.44 | [git-scm.com](https://git-scm.com/) |
 | Docker | 24.0 | 24.0.7 | [docker.com](https://www.docker.com/) |
 | Make | 4.0 | 4.4 | 系统包管理器 |
@@ -35,7 +35,7 @@ export JAVA_HOME=/path/to/jdk-17
 export PATH=$JAVA_HOME/bin:$PATH
 
 # Go
-export GOROOT=/path/to/go-1.23
+export GOROOT=/path/to/go-1.25
 export GOPATH=$HOME/go
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 
@@ -45,7 +45,7 @@ source .venv/bin/activate  # Linux/macOS
 .venv\Scripts\activate     # Windows
 
 # Node.js（建议使用 nvm 管理版本）
-nvm use 20
+nvm use 22
 ```
 
 ## 项目结构

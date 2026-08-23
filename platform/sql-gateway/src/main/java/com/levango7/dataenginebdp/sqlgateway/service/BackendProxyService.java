@@ -65,6 +65,7 @@ public class BackendProxyService {
 
     private final WebClient trinoClient;
     private final WebClient dorisClient;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private final ObjectMapper objectMapper;
 
     private final BackendProperties.BackendConfig trinoConfig;
@@ -92,7 +93,8 @@ public class BackendProxyService {
                                BackendProperties backendProperties) {
         this.trinoConfig = backendProperties.getTrino();
         this.dorisConfig = backendProperties.getDoris();
-        this.objectMapper = new ObjectMapper();
+        // objectMapper 复用静态单例，避免高并发下重复创建（ObjectMapper 非轻量对象）
+        this.objectMapper = OBJECT_MAPPER;
 
         String trinoUrl = trinoConfig == null || trinoConfig.getUrl() == null
                 ? "http://trino-service:8080" : trinoConfig.getUrl();

@@ -42,7 +42,7 @@ prom = PrometheusConnect(url=PROM_URL, disable_ssl=True)
 #   flagship : 32 核 / 128 GB / 50 TB
 # 存储单位 Gi: 1 TB = 1024 Gi
 PACKAGES = {
-    "basic":    {"cpu": 8,  "mem": 16,  "storage": 5 * 1024,   "price": 0},
+    "base":     {"cpu": 8,  "mem": 16, "storage": 5 * 1024,   "price": 0},
     "standard": {"cpu": 16, "mem": 64,  "storage": 20 * 1024,  "price": 9800},
     "flagship": {"cpu": 32, "mem": 128, "storage": 50 * 1024,  "price": 39800},
 }

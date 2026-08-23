@@ -1,16 +1,16 @@
 package com.levango7.dataenginebdp.sqlgateway.calcite.join;
 
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.JoinAlgorithm;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.JoinConfig;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.JoinKey;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.JoinResult;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.JoinStatistics;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.JoinType;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.MemoryManager;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.Row;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.RowIterator;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.SpillManager;
-import com.levango7.dataenginebdp.sqlgateway.calcite.join.CrossSourceJoinExecutor.SpilledPartition;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.JoinAlgorithm;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.JoinConfig;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.JoinKey;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.JoinResult;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.JoinStatistics;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.JoinType;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.MemoryManager;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.Row;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.RowIterator;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.SpillManager;
+import com.levango7.dataenginebdp.sqlgateway.calcite.join.SpilledPartition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -54,12 +54,12 @@ class CrossSourceJoinExecutorTest {
 
     /** 构造行迭代器 */
     private RowIterator iter(List<Row> rows) {
-        return new CrossSourceJoinExecutor.ListRowIterator(rows);
+        return new ListRowIterator(rows);
     }
 
     /** 构造行迭代器（带估算大小） */
     private RowIterator iter(List<Row> rows, long estimatedSize) {
-        return new CrossSourceJoinExecutor.ListRowIterator(rows, estimatedSize);
+        return new ListRowIterator(rows, estimatedSize);
     }
 
     /** 构造等值 JoinKey：左列[0] = 右列[0]，左2列右2列 */
@@ -825,7 +825,7 @@ class CrossSourceJoinExecutorTest {
         @DisplayName("ListRowIterator 基本迭代")
         void testListRowIterator() {
             List<Row> rows = Arrays.asList(row(1), row(2), row(3));
-            RowIterator iter = new CrossSourceJoinExecutor.ListRowIterator(rows);
+            RowIterator iter = new ListRowIterator(rows);
 
             int count = 0;
             while (iter.hasNext()) {
@@ -838,7 +838,7 @@ class CrossSourceJoinExecutorTest {
         @Test
         @DisplayName("ListRowIterator next 超界抛异常")
         void testNextBeyondEnd() {
-            RowIterator iter = new CrossSourceJoinExecutor.ListRowIterator(
+            RowIterator iter = new ListRowIterator(
                     Collections.singletonList(row(1)));
             iter.next();
             assertThrows(NoSuchElementException.class, iter::next);
@@ -847,7 +847,7 @@ class CrossSourceJoinExecutorTest {
         @Test
         @DisplayName("ListRowIterator estimatedSize")
         void testEstimatedSize() {
-            RowIterator iter = new CrossSourceJoinExecutor.ListRowIterator(
+            RowIterator iter = new ListRowIterator(
                     Collections.singletonList(row(1)), 500);
             assertEquals(500, iter.estimatedSize());
         }
@@ -855,7 +855,7 @@ class CrossSourceJoinExecutorTest {
         @Test
         @DisplayName("ListRowIterator 默认 estimatedSize 为 -1")
         void testDefaultEstimatedSize() {
-            RowIterator iter = new CrossSourceJoinExecutor.ListRowIterator(
+            RowIterator iter = new ListRowIterator(
                     Collections.singletonList(row(1)));
             assertEquals(-1, iter.estimatedSize());
         }
@@ -863,7 +863,7 @@ class CrossSourceJoinExecutorTest {
         @Test
         @DisplayName("ListRowIterator close 不抛异常")
         void testClose() {
-            RowIterator iter = new CrossSourceJoinExecutor.ListRowIterator(
+            RowIterator iter = new ListRowIterator(
                     Collections.singletonList(row(1)));
             assertDoesNotThrow(iter::close);
         }
@@ -1253,13 +1253,13 @@ class CrossSourceJoinExecutorTest {
         @Test
         @DisplayName("CrossSourceJoinException 构造")
         void testExceptionConstruction() {
-            CrossSourceJoinExecutor.CrossSourceJoinException e1 =
-                    new CrossSourceJoinExecutor.CrossSourceJoinException("msg");
+            CrossSourceJoinException e1 =
+                    new CrossSourceJoinException("msg");
             assertEquals("msg", e1.getMessage());
 
             Exception cause = new RuntimeException("cause");
-            CrossSourceJoinExecutor.CrossSourceJoinException e2 =
-                    new CrossSourceJoinExecutor.CrossSourceJoinException("msg", cause);
+            CrossSourceJoinException e2 =
+                    new CrossSourceJoinException("msg", cause);
             assertEquals("msg", e2.getMessage());
             assertEquals(cause, e2.getCause());
         }
@@ -1654,7 +1654,7 @@ class CrossSourceJoinExecutorTest {
         @Test
         @DisplayName("JoinStatisticsSnapshot 所有 getter")
         void testSnapshotGetters() {
-            var snap = new CrossSourceJoinExecutor.JoinStatisticsSnapshot(
+            var snap = new JoinStatisticsSnapshot(
                     100, true, null, JoinAlgorithm.BROADCAST,
                     50, 30, 2, 100, 4);
             assertEquals(100, snap.getDurationMillis());

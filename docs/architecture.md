@@ -106,12 +106,12 @@ L2 层提供湖仓集一体的数据引擎能力，通过统一 SQL 网关对外
 | --- | --- | --- |
 | L2.1 统一存储 | Iceberg RestCatalog、StorageDriver 抽象（put / get / list / multipart / presigned） | iceberg-rest, minio, csi-juicefs |
 | L2.2 批计算 | Spark 3.5 on K8s、SparkApplication CR 翻译、AQE / DPP 调优 | spark |
-| L2.3 流计算 | Flink 1.18 Kubernetes Operator、CDC 连接器、状态后端对象存储 | flink |
-| L2.4 交互查询 | Trino 428、Iceberg Connector、ResourceGroup 查询队列、跨源联邦 | trino |
-| L2.5 OLAP | Doris 2.0、External Catalog → Iceberg 直查、物化视图、FE / BE 分离弹性 | doris |
+| L2.3 流计算 | Flink 1.20 Kubernetes Operator、CDC 连接器、状态后端对象存储 | flink |
+| L2.4 交互查询 | Trino 460、Iceberg Connector、ResourceGroup 查询队列、跨源联邦 | trino |
+| L2.5 OLAP | Doris 2.1、External Catalog → Iceberg 直查、物化视图、FE / BE 分离弹性 | doris |
 | L2.6 湖仓集一体 | "湖 → 仓 → 集"三级数据流转契约 | （架构规范模块） |
 | L2.7 统一 SQL 网关 | ANTLR4 解析、Calcite 联邦优化、引擎 Adapter、跨源结果归并 | sql-gateway |
-| L2.8 消息流接入 | Kafka 3.6 KRaft 模式、Schema Registry、Topic 多租户隔离 | kafka |
+| L2.8 消息流接入 | Kafka 3.8 KRaft 模式、Schema Registry、Topic 多租户隔离 | kafka |
 | L2.9 时序引擎 | IoTDB 2.0、ConfigNode / DataNode 分离、冷数据降采样归档 | iotdb |
 | L2.10 多模型引擎 | NebulaGraph（图）、Milvus（向量）、Redis（键值）；Elasticsearch（搜索，规划中） | nebula-graph, milvus, redis |
 

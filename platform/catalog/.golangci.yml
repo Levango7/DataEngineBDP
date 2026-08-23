@@ -19,7 +19,7 @@ linters-settings:
     # 排除常见的不需要检查错误返回值的函数
     exclude-functions:
       - fmt.Fprintf
-      - fmt.Fprintf
+
       - fmt.Printf
       - fmt.Print
       - fmt.Println

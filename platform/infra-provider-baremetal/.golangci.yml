@@ -6,7 +6,7 @@ run:
   # 超时
   timeout: 5m
   # Go版本
-  go: "1.23"
+  go: "1.25"
   # 模块下载模式
   modules-download-mode: readonly
 

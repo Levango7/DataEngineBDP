@@ -58,6 +58,34 @@ public final class KafkaTopicManager implements Closeable {
     /** 默认操作超时时间（秒）。 */
     private static final int DEFAULT_TIMEOUT_SECONDS = 30;
 
+    /**
+     * 包装 Kafka 异步操作的通用异常处理。
+     *
+     * <p>统一处理 {@link TimeoutException} / {@link ExecutionException} /
+     * {@link InterruptedException}，避免每个方法重复相同的 catch 块。</p>
+     *
+     * @param action  要执行的操作
+     * @param label   操作描述（用于异常消息）
+     * @param <T>     返回值类型
+     * @return 操作结果
+     * @throws RuntimeException 操作失败或中断时抛出
+     */
+    private <T> T runWithExceptionHandling(String label, java.util.concurrent.Callable<T> action) {
+        try {
+            return action.call();
+        } catch (TimeoutException e) {
+            throw new RuntimeException(label + " 超时", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            throw new RuntimeException(label + " 失败", cause != null ? cause : e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(label + " 被中断", e);
+        } catch (Exception e) {
+            throw new RuntimeException(label + " 异常: " + e.getMessage(), e);
+        }
+    }
+
     private final AdminClient adminClient;
     private final int defaultPartitions;
     private final short defaultReplicationFactor;
@@ -171,17 +199,11 @@ public final class KafkaTopicManager implements Closeable {
             return;
         }
         CreateTopicsResult result = adminClient.createTopics(newTopics);
-        try {
+        runWithExceptionHandling("批量创建 Topic", () -> {
             result.all().get(timeoutSeconds, TimeUnit.SECONDS);
-            log.info("批量创建 {} 个 Topic", newTopics.size());
-        } catch (TimeoutException e) {
-            throw new RuntimeException("批量创建 Topic 超时", e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("批量创建 Topic 失败", e.getCause() != null ? e.getCause() : e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("批量创建 Topic 被中断", e);
-        }
+            return null;
+        });
+        log.info("批量创建 {} 个 Topic", newTopics.size());
     }
 
     /**
@@ -192,17 +214,11 @@ public final class KafkaTopicManager implements Closeable {
     public void deleteTopic(String topic) {
         TopicNamingStrategy.validate(topic);
         DeleteTopicsResult result = adminClient.deleteTopics(Collections.singleton(topic));
-        try {
+        runWithExceptionHandling("删除 Topic: " + topic, () -> {
             result.all().get(timeoutSeconds, TimeUnit.SECONDS);
-            log.info("删除 Topic: {}", topic);
-        } catch (TimeoutException e) {
-            throw new RuntimeException("删除 Topic 超时: " + topic, e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("删除 Topic 失败: " + topic, e.getCause() != null ? e.getCause() : e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("删除 Topic 被中断: " + topic, e);
-        }
+            return null;
+        });
+        log.info("删除 Topic: {}", topic);
     }
 
     /**
@@ -216,17 +232,11 @@ public final class KafkaTopicManager implements Closeable {
             return;
         }
         DeleteTopicsResult result = adminClient.deleteTopics(topics);
-        try {
+        runWithExceptionHandling("批量删除 Topic", () -> {
             result.all().get(timeoutSeconds, TimeUnit.SECONDS);
-            log.info("批量删除 {} 个 Topic", topics.size());
-        } catch (TimeoutException e) {
-            throw new RuntimeException("批量删除 Topic 超时", e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("批量删除 Topic 失败", e.getCause() != null ? e.getCause() : e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("批量删除 Topic 被中断", e);
-        }
+            return null;
+        });
+        log.info("批量删除 {} 个 Topic", topics.size());
     }
 
     /**
@@ -236,16 +246,7 @@ public final class KafkaTopicManager implements Closeable {
      */
     public Set<String> listTopics() {
         ListTopicsResult result = adminClient.listTopics();
-        try {
-            return result.names().get(timeoutSeconds, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            throw new RuntimeException("列出 Topic 超时", e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("列出 Topic 失败", e.getCause() != null ? e.getCause() : e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("列出 Topic 被中断", e);
-        }
+        return runWithExceptionHandling("列出 Topic", () -> result.names().get(timeoutSeconds, TimeUnit.SECONDS));
     }
 
     /**
@@ -269,16 +270,7 @@ public final class KafkaTopicManager implements Closeable {
         TopicNamingStrategy.validate(topic);
         Map<String, KafkaFuture<TopicDescription>> futures =
                 adminClient.describeTopics(Collections.singleton(topic)).topicNameValues();
-        try {
-            return futures.get(topic).get(timeoutSeconds, TimeUnit.SECONDS);
-        } catch (TimeoutException e) {
-            throw new RuntimeException("描述 Topic 超时: " + topic, e);
-        } catch (ExecutionException e) {
-            throw new RuntimeException("描述 Topic 失败: " + topic, e.getCause() != null ? e.getCause() : e);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("描述 Topic 被中断: " + topic, e);
-        }
+        return runWithExceptionHandling("描述 Topic: " + topic, () -> futures.get(topic).get(timeoutSeconds, TimeUnit.SECONDS));
     }
 
     /**

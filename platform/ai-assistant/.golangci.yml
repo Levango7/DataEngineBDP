@@ -1,4 +1,4 @@
-# golangci-lint 配置 - llm-gateway 组件
+# golangci-lint 配置 - ai-assistant 组件
 # 启用核心 linters：errcheck/gosimple/govet/ineffassign/staticcheck/unused
 
 run:

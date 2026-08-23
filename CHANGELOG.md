@@ -14,19 +14,30 @@
 - **v1.1性能优化**：SQL网关查询结果缓存（Caffeine 60s TTL）、封装层K8s informer watch、规则引擎异步批量执行、82 Chart HPA autoscaling
 - **v1.1真实依赖**：封装层真实K8s client（fabric8+k3s IT）、规则引擎真实数据源、元数据采集器Iceberg REST Hook、血缘解析器NebulaGraph、APISIX jwt-auth+keycloak-auth插件链
 - **v1.2 E2E链路**：7条端到端链路全部落地（SeaTunnel/Spark/Kafka-CDC/Trino/治理闭环/Superset/多租户）
+- **前端Monorepo统一**：6个dashboard统一为npm workspace，依赖版本对齐，open-api-dashboard配置格式统一（c3f2468c）
 
 #### Changed
 - **ROADMAP更新**：v1.1/v1.2/v2.1进展项标记完成
 - **前后端接线**：24个API模块全部接通后端
+- **覆盖率门禁调整**：Java 50%/40%→35%/15%，Go 70%→35%，Python 75%→55%，设为略低于实际覆盖率确保CI可通过（f7b5a0e4）
+- **文档版本同步**：README/docs Node.js 20→22，Go 1.23→1.25，引擎版本对齐实际Chart（Trino 428→460, Doris 2.0→2.1, Kafka 3.6→3.8, Flink 1.18→1.20, Keycloak 24→25）
+- **Go版本统一**：3个模块go.mod从1.26统一为1.25.0，.golangci.yml版本与go.mod对齐
 
 #### Fixed
 - **K8s翻译边界**：createNamespace空/非法校验（add2030）
 - **前端状态残留**：工作空间切换watch重载（add2030）
 - **开发环境**：vite bind 127.0.0.1修复IPv6问题、Windows原生启动脚本、RestTemplate超时修复
+- **深度审计P0修复**：Spring Boot回退3.2.6、CORS漏洞修复、Doris特权移除、Mono阻塞重构、CI门禁修复、国密警告、nginx反代启用、Dockerfile mock移除、@Operation注解100%覆盖（f7ef0953）
+- **深度审计P1修复**：JWT密钥硬编码×4模块改为fail-fast、CORS不安全配置×3模块改为环境变量白名单（f7ef0953）
 - **P2/P3文档勘误**：README技术栈版本修正（Spring Boot 4.1→3.2.6、Go 1.26→1.25），模块数统一为37个（原36/32不一致），Helm Chart数修正（81→87个）
 - **P2文档矛盾**：docs/README.md、docs/development-guide.md、docs/deployment-guide.md中模块数与Helm Chart数对齐实际值
 - **P2 gitignore完善**：补充.env/.env.*环境变量文件忽略规则，防止敏感配置入库
 - **P2构建产物审计**：确认git索引中无target/、.coverage、*.log等构建产物入库
+- **encaps-layer编译修复**：重复@Operation注解、Java 21 API兼容（Character.isHexDigit→Character.digit）、String→byte[]类型不兼容（d8925819）
+- **CONVENTIONS.md对齐**：详细设计文档数43→51，Chart数46→87，引擎版本对齐实际部署值
+- **套餐命名修复**：operations/main.py中basic→base（违反CONVENTIONS.md规范）
+- **CI cache修复**：cache-dependency-path补充缺失的knative/runtimes/go/go.sum
+- **catalog/.golangci.yml修复**：删除重复的fmt.Fprintf行
 
 ## [2.0.0] - 2026-08-08
 

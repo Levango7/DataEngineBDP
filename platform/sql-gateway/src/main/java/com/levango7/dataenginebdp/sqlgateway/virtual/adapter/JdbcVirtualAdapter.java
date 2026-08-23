@@ -241,6 +241,9 @@ public class JdbcVirtualAdapter implements VirtualAdapter {
         }
     }
 
+    private static final com.fasterxml.jackson.databind.ObjectMapper OBJECT_MAPPER =
+            new com.fasterxml.jackson.databind.ObjectMapper();
+
     /**
      * 解析连接配置 JSON。
      *
@@ -249,8 +252,7 @@ public class JdbcVirtualAdapter implements VirtualAdapter {
      */
     protected Map<String, Object> parseConfig(VirtualTableDefinition definition) {
         try {
-            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            return mapper.readValue(definition.getConnectionConfig(),
+            return OBJECT_MAPPER.readValue(definition.getConnectionConfig(),
                     new com.fasterxml.jackson.core.type.TypeReference<>() {});
         } catch (Exception e) {
             throw new VirtualAdapterException("CONFIG_PARSE_FAILED",
