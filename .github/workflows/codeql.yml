@@ -77,7 +77,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
 
       # ============================================================

@@ -138,7 +138,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
 
       - name: 编译所有 Java 组件（mvn package -DskipTests）

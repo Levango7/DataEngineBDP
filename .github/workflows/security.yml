@@ -59,7 +59,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
 
       - name: 安装 SonarQube Scanner
@@ -145,7 +144,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
 
       - name: 预解析所有 Maven 依赖
@@ -345,7 +343,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-          maven-version: '3.9'
           cache: 'maven'
 
       - name: 对每个 Java 组件执行 OWASP Dependency-Check

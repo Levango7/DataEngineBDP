@@ -774,8 +774,6 @@ jobs:
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum
 
-      - name: 发现并遍历所有.0/go.sum
-
       - name: 发现并遍历所有 Go 组件（含 go.mod）
         run: |
           echo "============================================"
