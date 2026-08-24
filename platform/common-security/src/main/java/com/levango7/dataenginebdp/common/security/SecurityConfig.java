@@ -44,32 +44,26 @@ import java.util.List;
 @ConditionalOnMissingBean(SecurityFilterChain.class)
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
-    private final String[] allowedOrigins;
-
-    /**
-     * 构造配置。
-     *
-     * @param jwtAuthFilter  JWT 认证过滤器
-     * @param allowedOrigins CORS 允许的源，逗号分隔，来自 {@code app.security.cors.allowed-origins}
-     */
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-                          @Value("${app.security.cors.allowed-origins}") String allowedOrigins) {
-        this.jwtAuthFilter = jwtAuthFilter;
-        this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
-                .map(String::trim)
-                .filter(s -> !s.isEmpty())
-                .toArray(String[]::new);
-    }
-
     /**
      * 安全过滤链。
+     *
+     * <p>注意：{@code jwtAuthFilter} 通过方法参数注入而非构造器字段持有——
+     * 若在构造器中注入，而默认 {@link JwtAuthFilter} 的 {@code @Bean} 工厂方法又定义于本类，
+     * 将形成"创建 SecurityConfig 需要JwtAuthFilter、创建 JwtAuthFilter 又需要 SecurityConfig"
+     * 的循环依赖，导致应用无法启动。</p>
+     *
+     * @param http          HttpSecurity 构建器
+     * @param jwtAuthFilter JWT 认证过滤器（容器中存在则注入，缺失时由本类工厂方法提供）
+     * @return 安全过滤链
+     * @throws Exception 构建过滤链失败
      */
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
+                                                   CorsConfigurationSource corsConfigurationSource)
+            throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/health").permitAll()
@@ -82,11 +76,19 @@ public class SecurityConfig {
 
     /**
      * CORS 配置源。
+     *
+     * @param allowedOrigins 允许的源，逗号分隔
+     * @return CORS 配置源
      */
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @Value("${app.security.cors.allowed-origins}") String allowedOrigins) {
+        String[] origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toArray(String[]::new);
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(this.allowedOrigins));
+        configuration.setAllowedOrigins(List.of(origins));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
         configuration.setAllowCredentials(true);

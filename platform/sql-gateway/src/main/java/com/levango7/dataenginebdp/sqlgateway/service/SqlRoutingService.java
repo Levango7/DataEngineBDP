@@ -152,9 +152,11 @@ public class SqlRoutingService {
 
         Integer effectiveLimit = executeProperties.effectiveLimit(request.getLimit());
 
-        // 查询结果缓存（任务 D）：仅只读 SQL + 租户隔离键，DML 永不缓存
+        // 查询结果缓存（任务 D）：仅只读 SQL + 租户隔离键，DML 永不缓存。
+        // 缓存键必须包含生效 limit：同一 SQL 不同 limit 的截断结果不同，
+        // 否则大 limit 的缓存结果会错误命中小 limit 请求（或反之）。
         if (CacheConfig.isReadOnly(sql)) {
-            String cacheKey = buildCacheKey(targetEngine, sql, tenantId);
+            String cacheKey = buildCacheKey(targetEngine, sql, tenantId, effectiveLimit);
             Cache cache = cacheManager.getCache(CacheConfig.SQL_QUERY_CACHE);
             SqlExecuteResponse cached = cache == null ? null : cache.get(cacheKey, SqlExecuteResponse.class);
             if (cached != null) {
@@ -216,11 +218,12 @@ public class SqlRoutingService {
                 .build();
     }
 
-    /** 构建缓存键（engine+sql+tenantId SHA-256，含租户隔离；JDK 实现零依赖）。 */
-    private String buildCacheKey(String engine, String sql, String tenantId) {
+    /** 构建缓存键（engine+sql+tenantId+limit 的 SHA-256，含租户与行数隔离；JDK 实现零依赖）。 */
+    private String buildCacheKey(String engine, String sql, String tenantId, Integer effectiveLimit) {
         // 归一化：压缩空白、去掉注释、统一大小写，使语义等价的 SQL 产生相同缓存键
         String normalized = normalizeSql(sql);
-        String raw = engine + "|" + normalized + "|" + (tenantId == null ? "" : tenantId);
+        String raw = engine + "|" + normalized + "|" + (tenantId == null ? "" : tenantId)
+                + "|limit=" + (effectiveLimit == null ? "" : effectiveLimit);
         try {
             java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
             byte[] hash = md.digest(raw.getBytes(java.nio.charset.StandardCharsets.UTF_8));

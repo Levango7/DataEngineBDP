@@ -2,7 +2,8 @@ package com.levango7.dataenginebdp.sqlgateway.config;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Configuration;
 
 import jakarta.annotation.PostConstruct;
@@ -21,6 +22,11 @@ import jakarta.annotation.PostConstruct;
  *
  * <p>命中率可通过 {@code hit / (hit + miss)} 计算，目标 80%+。</p>
  *
+ * <p>实现说明：通过 {@link CacheManager} 按缓存名逐个解析并取原生 Caffeine 实例绑定。
+ * 不可直接按类型注入单个 {@code Cache<Object,Object>}——容器中存在
+ * sqlQuery/sqlPlan/catalogMeta 三个同泛型 Bean，{@code ObjectProvider.getIfAvailable()}
+ * 会因无法唯一判定抛 {@code NoUniqueBeanDefinitionException}，导致应用启动失败。</p>
+ *
  * @author shuqing-bigdata
  */
 @Configuration
@@ -28,46 +34,49 @@ public class MetricsBinder {
 
     private final org.springframework.beans.factory.ObjectProvider<MeterRegistry> registryProvider;
 
-    private final org.springframework.beans.factory.ObjectProvider<
-            com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlQueryCacheProvider;
-
-    private final org.springframework.beans.factory.ObjectProvider<
-            com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlPlanCacheProvider;
-
-    private final org.springframework.beans.factory.ObjectProvider<
-            com.github.benmanes.caffeine.cache.Cache<Object, Object>> catalogMetaCacheProvider;
+    private final org.springframework.beans.factory.ObjectProvider<CacheManager> cacheManagerProvider;
 
     public MetricsBinder(
             org.springframework.beans.factory.ObjectProvider<MeterRegistry> registryProvider,
-            org.springframework.beans.factory.ObjectProvider<
-                    com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlQueryCacheProvider,
-            org.springframework.beans.factory.ObjectProvider<
-                    com.github.benmanes.caffeine.cache.Cache<Object, Object>> sqlPlanCacheProvider,
-            org.springframework.beans.factory.ObjectProvider<
-                    com.github.benmanes.caffeine.cache.Cache<Object, Object>> catalogMetaCacheProvider) {
+            org.springframework.beans.factory.ObjectProvider<CacheManager> cacheManagerProvider) {
         this.registryProvider = registryProvider;
-        this.sqlQueryCacheProvider = sqlQueryCacheProvider;
-        this.sqlPlanCacheProvider = sqlPlanCacheProvider;
-        this.catalogMetaCacheProvider = catalogMetaCacheProvider;
+        this.cacheManagerProvider = cacheManagerProvider;
     }
 
+    /**
+     * 将各命名缓存的原生 Caffeine 实例绑定到 Micrometer。
+     */
     @PostConstruct
     public void bind() {
         MeterRegistry registry = registryProvider.getIfAvailable();
         if (registry == null) {
             return;
         }
-        bindOne(registry, sqlQueryCacheProvider.getIfAvailable(), CacheConfig.SQL_QUERY_CACHE);
-        bindOne(registry, sqlPlanCacheProvider.getIfAvailable(), CacheConfig.SQL_PLAN_CACHE);
-        bindOne(registry, catalogMetaCacheProvider.getIfAvailable(), CacheConfig.CATALOG_META_CACHE);
+        CacheManager manager = cacheManagerProvider.getIfAvailable();
+        if (manager == null) {
+            return;
+        }
+        bindOne(registry, manager.getCache(CacheConfig.SQL_QUERY_CACHE), CacheConfig.SQL_QUERY_CACHE);
+        bindOne(registry, manager.getCache(CacheConfig.SQL_PLAN_CACHE), CacheConfig.SQL_PLAN_CACHE);
+        bindOne(registry, manager.getCache(CacheConfig.CATALOG_META_CACHE), CacheConfig.CATALOG_META_CACHE);
     }
 
-    private void bindOne(MeterRegistry registry,
-                         com.github.benmanes.caffeine.cache.Cache<Object, Object> cache,
-                         String name) {
+    /**
+     * 绑定单个 Spring Cache（仅处理 Caffeine 实现）。
+     *
+     * @param registry 指标注册表
+     * @param cache    Spring 缓存抽象实例（可空）
+     * @param name     缓存名（作为 metric tag）
+     */
+    private void bindOne(MeterRegistry registry, Cache cache, String name) {
         if (cache == null) {
             return;
         }
-        CaffeineCacheMetrics.monitor(registry, cache, name);
+        if (cache.getNativeCache() instanceof com.github.benmanes.caffeine.cache.Cache<?, ?> nativeCaffeine) {
+            @SuppressWarnings("unchecked")
+            com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeine =
+                    (com.github.benmanes.caffeine.cache.Cache<Object, Object>) nativeCaffeine;
+            CaffeineCacheMetrics.monitor(registry, caffeine, name);
+        }
     }
 }

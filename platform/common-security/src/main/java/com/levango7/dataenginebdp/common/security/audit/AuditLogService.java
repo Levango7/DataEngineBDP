@@ -65,7 +65,15 @@ public class AuditLogService {
      */
     public AuditLogService(AuditConfig config, ObjectMapper objectMapper) {
         this.config = config;
-        this.objectMapper = objectMapper;
+        // 防御性拷贝并注册 JSR310 时间模块：AuditEvent.timestamp 为 Instant，
+        // 裸 ObjectMapper（未注册 jackson-datatype-jsr310）序列化会直接抛
+        // InvalidDefinitionException，导致审计事件全部丢失。copy() 避免污染共享 Bean；
+        // registerModule 对已注册模块幂等。
+        ObjectMapper mapper = objectMapper != null ? objectMapper : new ObjectMapper();
+        mapper = mapper.copy()
+                .registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule())
+                .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        this.objectMapper = mapper;
         this.hmacKey = config.isTamperProof() && config.getHmacSecret() != null
                 && !config.getHmacSecret().isEmpty()
                 ? new SecretKeySpec(config.getHmacSecret().getBytes(StandardCharsets.UTF_8), "HmacSHA256")

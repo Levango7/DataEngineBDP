@@ -343,4 +343,43 @@ class SqlRoutingServiceTest {
                 org.mockito.ArgumentMatchers.eq("t1"),
                 org.mockito.ArgumentMatchers.eq(50));
     }
+
+    @Test
+    @DisplayName("缓存 — 同 SQL 不同 limit 不互相命中（缓存键含 limit）")
+    void cache_differentLimit_notShared() {
+        SqlRoutingService svc = withRealCache();
+
+        SqlExecuteRequest small = new SqlExecuteRequest();
+        small.setSql("SELECT * FROM t");
+        small.setEngine("trino");
+        small.setTenantId("t1");
+        small.setLimit(5);
+
+        SqlExecuteRequest large = new SqlExecuteRequest();
+        large.setSql("SELECT * FROM t");
+        large.setEngine("trino");
+        large.setTenantId("t1");
+        large.setLimit(500);
+
+        SqlExecuteResponse truncatedResp = SqlExecuteResponse.builder()
+                .queryId("q-s").status("SUCCESS").columns(List.of("id"))
+                .rows(new java.util.ArrayList<>(List.of(List.of(1))))
+                .durationMs(10L).engine("trino").truncated(true)
+                .message("结果集超过行数上限 5，已截断")
+                .build();
+        SqlExecuteResponse fullResp = okResponse();
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(truncatedResp), Mono.just(fullResp));
+
+        SqlExecuteResponse rSmall = svc.execute(small);
+        SqlExecuteResponse rLarge = svc.execute(large);
+
+        // 不同 limit 必须各自真实执行（后端被调用 2 次），不得共享缓存
+        assertThat(rSmall.getRows()).hasSize(1);
+        assertThat(rSmall.getTruncated()).isTrue();
+        assertThat(rLarge.isCached()).isFalse();
+        org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(2))
+                .proxyToTrino(anyString(), anyString(), any());
+    }
 }

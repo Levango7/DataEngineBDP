@@ -57,10 +57,12 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Spring AspectJ：提供 AspectJ 支持（AuditLogAspect 切面）；Spring Boot 4.x 已将 starter-aop 重命名为 starter-aspectj -->
+        <!-- Spring AOP：提供 AspectJ 支持（AuditLogAspect 切面）。
+             注意：本项目基于 Spring Boot 3.2.6，artifact 为 spring-boot-starter-aop；
+             starter-aspectj 是 Spring Boot 4.x 的重命名，在此版本中不存在，会导致 POM 解析失败。 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aspectj</artifactId>
+            <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
         <!-- Jackson：审计日志 JSON 序列化（AuditLogService / AuditLogAspect / AuditAutoConfiguration） -->
         <dependency>
