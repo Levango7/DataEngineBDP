@@ -83,10 +83,23 @@ class SqlValidator:
 
         # 2. SELECT-only 安全护栏
         if self.settings.selectOnly:
-            issue = self._checkSelectOnly(stmt)
-            if issue is not None:
-                issues.append(issue)
+            # 多语句防护：逐条校验全部语句，任何一条非 SELECT 即拒绝，
+            # 防止 "SELECT 1; DROP TABLE x" 借首条语句绕过检查。
+            if len(parsed) > 1:
+                issues.append(
+                    ValidationIssue(
+                        level=ValidationLevel.ERROR,
+                        message=f"SELECT-only 模式禁止多语句 SQL（检测到 {len(parsed)} 条）",
+                        code="MULTI_STMT",
+                    )
+                )
                 return ValidationResult(valid=False, issues=issues, parsedSql=normalized)
+
+            for s in parsed:
+                issue = self._checkSelectOnly(s)
+                if issue is not None:
+                    issues.append(issue)
+                    return ValidationResult(valid=False, issues=issues, parsedSql=normalized)
 
         # 3. 语法基础检查（括号配对、末尾分号）
         issues.extend(self._basicSyntaxCheck(sql))

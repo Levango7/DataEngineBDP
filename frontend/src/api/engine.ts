@@ -720,9 +720,13 @@ export interface SqlExecuteResponse {
   /** 耗时（毫秒） */
   durationMs: number
   /** 状态 */
-  status: 'SUCCESS' | 'FAILED' | string
+  status: 'SUCCESS' | 'FAILED' | 'DEGRADED' | string
   /** 错误信息 */
   error?: string
+  /** 结果是否被截断（行数上限或分页首页） */
+  truncated?: boolean
+  /** 截断说明 / 拒绝原因 / 降级原因等附加信息 */
+  message?: string
 }
 
 /** SQL 执行计划响应 */

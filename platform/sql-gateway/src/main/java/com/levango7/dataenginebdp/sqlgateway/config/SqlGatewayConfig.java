@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
  * @author shuqing-bigdata
  */
 @Configuration
-@EnableConfigurationProperties(BackendProperties.class)
+@EnableConfigurationProperties({BackendProperties.class, ExecuteProperties.class})
 public class SqlGatewayConfig {
 
     /**

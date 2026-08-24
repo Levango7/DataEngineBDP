@@ -65,9 +65,24 @@ sql-gateway:
       username: ${DORIS_USERNAME:root}
       # Doris 密码：生产环境必须通过环境变量 DORIS_PASSWORD 注入，默认空仅用于开发
       password: ${DORIS_PASSWORD:}
+      # 租户专属凭证映射（可选）：tenantId → 独立账号，实现引擎侧真实租户隔离。
+      # 生产环境建议为每个租户配置独立低权限（只读）账号；示例：
+      # tenant-users:
+      #   tenant-a:
+      #     username: doris_tenant_a
+      #     password: ${DORIS_TENANT_A_PASSWORD}
       timeout: 30
       max-retries: 3
   default-engine: trino
+  # SQL 执行策略：只读门禁 + 行数上限（防越权写入与 OOM）
+  execute:
+    # 仅放行 SELECT/SHOW/DESC/WITH/EXPLAIN；DML/DDL 在网关层直接拒绝。
+    # 如需临时放开写入，置为 false（不推荐在生产开启）。
+    read-only-only: ${SQL_GATEWAY_READ_ONLY_ONLY:true}
+    # 请求未指定 limit 时的默认返回行数上限
+    default-limit: ${SQL_GATEWAY_DEFAULT_LIMIT:1000}
+    # 单次查询返回行数硬上限，超出截断并标记 truncated=true
+    max-rows: ${SQL_GATEWAY_MAX_ROWS:10000}
   circuit-breaker:
     enabled: true
     failure-threshold: 5

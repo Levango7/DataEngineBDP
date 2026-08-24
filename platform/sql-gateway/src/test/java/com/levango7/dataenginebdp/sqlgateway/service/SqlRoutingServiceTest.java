@@ -57,7 +57,7 @@ class SqlRoutingServiceTest {
                 .engine("trino")
                 .build();
 
-        when(backendProxyService.proxyToTrino(anyString(), anyString())).thenReturn(Mono.just(mockResponse));
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any())).thenReturn(Mono.just(mockResponse));
 
         SqlExecuteResponse result = sqlRoutingService.execute(request);
 
@@ -83,7 +83,7 @@ class SqlRoutingServiceTest {
                 .engine("doris")
                 .build();
 
-        when(backendProxyService.proxyToDoris(anyString(), anyString())).thenReturn(Mono.just(mockResponse));
+        when(backendProxyService.proxyToDoris(anyString(), anyString(), any())).thenReturn(Mono.just(mockResponse));
 
         SqlExecuteResponse result = sqlRoutingService.execute(request);
 
@@ -99,7 +99,7 @@ class SqlRoutingServiceTest {
         request.setSql("SELECT 1");
         request.setEngine("trino");
 
-        when(backendProxyService.proxyToTrino(anyString(), any())).thenReturn(Mono.empty());
+        when(backendProxyService.proxyToTrino(anyString(), any(), any())).thenReturn(Mono.empty());
 
         SqlExecuteResponse result = sqlRoutingService.execute(request);
 
@@ -114,7 +114,7 @@ class SqlRoutingServiceTest {
         request.setSql("SELECT 1");
         request.setEngine("trino");
 
-        when(backendProxyService.proxyToTrino(anyString(), any()))
+        when(backendProxyService.proxyToTrino(anyString(), any(), any()))
                 .thenReturn(Mono.error(new IllegalStateException("Timeout on blocking read")));
 
         SqlExecuteResponse result = sqlRoutingService.execute(request);
@@ -193,7 +193,7 @@ class SqlRoutingServiceTest {
         req.setEngine("trino");
         req.setTenantId("t1");
 
-        when(backendProxyService.proxyToTrino(anyString(), anyString()))
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
                 .thenAnswer(inv -> Mono.just(okResponse())); // 每次新实例
 
         SqlExecuteResponse first = svc.execute(req);
@@ -203,7 +203,7 @@ class SqlRoutingServiceTest {
         assertThat(second.isCached()).isTrue(); // 二次命中缓存
         // 后端只被调用一次（第二次走缓存）
         org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(1))
-                .proxyToTrino(anyString(), anyString());
+                .proxyToTrino(anyString(), anyString(), any());
     }
 
     @Test
@@ -220,7 +220,7 @@ class SqlRoutingServiceTest {
         reqB.setEngine("trino");
         reqB.setTenantId("tenant-b");
 
-        when(backendProxyService.proxyToTrino(anyString(), anyString()))
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
                 .thenAnswer(inv -> Mono.just(okResponse()));
 
         svc.execute(reqA);
@@ -239,7 +239,7 @@ class SqlRoutingServiceTest {
         req.setEngine("trino");
         req.setTenantId("t1");
 
-        when(backendProxyService.proxyToTrino(anyString(), anyString()))
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
                 .thenAnswer(inv -> Mono.just(okResponse()));
 
         svc.execute(req);
@@ -247,6 +247,100 @@ class SqlRoutingServiceTest {
 
         // DML 永不缓存 → 后端被调用 2 次
         org.mockito.Mockito.verify(backendProxyService, org.mockito.Mockito.times(2))
-                .proxyToTrino(anyString(), anyString());
+                .proxyToTrino(anyString(), anyString(), any());
+    }
+
+    /* ==================== 安全加固：只读门禁 / 租户绑定 / limit ==================== */
+
+    private SqlRoutingService withReadOnlyGate() {
+        SqlRoutingService svc = withRealCache();
+        com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties props =
+                new com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties();
+        props.setReadOnlyOnly(true);
+        svc.setExecuteProperties(props);
+        return svc;
+    }
+
+    @Test
+    @DisplayName("只读门禁 — read-only-only=true 时拒绝 UPDATE，不下发后端")
+    void readOnlyGate_rejectsDml() {
+        SqlRoutingService svc = withReadOnlyGate();
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("DELETE FROM t WHERE id = 1");
+        req.setEngine("doris");
+        req.setTenantId("t1");
+
+        SqlExecuteResponse resp = svc.execute(req);
+
+        assertThat(resp.getStatus()).isEqualTo("FAILED");
+        assertThat(resp.getMessage()).contains("只读模式");
+        org.mockito.Mockito.verifyNoInteractions(backendProxyService);
+    }
+
+    @Test
+    @DisplayName("只读门禁 — read-only-only=false 时 DML 照常下发（兼容）")
+    void readOnlyOff_allowsDml() {
+        SqlRoutingService svc = withRealCache(); // 类内默认 readOnlyOnly=false
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("UPDATE t SET x = 1");
+        req.setEngine("trino");
+
+        when(backendProxyService.proxyToTrino(anyString(), any(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        SqlExecuteResponse resp = svc.execute(req);
+        assertThat(resp.getStatus()).isEqualTo("SUCCESS");
+    }
+
+    @Test
+    @DisplayName("租户绑定 — JWT 上下文存在时覆盖 body 中的伪造 tenantId")
+    void tenantBinding_jwtOverridesBody() {
+        SqlRoutingService svc = withRealCache();
+        try {
+            com.levango7.dataenginebdp.common.security.TenantContext.setTenantId("jwt-tenant");
+            SqlExecuteRequest req = new SqlExecuteRequest();
+            req.setSql("SELECT secret FROM t");
+            req.setEngine("trino");
+            req.setTenantId("forged-tenant"); // body 伪造
+
+            when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                    .thenAnswer(inv -> Mono.just(okResponse()));
+
+            svc.execute(req);
+
+            // 后端收到的 tenantId 必须是 JWT 值而非 body 值
+            org.mockito.Mockito.verify(backendProxyService)
+                    .proxyToTrino(org.mockito.ArgumentMatchers.eq("SELECT secret FROM t"),
+                            org.mockito.ArgumentMatchers.eq("jwt-tenant"), any());
+        } finally {
+            com.levango7.dataenginebdp.common.security.TenantContext.clear();
+        }
+    }
+
+    @Test
+    @DisplayName("limit 生效 — 请求 limit 与 maxRows 取小后传给后端")
+    void limit_effectivePassedToBackend() {
+        SqlRoutingService svc = withRealCache();
+        com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties props =
+                new com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties();
+        props.setMaxRows(100);
+        props.setDefaultLimit(50);
+        svc.setExecuteProperties(props);
+
+        SqlExecuteRequest req = new SqlExecuteRequest();
+        req.setSql("SELECT * FROM big_table");
+        req.setEngine("trino");
+        req.setLimit(5000); // > defaultLimit(50) → 生效值应为 50
+        req.setTenantId("t1");
+
+        when(backendProxyService.proxyToTrino(anyString(), anyString(), any()))
+                .thenReturn(Mono.just(okResponse()));
+
+        svc.execute(req);
+
+        org.mockito.Mockito.verify(backendProxyService).proxyToTrino(
+                org.mockito.ArgumentMatchers.eq("SELECT * FROM big_table"),
+                org.mockito.ArgumentMatchers.eq("t1"),
+                org.mockito.ArgumentMatchers.eq(50));
     }
 }

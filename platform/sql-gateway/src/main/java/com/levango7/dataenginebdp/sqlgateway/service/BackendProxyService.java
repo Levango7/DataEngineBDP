@@ -72,6 +72,26 @@ public class BackendProxyService {
     private final BackendProperties.BackendConfig dorisConfig;
 
     /**
+     * 执行策略配置（行数上限等）。
+     * <p>通过 setter 注入以保持既有 2 参构造器与单测兼容；未注入时使用默认值。</p>
+     */
+    private com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties executeProperties =
+            new com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties();
+
+    /**
+     * 注入执行策略配置（Spring 自动装配；可选依赖，缺省用默认值）。
+     *
+     * @param executeProperties 执行策略配置
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setExecuteProperties(
+            com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties executeProperties) {
+        if (executeProperties != null) {
+            this.executeProperties = executeProperties;
+        }
+    }
+
+    /**
      * Trino 熔断器：失败计数。
      */
     private final AtomicInteger trinoFailures = new AtomicInteger(0);
@@ -129,6 +149,25 @@ public class BackendProxyService {
      * @return 后端执行响应（异步）
      */
     public Mono<SqlExecuteResponse> proxyToTrino(String sql, String tenantId) {
+        return proxyToTrino(sql, tenantId, null);
+    }
+
+    /**
+     * 代理 SQL 到 Trino 后端（带行数上限）。
+     *
+     * <p>调用 Trino Statement API：{@code POST /v1/statement}，请求体为 SQL 文本。
+     * 通过 {@code X-Trino-User} 头传递租户 ID 用于审计与资源隔离。</p>
+     *
+     * <p>Trino 响应为分页结构（含 {@code nextUri}），本实现取首页结果返回；
+     * 当存在 {@code nextUri} 时在响应中标记 {@code truncated=true}，
+     * 调用方可感知结果集不完整（如需全量应缩小查询范围或调高 limit）。</p>
+     *
+     * @param sql      待执行的 SQL
+     * @param tenantId 租户 ID（写入 X-Trino-User 头）
+     * @param limit    返回行数上限（null 表示仅受 maxRows 硬上限约束）
+     * @return 后端执行响应（异步）
+     */
+    public Mono<SqlExecuteResponse> proxyToTrino(String sql, String tenantId, Integer limit) {
         String queryId = UUID.randomUUID().toString();
 
         // 熔断检查
@@ -145,7 +184,8 @@ public class BackendProxyService {
                 .retrieve()
                 .bodyToMono(String.class)
                 .timeout(Duration.ofSeconds(RESPONSE_TIMEOUT_SECONDS))
-                .map(json -> parseTrinoResponse(json, queryId, System.currentTimeMillis() - start))
+                .map(json -> parseTrinoResponse(json, queryId,
+                        System.currentTimeMillis() - start, limit))
                 .onErrorResume(e -> {
                     recordFailure(trinoFailures, trinoOpenSince, "trino");
                     log.error("proxyToTrino 失败 queryId={} err={}", queryId, e.toString());
@@ -166,6 +206,25 @@ public class BackendProxyService {
      * @return 后端执行响应（异步）
      */
     public Mono<SqlExecuteResponse> proxyToDoris(String sql, String tenantId) {
+        return proxyToDoris(sql, tenantId, null);
+    }
+
+    /**
+     * 代理 SQL 到 Doris 后端（JDBC / MySQL 兼容协议，带行数上限与租户凭证映射）。
+     *
+     * <p>Doris 2.x 已不提供旧版 {@code POST /api/query} HTTP SQL 接口，
+     * 改用 MySQL 兼容协议（FE query_port 9030）执行 SQL，接入方式与
+     * tag-engine / metadata-collector 保持一致。</p>
+     *
+     * <p>租户隔离：优先使用 {@code sql-gateway.backends.doris.tenant-users} 中
+     * 该租户的专属凭证连接（引擎侧真实权限隔离）；未配置映射时回退默认凭证并告警。</p>
+     *
+     * @param sql      待执行的 SQL
+     * @param tenantId 租户 ID（用于租户专属凭证选择）
+     * @param limit    返回行数上限（null 表示仅受 maxRows 硬上限约束）
+     * @return 后端执行响应（异步）
+     */
+    public Mono<SqlExecuteResponse> proxyToDoris(String sql, String tenantId, Integer limit) {
         String queryId = UUID.randomUUID().toString();
 
         // 熔断检查
@@ -175,11 +234,27 @@ public class BackendProxyService {
         }
 
         long start = System.currentTimeMillis();
-        // 凭证从配置注入，避免硬编码；缺省回退到 root/空密码（仅开发环境）
-        String dorisUser = dorisConfig != null && dorisConfig.getUsername() != null
+        // 凭证选择：租户专属凭证 > 默认凭证；缺省回退 root/空密码（仅开发环境），
+        // 并在日志中告警提示生产环境必须显式配置。
+        String resolvedUser = dorisConfig != null && dorisConfig.getUsername() != null
                 ? dorisConfig.getUsername() : "root";
-        String dorisPass = dorisConfig != null && dorisConfig.getPassword() != null
+        String resolvedPass = dorisConfig != null && dorisConfig.getPassword() != null
                 ? dorisConfig.getPassword() : "";
+        if (dorisConfig != null && tenantId != null && !tenantId.isBlank()
+                && dorisConfig.getTenantUsers() != null
+                && dorisConfig.getTenantUsers().containsKey(tenantId)) {
+            BackendProperties.BackendConfig.TenantCredential cred =
+                    dorisConfig.getTenantUsers().get(tenantId);
+            if (cred != null && cred.getUsername() != null && !cred.getUsername().isBlank()) {
+                resolvedUser = cred.getUsername();
+                resolvedPass = cred.getPassword() == null ? "" : cred.getPassword();
+            }
+        } else if (resolvedUser.equals("root") && (resolvedPass == null || resolvedPass.isEmpty())) {
+            log.warn("proxyToDoris 使用默认 root/空密码连接（仅限开发环境），"
+                    + "生产环境请配置 DORIS_USERNAME/DORIS_PASSWORD 或租户专属凭证");
+        }
+        final String dorisUser = resolvedUser;
+        final String dorisPass = resolvedPass == null ? "" : resolvedPass;
 
         // JDBC 为阻塞调用，包装到 Mono.fromCallable 并调度到 boundedElastic 弹性线程池，
         // 避免阻塞 Reactor 事件循环线程；成功时重置熔断计数，失败时记录并降级返回。
@@ -191,7 +266,7 @@ public class BackendProxyService {
                         if (hasResultSet) {
                             try (ResultSet rs = stmt.getResultSet()) {
                                 return buildDorisResponse(rs, queryId,
-                                        System.currentTimeMillis() - start);
+                                        System.currentTimeMillis() - start, limit);
                             }
                         }
                         // DML/DDL：无结果集，返回成功（影响行数暂不返回，留待后续扩展）
@@ -234,7 +309,8 @@ public class BackendProxyService {
      * @param durationMs 已耗时（毫秒）
      * @return 解析后的 SqlExecuteResponse
      */
-    private SqlExecuteResponse parseTrinoResponse(String json, String queryId, long durationMs) {
+    private SqlExecuteResponse parseTrinoResponse(String json, String queryId,
+                                                  long durationMs, Integer limit) {
         try {
             JsonNode root = objectMapper.readTree(json);
 
@@ -244,8 +320,6 @@ public class BackendProxyService {
                 String msg = errorNode.has("message")
                         ? errorNode.get("message").asText()
                         : "Trino 执行错误";
-                // 修复：原代码定义 msg 后未使用，错误信息未传递给调用方，排障困难。
-                // 此处将原始错误信息记入日志，便于网关侧定位 Trino 执行失败原因。
                 log.error("Trino 执行失败 queryId={} msg={}", queryId, msg);
                 return SqlExecuteResponse.builder()
                         .queryId(queryId)
@@ -254,6 +328,8 @@ public class BackendProxyService {
                         .rows(List.of())
                         .durationMs(durationMs)
                         .engine("trino")
+                        .message(msg)
+                        .truncated(false)
                         .build();
             }
 
@@ -267,11 +343,17 @@ public class BackendProxyService {
                 }
             }
 
-            // 解析数据行
+            // 解析数据行（应用行数上限）
+            int rowCap = resolveRowCap(limit);
+            boolean truncatedByCap = false;
             List<List<Object>> rows = new ArrayList<>();
             JsonNode dataNode = root.get("data");
             if (dataNode != null && dataNode.isArray()) {
                 for (JsonNode row : dataNode) {
+                    if (rowCap >= 0 && rows.size() >= rowCap) {
+                        truncatedByCap = true;
+                        break;
+                    }
                     List<Object> rowValues = new ArrayList<>();
                     if (row.isArray()) {
                         for (JsonNode cell : row) {
@@ -285,6 +367,15 @@ public class BackendProxyService {
             // 成功时重置熔断计数
             resetFailures(trinoFailures, trinoOpenSince);
 
+            // nextUri 非空表示结果集还有后续分页，首页返回即视为截断
+            boolean hasMorePages = root.has("nextUri") && !root.get("nextUri").isNull();
+            String message = null;
+            if (truncatedByCap) {
+                message = "结果集超过行数上限 " + rowCap + "，已截断";
+            } else if (hasMorePages) {
+                message = "Trino 结果集存在后续分页(nextUri)，当前仅返回首页结果";
+            }
+
             return SqlExecuteResponse.builder()
                     .queryId(queryId)
                     .status("SUCCESS")
@@ -293,6 +384,8 @@ public class BackendProxyService {
                     .durationMs(durationMs)
                     .engine("trino")
                     .rawInputBytes(extractRawInputBytes(root))
+                    .truncated(truncatedByCap || hasMorePages)
+                    .message(message)
                     .build();
         } catch (JsonProcessingException e) {
             log.error("解析 Trino 响应失败 queryId={} err={}", queryId, e.getMessage());
@@ -303,6 +396,8 @@ public class BackendProxyService {
                     .rows(List.of())
                     .durationMs(durationMs)
                     .engine("trino")
+                    .message("解析 Trino 响应失败: " + e.getMessage())
+                    .truncated(false)
                     .build();
         }
     }
@@ -356,7 +451,8 @@ public class BackendProxyService {
      * @param durationMs 已耗时（毫秒）
      * @return 解析后的 SqlExecuteResponse
      */
-    private SqlExecuteResponse buildDorisResponse(ResultSet rs, String queryId, long durationMs)
+    private SqlExecuteResponse buildDorisResponse(ResultSet rs, String queryId, long durationMs,
+                                                  Integer limit)
             throws SQLException {
         List<String> columns = new ArrayList<>();
         ResultSetMetaData meta = rs.getMetaData();
@@ -365,8 +461,14 @@ public class BackendProxyService {
             columns.add(meta.getColumnLabel(i));
         }
 
+        int rowCap = resolveRowCap(limit);
+        boolean truncated = false;
         List<List<Object>> rows = new ArrayList<>();
         while (rs.next()) {
+            if (rowCap >= 0 && rows.size() >= rowCap) {
+                truncated = true;
+                break;
+            }
             List<Object> row = new ArrayList<>(columnCount);
             for (int i = 1; i <= columnCount; i++) {
                 row.add(rs.getObject(i));
@@ -381,7 +483,20 @@ public class BackendProxyService {
                 .rows(rows)
                 .durationMs(durationMs)
                 .engine("doris")
+                .truncated(truncated)
+                .message(truncated ? "结果集超过行数上限 " + rowCap + "，已截断" : null)
                 .build();
+    }
+
+    /**
+     * 解析生效行数上限。
+     *
+     * @param limit 请求显式 limit（可空）
+     * @return 生效上限；-1 表示不限制
+     */
+    private int resolveRowCap(Integer limit) {
+        Integer effective = executeProperties.effectiveLimit(limit);
+        return effective == null ? -1 : Math.max(effective, 0);
     }
 
     /**
@@ -389,7 +504,7 @@ public class BackendProxyService {
      *
      * @param queryId  查询 ID
      * @param engine   目标引擎
-     * @param message  错误信息
+     * @param message  错误信息（同时写入日志与响应 message 字段，供调用方排障）
      * @return 错误响应
      */
     private SqlExecuteResponse errorResponse(String queryId, String engine, String message) {
@@ -401,6 +516,8 @@ public class BackendProxyService {
                 .rows(List.of())
                 .durationMs(0L)
                 .engine(engine)
+                .message(message)
+                .truncated(false)
                 .build();
     }
 

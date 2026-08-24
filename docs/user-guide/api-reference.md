@@ -275,8 +275,10 @@ SQL 网关（sql-gateway）提供统一 SQL 执行、路由管理、解析、优
 
 | 字段 | 类型 | 必填 | 说明 |
 |------|------|------|------|
-| sql | string | 是 | SQL 语句 |
-| tenantId | string | 是 | 租户 ID |
+| sql | string | 是 | SQL 语句（网关默认开启只读模式，仅放行 SELECT/SHOW/DESC/WITH/EXPLAIN） |
+| tenantId | string | 是 | 租户 ID；已认证请求以 JWT claim 中的 tenantId 为准，body 值仅作无鉴权调用回退 |
+| engine | string | 否 | 目标引擎：trino / doris，默认由路由规则决定 |
+| limit | integer | 否 | 返回行数上限；与网关 default-limit/max-rows 取小后生效，超出标记 truncated=true |
 | dialect | string | 否 | SQL 方言：trino / doris / hive / spark，默认 trino |
 | timeout | integer | 否 | 超时秒数，默认 60 |
 
@@ -289,7 +291,8 @@ curl -X POST https://<platform-domain>/api/v1/sql/execute \
   -d '{
     "sql": "SELECT customer_id, COUNT(*) AS cnt FROM transaction GROUP BY customer_id LIMIT 10",
     "tenantId": "tenant-finance",
-    "dialect": "trino"
+    "limit": 100,
+    "engine": "trino"
   }'
 ```
 
@@ -302,9 +305,15 @@ curl -X POST https://<platform-domain>/api/v1/sql/execute \
   "columns": ["customer_id", "cnt"],
   "rows": [["C001", 42], ["C002", 35]],
   "rowCount": 2,
-  "durationMs": 120
+  "durationMs": 120,
+  "truncated": false,
+  "message": null
 }
 ```
+
+> 字段说明：`truncated=true` 表示结果集不完整（触发行数上限，或 Trino 仅返回分页首页）；
+> `message` 承载截断说明、只读模式拒绝原因、降级原因等附加信息；
+> `status=FAILED` 表示被网关门禁拒绝或后端执行失败（此时 `message` 含具体原因）。
 
 ### 4.2 GET /api/v1/sql/routes — 查询路由规则
 

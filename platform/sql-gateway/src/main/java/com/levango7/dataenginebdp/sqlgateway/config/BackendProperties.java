@@ -69,5 +69,25 @@ public class BackendProperties {
          * 后端密码（生产环境必须通过配置或环境变量注入）。
          */
         private String password = "";
+
+        /**
+         * 租户专属凭证映射：tenantId → 独立账号/密码。
+         * <p>命中时使用租户专属凭证连接后端，实现引擎侧真实的租户权限隔离；
+         * 未命中时回退到 {@link #username}/{@link #password} 并记录告警日志。</p>
+         */
+        private java.util.Map<String, TenantCredential> tenantUsers = new java.util.HashMap<>();
+
+        /**
+         * 租户专属后端凭证。
+         */
+        @Data
+        public static class TenantCredential {
+
+            /** 租户专属用户名。 */
+            private String username;
+
+            /** 租户专属密码。 */
+            private String password;
+        }
     }
 }

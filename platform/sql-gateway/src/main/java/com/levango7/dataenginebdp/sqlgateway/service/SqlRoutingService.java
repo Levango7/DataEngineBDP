@@ -72,6 +72,27 @@ public class SqlRoutingService {
 
     private final CacheManager cacheManager;
 
+    /**
+     * 执行策略配置（只读门禁/行数上限）。
+     * <p>可选注入：未注入（单测直连构造器）时使用默认实例，行为与历史版本一致；
+     * Spring 运行时由 application.yml 的 {@code sql-gateway.execute} 提供安全默认。</p>
+     */
+    private com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties executeProperties =
+            new com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties();
+
+    /**
+     * 注入执行策略配置（Spring 自动装配；可选依赖）。
+     *
+     * @param executeProperties 执行策略配置
+     */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setExecuteProperties(
+            com.levango7.dataenginebdp.sqlgateway.config.ExecuteProperties executeProperties) {
+        if (executeProperties != null) {
+            this.executeProperties = executeProperties;
+        }
+    }
+
     public SqlRoutingService(BackendProxyService backendProxyService,
                              RouteRuleRepository routeRuleRepository,
                              com.levango7.dataenginebdp.sqlgateway.metering.MeteringCollector meteringCollector,
@@ -102,13 +123,34 @@ public class SqlRoutingService {
         long start = System.currentTimeMillis();
         String targetEngine = resolveEngine(request);
         String queryId = UUID.randomUUID().toString();
-        String tenantId = request.getTenantId();
+        // 租户身份解析：认证上下文（JWT）优先，请求体仅作无鉴权调用回退。
+        // 修复越权面：此前 body 中的 tenantId 可被伪造，用于缓存键/计量/X-Trino-User 冒充他租户。
+        String tenantId = resolveTenantId(request);
         String sql = request.getSql();
 
         log.info("queryId={} engine={} tenant={} sql={}{}",
                 queryId, targetEngine, tenantId,
                 abbreviate(sql, 80),
                 request.getLimit() == null ? "" : " limit=" + request.getLimit());
+
+        // 只读门禁：read-only-only 开启时拒绝 DML/DDL，不下发后端（防误删/越权写入）
+        if (executeProperties.isReadOnlyOnly() && !CacheConfig.isReadOnly(sql)) {
+            log.warn("queryId={} 非只读 SQL 被拒绝(read-only-only=true) tenant={} sql={}",
+                    queryId, tenantId, abbreviate(sql, 80));
+            return SqlExecuteResponse.builder()
+                    .queryId(queryId)
+                    .status("FAILED")
+                    .columns(List.of())
+                    .rows(List.of())
+                    .durationMs(System.currentTimeMillis() - start)
+                    .engine(targetEngine)
+                    .truncated(false)
+                    .message("网关已开启只读模式(read-only-only=true)，"
+                            + "仅允许 SELECT/SHOW/DESC/WITH/EXPLAIN 语句")
+                    .build();
+        }
+
+        Integer effectiveLimit = executeProperties.effectiveLimit(request.getLimit());
 
         // 查询结果缓存（任务 D）：仅只读 SQL + 租户隔离键，DML 永不缓存
         if (CacheConfig.isReadOnly(sql)) {
@@ -119,20 +161,11 @@ public class SqlRoutingService {
                 log.info("queryId={} 命中查询缓存 key={}", queryId, cacheKey);
                 // 返回副本并标记 cached（不污染缓存对象：缓存对象被多请求共享，
                 // 直接 setCached(true) 会让并发请求/首次请求也读到 cached=true）
-                SqlExecuteResponse hit = SqlExecuteResponse.builder()
-                        .queryId(cached.getQueryId())
-                        .status(cached.getStatus())
-                        .columns(cached.getColumns())
-                        .rows(cached.getRows())
-                        .durationMs(cached.getDurationMs())
-                        .engine(cached.getEngine())
-                        .rawInputBytes(cached.getRawInputBytes())
-                        .cached(true)
-                        .build();
-                return hit;
+                return copyResponse(cached, true);
             }
             try {
-                SqlExecuteResponse response = doExecute(targetEngine, sql, tenantId, queryId, start);
+                SqlExecuteResponse response = doExecute(targetEngine, sql, tenantId,
+                        effectiveLimit, queryId, start);
                 if (response != null && "SUCCESS".equals(response.getStatus()) && cache != null) {
                     cache.put(cacheKey, response);
                 }
@@ -141,7 +174,46 @@ public class SqlRoutingService {
                 // doExecute 内部已记录 metering
             }
         }
-        return doExecute(targetEngine, sql, tenantId, queryId, start);
+        return doExecute(targetEngine, sql, tenantId, effectiveLimit, queryId, start);
+    }
+
+    /**
+     * 解析生效租户 ID：JWT 认证上下文优先，body 回退。
+     *
+     * <p>规则：</p>
+     * <ul>
+     *   <li>TenantContext 存在（经 JwtAuthFilter 认证）→ 一律采用 JWT 值；</li>
+     *   <li>与 body 值不一致 → 告警（潜在越权尝试），仍以 JWT 值为准；</li>
+     *   <li>无认证上下文（内部调用/单测）→ 使用 body 值（兼容历史行为）。</li>
+     * </ul>
+     */
+    private String resolveTenantId(SqlExecuteRequest request) {
+        String jwtTenant = com.levango7.dataenginebdp.common.security.TenantContext.getTenantId();
+        String bodyTenant = request.getTenantId();
+        if (jwtTenant != null && !jwtTenant.isBlank()) {
+            if (bodyTenant != null && !bodyTenant.isBlank() && !bodyTenant.equals(jwtTenant)) {
+                log.warn("租户身份不一致：以 JWT 为准 jwtTenant={}, bodyTenant={}（疑似越权尝试）",
+                        jwtTenant, bodyTenant);
+            }
+            return jwtTenant;
+        }
+        return bodyTenant;
+    }
+
+    /** 拷贝响应并覆盖 cached 标志（保留 truncated/message 等新字段）。 */
+    private static SqlExecuteResponse copyResponse(SqlExecuteResponse src, boolean cachedFlag) {
+        return SqlExecuteResponse.builder()
+                .queryId(src.getQueryId())
+                .status(src.getStatus())
+                .columns(src.getColumns())
+                .rows(src.getRows())
+                .durationMs(src.getDurationMs())
+                .engine(src.getEngine())
+                .rawInputBytes(src.getRawInputBytes())
+                .truncated(src.getTruncated())
+                .message(src.getMessage())
+                .cached(cachedFlag)
+                .build();
     }
 
     /** 构建缓存键（engine+sql+tenantId SHA-256，含租户隔离；JDK 实现零依赖）。 */
@@ -178,15 +250,15 @@ public class SqlRoutingService {
 
     /** 执行真实查询（缓存未命中路径）。 */
     private SqlExecuteResponse doExecute(String targetEngine, String sql, String tenantId,
-                                         String queryId, long start) {
+                                         Integer effectiveLimit, String queryId, long start) {
         try {
             SqlExecuteResponse response;
             if ("doris".equalsIgnoreCase(targetEngine)) {
-                response = backendProxyService.proxyToDoris(sql, tenantId)
+                response = backendProxyService.proxyToDoris(sql, tenantId, effectiveLimit)
                         .block(java.time.Duration.ofSeconds(BLOCK_TIMEOUT_SECONDS));
             } else {
                 // 默认走 Trino（未知引擎也走 Trino 兜底）
-                response = backendProxyService.proxyToTrino(sql, tenantId)
+                response = backendProxyService.proxyToTrino(sql, tenantId, effectiveLimit)
                         .block(java.time.Duration.ofSeconds(BLOCK_TIMEOUT_SECONDS));
             }
 
@@ -304,6 +376,8 @@ public class SqlRoutingService {
                 .rows(List.of())
                 .durationMs(duration)
                 .engine(engine)
+                .message(message)
+                .truncated(false)
                 .build();
     }
 
