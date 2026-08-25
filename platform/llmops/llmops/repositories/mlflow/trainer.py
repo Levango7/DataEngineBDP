@@ -7,6 +7,7 @@ LLMOps 内置轻量流水线完成（设计文档明确不复用 Spark ETL）。
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 from llmops.interfaces.trainer import ModelTrainer
@@ -23,6 +24,14 @@ from llmops.repositories import (
     TrainingJobNotFoundError,
 )
 from llmops.repositories.mlflow.client import MLflowClient
+
+_RUN_STATUS_TO_TRAINING: dict[str, TrainingStatus] = {
+    "RUNNING": TrainingStatus.RUNNING,
+    "FINISHED": TrainingStatus.SUCCEEDED,
+    "FAILED": TrainingStatus.FAILED,
+    "KILLED": TrainingStatus.FAILED,
+    "CANCELLED": TrainingStatus.CANCELLED,
+}
 
 
 class MLflowModelTrainer(ModelTrainer):
@@ -54,8 +63,24 @@ class MLflowModelTrainer(ModelTrainer):
         if job_id not in self._jobs:
             raise TrainingJobNotFoundError(job_id)
         job = self._jobs[job_id]
-        # 骨架：可在此通过 mlflow client.get_run(run_id) 拉取最新状态
+        run_id = self._run_index.get(job_id)
+        if run_id is not None:
+            await asyncio.to_thread(self._refresh_from_run_sync, job, run_id)
         return job
+
+    def _refresh_from_run_sync(self, job: TrainingJob, run_id: str) -> None:
+        run = self._client.client.get_run(run_id)
+        remote = _RUN_STATUS_TO_TRAINING.get(run.info.status)
+        if remote is None or remote == job.status.status:
+            return
+        job.status.status = remote
+        if remote in {
+            TrainingStatus.SUCCEEDED,
+            TrainingStatus.FAILED,
+            TrainingStatus.CANCELLED,
+        }:
+            job.finishedAt = utc_now()
+        job.updatedAt = utc_now()
 
     async def cancel_training(self, job_id: str) -> None:
         job = await self.get_training_status(job_id)

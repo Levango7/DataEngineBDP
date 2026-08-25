@@ -1202,7 +1202,8 @@ jobs:
   # ============================================================
   # 集成测试：依赖 java-build-test 和 go-build-test 通过
   # 实际启动 docker-compose 并运行 pytest 集成测试
-  # 通过步骤级别的 continue-on-error 处理 docker-compose 启动失败
+  # 门禁语义（2026-08-26 收紧）：docker-compose 启动失败直接 exit 1 阻断 CI，
+  # 不再静默跳过 pytest；pytest 失败同样阻断
   # ============================================================
   integration-test:
     name: Integration Test
@@ -1242,20 +1243,21 @@ jobs:
       - name: 启动 docker-compose 服务
         if: env.it_skip != 'true'
         working-directory: tests/integration
-        # docker-compose 启动失败应阻断 CI：服务不可用时后续集成测试无意义
-        continue-on-error: false
+        # 门禁收紧（2026-08-26）：compose 启动失败直接 exit 1 阻断 CI，不再置跳过标记；
+        # 服务不可用时后续集成测试无意义，静默跳过会掩盖真实故障
         run: |
           echo "启动 docker-compose 服务..."
-          if docker compose up -d --wait; then
-            echo "✓ 所有服务已启动"
-            echo "it_services_ready=true" >> $GITHUB_ENV
-          else
-            echo "::warning::docker-compose 启动失败，跳过集成测试（CI 环境资源限制）"
-            echo "it_services_ready=false" >> $GITHUB_ENV
+          if ! docker compose up -d --wait; then
+            echo "::error::docker-compose 启动失败或健康检查超时，集成测试环境不可用，阻断 CI"
+            docker compose ps -a || true
+            exit 1
           fi
+          echo "✓ 所有服务已启动"
 
       - name: 运行 pytest 集成测试
-        if: env.it_skip != 'true' && env.it_services_ready == 'true'
+        # 能执行到本步骤说明 compose 已就绪（上一步失败已直接阻断）；
+        # pytest 退出码非零即 job 失败（默认行为，无 continue-on-error）
+        if: env.it_skip != 'true'
         working-directory: tests/integration
         run: |
           echo "运行集成测试..."
@@ -1263,7 +1265,8 @@ jobs:
           echo "集成测试执行完成"
 
       - name: 上传集成测试报告
-        if: env.it_skip != 'true' && env.it_services_ready == 'true' && always()
+        # always()：pytest 失败时也尽量上传已生成的报告辅助排查
+        if: env.it_skip != 'true' && always()
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-report

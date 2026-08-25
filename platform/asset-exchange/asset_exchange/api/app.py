@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from asset_exchange.api.jwt_auth import getAuthContext
 from asset_exchange.api.routers import assets, audit, health, subscriptions
 from asset_exchange.config.settings import Settings, get_settings
 from asset_exchange.services.registry import ServiceRegistry, build_services
+
+
+def _corsOrigins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
+    return [o.strip() for o in raw.split(",") if o.strip()]
 
 
 def create_app(
@@ -47,6 +54,14 @@ def create_app(
     # 把 registry 挂到 app.state，路由通过依赖获取
     app.state.settings = settings
     app.state.registry = registry
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_corsOrigins(),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     prefix = settings.apiPrefix
     app.include_router(health.router, prefix=prefix)

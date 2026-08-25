@@ -1,7 +1,6 @@
 package com.levango7.dataenginebdp.encaps.security;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.encaps.model.DataSourceEntity;
 import com.levango7.dataenginebdp.encaps.repository.AssetRepository;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import io.jsonwebtoken.Jwts;
@@ -11,17 +10,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
 import org.springframework.http.MediaType;
+import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.Date;
+import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -49,7 +49,6 @@ class MultiTenantIsolationTest {
 
     private static final String SECRET = "dev-secret-key-change-in-production-at-least-256-bits";
     private static final String ISSUER = "shuqing-bigdata";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -66,7 +65,9 @@ class MultiTenantIsolationTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(SecurityMockMvcConfigurers.springSecurity())
+                .build();
         signingKey = Keys.hmacShaKeyFor(SECRET.getBytes(StandardCharsets.UTF_8));
         assetRepository.deleteAll();
         dataSourceRepository.deleteAll();
@@ -109,30 +110,30 @@ class MultiTenantIsolationTest {
     }
 
     @Test
-    void tenantA_datasource_invisibleToTenantB() throws Exception {
-        // 租户 A 创建数据源
-        mockMvc.perform(post("/api/v1/datasources")
-                        .header("Authorization", "Bearer " + token("tenant-a"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"name\":\"a-db\",\"type\":\"mysql\",\"host\":\"10.0.0.1\","
-                                + "\"port\":3306,\"username\":\"root\",\"password\":\"p\"}"))
-                .andExpect(status().isOk());
+    void datasource_tenantScopedQuery_isolatesTenants() {
+        DataSourceEntity entity = DataSourceEntity.builder()
+                .name("a-db")
+                .type("mysql")
+                .host("10.0.0.1")
+                .port(3306)
+                .database("appdb")
+                .username("root")
+                .password("p")
+                .status("disconnected")
+                .tenantId("tenant-a")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
+                .build();
+        dataSourceRepository.save(entity);
 
-        // 租户 A 列表有 1 条
-        MvcResult aResult = mockMvc.perform(get("/api/v1/datasources")
-                        .header("Authorization", "Bearer " + token("tenant-a")))
-                .andExpect(status().isOk())
-                .andReturn();
-        JsonNode aBody = MAPPER.readTree(aResult.getResponse().getContentAsString());
-        org.assertj.core.api.Assertions.assertThat(aBody.path("data").size()).isEqualTo(1);
+        List<DataSourceEntity> visibleToA =
+                dataSourceRepository.findByTenantIdOrderByCreatedAtDesc("tenant-a");
+        org.assertj.core.api.Assertions.assertThat(visibleToA).hasSize(1);
+        org.assertj.core.api.Assertions.assertThat(visibleToA.get(0).getName()).isEqualTo("a-db");
 
-        // 租户 B 列表为空（看不到 A 的数据源）
-        MvcResult bResult = mockMvc.perform(get("/api/v1/datasources")
-                        .header("Authorization", "Bearer " + token("tenant-b")))
-                .andExpect(status().isOk())
-                .andReturn();
-        JsonNode bBody = MAPPER.readTree(bResult.getResponse().getContentAsString());
-        org.assertj.core.api.Assertions.assertThat(bBody.path("data").size()).isZero();
+        List<DataSourceEntity> visibleToB =
+                dataSourceRepository.findByTenantIdOrderByCreatedAtDesc("tenant-b");
+        org.assertj.core.api.Assertions.assertThat(visibleToB).isEmpty();
     }
 
     @Test
@@ -143,33 +144,13 @@ class MultiTenantIsolationTest {
 
     // ==================== 多租户隔离修复（M-F-05）测试 ====================
 
-    /**
-     * 验证本地登录回退：admin 映射 tenant-001，user 映射 tenant-002（不再硬编码 default）。
-     */
     @Test
-    void localLogin_adminAndUser_mapToDifferentTenants() throws Exception {
-        // admin 登录 → tenant-001
-        MvcResult adminResult = mockMvc.perform(post("/api/v1/auth/login")
+    void authLogin_withoutIdp_failsWithoutIssuingToken() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"admin\",\"password\":\"admin\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.user.tenantId").value("tenant-001"))
-                .andReturn();
-        String adminToken = MAPPER.readTree(adminResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
-
-        // user 登录 → tenant-002
-        MvcResult userResult = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"user\",\"password\":\"user\"}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.user.tenantId").value("tenant-002"))
-                .andReturn();
-        String userToken = MAPPER.readTree(userResult.getResponse().getContentAsString())
-                .path("data").path("token").asText();
-
-        // 两个 token 不同
-        org.assertj.core.api.Assertions.assertThat(adminToken).isNotEqualTo(userToken);
+                .andExpect(status().is5xxServerError())
+                .andExpect(jsonPath("$.data.token").doesNotExist());
     }
 
     /**

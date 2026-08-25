@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import os
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
+from openapi_catalog.api.jwt_auth import getAuthContext
 from openapi_catalog.api.routers import (
     apis,
     billing,
@@ -52,20 +56,31 @@ def create_app(
         openapi_url="/openapi.json",
     )
 
+    cors_origins = [
+        o.strip() for o in os.environ.get("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()
+    ]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
     # 把 registry 挂到 app.state，路由通过依赖获取
     app.state.settings = settings
     app.state.registry = registry
 
     prefix = settings.apiPrefix
     app.include_router(health.router)
-    app.include_router(apis.router, prefix=prefix)
-    app.include_router(generate.router, prefix=prefix)
-    app.include_router(billing.api_billing_router, prefix=prefix)
-    app.include_router(subscriptions.router, prefix=prefix)
-    app.include_router(subscriptions.subscriptions_router, prefix=prefix)
-    app.include_router(billing.subscriptions_billing_router, prefix=prefix)
+    app.include_router(apis.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(generate.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(billing.api_billing_router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(subscriptions.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(subscriptions.subscriptions_router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(billing.subscriptions_billing_router, prefix=prefix, dependencies=[Depends(getAuthContext)])
     app.include_router(invoke.router, prefix=prefix)
-    app.include_router(metrics_docs.router, prefix=prefix)
+    app.include_router(metrics_docs.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):

@@ -140,7 +140,7 @@ class MLflowModelStore(ModelStore):
             client.update_registered_model(name, description=fields["description"])
         if "tags" in fields:
             for k, v in fields["tags"].items():
-                client.set_registered_model_tag(name, f"{_TAG_PREFIX}{k}", v)
+                client.set_registered_model_tag(name, f"{_TAG_PREFIX}tag.{k}", v)
 
     # ---------- 内部工具 ----------
 

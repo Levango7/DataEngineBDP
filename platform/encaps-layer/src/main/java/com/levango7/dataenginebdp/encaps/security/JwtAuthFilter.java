@@ -353,6 +353,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         response.setContentType("application/json;charset=UTF-8");
         response.getWriter().write("{\"error\":\"" + escapeJson(message) + "\"}");
+        response.flushBuffer();
     }
 
     /**

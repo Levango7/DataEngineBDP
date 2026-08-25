@@ -49,6 +49,30 @@ def test_execute_requires_token(app, monkeypatch):
     assert c.post("/api/v1/nl2sql/execute", json={"query": "查询全部用户"}).status_code == 401
 
 
+def test_schema_requires_token(app, monkeypatch):
+    c = _jwtClient(monkeypatch, app)
+    assert c.get("/api/v1/nl2sql/schema?useMock=true").status_code == 401
+
+
+def test_schema_forbids_non_admin(app, monkeypatch):
+    c = _jwtClient(monkeypatch, app)
+    r = c.get(
+        "/api/v1/nl2sql/schema?useMock=true",
+        headers={"Authorization": f"Bearer {makeToken(role='user')}"},
+    )
+    assert r.status_code == 403
+
+
+def test_schema_allows_admin_token(app, monkeypatch):
+    c = _jwtClient(monkeypatch, app)
+    r = c.get(
+        "/api/v1/nl2sql/schema?useMock=true",
+        headers={"Authorization": f"Bearer {makeToken(role='admin')}"},
+    )
+    assert r.status_code == 200
+    assert len(r.json()["tables"]) == 3
+
+
 def test_generate_with_token(app, monkeypatch):
     c = _jwtClient(monkeypatch, app)
     r = c.post(

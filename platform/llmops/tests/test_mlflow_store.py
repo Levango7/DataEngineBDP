@@ -11,8 +11,10 @@ import types
 
 import pytest
 
-from llmops.models.base import ModelType
+from llmops.models.base import ModelType, TrainingStatus
+from llmops.models.deployment import DeployConfig
 from llmops.models.model import ModelFilter, ModelInfo, ModelVersion
+from llmops.models.training import TrainingConfig
 from llmops.repositories import (
     ModelAlreadyExistsError,
     ModelNotFoundError,
@@ -20,7 +22,10 @@ from llmops.repositories import (
 )
 from llmops.repositories.mlflow import client as mlflow_client_module
 from llmops.repositories.mlflow.client import MLflowClient
+from llmops.repositories.mlflow.deployer import MLflowModelDeployer
+from llmops.repositories.mlflow.monitor import MLflowModelMonitor
 from llmops.repositories.mlflow.store import MLflowModelStore
+from llmops.repositories.mlflow.trainer import MLflowModelTrainer
 
 SDK_DELAY_SECONDS = 0.5
 PROBE_TIME_BUDGET_SECONDS = 0.45
@@ -212,7 +217,7 @@ def test_full_roundtrip_behavior_unchanged():
             model_id, description="desc-2", tags={"team": "cv"}
         )
         assert updated.description == "desc-2"
-        assert updated.tags == {"team": "nlp"}
+        assert updated.tags == {"team": "cv"}
 
         versions = await store.get_model_versions(model_id)
         assert [v.version for v in versions] == [1]
@@ -309,3 +314,120 @@ def test_mlflow_client_reuses_single_sdk_instance(monkeypatch):
 
 def test_mlflow_client_no_lru_cache_dead_method():
     assert not hasattr(MLflowClient, "_registry_client")
+
+
+class _FakeRun:
+    def __init__(self, status: str) -> None:
+        self.info = types.SimpleNamespace(status=status)
+
+
+class _FakeTrackingSdk:
+    """同步假 tracking client，get_run 可注入延迟模拟阻塞 HTTP."""
+
+    def __init__(self, status: str, delay: float = 0.0) -> None:
+        self._status = status
+        self._delay = delay
+        self.get_run_calls = 0
+
+    def get_run(self, run_id: str) -> _FakeRun:
+        self.get_run_calls += 1
+        if self._delay > 0:
+            time.sleep(self._delay)
+        return _FakeRun(self._status)
+
+
+async def _run_with_health_probe(op) -> tuple[float, float]:
+    start = time.perf_counter()
+
+    async def health_probe() -> float:
+        await asyncio.sleep(0.05)
+        return time.perf_counter() - start
+
+    results = await asyncio.gather(op(), health_probe())
+    total_elapsed = time.perf_counter() - start
+    return results[1], total_elapsed
+
+
+def _assert_probe_responsive(
+    case_name: str, probe_elapsed: float, total_elapsed: float
+) -> None:
+    assert probe_elapsed < PROBE_TIME_BUDGET_SECONDS, (
+        f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
+    )
+    assert total_elapsed >= SDK_DELAY_SECONDS, (
+        f"{case_name}: 总耗时 {total_elapsed:.3f}s，慢操作未真实发生"
+    )
+
+
+def test_trainer_get_training_status_does_not_block_event_loop():
+    """慢 get_run 经 to_thread 卸载时，并发健康探测须在一次延迟内完成."""
+    tracking = _FakeTrackingSdk(status="FINISHED", delay=SDK_DELAY_SECONDS)
+    trainer = MLflowModelTrainer(_FakeStoreClient(tracking))
+
+    async def scenario():
+        config = TrainingConfig(
+            baseModelId="id-base",
+            outputModelName="ft-slow",
+            dataset="ds-1",
+            epochs=3,
+        )
+        job_id = await trainer.create_training_job(config)
+        trainer._run_index[job_id] = "run-1"
+        probe_elapsed, total_elapsed = await _run_with_health_probe(
+            lambda: trainer.get_training_status(job_id)
+        )
+        job = await asyncio.wait_for(trainer.get_training_status(job_id), 5)
+        return job, probe_elapsed, total_elapsed
+
+    job, probe_elapsed, total_elapsed = asyncio.run(scenario())
+    _assert_probe_responsive(
+        "trainer.get_training_status", probe_elapsed, total_elapsed
+    )
+    assert tracking.get_run_calls >= 1
+    assert job.status.status == TrainingStatus.SUCCEEDED
+
+
+def test_deployer_get_deployment_status_does_not_block_event_loop():
+    """慢远端状态探针经 to_thread 卸载时，并发健康探测须短时响应."""
+    deployer = MLflowModelDeployer(_FakeStoreClient(_FakeRegistrySdk()))
+
+    async def scenario():
+        deployment_id = await deployer.deploy_model(
+            "id-dep", DeployConfig(modelId="id-dep", name="dep-slow")
+        )
+
+        def slow_remote_probe(deployment) -> None:
+            time.sleep(SDK_DELAY_SECONDS)
+
+        deployer._fetch_remote_status_sync = slow_remote_probe
+        probe_elapsed, total_elapsed = await _run_with_health_probe(
+            lambda: deployer.get_deployment_status(deployment_id)
+        )
+        dep = await asyncio.wait_for(deployer.get_deployment_status(deployment_id), 5)
+        return dep, probe_elapsed, total_elapsed
+
+    dep, probe_elapsed, total_elapsed = asyncio.run(scenario())
+    _assert_probe_responsive(
+        "deployer.get_deployment_status", probe_elapsed, total_elapsed
+    )
+    assert dep.id is not None
+
+
+def test_monitor_get_metrics_does_not_block_event_loop():
+    """慢指标查询经 to_thread 卸载时，并发健康探测须短时响应."""
+    monitor = MLflowModelMonitor(_FakeStoreClient(_FakeRegistrySdk()))
+
+    async def scenario():
+        monitor.register_deployment("dep-metrics")
+        monitor._query_metrics_sync = lambda deployment_id: time.sleep(
+            SDK_DELAY_SECONDS
+        )
+        probe_elapsed, total_elapsed = await _run_with_health_probe(
+            lambda: monitor.get_metrics("dep-metrics")
+        )
+        metrics = await asyncio.wait_for(monitor.get_metrics("dep-metrics"), 5)
+        return metrics, probe_elapsed, total_elapsed
+
+    metrics, probe_elapsed, total_elapsed = asyncio.run(scenario())
+    _assert_probe_responsive("monitor.get_metrics", probe_elapsed, total_elapsed)
+    assert metrics.deploymentId == "dep-metrics"

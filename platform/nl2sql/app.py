@@ -21,15 +21,17 @@
 from __future__ import annotations
 
 from typing import Any, Optional
+import os
 import uuid
 
 from config.settings import Settings, get_settings
 from dialogue_clarifier import DialogueClarifier
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from gateway_client import GatewayClient
 from intent_recognition import IntentRecognizer
-from jwt_auth import AuthContext, effectiveTenant, getAuthContext
+from jwt_auth import AuthContext, effectiveTenant, getAuthContext, requireAdmin
 from loguru import logger
 from models import (
     DialogueState,
@@ -153,6 +155,11 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     return ServiceRegistry(settings or get_settings())
 
 
+def _corsOrigins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 # ============================================================
 # 应用工厂
 # ============================================================
@@ -189,6 +196,14 @@ def create_app(
 
     app.state.settings = settings
     app.state.registry = registry
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_corsOrigins(),
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     prefix = settings.apiPrefix
     _registerRoutes(app, registry, prefix)
@@ -326,8 +341,13 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         return reg.validator.validate(req.sql, ctx)
 
     @app.get(f"{prefix}/nl2sql/schema")
-    async def schema(database: Optional[str] = None, useMock: bool = False) -> JSONResponse:
+    async def schema(
+        database: Optional[str] = None,
+        useMock: bool = False,
+        auth: AuthContext = Depends(getAuthContext),
+    ) -> JSONResponse:
         """获取 schema 上下文（调试用）."""
+        requireAdmin(auth)
         tables = await reg.schemaBuilder.fetchTables(database=database, useMock=useMock)
         return JSONResponse(
             {

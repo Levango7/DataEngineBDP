@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import asyncio
+
 from datetime import timedelta
 
 from llmops.interfaces.monitor import ModelMonitor
@@ -40,13 +42,16 @@ class MLflowModelMonitor(ModelMonitor):
 
     async def get_metrics(self, deployment_id: str) -> ModelMetrics:
         self._check(deployment_id)
-        # 骨架：实际通过 prometheus_client 查询
+        await asyncio.to_thread(self._query_metrics_sync, deployment_id)
         now = utc_now()
         return ModelMetrics(
             deploymentId=deployment_id,
             windowStart=now - timedelta(minutes=5),
             windowEnd=now,
         )
+
+    def _query_metrics_sync(self, deployment_id: str) -> None:
+        """骨架：实际通过 prometheus_client 查询."""
 
     async def get_latency(self, deployment_id: str) -> LatencyStats:
         self._check(deployment_id)

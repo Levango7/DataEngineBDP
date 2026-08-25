@@ -46,6 +46,11 @@ def _env_bool(name: str, default: bool = False) -> bool:
     return val.lower() in ("true", "1", "yes", "on")
 
 
+def _corsOrigins() -> list[str]:
+    raw = os.environ.get("CORS_ORIGINS", "http://localhost:5173")
+    return [o.strip() for o in raw.split(",") if o.strip()]
+
+
 # ============================================================
 # 应用工厂
 # ============================================================
@@ -78,7 +83,7 @@ def create_app() -> FastAPI:
     # CORS（前端联调）
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=_corsOrigins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

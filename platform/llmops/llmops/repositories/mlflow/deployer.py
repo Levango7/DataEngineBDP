@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 from llmops.interfaces.deployer import ModelDeployer
@@ -60,8 +61,12 @@ class MLflowModelDeployer(ModelDeployer):
     async def get_deployment_status(self, deployment_id: str) -> Deployment:
         if deployment_id not in self._deployments:
             raise DeploymentNotFoundError(deployment_id)
-        # 骨架：可在此通过 K8s API 拉取实际副本状态
-        return self._deployments[deployment_id]
+        deployment = self._deployments[deployment_id]
+        await asyncio.to_thread(self._fetch_remote_status_sync, deployment)
+        return deployment
+
+    def _fetch_remote_status_sync(self, deployment: Deployment) -> None:
+        """骨架：可在此通过 K8s API 拉取实际副本状态."""
 
     async def list_deployments(self) -> list[Deployment]:
         return sorted(self._deployments.values(), key=lambda d: d.createdAt, reverse=True)

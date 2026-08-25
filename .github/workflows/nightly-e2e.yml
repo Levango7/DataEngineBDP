@@ -1,0 +1,170 @@
+# Nightly E2E 夜间端到端回归工作流
+# 正式门禁：Playwright 前端 E2E（后端栈由 tests/integration/docker-compose.yml 提供）
+# 观测门禁：K3s 四条链路 burn-in 套件（允许失败，翻严条件见 k3s-suite 注释）
+# 说明：本地无法验证 GitHub Actions 运行时行为，首次 schedule/手动触发需人工观察日志
+name: Nightly E2E
+
+on:
+  # 每日 UTC 18:00 定时触发（即北京时间次日凌晨 2 点，避开业务时段）
+  schedule:
+    - cron: '0 18 * * *'
+  # 手动触发（支持按需运行夜间 E2E 回归）
+  workflow_dispatch:
+
+# 与 ci.yml 保持一致的最小权限风格（PR 评论和检查需要 pull-requests/checks write）
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+# 同一分支的并发运行只保留最新一次，避免重复执行浪费资源
+concurrency:
+  group: nightly-e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================
+  # Playwright 前端 E2E（正式门禁）：测试失败即本 job 失败
+  # 服务拓扑：
+  #   - 后端 API 栈：docker compose 拉起 tests/integration/docker-compose.yml，
+  #     其中 evaluation 服务映射宿主机 18086，与 playwright.config.ts 的
+  #     VITE_API_TARGET 默认值 http://127.0.0.1:18086 一致（经 Vite proxy 转发）
+  #   - 前端 dev server：playwright.config.ts 自带 webServer（127.0.0.1:5173），
+  #     workflow 不手动启动前端，以 config 为准避免双重拉起
+  # ============================================================
+  playwright-e2e:
+    name: Playwright E2E (前端端到端)
+    runs-on: ubuntu-latest
+    # ci.yml 未显式设置 job 超时；nightly 含多镜像构建 + 浏览器下载，
+    # 显式上限防止挂死空耗 runner（120 分钟覆盖冷构建最坏情况）
+    timeout-minutes: 120
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 启动 docker-compose 后端栈（失败直接阻断）
+        working-directory: tests/integration
+        # 与 ci.yml integration-test 相同的门禁语义：栈起不来则 E2E 无意义，硬失败不跳过；
+        # --wait 等待全部 healthcheck 通过，--wait-timeout 兜底防止无限等待
+        run: |
+          echo "启动 docker-compose 后端栈..."
+          if ! docker compose up -d --wait --wait-timeout 600; then
+            echo "::error::docker-compose 启动失败或健康检查超时，阻断"
+            docker compose ps -a || true
+            exit 1
+          fi
+          echo "✓ 后端栈所有服务已就绪"
+
+      - name: 安装前端依赖
+        working-directory: frontend
+        run: |
+          if [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: 安装 Chromium 浏览器
+        working-directory: frontend
+        # --with-deps 同步安装系统依赖；仅安装 E2E 实际使用的 chromium
+        # （playwright.config.ts projects 仅声明 chromium）
+        run: npx playwright install --with-deps chromium
+
+      - name: 运行 Playwright E2E 测试
+        working-directory: frontend
+        # webServer 由 playwright.config.ts 托管（npm run dev -> 127.0.0.1:5173）；
+        # 测试失败非零退出 -> 本 job 失败（正式门禁，无 continue-on-error）
+        run: npx playwright test
+
+      - name: 上传 Playwright 报告与结果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-e2e-report
+          path: |
+            frontend/tests/e2e-report/
+            frontend/test-results/
+          retention-days: 7
+          if-no-files-found: warn
+
+      - name: 清理 docker-compose 栈
+        if: always()
+        working-directory: tests/integration
+        run: |
+          echo "清理 docker-compose 后端栈..."
+          docker compose down -v --remove-orphans || true
+          echo "✓ 清理完成"
+
+  # ============================================================
+  # K3s 链路 burn-in 套件（允许失败）：单节点 K3s 上运行四条链路 pytest
+  # 执行入口：tests/integration/run_k3s_integration.py（仓库既有入口脚本）
+  #   内部逐链路调用 pytest 运行 tests/integration/k3s/test_chain*.py
+  #   （由 k3s/pytest.ini 驱动收集），并生成 integration_test_report.md
+  # 已知边界（burn-in 期可接受）：
+  #   - conftest.py 经 kubectl get svc 发现 namespace shuqing 下的服务；
+  #     当前 CI 未向集群部署业务服务时链路用例会被整体 SKIPPED（pytest 退出码 0），
+  #     即"绿但空跑"。翻严前必须在 CI 内补齐 deploy/k3s manifests 部署步骤
+  # 翻严条件（满足后删除本 job 的 continue-on-error: true 并纳入阻断门禁）：
+  #   1. 先落地上述 CI 内服务部署步骤，保证链路用例真实执行而非整批 SKIPPED；
+  #   2. 连续 14 天 schedule 触发本 job 全绿（含真实执行的链路用例）；
+  #   3. 移除 continue-on-error 后再观察一周无环境性抖动
+  # ============================================================
+  k3s-suite:
+    name: K3s Suite (burn-in)
+    runs-on: ubuntu-latest
+    # burn-in 期允许失败：结果仅作趋势观测，不影响工作流整体结论
+    continue-on-error: true
+    timeout-minutes: 90
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: 安装 K3s（官方安装脚本直装）
+        # 选型说明：采用 get.k3s.io 官方脚本（社区标准方式、维护度高于第三方 setup action、
+        # 不新增供应链面）；k3s 内嵌 containerd 与 kubectl 符号链接，无需额外装 Docker/kubectl
+        run: |
+          curl -sfL https://get.k3s.io | sudo sh -s - --write-kubeconfig-mode 644
+          k3s kubectl version --client
+
+      - name: 配置 kubeconfig
+        # 将 k3s 生成的集群凭证复制为默认 kubeconfig，供后续步骤与 pytest conftest 使用
+        run: |
+          mkdir -p ~/.kube
+          sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+          sudo chown "$(id -u):$(id -g)" ~/.kube/config
+          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+
+      - name: 等待节点 Ready（轮询兜底 300 秒）
+        run: |
+          kubectl wait --for=condition=Ready node --all --timeout=300s
+          kubectl get nodes -o wide
+
+      - name: 安装集成测试依赖
+        run: pip install -r tests/integration/requirements.txt -q
+
+      - name: 运行 K3s 链路测试套件
+        # 入口脚本逐链路执行并生成报告；任一链路 FAILED 则退出码 1
+        # （SKIPPED 不算失败——burn-in 期服务未部署时表现为"绿但空跑"，见 job 注释）
+        run: python tests/integration/run_k3s_integration.py
+
+      - name: 上传 K3s 测试报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k3s-integration-report
+          path: tests/integration/integration_test_report.md
+          retention-days: 7
+          if-no-files-found: warn
