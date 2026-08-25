@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/gin-gonic/gin"
@@ -42,24 +43,27 @@ func (m *mockStore) CreateDatabase(db *model.Database) error {
 	return nil
 }
 
-func (m *mockStore) GetDatabase(id string) (*model.Database, error) {
+func (m *mockStore) GetDatabase(tenantID, id string) (*model.Database, error) {
 	db, ok := m.databases[id]
-	if !ok {
+	if !ok || db.TenantID != tenantID {
 		return nil, store.ErrNotFound
 	}
 	return db, nil
 }
 
-func (m *mockStore) ListDatabases() ([]*model.Database, error) {
+func (m *mockStore) ListDatabases(tenantID string) ([]*model.Database, error) {
 	var result []*model.Database
 	for _, db := range m.databases {
-		result = append(result, db)
+		if db.TenantID == tenantID {
+			result = append(result, db)
+		}
 	}
 	return result, nil
 }
 
-func (m *mockStore) DeleteDatabase(id string) error {
-	if _, ok := m.databases[id]; !ok {
+func (m *mockStore) DeleteDatabase(tenantID, id string) error {
+	db, ok := m.databases[id]
+	if !ok || db.TenantID != tenantID {
 		return store.ErrNotFound
 	}
 	delete(m.databases, id)
@@ -74,17 +78,20 @@ func (m *mockStore) CreateTable(t *model.Table) error {
 	return nil
 }
 
-func (m *mockStore) GetTable(id string) (*model.Table, error) {
+func (m *mockStore) GetTable(tenantID, id string) (*model.Table, error) {
 	t, ok := m.tables[id]
-	if !ok {
+	if !ok || t.TenantID != tenantID {
 		return nil, store.ErrNotFound
 	}
 	return t, nil
 }
 
-func (m *mockStore) ListTables(dbName string) ([]*model.Table, error) {
+func (m *mockStore) ListTables(tenantID, dbName string) ([]*model.Table, error) {
 	var result []*model.Table
 	for _, t := range m.tables {
+		if t.TenantID != tenantID {
+			continue
+		}
 		if dbName == "" || t.DatabaseName == dbName {
 			result = append(result, t)
 		}
@@ -100,16 +107,17 @@ func (m *mockStore) UpdateTable(t *model.Table) error {
 	return nil
 }
 
-func (m *mockStore) DeleteTable(id string) error {
-	if _, ok := m.tables[id]; !ok {
+func (m *mockStore) DeleteTable(tenantID, id string) error {
+	t, ok := m.tables[id]
+	if !ok || t.TenantID != tenantID {
 		return store.ErrNotFound
 	}
 	delete(m.tables, id)
 	return nil
 }
 
-// SearchTables 在 mock 上实现中文分词检索，逻辑与 GormStore.SearchTables 一致。
-func (m *mockStore) SearchTables(query string, limit int) ([]*model.SearchResult, error) {
+// SearchTables 在 mock 上实现中文分词检索（租户范围内），逻辑与 GormStore.SearchTables 一致。
+func (m *mockStore) SearchTables(tenantID, query string, limit int) ([]*model.SearchResult, error) {
 	if limit <= 0 {
 		limit = 50
 	}
@@ -119,6 +127,9 @@ func (m *mockStore) SearchTables(query string, limit int) ([]*model.SearchResult
 	}
 	results := make([]*model.SearchResult, 0, len(m.tables))
 	for _, t := range m.tables {
+		if t.TenantID != tenantID {
+			continue
+		}
 		docText := t.TableName
 		if t.Description != "" {
 			docText += " " + t.Description
@@ -145,13 +156,19 @@ func (m *mockStore) SearchTables(query string, limit int) ([]*model.SearchResult
 }
 
 // setupTestRouterWithMock 创建使用 mock store 的测试路由。
+// 注入租户身份中间件（tenantId=t1），模拟 JWT auth 通过后的上下文。
 func setupTestRouterWithMock() (*gin.Engine, *mockStore) {
 	gin.SetMode(gin.TestMode)
 	s := newMockStore()
 	h := NewCatalogHandler(s)
 
 	r := gin.New()
+	tenantAuth := func(c *gin.Context) {
+		c.Set("tenantId", "t1")
+		c.Next()
+	}
 	rg := r.Group("/api/v1/catalog")
+	rg.Use(tenantAuth)
 	h.RegisterRoutes(rg)
 
 	return r, s
@@ -237,7 +254,7 @@ func TestCreateDatabase_Duplicate(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
 	// 先通过 store 创建一个数据库
-	ms.databases["dup-001"] = &model.Database{ID: "dup-001", Name: "dup_db", Owner: "admin"}
+	ms.databases["dup-001"] = &model.Database{TenantID: "t1", ID: "dup-001", Name: "dup_db", Owner: "admin"}
 
 	body := map[string]string{
 		"id":   "dup-002",
@@ -257,7 +274,7 @@ func TestCreateDatabase_Duplicate(t *testing.T) {
 func TestGetDatabase_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.databases["get-001"] = &model.Database{ID: "get-001", Name: "get_db", Owner: "tester"}
+	ms.databases["get-001"] = &model.Database{TenantID: "t1", ID: "get-001", Name: "get_db", Owner: "tester"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases/get-001", nil)
@@ -287,7 +304,7 @@ func TestGetDatabase_NotFound(t *testing.T) {
 func TestDeleteDatabase_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.databases["del-001"] = &model.Database{ID: "del-001", Name: "del_db", Owner: "tester"}
+	ms.databases["del-001"] = &model.Database{TenantID: "t1", ID: "del-001", Name: "del_db", Owner: "tester"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/catalog/databases/del-001", nil)
@@ -311,8 +328,8 @@ func TestDeleteDatabase_NotFound(t *testing.T) {
 func TestListDatabases_AfterCreate(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.databases["list-001"] = &model.Database{ID: "list-001", Name: "db1", Owner: "admin"}
-	ms.databases["list-002"] = &model.Database{ID: "list-002", Name: "db2", Owner: "admin"}
+	ms.databases["list-001"] = &model.Database{TenantID: "t1", ID: "list-001", Name: "db1", Owner: "admin"}
+	ms.databases["list-002"] = &model.Database{TenantID: "t1", ID: "list-002", Name: "db2", Owner: "admin"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases", nil)
@@ -449,8 +466,8 @@ func TestCreateTable_EmptyColumns(t *testing.T) {
 func TestListTables_WithFilter(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["t1"] = &model.Table{ID: "t1", DatabaseName: "db1", TableName: "table1"}
-	ms.tables["t2"] = &model.Table{ID: "t2", DatabaseName: "db2", TableName: "table2"}
+	ms.tables["t1"] = &model.Table{TenantID: "t1", ID: "t1", DatabaseName: "db1", TableName: "table1"}
+	ms.tables["t2"] = &model.Table{TenantID: "t1", ID: "t2", DatabaseName: "db2", TableName: "table2"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/tables?database=db1", nil)
@@ -470,8 +487,8 @@ func TestListTables_WithFilter(t *testing.T) {
 func TestListTables_All(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["ta1"] = &model.Table{ID: "ta1", DatabaseName: "db1", TableName: "table1"}
-	ms.tables["ta2"] = &model.Table{ID: "ta2", DatabaseName: "db2", TableName: "table2"}
+	ms.tables["ta1"] = &model.Table{TenantID: "t1", ID: "ta1", DatabaseName: "db1", TableName: "table1"}
+	ms.tables["ta2"] = &model.Table{TenantID: "t1", ID: "ta2", DatabaseName: "db2", TableName: "table2"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/tables", nil)
@@ -489,7 +506,7 @@ func TestListTables_All(t *testing.T) {
 func TestGetTable_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["gt-001"] = &model.Table{
+	ms.tables["gt-001"] = &model.Table{TenantID: "t1", 
 		ID: "gt-001", DatabaseName: "db1", TableName: "users",
 		Columns: []model.Column{{Name: "id", Type: "BIGINT"}, {Name: "name", Type: "VARCHAR(255)"}},
 	}
@@ -522,7 +539,7 @@ func TestGetTable_NotFound(t *testing.T) {
 func TestUpdateTable_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["upd-001"] = &model.Table{
+	ms.tables["upd-001"] = &model.Table{TenantID: "t1", 
 		ID: "upd-001", DatabaseName: "db1", TableName: "users",
 		Columns: []model.Column{{Name: "id", Type: "BIGINT"}},
 	}
@@ -576,7 +593,7 @@ func TestUpdateTable_NotFound(t *testing.T) {
 func TestDeleteTable_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["dt-001"] = &model.Table{ID: "dt-001", DatabaseName: "db1", TableName: "to_delete"}
+	ms.tables["dt-001"] = &model.Table{TenantID: "t1", ID: "dt-001", DatabaseName: "db1", TableName: "to_delete"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodDelete, "/api/v1/catalog/tables/dt-001", nil)
@@ -639,11 +656,11 @@ func TestSearchTables_InvalidLimit(t *testing.T) {
 func TestSearchTables_ChineseSemanticMatch(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["s-001"] = &model.Table{
+	ms.tables["s-001"] = &model.Table{TenantID: "t1", 
 		ID: "s-001", DatabaseName: "db1", TableName: "销售订单明细表",
 		Description: "包含订单明细与金额",
 	}
-	ms.tables["s-002"] = &model.Table{
+	ms.tables["s-002"] = &model.Table{TenantID: "t1", 
 		ID: "s-002", DatabaseName: "db1", TableName: "用户画像表",
 		Description: "用户标签与行为",
 	}
@@ -681,10 +698,10 @@ func TestSearchTables_OrderByScoreDesc(t *testing.T) {
 	// “订单”在“销售订单明细表”中命中 1 个 bigram（订单）
 	// “订单”在“订单订单订单”中命中 1 个 bigram（订单），同分
 	// 用不同查询区分：搜“订单明细”，全命中的排前
-	ms.tables["o-001"] = &model.Table{
+	ms.tables["o-001"] = &model.Table{TenantID: "t1", 
 		ID: "o-001", DatabaseName: "db1", TableName: "销售订单明细表",
 	}
-	ms.tables["o-002"] = &model.Table{
+	ms.tables["o-002"] = &model.Table{TenantID: "t1", 
 		ID: "o-002", DatabaseName: "db1", TableName: "订单",
 	}
 
@@ -713,7 +730,7 @@ func TestSearchTables_OrderByScoreDesc(t *testing.T) {
 func TestSearchTables_NoMatch(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["n-001"] = &model.Table{ID: "n-001", DatabaseName: "db1", TableName: "用户画像"}
+	ms.tables["n-001"] = &model.Table{TenantID: "t1", ID: "n-001", DatabaseName: "db1", TableName: "用户画像"}
 
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=xyz", nil)
@@ -738,4 +755,100 @@ func TestSearchTables_LimitCap(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// ============ 跨租户隔离测试（security） ============
+
+// setupTenantRouter 构造指定租户身份的路由。
+func setupTenantRouter(tenantID string) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	s := newMockStore()
+	h := NewCatalogHandler(s)
+	r := gin.New()
+	rg := r.Group("/api/v1/catalog")
+	rg.Use(func(c *gin.Context) {
+		c.Set("tenantId", tenantID)
+		c.Next()
+	})
+	h.RegisterRoutes(rg)
+	return r
+}
+
+// TestCrossTenantIsolation 租户 B 对租户 A 的资源不可见、不可改、不可删。
+func TestCrossTenantIsolation(t *testing.T) {
+	ra := setupTenantRouter("t-a")
+	rb := setupTenantRouter("t-b")
+
+	// 租户 A 创建数据库与表
+	body := `{"name":"sales","owner":"a"}`
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/catalog/databases", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	ra.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+	var db model.Database
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &db))
+
+	tbody := `{"databaseName":"sales","tableName":"orders","columns":[{"name":"id","type":"BIGINT","nullable":false}]}`
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodPost, "/api/v1/catalog/tables", strings.NewReader(tbody))
+	req.Header.Set("Content-Type", "application/json")
+	ra.ServeHTTP(w, req)
+	require.Equal(t, http.StatusCreated, w.Code)
+	var tbl model.Table
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &tbl))
+
+	// 租户 B 读取 → 404
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/api/v1/catalog/databases/"+db.ID, nil)
+	rb.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	// 租户 B 列表 → 空
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/api/v1/catalog/databases", nil)
+	rb.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), `"total":0`)
+
+	// 租户 B 更新 A 的表 → 404
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodPut, "/api/v1/catalog/tables/"+tbl.ID,
+		strings.NewReader(`{"databaseName":"sales","tableName":"hacked","columns":[{"name":"x","type":"TEXT","nullable":true}]}`))
+	req.Header.Set("Content-Type", "application/json")
+	rb.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	// 租户 B 删除 A 的表/库 → 404
+	for _, path := range []string{"/api/v1/catalog/tables/" + tbl.ID, "/api/v1/catalog/databases/" + db.ID} {
+		w = httptest.NewRecorder()
+		req, _ = http.NewRequest(http.MethodDelete, path, nil)
+		rb.ServeHTTP(w, req)
+		assert.Equal(t, http.StatusNotFound, w.Code, path)
+	}
+
+	// 租户 B 检索不到 A 的表
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/api/v1/catalog/search/tables?q=orders", nil)
+	rb.ServeHTTP(w, req)
+	assert.Contains(t, w.Body.String(), `"total":0`)
+
+	// 租户 A 自身不受影响
+	w = httptest.NewRecorder()
+	req, _ = http.NewRequest(http.MethodGet, "/api/v1/catalog/databases/"+db.ID, nil)
+	ra.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// TestMissingTenantIdentity401 无租户身份的请求一律 401。
+func TestMissingTenantIdentity401(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	s := newMockStore()
+	h := NewCatalogHandler(s)
+	r := gin.New()
+	h.RegisterRoutes(r.Group("/api/v1/catalog"))
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases", nil)
+	r.ServeHTTP(w, req)
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }

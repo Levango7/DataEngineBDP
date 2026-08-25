@@ -18,11 +18,13 @@ type Column struct {
 //
 // GORM 持久化策略：
 //   - ID 为字符串主键（UUID，由应用层生成）
-//   - DatabaseName + TableName 组合唯一索引，保证库内表名唯一
+//   - TenantID + DatabaseName + TableName 组合唯一索引，
+//     保证租户内库表名唯一（跨租户同名互不可见）
 //   - Columns / PartitionKeys / Properties 为复杂结构，使用 GORM serialized 列持久化
 //     （基于 gob 编码到 LONGTEXT/LONGVARCHAR）
 type Table struct {
 	ID            string            `json:"id" gorm:"primaryKey"`
+	TenantID      string            `json:"tenantId" gorm:"index:idx_db_table,unique"`
 	DatabaseName  string            `json:"databaseName" gorm:"index:idx_db_table,unique"`
 	TableName     string            `json:"tableName" gorm:"index:idx_db_table,unique"`
 	Description   string            `json:"description,omitempty"`

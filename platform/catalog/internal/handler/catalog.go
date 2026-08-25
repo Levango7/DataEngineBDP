@@ -42,6 +42,19 @@ func (h *CatalogHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.GET("/search/tables", h.SearchTables)
 }
 
+// tenantFrom 从请求上下文提取 JWT 租户身份（由 auth 中间件注入）。
+// 缺失时返回 401 并返回 false——所有业务端点必须在无租户身份时拒绝，
+// 这是多租户数据隔离的第一道闸门。
+func tenantFrom(c *gin.Context) (string, bool) {
+	v, exists := c.Get("tenantId")
+	tenantID, _ := v.(string)
+	if !exists || strings.TrimSpace(tenantID) == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing tenant identity"})
+		return "", false
+	}
+	return tenantID, true
+}
+
 // newUUID 生成一个 RFC 4122 v4 UUID 字符串，仅依赖标准库。
 func newUUID() string {
 	var b [16]byte
@@ -57,10 +70,14 @@ func newUUID() string {
 
 // ============ Database 端点 ============
 
-// ListDatabases 列出所有数据库。
+// ListDatabases 列出当前租户的所有数据库。
 // GET /api/v1/catalog/databases
 func (h *CatalogHandler) ListDatabases(c *gin.Context) {
-	dbs, err := h.store.ListDatabases()
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
+	dbs, err := h.store.ListDatabases(tenantID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -68,9 +85,13 @@ func (h *CatalogHandler) ListDatabases(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": dbs, "total": len(dbs)})
 }
 
-// CreateDatabase 创建一个数据库。
+// CreateDatabase 创建一个数据库。租户归属强制取自 JWT，忽略请求体值。
 // POST /api/v1/catalog/databases
 func (h *CatalogHandler) CreateDatabase(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	var db model.Database
 	if err := c.ShouldBindJSON(&db); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -84,6 +105,7 @@ func (h *CatalogHandler) CreateDatabase(c *gin.Context) {
 	if db.ID == "" {
 		db.ID = newUUID()
 	}
+	db.TenantID = tenantID // 安全：租户归属以 token 为准
 	now := time.Now().UTC()
 	if db.CreatedAt.IsZero() {
 		db.CreatedAt = now
@@ -99,11 +121,15 @@ func (h *CatalogHandler) CreateDatabase(c *gin.Context) {
 	c.JSON(http.StatusCreated, db)
 }
 
-// GetDatabase 获取一个数据库。
+// GetDatabase 获取一个数据库。跨租户访问按不存在处理（404 防枚举）。
 // GET /api/v1/catalog/databases/{id}
 func (h *CatalogHandler) GetDatabase(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
-	db, err := h.store.GetDatabase(id)
+	db, err := h.store.GetDatabase(tenantID, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -115,11 +141,15 @@ func (h *CatalogHandler) GetDatabase(c *gin.Context) {
 	c.JSON(http.StatusOK, db)
 }
 
-// DeleteDatabase 删除一个数据库。
+// DeleteDatabase 删除一个数据库。跨租户删除按不存在处理。
 // DELETE /api/v1/catalog/databases/{id}
 func (h *CatalogHandler) DeleteDatabase(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
-	if err := h.store.DeleteDatabase(id); err != nil {
+	if err := h.store.DeleteDatabase(tenantID, id); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -132,11 +162,15 @@ func (h *CatalogHandler) DeleteDatabase(c *gin.Context) {
 
 // ============ Table 端点 ============
 
-// ListTables 列出表。可选 query 参数 database 过滤库名。
+// ListTables 列出租户内的表。可选 query 参数 database 过滤库名。
 // GET /api/v1/catalog/tables?database={name}
 func (h *CatalogHandler) ListTables(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	dbName := c.Query("database")
-	tables, err := h.store.ListTables(dbName)
+	tables, err := h.store.ListTables(tenantID, dbName)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -144,9 +178,13 @@ func (h *CatalogHandler) ListTables(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": tables, "total": len(tables)})
 }
 
-// CreateTable 创建一张表。
+// CreateTable 创建一张表。租户归属强制取自 JWT，忽略请求体值。
 // POST /api/v1/catalog/tables
 func (h *CatalogHandler) CreateTable(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	var t model.Table
 	if err := c.ShouldBindJSON(&t); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -167,6 +205,7 @@ func (h *CatalogHandler) CreateTable(c *gin.Context) {
 	if t.ID == "" {
 		t.ID = newUUID()
 	}
+	t.TenantID = tenantID // 安全：租户归属以 token 为准
 	now := time.Now().UTC()
 	if t.CreatedAt.IsZero() {
 		t.CreatedAt = now
@@ -183,11 +222,15 @@ func (h *CatalogHandler) CreateTable(c *gin.Context) {
 	c.JSON(http.StatusCreated, t)
 }
 
-// GetTable 获取一张表。
+// GetTable 获取一张表。跨租户访问按不存在处理。
 // GET /api/v1/catalog/tables/{id}
 func (h *CatalogHandler) GetTable(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
-	t, err := h.store.GetTable(id)
+	t, err := h.store.GetTable(tenantID, id)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -199,9 +242,13 @@ func (h *CatalogHandler) GetTable(c *gin.Context) {
 	c.JSON(http.StatusOK, t)
 }
 
-// UpdateTable 更新一张表。
+// UpdateTable 更新一张表。跨租户更新按不存在处理。
 // PUT /api/v1/catalog/tables/{id}
 func (h *CatalogHandler) UpdateTable(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
 	var t model.Table
 	if err := c.ShouldBindJSON(&t); err != nil {
@@ -210,15 +257,9 @@ func (h *CatalogHandler) UpdateTable(c *gin.Context) {
 	}
 	// 路径参数 id 优先于 body 中的 id，保证幂等。
 	t.ID = id
+	t.TenantID = tenantID // 安全：租户归属以 token 为准
 	t.UpdatedAt = time.Now().UTC()
-	// 若原表存在且未在 body 中提供 createdAt，则保留原值。
-	if t.CreatedAt.IsZero() {
-		if existing, err := h.store.GetTable(id); err == nil {
-			t.CreatedAt = existing.CreatedAt
-		} else {
-			t.CreatedAt = t.UpdatedAt
-		}
-	}
+	// 原 createdAt 由 store 层保留（UpdateTable 内部回填）
 	if err := h.store.UpdateTable(&t); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
@@ -230,11 +271,15 @@ func (h *CatalogHandler) UpdateTable(c *gin.Context) {
 	c.JSON(http.StatusOK, t)
 }
 
-// DeleteTable 删除一张表。
+// DeleteTable 删除一张表。跨租户删除按不存在处理。
 // DELETE /api/v1/catalog/tables/{id}
 func (h *CatalogHandler) DeleteTable(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	id := c.Param("id")
-	if err := h.store.DeleteTable(id); err != nil {
+	if err := h.store.DeleteTable(tenantID, id); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
@@ -250,7 +295,7 @@ func (h *CatalogHandler) DeleteTable(c *gin.Context) {
 // defaultSearchLimit 是 handler 层的默认检索结果上限。
 const defaultSearchLimit = 50
 
-// SearchTables 对表名 + 描述进行中文分词全文检索。
+// SearchTables 对表名 + 描述进行中文分词全文检索（限当前租户范围）。
 //
 // GET /api/v1/catalog/search/tables?q={keyword}&limit={n}
 //
@@ -259,10 +304,11 @@ const defaultSearchLimit = 50
 //   - limit: 返回结果上限，默认 50，上限 200（防止拉爆内存）
 //
 // 返回按相关性分数降序排列的命中表列表，每项包含 table 与 score 字段。
-//
-// 该端点解决了“搜中文子串命中不准”的问题：例如搜“订单明细”可命中
-// “销售订单明细表”（基于 bigram 分词的语义匹配，而非简单 LIKE 子串）。
 func (h *CatalogHandler) SearchTables(c *gin.Context) {
+	tenantID, ok := tenantFrom(c)
+	if !ok {
+		return
+	}
 	q := strings.TrimSpace(c.Query("q"))
 	if q == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "query parameter 'q' is required"})
@@ -286,7 +332,7 @@ func (h *CatalogHandler) SearchTables(c *gin.Context) {
 		limit = maxLimit
 	}
 
-	results, err := h.store.SearchTables(q, limit)
+	results, err := h.store.SearchTables(tenantID, q, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
