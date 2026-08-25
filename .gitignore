@@ -121,3 +121,10 @@ frontend/tests/e2e-report/
 # JVM 崩溃转储（hs_err_pid*.log / replay_pid*.log）
 hs_err_pid*.log
 replay_pid*.log
+
+# 代码智能体临时文件（不入库）
+.codeartsdoer/tmp/
+
+# vitest 临时产物（不入库）
+frontend/vitest-*.txt
+frontend/run-vitest.ps1
