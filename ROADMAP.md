@@ -2,6 +2,9 @@
 
 > 数据引擎大数据平台演进规划。本路线图描述 v1.1 至 v2.1 的主要里程碑与特性方向。
 
+> **勾选语义图例**：`[x]` = 文档与骨架交付；`[x]✅` = 端到端验证通过（当前仅少数项适用）。
+> 多数已勾选项仅为文档 / 骨架交付，逐组件真实状态见 [组件成熟度矩阵](docs/component-maturity.md)。
+
 ## 版本规划总览
 
 ```mermaid
@@ -50,7 +53,7 @@ graph LR
 ### 真实外部依赖接入
 
 - [x] 封装层接入真实 K8s client（fabric8 真实翻译已实现 + k3s IT 测试，d8dfd68）。
-- [x] SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理，744080b9 + Docker容器化集成测试 BackendProxyRealIT 8用例）。
+- [x]✅ SQL 网关接入真实 Trino / Doris / Spark / Flink 后端（替换 Mock 后端代理，744080b9 + Docker容器化集成测试 BackendProxyRealIT 8用例）。
 - [x] 规则引擎接入真实数据源执行（JdbcTemplate 已注入 + H2 集成测试，a75c006）。
 - [x] 资产目录接入真实 PostgreSQL / Elasticsearch 存储（部分完成：PostgreSQL 已接入 `gorm.io/driver/postgres`，环境变量 `CATALOG_DB=postgres://...` 切换生产存储；Elasticsearch 倒排索引待接入，当前仅 SQLite/PG 关系存储）。
 - [x] 元数据采集器接入真实引擎 Hook（Hive/Doris JDBC 已真实 + Iceberg REST Hook 新增，66bea99）。
@@ -74,14 +77,14 @@ graph LR
 - [x] 批计算链路：Iceberg → Spark → Doris（OLAP）真实跑通（DorisOlapClient 真实调用 FE HTTP API + BatchPipelineOrchestrationService 端到端编排 + verify-batch-pipeline.sh 验证脚本，2026-08-21）。
 - [x] 流计算链路：Kafka 3.7 容器真实生产/消费 → flink-cdc 解析 → Iceberg WAL 落盘（CdcKafkaWalIT，676ee81）。
 - [x] 交互查询链路：sql-gateway → Trino（tpch.tiny 真实查询，E2E 脚本+IT，a810336）。
-- [x] 治理闭环链路：采集(/collect)→资产→质量→血缘→质量分回写(PUT)，E2E 脚本+集成测试，0e276b5/dba114e）。
+- [x]✅ 治理闭环链路：采集(/collect)→资产→质量→血缘→质量分回写(PUT)，E2E 脚本+集成测试，0e276b5/dba114e）。
 - [x] BI 可视化链路：Superset 3.1.0 真实运行 + 登录/CSRF 打通（e2e-superset.sh，3270654；数据源连接待同网）。
-- [x] 多租户链路：租户→工作空间(K8s)→数据隔离(token)→配额，E2E 脚本+MultiTenantIsolationTest，40cc71e）。
+- [x]✅ 多租户链路：租户→工作空间(K8s)→数据隔离(token)→配额，E2E 脚本+MultiTenantIsolationTest，40cc71e）。
 
 ### 集成测试扩展
 
 - [x] 新增封装层 K8s 资源翻译集成测试（Namespace / ResourceQuota / NetworkPolicy 生成验证）（`K8sWorkspaceTranslatorIT.java` 真实 k3s 集成测试 + `K8sWorkspaceTranslatorTest.java` 单测覆盖边界条件）。
-- [x] 新增 SQL 网关联邦查询集成测试（跨 Trino + Doris 联邦）（`tests/integration/test_federated_query.py` 验证引擎列表含 trino/doris + 跨源 JOIN 执行）。
+- [x]✅ 新增 SQL 网关联邦查询集成测试（跨 Trino + Doris 联邦）（`tests/integration/test_federated_query.py` 验证引擎列表含 trino/doris + 跨源 JOIN 执行）。
 - [x] 新增治理闭环集成测试（元数据 → 质量 → 血缘 → 资产目录全链路）（`tests/integration/test_governance_closed_loop.py` 覆盖资产 CRUD + 质量分回写 + 血缘查询 + 租户隔离 401）。
 - [x] 新增多租户隔离集成测试（跨租户访问拒绝、资源配额超限拒绝）（分散于 `test_finops.py` 的 `test_tenant_isolation/test_tenant_b_isolation/test_tenant_isolation_namespace_grouping`、`test_data_virtualization.py` 的 `test_15_tenant_isolation`、`test_finops_dashboard.py` 的 `test_tenant_isolation_top10`）。
 - [x] 新增四环境一致性集成测试（信创 / 本地 / 公有云 / 私有云 Profile 验证）（`tests/integration/test_four_env_profiles.py` 校验 4 个 profile 文件存在 + 核心配置键 + 合法 YAML + 无占位符）。
@@ -115,12 +118,12 @@ graph LR
 
 ### AI 能力增强
 
-- [x] **Agent 编排**：支持多 Agent 协作编排，实现复杂数据分析任务的自主规划与执行。
-- [x] **RAG 增强**：知识工程支持多模态 RAG（文本 / 表格 / 图像）、混合检索（向量 + 关键词 + 图谱）、重排序。
-- [x] **多模态**：大模型网关支持文本 / 图像 / 语音 / 视频多模态输入输出。
-- [x] **模型评测**：LLMOps 支持自动化模型评测（准确率 / 召回率 / 延迟 / 成本），评测报告可视化。
-- [x] **模型微调**：LLMOps 支持 LoRA / QLoRA / 全参微调，微调任务 on K8s 编排。
-- [x] **AI 数据分析助手**：控制台集成 AI 助手，支持自然语言转 SQL、智能数据解读、智能图表推荐。
+- [x]（演示模式，见 component-maturity） **Agent 编排**：支持多 Agent 协作编排，实现复杂数据分析任务的自主规划与执行。
+- [x]（演示模式，见 component-maturity） **RAG 增强**：知识工程支持多模态 RAG（文本 / 表格 / 图像）、混合检索（向量 + 关键词 + 图谱）、重排序。
+- [x]（演示模式，见 component-maturity） **多模态**：大模型网关支持文本 / 图像 / 语音 / 视频多模态输入输出。
+- [x]（演示模式，见 component-maturity） **模型评测**：LLMOps 支持自动化模型评测（准确率 / 召回率 / 延迟 / 成本），评测报告可视化。
+- [x]（演示模式，见 component-maturity） **模型微调**：LLMOps 支持 LoRA / QLoRA / 全参微调，微调任务 on K8s 编排。
+- [x]（演示模式，见 component-maturity） **AI 数据分析助手**：控制台集成 AI 助手，支持自然语言转 SQL、智能数据解读、智能图表推荐。
 
 ### 数据联邦
 
@@ -161,7 +164,7 @@ graph LR
 
 ## v2.1.0 - 行业生态扩展与生产化加固
 
-**主题**：在 v2.0 GA 基础上深化行业生态、加固生产化能力、性能调优与多集群联邦增强。
+**主题**：在 v2.0.0（RC，见 releases/v2.0.0/ERRATUM.md）基础上深化行业生态、加固生产化能力、性能调优与多集群联邦增强。
 
 ### 行业生态深化
 

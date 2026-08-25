@@ -24,6 +24,9 @@
 - **[流程说明]** 245ae0fe (wip) 提交粒度失控，混合 Go 1.26 升级/依赖升级/echarts mock/CI 调整等 5+ 类不相关改动（73 文件），Go 1.25→1.26 升级未声明兼容性影响。后续已禁止 wip 直推主干，breaking change 须显式声明
 - **Phase C 状态码与规范**：vector-engine 内部错误 400→500、校验错误归位 400；karmada 三处创建接口按错误类型映射（409 仅唯一冲突/500 内部）；open-api-catalog invoke 认证失败返回真实 HTTP 401；encaps-layer 八处创建端点 200→201（响应体不变）；行业模板假运营数据（installCount/rating）清理；APIMarket mock 兜底遮错改真实错误态+重试；审批 store 失败不再静默保留假数据；api-reference.md 升 V2.2 勘误（鉴权矩阵/nl2sql 整章/OpenAPI 附录实况化等 11 项）；CONVENTIONS §9 接口规范基线+现存偏差登记表
 
+#### Corrected
+- **V2.0.0 定级勘误**：`releases/v2.0.0/` 新增 ERRATUM.md 正式勘误公告，v2.0.0 的 GA 定级修订为 RC（候选版本）；逐条更正 release-notes.md 中与 ga-checklist.md 矛盾的表述——四环境部署验证实际为 0/6 通过（待实际环境验证）、787 用例与性能基线未经四环境实测、覆盖率未达 85%（门禁后经调整至实际值之下）；明确 V2.0 真实定位（骨架与文档交付为主体、核心链路可用、AI 层为演示模式）；release-notes.md 与 ga-checklist.md 历史原文保留不改
+
 #### Added
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from fastapi import Depends, FastAPI
@@ -19,6 +20,8 @@ from ml_platform.services.registry import (
     ServiceRegistry,
     buildServices,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def createApp(
@@ -38,6 +41,9 @@ def createApp(
         settings = getSettings()
     if registry is None:
         registry = buildServices(settings)
+
+    if settings.isMockBackend:
+        logger.warning("演示模式: 使用内存 Mock 后端,训练与预测结果为模拟数据,不持久化")
 
     app = FastAPI(
         title="ML Platform",

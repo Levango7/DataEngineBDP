@@ -123,6 +123,10 @@ async def lifespan(app: FastAPI):
 def create_app() -> FastAPI:
     """创建 FastAPI 应用."""
     settings = get_settings()
+    if settings.mock_mode:
+        logger.warning(
+            "演示模式: LOOP_MOCK_MODE=true,闭环编排不实际调用上游服务,结果为模拟数据"
+        )
     app = FastAPI(
         title="数据引擎大数据平台 · 微调→评测→部署闭环编排",
         description=(

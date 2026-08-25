@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Optional
 
 from fastapi import Depends, FastAPI
@@ -10,6 +11,8 @@ from llmops.api.jwt_auth import getAuthContext
 from llmops.api.routers import deployments, frontend, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
 from llmops.services.registry import ServiceRegistry, build_services
+
+logger = logging.getLogger(__name__)
 
 
 def create_app(
@@ -29,6 +32,9 @@ def create_app(
         settings = get_settings()
     if registry is None:
         registry = build_services(settings)
+
+    if settings.isMock:
+        logger.warning("演示模式: 使用内存 Mock 仓储,数据不持久化")
 
     app = FastAPI(
         title="LLMOps Platform",

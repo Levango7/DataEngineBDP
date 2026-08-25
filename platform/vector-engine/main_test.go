@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Levango7/DataEngineBDP/vector-engine/internal/api"
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/config"
 	"github.com/Levango7/DataEngineBDP/vector-engine/internal/service"
 	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store/mock"
 )
@@ -88,4 +91,49 @@ func TestBusinessRouteWithValidToken200(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// TestSelectStoreMockEmitsDemoModeWarning STORE_TYPE=mock 时启动日志输出演示模式告警。
+func TestSelectStoreMockEmitsDemoModeWarning(t *testing.T) {
+	var buf bytes.Buffer
+	old := log.Writer()
+	log.SetOutput(&buf)
+	defer log.SetOutput(old)
+
+	t.Setenv("STORE_TYPE", "mock")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	_, demoMode := selectStore(config.Load(), logger)
+	require.True(t, demoMode)
+	warnDemoMode(log.Writer(), demoMode, serviceName)
+
+	assert.Contains(t, buf.String(), "演示模式")
+	assert.Contains(t, buf.String(), serviceName)
+}
+
+// TestSelectStoreUnknownTypeFallsBackToDemoMode 未知 STORE_TYPE 回退 Mock 同样标记演示模式。
+func TestSelectStoreUnknownTypeFallsBackToDemoMode(t *testing.T) {
+	t.Setenv("STORE_TYPE", "unknown-backend")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	_, demoMode := selectStore(config.Load(), logger)
+	assert.True(t, demoMode)
+}
+
+// TestSelectStoreMilvusFallbackFlagsDemoMode 默认构建（无 milvus_enabled）下 milvus 回退 Mock 标记演示模式。
+func TestSelectStoreMilvusFallbackFlagsDemoMode(t *testing.T) {
+	t.Setenv("STORE_TYPE", "milvus")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	_, demoMode := selectStore(config.Load(), logger)
+	assert.True(t, demoMode)
+}
+
+// TestRealStoreSuppressesDemoModeWarning 非内存 Mock 后端不输出演示模式告警。
+func TestRealStoreSuppressesDemoModeWarning(t *testing.T) {
+	var buf bytes.Buffer
+	warnDemoMode(&buf, false, serviceName)
+
+	assert.Empty(t, buf.String())
+	assert.NotContains(t, buf.String(), "演示模式")
 }

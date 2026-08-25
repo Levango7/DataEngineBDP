@@ -1,0 +1,180 @@
+# 本地核心子集 values：仅启用可独立运行的自研服务，重型基础设施全关
+# 配合 deploy/local-up.sh 使用；完整环境请用 design/deploy/values/env
+
+# ---- 第三方基础设施全部关闭 ----
+postgresql:
+  enabled: false
+kafka:
+  enabled: false
+redis:
+  enabled: false
+minio:
+  enabled: false
+elasticsearch:
+  enabled: false
+trino:
+  enabled: false
+doris:
+  enabled: false
+spark:
+  enabled: false
+flink:
+  enabled: false
+seatunnel:
+  enabled: false
+dolphinscheduler:
+  enabled: false
+superset:
+  enabled: false
+milvus:
+  enabled: false
+nebula-graph:
+  enabled: false
+iotdb:
+  enabled: false
+mlflow:
+  enabled: false
+keycloak:
+  enabled: false
+jupyter:
+  enabled: false
+theia:
+  enabled: false
+vscode-server:
+  enabled: false
+airflow:
+  enabled: false
+hive-metastore:
+  enabled: false
+zookeeper:
+  enabled: false
+grafana:
+  enabled: false
+prometheus:
+  enabled: false
+loki:
+  enabled: false
+tempo:
+  enabled: false
+cert-manager:
+  enabled: false
+external-secrets:
+  enabled: false
+ingress-nginx:
+  enabled: false
+metallb:
+  enabled: false
+metrics-server:
+  enabled: false
+cluster-autoscaler:
+  enabled: false
+descheduler:
+  enabled: false
+node-problem-detector:
+  enabled: false
+reloader:
+  enabled: false
+keda:
+  enabled: false
+argo-rollouts:
+  enabled: false
+knative-serving:
+  enabled: false
+karmada:
+  enabled: false
+velero:
+  enabled: false
+chaos-mesh:
+  enabled: false
+cni-cilium:
+  enabled: false
+csi-ceph:
+  enabled: false
+csi-juicefs:
+  enabled: false
+ske-infra:
+  enabled: false
+apisix:
+  enabled: false
+observability:
+  enabled: false
+
+# ---- 行业模板/函数模板关闭 ----
+finance-template:
+  enabled: false
+industry-templates:
+  enabled: false
+
+# ---- 治理辅助（依赖较重，先关）----
+governance:
+  enabled: false
+lineage-analyzer:
+  enabled: false
+metadata-collector:
+  enabled: false
+data-quality:
+  enabled: false
+tag-engine:
+  enabled: false
+finops:
+  enabled: false
+chunker:
+  enabled: false
+ai-assistant:
+  enabled: false
+vector-engine:
+  enabled: false
+knowledge-engine:
+  enabled: false
+llmops:
+  enabled: false
+ml-platform:
+  enabled: false
+model-finetuning:
+  enabled: false
+registry:
+  enabled: false
+stream-batch-scheduler:
+  enabled: false
+storage-io:
+  enabled: false
+asset-catalog:
+  enabled: false
+asset-exchange:
+  enabled: false
+business-portal:
+  enabled: false
+dqctl:
+  enabled: false
+flink-cdc:
+  enabled: false
+iceberg-rest:
+  enabled: false
+iceberg-compaction:
+  enabled: false
+infra-orchestrator:
+  enabled: false
+infra-provider-baremetal:
+  enabled: false
+infra-provider-cloud:
+  enabled: false
+infra-provider-private:
+  enabled: false
+infra-provider-xinchang:
+  enabled: false
+
+# ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
+encaps-layer:
+  enabled: true
+encaps-tenant:
+  enabled: true
+sql-gateway:
+  enabled: true
+catalog:
+  enabled: true
+rule-engine:
+  enabled: true
+nl2sql:
+  enabled: true
+open-api-catalog:
+  enabled: true

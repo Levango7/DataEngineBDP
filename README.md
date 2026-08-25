@@ -5,13 +5,14 @@
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
-- 当前版本：**2.1.0-SNAPSHOT（开发中，非 GA）**，基于 v2.0.0 GA 继续生产化加固
+- 当前版本：**2.1.0-SNAPSHOT（开发中）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
 - 工程成熟度：综合评分 评估中，6000+ 后端测试 + 183 前端测试全通过，7 条端到端链路落地（详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
 - 开源协议：Apache License 2.0
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
-> 2.1.0-SNAPSHOT 开发中（非 GA），基于 v2.0.0 GA 继续核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
+> 2.1.0-SNAPSHOT 开发中，基于 v2.0.0 RC 继续核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
 > v2.1 进行中（灰度发布 / 故障演练 / 性能调优 / 多集群联邦增强等 14 项生产化加固）。
+> ⚠️ 勘误：v2.0.0 的 GA 定级已修订为 RC（候选版本），详见 [V2.0.0 勘误公告](releases/v2.0.0/ERRATUM.md)。
 > 详见 [路线图](ROADMAP.md)。
 
 ## 项目简介
@@ -248,6 +249,7 @@ bash scripts/poc/run-poc.sh
 | [升级指南](docs/user-guide/upgrade-guide.md) | V1.0 → V2.0 升级流程、回滚、验证 |
 | [行业模板使用指南](docs/user-guide/industry-template-guide.md) | 金融、能源、政务三个行业模板使用说明 |
 | [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
+| [组件成熟度矩阵](docs/component-maturity.md) | 37 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
 | [变更日志](CHANGELOG.md) | 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
 | [安全加固记录](CHANGELOG.md) | P0 登录漏洞修复、四服务统一 JWT、租户隔离强制层、CI 安全门禁（2026-08-25） |

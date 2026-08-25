@@ -18,11 +18,14 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -66,6 +69,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("[%s] failed to build providers: %v", serviceName, err)
 	}
+
+	// Provider 走 Mock（显式 MOCK_MODE 或未配置兜底）时显性告知演示模式。
+	warnMockProvider(log.Writer(), hasMockProvider(cfg.Providers), serviceName)
 
 	// 4. 构造网关。
 	auditor := gateway.NewAuditor(cfg.Audit.SensitiveWords, cfg.Audit.LogPath)
@@ -152,4 +158,22 @@ func main() {
 
 	// 引用 provider 包避免未使用警告（provider 在 config 中使用）
 	_ = provider.ErrModelNotFound
+}
+
+// hasMockProvider 判断 Provider 配置中是否包含 Mock 实现（显式 MOCK_MODE 或兜底注入）。
+func hasMockProvider(cfgs []config.ProviderConfig) bool {
+	for _, pc := range cfgs {
+		if strings.EqualFold(pc.Type, "mock") {
+			return true
+		}
+	}
+	return false
+}
+
+// warnMockProvider 在 LLM Provider 为 Mock 时输出演示模式告警（w 抽象便于测试捕获）。
+func warnMockProvider(w io.Writer, active bool, service string) {
+	if !active {
+		return
+	}
+	fmt.Fprintf(w, "WARNING: [%s] LLM Provider 为 Mock（演示模式），回复为演示内容；生产请通过 LLM_GATEWAY_PROVIDERS 配置真实模型凭据\n", service)
 }

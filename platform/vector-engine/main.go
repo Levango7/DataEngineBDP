@@ -12,6 +12,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"log"
 	"log/slog"
 	"net/http"
@@ -56,18 +58,8 @@ func main() {
 
 	// 根据配置构造 VectorStore 实例。
 	// 当前默认使用 Mock 实现；Milvus 实现通过 build tag 控制（参见 internal/store/milvus/）。
-	var s store.VectorStore
-	switch cfg.StoreType {
-	case "mock":
-		s = mock.NewMockVectorStore()
-		log.Printf("[%s] store backend: mock (in-memory)", serviceName)
-	case "milvus":
-		// Milvus 实现需要 build tag milvus_enabled，未启用时回退到 mock 并告警。
-		s = newMilvusStoreOrFallback(cfg, logger)
-	default:
-		s = mock.NewMockVectorStore()
-		log.Printf("[%s] unknown store type %q, fallback to mock", serviceName, cfg.StoreType)
-	}
+	s, demoMode := selectStore(cfg, logger)
+	warnDemoMode(log.Writer(), demoMode, serviceName)
 
 	// 初始化服务层。
 	vectorService := service.NewVectorService(s)
@@ -135,16 +127,39 @@ func newRouter(logger *slog.Logger, healthH *api.HealthHandler, vectorH *api.Vec
 	return r
 }
 
+// selectStore 根据配置构造 VectorStore，返回实例与是否为内置内存 Mock（演示模式）。
+func selectStore(cfg *config.Config, logger *slog.Logger) (store.VectorStore, bool) {
+	switch cfg.StoreType {
+	case "mock":
+		log.Printf("[%s] store backend: mock (in-memory)", serviceName)
+		return mock.NewMockVectorStore(), true
+	case "milvus":
+		// Milvus 实现需要 build tag milvus_enabled，未启用时回退到 mock 并告警。
+		return newMilvusStoreOrFallback(cfg, logger)
+	default:
+		log.Printf("[%s] unknown store type %q, fallback to mock", serviceName, cfg.StoreType)
+		return mock.NewMockVectorStore(), true
+	}
+}
+
 // newMilvusStoreOrFallback 在未启用 milvus_enabled build tag 时回退到 Mock 实现。
 //
 // 真实 Milvus 实现位于 internal/store/milvus/，需通过 `-tags milvus_enabled` 编译启用。
 // 默认构建（无 build tag）下，newMilvusStore 返回 nil，此处回退到 Mock 并打印告警。
-func newMilvusStoreOrFallback(cfg *config.Config, logger *slog.Logger) store.VectorStore {
+func newMilvusStoreOrFallback(cfg *config.Config, logger *slog.Logger) (store.VectorStore, bool) {
 	s := newMilvusStore(cfg)
 	if s == nil {
 		logger.Warn("milvus store not built (need build tag milvus_enabled), fallback to mock",
 			"hint", "rebuild with: go build -tags milvus_enabled")
-		return mock.NewMockVectorStore()
+		return mock.NewMockVectorStore(), true
 	}
-	return s
+	return s, false
+}
+
+// warnDemoMode 在以内置内存 Mock 存储运行时输出演示模式告警（w 抽象便于测试捕获）。
+func warnDemoMode(w io.Writer, active bool, service string) {
+	if !active {
+		return
+	}
+	fmt.Fprintf(w, "WARNING: [%s] 正以内置内存 Mock 存储运行（演示模式），数据不持久化；生产需启用 Milvus 构建\n", service)
 }

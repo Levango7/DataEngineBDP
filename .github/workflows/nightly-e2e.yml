@@ -190,3 +190,21 @@ jobs:
 
       - name: 渲染 + Schema 校验全部 chart（阻断）
         run: bash scripts/chart-render-check.sh
+
+  arch-arm64-smoke:
+    name: ARM64 Build Smoke (buildx/QEMU, burn-in)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    timeout-minutes: 45
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 QEMU 与 buildx
+        uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: arm64 构建冒烟（nl2sql，不推送）
+        run: |
+          docker buildx build --platform linux/arm64 \
+            -f platform/nl2sql/Dockerfile platform/nl2sql --target runtime . >/dev/null && echo OK

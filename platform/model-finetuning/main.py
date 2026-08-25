@@ -67,6 +67,11 @@ def create_app() -> FastAPI:
     mockMode = _env_bool("FINETUNE_MOCK_MODE", default=True)
     schedulerBackend = os.environ.get("FINETUNE_SCHEDULER_BACKEND", "volcano")
 
+    if mockMode:
+        logger.warning(
+            "演示模式: FINETUNE_MOCK_MODE=true,微调任务在本地模拟执行,不占用 GPU 资源"
+        )
+
     app = FastAPI(
         title="Model Finetuning Engine",
         description=(
