@@ -13,8 +13,8 @@ import (
 
 func TestCorsMiddleware_DefaultOrigin(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	os.Unsetenv("CORS_ORIGINS")
-	defer os.Unsetenv("CORS_ORIGINS")
+	_ = os.Unsetenv("CORS_ORIGINS")
+	defer func() { _ = os.Unsetenv("CORS_ORIGINS") }()
 
 	r := gin.New()
 	r.Use(CorsMiddleware())
@@ -31,8 +31,8 @@ func TestCorsMiddleware_DefaultOrigin(t *testing.T) {
 
 func TestCorsMiddleware_Preflight(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	os.Unsetenv("CORS_ORIGINS")
-	defer os.Unsetenv("CORS_ORIGINS")
+	_ = os.Unsetenv("CORS_ORIGINS")
+	defer func() { _ = os.Unsetenv("CORS_ORIGINS") }()
 
 	r := gin.New()
 	r.Use(CorsMiddleware())

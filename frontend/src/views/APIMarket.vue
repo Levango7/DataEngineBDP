@@ -55,6 +55,12 @@
     <div v-if="loading" class="card" style="margin-top: 14px">
       <div class="meta" style="color: var(--muted)">加载中…</div>
     </div>
+    <div v-else-if="error" class="card" style="margin-top: 14px" role="alert">
+      <div class="meta" style="color: var(--danger)">
+        API 列表加载失败：{{ error.message }}
+        <button class="btn ghost sm" style="margin-left: 8px" @click="refreshList">重试</button>
+      </div>
+    </div>
     <div v-else-if="apiList && apiList.length === 0" class="card" style="margin-top: 14px">
       <div class="meta" style="color: var(--muted)">暂无 API，点击「+ 注册 API」创建</div>
     </div>
@@ -317,10 +323,10 @@ const categoryFilter = ref('')
 const statusFilter = ref('')
 
 // API 列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
-// 后端未启动时使用 Mock 数据
 const {
   data: apiList,
   loading,
+  error,
   execute: refreshList
 } = useApi<APIDefinition[]>(
   () => {
@@ -331,11 +337,7 @@ const {
     return listApis(params)
   },
   {
-    initialData: [],
-    onError: () => {
-      // 后端未启动时使用 Mock 数据
-      apiList.value = mockApiList
-    }
+    initialData: []
   }
 )
 
@@ -594,111 +596,6 @@ function barHeight(count: number): number {
   const max = Math.max(...metrics.value.timeseries.map((p) => p.callCount), 1)
   return Math.max(2, (count / max) * 80)
 }
-
-// ---------- Mock 数据（后端未启动时展示） ----------
-const mockApiList: APIDefinition[] = [
-  {
-    id: 'mock-1',
-    name: 'weather-query',
-    version: '1.0.0',
-    description: '天气预报查询 API，支持按城市查询未来 7 天天气',
-    category: 'weather',
-    tags: ['public', 'query'],
-    method: 'GET',
-    path: '/weather/query',
-    params: [],
-    responses: [],
-    authType: 'api_key',
-    upstream: { type: 'trino', url: 'http://trino:8080', method: 'GET' },
-    sla: 'platinum',
-    costStrategy: 'by_call',
-    costUnitPrice: 0.01,
-    status: 'running',
-    providerTenantId: 'tenant-provider',
-    callCount: 128000,
-    errorCount: 512,
-    totalLatencyMs: 40960000,
-    totalTrafficBytes: 256000000,
-    createdAt: '',
-    updatedAt: ''
-  },
-  {
-    id: 'mock-2',
-    name: 'risk-score',
-    version: '2.1.0',
-    description: '风控评分 API，基于大模型推理返回风险等级',
-    category: 'risk',
-    tags: ['internal', 'llm'],
-    method: 'POST',
-    path: '/risk/score',
-    params: [],
-    responses: [],
-    authType: 'jwt',
-    upstream: { type: 'llm', url: 'http://llm-gateway:8080', method: 'POST' },
-    sla: 'gold',
-    costStrategy: 'by_call',
-    costUnitPrice: 0.05,
-    status: 'running',
-    providerTenantId: 'tenant-provider',
-    callCount: 56000,
-    errorCount: 280,
-    totalLatencyMs: 22400000,
-    totalTrafficBytes: 112000000,
-    createdAt: '',
-    updatedAt: ''
-  },
-  {
-    id: 'mock-3',
-    name: 'sales-report',
-    version: '1.2.0',
-    description: '销售报表导出 API，支持按日期范围导出 Excel',
-    category: 'finance',
-    tags: ['export'],
-    method: 'GET',
-    path: '/sales/report',
-    params: [],
-    responses: [],
-    authType: 'api_key',
-    upstream: { type: 'doris', url: 'http://doris:8030', method: 'GET' },
-    sla: 'silver',
-    costStrategy: 'by_bytes',
-    costUnitPrice: 0.001,
-    status: 'running',
-    providerTenantId: 'tenant-provider',
-    callCount: 8200,
-    errorCount: 41,
-    totalLatencyMs: 3280000,
-    totalTrafficBytes: 82000000,
-    createdAt: '',
-    updatedAt: ''
-  },
-  {
-    id: 'mock-4',
-    name: 'user-profile',
-    version: '0.9.0',
-    description: '用户画像查询 API（草稿，待审核）',
-    category: 'profile',
-    tags: ['draft'],
-    method: 'GET',
-    path: '/profile/user',
-    params: [],
-    responses: [],
-    authType: 'oauth2',
-    upstream: { type: 'trino', url: 'http://trino:8080', method: 'GET' },
-    sla: 'silver',
-    costStrategy: 'monthly_package',
-    costUnitPrice: 100,
-    monthlyQuota: 10000,
-    status: 'draft',
-    providerTenantId: 'tenant-provider',
-    callCount: 0,
-    errorCount: 0,
-    totalLatencyMs: 0,
-    totalTrafficBytes: 0,
-    createdAt: '',
-    updatedAt: ''
-  }
-]
 
 onMounted(() => {
   void refreshList()

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -96,7 +97,7 @@ public class SecController {
         MaskPolicyEntity saved = repository.save(entity);
         log.info("创建脱敏策略: id={}, field={}, asset={}, tenant={}",
                 saved.getId(), saved.getFieldName(), saved.getAssetName(), tenantId);
-        return ResponseEntity.ok(toView(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toView(saved));
     }
 
     /** 更新策略。 */

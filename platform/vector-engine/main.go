@@ -88,7 +88,7 @@ func main() {
 	}
 
 	go func() {
-		log.Printf("[%s] version=%s listening on %s", serviceName, version, addr)
+		logger.Info("server listening", "service", serviceName, "version", version, "addr", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start server: %v", err)
 		}

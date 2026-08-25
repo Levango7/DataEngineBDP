@@ -22,6 +22,9 @@ const (
 	maxTopK     = 1000
 )
 
+// ErrInvalidArgument 服务层参数校验失败（客户端错误）。
+var ErrInvalidArgument = errors.New("invalid argument")
+
 // VectorService 封装向量检索业务逻辑。
 type VectorService struct {
 	store store.VectorStore
@@ -43,7 +46,7 @@ func (s *VectorService) CreateCollection(ctx context.Context, req store.CreateCo
 // DropCollection 删除向量集合。
 func (s *VectorService) DropCollection(ctx context.Context, collectionName string) error {
 	if collectionName == "" {
-		return errors.New("collection name is required")
+		return fmt.Errorf("%w: collection name is required", ErrInvalidArgument)
 	}
 	return s.store.DropCollection(ctx, collectionName)
 }
@@ -51,17 +54,17 @@ func (s *VectorService) DropCollection(ctx context.Context, collectionName strin
 // Insert 插入向量。
 func (s *VectorService) Insert(ctx context.Context, req store.InsertRequest) error {
 	if req.CollectionName == "" {
-		return errors.New("collection_name is required")
+		return fmt.Errorf("%w: collection_name is required", ErrInvalidArgument)
 	}
 	if len(req.Vectors) == 0 {
-		return errors.New("vectors must not be empty")
+		return fmt.Errorf("%w: vectors must not be empty", ErrInvalidArgument)
 	}
 	for i, v := range req.Vectors {
 		if v.ID == "" {
-			return fmt.Errorf("vector at index %d: id is required", i)
+			return fmt.Errorf("%w: vector at index %d: id is required", ErrInvalidArgument, i)
 		}
 		if len(v.Vector) == 0 {
-			return fmt.Errorf("vector %s: vector data must not be empty", v.ID)
+			return fmt.Errorf("%w: vector %s: vector data must not be empty", ErrInvalidArgument, v.ID)
 		}
 	}
 	return s.store.Insert(ctx, req)
@@ -82,7 +85,7 @@ func (s *VectorService) HybridSearch(ctx context.Context, req store.HybridSearch
 		return nil, err
 	}
 	if req.Filter == "" {
-		return nil, errors.New("filter is required for hybrid search")
+		return nil, fmt.Errorf("%w: filter is required for hybrid search", ErrInvalidArgument)
 	}
 	req.TopK = normalizeTopK(req.TopK)
 	return s.store.HybridSearch(ctx, req)
@@ -91,10 +94,10 @@ func (s *VectorService) HybridSearch(ctx context.Context, req store.HybridSearch
 // Delete 删除向量。
 func (s *VectorService) Delete(ctx context.Context, collectionName string, ids []string) error {
 	if collectionName == "" {
-		return errors.New("collection_name is required")
+		return fmt.Errorf("%w: collection_name is required", ErrInvalidArgument)
 	}
 	if len(ids) == 0 {
-		return errors.New("ids must not be empty")
+		return fmt.Errorf("%w: ids must not be empty", ErrInvalidArgument)
 	}
 	return s.store.Delete(ctx, collectionName, ids)
 }
@@ -107,7 +110,7 @@ func (s *VectorService) ListCollections(ctx context.Context) ([]store.Collection
 // GetStats 返回集合统计信息。
 func (s *VectorService) GetStats(ctx context.Context, collectionName string) (*store.CollectionStats, error) {
 	if collectionName == "" {
-		return nil, errors.New("collection name is required")
+		return nil, fmt.Errorf("%w: collection name is required", ErrInvalidArgument)
 	}
 	return s.store.GetStats(ctx, collectionName)
 }
@@ -117,10 +120,10 @@ func (s *VectorService) GetStats(ctx context.Context, collectionName string) (*s
 // validateCreateCollectionRequest 校验创建集合请求。
 func validateCreateCollectionRequest(req store.CreateCollectionRequest) error {
 	if req.Name == "" {
-		return errors.New("collection name is required")
+		return fmt.Errorf("%w: collection name is required", ErrInvalidArgument)
 	}
 	if req.Dimension <= 0 {
-		return errors.New("dimension must be positive")
+		return fmt.Errorf("%w: dimension must be positive", ErrInvalidArgument)
 	}
 	switch req.MetricType {
 	case store.MetricL2, store.MetricIP, store.MetricCOSINE:
@@ -138,13 +141,13 @@ func validateCreateCollectionRequest(req store.CreateCollectionRequest) error {
 // validateSearchRequest 校验检索请求的公共字段。
 func validateSearchRequest(collectionName string, query []float32, topK int) error {
 	if collectionName == "" {
-		return errors.New("collection_name is required")
+		return fmt.Errorf("%w: collection_name is required", ErrInvalidArgument)
 	}
 	if len(query) == 0 {
-		return errors.New("query vector must not be empty")
+		return fmt.Errorf("%w: query vector must not be empty", ErrInvalidArgument)
 	}
 	if topK < 0 {
-		return errors.New("top_k must not be negative")
+		return fmt.Errorf("%w: top_k must not be negative", ErrInvalidArgument)
 	}
 	return nil
 }

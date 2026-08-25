@@ -92,7 +92,7 @@ class MultiTenantIsolationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"secret-orders\",\"type\":\"table\",\"owner\":\"a\","
                                 + "\"qualityScore\":90,\"securityLevel\":\"L2\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         // 租户 A 能看到自己的资产
         mockMvc.perform(get("/api/v1/governance/assets")
@@ -217,7 +217,7 @@ class MultiTenantIsolationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"name\":\"tenant001-secret\",\"type\":\"table\",\"owner\":\"admin\","
                                 + "\"qualityScore\":90,\"securityLevel\":\"L2\"}"))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         // tenant-001 能看到自己的资产
         mockMvc.perform(get("/api/v1/governance/assets")

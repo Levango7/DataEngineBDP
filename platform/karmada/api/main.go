@@ -15,6 +15,7 @@ package main
 import (
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,6 +51,10 @@ func main() {
 		port = defaultPort
 	}
 
+	// 初始化结构化 JSON 日志。
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slog.SetDefault(logger)
+
 	// 初始化 GORM 持久化存储（开发环境 SQLite，生产环境可切换 PostgreSQL）。
 	dbPath := os.Getenv("KARMADA_API_DB")
 	if dbPath == "" {
@@ -57,14 +62,15 @@ func main() {
 	}
 	gormDB, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to open database %s: %v", dbPath, err)
+		logger.Error("failed to open database", "path", dbPath, "error", err)
+		os.Exit(1)
 	}
 
 	// 自动迁移：根据 model 结构创建/更新表结构。
 	if err := gormDB.AutoMigrate(&model.PropagationPolicy{}); err != nil {
 		log.Fatalf("failed to auto migrate: %v", err)
 	}
-	log.Printf("[%s] database initialized at %s", serviceName, dbPath)
+	logger.Info("database initialized", "service", serviceName, "path", dbPath)
 
 	// 初始化基于 GORM 的存储。
 	s := store.NewGormStore(gormDB)
@@ -96,7 +102,7 @@ func main() {
 	srv := &http.Server{Addr: addr, Handler: r, ReadHeaderTimeout: 10 * time.Second}
 
 	go func() {
-		log.Printf("[%s] version=%s listening on %s", serviceName, version, addr)
+		logger.Info("server listening", "service", serviceName, "version", version, "addr", addr)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("failed to start server: %v", err)
 		}

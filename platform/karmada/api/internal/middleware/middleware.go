@@ -32,7 +32,7 @@ func ensureJWTConfig() {
 			log.Fatalf("FATAL: environment variable JWT_SECRET is required (at least 32 bytes)")
 		}
 		if len(secret) < 32 {
-			log.Fatalf("FATAL: JWT_SECRET must be at least 32 bytes, got %d", len(secret))
+			log.Fatalf("FATAL: JWT_SECRET must be at least 32 bytes")
 		}
 		jwtSecret = []byte(secret)
 		jwtIssuer = os.Getenv("JWT_ISSUER")

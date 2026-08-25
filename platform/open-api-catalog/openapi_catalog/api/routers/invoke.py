@@ -52,23 +52,19 @@ async def call_api(
             access_key = authorization[7:]
 
     if not access_key:
-        return CallResult(
-            callId="",
-            statusCode=401,
-            latencyMs=0.0,
-            error="缺少鉴权凭证: X-API-Key 或 Authorization",
+        raise HTTPException(
+            status_code=401,
+            detail="缺少鉴权凭证: X-API-Key 或 Authorization",
         )
 
     if not x_api_secret:
-        return CallResult(
-            callId="",
-            statusCode=401,
-            latencyMs=0.0,
-            error="缺少鉴权凭证: X-API-Secret",
+        raise HTTPException(
+            status_code=401,
+            detail="缺少鉴权凭证: X-API-Secret",
         )
 
     try:
-        return await registry.apiCallService.call_api(
+        result = await registry.apiCallService.call_api(
             api_id=api_id,
             access_key=access_key,
             secret_key=x_api_secret,
@@ -77,3 +73,8 @@ async def call_api(
         )
     except CatalogError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+
+    if result.statusCode == 401:
+        raise HTTPException(status_code=401, detail=result.error)
+
+    return result

@@ -7,6 +7,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -38,7 +39,15 @@ func NewGormStore(db *gorm.DB) Store {
 }
 
 // CreatePropagationPolicy 创建传播策略。
+// 若同租户下同名同命名空间策略已存在则返回 ErrAlreadyExists。
 func (s *gormStore) CreatePropagationPolicy(pp *model.PropagationPolicy) error {
+	_, err := s.GetPropagationPolicy(pp.TenantID, pp.Namespace, pp.Name)
+	if err == nil {
+		return fmt.Errorf("%w: propagation policy %s/%s", ErrAlreadyExists, pp.Namespace, pp.Name)
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return err
+	}
 	return s.db.Create(pp).Error
 }
 
@@ -100,3 +109,6 @@ func (s *gormStore) DeletePropagationPolicy(tenantID, namespace, name string) er
 
 // ErrNotFound 记录未找到错误。
 var ErrNotFound = errors.New("propagation policy not found")
+
+// ErrAlreadyExists 记录已存在（唯一性冲突）错误。
+var ErrAlreadyExists = errors.New("propagation policy already exists")

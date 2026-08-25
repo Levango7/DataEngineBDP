@@ -633,7 +633,11 @@ func (h *FailoverHandler) CreateFailoverPolicy(c *gin.Context) {
 	}
 
 	if err := h.store.CreateFailoverPolicy(p); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "failed to create: " + err.Error()})
+		if errors.Is(err, store.ErrAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "failed to create: " + err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create: " + err.Error()})
 		return
 	}
 

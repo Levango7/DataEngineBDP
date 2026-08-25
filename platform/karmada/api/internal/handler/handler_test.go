@@ -25,6 +25,8 @@ type mockStore struct {
 	mu  sync.Mutex
 	db  map[string]*model.PropagationPolicy
 	seq uint
+
+	createPPErr error
 }
 
 // newTestStore 创建内存 mock 存储用于测试。
@@ -39,9 +41,12 @@ func (m *mockStore) key(tenantID, namespace, name string) string {
 func (m *mockStore) CreatePropagationPolicy(pp *model.PropagationPolicy) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.createPPErr != nil {
+		return m.createPPErr
+	}
 	k := m.key(pp.TenantID, pp.Namespace, pp.Name)
 	if _, exists := m.db[k]; exists {
-		return errors.New("duplicate")
+		return store.ErrAlreadyExists
 	}
 	m.seq++
 	pp.ID = m.seq
@@ -211,6 +216,55 @@ func TestPropagationPolicyHandler_Create_NoTenant(t *testing.T) {
 
 	if w.Code != http.StatusUnauthorized {
 		t.Fatalf("expected 401 for missing tenant, got %d", w.Code)
+	}
+}
+
+// TestPropagationPolicyHandler_Create_Duplicate 重复创建同名策略应返回 409。
+func TestPropagationPolicyHandler_Create_Duplicate(t *testing.T) {
+	m := &mockStore{db: make(map[string]*model.PropagationPolicy)}
+	h := NewPropagationPolicyHandler(m)
+
+	r := gin.New()
+	grp := r.Group("/policies")
+	grp.Use(func(c *gin.Context) { setTenant(c, "tenant-1"); c.Next() })
+	h.RegisterRoutes(grp)
+
+	body := `{"name":"p-dup","namespace":"default","spec":{"resourceSelectors":[{"apiVersion":"v1","kind":"Deployment","name":"nginx"}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 on first create, got %d body=%s", w.Code, w.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for duplicate, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+// TestPropagationPolicyHandler_Create_StoreInternalError store 内部错误应返回 500。
+func TestPropagationPolicyHandler_Create_StoreInternalError(t *testing.T) {
+	m := &mockStore{db: make(map[string]*model.PropagationPolicy)}
+	m.createPPErr = errors.New("connection refused")
+	h := NewPropagationPolicyHandler(m)
+
+	r := gin.New()
+	grp := r.Group("/policies")
+	grp.Use(func(c *gin.Context) { setTenant(c, "tenant-1"); c.Next() })
+	h.RegisterRoutes(grp)
+
+	body := `{"name":"p-err","namespace":"default","spec":{"resourceSelectors":[{"apiVersion":"v1","kind":"Deployment","name":"nginx"}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 for store internal error, got %d body=%s", w.Code, w.Body.String())
 	}
 }
 

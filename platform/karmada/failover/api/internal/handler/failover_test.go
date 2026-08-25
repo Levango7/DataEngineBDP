@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -287,6 +288,74 @@ func TestFailoverHandler_GetFailoverPolicy_NotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+// TestFailoverHandler_CreateFailoverPolicy_Success 创建迁移策略应返回 201。
+func TestFailoverHandler_CreateFailoverPolicy_Success(t *testing.T) {
+	s := newMockStore()
+	r := newFailoverRouter(s)
+
+	body := `{"name":"fp1","namespace":"default","primaryCluster":"c1","backupClusters":["c2"],"enabled":true}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/failover-policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+// TestFailoverHandler_CreateFailoverPolicy_Duplicate 重复创建同名策略应返回 409。
+func TestFailoverHandler_CreateFailoverPolicy_Duplicate(t *testing.T) {
+	s := newMockStore()
+	r := newFailoverRouter(s)
+
+	body := `{"name":"fp-dup","namespace":"default","primaryCluster":"c1","backupClusters":["c2"]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/failover-policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 on first create, got %d body=%s", w.Code, w.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/v1/failover-policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for duplicate, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+// TestFailoverHandler_CreateFailoverPolicy_StoreInternalError store 内部错误应返回 500。
+func TestFailoverHandler_CreateFailoverPolicy_StoreInternalError(t *testing.T) {
+	s := newMockStore()
+	s.createFPErr = errors.New("connection refused")
+	r := newFailoverRouter(s)
+
+	body := `{"name":"fp-err","namespace":"default","primaryCluster":"c1","backupClusters":["c2"]}`
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/failover-policies", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 for store internal error, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+// TestFailoverHandler_CreateFailoverPolicy_InvalidBody 非法请求体应返回 400。
+func TestFailoverHandler_CreateFailoverPolicy_InvalidBody(t *testing.T) {
+	s := newMockStore()
+	r := newFailoverRouter(s)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/failover-policies", bytes.NewBufferString(`{"name":"fp-bad"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for invalid body, got %d", w.Code)
 	}
 }
 

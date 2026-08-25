@@ -39,8 +39,6 @@ def build_template() -> Template:
         ),
         author="Shuqing Big Data Platform Team",
         status=TemplateStatus.CATALOG,
-        installCount=256,
-        rating=4.8,
         tags=["零售", "画像", "标签", "圈选", "推荐"],
         icon="🛍️",
     )

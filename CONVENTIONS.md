@@ -118,3 +118,83 @@
 2. 修改任一副本必须同步其余副本**逐字节一致**。
 3. CI 由 `scripts/check-mirrored-jwt-auth.sh` 强制校验（bash-check job），不一致即阻断。
 4. 新增镜像文件时必须同步更新校验脚本与本表。
+
+---
+
+## 9. 接口规范基线
+
+> 基线文档：`docs/user-guide/api-reference.md` V2.2（2026-08-25）。
+> 新服务接口设计必须遵守本节；与本节不符的存量行为登记于 §9.8「现存偏差登记表」并标注"待迁移"。
+
+### 9.1 URL
+
+- 统一前缀 `/api/v1`（例外见 §9.7 豁免登记）。
+- 资源名用复数名词：`/tenants`、`/tables`、`/collections`。
+- 多词路径段用 kebab-case：`/batch-compute`、`/hybrid-search`；禁止 snake_case / camelCase 路径段。
+
+### 9.2 成功响应
+
+允许且仅允许两类封装，新服务二选一并在模块 README 声明：
+
+| 类型 | 格式 | 现状 |
+| --- | --- | --- |
+| 包裹型 | `{code, message, data, traceId?, timestamp}`，`code=0` 表示成功 | Java 栈现状（encaps-layer ApiResponseAdvice 全量包装） |
+| 资源直出 | 直接返回资源对象/数组；列表可用 `{list,total}` 或 `{data,total}` | Go / FastAPI 及其余 Java 服务现状 |
+
+**禁止引入第三种封装。**
+
+### 9.3 错误响应
+
+统一 `{"error": "snake_case_code", "message": "人类可读信息"}`，并使用正确的 HTTP 语义：
+
+| HTTP | 语义 |
+| --- | --- |
+| 401 | 未认证（缺 token / token 无效或过期） |
+| 403 | 已认证但越权（含租户不一致） |
+| 404 | 资源不存在 |
+| 409 | 仅用于唯一性冲突（资源已存在） |
+| 422 | 请求校验失败 |
+| 500 | 内部错误 |
+
+- 禁止用 200 + 业务状态位表达可预期的失败（存量特例见偏差表 #1）。
+- 错误码用 snake_case；PascalCase 特例码见偏差表 #2。
+
+### 9.4 分页
+
+- 入参命名：`page`（从 1 起）+ `pageSize`。
+- 出参命名：`{list, total}`。
+- 所有列表端点必须有界：默认页大小 ≤ 100 且强制上限（如 catalog 全文检索 limit 上限 200）。
+
+### 9.5 租户
+
+- 租户上下文一律以 JWT claim（`tenantId`）为准，服务端不得信任请求体/请求头中的裸租户值。
+- 请求显式携带租户（`X-Tenant-Id` 头或 body.tenantId）与 claim **不一致时必须返回 403**。
+- 普通用户忽略请求中的租户值；admin 可指定他人租户（`effectiveTenant` 语义，见 nl2sql / ai-assistant 实现）。
+
+### 9.6 鉴权
+
+- Bearer JWT（HS256），issuer=`shuqing-bigdata`。
+- `/health`（及 `/healthz`、`/readyz`、`/metrics`、actuator health）匿名豁免——K8s 探针不得被 401 拦截。
+- FastAPI 栈统一 `AUTH_MODE` 开关（镜像 jwt_auth 模块）：`jwt`=强制校验；`none`=匿名放行且角色视为 admin（仅限本地/测试，进程告警一次）；生产必须显式 `AUTH_MODE=jwt`。
+- 危险端点不得匿名：原生查询类端点（如 knowledge-engine nGQL 查询）在 AUTH_MODE=none 下仍须拒绝。
+
+### 9.7 豁免登记（规范内的既定例外）
+
+| 项 | 说明 |
+| --- | --- |
+| query-api Prometheus 透传端点 | `/platform/api/v1/*` 与 `/tenant/api/v1/*` 保持 Prometheus 原生路径风格（`query_range` 等下划线命名），不做 kebab-case 改造 |
+| encaps-layer 包裹型数字码 | ApiResponseAdvice 全量包装 `{code,message,data,...}`（code=0 成功），属 §9.2 包裹型合法形态，非偏差 |
+
+### 9.8 现存偏差登记表（待迁移）
+
+| # | 偏差 | 位置 | 现状 | 处理 |
+| --- | --- | --- | --- | --- |
+| 1 | 跨源查询失败返回 200 + FAILED | sql-gateway `SqlGatewayController#crossSourceExecute / crossSourceExplain` | 部分结果语义，调用方以 status 字段判别（api-reference 4.11 已如实描述） | 待迁移：评估改 5xx，或固化写入 SDK 契约 |
+| 2 | 特例错误码 PascalCase | encaps-tenant `QuotaController`（QuotaExceeded=422 / Conflict=409）、rule-engine 部分大写码（RULE_NOT_FOUND 等） | 违反 §9.3 snake_case | 待迁移 |
+| 3 | 无 CORS 中间件 | nl2sql / open-api-catalog / asset-exchange 各 app.py | 浏览器直连受同源限制（Go 栈均有 CorsMiddleware） | 待迁移：补 CORSMiddleware |
+| 4 | 管理/订阅端点未挂应用层鉴权 | open-api-catalog app.py include_router | 依赖部署侧网关策略 | 待迁移：应用层 JWT 中间件 |
+| 5 | 分页契约漂移 | rule-engine `QualityRuleController#list`：入参 size 非 pageSize，出参多 page/size 字段 | 兼容前端 PagedResult 契约 | 待迁移：pageSize 入参 |
+| 6 | schema 调试端点无鉴权 | nl2sql `GET /api/v1/nl2sql/schema` | 匿名可达 | 待迁移：挂 getAuthContext |
+| 7 | 全局检索为哈希占位向量 | vector-engine `GlobalSearch`（POST /api/v1/vector/search） | 文本哈希向量，无语义检索能力 | 待迁移：接入 embedding 服务 |
+
+> 登记流程：新发现偏差先在本表登记并标注「待迁移」，修复后移入 §9.7 或删除；禁止无登记偏差长期存在。

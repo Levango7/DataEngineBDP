@@ -94,8 +94,9 @@ class TestAuthEnforcement:
 
     def test_tampered_signature_rejected(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)
-        tok = make_token()[:-4] + "AAAA"
-        assert c.get("/api/v1/assets", headers=auth_headers(tok)).status_code == 401
+        tok = list(make_token())
+        tok[0] = "A" if tok[0] != "A" else "B"
+        assert c.get("/api/v1/assets", headers=auth_headers("".join(tok))).status_code == 401
 
 
 class TestTenantResolution:

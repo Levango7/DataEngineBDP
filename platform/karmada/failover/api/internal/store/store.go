@@ -7,6 +7,7 @@ package store
 
 import (
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 
@@ -60,12 +61,23 @@ func NewGormStore(db *gorm.DB) Store {
 // ErrNotFound 记录未找到错误。
 var ErrNotFound = errors.New("record not found")
 
+// ErrAlreadyExists 记录已存在（唯一性冲突）错误。
+var ErrAlreadyExists = errors.New("record already exists")
+
 // ---------------------------------------------------------------------------
 // OverridePolicy CRUD
 // ---------------------------------------------------------------------------
 
 // CreateOverridePolicy 创建覆盖策略。
+// 若同租户下同名同命名空间策略已存在则返回 ErrAlreadyExists。
 func (s *gormStore) CreateOverridePolicy(op *model.OverridePolicy) error {
+	_, err := s.GetOverridePolicy(op.TenantID, op.Namespace, op.Name)
+	if err == nil {
+		return fmt.Errorf("%w: override policy %s/%s", ErrAlreadyExists, op.Namespace, op.Name)
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return err
+	}
 	return s.db.Create(op).Error
 }
 
@@ -265,7 +277,15 @@ func (s *gormStore) UpdateReplicaWeightPlan(p *model.ReplicaWeightPlan) error {
 // ---------------------------------------------------------------------------
 
 // CreateFailoverPolicy 创建故障迁移策略。
+// 若同租户下同名同命名空间策略已存在则返回 ErrAlreadyExists。
 func (s *gormStore) CreateFailoverPolicy(p *model.FailoverPolicy) error {
+	_, err := s.GetFailoverPolicy(p.TenantID, p.Namespace, p.Name)
+	if err == nil {
+		return fmt.Errorf("%w: failover policy %s/%s", ErrAlreadyExists, p.Namespace, p.Name)
+	}
+	if !errors.Is(err, ErrNotFound) {
+		return err
+	}
 	return s.db.Create(p).Error
 }
 

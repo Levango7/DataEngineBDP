@@ -541,9 +541,8 @@ class TestAPICallHTTP:
             f"/api/v1/apis/{api_id}/call",
             json={"payload": {}},
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["statusCode"] == 401
+        assert response.status_code == 401
+        assert "缺少鉴权凭证" in response.json()["message"]
 
     def test_call_api_with_key_http(self, client):
         """测试 HTTP 调用带 AK."""
@@ -654,10 +653,8 @@ class TestAPICallHTTP:
             json={"payload": {}},
             headers={"X-API-Key": ak},
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["statusCode"] == 401
-        assert "X-API-Secret" in data["error"]
+        assert response.status_code == 401
+        assert "X-API-Secret" in response.json()["message"]
 
     def test_call_api_wrong_secret_http(self, client):
         """测试 HTTP 调用错误 SK 返回 401."""
@@ -708,10 +705,64 @@ class TestAPICallHTTP:
             json={"payload": {}},
             headers={"X-API-Key": ak, "X-API-Secret": "SK-wrong-secret"},
         )
-        assert response.status_code == 200
-        data = response.json()
-        assert data["statusCode"] == 401
-        assert data["error"] is not None
+        assert response.status_code == 401
+        assert "API Key 无效" in response.json()["message"]
+
+    def test_call_api_revoked_key_http(self, client):
+        """测试 HTTP 调用已吊销 AK 返回 401."""
+        create_resp = client.post(
+            "/api/v1/apis",
+            json={
+                "name": "call-http-revoked",
+                "version": "1.0.0",
+                "method": "GET",
+                "path": "/call-revoked",
+                "upstream": {
+                    "type": "trino",
+                    "url": "http://trino:8080",
+                    "method": "GET",
+                },
+                "providerTenantId": "tenant-1",
+            },
+        )
+        api_id = create_resp.json()["id"]
+        client.post(f"/api/v1/apis/{api_id}/submit-review")
+        client.post(f"/api/v1/apis/{api_id}/approve")
+        client.post(f"/api/v1/apis/{api_id}/publish")
+
+        sub_resp = client.post(
+            f"/api/v1/apis/{api_id}/subscribe",
+            json={
+                "subscriberId": "sub-http-revoked",
+                "subscriberTenantId": "tenant-consumer",
+                "purpose": "测试",
+                "quotaExpect": 100,
+            },
+        )
+        sub_id = sub_resp.json()["id"]
+
+        approve_resp = client.post(
+            f"/api/v1/subscriptions/{sub_id}/approve",
+            json={
+                "approve": True,
+                "reason": "同意",
+                "grantedQuota": 100,
+                "approver": "admin",
+            },
+        )
+        ak = approve_resp.json()["accessKey"]
+        sk = approve_resp.json()["secretKey"]
+
+        revoke_resp = client.post(f"/api/v1/subscriptions/{sub_id}/revoke")
+        assert revoke_resp.status_code == 200
+
+        response = client.post(
+            f"/api/v1/apis/{api_id}/call",
+            json={"payload": {}},
+            headers={"X-API-Key": ak, "X-API-Secret": sk},
+        )
+        assert response.status_code == 401
+        assert "API Key 无效" in response.json()["message"]
 
 
 class TestSubscriptionSecretMasking:

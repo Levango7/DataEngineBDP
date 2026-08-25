@@ -324,7 +324,9 @@ func (h *VectorHandler) writeStoreError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_metric_type", "message": err.Error()})
 	case errors.Is(err, store.ErrInvalidIndexType):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_index_type", "message": err.Error()})
+	case errors.Is(err, service.ErrInvalidArgument):
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_argument", "message": err.Error()})
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "bad_request", "message": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 	}
 }

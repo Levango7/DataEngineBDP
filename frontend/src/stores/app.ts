@@ -19,23 +19,18 @@ export const useAppStore = defineStore('app', () => {
     text: string
     applicant: string
   }
-  const todos = ref<Todo[]>([
-    { id: 't1', text: '资产 dwd.order_wide 读权限', applicant: '李工' },
-    { id: 't2', text: '项目「风控域」成员新增', applicant: '王工' },
-    { id: 't3', text: '工作空间配额升级', applicant: '赵工' }
-  ])
+  const todos = ref<Todo[]>([])
 
-  // 安全审批列表
+  // 安全审批列表（由后端 API 加载，不预置本地假数据）
   interface SecApproval {
     id: string
     applicant: string
     asset: string
     perm: string
   }
-  const secApprovals = ref<SecApproval[]>([
-    { id: 's1', applicant: '李工', asset: 'dwd.order_wide', perm: '读' },
-    { id: 's2', applicant: '王工', asset: '风控域', perm: '写' }
-  ])
+  const secApprovals = ref<SecApproval[]>([])
+  const secApprovalsLoaded = ref(false)
+  const secApprovalsError = ref<Error | null>(null)
 
   const todoCount = computed(() => todos.value.length + secApprovals.value.length)
 
@@ -99,7 +94,7 @@ export const useAppStore = defineStore('app', () => {
 
   /**
    * 拉取安全审批列表（非 mock 模式生效）
-   * API 不可用时保留现有 mock 数据，保证页面可用
+   * 成功才落数据；失败置 error 态，不静默保留旧值
    */
   async function fetchSecApprovals() {
     if (USE_MOCK) return
@@ -111,8 +106,10 @@ export const useAppStore = defineStore('app', () => {
         asset: a.asset,
         perm: a.permission
       }))
+      secApprovalsLoaded.value = true
+      secApprovalsError.value = null
     } catch (e) {
-      // API 不可用时保留现有数据（mock 初始值），不抛错
+      secApprovalsError.value = e instanceof Error ? e : new Error(String(e))
     }
   }
 
@@ -121,6 +118,8 @@ export const useAppStore = defineStore('app', () => {
     envTag,
     todos,
     secApprovals,
+    secApprovalsLoaded,
+    secApprovalsError,
     todoCount,
     toasts,
     showToast,

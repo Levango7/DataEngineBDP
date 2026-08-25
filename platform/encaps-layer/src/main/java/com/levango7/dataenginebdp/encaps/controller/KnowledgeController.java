@@ -14,6 +14,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -125,7 +126,7 @@ public class KnowledgeController {
                 .build();
         KnowledgeBaseEntity saved = repository.save(entity);
         log.info("创建知识库: id={}, name={}, tenant={}", saved.getId(), saved.getName(), tenantId);
-        return ResponseEntity.ok(toView(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toView(saved));
     }
 
     /** 更新。 */
@@ -200,7 +201,7 @@ public class KnowledgeController {
             @RequestParam("file") @NotNull MultipartFile file) {
         String tenantId = requireTenant();
         KnowledgeDocumentEntity doc = knowledgeUploadService.uploadAndVectorize(tenantId, id, file);
-        return ResponseEntity.ok(toDocumentView(doc));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toDocumentView(doc));
     }
 
     /**

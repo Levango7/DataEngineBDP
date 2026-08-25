@@ -34,6 +34,9 @@ type mockStore struct {
 	plSeq    uint
 	policies map[string]*model.FailoverPolicy
 	fpSeq    uint
+
+	createOPErr error
+	createFPErr error
 }
 
 func newMockStore() *mockStore {
@@ -57,9 +60,12 @@ func (m *mockStore) fpKey(t, ns, n string) string { return t + "|" + ns + "|" + 
 func (m *mockStore) CreateOverridePolicy(op *model.OverridePolicy) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.createOPErr != nil {
+		return m.createOPErr
+	}
 	k := m.opKey(op.TenantID, op.Namespace, op.Name)
 	if _, ok := m.op[k]; ok {
-		return errors.New("duplicate")
+		return store.ErrAlreadyExists
 	}
 	m.opSeq++
 	op.ID = m.opSeq
@@ -131,7 +137,7 @@ func (m *mockStore) CreateFailoverEvent(e *model.FailoverEvent) error {
 	defer m.mu.Unlock()
 	k := m.evKey(e.TenantID, e.EventID)
 	if _, ok := m.events[k]; ok {
-		return errors.New("duplicate")
+		return store.ErrAlreadyExists
 	}
 	m.evSeq++
 	e.ID = m.evSeq
@@ -233,7 +239,7 @@ func (m *mockStore) CreateReplicaWeightPlan(p *model.ReplicaWeightPlan) error {
 	defer m.mu.Unlock()
 	k := m.plKey(p.TenantID, p.PolicyName)
 	if _, ok := m.plans[k]; ok {
-		return errors.New("duplicate")
+		return store.ErrAlreadyExists
 	}
 	m.plSeq++
 	p.ID = m.plSeq
@@ -289,9 +295,12 @@ func (m *mockStore) UpdateReplicaWeightPlan(p *model.ReplicaWeightPlan) error {
 func (m *mockStore) CreateFailoverPolicy(p *model.FailoverPolicy) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if m.createFPErr != nil {
+		return m.createFPErr
+	}
 	k := m.fpKey(p.TenantID, p.Namespace, p.Name)
 	if _, ok := m.policies[k]; ok {
-		return errors.New("duplicate")
+		return store.ErrAlreadyExists
 	}
 	m.fpSeq++
 	p.ID = m.fpSeq
@@ -598,5 +607,52 @@ func TestOverridePolicyHandler_Delete_NotFound(t *testing.T) {
 	r.ServeHTTP(w, req)
 	if w.Code != http.StatusNotFound {
 		t.Fatalf("expected 404, got %d", w.Code)
+	}
+}
+
+// TestOverridePolicyHandler_Create_Duplicate 重复创建同名策略应返回 409。
+func TestOverridePolicyHandler_Create_Duplicate(t *testing.T) {
+	s := newMockStore()
+	h := NewOverridePolicyHandler(s)
+	r := gin.New()
+	grp := r.Group("/ops")
+	grp.Use(withTenantMiddleware("tenant-1"))
+	h.RegisterRoutes(grp)
+
+	body := `{"name":"op-dup","namespace":"default","spec":{"overrideRules":[{"overriders":{"plaintext":[{"path":"/spec/replicas","operator":"replace","value":3}]}}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/ops", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusCreated {
+		t.Fatalf("expected 201 on first create, got %d body=%s", w.Code, w.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/ops", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusConflict {
+		t.Fatalf("expected 409 for duplicate, got %d body=%s", w.Code, w.Body.String())
+	}
+}
+
+// TestOverridePolicyHandler_Create_StoreInternalError store 内部错误应返回 500。
+func TestOverridePolicyHandler_Create_StoreInternalError(t *testing.T) {
+	s := newMockStore()
+	s.createOPErr = errors.New("connection refused")
+	h := NewOverridePolicyHandler(s)
+	r := gin.New()
+	grp := r.Group("/ops")
+	grp.Use(withTenantMiddleware("tenant-1"))
+	h.RegisterRoutes(grp)
+
+	body := `{"name":"op-err","namespace":"default","spec":{"overrideRules":[{"overriders":{"plaintext":[{"path":"/spec/replicas","operator":"replace","value":3}]}}]}}`
+	req := httptest.NewRequest(http.MethodPost, "/ops", bytes.NewBufferString(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500 for store internal error, got %d body=%s", w.Code, w.Body.String())
 	}
 }

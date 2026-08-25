@@ -79,7 +79,11 @@ func (h *PropagationPolicyHandler) Create(c *gin.Context) {
 	}
 
 	if err := h.store.CreatePropagationPolicy(pp); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "failed to create: " + err.Error()})
+		if errors.Is(err, store.ErrAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "failed to create: " + err.Error()})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create: " + err.Error()})
 		return
 	}
 

@@ -15,6 +15,11 @@
 - **llm-gateway 治理端点 RBAC**：Provider 注册/注销与路由规则添加加 admin 门禁（阻断 SSRF 与凭据外送）；Token 计量与批处理 job 数据面按租户强制过滤
 - **catalog 租户隔离**：Database/Table 增加 TenantID，全部读写按 JWT 租户收敛，跨租户 404 防枚举
 - **CI 安全门禁**：golangci-lint（gosec/errcheck/bodyclose/sqlclosecheck/errorlint）全模块零告警后设为阻断 + dependency-review 高危依赖阻断 PR
+- **Phase A 安全止血**（2×P0+10 组 P1）：knowledge-engine 无鉴权 nGQL 执行+注入+会话竞态修复并接入 jwt_auth；前端 AI 助手 token 存储错位修复；baremetal 登录移出 JWT 组解除认证死锁；vector-engine 健康检查免鉴权消除探针重启循环；ai-assistant 补认证中间件+租户 claim 裁决；karmada failover 检测窗口改时间戳判定+迁移去重重新武装；llm-gateway SSE 按 rune 切分修复中文乱码；observability 租户 PromQL 过滤改 AST 选择器注入修复聚合恒空；open-api-catalog invoke 强制 AK+SK 常量时间校验+secretKey 出参脱敏；evaluation 评测异步化+mock 兜底默认关闭；model-finetuning 版本 key 错位+fd 泄漏修复；jwt_auth.py 镜像扩至六处
+
+#### Fixed
+- **Phase B 功能正确性**：FinOps 执行分账按钮错绑修复；useSearch/useApi 请求序号守卫消除旧响应覆盖；DevMl/DevSched/EngFlink/EngSpark 补工作空间切换重载；401 并发单飞去重；llmops/ml-platform/industry-templates/registry/model-finetuning 五服务 async 阻塞改造（to_thread 卸载）；ml-platform /evaluate 从恒 400 修复可用；registry 模型存在性校验生效；model-finetuning 日志有界读取+嵌套 event loop+非幂等 POST 重试收紧
+- **Phase C 状态码与规范**：vector-engine 内部错误 400→500、校验错误归位 400；karmada 三处创建接口按错误类型映射（409 仅唯一冲突/500 内部）；open-api-catalog invoke 认证失败返回真实 HTTP 401；encaps-layer 八处创建端点 200→201（响应体不变）；行业模板假运营数据（installCount/rating）清理；APIMarket mock 兜底遮错改真实错误态+重试；审批 store 失败不再静默保留假数据；api-reference.md 升 V2.2 勘误（鉴权矩阵/nl2sql 整章/OpenAPI 附录实况化等 11 项）；CONVENTIONS §9 接口规范基线+现存偏差登记表
 
 #### Added
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）

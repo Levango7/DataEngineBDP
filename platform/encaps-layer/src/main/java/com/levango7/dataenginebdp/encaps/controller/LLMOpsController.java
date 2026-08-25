@@ -176,7 +176,7 @@ public class LLMOpsController {
                 .tenantId(tenantId)
                 .build();
         FinetuneTaskEntity saved = llmOpsService.submitFinetune(entity);
-        return ResponseEntity.ok(toFinetuneView(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toFinetuneView(saved));
     }
 
     /** 微调任务列表。 */

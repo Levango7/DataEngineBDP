@@ -32,16 +32,16 @@ func generateTestToken(secret, issuer, tenantID, userID string) string {
 // setupAuthEnv 设置启用认证所需的环境变量，并在测试结束后清理。
 func setupAuthEnv(t *testing.T, issuer string) {
 	t.Helper()
-	os.Setenv("VECTOR_AUTH_REQUIRED", "true")
-	os.Setenv("JWT_SIGNING_KEY", testSecret)
+	_ = os.Setenv("VECTOR_AUTH_REQUIRED", "true")
+	_ = os.Setenv("JWT_SIGNING_KEY", testSecret)
 	if issuer != "" {
-		os.Setenv("JWT_ISSUER", issuer)
+		_ = os.Setenv("JWT_ISSUER", issuer)
 	}
 	t.Cleanup(func() {
-		os.Unsetenv("VECTOR_AUTH_REQUIRED")
-		os.Unsetenv("JWT_SIGNING_KEY")
-		os.Unsetenv("JWT_ISSUER")
-		os.Unsetenv("JWT_DEV_MODE")
+		_ = os.Unsetenv("VECTOR_AUTH_REQUIRED")
+		_ = os.Unsetenv("JWT_SIGNING_KEY")
+		_ = os.Unsetenv("JWT_ISSUER")
+		_ = os.Unsetenv("JWT_DEV_MODE")
 	})
 }
 

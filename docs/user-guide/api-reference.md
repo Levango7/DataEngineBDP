@@ -1,10 +1,10 @@
 ﻿# 数据引擎大数据平台 API 参考文档
 
-> 版本：V2.1 | API 前缀：`/api/v1` | 认证方式：JWT Bearer Token | 更新日期：2026-08-11
+> 版本：V2.2 | API 前缀：`/api/v1` | 认证方式：JWT Bearer Token | 更新日期：2026-08-25
 
 ## 第1章 概述
 
-数据引擎大数据平台提供统一的 RESTful API，覆盖封装层、SQL 网关、Catalog、规则引擎、数据虚拟化、治理中台、标签引擎、向量引擎、大模型网关、可观测查询、LLMOps、知识图谱、ML 平台、业务门户、开放 API 目录、资产流通等组件。所有 API 使用 JSON 作为请求与响应格式，统一前缀 `/api/v1`，统一错误码体系。
+数据引擎大数据平台提供统一的 RESTful API，覆盖封装层、SQL 网关、Catalog、规则引擎、数据虚拟化、治理中台、标签引擎、向量引擎、大模型网关、自然语言查询（NL2SQL）、可观测查询、LLMOps、知识图谱、ML 平台、业务门户、开放 API 目录、资产流通等组件。所有 API 使用 JSON 作为请求与响应格式，统一前缀 `/api/v1`，统一错误码体系。
 
 ### 1.1 基础 URL
 
@@ -12,28 +12,36 @@
 |------|----------|
 | 生产 | `https://<platform-domain>/api/v1` |
 | 预发 | `https://<platform-domain>-staging/api/v1` |
-| 本地开发 | `http://localhost:8080/api/v1`（封装层）/ `8081`（SQL 网关）/ `8082`（Catalog）/ `8083`（规则引擎）/ `8084`（大模型网关）/ `8086`（向量引擎）/ `8090`（可观测查询）/ `8091`（行业模板） |
+| 本地开发 | `http://localhost:8080/api/v1`（封装层）/ `8081`（SQL 网关）/ `8082`（Catalog）/ `8083`（规则引擎）/ `8084`（大模型网关）/ `8086`（向量引擎）/ `8090`（可观测查询）/ `8091`（行业模板）/ `8093`（NL2SQL） |
 
 ### 1.2 通用响应格式
 
-成功响应：
+平台存在两类成功响应封装（新服务二选一并在模块 README 声明，见 CONVENTIONS.md §9）：
+
+**包裹型**（encaps-layer 等 Java 栈现状，`code=0` 表示成功）：
 
 ```json
 {
+  "code": 0,
+  "message": "OK",
   "data": { },
-  "message": "success"
+  "traceId": "xxx",
+  "timestamp": 1700000000000
 }
 ```
 
-错误响应：
+**资源直出**（Go/FastAPI 及其余 Java 服务现状）：直接返回资源对象或数组；列表类端点常用 `{"data": [...], "total": n}` 包裹。
+
+错误响应统一为：
 
 ```json
 {
   "error": "error_code",
-  "message": "human readable message",
-  "timestamp": "2026-08-08T10:00:00Z"
+  "message": "human readable message"
 }
 ```
+
+> 部分服务会附加 `timestamp` 字段；Go 服务可能仅返回 `{"error": "..."}`。个别特例（如 sql-gateway 跨源查询失败返回 HTTP 200 + `status=FAILED`，见 4.11）在各章单独说明。
 
 ## 第2章 API 认证
 
@@ -80,6 +88,22 @@ Authorization: Bearer <access_token>
 ```
 
 JWT 中包含 `tenantId` claim，用于租户上下文隔离。
+
+### 2.4 各服务鉴权矩阵（Phase A 安全加固后，V2.2 逐仓核实）
+
+| 服务 | 鉴权要求 | 匿名豁免端点 |
+|------|----------|--------------|
+| catalog | 业务端点 Bearer JWT（租户身份强制取自 claim） | GET /api/v1/health、GET /metrics |
+| vector-engine | 业务端点默认强制 Bearer JWT（secure-by-default；`VECTOR_AUTH_REQUIRED=false` 显式关闭、`JWT_DEV_MODE=true` 开发旁路），issuer 默认 `shuqing-bigdata` | GET /api/v1/health |
+| query-api | /tenant/** 需 JWT 并强制注入 tenant_id 过滤；/platform/** 与 /api/v1/ops/** 需 platform-ops 角色 | GET /api/v1/health |
+| knowledge-engine | 全部业务端点 Bearer JWT（FastAPI 路由级依赖注入）；原生 nGQL 查询端点在 AUTH_MODE=none 时直接 403 拒绝 | GET /health |
+| asset-exchange | assets / subscriptions / audit 全部业务端点 Bearer JWT | GET /api/v1/health |
+| open-api-catalog | 目录管理/订阅端点暂未挂载应用层鉴权中间件（以部署侧网关策略为准）；API 调用需 X-API-Key + X-API-Secret（见 22.4） | GET /api/v1/health |
+| nl2sql | generate / execute / dialogue / validate 走 getAuthContext：AUTH_MODE=jwt 时 Bearer HS256；AUTH_MODE=none（缺省）匿名放行且角色视为 admin（见第24章） | GET /api/v1/health、GET /api/v1/nl2sql/schema |
+| ai-assistant | /api/v1/ai-assistant/** 全部 Bearer JWT；请求体 tenantId 与 claim 不一致返回 403 | GET /api/v1/health |
+| infra-provider-baremetal | POST /api/v1/auth/login 匿名可达（认证引导入口）；POST /api/v1/auth/refresh 及 clusters 业务端点需 Bearer JWT | GET /healthz、GET /readyz、GET /version |
+
+> **AUTH_MODE 说明**：llmops / ml-platform / nl2sql / knowledge-engine / asset-exchange 共用的镜像 `jwt_auth` 模块——`AUTH_MODE=jwt` 强制校验 HS256 Bearer token（可配 `JWT_EXPECTED_ISSUER` 校验 iss）；`AUTH_MODE=none`（缺省）返回匿名上下文（role=admin），仅限本地/测试，进程生命周期内告警一次；生产必须显式设置 `AUTH_MODE=jwt`。
 
 ## 第3章 封装层 API（REST）
 
@@ -143,6 +167,8 @@ curl https://<platform-domain>/api/v1/tenants \
 ]
 ```
 
+> 另有 `GET /api/v1/tenants/all`：列出全部租户（不分页，供前端下拉选择），返回内容与列表端点一致。
+
 #### 3.1.3 GET /api/v1/tenants/{id} — 查询租户
 
 **路径参数**
@@ -167,9 +193,7 @@ curl https://<platform-domain>/api/v1/tenants \
 
 **错误响应（404 Not Found）**
 
-```json
-{"error": "tenant_not_found", "message": "Tenant 9999 not found"}
-```
+不存在时返回 **404 且响应体为空**（实现为 `ResponseEntity.notFound().build()`；encaps-tenant 服务无全局异常处理器包装）。早期文档版本示例中的 `{"error": "tenant_not_found", ...}` JSON 体与实际行为不符。
 
 #### 3.1.4 PUT /api/v1/tenants/{id} — 更新租户
 
@@ -475,6 +499,25 @@ curl -X POST https://<platform-domain>/api/v1/sql/cross-source \
 }
 ```
 
+**失败响应（部分结果语义，HTTP 200）**
+
+跨源执行失败**不返回 HTTP 5xx**：Controller 捕获 `CrossSourceException` 后统一返回 **HTTP 200**，响应体携带 `status=FAILED`、空 `columns`/`rows`、`rowCount=0` 与 `error="错误码: 原因"`：
+
+```json
+{
+  "queryId": "cs-uuid-xxx",
+  "status": "FAILED",
+  "columns": [],
+  "rows": [],
+  "rowCount": 0,
+  "durationMs": 12,
+  "error": "SOURCE_NOT_FOUND: table v_mysql_orders has no source mapping"
+}
+```
+
+> 调用方必须以 `status` 字段（SUCCESS / FAILED / DEGRADED）而非 HTTP 状态码判断执行结果。
+> 错误码全集：`PARSE_ERROR` / `SOURCE_NOT_FOUND` / `QUERY_TIMEOUT` / `QUERY_FAILED` / `MERGE_ERROR` / `RESULT_TOO_LARGE` / `UNSUPPORTED`。
+
 ### 4.12 POST /api/v1/sql/cross-source/explain — 跨源执行计划
 
 **响应示例**
@@ -491,6 +534,8 @@ curl -X POST https://<platform-domain>/api/v1/sql/cross-source \
   "durationMs": 5
 }
 ```
+
+> 执行计划生成失败同样返回 HTTP 200，响应体仅含 `sql`、`durationMs` 与 `error="错误码: 原因"` 字段（无 status 列）。
 
 ### 4.13 查询改写 API（RewriteController）
 
@@ -601,6 +646,34 @@ curl -X POST https://<platform-domain>/api/v1/catalog/tables \
 
 #### 5.2.5 DELETE /api/v1/catalog/tables/{id} — 删除表
 
+### 5.3 表格全文检索
+
+#### 5.3.1 GET /api/v1/catalog/search/tables — 检索表
+
+对当前租户范围内的表名与描述执行中文分词全文检索，按相关性分数降序返回。
+
+**查询参数**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| q | string | 是 | 检索关键字；缺失或为空返回 400 |
+| limit | integer | 否 | 结果上限，默认 50；超过 200 按 200 截断 |
+
+**请求示例**
+
+```bash
+curl "https://<platform-domain>/api/v1/catalog/search/tables?q=交易&limit=20" \
+  -H "Authorization: Bearer ${TOKEN}"
+```
+
+**响应示例（200 OK）**
+
+```json
+{"data": [{"table": {"id": "tbl-001", "name": "transaction"}, "score": 3.2}], "total": 1, "query": "交易"}
+```
+
+**错误响应**：400（`q` 缺失或 `limit` 非法）、401（缺租户身份）、500（存储错误）。
+
 ## 第6章 规则引擎 API
 
 规则引擎（rule-engine）提供数据质量、脱敏、告警规则管理与执行，统一前缀 `/api/v1/rules`。
@@ -665,6 +738,33 @@ curl -X POST https://<platform-domain>/api/v1/rules/execute \
   "violatedRows": 0,
   "message": "All rows passed",
   "durationMs": 250
+}
+```
+
+#### 6.6.1 POST /api/v1/rules/execute/batch — 批量执行规则
+
+并行执行多条规则，单条失败隔离（每条规则独立 status），批次汇总成功/失败计数。始终返回 200。
+
+**请求参数**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| ruleIds | array[integer] | 是 | 规则 ID 列表 |
+| context | object | 否 | 执行上下文（透传给每条规则） |
+| tenantId | string | 否 | 租户 ID |
+
+**响应示例（200 OK）**
+
+```json
+{
+  "results": [
+    {"ruleId": 1, "status": "PASS", "totalRows": 10000, "violatedRows": 0},
+    {"ruleId": 2, "status": "ERROR", "message": "RULE_NOT_FOUND"}
+  ],
+  "successCount": 1,
+  "failedCount": 1,
+  "totalDurationMs": 480,
+  "executedAt": "2026-08-25T10:00:00"
 }
 ```
 
@@ -736,6 +836,31 @@ curl -X POST https://<platform-domain>/api/v1/rules/execute \
 | GET | /api/v1/orchestrator/dags/{id}/mermaid | 生成 Mermaid 可视化文本 |
 | GET | /api/v1/orchestrator/dags/{id}/json | 导出 JSON 结构 |
 | DELETE | /api/v1/orchestrator/dags/{id} | 删除 DAG |
+
+### 6.11 数据质量规则 API（QualityRuleController）
+
+面向前端质量规则契约（targetTable / checkType / threshold / actionOnFail）的端点，内部映射到通用 Rule 模型存储，前缀 `/api/v1/quality/rules`。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/v1/quality/rules | 分页列表（query 参数 page / size，默认 1 / 20），返回 `{list, total, page, size}` |
+| GET | /api/v1/quality/rules/{id} | 详情（404 空 body） |
+| POST | /api/v1/quality/rules | 创建（映射到 Rule 模型；返回 200，非 201） |
+| PUT | /api/v1/quality/rules/{id} | 更新（404 空 body） |
+| DELETE | /api/v1/quality/rules/{id} | 删除：成功返回 `{"deleted": true}`，不存在 404 |
+| POST | /api/v1/quality/rules/{id}/check | 立即触发规则校验，返回视图含 `lastCheckAt` 与 `lastResult{passed, message}` |
+| GET | /api/v1/quality/rules/summary | 对全部规则执行校验后的通过率统计 `{total, passed, passRate}` |
+
+**创建请求示例**
+
+```bash
+curl -X POST https://<platform-domain>/api/v1/quality/rules \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"not_null_customer_id","targetTable":"ods.orders","targetField":"customer_id","checkType":"not_null","threshold":"0","actionOnFail":"WARN"}'
+```
+
+**视图字段**：id / name / targetTable / targetField / checkType / threshold / actionOnFail / status（enabled \| disabled）/ createdAt / updatedAt。
 
 ## 第7章 数据虚拟化 API
 
@@ -899,11 +1024,13 @@ curl -X POST https://<platform-domain>/api/v1/templates/fin-risk-scorecard/deplo
 | 可观测查询 | GET /api/v1/health | `{"status":"UP","component":"query-api","version":"0.1.0"}` |
 | 行业模板 | GET /api/v1/health | `{"status":"UP","component":"industry-templates","version":"0.1.0"}` |
 | LLMOps | GET /health | `{"status":"UP"}` |
-| 知识引擎 | GET /health | `{"status":"UP"}` |
+| 知识引擎 | GET /health | `{"status":"ok","store":"mock|nebula","extractor":"mock|llm","version":"0.1.0"}` |
 | ML 平台 | GET /health | `{"status":"UP"}` |
 | 业务门户 | GET /api/v1/health | `{"status":"UP"}` |
-| 开放 API 目录 | GET /api/v1/health | `{"status":"UP"}` |
-| 资产流通 | GET /health | `{"status":"UP"}` |
+| NL2SQL | GET /api/v1/health | `{"status":"UP","component":"nl2sql","version":"0.1.0","llmMode":"mock","catalogUrl":"http://localhost:8082","sqlGatewayUrl":"http://localhost:8081"}` |
+| AI 助手 | GET /api/v1/health | `{"status":"UP","service":"ai-assistant"}` |
+| 开放 API 目录 | GET /api/v1/health | `{"status":"UP","store":"mock","version":"0.1.0","module":"open-api-catalog","layer":"L5.5"}` |
+| 资产流通 | GET /api/v1/health | `{"status":"UP","store":"mock","version":"0.1.0"}` |
 | Catalog Metrics | GET /metrics | Prometheus 格式 |
 
 ## 第10章 统一错误码定义
@@ -933,8 +1060,13 @@ curl -X POST https://<platform-domain>/api/v1/templates/fin-risk-scorecard/deplo
 | rule_not_found | 404 | 规则不存在 |
 | RULE_NOT_FOUND | 404 | 规则执行时未找到 |
 | virtual_table_not_found | 404 | 虚拟表不存在 |
-| cross_source_error | 500 | 跨源查询失败 |
-| CROSS_SOURCE_UNSUPPORTED | 500 | 不支持的跨源操作 |
+| PARSE_ERROR | 200* | 跨源 SQL 解析失败 |
+| SOURCE_NOT_FOUND | 200* | 表无源映射 |
+| QUERY_TIMEOUT | 200* | 单源查询超时 |
+| QUERY_FAILED | 200* | 单源查询执行失败 |
+| MERGE_ERROR | 200* | 内存归并（JOIN/UNION）失败 |
+| RESULT_TOO_LARGE | 200* | 归并结果超行数上限 |
+| UNSUPPORTED | 200* | 不支持的跨源 SQL 形态或操作符 |
 | sql_parse_error | 400 | SQL 解析失败 |
 | sql_validate_failed | 400 | SQL 校验失败 |
 | query_timeout | 503 | 查询超时 |
@@ -951,6 +1083,8 @@ curl -X POST https://<platform-domain>/api/v1/templates/fin-risk-scorecard/deplo
 | ROLE_NOT_FOUND | 404 | Agent 角色未注册 |
 | lineage_analysis_failed | 400 | 血缘分析失败 |
 | INTERNAL_ERROR | 500 | 内部错误 |
+
+> \* 跨源查询错误不走 HTTP 5xx：统一返回 200 + `status=FAILED` + `error` 字段（部分结果语义，见 4.11）。
 
 ### 10.3 错误响应示例
 
@@ -1100,6 +1234,8 @@ dqctl version
 
 向量引擎（vector-engine，Go 实现）提供向量集合管理、向量 CRUD、ANN 近似检索与混合检索能力，前缀 `/api/v1`。
 
+### 15.1 集合级 API
+
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | POST | /api/v1/collections | 创建向量集合 |
@@ -1109,6 +1245,23 @@ dqctl version
 | POST | /api/v1/collections/{name}/search | 向量检索（ANN） |
 | POST | /api/v1/collections/{name}/hybrid-search | 混合检索（向量 + 标量） |
 | GET | /api/v1/collections/{name}/stats | 集合统计 |
+
+### 15.2 历史契约端点（legacy 别名）
+
+为兼容前端 `frontend/src/api/vector.ts` 的历史契约保留的别名端点，与集合级 API 同样要求 Bearer JWT：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/v1/vector | 列出全部集合 |
+| POST | /api/v1/vector/search | 全局检索：body `{"query": "文本", "topK": 5}`（topK 缺省 5），遍历全部集合并取 topK 条 |
+
+**响应示例（POST /api/v1/vector/search，200 OK）**
+
+```json
+[{"id": "vec-1", "score": 0.87, "payload": {}, "collection": "docs"}]
+```
+
+> ⚠️ 当前全局检索的查询向量由文本确定性哈希占位生成（不具备语义检索能力），生产环境应通过 embedding 服务向量化。新集成建议优先使用 15.1 的集合级检索端点。
 
 ## 第16章 大模型网关 API
 
@@ -1346,6 +1499,38 @@ ML 平台（ml-platform，Python/FastAPI 实现）提供实验管理、训练任
 | POST | /api/v1/apis/{api_id}/deprecate | 废弃 API（进入宽限期） |
 | POST | /api/v1/apis/{api_id}/archive | 归档下线 API |
 
+### 22.3 订阅管理
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | /api/v1/apis/{api_id}/subscribe | 申请订阅（返回 201，含用途与配额期望；审批通过后经 Keycloak 发放 AK/SK） |
+| GET | /api/v1/apis/{api_id}/subscribers | 某 API 的订阅者列表（可选 status 过滤） |
+| GET | /api/v1/subscriptions | 列出订阅（apiId / subscriberId / subscriberTenantId / status 过滤，limit ≤ 1000） |
+| GET | /api/v1/subscriptions/{subscription_id} | 订阅详情 |
+| POST | /api/v1/subscriptions/{subscription_id}/approve | 审批订阅（通过则发放 AK/SK 并配置订阅级限流） |
+| POST | /api/v1/subscriptions/{subscription_id}/suspend | 暂停订阅 |
+| POST | /api/v1/subscriptions/{subscription_id}/resume | 恢复订阅 |
+| POST | /api/v1/subscriptions/{subscription_id}/revoke | 吊销订阅（清空 AK/SK） |
+
+### 22.4 API 调用（AK/SK）
+
+`POST /api/v1/apis/{api_id}/call` — 经网关调用已发布 API（鉴权 → 限流 → 计量 → 转发）。
+
+**请求头（二选一组合）**
+
+| 组合 | 请求头 |
+|------|--------|
+| AK/SK 成对认证 | `X-API-Key` + `X-API-Secret` |
+| Bearer 形式 | `Authorization: Bearer <access_key>` + `X-API-Secret` |
+
+**请求体**
+
+```json
+{"payload": {}, "headers": {}}
+```
+
+**响应**：CallResult（callId / statusCode / latencyMs / result 或 error）。凭证缺失时不返回 HTTP 401，而是返回 HTTP 200 且 CallResult 内 `statusCode=401`、`error` 字段说明缺失项。
+
 ## 第23章 资产流通 API
 
 资产流通（asset-exchange，Python/FastAPI 实现）提供数据资产、订阅与审计日志能力，前缀 `/api/v1`。
@@ -1373,24 +1558,132 @@ ML 平台（ml-platform，Python/FastAPI 实现）提供实验管理、训练任
 |------|------|------|
 | GET | /api/v1/audit-logs | 查询审计日志 |
 
+## 第24章 NL2SQL API
+
+NL2SQL 引擎（nl2sql，Python/FastAPI 实现，端口 8093）将自然语言转换为 SQL，对接 Catalog 元数据与 SQL 网关，支持意图识别、Schema 上下文构建、语法校验与多轮澄清，前缀 `/api/v1`。交互式文档见 `/docs`（Swagger UI）、`/redoc`（ReDoc）与 `/openapi.json`。
+
+> 本章内容依据 `platform/nl2sql/app.py` 逐端点核实补录（V2.2 前本文档缺失该服务整章）。
+
+### 24.1 鉴权
+
+业务端点通过镜像 `jwt_auth` 模块（`getAuthContext` 依赖）校验：
+
+- `AUTH_MODE=jwt`（生产）：要求 `Authorization: Bearer <HS256 token>`；缺失、格式非法、签名不符或过期返回 **401**；可配 `JWT_EXPECTED_ISSUER` 校验 iss；
+- `AUTH_MODE=none`（缺省，本地/测试）：**匿名放行**，进程生命周期内告警一次；此时身份视为 `role=admin`、`tenantId=""`——即任何调用者都按管理员对待，可经请求体指定任意租户执行查询。
+
+租户裁决（execute）：admin 可通过 body 的 `tenantId` 指定目标租户；普通用户强制使用 token 声明的租户（`effectiveTenant`），防止越权触发跨租户查询。
+
+### 24.2 端点总览
+
+| 方法 | 路径 | 鉴权 | 说明 |
+|------|------|------|------|
+| GET | /api/v1/health | 匿名 | 健康检查 |
+| POST | /api/v1/nl2sql/generate | Bearer / AUTH_MODE=none 匿名 | 单轮 NL → SQL（不执行） |
+| POST | /api/v1/nl2sql/execute | 同上 | NL → SQL → 经 SQL 网关执行 |
+| POST | /api/v1/nl2sql/dialogue/start | 同上 | 开启多轮澄清对话 |
+| POST | /api/v1/nl2sql/dialogue/answer | 同上 | 提交澄清回答 |
+| POST | /api/v1/nl2sql/validate | 同上 | 校验 SQL 语法 |
+| GET | /api/v1/nl2sql/schema | 匿名 | 获取 schema 上下文（调试用，暂未挂鉴权依赖，待迁移） |
+
+### 24.3 NL → SQL 生成与执行
+
+#### POST /api/v1/nl2sql/generate
+
+**请求参数**
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| query | string | 是 | 自然语言查询 |
+| database | string | 否 | 目标数据库 |
+| tableHints | array[string] | 否 | 表名提示 |
+| useMockSchema | boolean | 否 | 强制使用 Mock schema |
+| tenantId | string | 否 | 租户 ID（仅 admin 生效） |
+
+**响应**：SqlGenerationResult（sql / intent / validation / needsClarification / clarificationQuestions / elapsedMs 等）。必需槽位缺失时置 `needsClarification=true` 并给出澄清问题列表。
+
+#### POST /api/v1/nl2sql/execute
+
+在 generate 参数基础上增加：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| engine | string | 否 | trino / doris |
+| limit | integer | 否 | 行数上限（透传网关） |
+
+生成结果校验失败时直接返回（gateway=null 且 validation.valid=false）；否则调用 SQL 网关执行。
+
+**响应示例（200 OK）**
+
+```json
+{
+  "sql": "SELECT customer_id, COUNT(*) FROM transaction GROUP BY customer_id",
+  "intent": {"type": "AGGREGATE"},
+  "validation": {"valid": true},
+  "gateway": {"queryId": "q-xxx", "status": "SUCCESS", "columns": [], "rows": []},
+  "elapsedMs": 356.4
+}
+```
+
+### 24.4 多轮澄清对话
+
+| 端点 | 请求体 | 说明 |
+|------|--------|------|
+| POST /api/v1/nl2sql/dialogue/start | `{"query":"...","database":null,"tableHints":[],"useMockSchema":false}` | 开启对话，返回 sessionId / clarified / nextQuestion / sql / intent / slots / turnCount；无需澄清时直接给出 sql |
+| POST /api/v1/nl2sql/dialogue/answer | `{"sessionId":"...","answer":"...","useMockSchema":false}` | 提交回答推进澄清；会话不存在返回 **404** |
+
+会话保存在服务内存中（生产可换 Redis），服务重启即失效。
+
+### 24.5 校验与 Schema 调试
+
+- `POST /api/v1/nl2sql/validate`：body `{"sql":"...","database":null,"useMockSchema":false}`，返回 ValidationResult（valid 与错误明细）。
+- `GET /api/v1/nl2sql/schema?database=&useMock=`：返回 `{"database":..., "tables":[...]}`（调试用）。
+
 ## 附录：OpenAPI 规范
 
-完整 OpenAPI 3.0 规范可在运行时通过以下端点获取：
+各服务运行时文档端点的实际支持情况（V2.2 逐仓核实，替代早期版本的大面积失实声明）：
 
-- 封装层：`GET /v3/api-docs`（SpringDoc 自动生成）
-- SQL 网关：`GET /v3/api-docs`
-- 规则引擎：`GET /v3/api-docs`
-- 治理中台：`GET /v3/api-docs`
-- 标签引擎：`GET /v3/api-docs`
-- Catalog：`GET /openapi.json`（Gin-swagger 生成）
-- 向量引擎：`GET /openapi.json`
-- 大模型网关：`GET /openapi.json`
-- 可观测查询：`GET /openapi.json`
-- 行业模板：`GET /openapi.json`（FastAPI 自动生成）
-- LLMOps：`GET /openapi.json`
-- 知识引擎：`GET /openapi.json`
-- ML 平台：`GET /openapi.json`
-- 业务门户：`GET /openapi.json`
-- 开放 API 目录：`GET /openapi.json`
-- 资产流通：`GET /openapi.json`
-- Swagger UI：`/swagger-ui.html`（Java 组件）、`/docs`（FastAPI 组件）
+**Java 栈**
+
+| 服务 | 运行时文档端点 | 说明 |
+|------|----------------|------|
+| 封装层（encaps-layer） | `GET /v3/api-docs`、`GET /v3/api-docs/{group}`、`/swagger-ui.html` | springdoc-openapi-starter-webmvc-ui 自动生成 |
+| SQL 网关 / 规则引擎 / 治理中台（governance）/ 标签引擎 | **无** | 仅代码内 swagger-annotations 注解，未引入 springdoc 依赖，`/v3/api-docs` 不可用 |
+
+**Go 栈**
+
+| 服务 | 运行时文档端点 | 说明 |
+|------|----------------|------|
+| Catalog / 向量引擎 / 大模型网关 / 可观测查询（query-api） | **无** | 未集成任何 OpenAPI/swagger 库；历史版本声称的 `/openapi.json` 均不存在 |
+
+**Python/FastAPI 栈** — 以下服务均由 FastAPI 自动生成 `/docs`（Swagger UI）、`/redoc`（ReDoc）与 `/openapi.json`：
+
+- 行业模板（industry-templates）
+- LLMOps（llmops）
+- 知识引擎（knowledge-engine）
+- ML 平台（ml-platform）
+- 业务门户（business-portal）
+- 开放 API 目录（open-api-catalog）
+- 资产流通（asset-exchange）
+- NL2SQL（nl2sql）
+
+> 新增 Java 服务如需运行时文档应引入 springdoc 并更新本附录；Go 服务暂无统一 OpenAPI 方案（待迁移）。
+
+---
+
+## 变更记录
+
+### V2.2（2026-08-25）
+
+本次为文档-代码一致性勘误（每条修订均已读对应源码核实），不涉及服务行为变更：
+
+1. 【1.1/1.2】本地端口补 NL2SQL 8093；通用响应格式改为如实描述"包裹型 / 资源直出"两类封装。
+2. 【新增 2.4】Phase A 安全加固后各服务鉴权矩阵（catalog、vector-engine、query-api、knowledge-engine、asset-exchange、open-api-catalog、nl2sql、ai-assistant、infra-provider-baremetal）。
+3. 【3.1.2】补录 `GET /api/v1/tenants/all`；【3.1.3】租户详情 404 实况修正为空响应体（原 error JSON 示例失实）。
+4. 【4.11/4.12】跨源查询/执行计划失败实况修正：HTTP 200 + `status=FAILED` + `error`（部分结果语义）；【10.2】删除 cross_source_error/CROSS_SOURCE_UNSUPPORTED→500 失实行，改为 7 个实际错误码（200*）。
+5. 【新增 5.3】补录 Catalog 表格全文检索 `GET /api/v1/catalog/search/tables`。
+6. 【6.6.1】补录批量执行 `POST /api/v1/rules/execute/batch`；【新增 6.11】QualityRuleController 数据质量规则端点整节。
+7. 【第9章】开放 API 目录健康响应字段补全；资产流通健康路径 `/health` → `/api/v1/health`；知识引擎响应字段补全；新增 NL2SQL、AI 助手行。
+8. 【15.1/15.2】向量引擎章节结构化，并补录前端契约端点 `GET /api/v1/vector`、`POST /api/v1/vector/search`（标注 legacy 别名与哈希占位实现）。
+9. 【22.3/22.4】开放 API 目录补录订阅管理端点与 AK/SK 调用端点 `POST /api/v1/apis/{api_id}/call`。
+10. 【新增第24章】NL2SQL API 整章补录（含 AUTH_MODE 鉴权语义、admin 租户裁决、多轮澄清对话）。
+11. 【附录】OpenAPI 自描述声明按实况重写：仅封装层有 springdoc `/v3/api-docs`；SQL 网关/规则引擎/治理中台/标签引擎仅有注解；Go 服务无任何 OpenAPI 端点；8 个 FastAPI 服务有 `/docs`。
