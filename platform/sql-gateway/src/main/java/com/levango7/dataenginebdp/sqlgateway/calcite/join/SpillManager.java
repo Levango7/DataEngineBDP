@@ -50,7 +50,7 @@ public class SpillManager {
             @Override
             public Row next() {
                 if (!hasNext()) throw new NoSuchElementException();
-                try { return readRow(dis); } catch (java.io.IOException e) { throw new UncheckedIOException(e); }
+                try { return SpillSerDe.readRow(dis); } catch (java.io.IOException e) { throw new UncheckedIOException(e); }
                 finally { read++; }
             }
             @Override public long estimatedSize() { return -1; }
@@ -72,7 +72,7 @@ public class SpillManager {
             dos.writeInt(rows.size());
             bytesWritten += 4;
             for (Row row : rows) {
-                bytesWritten += writeRow(dos, row);
+                bytesWritten += SpillSerDe.writeRow(dos, row);
             }
         }
         totalSpilledBytes.addAndGet(bytesWritten);
@@ -92,76 +92,4 @@ public class SpillManager {
         }
     }
 
-    // ===================== 序列化 =====================
-
-    private long writeRow(DataOutputStream dos, Row row) throws IOException {
-        long bytes = 0;
-        Object[] values = row.getValues();
-        dos.writeInt(values.length);
-        bytes += 4;
-        for (Object v : values) {
-            bytes += writeValue(dos, v);
-        }
-        return bytes;
-    }
-
-    private long writeValue(DataOutputStream dos, Object v) throws IOException {
-        if (v == null) {
-            dos.writeByte(0);
-            return 1;
-        } else if (v instanceof Integer i) {
-            dos.writeByte(1); dos.writeInt(i); return 5;
-        } else if (v instanceof Long l) {
-            dos.writeByte(2); dos.writeLong(l); return 9;
-        } else if (v instanceof Double d) {
-            dos.writeByte(3); dos.writeDouble(d); return 9;
-        } else if (v instanceof Float f) {
-            dos.writeByte(4); dos.writeFloat(f); return 5;
-        } else if (v instanceof String s) {
-            dos.writeByte(5); dos.writeUTF(s); return 3 + s.length();
-        } else if (v instanceof Boolean b) {
-            dos.writeByte(6); dos.writeBoolean(b); return 2;
-        } else if (v instanceof Short s) {
-            dos.writeByte(7); dos.writeShort(s); return 3;
-        } else if (v instanceof Byte b) {
-            dos.writeByte(8); dos.writeByte(b); return 2;
-        } else if (v instanceof byte[] bytes) {
-            dos.writeByte(9); dos.writeInt(bytes.length); dos.write(bytes);
-            return 5 + bytes.length;
-        } else {
-            dos.writeByte(5); dos.writeUTF(v.toString());
-            return 3 + v.toString().length();
-        }
-    }
-
-    private Row readRow(DataInputStream dis) throws IOException {
-        int len = dis.readInt();
-        Object[] values = new Object[len];
-        for (int i = 0; i < len; i++) {
-            values[i] = readValue(dis);
-        }
-        return new Row(values);
-    }
-
-    private Object readValue(DataInputStream dis) throws IOException {
-        int type = dis.readByte();
-        return switch (type) {
-            case 0 -> null;
-            case 1 -> dis.readInt();
-            case 2 -> dis.readLong();
-            case 3 -> dis.readDouble();
-            case 4 -> dis.readFloat();
-            case 5 -> dis.readUTF();
-            case 6 -> dis.readBoolean();
-            case 7 -> dis.readShort();
-            case 8 -> dis.readByte();
-            case 9 -> {
-                int blen = dis.readInt();
-                byte[] bytes = new byte[blen];
-                dis.readFully(bytes);
-                yield bytes;
-            }
-            default -> throw new IOException("未知序列化类型: " + type);
-        };
-    }
 }

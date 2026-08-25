@@ -44,13 +44,9 @@ public class SpilledPartition {
             public Row next() {
                 if (!hasNext()) throw new NoSuchElementException();
                 try {
-                    int len = dis.readInt();
-                    Object[] values = new Object[len];
-                    for (int i = 0; i < len; i++) {
-                        values[i] = readValueByType(dis, dis.readByte());
-                    }
+                    Row row = SpillSerDe.readRow(dis);
                     read++;
-                    return new Row(values);
+                    return row;
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
@@ -65,26 +61,6 @@ public class SpilledPartition {
         };
     }
 
-    private Object readValueByType(DataInputStream dis, int type) throws IOException {
-        return switch (type) {
-            case 0 -> null;
-            case 1 -> dis.readInt();
-            case 2 -> dis.readLong();
-            case 3 -> dis.readDouble();
-            case 4 -> dis.readFloat();
-            case 5 -> dis.readUTF();
-            case 6 -> dis.readBoolean();
-            case 7 -> dis.readShort();
-            case 8 -> dis.readByte();
-            case 9 -> {
-                int blen = dis.readInt();
-                byte[] bytes = new byte[blen];
-                dis.readFully(bytes);
-                yield bytes;
-            }
-            default -> throw new IOException("未知序列化类型: " + type);
-        };
-    }
 
     @Override
     public String toString() {
