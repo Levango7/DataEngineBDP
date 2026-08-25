@@ -23,23 +23,28 @@ func mustGetenv(key string) string {
 // AuthMiddleware JWT 认证中间件。
 //
 // 环境变量：
-//   - VECTOR_AUTH_REQUIRED=true  启用认证（生产推荐）
-//   - JWT_SIGNING_KEY            HMAC 签名密钥（启用认证时必需）
+//   - VECTOR_AUTH_REQUIRED      默认要求鉴权（secure-by-default）；
+//                               仅显式设为 "false" 才关闭并打印告警
+//   - JWT_SIGNING_KEY            HMAC 签名密钥（启用认证时必需，>=32 字节）
 //   - JWT_ISSUER                 issuer 校验（默认 shuqing-bigdata）
 //   - JWT_DEV_MODE=true          开发模式：跳过校验，注入 dev 身份
 //
-// 未设置 VECTOR_AUTH_REQUIRED 时不注入身份（兼容网关前置鉴权场景）。
+// 默认拒绝匿名访问：部署遗漏环境变量时向量数据不再裸奔；
+// 网关前置鉴权场景必须显式声明 VECTOR_AUTH_REQUIRED=false。
 func AuthMiddleware() gin.HandlerFunc {
-	enabled := strings.EqualFold(os.Getenv("VECTOR_AUTH_REQUIRED"), "true")
+	// secure-by-default：仅显式 false 关闭；未设置/true/任意其他值均启用
+	explicitOff := strings.EqualFold(os.Getenv("VECTOR_AUTH_REQUIRED"), "false")
 	devMode := strings.EqualFold(os.Getenv("JWT_DEV_MODE"), "true")
 
-	// 未启用认证：直接放行（兼容网关前置鉴权部署模式）
-	if !enabled {
+	if explicitOff {
+		log.Println("[WARN][vector-engine] VECTOR_AUTH_REQUIRED=false：认证已显式关闭，" +
+			"请确保仅用于网关前置鉴权等受控部署场景")
 		return func(c *gin.Context) { c.Next() }
 	}
 
 	// 开发模式：跳过校验，注入默认身份，不要求 JWT_SIGNING_KEY
 	if devMode {
+		log.Println("[WARN][vector-engine] JWT_DEV_MODE=true：跳过 JWT 校验并注入 dev 身份，仅限本地开发")
 		return func(c *gin.Context) {
 			c.Set("tenantId", "dev")
 			c.Set("userId", "dev")

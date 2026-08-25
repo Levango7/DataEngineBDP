@@ -83,8 +83,8 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(middleware.LoggingMiddleware(logger))
 	r.Use(middleware.CorsMiddleware())
-	// 认证中间件：通过环境变量 VECTOR_AUTH_REQUIRED=true 启用。
-	// 默认关闭以兼容网关前置鉴权部署；直接暴露场景请设置该环境变量。
+	// 认证中间件：默认强制鉴权（secure-by-default）。
+	// 网关前置鉴权部署须显式设置 VECTOR_AUTH_REQUIRED=false。
 	r.Use(middleware.AuthMiddleware())
 
 	// API v1 group。
