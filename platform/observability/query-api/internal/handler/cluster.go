@@ -115,7 +115,7 @@ func parseMemoryGi(mem string) float64 {
 		return 0
 	}
 	upper := strings.ToUpper(mem)
-	mult := 1.0
+	var mult float64
 	switch {
 	case strings.HasSuffix(upper, "TI"):
 		mult = 1024

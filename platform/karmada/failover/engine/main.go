@@ -114,7 +114,7 @@ func main() {
 		_, _ = w.Write([]byte(summary))
 	})
 
-	srv := &http.Server{Addr: ":" + port, Handler: mux}
+	srv := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 
 	go func() {
 		log.Printf("[%s] version=%s listening on %s", serviceName, version, port)

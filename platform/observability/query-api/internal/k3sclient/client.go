@@ -84,6 +84,8 @@ func NewFromKubeconfig(path string) (*Client, error) {
 
 	server := cfg.Clusters[0].Cluster.Server
 	token := cfg.Users[0].User.Token
+	// #nosec G402 -- InsecureSkipTLSVerify 来自 kubeconfig 显式配置，
+	// 属部署方自主选择（内网 k3s 自签场景），非代码层默认跳过。
 	tlsConf := &tls.Config{InsecureSkipVerify: cfg.Clusters[0].Cluster.InsecureSkipTLSVerify}
 	// 加载 CA（kubeconfig certificate-authority-data，base64 编码 PEM）
 	if caB64 := cfg.Clusters[0].Cluster.CertificateAuthorityData; caB64 != "" {

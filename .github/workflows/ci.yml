@@ -1280,13 +1280,76 @@ jobs:
           echo "✓ 清理完成"
 
   # ============================================================
+  # Go 安全 lint 门禁：golangci-lint 安全子集（阻断）
+  # linter 集：gosec/errcheck/bodyclose/sqlclosecheck/errorlint
+  #   + 默认集（govet/gosimple/staticcheck/ineffassign/unused）
+  # 已在本地对全部 10 个 Go 模块验证零告警；新增告警即阻断。
+  # .golangci.yml 的全量风格 linter（funlen/gocyclo 等）因存量风格债
+  # 暂不纳入门禁，待清理后升级为完整配置（见 docs/coverage-roadmap.md 同级规划）。
+  # ============================================================
+  go-security-lint:
+    name: Go Security Lint (golangci-lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go 1.26
+        uses: actions/setup-go@v7
+        with:
+          go-version: '1.26'
+          cache: true
+
+      - name: 安装 golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
+            | sh -s -- -b $(go env GOPATH)/bin v1.64.8
+          golangci-lint version
+
+      - name: 对每个 Go 组件执行安全 lint（阻断）
+        run: |
+          fail_count=0
+          while IFS= read -r gomod; do
+            mod_dir=$(dirname "$gomod")
+            mod_name=$(basename "$mod_dir")
+            echo "============================================"
+            echo "  golangci-lint: $mod_name ($mod_dir)"
+            echo "============================================"
+            if ! (cd "$mod_dir" && golangci-lint run --no-config --timeout 5m \
+              -E gosec,errcheck,bodyclose,sqlclosecheck,errorlint ./...); then
+              echo "::error::$mod_name 安全 lint 失败"
+              fail_count=$((fail_count + 1))
+            fi
+          done < <(find platform -name go.mod -not -path "*/vendor/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Go 组件安全 lint 失败，阻断 CI"
+            exit 1
+          fi
+
+  # ============================================================
+  # PR 依赖审查：新引入依赖存在高危漏洞时阻断 PR
+  # ============================================================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+
+  # ============================================================
   # Markdown lint：校验 README.md、CONVENTIONS.md
   # 依赖前述所有检查全部通过，作为最后的文档门禁
   # ============================================================
   markdown-lint:
     name: Markdown Lint
     runs-on: ubuntu-latest
-    # 依赖前 15 个 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
+    # 依赖前述所有 job 全部通过后才执行，确保并行最大化同时保留汇总门禁
     needs:
       - gitleaks-scan
       - go-lint
@@ -1303,6 +1366,7 @@ jobs:
       - python-test
       - docker-build
       - integration-test
+      - go-security-lint
     steps:
       - name: 检出代码
         uses: actions/checkout@v4

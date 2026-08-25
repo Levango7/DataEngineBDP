@@ -105,7 +105,7 @@ func main() {
 
 	// 启动 HTTP 服务（支持优雅关闭）。
 	addr := ":" + port
-	srv := &http.Server{Addr: addr, Handler: r}
+	srv := &http.Server{Addr: addr, Handler: r, ReadHeaderTimeout: 10 * time.Second}
 
 	go func() {
 		log.Printf("[%s] version=%s listening on %s", serviceName, version, addr)

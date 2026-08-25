@@ -33,7 +33,10 @@ type RedfishClient struct {
 func NewRedfishClient(timeout time.Duration, insecureSkipVerify bool, defaultUser, defaultPass string) *RedfishClient {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
-			// BMC通常使用自签证书，开发环境跳过校验
+			// BMC通常使用自签证书，开发环境跳过校验。
+			// #nosec G402 -- InsecureSkipVerify 仅在部署方显式配置
+			// TLS 跳过校验开关时为 true（隔离内网带外网络场景）；
+			// 生产默认 false，走正常证书校验。
 			InsecureSkipVerify: insecureSkipVerify,
 		},
 	}

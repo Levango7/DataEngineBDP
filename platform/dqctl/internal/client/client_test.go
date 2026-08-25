@@ -26,13 +26,15 @@ func TestClient_Get(t *testing.T) {
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 		assert.Equal(t, "tenant-001", r.Header.Get("X-Tenant-ID"))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}))
 	defer server.Close()
 
 	c := NewClient(server.URL, "tenant-001", "test-token")
 	resp, err := c.Get("/api/v1/test")
 	require.NoError(t, err)
+	defer resp.Body.Close()
+	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
@@ -45,17 +47,19 @@ func TestClient_Post(t *testing.T) {
 		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 
 		var body map[string]string
-		json.NewDecoder(r.Body).Decode(&body)
+		_ = json.NewDecoder(r.Body).Decode(&body)
 		assert.Equal(t, "value", body["key"])
 
 		w.WriteHeader(http.StatusCreated)
-		w.Write([]byte(`{"created":true}`))
+		_, _ = w.Write([]byte(`{"created":true}`))
 	}))
 	defer server.Close()
 
 	c := NewClient(server.URL, "tenant-001", "test-token")
 	resp, err := c.Post("/api/v1/test", map[string]string{"key": "value"})
 	require.NoError(t, err)
+	defer resp.Body.Close()
+	defer resp.Body.Close()
 	assert.Equal(t, http.StatusCreated, resp.StatusCode)
 }
 
@@ -71,6 +75,7 @@ func TestClient_Get_NoToken(t *testing.T) {
 	c := NewClient(server.URL, "tenant-001", "")
 	resp, err := c.Get("/api/v1/test")
 	require.NoError(t, err)
+	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
@@ -86,6 +91,7 @@ func TestClient_Post_NoTenant(t *testing.T) {
 	c := NewClient(server.URL, "", "test-token")
 	resp, err := c.Post("/api/v1/test", map[string]string{"key": "value"})
 	require.NoError(t, err)
+	defer resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 

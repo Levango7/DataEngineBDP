@@ -36,8 +36,9 @@ func main() {
 	api.RegisterRoutes(router, assistant, cfg)
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: router,
+		Addr:              ":" + cfg.Port,
+		Handler:           router,
+		ReadHeaderTimeout: 10 * time.Second, // 防 Slowloris 慢速攻击
 	}
 
 	go func() {

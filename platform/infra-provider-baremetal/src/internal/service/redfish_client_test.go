@@ -20,12 +20,12 @@ func newTestRedfishServer() *httptest.Server {
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
 		case "/redfish/v1/":
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			_ = json.NewEncoder(w).Encode(map[string]interface{}{
 				"Systems": map[string]string{"@odata.id": "/redfish/v1/Systems"},
 			})
 		case "/redfish/v1/Systems":
 			if r.Method == http.MethodGet {
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"Members": []map[string]string{
 						{"@odata.id": "/redfish/v1/Systems/1"},
 					},
@@ -34,7 +34,7 @@ func newTestRedfishServer() *httptest.Server {
 			}
 		case "/redfish/v1/Systems/1":
 			if r.Method == http.MethodGet {
-				json.NewEncoder(w).Encode(RedfishSystem{
+				_ = json.NewEncoder(w).Encode(RedfishSystem{
 					ID:           "1",
 					Name:         "Test Server",
 					Manufacturer: "TestVendor",

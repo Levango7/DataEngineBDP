@@ -20,7 +20,7 @@ tenant_id: test-tenant
 token: test-token
 output: json
 `
-	err := os.WriteFile(configPath, []byte(content), 0o644)
+	err := os.WriteFile(configPath, []byte(content), 0o600)
 	require.NoError(t, err)
 
 	cfg, err := Load(configPath)
@@ -83,14 +83,14 @@ func TestLoad_InvalidYAML(t *testing.T) {
 	tmpDir := t.TempDir()
 	configPath := filepath.Join(tmpDir, "config.yaml")
 
-	err := os.WriteFile(configPath, []byte("invalid: [yaml: content"), 0o644)
+	err := os.WriteFile(configPath, []byte("invalid: [yaml: content"), 0o600)
 	require.NoError(t, err)
 
 	_, _ = Load(configPath)
 	// viper 对无效 YAML 可能不报错，但 Unmarshal 可能失败
 	// 这里只验证不 panic
 	assert.NotPanics(t, func() {
-		Load(configPath)
+		_, _ = Load(configPath)
 	})
 }
 

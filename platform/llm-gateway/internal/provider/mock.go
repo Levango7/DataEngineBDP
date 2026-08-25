@@ -83,7 +83,7 @@ func (p *MockProvider) loadError() error {
 		return nil
 	}
 	err, _ := v.(error)
-	if err == noError {
+	if errors.Is(err, noError) {
 		return nil
 	}
 	return err

@@ -11,7 +11,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -24,7 +23,6 @@ const RuntimeName = "go"
 type InvocationRecorder struct {
 	invocationCount    *prometheus.CounterVec
 	invocationDuration *prometheus.HistogramVec
-	mu                 sync.Mutex
 }
 
 // NewInvocationRecorder 创建新的计量记录器并注册到 Prometheus 默认 Registry.

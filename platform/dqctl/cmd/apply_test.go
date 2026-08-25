@@ -42,7 +42,7 @@ func captureOutput(t *testing.T, f func() error) (string, error) {
 	buf := new(bytes.Buffer)
 	done := make(chan struct{})
 	go func() {
-		io.Copy(buf, r)
+		_, _ = io.Copy(buf, r)
 		close(done)
 	}()
 

@@ -75,7 +75,7 @@ func (b *baseConfig) doJSON(ctx context.Context, method, path string, body, out 
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("%w: %v", ErrUpstreamUnavailable, err)
+		return fmt.Errorf("%w: %s", ErrUpstreamUnavailable, err.Error())
 	}
 	defer resp.Body.Close()
 

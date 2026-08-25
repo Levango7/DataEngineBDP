@@ -1,6 +1,7 @@
 package failover
 
 import (
+	"errors"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -234,7 +235,7 @@ func TestManager_Run_Cancel(t *testing.T) {
 	cancel()
 	select {
 	case err := <-done:
-		if err != context.Canceled {
+		if !errors.Is(err, context.Canceled) {
 			t.Fatalf("expected context.Canceled, got %v", err)
 		}
 	case <-time.After(2 * time.Second):

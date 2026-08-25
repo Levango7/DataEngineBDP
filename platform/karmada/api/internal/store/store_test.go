@@ -1,6 +1,7 @@
 package store
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/Levango7/DataEngineBDP/karmada-api/internal/model"
@@ -55,7 +56,7 @@ func TestStore_GetPropagationPolicy_Success(t *testing.T) {
 func TestStore_GetPropagationPolicy_NotFound(t *testing.T) {
 	s := newMockStore()
 	_, err := s.GetPropagationPolicy("tenant-1", "default", "no-such-policy")
-	if err != ErrNotFound {
+	if !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
@@ -69,7 +70,7 @@ func TestStore_GetPropagationPolicy_TenantIsolation(t *testing.T) {
 	if err := s.CreatePropagationPolicy(pp); err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	if _, err := s.GetPropagationPolicy("tenant-2", "default", "policy-iso"); err != ErrNotFound {
+	if _, err := s.GetPropagationPolicy("tenant-2", "default", "policy-iso"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound for cross-tenant, got %v", err)
 	}
 }
@@ -155,7 +156,7 @@ func TestStore_DeletePropagationPolicy_Success(t *testing.T) {
 	if err := s.DeletePropagationPolicy("tenant-1", "default", "policy-del"); err != nil {
 		t.Fatalf("delete: %v", err)
 	}
-	if _, err := s.GetPropagationPolicy("tenant-1", "default", "policy-del"); err != ErrNotFound {
+	if _, err := s.GetPropagationPolicy("tenant-1", "default", "policy-del"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound after delete, got %v", err)
 	}
 }
@@ -163,7 +164,7 @@ func TestStore_DeletePropagationPolicy_Success(t *testing.T) {
 // TestStore_DeletePropagationPolicy_NotFound 删除不存在的策略应返回 ErrNotFound。
 func TestStore_DeletePropagationPolicy_NotFound(t *testing.T) {
 	s := newMockStore()
-	if err := s.DeletePropagationPolicy("tenant-1", "default", "no-such"); err != ErrNotFound {
+	if err := s.DeletePropagationPolicy("tenant-1", "default", "no-such"); !errors.Is(err, ErrNotFound) {
 		t.Fatalf("expected ErrNotFound, got %v", err)
 	}
 }
