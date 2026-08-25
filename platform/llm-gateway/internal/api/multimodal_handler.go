@@ -186,9 +186,19 @@ func (h *MultimodalHandler) SubmitBatchJob(c *gin.Context) {
 // GetBatchJob GET /v1/batch/jobs/:id
 //
 // 查询批处理任务状态与结果。
+// 租户边界：非 admin 只能查看自身租户的任务，跨租户按 404 处理（防枚举）。
 func (h *MultimodalHandler) GetBatchJob(c *gin.Context) {
 	jobID := c.Param("id")
-	job, ok := h.batchMgr.Get(jobID)
+	role, _ := c.Get("role")
+	var job *streaming.BatchJob
+	var ok bool
+	if r, _ := role.(string); r == "admin" {
+		job, ok = h.batchMgr.Get(jobID)
+	} else {
+		tenantID, _ := c.Get("tenantId")
+		t, _ := tenantID.(string)
+		job, ok = h.batchMgr.GetForTenant(t, jobID)
+	}
 	if !ok {
 		c.JSON(http.StatusNotFound, gin.H{"error": "job not found"})
 		return
@@ -198,17 +208,35 @@ func (h *MultimodalHandler) GetBatchJob(c *gin.Context) {
 
 // ListBatchJobs GET /v1/batch/jobs
 //
-// 列出所有批处理任务。
+// 列出批处理任务。非 admin 强制只返回自身租户任务；
+// 统计计数为全局值，仅 admin 响应包含（避免向租户泄露平台总量）。
 func (h *MultimodalHandler) ListBatchJobs(c *gin.Context) {
-	jobs := h.batchMgr.List()
-	submitted, succeeded, failed := h.batchMgr.Stats()
-	c.JSON(http.StatusOK, gin.H{
-		"jobs":      jobs,
-		"total":     len(jobs),
-		"submitted": submitted,
-		"succeeded": succeeded,
-		"failed":    failed,
-	})
+	role, _ := c.Get("role")
+	isAdmin := false
+	if r, _ := role.(string); r == "admin" {
+		isAdmin = true
+	}
+
+	var jobs []*streaming.BatchJob
+	if isAdmin {
+		jobs = h.batchMgr.List()
+	} else {
+		tenantID, _ := c.Get("tenantId")
+		t, _ := tenantID.(string)
+		jobs = h.batchMgr.ListForTenant(t)
+	}
+
+	resp := gin.H{
+		"jobs":  jobs,
+		"total": len(jobs),
+	}
+	if isAdmin {
+		submitted, succeeded, failed := h.batchMgr.Stats()
+		resp["submitted"] = submitted
+		resp["succeeded"] = succeeded
+		resp["failed"] = failed
+	}
+	c.JSON(http.StatusOK, resp)
 }
 
 // ============ /v1/routing/* ============

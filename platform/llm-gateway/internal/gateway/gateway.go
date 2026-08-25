@@ -187,11 +187,19 @@ func (g *Gateway) Embeddings(ctx context.Context, req provider.EmbeddingRequest)
 // ============ 模型列表 ============
 
 // ListModels 汇总所有 Provider 的可路由模型。
+//
+// 并发安全：先在读锁内快照 provider 列表，再在锁外调用上游
+// （上游调用含网络 IO，持锁调用会阻塞 Register/Unregister 写锁）。
 func (g *Gateway) ListModels(ctx context.Context) ([]provider.ModelInfo, error) {
 	g.mu.RLock()
-	defer g.mu.RUnlock()
-	var all []provider.ModelInfo
+	providers := make([]provider.LLMProvider, 0, len(g.providers))
 	for _, p := range g.providers {
+		providers = append(providers, p)
+	}
+	g.mu.RUnlock()
+
+	var all []provider.ModelInfo
+	for _, p := range providers {
 		ms, err := p.Models(ctx)
 		if err != nil {
 			// 单个 Provider 失败不阻塞整体列表。
@@ -205,11 +213,18 @@ func (g *Gateway) ListModels(ctx context.Context) ([]provider.ModelInfo, error) 
 // ============ 健康检查 ============
 
 // HealthCheck 检查所有 Provider 健康状态，返回不健康的 Provider 列表。
+//
+// 与 ListModels 相同的快照策略：锁外执行上游健康探测（网络 IO）。
 func (g *Gateway) HealthCheck(ctx context.Context) map[string]error {
 	g.mu.RLock()
-	defer g.mu.RUnlock()
-	result := make(map[string]error)
+	providers := make(map[string]provider.LLMProvider, len(g.providers))
 	for name, p := range g.providers {
+		providers[name] = p
+	}
+	g.mu.RUnlock()
+
+	result := make(map[string]error)
+	for name, p := range providers {
 		if err := p.HealthCheck(ctx); err != nil {
 			result[name] = err
 		}

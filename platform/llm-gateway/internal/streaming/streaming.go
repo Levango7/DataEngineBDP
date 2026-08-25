@@ -357,6 +357,9 @@ type BatchJobManager struct {
 	logger  *slog.Logger
 	// stats 统计。
 	stats batchStats
+	// terminalTTL 终态任务保留时长；janitorEvery 回收扫描间隔。
+	terminalTTL  time.Duration
+	janitorEvery time.Duration
 }
 
 type batchStats struct {
@@ -370,14 +373,21 @@ type BatchConfig struct {
 	WorkerCount  int // worker 数（默认 100）
 	QueueSize    int // 队列容量（默认 1000）
 	JobTimeoutMs int // 单任务超时（默认 60s）
+	// TerminalTTL 终态任务在内存中保留时长（默认 24h），超时由 janitor 回收，
+	// 防止 jobs map 无限增长（泄漏治理）。
+	TerminalTTL time.Duration
+	// JanitorInterval 回收扫描间隔（默认 1h）。
+	JanitorInterval time.Duration
 }
 
 // DefaultBatchConfig 默认批处理配置。
 func DefaultBatchConfig() BatchConfig {
 	return BatchConfig{
-		WorkerCount:  100,
-		QueueSize:    1000,
-		JobTimeoutMs: 60000,
+		WorkerCount:     100,
+		QueueSize:       1000,
+		JobTimeoutMs:    60000,
+		TerminalTTL:     24 * time.Hour,
+		JanitorInterval: time.Hour,
 	}
 }
 
@@ -394,20 +404,31 @@ func NewBatchJobManager(chatFunc func(context.Context, provider.MultimodalChatRe
 	if cfg.JobTimeoutMs <= 0 {
 		cfg.JobTimeoutMs = 60000
 	}
+	if cfg.TerminalTTL <= 0 {
+		cfg.TerminalTTL = 24 * time.Hour
+	}
+	if cfg.JanitorInterval <= 0 {
+		cfg.JanitorInterval = time.Hour
+	}
 	m := &BatchJobManager{
-		jobs:     make(map[string]*BatchJob),
-		queues:   make(chan *BatchJob, cfg.QueueSize),
-		worker:   cfg.WorkerCount,
-		stopCh:   make(chan struct{}),
-		chatFunc: chatFunc,
-		counter:  counter,
-		logger:   slog.Default(),
+		jobs:         make(map[string]*BatchJob),
+		queues:       make(chan *BatchJob, cfg.QueueSize),
+		worker:       cfg.WorkerCount,
+		stopCh:       make(chan struct{}),
+		chatFunc:     chatFunc,
+		counter:      counter,
+		logger:       slog.Default(),
+		terminalTTL:  cfg.TerminalTTL,
+		janitorEvery: cfg.JanitorInterval,
 	}
 	// 启动 worker pool
 	for i := 0; i < cfg.WorkerCount; i++ {
 		m.wg.Add(1)
 		go m.workerLoop(cfg.JobTimeoutMs)
 	}
+	// 启动终态任务回收 janitor（泄漏治理）
+	m.wg.Add(1)
+	go m.janitorLoop()
 	return m
 }
 
@@ -455,6 +476,19 @@ func (m *BatchJobManager) Get(jobID string) (*BatchJob, bool) {
 	return &cp, true
 }
 
+// GetForTenant 在指定租户范围内查询任务。
+// 跨租户访问按不存在处理（防资源枚举）。
+func (m *BatchJobManager) GetForTenant(tenantID, jobID string) (*BatchJob, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	job, ok := m.jobs[jobID]
+	if !ok || job.Request.TenantID != tenantID {
+		return nil, false
+	}
+	cp := *job
+	return &cp, true
+}
+
 // List 列出所有任务（按创建时间降序）。
 func (m *BatchJobManager) List() []*BatchJob {
 	m.mu.RLock()
@@ -467,6 +501,58 @@ func (m *BatchJobManager) List() []*BatchJob {
 	// 按创建时间降序
 	sortJobsByCreatedDesc(out)
 	return out
+}
+
+// ListForTenant 列出指定租户的任务（按创建时间降序）。
+func (m *BatchJobManager) ListForTenant(tenantID string) []*BatchJob {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	out := make([]*BatchJob, 0)
+	for _, j := range m.jobs {
+		if j.Request.TenantID == tenantID {
+			cp := *j
+			out = append(out, &cp)
+		}
+	}
+	sortJobsByCreatedDesc(out)
+	return out
+}
+
+// janitorLoop 周期回收超过 TTL 的终态任务，防止 jobs map 无限增长。
+func (m *BatchJobManager) janitorLoop() {
+	defer m.wg.Done()
+	ticker := time.NewTicker(m.janitorEvery)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-m.stopCh:
+			return
+		case <-ticker.C:
+			m.sweepTerminalJobs(time.Now())
+		}
+	}
+}
+
+// sweepTerminalJobs 删除 EndedAt 超过 terminalTTL 的终态任务。
+func (m *BatchJobManager) sweepTerminalJobs(now time.Time) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	cutoff := now.Add(-m.terminalTTL)
+	var swept int
+	for id, j := range m.jobs {
+		if isTerminalStatus(j.Status) && !j.EndedAt.IsZero() && j.EndedAt.Before(cutoff) {
+			delete(m.jobs, id)
+			swept++
+		}
+	}
+	if swept > 0 {
+		m.logger.Info("batch job janitor swept terminal jobs", slog.Int("count", swept))
+	}
+}
+
+// isTerminalStatus 报告任务是否处于终态（不可再变更、可安全回收）。
+func isTerminalStatus(s BatchJobStatus) bool {
+	return s == StatusSucceeded || s == StatusFailed
 }
 
 // Stats 返回批处理统计。
