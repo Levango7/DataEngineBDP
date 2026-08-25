@@ -77,21 +77,7 @@ func main() {
 	vectorH := api.NewVectorHandler(vectorService)
 
 	// 初始化 Gin 路由。
-	r := gin.New()
-
-	// 全局中间件链：Recovery → Logging → CORS → Auth（可选）。
-	r.Use(gin.Recovery())
-	r.Use(middleware.LoggingMiddleware(logger))
-	r.Use(middleware.CorsMiddleware())
-	// 认证中间件：默认强制鉴权（secure-by-default）。
-	// 网关前置鉴权部署须显式设置 VECTOR_AUTH_REQUIRED=false。
-	r.Use(middleware.AuthMiddleware())
-
-	// API v1 group。
-	v1 := r.Group("/api/v1")
-	// 健康检查端点（无需认证）。
-	v1.GET("/health", healthH.Health)
-	vectorH.RegisterRoutes(v1)
+	r := newRouter(logger, healthH, vectorH)
 
 	// 启动 HTTP 服务（支持优雅关闭）。
 	addr := ":" + port
@@ -122,6 +108,31 @@ func main() {
 		log.Printf("[%s] server forced to shutdown: %v", serviceName, err)
 	}
 	log.Printf("[%s] server exited", serviceName)
+}
+
+// newRouter 构建 Gin 引擎：全局中间件链 + 路由注册。
+//
+// 路由组织（参照 catalog 模式）：公开端点（健康检查）先注册在鉴权之外，
+// 业务路由组挂 AuthMiddleware 强制鉴权，避免 K8s 探针被 401 拦截进入重启循环。
+func newRouter(logger *slog.Logger, healthH *api.HealthHandler, vectorH *api.VectorHandler) *gin.Engine {
+	r := gin.New()
+
+	// 全局中间件链：Recovery → Logging → CORS。
+	r.Use(gin.Recovery())
+	r.Use(middleware.LoggingMiddleware(logger))
+	r.Use(middleware.CorsMiddleware())
+
+	// 公开端点：健康检查无需认证，K8s 探针匿名可达。
+	v1 := r.Group("/api/v1")
+	v1.GET("/health", healthH.Health)
+
+	// 业务路由组：强制 JWT 鉴权（secure-by-default）。
+	// 网关前置鉴权部署须显式设置 VECTOR_AUTH_REQUIRED=false。
+	authed := v1.Group("")
+	authed.Use(middleware.AuthMiddleware())
+	vectorH.RegisterRoutes(authed)
+
+	return r
 }
 
 // newMilvusStoreOrFallback 在未启用 milvus_enabled build tag 时回退到 Mock 实现。

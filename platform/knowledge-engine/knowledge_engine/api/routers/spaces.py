@@ -19,6 +19,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
+from knowledge_engine.api.jwt_auth import loadAuthSettings
 from knowledge_engine.api.routers.deps import get_registry, status_for_error
 from knowledge_engine.models.entity import Entity
 from knowledge_engine.models.graph import (
@@ -125,6 +126,8 @@ async def create_space(
         return {"name": req.name, "status": "created"}
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get(
@@ -154,6 +157,8 @@ async def drop_space(
         await registry.knowledgeService.drop_space(name)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -172,6 +177,8 @@ async def insert_entities(
         return InsertSummaryResponse(inserted=count)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -190,6 +197,8 @@ async def insert_edges(
         return InsertSummaryResponse(inserted=count)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -232,6 +241,8 @@ async def build(
         )
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get(
@@ -249,6 +260,8 @@ async def get_vertex(
         return await registry.queryService.get_vertex(name, vid)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.get(
@@ -267,6 +280,8 @@ async def get_neighbors(
         return await registry.queryService.get_neighbors(name, vid, edgeType)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -279,11 +294,20 @@ async def query(
     req: QueryRequest,
     registry: ServiceRegistry = Depends(get_registry),
 ) -> QueryResult:
-    """执行原生图查询（nGQL/GQL）."""
+    """执行原生图查询（nGQL/GQL）.
+
+    原生语句可包含任意 DDL/DML，必须至少要求已认证身份：
+    AUTH_MODE=none（匿名放行）时直接 403 拒绝。
+    """
+    mode, _, _ = loadAuthSettings()
+    if mode == "none":
+        raise HTTPException(status_code=403, detail="匿名模式禁止执行原生 nGQL 查询")
     try:
         return await registry.queryService.query(name, req.nql)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.post(
@@ -301,3 +325,5 @@ async def shortest_path(
         return await registry.queryService.shortest_path(name, req.srcId, req.dstId)
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))

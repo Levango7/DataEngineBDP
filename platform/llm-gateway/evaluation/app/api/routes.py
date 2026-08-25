@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Optional
 
@@ -67,12 +68,12 @@ def create_router(
     # ---------------------------------------------------------------------------
     @router.get("/health", response_model=HealthResponse)
     async def health() -> HealthResponse:
-        """健康检查。"""
+        """健康检查（同步探测经 to_thread 下放，避免阻塞事件循环）。"""
         return HealthResponse(
             status="UP",
             component="evaluation",
             version="0.1.0",
-            llm_gateway_reachable=llm_client.health(),
+            llm_gateway_reachable=await asyncio.to_thread(llm_client.health),
         )
 
     # ---------------------------------------------------------------------------
@@ -83,18 +84,22 @@ def create_router(
         """提交评测任务。
 
         请求体包含：模型 + 数据集 + 指标 + 模式。
-        返回 job_id，状态为 PENDING，随后同步执行。
+        返回 job_id，状态为 PENDING，评测在后台异步执行（不阻塞事件循环）。
         """
         job = job_manager.submit(request)
-        # 同步执行（简化实现；生产环境可用 asyncio.create_task）
+        handle = asyncio.create_task(_execute_job_async(job.job_id))
+        job_manager.register_task(job.job_id, handle)
+        return job
+
+    async def _execute_job_async(job_id: str) -> None:
+        """在线程池中执行同步评测主体，避免冻结事件循环。"""
         try:
-            executor.execute(job.job_id)
+            await asyncio.to_thread(executor.execute, job_id)
+        except asyncio.CancelledError:
+            raise
         except Exception as e:  # noqa: BLE001
             logger.exception("评测任务执行异常: %s", e)
             # 异常已由 executor 内部处理，此处不重复设置
-        # 重新查询最新状态返回
-        latest = job_manager.get(job.job_id)
-        return latest or job
 
     @secured.get("/api/v1/eval/jobs", response_model=JobListResponse)
     async def list_jobs(

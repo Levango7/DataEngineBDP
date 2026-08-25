@@ -157,12 +157,15 @@ class DeepSpeedAdapter(BaseAdapter):
 
         os.makedirs(self.workDir, exist_ok=True)
         log_fd = open(log_path, "w", encoding="utf-8")  # noqa: SIM115
-        proc = subprocess.Popen(
-            cmd,
-            stdout=log_fd,
-            stderr=subprocess.STDOUT,
-            cwd=self.workDir,
-        )
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=log_fd,
+                stderr=subprocess.STDOUT,
+                cwd=self.workDir,
+            )
+        finally:
+            log_fd.close()
         return ProcessHandle(
             pid=proc.pid, isMock=False, extra={"proc": proc, "log": log_path}
         )

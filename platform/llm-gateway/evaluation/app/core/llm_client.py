@@ -49,7 +49,7 @@ class LLMGatewayClient:
         base_url: str = "http://localhost:18085",
         api_key: str = "dummy",
         timeout: int = 30,
-        enable_mock_fallback: bool = True,
+        enable_mock_fallback: bool = False,
         mock_mode: bool = False,
     ):
         """
@@ -57,7 +57,8 @@ class LLMGatewayClient:
             base_url: LLM 网关基础 URL
             api_key: API Key（Bearer token）
             timeout: 请求超时秒数
-            enable_mock_fallback: 网关不可达时是否回退到 Mock 响应
+            enable_mock_fallback: 网关不可达时是否回退到 Mock 响应（默认关闭，
+                避免网关故障时静默产出 Mock 计分导致指标失真；可用 EVAL_MOCK_FALLBACK 显式开启）
             mock_mode: 纯 Mock 模式，不发起任何 HTTP 请求，直接返回 Mock 响应
         """
         self.base_url = base_url.rstrip("/")

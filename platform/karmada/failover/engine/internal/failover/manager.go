@@ -2,11 +2,11 @@ package failover
 
 // 故障迁移管理器。
 //
-// 周期性检查主集群健康状态，当主集群连续 down 超过 detectionWindowSeconds
+// 周期性检查主集群健康状态，当主集群持续 down 超过 detectionWindowSeconds
 // 时，触发 Karmada failover 将工作负载迁移到备用集群。
 //
 // 迁移流程：
-//   1. 检测到主集群 down（连续 N 次检查都 down）
+//   1. 检测到主集群 down（持续 down 超过检测窗口）
 //   2. 选择备用集群（按优先级 + 健康状态 + 容量）
 //   3. 调用 Karmada failover API 迁移工作负载
 //   4. 更新 PropagationPolicy 的 clusterAffinity（排除源集群）
@@ -42,6 +42,9 @@ type Manager struct {
 	// policies 当前生效的故障迁移策略（按 policy name 索引）。
 	policies map[string]*model.FailoverPolicyConfig
 
+	// failStates 各策略的主集群失败检测状态（按 policy name 索引）。
+	failStates map[string]*policyFailState
+
 	// healthHistory 集群健康检查历史（按 cluster name 索引，保留最近 N 条）。
 	healthHistory map[string][]*model.ClusterHealth
 
@@ -63,10 +66,17 @@ func NewManager(
 		karmada:          karmadaClient,
 		allocator:        allocator,
 		policies:         make(map[string]*model.FailoverPolicyConfig),
+		failStates:       make(map[string]*policyFailState),
 		healthHistory:    make(map[string][]*model.ClusterHealth),
 		eventChan:        make(chan *model.FailoverEvent, 100),
 		maxHistoryLength: 100,
 	}
+}
+
+// policyFailState 单个策略的主集群失败检测状态。
+type policyFailState struct {
+	firstFailTime time.Time
+	triggered     bool
 }
 
 // AddPolicy 添加故障迁移策略。
@@ -74,6 +84,7 @@ func (m *Manager) AddPolicy(policy *model.FailoverPolicyConfig) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.policies[policy.Name] = policy
+	delete(m.failStates, policy.Name)
 	log.Printf("[failover-manager] policy added: %s (primary=%s, backups=%v)",
 		policy.Name, policy.PrimaryCluster, policy.BackupClusters)
 }
@@ -83,6 +94,7 @@ func (m *Manager) RemovePolicy(name string) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	delete(m.policies, name)
+	delete(m.failStates, name)
 }
 
 // EventChan 返回迁移事件通道。
@@ -127,39 +139,54 @@ func (m *Manager) checkAllPolicies(ctx context.Context) {
 }
 
 // checkPolicy 检查单个策略的主集群健康状态。
+//
+// 以时间戳（而非检查次数）判定检测窗口：首次失败记录 firstFailTime，
+// 持续 down 达到 DetectionWindowSeconds 且未触发过迁移时才触发；
+// 触发后置 triggered 去重，主集群恢复健康后重新武装。
 func (m *Manager) checkPolicy(ctx context.Context, policy *model.FailoverPolicyConfig) {
-	// 检查主集群健康。
 	healthStatus, err := m.checker.CheckCluster(ctx, policy.PrimaryCluster)
 	if err != nil {
 		log.Printf("[failover-manager] check primary %s failed: %v", policy.PrimaryCluster, err)
 		return
 	}
 
-	// 记入历史。
 	m.recordHealth(policy.PrimaryCluster, healthStatus)
 
-	// 检查是否在检测窗口内连续 down。
-	windowCount := policy.DetectionWindowSeconds / policy.HealthCheckIntervalSeconds
-	if windowCount <= 0 {
-		windowCount = 3 // 默认 3 次
-	}
+	window := time.Duration(policy.DetectionWindowSeconds) * time.Second
+	now := time.Now()
 
 	m.mu.Lock()
-	history := m.healthHistory[policy.PrimaryCluster]
-	recent := history
-	if len(recent) > windowCount {
-		recent = recent[len(recent)-windowCount:]
+	state := m.failStates[policy.Name]
+	if state == nil {
+		state = &policyFailState{}
+		m.failStates[policy.Name] = state
 	}
-	isDown := m.checker.IsClusterDown(recent)
+
+	var (
+		shouldTrigger bool
+		downDuration  time.Duration
+	)
+	if healthStatus.Status != model.StatusDown {
+		state.firstFailTime = time.Time{}
+		state.triggered = false
+	} else {
+		if state.firstFailTime.IsZero() {
+			state.firstFailTime = now
+		}
+		downDuration = now.Sub(state.firstFailTime)
+		if !state.triggered && downDuration >= window {
+			state.triggered = true
+			shouldTrigger = true
+		}
+	}
 	m.mu.Unlock()
 
-	if !isDown {
+	if !shouldTrigger {
 		return
 	}
 
-	// 主集群连续 down，触发迁移。
-	log.Printf("[failover-manager] primary %s down for %d checks, triggering failover (policy=%s)",
-		policy.PrimaryCluster, len(recent), policy.Name)
+	log.Printf("[failover-manager] primary %s down for %s (window=%s), triggering failover (policy=%s)",
+		policy.PrimaryCluster, downDuration, window, policy.Name)
 
 	m.triggerFailover(ctx, policy, healthStatus)
 }

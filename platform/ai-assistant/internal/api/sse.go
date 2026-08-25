@@ -35,6 +35,12 @@ func (h *AssistantHandler) chatStream(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
 		return
 	}
+	// SSE 流式端点同样强制租户：校验/回填后再进入链路
+	if tenantID, ok := resolveTenant(c, req.TenantID); ok {
+		req.TenantID = tenantID
+	} else {
+		return
+	}
 
 	// SSE 响应头
 	c.Header("Content-Type", "text/event-stream")

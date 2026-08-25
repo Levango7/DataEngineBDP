@@ -31,6 +31,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
@@ -113,17 +114,17 @@ func (s *SSEStreamer) StreamChat(
 		return err
 	}
 
-	// 4. 按字符切片流式推送
+	// 4. 按 rune 边界安全分块流式推送
 	if len(resp.Choices) == 0 {
 		return s.writeDone(c.Writer)
 	}
 
 	fullContent := resp.Choices[0].Message.Content
-	chunkSize := s.optimalChunkSize(fullContent)
+	chunks := splitRuneChunks(fullContent, s.optimalChunkSize(fullContent))
 	totalTokens := resp.Usage.TotalTokens
 	sentTokens := 0
 
-	for i := 0; i < len(fullContent); i += chunkSize {
+	for idx, partial := range chunks {
 		// 检查客户端是否断开
 		select {
 		case <-c.Request.Context().Done():
@@ -135,15 +136,10 @@ func (s *SSEStreamer) StreamChat(
 		default:
 		}
 
-		end := i + chunkSize
-		if end > len(fullContent) {
-			end = len(fullContent)
-		}
-		partial := fullContent[i:end]
 		sentTokens += s.counter.CountText(partial)
 
 		var finishReason string
-		if end >= len(fullContent) {
+		if idx == len(chunks)-1 {
 			finishReason = "stop"
 		}
 		chunk := s.buildChunk(resp.ID, "assistant", partial, sentTokens)
@@ -181,9 +177,9 @@ func (s *SSEStreamer) StreamChat(
 	return nil
 }
 
-// optimalChunkSize 根据内容长度选择最优切片大小。
+// optimalChunkSize 根据内容长度选择最优分块字节预算。
 //
-// 短内容用小切片（更细粒度流式），长内容用大切片（减少 flush 开销）。
+// 短内容用小预算（更细粒度流式），长内容用大预算（减少 flush 开销）。
 func (s *SSEStreamer) optimalChunkSize(content string) int {
 	n := len(content)
 	switch {
@@ -196,6 +192,30 @@ func (s *SSEStreamer) optimalChunkSize(content string) int {
 	default:
 		return 16
 	}
+}
+
+// splitRuneChunks 按 rune 边界将 content 切分为不超过 maxBytes 字节预算的块。
+//
+// 累积 rune，再加一个 rune 会超出字节预算时 flush 当前块；
+// 单个 rune 超过预算时独立成块；末尾剩余内容完整 flush。
+// 保证每块都是合法 UTF-8，逐块重组等于原文。
+func splitRuneChunks(content string, maxBytes int) []string {
+	if content == "" {
+		return nil
+	}
+	var chunks []string
+	start := 0
+	size := 0
+	for i, r := range content {
+		rs := utf8.RuneLen(r)
+		if size > 0 && size+rs > maxBytes {
+			chunks = append(chunks, content[start:i])
+			start = i
+			size = 0
+		}
+		size += rs
+	}
+	return append(chunks, content[start:])
 }
 
 // writeChunk 写入一个 SSE chunk。

@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from knowledge_engine.api.jwt_auth import getAuthContext
 from knowledge_engine.api.routers import health, spaces
 from knowledge_engine.config.settings import Settings, get_settings
 from knowledge_engine.services.registry import ServiceRegistry, build_services
@@ -48,6 +49,6 @@ def create_app(
 
     prefix = settings.apiPrefix
     app.include_router(health.router)
-    app.include_router(spaces.router, prefix=prefix)
+    app.include_router(spaces.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
 
     return app

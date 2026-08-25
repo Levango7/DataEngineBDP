@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+import hmac
 import uuid
 
 from openapi_catalog.models import (
@@ -120,19 +121,24 @@ class SubscriptionService:
         sub.updatedAt = datetime.now()
         return await self.store.save_subscription(sub)
 
-    async def authenticate(self, access_key: str) -> APISubscription:
-        """根据 AK 鉴权.
+    async def authenticate(self, access_key: str, secret: str | None = None) -> APISubscription:
+        """根据 AK/SK 鉴权.
 
         Args:
             access_key: Access Key.
+            secret: Secret Key（与 AK 成对校验，常量时间比较）.
 
         Returns:
             订阅记录.
 
         Raises:
-            InvalidAPIKeyError: AK 无效或已吊销.
+            InvalidAPIKeyError: AK 无效、已吊销、缺少 SK 或 SK 不匹配.
         """
         sub = await self.store.find_subscription_by_key(access_key)
         if sub is None or sub.status != SubscriptionStatus.ACTIVE:
+            raise InvalidAPIKeyError()
+        if not secret or sub.secretKey is None:
+            raise InvalidAPIKeyError()
+        if not hmac.compare_digest(sub.secretKey, secret):
             raise InvalidAPIKeyError()
         return sub

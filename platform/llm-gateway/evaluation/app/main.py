@@ -64,6 +64,7 @@ async def lifespan(app: FastAPI):
         base_url=settings.llm_gateway_url,
         api_key=settings.llm_gateway_api_key,
         timeout=settings.llm_gateway_timeout,
+        enable_mock_fallback=settings.enable_mock_fallback,
     )
     _state.executor = EvalExecutor(
         job_manager=_state.job_manager,

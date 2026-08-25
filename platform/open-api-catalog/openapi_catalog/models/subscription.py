@@ -43,6 +43,19 @@ class APISubscription(TimestampMixin):
     lastCalledAt: str | None = Field(default=None, description="最后调用时间")
 
 
+class SubscriptionPublic(APISubscription):
+    """订阅对外响应模型（序列化层脱敏，不返回 secretKey）.
+
+    参照 KeyInfoResponse 做法：查询/列表接口不暴露 SK。
+    """
+
+    secretKey: str | None = Field(
+        default=None,
+        exclude=True,
+        description="Secret Key（已脱敏，不对外返回）",
+    )
+
+
 class SubscribeRequest(BaseModel):
     """订阅申请请求."""
 

@@ -26,15 +26,19 @@ func NewHealthHandler(auth *middleware.JWTAuthenticator, cred *middleware.Creden
 }
 
 // RegisterRoutes 注册系统路由(健康检查、登录签发Token)
-func (h *HealthHandler) RegisterRoutes(rg *gin.RouterGroup, engine *gin.Engine) {
+// public 组承载匿名可达的登录端点（认证引导入口）；protected 组承载
+// 需有效JWT的刷新端点（其实现依赖中间件注入的身份claims）。
+func (h *HealthHandler) RegisterRoutes(public *gin.RouterGroup, protected *gin.RouterGroup, engine *gin.Engine) {
 	// 健康检查与指标(无需鉴权)
 	engine.GET("/healthz", h.Healthz)
 	engine.GET("/readyz", h.Readyz)
 	engine.GET("/version", h.Version)
 
-	// 登录签发Token
-	rg.POST("/auth/login", h.Login)
-	rg.POST("/auth/refresh", h.Refresh)
+	// 登录签发Token(匿名可达)
+	public.POST("/auth/login", h.Login)
+
+	// 刷新Token(需有效JWT)
+	protected.POST("/auth/refresh", h.Refresh)
 }
 
 // Healthz 存活探针

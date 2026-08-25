@@ -96,8 +96,8 @@ test.describe('登录流程', () => {
     await login(page, ADMIN)
     await expect(page).toHaveURL(/#\/dashboard/)
 
-    // 验证 localStorage 有 token
-    const token = await page.evaluate(() => localStorage.getItem('sq_token'))
+    // 验证 sessionStorage 有 token
+    const token = await page.evaluate(() => sessionStorage.getItem('sq_token'))
     expect(token).toBeTruthy()
     expect(token?.length).toBeGreaterThan(10)
 

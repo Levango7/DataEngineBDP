@@ -9,38 +9,23 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/config"
-	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/service"
-
 	"github.com/gin-gonic/gin"
 )
 
 // 用内存 SQLite + 关闭下游(不可达端口) 构建测试环境，验证 SSE 事件序。
-func newTestRouter() *gin.Engine {
-	gin.SetMode(gin.TestMode)
-	store, _ := service.NewSessionStore("file::memory:?cache=shared")
-	cfg := &config.Config{
-		Port:          "18110",
-		SessionDBPath: "file::memory:?cache=shared",
-		LlmGatewayURL: "http://127.0.0.1:1",
-		Nl2SqlURL:     "http://127.0.0.1:1",
-		SqlGatewayURL: "http://127.0.0.1:1",
-	}
-	proxy := service.NewDownstreamProxy(cfg)
-	svc := service.NewAssistantService(store, proxy, cfg)
-
-	r := gin.New()
-	RegisterRoutes(r, svc, cfg)
-	return r
+// 路由结构与 main.go 一致：/health 匿名，业务组挂 AuthMiddleware。
+func newTestRouter(t *testing.T) *gin.Engine {
+	return buildTestRouter(t, nil)
 }
 
 func TestChatStream_sseEventSequence(t *testing.T) {
-	router := newTestRouter()
+	router := newTestRouter(t)
 
 	body := `{"message":"查询本月订单量","enableNl2Sql":true,"enableExec":true}`
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/ai-assistant/chat/stream",
 		bytes.NewBufferString(body))
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+makeTestToken(t, "tenant-a"))
 	w := httptest.NewRecorder()
 	router.ServeHTTP(w, req)
 

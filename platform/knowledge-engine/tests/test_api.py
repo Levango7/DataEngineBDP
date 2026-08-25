@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from test_jwt_auth import make_token
+
 
 class TestHealth:
     """健康检查测试."""
@@ -161,15 +163,20 @@ class TestQuery:
         assert resp.status_code == 200
         assert isinstance(resp.json(), list)
 
-    def test_query_match(self, client: TestClient) -> None:
-        client.post("/api/v1/spaces", json={"name": "kg1", "schema": {}})
+    def test_query_match(self, client: TestClient, monkeypatch) -> None:
+        monkeypatch.setenv("AUTH_MODE", "jwt")
+        monkeypatch.setenv("JWT_SECRET", "ke-unit-test-secret-key-32b!!")
+        headers = {"Authorization": f"Bearer {make_token()}"}
+        client.post("/api/v1/spaces", json={"name": "kg1", "schema": {}}, headers=headers)
         client.post(
             "/api/v1/spaces/kg1/entities",
             json={"entities": [{"id": "v1", "name": "x", "type": "Person"}]},
+            headers=headers,
         )
         resp = client.post(
             "/api/v1/spaces/kg1/query",
             json={"nql": "MATCH (v) RETURN v"},
+            headers=headers,
         )
         assert resp.status_code == 200
         body = resp.json()

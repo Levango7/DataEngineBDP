@@ -14,6 +14,7 @@ from openapi_catalog.models import (
     ApproveRequest,
     SubscribeRequest,
     SubscriptionFilter,
+    SubscriptionPublic,
     SubscriptionStatus,
 )
 from openapi_catalog.repositories import CatalogError
@@ -57,14 +58,14 @@ async def subscribe_api(
 
 @router.get(
     "/{api_id}/subscribers",
-    response_model=list[APISubscription],
+    response_model=list[SubscriptionPublic],
     summary="订阅者列表",
 )
 async def list_subscribers(
     api_id: str,
     status_: SubscriptionStatus | None = Query(default=None, alias="status", description="状态过滤"),
     registry: ServiceRegistry = Depends(get_registry),
-) -> list[APISubscription]:
+) -> list[SubscriptionPublic]:
     """列出某 API 的所有订阅者."""
     try:
         if status_ is not None:
@@ -82,13 +83,13 @@ subscriptions_router = APIRouter(prefix="/subscriptions", tags=["subscriptions"]
 
 @subscriptions_router.get(
     "/{subscription_id}",
-    response_model=APISubscription,
+    response_model=SubscriptionPublic,
     summary="获取订阅详情",
 )
 async def get_subscription(
     subscription_id: str,
     registry: ServiceRegistry = Depends(get_registry),
-) -> APISubscription:
+) -> SubscriptionPublic:
     """获取订阅详情."""
     try:
         return await registry.subscriptionService.get_subscription(subscription_id)
@@ -98,7 +99,7 @@ async def get_subscription(
 
 @subscriptions_router.get(
     "",
-    response_model=list[APISubscription],
+    response_model=list[SubscriptionPublic],
     summary="列出订阅",
 )
 async def list_subscriptions(
@@ -109,7 +110,7 @@ async def list_subscriptions(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
-) -> list[APISubscription]:
+) -> list[SubscriptionPublic]:
     """按条件列出订阅."""
     filter_ = SubscriptionFilter(
         apiId=apiId,

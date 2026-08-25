@@ -48,6 +48,7 @@ type ChatRequest struct {
 	SessionID string `json:"sessionId"`
 	Message   string `json:"message"`
 	Locale    string `json:"locale"`
+	TenantID  string `json:"tenantId"`
 	// 链路开关（默认全开）
 	EnableNl2Sql bool `json:"enableNl2Sql"`
 	EnableExec   bool `json:"enableExec"`
@@ -91,9 +92,9 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 		}
 	}
 
-	// ③ 执行（默认开；仅当生成了 SQL）
+	// ③ 执行（默认开；仅当生成了 SQL；租户取认证回填值，禁止自报）
 	if req.EnableExec && resp.SQL != "" {
-		if execResult, err := a.proxy.ExecuteSql(ctx, resp.SQL, "ANSI", ""); err == nil {
+		if execResult, err := a.proxy.ExecuteSql(ctx, resp.SQL, "ANSI", req.TenantID); err == nil {
 			resp.Executed = true
 			_ = execResult // 结果用于后续解读（P1 扩展）
 		}

@@ -20,17 +20,27 @@ func NewAssistantHandler(svc *service.AssistantService, proxy *service.Downstrea
 	return &AssistantHandler{svc: svc, proxy: proxy}
 }
 
-// RegisterRoutes 注册 /api/v1/ai-assistant 全部端点。
-func RegisterRoutes(r *gin.Engine, svc *service.AssistantService, cfg *config.Config) {
+// Health 健康检查端点（匿名注册，供 K8s 探针/Docker HEALTHCHECK）。
+func Health(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"status": "UP", "service": "ai-assistant"})
+}
+
+// resolveTenant 租户强制：校验请求体 tenantId 与 JWT claim 一致，
+// 不一致返回 403；请求体为空时回填 claim 值后透传给下游 sql-gateway。
+func resolveTenant(c *gin.Context, bodyTenantID string) (string, bool) {
+	claim := c.GetString("tenantId")
+	if bodyTenantID == "" || bodyTenantID == claim {
+		return claim, true
+	}
+	c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "tenantId 与认证租户不一致"})
+	return "", false
+}
+
+// RegisterRoutes 在已挂认证中间件的路由组上注册 /ai-assistant 业务端点。
+func RegisterRoutes(g *gin.RouterGroup, svc *service.AssistantService, cfg *config.Config) {
 	proxy := service.NewDownstreamProxy(cfg)
 	h := NewAssistantHandler(svc, proxy)
 
-	// 健康检查（无认证，供 K8s 探针/Docker HEALTHCHECK）
-	r.GET("/api/v1/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "UP", "service": "ai-assistant"})
-	})
-
-	g := r.Group("/api/v1/ai-assistant")
 	{
 		// 对话（非流式，聚合 NL→SQL→执行→回复）
 		g.POST("/chat", h.chat)
@@ -57,6 +67,11 @@ func (h *AssistantHandler) chat(c *gin.Context) {
 	var req service.ChatRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	if tenantID, ok := resolveTenant(c, req.TenantID); ok {
+		req.TenantID = tenantID
+	} else {
 		return
 	}
 	resp, err := h.svc.Chat(c.Request.Context(), &req)
@@ -102,7 +117,11 @@ func (h *AssistantHandler) execute(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
 		return
 	}
-	out, err := h.proxy.ExecuteSql(c.Request.Context(), req.SQL, req.Dialect, req.TenantID)
+	tenantID, ok := resolveTenant(c, req.TenantID)
+	if !ok {
+		return
+	}
+	out, err := h.proxy.ExecuteSql(c.Request.Context(), req.SQL, req.Dialect, tenantID)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return

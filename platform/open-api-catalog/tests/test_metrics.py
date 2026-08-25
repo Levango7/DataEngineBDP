@@ -271,12 +271,13 @@ class TestMetricsHTTP:
             json={"approve": True, "grantedQuota": 100, "approver": "admin"},
         )
         ak = approve_resp.json()["accessKey"]
+        sk = approve_resp.json()["secretKey"]
 
         for _ in range(3):
             client.post(
                 f"/api/v1/apis/{api_id}/call",
                 json={"payload": {}},
-                headers={"X-API-Key": ak},
+                headers={"X-API-Key": ak, "X-API-Secret": sk},
             )
 
         # 获取计量

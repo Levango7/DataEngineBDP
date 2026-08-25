@@ -25,10 +25,13 @@ func newLoginRouter(t *testing.T) *gin.Engine {
 		t.Fatalf("构造凭据失败: %v", err)
 	}
 	logger := logrus.NewEntry(logrus.New())
-	h := NewHealthHandler(middleware.NewJWTAuthenticator("test-secret", time.Hour, "test"), cred, "test", logger)
+	auth := middleware.NewJWTAuthenticator("test-secret", time.Hour, "test")
+	h := NewHealthHandler(auth, cred, "test", logger)
 	engine := gin.New()
-	rg := engine.Group("/api/v1")
-	h.RegisterRoutes(rg, engine)
+	v1 := engine.Group("/api/v1")
+	protected := v1.Group("")
+	protected.Use(auth.AuthMiddleware())
+	h.RegisterRoutes(v1, protected, engine)
 	return engine
 }
 
@@ -76,7 +79,8 @@ func TestLoginNilCredConfig500(t *testing.T) {
 	logger := logrus.NewEntry(logrus.New())
 	h := NewHealthHandler(nil, nil, "test", logger)
 	engine := gin.New()
-	h.RegisterRoutes(engine.Group("/api/v1"), engine)
+	v1 := engine.Group("/api/v1")
+	h.RegisterRoutes(v1, v1.Group(""), engine)
 	w := doLogin(engine, `{"username":"admin","password":"x"}`)
 	if w.Code != http.StatusInternalServerError {
 		t.Fatalf("凭据未配置应 500，实际 %d", w.Code)

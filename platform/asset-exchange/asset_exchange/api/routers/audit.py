@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
 from asset_exchange.api.routers.deps import get_registry
 from asset_exchange.models.audit import (
     AuditIntegrityReport,
@@ -31,12 +32,15 @@ async def list_audit_logs(
     assetId: str | None = Query(default=None, description="按资产过滤"),
     action: AuditAction | None = Query(default=None, description="按动作过滤"),
     actorId: str | None = Query(default=None, description="按操作者过滤"),
-    tenantId: str | None = Query(default=None, description="按租户过滤"),
+    tenantId: str | None = Query(default=None, description="按租户过滤（仅限本人租户，admin 可指定任意租户）"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[AuditLog]:
     """列出审计日志（按时间升序）."""
+    if tenantId is not None and ctx.role != "admin" and tenantId != ctx.tenantId:
+        raise HTTPException(status_code=403, detail=f"tenantId {tenantId} 与当前身份不一致")
     filter_ = AuditLogFilter(
         assetId=assetId,
         action=action,

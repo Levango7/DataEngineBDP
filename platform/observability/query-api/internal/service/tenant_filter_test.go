@@ -1,8 +1,12 @@
 package service
 
 import (
+	"github.com/prometheus/common/model"
 	"net/url"
 	"testing"
+
+	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 )
 
 // TestNewTenantFilter 验证 TenantFilter 构造函数。
@@ -22,7 +26,7 @@ func TestInjectTenantQuery_EmptyTenantID(t *testing.T) {
 	}
 }
 
-// TestInjectTenantQuery_AlreadyContainsTenantID 已包含 tenant_id 不应重复注入。
+// TestInjectTenantQuery_AlreadyContainsTenantID 选择器已含 tenant_id 匹配器时不应重复注入。
 func TestInjectTenantQuery_AlreadyContainsTenantID(t *testing.T) {
 	f := NewTenantFilter()
 	const promql = `up{tenant_id="abc"}`
@@ -31,21 +35,101 @@ func TestInjectTenantQuery_AlreadyContainsTenantID(t *testing.T) {
 	}
 }
 
-// TestInjectTenantQuery_SimpleVector 简单向量应注入 AND 过滤。
+// TestInjectTenantQuery_SimpleVector 简单向量应在选择器上注入 tenant_id 匹配器。
 func TestInjectTenantQuery_SimpleVector(t *testing.T) {
 	f := NewTenantFilter()
 	got := f.InjectTenantQuery("up", "tenant-1")
-	const want = `(up) AND {tenant_id="tenant-1"}`
+	const want = `up{tenant_id="tenant-1"}`
 	if got != want {
 		t.Fatalf("unexpected injected PromQL: got %q want %q", got, want)
 	}
 }
 
-// TestInjectTenantQuery_FunctionCall 函数调用 PromQL 应被括号包裹后注入。
+// TestInjectTenantQuery_FunctionCall 函数调用内的选择器应注入 tenant_id 匹配器。
 func TestInjectTenantQuery_FunctionCall(t *testing.T) {
 	f := NewTenantFilter()
 	got := f.InjectTenantQuery("rate(http_requests_total[5m])", "acme")
-	const want = `(rate(http_requests_total[5m])) AND {tenant_id="acme"}`
+	const want = `rate(http_requests_total{tenant_id="acme"}[5m])`
+	if got != want {
+		t.Fatalf("unexpected injected PromQL: got %q want %q", got, want)
+	}
+}
+
+// TestInjectTenantQuery_Aggregation 聚合查询（sum(rate(...)) by (job)）
+// 注入后 AST 中 x 的选择器必须包含 tenant_id 等值匹配器。
+func TestInjectTenantQuery_Aggregation(t *testing.T) {
+	f := NewTenantFilter()
+	got := f.InjectTenantQuery("sum(rate(x[5m])) by (job)", "tenant-x")
+
+	expr, err := promqlParser.ParseExpr(got)
+	if err != nil {
+		t.Fatalf("injected PromQL failed to parse: %v (%q)", err, got)
+	}
+	selectors := parser.ExtractSelectors(expr)
+	var metricX []*labels.Matcher
+	for _, sel := range selectors {
+		for _, m := range sel {
+			if m.Name == model.MetricNameLabel && m.Value == "x" {
+				metricX = sel
+			}
+		}
+	}
+	if metricX == nil {
+		t.Fatalf("selector for metric x not found in %d selectors of %q", len(selectors), got)
+	}
+	found := false
+	for _, m := range metricX {
+		if m.Name == "tenant_id" && m.Type == labels.MatchEqual && m.Value == "tenant-x" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("metric x selector missing tenant_id EQ matcher: %v", metricX)
+	}
+}
+
+// TestInjectTenantQuery_NestedSubquery 嵌套聚合 + subquery 内层选择器同样被注入。
+func TestInjectTenantQuery_NestedSubquery(t *testing.T) {
+	f := NewTenantFilter()
+	got := f.InjectTenantQuery("max_over_time(sum(rate(x[5m])) by (job)[10m:1m])", "t-1")
+	const want = `max_over_time(sum by (job) (rate(x{tenant_id="t-1"}[5m]))[10m:1m])`
+	if got != want {
+		t.Fatalf("unexpected injected PromQL: got %q want %q", got, want)
+	}
+}
+
+// TestInjectTenantQuery_InvalidPromQL 非法 PromQL 原样返回，保持下游原始错误路径。
+func TestInjectTenantQuery_InvalidPromQL(t *testing.T) {
+	f := NewTenantFilter()
+	for _, bad := range []string{"sum(rate(", `{foo=`, `up AND`} {
+		if got := f.InjectTenantQuery(bad, "t-1"); got != bad {
+			t.Fatalf("invalid PromQL must be returned unchanged: got %q want %q", got, bad)
+		}
+	}
+}
+
+// TestInjectTenantQuery_OffsetAndAtPreserved offset / @ 子句不被破坏且选择器仍被注入。
+func TestInjectTenantQuery_OffsetAndAtPreserved(t *testing.T) {
+	f := NewTenantFilter()
+
+	offsetGot := f.InjectTenantQuery("rate(x[5m] offset 1h)", "t-1")
+	const offsetWant = `rate(x{tenant_id="t-1"}[5m] offset 1h)`
+	if offsetGot != offsetWant {
+		t.Fatalf("offset clause broken: got %q want %q", offsetGot, offsetWant)
+	}
+
+	atGot := f.InjectTenantQuery(`x @ end()`, "t-1")
+	const atWant = `x{tenant_id="t-1"} @ end()`
+	if atGot != atWant {
+		t.Fatalf("@ clause broken: got %q want %q", atGot, atWant)
+	}
+}
+
+// TestInjectTenantQuery_MixedSelectors 多选择器查询只对缺失 tenant_id 的选择器注入。
+func TestInjectTenantQuery_MixedSelectors(t *testing.T) {
+	f := NewTenantFilter()
+	got := f.InjectTenantQuery(`up{tenant_id="abc"} + rate(errs_total[5m])`, "abc")
+	const want = `up{tenant_id="abc"} + rate(errs_total{tenant_id="abc"}[5m])`
 	if got != want {
 		t.Fatalf("unexpected injected PromQL: got %q want %q", got, want)
 	}

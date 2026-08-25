@@ -115,18 +115,7 @@ func main() {
 
 	// 初始化Gin
 	gin.SetMode(cfg.Server.Mode)
-	engine := gin.New()
-	engine.Use(gin.Logger(), gin.Recovery(), middleware.CORSMiddleware())
-
-	// 注册路由
-	v1 := engine.Group("/api/v1")
-	v1.Use(auth.AuthMiddleware())
-
-	clusterHandler := handler.NewClusterHandler(svc, logger.WithField("handler", "cluster"))
-	clusterHandler.RegisterRoutes(v1)
-
-	healthHandler := handler.NewHealthHandler(auth, credCfg, Version, logger.WithField("handler", "health"))
-	healthHandler.RegisterRoutes(v1, engine)
+	engine := setupRouter(auth, svc, credCfg, Version, logger)
 
 	// 启动HTTP服务
 	srv := &http.Server{
@@ -161,6 +150,29 @@ func main() {
 		}
 	}
 	logger.Info("服务已关闭")
+}
+
+// setupRouter 构建Gin引擎并注册全部路由。
+//
+// 路由拓扑（参照catalog模式）：登录端点匿名可达（认证引导入口，否则无法
+// 获取首个Token），其余 /api/v1 业务路由与刷新端点挂 AuthMiddleware 强制鉴权。
+func setupRouter(auth *middleware.JWTAuthenticator, svc *service.BareMetalService, credCfg *middleware.CredentialConfig, version string, logger *logrus.Entry) *gin.Engine {
+	engine := gin.New()
+	engine.Use(gin.Logger(), gin.Recovery(), middleware.CORSMiddleware())
+
+	v1 := engine.Group("/api/v1")
+
+	// 受保护业务路由组：强制JWT鉴权
+	protected := v1.Group("")
+	protected.Use(auth.AuthMiddleware())
+
+	clusterHandler := handler.NewClusterHandler(svc, logger.WithField("handler", "cluster"))
+	clusterHandler.RegisterRoutes(protected)
+
+	healthHandler := handler.NewHealthHandler(auth, credCfg, version, logger.WithField("handler", "health"))
+	healthHandler.RegisterRoutes(v1, protected, engine)
+
+	return engine
 }
 
 // initLogger 初始化logrus日志

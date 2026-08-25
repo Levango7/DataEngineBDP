@@ -49,6 +49,7 @@ class APICallService:
         self,
         api_id: str,
         access_key: str,
+        secret_key: str | None = None,
         payload: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> CallResult:
@@ -57,6 +58,7 @@ class APICallService:
         Args:
             api_id: API ID.
             access_key: Access Key（鉴权凭证）.
+            secret_key: Secret Key（与 AK 成对鉴权）.
             payload: 请求体.
             headers: 请求头.
 
@@ -73,7 +75,7 @@ class APICallService:
 
         # 2. 鉴权（认证 + 租户隔离）
         try:
-            sub = await self.subscriptionService.authenticate(access_key)
+            sub = await self.subscriptionService.authenticate(access_key, secret_key)
         except InvalidAPIKeyError:
             # 鉴权失败也记录计量
             latency = (time.monotonic() - start_time) * 1000

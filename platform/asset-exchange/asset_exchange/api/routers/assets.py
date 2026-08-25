@@ -29,7 +29,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import AliasChoices, BaseModel, Field
 
-from asset_exchange.api.routers.deps import get_registry, status_for_error
+from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
+from asset_exchange.api.routers.deps import get_registry, resolve_tenant, status_for_error
 from asset_exchange.models.asset import (
     Asset,
     AssetFilter,
@@ -71,7 +72,11 @@ class ListAssetRequest(BaseModel):
 
     name: str
     type: AssetType
-    tenantId: str = Field(..., validation_alias=AliasChoices("tenantId", "owner"))
+    tenantId: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("tenantId", "owner"),
+        description="租户 ID（缺省回填 JWT claim；非 admin 与 claim 不一致返回 403）",
+    )
     description: str | None = None
     securityLevel: SecurityLevel = SecurityLevel.INTERNAL
     qualityScore: float = 0.0
@@ -88,7 +93,11 @@ class RegisterAssetRequest(BaseModel):
 
     name: str
     type: AssetType
-    tenantId: str = Field(..., validation_alias=AliasChoices("tenantId", "owner"))
+    tenantId: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("tenantId", "owner"),
+        description="租户 ID（缺省回填 JWT claim；非 admin 与 claim 不一致返回 403）",
+    )
     description: str | None = None
     securityLevel: SecurityLevel = SecurityLevel.INTERNAL
     qualityScore: float = 0.0
@@ -122,14 +131,14 @@ class UpdateAssetRequest(BaseModel):
 class DownloadRequest(BaseModel):
     """资产下载请求."""
 
-    subscriberId: str = Field(..., description="下载方租户 ID")
+    subscriberId: str | None = Field(default=None, description="下载方租户 ID（缺省取 JWT claim，请求体自报不再采信）")
     rows: int = Field(default=100, ge=1, le=1000000, description="下载行数")
 
 
 class InvokeRequest(BaseModel):
     """资产 API 调用请求."""
 
-    subscriberId: str = Field(..., description="调用方租户 ID")
+    subscriberId: str | None = Field(default=None, description="调用方租户 ID（缺省取 JWT claim，请求体自报不再采信）")
     params: dict = Field(default_factory=dict, description="调用参数")
 
 
@@ -145,13 +154,15 @@ class InvokeRequest(BaseModel):
 async def register_asset(
     req: RegisterAssetRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
     """资产登记（元数据登记，状态置为 DRAFT）."""
+    tenant_id = resolve_tenant(ctx, req.tenantId)
     asset = Asset(
         id=str(uuid.uuid4()),
         name=req.name,
         type=req.type,
-        tenantId=req.tenantId,
+        tenantId=tenant_id,
         description=req.description,
         securityLevel=req.securityLevel,
         qualityScore=req.qualityScore,
@@ -167,9 +178,9 @@ async def register_asset(
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.REGISTER,
-            actor_id=req.tenantId,
+            actor_id=tenant_id,
             asset_id=result.id,
-            tenant_id=req.tenantId,
+            tenant_id=tenant_id,
             detail={"name": req.name, "type": req.type.value},
         )
         return result
@@ -251,13 +262,15 @@ async def publish_asset(
 async def list_asset(
     req: ListAssetRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
     """上架一个新资产到流通市场（兼容旧接口，等价于 register + publish）."""
+    tenant_id = resolve_tenant(ctx, req.tenantId)
     asset = Asset(
         id=str(uuid.uuid4()),
         name=req.name,
         type=req.type,
-        tenantId=req.tenantId,
+        tenantId=tenant_id,
         description=req.description,
         securityLevel=req.securityLevel,
         qualityScore=req.qualityScore,
@@ -273,9 +286,9 @@ async def list_asset(
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.PUBLISH,
-            actor_id=req.tenantId,
+            actor_id=tenant_id,
             asset_id=result.id,
-            tenant_id=req.tenantId,
+            tenant_id=tenant_id,
             detail={"name": req.name, "type": req.type.value},
         )
         return result
@@ -293,7 +306,7 @@ async def list_assets(
     type: AssetType | None = Query(default=None, description="按类型过滤"),
     status_: AssetStatus | None = Query(default=None, alias="status", description="按状态过滤"),
     securityLevel: SecurityLevel | None = Query(default=None, description="按安全分级过滤"),
-    tenantId: str | None = Query(default=None, description="按租户 ID 过滤（推荐）"),
+    tenantId: str | None = Query(default=None, description="按租户 ID 过滤（仅限本人租户，admin 可指定任意租户）"),
     owner: str | None = Query(
         default=None,
         description="按提供方过滤（已废弃，请使用 tenantId；为兼容旧客户端保留）",
@@ -302,9 +315,12 @@ async def list_assets(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Asset]:
     """浏览资产市场（默认只返回已上架资产）."""
     effective_tenant_id = tenantId if tenantId is not None else owner
+    if effective_tenant_id is not None and ctx.role != "admin" and effective_tenant_id != ctx.tenantId:
+        raise HTTPException(status_code=403, detail=f"tenantId {effective_tenant_id} 与当前身份不一致")
     filter_ = AssetFilter(
         name=name,
         type=type,
@@ -384,9 +400,11 @@ async def subscribe_asset(
     asset_id: str,
     req: SubscribeRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Subscription:
     """订阅资产（提交后进入待审批状态）."""
     try:
+        req.subscriberId = resolve_tenant(ctx, req.subscriberId)
         # 把 durationDays 放入 pullConfig 便于审批时使用
         pull_config = dict(req.pullConfig)
         pull_config["_durationDays"] = req.durationDays
@@ -414,14 +432,16 @@ async def download_asset(
     asset_id: str,
     req: DownloadRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
     """下载资产（流通方式之一）."""
+    subscriber_id = resolve_tenant(ctx, req.subscriberId)
     try:
-        result = await registry.assetService.download(asset_id, req.subscriberId, req.rows)
+        result = await registry.assetService.download(asset_id, subscriber_id, req.rows)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.DOWNLOAD,
-            actor_id=req.subscriberId,
+            actor_id=subscriber_id,
             asset_id=asset_id,
             detail={"rows": req.rows},
         )
@@ -439,14 +459,16 @@ async def invoke_asset(
     asset_id: str,
     req: InvokeRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
     """API 调用资产（流通方式之一）."""
+    subscriber_id = resolve_tenant(ctx, req.subscriberId)
     try:
-        result = await registry.assetService.invoke(asset_id, req.subscriberId, req.params)
+        result = await registry.assetService.invoke(asset_id, subscriber_id, req.params)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.INVOKE,
-            actor_id=req.subscriberId,
+            actor_id=subscriber_id,
             asset_id=asset_id,
             detail={"params": req.params},
         )

@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
 from typing import Any, Optional
@@ -36,6 +37,7 @@ class JobManager:
         self._jobs: dict[str, JobInfo] = {}
         self._logs: dict[str, list[str]] = {}
         self._requests: dict[str, SubmitJobRequest] = {}
+        self._task_handles: dict[str, "asyncio.Task"] = {}
         self._lock = threading.Lock()
 
     def submit(self, request: SubmitJobRequest) -> JobInfo:
@@ -103,6 +105,21 @@ class JobManager:
         with self._lock:
             return self._logs.get(job_id)
 
+    def register_task(self, job_id: str, task: "asyncio.Task") -> None:
+        """登记任务的异步执行句柄（供 terminate 取消）。
+
+        Args:
+            job_id: 任务 ID
+            task: 后台执行的 asyncio.Task
+        """
+        with self._lock:
+            self._task_handles[job_id] = task
+
+    def get_task_handle(self, job_id: str) -> Optional["asyncio.Task"]:
+        """获取任务的异步执行句柄。"""
+        with self._lock:
+            return self._task_handles.get(job_id)
+
     def add_log(self, job_id: str, message: str) -> None:
         """添加任务日志（内部使用）。"""
         timestamp = utcnow().isoformat()
@@ -114,6 +131,8 @@ class JobManager:
         """终止任务。
 
         仅 PENDING 和 RUNNING 状态可终止。
+        若任务有登记中的异步句柄，则同时取消该 Task；
+        执行线程会在下一个样本边界检测到 TERMINATED 后停止。
 
         Args:
             job_id: 任务 ID
@@ -127,10 +146,14 @@ class JobManager:
                 return None
             if job.status not in (JobStatus.PENDING, JobStatus.RUNNING):
                 return None
+            previous_status = job.status.value
             job.status = JobStatus.TERMINATED
             job.finished_at = utcnow()
-            self._add_log_unlocked(job_id, f"任务被用户终止，原状态={job.status.value}")
-            return job
+            self._add_log_unlocked(job_id, f"任务被用户终止，原状态={previous_status}")
+            handle = self._task_handles.pop(job_id, None)
+        if handle is not None and not handle.done():
+            handle.cancel()
+        return job
 
     def update_status(
         self,
@@ -150,6 +173,7 @@ class JobManager:
                 job.started_at = utcnow()
             if status in (JobStatus.SUCCEEDED, JobStatus.FAILED):
                 job.finished_at = utcnow()
+                self._task_handles.pop(job_id, None)
             return job
 
     def _add_log_unlocked(self, job_id: str, message: str) -> None:

@@ -3,14 +3,20 @@ package service
 import (
 	"fmt"
 	"net/url"
-	"strings"
+
+	"github.com/prometheus/prometheus/model/labels"
+	"github.com/prometheus/prometheus/promql/parser"
 )
+
+const tenantLabelName = "tenant_id"
 
 // TenantFilter 负责租户隔离的 PromQL 注入与标签过滤。
 //
 // 核心策略：
-//  1. 对瞬时/范围查询的 PromQL（query 参数），注入 tenant_id 过滤：
-//     原 PromQL → 原 PromQL{tenant_id="xxx"} 或 AND {tenant_id="xxx"}
+//  1. 对瞬时/范围查询的 PromQL（query 参数），解析 PromQL AST，遍历所有
+//     VectorSelector 节点，为缺失 tenant_id 匹配器的选择器追加
+//     {tenant_id="xxx"} 等值匹配器后重新序列化。该方式正确覆盖嵌套聚合
+//     （sum/rate...）与 subquery，且保留 offset/@ 子句。
 //  2. 对 labels/series 请求，追加 match[]={__name__=~"...",tenant_id="xxx"} 过滤。
 //  3. 平台方请求不做任何过滤（全平台可见）。
 type TenantFilter struct{}
@@ -20,29 +26,50 @@ func NewTenantFilter() *TenantFilter {
 	return &TenantFilter{}
 }
 
-// InjectTenantQuery 将 tenant_id 标签过滤注入到 PromQL 查询表达式中。
+// InjectTenantQuery 将 tenant_id 标签过滤注入到 PromQL 查询表达式的每个选择器上。
 //
-// 策略（简化版，覆盖常见 PromQL 形态）：
-//   - 若 PromQL 已包含 tenant_id 标签，不重复注入（避免语法错误）。
-//   - 若 PromQL 是简单向量选择（如 up），追加 {tenant_id="xxx"}。
-//   - 若 PromQL 是函数/聚合（如 rate(...[5m])、sum by (...) (...)），
-//     用 AND {tenant_id="xxx"} 包裹（最外层注入，不影响聚合维度）。
-//
-// 注意：本实现采用最外层 AND 注入策略，对绝大多数告警/仪表板 PromQL 安全。
-// 对包含 or/and/unless 二元运算的复杂 PromQL，AND 优先级低于这些运算符，
-// 可能导致过滤范围不精确；生产环境建议使用 Prometheus 的 Query Param 注入
-// 或 remote_read 分租户方案。本实现满足"租户间指标互不可见"的安全要求。
+// 策略：
+//   - 解析失败（非法 PromQL）时原样返回，由下游 Prometheus 返回原始解析错误。
+//   - 已显式含 tenant_id 匹配器的选择器不重复注入。
+//   - offset / @ 子句在重新序列化时保持不变。
 func (f *TenantFilter) InjectTenantQuery(promql string, tenantID string) string {
 	if tenantID == "" {
 		return promql
 	}
-	// 若已显式包含 tenant_id 标签，不重复注入。
-	if strings.Contains(promql, "tenant_id") {
+	expr, err := promqlParser.ParseExpr(promql)
+	if err != nil {
 		return promql
 	}
-	// 最外层 AND 注入：原 PromQL AND {tenant_id="xxx"}
-	// 用括号保证 AND 在最外层。
-	return fmt.Sprintf("(%s) AND {tenant_id=\"%s\"}", promql, tenantID)
+	injector := &tenantMatcherInjector{tenantID: tenantID}
+	if err := parser.Walk(injector, expr, nil); err != nil {
+		return promql
+	}
+	return expr.String()
+}
+
+var promqlParser = parser.NewParser(parser.Options{})
+
+// tenantMatcherInjector 遍历 AST 并为缺失 tenant_id 匹配器的 VectorSelector 注入等值匹配器。
+type tenantMatcherInjector struct {
+	tenantID string
+}
+
+// Visit 实现 parser.Visitor 接口。
+func (v *tenantMatcherInjector) Visit(node parser.Node, _ []parser.Node) (parser.Visitor, error) {
+	if vs, ok := node.(*parser.VectorSelector); ok && !hasTenantMatcher(vs.LabelMatchers) {
+		vs.LabelMatchers = append(vs.LabelMatchers,
+			labels.MustNewMatcher(labels.MatchEqual, tenantLabelName, v.tenantID))
+	}
+	return v, nil
+}
+
+func hasTenantMatcher(ms []*labels.Matcher) bool {
+	for _, m := range ms {
+		if m.Name == tenantLabelName {
+			return true
+		}
+	}
+	return false
 }
 
 // InjectTenantParams 对 labels/series 请求的 params 注入 tenant_id match 过滤。

@@ -110,7 +110,7 @@
 
 | 文件 | 副本位置 |
 | --- | --- |
-| `jwt_auth.py` | `platform/llmops/llmops/api/`（canonical）、`platform/ml-platform/ml_platform/api/`、`platform/nl2sql/`、`platform/llm-gateway/evaluation/app/` |
+| `jwt_auth.py` | `platform/llmops/llmops/api/`（canonical）、`platform/ml-platform/ml_platform/api/`、`platform/nl2sql/`、`platform/llm-gateway/evaluation/app/`、`platform/knowledge-engine/knowledge_engine/api/`、`platform/asset-exchange/asset_exchange/api/` |
 
 规则：
 

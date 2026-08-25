@@ -121,14 +121,14 @@ class TestSubscription:
         )
 
         # 鉴权
-        result = await registry.subscriptionService.authenticate(approved.accessKey)
+        result = await registry.subscriptionService.authenticate(approved.accessKey, approved.secretKey)
         assert result.id == approved.id
 
     @pytest.mark.asyncio
     async def test_authenticate_invalid_key(self, registry):
         """测试无效 AK 鉴权."""
         with pytest.raises(InvalidAPIKeyError):
-            await registry.subscriptionService.authenticate("invalid-key")
+            await registry.subscriptionService.authenticate("invalid-key", "some-secret")
 
     @pytest.mark.asyncio
     async def test_authenticate_revoked_key(self, registry, make_api_def):
@@ -151,13 +151,62 @@ class TestSubscription:
             ApproveRequest(approve=True, approver="admin"),
         )
         ak = approved.accessKey
+        sk = approved.secretKey
 
         # 吊销
         await registry.subscriptionService.revoke_subscription(saved_sub.id)
 
         # 鉴权应失败
         with pytest.raises(InvalidAPIKeyError):
-            await registry.subscriptionService.authenticate(ak)
+            await registry.subscriptionService.authenticate(ak, sk)
+
+    @pytest.mark.asyncio
+    async def test_authenticate_missing_secret(self, registry, make_api_def):
+        """测试缺少 SK 鉴权应失败."""
+        api = make_api_def(name="auth-no-sk")
+        saved_api = await registry.apiRegistryService.register_api(api)
+
+        sub = APISubscription(
+            id="",
+            apiId=saved_api.id,
+            subscriberId="sub-no-sk",
+            subscriberTenantId="tenant-consumer",
+            providerTenantId="tenant-provider",
+            purpose="测试",
+            quotaExpect=100,
+        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
+        approved = await registry.subscriptionService.approve_subscription(
+            saved_sub.id,
+            ApproveRequest(approve=True, approver="admin"),
+        )
+
+        with pytest.raises(InvalidAPIKeyError):
+            await registry.subscriptionService.authenticate(approved.accessKey)
+
+    @pytest.mark.asyncio
+    async def test_authenticate_wrong_secret(self, registry, make_api_def):
+        """测试错误 SK 鉴权应失败."""
+        api = make_api_def(name="auth-wrong-sk")
+        saved_api = await registry.apiRegistryService.register_api(api)
+
+        sub = APISubscription(
+            id="",
+            apiId=saved_api.id,
+            subscriberId="sub-wrong-sk",
+            subscriberTenantId="tenant-consumer",
+            providerTenantId="tenant-provider",
+            purpose="测试",
+            quotaExpect=100,
+        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
+        approved = await registry.subscriptionService.approve_subscription(
+            saved_sub.id,
+            ApproveRequest(approve=True, approver="admin"),
+        )
+
+        with pytest.raises(InvalidAPIKeyError):
+            await registry.subscriptionService.authenticate(approved.accessKey, "SK-wrong-secret")
 
     @pytest.mark.asyncio
     async def test_suspend_resume_subscription(self, registry, make_api_def):
@@ -296,6 +345,7 @@ class TestAPICall:
         result = await registry.apiCallService.call_api(
             api_id=saved_api.id,
             access_key=approved.accessKey,
+            secret_key=approved.secretKey,
             payload={"q": "test"},
         )
 
@@ -303,6 +353,79 @@ class TestAPICall:
         assert result.error is None
         assert result.result is not None
         assert result.result["apiId"] == saved_api.id
+
+    @pytest.mark.asyncio
+    async def test_call_api_missing_secret(self, registry, make_api_def):
+        """测试缺少 SK 调用应返回 401."""
+        api = make_api_def(name="call-missing-sk")
+        saved_api = await registry.apiRegistryService.register_api(api)
+        await registry.apiRegistryService.submit_for_review(saved_api.id)
+        await registry.apiRegistryService.approve(saved_api.id)
+        await registry.apiRegistryService.publish(saved_api.id)
+
+        registry.rateLimiter.configure_api(saved_api.id, 100)
+
+        sub = APISubscription(
+            id="",
+            apiId=saved_api.id,
+            subscriberId="sub-call-nosk",
+            subscriberTenantId="tenant-consumer",
+            providerTenantId="tenant-provider",
+            purpose="测试",
+            quotaExpect=100,
+        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
+        approved = await registry.subscriptionService.approve_subscription(
+            saved_sub.id,
+            ApproveRequest(approve=True, approver="admin", grantedQuota=100),
+        )
+        registry.rateLimiter.configure_subscription(approved.id, 100)
+
+        result = await registry.apiCallService.call_api(
+            api_id=saved_api.id,
+            access_key=approved.accessKey,
+            payload={},
+        )
+
+        assert result.statusCode == 401
+        assert result.error is not None
+
+    @pytest.mark.asyncio
+    async def test_call_api_wrong_secret(self, registry, make_api_def):
+        """测试错误 SK 调用应返回 401."""
+        api = make_api_def(name="call-wrong-sk")
+        saved_api = await registry.apiRegistryService.register_api(api)
+        await registry.apiRegistryService.submit_for_review(saved_api.id)
+        await registry.apiRegistryService.approve(saved_api.id)
+        await registry.apiRegistryService.publish(saved_api.id)
+
+        registry.rateLimiter.configure_api(saved_api.id, 100)
+
+        sub = APISubscription(
+            id="",
+            apiId=saved_api.id,
+            subscriberId="sub-call-wrongsk",
+            subscriberTenantId="tenant-consumer",
+            providerTenantId="tenant-provider",
+            purpose="测试",
+            quotaExpect=100,
+        )
+        saved_sub = await registry.subscriptionService.apply_subscription(saved_api.id, sub)
+        approved = await registry.subscriptionService.approve_subscription(
+            saved_sub.id,
+            ApproveRequest(approve=True, approver="admin", grantedQuota=100),
+        )
+        registry.rateLimiter.configure_subscription(approved.id, 100)
+
+        result = await registry.apiCallService.call_api(
+            api_id=saved_api.id,
+            access_key=approved.accessKey,
+            secret_key="SK-wrong-secret",
+            payload={},
+        )
+
+        assert result.statusCode == 401
+        assert result.error is not None
 
     @pytest.mark.asyncio
     async def test_call_api_no_auth(self, registry, make_api_def):
@@ -316,6 +439,7 @@ class TestAPICall:
         result = await registry.apiCallService.call_api(
             api_id=saved_api.id,
             access_key="invalid-key",
+            secret_key="some-secret",
             payload={},
         )
 
@@ -370,6 +494,7 @@ class TestAPICall:
         r1 = await registry.apiCallService.call_api(
             api_id=saved_api.id,
             access_key=approved.accessKey,
+            secret_key=approved.secretKey,
             payload={},
         )
         assert r1.statusCode == 200
@@ -378,6 +503,7 @@ class TestAPICall:
         r2 = await registry.apiCallService.call_api(
             api_id=saved_api.id,
             access_key=approved.accessKey,
+            secret_key=approved.secretKey,
             payload={},
         )
         assert r2.statusCode == 429
@@ -465,14 +591,200 @@ class TestAPICallHTTP:
             },
         )
         ak = approve_resp.json()["accessKey"]
+        sk = approve_resp.json()["secretKey"]
 
         # 调用
         response = client.post(
             f"/api/v1/apis/{api_id}/call",
             json={"payload": {"q": "test"}},
-            headers={"X-API-Key": ak},
+            headers={"X-API-Key": ak, "X-API-Secret": sk},
         )
         assert response.status_code == 200
         data = response.json()
         assert data["statusCode"] == 200
         assert data["result"] is not None
+
+    def test_call_api_missing_secret_http(self, client):
+        """测试 HTTP 调用缺少 X-API-Secret 返回 401."""
+        create_resp = client.post(
+            "/api/v1/apis",
+            json={
+                "name": "call-http-no-sk",
+                "version": "1.0.0",
+                "method": "GET",
+                "path": "/call-no-sk",
+                "upstream": {
+                    "type": "trino",
+                    "url": "http://trino:8080",
+                    "method": "GET",
+                },
+                "providerTenantId": "tenant-1",
+            },
+        )
+        api_id = create_resp.json()["id"]
+        client.post(f"/api/v1/apis/{api_id}/submit-review")
+        client.post(f"/api/v1/apis/{api_id}/approve")
+        client.post(f"/api/v1/apis/{api_id}/publish")
+
+        sub_resp = client.post(
+            f"/api/v1/apis/{api_id}/subscribe",
+            json={
+                "subscriberId": "sub-http-nosk",
+                "subscriberTenantId": "tenant-consumer",
+                "purpose": "测试",
+                "quotaExpect": 100,
+            },
+        )
+        sub_id = sub_resp.json()["id"]
+
+        approve_resp = client.post(
+            f"/api/v1/subscriptions/{sub_id}/approve",
+            json={
+                "approve": True,
+                "reason": "同意",
+                "grantedQuota": 100,
+                "approver": "admin",
+            },
+        )
+        ak = approve_resp.json()["accessKey"]
+
+        # 只带 AK 不带 SK
+        response = client.post(
+            f"/api/v1/apis/{api_id}/call",
+            json={"payload": {}},
+            headers={"X-API-Key": ak},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["statusCode"] == 401
+        assert "X-API-Secret" in data["error"]
+
+    def test_call_api_wrong_secret_http(self, client):
+        """测试 HTTP 调用错误 SK 返回 401."""
+        create_resp = client.post(
+            "/api/v1/apis",
+            json={
+                "name": "call-http-wrong-sk",
+                "version": "1.0.0",
+                "method": "GET",
+                "path": "/call-wrong-sk",
+                "upstream": {
+                    "type": "trino",
+                    "url": "http://trino:8080",
+                    "method": "GET",
+                },
+                "providerTenantId": "tenant-1",
+            },
+        )
+        api_id = create_resp.json()["id"]
+        client.post(f"/api/v1/apis/{api_id}/submit-review")
+        client.post(f"/api/v1/apis/{api_id}/approve")
+        client.post(f"/api/v1/apis/{api_id}/publish")
+
+        sub_resp = client.post(
+            f"/api/v1/apis/{api_id}/subscribe",
+            json={
+                "subscriberId": "sub-http-wrongsk",
+                "subscriberTenantId": "tenant-consumer",
+                "purpose": "测试",
+                "quotaExpect": 100,
+            },
+        )
+        sub_id = sub_resp.json()["id"]
+
+        approve_resp = client.post(
+            f"/api/v1/subscriptions/{sub_id}/approve",
+            json={
+                "approve": True,
+                "reason": "同意",
+                "grantedQuota": 100,
+                "approver": "admin",
+            },
+        )
+        ak = approve_resp.json()["accessKey"]
+
+        response = client.post(
+            f"/api/v1/apis/{api_id}/call",
+            json={"payload": {}},
+            headers={"X-API-Key": ak, "X-API-Secret": "SK-wrong-secret"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["statusCode"] == 401
+        assert data["error"] is not None
+
+
+class TestSubscriptionSecretMasking:
+    """订阅响应 secretKey 脱敏测试."""
+
+    def _create_approved_subscription(self, client, name: str) -> tuple[str, str]:
+        """创建 API 并完成订阅审批，返回 (api_id, subscription_id)."""
+        create_resp = client.post(
+            "/api/v1/apis",
+            json={
+                "name": name,
+                "version": "1.0.0",
+                "method": "GET",
+                "path": f"/{name}",
+                "upstream": {
+                    "type": "trino",
+                    "url": "http://trino:8080",
+                    "method": "GET",
+                },
+                "providerTenantId": "tenant-1",
+            },
+        )
+        api_id = create_resp.json()["id"]
+        client.post(f"/api/v1/apis/{api_id}/submit-review")
+        client.post(f"/api/v1/apis/{api_id}/approve")
+        client.post(f"/api/v1/apis/{api_id}/publish")
+
+        sub_resp = client.post(
+            f"/api/v1/apis/{api_id}/subscribe",
+            json={
+                "subscriberId": f"sub-mask-{name}",
+                "subscriberTenantId": "tenant-consumer",
+                "purpose": "测试",
+                "quotaExpect": 100,
+            },
+        )
+        sub_id = sub_resp.json()["id"]
+        approve_resp = client.post(
+            f"/api/v1/subscriptions/{sub_id}/approve",
+            json={
+                "approve": True,
+                "reason": "同意",
+                "grantedQuota": 100,
+                "approver": "admin",
+            },
+        )
+        assert approve_resp.status_code == 200
+        return api_id, sub_id
+
+    def test_subscription_detail_masks_secret(self, client):
+        """订阅详情响应不应包含 secretKey."""
+        _, sub_id = self._create_approved_subscription(client, "mask-detail")
+
+        resp = client.get(f"/api/v1/subscriptions/{sub_id}")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "secretKey" not in data
+        assert data.get("accessKey") is not None
+
+    def test_subscription_list_masks_secret(self, client):
+        """订阅列表响应不应包含 secretKey."""
+        self._create_approved_subscription(client, "mask-list")
+
+        resp = client.get("/api/v1/subscriptions")
+        assert resp.status_code == 200
+        for item in resp.json():
+            assert "secretKey" not in item
+
+    def test_subscriber_list_masks_secret(self, client):
+        """订阅者列表响应不应包含 secretKey."""
+        api_id, _ = self._create_approved_subscription(client, "mask-subscribers")
+
+        resp = client.get(f"/api/v1/apis/{api_id}/subscribers")
+        assert resp.status_code == 200
+        for item in resp.json():
+            assert "secretKey" not in item

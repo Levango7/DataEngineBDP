@@ -3,7 +3,7 @@
  *
  * 提供：
  * - login(page)        通过 UI 登录（admin/admin），返回主页面
- * - loginByApi(page)   通过 API 直接登录并写入 localStorage，跳过 UI
+ * - loginByApi(page)   通过 API 直接登录并写入存储，跳过 UI
  * - ensureLoggedIn(page) 智能选择登录方式
  * - apiBase            后端 API 基址
  */
@@ -15,7 +15,7 @@ export const apiBase = '/api/v1'
 /** 默认管理员账号 */
 export const ADMIN = { username: 'admin', password: 'admin' }
 
-/** localStorage 键（与 stores/auth.ts 保持一致） */
+/** 存储键（与 stores/auth.ts 保持一致：token → sessionStorage，user → localStorage） */
 const TOKEN_KEY = 'sq_token'
 const USER_KEY = 'sq_user'
 
@@ -46,11 +46,11 @@ export async function login(page: Page, creds: { username: string; password: str
 }
 
 /**
- * 通过 API 直接登录并写入 localStorage（跳过 UI，更快）
+ * 通过 API 直接登录并写入存储（token 入 sessionStorage，user 入 localStorage；跳过 UI，更快）
  * 用于不需要验证登录页 UI 的测试
  */
 export async function loginByApi(page: Page, creds: { username: string; password: string } = ADMIN): Promise<void> {
-  // 先打开页面以获得 localStorage 上下文
+  // 先打开页面以获得 storage 上下文
   await page.goto('/#/login', { waitUntil: 'domcontentloaded' })
 
   // 通过浏览器内 fetch 调用登录接口（经 vite proxy 转发到后端）
@@ -69,7 +69,7 @@ export async function loginByApi(page: Page, creds: { username: string; password
 
   const { token, user } = result.json.data
   await page.evaluate(({ t, u, tk, uk }) => {
-    localStorage.setItem(tk, t)
+    sessionStorage.setItem(tk, t)
     localStorage.setItem(uk, JSON.stringify(u))
   }, { t: token, u: user, tk: TOKEN_KEY, uk: USER_KEY })
 }
@@ -79,7 +79,7 @@ export async function loginByApi(page: Page, creds: { username: string; password
  * 用 UI 登录更稳定（已验证可用）
  */
 export async function ensureLoggedIn(page: Page): Promise<void> {
-  // 先检查是否已登录（localStorage 有 token）
+  // 先检查是否已登录（无 token 会被路由守卫重定向到 /login）
   await page.goto('/', { waitUntil: 'domcontentloaded' })
   await page.waitForTimeout(500)
   const url = page.url()

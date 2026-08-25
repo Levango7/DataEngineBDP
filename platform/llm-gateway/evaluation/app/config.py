@@ -50,6 +50,9 @@ class Settings:
     max_concurrency: int = 4
     request_timeout: int = 30
 
+    # 网关不可达时是否回退 Mock 响应（默认关闭，防止故障期间指标失真）
+    enable_mock_fallback: bool = False
+
     # 认证
     # 安全策略：jwt_secret 默认空字符串，生产环境（dev_mode=False）必须通过
     # JWT_SECRET 环境变量显式配置，缺失则 fail-fast 抛异常。
@@ -72,6 +75,7 @@ class Settings:
             dataset_cache_dir=os.environ.get("DATASET_CACHE_DIR", "./.cache/datasets"),
             max_concurrency=int(os.environ.get("EVAL_MAX_CONCURRENCY", "4")),
             request_timeout=int(os.environ.get("EVAL_REQUEST_TIMEOUT", "30")),
+            enable_mock_fallback=_env_bool("EVAL_MOCK_FALLBACK", False),
             jwt_secret=os.environ.get("JWT_SECRET", ""),
             jwt_issuer=os.environ.get("JWT_ISSUER", "shuqing-bigdata"),
             dev_mode=_env_bool("EVAL_DEV_MODE", False),

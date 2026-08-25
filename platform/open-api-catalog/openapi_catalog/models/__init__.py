@@ -39,6 +39,7 @@ from openapi_catalog.models.subscription import (
     ApproveRequest,
     SubscribeRequest,
     SubscriptionFilter,
+    SubscriptionPublic,
 )
 
 __all__ = [
@@ -65,6 +66,7 @@ __all__ = [
     "SubscribeRequest",
     "ApproveRequest",
     "SubscriptionFilter",
+    "SubscriptionPublic",
     # metrics
     "APIMetrics",
     "CallMetric",

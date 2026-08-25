@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import httpx
+import pytest
+from app.config import Settings
 from app.core.llm_client import ChatResponse, LLMGatewayClient
 
 
@@ -43,6 +46,31 @@ class TestLLMGatewayClientMock:
     def test_base_url_trailing_slash(self) -> None:
         client = LLMGatewayClient(base_url="http://example.com/", mock_mode=True)
         assert client.base_url == "http://example.com"
+
+
+class TestLLMGatewayClientMockFallback:
+    def test_mock_fallback_disabled_by_default(self) -> None:
+        """默认关闭 Mock 兜底，防止网关故障时静默计分。"""
+        client = LLMGatewayClient()
+        assert client.enable_mock_fallback is False
+
+    def test_settings_default_mock_fallback_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Settings 默认 enable_mock_fallback=False。"""
+        monkeypatch.delenv("EVAL_MOCK_FALLBACK", raising=False)
+        settings = Settings.from_env()
+        assert settings.enable_mock_fallback is False
+
+    def test_chat_raises_when_unreachable_without_fallback(self) -> None:
+        """网关不可达且未开启兜底时应抛出异常而非返回 'B'。"""
+        client = LLMGatewayClient(base_url="http://127.0.0.1:1", timeout=2)
+        with pytest.raises(httpx.HTTPError):
+            client.chat("test-model", [{"role": "user", "content": "hi"}])
+
+    def test_fallback_response_marks_raw_mock(self) -> None:
+        """显式开启兜底时，结果 raw.mock=True 可辨识。"""
+        client = LLMGatewayClient(base_url="http://127.0.0.1:1", timeout=2, enable_mock_fallback=True)
+        result = client.chat("test-model", [{"role": "user", "content": "hi"}])
+        assert result["raw"]["mock"] is True
 
 
 class TestLLMGatewayClientParseResponse:

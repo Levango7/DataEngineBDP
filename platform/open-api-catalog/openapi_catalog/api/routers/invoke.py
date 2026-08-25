@@ -34,14 +34,15 @@ async def call_api(
     api_id: str,
     req: CallAPIRequest,
     x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    x_api_secret: str | None = Header(default=None, alias="X-API-Secret"),
     authorization: str | None = Header(default=None),
     registry: ServiceRegistry = Depends(get_registry),
 ) -> CallResult:
     """调用 API（经网关：鉴权 → 限流 → 计量 → 转发）.
 
     鉴权方式：
-    - X-API-Key header（API Key 认证）
-    - Authorization: Bearer <token> header（JWT 认证，从 token 提取 AK）
+    - X-API-Key + X-API-Secret headers（AK/SK 成对认证）
+    - Authorization: Bearer <token> header（JWT 认证，从 token 提取 AK，仍需 X-API-Secret）
     """
     # 提取 access_key
     access_key = x_api_key
@@ -58,10 +59,19 @@ async def call_api(
             error="缺少鉴权凭证: X-API-Key 或 Authorization",
         )
 
+    if not x_api_secret:
+        return CallResult(
+            callId="",
+            statusCode=401,
+            latencyMs=0.0,
+            error="缺少鉴权凭证: X-API-Secret",
+        )
+
     try:
         return await registry.apiCallService.call_api(
             api_id=api_id,
             access_key=access_key,
+            secret_key=x_api_secret,
             payload=req.payload,
             headers=req.headers,
         )

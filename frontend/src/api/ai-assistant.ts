@@ -70,7 +70,7 @@ export async function chatStream(
 ): Promise<ChatResponse> {
   const url = `${buildBase()}${BASE}/chat/stream`
   // 与 client 拦截器一致：自动携带 Bearer token（auth store 持久化键 sq_token）
-  const token = localStorage.getItem('sq_token')
+  const token = sessionStorage.getItem('sq_token')
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'text/event-stream'

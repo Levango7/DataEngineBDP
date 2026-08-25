@@ -193,6 +193,8 @@ class LoopOrchestrator:
             base_model=task.request.baseModel,
             adapter_path=result.adapterPath or "",
             tenant_id=task.request.tenantId,
+            method=task.request.finetune.method,
+            framework=task.request.finetune.framework,
             loop_task_id=taskId,
             metrics=result.metrics,
         )

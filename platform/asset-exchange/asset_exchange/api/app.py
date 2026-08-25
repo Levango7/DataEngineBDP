@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from asset_exchange.api.jwt_auth import getAuthContext
 from asset_exchange.api.routers import assets, audit, health, subscriptions
 from asset_exchange.config.settings import Settings, get_settings
 from asset_exchange.services.registry import ServiceRegistry, build_services
@@ -49,9 +50,9 @@ def create_app(
 
     prefix = settings.apiPrefix
     app.include_router(health.router, prefix=prefix)
-    app.include_router(assets.router, prefix=prefix)
-    app.include_router(subscriptions.router, prefix=prefix)
-    app.include_router(audit.router, prefix=prefix)
+    app.include_router(assets.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(subscriptions.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(audit.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
 
     # ---- 全局异常处理器：统一错误响应格式 {error, message} ----
     @app.exception_handler(Exception)

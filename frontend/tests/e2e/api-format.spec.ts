@@ -124,7 +124,7 @@ test.describe('API 响应格式验证（ApiResponse 统一包装）', () => {
       await page.goto('/#/dashboard', { waitUntil: 'domcontentloaded' })
 
       // 清除 token（模拟 token 失效）
-      await page.evaluate(() => localStorage.removeItem('sq_token'))
+      await page.evaluate(() => sessionStorage.removeItem('sq_token'))
 
       // 触发一次 API 调用（访问需要鉴权的页面）
       await page.goto('/#/projects', { waitUntil: 'domcontentloaded' })

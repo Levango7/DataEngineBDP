@@ -11,6 +11,7 @@ import (
 
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/api"
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/config"
+	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/middleware"
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -31,9 +32,14 @@ func main() {
 	// 业务服务
 	assistant := service.NewAssistantService(sessionStore, proxy, cfg)
 
-	// HTTP 路由
+	// HTTP 路由：公开端点（/health 匿名，供探针）先注册，
+	// 其余业务路由统一挂 JWT 认证中间件（对齐 catalog 模式）。
 	router := gin.Default()
-	api.RegisterRoutes(router, assistant, cfg)
+	router.GET("/api/v1/health", api.Health)
+
+	protected := router.Group("/api/v1/ai-assistant")
+	protected.Use(middleware.AuthMiddleware())
+	api.RegisterRoutes(protected, assistant, cfg)
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
