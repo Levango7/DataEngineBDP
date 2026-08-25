@@ -33,8 +33,7 @@ def build_template() -> Template:
         version="0.1.0",
         appVersion="0.1.0",
         description=(
-            "教育行业模板：学生学情画像、教学质量评估与教育资源调度。"
-            "覆盖成绩/行为/选课多维分析，服务智慧校园建设。"
+            "教育行业模板：学生学情画像、教学质量评估与教育资源调度。" "覆盖成绩/行为/选课多维分析，服务智慧校园建设。"
         ),
         author="Shuqing Big Data Platform Team",
         status=TemplateStatus.CATALOG,

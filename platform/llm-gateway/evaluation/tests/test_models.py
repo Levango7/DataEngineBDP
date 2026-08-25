@@ -1,8 +1,6 @@
 """models Pydantic 数据模型单元测试。"""
-from __future__ import annotations
 
-import pytest
-from pydantic import ValidationError
+from __future__ import annotations
 
 from app.models import (
     ALL_METRICS,
@@ -14,6 +12,8 @@ from app.models import (
     MetricsBundle,
     PredictionResult,
 )
+from pydantic import ValidationError
+import pytest
 
 
 # ---------------------------------------------------------------------------

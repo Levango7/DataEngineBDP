@@ -2,13 +2,11 @@
 
 覆盖：base 工具函数 / rule_mode / human_mode / get_mode 注册表
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from app.models import EvalSample
 from app.modes.base import (
-    EvalModeBase,
     JudgeResult,
     _is_correct_choice,
     _normalize_answer,
@@ -16,6 +14,7 @@ from app.modes.base import (
 )
 from app.modes.human_mode import HumanMode
 from app.modes.rule_mode import RuleMode
+import pytest
 
 
 # ---------------------------------------------------------------------------

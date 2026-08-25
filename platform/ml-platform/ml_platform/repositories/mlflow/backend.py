@@ -14,9 +14,8 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
-import time
-import uuid
 from typing import Any, Optional
+import uuid
 
 from ml_platform.interfaces.backend import MLBackend
 from ml_platform.models import (
@@ -35,7 +34,6 @@ from ml_platform.repositories import (
     BackendUnavailableError,
     ModelNotFoundError,
 )
-
 
 # ---------------------------------------------------------------------------
 # 辅助函数
@@ -142,9 +140,7 @@ class MLflowMLBackend(MLBackend):
                 import mlflow
                 from mlflow.tracking import MlflowClient
             except ImportError as e:  # pragma: no cover
-                raise BackendUnavailableError(
-                    f"mlflow 未安装: {e}。请安装 mlflow>=2.0"
-                ) from e
+                raise BackendUnavailableError(f"mlflow 未安装: {e}。请安装 mlflow>=2.0") from e
             mlflow.set_tracking_uri(self.trackingUri)
             self._client = MlflowClient(tracking_uri=self.trackingUri)
         return self._client
@@ -155,14 +151,10 @@ class MLflowMLBackend(MLBackend):
         client = self._getClient()
         # 1. 创建/获取 experiment
         experimentName = f"bl-{config.experimentId or 'default'}"
-        experimentId = await asyncio.to_thread(
-            self._getOrCreateExperiment, client, experimentName
-        )
+        experimentId = await asyncio.to_thread(self._getOrCreateExperiment, client, experimentName)
         # 2. 创建 run
         runName = f"{config.outputModelName}-{uuid.uuid4().hex[:8]}"
-        run = await asyncio.to_thread(
-            client.create_run, experimentId, run_name=runName
-        )
+        run = await asyncio.to_thread(client.create_run, experimentId, run_name=runName)
         runId = run.info.run_id
         # 3. 记录 params / tags
         metrics = _defaultMetrics(config.algorithm)
@@ -172,9 +164,7 @@ class MLflowMLBackend(MLBackend):
             "backend": "mlflow",
             "model_name": config.outputModelName,
         }
-        await asyncio.to_thread(
-            self._logRunData, client, runId, config.params, metrics, tags
-        )
+        await asyncio.to_thread(self._logRunData, client, runId, config.params, metrics, tags)
         # 4. 结束 run
         await asyncio.to_thread(client.set_terminated, runId, "FINISHED")
         # 5. 注册模型（内存索引）
@@ -271,9 +261,7 @@ class MLflowMLBackend(MLBackend):
         try:
             client = self._getClient()
             runData = await asyncio.to_thread(client.get_run, runId)
-            runMetrics = {
-                k: v.value for k, v in runData.data.metrics.items()
-            }
+            runMetrics = {k: v.value for k, v in runData.data.metrics.items()}
         except Exception:
             runMetrics = {}
         # 合并：请求的指标优先从 run 取，缺失则用默认
@@ -347,9 +335,7 @@ class MLflowMLBackend(MLBackend):
     async def listRuns(self, experimentId: str) -> list[dict[str, Any]]:
         """列出指定 experiment 下的所有 run（真实数据）."""
         client = self._getClient()
-        runs = await asyncio.to_thread(
-            client.search_runs, [experimentId], order_by=["attributes.start_time DESC"]
-        )
+        runs = await asyncio.to_thread(client.search_runs, [experimentId], order_by=["attributes.start_time DESC"])
         return [
             {
                 "runId": r.info.run_id,

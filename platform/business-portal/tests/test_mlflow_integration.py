@@ -23,8 +23,7 @@ MLFLOW_URI = os.environ.get("BP_MLFLOW_URI", "http://localhost:5000")
 
 pytestmark = pytest.mark.skipif(
     not MLFLOW_ENABLED,
-    reason="MLFLOW_ENABLED!=true，跳过 MLflow 集成测试。"
-    " 设置 MLFLOW_ENABLED=true 并启动 MLflow 容器后运行。",
+    reason="MLFLOW_ENABLED!=true，跳过 MLflow 集成测试。" " 设置 MLFLOW_ENABLED=true 并启动 MLflow 容器后运行。",
 )
 
 
@@ -182,9 +181,7 @@ async def test_bl_store_without_mlflow_returns_hardcoded():
 
 
 @pytest.mark.asyncio
-async def test_dashboard_accuracy_kpi_from_mlflow(
-    mlflowProvider, mlflowExperimentStore
-):
+async def test_dashboard_accuracy_kpi_from_mlflow(mlflowProvider, mlflowExperimentStore):
     """MockDashboardStore 注入后应新增 accuracy KPI（真实值）."""
     from business_portal.models.business_line import BusinessLine
     from business_portal.repositories.mock import (

@@ -24,8 +24,7 @@ MLFLOW_URI = os.environ.get("ML_MLFLOW_URI", "http://localhost:5000")
 
 pytestmark = pytest.mark.skipif(
     not MLFLOW_ENABLED,
-    reason="MLFLOW_ENABLED!=true，跳过 MLflow 集成测试。"
-    " 设置 MLFLOW_ENABLED=true 并启动 MLflow 容器后运行。",
+    reason="MLFLOW_ENABLED!=true，跳过 MLflow 集成测试。" " 设置 MLFLOW_ENABLED=true 并启动 MLflow 容器后运行。",
 )
 
 
@@ -135,9 +134,7 @@ async def test_experiment_store_create_and_list(mlflowExperimentStore):
     from ml_platform.models import ExperimentConfig
 
     uniqueName = f"it-exp-{uuid.uuid4().hex[:8]}"
-    expId = await mlflowExperimentStore.create_experiment(
-        ExperimentConfig(name=uniqueName, description="集成测试实验")
-    )
+    expId = await mlflowExperimentStore.create_experiment(ExperimentConfig(name=uniqueName, description="集成测试实验"))
     assert expId is not None
     # 列出应包含刚创建的
     experiments = await mlflowExperimentStore.list_experiments()
@@ -151,13 +148,9 @@ async def test_experiment_store_log_metrics(mlflowExperimentStore):
     from ml_platform.models import ExperimentConfig
 
     uniqueName = f"it-exp-metrics-{uuid.uuid4().hex[:8]}"
-    expId = await mlflowExperimentStore.create_experiment(
-        ExperimentConfig(name=uniqueName)
-    )
+    expId = await mlflowExperimentStore.create_experiment(ExperimentConfig(name=uniqueName))
     # 记录指标
-    await mlflowExperimentStore.log_metrics(
-        expId, {"accuracy": 0.912, "f1": 0.88}
-    )
+    await mlflowExperimentStore.log_metrics(expId, {"accuracy": 0.912, "f1": 0.88})
     # 本地累计应更新
     info = await mlflowExperimentStore.get_experiment(expId)
     assert info.metrics["accuracy"] == pytest.approx(0.912, rel=1e-6)
@@ -170,12 +163,8 @@ async def test_experiment_store_log_params(mlflowExperimentStore):
     from ml_platform.models import ExperimentConfig
 
     uniqueName = f"it-exp-params-{uuid.uuid4().hex[:8]}"
-    expId = await mlflowExperimentStore.create_experiment(
-        ExperimentConfig(name=uniqueName)
-    )
-    await mlflowExperimentStore.log_params(
-        expId, {"learning_rate": "0.01", "batch_size": "32"}
-    )
+    expId = await mlflowExperimentStore.create_experiment(ExperimentConfig(name=uniqueName))
+    await mlflowExperimentStore.log_params(expId, {"learning_rate": "0.01", "batch_size": "32"})
     info = await mlflowExperimentStore.get_experiment(expId)
     assert info.params["learning_rate"] == "0.01"
     assert info.params["batch_size"] == "32"
@@ -192,9 +181,7 @@ async def test_experiment_store_count_experiments(mlflowExperimentStore):
     from ml_platform.models import ExperimentConfig
 
     before = await mlflowExperimentStore.countExperiments()
-    await mlflowExperimentStore.create_experiment(
-        ExperimentConfig(name=f"it-count-{uuid.uuid4().hex[:8]}")
-    )
+    await mlflowExperimentStore.create_experiment(ExperimentConfig(name=f"it-count-{uuid.uuid4().hex[:8]}"))
     after = await mlflowExperimentStore.countExperiments()
     assert after == before + 1
 
@@ -204,13 +191,9 @@ async def test_experiment_store_best_metric(mlflowExperimentStore):
     """getBestMetricAcrossExperiments 应返回真实最优指标."""
     from ml_platform.models import ExperimentConfig
 
-    expId = await mlflowExperimentStore.create_experiment(
-        ExperimentConfig(name=f"it-best-{uuid.uuid4().hex[:8]}")
-    )
+    expId = await mlflowExperimentStore.create_experiment(ExperimentConfig(name=f"it-best-{uuid.uuid4().hex[:8]}"))
     await mlflowExperimentStore.log_metrics(expId, {"accuracy": 0.95})
-    best = await mlflowExperimentStore.getBestMetricAcrossExperiments(
-        "accuracy", "max"
-    )
+    best = await mlflowExperimentStore.getBestMetricAcrossExperiments("accuracy", "max")
     # 最优 accuracy 应至少为 0.95
     assert best is not None
     assert best >= 0.95
@@ -221,9 +204,7 @@ async def test_experiment_store_total_run_count(mlflowExperimentStore):
     """getTotalRunCount 应返回真实 run 总数."""
     from ml_platform.models import ExperimentConfig
 
-    expId = await mlflowExperimentStore.create_experiment(
-        ExperimentConfig(name=f"it-runs-{uuid.uuid4().hex[:8]}")
-    )
+    expId = await mlflowExperimentStore.create_experiment(ExperimentConfig(name=f"it-runs-{uuid.uuid4().hex[:8]}"))
     before = await mlflowExperimentStore.getTotalRunCount()
     await mlflowExperimentStore.log_metrics(expId, {"accuracy": 0.88})
     after = await mlflowExperimentStore.getTotalRunCount()

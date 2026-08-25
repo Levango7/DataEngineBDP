@@ -81,13 +81,9 @@ class Settings:
     def validate(self) -> "Settings":
         """校验配置安全性：非 dev_mode 下 jwt_secret 必须显式配置。"""
         if not self.dev_mode and not self.jwt_secret:
-            raise RuntimeError(
-                "JWT_SECRET environment variable is required when EVAL_DEV_MODE=false"
-            )
+            raise RuntimeError("JWT_SECRET environment variable is required when EVAL_DEV_MODE=false")
         if not self.dev_mode and len(self.jwt_secret) < 32:
-            raise RuntimeError(
-                f"JWT_SECRET must be at least 32 bytes, got {len(self.jwt_secret)}"
-            )
+            raise RuntimeError(f"JWT_SECRET must be at least 32 bytes, got {len(self.jwt_secret)}")
         return self
 
 

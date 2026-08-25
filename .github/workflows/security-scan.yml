@@ -37,9 +37,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 安装 Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          version: latest
+        # trivy-action 不会把 trivy CLI 暴露到后续 shell 步骤的 PATH，
+        # 而本 job 后续步骤直接调用 trivy 命令，故改用官方安装脚本
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          trivy --version
 
       - name: 扫描 Maven 依赖（platform/**/pom.xml）
         run: |
@@ -108,11 +111,19 @@ jobs:
           java-version: '17'
           cache: 'maven'
 
+      - name: 安装 Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          trivy --version
+
       - name: 构建 encaps-layer 镜像
         run: |
           if [ -f platform/encaps-layer/Dockerfile ]; then
             cd platform/encaps-layer
-            # 先用 Maven 打包，再构建镜像（Dockerfile 通常 FROM openjdk + COPY jar）
+            # encaps-layer 依赖 common-security，先装库再打包
+            mvn -f ../common-security/pom.xml install -B -q -Dmaven.test.skip=true \
+              || echo "::warning::common-security 安装失败"
             mvn -B -q -Dmaven.test.skip=true package || echo "::warning::Maven 打包失败，跳过镜像构建"
             docker build -t encaps-layer:scan . || echo "::warning::Docker 构建失败，跳过镜像扫描"
           else

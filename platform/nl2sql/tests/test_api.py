@@ -70,9 +70,9 @@ class TestGenerate:
 
 
 class TestExecute:
-    def test_execute_unreachable_gateway(self, client) -> None:
+    def test_execute_unreachable_gateway(self, unreachableClient) -> None:
         """SQL 网关不可达，应返回 sql 但 gateway 含错误."""
-        resp = client.post(
+        resp = unreachableClient.post(
             "/api/v1/nl2sql/execute",
             json={
                 "query": "查询 orders 表",

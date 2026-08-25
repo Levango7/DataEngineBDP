@@ -1,7 +1,6 @@
 """core 层单元测试：LLM 客户端（mock 模式）。"""
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from app.core.llm_client import ChatResponse, LLMGatewayClient
 

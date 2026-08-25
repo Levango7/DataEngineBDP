@@ -3,9 +3,8 @@
 覆盖六指标：accuracy / recall / f1 / latency_p95 / cost / hallucination
 以及 compute_all 聚合函数。
 """
-from __future__ import annotations
 
-import pytest
+from __future__ import annotations
 
 from app.metrics.accuracy import AccuracyMetric
 from app.metrics.base import compute_all
@@ -15,6 +14,7 @@ from app.metrics.hallucination import HallucinationMetric
 from app.metrics.latency import LatencyP95Metric
 from app.metrics.recall import RecallMetric
 from app.models import PredictionResult
+import pytest
 
 
 def _make_pred(

@@ -284,4 +284,3 @@ dqctl:
 keycloak:
   enabled: false  # Keycloak - 身份认证与SSO
   # 详细配置见 design/deploy/charts/keycloak/values.yaml
-

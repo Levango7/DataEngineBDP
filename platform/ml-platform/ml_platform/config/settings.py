@@ -43,9 +43,7 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- backend ----
-    backendType: Literal["mock", "sklearn", "spark", "mlflow"] = Field(
-        default="sklearn", description="ML 后端类型"
-    )
+    backendType: Literal["mock", "sklearn", "spark", "mlflow"] = Field(default="sklearn", description="ML 后端类型")
 
     # ---- feature store ----
     featureStoreType: Literal["mock", "redis"] = Field(default="redis", description="特征存储类型")
@@ -104,9 +102,7 @@ class Settings(BaseSettings):
 
     @property
     def isMlflowBackend(self) -> bool:
-        return self.backendType == "mlflow" or (
-            self.mlflowEnabled and self.backendType != "mock"
-        )
+        return self.backendType == "mlflow" or (self.mlflowEnabled and self.backendType != "mock")
 
     @property
     def isMockFeatureStore(self) -> bool:

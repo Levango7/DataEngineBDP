@@ -141,16 +141,43 @@ def validate_chart(chart_dir, chart_name):
 
     # 3. 检查 templates 目录
     templates_dir = os.path.join(chart_dir, "templates")
+    # Umbrella Chart（仅聚合依赖，无自身模板）合法豁免
+    has_dependencies = False
+    try:
+        with open(os.path.join(chart_dir, "Chart.yaml"), "r", encoding="utf-8") as f:
+            chart_meta = yaml.safe_load(f) or {}
+        has_dependencies = bool(chart_meta.get("dependencies"))
+    except Exception:
+        pass
     if not os.path.isdir(templates_dir):
-        errors.append(f"缺失 templates/ 目录")
+        if has_dependencies:
+            warnings.append("Umbrella Chart（dependencies 聚合），无 templates/ 目录")
+        else:
+            errors.append(f"缺失 templates/ 目录")
     else:
         # Job 型 Chart（如 finance-template 用 import-job/verification-job）豁免 deployment/service
         is_job_chart = os.path.exists(os.path.join(templates_dir, "import-job.yaml")) or \
                        os.path.exists(os.path.join(templates_dir, "verification-job.yaml"))
+        # 手写型 Chart：只要存在任意可渲染模板（除 NOTES.txt 外的 .yaml/.tpl）
+        # 即视为自包含实现（如 apollo 多服务、chaos-mesh、iceberg-compaction CronJob），
+        # 不强制要求固定文件名的 deployment.yaml/service.yaml
+        renderable = [
+            fn for fn in os.listdir(templates_dir)
+            if (fn.endswith(".yaml") or fn.endswith(".tpl")) and fn != "NOTES.txt"
+        ]
+        if has_dependencies and not renderable:
+            warnings.append("Umbrella Chart（dependencies 聚合），跳过模板文件检查")
+            return errors, warnings
+        is_freeform_chart = bool(renderable) and not (
+            os.path.exists(os.path.join(templates_dir, "deployment.yaml"))
+            and os.path.exists(os.path.join(templates_dir, "service.yaml"))
+        )
         # 必需模板
         for tpl in REQUIRED_TEMPLATES:
             if is_job_chart and tpl in ("deployment.yaml", "service.yaml"):
                 continue  # Job 型 chart 无需 Deployment/Service
+            if is_freeform_chart and tpl in ("deployment.yaml", "service.yaml"):
+                continue  # 手写型 chart 有等价可渲染模板即可
             tpl_path = os.path.join(templates_dir, tpl)
             if not os.path.exists(tpl_path):
                 errors.append(f"缺失必需模板 templates/{tpl}")
@@ -169,6 +196,11 @@ def validate_chart(chart_dir, chart_name):
                     ok, msg = validate_template_braces(tpl_path)
                     if not ok:
                         errors.append(f"templates/{tpl} 语法错误: {msg}")
+        # 所有可渲染模板统一做括号配对校验（覆盖手写型 Chart 的每个模板）
+        for fn in renderable:
+            ok, msg = validate_template_braces(os.path.join(templates_dir, fn))
+            if not ok:
+                errors.append(f"templates/{fn} 语法错误: {msg}")
 
     return errors, warnings
 

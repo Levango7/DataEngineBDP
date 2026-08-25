@@ -9,15 +9,15 @@ import pytest
 
 @pytest.mark.asyncio
 class TestGatewayClient:
-    async def test_execute_unreachable(self, gatewayClient: GatewayClient) -> None:
+    async def test_execute_unreachable(self, gatewayClientUnreachable: GatewayClient) -> None:
         """网关不可达时返回结构化错误."""
-        result = await gatewayClient.execute("SELECT 1;")
+        result = await gatewayClientUnreachable.execute("SELECT 1;")
         assert result.status == "UNREACHABLE"
         assert result.error is not None
         assert "网关不可达" in result.error or "网关" in result.error
 
-    async def test_health_unreachable(self, gatewayClient: GatewayClient) -> None:
-        ok = await gatewayClient.health()
+    async def test_health_unreachable(self, gatewayClientUnreachable: GatewayClient) -> None:
+        ok = await gatewayClientUnreachable.health()
         assert ok is False
 
     async def test_parse_response_success(self) -> None:

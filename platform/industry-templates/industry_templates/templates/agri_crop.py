@@ -33,8 +33,7 @@ def build_template() -> Template:
         version="0.1.0",
         appVersion="0.1.0",
         description=(
-            "农牧行业模板：大棚/养殖场物联监测、气象关联分析、作物产量预测"
-            "与农事建议。服务智慧农业与乡村振兴。"
+            "农牧行业模板：大棚/养殖场物联监测、气象关联分析、作物产量预测" "与农事建议。服务智慧农业与乡村振兴。"
         ),
         author="Shuqing Big Data Platform Team",
         status=TemplateStatus.CATALOG,

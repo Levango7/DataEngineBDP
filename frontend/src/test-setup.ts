@@ -25,18 +25,21 @@ vi.mock('element-plus', async (importOriginal) => {
 })
 
 // Mock echarts（避免在测试环境初始化真实 DOM 图表）
-vi.mock('echarts', () => ({
-  default: {
-    init: vi.fn(() => ({
-      setOption: vi.fn(),
-      resize: vi.fn(),
-      dispose: vi.fn()
-    })),
-    graphic: {
-      LinearGradient: vi.fn()
-    }
+// 注意：组件中存在两种导入方式——`import * as echarts`（命名空间）与
+// `import echarts from 'echarts'`（默认导出），两者都必须提供 init
+vi.mock('echarts', () => {
+  const makeChart = () => ({
+    setOption: vi.fn(),
+    resize: vi.fn(),
+    dispose: vi.fn()
+  })
+  const init = vi.fn(() => makeChart())
+  return {
+    default: { init, graphic: { LinearGradient: vi.fn() } },
+    init,
+    graphic: { LinearGradient: vi.fn() }
   }
-}))
+})
 
 // Mock @element-plus/icons-vue
 vi.mock('@element-plus/icons-vue', () => ({

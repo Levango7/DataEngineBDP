@@ -3,17 +3,17 @@
 使用 FastAPI TestClient 测试健康检查与数据集列表端点。
 任务相关端点因依赖 JobManager/Executor 较重，仅测试健康检查与数据集列表。
 """
-from __future__ import annotations
 
-import pytest
-from fastapi import FastAPI
-from fastapi.testclient import TestClient
+from __future__ import annotations
 
 from app.api.routes import create_router
 from app.core.executor import EvalExecutor
 from app.core.job_manager import JobManager
 from app.core.llm_client import LLMGatewayClient
 from app.report.generator import ABReportGenerator
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
+import pytest
 
 
 @pytest.fixture

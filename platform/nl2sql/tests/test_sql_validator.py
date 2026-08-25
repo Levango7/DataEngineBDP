@@ -94,6 +94,4 @@ class TestSqlValidator:
         # 首条为合法 SELECT、第二条夹带 DROP：不得借首条绕过检查
         r = validator.validate("SELECT * FROM orders; DROP TABLE orders;")
         assert r.valid is False
-        assert any(
-            i.code in ("MULTI_STMT", "NON_SELECT_STMT") for i in r.issues
-        )
+        assert any(i.code in ("MULTI_STMT", "NON_SELECT_STMT") for i in r.issues)

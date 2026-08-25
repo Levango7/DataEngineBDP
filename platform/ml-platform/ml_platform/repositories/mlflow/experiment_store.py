@@ -8,8 +8,8 @@ log_metrics / log_params 在 MLflow experiment 下创建新 run 并记录。
 from __future__ import annotations
 
 import asyncio
+from typing import Optional
 import uuid
-from typing import Any, Optional
 
 from ml_platform.interfaces.experiment_store import ExperimentStore
 from ml_platform.models import (
@@ -52,9 +52,7 @@ class MLflowExperimentStore(ExperimentStore):
                 import mlflow
                 from mlflow.tracking import MlflowClient
             except ImportError as e:  # pragma: no cover
-                raise RuntimeError(
-                    f"mlflow 未安装: {e}。请安装 mlflow>=2.0"
-                ) from e
+                raise RuntimeError(f"mlflow 未安装: {e}。请安装 mlflow>=2.0") from e
             mlflow.set_tracking_uri(self.trackingUri)
             self._client = MlflowClient(tracking_uri=self.trackingUri)
         return self._client
@@ -67,9 +65,7 @@ class MLflowExperimentStore(ExperimentStore):
         client = self._getClient()
         # 在 MLflow 创建 experiment
         try:
-            mlflowExpId = await asyncio.to_thread(
-                client.create_experiment, config.name
-            )
+            mlflowExpId = await asyncio.to_thread(client.create_experiment, config.name)
         except Exception as e:
             # MLflow 已存在同名 experiment 时，MlflowClient 会抛 MlflowException
             # 转为本地已存在错误
@@ -107,9 +103,7 @@ class MLflowExperimentStore(ExperimentStore):
         info = ExperimentInfo(
             id=mlflowExp.experiment_id,
             name=mlflowExp.name,
-            status=ExperimentStatus.ACTIVE
-            if mlflowExp.lifecycle_stage == "active"
-            else ExperimentStatus.DELETED,
+            status=ExperimentStatus.ACTIVE if mlflowExp.lifecycle_stage == "active" else ExperimentStatus.DELETED,
             config=ExperimentConfig(name=mlflowExp.name),
         )
         self._experiments[mlflowExp.experiment_id] = info
@@ -165,9 +159,7 @@ class MLflowExperimentStore(ExperimentStore):
         info = await self.get_experiment(experimentId)
         client = self._getClient()
         # 在 MLflow experiment 下创建新 run，记录 metrics
-        run = await asyncio.to_thread(
-            client.create_run, experimentId, run_name=f"metrics-{uuid.uuid4().hex[:8]}"
-        )
+        run = await asyncio.to_thread(client.create_run, experimentId, run_name=f"metrics-{uuid.uuid4().hex[:8]}")
         runId = run.info.run_id
 
         def _logMetrics(client, runId, metrics):
@@ -184,9 +176,7 @@ class MLflowExperimentStore(ExperimentStore):
     async def log_params(self, experimentId: str, params: dict) -> None:
         info = await self.get_experiment(experimentId)
         client = self._getClient()
-        run = await asyncio.to_thread(
-            client.create_run, experimentId, run_name=f"params-{uuid.uuid4().hex[:8]}"
-        )
+        run = await asyncio.to_thread(client.create_run, experimentId, run_name=f"params-{uuid.uuid4().hex[:8]}")
         runId = run.info.run_id
 
         def _logParams(client, runId, params):
@@ -240,9 +230,7 @@ class MLflowExperimentStore(ExperimentStore):
         allValues: list[float] = []
         for exp in experiments:
             try:
-                runs = await asyncio.to_thread(
-                    client.search_runs, [exp.experiment_id]
-                )
+                runs = await asyncio.to_thread(client.search_runs, [exp.experiment_id])
             except Exception:
                 continue
             for r in runs:
@@ -268,9 +256,7 @@ class MLflowExperimentStore(ExperimentStore):
         total = 0
         for exp in experiments:
             try:
-                runs = await asyncio.to_thread(
-                    client.search_runs, [exp.experiment_id]
-                )
+                runs = await asyncio.to_thread(client.search_runs, [exp.experiment_id])
             except Exception:
                 continue
             total += len(runs)

@@ -61,18 +61,14 @@ def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
     mlflowProvider = _build_mlflow_provider(settings)
 
     if settings.isMock:
-        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock(
-            mlflowProvider
-        )
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock(mlflowProvider)
     elif settings.isSqlite:
         bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_sqlite(
             settings.dbPath, mlflowProvider
         )
     else:
         # 兜底：未知类型回退 Mock
-        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock(
-            mlflowProvider
-        )
+        bl_store, dashboard_store, workbench_store, catalog_store, report_store = _build_mock(mlflowProvider)
 
     bl_service = BusinessLineService(bl_store)
     dashboard_service = DashboardService(bl_store, dashboard_store)

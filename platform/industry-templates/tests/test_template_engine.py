@@ -355,7 +355,15 @@ class TestCategories:
         cats = engine.list_categories()
         assert len(cats) == 7
         industries = {c["industry"] for c in cats}
-        assert industries == {"finance", "retail", "manufacturing", "medical", "transportation", "education", "agriculture"}
+        assert industries == {
+            "finance",
+            "retail",
+            "manufacturing",
+            "medical",
+            "transportation",
+            "education",
+            "agriculture",
+        }
         for c in cats:
             assert c["count"] == 1
             assert len(c["templates"]) == 1

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,7 @@ class MLflowMetricsProvider:
                 import mlflow
                 from mlflow.tracking import MlflowClient
             except ImportError as e:  # pragma: no cover
-                raise RuntimeError(
-                    f"mlflow 未安装: {e}。请安装 mlflow>=2.0"
-                ) from e
+                raise RuntimeError(f"mlflow 未安装: {e}。请安装 mlflow>=2.0") from e
             mlflow.set_tracking_uri(self.trackingUri)
             self._client = MlflowClient(tracking_uri=self.trackingUri)
         return self._client
@@ -71,16 +69,13 @@ class MLflowMetricsProvider:
             total = 0
             for exp in experiments:
                 try:
-                    runs = await asyncio.to_thread(
-                        client.search_runs, [exp.experiment_id]
-                    )
+                    runs = await asyncio.to_thread(client.search_runs, [exp.experiment_id])
                 except Exception:
                     continue
                 total += len(runs)
             return total
         except Exception as e:
-            logger.warning("MLflow 不可用，回退 fallbackJobCount=%s: %s",
-                           self.fallbackJobCount, e)
+            logger.warning("MLflow 不可用，回退 fallbackJobCount=%s: %s", self.fallbackJobCount, e)
             return self.fallbackJobCount
 
     async def getExperimentCount(self) -> int:
@@ -114,9 +109,7 @@ class MLflowMetricsProvider:
             allAccuracies: list[float] = []
             for exp in experiments:
                 try:
-                    runs = await asyncio.to_thread(
-                        client.search_runs, [exp.experiment_id]
-                    )
+                    runs = await asyncio.to_thread(client.search_runs, [exp.experiment_id])
                 except Exception:
                     continue
                 for r in runs:
@@ -126,8 +119,7 @@ class MLflowMetricsProvider:
                 return self.fallbackAccuracy
             return max(allAccuracies)
         except Exception as e:
-            logger.warning("MLflow 不可用，回退 fallbackAccuracy=%s: %s",
-                           self.fallbackAccuracy, e)
+            logger.warning("MLflow 不可用，回退 fallbackAccuracy=%s: %s", self.fallbackAccuracy, e)
             return self.fallbackAccuracy
 
     async def getMetrics(self) -> dict[str, Any]:

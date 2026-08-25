@@ -81,3 +81,27 @@ def clarifier(slotFiller: SlotFiller) -> DialogueClarifier:
 @pytest.fixture
 def gatewayClient(settings: Settings) -> GatewayClient:
     return GatewayClient(settings)
+
+
+# 保证无监听的回环端口（端口 9 discard 端口，本机环境通常无监听），
+# 使"网关不可达"用例不受开发机/CI 机上偶发端口占用影响
+UNREACHABLE_GATEWAY_URL = "http://127.0.0.1:9"
+
+
+@pytest.fixture
+def gatewayClientUnreachable() -> GatewayClient:
+    """指向必然不可达网关的客户端（用于 UNREACHABLE 路径测试）。"""
+    reset_settings()
+    s = Settings(llmMode="mock", sqlGatewayUrl=UNREACHABLE_GATEWAY_URL)
+    return GatewayClient(s)
+
+
+@pytest.fixture
+def unreachableClient(gatewayClientUnreachable: GatewayClient,
+                      settings: Settings) -> TestClient:
+    """使用不可达网关的应用客户端（用于 execute 端点降级路径测试）。"""
+    registry = build_services(settings)
+    # 用不可达客户端替换注册表中的网关客户端
+    if hasattr(registry, "gatewayClient"):
+        registry.gatewayClient = gatewayClientUnreachable
+    return TestClient(create_app(settings=registry.settings, registry=registry))

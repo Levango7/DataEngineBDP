@@ -147,13 +147,18 @@ jobs:
             echo "::warning::未发现任何 Java 组件，跳过"
             exit 0
           fi
-          # lineage-analyzer 依赖 sql-gateway，与 ci.yml 一致先装到本地仓库
-          if [ -f "platform/sql-gateway/pom.xml" ]; then
-            # PMD/Checkstyle 由 CI java-lint job 独立把关，打包/安装阶段跳过，避免 PMD 报错阻断镜像构建
-            mvn -f platform/sql-gateway/pom.xml install -B -DskipTests -q \
-              -Dpmd.skip=true -Dcheckstyle.skip=true \
-              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-          fi
+          # 内部依赖链：common-security ← encaps-layer / sql-gateway ← lineage-analyzer
+          # 按依赖序先装库，否则下游模块解析不到 SNAPSHOT（与 ci.yml java-build-test 一致）
+          for lib_pom in \
+            "platform/common-security/pom.xml" \
+            "platform/encaps-layer/pom.xml" \
+            "platform/sql-gateway/pom.xml"; do
+            if [ -f "$lib_pom" ]; then
+              mvn -f "$lib_pom" install -B -DskipTests -q \
+                -Dpmd.skip=true -Dcheckstyle.skip=true \
+                -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+            fi
+          done
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")

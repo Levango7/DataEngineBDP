@@ -149,12 +149,9 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Boot RestTestClient：TestRestTemplate（SB4.x 从 spring-boot-resttestclient 模块提供） -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-resttestclient</artifactId>
-            <scope>test</scope>
-        </dependency>
+        <!-- TestRestTemplate 由 spring-boot-starter-test 提供（Boot 3.x 包路径
+             org.springframework.boot.test.web.client）；spring-boot-resttestclient
+             是 Boot 4.x 才引入的模块，在 3.2 下不存在，会导致 POM 解析失败 -->
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
