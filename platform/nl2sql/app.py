@@ -25,10 +25,11 @@ import uuid
 
 from config.settings import Settings, get_settings
 from dialogue_clarifier import DialogueClarifier
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from gateway_client import GatewayClient
 from intent_recognition import IntentRecognizer
+from jwt_auth import AuthContext, effectiveTenant, getAuthContext
 from loguru import logger
 from models import (
     DialogueState,
@@ -212,13 +213,17 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         )
 
     @app.post(f"{prefix}/nl2sql/generate", response_model=SqlGenerationResult)
-    async def generate(req: GenerateRequest) -> SqlGenerationResult:
+    async def generate(req: GenerateRequest, ctx: AuthContext = Depends(getAuthContext)) -> SqlGenerationResult:
         """单轮 NL → SQL（不执行）."""
         return await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema)
 
     @app.post(f"{prefix}/nl2sql/execute", response_model=ExecuteResponse)
-    async def execute(req: ExecuteRequest) -> ExecuteResponse:
-        """NL → SQL → 网关执行."""
+    async def execute(req: ExecuteRequest, ctx: AuthContext = Depends(getAuthContext)) -> ExecuteResponse:
+        """NL → SQL → 网关执行.
+
+        租户裁决：tenantId 一律以 token 声明为准；仅 admin 可通过请求体
+        指定他人租户（effectiveTenant）。防止越权触发跨租户查询。
+        """
         gen = await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema)
         if gen.validation and not gen.validation.valid:
             return ExecuteResponse(
@@ -231,7 +236,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         gw = await reg.gatewayClient.execute(
             sql=gen.sql,
             engine=req.engine,
-            tenantId=req.tenantId,
+            tenantId=effectiveTenant(ctx, req.tenantId),
             limit=req.limit,
         )
         return ExecuteResponse(
@@ -243,7 +248,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         )
 
     @app.post(f"{prefix}/nl2sql/dialogue/start", response_model=DialogueResponse)
-    async def dialogueStart(req: DialogueStartRequest) -> DialogueResponse:
+    async def dialogueStart(req: DialogueStartRequest, auth: AuthContext = Depends(getAuthContext)) -> DialogueResponse:
         """开启多轮对话."""
         sessionId = str(uuid.uuid4())
         ctx = await reg.schemaBuilder.buildContext(
@@ -281,7 +286,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         )
 
     @app.post(f"{prefix}/nl2sql/dialogue/answer", response_model=DialogueResponse)
-    async def dialogueAnswer(req: DialogueAnswerRequest) -> DialogueResponse:
+    async def dialogueAnswer(req: DialogueAnswerRequest, auth: AuthContext = Depends(getAuthContext)) -> DialogueResponse:
         """提交澄清回答."""
         state = reg.getSession(req.sessionId)
         if state is None:
@@ -313,7 +318,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         )
 
     @app.post(f"{prefix}/nl2sql/validate", response_model=ValidationResult)
-    async def validate(req: ValidateRequest) -> ValidationResult:
+    async def validate(req: ValidateRequest, auth: AuthContext = Depends(getAuthContext)) -> ValidationResult:
         """校验 SQL 语法."""
         ctx = None
         if req.database or req.useMockSchema:

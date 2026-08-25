@@ -394,6 +394,9 @@ jobs:
             exit 1
           fi
 
+      - name: MIRRORED FILE 一致性校验（jwt_auth.py 四处副本）
+        run: bash scripts/check-mirrored-jwt-auth.sh
+
   # ============================================================
   # 前端构建：Node 22 + npm ci + npm run build
   # 工作目录：frontend/

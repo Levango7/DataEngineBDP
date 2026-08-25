@@ -32,7 +32,8 @@ from app.models import (
     SubmitJobRequest,
 )
 from app.report.generator import ABReportGenerator
-from fastapi import APIRouter, HTTPException, Query
+from app.jwt_auth import getAuthContext
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,12 @@ def create_router(
     Returns:
         APIRouter
     """
+    # 业务路由统一挂 JWT 鉴权（MIRRORED jwt_auth.py）；
+    # AUTH_MODE=none（本地/测试默认）匿名放行，生产设 jwt 强制校验。
+    # 此前 config.validate_security 的 JWT_SECRET fail-fast 是死代码——
+    # 现由 getAuthContext 在请求链路真实消费。
     router = APIRouter()
+    secured = APIRouter(dependencies=[Depends(getAuthContext)])
 
     # ---------------------------------------------------------------------------
     # 健康检查
@@ -72,7 +78,7 @@ def create_router(
     # ---------------------------------------------------------------------------
     # 评测任务管理
     # ---------------------------------------------------------------------------
-    @router.post("/api/v1/eval/jobs", response_model=JobInfo)
+    @secured.post("/api/v1/eval/jobs", response_model=JobInfo)
     async def submit_job(request: SubmitJobRequest) -> JobInfo:
         """提交评测任务。
 
@@ -90,7 +96,7 @@ def create_router(
         latest = job_manager.get(job.job_id)
         return latest or job
 
-    @router.get("/api/v1/eval/jobs", response_model=JobListResponse)
+    @secured.get("/api/v1/eval/jobs", response_model=JobListResponse)
     async def list_jobs(
         status: Optional[JobStatus] = Query(None, description="按状态过滤"),
     ) -> JobListResponse:
@@ -98,7 +104,7 @@ def create_router(
         jobs = job_manager.list_jobs(status=status)
         return JobListResponse(total=len(jobs), jobs=jobs)
 
-    @router.get("/api/v1/eval/jobs/{job_id}", response_model=JobInfo)
+    @secured.get("/api/v1/eval/jobs/{job_id}", response_model=JobInfo)
     async def get_job(job_id: str) -> JobInfo:
         """获取任务详情。"""
         job = job_manager.get(job_id)
@@ -106,7 +112,7 @@ def create_router(
             raise HTTPException(status_code=404, detail=f"任务 {job_id} 不存在")
         return job
 
-    @router.get("/api/v1/eval/jobs/{job_id}/logs", response_model=JobLogsResponse)
+    @secured.get("/api/v1/eval/jobs/{job_id}/logs", response_model=JobLogsResponse)
     async def get_job_logs(job_id: str) -> JobLogsResponse:
         """获取任务日志。"""
         logs = job_manager.get_logs(job_id)
@@ -114,7 +120,7 @@ def create_router(
             raise HTTPException(status_code=404, detail=f"任务 {job_id} 不存在")
         return JobLogsResponse(job_id=job_id, logs=logs)
 
-    @router.delete("/api/v1/eval/jobs/{job_id}", response_model=JobInfo)
+    @secured.delete("/api/v1/eval/jobs/{job_id}", response_model=JobInfo)
     async def terminate_job(job_id: str) -> JobInfo:
         """终止任务。"""
         job = job_manager.terminate(job_id)
@@ -128,7 +134,7 @@ def create_router(
     # ---------------------------------------------------------------------------
     # A/B 对比报告
     # ---------------------------------------------------------------------------
-    @router.post("/api/v1/eval/ab-report", response_model=ABReport)
+    @secured.post("/api/v1/eval/ab-report", response_model=ABReport)
     async def generate_ab_report(request: ABReportRequest) -> ABReport:
         """生成 A/B 对比报告。"""
         try:
@@ -144,7 +150,7 @@ def create_router(
     # ---------------------------------------------------------------------------
     # 标准集信息
     # ---------------------------------------------------------------------------
-    @router.get("/api/v1/eval/datasets")
+    @secured.get("/api/v1/eval/datasets")
     async def list_datasets() -> dict:
         """列出支持的标准集。"""
         return {
@@ -156,7 +162,7 @@ def create_router(
             ]
         }
 
-    @router.get("/api/v1/eval/datasets/{name}/stats")
+    @secured.get("/api/v1/eval/datasets/{name}/stats")
     async def dataset_stats(name: str) -> dict:
         """获取标准集统计信息。"""
         try:
@@ -172,4 +178,5 @@ def create_router(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
+    router.include_router(secured)
     return router

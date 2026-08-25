@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 
+from llmops.api.jwt_auth import getAuthContext
 from llmops.api.routers import deployments, frontend, health, models, monitor, training
 from llmops.config.settings import Settings, get_settings
 from llmops.services.registry import ServiceRegistry, build_services
@@ -48,10 +49,13 @@ def create_app(
 
     prefix = settings.apiPrefix
     app.include_router(health.router)
-    app.include_router(models.router, prefix=prefix)
-    app.include_router(training.router, prefix=prefix)
-    app.include_router(deployments.router, prefix=prefix)
-    app.include_router(monitor.router, prefix=prefix)
-    app.include_router(frontend.router, prefix=prefix)
+    # 业务端点统一挂 JWT 鉴权依赖（MIRRORED jwt_auth.py）；
+    # AUTH_MODE=none（本地/测试默认）时匿名放行，生产设 jwt 强制校验。
+    authDeps = [Depends(getAuthContext)]
+    app.include_router(models.router, prefix=prefix, dependencies=authDeps)
+    app.include_router(training.router, prefix=prefix, dependencies=authDeps)
+    app.include_router(deployments.router, prefix=prefix, dependencies=authDeps)
+    app.include_router(monitor.router, prefix=prefix, dependencies=authDeps)
+    app.include_router(frontend.router, prefix=prefix, dependencies=authDeps)
 
     return app
