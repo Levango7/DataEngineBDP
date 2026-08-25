@@ -14,13 +14,6 @@
  *
  * 注意：Flink/Spark/Iceberg 通过 compileOnly 引入（运行时由集群提供），
  *       避免与 Spring Boot 依赖冲突及打包膨胀。
- *
- * 离线构建说明：Flink/Spark/Iceberg 不在 Gradle 离线缓存中，
- * 以下 compileOnly/testImplementation 依赖已注释掉。
- * streambatch 源码不直接 import Flink/Spark/Iceberg API（提交逻辑通过
- * FlinkStreamSubmitter/SparkBatchSubmitter 封装，运行时由集群提供类路径），
- * 因此注释掉依赖后 main 编译可正常通过。
- * 有网络时恢复以下依赖即可。
  */
 enableBootJar()
 
@@ -41,22 +34,18 @@ dependencies {
     implementation project(':common-health')
 
     // Flink — 流提交（运行时由 Flink 集群提供）
-    // 离线构建：org.apache.flink 不在缓存中，注释掉
-    // compileOnly libs.flinkStreamingJava
-    // compileOnly libs.flinkClients
+    compileOnly libs.flinkStreamingJava
+    compileOnly libs.flinkClients
 
     // Spark — 批提交（运行时由 Spark 集群提供）
-    // 离线构建：org.apache.spark 不在缓存中，注释掉
-    // compileOnly libs.sparkCore
-    // compileOnly libs.sparkSql
+    compileOnly libs.sparkCore
+    compileOnly libs.sparkSql
 
     // Iceberg — 快照隔离管理
-    // 离线构建：org.apache.iceberg 不在缓存中，注释掉
-    // compileOnly libs.icebergCore
-    // compileOnly libs.icebergApi
+    compileOnly libs.icebergCore
+    compileOnly libs.icebergApi
 
     // 测试时需要运行时
-    // 离线构建：同上，注释掉
-    // testImplementation libs.icebergCore
-    // testImplementation libs.icebergApi
+    testImplementation libs.icebergCore
+    testImplementation libs.icebergApi
 }

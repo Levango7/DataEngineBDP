@@ -20,20 +20,16 @@ dependencies {
     // Spring Security — SecurityConfig
     implementation libs.springBootStarterSecurity
     // Spring Security OAuth2 Resource Server — JwtDecoder / NimbusJwtDecoder
-    // 离线构建：spring-boot-starter-oauth2-resource-server 的 resolution result 缓存不完整，
-    // 注释掉此依赖并排除使用 OAuth2 的 SecurityConfig.java（见下方 sourceSets）。
-    // 有网络时恢复此依赖并移除 sourceSets exclude 即可。
-    // implementation libs.springBootStarterOauth2ResourceServer
+    implementation libs.springBootStarterOauth2ResourceServer
 
     // Apache Calcite — SQL 解析（ASTNode 用于血缘分析）
     implementation libs.calciteCore
 
     // Nebula Graph 客户端 — 血缘图存储
     // 注意：com.vesoft:nebula-spark-connector:3.6.0 不在 Gradle 离线缓存中，
-    // 离线构建时注释掉此依赖，并排除 NebulaGraphClient.java（见下方 sourceSets）。
     // Nebula 后端为可选功能（nebula.enabled=false 时不影响主流程），运行时如需启用
-    // 请在有网络的环境下恢复此依赖并移除 sourceSets 中的 exclude。
-    // implementation 'com.vesoft:nebula-spark-connector:3.6.0'
+    // 请在有网络的环境下恢复此依赖。
+    implementation 'com.vesoft:nebula-spark-connector:3.6.0'
 
     // 跨模块依赖：common-health 共享健康检查库
     implementation project(':common-health')
@@ -42,15 +38,4 @@ dependencies {
 
     // H2 内存数据库（JPA 测试用）
     runtimeOnly 'com.h2database:h2'
-}
-
-// 离线构建：排除依赖 Nebula Graph 客户端的源文件（com.vesoft 不在缓存中）
-// + 排除使用 OAuth2 的 SecurityConfig.java（oauth2 resolution result 缓存不完整）
-sourceSets {
-    main {
-        java {
-            exclude '**/NebulaGraphClient.java'
-            exclude '**/lineage/config/SecurityConfig.java'
-        }
-    }
 }

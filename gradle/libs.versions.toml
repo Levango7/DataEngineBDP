@@ -37,7 +37,12 @@ calcite = "1.36.0"
 
 # --- 流处理与 CDC ---
 # Flink：flinkcdc 与 streambatch 使用
+# 注意：Flink 1.15+ 核心模块已去掉 Scala 后缀（_2.12），改为纯 Java 模块。
 flink = "1.18.1"
+# Flink Connector Kafka：Flink 1.15+ connector 采用独立版本号，格式为 {connector-ver}-{flink-ver}
+flinkConnectorKafka = "3.1.0-1.18"
+# Flink CDC Connectors：com.ververica（2.x 系列，包名 com.ververica.cdc）
+flinkCdc = "2.4.2"
 # Kafka：flinkcdc 与 sqlgateway 使用
 kafka = "3.7.0"
 # Debezium：flinkcdc CDC 源使用
@@ -95,9 +100,18 @@ mysql = { module = "com.mysql:mysql-connector-j", version.ref = "mysql" }
 calciteCore = { module = "org.apache.calcite:calcite-core", version.ref = "calcite" }
 
 # --- Flink（按模块引入，flinkcdc/streambatch 按需声明）---
-flinkStreamingJava = { module = "org.apache.flink:flink-streaming-java_2.12", version.ref = "flink" }
-flinkClients = { module = "org.apache.flink:flink-clients_2.12", version.ref = "flink" }
-flinkConnectorKafka = { module = "org.apache.flink:flink-connector-kafka_2.12", version.ref = "flink" }
+# Flink 1.15+ 核心模块已去掉 Scala 后缀（_2.12），改为纯 Java 模块
+flinkStreamingJava = { module = "org.apache.flink:flink-streaming-java", version.ref = "flink" }
+flinkClients = { module = "org.apache.flink:flink-clients", version.ref = "flink" }
+# Flink Connector Base：org.apache.flink.connector.base（CdcFramework 使用）
+flinkConnectorBase = { module = "org.apache.flink:flink-connector-base", version.ref = "flink" }
+# Flink Connector Kafka：独立版本号，格式为 {connector-ver}-{flink-ver}
+flinkConnectorKafka = { module = "org.apache.flink:flink-connector-kafka", version.ref = "flinkConnectorKafka" }
+
+# --- Flink CDC Connectors（com.ververica 2.x 系列）---
+flinkConnectorMysqlCdc = { module = "com.ververica:flink-connector-mysql-cdc", version.ref = "flinkCdc" }
+flinkConnectorOracleCdc = { module = "com.ververica:flink-connector-oracle-cdc", version.ref = "flinkCdc" }
+flinkConnectorPostgresCdc = { module = "com.ververica:flink-connector-postgres-cdc", version.ref = "flinkCdc" }
 
 # --- Kafka ---
 kafkaClients = { module = "org.apache.kafka:kafka-clients", version.ref = "kafka" }
@@ -105,7 +119,7 @@ kafkaConnectApi = { module = "org.apache.kafka:connect-api", version.ref = "kafk
 
 # --- Debezium ---
 debeziumCore = { module = "io.debezium:debezium-core", version.ref = "debezium" }
-debeziumEmbedded = { module = "io.debezium:debezium-embedded-engine", version.ref = "debezium" }
+debeziumEmbedded = { module = "io.debezium:debezium-embedded", version.ref = "debezium" }
 
 # --- Iceberg ---
 icebergCore = { module = "org.apache.iceberg:iceberg-core", version.ref = "iceberg" }

@@ -280,57 +280,170 @@ jobs:
           fi
 
   # ==========================================================================
-  # 阶段 4：Deploy — 部署占位（依赖 Image，仅 push 触发）
+  # 阶段 4：Deploy — 部署到 Kubernetes（依赖 Image，仅 push 到 main 触发）
   # ==========================================================================
   deploy:
     name: 🚀 Deploy
     runs-on: ubuntu-latest
     needs: image
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 部署摘要
+      - name: 配置 kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.29.0'
+
+      - name: 设置 K8s context
+        uses: azure/k8s-set-context@v4
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: 创建命名空间（如不存在）
         run: |
-          echo "## 🚀 部署阶段" >> $GITHUB_STEP_SUMMARY
+          kubectl create namespace ${{ secrets.K8S_NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: 创建/更新 Docker Registry Secret
+        run: |
+          kubectl create secret docker-registry ghcr-secret \
+            --namespace ${{ secrets.K8S_NAMESPACE }} \
+            --docker-server=ghcr.io \
+            --docker-username=${{ github.actor }} \
+            --docker-password=${{ secrets.GITHUB_TOKEN }} \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: 生成部署清单
+        run: |
+          MODULES=("bigdata-encaps" "encaps" "federated" "finops" "function" "governance" "infra" "ruleengine" "sqlgateway" "streambatch" "tagengine")
+          PORTS=(8081 8082 8083 8084 8086 8087 8088 8090 8091 8092 8093)
+          
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          REPO=$(echo "${{ github.event.repository.name }}" | tr '[:upper:]' '[:lower:]')
+          
+          mkdir -p deploy/k8s/generated
+          
+          for i in "${!MODULES[@]}"; do
+            MODULE="${MODULES[$i]}"
+            PORT="${PORTS[$i]}"
+            IMAGE="ghcr.io/${OWNER}/${REPO}/${MODULE}:latest"
+            
+            cat > "deploy/k8s/generated/${MODULE}.yaml" <<EOF
+          apiVersion: apps/v1
+          kind: Deployment
+          metadata:
+            name: ${MODULE}
+            namespace: ${{ secrets.K8S_NAMESPACE }}
+            labels:
+              app: ${MODULE}
+          spec:
+            replicas: 2
+            selector:
+              matchLabels:
+                app: ${MODULE}
+            template:
+              metadata:
+                labels:
+                  app: ${MODULE}
+              spec:
+                imagePullSecrets:
+                  - name: ghcr-secret
+                containers:
+                  - name: ${MODULE}
+                    image: ${IMAGE}
+                    ports:
+                      - containerPort: 8080
+                    env:
+                      - name: SPRING_DATASOURCE_URL
+                        value: jdbc:postgresql://postgres-service:5432/dataenginebdp
+                      - name: SPRING_DATASOURCE_USERNAME
+                        valueFrom:
+                          secretKeyRef:
+                            name: db-credentials
+                            key: username
+                      - name: SPRING_DATASOURCE_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: db-credentials
+                            key: password
+                      - name: SPRING_REDIS_HOST
+                        value: redis-service
+                      - name: SPRING_REDIS_PORT
+                        value: "6379"
+                      - name: JAVA_OPTS
+                        value: "-Xms256m -Xmx512m"
+                    resources:
+                      requests:
+                        memory: "256Mi"
+                        cpu: "250m"
+                      limits:
+                        memory: "512Mi"
+                        cpu: "500m"
+                    livenessProbe:
+                      httpGet:
+                        path: /actuator/health/liveness
+                        port: 8080
+                      initialDelaySeconds: 60
+                      periodSeconds: 10
+                      failureThreshold: 3
+                    readinessProbe:
+                      httpGet:
+                        path: /actuator/health/readiness
+                        port: 8080
+                      initialDelaySeconds: 30
+                      periodSeconds: 10
+                      failureThreshold: 3
+          ---
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: ${MODULE}-service
+            namespace: ${{ secrets.K8S_NAMESPACE }}
+          spec:
+            type: ClusterIP
+            selector:
+              app: ${MODULE}
+            ports:
+              - port: ${PORT}
+                targetPort: 8080
+                protocol: TCP
+          EOF
+          done
+          
+          echo "Generated ${#MODULES[@]} deployment manifests"
+
+      - name: 部署到 K8s
+        run: |
+          kubectl apply -f deploy/k8s/generated/ -n ${{ secrets.K8S_NAMESPACE }}
+          
+          MODULES=("bigdata-encaps" "encaps" "federated" "finops" "function" "governance" "infra" "ruleengine" "sqlgateway" "streambatch" "tagengine")
+          for MODULE in "${MODULES[@]}"; do
+            echo "Waiting for ${MODULE} rollout..."
+            kubectl rollout status deployment/${MODULE} -n ${{ secrets.K8S_NAMESPACE }} --timeout=300s
+          done
+
+      - name: 部署摘要
+        if: always()
+        run: |
+          echo "## 🚀 部署结果" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**提交:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**分支:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**命名空间:** ${{ secrets.K8S_NAMESPACE }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "当前为占位步骤，后续完善以下部署目标：" >> $GITHUB_STEP_SUMMARY
-          echo "- [ ] Kubernetes 集群部署（kubectl/kustomize/helm）" >> $GITHUB_STEP_SUMMARY
-          echo "- [ ] 滚动更新策略配置" >> $GITHUB_STEP_SUMMARY
-          echo "- [ ] 部署健康检查与回滚机制" >> $GITHUB_STEP_SUMMARY
-          echo "- [ ] 部署通知（Slack/钉钉/企业微信）" >> $GITHUB_STEP_SUMMARY
+          kubectl get deployments -n ${{ secrets.K8S_NAMESPACE }} -o wide >> $GITHUB_STEP_SUMMARY 2>&1 || true
 
-      # ----------------------------------------------------------------------
-      # 占位步骤：K8s 部署（后续完善）
-      # ----------------------------------------------------------------------
-      # 解除以下注释并配置 KUBE_CONFIG secret 后即可启用 K8s 部署
-      #
-      # - name: 配置 kubectl
-      #   uses: azure/setup-kubectl@v4
-      #   with:
-      #     version: 'v1.29.0'
-      #
-      # - name: 设置 K8s context
-      #   uses: azure/k8s-set-context@v4
-      #   with:
-      #     kubeconfig: ${{ secrets.KUBE_CONFIG }}
-      #
-      # - name: 部署到 K8s
-      #   run: |
-      #     kubectl apply -f deploy/k8s/ -n ${{ secrets.K8S_NAMESPACE }}
-      #     kubectl rollout status deployment/${{ github.event.repository.name }} -n ${{ secrets.K8S_NAMESPACE }}
-
-      - name: 部署占位（待实现）
+      - name: 失败通知
+        if: failure()
         run: |
-          echo "=============================================="
-          echo "  部署阶段占位步骤"
-          echo "  提交 SHA: ${{ github.sha }}"
-          echo "  分支: ${{ github.ref_name }}"
-          echo "  后续完善 K8s 部署逻辑"
-          echo "=============================================="
+          echo "## ❌ 部署失败" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "请检查以下内容：" >> $GITHUB_STEP_SUMMARY
+          echo "- KUBE_CONFIG secret 是否正确配置" >> $GITHUB_STEP_SUMMARY
+          echo "- K8S_NAMESPACE secret 是否设置" >> $GITHUB_STEP_SUMMARY
+          echo "- K8s 集群是否可访问" >> $GITHUB_STEP_SUMMARY
+          echo "- 镜像是否已成功推送" >> $GITHUB_STEP_SUMMARY

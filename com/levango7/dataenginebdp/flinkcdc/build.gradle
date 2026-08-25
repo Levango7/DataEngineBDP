@@ -17,39 +17,34 @@
  *
  * 注意：bootJar 已在根 build.gradle 默认禁用，本模块仅产出普通 jar。
  *       Flink 依赖通过 provided 引入（运行时由 Flink 集群提供），避免与 Spring Boot 依赖冲突。
- *
- * 离线构建说明：Flink/Kafka/Debezium/Iceberg/Avro 不在 Gradle 离线缓存中，
- * 以下 compileOnly/testImplementation 依赖已注释掉，并在 sourceSets 中排除了
- * 直接 import 这些库的 11 个源文件（CdcFramework、各 Source/Sink Connector、
- * DebeziumDeserializer、CheckpointBarrierHandler、KafkaTopicManager 等）。
- * 其余 54 个文件（model/config/materializedview/schema 等）不依赖这些库，可正常编译。
- * 有网络时恢复依赖并移除 sourceSets exclude 即可。
  */
 dependencies {
     // Flink — 流处理核心（运行时由 Flink 集群提供，此处用 compileOnly 避免打包冲突）
-    // 离线构建：org.apache.flink 不在缓存中，注释掉
-    // compileOnly libs.flinkStreamingJava
-    // compileOnly libs.flinkClients
-    // compileOnly libs.flinkConnectorKafka
+    compileOnly libs.flinkStreamingJava
+    compileOnly libs.flinkClients
+    compileOnly libs.flinkConnectorKafka
+    // Flink Connector Base — CdcFramework 使用（org.apache.flink.connector.base）
+    compileOnly libs.flinkConnectorBase
+
+    // Flink CDC Connectors — com.ververica 2.x 系列（MySql/Oracle/Postgres Source）
+    compileOnly libs.flinkConnectorMysqlCdc
+    compileOnly libs.flinkConnectorOracleCdc
+    compileOnly libs.flinkConnectorPostgresCdc
 
     // Kafka — 客户端 + Connect API（Debezium 依赖）
-    // 离线构建：org.apache.kafka 不在缓存中，注释掉
-    // compileOnly libs.kafkaClients
-    // compileOnly libs.kafkaConnectApi
+    compileOnly libs.kafkaClients
+    compileOnly libs.kafkaConnectApi
 
     // Debezium — CDC 源
-    // 离线构建：io.debezium 不在缓存中，注释掉
-    // compileOnly libs.debeziumCore
-    // compileOnly libs.debeziumEmbedded
+    compileOnly libs.debeziumCore
+    compileOnly libs.debeziumEmbedded
 
     // Iceberg — sink 连接器
-    // 离线构建：org.apache.iceberg 不在缓存中，注释掉
-    // compileOnly libs.icebergCore
-    // compileOnly libs.icebergApi
+    compileOnly libs.icebergCore
+    compileOnly libs.icebergApi
 
     // Avro — schema 序列化
-    // 离线构建：org.apache.avro 不在缓存中，注释掉
-    // compileOnly libs.avro
+    compileOnly libs.avro
 
     // Jackson — ChangeRecordJsonSerializer
     implementation libs.jacksonDatabind
@@ -59,29 +54,9 @@ dependencies {
     implementation libs.springBootStarterWeb
 
     // 测试时需要 Flink 运行时
-    // 离线构建：同上，注释掉
-    // testImplementation libs.flinkStreamingJava
-    // testImplementation libs.flinkClients
-    // testImplementation libs.flinkConnectorKafka
-    // testImplementation libs.kafkaClients
-    // testImplementation libs.kafkaConnectApi
-}
-
-// 离线构建：排除直接依赖 Flink/Kafka/Debezium/Iceberg 的源文件（这些库不在缓存中）
-sourceSets {
-    main {
-        java {
-            exclude '**/CdcFramework.java'
-            exclude '**/CdcFrameworkMain.java'
-            exclude '**/debezium/DebeziumDeserializer.java'
-            exclude '**/exactlyonce/CheckpointBarrierHandler.java'
-            exclude '**/kafka/KafkaTopicManager.java'
-            exclude '**/sink/IcebergSinkConnector.java'
-            exclude '**/sink/KafkaSinkConnector.java'
-            exclude '**/source/MySqlSourceConnector.java'
-            exclude '**/source/OracleSourceConnector.java'
-            exclude '**/source/PostgresSourceConnector.java'
-            exclude '**/source/SourceConnectorFactory.java'
-        }
-    }
+    testImplementation libs.flinkStreamingJava
+    testImplementation libs.flinkClients
+    testImplementation libs.flinkConnectorKafka
+    testImplementation libs.kafkaClients
+    testImplementation libs.kafkaConnectApi
 }

@@ -12,8 +12,36 @@
  */
 enableBootJar()
 
-// 离线构建：finops 有两个主类（CostModelApplication + FinOpsDashboardApplication），
-// resolveMainClassName 无法自动确定，显式指定主类。
+// -------------------------------------------------------------------------------------------------
+// 双主类说明（CostModelApplication + FinOpsDashboardApplication）
+// -------------------------------------------------------------------------------------------------
+// finops 模块历史上拆分为两个独立可运行的 Spring Boot 应用：
+//   1. CostModelApplication（com.shuqing.bigdata.finops.CostModelApplication）
+//      —— 成本采集与成本模型服务（资源用量采集 + 成本计算），是本模块的正式主类，
+//         由 bootJar 打包为可执行 jar，对应 docker-compose 中的 finops 服务（端口 8084）。
+//   2. FinOpsDashboardApplication（com.shuqing.bigdata.finops.dashboard.FinOpsDashboardApplication）
+//      —— FinOps 看板与优化建议服务（Top10/趋势/明细/闲置清单/优化建议/账单导出/分账），
+//         位于 finops/finops/dashboard 子目录，依赖 cost-model 的 Prometheus 数据。
+//
+// 为什么需要显式指定 mainClass：
+//   Spring Boot 的 resolveMainClassName 在扫描到多个 @SpringBootApplication 时无法自动确定，
+//   构建会报错 "Main class name property is not set"。因此通过 springBoot { mainClass = ... }
+//   显式指定 CostModelApplication 为 bootJar 的入口，FinOpsDashboardApplication 不会被打入
+//   bootJar（但其类仍编译进普通 jar，供独立启动场景使用）。
+//
+// 如何独立启动 FinOpsDashboardApplication（不修改正式主类配置）：
+//   方式一：通过 bootRun 临时指定主类（不打包，仅本地运行）：
+//     ./gradlew :finops:bootRun --args="--spring.main.web-application-type=servlet" \
+//         -PmainClass=com.shuqing.bigdata.finops.dashboard.FinOpsDashboardApplication
+//     （需在 build.gradle 中添加 bootRun { mainClass = project.findProperty('mainClass') ?: ... }）
+//   方式二：通过 Spring Boot profile + 条件配置，在 CostModelApplication 中根据
+//     spring.profiles.active=dashboard 动态加载 dashboard 的 @Configuration，避免双主类。
+//   方式三：将 finops/dashboard 拆分为独立 Gradle 子模块（推荐长期方案），各自拥有独立主类
+//     与 bootJar，彻底消除单模块双主类的歧义。
+//
+// 当前策略：保留双主类结构，显式指定 CostModelApplication 为正式主类，
+//   FinOpsDashboardApplication 作为备用入口存在，不删除（避免破坏既有引用与文档）。
+// -------------------------------------------------------------------------------------------------
 springBoot {
     mainClass = 'com.shuqing.bigdata.finops.CostModelApplication'
 }
@@ -27,6 +55,11 @@ dependencies {
     // Spring Security — SecurityConfig + JwtAuthFilter
     implementation libs.springBootStarterSecurity
 
+    // OpenCSV — CsvBillExporter 账单 CSV 导出
+    implementation 'com.opencsv:opencsv:5.9'
+    // Apache POI — ExcelBillExporter 账单 Excel(.xlsx) 导出
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+
     // JWT — 安全认证
     implementation libs.jjwtApi
     runtimeOnly libs.jjwtImpl
@@ -37,15 +70,4 @@ dependencies {
 
     // H2 内存数据库（JPA 测试用）
     runtimeOnly 'com.h2database:h2'
-}
-
-// 离线构建：排除使用 OpenCSV/Apache POI 的源文件（这些库不在 Gradle 离线缓存中）
-sourceSets {
-    main {
-        java {
-            exclude '**/dashboard/controller/BillExportController.java'
-            exclude '**/dashboard/exporter/CsvBillExporter.java'
-            exclude '**/dashboard/exporter/ExcelBillExporter.java'
-        }
-    }
 }

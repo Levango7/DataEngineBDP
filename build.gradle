@@ -133,7 +133,7 @@ subprojects { proj ->
     // compileJava 不受影响（compileClasspath 不包含这些 runtime/optional 依赖）。
     // 有网络时将下方 enableBoot 改为 true 即可恢复 bootJar。
     ext.enableBootJar = { ->
-        def enableBoot = false  // 离线构建：设为 false 跳过 bootJar；有网络时改 true
+        def enableBoot = true  // 离线构建：设为 false 跳过 bootJar；有网络时改 true
         if (enableBoot) {
             proj.bootJar {
                 enabled = true

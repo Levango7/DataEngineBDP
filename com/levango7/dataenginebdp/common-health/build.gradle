@@ -4,17 +4,30 @@
  * 库模块（无 @SpringBootApplication 主类，不打包 bootJar）
  * 功能：提供 AbstractHealthController、HealthResponse、LivenessHealthIndicator、ReadinessHealthIndicator
  *       供各微服务模块复用，统一健康检查接口。
+ *       另提供公共安全组件 JwtAuthFilter / TenantContext（security 子包），
+ *       供各微服务复用统一 JWT 认证逻辑，避免 7 处副本散布维护漂移。
  *
  * 依赖：
  *   - Spring Boot starter-web（提供 @RestController / ResponseEntity 等）
  *   - Spring Boot starter-actuator（健康检查基础设施）
+ *   - Spring Boot starter-security（提供 SecurityContextHolder / UsernamePasswordAuthenticationToken 等，
+ *     公共 JwtAuthFilter 依赖）
+ *   - JJWT（io.jsonwebtoken，公共 JwtAuthFilter 依赖）
  *   - Lombok（根项目已统一引入）
  *
  * 注意：bootJar 已在根 build.gradle 默认禁用，本模块仅产出普通 jar。
+ *       各微服务模块通过 implementation project(':common-health') 引入本模块后，
+ *       可在自身 SecurityConfig 中注入 com.shuqing.bigdata.common.health.security.JwtAuthFilter。
  */
 dependencies {
     // Spring Boot starter-web — 提供 Web 注解
     implementation libs.springBootStarterWeb
     // Spring Boot starter-actuator — 健康检查基础设施
     implementation libs.springBootStarterActuator
+    // Spring Boot starter-security — 公共 JwtAuthFilter 依赖（SecurityContextHolder 等）
+    implementation libs.springBootStarterSecurity
+    // JWT — 公共 JwtAuthFilter 依赖
+    implementation libs.jjwtApi
+    runtimeOnly libs.jjwtImpl
+    runtimeOnly libs.jjwtJackson
 }

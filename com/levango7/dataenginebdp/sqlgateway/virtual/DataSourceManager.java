@@ -52,8 +52,11 @@ public class DataSourceManager {
         Map<String, Object> config = parseConfig(connectionConfigJson);
         String url = (String) config.get("url");
         String username = (String) config.get("username");
+        // 安全约定：password 从连接配置 JSON 读取（非硬编码），仅用于建立连接池，
+        // 严禁记录到任何日志或异常消息中。
         String password = (String) config.get("password");
         String driver = (String) config.get("driver");
+        // poolKey 仅由 url + username 组成，严禁包含 password，避免凭据泄露到日志。
         String poolKey = url + "|" + username;
 
         return poolCache.computeIfAbsent(poolKey, k -> {
@@ -70,6 +73,7 @@ public class DataSourceManager {
             hikariConfig.setIdleTimeout(600_000);
             hikariConfig.setMaxLifetime(1_800_000);
             hikariConfig.setPoolName("vt-pool-" + (poolKey.hashCode() & 0xFFFF));
+            // 日志仅记录 poolKey(url|username) 与 url，不记录 password。
             log.info("创建 HikariCP 连接池 key={} url={}", poolKey, url);
             return new HikariDataSource(hikariConfig);
         });

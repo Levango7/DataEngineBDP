@@ -20,10 +20,7 @@ dependencies {
     // Spring Security — SecurityConfig + JwtAuthFilter
     implementation libs.springBootStarterSecurity
     // Spring WebFlux — WebClient（OrchestratorConfig / SupplyOrchestrator 反向代理）
-    // 离线构建：spring-boot-starter-webflux 的 resolution result 缓存不完整，
-    // 注释掉此依赖并排除使用 WebClient 的源文件（见下方 sourceSets）。
-    // 有网络时恢复此依赖并移除 sourceSets exclude 即可。
-    // implementation libs.springBootStarterWebflux
+    implementation libs.springBootStarterWebflux
 
     // JWT — 安全认证
     implementation libs.jjwtApi
@@ -32,27 +29,4 @@ dependencies {
 
     // 跨模块依赖：common-health 共享健康检查库
     implementation project(':common-health')
-}
-
-// 离线构建：排除使用 WebClient/Reactor 的源文件（WebFlux resolution result 缓存不完整）
-sourceSets {
-    main {
-        java {
-            exclude '**/orchestrator/config/OrchestratorConfig.java'
-            exclude '**/orchestrator/controller/ClusterController.java'
-            exclude '**/orchestrator/controller/HealthController.java'
-            exclude '**/orchestrator/indicator/InfraOrchestratorReadinessIndicator.java'
-            exclude '**/orchestrator/model/ClusterCreateRequest.java'
-            exclude '**/orchestrator/model/ClusterInfo.java'
-            exclude '**/orchestrator/model/ClusterScaleRequest.java'
-            exclude '**/orchestrator/model/EnvironmentType.java'
-            exclude '**/orchestrator/model/SupplyResult.java'
-            exclude '**/orchestrator/OrchestratorApplication.java'
-            exclude '**/orchestrator/registry/EnvironmentProfile.java'
-            exclude '**/orchestrator/registry/ProviderDescriptor.java'
-            exclude '**/orchestrator/registry/ProviderRegistry.java'
-            exclude '**/orchestrator/service/ProviderRegistryService.java'
-            exclude '**/orchestrator/service/SupplyOrchestrator.java'
-        }
-    }
 }

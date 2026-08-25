@@ -30,6 +30,7 @@ __pycache__/
 venv/
 .venv/
 env/
+music_crawler*.py
 
 # === Caches ===
 .mypy_cache/
@@ -45,6 +46,8 @@ logs/
 *.log
 hs_err_pid*.log
 replay_pid*.log
+compile_all.log
+compile_rule2.log
 
 # === Test Data & Downloads ===
 downloaded_music/
@@ -53,6 +56,7 @@ test_music_v1/
 test_music_v2/
 data/*.db
 data/*.log
+测试报告.md
 
 # === Installers & Archives (should not be in git) ===
 *.msi

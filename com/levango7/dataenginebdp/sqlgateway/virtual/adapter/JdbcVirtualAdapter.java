@@ -122,6 +122,8 @@ public class JdbcVirtualAdapter implements VirtualAdapter {
                 sql.append(" LIMIT ?");
                 params.add(limit);
             }
+            // debug 日志打印 SQL 与查询参数（params 为 WHERE 条件值，非连接凭据）。
+            // 若查询条件可能包含敏感业务数据，生产环境应关闭 debug 级别或对 params 脱敏。
             log.debug("生成参数化 SQL: {} 参数: {}", sql, params);
 
             // 4. PreparedStatement 绑定参数并执行
@@ -194,6 +196,8 @@ public class JdbcVirtualAdapter implements VirtualAdapter {
         Map<String, Object> config = parseConfig(definition);
         String url = (String) config.get("url");
         String username = (String) config.get("username");
+        // 安全约定：password 从连接配置 JSON 读取（非硬编码），仅用于建立连接，
+        // 严禁记录到任何日志或异常消息中。
         String password = (String) config.get("password");
         String driver = (String) config.getOrDefault("driver", defaultDriver);
         try {
