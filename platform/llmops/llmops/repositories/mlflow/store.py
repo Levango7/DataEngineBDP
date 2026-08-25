@@ -130,7 +130,7 @@ class MLflowModelStore(ModelStore):
 
     async def update_model(self, model_id: str, **fields: Any) -> ModelInfo:
         m = await self.get_model(model_id)
-        if "description" in fields or "tags" in fields:
+        if "description" in fields or "tags" in fields or "status" in fields:
             await asyncio.to_thread(self._update_model_sync, m.name, fields)
         return await self.get_model(model_id)
 
@@ -138,6 +138,10 @@ class MLflowModelStore(ModelStore):
         client = self._client.client
         if "description" in fields:
             client.update_registered_model(name, description=fields["description"])
+        if "status" in fields:
+            status = fields["status"]
+            status_val = status.value if hasattr(status, "value") else str(status)
+            client.set_registered_model_tag(name, f"{_TAG_PREFIX}status", status_val)
         if "tags" in fields:
             for k, v in fields["tags"].items():
                 client.set_registered_model_tag(name, f"{_TAG_PREFIX}tag.{k}", v)

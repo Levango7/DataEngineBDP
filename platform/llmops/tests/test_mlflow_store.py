@@ -230,6 +230,19 @@ def test_full_roundtrip_behavior_unchanged():
     asyncio.run(scenario())
 
 
+def test_update_model_persists_status():
+    store, _ = _make_store()
+
+    async def scenario():
+        model_id = await store.register_model(_make_info(name="st-1"))
+        updated = await store.update_model(model_id, status="deployed")
+        assert updated.status == "deployed"
+        reread = await store.get_model(model_id)
+        assert reread.status == "deployed"
+
+    asyncio.run(scenario())
+
+
 def test_register_duplicate_raises_already_exists():
     store, _ = _make_store()
 
