@@ -294,18 +294,20 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
     loadingMore.value = true
     const seq = ++searchSeq
     try {
-      page.value += 1
-      query.paging = { page: page.value, pageSize: pageSize.value }
+      // 先计算下一页码但不立即写入，避免请求被守卫取消时页码虚增；
+      // 仅在请求成功且未被取消时才提交 page，保证并发竞态下页码由最后生效的操作决定
+      const nextPage = page.value + 1
+      query.paging = { page: nextPage, pageSize: pageSize.value }
       const resp = await searchApi.search(query)
       if (seq !== searchSeq) return
+      page.value = nextPage
       results.value = [...results.value, ...resp.list]
       total.value = resp.total
       hasMore.value = resp.hasMore
     } catch (e) {
       if (seq !== searchSeq) return
       error.value = e instanceof Error ? e : new Error(String(e))
-      // 失败回滚页码
-      page.value -= 1
+      // 失败不更新 page（page 未被修改）
     } finally {
       loadingMore.value = false
     }

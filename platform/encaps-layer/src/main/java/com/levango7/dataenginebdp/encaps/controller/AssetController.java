@@ -208,12 +208,17 @@ public class AssetController {
      * @param id 资产 ID
      * @return 200 + 质量检查项列表
      */
-    @Operation(summary = "获取资产质量检查结果", description = "从内存质量结果存储查询（按资产 ID 隔离）")
+    @Operation(summary = "获取资产质量检查结果", description = "从内存质量结果存储查询（按租户 + 资产 ID 隔离）")
     @GetMapping("/{id}/quality")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getQuality(@PathVariable Long id) {
-        requireTenant();
-        List<Map<String, Object>> results = QUALITY_RESULTS.getOrDefault(String.valueOf(id), List.of());
+        String tenantId = requireTenant();
+        // 校验资产属于当前租户，防止跨租户数据泄露（P1-6）
+        if (repository.findByIdAndTenantId(id, tenantId).isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        // key 加入 tenantId 前缀，确保跨租户隔离
+        List<Map<String, Object>> results = QUALITY_RESULTS.getOrDefault(tenantId + ":" + id, List.of());
         return ResponseEntity.ok(new ArrayList<>(results));
     }
 
@@ -226,12 +231,17 @@ public class AssetController {
      * @param id 资产 ID
      * @return 200 + 权限列表
      */
-    @Operation(summary = "获取资产权限列表", description = "从内存权限存储查询（按资产 ID 隔离）")
+    @Operation(summary = "获取资产权限列表", description = "从内存权限存储查询（按租户 + 资产 ID 隔离）")
     @GetMapping("/{id}/permissions")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> getPermissions(@PathVariable Long id) {
-        requireTenant();
-        List<Map<String, Object>> perms = ASSET_PERMISSIONS.getOrDefault(String.valueOf(id), List.of());
+        String tenantId = requireTenant();
+        // 校验资产属于当前租户，防止跨租户数据泄露（P1-6）
+        if (repository.findByIdAndTenantId(id, tenantId).isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+        // key 加入 tenantId 前缀，确保跨租户隔离
+        List<Map<String, Object>> perms = ASSET_PERMISSIONS.getOrDefault(tenantId + ":" + id, List.of());
         return ResponseEntity.ok(new ArrayList<>(perms));
     }
 

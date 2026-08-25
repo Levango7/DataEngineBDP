@@ -19,6 +19,9 @@
 
 #### Fixed
 - **Phase B 功能正确性**：FinOps 执行分账按钮错绑修复；useSearch/useApi 请求序号守卫消除旧响应覆盖；DevMl/DevSched/EngFlink/EngSpark 补工作空间切换重载；401 并发单飞去重；llmops/ml-platform/industry-templates/registry/model-finetuning 五服务 async 阻塞改造（to_thread 卸载）；ml-platform /evaluate 从恒 400 修复可用；registry 模型存在性校验生效；model-finetuning 日志有界读取+嵌套 event loop+非幂等 POST 重试收紧
+- **Phase D 安全加固**：asset-exchange/nl2sql/model-finetuning CORS 中间件+测试；open-api-catalog JWT 鉴权扩展+管理端鉴权；encaps-layer JwtAuthFilter 适配；mlflow 适配器 store/trainer/monitor/deployer 增强；MultiTenantIsolationTest 改为仓库层直测+SecurityMockMvc 配置；nightly E2E 流水线
+- **审核修复**：清理 245ae0fe 误入库的临时调试脚本（.codeartsdoer/tmp/）；补 .gitignore 规则（.codeartsdoer/tmp/、frontend/vitest-*.txt、frontend/run-vitest.ps1）
+- **[流程说明]** 245ae0fe (wip) 提交粒度失控，混合 Go 1.26 升级/依赖升级/echarts mock/CI 调整等 5+ 类不相关改动（73 文件），Go 1.25→1.26 升级未声明兼容性影响。后续已禁止 wip 直推主干，breaking change 须显式声明
 - **Phase C 状态码与规范**：vector-engine 内部错误 400→500、校验错误归位 400；karmada 三处创建接口按错误类型映射（409 仅唯一冲突/500 内部）；open-api-catalog invoke 认证失败返回真实 HTTP 401；encaps-layer 八处创建端点 200→201（响应体不变）；行业模板假运营数据（installCount/rating）清理；APIMarket mock 兜底遮错改真实错误态+重试；审批 store 失败不再静默保留假数据；api-reference.md 升 V2.2 勘误（鉴权矩阵/nl2sql 整章/OpenAPI 附录实况化等 11 项）；CONVENTIONS §9 接口规范基线+现存偏差登记表
 
 #### Added

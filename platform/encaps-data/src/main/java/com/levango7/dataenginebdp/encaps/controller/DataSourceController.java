@@ -9,6 +9,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -101,7 +102,7 @@ public class DataSourceController {
         DataSourceEntity saved = repository.save(entity);
         log.info("创建数据源: id={}, name={}, type={}, tenant={}",
                 saved.getId(), saved.getName(), saved.getType(), tenantId);
-        return ResponseEntity.ok(toView(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(toView(saved));
     }
 
     /** 更新。 */

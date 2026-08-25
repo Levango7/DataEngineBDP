@@ -13,15 +13,9 @@ export const useAppStore = defineStore('app', () => {
   const workspace = ref('华东生产集群')
   const envTag = ref('信创环境 · 健康')
 
-  // 待办审批列表（dashboard 与 sec 页面共用）
-  interface Todo {
-    id: string
-    text: string
-    applicant: string
-  }
-  const todos = ref<Todo[]>([])
-
   // 安全审批列表（由后端 API 加载，不预置本地假数据）
+  // 说明：原 todos 本地待办列表已无数据源（mock 数据已删除），已移除；
+  //       dashboard 与 sec 页面统一使用 secApprovals 作为唯一审批数据源。
   interface SecApproval {
     id: string
     applicant: string
@@ -32,7 +26,7 @@ export const useAppStore = defineStore('app', () => {
   const secApprovalsLoaded = ref(false)
   const secApprovalsError = ref<Error | null>(null)
 
-  const todoCount = computed(() => todos.value.length + secApprovals.value.length)
+  const todoCount = computed(() => secApprovals.value.length)
 
   // Toast
   interface ToastItem {
@@ -78,13 +72,9 @@ export const useAppStore = defineStore('app', () => {
     showToast('已驳回')
   }
 
-  /** 从待办或安全审批列表中移除指定项 */
+  /** 从安全审批列表中移除指定项 */
   function removeApproval(id: string) {
-    if (todos.value.some((t) => t.id === id)) {
-      todos.value = todos.value.filter((t) => t.id !== id)
-    } else {
-      secApprovals.value = secApprovals.value.filter((s) => s.id !== id)
-    }
+    secApprovals.value = secApprovals.value.filter((s) => s.id !== id)
   }
 
   function setWorkspace(name: string) {
@@ -94,7 +84,7 @@ export const useAppStore = defineStore('app', () => {
 
   /**
    * 拉取安全审批列表（非 mock 模式生效）
-   * 成功才落数据；失败置 error 态，不静默保留旧值
+   * 成功才落数据；失败置 error 态并清空旧数据，不静默保留过期值
    */
   async function fetchSecApprovals() {
     if (USE_MOCK) return
@@ -109,6 +99,9 @@ export const useAppStore = defineStore('app', () => {
       secApprovalsLoaded.value = true
       secApprovalsError.value = null
     } catch (e) {
+      // 失败时清空旧数据，避免"先成功后失败"场景下展示过期数据
+      secApprovals.value = []
+      secApprovalsLoaded.value = false
       secApprovalsError.value = e instanceof Error ? e : new Error(String(e))
     }
   }
@@ -116,7 +109,7 @@ export const useAppStore = defineStore('app', () => {
   return {
     workspace,
     envTag,
-    todos,
+
     secApprovals,
     secApprovalsLoaded,
     secApprovalsError,

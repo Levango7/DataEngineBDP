@@ -1,7 +1,8 @@
 /**
  * APIMarket.vue 单元测试
  *
- * 重点覆盖：列表加载失败应进入错误态并提供重试入口，不得注入任何 mock 数据
+ * 重点覆盖：列表加载失败应进入错误态并提供重试入口，不得注入任何 mock 数据；
+ *           错误态时 KPI 概览不得展示旧数据（P2-9）
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
@@ -96,6 +97,44 @@ describe('views/APIMarket.vue 列表加载三态', () => {
     expect(wrapper.text()).toContain('real-api')
     expect(wrapper.text()).not.toContain('API 列表加载失败')
     expect(wrapper.text()).not.toContain('weather-query')
+    wrapper.unmount()
+  })
+
+  it('P2-9: 先成功后失败时 KPI 概览不应展示旧数据', async () => {
+    // 第一次成功，KPI 概览应显示 realApi 的数据
+    listApisMock.mockResolvedValueOnce([realApi])
+    // 第二次失败，KPI 概览应清空，不保留旧数据
+    listApisMock.mockRejectedValueOnce(new Error('backend down'))
+
+    const wrapper = mount(APIMarket)
+    await flushPromises()
+
+    // 第一次加载成功，KPI 应显示 1 个 API
+    expect(wrapper.text()).toContain('real-api')
+    // KPI 概览"已发布 API"应为 1
+    const kpiCards = wrapper.findAll('.kpi')
+    expect(kpiCards.length).toBeGreaterThanOrEqual(1)
+
+    // 触发重试（第二次请求），将失败
+    const retryBtn = findRetryButton(wrapper)
+    // 没有重试按钮（因为第一次成功），改为通过搜索触发第二次请求
+    // 使用直接调用 refreshList 不方便，改为模拟输入触发防抖后请求
+    const searchInput = wrapper.find('.search-input')
+    await searchInput.setValue('test')
+    // 等待防抖 300ms
+    await new Promise((r) => setTimeout(r, 350))
+    await flushPromises()
+
+    // 第二次请求失败，应进入错误态
+    expect(wrapper.text()).toContain('API 列表加载失败')
+    // KPI 概览不应显示旧数据（已发布 API 应为 0，而非 1）
+    // 错误态下 safeApiList 为空，所有 KPI 计数应为 0
+    expect(wrapper.text()).toContain('API 列表加载失败')
+    // 确保旧数据 real-api 不再出现在列表区域（错误态卡片不显示列表）
+    // 注意：real-api 可能仍出现在 KPI 概览中如果未正确清空，这里验证 KPI 为 0
+    const kpiAfterError = wrapper.findAll('.kpi')
+    // 第一个 KPI 是"已发布 API"，错误态应为 0
+    expect(kpiAfterError[0].text()).toBe('0')
     wrapper.unmount()
   })
 })

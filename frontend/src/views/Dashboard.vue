@@ -75,15 +75,15 @@
             <tr role="row"><th role="columnheader">申请</th><th role="columnheader">申请人</th><th role="columnheader">操作</th></tr>
           </thead>
           <tbody>
-            <tr v-for="t in store.todos" :key="t.id" role="row">
-              <td role="cell">{{ t.text }}</td>
+            <tr v-for="t in store.secApprovals" :key="t.id" role="row">
+              <td role="cell">{{ t.asset }}（{{ t.perm }}）</td>
               <td role="cell">{{ t.applicant }}</td>
               <td role="cell">
                 <button class="btn sm" aria-label="批准申请" @click="store.approve(t.id)">批准</button>
                 <button class="btn ghost sm" aria-label="驳回申请" @click="store.reject(t.id)">驳回</button>
               </td>
             </tr>
-            <tr v-if="store.todos.length === 0" role="row">
+            <tr v-if="store.secApprovals.length === 0" role="row">
               <td colspan="3" style="text-align: center; color: var(--muted)" role="cell">暂无待办</td>
             </tr>
           </tbody>
@@ -147,5 +147,7 @@ const runningProjects = computed(() => {
 
 onMounted(() => {
   void loadOverview()
+  // 加载安全审批列表作为待办数据源（todos 已移除，secApprovals 为唯一数据源）
+  void store.fetchSecApprovals()
 })
 </script>

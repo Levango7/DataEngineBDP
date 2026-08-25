@@ -344,6 +344,13 @@ const (
 	StatusRunning   BatchJobStatus = "running"
 	StatusSucceeded BatchJobStatus = "succeeded"
 	StatusFailed    BatchJobStatus = "failed"
+	// StatusCancelled 任务被显式取消（不可恢复终态）。
+	// 预留状态：当前 executeJob 未设置，供未来取消 API 使用；janitor 需识别其终态语义。
+	StatusCancelled BatchJobStatus = "cancelled"
+	// StatusTimeout 任务因执行超时终止（不可恢复终态）。
+	// 预留状态：当前 executeJob 超时统一归入 StatusFailed，供未来细分超时语义使用；
+	// janitor 需识别其终态语义。
+	StatusTimeout BatchJobStatus = "timeout"
 )
 
 // BatchJob 批处理任务。
@@ -571,8 +578,13 @@ func (m *BatchJobManager) sweepTerminalJobs(now time.Time) {
 }
 
 // isTerminalStatus 报告任务是否处于终态（不可再变更、可安全回收）。
+//
+// 终态包含所有不可恢复状态：succeeded / failed / cancelled / timeout。
+// 非终态（queued / running）不回收，避免误删进行中任务导致 jobs map 回收后
+// 仍被查询时误报不存在。新增终态时务必在此纳入，否则 janitor 不会回收该类任务，
+// 造成 jobs map 无限增长（泄漏）。
 func isTerminalStatus(s BatchJobStatus) bool {
-	return s == StatusSucceeded || s == StatusFailed
+	return s == StatusSucceeded || s == StatusFailed || s == StatusCancelled || s == StatusTimeout
 }
 
 // Stats 返回批处理统计。

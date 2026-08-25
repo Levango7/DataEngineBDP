@@ -15,11 +15,12 @@ DeepSpeed 是微软开源的大模型训练优化库：
 """
 from __future__ import annotations
 
+import atexit
 import json
 import os
 import re
 import subprocess
-from typing import Any, Optional
+from typing import Any, IO, Optional
 
 from app.adapters.base import BaseAdapter, ProcessHandle
 from app.models.finetune_config import (
@@ -28,6 +29,28 @@ from app.models.finetune_config import (
     FinetuneMethod,
 )
 from app.models.finetune_task import FinetuneTask, LogEntry
+
+
+def _close_log_fd(log_fd: IO[str]) -> None:
+    """安全关闭日志文件句柄（幂等，已关闭则跳过）.
+
+    作为 atexit 兜底回调，防止调用方遗漏 ``stop()`` 导致句柄泄漏；
+    也可在 ``stop()`` 中显式调用。
+    """
+    try:
+        if not log_fd.closed:
+            log_fd.close()
+    except Exception:
+        # 关闭过程中的异常不应影响进程退出或 stop 流程
+        pass
+
+
+def _close_handle_log_fd(handle: ProcessHandle) -> None:
+    """从 ProcessHandle 中取出并关闭日志句柄（若存在）."""
+    if handle.extra:
+        log_fd = handle.extra.get("log_fd")
+        if log_fd is not None:
+            _close_log_fd(log_fd)
 
 
 class DeepSpeedAdapter(BaseAdapter):
@@ -164,10 +187,20 @@ class DeepSpeedAdapter(BaseAdapter):
                 stderr=subprocess.STDOUT,
                 cwd=self.workDir,
             )
-        finally:
+        except Exception:
+            # Popen 失败时立即关闭日志句柄，避免泄漏
             log_fd.close()
+            raise
+        # 注意：此处不关闭 log_fd。
+        # Windows 上 Python 3.4+ 默认 close_fds=True，若父进程在 Popen 后
+        # 立即关闭 stdout 句柄，子进程通过 STARTUPINFO 继承的 handle 可能
+        # 写入失败。故将 log_fd 生命周期绑定到 ProcessHandle，由 stop() 关闭；
+        # 同时注册 atexit 兜底，防止调用方遗漏 stop() 导致句柄泄漏。
+        atexit.register(_close_log_fd, log_fd)
         return ProcessHandle(
-            pid=proc.pid, isMock=False, extra={"proc": proc, "log": log_path}
+            pid=proc.pid,
+            isMock=False,
+            extra={"proc": proc, "log": log_path, "log_fd": log_fd},
         )
 
     def stop(self, handle: ProcessHandle) -> bool:
@@ -184,6 +217,9 @@ class DeepSpeedAdapter(BaseAdapter):
         except subprocess.SubprocessError:
             proc.kill()
             return proc.poll() is not None
+        finally:
+            # 终止进程后关闭日志句柄，确保子进程不再写入后再释放 fd
+            _close_handle_log_fd(handle)
 
     def parse_log_line(self, line: str, step: int = 0) -> Optional[LogEntry]:
         """解析 DeepSpeed 训练日志行.

@@ -142,7 +142,55 @@ describe('composables/useSearch.ts 竞态守卫', () => {
     await s.loadMore()
 
     expect(s.results.value.map((i) => i.id)).toEqual(['p1', 'p2'])
+    expect(s.page.value).toBe(2)
     expect(s.hasMore.value).toBe(false)
     expect(mockedSearch).toHaveBeenCalledTimes(2)
+  })
+
+  it('loadMore 序号守卫取消时页码不应虚增', async () => {
+    let resolveLoadMore!: (r: SearchResponse) => void
+    let resolveRefresh!: (r: SearchResponse) => void
+    mockedSearch
+      .mockImplementationOnce(() => Promise.resolve(resp(['p1'], { hasMore: true })))
+      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveLoadMore = r }))
+      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveRefresh = r }))
+
+    const s = useSearch({ debounceMs: 0 })
+    s.query.query = 'alpha'
+    await s.refresh()
+    expect(s.page.value).toBe(1)
+
+    const morePromise = s.loadMore()
+
+    const refreshPromise = s.refresh()
+    resolveRefresh(resp(['fresh']))
+    await refreshPromise
+    expect(s.page.value).toBe(1)
+
+    // loadMore 的过期响应返回，序号守卫应取消，page 不应虚增到 2
+    resolveLoadMore(resp(['old-page2']))
+    await morePromise
+
+    expect(s.page.value).toBe(1)
+    expect(s.results.value.map((i) => i.id)).toEqual(['fresh'])
+    expect(s.loadingMore.value).toBe(false)
+  })
+
+  it('loadMore 失败时页码应回滚，不虚增', async () => {
+    mockedSearch
+      .mockImplementationOnce(() => Promise.resolve(resp(['p1'], { hasMore: true })))
+      .mockImplementationOnce(() => Promise.reject(new Error('network down')))
+
+    const s = useSearch({ debounceMs: 0 })
+    s.query.query = 'alpha'
+    await s.refresh()
+    expect(s.page.value).toBe(1)
+
+    await s.loadMore()
+
+    // 失败应回滚页码，page 不应虚增到 2
+    expect(s.page.value).toBe(1)
+    expect(s.error.value).toBeInstanceOf(Error)
+    expect(s.loadingMore.value).toBe(false)
   })
 })

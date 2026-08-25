@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.sqlgateway.calcite.join;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 行序列化/反序列化工具——SpillManager 和 SpilledPartition 共用。
@@ -50,7 +51,8 @@ final class SpillSerDe {
         } else if (v instanceof Float f) {
             dos.writeByte(4); dos.writeFloat(f); return 5;
         } else if (v instanceof String s) {
-            dos.writeByte(5); dos.writeUTF(s); return 3 + s.length();
+            dos.writeByte(5); dos.writeUTF(s);
+            return 3 + s.getBytes(StandardCharsets.UTF_8).length;
         } else if (v instanceof Boolean b) {
             dos.writeByte(6); dos.writeBoolean(b); return 2;
         } else if (v instanceof Short s) {
@@ -61,8 +63,9 @@ final class SpillSerDe {
             dos.writeByte(9); dos.writeInt(bytes.length); dos.write(bytes);
             return 5 + bytes.length;
         } else {
-            dos.writeByte(5); dos.writeUTF(v.toString());
-            return 3 + v.toString().length();
+            String s = v.toString();
+            dos.writeByte(5); dos.writeUTF(s);
+            return 3 + s.getBytes(StandardCharsets.UTF_8).length;
         }
     }
 

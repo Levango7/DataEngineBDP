@@ -169,8 +169,9 @@ func (s *GormStore) CreateTable(t *model.Table) error {
 		return err
 	}
 
+	// ID 唯一性按租户收敛：不同租户可各自拥有同 ID 的表（与 CreateDatabase 的 Name 收敛策略一致）。
 	var existing model.Table
-	result := s.db.First(&existing, "id = ?", t.ID)
+	result := s.db.First(&existing, "tenant_id = ? AND id = ?", t.TenantID, t.ID)
 	if result.Error == nil {
 		return fmt.Errorf("%w: table %s", ErrAlreadyExists, t.ID)
 	}

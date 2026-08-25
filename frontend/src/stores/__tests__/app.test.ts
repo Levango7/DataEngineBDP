@@ -1,7 +1,7 @@
 /**
  * stores/app.ts 单元测试
  *
- * 重点覆盖：审批列表不预置假数据；fetchSecApprovals 成功才落数据、失败置 error 态
+ * 重点覆盖：审批列表不预置假数据；fetchSecApprovals 成功才落数据、失败置 error 态并清空旧数据
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
@@ -30,7 +30,7 @@ describe('stores/app 审批数据语义', () => {
 
   it('初始 state 不应预置假审批单', () => {
     const store = useAppStore()
-    expect(store.todos).toEqual([])
+
     expect(store.secApprovals).toEqual([])
     expect(store.todoCount).toBe(0)
     expect(store.secApprovalsLoaded).toBe(false)
@@ -84,5 +84,33 @@ describe('stores/app 审批数据语义', () => {
     await store.fetchSecApprovals()
     expect(store.secApprovalsLoaded).toBe(true)
     expect(store.secApprovalsError).toBeNull()
+  })
+
+  it('先成功后失败时应清空旧审批数据，不得展示过期数据', async () => {
+    const store = useAppStore()
+    // 第一次成功，落数据
+    listApprovalsMock.mockResolvedValueOnce([
+      {
+        id: 'a1',
+        applicant: '张工',
+        asset: 'dws.user_profile',
+        permission: '读',
+        status: 'pending',
+        createdAt: '2026-01-01'
+      }
+    ])
+    await store.fetchSecApprovals()
+    expect(store.secApprovals).toHaveLength(1)
+    expect(store.secApprovalsLoaded).toBe(true)
+
+    // 第二次失败，应清空旧数据，避免展示过期值
+    listApprovalsMock.mockRejectedValueOnce(new Error('network down'))
+    await store.fetchSecApprovals()
+
+    expect(store.secApprovals).toEqual([])
+    expect(store.todoCount).toBe(0)
+    expect(store.secApprovalsLoaded).toBe(false)
+    expect(store.secApprovalsError).toBeInstanceOf(Error)
+    expect((store.secApprovalsError as Error).message).toBe('network down')
   })
 })

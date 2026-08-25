@@ -9,7 +9,7 @@
     <div class="grid g4">
       <div class="card">
         <h3>已发布 API</h3>
-        <div class="kpi s">{{ apiList?.length ?? 0 }}</div>
+        <div class="kpi s">{{ safeApiList.length }}</div>
         <div class="meta">运行中 {{ runningCount }} · 草稿 {{ draftCount }}</div>
       </div>
       <div class="card">
@@ -35,7 +35,7 @@
         v-model="keyword"
         class="search-input"
         placeholder="搜索 API 名称 / 描述 / 标签"
-        @input="refreshList"
+        @input="debouncedRefreshList"
       />
       <select v-model="categoryFilter" @change="refreshList">
         <option value="">全部分类</option>
@@ -290,7 +290,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -341,24 +341,38 @@ const {
   }
 )
 
+// P2-10: 搜索输入防抖（300ms），避免每次按键都触发请求
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+function debouncedRefreshList(): void {
+  if (searchDebounceTimer !== null) {
+    clearTimeout(searchDebounceTimer)
+  }
+  searchDebounceTimer = setTimeout(() => {
+    searchDebounceTimer = null
+    void refreshList()
+  }, 300)
+}
+
 const categories = computed(() => {
   const set = new Set<string>()
   ;(apiList.value ?? []).forEach((a) => set.add(a.category))
   return Array.from(set).sort()
 })
 
-const runningCount = computed(() => (apiList.value ?? []).filter((a) => a.status === 'running').length)
-const draftCount = computed(() => (apiList.value ?? []).filter((a) => a.status === 'draft').length)
-const totalCalls = computed(() => (apiList.value ?? []).reduce((sum, a) => sum + a.callCount, 0))
+// P2-9: 错误态时 KPI 概览不得展示旧数据，统一以空列表计算，保证 UI 一致性
+const safeApiList = computed(() => (error.value ? [] : (apiList.value ?? [])))
+const runningCount = computed(() => safeApiList.value.filter((a) => a.status === 'running').length)
+const draftCount = computed(() => safeApiList.value.filter((a) => a.status === 'draft').length)
+const totalCalls = computed(() => safeApiList.value.reduce((sum, a) => sum + a.callCount, 0))
 const totalSuccessRate = computed(() => {
-  const list = apiList.value ?? []
+  const list = safeApiList.value
   const total = list.reduce((sum, a) => sum + a.callCount, 0)
   const errors = list.reduce((sum, a) => sum + a.errorCount, 0)
   return total > 0 ? (total - errors) / total : 1
 })
-const platinumCount = computed(() => (apiList.value ?? []).filter((a) => a.sla === 'platinum').length)
-const goldCount = computed(() => (apiList.value ?? []).filter((a) => a.sla === 'gold').length)
-const silverCount = computed(() => (apiList.value ?? []).filter((a) => a.sla === 'silver').length)
+const platinumCount = computed(() => safeApiList.value.filter((a) => a.sla === 'platinum').length)
+const goldCount = computed(() => safeApiList.value.filter((a) => a.sla === 'gold').length)
+const silverCount = computed(() => safeApiList.value.filter((a) => a.sla === 'silver').length)
 const activeSubscriptions = ref(0)
 const pendingSubscriptions = ref(0)
 
@@ -470,7 +484,7 @@ async function publishFlow(api: APIDefinition) {
 }
 
 // 监听 tab 切换加载计量
-import { watch } from 'vue'
+
 watch(activeTab, (tab) => {
   if (tab === '计量' && selectedApi.value && !metrics.value) {
     loadMetrics()
@@ -599,6 +613,14 @@ function barHeight(count: number): number {
 
 onMounted(() => {
   void refreshList()
+})
+
+onUnmounted(() => {
+  // 清理防抖定时器，避免组件卸载后仍触发请求
+  if (searchDebounceTimer !== null) {
+    clearTimeout(searchDebounceTimer)
+    searchDebounceTimer = null
+  }
 })
 </script>
 

@@ -31,14 +31,13 @@ func mustGetenv(key string) string {
 //
 // 配置通过环境变量读取（fail-fast，无默认值）：
 //   - JWT_SIGNING_KEY:  HMAC-SHA 签名密钥，至少 32 字节（256 bit），必需
-//   - JWT_ISSUER:       JWT issuer，校验 iss claim 必须匹配（默认 shuqing-bigdata）
+//   - JWT_ISSUER:       JWT issuer，校验 iss claim 必须匹配，必需
 func AuthMiddleware() gin.HandlerFunc {
-	// 安全止血：JWT_SIGNING_KEY 必须显式配置，缺失则启动 fatal。
+	// 安全止血：JWT_SIGNING_KEY 与 JWT_ISSUER 必须显式配置，缺失则启动 fatal。
+	// 不再提供任何弱默认值，避免因遗漏环境变量而使用弱密钥或错误 issuer 导致
+	// 跨服务 token 误判。
 	secret := mustGetenv("JWT_SIGNING_KEY")
-	issuer := os.Getenv("JWT_ISSUER")
-	if issuer == "" {
-		issuer = "shuqing-bigdata"
-	}
+	issuer := mustGetenv("JWT_ISSUER")
 
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")

@@ -36,7 +36,9 @@ func (f *TenantFilter) InjectTenantQuery(promql string, tenantID string) string 
 	if tenantID == "" {
 		return promql
 	}
-	expr, err := promqlParser.ParseExpr(promql)
+	// 每次调用创建局部 parser 实例，避免包级单例的 statefulLexer 在并发调用时竞态。
+	p := parser.NewParser(parser.Options{})
+	expr, err := p.ParseExpr(promql)
 	if err != nil {
 		return promql
 	}
@@ -46,8 +48,6 @@ func (f *TenantFilter) InjectTenantQuery(promql string, tenantID string) string 
 	}
 	return expr.String()
 }
-
-var promqlParser = parser.NewParser(parser.Options{})
 
 // tenantMatcherInjector 遍历 AST 并为缺失 tenant_id 匹配器的 VectorSelector 注入等值匹配器。
 type tenantMatcherInjector struct {

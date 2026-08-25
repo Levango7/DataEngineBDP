@@ -147,7 +147,11 @@ public class BackendProxyService {
      * @param sql      待执行的 SQL
      * @param tenantId 租户 ID（写入 X-Trino-User 头）
      * @return 后端执行响应（异步）
+     * @deprecated 该重载传入 {@code null} limit，不会应用行数上限，旧调用方将绕过
+     *             limit 限制。请改用 {@link #proxyToTrino(String, String, Integer)}
+     *             显式传入 limit 参数。
      */
+    @Deprecated
     public Mono<SqlExecuteResponse> proxyToTrino(String sql, String tenantId) {
         return proxyToTrino(sql, tenantId, null);
     }
@@ -204,7 +208,11 @@ public class BackendProxyService {
      * @param sql      待执行的 SQL
      * @param tenantId 租户 ID（当前预留：后续可通过 setVar 写入 Doris 会话变量，用于审计隔离）
      * @return 后端执行响应（异步）
+     * @deprecated 该重载传入 {@code null} limit，不会应用行数上限，旧调用方将绕过
+     *             limit 限制。请改用 {@link #proxyToDoris(String, String, Integer)}
+     *             显式传入 limit 参数。
      */
+    @Deprecated
     public Mono<SqlExecuteResponse> proxyToDoris(String sql, String tenantId) {
         return proxyToDoris(sql, tenantId, null);
     }
