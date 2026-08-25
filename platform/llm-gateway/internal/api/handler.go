@@ -22,6 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/gateway"
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/middleware"
 	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 )
 
@@ -54,8 +55,10 @@ func (h *Handler) RegisterRoutes(r *gin.Engine, authMiddleware gin.HandlerFunc) 
 		v1.GET("/models", h.ListModels)
 
 		v1.GET("/providers", h.ListProviders)
-		v1.POST("/providers", h.RegisterProvider)
-		v1.DELETE("/providers/:name", h.UnregisterProvider)
+		// Provider 注册/注销属平台治理操作：admin 门禁，阻断租户注册
+		// 指向内网/元数据服务的 Provider 造成 SSRF 与凭据外送。
+		v1.POST("/providers", middleware.RequireRole("admin"), h.RegisterProvider)
+		v1.DELETE("/providers/:name", middleware.RequireRole("admin"), h.UnregisterProvider)
 
 		v1.GET("/metrics/tokens", h.TokenMetrics)
 		v1.GET("/metrics/latency", h.LatencyMetrics)
@@ -232,8 +235,18 @@ func (h *Handler) UnregisterProvider(c *gin.Context) {
 // ============ 指标 ============
 
 // TokenMetrics GET /api/v1/metrics/tokens
+//
+// 租户边界：非 admin 忽略 ?tenant= 参数，强制返回自身租户数据；
+// admin（平台运营）保留跨租户审计能力。
 func (h *Handler) TokenMetrics(c *gin.Context) {
 	tenantID := c.Query("tenant")
+	role, _ := c.Get("role")
+	isAdmin, _ := role.(string)
+	if isAdmin != "admin" {
+		ownTenant, _ := c.Get("tenantId")
+		ownStr, _ := ownTenant.(string)
+		tenantID = ownStr
+	}
 	meter := h.gateway.Meter()
 
 	if tenantID != "" {

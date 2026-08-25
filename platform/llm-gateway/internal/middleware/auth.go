@@ -35,11 +35,12 @@ func mustGetenv(key string) string {
 func AuthMiddleware() gin.HandlerFunc {
 	devMode := strings.EqualFold(os.Getenv("JWT_DEV_MODE"), "true")
 
-	// 开发模式：跳过校验，注入默认身份，不要求 JWT_SIGNING_KEY。
+	// 开发模式：跳过校验，注入默认身份（dev 视为 admin），不要求 JWT_SIGNING_KEY。
 	if devMode {
 		return func(c *gin.Context) {
 			c.Set("tenantId", "dev")
 			c.Set("userId", "dev")
+			c.Set("role", "admin")
 			c.Next()
 		}
 	}
@@ -81,10 +82,37 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		tenantId, _ := claims["tenantId"].(string)
 		userId, _ := claims["sub"].(string)
+		role, _ := claims["role"].(string)
+		if role == "" {
+			role = "user"
+		}
 
 		c.Set("tenantId", tenantId)
 		c.Set("userId", userId)
+		c.Set("role", role)
 
+		c.Next()
+	}
+}
+
+// RequireRole 角色校验中间件，须挂在 AuthMiddleware 之后。
+//
+// 从 gin.Context 读取 AuthMiddleware 注入的 role claim，
+// 未携带角色视为普通用户。用于 Provider/Routing 等治理端点的
+// admin 门禁，阻断普通租户注册指向内网的 Provider（SSRF）或
+// 篡改全局路由。
+func RequireRole(roles ...string) gin.HandlerFunc {
+	allowed := make(map[string]struct{}, len(roles))
+	for _, r := range roles {
+		allowed[r] = struct{}{}
+	}
+	return func(c *gin.Context) {
+		role, _ := c.Get("role")
+		roleStr, _ := role.(string)
+		if _, ok := allowed[roleStr]; !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "admin role required"})
+			return
+		}
 		c.Next()
 	}
 }

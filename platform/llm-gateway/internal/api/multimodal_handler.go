@@ -28,6 +28,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/middleware"
 	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/provider"
 	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/routing"
 	"github.com/Levango7/DataEngineBDP/llm-gateway/internal/streaming"
@@ -80,7 +81,8 @@ func (h *MultimodalHandler) RegisterRoutes(r *gin.Engine, authMiddleware gin.Han
 		v1.GET("/batch/jobs", h.ListBatchJobs)
 		v1.GET("/batch/jobs/:id", h.GetBatchJob)
 		v1.GET("/routing/rules", h.ListRoutingRules)
-		v1.POST("/routing/rules", h.AddRoutingRule)
+		// 路由规则属平台治理操作：admin 门禁（与 Provider 注册同级的 SSRF 面）。
+		v1.POST("/routing/rules", middleware.RequireRole("admin"), h.AddRoutingRule)
 		v1.GET("/routing/decision", h.QueryRoutingDecision)
 		v1.POST("/token/estimate", h.EstimateTokens)
 	}

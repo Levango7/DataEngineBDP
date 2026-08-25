@@ -38,12 +38,13 @@ func newTestHandler(t *testing.T) (*Handler, *gateway.Gateway) {
 	return New(gw, "test-version"), gw
 }
 
-// newTestRouter 构造测试路由（dev auth 中间件，注入 tenantId=dev）。
+// newTestRouter 构造测试路由（dev auth 中间件，注入 tenantId=dev、role=admin）。
 func newTestRouter(h *Handler) *gin.Engine {
 	r := gin.New()
 	devAuth := func(c *gin.Context) {
 		c.Set("tenantId", "dev")
 		c.Set("userId", "dev")
+		c.Set("role", "admin")
 		c.Next()
 	}
 	h.RegisterRoutes(r, devAuth)
