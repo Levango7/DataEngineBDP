@@ -94,7 +94,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import EChart from '@/components/EChart.vue'
@@ -102,7 +102,7 @@ import { getLoopTask, createTaskWebSocket } from '@/api/loop'
 import type { LoopTaskResponse, WSMessage, TrainingMetrics } from '@/types'
 
 const route = useRoute()
-const taskId = route.params.taskId as string
+const taskId = ref(route.params.taskId as string)
 
 const task = ref<LoopTaskResponse | null>(null)
 const activeSteps = ref(['finetune', 'evaluate', 'deploy'])
@@ -113,6 +113,7 @@ const metricsHistory = ref<TrainingMetrics[]>([])
 // WebSocket
 let ws: WebSocket | null = null
 const wsConnected = ref(false)
+let metricSeq = 0
 
 // ============================================================
 // ECharts 配置
@@ -176,7 +177,7 @@ const gpuMemChartOption = computed(() => {
 // ============================================================
 async function loadTask() {
   try {
-    task.value = await getLoopTask(taskId)
+    task.value = await getLoopTask(taskId.value)
   } catch (e) {
     ElMessage.error('加载任务详情失败')
   }
@@ -187,16 +188,19 @@ async function loadTask() {
 // ============================================================
 function connectWS() {
   ws = createTaskWebSocket(
-    taskId,
+    taskId.value,
     (msg: WSMessage) => {
-      if (msg.type === 'metrics' && msg.data.step === 'finetune') {
+      if (msg.type === 'metrics' && typeof msg.data?.loss === 'number') {
+        const rawStep = msg.data.step
+        const step =
+          typeof rawStep === 'number' && Number.isFinite(rawStep) ? rawStep : ++metricSeq
         metricsHistory.value.push({
-          step: msg.data.step || 0,
+          step,
           loss: msg.data.loss || 0,
           learningRate: msg.data.learningRate || 0,
-          gpuUtil: msg.data.gpuUtil || [],
-          gpuMemory: msg.data.gpuMemory || [],
-          epoch: msg.data.epoch || 0
+          gpuUtil: Array.isArray(msg.data.gpuUtil) ? msg.data.gpuUtil : [],
+          gpuMemory: Array.isArray(msg.data.gpuMemory) ? msg.data.gpuMemory : [],
+          epoch: typeof msg.data.epoch === 'number' ? msg.data.epoch : 0
         })
       } else if (msg.type === 'status') {
         loadTask()
@@ -226,6 +230,20 @@ function toggleWS() {
     connectWS()
   }
 }
+
+watch(
+  () => route.params.taskId,
+  (newId) => {
+    if (!newId || newId === taskId.value) return
+    disconnectWS()
+    task.value = null
+    metricsHistory.value = []
+    metricSeq = 0
+    taskId.value = newId as string
+    loadTask()
+    connectWS()
+  }
+)
 
 // 状态相关
 function getStatusType(status?: string): string {

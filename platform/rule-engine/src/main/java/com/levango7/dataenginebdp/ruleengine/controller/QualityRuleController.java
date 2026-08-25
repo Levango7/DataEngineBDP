@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ import java.util.Map;
  * 数据质量规则端点（ROADMAP 前后端接线：前端 /quality/rules）。
  *
  * <p>前端 QualityRule 契约（targetTable/checkType/threshold/actionOnFail）
- * 映射到通用 {@link Rule} 模型存储；list 返回 PagedResult 契约。</p>
+ * 映射到通用 {@link Rule} 模型存储；list 遵循平台分页契约（CONVENTIONS §9.4）。</p>
  */
 @Slf4j
 @RestController
@@ -36,6 +37,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/quality/rules")
 public class QualityRuleController {
+
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final RuleService ruleService;
     private final QualityCheckExecutionService executionService;
@@ -50,20 +53,28 @@ public class QualityRuleController {
             String actionOnFail) {
     }
 
-    /** 列表（分页契约，对齐前端 PagedResult）。 */
-    @Operation(summary = "列表（分页契约，对齐前端 PagedResult）")
+    /** 列表（分页契约：page/pageSize 入参，{list,total,page,size} 出参）。 */
+    @Operation(summary = "列表（分页契约：page/pageSize 入参，{list,total,page,size} 出参）")
     @GetMapping
     public ResponseEntity<Map<String, Object>> list(
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        List<Rule> all = ruleService.listAll();
+            @RequestParam(defaultValue = "20") int pageSize) {
+        int current = Math.max(page, 1);
+        int size = Math.min(Math.max(pageSize, 1), MAX_PAGE_SIZE);
+        List<Rule> all = ruleService.listAll().stream()
+                .sorted(Comparator.comparing(Rule::getCreatedAt,
+                                Comparator.nullsFirst(Comparator.naturalOrder()))
+                                .reversed()
+                        .thenComparing(Rule::getId,
+                                Comparator.nullsFirst(Comparator.naturalOrder())))
+                .toList();
         int total = all.size();
-        int start = Math.min((page - 1) * size, total);
+        int start = Math.min((current - 1) * size, total);
         int end = Math.min(start + size, total);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("list", all.subList(start, end).stream().map(this::toView).toList());
         body.put("total", total);
-        body.put("page", page);
+        body.put("page", current);
         body.put("size", size);
         return ResponseEntity.ok(body);
     }

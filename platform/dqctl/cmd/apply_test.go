@@ -91,6 +91,37 @@ func TestApplyCmd_FileNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "读取配置文件")
 }
 
+func TestApplyCmd_DryRun_InvalidYAML(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "dqctl-bad-*.yaml")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+	_, _ = tmpFile.WriteString("invalid: [yaml: content")
+
+	output, err := captureOutput(t, func() error {
+		rootCmd.SetArgs([]string{"apply", "-f", tmpFile.Name(), "--dry-run"})
+		return rootCmd.Execute()
+	})
+	require.Error(t, err, "非法 YAML 应导致命令失败（非零退出码）")
+	assert.Contains(t, err.Error(), "配置文件校验失败")
+	assert.Contains(t, strings.ToLower(err.Error()), "yaml")
+	assert.NotContains(t, output, "校验通过")
+}
+
+func TestApplyCmd_DryRun_TypeMismatch(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "dqctl-type-*.yaml")
+	require.NoError(t, err)
+	defer os.Remove(tmpFile.Name())
+	_, _ = tmpFile.WriteString("platform_url: https://ok.example.com\noutput:\n  - json\n")
+
+	_, err = captureOutput(t, func() error {
+		rootCmd.SetArgs([]string{"apply", "-f", tmpFile.Name(), "--dry-run"})
+		return rootCmd.Execute()
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "配置文件校验失败")
+	assert.Contains(t, strings.ToLower(err.Error()), "output")
+}
+
 // TestApplyCmd_Normal 测试 apply 正常模式。
 func TestApplyCmd_Normal(t *testing.T) {
 	tmpFile, err := os.CreateTemp("", "dqctl-apply-*.yaml")

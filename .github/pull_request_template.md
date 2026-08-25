@@ -78,7 +78,7 @@
 - [ ] 提交消息遵循 Conventional Commits 规范（`<type>(<scope>): <subject>`）
 - [ ] 本地构建通过（Java: `mvn clean package` / Go: `go build ./...` / Python: `pytest` / 前端: `npm run build`）
 - [ ] 代码已格式化（Java: `mvn spotless:apply` / Go: `gofmt -s -w .` / Python: `black . && isort .` / 前端: `npm run lint -- --fix`）
-- [ ] 单元测试通过且覆盖率不下降（行 ≥80%，关键路径任务 ≥90%，分支 ≥70%）
+- [ ] 单元测试通过且覆盖率不下降（行 ≥80% 为目标值；CI 硬门禁以 ci.yml 当前阈值为准：Java 行≥35%/分支≥15%、Go ≥30%、Python ≥55%，覆盖率下降 >2% 趋势阻断）
 - [ ] 新增公开 API 有 Javadoc / docstring / TSDoc
 - [ ] 未引入新的直接依赖（如必须，已在下方"依赖变更"说明理由）
 - [ ] Mock 已清零（真实实现路径已激活，默认配置不走 Mock）

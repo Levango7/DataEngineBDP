@@ -6,9 +6,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import uuid
 
+from openapi_catalog.models.base import utc_now
 from openapi_catalog.models import (
     APIDefinition,
     APIFilter,
@@ -60,7 +60,7 @@ class APIRegistryService:
         if not api.id:
             api.id = str(uuid.uuid4())
         api.status = api.status or APIStatus.DRAFT
-        api.updatedAt = datetime.now()
+        api.updatedAt = utc_now()
         return await self.store.save_api(api)
 
     async def get_api(self, api_id: str) -> APIDefinition:
@@ -103,7 +103,7 @@ class APIRegistryService:
         if update.monthlyQuota is not None:
             api.monthlyQuota = update.monthlyQuota
 
-        api.updatedAt = datetime.now()
+        api.updatedAt = utc_now()
         return await self.store.save_api(api)
 
     async def delete_api(self, api_id: str) -> None:
@@ -120,7 +120,7 @@ class APIRegistryService:
         if target not in _VALID_TRANSITIONS.get(current, set()):
             raise APIStatusTransitionError(api_id, current.value, target.value)
         api.status = target
-        api.updatedAt = datetime.now()
+        api.updatedAt = utc_now()
         return await self.store.save_api(api)
 
     async def submit_for_review(self, api_id: str) -> APIDefinition:
@@ -140,7 +140,7 @@ class APIRegistryService:
         api = await self.transition_status(api_id, APIStatus.PUBLISHED)
         # 立即转为 RUNNING
         api.status = APIStatus.RUNNING
-        api.updatedAt = datetime.now()
+        api.updatedAt = utc_now()
         return await self.store.save_api(api)
 
     async def deprecate(self, api_id: str) -> APIDefinition:

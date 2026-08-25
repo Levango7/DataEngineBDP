@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+from test_jwt_auth import admin_token, auth_headers, jwt_client, make_token
+
+
+def _admin_headers():
+    return auth_headers(admin_token())
+
+
 # ---------- 辅助函数 ----------
 
 
-def _list_asset(client, name="sub-test-asset", owner="tenant-A"):
+def _list_asset(client, name="sub-test-asset", owner="tenant-A", headers=None):
     """上架资产，返回 asset_id."""
     resp = client.post(
         "/api/v1/assets",
@@ -17,12 +24,13 @@ def _list_asset(client, name="sub-test-asset", owner="tenant-A"):
             "qualityScore": 85.0,
             "pricing": {"mode": "by_call", "price": 0.05, "unit": "次"},
         },
+        headers=headers or {},
     )
     assert resp.status_code == 201, resp.text
     return resp.json()["id"]
 
 
-def _subscribe(client, asset_id, subscriber_id="tenant-B"):
+def _subscribe(client, asset_id, subscriber_id="tenant-B", headers=None):
     """订阅资产，返回 subscription_id."""
     resp = client.post(
         f"/api/v1/assets/{asset_id}/subscribe",
@@ -32,6 +40,7 @@ def _subscribe(client, asset_id, subscriber_id="tenant-B"):
             "durationDays": 30,
             "pullConfig": {"cron": "0 0 * * *"},
         },
+        headers=headers or {},
     )
     assert resp.status_code == 201, resp.text
     return resp.json()["id"]
@@ -84,36 +93,41 @@ def test_subscribe_own_asset(client):
 # ---------- 审批 ----------
 
 
-def test_approve_subscription(client):
-    aid = _list_asset(client)
-    sid = _subscribe(client, aid)
-    # 审批通过
-    resp = client.post(
+def test_approve_subscription(app, monkeypatch):
+    """审批通过：approverId 取 JWT sub claim（admin token → root）."""
+    c = jwt_client(monkeypatch, app)
+    aid = _list_asset(c, headers=_admin_headers())
+    sid = _subscribe(c, aid, headers=_admin_headers())
+    resp = c.post(
         f"/api/v1/subscriptions/{sid}/approve",
-        json={"action": "approve", "approverId": "platform-admin"},
+        json={"action": "approve"},
+        headers=_admin_headers(),
     )
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["status"] == "active"
-    assert body["approverId"] == "platform-admin"
+    assert body["approverId"] == "root"
     assert body["startTime"] is not None
     assert body["endTime"] is not None
 
 
-def test_reject_subscription(client):
-    aid = _list_asset(client)
-    sid = _subscribe(client, aid)
-    resp = client.post(
+def test_reject_subscription(app, monkeypatch):
+    """审批驳回：approverId 取 JWT sub claim，reason 保留."""
+    c = jwt_client(monkeypatch, app)
+    aid = _list_asset(c, name="reject-asset", headers=_admin_headers())
+    sid = _subscribe(c, aid, headers=_admin_headers())
+    resp = c.post(
         f"/api/v1/subscriptions/{sid}/approve",
         json={
             "action": "reject",
-            "approverId": "platform-admin",
             "reason": "不符合安全要求",
         },
+        headers=_admin_headers(),
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["status"] == "rejected"
+    assert body["approverId"] == "root"
     assert body["rejectReason"] == "不符合安全要求"
 
 
@@ -181,3 +195,46 @@ def test_approve_increments_subscriber_count(client):
     # 审批后
     resp = client.get(f"/api/v1/assets/{aid}")
     assert resp.json()["subscriberCount"] == 1
+
+
+# ---------- 审批人身份取自 JWT ----------
+
+
+class TestApproverIdentityFromToken:
+    def test_approve_record_uses_token_identity_not_body(self, app, monkeypatch):
+        """请求体伪造 approverId 不生效：订阅记录与审计日志均记 token 身份."""
+        c = jwt_client(monkeypatch, app)
+        aid = _list_asset(c, name="approver-identity-asset", headers=_admin_headers())
+        sid = _subscribe(c, aid, subscriber_id="tenant-b", headers=_admin_headers())
+        forger = make_token(sub="attacker", tenant="tenant-b", role="user")
+        resp = c.post(
+            f"/api/v1/subscriptions/{sid}/approve",
+            json={"action": "approve", "approverId": "platform-admin"},
+            headers=auth_headers(forger),
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["approverId"] == "attacker"
+        logs = c.get(f"/api/v1/assets/{aid}/audit-logs", headers=_admin_headers()).json()
+        approve_logs = [log for log in logs if log["detail"].get("action") == "approve"]
+        assert len(approve_logs) == 1
+        assert approve_logs[0]["actorId"] == "attacker"
+        spoofed = [log for log in logs if log["actorId"] == "platform-admin"]
+        assert not spoofed
+
+    def test_reject_record_uses_token_identity(self, app, monkeypatch):
+        c = jwt_client(monkeypatch, app)
+        aid = _list_asset(c, name="reject-identity-asset", headers=_admin_headers())
+        sid = _subscribe(c, aid, subscriber_id="tenant-b", headers=_admin_headers())
+        resp = c.post(
+            f"/api/v1/subscriptions/{sid}/approve",
+            json={"action": "reject", "approverId": "someone-else", "reason": "policy"},
+            headers=_admin_headers(),
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["status"] == "rejected"
+        assert body["approverId"] == "root"
+        logs = c.get(f"/api/v1/assets/{aid}/audit-logs", headers=_admin_headers()).json()
+        reject_logs = [log for log in logs if log["detail"].get("action") == "reject"]
+        assert len(reject_logs) == 1
+        assert reject_logs[0]["actorId"] == "root"

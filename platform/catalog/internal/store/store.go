@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -78,6 +79,15 @@ func checkTenant(tenantID string) error {
 	return nil
 }
 
+func isUniqueConstraintError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "unique constraint") ||
+		strings.Contains(msg, "duplicate key")
+}
+
 // CreateDatabase 创建一个数据库。
 // 若同租户下 ID 或 Name 已存在则返回 ErrAlreadyExists。
 func (s *GormStore) CreateDatabase(db *model.Database) error {
@@ -114,6 +124,9 @@ func (s *GormStore) CreateDatabase(db *model.Database) error {
 	}
 
 	if err := s.db.Create(db).Error; err != nil {
+		if isUniqueConstraintError(err) {
+			return fmt.Errorf("%w: database %s", ErrAlreadyExists, db.ID)
+		}
 		return err
 	}
 	return nil
@@ -180,6 +193,9 @@ func (s *GormStore) CreateTable(t *model.Table) error {
 	}
 
 	if err := s.db.Create(t).Error; err != nil {
+		if isUniqueConstraintError(err) {
+			return fmt.Errorf("%w: table %s", ErrAlreadyExists, t.ID)
+		}
 		return err
 	}
 	return nil

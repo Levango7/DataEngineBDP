@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import httpx
 from gateway_client import GatewayClient
 from models import GatewayExecuteResult
 import pytest
@@ -71,3 +72,52 @@ class TestGatewayClient:
         assert r2.isSuccess is False
         r3 = GatewayExecuteResult(status="SIMULATED")
         assert r3.isSuccess is True
+
+
+class _CapturePost:
+    """拦截 httpx.AsyncClient.post，捕获请求 payload 供断言."""
+
+    def __init__(self) -> None:
+        self.payload: dict = {}
+
+    async def __call__(self, url, **kwargs):
+        self.payload = kwargs.get("json") or {}
+
+        class _Resp:
+            status_code = 200
+
+            def raise_for_status(self) -> None:
+                return None
+
+            def json(self) -> dict:
+                return {"status": "OK"}
+
+        return _Resp()
+
+
+@pytest.mark.asyncio
+class TestLimitNoneVsZero:
+    async def test_limit_none_falls_back_to_default(
+        self, gatewayClient: GatewayClient, monkeypatch
+    ) -> None:
+        cap = _CapturePost()
+        monkeypatch.setattr(httpx.AsyncClient, "post", cap)
+        await gatewayClient.execute("SELECT 1;", limit=None)
+        assert cap.payload["limit"] == gatewayClient.settings.defaultLimit
+
+    async def test_limit_zero_preserved_not_swallowed(
+        self, gatewayClient: GatewayClient, monkeypatch
+    ) -> None:
+        cap = _CapturePost()
+        monkeypatch.setattr(httpx.AsyncClient, "post", cap)
+        result = await gatewayClient.execute("SELECT 1;", limit=0)
+        assert cap.payload["limit"] == 0
+        assert gatewayClient.settings.defaultLimit != 0
+
+    async def test_limit_one_passes_through(
+        self, gatewayClient: GatewayClient, monkeypatch
+    ) -> None:
+        cap = _CapturePost()
+        monkeypatch.setattr(httpx.AsyncClient, "post", cap)
+        await gatewayClient.execute("SELECT 1;", limit=1)
+        assert cap.payload["limit"] == 1

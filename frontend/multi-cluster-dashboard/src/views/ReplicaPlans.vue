@@ -149,12 +149,18 @@ function formatAllocation(json: string): string {
   }
 }
 
-async function loadPlans() {
+async function refreshPlans(selectName?: string) {
   try {
     const resp = await listReplicaPlans({ limit: 100 })
     plans.value = resp.data.items || []
-    if (plans.value.length > 0 && !currentPlan.value) {
-      currentPlan.value = plans.value[0]
+    const target =
+      (selectName ? plans.value.find((p) => p.policyName === selectName) : undefined) ||
+      (currentPlan.value && !selectName
+        ? plans.value.find((p) => p.policyName === currentPlan.value?.policyName)
+        : undefined) ||
+      plans.value[0]
+    if (target) {
+      currentPlan.value = target
       await nextTick()
       renderAllocation()
     }
@@ -205,7 +211,7 @@ async function handleCreate() {
     for (const w of createForm.value.weights) {
       if (w.cluster) weightsMap[w.cluster] = w.weight
     }
-    await createReplicaPlan({
+    const resp = await createReplicaPlan({
       policyName: createForm.value.policyName,
       workload: createForm.value.workload,
       totalReplicas: createForm.value.totalReplicas,
@@ -213,7 +219,7 @@ async function handleCreate() {
     })
     ElMessage.success('创建成功')
     showCreateDialog.value = false
-    loadPlans()
+    await refreshPlans(resp.data?.policyName || createForm.value.policyName)
   } catch (e) {
     ElMessage.error('创建失败')
   }
@@ -240,14 +246,14 @@ async function handleUpdate() {
     for (const w of editForm.value.weights) {
       weightsMap[w.cluster] = w.weight
     }
-    await updateReplicaPlan(editForm.value.policyName, {
+    const resp = await updateReplicaPlan(editForm.value.policyName, {
       totalReplicas: editForm.value.totalReplicas,
       weights: weightsMap,
       reason: 'manual',
     })
     ElMessage.success('调整成功')
     showEditDialog.value = false
-    loadPlans()
+    await refreshPlans(resp.data?.policyName || editForm.value.policyName)
   } catch (e) {
     ElMessage.error('调整失败')
   }
@@ -258,7 +264,7 @@ function handleResize() {
 }
 
 onMounted(() => {
-  loadPlans()
+  refreshPlans()
   window.addEventListener('resize', handleResize)
 })
 

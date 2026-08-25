@@ -54,8 +54,8 @@ class QualityRuleControllerTest {
         r.setSeverity("BLOCK");
         r.setEnabled(true);
         r.setDescription("quality rule on ods.orders.user_id");
-        r.setCreatedAt(LocalDateTime.now());
-        r.setUpdatedAt(LocalDateTime.now());
+        r.setCreatedAt(LocalDateTime.of(2026, 8, 1, 10, 0));
+        r.setUpdatedAt(LocalDateTime.of(2026, 8, 1, 10, 0));
         return r;
     }
 
@@ -67,10 +67,65 @@ class QualityRuleControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.list.length()").value(1))
                 .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(20))
                 .andExpect(jsonPath("$.list[0].name").value("非空校验"))
                 .andExpect(jsonPath("$.list[0].targetTable").value("ods.orders"))
                 .andExpect(jsonPath("$.list[0].targetField").value("user_id"))
                 .andExpect(jsonPath("$.list[0].checkType").value("not_null"));
+    }
+
+    @Test
+    void list_supportsPageAndPageSizeParams() throws Exception {
+        Rule oldest = sampleRule();
+        Rule newest = sampleRule();
+        newest.setId(2L);
+        newest.setName("唯一校验");
+        newest.setCreatedAt(LocalDateTime.of(2026, 8, 2, 10, 0));
+
+        when(ruleService.listAll()).thenReturn(List.of(oldest, newest));
+
+        mockMvc.perform(get("/api/v1/quality/rules")
+                        .param("page", "2")
+                        .param("pageSize", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.page").value(2))
+                .andExpect(jsonPath("$.size").value(1))
+                .andExpect(jsonPath("$.list.length()").value(1))
+                .andExpect(jsonPath("$.list[0].name").value("非空校验"));
+    }
+
+    @Test
+    void list_sortsByCreatedAtDesc() throws Exception {
+        Rule first = sampleRule();
+        Rule second = sampleRule();
+        second.setId(2L);
+        second.setName("唯一校验");
+        second.setCreatedAt(LocalDateTime.of(2026, 8, 2, 10, 0));
+
+        when(ruleService.listAll()).thenReturn(List.of(first, second));
+
+        mockMvc.perform(get("/api/v1/quality/rules"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.list.length()").value(2))
+                .andExpect(jsonPath("$.list[0].id").value("2"))
+                .andExpect(jsonPath("$.list[0].name").value("唯一校验"))
+                .andExpect(jsonPath("$.list[1].id").value("1"));
+    }
+
+    @Test
+    void list_capsPageSizeAt100() throws Exception {
+        when(ruleService.listAll()).thenReturn(List.of(sampleRule()));
+
+        mockMvc.perform(get("/api/v1/quality/rules")
+                        .param("page", "0")
+                        .param("pageSize", "500"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.page").value(1))
+                .andExpect(jsonPath("$.size").value(100))
+                .andExpect(jsonPath("$.list.length()").value(1));
     }
 
     @Test

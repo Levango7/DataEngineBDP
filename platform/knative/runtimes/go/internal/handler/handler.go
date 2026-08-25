@@ -2,13 +2,35 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/Levango7/DataEngineBDP/function-runtime-go/internal/metrics"
 )
+
+const (
+	statusSuccess        = "success"
+	statusError          = "error"
+	invalidTenantLabel   = "invalid"
+	unnamedFunctionLabel = "unnamed"
+	maxLabelLength       = 63
+)
+
+var labelPattern = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`)
+
+func sanitizeLabel(value, fallback string) string {
+	if len(value) > maxLabelLength {
+		value = value[:maxLabelLength]
+	}
+	if !labelPattern.MatchString(value) {
+		return fallback
+	}
+	return value
+}
 
 // Handler 封装函数调用处理逻辑.
 type Handler struct {
@@ -55,28 +77,49 @@ func (h *Handler) Invoke(c *gin.Context) {
 	if functionName == "" {
 		functionName = h.defaultFunction
 	}
+	tenantLabel := sanitizeLabel(tenantId, invalidTenantLabel)
+	functionLabel := sanitizeLabel(functionName, unnamedFunctionLabel)
 
 	var event map[string]interface{}
 	if err := c.ShouldBindJSON(&event); err != nil {
 		event = map[string]interface{}{}
 	}
 
-	// 调用内置 echo 函数（生产环境可动态加载用户函数）
-	result := invokeFunction(functionName, event)
+	result, execErr := safeInvoke(functionName, event)
 	duration := time.Since(start)
 
-	// invocation 计量
-	h.recorder.Record(tenantId, functionName, "success", duration)
+	status := statusSuccess
+	if execErr != nil {
+		status = statusError
+	}
 
+	// invocation 计量
+	h.recorder.Record(tenantLabel, functionLabel, status, duration)
+
+	if execErr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": execErr.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, result)
 }
 
 // invokeFunction 内置 echo 函数（示例）.
-func invokeFunction(functionName string, event map[string]interface{}) map[string]interface{} {
+var invokeFunction = func(functionName string, event map[string]interface{}) (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"runtime":  "go",
 		"function": functionName,
 		"echo":     event,
 		"message":  "Hello from Go function runtime",
-	}
+	}, nil
+}
+
+// safeInvoke 执行用户函数并捕获 panic，统一转换为 error 返回.
+func safeInvoke(functionName string, event map[string]interface{}) (result map[string]interface{}, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			result = nil
+			err = fmt.Errorf("function panicked: %v", r)
+		}
+	}()
+	return invokeFunction(functionName, event)
 }

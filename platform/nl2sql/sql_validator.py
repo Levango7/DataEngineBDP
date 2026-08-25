@@ -149,9 +149,10 @@ class SqlValidator:
     def _basicSyntaxCheck(self, sql: str) -> list[ValidationIssue]:
         """基础语法检查：括号配对、末尾分号."""
         issues: list[ValidationIssue] = []
-        # 括号配对
+        # 括号配对（先剥离字符串字面量与注释，避免字面量/注释内括号误判）
+        codeOnly = self._stripLiteralsAndComments(sql)
         depth = 0
-        for ch in sql:
+        for ch in codeOnly:
             if ch == "(":
                 depth += 1
             elif ch == ")":
@@ -183,6 +184,50 @@ class SqlValidator:
                 )
             )
         return issues
+
+    @staticmethod
+    def _stripLiteralsAndComments(sql: str) -> str:
+        """剥离字符串字面量与注释，返回仅含代码字符的文本.
+
+        支持：'...'（'' 转义）、"..."（"" 转义）、-- 行注释、# 行注释、块注释。
+        引号到 EOF 未闭合时按原文保留剩余部分（容错，不吞掉后续括号）。
+        """
+        out: list[str] = []
+        i = 0
+        n = len(sql)
+        while i < n:
+            ch = sql[i]
+            two = sql[i : i + 2]
+            if ch in ("'", '"'):
+                start = i
+                i += 1
+                closed = False
+                while i < n:
+                    if sql[i] == ch:
+                        if i + 1 < n and sql[i + 1] == ch:
+                            i += 2
+                            continue
+                        closed = True
+                        i += 1
+                        break
+                    i += 1
+                if closed:
+                    out.append(" ")
+                else:
+                    out.append(sql[start:])
+                    i = n
+            elif two == "--" or ch == "#":
+                nl = sql.find("\n", i)
+                i = n if nl < 0 else nl + 1
+                out.append(" ")
+            elif two == "/*":
+                end = sql.find("*/", i + 2)
+                i = n if end < 0 else end + 2
+                out.append(" ")
+            else:
+                out.append(ch)
+                i += 1
+        return "".join(out)
 
     # ---- 表名存在性检查 ----
     def _checkTablesExist(self, stmt: Statement, ctx: SchemaContext) -> list[ValidationIssue]:

@@ -206,6 +206,7 @@ class SQLiteBusinessLineStore(BusinessLineStore):
             )
         except sqlite3.IntegrityError as e:
             raise BusinessLineAlreadyExistsError(bl.name) from e
+        _seedDefaultTodos(self._conn, bl.id)
         return bl
 
     async def get(self, bl_id: str) -> BusinessLine:
@@ -376,6 +377,53 @@ class SQLiteDashboardStore(DashboardStore):
 # ---------------------------------------------------------------------------
 
 
+def _seedDefaultTodos(conn: SQLiteConnection, bl_id: str) -> None:
+    """业务线创建时一次性写入默认待办（GET 保持纯读）."""
+    todos = [
+        Task(
+            id=str(uuid.uuid4()),
+            type="approval",
+            title="张三 申请 CPU 32核 / 内存 64G",
+            applicant="zhangsan",
+            priority="high",
+        ),
+        Task(
+            id=str(uuid.uuid4()),
+            type="share",
+            title="李四 申请共享 user_label 表到 营销项目",
+            applicant="lisi",
+            priority="normal",
+        ),
+        Task(
+            id=str(uuid.uuid4()),
+            type="alert",
+            title="项目 风控-模型训练 存储用量超过 80%",
+            applicant="system",
+            priority="urgent",
+        ),
+    ]
+    for t in todos:
+        conn.conn.execute(
+            """
+            INSERT INTO workbench_todos (
+                id, bl_id, type, title, applicant, status, priority,
+                extra_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+            """,
+            (
+                t.id,
+                bl_id,
+                t.type,
+                t.title,
+                t.applicant,
+                t.status,
+                t.priority,
+                json.dumps(t.extra),
+                t.createdAt.isoformat(),
+            ),
+        )
+
+
 class SQLiteWorkbenchStore(WorkbenchStore):
     """SQLite 工作台存储."""
 
@@ -388,65 +436,19 @@ class SQLiteWorkbenchStore(WorkbenchStore):
             (bl_id,),
         )
         rows = cur.fetchall()
-        if rows:
-            todos = [
-                Task(
-                    id=r["id"],
-                    type=r["type"],
-                    title=r["title"],
-                    applicant=r["applicant"],
-                    status=r["status"],
-                    priority=r["priority"],
-                    createdAt=r["created_at"],
-                    extra=json.loads(r["extra_json"]),
-                )
-                for r in rows
-            ]
-        else:
-            # 首次访问注入默认待办
-            todos = [
-                Task(
-                    id=str(uuid.uuid4()),
-                    type="approval",
-                    title="张三 申请 CPU 32核 / 内存 64G",
-                    applicant="zhangsan",
-                    priority="high",
-                ),
-                Task(
-                    id=str(uuid.uuid4()),
-                    type="share",
-                    title="李四 申请共享 user_label 表到 营销项目",
-                    applicant="lisi",
-                    priority="normal",
-                ),
-                Task(
-                    id=str(uuid.uuid4()),
-                    type="alert",
-                    title="项目 风控-模型训练 存储用量超过 80%",
-                    applicant="system",
-                    priority="urgent",
-                ),
-            ]
-            for t in todos:
-                self._conn.conn.execute(
-                    """
-                    INSERT INTO workbench_todos (
-                        id, bl_id, type, title, applicant, status, priority,
-                        extra_json, created_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-                    """,
-                    (
-                        t.id,
-                        bl_id,
-                        t.type,
-                        t.title,
-                        t.applicant,
-                        t.status,
-                        t.priority,
-                        json.dumps(t.extra),
-                        t.createdAt.isoformat(),
-                    ),
-                )
+        todos = [
+            Task(
+                id=r["id"],
+                type=r["type"],
+                title=r["title"],
+                applicant=r["applicant"],
+                status=r["status"],
+                priority=r["priority"],
+                createdAt=r["created_at"],
+                extra=json.loads(r["extra_json"]),
+            )
+            for r in rows
+        ]
 
         tools = [
             Tool(key="newProject", label="新建项目", icon="plus", url="/projects"),

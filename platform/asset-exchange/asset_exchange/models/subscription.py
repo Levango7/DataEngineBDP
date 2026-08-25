@@ -52,7 +52,10 @@ class ApprovalRequest(BaseModel):
     """审批请求."""
 
     action: str = Field(..., description="审批动作: approve / reject")
-    approverId: str = Field(..., description="审批人 ID")
+    approverId: Optional[str] = Field(
+        default=None,
+        description="已废弃：审批人身份一律取 JWT sub claim，请求体自报不再采信",
+    )
     reason: Optional[str] = Field(default=None, description="驳回原因（reject 时填）")
 
 

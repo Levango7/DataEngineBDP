@@ -128,3 +128,11 @@ replay_pid*.log
 # vitest 临时产物（不入库）
 frontend/vitest-*.txt
 frontend/run-vitest.ps1
+
+# Python 覆盖率与 pytest 缓存（不入库）
+.coverage
+.pytest_cache/
+
+# H2 本地开发数据库（不入库）
+*.mv.db
+*.trace.db

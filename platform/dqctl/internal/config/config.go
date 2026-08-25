@@ -35,8 +35,9 @@ func Load(configPath string) (*Config, error) {
 }
 
 // Save 将配置写入指定路径，必要时创建父目录。
+// 配置含认证 token，目录与文件权限收紧为 0700/0600。
 func Save(configPath string, cfg *Config) error {
-	if err := os.MkdirAll(filepath.Dir(configPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(configPath), 0o700); err != nil {
 		return fmt.Errorf("创建配置目录失败: %w", err)
 	}
 
@@ -50,6 +51,9 @@ func Save(configPath string, cfg *Config) error {
 
 	if err := v.WriteConfig(); err != nil {
 		return fmt.Errorf("写入配置文件失败: %w", err)
+	}
+	if err := os.Chmod(configPath, 0o600); err != nil {
+		return fmt.Errorf("设置配置文件权限失败: %w", err)
 	}
 	return nil
 }

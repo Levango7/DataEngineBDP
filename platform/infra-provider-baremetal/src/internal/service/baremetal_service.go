@@ -23,13 +23,19 @@ import (
 	"github.com/Levango7/DataEngineBDP/infra-provider-baremetal/src/internal/model"
 )
 
+// provisionTask 正在进行的供应任务句柄
+type provisionTask struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+}
+
 // BareMetalService 裸金属供应服务
 type BareMetalService struct {
 	db        *gorm.DB
 	redfish   *RedfishClient
 	k8s       *K8sBootstrapper
 	logger    *logrus.Entry
-	provision map[string]context.CancelFunc // 正在进行的供应任务取消函数
+	provision map[string]*provisionTask // 正在进行的供应任务
 	mu        sync.RWMutex
 }
 
@@ -40,7 +46,7 @@ func NewBareMetalService(db *gorm.DB, redfish *RedfishClient, k8s *K8sBootstrapp
 		redfish:   redfish,
 		k8s:       k8s,
 		logger:    logger,
-		provision: make(map[string]context.CancelFunc),
+		provision: make(map[string]*provisionTask),
 	}
 }
 
@@ -107,7 +113,7 @@ func (s *BareMetalService) CreateCluster(ctx context.Context, req *model.CreateC
 	// 异步启动供应流程
 	provisionCtx, cancel := context.WithCancel(context.Background())
 	s.mu.Lock()
-	s.provision[clusterID] = cancel
+	s.provision[clusterID] = &provisionTask{ctx: provisionCtx, cancel: cancel}
 	s.mu.Unlock()
 
 	go s.provisionCluster(provisionCtx, clusterID, req)
@@ -144,8 +150,8 @@ func (s *BareMetalService) DeleteCluster(ctx context.Context, clusterID string) 
 
 	// 取消正在进行的供应
 	s.mu.Lock()
-	if cancel, ok := s.provision[clusterID]; ok {
-		cancel()
+	if task, ok := s.provision[clusterID]; ok {
+		task.cancel()
 		delete(s.provision, clusterID)
 	}
 	s.mu.Unlock()
@@ -203,19 +209,28 @@ func (s *BareMetalService) ScaleCluster(ctx context.Context, clusterID string, r
 		return fmt.Errorf("集群状态非running，无法扩缩容(当前: %s)", cluster.State)
 	}
 
+	prevState := cluster.State
 	cluster.State = model.ClusterStateScaling
 	if err := s.db.Save(&cluster).Error; err != nil {
 		return fmt.Errorf("更新集群状态为scaling失败: %w", err)
 	}
 
+	var scaleErr error
 	switch req.Action {
 	case "add":
-		return s.scaleOut(ctx, &cluster, req.Nodes)
+		scaleErr = s.scaleOut(ctx, &cluster, req.Nodes)
 	case "remove":
-		return s.scaleIn(ctx, &cluster, req.Nodes)
+		scaleErr = s.scaleIn(ctx, &cluster, req.Nodes)
 	default:
-		return fmt.Errorf("未知动作: %s", req.Action)
+		scaleErr = fmt.Errorf("未知动作: %s", req.Action)
 	}
+	if scaleErr != nil {
+		if uerr := s.db.Model(&model.BareMetalCluster{}).Where("id = ?", cluster.ID).Update("state", prevState).Error; uerr != nil {
+			s.logger.WithError(uerr).WithField("cluster_id", clusterID).Warn("恢复集群状态失败")
+		}
+		return scaleErr
+	}
+	return nil
 }
 
 // ListClusters 列出所有集群
@@ -229,6 +244,14 @@ func (s *BareMetalService) ListClusters(ctx context.Context) ([]model.BareMetalC
 
 // provisionCluster 异步供应流程
 func (s *BareMetalService) provisionCluster(ctx context.Context, clusterID string, _ *model.CreateClusterRequest) {
+	defer func() {
+		s.mu.Lock()
+		if task, ok := s.provision[clusterID]; ok && task.ctx == ctx {
+			delete(s.provision, clusterID)
+		}
+		s.mu.Unlock()
+	}()
+
 	logger := s.logger.WithField("cluster_id", clusterID)
 
 	var cluster model.BareMetalCluster
@@ -473,14 +496,16 @@ func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalC
 				}
 			}
 		}(node)
+
+		switch spec.Role {
+		case model.NodeRoleControlPlane:
+			cluster.ControlPlaneCount++
+		default:
+			cluster.WorkerCount++
+		}
+		cluster.NodeCount++
 	}
 	cluster.State = model.ClusterStateRunning
-	cluster.NodeCount += len(specs)
-	if specs[0].Role == model.NodeRoleWorker {
-		cluster.WorkerCount += len(specs)
-	} else {
-		cluster.ControlPlaneCount += len(specs)
-	}
 	if err := s.db.Save(cluster).Error; err != nil {
 		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群扩容后状态失败")
 	}
@@ -489,6 +514,7 @@ func (s *BareMetalService) scaleOut(_ context.Context, cluster *model.BareMetalC
 
 // scaleIn 缩容
 func (s *BareMetalService) scaleIn(ctx context.Context, cluster *model.BareMetalCluster, specs []model.NodeSpec) error {
+	removedCount := 0
 	for _, spec := range specs {
 		var node model.BareMetalNode
 		if err := s.db.First(&node, "cluster_id = ? AND hostname = ?", cluster.ID, spec.Hostname).Error; err != nil {
@@ -501,10 +527,18 @@ func (s *BareMetalService) scaleIn(ctx context.Context, cluster *model.BareMetal
 		s.destroyNode(ctx, &node)
 		if err := s.db.Delete(&node).Error; err != nil {
 			s.logger.WithError(err).WithField("node", node.Hostname).Warn("删除节点记录失败")
+			continue
 		}
+		switch node.Role {
+		case model.NodeRoleControlPlane:
+			cluster.ControlPlaneCount--
+		default:
+			cluster.WorkerCount--
+		}
+		removedCount++
 	}
 	cluster.State = model.ClusterStateRunning
-	cluster.NodeCount -= len(specs)
+	cluster.NodeCount -= removedCount
 	if err := s.db.Save(cluster).Error; err != nil {
 		s.logger.WithError(err).WithField("cluster", cluster.ID).Warn("保存集群缩容后状态失败")
 	}

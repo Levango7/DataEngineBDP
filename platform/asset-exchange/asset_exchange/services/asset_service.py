@@ -31,6 +31,8 @@ from asset_exchange.models.base import (
 from asset_exchange.models.subscription import SubscriptionStatus
 from asset_exchange.repositories import (
     AssetNotListedError,
+    InvalidAssetStateError,
+    NoActiveSubscriptionError,
     ValidationError,
 )
 
@@ -222,17 +224,20 @@ class AssetService:
         asset_id: str,
         subscriber_id: str,
         rows: int = 100,
+        skip_subscription_check: bool = False,
     ) -> dict[str, Any]:
         """资产下载（流通方式之一）.
 
         业务校验：
         - 资产必须为 LISTED 状态
         - 不允许下载自己的资产
+        - 请求租户须持有该资产的 ACTIVE 订阅（skip_subscription_check 豁免，供 admin 使用）
 
         Args:
             asset_id: 资产 ID。
             subscriber_id: 下载方租户 ID。
             rows: 下载行数。
+            skip_subscription_check: 跳过有效订阅校验（admin 豁免）。
 
         Returns:
             下载凭证与统计。
@@ -242,6 +247,8 @@ class AssetService:
             raise AssetNotListedError(asset_id, a.status.value)
         if a.tenantId == subscriber_id:
             raise ValidationError("不允许下载自己的资产")
+        if not skip_subscription_check:
+            await self._require_active_subscription(asset_id, subscriber_id)
         return {
             "assetId": asset_id,
             "subscriberId": subscriber_id,
@@ -257,17 +264,20 @@ class AssetService:
         asset_id: str,
         subscriber_id: str,
         params: Optional[dict[str, Any]] = None,
+        skip_subscription_check: bool = False,
     ) -> dict[str, Any]:
         """资产 API 调用（流通方式之一）.
 
         业务校验：
         - 资产必须为 LISTED 状态
         - 不允许调用自己的资产
+        - 请求租户须持有该资产的 ACTIVE 订阅（skip_subscription_check 豁免，供 admin 使用）
 
         Args:
             asset_id: 资产 ID。
             subscriber_id: 调用方租户 ID。
             params: 调用参数。
+            skip_subscription_check: 跳过有效订阅校验（admin 豁免）。
 
         Returns:
             调用结果。
@@ -277,6 +287,8 @@ class AssetService:
             raise AssetNotListedError(asset_id, a.status.value)
         if a.tenantId == subscriber_id:
             raise ValidationError("不允许调用自己的资产")
+        if not skip_subscription_check:
+            await self._require_active_subscription(asset_id, subscriber_id)
         return {
             "assetId": asset_id,
             "subscriberId": subscriber_id,
@@ -302,20 +314,47 @@ class AssetService:
     async def update_asset(self, asset_id: str, **fields: Any) -> Asset:
         return await self._asset_repo.update(asset_id, **fields)
 
+    async def _require_active_subscription(self, asset_id: str, subscriber_id: str) -> None:
+        """校验请求租户持有该资产的 ACTIVE 订阅.
+
+        Raises:
+            NoActiveSubscriptionError: 无有效订阅。
+        """
+        subs = await self._sub_repo.list_by_asset(asset_id)
+        if not any(
+            s.subscriberId == subscriber_id and s.status == SubscriptionStatus.ACTIVE
+            for s in subs
+        ):
+            raise NoActiveSubscriptionError(asset_id, subscriber_id)
+
     async def offline_asset(self, asset_id: str) -> Asset:
         """下架资产.
 
+        显式状态机：仅 LISTED 状态可下架（LISTED -> OFFLINE）。
+
         Raises:
             AssetNotFoundError: 资产不存在。
+            InvalidAssetStateError: 资产非 LISTED 状态。
         """
         a = await self._asset_repo.get(asset_id)
+        if a.status != AssetStatus.LISTED:
+            raise InvalidAssetStateError(asset_id, a.status.value, "下架")
         a.status = AssetStatus.OFFLINE
         await self._asset_repo.save(a)
         return await self._asset_repo.get(asset_id)
 
     async def relist_asset(self, asset_id: str) -> Asset:
-        """重新上架."""
+        """重新上架.
+
+        显式状态机：仅 OFFLINE 状态可重新上架（OFFLINE -> LISTED）。
+
+        Raises:
+            AssetNotFoundError: 资产不存在。
+            InvalidAssetStateError: 资产非 OFFLINE 状态。
+        """
         a = await self._asset_repo.get(asset_id)
+        if a.status != AssetStatus.OFFLINE:
+            raise InvalidAssetStateError(asset_id, a.status.value, "重新上架")
         a.status = AssetStatus.LISTED
         await self._asset_repo.save(a)
         return await self._asset_repo.get(asset_id)

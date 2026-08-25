@@ -113,7 +113,10 @@ class AuditAssetRequest(BaseModel):
     """资产审核请求."""
 
     result: AssetAuditResult = Field(..., description="审核结果")
-    auditorId: str = Field(..., description="审核人 ID")
+    auditorId: str | None = Field(
+        default=None,
+        description="已废弃：审核人身份一律取 JWT sub claim，请求体自报不再采信",
+    )
     reason: str | None = Field(default=None, description="审核原因")
 
 
@@ -197,14 +200,15 @@ async def audit_asset(
     asset_id: str,
     req: AuditAssetRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
-    """资产审核（合规/质量/分级检查）."""
+    """资产审核（合规/质量/分级检查）. 审核人身份一律取 JWT（auditorId 自报不再采信）."""
     try:
-        result = await registry.assetService.audit(asset_id, req.result, req.auditorId, req.reason)
+        result = await registry.assetService.audit(asset_id, req.result, ctx.userId, req.reason)
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.AUDIT,
-            actor_id=req.auditorId,
+            actor_id=ctx.userId,
             asset_id=asset_id,
             tenant_id=result.tenantId,
             result=AuditResult.SUCCESS if req.result == AssetAuditResult.APPROVED else AuditResult.FAILURE,
@@ -219,7 +223,7 @@ async def audit_asset(
         # 审计留痕（失败）
         await registry.auditService.log(
             action=AuditAction.AUDIT,
-            actor_id=req.auditorId,
+            actor_id=ctx.userId,
             asset_id=asset_id,
             result=AuditResult.FAILURE,
             detail={"error": str(exc)},
@@ -434,10 +438,15 @@ async def download_asset(
     registry: ServiceRegistry = Depends(get_registry),
     ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
-    """下载资产（流通方式之一）."""
+    """下载资产（流通方式之一）. 请求租户须持有 ACTIVE 订阅，admin 豁免."""
     subscriber_id = resolve_tenant(ctx, req.subscriberId)
     try:
-        result = await registry.assetService.download(asset_id, subscriber_id, req.rows)
+        result = await registry.assetService.download(
+            asset_id,
+            subscriber_id,
+            req.rows,
+            skip_subscription_check=(ctx.role == "admin"),
+        )
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.DOWNLOAD,
@@ -461,10 +470,15 @@ async def invoke_asset(
     registry: ServiceRegistry = Depends(get_registry),
     ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
-    """API 调用资产（流通方式之一）."""
+    """API 调用资产（流通方式之一）. 请求租户须持有 ACTIVE 订阅，admin 豁免."""
     subscriber_id = resolve_tenant(ctx, req.subscriberId)
     try:
-        result = await registry.assetService.invoke(asset_id, subscriber_id, req.params)
+        result = await registry.assetService.invoke(
+            asset_id,
+            subscriber_id,
+            req.params,
+            skip_subscription_check=(ctx.role == "admin"),
+        )
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.INVOKE,

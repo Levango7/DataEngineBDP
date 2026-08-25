@@ -45,8 +45,12 @@ class BusinessLineService:
         """检查用户是否可访问该业务线（沿树继承 + 越级授权）."""
         return user_id in bl.ownerIds or user_id in bl.memberIds or user_id in bl.teamIds
 
-    async def list_business_lines(self, filter_: BusinessLineFilter) -> list[BusinessLine]:
-        """列出业务线（按 memberId 过滤即权限隔离）."""
+    async def list_business_lines(
+        self, filter_: BusinessLineFilter, tenant_id: str | None = None
+    ) -> list[BusinessLine]:
+        """列出业务线（tenant_id 强制裁剪为本租户，memberId 仅作进一步收窄）."""
+        if tenant_id:
+            filter_ = filter_.model_copy(update={"tenantId": tenant_id})
         return await self._store.list(filter_)
 
     async def update_business_line(self, bl_id: str, patch: dict[str, Any], user_id: str | None = None) -> BusinessLine:

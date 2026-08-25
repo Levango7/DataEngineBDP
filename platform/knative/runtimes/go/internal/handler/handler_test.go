@@ -157,7 +157,10 @@ func TestHandler_Invoke_EmptyBody(t *testing.T) {
 // TestInvokeFunction_Echo invokeFunction 应正确回显 event。
 func TestInvokeFunction_Echo(t *testing.T) {
 	event := map[string]interface{}{"foo": "bar", "n": 123.0}
-	result := invokeFunction("test-fn", event)
+	result, err := invokeFunction("test-fn", event)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if result["runtime"] != "go" {
 		t.Fatalf("expected runtime=go, got %v", result["runtime"])
 	}
@@ -178,7 +181,10 @@ func TestInvokeFunction_Echo(t *testing.T) {
 
 // TestInvokeFunction_NilEvent nil event 应不 panic。
 func TestInvokeFunction_NilEvent(t *testing.T) {
-	result := invokeFunction("fn", nil)
+	result, err := invokeFunction("fn", nil)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	// nil map 经 JSON 处理后变为空 map。
 	echo, ok := result["echo"].(map[string]interface{})
 	if !ok {

@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 import threading
 import time
@@ -114,9 +115,10 @@ class NebulaGraphStore(GraphStore):
     async def create_space(self, space_name: str, schema: GraphSchema) -> None:
         self._validate_identifier(space_name)
         # 创建空间
-        self._execute(
+        await asyncio.to_thread(
+            self._execute,
             f"CREATE SPACE IF NOT EXISTS `{space_name}` "
-            f"(vid_type=FIXED_STRING(64), partition_num=10, replica_factor=1);"
+            f"(vid_type=FIXED_STRING(64), partition_num=10, replica_factor=1);",
         )
         # 应用 Schema：顶点标签
         for vl in schema.vertexLabels:
@@ -125,7 +127,10 @@ class NebulaGraphStore(GraphStore):
                 self._validate_identifier(k)
             props = ", ".join(f"`{k}` {self._nebula_type(v)}" for k, v in vl.properties.items())
             cols = f", {props}" if props else ""
-            self._execute(f"USE `{space_name}`; CREATE TAG IF NOT EXISTS `{vl.name}`({cols});")
+            await asyncio.to_thread(
+                self._execute,
+                f"USE `{space_name}`; CREATE TAG IF NOT EXISTS `{vl.name}`({cols});",
+            )
         # 边类型
         for et in schema.edgeTypes:
             self._validate_identifier(et.name)
@@ -133,18 +138,21 @@ class NebulaGraphStore(GraphStore):
                 self._validate_identifier(k)
             props = ", ".join(f"`{k}` {self._nebula_type(v)}" for k, v in et.properties.items())
             cols = f", {props}" if props else ""
-            self._execute(f"USE `{space_name}`; CREATE EDGE IF NOT EXISTS `{et.name}`({cols});")
+            await asyncio.to_thread(
+                self._execute,
+                f"USE `{space_name}`; CREATE EDGE IF NOT EXISTS `{et.name}`({cols});",
+            )
 
     async def drop_space(self, space_name: str) -> None:
         self._validate_identifier(space_name)
-        self._execute(f"DROP SPACE IF EXISTS `{space_name}`;")
+        await asyncio.to_thread(self._execute, f"DROP SPACE IF EXISTS `{space_name}`;")
 
     async def get_schema(self, space_name: str) -> GraphSchema:
         # 简化：返回空 Schema（实际应通过 SHOW TAGS/EDGES 解析）
         return GraphSchema()
 
     async def list_spaces(self) -> list[str]:
-        resp = self._execute("SHOW SPACES;")
+        resp = await asyncio.to_thread(self._execute, "SHOW SPACES;")
         return [row.values[0].get_s_val().decode() for row in resp.rows()]
 
     # ---------- 顶点 / 边写入 ----------
@@ -159,7 +167,10 @@ class NebulaGraphStore(GraphStore):
         vals = ", ".join(self._nebula_value(v) for v in props.values())
         col_clause = f"({cols})" if cols else "()"
         val_clause = f"({vals})" if vals else "()"
-        self._execute(f"USE `{space}`; INSERT VERTEX `{label}`{col_clause} VALUES " f'"{vid}":{val_clause};')
+        await asyncio.to_thread(
+            self._execute,
+            f"USE `{space}`; INSERT VERTEX `{label}`{col_clause} VALUES " f'"{vid}":{val_clause};',
+        )
 
     async def insert_edge(
         self,
@@ -179,14 +190,17 @@ class NebulaGraphStore(GraphStore):
         vals = ", ".join(self._nebula_value(v) for v in props.values())
         col_clause = f"({cols})" if cols else "()"
         val_clause = f"({vals})" if vals else "()"
-        self._execute(
-            f"USE `{space}`; INSERT EDGE `{edge_type}`{col_clause} VALUES " f'"{src_id}"->"{dst_id}":{val_clause};'
+        await asyncio.to_thread(
+            self._execute,
+            f"USE `{space}`; INSERT EDGE `{edge_type}`{col_clause} VALUES " f'"{src_id}"->"{dst_id}":{val_clause};',
         )
 
     async def get_vertex(self, space: str, vid: str) -> Vertex:
         self._validate_identifier(space)
         self._validate_identifier(vid)
-        resp = self._execute(f'USE `{space}`; FETCH PROP ON * "{vid}" YIELD vertex AS v;')
+        resp = await asyncio.to_thread(
+            self._execute, f'USE `{space}`; FETCH PROP ON * "{vid}" YIELD vertex AS v;'
+        )
         if resp.rows() is None or len(resp.rows()) == 0:
             raise VertexNotFoundError(vid)
         # 简化：返回最小顶点（实际应解析 ResultSet）
@@ -197,7 +211,7 @@ class NebulaGraphStore(GraphStore):
     async def query(self, space: str, nql: str) -> QueryResult:
         self._validate_identifier(space)
         start = time.perf_counter()
-        resp = self._execute(f"USE `{space}`; {nql}")
+        resp = await asyncio.to_thread(self._execute, f"USE `{space}`; {nql}")
         columns = [col.get_name() for col in resp.keys()]
         rows: list[dict[str, Any]] = []
         for row in resp.rows():
@@ -217,7 +231,10 @@ class NebulaGraphStore(GraphStore):
         for e in edge_types or []:
             self._validate_identifier(e)
         edge_clause = "::" if not edge_types else ":" + "|".join(f"`{e}`" for e in edge_types) + ":"
-        resp = self._execute(f'USE `{space}`; GO 1 STEPS FROM "{vid}" OVER {edge_clause} YIELD dst(edge) AS dst;')
+        resp = await asyncio.to_thread(
+            self._execute,
+            f'USE `{space}`; GO 1 STEPS FROM "{vid}" OVER {edge_clause} YIELD dst(edge) AS dst;',
+        )
         result: list[Vertex] = []
         for row in resp.rows():
             dst = row.values[0].get_s_val().decode()
@@ -228,7 +245,10 @@ class NebulaGraphStore(GraphStore):
         self._validate_identifier(space)
         self._validate_identifier(src_id)
         self._validate_identifier(dst_id)
-        self._execute(f'USE `{space}`; FIND SHORTEST PATH FROM "{src_id}" TO "{dst_id}" OVER * YIELD path AS p;')
+        await asyncio.to_thread(
+            self._execute,
+            f'USE `{space}`; FIND SHORTEST PATH FROM "{src_id}" TO "{dst_id}" OVER * YIELD path AS p;',
+        )
         # 简化：返回空列表（实际应解析 path）
         return []
 

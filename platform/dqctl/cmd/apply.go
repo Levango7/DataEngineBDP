@@ -7,6 +7,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+
+	"github.com/Levango7/DataEngineBDP/dqctl/internal/config"
 )
 
 // applyDryRun 是 --dry-run flag 的值。
@@ -53,6 +55,9 @@ func runApply(cmd *cobra.Command, args []string) error {
 	}
 
 	if applyDryRun {
+		if _, err := config.Load(applyFile); err != nil {
+			return fmt.Errorf("配置文件校验失败: %w", err)
+		}
 		fmt.Printf("[dry-run] 配置文件 %s 校验通过，未实际执行变更。\n", applyFile)
 		return nil
 	}

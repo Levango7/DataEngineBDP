@@ -193,8 +193,7 @@
 | 2 | 特例错误码 PascalCase | encaps-tenant `QuotaController`（QuotaExceeded=422 / Conflict=409）、rule-engine 部分大写码（RULE_NOT_FOUND 等） | 违反 §9.3 snake_case | 待迁移 |
 | 3 | 无 CORS 中间件 | nl2sql / open-api-catalog / asset-exchange 各 app.py | 浏览器直连受同源限制（Go 栈均有 CorsMiddleware） | 待迁移：补 CORSMiddleware |
 | 4 | 管理/订阅端点未挂应用层鉴权 | open-api-catalog app.py include_router | 依赖部署侧网关策略 | 待迁移：应用层 JWT 中间件 |
-| 5 | 分页契约漂移 | rule-engine `QualityRuleController#list`：入参 size 非 pageSize，出参多 page/size 字段 | 兼容前端 PagedResult 契约 | 待迁移：pageSize 入参 |
-| 6 | schema 调试端点无鉴权 | nl2sql `GET /api/v1/nl2sql/schema` | 匿名可达 | 待迁移：挂 getAuthContext |
-| 7 | 全局检索为哈希占位向量 | vector-engine `GlobalSearch`（POST /api/v1/vector/search） | 文本哈希向量，无语义检索能力 | 待迁移：接入 embedding 服务 |
+| 5 | schema 调试端点无鉴权 | nl2sql `GET /api/v1/nl2sql/schema` | 匿名可达 | 待迁移：挂 getAuthContext |
+| 6 | 全局检索为哈希占位向量 | vector-engine `GlobalSearch`（POST /api/v1/vector/search） | 文本哈希向量，无语义检索能力 | 待迁移：接入 embedding 服务 |
 
 > 登记流程：新发现偏差先在本表登记并标注「待迁移」，修复后移入 §9.7 或删除；禁止无登记偏差长期存在。

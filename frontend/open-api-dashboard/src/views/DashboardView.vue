@@ -129,6 +129,7 @@ import {
 } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { listApis, getMetrics } from '@/api/catalog'
+import { formatTime, summarizeMetrics } from '@/utils/format'
 
 use([
   CanvasRenderer,
@@ -155,6 +156,8 @@ const stats = reactive({
 
 const topApis = ref([])
 
+let metricsSeq = 0
+
 // 调用量趋势图配置
 const callTrendOption = computed(() => {
   const timeseries = metricsList.value[0]?.timeseries || []
@@ -174,7 +177,7 @@ const callTrendOption = computed(() => {
     xAxis: {
       type: 'category',
       boundaryGap: false,
-      data: timeseries.map((p) => formatTime(p.timestamp)),
+      data: timeseries.map((p) => formatTime(p.timestamp, timeRange.value)),
     },
     yAxis: {
       type: 'value',
@@ -199,9 +202,7 @@ const callTrendOption = computed(() => {
 
 // 状态码饼图
 const statusPieOption = computed(() => {
-  const total = stats.totalCalls || 1
-  const success = metricsList.value.reduce((sum, m) => sum + (m.successCount || 0), 0)
-  const error = metricsList.value.reduce((sum, m) => sum + (m.errorCount || 0), 0)
+  const { success, error } = summarizeMetrics(metricsList.value)
   return {
     tooltip: { trigger: 'item' },
     legend: { bottom: 0 },
@@ -293,11 +294,13 @@ async function loadData() {
 }
 
 async function loadMetrics() {
+  const current = ++metricsSeq
   metricsList.value = []
   stats.totalCost = 0
-  for (const api of apis.value.slice(0, 5)) {
+  for (const api of apis.value) {
     try {
       const m = await getMetrics(api.id, { range: timeRange.value })
+      if (current !== metricsSeq) return
       metricsList.value.push(m)
       stats.totalCost += m.totalCost || 0
     } catch (err) {
@@ -310,12 +313,6 @@ function formatNumber(n) {
   if (n >= 1000000) return (n / 1000000).toFixed(2) + 'M'
   if (n >= 1000) return (n / 1000).toFixed(2) + 'K'
   return String(n)
-}
-
-function formatTime(ts) {
-  if (!ts) return ''
-  const d = new Date(ts)
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:00`
 }
 
 onMounted(loadData)

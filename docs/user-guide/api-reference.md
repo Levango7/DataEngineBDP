@@ -843,7 +843,7 @@ curl -X POST https://<platform-domain>/api/v1/rules/execute \
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | /api/v1/quality/rules | 分页列表（query 参数 page / size，默认 1 / 20），返回 `{list, total, page, size}` |
+| GET | /api/v1/quality/rules | 分页列表（query 参数 page / pageSize，默认 1 / 20，pageSize 上限 100），按 createdAt 倒序返回 `{list, total, page, size}` |
 | GET | /api/v1/quality/rules/{id} | 详情（404 空 body） |
 | POST | /api/v1/quality/rules | 创建（映射到 Rule 模型；返回 200，非 201） |
 | PUT | /api/v1/quality/rules/{id} | 更新（404 空 body） |

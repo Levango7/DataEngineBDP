@@ -8,7 +8,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from business_portal.api.routers.deps import get_current_user, get_registry, status_for_error
+from business_portal.api.routers.deps import (
+    get_current_tenant,
+    get_current_user,
+    get_registry,
+    status_for_error,
+)
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
     Budget,
@@ -88,24 +93,29 @@ async def create_business_line(
     summary="列出业务线",
 )
 async def list_business_lines(
-    tenantId: str | None = Query(default=None, description="按租户过滤"),
     status_: BusinessLineStatus | None = Query(default=None, alias="status", description="按状态过滤"),
     name: str | None = Query(default=None, description="名称模糊匹配"),
-    memberId: str | None = Query(default=None, description="按成员过滤（权限隔离：仅返回该成员可见的业务线）"),
+    memberId: str | None = Query(default=None, description="按成员过滤（在本租户范围内进一步收窄）"),
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> list[BusinessLine]:
-    """按条件列出业务线."""
+    """列出当前租户的业务线（租户取自身份请求头，不接受客户端指定）."""
+    if not tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="缺少租户身份（X-Tenant-Id）",
+        )
     filter_ = BusinessLineFilter(
-        tenantId=tenantId,
+        tenantId=tenant_id,
         status=status_,
         name=name,
         memberId=memberId,
         limit=limit,
         offset=offset,
     )
-    return await registry.businessLineService.list_business_lines(filter_)
+    return await registry.businessLineService.list_business_lines(filter_, tenant_id)
 
 
 @router.get(

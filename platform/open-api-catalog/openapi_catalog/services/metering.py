@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from datetime import datetime, timedelta
+import re
 import uuid
 
 from openapi_catalog.models import (
@@ -18,7 +19,18 @@ from openapi_catalog.models import (
     CostStrategy,
     MetricPoint,
 )
+from openapi_catalog.repositories import ValidationError
 from openapi_catalog.repositories.mock import MockCatalogStore
+
+# 合法 range 参数：<数字><s|m|h|d|w>
+_RANGE_PATTERN = re.compile(r"^\d+[smhdw]$")
+_RANGE_UNIT_SECONDS = {
+    "s": 1,
+    "m": 60,
+    "h": 3600,
+    "d": 86400,
+    "w": 604800,
+}
 
 
 class MeteringService:
@@ -109,7 +121,14 @@ class MeteringService:
 
         Returns:
             聚合计量.
+
+        Raises:
+            ValidationError: range 参数不合法.
         """
+        if not _RANGE_PATTERN.fullmatch(range_str):
+            raise ValidationError(
+                f"无效的时间范围: {range_str}，须为 数字+单位（s/m/h/d/w），如 24h、7d"
+            )
         metrics = await self.store.list_metrics(api_id, range_str, consumer_tenant_id)
 
         if not metrics:
@@ -213,9 +232,8 @@ class MeteringService:
         return result
 
     def _parse_range(self, range_str: str) -> timedelta:
-        """解析时间范围字符串."""
-        if range_str.endswith("h"):
-            return timedelta(hours=int(range_str[:-1]))
-        elif range_str.endswith("d"):
-            return timedelta(days=int(range_str[:-1]))
-        return timedelta(days=7)
+        """解析时间范围字符串（非法输入回退为 7d）."""
+        match = re.fullmatch(r"(\d+)([smhdw])", range_str)
+        if match is None:
+            return timedelta(days=7)
+        return timedelta(seconds=int(match.group(1)) * _RANGE_UNIT_SECONDS[match.group(2)])

@@ -52,7 +52,7 @@ class GatewayClient:
             "sql": sql,
             "engine": engine or self.settings.defaultEngine,
             "tenantId": tenantId or self.settings.tenantId,
-            "limit": limit or self.settings.defaultLimit,
+            "limit": limit if limit is not None else self.settings.defaultLimit,
         }
         url = f"{self._baseUrl}/api/v1/sql/execute"
         try:

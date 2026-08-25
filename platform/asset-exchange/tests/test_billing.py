@@ -6,10 +6,25 @@
 - BY_TIME:   按时间
 - ONE_TIME:  一次性买断
 
-以及内部/外部租户间结算。
+以及内部/外部租户间结算、结算分成比例校验。
 """
 
 from __future__ import annotations
+
+import asyncio
+
+import pytest
+
+from asset_exchange.models.asset import Asset, AssetPricing
+from asset_exchange.models.base import (
+    AssetType,
+    BillingMode,
+    SecurityLevel,
+    SubscriptionStatus,
+)
+from asset_exchange.models.settlement import SettleRequest
+from asset_exchange.models.subscription import Subscription
+from asset_exchange.repositories import ValidationError
 
 # ---------- 辅助函数 ----------
 
@@ -120,23 +135,51 @@ def test_charge_one_time(client):
 # ---------- 内部租户间结算 ----------
 
 
-def test_internal_settlement(client):
-    """内部租户间流通走内部结算（成本系数 0.3）.
+def test_internal_settlement_same_tenant(registry):
+    """内部价命中：订阅方租户与提供方租户一致时走内部结算（成本系数 0.3）.
 
-    租户 ID 以 ":" 分隔组织前缀，同组织前缀视为内部。
+    Phase A 后订阅方 subscriberId 即租户 ID，内部判定为租户相等。
+    订阅自有资产被业务禁止，故直接向仓储注入同租户 ACTIVE 订阅构造场景。
     """
-    # 同组织 "org1" 下的不同租户视为内部
-    aid = _setup_asset_with_pricing(client, name="internal-asset", owner="org1:001", mode="by_call", price=1.0)
-    sid = _setup_active_subscription(client, aid, subscriber="org1:002")
-    record = _charge(client, sid, usage=100)
-    # 金额 = 1.0 * 100 = 100.0
-    assert record["amount"] == 100.0
-    assert record["isInternal"] is True
+
+    async def scenario():
+        asset = await registry.assetService.list_asset(
+            Asset(
+                name="internal-asset",
+                type=AssetType.TABLE,
+                tenantId="tenant-A",
+                securityLevel=SecurityLevel.INTERNAL,
+                qualityScore=85.0,
+                pricing=AssetPricing(mode=BillingMode.BY_CALL, price=1.0, unit="次"),
+            )
+        )
+        sub = Subscription(
+            assetId=asset.id,
+            subscriberId=asset.tenantId,
+            status=SubscriptionStatus.ACTIVE,
+        )
+        sid = await registry.subRepo.save(sub)
+        return await registry.billingService.charge(sid, usage=100)
+
+    record = asyncio.run(scenario())
+    assert record.amount == 100.0
+    assert record.isInternal is True
     # 内部结算：成本系数 0.3
     # 提供方收益 = 100 * 0.3 * 0.8 = 24.0
     # 平台抽成 = 100 * 0.3 * 0.2 = 6.0
-    assert abs(record["providerRevenue"] - 24.0) < 1e-6
-    assert abs(record["platformRevenue"] - 6.0) < 1e-6
+    assert abs(record.providerRevenue - 24.0) < 1e-6
+    assert abs(record.platformRevenue - 6.0) < 1e-6
+
+
+def test_internal_not_hit_for_different_tenants(client):
+    """内部价不命中：不同租户（含同冒号前缀）一律外部结算."""
+    aid = _setup_asset_with_pricing(client, name="prefix-asset", owner="org1:001", mode="by_call", price=1.0)
+    sid = _setup_active_subscription(client, aid, subscriber="org1:002")
+    record = _charge(client, sid, usage=100)
+    assert record["isInternal"] is False
+    # 外部结算：提供方 80%，平台 20%
+    assert abs(record["providerRevenue"] - 80.0) < 1e-6
+    assert abs(record["platformRevenue"] - 20.0) < 1e-6
 
 
 def test_external_settlement(client):
@@ -218,3 +261,61 @@ def test_usage_after_subscription(client):
     assert body["assetId"] == aid
     assert body["subscriberCount"] == 1
     assert body["activeSubscriptions"] == 1
+
+
+# ---------- 结算分成比例校验 ----------
+
+
+def _settle(registry, asset_id: str, provider_share=None, platform_share=None, raw=False):
+    if raw:
+        req = SettleRequest.model_construct(providerShare=provider_share, platformShare=platform_share, period=None)
+    else:
+        req = SettleRequest(providerShare=provider_share, platformShare=platform_share)
+    return asyncio.run(registry.settlementService.settle(asset_id, req))
+
+
+class TestSettleShareValidation:
+    def test_shares_sum_ne_one_rejected(self, client, registry):
+        aid = _setup_asset_with_pricing(client, name="settle-sum-asset", mode="by_call", price=1.0)
+        with pytest.raises(ValidationError):
+            _settle(registry, aid, provider_share=0.5, platform_share=0.6)
+
+    def test_negative_share_rejected(self, client, registry):
+        """负数比例在服务层被拒（model_construct 绕过 pydantic 以直测服务守卫）."""
+        aid = _setup_asset_with_pricing(client, name="settle-negative-asset", mode="by_call", price=1.0)
+        with pytest.raises(ValidationError):
+            _settle(registry, aid, provider_share=-0.1, platform_share=1.1, raw=True)
+
+    def test_share_within_tolerance_accepted(self, client, registry):
+        aid = _setup_asset_with_pricing(client, name="settle-tolerance-asset", mode="by_call", price=1.0)
+        settlement = _settle(registry, aid, provider_share=0.8, platform_share=0.2 + 5e-10)
+        assert settlement.status.value == "settled"
+
+    def test_share_beyond_tolerance_rejected(self, client, registry):
+        aid = _setup_asset_with_pricing(client, name="settle-beyond-asset", mode="by_call", price=1.0)
+        with pytest.raises(ValidationError):
+            _settle(registry, aid, provider_share=0.8, platform_share=0.200001)
+
+    def test_api_settle_invalid_shares_returns_422(self, client):
+        aid = _setup_asset_with_pricing(client, name="settle-api-asset", mode="by_call", price=1.0)
+        resp = client.post(
+            f"/api/v1/assets/{aid}/settle",
+            json={"providerShare": 0.5, "platformShare": 0.4},
+        )
+        assert resp.status_code == 422
+
+    def test_api_settle_negative_share_returns_422(self, client):
+        aid = _setup_asset_with_pricing(client, name="settle-api-neg-asset", mode="by_call", price=1.0)
+        resp = client.post(
+            f"/api/v1/assets/{aid}/settle",
+            json={"providerShare": -0.2, "platformShare": 1.2},
+        )
+        assert resp.status_code == 422
+
+    def test_api_settle_default_shares_succeed(self, client):
+        aid = _setup_asset_with_pricing(client, name="settle-api-ok-asset", mode="by_call", price=1.0)
+        resp = client.post(f"/api/v1/assets/{aid}/settle", json={})
+        assert resp.status_code == 200, resp.text
+        body = resp.json()
+        assert body["providerShare"] == 0.8
+        assert body["platformShare"] == 0.2

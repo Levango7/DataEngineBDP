@@ -5,10 +5,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime
 import hmac
 import uuid
 
+from openapi_catalog.models.base import utc_now
 from openapi_catalog.models import (
     APISubscription,
     ApproveRequest,
@@ -45,7 +45,7 @@ class SubscriptionService:
             request.id = str(uuid.uuid4())
         request.apiId = api_id
         request.status = SubscriptionStatus.PENDING
-        request.updatedAt = datetime.now()
+        request.updatedAt = utc_now()
         return await self.store.save_subscription(request)
 
     async def approve_subscription(self, subscription_id: str, request: ApproveRequest) -> APISubscription:
@@ -76,7 +76,7 @@ class SubscriptionService:
             sub.approvedBy = request.approver
             sub.approveReason = request.reason
 
-        sub.updatedAt = datetime.now()
+        sub.updatedAt = utc_now()
         return await self.store.save_subscription(sub)
 
     async def get_subscription(self, subscription_id: str) -> APISubscription:
@@ -97,7 +97,7 @@ class SubscriptionService:
         if sub.status != SubscriptionStatus.ACTIVE:
             raise SubscriptionStatusError(subscription_id, sub.status.value)
         sub.status = SubscriptionStatus.SUSPENDED
-        sub.updatedAt = datetime.now()
+        sub.updatedAt = utc_now()
         return await self.store.save_subscription(sub)
 
     async def resume_subscription(self, subscription_id: str) -> APISubscription:
@@ -106,7 +106,7 @@ class SubscriptionService:
         if sub.status != SubscriptionStatus.SUSPENDED:
             raise SubscriptionStatusError(subscription_id, sub.status.value)
         sub.status = SubscriptionStatus.ACTIVE
-        sub.updatedAt = datetime.now()
+        sub.updatedAt = utc_now()
         return await self.store.save_subscription(sub)
 
     async def revoke_subscription(self, subscription_id: str) -> APISubscription:
@@ -118,7 +118,7 @@ class SubscriptionService:
         # 吊销后清空 AK/SK
         sub.accessKey = None
         sub.secretKey = None
-        sub.updatedAt = datetime.now()
+        sub.updatedAt = utc_now()
         return await self.store.save_subscription(sub)
 
     async def authenticate(self, access_key: str, secret: str | None = None) -> APISubscription:

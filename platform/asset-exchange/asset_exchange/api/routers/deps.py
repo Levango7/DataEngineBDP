@@ -12,6 +12,8 @@ from asset_exchange.repositories import (
     AssetNotListedError,
     DeliveryFailedError,
     DeliveryNotFoundError,
+    InvalidAssetStateError,
+    NoActiveSubscriptionError,
     SubscriptionNotApprovableError,
     SubscriptionNotDeliverableError,
     SubscriptionNotFoundError,
@@ -48,9 +50,11 @@ _ERROR_STATUS: dict[type[AssetExchangeError], int] = {
     DeliveryNotFoundError: 404,
     AssetAlreadyExistsError: 409,
     AssetNotListedError: 409,
+    InvalidAssetStateError: 409,
     SubscriptionNotApprovableError: 409,
     SubscriptionNotDeliverableError: 409,
     DeliveryFailedError: 409,
+    NoActiveSubscriptionError: 403,
     ValidationError: 422,
 }
 

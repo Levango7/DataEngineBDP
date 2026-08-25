@@ -95,3 +95,57 @@ class TestSqlValidator:
         r = validator.validate("SELECT * FROM orders; DROP TABLE orders;")
         assert r.valid is False
         assert any(i.code in ("MULTI_STMT", "NON_SELECT_STMT") for i in r.issues)
+
+
+class TestParenScanIgnoresLiteralsAndComments:
+    """括号计数必须剥离字符串字面量与注释，避免误判 UNBALANCED_PAREN."""
+
+    def test_paren_in_string_literal_not_counted(self, validator: SqlValidator) -> None:
+        r = validator.validate("SELECT '(' AS p FROM default.orders WHERE b = ')';")
+        assert not any(i.code == "UNBALANCED_PAREN" for i in r.issues)
+        assert r.valid is True
+
+    def test_escaped_quote_literal_with_paren(self, validator: SqlValidator) -> None:
+        r = validator.validate("SELECT 'it''s (ok)' FROM default.orders;")
+        assert r.valid is True
+
+    def test_double_quoted_literal_with_paren(self, validator: SqlValidator) -> None:
+        r = validator.validate('SELECT "((" FROM default.orders;')
+        assert r.valid is True
+
+    def test_parens_in_line_and_block_comments_not_counted(self, validator: SqlValidator) -> None:
+        sql = (
+            "SELECT * FROM default.orders -- stray ) ) (\n"
+            "# more (((\n"
+            "WHERE a = '(' /* )))( */ LIMIT 10;"
+        )
+        r = validator.validate(sql)
+        assert not any(i.code == "UNBALANCED_PAREN" for i in r.issues)
+        assert r.valid is True
+
+    def test_real_unbalanced_still_detected_with_literals(self, validator: SqlValidator) -> None:
+        r = validator.validate("SELECT * FROM default.orders WHERE (a = '(' LIMIT 10;")
+        assert any(i.code == "UNBALANCED_PAREN" for i in r.issues)
+
+    def test_extra_close_paren_after_commented_one_detected(self, validator: SqlValidator) -> None:
+        r = validator.validate("SELECT * FROM default.orders -- (\nWHERE b = ')') ;")
+        # 剥离注释后：b = ')' 中括号在字面量内，末尾 ')' 多余 → 报错
+        assert any(i.code == "UNBALANCED_PAREN" for i in r.issues)
+
+    def test_unterminated_quote_tolerated_raw_tail_counted(self, validator: SqlValidator) -> None:
+        # 引号未闭合到 EOF：按原文返回，尾部括号参与计数，不崩溃不吞错
+        r = validator.validate("SELECT * FROM default.orders WHERE a = 'x ( y")
+        assert any(i.code == "UNBALANCED_PAREN" for i in r.issues)
+
+    def test_unterminated_quote_without_parens_no_paren_error(self, validator: SqlValidator) -> None:
+        r = validator.validate("SELECT * FROM default.orders WHERE a = 'unclosed")
+        assert not any(i.code == "UNBALANCED_PAREN" for i in r.issues)
+
+    def test_scanner_strips_literals_and_comments(self, validator: SqlValidator) -> None:
+        stripped = SqlValidator._stripLiteralsAndComments(
+            "SELECT '(' -- )(\nFROM t /* (#) */ WHERE x = \")\";"
+        )
+        assert "(" not in stripped
+        assert ")" not in stripped
+        assert "--" not in stripped
+        assert "'" not in stripped

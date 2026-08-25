@@ -66,19 +66,47 @@ class TestBusinessLineApi:
             "/api/v1/business-lines",
             json={"name": "bl-3", "tenantId": "t-2", "memberIds": ["u-1"]},
         )
-        # 全部
-        resp = client.get("/api/v1/business-lines")
+        # t-1 视角：仅本租户
+        resp = client.get("/api/v1/business-lines", headers={"X-Tenant-Id": "t-1"})
         assert resp.status_code == 200
-        assert len(resp.json()) == 3
-        # 按租户
-        resp = client.get("/api/v1/business-lines?tenantId=t-1")
         assert len(resp.json()) == 2
-        # 按成员（权限隔离）
-        resp = client.get("/api/v1/business-lines?memberId=u-1")
+        names = {bl["name"] for bl in resp.json()}
+        assert names == {"bl-1", "bl-2"}
+        # 按成员（本租户内进一步收窄）
+        resp = client.get(
+            "/api/v1/business-lines?memberId=u-1",
+            headers={"X-Tenant-Id": "t-1"},
+        )
         result = resp.json()
-        assert len(result) == 2
-        names = {bl["name"] for bl in result}
-        assert names == {"bl-1", "bl-3"}
+        assert len(result) == 1
+        assert result[0]["name"] == "bl-1"
+
+    def test_list_without_tenant_header_returns_401(self, client):
+        """缺少租户身份请求头 → 401，不允许匿名枚举."""
+        client.post(
+            "/api/v1/business-lines",
+            json={"name": "bl-1", "tenantId": "t-1"},
+        )
+        resp = client.get("/api/v1/business-lines")
+        assert resp.status_code == 401
+
+    def test_list_ignores_client_tenant_param(self, client):
+        """客户端伪造 tenantId 参数不影响租户裁剪（以身份头为准）."""
+        client.post(
+            "/api/v1/business-lines",
+            json={"name": "bl-t1", "tenantId": "t-1"},
+        )
+        client.post(
+            "/api/v1/business-lines",
+            json={"name": "bl-t2", "tenantId": "t-2"},
+        )
+        resp = client.get(
+            "/api/v1/business-lines?tenantId=t-2",
+            headers={"X-Tenant-Id": "t-1"},
+        )
+        assert resp.status_code == 200
+        names = {bl["name"] for bl in resp.json()}
+        assert names == {"bl-t1"}
 
     def test_get_business_line(self, client):
         create_resp = client.post(

@@ -2,6 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
+
+import pytest
+
+from asset_exchange.models.base import AssetAuditResult
+from asset_exchange.repositories import InvalidAssetStateError
+
 # ---------- health ----------
 
 
@@ -263,6 +270,72 @@ def test_offline_asset(client):
 def test_offline_asset_not_found(client):
     resp = client.delete("/api/v1/assets/nonexistent")
     assert resp.status_code == 404
+
+
+# ---------- 下架/重新上架状态机（显式迁移校验） ----------
+
+
+def _register_draft(client, name, owner="tenant-A"):
+    """登记资产（DRAFT 状态），返回 asset_id."""
+    resp = client.post(
+        "/api/v1/assets/register",
+        json={"name": name, "type": "table", "tenantId": owner, "qualityScore": 85.0},
+    )
+    assert resp.status_code == 201, resp.text
+    return resp.json()["id"]
+
+
+def _reject_asset(registry, asset_id):
+    """DRAFT -> PENDING_AUDIT -> REJECTED."""
+    asyncio.run(registry.assetService.submit_audit(asset_id))
+    asyncio.run(registry.assetService.audit(asset_id, AssetAuditResult.REJECTED, "auditor"))
+
+
+class TestOfflineRelistStateMachine:
+    def test_offline_rejected_for_draft_and_rejected_assets(self, client, registry):
+        draft = _register_draft(client, "sm-offline-draft")
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.offline_asset(draft))
+        rejected = _register_draft(client, "sm-offline-rejected")
+        _reject_asset(registry, rejected)
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.offline_asset(rejected))
+
+    def test_offline_twice_rejected(self, client, registry):
+        aid = _list_asset(client, name="sm-offline-twice")
+        assert client.delete(f"/api/v1/assets/{aid}").status_code == 204
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.offline_asset(aid))
+
+    def test_api_offline_non_listed_returns_409(self, client):
+        draft = _register_draft(client, "sm-api-draft")
+        resp = client.delete(f"/api/v1/assets/{draft}")
+        assert resp.status_code == 409
+        assert "不允许下架" in resp.json()["message"]
+
+    def test_relist_only_allowed_from_offline(self, client, registry):
+        listed = _list_asset(client, name="sm-relist-listed")
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.relist_asset(listed))
+        draft = _register_draft(client, "sm-relist-draft")
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.relist_asset(draft))
+        rejected = _register_draft(client, "sm-relist-rejected")
+        _reject_asset(registry, rejected)
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.relist_asset(rejected))
+        pending = _register_draft(client, "sm-relist-pending")
+        asyncio.run(registry.assetService.submit_audit(pending))
+        with pytest.raises(InvalidAssetStateError):
+            asyncio.run(registry.assetService.relist_asset(pending))
+
+    def test_legal_cycle_listed_offline_relist_listed(self, client, registry):
+        aid = _list_asset(client, name="sm-cycle")
+        assert client.delete(f"/api/v1/assets/{aid}").status_code == 204
+        assert client.get(f"/api/v1/assets/{aid}").json()["status"] == "offline"
+        asset = asyncio.run(registry.assetService.relist_asset(aid))
+        assert asset.status.value == "listed"
+        assert client.get(f"/api/v1/assets/{aid}").json()["status"] == "listed"
 
 
 # ---------- 使用统计 ----------

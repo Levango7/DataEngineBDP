@@ -650,17 +650,17 @@ jobs:
             echo "--------------------------------------------"
             echo "  JaCoCo: $mod_name ($mod_dir)"
             echo "--------------------------------------------"
-            # 生成 JaCoCo 报告（如果插件未配置则跳过）
+            # 生成 JaCoCo 报告（生成失败/无报告均按 0% 计入门禁，不再静默跳过）
             if ! mvn -f "$pom" jacoco:report -B -q 2>/dev/null; then
-              echo "::warning::$mod_name JaCoCo report 生成失败（插件可能未配置），跳过门禁"
-              warn_count=$((warn_count + 1))
+              echo "::error::$mod_name JaCoCo report 生成失败（插件可能未配置），按 0% 计入门禁"
+              fail_count=$((fail_count + 1))
               continue
             fi
             # 检查是否存在 JaCoCo 报告（target/site/jacoco/jacoco.xml）
             jacoco_xml="$mod_dir/target/site/jacoco/jacoco.xml"
             if [ ! -f "$jacoco_xml" ]; then
-              echo "::warning::$mod_name 未生成 jacoco.xml（可能无测试或无字节码），跳过门禁"
-              warn_count=$((warn_count + 1))
+              echo "::error::$mod_name 未生成 jacoco.xml（可能无测试或无字节码），按 0% 计入门禁"
+              fail_count=$((fail_count + 1))
               continue
             fi
             # 从 jacoco.xml 解析行覆盖率和分支覆盖率
@@ -843,14 +843,16 @@ jobs:
         if: env.go_skip != 'true'
         run: |
           echo "============================================"
-          echo "  Go 覆盖率门禁检查 (阈值: ≥35%)"
+          echo "  Go 覆盖率门禁检查 (阈值: ≥30%)"
           echo "  覆盖范围：platform/ 下所有含 go.mod 的 Go 模块"
           echo "============================================"
-          # 阈值定义：当前实际覆盖率约45%，门禁设为35%（略低于实际值，留~10%缓冲）
-          COVERAGE_THRESHOLD=35
+          # 阈值定义：2026-08-26 全量实测最低 query-api=31.5%，门禁设为30%
+          # （历史值35%形同虚设：go test -cover 从不输出 total: 行，全模块走旁路）
+          COVERAGE_THRESHOLD=30
           fail_count=0
           warn_count=0
           mod_count=0
+          cov_profile=$(mktemp)
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
             mod_name=$(basename "$mod_dir")
@@ -858,13 +860,19 @@ jobs:
             echo "--------------------------------------------"
             echo "  Go Coverage: $mod_name ($mod_dir)"
             echo "--------------------------------------------"
-            # 运行测试并收集覆盖率，提取 total 行的覆盖率百分比
-            cov_output=$(cd "$mod_dir" && go test -cover ./... 2>/dev/null || true)
-            cov=$(echo "$cov_output" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
+            # 运行测试并收集覆盖率：coverprofile + go tool cover 聚合（-cover 单跑不输出 total 行）
+            rm -f "$cov_profile"
+            cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile="$cov_profile" ./... 2>/dev/null || true)
+            if [ ! -s "$cov_profile" ]; then
+              echo "::error::$mod_name 未生成覆盖率数据（可能无测试或测试失败），按 0% 计入门禁"
+              fail_count=$((fail_count + 1))
+              continue
+            fi
+            cov=$(go tool cover -func="$cov_profile" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
             if [ -z "$cov" ]; then
               cov="0"
-              echo "::warning::$mod_name 未生成覆盖率数据（可能无测试或测试失败），跳过门禁"
-              warn_count=$((warn_count + 1))
+              echo "::error::$mod_name 覆盖率解析失败，按 0% 计入门禁"
+              fail_count=$((fail_count + 1))
               continue
             fi
             echo "$mod_name coverage: $cov%"
@@ -1019,6 +1027,7 @@ jobs:
       - name: Python覆盖率门禁检查（全量模块）
         if: env.py_skip != 'true'
         run: |
+          pip install pytest-cov -q
           echo "============================================"
           echo "  Python 覆盖率门禁检查 (阈值: ≥55%)"
           echo "  覆盖范围：platform/ 下所有含 pytest 配置的 Python 模块"
@@ -1038,8 +1047,8 @@ jobs:
             echo "--------------------------------------------"
             # 检查是否有 pytest 配置
             if [ ! -f "$mod_dir/pytest.ini" ] && [ ! -f "$mod_dir/pyproject.toml" ] && [ ! -f "$mod_dir/setup.cfg" ]; then
-              echo "::warning::$mod_name 未配置 pytest，跳过覆盖率门禁"
-              warn_count=$((warn_count + 1))
+              echo "::error::$mod_name 未配置 pytest，按 0% 计入门禁"
+              fail_count=$((fail_count + 1))
               continue
             fi
             # 安装依赖
@@ -1059,8 +1068,8 @@ jobs:
             fi
             if [ -z "$cov" ]; then
               cov="0"
-              echo "::warning::$mod_name 未生成覆盖率数据（可能无测试或测试失败），跳过门禁"
-              warn_count=$((warn_count + 1))
+              echo "::error::$mod_name 未生成覆盖率数据（可能无测试或测试失败），按 0% 计入门禁"
+              fail_count=$((fail_count + 1))
               continue
             fi
             echo "$mod_name coverage: $cov%"

@@ -281,6 +281,66 @@ def _safe_cost_strategy(value: str) -> CostStrategy:
         return CostStrategy.BY_CALL
 
 
+def _strip_sql_comments(sql: str) -> str:
+    """剥离 --、#、/* */ 注释（引号内的内容原样保留）."""
+    out: list[str] = []
+    i = 0
+    n = len(sql)
+    in_single = False
+    in_double = False
+    while i < n:
+        ch = sql[i]
+        nxt = sql[i + 1] if i + 1 < n else ""
+        if in_single or in_double:
+            out.append(ch)
+            if ch == "'" and in_single:
+                in_single = False
+            elif ch == '"' and in_double:
+                in_double = False
+            i += 1
+        elif ch == "'":
+            in_single = True
+            out.append(ch)
+            i += 1
+        elif ch == '"':
+            in_double = True
+            out.append(ch)
+            i += 1
+        elif ch == "-" and nxt == "-":
+            while i < n and sql[i] != "\n":
+                i += 1
+        elif ch == "#":
+            while i < n and sql[i] != "\n":
+                i += 1
+        elif ch == "/" and nxt == "*":
+            end = sql.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+        else:
+            out.append(ch)
+            i += 1
+    return "".join(out)
+
+
+def validate_sql_readonly(sql: str) -> None:
+    """校验 SQL 为单条只读 SELECT 语句.
+
+    规则：剥离注释与多余空白后按分号拆分，仅允许一条语句，
+    且该语句首 token 必须为 SELECT（字符串字面量中的关键词不影响判定）。
+
+    Raises:
+        ValidationError: 含多语句、为空或首 token 非 SELECT.
+    """
+    normalized = " ".join(_strip_sql_comments(sql).split())
+    statements = [s for s in (part.strip() for part in normalized.split(";")) if s]
+    if not statements:
+        raise ValidationError("SQL 不能为空")
+    if len(statements) > 1:
+        raise ValidationError("仅支持单条 SQL 查询语句，禁止多语句")
+    first_token = statements[0].split()[0].upper()
+    if first_token != "SELECT":
+        raise ValidationError(f"仅允许 SELECT 查询，检测到禁止的操作: {first_token}")
+
+
 # ---------- 生成服务 ----------
 
 
@@ -317,12 +377,7 @@ class APIGeneratorService:
         if not req.sql or not req.sql.strip():
             raise ValidationError("SQL 不能为空")
         sql_stripped = req.sql.strip()
-        # 简单 SQL 安全校验：禁止 DDL/DML 操作
-        forbidden = ("drop ", "delete ", "update ", "insert ", "alter ", "truncate ", "create ")
-        sql_lower = sql_stripped.lower()
-        for kw in forbidden:
-            if kw in sql_lower:
-                raise ValidationError(f"SQL 包含禁止的操作: {kw.strip()}")
+        validate_sql_readonly(req.sql)
 
         if req.datasource not in _DATASOURCE_UPSTREAM_MAP:
             raise ValidationError(

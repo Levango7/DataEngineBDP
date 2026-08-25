@@ -32,6 +32,25 @@ class AssetNotListedError(AssetExchangeError):
         super().__init__(f"资产当前状态 {status} 不可订阅: {asset_id}")
 
 
+class InvalidAssetStateError(AssetExchangeError):
+    """资产当前状态不允许该操作（非法状态迁移）."""
+
+    def __init__(self, asset_id: str, status: str, action: str):
+        self.assetId = asset_id
+        self.status = status
+        self.action = action
+        super().__init__(f"资产当前状态 {status} 不允许{action}: {asset_id}")
+
+
+class NoActiveSubscriptionError(AssetExchangeError):
+    """请求租户对资产无有效订阅，不可流通."""
+
+    def __init__(self, asset_id: str, subscriber_id: str):
+        self.assetId = asset_id
+        self.subscriberId = subscriber_id
+        super().__init__(f"租户 {subscriber_id} 对资产 {asset_id} 无有效订阅，不可流通")
+
+
 class SubscriptionNotFoundError(AssetExchangeError):
     """订阅不存在."""
 

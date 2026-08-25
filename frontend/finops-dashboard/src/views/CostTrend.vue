@@ -4,7 +4,7 @@
     <TimeWindowPicker @query="handleQuery" />
     <el-form :inline="true" style="margin-bottom: 16px">
       <el-form-item label="粒度">
-        <el-select v-model="granularity" style="width: 120px">
+        <el-select v-model="granularity" style="width: 120px" @change="onGranularityChange">
           <el-option label="小时" value="HOUR" />
           <el-option label="天" value="DAY" />
           <el-option label="月" value="MONTH" />
@@ -30,15 +30,17 @@ import type { EChartsOption } from 'echarts'
 import EChart from '@/components/EChart.vue'
 import TimeWindowPicker from '@/components/TimeWindowPicker.vue'
 import { getCostTrend } from '@/api/finops'
+import { formatTime } from '@/utils/format'
 import type { CostTrendPoint } from '@/types'
 
 const trendData = ref<CostTrendPoint[]>([])
 const granularity = ref('HOUR')
 const lastParams = ref<{ start: string; end: string; namespace?: string } | null>(null)
+let fetchTimer: ReturnType<typeof setTimeout> | null = null
 
 const lineOption = computed<EChartsOption | null>(() => {
   if (trendData.value.length === 0) return null
-  const xData = trendData.value.map((p) => formatTime(p.timestamp))
+  const xData = trendData.value.map((p) => formatTime(p.timestamp, granularity.value))
   return {
     tooltip: { trigger: 'axis' },
     legend: { data: ['总成本', 'CPU', '内存', '存储', 'GPU', '网络'] },
@@ -57,7 +59,7 @@ const lineOption = computed<EChartsOption | null>(() => {
 
 const stackOption = computed<EChartsOption | null>(() => {
   if (trendData.value.length === 0) return null
-  const xData = trendData.value.map((p) => formatTime(p.timestamp))
+  const xData = trendData.value.map((p) => formatTime(p.timestamp, granularity.value))
   return {
     tooltip: { trigger: 'axis' },
     legend: { data: ['CPU', '内存', '存储', 'GPU', '网络'] },
@@ -88,9 +90,12 @@ async function fetchData() {
   }
 }
 
-function formatTime(ts: string): string {
-  const d = new Date(ts)
-  return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:00`
+function onGranularityChange() {
+  if (fetchTimer !== null) clearTimeout(fetchTimer)
+  fetchTimer = setTimeout(() => {
+    fetchTimer = null
+    void fetchData()
+  }, 300)
 }
 </script>
 

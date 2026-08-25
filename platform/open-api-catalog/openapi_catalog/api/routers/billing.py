@@ -15,6 +15,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
+from openapi_catalog.models.base import utc_now
 from openapi_catalog.models import (
     CostStrategy,
     SubscriptionStatus,
@@ -129,7 +130,7 @@ async def issue_key(
         ak, sk = generate_ak_sk()
         sub.accessKey = ak
         sub.secretKey = sk
-        sub.updatedAt = datetime.now()
+        sub.updatedAt = utc_now()
         await registry.store.save_subscription(sub)
 
         # 重新配置限流（保持原配额）
@@ -212,7 +213,7 @@ async def configure_rate_limit(
             qps=req.qps,
             concurrent=req.concurrent,
             burst=req.burst if req.burst > 0 else req.qps,
-            updatedAt=datetime.now(),
+            updatedAt=utc_now(),
         )
     except CatalogError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
@@ -240,14 +241,14 @@ async def get_rate_limit(
                 qps=registry.settings.defaultRateLimit,
                 concurrent=0,
                 burst=registry.settings.defaultRateLimit,
-                updatedAt=datetime.now(),
+                updatedAt=utc_now(),
             )
         return RateLimitConfigResponse(
             subscriptionId=subscription_id,
             qps=config.qps,
             concurrent=config.concurrent,
             burst=config.burst if config.burst > 0 else config.qps,
-            updatedAt=datetime.now(),
+            updatedAt=utc_now(),
         )
     except CatalogError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
@@ -296,7 +297,7 @@ async def configure_billing(
         api.costUnitPrice = req.costUnitPrice
         if req.monthlyQuota is not None:
             api.monthlyQuota = req.monthlyQuota
-        api.updatedAt = datetime.now()
+        api.updatedAt = utc_now()
         await registry.store.save_api(api)
 
         strategy_desc = {

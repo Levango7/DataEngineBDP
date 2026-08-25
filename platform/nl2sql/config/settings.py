@@ -31,6 +31,8 @@
     NL2SQL_MAX_TABLES           单次上下文最大表数（默认 20）
     NL2SQL_MAX_DIALOGUE_TURNS   多轮对话最大轮次（默认 5）
     NL2SQL_TENANT_ID            默认租户 ID（默认 default）
+    NL2SQL_MAX_SESSIONS         内存会话容量上限 LRU 驱逐（默认 500）
+    NL2SQL_SESSION_TTL_SECONDS  会话空闲过期 TTL 秒（默认 1800）
 """
 
 from __future__ import annotations
@@ -98,6 +100,8 @@ class Settings(BaseSettings):
     maxTables: int = Field(default=20, ge=1, description="单次上下文最大表数")
     maxDialogueTurns: int = Field(default=5, ge=1, le=20, description="多轮对话最大轮次")
     tenantId: str = Field(default="default", description="默认租户 ID")
+    maxSessions: int = Field(default=500, ge=1, description="内存会话容量上限（LRU 驱逐）")
+    sessionTtlSeconds: float = Field(default=1800.0, ge=1.0, description="会话空闲过期 TTL（秒）")
 
     @field_validator("logLevel")
     @classmethod

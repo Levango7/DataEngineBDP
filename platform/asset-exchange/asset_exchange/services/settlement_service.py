@@ -21,6 +21,9 @@ from asset_exchange.models.settlement import (
     SettlementFilter,
     SettleRequest,
 )
+from asset_exchange.repositories import ValidationError
+
+_SHARE_SUM_TOLERANCE = 1e-9
 
 
 class SettlementService:
@@ -66,6 +69,17 @@ class SettlementService:
         # 分成比例：优先用请求中的，否则用配置默认值
         provider_share = req.providerShare if req.providerShare is not None else self._providerShare
         platform_share = req.platformShare if req.platformShare is not None else self._platformShare
+
+        # 分成比例校验：两者 >= 0 且合计为 1（容差 1e-9）
+        if provider_share < 0 or platform_share < 0:
+            raise ValidationError(
+                f"分成比例非法: providerShare={provider_share}, platformShare={platform_share}，均须 >= 0"
+            )
+        if abs(provider_share + platform_share - 1.0) > _SHARE_SUM_TOLERANCE:
+            raise ValidationError(
+                f"分成比例非法: providerShare({provider_share}) + platformShare({platform_share})"
+                f" 须等于 1（容差 {_SHARE_SUM_TOLERANCE}）"
+            )
 
         # 校验资产存在
         asset = await self._asset_service.get_asset(asset_id)

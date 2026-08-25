@@ -1,8 +1,10 @@
 package config
 
 import (
+	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -76,6 +78,29 @@ func TestSave_CreatesParentDir(t *testing.T) {
 
 	_, err = os.Stat(configPath)
 	assert.NoError(t, err)
+}
+
+// TestSave_FilePermissions 测试保存后文件与目录权限收紧（Windows 下跳过严格断言）。
+func TestSave_FilePermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "secure", "config.yaml")
+
+	cfg := &Config{PlatformURL: "https://test.com", Token: "secret-token", Output: "json"}
+	err := Save(configPath, cfg)
+	require.NoError(t, err)
+
+	info, err := os.Stat(configPath)
+	require.NoError(t, err)
+	dirInfo, err := os.Stat(filepath.Dir(configPath))
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		assert.NotNil(t, info)
+		assert.NotNil(t, dirInfo)
+		return
+	}
+	assert.Equal(t, fs.FileMode(0o600), info.Mode().Perm())
+	assert.Equal(t, fs.FileMode(0o700), dirInfo.Mode().Perm())
 }
 
 // TestLoad_InvalidYAML 测试加载无效 YAML 文件。

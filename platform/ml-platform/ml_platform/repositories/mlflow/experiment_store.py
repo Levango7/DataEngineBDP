@@ -21,6 +21,7 @@ from ml_platform.models import (
 from ml_platform.repositories import (
     ExperimentAlreadyExistsError,
     ExperimentNotFoundError,
+    MlPlatformError,
 )
 
 
@@ -128,15 +129,20 @@ class MLflowExperimentStore(ExperimentStore):
             )
         result: list[ExperimentInfo] = []
         for exp in mlflowExps:
-            info = ExperimentInfo(
-                id=exp.experiment_id,
-                name=exp.name,
-                status=ExperimentStatus.ACTIVE,
-                config=ExperimentConfig(name=exp.name),
-            )
-            # 同步本地索引
-            self._experiments[exp.experiment_id] = info
-            self._nameIndex[exp.name] = exp.experiment_id
+            local = self._experiments.get(exp.experiment_id)
+            if local is not None:
+                local.name = exp.name
+                local.status = ExperimentStatus.ACTIVE
+                info = local
+            else:
+                info = ExperimentInfo(
+                    id=exp.experiment_id,
+                    name=exp.name,
+                    status=ExperimentStatus.ACTIVE,
+                    config=ExperimentConfig(name=exp.name),
+                )
+                self._experiments[exp.experiment_id] = info
+            self._nameIndex[info.name] = exp.experiment_id
             result.append(info)
         return sorted(result, key=lambda e: e.name)
 
@@ -147,8 +153,8 @@ class MLflowExperimentStore(ExperimentStore):
         client = self._getClient()
         try:
             await asyncio.to_thread(client.delete_experiment, experimentId)
-        except Exception:
-            pass
+        except Exception as e:
+            raise MlPlatformError(f"MLflow 删除实验失败: {experimentId} ({e})") from e
         info = self._experiments.pop(experimentId, None)
         if info:
             self._nameIndex.pop(info.name, None)

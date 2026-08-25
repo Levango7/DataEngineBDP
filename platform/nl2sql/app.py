@@ -20,8 +20,10 @@
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Any, Optional
 import os
+import time
 import uuid
 
 from config.settings import Settings, get_settings
@@ -64,7 +66,7 @@ class ExecuteRequest(GenerateRequest):
     """NL → SQL → 执行请求."""
 
     engine: Optional[str] = Field(default=None, description="查询引擎 trino/doris")
-    limit: Optional[int] = Field(default=None, description="行数限制")
+    limit: Optional[int] = Field(default=None, ge=1, description="行数限制")
 
 
 class ExecuteResponse(BaseModel):
@@ -140,14 +142,37 @@ class ServiceRegistry:
         self.slotFiller = SlotFiller()
         self.clarifier = DialogueClarifier(slotFiller=self.slotFiller, maxTurns=settings.maxDialogueTurns)
         self.gatewayClient = GatewayClient(settings)
-        # 会话存储（内存，生产可换 Redis）
-        self._sessions: dict[str, DialogueState] = {}
+        # 会话存储（内存，生产可换 Redis）：键为 (tenantId, sessionId)，LRU+TTL 双限
+        self._sessions: OrderedDict[tuple[str, str], tuple[DialogueState, float]] = OrderedDict()
 
-    def getSession(self, sessionId: str) -> Optional[DialogueState]:
-        return self._sessions.get(sessionId)
+    def _sweepExpiredSessions(self) -> None:
+        now = time.monotonic()
+        expired = [
+            key
+            for key, (_, ts) in self._sessions.items()
+            if now - ts > self.settings.sessionTtlSeconds
+        ]
+        for key in expired:
+            del self._sessions[key]
 
-    def saveSession(self, state: DialogueState) -> None:
-        self._sessions[state.sessionId] = state
+    def getSession(self, tenantId: str, sessionId: str) -> Optional[DialogueState]:
+        self._sweepExpiredSessions()
+        key = (tenantId, sessionId)
+        entry = self._sessions.get(key)
+        if entry is None:
+            return None
+        state, _ = entry
+        self._sessions[key] = (state, time.monotonic())
+        self._sessions.move_to_end(key)
+        return state
+
+    def saveSession(self, state: DialogueState, tenantId: str) -> None:
+        self._sweepExpiredSessions()
+        key = (tenantId, state.sessionId)
+        self._sessions[key] = (state, time.monotonic())
+        self._sessions.move_to_end(key)
+        while len(self._sessions) > self.settings.maxSessions:
+            self._sessions.popitem(last=False)
 
 
 def build_services(settings: Optional[Settings] = None) -> ServiceRegistry:
@@ -289,7 +314,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
             gen = await reg.generator.generate(req.query, ctx, intent, frame)
             sql = gen.sql
             state.clarified = True
-        reg.saveSession(state)
+        reg.saveSession(state, auth.tenantId)
         return DialogueResponse(
             sessionId=sessionId,
             clarified=state.clarified,
@@ -303,7 +328,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
     @app.post(f"{prefix}/nl2sql/dialogue/answer", response_model=DialogueResponse)
     async def dialogueAnswer(req: DialogueAnswerRequest, auth: AuthContext = Depends(getAuthContext)) -> DialogueResponse:
         """提交澄清回答."""
-        state = reg.getSession(req.sessionId)
+        state = reg.getSession(auth.tenantId, req.sessionId)
         if state is None:
             raise HTTPException(status_code=404, detail=f"会话 {req.sessionId} 不存在")
         # 取 schema 上下文（基于首轮查询重建）
@@ -321,7 +346,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
             gen = await reg.generator.generate(queryText, ctx, state.currentSlots.intent, state.currentSlots)
             sql = gen.sql
             state.clarified = True
-        reg.saveSession(state)
+        reg.saveSession(state, auth.tenantId)
         return DialogueResponse(
             sessionId=state.sessionId,
             clarified=state.clarified,

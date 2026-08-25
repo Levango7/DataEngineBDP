@@ -12,6 +12,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
+from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
 from asset_exchange.api.routers.deps import get_registry, status_for_error
 from asset_exchange.models.base import AuditAction
 from asset_exchange.models.delivery import (
@@ -48,15 +49,16 @@ async def approve_subscription(
     subscription_id: str,
     req: ApprovalRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Subscription:
-    """审批订阅（通过或驳回）."""
+    """审批订阅（通过或驳回）. 审批人身份一律取 JWT（approverId 自报不再采信）."""
     try:
         if req.action == "approve":
-            result = await registry.subscriptionService.approve(subscription_id, req.approverId)
+            result = await registry.subscriptionService.approve(subscription_id, ctx.userId)
         elif req.action == "reject":
             result = await registry.subscriptionService.reject(
                 subscription_id,
-                req.approverId,
+                ctx.userId,
                 req.reason or "未提供驳回原因",
             )
         else:
@@ -67,7 +69,7 @@ async def approve_subscription(
         # 审计留痕
         await registry.auditService.log(
             action=AuditAction.SUBSCRIBE,
-            actor_id=req.approverId,
+            actor_id=ctx.userId,
             asset_id=result.assetId,
             subscription_id=subscription_id,
             detail={"action": req.action, "reason": req.reason},

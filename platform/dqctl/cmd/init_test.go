@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"bufio"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -61,6 +63,53 @@ func TestInitCmd_CreatesConfig(t *testing.T) {
 	configPath := filepath.Join(tmpDir, ".dqctl", "config.yaml")
 	_, err = os.Stat(configPath)
 	assert.NoError(t, err, "配置文件应已创建: "+configPath)
+}
+
+func TestInitCmd_ConfigFilePermissions(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	input := "https://platform.example.com\nperm-tenant\nperm-token\ntable\n"
+	oldStdin := os.Stdin
+	pr, pw, _ := os.Pipe()
+	os.Stdin = pr
+	go func() {
+		_, _ = pw.WriteString(input)
+		_ = pw.Close()
+	}()
+	defer func() { os.Stdin = oldStdin }()
+
+	flagConfig = ""
+	flagTenant = ""
+	flagVerbose = false
+	flagOutput = "table"
+
+	origHome := os.Getenv("HOME")
+	origUserProfile := os.Getenv("USERPROFILE")
+	os.Setenv("HOME", tmpDir)
+	os.Setenv("USERPROFILE", tmpDir)
+	defer func() {
+		os.Setenv("HOME", origHome)
+		os.Setenv("USERPROFILE", origUserProfile)
+	}()
+
+	rootCmd.SetArgs([]string{"init"})
+	require.NoError(t, rootCmd.Execute())
+
+	configDir := filepath.Join(tmpDir, ".dqctl")
+	configPath := filepath.Join(configDir, "config.yaml")
+
+	info, err := os.Stat(configPath)
+	require.NoError(t, err, "配置文件应已创建: "+configPath)
+	dirInfo, err := os.Stat(configDir)
+	require.NoError(t, err)
+
+	if runtime.GOOS == "windows" {
+		assert.NotNil(t, info)
+		assert.NotNil(t, dirInfo)
+		return
+	}
+	assert.Equal(t, fs.FileMode(0o600), info.Mode().Perm())
+	assert.Equal(t, fs.FileMode(0o700), dirInfo.Mode().Perm())
 }
 
 // TestPromptFunction 测试 prompt 辅助函数正确去除空白。

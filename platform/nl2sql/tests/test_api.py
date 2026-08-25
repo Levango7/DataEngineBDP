@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
 
 class TestHealth:
     def test_health(self, client) -> None:
@@ -97,6 +99,44 @@ class TestExecute:
         )
         assert resp.status_code == 200
 
+    def test_execute_limit_zero_rejected_422(self, unreachableClient) -> None:
+        """limit<=0 应被路由层 422 拒绝（pydantic ge=1），不得被默认值吞掉."""
+        resp = unreachableClient.post(
+            "/api/v1/nl2sql/execute",
+            json={
+                "query": "查询 orders 表",
+                "useMockSchema": True,
+                "limit": 0,
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_execute_limit_negative_rejected_422(self, unreachableClient) -> None:
+        resp = unreachableClient.post(
+            "/api/v1/nl2sql/execute",
+            json={
+                "query": "查询 orders 表",
+                "useMockSchema": True,
+                "limit": -5,
+            },
+        )
+        assert resp.status_code == 422
+
+    def test_execute_limit_one_accepted(self, unreachableClient) -> None:
+        resp = unreachableClient.post(
+            "/api/v1/nl2sql/execute",
+            json={
+                "query": "查询 orders 表",
+                "useMockSchema": True,
+                "limit": 1,
+            },
+        )
+        assert resp.status_code == 200
+        assert unreachableClient.post(
+            "/api/v1/nl2sql/execute",
+            json={"query": "查询 orders 表", "useMockSchema": True},
+        ).status_code == 200
+
 
 class TestDialogue:
     def test_dialogue_start_no_clarification(self, client) -> None:
@@ -160,6 +200,69 @@ class TestDialogue:
                 },
             )
             assert resp2.status_code == 200
+
+
+class TestDialogueTenantIsolation:
+    """跨租户访问他人会话必须 404（防枚举），本租户正常读写."""
+
+    def _jwtHeaders(self, tenant: str) -> dict:
+        from nl2sql.tests.test_jwt_auth import SECRET, makeToken
+
+        return {"Authorization": f"Bearer {makeToken(secret=SECRET, tenant=tenant)}"}
+
+    def test_cross_tenant_session_answer_returns_404(self, app, monkeypatch) -> None:
+        from nl2sql.tests.test_jwt_auth import SECRET
+
+        monkeypatch.setenv("AUTH_MODE", "jwt")
+        monkeypatch.setenv("JWT_SECRET", SECRET)
+        c = TestClient(app)
+        headersA = self._jwtHeaders("tenant-a")
+        headersB = self._jwtHeaders("tenant-b")
+
+        resp = c.post(
+            "/api/v1/nl2sql/dialogue/start",
+            json={"query": "关联一下", "useMockSchema": True},
+            headers=headersA,
+        )
+        assert resp.status_code == 200
+        sid = resp.json()["sessionId"]
+
+        ok = c.post(
+            "/api/v1/nl2sql/dialogue/answer",
+            json={"sessionId": sid, "answer": "昨天"},
+            headers=headersA,
+        )
+        assert ok.status_code == 200
+
+        stolen = c.post(
+            "/api/v1/nl2sql/dialogue/answer",
+            json={"sessionId": sid, "answer": "昨天"},
+            headers=headersB,
+        )
+        assert stolen.status_code == 404
+
+    def test_same_session_id_in_other_tenant_is_404(self, app, monkeypatch) -> None:
+        """tenant-b 用完全相同的 sessionId 也无法命中 tenant-a 的会话."""
+        from nl2sql.tests.test_jwt_auth import SECRET
+
+        monkeypatch.setenv("AUTH_MODE", "jwt")
+        monkeypatch.setenv("JWT_SECRET", SECRET)
+        c = TestClient(app)
+        headersA = self._jwtHeaders("tenant-a")
+        headersB = self._jwtHeaders("tenant-b")
+
+        resp = c.post(
+            "/api/v1/nl2sql/dialogue/start",
+            json={"query": "查询 orders 表", "useMockSchema": True},
+            headers=headersA,
+        )
+        sid = resp.json()["sessionId"]
+        forged = c.post(
+            "/api/v1/nl2sql/dialogue/answer",
+            json={"sessionId": sid, "answer": "x"},
+            headers=headersB,
+        )
+        assert forged.status_code == 404
 
 
 class TestValidate:

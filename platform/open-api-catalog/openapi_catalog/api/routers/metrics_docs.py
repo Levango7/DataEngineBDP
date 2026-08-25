@@ -6,6 +6,8 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import APIMetrics
@@ -30,6 +32,11 @@ async def get_metrics(
     registry: ServiceRegistry = Depends(get_registry),
 ) -> APIMetrics:
     """获取 API 调用计量（调用量/成功率/P99延迟/费用）."""
+    if re.fullmatch(r"\d+[smhdw]", range) is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"无效的时间范围: {range}，须为 数字+单位（s/m/h/d/w），如 24h、7d",
+        )
     try:
         return await registry.meteringService.get_metrics(api_id, range, consumerTenantId)
     except CatalogError as exc:

@@ -217,6 +217,28 @@ class TestPermissionIsolation:
         ids = {bl.id for bl in result}
         assert ids == {"bl-1", "bl-3"}
 
+    @pytest.mark.asyncio
+    async def test_list_forced_to_current_tenant_overrides_filter(self, mock_bl_store):
+        """服务层强制按当前租户裁剪：filter 中的租户/成员参数不能越权跨租户."""
+        from business_portal.models.business_line import BusinessLineFilter
+        from business_portal.services.business_line_service import BusinessLineService
+
+        svc = BusinessLineService(mock_bl_store)
+        await svc.create_business_line(_make_bl("bl-1", "风控线", "t-1", ["u-1"]))
+        await svc.create_business_line(_make_bl("bl-2", "增长线", "t-2", ["u-1"]))
+        # filter 声称查 t-2，但调用方租户是 t-1 → 只返回 t-1 的业务线
+        result = await svc.list_business_lines(
+            BusinessLineFilter(tenantId="t-2"), tenant_id="t-1"
+        )
+        assert {bl.tenantId for bl in result} == {"t-1"}
+        assert {bl.id for bl in result} == {"bl-1"}
+        # memberId 在本租户范围内进一步收窄
+        await svc.create_business_line(_make_bl("bl-3", "营销线", "t-1", ["u-2"]))
+        result = await svc.list_business_lines(
+            BusinessLineFilter(tenantId="t-2", memberId="u-1"), tenant_id="t-1"
+        )
+        assert {bl.id for bl in result} == {"bl-1"}
+
 
 class TestCrossBusinessLineIsolation:
     """跨业务线综合隔离测试."""

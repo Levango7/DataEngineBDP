@@ -11,7 +11,7 @@ const http: AxiosInstance = axios.create({
 
 // 请求拦截器：自动携带 Bearer token
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem('loop_token')
+  const token = sessionStorage.getItem('sq_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }

@@ -4,10 +4,13 @@ from __future__ import annotations
 
 from collections import deque
 from datetime import timedelta
+import asyncio
 import json
 from pathlib import Path
+import re
 import secrets
 import sqlite3
+import threading
 from typing import Any
 
 from openapi_catalog.models import (
@@ -41,6 +44,14 @@ from openapi_catalog.repositories import (
 DEFAULT_DB_PATH = "data/openapi_catalog.db"
 # 内存中保留最近 N 条计量用于 list_metrics 查询
 METRICS_BUFFER_SIZE = 10000
+# range 参数单位到秒数的映射
+_RANGE_UNIT_SECONDS = {
+    "s": 1,
+    "m": 60,
+    "h": 3600,
+    "d": 86400,
+    "w": 604800,
+}
 
 
 class SQLiteConnection:
@@ -59,6 +70,7 @@ class SQLiteConnection:
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON;")
         self._conn.execute("PRAGMA journal_mode = WAL;")
+        self._conn.execute("PRAGMA busy_timeout = 5000;")
 
     @property
     def conn(self) -> sqlite3.Connection:
@@ -157,6 +169,8 @@ class SQLiteCatalogStore:
 
     def __init__(self, conn: SQLiteConnection) -> None:
         self._conn = conn
+        # 实例级写锁：串行化共享连接上的多语句读改写（save_metric / delete_api）
+        self._write_lock = threading.Lock()
         # 内存缓冲：list_metrics 高频查询走内存
         self._metrics_buffer: deque[CallMetric] = deque(maxlen=METRICS_BUFFER_SIZE)
         self._load_metrics_into_buffer()
@@ -281,13 +295,25 @@ class SQLiteCatalogStore:
         return result
 
     async def delete_api(self, api_id: str) -> None:
-        # 先校验存在
         cur = self._conn.conn.execute("SELECT id FROM apis WHERE id = ?;", (api_id,))
         if cur.fetchone() is None:
             raise APINotFoundError(api_id)
-        # 级联清理订阅
-        self._conn.conn.execute("DELETE FROM subscriptions WHERE api_id = ?;", (api_id,))
-        self._conn.conn.execute("DELETE FROM apis WHERE id = ?;", (api_id,))
+        await asyncio.to_thread(self._delete_api_sync, api_id)
+
+    def _delete_api_sync(self, api_id: str) -> None:
+        conn = self._conn.conn
+        with self._write_lock:
+            try:
+                conn.execute("BEGIN;")
+                conn.execute("DELETE FROM subscriptions WHERE api_id = ?;", (api_id,))
+                conn.execute("DELETE FROM apis WHERE id = ?;", (api_id,))
+                conn.execute("COMMIT;")
+            except sqlite3.Error:
+                try:
+                    conn.execute("ROLLBACK;")
+                except sqlite3.Error:
+                    pass
+                raise
 
     # ---------- Subscription ----------
 
@@ -390,54 +416,66 @@ class SQLiteCatalogStore:
     # ---------- Metrics ----------
 
     async def save_metric(self, metric: CallMetric) -> CallMetric:
-        self._conn.conn.execute(
-            """
-            INSERT INTO call_metrics (
-                call_id, api_id, api_version, subscription_id,
-                consumer_tenant_id, provider_tenant_id, timestamp,
-                latency_ms, request_bytes, response_bytes, status_code,
-                cost_strategy, cost_amount, error_message
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-            """,
-            (
-                metric.callId,
-                metric.apiId,
-                metric.apiVersion,
-                metric.subscriptionId,
-                metric.consumerTenantId,
-                metric.providerTenantId,
-                metric.timestamp.isoformat(),
-                metric.latencyMs,
-                metric.requestBytes,
-                metric.responseBytes,
-                metric.statusCode,
-                metric.costStrategy.value,
-                metric.costAmount,
-                metric.errorMessage,
-            ),
-        )
-        self._metrics_buffer.append(metric)
-        # 同步更新 API 聚合统计
-        cur = self._conn.conn.execute("SELECT * FROM apis WHERE id = ?;", (metric.apiId,))
-        api_row = cur.fetchone()
-        if api_row is not None:
-            api = self._row_to_api(api_row)
-            api.callCount += 1
-            api.totalLatencyMs += metric.latencyMs
-            api.totalTrafficBytes += metric.requestBytes + metric.responseBytes
-            if metric.statusCode >= 400:
-                api.errorCount += 1
-            await self.save_api(api)
-        # 同步更新订阅统计
-        cur = self._conn.conn.execute("SELECT * FROM subscriptions WHERE id = ?;", (metric.subscriptionId,))
-        sub_row = cur.fetchone()
-        if sub_row is not None:
-            sub = self._row_to_sub(sub_row)
-            sub.callCount += 1
-            if metric.statusCode >= 400:
-                sub.errorCount += 1
-            sub.lastCalledAt = metric.timestamp.isoformat()
-            await self.save_subscription(sub)
+        return await asyncio.to_thread(self._save_metric_sync, metric)
+
+    def _save_metric_sync(self, metric: CallMetric) -> CallMetric:
+        """单次调用计量的完整落库与聚合（同步原子段，由实例写锁串行化）."""
+        with self._write_lock:
+            self._conn.conn.execute(
+                """
+                INSERT INTO call_metrics (
+                    call_id, api_id, api_version, subscription_id,
+                    consumer_tenant_id, provider_tenant_id, timestamp,
+                    latency_ms, request_bytes, response_bytes, status_code,
+                    cost_strategy, cost_amount, error_message
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                """,
+                (
+                    metric.callId,
+                    metric.apiId,
+                    metric.apiVersion,
+                    metric.subscriptionId,
+                    metric.consumerTenantId,
+                    metric.providerTenantId,
+                    metric.timestamp.isoformat(),
+                    metric.latencyMs,
+                    metric.requestBytes,
+                    metric.responseBytes,
+                    metric.statusCode,
+                    metric.costStrategy.value,
+                    metric.costAmount,
+                    metric.errorMessage,
+                ),
+            )
+            self._metrics_buffer.append(metric)
+            error_delta = 1 if metric.statusCode >= 400 else 0
+            traffic = metric.requestBytes + metric.responseBytes
+            updated_at = utc_now().isoformat()
+            # API 聚合统计（SQL 侧自增，避免读改写竞态）
+            self._conn.conn.execute(
+                """
+                UPDATE apis SET
+                    call_count = call_count + 1,
+                    error_count = error_count + ?,
+                    total_latency_ms = total_latency_ms + ?,
+                    total_traffic_bytes = total_traffic_bytes + ?,
+                    updated_at = ?
+                WHERE id = ?;
+                """,
+                (error_delta, metric.latencyMs, traffic, updated_at, metric.apiId),
+            )
+            # 订阅统计
+            self._conn.conn.execute(
+                """
+                UPDATE subscriptions SET
+                    call_count = call_count + 1,
+                    error_count = error_count + ?,
+                    last_called_at = ?,
+                    updated_at = ?
+                WHERE id = ?;
+                """,
+                (error_delta, metric.timestamp.isoformat(), updated_at, metric.subscriptionId),
+            )
         return metric
 
     async def list_metrics(
@@ -447,12 +485,10 @@ class SQLiteCatalogStore:
         consumer_tenant_id: str | None = None,
     ) -> list[CallMetric]:
         now = utc_now()
-        if range_str.endswith("h"):
-            hours = int(range_str[:-1])
-            since = now - timedelta(hours=hours)
-        elif range_str.endswith("d"):
-            days = int(range_str[:-1])
-            since = now - timedelta(days=days)
+        match = re.fullmatch(r"(\d+)([smhdw])", range_str)
+        if match:
+            seconds = int(match.group(1)) * _RANGE_UNIT_SECONDS[match.group(2)]
+            since = now - timedelta(seconds=seconds)
         else:
             since = now - timedelta(days=7)
         return [

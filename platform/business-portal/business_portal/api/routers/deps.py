@@ -28,6 +28,13 @@ def get_current_user(
     return x_user_id
 
 
+def get_current_tenant(
+    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-Id"),
+) -> str | None:
+    """从请求头 X-Tenant-Id 获取当前租户 ID（无则 None，表示未认证）."""
+    return x_tenant_id
+
+
 # HTTP 状态码映射
 _ERROR_STATUS: dict[type[PortalError], int] = {
     BusinessLineNotFoundError: 404,

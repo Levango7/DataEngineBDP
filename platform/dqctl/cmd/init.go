@@ -42,7 +42,7 @@ func runInit(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("获取用户主目录失败: %w", err)
 	}
 	configDir := filepath.Join(home, ".dqctl")
-	if err := os.MkdirAll(configDir, 0o755); err != nil {
+	if err := os.MkdirAll(configDir, 0o700); err != nil {
 		return fmt.Errorf("创建配置目录失败: %w", err)
 	}
 	configPath := filepath.Join(configDir, "config.yaml")
