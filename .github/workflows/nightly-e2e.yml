@@ -168,3 +168,25 @@ jobs:
           path: tests/integration/integration_test_report.md
           retention-days: 7
           if-no-files-found: warn
+
+  chart-smoke:
+    name: Chart Render & Schema Smoke (全量 chart)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.16.4
+
+      - name: 安装 kubeconform
+        run: |
+          curl -sSfL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz \
+            | tar xz -C /usr/local/bin kubeconform
+          kubeconform -v
+
+      - name: 渲染 + Schema 校验全部 chart（阻断）
+        run: bash scripts/chart-render-check.sh

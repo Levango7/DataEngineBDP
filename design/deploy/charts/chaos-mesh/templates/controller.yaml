@@ -20,6 +20,13 @@ spec:
         app: {{ include "chaos-mesh.name" . }}-controller
     spec:
       serviceAccountName: {{ include "chaos-mesh.name" . }}-controller
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+      {{- end }}
       containers:
         - name: chaos-controller
           image: "{{ .Values.image.chaosController.repository }}:{{ .Values.image.chaosController.tag }}"
@@ -36,7 +43,6 @@ spec:
         runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
         runAsUser: {{ .Values.securityContext.runAsUser }}
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
-        fsGroup: {{ .Values.securityContext.fsGroup }}
 ---
 apiVersion: v1
 kind: ServiceAccount
