@@ -77,8 +77,7 @@ def create_router(service: FinetuneService) -> APIRouter:
     async def get_task(taskId: str):
         """查询单个任务详情."""
         # 先刷新状态（Mock 模式下检测完成）
-        service.refresh_task_status(taskId)
-        task = service.get_task(taskId)
+        task = await service.refresh_task_status(taskId)
         if task is None:
             raise HTTPException(status_code=404, detail=f"任务不存在: {taskId}")
         return FinetuneTaskResponse.from_task(task)
@@ -107,7 +106,7 @@ def create_router(service: FinetuneService) -> APIRouter:
 
         返回最后 N 行日志，可选解析为结构化 LogEntry（含 loss/lr/GPU 指标）。
         """
-        result = service.get_logs(taskId, tail=tail, parse=parse)
+        result = await service.get_logs(taskId, tail=tail, parse=parse)
         if result is None:
             raise HTTPException(status_code=404, detail=f"任务不存在: {taskId}")
         return result

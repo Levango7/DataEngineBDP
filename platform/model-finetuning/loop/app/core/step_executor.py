@@ -456,9 +456,15 @@ class StepExecutor:
     async def _http_post(
         self, url: str, json_body: dict,
     ) -> dict:
-        """带重试的 POST 请求."""
-        last_err = ""
-        for attempt in range(self.max_retries):
+        """受限重试的 POST 请求.
+
+        POST 为非幂等创建操作：仅连接未建立（ConnectError，请求必然
+        未送达）可安全重试且最多 2 次尝试；超时/读错误/协议错误等
+        一律不重试直接失败，避免上游重复创建训练任务或部署。
+        """
+        attempts = max(1, min(self.max_retries, 2))
+        last_err: Exception | None = None
+        for attempt in range(1, attempts + 1):
             try:
                 if self._client is None:
                     async with httpx.AsyncClient(
@@ -469,13 +475,18 @@ class StepExecutor:
                     resp = await self._client.post(url, json=json_body)
                 resp.raise_for_status()
                 return resp.json()
-            except Exception as e:  # noqa: BLE001
-                last_err = str(e)
+            except httpx.ConnectError as e:
+                last_err = e
                 logger.warning(
-                    "POST %s 失败（第 %d 次）: %s",
-                    url, attempt + 1, e,
+                    "POST %s 连接失败（第 %d 次）: %s",
+                    url, attempt, e,
                 )
-                await asyncio.sleep(0.5 * (attempt + 1))
+                if attempt < attempts:
+                    await asyncio.sleep(0.5 * attempt)
+            except Exception as e:  # noqa: BLE001
+                raise RuntimeError(
+                    f"HTTP POST 失败: {url}, 错误: {e}"
+                ) from e
         raise RuntimeError(f"HTTP POST 失败: {url}, 错误: {last_err}")
 
     async def _http_get(

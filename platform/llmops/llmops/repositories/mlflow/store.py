@@ -7,6 +7,7 @@ Registered Model 的 tags 与 description 持久化。
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Optional
 import uuid
 
@@ -32,6 +33,9 @@ class MLflowModelStore(ModelStore):
     # ---------- ModelStore ----------
 
     async def register_model(self, model_info: ModelInfo) -> str:
+        return await asyncio.to_thread(self._register_model_sync, model_info)
+
+    def _register_model_sync(self, model_info: ModelInfo) -> str:
         mlflow = self._client.mlflow
         client = self._client.client
         # 同名校验
@@ -58,12 +62,12 @@ class MLflowModelStore(ModelStore):
         name = await self._find_name_by_id(model_id)
         if name is None:
             raise ModelNotFoundError(model_id)
-        rm = self._client.client.get_registered_model(name)
+        rm = await asyncio.to_thread(self._client.client.get_registered_model, name)
         return self._decode_registered_model(rm)
 
     async def list_models(self, filter: ModelFilter) -> list[ModelInfo]:
         # MLflow list_registered_models 不支持复杂过滤，全量拉取后内存过滤
-        rms = self._client.client.search_registered_models()
+        rms = await asyncio.to_thread(self._client.client.search_registered_models)
         result: list[ModelInfo] = []
         for rm in rms:
             m = self._decode_registered_model(rm)
@@ -87,7 +91,7 @@ class MLflowModelStore(ModelStore):
         name = await self._find_name_by_id(model_id)
         if name is None:
             raise ModelNotFoundError(model_id)
-        self._client.client.delete_registered_model(name)
+        await asyncio.to_thread(self._client.client.delete_registered_model, name)
 
     async def get_model_versions(self, model_id: str) -> list[ModelVersion]:
         m = await self.get_model(model_id)
@@ -96,7 +100,8 @@ class MLflowModelStore(ModelStore):
     async def add_model_version(self, model_id: str, version: ModelVersion) -> ModelVersion:
         m = await self.get_model(model_id)
         # MLflow create_model_version 需要 source（artifact uri）
-        mv = self._client.client.create_model_version(
+        mv = await asyncio.to_thread(
+            self._client.client.create_model_version,
             name=m.name,
             source=version.artifactUri or "",
             run_id=version.sourceRunId,
@@ -113,7 +118,8 @@ class MLflowModelStore(ModelStore):
         m = await self.get_model(model_id)
         client = self._client.client
         try:
-            client.transition_model_version_stage(
+            await asyncio.to_thread(
+                client.transition_model_version_stage,
                 name=m.name,
                 version=version,
                 stage="Production",
@@ -124,13 +130,17 @@ class MLflowModelStore(ModelStore):
 
     async def update_model(self, model_id: str, **fields: Any) -> ModelInfo:
         m = await self.get_model(model_id)
+        if "description" in fields or "tags" in fields:
+            await asyncio.to_thread(self._update_model_sync, m.name, fields)
+        return await self.get_model(model_id)
+
+    def _update_model_sync(self, name: str, fields: dict[str, Any]) -> None:
         client = self._client.client
         if "description" in fields:
-            client.update_registered_model(m.name, description=fields["description"])
+            client.update_registered_model(name, description=fields["description"])
         if "tags" in fields:
             for k, v in fields["tags"].items():
-                client.set_registered_model_tag(m.name, f"{_TAG_PREFIX}{k}", v)
-        return await self.get_model(model_id)
+                client.set_registered_model_tag(name, f"{_TAG_PREFIX}{k}", v)
 
     # ---------- 内部工具 ----------
 
@@ -187,7 +197,7 @@ class MLflowModelStore(ModelStore):
 
     async def _find_name_by_id(self, model_id: str) -> Optional[str]:
         """通过 model_id tag 反查 registered model name."""
-        rms = self._client.client.search_registered_models()
+        rms = await asyncio.to_thread(self._client.client.search_registered_models)
         for rm in rms:
             tags = {t.key: t.value for t in (rm.tags or [])}
             if tags.get(f"{_TAG_PREFIX}id") == model_id:

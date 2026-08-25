@@ -212,4 +212,87 @@ describe('composables/useApi.ts', () => {
       expect(error.value).toBeNull()
     })
   })
+
+  describe('竞态守卫（DataLineage 同型：上游/下游/影响分析共用一个 useApi）', () => {
+    interface Deferred<T> {
+      promise: Promise<T>
+      resolve: (v: T) => void
+      reject: (e: Error) => void
+    }
+
+    function deferred<T>(): Deferred<T> {
+      let resolve!: (v: T) => void
+      let reject!: (e: Error) => void
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res
+        reject = rej
+      })
+      return { promise, resolve, reject }
+    }
+
+    it('先发慢请求再发快请求，慢请求完成时不应覆盖快请求的结果', async () => {
+      const slow = deferred<string>()
+      const fast = deferred<string>()
+      const factory = vi.fn((kind: string) =>
+        kind === 'upstream' ? slow.promise : fast.promise
+      )
+      const onSuccess = vi.fn()
+      const { data, execute } = useApi<string, [string]>(factory, { onSuccess })
+
+      const slowPromise = execute('upstream')
+      const fastPromise = execute('downstream')
+
+      fast.resolve('downstream-result')
+      await fastPromise
+      expect(data.value).toBe('downstream-result')
+      expect(onSuccess).toHaveBeenCalledTimes(1)
+
+      slow.resolve('upstream-result')
+      const staleResult = await slowPromise
+
+      expect(staleResult).toBeNull()
+      expect(data.value).toBe('downstream-result')
+      expect(onSuccess).toHaveBeenCalledTimes(1)
+      expect(factory).toHaveBeenNthCalledWith(1, 'upstream')
+      expect(factory).toHaveBeenNthCalledWith(2, 'downstream')
+    })
+
+    it('过期请求失败不应写入 error 或触发 onError', async () => {
+      const slow = deferred<string>()
+      const fast = deferred<string>()
+      const factory = vi.fn((kind: string) =>
+        kind === 'upstream' ? slow.promise : fast.promise
+      )
+      const onError = vi.fn()
+      const { error, loading, execute } = useApi<string, [string]>(factory, { onError })
+
+      const slowPromise = execute('upstream')
+      const fastPromise = execute('downstream')
+
+      fast.resolve('fast-ok')
+      await fastPromise
+
+      slow.reject(new Error('stale failure'))
+      await slowPromise
+
+      expect(error.value).toBeNull()
+      expect(onError).not.toHaveBeenCalled()
+      expect(loading.value).toBe(false)
+    })
+
+    it('reset 应使进行中的请求失效', async () => {
+      const pending = deferred<string>()
+      const { data, hasLoaded, execute, reset } = useApi(() => pending.promise)
+
+      const inFlight = execute()
+      reset()
+
+      pending.resolve('late-result')
+      const result = await inFlight
+
+      expect(result).toBeNull()
+      expect(data.value).toBeNull()
+      expect(hasLoaded.value).toBe(false)
+    })
+  })
 })

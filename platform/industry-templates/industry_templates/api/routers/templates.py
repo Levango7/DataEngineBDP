@@ -75,7 +75,7 @@ async def deploy_template(
         - datasourceBindings: 数据源绑定
     """
     try:
-        record = registry.engine.deploy(template_id, request)
+        record = await registry.engine.deploy_async(template_id, request)
     except TemplateError as e:
         raise HTTPException(status_code=status_for_error(e), detail=e.message)
     return record.model_dump()

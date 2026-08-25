@@ -24,6 +24,23 @@ let errorNotifier: ((msg: string) => void) | null = null
 /** 401 跳登录页回调，由外部注入 */
 let unauthorizedHandler: (() => void) | null = null
 
+/** 401 单飞窗口：窗口内后续 401 静默，避免并发 401 触发 N 次登出/提示 */
+const UNAUTHORIZED_RESET_MS = 1000
+let unauthorizedInFlight = false
+let unauthorizedResetTimer: ReturnType<typeof setTimeout> | null = null
+
+function handleUnauthorized(): void {
+  unauthorizedInFlight = true
+  unauthorizedHandler?.()
+  if (unauthorizedResetTimer !== null) {
+    clearTimeout(unauthorizedResetTimer)
+  }
+  unauthorizedResetTimer = setTimeout(() => {
+    unauthorizedInFlight = false
+    unauthorizedResetTimer = null
+  }, UNAUTHORIZED_RESET_MS)
+}
+
 /**
  * 注入错误提示函数（在应用启动时调用一次）
  * @param notifier 错误提示函数，例如 toast
@@ -113,7 +130,10 @@ http.interceptors.response.use(
 
     if (status === 401) {
       msg = '登录已过期，请重新登录'
-      unauthorizedHandler?.()
+      if (unauthorizedInFlight) {
+        return Promise.reject(new ApiError(msg, status, status))
+      }
+      handleUnauthorized()
     } else if (status === 403) {
       msg = '无权限访问该资源'
     } else if (status === 500) {

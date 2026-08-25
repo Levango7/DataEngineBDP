@@ -222,7 +222,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
@@ -518,6 +518,11 @@ onUnmounted(() => {
     clearInterval(timer)
     timer = null
   }
+})
+
+watch(() => appStore.workspace, () => {
+  currentPage.value = 1
+  void loadList()
 })
 </script>
 

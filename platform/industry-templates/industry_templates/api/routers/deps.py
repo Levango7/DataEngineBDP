@@ -6,6 +6,7 @@ from fastapi import Request
 
 from industry_templates.services.exceptions import (
     DeploymentNotFoundError,
+    NamespaceValidationError,
     ParameterValidationError,
     RenderError,
     TemplateError,
@@ -27,6 +28,7 @@ _ERROR_STATUS: dict[type[TemplateError], int] = {
     TemplateNotDeployableError: 409,
     ParameterValidationError: 422,
     RenderError: 422,
+    NamespaceValidationError: 400,
 }
 
 

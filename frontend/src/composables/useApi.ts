@@ -62,28 +62,36 @@ export function useApi<T, Args extends unknown[] = []>(
   const error = ref<ApiError | Error | null>(null)
   const hasLoaded = ref(false)
 
+  let seq = 0
+
   /** 触发请求 */
   async function execute(...args: Args): Promise<T | null> {
+    const current = ++seq
     loading.value = true
     error.value = null
     try {
       const result = await factory(...args)
+      if (current !== seq) return null
       data.value = result
       hasLoaded.value = true
       onSuccess?.(result)
       return result
     } catch (e) {
+      if (current !== seq) return null
       const err = e instanceof Error ? e : new Error(String(e))
       error.value = err
       onError?.(err)
       return null
     } finally {
-      loading.value = false
+      if (current === seq) {
+        loading.value = false
+      }
     }
   }
 
   /** 重置状态 */
   function reset(): void {
+    seq++
     data.value = initialData
     loading.value = false
     error.value = null

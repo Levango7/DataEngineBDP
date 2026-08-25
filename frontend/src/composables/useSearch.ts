@@ -142,6 +142,8 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
   /* ------------------------------ 防抖 ------------------------------ */
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
+  let searchSeq = 0
+
   function clearTimer(): void {
     if (debounceTimer !== null) {
       clearTimeout(debounceTimer)
@@ -164,6 +166,7 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
    * @param reset 是否重置到第 1 页
    */
   async function doSearch(reset = true): Promise<void> {
+    const seq = ++searchSeq
     if (reset) {
       page.value = 1
       results.value = []
@@ -194,6 +197,7 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
     error.value = null
     try {
       const resp: SearchResponse = await searchApi.search(query)
+      if (seq !== searchSeq) return
       if (reset || pagingMode.value === 'page') {
         results.value = resp.list
       } else {
@@ -206,9 +210,12 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
       suggestions.value = resp.suggestions ?? []
       hasSearched.value = true
     } catch (e) {
+      if (seq !== searchSeq) return
       error.value = e instanceof Error ? e : new Error(String(e))
     } finally {
-      loading.value = false
+      if (seq === searchSeq) {
+        loading.value = false
+      }
     }
   }
 
@@ -285,14 +292,17 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
   async function loadMore(): Promise<void> {
     if (loadingMore.value || !hasMore.value) return
     loadingMore.value = true
+    const seq = ++searchSeq
     try {
       page.value += 1
       query.paging = { page: page.value, pageSize: pageSize.value }
       const resp = await searchApi.search(query)
+      if (seq !== searchSeq) return
       results.value = [...results.value, ...resp.list]
       total.value = resp.total
       hasMore.value = resp.hasMore
     } catch (e) {
+      if (seq !== searchSeq) return
       error.value = e instanceof Error ? e : new Error(String(e))
       // 失败回滚页码
       page.value -= 1
@@ -307,6 +317,7 @@ export function useSearch(options: UseSearchOptions = {}): UseSearchReturn {
 
   function reset(): void {
     clearTimer()
+    searchSeq++
     Object.assign(query, createEmptyQuery(initialPageSize))
     results.value = []
     loading.value = false

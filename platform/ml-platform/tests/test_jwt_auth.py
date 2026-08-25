@@ -68,7 +68,7 @@ def test_expired_401(client):
 
 def test_tampered_401(client):
     tok = list(makeToken())
-    tok[-1] = "A" if tok[-1] != "A" else "B"
+    tok[0] = "A" if tok[0] != "A" else "B"
     r = client.get("/whoami", headers={"Authorization": f"Bearer {''.join(tok)}"})
     assert r.status_code == 401
 

@@ -1,0 +1,328 @@
+﻿TAP version 13
+1..18
+ok 1 - src/api/__tests__/ai-assistant.test.ts # time=5.46ms {
+    1..1
+    ok 1 - api/ai-assistant chatStream # time=4.93ms {
+        1..2
+        ok 1 - 流式请求 URL 与 Bearer token 来自 sessionStorage # time=3.68ms
+        ok 2 - sessionStorage 无 token 时请求不携带 Authorization 头 # time=0.53ms
+    }
+}
+ok 2 - src/api/__tests__/client.test.ts # time=39.05ms {
+    1..1
+    ok 1 - api/client.ts # time=38.72ms {
+        1..6
+        ok 1 - 模块导出 # time=24.97ms {
+            1..5
+            ok 1 - 应导出 setErrorNotifier 函数 # time=23.58ms
+            ok 2 - 应导出 setUnauthorizedHandler 函数 # time=0.22ms
+            ok 3 - 应导出 setTokenGetter 函数 # time=0.16ms
+            ok 4 - 应导出 get / post / put / del 函数 # time=0.24ms
+            ok 5 - 应导出 axiosInstance # time=0.20ms
+        }
+        ok 2 - ApiError # time=0.37ms {
+            1..1
+            ok 1 - 应包含 code 和 httpStatus 属性 # time=0.31ms
+        }
+        ok 3 - 注入回调 # time=2.11ms {
+            1..3
+            ok 1 - setErrorNotifier 应接受回调函数 # time=0.77ms
+            ok 2 - setTokenGetter 应接受回调函数 # time=0.24ms
+            ok 3 - setUnauthorizedHandler 应接受回调函数 # time=1.03ms
+        }
+        ok 4 - 请求拦截器 # time=0.61ms {
+            1..3
+            ok 1 - 应注册请求拦截器 # time=0.23ms
+            ok 2 - 有 token 时应添加 Authorization 头 # time=0.15ms
+            ok 3 - 无 token 时不应添加 Authorization 头 # time=0.15ms
+        }
+        ok 5 - 响应拦截器 # time=7.82ms {
+            1..11
+            ok 1 - 应注册响应拦截器 # time=0.14ms
+            ok 2 - 业务码为 0 时应拆包返回 data # time=0.56ms
+            ok 3 - 业务码非 0 时应 reject # time=1.29ms
+            ok 4 - 403 应提示无权限 # time=0.51ms
+            ok 5 - 500 应提示服务器错误 # time=0.34ms
+            ok 6 - 404 应提示资源不存在 # time=0.31ms
+            ok 7 - 网络异常（status=0）应提示网络问题 # time=0.37ms
+            ok 8 - 响应中有 message 应优先使用 # time=0.36ms
+            ok 9 - 并发 3 个 401 应仅触发一次 unauthorizedHandler 和一次提示 # time=2.59ms
+            ok 10 - 401 单飞窗口过后应可再次触发 unauthorizedHandler # time=0.80ms
+            ok 11 - 401 应触发 unauthorizedHandler # time=0.36ms
+        }
+        ok 6 - 通用请求方法 # time=2.67ms {
+            1..5
+            ok 1 - get 应调用 http.get 并传参 # time=1.15ms
+            ok 2 - get 应支持 params 参数 # time=0.45ms
+            ok 3 - post 应调用 http.post 并传请求体 # time=0.38ms
+            ok 4 - put 应调用 http.put 并传请求体 # time=0.29ms
+            ok 5 - del 应调用 http.delete 并传参 # time=0.32ms
+        }
+    }
+}
+ok 3 - src/api/__tests__/cluster.test.ts # time=43.70ms {
+    1..1
+    ok 1 - api/cluster.ts # time=43.33ms {
+        1..4
+        ok 1 - getClusterOverview 应调用 GET /cluster/overview # time=40.30ms
+        ok 2 - listNodes 应调用 GET /cluster/nodes # time=0.63ms
+        ok 3 - listPods 不传 namespace 应调用 GET /cluster/pods # time=0.90ms
+        ok 4 - listPods 传 namespace 应带查询参数 # time=0.87ms
+    }
+}
+ok 4 - src/api/__tests__/datasource.test.ts # time=46.08ms {
+    1..1
+    ok 1 - api/datasource.ts # time=45.59ms {
+        1..7
+        ok 1 - listDataSources 应调用 GET /datasources # time=40.28ms
+        ok 2 - getDataSource 应调用 GET /datasources/:id # time=0.72ms
+        ok 3 - createDataSource 应调用 POST /datasources # time=0.95ms
+        ok 4 - updateDataSource 应调用 PUT /datasources/:id # time=0.57ms
+        ok 5 - deleteDataSource 应调用 DELETE /datasources/:id # time=0.83ms
+        ok 6 - testDataSource 应调用 POST /datasources/:id/test # time=0.75ms
+        ok 7 - listDataSources 支持类型筛选参数 # time=0.66ms
+    }
+}
+ok 5 - src/api/__tests__/job.test.ts # time=131.49ms {
+    1..1
+    ok 1 - api/job.ts # time=131.03ms {
+        1..8
+        ok 1 - listJobs 应调用 GET /jobs # time=124.92ms
+        ok 2 - getJob 应调用 GET /jobs/:id # time=0.83ms
+        ok 3 - submitJob 应调用 POST /jobs # time=0.98ms
+        ok 4 - cancelJob 应调用 POST /jobs/:id/cancel # time=0.67ms
+        ok 5 - deleteJob 应调用 DELETE /jobs/:id # time=0.60ms
+        ok 6 - getJobLogs 应调用 GET /jobs/:id/logs # time=0.67ms
+        ok 7 - getJobStatus 应调用 GET /jobs/:id/status # time=0.57ms
+        ok 8 - listJobs 支持状态筛选参数 # time=0.93ms
+    }
+}
+ok 6 - src/api/__tests__/streamBatch.test.ts # time=6.12ms {
+    1..1
+    ok 1 - api/streamBatch.ts # time=5.64ms {
+        1..4
+        ok 1 - listDagRuns - 拼接 GET 路径并传分页参数 # time=3.23ms
+        ok 2 - listDagRuns - 对含空格的 dagId 做编码 # time=1.14ms
+        ok 3 - rerunDagRun - POST 重跑端点 # time=0.29ms
+        ok 4 - backfillDag - POST 补数据日期区间 # time=0.37ms
+    }
+}
+ok 7 - src/api/__tests__/tenant.test.ts # time=45.41ms {
+    1..1
+    ok 1 - api/tenant.ts # time=44.89ms {
+        1..7
+        ok 1 - listTenants 应调用 GET /tenants # time=40.43ms
+        ok 2 - listAllTenants 应调用 GET /tenants/all # time=0.66ms
+        ok 3 - getTenant 应调用 GET /tenants/:id # time=0.57ms
+        ok 4 - createTenant 应调用 POST /tenants # time=0.84ms
+        ok 5 - updateTenant 应调用 PUT /tenants/:id # time=0.57ms
+        ok 6 - deleteTenant 应调用 DELETE /tenants/:id # time=0.45ms
+        ok 7 - listTenants 支持带状态筛选参数 # time=0.63ms
+    }
+}
+ok 8 - src/router/__tests__/guard.test.ts # time=3.20ms {
+    1..1
+    ok 1 - authGuard 鉴权守卫（纯函数） # time=2.73ms {
+        1..5
+        ok 1 - 未登录访问受保护页面 → 重定向到 /login 并携带 redirect # time=1.26ms
+        ok 2 - 未登录访问受保护子路径 → redirect 保留完整路径 # time=0.27ms
+        ok 3 - 已登录访问受保护页面 → 放行 # time=0.20ms
+        ok 4 - 未登录访问 /login → 放行（白名单） # time=0.16ms
+        ok 5 - 已登录访问 /login → 跳回 /dashboard # time=0.19ms
+    }
+}
+ok 9 - src/stores/__tests__/auth.test.ts # time=77.20ms {
+    1..1
+    ok 1 - stores/auth.ts # time=76.79ms {
+        1..7
+        ok 1 - 初始状态：未登录 # time=67.60ms
+        ok 2 - login 应调用 POST /auth/login 并更新状态 # time=2.95ms
+        ok 3 - login 应持久化 token 到 sessionStorage、user 到 localStorage # time=1.88ms
+        ok 4 - logout 应清除 token 和 user # time=1.05ms
+        ok 5 - logout 应清除 sessionStorage 中的 token 和 localStorage 中的 user # time=0.93ms
+        ok 6 - setUser 应更新用户信息 # time=0.86ms
+        ok 7 - login 支持验证码参数 # time=0.79ms
+    }
+}
+ok 10 - src/stores/__tests__/tenant.test.ts # time=11.50ms {
+    1..1
+    ok 1 - stores/tenant.ts # time=11.08ms {
+        1..9
+        ok 1 - 初始状态：空列表，无选中租户 # time=3.58ms
+        ok 2 - fetchTenants 应加载租户列表 # time=1.08ms
+        ok 3 - fetchTenants 首次加载应自动选中第一个租户 # time=0.55ms
+        ok 4 - selectTenant 应切换当前租户 # time=0.61ms
+        ok 5 - selectTenant 应持久化选中租户 ID # time=1.18ms
+        ok 6 - selectTenant 不存在的 ID 不应改变当前租户 # time=0.49ms
+        ok 7 - reset 应清除所有状态 # time=0.57ms
+        ok 8 - fetchTenants 非强制且有缓存时不应重复请求 # time=1.13ms
+        ok 9 - fetchTenants 失败应设置 error 状态 # time=1.19ms
+    }
+}
+ok 11 - src/composables/__tests__/useApi.test.ts # time=12.18ms {
+    1..1
+    ok 1 - composables/useApi.ts # time=11.86ms {
+        1..9
+        ok 1 - 初始状态 # time=2.28ms {
+            1..2
+            ok 1 - 默认初始状态：data=null, loading=false, error=null, hasLoaded=false # time=1.53ms
+            ok 2 - initialData 应作为 data 的初始值 # time=0.23ms
+        }
+        ok 2 - execute 成功路径 # time=3.47ms {
+            1..5
+            ok 1 - 应更新 data 并返回结果 # time=1.19ms
+            ok 2 - 应将 hasLoaded 置为 true # time=0.27ms
+            ok 3 - 执行完成后 loading 应恢复为 false # time=0.23ms
+            ok 4 - 应调用 onSuccess 回调 # time=1.40ms
+            ok 5 - 成功后 error 应为 null # time=0.24ms
+        }
+        ok 3 - execute 失败路径 # time=1.65ms {
+            1..5
+            ok 1 - 应捕获错误并设置 error # time=0.40ms
+            ok 2 - 失败时 hasLoaded 应保持 false # time=0.26ms
+            ok 3 - 失败后 loading 应恢复为 false # time=0.21ms
+            ok 4 - 应调用 onError 回调 # time=0.40ms
+            ok 5 - 非 Error 对象应包装为 Error # time=0.24ms
+        }
+        ok 4 - loading 时序 # time=0.30ms {
+            1..1
+            ok 1 - 执行期间 loading 应为 true # time=0.24ms
+        }
+        ok 5 - execute 参数透传 # time=0.48ms {
+            1..1
+            ok 1 - 应将参数传给 factory # time=0.42ms
+        }
+        ok 6 - immediate # time=1.08ms {
+            1..2
+            ok 1 - immediate=true 应在创建时立即执行 # time=0.70ms
+            ok 2 - immediate=false（默认）不应立即执行 # time=0.32ms
+        }
+        ok 7 - reset # time=0.60ms {
+            1..2
+            ok 1 - 应将状态重置为初始值 # time=0.28ms
+            ok 2 - reset 后 error 也应清空 # time=0.26ms
+        }
+        ok 8 - 连续调用 # time=0.49ms {
+            1..2
+            ok 1 - 第二次 execute 成功应覆盖 data # time=0.19ms
+            ok 2 - 失败后再 execute 成功应清空 error # time=0.26ms
+        }
+        ok 9 - 竞态守卫（DataLineage 同型：上游/下游/影响分析共用一个 useApi） # time=1.32ms {
+            1..3
+            ok 1 - 先发慢请求再发快请求，慢请求完成时不应覆盖快请求的结果 # time=0.65ms
+            ok 2 - 过期请求失败不应写入 error 或触发 onError # time=0.40ms
+            ok 3 - reset 应使进行中的请求失效 # time=0.22ms
+        }
+    }
+}
+ok 12 - src/composables/__tests__/useSearch.test.ts # time=8.28ms {
+    1..1
+    ok 1 - composables/useSearch.ts 竞态守卫 # time=7.79ms {
+        1..4
+        ok 1 - 慢请求 A 后发快请求 B，B 先返回，A 完成时不应覆盖 B 的结果 # time=4.76ms
+        ok 2 - 过期请求失败不应写入 error 或卡死 loading # time=0.77ms
+        ok 3 - loadMore 进行中若发生新检索，过期的追加不应写入结果 # time=0.82ms
+        ok 4 - 正常顺序的 loadMore 追加行为保持不变 # time=0.76ms
+    }
+}
+ok 13 - src/views/__tests__/ClusterOverview.test.ts # time=366.66ms {
+    1..1
+    ok 1 - ClusterOverview.vue # time=366.19ms {
+        1..14
+        ok 1 - 应正确挂载组件并渲染页面标题 # time=82.42ms
+        ok 2 - 挂载后应加载集群概览和节点列表 # time=20.18ms
+        ok 3 - 应渲染统计卡片行 # time=21.18ms
+        ok 4 - 概览数据加载后应更新内部状态 # time=18.46ms
+        ok 5 - 节点列表加载后应更新 nodeList # time=52.17ms
+        ok 6 - 应包含大数据组件状态卡片 # time=22.42ms
+        ok 7 - 组件状态应包含 healthy/warning/error 类型 # time=28.21ms
+        ok 8 - nodeStatusLabel 应正确映射节点状态 # time=16.60ms
+        ok 9 - nodeStatusType 应返回正确的 tag 类型 # time=16.98ms
+        ok 10 - usageLevel 应根据百分比返回等级 # time=19.17ms
+        ok 11 - usageColor 应根据百分比返回颜色 # time=26.67ms
+        ok 12 - compStatusLabel 应正确映射组件状态 # time=12.96ms
+        ok 13 - nodeCpuPercent 应正确计算 CPU 使用率 # time=11.69ms
+        ok 14 - nodeMemPercent 应正确计算内存使用率 # time=16.08ms
+    }
+}
+ok 14 - src/views/__tests__/DataSourceManagement.test.ts # time=198.03ms {
+    1..1
+    ok 1 - DataSourceManagement.vue # time=197.64ms {
+        1..15
+        ok 1 - 应正确挂载组件并渲染页面标题 # time=52.49ms
+        ok 2 - 挂载后应自动加载数据源列表 # time=13.69ms
+        ok 3 - 应包含页面主卡片容器 # time=11.68ms
+        ok 4 - 应包含工具栏区域 # time=11.43ms
+        ok 5 - 应包含分页区域 # time=10.60ms
+        ok 6 - 列表加载后应更新内部状态 # time=10.88ms
+        ok 7 - typeLabel 应正确映射数据源类型 # time=8.08ms
+        ok 8 - statusLabel 应正确映射连接状态 # time=8.84ms
+        ok 9 - statusTagType 应返回正确的 tag 类型 # time=9.52ms
+        ok 10 - handleSearch 应重置页码 # time=9.13ms
+        ok 11 - openCreateDialog 应打开弹窗 # time=10.66ms
+        ok 12 - openEditDialog 应填充表单数据 # time=9.09ms
+        ok 13 - onTypeChange 应更新默认端口 # time=9.33ms
+        ok 14 - needDatabase 对 kafka 应返回 false # time=11.04ms
+        ok 15 - resetForm 应重置表单 # time=10.26ms
+    }
+}
+ok 15 - src/views/__tests__/EngSpark.test.ts # time=74.15ms {
+    1..1
+    ok 1 - views/engine/EngSpark.vue 工作空间切换 # time=73.63ms {
+        1..3
+        ok 1 - 挂载时应以当前工作空间加载作业列表 # time=44.50ms
+        ok 2 - 切换工作空间后应触发列表重载并携带新工作空间 ID # time=16.94ms
+        ok 3 - 工作空间未变化时不应重复加载 # time=11.44ms
+    }
+}
+ok 16 - src/views/__tests__/JobManagement.test.ts # time=220.15ms {
+    1..1
+    ok 1 - JobManagement.vue # time=219.74ms {
+        1..14
+        ok 1 - 应正确挂载组件并渲染页面标题 # time=62.28ms
+        ok 2 - 挂载后应自动加载作业列表 # time=13.03ms
+        ok 3 - 应包含页面主卡片容器 # time=13.03ms
+        ok 4 - 应包含工具栏区域 # time=13.21ms
+        ok 5 - 应包含分页区域 # time=13.87ms
+        ok 6 - 列表加载后应更新内部状态 # time=14.09ms
+        ok 7 - typeLabel 应正确映射作业类型 # time=12.39ms
+        ok 8 - statusLabel 应正确映射作业状态 # time=10.40ms
+        ok 9 - statusTagType 应返回正确的 tag 类型 # time=11.54ms
+        ok 10 - canCancel 应判断是否可取消 # time=10.05ms
+        ok 11 - formatDuration 应正确格式化耗时 # time=10.71ms
+        ok 12 - handleTabChange 应重置页码 # time=12.79ms
+        ok 13 - openSubmitDialog 应打开弹窗 # time=12.62ms
+        ok 14 - resetSubmitForm 应重置提交表单 # time=8.69ms
+    }
+}
+ok 17 - src/views/__tests__/TenantManagement.test.ts # time=163.06ms {
+    1..1
+    ok 1 - TenantManagement.vue # time=162.69ms {
+        1..15
+        ok 1 - 应正确挂载组件并渲染页面标题 # time=46.66ms
+        ok 2 - 挂载后应自动加载租户列表 # time=10.83ms
+        ok 3 - 应包含页面主卡片容器 # time=9.92ms
+        ok 4 - 应包含工具栏区域 # time=10.14ms
+        ok 5 - 应包含分页区域 # time=8.32ms
+        ok 6 - 列表加载后应更新内部状态 # time=7.34ms
+        ok 7 - planLabel 辅助函数应正确映射套餐名称 # time=6.09ms
+        ok 8 - statusLabel 辅助函数应正确映射状态名称 # time=6.41ms
+        ok 9 - planTagType 辅助函数应返回正确的 tag 类型 # time=6.75ms
+        ok 10 - statusTagType 辅助函数应返回正确的 tag 类型 # time=8.08ms
+        ok 11 - usageColor 辅助函数应根据百分比返回颜色 # time=7.26ms
+        ok 12 - handleSearch 应重置页码 # time=9.04ms
+        ok 13 - openCreateDialog 应打开弹窗并设置 isEdit 为 false # time=8.20ms
+        ok 14 - openEditDialog 应打开弹窗并填充表单数据 # time=8.61ms
+        ok 15 - resetForm 应重置表单数据 # time=8.04ms
+    }
+}
+ok 18 - finops-dashboard/src/views/__tests__/AllocationConfig.test.ts # time=84.62ms {
+    1..1
+    ok 1 - finops AllocationConfig.vue # time=84.11ms {
+        1..4
+        ok 1 - 挂载后应加载分账配置列表 # time=39.27ms
+        ok 2 - 点击执行分账按钮应以正确参数调用 API 并弹出结果弹窗 # time=21.91ms
+        ok 3 - 每行配置的执行按钮应传入各自的 configId # time=11.50ms
+        ok 4 - 执行失败时应提示且不弹出结果弹窗 # time=10.73ms
+    }
+}

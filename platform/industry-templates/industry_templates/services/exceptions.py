@@ -43,6 +43,17 @@ class ParameterValidationError(TemplateError):
         self.missing = missing or []
 
 
+class NamespaceValidationError(TemplateError):
+    """namespace 不符合 K8s DNS 标签规范."""
+
+    def __init__(self, namespace: str) -> None:
+        super().__init__(
+            f"namespace 不合法: {namespace}（需匹配 ^[a-z0-9]([-a-z0-9]{{0,61}}[a-z0-9])?$）",
+            code="NAMESPACE_VALIDATION_ERROR",
+        )
+        self.namespace = namespace
+
+
 class DeploymentNotFoundError(TemplateError):
     """部署记录不存在."""
 

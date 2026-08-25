@@ -60,7 +60,7 @@
         </el-table-column>
         <el-table-column label="操作" width="160">
           <template #default="{ row }">
-            <el-button size="small" @click="executeAllocation(row.id)">执行分账</el-button>
+            <el-button size="small" @click="executeAlloc(row.id)">执行分账</el-button>
             <el-button size="small" type="danger" @click="deleteConfig(row.id)">删除</el-button>
           </template>
         </el-table-column>

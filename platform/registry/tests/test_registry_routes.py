@@ -218,7 +218,9 @@ class TestModelQueryRoutes:
 class TestDeploymentRoutes:
     """部署相关路由测试."""
 
-    def test_create_deployment_success(self, client, sample_deploy_request):
+    def test_create_deployment_success(
+        self, client, registered_model, sample_deploy_request
+    ):
         """创建部署应返回 201 与部署记录（mock 模式 running）."""
         resp = client.post(
             "/api/v1/registry/deployments",
@@ -240,7 +242,7 @@ class TestDeploymentRoutes:
         assert resp.status_code == 422
 
     def test_create_deployment_internal_error(
-        self, client, sample_deploy_request
+        self, client, registered_model, sample_deploy_request
     ):
         """deploy 抛异常应 500."""
         with patch(
@@ -269,7 +271,7 @@ class TestDeploymentRoutes:
         assert resp.json()["total"] == 1
 
     def test_list_deployments_filter_status(
-        self, client, sample_deploy_request
+        self, client, registered_model, sample_deploy_request
     ):
         """按 status 过滤部署列表."""
         client.post(

@@ -132,7 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import * as devMlApi from '@/api/dev-ml'
@@ -246,6 +246,11 @@ let timer:ReturnType<typeof setInterval>|null=null
 onMounted(()=>{ void loadTrain(); void loadModels(); void loadServices()
   timer=setInterval(()=>{ void loadTrain(); void loadServices() },15000) })
 onUnmounted(()=>{ if(timer){ clearInterval(timer); timer=null } })
+
+watch(() => appStore.workspace, () => {
+  trainPage.value = 1
+  void loadTrain()
+})
 </script>
 
 <style scoped>

@@ -5,7 +5,6 @@
 
 from __future__ import annotations
 
-from functools import lru_cache
 from typing import Any, Optional
 
 from llmops.repositories import StoreUnavailableError
@@ -35,6 +34,7 @@ class MLflowClient:
         # 配置全局 URI
         self._mlflow.set_tracking_uri(self.trackingUri)
         self._mlflow.set_registry_uri(self.registryUri)
+        self._client: Optional[Any] = None
 
     @property
     def mlflow(self) -> Any:
@@ -43,15 +43,10 @@ class MLflowClient:
 
     @property
     def client(self) -> Any:
-        """返回 MlflowClient 实例."""
-        return self._mlflow.tracking.MlflowClient(
-            tracking_uri=self.trackingUri,
-            registry_uri=self.registryUri,
-        )
-
-    @lru_cache(maxsize=1)
-    def _registry_client(self) -> Any:
-        return self._mlflow.tracking.MlflowClient(
-            tracking_uri=self.trackingUri,
-            registry_uri=self.registryUri,
-        )
+        """返回 MlflowClient 实例（惰性创建一次并复用）."""
+        if self._client is None:
+            self._client = self._mlflow.tracking.MlflowClient(
+                tracking_uri=self.trackingUri,
+                registry_uri=self.registryUri,
+            )
+        return self._client

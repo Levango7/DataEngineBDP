@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import threading
 import uuid
@@ -191,10 +192,10 @@ class FinetuneService:
     # ============================================================
     # 查询日志
     # ============================================================
-    def get_logs(
+    async def get_logs(
         self, taskId: str, tail: int = 100, parse: bool = True
     ) -> Optional[LogListResponse]:
-        """查询任务训练日志.
+        """查询任务训练日志（文件读取经 to_thread 卸载，不阻塞事件循环）.
 
         Args:
             taskId: 任务 ID.
@@ -211,13 +212,8 @@ class FinetuneService:
             adapter = self._adapters.get(taskId)
             handle = self._handles.get(taskId)
 
-        # 定位日志文件
         log_path = self._resolve_log_path(taskId, handle)
-        if log_path is None or not os.path.exists(log_path):
-            return LogListResponse(taskId=taskId, total=0, entries=[])
-
-        # 读取最后 N 行
-        lines = self._tail_file(log_path, tail)
+        lines = await asyncio.to_thread(self._tail_file, log_path or "", tail)
         if not parse or adapter is None:
             entries = [
                 LogEntry(step=i, message=line)
@@ -277,11 +273,13 @@ class FinetuneService:
     # ============================================================
     # 刷新任务状态（Mock 模式下模拟训练完成）
     # ============================================================
-    def refresh_task_status(self, taskId: str) -> Optional[FinetuneTask]:
+    async def refresh_task_status(self, taskId: str) -> Optional[FinetuneTask]:
         """刷新任务状态.
 
-        Mock 模式下：检查日志文件是否包含完成标记，若是则标记成功。
+        Mock 模式下：检查日志尾部是否包含完成标记，若是则标记成功。
         真实模式下：检查进程是否退出并据退出码更新状态。
+
+        文件存在性检查与内容读取均经 to_thread 卸载，不阻塞事件循环。
 
         Args:
             taskId: 任务 ID.
@@ -296,20 +294,18 @@ class FinetuneService:
             handle = self._handles.get(taskId)
 
         log_path = self._resolve_log_path(taskId, handle)
-        if log_path and os.path.exists(log_path):
-            with open(log_path, "r", encoding="utf-8") as f:
-                content = f.read()
-            if "训练完成" in content or "训练结束" in content:
-                with self._lock:
-                    if not task.is_terminal():
-                        output_path = os.path.join(
-                            task.request.outputDir, taskId
+        content = await asyncio.to_thread(self._read_log_tail_text, log_path)
+        if "训练完成" in content or "训练结束" in content:
+            with self._lock:
+                if not task.is_terminal():
+                    output_path = os.path.join(
+                        task.request.outputDir, taskId
+                    )
+                    task.mark_succeeded(output_path)
+                    if task.assignedNode:
+                        self.scheduler.release(
+                            task.assignedNode, task.assignedGPUs
                         )
-                        task.mark_succeeded(output_path)
-                        if task.assignedNode:
-                            self.scheduler.release(
-                                task.assignedNode, task.assignedGPUs
-                            )
         return task
 
     # ============================================================
@@ -341,17 +337,66 @@ class FinetuneService:
         # 兜底：默认日志路径
         return os.path.join(self.workDir, f"{taskId}.log")
 
-    @staticmethod
-    def _tail_file(path: str, n: int) -> list[str]:
-        """读取文件最后 n 行（高效实现，避免全文件加载）."""
+    _LOG_TAIL_MAX_BYTES = 64 * 1024
+
+    @classmethod
+    def _read_log_tail_text(cls, path: Optional[str]) -> str:
+        """同步读取日志尾部有限字节（阻塞操作，供 asyncio.to_thread 调用）.
+
+        Args:
+            path: 日志文件路径（None 或不存在时返回空串）.
+
+        Returns:
+            尾部文本内容.
+        """
+        if not path:
+            return ""
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                # 简化实现：读取全部行后取尾部
-                # 生产可优化为从文件末尾反向读取
-                lines = f.readlines()
-            return lines[-n:] if n < len(lines) else lines
+            size = os.path.getsize(path)
+            with open(path, "rb") as f:
+                if size > cls._LOG_TAIL_MAX_BYTES:
+                    f.seek(size - cls._LOG_TAIL_MAX_BYTES)
+                data = f.read(cls._LOG_TAIL_MAX_BYTES)
         except OSError:
-            return []
+            return ""
+        return cls._strip_incomplete_utf8_prefix(data).decode(
+            "utf-8", errors="replace"
+        )
+
+    @staticmethod
+    def _strip_incomplete_utf8_prefix(data: bytes) -> bytes:
+        """丢弃从字节中间截断产生的首个不完整 UTF-8 序列."""
+        i = 0
+        n = len(data)
+        while i < n:
+            b = data[i]
+            if b < 0x80:
+                break
+            if 0xC2 <= b <= 0xDF:
+                seq = 2
+            elif 0xE0 <= b <= 0xEF:
+                seq = 3
+            elif 0xF0 <= b <= 0xF7:
+                seq = 4
+            else:
+                i += 1
+                continue
+            if i + seq <= n:
+                try:
+                    data[i : i + seq].decode("utf-8")
+                    break
+                except UnicodeDecodeError:
+                    i += 1
+            else:
+                i += 1
+        return data[i:]
+
+    @classmethod
+    def _tail_file(cls, path: str, n: int) -> list[str]:
+        """读取文件最后 n 行（仅读取尾部有限字节，避免全文件加载）."""
+        text = cls._read_log_tail_text(path)
+        lines = text.splitlines()
+        return lines[-n:] if n < len(lines) else lines
 
     # ============================================================
     # 统计信息（用于健康检查与监控）

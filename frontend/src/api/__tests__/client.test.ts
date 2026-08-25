@@ -174,17 +174,6 @@ describe('api/client.ts', () => {
       expect(notifier).toHaveBeenCalledWith('参数错误')
     })
 
-    it('401 应触发 unauthorizedHandler', async () => {
-      const { setErrorNotifier, setUnauthorizedHandler } = await getClient()
-      const notifier = vi.fn()
-      const handler = vi.fn()
-      setErrorNotifier(notifier)
-      setUnauthorizedHandler(handler)
-      const error = { response: { status: 401, data: {} } }
-      await expect(responseInterceptorErrorFn!(error)).rejects.toThrow()
-      expect(handler).toHaveBeenCalled()
-    })
-
     it('403 应提示无权限', async () => {
       const { setErrorNotifier } = await getClient()
       const notifier = vi.fn()
@@ -228,6 +217,73 @@ describe('api/client.ts', () => {
       const error = { response: { status: 422, data: { message: '验证失败：名称重复' } } }
       await expect(responseInterceptorErrorFn!(error)).rejects.toThrow('验证失败：名称重复')
       expect(notifier).toHaveBeenCalledWith('验证失败：名称重复')
+    })
+
+    it('并发 3 个 401 应仅触发一次 unauthorizedHandler 和一次提示', async () => {
+      vi.useFakeTimers()
+      try {
+        const { setErrorNotifier, setUnauthorizedHandler } = await getClient()
+        const notifier = vi.fn()
+        const handler = vi.fn()
+        setErrorNotifier(notifier)
+        setUnauthorizedHandler(handler)
+
+        const error = { response: { status: 401, data: {} } }
+        const results = [
+          responseInterceptorErrorFn!(error),
+          responseInterceptorErrorFn!(error),
+          responseInterceptorErrorFn!(error)
+        ]
+        for (const r of results) {
+          await expect(r).rejects.toThrow('登录已过期，请重新登录')
+        }
+
+        expect(handler).toHaveBeenCalledTimes(1)
+        expect(notifier).toHaveBeenCalledTimes(1)
+        expect(notifier).toHaveBeenCalledWith('登录已过期，请重新登录')
+
+        vi.advanceTimersByTime(1000)
+        expect(handler).toHaveBeenCalledTimes(1)
+        expect(notifier).toHaveBeenCalledTimes(1)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('401 单飞窗口过后应可再次触发 unauthorizedHandler', async () => {
+      vi.useFakeTimers()
+      try {
+        const { setErrorNotifier, setUnauthorizedHandler } = await getClient()
+        const notifier = vi.fn()
+        const handler = vi.fn()
+        setErrorNotifier(notifier)
+        setUnauthorizedHandler(handler)
+
+        const error = { response: { status: 401, data: {} } }
+        await expect(responseInterceptorErrorFn!(error)).rejects.toThrow()
+        expect(handler).toHaveBeenCalledTimes(1)
+
+        vi.advanceTimersByTime(1000)
+
+        await expect(responseInterceptorErrorFn!(error)).rejects.toThrow()
+        expect(handler).toHaveBeenCalledTimes(2)
+        expect(notifier).toHaveBeenCalledTimes(2)
+
+        vi.advanceTimersByTime(1000)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
+    it('401 应触发 unauthorizedHandler', async () => {
+      const { setErrorNotifier, setUnauthorizedHandler } = await getClient()
+      const notifier = vi.fn()
+      const handler = vi.fn()
+      setErrorNotifier(notifier)
+      setUnauthorizedHandler(handler)
+      const error = { response: { status: 401, data: {} } }
+      await expect(responseInterceptorErrorFn!(error)).rejects.toThrow()
+      expect(handler).toHaveBeenCalled()
     })
   })
 

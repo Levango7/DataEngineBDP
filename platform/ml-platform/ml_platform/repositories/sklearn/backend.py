@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import time
 from typing import Any
 import uuid
@@ -171,6 +172,57 @@ def _computeMetrics(yTrue, yPred, algorithm: AlgorithmType, requested: list[str]
     return metrics
 
 
+def _fitAndScore(config: TrainingConfig, X, y):
+    """构造估计器并拟合、计算训练指标（同步 CPU 密集，由 asyncio.to_thread 调度）."""
+    estimatorParams = {k: v for k, v in config.params.items() if not k.startswith("_")}
+    estimator = _buildEstimator(config.algorithm, estimatorParams, config.randomState)
+    start = time.time()
+    if _isClustering(config.algorithm):
+        estimator.fit(X)
+    else:
+        estimator.fit(X, y)
+    duration = int((time.time() - start) * 1000)
+
+    # 训练指标
+    if _isClustering(config.algorithm):
+        trainMetrics = {
+            "inertia": float(estimator.inertia_),
+            "nClusters": int(estimator.n_clusters),
+        }
+    else:
+        yPred = estimator.predict(X)
+        trainMetrics = _computeMetrics(
+            y,
+            yPred,
+            config.algorithm,
+            ["accuracy"] if _isClassification(config.algorithm) else ["rmse", "r2"],
+        )
+    return estimator, trainMetrics, duration
+
+
+def _predictSync(estimator, features: list[str], data: dict, algorithm: AlgorithmType):
+    """归一化样本并推理（同步 CPU 密集，由 asyncio.to_thread 调度）."""
+    samples = _normalizeSamples(data)
+    X = _toMatrix(samples, features)
+    yPred = estimator.predict(X).tolist()
+    # 分类任务附概率
+    probabilities = None
+    if _isClassification(algorithm) and hasattr(estimator, "predict_proba"):
+        probabilities = estimator.predict_proba(X).tolist()
+    # 标量预测值统一为可序列化类型
+    predictions = [float(p) if _isNumeric(p) else p for p in yPred]
+    return samples, predictions, probabilities
+
+
+def _evaluateSync(estimator, X, y, algorithm: AlgorithmType, requested: list[str]) -> dict[str, float]:
+    """预测并计算评估指标（同步 CPU 密集，由 asyncio.to_thread 调度）."""
+    yPred = estimator.predict(X)
+    if _isClustering(algorithm):
+        # 聚类：silhouette 需要 X 与 labels
+        return _computeMetrics(X, yPred, algorithm, requested)
+    return _computeMetrics(y, yPred, algorithm, requested)
+
+
 class SklearnMLBackend(MLBackend):
     """Scikit-learn ML 后端.
 
@@ -195,32 +247,11 @@ class SklearnMLBackend(MLBackend):
         try:
             # 加载训练数据（此处简化为从 config.dataset 解析内存数据）
             # 真实场景应从 FeatureStore / 数据集存储加载
-            X, y = _loadDataset(config)
+            X, y = await asyncio.to_thread(_loadDataset, config)
             if not config.features:
                 # 默认使用所有特征列
                 config.features = [f"f{i}" for i in range(X.shape[1])]
-            estimator = _buildEstimator(config.algorithm, dict(config.params), config.randomState)
-            start = time.time()
-            if _isClustering(config.algorithm):
-                estimator.fit(X)
-            else:
-                estimator.fit(X, y)
-            duration = int((time.time() - start) * 1000)
-
-            # 训练指标
-            if _isClustering(config.algorithm):
-                trainMetrics = {
-                    "inertia": float(estimator.inertia_),
-                    "nClusters": int(estimator.n_clusters),
-                }
-            else:
-                yPred = estimator.predict(X)
-                trainMetrics = _computeMetrics(
-                    y,
-                    yPred,
-                    config.algorithm,
-                    ["accuracy"] if _isClassification(config.algorithm) else ["rmse", "r2"],
-                )
+            estimator, trainMetrics, duration = await asyncio.to_thread(_fitAndScore, config, X, y)
 
             modelId = str(uuid.uuid4())
             now = utcNow()
@@ -265,25 +296,22 @@ class SklearnMLBackend(MLBackend):
     async def predict(self, modelId: str, data: dict) -> PredictionResult:
         if modelId not in self._models:
             raise ModelNotFoundError(modelId)
-        estimator = self._artifacts[modelId]
-        features = self._features[modelId]
-        samples = _normalizeSamples(data)
-        X = _toMatrix(samples, features)
-        yPred = estimator.predict(X).tolist()
-        # 分类任务附概率
-        probabilities = None
-        if _isClassification(AlgorithmType(self._models[modelId].algorithm)):
-            if hasattr(estimator, "predict_proba"):
-                probabilities = estimator.predict_proba(X).tolist()
-        # 标量预测值统一为可序列化类型
-        predictions = [float(p) if _isNumeric(p) else p for p in yPred]
+        model = self._models[modelId]
+        algorithm = AlgorithmType(model.algorithm)
+        samples, predictions, probabilities = await asyncio.to_thread(
+            _predictSync,
+            self._artifacts[modelId],
+            self._features[modelId],
+            data,
+            algorithm,
+        )
         return PredictionResult(
             modelId=modelId,
             predictions=predictions,
             probabilities=probabilities,
             metadata={
                 "backend": "sklearn",
-                "algorithm": self._models[modelId].algorithm,
+                "algorithm": model.algorithm,
                 "sampleCount": len(samples),
             },
         )
@@ -293,17 +321,20 @@ class SklearnMLBackend(MLBackend):
     async def evaluate(self, modelId: str, evalConfig: EvalConfig) -> EvalResult:
         if modelId not in self._models:
             raise ModelNotFoundError(modelId)
-        estimator = self._artifacts[modelId]
         model = self._models[modelId]
         algorithm = AlgorithmType(model.algorithm)
         # 加载评估数据
-        X, y = _loadDatasetForEval(evalConfig)
-        yPred = estimator.predict(X)
-        if _isClustering(algorithm):
-            # 聚类：silhouette 需要 X 与 labels
-            metrics = _computeMetrics(X, yPred, algorithm, evalConfig.metrics)
-        else:
-            metrics = _computeMetrics(y, yPred, algorithm, evalConfig.metrics)
+        X, y = await asyncio.to_thread(_loadDatasetForEval, evalConfig)
+        if y is None and not _isClustering(algorithm):
+            raise ValidationError("监督学习算法评估需要 y 标签")
+        metrics = await asyncio.to_thread(
+            _evaluateSync,
+            self._artifacts[modelId],
+            X,
+            y,
+            algorithm,
+            evalConfig.metrics,
+        )
         return EvalResult(
             modelId=modelId,
             dataset=evalConfig.dataset,
@@ -357,31 +388,55 @@ def _isNumeric(v: Any) -> bool:
 # ---------- 数据集加载（骨架） ----------
 
 
+def _loadInlineData(inline: Any):
+    """解析内联数据为特征矩阵与标签（训练/评估共用）."""
+    import numpy as np
+
+    if not isinstance(inline, dict) or "X" not in inline:
+        raise ValidationError("内联数据需为包含 'X' 特征矩阵的 dict")
+    X = np.array(inline["X"], dtype=float)
+    y = None
+    if "y" in inline:
+        y = np.array(inline["y"])
+    return X, y
+
+
 def _loadDataset(config: TrainingConfig):
     """从配置加载数据集.
 
     骨架实现：从 config.params["_inline_data"] 读取内存数据；
     真实场景应从 FeatureStore / Hive / 对象存储加载。
     """
-    import numpy as np
-
     inline = config.params.get("_inline_data")
     if inline is None:
         raise ValidationError(
             "sklearn 后端骨架要求 config.params['_inline_data'] 提供内联数据；" "真实场景应实现数据集加载逻辑"
         )
-    X = np.array(inline["X"], dtype=float)
-    y = None
-    if "y" in inline:
-        y = np.array(inline["y"])
+    X, y = _loadInlineData(inline)
     if y is None and not _isClustering(config.algorithm):
         raise ValidationError("监督学习算法需要 y 标签")
     return X, y
 
 
 def _loadDatasetForEval(evalConfig: EvalConfig):
-    """从评估配置加载数据集（骨架）."""
+    """从评估配置加载数据集.
 
-    # 简化：evalConfig.dataset 形如 "inline:<base64>" 暂不实现，
-    # 测试通过服务层注入；此处返回空矩阵
-    raise ValidationError("sklearn 评估骨架需通过服务层注入评估数据；" "真实场景应实现数据集加载逻辑")
+    对齐训练加载逻辑（_loadDataset）：支持与训练相同的内联数据源，
+    通过 evalConfig.dataset 携带 "inline:<base64(JSON)>"，
+    JSON 内容与训练内联数据一致：{"X": [[...]], "y": [...]}；
+    标签缺失的校验由 evaluate 按模型算法类型执行（聚类可无 y）。
+    """
+    import base64
+    import json
+
+    if not evalConfig.dataset.startswith("inline:"):
+        raise ValidationError(
+            f"不支持的评估数据集: {evalConfig.dataset}；"
+            "sklearn 后端骨架要求 dataset 形如 'inline:<base64(JSON)>'（内容同训练内联数据）"
+        )
+    try:
+        encoded = evalConfig.dataset[len("inline:"):]
+        inline = json.loads(base64.b64decode(encoded).decode("utf-8"))
+    except Exception as e:
+        raise ValidationError(f"无法解析内联评估数据: {e}") from e
+    return _loadInlineData(inline)

@@ -14,6 +14,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 import os
 import re
@@ -30,6 +31,7 @@ from industry_templates.models import (
 )
 from industry_templates.services.exceptions import (
     DeploymentNotFoundError,
+    NamespaceValidationError,
     ParameterValidationError,
     RenderError,
     TemplateError,
@@ -39,6 +41,12 @@ from industry_templates.services.exceptions import (
 
 # 占位符正则：${param.name} 或 ${param.name:default}
 _PLACEHOLDER_RE = re.compile(r"\$\{([a-zA-Z0-9_.]+)(?::([^}]*))?\}")
+
+# K8s DNS 标签（namespace）合法字符约束
+_NAMESPACE_RE = re.compile(r"^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$")
+
+# 部署失败信息安全截断长度（避免异常消息外泄堆栈/超长内容）
+_ERROR_MESSAGE_MAX_LEN = 500
 
 
 class TemplateEngine:
@@ -252,13 +260,13 @@ class TemplateEngine:
                     continue
             if p.name in values:
                 v = values[p.name]
-                # 类型检查（轻量）
-                if p.type.value == "integer" and not isinstance(v, int):
+                # 类型检查（轻量）；bool 是 int 子类，需先行排除
+                if p.type.value == "integer" and (isinstance(v, bool) or not isinstance(v, int)):
                     raise ParameterValidationError(
                         f"参数 {p.name} 应为整数，得到 {type(v).__name__}",
                         missing=[p.name],
                     )
-                if p.type.value == "float" and not isinstance(v, (int, float)):
+                if p.type.value == "float" and (isinstance(v, bool) or not isinstance(v, (int, float))):
                     raise ParameterValidationError(
                         f"参数 {p.name} 应为浮点数，得到 {type(v).__name__}",
                         missing=[p.name],
@@ -337,6 +345,8 @@ class TemplateEngine:
         # 6. 生成部署记录
         deployment_id = f"dep-{uuid.uuid4().hex[:12]}"
         namespace = request.namespace or f"tenant-{request.tenantId}"
+        if not _NAMESPACE_RE.match(namespace):
+            raise NamespaceValidationError(namespace)
         record = DeploymentRecord(
             deploymentId=deployment_id,
             templateId=templateId,
@@ -359,11 +369,34 @@ class TemplateEngine:
             record.status = DeploymentStatus.FAILED
             record.finishedAt = datetime.now(timezone.utc)
             raise
+        except Exception as exc:
+            record.status = DeploymentStatus.FAILED
+            record.errorMessage = str(exc)[:_ERROR_MESSAGE_MAX_LEN]
+            record.finishedAt = datetime.now(timezone.utc)
+            raise
 
         # 8. 模板安装计数 +1
         template.meta.installCount += 1
 
         return record
+
+    async def deploy_async(
+        self,
+        templateId: str,
+        request: DeploymentRequest,
+    ) -> DeploymentRecord:
+        """deploy 的异步门面：将同步部署流程（含 helm 子进程）卸载到工作线程.
+
+        避免阻塞事件循环（helm --wait 最长可阻塞 timeout 秒）。
+
+        Args:
+            templateId: 模板 ID
+            request:    部署请求（含租户/参数/数据源绑定）
+
+        Returns:
+            部署记录
+        """
+        return await asyncio.to_thread(self.deploy, templateId, request)
 
     def _mock_deploy(
         self,

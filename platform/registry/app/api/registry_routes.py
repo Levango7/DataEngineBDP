@@ -16,6 +16,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
 from typing import Optional
@@ -176,17 +177,23 @@ def create_router(
     )
     async def create_deployment(request: DeployRequest):
         """创建部署（一键部署到推理服务）."""
-        # 校验模型存在
         model = model_registry.get_model(
             name=request.modelName,
             version=request.version,
             tenant=request.tenantId,
         )
-        if model is None and not request.version:
-            # 版本为空时尝试不带版本
-            pass
+        if model is None:
+            raise HTTPException(
+                status_code=404,
+                detail=(
+                    f"model_not_found: 模型不存在: "
+                    f"{request.modelName}"
+                ),
+            )
         try:
-            record = deployment_manager.deploy(request)
+            record = await asyncio.to_thread(
+                deployment_manager.deploy, request
+            )
             return record
         except Exception as e:
             raise HTTPException(
@@ -223,7 +230,9 @@ def create_router(
     )
     async def stop_deployment(deploymentId: str):
         """停止部署."""
-        record = deployment_manager.stop_deployment(deploymentId)
+        record = await asyncio.to_thread(
+            deployment_manager.stop_deployment, deploymentId
+        )
         if record is None:
             raise HTTPException(
                 status_code=404, detail=f"部署不存在: {deploymentId}"

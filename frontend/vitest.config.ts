@@ -13,20 +13,67 @@
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
+import { existsSync, statSync } from 'node:fs'
+
+const mainSrcDir = fileURLToPath(new URL('./src', import.meta.url))
+const finopsSrcDir = fileURLToPath(new URL('./finops-dashboard/src', import.meta.url))
+
+function resolveModuleFile(absWithoutExt: string): string | null {
+  const candidates = [
+    absWithoutExt,
+    `${absWithoutExt}.ts`,
+    `${absWithoutExt}.tsx`,
+    `${absWithoutExt}.vue`,
+    `${absWithoutExt}.js`,
+    path.join(absWithoutExt, 'index.ts'),
+    path.join(absWithoutExt, 'index.js')
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate) && statSync(candidate).isFile()) {
+      return candidate
+    }
+  }
+  return null
+}
+
+// finops-dashboard 子应用的 '@/' 在测试中解析到其自身 src（与根应用 '@/' 互不干扰）
+const workspaceAwareAlias = [
+  {
+    find: '@',
+    replacement: mainSrcDir,
+    async customResolver(
+      this: { resolve: (id: string, importer?: string, opts?: object) => Promise<{ id: string } | null> },
+      updatedId: string,
+      importer: string | undefined
+    ) {
+      const normalizedImporter = importer ? path.normalize(importer) : ''
+      if (normalizedImporter.includes('finops-dashboard')) {
+        const rel = path.normalize(updatedId).slice(path.normalize(mainSrcDir).length)
+        const resolved = resolveModuleFile(path.join(finopsSrcDir, rel))
+        if (resolved) {
+          return { id: resolved }
+        }
+      }
+      return this.resolve(updatedId, importer, { skipSelf: true })
+    }
+  }
+]
 
 // https://vitest.dev/config/
 export default defineConfig({
   plugins: [vue()],
   resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
-    }
+    alias: workspaceAwareAlias
   },
   test: {
     globals: true,
     environment: 'jsdom',
     setupFiles: ['src/test-setup.ts'],
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    include: [
+      'src/**/*.{test,spec}.{ts,tsx}',
+      'finops-dashboard/src/**/*.{test,spec}.{ts,tsx}'
+    ],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html', 'lcov'],

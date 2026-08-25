@@ -370,15 +370,32 @@ class LoopOrchestrator:
         return task
 
     # ============================================================
-    # 同步执行（无事件循环时的回退方案）
+    # 执行触发（运行中 loop 内为后台调度，无 loop 时阻塞执行）
     # ============================================================
     def _trigger_sync_execution(self, task: LoopTask) -> None:
-        """在无事件循环时同步执行闭环（简化版，仅 Mock 模式）."""
+        """惰性触发闭环执行.
+
+        语义为 fire-and-forget：调用方（get_task 查询路由）只期望任务
+        开始执行并随后通过查询观察进度，不期望阻塞到完成。
+
+        - 运行中 loop 内：用 get_running_loop().create_task 调度
+          _run_loop 并登记句柄，绝不自建事件循环。
+        - 无任何 loop（纯同步测试/脚本）：asyncio.run 阻塞跑完，
+          结束后自动清理，不残留线程级事件循环。
+        """
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(self._run_loop(task))
-            loop.close()
+            running_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            running_loop = None
+
+        if running_loop is not None:
+            handle = running_loop.create_task(self._run_loop(task))
+            with self._lock:
+                self._async_handles[task.taskId] = handle
+            return
+
+        try:
+            asyncio.run(self._run_loop(task))
         except Exception as e:  # noqa: BLE001
             logger.exception("同步执行闭环失败")
             with self._lock:
