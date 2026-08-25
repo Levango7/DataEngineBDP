@@ -102,3 +102,19 @@
 ---
 
 > 本文件由组A-文档一致性修复任务（task 51）创建，依据《数据引擎大数据平台_全面评估报告.md》P0/P1 问题清单。
+
+## 8. MIRRORED FILE 同步规范
+
+部分轻量公共代码以"镜像副本"形式存在于多个服务（各服务独立 pip 包/Go module，
+引入共享包需发布基础设施，成本高于收益）：
+
+| 文件 | 副本位置 |
+| --- | --- |
+| `jwt_auth.py` | `platform/llmops/llmops/api/`（canonical）、`platform/ml-platform/ml_platform/api/`、`platform/nl2sql/`、`platform/llm-gateway/evaluation/app/` |
+
+规则：
+
+1. 每个副本文件头必须带 `MIRRORED FILE` 标记，注明 canonical 位置与全部副本路径。
+2. 修改任一副本必须同步其余副本**逐字节一致**。
+3. CI 由 `scripts/check-mirrored-jwt-auth.sh` 强制校验（bash-check job），不一致即阻断。
+4. 新增镜像文件时必须同步更新校验脚本与本表。

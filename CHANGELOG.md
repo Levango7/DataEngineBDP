@@ -8,6 +8,14 @@
 
 ### v2.1.0 进行中 — 行业生态扩展与生产化加固
 
+#### Security
+- **P0 baremetal 登录漏洞**：修复任意凭据可获取 admin JWT 的完整鉴权绕过；新增 CredentialConfig（SHA256 哈希生产模式/明文+DEV开关开发模式），常量时间比较，启动 fail-fast（fix/security-audit-hardening）
+- **Python 四服务统一 JWT 鉴权**：llmops/ml-platform/nl2sql/evaluation 接入 MIRRORED jwt_auth.py（纯 stdlib HS256），AUTH_MODE=jwt 生产强制、none 本地放行；evaluation 的死代码 validate_security 替换为真实中间件
+- **vector-engine 默认开鉴权**：secure-by-default，仅显式 VECTOR_AUTH_REQUIRED=false 放行并告警
+- **llm-gateway 治理端点 RBAC**：Provider 注册/注销与路由规则添加加 admin 门禁（阻断 SSRF 与凭据外送）；Token 计量与批处理 job 数据面按租户强制过滤
+- **catalog 租户隔离**：Database/Table 增加 TenantID，全部读写按 JWT 租户收敛，跨租户 404 防枚举
+- **CI 安全门禁**：golangci-lint（gosec/errcheck/bodyclose/sqlclosecheck/errorlint）全模块零告警后设为阻断 + dependency-review 高危依赖阻断 PR
+
 #### Added
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）

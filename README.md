@@ -250,6 +250,7 @@ bash scripts/poc/run-poc.sh
 | [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
 | [变更日志](CHANGELOG.md) | 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
+| [安全加固记录](CHANGELOG.md) | P0 登录漏洞修复、四服务统一 JWT、租户隔离强制层、CI 安全门禁（2026-08-25） |
 | [路线图](ROADMAP.md) | v2.0 演进规划 |
 | [命名约定](CONVENTIONS.md) | 统一命名与版本号规范 |
 | [SKE 交付底座](ske/README.md) | kubeadm/kind 封装的 K8s 底座说明 |
