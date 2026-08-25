@@ -14,14 +14,15 @@ import (
 
 // HealthHandler 健康检查与系统API handler
 type HealthHandler struct {
-	auth    *middleware.JWTAuthenticator
-	version string
-	logger  *logrus.Entry
+	auth       *middleware.JWTAuthenticator
+	credConfig *middleware.CredentialConfig
+	version    string
+	logger     *logrus.Entry
 }
 
 // NewHealthHandler 创建健康检查handler
-func NewHealthHandler(auth *middleware.JWTAuthenticator, version string, logger *logrus.Entry) *HealthHandler {
-	return &HealthHandler{auth: auth, version: version, logger: logger}
+func NewHealthHandler(auth *middleware.JWTAuthenticator, cred *middleware.CredentialConfig, version string, logger *logrus.Entry) *HealthHandler {
+	return &HealthHandler{auth: auth, credConfig: cred, version: version, logger: logger}
 }
 
 // RegisterRoutes 注册系统路由(健康检查、登录签发Token)
@@ -83,8 +84,8 @@ type LoginResponse struct {
 // Login 签发JWT Token
 // POST /api/v1/auth/login
 //
-// 简化实现: 接受任意非空username/password，role根据username推断。
-// 生产环境应接入LDAP/OIDC。
+// 凭据校验语义：用户名与密码必须同时匹配 CredentialConfig（SHA-256 哈希或
+// 开发模式明文），任一错误返回 401 且消息统一为"用户名或密码错误"，防枚举。
 func (h *HealthHandler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -96,8 +97,25 @@ func (h *HealthHandler) Login(c *gin.Context) {
 		return
 	}
 
+	if h.credConfig == nil {
+		h.logger.Error("凭据配置未初始化")
+		c.JSON(http.StatusInternalServerError, model.APIResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "服务器凭据未配置",
+		})
+		return
+	}
+	if !h.credConfig.Verify(req.Username, req.Password) {
+		h.logger.WithField("username", req.Username).Warn("登录失败：凭据不匹配")
+		c.JSON(http.StatusUnauthorized, model.APIResponse{
+			Code:    http.StatusUnauthorized,
+			Message: "用户名或密码错误",
+		})
+		return
+	}
+
 	role := "user"
-	if req.Username == "admin" {
+	if req.Username == h.credConfig.Username {
 		role = "admin"
 	}
 

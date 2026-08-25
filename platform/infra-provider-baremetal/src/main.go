@@ -104,6 +104,15 @@ func main() {
 	// 初始化鉴权
 	auth := middleware.NewJWTAuthenticator(cfg.Auth.Secret, cfg.Auth.TokenTTLDuration(), cfg.Auth.Issuer)
 
+	// 加载登录凭据（fail-fast：缺失或非法配置拒绝启动）
+	credCfg, err := middleware.LoadCredentialConfig()
+	if err != nil {
+		logger.Fatalf("登录凭据配置错误: %v", err)
+	}
+	if credCfg.DevPasswordSet() {
+		logger.Warn("!!! AUTH_DEV_MODE 已开启：使用明文开发凭据，严禁用于生产环境 !!!")
+	}
+
 	// 初始化Gin
 	gin.SetMode(cfg.Server.Mode)
 	engine := gin.New()
@@ -116,7 +125,7 @@ func main() {
 	clusterHandler := handler.NewClusterHandler(svc, logger.WithField("handler", "cluster"))
 	clusterHandler.RegisterRoutes(v1)
 
-	healthHandler := handler.NewHealthHandler(auth, Version, logger.WithField("handler", "health"))
+	healthHandler := handler.NewHealthHandler(auth, credCfg, Version, logger.WithField("handler", "health"))
 	healthHandler.RegisterRoutes(v1, engine)
 
 	// 启动HTTP服务
