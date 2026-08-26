@@ -12,7 +12,7 @@ pydantic-settings==2.2.1
 httpx==0.28.1
 
 # ---- Logging ----
-loguru==0.7.2
+loguru==0.7.3
 
 # ---- SQL parsing & validation ----
 sqlparse==0.5.0
