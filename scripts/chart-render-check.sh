@@ -2,7 +2,8 @@
 # 全量 Chart 渲染 + Schema 校验（helm template -> 拆文档 -> 批量 kubeconform）
 # 依赖：helm、kubeconform、python3；退出码非0表示存在失败 chart（helm template → 拆文档 → 单进程批量 kubeconform）
 set -uo pipefail
-cd /mnt/f/Nexus/DataEngineBDP || exit 1
+# 相对脚本自身定位仓库根（兼容任意调用 cwd，勿硬编码绝对路径）
+cd "$(dirname "$0")/.." || exit 1
 
 check_chart() { # $1=rendered file -> echo err or empty
 python3 - "$1" <<'PYEOF'

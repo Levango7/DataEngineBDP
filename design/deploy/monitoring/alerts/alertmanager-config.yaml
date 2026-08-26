@@ -26,7 +26,8 @@ data:
       smtp_smarthost: "smtp.shuqing.example.com:587"
       smtp_from: "alertmanager@shuqing.example.com"
       smtp_auth_username: "alertmanager@shuqing.example.com"
-      smtp_auth_password: "ALERTMANAGER_SMTP_PASSWORD"
+      # 部署前必须替换为真实 SMTP 密码（或改经 Secret 注入渲染）
+      smtp_auth_password: "REPLACE_WITH_SMTP_PASSWORD"
       smtp_require_tls: true
       # 钉钉 webhook（通过 prometheus-webhook-dingtalk 中转）
       # Slack webhook

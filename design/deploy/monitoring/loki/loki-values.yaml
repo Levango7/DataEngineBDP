@@ -253,7 +253,8 @@ grafana:
     pullPolicy: IfNotPresent
 
   adminUser: admin
-  adminPassword: "GRAFANA_ADMIN_PASSWORD"  # 经 Secret 注入
+  # 部署前必须替换为真实强密码，或改用 grafana.admin.existingSecret 引用外部 Secret
+  adminPassword: "REPLACE_WITH_GRAFANA_ADMIN_PASSWORD"
 
   resources:
     requests:

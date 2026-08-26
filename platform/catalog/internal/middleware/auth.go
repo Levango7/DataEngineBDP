@@ -35,6 +35,11 @@ func mustGetenv(key string) string {
 func AuthMiddleware() gin.HandlerFunc {
 	// 安全止血：JWT_SIGNING_KEY 必须显式配置，缺失则启动 fatal。
 	secret := mustGetenv("JWT_SIGNING_KEY")
+	// 长度 fail-fast：兑现注释承诺的"至少 32 字节(256bit)"，
+	// 短密钥会显著降低 HMAC 暴力破解成本，直接拒绝启动。
+	if len(secret) < 32 {
+		log.Fatalf("FATAL: JWT_SIGNING_KEY length %d bytes is below the 32-byte (256-bit) security requirement", len(secret))
+	}
 	issuer := os.Getenv("JWT_ISSUER")
 	if issuer == "" {
 		issuer = "shuqing-bigdata"
