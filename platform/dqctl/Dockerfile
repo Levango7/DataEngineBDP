@@ -16,9 +16,18 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o d
 # 运行阶段：最小化镜像
 FROM alpine:3.19
 
+# 创建非 root 用户。
+RUN addgroup -S app && adduser -S -G app app
+
 WORKDIR /app
 
 # 从构建阶段拷贝二进制。
-COPY --from=builder /build/dqctl /usr/local/bin/dqctl
+COPY --from=builder --chown=app:app /build/dqctl /usr/local/bin/dqctl
+
+# 确保 app 用户对工作目录可写。
+RUN chown -R app:app /app
+
+# 切换非 root 用户运行。
+USER app
 
 ENTRYPOINT ["dqctl"]

@@ -26,16 +26,23 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH} go build -ldflags="-s -w" -o f
 # ---------------------------------------------------------------------------
 FROM alpine:3.20
 
-# 安装 ca-certificates（HTTPS 调用 Karmada/Prometheus 需要）。
+# 安装 ca-certificates（HTTPS 调用 Karmada/Prometheus 需要，保持 root 执行）。
 RUN apk add --no-cache ca-certificates tzdata
+
+# 创建非 root 用户。
+RUN addgroup -S app && adduser -S -G app app
 
 WORKDIR /app
 
 # 拷贝二进制。
-COPY --from=builder /build/failover-engine .
+COPY --from=builder --chown=app:app /build/failover-engine .
 
 # 暴露端口（与 main.go defaultPort 一致）。
 EXPOSE 8095
+
+# 确保 app 用户对 /app 可写，切换非 root 运行。
+RUN chown -R app:app /app
+USER app
 
 # 运行。
 ENTRYPOINT ["/app/failover-engine"]

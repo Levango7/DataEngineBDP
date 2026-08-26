@@ -16,8 +16,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
     && pip install --no-cache-dir -r requirements.txt
 
+# 创建非 root 运行用户（安装阶段保持 root，仅运行时降权）
+RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
+
 # 拷贝源码
-COPY . .
+COPY --chown=app:app . .
 
 # 安装包（editable 模式，使 main.py 能 import business_portal 包）
 RUN pip install --no-cache-dir -e .
@@ -35,5 +38,9 @@ ENV BP_HOST=0.0.0.0 \
     BP_STORE_TYPE=sqlite \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
+
+# 确保 app 用户对 /app 可写（SQLite 数据文件需落盘），随后切换非 root 运行
+RUN chown -R app:app /app
+USER app
 
 CMD ["python", "main.py"]

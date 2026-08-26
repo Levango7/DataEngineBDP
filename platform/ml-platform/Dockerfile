@@ -36,8 +36,11 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
-COPY --from=builder /build/ml_platform/ ./ml_platform/
-COPY main.py ./
+
+# 创建非 root 运行用户（构建/安装阶段保持 root，仅运行时降权）
+RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
+COPY --from=builder --chown=app:app /build/ml_platform/ ./ml_platform/
+COPY --chown=app:app main.py ./
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
@@ -52,5 +55,9 @@ ENV ML_HOST=0.0.0.0 \
     ML_BACKEND_TYPE=mock \
     ML_FEATURE_STORE_TYPE=mock \
     ML_EXPERIMENT_STORE_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为sklearn/spark/mlflow
+
+# 确保 app 用户对 /app 可写，切换非 root 运行
+RUN chown -R app:app /app
+USER app
 
 CMD ["python", "main.py"]

@@ -36,8 +36,11 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /app
-COPY --from=builder /build/llmops/ ./llmops/
-COPY main.py ./
+
+# 创建非 root 运行用户（构建/安装阶段保持 root，仅运行时降权）
+RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
+COPY --from=builder --chown=app:app /build/llmops/ ./llmops/
+COPY --chown=app:app main.py ./
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
@@ -50,5 +53,9 @@ EXPOSE 8080
 ENV LLMOPS_HOST=0.0.0.0 \
     LLMOPS_PORT=8080 \
     LLMOPS_LOG_LEVEL=info
+
+# 确保 app 用户对 /app 可写，切换非 root 运行
+RUN chown -R app:app /app
+USER app
 
 CMD ["python", "main.py"]

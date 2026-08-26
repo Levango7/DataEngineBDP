@@ -13,8 +13,16 @@ COPY src ./src
 RUN mvn clean package -DskipTests -B
 
 FROM eclipse-temurin:17-jre-alpine
+
+# 创建非 root 用户（alpine 运行时使用 busybox 工具链，保持 root 执行）。
+RUN addgroup -S app && adduser -S -G app app
+
 WORKDIR /app
-COPY --from=builder /build/target/federated-query-0.1.0-exec.jar app.jar
+COPY --from=builder --chown=app:app /build/target/federated-query-0.1.0-exec.jar app.jar
 EXPOSE 8094
 ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
+
+# 切换非 root 用户运行。
+USER app
+
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

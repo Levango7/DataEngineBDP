@@ -31,8 +31,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip wheel setuptools \
     && pip install --no-cache-dir -r requirements.txt
 
+# 创建非 root 运行用户（安装阶段保持 root，仅运行时降权）
+RUN groupadd --system app && useradd --system --gid app --home-dir /app --shell /usr/sbin/nologin app
+
 # 拷贝源码
-COPY . .
+COPY --chown=app:app . .
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
@@ -49,6 +52,11 @@ ENV FINETUNE_HOST=0.0.0.0 \
     FINETUNE_LOG_LEVEL=info \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
+
+# 工作目录 FINETUNE_WORK_DIR=/tmp/finetune 对非 root 天然可写；
+# 确保 app 用户对 /app 可写后切换非 root 运行
+RUN chown -R app:app /app
+USER app
 
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8095"]
 
