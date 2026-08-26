@@ -27,6 +27,10 @@
 #### Corrected
 - **V2.0.0 定级勘误**：`releases/v2.0.0/` 新增 ERRATUM.md 正式勘误公告，v2.0.0 的 GA 定级修订为 RC（候选版本）；逐条更正 release-notes.md 中与 ga-checklist.md 矛盾的表述——四环境部署验证实际为 0/6 通过（待实际环境验证）、787 用例与性能基线未经四环境实测、覆盖率未达 85%（门禁后经调整至实际值之下）；明确 V2.0 真实定位（骨架与文档交付为主体、核心链路可用、AI 层为演示模式）；release-notes.md 与 ga-checklist.md 历史原文保留不改
 
+#### Fixed
+- **catalog 容器化三连修**：sqlite 驱动切纯 Go glebarez（CGO_ENABLED=0 镜像可正常启动，兼修 arm64）；chart 补 emptyDir 数据卷+CATALOG_DB 指向；显式覆盖 K8s 同名 Service 注入的 CATALOG_PORT 环境变量；新增 auth Secret 注入 JWT_SIGNING_KEY
+- **本地端到端实证**：kind(dataengine-local)+helm 安装 catalog 2/2 Running，健康检查 HTTP 200（E 盘 Docker Desktop + docker.1ms.run 镜像站方案）
+
 #### Added
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）

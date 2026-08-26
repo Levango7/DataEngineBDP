@@ -36,6 +36,9 @@ spec:
         runAsGroup: {{ .Values.securityContext.runAsGroup }}
         fsGroup: {{ .Values.securityContext.fsGroup }}
       {{- end }}
+      volumes:
+        - name: data
+          emptyDir: {}
       containers:
         - name: {{ .Chart.Name }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
@@ -47,6 +50,20 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "catalog.configmapName" . }}
+          env:
+            - name: CATALOG_DB
+              value: /data/catalog.db
+            # 显式覆盖 K8s 对同名 Service 注入的 CATALOG_PORT=tcp://ip:port
+            - name: CATALOG_PORT
+              value: {{ .Values.service.containerPort | quote }}
+            - name: JWT_SIGNING_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "catalog.fullname" . }}-auth
+                  key: jwt-signing-key
+          volumeMounts:
+            - name: data
+              mountPath: /data
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:

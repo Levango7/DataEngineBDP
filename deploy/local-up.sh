@@ -13,6 +13,9 @@
 # - 仅启用核心可部署子集（封装层/SQL网关/目录/规则引擎/NL2SQL/开放API目录），
 #   重型基础设施（Doris/Flink/Spark/Trino/Kafka 等）默认关闭，
 #   完整栈请用 design/deploy/values/env 按环境装配。
+# 说明：docker.io 直连不通时可用镜像站拉取后重打 tag，例如：
+#   docker pull docker.1ms.run/kindest/node:v1.31.2 && docker tag ... kindest/node:v1.31.2
+#   自研服务镜像本地构建后 kind load docker-image <img> --name ，并 --set image.tag=<本地tag>
 # - 镜像来源为 GHCR（build.yml 主分支构建产物）；私有仓库需先
 #   kubectl create secret docker-registry 并在 values 里挂 imagePullSecrets。
 # ============================================================
