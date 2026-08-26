@@ -506,7 +506,7 @@ func TestListTables_All(t *testing.T) {
 func TestGetTable_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["gt-001"] = &model.Table{TenantID: "t1", 
+	ms.tables["gt-001"] = &model.Table{TenantID: "t1",
 		ID: "gt-001", DatabaseName: "db1", TableName: "users",
 		Columns: []model.Column{{Name: "id", Type: "BIGINT"}, {Name: "name", Type: "VARCHAR(255)"}},
 	}
@@ -539,7 +539,7 @@ func TestGetTable_NotFound(t *testing.T) {
 func TestUpdateTable_Success(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["upd-001"] = &model.Table{TenantID: "t1", 
+	ms.tables["upd-001"] = &model.Table{TenantID: "t1",
 		ID: "upd-001", DatabaseName: "db1", TableName: "users",
 		Columns: []model.Column{{Name: "id", Type: "BIGINT"}},
 	}
@@ -656,11 +656,11 @@ func TestSearchTables_InvalidLimit(t *testing.T) {
 func TestSearchTables_ChineseSemanticMatch(t *testing.T) {
 	r, ms := setupTestRouterWithMock()
 
-	ms.tables["s-001"] = &model.Table{TenantID: "t1", 
+	ms.tables["s-001"] = &model.Table{TenantID: "t1",
 		ID: "s-001", DatabaseName: "db1", TableName: "销售订单明细表",
 		Description: "包含订单明细与金额",
 	}
-	ms.tables["s-002"] = &model.Table{TenantID: "t1", 
+	ms.tables["s-002"] = &model.Table{TenantID: "t1",
 		ID: "s-002", DatabaseName: "db1", TableName: "用户画像表",
 		Description: "用户标签与行为",
 	}
@@ -698,10 +698,10 @@ func TestSearchTables_OrderByScoreDesc(t *testing.T) {
 	// “订单”在“销售订单明细表”中命中 1 个 bigram（订单）
 	// “订单”在“订单订单订单”中命中 1 个 bigram（订单），同分
 	// 用不同查询区分：搜“订单明细”，全命中的排前
-	ms.tables["o-001"] = &model.Table{TenantID: "t1", 
+	ms.tables["o-001"] = &model.Table{TenantID: "t1",
 		ID: "o-001", DatabaseName: "db1", TableName: "销售订单明细表",
 	}
-	ms.tables["o-002"] = &model.Table{TenantID: "t1", 
+	ms.tables["o-002"] = &model.Table{TenantID: "t1",
 		ID: "o-002", DatabaseName: "db1", TableName: "订单",
 	}
 

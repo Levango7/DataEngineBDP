@@ -1,4 +1,3 @@
-
 package store
 
 import (
@@ -19,7 +18,7 @@ func setupGormStore() Store {
 	if err != nil {
 		panic("failed to open test database: " + err.Error())
 	}
-	if err := db.AutoMigrate(&model.Database{TenantID: "t1", }, &model.Table{TenantID: "t1", }); err != nil {
+	if err := db.AutoMigrate(&model.Database{TenantID: "t1"}, &model.Table{TenantID: "t1"}); err != nil {
 		panic("failed to auto migrate: " + err.Error())
 	}
 	return NewGormStore(db)
@@ -146,7 +145,7 @@ func TestGormStore_DeleteDatabase_NotFound(t *testing.T) {
 // TestGormStore_CreateTable_Success 测试成功创建表。
 func TestGormStore_CreateTable_Success(t *testing.T) {
 	s := setupGormStore()
-	tbl := &model.Table{TenantID: "t1", 
+	tbl := &model.Table{TenantID: "t1",
 		ID: "gt-001", DatabaseName: "db1", TableName: "users",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}, {Name: "name", Type: "VARCHAR(255)"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -186,7 +185,7 @@ func TestGormStore_CreateTable_Duplicate(t *testing.T) {
 // TestGormStore_GetTable_Success 测试成功获取表。
 func TestGormStore_GetTable_Success(t *testing.T) {
 	s := setupGormStore()
-	tbl := &model.Table{TenantID: "t1", 
+	tbl := &model.Table{TenantID: "t1",
 		ID: "ggt-001", DatabaseName: "db1", TableName: "users",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}, {Name: "name", Type: "VARCHAR(255)"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -233,7 +232,7 @@ func TestGormStore_ListTables_FilterByDB(t *testing.T) {
 // TestGormStore_UpdateTable_Success 测试成功更新表。
 func TestGormStore_UpdateTable_Success(t *testing.T) {
 	s := setupGormStore()
-	tbl := &model.Table{TenantID: "t1", 
+	tbl := &model.Table{TenantID: "t1",
 		ID: "gupd-001", DatabaseName: "db1", TableName: "users",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -309,13 +308,13 @@ func TestGormStore_SearchTables_EmptyQuery(t *testing.T) {
 // 搜“订单明细”应命中“销售订单明细表”。
 func TestGormStore_SearchTables_ChineseSemanticMatch(t *testing.T) {
 	s := setupGormStore()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "gs-001", DatabaseName: "db1", TableName: "销售订单明细表",
 		Description: "包含订单明细与金额",
 		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt:   gormFixedTime(), UpdatedAt: gormFixedTime(),
 	}))
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "gs-002", DatabaseName: "db1", TableName: "用户画像表",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -331,12 +330,12 @@ func TestGormStore_SearchTables_ChineseSemanticMatch(t *testing.T) {
 // TestGormStore_SearchTables_OrderByScoreDesc 验证按分数降序（真实 SQLite）。
 func TestGormStore_SearchTables_OrderByScoreDesc(t *testing.T) {
 	s := setupGormStore()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "go-001", DatabaseName: "db1", TableName: "销售订单明细表",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
 	}))
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "go-002", DatabaseName: "db1", TableName: "订单",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -353,7 +352,7 @@ func TestGormStore_SearchTables_OrderByScoreDesc(t *testing.T) {
 func TestGormStore_SearchTables_Limit(t *testing.T) {
 	s := setupGormStore()
 	for i := 0; i < 5; i++ {
-		require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+		require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 			ID: "gl-" + string(rune('0'+i)), DatabaseName: "db" + string(rune('0'+i)), TableName: "订单明细",
 			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 			CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -368,7 +367,7 @@ func TestGormStore_SearchTables_Limit(t *testing.T) {
 // TestGormStore_SearchTables_NoMatch 验证无命中返回空（真实 SQLite）。
 func TestGormStore_SearchTables_NoMatch(t *testing.T) {
 	s := setupGormStore()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "gn-001", DatabaseName: "db1", TableName: "用户画像",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
@@ -382,7 +381,7 @@ func TestGormStore_SearchTables_NoMatch(t *testing.T) {
 // TestGormStore_SearchTables_DescriptionMatch 验证描述字段参与匹配（真实 SQLite）。
 func TestGormStore_SearchTables_DescriptionMatch(t *testing.T) {
 	s := setupGormStore()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "gd-001", DatabaseName: "db1", TableName: "t1",
 		Description: "订单明细记录",
 		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},

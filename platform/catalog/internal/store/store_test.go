@@ -267,7 +267,7 @@ func TestStore_DeleteDatabase_NotFound(t *testing.T) {
 // TestStore_CreateTable_Success 测试成功创建表。
 func TestStore_CreateTable_Success(t *testing.T) {
 	s := newMockDB()
-	tbl := &model.Table{TenantID: "t1", 
+	tbl := &model.Table{TenantID: "t1",
 		ID: "t-001", DatabaseName: "db1", TableName: "users",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}, {Name: "name", Type: "VARCHAR(255)"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -290,7 +290,7 @@ func TestStore_CreateTable_Duplicate(t *testing.T) {
 // TestStore_GetTable_Success 测试成功获取表。
 func TestStore_GetTable_Success(t *testing.T) {
 	s := newMockDB()
-	tbl := &model.Table{TenantID: "t1", 
+	tbl := &model.Table{TenantID: "t1",
 		ID: "gt-001", DatabaseName: "db1", TableName: "users",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}, {Name: "name", Type: "VARCHAR(255)"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -337,7 +337,7 @@ func TestStore_ListTables_FilterByDB(t *testing.T) {
 // TestStore_UpdateTable_Success 测试成功更新表。
 func TestStore_UpdateTable_Success(t *testing.T) {
 	s := newMockDB()
-	tbl := &model.Table{TenantID: "t1", 
+	tbl := &model.Table{TenantID: "t1",
 		ID: "upd-001", DatabaseName: "db1", TableName: "users",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -414,7 +414,7 @@ func TestStore_SearchTables_EmptyQuery(t *testing.T) {
 // TestStore_SearchTables_NoMatch 测试无命中返回空。
 func TestStore_SearchTables_NoMatch(t *testing.T) {
 	s := newMockDB()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "sn-001", DatabaseName: "db1", TableName: "用户画像",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -429,13 +429,13 @@ func TestStore_SearchTables_NoMatch(t *testing.T) {
 // 搜“订单明细”应命中“销售订单明细表”。
 func TestStore_SearchTables_ChineseSemanticMatch(t *testing.T) {
 	s := newMockDB()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "sc-001", DatabaseName: "db1", TableName: "销售订单明细表",
 		Description: "包含订单明细与金额",
 		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt:   fixedTime(), UpdatedAt: fixedTime(),
 	}))
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "sc-002", DatabaseName: "db1", TableName: "用户画像表",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -451,12 +451,12 @@ func TestStore_SearchTables_ChineseSemanticMatch(t *testing.T) {
 // TestStore_SearchTables_OrderByScoreDesc 验证按分数降序。
 func TestStore_SearchTables_OrderByScoreDesc(t *testing.T) {
 	s := newMockDB()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "so-001", DatabaseName: "db1", TableName: "销售订单明细表",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
 	}))
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "so-002", DatabaseName: "db1", TableName: "订单",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -474,7 +474,7 @@ func TestStore_SearchTables_OrderByScoreDesc(t *testing.T) {
 func TestStore_SearchTables_Limit(t *testing.T) {
 	s := newMockDB()
 	for i := 0; i < 5; i++ {
-		require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+		require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 			ID: "sl-" + string(rune('0'+i)), DatabaseName: "db1", TableName: "订单明细",
 			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 			CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -489,7 +489,7 @@ func TestStore_SearchTables_Limit(t *testing.T) {
 // TestStore_SearchTables_DefaultLimit 验证 limit<=0 用默认值。
 func TestStore_SearchTables_DefaultLimit(t *testing.T) {
 	s := newMockDB()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "sd-001", DatabaseName: "db1", TableName: "订单",
 		Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
 		CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
@@ -504,7 +504,7 @@ func TestStore_SearchTables_DefaultLimit(t *testing.T) {
 // TestStore_SearchTables_DescriptionMatch 验证描述字段也参与匹配。
 func TestStore_SearchTables_DescriptionMatch(t *testing.T) {
 	s := newMockDB()
-	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", 
+	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1",
 		ID: "sd-002", DatabaseName: "db1", TableName: "t1",
 		Description: "订单明细记录",
 		Columns:     []model.Column{{Name: "id", Type: "BIGINT"}},
