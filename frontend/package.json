@@ -1,6 +1,6 @@
 {
   "name": "dataengine-console",
-  "version": "0.3.0",
+  "version": "2.1.0-RC",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -70,3 +70,4 @@
     "vue-tsc": "^2.0.0"
   }
 }
+

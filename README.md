@@ -1,4 +1,4 @@
-# 数据引擎大数据平台 · DataEngineBDP
+﻿# 数据引擎大数据平台 · DataEngineBDP
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
@@ -11,7 +11,7 @@
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
 > 2.1.0-SNAPSHOT 开发中，基于 v2.0.0 RC 继续核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
-> v2.1 进行中（灰度发布 / 故障演练 / 性能调优 / 多集群联邦增强等 14 项生产化加固）。
+> v2.1.0-RC 发布就绪：21 组件 GA 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
 > ⚠️ 勘误：v2.0.0 的 GA 定级已修订为 RC（候选版本），详见 [V2.0.0 勘误公告](releases/v2.0.0/ERRATUM.md)。
 > 详见 [路线图](ROADMAP.md)。
 
@@ -37,10 +37,10 @@
 | 后端语言 | Java 17 / Go 1.25 / Python 3.11 |
 | 后端框架 | Spring Boot 3.2.6 / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
-| 大数据引擎 | Spark 3.5 / Flink 1.18 / Trino 428 / Doris 2.0 / Kafka 3.6 / IoTDB 2.0 |
+| 大数据引擎 | Spark 3.5.3 / Flink 1.20.0 / Trino 460 / Doris 2.1.7 / Kafka 3.8.1 / IoTDB 2.0.2 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
-| 治理与智能 | NebulaGraph 3.6 / Milvus / Redis / Elasticsearch 7.17（本地容器实测） |
-| 认证与网关 | Keycloak 24.0 / Apache APISIX |
+| 治理与智能 | NebulaGraph 3.6 / Milvus / Redis / Elasticsearch 7.17 |
+| 认证与网关 | Keycloak 25.0 / Apache APISIX 3.9 |
 | 调度与集成 | DolphinScheduler / SeaTunnel / Airflow |
 | 开发与可视化 | Eclipse Theia 二开 / Apache Superset / ECharts |
 | 容器与编排 | Kubernetes / Helm / Docker / SKE |
@@ -283,3 +283,4 @@ bash scripts/poc/run-poc.sh
 ## 开源协议
 
 本项目基于 [Apache License 2.0](LICENSE) 开源。
+

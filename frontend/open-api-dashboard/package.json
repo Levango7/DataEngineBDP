@@ -1,6 +1,6 @@
 {
   "name": "open-api-dashboard",
-  "version": "0.1.0",
+  "version": "2.1.0-RC",
   "private": true,
   "description": "数据引擎大数据平台 - 开放 API 服务目录前端 (L5.5)",
   "type": "module",
@@ -31,3 +31,4 @@
     "eslint-plugin-vue": "^9.24.0"
   }
 }
+

@@ -4,7 +4,7 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [Unreleased]
+## [2.1.0-RC] - 2026-08-27
 
 ### v2.1.0 进行中 — 行业生态扩展与生产化加固
 
@@ -173,3 +173,4 @@
 [Unreleased]: https://github.com/Levango7/DataEngineBDP/compare/v2.0.0...HEAD
 [2.0.0]: https://github.com/Levango7/DataEngineBDP/compare/v1.0.0...v2.0.0
 [1.0.0]: https://github.com/Levango7/DataEngineBDP/releases/tag/v1.0.0
+

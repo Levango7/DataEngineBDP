@@ -1,4 +1,4 @@
-# 路线图
+﻿# 路线图
 
 > 数据引擎大数据平台演进规划。本路线图描述 v1.1 至 v2.1 的主要里程碑与特性方向。
 
@@ -11,14 +11,14 @@
 graph LR
     V100[v1.0.0 已发布] --> V110[v1.1 Bug修复与优化]
     V110 --> V120[v1.2 端到端PoC跑通]
-    V120 --> V200[v2.0 已发布GA]
-    V200 --> V210[v2.1 生态扩展与生产化]
+    V120 --> V200[v2.0 已发布 RC（GA 勘误）]
+    V200 --> V210[v2.1.0-RC 已发布（行业生态扩展+生产化加固）]
 
     style V100 fill:#90EE90
     style V110 fill:#90EE90
     style V120 fill:#90EE90
-    style V200 fill:#90EE90
-    style V210 fill:#FFD700
+    style V200 fill:#FFD700
+    style V210 fill:#90EE90
 ```
 
 | 版本 | 主题 | 预计状态 |
@@ -26,8 +26,8 @@ graph LR
 | v1.0.0 | 首个正式版本，21 组件 + 59 Chart + 43 设计文档 | 已发布（2026-08-06） |
 | v1.1 | Bug 修复 + 性能优化 + 真实外部依赖接入 | 大部分完成（2026-08-13） |
 | v1.2 | 端到端 PoC 真实跑通 + 更多集成测试 | 已完成（7/7链路落地） |
-| v2.0 | 云原生增强 + AI 能力增强 + 数据联邦 + 实时数仓 + 更多行业模板 | 已发布 GA（2026-08-08） |
-| v2.1 | 行业生态扩展 + 生产化加固 + 性能调优 + 多集群联邦增强 | 进行中（行业模板+Argo Rollouts已交付） |
+| v2.0 | 云原生增强 + AI 能力增强 + 数据联邦 + 实时数仓 + 更多行业模板 | 已发布 RC（2026-08-08，GA 勘误见 ERRATUM.md） |
+| v2.1 | 行业生态扩展 + 生产化加固 + 性能调优 + 多集群联邦增强 | 已发布 RC（2026-08-27，21组件 GA 就绪 + 10 组件 Experimental） |
 
 ## v1.1.0 - Bug 修复与性能优化
 
@@ -245,3 +245,4 @@ graph LR
       已接真实 MLflow 指标来源（f2629cc3 + MLflowBackend/ExperimentStore + business-portal MLflowMetricsProvider + 集成测试）。
 - [x] **stream-batch-scheduler Flink/Spark**: 真实提交路径已实现（realSubmitEnabled=true），
       已通过 Docker 容器化 Flink/Spark 集群验证（744080b9 + FlinkRestClientIT 7用例 + SparkBatchSubmitterIT 6用例）。
+

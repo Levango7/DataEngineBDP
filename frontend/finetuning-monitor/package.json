@@ -1,6 +1,6 @@
 {
   "name": "finetuning-monitor",
-  "version": "0.1.0",
+  "version": "2.1.0-RC",
   "private": true,
   "type": "module",
   "scripts": {
@@ -25,3 +25,4 @@
     "vue-tsc": "^2.0.0"
   }
 }
+

@@ -1,0 +1,409 @@
+﻿# V2.1.0-RC Helm Values 配置
+# 基于 V2.0.0-RC helm-values.yaml 差量更新
+# 使用方式：helm install dataenginebdp dataenginebdp-umbrella -f this-file.yaml --namespace dataenginebdp --create-namespace
+
+global:
+  env: onprem                          # 部署环境：xinchang/onprem/public-cloud/private-cloud
+  imageRegistry: harbor.local/shuqing
+  imageTag: v2.1.0-RC
+  imagePullSecrets:
+    - name: harbor-secret
+  storageClass: local-path             # 生产环境建议替换为 ceph/rook/nfs 等
+  tls:
+    enabled: true
+    issuer: letsencrypt-prod
+  # 安全配置
+  security:
+    jwtSigningKey: \"\"                  # 必填：≥32 字符，生产环境必须通过 Secret 注入
+    cryptoProvider: BC                 # BC=国际算法，GM=国密算法（等保三级需 GM）
+    networkPolicyEnabled: true
+    podSecurityStandard: restricted
+  # 多租户配置
+  multiTenancy:
+    enabled: true
+    defaultQuota:
+      cpu: \"4\"
+      memory: 8Gi
+      storage: 50Gi
+
+# 基础设施组件
+infrastructure:
+  # SKE 相关配置由外部集群管理，此处仅为应用层配置
+  keycloak:
+    enabled: true
+    authServerUrl: \"https://auth.example.com/realms/dataenginebdp\"
+    realm: dataenginebdp
+    clientId: dataenginebdp-console
+    sslRequired: all
+  apisix:
+    enabled: true
+    adminKey: \"\"                       # 必填：Admin API Key
+    ssl:
+      enabled: true
+      certSecret: apisix-tls
+  argocd:
+    enabled: true
+    serverUrl: \"https://argocd.example.com\"
+    repoUrl: \"https://github.com/Levango7/DataEngineBDP\"
+    targetRevision: main
+    autoSync: true
+    prune: true
+  argorollouts:
+    enabled: true
+    controllerReplicas: 2
+  certmanager:
+    enabled: true
+    email: admin@example.com
+  externalSecrets:
+    enabled: true
+    provider: vault                    # vault/aws/secrets-manager/gcp
+  monitoring:
+    prometheus:
+      enabled: true
+      retention: 30d
+      storageSize: 50Gi
+    grafana:
+      enabled: true
+      adminPassword: \"\"               # 必填
+    loki:
+      enabled: true
+      retention: 14d
+    tempo:
+      enabled: true
+    alertmanager:
+      enabled: true
+      smtpPassword: \"\"                # 必填
+
+# 自研组件 - GA 就绪组件（21个）
+components:
+  # L0 基座
+  encaps-layer:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"1\", memory: 2Gi }
+      requests: { cpu: \"500m\", memory: 1Gi }
+    config:
+      k8sClientTimeout: 30s
+      informerWatchCache: true
+
+  encaps-tenant:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  encaps-gateway:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  encaps-data:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"1\", memory: 2Gi }
+      requests: { cpu: \"500m\", memory: 1Gi }
+    config:
+      kafkaBrokers: \"kafka:9092\"
+
+  infra-orchestrator:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"1\", memory: 2Gi }
+      requests: { cpu: \"500m\", memory: 1Gi }
+    config:
+      argocdServer: \"argocd-server:443\"
+
+  infra-provider-baremetal:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  infra-provider-cloud:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  infra-provider-private:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  infra-provider-xinchang:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  observability:
+    enabled: true
+    queryApi:
+      replicaCount: 2
+      resources:
+        limits: { cpu: \"500m\", memory: 1Gi }
+        requests: { cpu: \"250m\", memory: 512Mi }
+    config:
+      prometheusUrl: \"http://prometheus:9090\"
+      tenantFilterEnabled: true
+
+  dqctl:
+    enabled: true
+
+  storage-io:
+    enabled: true
+
+  common-security:
+    enabled: true
+
+  # L2 引擎
+  sql-gateway:
+    enabled: true
+    replicaCount: 3
+    resources:
+      limits: { cpu: \"2\", memory: 4Gi }
+      requests: { cpu: \"1\", memory: 2Gi }
+    config:
+      queryCache:
+        enabled: true
+        ttl: 60s
+        maxSize: 1000
+      backend:
+        trino:
+          url: \"http://trino:8080\"
+        doris:
+          feUrl: \"http://doris-fe:8030\"
+          beUrl: \"http://doris-be:8040\"
+        spark:
+          url: \"http://spark-master:7077\"
+        flink:
+          url: \"http://flink-jobmanager:8081\"
+
+  catalog:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"1\", memory: 2Gi }
+      requests: { cpu: \"500m\", memory: 1Gi }
+    config:
+      dbType: sqlite                   # 生产环境改为 postgres
+      sqlitePath: /data/catalog.db
+      elasticsearch:
+        enabled: true
+        url: \"http://elasticsearch:9200\"
+
+  rule-engine:
+    enabled: true
+    replicaCount: 3
+    resources:
+      limits: { cpu: \"2\", memory: 4Gi }
+      requests: { cpu: \"1\", memory: 2Gi }
+    config:
+      asyncBatchEnabled: true
+      batchSize: 100
+      datasource:
+        type: h2                       # 生产环境改为 postgres
+
+  tag-engine:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"1\", memory: 2Gi }
+      requests: { cpu: \"500m\", memory: 1Gi }
+    config:
+      dorisFeUrl: \"http://doris-fe:8030\"
+
+  flink-cdc:
+    enabled: true
+    config:
+      flinkJobManager: \"flink-jobmanager:8081\"
+      kafkaBrokers: \"kafka:9092\"
+      icebergCatalog: \"hadoop\"
+
+  stream-batch-scheduler:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"2\", memory: 4Gi }
+      requests: { cpu: \"1\", memory: 2Gi }
+    config:
+      realSubmitEnabled: true
+      flinkRestUrl: \"http://flink-jobmanager:8081\"
+      sparkRestUrl: \"http://spark-master:4040\"
+
+  # L3 治理
+  governance:
+    metadata-collector:
+      enabled: true
+      replicaCount: 2
+      resources:
+        limits: { cpu: \"1\", memory: 2Gi }
+        requests: { cpu: \"500m\", memory: 1Gi }
+    lineage-analyzer:
+      enabled: true
+      replicaCount: 2
+      resources:
+        limits: { cpu: \"1\", memory: 2Gi }
+        requests: { cpu: \"500m\", memory: 1Gi }
+      config:
+        nebulaGraph:
+          enabled: true
+          addresses: \"nebula-graphd:9669\"
+    real-time-pipeline:
+      enabled: true
+      replicaCount: 2
+      resources:
+        limits: { cpu: \"1\", memory: 2Gi }
+        requests: { cpu: \"500m\", memory: 1Gi }
+
+  # L4 开发（第三方，仅配置引用）
+  seatunnel:
+    enabled: true
+  dolphinscheduler:
+    enabled: true
+  theia:
+    enabled: true
+  superset:
+    enabled: true
+
+  # L5 产品
+  console:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  operations:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  business-portal:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+    config:
+      mlflowUrl: \"http://mlflow:5000\"
+
+  open-api-catalog:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+    config:
+      apisixAdminKey: \"\"             # 必填
+      apisixUrl: \"http://apisix-admin:9180\"
+
+  asset-exchange:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+  multi-cluster-dashboard:
+    enabled: true
+    replicaCount: 2
+    resources:
+      limits: { cpu: \"500m\", memory: 1Gi }
+      requests: { cpu: \"250m\", memory: 512Mi }
+
+# Experimental 组件（10个，默认关闭，需显式开启）
+experimental:
+  vector-engine:
+    enabled: false
+    config:
+      milvusEnabled: false             # 真实 Milvus 需 -tags milvus_enabled 编译
+      mockMode: true
+
+  llm-gateway:
+    enabled: false
+    config:
+      providers: {}                    # 需配置真实 Provider（openai/qianwen/wenxin/zhipu）
+      mockMode: true
+      rbacEnabled: true
+
+  llmops:
+    enabled: false
+    config:
+      mlflowEnabled: false
+      mockMode: true
+
+  ml-platform:
+    enabled: false
+    config:
+      mlflowEnabled: false
+      mockMode: true
+
+  knowledge-engine:
+    enabled: false
+    config:
+      nebulaEnabled: false
+      llmEnabled: false
+      mockMode: true
+
+  model-finetuning:
+    enabled: false
+    config:
+      gpuEnabled: false
+      mockMode: true
+
+  registry:
+    enabled: false
+    config:
+      mockMode: true
+
+  industry-templates:
+    enabled: false
+    config:
+      mockMode: true
+
+  karmada-api:
+    enabled: false
+    config:
+      karmadaEnabled: false
+      mockMode: true
+
+  knative:
+    enabled: false
+    config:
+      knativeEnabled: false
+      mockMode: true
+
+# 第三方引擎版本锁定
+engines:
+  trino: 460
+  doris: 2.1.7
+  kafka: 3.8.1
+  flink: 1.20.0
+  spark: 3.5.3
+  iotdb: 2.0.2
+  keycloak: 25.0
+  nebulaGraph: 3.6
+  iceberg: 1.5.0
+  apisix: 3.9
+  istio: 1.20
+  argocd: 2.7.6
+  certManager: 1.13.3
+  minio: RELEASE.2024-05-28T17-19-04Z
+  redis: 7.2
+  elasticsearch: 7.17
+  postgresql: 16
+  zookeeper: 3.9
