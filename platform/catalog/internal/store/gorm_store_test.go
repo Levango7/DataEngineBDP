@@ -1,4 +1,3 @@
-//go:build !nocgo
 
 package store
 

@@ -31,10 +31,19 @@ PYEOF
 
 mkdir -p /tmp/_split
 pass=0; fail=0; : > /tmp/chart_failures.txt
+# CI 冒烟专用 JWT 覆盖：catalog chart 默认 jwtSigningKey 已改为空串（fail-fast），
+# 裸渲染必须显式注入占位值才能通过 required 校验；
+# umbrella 下传给子 chart 的键需带 "catalog." 前缀。
+SMOKE_JWT=ci-smoke-only-value-0123456789abcdef
 for cf in $(find design/deploy/charts platform/industry-templates/charts -name Chart.yaml 2>/dev/null | sort); do
   dir=$(dirname "$cf"); name=$(basename "$dir")
+  extra_args=()
+  case "$name" in
+    catalog)                extra_args=(--set "auth.jwtSigningKey=${SMOKE_JWT}") ;;
+    dataenginebdp-umbrella) extra_args=(--set "catalog.auth.jwtSigningKey=${SMOKE_JWT}") ;;
+  esac
   errfile=$(mktemp)
-  out=$(helm template "$name" "$dir" --namespace smoke 2>"$errfile"); rc=$?
+  out=$(helm template "$name" "$dir" --namespace smoke ${extra_args[@]+"${extra_args[@]}"} 2>"$errfile"); rc=$?
   if [ $rc -ne 0 ] || [ -z "$out" ]; then
     fail=$((fail+1)); echo "RENDER-FAIL $name :: $(cat "$errfile" | head -3 | tr '\n' ' ' | head -c 240)" >> /tmp/chart_failures.txt; continue
   fi

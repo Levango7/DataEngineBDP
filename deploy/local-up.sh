@@ -67,7 +67,9 @@ spec:
     path: design/deploy/charts/dataenginebdp-umbrella
     helm:
       valueFiles:
-        - ../../deploy/local/values-local-core.yaml
+        # 相对路径以 source.path 为基准（design/deploy/charts/dataenginebdp-umbrella），
+        # 需 4 级 .. 回到仓库根再进入 deploy/local/
+        - ../../../../deploy/local/values-local-core.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: ${NS}

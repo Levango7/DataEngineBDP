@@ -48,3 +48,8 @@ config:
     db.pool.hikari.maximumPoolSize = 10
     log.level = info
     feature.persistentVolume = false
+
+# ---- JWT 签名密钥 ----
+# staging 占位密钥，上线前须替换为外部注入的真实凭据
+auth:
+  jwtSigningKey: "staging-signing-key-0123456789abcdef-REPLACE-BEFORE-USE"

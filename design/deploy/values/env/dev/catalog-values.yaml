@@ -47,3 +47,8 @@ config:
     db.pool.hikari.maximumPoolSize = 5
     log.level = debug
     feature.persistentVolume = false
+
+# ---- JWT 签名密钥 ----
+# 仅开发环境使用，严禁用于生产
+auth:
+  jwtSigningKey: "dev-env-signing-key-0123456789abcdef-not-for-prod"

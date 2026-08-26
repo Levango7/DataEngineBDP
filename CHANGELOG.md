@@ -28,6 +28,7 @@
 - **V2.0.0 定级勘误**：`releases/v2.0.0/` 新增 ERRATUM.md 正式勘误公告，v2.0.0 的 GA 定级修订为 RC（候选版本）；逐条更正 release-notes.md 中与 ga-checklist.md 矛盾的表述——四环境部署验证实际为 0/6 通过（待实际环境验证）、787 用例与性能基线未经四环境实测、覆盖率未达 85%（门禁后经调整至实际值之下）；明确 V2.0 真实定位（骨架与文档交付为主体、核心链路可用、AI 层为演示模式）；release-notes.md 与 ga-checklist.md 历史原文保留不改
 
 #### Fixed
+- **审核驱动的 7 项缺陷修复**（方案经子代理逐项审核修订后执行）：local-up.sh ArgoCD valueFiles 相对路径补齐 4 级上溯（原 2 级解析到 design/deploy/deploy/... 不存在路径）；nightly arm64 冒烟移除 buildx 多余第二 context（标准 buildx 报 requires exactly 1 argument）；catalog chart jwtSigningKey 弱默认值改空串激活 secret.yaml required fail-fast，local/dev/staging/prod 四套 values 显式补 ≥32 字符键，chart-render-check.sh 对 catalog 与 umbrella 注入 smoke 占位值保 CI 渲染门禁不破；open-api-catalog _save_metric_sync 三条 DML 包裹 BEGIN IMMEDIATE 显式事务且 _metrics_buffer.append 移至 COMMIT 后消除 DB/buffer 不一致窗口；catalog 两测试文件删除过时 //go:build !nocgo 标签（驱动已切纯 Go glebarez）；_generate_charts.py 补覆盖写危险警示（docstring + main 入口 stderr 双重）；values-local-core.yaml 删除 umbrella 不存在的 encaps-tenant 无效键
 - **catalog 容器化三连修**：sqlite 驱动切纯 Go glebarez（CGO_ENABLED=0 镜像可正常启动，兼修 arm64）；chart 补 emptyDir 数据卷+CATALOG_DB 指向；显式覆盖 K8s 同名 Service 注入的 CATALOG_PORT 环境变量；新增 auth Secret 注入 JWT_SIGNING_KEY
 - **本地端到端实证**：kind(dataengine-local)+helm 安装 catalog 2/2 Running，健康检查 HTTP 200（E 盘 Docker Desktop + docker.1ms.run 镜像站方案）
 

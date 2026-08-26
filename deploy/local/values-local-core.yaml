@@ -166,12 +166,13 @@ infra-provider-xinchang:
 # ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
 encaps-layer:
   enabled: true
-encaps-tenant:
-  enabled: true
 sql-gateway:
   enabled: true
 catalog:
   enabled: true
+  # 本地开发专用签名密钥（≥32 字符）；chart 默认值为空，缺失将 fail-fast
+  auth:
+    jwtSigningKey: "local-dev-signing-key-change-me-0123456789abcdef"
 rule-engine:
   enabled: true
 nl2sql:

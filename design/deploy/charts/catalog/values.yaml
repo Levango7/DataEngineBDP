@@ -113,6 +113,8 @@ config:
 # 完整配置请通过 -f design/deploy/values/catalog-values.yaml 覆盖
 # 渲染命令： helm template catalog design/deploy/charts/catalog -f design/deploy/values/catalog-values.yaml
 
-# JWT 签名密钥（生产环境务必通过外部 Secret/CI 注入覆盖）
+# JWT 签名密钥（必须显式提供，否则渲染失败 fail-fast）
+# 留空时 templates/secret.yaml 的 required 校验将阻断渲染；
+# 各环境请在对应 values 中覆盖，生产环境务必通过外部 Secret/CI 注入
 auth:
-  jwtSigningKey: "local-dev-signing-key-change-me"
+  jwtSigningKey: ""

@@ -5,7 +5,16 @@
 关联设计：design/详细设计/多平台多租户大数据平台_部署清单详细设计_v0.1.md §7
 说明：仅生成 Chart 骨架级默认值，完整生产配置请通过 -f values-xxx.yaml 覆盖。
 注意：包含 Go template {{ }} 语法的文件必须用普通字符串 + replace，不能用 f-string。
+
+⚠️⚠️⚠️ 危险操作警示（DO NOT RERUN）⚠️⚠️⚠️
+本脚本以覆盖写("w" 模式)生成 33 个 chart 约 330 个文件；其中大量模板在
+commit fccb2fbe 之后经人工增强（安全加固/资源治理/探针/密钥治理等）。
+禁止对 design/deploy/charts 重跑本脚本——重跑会把全部人工增强内容回滚为
+骨架默认值。如确需重新生成，请先新建 git 分支并逐文件 diff 确认后再合并。
 """
+
+import os
+import sys
 
 import os
 
@@ -613,6 +622,13 @@ def write_file(path, content):
 
 
 def main():
+    # 运行时防误跑护栏：仅警告不阻断（避免卡 CI），详见模块 docstring 危险警示
+    print(
+        "[DANGER] _generate_charts.py 将覆盖写入 33 个 chart 约 330 个文件，"
+        "其中含 fccb2fbe 之后的人工增强模板。禁止对本目录重跑！"
+        "（如非有意执行请立即 Ctrl+C 中止）",
+        file=sys.stderr,
+    )
     base_dir = os.path.dirname(os.path.abspath(__file__))
     created = []
 

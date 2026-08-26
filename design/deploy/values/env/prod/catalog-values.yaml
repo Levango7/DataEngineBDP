@@ -63,3 +63,9 @@ persistence:
   accessModes:
     - ReadWriteOnce
   size: 50Gi
+
+# ---- JWT 签名密钥 ----
+# !! 生产环境占位符：部署前 MUST 通过外部 Secret / CI 注入替换为真实密钥，
+#    严禁将该占位值带入生产集群 !!
+auth:
+  jwtSigningKey: "prod-placeholder-MUST-replace-with-external-secret-0123456789ab"

@@ -419,63 +419,81 @@ class SQLiteCatalogStore:
         return await asyncio.to_thread(self._save_metric_sync, metric)
 
     def _save_metric_sync(self, metric: CallMetric) -> CallMetric:
-        """单次调用计量的完整落库与聚合（同步原子段，由实例写锁串行化）."""
+        """单次调用计量的完整落库与聚合（同步原子段，由实例写锁串行化）.
+
+        连接为 autocommit 模式（isolation_level=None），单条语句即独立提交；
+        此处显式 BEGIN IMMEDIATE 开启写事务（避免读后写升级死锁），
+        保证 INSERT + 2 条 UPDATE 聚合的原子性：任一步失败整体 ROLLBACK。
+        仅 COMMIT 成功后才写入 _metrics_buffer，确保内存视图与 DB 状态一致。
+        """
         with self._write_lock:
-            self._conn.conn.execute(
-                """
-                INSERT INTO call_metrics (
-                    call_id, api_id, api_version, subscription_id,
-                    consumer_tenant_id, provider_tenant_id, timestamp,
-                    latency_ms, request_bytes, response_bytes, status_code,
-                    cost_strategy, cost_amount, error_message
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
-                """,
-                (
-                    metric.callId,
-                    metric.apiId,
-                    metric.apiVersion,
-                    metric.subscriptionId,
-                    metric.consumerTenantId,
-                    metric.providerTenantId,
-                    metric.timestamp.isoformat(),
-                    metric.latencyMs,
-                    metric.requestBytes,
-                    metric.responseBytes,
-                    metric.statusCode,
-                    metric.costStrategy.value,
-                    metric.costAmount,
-                    metric.errorMessage,
-                ),
-            )
+            conn = self._conn.conn
+            try:
+                conn.execute("BEGIN IMMEDIATE;")
+                conn.execute(
+                    """
+                    INSERT INTO call_metrics (
+                        call_id, api_id, api_version, subscription_id,
+                        consumer_tenant_id, provider_tenant_id, timestamp,
+                        latency_ms, request_bytes, response_bytes, status_code,
+                        cost_strategy, cost_amount, error_message
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+                    """,
+                    (
+                        metric.callId,
+                        metric.apiId,
+                        metric.apiVersion,
+                        metric.subscriptionId,
+                        metric.consumerTenantId,
+                        metric.providerTenantId,
+                        metric.timestamp.isoformat(),
+                        metric.latencyMs,
+                        metric.requestBytes,
+                        metric.responseBytes,
+                        metric.statusCode,
+                        metric.costStrategy.value,
+                        metric.costAmount,
+                        metric.errorMessage,
+                    ),
+                )
+                error_delta = 1 if metric.statusCode >= 400 else 0
+                traffic = metric.requestBytes + metric.responseBytes
+                updated_at = utc_now().isoformat()
+                # API 聚合统计（SQL 侧自增，避免读改写竞态）
+                conn.execute(
+                    """
+                    UPDATE apis SET
+                        call_count = call_count + 1,
+                        error_count = error_count + ?,
+                        total_latency_ms = total_latency_ms + ?,
+                        total_traffic_bytes = total_traffic_bytes + ?,
+                        updated_at = ?
+                    WHERE id = ?;
+                    """,
+                    (error_delta, metric.latencyMs, traffic, updated_at, metric.apiId),
+                )
+                # 订阅统计
+                conn.execute(
+                    """
+                    UPDATE subscriptions SET
+                        call_count = call_count + 1,
+                        error_count = error_count + ?,
+                        last_called_at = ?,
+                        updated_at = ?
+                    WHERE id = ?;
+                    """,
+                    (error_delta, metric.timestamp.isoformat(), updated_at, metric.subscriptionId),
+                )
+                conn.execute("COMMIT;")
+            except BaseException:
+                # 任一步失败必须显式终止事务，防止 autocommit 连接残留悬挂事务；
+                # ROLLBACK 自身失败（如连接已损坏）不应掩盖原始异常
+                try:
+                    conn.execute("ROLLBACK;")
+                except sqlite3.Error:
+                    pass
+                raise
             self._metrics_buffer.append(metric)
-            error_delta = 1 if metric.statusCode >= 400 else 0
-            traffic = metric.requestBytes + metric.responseBytes
-            updated_at = utc_now().isoformat()
-            # API 聚合统计（SQL 侧自增，避免读改写竞态）
-            self._conn.conn.execute(
-                """
-                UPDATE apis SET
-                    call_count = call_count + 1,
-                    error_count = error_count + ?,
-                    total_latency_ms = total_latency_ms + ?,
-                    total_traffic_bytes = total_traffic_bytes + ?,
-                    updated_at = ?
-                WHERE id = ?;
-                """,
-                (error_delta, metric.latencyMs, traffic, updated_at, metric.apiId),
-            )
-            # 订阅统计
-            self._conn.conn.execute(
-                """
-                UPDATE subscriptions SET
-                    call_count = call_count + 1,
-                    error_count = error_count + ?,
-                    last_called_at = ?,
-                    updated_at = ?
-                WHERE id = ?;
-                """,
-                (error_delta, metric.timestamp.isoformat(), updated_at, metric.subscriptionId),
-            )
         return metric
 
     async def list_metrics(
