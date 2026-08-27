@@ -156,6 +156,24 @@
             <version>3.8.1</version>
         </dependency>
 
+        <!-- Kubernetes Client (fabric8)：K8sClientService 调用 K8s API（namespace/pod/service/configmap） -->
+        <!-- 兼容性：fabric8 6.13.4 支持 Java 17 + Spring Boot 3.2.x；6.x 使用 KubernetesClientBuilder 新 API -->
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client</artifactId>
+            <version>6.13.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-client-api</artifactId>
+            <version>6.13.4</version>
+        </dependency>
+        <dependency>
+            <groupId>io.fabric8</groupId>
+            <artifactId>kubernetes-model</artifactId>
+            <version>6.13.4</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>

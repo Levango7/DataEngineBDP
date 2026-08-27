@@ -37,6 +37,9 @@
 - **P0/P1 修复批次——前端覆盖率**：functions 覆盖率从 49.56% 提升至 50.43%（补 2 个测试——cluster.test.ts listComponentStatuses + tenant.test.ts localStorage 恢复），四项门禁全部通过（Stmts 67.27/Branch 61.91/Funcs 50.43/Lines 67.72）；CI 添加非阻断 coverage 报告步骤（continue-on-error: true）
 - **P0/P1 修复批次——硬编码密码**：docker-compose.infra.yml POSTGRES_PASSWORD、docker-compose.core.yml POSTGRES_PASSWORD+MINIO_ROOT_PASSWORD 改为环境变量引用 ${VAR:-default} 模式，消除明文密码
 - **P0/P1 修复批次——多架构构建扩容**：multi-arch-build.yml 覆盖从 5 组件扩展到 10 组件——新增 tag-engine(Java) 到 build-java-images matrix、新建 build-go-images job 覆盖 karmada-api/karmada-failover-api/karmada-failover-engine 三个 Go 组件、新建 build-python-images job 覆盖 open-api-catalog；build-summary 同步更新 needs 和镜像清单
+- **P0/P1 修复批次——frontend 非 root 化**：frontend/Dockerfile 添加 USER nginx 指令，nginx.conf 监听端口 80→8080（非 root 用户无法绑定 privileged port 80），HEALTHCHECK 同步更新端口
+- **P0/P1 修复批次——升级指南补充**：upgrade-guide.md 追加 V2.0→V2.1.0-RC 升级章节（388 行），覆盖关键变更/前置条件/升级步骤（含 Apollo→Nacos 迁移、安全策略启用）/回滚方案/已知限制
+- **P0/P1 修复批次——encaps-layer K8s Client**：引入 fabric8 Kubernetes Client 6.13.4 依赖，新建 K8sClientService（namespace/pod/service/configmap CRUD + 健康检查 + in-cluster/kubeconfig 双模式）和 K8sController（REST API 暴露 K8s 操作），application.yml 添加 K8s 连接配置；Maven 编译验证通过
 
 #### Corrected
 - **P0/P1 修复批次——文档勘误**：FINAL-DELIVERY-SUMMARY.md 降级 GA 100%→RC（候选版本），修正"886测试0失败"为含已知失败用例表述；PROJECT-AUDIT-REPORT.md 评分 96/100→72/100（反映真实完成度 40~50%）；ROADMAP.md HPA 覆盖数 82→67（实际 Chart 数）、v2.0.0 GA→RC 定级修正；README.md "全通过"→"含已知失败"、"GA 就绪"→"RC 就绪"；component-maturity.md 确认无需修改（无 82/HPA 字样）

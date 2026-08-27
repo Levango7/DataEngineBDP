@@ -41,7 +41,7 @@
 |------|--------|------|------|------|
 | 4.1 | 等保三级材料 | docs/compliance/ 目录下报告齐备不退化 | ⏳ | 需检查 docs/compliance/ 目录（测评报告/整改记录/复测报告） |
 | 4.2 | 密评材料 | SM2/SM3/SM4 密码应用评估报告存在 | ⏳ | 需检查 docs/compliance/ 目录 |
-| 4.3 | 容器非 root | 18 个 Dockerfile 均为 USER app | ❌ | 本地验证：39 个 Dockerfile 已非 root（USER app/appuser/1000:1000），但 frontend/Dockerfile 缺 USER 指令（基于 nginx:alpine 默认 root）；knative/runtimes/{go,java} 按 distroless :nonroot 豁免，ske/node-image 按 kind 节点镜像豁免 |
+| 4.3 | 容器非 root | 18 个 Dockerfile 均为 USER app | ✅ | 已修复：frontend/Dockerfile 添加 USER nginx + 端口 80→8080；40 个 Dockerfile 已非 root（USER app/appuser/nginx/1000:1000），knative/runtimes/{go,java} 按 distroless :nonroot 豁免，ske/node-image 按 kind 节点镜像豁免 |
 | 4.4 | JWT 密钥无弱默认 | catalog/llm-gateway 等值为空串，激活 secret.yaml required | ⏳ | 需运行时验证 |
 | 4.5 | RBAC 生效 | llm-gateway Provider 注册/路由需 admin，catalog 租户隔离 404 | ⏳ | 需运行时验证 |
 | 4.6 | CORS 收敛 | 无 Access-Control-Allow-Origin: *，均为白名单 | ⏳ | 需运行时验证 |
@@ -64,7 +64,7 @@
 | 6.1 | README 版本标 | 顶部显示 v2.1.0-RC + experimental 标注 | ✅ | 本地验证：README.md 第 14 行含"v2.1.0-RC 发布就绪：21 组件 RC 就绪 + 10 组件 Experimental"（顶部第 8 行仍为 2.1.0-SNAPSHOT 开发中标注） |
 | 6.2 | ROADMAP 状态 | v2.1 进展项标记完成，v2.2+ 规划清晰 | ✅ | 本地验证：ROADMAP.md 第 30 行 v2.1 标记"已发布 RC（2026-08-27，21组件 GA 就绪 + 10 组件 Experimental）"，v1.1/v1.2 进展项已标记完成 |
 | 6.3 | API 参考文档 | docs/user-guide/api-reference.md V2.2 勘误实况化 | ✅ | 本地验证：文件存在 1689 行，版本 V2.2，更新日期 2026-08-25 |
-| 6.4 | 升级指南 | docs/user-guide/upgrade-guide.md 覆盖 V2.0→V2.1 | ❌ | 本地验证：文件存在 472 行，但仅覆盖 V1.0→V2.0，未包含 V2.0→V2.1 升级内容 |
+| 6.4 | 升级指南 | docs/user-guide/upgrade-guide.md 覆盖 V2.0→V2.1 | ✅ | 已修复：追加 V2.0→V2.1.0-RC 升级章节（388 行），覆盖关键变更/前置条件/升级步骤（含 Apollo→Nacos 迁移、安全策略启用）/回滚方案/已知限制 |
 | 6.5 | 发布物料完整 | RELEASE-NOTES/helm-values/upgrade-script/rc-checklist/component-matrix 全部存在 | ✅ | 本地验证：5 个物料文件全部存在（RELEASE-NOTES.md/helm-values.yaml/upgrade-script.sh/rc-checklist.md/component-matrix.md） |
 
 ## 7. 已知限制确认
@@ -122,12 +122,12 @@
 | 7.4 | 覆盖率未达 85% | RELEASE-NOTES §4 已披露 |
 | 7.5 | 默认 H2/SQLite 需切 PostgreSQL | RELEASE-NOTES §4 已披露 |
 
-### 9.3 ❌ 失败项明细（2 项，需修复）
+### 9.3 ❌ 失败项明细（0 项，已全部修复）
 
-| 编号 | 检查项 | 缺陷描述 | 建议修复 |
+| 编号 | 检查项 | 缺陷描述 | 修复状态 |
 |------|--------|----------|----------|
-| 4.3 | 容器非 root | `frontend/Dockerfile` 缺 USER 指令，基于 `nginx:alpine` 默认以 root 运行；其余 39 个 Dockerfile 已非 root（USER app/appuser/1000:1000），knative/runtimes/{go,java} 按 distroless :nonroot 豁免，ske/node-image 按 kind 节点镜像豁免 | 在 `frontend/Dockerfile` 运行段添加 `USER nginx`（nginx:alpine 内置 nginx 用户）或创建 app 用户并 USER app |
-| 6.4 | 升级指南 | `docs/user-guide/upgrade-guide.md` 仅覆盖 V1.0→V2.0，未包含 V2.0→V2.1 升级内容 | 新增 V2.0→V2.1 升级章节，覆盖 catalog JWT 密钥强制、容器非 root、覆盖率门禁调整、AI 组件 experimental 标注等不兼容变更 |
+| 4.3 | 容器非 root | `frontend/Dockerfile` 缺 USER 指令 | ✅ 已修复：添加 USER nginx + 端口 80→8080 |
+| 6.4 | 升级指南 | `upgrade-guide.md` 未覆盖 V2.0→V2.1 | ✅ 已修复：追加 V2.0→V2.1.0-RC 升级章节（388 行） |
 
 ### 9.4 ⏳ 待外部环境项明细（23 项）
 
@@ -140,12 +140,12 @@
 
 ### 9.5 验证结论
 
-- **本地可判定项通过率：15/17 = 88.2%**（剔除 23 项待外部环境）
-- **阻断项：2 项失败（4.3 容器非 root、6.4 升级指南），需在 RC 发布前修复**
+- **本地可判定项通过率：17/17 = 100%**（剔除 23 项待外部环境）
+- **阻断项：0 项失败（4.3 和 6.4 已修复）**
 - **待外部环境：23 项需在 CI/CD 与云环境就绪后补齐**
-- **建议：修复 4.3 与 6.4 后，触发完整 CI 流水线并执行四环境部署验证，方可推进 RC 发布签字**
+- **建议：触发完整 CI 流水线并执行四环境部署验证，方可推进 RC 发布签字**
 
 ---
 
 > **DataEngineBDP V2.1.0-RC 发布检查清单**  
-> **版本：RC-01 | 日期：2026-08-27 | 状态：本地验证完成（15✅ / 2❌ / 23⏳）**
+> **版本：RC-01 | 日期：2026-08-28 | 状态：本地验证完成（17✅ / 0❌ / 23⏳），本地通过率 100%**

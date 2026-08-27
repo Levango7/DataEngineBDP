@@ -20,16 +20,18 @@ RUN npm run build
 # 运行阶段：最小化镜像
 FROM nginx:alpine
 
-# 以 root 运行以便启用 privileged ports。nginx master 已为其降级执行。
 COPY --from=build /build/dist /usr/share/nginx/html
 
 # 注入自定义服务器块（替代默认 conf.d/default.conf）
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
+# 非 root 运行：nginx 用户监听 8080 端口（避免 privileged port 80）
+USER nginx
+
 # 健康检查：静态文件是否可访问
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null 2>&1 || exit 1
+  CMD wget -qO- http://127.0.0.1:8080/ >/dev/null 2>&1 || exit 1
 
-EXPOSE 80
+EXPOSE 8080
 
 CMD ["nginx", "-g", "daemon off;"]

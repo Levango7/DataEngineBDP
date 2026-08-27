@@ -137,6 +137,15 @@ app:
     # kubeconfig: ${K8S_KUBECONFIG:~/.kube/config}
     # Service Mesh 相关：sidecar 由 Istio 自动注入（namespace 标签 istio-injection=enabled）
     # mTLS 由 PeerAuthentication 管理（见 ske/k3s/peer-authentication-mtls.yaml），应用无需感知
+    # —— K8sClientService 连接参数（fabric8 KubernetesClient 6.x）——
+    # 是否在 K8s 集群内运行（true=使用 in-cluster config, false=使用 kubeconfig）
+    in-cluster: ${K8S_IN_CLUSTER:true}
+    # kubeconfig 路径（in-cluster=false 时使用），默认 ~/.kube/config
+    kubeconfig-path: ${K8S_KUBECONFIG_PATH:~/.kube/config}
+    # 连接超时（毫秒）
+    connect-timeout: ${K8S_CONNECT_TIMEOUT:10000}
+    # 请求超时（毫秒）
+    request-timeout: ${K8S_REQUEST_TIMEOUT:30000}
 
 # JWT 密钥自动轮换（见 docs/JWT-KEY-ROTATION-GUIDE.md）
 # 默认关闭（enabled=false），不影响现有 HMAC/OIDC 验签链路；生产环境设 true 开启

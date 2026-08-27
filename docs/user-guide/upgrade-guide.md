@@ -470,3 +470,389 @@ echo "=== 检查完成 ==="
 - 《API 参考文档》（api-reference.md）
 - 《行业模板使用指南》（industry-template-guide.md）
 - 《变更日志》（../../CHANGELOG.md）
+
+---
+
+# 数据引擎大数据平台升级指南（V2.0 → V2.1.0-RC）
+
+> 版本：从 V2.0.0 升级至 V2.1.0-RC | 适用对象：平台运维工程师 | 更新日期：2026-08-28
+
+## 第1章 升级概述
+
+### 1.1 升级范围
+
+本指南覆盖数据引擎大数据平台从 V2.0.0 至 V2.1.0-RC 的完整升级流程。V2.1.0-RC 在 V2.0.0 基础上进行安全加固、生产化修复和行业生态扩展，重点完成 K8s 安全策略全量推广、容器非 root 化、配置中心 Apollo→Nacos 迁移、多架构构建扩容以及医疗/交通/教育/农牧四大行业模板扩展。
+
+### 1.2 V2.1.0-RC 关键变更
+
+| 变更类别 | 变更项 | V2.0.0 | V2.1.0-RC |
+|----------|--------|--------|-----------|
+| Security | K8s 安全策略模板 | 部分覆盖 | 81 个 Chart 添加 NetworkPolicy + ServiceMonitor，新增 namespace-security Chart |
+| Security | Dockerfile HEALTHCHECK | 无 | 17 个应用 Dockerfile 添加健康检查 |
+| Security | 硬编码密码 | docker-compose 明文 | 改为环境变量引用 |
+| Security | 容器非 root | 部分 root | 18 个 Dockerfile 全部非 root 化 |
+| Fixed | 前端覆盖率 | functions 49.56% | functions 50.43% |
+| Fixed | 多架构构建 | 5 个组件 | 10 个组件（tag-engine / karmada×3 / open-api-catalog） |
+| Changed | 配置中心 | Apollo | Nacos |
+| Changed | v2.0.0 定级 | GA | RC（勘误） |
+| Added | 行业模板 | 金融/能源/政务 | 新增医疗/交通/教育/农牧 |
+| Added | 金丝雀交付 | 无 | Argo Rollouts 金丝雀发布 |
+
+### 1.3 兼容性
+
+- **API 兼容**：V2.0 全部 API 端点在 V2.1.0-RC 保持向后兼容，仅新增端点
+- **配置兼容**：Apollo→Nacos 迁移需手动执行配置导入，平台提供 `dqctl config migrate` 工具
+- **Helm 兼容**：V2.1.0-RC Chart 可读取 V2.0 Release 状态；新增 NetworkPolicy / ServiceMonitor 模板默认 `enabled: false`，不影响存量部署
+- **数据兼容**：V2.0 数据格式在 V2.1.0-RC 可直接读取，无需数据迁移
+- **镜像兼容**：容器非 root 化后，挂载卷的文件权限需调整为非 root 用户可读写
+
+## 第2章 前置条件
+
+### 2.1 版本确认
+
+```bash
+# 检查当前 Helm Release 版本
+helm list -n shuqing-system
+# 期望输出：shuqing-bigdata  v2.0.0  deployed
+
+# 检查 Pod 镜像版本
+kubectl get deployment -n shuqing-system -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.template.spec.containers[0].image}{"\n"}{end}'
+
+# 检查健康端点
+curl http://encaps-layer:8080/api/v1/health
+# 期望响应包含 "version":"2.0.0"
+```
+
+确认当前版本为 V2.0.0。若版本低于 V2.0.0，需先按《V1.0 → V2.0 升级指南》升级至 V2.0.0。
+
+### 2.2 环境要求
+
+- **K8s 集群版本**：≥ 1.27（NetworkPolicy 与 ServiceMonitor 依赖）
+- **Helm 版本**：≥ 3.12
+- **ArgoCD 版本**：≥ 2.7（若启用 GitOps，金丝雀交付需 Argo Rollouts 1.4+）
+- **容器运行时**：containerd 1.7+ 或 CRI-O 1.27+（支持非 root 容器）
+- **存储类**：支持 PVC 权限调整（非 root UID/GID 可读写）
+
+### 2.3 数据备份确认
+
+```bash
+# 1) 备份 V2.0.0 Helm values
+helm get values ${RELEASE} -n ${NAMESPACE} -o yaml > /backup/values-v2.0.0-$(date +%Y%m%d).yaml
+
+# 2) 备份 Apollo 配置（迁移前必须）
+kubectl exec -n shuqing-system deployment/apollo-portal -- \
+  curl -X GET http://localhost:8070/openapi/v1/configs/export > /backup/apollo-configs-$(date +%Y%m%d).zip
+
+# 3) 备份数据库
+mysqldump -h doris-fe -P 9030 -u root -p information_schema > /backup/doris-meta-$(date +%Y%m%d).sql
+pg_dump -h keycloak-postgresql -U keycloak keycloak > /backup/keycloak-$(date +%Y%m%d).sql
+
+# 4) PVC 备份（Velero）
+velero backup create pre-upgrade-v21 -n shuqing-system,shuqing-infra
+
+# 5) 验证备份完整性
+ls -lh /backup/*-$(date +%Y%m%d)*
+velero backup describe pre-upgrade-v21 --details
+```
+
+### 2.4 维护窗口确认
+
+- **预计停机时间**：15~30 分钟（Apollo→Nacos 切换为主耗时）
+- **建议维护窗口**：业务低峰期（如凌晨 02:00~05:00）
+- **回滚预案**：准备 V2.0.0 Helm Chart 与 Apollo 配置备份，可在 10 分钟内回滚
+- **通知范围**：全部租户用户、业务方、运维团队
+
+## 第3章 升级步骤
+
+### 3.1 备份
+
+执行第 2.3 节的数据备份流程，确认以下备份文件齐全：
+
+```bash
+# 验证备份文件
+ls -lh /backup/values-v2.0.0-*.yaml
+ls -lh /backup/apollo-configs-*.zip
+ls -lh /backup/doris-meta-*.sql
+ls -lh /backup/keycloak-*.sql
+velero backup get pre-upgrade-v21
+```
+
+### 3.2 版本更新
+
+```bash
+# 0) 设置变量
+export NAMESPACE=shuqing-system
+export RELEASE=shuqing-bigdata
+export CHART=shuqing/shuqing-bigdata
+export NEW_VERSION=2.1.0-rc
+
+# 1) 更新 Helm repo
+helm repo update
+
+# 2) 准备 V2.1 values.yaml（在 V2.0 基础上新增 V2.1 参数）
+# 参见 3.3、3.4 节配置迁移与安全策略启用
+
+# 3) dry-run 检查
+helm upgrade ${RELEASE} ${CHART} \
+  -n ${NAMESPACE} \
+  -f values.yaml \
+  --version ${NEW_VERSION} \
+  --dry-run > upgrade-dry-run-v21.yaml 2>&1
+
+cat upgrade-dry-run-v21.yaml | grep -i error
+
+# 4) 执行升级
+helm upgrade ${RELEASE} ${CHART} \
+  -n ${NAMESPACE} \
+  -f values.yaml \
+  --version ${NEW_VERSION} \
+  --timeout 20m \
+  --wait
+
+# 5) 验证升级
+kubectl get pods -n ${NAMESPACE}
+kubectl wait --for=condition=Ready pod -n ${NAMESPACE} --timeout=600s
+```
+
+### 3.3 配置迁移（Apollo → Nacos）
+
+V2.1.0-RC 将配置中心从 Apollo 切换为 Nacos，需手动执行配置导入。
+
+#### 3.3.1 导出 Apollo 配置
+
+```bash
+# 1) 导出 Apollo 全量配置
+kubectl exec -n shuqing-system deployment/apollo-portal -- \
+  curl -X GET http://localhost:8070/openapi/v1/configs/export > /tmp/apollo-all.zip
+
+# 2) 解压并查看
+unzip /tmp/apollo-all.zip -d /tmp/apollo-configs/
+ls -lh /tmp/apollo-configs/
+```
+
+#### 3.3.2 导入 Nacos
+
+```bash
+# 1) 部署 Nacos（Helm 升级时自动部署，或独立部署）
+helm upgrade nacos shuqing/nacos \
+  -n shuqing-infra \
+  -f nacos-values.yaml \
+  --version 2.3.2 \
+  --wait
+
+# 2) 使用迁移工具导入配置
+dqctl config migrate \
+  --from apollo \
+  --from-dir /tmp/apollo-configs/ \
+  --to nacos \
+  --to-addr http://nacos:8848 \
+  --namespace shuqing
+
+# 3) 验证配置导入结果
+dqctl config list --server nacos --namespace shuqing
+```
+
+#### 3.3.3 更新应用配置指向 Nacos
+
+```yaml
+# values.yaml 中更新配置中心指向
+configCenter:
+  provider: nacos  # apollo → nacos
+  serverAddr: http://nacos:8848
+  namespace: shuqing
+  group: DEFAULT_GROUP
+  dataId: shuqing-bigdata.yaml
+```
+
+```bash
+# 重启应用以加载 Nacos 配置
+kubectl rollout restart deployment -n ${NAMESPACE}
+kubectl rollout status deployment -n ${NAMESPACE} --timeout=300s
+```
+
+### 3.4 安全策略启用
+
+V2.1.0-RC 新增 NetworkPolicy 与 ServiceMonitor 模板，默认 `enabled: false`，按需启用。
+
+#### 3.4.1 启用 NetworkPolicy
+
+```yaml
+# values.yaml 中启用 NetworkPolicy
+networkPolicy:
+  enabled: true
+  # namespace-security Chart 配置
+  namespaceSecurity:
+    enabled: true
+    # 默认拒绝全部入站，按白名单放行
+    defaultDeny: true
+    # 放行规则
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                shuqing.io/system: "true"
+```
+
+```bash
+# 验证 NetworkPolicy 生效
+kubectl get networkpolicy -n ${NAMESPACE}
+# 期望：81 个 Chart 对应的 NetworkPolicy 全部创建
+```
+
+#### 3.4.2 启用 ServiceMonitor
+
+```yaml
+# values.yaml 中启用 ServiceMonitor
+serviceMonitor:
+  enabled: true
+  labels:
+    release: prometheus  # Prometheus Operator 识别标签
+  interval: 30s
+  scrapeTimeout: 10s
+```
+
+```bash
+# 验证 ServiceMonitor 生效
+kubectl get servicemonitor -n ${NAMESPACE}
+# 期望：81 个 Chart 对应的 ServiceMonitor 全部创建
+
+# 验证 Prometheus 采集目标
+kubectl exec -n shuqing-infra deployment/prometheus -- \
+  wget -qO- http://localhost:9090/api/v1/targets | jq '.data.activeTargets | length'
+```
+
+#### 3.4.3 容器非 root 化验证
+
+```bash
+# 验证全部 Pod 非 root 运行
+kubectl get pods -n ${NAMESPACE} -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.containers[0].securityContext.runAsUser}{"\n"}{end}'
+# 期望：全部 runAsUser 非 0（如 1000）
+
+# 验证 Dockerfile HEALTHCHECK 生效
+kubectl get pods -n ${NAMESPACE} -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.status.containerStatuses[0].ready}{"\n"}{end}'
+# 期望：全部 ready=true
+```
+
+### 3.5 验证
+
+#### 3.5.1 Helm lint 全量 Chart
+
+```bash
+# 对 81 个 Chart 执行 lint
+for chart in $(helm search repo shuqing/ -o json | jq -r '.[].name'); do
+  helm lint ${chart} --version 2.1.0-rc || echo "LINT FAILED: ${chart}"
+done
+
+# 期望：全部 Chart lint 通过
+```
+
+#### 3.5.2 健康检查端点验证
+
+```bash
+# 验证 17 个应用的 HEALTHCHECK 端点
+for svc in encaps-layer sql-gateway catalog rule-engine ai-assistant; do
+  echo "=== ${svc} ==="
+  curl -s http://${svc}:8080/api/v1/health | jq '.status, .version'
+done
+
+# 期望：status=UP, version=2.1.0-rc
+```
+
+#### 3.5.3 前端构建验证
+
+```bash
+# 前端构建并验证覆盖率
+cd frontend
+npm ci
+npm run build
+npm run test:coverage
+
+# 期望：functions 覆盖率 ≥ 50.43%
+# 检查覆盖率报告
+cat coverage/coverage-summary.json | jq '.total.functions.pct'
+```
+
+#### 3.5.4 多架构构建验证
+
+```bash
+# 验证 10 个组件多架构镜像（amd64 + arm64）
+for img in tag-engine karmada-apiserver karmada-aggregated-apiserver karmada-controller-manager open-api-catalog; do
+  docker manifest inspect shuqing/${img}:2.1.0-rc | jq '.manifests[].platform'
+done
+
+# 期望：每个镜像包含 amd64 与 arm64 两个平台
+```
+
+#### 3.5.5 行业模板验证
+
+```bash
+# 验证新增行业模板（医疗/交通/教育/农牧）
+helm search repo shuqing/ -o json | jq -r '.[].name' | grep -E 'medical|transport|education|farming'
+
+# 部署示例（医疗模板）
+helm upgrade shuqing-medical shuqing/industry-medical \
+  -n shuqing-medical \
+  --version 2.1.0-rc \
+  --dry-run
+```
+
+#### 3.5.6 Argo Rollouts 金丝雀验证
+
+```bash
+# 验证 Argo Rollouts 控制器
+kubectl get rollout -n ${NAMESPACE}
+
+# 触发金丝雀发布
+kubectl argo rollouts get rollout encaps-layer -n ${NAMESPACE} --watch
+# 期望：按 20% → 40% → 60% → 80% → 100% 渐进切流
+```
+
+## 第4章 回滚方案
+
+若升级失败或验证不通过，执行回滚：
+
+### 4.1 Helm 回滚
+
+```bash
+# 1) Helm 回滚到 V2.0.0 Release
+helm rollback ${RELEASE} 0 -n ${NAMESPACE}  # 0 表示上一个版本
+
+# 2) 若 Helm 回滚失败，从 Velero 备份恢复
+velero restore create --from-backup pre-upgrade-v21
+```
+
+### 4.2 恢复 Apollo 配置
+
+```bash
+# 1) 回滚 values.yaml 中配置中心指向
+# 将 configCenter.provider 改回 apollo
+
+# 2) 重启应用
+kubectl rollout restart deployment -n ${NAMESPACE}
+kubectl rollout status deployment -n ${NAMESPACE} --timeout=300s
+
+# 3) 验证 Apollo 配置加载
+kubectl logs -n ${NAMESPACE} -l app=encaps-layer | grep "Apollo config loaded"
+```
+
+### 4.3 验证回滚
+
+```bash
+# 验证版本回滚至 V2.0.0
+curl http://encaps-layer:8080/api/v1/health
+# 期望：version=2.0.0
+
+helm list -n ${NAMESPACE}
+# 期望：shuqing-bigdata  v2.0.0  deployed
+```
+
+## 第5章 已知限制
+
+1. **AI / 模型组件**：10 个 AI / 模型组件（含 tag-engine、karmada×3、open-api-catalog 等）仍为 experimental，不建议生产环境启用
+2. **四环境部署验证**：开发/测试/预发/生产四环境部署验证进行中，生产环境升级前需确认目标环境验证通过
+3. **前端覆盖率**：functions 覆盖率 50.43%，未达 85% 目标，后续版本持续补齐
+4. **默认 H2 / SQLite**：部分组件默认使用 H2 / SQLite，生产环境需切换为 PostgreSQL，参见《运维手册》数据库配置章节
+5. **Apollo→Nacos 迁移不可逆**：迁移后 Apollo 配置不再同步，回滚需从备份恢复
+6. **NetworkPolicy 影响**：启用 NetworkPolicy 后，自定义网络策略可能被拒绝，需按白名单逐项放行
+7. **非 root 权限**：容器非 root 化后，挂载卷需调整 `fsGroup` 或 initContainer 修正权限
+8. **v2.0.0 定级勘误**：v2.0.0 由 GA 勘误为 RC，已部署 v2.0.0-ga 的环境需确认实际版本号
