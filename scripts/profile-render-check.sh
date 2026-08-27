@@ -10,7 +10,7 @@ cd "$(dirname "$0")/.." || exit 1
 UMBRELLA=design/deploy/charts/dataenginebdp-umbrella
 LOCAL_VALUES=deploy/local/values-local-core.yaml
 
-log() { echo "[$(date '\''+%H:%M:%S'\'')] $*"; }
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
 fail() { echo "FAIL: $*"; exit 1; }
 pass() { echo "PASS: $*"; }
 

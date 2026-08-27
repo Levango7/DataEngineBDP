@@ -77,6 +77,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install pytest
+        if: matrix.component.name == 'asset-exchange'
+        run: pip install -q pytest
       - name: Setup Node
         if: matrix.component.name == 'frontend'
         uses: actions/setup-node@v4
