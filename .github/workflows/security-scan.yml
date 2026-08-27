@@ -227,11 +227,19 @@ jobs:
             --severity HIGH,CRITICAL \
             ske/ || echo "::warning::ske/ 配置扫描发现问题"
 
-      - name: 上传配置扫描 SARIF
+      - name: 上传 deploy/ 配置扫描 SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: reports/trivy
+          sarif_file: reports/trivy/config-deploy.sarif
+          category: trivy-config-deploy
+
+      - name: 上传 ske/ 配置扫描 SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy/config-ske.sarif
+          category: trivy-config-ske
 
       - name: 上传配置扫描报告 Artifact
         if: always()
