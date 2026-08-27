@@ -1,0 +1,186 @@
+name: Local E2E (kind + Karmada Multi-cluster)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "platform/**"
+      - "frontend/**"
+      - "design/deploy/charts/**"
+      - "scripts/**"
+      - "deploy/**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_karmada:
+        description: "Run Karmada multi-cluster test"
+        type: boolean
+        default: false
+      run_infra:
+        description: "Run Docker Compose infra (heavy)"
+        type: boolean
+        default: false
+
+jobs:
+  # ============================================================
+  # 1. Profile 渲染 + Schema 校验（快速，无需集群）
+  # ============================================================
+  profile-render:
+    name: Profile Render Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "v3.14.0"
+      - name: Install kubeconform
+        run: |
+          curl -sSL https://github.com/yannh/kubeconform/releases/download/v0.6.7/kubeconform-linux-amd64.tar.gz | tar xz -C /tmp
+          sudo mv /tmp/kubeconform /usr/local/bin/
+      - name: Run profile-render-check
+        run: bash scripts/profile-render-check.sh
+
+  # ============================================================
+  # 2. 单组件测试（并行矩阵）
+  # ============================================================
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        component:
+          - {name: "catalog", dir: "platform/catalog", cmd: "go test -v ./..."}
+          - {name: "sql-gateway", dir: "platform/sql-gateway", cmd: "mvn test -q"}
+          - {name: "asset-exchange", dir: "platform/asset-exchange", cmd: "pytest tests/ -v"}
+          - {name: "llm-gateway", dir: "platform/llm-gateway", cmd: "go test -v ./..."}
+          - {name: "frontend", dir: "frontend", cmd: "npm ci && npm run test:coverage"}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        if: matrix.component.name == 'catalog' || matrix.component.name == 'llm-gateway'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+      - name: Setup Java
+        if: matrix.component.name == 'sql-gateway'
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: maven
+      - name: Setup Python
+        if: matrix.component.name == 'asset-exchange'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Setup Node
+        if: matrix.component.name == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Run tests
+        working-directory: ${{ matrix.component.dir }}
+        run: ${{ matrix.component.cmd }}
+
+  # ============================================================
+  # 3. 核心 5 服务 Kind 部署 + 冒烟测试
+  # ============================================================
+  kind-smoke:
+    name: Kind Smoke Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [profile-render]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: dataengine-e2e
+          image: kindest/node:v1.29.2
+          config: |
+            kind: Cluster
+            apiVersion: kind.x-k8s.io/v1alpha4
+            nodes:
+            - role: control-plane
+              extraPortMappings:
+              - containerPort: 30000
+                hostPort: 30000
+      - name: Deploy core subset
+        run: |
+          bash deploy/local-up.sh
+      - name: Run smoke test
+        run: bash scripts/smoke-test.sh
+      - name: Upload logs on failure
+        if: failure()
+        run: |
+          kubectl get pods -n dataengine -o wide
+          kubectl describe pods -n dataengine
+          kubectl logs -n dataengine -l app.kubernetes.io/name=encaps-layer --tail=100
+          kubectl logs -n dataengine -l app.kubernetes.io/name=sql-gateway --tail=100
+          kubectl logs -n dataengine -l app.kubernetes.io/name=catalog --tail=100
+
+  # ============================================================
+  # 4. Karmada 多集群联邦测试（可选，手动触发）
+  # ============================================================
+  karmada-multicluster:
+    name: Karmada Multi-cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_karmada == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install karmadactl
+        run: |
+          curl -sSL https://github.com/karmada-io/karmada/releases/download/v1.11.0/karmadactl-v1.11.0-linux-amd64.tar.gz | tar xz -C /tmp
+          sudo mv /tmp/karmadactl /usr/local/bin/
+      - name: Run multi-cluster setup
+        run: bash scripts/setup-karmada-multicluster.sh
+      - name: Verify cross-cluster scheduling
+        run: |
+          kubectl config use-context kind-karmada-control
+          kubectl get clusters -n karmada-system
+          kubectl get resourcebindings -n default
+          for ctx in kind-member1 kind-member2; do
+            echo "=== $ctx ==="
+            kubectl --context $ctx get pods -n default -l app=nginx-test
+          done
+
+  # ============================================================
+  # 5. Docker Compose 基础设施集成测试（可选，手动触发）
+  # ============================================================
+  infra-integration:
+    name: Infra Integration (Docker Compose)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_infra == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Docker Compose infra
+        run: |
+          cd docker
+          docker compose -f docker-compose.infra.yml up -d
+          sleep 90
+      - name: Verify infra services
+        run: |
+          # Trino
+          docker exec trino trino --execute "SHOW CATALOGS"
+          # Doris FE
+          curl -f http://localhost:8030/api/bootstrap
+          # Kafka
+          docker exec kafka kafka-topics --bootstrap-server localhost:9092 --list
+          # Flink
+          curl -f http://localhost:8081/overview
+          # Spark
+          curl -f http://localhost:4040
+      - name: Run integration tests
+        run: |
+          pytest tests/integration/ -v -x
+      - name: Cleanup
+        if: always()
+        run: |
+          cd docker && docker compose -f docker-compose.infra.yml down -v
