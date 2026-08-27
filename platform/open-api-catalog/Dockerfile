@@ -21,4 +21,6 @@ EXPOSE 8090
 RUN chown -R app:app /app
 USER app
 
+HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 CMD curl -f http://localhost:8090/api/v1/health
+
 CMD ["python", "main.py"]

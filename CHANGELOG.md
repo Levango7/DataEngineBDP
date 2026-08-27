@@ -33,12 +33,17 @@
 - **审核驱动的 7 项缺陷修复**（方案经子代理逐项审核修订后执行）：local-up.sh ArgoCD valueFiles 相对路径补齐 4 级上溯（原 2 级解析到 design/deploy/deploy/... 不存在路径）；nightly arm64 冒烟移除 buildx 多余第二 context（标准 buildx 报 requires exactly 1 argument）；catalog chart jwtSigningKey 弱默认值改空串激活 secret.yaml required fail-fast，local/dev/staging/prod 四套 values 显式补 ≥32 字符键，chart-render-check.sh 对 catalog 与 umbrella 注入 smoke 占位值保 CI 渲染门禁不破；open-api-catalog _save_metric_sync 三条 DML 包裹 BEGIN IMMEDIATE 显式事务且 _metrics_buffer.append 移至 COMMIT 后消除 DB/buffer 不一致窗口；catalog 两测试文件删除过时 //go:build !nocgo 标签（驱动已切纯 Go glebarez）；_generate_charts.py 补覆盖写危险警示（docstring + main 入口 stderr 双重）；values-local-core.yaml 删除 umbrella 不存在的 encaps-tenant 无效键
 - **catalog 容器化三连修**：sqlite 驱动切纯 Go glebarez（CGO_ENABLED=0 镜像可正常启动，兼修 arm64）；chart 补 emptyDir 数据卷+CATALOG_DB 指向；显式覆盖 K8s 同名 Service 注入的 CATALOG_PORT 环境变量；新增 auth Secret 注入 JWT_SIGNING_KEY
 - **本地端到端实证**：kind(dataengine-local)+helm 安装 catalog 2/2 Running，健康检查 HTTP 200（E 盘 Docker Desktop + docker.1ms.run 镜像站方案）
+- **P0/P1 修复批次——Dockerfile HEALTHCHECK**：17 个应用 Dockerfile 添加 HEALTHCHECK 指令（start-period=30s/interval=10s/timeout=5s/retries=3）；逐应用端点映射——Java 用 /actuator/health、tag-engine 用 /health、karmada Go 用 /api/v1/health 或 /healthz、open-api-catalog 用 /api/v1/health；alpine 镜像（governance/infra/karmada-federated-query）用 wget --spider -q，非 alpine 用 curl -f；dqctl CLI 工具不加 HEALTHCHECK
+- **P0/P1 修复批次——前端覆盖率**：functions 覆盖率从 49.56% 提升至 50.43%（补 2 个测试——cluster.test.ts listComponentStatuses + tenant.test.ts localStorage 恢复），四项门禁全部通过（Stmts 67.27/Branch 61.91/Funcs 50.43/Lines 67.72）；CI 添加非阻断 coverage 报告步骤（continue-on-error: true）
+
+#### Corrected
+- **P0/P1 修复批次——文档勘误**：FINAL-DELIVERY-SUMMARY.md 降级 GA 100%→RC（候选版本），修正"886测试0失败"为含已知失败用例表述；PROJECT-AUDIT-REPORT.md 评分 96/100→72/100（反映真实完成度 40~50%）；ROADMAP.md HPA 覆盖数 82→67（实际 Chart 数）、v2.0.0 GA→RC 定级修正；README.md "全通过"→"含已知失败"、"GA 就绪"→"RC 就绪"；component-maturity.md 确认无需修改（无 82/HPA 字样）
 
 #### Changed
 - **配置中心 Apollo → Nacos**（ADR-001 §3 决策执行）：归档 charts/apollo（10 文件 −706 行）；新建 charts/nacos（6 文件——Chart.yaml/values.yaml/templates/{_helpers.tpl,statefulset.yaml,service.yaml}/README.md），standalone 模式默认（Derby 内嵌 DB 零外部依赖）、非 root 运行（uid=1000）、资源配额 0.2C/512Mi~1C/1Gi、存活/就绪探针齐备、鉴权 fail-fast 强制注入 tokenSecretKey（≥32 字符 Base64）；_validate_charts.py 引用更新；ADR-001 §3 决策从"维持 Apollo"改为"选 Nacos"（主流优先原则：Nacos 作为 SCA 生态入口 + Apache 顶级项目更主流，兼容性全绿 Boot 3.2/Java 17/K8s/多语言 ENV）
 
 #### Added
-- **K8s 安全策略模板全量推广**（P0 等保三级合规）：新建 namespace-security Chart（ResourceQuota + LimitRange 命名空间级配额管控）；81 个应用 Chart 添加 NetworkPolicy（deny-all 入站 + allow-same-namespace + 允许所有出站）+ ServiceMonitor（Prometheus 指标采集）条件模板，默认 enabled: false 向后兼容；批量推广脚本 _apply_security_templates.py 幂等可复用；helm lint 88/88 通过；5 个结构特殊 Chart 跳过（chaos-mesh/finance-template/nacos 无 service.port，argo-rollouts/iceberg-compaction 缺必要 helper）
+- **K8s 安全策略模板全量推广**（P0 等保三级合规）：新建 namespace-security Chart（ResourceQuota + LimitRange 命名空间级配额管控）；81 个应用 Chart 添加 NetworkPolicy（deny-all 入站 + allow-same-namespace + 允许所有出站）+ ServiceMonitor（Prometheus 指标采集）条件模板，默认 enabled: false 向后兼容；批量推广脚本 _apply_security_templates.py 幂等可复用；helm lint 88/88 通过；5 个结构特殊 Chart 中 3 个已补全（argo-rollouts 补 fullname/labels/selectorLabels helper + NP/SM 模板、iceberg-compaction 补 selectorLabels + NP/SM 模板、nacos 适配 service.ports.http + NP/SM 模板），剩余 2 个（chaos-mesh/finance-template）因无 service.port 暂跳过
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）
 - **v1.1性能优化**：SQL网关查询结果缓存（Caffeine 60s TTL）、封装层K8s informer watch、规则引擎异步批量执行、82 Chart HPA autoscaling

@@ -1,9 +1,10 @@
 package service
 
 import (
-	"github.com/prometheus/common/model"
 	"net/url"
 	"testing"
+
+	"github.com/prometheus/common/model"
 
 	"github.com/prometheus/prometheus/model/labels"
 	"github.com/prometheus/prometheus/promql/parser"

@@ -48,7 +48,7 @@ graph LR
 - [x] 规则引擎异步批量（parallelStream 并行 + 失败隔离 + 批量端点，8fa64d1）。
 - [x] 资产目录检索引入 Elasticsearch 倒排索引加速（encaps-layer /search 已接本地 ES 7.17 容器，d11c9f9）。
 - [x] 前端路由懒加载细化至组件级（37 路由全动态 import，构建 49 分包）。
-- [x] Helm Chart 全部启用资源 requests / limits 与 HPA（82 chart autoscaling 配置，32f6412）。
+- [x] Helm Chart 全部启用资源 requests / limits 与 HPA（67 chart autoscaling 配置，32f6412；原记录 82 经核实修正为 67）。
 
 ### 真实外部依赖接入
 
@@ -102,11 +102,11 @@ graph LR
 - 集成测试覆盖核心链路，CI 中自动运行。
 - 平台达到 MVP（最小可运行产品）标准。
 
-## v2.0.0 - 云原生与 AI 增强（已发布 GA）
+## v2.0.0 - 云原生与 AI 增强（已发布 RC，GA 勘误）
 
 **主题**：云原生能力增强、AI 能力深化、数据联邦与实时数仓、行业生态扩展。
 
-**状态**：已于 2026-08-08 正式发布 GA（General Availability），具备生产可用性。
+**状态**：已于 2026-08-08 发布 RC（Release Candidate），GA 定级已修订为 RC（详见 releases/v2.0.0/ERRATUM.md），真实完成度约 40-50%，生产化加固进行中。
 
 ### 云原生增强
 
@@ -157,7 +157,7 @@ graph LR
 
 ### 预期成果
 
-- 平台从 MVP 演进至生产级 GA。
+- 平台从 MVP 演进至 RC（Release Candidate），GA 待生产化加固完成。
 - AI 能力成为旗舰版核心差异化卖点。
 - 行业生态初步形成，覆盖 5+ 行业。
 - 云原生能力对标主流数据平台。

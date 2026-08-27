@@ -143,4 +143,13 @@ describe('stores/tenant.ts', () => {
     expect(store.error).toBe('网络错误')
     expect(store.loading).toBe(false)
   })
+
+  it('fetchTenants 应从 localStorage 恢复上次选中的租户', async () => {
+    localStorageMock.setItem('sq_current_tenant', 't2')
+    const store = useTenantStore()
+    await store.fetchTenants(true)
+    expect(store.currentTenant).not.toBeNull()
+    expect(store.currentTenant?.id).toBe('t2')
+    expect(store.currentTenant?.name).toBe('测试租户')
+  })
 })

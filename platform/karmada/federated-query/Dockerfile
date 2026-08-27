@@ -25,4 +25,6 @@ ENV JAVA_OPTS="-Xms256m -Xmx512m -XX:+UseG1GC"
 # 切换非 root 用户运行。
 USER app
 
+HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 CMD wget --spider -q http://localhost:8094/actuator/health
+
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

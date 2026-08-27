@@ -40,4 +40,10 @@ describe('api/cluster.ts', () => {
     await listPods('default')
     expect(mockGet).toHaveBeenCalledWith('/cluster/pods', { namespace: 'default' })
   })
+
+  it('listComponentStatuses 应调用 GET /cluster/components', async () => {
+    const { listComponentStatuses } = await import('@/api/cluster')
+    await listComponentStatuses()
+    expect(mockGet).toHaveBeenCalledWith('/cluster/components')
+  })
 })

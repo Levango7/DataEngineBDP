@@ -45,4 +45,6 @@ RUN chown -R app:app /app
 USER app
 
 # 运行。
+HEALTHCHECK --start-period=30s --interval=10s --timeout=5s --retries=3 CMD wget --spider -q http://localhost:8094/api/v1/health
+
 ENTRYPOINT ["/app/failover-api"]
