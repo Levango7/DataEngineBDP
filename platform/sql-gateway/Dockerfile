@@ -10,15 +10,18 @@ FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
-# 先复制 pom.xml 利用层缓存加速依赖下载
-COPY pom.xml ./
+# 复制父 POM（multi-module 项目必需，build context 为项目根目录）
+COPY pom.xml ./parent-pom.xml
+
+# 先复制模块 pom.xml 利用层缓存加速依赖下载
+COPY platform/sql-gateway/pom.xml ./
 RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q dependency:go-offline
+    mvn -B -q dependency:go-offline -f pom.xml
 
 # 复制源码并构建
-COPY src ./src
+COPY platform/sql-gateway/src ./src
 RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q clean package -DskipTests
+    mvn -B -q clean package -DskipTests -f pom.xml
 
 # =============================================================================
 # 阶段 2: 运行

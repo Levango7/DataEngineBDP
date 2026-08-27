@@ -8,12 +8,15 @@ ARG BASE_REGISTRY=docker.m.daocloud.io/library
 FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /workspace
 
-# 先复制 pom.xml，利用层缓存加速依赖下载
-COPY pom.xml ./
-RUN mvn -B -q dependency:go-offline
+# 复制父 POM（multi-module 项目必需，build context 为项目根目录）
+COPY pom.xml ./parent-pom.xml
+
+# 复制模块 pom.xml 和源码
+COPY platform/encaps-layer/pom.xml ./
+RUN mvn -B -q dependency:go-offline -f pom.xml
 
 # 复制源码并构建（跳过测试以加速镜像构建）
-COPY src ./src
+COPY platform/encaps-layer/src ./src
 RUN mvn -B -q clean package -DskipTests
 
 # ---------- Stage 2: Runtime ----------

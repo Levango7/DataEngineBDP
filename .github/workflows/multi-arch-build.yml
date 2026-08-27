@@ -133,15 +133,15 @@ jobs:
       matrix:
         include:
           - module: encaps-layer
-            context: platform/encaps-layer
+            context: .
             dockerfile: platform/encaps-layer/Dockerfile
             image: sq-encaps-layer
           - module: sql-gateway
-            context: platform/sql-gateway
+            context: .
             dockerfile: platform/sql-gateway/Dockerfile
             image: sq-sql-gateway
           - module: rule-engine
-            context: platform/rule-engine
+            context: .
             dockerfile: platform/rule-engine/Dockerfile
             image: sq-rule-engine
     steps:
