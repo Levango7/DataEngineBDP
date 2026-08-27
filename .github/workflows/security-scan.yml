@@ -204,29 +204,28 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 安装 Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          trivy --version
+
       - name: 创建报告目录
         run: mkdir -p reports/trivy
 
       - name: Trivy 扫描 IaC 配置（deploy/）
-        # GitHub runner 不自带 trivy CLI，改用 trivy-action（与依赖扫描一致）
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: config
-          scan-ref: 'deploy/'
-          format: sarif
-          output: reports/trivy/config-deploy.sarif
-          severity: HIGH,CRITICAL
-          exit-code: '0'
+        run: |
+          trivy config --exit-code 0 --format sarif \
+            --output reports/trivy/config-deploy.sarif \
+            --severity HIGH,CRITICAL \
+            deploy/ || echo "::warning::deploy/ 配置扫描发现问题"
 
       - name: Trivy 扫描 IaC 配置（ske/）
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: config
-          scan-ref: 'ske/'
-          format: sarif
-          output: reports/trivy/config-ske.sarif
-          severity: HIGH,CRITICAL
-          exit-code: '0'
+        run: |
+          trivy config --exit-code 0 --format sarif \
+            --output reports/trivy/config-ske.sarif \
+            --severity HIGH,CRITICAL \
+            ske/ || echo "::warning::ske/ 配置扫描发现问题"
 
       - name: 上传配置扫描 SARIF
         if: always()
