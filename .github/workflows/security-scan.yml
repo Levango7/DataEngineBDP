@@ -204,6 +204,9 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 创建报告目录
+        run: mkdir -p reports/trivy
+
       - name: Trivy 扫描 IaC 配置（deploy/）
         # GitHub runner 不自带 trivy CLI，改用 trivy-action（与依赖扫描一致）
         uses: aquasecurity/trivy-action@v0.36.0
