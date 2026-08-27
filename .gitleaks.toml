@@ -1,0 +1,59 @@
+title = "DataEngineBDP gitleaks config"
+
+# 允许列表：测试文件、文档示例、配置模板中的占位符
+[allowlist]
+description = "允许的测试/示例/模板模式"
+paths = [
+    # 测试文件
+    "(.*_test\\.go)$",
+    "(.*Test\\.java)$",
+    "(.*_test\\.py)$",
+    "(.*\\.test\\.js)$",
+    "(.*\\.spec\\.ts)$",
+    # 文档
+    "(.*\\.md)$",
+    "(docs/.*)$",
+    "(doc_optimization/.*)$",
+    # 配置模板/本地开发配置
+    "(.*config-local\\.yaml)$",
+    "(.*config\\.yaml\\.example)$",
+    "(.*\\.example\\.ya?ml)$",
+    "(.*application-it\\.yml)$",
+    "(.*application-dev\\.yml)$",
+    "(.*\\.local\\.ya?ml)$",
+]
+
+# 允许的特定规则匹配（正则）
+[[allowlist]]
+description = "测试代码中的 JWT_SIGNING_KEY / JWT_SECRET 等"
+regexes = [
+    "JWT_SIGNING_KEY\s*[=:]\s*[\"'\"]?[A-Za-z0-9+/=]{32,}[\"'\"]?",
+    "JWT_SECRET\s*[=:]\s*[\"'\"]?[A-Za-z0-9+/=]{32,}[\"'\"]?",
+    "STD_KEY_HEX\s*=\s*[\"'\"]?[A-Fa-f0-9]{32,}[\"'\"]?",
+    "testSecret\s*[=:]\s*[\"'\"]?REDACTED[\"'\"]?",
+]
+
+[[allowlist]]
+description = "文档/示例中的 curl -u user:pass 模式"
+regexes = [
+    "curl\s+.*-u\s+REDACTED",
+    "curl\s+.*-u\s+[\"'\"]?[^\"'\"]+[\"'\"]?",
+]
+
+[[allowlist]]
+description = "OpenAPI/Swagger 示例中的 token/key"
+regexes = [
+    "token:\s*REDACTED",
+    "refreshToken:\s*REDACTED",
+    "key:\s*REDACTED",
+]
+
+# 自定义规则：仅在非测试/非文档代码中报错
+[[rules]]
+id = "hardcoded-secret-prod"
+description = "生产代码硬编码密钥"
+regex = '''(?i)(password|secret|apikey|api_key|token)\s*[=:]\s*["'"'"'][^"'"'"']{16,}["'"'"']'''
+tags = ["secret", "credential"]
+entropy = 4.5
+path = """^(?!.*(_test\.go|Test\.java|_test\.py|\.md$|docs/|doc_optimization/)).*$"""
+message = "疑似生产代码硬编码密钥"
