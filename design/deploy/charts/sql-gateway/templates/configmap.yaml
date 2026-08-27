@@ -7,5 +7,9 @@ metadata:
 data:
   {{- range $key, $val := .Values.config }}
   {{ $key }}: |
-    {{- $val | nindent 4 }}
+    {{- if kindIs "map" $val }}
+      {{- $val | toYaml | nindent 4 }}
+    {{- else }}
+      {{- $val | nindent 4 }}
+    {{- end }}
   {{- end }}
