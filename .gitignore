@@ -46,6 +46,7 @@ platform/model-finetuning/app/__pycache__/
 
 # test coverage reports
 **/coverage/
+**/coverage
 **/.coverage
 
 # Temp test files

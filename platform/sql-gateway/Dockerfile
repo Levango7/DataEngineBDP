@@ -10,8 +10,9 @@ FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 
-# 复制父 POM（multi-module 项目必需，build context 为项目根目录）
-COPY pom.xml ./parent-pom.xml
+# 安装父 POM 到本地仓库（multi-module 项目必需，build context 为项目根目录）
+COPY pom.xml ./pom.xml
+RUN mvn -B -q install -N
 
 # 先复制模块 pom.xml 利用层缓存加速依赖下载
 COPY platform/sql-gateway/pom.xml ./
