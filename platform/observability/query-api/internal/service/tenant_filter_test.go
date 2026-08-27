@@ -61,7 +61,8 @@ func TestInjectTenantQuery_Aggregation(t *testing.T) {
 	f := NewTenantFilter()
 	got := f.InjectTenantQuery("sum(rate(x[5m])) by (job)", "tenant-x")
 
-	expr, err := promqlParser.ParseExpr(got)
+	p := parser.NewParser(parser.Options{})
+	expr, err := p.ParseExpr(got)
 	if err != nil {
 		t.Fatalf("injected PromQL failed to parse: %v (%q)", err, got)
 	}
