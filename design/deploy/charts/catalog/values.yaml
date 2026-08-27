@@ -118,3 +118,16 @@ config:
 # 各环境请在对应 values 中覆盖，生产环境务必通过外部 Secret/CI 注入
 auth:
   jwtSigningKey: ""
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+# 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}

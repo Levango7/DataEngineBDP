@@ -38,6 +38,7 @@
 - **配置中心 Apollo → Nacos**（ADR-001 §3 决策执行）：归档 charts/apollo（10 文件 −706 行）；新建 charts/nacos（6 文件——Chart.yaml/values.yaml/templates/{_helpers.tpl,statefulset.yaml,service.yaml}/README.md），standalone 模式默认（Derby 内嵌 DB 零外部依赖）、非 root 运行（uid=1000）、资源配额 0.2C/512Mi~1C/1Gi、存活/就绪探针齐备、鉴权 fail-fast 强制注入 tokenSecretKey（≥32 字符 Base64）；_validate_charts.py 引用更新；ADR-001 §3 决策从"维持 Apollo"改为"选 Nacos"（主流优先原则：Nacos 作为 SCA 生态入口 + Apache 顶级项目更主流，兼容性全绿 Boot 3.2/Java 17/K8s/多语言 ENV）
 
 #### Added
+- **K8s 安全策略模板全量推广**（P0 等保三级合规）：新建 namespace-security Chart（ResourceQuota + LimitRange 命名空间级配额管控）；81 个应用 Chart 添加 NetworkPolicy（deny-all 入站 + allow-same-namespace + 允许所有出站）+ ServiceMonitor（Prometheus 指标采集）条件模板，默认 enabled: false 向后兼容；批量推广脚本 _apply_security_templates.py 幂等可复用；helm lint 88/88 通过；5 个结构特殊 Chart 跳过（chaos-mesh/finance-template/nacos 无 service.port，argo-rollouts/iceberg-compaction 缺必要 helper）
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）
 - **v1.1性能优化**：SQL网关查询结果缓存（Caffeine 60s TTL）、封装层K8s informer watch、规则引擎异步批量执行、82 Chart HPA autoscaling

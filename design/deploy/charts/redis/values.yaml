@@ -102,6 +102,21 @@ config:
   application.conf: |
     # redis 默认配置，完整配置请引用 design/deploy/values/redis-values.yaml
 
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+# 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站
+networkPolicy:
+  enabled: false
+  # 设为 true 启用网络隔离（需 CNI 支持，如 Cilium/Calico）
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+# 需安装 prometheus-operator CRD
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
+
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/redis-values.yaml 覆盖
 # 渲染命令： helm template redis design/deploy/charts/redis -f design/deploy/values/redis-values.yaml

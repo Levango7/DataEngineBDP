@@ -1,0 +1,35 @@
+# ============================================================================
+# namespace-security Helm Chart 默认 values
+# 用途：为命名空间统一配置 ResourceQuota + LimitRange，满足等保三级资源管控要求
+# 部署：helm install namespace-security design/deploy/charts/namespace-security -n <target-namespace>
+# ============================================================================
+
+# ---- ResourceQuota（命名空间级资源配额）----
+resourceQuota:
+  enabled: true
+  hard:
+    requests.cpu: "10"
+    requests.memory: "20Gi"
+    limits.cpu: "20"
+    limits.memory: "40Gi"
+    pods: "100"
+    persistentvolumeclaims: "20"
+    services: "50"
+
+# ---- LimitRange（容器级默认资源限制）----
+limitRange:
+  enabled: true
+  limits:
+    - type: Container
+      default:
+        cpu: "1"
+        memory: "2Gi"
+      defaultRequest:
+        cpu: "0.1"
+        memory: "256Mi"
+      max:
+        cpu: "4"
+        memory: "8Gi"
+      min:
+        cpu: "0.01"
+        memory: "16Mi"

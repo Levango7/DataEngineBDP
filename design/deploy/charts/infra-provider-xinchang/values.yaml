@@ -105,3 +105,16 @@ config:
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/infra-provider-xinchang-values.yaml 覆盖
 # 渲染命令： helm template infra-provider-xinchang design/deploy/charts/infra-provider-xinchang -f design/deploy/values/infra-provider-xinchang-values.yaml
+
+# ---- NetworkPolicy（网络隔离，等保三级微隔离要求）----
+# 策略：deny-all 入站 + 仅允许同命名空间 Pod 访问服务端口 + 允许所有出站
+networkPolicy:
+  enabled: false
+
+# ---- ServiceMonitor（Prometheus 指标采集）----
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}
