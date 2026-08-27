@@ -35,9 +35,12 @@
 - **本地端到端实证**：kind(dataengine-local)+helm 安装 catalog 2/2 Running，健康检查 HTTP 200（E 盘 Docker Desktop + docker.1ms.run 镜像站方案）
 - **P0/P1 修复批次——Dockerfile HEALTHCHECK**：17 个应用 Dockerfile 添加 HEALTHCHECK 指令（start-period=30s/interval=10s/timeout=5s/retries=3）；逐应用端点映射——Java 用 /actuator/health、tag-engine 用 /health、karmada Go 用 /api/v1/health 或 /healthz、open-api-catalog 用 /api/v1/health；alpine 镜像（governance/infra/karmada-federated-query）用 wget --spider -q，非 alpine 用 curl -f；dqctl CLI 工具不加 HEALTHCHECK
 - **P0/P1 修复批次——前端覆盖率**：functions 覆盖率从 49.56% 提升至 50.43%（补 2 个测试——cluster.test.ts listComponentStatuses + tenant.test.ts localStorage 恢复），四项门禁全部通过（Stmts 67.27/Branch 61.91/Funcs 50.43/Lines 67.72）；CI 添加非阻断 coverage 报告步骤（continue-on-error: true）
+- **P0/P1 修复批次——硬编码密码**：docker-compose.infra.yml POSTGRES_PASSWORD、docker-compose.core.yml POSTGRES_PASSWORD+MINIO_ROOT_PASSWORD 改为环境变量引用 ${VAR:-default} 模式，消除明文密码
+- **P0/P1 修复批次——多架构构建扩容**：multi-arch-build.yml 覆盖从 5 组件扩展到 10 组件——新增 tag-engine(Java) 到 build-java-images matrix、新建 build-go-images job 覆盖 karmada-api/karmada-failover-api/karmada-failover-engine 三个 Go 组件、新建 build-python-images job 覆盖 open-api-catalog；build-summary 同步更新 needs 和镜像清单
 
 #### Corrected
 - **P0/P1 修复批次——文档勘误**：FINAL-DELIVERY-SUMMARY.md 降级 GA 100%→RC（候选版本），修正"886测试0失败"为含已知失败用例表述；PROJECT-AUDIT-REPORT.md 评分 96/100→72/100（反映真实完成度 40~50%）；ROADMAP.md HPA 覆盖数 82→67（实际 Chart 数）、v2.0.0 GA→RC 定级修正；README.md "全通过"→"含已知失败"、"GA 就绪"→"RC 就绪"；component-maturity.md 确认无需修改（无 82/HPA 字样）
+- **P0/P1 修复批次——RC Checklist 本地验证**：rc-checklist.md 执行本地可验证项并标记结果——✅ 通过 15 项（版本基线 5 项 + Helm lint 88/88 通过 + 文档交付物 4 项 + 已知限制披露 5 项）、❌ 失败 2 项（4.3 frontend/Dockerfile 缺 USER 非指令、6.4 升级指南未覆盖 V2.0→V2.1）、⏳ 待外部环境 23 项（CI/CD 流水线 + 功能验收 + 安全扫描 + 云部署）；本地可判定项通过率 88.2%（15/17）
 
 #### Changed
 - **配置中心 Apollo → Nacos**（ADR-001 §3 决策执行）：归档 charts/apollo（10 文件 −706 行）；新建 charts/nacos（6 文件——Chart.yaml/values.yaml/templates/{_helpers.tpl,statefulset.yaml,service.yaml}/README.md），standalone 模式默认（Derby 内嵌 DB 零外部依赖）、非 root 运行（uid=1000）、资源配额 0.2C/512Mi~1C/1Gi、存活/就绪探针齐备、鉴权 fail-fast 强制注入 tokenSecretKey（≥32 字符 Base64）；_validate_charts.py 引用更新；ADR-001 §3 决策从"维持 Apollo"改为"选 Nacos"（主流优先原则：Nacos 作为 SCA 生态入口 + Apache 顶级项目更主流，兼容性全绿 Boot 3.2/Java 17/K8s/多语言 ENV）

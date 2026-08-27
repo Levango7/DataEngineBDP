@@ -60,7 +60,7 @@ services:
     environment:
       POSTGRES_DB: dataengine
       POSTGRES_USER: deadmin
-      POSTGRES_PASSWORD: depassword
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-depassword}
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
       TZ: Asia/Shanghai
       PGDATA: /var/lib/postgresql/data/pgdata

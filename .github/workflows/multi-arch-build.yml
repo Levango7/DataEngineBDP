@@ -144,6 +144,10 @@ jobs:
             context: .
             dockerfile: platform/rule-engine/Dockerfile
             image: sq-rule-engine
+          - module: tag-engine
+            context: .
+            dockerfile: platform/tag-engine/Dockerfile
+            image: sq-tag-engine
     steps:
       - name: 计算小写 GHCR 命名空间
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
@@ -253,6 +257,140 @@ jobs:
           sbom: false
 
   # ============================================================
+  # 构建 Go 组件多架构镜像
+  # Dockerfile 已使用 TARGETARCH + GOARCH 交叉编译，天然支持多架构
+  # 基础镜像 golang:1.26-alpine / alpine:3.19 均支持 amd64+arm64
+  # 包含：karmada-api、karmada-failover-api、karmada-failover-engine
+  # ============================================================
+  build-go-images:
+    name: Multi-Arch Go Images (amd64+arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: ci-gate
+    strategy:
+      matrix:
+        include:
+          - module: karmada-api
+            context: platform/karmada/api
+            dockerfile: platform/karmada/api/Dockerfile
+            image: sq-karmada-api
+          - module: karmada-failover-api
+            context: platform/karmada/failover/api
+            dockerfile: platform/karmada/failover/api/Dockerfile
+            image: sq-karmada-failover-api
+          - module: karmada-failover-engine
+            context: platform/karmada/failover/engine
+            dockerfile: platform/karmada/failover/engine/Dockerfile
+            image: sq-karmada-failover-engine
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（多架构构建前置）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 计算镜像标签
+        id: tags
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建并推送 ${{ matrix.module }} 多架构镜像
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: ${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event.inputs.push_image != 'false' }}
+          tags: |
+            ghcr.io/${{ env.REGISTRY_NS }}/${{ matrix.image }}:latest
+            ghcr.io/${{ env.REGISTRY_NS }}/${{ matrix.image }}:${{ steps.tags.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architectures=linux/amd64,linux/arm64
+          cache-from: type=gha,scope=multi-arch-${{ matrix.module }}
+          cache-to: type=gha,mode=max,scope=multi-arch-${{ matrix.module }}
+          provenance: false
+          sbom: false
+
+  # ============================================================
+  # 构建 Python 组件多架构镜像
+  # 基础镜像 python:3.11-slim / python:3.11-alpine 均支持 amd64+arm64
+  # 包含：open-api-catalog
+  # ============================================================
+  build-python-images:
+    name: Multi-Arch Python Images (amd64+arm64)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: ci-gate
+    steps:
+      - name: 计算小写 GHCR 命名空间
+        run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 QEMU（多架构构建前置）
+        uses: docker/setup-qemu-action@v3
+
+      - name: 设置 Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 计算镜像标签
+        id: tags
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "image_tag=${VERSION}" >> "$GITHUB_OUTPUT"
+          else
+            echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 构建并推送 open-api-catalog 多架构镜像
+        uses: docker/build-push-action@v7
+        with:
+          context: platform/open-api-catalog
+          file: platform/open-api-catalog/Dockerfile
+          platforms: ${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}
+          push: ${{ github.event.inputs.push_image != 'false' }}
+          tags: |
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-open-api-catalog:latest
+            ghcr.io/${{ env.REGISTRY_NS }}/sq-open-api-catalog:${{ steps.tags.outputs.image_tag }}
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.architectures=linux/amd64,linux/arm64
+          cache-from: type=gha,scope=multi-arch-open-api-catalog
+          cache-to: type=gha,mode=max,scope=multi-arch-open-api-catalog
+          provenance: false
+          sbom: false
+
+  # ============================================================
   # 构建汇总：输出多架构镜像清单
   # ============================================================
   build-summary:
@@ -262,6 +400,8 @@ jobs:
       - build-frontend
       - build-java-images
       - build-catalog
+      - build-go-images
+      - build-python-images
     steps:
       - name: 计算小写 GHCR 命名空间
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
@@ -278,6 +418,11 @@ jobs:
           echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-sql-gateway:latest"
           echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-catalog:latest"
           echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-rule-engine:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-tag-engine:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-karmada-api:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-karmada-failover-api:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-karmada-failover-engine:latest"
+          echo "  ghcr.io/${{ env.REGISTRY_NS }}/sq-open-api-catalog:latest"
           echo ""
           echo "验证命令："
           echo "  docker buildx imagetools inspect ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest"
