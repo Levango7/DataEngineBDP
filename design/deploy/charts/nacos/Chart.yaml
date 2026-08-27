@@ -1,0 +1,17 @@
+apiVersion: v2
+name: nacos
+description: "配置中心 - Nacos 集中化管理多环境配置，支持动态推送与灰度发布（Apache顶级项目，SCA生态入口）"
+type: application
+version: 1.0.0
+appVersion: "2.4.3"
+home: https://nacos.io/
+mainters:
+  - name: DataEngineBDP Team
+    email: platform@shuqing.example.com
+keywords:
+  - nacos
+  - config-center
+  - configuration-management
+  - dynamic-push
+  - gray-release
+  - apache

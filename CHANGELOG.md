@@ -34,6 +34,9 @@
 - **catalog 容器化三连修**：sqlite 驱动切纯 Go glebarez（CGO_ENABLED=0 镜像可正常启动，兼修 arm64）；chart 补 emptyDir 数据卷+CATALOG_DB 指向；显式覆盖 K8s 同名 Service 注入的 CATALOG_PORT 环境变量；新增 auth Secret 注入 JWT_SIGNING_KEY
 - **本地端到端实证**：kind(dataengine-local)+helm 安装 catalog 2/2 Running，健康检查 HTTP 200（E 盘 Docker Desktop + docker.1ms.run 镜像站方案）
 
+#### Changed
+- **配置中心 Apollo → Nacos**（ADR-001 §3 决策执行）：归档 charts/apollo（10 文件 −706 行）；新建 charts/nacos（6 文件——Chart.yaml/values.yaml/templates/{_helpers.tpl,statefulset.yaml,service.yaml}/README.md），standalone 模式默认（Derby 内嵌 DB 零外部依赖）、非 root 运行（uid=1000）、资源配额 0.2C/512Mi~1C/1Gi、存活/就绪探针齐备、鉴权 fail-fast 强制注入 tokenSecretKey（≥32 字符 Base64）；_validate_charts.py 引用更新；ADR-001 §3 决策从"维持 Apollo"改为"选 Nacos"（主流优先原则：Nacos 作为 SCA 生态入口 + Apache 顶级项目更主流，兼容性全绿 Boot 3.2/Java 17/K8s/多语言 ENV）
+
 #### Added
 - **行业模板扩展**：新增医疗（电子病历NLP结构化+DRG/DIP分组）、交通（路网流量预测+信号调度）、教育（学情画像+教学质量评估）、农牧（物联监测+产量预测）4个行业模板（5a9481f）
 - **Argo Rollouts**：金丝雀渐进式交付Chart（bd958b1）

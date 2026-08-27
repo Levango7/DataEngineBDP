@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "nacos.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "nacos.labels" . | nindent 4 }}
+spec:
+  serviceName: {{ include "nacos.fullname" . }}-headless
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "nacos.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nacos.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: nacos
+          image: "{{ .Values.image.registry }}{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy | quote }}
+          env:
+            - name: MODE
+              value: {{ .Values.mode | quote }}
+            - name: JVM_XMS
+              value: {{ .Values.jvm.xms | quote }}
+            - name: JVM_XMX
+              value: {{ .Values.jvm.xmx | quote }}
+            - name: JVM_MMS
+              value: {{ .Values.jvm.xms | quote }}
+            {{- if .Values.auth.enabled }}
+            - name: NACOS_AUTH_ENABLE
+              value: "true"
+            - name: NACOS_AUTH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "nacos.fullname" . }}-auth-token
+                  key: tokenSecretKey
+            {{- if .Values.auth.identityKey }}
+            - name: NACOS_AUTH_IDENTITY_KEY
+              value: {{ .Values.auth.identityKey | quote }}
+            {{- end }}
+            {{- if .Values.auth.identityValue }}
+            - name: NACOS_AUTH_IDENTITY_VALUE
+              value: {{ .Values.auth.identityValue | quote }}
+            {{- end }}
+            {{- end }}
+            {{- if eq .Values.mode "cluster" }}
+            - name: SPRING_DATASOURCE_PLATFORM
+              value: "mysql"
+            - name: MYSQL_SERVICE_HOST
+              value: {{ .Values.mysql.host | quote }}
+            - name: MYSQL_SERVICE_PORT
+              value: {{ .Values.mysql.port | toString | quote }}
+            - name: MYSQL_SERVICE_DB_NAME
+              value: {{ .Values.mysql.database | quote }}
+            - name: MYSQL_SERVICE_USER
+              value: {{ .Values.mysql.username | quote }}
+            - name: MYSQL_SERVICE_PASSWORD
+              value: {{ .Values.mysql.password | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: 8848
+              protocol: TCP
+            - name: grpc
+              containerPort: 9848
+              protocol: TCP
+            - name: raft
+              containerPort: 9849
+              protocol: TCP
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+---
+{{- if .Values.auth.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "nacos.fullname" . }}-auth-token
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    {{- include "nacos.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  tokenSecretKey: {{ include "nacos.tokenSecretKey" . | quote }}
+{{- end }}

@@ -1,0 +1,87 @@
+# ============================================================================
+# Nacos Helm Chart 默认 values
+# Apache 顶级项目，Spring Cloud Alibaba 生态入口
+# 集中化管理多环境配置，支持动态推送与灰度发布
+# ============================================================================
+
+# ---- Nacos 镜像 ----
+image:
+  registry: ""
+  repository: "nacos/nacos-server"
+  tag: "v2.4.3"
+  pullPolicy: IfNotPresent
+
+# ---- 运行模式 ----
+# standalone: 单节点，Derby 内嵌 DB，开发默认
+# cluster:    集群，需 MySQL，生产
+mode: standalone
+
+# ---- 副本数（standalone 模式应为 1，cluster 模式建议 ≥3） ----
+replicaCount: 1
+
+# ---- 鉴权配置 ----
+auth:
+  enabled: true
+  # Token 加密密钥：≥32 字符的 Base64 串
+  # 留空则 chart 渲染时 fail-fast（生产必须显式注入）
+  tokenSecretKey: ""
+  # 身份认证标识
+  identityValue: ""
+  identityKey: ""
+
+# ---- MySQL 配置（仅 cluster 模式使用） ----
+mysql:
+  host: ""
+  port: 3306
+  database: "nacos"
+  username: "nacos"
+  password: ""
+
+# ---- 资源配额（参照 apollo 资源标准 0.2C/512Mi ~ 1C/1Gi） ----
+resources:
+  requests:
+    cpu: "0.2"
+    memory: "512Mi"
+  limits:
+    cpu: "1"
+    memory: "1Gi"
+
+# ---- 存活探针 ----
+livenessProbe:
+  httpGet:
+    path: /nacos/v1/console/health/liveness
+    port: 8848
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+# ---- 就绪探针 ----
+readinessProbe:
+  httpGet:
+    path: /nacos/v1/console/health/readiness
+    port: 8848
+  initialDelaySeconds: 15
+  periodSeconds: 10
+
+# ---- Service ----
+service:
+  type: ClusterIP
+  ports:
+    http: 8848   # Nacos HTTP API / 控制台
+    grpc: 9848   # Nacos 2.x gRPC 客户端
+    raft: 9849   # 集群内 Raft 通信
+
+# ---- Pod 安全上下文（非 root 运行） ----
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 1000
+
+# ---- JVM 参数 ----
+jvm:
+  xms: "512m"
+  xmx: "512m"
+
+# ---- Pod 调度 ----
+nodeSelector: {}
+affinity: {}
+tolerations: []

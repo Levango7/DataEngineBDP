@@ -159,7 +159,7 @@ def validate_chart(chart_dir, chart_name):
         is_job_chart = os.path.exists(os.path.join(templates_dir, "import-job.yaml")) or \
                        os.path.exists(os.path.join(templates_dir, "verification-job.yaml"))
         # 手写型 Chart：只要存在任意可渲染模板（除 NOTES.txt 外的 .yaml/.tpl）
-        # 即视为自包含实现（如 apollo 多服务、chaos-mesh、iceberg-compaction CronJob），
+        # 即视为自包含实现（如 nacos 多服务、chaos-mesh、iceberg-compaction CronJob），
         # 不强制要求固定文件名的 deployment.yaml/service.yaml
         renderable = [
             fn for fn in os.listdir(templates_dir)
