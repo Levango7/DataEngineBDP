@@ -1,5 +1,18 @@
 # 本地核心子集 values：仅启用可独立运行的自研服务，重型基础设施全关
 # 配合 deploy/local-up.sh 使用；完整环境请用 design/deploy/values/env
+# v2.1.0-RC 增补：Service 端口 + 资源限制 + 非 root 安全上下文
+
+global:
+  env: onprem
+  imageRegistry: harbor.local/shuqing
+  imageTag: v2.1.0-RC
+  security:
+    runAsUser: 65532
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: [ALL]
 
 # ---- 第三方基础设施全部关闭 ----
 postgresql:
@@ -166,16 +179,83 @@ infra-provider-xinchang:
 # ---- 核心链路开启（封装层→SQL网关→目录/规则/NL2SQL/开放API）----
 encaps-layer:
   enabled: true
+  replicaCount: 1
+  resources:
+    limits: { cpu: "500m", memory: 512Mi }
+    requests: { cpu: "250m", memory: 256Mi }
+  service:
+    type: ClusterIP
+    port: 8080
+  config:
+    k8sClientTimeout: 30s
+    informerWatchCache: true
+
 sql-gateway:
   enabled: true
+  replicaCount: 1
+  resources:
+    limits: { cpu: "1", memory: 1Gi }
+    requests: { cpu: "500m", memory: 512Mi }
+  service:
+    type: ClusterIP
+    port: 8080
+  config:
+    queryCache:
+      enabled: true
+      ttl: 60s
+      maxSize: 1000
+
 catalog:
   enabled: true
-  # 本地开发专用签名密钥（≥32 字符）；chart 默认值为空，缺失将 fail-fast
+  replicaCount: 1
+  resources:
+    limits: { cpu: "500m", memory: 512Mi }
+    requests: { cpu: "250m", memory: 256Mi }
+  service:
+    type: ClusterIP
+    port: 8080
+  config:
+    dbType: sqlite
+    sqlitePath: /data/catalog.db
+    elasticsearch:
+      enabled: false
   auth:
     jwtSigningKey: "local-dev-signing-key-change-me-0123456789abcdef"
+
 rule-engine:
   enabled: true
+  replicaCount: 1
+  resources:
+    limits: { cpu: "1", memory: 1Gi }
+    requests: { cpu: "500m", memory: 512Mi }
+  service:
+    type: ClusterIP
+    port: 8080
+  config:
+    asyncBatchEnabled: true
+    batchSize: 100
+    datasource:
+      type: h2
+
 nl2sql:
   enabled: true
+  replicaCount: 1
+  resources:
+    limits: { cpu: "500m", memory: 512Mi }
+    requests: { cpu: "250m", memory: 256Mi }
+  service:
+    type: ClusterIP
+    port: 8080
+
 open-api-catalog:
   enabled: true
+  replicaCount: 1
+  resources:
+    limits: { cpu: "500m", memory: 512Mi }
+    requests: { cpu: "250m", memory: 256Mi }
+  service:
+    type: ClusterIP
+    port: 8080
+  config:
+    apisixAdminKey: ""
+    apisixUrl: "http://apisix-admin:9180"
