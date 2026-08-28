@@ -24,7 +24,7 @@ func mustGetenv(key string) string {
 //
 // 环境变量：
 //   - VECTOR_AUTH_REQUIRED      默认要求鉴权（secure-by-default）；
-//                               仅显式设为 "false" 才关闭并打印告警
+//     仅显式设为 "false" 才关闭并打印告警
 //   - JWT_SIGNING_KEY            HMAC 签名密钥（启用认证时必需，>=32 字节）
 //   - JWT_ISSUER                 issuer 校验（默认 shuqing-bigdata）
 //   - JWT_DEV_MODE=true          开发模式：跳过校验，注入 dev 身份
