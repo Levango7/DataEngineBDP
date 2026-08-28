@@ -261,6 +261,12 @@ jobs:
             echo "::warning::未发现任何 Java 组件，跳过 java-lint"
             exit 0
           fi
+          # 先安装 parent POM（所有子模块的 <parent> 引用）
+          if [ -f "pom.xml" ]; then
+            mvn install -B -N -q \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
+              || echo "::warning::parent POM 安装失败"
+          fi
           fail_count=0
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
@@ -570,6 +576,12 @@ jobs:
           echo "============================================"
           echo "  预构建：安装公共依赖库到本地仓库"
           echo "============================================"
+          # 先安装 parent POM（所有子模块的 <parent> 引用）
+          if [ -f "pom.xml" ]; then
+            mvn install -B -N -q \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
+              || echo "::warning::parent POM 安装失败"
+          fi
           # 多模块存在内部依赖链：
           #   common-security ← encaps-layer / sql-gateway / finops / infra-* 等
           #   encaps-layer     ← encaps-data / encaps-gateway / encaps-tenant
