@@ -275,7 +275,9 @@ jobs:
             echo "  Java Lint: $mod_name ($mod_dir)"
             echo "============================================"
             # Checkstyle 检查（阻断：检查失败则 CI 失败）
-            if mvn -f "$pom" checkstyle:check -B -q 2>&1; then
+            CHECKSTYLE_CFG="design/v2.0/Phase1/启动前准备/config/checkstyle.xml"
+            if mvn -f "$pom" checkstyle:check -B -q \
+              -Dcheckstyle.config.location="$CHECKSTYLE_CFG" 2>&1; then
               echo "✓ $mod_name Checkstyle 通过"
             else
               echo "::error::$mod_name Checkstyle 检查失败（或插件未配置），已阻断 CI"
