@@ -66,10 +66,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.26
+      - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
         with:
-          go-version: '1.26'
+          go-version: '1.26.6'
           cache: true
           cache-dependency-path: |
             platform/ai-assistant/go.sum
@@ -788,10 +788,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.26
+      - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
         with:
-          go-version: '1.26'
+          go-version: '1.26.6'
           cache: true
           cache-dependency-path: |
             platform/ai-assistant/go.sum
@@ -1339,10 +1339,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.26
+      - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
         with:
-          go-version: '1.26'
+          go-version: '1.26.6'
           cache: true
 
       - name: 安装 golangci-lint
