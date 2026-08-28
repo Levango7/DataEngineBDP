@@ -115,7 +115,7 @@ class QuotaControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(input)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Conflict"));
+                .andExpect(jsonPath("$.error").value("conflict"));
     }
 
     /* ------------------------------ GET /api/v1/quotas ------------------------------ */

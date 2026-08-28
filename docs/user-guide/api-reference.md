@@ -1090,8 +1090,8 @@ curl -X POST https://<platform-domain>/api/v1/templates/fin-risk-scorecard/deplo
 | bad_request | 400 | 通用参数错误 |
 | service_unavailable | 503 | 能力禁用 |
 | internal_error | 500 | 内部错误（IO 等） |
-| INVALID_ROLE | 400 | 未知 Agent 角色 |
-| ROLE_NOT_FOUND | 404 | Agent 角色未注册 |
+| invalid_role | 400 | 未知 Agent 角色 |
+| role_not_found | 404 | Agent 角色未注册 |
 | lineage_analysis_failed | 400 | 血缘分析失败 |
 | INTERNAL_ERROR | 500 | 内部错误 |
 
@@ -1269,10 +1269,15 @@ dqctl version
 **响应示例（POST /api/v1/vector/search，200 OK）**
 
 ```json
-[{"id": "vec-1", "score": 0.87, "payload": {}, "collection": "docs"}]
+{
+  "mode": "hash-fallback",
+  "results": [
+    {"id": "vec-1", "score": 0.87, "payload": {}, "collection": "docs"}
+  ]
+}
 ```
 
-> ⚠️ 当前全局检索的查询向量由文本确定性哈希占位生成（不具备语义检索能力），生产环境应通过 embedding 服务向量化。新集成建议优先使用 15.1 的集合级检索端点。
+> **向量化模式（2026-08-29 起可插拔）**：已配置 `VECTOR_EMBEDDING_API`（OpenAI 兼容 /embeddings 端点，可选 `VECTOR_EMBEDDING_API_KEY` / `VECTOR_EMBEDDING_MODEL`）时，查询文本调用真实 embedding 服务，`mode` 为 `semantic`；未配置时降级为确定性 n-gram 特征向量（`mode` 为 `hash-fallback`，结果稳定可复现但无语义能力）。调用方应以 `mode` 字段提示"语义检索已启用/未启用"。
 
 ## 第16章 大模型网关 API
 

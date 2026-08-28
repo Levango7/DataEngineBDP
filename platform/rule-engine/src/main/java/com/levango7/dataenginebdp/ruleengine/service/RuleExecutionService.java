@@ -40,7 +40,7 @@ public class RuleExecutionService {
             return RuleExecutionResult.builder()
                     .ruleId(ruleId)
                     .status("ERROR")
-                    .message("RULE_NOT_FOUND")
+                    .message("rule_not_found")
                     .durationMs(System.currentTimeMillis() - start)
                     .executedAt(java.time.LocalDateTime.now())
                     .build();
@@ -51,7 +51,7 @@ public class RuleExecutionService {
             return RuleExecutionResult.builder()
                     .ruleId(ruleId)
                     .status("ERROR")
-                    .message("UNSUPPORTED_RULE_TYPE: " + rule.getType())
+                    .message("unsupported_rule_type: " + rule.getType())
                     .durationMs(System.currentTimeMillis() - start)
                     .executedAt(java.time.LocalDateTime.now())
                     .build();

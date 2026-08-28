@@ -17,9 +17,11 @@ package api
 import (
 	"errors"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/Levango7/DataEngineBDP/vector-engine/internal/embedding"
 	"github.com/Levango7/DataEngineBDP/vector-engine/internal/service"
 	"github.com/Levango7/DataEngineBDP/vector-engine/internal/store"
 )
@@ -48,11 +50,23 @@ func (h *HealthHandler) Health(c *gin.Context) {
 // VectorHandler 处理向量检索的 REST API 请求。
 type VectorHandler struct {
 	svc *service.VectorService
+
+	embedOnce sync.Once
+	embedder  embedding.Embedder
 }
 
 // NewVectorHandler 创建一个新的 Vector handler。
 func NewVectorHandler(svc *service.VectorService) *VectorHandler {
 	return &VectorHandler{svc: svc}
+}
+
+// getEmbedder 懒加载 Embedder：优先真实 embedding 服务（VECTOR_EMBEDDING_API），
+// 未配置时降级为 n-gram 特征向量（hash-fallback）。线程安全。
+func (h *VectorHandler) getEmbedder() embedding.Embedder {
+	h.embedOnce.Do(func() {
+		h.embedder = embedding.New()
+	})
+	return h.embedder
 }
 
 // RegisterRoutes 在给定的 router group 上注册所有向量检索路由。
@@ -86,7 +100,9 @@ func (h *VectorHandler) ListCollections(c *gin.Context) {
 // POST /api/v1/vector/search  body: {"query":"...","topK":5}
 //
 // 前端 query 为文本，底层 SearchRequest.Vector 为向量：
-// 以文本确定性哈希生成固定维度向量（mock 可复现，生产接向量化模型）。
+// 已配置 VECTOR_EMBEDDING_API 时调用真实 embedding 服务（语义检索）；
+// 未配置时降级为确定性 n-gram 特征向量（hash-fallback，结果稳定可复现，
+// 响应标注 "mode":"hash-fallback"，调用方应提示"语义检索未启用"）。
 func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 	var req struct {
 		Query string `json:"query"`
@@ -105,14 +121,22 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 		topK = 5
 	}
 
+	embed := h.getEmbedder()
+	vectors, err := embed.Embed(c.Request.Context(), []string{req.Query})
+	if err != nil {
+		c.JSON(http.StatusBadGateway, gin.H{
+			"error":   "embedding_failed",
+			"message": "文本向量化失败: " + err.Error(),
+		})
+		return
+	}
+	queryVector := vectors[0]
+
 	collections, err := h.svc.ListCollections(c.Request.Context())
 	if err != nil {
 		h.writeStoreError(c, err)
 		return
 	}
-	// TODO: 生产环境应通过 VECTOR_EMBEDDING_API 环境变量配置真实 embedding 服务
-	// 当前为字符哈希占位实现，仅用于无 embedding 服务时的可运行降级
-	queryVector := textToVector(req.Query, 8)
 	out := make([]map[string]interface{}, 0, topK)
 	for _, col := range collections {
 		if len(out) >= topK {
@@ -135,24 +159,10 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 			})
 		}
 	}
-	c.JSON(http.StatusOK, out)
-}
-
-// textToVector 文本确定性哈希 → 固定维度向量。
-// ⚠️ 占位实现：使用字符码求和哈希，不具备语义检索能力。
-// 生产环境应配置真实 embedding 模型 API（如 text-embedding-3-small），
-// 通过 VECTOR_EMBEDDING_API 环境变量切换。当前实现仅保证可运行。
-func textToVector(text string, dim int) []float32 {
-	vec := make([]float32, dim)
-	sum := 0
-	for _, ch := range text {
-		sum += int(ch)
-	}
-	for i := 0; i < dim; i++ {
-		seed := sum*31 + i*17
-		vec[i] = float32(seed%1000)/1000 - 0.5
-	}
-	return vec
+	c.JSON(http.StatusOK, gin.H{
+		"mode":    embed.Mode(),
+		"results": out,
+	})
 }
 
 // CreateCollection 创建向量集合。

@@ -47,7 +47,7 @@ class ToolSandboxTest {
     void invoke_unknownTool_shouldReturnNotFound() {
         ToolSandbox.ToolInvocation inv = sandbox.invoke(registry, "unknown", Map.of());
         assertFalse(inv.success());
-        assertEquals("TOOL_NOT_FOUND", inv.errorCode());
+        assertEquals("tool_not_found", inv.errorCode());
         assertTrue(inv.errorMessage().contains("not registered"));
     }
 

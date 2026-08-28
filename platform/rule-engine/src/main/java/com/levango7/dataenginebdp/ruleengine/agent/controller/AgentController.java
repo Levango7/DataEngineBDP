@@ -146,7 +146,7 @@ public class AgentController {
         Map<String, Object> meta = all.get(role);
         if (meta == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "ROLE_NOT_FOUND", "message", "Role " + role + " not registered"));
+                    .body(Map.of("error", "role_not_found", "message", "Role " + role + " not registered"));
         }
         return ResponseEntity.ok(meta);
     }

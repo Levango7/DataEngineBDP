@@ -85,7 +85,7 @@ public class AgentService {
         if (agent == null) {
             log.warn("No Agent registered for role {}", role);
             return AgentResult.failure(role, AgentResult.Status.FAILURE,
-                    "AGENT_NOT_FOUND", "No Agent registered for role " + role,
+                    "agent_not_found", "No Agent registered for role " + role,
                     0L, context.getTenantId(), context.getRequestId());
         }
 

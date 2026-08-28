@@ -132,12 +132,20 @@ def test_load_auth_settings_invalid_mode(monkeypatch):
         loadAuthSettings()
 
 
-def test_k8s_env_without_explicit_auth_mode_warns(monkeypatch, capsys):
-    """K8s 环境（KUBERNETES_SERVICE_HOST 已设置）下未显式 AUTH_MODE，应打印高危告警。"""
+def test_k8s_env_without_explicit_auth_mode_failfast(monkeypatch, capsys):
+    """K8s 环境（KUBERNETES_SERVICE_HOST 已设置）下未显式 AUTH_MODE：拒绝启动（fail-fast）。"""
     monkeypatch.delenv("AUTH_MODE", raising=False)
     monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.96.0.1")
-    mode, secret, _ = loadAuthSettings()
-    assert mode == "none"
+    with pytest.raises(RuntimeError, match="AUTH_MODE"):
+        loadAuthSettings()
     captured = capsys.readouterr()
     assert "K8s 环境" in captured.err
     assert "AUTH_MODE=jwt" in captured.err
+
+
+def test_k8s_env_explicit_none_allowed(monkeypatch):
+    """K8s 环境显式设置 AUTH_MODE=none（仅限本地/测试）应放行。"""
+    monkeypatch.setenv("AUTH_MODE", "none")
+    monkeypatch.setenv("KUBERNETES_SERVICE_HOST", "10.96.0.1")
+    mode, _, _ = loadAuthSettings()
+    assert mode == "none"

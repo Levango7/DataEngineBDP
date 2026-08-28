@@ -183,7 +183,7 @@ class RuleExecutionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo("ERROR");
-        assertThat(result.getMessage()).isEqualTo("RULE_NOT_FOUND");
+        assertThat(result.getMessage()).isEqualTo("rule_not_found");
     }
 
     @Test
@@ -202,7 +202,7 @@ class RuleExecutionServiceTest {
 
         assertThat(result).isNotNull();
         assertThat(result.getStatus()).isEqualTo("ERROR");
-        assertThat(result.getMessage()).contains("UNSUPPORTED_RULE_TYPE");
+        assertThat(result.getMessage()).contains("unsupported_rule_type");
     }
 
     @Test

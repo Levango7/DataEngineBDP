@@ -140,7 +140,7 @@ public class QuotaController {
     @ExceptionHandler(QuotaExceededException.class)
     public ResponseEntity<Map<String, String>> handleQuotaExceeded(QuotaExceededException e) {
         Map<String, String> body = Map.of(
-                "error", "QuotaExceeded",
+                "error", "quota_exceeded",
                 "message", e.getMessage(),
                 "resourceKey", e.getResourceKey() == null ? "" : e.getResourceKey(),
                 "used", e.getUsed() == null ? "" : e.getUsed(),
@@ -156,6 +156,6 @@ public class QuotaController {
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleConflict(IllegalStateException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(Map.of("error", "Conflict", "message", e.getMessage()));
+                .body(Map.of("error", "conflict", "message", e.getMessage()));
     }
 }

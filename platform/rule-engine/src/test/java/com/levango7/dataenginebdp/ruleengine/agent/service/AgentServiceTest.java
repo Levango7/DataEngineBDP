@@ -97,7 +97,7 @@ class AgentServiceTest {
         AgentResult result = emptyService.execute(Agent.Role.SQL, ctx);
 
         assertEquals(AgentResult.Status.FAILURE, result.getStatus());
-        assertEquals("AGENT_NOT_FOUND", result.getErrorCode());
+        assertEquals("agent_not_found", result.getErrorCode());
     }
 
     /**

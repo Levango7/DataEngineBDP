@@ -98,6 +98,15 @@ env:
   JAVA_OPTS: ""
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
+# ---- 鉴权（AUTH_MODE fail-fast 配套）----
+# jwt_auth.py 在 K8s 环境未显式 AUTH_MODE 时拒绝启动；此处生产默认强制 jwt。
+# 本地/测试（非 K8s）或需匿名放行时，显式设置 auth.authMode: none。
+# JWT_SECRET 从 existingSecretName 的 jwtSecretKey 键读取，须与签发端一致。
+auth:
+  authMode: jwt
+  existingSecretName: shuqing-jwt-secret
+  jwtSecretKey: jwt-secret
+
 config:
   application.conf: |
     # knowledge-engine 默认配置，完整配置请引用 design/deploy/values/knowledge-engine-values.yaml

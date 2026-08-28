@@ -97,7 +97,7 @@ public class RuleController {
     @PostMapping("/execute")
     public ResponseEntity<RuleExecutionResult> executeRule(@RequestBody RuleExecutionRequest request) {
         RuleExecutionResult result = ruleExecutionService.execute(request);
-        if ("ERROR".equals(result.getStatus()) && "RULE_NOT_FOUND".equals(result.getMessage())) {
+        if ("ERROR".equals(result.getStatus()) && "rule_not_found".equals(result.getMessage())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(result);
         }
         return ResponseEntity.ok(result);

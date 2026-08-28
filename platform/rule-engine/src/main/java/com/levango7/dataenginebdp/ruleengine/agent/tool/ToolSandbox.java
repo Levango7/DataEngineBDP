@@ -83,7 +83,7 @@ public class ToolSandbox {
 
         Tool tool = registry.find(toolName).orElse(null);
         if (tool == null) {
-            return ToolInvocation.failure(toolName, args, "TOOL_NOT_FOUND",
+            return ToolInvocation.failure(toolName, args, "tool_not_found",
                     "Tool '" + toolName + "' not registered", elapsedMs(start));
         }
 

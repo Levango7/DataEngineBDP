@@ -10,7 +10,8 @@
     JWT_EXPECTED_ISSUER  可选；设置后校验 iss claim 是否匹配
 
 安全提示：在 K8s 环境（KUBERNETES_SERVICE_HOST 已设置）下若未显式设置 AUTH_MODE，
-进程启动后首次请求会打印显著告警——接口处于匿名 admin 放行状态，生产必须显式 AUTH_MODE=jwt。
+服务将拒绝启动（fail-fast）——生产部署必须显式 AUTH_MODE=jwt 并配置 JWT_SECRET；
+仅限本地/测试（非 K8s）环境允许缺省 none 匿名放行。
 """
 
 from __future__ import annotations
@@ -28,7 +29,7 @@ from typing import Any, Optional
 from fastapi import HTTPException, Request
 
 _warnedOnce = False
-_k8sAnonWarned = False
+_k8sFailfastShown = False
 
 
 @dataclass(frozen=True)
@@ -67,7 +68,9 @@ def loadAuthSettings() -> tuple[str, str, Optional[str]]:
     """返回 (mode, secret, expectedIssuer)。
 
     AUTH_MODE=jwt 而缺 JWT_SECRET 直接抛异常（fail-fast）。
-    K8s 环境下 AUTH_MODE 未显式设置（缺省 none）时打印显著告警。
+    K8s 环境（KUBERNETES_SERVICE_HOST 已设置）下未显式设置 AUTH_MODE（缺省 none）时
+    同样拒绝启动——生产集群内匿名 admin 放行属高危配置，必须显式 AUTH_MODE=jwt；
+    仅限本地/测试（非 K8s）环境允许缺省 none。
     """
     mode = os.environ.get("AUTH_MODE", "none").strip().lower()
     secret = os.environ.get("JWT_SECRET", "")
@@ -76,22 +79,30 @@ def loadAuthSettings() -> tuple[str, str, Optional[str]]:
         raise RuntimeError(f"AUTH_MODE 非法: {mode}（仅支持 jwt|none）")
     if mode == "jwt" and not secret:
         raise RuntimeError("AUTH_MODE=jwt 必须配置 JWT_SECRET")
-    if mode == "none" and os.environ.get("KUBERNETES_SERVICE_HOST"):
-        _warnK8sAnonMode()
+    if (
+        mode == "none"
+        and os.environ.get("KUBERNETES_SERVICE_HOST")
+        and "AUTH_MODE" not in os.environ
+    ):
+        _failfastK8sAnonMode()
     return mode, secret, issuer
 
 
-def _warnK8sAnonMode() -> None:
-    """K8s 环境 + 未显式 AUTH_MODE：接口匿名放行（admin），高危配置，进程内告警一次。"""
-    global _k8sAnonWarned
-    if _k8sAnonWarned:
-        return
-    _k8sAnonWarned = True
-    print(
-        "[WARN][jwt_auth] 检测到 K8s 环境(KUBERNETES_SERVICE_HOST)但 AUTH_MODE 未显式设置，"
-        "接口匿名放行(admin)。生产必须设置 AUTH_MODE=jwt 并配置 JWT_SECRET。",
-        file=sys.stderr,
-        flush=True,
+def _failfastK8sAnonMode() -> None:
+    """K8s 环境 + 未显式 AUTH_MODE：拒绝启动（fail-fast），防止生产匿名 admin。"""
+    global _k8sFailfastShown
+    if not _k8sFailfastShown:
+        _k8sFailfastShown = True
+        print(
+            "[ERROR][jwt_auth] 检测到 K8s 环境(KUBERNETES_SERVICE_HOST)但 AUTH_MODE 未显式设置："
+            "接口将以匿名 admin 放行，属高危配置。生产部署必须设置 AUTH_MODE=jwt 并配置 JWT_SECRET；"
+            "本地/测试（非 K8s）环境如需匿名放行请忽略此错误。",
+            file=sys.stderr,
+            flush=True,
+        )
+    raise RuntimeError(
+        "AUTH_MODE 未显式设置且检测到 K8s 环境：拒绝以匿名 admin 模式启动。"
+        "请设置 AUTH_MODE=jwt（生产）或显式 AUTH_MODE=none（仅限本地/测试）"
     )
 
 

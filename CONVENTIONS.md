@@ -190,11 +190,11 @@
 | # | 偏差 | 位置 | 现状 | 处理 |
 | --- | --- | --- | --- | --- |
 | 1 | ~~跨源查询失败返回 200 + FAILED~~ | sql-gateway `SqlGatewayController#crossSourceExecute / crossSourceExplain` | ✅ 已迁移（2026-08-29）：失败按错误码映射 HTTP 语义（PARSE_ERROR/UNSUPPORTED→400、SOURCE_NOT_FOUND→404、RESULT_TOO_LARGE→413、QUERY_TIMEOUT→504、QUERY_FAILED/MERGE_ERROR→502、INTERNAL→500）；body 保留 `status=FAILED` 结构兼容旧 SDK，前端与 api-reference 已同步 | 已解决 |
-| 2 | 特例错误码 PascalCase | encaps-tenant `QuotaController`（QuotaExceeded=422 / Conflict=409）、rule-engine 部分大写码（RULE_NOT_FOUND 等） | 违反 §9.3 snake_case | 待迁移 |
-| 3 | 无 CORS 中间件 | nl2sql / open-api-catalog / asset-exchange 各 app.py | 浏览器直连受同源限制（Go 栈均有 CorsMiddleware） | 待迁移：补 CORSMiddleware |
-| 4 | 管理/订阅端点未挂应用层鉴权 | open-api-catalog app.py include_router | 依赖部署侧网关策略 | 待迁移：应用层 JWT 中间件 |
-| 5 | schema 调试端点无鉴权 | nl2sql `GET /api/v1/nl2sql/schema` | 匿名可达 | 待迁移：挂 getAuthContext |
-| 6 | 全局检索为哈希占位向量 | vector-engine `GlobalSearch`（POST /api/v1/vector/search） | 文本哈希向量，无语义检索能力 | 待迁移：接入 embedding 服务 |
+| 2 | ~~特例错误码 PascalCase~~ | encaps-tenant `QuotaController`、rule-engine（QUOTA 类） | ✅ 已迁移（2026-08-29）：QuotaExceeded→`quota_exceeded`、Conflict→`conflict`、ROLE_NOT_FOUND→`role_not_found`、AGENT_NOT_FOUND→`agent_not_found`、TOOL_NOT_FOUND→`tool_not_found`、RULE_NOT_FOUND→`rule_not_found`、UNSUPPORTED_RULE_TYPE→`unsupported_rule_type`；api-reference 错误码表同步 | 已解决 |
+| 3 | ~~无 CORS 中间件~~ | nl2sql / open-api-catalog / asset-exchange 各 app.py | ✅ 已修复（历史批次）：三服务均已加 CORSMiddleware 并有测试 | 已解决 |
+| 4 | ~~管理/订阅端点未挂应用层鉴权~~ | open-api-catalog app.py include_router | ✅ 已修复（历史批次）：apis/generate/billing/subscriptions/metrics_docs 均挂 `Depends(getAuthContext)`；`invoke` 为对外 AK/SK 调用端点（设计如此，不走 JWT） | 已解决 |
+| 5 | ~~schema 调试端点无鉴权~~ | nl2sql `GET /api/v1/nl2sql/schema` | ✅ 已修复（历史批次）：挂 `Depends(getAuthContext)` + `requireAdmin` | 已解决 |
+| 6 | ~~全局检索为哈希占位向量~~ | vector-engine `GlobalSearch`（POST /api/v1/vector/search） | ✅ 已解决（2026-08-29）：实现可插拔 embedding（`VECTOR_EMBEDDING_API` 环境变量切换真实 OpenAI 兼容服务，`mode=semantic`）；未配置时降级 n-gram 特征向量并标注 `mode=hash-fallback`，调用方可显式提示"语义检索未启用" | 已解决 |
 | 7 | 跨源查询租户 ID 取自请求体（未与 JWT claim 比对） | sql-gateway `SqlGatewayController#crossSourceExecute/Explain` | ✅ 已修复（2026-08-29）：JWT claim 优先，body 不一致返回 403（TenantMismatchException），无认证上下文时回退 body 兼容单测 | 已解决 |
 
 > 登记流程：新发现偏差先在本表登记并标注「待迁移」，修复后移入 §9.7 或删除；禁止无登记偏差长期存在。

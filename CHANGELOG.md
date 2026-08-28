@@ -4,6 +4,21 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.1.0-RC] - 2026-08-29（遗留项收尾批次）
+
+### Security
+- **AUTH_MODE 生产 fail-fast 化**：jwt_auth.py 七副本在 K8s 环境（KUBERNETES_SERVICE_HOST）且 AUTH_MODE **未显式设置**时拒绝启动（防生产匿名 admin）；显式 `AUTH_MODE=none`（本地/测试）仍放行。配套：6 个 Python 服务 chart（llmops/ml-platform/knowledge-engine/nl2sql/open-api-catalog/asset-exchange）values 新增 `auth` 段（生产默认 `authMode: jwt`）+ deployment 注入 `AUTH_MODE`/`JWT_SECRET`（secretKeyRef，默认引用 `shuqing-jwt-secret` 的 `jwt-secret` 键），helm 渲染验证通过
+
+### Fixed
+- **错误码 snake_case 全量迁移**（偏差表 #2 解决）：QuotaExceeded→`quota_exceeded`、Conflict→`conflict`、ROLE_NOT_FOUND→`role_not_found`、AGENT_NOT_FOUND→`agent_not_found`、TOOL_NOT_FOUND→`tool_not_found`、RULE_NOT_FOUND→`rule_not_found`、UNSUPPORTED_RULE_TYPE→`unsupported_rule_type`；api-reference 错误码表同步
+- **vector-engine 可插拔 embedding**（偏差表 #6 解决）：新增 `internal/embedding` 包——配置 `VECTOR_EMBEDDING_API`（可选 KEY/MODEL）即真实语义检索（OpenAI 兼容，15s 超时/4MB 上限/错误显式化）；未配置降级为 n-gram 特征向量（256 维，替代旧 8 维字符哈希），GlobalSearch 响应改为 `{mode, results}`（`semantic`/`hash-fallback`），调用方可提示"语义检索未启用"
+- **偏差表核查**：#3（CORS 中间件）、#4（open-api-catalog 管理端鉴权）、#5（nl2sql schema 端点 requireAdmin）确认已于历史批次修复，更新偏差表为"已解决"
+
+### Test
+- vector-engine 新增：embedding 单元测试 5 用例（相似性/距离/HTTP mock/非2xx/降级工厂）+ GlobalSearch 契约测试 3 用例
+- jwt_auth 测试更新为 fail-fast 断言（K8s 未显式 → RuntimeError；显式 none 放行）
+- 前端 vitest 全量 22 文件 197 测试通过（串行模式验证，并行模式在本机 jsdom 环境初始化慢，非代码问题）
+
 ## [2.1.0-RC] - 2026-08-29（交付前审计修复批次）
 
 ### Security
