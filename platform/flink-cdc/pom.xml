@@ -23,7 +23,7 @@
         <flink.version>1.20.0</flink.version>
         <flink.cdc.version>3.0.1</flink.cdc.version>
         <flink.kafka.version>3.2.0-1.18</flink.kafka.version>
-        <debezium.version>3.6.1.Final</debezium.version>
+        <debezium.version>1.9.7.Final</debezium.version>
         <mysql.connector.version>8.0.33</mysql.connector.version>
         <postgres.connector.version>42.7.3</postgres.connector.version>
         <oracle.connector.version>23.26.3.0.0</oracle.connector.version>

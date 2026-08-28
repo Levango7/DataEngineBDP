@@ -39,7 +39,7 @@ import java.util.List;
  *   <li>{@code app.security.cors.allowed-origins}：CORS 允许的源，逗号分隔</li>
  * </ul>
  */
-@AutoConfiguration
+@AutoConfiguration(before = org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class)
 @EnableWebSecurity
 @ConditionalOnMissingBean(SecurityFilterChain.class)
 public class SecurityConfig {
