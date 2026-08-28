@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            数据源列表加载失败，<a href="javascript:void(0)" @click="reload">重试</a>
+            数据源列表加载失败，
+            <a href="javascript:void(0)" @click="reload">重试</a>
           </div>
         </div>
       </template>
@@ -55,12 +56,7 @@
           style="width: 160px"
           @change="reload"
         >
-          <el-option
-            v-for="t in collectorTypes"
-            :key="t"
-            :label="t"
-            :value="t"
-          />
+          <el-option v-for="t in collectorTypes" :key="t" :label="t" :value="t" />
         </el-select>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="reload" />
@@ -89,7 +85,10 @@
         </el-table-column>
         <el-table-column prop="cron" label="Cron 表达式" width="160">
           <template #default="{ row }">
-            <span v-if="row.cron" style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px">
+            <span
+              v-if="row.cron"
+              style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            >
               {{ row.cron }}
             </span>
             <span v-else style="color: var(--muted)">未配置</span>
@@ -108,12 +107,7 @@
             >
               采集
             </el-button>
-            <el-button
-              link
-              type="success"
-              :loading="testingId === row.id"
-              @click="handleTest(row)"
-            >
+            <el-button link type="success" :loading="testingId === row.id" @click="handleTest(row)">
               测试
             </el-button>
             <el-button link type="warning" @click="openScheduleDialog(row)">调度</el-button>
@@ -177,12 +171,7 @@
         </el-form-item>
         <el-form-item label="类型" prop="type">
           <el-select v-model="sourceForm.type" placeholder="选择类型" style="width: 100%">
-            <el-option
-              v-for="t in collectorTypes"
-              :key="t"
-              :label="t"
-              :value="t"
-            />
+            <el-option v-for="t in collectorTypes" :key="t" :label="t" :value="t" />
             <el-option label="hive" value="hive" />
             <el-option label="mysql" value="mysql" />
             <el-option label="postgres" value="postgres" />
@@ -239,7 +228,10 @@
     >
       <el-form label-width="120px" label-position="right">
         <el-form-item label="当前 Cron">
-          <span v-if="currentSource?.cron" style="font-family: 'SFMono-Regular', Consolas, monospace">
+          <span
+            v-if="currentSource?.cron"
+            style="font-family: 'SFMono-Regular', Consolas, monospace"
+          >
             {{ currentSource.cron }}
           </span>
           <span v-else style="color: var(--muted)">未配置</span>
@@ -274,10 +266,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as governMetaApi from '@/api/govern-meta'
-import type {
-  MetadataSource,
-  CollectionHistory
-} from '@/api/govern-meta'
+import type { MetadataSource, CollectionHistory } from '@/api/govern-meta'
 
 /* ------------------------------ 数据源列表 ------------------------------ */
 
@@ -363,16 +352,12 @@ async function handleTest(row: MetadataSource) {
 async function handleDelete(row: MetadataSource) {
   if (!row.id) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除数据源「${row.name}」？该操作不可恢复。`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除数据源「${row.name}」？该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await governMetaApi.deleteSource(row.id)
     ElMessage.success('数据源已删除')
     await reload()
@@ -562,24 +547,30 @@ async function handleUnschedule() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   ACTIVE: { label: '活跃', type: 'success' },
   INACTIVE: { label: '停用', type: 'info' },
-  ERROR: { label: '异常', type: 'danger' },
+  ERROR: { label: '异常', type: 'danger' }
 }
 
 function statusLabel(status?: string): string {
-  return STATUS_MAP[status ?? '']?.label ?? (status ?? '--')
+  return STATUS_MAP[status ?? '']?.label ?? status ?? '--'
 }
 
 function statusTagType(status?: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
   return STATUS_MAP[status ?? '']?.type ?? 'info'
 }
 
-const HISTORY_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const HISTORY_STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   RUNNING: { label: '运行中', type: 'primary' },
   SUCCESS: { label: '成功', type: 'success' },
-  FAILED: { label: '失败', type: 'danger' },
+  FAILED: { label: '失败', type: 'danger' }
 }
 
 function historyStatusLabel(status: string): string {
@@ -591,7 +582,9 @@ function historyTagType(status: string): 'primary' | 'success' | 'danger' | 'inf
 }
 
 /** 采集历史状态 → timeline 类型 */
-function historyTimelineType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+function historyTimelineType(
+  status: string
+): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
   return historyTagType(status)
 }
 

@@ -40,17 +40,26 @@
         tabindex="0"
         @click="toggleUserMenu"
         @keyup.enter="toggleUserMenu"
-      >{{ avatarText }}</div>
+      >
+        {{ avatarText }}
+      </div>
       <div v-if="userMenuOpen" class="user-pop" role="menu" aria-label="用户操作菜单">
         <div class="user-info" aria-label="用户信息">
           <div class="user-name">{{ auth.user?.username || '未登录' }}</div>
           <div class="user-email">{{ auth.user?.email || '—' }}</div>
         </div>
         <div class="user-actions" role="group" aria-label="用户操作">
-          <router-link to="/account" class="user-action" role="menuitem" @click="userMenuOpen = false">
+          <router-link
+            to="/account"
+            class="user-action"
+            role="menuitem"
+            @click="userMenuOpen = false"
+          >
             账户与配额
           </router-link>
-          <button class="user-action" role="menuitem" aria-label="退出登录" @click="handleLogout">退出登录</button>
+          <button class="user-action" role="menuitem" aria-label="退出登录" @click="handleLogout">
+            退出登录
+          </button>
         </div>
       </div>
     </div>
@@ -111,7 +120,9 @@ function handleLogout() {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18), var(--shadow-glow);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.18),
+    var(--shadow-glow);
   min-width: 180px;
   z-index: 30;
   overflow: hidden;
@@ -124,7 +135,9 @@ function handleLogout() {
   font-weight: 500;
   color: var(--ink);
   cursor: pointer;
-  transition: background 0.18s var(--ease-smooth), color 0.18s var(--ease-smooth);
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth);
 }
 .ws-item:hover {
   background: var(--primary-soft);
@@ -154,11 +167,15 @@ function handleLogout() {
   cursor: pointer;
   user-select: none;
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
-  transition: transform 0.2s var(--ease-spring), box-shadow 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-spring),
+    box-shadow 0.2s var(--ease-smooth);
 }
 .avatar:hover {
   transform: scale(1.06);
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.55), var(--shadow-glow);
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.55),
+    var(--shadow-glow);
 }
 /* 用户弹出层：毛玻璃 + 弹簧入场 */
 .user-pop {
@@ -171,7 +188,9 @@ function handleLogout() {
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
   border-radius: 10px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18), var(--shadow-glow);
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.18),
+    var(--shadow-glow);
   min-width: 200px;
   z-index: 30;
   overflow: hidden;
@@ -206,7 +225,9 @@ function handleLogout() {
   border: none;
   text-align: left;
   cursor: pointer;
-  transition: background 0.18s var(--ease-smooth), color 0.18s var(--ease-smooth);
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth);
 }
 .user-action:hover {
   background: var(--primary-soft);

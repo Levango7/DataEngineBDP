@@ -4,24 +4,38 @@
     <div class="sub">工作空间：华东生产集群 ｜ 项目是数据加工与消费的组织单元。</div>
     <div class="toolbar">
       <button class="btn sm" @click="modalVisible = true">+ 新建项目</button>
-      <select><option>全部状态</option></select>
+      <select>
+        <option>全部状态</option>
+      </select>
       <div class="spacer"></div>
       <input style="width: 200px" placeholder="搜索项目…" />
     </div>
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error.message }}，<a href="javascript:void(0)" @click="loadProjects">重试</a>
+        {{ error.message }}，
+        <a href="javascript:void(0)" @click="loadProjects">重试</a>
       </div>
       <table v-else>
-        <tr><th>项目</th><th>域</th><th>数据集</th><th>作业</th><th>负责人</th><th>状态</th></tr>
+        <tr>
+          <th>项目</th>
+          <th>域</th>
+          <th>数据集</th>
+          <th>作业</th>
+          <th>负责人</th>
+          <th>状态</th>
+        </tr>
         <tr class="click" v-for="p in projects" :key="p.id" @click="openDrawer(p)">
           <td>{{ p.name }}</td>
           <td>{{ p.domain }}</td>
           <td>{{ p.datasets }}</td>
           <td>{{ p.jobs }}</td>
           <td>{{ p.owner }}</td>
-          <td><span class="pill" :class="statusPillClass(p.status)">{{ statusPillText(p.status) }}</span></td>
+          <td>
+            <span class="pill" :class="statusPillClass(p.status)">
+              {{ statusPillText(p.status) }}
+            </span>
+          </td>
         </tr>
         <tr v-if="projects.length === 0">
           <td colspan="6" style="text-align: center; color: var(--muted)">暂无项目</td>
@@ -42,15 +56,31 @@
         <div class="t" :class="{ on: tab === 4 }" @click="tab = 4">设置</div>
       </div>
       <div v-if="tab === 0">
-        <div class="kv"><span>业务域</span><span>{{ current?.domain }}</span></div>
-        <div class="kv"><span>数据集</span><span>{{ current?.datasets }}</span></div>
-        <div class="kv"><span>作业</span><span>{{ current?.jobs }}</span></div>
-        <div class="kv"><span>负责人</span><span>{{ current?.owner }}</span></div>
+        <div class="kv">
+          <span>业务域</span>
+          <span>{{ current?.domain }}</span>
+        </div>
+        <div class="kv">
+          <span>数据集</span>
+          <span>{{ current?.datasets }}</span>
+        </div>
+        <div class="kv">
+          <span>作业</span>
+          <span>{{ current?.jobs }}</span>
+        </div>
+        <div class="kv">
+          <span>负责人</span>
+          <span>{{ current?.owner }}</span>
+        </div>
       </div>
       <div v-if="tab === 1">
         <div v-if="datasetsLoading" style="color: var(--muted)">加载…</div>
         <table v-else>
-          <tr><th>数据集</th><th>类型</th><th>字段</th></tr>
+          <tr>
+            <th>数据集</th>
+            <th>类型</th>
+            <th>字段</th>
+          </tr>
           <tr v-for="d in datasets" :key="d.name">
             <td>{{ d.name }}</td>
             <td>{{ d.type }}</td>
@@ -64,11 +94,22 @@
       <div v-if="tab === 2">
         <div v-if="jobsLoading" style="color: var(--muted)">加载…</div>
         <table v-else>
-          <tr><th>作业</th><th>引擎</th><th>状态</th></tr>
+          <tr>
+            <th>作业</th>
+            <th>引擎</th>
+            <th>状态</th>
+          </tr>
           <tr v-for="j in projJobs" :key="j.name">
             <td>{{ j.name }}</td>
             <td>{{ j.engine }}</td>
-            <td><span class="pill" :class="j.status === 'running' ? 'a' : j.status === 'success' ? 'g' : 'r'">{{ j.status === 'running' ? '运行中' : j.status === 'success' ? '成功' : '失败' }}</span></td>
+            <td>
+              <span
+                class="pill"
+                :class="j.status === 'running' ? 'a' : j.status === 'success' ? 'g' : 'r'"
+              >
+                {{ j.status === 'running' ? '运行中' : j.status === 'success' ? '成功' : '失败' }}
+              </span>
+            </td>
           </tr>
           <tr v-if="projJobs.length === 0">
             <td colspan="3" style="text-align: center; color: var(--muted)">暂无作业</td>
@@ -78,7 +119,10 @@
       <div v-if="tab === 3">
         <div v-if="membersLoading" style="color: var(--muted)">加载…</div>
         <table v-else>
-          <tr><th>成员</th><th>角色</th></tr>
+          <tr>
+            <th>成员</th>
+            <th>角色</th>
+          </tr>
           <tr v-for="m in members" :key="m.name">
             <td>{{ m.name }}</td>
             <td>{{ m.role }}</td>
@@ -89,19 +133,32 @@
         </table>
       </div>
       <div v-if="tab === 4">
-        <label>项目名</label><input :value="current?.name" />
-        <label>描述</label><textarea rows="3" :value="current?.description || ''"></textarea>
-        <button class="btn sm" style="margin-top: 10px" @click="store.showToast('已保存（待接入）')">保存</button>
+        <label>项目名</label>
+        <input :value="current?.name" />
+        <label>描述</label>
+        <textarea rows="3" :value="current?.description || ''"></textarea>
+        <button
+          class="btn sm"
+          style="margin-top: 10px"
+          @click="store.showToast('已保存（待接入）')"
+        >
+          保存
+        </button>
       </div>
     </Drawer>
 
     <Modal :visible="modalVisible" title="新建数据项目" @close="modalVisible = false">
-      <label>项目名</label><input v-model="form.name" placeholder="如 供应链域" />
-      <label>业务域</label><input v-model="form.domain" placeholder="运营" />
-      <label>描述</label><textarea rows="3" v-model="form.description"></textarea>
+      <label>项目名</label>
+      <input v-model="form.name" placeholder="如 供应链域" />
+      <label>业务域</label>
+      <input v-model="form.domain" placeholder="运营" />
+      <label>描述</label>
+      <textarea rows="3" v-model="form.description"></textarea>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">{{ submitting ? '创建中…' : '创建' }}</button>
+        <button class="btn" :disabled="submitting" @click="handleSubmit">
+          {{ submitting ? '创建中…' : '创建' }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -114,7 +171,13 @@ import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as projectApi from '@/api/project'
-import type { Project, ProjectDataset, ProjectJob, ProjectMember, ProjectStatus } from '@/api/project'
+import type {
+  Project,
+  ProjectDataset,
+  ProjectJob,
+  ProjectMember,
+  ProjectStatus
+} from '@/api/project'
 import type { PagedResult } from '@/api/types'
 
 const store = useAppStore()
@@ -170,13 +233,12 @@ const {
   data: detailData,
   loading: detailLoading,
   execute: loadDetail
-} = useApi<[ProjectDataset[], ProjectJob[], ProjectMember[]], [string]>(
-  (id: string) =>
-    Promise.all([
-      projectApi.listDatasets(id).catch(() => [] as ProjectDataset[]),
-      projectApi.listJobs(id).catch(() => [] as ProjectJob[]),
-      projectApi.listMembers(id).catch(() => [] as ProjectMember[])
-    ])
+} = useApi<[ProjectDataset[], ProjectJob[], ProjectMember[]], [string]>((id: string) =>
+  Promise.all([
+    projectApi.listDatasets(id).catch(() => [] as ProjectDataset[]),
+    projectApi.listJobs(id).catch(() => [] as ProjectJob[]),
+    projectApi.listMembers(id).catch(() => [] as ProjectMember[])
+  ])
 )
 
 // 数据集列表

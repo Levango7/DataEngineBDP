@@ -44,7 +44,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ usageError.message }}，<a href="javascript:void(0)" @click="loadUsage">重试</a>
+            {{ usageError.message }}，
+            <a href="javascript:void(0)" @click="loadUsage">重试</a>
           </div>
         </div>
       </template>
@@ -87,11 +88,7 @@
           <div class="meta" style="color: var(--muted)">用量加载失败</div>
         </template>
         <template v-else-if="usage && usage.byStorageClass.length > 0">
-          <div
-            v-for="sc in usage.byStorageClass"
-            :key="sc.name"
-            class="sc-bar"
-          >
+          <div v-for="sc in usage.byStorageClass" :key="sc.name" class="sc-bar">
             <div class="sc-bar-head">
               <span>{{ sc.name }}</span>
               <span class="muted">{{ formatBytes(sc.used) }} / {{ formatBytes(sc.capacity) }}</span>
@@ -126,7 +123,11 @@
           <el-table-column prop="provisioner" label="Provisioner" min-width="180" />
           <el-table-column label="回收策略" width="120">
             <template #default="{ row }">
-              <el-tag :type="row.reclaimPolicy === 'Retain' ? 'warning' : 'danger'" effect="light" size="small">
+              <el-tag
+                :type="row.reclaimPolicy === 'Retain' ? 'warning' : 'danger'"
+                effect="light"
+                size="small"
+              >
                 {{ row.reclaimPolicy }}
               </el-tag>
             </template>
@@ -206,7 +207,11 @@
           <el-input v-model="pvcForm.namespace" placeholder="如 default" />
         </el-form-item>
         <el-form-item label="StorageClass" prop="storageClassName">
-          <el-select v-model="pvcForm.storageClassName" placeholder="选择 StorageClass" style="width: 100%">
+          <el-select
+            v-model="pvcForm.storageClassName"
+            placeholder="选择 StorageClass"
+            style="width: 100%"
+          >
             <el-option
               v-for="sc in storageClasses"
               :key="sc.name"
@@ -245,8 +250,8 @@ import type {
 
 /* ------------------------------ 集群选择 ------------------------------ */
 
-const { data: clusterList, execute: loadClusters } = useApi<CrossEnvClusterInfo[]>(
-  () => infraApi.getClusters()
+const { data: clusterList, execute: loadClusters } = useApi<CrossEnvClusterInfo[]>(() =>
+  infraApi.getClusters()
 )
 
 const clusterOptions = computed(() => clusterList.value ?? [])
@@ -260,9 +265,7 @@ function handleClusterChange(key: string) {
     return
   }
   const [env, clusterId] = key.split('/')
-  const found = clusterOptions.value.find(
-    (c) => c.environment === env && c.clusterId === clusterId
-  )
+  const found = clusterOptions.value.find((c) => c.environment === env && c.clusterId === clusterId)
   selectedCluster.value = found ?? null
 }
 
@@ -421,16 +424,12 @@ async function handleCreatePvc() {
 async function handleDeletePvc(row: PersistentVolumeClaim) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除 PVC「${row.name}」？该操作不可恢复。`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除 PVC「${row.name}」？该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await infraApi.deletePvc(
       selectedCluster.value.environment,
       selectedCluster.value.clusterId,

@@ -65,7 +65,9 @@
           <div class="result-stat">
             <template v-if="loading">检索中…</template>
             <template v-else-if="hasSearched">
-              命中 <span class="hit-num">{{ total }}</span> 条 · 耗时 {{ tookMs }} ms
+              命中
+              <span class="hit-num">{{ total }}</span>
+              条 · 耗时 {{ tookMs }} ms
             </template>
             <template v-else>请输入检索条件</template>
           </div>
@@ -91,12 +93,7 @@
         <!-- 检索建议 -->
         <div v-if="showSuggestions && suggestions.length > 0" class="suggestion-bar">
           <span class="sug-label">您是否要找：</span>
-          <span
-            v-for="s in suggestions"
-            :key="s"
-            class="sug-chip"
-            @click="applySuggestion(s)"
-          >
+          <span v-for="s in suggestions" :key="s" class="sug-chip" @click="applySuggestion(s)">
             {{ s }}
           </span>
         </div>
@@ -164,12 +161,7 @@
     </div>
 
     <!-- 详情抽屉 -->
-    <el-drawer
-      v-model="detailVisible"
-      title="检索结果详情"
-      size="480px"
-      direction="rtl"
-    >
+    <el-drawer v-model="detailVisible" title="检索结果详情" size="480px" direction="rtl">
       <div v-if="detailItem" class="detail-content">
         <div class="detail-row">
           <span class="detail-label">ID</span>
@@ -221,7 +213,17 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { ElMessage, ElAlert, ElDrawer, ElButton, ElIcon, ElSelect, ElOption, ElRadioGroup, ElRadioButton } from 'element-plus'
+import {
+  ElMessage,
+  ElAlert,
+  ElDrawer,
+  ElButton,
+  ElIcon,
+  ElSelect,
+  ElOption,
+  ElRadioGroup,
+  ElRadioButton
+} from 'element-plus'
 import { Search, MagicStick, Document } from '@element-plus/icons-vue'
 import SearchInput from './search/SearchInput.vue'
 import SearchFilter from './search/SearchFilter.vue'
@@ -498,8 +500,12 @@ onMounted(() => {
   width: 40%;
 }
 @keyframes sk-loading {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
 }
 .empty-state,
 .init-state {

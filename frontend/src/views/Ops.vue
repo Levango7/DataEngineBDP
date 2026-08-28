@@ -3,24 +3,48 @@
     <h1>运维中心</h1>
     <div class="sub">客户视角运行态监控；底层自研 SKE 发行版自愈、扩容对客户透明。</div>
     <div class="grid g4">
-      <div class="card"><h3>集群健康</h3><div class="kpi s"><span class="pill" :class="healthPillClass(overview?.clusterHealth)">{{ healthPillText(overview?.clusterHealth) }}</span></div></div>
-      <div class="card"><h3>运行作业</h3><div class="kpi">{{ overview?.runningJobCount ?? '--' }}</div></div>
-      <div class="card"><h3>今日失败</h3><div class="kpi s">{{ overview?.todayFailedCount ?? '--' }}</div></div>
-      <div class="card"><h3>平均延迟</h3><div class="kpi s">{{ overview?.avgLatencySec ?? '--' }}s</div></div>
+      <div class="card">
+        <h3>集群健康</h3>
+        <div class="kpi s">
+          <span class="pill" :class="healthPillClass(overview?.clusterHealth)">
+            {{ healthPillText(overview?.clusterHealth) }}
+          </span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>运行作业</h3>
+        <div class="kpi">{{ overview?.runningJobCount ?? '--' }}</div>
+      </div>
+      <div class="card">
+        <h3>今日失败</h3>
+        <div class="kpi s">{{ overview?.todayFailedCount ?? '--' }}</div>
+      </div>
+      <div class="card">
+        <h3>平均延迟</h3>
+        <div class="kpi s">{{ overview?.avgLatencySec ?? '--' }}s</div>
+      </div>
     </div>
 
     <!-- 统一运维台：组件健康总览（红黄绿） -->
     <div class="card" style="margin-top: 14px">
-      <h3>组件健康总览
-        <span v-if="healthSummary" style="font-size: 12px; color: var(--muted); font-weight: normal">
+      <h3>
+        组件健康总览
+        <span
+          v-if="healthSummary"
+          style="font-size: 12px; color: var(--muted); font-weight: normal"
+        >
           （{{ healthSummary.up }}/{{ healthSummary.total }} UP
           <span v-if="healthSummary.warn">· {{ healthSummary.warn }} WARN</span>
-          <span v-if="healthSummary.down" style="color: var(--red)">· {{ healthSummary.down }} DOWN</span>）
+          <span v-if="healthSummary.down" style="color: var(--red)">
+            · {{ healthSummary.down }} DOWN
+          </span>
+          ）
         </span>
       </h3>
       <div v-if="healthLoading" style="color: var(--muted)">加载中…</div>
       <div v-else-if="healthError" style="color: var(--red)">
-        {{ healthError.message }}，<a href="javascript:void(0)" @click="loadHealth">重试</a>
+        {{ healthError.message }}，
+        <a href="javascript:void(0)" @click="loadHealth">重试</a>
       </div>
       <div v-else class="health-grid">
         <div
@@ -39,15 +63,26 @@
       <h3>作业监控</h3>
       <div v-if="jobsLoading" style="color: var(--muted)">加载中…</div>
       <div v-else-if="jobsError" style="color: var(--red)">
-        {{ jobsError.message }}，<a href="javascript:void(0)" @click="loadJobs">重试</a>
+        {{ jobsError.message }}，
+        <a href="javascript:void(0)" @click="loadJobs">重试</a>
       </div>
       <table v-else-if="jobs">
-        <tr><th>作业</th><th>类型</th><th>运行时长</th><th>状态</th><th></th></tr>
+        <tr>
+          <th>作业</th>
+          <th>类型</th>
+          <th>运行时长</th>
+          <th>状态</th>
+          <th></th>
+        </tr>
         <tr v-for="j in jobs" :key="j.id">
           <td>{{ j.name }}</td>
           <td>{{ jobTypeLabel(j.type) }}</td>
           <td>{{ j.duration }}</td>
-          <td><span class="pill" :class="jobStatusPillClass(j.status)">{{ jobStatusPillText(j.status) }}</span></td>
+          <td>
+            <span class="pill" :class="jobStatusPillClass(j.status)">
+              {{ jobStatusPillText(j.status) }}
+            </span>
+          </td>
           <td><button class="btn ghost sm" @click="openLog(j)">日志</button></td>
         </tr>
         <tr v-if="jobs.length === 0">
@@ -56,7 +91,8 @@
       </table>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>告警
+      <h3>
+        告警
         <span class="pill r">{{ filteredAlerts.length }}</span>
         <select v-model="alertLevelFilter" style="margin-left: 8px; font-size: 12px">
           <option value="all">全部级别</option>
@@ -68,13 +104,25 @@
       </h3>
       <div v-if="alertsLoading" style="color: var(--muted)">加载中…</div>
       <table v-else-if="filteredAlerts">
-        <tr><th>告警</th><th>级别</th><th>触发时间</th><th>状态</th><th></th></tr>
+        <tr>
+          <th>告警</th>
+          <th>级别</th>
+          <th>触发时间</th>
+          <th>状态</th>
+          <th></th>
+        </tr>
         <tr v-for="a in filteredAlerts" :key="a.id">
           <td>{{ a.content }}</td>
-          <td><span class="pill" :class="alertLevelPillClass(a.level)">{{ alertLevelPillText(a.level) }}</span></td>
+          <td>
+            <span class="pill" :class="alertLevelPillClass(a.level)">
+              {{ alertLevelPillText(a.level) }}
+            </span>
+          </td>
           <td>{{ formatAlertTime(a.triggeredAt) }}</td>
           <td>
-            <span class="pill" :class="a.handled ? 'g' : 'a'">{{ a.handled ? '已处理' : '活跃' }}</span>
+            <span class="pill" :class="a.handled ? 'g' : 'a'">
+              {{ a.handled ? '已处理' : '活跃' }}
+            </span>
           </td>
           <td>
             <button class="btn ghost sm" @click="openAlertDetail(a)">详情</button>
@@ -92,7 +140,9 @@
       <template #header>作业日志：{{ currentJob?.name }}</template>
       <div class="runlog" style="height: auto">
         <div v-if="logLoading" style="color: var(--muted)">加载日志…</div>
-        <pre v-else style="white-space: pre-wrap; font-family: monospace">{{ logContent || '暂无日志' }}</pre>
+        <pre v-else style="white-space: pre-wrap; font-family: monospace">{{
+          logContent || '暂无日志'
+        }}</pre>
       </div>
       <div class="note">日志由封装层归一化输出，隐藏 Pod/容器细节。</div>
     </Drawer>
@@ -104,20 +154,32 @@
         <div class="alert-detail-row">{{ currentAlert.content }}</div>
         <label>级别</label>
         <div class="alert-detail-row">
-          <span class="pill" :class="alertLevelPillClass(currentAlert.level)">{{ alertLevelPillText(currentAlert.level) }}</span>
+          <span class="pill" :class="alertLevelPillClass(currentAlert.level)">
+            {{ alertLevelPillText(currentAlert.level) }}
+          </span>
         </div>
         <label>触发时间</label>
         <div class="alert-detail-row">{{ formatAlertTime(currentAlert.triggeredAt) }}</div>
         <label>状态</label>
         <div class="alert-detail-row">
-          <span class="pill" :class="currentAlert.handled ? 'g' : 'a'">{{ currentAlert.handled ? '已处理' : '活跃' }}</span>
+          <span class="pill" :class="currentAlert.handled ? 'g' : 'a'">
+            {{ currentAlert.handled ? '已处理' : '活跃' }}
+          </span>
         </div>
         <label>告警 ID</label>
-        <div class="alert-detail-row"><code>{{ currentAlert.id }}</code></div>
+        <div class="alert-detail-row">
+          <code>{{ currentAlert.id }}</code>
+        </div>
       </div>
       <template #footer>
         <button class="btn ghost" @click="alertDetailVisible = false">关闭</button>
-        <button v-if="currentAlert && !currentAlert.handled" class="btn" @click="handleAlert(currentAlert)">处理告警</button>
+        <button
+          v-if="currentAlert && !currentAlert.handled"
+          class="btn"
+          @click="handleAlert(currentAlert)"
+        >
+          处理告警
+        </button>
       </template>
     </Modal>
   </div>
@@ -148,10 +210,7 @@ const currentAlert = ref<Alert | null>(null)
 const alertLevelFilter = ref<'all' | AlertLevel>('all')
 
 // 概览：通过 useApi 包装，失败时不阻塞页面
-const {
-  data: overview,
-  execute: loadOverview
-} = useApi<OpsOverview>(() => opsApi.getOverview())
+const { data: overview, execute: loadOverview } = useApi<OpsOverview>(() => opsApi.getOverview())
 
 // 组件健康总览：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {
@@ -161,7 +220,9 @@ const {
   execute: loadHealth
 } = useApi<HealthOverview>(() => opsApi.getHealthOverview())
 const healthComponents = computed<ComponentHealth[]>(() => healthData.value?.components ?? [])
-const healthSummary = computed<HealthOverview['summary'] | null>(() => healthData.value?.summary ?? null)
+const healthSummary = computed<HealthOverview['summary'] | null>(
+  () => healthData.value?.summary ?? null
+)
 
 // 作业列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {
@@ -182,7 +243,7 @@ const {
 const filteredAlerts = computed<Alert[]>(() => {
   if (!alerts.value) return []
   if (alertLevelFilter.value === 'all') return alerts.value
-  return alerts.value.filter(a => a.level === alertLevelFilter.value)
+  return alerts.value.filter((a) => a.level === alertLevelFilter.value)
 })
 
 // 日志：通过 useApi 包装，按需加载
@@ -190,10 +251,7 @@ const {
   data: logContent,
   loading: logLoading,
   execute: loadLog
-} = useApi<string, [string]>(
-  (id: string) => opsApi.getJobLogs(id),
-  { initialData: '' }
-)
+} = useApi<string, [string]>((id: string) => opsApi.getJobLogs(id), { initialData: '' })
 
 // 当前查看日志的作业
 const currentJob = ref<OpsJob | null>(null)

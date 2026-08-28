@@ -223,15 +223,7 @@ export interface TableColumn {
 
 /** 列数据类型 */
 export type ColumnDataType =
-  | 'string'
-  | 'integer'
-  | 'float'
-  | 'boolean'
-  | 'date'
-  | 'datetime'
-  | 'time'
-  | 'geo'
-  | 'unknown'
+  'string' | 'integer' | 'float' | 'boolean' | 'date' | 'datetime' | 'time' | 'geo' | 'unknown'
 
 /** SQL 执行响应 */
 export interface ExecuteSqlResponse {

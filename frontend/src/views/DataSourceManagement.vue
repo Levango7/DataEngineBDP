@@ -9,7 +9,9 @@
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
       <div class="toolbar" role="toolbar" aria-label="数据源列表操作栏">
-        <el-button type="primary" aria-label="新增数据源" @click="openCreateDialog">+ 新增数据源</el-button>
+        <el-button type="primary" aria-label="新增数据源" @click="openCreateDialog">
+          + 新增数据源
+        </el-button>
         <el-input
           v-model="searchKeyword"
           placeholder="按名称搜索"
@@ -65,11 +67,31 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :aria-label="`编辑数据源 ${row.name}`" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link type="success" :loading="testingId === row.id" :aria-label="`测试数据源 ${row.name} 连接`" @click="handleTest(row)">
+            <el-button
+              link
+              type="primary"
+              :aria-label="`编辑数据源 ${row.name}`"
+              @click="openEditDialog(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              link
+              type="success"
+              :loading="testingId === row.id"
+              :aria-label="`测试数据源 ${row.name} 连接`"
+              @click="handleTest(row)"
+            >
               测试连接
             </el-button>
-            <el-button link type="danger" :aria-label="`删除数据源 ${row.name}`" @click="handleDelete(row)">删除</el-button>
+            <el-button
+              link
+              type="danger"
+              :aria-label="`删除数据源 ${row.name}`"
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -112,7 +134,12 @@
           <el-input v-model="formData.name" placeholder="如 业务订单库" aria-label="数据源名称" />
         </el-form-item>
         <el-form-item label="类型" prop="type">
-          <el-select v-model="formData.type" style="width: 100%" aria-label="数据源类型" @change="onTypeChange">
+          <el-select
+            v-model="formData.type"
+            style="width: 100%"
+            aria-label="数据源类型"
+            @change="onTypeChange"
+          >
             <el-option v-for="t in typeOptions" :key="t.value" :label="t.label" :value="t.value" />
           </el-select>
         </el-form-item>
@@ -130,7 +157,11 @@
           />
         </el-form-item>
         <el-form-item v-if="needDatabase" label="数据库" prop="database">
-          <el-input v-model="formData.database" placeholder="数据库名 / Kafka topic 前缀" aria-label="数据库名或Kafka topic前缀" />
+          <el-input
+            v-model="formData.database"
+            placeholder="数据库名 / Kafka topic 前缀"
+            aria-label="数据库名或Kafka topic前缀"
+          />
         </el-form-item>
         <el-form-item label="用户名" prop="username">
           <el-input v-model="formData.username" placeholder="登录用户名" aria-label="登录用户名" />
@@ -147,7 +178,12 @@
       </el-form>
       <template #footer>
         <el-button aria-label="取消操作" @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" :aria-label="isEdit ? '保存数据源' : '创建数据源'" @click="handleSubmit">
+        <el-button
+          type="primary"
+          :loading="submitting"
+          :aria-label="isEdit ? '保存数据源' : '创建数据源'"
+          @click="handleSubmit"
+        >
           {{ isEdit ? '保存' : '创建' }}
         </el-button>
       </template>
@@ -406,10 +442,13 @@ function typeLabel(type: DataSourceType): string {
   return item?.label || type
 }
 
-const STATUS_MAP: Record<DataSourceStatus, { label: string; type: 'success' | 'info' | 'warning' }> = {
+const STATUS_MAP: Record<
+  DataSourceStatus,
+  { label: string; type: 'success' | 'info' | 'warning' }
+> = {
   connected: { label: '已连接', type: 'success' },
   disconnected: { label: '未连接', type: 'info' },
-  testing: { label: '测试中', type: 'warning' },
+  testing: { label: '测试中', type: 'warning' }
 }
 
 function statusLabel(status: DataSourceStatus): string {

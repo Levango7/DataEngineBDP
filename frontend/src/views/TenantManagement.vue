@@ -8,7 +8,9 @@
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar" role="toolbar" aria-label="租户列表操作栏">
-        <el-button type="primary" aria-label="新建租户" @click="openCreateDialog">+ 新建租户</el-button>
+        <el-button type="primary" aria-label="新建租户" @click="openCreateDialog">
+          + 新建租户
+        </el-button>
         <el-input
           v-model="searchKeyword"
           placeholder="按租户名称搜索"
@@ -76,8 +78,22 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="160" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :aria-label="`编辑租户 ${row.name}`" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link type="danger" :aria-label="`删除租户 ${row.name}`" @click="handleDelete(row)">删除</el-button>
+            <el-button
+              link
+              type="primary"
+              :aria-label="`编辑租户 ${row.name}`"
+              @click="openEditDialog(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              link
+              type="danger"
+              :aria-label="`删除租户 ${row.name}`"
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -120,7 +136,12 @@
           <el-input v-model="formData.name" placeholder="如 华东生产集群" aria-label="租户名称" />
         </el-form-item>
         <el-form-item label="租户编码" prop="code">
-          <el-input v-model="formData.code" placeholder="如 east-prod" :disabled="isEdit" aria-label="租户编码" />
+          <el-input
+            v-model="formData.code"
+            placeholder="如 east-prod"
+            :disabled="isEdit"
+            aria-label="租户编码"
+          />
         </el-form-item>
         <el-form-item label="套餐版本" prop="plan">
           <el-select v-model="formData.plan" style="width: 100%" aria-label="套餐版本">
@@ -146,7 +167,12 @@
       </el-form>
       <template #footer>
         <el-button aria-label="取消操作" @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" :aria-label="isEdit ? '保存租户' : '创建租户'" @click="handleSubmit">
+        <el-button
+          type="primary"
+          :loading="submitting"
+          :aria-label="isEdit ? '保存租户' : '创建租户'"
+          @click="handleSubmit"
+        >
           {{ isEdit ? '保存' : '创建' }}
         </el-button>
       </template>
@@ -324,11 +350,14 @@ async function handleDelete(row: Tenant) {
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-const PLAN_MAP: Record<PlanTier, { label: string; type: 'primary' | 'success' | 'warning' | 'info' }> = {
+const PLAN_MAP: Record<
+  PlanTier,
+  { label: string; type: 'primary' | 'success' | 'warning' | 'info' }
+> = {
   standard: { label: '标准版', type: 'info' },
   enterprise: { label: '企业版', type: 'primary' },
   flagship: { label: '旗舰版', type: 'warning' },
-  internal: { label: '内部无限', type: 'success' },
+  internal: { label: '内部无限', type: 'success' }
 }
 
 function planLabel(plan: PlanTier): string {
@@ -339,10 +368,13 @@ function planTagType(plan: PlanTier): 'primary' | 'success' | 'warning' | 'info'
   return PLAN_MAP[plan]?.type ?? 'info'
 }
 
-const STATUS_MAP: Record<TenantStatus, { label: string; type: 'success' | 'warning' | 'info' | 'danger' }> = {
+const STATUS_MAP: Record<
+  TenantStatus,
+  { label: string; type: 'success' | 'warning' | 'info' | 'danger' }
+> = {
   active: { label: '活跃', type: 'success' },
   suspended: { label: '已暂停', type: 'warning' },
-  deleted: { label: '已删除', type: 'info' },
+  deleted: { label: '已删除', type: 'info' }
 }
 
 function statusLabel(status: TenantStatus): string {

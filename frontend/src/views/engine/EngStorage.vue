@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ kpiError.message }}，<a href="javascript:void(0)" @click="reloadKpi">重试</a>
+            {{ kpiError.message }}，
+            <a href="javascript:void(0)" @click="reloadKpi">重试</a>
           </div>
         </div>
       </template>
@@ -34,7 +35,9 @@
         <div class="card">
           <h3>缓存命中率</h3>
           <div class="kpi s">{{ cacheHitRate }}%</div>
-          <div class="meta">命中 {{ cacheStats?.hitCount ?? 0 }} · 未命中 {{ cacheStats?.missCount ?? 0 }}</div>
+          <div class="meta">
+            命中 {{ cacheStats?.hitCount ?? 0 }} · 未命中 {{ cacheStats?.missCount ?? 0 }}
+          </div>
         </div>
         <div class="card">
           <h3>今日刷新次数</h3>
@@ -53,11 +56,7 @@
           <el-tab-pane label="缓存统计" name="cache-stats" />
         </el-tabs>
         <div class="spacer"></div>
-        <el-button
-          v-if="activeTab === 'virtual-tables'"
-          type="primary"
-          @click="openRegisterDialog"
-        >
+        <el-button v-if="activeTab === 'virtual-tables'" type="primary" @click="openRegisterDialog">
           + 注册虚拟表
         </el-button>
         <el-button :icon="Refresh" circle @click="reloadAll" />
@@ -134,12 +133,7 @@
 
       <!-- Tab3 缓存统计 -->
       <template v-else>
-        <el-descriptions
-          v-loading="cacheLoading"
-          :column="3"
-          border
-          title="缓存统计"
-        >
+        <el-descriptions v-loading="cacheLoading" :column="3" border title="缓存统计">
           <el-descriptions-item label="命中率">
             {{ cacheStats ? cacheStats.hitRate + '%' : '--' }}
           </el-descriptions-item>
@@ -201,12 +195,7 @@
           <el-input v-model="registerForm.schema" placeholder="如 default" />
         </el-form-item>
         <el-form-item label="备注" prop="comment">
-          <el-input
-            v-model="registerForm.comment"
-            type="textarea"
-            :rows="2"
-            placeholder="可选"
-          />
+          <el-input v-model="registerForm.comment" type="textarea" :rows="2" placeholder="可选" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -293,10 +282,9 @@ const {
   execute: loadCache
 } = useApi<CacheStats>(() => engineApi.getCacheStats())
 
-const {
-  data: dataSourceTypes,
-  execute: loadTypes
-} = useApi<string[]>(() => engineApi.listDataSourceTypes())
+const { data: dataSourceTypes, execute: loadTypes } = useApi<string[]>(() =>
+  engineApi.listDataSourceTypes()
+)
 
 /** KPI 区聚合 loading */
 const kpiLoading = computed(() => vtLoading.value || mvLoading.value || cacheLoading.value)
@@ -473,7 +461,9 @@ function vtStatusLabel(status?: VirtualTableStatus | string): string {
 }
 
 /** 虚拟表状态 → tag 类型 */
-function vtStatusTagType(status?: VirtualTableStatus | string): 'success' | 'warning' | 'danger' | 'info' {
+function vtStatusTagType(
+  status?: VirtualTableStatus | string
+): 'success' | 'warning' | 'danger' | 'info' {
   if (!status) return 'info'
   const map: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
     ACTIVE: 'success',

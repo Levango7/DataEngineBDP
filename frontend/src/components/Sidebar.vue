@@ -1,6 +1,9 @@
 <template>
   <aside class="side" role="complementary" aria-label="平台侧边栏">
-    <div class="brand" aria-label="数擎大数据平台品牌标识"><span class="dot" aria-hidden="true"></span>数擎 · 大数据平台</div>
+    <div class="brand" aria-label="数擎大数据平台品牌标识">
+      <span class="dot" aria-hidden="true"></span>
+      数擎 · 大数据平台
+    </div>
     <nav class="nav" role="navigation" aria-label="主导航菜单">
       <template v-for="(group, gi) in groups" :key="group.title">
         <div
@@ -40,7 +43,9 @@
       </template>
     </nav>
     <div class="side-foot" aria-label="平台版本信息">
-      v2.1 GA · 客户无感知底座<br />自研 SKE 发行版 · 环境: 信创
+      v2.1 GA · 客户无感知底座
+      <br />
+      自研 SKE 发行版 · 环境: 信创
     </div>
   </aside>
 </template>
@@ -160,11 +165,12 @@ function isOpen(idx: number): boolean {
 
 function toggleGroup(idx: number): void {
   if (collapsed.value.includes(idx)) {
-    collapsed.value = collapsed.value.filter(i => i !== idx)
+    collapsed.value = collapsed.value.filter((i) => i !== idx)
   } else {
     collapsed.value = [...collapsed.value, idx]
   }
-}</script>
+}
+</script>
 
 <style scoped>
 /* === 分组标题：可点击 + 折叠箭头 === */
@@ -189,7 +195,9 @@ function toggleGroup(idx: number): void {
   font-size: 10px;
   line-height: 1;
   color: var(--sidebar-muted);
-  transition: transform 0.25s var(--ease-smooth), color 0.2s var(--ease-smooth);
+  transition:
+    transform 0.25s var(--ease-smooth),
+    color 0.2s var(--ease-smooth);
   transform: rotate(0deg);
 }
 .grp-arrow.open {
@@ -206,7 +214,9 @@ function toggleGroup(idx: number): void {
   padding: 1px 6px;
   min-width: 16px;
   text-align: center;
-  transition: color 0.2s var(--ease-smooth), background 0.2s var(--ease-smooth);
+  transition:
+    color 0.2s var(--ease-smooth),
+    background 0.2s var(--ease-smooth);
 }
 
 /* === 分组容器：平滑高度过渡 === */
@@ -214,7 +224,9 @@ function toggleGroup(idx: number): void {
   overflow: hidden;
   max-height: 1200px;
   opacity: 1;
-  transition: max-height 0.32s var(--ease-drawer), opacity 0.24s var(--ease-smooth);
+  transition:
+    max-height 0.32s var(--ease-drawer),
+    opacity 0.24s var(--ease-smooth);
 }
 .grp-items.collapsed {
   max-height: 0;
@@ -227,7 +239,7 @@ function toggleGroup(idx: number): void {
   overflow: hidden;
 }
 .nav-item::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(

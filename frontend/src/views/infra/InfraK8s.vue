@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ error.message }}，<a href="javascript:void(0)" @click="reload">重试</a>
+            {{ error.message }}，
+            <a href="javascript:void(0)" @click="reload">重试</a>
           </div>
         </div>
       </template>
@@ -39,7 +40,9 @@
         <div class="card">
           <h3>环境分布</h3>
           <div class="kpi">{{ kpi.envCount }}</div>
-          <div class="meta">私有 {{ kpi.privateCount }} · 公有 {{ kpi.cloudCount }} · 信创 {{ kpi.xinchuangCount }}</div>
+          <div class="meta">
+            私有 {{ kpi.privateCount }} · 公有 {{ kpi.cloudCount }} · 信创 {{ kpi.xinchuangCount }}
+          </div>
         </div>
       </template>
     </div>
@@ -108,21 +111,39 @@
       <template v-if="detailCluster">
         <el-descriptions :column="2" border>
           <el-descriptions-item label="集群 ID">{{ detailCluster.clusterId }}</el-descriptions-item>
-          <el-descriptions-item label="集群名称">{{ detailCluster.clusterName }}</el-descriptions-item>
-          <el-descriptions-item label="环境">{{ envLabel(detailCluster.environment) }}</el-descriptions-item>
-          <el-descriptions-item label="Provider">{{ providerLabel(detailCluster.provider) }}</el-descriptions-item>
+          <el-descriptions-item label="集群名称">
+            {{ detailCluster.clusterName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="环境">
+            {{ envLabel(detailCluster.environment) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Provider">
+            {{ providerLabel(detailCluster.provider) }}
+          </el-descriptions-item>
           <el-descriptions-item label="状态">
             <el-tag :type="statusTagType(detailCluster.status)" effect="light">
               {{ statusLabel(detailCluster.status) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="K8s 版本">{{ detailCluster.k8sVersion }}</el-descriptions-item>
-          <el-descriptions-item label="控制面节点">{{ detailCluster.controlPlaneCount }}</el-descriptions-item>
-          <el-descriptions-item label="工作节点">{{ detailCluster.workerCount }}</el-descriptions-item>
+          <el-descriptions-item label="K8s 版本">
+            {{ detailCluster.k8sVersion }}
+          </el-descriptions-item>
+          <el-descriptions-item label="控制面节点">
+            {{ detailCluster.controlPlaneCount }}
+          </el-descriptions-item>
+          <el-descriptions-item label="工作节点">
+            {{ detailCluster.workerCount }}
+          </el-descriptions-item>
           <el-descriptions-item label="Pod CIDR">{{ detailCluster.podCidr }}</el-descriptions-item>
-          <el-descriptions-item label="Service CIDR">{{ detailCluster.serviceCidr }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ detailCluster.createdAt }}</el-descriptions-item>
-          <el-descriptions-item label="更新时间">{{ detailCluster.updatedAt }}</el-descriptions-item>
+          <el-descriptions-item label="Service CIDR">
+            {{ detailCluster.serviceCidr }}
+          </el-descriptions-item>
+          <el-descriptions-item label="创建时间">
+            {{ detailCluster.createdAt }}
+          </el-descriptions-item>
+          <el-descriptions-item label="更新时间">
+            {{ detailCluster.updatedAt }}
+          </el-descriptions-item>
         </el-descriptions>
 
         <h3 style="margin: 20px 0 12px">节点列表</h3>
@@ -256,12 +277,24 @@
 
         <template v-else-if="createStep === 3">
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="环境">{{ envLabel(createForm.environment) }}</el-descriptions-item>
-            <el-descriptions-item label="Provider">{{ providerLabel(createForm.provider) }}</el-descriptions-item>
-            <el-descriptions-item label="集群名称">{{ createForm.clusterName }}</el-descriptions-item>
-            <el-descriptions-item label="K8s 版本">{{ createForm.k8sVersion }}</el-descriptions-item>
-            <el-descriptions-item label="节点数">{{ createForm.masterCount }} 控制面 + {{ createForm.workerCount }} 工作</el-descriptions-item>
-            <el-descriptions-item label="单节点规格">{{ createForm.cpu }} 核 / {{ createForm.memory }} GB / {{ createForm.disk }} GB</el-descriptions-item>
+            <el-descriptions-item label="环境">
+              {{ envLabel(createForm.environment) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Provider">
+              {{ providerLabel(createForm.provider) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="集群名称">
+              {{ createForm.clusterName }}
+            </el-descriptions-item>
+            <el-descriptions-item label="K8s 版本">
+              {{ createForm.k8sVersion }}
+            </el-descriptions-item>
+            <el-descriptions-item label="节点数">
+              {{ createForm.masterCount }} 控制面 + {{ createForm.workerCount }} 工作
+            </el-descriptions-item>
+            <el-descriptions-item label="单节点规格">
+              {{ createForm.cpu }} 核 / {{ createForm.memory }} GB / {{ createForm.disk }} GB
+            </el-descriptions-item>
           </el-descriptions>
         </template>
       </el-form>
@@ -269,7 +302,9 @@
       <template #footer>
         <el-button v-if="createStep > 0" @click="createStep--">上一步</el-button>
         <el-button v-if="createStep < 3" type="primary" @click="nextCreateStep">下一步</el-button>
-        <el-button v-else type="primary" :loading="submitting" @click="handleCreate">提交</el-button>
+        <el-button v-else type="primary" :loading="submitting" @click="handleCreate">
+          提交
+        </el-button>
         <el-button @click="createDialogVisible = false">取消</el-button>
       </template>
     </el-dialog>
@@ -486,16 +521,12 @@ async function handleCreate() {
 /** 销毁集群（带二次确认） */
 async function handleDestroy(row: CrossEnvClusterInfo) {
   try {
-    await ElMessageBox.confirm(
-      `确认销毁集群「${row.clusterName}」？该操作不可恢复。`,
-      '危险操作',
-      {
-        type: 'warning',
-        confirmButtonText: '销毁',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认销毁集群「${row.clusterName}」？该操作不可恢复。`, '危险操作', {
+      type: 'warning',
+      confirmButtonText: '销毁',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await infraApi.destroyCluster(row.environment, row.clusterId)
     ElMessage.success('销毁请求已提交')
     await reload()
@@ -506,12 +537,15 @@ async function handleDestroy(row: CrossEnvClusterInfo) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<ClusterStatus, { label: string; type: 'success' | 'warning' | 'danger' | 'info' }> = {
+const STATUS_MAP: Record<
+  ClusterStatus,
+  { label: string; type: 'success' | 'warning' | 'danger' | 'info' }
+> = {
   CREATING: { label: '创建中', type: 'warning' },
   RUNNING: { label: '运行中', type: 'success' },
   FAILED: { label: '异常', type: 'danger' },
   DESTROYED: { label: '已销毁', type: 'info' },
-  UPDATING: { label: '更新中', type: 'warning' },
+  UPDATING: { label: '更新中', type: 'warning' }
 }
 
 function statusLabel(status: ClusterStatus): string {
@@ -525,7 +559,7 @@ function statusTagType(status: ClusterStatus): 'success' | 'warning' | 'danger' 
 const ENV_MAP: Record<ClusterEnv, { label: string; type: 'primary' | 'success' | 'warning' }> = {
   private: { label: '私有云', type: 'primary' },
   cloud: { label: '公有云', type: 'success' },
-  xinchuang: { label: '信创', type: 'warning' },
+  xinchuang: { label: '信创', type: 'warning' }
 }
 
 function envLabel(env: ClusterEnv): string {
@@ -542,7 +576,7 @@ const PROVIDER_LABELS: Record<ProviderKind, string> = {
   huawei: '华为云',
   ali: '阿里云',
   tencent: '腾讯云',
-  xinchang: '信创',
+  xinchang: '信创'
 }
 
 function providerLabel(p: ProviderKind): string {
@@ -559,7 +593,7 @@ function nodeStatusType(status: string): 'success' | 'danger' | 'info' {
 const COMP_STATUS_LABELS: Record<ComponentHealth, string> = {
   healthy: '健康',
   warning: '警告',
-  error: '故障',
+  error: '故障'
 }
 
 function compStatusLabel(status: ComponentHealth): string {

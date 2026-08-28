@@ -275,7 +275,10 @@ export function computeTag(id: string, req: ComputeRequest = {}): Promise<TagCom
  * 批量计算标签
  * POST /tags/batch-compute
  */
-export function batchCompute(tagIds: string[], req: ComputeRequest = {}): Promise<BatchComputeResult> {
+export function batchCompute(
+  tagIds: string[],
+  req: ComputeRequest = {}
+): Promise<BatchComputeResult> {
   return post<BatchComputeResult>(`${BASE_TAGS}/batch-compute`, { tagIds, req })
 }
 

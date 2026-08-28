@@ -22,15 +22,7 @@ export type MetadataSourceStatus = 'ACTIVE' | 'INACTIVE' | 'ERROR'
 
 /** 数据源类型（hive / mysql / kafka / iotdb / doris / ...） */
 export type MetadataSourceType =
-  | 'hive'
-  | 'mysql'
-  | 'postgres'
-  | 'kafka'
-  | 'iotdb'
-  | 'doris'
-  | 'clickhouse'
-  | 'hbase'
-  | 'es'
+  'hive' | 'mysql' | 'postgres' | 'kafka' | 'iotdb' | 'doris' | 'clickhouse' | 'hbase' | 'es'
 
 /** 元数据采集数据源 */
 export interface MetadataSource {

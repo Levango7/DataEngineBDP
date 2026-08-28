@@ -2,7 +2,8 @@
   <div class="workspace-page">
     <h1>工作空间管理</h1>
     <div class="sub">
-      管理租户下的工作空间（隔离边界），底层自动翻译为 K8s Namespace + NetworkPolicy + RBAC + ResourceQuota，客户无需感知容器编排。
+      管理租户下的工作空间（隔离边界），底层自动翻译为 K8s Namespace + NetworkPolicy + RBAC +
+      ResourceQuota，客户无需感知容器编排。
     </div>
 
     <!-- 顶部操作栏 -->
@@ -24,12 +25,7 @@
           style="width: 180px"
           @change="handleSearch"
         >
-          <el-option
-            v-for="t in tenantOptions"
-            :key="t.id"
-            :label="t.name"
-            :value="t.id"
-          />
+          <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
         <el-select
           v-model="filterStatus"
@@ -127,12 +123,7 @@
             style="width: 100%"
             :disabled="isEdit"
           >
-            <el-option
-              v-for="t in tenantOptions"
-              :key="t.id"
-              :label="t.name"
-              :value="t.id"
-            />
+            <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="描述" prop="description">
@@ -144,10 +135,7 @@
           />
         </el-form-item>
         <el-form-item label="资源配额" prop="resourceQuota">
-          <el-input
-            v-model="formData.resourceQuota"
-            placeholder="cpu=4,memory=8Gi,storage=100Gi"
-          />
+          <el-input v-model="formData.resourceQuota" placeholder="cpu=4,memory=8Gi,storage=100Gi" />
           <div class="form-tip">格式：cpu=4,memory=8Gi,storage=100Gi（留空使用默认配额）</div>
         </el-form-item>
         <el-form-item label="网络隔离策略" prop="networkPolicy">
@@ -231,10 +219,10 @@ const workspaceList = computed<Workspace[]>(() => wsPaged.value?.list ?? [])
 const total = computed<number>(() => wsPaged.value?.total ?? 0)
 
 /** 租户下拉选项：通过 useApi 包装，失败时不阻塞页面 */
-const {
-  data: tenantOptions,
-  execute: loadTenantOptions
-} = useApi<Tenant[]>(() => tenantApi.listAllTenants(), { initialData: [] })
+const { data: tenantOptions, execute: loadTenantOptions } = useApi<Tenant[]>(
+  () => tenantApi.listAllTenants(),
+  { initialData: [] }
+)
 
 /** 搜索按钮 */
 function handleSearch() {
@@ -323,7 +311,9 @@ async function handleSubmit() {
           plan: 'enterprise',
           env: 'onprem'
         })
-        ElMessage.success('工作空间已创建，底层已翻译为 K8s Namespace + NetworkPolicy + RBAC + ResourceQuota')
+        ElMessage.success(
+          '工作空间已创建，底层已翻译为 K8s Namespace + NetworkPolicy + RBAC + ResourceQuota'
+        )
       }
       dialogVisible.value = false
       await loadList()
@@ -368,9 +358,7 @@ const {
   data: k8sStatusData,
   loading: statusLoading,
   execute: loadK8sStatus
-} = useApi<{ status: string }, [string]>(
-  (id: string) => workspaceApi.getWorkspaceK8sStatus(id)
-)
+} = useApi<{ status: string }, [string]>((id: string) => workspaceApi.getWorkspaceK8sStatus(id))
 const k8sStatus = ref<string>('Unknown')
 
 /** 查询 K8s Namespace 实时状态 */
@@ -404,7 +392,9 @@ function statusLabel(status: Workspace['status']): string {
 }
 
 /** 状态 → tag 类型 */
-function statusTagType(status: Workspace['status']): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
+function statusTagType(
+  status: Workspace['status']
+): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
   const map: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
     creating: 'primary',
     running: 'success',

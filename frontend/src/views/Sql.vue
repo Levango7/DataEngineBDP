@@ -23,8 +23,13 @@
       <div class="params">
         <h3 style="font-size: 13px">查询配置</h3>
         <label>路由引擎</label>
-        <select><option>网关自动</option><option>Trino</option><option>Doris</option></select>
-        <label>超时(s)</label><input value="120" />
+        <select>
+          <option>网关自动</option>
+          <option>Trino</option>
+          <option>Doris</option>
+        </select>
+        <label>超时(s)</label>
+        <input value="120" />
         <div class="chips" style="margin-top: 10px">
           <span class="chip on">iceberg</span>
           <span class="chip on">doris</span>
@@ -33,10 +38,13 @@
         <label>AI 辅助（自然语言 → SQL）</label>
         <div style="display: flex; gap: 6px">
           <input placeholder="如：各城市 GMV 排名" style="flex: 1" />
-          <button class="btn ghost sm" @click="store.showToast('已生成 SQL（mock）（待接入）')">生成</button>
+          <button class="btn ghost sm" @click="store.showToast('已生成 SQL（mock）（待接入）')">
+            生成
+          </button>
         </div>
         <button class="btn" style="width: 100%; margin-top: 12px" @click="runSql">
-          <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg> 执行
+          <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg>
+          执行
         </button>
         <div class="note">网关自动选择最优引擎并下推，客户只见结果。</div>
       </div>
@@ -45,11 +53,14 @@
       <h3>结果预览</h3>
       <div v-if="queryLoading" class="note">查询中…</div>
       <div v-else-if="queryError" class="note" style="color: var(--red)">
-        {{ queryError.message }}，<a href="javascript:void(0)" @click="runSql">重试</a>
+        {{ queryError.message }}，
+        <a href="javascript:void(0)" @click="runSql">重试</a>
       </div>
       <table v-else-if="queryResult && queryResult.rows.length > 0">
         <thead>
-          <tr><th v-for="(col, idx) in queryResult.columns" :key="idx">{{ col }}</th></tr>
+          <tr>
+            <th v-for="(col, idx) in queryResult.columns" :key="idx">{{ col }}</th>
+          </tr>
         </thead>
         <tbody>
           <tr v-for="(row, rIdx) in queryResult.rows" :key="rIdx">
@@ -84,8 +95,8 @@ const {
   loading: queryLoading,
   error: queryError,
   execute: executeQuery
-} = useApi<CrossSourceQueryResult, [string]>(
-  (sql: string) => executeCrossSourceSql({ sql, dialect: 'ANSI' })
+} = useApi<CrossSourceQueryResult, [string]>((sql: string) =>
+  executeCrossSourceSql({ sql, dialect: 'ANSI' })
 )
 
 /** 格式化单元格显示 */
@@ -128,7 +139,10 @@ async function runSql() {
     // 根据返回结果追加日志
     const lines: LogLine[] = [
       { cls: 'info', text: `[网关] 解析查询 → 涉及源 ${result.sources.join(', ')}` },
-      { cls: result.status === 'SUCCESS' ? 'ok' : 'info', text: `[返回] ${result.rowCount} 行 · 耗时 ${result.durationMs}ms` }
+      {
+        cls: result.status === 'SUCCESS' ? 'ok' : 'info',
+        text: `[返回] ${result.rowCount} 行 · 耗时 ${result.durationMs}ms`
+      }
     ]
     if (result.error) {
       lines.push({ cls: 'info', text: `[错误] ${result.error}` })

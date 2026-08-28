@@ -65,27 +65,18 @@
 
     <!-- 结构化查询构建器 -->
     <div v-else class="structured-input">
-      <div
-        v-for="(cond, idx) in conditions"
-        :key="idx"
-        class="condition-row"
-      >
-        <el-select v-model="cond.field" placeholder="字段" style="width: 160px" @change="emitSearch">
-          <el-option
-            v-for="f in fieldOptions"
-            :key="f.value"
-            :label="f.label"
-            :value="f.value"
-          />
+      <div v-for="(cond, idx) in conditions" :key="idx" class="condition-row">
+        <el-select
+          v-model="cond.field"
+          placeholder="字段"
+          style="width: 160px"
+          @change="emitSearch"
+        >
+          <el-option v-for="f in fieldOptions" :key="f.value" :label="f.label" :value="f.value" />
         </el-select>
 
         <el-select v-model="cond.op" placeholder="操作" style="width: 110px" @change="emitSearch">
-          <el-option
-            v-for="o in opOptions"
-            :key="o.value"
-            :label="o.label"
-            :value="o.value"
-          />
+          <el-option v-for="o in opOptions" :key="o.value" :label="o.label" :value="o.value" />
         </el-select>
 
         <el-input
@@ -140,7 +131,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   /** 触发检索 */
-  (e: 'search', payload: { text: string; conditions: StructuredCondition[]; mode: SearchMode }): void
+  (
+    e: 'search',
+    payload: { text: string; conditions: StructuredCondition[]; mode: SearchMode }
+  ): void
   /** 清空 */
   (e: 'clear'): void
   /** 模式切换 */
@@ -235,7 +229,10 @@ function toStructuredConditions(): StructuredCondition[] {
     .map((c) => {
       const isMulti = c.op === 'in' || c.op === 'not_in'
       const value: string | string[] = isMulti
-        ? c.valueText.split(',').map((s) => s.trim()).filter(Boolean)
+        ? c.valueText
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
         : c.valueText
       return {
         field: c.field,

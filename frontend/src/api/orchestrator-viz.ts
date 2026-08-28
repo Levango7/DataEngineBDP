@@ -365,7 +365,10 @@ export function getInterventions(id: string): Promise<InterventionRequest[]> {
 }
 
 /** 提交人工审批 */
-export function submitIntervention(id: string, payload: IntervenePayload): Promise<InterventionRequest> {
+export function submitIntervention(
+  id: string,
+  payload: IntervenePayload
+): Promise<InterventionRequest> {
   return post<InterventionRequest>(`${BASE}/${id}/intervene`, payload)
 }
 
@@ -384,7 +387,10 @@ export function createCheckpoint(id: string, note?: string): Promise<Checkpoint>
 }
 
 /** 从检查点恢复执行 */
-export function resumeFromCheckpoint(id: string, checkpointId: string): Promise<Record<string, TaskResultDto>> {
+export function resumeFromCheckpoint(
+  id: string,
+  checkpointId: string
+): Promise<Record<string, TaskResultDto>> {
   return post<Record<string, TaskResultDto>>(`${BASE}/${id}/resume`, { checkpointId })
 }
 

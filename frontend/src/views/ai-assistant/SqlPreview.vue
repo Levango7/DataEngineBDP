@@ -38,12 +38,7 @@
             @click="collapsed = !collapsed"
           />
         </el-tooltip>
-        <el-button
-          type="primary"
-          size="small"
-          :icon="CaretRight"
-          @click="emit('reexecute')"
-        >
+        <el-button type="primary" size="small" :icon="CaretRight" @click="emit('reexecute')">
           {{ t.rerun }}
         </el-button>
       </div>
@@ -59,13 +54,7 @@
     <div v-if="meta && !collapsed" class="sql-meta">
       <div class="meta-row">
         <span class="meta-label">{{ t.tables }}</span>
-        <el-tag
-          v-for="tb in meta.tables"
-          :key="tb"
-          size="small"
-          effect="plain"
-          type="info"
-        >
+        <el-tag v-for="tb in meta.tables" :key="tb" size="small" effect="plain" type="info">
           {{ tb }}
         </el-tag>
       </div>
@@ -93,20 +82,8 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import {
-  ElButton,
-  ElIcon,
-  ElTag,
-  ElTooltip,
-  ElProgress
-} from 'element-plus'
-import {
-  Document,
-  CopyDocument,
-  CaretRight,
-  ArrowUp,
-  ArrowDown
-} from '@element-plus/icons-vue'
+import { ElButton, ElIcon, ElTag, ElTooltip, ElProgress } from 'element-plus'
+import { Document, CopyDocument, CaretRight, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import DOMPurify from 'dompurify'
 import type { SqlMeta, Locale, SqlDialect } from '@/types/ai-assistant'
 import { SQL_DIALECT_LABELS } from '@/types/ai-assistant'
@@ -164,13 +141,62 @@ const dialectLabel = computed(() => {
 
 /* ------------------------------ 语法高亮 ------------------------------ */
 const SQL_KEYWORDS = [
-  'SELECT', 'FROM', 'WHERE', 'GROUP BY', 'ORDER BY', 'HAVING', 'JOIN', 'LEFT JOIN',
-  'RIGHT JOIN', 'INNER JOIN', 'OUTER JOIN', 'FULL JOIN', 'ON', 'AS', 'AND', 'OR',
-  'NOT', 'IN', 'NOT IN', 'EXISTS', 'BETWEEN', 'LIKE', 'IS NULL', 'IS NOT NULL',
-  'UNION', 'UNION ALL', 'INTERSECT', 'EXCEPT', 'LIMIT', 'OFFSET', 'DISTINCT',
-  'COUNT', 'SUM', 'AVG', 'MIN', 'MAX', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
-  'WITH', 'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER', 'TRUNCATE',
-  'OVER', 'PARTITION BY', 'ROW_NUMBER', 'RANK', 'DENSE_RANK', 'CAST', 'CONVERT'
+  'SELECT',
+  'FROM',
+  'WHERE',
+  'GROUP BY',
+  'ORDER BY',
+  'HAVING',
+  'JOIN',
+  'LEFT JOIN',
+  'RIGHT JOIN',
+  'INNER JOIN',
+  'OUTER JOIN',
+  'FULL JOIN',
+  'ON',
+  'AS',
+  'AND',
+  'OR',
+  'NOT',
+  'IN',
+  'NOT IN',
+  'EXISTS',
+  'BETWEEN',
+  'LIKE',
+  'IS NULL',
+  'IS NOT NULL',
+  'UNION',
+  'UNION ALL',
+  'INTERSECT',
+  'EXCEPT',
+  'LIMIT',
+  'OFFSET',
+  'DISTINCT',
+  'COUNT',
+  'SUM',
+  'AVG',
+  'MIN',
+  'MAX',
+  'CASE',
+  'WHEN',
+  'THEN',
+  'ELSE',
+  'END',
+  'WITH',
+  'INSERT',
+  'UPDATE',
+  'DELETE',
+  'CREATE',
+  'DROP',
+  'ALTER',
+  'TRUNCATE',
+  'OVER',
+  'PARTITION BY',
+  'ROW_NUMBER',
+  'RANK',
+  'DENSE_RANK',
+  'CAST',
+  'CONVERT'
 ]
 
 const highlightedSql = computed(() => {
@@ -198,18 +224,42 @@ const highlightedSql = computed(() => {
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: ['span'],
   ALLOWED_ATTR: ['class'],
-  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'style', 'link', 'meta', 'base'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'onabort', 'onanimationstart', 'style', 'src', 'href', 'xlink:href']
+  FORBID_TAGS: [
+    'script',
+    'iframe',
+    'object',
+    'embed',
+    'form',
+    'input',
+    'textarea',
+    'style',
+    'link',
+    'meta',
+    'base'
+  ],
+  FORBID_ATTR: [
+    'onerror',
+    'onload',
+    'onclick',
+    'onmouseover',
+    'onmouseout',
+    'onfocus',
+    'onblur',
+    'onchange',
+    'onsubmit',
+    'onreset',
+    'onabort',
+    'onanimationstart',
+    'style',
+    'src',
+    'href',
+    'xlink:href'
+  ]
 }
-const sanitizedSql = computed(() =>
-  DOMPurify.sanitize(highlightedSql.value, SANITIZE_OPTS)
-)
+const sanitizedSql = computed(() => DOMPurify.sanitize(highlightedSql.value, SANITIZE_OPTS))
 
 function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
 /* ------------------------------ 复制 ------------------------------ */
@@ -275,7 +325,7 @@ async function copySql(): Promise<void> {
 .sql-code {
   margin: 0;
   padding: 12px 14px;
-  font-family: "SFMono-Regular", Consolas, "Courier New", monospace;
+  font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;

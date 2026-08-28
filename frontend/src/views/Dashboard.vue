@@ -19,7 +19,10 @@
         <div class="card" style="grid-column: span 4" role="alert" aria-live="assertive">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ overviewError.message }}，<a href="javascript:void(0)" @click="loadOverview" aria-label="重新加载集群概览">重试</a>
+            {{ overviewError.message }}，
+            <a href="javascript:void(0)" @click="loadOverview" aria-label="重新加载集群概览">
+              重试
+            </a>
           </div>
         </div>
       </template>
@@ -27,12 +30,16 @@
         <div class="card" role="region" aria-label="数据项目数">
           <h3>数据项目</h3>
           <div class="kpi">{{ overview.projectCount }}</div>
-          <div class="meta">运行中 {{ runningProjects }} · 暂停 {{ overview.projectCount - runningProjects }}</div>
+          <div class="meta">
+            运行中 {{ runningProjects }} · 暂停 {{ overview.projectCount - runningProjects }}
+          </div>
         </div>
         <div class="card" role="region" aria-label="调度作业数">
           <h3>调度作业</h3>
           <div class="kpi">{{ overview.jobCount }}</div>
-          <div class="meta">今日成功 {{ overview.jobSuccessToday }} · 失败 {{ overview.jobFailToday }}</div>
+          <div class="meta">
+            今日成功 {{ overview.jobSuccessToday }} · 失败 {{ overview.jobFailToday }}
+          </div>
         </div>
         <div class="card" role="region" aria-label="存储用量">
           <h3>存储用量</h3>
@@ -52,39 +59,82 @@
       <div class="card" role="region" aria-label="资源趋势">
         <h3>资源趋势（近 7 日）</h3>
         <template v-if="overviewLoading">
-          <div class="meta" style="color: var(--muted)" role="status" aria-live="polite">加载中…</div>
+          <div class="meta" style="color: var(--muted)" role="status" aria-live="polite">
+            加载中…
+          </div>
         </template>
         <template v-else-if="overviewError">
           <div class="meta" style="color: var(--muted)" role="alert">资源趋势加载失败</div>
         </template>
         <template v-else-if="overview">
           <div class="mini" role="img" aria-label="CPU 趋势图">
-            <i v-for="(h, idx) in overview.trendCpu" :key="`cpu-${idx}`" :style="{ height: h + '%' }"></i>
+            <i
+              v-for="(h, idx) in overview.trendCpu"
+              :key="`cpu-${idx}`"
+              :style="{ height: h + '%' }"
+            ></i>
           </div>
-          <div class="row" style="margin-top: 10px"><span>CPU</span><span>{{ cpuPercent }}%</span></div>
-          <div class="bar" role="progressbar" :aria-valuenow="cpuPercent" aria-valuemin="0" aria-valuemax="100" aria-label="CPU 使用率"><i :style="{ width: cpuPercent + '%' }"></i></div>
-          <div class="row" style="margin-top: 8px"><span>内存</span><span>{{ memPercent }}%</span></div>
-          <div class="bar" role="progressbar" :aria-valuenow="memPercent" aria-valuemin="0" aria-valuemax="100" aria-label="内存使用率"><i class="a" :style="{ width: memPercent + '%' }"></i></div>
+          <div class="row" style="margin-top: 10px">
+            <span>CPU</span>
+            <span>{{ cpuPercent }}%</span>
+          </div>
+          <div
+            class="bar"
+            role="progressbar"
+            :aria-valuenow="cpuPercent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label="CPU 使用率"
+          >
+            <i :style="{ width: cpuPercent + '%' }"></i>
+          </div>
+          <div class="row" style="margin-top: 8px">
+            <span>内存</span>
+            <span>{{ memPercent }}%</span>
+          </div>
+          <div
+            class="bar"
+            role="progressbar"
+            :aria-valuenow="memPercent"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            aria-label="内存使用率"
+          >
+            <i class="a" :style="{ width: memPercent + '%' }"></i>
+          </div>
           <div class="note">超 80% 自动扩容，客户无感知。</div>
         </template>
       </div>
       <div class="card" role="region" aria-label="待办审批">
-        <h3>待办审批 <span class="pill r" aria-label="待办总数">{{ store.todoCount }}</span></h3>
+        <h3>
+          待办审批
+          <span class="pill r" aria-label="待办总数">{{ store.todoCount }}</span>
+        </h3>
         <table role="table" aria-label="待办审批列表">
           <thead>
-            <tr role="row"><th role="columnheader">申请</th><th role="columnheader">申请人</th><th role="columnheader">操作</th></tr>
+            <tr role="row">
+              <th role="columnheader">申请</th>
+              <th role="columnheader">申请人</th>
+              <th role="columnheader">操作</th>
+            </tr>
           </thead>
           <tbody>
             <tr v-for="t in store.secApprovals" :key="t.id" role="row">
               <td role="cell">{{ t.asset }}（{{ t.perm }}）</td>
               <td role="cell">{{ t.applicant }}</td>
               <td role="cell">
-                <button class="btn sm" aria-label="批准申请" @click="store.approve(t.id)">批准</button>
-                <button class="btn ghost sm" aria-label="驳回申请" @click="store.reject(t.id)">驳回</button>
+                <button class="btn sm" aria-label="批准申请" @click="store.approve(t.id)">
+                  批准
+                </button>
+                <button class="btn ghost sm" aria-label="驳回申请" @click="store.reject(t.id)">
+                  驳回
+                </button>
               </td>
             </tr>
             <tr v-if="store.secApprovals.length === 0" role="row">
-              <td colspan="3" style="text-align: center; color: var(--muted)" role="cell">暂无待办</td>
+              <td colspan="3" style="text-align: center; color: var(--muted)" role="cell">
+                暂无待办
+              </td>
             </tr>
           </tbody>
         </table>
@@ -93,11 +143,51 @@
     <div class="card" style="margin-top: 14px" role="region" aria-label="快捷入口">
       <h3>快捷入口</h3>
       <div class="chips" role="navigation" aria-label="快捷功能入口">
-        <span class="chip on" role="link" tabindex="0" aria-label="新建作业" @click="router.push('/develop')">新建作业</span>
-        <span class="chip" role="link" tabindex="0" aria-label="配置同步" @click="router.push('/integrate')">配置同步</span>
-        <span class="chip" role="link" tabindex="0" aria-label="登记资产" @click="router.push('/govern')">登记资产</span>
-        <span class="chip" role="link" tabindex="0" aria-label="训练模型" @click="router.push('/llmops')">训练模型</span>
-        <span class="chip" role="link" tabindex="0" aria-label="建看板" @click="router.push('/analyze')">建看板</span>
+        <span
+          class="chip on"
+          role="link"
+          tabindex="0"
+          aria-label="新建作业"
+          @click="router.push('/develop')"
+        >
+          新建作业
+        </span>
+        <span
+          class="chip"
+          role="link"
+          tabindex="0"
+          aria-label="配置同步"
+          @click="router.push('/integrate')"
+        >
+          配置同步
+        </span>
+        <span
+          class="chip"
+          role="link"
+          tabindex="0"
+          aria-label="登记资产"
+          @click="router.push('/govern')"
+        >
+          登记资产
+        </span>
+        <span
+          class="chip"
+          role="link"
+          tabindex="0"
+          aria-label="训练模型"
+          @click="router.push('/llmops')"
+        >
+          训练模型
+        </span>
+        <span
+          class="chip"
+          role="link"
+          tabindex="0"
+          aria-label="建看板"
+          @click="router.push('/analyze')"
+        >
+          建看板
+        </span>
       </div>
     </div>
   </div>

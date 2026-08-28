@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ nodesError.message }}，<a href="javascript:void(0)" @click="reloadNodes">重试</a>
+            {{ nodesError.message }}，
+            <a href="javascript:void(0)" @click="reloadNodes">重试</a>
           </div>
         </div>
       </template>
@@ -88,7 +89,11 @@
             </el-table-column>
             <el-table-column label="角色" width="100">
               <template #default="{ row }">
-                <el-tag :type="row.role === 'FE' ? 'primary' : 'success'" effect="light" size="small">
+                <el-tag
+                  :type="row.role === 'FE' ? 'primary' : 'success'"
+                  effect="light"
+                  size="small"
+                >
                   {{ row.role }}
                 </el-tag>
               </template>
@@ -143,7 +148,12 @@
             :empty-text="queriesError ? '加载失败，请重试' : '暂无查询记录'"
           >
             <el-table-column prop="queryId" label="QueryId" min-width="180" />
-            <el-table-column prop="sqlSummary" label="SQL 摘要" min-width="240" show-overflow-tooltip />
+            <el-table-column
+              prop="sqlSummary"
+              label="SQL 摘要"
+              min-width="240"
+              show-overflow-tooltip
+            />
             <el-table-column prop="user" label="用户" width="120" />
             <el-table-column prop="database" label="数据库" width="140" />
             <el-table-column label="时长" width="120">
@@ -171,7 +181,9 @@
               style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
             />
             <div class="sql-actions">
-              <el-button type="primary" :loading="executing" @click="handleExecuteSql">执行</el-button>
+              <el-button type="primary" :loading="executing" @click="handleExecuteSql">
+                执行
+              </el-button>
               <el-button :loading="explaining" @click="handleExplainSql">执行计划</el-button>
               <el-button @click="sqlText = ''">清空</el-button>
             </div>
@@ -199,7 +211,9 @@
             </div>
             <div v-if="explainResult" class="sql-result">
               <div class="result-meta">执行计划</div>
-              <pre class="explain-content">{{ explainResult.plan ?? explainResult.error ?? '无' }}</pre>
+              <pre class="explain-content">{{
+                explainResult.plan ?? explainResult.error ?? '无'
+              }}</pre>
             </div>
           </div>
         </template>

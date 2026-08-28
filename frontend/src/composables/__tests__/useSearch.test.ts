@@ -55,8 +55,18 @@ describe('composables/useSearch.ts 竞态守卫', () => {
     let resolveA!: (r: SearchResponse) => void
     let resolveB!: (r: SearchResponse) => void
     mockedSearch
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveA = r }))
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveB = r }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveA = r
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveB = r
+          })
+      )
 
     const s = useSearch({ debounceMs: 0 })
     s.query.query = 'alpha'
@@ -82,8 +92,18 @@ describe('composables/useSearch.ts 竞态守卫', () => {
     let rejectA!: (e: Error) => void
     let resolveB!: (r: SearchResponse) => void
     mockedSearch
-      .mockImplementationOnce(() => new Promise<SearchResponse>((_, rej) => { rejectA = rej }))
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveB = r }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((_, rej) => {
+            rejectA = rej
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveB = r
+          })
+      )
 
     const s = useSearch({ debounceMs: 0 })
     s.query.query = 'first'
@@ -109,8 +129,18 @@ describe('composables/useSearch.ts 竞态守卫', () => {
     let resolveRefresh!: (r: SearchResponse) => void
     mockedSearch
       .mockImplementationOnce(() => Promise.resolve(resp(['p1'], { hasMore: true })))
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveLoadMore = r }))
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveRefresh = r }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveLoadMore = r
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveRefresh = r
+          })
+      )
 
     const s = useSearch({ debounceMs: 0 })
     s.query.query = 'alpha'
@@ -152,8 +182,18 @@ describe('composables/useSearch.ts 竞态守卫', () => {
     let resolveRefresh!: (r: SearchResponse) => void
     mockedSearch
       .mockImplementationOnce(() => Promise.resolve(resp(['p1'], { hasMore: true })))
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveLoadMore = r }))
-      .mockImplementationOnce(() => new Promise<SearchResponse>((r) => { resolveRefresh = r }))
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveLoadMore = r
+          })
+      )
+      .mockImplementationOnce(
+        () =>
+          new Promise<SearchResponse>((r) => {
+            resolveRefresh = r
+          })
+      )
 
     const s = useSearch({ debounceMs: 0 })
     s.query.query = 'alpha'

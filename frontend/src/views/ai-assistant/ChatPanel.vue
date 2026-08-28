@@ -41,12 +41,7 @@
       </div>
 
       <!-- 消息项 -->
-      <div
-        v-for="msg in messages"
-        :key="msg.id"
-        class="chat-msg"
-        :class="`msg-${msg.role}`"
-      >
+      <div v-for="msg in messages" :key="msg.id" class="chat-msg" :class="`msg-${msg.role}`">
         <!-- 头像 -->
         <div class="msg-avatar">
           <el-icon v-if="msg.role === 'user'"><User /></el-icon>
@@ -76,11 +71,7 @@
 
             <!-- SQL 单独块 -->
             <div v-else-if="content.type === 'sql'" class="content-sql">
-              <SqlPreview
-                :sql="content.text ?? ''"
-                :meta="content.sqlMeta"
-                :locale="locale"
-              />
+              <SqlPreview :sql="content.text ?? ''" :meta="content.sqlMeta" :locale="locale" />
             </div>
 
             <!-- 表格单独块 -->
@@ -114,17 +105,10 @@
               />
 
               <!-- 数据表格 -->
-              <DataTable
-                v-if="content.table"
-                :table="content.table"
-                :locale="locale"
-              />
+              <DataTable v-if="content.table" :table="content.table" :locale="locale" />
 
               <!-- 图表 -->
-              <ChartView
-                v-if="content.chart"
-                :config="content.chart"
-              />
+              <ChartView v-if="content.chart" :config="content.chart" />
 
               <!-- 数据解读 -->
               <DataSummary
@@ -226,13 +210,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, computed, onMounted } from 'vue'
-import {
-  ElInput,
-  ElButton,
-  ElIcon,
-  ElSwitch,
-  ElTooltip
-} from 'element-plus'
+import { ElInput, ElButton, ElIcon, ElSwitch, ElTooltip } from 'element-plus'
 import {
   ChatDotRound,
   User,
@@ -330,21 +308,27 @@ function scrollToBottom() {
   }
 }
 
-watch(() => props.messages.length, () => {
-  void nextTick(scrollToBottom)
-})
+watch(
+  () => props.messages.length,
+  () => {
+    void nextTick(scrollToBottom)
+  }
+)
 
 // 流式时持续滚动
 let scrollTimer: ReturnType<typeof setInterval> | null = null
-watch(() => props.streaming, (streaming) => {
-  if (scrollTimer) {
-    clearInterval(scrollTimer)
-    scrollTimer = null
+watch(
+  () => props.streaming,
+  (streaming) => {
+    if (scrollTimer) {
+      clearInterval(scrollTimer)
+      scrollTimer = null
+    }
+    if (streaming) {
+      scrollTimer = setInterval(scrollToBottom, 100)
+    }
   }
-  if (streaming) {
-    scrollTimer = setInterval(scrollToBottom, 100)
-  }
-})
+)
 
 onMounted(scrollToBottom)
 

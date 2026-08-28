@@ -10,17 +10,29 @@
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error.message }}，<a href="javascript:void(0)" @click="loadRules">重试</a>
+        {{ error.message }}，
+        <a href="javascript:void(0)" @click="loadRules">重试</a>
       </div>
       <table v-else>
-        <tr><th>规则</th><th>对象</th><th>校验</th><th>阈值</th><th>最近</th><th>状态</th></tr>
+        <tr>
+          <th>规则</th>
+          <th>对象</th>
+          <th>校验</th>
+          <th>阈值</th>
+          <th>最近</th>
+          <th>状态</th>
+        </tr>
         <tr v-for="r in rules" :key="r.id">
           <td>{{ r.name }}</td>
           <td>{{ r.targetTable }}</td>
           <td>{{ checkTypeLabel(r.checkType) }}</td>
           <td>{{ r.threshold }}</td>
           <td>{{ r.lastCheckAt || '--' }}</td>
-          <td><span class="pill" :class="resultPillClass(r.lastResult)">{{ resultPillText(r.lastResult) }}</span></td>
+          <td>
+            <span class="pill" :class="resultPillClass(r.lastResult)">
+              {{ resultPillText(r.lastResult) }}
+            </span>
+          </td>
         </tr>
         <tr v-if="rules.length === 0">
           <td colspan="6" style="text-align: center; color: var(--muted)">暂无规则</td>
@@ -29,16 +41,29 @@
     </div>
 
     <Modal :visible="modalVisible" title="新建质量规则" @close="modalVisible = false">
-      <label>对象表</label><input v-model="form.targetTable" placeholder="如 dwd.order_wide" />
-      <label>字段</label><input v-model="form.targetField" placeholder="如 order_id" />
+      <label>对象表</label>
+      <input v-model="form.targetTable" placeholder="如 dwd.order_wide" />
+      <label>字段</label>
+      <input v-model="form.targetField" placeholder="如 order_id" />
       <label>校验类型</label>
-      <select v-model="form.checkType"><option value="not_null">非空</option><option value="unique">唯一</option><option value="range">范围</option><option value="fluctuation">波动</option></select>
-      <label>阈值</label><input v-model="form.threshold" placeholder="如 100%" />
+      <select v-model="form.checkType">
+        <option value="not_null">非空</option>
+        <option value="unique">唯一</option>
+        <option value="range">范围</option>
+        <option value="fluctuation">波动</option>
+      </select>
+      <label>阈值</label>
+      <input v-model="form.threshold" placeholder="如 100%" />
       <label>异常动作</label>
-      <select v-model="form.actionOnFail"><option value="alert">告警</option><option value="block_downstream">阻断下游</option></select>
+      <select v-model="form.actionOnFail">
+        <option value="alert">告警</option>
+        <option value="block_downstream">阻断下游</option>
+      </select>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">{{ submitting ? '创建中…' : '创建' }}</button>
+        <button class="btn" :disabled="submitting" @click="handleSubmit">
+          {{ submitting ? '创建中…' : '创建' }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -63,12 +88,11 @@ const {
   loading,
   error,
   execute: loadRules
-} = useApi<[PagedResult<QualityRule>, QualitySummary | null]>(
-  () =>
-    Promise.all([
-      qualityApi.listRules({ page: 1, pageSize: 100 }),
-      qualityApi.getSummary().catch(() => null)
-    ])
+} = useApi<[PagedResult<QualityRule>, QualitySummary | null]>(() =>
+  Promise.all([
+    qualityApi.listRules({ page: 1, pageSize: 100 }),
+    qualityApi.getSummary().catch(() => null)
+  ])
 )
 
 // 规则列表

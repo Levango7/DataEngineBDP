@@ -59,13 +59,7 @@
 
     <!-- 标签 -->
     <div v-if="item.tags.length > 0" class="card-tags">
-      <el-tag
-        v-for="tag in displayTags"
-        :key="tag"
-        size="small"
-        effect="plain"
-        type="info"
-      >
+      <el-tag v-for="tag in displayTags" :key="tag" size="small" effect="plain" type="info">
         {{ tag }}
       </el-tag>
       <el-tag v-if="item.tags.length > maxTags" size="small" effect="plain">
@@ -126,8 +120,37 @@ const ALLOWED_TAGS = ['mark']
 const SANITIZE_OPTS = {
   ALLOWED_TAGS,
   ALLOWED_ATTR: [],
-  FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'textarea', 'style', 'link', 'meta', 'base'],
-  FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onmouseout', 'onfocus', 'onblur', 'onchange', 'onsubmit', 'onreset', 'onabort', 'onanimationstart', 'style', 'src', 'href', 'xlink:href']
+  FORBID_TAGS: [
+    'script',
+    'iframe',
+    'object',
+    'embed',
+    'form',
+    'input',
+    'textarea',
+    'style',
+    'link',
+    'meta',
+    'base'
+  ],
+  FORBID_ATTR: [
+    'onerror',
+    'onload',
+    'onclick',
+    'onmouseover',
+    'onmouseout',
+    'onfocus',
+    'onblur',
+    'onchange',
+    'onsubmit',
+    'onreset',
+    'onabort',
+    'onanimationstart',
+    'style',
+    'src',
+    'href',
+    'xlink:href'
+  ]
 }
 
 function escapeHtml(s: string): string {
@@ -200,7 +223,9 @@ function openUrl(): void {
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
   display: flex;
   flex-direction: column;
   gap: 8px;

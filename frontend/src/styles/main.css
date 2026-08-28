@@ -9,38 +9,42 @@
 
 :root {
   /* === 基础配色 (保留变量名, 改值) === */
-  --bg: #f8fafc;                          /* 内容区浅灰白底 */
-  --panel: var(--c-white);                /* 卡片/面板白底 */
-  --ink: #0f172a;                         /* 主文字深色 */
-  --muted: #64748b;                       /* 次要文字 slate-500 */
-  --line: #e2e8f0;                        /* 分割线 slate-200 */
+  --bg: #f8fafc; /* 内容区浅灰白底 */
+  --panel: var(--c-white); /* 卡片/面板白底 */
+  --ink: #0f172a; /* 主文字深色 */
+  --muted: #64748b; /* 次要文字 slate-500 */
+  --line: #e2e8f0; /* 分割线 slate-200 */
 
   /* === 主色: 稳重蓝蓝渐变 === */
-  --primary: #3b82f6;                     /* blue-500 */
-  --primary-2: #6366f1;                   /* indigo-500 (蓝蓝渐变协调) */
-  --primary-soft: #eff6ff;                /* blue-50 */
-  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);  /* 蓝蓝渐变 */
-  --gradient-primary-soft: linear-gradient(135deg, rgba(59,130,246,0.12) 0%, rgba(99,102,241,0.12) 100%);
+  --primary: #3b82f6; /* blue-500 */
+  --primary-2: #6366f1; /* indigo-500 (蓝蓝渐变协调) */
+  --primary-soft: #eff6ff; /* blue-50 */
+  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); /* 蓝蓝渐变 */
+  --gradient-primary-soft: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.12) 0%,
+    rgba(99, 102, 241, 0.12) 100%
+  );
 
   /* === 强调色: 鲜艳科技感 === */
-  --green: #10b981;                       /* emerald-500 */
-  --amber: #f59e0b;                       /* amber-500 */
-  --red: #ef4444;                         /* red-500 */
+  --green: #10b981; /* emerald-500 */
+  --amber: #f59e0b; /* amber-500 */
+  --red: #ef4444; /* red-500 */
 
   /* === 形状与阴影 === */
   --radius: 10px;
   --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);
-  --shadow-glow: 0 0 10px rgba(59, 130, 246, 0.12);     /* 发光阴影 (减弱) */
+  --shadow-glow: 0 0 10px rgba(59, 130, 246, 0.12); /* 发光阴影 (减弱) */
   --shadow-glow-strong: 0 0 14px rgba(59, 130, 246, 0.18);
 
   /* === 侧边栏深色渐变 (新增) === */
   --sidebar-bg: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-  --sidebar-ink: #e2e8f0;                 /* 侧边栏主文字 */
-  --sidebar-muted: #94a3b8;               /* 侧边栏次要文字 */
-  --sidebar-active-bg: rgba(59, 130, 246, 0.22);  /* 半透明高亮 (蓝蓝更鲜明) */
-  --sidebar-hover-bg: rgba(148, 163, 184, 0.10);
+  --sidebar-ink: #e2e8f0; /* 侧边栏主文字 */
+  --sidebar-muted: #94a3b8; /* 侧边栏次要文字 */
+  --sidebar-active-bg: rgba(59, 130, 246, 0.22); /* 半透明高亮 (蓝蓝更鲜明) */
+  --sidebar-hover-bg: rgba(148, 163, 184, 0.1);
   --sidebar-line: rgba(148, 163, 184, 0.15);
 
   /* === 毛玻璃 (新增) === */
@@ -49,13 +53,13 @@
 
   /* === 兼容旧变量 (保留名称, 改值) === */
   --c-white: #ffffff;
-  --c-surface-hover: #f1f5f9;             /* slate-100 */
+  --c-surface-hover: #f1f5f9; /* slate-100 */
   --c-surface-alt: #f8fafc;
   --c-surface: #f8fafc;
   --c-track: #e2e8f0;
   --c-green-50b: #ecfdf5;
   --c-indigo-50: #eff6ff;
-  --c-slate-900: #0f172a;                 /* slate-900 深色 */
+  --c-slate-900: #0f172a; /* slate-900 深色 */
   --c-slate-700: #334155;
   --c-slate-400: #94a3b8;
   --c-slate-300: #cbd5e1;
@@ -68,7 +72,7 @@
   --c-red-50: #fef2f2;
   --c-blue-300: #93c5fd;
   --c-violet: #8b5cf6;
-  --c-primary: #3b82f6;                   /* 兼容引用 */
+  --c-primary: #3b82f6; /* 兼容引用 */
 
   /* === 动效曲线 (新增) === */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -83,7 +87,7 @@
 }
 
 body {
-  font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background: var(--bg);
   color: var(--ink);
   font-size: 14px;
@@ -121,7 +125,7 @@ body {
   align-items: center;
   gap: 8px;
   border-bottom: 1px solid var(--sidebar-line);
-  background: linear-gradient(135deg, rgba(59,130,246,0.22) 0%, rgba(99,102,241,0.15) 100%);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.22) 0%, rgba(99, 102, 241, 0.15) 100%);
 }
 .brand .dot {
   width: 9px;
@@ -129,7 +133,6 @@ body {
   border-radius: 50%;
   background: var(--green);
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
-
 }
 .nav {
   padding: 8px 0;
@@ -152,7 +155,10 @@ body {
   border-left: 3px solid transparent;
   font-size: 13px;
   text-decoration: none;
-  transition: background 0.2s var(--ease-smooth), color 0.2s var(--ease-smooth), border-left-color 0.2s var(--ease-smooth);
+  transition:
+    background 0.2s var(--ease-smooth),
+    color 0.2s var(--ease-smooth),
+    border-left-color 0.2s var(--ease-smooth);
   position: relative;
   overflow: hidden;
 }
@@ -168,14 +174,13 @@ body {
   font-weight: 600;
 }
 .nav a.active::before {
-  content: "";
+  content: '';
   position: absolute;
   left: 0;
   top: 0;
   bottom: 0;
   width: 3px;
   background: var(--gradient-primary);
-
 }
 .nav a .ic {
   width: 17px;
@@ -215,7 +220,6 @@ body {
   font-size: 10px;
   border-radius: 10px;
   padding: 1px 6px;
-
 }
 .side-foot {
   padding: 10px 18px;
@@ -256,7 +260,9 @@ body {
   border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth);
 }
 .ws-switch:hover {
   transform: translateY(-1px);
@@ -327,7 +333,10 @@ body {
   border-radius: var(--radius);
   padding: 16px;
   box-shadow: var(--shadow);
-  transition: transform 0.25s var(--ease-smooth), box-shadow 0.25s var(--ease-smooth), border-color 0.25s var(--ease-smooth);
+  transition:
+    transform 0.25s var(--ease-smooth),
+    box-shadow 0.25s var(--ease-smooth),
+    border-color 0.25s var(--ease-smooth);
 }
 .card:hover {
   transform: translateY(-4px);
@@ -440,12 +449,17 @@ tr.click {
   font-weight: 600;
   position: relative;
   overflow: hidden;
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), filter 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth),
+    filter 0.2s var(--ease-smooth);
   box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
 }
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4), var(--shadow-glow);
+  box-shadow:
+    0 6px 16px rgba(99, 102, 241, 0.4),
+    var(--shadow-glow);
   filter: brightness(1.05);
 }
 .btn:active {
@@ -471,7 +485,9 @@ tr.click {
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
 }
 .btn.danger:hover {
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4), 0 0 20px rgba(239, 68, 68, 0.3);
+  box-shadow:
+    0 6px 16px rgba(239, 68, 68, 0.4),
+    0 0 20px rgba(239, 68, 68, 0.3);
 }
 
 /* ============ toolbar / form ============ */
@@ -494,7 +510,9 @@ textarea {
   border-radius: 8px;
   background: #fff;
   width: 100%;
-  transition: border-color 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+  transition:
+    border-color 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth);
 }
 input:focus,
 select:focus,
@@ -555,7 +573,9 @@ label {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   color: var(--muted);
-  transition: color 0.2s var(--ease-smooth), border-bottom-color 0.2s var(--ease-smooth);
+  transition:
+    color 0.2s var(--ease-smooth),
+    border-bottom-color 0.2s var(--ease-smooth);
 }
 .tabs .tab.on {
   color: var(--primary);
@@ -569,7 +589,7 @@ label {
 }
 .code {
   padding: 12px;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 12.5px;
   white-space: pre;
   color: var(--c-slate-700);
@@ -579,7 +599,7 @@ label {
   width: 100%;
   min-height: 200px;
   padding: 12px;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre;
@@ -649,7 +669,10 @@ label {
   font-size: 12px;
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth),
+    border-color 0.2s var(--ease-smooth);
 }
 .node:hover {
   transform: translateY(-2px);
@@ -684,7 +707,10 @@ label {
   font-size: 12px;
   box-shadow: var(--shadow);
   cursor: pointer;
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth),
+    border-color 0.2s var(--ease-smooth);
 }
 .ln:hover {
   transform: translateY(-2px);
@@ -745,7 +771,10 @@ label {
   text-align: center;
   cursor: pointer;
   background: #fff;
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), border-color 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth),
+    border-color 0.2s var(--ease-smooth);
 }
 .conn:hover {
   border-color: var(--primary);
@@ -805,14 +834,16 @@ label {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.04) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);
 }
 .drawer .dh .x {
   margin-left: auto;
   cursor: pointer;
   color: var(--muted);
   font-size: 18px;
-  transition: color 0.2s var(--ease-smooth), transform 0.2s var(--ease-smooth);
+  transition:
+    color 0.2s var(--ease-smooth),
+    transform 0.2s var(--ease-smooth);
 }
 .drawer .dh .x:hover {
   color: var(--red);
@@ -836,7 +867,9 @@ label {
   z-index: 60;
   display: none;
   opacity: 0;
-  transition: transform 0.28s var(--ease-spring), opacity 0.28s var(--ease-smooth);
+  transition:
+    transform 0.28s var(--ease-spring),
+    opacity 0.28s var(--ease-smooth);
 }
 .modal.show {
   display: block;
@@ -850,14 +883,16 @@ label {
   font-size: 15px;
   display: flex;
   align-items: center;
-  background: linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(139,92,246,0.04) 100%);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);
 }
 .modal .mh .x {
   margin-left: auto;
   cursor: pointer;
   color: var(--muted);
   font-size: 18px;
-  transition: color 0.2s var(--ease-smooth), transform 0.2s var(--ease-smooth);
+  transition:
+    color 0.2s var(--ease-smooth),
+    transform 0.2s var(--ease-smooth);
 }
 .modal .mh .x:hover {
   color: var(--red);
@@ -912,7 +947,9 @@ label {
   font-size: 13px;
   color: var(--muted);
   border-bottom: 2px solid transparent;
-  transition: color 0.2s var(--ease-smooth), border-bottom-color 0.2s var(--ease-smooth);
+  transition:
+    color 0.2s var(--ease-smooth),
+    border-bottom-color 0.2s var(--ease-smooth);
 }
 .tabbar .t.on {
   color: var(--primary);
@@ -990,7 +1027,9 @@ label {
   border-radius: 6px;
   background: var(--c-surface);
   cursor: default;
-  transition: border-color 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth);
+  transition:
+    border-color 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth);
 }
 .health-item:hover {
   border-color: var(--primary);
@@ -1073,7 +1112,8 @@ label {
 
 /* 4. 发光边框脉冲 (呼吸) */
 @keyframes glowPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 6px rgba(99, 102, 241, 0.4);
   }
   50% {
@@ -1143,7 +1183,8 @@ label {
 
 /* 10. 网格背景脉冲 (登录页背景) */
 @keyframes gridPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.4;
     transform: scale(1);
   }
@@ -1223,7 +1264,9 @@ label {
 .glow-border {
   border: 1px solid rgba(99, 102, 241, 0.4);
   box-shadow: var(--shadow-glow);
-  transition: box-shadow 0.3s var(--ease-smooth), border-color 0.3s var(--ease-smooth);
+  transition:
+    box-shadow 0.3s var(--ease-smooth),
+    border-color 0.3s var(--ease-smooth);
 }
 .glow-border:hover {
   border-color: rgba(99, 102, 241, 0.7);
@@ -1246,7 +1289,7 @@ label {
   overflow: hidden;
 }
 .flow-light::after {
-  content: "";
+  content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(

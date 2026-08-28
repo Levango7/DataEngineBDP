@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            标签列表加载失败，<a href="javascript:void(0)" @click="reloadTags">重试</a>
+            标签列表加载失败，
+            <a href="javascript:void(0)" @click="reloadTags">重试</a>
           </div>
         </div>
       </template>
@@ -139,14 +140,19 @@
 
           <div v-if="profileLoading" class="meta" style="padding: 16px">加载中…</div>
           <div v-else-if="profileError" class="meta" style="padding: 16px; color: var(--muted)">
-            画像加载失败，<a href="javascript:void(0)" @click="handleQueryProfile">重试</a>
+            画像加载失败，
+            <a href="javascript:void(0)" @click="handleQueryProfile">重试</a>
           </div>
           <el-empty v-else-if="!profile" description="请输入用户 ID 查询画像" />
           <div v-else class="profile-panel">
             <el-descriptions :column="2" border>
               <el-descriptions-item label="用户 ID">{{ profile.userId }}</el-descriptions-item>
-              <el-descriptions-item label="用户名">{{ profile.username || '--' }}</el-descriptions-item>
-              <el-descriptions-item label="更新时间">{{ profile.updatedAt || '--' }}</el-descriptions-item>
+              <el-descriptions-item label="用户名">
+                {{ profile.username || '--' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="更新时间">
+                {{ profile.updatedAt || '--' }}
+              </el-descriptions-item>
               <el-descriptions-item label="标签数">{{ profile.tags.length }}</el-descriptions-item>
             </el-descriptions>
             <h3 style="margin: 16px 0 12px">标签值列表</h3>
@@ -155,7 +161,12 @@
               <el-table-column prop="valueType" label="类型" width="100" />
               <el-table-column label="值" min-width="160">
                 <template #default="{ row }">
-                  <span v-if="row.value === null || row.value === undefined" style="color: var(--muted)">--</span>
+                  <span
+                    v-if="row.value === null || row.value === undefined"
+                    style="color: var(--muted)"
+                  >
+                    --
+                  </span>
                   <span v-else>{{ row.value }}</span>
                 </template>
               </el-table-column>
@@ -176,12 +187,7 @@
                   filterable
                   style="width: 160px"
                 >
-                  <el-option
-                    v-for="t in tags"
-                    :key="t.id"
-                    :label="t.name"
-                    :value="t.id"
-                  />
+                  <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
                 </el-select>
                 <el-select v-model="cond.op" placeholder="操作" style="width: 100px">
                   <el-option label="等于" value="EQ" />
@@ -203,12 +209,7 @@
                 />
                 <el-button link type="danger" @click="removeCondition(idx)">删除</el-button>
               </div>
-              <el-button
-                type="primary"
-                plain
-                style="margin-top: 8px"
-                @click="addCondition"
-              >
+              <el-button type="primary" plain style="margin-top: 8px" @click="addCondition">
                 + 添加条件
               </el-button>
 
@@ -248,7 +249,9 @@
                     {{ audienceResult.audienceId }}
                   </el-descriptions-item>
                 </el-descriptions>
-                <h4 style="margin: 12px 0 8px">用户列表（前 {{ audienceResult.users.length }} 条）</h4>
+                <h4 style="margin: 12px 0 8px">
+                  用户列表（前 {{ audienceResult.users.length }} 条）
+                </h4>
                 <el-table
                   :data="audienceResult.users"
                   stripe
@@ -403,13 +406,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as devTagApi from '@/api/dev-tag'
-import type {
-  TagDefinition,
-  TagRule,
-  UserProfile,
-  AudienceResult,
-  TagQuery
-} from '@/api/dev-tag'
+import type { TagDefinition, TagRule, UserProfile, AudienceResult, TagQuery } from '@/api/dev-tag'
 
 /* ------------------------------ 标签定义列表 ------------------------------ */
 
@@ -529,16 +526,12 @@ async function handleSubmitTag() {
 /** 删除标签 */
 async function handleDeleteTag(row: TagDefinition) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除标签「${row.name}」？该操作不可恢复。`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除标签「${row.name}」？该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await devTagApi.deleteTag(row.id)
     ElMessage.success('标签已删除')
     await reloadTags()
@@ -768,13 +761,11 @@ function tagStatusLabel(status?: string): string {
     COMPUTED: '已计算',
     FAILED: '失败'
   }
-  return map[status ?? ''] ?? (status ?? '--')
+  return map[status ?? ''] ?? status ?? '--'
 }
 
 /** 标签状态 → tag 类型 */
-function tagStatusType(
-  status?: string
-): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
+function tagStatusType(status?: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
   const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
     DRAFT: 'info',
     READY: 'warning',

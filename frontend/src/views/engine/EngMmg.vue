@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ kpiError.message }}，<a href="javascript:void(0)" @click="reloadKpi">重试</a>
+            {{ kpiError.message }}，
+            <a href="javascript:void(0)" @click="reloadKpi">重试</a>
           </div>
         </div>
       </template>
@@ -79,12 +80,7 @@
           style="width: 220px"
           @change="handleTypeFilterChange"
         >
-          <el-option
-            v-for="t in supportedTypes ?? allTypeOptions"
-            :key="t"
-            :label="t"
-            :value="t"
-          />
+          <el-option v-for="t in supportedTypes ?? allTypeOptions" :key="t" :label="t" :value="t" />
         </el-select>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="reloadAll" />
@@ -136,7 +132,11 @@
         <el-input
           v-model="queryPredicate"
           placeholder="过滤谓词（可选），如 status = 'active' AND age > 18"
-          style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px; margin-bottom: 12px"
+          style="
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 12.5px;
+            margin-bottom: 12px;
+          "
         />
         <div v-loading="querying" class="query-result">
           <template v-if="queryResult">
@@ -179,10 +179,7 @@ import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
 import { MODEL_GROUPS, type ModelGroupKey } from '@/api/engine'
-import type {
-  VirtualTableDefinition,
-  VirtualTableQueryResult
-} from '@/api/engine'
+import type { VirtualTableDefinition, VirtualTableQueryResult } from '@/api/engine'
 
 /* ------------------------------ 数据加载 ------------------------------ */
 
@@ -318,9 +315,7 @@ function modelLabel(type: string): string {
 }
 
 /** 数据源类型 → 模型 tag 颜色 */
-function modelTagType(
-  type: string
-): 'primary' | 'success' | 'warning' | 'danger' | 'info' {
+function modelTagType(type: string): 'primary' | 'success' | 'warning' | 'danger' | 'info' {
   for (const g of MODEL_GROUPS) {
     if (g.types.includes(type as never)) {
       const map: Record<ModelGroupKey, 'primary' | 'success' | 'warning' | 'danger' | 'info'> = {
@@ -432,7 +427,9 @@ onUnmounted(() => {
   padding: 16px;
   background: #fff;
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 .model-card:hover {
   border-color: #409eff;

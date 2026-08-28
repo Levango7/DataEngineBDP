@@ -27,14 +27,7 @@ const BASE_DAGS = '/stream-batch/dags'
 
 /** DAG 作业状态 */
 export type DagStatus =
-  | 'DRAFT'
-  | 'PENDING'
-  | 'SCHEDULED'
-  | 'RUNNING'
-  | 'SUCCESS'
-  | 'FAILED'
-  | 'KILLED'
-  | 'PAUSED'
+  'DRAFT' | 'PENDING' | 'SCHEDULED' | 'RUNNING' | 'SUCCESS' | 'FAILED' | 'KILLED' | 'PAUSED'
 
 /** DAG 作业定义 */
 export interface DagJob {

@@ -125,7 +125,10 @@ describe('composables/useApi.ts', () => {
   describe('loading 时序', () => {
     it('执行期间 loading 应为 true', async () => {
       let resolveFn!: (v: number) => void
-      const factory = () => new Promise<number>((resolve) => { resolveFn = resolve })
+      const factory = () =>
+        new Promise<number>((resolve) => {
+          resolveFn = resolve
+        })
       const { loading, execute } = useApi(factory)
 
       const promise = execute()
@@ -233,9 +236,7 @@ describe('composables/useApi.ts', () => {
     it('先发慢请求再发快请求，慢请求完成时不应覆盖快请求的结果', async () => {
       const slow = deferred<string>()
       const fast = deferred<string>()
-      const factory = vi.fn((kind: string) =>
-        kind === 'upstream' ? slow.promise : fast.promise
-      )
+      const factory = vi.fn((kind: string) => (kind === 'upstream' ? slow.promise : fast.promise))
       const onSuccess = vi.fn()
       const { data, execute } = useApi<string, [string]>(factory, { onSuccess })
 
@@ -260,9 +261,7 @@ describe('composables/useApi.ts', () => {
     it('过期请求失败不应写入 error 或触发 onError', async () => {
       const slow = deferred<string>()
       const fast = deferred<string>()
-      const factory = vi.fn((kind: string) =>
-        kind === 'upstream' ? slow.promise : fast.promise
-      )
+      const factory = vi.fn((kind: string) => (kind === 'upstream' ? slow.promise : fast.promise))
       const onError = vi.fn()
       const { error, loading, execute } = useApi<string, [string]>(factory, { onError })
 

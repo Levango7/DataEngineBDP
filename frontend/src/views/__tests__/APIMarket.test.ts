@@ -80,9 +80,7 @@ describe('views/APIMarket.vue 列表加载三态', () => {
   })
 
   it('点击重试成功后应渲染真实列表数据', async () => {
-    listApisMock
-      .mockRejectedValueOnce(new Error('backend down'))
-      .mockResolvedValueOnce([realApi])
+    listApisMock.mockRejectedValueOnce(new Error('backend down')).mockResolvedValueOnce([realApi])
 
     const wrapper = mount(APIMarket)
     await flushPromises()

@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            Spark 作业列表加载失败，<a href="javascript:void(0)" @click="loadList">重试</a>
+            Spark 作业列表加载失败，
+            <a href="javascript:void(0)" @click="loadList">重试</a>
           </div>
         </div>
       </template>
@@ -402,16 +403,12 @@ async function handleCancel(row: SparkJob) {
 /** 删除作业 */
 async function handleDelete(row: SparkJob) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除作业「${row.name}」？该操作不可恢复。`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除作业「${row.name}」？该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await engineApi.deleteSparkJob(row.id)
     ElMessage.success('作业已删除')
     await loadList()
@@ -469,13 +466,16 @@ function scrollLogToBottom() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   RUNNING: { label: '运行中', type: 'primary' },
   FINISHED: { label: '已完成', type: 'success' },
   FAILED: { label: '失败', type: 'danger' },
   KILLED: { label: '已取消', type: 'info' },
   PENDING: { label: '等待中', type: 'info' },
-  SCHEDULED: { label: '已调度', type: 'warning' },
+  SCHEDULED: { label: '已调度', type: 'warning' }
 }
 
 function statusLabel(status: string): string {
@@ -520,10 +520,13 @@ onUnmounted(() => {
   }
 })
 
-watch(() => appStore.workspace, () => {
-  currentPage.value = 1
-  void loadList()
-})
+watch(
+  () => appStore.workspace,
+  () => {
+    currentPage.value = 1
+    void loadList()
+  }
+)
 </script>
 
 <style scoped>

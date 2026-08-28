@@ -28,20 +28,9 @@ export type AuthType = 'api_key' | 'jwt' | 'oauth2' | 'none'
 export type SLALevel = 'platinum' | 'gold' | 'silver'
 export type CostStrategy = 'by_call' | 'by_bytes' | 'monthly_package'
 export type SubscriptionStatus =
-  | 'pending'
-  | 'approved'
-  | 'active'
-  | 'suspended'
-  | 'rejected'
-  | 'revoked'
+  'pending' | 'approved' | 'active' | 'suspended' | 'rejected' | 'revoked'
 export type ParamLocation = 'path' | 'query' | 'header' | 'body'
-export type ParamType =
-  | 'string'
-  | 'integer'
-  | 'number'
-  | 'boolean'
-  | 'array'
-  | 'object'
+export type ParamType = 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object'
 
 /** API 参数 */
 export interface APIParam {

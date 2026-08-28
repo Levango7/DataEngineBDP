@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ error.message }}，<a href="javascript:void(0)" @click="reload">重试</a>
+            {{ error.message }}，
+            <a href="javascript:void(0)" @click="reload">重试</a>
           </div>
         </div>
       </template>
@@ -154,7 +155,9 @@
       <template #footer>
         <el-button v-if="createStep > 0" @click="createStep--">上一步</el-button>
         <el-button v-if="createStep < 2" type="primary" @click="nextCreateStep">下一步</el-button>
-        <el-button v-else type="primary" :loading="submitting" @click="handleCreate">提交</el-button>
+        <el-button v-else type="primary" :loading="submitting" @click="handleCreate">
+          提交
+        </el-button>
         <el-button @click="createDialogVisible = false">取消</el-button>
       </template>
     </el-dialog>
@@ -358,16 +361,12 @@ async function handleScale() {
 /** 销毁集群（带二次确认） */
 async function handleDestroy(row: ClusterInfo) {
   try {
-    await ElMessageBox.confirm(
-      `确认销毁集群「${row.clusterName}」？该操作不可恢复。`,
-      '危险操作',
-      {
-        type: 'warning',
-        confirmButtonText: '销毁',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认销毁集群「${row.clusterName}」？该操作不可恢复。`, '危险操作', {
+      type: 'warning',
+      confirmButtonText: '销毁',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await infraApi.destroyXinchangCluster(row.clusterId)
     ElMessage.success('销毁请求已提交')
     await reload()

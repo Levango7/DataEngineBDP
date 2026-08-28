@@ -2,7 +2,8 @@
   <div class="template-market">
     <h1>行业应用模板</h1>
     <div class="sub">
-      L5.3 · 面向外部客户的预置分析模板，开箱即用。选定行业模板后，仅需绑定数据源即可获得完整分析能力。
+      L5.3 ·
+      面向外部客户的预置分析模板，开箱即用。选定行业模板后，仅需绑定数据源即可获得完整分析能力。
     </div>
 
     <!-- 顶部操作栏：分类筛选 + 搜索 -->
@@ -10,11 +11,7 @@
       <div class="toolbar">
         <el-radio-group v-model="filterIndustry" @change="handleFilter">
           <el-radio-button label="">全部</el-radio-button>
-          <el-radio-button
-            v-for="cat in categories"
-            :key="cat.industry"
-            :label="cat.industry"
-          >
+          <el-radio-button v-for="cat in categories" :key="cat.industry" :label="cat.industry">
             {{ cat.name }} ({{ cat.count }})
           </el-radio-button>
         </el-radio-group>
@@ -39,7 +36,10 @@
         <el-empty v-if="error" description="加载失败，请重试">
           <el-button type="primary" @click="loadAll">重试</el-button>
         </el-empty>
-        <el-empty v-else-if="!loading && filteredTemplates.length === 0" description="暂无匹配模板" />
+        <el-empty
+          v-else-if="!loading && filteredTemplates.length === 0"
+          description="暂无匹配模板"
+        />
         <el-card
           v-for="tpl in filteredTemplates"
           :key="tpl.id"
@@ -71,10 +71,12 @@
           </div>
           <div class="card-footer">
             <span class="meta-item">
-              <el-icon><Download /></el-icon> {{ tpl.installCount }} 次安装
+              <el-icon><Download /></el-icon>
+              {{ tpl.installCount }} 次安装
             </span>
             <span class="meta-item">
-              <el-icon><Star /></el-icon> {{ tpl.rating.toFixed(1) }}
+              <el-icon><Star /></el-icon>
+              {{ tpl.rating.toFixed(1) }}
             </span>
             <span class="meta-item">v{{ tpl.version }}</span>
           </div>
@@ -85,7 +87,9 @@
     <!-- 模板详情弹窗 -->
     <el-dialog
       v-model="detailVisible"
-      :title="detailTemplate ? `${detailTemplate.meta.icon} ${detailTemplate.meta.name}` : '模板详情'"
+      :title="
+        detailTemplate ? `${detailTemplate.meta.icon} ${detailTemplate.meta.name}` : '模板详情'
+      "
       width="900px"
       :close-on-click-modal="false"
       class="detail-dialog"
@@ -100,7 +104,9 @@
           <el-descriptions-item label="行业">
             {{ industryLabel(detailTemplate.meta.industry) }}
           </el-descriptions-item>
-          <el-descriptions-item label="版本">v{{ detailTemplate.meta.version }}</el-descriptions-item>
+          <el-descriptions-item label="版本">
+            v{{ detailTemplate.meta.version }}
+          </el-descriptions-item>
           <el-descriptions-item label="安装次数">
             {{ detailTemplate.meta.installCount }}
           </el-descriptions-item>
@@ -163,7 +169,8 @@
               </el-table-column>
             </el-table>
             <div class="schedule-info">
-              调度周期：<el-tag size="small">{{ detailTemplate.dataFlow.schedule || '未设置' }}</el-tag>
+              调度周期：
+              <el-tag size="small">{{ detailTemplate.dataFlow.schedule || '未设置' }}</el-tag>
             </div>
           </el-tab-pane>
 
@@ -178,8 +185,16 @@
               >
                 <div class="step-desc">{{ step.description }}</div>
                 <div class="step-io">
-                  <span>输入: <el-tag v-for="i in step.inputs" :key="i" size="small">{{ i }}</el-tag></span>
-                  <span>输出: <el-tag v-for="o in step.outputs" :key="o" type="success" size="small">{{ o }}</el-tag></span>
+                  <span>
+                    输入:
+                    <el-tag v-for="i in step.inputs" :key="i" size="small">{{ i }}</el-tag>
+                  </span>
+                  <span>
+                    输出:
+                    <el-tag v-for="o in step.outputs" :key="o" type="success" size="small">
+                      {{ o }}
+                    </el-tag>
+                  </span>
                 </div>
                 <pre class="step-code"><code>{{ step.code }}</code></pre>
               </el-collapse-item>
@@ -246,12 +261,7 @@
     </el-dialog>
 
     <!-- 部署弹窗 -->
-    <el-dialog
-      v-model="deployVisible"
-      title="部署模板"
-      width="640px"
-      :close-on-click-modal="false"
-    >
+    <el-dialog v-model="deployVisible" title="部署模板" width="640px" :close-on-click-modal="false">
       <el-form
         ref="deployFormRef"
         :model="deployForm"
@@ -269,10 +279,7 @@
           <el-input v-model="deployForm.releaseName" placeholder="如 my-risk-scorecard" />
         </el-form-item>
         <el-form-item label="Namespace">
-          <el-input
-            v-model="deployForm.namespace"
-            placeholder="留空则使用 tenant-{tenantId}"
-          />
+          <el-input v-model="deployForm.namespace" placeholder="留空则使用 tenant-{tenantId}" />
         </el-form-item>
         <el-divider content-position="left">参数取值</el-divider>
         <el-form-item
@@ -290,10 +297,7 @@
           >
             <el-option v-for="opt in param.enumOptions" :key="opt" :label="opt" :value="opt" />
           </el-select>
-          <el-switch
-            v-else-if="param.type === 'boolean'"
-            v-model="deployForm.values[param.name]"
-          />
+          <el-switch v-else-if="param.type === 'boolean'" v-model="deployForm.values[param.name]" />
           <el-input-number
             v-else-if="param.type === 'integer'"
             v-model="deployForm.values[param.name]"
@@ -317,9 +321,7 @@
       </el-form>
       <template #footer>
         <el-button @click="deployVisible = false">取消</el-button>
-        <el-button type="primary" :loading="deploying" @click="handleDeploy">
-          确认部署
-        </el-button>
+        <el-button type="primary" :loading="deploying" @click="handleDeploy">确认部署</el-button>
       </template>
     </el-dialog>
 
@@ -333,11 +335,22 @@
         />
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item label="模板">{{ deployResult.templateId }}</el-descriptions-item>
-          <el-descriptions-item label="Release">{{ deployResult.releaseName }}</el-descriptions-item>
-          <el-descriptions-item label="Namespace">{{ deployResult.namespace }}</el-descriptions-item>
-          <el-descriptions-item label="作业 ID">{{ deployResult.jobRunId || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="Release">
+            {{ deployResult.releaseName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Namespace">
+            {{ deployResult.namespace }}
+          </el-descriptions-item>
+          <el-descriptions-item label="作业 ID">
+            {{ deployResult.jobRunId || '-' }}
+          </el-descriptions-item>
           <el-descriptions-item label="仪表盘快照">
-            <el-link v-if="deployResult.dashboardSnapshotUrl" type="primary" :href="deployResult.dashboardSnapshotUrl" target="_blank">
+            <el-link
+              v-if="deployResult.dashboardSnapshotUrl"
+              type="primary"
+              :href="deployResult.dashboardSnapshotUrl"
+              target="_blank"
+            >
               查看快照
             </el-link>
             <span v-else>-</span>
@@ -354,15 +367,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import {
-  Refresh,
-  Search,
-  Download,
-  Star,
-  Cpu,
-  Check,
-  DataLine
-} from '@element-plus/icons-vue'
+import { Refresh, Search, Download, Star, Cpu, Check, DataLine } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as templateApi from '@/api/template'
 import type {
@@ -568,11 +573,7 @@ function statusLabel(status: TemplateStatus | DeploymentStatus): string {
     failed: '失败',
     stopped: '已停止'
   }
-  return (
-    STATUS_LABELS[status as TemplateStatus] ||
-    depMap[status as DeploymentStatus] ||
-    status
-  )
+  return STATUS_LABELS[status as TemplateStatus] || depMap[status as DeploymentStatus] || status
 }
 
 function statusTagType(status: TemplateStatus): 'success' | 'warning' | 'info' {
@@ -637,7 +638,9 @@ onMounted(() => {
 }
 .template-card {
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   border-radius: 8px;
 }
 .template-card:hover {

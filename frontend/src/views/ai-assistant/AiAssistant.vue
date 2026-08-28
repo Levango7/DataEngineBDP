@@ -42,12 +42,7 @@
 
         <!-- 方言 -->
         <el-select v-model="selectedDialect" style="width: 130px">
-          <el-option
-            v-for="d in dialectOptions"
-            :key="d.value"
-            :label="d.label"
-            :value="d.value"
-          />
+          <el-option v-for="d in dialectOptions" :key="d.value" :label="d.label" :value="d.value" />
         </el-select>
 
         <!-- 语言切换 -->
@@ -66,13 +61,7 @@
       <aside class="ai-sessions">
         <div class="sessions-header">
           <span>{{ t.sessions }}</span>
-          <el-button
-            :icon="RefreshRight"
-            circle
-            text
-            size="small"
-            @click="loadSessions"
-          />
+          <el-button :icon="RefreshRight" circle text size="small" @click="loadSessions" />
         </div>
         <div class="sessions-list">
           <div
@@ -255,11 +244,7 @@ import ChartRecommendationPanel from './ChartRecommendation.vue'
 import DataSummary from './DataSummary.vue'
 import { useAiAssistant, buildChartConfig } from '@/composables/useAiAssistant'
 import * as aiApi from '@/api/ai-assistant'
-import type {
-  SqlDialect,
-  ChartRecommendation,
-  SupersetDatasource
-} from '@/types/ai-assistant'
+import type { SqlDialect, ChartRecommendation, SupersetDatasource } from '@/types/ai-assistant'
 import { SQL_DIALECT_LABELS } from '@/types/ai-assistant'
 
 /* ------------------------------ 组合式函数 ------------------------------ */

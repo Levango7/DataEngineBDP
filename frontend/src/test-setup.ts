@@ -51,16 +51,66 @@ function slotStub(name: string) {
   return defineComponent({
     name,
     props: [
-      'modelValue', 'placeholder', 'clearable', 'type', 'showPassword', 'disabled', 'rows',
-      'effect', 'size', 'loading', 'stripe', 'border', 'data', 'width', 'minWidth', 'fixed',
-      'align', 'prop', 'label', 'gutter', 'closeOnClickModal', 'rules', 'labelWidth',
-      'labelPosition', 'currentPage', 'pageSize', 'pageSizes', 'total', 'layout', 'background',
-      'min', 'max', 'controlsPosition', 'value', 'percentage', 'color', 'strokeWidth',
-      'showText', 'xs', 'sm', 'md', 'lg', 'shadow', 'icon', 'circle', 'link', 'title'
+      'modelValue',
+      'placeholder',
+      'clearable',
+      'type',
+      'showPassword',
+      'disabled',
+      'rows',
+      'effect',
+      'size',
+      'loading',
+      'stripe',
+      'border',
+      'data',
+      'width',
+      'minWidth',
+      'fixed',
+      'align',
+      'prop',
+      'label',
+      'gutter',
+      'closeOnClickModal',
+      'rules',
+      'labelWidth',
+      'labelPosition',
+      'currentPage',
+      'pageSize',
+      'pageSizes',
+      'total',
+      'layout',
+      'background',
+      'min',
+      'max',
+      'controlsPosition',
+      'value',
+      'percentage',
+      'color',
+      'strokeWidth',
+      'showText',
+      'xs',
+      'sm',
+      'md',
+      'lg',
+      'shadow',
+      'icon',
+      'circle',
+      'link',
+      'title'
     ],
     emits: [
-      'update:modelValue', 'click', 'change', 'keyup.enter', 'clear', 'size-change',
-      'current-change', 'closed', 'opened', 'tab-change', 'input'
+      'update:modelValue',
+      'click',
+      'change',
+      'keyup.enter',
+      'clear',
+      'size-change',
+      'current-change',
+      'closed',
+      'opened',
+      'tab-change',
+      'input'
     ],
     setup(_props, { slots }) {
       return () => h('div', { class: name }, slots)
@@ -74,10 +124,14 @@ const ElTableColumnStub = defineComponent({
   props: ['prop', 'label', 'width', 'minWidth', 'fixed', 'align'],
   setup(_props, { slots }) {
     return () =>
-      h('div', { class: 'el-table-column' }, {
-        header: slots.header?.(),
-        // 不渲染 default scoped slot，避免 { row } 解构错误
-      })
+      h(
+        'div',
+        { class: 'el-table-column' },
+        {
+          header: slots.header?.()
+          // 不渲染 default scoped slot，避免 { row } 解构错误
+        }
+      )
   }
 })
 

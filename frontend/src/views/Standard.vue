@@ -10,10 +10,16 @@
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
-        {{ error.message }}，<a href="javascript:void(0)" @click="loadStandards">重试</a>
+        {{ error.message }}，
+        <a href="javascript:void(0)" @click="loadStandards">重试</a>
       </div>
       <table v-else>
-        <tr><th>标准项</th><th>类型</th><th>码值/规则</th><th>引用资产</th></tr>
+        <tr>
+          <th>标准项</th>
+          <th>类型</th>
+          <th>码值/规则</th>
+          <th>引用资产</th>
+        </tr>
         <tr v-for="s in standards" :key="s.id">
           <td>{{ s.name }}</td>
           <td>{{ typeLabel(s.type) }}</td>
@@ -27,13 +33,22 @@
     </div>
 
     <Modal :visible="modalVisible" title="新建数据标准" @close="modalVisible = false">
-      <label>标准项</label><input v-model="form.name" placeholder="如 user_id" />
+      <label>标准项</label>
+      <input v-model="form.name" placeholder="如 user_id" />
       <label>类型</label>
-      <select v-model="form.type"><option value="primary_key">主键</option><option value="enum">枚举</option><option value="dict">字典</option><option value="amount">金额</option></select>
-      <label>规则/码值</label><input v-model="form.rule" placeholder="如 bigint,非空" />
+      <select v-model="form.type">
+        <option value="primary_key">主键</option>
+        <option value="enum">枚举</option>
+        <option value="dict">字典</option>
+        <option value="amount">金额</option>
+      </select>
+      <label>规则/码值</label>
+      <input v-model="form.rule" placeholder="如 bigint,非空" />
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">{{ submitting ? '发布中…' : '发布' }}</button>
+        <button class="btn" :disabled="submitting" @click="handleSubmit">
+          {{ submitting ? '发布中…' : '发布' }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -58,12 +73,11 @@ const {
   loading,
   error,
   execute: loadStandards
-} = useApi<[PagedResult<Standard>, StandardSummary | null]>(
-  () =>
-    Promise.all([
-      standardApi.listStandards({ page: 1, pageSize: 100 }),
-      standardApi.getSummary().catch(() => null)
-    ])
+} = useApi<[PagedResult<Standard>, StandardSummary | null]>(() =>
+  Promise.all([
+    standardApi.listStandards({ page: 1, pageSize: 100 }),
+    standardApi.getSummary().catch(() => null)
+  ])
 )
 
 // 标准列表

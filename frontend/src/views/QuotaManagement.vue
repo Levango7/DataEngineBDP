@@ -2,7 +2,8 @@
   <div class="quota-page">
     <h1>配额管理</h1>
     <div class="sub">
-      管理 Workspace 资源配额，底层自动翻译为 K8s ResourceQuota + LimitRange，控制 CPU/内存/存储/Pod/PVC/Service 总量与 per-Pod 上下限。
+      管理 Workspace 资源配额，底层自动翻译为 K8s ResourceQuota + LimitRange，控制
+      CPU/内存/存储/Pod/PVC/Service 总量与 per-Pod 上下限。
     </div>
 
     <!-- 顶部操作栏 -->
@@ -16,12 +17,7 @@
           style="width: 180px"
           @change="handleSearch"
         >
-          <el-option
-            v-for="t in tenantOptions"
-            :key="t.id"
-            :label="t.name"
-            :value="t.id"
-          />
+          <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
         </el-select>
         <el-select
           v-model="filterWorkspaceId"
@@ -31,12 +27,7 @@
           style="width: 220px"
           @change="handleSearch"
         >
-          <el-option
-            v-for="w in workspaceOptions"
-            :key="w.id"
-            :label="w.name"
-            :value="w.id"
-          />
+          <el-option v-for="w in workspaceOptions" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="loadList" />
@@ -74,7 +65,9 @@
         </el-table-column>
         <el-table-column label="Pod/PVC/Svc" width="140">
           <template #default="{ row }">
-            <span class="mono">{{ row.podLimit }} / {{ row.pvcLimit }} / {{ row.serviceLimit }}</span>
+            <span class="mono">
+              {{ row.podLimit }} / {{ row.pvcLimit }} / {{ row.serviceLimit }}
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="per-Pod max" width="140">
@@ -126,12 +119,7 @@
             :disabled="isEdit"
             filterable
           >
-            <el-option
-              v-for="w in workspaceOptions"
-              :key="w.id"
-              :label="w.name"
-              :value="w.id"
-            />
+            <el-option v-for="w in workspaceOptions" :key="w.id" :label="w.name" :value="w.id" />
           </el-select>
         </el-form-item>
 
@@ -181,11 +169,7 @@
     <el-dialog v-model="usageDialogVisible" title="资源用量" width="640px">
       <div v-loading="usageLoading">
         <div v-if="usageData && Object.keys(usageData.hard || {}).length > 0">
-          <div
-            v-for="key in Object.keys(usageData.hard)"
-            :key="key"
-            class="usage-row"
-          >
+          <div v-for="key in Object.keys(usageData.hard)" :key="key" class="usage-row">
             <span class="usage-label">{{ usageLabel(key) }}</span>
             <el-progress
               :percentage="usagePercent(key)"
@@ -243,10 +227,7 @@ const {
 )
 
 // 下拉选项：通过 useApi 包装并行加载，失败时不阻塞页面
-const {
-  data: optionsData,
-  execute: loadOptions
-} = useApi<[Tenant[], Workspace[]]>(
+const { data: optionsData, execute: loadOptions } = useApi<[Tenant[], Workspace[]]>(
   () => Promise.all([tenantApi.listAllTenants(), workspaceApi.listAllWorkspaces()]),
   { initialData: [[], []] }
 )
@@ -427,12 +408,9 @@ const {
   data: usageData,
   loading: usageLoading,
   execute: loadUsage
-} = useApi<QuotaUsage, [string]>(
-  (workspaceId: string) => quotaApi.getQuotaUsage(workspaceId),
-  {
-    onError: () => ElMessage.error('用量查询失败')
-  }
-)
+} = useApi<QuotaUsage, [string]>((workspaceId: string) => quotaApi.getQuotaUsage(workspaceId), {
+  onError: () => ElMessage.error('用量查询失败')
+})
 
 /** 查询用量 */
 async function handleViewUsage(row: Quota) {
@@ -519,7 +497,9 @@ function statusLabel(status: Quota['status']): string {
 }
 
 /** 状态 → tag 类型 */
-function statusTagType(status: Quota['status']): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
+function statusTagType(
+  status: Quota['status']
+): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
   const map: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
     SETTING: 'primary',
     ACTIVE: 'success',
@@ -536,10 +516,13 @@ function statusTagType(status: Quota['status']): 'success' | 'warning' | 'info' 
 const appStore = useAppStore()
 
 // 工作空间切换时刷新配额列表（修复 #4）
-watch(() => appStore.workspace, () => {
-  filterWorkspaceId.value = ''
-  void loadList()
-})
+watch(
+  () => appStore.workspace,
+  () => {
+    filterWorkspaceId.value = ''
+    void loadList()
+  }
+)
 
 onMounted(() => {
   void loadList()

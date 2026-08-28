@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            DAG 列表加载失败，<a href="javascript:void(0)" @click="reload">重试</a>
+            DAG 列表加载失败，
+            <a href="javascript:void(0)" @click="reload">重试</a>
           </div>
         </div>
       </template>
@@ -92,7 +93,10 @@
         </el-table-column>
         <el-table-column prop="schedule" label="调度" width="160">
           <template #default="{ row }">
-            <span v-if="row.schedule" style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px">
+            <span
+              v-if="row.schedule"
+              style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            >
               {{ row.schedule }}
             </span>
             <span v-else style="color: var(--muted)">未配置</span>
@@ -480,11 +484,9 @@ async function handleRun(row: DagJob) {
 /** 重跑最近一次失败 */
 async function handleRerun(row: DagJob) {
   try {
-    await ElMessageBox.confirm(
-      `确认对 DAG「${row.name}」最近一次失败实例执行重跑？`,
-      '重跑确认',
-      { type: 'warning' }
-    )
+    await ElMessageBox.confirm(`确认对 DAG「${row.name}」最近一次失败实例执行重跑？`, '重跑确认', {
+      type: 'warning'
+    })
     // 通过 streamBatch 模块触发：先取最近一次失败 run，再 rerun
     const runsPage = await devSchedApi.streamBatchApi.listDagRuns(row.id, {
       status: 'FAILED',
@@ -507,16 +509,12 @@ async function handleRerun(row: DagJob) {
 /** 删除 DAG */
 async function handleDelete(row: DagJob) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除 DAG「${row.name}」？该操作不可恢复。`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除 DAG「${row.name}」？该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await devSchedApi.deleteDag(row.id)
     ElMessage.success('DAG 已删除')
     await reload()
@@ -631,7 +629,10 @@ async function handleBackfill() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   DRAFT: { label: '草稿', type: 'info' },
   PENDING: { label: '等待中', type: 'info' },
   SCHEDULED: { label: '已调度', type: 'warning' },
@@ -639,7 +640,7 @@ const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 
   SUCCESS: { label: '成功', type: 'success' },
   FAILED: { label: '失败', type: 'danger' },
   KILLED: { label: '已取消', type: 'info' },
-  PAUSED: { label: '已暂停', type: 'warning' },
+  PAUSED: { label: '已暂停', type: 'warning' }
 }
 
 function statusLabel(status: string): string {
@@ -650,12 +651,15 @@ function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info
   return STATUS_MAP[status]?.type ?? 'info'
 }
 
-const RUN_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const RUN_STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   RUNNING: { label: '运行中', type: 'primary' },
   SUCCESS: { label: '成功', type: 'success' },
   FAILED: { label: '失败', type: 'danger' },
   KILLED: { label: '已取消', type: 'info' },
-  PENDING: { label: '等待中', type: 'info' },
+  PENDING: { label: '等待中', type: 'info' }
 }
 
 function runStatusLabel(status: string): string {
@@ -670,7 +674,7 @@ const RUN_TYPE_LABELS: Record<string, string> = {
   MANUAL: '手动',
   SCHEDULED: '调度',
   RERUN: '重跑',
-  BACKFILL: '补数据',
+  BACKFILL: '补数据'
 }
 
 function runTypeLabel(runType: string): string {
@@ -705,10 +709,13 @@ onUnmounted(() => {
   }
 })
 
-watch(() => appStore.workspace, () => {
-  currentPage.value = 1
-  void reload()
-})
+watch(
+  () => appStore.workspace,
+  () => {
+    currentPage.value = 1
+    void reload()
+  }
+)
 </script>
 
 <style scoped>

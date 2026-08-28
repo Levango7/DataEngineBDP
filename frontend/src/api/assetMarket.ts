@@ -35,12 +35,7 @@ export type DeliveryMethod = 'api' | 'file' | 'database_direct'
 export type DeliveryStatus = 'pending' | 'running' | 'succeeded' | 'failed'
 
 /** 订阅状态 */
-export type SubscriptionStatus =
-  | 'pending'
-  | 'approved'
-  | 'active'
-  | 'expired'
-  | 'rejected'
+export type SubscriptionStatus = 'pending' | 'approved' | 'active' | 'expired' | 'rejected'
 
 /** 资产定价 */
 export interface AssetPricing {
@@ -215,10 +210,7 @@ export function listSubscriptions(params?: {
 /**
  * 订阅资产
  */
-export function subscribeAsset(
-  assetId: string,
-  data: SubscribeAssetParams
-): Promise<Subscription> {
+export function subscribeAsset(assetId: string, data: SubscribeAssetParams): Promise<Subscription> {
   return post<Subscription>(`${BASE}/${assetId}/subscribe`, data)
 }
 

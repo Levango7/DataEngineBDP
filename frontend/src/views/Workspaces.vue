@@ -2,7 +2,8 @@
   <div>
     <h1>工作空间</h1>
     <div class="sub">
-      顶层隔离边界，底层基于自研 SKE 发行版自动映射为 Namespace + 配额 + 网络策略，客户无需关心容器与编排。
+      顶层隔离边界，底层基于自研 SKE 发行版自动映射为 Namespace + 配额 +
+      网络策略，客户无需关心容器与编排。
     </div>
     <div class="toolbar">
       <button class="btn sm" @click="openCreateModal">+ 新建工作空间</button>
@@ -24,7 +25,8 @@
         <div class="card" style="grid-column: span 3">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ listError.message }}，<a href="javascript:void(0)" @click="reloadList">重试</a>
+            {{ listError.message }}，
+            <a href="javascript:void(0)" @click="reloadList">重试</a>
           </div>
         </div>
       </template>
@@ -40,7 +42,9 @@
         <div class="card" v-for="ws in workspaces" :key="ws.id">
           <div class="row">
             <b>{{ ws.name }}</b>
-            <span class="pill" :class="statusPillClass(ws.status)">{{ statusPillText(ws.status) }}</span>
+            <span class="pill" :class="statusPillClass(ws.status)">
+              {{ statusPillText(ws.status) }}
+            </span>
           </div>
           <div class="meta">{{ planLabel(ws.plan) }} · {{ ws.tenantName || '默认租户' }}</div>
           <div class="row" style="margin-top: 8px">
@@ -48,7 +52,9 @@
             <span>内存 {{ ws.memUsage }}%</span>
           </div>
           <div class="bar"><i :style="{ width: ws.cpuUsage + '%' }"></i></div>
-          <button class="btn ghost sm" style="margin-top: 10px" @click="openDrawer(ws)">查看详情</button>
+          <button class="btn ghost sm" style="margin-top: 10px" @click="openDrawer(ws)">
+            查看详情
+          </button>
         </div>
       </template>
     </div>
@@ -65,50 +71,116 @@
         <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">项目</div>
       </div>
       <div v-if="tab === 0">
-        <div class="kv"><span>租户</span><span>{{ current?.tenantName || '外部客户A' }}</span></div>
-        <div class="kv"><span>套餐</span><span>{{ planLabel(current?.plan) }}</span></div>
-        <div class="kv"><span>环境</span><span>{{ envLabel(current?.env) }}</span></div>
-        <div class="kv"><span>创建时间</span><span>{{ current?.createdAt || '--' }}</span></div>
+        <div class="kv">
+          <span>租户</span>
+          <span>{{ current?.tenantName || '外部客户A' }}</span>
+        </div>
+        <div class="kv">
+          <span>套餐</span>
+          <span>{{ planLabel(current?.plan) }}</span>
+        </div>
+        <div class="kv">
+          <span>环境</span>
+          <span>{{ envLabel(current?.env) }}</span>
+        </div>
+        <div class="kv">
+          <span>创建时间</span>
+          <span>{{ current?.createdAt || '--' }}</span>
+        </div>
         <div class="note">底层自动映射为 Namespace + ResourceQuota + NetworkPolicy(deny-all)。</div>
       </div>
       <div v-if="tab === 1">
         <table>
-          <tr><th>成员</th><th>角色</th></tr>
-          <tr><td>张工</td><td>空间管理员</td></tr>
-          <tr><td>李工</td><td>开发</td></tr>
-          <tr><td>王工</td><td>开发</td></tr>
+          <tr>
+            <th>成员</th>
+            <th>角色</th>
+          </tr>
+          <tr>
+            <td>张工</td>
+            <td>空间管理员</td>
+          </tr>
+          <tr>
+            <td>李工</td>
+            <td>开发</td>
+          </tr>
+          <tr>
+            <td>王工</td>
+            <td>开发</td>
+          </tr>
         </table>
-        <button class="btn ghost sm" style="margin-top: 8px" @click="store.showToast('已邀请成员（mock）（待接入）')">+ 邀请</button>
+        <button
+          class="btn ghost sm"
+          style="margin-top: 8px"
+          @click="store.showToast('已邀请成员（mock）（待接入）')"
+        >
+          + 邀请
+        </button>
       </div>
       <div v-if="tab === 2">
-        <div class="row"><span>CPU</span><span>{{ current?.cpuUsage ?? 0 }}%</span></div>
+        <div class="row">
+          <span>CPU</span>
+          <span>{{ current?.cpuUsage ?? 0 }}%</span>
+        </div>
         <div class="bar"><i :style="{ width: (current?.cpuUsage || 0) + '%' }"></i></div>
-        <div class="row" style="margin-top: 8px"><span>内存</span><span>{{ current?.memUsage ?? 0 }}%</span></div>
+        <div class="row" style="margin-top: 8px">
+          <span>内存</span>
+          <span>{{ current?.memUsage ?? 0 }}%</span>
+        </div>
         <div class="bar"><i class="a" :style="{ width: (current?.memUsage || 0) + '%' }"></i></div>
-        <div class="row" style="margin-top: 8px"><span>存储</span><span>{{ current?.storageUsage ?? 0 }}%</span></div>
+        <div class="row" style="margin-top: 8px">
+          <span>存储</span>
+          <span>{{ current?.storageUsage ?? 0 }}%</span>
+        </div>
         <div class="bar"><i :style="{ width: (current?.storageUsage || 0) + '%' }"></i></div>
       </div>
       <div v-if="tab === 3">
         <table>
-          <tr><th>项目</th><th>状态</th></tr>
-          <tr><td>交易域</td><td><span class="pill g">运行中</span></td></tr>
-          <tr><td>营销域</td><td><span class="pill g">运行中</span></td></tr>
-          <tr><td>风控域</td><td><span class="pill a">运行中</span></td></tr>
+          <tr>
+            <th>项目</th>
+            <th>状态</th>
+          </tr>
+          <tr>
+            <td>交易域</td>
+            <td><span class="pill g">运行中</span></td>
+          </tr>
+          <tr>
+            <td>营销域</td>
+            <td><span class="pill g">运行中</span></td>
+          </tr>
+          <tr>
+            <td>风控域</td>
+            <td><span class="pill a">运行中</span></td>
+          </tr>
         </table>
       </div>
     </Drawer>
 
     <Modal :visible="modalVisible" title="新建工作空间" @close="modalVisible = false">
-      <label>名称</label><input v-model="form.name" placeholder="如 华南生产集群" />
+      <label>名称</label>
+      <input v-model="form.name" placeholder="如 华南生产集群" />
       <label>租户</label>
-      <select v-model="form.tenantId"><option value="t-external">外部客户A</option><option value="t-internal">内部业务线</option></select>
+      <select v-model="form.tenantId">
+        <option value="t-external">外部客户A</option>
+        <option value="t-internal">内部业务线</option>
+      </select>
       <label>套餐</label>
-      <select v-model="form.plan"><option value="standard">标准版</option><option value="enterprise">企业版</option><option value="flagship">旗舰版</option></select>
+      <select v-model="form.plan">
+        <option value="standard">标准版</option>
+        <option value="enterprise">企业版</option>
+        <option value="flagship">旗舰版</option>
+      </select>
       <label>环境</label>
-      <select v-model="form.env"><option value="xinchuang">信创</option><option value="onprem">本地数据中心</option><option value="public-cloud">公有云 VM</option><option value="private-cloud">私有云</option></select>
+      <select v-model="form.env">
+        <option value="xinchuang">信创</option>
+        <option value="onprem">本地数据中心</option>
+        <option value="public-cloud">公有云 VM</option>
+        <option value="private-cloud">私有云</option>
+      </select>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" :disabled="creating" @click="handleCreate">{{ creating ? '创建中…' : '创建' }}</button>
+        <button class="btn" :disabled="creating" @click="handleCreate">
+          {{ creating ? '创建中…' : '创建' }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -150,7 +222,7 @@ const WS_STATUS_MAP: Record<WorkspaceStatus, { cls: string; text: string }> = {
   limited: { cls: 'a', text: '受限' },
   stopped: { cls: 'r', text: '已停止' },
   creating: { cls: '', text: '创建中' },
-  failed: { cls: '', text: '失败' },
+  failed: { cls: '', text: '失败' }
 }
 
 function statusPillClass(status: WorkspaceStatus): string {
@@ -165,7 +237,7 @@ const PLAN_LABELS: Record<PlanTier, string> = {
   standard: '标准版',
   enterprise: '企业版',
   flagship: '旗舰版',
-  internal: '内部无限',
+  internal: '内部无限'
 }
 
 function planLabel(plan?: PlanTier): string {
@@ -176,7 +248,7 @@ const ENV_LABELS: Record<DeployEnv, string> = {
   xinchuang: '信创',
   onprem: '本地数据中心',
   'public-cloud': '公有云 VM',
-  'private-cloud': '私有云',
+  'private-cloud': '私有云'
 }
 
 function envLabel(env?: DeployEnv): string {

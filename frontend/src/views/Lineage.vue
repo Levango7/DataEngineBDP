@@ -1,7 +1,9 @@
 <template>
   <div>
     <h1>血缘分析</h1>
-    <div class="sub">端到端自动采集字段级血缘；影响分析一键追溯。当前高亮：{{ highlightTable || '未指定' }}</div>
+    <div class="sub">
+      端到端自动采集字段级血缘；影响分析一键追溯。当前高亮：{{ highlightTable || '未指定' }}
+    </div>
     <div class="legend">
       <span style="color: #8a9ba0">■ 上游</span>
       <span style="color: var(--primary)">■ 当前</span>
@@ -10,20 +12,27 @@
     </div>
     <div v-if="loading" class="card" style="padding: 16px; color: var(--muted)">加载血缘中…</div>
     <div v-else-if="error" class="card" style="padding: 16px; color: var(--red)">
-      {{ error.message }}，<a href="javascript:void(0)" @click="loadLineage(highlightTable)">重试</a>
+      {{ error.message }}，
+      <a href="javascript:void(0)" @click="loadLineage(highlightTable)">重试</a>
     </div>
     <div v-else class="card">
       <div class="lineage">
         <div class="lvl">
           <div class="ln" v-for="t in upstreamTables" :key="t">{{ t }}</div>
-          <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--muted)">无上游</div>
+          <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--muted)">
+            无上游
+          </div>
         </div>
         <div class="lvl">
-          <div class="ln hot" @click="store.showToast(`当前节点 ${highlightTable}`)">{{ highlightTable }}</div>
+          <div class="ln hot" @click="store.showToast(`当前节点 ${highlightTable}`)">
+            {{ highlightTable }}
+          </div>
         </div>
         <div class="lvl">
           <div class="ln" v-for="t in downstreamTables" :key="t">{{ t }}</div>
-          <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--muted)">无下游</div>
+          <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--muted)">
+            无下游
+          </div>
         </div>
         <div class="lvl">
           <div class="ln" v-for="t in impactTables" :key="t">{{ t }}</div>
@@ -51,13 +60,15 @@ const {
   loading,
   error,
   execute: loadLineage
-} = useApi<[LineageQueryResult | null, LineageQueryResult | null, LineageQueryResult | null], [string]>(
-  (table: string) =>
-    Promise.all([
-      getUpstream(table).catch(() => null),
-      getDownstream(table).catch(() => null),
-      impactAnalysis(table).catch(() => null)
-    ])
+} = useApi<
+  [LineageQueryResult | null, LineageQueryResult | null, LineageQueryResult | null],
+  [string]
+>((table: string) =>
+  Promise.all([
+    getUpstream(table).catch(() => null),
+    getDownstream(table).catch(() => null),
+    impactAnalysis(table).catch(() => null)
+  ])
 )
 
 // 上游表

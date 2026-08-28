@@ -5,15 +5,29 @@
 
     <!-- 统计卡片 -->
     <div class="grid g4">
-      <div class="card"><h3>今日调用</h3><div class="kpi s">{{ stats?.todayCallCount?.toLocaleString() ?? '--' }}</div><div class="meta">请求数</div></div>
-      <div class="card"><h3>平均时延</h3><div class="kpi s">{{ stats?.avgLatencyMs ?? '--' }}ms</div></div>
-      <div class="card"><h3>成功率</h3><div class="kpi s">{{ stats?.successRate ?? '--' }}%</div></div>
-      <div class="card"><h3>活跃 Key</h3><div class="kpi s">{{ stats?.activeKeyCount ?? '--' }}</div></div>
+      <div class="card">
+        <h3>今日调用</h3>
+        <div class="kpi s">{{ stats?.todayCallCount?.toLocaleString() ?? '--' }}</div>
+        <div class="meta">请求数</div>
+      </div>
+      <div class="card">
+        <h3>平均时延</h3>
+        <div class="kpi s">{{ stats?.avgLatencyMs ?? '--' }}ms</div>
+      </div>
+      <div class="card">
+        <h3>成功率</h3>
+        <div class="kpi s">{{ stats?.successRate ?? '--' }}%</div>
+      </div>
+      <div class="card">
+        <h3>活跃 Key</h3>
+        <div class="kpi s">{{ stats?.activeKeyCount ?? '--' }}</div>
+      </div>
     </div>
 
     <!-- 延迟分布图表 -->
     <div class="card" style="margin-top: 14px">
-      <h3>调用趋势
+      <h3>
+        调用趋势
         <button class="btn ghost sm" style="margin-left: 8px" @click="loadStats">刷新</button>
       </h3>
       <div ref="chartRef" class="chart-area"></div>
@@ -21,12 +35,14 @@
 
     <!-- API Key 管理 -->
     <div class="card" style="margin-top: 14px">
-      <h3>API Key 与路由
+      <h3>
+        API Key 与路由
         <button class="btn sm" style="margin-left: 8px" @click="openCreateModal">+ 新建 Key</button>
       </h3>
       <div v-if="keysLoading" style="color: var(--muted)">加载中…</div>
       <div v-else-if="keysError" style="color: var(--red)">
-        {{ keysError.message }}，<a href="javascript:void(0)" @click="loadApiKeys">重试</a>
+        {{ keysError.message }}，
+        <a href="javascript:void(0)" @click="loadApiKeys">重试</a>
       </div>
       <table v-else-if="apiKeys">
         <thead>
@@ -45,12 +61,16 @@
             <td>{{ k.name }}</td>
             <td>
               <code class="api-key-cell">{{ k.apiKey || '--' }}</code>
-              <button v-if="k.apiKey" class="btn ghost sm" @click="copyText(k.apiKey!)">复制</button>
+              <button v-if="k.apiKey" class="btn ghost sm" @click="copyText(k.apiKey!)">
+                复制
+              </button>
             </td>
             <td>{{ k.routeModel }}</td>
             <td>{{ k.rateLimit }}/s</td>
             <td>
-              <span class="pill" :class="keyStatusPillClass(k.status)">{{ keyStatusPillText(k.status) }}</span>
+              <span class="pill" :class="keyStatusPillClass(k.status)">
+                {{ keyStatusPillText(k.status) }}
+              </span>
             </td>
             <td>{{ formatDate(k.createdAt) }}</td>
             <td>
@@ -66,7 +86,11 @@
     </div>
 
     <!-- 创建/编辑 Key 弹窗 -->
-    <Modal :visible="modalVisible" :title="editingKey ? '编辑 API Key' : '新建 API Key'" @close="closeModal">
+    <Modal
+      :visible="modalVisible"
+      :title="editingKey ? '编辑 API Key' : '新建 API Key'"
+      @close="closeModal"
+    >
       <label>Key 名称</label>
       <input v-model="form.name" placeholder="如 mkt-exp" :disabled="!!editingKey" />
       <label>路由模型</label>
@@ -82,13 +106,17 @@
       <template #footer>
         <button class="btn ghost" @click="closeModal">取消</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '处理中…' : (editingKey ? '保存' : '生成') }}
+          {{ submitting ? '处理中…' : editingKey ? '保存' : '生成' }}
         </button>
       </template>
     </Modal>
 
     <!-- Secret 一次性展示弹窗 -->
-    <Modal :visible="secretModalVisible" title="API Key 已生成（请妥善保存 secret）" @close="closeSecretModal">
+    <Modal
+      :visible="secretModalVisible"
+      title="API Key 已生成（请妥善保存 secret）"
+      @close="closeSecretModal"
+    >
       <div class="secret-warning">
         ⚠️ secret 仅本次显示一次，关闭后无法再次查看。请立即复制保存！
       </div>
@@ -127,10 +155,7 @@ const editingKey = ref<ApiKey | null>(null)
 const createdKey = ref<ApiKey | null>(null)
 
 // 统计：通过 useApi 包装，失败时不阻塞页面
-const {
-  data: stats,
-  execute: loadStats
-} = useApi<GatewayStats>(() => gatewayApi.getStats())
+const { data: stats, execute: loadStats } = useApi<GatewayStats>(() => gatewayApi.getStats())
 
 // API Key 列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {

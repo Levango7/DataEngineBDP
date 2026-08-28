@@ -29,7 +29,6 @@ const Ops = () => import('@/views/Ops.vue')
 const Account = () => import('@/views/Account.vue')
 const Admin = () => import('@/views/Admin.vue')
 
-
 // 批次4新增：核心功能页面
 const TenantManagement = () => import('@/views/TenantManagement.vue')
 const ClusterOverview = () => import('@/views/ClusterOverview.vue')
@@ -87,25 +86,90 @@ const routes: RouteRecordRaw[] = [
   },
 
   // 有实际内容的页面（批次1-3：补充 meta.title 与 meta.icon，统一路由元信息）
-  { path: '/dashboard', name: 'dashboard', component: Dashboard, meta: { title: '仪表盘', icon: 'Odometer' } },
-  { path: '/workspaces', name: 'workspaces', component: Workspaces, meta: { title: '工作空间', icon: 'Grid' } },
-  { path: '/projects', name: 'projects', component: Projects, meta: { title: '项目管理', icon: 'Folder' } },
-  { path: '/integrate', name: 'integrate', component: Integrate, meta: { title: '数据集成', icon: 'Connection' } },
-  { path: '/develop', name: 'develop', component: Develop, meta: { title: '数据开发', icon: 'Edit' } },
+  {
+    path: '/dashboard',
+    name: 'dashboard',
+    component: Dashboard,
+    meta: { title: '仪表盘', icon: 'Odometer' }
+  },
+  {
+    path: '/workspaces',
+    name: 'workspaces',
+    component: Workspaces,
+    meta: { title: '工作空间', icon: 'Grid' }
+  },
+  {
+    path: '/projects',
+    name: 'projects',
+    component: Projects,
+    meta: { title: '项目管理', icon: 'Folder' }
+  },
+  {
+    path: '/integrate',
+    name: 'integrate',
+    component: Integrate,
+    meta: { title: '数据集成', icon: 'Connection' }
+  },
+  {
+    path: '/develop',
+    name: 'develop',
+    component: Develop,
+    meta: { title: '数据开发', icon: 'Edit' }
+  },
   { path: '/sql', name: 'sql', component: Sql, meta: { title: 'SQL查询', icon: 'Document' } },
-  { path: '/govern', name: 'govern', component: Govern, meta: { title: '数据治理', icon: 'Setting' } },
-  { path: '/standard', name: 'standard', component: Standard, meta: { title: '数据标准', icon: 'List' } },
-  { path: '/quality', name: 'quality', component: Quality, meta: { title: '数据质量', icon: 'CircleCheck' } },
-  { path: '/lineage', name: 'lineage', component: Lineage, meta: { title: '数据血缘', icon: 'Share' } },
-  { path: '/data-lineage', name: 'dataLineage', component: DataLineage, meta: { title: '血缘分析', icon: 'Histogram' } },
+  {
+    path: '/govern',
+    name: 'govern',
+    component: Govern,
+    meta: { title: '数据治理', icon: 'Setting' }
+  },
+  {
+    path: '/standard',
+    name: 'standard',
+    component: Standard,
+    meta: { title: '数据标准', icon: 'List' }
+  },
+  {
+    path: '/quality',
+    name: 'quality',
+    component: Quality,
+    meta: { title: '数据质量', icon: 'CircleCheck' }
+  },
+  {
+    path: '/lineage',
+    name: 'lineage',
+    component: Lineage,
+    meta: { title: '数据血缘', icon: 'Share' }
+  },
+  {
+    path: '/data-lineage',
+    name: 'dataLineage',
+    component: DataLineage,
+    meta: { title: '血缘分析', icon: 'Histogram' }
+  },
   { path: '/sec', name: 'sec', component: Sec, meta: { title: '安全策略', icon: 'Lock' } },
   { path: '/vector', name: 'vector', component: Vector, meta: { title: '向量引擎', icon: 'Box' } },
   { path: '/kb', name: 'kb', component: Kb, meta: { title: '知识库', icon: 'Reading' } },
   { path: '/llmops', name: 'llmops', component: Llmops, meta: { title: 'LLM运维', icon: 'Cpu' } },
-  { path: '/gateway', name: 'gateway', component: Gateway, meta: { title: 'API网关', icon: 'Position' } },
-  { path: '/analyze', name: 'analyze', component: Analyze, meta: { title: '数据分析', icon: 'TrendCharts' } },
+  {
+    path: '/gateway',
+    name: 'gateway',
+    component: Gateway,
+    meta: { title: 'API网关', icon: 'Position' }
+  },
+  {
+    path: '/analyze',
+    name: 'analyze',
+    component: Analyze,
+    meta: { title: '数据分析', icon: 'TrendCharts' }
+  },
   { path: '/ops', name: 'ops', component: Ops, meta: { title: '运维监控', icon: 'Monitor' } },
-  { path: '/account', name: 'account', component: Account, meta: { title: '账户中心', icon: 'User' } },
+  {
+    path: '/account',
+    name: 'account',
+    component: Account,
+    meta: { title: '账户中心', icon: 'User' }
+  },
   { path: '/admin', name: 'admin', component: Admin, meta: { title: '系统管理', icon: 'Tools' } },
 
   // 批次4新增：核心功能页面
@@ -197,28 +261,123 @@ const routes: RouteRecordRaw[] = [
   },
 
   // 批次12新增：基础设施层 5 个页面（替换原 Roadmap 占位，补充 name 以支持编程式导航）
-  { path: '/infra-machine', name: 'InfraMachine', component: InfraMachine, meta: { title: '机器供应', icon: 'Monitor' } },
-  { path: '/infra-k8s', name: 'InfraK8s', component: InfraK8s, meta: { title: 'K8s 集群', icon: 'Cpu' } },
-  { path: '/infra-net', name: 'InfraNet', component: InfraNet, meta: { title: '容器网络', icon: 'Connection' } },
-  { path: '/infra-store', name: 'InfraStore', component: InfraStore, meta: { title: '容器存储', icon: 'Files' } },
-  { path: '/infra-sched', name: 'InfraSched', component: InfraSched, meta: { title: '弹性调度', icon: 'Operation' } },
+  {
+    path: '/infra-machine',
+    name: 'InfraMachine',
+    component: InfraMachine,
+    meta: { title: '机器供应', icon: 'Monitor' }
+  },
+  {
+    path: '/infra-k8s',
+    name: 'InfraK8s',
+    component: InfraK8s,
+    meta: { title: 'K8s 集群', icon: 'Cpu' }
+  },
+  {
+    path: '/infra-net',
+    name: 'InfraNet',
+    component: InfraNet,
+    meta: { title: '容器网络', icon: 'Connection' }
+  },
+  {
+    path: '/infra-store',
+    name: 'InfraStore',
+    component: InfraStore,
+    meta: { title: '容器存储', icon: 'Files' }
+  },
+  {
+    path: '/infra-sched',
+    name: 'InfraSched',
+    component: InfraSched,
+    meta: { title: '弹性调度', icon: 'Operation' }
+  },
   // 批次12新增：引擎层 7 个页面（替换原 Roadmap 占位，补充 name）
-  { path: '/eng-storage', name: 'EngStorage', component: EngStorage, meta: { title: '统一存储', icon: 'FolderOpened' } },
-  { path: '/eng-spark', name: 'EngSpark', component: EngSpark, meta: { title: '批计算（Spark）', icon: 'Histogram' } },
-  { path: '/eng-flink', name: 'EngFlink', component: EngFlink, meta: { title: '流计算（Flink）', icon: 'DataLine' } },
-  { path: '/eng-doris', name: 'EngDoris', component: EngDoris, meta: { title: 'OLAP（Doris）', icon: 'Grid' } },
-  { path: '/eng-kafka', name: 'EngKafka', component: EngKafka, meta: { title: '消息流接入（Kafka）', icon: 'ChatLineSquare' } },
-  { path: '/eng-iotdb', name: 'EngIotdb', component: EngIotdb, meta: { title: '时序引擎（IoTDB）', icon: 'Timer' } },
-  { path: '/eng-mmg', name: 'EngMmg', component: EngMmg, meta: { title: '多模型引擎', icon: 'Box' } },
+  {
+    path: '/eng-storage',
+    name: 'EngStorage',
+    component: EngStorage,
+    meta: { title: '统一存储', icon: 'FolderOpened' }
+  },
+  {
+    path: '/eng-spark',
+    name: 'EngSpark',
+    component: EngSpark,
+    meta: { title: '批计算（Spark）', icon: 'Histogram' }
+  },
+  {
+    path: '/eng-flink',
+    name: 'EngFlink',
+    component: EngFlink,
+    meta: { title: '流计算（Flink）', icon: 'DataLine' }
+  },
+  {
+    path: '/eng-doris',
+    name: 'EngDoris',
+    component: EngDoris,
+    meta: { title: 'OLAP（Doris）', icon: 'Grid' }
+  },
+  {
+    path: '/eng-kafka',
+    name: 'EngKafka',
+    component: EngKafka,
+    meta: { title: '消息流接入（Kafka）', icon: 'ChatLineSquare' }
+  },
+  {
+    path: '/eng-iotdb',
+    name: 'EngIotdb',
+    component: EngIotdb,
+    meta: { title: '时序引擎（IoTDB）', icon: 'Timer' }
+  },
+  {
+    path: '/eng-mmg',
+    name: 'EngMmg',
+    component: EngMmg,
+    meta: { title: '多模型引擎', icon: 'Box' }
+  },
   // 批次12新增：治理/开发层 4 个页面（替换原 Roadmap 占位，补充 name）
-  { path: '/govern-meta', name: 'GovernMeta', component: GovernMeta, meta: { title: '元数据管理', icon: 'Collection' } },
-  { path: '/dev-sched', name: 'DevSched', component: DevSched, meta: { title: '调度编排', icon: 'Calendar' } },
-  { path: '/dev-tag', name: 'DevTag', component: DevTag, meta: { title: '标签画像', icon: 'PriceTag' } },
+  {
+    path: '/govern-meta',
+    name: 'GovernMeta',
+    component: GovernMeta,
+    meta: { title: '元数据管理', icon: 'Collection' }
+  },
+  {
+    path: '/dev-sched',
+    name: 'DevSched',
+    component: DevSched,
+    meta: { title: '调度编排', icon: 'Calendar' }
+  },
+  {
+    path: '/dev-tag',
+    name: 'DevTag',
+    component: DevTag,
+    meta: { title: '标签画像', icon: 'PriceTag' }
+  },
   { path: '/dev-ml', name: 'DevMl', component: DevMl, meta: { title: '机器学习', icon: 'Cpu' } },
-  { path: '/ops-tpl', name: 'TemplateMarket', component: TemplateMarket, meta: { title: '行业应用模板' } },
-  { path: '/ops-portal', name: 'BusinessPortal', component: BusinessPortal, meta: { title: '业务线门户', icon: 'Grid' } },
-  { path: '/ops-api', name: 'APIMarket', component: APIMarket, meta: { title: '开放 API', icon: 'Connection' } },
-  { path: '/ops-flow', name: 'AssetMarket', component: AssetMarket, meta: { title: '数据资产流通', icon: 'ShoppingCart' } },
+  {
+    path: '/ops-tpl',
+    name: 'TemplateMarket',
+    component: TemplateMarket,
+    meta: { title: '行业应用模板' }
+  },
+  {
+    path: '/ops-portal',
+    name: 'BusinessPortal',
+    component: BusinessPortal,
+    meta: { title: '业务线门户', icon: 'Grid' }
+  },
+  {
+    path: '/ops-api',
+    name: 'APIMarket',
+    component: APIMarket,
+    meta: { title: '开放 API', icon: 'Connection' }
+  },
+  {
+    path: '/ops-flow',
+    name: 'AssetMarket',
+    component: AssetMarket,
+    meta: { title: '数据资产流通', icon: 'ShoppingCart' }
+  },
 
   // 兜底
   { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
@@ -246,7 +405,10 @@ const PUBLIC_PATHS = new Set(['/login'])
  * @param isAuthenticated 是否已登录（测试可注入）
  * @returns 放行 true，或重定向目标
  */
-export function authGuard(to: RouteLocationNormalized, isAuthenticated: boolean): boolean | Record<string, unknown> {
+export function authGuard(
+  to: RouteLocationNormalized,
+  isAuthenticated: boolean
+): boolean | Record<string, unknown> {
   if (PUBLIC_PATHS.has(to.path)) {
     if (isAuthenticated) {
       return { path: '/dashboard' }

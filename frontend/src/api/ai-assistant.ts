@@ -133,7 +133,8 @@ export async function chatStream(
 /** 流式事件块 */
 export interface ChatStreamChunk {
   /** 事件类型 */
-  type: 'sql' | 'execution' | 'chart-recommend' | 'chart' | 'summary' | 'message' | 'final' | 'error'
+  type:
+    'sql' | 'execution' | 'chart-recommend' | 'chart' | 'summary' | 'message' | 'final' | 'error'
   /** SQL 生成事件 */
   sql?: Nl2SqlResponse
   /** 执行结果事件 */

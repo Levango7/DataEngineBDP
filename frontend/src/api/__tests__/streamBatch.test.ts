@@ -6,9 +6,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Mock client 模块
-const mockGet = vi.fn<() => Promise<{ content: Array<Record<string, unknown>>; totalElements: number }>>(
-  () => Promise.resolve({ content: [], totalElements: 0 })
-)
+const mockGet = vi.fn<
+  () => Promise<{ content: Array<Record<string, unknown>>; totalElements: number }>
+>(() => Promise.resolve({ content: [], totalElements: 0 }))
 const mockPost = vi.fn<() => Promise<{ created: number }>>(() => Promise.resolve({ created: 3 }))
 
 vi.mock('@/api/client', () => ({

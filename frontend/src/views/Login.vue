@@ -10,11 +10,24 @@
 
     <!-- 登录卡片 (毛玻璃 + 弹簧入场) -->
     <div class="login-card glass animate-springIn" role="region" aria-label="登录卡片">
-      <div class="brand gradient-text" aria-label="数擎大数据平台品牌"><span class="dot" aria-hidden="true"></span>数擎 · 大数据平台</div>
+      <div class="brand gradient-text" aria-label="数擎大数据平台品牌">
+        <span class="dot" aria-hidden="true"></span>
+        数擎 · 大数据平台
+      </div>
       <h2>登录</h2>
-      <el-form :model="form" @submit.prevent="handleLogin" label-position="top" aria-label="登录表单">
+      <el-form
+        :model="form"
+        @submit.prevent="handleLogin"
+        label-position="top"
+        aria-label="登录表单"
+      >
         <el-form-item label="用户名">
-          <el-input v-model="form.username" placeholder="请输入用户名" autocomplete="username" aria-label="用户名" />
+          <el-input
+            v-model="form.username"
+            placeholder="请输入用户名"
+            autocomplete="username"
+            aria-label="用户名"
+          />
         </el-form-item>
         <el-form-item label="密码">
           <el-input
@@ -39,7 +52,9 @@
         </el-button>
         <div v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</div>
       </el-form>
-      <div class="tip" aria-label="本地开发账号提示">本地开发账号：admin / admin（管理员）或 user / user（普通用户）</div>
+      <div class="tip" aria-label="本地开发账号提示">
+        本地开发账号：admin / admin（管理员）或 user / user（普通用户）
+      </div>
     </div>
   </div>
 </template>
@@ -254,12 +269,17 @@ h2 {
   font-weight: 600;
   letter-spacing: 2px;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-  transition: transform 0.2s var(--ease-smooth), box-shadow 0.2s var(--ease-smooth), filter 0.2s var(--ease-smooth);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth),
+    filter 0.2s var(--ease-smooth);
 }
 .login-btn:hover,
 .login-btn:focus {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(99, 102, 241, 0.5), var(--shadow-glow) !important;
+  box-shadow:
+    0 8px 20px rgba(99, 102, 241, 0.5),
+    var(--shadow-glow) !important;
   filter: brightness(1.08);
 }
 .login-btn:active {
@@ -299,7 +319,9 @@ h2 {
   box-shadow: 0 0 0 1px var(--primary) inset;
 }
 :deep(.el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 1px var(--primary) inset, 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+  box-shadow:
+    0 0 0 1px var(--primary) inset,
+    0 0 0 3px rgba(99, 102, 241, 0.15) !important;
 }
 :deep(.el-input__inner) {
   color: var(--ink);

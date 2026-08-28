@@ -30,7 +30,11 @@
               width: 90px;
               height: 90px;
               border-radius: 50%;
-              background: conic-gradient(var(--primary) 0 45%, var(--amber) 45% 70%, #cdd5d8 70% 100%);
+              background: conic-gradient(
+                var(--primary) 0 45%,
+                var(--amber) 45% 70%,
+                #cdd5d8 70% 100%
+              );
             "
           ></div>
         </div>
@@ -40,23 +44,38 @@
         <h3>实时指标</h3>
         <div v-if="metricsLoading" class="kpi s">--</div>
         <div v-else-if="metricsError" class="meta" style="color: var(--red)">
-          {{ metricsError.message }}，<a href="javascript:void(0)" @click="loadMetrics">重试</a>
+          {{ metricsError.message }}，
+          <a href="javascript:void(0)" @click="loadMetrics">重试</a>
         </div>
         <template v-else-if="metrics">
           <div v-for="m in metrics" :key="m.key" style="margin-bottom: 8px">
-            <div class="kpi s">{{ m.value.toLocaleString() }} <span class="meta">{{ m.unit }}</span></div>
-            <div class="meta" style="margin-top: 4px">{{ m.label }} · 延迟 &lt; {{ m.latencySec }}s</div>
+            <div class="kpi s">
+              {{ m.value.toLocaleString() }}
+              <span class="meta">{{ m.unit }}</span>
+            </div>
+            <div class="meta" style="margin-top: 4px">
+              {{ m.label }} · 延迟 &lt; {{ m.latencySec }}s
+            </div>
           </div>
           <div v-if="metrics.length === 0" class="meta">暂无实时指标</div>
         </template>
-        <button class="btn ghost sm" style="margin-top: 10px" @click="store.showToast('已打开组件库（待接入）')">编辑组件</button>
+        <button
+          class="btn ghost sm"
+          style="margin-top: 10px"
+          @click="store.showToast('已打开组件库（待接入）')"
+        >
+          编辑组件
+        </button>
       </div>
     </div>
 
     <Modal :visible="modalVisible" title="新建看板" @close="modalVisible = false">
-      <label>看板名</label><input placeholder="如 经营驾驶舱" />
+      <label>看板名</label>
+      <input placeholder="如 经营驾驶舱" />
       <label>数据源</label>
-      <select><option>统一 SQL 网关</option></select>
+      <select>
+        <option>统一 SQL 网关</option>
+      </select>
       <label>组件</label>
       <div class="chips">
         <span class="chip on">折线</span>

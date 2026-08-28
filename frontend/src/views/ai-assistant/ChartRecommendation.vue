@@ -230,13 +230,34 @@ function onSelect(rec: ChartRecommendation): void {
   color: var(--primary);
   flex: none;
 }
-.rec-icon.type-bar { background: #eef2ff; color: #4f46e5; }
-.rec-icon.type-line { background: #ecfdf5; color: #16a34a; }
-.rec-icon.type-pie { background: #fff7ed; color: #ea580c; }
-.rec-icon.type-scatter { background: #f0f9ff; color: #0284c7; }
-.rec-icon.type-map { background: #fef2f2; color: #dc2626; }
-.rec-icon.type-area { background: #f5f3ff; color: #7c3aed; }
-.rec-icon.type-radar { background: #fefce8; color: #ca8a04; }
+.rec-icon.type-bar {
+  background: #eef2ff;
+  color: #4f46e5;
+}
+.rec-icon.type-line {
+  background: #ecfdf5;
+  color: #16a34a;
+}
+.rec-icon.type-pie {
+  background: #fff7ed;
+  color: #ea580c;
+}
+.rec-icon.type-scatter {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+.rec-icon.type-map {
+  background: #fef2f2;
+  color: #dc2626;
+}
+.rec-icon.type-area {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+.rec-icon.type-radar {
+  background: #fefce8;
+  color: #ca8a04;
+}
 
 .rec-info {
   flex: 1;

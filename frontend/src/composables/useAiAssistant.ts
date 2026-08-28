@@ -593,10 +593,7 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
 
   /* ------------------------------ 反馈 ------------------------------ */
 
-  async function feedback(
-    messageId: string,
-    fb: 'like' | 'dislike' | null
-  ): Promise<void> {
+  async function feedback(messageId: string, fb: 'like' | 'dislike' | null): Promise<void> {
     await aiApi.feedbackMessage(messageId, fb)
     const msg = messages.value.find((m) => m.id === messageId)
     if (msg) msg.feedback = fb

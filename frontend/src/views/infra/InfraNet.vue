@@ -44,7 +44,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ configError.message }}，<a href="javascript:void(0)" @click="loadConfig">重试</a>
+            {{ configError.message }}，
+            <a href="javascript:void(0)" @click="loadConfig">重试</a>
           </div>
         </div>
       </template>
@@ -91,9 +92,13 @@
           <el-descriptions-item label="CNI 插件">
             <el-tag effect="light">{{ networkConfig.cni }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="IP 协议族">{{ networkConfig.ipFamily }}</el-descriptions-item>
+          <el-descriptions-item label="IP 协议族">
+            {{ networkConfig.ipFamily }}
+          </el-descriptions-item>
           <el-descriptions-item label="Pod CIDR">{{ networkConfig.podCidr }}</el-descriptions-item>
-          <el-descriptions-item label="Service CIDR">{{ networkConfig.serviceCidr }}</el-descriptions-item>
+          <el-descriptions-item label="Service CIDR">
+            {{ networkConfig.serviceCidr }}
+          </el-descriptions-item>
           <el-descriptions-item label="MTU">{{ networkConfig.mtu }}</el-descriptions-item>
         </el-descriptions>
       </template>
@@ -104,7 +109,9 @@
       <template #header>
         <div class="card-header">
           <span>NetworkPolicy 列表</span>
-          <el-button type="primary" size="small" @click="openCreatePolicyDialog">+ 下发策略</el-button>
+          <el-button type="primary" size="small" @click="openCreatePolicyDialog">
+            + 下发策略
+          </el-button>
         </div>
       </template>
       <el-table
@@ -222,7 +229,9 @@
       </el-form>
       <template #footer>
         <el-button @click="createPolicyVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingPolicy" @click="handleCreatePolicy">下发</el-button>
+        <el-button type="primary" :loading="savingPolicy" @click="handleCreatePolicy">
+          下发
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -244,8 +253,8 @@ import type {
 
 /* ------------------------------ 集群选择 ------------------------------ */
 
-const { data: clusterList, execute: loadClusters } = useApi<CrossEnvClusterInfo[]>(
-  () => infraApi.getClusters()
+const { data: clusterList, execute: loadClusters } = useApi<CrossEnvClusterInfo[]>(() =>
+  infraApi.getClusters()
 )
 
 const clusterOptions = computed(() => clusterList.value ?? [])
@@ -259,9 +268,7 @@ function handleClusterChange(key: string) {
     return
   }
   const [env, clusterId] = key.split('/')
-  const found = clusterOptions.value.find(
-    (c) => c.environment === env && c.clusterId === clusterId
-  )
+  const found = clusterOptions.value.find((c) => c.environment === env && c.clusterId === clusterId)
   selectedCluster.value = found ?? null
 }
 
@@ -322,9 +329,7 @@ async function loadPolicies() {
 
 /** 异常策略数（演示用：端口含 0 或选择器为空视为异常） */
 const abnormalPolicyCount = computed(() => {
-  return (policies.value ?? []).filter(
-    (p) => p.ports.includes(0) || !p.selector
-  ).length
+  return (policies.value ?? []).filter((p) => p.ports.includes(0) || !p.selector).length
 })
 
 /* ------------------------------ 编辑网络配置 ------------------------------ */
@@ -452,16 +457,12 @@ async function handleCreatePolicy() {
 async function handleDeletePolicy(row: NetworkPolicy) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除策略「${row.name}」？`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除策略「${row.name}」？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await infraApi.deleteNetworkPolicy(
       selectedCluster.value.environment,
       selectedCluster.value.clusterId,
@@ -528,7 +529,6 @@ watch(selectedCluster, () => {
 onMounted(() => {
   void loadClusters()
 })
-
 </script>
 
 <style scoped>

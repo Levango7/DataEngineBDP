@@ -37,16 +37,28 @@
         />
       </el-select>
 
-      <el-button type="primary" :icon="VideoPlay" :disabled="!selectedDagId || running" :loading="running" @click="onRun">
+      <el-button
+        type="primary"
+        :icon="VideoPlay"
+        :disabled="!selectedDagId || running"
+        :loading="running"
+        @click="onRun"
+      >
         运行
       </el-button>
-      <el-button type="warning" :icon="VideoPause" :disabled="!selectedDagId || !running" @click="onStop">
+      <el-button
+        type="warning"
+        :icon="VideoPause"
+        :disabled="!selectedDagId || !running"
+        @click="onStop"
+      >
         停止
       </el-button>
       <el-button :icon="Refresh" @click="reloadAll">刷新</el-button>
 
       <label class="auto-poll">
-        <input type="checkbox" v-model="autoPoll" /> 自动刷新（2s）
+        <input type="checkbox" v-model="autoPoll" />
+        自动刷新（2s）
       </label>
 
       <span class="spacer" />
@@ -102,13 +114,37 @@
             </g>
             <!-- 箭头定义 -->
             <defs>
-              <marker id="arrow-default" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <marker
+                id="arrow-default"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
                 <path d="M0,0 L10,5 L0,10 Z" class="arrow-default" />
               </marker>
-              <marker id="arrow-active" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <marker
+                id="arrow-active"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
                 <path d="M0,0 L10,5 L0,10 Z" class="arrow-active" />
               </marker>
-              <marker id="arrow-failed" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+              <marker
+                id="arrow-failed"
+                viewBox="0 0 10 10"
+                refX="9"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto"
+              >
                 <path d="M0,0 L10,5 L0,10 Z" class="arrow-failed" />
               </marker>
             </defs>
@@ -143,17 +179,45 @@
           <!-- 节点详情 -->
           <div v-if="activeTab === 'node'" class="node-detail">
             <template v-if="selectedNode">
-              <div class="kv"><span>节点 ID</span><b>{{ selectedNode.id }}</b></div>
-              <div class="kv"><span>名称</span><b>{{ selectedNode.name }}</b></div>
-              <div class="kv"><span>任务类型</span><b>{{ selectedNode.taskType }}</b></div>
-              <div class="kv"><span>状态</span><b :class="`status-${nodeClass(selectedNode)}`">{{ selectedNode.status }}</b></div>
-              <div class="kv"><span>命令</span><b class="mono">{{ selectedNode.command || '--' }}</b></div>
-              <div class="kv"><span>超时(秒)</span><b>{{ selectedNode.timeoutSeconds || '不限' }}</b></div>
-              <div class="kv"><span>最大重试</span><b>{{ selectedNode.maxRetries }}</b></div>
-              <div class="kv"><span>开始时间</span><b>{{ selectedNode.startedAt || '--' }}</b></div>
-              <div class="kv"><span>结束时间</span><b>{{ selectedNode.finishedAt || '--' }}</b></div>
+              <div class="kv">
+                <span>节点 ID</span>
+                <b>{{ selectedNode.id }}</b>
+              </div>
+              <div class="kv">
+                <span>名称</span>
+                <b>{{ selectedNode.name }}</b>
+              </div>
+              <div class="kv">
+                <span>任务类型</span>
+                <b>{{ selectedNode.taskType }}</b>
+              </div>
+              <div class="kv">
+                <span>状态</span>
+                <b :class="`status-${nodeClass(selectedNode)}`">{{ selectedNode.status }}</b>
+              </div>
+              <div class="kv">
+                <span>命令</span>
+                <b class="mono">{{ selectedNode.command || '--' }}</b>
+              </div>
+              <div class="kv">
+                <span>超时(秒)</span>
+                <b>{{ selectedNode.timeoutSeconds || '不限' }}</b>
+              </div>
+              <div class="kv">
+                <span>最大重试</span>
+                <b>{{ selectedNode.maxRetries }}</b>
+              </div>
+              <div class="kv">
+                <span>开始时间</span>
+                <b>{{ selectedNode.startedAt || '--' }}</b>
+              </div>
+              <div class="kv">
+                <span>结束时间</span>
+                <b>{{ selectedNode.finishedAt || '--' }}</b>
+              </div>
               <div v-if="selectedNode.errorMessage" class="kv err">
-                <span>错误</span><b>{{ selectedNode.errorMessage }}</b>
+                <span>错误</span>
+                <b>{{ selectedNode.errorMessage }}</b>
               </div>
               <div v-if="selectedNode.params" class="params-block">
                 <div class="section-title">参数</div>
@@ -182,10 +246,7 @@
           />
 
           <!-- 回放控制 -->
-          <ExecutionReplay
-            v-else-if="activeTab === 'replay'"
-            :dag-id="selectedDagId"
-          />
+          <ExecutionReplay v-else-if="activeTab === 'replay'" :dag-id="selectedDagId" />
         </div>
       </div>
     </div>
@@ -228,21 +289,16 @@ const selectedNode = ref<DagNodeDto | null>(null)
 let pollTimer: ReturnType<typeof setInterval> | null = null
 
 // DAG 列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
-const {
-  data: dagList,
-  execute: loadDagList
-} = useApi<DagGraphDto[]>(() => listDags(), { initialData: [] })
+const { data: dagList, execute: loadDagList } = useApi<DagGraphDto[]>(() => listDags(), {
+  initialData: []
+})
 
 // DAG 图谱 + 结果：通过 useApi 包装并行加载
-const {
-  data: graphAndResults,
-  execute: loadGraphRaw
-} = useApi<[DagGraphDto, Record<string, TaskResultDto>], [string]>(
-  (id: string) =>
-    Promise.all([
-      getDagJson(id),
-      getResults(id).catch(() => ({} as Record<string, TaskResultDto>))
-    ])
+const { data: graphAndResults, execute: loadGraphRaw } = useApi<
+  [DagGraphDto, Record<string, TaskResultDto>],
+  [string]
+>((id: string) =>
+  Promise.all([getDagJson(id), getResults(id).catch(() => ({}) as Record<string, TaskResultDto>)])
 )
 const graph = computed<DagGraphDto | null>(() => graphAndResults.value?.[0] ?? null)
 const results = ref<Record<string, TaskResultDto>>({})
@@ -310,11 +366,11 @@ function computeLayers(g: DagGraphDto): Map<string, number> {
     processed++
   }
   // 环检测：若有节点未被处理，说明存在循环依赖，将其降为层 0 并告警
-  const cycleNodes = g.nodes.filter(n => !layers.has(n.id))
+  const cycleNodes = g.nodes.filter((n) => !layers.has(n.id))
   if (cycleNodes.length > 0) {
     console.warn(
       `[DagVisualizer] 检测到 ${cycleNodes.length} 个节点存在循环依赖，降级为层 0: `,
-      cycleNodes.map(n => n.id).join(', ')
+      cycleNodes.map((n) => n.id).join(', ')
     )
     for (const n of cycleNodes) layers.set(n.id, 0)
   }
@@ -350,13 +406,13 @@ const layout = computed<Layout>(() => {
     })
   }
 
-  const nodes: LayoutNode[] = g.nodes.map(n => {
+  const nodes: LayoutNode[] = g.nodes.map((n) => {
     const p = pos.get(n.id) ?? { x: padding, y: padding }
     return { ...n, x: p.x, y: p.y, layer: layers.get(n.id) ?? 0 }
   })
 
   // 边路径（贝塞尔曲线）
-  const edges: LayoutEdge[] = g.edges.map(e => {
+  const edges: LayoutEdge[] = g.edges.map((e) => {
     const s = pos.get(e.source)
     const t = pos.get(e.target)
     if (!s || !t) return { source: e.source, target: e.target, path: '' }
@@ -398,8 +454,8 @@ function nodeClass(n: DagNodeDto): string {
 
 function edgeClass(e: LayoutEdge): string {
   if (!graph.value) return 'default'
-  const src = graph.value.nodes.find(n => n.id === e.source)
-  const tgt = graph.value.nodes.find(n => n.id === e.target)
+  const src = graph.value.nodes.find((n) => n.id === e.source)
+  const tgt = graph.value.nodes.find((n) => n.id === e.target)
   if (src?.status === 'FAILED') return 'failed'
   if (src?.status === 'SUCCESS' && tgt?.status === 'RUNNING') return 'active'
   return 'default'
@@ -444,7 +500,6 @@ async function loadGraph() {
     results.value = {}
   }
 }
-
 
 async function onSelectDag() {
   selectedNode.value = null
@@ -539,12 +594,30 @@ onBeforeUnmount(() => {
   padding: 4px 10px;
   border-radius: 20px;
 }
-.gs-draft { background: var(--c-surface-alt); color: var(--muted); }
-.gs-running { background: var(--c-amber-50); color: var(--amber); }
-.gs-success { background: var(--c-green-50); color: var(--green); }
-.gs-failed { background: var(--c-red-50); color: var(--red); }
-.gs-stopped { background: var(--c-surface-alt); color: var(--muted); }
-.gs-paused { background: var(--c-indigo-50); color: var(--c-violet); }
+.gs-draft {
+  background: var(--c-surface-alt);
+  color: var(--muted);
+}
+.gs-running {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.gs-success {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.gs-failed {
+  background: var(--c-red-50);
+  color: var(--red);
+}
+.gs-stopped {
+  background: var(--c-surface-alt);
+  color: var(--muted);
+}
+.gs-paused {
+  background: var(--c-indigo-50);
+  color: var(--c-violet);
+}
 
 .viz-body {
   display: grid;
@@ -610,28 +683,66 @@ onBeforeUnmount(() => {
 }
 
 /* 状态着色 */
-.node-g.pending .node-rect { stroke: var(--c-slate-300); }
-.node-g.pending .node-dot { fill: var(--c-slate-400); }
+.node-g.pending .node-rect {
+  stroke: var(--c-slate-300);
+}
+.node-g.pending .node-dot {
+  fill: var(--c-slate-400);
+}
 
-.node-g.running .node-rect { stroke: var(--amber); fill: var(--c-amber-50); }
-.node-g.running .node-dot { fill: var(--amber); animation: pulse 1.2s infinite; }
+.node-g.running .node-rect {
+  stroke: var(--amber);
+  fill: var(--c-amber-50);
+}
+.node-g.running .node-dot {
+  fill: var(--amber);
+  animation: pulse 1.2s infinite;
+}
 
-.node-g.success .node-rect { stroke: var(--green); fill: var(--c-green-50); }
-.node-g.success .node-dot { fill: var(--green); }
+.node-g.success .node-rect {
+  stroke: var(--green);
+  fill: var(--c-green-50);
+}
+.node-g.success .node-dot {
+  fill: var(--green);
+}
 
-.node-g.failed .node-rect { stroke: var(--red); fill: var(--c-red-50); }
-.node-g.failed .node-dot { fill: var(--red); }
+.node-g.failed .node-rect {
+  stroke: var(--red);
+  fill: var(--c-red-50);
+}
+.node-g.failed .node-dot {
+  fill: var(--red);
+}
 
-.node-g.skipped .node-rect { stroke: var(--c-slate-300); fill: var(--c-surface-alt); }
-.node-g.skipped .node-name { fill: var(--muted); }
-.node-g.skipped .node-dot { fill: var(--c-slate-300); }
+.node-g.skipped .node-rect {
+  stroke: var(--c-slate-300);
+  fill: var(--c-surface-alt);
+}
+.node-g.skipped .node-name {
+  fill: var(--muted);
+}
+.node-g.skipped .node-dot {
+  fill: var(--c-slate-300);
+}
 
-.node-g.waiting_human .node-rect { stroke: var(--c-violet); fill: var(--c-indigo-50); }
-.node-g.waiting_human .node-dot { fill: var(--c-violet); animation: pulse 1.5s infinite; }
+.node-g.waiting_human .node-rect {
+  stroke: var(--c-violet);
+  fill: var(--c-indigo-50);
+}
+.node-g.waiting_human .node-dot {
+  fill: var(--c-violet);
+  animation: pulse 1.5s infinite;
+}
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* 边样式 */
@@ -648,9 +759,15 @@ onBeforeUnmount(() => {
   stroke: var(--red);
   stroke-dasharray: 4 3;
 }
-.arrow-default { fill: var(--c-slate-300); }
-.arrow-active { fill: var(--amber); }
-.arrow-failed { fill: var(--red); }
+.arrow-default {
+  fill: var(--c-slate-300);
+}
+.arrow-active {
+  fill: var(--amber);
+}
+.arrow-failed {
+  fill: var(--red);
+}
 
 /* 图例 */
 .legend {
@@ -675,12 +792,29 @@ onBeforeUnmount(() => {
   border: 1.5px solid var(--c-slate-300);
   background: #fff;
 }
-.legend-dot.s-pending { border-color: var(--c-slate-300); }
-.legend-dot.s-running { border-color: var(--amber); background: var(--c-amber-50); }
-.legend-dot.s-success { border-color: var(--green); background: var(--c-green-50); }
-.legend-dot.s-failed { border-color: var(--red); background: var(--c-red-50); }
-.legend-dot.s-skipped { border-color: var(--c-slate-300); background: var(--c-surface-alt); }
-.legend-dot.s-waiting_human { border-color: var(--c-violet); background: var(--c-indigo-50); }
+.legend-dot.s-pending {
+  border-color: var(--c-slate-300);
+}
+.legend-dot.s-running {
+  border-color: var(--amber);
+  background: var(--c-amber-50);
+}
+.legend-dot.s-success {
+  border-color: var(--green);
+  background: var(--c-green-50);
+}
+.legend-dot.s-failed {
+  border-color: var(--red);
+  background: var(--c-red-50);
+}
+.legend-dot.s-skipped {
+  border-color: var(--c-slate-300);
+  background: var(--c-surface-alt);
+}
+.legend-dot.s-waiting_human {
+  border-color: var(--c-violet);
+  background: var(--c-indigo-50);
+}
 
 /* 详情面板 */
 .detail-wrap {
@@ -719,7 +853,7 @@ onBeforeUnmount(() => {
   color: var(--red);
 }
 .mono {
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 11.5px;
   word-break: break-all;
 }
@@ -730,7 +864,7 @@ onBeforeUnmount(() => {
   background: var(--c-surface-hover);
   border-radius: 6px;
   padding: 10px;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 11.5px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
@@ -759,10 +893,22 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-.status-pending { color: var(--muted); }
-.status-running { color: var(--amber); }
-.status-success { color: var(--green); }
-.status-failed { color: var(--red); }
-.status-skipped { color: var(--muted); }
-.status-waiting_human { color: var(--c-violet); }
+.status-pending {
+  color: var(--muted);
+}
+.status-running {
+  color: var(--amber);
+}
+.status-success {
+  color: var(--green);
+}
+.status-failed {
+  color: var(--red);
+}
+.status-skipped {
+  color: var(--muted);
+}
+.status-waiting_human {
+  color: var(--c-violet);
+}
 </style>

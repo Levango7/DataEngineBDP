@@ -145,9 +145,7 @@ const MV_CONFIG = { baseURL: '/api' }
  * 列出虚拟表
  * @param type 数据源类型过滤（可选）
  */
-export function getVirtualTables(
-  type?: string
-): Promise<VirtualTableDefinition[]> {
+export function getVirtualTables(type?: string): Promise<VirtualTableDefinition[]> {
   return get<VirtualTableDefinition[]>(VT_BASE, type ? { dataSourceType: type } : undefined)
 }
 
@@ -202,9 +200,7 @@ export function testVirtualTableConnection(
  * 刷新虚拟表（物化表）
  * @param name 表名
  */
-export function refreshVirtualTable(
-  name: string
-): Promise<{ refreshed: boolean; rows: number }> {
+export function refreshVirtualTable(name: string): Promise<{ refreshed: boolean; rows: number }> {
   return post<{ refreshed: boolean; rows: number }>(
     `${VT_BASE}/${encodeURIComponent(name)}/refresh`
   )
@@ -235,9 +231,7 @@ export function getMaterializedViews(): Promise<MaterializedViewDef[]> {
  * 手动刷新物化视图
  * @param name 视图名
  */
-export function refreshMaterializedView(
-  name: string
-): Promise<{ eventId: string }> {
+export function refreshMaterializedView(name: string): Promise<{ eventId: string }> {
   return post<{ eventId: string }>(
     `${MV_BASE}/${encodeURIComponent(name)}/refresh`,
     undefined,
@@ -249,9 +243,7 @@ export function refreshMaterializedView(
  * 查询物化视图刷新状态
  * @param name 视图名
  */
-export function getMaterializedViewStatus(
-  name: string
-): Promise<MaterializedViewStatus> {
+export function getMaterializedViewStatus(name: string): Promise<MaterializedViewStatus> {
   return get<MaterializedViewStatus>(
     `${MV_BASE}/${encodeURIComponent(name)}/status`,
     undefined,
@@ -271,13 +263,7 @@ export function getAllMaterializedViewStatus(): Promise<MaterializedViewStatus[]
 /* ================================================================== */
 
 /** Spark 作业状态 */
-export type SparkJobStatus =
-  | 'RUNNING'
-  | 'FINISHED'
-  | 'FAILED'
-  | 'KILLED'
-  | 'PENDING'
-  | 'SCHEDULED'
+export type SparkJobStatus = 'RUNNING' | 'FINISHED' | 'FAILED' | 'KILLED' | 'PENDING' | 'SCHEDULED'
 
 /** Spark 作业信息 */
 export interface SparkJob {
@@ -351,9 +337,7 @@ const SPARK_TYPE = 'batch_spark'
  * 列出 Spark 批作业
  * @param params 查询参数
  */
-export function getSparkJobs(
-  params?: SparkJobListQuery
-): Promise<PagedResult<SparkJob>> {
+export function getSparkJobs(params?: SparkJobListQuery): Promise<PagedResult<SparkJob>> {
   return get<PagedResult<SparkJob>>(SPARK_BASE, {
     ...params,
     type: SPARK_TYPE
@@ -394,12 +378,8 @@ export function submitSparkJob(req: SparkJobCreateRequest): Promise<SparkJob> {
  * 运行 Spark 作业（转 DAG 提交）
  * @param id 作业 ID
  */
-export function runSparkJob(
-  id: string
-): Promise<{ dagId: string; status: string }> {
-  return post<{ dagId: string; status: string }>(
-    `${SPARK_BASE}/${encodeURIComponent(id)}/run`
-  )
+export function runSparkJob(id: string): Promise<{ dagId: string; status: string }> {
+  return post<{ dagId: string; status: string }>(`${SPARK_BASE}/${encodeURIComponent(id)}/run`)
 }
 
 /**
@@ -432,13 +412,7 @@ export function getSparkJobLogs(id: string): Promise<string> {
 
 /** Flink 作业状态 */
 export type FlinkJobStatus =
-  | 'RUNNING'
-  | 'FAILED'
-  | 'CANCELED'
-  | 'FINISHED'
-  | 'RESTARTING'
-  | 'CREATED'
-  | 'SCHEDULED'
+  'RUNNING' | 'FAILED' | 'CANCELED' | 'FINISHED' | 'RESTARTING' | 'CREATED' | 'SCHEDULED'
 
 /** 反压等级 */
 export type BackpressureLevel = 'ok' | 'low' | 'high'
@@ -564,9 +538,7 @@ const FLINK_TYPE = 'stream_flink'
  * 列出 Flink 流作业
  * @param params 查询参数
  */
-export function getFlinkJobs(
-  params?: FlinkJobListQuery
-): Promise<PagedResult<FlinkJob>> {
+export function getFlinkJobs(params?: FlinkJobListQuery): Promise<PagedResult<FlinkJob>> {
   return get<PagedResult<FlinkJob>>(FLINK_BASE, {
     ...params,
     type: FLINK_TYPE
@@ -621,9 +593,7 @@ export function stopFlinkJob(id: string): Promise<void> {
  * 触发 Savepoint
  * @param id 作业 ID
  */
-export function triggerSavepoint(
-  id: string
-): Promise<{ savepointPath: string; eventId: string }> {
+export function triggerSavepoint(id: string): Promise<{ savepointPath: string; eventId: string }> {
   return post<{ savepointPath: string; eventId: string }>(
     `${FLINK_BASE}/${encodeURIComponent(id)}/savepoint`
   )
@@ -925,10 +895,7 @@ export function getKafkaTopics(clusterId: string): Promise<Topic[]> {
  * @param clusterId 集群 ID
  * @param req 创建请求
  */
-export function createKafkaTopic(
-  clusterId: string,
-  req: TopicCreateRequest
-): Promise<Topic> {
+export function createKafkaTopic(clusterId: string, req: TopicCreateRequest): Promise<Topic> {
   return post<Topic>(`/kafka/${encodeURIComponent(clusterId)}/topics`, req)
 }
 
@@ -1096,9 +1063,7 @@ export function getMultiModelTypes(): Promise<string[]> {
  * 按类型列出虚拟表（多模型统一）
  * @param type 数据源类型
  */
-export function getMultiModelTables(
-  type: string
-): Promise<VirtualTableDefinition[]> {
+export function getMultiModelTables(type: string): Promise<VirtualTableDefinition[]> {
   return get<VirtualTableDefinition[]>(VT_BASE, { dataSourceType: type })
 }
 
@@ -1111,10 +1076,9 @@ export function crossModelQuery(
   tableName: string,
   predicate?: string
 ): Promise<VirtualTableQueryResult> {
-  return post<VirtualTableQueryResult>(
-    `${VT_BASE}/${encodeURIComponent(tableName)}/query`,
-    { predicate }
-  )
+  return post<VirtualTableQueryResult>(`${VT_BASE}/${encodeURIComponent(tableName)}/query`, {
+    predicate
+  })
 }
 
 /**

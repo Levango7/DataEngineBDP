@@ -18,13 +18,11 @@
     <!-- 模式切换 + 总数 -->
     <div class="pagination-header">
       <div class="total-info">
-        共 <span class="total-num">{{ total }}</span> 条
-        <template v-if="mode === 'page'">
-          ，当前第 {{ page }} / {{ totalPages }} 页
-        </template>
-        <template v-else>
-          ，已加载 {{ loadedCount }} 条
-        </template>
+        共
+        <span class="total-num">{{ total }}</span>
+        条
+        <template v-if="mode === 'page'">，当前第 {{ page }} / {{ totalPages }} 页</template>
+        <template v-else>，已加载 {{ loadedCount }} 条</template>
       </div>
       <el-radio-group v-model="mode" size="small" @change="onModeChangeRaw">
         <el-radio-button value="page">分页</el-radio-button>
@@ -52,13 +50,7 @@
         <el-icon class="is-loading"><Loading /></el-icon>
         <span>加载中…</span>
       </div>
-      <el-button
-        v-else-if="hasMore"
-        type="primary"
-        plain
-        :icon="ArrowDown"
-        @click="emitLoadMore"
-      >
+      <el-button v-else-if="hasMore" type="primary" plain :icon="ArrowDown" @click="emitLoadMore">
         加载更多
       </el-button>
       <div v-else class="no-more">

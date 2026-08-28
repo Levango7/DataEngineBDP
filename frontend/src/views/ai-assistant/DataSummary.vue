@@ -47,14 +47,11 @@
 
     <!-- 关键指标 -->
     <div v-if="metrics.length > 0" class="summary-metrics">
-      <div
-        v-for="(m, idx) in metrics"
-        :key="idx"
-        class="metric-card"
-      >
+      <div v-for="(m, idx) in metrics" :key="idx" class="metric-card">
         <div class="metric-label">{{ pickBilingual(m.label) }}</div>
         <div class="metric-value">
-          {{ formatMetric(m.value) }}<span v-if="m.unit" class="metric-unit">{{ m.unit }}</span>
+          {{ formatMetric(m.value) }}
+          <span v-if="m.unit" class="metric-unit">{{ m.unit }}</span>
         </div>
         <div v-if="m.change !== undefined" class="metric-change" :class="changeClass(m)">
           <el-icon><component :is="changeIcon(m)" /></el-icon>
@@ -76,12 +73,7 @@ import {
   ArrowDown,
   Minus
 } from '@element-plus/icons-vue'
-import type {
-  SummaryMeta,
-  SummaryMetric,
-  Bilingual,
-  Locale
-} from '@/types/ai-assistant'
+import type { SummaryMeta, SummaryMetric, Bilingual, Locale } from '@/types/ai-assistant'
 
 interface Props {
   /** 摘要正文（已按语言取过） */

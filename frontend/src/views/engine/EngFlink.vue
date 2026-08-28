@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            Flink 作业列表加载失败，<a href="javascript:void(0)" @click="loadList">重试</a>
+            Flink 作业列表加载失败，
+            <a href="javascript:void(0)" @click="loadList">重试</a>
           </div>
         </div>
       </template>
@@ -168,11 +169,7 @@
           <el-input-number v-model="submitForm.parallelism" :min="1" :max="200" />
         </el-form-item>
         <el-form-item label="Checkpoint 间隔" prop="checkpointIntervalMs">
-          <el-input-number
-            v-model="submitForm.checkpointIntervalMs"
-            :min="1000"
-            :step="1000"
-          />
+          <el-input-number v-model="submitForm.checkpointIntervalMs" :min="1000" :step="1000" />
           <span style="margin-left: 8px; color: var(--muted); font-size: 12px">毫秒</span>
         </el-form-item>
         <el-form-item label="负责人" prop="owner">
@@ -200,7 +197,9 @@
               {{ statusLabel(currentMonitorJob.status) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="并行度">{{ currentMonitorJob.parallelism }}</el-descriptions-item>
+          <el-descriptions-item label="并行度">
+            {{ currentMonitorJob.parallelism }}
+          </el-descriptions-item>
           <el-descriptions-item label="运行时长">
             {{ formatDuration(currentMonitorJob.durationMs) }}
           </el-descriptions-item>
@@ -289,12 +288,7 @@ import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as engineApi from '@/api/engine'
-import type {
-  FlinkJob,
-  Checkpoint,
-  BackpressureMetrics,
-  BackpressureLevel
-} from '@/api/engine'
+import type { FlinkJob, Checkpoint, BackpressureMetrics, BackpressureLevel } from '@/api/engine'
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
@@ -435,11 +429,11 @@ const savepointingId = ref<string>('')
 /** 停止作业 */
 async function handleStop(row: FlinkJob) {
   try {
-    await ElMessageBox.confirm(
-      `确定停止作业「${row.name}」吗？流作业将被取消。`,
-      '停止作业确认',
-      { type: 'warning', confirmButtonText: '确定停止', cancelButtonText: '保留' }
-    )
+    await ElMessageBox.confirm(`确定停止作业「${row.name}」吗？流作业将被取消。`, '停止作业确认', {
+      type: 'warning',
+      confirmButtonText: '确定停止',
+      cancelButtonText: '保留'
+    })
     stoppingId.value = row.id
     await engineApi.stopFlinkJob(row.id)
     ElMessage.success('作业已停止')
@@ -528,14 +522,17 @@ async function loadBackpressure(jobId: string) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   RUNNING: { label: '运行中', type: 'primary' },
   FAILED: { label: '失败', type: 'danger' },
   CANCELED: { label: '已取消', type: 'info' },
   FINISHED: { label: '已完成', type: 'success' },
   RESTARTING: { label: '重启中', type: 'warning' },
   CREATED: { label: '已创建', type: 'info' },
-  SCHEDULED: { label: '已调度', type: 'warning' },
+  SCHEDULED: { label: '已调度', type: 'warning' }
 }
 
 function statusLabel(status: string): string {
@@ -550,17 +547,20 @@ const CP_STATUS_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> =
   COMPLETED: 'success',
   IN_PROGRESS: 'warning',
   FAILED: 'danger',
-  DISCARDED: 'info',
+  DISCARDED: 'info'
 }
 
 function cpStatusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
   return CP_STATUS_MAP[status] ?? 'info'
 }
 
-const BACKPRESSURE_MAP: Record<BackpressureLevel, { label: string; type: 'success' | 'warning' | 'danger' }> = {
+const BACKPRESSURE_MAP: Record<
+  BackpressureLevel,
+  { label: string; type: 'success' | 'warning' | 'danger' }
+> = {
   ok: { label: '正常', type: 'success' },
   low: { label: '低', type: 'warning' },
-  high: { label: '高', type: 'danger' },
+  high: { label: '高', type: 'danger' }
 }
 
 function backpressureLabel(level: BackpressureLevel): string {
@@ -616,10 +616,13 @@ onUnmounted(() => {
   }
 })
 
-watch(() => appStore.workspace, () => {
-  currentPage.value = 1
-  void loadList()
-})
+watch(
+  () => appStore.workspace,
+  () => {
+    currentPage.value = 1
+    void loadList()
+  }
+)
 </script>
 
 <style scoped>

@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ clustersError.message }}，<a href="javascript:void(0)" @click="reloadClusters">重试</a>
+            {{ clustersError.message }}，
+            <a href="javascript:void(0)" @click="reloadClusters">重试</a>
           </div>
         </div>
       </template>
@@ -53,12 +54,7 @@
           style="width: 240px"
           @change="handleClusterChange"
         >
-          <el-option
-            v-for="c in clusters ?? []"
-            :key="c.id"
-            :label="c.name"
-            :value="c.id"
-          />
+          <el-option v-for="c in clusters ?? []" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
         <el-tabs v-model="activeTab" type="card" class="main-tabs">
           <el-tab-pane label="Broker" name="brokers" />
@@ -213,7 +209,9 @@
       </el-form>
       <template #footer>
         <el-button @click="createTopicDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="creatingTopic" @click="handleCreateTopic">创建</el-button>
+        <el-button type="primary" :loading="creatingTopic" @click="handleCreateTopic">
+          创建
+        </el-button>
       </template>
     </el-dialog>
 
@@ -261,13 +259,7 @@ import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'elem
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
-import type {
-  KafkaCluster,
-  Broker,
-  Topic,
-  ConsumerGroup,
-  KafkaMessage
-} from '@/api/engine'
+import type { KafkaCluster, Broker, Topic, ConsumerGroup, KafkaMessage } from '@/api/engine'
 
 /* ------------------------------ 集群列表 ------------------------------ */
 
@@ -345,9 +337,7 @@ watch(clusters, (list) => {
 const brokerAliveCount = computed(
   () => (brokers.value ?? []).filter((b) => b.status === 'alive').length
 )
-const totalLag = computed(() =>
-  (consumerGroups.value ?? []).reduce((s, g) => s + g.lag, 0)
-)
+const totalLag = computed(() => (consumerGroups.value ?? []).reduce((s, g) => s + g.lag, 0))
 
 /** Topic 列表按关键字过滤 */
 const filteredTopics = computed(() => {
@@ -429,16 +419,12 @@ async function handleCreateTopic() {
 /** 删除 Topic */
 async function handleDeleteTopic(row: Topic) {
   try {
-    await ElMessageBox.confirm(
-      `确认删除 Topic「${row.name}」？该操作不可恢复。`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除 Topic「${row.name}」？该操作不可恢复。`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await engineApi.deleteKafkaTopic(selectedClusterId.value, row.name)
     ElMessage.success('Topic 已删除')
     await loadTopics()

@@ -2,7 +2,8 @@
   <div>
     <h1>业务线门户</h1>
     <div class="sub">
-      L5.4 · 以"业务线-团队-项目"组织视图复用平台能力，免计费或内部结算（成本×0.3），不承诺 SLA，资源受部门预算软约束。
+      L5.4 · 以"业务线-团队-项目"组织视图复用平台能力，免计费或内部结算（成本×0.3），不承诺
+      SLA，资源受部门预算软约束。
       <span class="pill b">多业务线隔离</span>
       <span class="pill p">数据隔离</span>
       <span class="pill g">权限隔离</span>
@@ -42,7 +43,9 @@
             >
               <div class="row">
                 <b>{{ bl.name }}</b>
-                <span class="pill" :class="statusClass(bl.status)">{{ statusText(bl.status) }}</span>
+                <span class="pill" :class="statusClass(bl.status)">
+                  {{ statusText(bl.status) }}
+                </span>
               </div>
               <div class="meta">
                 预算 {{ bl.budget.used.toFixed(0) }}/{{ bl.budget.total.toFixed(0) }} 元
@@ -68,9 +71,15 @@
         <template v-else>
           <!-- Tab 切换 -->
           <div class="tabbar">
-            <div class="t" :class="{ on: tab === 'dashboard' }" @click="tab = 'dashboard'">数据概览</div>
-            <div class="t" :class="{ on: tab === 'workbench' }" @click="tab = 'workbench'">工作台</div>
-            <div class="t" :class="{ on: tab === 'catalog' }" @click="tab = 'catalog'">数据目录</div>
+            <div class="t" :class="{ on: tab === 'dashboard' }" @click="tab = 'dashboard'">
+              数据概览
+            </div>
+            <div class="t" :class="{ on: tab === 'workbench' }" @click="tab = 'workbench'">
+              工作台
+            </div>
+            <div class="t" :class="{ on: tab === 'catalog' }" @click="tab = 'catalog'">
+              数据目录
+            </div>
             <div class="t" :class="{ on: tab === 'reports' }" @click="tab = 'reports'">BI 报表</div>
           </div>
 
@@ -83,7 +92,8 @@
               <div class="card">
                 <h3>加载失败</h3>
                 <div class="meta" style="color: var(--muted)">
-                  {{ dashboardError.message }}，<a href="javascript:void(0)" @click="reloadDashboard">重试</a>
+                  {{ dashboardError.message }}，
+                  <a href="javascript:void(0)" @click="reloadDashboard">重试</a>
                 </div>
               </div>
             </template>
@@ -92,7 +102,10 @@
               <div class="grid g4">
                 <div class="card" v-for="kpi in dashboard.kpis" :key="kpi.key">
                   <h3>{{ kpi.label }}</h3>
-                  <div class="kpi">{{ kpi.value }}<span class="unit">{{ kpi.unit }}</span></div>
+                  <div class="kpi">
+                    {{ kpi.value }}
+                    <span class="unit">{{ kpi.unit }}</span>
+                  </div>
                   <div class="meta">
                     环比
                     <span :style="{ color: kpi.trend >= 0 ? 'var(--ok)' : 'var(--danger)' }">
@@ -107,7 +120,11 @@
                 <div class="card" v-for="trend in dashboard.trends" :key="trend.key">
                   <h3>{{ trend.label }}</h3>
                   <div class="mini">
-                    <i v-for="(h, idx) in trend.bars" :key="`tr-${idx}`" :style="{ height: h + '%' }"></i>
+                    <i
+                      v-for="(h, idx) in trend.bars"
+                      :key="`tr-${idx}`"
+                      :style="{ height: h + '%' }"
+                    ></i>
                   </div>
                   <div class="meta">近 7 日 · 单位 {{ trend.unit }}</div>
                 </div>
@@ -119,7 +136,12 @@
                   <h3>实时监控</h3>
                   <table>
                     <thead>
-                      <tr><th>指标</th><th>当前</th><th>阈值</th><th>状态</th></tr>
+                      <tr>
+                        <th>指标</th>
+                        <th>当前</th>
+                        <th>阈值</th>
+                        <th>状态</th>
+                      </tr>
                     </thead>
                     <tbody>
                       <tr v-for="m in dashboard.realtime" :key="m.key">
@@ -127,7 +149,9 @@
                         <td>{{ m.value }}{{ m.unit }}</td>
                         <td>{{ m.threshold ?? '—' }}</td>
                         <td>
-                          <span class="pill" :class="monitorClass(m.status)">{{ monitorText(m.status) }}</span>
+                          <span class="pill" :class="monitorClass(m.status)">
+                            {{ monitorText(m.status) }}
+                          </span>
                         </td>
                       </tr>
                     </tbody>
@@ -137,7 +161,12 @@
                   <h3>TopN 项目排行</h3>
                   <table>
                     <thead>
-                      <tr><th>项目</th><th>成本</th><th>用量</th><th>作业数</th></tr>
+                      <tr>
+                        <th>项目</th>
+                        <th>成本</th>
+                        <th>用量</th>
+                        <th>作业数</th>
+                      </tr>
                     </thead>
                     <tbody>
                       <tr v-for="p in dashboard.topProjects" :key="p.projectId">
@@ -161,25 +190,39 @@
             <template v-else-if="workbench">
               <div class="grid g2">
                 <div class="card">
-                  <h3>待办审批 <span class="pill r">{{ workbench.todos.length }}</span></h3>
+                  <h3>
+                    待办审批
+                    <span class="pill r">{{ workbench.todos.length }}</span>
+                  </h3>
                   <table>
                     <thead>
-                      <tr><th>事项</th><th>申请人</th><th>优先级</th><th></th></tr>
+                      <tr>
+                        <th>事项</th>
+                        <th>申请人</th>
+                        <th>优先级</th>
+                        <th></th>
+                      </tr>
                     </thead>
                     <tbody>
                       <tr v-for="t in workbench.todos" :key="t.id">
                         <td>{{ t.title }}</td>
                         <td>{{ t.applicant }}</td>
                         <td>
-                          <span class="pill" :class="priorityClass(t.priority)">{{ priorityText(t.priority) }}</span>
+                          <span class="pill" :class="priorityClass(t.priority)">
+                            {{ priorityText(t.priority) }}
+                          </span>
                         </td>
                         <td>
                           <button class="btn sm" @click="store.showToast('已批准')">批准</button>
-                          <button class="btn ghost sm" @click="store.showToast('已驳回')">驳回</button>
+                          <button class="btn ghost sm" @click="store.showToast('已驳回')">
+                            驳回
+                          </button>
                         </td>
                       </tr>
                       <tr v-if="workbench.todos.length === 0">
-                        <td colspan="4" style="text-align: center; color: var(--muted)">暂无待办</td>
+                        <td colspan="4" style="text-align: center; color: var(--muted)">
+                          暂无待办
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -202,14 +245,21 @@
                 <h3>最近任务</h3>
                 <table>
                   <thead>
-                    <tr><th>任务</th><th>类型</th><th>状态</th><th>更新时间</th></tr>
+                    <tr>
+                      <th>任务</th>
+                      <th>类型</th>
+                      <th>状态</th>
+                      <th>更新时间</th>
+                    </tr>
                   </thead>
                   <tbody>
                     <tr v-for="t in workbench.recentTasks" :key="t.id">
                       <td>{{ t.name }}</td>
                       <td>{{ kindText(t.kind) }}</td>
                       <td>
-                        <span class="pill" :class="recentStatusClass(t.status)">{{ t.status }}</span>
+                        <span class="pill" :class="recentStatusClass(t.status)">
+                          {{ t.status }}
+                        </span>
                       </td>
                       <td>{{ t.updatedAt }}</td>
                     </tr>
@@ -226,7 +276,10 @@
             </template>
             <template v-else-if="catalog">
               <div class="card">
-                <h3>数据目录 <span class="pill b">{{ catalog.nodes.length }} 节点</span></h3>
+                <h3>
+                  数据目录
+                  <span class="pill b">{{ catalog.nodes.length }} 节点</span>
+                </h3>
                 <div class="bp-tree">
                   <div
                     v-for="node in flatNodes"
@@ -259,16 +312,30 @@
                 <div class="card" v-for="r in reports" :key="r.id">
                   <div class="row">
                     <b>{{ r.name }}</b>
-                    <span class="pill" :class="reportStatusClass(r.status)">{{ reportStatusText(r.status) }}</span>
+                    <span class="pill" :class="reportStatusClass(r.status)">
+                      {{ reportStatusText(r.status) }}
+                    </span>
                   </div>
-                  <div class="meta">{{ reportTypeText(r.config.type) }} · {{ r.config.chartType }}</div>
+                  <div class="meta">
+                    {{ reportTypeText(r.config.type) }} · {{ r.config.chartType }}
+                  </div>
                   <div class="meta">创建人 {{ r.creatorId || '—' }}</div>
-                  <button class="btn ghost sm" style="margin-top: 8px" @click="viewReport(r)">查看</button>
-                  <button class="btn ghost sm" style="margin-top: 8px; margin-left: 4px" @click="handleDeleteReport(r.id)">删除</button>
+                  <button class="btn ghost sm" style="margin-top: 8px" @click="viewReport(r)">
+                    查看
+                  </button>
+                  <button
+                    class="btn ghost sm"
+                    style="margin-top: 8px; margin-left: 4px"
+                    @click="handleDeleteReport(r.id)"
+                  >
+                    删除
+                  </button>
                 </div>
                 <div class="card" v-if="reports.length === 0">
                   <h3>暂无报表</h3>
-                  <div class="meta" style="color: var(--muted)">点击右上角「+ 新建报表」创建第一个。</div>
+                  <div class="meta" style="color: var(--muted)">
+                    点击右上角「+ 新建报表」创建第一个。
+                  </div>
                 </div>
               </div>
             </template>
@@ -279,20 +346,28 @@
 
     <!-- 新建业务线 Modal -->
     <Modal :visible="modalVisible" title="新建业务线" @close="modalVisible = false">
-      <label>名称</label><input v-model="form.name" placeholder="如 风控线" />
-      <label>租户 ID</label><input v-model="form.tenantId" placeholder="如 t-1" />
-      <label>描述</label><input v-model="form.description" placeholder="业务线描述" />
-      <label>预算总额（元）</label><input v-model.number="form.budgetTotal" type="number" />
+      <label>名称</label>
+      <input v-model="form.name" placeholder="如 风控线" />
+      <label>租户 ID</label>
+      <input v-model="form.tenantId" placeholder="如 t-1" />
+      <label>描述</label>
+      <input v-model="form.description" placeholder="业务线描述" />
+      <label>预算总额（元）</label>
+      <input v-model.number="form.budgetTotal" type="number" />
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" :disabled="creating" @click="handleCreate">{{ creating ? '创建中…' : '创建' }}</button>
+        <button class="btn" :disabled="creating" @click="handleCreate">
+          {{ creating ? '创建中…' : '创建' }}
+        </button>
       </template>
     </Modal>
 
     <!-- 新建报表 Modal -->
     <Modal :visible="reportModalVisible" title="新建 BI 报表" @close="reportModalVisible = false">
-      <label>名称</label><input v-model="reportForm.name" placeholder="如 风控日报" />
-      <label>描述</label><input v-model="reportForm.description" placeholder="报表描述" />
+      <label>名称</label>
+      <input v-model="reportForm.name" placeholder="如 风控日报" />
+      <label>描述</label>
+      <input v-model="reportForm.description" placeholder="报表描述" />
       <label>类型</label>
       <select v-model="reportForm.type">
         <option value="chart">图表</option>
@@ -309,7 +384,9 @@
       </select>
       <template #footer>
         <button class="btn ghost" @click="reportModalVisible = false">取消</button>
-        <button class="btn" :disabled="reportCreating" @click="handleCreateReport">{{ reportCreating ? '创建中…' : '创建' }}</button>
+        <button class="btn" :disabled="reportCreating" @click="handleCreateReport">
+          {{ reportCreating ? '创建中…' : '创建' }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -420,10 +497,9 @@ const flatNodes = computed<FlatNode[]>(() => {
 
 /* ------------------------------ Reports ------------------------------ */
 const reports = ref<Report[]>([])
-const {
-  loading: reportsLoading,
-  execute: loadReports
-} = useApi<Report[]>(() => bpApi.listReports(currentBlId.value))
+const { loading: reportsLoading, execute: loadReports } = useApi<Report[]>(() =>
+  bpApi.listReports(currentBlId.value)
+)
 
 async function reloadReports(): Promise<void> {
   const list = await loadReports()
@@ -436,12 +512,7 @@ const tab = ref<'dashboard' | 'workbench' | 'catalog' | 'reports'>('dashboard')
 // 业务线切换时重新加载所有数据
 watch(currentBlId, async (id) => {
   if (!id) return
-  await Promise.all([
-    loadDashboard(),
-    loadWorkbench(),
-    loadCatalog(),
-    reloadReports()
-  ])
+  await Promise.all([loadDashboard(), loadWorkbench(), loadCatalog(), reloadReports()])
 })
 
 // Tab 切换时按需加载

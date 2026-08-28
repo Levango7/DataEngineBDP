@@ -2,7 +2,8 @@
   <div>
     <h1>开放 API 服务目录</h1>
     <div class="sub">
-      L5.5 · 将平台数据能力封装为 REST/gRPC API，经 APISIX 网关对外暴露；配套服务目录支持浏览、搜索、订阅、调用与计量。
+      L5.5 · 将平台数据能力封装为 REST/gRPC API，经 APISIX
+      网关对外暴露；配套服务目录支持浏览、搜索、订阅、调用与计量。
     </div>
 
     <!-- KPI 概览 -->
@@ -65,12 +66,7 @@
       <div class="meta" style="color: var(--muted)">暂无 API，点击「+ 注册 API」创建</div>
     </div>
     <div v-else-if="apiList" class="api-grid" style="margin-top: 14px">
-      <div
-        v-for="api in apiList"
-        :key="api.id"
-        class="card api-card"
-        @click="openDetail(api)"
-      >
+      <div v-for="api in apiList" :key="api.id" class="card api-card" @click="openDetail(api)">
         <div class="api-card-header">
           <span class="api-name">{{ api.name }}</span>
           <span :class="['pill', slaClass(api.sla)]">{{ slaLabel(api.sla) }}</span>
@@ -113,22 +109,58 @@
 
         <!-- 文档 Tab -->
         <div v-if="activeTab === '文档'" class="tab-content">
-          <div class="kv"><span>名称</span><span>{{ selectedApi.name }}</span></div>
-          <div class="kv"><span>版本</span><span>{{ selectedApi.version }}</span></div>
-          <div class="kv"><span>方法</span><span><code>{{ selectedApi.method }} {{ selectedApi.path }}</code></span></div>
-          <div class="kv"><span>描述</span><span>{{ selectedApi.description || '—' }}</span></div>
-          <div class="kv"><span>认证</span><span>{{ authLabel(selectedApi.authType) }}</span></div>
-          <div class="kv"><span>SLA</span><span>{{ slaLabel(selectedApi.sla) }}</span></div>
-          <div class="kv"><span>计费</span><span>{{ costLabel(selectedApi.costStrategy) }} · 单价 {{ selectedApi.costUnitPrice }}</span></div>
-          <div class="kv"><span>状态</span><span>{{ statusLabel(selectedApi.status) }}</span></div>
+          <div class="kv">
+            <span>名称</span>
+            <span>{{ selectedApi.name }}</span>
+          </div>
+          <div class="kv">
+            <span>版本</span>
+            <span>{{ selectedApi.version }}</span>
+          </div>
+          <div class="kv">
+            <span>方法</span>
+            <span>
+              <code>{{ selectedApi.method }} {{ selectedApi.path }}</code>
+            </span>
+          </div>
+          <div class="kv">
+            <span>描述</span>
+            <span>{{ selectedApi.description || '—' }}</span>
+          </div>
+          <div class="kv">
+            <span>认证</span>
+            <span>{{ authLabel(selectedApi.authType) }}</span>
+          </div>
+          <div class="kv">
+            <span>SLA</span>
+            <span>{{ slaLabel(selectedApi.sla) }}</span>
+          </div>
+          <div class="kv">
+            <span>计费</span>
+            <span>
+              {{ costLabel(selectedApi.costStrategy) }} · 单价 {{ selectedApi.costUnitPrice }}
+            </span>
+          </div>
+          <div class="kv">
+            <span>状态</span>
+            <span>{{ statusLabel(selectedApi.status) }}</span>
+          </div>
           <h4 style="margin-top: 12px">参数</h4>
           <table v-if="selectedApi.params.length > 0">
             <thead>
-              <tr><th>名称</th><th>位置</th><th>类型</th><th>必填</th><th>描述</th></tr>
+              <tr>
+                <th>名称</th>
+                <th>位置</th>
+                <th>类型</th>
+                <th>必填</th>
+                <th>描述</th>
+              </tr>
             </thead>
             <tbody>
               <tr v-for="p in selectedApi.params" :key="p.name">
-                <td><code>{{ p.name }}</code></td>
+                <td>
+                  <code>{{ p.name }}</code>
+                </td>
                 <td>{{ p.location }}</td>
                 <td>{{ p.type }}</td>
                 <td>{{ p.required ? '是' : '否' }}</td>
@@ -155,9 +187,18 @@
                 {{ callResult.statusCode }}
               </span>
             </div>
-            <div class="kv"><span>延迟</span><span>{{ callResult.latencyMs.toFixed(2) }} ms</span></div>
-            <div class="kv"><span>费用</span><span>{{ callResult.costAmount }}</span></div>
-            <div v-if="callResult.error" class="kv"><span>错误</span><span style="color: var(--danger)">{{ callResult.error }}</span></div>
+            <div class="kv">
+              <span>延迟</span>
+              <span>{{ callResult.latencyMs.toFixed(2) }} ms</span>
+            </div>
+            <div class="kv">
+              <span>费用</span>
+              <span>{{ callResult.costAmount }}</span>
+            </div>
+            <div v-if="callResult.error" class="kv">
+              <span>错误</span>
+              <span style="color: var(--danger)">{{ callResult.error }}</span>
+            </div>
             <div v-if="callResult.result">
               <label>响应</label>
               <pre class="code-block">{{ JSON.stringify(callResult.result, null, 2) }}</pre>
@@ -181,15 +222,28 @@
           <h4 style="margin-top: 16px">已有订阅者</h4>
           <table v-if="subscribers.length > 0">
             <thead>
-              <tr><th>订阅者</th><th>状态</th><th>配额</th><th>调用次数</th><th>AK</th></tr>
+              <tr>
+                <th>订阅者</th>
+                <th>状态</th>
+                <th>配额</th>
+                <th>调用次数</th>
+                <th>AK</th>
+              </tr>
             </thead>
             <tbody>
               <tr v-for="s in subscribers" :key="s.id">
                 <td>{{ s.subscriberId }}</td>
-                <td><span :class="['pill', subStatusClass(s.status)]">{{ subStatusLabel(s.status) }}</span></td>
+                <td>
+                  <span :class="['pill', subStatusClass(s.status)]">
+                    {{ subStatusLabel(s.status) }}
+                  </span>
+                </td>
                 <td>{{ s.grantedQuota || s.quotaExpect }}</td>
                 <td>{{ s.callCount }}</td>
-                <td><code v-if="s.accessKey">{{ s.accessKey.substring(0, 12) }}…</code><span v-else>—</span></td>
+                <td>
+                  <code v-if="s.accessKey">{{ s.accessKey.substring(0, 12) }}…</code>
+                  <span v-else>—</span>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -201,10 +255,22 @@
           <div v-if="metricsLoading" class="meta" style="color: var(--muted)">加载中…</div>
           <template v-else-if="metrics">
             <div class="grid g4">
-              <div class="card"><h3>调用次数</h3><div class="kpi s">{{ formatNumber(metrics.callCount) }}</div></div>
-              <div class="card"><h3>成功率</h3><div class="kpi s">{{ (metrics.successRate * 100).toFixed(1) }}%</div></div>
-              <div class="card"><h3>P99 延迟</h3><div class="kpi s">{{ metrics.p99LatencyMs.toFixed(1) }} ms</div></div>
-              <div class="card"><h3>总费用</h3><div class="kpi s">{{ metrics.totalCost.toFixed(4) }}</div></div>
+              <div class="card">
+                <h3>调用次数</h3>
+                <div class="kpi s">{{ formatNumber(metrics.callCount) }}</div>
+              </div>
+              <div class="card">
+                <h3>成功率</h3>
+                <div class="kpi s">{{ (metrics.successRate * 100).toFixed(1) }}%</div>
+              </div>
+              <div class="card">
+                <h3>P99 延迟</h3>
+                <div class="kpi s">{{ metrics.p99LatencyMs.toFixed(1) }} ms</div>
+              </div>
+              <div class="card">
+                <h3>总费用</h3>
+                <div class="kpi s">{{ metrics.totalCost.toFixed(4) }}</div>
+              </div>
             </div>
             <h4 style="margin-top: 12px">时间序列</h4>
             <div v-if="metrics.timeseries.length > 0" class="chart-placeholder">
@@ -220,7 +286,13 @@
             <h4 style="margin-top: 12px">按消费者</h4>
             <table v-if="metrics.byConsumer.length > 0">
               <thead>
-                <tr><th>消费者租户</th><th>调用次数</th><th>错误次数</th><th>平均延迟</th><th>费用</th></tr>
+                <tr>
+                  <th>消费者租户</th>
+                  <th>调用次数</th>
+                  <th>错误次数</th>
+                  <th>平均延迟</th>
+                  <th>费用</th>
+                </tr>
               </thead>
               <tbody>
                 <tr v-for="c in metrics.byConsumer" :key="c.consumerTenantId">
@@ -238,7 +310,9 @@
       </div>
       <div class="mf">
         <button class="btn ghost" @click="selectedApi = null">关闭</button>
-        <button v-if="selectedApi.status === 'draft'" class="btn" @click="publishFlow(selectedApi)">提交审核并发布</button>
+        <button v-if="selectedApi.status === 'draft'" class="btn" @click="publishFlow(selectedApi)">
+          提交审核并发布
+        </button>
       </div>
     </div>
 
@@ -254,7 +328,10 @@
       <input v-model="newApi.category" placeholder="如 weather" />
       <label>HTTP 方法</label>
       <select v-model="newApi.method">
-        <option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option>
+        <option>GET</option>
+        <option>POST</option>
+        <option>PUT</option>
+        <option>DELETE</option>
       </select>
       <label>路径</label>
       <input v-model="newApi.path" placeholder="/weather" />
@@ -469,7 +546,6 @@ async function applySubscribe() {
   }
 }
 
-
 async function publishFlow(api: APIDefinition) {
   try {
     await submitReview(api.id)
@@ -586,24 +662,28 @@ function costLabel(c: string): string {
   return { by_call: '按次', by_bytes: '按量', monthly_package: '月包' }[c] || c
 }
 function subStatusLabel(s: string): string {
-  return {
-    pending: '待审批',
-    approved: '已审批',
-    active: '已激活',
-    suspended: '已暂停',
-    rejected: '已驳回',
-    revoked: '已吊销'
-  }[s] || s
+  return (
+    {
+      pending: '待审批',
+      approved: '已审批',
+      active: '已激活',
+      suspended: '已暂停',
+      rejected: '已驳回',
+      revoked: '已吊销'
+    }[s] || s
+  )
 }
 function subStatusClass(s: string): string {
-  return {
-    pending: 'a',
-    approved: 'g',
-    active: 'g',
-    suspended: 'r',
-    rejected: 'r',
-    revoked: 'r'
-  }[s] || 'a'
+  return (
+    {
+      pending: 'a',
+      approved: 'g',
+      active: 'g',
+      suspended: 'r',
+      rejected: 'r',
+      revoked: 'r'
+    }[s] || 'a'
+  )
 }
 function barHeight(count: number): number {
   if (!metrics.value || metrics.value.timeseries.length === 0) return 0
@@ -632,7 +712,9 @@ onUnmounted(() => {
 }
 .api-card {
   cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 .api-card:hover {
   border-color: var(--primary, #409eff);

@@ -55,8 +55,14 @@
             @click="onSelectExec(e.execId)"
           >
             <td class="mono">{{ e.execId.slice(0, 12) }}</td>
-            <td><span class="trigger-tag" :class="`tg-${e.trigger.toLowerCase()}`">{{ e.trigger }}</span></td>
-            <td><span class="status-tag" :class="`st-${e.status.toLowerCase()}`">{{ e.status }}</span></td>
+            <td>
+              <span class="trigger-tag" :class="`tg-${e.trigger.toLowerCase()}`">
+                {{ e.trigger }}
+              </span>
+            </td>
+            <td>
+              <span class="status-tag" :class="`st-${e.status.toLowerCase()}`">{{ e.status }}</span>
+            </td>
             <td>{{ e.completedCount }}/{{ e.totalNodes }}</td>
             <td>{{ e.startedAt }}</td>
             <td>
@@ -71,8 +77,12 @@
         <div class="trace-head">
           <span class="title">回放轨迹 · {{ trace.execId.slice(0, 12) }}</span>
           <span class="spacer" />
-          <el-button size="small" :icon="VideoPlay" :disabled="playing" @click="play">播放</el-button>
-          <el-button size="small" :icon="VideoPause" :disabled="!playing" @click="pause">暂停</el-button>
+          <el-button size="small" :icon="VideoPlay" :disabled="playing" @click="play">
+            播放
+          </el-button>
+          <el-button size="small" :icon="VideoPause" :disabled="!playing" @click="pause">
+            暂停
+          </el-button>
           <el-button size="small" :icon="DArrowRight" @click="stepForward">单步</el-button>
           <el-select v-model="speed" size="small" style="width: 90px; margin-left: 8px">
             <el-option label="0.5x" :value="0.5" />
@@ -121,11 +131,7 @@
 
       <div v-if="checkpoints.length === 0" class="empty">暂无检查点</div>
       <div v-else class="ckpt-list">
-        <div
-          v-for="c in checkpoints"
-          :key="c.id"
-          class="ckpt-card"
-        >
+        <div v-for="c in checkpoints" :key="c.id" class="ckpt-card">
           <div class="ckpt-head">
             <span class="ckpt-id mono">{{ c.id.slice(0, 12) }}</span>
             <span class="ckpt-kind" :class="`k-${c.kind.toLowerCase()}`">{{ c.kind }}</span>
@@ -136,7 +142,9 @@
           <div class="ckpt-body">
             <div class="ckpt-meta">
               已完成 {{ c.completedNodes.length }} 节点：
-              <span v-for="nid in c.completedNodes" :key="nid" class="ckpt-node-tag">{{ nid.slice(0, 8) }}</span>
+              <span v-for="nid in c.completedNodes" :key="nid" class="ckpt-node-tag">
+                {{ nid.slice(0, 8) }}
+              </span>
             </div>
             <div v-if="c.note" class="ckpt-note">备注：{{ c.note }}</div>
           </div>
@@ -162,7 +170,9 @@
         >
           <div class="iv-head">
             <span class="iv-node">{{ iv.nodeName }}</span>
-            <span class="iv-status" :class="`iv-st-${iv.status.toLowerCase()}`">{{ iv.status }}</span>
+            <span class="iv-status" :class="`iv-st-${iv.status.toLowerCase()}`">
+              {{ iv.status }}
+            </span>
             <span class="iv-time">{{ iv.createdAt }}</span>
           </div>
           <div class="iv-reason">原因：{{ iv.reason }}</div>
@@ -170,10 +180,24 @@
             <pre class="json">{{ JSON.stringify(iv.context, null, 2) }}</pre>
           </div>
           <div v-if="iv.status === 'PENDING'" class="iv-form">
-            <el-input v-model="ivForm.approver" placeholder="审批人" size="small" style="width: 120px" />
-            <el-input v-model="ivForm.comment" placeholder="审批意见" size="small" style="width: 200px" />
-            <el-button size="small" type="success" @click="onIntervene(iv.id, 'APPROVED')">批准</el-button>
-            <el-button size="small" type="danger" @click="onIntervene(iv.id, 'REJECTED')">驳回</el-button>
+            <el-input
+              v-model="ivForm.approver"
+              placeholder="审批人"
+              size="small"
+              style="width: 120px"
+            />
+            <el-input
+              v-model="ivForm.comment"
+              placeholder="审批意见"
+              size="small"
+              style="width: 200px"
+            />
+            <el-button size="small" type="success" @click="onIntervene(iv.id, 'APPROVED')">
+              批准
+            </el-button>
+            <el-button size="small" type="danger" @click="onIntervene(iv.id, 'REJECTED')">
+              驳回
+            </el-button>
           </div>
           <div v-else class="iv-resolved">
             <span>审批人：{{ iv.approver || '--' }}</span>
@@ -188,13 +212,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import {
-  VideoPlay,
-  VideoPause,
-  DArrowRight,
-  Refresh,
-  Plus
-} from '@element-plus/icons-vue'
+import { VideoPlay, VideoPause, DArrowRight, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
   getExecutions,
@@ -225,7 +243,11 @@ const checkpoints = ref<Checkpoint[]>([])
 const subTabs = computed(() => [
   { key: 'exec' as const, label: '执行历史', badge: executions.value.length },
   { key: 'checkpoint' as const, label: '检查点', badge: checkpoints.value.length },
-  { key: 'intervene' as const, label: '人工介入', badge: interventions.value.filter(i => i.status === 'PENDING').length }
+  {
+    key: 'intervene' as const,
+    label: '人工介入',
+    badge: interventions.value.filter((i) => i.status === 'PENDING').length
+  }
 ])
 
 /* ------------------------------ 回放 ------------------------------ */
@@ -364,11 +386,14 @@ async function onIntervene(interventionId: string, decision: 'APPROVED' | 'REJEC
 
 /* ------------------------------ 生命周期 ------------------------------ */
 
-watch(() => props.dagId, () => {
-  loadExecutions()
-  loadCheckpoints()
-  loadInterventions()
-})
+watch(
+  () => props.dagId,
+  () => {
+    loadExecutions()
+    loadCheckpoints()
+    loadInterventions()
+  }
+)
 
 watch(subTab, (v) => {
   if (v === 'exec' && executions.value.length === 0) loadExecutions()
@@ -440,7 +465,7 @@ onMounted(() => {
 }
 
 .mono {
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 11.5px;
 }
 
@@ -457,21 +482,48 @@ onMounted(() => {
   padding: 1px 6px;
   border-radius: 8px;
 }
-.tg-run { background: var(--c-green-50); color: var(--green); }
-.tg-resume { background: var(--c-amber-50); color: var(--amber); }
-.tg-replay { background: var(--c-indigo-50); color: var(--c-violet); }
+.tg-run {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.tg-resume {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.tg-replay {
+  background: var(--c-indigo-50);
+  color: var(--c-violet);
+}
 .status-tag {
   font-size: 10px;
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 8px;
 }
-.st-success { background: var(--c-green-50); color: var(--green); }
-.st-failed { background: var(--c-red-50); color: var(--red); }
-.st-running { background: var(--c-amber-50); color: var(--amber); }
-.st-stopped { background: var(--c-surface-alt); color: var(--muted); }
-.st-paused { background: var(--c-indigo-50); color: var(--c-violet); }
-.st-draft { background: var(--c-surface-alt); color: var(--muted); }
+.st-success {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.st-failed {
+  background: var(--c-red-50);
+  color: var(--red);
+}
+.st-running {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.st-stopped {
+  background: var(--c-surface-alt);
+  color: var(--muted);
+}
+.st-paused {
+  background: var(--c-indigo-50);
+  color: var(--c-violet);
+}
+.st-draft {
+  background: var(--c-surface-alt);
+  color: var(--muted);
+}
 
 /* 回放轨迹 */
 .replay-trace {
@@ -515,7 +567,7 @@ onMounted(() => {
 .progress-text {
   font-size: 11px;
   color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
 }
 
 .event-timeline {
@@ -543,7 +595,7 @@ onMounted(() => {
 }
 .ev-seq {
   color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   width: 28px;
 }
 .ev-kind {
@@ -566,17 +618,38 @@ onMounted(() => {
 .ev-time {
   margin-left: auto;
   color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 10.5px;
 }
 
-.event.ev-node_start .ev-kind { background: var(--c-amber-50); color: var(--amber); }
-.event.ev-node_success .ev-kind { background: var(--c-green-50); color: var(--green); }
-.event.ev-node_failed .ev-kind { background: var(--c-red-50); color: var(--red); }
-.event.ev-node_skip .ev-kind { background: var(--c-surface-alt); color: var(--muted); }
-.event.ev-checkpoint .ev-kind { background: var(--c-indigo-50); color: var(--c-violet); }
-.event.ev-intervene .ev-kind { background: var(--c-red-50); color: var(--red); }
-.event.ev-tool_call .ev-kind { background: var(--primary-soft); color: var(--primary); }
+.event.ev-node_start .ev-kind {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.event.ev-node_success .ev-kind {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.event.ev-node_failed .ev-kind {
+  background: var(--c-red-50);
+  color: var(--red);
+}
+.event.ev-node_skip .ev-kind {
+  background: var(--c-surface-alt);
+  color: var(--muted);
+}
+.event.ev-checkpoint .ev-kind {
+  background: var(--c-indigo-50);
+  color: var(--c-violet);
+}
+.event.ev-intervene .ev-kind {
+  background: var(--c-red-50);
+  color: var(--red);
+}
+.event.ev-tool_call .ev-kind {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
 
 /* 检查点 */
 .ckpt-list {
@@ -608,9 +681,18 @@ onMounted(() => {
   background: var(--c-surface-alt);
   color: var(--muted);
 }
-.ckpt-kind.k-auto { background: var(--c-green-50); color: var(--green); }
-.ckpt-kind.k-manual { background: var(--c-amber-50); color: var(--amber); }
-.ckpt-kind.k-intervention { background: var(--c-red-50); color: var(--red); }
+.ckpt-kind.k-auto {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.ckpt-kind.k-manual {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.ckpt-kind.k-intervention {
+  background: var(--c-red-50);
+  color: var(--red);
+}
 .ckpt-time {
   font-size: 11px;
   color: var(--muted);
@@ -629,7 +711,7 @@ onMounted(() => {
   background: var(--c-surface-hover);
   padding: 1px 5px;
   border-radius: 6px;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
 }
 .ckpt-note {
   margin-top: 6px;
@@ -649,10 +731,18 @@ onMounted(() => {
   background: #fff;
   padding: 10px 12px;
 }
-.iv-card.iv-st-pending { border-left: 3px solid var(--c-violet); }
-.iv-card.iv-st-approved { border-left: 3px solid var(--green); }
-.iv-card.iv-st-rejected { border-left: 3px solid var(--red); }
-.iv-card.iv-st-timeout { border-left: 3px solid var(--amber); }
+.iv-card.iv-st-pending {
+  border-left: 3px solid var(--c-violet);
+}
+.iv-card.iv-st-approved {
+  border-left: 3px solid var(--green);
+}
+.iv-card.iv-st-rejected {
+  border-left: 3px solid var(--red);
+}
+.iv-card.iv-st-timeout {
+  border-left: 3px solid var(--amber);
+}
 .iv-head {
   display: flex;
   align-items: center;
@@ -669,10 +759,22 @@ onMounted(() => {
   padding: 1px 6px;
   border-radius: 8px;
 }
-.iv-status.iv-st-pending { background: var(--c-indigo-50); color: var(--c-violet); }
-.iv-status.iv-st-approved { background: var(--c-green-50); color: var(--green); }
-.iv-status.iv-st-rejected { background: var(--c-red-50); color: var(--red); }
-.iv-status.iv-st-timeout { background: var(--c-amber-50); color: var(--amber); }
+.iv-status.iv-st-pending {
+  background: var(--c-indigo-50);
+  color: var(--c-violet);
+}
+.iv-status.iv-st-approved {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.iv-status.iv-st-rejected {
+  background: var(--c-red-50);
+  color: var(--red);
+}
+.iv-status.iv-st-timeout {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
 .iv-time {
   margin-left: auto;
   font-size: 11px;
@@ -690,7 +792,7 @@ onMounted(() => {
   background: var(--c-surface-hover);
   border-radius: 6px;
   padding: 8px;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 11px;
   color: var(--c-slate-700);
   white-space: pre-wrap;

@@ -48,14 +48,7 @@ export interface StructuredCondition {
 /* ------------------------------------------------------------------ */
 
 /** 时间过滤预设 */
-export type TimePreset =
-  | 'today'
-  | 'yesterday'
-  | 'last7d'
-  | 'last30d'
-  | 'last90d'
-  | 'custom'
-  | ''
+export type TimePreset = 'today' | 'yesterday' | 'last7d' | 'last30d' | 'last90d' | 'custom' | ''
 
 /** 时间范围过滤 */
 export interface TimeRangeFilter {

@@ -24,23 +24,11 @@ const BASE_ML = '/ml'
 /* ================================================================== */
 
 /** 训练作业状态 */
-export type TrainJobStatus =
-  | 'PENDING'
-  | 'RUNNING'
-  | 'SUCCEEDED'
-  | 'FAILED'
-  | 'KILLED'
-  | 'SCHEDULED'
+export type TrainJobStatus = 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'FAILED' | 'KILLED' | 'SCHEDULED'
 
 /** 训练算法 */
 export type TrainAlgorithm =
-  | 'xgboost'
-  | 'lightgbm'
-  | 'tensorflow'
-  | 'pytorch'
-  | 'sklearn'
-  | 'sparkml'
-  | 'huggingface'
+  'xgboost' | 'lightgbm' | 'tensorflow' | 'pytorch' | 'sklearn' | 'sparkml' | 'huggingface'
 
 /** 训练作业 */
 export interface TrainJob {

@@ -2,27 +2,20 @@
   <div class="sql-workbench">
     <h1>SQL 工作台</h1>
     <div class="sub">
-      跨源归并查询工作台，支持跨 Trino / Doris / Hive 数据源的 JOIN / UNION 查询，并行执行 + 内存归并。
+      跨源归并查询工作台，支持跨 Trino / Doris / Hive 数据源的 JOIN / UNION 查询，并行执行 +
+      内存归并。
     </div>
 
     <!-- 上半区：SQL 编辑器 + 控制栏 -->
     <el-card shadow="never" class="editor-card">
       <div class="toolbar">
-        <el-select
-          v-model="dialect"
-          placeholder="SQL 方言"
-          style="width: 130px"
-        >
+        <el-select v-model="dialect" placeholder="SQL 方言" style="width: 130px">
           <el-option label="ANSI" value="ANSI" />
           <el-option label="Hive" value="HIVE" />
           <el-option label="Doris" value="DORIS" />
           <el-option label="Trino" value="TRINO" />
         </el-select>
-        <el-input
-          v-model="tenantId"
-          placeholder="租户 ID（可选）"
-          style="width: 180px"
-        />
+        <el-input v-model="tenantId" placeholder="租户 ID（可选）" style="width: 180px" />
         <el-input-number
           v-model="timeoutSeconds"
           :min="5"
@@ -52,11 +45,7 @@
       <!-- SQL 编辑器（textarea + 行号） -->
       <div class="sql-editor">
         <div class="line-numbers">
-          <div
-            v-for="n in lineCount"
-            :key="n"
-            class="line-number"
-          >{{ n }}</div>
+          <div v-for="n in lineCount" :key="n" class="line-number">{{ n }}</div>
         </div>
         <textarea
           v-model="sql"
@@ -72,7 +61,10 @@
         <el-tag size="small" type="info" effect="plain">提示</el-tag>
         <span class="hint-text">
           跨源查询时表名需带 catalog 前缀（如
-          <code>hive.users</code>、<code>doris.orders</code>），系统自动识别源并并行查询。
+          <code>hive.users</code>
+          、
+          <code>doris.orders</code>
+          ），系统自动识别源并并行查询。
         </span>
       </div>
     </el-card>
@@ -86,22 +78,36 @@
             <el-tag :type="statusTagType(result.status)" effect="light">
               {{ result.status }}
             </el-tag>
-            <el-tag v-if="result.crossSource" type="warning" effect="light">
-              跨源查询
-            </el-tag>
-            <el-tag v-else type="success" effect="light">
-              单源查询
-            </el-tag>
-            <span class="meta">行数: <b>{{ result.rowCount }}</b></span>
-            <span class="meta">耗时: <b>{{ result.durationMs }}ms</b></span>
-            <span class="meta">来源: <b>{{ result.source }}</b></span>
-            <span class="meta">查询ID: <b>{{ result.queryId }}</b></span>
+            <el-tag v-if="result.crossSource" type="warning" effect="light">跨源查询</el-tag>
+            <el-tag v-else type="success" effect="light">单源查询</el-tag>
+            <span class="meta">
+              行数:
+              <b>{{ result.rowCount }}</b>
+            </span>
+            <span class="meta">
+              耗时:
+              <b>{{ result.durationMs }}ms</b>
+            </span>
+            <span class="meta">
+              来源:
+              <b>{{ result.source }}</b>
+            </span>
+            <span class="meta">
+              查询ID:
+              <b>{{ result.queryId }}</b>
+            </span>
           </div>
 
           <div v-if="result?.error" class="error-box">
             <el-alert :title="result.error" type="error" :closable="false" show-icon>
               <template #default>
-                <a href="javascript:void(0)" @click="handleExecute" style="color: var(--el-color-primary)">重试</a>
+                <a
+                  href="javascript:void(0)"
+                  @click="handleExecute"
+                  style="color: var(--el-color-primary)"
+                >
+                  重试
+                </a>
               </template>
             </el-alert>
           </div>
@@ -126,14 +132,8 @@
               </template>
             </el-table-column>
           </el-table>
-          <el-empty
-            v-else-if="result && !result.error"
-            description="查询结果为空"
-          />
-          <el-empty
-            v-else
-            description="执行查询后展示结果"
-          />
+          <el-empty v-else-if="result && !result.error" description="查询结果为空" />
+          <el-empty v-else description="执行查询后展示结果" />
         </el-tab-pane>
 
         <!-- 执行计划 -->
@@ -146,17 +146,19 @@
               <el-tag type="info" effect="plain">
                 {{ explainResult.strategy }}
               </el-tag>
-              <span class="meta">语句类型: <b>{{ explainResult.statementType || '-' }}</b></span>
-              <span class="meta">解析耗时: <b>{{ explainResult.durationMs }}ms</b></span>
+              <span class="meta">
+                语句类型:
+                <b>{{ explainResult.statementType || '-' }}</b>
+              </span>
+              <span class="meta">
+                解析耗时:
+                <b>{{ explainResult.durationMs }}ms</b>
+              </span>
             </div>
 
             <el-collapse v-model="explainCollapse">
               <el-collapse-item title="涉及的表与源映射" name="tables">
-                <el-table
-                  :data="tableSourceRows"
-                  border
-                  style="width: 100%"
-                >
+                <el-table :data="tableSourceRows" border style="width: 100%">
                   <el-table-column prop="table" label="表名" min-width="200" />
                   <el-table-column prop="source" label="数据源" width="160">
                     <template #default="{ row }">
@@ -184,11 +186,7 @@
 
               <el-collapse-item title="跨源 JOIN 可视化" name="viz">
                 <div class="join-viz">
-                  <div
-                    v-for="src in explainResult.sources || []"
-                    :key="src"
-                    class="source-node"
-                  >
+                  <div v-for="src in explainResult.sources || []" :key="src" class="source-node">
                     <el-card shadow="hover" class="source-card">
                       <div class="source-header">
                         <el-icon><Connection /></el-icon>
@@ -206,17 +204,11 @@
                       </div>
                     </el-card>
                   </div>
-                  <div
-                    v-if="(explainResult.sources || []).length > 1"
-                    class="merge-arrow"
-                  >
+                  <div v-if="(explainResult.sources || []).length > 1" class="merge-arrow">
                     <el-icon><Right /></el-icon>
                     <span>内存归并</span>
                   </div>
-                  <div
-                    v-if="(explainResult.sources || []).length > 1"
-                    class="merge-result"
-                  >
+                  <div v-if="(explainResult.sources || []).length > 1" class="merge-result">
                     <el-card shadow="never" class="result-node">
                       <el-icon><Histogram /></el-icon>
                       <span>merged</span>

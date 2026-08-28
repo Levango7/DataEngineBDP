@@ -44,7 +44,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ summaryError.message }}，<a href="javascript:void(0)" @click="loadSummary">重试</a>
+            {{ summaryError.message }}，
+            <a href="javascript:void(0)" @click="loadSummary">重试</a>
           </div>
         </div>
       </template>
@@ -145,12 +146,17 @@
             placement="top"
           >
             <div class="event-item">
-              <el-tag :type="ev.type === 'scale_up' ? 'success' : 'warning'" effect="light" size="small">
+              <el-tag
+                :type="ev.type === 'scale_up' ? 'success' : 'warning'"
+                effect="light"
+                size="small"
+              >
                 {{ eventTypeLabel(ev.type) }}
               </el-tag>
               <span class="event-trigger">触发：{{ ev.trigger }}</span>
               <span class="event-replicas">
-                副本 {{ ev.fromReplicas }} → <strong>{{ ev.toReplicas }}</strong>
+                副本 {{ ev.fromReplicas }} →
+                <strong>{{ ev.toReplicas }}</strong>
               </span>
               <span class="event-duration">耗时 {{ formatDuration(ev.durationMs) }}</span>
             </div>
@@ -227,8 +233,8 @@ import type {
 
 /* ------------------------------ 集群选择 ------------------------------ */
 
-const { data: clusterList, execute: loadClusters } = useApi<CrossEnvClusterInfo[]>(
-  () => infraApi.getClusters()
+const { data: clusterList, execute: loadClusters } = useApi<CrossEnvClusterInfo[]>(() =>
+  infraApi.getClusters()
 )
 
 const clusterOptions = computed(() => clusterList.value ?? [])
@@ -241,9 +247,7 @@ function handleClusterChange(key: string) {
     return
   }
   const [env, clusterId] = key.split('/')
-  const found = clusterOptions.value.find(
-    (c) => c.environment === env && c.clusterId === clusterId
-  )
+  const found = clusterOptions.value.find((c) => c.environment === env && c.clusterId === clusterId)
   selectedCluster.value = found ?? null
 }
 
@@ -429,16 +433,12 @@ async function handleSaveHpa() {
 async function handleDeleteHpa(row: HpaPolicy) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(
-      `确认删除 HPA 策略「${row.name}」？`,
-      '删除确认',
-      {
-        type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
+    await ElMessageBox.confirm(`确认删除 HPA 策略「${row.name}」？`, '删除确认', {
+      type: 'warning',
+      confirmButtonText: '删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger'
+    })
     await infraApi.deleteHpa(
       selectedCluster.value.environment,
       selectedCluster.value.clusterId,

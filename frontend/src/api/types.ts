@@ -374,13 +374,7 @@ export interface JobListQuery extends PageQuery {
 /* ------------------------------------------------------------------ */
 
 /** 配额状态 */
-export type QuotaStatus =
-  | 'SETTING'
-  | 'ACTIVE'
-  | 'UPDATING'
-  | 'DELETING'
-  | 'DELETED'
-  | 'FAILED'
+export type QuotaStatus = 'SETTING' | 'ACTIVE' | 'UPDATING' | 'DELETING' | 'DELETED' | 'FAILED'
 
 /** 配额信息 */
 export interface Quota extends Identifiable {

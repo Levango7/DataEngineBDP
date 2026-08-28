@@ -9,13 +9,20 @@
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
       <div class="toolbar" role="toolbar" aria-label="作业列表操作栏">
-        <el-button type="primary" aria-label="提交作业" @click="openSubmitDialog">+ 提交作业</el-button>
+        <el-button type="primary" aria-label="提交作业" @click="openSubmitDialog">
+          + 提交作业
+        </el-button>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle aria-label="刷新作业列表" @click="loadList" />
       </div>
 
       <!-- 状态筛选 tabs -->
-      <el-tabs v-model="activeTab" role="tablist" aria-label="按作业状态筛选" @tab-change="handleTabChange">
+      <el-tabs
+        v-model="activeTab"
+        role="tablist"
+        aria-label="按作业状态筛选"
+        @tab-change="handleTabChange"
+      >
         <el-tab-pane label="全部" name="all" />
         <el-tab-pane label="运行中" name="running" />
         <el-tab-pane label="已完成" name="success" />
@@ -57,7 +64,14 @@
         <el-table-column prop="createdAt" label="创建时间" width="180" />
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" :aria-label="`查看作业 ${row.name} 日志`" @click="openLogDialog(row)">查看日志</el-button>
+            <el-button
+              link
+              type="primary"
+              :aria-label="`查看作业 ${row.name} 日志`"
+              @click="openLogDialog(row)"
+            >
+              查看日志
+            </el-button>
             <el-button
               v-if="canCancel(row.status)"
               link
@@ -149,7 +163,9 @@
       </el-form>
       <template #footer>
         <el-button aria-label="取消提交" @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" aria-label="提交作业" @click="handleSubmit">提交</el-button>
+        <el-button type="primary" :loading="submitting" aria-label="提交作业" @click="handleSubmit">
+          提交
+        </el-button>
       </template>
     </el-dialog>
 
@@ -214,10 +230,13 @@ const activeTab = ref<string>('all')
 const appStore = useAppStore()
 
 // 工作空间切换时重载列表（修复 #4：切换后残留旧工作空间数据）
-watch(() => appStore.workspace, () => {
-  currentPage.value = 1
-  void loadList()
-})
+watch(
+  () => appStore.workspace,
+  () => {
+    currentPage.value = 1
+    void loadList()
+  }
+)
 
 /** tab 切换 */
 function handleTabChange() {
@@ -346,10 +365,7 @@ const {
   data: logContent,
   loading: logLoading,
   execute: loadLog
-} = useApi<string, [string]>(
-  (id: string) => jobApi.getJobLogs(id),
-  { initialData: '' }
-)
+} = useApi<string, [string]>((id: string) => jobApi.getJobLogs(id), { initialData: '' })
 
 /** 打开日志弹窗 */
 async function openLogDialog(row: Job) {
@@ -380,20 +396,23 @@ const TYPE_LABELS: Record<JobType, string> = {
   stream: '流作业',
   sql: 'SQL',
   python: 'Python',
-  shell: 'Shell',
+  shell: 'Shell'
 }
 
 function typeLabel(type: JobType): string {
   return TYPE_LABELS[type] ?? type
 }
 
-const STATUS_MAP: Record<JobStatus, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const STATUS_MAP: Record<
+  JobStatus,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   running: { label: '运行中', type: 'primary' },
   success: { label: '已完成', type: 'success' },
   failed: { label: '失败', type: 'danger' },
   canceled: { label: '已取消', type: 'info' },
   pending: { label: '等待中', type: 'info' },
-  scheduled: { label: '已调度', type: 'warning' },
+  scheduled: { label: '已调度', type: 'warning' }
 }
 
 function statusLabel(status: JobStatus): string {

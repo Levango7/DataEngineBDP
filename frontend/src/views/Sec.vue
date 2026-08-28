@@ -10,16 +10,27 @@
     <div class="card">
       <div v-if="policiesLoading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <div v-else-if="policiesError" style="padding: 16px; color: var(--red)">
-        {{ policiesError.message }}，<a href="javascript:void(0)" @click="loadPolicies">重试</a>
+        {{ policiesError.message }}，
+        <a href="javascript:void(0)" @click="loadPolicies">重试</a>
       </div>
       <table v-else>
-        <tr><th>字段</th><th>所属资产</th><th>策略</th><th>算法</th><th>状态</th></tr>
+        <tr>
+          <th>字段</th>
+          <th>所属资产</th>
+          <th>策略</th>
+          <th>算法</th>
+          <th>状态</th>
+        </tr>
         <tr v-for="p in policies" :key="p.id">
           <td>{{ p.fieldName }}</td>
           <td>{{ p.assetName }}</td>
           <td>{{ strategyLabel(p.strategy) }}</td>
           <td>{{ p.algorithm }}</td>
-          <td><span class="pill" :class="statusPillClass(p.status)">{{ statusPillText(p.status) }}</span></td>
+          <td>
+            <span class="pill" :class="statusPillClass(p.status)">
+              {{ statusPillText(p.status) }}
+            </span>
+          </td>
         </tr>
         <tr v-if="policies.length === 0">
           <td colspan="5" style="text-align: center; color: var(--muted)">暂无脱敏策略</td>
@@ -30,7 +41,12 @@
     <div class="card">
       <div v-if="approvalsLoading" style="padding: 16px; color: var(--muted)">加载中…</div>
       <table v-else>
-        <tr><th>申请人</th><th>资产</th><th>权限</th><th></th></tr>
+        <tr>
+          <th>申请人</th>
+          <th>资产</th>
+          <th>权限</th>
+          <th></th>
+        </tr>
         <tr v-for="a in approvals" :key="a.id">
           <td>{{ a.applicant }}</td>
           <td>{{ a.asset }}</td>
@@ -47,15 +63,27 @@
     </div>
 
     <Modal :visible="modalVisible" title="新建脱敏策略" @close="modalVisible = false">
-      <label>字段</label><input v-model="form.fieldName" placeholder="如 real_name" />
-      <label>所属资产</label><input v-model="form.assetName" />
+      <label>字段</label>
+      <input v-model="form.fieldName" placeholder="如 real_name" />
+      <label>所属资产</label>
+      <input v-model="form.assetName" />
       <label>策略</label>
-      <select v-model="form.strategy"><option value="mask">掩码</option><option value="hash">哈希</option><option value="authorized_only">仅授权可见</option></select>
+      <select v-model="form.strategy">
+        <option value="mask">掩码</option>
+        <option value="hash">哈希</option>
+        <option value="authorized_only">仅授权可见</option>
+      </select>
       <label>算法</label>
-      <select v-model="form.algorithm"><option value="SM3">SM3(国密)</option><option value="SHA256">SHA256</option><option value="AES">AES</option></select>
+      <select v-model="form.algorithm">
+        <option value="SM3">SM3(国密)</option>
+        <option value="SHA256">SHA256</option>
+        <option value="AES">AES</option>
+      </select>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">{{ submitting ? '提交中…' : '提交' }}</button>
+        <button class="btn" :disabled="submitting" @click="handleSubmit">
+          {{ submitting ? '提交中…' : '提交' }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -67,7 +95,13 @@ import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as secApi from '@/api/sec'
-import type { MaskPolicy, PermissionApproval, MaskStrategy, MaskAlgorithm, StrategyStatus } from '@/api/sec'
+import type {
+  MaskPolicy,
+  PermissionApproval,
+  MaskStrategy,
+  MaskAlgorithm,
+  StrategyStatus
+} from '@/api/sec'
 
 const store = useAppStore()
 const modalVisible = ref(false)

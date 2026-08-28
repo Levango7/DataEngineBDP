@@ -42,11 +42,16 @@
           </div>
           <div class="step-content">{{ step.content }}</div>
           <div v-if="step.observation" class="step-obs">
-            <span class="obs-label">观察：</span>{{ step.observation }}
+            <span class="obs-label">观察：</span>
+            {{ step.observation }}
           </div>
           <div v-if="step.toolCallId" class="step-tool">
             <span class="tool-label">工具调用：</span>
-            <a href="javascript:void(0)" class="tool-link" @click="$emit('jump-tool', step.toolCallId)">
+            <a
+              href="javascript:void(0)"
+              class="tool-link"
+              @click="$emit('jump-tool', step.toolCallId)"
+            >
               {{ step.toolCallId.slice(0, 12) }}
             </a>
           </div>
@@ -75,7 +80,7 @@ const loading = ref(false)
 
 const filtered = computed<ThoughtStep[]>(() => {
   if (!props.nodeId) return steps.value
-  return steps.value.filter(s => s.nodeId === props.nodeId)
+  return steps.value.filter((s) => s.nodeId === props.nodeId)
 })
 
 async function load() {
@@ -174,11 +179,26 @@ onMounted(load)
   color: var(--muted);
 }
 
-.step.k-observe .kind-badge { background: var(--c-green-50); color: var(--green); }
-.step.k-plan .kind-badge { background: var(--c-indigo-50); color: var(--c-violet); }
-.step.k-act .kind-badge { background: var(--c-amber-50); color: var(--amber); }
-.step.k-reflect .kind-badge { background: var(--primary-soft); color: var(--primary); }
-.step.k-decide .kind-badge { background: var(--c-red-50); color: var(--red); }
+.step.k-observe .kind-badge {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.step.k-plan .kind-badge {
+  background: var(--c-indigo-50);
+  color: var(--c-violet);
+}
+.step.k-act .kind-badge {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.step.k-reflect .kind-badge {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+.step.k-decide .kind-badge {
+  background: var(--c-red-50);
+  color: var(--red);
+}
 
 .step-body {
   background: var(--c-surface-hover);
@@ -227,6 +247,6 @@ onMounted(load)
 }
 .tool-link {
   color: var(--primary);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
 }
 </style>

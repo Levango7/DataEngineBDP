@@ -7,7 +7,8 @@
     <div class="section-title">数据源连接器</div>
     <div v-if="connectorsLoading" class="conn-grid" style="color: var(--muted)">加载连接器…</div>
     <div v-else-if="connectorsError" class="conn-grid" style="color: var(--red)">
-      加载失败，<a href="javascript:void(0)" @click="loadConnectors">重试</a>
+      加载失败，
+      <a href="javascript:void(0)" @click="loadConnectors">重试</a>
     </div>
     <div v-else-if="connectors.length === 0" class="conn-grid" style="color: var(--muted)">
       暂无可用连接器
@@ -22,10 +23,16 @@
       >
         <div class="logo">{{ c.logo }}</div>
         {{ c.name }}
-        <span class="pill" :class="connectorPillClass(c.status)" style="display: block; margin-top: 6px">
+        <span
+          class="pill"
+          :class="connectorPillClass(c.status)"
+          style="display: block; margin-top: 6px"
+        >
           {{ connectorPillText(c.status) }}
         </span>
-        <span v-if="c.category" class="category-tag">{{ c.category === 'source' ? '源' : '目标' }}</span>
+        <span v-if="c.category" class="category-tag">
+          {{ c.category === 'source' ? '源' : '目标' }}
+        </span>
       </div>
     </div>
     <div class="toolbar" style="margin-top: 16px">
@@ -36,7 +43,8 @@
     <div class="card">
       <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">加载同步任务…</div>
       <div v-else-if="tasksError" style="padding: 16px; color: var(--red)">
-        {{ tasksError.message }}，<a href="javascript:void(0)" @click="loadTasks">重试</a>
+        {{ tasksError.message }}，
+        <a href="javascript:void(0)" @click="loadTasks">重试</a>
       </div>
       <table v-else>
         <tr>
@@ -52,7 +60,9 @@
           <td>{{ t.sourceToTarget }}</td>
           <td>{{ modeLabel(t.mode) }}</td>
           <td>
-            <span class="pill" :class="statusPillClass(t.status)">{{ statusPillText(t.status) }}</span>
+            <span class="pill" :class="statusPillClass(t.status)">
+              {{ statusPillText(t.status) }}
+            </span>
           </td>
           <td>{{ t.lastRunAt || '--' }}{{ t.lastRunDuration ? ' · ' + t.lastRunDuration : '' }}</td>
           <td>

@@ -16,7 +16,8 @@
         <div class="card" style="grid-column: span 4">
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
-            {{ instancesError.message }}，<a href="javascript:void(0)" @click="reloadInstances">重试</a>
+            {{ instancesError.message }}，
+            <a href="javascript:void(0)" @click="reloadInstances">重试</a>
           </div>
         </div>
       </template>
@@ -59,12 +60,7 @@
           style="width: 100%; margin-bottom: 12px"
           @change="handleInstanceChange"
         >
-          <el-option
-            v-for="i in instances ?? []"
-            :key="i.id"
-            :label="i.name"
-            :value="i.id"
-          />
+          <el-option v-for="i in instances ?? []" :key="i.id" :label="i.name" :value="i.id" />
         </el-select>
         <el-tree
           :data="catalogTree"
@@ -222,12 +218,7 @@ import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
-import type {
-  IotdbInstance,
-  Timeseries,
-  ThroughputPoint,
-  SqlExecuteResponse
-} from '@/api/engine'
+import type { IotdbInstance, Timeseries, ThroughputPoint, SqlExecuteResponse } from '@/api/engine'
 
 /* ------------------------------ 实例列表 ------------------------------ */
 
@@ -243,29 +234,28 @@ const activeTab = ref<'throughput' | 'preview' | 'sql'>('throughput')
 
 /* ------------------------------ 存储组/设备/吞吐 ------------------------------ */
 
-const {
-  data: storageGroups,
-  execute: loadStorageGroups
-} = useApi<string[]>(() => engineApi.getIotdbStorageGroups(selectedInstanceId.value), {
-  immediate: false
-})
+const { data: storageGroups, execute: loadStorageGroups } = useApi<string[]>(
+  () => engineApi.getIotdbStorageGroups(selectedInstanceId.value),
+  {
+    immediate: false
+  }
+)
 
-const {
-  data: devices,
-  execute: loadDevices
-} = useApi<string[]>(() => engineApi.getIotdbDevices(selectedInstanceId.value), {
-  immediate: false
-})
+const { data: devices, execute: loadDevices } = useApi<string[]>(
+  () => engineApi.getIotdbDevices(selectedInstanceId.value),
+  {
+    immediate: false
+  }
+)
 
 const {
   data: throughput,
   loading: throughputLoading,
   error: throughputError,
   execute: loadThroughput
-} = useApi<ThroughputPoint[]>(() =>
-  engineApi.getIotdbWriteThroughput(selectedInstanceId.value),
-  { immediate: false }
-)
+} = useApi<ThroughputPoint[]>(() => engineApi.getIotdbWriteThroughput(selectedInstanceId.value), {
+  immediate: false
+})
 
 /** 实例切换 */
 function handleInstanceChange() {
@@ -402,10 +392,7 @@ async function handleExecuteSql() {
   executing.value = true
   sqlResult.value = null
   try {
-    sqlResult.value = await engineApi.executeIotdbSql(
-      selectedInstanceId.value,
-      sqlText.value
-    )
+    sqlResult.value = await engineApi.executeIotdbSql(selectedInstanceId.value, sqlText.value)
   } catch {
     // 拦截器已提示
   } finally {

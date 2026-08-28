@@ -239,7 +239,10 @@ export function createBusinessLine(data: CreateBusinessLineParams): Promise<Busi
 }
 
 /** 更新业务线 */
-export function updateBusinessLine(id: string, data: UpdateBusinessLineParams): Promise<BusinessLine> {
+export function updateBusinessLine(
+  id: string,
+  data: UpdateBusinessLineParams
+): Promise<BusinessLine> {
   return put<BusinessLine>(`${BASE}/${id}`, data)
 }
 

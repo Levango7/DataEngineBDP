@@ -65,17 +65,13 @@
           <span v-if="form.scope === 'all' && total > 10000">
             全部命中超过 1 万条，导出可能耗时较长，建议缩小检索范围。
           </span>
-          <span v-else>
-            导出文件由平台生成，包含当前检索条件下的结果数据。
-          </span>
+          <span v-else>导出文件由平台生成，包含当前检索条件下的结果数据。</span>
         </div>
       </el-form>
 
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="exporting" @click="handleExport">
-          开始导出
-        </el-button>
+        <el-button type="primary" :loading="exporting" @click="handleExport">开始导出</el-button>
       </template>
     </el-dialog>
   </div>

@@ -9,119 +9,277 @@
 /* ============================================================
  * 基础工具类 - 间距 (padding / margin)
  * ============================================================ */
-.ds-p-0  { padding: var(--ds-spacing-0); }
-.ds-p-1  { padding: var(--ds-spacing-1); }
-.ds-p-2  { padding: var(--ds-spacing-2); }
-.ds-p-3  { padding: var(--ds-spacing-3); }
-.ds-p-4  { padding: var(--ds-spacing-4); }
-.ds-p-6  { padding: var(--ds-spacing-6); }
-.ds-p-8  { padding: var(--ds-spacing-8); }
+.ds-p-0 {
+  padding: var(--ds-spacing-0);
+}
+.ds-p-1 {
+  padding: var(--ds-spacing-1);
+}
+.ds-p-2 {
+  padding: var(--ds-spacing-2);
+}
+.ds-p-3 {
+  padding: var(--ds-spacing-3);
+}
+.ds-p-4 {
+  padding: var(--ds-spacing-4);
+}
+.ds-p-6 {
+  padding: var(--ds-spacing-6);
+}
+.ds-p-8 {
+  padding: var(--ds-spacing-8);
+}
 
-.ds-px-2 { padding-left: var(--ds-spacing-2); padding-right: var(--ds-spacing-2); }
-.ds-px-4 { padding-left: var(--ds-spacing-4); padding-right: var(--ds-spacing-4); }
-.ds-py-2 { padding-top: var(--ds-spacing-2); padding-bottom: var(--ds-spacing-2); }
-.ds-py-4 { padding-top: var(--ds-spacing-4); padding-bottom: var(--ds-spacing-4); }
+.ds-px-2 {
+  padding-left: var(--ds-spacing-2);
+  padding-right: var(--ds-spacing-2);
+}
+.ds-px-4 {
+  padding-left: var(--ds-spacing-4);
+  padding-right: var(--ds-spacing-4);
+}
+.ds-py-2 {
+  padding-top: var(--ds-spacing-2);
+  padding-bottom: var(--ds-spacing-2);
+}
+.ds-py-4 {
+  padding-top: var(--ds-spacing-4);
+  padding-bottom: var(--ds-spacing-4);
+}
 
-.ds-m-0  { margin: var(--ds-spacing-0); }
-.ds-mt-2 { margin-top: var(--ds-spacing-2); }
-.ds-mt-4 { margin-top: var(--ds-spacing-4); }
-.ds-mb-2 { margin-bottom: var(--ds-spacing-2); }
-.ds-mb-4 { margin-bottom: var(--ds-spacing-4); }
+.ds-m-0 {
+  margin: var(--ds-spacing-0);
+}
+.ds-mt-2 {
+  margin-top: var(--ds-spacing-2);
+}
+.ds-mt-4 {
+  margin-top: var(--ds-spacing-4);
+}
+.ds-mb-2 {
+  margin-bottom: var(--ds-spacing-2);
+}
+.ds-mb-4 {
+  margin-bottom: var(--ds-spacing-4);
+}
 
 /* ============================================================
  * 基础工具类 - 文字
  * ============================================================ */
-.ds-text-xs   { font-size: var(--ds-font-size-xs); }
-.ds-text-sm   { font-size: var(--ds-font-size-sm); }
-.ds-text-base { font-size: var(--ds-font-size-base); }
-.ds-text-lg   { font-size: var(--ds-font-size-lg); }
-.ds-text-xl   { font-size: var(--ds-font-size-xl); }
-.ds-text-2xl  { font-size: var(--ds-font-size-2xl); }
-.ds-text-3xl  { font-size: var(--ds-font-size-3xl); }
-.ds-text-4xl  { font-size: var(--ds-font-size-4xl); }
+.ds-text-xs {
+  font-size: var(--ds-font-size-xs);
+}
+.ds-text-sm {
+  font-size: var(--ds-font-size-sm);
+}
+.ds-text-base {
+  font-size: var(--ds-font-size-base);
+}
+.ds-text-lg {
+  font-size: var(--ds-font-size-lg);
+}
+.ds-text-xl {
+  font-size: var(--ds-font-size-xl);
+}
+.ds-text-2xl {
+  font-size: var(--ds-font-size-2xl);
+}
+.ds-text-3xl {
+  font-size: var(--ds-font-size-3xl);
+}
+.ds-text-4xl {
+  font-size: var(--ds-font-size-4xl);
+}
 
-.ds-font-normal   { font-weight: var(--ds-font-weight-normal); }
-.ds-font-medium   { font-weight: var(--ds-font-weight-medium); }
-.ds-font-semibold { font-weight: var(--ds-font-weight-semibold); }
-.ds-font-bold     { font-weight: var(--ds-font-weight-bold); }
+.ds-font-normal {
+  font-weight: var(--ds-font-weight-normal);
+}
+.ds-font-medium {
+  font-weight: var(--ds-font-weight-medium);
+}
+.ds-font-semibold {
+  font-weight: var(--ds-font-weight-semibold);
+}
+.ds-font-bold {
+  font-weight: var(--ds-font-weight-bold);
+}
 
-.ds-leading-tight   { line-height: var(--ds-line-height-tight); }
-.ds-leading-normal  { line-height: var(--ds-line-height-normal); }
-.ds-leading-relaxed { line-height: var(--ds-line-height-relaxed); }
+.ds-leading-tight {
+  line-height: var(--ds-line-height-tight);
+}
+.ds-leading-normal {
+  line-height: var(--ds-line-height-normal);
+}
+.ds-leading-relaxed {
+  line-height: var(--ds-line-height-relaxed);
+}
 
-.ds-font-sans { font-family: var(--ds-font-family-sans); }
-.ds-font-mono { font-family: var(--ds-font-family-mono); }
+.ds-font-sans {
+  font-family: var(--ds-font-family-sans);
+}
+.ds-font-mono {
+  font-family: var(--ds-font-family-mono);
+}
 
 /* 文字颜色 */
-.ds-text-primary   { color: var(--ds-text-primary); }
-.ds-text-secondary { color: var(--ds-text-secondary); }
-.ds-text-tertiary  { color: var(--ds-text-tertiary); }
-.ds-text-inverse   { color: var(--ds-text-inverse); }
+.ds-text-primary {
+  color: var(--ds-text-primary);
+}
+.ds-text-secondary {
+  color: var(--ds-text-secondary);
+}
+.ds-text-tertiary {
+  color: var(--ds-text-tertiary);
+}
+.ds-text-inverse {
+  color: var(--ds-text-inverse);
+}
 
 /* ============================================================
  * 基础工具类 - 背景
  * ============================================================ */
-.ds-bg-base    { background-color: var(--ds-bg-base); }
-.ds-bg-surface { background-color: var(--ds-bg-surface); }
-.ds-bg-subtle  { background-color: var(--ds-bg-subtle); }
-.ds-bg-muted   { background-color: var(--ds-bg-muted); }
+.ds-bg-base {
+  background-color: var(--ds-bg-base);
+}
+.ds-bg-surface {
+  background-color: var(--ds-bg-surface);
+}
+.ds-bg-subtle {
+  background-color: var(--ds-bg-subtle);
+}
+.ds-bg-muted {
+  background-color: var(--ds-bg-muted);
+}
 
 /* ============================================================
  * 基础工具类 - 边框
  * ============================================================ */
-.ds-border-default { border: 1px solid var(--ds-border-default); }
-.ds-border-subtle  { border: 1px solid var(--ds-border-subtle); }
-.ds-border-strong  { border: 1px solid var(--ds-border-strong); }
-.ds-border-focus   { border: 1px solid var(--ds-border-focus); }
+.ds-border-default {
+  border: 1px solid var(--ds-border-default);
+}
+.ds-border-subtle {
+  border: 1px solid var(--ds-border-subtle);
+}
+.ds-border-strong {
+  border: 1px solid var(--ds-border-strong);
+}
+.ds-border-focus {
+  border: 1px solid var(--ds-border-focus);
+}
 
 /* ============================================================
  * 基础工具类 - 圆角
  * ============================================================ */
-.ds-rounded-sm   { border-radius: var(--ds-radius-sm); }
-.ds-rounded-md   { border-radius: var(--ds-radius-md); }
-.ds-rounded-lg   { border-radius: var(--ds-radius-lg); }
-.ds-rounded-xl   { border-radius: var(--ds-radius-xl); }
-.ds-rounded-2xl  { border-radius: var(--ds-radius-2xl); }
-.ds-rounded-full { border-radius: var(--ds-radius-full); }
+.ds-rounded-sm {
+  border-radius: var(--ds-radius-sm);
+}
+.ds-rounded-md {
+  border-radius: var(--ds-radius-md);
+}
+.ds-rounded-lg {
+  border-radius: var(--ds-radius-lg);
+}
+.ds-rounded-xl {
+  border-radius: var(--ds-radius-xl);
+}
+.ds-rounded-2xl {
+  border-radius: var(--ds-radius-2xl);
+}
+.ds-rounded-full {
+  border-radius: var(--ds-radius-full);
+}
 
 /* ============================================================
  * 基础工具类 - 阴影
  * ============================================================ */
-.ds-shadow-sm { box-shadow: var(--ds-shadow-sm); }
-.ds-shadow-md { box-shadow: var(--ds-shadow-md); }
-.ds-shadow-lg { box-shadow: var(--ds-shadow-lg); }
-.ds-shadow-xl { box-shadow: var(--ds-shadow-xl); }
+.ds-shadow-sm {
+  box-shadow: var(--ds-shadow-sm);
+}
+.ds-shadow-md {
+  box-shadow: var(--ds-shadow-md);
+}
+.ds-shadow-lg {
+  box-shadow: var(--ds-shadow-lg);
+}
+.ds-shadow-xl {
+  box-shadow: var(--ds-shadow-xl);
+}
 
 /* ============================================================
  * 基础工具类 - 过渡
  * ============================================================ */
-.ds-transition-fast   { transition: all var(--ds-transition-fast); }
-.ds-transition-normal { transition: all var(--ds-transition-normal); }
-.ds-transition-slow   { transition: all var(--ds-transition-slow); }
+.ds-transition-fast {
+  transition: all var(--ds-transition-fast);
+}
+.ds-transition-normal {
+  transition: all var(--ds-transition-normal);
+}
+.ds-transition-slow {
+  transition: all var(--ds-transition-slow);
+}
 
 /* ============================================================
  * 基础工具类 - 显示 / 弹性布局
  * ============================================================ */
-.ds-block    { display: block; }
-.ds-inline   { display: inline; }
-.ds-flex     { display: flex; }
-.ds-inline-flex { display: inline-flex; }
-.ds-grid     { display: grid; }
-.ds-hidden   { display: none; }
+.ds-block {
+  display: block;
+}
+.ds-inline {
+  display: inline;
+}
+.ds-flex {
+  display: flex;
+}
+.ds-inline-flex {
+  display: inline-flex;
+}
+.ds-grid {
+  display: grid;
+}
+.ds-hidden {
+  display: none;
+}
 
-.ds-items-center    { align-items: center; }
-.ds-items-start     { align-items: flex-start; }
-.ds-items-end       { align-items: flex-end; }
-.ds-justify-center  { justify-content: center; }
-.ds-justify-between { justify-content: space-between; }
-.ds-justify-start   { justify-content: flex-start; }
-.ds-justify-end     { justify-content: flex-end; }
-.ds-flex-1          { flex: 1; }
-.ds-flex-col        { flex-direction: column; }
-.ds-flex-row        { flex-direction: row; }
-.ds-gap-2 { gap: var(--ds-spacing-2); }
-.ds-gap-3 { gap: var(--ds-spacing-3); }
-.ds-gap-4 { gap: var(--ds-spacing-4); }
+.ds-items-center {
+  align-items: center;
+}
+.ds-items-start {
+  align-items: flex-start;
+}
+.ds-items-end {
+  align-items: flex-end;
+}
+.ds-justify-center {
+  justify-content: center;
+}
+.ds-justify-between {
+  justify-content: space-between;
+}
+.ds-justify-start {
+  justify-content: flex-start;
+}
+.ds-justify-end {
+  justify-content: flex-end;
+}
+.ds-flex-1 {
+  flex: 1;
+}
+.ds-flex-col {
+  flex-direction: column;
+}
+.ds-flex-row {
+  flex-direction: row;
+}
+.ds-gap-2 {
+  gap: var(--ds-spacing-2);
+}
+.ds-gap-3 {
+  gap: var(--ds-spacing-3);
+}
+.ds-gap-4 {
+  gap: var(--ds-spacing-4);
+}
 
 /* ============================================================
  * 基础工具类 - 文字溢出
@@ -131,5 +289,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ds-break-words { overflow-wrap: break-word; }
-.ds-break-all   { word-break: break-all; }
+.ds-break-words {
+  overflow-wrap: break-word;
+}
+.ds-break-all {
+  word-break: break-all;
+}

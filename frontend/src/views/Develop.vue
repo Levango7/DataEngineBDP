@@ -2,11 +2,14 @@
   <div>
     <h1>数据开发</h1>
     <div class="sub">
-      Web IDE 编写 SQL / 配置 DAG，提交即由 DolphinScheduler 调度运行；底层 Pod 由 Spark/Flink Operator 托管，客户不可见。
+      Web IDE 编写 SQL / 配置 DAG，提交即由 DolphinScheduler 调度运行；底层 Pod 由 Spark/Flink
+      Operator 托管，客户不可见。
     </div>
     <div class="toolbar">
       <span class="chip on" @click="store.showToast('已切换：开发环境')">开发环境</span>
-      <span class="chip" @click="store.showToast('已切换：生产环境（独立配额与数据隔离）')">生产环境</span>
+      <span class="chip" @click="store.showToast('已切换：生产环境（独立配额与数据隔离）')">
+        生产环境
+      </span>
       <div class="spacer"></div>
       <span class="pill b">标准模式 · 双环境隔离</span>
     </div>
@@ -15,7 +18,8 @@
       <div class="tree">
         <div v-if="fileTreeLoading" class="tree-loading">加载文件树…</div>
         <div v-else-if="fileTreeError" class="tree-error">
-          加载失败，<a href="javascript:void(0)" @click="loadFileTree">重试</a>
+          加载失败，
+          <a href="javascript:void(0)" @click="loadFileTree">重试</a>
         </div>
         <div v-else-if="fileTree.length === 0" class="tree-empty">工作空间为空</div>
         <template v-else>
@@ -81,9 +85,21 @@
         </select>
         <label>CPU / 内存</label>
         <div class="row">
-          <input type="number" v-model.number="runParams.cpu" min="1" max="64" style="width: 60px" />
+          <input
+            type="number"
+            v-model.number="runParams.cpu"
+            min="1"
+            max="64"
+            style="width: 60px"
+          />
           <span>核</span>
-          <input type="number" v-model.number="runParams.memory" min="1" max="256" style="width: 60px" />
+          <input
+            type="number"
+            v-model.number="runParams.memory"
+            min="1"
+            max="256"
+            style="width: 60px"
+          />
           <span>GB</span>
         </div>
         <label>并发度</label>
@@ -100,7 +116,12 @@
           placeholder="如 0 0 * * 1（每周一 0 点）"
           style="margin-top: 4px"
         />
-        <button class="btn" style="width: 100%; margin-top: 12px" :disabled="runLoading || !canRun" @click="handleRunJob">
+        <button
+          class="btn"
+          style="width: 100%; margin-top: 12px"
+          :disabled="runLoading || !canRun"
+          @click="handleRunJob"
+        >
           <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg>
           {{ runLoading ? '运行中…' : '运行' }}
         </button>
@@ -135,12 +156,27 @@
     </div>
 
     <!-- 调度配置确认弹窗 -->
-    <Modal :visible="scheduleConfirmVisible" title="确认提交调度" @close="scheduleConfirmVisible = false">
+    <Modal
+      :visible="scheduleConfirmVisible"
+      title="确认提交调度"
+      @close="scheduleConfirmVisible = false"
+    >
       <div style="line-height: 1.8">
-        <p><strong>文件：</strong>{{ currentFilePath || '（未保存的代码）' }}</p>
-        <p><strong>引擎：</strong>{{ runParams.engine }}</p>
-        <p><strong>Cron 表达式：</strong>{{ effectiveSchedule || '（手动触发）' }}</p>
-        <p style="color: var(--muted); font-size: 12px">提交后将按 cron 定时触发，可在调度运维页管理。</p>
+        <p>
+          <strong>文件：</strong>
+          {{ currentFilePath || '（未保存的代码）' }}
+        </p>
+        <p>
+          <strong>引擎：</strong>
+          {{ runParams.engine }}
+        </p>
+        <p>
+          <strong>Cron 表达式：</strong>
+          {{ effectiveSchedule || '（手动触发）' }}
+        </p>
+        <p style="color: var(--muted); font-size: 12px">
+          提交后将按 cron 定时触发，可在调度运维页管理。
+        </p>
       </div>
       <template #footer>
         <button class="btn ghost" @click="scheduleConfirmVisible = false">取消</button>

@@ -77,7 +77,7 @@ const expanded = ref<Set<string>>(new Set())
 
 const filtered = computed<ToolCall[]>(() => {
   if (!props.nodeId) return calls.value
-  return calls.value.filter(c => c.nodeId === props.nodeId)
+  return calls.value.filter((c) => c.nodeId === props.nodeId)
 })
 
 async function load() {
@@ -147,10 +147,18 @@ onMounted(load)
   background: #fff;
   overflow: hidden;
 }
-.call-card.st-failed { border-left: 3px solid var(--red); }
-.call-card.st-success { border-left: 3px solid var(--green); }
-.call-card.st-timeout { border-left: 3px solid var(--amber); }
-.call-card.st-skipped { border-left: 3px solid var(--c-slate-300); }
+.call-card.st-failed {
+  border-left: 3px solid var(--red);
+}
+.call-card.st-success {
+  border-left: 3px solid var(--green);
+}
+.call-card.st-timeout {
+  border-left: 3px solid var(--amber);
+}
+.call-card.st-skipped {
+  border-left: 3px solid var(--c-slate-300);
+}
 
 .call-head {
   display: flex;
@@ -166,12 +174,12 @@ onMounted(load)
 .call-seq {
   font-size: 11px;
   color: var(--muted);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
 }
 .call-tool {
   font-weight: 600;
   color: var(--ink);
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
 }
 .call-node {
   font-size: 11px;
@@ -186,10 +194,22 @@ onMounted(load)
   padding: 2px 7px;
   border-radius: 10px;
 }
-.call-status.st-success { background: var(--c-green-50); color: var(--green); }
-.call-status.st-failed { background: var(--c-red-50); color: var(--red); }
-.call-status.st-timeout { background: var(--c-amber-50); color: var(--amber); }
-.call-status.st-skipped { background: var(--c-surface-alt); color: var(--muted); }
+.call-status.st-success {
+  background: var(--c-green-50);
+  color: var(--green);
+}
+.call-status.st-failed {
+  background: var(--c-red-50);
+  color: var(--red);
+}
+.call-status.st-timeout {
+  background: var(--c-amber-50);
+  color: var(--amber);
+}
+.call-status.st-skipped {
+  background: var(--c-surface-alt);
+  color: var(--muted);
+}
 .call-dur {
   font-size: 11px;
   color: var(--muted);
@@ -224,7 +244,7 @@ onMounted(load)
   background: #fff;
   border-radius: 6px;
   padding: 8px 10px;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
   font-size: 11px;
   color: var(--c-slate-700);
   white-space: pre-wrap;

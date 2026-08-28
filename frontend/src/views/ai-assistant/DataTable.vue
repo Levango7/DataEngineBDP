@@ -22,14 +22,7 @@
       </span>
     </div>
 
-    <el-table
-      :data="table.rows"
-      border
-      stripe
-      size="small"
-      :max-height="360"
-      style="width: 100%"
-    >
+    <el-table :data="table.rows" border stripe size="small" :max-height="360" style="width: 100%">
       <el-table-column
         v-for="col in table.columns"
         :key="col.name"
@@ -124,6 +117,6 @@ void (0 as unknown as ColumnDataType)
 }
 .num-cell {
   font-variant-numeric: tabular-nums;
-  font-family: "SFMono-Regular", Consolas, monospace;
+  font-family: 'SFMono-Regular', Consolas, monospace;
 }
 </style>

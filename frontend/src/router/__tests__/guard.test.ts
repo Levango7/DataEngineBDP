@@ -26,7 +26,10 @@ describe('authGuard 鉴权守卫（纯函数）', () => {
   })
 
   it('未登录访问受保护子路径 → redirect 保留完整路径', () => {
-    const result = authGuard(fakeRoute('/jobs/run-1', '/jobs/run-1'), false) as Record<string, unknown>
+    const result = authGuard(fakeRoute('/jobs/run-1', '/jobs/run-1'), false) as Record<
+      string,
+      unknown
+    >
     expect(result.path).toBe('/login')
     expect((result.query as { redirect: string }).redirect).toBe('/jobs/run-1')
   })

@@ -698,12 +698,15 @@ async function handleHumanEval() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const MODEL_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const MODEL_STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   DRAFT: { label: '草稿', type: 'info' },
   REGISTERED: { label: '已注册', type: 'primary' },
   DEPLOYED: { label: '已部署', type: 'success' },
   ARCHIVED: { label: '已归档', type: 'info' },
-  FAILED: { label: '失败', type: 'danger' },
+  FAILED: { label: '失败', type: 'danger' }
 }
 
 function modelStatusLabel(status: string): string {
@@ -714,11 +717,14 @@ function modelStatusType(status: string): 'primary' | 'success' | 'danger' | 'in
   return MODEL_STATUS_MAP[status]?.type ?? 'info'
 }
 
-const FINETUNE_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const FINETUNE_STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   SUBMITTED: { label: '已提交', type: 'info' },
   RUNNING: { label: '运行中', type: 'primary' },
   SUCCEEDED: { label: '成功', type: 'success' },
-  FAILED: { label: '失败', type: 'danger' },
+  FAILED: { label: '失败', type: 'danger' }
 }
 
 function finetuneStatusLabel(status: string): string {
@@ -736,12 +742,15 @@ function progressStatus(status: string): '' | 'success' | 'exception' | 'warning
   return ''
 }
 
-const SVC_STATUS_MAP: Record<string, { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }> = {
+const SVC_STATUS_MAP: Record<
+  string,
+  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+> = {
   DEPLOYING: { label: '部署中', type: 'warning' },
   RUNNING: { label: '运行中', type: 'success' },
   STOPPED: { label: '已停止', type: 'info' },
   FAILED: { label: '失败', type: 'danger' },
-  SCALING: { label: '扩缩容', type: 'primary' },
+  SCALING: { label: '扩缩容', type: 'primary' }
 }
 
 function svcStatusLabel(status: string): string {

@@ -40,13 +40,17 @@
     <section v-else-if="analyzeError" class="card graph-card">
       <div class="card-title">血缘图谱</div>
       <div class="state-tip error">
-        加载失败：{{ analyzeError.message }}，<a href="javascript:void(0)" @click="handleAnalyze">重试</a>
+        加载失败：{{ analyzeError.message }}，
+        <a href="javascript:void(0)" @click="handleAnalyze">重试</a>
       </div>
     </section>
     <section v-else-if="graph" class="card graph-card">
       <div class="card-title">
         血缘图谱
-        <span class="meta-tag">{{ graph.meta.nodeCount }} 节点 · {{ graph.meta.edgeCount }} 边 · {{ graph.meta.analyzeTimeMs }}ms</span>
+        <span class="meta-tag">
+          {{ graph.meta.nodeCount }} 节点 · {{ graph.meta.edgeCount }} 边 ·
+          {{ graph.meta.analyzeTimeMs }}ms
+        </span>
       </div>
       <div ref="chartRef" class="chart"></div>
     </section>
@@ -63,14 +67,12 @@
     <section v-else-if="graph" class="card relation-list">
       <div class="card-title">血缘关系明细</div>
       <div class="relation-tabs">
-        <button
-          :class="['tab', { active: activeTab === 'table' }]"
-          @click="activeTab = 'table'"
-        >表级 ({{ tableEdges.length }})</button>
-        <button
-          :class="['tab', { active: activeTab === 'column' }]"
-          @click="activeTab = 'column'"
-        >字段级 ({{ columnEdges.length }})</button>
+        <button :class="['tab', { active: activeTab === 'table' }]" @click="activeTab = 'table'">
+          表级 ({{ tableEdges.length }})
+        </button>
+        <button :class="['tab', { active: activeTab === 'column' }]" @click="activeTab = 'column'">
+          字段级 ({{ columnEdges.length }})
+        </button>
       </div>
       <table class="relation-table">
         <thead>
@@ -99,14 +101,16 @@
     <section class="card query-card">
       <div class="card-title">上下游查询 & 影响分析</div>
       <div class="query-row">
-        <input
-          v-model="queryTable"
-          class="table-input"
-          placeholder="输入表全名，例如 dwd.wide"
-        />
-        <button class="btn-secondary" :disabled="querying" @click="handleQuery('upstream')">上游</button>
-        <button class="btn-secondary" :disabled="querying" @click="handleQuery('downstream')">下游</button>
-        <button class="btn-warn" :disabled="querying" @click="handleQuery('impact')">影响分析</button>
+        <input v-model="queryTable" class="table-input" placeholder="输入表全名，例如 dwd.wide" />
+        <button class="btn-secondary" :disabled="querying" @click="handleQuery('upstream')">
+          上游
+        </button>
+        <button class="btn-secondary" :disabled="querying" @click="handleQuery('downstream')">
+          下游
+        </button>
+        <button class="btn-warn" :disabled="querying" @click="handleQuery('impact')">
+          影响分析
+        </button>
       </div>
       <!-- 三态：loading -->
       <div v-if="querying" class="query-result">
@@ -115,7 +119,8 @@
       <!-- 三态：error -->
       <div v-else-if="queryError" class="query-result">
         <div class="state-tip error">
-          查询失败：{{ queryError.message }}，<a href="javascript:void(0)" @click="retryQuery">重试</a>
+          查询失败：{{ queryError.message }}，
+          <a href="javascript:void(0)" @click="retryQuery">重试</a>
         </div>
       </div>
       <!-- 三态：data -->
@@ -124,8 +129,11 @@
           <span class="badge" :class="queryResult.direction.toLowerCase()">
             {{ directionLabel(queryResult.direction) }}
           </span>
-          从 <strong>{{ queryResult.rootTable }}</strong> 出发，命中
-          <strong>{{ queryResult.tables.length }}</strong> 张表，耗时 {{ queryResult.queryTimeMs }}ms
+          从
+          <strong>{{ queryResult.rootTable }}</strong>
+          出发，命中
+          <strong>{{ queryResult.tables.length }}</strong>
+          张表，耗时 {{ queryResult.queryTimeMs }}ms
         </div>
         <div v-if="queryResult.tables.length > 0" class="result-paths">
           <div class="paths-title">路径：</div>
@@ -180,13 +188,15 @@ const {
   }
 })
 
-const tableEdges = computed<LineageGraphLink[]>(() =>
-  graph.value?.links.filter((l) => l.relationType === 'TABLE_LINEAGE') ?? []
+const tableEdges = computed<LineageGraphLink[]>(
+  () => graph.value?.links.filter((l) => l.relationType === 'TABLE_LINEAGE') ?? []
 )
-const columnEdges = computed<LineageGraphLink[]>(() =>
-  graph.value?.links.filter((l) => l.relationType === 'COLUMN_LINEAGE') ?? []
+const columnEdges = computed<LineageGraphLink[]>(
+  () => graph.value?.links.filter((l) => l.relationType === 'COLUMN_LINEAGE') ?? []
 )
-const activeEdges = computed(() => (activeTab.value === 'table' ? tableEdges.value : columnEdges.value))
+const activeEdges = computed(() =>
+  activeTab.value === 'table' ? tableEdges.value : columnEdges.value
+)
 
 // 上下游/影响查询：通过 useApi 包装，自动维护 loading / error / data 三态
 type QueryKind = 'upstream' | 'downstream' | 'impact'

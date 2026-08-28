@@ -196,7 +196,10 @@ export function destroyXinchangCluster(clusterId: string): Promise<ClusterInfo> 
  * @param clusterId 集群 ID
  * @param req 扩缩容请求
  */
-export function scaleXinchangCluster(clusterId: string, req: ClusterScaleRequest): Promise<ClusterInfo> {
+export function scaleXinchangCluster(
+  clusterId: string,
+  req: ClusterScaleRequest
+): Promise<ClusterInfo> {
   return post<ClusterInfo>(`${XINCHANG_BASE}/${clusterId}/scale`, req)
 }
 
@@ -217,7 +220,10 @@ export function getPrivateClusters(provider: ProviderKind): Promise<ClusterInfo[
  * @param provider 供应 Provider
  * @param req 创建请求
  */
-export function createPrivateCluster(provider: ProviderKind, req: ClusterCreateRequest): Promise<SupplyResult> {
+export function createPrivateCluster(
+  provider: ProviderKind,
+  req: ClusterCreateRequest
+): Promise<SupplyResult> {
   return post<SupplyResult>(`${PRIVATE_BASE}/${provider}`, req)
 }
 
@@ -226,7 +232,10 @@ export function createPrivateCluster(provider: ProviderKind, req: ClusterCreateR
  * @param provider 供应 Provider
  * @param clusterId 集群 ID
  */
-export function destroyPrivateCluster(provider: ProviderKind, clusterId: string): Promise<ClusterInfo> {
+export function destroyPrivateCluster(
+  provider: ProviderKind,
+  clusterId: string
+): Promise<ClusterInfo> {
   return del<ClusterInfo>(`${PRIVATE_BASE}/${provider}/${clusterId}`)
 }
 
@@ -247,7 +256,10 @@ export function getCloudClusters(provider: ProviderKind): Promise<ClusterInfo[]>
  * @param provider 供应 Provider
  * @param req 创建请求
  */
-export function createCloudCluster(provider: ProviderKind, req: ClusterCreateRequest): Promise<SupplyResult> {
+export function createCloudCluster(
+  provider: ProviderKind,
+  req: ClusterCreateRequest
+): Promise<SupplyResult> {
   return post<SupplyResult>(`${CLOUD_BASE}/${provider}`, req)
 }
 
@@ -256,7 +268,10 @@ export function createCloudCluster(provider: ProviderKind, req: ClusterCreateReq
  * @param provider 供应 Provider
  * @param clusterId 集群 ID
  */
-export function destroyCloudCluster(provider: ProviderKind, clusterId: string): Promise<ClusterInfo> {
+export function destroyCloudCluster(
+  provider: ProviderKind,
+  clusterId: string
+): Promise<ClusterInfo> {
   return del<ClusterInfo>(`${CLOUD_BASE}/${provider}/${clusterId}`)
 }
 
@@ -335,7 +350,9 @@ export function getCluster(env: ClusterEnv, clusterId: string): Promise<CrossEnv
  * 创建集群（请求体含 environment）
  * @param req 创建请求
  */
-export function createCluster(req: ClusterCreateRequest & { environment: ClusterEnv; provider: ProviderKind }): Promise<SupplyResult> {
+export function createCluster(
+  req: ClusterCreateRequest & { environment: ClusterEnv; provider: ProviderKind }
+): Promise<SupplyResult> {
   return post<SupplyResult>(CLUSTER_BASE, req)
 }
 
@@ -354,7 +371,11 @@ export function destroyCluster(env: ClusterEnv, clusterId: string): Promise<Clus
  * @param clusterId 集群 ID
  * @param req 扩缩容请求
  */
-export function scaleCluster(env: ClusterEnv, clusterId: string, req: ClusterScaleRequest): Promise<ClusterInfo> {
+export function scaleCluster(
+  env: ClusterEnv,
+  clusterId: string,
+  req: ClusterScaleRequest
+): Promise<ClusterInfo> {
   return post<ClusterInfo>(`${CLUSTER_BASE}/${env}/${clusterId}/scale`, req)
 }
 
@@ -372,7 +393,10 @@ export function getClusterNodes(env: ClusterEnv, clusterId: string): Promise<Clu
  * @param env 部署环境
  * @param clusterId 集群 ID
  */
-export function getClusterComponents(env: ClusterEnv, clusterId: string): Promise<ClusterComponent[]> {
+export function getClusterComponents(
+  env: ClusterEnv,
+  clusterId: string
+): Promise<ClusterComponent[]> {
   return get<ClusterComponent[]>(`${CLUSTER_BASE}/${env}/${clusterId}/components`)
 }
 
@@ -482,7 +506,11 @@ export function getNetworkConfig(env: ClusterEnv, clusterId: string): Promise<Ne
  * @param clusterId 集群 ID
  * @param cfg 网络配置
  */
-export function updateNetworkConfig(env: ClusterEnv, clusterId: string, cfg: NetworkConfig): Promise<NetworkConfig> {
+export function updateNetworkConfig(
+  env: ClusterEnv,
+  clusterId: string,
+  cfg: NetworkConfig
+): Promise<NetworkConfig> {
   return put<NetworkConfig>(`${CLUSTER_BASE}/${env}/${clusterId}/network`, cfg)
 }
 
@@ -501,7 +529,11 @@ export function getNetworkPolicies(env: ClusterEnv, clusterId: string): Promise<
  * @param clusterId 集群 ID
  * @param policy 策略
  */
-export function createNetworkPolicy(env: ClusterEnv, clusterId: string, policy: NetworkPolicy): Promise<NetworkPolicy> {
+export function createNetworkPolicy(
+  env: ClusterEnv,
+  clusterId: string,
+  policy: NetworkPolicy
+): Promise<NetworkPolicy> {
   return post<NetworkPolicy>(`${CLUSTER_BASE}/${env}/${clusterId}/network/policies`, policy)
 }
 
@@ -511,7 +543,11 @@ export function createNetworkPolicy(env: ClusterEnv, clusterId: string, policy: 
  * @param clusterId 集群 ID
  * @param name 策略名
  */
-export function deleteNetworkPolicy(env: ClusterEnv, clusterId: string, name: string): Promise<void> {
+export function deleteNetworkPolicy(
+  env: ClusterEnv,
+  clusterId: string,
+  name: string
+): Promise<void> {
   return del<void>(`${CLUSTER_BASE}/${env}/${clusterId}/network/policies/${name}`)
 }
 
@@ -604,7 +640,10 @@ export function getStorageClasses(env: ClusterEnv, clusterId: string): Promise<S
  * @param env 部署环境
  * @param clusterId 集群 ID
  */
-export function getPersistentVolumes(env: ClusterEnv, clusterId: string): Promise<PersistentVolumeClaim[]> {
+export function getPersistentVolumes(
+  env: ClusterEnv,
+  clusterId: string
+): Promise<PersistentVolumeClaim[]> {
   return get<PersistentVolumeClaim[]>(`${CLUSTER_BASE}/${env}/${clusterId}/storage/pvcs`)
 }
 
@@ -614,7 +653,11 @@ export function getPersistentVolumes(env: ClusterEnv, clusterId: string): Promis
  * @param clusterId 集群 ID
  * @param pvc PVC 信息
  */
-export function createPvc(env: ClusterEnv, clusterId: string, pvc: Partial<PersistentVolumeClaim>): Promise<PersistentVolumeClaim> {
+export function createPvc(
+  env: ClusterEnv,
+  clusterId: string,
+  pvc: Partial<PersistentVolumeClaim>
+): Promise<PersistentVolumeClaim> {
   return post<PersistentVolumeClaim>(`${CLUSTER_BASE}/${env}/${clusterId}/storage/pvcs`, pvc)
 }
 
@@ -643,8 +686,14 @@ export function getStorageUsage(env: ClusterEnv, clusterId: string): Promise<Sto
  * @param clusterId 集群 ID
  * @param pvcName PVC 名称
  */
-export function createSnapshot(env: ClusterEnv, clusterId: string, pvcName: string): Promise<SnapshotResult> {
-  return post<SnapshotResult>(`${CLUSTER_BASE}/${env}/${clusterId}/storage/pvcs/${pvcName}/snapshot`)
+export function createSnapshot(
+  env: ClusterEnv,
+  clusterId: string,
+  pvcName: string
+): Promise<SnapshotResult> {
+  return post<SnapshotResult>(
+    `${CLUSTER_BASE}/${env}/${clusterId}/storage/pvcs/${pvcName}/snapshot`
+  )
 }
 
 /* ================================================================== */
@@ -743,7 +792,12 @@ export function createHpa(env: ClusterEnv, clusterId: string, hpa: HpaPolicy): P
  * @param name 策略名
  * @param hpa HPA 策略
  */
-export function updateHpa(env: ClusterEnv, clusterId: string, name: string, hpa: HpaPolicy): Promise<HpaPolicy> {
+export function updateHpa(
+  env: ClusterEnv,
+  clusterId: string,
+  name: string,
+  hpa: HpaPolicy
+): Promise<HpaPolicy> {
   return put<HpaPolicy>(`${CLUSTER_BASE}/${env}/${clusterId}/hpa/${name}`, hpa)
 }
 
@@ -771,6 +825,9 @@ export function getScaleEvents(env: ClusterEnv, clusterId: string): Promise<Scal
  * @param env 部署环境
  * @param clusterId 集群 ID
  */
-export function getScalingPolicies(env: ClusterEnv, clusterId: string): Promise<ScalingPolicySummary> {
+export function getScalingPolicies(
+  env: ClusterEnv,
+  clusterId: string
+): Promise<ScalingPolicySummary> {
   return get<ScalingPolicySummary>(`${CLUSTER_BASE}/${env}/${clusterId}/scale/summary`)
 }

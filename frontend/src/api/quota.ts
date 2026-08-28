@@ -10,13 +10,7 @@
  * - GET    /quotas/workspace/{workspaceId}/usage — 查询当前用量
  */
 import { get, post, put, del } from './client'
-import type {
-  Quota,
-  QuotaListQuery,
-  SetQuotaParams,
-  UpdateQuotaParams,
-  QuotaUsage
-} from './types'
+import type { Quota, QuotaListQuery, SetQuotaParams, UpdateQuotaParams, QuotaUsage } from './types'
 // 类型定义见 @/api/types.ts（项目约定：避免循环依赖）
 
 /** 配额资源根路径 */

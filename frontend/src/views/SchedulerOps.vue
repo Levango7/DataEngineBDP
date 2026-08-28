@@ -2,8 +2,8 @@
   <div class="scheduler-ops-page">
     <h1>任务运维中心</h1>
     <div class="sub">
-      流批 DAG 运行历史 / 失败重跑 / 补数据（stream-batch-scheduler）。
-      输入 DAG ID 后查看执行实例，可对失败实例一键重跑，或按时间区间补数据。
+      流批 DAG 运行历史 / 失败重跑 / 补数据（stream-batch-scheduler）。 输入 DAG ID
+      后查看执行实例，可对失败实例一键重跑，或按时间区间补数据。
     </div>
 
     <el-card shadow="never" class="page-card">
@@ -18,9 +18,7 @@
         />
         <el-button type="primary" @click="handleQuery">查询</el-button>
         <div class="spacer"></div>
-        <el-button type="success" plain :disabled="!dagId" @click="openBackfill">
-          补数据
-        </el-button>
+        <el-button type="success" plain :disabled="!dagId" @click="openBackfill">补数据</el-button>
         <el-button :icon="Refresh" circle @click="handleQuery" />
       </div>
 
@@ -95,7 +93,12 @@
         :page-sizes="[10, 20, 50]"
         style="margin-top: 16px; justify-content: flex-end"
         @current-change="loadRuns"
-        @size-change="() => { page = 1; loadRuns() }"
+        @size-change="
+          () => {
+            page = 1
+            loadRuns()
+          }
+        "
       />
     </el-card>
 
@@ -133,10 +136,16 @@
         <el-descriptions-item label="DAG ID">{{ detail?.dagId }}</el-descriptions-item>
         <el-descriptions-item label="状态">{{ detail?.status }}</el-descriptions-item>
         <el-descriptions-item label="运行类型">{{ detail?.runType }}</el-descriptions-item>
-        <el-descriptions-item label="开始时间">{{ formatTime(detail?.startTime) }}</el-descriptions-item>
-        <el-descriptions-item label="结束时间">{{ formatTime(detail?.endTime) }}</el-descriptions-item>
+        <el-descriptions-item label="开始时间">
+          {{ formatTime(detail?.startTime) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="结束时间">
+          {{ formatTime(detail?.endTime) }}
+        </el-descriptions-item>
         <el-descriptions-item label="错误信息">
-          <span style="color: #f56c6c; white-space: pre-wrap">{{ detail?.errorMessage || '—' }}</span>
+          <span style="color: #f56c6c; white-space: pre-wrap">
+            {{ detail?.errorMessage || '—' }}
+          </span>
         </el-descriptions-item>
       </el-descriptions>
     </el-dialog>
@@ -148,7 +157,13 @@ import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
-import { listDagRuns, rerunDagRun, backfillDag, type DagRunRecord, type DagRunPage } from '@/api/streamBatch'
+import {
+  listDagRuns,
+  rerunDagRun,
+  backfillDag,
+  type DagRunRecord,
+  type DagRunPage
+} from '@/api/streamBatch'
 
 const dagId = ref('')
 const activeStatus = ref('')
@@ -161,14 +176,13 @@ const {
   loading,
   error,
   execute: loadRuns
-} = useApi<DagRunPage>(
-  () =>
-    listDagRuns(dagId.value, {
-      status: activeStatus.value || undefined,
-      page: page.value - 1,
-      size: size.value
-    })
-  )
+} = useApi<DagRunPage>(() =>
+  listDagRuns(dagId.value, {
+    status: activeStatus.value || undefined,
+    page: page.value - 1,
+    size: size.value
+  })
+)
 
 const runs = computed<DagRunRecord[]>(() => runsPage.value?.content ?? [])
 const total = computed<number>(() => runsPage.value?.totalElements ?? 0)

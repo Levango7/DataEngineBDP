@@ -13,13 +13,7 @@ export type Industry = 'finance' | 'retail' | 'manufacturing' | 'government' | '
 export type TemplateStatus = 'dev' | 'review' | 'catalog' | 'deprecated'
 
 /** 参数类型 */
-export type ParameterType =
-  | 'string'
-  | 'integer'
-  | 'float'
-  | 'boolean'
-  | 'enum'
-  | 'datasource'
+export type ParameterType = 'string' | 'integer' | 'float' | 'boolean' | 'enum' | 'datasource'
 
 /** 模板元信息 */
 export interface TemplateMeta {
@@ -128,12 +122,7 @@ export interface DeploymentRequest {
 
 /** 部署状态 */
 export type DeploymentStatus =
-  | 'pending'
-  | 'installing'
-  | 'instantiating'
-  | 'running'
-  | 'failed'
-  | 'stopped'
+  'pending' | 'installing' | 'instantiating' | 'running' | 'failed' | 'stopped'
 
 /** 部署记录 */
 export interface DeploymentRecord {
@@ -193,9 +182,11 @@ const BASE = '/templates'
  * @param industry 行业过滤
  * @param keyword 关键字过滤
  */
-export function listTemplates(
-  params?: { industry?: Industry; keyword?: string; status?: TemplateStatus }
-): Promise<TemplateMeta[]> {
+export function listTemplates(params?: {
+  industry?: Industry
+  keyword?: string
+  status?: TemplateStatus
+}): Promise<TemplateMeta[]> {
   return get<TemplateMeta[]>(BASE, params as Record<string, unknown>)
 }
 
@@ -236,9 +227,6 @@ export function listCategories(): Promise<TemplateCategory[]> {
  * @param id 模板 ID
  * @param tenantId 租户 ID 过滤
  */
-export function listDeployments(
-  id: string,
-  tenantId?: string
-): Promise<DeploymentRecord[]> {
+export function listDeployments(id: string, tenantId?: string): Promise<DeploymentRecord[]> {
   return get<DeploymentRecord[]>(`${BASE}/${id}/deployments`, tenantId ? { tenantId } : undefined)
 }
