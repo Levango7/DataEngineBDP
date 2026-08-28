@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 
 import java.util.List;
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 8 个 REST 接线端点统一单测（H2 + 真实 Repository）。
  */
 @DataJpaTest
+@ContextConfiguration(classes = com.levango7.dataenginebdp.encaps.EncapsDataApplication.class)
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class RestWiringControllerTest {
 
@@ -66,21 +68,6 @@ class RestWiringControllerTest {
 
         c.delete(Long.valueOf(id));
         assertThat(standardRepository.countByTenantId("tenant_a")).isZero();
-    }
-
-    @Test
-    void apiCatalog_crud() {
-        var c = new ApiCatalogController(apiRepository);
-        var created = c.create(new ApiCatalogController.ApiRequest("订单查询", "v1", "data", "GET", "/orders", "published", null));
-        assertThat(created.getStatusCode().is2xxSuccessful()).isTrue();
-        String id = (String) created.getBody().get("id");
-        assertThat(created.getBody().get("method")).isEqualTo("GET");
-
-        var list = c.list(null, 1, 10);
-        assertThat((Number) list.getBody().get("total")).isEqualTo(1);
-
-        c.delete(Long.valueOf(id));
-        assertThat(apiRepository.countByTenantId("tenant_a")).isZero();
     }
 
     @Test

@@ -130,18 +130,18 @@ public class CapacityController {
     @Operation(summary = "查询容量规划配置")
     @GetMapping("/config")
     public ResponseEntity<Map<String, Object>> config() {
-        return ResponseEntity.ok(Map.of(
-                "enabled", config.isEnabled(),
-                "prometheusAddress", config.getPrometheusAddress(),
-                "historyWindowDays", config.getHistoryWindowDays(),
-                "forecastHorizonDays", config.getForecastHorizonDays(),
-                "cpuThreshold", config.getCpuThreshold(),
-                "memoryThreshold", config.getMemoryThreshold(),
-                "scaleAheadHours", config.getScaleAheadHours(),
-                "sampleIntervalMinutes", config.getSampleIntervalMinutes(),
-                "algorithm", config.getAlgorithm(),
-                "ewmaAlpha", config.getEwmaAlpha(),
-                "targetServices", config.getTargetServices()
+        return ResponseEntity.ok(Map.ofEntries(
+                Map.entry("enabled", config.isEnabled()),
+                Map.entry("prometheusAddress", config.getPrometheusAddress()),
+                Map.entry("historyWindowDays", config.getHistoryWindowDays()),
+                Map.entry("forecastHorizonDays", config.getForecastHorizonDays()),
+                Map.entry("cpuThreshold", config.getCpuThreshold()),
+                Map.entry("memoryThreshold", config.getMemoryThreshold()),
+                Map.entry("scaleAheadHours", config.getScaleAheadHours()),
+                Map.entry("sampleIntervalMinutes", config.getSampleIntervalMinutes()),
+                Map.entry("algorithm", config.getAlgorithm()),
+                Map.entry("ewmaAlpha", config.getEwmaAlpha()),
+                Map.entry("targetServices", config.getTargetServices())
         ));
     }
 }

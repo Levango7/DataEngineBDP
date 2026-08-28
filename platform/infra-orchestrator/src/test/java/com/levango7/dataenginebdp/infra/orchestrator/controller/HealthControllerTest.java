@@ -19,6 +19,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @TestPropertySource(properties = {
+        "app.security.jwt.secret=dev-secret-key-change-in-production-at-least-256-bits",
+        "app.security.jwt.issuer=shuqing-bigdata",
+        "app.security.cors.allowed-origins=http://localhost:5173",
         "app.orchestrator.providers.xinchang.base-url=http://localhost:8090",
         "app.orchestrator.providers.baremetal.base-url=http://localhost:8091",
         "app.orchestrator.providers.cloud.base-url=http://localhost:8092",

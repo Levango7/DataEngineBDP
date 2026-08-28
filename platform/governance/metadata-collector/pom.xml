@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <hadoop.version>3.4.1</hadoop.version>
         <kafka.version>3.8.1</kafka.version>
-        <hive-jdbc.version>4.2.0</hive-jdbc.version>
+        <hive-jdbc.version>4.0.0</hive-jdbc.version>
         <mysql-jdbc.version>26.7.0</mysql-jdbc.version>
     </properties>
 

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
@@ -19,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * ProjectController 单元测试（H2 + 真实 Repository）。
  */
 @DataJpaTest
+@ContextConfiguration(classes = com.levango7.dataenginebdp.encaps.EncapsTenantApplication.class)
 @TestPropertySource(properties = "spring.jpa.hibernate.ddl-auto=create-drop")
 class ProjectControllerTest {
 

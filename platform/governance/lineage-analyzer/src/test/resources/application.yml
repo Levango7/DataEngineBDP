@@ -1,0 +1,6 @@
+# 测试配置：提供 JWT_SECRET 默认值
+app:
+  security:
+    jwt:
+      secret: test-secret-for-unit-tests-only-32-bytes!
+      enabled: false
