@@ -1364,8 +1364,8 @@ jobs:
             echo "============================================"
             # 先下载依赖，避免 lint 因模块缺失失败
             (cd "$mod_dir" && go mod download 2>&1) || true
-            if ! (cd "$mod_dir" && golangci-lint run --no-config --timeout 5m \
-              -E gosec,errcheck,bodyclose,sqlclosecheck,errorlint ./...); then
+            if ! (cd "$mod_dir" && golangci-lint run --timeout 5m \
+              --enable gosec,errcheck,bodyclose,sqlclosecheck,errorlint ./...); then
               echo "::error::$mod_name 安全 lint 失败"
               fail_count=$((fail_count + 1))
             fi
