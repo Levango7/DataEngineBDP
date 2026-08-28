@@ -882,16 +882,19 @@ jobs:
             echo "--------------------------------------------"
             # 运行测试并收集覆盖率：coverprofile + go tool cover 聚合（-cover 单跑不输出 total 行）
             rm -f "$cov_profile"
-            cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile="$cov_profile" ./... 2>/dev/null || true)
+            cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile="$cov_profile" ./... 2>&1 || true)
             if [ ! -s "$cov_profile" ]; then
               echo "::error::$mod_name 未生成覆盖率数据（可能无测试或测试失败），按 0% 计入门禁"
+              echo "测试输出:"
+              echo "$cov_output" | tail -20
               fail_count=$((fail_count + 1))
               continue
             fi
             cov=$(go tool cover -func="$cov_profile" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
-            if [ -z "$cov" ]; then
+            if [ -z "$cov" ] || [ "$cov" = "0" ]; then
               cov="0"
-              echo "::error::$mod_name 覆盖率解析失败，按 0% 计入门禁"
+              echo "::error::$mod_name 覆盖率解析失败或为 0%，按 0% 计入门禁"
+              echo "覆盖率 profile 大小: $(wc -c < "$cov_profile") bytes"
               fail_count=$((fail_count + 1))
               continue
             fi
@@ -1017,10 +1020,20 @@ jobs:
             echo "  运行测试: $mod_name ($mod_dir)"
             echo "============================================"
             # 安装依赖
+            install_ok=false
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              pip install -e "$mod_dir" -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              if pip install -e "$mod_dir" -q 2>&1; then
+                install_ok=true
+              elif [ -f "$mod_dir/requirements.txt" ] && pip install -r "$mod_dir/requirements.txt" -q 2>&1; then
+                install_ok=true
+              fi
             elif [ -f "$mod_dir/requirements.txt" ]; then
-              pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              if pip install -r "$mod_dir/requirements.txt" -q 2>&1; then
+                install_ok=true
+              fi
+            fi
+            if [ "$install_ok" = "false" ]; then
+              echo "::warning::$mod_name 依赖安装失败，尝试继续测试"
             fi
             # 运行 pytest
             if (cd "$mod_dir" && python -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then
@@ -1347,6 +1360,8 @@ jobs:
             echo "============================================"
             echo "  golangci-lint: $mod_name ($mod_dir)"
             echo "============================================"
+            # 先下载依赖，避免 lint 因模块缺失失败
+            (cd "$mod_dir" && go mod download 2>&1) || true
             if ! (cd "$mod_dir" && golangci-lint run --no-config --timeout 5m \
               -E gosec,errcheck,bodyclose,sqlclosecheck,errorlint ./...); then
               echo "::error::$mod_name 安全 lint 失败"
