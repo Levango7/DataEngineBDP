@@ -1012,37 +1012,35 @@ jobs:
         run: |
           set -o pipefail
           mkdir -p python-syntax-reports
+          pip install pytest pytest-cov -q 2>/dev/null || true
           fail_count=0
           while IFS= read -r mod_dir; do
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  运行测试: $mod_name ($mod_dir)"
             echo "============================================"
-            venv_dir="/tmp/.venv-$mod_name"
-            python3 -m venv "$venv_dir" 2>/dev/null || true
-            "$venv_dir/bin/pip" install pytest pytest-cov -q 2>/dev/null || true
+            # 强制重装依赖，避免版本冲突
             install_ok=false
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              if "$venv_dir/bin/pip" install -e "$mod_dir" -q 2>&1; then
+              if pip install -e "$mod_dir" --force-reinstall -q 2>&1; then
                 install_ok=true
-              elif [ -f "$mod_dir/requirements.txt" ] && "$venv_dir/bin/pip" install -r "$mod_dir/requirements.txt" -q 2>&1; then
+              elif [ -f "$mod_dir/requirements.txt" ] && pip install -r "$mod_dir/requirements.txt" --force-reinstall -q 2>&1; then
                 install_ok=true
               fi
             elif [ -f "$mod_dir/requirements.txt" ]; then
-              if "$venv_dir/bin/pip" install -r "$mod_dir/requirements.txt" -q 2>&1; then
+              if pip install -r "$mod_dir/requirements.txt" --force-reinstall -q 2>&1; then
                 install_ok=true
               fi
             fi
             if [ "$install_ok" = "false" ]; then
               echo "::warning::$mod_name 依赖安装失败，尝试继续测试"
             fi
-            if (cd "$mod_dir" && "$venv_dir/bin/python" -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then
+            if (cd "$mod_dir" && python -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then
               echo "✓ $mod_name pytest 通过"
             else
               echo "✗ $mod_name pytest 失败"
               fail_count=$((fail_count + 1))
             fi
-            rm -rf "$venv_dir"
           done < .python-modules.txt
           if [ "$fail_count" -gt 0 ]; then
             echo "::error::共有 $fail_count 个 Python 组件测试失败"
@@ -1079,20 +1077,16 @@ jobs:
               fail_count=$((fail_count + 1))
               continue
             fi
-            venv_dir="/tmp/.venv-$mod_name"
-            python3 -m venv "$venv_dir" 2>/dev/null || true
-            "$venv_dir/bin/pip" install pytest pytest-cov -q 2>/dev/null || true
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              "$venv_dir/bin/pip" install -e "$mod_dir" -q 2>/dev/null || "$venv_dir/bin/pip" install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install -e "$mod_dir" --force-reinstall -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" --force-reinstall -q 2>/dev/null || true
             elif [ -f "$mod_dir/requirements.txt" ]; then
-              "$venv_dir/bin/pip" install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install -r "$mod_dir/requirements.txt" --force-reinstall -q 2>/dev/null || true
             fi
-            cov_output=$(cd "$mod_dir" && "$venv_dir/bin/python" -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
+            cov_output=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
             cov=$(echo "$cov_output" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "")
             if [ -z "$cov" ]; then
               cov=$(echo "$cov_output" | grep -E "TOTAL" | grep -oE '[0-9]+%' | tr -d '%' | tail -1 || echo "")
             fi
-            rm -rf "$venv_dir"
             if [ -z "$cov" ]; then
               cov="0"
               echo "::error::$mod_name 未生成覆盖率数据，按 0% 计入门禁"
@@ -1136,20 +1130,16 @@ jobs:
             if [ ! -f "$mod_dir/pytest.ini" ] && [ ! -f "$mod_dir/pyproject.toml" ] && [ ! -f "$mod_dir/setup.cfg" ]; then
               continue
             fi
-            venv_dir="/tmp/.venv-$mod_name"
-            python3 -m venv "$venv_dir" 2>/dev/null || true
-            "$venv_dir/bin/pip" install pytest pytest-cov -q 2>/dev/null || true
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              "$venv_dir/bin/pip" install -e "$mod_dir" -q 2>/dev/null || "$venv_dir/bin/pip" install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install -e "$mod_dir" --force-reinstall -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" --force-reinstall -q 2>/dev/null || true
             elif [ -f "$mod_dir/requirements.txt" ]; then
-              "$venv_dir/bin/pip" install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install -r "$mod_dir/requirements.txt" --force-reinstall -q 2>/dev/null || true
             fi
-            cov_output=$(cd "$mod_dir" && "$venv_dir/bin/python" -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
+            cov_output=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
             cov=$(echo "$cov_output" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "")
             if [ -z "$cov" ]; then
               cov=$(echo "$cov_output" | grep -E "TOTAL" | grep -oE '[0-9]+%' | tr -d '%' | tail -1 || echo "")
             fi
-            rm -rf "$venv_dir"
             if [ -z "$cov" ]; then
               continue
             fi
