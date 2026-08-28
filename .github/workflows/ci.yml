@@ -872,7 +872,6 @@ jobs:
           fail_count=0
           warn_count=0
           mod_count=0
-          cov_profile=$(mktemp)
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
             mod_name=$(basename "$mod_dir")
@@ -881,8 +880,9 @@ jobs:
             echo "  Go Coverage: $mod_name ($mod_dir)"
             echo "--------------------------------------------"
             # 运行测试并收集覆盖率：coverprofile + go tool cover 聚合（-cover 单跑不输出 total 行）
+            cov_profile="$mod_dir/.coverage.out"
             rm -f "$cov_profile"
-            cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile="$cov_profile" ./... 2>&1 || true)
+            cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile=.coverage.out ./... 2>&1 || true)
             if [ ! -s "$cov_profile" ]; then
               echo "::error::$mod_name 未生成覆盖率数据（可能无测试或测试失败），按 0% 计入门禁"
               echo "测试输出:"
@@ -890,7 +890,7 @@ jobs:
               fail_count=$((fail_count + 1))
               continue
             fi
-            cov=$(go tool cover -func="$cov_profile" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
+            cov=$(cd "$mod_dir" && go tool cover -func=.coverage.out | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
             if [ -z "$cov" ] || [ "$cov" = "0" ]; then
               cov="0"
               echo "::error::$mod_name 覆盖率解析失败或为 0%，按 0% 计入门禁"
