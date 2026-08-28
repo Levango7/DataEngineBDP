@@ -2,8 +2,8 @@
 # Python 3.10+
 
 # Web framework
-fastapi==0.110.0
-uvicorn[standard]==0.52.3
+fastapi==0.141.1
+uvicorn[standard]==0.29.0
 pydantic==2.13.4
 pydantic-settings==2.15.0
 
@@ -19,7 +19,7 @@ pytest-asyncio==1.4.0
 httpx==0.28.1
 
 # Logging
-loguru==0.7.2
+loguru==0.7.3
 
 # Utilities
 python-dateutil==2.9.0

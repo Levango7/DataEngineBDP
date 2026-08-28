@@ -1,8 +1,8 @@
 # T031 模型评测平台依赖
 # FastAPI 评测任务引擎
-fastapi==0.115.6
-uvicorn[standard]==0.32.1
-pydantic==2.10.4
+fastapi==0.141.1
+uvicorn[standard]==0.29.0
+pydantic==2.6.4
 
 # HTTP 客户端（调用 T030 LLM 网关）
 httpx==0.28.1
