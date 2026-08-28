@@ -1012,6 +1012,8 @@ jobs:
         run: |
           set -o pipefail  # 管道退出码取 pytest 而非 tee（修复 pytest 失败被吞）
           mkdir -p python-syntax-reports
+          # 全局安装 pytest 和常用测试依赖
+          pip install pytest pytest-cov -q 2>/dev/null || true
           # 安装依赖并运行 pytest
           fail_count=0
           while IFS= read -r mod_dir; do
@@ -1348,7 +1350,7 @@ jobs:
       - name: 安装 golangci-lint
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b $(go env GOPATH)/bin v1.64.8
+            | sh -s -- -b $(go env GOPATH)/bin v1.65.0
           golangci-lint version
 
       - name: 对每个 Go 组件执行安全 lint（阻断）
@@ -1462,9 +1464,19 @@ jobs:
 
       - name: 预解析所有 Maven 依赖
         run: |
-          # 先安装 sql-gateway 到本地 ~/.m2，避免 Trivy 解析 lineage-analyzer 时去公网/被 429
+          # 先安装 parent POM（所有子模块的 <parent> 引用）
+          if [ -f "pom.xml" ]; then
+            mvn install -B -N -q \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
+              || echo "::warning::parent POM 安装失败"
+          fi
+          # 先安装 common-security，再安装 sql-gateway
+          if [ -f platform/common-security/pom.xml ]; then
+            mvn -f platform/common-security/pom.xml install -B -q -DskipTests -U \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          fi
           if [ -f platform/sql-gateway/pom.xml ]; then
-            mvn -f platform/sql-gateway/pom.xml install -B -q -DskipTests \
+            mvn -f platform/sql-gateway/pom.xml install -B -q -DskipTests -U \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           fi
           while IFS= read -r pom; do
