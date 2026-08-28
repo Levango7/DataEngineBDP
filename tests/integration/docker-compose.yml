@@ -12,7 +12,6 @@
 #   sql-gateway   -> 18081 -> 容器内 8081
 #   catalog       -> 18082 -> 容器内 8082
 #   rule-engine   -> 18083 -> 容器内 8083
-version: '3.8'
 
 services:
   # ---------------------------------------------------------------------------
@@ -20,8 +19,8 @@ services:
   # ---------------------------------------------------------------------------
   encaps-layer:
     build:
-      context: ../../platform/encaps-layer
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: platform/encaps-layer/Dockerfile
     image: shuqing/encaps-layer:0.1.0
     container_name: it-encaps-layer
     ports:
@@ -42,8 +41,8 @@ services:
   # ---------------------------------------------------------------------------
   sql-gateway:
     build:
-      context: ../../platform/sql-gateway
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: platform/sql-gateway/Dockerfile
     image: shuqing/sql-gateway:0.1.0
     container_name: it-sql-gateway
     ports:
@@ -90,8 +89,8 @@ services:
   # ---------------------------------------------------------------------------
   rule-engine:
     build:
-      context: ../../platform/rule-engine
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: platform/rule-engine/Dockerfile
     image: shuqing/rule-engine:0.1.0
     container_name: it-rule-engine
     ports:
