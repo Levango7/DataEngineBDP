@@ -31,8 +31,8 @@
             :style="{ paddingLeft: '8px' }"
             @click="handleFileClick(node)"
           >
-            <span v-if="node.type === 'folder'">📁</span>
-            <span v-else>📄</span>
+            <el-icon v-if="node.type === 'folder'" class="tree-icon"><Folder /></el-icon>
+            <el-icon v-else class="tree-icon"><Document /></el-icon>
             {{ node.name }}
           </div>
         </template>
@@ -190,6 +190,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, watch } from 'vue'
+import { Folder, Document } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'

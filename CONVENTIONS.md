@@ -189,11 +189,12 @@
 
 | # | 偏差 | 位置 | 现状 | 处理 |
 | --- | --- | --- | --- | --- |
-| 1 | 跨源查询失败返回 200 + FAILED | sql-gateway `SqlGatewayController#crossSourceExecute / crossSourceExplain` | 部分结果语义，调用方以 status 字段判别（api-reference 4.11 已如实描述） | 待迁移：评估改 5xx，或固化写入 SDK 契约 |
+| 1 | ~~跨源查询失败返回 200 + FAILED~~ | sql-gateway `SqlGatewayController#crossSourceExecute / crossSourceExplain` | ✅ 已迁移（2026-08-29）：失败按错误码映射 HTTP 语义（PARSE_ERROR/UNSUPPORTED→400、SOURCE_NOT_FOUND→404、RESULT_TOO_LARGE→413、QUERY_TIMEOUT→504、QUERY_FAILED/MERGE_ERROR→502、INTERNAL→500）；body 保留 `status=FAILED` 结构兼容旧 SDK，前端与 api-reference 已同步 | 已解决 |
 | 2 | 特例错误码 PascalCase | encaps-tenant `QuotaController`（QuotaExceeded=422 / Conflict=409）、rule-engine 部分大写码（RULE_NOT_FOUND 等） | 违反 §9.3 snake_case | 待迁移 |
 | 3 | 无 CORS 中间件 | nl2sql / open-api-catalog / asset-exchange 各 app.py | 浏览器直连受同源限制（Go 栈均有 CorsMiddleware） | 待迁移：补 CORSMiddleware |
 | 4 | 管理/订阅端点未挂应用层鉴权 | open-api-catalog app.py include_router | 依赖部署侧网关策略 | 待迁移：应用层 JWT 中间件 |
 | 5 | schema 调试端点无鉴权 | nl2sql `GET /api/v1/nl2sql/schema` | 匿名可达 | 待迁移：挂 getAuthContext |
 | 6 | 全局检索为哈希占位向量 | vector-engine `GlobalSearch`（POST /api/v1/vector/search） | 文本哈希向量，无语义检索能力 | 待迁移：接入 embedding 服务 |
+| 7 | 跨源查询租户 ID 取自请求体（未与 JWT claim 比对） | sql-gateway `SqlGatewayController#crossSourceExecute/Explain` | ✅ 已修复（2026-08-29）：JWT claim 优先，body 不一致返回 403（TenantMismatchException），无认证上下文时回退 body 兼容单测 | 已解决 |
 
 > 登记流程：新发现偏差先在本表登记并标注「待迁移」，修复后移入 §9.7 或删除；禁止无登记偏差长期存在。

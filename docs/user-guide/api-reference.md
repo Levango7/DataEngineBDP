@@ -41,7 +41,7 @@
 }
 ```
 
-> 部分服务会附加 `timestamp` 字段；Go 服务可能仅返回 `{"error": "..."}`。个别特例（如 sql-gateway 跨源查询失败返回 HTTP 200 + `status=FAILED`，见 4.11）在各章单独说明。
+> 部分服务会附加 `timestamp` 字段；Go 服务可能仅返回 `{"error": "..."}`。跨源查询失败现已使用正确 HTTP 语义（4xx/5xx + `error` 字段，见 4.11）。
 
 ## 第2章 API 认证
 
@@ -499,9 +499,19 @@ curl -X POST https://<platform-domain>/api/v1/sql/cross-source \
 }
 ```
 
-**失败响应（部分结果语义，HTTP 200）**
+**失败响应（2026-08-29 起使用正确 HTTP 语义，body 结构保持兼容）**
 
-跨源执行失败**不返回 HTTP 5xx**：Controller 捕获 `CrossSourceException` 后统一返回 **HTTP 200**，响应体携带 `status=FAILED`、空 `columns`/`rows`、`rowCount=0` 与 `error="错误码: 原因"`：
+跨源执行失败按错误码映射 HTTP 状态码，响应体携带 `status=FAILED`、空 `columns`/`rows`、`rowCount=0` 与 `error="错误码: 原因"`：
+
+| 错误码 | HTTP 状态 |
+| --- | --- |
+| `PARSE_ERROR` / `UNSUPPORTED` | 400 Bad Request |
+| `SOURCE_NOT_FOUND` | 404 Not Found |
+| `RESULT_TOO_LARGE` | 413 Payload Too Large |
+| `QUERY_TIMEOUT` | 504 Gateway Timeout |
+| `QUERY_FAILED` / `MERGE_ERROR` | 502 Bad Gateway |
+| 未识别 / 内部错误 | 500 Internal Server Error |
+| 请求携带租户与 JWT claim 不一致 | 403 Forbidden（`error=tenant_mismatch`） |
 
 ```json
 {
@@ -515,8 +525,9 @@ curl -X POST https://<platform-domain>/api/v1/sql/cross-source \
 }
 ```
 
-> 调用方必须以 `status` 字段（SUCCESS / FAILED / DEGRADED）而非 HTTP 状态码判断执行结果。
-> 错误码全集：`PARSE_ERROR` / `SOURCE_NOT_FOUND` / `QUERY_TIMEOUT` / `QUERY_FAILED` / `MERGE_ERROR` / `RESULT_TOO_LARGE` / `UNSUPPORTED`。
+> 调用方应以 HTTP 状态码判断成败（2xx 为成功），失败时 `error` 字段含具体原因。
+> 错误码全集：`PARSE_ERROR` / `SOURCE_NOT_FOUND` / `QUERY_TIMEOUT` / `QUERY_FAILED` / `MERGE_ERROR` / `RESULT_TOO_LARGE` / `UNSUPPORTED` / `tenant_mismatch`。
+> 租户隔离（CONVENTIONS §9.5）：跨源查询租户以 JWT claim 为准；请求体携带的 `tenantId` 与 claim 不一致时返回 403，不再静默采用请求体值。
 
 ### 4.12 POST /api/v1/sql/cross-source/explain — 跨源执行计划
 
@@ -1084,7 +1095,7 @@ curl -X POST https://<platform-domain>/api/v1/templates/fin-risk-scorecard/deplo
 | lineage_analysis_failed | 400 | 血缘分析失败 |
 | INTERNAL_ERROR | 500 | 内部错误 |
 
-> \* 跨源查询错误不走 HTTP 5xx：统一返回 200 + `status=FAILED` + `error` 字段（部分结果语义，见 4.11）。
+> \* 跨源查询错误按错误码映射 HTTP 4xx/5xx + `error` 字段（见 4.11），不再返回 200。
 
 ### 10.3 错误响应示例
 

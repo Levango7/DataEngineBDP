@@ -105,6 +105,8 @@ class DeploymentRecord(BaseModel):
     healthy: bool = False
     error: Optional[str] = None
     env: dict[str, str] = Field(default_factory=dict)
+    # 是否 Mock 模式产物：True 表示未实际启动容器，endpoint/containerId 为模拟值
+    mock: bool = False
 
     def is_terminal(self) -> bool:
         return self.status in TERMINAL_STATUSES

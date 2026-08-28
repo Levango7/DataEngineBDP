@@ -8,7 +8,7 @@ set -euo pipefail
 NS=dataengine
 CLUSTER=dataengine-local
 
-log() { echo "[$(date '\''+%H:%M:%S'\'')] $*"; }
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
 fail() { log "FAIL: $*"; exit 1; }
 pass() { log "PASS: $*"; }
 

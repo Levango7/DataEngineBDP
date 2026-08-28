@@ -1,5 +1,5 @@
-"""MIRRORED FILE — 此文件在 llmops/ml-platform/nl2sql/evaluation 四处保持逐字节一致。
-修改任一副本必须同步其余三处，CI 由 scripts/check-mirrored-jwt-auth.sh 强制。
+"""MIRRORED FILE — 此文件在 llmops/ml-platform/nl2sql/evaluation/knowledge-engine/asset-exchange/open-api-catalog 七处保持逐字节一致。
+修改任一副本必须同步其余六处，CI 由 scripts/check-mirrored-jwt-auth.sh 强制。
 
 轻量 HS256 JWT 校验依赖（FastAPI），纯标准库实现，零第三方依赖，
 与 Go 侧 golang-jwt/v5 HS256 签发格式兼容。
@@ -8,6 +8,9 @@
     AUTH_MODE            jwt=强制鉴权(生产)；none=放行并一次性告警(本地/测试)。缺省 none。
     JWT_SECRET           HS256 密钥，AUTH_MODE=jwt 时必填（首次请求时 fail-fast）
     JWT_EXPECTED_ISSUER  可选；设置后校验 iss claim 是否匹配
+
+安全提示：在 K8s 环境（KUBERNETES_SERVICE_HOST 已设置）下若未显式设置 AUTH_MODE，
+进程启动后首次请求会打印显著告警——接口处于匿名 admin 放行状态，生产必须显式 AUTH_MODE=jwt。
 """
 
 from __future__ import annotations
@@ -18,12 +21,14 @@ import hashlib
 import hmac
 import json
 import os
+import sys
 import time
 from typing import Any, Optional
 
 from fastapi import HTTPException, Request
 
 _warnedOnce = False
+_k8sAnonWarned = False
 
 
 @dataclass(frozen=True)
@@ -62,6 +67,7 @@ def loadAuthSettings() -> tuple[str, str, Optional[str]]:
     """返回 (mode, secret, expectedIssuer)。
 
     AUTH_MODE=jwt 而缺 JWT_SECRET 直接抛异常（fail-fast）。
+    K8s 环境下 AUTH_MODE 未显式设置（缺省 none）时打印显著告警。
     """
     mode = os.environ.get("AUTH_MODE", "none").strip().lower()
     secret = os.environ.get("JWT_SECRET", "")
@@ -70,7 +76,23 @@ def loadAuthSettings() -> tuple[str, str, Optional[str]]:
         raise RuntimeError(f"AUTH_MODE 非法: {mode}（仅支持 jwt|none）")
     if mode == "jwt" and not secret:
         raise RuntimeError("AUTH_MODE=jwt 必须配置 JWT_SECRET")
+    if mode == "none" and os.environ.get("KUBERNETES_SERVICE_HOST"):
+        _warnK8sAnonMode()
     return mode, secret, issuer
+
+
+def _warnK8sAnonMode() -> None:
+    """K8s 环境 + 未显式 AUTH_MODE：接口匿名放行（admin），高危配置，进程内告警一次。"""
+    global _k8sAnonWarned
+    if _k8sAnonWarned:
+        return
+    _k8sAnonWarned = True
+    print(
+        "[WARN][jwt_auth] 检测到 K8s 环境(KUBERNETES_SERVICE_HOST)但 AUTH_MODE 未显式设置，"
+        "接口匿名放行(admin)。生产必须设置 AUTH_MODE=jwt 并配置 JWT_SECRET。",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def getAuthContext(request: Request) -> AuthContext:

@@ -379,8 +379,13 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '数据资产流通', icon: 'ShoppingCart' }
   },
 
-  // 兜底
-  { path: '/:pathMatch(.*)*', redirect: '/dashboard' }
+  // 兜底：独立 404 页（替代静默跳转 dashboard，用户可明确感知路径错误）
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFound.vue'),
+    meta: { title: '页面不存在', public: true }
+  }
 ]
 
 const router = createRouter({

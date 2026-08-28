@@ -188,7 +188,7 @@ update_propagation_policy() {
   done <<< "$pp_list"
 
   # 更新 ClusterPropagationPolicy
-  while IFS= read -r cpp"; do
+  while IFS= read -r cpp; do
     [[ -z "$cpp" ]] && continue
     kubectl --context="$KARMADA_HOST_CONTEXT" patch cpp "$cpp" --type=merge -p \
       "{\"spec\":{\"placement\":{\"clusterAffinity\":{\"clusterNames\":[\"${TO_CLUSTER}\"]}}}}" 2>/dev/null || {

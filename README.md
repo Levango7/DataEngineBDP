@@ -6,7 +6,7 @@
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-SNAPSHOT（开发中）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
-- 工程成熟度：综合评分 72/100（B+），6000+ 后端测试 + 183 前端测试（含已知失败用例，前端覆盖率约 49.56%），7 条端到端链路落地（详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
+- 工程成熟度：综合评分 72/100（B+），6200+ 后端测试 + 前端单元/E2E 测试（含已知失败用例，详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
 - 开源协议：Apache License 2.0
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
@@ -54,7 +54,7 @@ DataEngineBDP/
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 51 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 87 个 Helm Chart（86 骨架 + 1 完整）
+│   │   ├── charts/             # 88 个 Helm Chart（全部含 templates 与 values）
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
@@ -264,11 +264,11 @@ bash scripts/poc/run-poc.sh
 | 指标 | 数值 |
 | --- | --- |
 | 自研组件目录 | 37 个 |
-| Helm Chart | 87 个（其中 86 个为骨架级，1 个为完整实现） |
+| Helm Chart | 88 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
 | 详细设计文档 | 51 份 |
-| 单元测试 | 约 6000+（Java 3900+ / Go 580+ / Python 1550+） |
-| 集成测试 | 14 个文件（89 个方法） |
-| 前端视图页面 | 66 个 .vue（全部有实质内容，无占位页面） |
+| 单元测试 | 约 6200+（Java 3950+ / Go 677+ / Python 1611+） |
+| 集成测试 | 61 个文件（331 个用例，tests/ 目录） |
+| 前端视图页面 | 78 个 .vue（全部有实质内容，无占位页面） |
 | 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云，均为配置模板） |
 | 工程成熟度 | 代码骨架约 50% / 服务级实现约 30% |
 

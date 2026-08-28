@@ -4,6 +4,26 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [2.1.0-RC] - 2026-08-29（交付前审计修复批次）
+
+### Security
+- **P0 修复：sql-gateway 跨源查询租户越权**（审计发现，未登记偏差表）：`/api/v1/sql/cross-source` 与 `/cross-source/explain` 的 tenantId 原直接取自请求体并透传 Trino/Doris（X-Trino-User），现改为 JWT claim 优先，body 携带值与 claim 不一致返回 403（新增 `TenantMismatchException`，`resolveCrossSourceTenant` 裁决），无认证上下文（单测/内部调用）回退 body 兼容历史行为；CONVENTIONS §9.8 偏差表 #7 登记并解决
+- **jwt_auth.py 七副本 K8s 环境告警**：KUBERNETES_SERVICE_HOST 存在且 AUTH_MODE 未显式设置时打印显著高危告警（进程内一次）；文件头注释"四处副本"修正为"七处"
+
+### Fixed
+- **sql-gateway 跨源失败 HTTP 语义**（偏差表 #1 解决）：`CrossSourceException` 按错误码映射 HTTP 状态（PARSE_ERROR/UNSUPPORTED→400、SOURCE_NOT_FOUND→404、RESULT_TOO_LARGE→413、QUERY_TIMEOUT→504、QUERY_FAILED/MERGE_ERROR→502、INTERNAL→500），body 保留 `status=FAILED` 结构兼容旧 SDK；api-reference 4.11 同步
+- **前端错误提示增强**：client.ts 增加 502/504/413 友好文案，服务端 `error` 字段优先展示
+- **前端 emoji 功能图标清零**（P0 规则）：Develop.vue（📁📄→Folder/Document 图标）、Gateway.vue 与 ErrorBoundary.vue（⚠️→WarningFilled 图标）
+- **交付脚本语法修复**：smoke-test.sh / setup-karmada-multicluster.sh `log()` 的 `'\''` 引号嵌套错误（POSIX bash 解析失败）改为 `date '+%H:%M:%S'`；disaster-recovery/failover.sh 第 191 行孤立双引号 `read -r cpp";` 修复；CI bash-check 扩展至 scripts/ 全量 `.sh` 语法扫描（防回归）
+- **registry Mock 模式显式标注**：DeploymentRecord 新增 `mock` 字段，mock 模式部署记录置 true，调用方/运维可识别"未实际启动容器"
+- **前端 404 体验**：新增独立 NotFound 页（替代静默 redirect 至 /dashboard），已登录用户访问未知路径可见明确 404
+- **前端覆盖率统计范围扩大**：vitest coverage include 从 12 个文件扩大至 API 层全部 + stores/composables + 20+ 核心视图（去白名单化），CI 保持非阻断报告
+
+### Corrected
+- README 口径更新：Helm Chart 87→88（86 骨架说法过时）、.vue 66→78、集成测试 14 文件 89 方法→61 文件 331 用例、单元测试 6000+→6200+（Java 3950/Go 677/Python 1611 实测）
+- .gitignore 增加根目录 `data/` 规则（防本地 H2 库文件误提交）
+- 新增审计交付物：`docs/审计报告-2026-08-29.md`（全仓只读审计 + 修复记录）
+
 ## [2.1.0-RC] - 2026-08-27
 
 ### v2.1.0 进行中 — 行业生态扩展与生产化加固

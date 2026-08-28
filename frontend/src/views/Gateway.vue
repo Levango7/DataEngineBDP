@@ -118,7 +118,8 @@
       @close="closeSecretModal"
     >
       <div class="secret-warning">
-        ⚠️ secret 仅本次显示一次，关闭后无法再次查看。请立即复制保存！
+        <el-icon class="secret-warning__icon"><WarningFilled /></el-icon>
+        secret 仅本次显示一次，关闭后无法再次查看。请立即复制保存！
       </div>
       <label>apiKey</label>
       <div class="secret-row">
@@ -140,6 +141,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
+import { WarningFilled } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'

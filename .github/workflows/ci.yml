@@ -404,6 +404,21 @@ jobs:
             exit 1
           fi
 
+      - name: 检查 scripts/ 全部 .sh 语法（防交付脚本损坏回归）
+        run: |
+          failed=0
+          while IFS= read -r script; do
+            if ! bash -n "$script"; then
+              echo "::error::$script 语法错误"
+              failed=1
+            fi
+          done < <(find scripts -name '*.sh' -type f | sort)
+          if [ "$failed" -eq 0 ]; then
+            echo "scripts/ 全部 .sh 语法检查通过"
+          else
+            exit 1
+          fi
+
       - name: MIRRORED FILE 一致性校验（jwt_auth.py 四处副本）
         run: bash scripts/check-mirrored-jwt-auth.sh
 

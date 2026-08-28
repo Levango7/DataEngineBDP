@@ -69,11 +69,12 @@ class DeploymentManager:
             self._deployments[deployment_id] = record
 
         if self.mock_mode:
-            # Mock 模式：直接标记为 running
+            # Mock 模式：直接标记为 running（不实际启动容器），并显式标注 mock=true 供调用方识别
             record.status = DeploymentStatus.RUNNING
             record.endpoint = f"http://localhost:{request.port}"
             record.containerId = f"mock-container-{deployment_id}"
             record.healthy = True
+            record.mock = True
             record.touch()
         else:
             # 真实模式：启动 Docker 容器

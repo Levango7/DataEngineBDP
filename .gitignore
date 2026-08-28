@@ -60,6 +60,13 @@ platform/model-finetuning/app/__pycache__/
 *.mv.db
 *.mv.db.trace.db
 platform/*/data/
+data/
+
+# Python build artifacts
+*.egg-info/
+.eggs/
+build/
+dist/
 
 # Test reports (generated artifacts, do not track)
 report.html

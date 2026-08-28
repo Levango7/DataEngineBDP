@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured } from 'vue'
+import { WarningFilled } from '@element-plus/icons-vue'
 
 interface ErrorInfo {
   message: string
@@ -27,7 +28,9 @@ function reset() {
 
 <template>
   <div v-if="error" class="error-boundary">
-    <div class="error-boundary__icon">⚠️</div>
+    <div class="error-boundary__icon">
+      <el-icon :size="40" color="#e74c3c"><WarningFilled /></el-icon>
+    </div>
     <h2 class="error-boundary__title">页面渲染出错</h2>
     <p class="error-boundary__message">{{ error.message }}</p>
     <details class="error-boundary__details">
@@ -52,8 +55,9 @@ function reset() {
 }
 
 .error-boundary__icon {
-  font-size: 48px;
   margin-bottom: 16px;
+  display: flex;
+  justify-content: center;
 }
 
 .error-boundary__title {

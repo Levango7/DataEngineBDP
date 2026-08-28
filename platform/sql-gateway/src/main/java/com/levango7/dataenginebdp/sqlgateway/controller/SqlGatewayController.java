@@ -3,6 +3,7 @@ package com.levango7.dataenginebdp.sqlgateway.controller;
 import com.levango7.dataenginebdp.sqlgateway.crosssource.CrossSourceException;
 import com.levango7.dataenginebdp.sqlgateway.crosssource.CrossSourceExecutor;
 import com.levango7.dataenginebdp.sqlgateway.crosssource.MergeResult;
+import com.levango7.dataenginebdp.sqlgateway.crosssource.TenantMismatchException;
 import com.levango7.dataenginebdp.sqlgateway.model.CrossSourceExplainResponse;
 import com.levango7.dataenginebdp.sqlgateway.model.CrossSourceRequest;
 import com.levango7.dataenginebdp.sqlgateway.model.CrossSourceResponse;
@@ -28,6 +29,7 @@ import com.levango7.dataenginebdp.sqlgateway.service.SqlRoutingService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -293,8 +295,11 @@ public class SqlGatewayController {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
 
         try {
+            // 租户隔离（CONVENTIONS §9.5）：以 JWT claim 为准，body 携带值仅作一致性校验
+            String tenantId = resolveCrossSourceTenant(request);
+
             MergeResult result = crossSourceExecutor.execute(
-                    request.getSql(), dialect, request.getTenantId());
+                    request.getSql(), dialect, tenantId);
 
             CrossSourceExecutor.ExecutionPlan plan = crossSourceExecutor.explain(
                     request.getSql(), dialect);
@@ -312,30 +317,21 @@ public class SqlGatewayController {
                     .durationMs(System.currentTimeMillis() - start)
                     .build();
             return ResponseEntity.ok(response);
+        } catch (TenantMismatchException e) {
+            // 显式越权（§9.5 不一致必须 403），不暴露请求方目标租户的更多信息
+            log.warn("跨源查询租户不一致拒绝 queryId={} jwtTenant={} requestedTenant={}",
+                    queryId, e.getJwtTenantId(), e.getRequestedTenantId());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(buildFailedResponse(queryId, start, "tenant_mismatch",
+                            "请求携带租户与登录身份不一致，已拒绝"));
         } catch (CrossSourceException e) {
             log.error("跨源查询失败 queryId={} code={} msg={}", queryId, e.getErrorCode(), e.getMessage());
-            CrossSourceResponse response = CrossSourceResponse.builder()
-                    .queryId(queryId)
-                    .status("FAILED")
-                    .columns(List.of())
-                    .rows(List.of())
-                    .rowCount(0)
-                    .durationMs(System.currentTimeMillis() - start)
-                    .error(e.getErrorCode() + ": " + e.getMessage())
-                    .build();
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(crossSourceHttpStatus(e.getErrorCode()))
+                    .body(buildFailedResponse(queryId, start, e.getErrorCode(), e.getMessage()));
         } catch (Exception e) {
             log.error("跨源查询异常 queryId={} err={}", queryId, e.toString());
-            CrossSourceResponse response = CrossSourceResponse.builder()
-                    .queryId(queryId)
-                    .status("FAILED")
-                    .columns(List.of())
-                    .rows(List.of())
-                    .rowCount(0)
-                    .durationMs(System.currentTimeMillis() - start)
-                    .error("INTERNAL_ERROR: " + e.getMessage())
-                    .build();
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(buildFailedResponse(queryId, start, "INTERNAL_ERROR", e.getMessage()));
         }
     }
 
@@ -356,6 +352,9 @@ public class SqlGatewayController {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
 
         try {
+            // 租户隔离（CONVENTIONS §9.5）：以 JWT claim 为准，不一致抛 403
+            resolveCrossSourceTenant(request);
+
             CrossSourceExecutor.ExecutionPlan plan = crossSourceExecutor.explain(
                     request.getSql(), dialect);
 
@@ -370,6 +369,15 @@ public class SqlGatewayController {
                     .durationMs(System.currentTimeMillis() - start)
                     .build();
             return ResponseEntity.ok(response);
+        } catch (TenantMismatchException e) {
+            log.warn("跨源计划租户不一致拒绝 jwtTenant={} requestedTenant={}",
+                    e.getJwtTenantId(), e.getRequestedTenantId());
+            CrossSourceExplainResponse response = CrossSourceExplainResponse.builder()
+                    .sql(request.getSql())
+                    .durationMs(System.currentTimeMillis() - start)
+                    .error("tenant_mismatch: 请求携带租户与登录身份不一致，已拒绝")
+                    .build();
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
         } catch (CrossSourceException e) {
             log.error("跨源执行计划生成失败 code={} msg={}", e.getErrorCode(), e.getMessage());
             CrossSourceExplainResponse response = CrossSourceExplainResponse.builder()
@@ -377,7 +385,7 @@ public class SqlGatewayController {
                     .durationMs(System.currentTimeMillis() - start)
                     .error(e.getErrorCode() + ": " + e.getMessage())
                     .build();
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(crossSourceHttpStatus(e.getErrorCode())).body(response);
         } catch (Exception e) {
             log.error("跨源执行计划生成异常 err={}", e.toString());
             CrossSourceExplainResponse response = CrossSourceExplainResponse.builder()
@@ -385,7 +393,69 @@ public class SqlGatewayController {
                     .durationMs(System.currentTimeMillis() - start)
                     .error("INTERNAL_ERROR: " + e.getMessage())
                     .build();
-            return ResponseEntity.ok(response);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
+    }
+
+    // ===================== 私有工具方法 =====================
+
+    /**
+     * 解析生效租户 ID：JWT claim 优先，body 携带值仅作一致性校验。
+     *
+     * <p>规则（CONVENTIONS §9.5）：</p>
+     * <ul>
+     *   <li>TenantContext 存在（经 JwtAuthFilter 认证）→ 一律采用 JWT 值；</li>
+     *   <li>与 body 值不一致 → 抛出 {@link TenantMismatchException}（Controller 转为 403）；</li>
+     *   <li>无认证上下文（内部调用/单测/直连未挂过滤器）→ 回退 body 值（兼容历史行为）。</li>
+     * </ul>
+     */
+    private String resolveCrossSourceTenant(CrossSourceRequest request) {
+        String jwtTenant = com.levango7.dataenginebdp.common.security.TenantContext.getTenantId();
+        String bodyTenant = request.getTenantId();
+        if (jwtTenant != null && !jwtTenant.isBlank()) {
+            if (bodyTenant != null && !bodyTenant.isBlank() && !bodyTenant.equals(jwtTenant)) {
+                throw new TenantMismatchException(jwtTenant, bodyTenant);
+            }
+            return jwtTenant;
+        }
+        return bodyTenant;
+    }
+
+    /**
+     * 跨源错误码 → HTTP 状态码映射（CONVENTIONS §9.3 语义）。
+     */
+    private HttpStatus crossSourceHttpStatus(String errorCode) {
+        if (errorCode == null) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        }
+        switch (errorCode) {
+            case CrossSourceException.PARSE_ERROR:
+            case CrossSourceException.UNSUPPORTED:
+                return HttpStatus.BAD_REQUEST;          // 客户端请求问题
+            case CrossSourceException.SOURCE_NOT_FOUND:
+                return HttpStatus.NOT_FOUND;            // 源不存在
+            case CrossSourceException.RESULT_TOO_LARGE:
+                return HttpStatus.PAYLOAD_TOO_LARGE;    // 结果超限
+            case CrossSourceException.QUERY_TIMEOUT:
+                return HttpStatus.GATEWAY_TIMEOUT;      // 上游超时
+            case CrossSourceException.QUERY_FAILED:
+            case CrossSourceException.MERGE_ERROR:
+            default:
+                return HttpStatus.BAD_GATEWAY;          // 上游/归并失败
+        }
+    }
+
+    /** 构造跨源失败响应（body 结构保持兼容，仅 HTTP 状态码变化）。 */
+    private CrossSourceResponse buildFailedResponse(String queryId, long start,
+                                                    String errorCode, String message) {
+        return CrossSourceResponse.builder()
+                .queryId(queryId)
+                .status("FAILED")
+                .columns(List.of())
+                .rows(List.of())
+                .rowCount(0)
+                .durationMs(System.currentTimeMillis() - start)
+                .error(errorCode + ": " + message)
+                .build();
     }
 }

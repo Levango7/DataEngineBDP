@@ -11,7 +11,7 @@ CONTROL_CLUSTER="karmada-control"
 MEMBER_CLUSTERS=("member1" "member2")
 KARMADA_VERSION="v1.11.0"
 
-log() { echo "[$(date '\''+%H:%M:%S'\'')] $*"; }
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
 fail() { log "FAIL: $*"; exit 1; }
 pass() { log "PASS: $*"; }
 

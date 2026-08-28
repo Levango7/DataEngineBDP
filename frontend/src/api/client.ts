@@ -128,7 +128,10 @@ http.interceptors.response.use(
     const status: number = error?.response?.status ?? 0
     let msg = '请求失败，请稍后重试'
 
-    if (status === 401) {
+    if (error?.response?.data?.error) {
+      // 服务端显式错误码（如跨源查询 FAILED 的 error 字段）优先展示
+      msg = String(error.response.data.error)
+    } else if (status === 401) {
       msg = '登录已过期，请重新登录'
       if (unauthorizedInFlight) {
         return Promise.reject(new ApiError(msg, status, status))
@@ -138,6 +141,12 @@ http.interceptors.response.use(
       msg = '无权限访问该资源'
     } else if (status === 500) {
       msg = '服务器内部错误，请联系管理员'
+    } else if (status === 502) {
+      msg = '上游服务暂时不可用，请稍后重试'
+    } else if (status === 504) {
+      msg = '查询超时，请检查 SQL 或稍后重试'
+    } else if (status === 413) {
+      msg = '结果集过大，请缩小查询范围'
     } else if (status === 404) {
       msg = '请求的资源不存在'
     } else if (status === 0) {
