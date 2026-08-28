@@ -15,11 +15,11 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 import logging
 import threading
-import uuid
-from datetime import datetime, timezone
 from typing import Optional
+import uuid
 
 from app.core.step_executor import StepExecutor, StepOutcome
 from app.core.websocket_manager import WebSocketManager
@@ -98,13 +98,13 @@ class LoopOrchestrator:
             self._async_handles[taskId] = handle
         except RuntimeError:
             # 无事件循环（如同步测试环境），延迟到首次查询时执行
-            logger.warning(
-                "无事件循环，闭环任务 %s 将在查询时触发执行", taskId
-            )
+            logger.warning("无事件循环，闭环任务 %s 将在查询时触发执行", taskId)
 
         logger.info(
             "闭环任务已提交: taskId=%s, name=%s, adapterVersion=%s",
-            taskId, request.taskName, version,
+            taskId,
+            request.taskName,
+            version,
         )
         return task
 
@@ -142,13 +142,16 @@ class LoopOrchestrator:
                 task.finishedAt = datetime.now(timezone.utc)
                 task.touch()
 
-            await self.ws.push_completed(taskId, {
-                "status": "completed",
-                "adapterVersion": task.adapterVersion,
-                "reportVersion": task.reportVersion,
-                "evalAccuracy": task.evalResult.accuracy,
-                "deploymentId": task.deployResult.deploymentId,
-            })
+            await self.ws.push_completed(
+                taskId,
+                {
+                    "status": "completed",
+                    "adapterVersion": task.adapterVersion,
+                    "reportVersion": task.reportVersion,
+                    "evalAccuracy": task.evalResult.accuracy,
+                    "deploymentId": task.deployResult.deploymentId,
+                },
+            )
             logger.info("闭环任务 %s 全部完成", taskId)
 
         except Exception as e:  # noqa: BLE001
@@ -166,7 +169,9 @@ class LoopOrchestrator:
             task.touch()
 
         await self.ws.push_status(
-            taskId, "finetuning", "finetune",
+            taskId,
+            "finetuning",
+            "finetune",
             adapterVersion=task.adapterVersion,
         )
 
@@ -174,7 +179,8 @@ class LoopOrchestrator:
             await self.ws.push_metrics(taskId, "finetune", metrics)
 
         outcome, result = await self.executor.execute_finetune(
-            task, progress_callback=on_metrics,
+            task,
+            progress_callback=on_metrics,
         )
 
         with self._lock:
@@ -200,7 +206,9 @@ class LoopOrchestrator:
         )
 
         await self.ws.push_status(
-            taskId, "evaluating", "finetune",
+            taskId,
+            "evaluating",
+            "finetune",
             adapterPath=result.adapterPath,
         )
         return True
@@ -215,11 +223,10 @@ class LoopOrchestrator:
 
         await self.ws.push_status(taskId, "evaluating", "evaluate")
 
-        adapter_path = (
-            task.finetuneResult.adapterPath or task.request.baseModel
-        )
+        adapter_path = task.finetuneResult.adapterPath or task.request.baseModel
         outcome, result = await self.executor.execute_evaluate(
-            task, adapter_path,
+            task,
+            adapter_path,
         )
 
         with self._lock:
@@ -256,15 +263,19 @@ class LoopOrchestrator:
             hallucination=result.hallucination,
         )
 
-        await self.ws.push_metrics(taskId, "evaluate", {
-            "accuracy": result.accuracy,
-            "recall": result.recall,
-            "f1": result.f1,
-            "latencyP95": result.latencyP95,
-            "cost": result.cost,
-            "hallucination": result.hallucination,
-            "reportVersion": report_version,
-        })
+        await self.ws.push_metrics(
+            taskId,
+            "evaluate",
+            {
+                "accuracy": result.accuracy,
+                "recall": result.recall,
+                "f1": result.f1,
+                "latencyP95": result.latencyP95,
+                "cost": result.cost,
+                "hallucination": result.hallucination,
+                "reportVersion": report_version,
+            },
+        )
         return True
 
     async def _run_deploy(self, task: LoopTask) -> bool:
@@ -277,11 +288,10 @@ class LoopOrchestrator:
 
         await self.ws.push_status(taskId, "deploying", "deploy")
 
-        adapter_path = (
-            task.finetuneResult.adapterPath or task.request.baseModel
-        )
+        adapter_path = task.finetuneResult.adapterPath or task.request.baseModel
         outcome, result = await self.executor.execute_deploy(
-            task, adapter_path,
+            task,
+            adapter_path,
             eval_accuracy=task.evalResult.accuracy,
         )
 
@@ -297,7 +307,9 @@ class LoopOrchestrator:
 
         # 部署被跳过（评测不达标）也算成功
         await self.ws.push_status(
-            taskId, "completed", "deploy",
+            taskId,
+            "completed",
+            "deploy",
             deploymentId=result.deploymentId,
             endpoint=result.endpoint,
             healthy=result.healthy,
@@ -314,10 +326,7 @@ class LoopOrchestrator:
             if task is None:
                 return None
             # 若任务仍 pending 且无异步句柄，触发同步执行
-            if (
-                task.status == LoopStatus.PENDING
-                and taskId not in self._async_handles
-            ):
+            if task.status == LoopStatus.PENDING and taskId not in self._async_handles:
                 self._trigger_sync_execution(task)
             return task
 
@@ -334,12 +343,10 @@ class LoopOrchestrator:
             if status is not None:
                 tasks = [t for t in tasks if t.status == status]
             if tenantId is not None:
-                tasks = [
-                    t for t in tasks if t.request.tenantId == tenantId
-                ]
+                tasks = [t for t in tasks if t.request.tenantId == tenantId]
             tasks.sort(key=lambda t: t.createdAt, reverse=True)
             total = len(tasks)
-            paged = tasks[offset: offset + limit]
+            paged = tasks[offset : offset + limit]
             return LoopTaskListResponse(
                 total=total,
                 data=[LoopTaskResponse.from_task(t) for t in paged],

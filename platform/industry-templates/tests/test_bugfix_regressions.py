@@ -5,9 +5,9 @@ from __future__ import annotations
 import asyncio
 import time
 
+from fastapi.testclient import TestClient
 import httpx
 import pytest
-from fastapi.testclient import TestClient
 
 from industry_templates.api.app import create_app
 from industry_templates.config.settings import Settings
@@ -21,7 +21,6 @@ from industry_templates.services.helm_executor import HelmCommandResult
 from industry_templates.services.registry import ServiceRegistry
 from industry_templates.services.template_engine import TemplateEngine
 from industry_templates.templates import get_builtin_templates
-
 
 _FIN_VALUES = {
     "datasource.order_db": "jdbc:mysql://order:3306/order",

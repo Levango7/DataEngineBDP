@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import asyncio
 import threading
 import time
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
 from knowledge_engine.repositories.mock import MockGraphStore
 from knowledge_engine.repositories.nebula.graph_store import NebulaGraphStore
@@ -139,9 +138,7 @@ class TestSessionSerialization:
 
 
 class TestRouteErrorMapping:
-    def test_store_value_error_maps_to_400_on_get_vertex(
-        self, client: TestClient, registry, monkeypatch
-    ) -> None:
+    def test_store_value_error_maps_to_400_on_get_vertex(self, client: TestClient, registry, monkeypatch) -> None:
         async def boom(space: str, vid: str):
             raise ValueError("非法图标识符")
 

@@ -175,15 +175,17 @@ jobs:
             echo "  Python Lint: $mod_name ($mod_dir)"
             echo "============================================"
             # black 格式检查（不修改文件）
-            (cd "$mod_dir" && black --check --diff . 2>&1) || { echo "✗ $mod_name black 检查失败"; fail_count=$((fail_count + 1)); }
-            # isort 导入顺序检查
-            (cd "$mod_dir" && isort --check --diff . 2>&1) || { echo "✗ $mod_name isort 检查失败"; fail_count=$((fail_count + 1)); }
+            # 从仓库根运行，确保继承根 pyproject.toml 的 [tool.black] 配置
+            # （各组件自身的 pyproject.toml 会遮蔽向上查找，cd 进组件目录会退化为默认 88 列）
+            black --check --diff "$mod_dir" 2>&1 || { echo "✗ $mod_name black 检查失败"; fail_count=$((fail_count + 1)); }
+            # isort 导入顺序检查（从仓库根运行，继承根 [tool.isort] 配置）
+            isort --check --diff "$mod_dir" 2>&1 || { echo "✗ $mod_name isort 检查失败"; fail_count=$((fail_count + 1)); }
             # flake8 风格检查
             (cd "$mod_dir" && flake8 --max-line-length=120 --extend-ignore=E203,W503 . 2>&1) || { echo "✗ $mod_name flake8 检查失败"; fail_count=$((fail_count + 1)); }
             # pylint 静态分析（容忍度较高，不阻断 CI）
             (cd "$mod_dir" && pylint --rcfile=../../.pylintrc --fail-under=7.0 . 2>&1) || echo "::warning::$mod_name pylint 分数低于阈值，仅警告"
-            # mypy 类型检查（可选，失败仅警告）
-            (cd "$mod_dir" && mypy --ignore-missing-imports . 2>&1) || echo "::warning::$mod_name mypy 发现类型问题，仅警告"
+            # mypy 类型检查（可选，失败仅警告；从仓库根运行以继承根 [tool.mypy] 排除规则）
+            mypy --ignore-missing-imports "$mod_dir" 2>&1 || echo "::warning::$mod_name mypy 发现类型问题，仅警告"
           done < <(find platform -name pyproject.toml 2>/dev/null)
           if [ "$fail_count" -gt 0 ]; then
             echo "::error::共有 $fail_count 个 Python 组件 lint 失败"

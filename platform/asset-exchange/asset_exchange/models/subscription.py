@@ -62,7 +62,9 @@ class ApprovalRequest(BaseModel):
 class SubscribeRequest(BaseModel):
     """订阅请求."""
 
-    subscriberId: Optional[str] = Field(default=None, description="订阅方租户 ID（缺省取 JWT claim，请求体自报不再采信）")
+    subscriberId: Optional[str] = Field(
+        default=None, description="订阅方租户 ID（缺省取 JWT claim，请求体自报不再采信）"
+    )
     period: Optional[str] = Field(default="monthly", description="订阅周期: monthly/quarterly/yearly")
     durationDays: int = Field(default=30, ge=1, le=3650, description="订阅时长（天）")
     pullConfig: dict[str, Any] = Field(default_factory=dict, description="拉取配置")

@@ -9,7 +9,6 @@ import json
 import time
 
 from fastapi.testclient import TestClient
-
 from jwt_auth import AuthContext, effectiveTenant, loadAuthSettings
 
 SECRET = "nl2sql-unit-test-secret-key-32bytes!!"
@@ -31,9 +30,7 @@ def makeToken(secret=SECRET, sub="u1", tenant="tenant-a", role="user", exp=None)
     }
     si = f"{_enc(header)}.{_enc(claims)}"
     sig = (
-        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest())
-        .rstrip(b"=")
-        .decode()
+        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
     )
     return f"{si}.{sig}"
 

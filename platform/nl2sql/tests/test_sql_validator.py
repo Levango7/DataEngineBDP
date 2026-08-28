@@ -114,11 +114,7 @@ class TestParenScanIgnoresLiteralsAndComments:
         assert r.valid is True
 
     def test_parens_in_line_and_block_comments_not_counted(self, validator: SqlValidator) -> None:
-        sql = (
-            "SELECT * FROM default.orders -- stray ) ) (\n"
-            "# more (((\n"
-            "WHERE a = '(' /* )))( */ LIMIT 10;"
-        )
+        sql = "SELECT * FROM default.orders -- stray ) ) (\n" "# more (((\n" "WHERE a = '(' /* )))( */ LIMIT 10;"
         r = validator.validate(sql)
         assert not any(i.code == "UNBALANCED_PAREN" for i in r.issues)
         assert r.valid is True
@@ -142,9 +138,7 @@ class TestParenScanIgnoresLiteralsAndComments:
         assert not any(i.code == "UNBALANCED_PAREN" for i in r.issues)
 
     def test_scanner_strips_literals_and_comments(self, validator: SqlValidator) -> None:
-        stripped = SqlValidator._stripLiteralsAndComments(
-            "SELECT '(' -- )(\nFROM t /* (#) */ WHERE x = \")\";"
-        )
+        stripped = SqlValidator._stripLiteralsAndComments("SELECT '(' -- )(\nFROM t /* (#) */ WHERE x = \")\";")
         assert "(" not in stripped
         assert ")" not in stripped
         assert "--" not in stripped

@@ -12,14 +12,13 @@
 
 from __future__ import annotations
 
-import subprocess
 from datetime import datetime, timezone
+import subprocess
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from app.core.deployment_manager import DeploymentManager
 from app.models import DeploymentRecord, DeploymentStatus, DeployRequest
+import pytest
 
 
 # ============================================================
@@ -48,9 +47,7 @@ class TestDeploy:
     def test_deploy_real_mode_success(self, sample_deploy_request):
         """真实模式 _start_container 成功时应进入 running."""
         mgr = DeploymentManager(mock_mode=False)
-        with patch.object(
-            mgr, "_start_container", return_value=None
-        ) as mock_start:
+        with patch.object(mgr, "_start_container", return_value=None) as mock_start:
             rec = mgr.deploy(sample_deploy_request)
         mock_start.assert_called_once()
         assert rec.status == DeploymentStatus.RUNNING
@@ -60,7 +57,8 @@ class TestDeploy:
         """真实模式 _start_container 抛异常时应进入 failed 并记录 error."""
         mgr = DeploymentManager(mock_mode=False)
         with patch.object(
-            mgr, "_start_container",
+            mgr,
+            "_start_container",
             side_effect=RuntimeError("docker daemon down"),
         ):
             rec = mgr.deploy(sample_deploy_request)
@@ -349,8 +347,13 @@ class TestStartContainer:
         for runtime, expected_image in cases.items():
             rec = DeploymentRecord(
                 deploymentId=f"dep-{runtime}",
-                modelName="m", version="0.1", runtime=runtime,
-                port=8000, replicas=1, gpuCount=1, tenantId="t",
+                modelName="m",
+                version="0.1",
+                runtime=runtime,
+                port=8000,
+                replicas=1,
+                gpuCount=1,
+                tenantId="t",
             )
             mock_result = MagicMock()
             mock_result.returncode = 0

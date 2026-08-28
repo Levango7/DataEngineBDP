@@ -186,12 +186,11 @@ pretty = true
 warn_unused_ignores = true
 # 警告冗余类型转换
 warn_redundant_casts = true
-# 警告未类型化的函数
-warn_untyped = true
 # 警告返回类型不匹配
 warn_return_any = true
 # 警告未使用的配置
-warn_unused_configs = true
+# 关闭：各组件单独 mypy 时，根配置中未涉及该组件导入模块的 overrides 会被误报为 unused
+warn_unused_configs = false
 # 允许任意类型（FastAPI/Pydantic 场景）
 disallow_any_generics = false
 disallow_any_explicit = false

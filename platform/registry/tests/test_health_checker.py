@@ -10,11 +10,10 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
-import pytest
-
 from app.core.health_checker import HealthChecker
 from app.models import DeploymentRecord, DeploymentStatus
+import httpx
+import pytest
 
 
 def _make_record(
@@ -143,9 +142,7 @@ class TestCheckAsync:
         rec = _make_record()
 
         mock_client = AsyncMock()
-        mock_client.get = AsyncMock(
-            side_effect=httpx.ConnectError("connection refused")
-        )
+        mock_client.get = AsyncMock(side_effect=httpx.ConnectError("connection refused"))
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
@@ -218,9 +215,7 @@ class TestCheckSync:
         rec = _make_record()
 
         mock_client = MagicMock()
-        mock_client.get = MagicMock(
-            side_effect=httpx.ConnectError("conn refused")
-        )
+        mock_client.get = MagicMock(side_effect=httpx.ConnectError("conn refused"))
         mock_client.__enter__ = MagicMock(return_value=mock_client)
         mock_client.__exit__ = MagicMock(return_value=None)
 

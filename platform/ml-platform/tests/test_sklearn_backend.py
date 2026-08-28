@@ -7,15 +7,15 @@ import base64
 import json
 import time
 
-import pytest
 from fastapi.testclient import TestClient
+import pytest
 
-import ml_platform.repositories.sklearn.backend as sklearnBackendModule
 from ml_platform.api.app import createApp
 from ml_platform.config.settings import Settings
 from ml_platform.models import EvalConfig, TrainingConfig, TrainingStatus
 from ml_platform.repositories import ValidationError
 from ml_platform.repositories.sklearn import SklearnMLBackend
+import ml_platform.repositories.sklearn.backend as sklearnBackendModule
 from ml_platform.services.evaluation_service import EvaluationService
 from ml_platform.services.experiment_service import ExperimentService
 from ml_platform.services.feature_service import FeatureService

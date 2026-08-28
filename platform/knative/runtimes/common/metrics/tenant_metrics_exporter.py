@@ -13,9 +13,9 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import logging
 import time
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -51,12 +51,8 @@ class TenantMetricsExporter:
     """
 
     # PromQL 查询模板（按 tenant 隔离）
-    _QUERY_INVOCATION_COUNT = (
-        "sum by (tenant) (increase(serverless_invocation_count[{window}]))"
-    )
-    _QUERY_ERROR_COUNT = (
-        "sum by (tenant) (increase(serverless_invocation_count{status=\"error\"}[{window}]))"
-    )
+    _QUERY_INVOCATION_COUNT = "sum by (tenant) (increase(serverless_invocation_count[{window}]))"
+    _QUERY_ERROR_COUNT = 'sum by (tenant) (increase(serverless_invocation_count{status="error"}[{window}]))'
     _QUERY_P50_LATENCY = (
         "histogram_quantile(0.50, "
         "sum by (le, tenant) (rate(serverless_invocation_duration_seconds_bucket[{window}])))"
@@ -65,12 +61,8 @@ class TenantMetricsExporter:
         "histogram_quantile(0.99, "
         "sum by (le, tenant) (rate(serverless_invocation_duration_seconds_bucket[{window}])))"
     )
-    _QUERY_RUNTIME_BREAKDOWN = (
-        "sum by (tenant, runtime) (increase(serverless_invocation_count[{window}]))"
-    )
-    _QUERY_FUNCTION_BREAKDOWN = (
-        "sum by (tenant, function) (increase(serverless_invocation_count[{window}]))"
-    )
+    _QUERY_RUNTIME_BREAKDOWN = "sum by (tenant, runtime) (increase(serverless_invocation_count[{window}]))"
+    _QUERY_FUNCTION_BREAKDOWN = "sum by (tenant, function) (increase(serverless_invocation_count[{window}]))"
 
     def __init__(
         self,
@@ -149,18 +141,10 @@ class TenantMetricsExporter:
         windowStr = self._formatWindow(window)
 
         # 查询各指标
-        invocationCounts = self._query(
-            self._QUERY_INVOCATION_COUNT.format(window=windowStr)
-        )
-        errorCounts = self._query(
-            self._QUERY_ERROR_COUNT.format(window=windowStr)
-        )
-        p50Latencies = self._query(
-            self._QUERY_P50_LATENCY.format(window=windowStr)
-        )
-        p99Latencies = self._query(
-            self._QUERY_P99_LATENCY.format(window=windowStr)
-        )
+        invocationCounts = self._query(self._QUERY_INVOCATION_COUNT.format(window=windowStr))
+        errorCounts = self._query(self._QUERY_ERROR_COUNT.format(window=windowStr))
+        p50Latencies = self._query(self._QUERY_P50_LATENCY.format(window=windowStr))
+        p99Latencies = self._query(self._QUERY_P99_LATENCY.format(window=windowStr))
         runtimeBreakdown = self._queryMultiLabel(
             self._QUERY_RUNTIME_BREAKDOWN.format(window=windowStr),
             "runtime",
@@ -186,12 +170,8 @@ class TenantMetricsExporter:
                 p50Latency=p50Latencies.get(tenant, 0.0),
                 p99Latency=p99Latencies.get(tenant, 0.0),
                 avgLatency=p50Latencies.get(tenant, 0.0),
-                runtimeBreakdown={
-                    k: int(v) for k, v in runtimeBreakdown.get(tenant, {}).items()
-                },
-                functionBreakdown={
-                    k: int(v) for k, v in functionBreakdown.get(tenant, {}).items()
-                },
+                runtimeBreakdown={k: int(v) for k, v in runtimeBreakdown.get(tenant, {}).items()},
+                functionBreakdown={k: int(v) for k, v in functionBreakdown.get(tenant, {}).items()},
                 windowSeconds=self.windowSeconds,
             )
             metrics.append(metric)

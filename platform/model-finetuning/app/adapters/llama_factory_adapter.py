@@ -12,6 +12,7 @@ LLaMA-Factory 是开源低代码大模型微调框架，提供 YAML 配置驱动
 3. 解析 LLaMA-Factory 训练日志，提取 loss/lr/GPU 指标
 4. Mock 模式下不实际调用 CLI，仅生成配置并模拟日志
 """
+
 from __future__ import annotations
 
 import atexit
@@ -20,9 +21,7 @@ import re
 import shlex
 import subprocess
 import tempfile
-from typing import Any, IO, Optional
-
-import yaml
+from typing import IO, Any, Optional
 
 from app.adapters.base import BaseAdapter, ProcessHandle
 from app.models.finetune_config import (
@@ -31,6 +30,7 @@ from app.models.finetune_config import (
     QuantizationBits,
 )
 from app.models.finetune_task import FinetuneTask, LogEntry
+import yaml
 
 
 def _close_log_fd(log_fd: IO[str]) -> None:
@@ -79,9 +79,7 @@ class LlamaFactoryAdapter(BaseAdapter):
             if lora and lora.rank <= 0:
                 errors.append("LoRA rank 必须为正整数")
             if lora and lora.alpha < lora.rank:
-                errors.append(
-                    f"LoRA alpha({lora.alpha}) 建议 >= rank({lora.rank})"
-                )
+                errors.append(f"LoRA alpha({lora.alpha}) 建议 >= rank({lora.rank})")
         elif config.method == FinetuneMethod.QLORA:
             qlora = effective.get("qlora")
             if qlora and qlora.quantization not in (
@@ -173,9 +171,7 @@ class LlamaFactoryAdapter(BaseAdapter):
         生成 YAML 配置文件后返回 CLI 命令列表。
         """
         yaml_cfg = self.build_yaml_config(task)
-        config_path = os.path.join(
-            self.workDir, f"{task.taskId}_llamafactory.yaml"
-        )
+        config_path = os.path.join(self.workDir, f"{task.taskId}_llamafactory.yaml")
         os.makedirs(self.workDir, exist_ok=True)
         with open(config_path, "w", encoding="utf-8") as f:
             yaml.safe_dump(yaml_cfg, f, allow_unicode=True, sort_keys=False)
@@ -278,11 +274,8 @@ class LlamaFactoryAdapter(BaseAdapter):
             f.write(f"[mock] LLaMA-Factory 训练开始，任务 {task.taskId}\n")
             for step in range(0, total_steps + 1, hp.loggingSteps):
                 # 模拟 loss 下降
-                loss = 2.5 * (0.99 ** step)
+                loss = 2.5 * (0.99**step)
                 lr = hp.learningRate
                 epoch = step / 100.0
-                f.write(
-                    f"{{'loss': {loss:.4f}, 'learning_rate': {lr}, "
-                    f"'epoch': {epoch:.2f}}}\n"
-                )
+                f.write(f"{{'loss': {loss:.4f}, 'learning_rate': {lr}, " f"'epoch': {epoch:.2f}}}\n")
             f.write(f"[mock] 训练完成，输出目录 {task.request.outputDir}\n")

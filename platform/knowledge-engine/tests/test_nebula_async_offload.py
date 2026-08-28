@@ -11,7 +11,6 @@ import asyncio
 import time
 
 import pytest
-
 from test_ngql_injection import _OverlappingSession, bare_store
 
 SDK_DELAY_SECONDS = 0.5
@@ -56,12 +55,10 @@ async def _run_with_probe(op) -> tuple[float, float]:
 
 
 def _assert_probe_responsive(case_name: str, probe_elapsed: float, total_elapsed: float) -> None:
-    assert probe_elapsed < PROBE_TIME_BUDGET_SECONDS, (
-        f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
-    )
-    assert total_elapsed >= SDK_DELAY_SECONDS, (
-        f"{case_name}: 总耗时 {total_elapsed:.3f}s，慢操作未真实发生"
-    )
+    assert (
+        probe_elapsed < PROBE_TIME_BUDGET_SECONDS
+    ), f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
+    assert total_elapsed >= SDK_DELAY_SECONDS, f"{case_name}: 总耗时 {total_elapsed:.3f}s，慢操作未真实发生"
 
 
 @pytest.mark.asyncio
@@ -70,9 +67,7 @@ async def test_query_offloads_slow_sdk_keeps_loop_responsive() -> None:
     session = _SlowSession(SDK_DELAY_SECONDS)
     store._session = session
 
-    probe_elapsed, total_elapsed = await _run_with_probe(
-        lambda: store.query("kg1", "MATCH (v) RETURN v LIMIT 1")
-    )
+    probe_elapsed, total_elapsed = await _run_with_probe(lambda: store.query("kg1", "MATCH (v) RETURN v LIMIT 1"))
     _assert_probe_responsive("query", probe_elapsed, total_elapsed)
     assert session.calls == 1
 
@@ -105,9 +100,6 @@ async def test_concurrent_async_executes_remain_serialized() -> None:
     session = _OverlappingSession()
     store._session = session
 
-    await asyncio.gather(*[
-        store.insert_vertex("kg1", "Person", f"v{i}", {"name": "n"})
-        for i in range(6)
-    ])
+    await asyncio.gather(*[store.insert_vertex("kg1", "Person", f"v{i}", {"name": "n"}) for i in range(6)])
     assert session.calls == 6
     assert session.maxActive == 1

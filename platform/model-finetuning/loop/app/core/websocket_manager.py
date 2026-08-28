@@ -19,9 +19,9 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 import json
 import logging
-from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import WebSocket
@@ -58,7 +58,8 @@ class WebSocketManager:
             self._reverse[ws] = taskId
         logger.info(
             "WebSocket 已连接: task=%s, 当前订阅数=%d",
-            taskId, len(self._subscriptions[taskId]),
+            taskId,
+            len(self._subscriptions[taskId]),
         )
 
     async def disconnect(self, taskId: str, ws: WebSocket) -> None:
@@ -75,7 +76,8 @@ class WebSocketManager:
                     del self._subscriptions[taskId]
             self._reverse.pop(ws, None)
         logger.info(
-            "WebSocket 已断开: task=%s", taskId,
+            "WebSocket 已断开: task=%s",
+            taskId,
         )
 
     async def broadcast(self, taskId: str, message: dict[str, Any]) -> None:
@@ -86,17 +88,13 @@ class WebSocketManager:
             message: 消息字典，将序列化为 JSON.
         """
         async with self._lock:
-            subscribers = list(
-                self._subscriptions.get(taskId, set())
-            )
+            subscribers = list(self._subscriptions.get(taskId, set()))
 
         if not subscribers:
             return
 
         # 注入时间戳（若未提供）
-        message.setdefault(
-            "timestamp", datetime.now(timezone.utc).isoformat()
-        )
+        message.setdefault("timestamp", datetime.now(timezone.utc).isoformat())
         text = json.dumps(message, ensure_ascii=False, default=str)
 
         # 并行发送，忽略失败连接
@@ -105,9 +103,7 @@ class WebSocketManager:
             return_exceptions=True,
         )
         # 清理失败连接
-        failed = [
-            ws for ws, ok in zip(subscribers, results) if not ok
-        ]
+        failed = [ws for ws, ok in zip(subscribers, results) if not ok]
         if failed:
             async with self._lock:
                 for ws in failed:
@@ -128,55 +124,84 @@ class WebSocketManager:
     # 便捷推送方法
     # ============================================================
     async def push_status(
-        self, taskId: str, status: str, step: str,
+        self,
+        taskId: str,
+        status: str,
+        step: str,
         **extra: Any,
     ) -> None:
         """推送状态变更消息."""
-        await self.broadcast(taskId, {
-            "type": "status",
-            "taskId": taskId,
-            "data": {"status": status, "step": step, **extra},
-        })
+        await self.broadcast(
+            taskId,
+            {
+                "type": "status",
+                "taskId": taskId,
+                "data": {"status": status, "step": step, **extra},
+            },
+        )
 
     async def push_metrics(
-        self, taskId: str, step: str, metrics: dict[str, Any],
+        self,
+        taskId: str,
+        step: str,
+        metrics: dict[str, Any],
     ) -> None:
         """推送训练指标（loss/lr/GPU 利用率）."""
-        await self.broadcast(taskId, {
-            "type": "metrics",
-            "taskId": taskId,
-            "data": {"step": step, **metrics},
-        })
+        await self.broadcast(
+            taskId,
+            {
+                "type": "metrics",
+                "taskId": taskId,
+                "data": {"step": step, **metrics},
+            },
+        )
 
     async def push_log(
-        self, taskId: str, step: str, message: str,
+        self,
+        taskId: str,
+        step: str,
+        message: str,
     ) -> None:
         """推送日志条目."""
-        await self.broadcast(taskId, {
-            "type": "log",
-            "taskId": taskId,
-            "data": {"step": step, "message": message},
-        })
+        await self.broadcast(
+            taskId,
+            {
+                "type": "log",
+                "taskId": taskId,
+                "data": {"step": step, "message": message},
+            },
+        )
 
     async def push_error(
-        self, taskId: str, step: str, error: str,
+        self,
+        taskId: str,
+        step: str,
+        error: str,
     ) -> None:
         """推送错误信息."""
-        await self.broadcast(taskId, {
-            "type": "error",
-            "taskId": taskId,
-            "data": {"step": step, "error": error},
-        })
+        await self.broadcast(
+            taskId,
+            {
+                "type": "error",
+                "taskId": taskId,
+                "data": {"step": step, "error": error},
+            },
+        )
 
     async def push_completed(
-        self, taskId: str, summary: dict[str, Any],
+        self,
+        taskId: str,
+        summary: dict[str, Any],
     ) -> None:
         """推送闭环完成消息."""
-        await self.broadcast(taskId, {
-            "type": "completed",
-            "taskId": taskId,
-            "data": summary,
-        })
+        await self.broadcast(
+            taskId,
+            {
+                "type": "completed",
+                "taskId": taskId,
+                "data": summary,
+            },
+        )
 
     # ============================================================
     # 统计
@@ -185,7 +210,5 @@ class WebSocketManager:
         """返回管理器统计信息."""
         return {
             "taskSubscriptions": len(self._subscriptions),
-            "totalConnections": sum(
-                len(s) for s in self._subscriptions.values()
-            ),
+            "totalConnections": sum(len(s) for s in self._subscriptions.values()),
         }

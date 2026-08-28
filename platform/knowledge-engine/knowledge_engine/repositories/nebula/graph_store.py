@@ -198,9 +198,7 @@ class NebulaGraphStore(GraphStore):
     async def get_vertex(self, space: str, vid: str) -> Vertex:
         self._validate_identifier(space)
         self._validate_identifier(vid)
-        resp = await asyncio.to_thread(
-            self._execute, f'USE `{space}`; FETCH PROP ON * "{vid}" YIELD vertex AS v;'
-        )
+        resp = await asyncio.to_thread(self._execute, f'USE `{space}`; FETCH PROP ON * "{vid}" YIELD vertex AS v;')
         if resp.rows() is None or len(resp.rows()) == 0:
             raise VertexNotFoundError(vid)
         # 简化：返回最小顶点（实际应解析 ResultSet）

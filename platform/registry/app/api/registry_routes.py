@@ -21,8 +21,6 @@ import logging
 import threading
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query
-
 from app.core.deployment_manager import DeploymentManager
 from app.core.health_checker import HealthChecker
 from app.models import (
@@ -35,6 +33,7 @@ from app.models import (
     ModelRecord,
     ModelRegisterRequest,
 )
+from fastapi import APIRouter, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +71,9 @@ class SimpleModelRegistry:
         return record
 
     def get_model(
-        self, name: str, version: str = "",
+        self,
+        name: str,
+        version: str = "",
         tenant: str = "default",
     ) -> Optional[ModelRecord]:
         """查询模型."""
@@ -106,7 +107,9 @@ class SimpleModelRegistry:
             return result
 
     def list_versions(
-        self, name: str, tenant: str = "default",
+        self,
+        name: str,
+        tenant: str = "default",
     ) -> list[ModelRecord]:
         """列出模型所有版本."""
         key = self._key(name, tenant)
@@ -132,9 +135,7 @@ def create_router(
         try:
             return model_registry.register(request)
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"注册失败: {e}"
-            ) from e
+            raise HTTPException(status_code=500, detail=f"注册失败: {e}") from e
 
     @router.get("/models", response_model=ModelListResponse)
     async def list_models(
@@ -151,13 +152,9 @@ def create_router(
         tenantId: str = Query(default="default"),
     ):
         """查询模型详情."""
-        record = model_registry.get_model(
-            name=name, version=version, tenant=tenantId
-        )
+        record = model_registry.get_model(name=name, version=version, tenant=tenantId)
         if record is None:
-            raise HTTPException(
-                status_code=404, detail=f"模型不存在: {name}"
-            )
+            raise HTTPException(status_code=404, detail=f"模型不存在: {name}")
         return record
 
     @router.get("/models/{name}/versions")
@@ -172,9 +169,7 @@ def create_router(
     # ============================================================
     # 部署管理
     # ============================================================
-    @router.post(
-        "/deployments", status_code=201, response_model=DeploymentRecord
-    )
+    @router.post("/deployments", status_code=201, response_model=DeploymentRecord)
     async def create_deployment(request: DeployRequest):
         """创建部署（一键部署到推理服务）."""
         model = model_registry.get_model(
@@ -185,20 +180,13 @@ def create_router(
         if model is None:
             raise HTTPException(
                 status_code=404,
-                detail=(
-                    f"model_not_found: 模型不存在: "
-                    f"{request.modelName}"
-                ),
+                detail=(f"model_not_found: 模型不存在: " f"{request.modelName}"),
             )
         try:
-            record = await asyncio.to_thread(
-                deployment_manager.deploy, request
-            )
+            record = await asyncio.to_thread(deployment_manager.deploy, request)
             return record
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"部署失败: {e}"
-            ) from e
+            raise HTTPException(status_code=500, detail=f"部署失败: {e}") from e
 
     @router.get("/deployments", response_model=DeploymentListResponse)
     async def list_deployments(
@@ -206,55 +194,35 @@ def create_router(
         tenantId: Optional[str] = Query(default=None),
     ):
         """查询部署列表."""
-        deployments = deployment_manager.list_deployments(
-            status=status, tenantId=tenantId
-        )
-        return DeploymentListResponse(
-            total=len(deployments), deployments=deployments
-        )
+        deployments = deployment_manager.list_deployments(status=status, tenantId=tenantId)
+        return DeploymentListResponse(total=len(deployments), deployments=deployments)
 
-    @router.get(
-        "/deployments/{deploymentId}", response_model=DeploymentRecord
-    )
+    @router.get("/deployments/{deploymentId}", response_model=DeploymentRecord)
     async def get_deployment(deploymentId: str):
         """查询部署详情."""
         record = deployment_manager.get_deployment(deploymentId)
         if record is None:
-            raise HTTPException(
-                status_code=404, detail=f"部署不存在: {deploymentId}"
-            )
+            raise HTTPException(status_code=404, detail=f"部署不存在: {deploymentId}")
         return record
 
-    @router.delete(
-        "/deployments/{deploymentId}", response_model=DeploymentRecord
-    )
+    @router.delete("/deployments/{deploymentId}", response_model=DeploymentRecord)
     async def stop_deployment(deploymentId: str):
         """停止部署."""
-        record = await asyncio.to_thread(
-            deployment_manager.stop_deployment, deploymentId
-        )
+        record = await asyncio.to_thread(deployment_manager.stop_deployment, deploymentId)
         if record is None:
-            raise HTTPException(
-                status_code=404, detail=f"部署不存在: {deploymentId}"
-            )
+            raise HTTPException(status_code=404, detail=f"部署不存在: {deploymentId}")
         return record
 
-    @router.put(
-        "/deployments/{deploymentId}", response_model=DeploymentRecord
-    )
+    @router.put("/deployments/{deploymentId}", response_model=DeploymentRecord)
     async def update_deployment(
         deploymentId: str,
         replicas: int = Query(default=0, ge=0),
         gpuCount: int = Query(default=0, ge=0),
     ):
         """更新部署（扩缩容）."""
-        record = deployment_manager.update_deployment(
-            deploymentId, replicas=replicas, gpu_count=gpuCount
-        )
+        record = deployment_manager.update_deployment(deploymentId, replicas=replicas, gpu_count=gpuCount)
         if record is None:
-            raise HTTPException(
-                status_code=404, detail=f"部署不存在: {deploymentId}"
-            )
+            raise HTTPException(status_code=404, detail=f"部署不存在: {deploymentId}")
         return record
 
     # ============================================================
@@ -268,9 +236,7 @@ def create_router(
         """部署健康检查."""
         record = deployment_manager.get_deployment(deploymentId)
         if record is None:
-            raise HTTPException(
-                status_code=404, detail=f"部署不存在: {deploymentId}"
-            )
+            raise HTTPException(status_code=404, detail=f"部署不存在: {deploymentId}")
         return await health_checker.check(record)
 
     # ============================================================
@@ -283,9 +249,7 @@ def create_router(
             "deployment": deployment_manager.stats(),
             "models": {
                 "totalModels": len(model_registry._models),
-                "totalVersions": sum(
-                    len(v) for v in model_registry._models.values()
-                ),
+                "totalVersions": sum(len(v) for v in model_registry._models.values()),
             },
         }
 

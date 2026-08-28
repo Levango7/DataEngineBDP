@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from app.api.registry_routes import SimpleModelRegistry
 from app.core.deployment_manager import DeploymentManager
 from app.core.health_checker import HealthChecker
@@ -24,6 +22,7 @@ from app.models import (
     HealthCheckResult,
     ModelRegisterRequest,
 )
+import pytest
 
 
 # ============================================================
@@ -49,24 +48,18 @@ class TestSimpleModelRegistry:
         """按版本精确取回."""
         reg = SimpleModelRegistry()
         reg.register(sample_register_request)
-        got = reg.get_model(
-            "qwen2-7b-finetuned", version="0.1.0", tenant="tenant-001"
-        )
+        got = reg.get_model("qwen2-7b-finetuned", version="0.1.0", tenant="tenant-001")
         assert got is not None
         assert got.version == "0.1.0"
         # 不存在的版本
-        assert reg.get_model(
-            "qwen2-7b-finetuned", version="9.9.9", tenant="tenant-001"
-        ) is None
+        assert reg.get_model("qwen2-7b-finetuned", version="9.9.9", tenant="tenant-001") is None
 
     def test_list_models_filtered_by_tenant(self, sample_register_request):
         """list_models 按 tenant 过滤."""
         reg = SimpleModelRegistry()
         reg.register(sample_register_request)
         # 另一租户
-        req2 = sample_register_request.model_copy(
-            update={"tenantId": "tenant-002", "modelName": "model-b"}
-        )
+        req2 = sample_register_request.model_copy(update={"tenantId": "tenant-002", "modelName": "model-b"})
         reg.register(req2)
         assert len(reg.list_models(tenant="tenant-001")) == 1
         assert len(reg.list_models(tenant="tenant-002")) == 1
@@ -94,9 +87,7 @@ class TestSimpleModelRegistry:
         # 不指定版本时取活跃最新
         assert reg.get_model("qwen2-7b-finetuned", tenant="tenant-001") is None
         # 指定版本时也要求 isActive
-        assert reg.get_model(
-            "qwen2-7b-finetuned", version="0.1.0", tenant="tenant-001"
-        ) is None
+        assert reg.get_model("qwen2-7b-finetuned", version="0.1.0", tenant="tenant-001") is None
 
 
 # ============================================================
@@ -159,29 +150,21 @@ class TestModelQueryRoutes:
         assert resp.status_code == 200
         assert resp.json()["total"] == 1
 
-    def test_list_models_filter_tenant(
-        self, client, sample_register_request
-    ):
+    def test_list_models_filter_tenant(self, client, sample_register_request):
         """按 tenantId 过滤."""
         # 注册两个不同租户
         client.post(
             "/api/v1/registry/models",
             json=sample_register_request.model_dump(),
         )
-        req2 = sample_register_request.model_copy(
-            update={"tenantId": "tenant-002", "modelName": "model-b"}
-        )
-        client.post(
-            "/api/v1/registry/models", json=req2.model_dump()
-        )
+        req2 = sample_register_request.model_copy(update={"tenantId": "tenant-002", "modelName": "model-b"})
+        client.post("/api/v1/registry/models", json=req2.model_dump())
         resp = client.get("/api/v1/registry/models?tenantId=tenant-001")
         assert resp.json()["total"] == 1
 
     def test_get_model_detail_success(self, client, registered_model):
         """查询已注册模型详情."""
-        resp = client.get(
-            "/api/v1/registry/models/qwen2-7b-finetuned?tenantId=tenant-001"
-        )
+        resp = client.get("/api/v1/registry/models/qwen2-7b-finetuned?tenantId=tenant-001")
         assert resp.status_code == 200
         assert resp.json()["modelName"] == "qwen2-7b-finetuned"
 
@@ -199,9 +182,7 @@ class TestModelQueryRoutes:
         )
         v2 = sample_register_request.model_copy(update={"version": "0.2.0"})
         client.post("/api/v1/registry/models", json=v2.model_dump())
-        resp = client.get(
-            "/api/v1/registry/models/qwen2-7b-finetuned/versions?tenantId=tenant-001"
-        )
+        resp = client.get("/api/v1/registry/models/qwen2-7b-finetuned/versions?tenantId=tenant-001")
         assert resp.status_code == 200
         assert len(resp.json()["versions"]) == 2
 
@@ -218,9 +199,7 @@ class TestModelQueryRoutes:
 class TestDeploymentRoutes:
     """部署相关路由测试."""
 
-    def test_create_deployment_success(
-        self, client, registered_model, sample_deploy_request
-    ):
+    def test_create_deployment_success(self, client, registered_model, sample_deploy_request):
         """创建部署应返回 201 与部署记录（mock 模式 running）."""
         resp = client.post(
             "/api/v1/registry/deployments",
@@ -241,9 +220,7 @@ class TestDeploymentRoutes:
         )
         assert resp.status_code == 422
 
-    def test_create_deployment_internal_error(
-        self, client, registered_model, sample_deploy_request
-    ):
+    def test_create_deployment_internal_error(self, client, registered_model, sample_deploy_request):
         """deploy 抛异常应 500."""
         with patch(
             "app.api.registry_routes.DeploymentManager.deploy",
@@ -262,17 +239,13 @@ class TestDeploymentRoutes:
         assert resp.status_code == 200
         assert resp.json()["total"] == 0
 
-    def test_list_deployments_after_create(
-        self, client, running_deployment
-    ):
+    def test_list_deployments_after_create(self, client, running_deployment):
         """创建后列表 total=1."""
         resp = client.get("/api/v1/registry/deployments")
         assert resp.status_code == 200
         assert resp.json()["total"] == 1
 
-    def test_list_deployments_filter_status(
-        self, client, registered_model, sample_deploy_request
-    ):
+    def test_list_deployments_filter_status(self, client, registered_model, sample_deploy_request):
         """按 status 过滤部署列表."""
         client.post(
             "/api/v1/registry/deployments",
@@ -310,9 +283,7 @@ class TestDeploymentRoutes:
     def test_update_deployment_scale(self, client, running_deployment):
         """更新部署副本数."""
         dep_id = running_deployment.deploymentId
-        resp = client.put(
-            f"/api/v1/registry/deployments/{dep_id}?replicas=3&gpuCount=2"
-        )
+        resp = client.put(f"/api/v1/registry/deployments/{dep_id}?replicas=3&gpuCount=2")
         assert resp.status_code == 200
         body = resp.json()
         assert body["replicas"] == 3
@@ -320,9 +291,7 @@ class TestDeploymentRoutes:
 
     def test_update_deployment_not_found(self, client):
         """更新不存在的部署应 404."""
-        resp = client.put(
-            "/api/v1/registry/deployments/dep-nope?replicas=3"
-        )
+        resp = client.put("/api/v1/registry/deployments/dep-nope?replicas=3")
         assert resp.status_code == 404
 
 
@@ -362,9 +331,7 @@ class TestStatsRoute:
         assert body["models"]["totalModels"] == 0
         assert body["models"]["totalVersions"] == 0
 
-    def test_stats_with_data(
-        self, client, registered_model, running_deployment
-    ):
+    def test_stats_with_data(self, client, registered_model, running_deployment):
         """有数据后的统计."""
         resp = client.get("/api/v1/registry/stats")
         assert resp.status_code == 200

@@ -16,16 +16,15 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import logging
 import os
-from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.registry_routes import SimpleModelRegistry, create_router
 from app.core.deployment_manager import DeploymentManager
 from app.core.health_checker import HealthChecker
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,7 +59,9 @@ async def lifespan(app: FastAPI):
     mock_mode = _env_bool("REGISTRY_MOCK_MODE", True)
     port = int(os.environ.get("REGISTRY_PORT", "18089"))
     logger.info(
-        "启动模型仓库服务: port=%s, mock=%s", port, mock_mode,
+        "启动模型仓库服务: port=%s, mock=%s",
+        port,
+        mock_mode,
     )
 
     _state.deployment_manager = DeploymentManager(mock_mode=mock_mode)
@@ -83,10 +84,7 @@ def create_app() -> FastAPI:
     """创建 FastAPI 应用."""
     app = FastAPI(
         title="数据引擎大数据平台 · 模型仓库注册部署",
-        description=(
-            "T033 模型仓库：微调后模型注册 + 一键部署 + "
-            "部署管理 + 健康检查"
-        ),
+        description=("T033 模型仓库：微调后模型注册 + 一键部署 + " "部署管理 + 健康检查"),
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/docs",

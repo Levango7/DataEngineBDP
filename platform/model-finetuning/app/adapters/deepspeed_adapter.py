@@ -13,6 +13,7 @@ DeepSpeed 是微软开源的大模型训练优化库：
 2. 通过 deepspeed 启动分布式训练
 3. Mock 模式下不实际启动多卡，仅生成配置并模拟日志
 """
+
 from __future__ import annotations
 
 import atexit
@@ -20,7 +21,7 @@ import json
 import os
 import re
 import subprocess
-from typing import Any, IO, Optional
+from typing import IO, Any, Optional
 
 from app.adapters.base import BaseAdapter, ProcessHandle
 from app.models.finetune_config import (
@@ -75,9 +76,7 @@ class DeepSpeedAdapter(BaseAdapter):
         # TP 与 DP 乘积应与 GPU 总数一致（此处仅做合理性提示）
         total_parallel = ds.tensorParallelSize * ds.dataParallelSize
         if total_parallel > 32:
-            errors.append(
-                f"并行度过高（TP×DP={total_parallel}），请确认 GPU 资源充足"
-            )
+            errors.append(f"并行度过高（TP×DP={total_parallel}），请确认 GPU 资源充足")
 
         # 全参微调 + ZeRO-2 是常见组合，无需告警
         return errors
@@ -88,14 +87,9 @@ class DeepSpeedAdapter(BaseAdapter):
         优先使用项目内置配置（config/deepspeed_zero2.json / zero3.json），
         若不存在则动态生成到工作目录。
         """
-        builtin_name = (
-            "deepspeed_zero2.json" if stage == DeepSpeedStage.ZERO_2
-            else "deepspeed_zero3.json"
-        )
+        builtin_name = "deepspeed_zero2.json" if stage == DeepSpeedStage.ZERO_2 else "deepspeed_zero3.json"
         # 尝试项目内置配置（相对于项目根目录）
-        project_root = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..", "..")
-        )
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
         builtin_path = os.path.join(project_root, "config", builtin_name)
         if os.path.exists(builtin_path):
             return builtin_path
@@ -131,9 +125,7 @@ class DeepSpeedAdapter(BaseAdapter):
             }
         # 张量并行
         if ds.tensorParallelSize > 1:
-            template["zero_optimization"]["tensor_parallel"] = {
-                "tp_size": ds.tensorParallelSize
-            }
+            template["zero_optimization"]["tensor_parallel"] = {"tp_size": ds.tensorParallelSize}
         return template
 
     def build_command(self, task: FinetuneTask) -> list[str]:
@@ -336,18 +328,13 @@ class DeepSpeedAdapter(BaseAdapter):
                 f"GPU 数 {total_gpus}\n"
             )
             for step in range(0, total_steps + 1, hp.loggingSteps):
-                loss = 2.0 * (0.98 ** step)
+                loss = 2.0 * (0.98**step)
                 lr = hp.learningRate
                 epoch = step / 100.0
-                f.write(
-                    f"{{'loss': {loss:.4f}, 'learning_rate': {lr}, "
-                    f"'epoch': {epoch:.2f}}}\n"
-                )
+                f.write(f"{{'loss': {loss:.4f}, 'learning_rate': {lr}, " f"'epoch': {epoch:.2f}}}\n")
                 # 模拟各卡 GPU 利用率
                 for gpu_id in range(total_gpus):
                     util = 80.0 + (step % 20) - gpu_id * 2
                     mem = 30.0 + (step % 10) * 0.5
-                    f.write(
-                        f"[GPU {gpu_id}] util={util:.1f}% mem={mem:.1f}GB\n"
-                    )
+                    f.write(f"[GPU {gpu_id}] util={util:.1f}% mem={mem:.1f}GB\n")
             f.write(f"[mock] 训练完成，输出目录 {task.request.outputDir}\n")

@@ -71,10 +71,10 @@ def test_tiny_training_runs_end_to_end():
     """迷你模型 + LoRA 完整跑通 1 epoch（不依赖 GPU/大模型）。"""
     deps = ("torch", "transformers", "peft", "datasets")
     try:
+        import datasets  # noqa: F401
+        import peft  # noqa: F401
         import torch  # noqa: F401
         import transformers  # noqa: F401
-        import peft  # noqa: F401
-        import datasets  # noqa: F401
     except ImportError:
         # 环境缺训练依赖：跳过（CI 不强制装 torch）
         import pytest
@@ -95,9 +95,7 @@ def test_tiny_training_runs_end_to_end():
         assert proc.returncode == 0, proc.stdout + proc.stderr
         # adapter 权重应已保存
         adapter = os.path.join(tmp, "out", "adapter_model.safetensors")
-        assert os.path.exists(adapter) or os.path.exists(
-            os.path.join(tmp, "out", "adapter_model.bin")
-        ), proc.stdout
+        assert os.path.exists(adapter) or os.path.exists(os.path.join(tmp, "out", "adapter_model.bin")), proc.stdout
 
 
 def _project_root() -> str:

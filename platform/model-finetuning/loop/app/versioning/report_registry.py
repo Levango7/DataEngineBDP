@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import os
 import threading
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from loguru import logger
@@ -82,9 +82,7 @@ class ReportVersion:
             latency_p95=float(data.get("latencyP95", 0.0)),
             cost=float(data.get("cost", 0.0)),
             hallucination=float(data.get("hallucination", 0.0)),
-            created_at=datetime.fromisoformat(
-                data["createdAt"]
-            ) if data.get("createdAt") else None,
+            created_at=datetime.fromisoformat(data["createdAt"]) if data.get("createdAt") else None,
         )
 
 
@@ -102,7 +100,10 @@ class ReportRegistry:
         logger.info("ReportRegistry 初始化完成")
 
     def _report_key(
-        self, adapter_version: str, dataset: str, tenant_id: str,
+        self,
+        adapter_version: str,
+        dataset: str,
+        tenant_id: str,
     ) -> str:
         """构造报告唯一键."""
         return f"{tenant_id}/{adapter_version}/{dataset}"
@@ -111,7 +112,10 @@ class ReportRegistry:
     # 分配版本号
     # ============================================================
     def allocate_version(
-        self, adapter_version: str, dataset: str, tenant_id: str,
+        self,
+        adapter_version: str,
+        dataset: str,
+        tenant_id: str,
     ) -> str:
         """分配新版本号.
 
@@ -126,10 +130,17 @@ class ReportRegistry:
     # 注册报告版本
     # ============================================================
     def register(
-        self, version: str, adapter_version: str, dataset: str,
-        tenant_id: str, loop_task_id: str = "",
-        accuracy: float = 0.0, recall: float = 0.0, f1: float = 0.0,
-        latency_p95: float = 0.0, cost: float = 0.0,
+        self,
+        version: str,
+        adapter_version: str,
+        dataset: str,
+        tenant_id: str,
+        loop_task_id: str = "",
+        accuracy: float = 0.0,
+        recall: float = 0.0,
+        f1: float = 0.0,
+        latency_p95: float = 0.0,
+        cost: float = 0.0,
         hallucination: float = 0.0,
     ) -> ReportVersion:
         """注册一个评测报告版本."""
@@ -152,16 +163,16 @@ class ReportRegistry:
                 self._versions[key] = []
             self._versions[key].append(record)
             self._save_to_disk()
-        logger.info(
-            f"评测报告已注册: key={key}, version={version}"
-        )
+        logger.info(f"评测报告已注册: key={key}, version={version}")
         return record
 
     # ============================================================
     # 查询版本历史
     # ============================================================
     def list_versions(
-        self, adapter_version: str = "", dataset: str = "",
+        self,
+        adapter_version: str = "",
+        dataset: str = "",
         tenant_id: str = "default",
     ) -> list[dict]:
         """查询评测报告版本历史."""
@@ -187,7 +198,9 @@ class ReportRegistry:
     # 版本对比
     # ============================================================
     def compare_versions(
-        self, version_a: str, version_b: str,
+        self,
+        version_a: str,
+        version_b: str,
         tenant_id: str = "default",
     ) -> dict:
         """对比两个报告版本."""
@@ -212,7 +225,9 @@ class ReportRegistry:
             }
 
     def _find_version(
-        self, version: str, tenant_id: str,
+        self,
+        version: str,
+        tenant_id: str,
     ) -> Optional[ReportVersion]:
         """查找指定版本记录."""
         for key, versions in self._versions.items():
@@ -241,7 +256,8 @@ class ReportRegistry:
         for name, va, vb in metrics:
             diff = vb - va
             result[name] = {
-                "a": va, "b": vb,
+                "a": va,
+                "b": vb,
                 "diff": diff,
                 "diffPercent": (diff / va * 100) if va else 0.0,
             }
@@ -255,10 +271,7 @@ class ReportRegistry:
         try:
             path = os.path.join(self.storage_dir, "reports.json")
             data = {
-                "versions": {
-                    key: [v.to_dict() for v in versions]
-                    for key, versions in self._versions.items()
-                },
+                "versions": {key: [v.to_dict() for v in versions] for key, versions in self._versions.items()},
             }
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
@@ -274,9 +287,7 @@ class ReportRegistry:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for key, versions in data.get("versions", {}).items():
-                self._versions[key] = [
-                    ReportVersion.from_dict(v) for v in versions
-                ]
+                self._versions[key] = [ReportVersion.from_dict(v) for v in versions]
         except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"加载报告元数据失败: {e}")
 
@@ -287,8 +298,6 @@ class ReportRegistry:
         """返回统计信息."""
         with self._lock:
             return {
-                "totalReports": sum(
-                    len(v) for v in self._versions.values()
-                ),
+                "totalReports": sum(len(v) for v in self._versions.values()),
                 "totalKeys": len(self._versions),
             }

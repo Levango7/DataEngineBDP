@@ -321,10 +321,7 @@ class AssetService:
             NoActiveSubscriptionError: 无有效订阅。
         """
         subs = await self._sub_repo.list_by_asset(asset_id)
-        if not any(
-            s.subscriberId == subscriber_id and s.status == SubscriptionStatus.ACTIVE
-            for s in subs
-        ):
+        if not any(s.subscriberId == subscriber_id and s.status == SubscriptionStatus.ACTIVE for s in subs):
             raise NoActiveSubscriptionError(asset_id, subscriber_id)
 
     async def offline_asset(self, asset_id: str) -> Asset:

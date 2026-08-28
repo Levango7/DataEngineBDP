@@ -12,9 +12,8 @@ import logging
 import time
 from typing import Optional
 
-import httpx
-
 from app.models import DeploymentRecord, HealthCheckResult
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -55,9 +54,7 @@ class HealthChecker:
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 # 1. 探测 /health
-                resp = await client.get(
-                    deployment.endpoint.rstrip("/") + "/health"
-                )
+                resp = await client.get(deployment.endpoint.rstrip("/") + "/health")
                 if resp.status_code != 200:
                     return HealthCheckResult(
                         deploymentId=deployment.deploymentId,
@@ -82,9 +79,7 @@ class HealthChecker:
                     healthy=healthy,
                     endpoint=deployment.endpoint,
                     latencyMs=round(latency, 2),
-                    error=None if healthy else (
-                        f"推理请求返回 {infer_resp.status_code}"
-                    ),
+                    error=None if healthy else (f"推理请求返回 {infer_resp.status_code}"),
                 )
         except Exception as e:  # noqa: BLE001
             logger.warning(f"健康检查异常: {e}")
@@ -115,9 +110,7 @@ class HealthChecker:
         start = time.time()
         try:
             with httpx.Client(timeout=self.timeout) as client:
-                resp = client.get(
-                    deployment.endpoint.rstrip("/") + "/health"
-                )
+                resp = client.get(deployment.endpoint.rstrip("/") + "/health")
                 latency = (time.time() - start) * 1000
                 return HealthCheckResult(
                     deploymentId=deployment.deploymentId,

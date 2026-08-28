@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-import httpx
 from gateway_client import GatewayClient
+import httpx
 from models import GatewayExecuteResult
 import pytest
 
@@ -97,26 +97,21 @@ class _CapturePost:
 
 @pytest.mark.asyncio
 class TestLimitNoneVsZero:
-    async def test_limit_none_falls_back_to_default(
-        self, gatewayClient: GatewayClient, monkeypatch
-    ) -> None:
+    async def test_limit_none_falls_back_to_default(self, gatewayClient: GatewayClient, monkeypatch) -> None:
         cap = _CapturePost()
         monkeypatch.setattr(httpx.AsyncClient, "post", cap)
         await gatewayClient.execute("SELECT 1;", limit=None)
         assert cap.payload["limit"] == gatewayClient.settings.defaultLimit
 
-    async def test_limit_zero_preserved_not_swallowed(
-        self, gatewayClient: GatewayClient, monkeypatch
-    ) -> None:
+    async def test_limit_zero_preserved_not_swallowed(self, gatewayClient: GatewayClient, monkeypatch) -> None:
         cap = _CapturePost()
         monkeypatch.setattr(httpx.AsyncClient, "post", cap)
         result = await gatewayClient.execute("SELECT 1;", limit=0)
         assert cap.payload["limit"] == 0
         assert gatewayClient.settings.defaultLimit != 0
+        assert result is not None
 
-    async def test_limit_one_passes_through(
-        self, gatewayClient: GatewayClient, monkeypatch
-    ) -> None:
+    async def test_limit_one_passes_through(self, gatewayClient: GatewayClient, monkeypatch) -> None:
         cap = _CapturePost()
         monkeypatch.setattr(httpx.AsyncClient, "post", cap)
         await gatewayClient.execute("SELECT 1;", limit=1)

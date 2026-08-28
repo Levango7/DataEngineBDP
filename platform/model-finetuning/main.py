@@ -20,19 +20,19 @@
       不需要 GPU / torch / LLaMA-Factory，仅验证 API 正确性。
     - 所有组件通过 app.state 共享。
 """
+
 from __future__ import annotations
 
 import os
 from typing import Any
 
+from app.api.tasks import create_router
+from app.services.finetune_service import FinetuneService
+from app.services.job_scheduler import JobScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
-
-from app.api.tasks import create_router
-from app.services.finetune_service import FinetuneService
-from app.services.job_scheduler import JobScheduler
 
 
 # ============================================================
@@ -68,9 +68,7 @@ def create_app() -> FastAPI:
     schedulerBackend = os.environ.get("FINETUNE_SCHEDULER_BACKEND", "volcano")
 
     if mockMode:
-        logger.warning(
-            "演示模式: FINETUNE_MOCK_MODE=true,微调任务在本地模拟执行,不占用 GPU 资源"
-        )
+        logger.warning("演示模式: FINETUNE_MOCK_MODE=true,微调任务在本地模拟执行,不占用 GPU 资源")
 
     app = FastAPI(
         title="Model Finetuning Engine",
@@ -95,12 +93,8 @@ def create_app() -> FastAPI:
     )
 
     # 初始化服务
-    scheduler = JobScheduler(
-        backend=schedulerBackend, mockMode=mockMode
-    )
-    service = FinetuneService(
-        workDir=workDir, mockMode=mockMode, scheduler=scheduler
-    )
+    scheduler = JobScheduler(backend=schedulerBackend, mockMode=mockMode)
+    service = FinetuneService(workDir=workDir, mockMode=mockMode, scheduler=scheduler)
     app.state.service = service
     app.state.mockMode = mockMode
 
@@ -135,10 +129,7 @@ def create_app() -> FastAPI:
 
     @app.on_event("startup")
     async def on_startup():
-        logger.info(
-            f"微调引擎启动完成，mockMode={mockMode}, "
-            f"workDir={workDir}, scheduler={schedulerBackend}"
-        )
+        logger.info(f"微调引擎启动完成，mockMode={mockMode}, " f"workDir={workDir}, scheduler={schedulerBackend}")
 
     @app.on_event("shutdown")
     async def on_shutdown():

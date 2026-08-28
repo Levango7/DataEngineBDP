@@ -20,8 +20,6 @@ from __future__ import annotations
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
-
 from app.core.orchestrator import LoopOrchestrator
 from app.core.websocket_manager import WebSocketManager
 from app.models import (
@@ -32,6 +30,7 @@ from app.models import (
 )
 from app.versioning.adapter_registry import AdapterRegistry
 from app.versioning.report_registry import ReportRegistry
+from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +61,7 @@ def create_router(
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"提交闭环任务失败: {e}"
-            ) from e
+            raise HTTPException(status_code=500, detail=f"提交闭环任务失败: {e}") from e
 
     # ============================================================
     # 查询任务列表
@@ -78,8 +75,10 @@ def create_router(
     ):
         """查询闭环任务列表."""
         return orchestrator.list_tasks(
-            status=status, tenantId=tenantId,
-            limit=limit, offset=offset,
+            status=status,
+            tenantId=tenantId,
+            limit=limit,
+            offset=offset,
         )
 
     # ============================================================
@@ -121,17 +120,11 @@ def create_router(
         if task.evalResult.error:
             logs.append(f"[evaluate] ERROR: {task.evalResult.error}")
         if task.evalResult.accuracy:
-            logs.append(
-                f"[evaluate] accuracy={task.evalResult.accuracy:.4f}, "
-                f"f1={task.evalResult.f1:.4f}"
-            )
+            logs.append(f"[evaluate] accuracy={task.evalResult.accuracy:.4f}, " f"f1={task.evalResult.f1:.4f}")
         if task.deployResult.error:
             logs.append(f"[deploy] ERROR: {task.deployResult.error}")
         if task.deployResult.endpoint:
-            logs.append(
-                f"[deploy] endpoint={task.deployResult.endpoint}, "
-                f"healthy={task.deployResult.healthy}"
-            )
+            logs.append(f"[deploy] endpoint={task.deployResult.endpoint}, " f"healthy={task.deployResult.healthy}")
         return {"taskId": taskId, "logs": logs}
 
     # ============================================================
@@ -179,8 +172,10 @@ def create_router(
         """查询 Adapter 版本历史."""
         return {
             "versions": adapter_registry.list_versions(
-                base_model=baseModel, method=method,
-                framework=framework, tenant_id=tenantId,
+                base_model=baseModel,
+                method=method,
+                framework=framework,
+                tenant_id=tenantId,
             )
         }
 
@@ -194,7 +189,8 @@ def create_router(
         """对比两个 Adapter 版本."""
         return adapter_registry.compare_versions(
             base_model=baseModel,
-            version_a=versionA, version_b=versionB,
+            version_a=versionA,
+            version_b=versionB,
             tenant_id=tenantId,
         )
 
@@ -208,8 +204,10 @@ def create_router(
     ):
         """回滚到指定 Adapter 版本."""
         return adapter_registry.rollback(
-            base_model=baseModel, version=version,
-            method=method, framework=framework,
+            base_model=baseModel,
+            version=version,
+            method=method,
+            framework=framework,
             tenant_id=tenantId,
         )
 
@@ -222,13 +220,13 @@ def create_router(
     ):
         """获取当前激活的 Adapter 版本."""
         result = adapter_registry.get_active_version(
-            base_model=baseModel, method=method,
-            framework=framework, tenant_id=tenantId,
+            base_model=baseModel,
+            method=method,
+            framework=framework,
+            tenant_id=tenantId,
         )
         if result is None:
-            raise HTTPException(
-                status_code=404, detail="无激活版本"
-            )
+            raise HTTPException(status_code=404, detail="无激活版本")
         return result
 
     # ============================================================
@@ -244,7 +242,8 @@ def create_router(
         return {
             "versions": report_registry.list_versions(
                 adapter_version=adapterVersion,
-                dataset=dataset, tenant_id=tenantId,
+                dataset=dataset,
+                tenant_id=tenantId,
             )
         }
 
@@ -256,7 +255,8 @@ def create_router(
     ):
         """对比两个评测报告版本."""
         return report_registry.compare_versions(
-            version_a=versionA, version_b=versionB,
+            version_a=versionA,
+            version_b=versionB,
             tenant_id=tenantId,
         )
 

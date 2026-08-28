@@ -11,13 +11,13 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
 _LOOP_ROOT = Path(__file__).resolve().parents[1] / "loop"
 
-_ORCHESTRATOR_SCRIPT = r'''
+_ORCHESTRATOR_SCRIPT = r"""
 import asyncio
 import json
 import sys
@@ -68,9 +68,9 @@ async def main():
 
 
 asyncio.run(main())
-'''
+"""
 
-_HTTP_SCRIPT = r'''
+_HTTP_SCRIPT = r"""
 import asyncio
 import json
 import sys
@@ -157,7 +157,7 @@ async def main():
 
 
 asyncio.run(main())
-'''
+"""
 
 
 def _run_script(script: str) -> dict:

@@ -3,6 +3,7 @@
 根据 FinetuneFramework 枚举实例化对应适配器，
 业务层通过工厂获取适配器，实现框架可插拔。
 """
+
 from __future__ import annotations
 
 from app.adapters.base import BaseAdapter
@@ -10,7 +11,6 @@ from app.adapters.deepspeed_adapter import DeepSpeedAdapter
 from app.adapters.llama_factory_adapter import LlamaFactoryAdapter
 from app.adapters.peft_adapter import PEFTAdapter
 from app.models.finetune_config import FinetuneFramework
-
 
 # 框架枚举 → 适配器类映射
 _ADAPTER_REGISTRY: dict[FinetuneFramework, type[BaseAdapter]] = {

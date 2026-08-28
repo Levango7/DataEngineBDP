@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 
 if "FINETUNE_WORK_DIR" not in os.environ:
     os.environ["FINETUNE_WORK_DIR"] = tempfile.mkdtemp(prefix="finetune-demo-")
@@ -17,12 +17,11 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from loguru import logger
-
 import main as finetune_main
 
 _LOOP_ROOT = Path(__file__).resolve().parents[1] / "loop"
 
-_DEMO_SCRIPT = r'''
+_DEMO_SCRIPT = r"""
 import json
 import logging
 import sys
@@ -53,7 +52,7 @@ create_app()
 mock_off = any("演示模式" in m for m in records)
 
 print(json.dumps({"mockOn": mock_on, "mockOff": mock_off}))
-'''
+"""
 
 
 class TestFinetuneDemoModeWarning:
@@ -69,9 +68,7 @@ class TestFinetuneDemoModeWarning:
 
     def test_real_mode_no_warning(self, monkeypatch):
         monkeypatch.setenv("FINETUNE_MOCK_MODE", "false")
-        monkeypatch.setenv(
-            "FINETUNE_WORK_DIR", tempfile.mkdtemp(prefix="finetune-demo-real-")
-        )
+        monkeypatch.setenv("FINETUNE_WORK_DIR", tempfile.mkdtemp(prefix="finetune-demo-real-"))
         records: list[str] = []
         sink_id = logger.add(records.append, level="WARNING")
         try:

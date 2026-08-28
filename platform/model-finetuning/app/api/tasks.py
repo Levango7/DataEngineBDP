@@ -10,12 +10,10 @@
     GET    /api/v1/finetune/nodes             列出 GPU 节点池
     GET    /api/v1/finetune/stats             服务统计
 """
+
 from __future__ import annotations
 
 from typing import Optional
-
-from fastapi import APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse
 
 from app.models.finetune_task import (
     FinetuneTaskListResponse,
@@ -25,6 +23,8 @@ from app.models.finetune_task import (
     TaskStatus,
 )
 from app.services.finetune_service import FinetuneService
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 
 
 def create_router(service: FinetuneService) -> APIRouter:
@@ -51,9 +51,7 @@ def create_router(service: FinetuneService) -> APIRouter:
         except ValueError as e:
             raise HTTPException(status_code=400, detail=str(e)) from e
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"提交任务失败: {e}"
-            ) from e
+            raise HTTPException(status_code=500, detail=f"提交任务失败: {e}") from e
 
     # ============================================================
     # 查询任务列表
@@ -66,9 +64,7 @@ def create_router(service: FinetuneService) -> APIRouter:
         offset: int = Query(default=0, ge=0, description="偏移量"),
     ):
         """查询微调任务列表."""
-        return service.list_tasks(
-            status=status, tenantId=tenantId, limit=limit, offset=offset
-        )
+        return service.list_tasks(status=status, tenantId=tenantId, limit=limit, offset=offset)
 
     # ============================================================
     # 查询任务详情

@@ -22,6 +22,7 @@ from app.core.executor import EvalExecutor
 from app.core.job_manager import JobManager
 from app.core.llm_client import LLMGatewayClient
 from app.datasets.base import get_adapter
+from app.jwt_auth import getAuthContext
 from app.models import (
     ABReport,
     ABReportRequest,
@@ -33,7 +34,6 @@ from app.models import (
     SubmitJobRequest,
 )
 from app.report.generator import ABReportGenerator
-from app.jwt_auth import getAuthContext
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)

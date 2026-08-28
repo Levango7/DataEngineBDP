@@ -12,29 +12,23 @@ from __future__ import annotations
 
 import importlib.util
 import json
+from pathlib import Path
 import subprocess
 import sys
-from pathlib import Path
 
-_VERSIONING_DIR = (
-    Path(__file__).resolve().parents[1] / "loop" / "app" / "versioning"
-)
+_VERSIONING_DIR = Path(__file__).resolve().parents[1] / "loop" / "app" / "versioning"
 _LOOP_ROOT = Path(__file__).resolve().parents[1] / "loop"
 
 
 def _load_module(module_name: str, filename: str):
-    spec = importlib.util.spec_from_file_location(
-        module_name, _VERSIONING_DIR / filename
-    )
+    spec = importlib.util.spec_from_file_location(module_name, _VERSIONING_DIR / filename)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
     spec.loader.exec_module(module)
     return module
 
 
-_adapter_registry = _load_module(
-    "adapter_registry_under_test", "adapter_registry.py"
-)
+_adapter_registry = _load_module("adapter_registry_under_test", "adapter_registry.py")
 AdapterRegistry = _adapter_registry.AdapterRegistry
 
 
@@ -160,12 +154,16 @@ class TestAllocateVersionKeyConsistency:
         registry = AdapterRegistry(storage_dir=str(tmp_path / "reg"))
 
         lora_v1 = registry.allocate_version(
-            base_model="qwen-7b", method="lora",
-            framework="peft", tenant_id="tenant-d",
+            base_model="qwen-7b",
+            method="lora",
+            framework="peft",
+            tenant_id="tenant-d",
         )
         qlora_v1 = registry.allocate_version(
-            base_model="qwen-7b", method="qlora",
-            framework="peft", tenant_id="tenant-d",
+            base_model="qwen-7b",
+            method="qlora",
+            framework="peft",
+            tenant_id="tenant-d",
         )
         assert lora_v1 == "0.1.0"
         assert qlora_v1 == "0.1.0"
@@ -179,17 +177,27 @@ class TestAllocateVersionKeyConsistency:
             framework="peft",
         )
 
-        assert registry.allocate_version(
-            base_model="qwen-7b", method="qlora",
-            framework="peft", tenant_id="tenant-d",
-        ) == "0.1.0"
-        assert registry.allocate_version(
-            base_model="qwen-7b", method="lora",
-            framework="peft", tenant_id="tenant-d",
-        ) == "0.1.1"
+        assert (
+            registry.allocate_version(
+                base_model="qwen-7b",
+                method="qlora",
+                framework="peft",
+                tenant_id="tenant-d",
+            )
+            == "0.1.0"
+        )
+        assert (
+            registry.allocate_version(
+                base_model="qwen-7b",
+                method="lora",
+                framework="peft",
+                tenant_id="tenant-d",
+            )
+            == "0.1.1"
+        )
 
 
-_ORCHESTRATOR_SCRIPT = r'''
+_ORCHESTRATOR_SCRIPT = r"""
 import json
 import sys
 import tempfile
@@ -235,7 +243,7 @@ print(json.dumps({
     "v2": done2.adapterVersion,
     "s2": done2.status.value,
 }))
-'''
+"""
 
 
 class TestOrchestratorVersionFlow:

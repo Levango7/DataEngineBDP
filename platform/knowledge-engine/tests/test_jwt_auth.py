@@ -37,9 +37,7 @@ def make_token(
     }
     si = f"{_enc(header)}.{_enc(claims)}"
     sig = (
-        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest())
-        .rstrip(b"=")
-        .decode()
+        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
     )
     return f"{si}.{sig}"
 

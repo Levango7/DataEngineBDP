@@ -132,10 +132,13 @@ class TestExecute:
             },
         )
         assert resp.status_code == 200
-        assert unreachableClient.post(
-            "/api/v1/nl2sql/execute",
-            json={"query": "查询 orders 表", "useMockSchema": True},
-        ).status_code == 200
+        assert (
+            unreachableClient.post(
+                "/api/v1/nl2sql/execute",
+                json={"query": "查询 orders 表", "useMockSchema": True},
+            ).status_code
+            == 200
+        )
 
 
 class TestDialogue:

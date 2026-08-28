@@ -20,11 +20,11 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 import json
 import logging
 import os
 import sys
-from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
 
@@ -62,9 +62,9 @@ def _tiny_model_enabled() -> bool:
 def run_training(cfg: RunnerConfig) -> int:
     """执行训练主流程。"""
     try:
-        import torch
         from datasets import load_dataset
         from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+        import torch
         from transformers import (
             AutoModelForCausalLM,
             AutoTokenizer,
@@ -109,8 +109,7 @@ def run_training(cfg: RunnerConfig) -> int:
             r=lora_cfg.get("r", 8),
             lora_alpha=lora_cfg.get("lora_alpha", 16),
             lora_dropout=lora_cfg.get("lora_dropout", 0.05),
-            target_modules=lora_cfg.get("target_modules")
-            or ["q_proj", "v_proj", "k_proj", "o_proj"],
+            target_modules=lora_cfg.get("target_modules") or ["q_proj", "v_proj", "k_proj", "o_proj"],
             bias="none",
             task_type="CAUSAL_LM",
         )

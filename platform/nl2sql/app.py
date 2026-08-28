@@ -21,9 +21,9 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from typing import Any, Optional
 import os
 import time
+from typing import Any, Optional
 import uuid
 
 from config.settings import Settings, get_settings
@@ -147,11 +147,7 @@ class ServiceRegistry:
 
     def _sweepExpiredSessions(self) -> None:
         now = time.monotonic()
-        expired = [
-            key
-            for key, (_, ts) in self._sessions.items()
-            if now - ts > self.settings.sessionTtlSeconds
-        ]
+        expired = [key for key, (_, ts) in self._sessions.items() if now - ts > self.settings.sessionTtlSeconds]
         for key in expired:
             del self._sessions[key]
 
@@ -326,7 +322,9 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         )
 
     @app.post(f"{prefix}/nl2sql/dialogue/answer", response_model=DialogueResponse)
-    async def dialogueAnswer(req: DialogueAnswerRequest, auth: AuthContext = Depends(getAuthContext)) -> DialogueResponse:
+    async def dialogueAnswer(
+        req: DialogueAnswerRequest, auth: AuthContext = Depends(getAuthContext)
+    ) -> DialogueResponse:
         """提交澄清回答."""
         state = reg.getSession(auth.tenantId, req.sessionId)
         if state is None:

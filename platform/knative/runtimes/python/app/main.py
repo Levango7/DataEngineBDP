@@ -19,15 +19,14 @@ from __future__ import annotations
 import importlib
 import logging
 import os
+from pathlib import Path
 import sys
 import time
-from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
+from app.metrics import InvocationRecorder
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
-
-from app.metrics import InvocationRecorder
 
 # ---------------------------------------------------------------------------
 # 配置
@@ -117,12 +116,10 @@ async def _on_startup() -> None:
     try:
         load_handler(FUNCTION_NAME)
     except ImportError as exc:
-        logger.warning("启动预热失败（不影响运行，首次请求时再加载）: %s", exc,
-                       extra={"tenant_id": "-"})
+        logger.warning("启动预热失败（不影响运行，首次请求时再加载）: %s", exc, extra={"tenant_id": "-"})
     recorder.warmup()
     elapsed = time.monotonic() - start
-    logger.info("Python 运行时启动完成，预热耗时 %.3fs", elapsed,
-                extra={"tenant_id": "-"})
+    logger.info("Python 运行时启动完成，预热耗时 %.3fs", elapsed, extra={"tenant_id": "-"})
 
 
 # ---------------------------------------------------------------------------
@@ -171,8 +168,7 @@ async def invoke(request: Request) -> Response:
         status = "error"
         statusCode = 500
         result = {"error": str(exc), "function": functionName}
-        logger.exception("函数调用失败: %s", functionName,
-                         extra={"tenant_id": tenantId})
+        logger.exception("函数调用失败: %s", functionName, extra={"tenant_id": tenantId})
 
     duration = time.monotonic() - startTime
 

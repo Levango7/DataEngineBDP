@@ -13,6 +13,7 @@
 - Volcano：通过 volcano-scheduler.yaml 配置 gpu-bin-packing 策略
 - YuniKorn：通过 YuniKorn PodGroup 调度
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -156,10 +157,7 @@ class JobScheduler:
         if not candidates:
             return ScheduleResult(
                 success=False,
-                reason=(
-                    f"无可用 GPU 节点满足需求: count={req.count}, "
-                    f"type={req.type}, memory={req.memoryGB}GB"
-                ),
+                reason=(f"无可用 GPU 节点满足需求: count={req.count}, " f"type={req.type}, memory={req.memoryGB}GB"),
             )
 
         # worst-fit：选择空闲 GPU 数最多的节点，保持资源均衡

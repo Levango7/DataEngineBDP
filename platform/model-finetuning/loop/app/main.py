@@ -26,12 +26,9 @@
 
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 import logging
 import os
-from contextlib import asynccontextmanager
-
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.loop_routes import create_router
 from app.config import get_settings
@@ -41,6 +38,8 @@ from app.core.websocket_manager import WebSocketManager
 from app.versioning.adapter_registry import AdapterRegistry
 from app.versioning.model_repository import ModelRepository
 from app.versioning.report_registry import ReportRegistry
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # 配置日志
 logging.basicConfig(
@@ -72,10 +71,11 @@ async def lifespan(app: FastAPI):
     """应用生命周期管理."""
     settings = get_settings()
     logger.info(
-        "启动闭环编排服务: port=%s, mock=%s, "
-        "finetune=%s, evaluation=%s, registry=%s",
-        settings.port, settings.mock_mode,
-        settings.finetune_url, settings.evaluation_url,
+        "启动闭环编排服务: port=%s, mock=%s, " "finetune=%s, evaluation=%s, registry=%s",
+        settings.port,
+        settings.mock_mode,
+        settings.finetune_url,
+        settings.evaluation_url,
         settings.registry_url,
     )
 
@@ -124,9 +124,7 @@ def create_app() -> FastAPI:
     """创建 FastAPI 应用."""
     settings = get_settings()
     if settings.mock_mode:
-        logger.warning(
-            "演示模式: LOOP_MOCK_MODE=true,闭环编排不实际调用上游服务,结果为模拟数据"
-        )
+        logger.warning("演示模式: LOOP_MOCK_MODE=true,闭环编排不实际调用上游服务,结果为模拟数据")
     app = FastAPI(
         title="数据引擎大数据平台 · 微调→评测→部署闭环编排",
         description=(

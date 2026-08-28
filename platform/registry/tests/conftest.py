@@ -10,12 +10,12 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
+import sys
 
-import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+import pytest
 
 # 将 platform/registry 加入 sys.path，使 app 包可导入
 _REGISTRY_ROOT = Path(__file__).resolve().parent.parent

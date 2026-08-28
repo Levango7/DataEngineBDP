@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import httpx
-import pytest
 from app.config import Settings
 from app.core.llm_client import ChatResponse, LLMGatewayClient
+import httpx
+import pytest
 
 
 class TestLLMGatewayClientMock:

@@ -11,11 +11,11 @@ Mock 模式下不实际启动容器，仅记录部署元数据。
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import logging
 import threading
-import uuid
-from datetime import datetime, timezone
 from typing import Optional
+import uuid
 
 from app.models import (
     DeploymentRecord,
@@ -38,9 +38,7 @@ class DeploymentManager:
         # deploymentId → DeploymentRecord
         self._deployments: dict[str, DeploymentRecord] = {}
         self._lock = threading.RLock()
-        logger.info(
-            f"DeploymentManager 初始化完成，mock_mode={mock_mode}"
-        )
+        logger.info(f"DeploymentManager 初始化完成，mock_mode={mock_mode}")
 
     # ============================================================
     # 创建部署
@@ -91,10 +89,7 @@ class DeploymentManager:
                 record.touch()
                 logger.error(f"部署 {deployment_id} 启动失败: {e}")
 
-        logger.info(
-            f"部署已创建: id={deployment_id}, model={request.modelName}, "
-            f"status={record.status}"
-        )
+        logger.info(f"部署已创建: id={deployment_id}, model={request.modelName}, " f"status={record.status}")
         return record
 
     def _start_container(self, record: DeploymentRecord) -> None:
@@ -112,21 +107,24 @@ class DeploymentManager:
         }
         image = image_map.get(record.runtime, image_map["simple"])
         cmd = [
-            "docker", "run", "-d",
-            "--name", f"model-deploy-{record.deploymentId}",
-            "-p", f"{record.port}:8000",
-            "--gpus", f"device=all" if record.gpuCount > 0 else "none",
-            "-e", f"MODEL_NAME={record.modelName}",
-            "-e", f"MODEL_VERSION={record.version}",
+            "docker",
+            "run",
+            "-d",
+            "--name",
+            f"model-deploy-{record.deploymentId}",
+            "-p",
+            f"{record.port}:8000",
+            "--gpus",
+            f"device=all" if record.gpuCount > 0 else "none",
+            "-e",
+            f"MODEL_NAME={record.modelName}",
+            "-e",
+            f"MODEL_VERSION={record.version}",
             image,
         ]
-        result = subprocess.run(
-            cmd, capture_output=True, text=True, timeout=60
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         if result.returncode != 0:
-            raise RuntimeError(
-                f"docker run 失败: {result.stderr}"
-            )
+            raise RuntimeError(f"docker run 失败: {result.stderr}")
         record.containerId = result.stdout.strip()
         record.endpoint = f"http://localhost:{record.port}"
 
@@ -134,27 +132,25 @@ class DeploymentManager:
     # 查询部署
     # ============================================================
     def get_deployment(
-        self, deployment_id: str,
+        self,
+        deployment_id: str,
     ) -> Optional[DeploymentRecord]:
         """获取部署详情."""
         with self._lock:
             return self._deployments.get(deployment_id)
 
     def list_deployments(
-        self, status: Optional[DeploymentStatus] = None,
+        self,
+        status: Optional[DeploymentStatus] = None,
         tenantId: Optional[str] = None,
     ) -> list[DeploymentRecord]:
         """查询部署列表."""
         with self._lock:
             deployments = list(self._deployments.values())
             if status is not None:
-                deployments = [
-                    d for d in deployments if d.status == status
-                ]
+                deployments = [d for d in deployments if d.status == status]
             if tenantId is not None:
-                deployments = [
-                    d for d in deployments if d.tenantId == tenantId
-                ]
+                deployments = [d for d in deployments if d.tenantId == tenantId]
             deployments.sort(key=lambda d: d.createdAt, reverse=True)
             return deployments
 
@@ -162,7 +158,8 @@ class DeploymentManager:
     # 停止部署
     # ============================================================
     def stop_deployment(
-        self, deployment_id: str,
+        self,
+        deployment_id: str,
     ) -> Optional[DeploymentRecord]:
         """停止部署."""
         with self._lock:
@@ -175,9 +172,11 @@ class DeploymentManager:
         if not self.mock_mode and record.containerId:
             try:
                 import subprocess
+
                 subprocess.run(
                     ["docker", "stop", record.containerId],
-                    capture_output=True, timeout=30,
+                    capture_output=True,
+                    timeout=30,
                 )
             except Exception as e:  # noqa: BLE001
                 logger.warning(f"停止容器失败: {e}")
@@ -194,7 +193,9 @@ class DeploymentManager:
     # 更新部署
     # ============================================================
     def update_deployment(
-        self, deployment_id: str, replicas: int = 0,
+        self,
+        deployment_id: str,
+        replicas: int = 0,
         gpu_count: int = 0,
     ) -> Optional[DeploymentRecord]:
         """更新部署配置（扩缩容）."""
@@ -214,17 +215,15 @@ class DeploymentManager:
         with self._lock:
             record.status = DeploymentStatus.RUNNING
             record.touch()
-        logger.info(
-            f"部署已更新: id={deployment_id}, "
-            f"replicas={record.replicas}, gpu={record.gpuCount}"
-        )
+        logger.info(f"部署已更新: id={deployment_id}, " f"replicas={record.replicas}, gpu={record.gpuCount}")
         return record
 
     # ============================================================
     # 删除部署记录
     # ============================================================
     def delete_deployment(
-        self, deployment_id: str,
+        self,
+        deployment_id: str,
     ) -> bool:
         """删除部署记录."""
         with self._lock:

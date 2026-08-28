@@ -10,10 +10,10 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import json
 import os
 import threading
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from loguru import logger
@@ -73,9 +73,7 @@ class AdapterVersion:
             adapter_path=data.get("adapterPath", ""),
             loop_task_id=data.get("loopTaskId", ""),
             metrics=data.get("metrics", {}),
-            created_at=datetime.fromisoformat(
-                data["createdAt"]
-            ) if data.get("createdAt") else None,
+            created_at=datetime.fromisoformat(data["createdAt"]) if data.get("createdAt") else None,
             is_active=data.get("isActive", True),
         )
 
@@ -102,12 +100,13 @@ class AdapterRegistry:
 
         os.makedirs(storage_dir, exist_ok=True)
         self._load_from_disk()
-        logger.info(
-            f"AdapterRegistry 初始化完成，storage_dir={storage_dir}"
-        )
+        logger.info(f"AdapterRegistry 初始化完成，storage_dir={storage_dir}")
 
     def _model_key(
-        self, base_model: str, method: str, framework: str,
+        self,
+        base_model: str,
+        method: str,
+        framework: str,
         tenant_id: str,
     ) -> str:
         """构造模型唯一键."""
@@ -117,7 +116,10 @@ class AdapterRegistry:
     # 分配版本号
     # ============================================================
     def allocate_version(
-        self, base_model: str, method: str, framework: str,
+        self,
+        base_model: str,
+        method: str,
+        framework: str,
         tenant_id: str,
     ) -> str:
         """分配新版本号.
@@ -153,9 +155,15 @@ class AdapterRegistry:
     # 注册版本
     # ============================================================
     def register(
-        self, version: str, base_model: str, adapter_path: str,
-        tenant_id: str, method: str = "lora", framework: str = "peft",
-        loop_task_id: str = "", metrics: dict | None = None,
+        self,
+        version: str,
+        base_model: str,
+        adapter_path: str,
+        tenant_id: str,
+        method: str = "lora",
+        framework: str = "peft",
+        loop_task_id: str = "",
+        metrics: dict | None = None,
     ) -> AdapterVersion:
         """注册一个 Adapter 版本.
 
@@ -189,16 +197,17 @@ class AdapterRegistry:
             self._versions[key].append(record)
             self._active[key] = version
             self._save_to_disk()
-        logger.info(
-            f"Adapter 版本已注册: key={key}, version={version}"
-        )
+        logger.info(f"Adapter 版本已注册: key={key}, version={version}")
         return record
 
     # ============================================================
     # 查询版本历史
     # ============================================================
     def list_versions(
-        self, base_model: str, method: str = "", framework: str = "",
+        self,
+        base_model: str,
+        method: str = "",
+        framework: str = "",
         tenant_id: str = "default",
     ) -> list[dict]:
         """查询模型的版本历史.
@@ -228,7 +237,7 @@ class AdapterRegistry:
                     continue
                 for v in versions:
                     item = v.to_dict()
-                    item["isActive"] = (v.version == self._active.get(key))
+                    item["isActive"] = v.version == self._active.get(key)
                     result.append(item)
             result.sort(key=lambda x: x["createdAt"])
             return result
@@ -237,7 +246,10 @@ class AdapterRegistry:
     # 版本对比
     # ============================================================
     def compare_versions(
-        self, base_model: str, version_a: str, version_b: str,
+        self,
+        base_model: str,
+        version_a: str,
+        version_b: str,
         tenant_id: str = "default",
     ) -> dict:
         """对比两个版本的差异.
@@ -268,16 +280,15 @@ class AdapterRegistry:
             return {
                 "versionA": va.to_dict(),
                 "versionB": vb.to_dict(),
-                "metricsDiff": self._diff_metrics(
-                    va.metrics, vb.metrics
-                ),
-                "createdAtDiff": (
-                    vb.created_at - va.created_at
-                ).total_seconds(),
+                "metricsDiff": self._diff_metrics(va.metrics, vb.metrics),
+                "createdAtDiff": (vb.created_at - va.created_at).total_seconds(),
             }
 
     def _find_version(
-        self, base_model: str, version: str, tenant_id: str,
+        self,
+        base_model: str,
+        version: str,
+        tenant_id: str,
     ) -> Optional[AdapterVersion]:
         """查找指定版本记录."""
         for key, versions in self._versions.items():
@@ -302,11 +313,10 @@ class AdapterRegistry:
             vb = b.get(k)
             if isinstance(va, (int, float)) and isinstance(vb, (int, float)):
                 diff[k] = {
-                    "a": va, "b": vb,
+                    "a": va,
+                    "b": vb,
                     "diff": vb - va,
-                    "diffPercent": (
-                        (vb - va) / va * 100 if va else 0.0
-                    ),
+                    "diffPercent": ((vb - va) / va * 100 if va else 0.0),
                 }
             else:
                 diff[k] = {"a": va, "b": vb}
@@ -316,8 +326,12 @@ class AdapterRegistry:
     # 回滚到指定版本
     # ============================================================
     def rollback(
-        self, base_model: str, version: str, method: str = "",
-        framework: str = "", tenant_id: str = "default",
+        self,
+        base_model: str,
+        version: str,
+        method: str = "",
+        framework: str = "",
+        tenant_id: str = "default",
     ) -> dict:
         """回滚到指定版本.
 
@@ -338,10 +352,7 @@ class AdapterRegistry:
                     "error": f"版本 {version} 不存在",
                 }
             # 定位模型键
-            keys = [
-                k for k in self._versions.keys()
-                if target in self._versions[k]
-            ]
+            keys = [k for k in self._versions.keys() if target in self._versions[k]]
             if not keys:
                 return {
                     "success": False,
@@ -352,7 +363,7 @@ class AdapterRegistry:
             self._active[key] = version
             # 标记其他版本为非激活
             for v in self._versions[key]:
-                v.is_active = (v.version == version)
+                v.is_active = v.version == version
             self._save_to_disk()
             return {
                 "success": True,
@@ -365,7 +376,10 @@ class AdapterRegistry:
     # 获取当前激活版本
     # ============================================================
     def get_active_version(
-        self, base_model: str, method: str = "", framework: str = "",
+        self,
+        base_model: str,
+        method: str = "",
+        framework: str = "",
         tenant_id: str = "default",
     ) -> Optional[dict]:
         """获取当前激活版本."""
@@ -394,10 +408,7 @@ class AdapterRegistry:
         try:
             path = os.path.join(self.storage_dir, "adapters.json")
             data = {
-                "versions": {
-                    key: [v.to_dict() for v in versions]
-                    for key, versions in self._versions.items()
-                },
+                "versions": {key: [v.to_dict() for v in versions] for key, versions in self._versions.items()},
                 "active": self._active,
             }
             with open(path, "w", encoding="utf-8") as f:
@@ -414,9 +425,7 @@ class AdapterRegistry:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for key, versions in data.get("versions", {}).items():
-                self._versions[key] = [
-                    AdapterVersion.from_dict(v) for v in versions
-                ]
+                self._versions[key] = [AdapterVersion.from_dict(v) for v in versions]
             self._active = data.get("active", {})
         except (OSError, json.JSONDecodeError) as e:
             logger.warning(f"加载 Adapter 元数据失败: {e}")
@@ -429,7 +438,5 @@ class AdapterRegistry:
         with self._lock:
             return {
                 "totalModels": len(self._versions),
-                "totalVersions": sum(
-                    len(v) for v in self._versions.values()
-                ),
+                "totalVersions": sum(len(v) for v in self._versions.values()),
             }

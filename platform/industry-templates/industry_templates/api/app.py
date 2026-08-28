@@ -55,7 +55,7 @@ def create_app(
     app.include_router(templates.router, prefix=prefix)
 
     @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception):
+    async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         """全局异常处理器：统一 500 错误响应格式."""
         return JSONResponse(
             status_code=500,
@@ -63,7 +63,7 @@ def create_app(
         )
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         """HTTPException 处理器：统一错误响应格式为 {error, message}."""
         return JSONResponse(
             status_code=exc.status_code,

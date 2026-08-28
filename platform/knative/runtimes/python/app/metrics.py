@@ -21,12 +21,13 @@ from typing import Optional
 
 try:
     from prometheus_client import (
+        REGISTRY,
         CollectorRegistry,
         Counter,
         Histogram,
         generate_latest,
-        REGISTRY,
     )
+
     _HAS_PROMETHEUS = True
 except ImportError:  # prometheus_client 未安装时降级
     _HAS_PROMETHEUS = False
@@ -78,6 +79,7 @@ class InvocationRecorder:
         if _HAS_PROMETHEUS and self.pushgatewayUrl:
             try:
                 from prometheus_client import push_to_gateway
+
                 # 推送一个空指标建立连接（验证 Pushgateway 可达）
                 push_to_gateway(
                     self.pushgatewayUrl,
@@ -106,11 +108,14 @@ class InvocationRecorder:
         # 1. Prometheus 指标
         if _HAS_PROMETHEUS:
             self.invocationCount.labels(
-                tenant=tenantId, runtime=self.runtime,
-                function=functionName, status=status,
+                tenant=tenantId,
+                runtime=self.runtime,
+                function=functionName,
+                status=status,
             ).inc()
             self.invocationDuration.labels(
-                tenant=tenantId, runtime=self.runtime,
+                tenant=tenantId,
+                runtime=self.runtime,
                 function=functionName,
             ).observe(duration)
 
@@ -131,6 +136,7 @@ class InvocationRecorder:
         if _HAS_PROMETHEUS and self.pushgatewayUrl:
             try:
                 from prometheus_client import push_to_gateway
+
                 push_to_gateway(
                     self.pushgatewayUrl,
                     job=f"serverless-{self.runtime}-{tenantId}",

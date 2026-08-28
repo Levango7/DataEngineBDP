@@ -28,9 +28,7 @@ class DeploymentStatus(str, Enum):
     UPDATING = "updating"
 
 
-TERMINAL_STATUSES = frozenset(
-    {DeploymentStatus.STOPPED, DeploymentStatus.FAILED}
-)
+TERMINAL_STATUSES = frozenset({DeploymentStatus.STOPPED, DeploymentStatus.FAILED})
 
 
 # ============================================================
@@ -60,9 +58,7 @@ class ModelRecord(BaseModel):
     method: str = ""
     tenantId: str = "default"
     metadata: dict[str, Any] = Field(default_factory=dict)
-    createdAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     isActive: bool = True
 
 
@@ -81,9 +77,7 @@ class DeployRequest(BaseModel):
 
     modelName: str
     version: str = Field(default="")
-    runtime: str = Field(
-        default="vllm", description="推理运行时：vllm/triton/simple"
-    )
+    runtime: str = Field(default="vllm", description="推理运行时：vllm/triton/simple")
     port: int = Field(default=8000, ge=1024, le=65535)
     replicas: int = Field(default=1, ge=1, le=10)
     gpuCount: int = Field(default=1, ge=1, le=8)
@@ -105,12 +99,8 @@ class DeploymentRecord(BaseModel):
     status: DeploymentStatus = DeploymentStatus.PENDING
     endpoint: Optional[str] = None
     containerId: Optional[str] = None
-    createdAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    updatedAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     finishedAt: Optional[datetime] = None
     healthy: bool = False
     error: Optional[str] = None
@@ -141,9 +131,7 @@ class HealthCheckResult(BaseModel):
     endpoint: Optional[str] = None
     latencyMs: float = 0.0
     error: Optional[str] = None
-    checkedAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    checkedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class HealthResponse(BaseModel):

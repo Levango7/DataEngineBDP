@@ -12,15 +12,15 @@
                     ↘ FAILED
                     ↘ TERMINATED
 """
+
 from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel, Field
-
 from app.models.finetune_config import FinetuneConfig
+from pydantic import BaseModel, Field
 
 
 # ============================================================
@@ -29,17 +29,15 @@ from app.models.finetune_config import FinetuneConfig
 class TaskStatus(str, Enum):
     """微调任务状态."""
 
-    PENDING = "pending"          # 已提交，等待调度
-    RUNNING = "running"          # 训练中
-    SUCCEEDED = "succeeded"      # 训练成功完成
-    FAILED = "failed"            # 训练失败
-    TERMINATED = "terminated"    # 被用户主动终止
+    PENDING = "pending"  # 已提交，等待调度
+    RUNNING = "running"  # 训练中
+    SUCCEEDED = "succeeded"  # 训练成功完成
+    FAILED = "failed"  # 训练失败
+    TERMINATED = "terminated"  # 被用户主动终止
 
 
 # 终态集合，用于判断任务是否已结束
-TERMINAL_STATUSES = frozenset(
-    {TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.TERMINATED}
-)
+TERMINAL_STATUSES = frozenset({TaskStatus.SUCCEEDED, TaskStatus.FAILED, TaskStatus.TERMINATED})
 
 
 # ============================================================
@@ -80,9 +78,7 @@ class DatasetSpec(BaseModel):
     path: str = Field(description="本地路径或 HuggingFace Hub ID")
     split: str = Field(default="train", description="数据集 split")
     format: str = Field(default="alpaca", description="数据格式")
-    validationPath: Optional[str] = Field(
-        default=None, description="验证集路径（可选）"
-    )
+    validationPath: Optional[str] = Field(default=None, description="验证集路径（可选）")
 
 
 # ============================================================
@@ -109,9 +105,7 @@ class FinetuneTaskRequest(BaseModel):
     dataset: DatasetSpec = Field(description="训练数据集")
     config: FinetuneConfig = Field(description="微调配置")
     gpu: GPURequirement = Field(default_factory=GPURequirement, description="GPU 需求")
-    outputDir: str = Field(
-        default="/data/finetune/output", description="输出目录"
-    )
+    outputDir: str = Field(default="/data/finetune/output", description="输出目录")
     tenantId: str = Field(default="default", description="租户 ID")
     description: Optional[str] = Field(default=None, description="任务描述")
 
@@ -141,15 +135,11 @@ class FinetuneTask(BaseModel):
     taskId: str = Field(description="任务唯一 ID")
     request: FinetuneTaskRequest = Field(description="原始请求")
     status: TaskStatus = Field(default=TaskStatus.PENDING, description="任务状态")
-    createdAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc), description="创建时间"
-    )
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="创建时间")
     startedAt: Optional[datetime] = Field(default=None, description="开始时间")
     finishedAt: Optional[datetime] = Field(default=None, description="结束时间")
     assignedNode: Optional[str] = Field(default=None, description="调度节点")
-    assignedGPUs: list[int] = Field(
-        default_factory=list, description="分配的 GPU ID 列表"
-    )
+    assignedGPUs: list[int] = Field(default_factory=list, description="分配的 GPU ID 列表")
     outputModelPath: Optional[str] = Field(default=None, description="产出模型路径")
     errorMessage: Optional[str] = Field(default=None, description="错误信息")
     progress: float = Field(default=0.0, ge=0.0, le=100.0, description="进度百分比")
@@ -203,9 +193,7 @@ class LogEntry(BaseModel):
         message: 原始日志文本。
     """
 
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     step: int = Field(default=0, ge=0)
     epoch: float = Field(default=0.0, ge=0.0)
     loss: Optional[float] = Field(default=None, description="当前 loss")

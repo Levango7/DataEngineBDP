@@ -8,13 +8,13 @@ from __future__ import annotations
 
 import uuid
 
-from openapi_catalog.models.base import utc_now
 from openapi_catalog.models import (
     APIDefinition,
     APIFilter,
     APIStatus,
     APIUpdateRequest,
 )
+from openapi_catalog.models.base import utc_now
 from openapi_catalog.repositories import (
     APIStatusTransitionError,
 )

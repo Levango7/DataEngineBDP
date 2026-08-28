@@ -15,12 +15,11 @@
 
 from __future__ import annotations
 
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import os
 import threading
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
-
 
 # ---------------------------------------------------------------------------
 # 集群元数据（从环境变量读取）
@@ -84,17 +83,20 @@ class ClusterHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/apis/cluster":
-            self._send_json(200, {
-                "name": CLUSTER_NAME,
-                "labels": CLUSTER_LABELS,
-                "maxReplicas": CLUSTER_MAX_REPLICAS,
-                "conditions": [
-                    {"type": "Ready", "status": "True"},
-                    {"type": "Syncable", "status": "True"},
-                ],
-                "arch": CLUSTER_ARCH,
-                "vendor": CLUSTER_VENDOR,
-            })
+            self._send_json(
+                200,
+                {
+                    "name": CLUSTER_NAME,
+                    "labels": CLUSTER_LABELS,
+                    "maxReplicas": CLUSTER_MAX_REPLICAS,
+                    "conditions": [
+                        {"type": "Ready", "status": "True"},
+                        {"type": "Syncable", "status": "True"},
+                    ],
+                    "arch": CLUSTER_ARCH,
+                    "vendor": CLUSTER_VENDOR,
+                },
+            )
             return
 
         if path == "/apis/deployments":
@@ -160,7 +162,7 @@ class ClusterHandler(BaseHTTPRequestHandler):
 
         # /apis/deployments/{name}
         if path.startswith("/apis/deployments/"):
-            name = path[len("/apis/deployments/"):]
+            name = path[len("/apis/deployments/") :]
             with _lock:
                 if name in _deployments:
                     del _deployments[name]
@@ -171,7 +173,7 @@ class ClusterHandler(BaseHTTPRequestHandler):
 
         # /apis/propagation-policies/{name}
         if path.startswith("/apis/propagation-policies/"):
-            name = path[len("/apis/propagation-policies/"):]
+            name = path[len("/apis/propagation-policies/") :]
             with _lock:
                 if name in _policies:
                     del _policies[name]
@@ -191,8 +193,7 @@ def main() -> None:
     """启动 mock 集群 HTTP 服务。"""
     port = int(os.environ.get("CLUSTER_PORT", "8090"))
     server = ThreadingHTTPServer(("0.0.0.0", port), ClusterHandler)
-    print(f"[mock-cluster] {CLUSTER_NAME} (type={CLUSTER_TYPE}, arch={CLUSTER_ARCH}) "
-          f"listening on :{port}")
+    print(f"[mock-cluster] {CLUSTER_NAME} (type={CLUSTER_TYPE}, arch={CLUSTER_ARCH}) " f"listening on :{port}")
     server.serve_forever()
 
 
@@ -217,10 +218,7 @@ def execute_mock_query(sql: str, database: str) -> dict:
     # 根据 SQL 中的表名返回对应 mock 数据
     if "orders_east" in sql_lower or "orders" in sql_lower:
         # 订单表：每个集群返回带集群标识的订单
-        rows = [
-            {"id": i, "cluster": CLUSTER_NAME, "amount": 100 + i}
-            for i in range(1, 4)
-        ]
+        rows = [{"id": i, "cluster": CLUSTER_NAME, "amount": 100 + i} for i in range(1, 4)]
         return {
             "status": "ok",
             "schema": {"id": "INT", "cluster": "STRING", "amount": "INT"},
@@ -229,10 +227,7 @@ def execute_mock_query(sql: str, database: str) -> dict:
         }
 
     if "orders_west" in sql_lower:
-        rows = [
-            {"id": i, "cluster": CLUSTER_NAME, "amount": 200 + i}
-            for i in range(1, 3)
-        ]
+        rows = [{"id": i, "cluster": CLUSTER_NAME, "amount": 200 + i} for i in range(1, 3)]
         return {
             "status": "ok",
             "schema": {"id": "INT", "cluster": "STRING", "amount": "INT"},

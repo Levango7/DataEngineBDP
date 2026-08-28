@@ -12,6 +12,7 @@ PEFT（Parameter-Efficient Fine-Tuning）是 HuggingFace 官方轻量微调库�
 3. 通过 transformers Trainer 启动训练
 4. Mock 模式下不实际加载模型，仅生成配置并模拟日志
 """
+
 from __future__ import annotations
 
 import atexit
@@ -20,7 +21,7 @@ import os
 import re
 import subprocess
 import sys
-from typing import Any, IO, Optional
+from typing import IO, Any, Optional
 
 from app.adapters.base import BaseAdapter, ProcessHandle
 from app.models.finetune_config import (
@@ -72,9 +73,7 @@ class PEFTAdapter(BaseAdapter):
         if config.method == FinetuneMethod.LORA:
             lora = effective.get("lora")
             if lora and lora.rank not in (8, 16, 32, 64, 128):
-                errors.append(
-                    f"PEFT LoRA rank 建议取 8/16/32，当前 {lora.rank}"
-                )
+                errors.append(f"PEFT LoRA rank 建议取 8/16/32，当前 {lora.rank}")
         elif config.method == FinetuneMethod.QLORA:
             qlora = effective.get("qlora")
             if qlora:
@@ -84,9 +83,7 @@ class PEFTAdapter(BaseAdapter):
                 ):
                     errors.append("QLoRA 量化位宽必须为 4bit 或 8bit")
                 if qlora.lora.rank not in (8, 16, 32, 64, 128):
-                    errors.append(
-                        f"QLoRA LoRA rank 建议取 8/16/32，当前 {qlora.lora.rank}"
-                    )
+                    errors.append(f"QLoRA LoRA rank 建议取 8/16/32，当前 {qlora.lora.rank}")
         elif config.method == FinetuneMethod.FULL:
             # PEFT 原生不推荐全参微调，但允许（不应用 PEFT 包装）
             pass
@@ -254,11 +251,8 @@ class PEFTAdapter(BaseAdapter):
         with open(log_path, "w", encoding="utf-8") as f:
             f.write(f"[mock] PEFT 训练开始，任务 {task.taskId}\n")
             for step in range(0, total_steps + 1, hp.loggingSteps):
-                loss = 2.2 * (0.985 ** step)
+                loss = 2.2 * (0.985**step)
                 lr = hp.learningRate
                 epoch = step / 100.0
-                f.write(
-                    f"{{'loss': {loss:.4f}, 'learning_rate': {lr}, "
-                    f"'epoch': {epoch:.2f}}}\n"
-                )
+                f.write(f"{{'loss': {loss:.4f}, 'learning_rate': {lr}, " f"'epoch': {epoch:.2f}}}\n")
             f.write(f"[mock] 训练完成，输出目录 {task.request.outputDir}\n")

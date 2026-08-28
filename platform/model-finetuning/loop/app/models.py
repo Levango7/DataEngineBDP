@@ -27,19 +27,17 @@ from pydantic import BaseModel, Field
 class LoopStatus(str, Enum):
     """闭环任务状态."""
 
-    PENDING = "pending"            # 已提交，等待执行
-    FINETUNING = "finetuning"      # 微调中
-    EVALUATING = "evaluating"      # 评测中
-    DEPLOYING = "deploying"        # 部署中
-    COMPLETED = "completed"        # 全流程完成
-    FAILED = "failed"              # 失败
-    CANCELLED = "cancelled"        # 已取消
+    PENDING = "pending"  # 已提交，等待执行
+    FINETUNING = "finetuning"  # 微调中
+    EVALUATING = "evaluating"  # 评测中
+    DEPLOYING = "deploying"  # 部署中
+    COMPLETED = "completed"  # 全流程完成
+    FAILED = "failed"  # 失败
+    CANCELLED = "cancelled"  # 已取消
 
 
 # 终态集合
-TERMINAL_STATUSES = frozenset(
-    {LoopStatus.COMPLETED, LoopStatus.FAILED, LoopStatus.CANCELLED}
-)
+TERMINAL_STATUSES = frozenset({LoopStatus.COMPLETED, LoopStatus.FAILED, LoopStatus.CANCELLED})
 
 # 步骤名 → 对应状态
 STEP_TO_STATUS = {
@@ -58,9 +56,7 @@ class LoRAConfig(BaseModel):
     rank: int = Field(default=16, ge=1, le=64, description="LoRA rank")
     alpha: int = Field(default=32, ge=1, description="LoRA alpha")
     dropout: float = Field(default=0.05, ge=0.0, le=1.0)
-    targetModules: list[str] = Field(
-        default_factory=lambda: ["q_proj", "k_proj", "v_proj", "o_proj"]
-    )
+    targetModules: list[str] = Field(default_factory=lambda: ["q_proj", "k_proj", "v_proj", "o_proj"])
 
 
 class Hyperparams(BaseModel):
@@ -77,9 +73,7 @@ class FinetuneConfig(BaseModel):
     """微调配置."""
 
     method: str = Field(default="lora", description="微调方式：lora/qlora/full")
-    framework: str = Field(
-        default="peft", description="框架：peft/llama_factory/deepspeed"
-    )
+    framework: str = Field(default="peft", description="框架：peft/llama_factory/deepspeed")
     lora: Optional[LoRAConfig] = Field(default=None)
     hyperparams: Hyperparams = Field(default_factory=Hyperparams)
 
@@ -110,8 +104,12 @@ class EvalConfig(BaseModel):
     mode: str = Field(default="rule", description="评测模式：rule/model/human")
     metrics: list[str] = Field(
         default_factory=lambda: [
-            "accuracy", "recall", "f1",
-            "latency_p95", "cost", "hallucination",
+            "accuracy",
+            "recall",
+            "f1",
+            "latency_p95",
+            "cost",
+            "hallucination",
         ]
     )
     limit: int = Field(default=0, ge=0, description="限制样本数，0 表示全部")
@@ -123,20 +121,13 @@ class EvalConfig(BaseModel):
 class DeployConfig(BaseModel):
     """部署配置."""
 
-    runtime: str = Field(
-        default="vllm", description="推理运行时：vllm/triton/simple"
-    )
+    runtime: str = Field(default="vllm", description="推理运行时：vllm/triton/simple")
     port: int = Field(default=8000, ge=1024, le=65535)
     replicas: int = Field(default=1, ge=1, le=10)
     gpuCount: int = Field(default=1, ge=1, le=8)
-    autoRollback: bool = Field(
-        default=False, description="评测不达标时自动回滚"
-    )
+    autoRollback: bool = Field(default=False, description="评测不达标时自动回滚")
     # 评测达标阈值（accuracy 下限），低于此值不部署
-    minAccuracy: float = Field(
-        default=0.0, ge=0.0, le=1.0,
-        description="评测准确率下限，低于此值不部署"
-    )
+    minAccuracy: float = Field(default=0.0, ge=0.0, le=1.0, description="评测准确率下限，低于此值不部署")
 
 
 # ============================================================
@@ -152,28 +143,16 @@ class LoopTaskRequest(BaseModel):
     taskName: str = Field(min_length=1, max_length=128)
     baseModel: str = Field(description="基座模型 ID 或路径")
     trainDataset: DatasetSpec = Field(description="训练数据集")
-    evalDataset: str = Field(
-        default="cmmlu", description="评测数据集名称"
-    )
-    finetune: FinetuneConfig = Field(
-        default_factory=FinetuneConfig, description="微调配置"
-    )
-    eval: EvalConfig = Field(
-        default_factory=EvalConfig, description="评测配置"
-    )
-    deploy: DeployConfig = Field(
-        default_factory=DeployConfig, description="部署配置"
-    )
+    evalDataset: str = Field(default="cmmlu", description="评测数据集名称")
+    finetune: FinetuneConfig = Field(default_factory=FinetuneConfig, description="微调配置")
+    eval: EvalConfig = Field(default_factory=EvalConfig, description="评测配置")
+    deploy: DeployConfig = Field(default_factory=DeployConfig, description="部署配置")
     gpu: GPURequirement = Field(default_factory=GPURequirement)
-    outputDir: str = Field(
-        default="/data/finetune-loop/output", description="输出目录"
-    )
+    outputDir: str = Field(default="/data/finetune-loop/output", description="输出目录")
     tenantId: str = Field(default="default")
     description: Optional[str] = Field(default=None)
     # 是否跳过部署步骤（仅微调+评测）
-    skipDeploy: bool = Field(
-        default=False, description="是否跳过部署步骤"
-    )
+    skipDeploy: bool = Field(default=False, description="是否跳过部署步骤")
 
 
 # ============================================================
@@ -184,9 +163,7 @@ class FinetuneStepResult(BaseModel):
 
     taskId: Optional[str] = None
     status: str = "pending"
-    adapterPath: Optional[str] = Field(
-        default=None, description="Adapter 权重路径"
-    )
+    adapterPath: Optional[str] = Field(default=None, description="Adapter 权重路径")
     outputModelPath: Optional[str] = None
     startedAt: Optional[datetime] = None
     finishedAt: Optional[datetime] = None
@@ -218,9 +195,7 @@ class DeployStepResult(BaseModel):
 
     deploymentId: Optional[str] = None
     status: str = "pending"
-    endpoint: Optional[str] = Field(
-        default=None, description="推理服务访问端点"
-    )
+    endpoint: Optional[str] = Field(default=None, description="推理服务访问端点")
     modelVersion: Optional[str] = None
     startedAt: Optional[datetime] = None
     finishedAt: Optional[datetime] = None
@@ -237,26 +212,16 @@ class LoopTask(BaseModel):
     taskId: str = Field(description="闭环任务唯一 ID")
     request: LoopTaskRequest
     status: LoopStatus = Field(default=LoopStatus.PENDING)
-    currentStep: str = Field(
-        default="finetune", description="当前执行步骤"
-    )
+    currentStep: str = Field(default="finetune", description="当前执行步骤")
 
-    createdAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
-    updatedAt: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    createdAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updatedAt: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     finishedAt: Optional[datetime] = None
 
     # 各步骤结果
-    finetuneResult: FinetuneStepResult = Field(
-        default_factory=FinetuneStepResult
-    )
+    finetuneResult: FinetuneStepResult = Field(default_factory=FinetuneStepResult)
     evalResult: EvalStepResult = Field(default_factory=EvalStepResult)
-    deployResult: DeployStepResult = Field(
-        default_factory=DeployStepResult
-    )
+    deployResult: DeployStepResult = Field(default_factory=DeployStepResult)
 
     # Adapter 版本号（版本化模块分配）
     adapterVersion: Optional[str] = None
@@ -354,9 +319,7 @@ class WSMessage(BaseModel):
 
     type: str
     taskId: str
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc)
-    )
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     data: dict[str, Any] = Field(default_factory=dict)
 
 

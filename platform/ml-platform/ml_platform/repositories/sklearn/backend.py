@@ -435,7 +435,7 @@ def _loadDatasetForEval(evalConfig: EvalConfig):
             "sklearn 后端骨架要求 dataset 形如 'inline:<base64(JSON)>'（内容同训练内联数据）"
         )
     try:
-        encoded = evalConfig.dataset[len("inline:"):]
+        encoded = evalConfig.dataset[len("inline:") :]
         inline = json.loads(base64.b64decode(encoded).decode("utf-8"))
     except Exception as e:
         raise ValidationError(f"无法解析内联评估数据: {e}") from e

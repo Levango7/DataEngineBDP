@@ -15,11 +15,11 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
-from openapi_catalog.models.base import utc_now
 from openapi_catalog.models import (
     CostStrategy,
     SubscriptionStatus,
 )
+from openapi_catalog.models.base import utc_now
 from openapi_catalog.repositories import (
     CatalogError,
     SubscriptionStatusError,

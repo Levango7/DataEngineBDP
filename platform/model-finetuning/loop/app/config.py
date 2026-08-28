@@ -15,8 +15,8 @@
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
+import os
 
 
 def _env_bool(key: str, default: bool = False) -> bool:
@@ -68,15 +68,9 @@ class Settings:
         """从环境变量加载配置。"""
         return cls(
             port=int(os.environ.get("LOOP_PORT", "18088")),
-            finetune_url=os.environ.get(
-                "FINETUNE_URL", "http://localhost:8095"
-            ),
-            evaluation_url=os.environ.get(
-                "EVALUATION_URL", "http://localhost:18086"
-            ),
-            registry_url=os.environ.get(
-                "REGISTRY_URL", "http://localhost:18089"
-            ),
+            finetune_url=os.environ.get("FINETUNE_URL", "http://localhost:8095"),
+            evaluation_url=os.environ.get("EVALUATION_URL", "http://localhost:18086"),
+            registry_url=os.environ.get("REGISTRY_URL", "http://localhost:18089"),
             work_dir=os.environ.get("LOOP_WORK_DIR", "/tmp/finetune-loop"),
             mock_mode=_env_bool("LOOP_MOCK_MODE", True),
             http_timeout=int(os.environ.get("LOOP_HTTP_TIMEOUT", "30")),
@@ -84,21 +78,15 @@ class Settings:
             jwt_secret=os.environ.get("JWT_SECRET", ""),
             jwt_issuer=os.environ.get("JWT_ISSUER", "shuqing-bigdata"),
             dev_mode=_env_bool("LOOP_DEV_MODE", True),
-            ws_heartbeat_interval=int(
-                os.environ.get("LOOP_WS_HEARTBEAT", "15")
-            ),
+            ws_heartbeat_interval=int(os.environ.get("LOOP_WS_HEARTBEAT", "15")),
         )
 
     def validate(self) -> "Settings":
         """校验配置安全性：非 dev_mode 下 jwt_secret 必须显式配置。"""
         if not self.dev_mode and not self.jwt_secret:
-            raise RuntimeError(
-                "JWT_SECRET environment variable is required when LOOP_DEV_MODE=false"
-            )
+            raise RuntimeError("JWT_SECRET environment variable is required when LOOP_DEV_MODE=false")
         if not self.dev_mode and len(self.jwt_secret) < 32:
-            raise RuntimeError(
-                f"JWT_SECRET must be at least 32 bytes, got {len(self.jwt_secret)}"
-            )
+            raise RuntimeError(f"JWT_SECRET must be at least 32 bytes, got {len(self.jwt_secret)}")
         return self
 
 

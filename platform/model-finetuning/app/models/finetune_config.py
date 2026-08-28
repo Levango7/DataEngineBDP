@@ -8,6 +8,7 @@
     - QLoRA：量化 + LoRA，4bit/8bit 量化基座模型后再做 LoRA
     - 全参（Full）：全量参数微调，通常配合 DeepSpeed ZeRO-3 卸载优化器状态
 """
+
 from __future__ import annotations
 
 from enum import Enum
@@ -22,31 +23,31 @@ from pydantic import BaseModel, Field, field_validator
 class FinetuneMethod(str, Enum):
     """微调方式枚举."""
 
-    LORA = "lora"          # LoRA 低秩适配
-    QLORA = "qlora"        # QLoRA 量化 + LoRA
-    FULL = "full"          # 全参微调
+    LORA = "lora"  # LoRA 低秩适配
+    QLORA = "qlora"  # QLoRA 量化 + LoRA
+    FULL = "full"  # 全参微调
 
 
 class FinetuneFramework(str, Enum):
     """微调框架枚举."""
 
-    LLAMA_FACTORY = "llama_factory"   # LLaMA-Factory CLI
-    PEFT = "peft"                     # HuggingFace PEFT
-    DEEPSPEED = "deepspeed"           # DeepSpeed 多卡并行
+    LLAMA_FACTORY = "llama_factory"  # LLaMA-Factory CLI
+    PEFT = "peft"  # HuggingFace PEFT
+    DEEPSPEED = "deepspeed"  # DeepSpeed 多卡并行
 
 
 class QuantizationBits(str, Enum):
     """量化位宽枚举（仅 QLoRA 使用）."""
 
-    BIT4 = "4bit"   # 4bit 量化（NF4）
-    BIT8 = "8bit"   # 8bit 量化
+    BIT4 = "4bit"  # 4bit 量化（NF4）
+    BIT8 = "8bit"  # 8bit 量化
 
 
 class DeepSpeedStage(str, Enum):
     """DeepSpeed ZeRO 优化阶段."""
 
-    ZERO_2 = "zero2"   # 切分优化器状态
-    ZERO_3 = "zero3"   # 切分优化器状态 + 梯度 + 参数
+    ZERO_2 = "zero2"  # 切分优化器状态
+    ZERO_3 = "zero3"  # 切分优化器状态 + 梯度 + 参数
 
 
 # ============================================================
@@ -97,9 +98,7 @@ class QLoRAConfig(BaseModel):
         lora: LoRA 参数（复用 LoRAConfig）。
     """
 
-    quantization: QuantizationBits = Field(
-        default=QuantizationBits.BIT4, description="量化位宽"
-    )
+    quantization: QuantizationBits = Field(default=QuantizationBits.BIT4, description="量化位宽")
     computeDtype: str = Field(default="bfloat16", description="计算精度")
     doubleQuantization: bool = Field(default=True, description="是否双重量化")
     quantStorageDtype: str = Field(default="uint8", description="量化存储类型")
@@ -139,9 +138,7 @@ class DeepSpeedConfig(BaseModel):
     dataParallelSize: int = Field(default=1, ge=1, description="数据并行度")
     offloadOptimizer: bool = Field(default=False, description="卸载优化器到 CPU")
     offloadParam: bool = Field(default=False, description="卸载参数到 CPU")
-    configPath: Optional[str] = Field(
-        default=None, description="DeepSpeed JSON 配置文件路径"
-    )
+    configPath: Optional[str] = Field(default=None, description="DeepSpeed JSON 配置文件路径")
 
 
 # ============================================================
@@ -187,18 +184,12 @@ class FinetuneConfig(BaseModel):
     """
 
     method: FinetuneMethod = Field(description="微调方式")
-    framework: FinetuneFramework = Field(
-        default=FinetuneFramework.PEFT, description="执行框架"
-    )
+    framework: FinetuneFramework = Field(default=FinetuneFramework.PEFT, description="执行框架")
     lora: Optional[LoRAConfig] = Field(default=None, description="LoRA 配置")
     qlora: Optional[QLoRAConfig] = Field(default=None, description="QLoRA 配置")
     full: Optional[FullFinetuneConfig] = Field(default=None, description="全参配置")
-    deepspeed: Optional[DeepSpeedConfig] = Field(
-        default=None, description="DeepSpeed 并行配置"
-    )
-    hyperparams: TrainingHyperParams = Field(
-        default_factory=TrainingHyperParams, description="训练超参"
-    )
+    deepspeed: Optional[DeepSpeedConfig] = Field(default=None, description="DeepSpeed 并行配置")
+    hyperparams: TrainingHyperParams = Field(default_factory=TrainingHyperParams, description="训练超参")
 
     def resolve_effective_config(self) -> dict:
         """根据 method 返回生效的子配置字典.

@@ -46,9 +46,7 @@ class _Tag:
 
 
 class _SdkModelVersion:
-    def __init__(
-        self, version: int, run_id=None, source="", current_stage="None"
-    ) -> None:
+    def __init__(self, version: int, run_id=None, source="", current_stage="None") -> None:
         self.version = version
         self.run_id = run_id
         self.source = source
@@ -83,9 +81,7 @@ class _FakeRegistrySdk:
             raise _RestException(f"RESOURCE_DOES_NOT_EXIST: {name}")
         return self._models[name]
 
-    def create_registered_model(
-        self, name: str, tags=None, description: str = ""
-    ) -> _SdkRegisteredModel:
+    def create_registered_model(self, name: str, tags=None, description: str = "") -> _SdkRegisteredModel:
         rm = _SdkRegisteredModel(name, tags, description)
         self._models[name] = rm
         return rm
@@ -98,9 +94,7 @@ class _FakeRegistrySdk:
         self._block()
         self._models.pop(name, None)
 
-    def create_model_version(
-        self, name: str, source: str = "", run_id=None, tags=None
-    ) -> _SdkModelVersion:
+    def create_model_version(self, name: str, source: str = "", run_id=None, tags=None) -> _SdkModelVersion:
         self._block()
         rm = self._models[name]
         version = self._next_version.get(name, 1)
@@ -109,13 +103,9 @@ class _FakeRegistrySdk:
         rm.latest_versions.append(mv)
         return mv
 
-    def transition_model_version_stage(
-        self, name: str, version: int, stage: str
-    ) -> None:
+    def transition_model_version_stage(self, name: str, version: int, stage: str) -> None:
         self._block()
-        matched = [
-            mv for mv in self._models[name].latest_versions if mv.version == version
-        ]
+        matched = [mv for mv in self._models[name].latest_versions if mv.version == version]
         if not matched:
             raise _RestException(f"model version {version} not found")
         matched[0].current_stage = stage
@@ -154,9 +144,7 @@ def test_store_methods_do_not_block_event_loop():
     """慢 SDK 调用被线程卸载时，并发的健康探测协程必须在一次 SDK 延迟内完成."""
     cases = {
         "list_models": lambda s: lambda: s.list_models(ModelFilter(limit=10)),
-        "register_model": lambda s: lambda: s.register_model(
-            _make_info(name="slow-reg")
-        ),
+        "register_model": lambda s: lambda: s.register_model(_make_info(name="slow-reg")),
     }
 
     for case_name, make_op in cases.items():
@@ -175,21 +163,17 @@ def test_store_methods_do_not_block_event_loop():
             return results[1], total
 
         probe_elapsed, total_elapsed = asyncio.run(scenario())
-        assert probe_elapsed < PROBE_TIME_BUDGET_SECONDS, (
-            f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
-        )
-        assert total_elapsed >= SDK_DELAY_SECONDS, (
-            f"{case_name}: 总耗时 {total_elapsed:.3f}s，SDK 延迟未真实发生"
-        )
+        assert (
+            probe_elapsed < PROBE_TIME_BUDGET_SECONDS
+        ), f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
+        assert total_elapsed >= SDK_DELAY_SECONDS, f"{case_name}: 总耗时 {total_elapsed:.3f}s，SDK 延迟未真实发生"
 
 
 def test_full_roundtrip_behavior_unchanged():
     store, _ = _make_store()
 
     async def scenario():
-        model_id = await store.register_model(
-            _make_info(name="llm-a", description="desc-1", tags={"team": "nlp"})
-        )
+        model_id = await store.register_model(_make_info(name="llm-a", description="desc-1", tags={"team": "nlp"}))
         assert model_id == "id-llm-a"
 
         info = await store.get_model(model_id)
@@ -213,9 +197,7 @@ def test_full_roundtrip_behavior_unchanged():
         prod = await store.set_production_version(model_id, added.version)
         assert prod.versions[0].isProduction is True
 
-        updated = await store.update_model(
-            model_id, description="desc-2", tags={"team": "cv"}
-        )
+        updated = await store.update_model(model_id, description="desc-2", tags={"team": "cv"})
         assert updated.description == "desc-2"
         assert updated.tags == {"team": "cv"}
 
@@ -361,15 +343,11 @@ async def _run_with_health_probe(op) -> tuple[float, float]:
     return results[1], total_elapsed
 
 
-def _assert_probe_responsive(
-    case_name: str, probe_elapsed: float, total_elapsed: float
-) -> None:
-    assert probe_elapsed < PROBE_TIME_BUDGET_SECONDS, (
-        f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
-    )
-    assert total_elapsed >= SDK_DELAY_SECONDS, (
-        f"{case_name}: 总耗时 {total_elapsed:.3f}s，慢操作未真实发生"
-    )
+def _assert_probe_responsive(case_name: str, probe_elapsed: float, total_elapsed: float) -> None:
+    assert (
+        probe_elapsed < PROBE_TIME_BUDGET_SECONDS
+    ), f"{case_name}: 并发探测耗时 {probe_elapsed:.3f}s，事件循环疑似被阻塞"
+    assert total_elapsed >= SDK_DELAY_SECONDS, f"{case_name}: 总耗时 {total_elapsed:.3f}s，慢操作未真实发生"
 
 
 def test_trainer_get_training_status_does_not_block_event_loop():
@@ -386,16 +364,12 @@ def test_trainer_get_training_status_does_not_block_event_loop():
         )
         job_id = await trainer.create_training_job(config)
         trainer._run_index[job_id] = "run-1"
-        probe_elapsed, total_elapsed = await _run_with_health_probe(
-            lambda: trainer.get_training_status(job_id)
-        )
+        probe_elapsed, total_elapsed = await _run_with_health_probe(lambda: trainer.get_training_status(job_id))
         job = await asyncio.wait_for(trainer.get_training_status(job_id), 5)
         return job, probe_elapsed, total_elapsed
 
     job, probe_elapsed, total_elapsed = asyncio.run(scenario())
-    _assert_probe_responsive(
-        "trainer.get_training_status", probe_elapsed, total_elapsed
-    )
+    _assert_probe_responsive("trainer.get_training_status", probe_elapsed, total_elapsed)
     assert tracking.get_run_calls >= 1
     assert job.status.status == TrainingStatus.SUCCEEDED
 
@@ -405,9 +379,7 @@ def test_deployer_get_deployment_status_does_not_block_event_loop():
     deployer = MLflowModelDeployer(_FakeStoreClient(_FakeRegistrySdk()))
 
     async def scenario():
-        deployment_id = await deployer.deploy_model(
-            "id-dep", DeployConfig(modelId="id-dep", name="dep-slow")
-        )
+        deployment_id = await deployer.deploy_model("id-dep", DeployConfig(modelId="id-dep", name="dep-slow"))
 
         def slow_remote_probe(deployment) -> None:
             time.sleep(SDK_DELAY_SECONDS)
@@ -420,9 +392,7 @@ def test_deployer_get_deployment_status_does_not_block_event_loop():
         return dep, probe_elapsed, total_elapsed
 
     dep, probe_elapsed, total_elapsed = asyncio.run(scenario())
-    _assert_probe_responsive(
-        "deployer.get_deployment_status", probe_elapsed, total_elapsed
-    )
+    _assert_probe_responsive("deployer.get_deployment_status", probe_elapsed, total_elapsed)
     assert dep.id is not None
 
 
@@ -432,12 +402,8 @@ def test_monitor_get_metrics_does_not_block_event_loop():
 
     async def scenario():
         monitor.register_deployment("dep-metrics")
-        monitor._query_metrics_sync = lambda deployment_id: time.sleep(
-            SDK_DELAY_SECONDS
-        )
-        probe_elapsed, total_elapsed = await _run_with_health_probe(
-            lambda: monitor.get_metrics("dep-metrics")
-        )
+        monitor._query_metrics_sync = lambda deployment_id: time.sleep(SDK_DELAY_SECONDS)
+        probe_elapsed, total_elapsed = await _run_with_health_probe(lambda: monitor.get_metrics("dep-metrics"))
         metrics = await asyncio.wait_for(monitor.get_metrics("dep-metrics"), 5)
         return metrics, probe_elapsed, total_elapsed
 

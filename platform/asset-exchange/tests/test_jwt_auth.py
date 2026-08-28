@@ -35,9 +35,7 @@ def make_token(
     }
     si = f"{_enc(header)}.{_enc(claims)}"
     sig = (
-        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest())
-        .rstrip(b"=")
-        .decode()
+        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
     )
     return f"{si}.{sig}"
 
@@ -100,7 +98,10 @@ class TestAuthEnforcement:
 
     def test_subscriptions_without_token_rejected(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)
-        assert c.post("/api/v1/subscriptions/sub-1/approve", json={"action": "approve", "approverId": "x"}).status_code == 401
+        assert (
+            c.post("/api/v1/subscriptions/sub-1/approve", json={"action": "approve", "approverId": "x"}).status_code
+            == 401
+        )
 
     def test_audit_logs_without_token_rejected(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)

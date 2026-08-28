@@ -11,10 +11,10 @@ from __future__ import annotations
 import threading
 import time
 
+from app.api.routes import create_router
 from app.core.executor import EvalExecutor
 from app.core.job_manager import JobManager
 from app.core.llm_client import LLMGatewayClient
-from app.api.routes import create_router
 from app.models import EvalSample, JobStatus, SubmitJobRequest
 from app.report.generator import ABReportGenerator
 from fastapi import FastAPI

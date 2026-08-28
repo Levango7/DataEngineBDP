@@ -97,8 +97,7 @@ def gatewayClientUnreachable() -> GatewayClient:
 
 
 @pytest.fixture
-def unreachableClient(gatewayClientUnreachable: GatewayClient,
-                      settings: Settings) -> TestClient:
+def unreachableClient(gatewayClientUnreachable: GatewayClient, settings: Settings) -> TestClient:
     """使用不可达网关的应用客户端（用于 execute 端点降级路径测试）。"""
     registry = build_services(settings)
     # 用不可达客户端替换注册表中的网关客户端

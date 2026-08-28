@@ -126,9 +126,7 @@ class MeteringService:
             ValidationError: range 参数不合法.
         """
         if not _RANGE_PATTERN.fullmatch(range_str):
-            raise ValidationError(
-                f"无效的时间范围: {range_str}，须为 数字+单位（s/m/h/d/w），如 24h、7d"
-            )
+            raise ValidationError(f"无效的时间范围: {range_str}，须为 数字+单位（s/m/h/d/w），如 24h、7d")
         metrics = await self.store.list_metrics(api_id, range_str, consumer_tenant_id)
 
         if not metrics:

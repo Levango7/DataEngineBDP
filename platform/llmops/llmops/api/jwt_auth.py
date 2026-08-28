@@ -13,12 +13,12 @@
 from __future__ import annotations
 
 import base64
+from dataclasses import dataclass
 import hashlib
 import hmac
 import json
 import os
 import time
-from dataclasses import dataclass
 from typing import Any, Optional
 
 from fastapi import HTTPException, Request

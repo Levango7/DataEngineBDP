@@ -227,16 +227,12 @@ class TestPermissionIsolation:
         await svc.create_business_line(_make_bl("bl-1", "风控线", "t-1", ["u-1"]))
         await svc.create_business_line(_make_bl("bl-2", "增长线", "t-2", ["u-1"]))
         # filter 声称查 t-2，但调用方租户是 t-1 → 只返回 t-1 的业务线
-        result = await svc.list_business_lines(
-            BusinessLineFilter(tenantId="t-2"), tenant_id="t-1"
-        )
+        result = await svc.list_business_lines(BusinessLineFilter(tenantId="t-2"), tenant_id="t-1")
         assert {bl.tenantId for bl in result} == {"t-1"}
         assert {bl.id for bl in result} == {"bl-1"}
         # memberId 在本租户范围内进一步收窄
         await svc.create_business_line(_make_bl("bl-3", "营销线", "t-1", ["u-2"]))
-        result = await svc.list_business_lines(
-            BusinessLineFilter(tenantId="t-2", memberId="u-1"), tenant_id="t-1"
-        )
+        result = await svc.list_business_lines(BusinessLineFilter(tenantId="t-2", memberId="u-1"), tenant_id="t-1")
         assert {bl.id for bl in result} == {"bl-1"}
 
 

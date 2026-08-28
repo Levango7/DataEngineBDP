@@ -15,9 +15,9 @@ import hmac
 import json
 import time
 
-import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
+import pytest
 
 from llmops.api.jwt_auth import AuthContext, getAuthContext, loadAuthSettings
 
@@ -47,9 +47,9 @@ def makeToken(
         "exp": exp if exp is not None else int(time.time()) + 600,
     }
     si = f"{_enc(header)}.{_enc(claims)}"
-    sig = base64.urlsafe_b64encode(
-        hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()
-    ).rstrip(b"=").decode()
+    sig = (
+        base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+    )
     if tamper:
         sig = ("A" if sig[0] != "A" else "B") + sig[1:]
     return f"{si}.{sig}"
@@ -73,9 +73,7 @@ def test_jwt_mode_missing_token_401(client):
 
 
 def test_jwt_mode_valid_token(client):
-    r = client.get(
-        "/whoami", headers={"Authorization": f"Bearer {makeToken()}"}
-    )
+    r = client.get("/whoami", headers={"Authorization": f"Bearer {makeToken()}"})
     assert r.status_code == 200
     body = r.json()
     assert body == {"userId": "u1", "tenantId": "t1", "role": "user"}
@@ -96,16 +94,13 @@ def test_jwt_mode_tampered_signature_401(client):
 
 
 def test_jwt_mode_alg_none_401(client):
-    r = client.get(
-        "/whoami", headers={"Authorization": f"Bearer {makeToken(alg='none')}"}
-    )
+    r = client.get("/whoami", headers={"Authorization": f"Bearer {makeToken(alg='none')}"})
     assert r.status_code == 401
 
 
 def test_jwt_mode_wrong_secret_401(client):
     r = client.get(
-        "/whoami",
-        headers={"Authorization": f"Bearer {makeToken(secret='another-secret-key-at-least-32b!')}"}
+        "/whoami", headers={"Authorization": f"Bearer {makeToken(secret='another-secret-key-at-least-32b!')}"}
     )
     assert r.status_code == 401
 

@@ -9,16 +9,15 @@
 任务存储：内存字典（生产可替换为 Redis / DB）。
 日志存储：文件（适配器写入 {workDir}/{taskId}.log）。
 """
+
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 import os
 import threading
-import uuid
-from datetime import datetime, timezone
 from typing import Optional
-
-from loguru import logger
+import uuid
 
 from app.adapters.base import BaseAdapter, ProcessHandle
 from app.adapters.factory import get_adapter
@@ -33,6 +32,7 @@ from app.models.finetune_task import (
     TaskStatus,
 )
 from app.services.job_scheduler import JobScheduler
+from loguru import logger
 
 
 class FinetuneService:
@@ -66,9 +66,7 @@ class FinetuneService:
         self._lock = threading.RLock()
 
         os.makedirs(workDir, exist_ok=True)
-        logger.info(
-            f"FinetuneService 初始化完成，workDir={workDir}, mockMode={mockMode}"
-        )
+        logger.info(f"FinetuneService 初始化完成，workDir={workDir}, mockMode={mockMode}")
 
     # ============================================================
     # 提交任务
@@ -98,14 +96,10 @@ class FinetuneService:
 
             # 2. 获取适配器并校验配置
             framework = request.config.framework
-            adapter = get_adapter(
-                framework, workDir=self.workDir, mockMode=self.mockMode
-            )
+            adapter = get_adapter(framework, workDir=self.workDir, mockMode=self.mockMode)
             errors = adapter.validate_config(request.config)
             if errors:
-                raise ValueError(
-                    f"微调配置校验失败: {'; '.join(errors)}"
-                )
+                raise ValueError(f"微调配置校验失败: {'; '.join(errors)}")
 
             # 3. 构造任务实体
             task = FinetuneTask(taskId=taskId, request=request)
@@ -116,33 +110,23 @@ class FinetuneService:
             schedule_result = self.scheduler.schedule(request.gpu)
             if not schedule_result.success:
                 task.mark_failed(schedule_result.reason)
-                logger.warning(
-                    f"任务 {taskId} GPU 调度失败: {schedule_result.reason}"
-                )
+                logger.warning(f"任务 {taskId} GPU 调度失败: {schedule_result.reason}")
                 raise ValueError(schedule_result.reason)
 
             task.mark_running(
                 node=schedule_result.nodeName or "mock-node",
                 gpus=schedule_result.gpuIds,
             )
-            logger.info(
-                f"任务 {taskId} 调度到节点 {task.assignedNode}，"
-                f"GPU {task.assignedGPUs}"
-            )
+            logger.info(f"任务 {taskId} 调度到节点 {task.assignedNode}，" f"GPU {task.assignedGPUs}")
 
             # 5. 启动适配器训练
             try:
                 handle = adapter.start(task)
                 self._handles[taskId] = handle
-                logger.info(
-                    f"任务 {taskId} 训练已启动，"
-                    f"pid={handle.pid}, mock={handle.isMock}"
-                )
+                logger.info(f"任务 {taskId} 训练已启动，" f"pid={handle.pid}, mock={handle.isMock}")
             except Exception as e:
                 # 启动失败，释放 GPU 并标记失败
-                self.scheduler.release(
-                    task.assignedNode or "", task.assignedGPUs
-                )
+                self.scheduler.release(task.assignedNode or "", task.assignedGPUs)
                 task.mark_failed(f"启动训练失败: {e}")
                 logger.error(f"任务 {taskId} 启动失败: {e}")
                 raise
@@ -192,9 +176,7 @@ class FinetuneService:
     # ============================================================
     # 查询日志
     # ============================================================
-    async def get_logs(
-        self, taskId: str, tail: int = 100, parse: bool = True
-    ) -> Optional[LogListResponse]:
+    async def get_logs(self, taskId: str, tail: int = 100, parse: bool = True) -> Optional[LogListResponse]:
         """查询任务训练日志（文件读取经 to_thread 卸载，不阻塞事件循环）.
 
         Args:
@@ -215,10 +197,7 @@ class FinetuneService:
         log_path = self._resolve_log_path(taskId, handle)
         lines = await asyncio.to_thread(self._tail_file, log_path or "", tail)
         if not parse or adapter is None:
-            entries = [
-                LogEntry(step=i, message=line)
-                for i, line in enumerate(lines)
-            ]
+            entries = [LogEntry(step=i, message=line) for i, line in enumerate(lines)]
         else:
             entries = []
             for i, line in enumerate(lines):
@@ -298,14 +277,10 @@ class FinetuneService:
         if "训练完成" in content or "训练结束" in content:
             with self._lock:
                 if not task.is_terminal():
-                    output_path = os.path.join(
-                        task.request.outputDir, taskId
-                    )
+                    output_path = os.path.join(task.request.outputDir, taskId)
                     task.mark_succeeded(output_path)
                     if task.assignedNode:
-                        self.scheduler.release(
-                            task.assignedNode, task.assignedGPUs
-                        )
+                        self.scheduler.release(task.assignedNode, task.assignedGPUs)
         return task
 
     # ============================================================
@@ -326,9 +301,7 @@ class FinetuneService:
     # ============================================================
     # 内部辅助
     # ============================================================
-    def _resolve_log_path(
-        self, taskId: str, handle: Optional[ProcessHandle]
-    ) -> Optional[str]:
+    def _resolve_log_path(self, taskId: str, handle: Optional[ProcessHandle]) -> Optional[str]:
         """定位任务日志文件路径."""
         if handle is not None and handle.extra:
             log_path = handle.extra.get("log")
@@ -359,9 +332,7 @@ class FinetuneService:
                 data = f.read(cls._LOG_TAIL_MAX_BYTES)
         except OSError:
             return ""
-        return cls._strip_incomplete_utf8_prefix(data).decode(
-            "utf-8", errors="replace"
-        )
+        return cls._strip_incomplete_utf8_prefix(data).decode("utf-8", errors="replace")
 
     @staticmethod
     def _strip_incomplete_utf8_prefix(data: bytes) -> bytes:

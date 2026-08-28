@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections import deque
 from datetime import timedelta
-import asyncio
 import json
 from pathlib import Path
 import re

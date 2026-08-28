@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
 
 if "FINETUNE_WORK_DIR" not in os.environ:
     os.environ["FINETUNE_WORK_DIR"] = tempfile.mkdtemp(prefix="finetune-cors-")
@@ -17,9 +17,8 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 from fastapi.testclient import TestClient
-import pytest
-
 import main as finetune_main
+import pytest
 
 _LOOP_ROOT = Path(__file__).resolve().parents[1] / "loop"
 
@@ -28,7 +27,7 @@ _PREFLIGHT_HEADERS = {
     "Access-Control-Request-Method": "GET",
 }
 
-_CORS_SCRIPT = r'''
+_CORS_SCRIPT = r"""
 import json
 import sys
 
@@ -53,7 +52,7 @@ print(json.dumps({
     "allowedCredentials": allowed.headers.get("access-control-allow-credentials"),
     "deniedHasAllowOrigin": "access-control-allow-origin" in denied.headers,
 }))
-'''
+"""
 
 
 class TestFinetuneCors:

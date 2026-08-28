@@ -8,8 +8,6 @@ import sqlite3
 import types
 import uuid
 
-import pytest
-
 from openapi_catalog.models import (
     APISubscription,
     ApproveRequest,
@@ -17,10 +15,10 @@ from openapi_catalog.models import (
     CostStrategy,
     SubscriptionFilter,
 )
-from openapi_catalog.models.base import utc_now
 from openapi_catalog.repositories import APINotFoundError, ValidationError
 from openapi_catalog.repositories.sqlite import SQLiteCatalogStore, SQLiteConnection
 from openapi_catalog.services.api_generator import APIGeneratorService, SqlGenerateRequest
+import pytest
 
 
 def build_sqlite_store(tmp_path) -> SQLiteCatalogStore:

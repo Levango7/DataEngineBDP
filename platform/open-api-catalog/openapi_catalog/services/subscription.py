@@ -8,13 +8,13 @@ from __future__ import annotations
 import hmac
 import uuid
 
-from openapi_catalog.models.base import utc_now
 from openapi_catalog.models import (
     APISubscription,
     ApproveRequest,
     SubscriptionFilter,
     SubscriptionStatus,
 )
+from openapi_catalog.models.base import utc_now
 from openapi_catalog.repositories import (
     InvalidAPIKeyError,
     SubscriptionStatusError,

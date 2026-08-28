@@ -10,10 +10,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone, timedelta
-
-import pytest
-from pydantic import ValidationError
+from datetime import datetime, timedelta, timezone
 
 from app.models import (
     TERMINAL_STATUSES,
@@ -27,6 +24,8 @@ from app.models import (
     ModelRecord,
     ModelRegisterRequest,
 )
+from pydantic import ValidationError
+import pytest
 
 
 # ============================================================
@@ -64,9 +63,7 @@ class TestModelRegisterRequest:
 
     def test_minimal_valid_request(self):
         """仅提供必填字段应可创建，其余字段取默认值."""
-        req = ModelRegisterRequest(
-            modelName="qwen2-7b", path="/data/models/qwen2-7b"
-        )
+        req = ModelRegisterRequest(modelName="qwen2-7b", path="/data/models/qwen2-7b")
         assert req.modelName == "qwen2-7b"
         assert req.path == "/data/models/qwen2-7b"
         assert req.version == "0.1.0"
@@ -230,8 +227,14 @@ class TestDeploymentRecord:
     def test_default_status_pending(self):
         """未指定 status 时默认为 PENDING."""
         rec = DeploymentRecord(
-            deploymentId="d", modelName="m", version="0.1",
-            runtime="vllm", port=8000, replicas=1, gpuCount=1, tenantId="t",
+            deploymentId="d",
+            modelName="m",
+            version="0.1",
+            runtime="vllm",
+            port=8000,
+            replicas=1,
+            gpuCount=1,
+            tenantId="t",
         )
         assert rec.status == DeploymentStatus.PENDING
 
