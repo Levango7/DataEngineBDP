@@ -263,9 +263,9 @@ jobs:
           fi
           # 先安装 parent POM（所有子模块的 <parent> 引用）
           if [ -f "pom.xml" ]; then
-            mvn install -B -N -q \
+            mvn install -B -N \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
-              || echo "::warning::parent POM 安装失败"
+              || echo "::error::parent POM 安装失败，后续模块可能无法解析"
           fi
           fail_count=0
           while IFS= read -r pom; do
@@ -578,9 +578,9 @@ jobs:
           echo "============================================"
           # 先安装 parent POM（所有子模块的 <parent> 引用）
           if [ -f "pom.xml" ]; then
-            mvn install -B -N -q \
+            mvn install -B -N \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn \
-              || echo "::warning::parent POM 安装失败"
+              || echo "::error::parent POM 安装失败，后续模块可能无法解析"
           fi
           # 多模块存在内部依赖链：
           #   common-security ← encaps-layer / sql-gateway / finops / infra-* 等
@@ -592,7 +592,7 @@ jobs:
             "platform/encaps-layer/pom.xml" \
             "platform/sql-gateway/pom.xml"; do
             if [ -f "$lib_pom" ]; then
-              mvn -f "$lib_pom" install -B -DskipTests -q \
+              mvn -f "$lib_pom" install -B -DskipTests -U \
                 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
               echo "✓ 已安装: $lib_pom"
             fi
