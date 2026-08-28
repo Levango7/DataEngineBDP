@@ -1350,7 +1350,7 @@ jobs:
       - name: 安装 golangci-lint
         run: |
           curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
-            | sh -s -- -b $(go env GOPATH)/bin v1.65.0
+            | sh -s -- -b $(go env GOPATH)/bin v2.13.2
           golangci-lint version
 
       - name: 对每个 Go 组件执行安全 lint（阻断）
