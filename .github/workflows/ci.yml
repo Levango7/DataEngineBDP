@@ -1034,10 +1034,10 @@ jobs:
             echo "============================================"
             echo "  运行测试: $mod_name ($mod_dir)"
             echo "============================================"
-            # 安装依赖；pyproject.toml 用 [test] extra 装测试依赖，去掉 --force-reinstall 避免 editable install bug
+            # 安装依赖：用非 editable install 避免 editable install bug
             install_ok=false
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              if pip install -e "$mod_dir[test]" -q 2>&1; then
+              if pip install "$mod_dir[test]" -q 2>&1; then
                 install_ok=true
               elif [ -f "$mod_dir/requirements.txt" ] && pip install -r "$mod_dir/requirements.txt" -q 2>&1; then
                 install_ok=true
@@ -1093,7 +1093,7 @@ jobs:
               continue
             fi
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              pip install -e "$mod_dir[test]" -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install "$mod_dir[test]" -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
             elif [ -f "$mod_dir/requirements.txt" ]; then
               pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
             fi
@@ -1146,7 +1146,7 @@ jobs:
               continue
             fi
             if [ -f "$mod_dir/pyproject.toml" ]; then
-              pip install -e "$mod_dir[test]" -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install "$mod_dir[test]" -q 2>/dev/null || pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
             elif [ -f "$mod_dir/requirements.txt" ]; then
               pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
             fi
