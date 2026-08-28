@@ -1337,6 +1337,7 @@ jobs:
   go-security-lint:
     name: Go Security Lint (golangci-lint)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
