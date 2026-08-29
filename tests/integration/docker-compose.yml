@@ -32,7 +32,9 @@ services:
       - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
       - K8S_MOCK_ENABLED=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
+      # encaps-layer 无 /api/v1/health 控制器，使用 Spring Boot Actuator 端点
+      # （application.yml 已暴露 health，SecurityConfig 已放行 /actuator/health）
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
       interval: 5s
       timeout: 3s
       retries: 10
