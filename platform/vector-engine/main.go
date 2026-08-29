@@ -57,9 +57,10 @@ func main() {
 	cfg := config.Load()
 
 	// 根据配置构造 VectorStore 实例。
-	// 当前默认使用 Mock 实现；Milvus 实现通过 build tag 控制（参见 internal/store/milvus/）。
-	s, demoMode := selectStore(cfg, logger)
-	warnDemoMode(log.Writer(), demoMode, serviceName)
+	// STORE_TYPE=mock 或显式 MOCK_FALLBACK=true 才会落入内存 Mock；milvus 模式下
+	// 未启用 milvus_enabled 构建标签将 fail-fast 拒绝启动（不再静默回退）。
+	s := selectStore(cfg, logger)
+	warnDemoMode(log.Writer(), isMockStore(s), serviceName)
 
 	// 初始化服务层。
 	vectorService := service.NewVectorService(s)
@@ -127,33 +128,54 @@ func newRouter(logger *slog.Logger, healthH *api.HealthHandler, vectorH *api.Vec
 	return r
 }
 
-// selectStore 根据配置构造 VectorStore，返回实例与是否为内置内存 Mock（演示模式）。
-func selectStore(cfg *config.Config, logger *slog.Logger) (store.VectorStore, bool) {
+// fatalExit 是 fail-fast 的可注入出口：生产入口为 log.Fatalf（含 os.Exit(1)），
+// 测试替换为 panic 以便 require.Panics 捕获断言（os.Exit 无法被测试拦截）。
+var fatalExit = func() {
+	log.Fatalf("[%s] refusing to silently fall back to mock storage in milvus mode", serviceName)
+}
+
+// selectStore 根据配置构造 VectorStore。
+//
+// 生产语义（2026-08-29 P0-3 收紧）：
+//   - STORE_TYPE=mock：显式选择内存 Mock（本地/测试），允许启动并告警
+//   - STORE_TYPE=milvus（默认）：真实 Milvus；若当前二进制未带 milvus_enabled
+//     构建标签，直接 fail-fast 拒绝启动——静默回退 mock 会让生产在无感知的情况下
+//     跑在内存假存储上（配置写 milvus、实际非 milvus）。
+//     需要临时降级时显式设置 MOCK_FALLBACK=true。
+func selectStore(cfg *config.Config, logger *slog.Logger) store.VectorStore {
 	switch cfg.StoreType {
 	case "mock":
 		log.Printf("[%s] store backend: mock (in-memory)", serviceName)
-		return mock.NewMockVectorStore(), true
+		return mock.NewMockVectorStore()
 	case "milvus":
-		// Milvus 实现需要 build tag milvus_enabled，未启用时回退到 mock 并告警。
-		return newMilvusStoreOrFallback(cfg, logger)
+		return newMilvusStoreOrFail(cfg, logger)
 	default:
-		log.Printf("[%s] unknown store type %q, fallback to mock", serviceName, cfg.StoreType)
-		return mock.NewMockVectorStore(), true
+		logger.Error("FATAL: unknown store type",
+			"storeType", cfg.StoreType, "supported", "mock | milvus")
+		fatalExit()
+		return nil
 	}
 }
 
-// newMilvusStoreOrFallback 在未启用 milvus_enabled build tag 时回退到 Mock 实现。
+// newMilvusStoreOrFail 在未启用 milvus_enabled build tag 时拒绝启动（fail-fast）。
 //
 // 真实 Milvus 实现位于 internal/store/milvus/，需通过 `-tags milvus_enabled` 编译启用。
-// 默认构建（无 build tag）下，newMilvusStore 返回 nil，此处回退到 Mock 并打印告警。
-func newMilvusStoreOrFallback(cfg *config.Config, logger *slog.Logger) (store.VectorStore, bool) {
+// 默认构建（无 build tag）下，newMilvusStore 返回 nil：
+//   - MOCK_FALLBACK=true（显式应急开关）→ 回退 mock 并打印显著告警
+//   - 否则 → fail-fast 拒绝以假存储冒充生产实例
+func newMilvusStoreOrFail(cfg *config.Config, logger *slog.Logger) store.VectorStore {
 	s := newMilvusStore(cfg)
 	if s == nil {
-		logger.Warn("milvus store not built (need build tag milvus_enabled), fallback to mock",
-			"hint", "rebuild with: go build -tags milvus_enabled")
-		return mock.NewMockVectorStore(), true
+		if os.Getenv("MOCK_FALLBACK") == "true" {
+			logger.Warn("milvus store not built; MOCK_FALLBACK=true explicit fallback to mock (NOT for production)",
+				"hint", "rebuild with: go build -tags milvus_enabled")
+			return mock.NewMockVectorStore()
+		}
+		logger.Error("FATAL: STORE_TYPE=milvus but milvus store not built in this binary",
+			"hint", "rebuild with: go build -tags milvus_enabled; or set STORE_TYPE=mock for local dev; or MOCK_FALLBACK=true to override")
+		fatalExit()
 	}
-	return s, false
+	return s
 }
 
 // warnDemoMode 在以内置内存 Mock 存储运行时输出演示模式告警（w 抽象便于测试捕获）。
@@ -162,4 +184,10 @@ func warnDemoMode(w io.Writer, active bool, service string) {
 		return
 	}
 	fmt.Fprintf(w, "WARNING: [%s] 正以内置内存 Mock 存储运行（演示模式），数据不持久化；生产需启用 Milvus 构建\n", service)
+}
+
+// isMockStore 判定存储实例是否为内置内存 Mock（演示模式标记）。
+func isMockStore(s store.VectorStore) bool {
+	_, ok := s.(*mock.MockVectorStore)
+	return ok
 }

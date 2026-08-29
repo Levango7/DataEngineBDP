@@ -103,30 +103,59 @@ func TestSelectStoreMockEmitsDemoModeWarning(t *testing.T) {
 	t.Setenv("STORE_TYPE", "mock")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	_, demoMode := selectStore(config.Load(), logger)
-	require.True(t, demoMode)
-	warnDemoMode(log.Writer(), demoMode, serviceName)
+	s := selectStore(config.Load(), logger)
+	require.True(t, isMockStore(s))
+	warnDemoMode(log.Writer(), isMockStore(s), serviceName)
 
 	assert.Contains(t, buf.String(), "演示模式")
 	assert.Contains(t, buf.String(), serviceName)
 }
 
-// TestSelectStoreUnknownTypeFallsBackToDemoMode 未知 STORE_TYPE 回退 Mock 同样标记演示模式。
-func TestSelectStoreUnknownTypeFallsBackToDemoMode(t *testing.T) {
+// TestSelectStoreMilvusDefaultBuildFailsFast 默认构建（无 milvus_enabled）下
+// STORE_TYPE=milvus 必须 fail-fast 拒绝启动，不得静默回退 Mock（P0-3 回归用例）。
+func TestSelectStoreMilvusDefaultBuildFailsFast(t *testing.T) {
+	t.Setenv("STORE_TYPE", "milvus")
+	t.Setenv("MOCK_FALLBACK", "")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	cfg := config.Load()
+	s := newMilvusStore(cfg)
+	if s != nil {
+		t.Skip("本二进制已启用 milvus_enabled 构建标签，fail-fast 路径不适用")
+	}
+	// fatalExit 默认 os.Exit(1)（测试进程会被杀掉），替换为 panic 供断言捕获
+	origExit := fatalExit
+	fatalExit = func() { panic("fatal exit: mock fallback refused") }
+	defer func() { fatalExit = origExit }()
+	require.Panics(t, func() { selectStore(cfg, logger) })
+}
+
+// TestSelectStoreMilvusExplicitMockFallbackAllowed MOCK_FALLBACK=true 显式应急开关
+// 允许回退 Mock（保留逃生通道，但必须显式声明）。
+func TestSelectStoreMilvusExplicitMockFallbackAllowed(t *testing.T) {
+	t.Setenv("STORE_TYPE", "milvus")
+	t.Setenv("MOCK_FALLBACK", "true")
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+
+	cfg := config.Load()
+	s := newMilvusStore(cfg)
+	if s != nil {
+		t.Skip("本二进制已启用 milvus_enabled 构建标签，回退路径不适用")
+	}
+	got := selectStore(cfg, logger)
+	assert.True(t, isMockStore(got))
+}
+
+// TestSelectStoreUnknownTypeFailsFast 未知 STORE_TYPE 拒绝启动（fail-fast）。
+func TestSelectStoreUnknownTypeFailsFast(t *testing.T) {
 	t.Setenv("STORE_TYPE", "unknown-backend")
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 
-	_, demoMode := selectStore(config.Load(), logger)
-	assert.True(t, demoMode)
-}
-
-// TestSelectStoreMilvusFallbackFlagsDemoMode 默认构建（无 milvus_enabled）下 milvus 回退 Mock 标记演示模式。
-func TestSelectStoreMilvusFallbackFlagsDemoMode(t *testing.T) {
-	t.Setenv("STORE_TYPE", "milvus")
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-
-	_, demoMode := selectStore(config.Load(), logger)
-	assert.True(t, demoMode)
+	cfg := config.Load()
+	origExit := fatalExit
+	fatalExit = func() { panic("fatal exit: unknown store type") }
+	defer func() { fatalExit = origExit }()
+	require.Panics(t, func() { selectStore(cfg, logger) })
 }
 
 // TestRealStoreSuppressesDemoModeWarning 非内存 Mock 后端不输出演示模式告警。

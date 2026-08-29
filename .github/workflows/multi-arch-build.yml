@@ -145,7 +145,7 @@ jobs:
             dockerfile: platform/rule-engine/Dockerfile
             image: sq-rule-engine
           - module: tag-engine
-            context: .
+            context: platform/tag-engine
             dockerfile: platform/tag-engine/Dockerfile
             image: sq-tag-engine
     steps:

@@ -178,6 +178,47 @@ func (s *MilvusVectorStore) DropCollection(ctx context.Context, collectionName s
 	return nil
 }
 
+// ListCollections 列出当前数据库中的全部集合（前端 /vector 列表契约）。
+//
+// 维度/索引类型由 getCollectionMeta 反查 schema 获得；向量数量以
+// GetCollectionStatistics 的 row_count 为准（Flush 前为近似值）。
+// 单个集合元信息获取失败时跳过该集合并继续，避免一条坏记录阻塞整个列表。
+func (s *MilvusVectorStore) ListCollections(ctx context.Context) ([]store.Collection, error) {
+	c := s.getClient()
+
+	entities, err := c.ListCollections(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list collections: %w", err)
+	}
+
+	collections := make([]store.Collection, 0, len(entities))
+	for _, e := range entities {
+		if e == nil {
+			continue
+		}
+		dim, metricType, indexType, metaErr := s.getCollectionMeta(ctx, e.Name)
+		if metaErr != nil {
+			continue
+		}
+		var vectorCount int64
+		if stats, statsErr := c.GetCollectionStatistics(ctx, e.Name); statsErr == nil {
+			if rc, ok := stats["row_count"]; ok {
+				if parsed, parseErr := strconv.ParseInt(rc, 10, 64); parseErr == nil {
+					vectorCount = parsed
+				}
+			}
+		}
+		collections = append(collections, store.Collection{
+			Name:        e.Name,
+			Dimension:   dim,
+			MetricType:  metricType,
+			IndexType:  indexType,
+			VectorCount: vectorCount,
+		})
+	}
+	return collections, nil
+}
+
 // Insert 插入向量到指定集合。
 //
 // 流程：

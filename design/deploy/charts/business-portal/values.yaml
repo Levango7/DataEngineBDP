@@ -98,6 +98,12 @@ env:
   # 鉴权：K8s 内默认强制 JWT（JWT_SECRET 经 Secret 注入，见 SECRETS-MANAGEMENT-GUIDE.md）
   AUTH_MODE: jwt
 
+# ---- 鉴权（AUTH_MODE fail-fast 配套）----
+auth:
+  authMode: jwt
+  existingSecretName: shuqing-jwt-secret
+  jwtSecretKey: jwt-secret
+
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:
   application.conf: |

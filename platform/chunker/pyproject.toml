@@ -39,6 +39,11 @@ test = [
     "pytest>=8.0",
     "pytest-asyncio>=0.23",
     "pytest-cov>=4.0",
+    # 图像/表格切片测试所需依赖
+    "numpy>=1.24.0",
+    "Pillow>=10.0.0",
+    "opencv-python-headless>=4.8.0",
+    "pandas>=2.0.0",
 ]
 dev = [
     "pytest>=8.0",

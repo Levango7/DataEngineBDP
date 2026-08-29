@@ -97,6 +97,14 @@ env:
   LOG_LEVEL: info
   # 鉴权：K8s 内默认强制 JWT（JWT_SECRET 经 Secret 注入；LOOP_DEV_MODE 保持默认 false）
   AUTH_MODE: jwt
+  # 生产默认关闭闭环编排 Mock（组件代码默认 mock_mode=true）
+  LOOP_MOCK_MODE: "false"
+
+# ---- 鉴权（AUTH_MODE fail-fast 配套）----
+auth:
+  authMode: jwt
+  existingSecretName: shuqing-jwt-secret
+  jwtSecretKey: jwt-secret
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:

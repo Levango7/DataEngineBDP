@@ -47,6 +47,14 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "model-finetuning.configmapName" . }}
+          env:
+            - name: AUTH_MODE
+              value: {{ .Values.auth.authMode | default "jwt" | quote }}
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.existingSecretName | quote }}
+                  key: {{ .Values.auth.jwtSecretKey | quote }}
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:
