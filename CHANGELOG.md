@@ -19,6 +19,10 @@
 - jwt_auth 测试更新为 fail-fast 断言（K8s 未显式 → RuntimeError；显式 none 放行）
 - 前端 vitest 全量 22 文件 197 测试通过（串行模式验证，并行模式在本机 jsdom 环境初始化慢，非代码问题）
 
+### Docs
+- 新增 `design/deploy/JWT鉴权配置指南.md`：AUTH_MODE fail-fast 配套的 Secret 创建（shuqing-jwt-secret）、三种鉴权模式、部署后验证、常见问题（CrashLoopBackOff/全 401/本地起不来）；部署手册关联行同步
+- 遗留改动核查（flink-cdc debezium 降级、SecurityConfig AutoConfiguration 顺序）：已于提交 058c16c2 解决——Debezium 3.x 移除 DatabaseHistory API 而 Flink CDC 3.0.1 依赖 1.9.7，降级为正确修复；@AutoConfiguration(before=...) 修复默认安全配置抢占，均无需回滚
+
 ## [2.1.0-RC] - 2026-08-29（交付前审计修复批次）
 
 ### Security
