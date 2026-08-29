@@ -119,12 +119,8 @@
             <artifactId>kubernetes-client</artifactId>
             <version>7.8.0</version>
         </dependency>
-        <!-- fabric8 Kubernetes Model：自动生成的 K8s 资源 POJO（含 autoscaling/v2 HPA） -->
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-model</artifactId>
-            <version>6.13.4</version>
-        </dependency>
+        <!-- fabric8 Kubernetes Model：7.x 已拆分为 kubernetes-model-core/apps/networking/autoscaling/storage 等
+             子模块，由 kubernetes-client 7.8.0 传递依赖提供，无需显式声明（kubernetes-model 聚合 jar 在 7.x 不再发布） -->
 
         <!-- 测试 -->
         <dependency>
@@ -202,7 +198,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
-                <version>3.3.1</version>
+                <version>3.6.0</version>
                 <configuration>
                     <configLocation>../../build/lint/checkstyle.xml</configLocation>
                     <failOnViolation>true</failOnViolation>
@@ -216,7 +212,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-pmd-plugin</artifactId>
-                <version>3.21.2</version>
+                <version>3.28.0</version>
                 <configuration>
                     <rulesets>
                         <ruleset>../../build/lint/pmd-ruleset.xml</ruleset>
