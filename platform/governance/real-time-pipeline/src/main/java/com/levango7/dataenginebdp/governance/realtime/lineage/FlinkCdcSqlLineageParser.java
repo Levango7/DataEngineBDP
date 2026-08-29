@@ -235,6 +235,16 @@ public class FlinkCdcSqlLineageParser {
             String projection, String targetField, List<SourceTableInfo> sources) {
         projection = projection.trim();
 
+        // 常量：'literal' 或 123 或 true 或 false 或 null（优先于字段引用，避免纯数字被 \w 匹配）
+        if (projection.matches("(?i)('[^']*'|\\d+|true|false|null)")) {
+            return FieldLineage.FieldMapping.builder()
+                    .sourceField(null)
+                    .targetField(targetField)
+                    .transformType("CONSTANT")
+                    .expression(projection)
+                    .build();
+        }
+
         // 简单字段引用：alias.field 或 table.field 或 field
         if (projection.matches("[\\w.]+")) {
             String sourceField = extractFieldName(projection);
@@ -243,16 +253,6 @@ public class FlinkCdcSqlLineageParser {
                     .targetField(targetField)
                     .transformType("DIRECT")
                     .expression(null)
-                    .build();
-        }
-
-        // 常量：'literal' 或 123 或 true
-        if (projection.matches("(?i)('[^']*'|\\d+|true|false|null)")) {
-            return FieldLineage.FieldMapping.builder()
-                    .sourceField(null)
-                    .targetField(targetField)
-                    .transformType("CONSTANT")
-                    .expression(projection)
                     .build();
         }
 

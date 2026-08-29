@@ -21,7 +21,7 @@
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flink.version>1.20.0</flink.version>
-        <flink.cdc.version>3.0.0</flink.cdc.version>
+        <flink.cdc.version>3.0.1</flink.cdc.version>
         <iceberg.version>1.5.2</iceberg.version>
         <nebula.version>3.6.0</nebula.version>
         <flink.scope>provided</flink.scope>
