@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 
+from business_portal.api.jwt_auth import getAuthContext
 from business_portal.api.routers import (
     business_lines,
     catalog,
@@ -56,12 +57,13 @@ def create_app(
     app.state.registry = registry
 
     prefix = settings.apiPrefix
+    # 健康检查保持匿名可探活；业务路由统一 JWT 鉴权（对齐 open-api-catalog 模式）
     app.include_router(health.router, prefix=prefix)
-    app.include_router(business_lines.router, prefix=prefix)
-    app.include_router(dashboard.router, prefix=prefix)
-    app.include_router(workbench.router, prefix=prefix)
-    app.include_router(catalog.router, prefix=prefix)
-    app.include_router(reports.router, prefix=prefix)
+    app.include_router(business_lines.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(dashboard.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(workbench.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(catalog.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    app.include_router(reports.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
 
     # ---- 全局异常处理器：统一错误响应格式 {error, message} ----
     @app.exception_handler(Exception)

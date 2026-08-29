@@ -14,6 +14,7 @@ from business_portal.api.routers.deps import (
     get_registry,
     status_for_error,
 )
+
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
     Budget,
@@ -68,8 +69,16 @@ class UpdateBusinessLineRequest(BaseModel):
 async def create_business_line(
     req: CreateBusinessLineRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    creator_id: str | None = Depends(get_current_user),
 ) -> BusinessLine:
-    """创建一条新业务线（顶层组织维度）."""
+    """创建一条新业务线（顶层组织维度）.
+
+    创建者（JWT sub 或 X-User-Id）自动成为 owner，确保后续 get/update/delete 有权限。
+    """
+    # 创建者自动成为 owner（若未显式包含）
+    owner_ids = req.ownerIds
+    if creator_id and creator_id not in owner_ids:
+        owner_ids = [creator_id, *owner_ids]
     bl = BusinessLine(
         id=str(uuid.uuid4()),
         name=req.name,
@@ -77,7 +86,7 @@ async def create_business_line(
         description=req.description,
         budget=req.budget,
         config=req.config,
-        ownerIds=req.ownerIds,
+        ownerIds=owner_ids,
         teamIds=req.teamIds,
         memberIds=req.memberIds,
     )

@@ -195,14 +195,23 @@ jobs:
             echo "============================================"
             echo "  Docker build & push: $mod_name"
             echo "============================================"
-            # lineage-analyzer 的 Dockerfile 按 platform 根目录作为 context 书写
-            # (COPY sql-gateway/… 与 governance/lineage-analyzer/…)，需特判
+            # 部分 Dockerfile 以非模块目录作为 build context 书写，需特判：
+            # - encaps-layer / sql-gateway / rule-engine:
+            #     COPY pom.xml + COPY platform/<mod>/... → context=项目根目录（.）
+            # - lineage-analyzer:
+            #     COPY sql-gateway/... + COPY governance/lineage-analyzer/... → context=platform/
             build_ctx="$mod_dir"
             dockerfile_arg=""
-            if [ "$mod_name" = "lineage-analyzer" ]; then
-              build_ctx="platform"
-              dockerfile_arg="-f platform/governance/lineage-analyzer/Dockerfile"
-            fi
+            case "$mod_name" in
+              encaps-layer|sql-gateway|rule-engine)
+                build_ctx="."
+                dockerfile_arg="-f $df"
+                ;;
+              lineage-analyzer)
+                build_ctx="platform"
+                dockerfile_arg="-f platform/governance/lineage-analyzer/Dockerfile"
+                ;;
+            esac
             docker buildx build \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \

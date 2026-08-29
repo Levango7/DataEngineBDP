@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from tests.conftest import make_jwt
+
 
 class TestHealth:
     """健康检查."""
@@ -14,6 +16,37 @@ class TestHealth:
         assert data["store"] == "mock"
         assert data["module"] == "business-portal"
         assert data["level"] == "L5.4"
+
+
+class TestAuthEnforcement:
+    """鉴权强制测试：AUTH_MODE=jwt 下身份只认 Bearer token，裸头伪造无效."""
+
+    def test_jwt_mode_missing_token_returns_401(self, jwt_client):
+        resp = jwt_client.get("/api/v1/business-lines")
+        assert resp.status_code == 401
+
+    def test_jwt_mode_rejects_forged_headers_without_token(self, jwt_client):
+        """伪造 X-Tenant-Id/X-User-Id 头而无有效 token → 仍 401（修复前的漏洞本体）."""
+        resp = jwt_client.get(
+            "/api/v1/business-lines",
+            headers={"X-Tenant-Id": "t-1", "X-User-Id": "admin-1"},
+        )
+        assert resp.status_code == 401
+
+    def test_jwt_mode_rejects_invalid_token(self, jwt_client):
+        resp = jwt_client.get(
+            "/api/v1/business-lines",
+            headers={"Authorization": "Bearer not-a-jwt"},
+        )
+        assert resp.status_code == 401
+
+    def test_jwt_mode_valid_token_passes(self, jwt_client):
+        token = make_jwt(sub="admin-1", tenant="t-1")
+        resp = jwt_client.get(
+            "/api/v1/business-lines",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
 
 
 class TestBusinessLineApi:
@@ -53,74 +86,87 @@ class TestBusinessLineApi:
         resp = client.post("/api/v1/business-lines", json=payload)
         assert resp.status_code == 409
 
-    def test_list_business_lines(self, client):
-        client.post(
+    def test_list_business_lines(self, jwt_client):
+        t1_token = make_jwt(sub="u-0", tenant="t-1")
+        auth = {"Authorization": f"Bearer {t1_token}"}
+        jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "bl-1", "tenantId": "t-1", "memberIds": ["u-1"]},
+            headers=auth,
         )
-        client.post(
+        jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "bl-2", "tenantId": "t-1", "memberIds": ["u-2"]},
+            headers=auth,
         )
-        client.post(
+        jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "bl-3", "tenantId": "t-2", "memberIds": ["u-1"]},
+            headers={"Authorization": f"Bearer {make_jwt(sub='u-0', tenant='t-2')}"},
         )
         # t-1 视角：仅本租户
-        resp = client.get("/api/v1/business-lines", headers={"X-Tenant-Id": "t-1"})
+        resp = jwt_client.get("/api/v1/business-lines", headers=auth)
         assert resp.status_code == 200
         assert len(resp.json()) == 2
         names = {bl["name"] for bl in resp.json()}
         assert names == {"bl-1", "bl-2"}
         # 按成员（本租户内进一步收窄）
-        resp = client.get(
+        resp = jwt_client.get(
             "/api/v1/business-lines?memberId=u-1",
-            headers={"X-Tenant-Id": "t-1"},
+            headers=auth,
         )
         result = resp.json()
         assert len(result) == 1
         assert result[0]["name"] == "bl-1"
 
-    def test_list_without_tenant_header_returns_401(self, client):
-        """缺少租户身份请求头 → 401，不允许匿名枚举."""
-        client.post(
+    def test_list_without_tenant_identity_returns_401(self, jwt_client):
+        """token 无 tenantId 声明 → 401，不允许匿名枚举."""
+        jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "bl-1", "tenantId": "t-1"},
+            headers={"Authorization": f"Bearer {make_jwt(sub='u-0', tenant='t-1')}"},
         )
-        resp = client.get("/api/v1/business-lines")
+        resp = jwt_client.get(
+            "/api/v1/business-lines",
+            headers={"Authorization": f"Bearer {make_jwt(sub='u-0', tenant='')}"},
+        )
         assert resp.status_code == 401
 
-    def test_list_ignores_client_tenant_param(self, client):
-        """客户端伪造 tenantId 参数不影响租户裁剪（以身份头为准）."""
-        client.post(
+    def test_list_ignores_client_tenant_param(self, jwt_client):
+        """客户端伪造 tenantId 参数不影响租户裁剪（以 token 声明为准）."""
+        jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "bl-t1", "tenantId": "t-1"},
+            headers={"Authorization": f"Bearer {make_jwt(sub='u-0', tenant='t-1')}"},
         )
-        client.post(
+        jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "bl-t2", "tenantId": "t-2"},
+            headers={"Authorization": f"Bearer {make_jwt(sub='u-0', tenant='t-2')}"},
         )
-        resp = client.get(
+        resp = jwt_client.get(
             "/api/v1/business-lines?tenantId=t-2",
-            headers={"X-Tenant-Id": "t-1"},
+            headers={"Authorization": f"Bearer {make_jwt(sub='u-0', tenant='t-1')}"},
         )
         assert resp.status_code == 200
         names = {bl["name"] for bl in resp.json()}
         assert names == {"bl-t1"}
 
-    def test_get_business_line(self, client):
-        create_resp = client.post(
+    def test_get_business_line(self, jwt_client):
+        auth = {"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"}
+        create_resp = jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "风控线", "tenantId": "t-1", "memberIds": ["u-1"]},
+            headers=auth,
         )
         bl_id = create_resp.json()["id"]
-        resp = client.get(f"/api/v1/business-lines/{bl_id}")
+        resp = jwt_client.get(f"/api/v1/business-lines/{bl_id}", headers=auth)
         assert resp.status_code == 200
         assert resp.json()["id"] == bl_id
 
-    def test_get_business_line_with_user_header(self, client):
-        """带 X-User-Id 头：成员可访问，非成员 403."""
-        create_resp = client.post(
+    def test_get_business_line_with_user_identity(self, jwt_client):
+        """token sub 指定成员：成员可访问，非成员 403."""
+        create_resp = jwt_client.post(
             "/api/v1/business-lines",
             json={
                 "name": "风控线",
@@ -128,31 +174,40 @@ class TestBusinessLineApi:
                 "ownerIds": ["admin-1"],
                 "memberIds": ["admin-1", "user-1"],
             },
+            headers={"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"},
         )
         bl_id = create_resp.json()["id"]
         # 成员访问
-        resp = client.get(f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "user-1"})
+        resp = jwt_client.get(
+            f"/api/v1/business-lines/{bl_id}",
+            headers={"Authorization": f"Bearer {make_jwt(sub='user-1', tenant='t-1')}"},
+        )
         assert resp.status_code == 200
         # 非成员访问
-        resp = client.get(f"/api/v1/business-lines/{bl_id}", headers={"X-User-Id": "intruder"})
+        resp = jwt_client.get(
+            f"/api/v1/business-lines/{bl_id}",
+            headers={"Authorization": f"Bearer {make_jwt(sub='intruder', tenant='t-1')}"},
+        )
         assert resp.status_code == 403
 
     def test_get_business_line_not_found(self, client):
         resp = client.get("/api/v1/business-lines/nonexistent")
         assert resp.status_code == 404
 
-    def test_update_business_line(self, client):
-        create_resp = client.post(
+    def test_update_business_line(self, jwt_client):
+        auth = {"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"}
+        create_resp = jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "风控线", "tenantId": "t-1", "ownerIds": ["admin-1"]},
+            headers=auth,
         )
         bl_id = create_resp.json()["id"]
-        resp = client.put(f"/api/v1/business-lines/{bl_id}", json={"name": "风控线-v2"})
+        resp = jwt_client.put(f"/api/v1/business-lines/{bl_id}", json={"name": "风控线-v2"}, headers=auth)
         assert resp.status_code == 200
         assert resp.json()["name"] == "风控线-v2"
 
-    def test_update_by_non_owner_returns_403(self, client):
-        create_resp = client.post(
+    def test_update_by_non_owner_returns_403(self, jwt_client):
+        create_resp = jwt_client.post(
             "/api/v1/business-lines",
             json={
                 "name": "风控线",
@@ -160,25 +215,28 @@ class TestBusinessLineApi:
                 "ownerIds": ["admin-1"],
                 "memberIds": ["admin-1", "user-1"],
             },
+            headers={"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"},
         )
         bl_id = create_resp.json()["id"]
-        resp = client.put(
+        resp = jwt_client.put(
             f"/api/v1/business-lines/{bl_id}",
             json={"name": "x"},
-            headers={"X-User-Id": "user-1"},
+            headers={"Authorization": f"Bearer {make_jwt(sub='user-1', tenant='t-1')}"},
         )
         assert resp.status_code == 403
 
-    def test_delete_business_line(self, client):
-        create_resp = client.post(
+    def test_delete_business_line(self, jwt_client):
+        auth = {"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"}
+        create_resp = jwt_client.post(
             "/api/v1/business-lines",
             json={"name": "风控线", "tenantId": "t-1"},
+            headers=auth,
         )
         bl_id = create_resp.json()["id"]
-        resp = client.delete(f"/api/v1/business-lines/{bl_id}")
+        resp = jwt_client.delete(f"/api/v1/business-lines/{bl_id}", headers=auth)
         assert resp.status_code == 204
         # 二次获取应 404
-        resp = client.get(f"/api/v1/business-lines/{bl_id}")
+        resp = jwt_client.get(f"/api/v1/business-lines/{bl_id}", headers=auth)
         assert resp.status_code == 404
 
     def test_delete_not_found(self, client):

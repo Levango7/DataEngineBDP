@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
+import json
 import os
+import time
 
 from fastapi.testclient import TestClient
 import pytest
 
 # 强制 Mock 模式
 os.environ.setdefault("BP_STORE_TYPE", "mock")
+# 测试环境显式匿名放行（生产/K8s 由 jwt_auth fail-fast 拦截）
+os.environ.setdefault("AUTH_MODE", "none")
 
 from business_portal.api.app import create_app  # noqa: E402
 from business_portal.config.settings import Settings, reset_settings  # noqa: E402
@@ -91,4 +98,45 @@ def app(registry: ServiceRegistry):
 @pytest.fixture
 def client(app) -> TestClient:
     """同步 TestClient（FastAPI 自动处理 async 路由）."""
+    return TestClient(app)
+
+
+# ---------- JWT 签发辅助（对齐 jwt_auth.py HS256 格式） ----------
+
+TEST_JWT_SECRET = "unit-test-secret-key-at-least-32-bytes!!"
+
+
+def _enc(obj) -> str:
+    return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()
+
+
+def make_jwt(
+    secret: str = TEST_JWT_SECRET,
+    sub: str = "admin-1",
+    tenant: str = "t-1",
+    role: str = "admin",
+    exp: float | None = None,
+) -> str:
+    """签发 HS256 JWT（claims 与 Go 侧 / jwt_auth.py 兼容）."""
+    header = {"alg": "HS256", "typ": "JWT"}
+    claims = {
+        "iss": "shuqing-bigdata",
+        "sub": sub,
+        "tenantId": tenant,
+        "role": role,
+        "iat": int(time.time()),
+        "exp": exp if exp is not None else int(time.time()) + 600,
+    }
+    si = f"{_enc(header)}.{_enc(claims)}"
+    sig = base64.urlsafe_b64encode(
+        hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()
+    ).rstrip(b"=").decode()
+    return f"{si}.{sig}"
+
+
+@pytest.fixture
+def jwt_client(app, monkeypatch) -> TestClient:
+    """AUTH_MODE=jwt 的客户端（身份强制来自 Bearer token）."""
+    monkeypatch.setenv("AUTH_MODE", "jwt")
+    monkeypatch.setenv("JWT_SECRET", TEST_JWT_SECRET)
     return TestClient(app)

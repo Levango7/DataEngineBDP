@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
-from fastapi import Header, Request
+import os
 
+from fastapi import Depends, Request
+
+from business_portal.api.jwt_auth import AuthContext, getAuthContext
 from business_portal.repositories import (
     BusinessLineAlreadyExistsError,
     BusinessLineNotFoundError,
@@ -21,18 +24,37 @@ def get_registry(request: Request) -> ServiceRegistry:
     return request.app.state.registry
 
 
+def _is_anon_mode() -> bool:
+    """AUTH_MODE=none 时本地/测试环境从请求头读取身份."""
+    return os.environ.get("AUTH_MODE", "none").strip().lower() == "none"
+
+
 def get_current_user(
-    x_user_id: str | None = Header(default=None, alias="X-User-Id"),
+    request: Request,
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> str | None:
-    """从请求头 X-User-Id 获取当前用户 ID（无则 None，表示匿名/管理员）."""
-    return x_user_id
+    """当前用户 ID.
+
+    AUTH_MODE=none（本地/测试）：从 X-User-Id 头读取（None 表示匿名/管理员，跳过权限检查）
+    AUTH_MODE=jwt（生产）：从 JWT sub 声明读取
+    """
+    if _is_anon_mode():
+        return request.headers.get("X-User-Id")
+    return ctx.userId
 
 
 def get_current_tenant(
-    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-Id"),
+    request: Request,
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> str | None:
-    """从请求头 X-Tenant-Id 获取当前租户 ID（无则 None，表示未认证）."""
-    return x_tenant_id
+    """当前租户 ID.
+
+    AUTH_MODE=none（本地/测试）：从 X-Tenant-Id 头读取（None 表示未认证）
+    AUTH_MODE=jwt（生产）：从 JWT tenantId 声明读取
+    """
+    if _is_anon_mode():
+        return request.headers.get("X-Tenant-Id")
+    return ctx.tenantId or None
 
 
 # HTTP 状态码映射
