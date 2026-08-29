@@ -1050,6 +1050,10 @@ jobs:
             if [ "$install_ok" = "false" ]; then
               echo "::warning::$mod_name 依赖安装失败，尝试继续测试"
             fi
+            # nl2sql 依赖 sqlparse，显式安装防止 pip install 遗漏
+            if [ "$mod_name" = "nl2sql" ]; then
+              pip install sqlparse==0.5.0 2>&1 || true
+            fi
             if (cd "$mod_dir" && python -m pytest tests/ -v --tb=short 2>&1) | tee "python-syntax-reports/${mod_name}-test.log"; then
               echo "✓ $mod_name pytest 通过"
             else
