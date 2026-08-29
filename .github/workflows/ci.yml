@@ -1323,6 +1323,8 @@ jobs:
           if ! docker compose up -d --wait; then
             echo "::error::docker-compose 启动失败或健康检查超时，集成测试环境不可用，阻断 CI"
             docker compose ps -a || true
+            echo "=== 容器日志（排障用）==="
+            docker compose logs --tail=100 || true
             exit 1
           fi
           echo "✓ 所有服务已启动"
