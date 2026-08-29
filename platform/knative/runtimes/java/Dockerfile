@@ -13,15 +13,17 @@ FROM docker.m.daocloud.io/library/maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /build
 COPY pom.xml /build/pom.xml
+RUN mvn -B -q install -N
 # 依赖预下载（利用层缓存）
-RUN mvn dependency:go-offline -B
+COPY platform/knative/runtimes/java/pom.xml ./
+RUN mvn dependency:go-offline -f pom.xml -B
 
-COPY src /build/src
+COPY platform/knative/runtimes/java/src /build/src
 # 打包为可执行 jar（普通 JVM 运行）；
 # GraalVM native:compile 在普通 Temurin JDK（缺 gu）下不能执行，
 # 如需冷启动 <1s 的 Native Image，需用 GraalVM distribution 镜像单独构建，
 # 本次为保证 ci 全绿先交付 JVM 可运行版本。
-RUN mvn clean package -DskipTests -B
+RUN mvn clean package -f pom.xml -DskipTests -B
 
 # ---------- 阶段 2：distroless 运行时 ----------
 FROM gcr.io/distroless/java17-debian12:nonroot

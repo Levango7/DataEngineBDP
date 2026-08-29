@@ -202,14 +202,20 @@ jobs:
             echo "  Docker build & push: $mod_name"
             echo "============================================"
             # 部分 Dockerfile 以非模块目录作为 build context 书写，需特判：
-            # - encaps-layer / sql-gateway / rule-engine / tag-engine:
+            # - encaps-layer / sql-gateway / rule-engine / tag-engine / cost-model / dashboard /
+            #   metadata-collector / real-time-pipeline / infra-orchestrator /
+            #   infra-provider-cloud / infra-provider-private / infra-provider-xinchang /
+            #   federated-query / java(knative):
             #     COPY pom.xml + COPY platform/<mod>/... → context=项目根目录（.）
             # - lineage-analyzer:
             #     COPY sql-gateway/... + COPY governance/lineage-analyzer/... → context=platform/
             build_ctx="$mod_dir"
             dockerfile_arg=""
             case "$mod_name" in
-              encaps-layer|sql-gateway|rule-engine|tag-engine)
+              encaps-layer|sql-gateway|rule-engine|tag-engine|\
+              cost-model|dashboard|metadata-collector|real-time-pipeline|\
+              infra-orchestrator|infra-provider-cloud|infra-provider-private|\
+              infra-provider-xinchang|federated-query|java)
                 build_ctx="."
                 dockerfile_arg="-f $df"
                 ;;

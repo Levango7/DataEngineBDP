@@ -10,11 +10,12 @@ WORKDIR /workspace
 
 # 先复制 pom.xml，利用层缓存加速依赖下载
 COPY pom.xml ./
-RUN mvn -B -q dependency:go-offline
+COPY platform/infra-orchestrator/pom.xml ./
+RUN mvn -B -q dependency:go-offline -f pom.xml
 
 # 复制源码并构建（跳过测试以加速镜像构建）
-COPY src ./src
-RUN mvn -B -q clean package -DskipTests
+COPY platform/infra-orchestrator/src ./src
+RUN mvn -B -q clean package -f pom.xml -DskipTests
 
 # ---------- Stage 2: Runtime ----------
 # 基础镜像：Eclipse Temurin 17 JRE Alpine（轻量，约 80MB）

@@ -114,8 +114,8 @@ services:
   # ---------------------------------------------------------------------------
   cost-model:
     build:
-      context: ../../platform/finops/cost-model
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: platform/finops/cost-model/Dockerfile
     image: shuqing/cost-model:0.1.0
     container_name: it-cost-model
     ports:
@@ -145,8 +145,8 @@ services:
   # - 分账到子工作空间（比例可配置）
   finops-dashboard:
     build:
-      context: ../../platform/finops/dashboard
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: platform/finops/dashboard/Dockerfile
     image: shuqing/finops-dashboard:0.1.0
     container_name: it-finops-dashboard
     ports:

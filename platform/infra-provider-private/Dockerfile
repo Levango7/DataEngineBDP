@@ -18,7 +18,7 @@ RUN --mount=type=cache,target=/root/.m2/repository \
     mvn -B -q dependency:go-offline
 
 # 复制源码并构建
-COPY src ./src
+COPY platform/infra-provider-private/src ./src
 RUN --mount=type=cache,target=/root/.m2/repository \
     mvn -B -q clean package -DskipTests
 

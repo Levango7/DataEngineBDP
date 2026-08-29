@@ -6,11 +6,13 @@ ARG BASE_REGISTRY=docker.m.daocloud.io/library
 # ============ 构建阶段 ============
 FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
-COPY pom.xml .
+COPY pom.xml ./pom.xml
+RUN mvn -B -q install -N
 # 先下载依赖（利用层缓存）
-RUN mvn -B -e -DskipTests dependency:go-offline
-COPY src ./src
-RUN mvn -B -e -DskipTests clean package
+COPY platform/finops/dashboard/pom.xml ./
+RUN mvn -B -e -DskipTests dependency:go-offline -f pom.xml
+COPY platform/finops/dashboard/src ./src
+RUN mvn -B -e -DskipTests clean package -f pom.xml
 
 # ============ 运行阶段 ============
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre AS runtime

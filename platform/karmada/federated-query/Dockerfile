@@ -6,11 +6,13 @@
 # ============================================================================
 FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
-COPY pom.xml .
+COPY pom.xml ./pom.xml
+RUN mvn -B -q install -N
 # 先下载依赖（利用 Docker 层缓存）
-RUN mvn dependency:go-offline -B
-COPY src ./src
-RUN mvn clean package -DskipTests -B
+COPY platform/karmada/federated-query/pom.xml ./
+RUN mvn dependency:go-offline -f pom.xml -B
+COPY platform/karmada/federated-query/src ./src
+RUN mvn clean package -f pom.xml -DskipTests -B
 
 FROM eclipse-temurin:17-jre-alpine
 

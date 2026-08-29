@@ -7,12 +7,14 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
 # 先复制 pom.xml，利用 Docker 层缓存加速依赖下载
-COPY pom.xml .
-RUN mvn dependency:go-offline -B
+COPY pom.xml ./pom.xml
+RUN mvn -B -q install -N
+COPY platform/governance/real-time-pipeline/pom.xml ./
+RUN mvn dependency:go-offline -f pom.xml -B
 
 # 复制源码并编译
-COPY src ./src
-RUN mvn clean package -DskipTests -B
+COPY platform/governance/real-time-pipeline/src ./src
+RUN mvn clean package -f pom.xml -DskipTests -B
 
 # ============ Stage 2: JRE 运行 ============
 FROM eclipse-temurin:17-jre-alpine
