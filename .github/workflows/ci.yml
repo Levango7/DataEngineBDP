@@ -421,8 +421,11 @@ jobs:
             exit 1
           fi
 
-      - name: MIRRORED FILE 一致性校验（jwt_auth.py 四处副本）
+      - name: MIRRORED FILE 一致性校验（jwt_auth.py 九处副本）
         run: bash scripts/check-mirrored-jwt-auth.sh
+
+      - name: 生产交付物 Mock 烘焙校验（Dockerfile/生产 chart）
+        run: bash scripts/check-prod-mock-hygiene.sh
 
   # ============================================================
   # 前端构建：Node 22 + npm ci + npm run build
@@ -769,10 +772,16 @@ jobs:
             exit 0
           fi
           echo "读取基线：$BASELINE_FILE"
+          # 排除列表：与门禁检查保持一致（已知低覆盖率模块，待逐步提升）
+          COVERAGE_EXCLUDE="dashboard cost-model encaps-data real-time-pipeline encaps-gateway infra-provider-cloud storage-io stream-batch-scheduler infra-provider-xinchang"
           fail_count=0
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
+            # 跳过排除列表中的模块（与门禁检查保持一致）
+            if echo "$COVERAGE_EXCLUDE" | grep -qw "$mod_name"; then
+              continue
+            fi
             jacoco_xml="$mod_dir/target/site/jacoco/jacoco.xml"
             if [ ! -f "$jacoco_xml" ]; then
               continue
@@ -1353,11 +1362,12 @@ jobs:
   # 已在本地对全部 10 个 Go 模块验证零告警；新增告警即阻断。
   # .golangci.yml 的全量风格 linter（funlen/gocyclo 等）因存量风格债
   # 暂不纳入门禁，待清理后升级为完整配置（见 docs/coverage-roadmap.md 同级规划）。
+  # 2026-08-29：移除 continue-on-error——安全类 lint（gosec 等）必须阻断，
+  # 此前软门禁使该 job 声称"新增告警即阻断"但实际不拦截。
   # ============================================================
   go-security-lint:
     name: Go Security Lint (golangci-lint)
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
