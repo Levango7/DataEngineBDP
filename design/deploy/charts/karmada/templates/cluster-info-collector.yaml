@@ -1,4 +1,4 @@
-﻿# 集群信息采集 DaemonSet：采集集群拓扑信息（region/zone/az）并上报到 Karmada 控制面。
+# 集群信息采集 DaemonSet：采集集群拓扑信息（region/zone/az）并上报到 Karmada 控制面。
 # 关联：platform/karmada/federated-query/scheduling/TopologyAwareScheduler.java
 # 采集的拓扑信息供 TopologyAwareScheduler 在调度决策时使用。
 {{- if .Values.clusterInfoCollector.enabled }}

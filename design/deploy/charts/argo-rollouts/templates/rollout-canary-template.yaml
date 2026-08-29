@@ -1,4 +1,4 @@
-﻿{{- if .Values.strategyTemplates.canary.enabled }}
+{{- if .Values.strategyTemplates.canary.enabled }}
 # ============================================================================
 # 金丝雀策略模板（v2.1 灰度发布增强）
 # 说明：基于权重逐步切流，配合 AnalysisTemplate 基于 Prometheus 指标自动推进/回滚。

@@ -1,4 +1,4 @@
-﻿{{- if .Values.crd.install }}
+{{- if .Values.crd.install }}
 # ============================================================================
 # Argo Rollouts CRD - Rollout 资源定义（v2.1 灰度发布增强）
 # 说明：定义 Rollout 自定义资源，替代 Deployment 实现渐进式发布。

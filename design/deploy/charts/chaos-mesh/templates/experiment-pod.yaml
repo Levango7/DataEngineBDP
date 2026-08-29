@@ -1,4 +1,4 @@
-﻿{{- if .Values.experiments.podKill.enabled }}
+{{- if .Values.experiments.podKill.enabled }}
 # ============================================================================
 # 故障注入：Pod 杀实验（v2.1 故障演练）
 # 说明：随机杀死目标 Pod，验证自愈与多副本高可用。

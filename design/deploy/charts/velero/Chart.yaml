@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: velero
 description: "Velero 备份恢复 - Kubernetes 集群与 PV 灾备 - 数据引擎大数据平台"
 type: application

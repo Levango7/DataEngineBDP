@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: industry-templates
 description: "行业应用模板 - 多行业模板资产统一管理 (L5.3) - 数据引擎大数据平台"
 type: application

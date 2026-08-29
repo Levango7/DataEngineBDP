@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: external-secrets
 description: "External Secrets - 外部密钥管理系统集成 - 数据引擎大数据平台"
 type: application

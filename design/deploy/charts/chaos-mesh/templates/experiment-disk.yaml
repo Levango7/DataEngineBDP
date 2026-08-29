@@ -1,4 +1,4 @@
-﻿{{- if .Values.experiments.diskIO.enabled }}
+{{- if .Values.experiments.diskIO.enabled }}
 # ============================================================================
 # 故障注入：磁盘 IO 延迟实验（v2.1 故障演练）
 # 说明：对目标 Pod 注入磁盘 IO 延迟，验证 IO 超时与降级处理。

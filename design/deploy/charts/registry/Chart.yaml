@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: registry
 description: "镜像仓库 Harbor - 私有容器镜像存储与分发 - 数据引擎大数据平台"
 type: application

@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: reloader
 description: "Reloader - ConfigMap/Secret 变更自动滚动重启 - 数据引擎大数据平台"
 type: application

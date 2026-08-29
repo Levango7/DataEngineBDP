@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: karmada
 description: "Karmada 多集群管理 - 跨集群应用分发与故障转移 - 数据引擎大数据平台"
 type: application

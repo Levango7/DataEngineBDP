@@ -1,4 +1,4 @@
-﻿apiVersion: v2
+apiVersion: v2
 name: open-api-catalog
 description: "开放 API 服务目录 - 外部 API 注册与发布 (L5.5) - 数据引擎大数据平台"
 type: application

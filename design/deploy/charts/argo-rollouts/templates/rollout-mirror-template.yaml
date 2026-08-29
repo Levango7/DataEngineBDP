@@ -1,4 +1,4 @@
-﻿{{- if .Values.strategyTemplates.mirror.enabled }}
+{{- if .Values.strategyTemplates.mirror.enabled }}
 # ============================================================================
 # 流量镜像策略模板（v2.1 灰度发布增强）
 # 说明：将生产流量实时镜像到新版本（不返回响应），用于无风险验证新版本承载能力。

@@ -1,4 +1,4 @@
-﻿# 默认 PropagationPolicy：为核心服务创建跨集群副本分布策略。
+# 默认 PropagationPolicy：为核心服务创建跨集群副本分布策略。
 # 关联：platform/karmada/federated-query/scheduling/PropagationPolicyGenerator.java
 {{- if .Values.propagationPolicy.enabled }}
 apiVersion: policy.karmada.io/v1alpha1

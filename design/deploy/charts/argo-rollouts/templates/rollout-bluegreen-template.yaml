@@ -1,4 +1,4 @@
-﻿{{- if .Values.strategyTemplates.blueGreen.enabled }}
+{{- if .Values.strategyTemplates.blueGreen.enabled }}
 # ============================================================================
 # 蓝绿发布策略模板（v2.1 灰度发布增强）
 # 说明：同时维护蓝/绿两套环境，通过 Service selector 切换流量，秒级回滚。

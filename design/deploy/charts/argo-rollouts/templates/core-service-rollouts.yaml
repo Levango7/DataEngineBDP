@@ -1,4 +1,4 @@
-﻿{{- if .Values.coreServices.enabled }}
+{{- if .Values.coreServices.enabled }}
 {{- range $name, $svc := .Values.coreServices.items }}
 # ============================================================================
 # 核心服务 Rollout CRD 示例 - {{ $name }}（v2.1 灰度发布增强）

@@ -1,4 +1,4 @@
-﻿{{- if .Values.analysisTemplates.enabled }}
+{{- if .Values.analysisTemplates.enabled }}
 # ============================================================================
 # AnalysisTemplate - 成功率分析（v2.1 灰度发布增强）
 # 说明：基于 Prometheus 指标在发布过程中自动判断是否推进/回滚。

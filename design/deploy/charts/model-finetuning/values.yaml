@@ -1,4 +1,4 @@
-﻿# ============================================================================
+# ============================================================================
 # model-finetuning Helm Chart 默认 values
 # 关联：design/deploy/values/model-finetuning-values.yaml（深度调优配置）
 # 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
@@ -95,7 +95,8 @@ ingress:
 # ---- 环境变量 ----
 env:
   LOG_LEVEL: info
-  JAVA_OPTS: ""
+  # 鉴权：K8s 内默认强制 JWT（JWT_SECRET 经 Secret 注入；LOOP_DEV_MODE 保持默认 false）
+  AUTH_MODE: jwt
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
 config:

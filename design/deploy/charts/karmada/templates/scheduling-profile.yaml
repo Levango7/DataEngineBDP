@@ -1,4 +1,4 @@
-﻿# 调度 Profile：定义多种调度策略组合（latency-first/cost-first/availability-first/balanced）。
+# 调度 Profile：定义多种调度策略组合（latency-first/cost-first/availability-first/balanced）。
 # 关联：platform/karmada/federated-query/scheduling/SchedulingPolicy.java
 # 每个 ConfigMap 项对应一种 Profile，由 FederatedScheduler 在调度决策时引用。
 {{- if .Values.schedulingProfile.enabled }}
