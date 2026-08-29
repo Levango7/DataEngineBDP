@@ -4,3 +4,5 @@
 *.bat text eol=crlf
 ske/**/*.sh text eol=lf
 scripts/*.sh text eol=lf
+# Python 镜像文件强制 LF（防 CRLF 导致镜像不一致）
+**/jwt_auth.py text eol=lf
