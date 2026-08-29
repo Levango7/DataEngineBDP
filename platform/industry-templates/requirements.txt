@@ -12,7 +12,7 @@ httpx==0.28.1
 
 # Testing
 pytest==8.3.4
-pytest-asyncio==0.25.2
+pytest-asyncio==1.4.0
 
 # Logging
 loguru==0.7.3
