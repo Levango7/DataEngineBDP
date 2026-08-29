@@ -95,7 +95,9 @@ ingress:
 # ---- 环境变量 ----
 env:
   LOG_LEVEL: info
-  JAVA_OPTS: ""
+  # 图存储/抽取器默认真实实现（与代码默认一致）；本地降级须显式改 mock
+  KE_STORE_TYPE: nebula
+  KE_EXTRACTOR_TYPE: llm
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
 # ---- 鉴权（AUTH_MODE fail-fast 配套）----
