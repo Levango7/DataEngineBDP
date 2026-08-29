@@ -4,7 +4,7 @@
   "_threshold_note": "当前阈值：≥55%（2026-08-23调整，略低于实际~66%）。目标 85% GA标准。",
   "asset-exchange": 75,
   "nl2sql": 60,
-  "chunker": 65,
+  "chunker": 63,
   "business-portal": 55,
   "ml-platform": 50,
   "knowledge-engine": 60,
