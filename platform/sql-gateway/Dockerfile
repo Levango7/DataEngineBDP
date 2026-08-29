@@ -20,13 +20,11 @@ COPY platform/common-security/src ./platform/common-security/src
 RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
 # 先复制模块 pom.xml 利用层缓存加速依赖下载
 COPY platform/sql-gateway/pom.xml ./
-RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q dependency:go-offline -f pom.xml
+RUN mvn -B -q dependency:go-offline -f pom.xml
 
 # 复制源码并构建
 COPY platform/sql-gateway/src ./src
-RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q clean package -DskipTests -f pom.xml
+RUN mvn -B -q clean package -DskipTests -f pom.xml
 
 # =============================================================================
 # 阶段 2: 运行

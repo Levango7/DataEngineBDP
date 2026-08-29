@@ -20,13 +20,11 @@ COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
 COPY platform/common-security/src ./platform/common-security/src
 RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
 COPY platform/infra-provider-private/pom.xml ./
-RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q dependency:go-offline -f pom.xml
+RUN mvn -B -q dependency:go-offline -f pom.xml
 
 # 复制源码并构建
 COPY platform/infra-provider-private/src ./src
-RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q clean package -DskipTests -f pom.xml
+RUN mvn -B -q clean package -DskipTests -f pom.xml
 
 # =============================================================================
 # 阶段 2: 运行
