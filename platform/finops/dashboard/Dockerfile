@@ -8,6 +8,10 @@ FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn -B -q install -N
+# 安装内部依赖库 common-security
+COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
+COPY platform/common-security/src ./platform/common-security/src
+RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
 # 先下载依赖（利用层缓存）
 COPY platform/finops/dashboard/pom.xml ./
 RUN mvn -B -e -DskipTests dependency:go-offline -f pom.xml

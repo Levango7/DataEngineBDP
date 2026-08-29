@@ -3,42 +3,29 @@
 # 基础镜像仓库 ARG，便于在内网/国内切换镜像源
 ARG BASE_REGISTRY=docker.m.daocloud.io/library
 
-# =============================================================================
-# 阶段 1: 构建 sql-gateway 依赖并安装到本地 Maven 仓库
-# =============================================================================
-FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS sql-gateway-builder
-
-WORKDIR /build/sql-gateway
-
-# 复制 sql-gateway 的 pom 和源码（构建上下文为 platform 目录）
-COPY sql-gateway/pom.xml ./
-COPY sql-gateway/src ./src
-
-# 构建 sql-gateway 并安装到本地 Maven 仓库
-RUN mvn -B -q clean install -DskipTests
-
-# =============================================================================
-# 阶段 2: 构建 lineage-analyzer（复用阶段 1 的 Maven 仓库）
-# =============================================================================
+# ---------- Stage 1: Build ----------
 FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
+WORKDIR /workspace
 
-WORKDIR /build
+# 先复制 pom.xml，利用层缓存加速依赖下载
+COPY pom.xml ./pom.xml
+RUN mvn -B -q install -N
+# 安装内部依赖库 common-security
+COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
+COPY platform/common-security/src ./platform/common-security/src
+RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
+# 安装内部依赖库 sql-gateway（lineage-analyzer 复用其 SQL 解析器）
+COPY platform/sql-gateway/pom.xml ./platform/sql-gateway/pom.xml
+COPY platform/sql-gateway/src ./platform/sql-gateway/src
+RUN mvn -B -q -f platform/sql-gateway/pom.xml install -DskipTests
+COPY platform/governance/lineage-analyzer/pom.xml ./
+RUN mvn -B -q dependency:go-offline -f pom.xml
 
-# 从阶段 1 复制 Maven 本地仓库（包含已安装的 sql-gateway artifact）
-COPY --from=sql-gateway-builder /root/.m2/repository /root/.m2/repository
+# 复制源码并构建（跳过测试以加速镜像构建）
+COPY platform/governance/lineage-analyzer/src ./src
+RUN mvn -B -q clean package -f pom.xml -DskipTests
 
-# 复制 lineage-analyzer 的 pom 和源码
-COPY governance/lineage-analyzer/pom.xml ./
-COPY governance/lineage-analyzer/src ./src
-
-# 构建 lineage-analyzer
-# 注意：不能用 --mount=type=cache,target=/root/.m2/repository,
-# 那会遮蔽第 28 行 COPY 进来的 sql-gateway 构件（mount 后会指向 runner 上的空缓存目录）
-RUN mvn -B -q clean package -DskipTests
-
-# =============================================================================
-# 阶段 3: 运行
-# =============================================================================
+# ---------- Stage 2: Runtime ----------
 FROM ${BASE_REGISTRY}/eclipse-temurin:17-jre-alpine AS runtime
 
 LABEL org.opencontainers.image.title="lineage-analyzer" \
@@ -52,7 +39,7 @@ RUN addgroup -S -g 1001 appgroup \
 WORKDIR /app
 
 # 复制构建产物
-COPY --from=builder /build/target/lineage-analyzer-*.jar /app/lineage-analyzer.jar
+COPY --from=builder /workspace/target/lineage-analyzer-*.jar /app/lineage-analyzer.jar
 
 # 创建数据目录并赋权
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app

@@ -48,13 +48,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 8080
 
-# 默认 Mock 模式；生产通过环境变量切换到 sklearn / spark
+# 运行时默认与代码一致（backend=sklearn / feature=redis / experiment=mlflow）；
+# 需要本地/测试降级时由部署环境显式注入 ML_BACKEND_TYPE=mock 等变量，
+# 不在镜像内烘焙 mock——防止生产拿到假实现而无感知。
 ENV ML_HOST=0.0.0.0 \
     ML_PORT=8080 \
-    ML_LOG_LEVEL=info \
-    ML_BACKEND_TYPE=mock \
-    ML_FEATURE_STORE_TYPE=mock \
-    ML_EXPERIMENT_STORE_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为sklearn/spark/mlflow
+    ML_LOG_LEVEL=info
 
 # 确保 app 用户对 /app 可写，切换非 root 运行
 RUN chown -R app:app /app

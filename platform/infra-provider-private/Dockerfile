@@ -13,14 +13,20 @@ FROM ${BASE_REGISTRY}/maven:3.9-eclipse-temurin-17 AS builder
 WORKDIR /build
 
 # 先复制 pom.xml 利用层缓存加速依赖下载
-COPY pom.xml ./
+COPY pom.xml ./pom.xml
+RUN mvn -B -q install -N
+# 安装内部依赖库 common-security
+COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
+COPY platform/common-security/src ./platform/common-security/src
+RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
+COPY platform/infra-provider-private/pom.xml ./
 RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q dependency:go-offline
+    mvn -B -q dependency:go-offline -f pom.xml
 
 # 复制源码并构建
 COPY platform/infra-provider-private/src ./src
 RUN --mount=type=cache,target=/root/.m2/repository \
-    mvn -B -q clean package -DskipTests
+    mvn -B -q clean package -DskipTests -f pom.xml
 
 # =============================================================================
 # 阶段 2: 运行

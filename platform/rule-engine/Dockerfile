@@ -11,6 +11,10 @@ WORKDIR /build
 COPY pom.xml ./pom.xml
 RUN mvn -B -q install -N
 
+# 安装内部依赖库 common-security
+COPY platform/common-security/pom.xml ./platform/common-security/pom.xml
+COPY platform/common-security/src ./platform/common-security/src
+RUN mvn -B -q -f platform/common-security/pom.xml install -DskipTests
 # 复制模块 pom.xml
 COPY platform/rule-engine/pom.xml ./
 # 先下载依赖（利用层缓存）

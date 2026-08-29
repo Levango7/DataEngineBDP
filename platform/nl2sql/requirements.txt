@@ -18,14 +18,16 @@ loguru==0.7.3
 sqlparse==0.5.0
 
 # ---- LangChain SQL 生成 ----
-# 仅使用核心 + LLM 抽象，避免引入重型向量/文档依赖
-langchain-core==1.5.5
-langchain==0.1.16
-langchain-community==0.0.34
+# 仅使用 langchain-openai 的 ChatOpenAI（sql_generator.py），未用 langchain 主包；
+# langchain 0.1.x 主包与 langchain-core>=0.2 互斥，此前钉 0.1.16 导致
+# pip ResolutionImpossible（CI Build-Python 镜像构建失败根因之一）。
+# 三件套版本需联动：langchain-openai 1.6.0 → core>=1.6.0 + openai>=2.45,<4
+langchain-core==1.6.0
+langchain-openai==1.6.0
 
 # ---- LLM Provider（OpenAI 兼容协议，对接 llm-gateway :8084）----
 openai==3.1.0
-tiktoken==0.6.0
+tiktoken==0.7.0
 
 # ---- Utilities ----
 python-dateutil==2.9.0

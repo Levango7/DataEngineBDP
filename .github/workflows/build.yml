@@ -205,23 +205,17 @@ jobs:
             # - encaps-layer / sql-gateway / rule-engine / tag-engine / cost-model / dashboard /
             #   metadata-collector / real-time-pipeline / infra-orchestrator /
             #   infra-provider-cloud / infra-provider-private / infra-provider-xinchang /
-            #   federated-query / java(knative):
+            #   federated-query / lineage-analyzer / java(knative):
             #     COPY pom.xml + COPY platform/<mod>/... → context=项目根目录（.）
-            # - lineage-analyzer:
-            #     COPY sql-gateway/... + COPY governance/lineage-analyzer/... → context=platform/
             build_ctx="$mod_dir"
             dockerfile_arg=""
             case "$mod_name" in
               encaps-layer|sql-gateway|rule-engine|tag-engine|\
               cost-model|dashboard|metadata-collector|real-time-pipeline|\
               infra-orchestrator|infra-provider-cloud|infra-provider-private|\
-              infra-provider-xinchang|federated-query|java)
+              infra-provider-xinchang|federated-query|lineage-analyzer|java)
                 build_ctx="."
                 dockerfile_arg="-f $df"
-                ;;
-              lineage-analyzer)
-                build_ctx="platform"
-                dockerfile_arg="-f platform/governance/lineage-analyzer/Dockerfile"
                 ;;
             esac
             docker buildx build \
