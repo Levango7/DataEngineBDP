@@ -32,7 +32,7 @@ WORKDIR /app
 RUN groupadd --system appgroup && useradd --system --gid appgroup appuser
 
 # 从构建阶段复制产物
-COPY --from=builder /workspace/target/encaps-layer-*.jar /app/app.jar
+COPY --from=builder /workspace/target/encaps-layer-*-exec.jar /app/app.jar
 
 # 创建数据目录并赋权，确保 appuser 可写（H2 文件库 / 日志落盘）
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app

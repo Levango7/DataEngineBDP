@@ -42,7 +42,7 @@ RUN groupadd --system --gid 1001 appgroup \
 WORKDIR /app
 
 # 复制构建产物
-COPY --from=builder /build/target/sql-gateway-*.jar /app/sql-gateway.jar
+COPY --from=builder /build/target/sql-gateway-*-exec.jar /app/sql-gateway.jar
 
 # 创建数据目录并赋权，确保 appuser 可写（H2 文件库 / 日志落盘）
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app
