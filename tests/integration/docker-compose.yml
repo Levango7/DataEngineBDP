@@ -27,6 +27,10 @@ services:
       - "18080:8080"
     environment:
       - SERVER_PORT=8080
+      # 集成测试环境必需的安全配置（生产通过 KMS/环境变量注入）
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
+      - K8S_MOCK_ENABLED=true
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v1/health"]
       interval: 5s
@@ -49,6 +53,9 @@ services:
       - "18081:8081"
     environment:
       - SERVER_PORT=8081
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
+      - K8S_MOCK_ENABLED=true
     depends_on:
       encaps-layer:
         condition: service_healthy
@@ -97,6 +104,9 @@ services:
       - "18083:8083"
     environment:
       - SERVER_PORT=8083
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
+      - K8S_MOCK_ENABLED=true
     depends_on:
       encaps-layer:
         condition: service_healthy
@@ -123,6 +133,9 @@ services:
     environment:
       - SERVER_PORT=8084
       - PROMETHEUS_URL=http://prometheus:9090
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
+      - K8S_MOCK_ENABLED=true
     depends_on:
       encaps-layer:
         condition: service_healthy
@@ -155,6 +168,9 @@ services:
       - SERVER_PORT=8085
       - PROMETHEUS_URL=http://prometheus:9090
       - COST_MODEL_URL=http://cost-model:8084
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
+      - K8S_MOCK_ENABLED=true
     depends_on:
       cost-model:
         condition: service_healthy

@@ -79,11 +79,7 @@ def loadAuthSettings() -> tuple[str, str, Optional[str]]:
         raise RuntimeError(f"AUTH_MODE 非法: {mode}（仅支持 jwt|none）")
     if mode == "jwt" and not secret:
         raise RuntimeError("AUTH_MODE=jwt 必须配置 JWT_SECRET")
-    if (
-        mode == "none"
-        and os.environ.get("KUBERNETES_SERVICE_HOST")
-        and "AUTH_MODE" not in os.environ
-    ):
+    if mode == "none" and os.environ.get("KUBERNETES_SERVICE_HOST") and "AUTH_MODE" not in os.environ:
         _failfastK8sAnonMode()
     return mode, secret, issuer
 

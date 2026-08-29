@@ -212,7 +212,7 @@ func (s *MilvusVectorStore) ListCollections(ctx context.Context) ([]store.Collec
 			Name:        e.Name,
 			Dimension:   dim,
 			MetricType:  metricType,
-			IndexType:  indexType,
+			IndexType:   indexType,
 			VectorCount: vectorCount,
 		})
 	}

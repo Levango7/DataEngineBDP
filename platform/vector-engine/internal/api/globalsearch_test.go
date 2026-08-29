@@ -7,7 +7,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 )
 
 // TestGlobalSearch_ReturnsModeAndResults 验证全局检索返回 {mode, results} 契约。
