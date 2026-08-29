@@ -1034,16 +1034,16 @@ jobs:
             echo "============================================"
             echo "  运行测试: $mod_name ($mod_dir)"
             echo "============================================"
-            # 安装依赖：优先用 requirements.txt（确保依赖完整），无则回退 pyproject.toml
+            # 安装依赖：优先用 requirements.txt，去掉 -q 看报错
             install_ok=false
             if [ -f "$mod_dir/requirements.txt" ]; then
-              if pip install -r "$mod_dir/requirements.txt" -q 2>&1; then
+              if pip install -r "$mod_dir/requirements.txt" 2>&1; then
                 install_ok=true
-              elif [ -f "$mod_dir/pyproject.toml" ] && pip install "$mod_dir[test]" -q 2>&1; then
+              elif [ -f "$mod_dir/pyproject.toml" ] && pip install "$mod_dir[test]" 2>&1; then
                 install_ok=true
               fi
             elif [ -f "$mod_dir/pyproject.toml" ]; then
-              if pip install "$mod_dir[test]" -q 2>&1; then
+              if pip install "$mod_dir[test]" 2>&1; then
                 install_ok=true
               fi
             fi
@@ -1093,9 +1093,9 @@ jobs:
               continue
             fi
             if [ -f "$mod_dir/requirements.txt" ]; then
-              pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install -r "$mod_dir/requirements.txt" 2>/dev/null || true
             elif [ -f "$mod_dir/pyproject.toml" ]; then
-              pip install "$mod_dir[test]" -q 2>/dev/null || true
+              pip install "$mod_dir[test]" 2>/dev/null || true
             fi
             cov_output=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
             cov=$(echo "$cov_output" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "")
@@ -1146,9 +1146,9 @@ jobs:
               continue
             fi
             if [ -f "$mod_dir/requirements.txt" ]; then
-              pip install -r "$mod_dir/requirements.txt" -q 2>/dev/null || true
+              pip install -r "$mod_dir/requirements.txt" 2>/dev/null || true
             elif [ -f "$mod_dir/pyproject.toml" ]; then
-              pip install "$mod_dir[test]" -q 2>/dev/null || true
+              pip install "$mod_dir[test]" 2>/dev/null || true
             fi
             cov_output=$(cd "$mod_dir" && python -m pytest tests/ --cov=. --cov-report=term-missing --no-header -q 2>&1 || true)
             cov=$(echo "$cov_output" | grep -E "^TOTAL" | awk '{print $NF}' | tr -d '%' || echo "")
