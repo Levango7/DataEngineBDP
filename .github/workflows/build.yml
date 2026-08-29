@@ -202,14 +202,14 @@ jobs:
             echo "  Docker build & push: $mod_name"
             echo "============================================"
             # 部分 Dockerfile 以非模块目录作为 build context 书写，需特判：
-            # - encaps-layer / sql-gateway / rule-engine:
+            # - encaps-layer / sql-gateway / rule-engine / tag-engine:
             #     COPY pom.xml + COPY platform/<mod>/... → context=项目根目录（.）
             # - lineage-analyzer:
             #     COPY sql-gateway/... + COPY governance/lineage-analyzer/... → context=platform/
             build_ctx="$mod_dir"
             dockerfile_arg=""
             case "$mod_name" in
-              encaps-layer|sql-gateway|rule-engine)
+              encaps-layer|sql-gateway|rule-engine|tag-engine)
                 build_ctx="."
                 dockerfile_arg="-f $df"
                 ;;
