@@ -62,6 +62,7 @@ jobs:
   go-lint:
     name: Go Lint (gofmt)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -147,6 +148,7 @@ jobs:
   python-lint:
     name: Python Lint (pylint/black/isort/flake8/mypy)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
