@@ -47,6 +47,19 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ include "vector-engine.configmapName" . }}
+          env:
+            - name: VECTOR_EMBEDDING_API
+              value: {{ .Values.embedding.api | quote }}
+            - name: VECTOR_EMBEDDING_MODEL
+              value: {{ .Values.embedding.model | default "text-embedding-3-small" | quote }}
+            {{- if .Values.embedding.apiKeySecretName }}
+            - name: VECTOR_EMBEDDING_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.embedding.apiKeySecretName | quote }}
+                  key: {{ .Values.embedding.apiKeySecretKey | quote }}
+            {{- end }}
+
           {{- if .Values.probes.liveness.enabled }}
           livenessProbe:
             httpGet:

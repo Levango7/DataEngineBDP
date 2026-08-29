@@ -98,6 +98,15 @@ env:
   JAVA_OPTS: ""
 
 # ---- ConfigMap 数据（骨架，按需扩展）----
+# ---- 向量化（embedding）----
+# 配置 VECTOR_EMBEDDING_API（OpenAI 兼容 /embeddings 端点）即启用真实语义检索；
+# 留空则降级 n-gram 特征向量（hash-fallback，响应 mode 字段标注）。
+embedding:
+  api: ""
+  model: "text-embedding-3-small"
+  apiKeySecretName: ""
+  apiKeySecretKey: "api-key"
+
 config:
   application.conf: |
     # vector-engine 默认配置，完整配置请引用 design/deploy/values/vector-engine-values.yaml

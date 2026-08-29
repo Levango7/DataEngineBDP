@@ -22,6 +22,7 @@
 ### Docs
 - 新增 `design/deploy/JWT鉴权配置指南.md`：AUTH_MODE fail-fast 配套的 Secret 创建（shuqing-jwt-secret）、三种鉴权模式、部署后验证、常见问题（CrashLoopBackOff/全 401/本地起不来）；部署手册关联行同步
 - 遗留改动核查（flink-cdc debezium 降级、SecurityConfig AutoConfiguration 顺序）：已于提交 058c16c2 解决——Debezium 3.x 移除 DatabaseHistory API 而 Flink CDC 3.0.1 依赖 1.9.7，降级为正确修复；@AutoConfiguration(before=...) 修复默认安全配置抢占，均无需回滚
+- 新增 `design/deploy/向量检索embedding联调指南.md`：vector-engine 语义检索启用（OpenAI 兼容端点、OpenAI/百炼/混元/Ollama 对接示例、维度一致性、排障）；vector-engine chart 新增 `embedding` 配置段（api/model/apiKeySecretName），helm 渲染验证通过（默认降级 / 配置后注入 Secret）
 
 ## [2.1.0-RC] - 2026-08-29（交付前审计修复批次）
 
