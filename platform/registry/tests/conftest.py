@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 import sys
 
@@ -21,6 +22,9 @@ import pytest
 _REGISTRY_ROOT = Path(__file__).resolve().parent.parent
 if str(_REGISTRY_ROOT) not in sys.path:
     sys.path.insert(0, str(_REGISTRY_ROOT))
+
+# 测试环境显式匿名放行（生产/K8s 由 jwt_auth fail-fast 拦截）
+os.environ.setdefault("AUTH_MODE", "none")
 
 from app.api.registry_routes import SimpleModelRegistry, create_router
 from app.core.deployment_manager import DeploymentManager

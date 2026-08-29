@@ -80,12 +80,14 @@ class TestFinetuneDemoModeWarning:
 
 class TestLoopDemoModeWarning:
     def test_warning_only_in_mock_mode(self):
+        # 演示模式告警测试关注 mock 开关日志：显式开发模式启动（生产默认强制 JWT）
         proc = subprocess.run(
             [sys.executable, "-c", _DEMO_SCRIPT, str(_LOOP_ROOT)],
             capture_output=True,
             text=True,
             timeout=180,
             cwd=str(_LOOP_ROOT),
+            env={**os.environ, "LOOP_DEV_MODE": "true", "AUTH_MODE": "none"},
         )
         assert proc.returncode == 0, proc.stderr
         payload = json.loads(proc.stdout.strip().splitlines()[-1])

@@ -96,12 +96,14 @@ class TestFinetuneCors:
 
 class TestLoopCors:
     def _run(self) -> dict:
+        # CORS 测试关注跨域行为而非鉴权：显式开发模式启动（生产默认强制 JWT）
         proc = subprocess.run(
             [sys.executable, "-c", _CORS_SCRIPT, str(_LOOP_ROOT)],
             capture_output=True,
             text=True,
             timeout=180,
             cwd=str(_LOOP_ROOT),
+            env={**os.environ, "LOOP_DEV_MODE": "true", "AUTH_MODE": "none"},
         )
         assert proc.returncode == 0, proc.stderr
         return json.loads(proc.stdout.strip().splitlines()[-1])

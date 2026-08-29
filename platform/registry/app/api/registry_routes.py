@@ -23,6 +23,7 @@ from typing import Optional
 
 from app.core.deployment_manager import DeploymentManager
 from app.core.health_checker import HealthChecker
+from app.jwt_auth import getAuthContext
 from app.models import (
     DeploymentListResponse,
     DeploymentRecord,
@@ -33,7 +34,7 @@ from app.models import (
     ModelRecord,
     ModelRegisterRequest,
 )
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 logger = logging.getLogger(__name__)
 
@@ -124,7 +125,12 @@ def create_router(
 ) -> APIRouter:
     """创建模型仓库路由器."""
 
-    router = APIRouter(prefix="/api/v1/registry", tags=["model-registry"])
+    router = APIRouter(
+        prefix="/api/v1/registry",
+        tags=["model-registry"],
+        # 全部业务端点统一 JWT 鉴权（对齐平台 jwt_auth 镜像模式）
+        dependencies=[Depends(getAuthContext)],
+    )
 
     # ============================================================
     # 模型注册

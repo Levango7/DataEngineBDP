@@ -248,6 +248,9 @@ services:
     environment:
       - LOOP_PORT=18088
       - LOOP_MOCK_MODE=true
+      # 集成测试环境显式开发模式（生产默认强制 JWT，需 JWT_SECRET）
+      - LOOP_DEV_MODE=true
+      - AUTH_MODE=none
       - FINETUNE_URL=http://it-finetuning:8095
       - EVALUATION_URL=http://it-evaluation:8086
       - REGISTRY_URL=http://it-model-registry:18089
@@ -278,6 +281,8 @@ services:
     environment:
       - REGISTRY_PORT=18089
       - REGISTRY_MOCK_MODE=true
+      # 集成测试环境显式匿名放行（生产默认强制 JWT）
+      - AUTH_MODE=none
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18089/health', timeout=3)"]
       interval: 5s

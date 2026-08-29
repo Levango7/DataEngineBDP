@@ -48,12 +48,14 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 8080
 
-# 默认 Mock 模式；生产通过环境变量切换到 nebula / llm
+# 运行时默认与代码一致（store=nebula / extractor=llm）；
+# 需要本地/测试降级时由部署环境显式注入 KE_STORE_TYPE=mock 等变量，
+# 不在镜像内烘焙 mock——防止生产拿到假实现而无感知。
+# K8s 内若未配置真实 NebulaGraph 连接，服务将启动失败（fail-fast），
+# 属预期行为：生产部署必须提供真实图存储或显式声明降级。
 ENV KE_HOST=0.0.0.0 \
     KE_PORT=8080 \
-    KE_LOG_LEVEL=info \
-    KE_STORE_TYPE=mock \
-    KE_EXTRACTOR_TYPE=mock  # ⚠️ 开发默认mock；生产必须通过环境变量覆盖为nebula/llm
+    KE_LOG_LEVEL=info
 
 # 确保 app 用户对 /app 可写，切换非 root 运行
 RUN chown -R app:app /app

@@ -9,8 +9,9 @@
 - REGISTRY_URL：模型仓库服务地址（默认 http://localhost:18089）
 - LOOP_WORK_DIR：工作目录（默认 /tmp/finetune-loop）
 - LOOP_MOCK_MODE：Mock 模式（默认 true，不实际调用外部服务）
-- LOOP_JWT_SECRET：JWT 签名密钥
-- LOOP_DEV_MODE：开发模式，跳过 JWT 校验（默认 true）
+- JWT_SECRET：JWT 签名密钥
+- LOOP_DEV_MODE：开发模式，跳过 JWT 校验（默认 false；本地开发显式设 true）
+- AUTH_MODE：jwt_auth 镜像模块的鉴权开关（jwt=强制鉴权；none=匿名放行）
 """
 
 from __future__ import annotations
@@ -54,19 +55,19 @@ class Settings:
     http_max_retries: int = 3
 
     # 认证
-    # 安全策略：jwt_secret 默认空字符串，生产环境（dev_mode=False）必须通过
-    # JWT_SECRET 环境变量显式配置，缺失则 fail-fast 抛异常。
+    # 安全策略：dev_mode 默认 false——生产/未显式配置时强制 JWT 鉴权
+    # （由 jwt_auth.AUTH_MODE 驱动）；本地开发显式 LOOP_DEV_MODE=true 匿名放行。
     jwt_secret: str = ""
     jwt_issuer: str = "shuqing-bigdata"
-    dev_mode: bool = True
+    dev_mode: bool = False
 
     # WebSocket 推送
     ws_heartbeat_interval: int = 15
 
     @classmethod
     def from_env(cls) -> "Settings":
-        """从环境变量加载配置。"""
-        return cls(
+        """从环境变量加载配置."""
+        settings = cls(
             port=int(os.environ.get("LOOP_PORT", "18088")),
             finetune_url=os.environ.get("FINETUNE_URL", "http://localhost:8095"),
             evaluation_url=os.environ.get("EVALUATION_URL", "http://localhost:18086"),
@@ -77,14 +78,28 @@ class Settings:
             http_max_retries=int(os.environ.get("LOOP_HTTP_MAX_RETRIES", "3")),
             jwt_secret=os.environ.get("JWT_SECRET", ""),
             jwt_issuer=os.environ.get("JWT_ISSUER", "shuqing-bigdata"),
-            dev_mode=_env_bool("LOOP_DEV_MODE", True),
+            dev_mode=_env_bool("LOOP_DEV_MODE", False),
             ws_heartbeat_interval=int(os.environ.get("LOOP_WS_HEARTBEAT", "15")),
         )
+        # dev_mode 是 jwt_auth.AUTH_MODE 的服务侧别名：
+        # 未显式设置 AUTH_MODE 时按 dev_mode 推导（false→jwt 强制鉴权）。
+        if "AUTH_MODE" not in os.environ:
+            os.environ["AUTH_MODE"] = "none" if settings.dev_mode else "jwt"
+        if settings.dev_mode:
+            # 匿名放行模式下 jwt_auth 不读密钥，无需占位
+            os.environ.setdefault("JWT_SECRET", settings.jwt_secret)
+        else:
+            os.environ["JWT_SECRET"] = settings.jwt_secret
+        return settings
 
     def validate(self) -> "Settings":
         """校验配置安全性：非 dev_mode 下 jwt_secret 必须显式配置。"""
         if not self.dev_mode and not self.jwt_secret:
-            raise RuntimeError("JWT_SECRET environment variable is required when LOOP_DEV_MODE=false")
+            raise RuntimeError(
+                "JWT_SECRET environment variable is required when LOOP_DEV_MODE is false "
+                "(default); set JWT_SECRET (>=32 bytes) for JWT auth, or set "
+                "LOOP_DEV_MODE=true explicitly for local development only"
+            )
         if not self.dev_mode and len(self.jwt_secret) < 32:
             raise RuntimeError(f"JWT_SECRET must be at least 32 bytes, got {len(self.jwt_secret)}")
         return self

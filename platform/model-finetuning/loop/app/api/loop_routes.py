@@ -22,6 +22,7 @@ from typing import Optional
 
 from app.core.orchestrator import LoopOrchestrator
 from app.core.websocket_manager import WebSocketManager
+from app.jwt_auth import getAuthContext
 from app.models import (
     LoopStatus,
     LoopTaskListResponse,
@@ -30,7 +31,7 @@ from app.models import (
 )
 from app.versioning.adapter_registry import AdapterRegistry
 from app.versioning.report_registry import ReportRegistry
-from fastapi import APIRouter, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +44,13 @@ def create_router(
 ) -> APIRouter:
     """创建闭环编排路由器."""
 
-    router = APIRouter(prefix="/api/v1/loop", tags=["finetuning-loop"])
+    # 全部业务端点统一 JWT 鉴权（对齐平台 jwt_auth 镜像模式；
+    # WebSocket 路由不适用 HTTP Depends，仍匿名——由 ws token 参数或网关层防护）
+    router = APIRouter(
+        prefix="/api/v1/loop",
+        tags=["finetuning-loop"],
+        dependencies=[Depends(getAuthContext)],
+    )
 
     # ============================================================
     # 提交闭环任务
