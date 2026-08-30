@@ -264,6 +264,8 @@ def _build_python_env(component_config: Dict) -> Dict[str, str]:
     env[f"{prefix}_HOST"] = "127.0.0.1"
     # 确保 JWT_SECRET 传递给子进程（Python 组件认证需要）
     env.setdefault("JWT_SECRET", JWT_SECRET)
+    # 非Docker集成测试不带auth头，强制匿名模式（防止CI环境继承AUTH_MODE=jwt）
+    env["AUTH_MODE"] = "none"
     # 合并额外环境变量（如 STORE_TYPE=mock）
     env.update(component_config.get("extra_env", {}))
     # 确保 Python 能找到组件包（将组件目录加入 PYTHONPATH）
