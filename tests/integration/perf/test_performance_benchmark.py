@@ -599,7 +599,9 @@ def test_data_consistency(
             headers=headers_a,
         )
         assert get_resp_a.status_code == 200, "租户A无法访问自己的资源"
-        assert unwrap_response(get_resp_a.json())["name"] == resource_name, "租户A资源数据不一致"
+        # GET /{id} 返回 toFull 视图（meta 嵌套），name 在 meta.name 下
+        resp_data = unwrap_response(get_resp_a.json())
+        assert resp_data["meta"]["name"] == resource_name, "租户A资源数据不一致"
     finally:
         # 清理
         perf_api_client.delete(
