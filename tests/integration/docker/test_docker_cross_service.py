@@ -19,6 +19,8 @@ from __future__ import annotations
 
 import pytest
 
+from conftest import unwrap_response
+
 
 # ---------------------------------------------------------------------------
 # 前置条件：所有模块健康
@@ -66,7 +68,7 @@ def test_encaps_to_sql_gateway_chain(api_client, encaps_url, sql_gateway_url):
     }
     create_resp = api_client.post(encaps_url + "/api/v1/tenants", json=tenant_payload)
     assert create_resp.status_code == 201
-    tenant = create_resp.json()
+    tenant = unwrap_response(create_resp.json())
 
     try:
         # 2. SQL 网关在该租户上下文执行 SQL（token 中已含 tenantId）。
@@ -103,7 +105,7 @@ def test_catalog_to_sql_gateway_chain(api_client, catalog_url, sql_gateway_url):
     }
     create_resp = api_client.post(catalog_url + "/api/v1/catalog/tables", json=table_payload)
     assert create_resp.status_code == 201
-    table = create_resp.json()
+    table = unwrap_response(create_resp.json())
 
     try:
         # 2. SQL 网关查询该表（无真实引擎时返回 DEGRADED）。
@@ -138,7 +140,7 @@ def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
     }
     tenant_resp = api_client.post(encaps_url + "/api/v1/tenants", json=tenant_payload)
     assert tenant_resp.status_code == 201
-    tenant = tenant_resp.json()
+    tenant = unwrap_response(tenant_resp.json())
 
     # 2. 规则引擎创建规则。
     rule_payload = {
@@ -151,7 +153,7 @@ def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
     }
     rule_resp = api_client.post(rule_engine_url + "/api/v1/rules", json=rule_payload)
     assert rule_resp.status_code == 201
-    rule = rule_resp.json()
+    rule = unwrap_response(rule_resp.json())
 
     try:
         # 3. 规则引擎执行规则。
@@ -160,7 +162,8 @@ def test_encaps_to_rule_engine_chain(api_client, encaps_url, rule_engine_url):
             json={"ruleId": rule["id"], "context": {"value": 42}, "tenantId": "docker-it-tenant"},
         )
         assert exec_resp.status_code == 200
-        assert exec_resp.json()["ruleId"] == rule["id"]
+        exec_body = unwrap_response(exec_resp.json())
+        assert exec_body["ruleId"] == rule["id"]
     finally:
         # 清理规则与租户。
         api_client.delete(rule_engine_url + f"/api/v1/rules/{rule['id']}")
@@ -183,7 +186,7 @@ def test_full_chain_all_services(
     5. SQL 网关执行查询
     """
     # 1. 封装层创建租户。
-    tenant = api_client.post(
+    tenant = unwrap_response(api_client.post(
         encaps_url + "/api/v1/tenants",
         json={
             "name": "docker-full-chain-tenant",
@@ -191,10 +194,10 @@ def test_full_chain_all_services(
             "quotaProfile": "large",
             "status": "ACTIVE",
         },
-    ).json()
+    ).json())
 
     # 2. 规则引擎创建规则。
-    rule = api_client.post(
+    rule = unwrap_response(api_client.post(
         rule_engine_url + "/api/v1/rules",
         json={
             "name": "full-chain-rule",
@@ -203,17 +206,17 @@ def test_full_chain_all_services(
             "severity": "INFO",
             "enabled": True,
         },
-    ).json()
+    ).json())
 
     # 4. Catalog 创建表。
-    table = api_client.post(
+    table = unwrap_response(api_client.post(
         catalog_url + "/api/v1/catalog/tables",
         json={
             "databaseName": "full_chain_db",
             "tableName": "full_chain_table",
             "columns": [{"name": "id", "type": "BIGINT"}],
         },
-    ).json()
+    ).json())
 
     try:
         # 3. 规则引擎执行规则。
@@ -234,8 +237,9 @@ def test_full_chain_all_services(
         assert tenant["id"] is not None
         assert rule["id"] is not None
         assert table["id"] is not None
-        assert exec_resp.json()["ruleId"] == rule["id"]
-        assert "queryId" in sql_resp.json()
+        exec_body = unwrap_response(exec_resp.json())
+        assert exec_body["ruleId"] == rule["id"]
+        assert "queryId" in unwrap_response(sql_resp.json())
     finally:
         # 清理所有创建的资源。
         api_client.delete(rule_engine_url + f"/api/v1/rules/{rule['id']}")

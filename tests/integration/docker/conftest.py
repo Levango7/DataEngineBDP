@@ -213,6 +213,26 @@ def is_docker_container_running(container_name: str) -> bool:
         return False
 
 
+def unwrap_response(body):
+    """从可能被ApiResponse包装的响应中提取业务数据。
+
+    encaps-layer的ApiResponseAdvice将Controller响应自动包装为：
+    {code: 0, message: "OK", data: <原始数据>, success: true, timestamp: ...}
+
+    如果检测到这种格式（dict且同时含"code"和"data"键），返回body["data"]；
+    否则返回body本身（兼容未包装的响应，如Catalog/RuleEngine可能不包装）。
+
+    Args:
+        body: HTTP响应的JSON body
+
+    Returns:
+        解包后的业务数据
+    """
+    if isinstance(body, dict) and "code" in body and "data" in body:
+        return body["data"]
+    return body
+
+
 # ---------------------------------------------------------------------------
 # pytest fixtures
 # ---------------------------------------------------------------------------
