@@ -131,7 +131,7 @@ def generate_test_jwt(
         "iat": now,
         "exp": now + expiry_seconds,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS384")
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
 # ---------------------------------------------------------------------------
