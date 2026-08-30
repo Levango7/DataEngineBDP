@@ -615,6 +615,8 @@ jobs:
             "platform/sql-gateway/pom.xml"; do
             if [ -f "$lib_pom" ]; then
               mvn -f "$lib_pom" install -B -DskipTests -U \
+                -Dmaven.wagon.http.retryHandler.count=3 \
+                -Dmaven.wagon.http.retryHandler.interval=2000 \
                 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
               echo "✓ 已安装: $lib_pom"
             fi
@@ -630,6 +632,8 @@ jobs:
             echo "  测试: $mod_name ($mod_dir)"
             echo "============================================"
             if mvn -f "$pom" test -B -e \
+              -Dmaven.wagon.http.retryHandler.count=3 \
+              -Dmaven.wagon.http.retryHandler.interval=2000 \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn; then
               echo "✓ $mod_name 测试通过"
             else
