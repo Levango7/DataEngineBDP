@@ -262,6 +262,8 @@ def _build_python_env(component_config: Dict) -> Dict[str, str]:
     # 设置 PORT 和 HOST（各组件 settings.py 通过 {PREFIX}_PORT / {PREFIX}_HOST 读取）
     env[f"{prefix}_PORT"] = str(component_config["port"])
     env[f"{prefix}_HOST"] = "127.0.0.1"
+    # 确保 JWT_SECRET 传递给子进程（Python 组件认证需要）
+    env.setdefault("JWT_SECRET", JWT_SECRET)
     # 合并额外环境变量（如 STORE_TYPE=mock）
     env.update(component_config.get("extra_env", {}))
     # 确保 Python 能找到组件包（将组件目录加入 PYTHONPATH）
