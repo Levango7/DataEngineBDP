@@ -52,6 +52,18 @@ DEFAULT_TIMEOUT = 10
 # 健康检查路径（Java/Go 组件统一）。
 HEALTH_PATH = "/api/v1/health"
 
+
+def unwrap_response(body):
+    """从可能被ApiResponse包装的响应中提取业务数据。
+
+    ApiResponseAdvice 自动将 Controller 响应包装为
+    ``{code, message, data, traceId, timestamp}``，本函数解包 ``data`` 字段。
+    若响应未被包装（无 ``code``/``data`` 字段），原样返回。
+    """
+    if isinstance(body, dict) and "code" in body and "data" in body:
+        return body["data"]
+    return body
+
 # ---------------------------------------------------------------------------
 # Python 组件配置（本地 subprocess 方式运行，不走 Docker）
 # ---------------------------------------------------------------------------
