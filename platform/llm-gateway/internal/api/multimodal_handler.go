@@ -312,25 +312,27 @@ func (h *MultimodalHandler) QueryRoutingDecision(c *gin.Context) {
 
 // ============ /v1/token/estimate ============
 
-// EstimateTokensRequest Token 估算请求。
-type EstimateTokensRequest struct {
-	Model    string                       `json:"model"`
-	Messages []provider.MultimodalMessage `json:"messages"`
-}
-
 // EstimateTokens POST /v1/token/estimate
 //
 // 估算多模态请求的 Token 用量（不实际调用）。
+// 使用 openAIChatRequest 解析请求，支持 OpenAI 标准格式（content 可为字符串或数组）。
 func (h *MultimodalHandler) EstimateTokens(c *gin.Context) {
-	var req EstimateTokensRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
+	var rawReq openAIChatRequest
+	if err := c.ShouldBindJSON(&rawReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	usage := h.counter.CountRequest(provider.MultimodalChatRequest{
-		Model:    req.Model,
-		Messages: req.Messages,
-	})
+	if strings.TrimSpace(rawReq.Model) == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "model is required"})
+		return
+	}
+	if len(rawReq.Messages) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "messages must not be empty"})
+		return
+	}
+	// 转换为内部多模态请求（支持 content 为字符串或数组）
+	req := rawReq.toMultimodalRequest()
+	usage := h.counter.CountRequest(req)
 	c.JSON(http.StatusOK, gin.H{
 		"usage":   usage,
 		"summary": provider.ModalitySummary(req.Messages),
