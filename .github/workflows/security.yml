@@ -148,7 +148,11 @@ jobs:
 
       - name: 预解析所有 Maven 依赖
         run: |
-          # 先安装 sql-gateway 到本地 ~/.m2，避免 Trivy 解析 lineage-analyzer 时去公网/被 429
+          # 先安装 common-security 再安装 sql-gateway 到本地 ~/.m2，避免 Trivy 解析时依赖缺失/被 429
+          if [ -f platform/common-security/pom.xml ]; then
+            mvn -f platform/common-security/pom.xml install -B -q -DskipTests -U \
+              -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
+          fi
           if [ -f platform/sql-gateway/pom.xml ]; then
             mvn -f platform/sql-gateway/pom.xml install -B -q -DskipTests \
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
