@@ -27,12 +27,16 @@ helm dependency update "$UMBRELLA" >/dev/null
 log "核心子集渲染 + Schema 校验..."
 for env in xinchuang onprem public-cloud private-cloud; do
   log "  Profile: $env"
-  out=$(helm template test-core "$UMBRELLA" -n smoke -f "$LOCAL_VALUES" --set "global.env=$env" 2>&1) || fail "渲染失败 ($env): $out"
-  echo "$out" > /tmp/render.yaml
+  # stdout=渲染产物 / stderr=helm 警告（如 dependency v1 警告）。
+  # 此前 2>&1 把警告行混入 YAML，kubeconform 解析必炸——这也是 CI 一直
+  # 报 "Schema 校验失败" 的直接原因。分离后警告只在失败时透出。
+  if ! helm template test-core "$UMBRELLA" -n smoke -f "$LOCAL_VALUES" --set "global.env=$env" > /tmp/render.yaml 2> /tmp/render-err.txt; then
+    fail "渲染失败 ($env): $(cat /tmp/render-err.txt)"
+  fi
   kubeconform -strict -ignore-missing-schemas -kubernetes-version 1.29.0 -summary /tmp/render.yaml >/dev/null 2>&1 || fail "Schema 校验失败 ($env)"
-  # 占位符检查
-  if echo "$out" | grep -q "REPLACE_WITH_\|CHANGE_ME_\|your-\|<.*>"; then
-    fail "发现占位符 ($env): $(echo "$out" | grep -E "REPLACE_WITH_|CHANGE_ME_|your-|<.*>" | head -1)"
+  # 占位符检查（只查渲染产物）
+  if grep -q "REPLACE_WITH_\|CHANGE_ME_\|your-\|<.*>" /tmp/render.yaml; then
+    fail "发现占位符 ($env): $(grep -E "REPLACE_WITH_|CHANGE_ME_|your-|<.*>" /tmp/render.yaml | head -1)"
   fi
   pass "Profile $env 通过"
 done
@@ -47,9 +51,15 @@ for cf in $(find design/deploy/charts platform/industry-templates/charts -name C
   case "$name" in
     catalog)                 extra_args=(--set "auth.jwtSigningKey=${SMOKE_JWT}") ;;
     dataenginebdp-umbrella)  extra_args=(--set "catalog.auth.jwtSigningKey=${SMOKE_JWT}") ;;
+    # nacos chart 含安全 fail-fast：auth.enabled=true 且 tokenSecretKey 为空时拒绝渲染
+    # （生产语义正确）。矩阵冒烟需注入 ≥32 字符测试值，与 catalog JWT 同模式。
+    nacos)                   extra_args=(--set "auth.tokenSecretKey=${SMOKE_JWT}") ;;
   esac
-  out=$(helm template "$name" "$dir" --namespace smoke "${extra_args[@]+"${extra_args[@]}"}" 2>&1) || { log "FAIL: $name 渲染失败"; fail_count=$((fail_count+1)); continue; }
-  echo "$out" > /tmp/render.yaml
+  if ! helm template "$name" "$dir" --namespace smoke "${extra_args[@]+"${extra_args[@]}"}" > /tmp/render.yaml 2>/dev/null; then
+    log "FAIL: $name 渲染失败"
+    fail_count=$((fail_count+1))
+    continue
+  fi
   kubeconform -strict -ignore-missing-schemas -kubernetes-version 1.29.0 -summary /tmp/render.yaml >/dev/null 2>&1 || { log "FAIL: $name Schema 校验失败"; fail_count=$((fail_count+1)); continue; }
 done
 (( fail_count == 0 )) || fail "共 $fail_count 个 Chart 失败"

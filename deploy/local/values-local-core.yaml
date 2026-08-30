@@ -186,9 +186,9 @@ encaps-layer:
   service:
     type: ClusterIP
     port: 8080
-  config:
-    k8sClientTimeout: 30s
-    informerWatchCache: true
+  env:
+    K8S_CLIENT_TIMEOUT: "30s"
+    INFORMER_WATCH_CACHE: "true"
 
 sql-gateway:
   enabled: true
@@ -199,11 +199,10 @@ sql-gateway:
   service:
     type: ClusterIP
     port: 8080
-  config:
-    queryCache:
-      enabled: true
-      ttl: 60s
-      maxSize: 1000
+  env:
+    QUERY_CACHE_ENABLED: "true"
+    QUERY_CACHE_TTL: "60s"
+    QUERY_CACHE_MAX_SIZE: "1000"
 
 catalog:
   enabled: true
@@ -214,11 +213,10 @@ catalog:
   service:
     type: ClusterIP
     port: 8080
-  config:
-    dbType: sqlite
-    sqlitePath: /data/catalog.db
-    elasticsearch:
-      enabled: false
+  env:
+    CATALOG_DB_TYPE: "sqlite"
+    CATALOG_DB: "/data/catalog.db"
+    CATALOG_ES_ENABLED: "false"
   auth:
     jwtSigningKey: "local-dev-signing-key-change-me-0123456789abcdef"
 
@@ -231,11 +229,10 @@ rule-engine:
   service:
     type: ClusterIP
     port: 8080
-  config:
-    asyncBatchEnabled: true
-    batchSize: 100
-    datasource:
-      type: h2
+  env:
+    ASYNC_BATCH_ENABLED: "true"
+    BATCH_SIZE: "100"
+    RULE_DATASOURCE_TYPE: "h2"
 
 nl2sql:
   enabled: true
@@ -256,6 +253,6 @@ open-api-catalog:
   service:
     type: ClusterIP
     port: 8080
-  config:
-    apisixAdminKey: ""
-    apisixUrl: "http://apisix-admin:9180"
+  env:
+    APISIX_ADMIN_KEY: ""
+    APISIX_URL: "http://apisix-admin:9180"

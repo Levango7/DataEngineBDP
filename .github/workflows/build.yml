@@ -388,20 +388,28 @@ jobs:
               echo "============================================"
               # 打包为 tgz
               helm package "${chart_dir}" -d release-charts/
-              # 推送到 GHCR OCI Registry（带限流间隔与重试，避免 GitHub secondary rate limit 403）
+              # 推送到 GHCR OCI Registry（指数退避重试，规避 GitHub secondary rate limit 403）
+              # 2026-08-30 收紧：此前 3×60s 固定间隔仍被限流打断（93 chart 连续推送）。
+              # 改为 5 次指数退避（30/60/120/240s），并在检测到限流后额外冷却 30s。
               if [ "${{ github.event.inputs.push_image != 'false' }}" = "true" ]; then
                 push_ok=0
-                for attempt in 1 2 3; do
-                  if helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts"; then
+                delay=30
+                for attempt in 1 2 3 4 5; do
+                  if helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts" 2>"/tmp/push-${chart_name}.err"; then
                     push_ok=1
                     break
                   else
-                    echo "::warning::chart ${chart_name} 推送失败(第 ${attempt} 次),60s 后重试(规避 GHCR 限流)"
-                    sleep 60
+                    if grep -qiE "429|rate limit|too many" "/tmp/push-${chart_name}.err"; then
+                      echo "::warning::chart ${chart_name} 触发 GHCR 限流(第 ${attempt} 次)，冷却 ${delay}s 后重试"
+                    else
+                      echo "::warning::chart ${chart_name} 推送失败(第 ${attempt} 次)，${delay}s 后重试"
+                    fi
+                    sleep "$delay"
+                    delay=$((delay * 2))
                   fi
                 done
-                [ "$push_ok" -eq 1 ] || { echo "::error::chart ${chart_name} 重试 3 次仍失败"; exit 1; }
-                sleep 2  # 相邻推送节流，降低触发 secondary rate limit 概率
+                [ "$push_ok" -eq 1 ] || { echo "::error::chart ${chart_name} 重试 5 次仍失败"; cat "/tmp/push-${chart_name}.err"; exit 1; }
+                sleep 5  # 相邻推送节流，降低触发 secondary rate limit 概率
               fi
             fi
           done

@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "iceberg-compaction.labels" . | nindent 4 }}
 data:
+  {{- range $key, $val := .Values.env }}
+  {{ $key }}: {{ $val | toString | quote }}
+  {{- end }}
   compaction.sh: |
     #!/bin/bash
     set -euo pipefail

@@ -444,6 +444,15 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      # 扫描目标为 GHCR 私有镜像；此前本 job 未登录，trivy 匿名拉取 401，
+      # 报错又被 2>/dev/null 吞掉，表现为"扫描失败"（workflow 失败根因之一）
+      - name: 登录 GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: 安装 Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:

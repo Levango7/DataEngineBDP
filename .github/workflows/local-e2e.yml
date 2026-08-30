@@ -77,9 +77,13 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install pytest
+      - name: Install pytest + component deps
         if: matrix.component.name == 'asset-exchange'
-        run: pip install -q pytest
+        run: |
+          # 测试代码 import fastapi/pydantic/httpx 等，需安装组件 requirements
+          # （此前只装 pytest，干净 runner 上 ImportError）
+          pip install -q pytest
+          pip install -q -r platform/asset-exchange/requirements.txt
       - name: Setup Node
         if: matrix.component.name == 'frontend'
         uses: actions/setup-node@v4

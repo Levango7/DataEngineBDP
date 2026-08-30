@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "keycloak.labels" . | nindent 4 }}
 data:
+  {{- range $key, $val := .Values.env }}
+  {{ $key }}: {{ $val | toString | quote }}
+  {{- end }}
   {{- range $key, $val := .Values.config }}
   {{ $key }}: {{ $val | toString | quote }}
   {{- end }}

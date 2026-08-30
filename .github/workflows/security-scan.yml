@@ -119,13 +119,21 @@ jobs:
 
       - name: 构建 encaps-layer 镜像
         run: |
+          # Dockerfile 已统一为项目根 context 模式（COPY pom.xml + COPY platform/...）
+          # 此前 cd 组件目录后：mvn 解析不到父 POM、docker build 缺根 context 文件，
+          # 两级失败导致镜像永远构建不出，Trivy 无镜像可扫（workflow 失败根因）。
           if [ -f platform/encaps-layer/Dockerfile ]; then
-            cd platform/encaps-layer
-            # encaps-layer 依赖 common-security，先装库再打包
-            mvn -f ../common-security/pom.xml install -B -q -Dmaven.test.skip=true \
+            # 与 ci.yml 相同的依赖链：父 POM → common-security → encaps-layer
+            mvn install -B -N -q || echo "::warning::父 POM 安装失败"
+            mvn -f platform/common-security/pom.xml install -B -q -Dmaven.test.skip=true \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
               || echo "::warning::common-security 安装失败"
-            mvn -B -q -Dmaven.test.skip=true package || echo "::warning::Maven 打包失败，跳过镜像构建"
-            docker build -t encaps-layer:scan . || echo "::warning::Docker 构建失败，跳过镜像扫描"
+            mvn -f platform/encaps-layer/pom.xml package -B -q -Dmaven.test.skip=true \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
+              || echo "::warning::Maven 打包失败，跳过镜像构建"
+            # 根 context 构建（Dockerfile 内部完成源码拷贝与编译，此处 jar 仅作缓存）
+            docker build -f platform/encaps-layer/Dockerfile -t encaps-layer:scan . \
+              || echo "::warning::Docker 构建失败，跳过镜像扫描"
           else
             echo "未找到 Dockerfile，跳过镜像扫描"
           fi

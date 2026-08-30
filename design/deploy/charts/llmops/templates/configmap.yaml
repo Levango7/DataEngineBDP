@@ -5,6 +5,9 @@ metadata:
   labels:
     {{- include "llmops.labels" . | nindent 4 }}
 data:
+  {{- range $key, $val := .Values.env }}
+  {{ $key }}: {{ $val | toString | quote }}
+  {{- end }}
   {{- range $key, $val := .Values.config }}
   {{ $key }}: |
     {{- $val | nindent 4 }}
