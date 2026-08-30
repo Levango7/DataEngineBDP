@@ -121,7 +121,8 @@ class BillingAggregatorServiceTest {
 
     @Test
     void aggregateDailyQueryBilling_groupsByDaySorted() {
-        Instant now = Instant.now();
+        // 截断到当天中午 UTC，避免 CI 在午夜附近运行时 now.minus(10min) 跨天导致 flaky
+        Instant now = Instant.now().truncatedTo(ChronoUnit.DAYS).plus(12, ChronoUnit.HOURS);
         // 同一天两条 + 前一天一条
         meteringRepository.save(record("tenant_a", 100L, true, "trino", now.minus(10, ChronoUnit.MINUTES)));
         meteringRepository.save(record("tenant_a", 200L, true, "trino", now.minus(5, ChronoUnit.MINUTES)));
