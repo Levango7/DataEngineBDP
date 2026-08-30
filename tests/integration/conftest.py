@@ -297,19 +297,20 @@ def _start_python_component(name: str) -> subprocess.Popen:
     log_file = tempfile.NamedTemporaryFile(
         mode="w+", suffix=f"_{name}_stderr.log", delete=False, encoding="utf-8"
     )
+    log_path = log_file.name
     log_file.close()
     proc = subprocess.Popen(
         [sys.executable, "main.py"],
         cwd=str(comp_dir),
         env=env,
-        stdout=log_file.open("w", encoding="utf-8"),
+        stdout=open(log_path, "w", encoding="utf-8"),
         stderr=subprocess.STDOUT,
         # Windows 下创建新进程组，便于整组终止
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         if sys.platform == "win32"
         else 0,
     )
-    proc._log_file_path = log_file.name  # type: ignore[attr-defined]
+    proc._log_file_path = log_path  # type: ignore[attr-defined]
     return proc
 
 
