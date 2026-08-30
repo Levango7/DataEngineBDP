@@ -54,7 +54,7 @@ def test_federated_query_trino_doris(api_client, sql_gateway_url):
     body = exec_resp.json()
     # 联邦归并结果应有列定义（数据行可能为空取决于测试数据）
     assert "columns" in body or "status" in body
-    assert body.get("status") in ("SUCCESS", "SIMULATED", "FAILED"), \
+    assert body.get("status") in ("SUCCESS", "SIMULATED", "FAILED", "DEGRADED"), \
         f"未知执行状态: {body}"
 
 
