@@ -97,9 +97,9 @@ def loop_client():
         os.environ["LOOP_PORT"] = "18088"
 
         from fastapi.testclient import TestClient
-        import main
+        from app.main import app
 
-        with TestClient(main.app) as tc:
+        with TestClient(app) as tc:
             yield tc
 
 
@@ -125,9 +125,9 @@ def registry_client():
         os.environ["REGISTRY_PORT"] = "18089"
 
         from fastapi.testclient import TestClient
-        import main
+        from app.main import app
 
-        with TestClient(main.app) as tc:
+        with TestClient(app) as tc:
             yield tc
 
 
