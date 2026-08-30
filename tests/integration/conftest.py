@@ -84,7 +84,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "OPENAPI_CATALOG",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"OPENAPI_CATALOG_STORE_TYPE": "mock"},
+        "extra_env": {"OPENAPI_CATALOG_STORETYPE": "mock"},
     },
     "industry_templates": {
         "dir": "platform/industry-templates",
@@ -92,7 +92,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "INDUSTRY_TEMPLATES",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"INDUSTRY_TEMPLATES_DEPLOY_MODE": "mock"},
+        "extra_env": {"INDUSTRY_TEMPLATES_DEPLOYMODE": "mock"},
     },
     "knowledge_engine": {
         "dir": "platform/knowledge-engine",
@@ -101,8 +101,8 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "health_path": "/health",
         "health_status": "ok",
         "extra_env": {
-            "KE_STORE_TYPE": "mock",
-            "KE_EXTRACTOR_TYPE": "mock",
+            "KE_STORETYPE": "mock",
+            "KE_EXTRACTORTYPE": "mock",
         },
     },
 }
