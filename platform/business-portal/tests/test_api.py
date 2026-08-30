@@ -2,7 +2,40 @@
 
 from __future__ import annotations
 
-from tests.conftest import make_jwt
+import pytest
+
+
+@pytest.fixture
+def make_jwt():
+    """签发 HS256 JWT（与 conftest.jwt_client 同密钥；本地定义避免顶层 tests 包名碰撞）."""
+    import base64
+    import hashlib
+    import hmac
+    import json
+    import time
+
+    secret = "unit-test-secret-key-at-least-32-bytes!!"
+
+    def _enc(obj) -> str:
+        return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()
+
+    def _make(sub: str = "admin-1", tenant: str = "t-1", role: str = "admin") -> str:
+        header = {"alg": "HS256", "typ": "JWT"}
+        claims = {
+            "iss": "shuqing-bigdata",
+            "sub": sub,
+            "tenantId": tenant,
+            "role": role,
+            "iat": int(time.time()),
+            "exp": int(time.time()) + 600,
+        }
+        si = f"{_enc(header)}.{_enc(claims)}"
+        sig = base64.urlsafe_b64encode(
+            hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()
+        ).rstrip(b"=").decode()
+        return f"{si}.{sig}"
+
+    return _make
 
 
 class TestHealth:
@@ -40,7 +73,7 @@ class TestAuthEnforcement:
         )
         assert resp.status_code == 401
 
-    def test_jwt_mode_valid_token_passes(self, jwt_client):
+    def test_jwt_mode_valid_token_passes(self, jwt_client, make_jwt):
         token = make_jwt(sub="admin-1", tenant="t-1")
         resp = jwt_client.get(
             "/api/v1/business-lines",
@@ -86,7 +119,7 @@ class TestBusinessLineApi:
         resp = client.post("/api/v1/business-lines", json=payload)
         assert resp.status_code == 409
 
-    def test_list_business_lines(self, jwt_client):
+    def test_list_business_lines(self, jwt_client, make_jwt):
         t1_token = make_jwt(sub="u-0", tenant="t-1")
         auth = {"Authorization": f"Bearer {t1_token}"}
         jwt_client.post(
@@ -119,7 +152,7 @@ class TestBusinessLineApi:
         assert len(result) == 1
         assert result[0]["name"] == "bl-1"
 
-    def test_list_without_tenant_identity_returns_401(self, jwt_client):
+    def test_list_without_tenant_identity_returns_401(self, jwt_client, make_jwt):
         """token 无 tenantId 声明 → 401，不允许匿名枚举."""
         jwt_client.post(
             "/api/v1/business-lines",
@@ -132,7 +165,7 @@ class TestBusinessLineApi:
         )
         assert resp.status_code == 401
 
-    def test_list_ignores_client_tenant_param(self, jwt_client):
+    def test_list_ignores_client_tenant_param(self, jwt_client, make_jwt):
         """客户端伪造 tenantId 参数不影响租户裁剪（以 token 声明为准）."""
         jwt_client.post(
             "/api/v1/business-lines",
@@ -152,7 +185,7 @@ class TestBusinessLineApi:
         names = {bl["name"] for bl in resp.json()}
         assert names == {"bl-t1"}
 
-    def test_get_business_line(self, jwt_client):
+    def test_get_business_line(self, jwt_client, make_jwt):
         auth = {"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"}
         create_resp = jwt_client.post(
             "/api/v1/business-lines",
@@ -164,7 +197,7 @@ class TestBusinessLineApi:
         assert resp.status_code == 200
         assert resp.json()["id"] == bl_id
 
-    def test_get_business_line_with_user_identity(self, jwt_client):
+    def test_get_business_line_with_user_identity(self, jwt_client, make_jwt):
         """token sub 指定成员：成员可访问，非成员 403."""
         create_resp = jwt_client.post(
             "/api/v1/business-lines",
@@ -194,7 +227,7 @@ class TestBusinessLineApi:
         resp = client.get("/api/v1/business-lines/nonexistent")
         assert resp.status_code == 404
 
-    def test_update_business_line(self, jwt_client):
+    def test_update_business_line(self, jwt_client, make_jwt):
         auth = {"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"}
         create_resp = jwt_client.post(
             "/api/v1/business-lines",
@@ -206,7 +239,7 @@ class TestBusinessLineApi:
         assert resp.status_code == 200
         assert resp.json()["name"] == "风控线-v2"
 
-    def test_update_by_non_owner_returns_403(self, jwt_client):
+    def test_update_by_non_owner_returns_403(self, jwt_client, make_jwt):
         create_resp = jwt_client.post(
             "/api/v1/business-lines",
             json={
@@ -225,7 +258,7 @@ class TestBusinessLineApi:
         )
         assert resp.status_code == 403
 
-    def test_delete_business_line(self, jwt_client):
+    def test_delete_business_line(self, jwt_client, make_jwt):
         auth = {"Authorization": f"Bearer {make_jwt(sub='admin-1', tenant='t-1')}"}
         create_resp = jwt_client.post(
             "/api/v1/business-lines",

@@ -14,12 +14,31 @@ set -euo pipefail
 errors=0
 
 # ---- 规则 1：运行时 Dockerfile 不得烘焙 mock 环境变量 ----
+# ENV 有两种形态：单行 `ENV K=mock` 与续行块
+#   ENV A=1 \
+#       B=mock
+# 续行不带 ENV 前缀，需覆盖 ENV 块内所有行再查取值（2026-08-30 补盲点：
+# ml-platform 曾以续行 + 行内 `# 注释` 绕过检查，且行内注释还导致 legacy
+# builder 语法错——ENV 行内不允许注释，双害）。
 while IFS= read -r -d '' dockerfile; do
-  # 只检查 ENV 行里的 mock 取值（RUN 阶段/参数化构建不算）
-  if grep -nE '^[[:space:]]*ENV.*\b(mock|MOCK_MODE=true|DEV_MODE=true)\b' "$dockerfile" 2>/dev/null \
-     | grep -viE 'comment|说明|注释' >/dev/null; then
+  hits=$(awk '
+    /^[[:space:]]*ENV([[:space:]]|$)/ { in_env = 1 }
+    /^[[:space:]]*(RUN|COPY|FROM|CMD|ENTRYPOINT|EXPOSE|USER|WORKDIR|HEALTHCHECK|ARG|LABEL|VOLUME)([[:space:]]|$)/ { in_env = 0 }
+    in_env {
+      line = $0
+      # 剥除行内注释后再判定（# 后是说明文字，不构成取值）
+      sub(/#.*/, "", line)
+      if (line ~ /(MOCK_MODE|DEV_MODE)[A-Z_]*=.*"?(true|True)"?/) {
+        print NR": "$0
+      }
+      if (line ~ /[A-Z_]+=[[:space:]]*"?(mock|Mock)"?/) {
+        print NR": "$0
+      }
+    }
+  ' "$dockerfile" 2>/dev/null)
+  if [ -n "$hits" ]; then
     echo "::error file=$dockerfile::Dockerfile ENV 烘焙了 mock/开发模式默认值（生产交付物禁止；本地降级由部署环境显式注入）"
-    grep -nE '^[[:space:]]*ENV.*\b(mock|MOCK_MODE=true|DEV_MODE=true)\b' "$dockerfile"
+    echo "$hits"
     errors=$((errors + 1))
   fi
 done < <(find platform -name Dockerfile -print0 2>/dev/null)

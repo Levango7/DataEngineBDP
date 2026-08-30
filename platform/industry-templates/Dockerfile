@@ -31,11 +31,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 8091
 
-# 默认 Mock 模式；生产通过环境变量切换到 helm
+# 运行时默认与代码一致（deployMode=helm）；
+# 本地降级由部署环境显式注入 INDUSTRY_TEMPLATES_DEPLOY_MODE=mock，
+# 不在镜像内烘焙 mock——防止生产拿到假实现而无感知。
 ENV INDUSTRY_TEMPLATES_HOST=0.0.0.0 \
     INDUSTRY_TEMPLATES_PORT=8091 \
     INDUSTRY_TEMPLATES_LOG_LEVEL=info \
-    INDUSTRY_TEMPLATES_DEPLOY_MODE=mock \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 

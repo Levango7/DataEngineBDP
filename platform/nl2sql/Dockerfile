@@ -28,11 +28,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
 
 EXPOSE 8093
 
-# 默认 Mock 模式；生产通过环境变量切换
+# 运行时默认与代码一致（llmMode=langchain，经 llm-gateway OpenAI 兼容协议）；
+# 本地降级由部署环境显式注入 NL2SQL_LLM_MODE=mock，
+# 不在镜像内烘焙 mock——防止生产拿到假实现而无感知。
 ENV NL2SQL_HOST=0.0.0.0 \
     NL2SQL_PORT=8093 \
     NL2SQL_LOG_LEVEL=info \
-    NL2SQL_LLM_MODE=mock \
     PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 

@@ -43,11 +43,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
 
 EXPOSE 8095
 
-# 默认 Mock 模式；生产通过环境变量切换
+# 运行时不烘焙 Mock（组件代码默认 mock_mode=true，生产由 Helm values
+# 显式注入 FINETUNE_MOCK_MODE=false 覆盖，见 design/deploy/charts/model-finetuning）；
+# 本地降级由部署环境显式注入，不在镜像内烘焙——防止生产拿到假实现而无感知。
 ENV FINETUNE_HOST=0.0.0.0 \
     FINETUNE_PORT=8095 \
     FINETUNE_WORK_DIR=/tmp/finetune \
-    FINETUNE_MOCK_MODE=true \
     FINETUNE_SCHEDULER_BACKEND=volcano \
     FINETUNE_LOG_LEVEL=info \
     PYTHONUNBUFFERED=1 \
