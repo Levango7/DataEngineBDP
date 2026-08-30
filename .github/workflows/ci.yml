@@ -1316,14 +1316,18 @@ jobs:
       - name: 安装 Python 组件依赖（子进程模式启动所需）
         if: env.it_skip != 'true'
         run: |
-          # 集成测试以子进程方式启动 5 个 Python 组件，需在 CI Python 环境中安装其依赖
-          for comp in asset-exchange business-portal open-api-catalog industry-templates knowledge-engine; do
+          # 集成测试以子进程方式启动 Python 组件，需在 CI Python 环境中安装其依赖
+          for comp in asset-exchange business-portal open-api-catalog industry-templates knowledge-engine model-finetuning; do
             req="platform/$comp/requirements.txt"
             if [ -f "$req" ]; then
               echo "安装 $comp 依赖..."
               pip install -r "$req" -q 2>&1 || echo "::warning::$comp 依赖安装部分失败"
             fi
           done
+          # open-api-catalog 有 pyproject.toml，安装为可编辑包以便测试导入 openapi_catalog 模块
+          if [ -f platform/open-api-catalog/pyproject.toml ]; then
+            pip install -e platform/open-api-catalog -q 2>&1 || echo "::warning::open-api-catalog 包安装失败"
+          fi
 
       - name: 启动 docker-compose 服务
         if: env.it_skip != 'true'

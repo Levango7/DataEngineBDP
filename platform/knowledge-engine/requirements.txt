@@ -8,7 +8,8 @@ pydantic==2.13.4
 pydantic-settings==2.15.0
 
 # NebulaGraph integration (optional, only enabled when store.type=nebula)
-nebula3-python==3.4.0
+# nebula3-python 移至 requirements-nebula.txt，避免在无 NebulaGraph SDK 的环境中安装失败
+# 安装方式: pip install -r requirements-nebula.txt (仅生产环境需要)
 
 # HTTP client (for LLM gateway / external calls)
 httpx==0.28.1

@@ -1,0 +1,4 @@
+# Knowledge Engine - NebulaGraph 可选依赖
+# 仅在 KE_STORE_TYPE=nebula（生产环境）时需要
+# 安装方式: pip install -r requirements-nebula.txt
+nebula3-python==3.4.0
