@@ -14,7 +14,6 @@ from business_portal.api.routers.deps import (
     get_registry,
     status_for_error,
 )
-
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
     Budget,
