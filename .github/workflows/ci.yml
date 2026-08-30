@@ -1394,8 +1394,10 @@ jobs:
 
       - name: 安装 golangci-lint
         run: |
-          # 使用 go install 替代 install.sh，避免 CDN 校验和验证偶发失败
-          go install github.com/golangci/golangci/v2/cmd/golangci-lint@v2.13.2
+          # 直接下载二进制，避免 install.sh 校验和偶发失败和 go install 模块路径问题
+          curl -fSL --retry 3 --retry-delay 5 -o /tmp/golangci-lint.tar.gz \
+            https://github.com/golangci/golangci-lint/releases/download/v2.13.2/golangci-lint-2.13.2-linux-amd64.tar.gz
+          sudo tar -xzf /tmp/golangci-lint.tar.gz -C /usr/local/bin golangci-lint
           golangci-lint version
 
       - name: 对每个 Go 组件执行安全 lint（阻断）
