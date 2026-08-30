@@ -744,7 +744,7 @@ class TestInvocationMeteringLoki:
 
         # Java
         javaMetrics = (RUNTIMES_DIR / "java" / "src" / "main" / "java" / "com" /
-                       "shuqing" / "bigdata" / "function" / "InvocationMetrics.java"
+                       "levango7" / "dataenginebdp" / "function" / "InvocationMetrics.java"
                        ).read_text(encoding="utf-8")
         assert "tenant" in javaMetrics, "Java 日志应包含 tenant 字段"
         assert "invocation" in javaMetrics, "Java 应输出 invocation 类型日志"

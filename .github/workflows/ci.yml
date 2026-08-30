@@ -1337,6 +1337,11 @@ jobs:
           if [ -f platform/open-api-catalog/pyproject.toml ]; then
             pip install -e platform/open-api-catalog -q 2>&1 || echo "::warning::open-api-catalog 包安装失败"
           fi
+          # evaluation 评测平台依赖（test_model_evaluation.py 直接导入 app 包）
+          if [ -f platform/llm-gateway/evaluation/requirements.txt ]; then
+            echo "安装 evaluation 评测平台依赖..."
+            pip install -r platform/llm-gateway/evaluation/requirements.txt -q 2>&1 || echo "::warning::evaluation 依赖安装部分失败"
+          fi
 
       - name: 启动 docker-compose 服务
         if: env.it_skip != 'true'

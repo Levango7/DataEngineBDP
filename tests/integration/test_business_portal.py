@@ -56,7 +56,10 @@ def test_list_business_lines(business_portal_url):
     端点：GET /api/v1/business-lines
     """
     with httpx.Client(timeout=DEFAULT_TIMEOUT) as client:
-        resp = client.get(business_portal_url + BL_PATH)
+        resp = client.get(
+            business_portal_url + BL_PATH,
+            headers={"X-Tenant-Id": "it-test-tenant"},
+        )
     assert resp.status_code == 200
     assert isinstance(resp.json(), list)
 
@@ -172,7 +175,10 @@ def test_business_line_crud_flow(business_portal_url):
             assert updated.status_code == 200
 
             # 列表
-            listed = client.get(business_portal_url + BL_PATH)
+            listed = client.get(
+                business_portal_url + BL_PATH,
+                headers={"X-Tenant-Id": payload["tenantId"]},
+            )
             assert listed.status_code == 200
             ids = [b["id"] for b in listed.json()]
             assert bl_id in ids
