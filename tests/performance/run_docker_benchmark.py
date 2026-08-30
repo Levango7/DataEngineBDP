@@ -86,7 +86,7 @@ def generate_test_jwt(tenant_id: str = "it-test-tenant",
         "iat": now,
         "exp": now + 3600,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS384")
 
 
 # ---------------------------------------------------------------------------

@@ -75,7 +75,7 @@ def generate_test_jwt(
         "iat": now,
         "exp": now + expiry_seconds,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS384")
 
 
 def wait_for_service(base_url: str, health_path: str, timeout: int = 30) -> bool:

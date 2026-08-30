@@ -169,7 +169,7 @@ def generate_test_jwt(
         "iat": int(time.time()),
         "exp": int(time.time()) + 3600,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS384")
 
 
 # ---------------------------------------------------------------------------

@@ -517,7 +517,7 @@ def test_data_consistency(
         return _jwt.encode(
             payload,
             "it-test-jwt-secret-at-least-32-bytes-long",
-            algorithm="HS256",
+            algorithm="HS384",
         )
 
     tenant_a_token = _make_token("perf-tenant-a", "perf-tester-a")

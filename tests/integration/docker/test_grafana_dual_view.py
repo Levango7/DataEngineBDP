@@ -484,7 +484,7 @@ class TestQueryApiDockerIntegration:
             "iat": now,
             "exp": now + 3600,
         }
-        return jwt.encode(payload, secret, algorithm="HS256")
+        return jwt.encode(payload, secret, algorithm="HS384")
 
     @pytest.fixture(scope="class")
     def tenant_token(self) -> str:
@@ -503,7 +503,7 @@ class TestQueryApiDockerIntegration:
             "iat": now,
             "exp": now + 3600,
         }
-        return jwt.encode(payload, secret, algorithm="HS256")
+        return jwt.encode(payload, secret, algorithm="HS384")
 
     def test_health_check(self, query_api_url):
         """验证 query-api 健康检查。"""

@@ -135,7 +135,7 @@ def _generate_test_jwt(tenant_id: str = "it-test-tenant", user_id: str = "it-tes
         "iat": int(time.time()),
         "exp": int(time.time()) + 3600,
     }
-    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS384")
 
 
 # 公开别名，供 docker/ 和 k3s/ 子目录测试直接 `from conftest import generate_test_jwt` 导入
