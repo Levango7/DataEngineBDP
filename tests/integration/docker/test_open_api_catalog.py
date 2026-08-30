@@ -67,6 +67,7 @@ def client(catalog_available):
 
     # TestClient 模式
     os.environ["OPENAPI_CATALOG_STORE_TYPE"] = "mock"
+    os.environ["AUTH_MODE"] = "none"  # 确保TestClient模式禁用鉴权
 
     # 动态导入（避免在模块加载时强制依赖 fastapi）
     from fastapi.testclient import TestClient
