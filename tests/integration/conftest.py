@@ -138,6 +138,37 @@ def _generate_test_jwt(tenant_id: str = "it-test-tenant", user_id: str = "it-tes
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
+# 公开别名，供 docker/ 和 k3s/ 子目录测试直接 `from conftest import generate_test_jwt` 导入
+generate_test_jwt = _generate_test_jwt
+
+
+# 模块级测试结果记录，供 k3s/ 链路测试报告生成器读取
+TEST_RESULTS: list[dict] = []
+
+
+def record_test_result(
+    chain: str, test_name: str, passed: bool, detail: str = "",
+    duration_ms: float = 0.0,
+) -> None:
+    """记录单条测试结果（供报告生成器读取）.
+
+    Args:
+        chain: 链路名称.
+        test_name: 测试名称.
+        passed: 是否通过.
+        detail: 详细信息（错误原因等）.
+        duration_ms: 耗时（毫秒）.
+    """
+    TEST_RESULTS.append({
+        "chain": chain,
+        "test": test_name,
+        "passed": passed,
+        "detail": detail,
+        "duration_ms": duration_ms,
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+    })
+
+
 # ---------------------------------------------------------------------------
 # 工具函数
 # ---------------------------------------------------------------------------

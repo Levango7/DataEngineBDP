@@ -32,3 +32,6 @@ fastapi>=0.110
 
 # Pydantic（docker/ 下部分测试导入应用模型，依赖 pydantic）
 pydantic>=2.0
+
+# pydantic-settings（asset-exchange 等应用使用 BaseSettings）
+pydantic-settings>=2.0
