@@ -37,6 +37,7 @@ BASE_URLS: Dict[str, str] = {
     "sql_gateway": "http://localhost:18081",
     "catalog": "http://localhost:18082",
     "rule_engine": "http://localhost:18083",
+    "lineage": "http://localhost:18084",
     # Python 组件（本地直接运行，使用原生端口）。
     "asset_exchange": "http://localhost:8087",
     "business_portal": "http://localhost:8088",
@@ -465,6 +466,12 @@ def catalog_url():
 def rule_engine_url():
     """规则引擎基础 URL（session 级别）。"""
     return BASE_URLS["rule_engine"]
+
+
+@pytest.fixture(scope="session")
+def lineage_url():
+    """血缘分析服务基础 URL（session 级别）。"""
+    return BASE_URLS["lineage"]
 
 
 # ---------------------------------------------------------------------------

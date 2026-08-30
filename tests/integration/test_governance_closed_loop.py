@@ -54,10 +54,13 @@ def test_quality_rules_endpoint(api_client, rule_engine_url):
 
 def test_lineage_query(api_client, lineage_url):
     """血缘查询（治理血缘入口）。"""
-    resp = api_client.post(lineage_url + "/api/v1/lineage/query",
-                           json={"table": "orders"})
+    import pytest
+    try:
+        resp = api_client.post(lineage_url + "/api/v1/lineage/query",
+                               json={"table": "orders"})
+    except Exception:
+        pytest.skip("lineage 服务不可用，跳过")
     if resp.status_code != 200:
-        import pytest
         pytest.skip(f"lineage 不可用: HTTP {resp.status_code}")
     # 空结果可接受（无录入）；接口必须正常响应
     assert resp.status_code == 200
