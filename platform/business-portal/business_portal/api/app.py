@@ -11,8 +11,8 @@ from business_portal.api.jwt_auth import getAuthContext
 from business_portal.api.routers import (
     business_lines,
     catalog,
-    dashboards,
     dashboard,
+    dashboards,
     health,
     reports,
     workbench,

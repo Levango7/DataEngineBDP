@@ -37,9 +37,9 @@ def make_jwt(sub: str = "u1", tenant: str = "t-1") -> str:
         return base64.urlsafe_b64encode(json.dumps(obj).encode()).rstrip(b"=").decode()
 
     si = f"{_enc(header)}.{_enc(claims)}"
-    sig = base64.urlsafe_b64encode(
-        hmac.new(SECRET.encode(), si.encode(), hashlib.sha256).digest()
-    ).rstrip(b"=").decode()
+    sig = (
+        base64.urlsafe_b64encode(hmac.new(SECRET.encode(), si.encode(), hashlib.sha256).digest()).rstrip(b"=").decode()
+    )
     return f"{si}.{sig}"
 
 
@@ -61,15 +61,19 @@ def _mk_payload(name: str = "零售 GMV 看板", panels: list | None = None) -> 
     return {
         "name": name,
         "description": "月度 GMV 趋势与渠道占比",
-        "panels": panels if panels is not None else [
-            {
-                "id": "p1",
-                "title": "GMV 趋势",
-                "type": "line",
-                "config": {"xField": "month", "yField": "gmv"},
-                "data": {"rows": [{"month": "1月", "gmv": 120}]},
-            }
-        ],
+        "panels": (
+            panels
+            if panels is not None
+            else [
+                {
+                    "id": "p1",
+                    "title": "GMV 趋势",
+                    "type": "line",
+                    "config": {"xField": "month", "yField": "gmv"},
+                    "data": {"rows": [{"month": "1月", "gmv": 120}]},
+                }
+            ]
+        ),
     }
 
 
@@ -116,9 +120,7 @@ class TestDashboardCrud:
         assert body["panels"] == []
 
     def test_update_404(self, dash_client):
-        resp = dash_client.put(
-            "/api/v1/dashboards/nonexistent", json={"name": "x"}
-        )
+        resp = dash_client.put("/api/v1/dashboards/nonexistent", json={"name": "x"})
         assert resp.status_code == 404
 
     def test_delete_then_404(self, dash_client):
@@ -130,9 +132,10 @@ class TestDashboardCrud:
         """服务端不篡改面板数据（前端渲染以创建者数据为准）."""
         rows = [{"month": f"{m}月", "gmv": 100 + m} for m in range(1, 7)]
         did = dash_client.post(
-            "/api/v1/dashboards", json=_mk_payload(panels=[
-                {"id": "p1", "title": "GMV", "type": "line", "config": {}, "data": {"rows": rows}}
-            ])
+            "/api/v1/dashboards",
+            json=_mk_payload(
+                panels=[{"id": "p1", "title": "GMV", "type": "line", "config": {}, "data": {"rows": rows}}]
+            ),
         ).json()["id"]
         got = dash_client.get(f"/api/v1/dashboards/{did}").json()
         assert got["panels"][0]["data"]["rows"] == rows

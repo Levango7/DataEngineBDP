@@ -24,7 +24,7 @@
       <div v-for="board in boards" :key="board.id" class="card" style="margin-bottom: 16px">
         <div style="display: flex; align-items: center; gap: 8px">
           <h3 style="margin: 0">{{ board.name }}</h3>
-          <span class="meta" v-if="board.description">{{ board.description }}</span>
+          <span v-if="board.description" class="meta">{{ board.description }}</span>
           <div class="spacer"></div>
           <button class="btn ghost sm" @click="removeBoard(board)">删除</button>
         </div>
@@ -37,7 +37,9 @@
             <template v-if="panelData(panel).rows.length">
               <div v-if="panel.type === 'metric'">
                 <div class="kpi s">{{ panelData(panel).rows[0].value }}</div>
-                <div class="meta" style="margin-top: 4px">{{ panelData(panel).rows[0].label ?? '' }}</div>
+                <div class="meta" style="margin-top: 4px">
+                  {{ panelData(panel).rows[0].label ?? '' }}
+                </div>
               </div>
               <div
                 v-else
@@ -88,8 +90,9 @@
           class="chip"
           :class="{ on: form.panels.includes(t) }"
           @click="togglePanel(t)"
-          >{{ t }}</span
         >
+          {{ t }}
+        </span>
       </div>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>

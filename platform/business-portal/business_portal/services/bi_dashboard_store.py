@@ -11,11 +11,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import os
+from pathlib import Path
 import sqlite3
 import threading
-from datetime import datetime, timezone
-from pathlib import Path
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -57,9 +57,7 @@ class InMemoryBiDashboardStore:
         self._items: dict[str, BiDashboard] = {}
         self._lock = threading.RLock()
 
-    async def list(
-        self, page: int, page_size: int, keyword: Optional[str] = None
-    ) -> tuple[list[BiDashboard], int]:
+    async def list(self, page: int, page_size: int, keyword: Optional[str] = None) -> tuple[list[BiDashboard], int]:
         with self._lock:
             items = sorted(self._items.values(), key=lambda d: d.createdAt, reverse=True)
         if keyword:
@@ -121,8 +119,7 @@ class SqliteBiDashboardStore(InMemoryBiDashboardStore):
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
-        self._conn.execute(
-            """
+        self._conn.execute("""
             CREATE TABLE IF NOT EXISTS bi_dashboard (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -131,8 +128,7 @@ class SqliteBiDashboardStore(InMemoryBiDashboardStore):
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
             )
-            """
-        )
+            """)
         self._conn.commit()
         # 启动时载入已有数据
         for row in self._conn.execute("SELECT * FROM bi_dashboard"):
@@ -183,9 +179,7 @@ def build_bi_dashboard_store() -> InMemoryBiDashboardStore:
     """按 BP_BI_DASHBOARD_STORE 构建仓储（memory | sqlite）."""
     mode = os.environ.get("BP_BI_DASHBOARD_STORE", "memory").strip().lower()
     if mode == "sqlite":
-        db_path = os.environ.get(
-            "BP_BI_DASHBOARD_DB", os.path.join("data", "business_portal_bi.db")
-        )
+        db_path = os.environ.get("BP_BI_DASHBOARD_DB", os.path.join("data", "business_portal_bi.db"))
         return SqliteBiDashboardStore(db_path)
     return InMemoryBiDashboardStore()
 

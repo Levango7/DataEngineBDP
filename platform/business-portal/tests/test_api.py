@@ -30,9 +30,11 @@ def make_jwt():
             "exp": int(time.time()) + 600,
         }
         si = f"{_enc(header)}.{_enc(claims)}"
-        sig = base64.urlsafe_b64encode(
-            hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest()
-        ).rstrip(b"=").decode()
+        sig = (
+            base64.urlsafe_b64encode(hmac.new(secret.encode(), si.encode(), hashlib.sha256).digest())
+            .rstrip(b"=")
+            .decode()
+        )
         return f"{si}.{sig}"
 
     return _make

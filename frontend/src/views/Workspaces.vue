@@ -7,7 +7,7 @@
     </div>
     <div class="toolbar">
       <button class="btn sm" @click="openCreateModal">+ 新建工作空间</button>
-      <input style="width: 220px" placeholder="搜索…" v-model="keyword" @keyup.enter="reloadList" />
+      <input v-model="keyword" style="width: 220px" placeholder="搜索…" @keyup.enter="reloadList" />
       <div class="spacer"></div>
       <span class="pill b">配额独立</span>
       <span class="pill p">网络隔离</span>
@@ -16,7 +16,7 @@
     <!-- 工作空间列表：loading / error / empty / data 四态 -->
     <div class="grid g3">
       <template v-if="listLoading">
-        <div class="card" v-for="i in 3" :key="`sk-${i}`">
+        <div v-for="i in 3" :key="`sk-${i}`" class="card">
           <b>加载中…</b>
           <div class="meta">正在拉取工作空间列表</div>
         </div>
@@ -39,7 +39,7 @@
         </div>
       </template>
       <template v-else>
-        <div class="card" v-for="ws in workspaces" :key="ws.id">
+        <div v-for="ws in workspaces" :key="ws.id" class="card">
           <div class="row">
             <b>{{ ws.name }}</b>
             <span class="pill" :class="statusPillClass(ws.status)">
@@ -95,15 +95,15 @@
           <span>K8s Namespace 状态</span>
           <span v-if="k8sLoading">查询中…</span>
           <template v-else-if="k8sError">
-            <span style="color: var(--red)"
-              >{{ k8sError.message }}，
-              <a href="javascript:void(0)" @click="loadK8sStatus">重试</a></span
-            >
+            <span style="color: var(--red)">
+              {{ k8sError.message }}，
+              <a href="javascript:void(0)" @click="loadK8sStatus">重试</a>
+            </span>
           </template>
           <span v-else-if="k8sStatus">
-            <span class="pill" :class="k8sStatus.status === 'Active' ? 'g' : 'a'">{{
-              k8sStatus.status
-            }}</span>
+            <span class="pill" :class="k8sStatus.status === 'Active' ? 'g' : 'a'">
+              {{ k8sStatus.status }}
+            </span>
           </span>
         </div>
         <div class="note" style="margin-top: 8px">
@@ -145,9 +145,12 @@
           <tr v-for="p in tenantProjects" :key="p.id">
             <td>{{ p.name }}</td>
             <td>
-              <span class="pill" :class="p.status === 'running' ? 'g' : p.status === 'failed' ? 'r' : 'a'">{{
-                p.status
-              }}</span>
+              <span
+                class="pill"
+                :class="p.status === 'running' ? 'g' : p.status === 'failed' ? 'r' : 'a'"
+              >
+                {{ p.status }}
+              </span>
             </td>
           </tr>
         </table>
@@ -194,7 +197,13 @@ import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as workspaceApi from '@/api/workspace'
 import * as projectApi from '@/api/project'
-import type { Workspace, PlanTier, DeployEnv, WorkspaceStatus, WorkspaceK8sStatus } from '@/api/types'
+import type {
+  Workspace,
+  PlanTier,
+  DeployEnv,
+  WorkspaceStatus,
+  WorkspaceK8sStatus
+} from '@/api/types'
 import type { Project } from '@/api/project'
 
 const store = useAppStore()
@@ -202,7 +211,6 @@ const store = useAppStore()
 // 列表数据：通过 useApi 包装 listWorkspaces 调用
 const keyword = ref('')
 const {
-  data: paged,
   loading: listLoading,
   error: listError,
   execute: loadList

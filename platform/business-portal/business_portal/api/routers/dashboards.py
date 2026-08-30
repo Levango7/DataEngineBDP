@@ -8,8 +8,8 @@
 
 from __future__ import annotations
 
-import uuid
 from typing import Optional
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -112,8 +112,7 @@ async def get_dashboard(
         raise HTTPException(status_code=404, detail=f"看板不存在: {dashboard_id}")
 
 
-@router.post("", response_model=BiDashboard, status_code=status.HTTP_201_CREATED,
-             summary="创建看板")
+@router.post("", response_model=BiDashboard, status_code=status.HTTP_201_CREATED, summary="创建看板")
 async def create_dashboard(
     req: CreateDashboardRequest,
     registry=Depends(get_registry),
@@ -135,8 +134,7 @@ async def update_dashboard(
         raise HTTPException(status_code=404, detail=f"看板不存在: {dashboard_id}")
 
 
-@router.delete("/{dashboard_id}", status_code=status.HTTP_204_NO_CONTENT,
-               summary="删除看板")
+@router.delete("/{dashboard_id}", status_code=status.HTTP_204_NO_CONTENT, summary="删除看板")
 async def delete_dashboard(
     dashboard_id: str,
     registry=Depends(get_registry),
