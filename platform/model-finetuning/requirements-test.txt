@@ -1,0 +1,26 @@
+# Model Finetuning Engine - 测试/Mock模式轻量依赖
+# 仅包含 Web 框架和基础工具，不安装 torch/transformers/deepspeed 等 GPU 依赖
+# 完整依赖见 requirements.txt（仅 GPU 镜像环境安装）
+
+# Web framework
+fastapi==0.141.1
+uvicorn[standard]==0.29.0
+pydantic==2.13.4
+pydantic-settings==2.15.0
+
+# HTTP client
+httpx==0.28.1
+
+# Logging
+loguru==0.7.3
+
+# Kubernetes 调度（Volcano GPU 节点池）
+kubernetes>=29.0.0
+
+# Utilities
+python-dateutil==2.9.0
+pyyaml==6.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.2

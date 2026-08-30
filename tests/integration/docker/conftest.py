@@ -452,3 +452,19 @@ def pytest_collection_modifyitems(config, items):
                         reason=f"跨服务测试需要所有模块可用，不可用: {unavailable}"
                     )
                 )
+
+
+# ---------------------------------------------------------------------------
+# 命令行选项注册（从 test_knative.py / test_serverless_runtime.py 统一移入）
+# ---------------------------------------------------------------------------
+def pytest_addoption(parser: pytest.Parser) -> None:
+    """注册命令行选项。
+
+    --run-scale-to-zero：启用 scale-to-zero 测试（默认跳过，因耗时 70s）。
+    """
+    parser.addoption(
+        "--run-scale-to-zero",
+        action="store_true",
+        default=False,
+        help="启用 scale-to-zero 测试（耗时约 70s）",
+    )

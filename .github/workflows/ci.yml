@@ -1322,8 +1322,13 @@ jobs:
         run: |
           # 集成测试以子进程方式启动 Python 组件，需在 CI Python 环境中安装其依赖
           for comp in asset-exchange business-portal open-api-catalog industry-templates knowledge-engine model-finetuning; do
+            # 优先使用 requirements-test.txt（轻量级测试依赖），回退到 requirements.txt
+            req_test="platform/$comp/requirements-test.txt"
             req="platform/$comp/requirements.txt"
-            if [ -f "$req" ]; then
+            if [ -f "$req_test" ]; then
+              echo "安装 $comp 测试依赖（轻量级）..."
+              pip install -r "$req_test" -q 2>&1 || echo "::warning::$comp 测试依赖安装部分失败"
+            elif [ -f "$req" ]; then
               echo "安装 $comp 依赖..."
               pip install -r "$req" -q 2>&1 || echo "::warning::$comp 依赖安装部分失败"
             fi

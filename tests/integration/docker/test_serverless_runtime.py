@@ -73,19 +73,8 @@ KUBECTL = os.environ.get("KUBECTL_BIN", "kubectl")
 
 
 # ---------------------------------------------------------------------------
-# 命令行选项注册
+# 命令行选项注册已移至 conftest.py（pytest_addoption 必须在 conftest 或插件中定义）
 # ---------------------------------------------------------------------------
-def pytest_addoption(parser: pytest.Parser) -> None:
-    """注册命令行选项。
-
-    --run-scale-to-zero：启用 scale-to-zero 测试（默认跳过，因耗时 70s）。
-    """
-    parser.addoption(
-        "--run-scale-to-zero",
-        action="store_true",
-        default=False,
-        help="启用 scale-to-zero 测试（耗时约 70s）",
-    )
 
 
 # ---------------------------------------------------------------------------
