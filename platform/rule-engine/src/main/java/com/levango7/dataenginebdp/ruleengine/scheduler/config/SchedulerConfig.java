@@ -44,7 +44,7 @@ public class SchedulerConfig {
 
     public SchedulerConfig(SchedulerProperties properties,
                            @Lazy WorkerPool workerPool,
-                           LoadMonitor loadMonitor,
+                           @Lazy LoadMonitor loadMonitor,
                            @Lazy ElasticScaler elasticScaler) {
         this.properties = properties;
         this.workerPool = workerPool;
