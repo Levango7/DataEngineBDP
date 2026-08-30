@@ -91,6 +91,7 @@ def loop_client():
         sys.path.insert(0, _LOOP_ROOT)
 
         os.environ["LOOP_MOCK_MODE"] = "true"
+        os.environ["LOOP_DEV_MODE"] = "true"
         os.environ["LOOP_WORK_DIR"] = os.path.join(
             _LOOP_ROOT, "..", "..", ".tmp", "loop-test"
         )
