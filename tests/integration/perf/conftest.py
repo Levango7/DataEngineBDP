@@ -71,7 +71,7 @@ except ImportError:  # pragma: no cover — 容错：直接运行 perf 目录时
             "exp": now + expiry_seconds,
         }
         return jwt.encode(
-            payload, "dev-secret-key-change-in-production-at-least-256-bits", algorithm="HS256"
+            payload, "it-test-jwt-secret-at-least-32-bytes-long", algorithm="HS256"
         )
 
     def wait_for_service(  # type: ignore[no-redef]

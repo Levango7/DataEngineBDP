@@ -1,4 +1,4 @@
-﻿"""性能基准压测：覆盖 13 项非功能指标的 15 个压测用例。
+"""性能基准压测：覆盖 13 项非功能指标的 15 个压测用例。
 
 本模块对数据引擎大数据平台进行全链路性能压测，覆盖以下 13 项非功能指标：
 
@@ -516,7 +516,7 @@ def test_data_consistency(
         }
         return _jwt.encode(
             payload,
-            "dev-secret-key-change-in-production-at-least-256-bits",
+            "it-test-jwt-secret-at-least-32-bytes-long",
             algorithm="HS256",
         )
 

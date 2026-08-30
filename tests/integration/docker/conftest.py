@@ -100,7 +100,7 @@ DEFAULT_TIMEOUT = 10
 # ---------------------------------------------------------------------------
 # HMAC-SHA 签名密钥，至少 32 字节（256 bit）；生产环境必须通过环境变量覆盖。
 JWT_SECRET = os.environ.get(
-    "JWT_SECRET", "dev-secret-key-change-in-production-at-least-256-bits"
+    "JWT_SECRET", "it-test-jwt-secret-at-least-32-bytes-long"
 )
 JWT_ISSUER = os.environ.get("JWT_ISSUER", "shuqing-bigdata")
 

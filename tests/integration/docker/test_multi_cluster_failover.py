@@ -47,7 +47,7 @@ CLUSTER_URLS: Dict[str, str] = {
 
 # JWT 配置（与 failover-api main.go / docker-compose.yml 保持一致）。
 JWT_SECRET = os.environ.get(
-    "JWT_SECRET", "dev-secret-key-change-in-production-at-least-256-bits"
+    "JWT_SECRET", "it-test-jwt-secret-at-least-32-bytes-long"
 )
 JWT_ISSUER = os.environ.get("JWT_ISSUER", "shuqing-bigdata")
 

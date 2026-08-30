@@ -473,7 +473,7 @@ class TestQueryApiDockerIntegration:
         import jwt
 
         secret = os.environ.get(
-            "JWT_SECRET", "dev-secret-key-change-in-production-at-least-256-bits"
+            "JWT_SECRET", "it-test-jwt-secret-at-least-32-bytes-long"
         )
         now = int(time.time())
         payload = {
@@ -492,7 +492,7 @@ class TestQueryApiDockerIntegration:
         import jwt
 
         secret = os.environ.get(
-            "JWT_SECRET", "dev-secret-key-change-in-production-at-least-256-bits"
+            "JWT_SECRET", "it-test-jwt-secret-at-least-32-bytes-long"
         )
         now = int(time.time())
         payload = {

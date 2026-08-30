@@ -46,7 +46,7 @@ DEFAULT_TIMEOUT = 30  # sql/execute 降级路径可能耗时数秒,留足余量
 
 # JWT 配置(与各组件 application.yml 默认值保持一致)。
 JWT_SECRET = os.environ.get(
-    "JWT_SECRET", "dev-secret-key-change-in-production-at-least-256-bits"
+    "JWT_SECRET", "it-test-jwt-secret-at-least-32-bytes-long"
 )
 JWT_ISSUER = os.environ.get("JWT_ISSUER", "shuqing-bigdata")
 
