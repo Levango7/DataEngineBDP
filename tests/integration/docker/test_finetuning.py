@@ -73,8 +73,10 @@ def client():
             if mod == "app" or mod.startswith("app.") or mod == "main":
                 del sys.modules[mod]
 
-        if _PROJECT_ROOT not in sys.path:
-            sys.path.insert(0, _PROJECT_ROOT)
+        # 强制将 _PROJECT_ROOT 放到 sys.path[0]，确保 app 包从 model-finetuning 导入
+        if _PROJECT_ROOT in sys.path:
+            sys.path.remove(_PROJECT_ROOT)
+        sys.path.insert(0, _PROJECT_ROOT)
 
         # 设置 Mock 模式环境变量
         os.environ["FINETUNE_MOCK_MODE"] = "true"

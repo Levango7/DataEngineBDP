@@ -80,19 +80,21 @@ def loop_client():
         yield None
     else:
         # TestClient 模式
-        if _LOOP_ROOT not in sys.path:
-            sys.path.insert(0, _LOOP_ROOT)
+        # 清理已加载的模块（含 app 包本身，防止命名冲突）
+        for mod in list(sys.modules.keys()):
+            if mod == "app" or mod.startswith("app.") or mod == "main":
+                del sys.modules[mod]
+
+        # 强制将 _LOOP_ROOT 放到 sys.path[0]，确保 app 包从 loop 导入
+        if _LOOP_ROOT in sys.path:
+            sys.path.remove(_LOOP_ROOT)
+        sys.path.insert(0, _LOOP_ROOT)
 
         os.environ["LOOP_MOCK_MODE"] = "true"
         os.environ["LOOP_WORK_DIR"] = os.path.join(
             _LOOP_ROOT, "..", "..", ".tmp", "loop-test"
         )
         os.environ["LOOP_PORT"] = "18088"
-
-        # 清理已加载的模块（含 app 包本身，防止命名冲突）
-        for mod in list(sys.modules.keys()):
-            if mod == "app" or mod.startswith("app.") or mod == "main":
-                del sys.modules[mod]
 
         from fastapi.testclient import TestClient
         import main
@@ -107,18 +109,20 @@ def registry_client():
     if HTTP_MODE:
         yield None
     else:
-        if _REGISTRY_ROOT not in sys.path:
-            sys.path.insert(0, _REGISTRY_ROOT)
-
-        os.environ["REGISTRY_MOCK_MODE"] = "true"
-        os.environ["REGISTRY_PORT"] = "18089"
-
         # 清理已加载的模块（含 app 包本身，防止命名冲突）
         for mod in list(sys.modules.keys()):
             if mod == "app" or (mod.startswith("app.") and "loop" not in mod):
                 del sys.modules[mod]
         if "main" in sys.modules:
             del sys.modules["main"]
+
+        # 强制将 _REGISTRY_ROOT 放到 sys.path[0]，确保 app 包从 registry 导入
+        if _REGISTRY_ROOT in sys.path:
+            sys.path.remove(_REGISTRY_ROOT)
+        sys.path.insert(0, _REGISTRY_ROOT)
+
+        os.environ["REGISTRY_MOCK_MODE"] = "true"
+        os.environ["REGISTRY_PORT"] = "18089"
 
         from fastapi.testclient import TestClient
         import main

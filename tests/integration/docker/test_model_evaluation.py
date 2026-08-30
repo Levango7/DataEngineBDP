@@ -37,8 +37,17 @@ import pytest
 # 将评测平台代码加入 sys.path，便于直接导入测试核心组件
 # ---------------------------------------------------------------------------
 _EVAL_APP_DIR = Path(__file__).resolve().parents[3] / "platform" / "llm-gateway" / "evaluation"
-if str(_EVAL_APP_DIR) not in sys.path:
-    sys.path.insert(0, str(_EVAL_APP_DIR))
+
+# 清理已加载的 app / app.* 模块，防止 app 包命名冲突
+# （多个组件都有 app 包，需确保从 llm-gateway/evaluation 导入）
+for _mod in list(sys.modules.keys()):
+    if _mod == "app" or _mod.startswith("app."):
+        del sys.modules[_mod]
+
+# 强制将 _EVAL_APP_DIR 放到 sys.path[0]，确保 app 包从 evaluation 导入
+if str(_EVAL_APP_DIR) in sys.path:
+    sys.path.remove(str(_EVAL_APP_DIR))
+sys.path.insert(0, str(_EVAL_APP_DIR))
 
 # 导入评测平台核心组件
 from app.core.executor import EvalExecutor  # noqa: E402
