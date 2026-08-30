@@ -47,8 +47,8 @@ MOCK_CLUSTER_PORTS = {
     "cce-cluster": 18093,
 }
 
-# Mock Catalog 端口
-MOCK_CATALOG_PORT = 18080
+# Mock Catalog 端口（避开 docker-compose 使用的 18080-18089）
+MOCK_CATALOG_PORT = 18094
 
 # HTTP 请求默认超时
 DEFAULT_TIMEOUT = 10

@@ -89,9 +89,9 @@ def loop_client():
         )
         os.environ["LOOP_PORT"] = "18088"
 
-        # 清理已加载的模块
+        # 清理已加载的模块（含 app 包本身，防止命名冲突）
         for mod in list(sys.modules.keys()):
-            if mod.startswith("app.") or mod == "main":
+            if mod == "app" or mod.startswith("app.") or mod == "main":
                 del sys.modules[mod]
 
         from fastapi.testclient import TestClient
@@ -113,9 +113,9 @@ def registry_client():
         os.environ["REGISTRY_MOCK_MODE"] = "true"
         os.environ["REGISTRY_PORT"] = "18089"
 
-        # 清理已加载的模块
+        # 清理已加载的模块（含 app 包本身，防止命名冲突）
         for mod in list(sys.modules.keys()):
-            if mod.startswith("app.") and "loop" not in mod:
+            if mod == "app" or (mod.startswith("app.") and "loop" not in mod):
                 del sys.modules[mod]
         if "main" in sys.modules:
             del sys.modules["main"]

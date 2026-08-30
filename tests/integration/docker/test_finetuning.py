@@ -67,6 +67,12 @@ def client():
         # TestClient 模式：导入微调引擎应用
         import sys
 
+        # 清理已加载的 app / app.* / main 模块，防止 app 包命名冲突
+        # （多个组件都有 app 包，需确保从 model-finetuning 导入）
+        for mod in list(sys.modules.keys()):
+            if mod == "app" or mod.startswith("app.") or mod == "main":
+                del sys.modules[mod]
+
         if _PROJECT_ROOT not in sys.path:
             sys.path.insert(0, _PROJECT_ROOT)
 
@@ -78,17 +84,8 @@ def client():
 
         from fastapi.testclient import TestClient
 
-        # 重新导入 main（确保环境变量生效）
-        import importlib
-
-        if "main" in sys.modules:
-            del sys.modules["main"]
-        if "app.services.finetune_service" in sys.modules:
-            del sys.modules["app.services.finetune_service"]
-
         import main
 
-        importlib.reload(main)
         with TestClient(main.app) as tc:
             yield tc
 

@@ -292,18 +292,24 @@ def _start_python_component(name: str) -> subprocess.Popen:
     comp_dir = PROJECT_ROOT / cfg["dir"]
     env = _build_python_env(cfg)
     # 使用当前 Python 解释器运行 main.py
-    # stdout/stderr 重定向到 DEVNULL，避免 PIPE 缓冲区满导致进程阻塞
+    # stdout/stderr 重定向到临时文件，便于启动失败时排障
+    import tempfile
+    log_file = tempfile.NamedTemporaryFile(
+        mode="w+", suffix=f"_{name}_stderr.log", delete=False, encoding="utf-8"
+    )
+    log_file.close()
     proc = subprocess.Popen(
         [sys.executable, "main.py"],
         cwd=str(comp_dir),
         env=env,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=log_file.open("w", encoding="utf-8"),
+        stderr=subprocess.STDOUT,
         # Windows 下创建新进程组，便于整组终止
         creationflags=subprocess.CREATE_NEW_PROCESS_GROUP
         if sys.platform == "win32"
         else 0,
     )
+    proc._log_file_path = log_file.name  # type: ignore[attr-defined]
     return proc
 
 
@@ -344,11 +350,22 @@ def _ensure_python_component_running(name: str) -> str:
 
     # 等待健康检查通过（最多 30 秒）
     if not wait_for_service_path(url, health_path, timeout=30, interval=0.5):
-        # 启动失败：终止进程并报错
+        # 启动失败：读取子进程日志辅助排障
+        log_tail = ""
+        log_path = getattr(proc, "_log_file_path", None)
+        if log_path:
+            try:
+                with open(log_path, "r", encoding="utf-8") as f:
+                    log_content = f.read()
+                    log_tail = log_content[-2000:] if len(log_content) > 2000 else log_content
+            except Exception:
+                pass
+        # 终止进程并报错
         _stop_python_component(proc)
         raise RuntimeError(
             f"Python 组件 {name} 启动超时（{url}{health_path} 健康检查失败）。"
             f"请检查组件依赖是否已安装（cd {cfg['dir']} && pip install -r requirements.txt）。"
+            f"\n子进程日志（最后2000字符）:\n{log_tail}"
         )
 
     # 将进程句柄缓存到模块级字典，session teardown 时统一清理
