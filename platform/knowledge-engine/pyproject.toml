@@ -36,7 +36,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-nebula = ["nebula3-python==3.4.0"]
+nebula = ["nebula3-python==3.8.3"]
 test = [
     "pytest==8.1.1",
     "pytest-asyncio==1.4.0",
@@ -46,7 +46,7 @@ dev = [
     "pytest==8.1.1",
     "pytest-asyncio==1.4.0",
     "httpx==0.28.1",
-    "nebula3-python==3.4.0",
+    "nebula3-python==3.8.3",
 ]
 
 [project.urls]
