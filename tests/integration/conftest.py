@@ -68,7 +68,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "ASSET_EXCHANGE",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"ASSET_EXCHANGE_STORE_TYPE": "mock"},
+        "extra_env": {"ASSET_EXCHANGE_STORETYPE": "mock"},
     },
     "business_portal": {
         "dir": "platform/business-portal",
@@ -76,7 +76,7 @@ PYTHON_COMPONENTS: Dict[str, Dict] = {
         "env_prefix": "BP",
         "health_path": "/api/v1/health",
         "health_status": "UP",
-        "extra_env": {"BP_STORE_TYPE": "mock"},
+        "extra_env": {"BP_STORETYPE": "mock"},
     },
     "open_api_catalog": {
         "dir": "platform/open-api-catalog",
