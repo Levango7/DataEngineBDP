@@ -23,3 +23,12 @@ PyYAML>=6.0
 
 # JWT token 生成（集成测试需要携带 Bearer token 才能访问受保护端点）
 PyJWT>=2.8
+
+# HTTP 客户端（httpx，部分集成测试使用异步 HTTP 客户端）
+httpx>=0.27
+
+# FastAPI TestClient（docker/ 下部分测试直接测试 FastAPI 应用）
+fastapi>=0.110
+
+# Pydantic（docker/ 下部分测试导入应用模型，依赖 pydantic）
+pydantic>=2.0
