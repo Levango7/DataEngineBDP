@@ -15,7 +15,7 @@ httpx==0.28.1
 loguru==0.7.3
 
 # ---- SQL parsing & validation ----
-sqlparse==0.5.0
+sqlparse==0.6.0
 
 # ---- LangChain SQL 生成 ----
 # 仅使用 langchain-openai 的 ChatOpenAI（sql_generator.py），未用 langchain 主包；
