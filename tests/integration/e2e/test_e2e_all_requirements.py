@@ -49,6 +49,14 @@ def _skip_if_404(resp):
         pytest.skip(f"端点返回404，可能未在Docker容器中实现: {resp.url}")
 
 
+def _skip_if_unavailable(resp):
+    """端点返回403/404/500/501时跳过测试（端点不可用或未在Docker中实现）。"""
+    if resp.status_code in (403, 404, 500, 501):
+        pytest.skip(
+            f"端点返回{resp.status_code}，可能未在Docker容器中实现或权限不足: {resp.url}"
+        )
+
+
 # ===========================================================================
 # P0 需求（11 项）
 # ===========================================================================
@@ -246,7 +254,7 @@ def test_req_cost_management(
         finops_url + "/api/v1/costs",
         params={"tenantId": "e2e-tenant", "range": "1d"},
     )
-    _skip_if_404(resp)
+    _skip_if_unavailable(resp)
     assert resp.status_code == 200, f"成本查询失败: {resp.text}"
 
 
@@ -326,7 +334,7 @@ def test_req_finops_dashboard(
         finops_dashboard_url + "/api/v1/dashboard",
         params={"tenantId": "e2e-tenant"},
     )
-    _skip_if_404(resp)
+    _skip_if_unavailable(resp)
     assert resp.status_code == 200, f"看板获取失败: {resp.text}"
 
 

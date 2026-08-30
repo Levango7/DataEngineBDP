@@ -70,7 +70,12 @@ except ImportError:  # pragma: no cover — 容错：直接运行 e2e 目录时�
                     return True
             except requests.RequestException:
                 pass
-            time.sleep(interval)
+            try:
+                time.sleep(interval)
+            except ValueError:
+                # HF datasets 库在离线/网络受限时可能 patch time.sleep 并抛错，
+                # 服务探测应容忍该异常（等价于本次探测失败），继续重试。
+                pass
         return False
 
     def _docker_is_service_available(name):  # type: ignore[no-redef]

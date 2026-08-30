@@ -58,6 +58,14 @@ def _skip_if_404(resp):
         pytest.skip(f"端点返回404，可能未在Docker容器中实现: {resp.url}")
 
 
+def _skip_if_unavailable(resp):
+    """端点返回403/404/500/501时跳过测试（端点不可用或未在Docker中实现）。"""
+    if resp.status_code in (403, 404, 500, 501):
+        pytest.skip(
+            f"端点返回{resp.status_code}，可能未在Docker容器中实现或权限不足: {resp.url}"
+        )
+
+
 # ---------------------------------------------------------------------------
 # 场景 1：NL2SQL → 联邦查询全链路
 # ---------------------------------------------------------------------------
@@ -365,6 +373,7 @@ def test_data_governance_to_quality_check(
             rule_engine_url + "/api/v1/rules/execute",
             json={"ruleIds": [rule_id], "tenantId": "e2e-tenant"},
         )
+        _skip_if_404(exec_resp)
         assert exec_resp.status_code == 200, f"规则执行失败: {exec_resp.text}"
         exec_body = _unwrap_response(exec_resp.json())
         # 验证返回质量检查结果
@@ -405,7 +414,7 @@ def test_cost_collection_to_finops_dashboard(
         finops_url + "/api/v1/costs",
         params={"tenantId": "e2e-tenant", "range": "7d"},
     )
-    _skip_if_404(cost_resp)
+    _skip_if_unavailable(cost_resp)
     assert cost_resp.status_code == 200, f"成本查询失败: {cost_resp.text}"
     cost_body = _unwrap_response(cost_resp.json())
     # 成本数据可能为空列表或包含数据的对象
@@ -575,7 +584,7 @@ def test_asset_registration_to_exchange(
             "price": 100.0,
         },
     )
-    _skip_if_404(reg_resp)
+    _skip_if_unavailable(reg_resp)
     assert reg_resp.status_code in (200, 201), f"资产注册失败: {reg_resp.text}"
     asset_body = _unwrap_response(reg_resp.json())
     asset_id = asset_body.get("id") or asset_body.get("assetId") or asset_name

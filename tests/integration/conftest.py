@@ -26,6 +26,16 @@ import jwt
 import pytest
 import requests
 
+# 禁用 HuggingFace Hub / Datasets / Transformers 在线下载。
+# model-finetuning 与 evaluation 组件依赖 HF datasets 库，其网络监控会 monkey-patch
+# time.sleep：CI 环境无法访问 HF Hub 时，被 patch 的 sleep 会抛出
+# "Loading this dataset requires trust_remote_code=True" 类的 ValueError，
+# 导致 wait_for_service 等服务探测函数崩溃。集成测试无需触碰 HF 生态，
+# 离线模式从源头避免该问题。
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("DATASETS_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
+
 
 # 项目根目录（tests/integration 的上两级）。
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
