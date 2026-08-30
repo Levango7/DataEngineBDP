@@ -233,44 +233,88 @@ class APISIXConfigService:
         return base + version_priority
 
     async def deploy_route(self, api_id: str) -> dict:
-        """部署路由到 APISIX（生成配置，模拟下发）.
+        """部署路由到 APISIX（真实调用 Admin API；不可达时明确失败，不再伪造 success）.
 
         Args:
             api_id: API ID.
 
         Returns:
-            部署结果（含 APISIX Admin API 响应模拟）.
+            部署结果。字段：action/routeId/apisixAdminUrl/payload/status
+            （success=已确认下发 | failed=下发失败）/deployed/error/message。
         """
         route = await self.generate_route(api_id)
         payload = route.to_apisix_payload()
 
-        # 模拟下发到 APISIX Admin API
-        # 真实环境会调用: PUT {apisix_admin_url}/routes/{route_id}
-        return {
-            "action": "deploy",
-            "routeId": route.id,
-            "apisixAdminUrl": self.settings.apisixAdminUrl,
-            "payload": payload,
-            "status": "success",
-            "message": f"路由已下发: {route.name}",
-        }
+        url = f"{self.settings.apisixAdminUrl.rstrip('/')}/routes/{route.id}"
+        headers = {"X-API-Key": self.settings.apisixAdminKey}
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.put(url, json=payload, headers=headers)
+            ok = resp.status_code in (200, 201)
+            return {
+                "action": "deploy",
+                "routeId": route.id,
+                "apisixAdminUrl": self.settings.apisixAdminUrl,
+                "payload": payload,
+                "status": "success" if ok else "failed",
+                "deployed": ok,
+                "error": None if ok else f"APISIX Admin API 响应 {resp.status_code}: {resp.text[:200]}",
+                "message": (
+                    f"路由已下发: {route.name}"
+                    if ok
+                    else f"路由下发失败: {route.name}（请检查 APISIX Admin API 可达性与 admin key）"
+                ),
+            }
+        except Exception as exc:  # noqa: BLE001 - 网络错误显式回报，不伪装成功
+            return {
+                "action": "deploy",
+                "routeId": route.id,
+                "apisixAdminUrl": self.settings.apisixAdminUrl,
+                "payload": payload,
+                "status": "failed",
+                "deployed": False,
+                "error": f"APISIX Admin API 不可达: {exc}",
+                "message": f"路由下发失败: {route.name}（APISIX 未部署或网络不可达）",
+            }
 
     async def undeploy_route(self, api_id: str) -> dict:
-        """从 APISIX 删除路由.
+        """从 APISIX 删除路由（真实调用 Admin API；不可达时明确失败）.
 
         Args:
             api_id: API ID.
 
         Returns:
-            删除结果.
+            删除结果。字段同 deploy（action=undeploy，无 payload）。
         """
         # 校验 API 存在
         await self.store.get_api(api_id)
 
-        return {
-            "action": "undeploy",
-            "routeId": api_id,
-            "apisixAdminUrl": self.settings.apisixAdminUrl,
-            "status": "success",
-            "message": f"路由已删除: {api_id}",
-        }
+        url = f"{self.settings.apisixAdminUrl.rstrip('/')}/routes/{api_id}"
+        headers = {"X-API-Key": self.settings.apisixAdminKey}
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.delete(url, headers=headers)
+            ok = resp.status_code in (200, 204, 404)  # 404 视为已删除，幂等
+            return {
+                "action": "undeploy",
+                "routeId": api_id,
+                "apisixAdminUrl": self.settings.apisixAdminUrl,
+                "status": "success" if ok else "failed",
+                "deployed": False,
+                "error": None if ok else f"APISIX Admin API 响应 {resp.status_code}",
+                "message": f"路由已删除: {api_id}" if ok else f"路由删除失败: {api_id}",
+            }
+        except Exception as exc:  # noqa: BLE001
+            return {
+                "action": "undeploy",
+                "routeId": api_id,
+                "apisixAdminUrl": self.settings.apisixAdminUrl,
+                "status": "failed",
+                "deployed": False,
+                "error": f"APISIX Admin API 不可达: {exc}",
+                "message": f"路由删除失败: {api_id}（APISIX 未部署或网络不可达）",
+            }

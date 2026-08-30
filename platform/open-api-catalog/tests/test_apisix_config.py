@@ -168,29 +168,124 @@ class TestAPISIXConfig:
         assert "limit-req" in consumer.plugins
 
     @pytest.mark.asyncio
-    async def test_deploy_route(self, registry, make_api_def):
-        """测试部署路由."""
+    async def test_deploy_route(self, registry, make_api_def, monkeypatch):
+        """测试部署路由（mock APISIX 200 响应，校验真实 HTTP 调用路径）."""
         api = make_api_def(name="apisix-deploy")
         saved_api = await registry.apiRegistryService.register_api(api)
+
+        captured: dict = {}
+
+        class _Resp:
+            status_code = 201
+            text = '{"code":0}'
+
+        class _Client:
+            def __init__(self, *a, **kw):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def put(self, url, json=None, headers=None):
+                captured["url"] = url
+                captured["json"] = json
+                captured["headers"] = headers
+                return _Resp()
+
+        import httpx
+
+        monkeypatch.setattr(httpx, "AsyncClient", _Client)
 
         result = await registry.apisixConfigService.deploy_route(saved_api.id)
 
         assert result["action"] == "deploy"
         assert result["routeId"] == saved_api.id
         assert result["status"] == "success"
+        assert result["deployed"] is True
         assert "payload" in result
+        # 校验真实调用形态：PUT {admin_url}/routes/{id} + X-API-Key
+        assert captured["url"].endswith(f"/routes/{saved_api.id}")
+        assert "X-API-Key" in captured["headers"]
 
     @pytest.mark.asyncio
-    async def test_undeploy_route(self, registry, make_api_def):
-        """测试删除路由."""
+    async def test_deploy_route_unreachable_reports_failure(self, registry, make_api_def, monkeypatch):
+        """APISIX 不可达时明确 failed（不再伪造 success）——修复前的漏洞本体回归用例."""
+        api = make_api_def(name="apisix-deploy-down")
+        saved_api = await registry.apiRegistryService.register_api(api)
+
+        import httpx
+
+        class _Boom:
+            def __init__(self, *a, **kw):
+                raise ConnectionError("connection refused")
+
+        monkeypatch.setattr(httpx, "AsyncClient", _Boom)
+
+        result = await registry.apisixConfigService.deploy_route(saved_api.id)
+
+        assert result["status"] == "failed"
+        assert result["deployed"] is False
+        assert "不可达" in result["error"]
+
+    @pytest.mark.asyncio
+    async def test_undeploy_route(self, registry, make_api_def, monkeypatch):
+        """测试删除路由（mock APISIX 204）."""
         api = make_api_def(name="apisix-undeploy")
         saved_api = await registry.apiRegistryService.register_api(api)
+
+        captured: dict = {}
+
+        class _Resp:
+            status_code = 204
+            text = ""
+
+        class _Client:
+            def __init__(self, *a, **kw):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def delete(self, url, headers=None):
+                captured["url"] = url
+                captured["headers"] = headers
+                return _Resp()
+
+        import httpx
+
+        monkeypatch.setattr(httpx, "AsyncClient", _Client)
 
         result = await registry.apisixConfigService.undeploy_route(saved_api.id)
 
         assert result["action"] == "undeploy"
         assert result["routeId"] == saved_api.id
         assert result["status"] == "success"
+        assert captured["url"].endswith(f"/routes/{saved_api.id}")
+
+    @pytest.mark.asyncio
+    async def test_undeploy_route_unreachable_reports_failure(self, registry, make_api_def, monkeypatch):
+        """删除路由在 APISIX 不可达时明确 failed."""
+        api = make_api_def(name="apisix-undeploy-down")
+        saved_api = await registry.apiRegistryService.register_api(api)
+
+        import httpx
+
+        class _Boom:
+            def __init__(self, *a, **kw):
+                raise ConnectionError("connection refused")
+
+        monkeypatch.setattr(httpx, "AsyncClient", _Boom)
+
+        result = await registry.apisixConfigService.undeploy_route(saved_api.id)
+
+        assert result["status"] == "failed"
+        assert result["deployed"] is False
 
     @pytest.mark.asyncio
     async def test_upstream_timeout(self, registry, make_api_def):
@@ -245,8 +340,29 @@ class TestAPISIXConfigHTTP:
         assert "plugins" in data
         assert "key-auth" in data["plugins"]
 
-    def test_deploy_apisix_route_http(self, client):
-        """测试通过 HTTP 部署 APISIX 路由."""
+    def test_deploy_apisix_route_http(self, client, monkeypatch):
+        """测试通过 HTTP 部署 APISIX 路由（mock APISIX 201；此前假实现无 APISIX 也返回 success）."""
+        import httpx
+
+        class _Resp:
+            status_code = 201
+            text = '{"code":0}'
+
+        class _Client:
+            def __init__(self, *a, **kw):
+                pass
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *a):
+                return False
+
+            async def put(self, url, json=None, headers=None):
+                return _Resp()
+
+        monkeypatch.setattr(httpx, "AsyncClient", _Client)
+
         create_resp = client.post(
             "/api/v1/apis",
             json={
@@ -268,6 +384,7 @@ class TestAPISIXConfigHTTP:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "success"
+        assert data["deployed"] is True
 
 
 class TestDocGenerator:

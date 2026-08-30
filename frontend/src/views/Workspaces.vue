@@ -90,31 +90,28 @@
         <div class="note">底层自动映射为 Namespace + ResourceQuota + NetworkPolicy(deny-all)。</div>
       </div>
       <div v-if="tab === 1">
-        <table>
-          <tr>
-            <th>成员</th>
-            <th>角色</th>
-          </tr>
-          <tr>
-            <td>张工</td>
-            <td>空间管理员</td>
-          </tr>
-          <tr>
-            <td>李工</td>
-            <td>开发</td>
-          </tr>
-          <tr>
-            <td>王工</td>
-            <td>开发</td>
-          </tr>
-        </table>
-        <button
-          class="btn ghost sm"
-          style="margin-top: 8px"
-          @click="store.showToast('已邀请成员（mock）（待接入）')"
-        >
-          + 邀请
-        </button>
+        <!-- K8s Namespace 实时状态（真实 API；成员管理属规划能力，不造假数据） -->
+        <div class="kv">
+          <span>K8s Namespace 状态</span>
+          <span v-if="k8sLoading">查询中…</span>
+          <template v-else-if="k8sError">
+            <span style="color: var(--red)"
+              >{{ k8sError.message }}，
+              <a href="javascript:void(0)" @click="loadK8sStatus">重试</a></span
+            >
+          </template>
+          <span v-else-if="k8sStatus">
+            <span class="pill" :class="k8sStatus.status === 'Active' ? 'g' : 'a'">{{
+              k8sStatus.status
+            }}</span>
+          </span>
+        </div>
+        <div class="note" style="margin-top: 8px">
+          底层 Namespace + ResourceQuota + NetworkPolicy(deny-all) 由封装层自动翻译维护。
+        </div>
+        <div class="note" style="margin-top: 4px">
+          成员与角色管理已纳入产品规划（需对接租户身份源 Keycloak），当前版本不提供占位数据。
+        </div>
       </div>
       <div v-if="tab === 2">
         <div class="row">
@@ -134,24 +131,27 @@
         <div class="bar"><i :style="{ width: (current?.storageUsage || 0) + '%' }"></i></div>
       </div>
       <div v-if="tab === 3">
-        <table>
+        <!-- 平台项目（真实 API；按当前空间所属租户过滤，无数据显示空态） -->
+        <div v-if="projectsLoading" class="meta">项目加载中…</div>
+        <div v-else-if="projectsError" class="meta" style="color: var(--red)">
+          {{ projectsError.message }}，
+          <a href="javascript:void(0)" @click="loadProjects">重试</a>
+        </div>
+        <table v-else-if="tenantProjects.length">
           <tr>
             <th>项目</th>
             <th>状态</th>
           </tr>
-          <tr>
-            <td>交易域</td>
-            <td><span class="pill g">运行中</span></td>
-          </tr>
-          <tr>
-            <td>营销域</td>
-            <td><span class="pill g">运行中</span></td>
-          </tr>
-          <tr>
-            <td>风控域</td>
-            <td><span class="pill a">运行中</span></td>
+          <tr v-for="p in tenantProjects" :key="p.id">
+            <td>{{ p.name }}</td>
+            <td>
+              <span class="pill" :class="p.status === 'running' ? 'g' : p.status === 'failed' ? 'r' : 'a'">{{
+                p.status
+              }}</span>
+            </td>
           </tr>
         </table>
+        <div v-else class="meta">当前空间暂无关联项目</div>
       </div>
     </Drawer>
 
@@ -187,13 +187,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as workspaceApi from '@/api/workspace'
-import type { Workspace, PlanTier, DeployEnv, WorkspaceStatus } from '@/api/types'
+import * as projectApi from '@/api/project'
+import type { Workspace, PlanTier, DeployEnv, WorkspaceStatus, WorkspaceK8sStatus } from '@/api/types'
+import type { Project } from '@/api/project'
 
 const store = useAppStore()
 
@@ -261,10 +263,53 @@ const drawerVisible = ref(false)
 const tab = ref(0)
 const current = ref<Workspace | null>(null)
 
+// 成员 tab：K8s Namespace 实时状态（真实 API）
+const k8sStatus = ref<WorkspaceK8sStatus | null>(null)
+const k8sLoading = ref(false)
+const k8sError = ref<{ message: string } | null>(null)
+
+async function loadK8sStatus(): Promise<void> {
+  if (!current.value) return
+  k8sLoading.value = true
+  k8sError.value = null
+  try {
+    k8sStatus.value = await workspaceApi.getWorkspaceK8sStatus(current.value.id)
+  } catch (e) {
+    k8sStatus.value = null
+    k8sError.value = { message: e instanceof Error ? e.message : 'K8s 状态查询失败' }
+  } finally {
+    k8sLoading.value = false
+  }
+}
+
+// 项目 tab：平台项目列表（真实 API；按当前空间租户过滤）
+const projects = ref<Project[]>([])
+const projectsLoading = ref(false)
+const projectsError = ref<{ message: string } | null>(null)
+
+async function loadProjects(): Promise<void> {
+  projectsLoading.value = true
+  projectsError.value = null
+  try {
+    const res = await projectApi.listProjects({ page: 1, pageSize: 100 })
+    projects.value = res.list
+  } catch (e) {
+    projects.value = []
+    projectsError.value = { message: e instanceof Error ? e.message : '项目加载失败' }
+  } finally {
+    projectsLoading.value = false
+  }
+}
+
+/** 项目列表（后端项目模型暂无租户字段，展示全平台项目） */
+const tenantProjects = computed(() => projects.value)
+
 function openDrawer(ws: Workspace) {
   current.value = ws
   tab.value = 0
   drawerVisible.value = true
+  void loadK8sStatus()
+  void loadProjects()
 }
 
 /* ------------------------------ 新建工作空间 ------------------------------ */
