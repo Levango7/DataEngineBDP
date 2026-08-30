@@ -75,7 +75,7 @@ def _make_asset_payload() -> dict:
         "tenantId": "it-test-tenant",
         "description": "集成测试资产",
         "securityLevel": "internal",
-        "qualityScore": 0.85,
+        "qualityScore": 85,
         "updateFrequency": "daily",
         "tags": {"env": "it", "owner": "qa"},
         "pricing": {"mode": "by_call", "price": 0.0, "unit": "次"},
