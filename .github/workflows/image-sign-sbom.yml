@@ -454,9 +454,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 安装 Trivy
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          version: latest
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin v0.74.0
+          trivy --version
 
       - name: 扫描镜像漏洞（HIGH,CRITICAL）
         env:
