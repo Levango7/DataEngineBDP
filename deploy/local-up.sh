@@ -27,7 +27,7 @@ NS=dataengine
 UMBRELLA=design/deploy/charts/dataenginebdp-umbrella
 LOCAL_VALUES=deploy/local/values-local-core.yaml
 
-log() { echo "[$(date '\''+%H:%M:%S'\'')] $*"; }
+log() { echo "[$(date '+%H:%M:%S')] $*"; }
 fail() { log "FAIL: $*"; exit 1; }
 pass() { log "PASS: $*"; }
 

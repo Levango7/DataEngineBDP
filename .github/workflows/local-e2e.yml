@@ -55,7 +55,7 @@ jobs:
       matrix:
         component:
           - {name: "catalog", dir: "platform/catalog", cmd: "go test -v ./..."}
-          - {name: "sql-gateway", dir: "platform/sql-gateway", cmd: "mvn -f ../common-security install -q -DskipTests && mvn test -q"}
+          - {name: "sql-gateway", dir: "platform/sql-gateway", cmd: "mvn -f ../../pom.xml install -N -q -DskipTests && mvn -f ../common-security install -q -DskipTests && mvn test -q"}
           - {name: "asset-exchange", dir: "platform/asset-exchange", cmd: "pytest tests/ -v"}
           - {name: "llm-gateway", dir: "platform/llm-gateway", cmd: "go test -v ./..."}
           - {name: "frontend", dir: "frontend", cmd: "npm ci && npm run test:coverage"}
@@ -124,7 +124,7 @@ jobs:
         uses: helm/kind-action@v1
         with:
           cluster_name: dataengine-e2e
-          image: kindest/node:v1.29.2
+          node_image: kindest/node:v1.29.2
           config: /tmp/kind-config.yaml
       - name: Deploy core subset
         run: |
