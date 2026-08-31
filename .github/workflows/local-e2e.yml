@@ -9,6 +9,7 @@ on:
       - "design/deploy/charts/**"
       - "scripts/**"
       - "deploy/**"
+      - ".github/workflows/local-e2e.yml"
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -84,6 +85,8 @@ jobs:
           # （此前只装 pytest，干净 runner 上 ImportError）
           pip install -q pytest
           pip install -q -r platform/asset-exchange/requirements.txt
+          # 安装包本身（editable mode），使 asset_exchange 模块可导入
+          pip install -q -e platform/asset-exchange
       - name: Setup Node
         if: matrix.component.name == 'frontend'
         uses: actions/setup-node@v4
@@ -106,19 +109,23 @@ jobs:
     continue-on-error: true  # CI环境资源限制可能导致kind集群创建失败，不阻断workflow
     steps:
       - uses: actions/checkout@v4
+      - name: Write kind config
+        run: |
+          cat > /tmp/kind-config.yaml << 'EOF'
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+            extraPortMappings:
+            - containerPort: 30000
+              hostPort: 30000
+          EOF
       - name: Create kind cluster
         uses: helm/kind-action@v1
         with:
           cluster_name: dataengine-e2e
           image: kindest/node:v1.29.2
-          config: |
-            kind: Cluster
-            apiVersion: kind.x-k8s.io/v1alpha4
-            nodes:
-            - role: control-plane
-              extraPortMappings:
-              - containerPort: 30000
-                hostPort: 30000
+          config: /tmp/kind-config.yaml
       - name: Deploy core subset
         run: |
           bash deploy/local-up.sh
