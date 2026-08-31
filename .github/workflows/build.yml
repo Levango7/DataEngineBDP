@@ -388,6 +388,9 @@ jobs:
               echo "============================================"
               # 打包为 tgz
               helm package "${chart_dir}" -d release-charts/
+              # 精确匹配本次打包的 tgz（避免 flink-* 匹配到 flink-cdc-* 等前缀冲突 chart）
+              chart_tgz=$(ls release-charts/${chart_name}-*.tgz 2>/dev/null | grep -E "release-charts/${chart_name}-[0-9]" | head -1)
+              if [ -z "$chart_tgz" ]; then chart_tgz=$(ls release-charts/${chart_name}-*.tgz 2>/dev/null | head -1); fi
               # 推送到 GHCR OCI Registry（指数退避重试，规避 GitHub secondary rate limit 403）
               # 2026-08-30 收紧：此前 3×60s 固定间隔仍被限流打断（93 chart 连续推送）。
               # 改为 5 次指数退避（30/60/120/240s），并在检测到限流后额外冷却 30s。
@@ -395,7 +398,7 @@ jobs:
                 push_ok=0
                 delay=30
                 for attempt in 1 2 3 4 5; do
-                  if helm push "release-charts/${chart_name}-"*.tgz "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts" 2>"/tmp/push-${chart_name}.err"; then
+                  if helm push "$chart_tgz" "oci://ghcr.io/${{ env.REGISTRY_NS }}/charts" 2>"/tmp/push-${chart_name}.err"; then
                     push_ok=1
                     break
                   else

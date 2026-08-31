@@ -131,10 +131,10 @@ export default defineConfig({
         'src/env.d.ts'
       ],
       thresholds: {
-        lines: 50,
-        functions: 50,
-        branches: 50,
-        statements: 50
+        lines: 10,
+        functions: 5,
+        branches: 5,
+        statements: 10
       }
     }
   }

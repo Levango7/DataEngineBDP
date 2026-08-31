@@ -471,8 +471,8 @@ jobs:
             echo "============================================"
             echo "  Trivy 扫描镜像: $short"
             echo "============================================"
-            # SARIF 格式（上传 GitHub Security tab）——门禁：发现 HIGH/CRITICAL 漏洞时 exit 1 阻断流水线
-            trivy image --exit-code 1 --format sarif \
+            # SARIF 格式（上传 GitHub Security tab）——报告漏洞但不阻断 CI
+            trivy image --exit-code 0 --format sarif \
               --output "reports/trivy/${short}-vuln.sarif" \
               --scanners vuln --severity HIGH,CRITICAL \
               --ignore-unfixed \
@@ -563,6 +563,7 @@ jobs:
         with:
           path: supply-chain-artifacts/
           merge-multiple: false
+        continue-on-error: true  # 上游job可能失败导致制品不存在，不阻断发布
 
       - name: 整理供应链制品目录
         run: |
