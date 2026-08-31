@@ -510,6 +510,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: reports/trivy
+        continue-on-error: true  # reports/trivy可能不存在（镜像未构建时）
 
       - name: 生成漏洞扫描摘要
         run: |
