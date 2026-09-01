@@ -152,7 +152,7 @@
         <dependency>
             <groupId>org.apache.calcite</groupId>
             <artifactId>calcite-server</artifactId>
-            <version>1.37.0</version>
+            <version>1.42.0</version>
         </dependency>
 
         <!-- ============ Jackson（事件 JSON 序列化） ============ -->
