@@ -184,6 +184,168 @@ public class StandardController {
         return ResponseEntity.ok(summary);
     }
 
+    /**
+     * 标准符合性检查（标准落地校验）。
+     *
+     * <p>背景：此前标准只做存储与引用统计（summary 的落标率=是否被引用），
+     * 从不校验资产内容是否<b>符合</b>标准——"主数据标准"线的最后一步为空。
+     * 本端点把标准的 rule 真实作用于资产数据，按标准类型执行检查：</p>
+     * <ul>
+     *   <li><b>enum / dict</b>：rule 为逗号分隔码值集；资产 fullJson 中
+     *       {@code values[]} 每项须属于码值集（资产级聚合校验）</li>
+     *   <li><b>string / primary_key</b>：rule 为命名正则（如
+     *       {@code ^[a-z][a-z0-9_]*$}）；资产 name 须匹配</li>
+     *   <li><b>amount</b>：rule 为格式描述（amount/decimal）；资产 fullJson
+     *       {@code amount} 字段须为合法数值</li>
+     *   <li><b>date</b>：资产 fullJson {@code date} 字段须为 ISO 日期/时间</li>
+     * </ul>
+     *
+     * <p>返回每条标准的 checked/violations/compliant 标记与总体符合率；
+     * 资产 fullJson 缺少对应字段视为"不适用"（skipped），不计入违反。</p>
+     */
+    @Operation(summary = "标准符合性检查", description = "按标准类型校验资产数据是否符合标准规则，"
+            + "返回逐标准明细与总体符合率（enum/dict=码值校验，string/primary_key=命名正则，"
+            + "amount=数值格式，date=ISO 日期格式）")
+    @GetMapping("/compliance")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Map<String, Object>> compliance() {
+        String tenantId = requireTenant();
+        List<StandardEntity> standards = repository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+        List<AssetEntity> assets = assetRepository.findByTenantIdOrderByCreatedAtDesc(tenantId);
+
+        List<Map<String, Object>> items = new java.util.ArrayList<>();
+        int totalChecked = 0;
+        int totalViolations = 0;
+
+        for (StandardEntity std : standards) {
+            int checked = 0;
+            List<Map<String, Object>> violations = new java.util.ArrayList<>();
+            for (AssetEntity asset : assets) {
+                ComplianceOutcome outcome = checkOne(std, asset);
+                if (outcome.kind() == OutcomeKind.COMPLIANT) {
+                    checked++;
+                } else if (outcome.kind() == OutcomeKind.VIOLATION) {
+                    checked++;
+                    totalViolations++;
+                    Map<String, Object> v = new LinkedHashMap<>();
+                    v.put("assetId", String.valueOf(asset.getId()));
+                    v.put("assetName", asset.getName());
+                    v.put("reason", outcome.reason);
+                    violations.add(v);
+                }
+                // SKIPPED：字段缺失不适用，不计入
+            }
+            totalChecked += checked;
+            int vcount = violations.size();
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("standardId", String.valueOf(std.getId()));
+            item.put("standardName", std.getName());
+            item.put("type", std.getType());
+            item.put("checked", checked);
+            item.put("violations", vcount);
+            item.put("compliant", vcount == 0);
+            // 违反明细最多带 20 条，防大资产集响应膨胀；全量走逐资产审计
+            item.put("violationSamples", violations.subList(0, Math.min(vcount, 20)));
+            items.add(item);
+        }
+
+        double complianceRate = totalChecked == 0 ? 100.0
+                : ((totalChecked - totalViolations) * 100.0 / totalChecked);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("standards", items);
+        body.put("totalChecked", totalChecked);
+        body.put("totalViolations", totalViolations);
+        body.put("complianceRate", Math.round(complianceRate * 10) / 10.0);
+        log.info("标准符合性检查: tenant={}, standards={}, checked={}, violations={}, rate={}%",
+                tenantId, standards.size(), totalChecked, totalViolations,
+                Math.round(complianceRate * 10) / 10.0);
+        return ResponseEntity.ok(body);
+    }
+
+    /** 单资产对单标准的检查结果。 */
+    private enum OutcomeKind { COMPLIANT, VIOLATION, SKIPPED }
+
+    /** 检查结果（携带违反原因）。 */
+    private record ComplianceOutcome(OutcomeKind kind, String reason) {
+        static ComplianceOutcome compliant() { return new ComplianceOutcome(OutcomeKind.COMPLIANT, null); }
+        static ComplianceOutcome violation(String r) { return new ComplianceOutcome(OutcomeKind.VIOLATION, r); }
+        static ComplianceOutcome skipped() { return new ComplianceOutcome(OutcomeKind.SKIPPED, null); }
+    }
+
+    /** 按标准类型分派检查逻辑。 */
+    private ComplianceOutcome checkOne(StandardEntity std, AssetEntity asset) {
+        String rule = std.getRule() == null ? "" : std.getRule().trim();
+        String type = std.getType() == null ? "" : std.getType();
+        JsonNode full;
+        try {
+            full = (asset.getFullJson() == null || asset.getFullJson().isBlank())
+                    ? objectMapper.createObjectNode() : objectMapper.readTree(asset.getFullJson());
+        } catch (Exception e) {
+            return ComplianceOutcome.violation("资产 fullJson 非法 JSON: " + e.getMessage());
+        }
+        switch (type) {
+            case "enum", "dict" -> {
+                // rule=逗号分隔码值集；资产 values[] 全部落在集合内才符合
+                JsonNode values = full.get("values");
+                if (values == null || !values.isArray() || values.isEmpty()) {
+                    return ComplianceOutcome.skipped();
+                }
+                Set<String> allowed = new HashSet<>(
+                        java.util.Arrays.stream(rule.split(","))
+                                .map(String::trim).filter(s -> !s.isEmpty()).toList());
+                if (allowed.isEmpty()) {
+                    return ComplianceOutcome.skipped();
+                }
+                for (JsonNode v : values) {
+                    if (!allowed.contains(v.asText())) {
+                        return ComplianceOutcome.violation("码值不在标准集内: " + v.asText());
+                    }
+                }
+                return ComplianceOutcome.compliant();
+            }
+            case "string", "primary_key" -> {
+                // rule=命名正则；资产名匹配
+                if (rule.isEmpty()) {
+                    return ComplianceOutcome.skipped();
+                }
+                try {
+                    return (asset.getName() != null && asset.getName().matches(rule))
+                            ? ComplianceOutcome.compliant()
+                            : ComplianceOutcome.violation("资产名不匹配命名标准: " + asset.getName());
+                } catch (java.util.regex.PatternSyntaxException e) {
+                    return ComplianceOutcome.violation("标准 rule 正则非法: " + e.getMessage());
+                }
+            }
+            case "amount" -> {
+                JsonNode amount = full.get("amount");
+                if (amount == null || amount.isNull()) {
+                    return ComplianceOutcome.skipped();
+                }
+                try {
+                    Double.parseDouble(amount.asText().replace(",", ""));
+                    return ComplianceOutcome.compliant();
+                } catch (NumberFormatException e) {
+                    return ComplianceOutcome.violation("amount 非数值: " + amount.asText());
+                }
+            }
+            case "date" -> {
+                JsonNode date = full.get("date");
+                if (date == null || date.isNull()) {
+                    return ComplianceOutcome.skipped();
+                }
+                String s = date.asText();
+                boolean ok = s.matches("\\d{4}-\\d{2}-\\d{2}(T.*)?")
+                        || s.matches("\\d{4}/\\d{2}/\\d{2}.*")
+                        || s.matches("\\d{8}");
+                return ok ? ComplianceOutcome.compliant()
+                        : ComplianceOutcome.violation("date 非 ISO 格式: " + s);
+            }
+            default -> {
+                return ComplianceOutcome.skipped();
+            }
+        }
+    }
+
     private String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {

@@ -40,7 +40,7 @@
 | encaps-data | Java 17 · Spring Boot 3.2.6（依赖 encaps-layer / common-security + kafka-clients） | 服务级（部分功能） | H2 文件（`./data/encaps-data-db`），`DB_URL` 切 PostgreSQL | 数据服务域功能覆盖不全；Kafka 事件链路待真实环境验证 |
 | encaps-gateway | Java 17 · Spring Boot 3.2.6（封装层薄壳，复用 encaps-layer / common-security） | 服务级（薄壳） | H2 文件（`./data/encaps-gateway-db`），`DB_URL` 切 PostgreSQL | 能力依赖 encaps-layer，自身路由 / 聚合面较薄 |
 | ai-assistant | Go 1.26 · Gin + GORM | 服务级 | 会话 SQLite（GORM） | 对话经 nl2sql / sql-gateway 下游代理；回复润色依赖 llm-gateway（失败回退规则文案） |
-| chunker | Python 3.11 库（多模态切片 + embedding 适配器 + RAG 混合检索） | 服务级（孤岛库） | 无持久化 | 未被任何平台服务引用，未接入主链路 |
+| chunker | Python 3.11 库（多模态切片 + embedding 适配器 + RAG 混合检索） | 独立工具库（2026-09-01 决策） | 无持久化 | 定位为可独立引用的分块工具库（text/table/image/audio/asr 五模态 + rag 混合检索，516 测试）；不强行接入主链路——待 RAG 链路真实需求出现时由 knowledge-engine/chunker 按需集成 |
 | finops | Java 17 双服务 cost-model / dashboard（Spring Boot 3.2.6 + JPA）+ exporters 与 Prometheus 告警规则 YAML | 服务级（部分功能） | H2 文件（cost-model / dashboard 各自 `./data/*-db`），`DB_URL` 切 PostgreSQL | 成本归集依赖 Prometheus / Kubernetes 指标真实采集 |
 
 ## 三、骨架 / Mock 默认（10 个）

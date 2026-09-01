@@ -1,15 +1,15 @@
 {
-  "_comment": "Python 模块覆盖率基线（2026-08-13 快照）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
-  "_source": "Task 4 覆盖率分析结果（pytest-cov）",
-  "_threshold_note": "当前阈值：≥55%（2026-08-23调整，略低于实际~66%）。目标 85% GA标准。",
-  "asset-exchange": 75,
-  "nl2sql": 60,
+  "_comment": "Python 模块覆盖率基线（2026-09-01 实测快照，pytest-cov TOTAL 口径）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
+  "_source": "Boot 4.1.1 升级后全量实测（bp 含本迭代新增 dashboards 路由测试）",
+  "_threshold_note": "当前阈值：≥55%（2026-09-01 实测最低 72%，全部达标留缓冲）。目标 85% GA标准。",
+  "asset-exchange": 73,
+  "nl2sql": 91,
   "chunker": 63,
-  "business-portal": 55,
-  "ml-platform": 50,
-  "knowledge-engine": 60,
-  "llmops": 55,
-  "open-api-catalog": 50,
-  "industry-templates": 70,
-  "evaluation": 45
+  "business-portal": 80,
+  "ml-platform": 72,
+  "knowledge-engine": 87,
+  "llmops": 94,
+  "open-api-catalog": 87,
+  "industry-templates": 92,
+  "evaluation": 80
 }
