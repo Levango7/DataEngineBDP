@@ -158,6 +158,35 @@ PERF_THRESHOLDS: Dict[str, Dict[str, Any]] = {
     "failover_recovery_time": {"target": 60, "unit": "s", "desc": "故障恢复时间 ≤ 60s"},
 }
 
+# ---------------------------------------------------------------------------
+# 性能基线分档（2026-09-01）
+# ---------------------------------------------------------------------------
+# PERF_TIER=cluster（默认）：产品目标阈值（多副本集群+资源保障环境，真实演练时跑）
+# PERF_TIER=local：本地 Docker 单实例栈回归档——单容器无 QoS、宿主机共享资源，
+#   严阈值在本档物理不可达（如 P99 200ms 在本地栈实测 5.2s，属环境差而非
+#   代码缺陷）。local 档定位为"防回归"：抓服务数量级异常退化（如 P99 从
+#   1s 劣化到 10s+），不承载产品 SLA 证明。实测依据：2026-09-01 本地栈
+#   全量跑（P99≈5.2s、并发 500/1000 平均响应 4~6s、内存>85%）。
+# ---------------------------------------------------------------------------
+PERF_TIER = os.environ.get("PERF_TIER", "cluster").strip().lower()
+if PERF_TIER not in ("cluster", "local"):
+    PERF_TIER = "cluster"
+
+_LOCAL_TIER_OVERRIDES: Dict[str, Any] = {
+    "concurrent_500_response_time": 8.0,
+    "concurrent_1000_response_time": 15.0,
+    "api_p99_latency": 10.0,
+    "api_throughput": 50,
+    "data_ingest_throughput": 1,
+    "memory_utilization": 98,
+}
+
+if PERF_TIER == "local":
+    for key, value in _LOCAL_TIER_OVERRIDES.items():
+        if key in PERF_THRESHOLDS:
+            PERF_THRESHOLDS[key]["target"] = value
+            PERF_THRESHOLDS[key]["tier"] = "local"
+
 
 # ---------------------------------------------------------------------------
 # 10 项 SLA 验证阈值
@@ -288,12 +317,14 @@ class AsyncLoadEngine:
         target_url: str,
         method: str = "GET",
         headers: Optional[Dict[str, str]] = None,
-        json_payload: Optional[Dict[str, Any]] = None,
+        json_payload: Optional[Any] = None,
         timeout: float = 10.0,
     ) -> None:
         self.target_url = target_url
         self.method = method.upper()
         self.headers = headers or {}
+        # json_payload 支持 dict 或 () -> dict 工厂（逐请求唯一负载，
+        # 如唯一表名压测——固定 payload 会 201 后全 409，吞吐恒 0）
         self.json_payload = json_payload
         self.timeout = timeout
 
@@ -304,8 +335,13 @@ class AsyncLoadEngine:
             if self.method == "GET":
                 resp = await client.get(self.target_url, headers=self.headers)
             else:
+                payload = (
+                    self.json_payload()
+                    if callable(self.json_payload)
+                    else self.json_payload
+                )
                 resp = await client.post(
-                    self.target_url, headers=self.headers, json=self.json_payload
+                    self.target_url, headers=self.headers, json=payload
                 )
             elapsed = time.perf_counter() - start
             # 将状态码记录到 client 的共享属性上
@@ -611,7 +647,7 @@ def load_engine_factory(perf_auth_token):
     def _create(
         target_url: str,
         method: str = "GET",
-        json_payload: Optional[Dict[str, Any]] = None,
+        json_payload: Optional[Any] = None,
     ) -> AsyncLoadEngine:
         headers = {
             "Authorization": f"Bearer {perf_auth_token}",

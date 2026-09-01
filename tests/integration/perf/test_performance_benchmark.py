@@ -299,28 +299,40 @@ def test_data_ingest_throughput(
     """
     _skip_unless(catalog_available, "Catalog 服务不可用，跳过数据摄入吞吐量测试")
 
-    # 批量创建表元数据（字段名对齐 Catalog Go 服务 model.Table 契约）
-    payload = {
-        "tableName": "perf_ingest_table",
-        "databaseName": "perf_db",
-        "type": "MANAGED",
-        "columns": [
-            {"name": "id", "type": "BIGINT"},
-            {"name": "data", "type": "STRING"},
-        ],
-    }
+    # 批量创建表元数据（字段名对齐 Catalog Go 服务 model.Table 契约）。
+    # 2026-09-01 修复：此前固定表名 → 首请求 201、后续 499 全部 409 冲突，
+    # QPS 恒为 0（本地非 CI 跑必炸）。改为逐请求唯一表名真实测吞吐：
+    # engine 的 json_payload 支持可调用工厂（见 LoadEngine），每次请求生成
+    # perf_ingest_<uuid> 唯一表，消除 409 干扰。
+    import uuid as _uuid
+
+    def _unique_payload() -> dict:
+        return {
+            "tableName": f"perf_ingest_{_uuid.uuid4().hex[:12]}",
+            "databaseName": "perf_db",
+            "type": "MANAGED",
+            "columns": [
+                {"name": "id", "type": "BIGINT"},
+                {"name": "data", "type": "STRING"},
+            ],
+        }
+
     engine = load_engine_factory(
-        catalog_url + "/api/v1/catalog/tables", method="POST", json_payload=payload
+        catalog_url + "/api/v1/catalog/tables",
+        method="POST",
+        json_payload=_unique_payload,  # 可调用工厂：每次请求生成唯一表名
     )
     result = _run_load(engine, concurrency=50, total_requests=500)
 
     # 数据摄入吞吐量验证：以写入 QPS 作为代理指标
-    # 目标 100MB/s 在元数据层面表现为 ≥ 50 ops/s
-    # CI 环境中固定 payload 会导致首请求 201 后续 409 冲突，
-    # 且 Docker 资源有限，放宽至仅要求有成功请求即可。
-    min_qps = 0.0 if IS_CI else 10  # CI环境仅验证有成功请求
+    # local 档（PERF_TIER=local）：本地单容器栈防回归阈值（conftest 阈值表 data_ingest_throughput=1）
+    # cluster 档：≥50 ops/s（100MB/s 的元数据层代理）
+    import os as _os
+
+    _tier = _os.environ.get("PERF_TIER", "cluster").strip().lower()
+    min_qps = 1 if _tier == "local" else 50
     assert result.qps >= min_qps, (
-        f"数据摄入吞吐量 {result.qps:.2f} ops/s 低于最低阈值 {min_qps} ops/s"
+        f"数据摄入吞吐量 {result.qps:.2f} ops/s 低于最低阈值 {min_qps} ops/s（tier={_tier}）"
     )
     assert result.success_count > 0, "数据摄入吞吐量测试无成功请求"
 
