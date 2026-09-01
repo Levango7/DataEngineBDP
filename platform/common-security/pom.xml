@@ -58,16 +58,21 @@
         </dependency>
 
         <!-- Spring AOP：提供 AspectJ 支持（AuditLogAspect 切面）。
-             注意：本项目基于 Spring Boot 3.2.6，artifact 为 spring-boot-starter-aop；
-             starter-aspectj 是 Spring Boot 4.x 的重命名，在此版本中不存在，会导致 POM 解析失败。 -->
+             Spring Boot 4.x 将 starter 重命名为 spring-boot-starter-aspectj
+             （3.2.x 的 spring-boot-starter-aop 已不存在）。 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
         <!-- Jackson：审计日志 JSON 序列化（AuditLogService / AuditLogAspect / AuditAutoConfiguration） -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <!-- Jackson JSR310：LocalDateTime/Instant 序列化（Boot 4 不再由 BOM 传递引入，显式声明） -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
 
         <!-- 测试 -->

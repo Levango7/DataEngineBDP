@@ -9,14 +9,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestClient;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -36,8 +33,8 @@ class LineageControllerTest {
     @LocalServerPort
     private int port;
 
-    @Autowired
-    private TestRestTemplate restTemplate;
+    /** Spring Boot 4：TestRestTemplate 已移除，用 Spring 7 原生 RestClient（阻塞语义等价）。 */
+    private RestClient restClient;
 
     @Autowired
     private LineageGraphWriter graphWriter;
@@ -52,6 +49,7 @@ class LineageControllerTest {
         graphWriter.clear();
         // context-path=/lineage 已移除，API 直接从 /api/v1/* 访问
         baseUrl = "http://localhost:" + port + "/api/v1/lineage";
+        restClient = RestClient.create();
     }
 
     @Test
@@ -61,12 +59,12 @@ class LineageControllerTest {
         body.put("sql", "INSERT INTO b SELECT x FROM a");
         body.put("dialect", "ANSI");
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-        ResponseEntity<Map> resp = restTemplate.postForEntity(
-                baseUrl + "/analyze", entity, Map.class);
+        ResponseEntity<Map> resp = restClient.post()
+                .uri(baseUrl + "/analyze")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .toEntity(Map.class);
         assertTrue(resp.getStatusCode().is2xxSuccessful());
         assertNotNull(resp.getBody());
         Map result = resp.getBody();
@@ -81,13 +79,17 @@ class LineageControllerTest {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("sql", "");
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-        ResponseEntity<Map> resp = restTemplate.postForEntity(
-                baseUrl + "/analyze", entity, Map.class);
-        assertTrue(resp.getStatusCode().is4xxClientError());
+        // RestClient 的 retrieve() 对 4xx 抛异常；用 onStatus 捕获校验状态码
+        final int[] capturedStatus = {0};
+        restClient.post()
+                .uri(baseUrl + "/analyze")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(body)
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError(),
+                        (req, resp) -> capturedStatus[0] = resp.getStatusCode().value())
+                .toEntity(Map.class);
+        assertTrue(capturedStatus[0] > 0, "应返回 4xx，实际: " + capturedStatus[0]);
     }
 
     @Test
@@ -95,8 +97,10 @@ class LineageControllerTest {
     void testUpstreamEndpoint() {
         // 构造 a → b
         analyzerService.analyze("INSERT INTO b SELECT x FROM a", SqlDialect.ANSI);
-        ResponseEntity<Map> resp = restTemplate.getForEntity(
-                baseUrl + "/upstream/b", Map.class);
+        ResponseEntity<Map> resp = restClient.get()
+                .uri(baseUrl + "/upstream/b")
+                .retrieve()
+                .toEntity(Map.class);
         assertTrue(resp.getStatusCode().is2xxSuccessful());
         assertNotNull(resp.getBody());
     }
@@ -105,8 +109,10 @@ class LineageControllerTest {
     @DisplayName("GET /downstream/{table} 返回下游")
     void testDownstreamEndpoint() {
         analyzerService.analyze("INSERT INTO b SELECT x FROM a", SqlDialect.ANSI);
-        ResponseEntity<Map> resp = restTemplate.getForEntity(
-                baseUrl + "/downstream/a", Map.class);
+        ResponseEntity<Map> resp = restClient.get()
+                .uri(baseUrl + "/downstream/a")
+                .retrieve()
+                .toEntity(Map.class);
         assertTrue(resp.getStatusCode().is2xxSuccessful());
         assertNotNull(resp.getBody());
     }
@@ -116,8 +122,10 @@ class LineageControllerTest {
     void testImpactEndpoint() {
         analyzerService.analyze("INSERT INTO b SELECT x FROM a", SqlDialect.ANSI);
         analyzerService.analyze("INSERT INTO c SELECT x FROM b", SqlDialect.ANSI);
-        ResponseEntity<Map> resp = restTemplate.getForEntity(
-                baseUrl + "/impact/a", Map.class);
+        ResponseEntity<Map> resp = restClient.get()
+                .uri(baseUrl + "/impact/a")
+                .retrieve()
+                .toEntity(Map.class);
         assertTrue(resp.getStatusCode().is2xxSuccessful());
         Map body = resp.getBody();
         assertNotNull(body);
@@ -131,8 +139,10 @@ class LineageControllerTest {
     @Test
     @DisplayName("GET /api/v1/health 健康检查")
     void testHealthEndpoint() {
-        ResponseEntity<Map> resp = restTemplate.getForEntity(
-                "http://localhost:" + port + "/api/v1/health", Map.class);
+        ResponseEntity<Map> resp = restClient.get()
+                .uri("http://localhost:" + port + "/api/v1/health")
+                .retrieve()
+                .toEntity(Map.class);
         assertTrue(resp.getStatusCode().is2xxSuccessful());
         Map body = resp.getBody();
         assertNotNull(body);

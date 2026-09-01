@@ -41,6 +41,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <!-- Spring Boot 4：Health/HealthIndicator 拆分到 spring-boot-health 模块
+             （HealthController 实现 HealthIndicator 接口，直接依赖该模块） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-health</artifactId>
+        </dependency>
 
         <!-- Micrometer Prometheus：暴露 /actuator/prometheus 端点 -->
         <dependency>

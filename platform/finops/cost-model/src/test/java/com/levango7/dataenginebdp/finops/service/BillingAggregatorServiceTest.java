@@ -7,9 +7,9 @@ import com.levango7.dataenginebdp.finops.model.TieredPricingTier;
 import com.levango7.dataenginebdp.finops.repository.QueryMeteringRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -34,10 +34,10 @@ class BillingAggregatorServiceTest {
     @Autowired
     private BillingAggregatorService billingAggregatorService;
 
-    @MockBean
+    @MockitoBean
     private PricingConfigService pricingConfigService;
 
-    @MockBean
+    @MockitoBean
     private TieredBillingStrategy tieredBillingStrategy;
 
     private QueryMeteringRecord record(String tenantId, long bytes, boolean estimated,

@@ -30,7 +30,22 @@
         <flink.version>1.20.0</flink.version>
         <!-- Doris 2.0.0（与 Phase 1 T016 Doris 物化视图对齐） -->
         <doris.version>2.0.0</doris.version>
+        <!-- ANTLR 4.13.2：与 sql-gateway Calcite 一致。Spark 3.5.3 传递 antlr4-runtime 4.9.3
+             （ATN 序列化 v3），与 Calcite（v4）类路径冲突 → DagRunServiceTest ATN
+             反序列化 InvalidClassException。4.13 runtime 向后兼容 v3 ATN，统一钉高版本。 -->
+        <antlr4.version>4.13.2</antlr4.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- 统一 antlr4-runtime 至 Calcite 所需版本（见 properties 注释） -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4-runtime</artifactId>
+                <version>${antlr4.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <dependencies>
         <!-- ===================== Spring Boot 基础 ===================== -->
@@ -195,6 +210,13 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Spring Boot 4：@DataJpaTest 拆分到 spring-boot-starter-data-jpa-test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- OkHttp MockWebServer：模拟 Doris FE HTTP API（DorisOlapClientTest） -->
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>

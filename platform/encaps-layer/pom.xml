@@ -61,11 +61,11 @@
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <!-- Springdoc OpenAPI：生成 /v3/api-docs 与 /swagger-ui.html（OpenAPI 3 规范 + Swagger UI） -->
-        <!-- 兼容性：springdoc 2.6.0 支持 Spring Boot 3.2.x~3.4.x；Spring Boot 4.x 需 2.7.0+ -->
+        <!-- 兼容性：springdoc 3.x 支持 Spring Boot 4.x（3.1.0 匹配 Boot 4.1.x） -->
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.6.0</version>
+            <version>3.1.0</version>
         </dependency>
         <!-- Spring AOP：提供 @Aspect/@Around 切面支持，用于字段级加解密与审计日志切面 -->
         <dependency>
@@ -157,26 +157,29 @@
         </dependency>
 
         <!-- Kubernetes Client (fabric8)：K8sClientService 调用 K8s API（namespace/pod/service/configmap） -->
-        <!-- 兼容性：fabric8 6.13.4 支持 Java 17 + Spring Boot 3.2.x；6.x 使用 KubernetesClientBuilder 新 API -->
+        <!-- 兼容性：fabric8 7.8.0 支持 Java 17 + Spring Boot 4.x（6.x 的 okhttp3.12 与
+             otel okhttp5 在类路径冲突，MockWebServer NoSuchMethodError，升 7.x 对齐） -->
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client</artifactId>
-            <version>6.13.4</version>
+            <version>7.8.0</version>
         </dependency>
         <dependency>
             <groupId>io.fabric8</groupId>
             <artifactId>kubernetes-client-api</artifactId>
-            <version>6.13.4</version>
-        </dependency>
-        <dependency>
-            <groupId>io.fabric8</groupId>
-            <artifactId>kubernetes-model</artifactId>
-            <version>6.13.4</version>
+            <version>7.8.0</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Boot 4：@DataJpaTest 从 spring-boot-test-autoconfigure 拆分到
+             spring-boot-starter-data-jpa-test（slice 测试按技术栈独立成 starter） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
         <!-- Spring Security Test：配合 @DataJpaTest 进行安全上下文测试 -->

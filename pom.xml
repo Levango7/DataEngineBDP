@@ -7,7 +7,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.6</version>
+        <version>4.1.1</version>
         <relativePath/>
     </parent>
 
@@ -19,8 +19,9 @@
     <description>数据引擎大数据平台 - 统一父POM，管理所有子模块版本</description>
 
     <properties>
+        <!-- Spring Boot 4.1.x 要求 JDK 17+（本升级保持 17，后续可评估 25 LTS） -->
         <java.version>17</java.version>
-        <spring-boot.version>3.2.6</spring-boot.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -35,6 +36,23 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
+    <!-- Spring Boot 4 公共依赖：默认 JSON 栈切换为 Jackson 3（tools.jackson），
+         而平台代码全部使用 Jackson 2（com.fasterxml）。spring-boot-jackson2 提供
+         Jackson2AutoConfiguration（自动装配 jackson2 ObjectMapper bean），由父 POM
+         统一注入，子模块无需逐个声明（EncapsLayer EvidenceArchive 等 22 处注入点）。
+         同理 WebClient.Builder 自动配置移入 spring-boot-webclient 模块
+         （metadata-collector/infra-orchestrator/scheduler 注入 WebClient.Builder）。 -->
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jackson2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-webclient</artifactId>
+        </dependency>
+    </dependencies>
 
     <modules>
         <module>platform/common-security</module>

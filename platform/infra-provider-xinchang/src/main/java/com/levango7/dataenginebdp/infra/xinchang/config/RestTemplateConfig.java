@@ -1,18 +1,23 @@
 package com.levango7.dataenginebdp.infra.xinchang.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.boot.restclient.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
-import java.time.Duration;
-
 /**
  * RestTemplate 配置。
  *
  * <p>为 IPMI Redfish 调用与 K8s API 调用提供统一超时配置。</p>
+ *
+ * <p>Spring Boot 4 迁移说明：{@code RestTemplateBuilder} 移除了
+ * {@code setConnectTimeout/setReadTimeout(Duration)}（超时统一由
+ * {@code ClientHttpRequestFactorySettings} 表达）。此处超时直接在
+ * {@link SimpleClientHttpRequestFactory} 上设置并经
+ * {@code requestFactory(Supplier)} 注入，语义与原实现等价且不再依赖
+ * 已删除的 Builder 超时方法。</p>
  */
 @Configuration
 public class RestTemplateConfig {
@@ -34,8 +39,6 @@ public class RestTemplateConfig {
         factory.setReadTimeout((int) readTimeoutMs);
         return builder
                 .requestFactory(() -> factory)
-                .setConnectTimeout(Duration.ofMillis(connectTimeoutMs))
-                .setReadTimeout(Duration.ofMillis(readTimeoutMs))
                 .build();
     }
 }

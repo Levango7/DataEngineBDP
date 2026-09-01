@@ -61,10 +61,10 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
-        <!-- Native Image support (Spring Boot 3.x: spring-boot-starter-aop) -->
+        <!-- AOP support (Spring Boot 4.x: renamed from spring-boot-starter-aop) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
+            <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
         <!-- JSON processing -->
         <dependency>

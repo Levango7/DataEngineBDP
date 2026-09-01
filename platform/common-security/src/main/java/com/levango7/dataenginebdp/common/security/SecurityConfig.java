@@ -39,7 +39,11 @@ import java.util.List;
  *   <li>{@code app.security.cors.allowed-origins}：CORS 允许的源，逗号分隔</li>
  * </ul>
  */
-@AutoConfiguration(before = org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class)
+// Spring Boot 4.x：security servlet 自动配置移出 spring-boot-autoconfigure 主包
+// （原 org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration
+// 的排序锚点不再随主包传递），改为无锚点 @AutoConfiguration —— 本配置自带
+// @ConditionalOnMissingBean(SecurityFilterChain) 守卫，加载顺序不构成约束。
+@AutoConfiguration
 @EnableWebSecurity
 @ConditionalOnMissingBean(SecurityFilterChain.class)
 public class SecurityConfig {

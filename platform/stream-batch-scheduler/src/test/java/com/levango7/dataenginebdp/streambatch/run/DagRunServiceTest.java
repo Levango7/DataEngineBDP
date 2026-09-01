@@ -8,8 +8,8 @@ import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
 import com.levango7.dataenginebdp.streambatch.model.TaskExecutionResult;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 
 import java.time.Instant;
@@ -27,7 +27,7 @@ import static org.mockito.Mockito.when;
 @Import(DagRunService.class)
 class DagRunServiceTest {
 
-    @MockBean
+    @MockitoBean
     private StreamBatchDagOrchestrator orchestrator;
 
     @Autowired

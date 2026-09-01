@@ -34,6 +34,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- Spring Boot 4：RestTemplateBuilder 拆分到 spring-boot-restclient
+             （RestTemplateConfig 注入 Builder 构建 Redfish HTTP 客户端） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-restclient</artifactId>
+        </dependency>
         <!-- Actuator：健康检查与运维端点 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -675,15 +675,18 @@ jobs:
         if: env.java_skip != 'true'
         run: |
           echo "============================================"
-          echo "  JaCoCo 覆盖率门禁检查 (阈值: 行≥35% 分支≥15%（逐步提升中，目标85% GA标准）)"
+          echo "  JaCoCo 覆盖率门禁检查 (阈值: 行≥40% 分支≥18%（2026-09-01 实化提升，目标85% GA标准）)"
           echo "  覆盖范围：platform/ 下所有含 pom.xml 的 Java 模块"
           echo "============================================"
-          # 阈值定义：当前实际覆盖率约44%/28%，门禁设为35%/15%（略低于实际值，留~10%缓冲）
+          # 阈值定义：2026-09-01 Boot 4.1.1 升级后 22 模块 jacoco 全量实测，
+          # 名单内模块分布 46~92%（最低 common-security 经补 JwtAuthFilterTest
+          # 达 49%/33%），门禁 35/15 → 40/18（低于最低实测值留缓冲）。
           # 保留趋势阻断（下降>2%阻断CI）；逐步提升路线见 docs/coverage-roadmap.md；目标 85%
-          LINE_THRESHOLD=35
-          BRANCH_THRESHOLD=15
+          LINE_THRESHOLD=40
+          BRANCH_THRESHOLD=18
           # 排除列表：覆盖率已知较低的模块（待逐步提升，见 docs/coverage-roadmap.md）
           # 这些模块当前覆盖率远低于阈值，排除以避免阻断CI；目标：逐步补充测试后移出排除列表
+          # 2026-09-01 按实测确认 encaps-gateway（2%/0%，薄壳）在列
           COVERAGE_EXCLUDE="dashboard cost-model encaps-data real-time-pipeline encaps-gateway infra-provider-cloud storage-io stream-batch-scheduler infra-provider-xinchang"
           # 遍历所有 Java 模块生成 JaCoCo 报告并执行门禁检查
           # 仅对存在 src/test 目录（有测试）的模块执行门禁；无测试的模块仅生成报告
