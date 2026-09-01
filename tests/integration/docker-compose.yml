@@ -31,6 +31,9 @@ services:
       - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
       - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
       - K8S_MOCK_ENABLED=true
+      # 本地降级登录（无 Keycloak 的集成/E2E 栈：admin/admin 签发平台 JWT）；
+      # 生产部署严禁开启——Keycloak 不可达时应返回 503 而非降级
+      - APP_SECURITY_LOCAL_AUTH_ENABLED=true
     healthcheck:
       # encaps-layer 无 /api/v1/health 控制器，使用 Spring Boot Actuator 端点
       # （application.yml 已暴露 health，SecurityConfig 已放行 /actuator/health）
@@ -358,7 +361,9 @@ services:
     ports:
       - "16686:16686"  # Jaeger UI
       - "4317:4317"    # OTLP gRPC receiver
-      - "4318:4318"    # OTLP HTTP receiver
+      # OTLP HTTP：宿主 4318 常被本机开发工具（如 IDE 的 otel collector）占用，
+      # 宿主侧映射改走 14318；容器内仍是 4318（服务间通信走容器网络不受影响）
+      - "14318:4318"
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     networks:

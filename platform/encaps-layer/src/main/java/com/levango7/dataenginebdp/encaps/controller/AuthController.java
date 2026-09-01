@@ -25,16 +25,23 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 认证端点（Keycloak OIDC direct grant 代理）。
+ * 认证端点（Keycloak OIDC direct grant 代理；可选本地降级模式）。
  *
  * <p>前端 Login.vue 调 {@code POST /api/v1/auth/login}，
  * 本端点代理 Keycloak 的 password flow（directAccessGrants），
- * 返回前端 {@code LoginResult} 契约（token/expiresIn/refreshToken/user）。
+ * 返回前端 {@code LoginResult} 契约（token/expiresIn/refreshToken/user）。</p>
+ *
+ * <p>本地降级模式（{@code APP_SECURITY_LOCAL_AUTH_ENABLED=true}，
+ * 默认 false）：无 Keycloak 的环境（集成测试栈 / 本地 E2E / 离线演示）
+ * 用内置 admin 账号直接签发平台 JWT（HMAC，与 JwtAuthFilter 同密钥）。
+ * 生产部署必须保持关闭（Keycloak 不可达时返回 503 而非降级）。</p>
  *
  * <p>配置（环境变量）：
  * <ul>
  *   <li>KEYCLOAK_TOKEN_URI: Keycloak token 端点（默认本地 dev 实例）</li>
  *   <li>KEYCLOAK_CLIENT_ID: 客户端 ID（默认 sq-console）</li>
+ *   <li>APP_SECURITY_LOCAL_AUTH_ENABLED: 本地降级开关（默认 false）</li>
+ *   <li>LOCAL_AUTH_USERNAME / LOCAL_AUTH_PASSWORD: 降级账号（默认 admin/admin）</li>
  * </ul>
  */
 @Slf4j
@@ -52,6 +59,24 @@ public class AuthController {
 
     @Value("${app.security.oidc.client-id:sq-console}")
     private String clientId;
+
+    /** 本地降级认证开关（默认关；仅无 Keycloak 的测试/演示环境开启）。 */
+    @Value("${app.security.local-auth.enabled:false}")
+    private boolean localAuthEnabled;
+
+    @Value("${app.security.local-auth.username:admin}")
+    private String localUsername;
+
+    @Value("${app.security.local-auth.password:admin}")
+    private String localPassword;
+
+    /** 与 JwtAuthFilter 同源的签名密钥（app.security.jwt.secret → JWT_SECRET 环境变量）。 */
+    @Value("${app.security.jwt.secret:}")
+    private String jwtSecret;
+
+    /** 与 JwtAuthFilter 一致的 issuer 声明。 */
+    @Value("${app.security.jwt.issuer:shuqing-bigdata}")
+    private String jwtIssuer;
 
 
     /**
@@ -117,12 +142,74 @@ public class AuthController {
             return ResponseEntity.ok(result);
         } catch (RestClientException e) {
             log.error("Keycloak 不可达: {}", e.getMessage());
+            // 本地降级：测试/演示环境（无 Keycloak）显式开启后用内置账号签发平台 JWT
+            if (localAuthEnabled) {
+                Map<String, Object> local = localLogin(req);
+                if (local != null) {
+                    return ResponseEntity.ok(local);
+                }
+                return ResponseEntity.status(401)
+                        .body(Map.of("error", "认证失败（用户名或密码错误）"));
+            }
             return ResponseEntity.status(503)
                     .body(Map.of("error", "认证服务暂时不可用，请稍后重试"));
         } catch (Exception e) {
             log.error("登录处理异常", e);
+            // tokenUri 未配置时 restTemplate 抛 IllegalArgumentException 进此分支；
+            // 同样给降级路径一次机会
+            if (localAuthEnabled) {
+                Map<String, Object> local = localLogin(req);
+                if (local != null) {
+                    return ResponseEntity.ok(local);
+                }
+            }
             return ResponseEntity.status(500).body(Map.of("error", "登录失败，请稍后重试"));
         }
+    }
+
+    /**
+     * 本地降级登录：校验内置账号并签发平台 JWT（HMAC，JwtAuthFilter 可验）。
+     *
+     * <p>仅在 {@code app.security.local-auth.enabled=true}（默认 false）时可达。
+     * 返回结构与 Keycloak 主路径完全一致（token/expiresIn/refreshToken/user）。</p>
+     *
+     * @return LoginResult 形态；账号不符返回 null（由调用方回 401）
+     */
+    private Map<String, Object> localLogin(LoginRequest req) {
+        if (!localUsername.equals(req.username()) || !localPassword.equals(req.password())) {
+            log.warn("本地降级登录: 账号或密码不匹配, username={}", req.username());
+            return null;
+        }
+        if (jwtSecret == null || jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8).length < 32) {
+            log.error("本地降级登录失败: JWT_SECRET 未配置或不足 32 字节");
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        long expiresIn = 3600;
+        String token = io.jsonwebtoken.Jwts.builder()
+                .issuer(jwtIssuer)
+                .subject(localUsername)
+                .claim("tenantId", "platform-admin")
+                .claim("role", "admin")
+                .issuedAt(new java.util.Date(now))
+                .expiration(new java.util.Date(now + expiresIn * 1000))
+                .signWith(io.jsonwebtoken.security.Keys.hmacShaKeyFor(
+                        jwtSecret.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+                .compact();
+
+        Map<String, Object> user = new LinkedHashMap<>();
+        user.put("id", "local-admin");
+        user.put("username", localUsername);
+        user.put("nickname", "本地管理员");
+        user.put("email", "");
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("token", token);
+        result.put("expiresIn", expiresIn);
+        result.put("refreshToken", "");
+        result.put("user", user);
+        log.info("本地降级登录成功: username={}", localUsername);
+        return result;
     }
 
     /**

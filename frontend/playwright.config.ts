@@ -3,15 +3,17 @@
  *
  * 约定：
  * - baseURL: http://127.0.0.1:5173 （Vite dev server，IPv4）
- * - 后端 API: http://127.0.0.1:18086 （encaps-layer，已由冒烟脚本启动）
+ * - 后端 API: http://127.0.0.1:18080 （encaps-layer，由 tests/integration/docker-compose.yml 提供）。
+ *   历史注释误写 18086——该端口现为 evaluation 模型评测服务，无 /auth/login
+ *   端点，曾导致全部 UI 登录用例超时（nightly E2E 失败根因）。
  * - 测试目录: tests/e2e/
  * - 失败时截图 + trace
  * - HTML 报告输出到 tests/e2e-report/
  */
 import { defineConfig, devices } from '@playwright/test'
 
-/** 后端 API 基址（已由外部脚本启动到 18086） */
-const API_TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:18086'
+/** 后端 API 基址（默认 encaps-layer 集成栈 18080，可用 VITE_API_TARGET 覆盖） */
+const API_TARGET = process.env.VITE_API_TARGET || 'http://127.0.0.1:18080'
 
 export default defineConfig({
   testDir: './tests/e2e',
