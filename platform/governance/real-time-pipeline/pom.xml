@@ -22,7 +22,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <flink.version>1.20.0</flink.version>
         <flink.cdc.version>3.0.1</flink.cdc.version>
-        <iceberg.version>1.5.2</iceberg.version>
+        <iceberg.version>1.11.0</iceberg.version>
         <nebula.version>3.8.4</nebula.version>
         <flink.scope>provided</flink.scope>
     </properties>
