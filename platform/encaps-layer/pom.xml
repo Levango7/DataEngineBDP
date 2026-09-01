@@ -133,7 +133,7 @@
         <dependency>
             <groupId>org.bouncycastle</groupId>
             <artifactId>bcpkix-jdk18on</artifactId>
-            <version>1.78.1</version>
+            <version>1.85</version>
         </dependency>
 
         <!-- H2：开发环境零配置内存/文件数据库 -->
