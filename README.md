@@ -35,7 +35,7 @@
 | 类别 | 技术选型 |
 | --- | --- |
 | 后端语言 | Java 17 / Go 1.25 / Python 3.11 |
-| 后端框架 | Spring Boot 3.2.6 / Gin / FastAPI / Pydantic |
+| 后端框架 | Spring Boot 4.1.1 / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5.3 / Flink 1.20.0 / Trino 460 / Doris 2.1.7 / Kafka 3.8.1 / IoTDB 2.0.2 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
@@ -54,7 +54,7 @@ DataEngineBDP/
 ├── design/                     # 设计文档
 │   ├── 详细设计/               # 51 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 88 个 Helm Chart（全部含 templates 与 values）
+│   │   ├── charts/             # 93 个 Helm Chart（全部含 templates 与 values）
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
@@ -264,13 +264,15 @@ bash scripts/poc/run-poc.sh
 | 指标 | 数值 |
 | --- | --- |
 | 自研组件目录 | 37 个 |
-| Helm Chart | 88 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
+| Helm Chart | 93 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
 | 详细设计文档 | 51 份 |
-| 单元测试 | 约 6200+（Java 3950+ / Go 677+ / Python 1611+） |
+| 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |
+| 前端 Playwright E2E | 71 用例通过 + 1 跳过（夜间回归门禁，2026-09-01 实跑口径） |
 | 集成测试 | 61 个文件（331 个用例，tests/ 目录） |
-| 前端视图页面 | 78 个 .vue（全部有实质内容，无占位页面） |
+| 前端视图页面 | 79 个 .vue（全部有实质内容，无占位页面） |
 | 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云，均为配置模板） |
-| 工程成熟度 | 代码骨架约 50% / 服务级实现约 30% |
+| 框架基线 | Spring Boot 4.1.1 / Spring Framework 7 / Java 17 / Go 1.26 / Python 3.11 / Vue3+TS strict |
+| 工程成熟度 | 覆盖率门禁 Java≥40% / Go≥30% / Python≥55%（jacoco+pytest-cov 实测基线，2026-09-01） |
 
 ## 开发模式说明
 

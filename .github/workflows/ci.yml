@@ -1351,16 +1351,30 @@ jobs:
         working-directory: tests/integration
         # 门禁收紧（2026-08-26）：compose 启动失败直接 exit 1 阻断 CI，不再置跳过标记；
         # 服务不可用时后续集成测试无意义，静默跳过会掩盖真实故障
+        # 2026-09-01：加一次重试——干净 runner 全量构建 10+ 镜像偶发
+        # 基础镜像拉取超时（历史上 multi-arch 亦出现过），属基础设施抖动非代码缺陷；
+        # 重试仍失败则照旧阻断并输出完整诊断日志
         run: |
-          echo "启动 docker-compose 服务..."
+          echo "启动 docker-compose 服务（第 1 次尝试）..."
+          if docker compose up -d --wait; then
+            echo "✓ 所有服务已启动（第 1 次尝试成功）"
+            exit 0
+          fi
+          echo "::warning::第 1 次启动失败，输出诊断后 60s 重试一次"
+          docker compose ps -a || true
+          echo "=== 容器日志（第 1 次尝试排障）==="
+          docker compose logs --tail=50 || true
+          docker compose down --remove-orphans || true
+          sleep 60
+          echo "启动 docker-compose 服务（重试）..."
           if ! docker compose up -d --wait; then
-            echo "::error::docker-compose 启动失败或健康检查超时，集成测试环境不可用，阻断 CI"
+            echo "::error::docker-compose 启动失败或健康检查超时（已重试 1 次），集成测试环境不可用，阻断 CI"
             docker compose ps -a || true
             echo "=== 容器日志（排障用）==="
             docker compose logs --tail=100 || true
             exit 1
           fi
-          echo "✓ 所有服务已启动"
+          echo "✓ 所有服务已启动（重试成功）"
 
       - name: 运行 pytest 集成测试
         # 能执行到本步骤说明 compose 已就绪（上一步失败已直接阻断）；
