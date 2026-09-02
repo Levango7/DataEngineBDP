@@ -45,9 +45,9 @@ dev = [
     "pytest==8.1.1",
     "pytest-asyncio==1.4.0",
     "httpx==0.28.1",
-    "mlflow==3.15.1",
+    "mlflow==3.15.2",
 ]
-mlflow = ["mlflow==3.15.1"]
+mlflow = ["mlflow==3.15.2"]
 
 [project.urls]
 Homepage = "https://github.com/shuqing/sq-business-portal"
