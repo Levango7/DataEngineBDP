@@ -8,7 +8,7 @@ pydantic==2.13.4
 pydantic-settings==2.15.0
 
 # MLflow integration (optional, only enabled when store.type=mlflow)
-mlflow==3.15.1
+mlflow==3.15.2
 
 # HTTP client (for MLflow SDK / external calls)
 httpx==0.28.1
