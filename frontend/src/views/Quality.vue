@@ -1,26 +1,26 @@
 <template>
   <div>
-    <h1>数据质量</h1>
-    <div class="sub">规则配置即校验，异常自动阻断下游并告警，保障湖仓集数据可信。</div>
+    <h1>{{ t('quality.title') }}</h1>
+    <div class="sub">{{ t('quality.subtitle') }}</div>
     <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">+ 新建规则</button>
+      <button class="btn sm" @click="modalVisible = true">{{ t('quality.newRule') }}</button>
       <div class="spacer"></div>
-      <span class="pill g">通过率 {{ summary?.passRate ?? '--' }}%</span>
+      <span class="pill g">{{ t('quality.passRate', { rate: summary?.passRate ?? '--' }) }}</span>
     </div>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
         {{ error.message }}，
-        <a href="javascript:void(0)" @click="loadRules">重试</a>
+        <a href="javascript:void(0)" @click="loadRules">{{ t('common.retry') }}</a>
       </div>
       <table v-else>
         <tr>
-          <th>规则</th>
-          <th>对象</th>
-          <th>校验</th>
-          <th>阈值</th>
-          <th>最近</th>
-          <th>状态</th>
+          <th>{{ t('quality.cols.rule') }}</th>
+          <th>{{ t('quality.cols.target') }}</th>
+          <th>{{ t('quality.cols.check') }}</th>
+          <th>{{ t('quality.cols.threshold') }}</th>
+          <th>{{ t('quality.cols.last') }}</th>
+          <th>{{ t('quality.cols.status') }}</th>
         </tr>
         <tr v-for="r in rules" :key="r.id">
           <td>{{ r.name }}</td>
@@ -35,34 +35,42 @@
           </td>
         </tr>
         <tr v-if="rules.length === 0">
-          <td colspan="6" style="text-align: center; color: var(--muted)">暂无规则</td>
+          <td colspan="6" style="text-align: center; color: var(--muted)">
+            {{ t('quality.empty') }}
+          </td>
         </tr>
       </table>
     </div>
 
-    <Modal :visible="modalVisible" title="新建质量规则" @close="modalVisible = false">
-      <label>对象表</label>
-      <input v-model="form.targetTable" placeholder="如 dwd.order_wide" />
-      <label>字段</label>
-      <input v-model="form.targetField" placeholder="如 order_id" />
-      <label>校验类型</label>
+    <Modal :visible="modalVisible" :title="t('quality.createModal.title')" @close="modalVisible = false">
+      <label>{{ t('quality.createModal.targetTable') }}</label>
+      <input
+        v-model="form.targetTable"
+        :placeholder="t('quality.createModal.targetTablePlaceholder')"
+      />
+      <label>{{ t('quality.createModal.targetField') }}</label>
+      <input
+        v-model="form.targetField"
+        :placeholder="t('quality.createModal.targetFieldPlaceholder')"
+      />
+      <label>{{ t('quality.createModal.checkType') }}</label>
       <select v-model="form.checkType">
-        <option value="not_null">非空</option>
-        <option value="unique">唯一</option>
-        <option value="range">范围</option>
-        <option value="fluctuation">波动</option>
+        <option value="not_null">{{ t('quality.checkTypes.not_null') }}</option>
+        <option value="unique">{{ t('quality.checkTypes.unique') }}</option>
+        <option value="range">{{ t('quality.checkTypes.range') }}</option>
+        <option value="fluctuation">{{ t('quality.checkTypes.fluctuation') }}</option>
       </select>
-      <label>阈值</label>
-      <input v-model="form.threshold" placeholder="如 100%" />
-      <label>异常动作</label>
+      <label>{{ t('quality.createModal.threshold') }}</label>
+      <input v-model="form.threshold" :placeholder="t('quality.createModal.thresholdPlaceholder')" />
+      <label>{{ t('quality.createModal.actionOnFail') }}</label>
       <select v-model="form.actionOnFail">
-        <option value="alert">告警</option>
-        <option value="block_downstream">阻断下游</option>
+        <option value="alert">{{ t('quality.actions.alert') }}</option>
+        <option value="block_downstream">{{ t('quality.actions.block_downstream') }}</option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '创建中…' : '创建' }}
+          {{ submitting ? t('quality.createModal.creating') : t('common.create') }}
         </button>
       </template>
     </Modal>
@@ -71,6 +79,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -78,6 +87,7 @@ import * as qualityApi from '@/api/quality'
 import type { QualityRule, QualitySummary, CheckType, ActionOnFail } from '@/api/quality'
 import type { PagedResult } from '@/api/types'
 
+const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
@@ -100,17 +110,11 @@ const rules = computed<QualityRule[]>(() => rulesData.value?.[0]?.list ?? [])
 // 通过率
 const summary = computed<QualitySummary | null>(() => rulesData.value?.[1] ?? null)
 
-/** 校验类型 → 中文 */
-function checkTypeLabel(t: CheckType): string {
-  const map: Record<CheckType, string> = {
-    not_null: '非空',
-    unique: '唯一',
-    range: '范围',
-    fluctuation: '波动',
-    regex: '正则',
-    sql: 'SQL'
-  }
-  return map[t] || t
+/** 校验类型 → 词条 */
+const CHECK_TYPES: CheckType[] = ['not_null', 'unique', 'range', 'fluctuation', 'regex', 'sql']
+
+function checkTypeLabel(ct: CheckType): string {
+  return CHECK_TYPES.includes(ct) ? t(`quality.checkTypes.${ct}`) : ct
 }
 
 /** 校验结果 → pill 样式 */
@@ -131,13 +135,13 @@ function resultPillClass(result?: string): string {
 function resultPillText(result?: string): string {
   switch (result) {
     case 'pass':
-      return '通过'
+      return t('quality.results.pass')
     case 'warn':
-      return '告警'
+      return t('quality.results.warn')
     case 'fail':
-      return '失败'
+      return t('quality.results.fail')
     default:
-      return '未运行'
+      return t('quality.results.none')
   }
 }
 
@@ -159,7 +163,7 @@ const form = reactive<{
 /** 提交创建规则 */
 async function handleSubmit() {
   if (!form.targetTable.trim()) {
-    store.showToast('请填写对象表')
+    store.showToast(t('quality.createModal.tableRequired'))
     return
   }
   submitting.value = true
@@ -173,7 +177,7 @@ async function handleSubmit() {
       actionOnFail: form.actionOnFail
     })
     modalVisible.value = false
-    store.showToast('规则已创建')
+    store.showToast(t('quality.createModal.created'))
     await loadRules()
   } catch {
     // 错误提示已由拦截器统一处理

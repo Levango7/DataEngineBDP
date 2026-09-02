@@ -1,0 +1,35 @@
+{
+  "standard": {
+    "title": "Data Standards",
+    "subtitle": "Unified field naming, types and code values. Governance moved upstream to avoid \"same meaning, different names\".",
+    "newStandard": "+ New Standard",
+    "applyRate": "{rate}% applied",
+    "cols": {
+      "item": "Standard",
+      "type": "Type",
+      "rule": "Code Value / Rule",
+      "refAssets": "Referenced Assets"
+    },
+    "empty": "No standards",
+    "types": {
+      "primary_key": "Primary Key",
+      "enum": "Enum",
+      "dict": "Dictionary",
+      "amount": "Amount",
+      "date": "Date",
+      "string": "String"
+    },
+    "createModal": {
+      "title": "New Data Standard",
+      "item": "Standard Item",
+      "itemPlaceholder": "e.g. user_id",
+      "type": "Type",
+      "rule": "Rule / Code Value",
+      "rulePlaceholder": "e.g. bigint, not null",
+      "publishing": "Publishing…",
+      "publish": "Publish",
+      "nameRequired": "Please enter a standard item",
+      "published": "Standard published"
+    }
+  }
+}

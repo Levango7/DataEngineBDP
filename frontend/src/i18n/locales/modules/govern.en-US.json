@@ -1,0 +1,71 @@
+{
+  "govern": {
+    "title": "Asset Catalog",
+    "subtitle": "Search, request and subscribe to data assets in one place. Lineage, quality and masking policies accumulate with each asset.",
+    "searchPlaceholder": "Search tables / topics / tags…",
+    "allLayers": "All Layers",
+    "registerAsset": "+ Register Asset",
+    "cols": {
+      "name": "Asset",
+      "layer": "Layer",
+      "owner": "Owner",
+      "score": "Quality Score",
+      "sensitive": "Sensitive",
+      "detail": "Details"
+    },
+    "empty": "No assets",
+    "drawerTitle": "Asset: {name}",
+    "tabs": {
+      "metadata": "Metadata",
+      "schema": "Schema",
+      "quality": "Quality",
+      "permissions": "Permissions"
+    },
+    "meta": {
+      "layer": "Layer",
+      "owner": "Owner",
+      "score": "Quality Score",
+      "refresh": "Refresh Frequency",
+      "refreshDefault": "Daily"
+    },
+    "schema": {
+      "loading": "Loading Schema…",
+      "colField": "Field",
+      "colType": "Type",
+      "colSensitive": "Sensitive",
+      "empty": "No Schema"
+    },
+    "quality": {
+      "loading": "Loading quality checks…",
+      "passed": "Passed",
+      "failed": "Failed",
+      "empty": "No quality check results"
+    },
+    "perms": {
+      "loading": "Loading permissions…",
+      "current": "Current Permissions",
+      "none": "None",
+      "applyRead": "Request Read Access",
+      "note": "Requests go through an approval workflow and never connect to the underlying storage directly.",
+      "applied": "Access request submitted, pending approval"
+    },
+    "sensitivity": {
+      "none": "None",
+      "restricted": "Restricted",
+      "pii": "PII"
+    },
+    "registerModal": {
+      "title": "Register Data Asset",
+      "name": "Asset Name",
+      "namePlaceholder": "e.g. dws.xxx",
+      "layer": "Layer",
+      "owner": "Owner",
+      "sensitivity": "Sensitivity Level",
+      "sensNone": "None",
+      "sensRestricted": "Restricted",
+      "sensPii": "PII",
+      "register": "Register",
+      "registered": "Asset registered"
+    }
+  }
+}

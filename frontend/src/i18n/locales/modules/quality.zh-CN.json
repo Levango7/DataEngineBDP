@@ -1,0 +1,49 @@
+{
+  "quality": {
+    "title": "数据质量",
+    "subtitle": "规则配置即校验，异常自动阻断下游并告警，保障湖仓集数据可信。",
+    "newRule": "+ 新建规则",
+    "passRate": "通过率 {rate}%",
+    "cols": {
+      "rule": "规则",
+      "target": "对象",
+      "check": "校验",
+      "threshold": "阈值",
+      "last": "最近",
+      "status": "状态"
+    },
+    "empty": "暂无规则",
+    "checkTypes": {
+      "not_null": "非空",
+      "unique": "唯一",
+      "range": "范围",
+      "fluctuation": "波动",
+      "regex": "正则",
+      "sql": "SQL"
+    },
+    "results": {
+      "pass": "通过",
+      "warn": "告警",
+      "fail": "失败",
+      "none": "未运行"
+    },
+    "actions": {
+      "alert": "告警",
+      "block_downstream": "阻断下游"
+    },
+    "createModal": {
+      "title": "新建质量规则",
+      "targetTable": "对象表",
+      "targetTablePlaceholder": "如 dwd.order_wide",
+      "targetField": "字段",
+      "targetFieldPlaceholder": "如 order_id",
+      "checkType": "校验类型",
+      "threshold": "阈值",
+      "thresholdPlaceholder": "如 100%",
+      "actionOnFail": "异常动作",
+      "creating": "创建中…",
+      "tableRequired": "请填写对象表",
+      "created": "规则已创建"
+    }
+  }
+}

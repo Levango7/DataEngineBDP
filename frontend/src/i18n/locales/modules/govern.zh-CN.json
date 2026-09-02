@@ -1,0 +1,71 @@
+{
+  "govern": {
+    "title": "资产目录",
+    "subtitle": "统一检索、申请、订阅数据资产；血缘、质量、脱敏策略随资产沉淀。",
+    "searchPlaceholder": "搜索表 / 主题 / 标签…",
+    "allLayers": "全部分层",
+    "registerAsset": "+ 登记资产",
+    "cols": {
+      "name": "资产名",
+      "layer": "分层",
+      "owner": "负责人",
+      "score": "质量分",
+      "sensitive": "敏感",
+      "detail": "详情"
+    },
+    "empty": "暂无资产",
+    "drawerTitle": "资产：{name}",
+    "tabs": {
+      "metadata": "元数据",
+      "schema": "Schema",
+      "quality": "质量",
+      "permissions": "权限"
+    },
+    "meta": {
+      "layer": "分层",
+      "owner": "负责人",
+      "score": "质量分",
+      "refresh": "更新频率",
+      "refreshDefault": "日"
+    },
+    "schema": {
+      "loading": "加载 Schema…",
+      "colField": "字段",
+      "colType": "类型",
+      "colSensitive": "敏感",
+      "empty": "暂无 Schema"
+    },
+    "quality": {
+      "loading": "加载质量检查…",
+      "passed": "通过",
+      "failed": "未通过",
+      "empty": "暂无质量检查结果"
+    },
+    "perms": {
+      "loading": "加载权限…",
+      "current": "当前权限",
+      "none": "无",
+      "applyRead": "申请读权限",
+      "note": "申请经审批流，不直连底层存储。",
+      "applied": "权限申请已提交，等待审批"
+    },
+    "sensitivity": {
+      "none": "无",
+      "restricted": "受限",
+      "pii": "PII"
+    },
+    "registerModal": {
+      "title": "登记数据资产",
+      "name": "资产名",
+      "namePlaceholder": "如 dws.xxx",
+      "layer": "分层",
+      "owner": "负责人",
+      "sensitivity": "敏感级别",
+      "sensNone": "无",
+      "sensRestricted": "受限",
+      "sensPii": "PII",
+      "register": "登记",
+      "registered": "资产已登记"
+    }
+  }
+}

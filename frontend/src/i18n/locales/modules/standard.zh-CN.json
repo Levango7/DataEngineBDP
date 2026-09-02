@@ -1,0 +1,35 @@
+{
+  "standard": {
+    "title": "数据标准",
+    "subtitle": "统一字段命名、类型、码值，治理前置，避免“同义不同名”。",
+    "newStandard": "+ 新建标准",
+    "applyRate": "已落标 {rate}%",
+    "cols": {
+      "item": "标准项",
+      "type": "类型",
+      "rule": "码值/规则",
+      "refAssets": "引用资产"
+    },
+    "empty": "暂无标准",
+    "types": {
+      "primary_key": "主键",
+      "enum": "枚举",
+      "dict": "字典",
+      "amount": "金额",
+      "date": "日期",
+      "string": "字符串"
+    },
+    "createModal": {
+      "title": "新建数据标准",
+      "item": "标准项",
+      "itemPlaceholder": "如 user_id",
+      "type": "类型",
+      "rule": "规则/码值",
+      "rulePlaceholder": "如 bigint,非空",
+      "publishing": "发布中…",
+      "publish": "发布",
+      "nameRequired": "请填写标准项",
+      "published": "标准已发布"
+    }
+  }
+}

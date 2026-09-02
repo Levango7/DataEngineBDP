@@ -1,24 +1,24 @@
 <template>
   <div>
-    <h1>数据标准</h1>
-    <div class="sub">统一字段命名、类型、码值，治理前置，避免"同义不同名"。</div>
+    <h1>{{ t('standard.title') }}</h1>
+    <div class="sub">{{ t('standard.subtitle') }}</div>
     <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">+ 新建标准</button>
+      <button class="btn sm" @click="modalVisible = true">{{ t('standard.newStandard') }}</button>
       <div class="spacer"></div>
-      <span class="pill b">已落标 {{ summary?.applyRate ?? '--' }}%</span>
+      <span class="pill b">{{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}</span>
     </div>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
         {{ error.message }}，
-        <a href="javascript:void(0)" @click="loadStandards">重试</a>
+        <a href="javascript:void(0)" @click="loadStandards">{{ t('common.retry') }}</a>
       </div>
       <table v-else>
         <tr>
-          <th>标准项</th>
-          <th>类型</th>
-          <th>码值/规则</th>
-          <th>引用资产</th>
+          <th>{{ t('standard.cols.item') }}</th>
+          <th>{{ t('standard.cols.type') }}</th>
+          <th>{{ t('standard.cols.rule') }}</th>
+          <th>{{ t('standard.cols.refAssets') }}</th>
         </tr>
         <tr v-for="s in standards" :key="s.id">
           <td>{{ s.name }}</td>
@@ -27,27 +27,29 @@
           <td>{{ s.refAssetCount }}</td>
         </tr>
         <tr v-if="standards.length === 0">
-          <td colspan="4" style="text-align: center; color: var(--muted)">暂无标准</td>
+          <td colspan="4" style="text-align: center; color: var(--muted)">
+            {{ t('standard.empty') }}
+          </td>
         </tr>
       </table>
     </div>
 
-    <Modal :visible="modalVisible" title="新建数据标准" @close="modalVisible = false">
-      <label>标准项</label>
-      <input v-model="form.name" placeholder="如 user_id" />
-      <label>类型</label>
+    <Modal :visible="modalVisible" :title="t('standard.createModal.title')" @close="modalVisible = false">
+      <label>{{ t('standard.createModal.item') }}</label>
+      <input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
+      <label>{{ t('standard.createModal.type') }}</label>
       <select v-model="form.type">
-        <option value="primary_key">主键</option>
-        <option value="enum">枚举</option>
-        <option value="dict">字典</option>
-        <option value="amount">金额</option>
+        <option value="primary_key">{{ t('standard.types.primary_key') }}</option>
+        <option value="enum">{{ t('standard.types.enum') }}</option>
+        <option value="dict">{{ t('standard.types.dict') }}</option>
+        <option value="amount">{{ t('standard.types.amount') }}</option>
       </select>
-      <label>规则/码值</label>
-      <input v-model="form.rule" placeholder="如 bigint,非空" />
+      <label>{{ t('standard.createModal.rule') }}</label>
+      <input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '发布中…' : '发布' }}
+          {{ submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish') }}
         </button>
       </template>
     </Modal>
@@ -56,6 +58,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -63,6 +66,7 @@ import * as standardApi from '@/api/standard'
 import type { Standard, StandardSummary, StandardType } from '@/api/standard'
 import type { PagedResult } from '@/api/types'
 
+const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
@@ -85,17 +89,11 @@ const standards = computed<Standard[]>(() => standardsData.value?.[0]?.list ?? [
 // 落标率
 const summary = computed<StandardSummary | null>(() => standardsData.value?.[1] ?? null)
 
-/** 类型 → 中文 */
-function typeLabel(t: StandardType): string {
-  const map: Record<StandardType, string> = {
-    primary_key: '主键',
-    enum: '枚举',
-    dict: '字典',
-    amount: '金额',
-    date: '日期',
-    string: '字符串'
-  }
-  return map[t] || t
+/** 类型 → 词条 */
+const STANDARD_TYPES: StandardType[] = ['primary_key', 'enum', 'dict', 'amount', 'date', 'string']
+
+function typeLabel(st: StandardType): string {
+  return STANDARD_TYPES.includes(st) ? t(`standard.types.${st}`) : st
 }
 
 // 新建表单
@@ -112,7 +110,7 @@ const form = reactive<{
 /** 提交创建标准 */
 async function handleSubmit() {
   if (!form.name.trim()) {
-    store.showToast('请填写标准项')
+    store.showToast(t('standard.createModal.nameRequired'))
     return
   }
   submitting.value = true
@@ -123,7 +121,7 @@ async function handleSubmit() {
       rule: form.rule
     })
     modalVisible.value = false
-    store.showToast('标准已发布')
+    store.showToast(t('standard.createModal.published'))
     await loadStandards()
   } catch {
     // 错误提示已由拦截器统一处理

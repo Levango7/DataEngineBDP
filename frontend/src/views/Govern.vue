@@ -1,29 +1,29 @@
 <template>
   <div>
-    <h1>资产目录</h1>
-    <div class="sub">统一检索、申请、订阅数据资产；血缘、质量、脱敏策略随资产沉淀。</div>
+    <h1>{{ t('govern.title') }}</h1>
+    <div class="sub">{{ t('govern.subtitle') }}</div>
     <div class="toolbar">
-      <input style="width: 280px" placeholder="搜索表 / 主题 / 标签…" />
+      <input style="width: 280px" :placeholder="t('govern.searchPlaceholder')" />
       <select>
-        <option>全部分层</option>
+        <option>{{ t('govern.allLayers') }}</option>
       </select>
       <div class="spacer"></div>
-      <button class="btn sm" @click="modalVisible = true">+ 登记资产</button>
+      <button class="btn sm" @click="modalVisible = true">{{ t('govern.registerAsset') }}</button>
     </div>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
         {{ error.message }}，
-        <a href="javascript:void(0)" @click="loadAssets">重试</a>
+        <a href="javascript:void(0)" @click="loadAssets">{{ t('common.retry') }}</a>
       </div>
       <table v-else>
         <thead>
           <tr>
-            <th>资产名</th>
-            <th>分层</th>
-            <th>负责人</th>
-            <th>质量分</th>
-            <th>敏感</th>
+            <th>{{ t('govern.cols.name') }}</th>
+            <th>{{ t('govern.cols.layer') }}</th>
+            <th>{{ t('govern.cols.owner') }}</th>
+            <th>{{ t('govern.cols.score') }}</th>
+            <th>{{ t('govern.cols.sensitive') }}</th>
             <th></th>
           </tr>
         </thead>
@@ -38,10 +38,12 @@
                 {{ sensitivityPillText(a.sensitivity) }}
               </span>
             </td>
-            <td><span class="pill b">详情</span></td>
+            <td><span class="pill b">{{ t('govern.cols.detail') }}</span></td>
           </tr>
           <tr v-if="assets.length === 0">
-            <td colspan="6" style="text-align: center; color: var(--muted)">暂无资产</td>
+            <td colspan="6" style="text-align: center; color: var(--muted)">
+              {{ t('govern.empty') }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -49,41 +51,47 @@
 
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
       <template #header>
-        资产：{{ current?.name }}
+        {{ t('govern.drawerTitle', { name: current?.name }) }}
         <span class="pill r">{{ current ? sensitivityPillText(current.sensitivity) : '' }}</span>
       </template>
       <div class="tabbar">
-        <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">元数据</div>
-        <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">Schema</div>
-        <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">质量</div>
-        <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">权限</div>
+        <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">
+          {{ t('govern.tabs.metadata') }}
+        </div>
+        <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">{{ t('govern.tabs.schema') }}</div>
+        <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">
+          {{ t('govern.tabs.quality') }}
+        </div>
+        <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">
+          {{ t('govern.tabs.permissions') }}
+        </div>
       </div>
       <div v-if="tab === 0">
         <div class="kv">
-          <span>分层</span>
+          <span>{{ t('govern.meta.layer') }}</span>
           <span>{{ current?.layer }}</span>
         </div>
         <div class="kv">
-          <span>负责人</span>
+          <span>{{ t('govern.meta.owner') }}</span>
           <span>{{ current?.owner }}</span>
         </div>
         <div class="kv">
-          <span>质量分</span>
+          <span>{{ t('govern.meta.score') }}</span>
           <span>{{ current?.score }}</span>
         </div>
         <div class="kv">
-          <span>更新频率</span>
-          <span>{{ current?.refreshFrequency || '日' }}</span>
+          <span>{{ t('govern.meta.refresh') }}</span>
+          <span>{{ current?.refreshFrequency || t('govern.meta.refreshDefault') }}</span>
         </div>
       </div>
       <div v-if="tab === 1">
-        <div v-if="schemaLoading" style="color: var(--muted)">加载 Schema…</div>
+        <div v-if="schemaLoading" style="color: var(--muted)">{{ t('govern.schema.loading') }}</div>
         <table v-else>
           <thead>
             <tr>
-              <th>字段</th>
-              <th>类型</th>
-              <th>敏感</th>
+              <th>{{ t('govern.schema.colField') }}</th>
+              <th>{{ t('govern.schema.colType') }}</th>
+              <th>{{ t('govern.schema.colSensitive') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -96,63 +104,69 @@
               <td v-else>—</td>
             </tr>
             <tr v-if="schemaFields.length === 0">
-              <td colspan="3" style="text-align: center; color: var(--muted)">暂无 Schema</td>
+              <td colspan="3" style="text-align: center; color: var(--muted)">
+                {{ t('govern.schema.empty') }}
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
       <div v-if="tab === 2">
-        <div v-if="qualityLoading" style="color: var(--muted)">加载质量检查…</div>
+        <div v-if="qualityLoading" style="color: var(--muted)">
+          {{ t('govern.quality.loading') }}
+        </div>
         <div v-for="(q, idx) in qualityItems" v-else :key="idx" class="kv">
           <span>{{ q.ruleName }}</span>
           <span>
             <span class="pill" :class="q.passed ? 'g' : 'r'">
-              {{ q.passed ? '通过' : '未通过' }}
+              {{ q.passed ? t('govern.quality.passed') : t('govern.quality.failed') }}
             </span>
           </span>
         </div>
         <div v-if="!qualityLoading && qualityItems.length === 0" style="color: var(--muted)">
-          暂无质量检查结果
+          {{ t('govern.quality.empty') }}
         </div>
       </div>
       <div v-if="tab === 3">
-        <div v-if="permLoading" style="color: var(--muted)">加载权限…</div>
+        <div v-if="permLoading" style="color: var(--muted)">{{ t('govern.perms.loading') }}</div>
         <div v-else>
           <div class="kv">
-            <span>当前权限</span>
+            <span>{{ t('govern.perms.current') }}</span>
             <span>
-              {{ permissions.map((p) => `${p.user}(${p.permission})`).join(' · ') || '无' }}
+              {{ permissions.map((p) => `${p.user}(${p.permission})`).join(' · ') || t('govern.perms.none') }}
             </span>
           </div>
           <button class="btn sm" style="margin-top: 10px" @click="applyReadPermission">
-            申请读权限
+            {{ t('govern.perms.applyRead') }}
           </button>
         </div>
-        <div class="note">申请经审批流，不直连底层存储。</div>
+        <div class="note">{{ t('govern.perms.note') }}</div>
       </div>
     </Drawer>
 
-    <Modal :visible="modalVisible" title="登记数据资产" @close="modalVisible = false">
-      <label>资产名</label>
-      <input placeholder="如 dws.xxx" />
-      <label>分层</label>
+    <Modal :visible="modalVisible" :title="t('govern.registerModal.title')" @close="modalVisible = false">
+      <label>{{ t('govern.registerModal.name') }}</label>
+      <input :placeholder="t('govern.registerModal.namePlaceholder')" />
+      <label>{{ t('govern.registerModal.layer') }}</label>
       <select>
         <option>ODS</option>
         <option>DWD</option>
         <option>DWS</option>
         <option>ADS</option>
       </select>
-      <label>负责人</label>
+      <label>{{ t('govern.registerModal.owner') }}</label>
       <input />
-      <label>敏感级别</label>
+      <label>{{ t('govern.registerModal.sensitivity') }}</label>
       <select>
-        <option>无</option>
-        <option>受限</option>
-        <option>PII</option>
+        <option>{{ t('govern.registerModal.sensNone') }}</option>
+        <option>{{ t('govern.registerModal.sensRestricted') }}</option>
+        <option>{{ t('govern.registerModal.sensPii') }}</option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" @click="ok('资产已登记')">登记</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
+        <button class="btn" @click="ok(t('govern.registerModal.registered'))">
+          {{ t('govern.registerModal.register') }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -160,6 +174,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
@@ -174,6 +189,7 @@ import type {
 } from '@/api/governance'
 import type { PagedResult } from '@/api/types'
 
+const { t } = useI18n()
 const store = useAppStore()
 
 // 资产列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
@@ -203,9 +219,9 @@ function sensitivityPillText(s: string): string {
     case 'PII':
       return 'PII'
     case 'restricted':
-      return '受限'
+      return t('govern.sensitivity.restricted')
     default:
-      return '无'
+      return t('govern.sensitivity.none')
   }
 }
 
@@ -254,7 +270,7 @@ async function applyReadPermission() {
   if (!current.value) return
   try {
     await governanceApi.applyAssetPermission(current.value.id, 'read')
-    store.showToast('权限申请已提交，等待审批')
+    store.showToast(t('govern.perms.applied'))
   } catch {
     // 错误提示已由拦截器统一处理
   }

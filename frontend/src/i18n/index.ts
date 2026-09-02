@@ -9,6 +9,12 @@ import projectsZh from './locales/modules/projects.zh-CN.json'
 import projectsEn from './locales/modules/projects.en-US.json'
 import analyzeZh from './locales/modules/analyze.zh-CN.json'
 import analyzeEn from './locales/modules/analyze.en-US.json'
+import qualityZh from './locales/modules/quality.zh-CN.json'
+import qualityEn from './locales/modules/quality.en-US.json'
+import standardZh from './locales/modules/standard.zh-CN.json'
+import standardEn from './locales/modules/standard.en-US.json'
+import governZh from './locales/modules/govern.zh-CN.json'
+import governEn from './locales/modules/govern.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -55,8 +61,26 @@ export const i18n = createI18n({
   fallbackLocale: 'zh-CN',
   globalInjection: true,
   messages: {
-    'zh-CN': { ...zhCN, ...dashboardZh, ...workspacesZh, ...projectsZh, ...analyzeZh },
-    'en-US': { ...enUS, ...dashboardEn, ...workspacesEn, ...projectsEn, ...analyzeEn }
+    'zh-CN': {
+      ...zhCN,
+      ...dashboardZh,
+      ...workspacesZh,
+      ...projectsZh,
+      ...analyzeZh,
+      ...qualityZh,
+      ...standardZh,
+      ...governZh
+    },
+    'en-US': {
+      ...enUS,
+      ...dashboardEn,
+      ...workspacesEn,
+      ...projectsEn,
+      ...analyzeEn,
+      ...qualityEn,
+      ...standardEn,
+      ...governEn
+    }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）
   missingWarn: import.meta.env.DEV,

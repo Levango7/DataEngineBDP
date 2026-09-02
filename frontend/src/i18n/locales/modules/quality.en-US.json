@@ -1,0 +1,49 @@
+{
+  "quality": {
+    "title": "Data Quality",
+    "subtitle": "Rules validate as soon as they are configured. Anomalies automatically block downstream jobs and raise alerts, keeping lake-house-set data trustworthy.",
+    "newRule": "+ New Rule",
+    "passRate": "Pass rate {rate}%",
+    "cols": {
+      "rule": "Rule",
+      "target": "Target",
+      "check": "Check",
+      "threshold": "Threshold",
+      "last": "Last Run",
+      "status": "Status"
+    },
+    "empty": "No rules",
+    "checkTypes": {
+      "not_null": "Not Null",
+      "unique": "Unique",
+      "range": "Range",
+      "fluctuation": "Fluctuation",
+      "regex": "Regex",
+      "sql": "SQL"
+    },
+    "results": {
+      "pass": "Passed",
+      "warn": "Warning",
+      "fail": "Failed",
+      "none": "Not Run"
+    },
+    "actions": {
+      "alert": "Alert",
+      "block_downstream": "Block Downstream"
+    },
+    "createModal": {
+      "title": "New Quality Rule",
+      "targetTable": "Target Table",
+      "targetTablePlaceholder": "e.g. dwd.order_wide",
+      "targetField": "Field",
+      "targetFieldPlaceholder": "e.g. order_id",
+      "checkType": "Check Type",
+      "threshold": "Threshold",
+      "thresholdPlaceholder": "e.g. 100%",
+      "actionOnFail": "Action on Failure",
+      "creating": "Creating…",
+      "tableRequired": "Please enter a target table",
+      "created": "Rule created"
+    }
+  }
+}
