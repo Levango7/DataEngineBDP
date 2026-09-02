@@ -1,0 +1,47 @@
+{
+  "dashboard": {
+    "title": "工作台",
+    "subtitle": "租户：{tenant} ｜ 套餐：{plan} ｜ 本月资源消耗 {usage} ｜",
+    "todoBadge": "{count} 待办",
+    "kpi": {
+      "loadingTitle": "加载中…",
+      "loadingMeta": "正在拉取数据",
+      "errorTitle": "加载失败",
+      "retry": "重新加载集群概览",
+      "retryAction": "重试",
+      "projects": "数据项目",
+      "projectsMeta": "运行中 {running} · 暂停 {paused}",
+      "jobs": "调度作业",
+      "jobsMeta": "今日成功 {success} · 失败 {failed}",
+      "storage": "存储用量",
+      "storageMeta": "湖仓集一体",
+      "assets": "数据资产",
+      "assetsMeta": "表/主题/标签"
+    },
+    "trend": {
+      "title": "资源趋势（近 7 日）",
+      "cpuChart": "CPU 趋势图",
+      "cpuUsage": "CPU 使用率",
+      "memory": "内存",
+      "memoryUsage": "内存使用率",
+      "note": "超 80% 自动扩容，客户无感知。"
+    },
+    "todo": {
+      "title": "待办审批",
+      "colApplicant": "申请",
+      "colOwner": "申请人",
+      "colAction": "操作",
+      "approve": "批准",
+      "reject": "驳回",
+      "empty": "暂无待办"
+    },
+    "quickActions": {
+      "title": "快捷入口",
+      "newJob": "新建作业",
+      "configSync": "配置同步",
+      "registerAsset": "登记资产",
+      "trainModel": "训练模型",
+      "createDashboard": "建看板"
+    }
+  }
+}

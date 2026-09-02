@@ -1,0 +1,47 @@
+{
+  "dashboard": {
+    "title": "Workspace",
+    "subtitle": "Tenant: {tenant} ｜ Plan: {plan} ｜ Resource usage this month: {usage} ｜",
+    "todoBadge": "{count} todos",
+    "kpi": {
+      "loadingTitle": "Loading…",
+      "loadingMeta": "Fetching data",
+      "errorTitle": "Failed to load",
+      "retry": "Reload cluster overview",
+      "retryAction": "Retry",
+      "projects": "Data Projects",
+      "projectsMeta": "{running} running · {paused} paused",
+      "jobs": "Scheduled Jobs",
+      "jobsMeta": "{success} succeeded today · {failed} failed",
+      "storage": "Storage Usage",
+      "storageMeta": "Lake-House-Set unified",
+      "assets": "Data Assets",
+      "assetsMeta": "Tables / Topics / Tags"
+    },
+    "trend": {
+      "title": "Resource Trend (Last 7 Days)",
+      "cpuChart": "CPU trend chart",
+      "cpuUsage": "CPU Usage",
+      "memory": "Memory",
+      "memoryUsage": "Memory Usage",
+      "note": "Auto scale-out above 80%, transparent to customers."
+    },
+    "todo": {
+      "title": "Pending Approvals",
+      "colApplicant": "Request",
+      "colOwner": "Applicant",
+      "colAction": "Actions",
+      "approve": "Approve",
+      "reject": "Reject",
+      "empty": "No pending approvals"
+    },
+    "quickActions": {
+      "title": "Quick Actions",
+      "newJob": "New Job",
+      "configSync": "Configure Sync",
+      "registerAsset": "Register Asset",
+      "trainModel": "Train Model",
+      "createDashboard": "Create Dashboard"
+    }
+  }
+}

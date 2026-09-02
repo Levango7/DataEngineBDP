@@ -1,6 +1,8 @@
 import { createI18n } from 'vue-i18n'
 import zhCN from './locales/zh-CN.json'
 import enUS from './locales/en-US.json'
+import dashboardZh from './locales/modules/dashboard.zh-CN.json'
+import dashboardEn from './locales/modules/dashboard.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -10,7 +12,10 @@ import enUS from './locales/en-US.json'
  * - navigator.language 自动检测（zh* → zh-CN，否则 en-US）
  * - 默认 zh-CN（政企客户为主）
  *
- * 词条组织：按域分文件（nav/login/common），后续页面级词条按模块平铺扩展。
+ * 词条组织：
+ * - 框架级（nav/login/common/app）：根级 locales/*.json
+ * - 页面级（按模块逐个词条化）：locales/modules/{module}.{locale}.json
+ *   （spread 合并进 messages，key 路径即模块名，避免框架级冲突）
  */
 
 export type SupportedLocale = 'zh-CN' | 'en-US'
@@ -44,8 +49,8 @@ export const i18n = createI18n({
   fallbackLocale: 'zh-CN',
   globalInjection: true,
   messages: {
-    'zh-CN': zhCN,
-    'en-US': enUS
+    'zh-CN': { ...zhCN, ...dashboardZh },
+    'en-US': { ...enUS, ...dashboardEn }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）
   missingWarn: import.meta.env.DEV,

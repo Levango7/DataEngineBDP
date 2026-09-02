@@ -1,73 +1,73 @@
 <template>
-  <div role="main" aria-label="工作台首页">
-    <h1>工作台</h1>
-    <div class="sub" aria-label="当前租户与套餐信息">
-      租户：华东生产集群 ｜ 套餐：企业版 ｜ 本月资源消耗 62% ｜
-      <span class="pill b" aria-label="待办数量">{{ store.todoCount }} 待办</span>
+  <div role="main" :aria-label="t('dashboard.title')">
+    <h1>{{ t('dashboard.title') }}</h1>
+    <div class="sub" :aria-label="t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' })">
+      {{ t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' }) }}
+      <span class="pill b" :aria-label="t('dashboard.todo.title')">{{ t('dashboard.todoBadge', { count: store.todoCount }) }}</span>
     </div>
 
     <!-- 集群概览 KPI 卡片：三态 loading / error / data -->
-    <div class="grid g4" role="region" aria-label="集群概览 KPI 卡片">
+    <div class="grid g4" role="region" :aria-label="t('dashboard.title')">
       <template v-if="overviewLoading">
         <div v-for="i in 4" :key="i" class="card" role="status" aria-live="polite">
-          <h3>加载中…</h3>
+          <h3>{{ t('dashboard.kpi.loadingTitle') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('dashboard.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="overviewError">
         <div class="card" style="grid-column: span 4" role="alert" aria-live="assertive">
-          <h3>加载失败</h3>
+          <h3>{{ t('dashboard.kpi.errorTitle') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ overviewError.message }}，
-            <a href="javascript:void(0)" aria-label="重新加载集群概览" @click="loadOverview">
-              重试
+            <a href="javascript:void(0)" :aria-label="t('dashboard.kpi.retry')" @click="loadOverview">
+              {{ t('dashboard.kpi.retryAction') }}
             </a>
           </div>
         </div>
       </template>
       <template v-else-if="overview">
-        <div class="card" role="region" aria-label="数据项目数">
-          <h3>数据项目</h3>
+        <div class="card" role="region" :aria-label="t('dashboard.kpi.projects')">
+          <h3>{{ t('dashboard.kpi.projects') }}</h3>
           <div class="kpi">{{ overview.projectCount }}</div>
           <div class="meta">
-            运行中 {{ runningProjects }} · 暂停 {{ overview.projectCount - runningProjects }}
+            {{ t('dashboard.kpi.projectsMeta', { running: runningProjects, paused: overview.projectCount - runningProjects }) }}
           </div>
         </div>
-        <div class="card" role="region" aria-label="调度作业数">
-          <h3>调度作业</h3>
+        <div class="card" role="region" :aria-label="t('dashboard.kpi.jobs')">
+          <h3>{{ t('dashboard.kpi.jobs') }}</h3>
           <div class="kpi">{{ overview.jobCount }}</div>
           <div class="meta">
-            今日成功 {{ overview.jobSuccessToday }} · 失败 {{ overview.jobFailToday }}
+            {{ t('dashboard.kpi.jobsMeta', { success: overview.jobSuccessToday, failed: overview.jobFailToday }) }}
           </div>
         </div>
-        <div class="card" role="region" aria-label="存储用量">
-          <h3>存储用量</h3>
+        <div class="card" role="region" :aria-label="t('dashboard.kpi.storage')">
+          <h3>{{ t('dashboard.kpi.storage') }}</h3>
           <div class="kpi s">{{ overview.storageUsed }} TB</div>
-          <div class="meta">湖仓集一体</div>
+          <div class="meta">{{ t('dashboard.kpi.storageMeta') }}</div>
         </div>
-        <div class="card" role="region" aria-label="数据资产数">
-          <h3>数据资产</h3>
+        <div class="card" role="region" :aria-label="t('dashboard.kpi.assets')">
+          <h3>{{ t('dashboard.kpi.assets') }}</h3>
           <div class="kpi s">{{ overview.assetCount.toLocaleString() }}</div>
-          <div class="meta">表/主题/标签</div>
+          <div class="meta">{{ t('dashboard.kpi.assetsMeta') }}</div>
         </div>
       </template>
     </div>
 
-    <div class="grid g2" style="margin-top: 14px" role="region" aria-label="资源趋势与待办审批">
+    <div class="grid g2" style="margin-top: 14px" role="region" :aria-label="t('dashboard.trend.title')">
       <!-- 资源趋势：三态 -->
-      <div class="card" role="region" aria-label="资源趋势">
-        <h3>资源趋势（近 7 日）</h3>
+      <div class="card" role="region" :aria-label="t('dashboard.trend.title')">
+        <h3>{{ t('dashboard.trend.title') }}</h3>
         <template v-if="overviewLoading">
           <div class="meta" style="color: var(--muted)" role="status" aria-live="polite">
-            加载中…
+            {{ t('common.loading') }}
           </div>
         </template>
         <template v-else-if="overviewError">
-          <div class="meta" style="color: var(--muted)" role="alert">资源趋势加载失败</div>
+          <div class="meta" style="color: var(--muted)" role="alert">{{ t('dashboard.kpi.errorTitle') }}</div>
         </template>
         <template v-else-if="overview">
-          <div class="mini" role="img" aria-label="CPU 趋势图">
+          <div class="mini" role="img" :aria-label="t('dashboard.trend.cpuChart')">
             <i
               v-for="(h, idx) in overview.trendCpu"
               :key="`cpu-${idx}`"
@@ -84,12 +84,12 @@
             :aria-valuenow="cpuPercent"
             aria-valuemin="0"
             aria-valuemax="100"
-            aria-label="CPU 使用率"
+            :aria-label="t('dashboard.trend.cpuUsage')"
           >
             <i :style="{ width: cpuPercent + '%' }"></i>
           </div>
           <div class="row" style="margin-top: 8px">
-            <span>内存</span>
+            <span>{{ t('dashboard.trend.memory') }}</span>
             <span>{{ memPercent }}%</span>
           </div>
           <div
@@ -98,95 +98,95 @@
             :aria-valuenow="memPercent"
             aria-valuemin="0"
             aria-valuemax="100"
-            aria-label="内存使用率"
+            :aria-label="t('dashboard.trend.memoryUsage')"
           >
             <i class="a" :style="{ width: memPercent + '%' }"></i>
           </div>
-          <div class="note">超 80% 自动扩容，客户无感知。</div>
+          <div class="note">{{ t('dashboard.trend.note') }}</div>
         </template>
       </div>
-      <div class="card" role="region" aria-label="待办审批">
+      <div class="card" role="region" :aria-label="t('dashboard.todo.title')">
         <h3>
-          待办审批
-          <span class="pill r" aria-label="待办总数">{{ store.todoCount }}</span>
+          {{ t('dashboard.todo.title') }}
+          <span class="pill r" :aria-label="t('dashboard.todo.title')">{{ store.todoCount }}</span>
         </h3>
-        <table role="table" aria-label="待办审批列表">
+        <table role="table" :aria-label="t('dashboard.todo.title')">
           <thead>
             <tr role="row">
-              <th role="columnheader">申请</th>
-              <th role="columnheader">申请人</th>
-              <th role="columnheader">操作</th>
+              <th role="columnheader">{{ t('dashboard.todo.colApplicant') }}</th>
+              <th role="columnheader">{{ t('dashboard.todo.colOwner') }}</th>
+              <th role="columnheader">{{ t('dashboard.todo.colAction') }}</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="t in store.secApprovals" :key="t.id" role="row">
-              <td role="cell">{{ t.asset }}（{{ t.perm }}）</td>
-              <td role="cell">{{ t.applicant }}</td>
+            <tr v-for="approval in store.secApprovals" :key="approval.id" role="row">
+              <td role="cell">{{ approval.asset }}（{{ approval.perm }}）</td>
+              <td role="cell">{{ approval.applicant }}</td>
               <td role="cell">
-                <button class="btn sm" aria-label="批准申请" @click="store.approve(t.id)">
-                  批准
+                <button class="btn sm" :aria-label="t('dashboard.todo.approve')" @click="store.approve(approval.id)">
+                  {{ t('dashboard.todo.approve') }}
                 </button>
-                <button class="btn ghost sm" aria-label="驳回申请" @click="store.reject(t.id)">
-                  驳回
+                <button class="btn ghost sm" :aria-label="t('dashboard.todo.reject')" @click="store.reject(approval.id)">
+                  {{ t('dashboard.todo.reject') }}
                 </button>
               </td>
             </tr>
             <tr v-if="store.secApprovals.length === 0" role="row">
               <td colspan="3" style="text-align: center; color: var(--muted)" role="cell">
-                暂无待办
+                {{ t('dashboard.todo.empty') }}
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="card" style="margin-top: 14px" role="region" aria-label="快捷入口">
-      <h3>快捷入口</h3>
-      <div class="chips" role="navigation" aria-label="快捷功能入口">
+    <div class="card" style="margin-top: 14px" role="region" :aria-label="t('dashboard.quickActions.title')">
+      <h3>{{ t('dashboard.quickActions.title') }}</h3>
+      <div class="chips" role="navigation" :aria-label="t('dashboard.quickActions.title')">
         <span
           class="chip on"
           role="link"
           tabindex="0"
-          aria-label="新建作业"
+          :aria-label="t('dashboard.quickActions.newJob')"
           @click="router.push('/develop')"
         >
-          新建作业
+          {{ t('dashboard.quickActions.newJob') }}
         </span>
         <span
           class="chip"
           role="link"
           tabindex="0"
-          aria-label="配置同步"
+          :aria-label="t('dashboard.quickActions.configSync')"
           @click="router.push('/integrate')"
         >
-          配置同步
+          {{ t('dashboard.quickActions.configSync') }}
         </span>
         <span
           class="chip"
           role="link"
           tabindex="0"
-          aria-label="登记资产"
+          :aria-label="t('dashboard.quickActions.registerAsset')"
           @click="router.push('/govern')"
         >
-          登记资产
+          {{ t('dashboard.quickActions.registerAsset') }}
         </span>
         <span
           class="chip"
           role="link"
           tabindex="0"
-          aria-label="训练模型"
+          :aria-label="t('dashboard.quickActions.trainModel')"
           @click="router.push('/llmops')"
         >
-          训练模型
+          {{ t('dashboard.quickActions.trainModel') }}
         </span>
         <span
           class="chip"
           role="link"
           tabindex="0"
-          aria-label="建看板"
+          :aria-label="t('dashboard.quickActions.createDashboard')"
           @click="router.push('/analyze')"
         >
-          建看板
+          {{ t('dashboard.quickActions.createDashboard') }}
         </span>
       </div>
     </div>
@@ -196,11 +196,13 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import * as clusterApi from '@/api/cluster'
 import type { ClusterOverview } from '@/api/types'
 
+const { t } = useI18n()
 const router = useRouter()
 const store = useAppStore()
 
