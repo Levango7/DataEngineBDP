@@ -88,7 +88,7 @@ test.describe('登录流程', () => {
     // 等待用户菜单出现
     await expect(page.locator('.user-pop')).toBeVisible({ timeout: 5_000 })
     // 点击退出登录
-    await page.getByRole('button', { name: '退出登录' }).click()
+    await page.getByRole('menuitem', { name: '退出登录' }).click()
 
     // 验证跳转到登录页
     await expect(page).toHaveURL(/#\/login/, { timeout: 10_000 })

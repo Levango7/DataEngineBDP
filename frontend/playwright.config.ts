@@ -17,7 +17,7 @@ import { defineConfig, devices } from '@playwright/test'
  *  18080 兜底——其 /api 兜底代理转发一切未细分前缀，stub Controller 提供契约响应 */
 const stack = {
   api: process.env.VITE_API_TARGET || 'http://127.0.0.1:18080',
-  encapsTenant: process.env.VITE_ENCAPS_TENANT_TARGET || 'http://127.0.0.1:18090',
+  encapsTenant: process.env.VITE_ENCAPS_TENANT_TARGET || 'http://127.0.0.1:18080',
   encapsData: process.env.VITE_ENCAPS_DATA_TARGET || 'http://127.0.0.1:18080',
   encapsGateway: process.env.VITE_ENCAPS_GATEWAY_TARGET || 'http://127.0.0.1:18080',
   assetExchange: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:18094',

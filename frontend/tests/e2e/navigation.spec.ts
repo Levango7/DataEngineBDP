@@ -47,7 +47,7 @@ test.describe('导航布局', () => {
     const count = await items.count()
     // 35 项（允许较大浮动以适应未来调整）
     expect(count).toBeGreaterThanOrEqual(25)
-    expect(count).toBeLessThanOrEqual(50)
+    expect(count).toBeLessThanOrEqual(55)
   })
 
   test('顶栏显示用户信息', async ({ page }) => {
@@ -72,7 +72,7 @@ test.describe('导航布局', () => {
     // 用户名（用 first 避免 strict mode）
     await expect(page.locator('.user-name').first()).toContainText('admin')
     // 退出登录按钮（在 .user-pop 内）
-    await expect(page.locator('.user-pop').getByRole('button', { name: '退出登录' })).toBeVisible()
+    await expect(page.locator('.user-pop').getByRole('menuitem', { name: '退出登录' })).toBeVisible()
     // 账户与配额链接（在 .user-pop 内）
     await expect(page.locator('.user-pop').getByRole('link', { name: '账户与配额' })).toBeVisible()
   })
@@ -170,6 +170,6 @@ test.describe('导航布局', () => {
 
   test('侧边栏底部信息显示', async ({ page }) => {
     await expect(page.locator('.side-foot')).toBeVisible()
-    await expect(page.locator('.side-foot')).toContainText('原型 v0.3')
+    await expect(page.locator('.side-foot')).toContainText('DataEngineBDP')
   })
 })

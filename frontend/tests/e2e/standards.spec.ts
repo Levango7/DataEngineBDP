@@ -67,8 +67,8 @@ test.describe('数据标准（/standard）', () => {
     await expect(page.locator('input[placeholder*="user_id"]')).toBeVisible()
     await expect(page.locator('input[placeholder*="bigint"]')).toBeVisible()
 
-    // 类型下拉
-    const typeSelect = page.locator('select')
+    // 类型下拉（限定弹窗内，排除侧边栏语言切换器 <select>）
+    const typeSelect = page.locator('.modal select, [role="dialog"] select')
     await expect(typeSelect).toBeVisible()
     const options = typeSelect.locator('option')
     const optionTexts = await options.allTextContents()
