@@ -3,6 +3,10 @@ import zhCN from './locales/zh-CN.json'
 import enUS from './locales/en-US.json'
 import dashboardZh from './locales/modules/dashboard.zh-CN.json'
 import dashboardEn from './locales/modules/dashboard.en-US.json'
+import workspacesZh from './locales/modules/workspaces.zh-CN.json'
+import workspacesEn from './locales/modules/workspaces.en-US.json'
+import projectsZh from './locales/modules/projects.zh-CN.json'
+import projectsEn from './locales/modules/projects.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -49,8 +53,8 @@ export const i18n = createI18n({
   fallbackLocale: 'zh-CN',
   globalInjection: true,
   messages: {
-    'zh-CN': { ...zhCN, ...dashboardZh },
-    'en-US': { ...enUS, ...dashboardEn }
+    'zh-CN': { ...zhCN, ...dashboardZh, ...workspacesZh, ...projectsZh },
+    'en-US': { ...enUS, ...dashboardEn, ...workspacesEn, ...projectsEn }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）
   missingWarn: import.meta.env.DEV,

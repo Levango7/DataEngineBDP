@@ -1,0 +1,81 @@
+{
+  "workspaces": {
+    "title": "工作空间",
+    "subtitle": "顶层隔离边界，底层基于自研 SKE 发行版自动映射为 Namespace + 配额 + 网络策略，客户无需关心容器与编排。",
+    "newWorkspace": "+ 新建工作空间",
+    "searchPlaceholder": "搜索…",
+    "quotaIndependent": "配额独立",
+    "networkIsolation": "网络隔离",
+    "listLoadingMeta": "正在拉取工作空间列表",
+    "emptyTitle": "暂无工作空间",
+    "emptyHint": "当前租户下还没有工作空间，点击右上角「+ 新建工作空间」创建第一个。",
+    "defaultTenant": "默认租户",
+    "memory": "内存",
+    "viewDetail": "查看详情",
+    "drawerTitle": "工作空间：{name}",
+    "running": "运行中",
+    "tabs": {
+      "overview": "概览",
+      "members": "成员",
+      "quota": "配额",
+      "projects": "项目"
+    },
+    "overview": {
+      "tenant": "租户",
+      "plan": "套餐",
+      "env": "环境",
+      "createdAt": "创建时间",
+      "defaultTenantA": "外部客户A",
+      "mappingNote": "底层自动映射为 Namespace + ResourceQuota + NetworkPolicy(deny-all)。"
+    },
+    "members": {
+      "k8sStatus": "K8s Namespace 状态",
+      "querying": "查询中…",
+      "k8sQueryFailed": "K8s 状态查询失败",
+      "maintainNote": "底层 Namespace + ResourceQuota + NetworkPolicy(deny-all) 由封装层自动翻译维护。",
+      "planNote": "成员与角色管理已纳入产品规划（需对接租户身份源 Keycloak），当前版本不提供占位数据。"
+    },
+    "quota": {
+      "storage": "存储"
+    },
+    "projects": {
+      "loading": "项目加载中…",
+      "loadFailed": "项目加载失败",
+      "colProject": "项目",
+      "colStatus": "状态",
+      "empty": "当前空间暂无关联项目"
+    },
+    "createModal": {
+      "title": "新建工作空间",
+      "name": "名称",
+      "namePlaceholder": "如 华南生产集群",
+      "tenant": "租户",
+      "tenantExternal": "外部客户A",
+      "tenantInternal": "内部业务线",
+      "plan": "套餐",
+      "env": "环境",
+      "creating": "创建中…",
+      "nameRequired": "请填写工作空间名称",
+      "created": "工作空间已创建"
+    },
+    "status": {
+      "running": "运行中",
+      "limited": "受限",
+      "stopped": "已停止",
+      "creating": "创建中",
+      "failed": "失败"
+    },
+    "plans": {
+      "standard": "标准版",
+      "enterprise": "企业版",
+      "flagship": "旗舰版",
+      "internal": "内部无限"
+    },
+    "envs": {
+      "xinchuang": "信创",
+      "onprem": "本地数据中心",
+      "publicCloud": "公有云 VM",
+      "privateCloud": "私有云"
+    }
+  }
+}

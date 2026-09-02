@@ -1,29 +1,29 @@
 <template>
   <div>
-    <h1>数据项目</h1>
-    <div class="sub">工作空间：华东生产集群 ｜ 项目是数据加工与消费的组织单元。</div>
+    <h1>{{ t('projects.title') }}</h1>
+    <div class="sub">{{ t('projects.subtitle', { workspace: '华东生产集群' }) }}</div>
     <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">+ 新建项目</button>
+      <button class="btn sm" @click="modalVisible = true">{{ t('projects.newProject') }}</button>
       <select>
-        <option>全部状态</option>
+        <option>{{ t('projects.allStatus') }}</option>
       </select>
       <div class="spacer"></div>
-      <input style="width: 200px" placeholder="搜索项目…" />
+      <input style="width: 200px" :placeholder="t('projects.searchPlaceholder')" />
     </div>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
         {{ error.message }}，
-        <a href="javascript:void(0)" @click="loadProjects">重试</a>
+        <a href="javascript:void(0)" @click="loadProjects">{{ t('common.retry') }}</a>
       </div>
       <table v-else>
         <tr>
-          <th>项目</th>
-          <th>域</th>
-          <th>数据集</th>
-          <th>作业</th>
-          <th>负责人</th>
-          <th>状态</th>
+          <th>{{ t('projects.cols.project') }}</th>
+          <th>{{ t('projects.cols.domain') }}</th>
+          <th>{{ t('projects.cols.datasets') }}</th>
+          <th>{{ t('projects.cols.jobs') }}</th>
+          <th>{{ t('projects.cols.owner') }}</th>
+          <th>{{ t('projects.cols.status') }}</th>
         </tr>
         <tr v-for="p in projects" :key="p.id" class="click" @click="openDrawer(p)">
           <td>{{ p.name }}</td>
@@ -38,48 +38,60 @@
           </td>
         </tr>
         <tr v-if="projects.length === 0">
-          <td colspan="6" style="text-align: center; color: var(--muted)">暂无项目</td>
+          <td colspan="6" style="text-align: center; color: var(--muted)">
+            {{ t('projects.empty') }}
+          </td>
         </tr>
       </table>
     </div>
 
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
       <template #header>
-        数据项目：{{ current?.name }}
-        <span class="pill g">运行中</span>
+        {{ t('projects.drawerTitle', { name: current?.name }) }}
+        <span class="pill g">{{ t('projects.running') }}</span>
       </template>
       <div class="tabbar">
-        <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">概览</div>
-        <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">数据集</div>
-        <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">作业</div>
-        <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">成员</div>
-        <div class="t" :class="{ on: tab === 4 }" @click="tab = 4">设置</div>
+        <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">
+          {{ t('projects.tabs.overview') }}
+        </div>
+        <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">
+          {{ t('projects.tabs.datasets') }}
+        </div>
+        <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">{{ t('projects.tabs.jobs') }}</div>
+        <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">
+          {{ t('projects.tabs.members') }}
+        </div>
+        <div class="t" :class="{ on: tab === 4 }" @click="tab = 4">
+          {{ t('projects.tabs.settings') }}
+        </div>
       </div>
       <div v-if="tab === 0">
         <div class="kv">
-          <span>业务域</span>
+          <span>{{ t('projects.overview.domain') }}</span>
           <span>{{ current?.domain }}</span>
         </div>
         <div class="kv">
-          <span>数据集</span>
+          <span>{{ t('projects.overview.datasets') }}</span>
           <span>{{ current?.datasets }}</span>
         </div>
         <div class="kv">
-          <span>作业</span>
+          <span>{{ t('projects.overview.jobs') }}</span>
           <span>{{ current?.jobs }}</span>
         </div>
         <div class="kv">
-          <span>负责人</span>
+          <span>{{ t('projects.overview.owner') }}</span>
           <span>{{ current?.owner }}</span>
         </div>
       </div>
       <div v-if="tab === 1">
-        <div v-if="datasetsLoading" style="color: var(--muted)">加载…</div>
+        <div v-if="datasetsLoading" style="color: var(--muted)">
+          {{ t('projects.datasets.loading') }}
+        </div>
         <table v-else>
           <tr>
-            <th>数据集</th>
-            <th>类型</th>
-            <th>字段</th>
+            <th>{{ t('projects.datasets.colName') }}</th>
+            <th>{{ t('projects.datasets.colType') }}</th>
+            <th>{{ t('projects.datasets.colFields') }}</th>
           </tr>
           <tr v-for="d in datasets" :key="d.name">
             <td>{{ d.name }}</td>
@@ -87,17 +99,19 @@
             <td>{{ d.fieldCount }}</td>
           </tr>
           <tr v-if="datasets.length === 0">
-            <td colspan="3" style="text-align: center; color: var(--muted)">暂无数据集</td>
+            <td colspan="3" style="text-align: center; color: var(--muted)">
+              {{ t('projects.datasets.empty') }}
+            </td>
           </tr>
         </table>
       </div>
       <div v-if="tab === 2">
-        <div v-if="jobsLoading" style="color: var(--muted)">加载…</div>
+        <div v-if="jobsLoading" style="color: var(--muted)">{{ t('projects.jobs.loading') }}</div>
         <table v-else>
           <tr>
-            <th>作业</th>
-            <th>引擎</th>
-            <th>状态</th>
+            <th>{{ t('projects.jobs.colName') }}</th>
+            <th>{{ t('projects.jobs.colEngine') }}</th>
+            <th>{{ t('projects.jobs.colStatus') }}</th>
           </tr>
           <tr v-for="j in projJobs" :key="j.name">
             <td>{{ j.name }}</td>
@@ -107,57 +121,69 @@
                 class="pill"
                 :class="j.status === 'running' ? 'a' : j.status === 'success' ? 'g' : 'r'"
               >
-                {{ j.status === 'running' ? '运行中' : j.status === 'success' ? '成功' : '失败' }}
+                {{
+                  j.status === 'running'
+                    ? t('projects.jobs.running')
+                    : j.status === 'success'
+                      ? t('projects.jobs.success')
+                      : t('projects.jobs.failed')
+                }}
               </span>
             </td>
           </tr>
           <tr v-if="projJobs.length === 0">
-            <td colspan="3" style="text-align: center; color: var(--muted)">暂无作业</td>
+            <td colspan="3" style="text-align: center; color: var(--muted)">
+              {{ t('projects.jobs.empty') }}
+            </td>
           </tr>
         </table>
       </div>
       <div v-if="tab === 3">
-        <div v-if="membersLoading" style="color: var(--muted)">加载…</div>
+        <div v-if="membersLoading" style="color: var(--muted)">
+          {{ t('projects.members.loading') }}
+        </div>
         <table v-else>
           <tr>
-            <th>成员</th>
-            <th>角色</th>
+            <th>{{ t('projects.members.colName') }}</th>
+            <th>{{ t('projects.members.colRole') }}</th>
           </tr>
           <tr v-for="m in members" :key="m.name">
             <td>{{ m.name }}</td>
             <td>{{ m.role }}</td>
           </tr>
           <tr v-if="members.length === 0">
-            <td colspan="2" style="text-align: center; color: var(--muted)">暂无成员</td>
+            <td colspan="2" style="text-align: center; color: var(--muted)">
+              {{ t('projects.members.empty') }}
+            </td>
           </tr>
         </table>
       </div>
       <div v-if="tab === 4">
-        <label>项目名</label>
+        <label>{{ t('projects.settings.name') }}</label>
         <input :value="current?.name" />
-        <label>描述</label>
+        <label>{{ t('projects.settings.description') }}</label>
         <textarea rows="3" :value="current?.description || ''"></textarea>
         <button
           class="btn sm"
           style="margin-top: 10px"
-          @click="store.showToast('已保存（待接入）')"
+          @click="store.showToast(t('projects.settings.saveTodo'))"
         >
-          保存
+          {{ t('common.save') }}
         </button>
       </div>
     </Drawer>
 
-    <Modal :visible="modalVisible" title="新建数据项目" @close="modalVisible = false">
-      <label>项目名</label>
-      <input v-model="form.name" placeholder="如 供应链域" />
-      <label>业务域</label>
-      <input v-model="form.domain" placeholder="运营" />
-      <label>描述</label>
+    <Modal :visible="modalVisible" :title="t('projects.createModal.title')" @close="modalVisible = false">
+      <label>{{ t('projects.createModal.name') }}</label>
+      <input v-model="form.name" :placeholder="t('projects.createModal.namePlaceholder')" />
+      <label>{{ t('projects.createModal.domain') }}</label>
+      <input v-model="form.domain" :placeholder="t('projects.createModal.domainPlaceholder')" />
+      <label>{{ t('projects.createModal.description') }}</label>
       <textarea v-model="form.description" rows="3"></textarea>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '创建中…' : '创建' }}
+          {{ submitting ? t('projects.createModal.creating') : t('common.create') }}
         </button>
       </template>
     </Modal>
@@ -166,6 +192,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
@@ -180,6 +207,7 @@ import type {
 } from '@/api/project'
 import type { PagedResult } from '@/api/types'
 
+const { t } = useI18n()
 const store = useAppStore()
 
 // 项目列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
@@ -211,13 +239,13 @@ function statusPillClass(s: ProjectStatus): string {
 function statusPillText(s: ProjectStatus): string {
   switch (s) {
     case 'running':
-      return '运行中'
+      return t('projects.status.running')
     case 'stopped':
-      return '已停止'
+      return t('projects.status.stopped')
     case 'failed':
-      return '异常'
+      return t('projects.status.failed')
     case 'creating':
-      return '创建中'
+      return t('projects.status.creating')
     default:
       return s
   }
@@ -275,7 +303,7 @@ const form = reactive<{
 /** 提交创建项目 */
 async function handleSubmit() {
   if (!form.name.trim()) {
-    store.showToast('请填写项目名')
+    store.showToast(t('projects.createModal.nameRequired'))
     return
   }
   submitting.value = true
@@ -286,7 +314,7 @@ async function handleSubmit() {
       description: form.description || undefined
     })
     modalVisible.value = false
-    store.showToast('数据项目已创建')
+    store.showToast(t('projects.createModal.created'))
     await loadProjects()
   } catch {
     // 错误提示已由拦截器统一处理

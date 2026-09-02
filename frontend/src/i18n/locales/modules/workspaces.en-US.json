@@ -1,0 +1,81 @@
+{
+  "workspaces": {
+    "title": "Workspaces",
+    "subtitle": "The top-level isolation boundary. Underneath, the self-developed SKE distribution automatically maps it to Namespace + Quota + NetworkPolicy — customers never worry about containers or orchestration.",
+    "newWorkspace": "+ New Workspace",
+    "searchPlaceholder": "Search…",
+    "quotaIndependent": "Independent Quota",
+    "networkIsolation": "Network Isolation",
+    "listLoadingMeta": "Fetching workspace list",
+    "emptyTitle": "No Workspaces",
+    "emptyHint": "There are no workspaces under the current tenant. Click \"+ New Workspace\" in the top right to create the first one.",
+    "defaultTenant": "Default Tenant",
+    "memory": "Memory",
+    "viewDetail": "View Details",
+    "drawerTitle": "Workspace: {name}",
+    "running": "Running",
+    "tabs": {
+      "overview": "Overview",
+      "members": "Members",
+      "quota": "Quota",
+      "projects": "Projects"
+    },
+    "overview": {
+      "tenant": "Tenant",
+      "plan": "Plan",
+      "env": "Environment",
+      "createdAt": "Created At",
+      "defaultTenantA": "External Customer A",
+      "mappingNote": "Automatically mapped to Namespace + ResourceQuota + NetworkPolicy (deny-all) underneath."
+    },
+    "members": {
+      "k8sStatus": "K8s Namespace Status",
+      "querying": "Querying…",
+      "k8sQueryFailed": "Failed to query K8s status",
+      "maintainNote": "The underlying Namespace + ResourceQuota + NetworkPolicy (deny-all) is automatically translated and maintained by the encapsulation layer.",
+      "planNote": "Member and role management is on the product roadmap (requires integration with the tenant identity source Keycloak). The current version provides no placeholder data."
+    },
+    "quota": {
+      "storage": "Storage"
+    },
+    "projects": {
+      "loading": "Loading projects…",
+      "loadFailed": "Failed to load projects",
+      "colProject": "Project",
+      "colStatus": "Status",
+      "empty": "No projects associated with this workspace"
+    },
+    "createModal": {
+      "title": "New Workspace",
+      "name": "Name",
+      "namePlaceholder": "e.g. South China Production Cluster",
+      "tenant": "Tenant",
+      "tenantExternal": "External Customer A",
+      "tenantInternal": "Internal Business Line",
+      "plan": "Plan",
+      "env": "Environment",
+      "creating": "Creating…",
+      "nameRequired": "Please enter a workspace name",
+      "created": "Workspace created"
+    },
+    "status": {
+      "running": "Running",
+      "limited": "Limited",
+      "stopped": "Stopped",
+      "creating": "Creating",
+      "failed": "Failed"
+    },
+    "plans": {
+      "standard": "Standard",
+      "enterprise": "Enterprise",
+      "flagship": "Flagship",
+      "internal": "Internal Unlimited"
+    },
+    "envs": {
+      "xinchuang": "Xinchuang",
+      "onprem": "On-prem Data Center",
+      "publicCloud": "Public Cloud VM",
+      "privateCloud": "Private Cloud"
+    }
+  }
+}

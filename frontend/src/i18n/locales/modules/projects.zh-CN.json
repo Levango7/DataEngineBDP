@@ -1,0 +1,78 @@
+{
+  "projects": {
+    "title": "数据项目",
+    "subtitle": "工作空间：{workspace} ｜ 项目是数据加工与消费的组织单元。",
+    "newProject": "+ 新建项目",
+    "allStatus": "全部状态",
+    "searchPlaceholder": "搜索项目…",
+    "empty": "暂无项目",
+    "cols": {
+      "project": "项目",
+      "domain": "域",
+      "datasets": "数据集",
+      "jobs": "作业",
+      "owner": "负责人",
+      "status": "状态"
+    },
+    "drawerTitle": "数据项目：{name}",
+    "running": "运行中",
+    "tabs": {
+      "overview": "概览",
+      "datasets": "数据集",
+      "jobs": "作业",
+      "members": "成员",
+      "settings": "设置"
+    },
+    "overview": {
+      "domain": "业务域",
+      "datasets": "数据集",
+      "jobs": "作业",
+      "owner": "负责人"
+    },
+    "datasets": {
+      "loading": "加载…",
+      "colName": "数据集",
+      "colType": "类型",
+      "colFields": "字段",
+      "empty": "暂无数据集"
+    },
+    "jobs": {
+      "loading": "加载…",
+      "colName": "作业",
+      "colEngine": "引擎",
+      "colStatus": "状态",
+      "empty": "暂无作业",
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败"
+    },
+    "members": {
+      "loading": "加载…",
+      "colName": "成员",
+      "colRole": "角色",
+      "empty": "暂无成员"
+    },
+    "settings": {
+      "name": "项目名",
+      "description": "描述",
+      "saveTodo": "已保存（待接入）"
+    },
+    "createModal": {
+      "title": "新建数据项目",
+      "name": "项目名",
+      "namePlaceholder": "如 供应链域",
+      "domain": "业务域",
+      "domainPlaceholder": "运营",
+      "description": "描述",
+      "creating": "创建中…",
+      "nameRequired": "请填写项目名",
+      "created": "数据项目已创建"
+    },
+    "status": {
+      "running": "运行中",
+      "stopped": "已停止",
+      "failed": "异常",
+      "creating": "创建中"
+    }
+  }
+}

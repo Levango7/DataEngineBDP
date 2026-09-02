@@ -9,6 +9,12 @@
 import { describe, it, expect } from 'vitest'
 import zhCN from '@/i18n/locales/zh-CN.json'
 import enUS from '@/i18n/locales/en-US.json'
+import dashboardZh from '@/i18n/locales/modules/dashboard.zh-CN.json'
+import dashboardEn from '@/i18n/locales/modules/dashboard.en-US.json'
+import workspacesZh from '@/i18n/locales/modules/workspaces.zh-CN.json'
+import workspacesEn from '@/i18n/locales/modules/workspaces.en-US.json'
+import projectsZh from '@/i18n/locales/modules/projects.zh-CN.json'
+import projectsEn from '@/i18n/locales/modules/projects.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -55,5 +61,30 @@ describe('i18n locales structure', () => {
     expect((enUS as any).nav.items.quality).toBe('Data Quality')
     expect((zhCN as any).nav.brand).toContain('数擎')
     expect((enUS as any).nav.brand).toContain('Shuqing')
+  })
+})
+
+describe('i18n 页面级模块词条（locales/modules）', () => {
+  const modules: Array<[string, Record<string, unknown>, Record<string, unknown>]> = [
+    ['dashboard', dashboardZh as Record<string, unknown>, dashboardEn as Record<string, unknown>],
+    ['workspaces', workspacesZh as Record<string, unknown>, workspacesEn as Record<string, unknown>],
+    ['projects', projectsZh as Record<string, unknown>, projectsEn as Record<string, unknown>]
+  ]
+
+  it('每个模块 zh/en key 集合完全一致（无漏译）', () => {
+    for (const [name, zh, en] of modules) {
+      expect(flattenKeys(en).sort(), `模块 ${name}`).toEqual(flattenKeys(zh).sort())
+    }
+  })
+
+  it('每个模块词条均非空字符串', () => {
+    for (const [name, zh, en] of modules) {
+      for (const key of flattenKeys(zh)) {
+        const zhVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], zh)
+        const enVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], en)
+        expect(zhVal, `${name}:${key}`).toBeTruthy()
+        expect(enVal, `${name}:en:${key}`).toBeTruthy()
+      }
+    }
   })
 })

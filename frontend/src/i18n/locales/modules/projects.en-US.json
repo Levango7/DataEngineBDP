@@ -1,0 +1,78 @@
+{
+  "projects": {
+    "title": "Data Projects",
+    "subtitle": "Workspace: {workspace} | A project is the organizational unit for data processing and consumption.",
+    "newProject": "+ New Project",
+    "allStatus": "All Statuses",
+    "searchPlaceholder": "Search projects…",
+    "empty": "No projects",
+    "cols": {
+      "project": "Project",
+      "domain": "Domain",
+      "datasets": "Datasets",
+      "jobs": "Jobs",
+      "owner": "Owner",
+      "status": "Status"
+    },
+    "drawerTitle": "Data Project: {name}",
+    "running": "Running",
+    "tabs": {
+      "overview": "Overview",
+      "datasets": "Datasets",
+      "jobs": "Jobs",
+      "members": "Members",
+      "settings": "Settings"
+    },
+    "overview": {
+      "domain": "Business Domain",
+      "datasets": "Datasets",
+      "jobs": "Jobs",
+      "owner": "Owner"
+    },
+    "datasets": {
+      "loading": "Loading…",
+      "colName": "Dataset",
+      "colType": "Type",
+      "colFields": "Fields",
+      "empty": "No datasets"
+    },
+    "jobs": {
+      "loading": "Loading…",
+      "colName": "Job",
+      "colEngine": "Engine",
+      "colStatus": "Status",
+      "empty": "No jobs",
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed"
+    },
+    "members": {
+      "loading": "Loading…",
+      "colName": "Member",
+      "colRole": "Role",
+      "empty": "No members"
+    },
+    "settings": {
+      "name": "Project Name",
+      "description": "Description",
+      "saveTodo": "Saved (integration pending)"
+    },
+    "createModal": {
+      "title": "New Data Project",
+      "name": "Project Name",
+      "namePlaceholder": "e.g. Supply Chain Domain",
+      "domain": "Business Domain",
+      "domainPlaceholder": "Operations",
+      "description": "Description",
+      "creating": "Creating…",
+      "nameRequired": "Please enter a project name",
+      "created": "Data project created"
+    },
+    "status": {
+      "running": "Running",
+      "stopped": "Stopped",
+      "failed": "Failed",
+      "creating": "Creating"
+    }
+  }
+}
