@@ -11,7 +11,7 @@ pydantic-settings==2.15.0
 httpx==0.28.1
 
 # MLflow integration (optional, enabled when BP_MLFLOW_ENABLED=true)
-mlflow==3.15.1
+mlflow==3.15.2
 
 # Testing
 pytest==8.3.4
