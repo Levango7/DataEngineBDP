@@ -74,7 +74,7 @@ test.describe('导航布局', () => {
     // 退出登录按钮（在 .user-pop 内）
     await expect(page.locator('.user-pop').getByRole('menuitem', { name: '退出登录' })).toBeVisible()
     // 账户与配额链接（在 .user-pop 内）
-    await expect(page.locator('.user-pop').getByRole('link', { name: '账户与配额' })).toBeVisible()
+    await expect(page.locator('.user-pop').getByRole('menuitem', { name: '账户与配额' })).toBeVisible()
   })
 
   test('路由切换：dashboard → projects → standard → govern → search', async ({ page }) => {

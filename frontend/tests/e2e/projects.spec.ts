@@ -91,7 +91,7 @@ test.describe('项目管理（/projects）', () => {
     await expect(page.locator('.modal, [role="dialog"]')).toBeVisible({ timeout: 5_000 })
 
     // 项目名留空，点击创建
-    const createBtn = page.locator('.modal button, [role="dialog"] button', { hasText: '创建' })
+    const createBtn = page.locator('.modal button, [role="dialog"] button', { hasText: '新建' })
     await createBtn.click()
 
     // 应显示 toast 提示"请填写项目名"（用 getByText 精确定位）
