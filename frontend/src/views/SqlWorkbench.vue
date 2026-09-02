@@ -28,15 +28,15 @@
 
         <div class="spacer"></div>
 
-        <el-button @click="handleExplain" :loading="explainLoading">
+        <el-button :loading="explainLoading" @click="handleExplain">
           <el-icon><Document /></el-icon>
           执行计划
         </el-button>
-        <el-button @click="handleValidate" :loading="validateLoading">
+        <el-button :loading="validateLoading" @click="handleValidate">
           <el-icon><CircleCheck /></el-icon>
           语法校验
         </el-button>
-        <el-button type="primary" @click="handleExecute" :loading="executeLoading">
+        <el-button type="primary" :loading="executeLoading" @click="handleExecute">
           <el-icon><CaretRight /></el-icon>
           执行查询
         </el-button>
@@ -103,8 +103,8 @@
               <template #default>
                 <a
                   href="javascript:void(0)"
-                  @click="handleExecute"
                   style="color: var(--el-color-primary)"
+                  @click="handleExecute"
                 >
                   重试
                 </a>
@@ -482,7 +482,7 @@ function tablesOfSource(source: string): string[] {
   padding: 8px 6px;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 13px;
-  color: #909399;
+  color: var(--ds-text-muted, var(--ds-text-secondary));
   line-height: 1.6;
   user-select: none;
 }
@@ -501,7 +501,7 @@ function tablesOfSource(source: string): string[] {
   font-size: 13px;
   line-height: 1.6;
   background: #fafafa;
-  color: #303133;
+  color: var(--ds-text-primary);
 }
 
 .sql-hint {
@@ -512,7 +512,7 @@ function tablesOfSource(source: string): string[] {
 }
 
 .hint-text {
-  color: #909399;
+  color: var(--ds-text-muted, var(--ds-text-secondary));
   font-size: 12px;
 }
 
@@ -539,11 +539,11 @@ function tablesOfSource(source: string): string[] {
 
 .meta {
   font-size: 13px;
-  color: #606266;
+  color: var(--ds-text-secondary);
 }
 
 .meta b {
-  color: #303133;
+  color: var(--ds-text-primary);
 }
 
 .error-box {

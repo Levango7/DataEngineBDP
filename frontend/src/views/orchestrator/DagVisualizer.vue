@@ -57,7 +57,7 @@
       <el-button :icon="Refresh" @click="reloadAll">刷新</el-button>
 
       <label class="auto-poll">
-        <input type="checkbox" v-model="autoPoll" />
+        <input v-model="autoPoll" type="checkbox" />
         自动刷新（2s）
       </label>
 
@@ -69,14 +69,14 @@
     </div>
 
     <!-- 主体：左画布 + 右详情 -->
-    <div class="viz-body" v-if="graph">
+    <div v-if="graph" class="viz-body">
       <!-- 左侧 DAG 画布 -->
       <div class="canvas-wrap card">
         <div class="canvas-head">
           <h3>{{ graph.name || graph.id }}</h3>
           <span class="meta">{{ graph.nodes.length }} 节点 · {{ graph.edges.length }} 边</span>
         </div>
-        <div class="canvas" ref="canvasRef">
+        <div ref="canvasRef" class="canvas">
           <svg :width="svgWidth" :height="svgHeight" class="dag-svg">
             <!-- 边 -->
             <g class="edges">

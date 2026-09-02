@@ -236,7 +236,7 @@ function onSelect(rec: ChartRecommendation): void {
 }
 .rec-icon.type-line {
   background: #ecfdf5;
-  color: #16a34a;
+  color: var(--ds-color-success-600);
 }
 .rec-icon.type-pie {
   background: #fff7ed;
@@ -248,7 +248,7 @@ function onSelect(rec: ChartRecommendation): void {
 }
 .rec-icon.type-map {
   background: #fef2f2;
-  color: #dc2626;
+  color: var(--ds-color-error-600);
 }
 .rec-icon.type-area {
   background: #f5f3ff;

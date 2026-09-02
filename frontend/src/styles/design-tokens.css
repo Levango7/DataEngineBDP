@@ -200,9 +200,38 @@
 
 /* ============================================================
  * 暗色主题 - 覆盖背景/文字/边框色
+ *
+ * 两种生效途径（CSS 变量唯一来源，避免重复维护）：
+ *  A. 系统跟随：@media (prefers-color-scheme: dark) 自动应用
+ *  B. 用户手动选择：document.documentElement[data-theme="dark"]
+ *     —— 与 A 等效但由用户掌控（localStorage 持久化，见 stores/theme.ts）
  * ============================================================ */
+:root[data-theme='dark'] {
+  /* 语义化背景/文字/边框 (暗色) */
+  --ds-bg-base: #0f172a;
+  --ds-bg-surface: #1e293b;
+  --ds-bg-subtle: #334155;
+  --ds-bg-muted: #475569;
+
+  --ds-text-primary: #f1f5f9;
+  --ds-text-secondary: #cbd5e1;
+  --ds-text-tertiary: #94a3b8;
+  --ds-text-inverse: #0f172a;
+
+  --ds-border-default: #334155;
+  --ds-border-subtle: #1e293b;
+  --ds-border-strong: #475569;
+  --ds-border-focus: #60a5fa;
+
+  /* 阴影在暗色下使用更深的基础色 */
+  --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --ds-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.35);
+  --ds-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.55), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']) {
     /* 语义化背景/文字/边框 (暗色) */
     --ds-bg-base: #0f172a;
     --ds-bg-surface: #1e293b;

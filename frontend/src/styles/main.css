@@ -229,6 +229,52 @@ body {
   line-height: 1.6;
   background: rgba(15, 23, 42, 0.4);
   font-weight: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.side-foot .side-foot-text {
+  flex: 1;
+}
+/* 主题切换按钮（2026-09-02 手动亮暗开关） */
+.side-foot .theme-toggle {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--sidebar-line);
+  background: transparent;
+  color: var(--sidebar-ink);
+  font-size: 14px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.2s var(--ease-smooth),
+    transform 0.2s var(--ease-smooth);
+}
+.side-foot .theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.06);
+}
+.side-foot .theme-toggle:active {
+  transform: scale(0.94);
+}
+/* 语言切换器（2026-09-02 i18n 框架级双语） */
+.side-foot .locale-switcher {
+  flex-shrink: 0;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--sidebar-line);
+  background: transparent;
+  color: var(--sidebar-ink);
+  font-size: 12px;
+  padding: 0 6px;
+  cursor: pointer;
+}
+.side-foot .locale-switcher:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ============ main ============ */

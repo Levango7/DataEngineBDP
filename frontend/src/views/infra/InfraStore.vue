@@ -34,7 +34,7 @@
         </div>
       </template>
       <template v-else-if="usageLoading">
-        <div class="card" v-for="i in 4" :key="i">
+        <div v-for="i in 4" :key="i" class="card">
           <h3>加载中…</h3>
           <div class="kpi">--</div>
           <div class="meta">正在拉取数据</div>
@@ -74,7 +74,7 @@
     </div>
 
     <!-- 存储用量图 + StorageClass tabs -->
-    <div class="grid g2" style="margin-top: 16px" v-if="selectedCluster">
+    <div v-if="selectedCluster" class="grid g2" style="margin-top: 16px">
       <el-card shadow="never" class="page-card">
         <template #header>
           <div class="card-header">
@@ -495,9 +495,9 @@ function scPercent(sc: StorageClassUsage): number {
 
 /** 使用率 → 颜色 */
 function usageColor(percentage: number): string {
-  if (percentage >= 90) return '#c0504d'
-  if (percentage >= 70) return '#c08a2e'
-  return '#2f9e6f'
+  if (percentage >= 90) return 'var(--ds-color-error-600)'
+  if (percentage >= 70) return 'var(--ds-color-warning-600)'
+  return 'var(--ds-color-success-600)'
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */
@@ -529,7 +529,7 @@ onMounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -557,7 +557,7 @@ onMounted(() => {
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
   background: #fff;
@@ -565,34 +565,34 @@ onMounted(() => {
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 24px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .kpi.w {
-  color: #c08a2e;
+  color: var(--ds-color-warning-600);
 }
 .kpi.d {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .muted {
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .toolbar {
@@ -606,7 +606,7 @@ onMounted(() => {
 }
 .toolbar .label {
   font-size: 13px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .card-header {
   display: flex;

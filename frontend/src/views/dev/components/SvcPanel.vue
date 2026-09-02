@@ -50,15 +50,15 @@
       </el-table-column>
       <el-table-column label="操作" width="160" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="$emit('scale', row)" v-if="canScale(row.status)">
+          <el-button v-if="canScale(row.status)" link type="primary" @click="$emit('scale', row)">
             扩缩容
           </el-button>
           <el-button
+            v-if="canStopSvc(row.status)"
             link
             type="danger"
             :loading="stoppingId === row.id"
             @click="$emit('stop', row)"
-            v-if="canStopSvc(row.status)"
           >
             停止
           </el-button>

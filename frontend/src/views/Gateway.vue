@@ -352,19 +352,19 @@ function renderChart(): void {
       type: 'category',
       data: days,
       axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: '#717a80' }
+      axisLabel: { color: 'var(--ds-text-secondary)' }
     },
     yAxis: [
       {
         type: 'value',
         name: '调用数',
-        axisLabel: { color: '#717a80' },
-        splitLine: { lineStyle: { color: '#e4e8ea' } }
+        axisLabel: { color: 'var(--ds-text-secondary)' },
+        splitLine: { lineStyle: { color: 'var(--ds-border-default)' } }
       },
       {
         type: 'value',
         name: '延迟(ms)',
-        axisLabel: { color: '#717a80' },
+        axisLabel: { color: 'var(--ds-text-secondary)' },
         splitLine: { show: false }
       }
     ],
@@ -373,7 +373,7 @@ function renderChart(): void {
         name: '调用数',
         type: 'bar',
         data: callTrend,
-        itemStyle: { color: '#2f6f6a' }
+        itemStyle: { color: 'var(--ds-color-success-700)' }
       },
       {
         name: '延迟(ms)',
@@ -381,7 +381,7 @@ function renderChart(): void {
         yAxisIndex: 1,
         smooth: true,
         data: latencyTrend,
-        itemStyle: { color: '#c08a2e' },
+        itemStyle: { color: 'var(--ds-color-warning-600)' },
         lineStyle: { width: 2 }
       }
     ]
@@ -424,7 +424,7 @@ onUnmounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -435,7 +435,7 @@ onUnmounted(() => {
 .api-key-cell {
   font-family: monospace;
   font-size: 12px;
-  color: #2f6f6a;
+  color: var(--ds-color-success-700);
   background: #ecfdf5;
   padding: 2px 6px;
   border-radius: 4px;
@@ -460,7 +460,7 @@ onUnmounted(() => {
   flex: 1;
   font-family: monospace;
   font-size: 12px;
-  color: #c0504d;
+  color: var(--ds-color-error-600);
   background: #fef2f2;
   padding: 6px 8px;
   border-radius: 4px;

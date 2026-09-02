@@ -729,7 +729,7 @@ watch(
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -751,7 +751,7 @@ watch(
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
   background: #fff;
@@ -759,27 +759,27 @@ watch(
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.running {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .kpi-skeleton {
   font-size: 18px;
   font-weight: 600;
-  color: #909399;
+  color: var(--ds-text-muted, var(--ds-text-secondary));
   line-height: 1.2;
   padding: 4px 0;
   animation: kpi-pulse 1.4s ease-in-out infinite;
@@ -815,7 +815,7 @@ watch(
   }
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .log-container {

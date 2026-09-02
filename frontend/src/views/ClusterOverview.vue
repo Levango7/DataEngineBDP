@@ -523,13 +523,13 @@ function renderTrendChart() {
       type: 'category',
       data: days,
       axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: '#717a80' }
+      axisLabel: { color: 'var(--ds-text-secondary)' }
     },
     yAxis: {
       type: 'value',
       max: 100,
-      axisLabel: { formatter: '{value}%', color: '#717a80' },
-      splitLine: { lineStyle: { color: '#e4e8ea' } }
+      axisLabel: { formatter: '{value}%', color: 'var(--ds-text-secondary)' },
+      splitLine: { lineStyle: { color: 'var(--ds-border-default)' } }
     },
     series: [
       {
@@ -537,7 +537,7 @@ function renderTrendChart() {
         type: 'line',
         smooth: true,
         data: overview.value.trendCpu,
-        itemStyle: { color: '#2f6f6a' },
+        itemStyle: { color: 'var(--ds-color-success-700)' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(47, 111, 106, 0.25)' },
@@ -551,7 +551,7 @@ function renderTrendChart() {
         type: 'line',
         smooth: true,
         data: overview.value.trendMem,
-        itemStyle: { color: '#c08a2e' },
+        itemStyle: { color: 'var(--ds-color-warning-600)' },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(192, 138, 46, 0.25)' },
@@ -677,9 +677,9 @@ function usageLevel(percent: number): string {
 
 /** 使用率 → 进度条颜色 */
 function usageColor(percentage: number): string {
-  if (percentage >= 90) return '#c0504d'
-  if (percentage >= 70) return '#c08a2e'
-  return '#2f9e6f'
+  if (percentage >= 90) return 'var(--ds-color-error-600)'
+  if (percentage >= 70) return 'var(--ds-color-warning-600)'
+  return 'var(--ds-color-success-600)'
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */
@@ -704,7 +704,7 @@ onUnmounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -712,7 +712,7 @@ onUnmounted(() => {
   margin-bottom: 0;
 }
 .stat-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   margin-bottom: 16px;
 }
@@ -722,31 +722,31 @@ onUnmounted(() => {
 }
 .stat-label {
   font-size: 13px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-bottom: 8px;
 }
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .stat-value.healthy {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .stat-value.warning {
-  color: #c08a2e;
+  color: var(--ds-color-warning-600);
 }
 .stat-value.danger {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .stat-meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .card-header {
@@ -764,10 +764,10 @@ onUnmounted(() => {
   flex-direction: column;
   gap: 4px;
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .comp-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
@@ -783,7 +783,7 @@ onUnmounted(() => {
   background: #fffbeb;
 }
 .comp-card.error {
-  border-color: #c0504d;
+  border-color: var(--ds-color-error-600);
   background: #fef2f2;
 }
 .comp-name {
@@ -806,25 +806,25 @@ onUnmounted(() => {
   background: currentColor;
 }
 .comp-card.healthy .comp-status {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .comp-card.warning .comp-status {
-  color: #c08a2e;
+  color: var(--ds-color-warning-600);
 }
 .comp-card.error .comp-status {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .comp-meta {
   font-size: 11px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .tab-loading {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   text-align: center;
   padding: 20px;
 }
 .tab-error {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
   text-align: center;
   padding: 20px;
 }

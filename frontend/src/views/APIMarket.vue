@@ -177,7 +177,7 @@
           <input v-model="testApiKey" placeholder="输入订阅的 Access Key" />
           <label>请求体 (JSON)</label>
           <textarea v-model="testPayload" rows="5" placeholder='{"key": "value"}'></textarea>
-          <button class="btn sm" style="margin-top: 8px" @click="executeCall" :disabled="calling">
+          <button class="btn sm" style="margin-top: 8px" :disabled="calling" @click="executeCall">
             {{ calling ? '调用中…' : '发起调用' }}
           </button>
           <div v-if="callResult" class="call-result" style="margin-top: 12px">
@@ -731,7 +731,7 @@ onUnmounted(() => {
   font-size: 15px;
 }
 .api-card-desc {
-  color: var(--muted, #909399);
+  color: var(--muted, var(--ds-text-muted, var(--ds-text-secondary)));
   font-size: 13px;
   margin-bottom: 10px;
   display: -webkit-box;
@@ -753,7 +753,7 @@ onUnmounted(() => {
   border-radius: 3px;
 }
 .version {
-  color: var(--muted, #909399);
+  color: var(--muted, var(--ds-text-muted, var(--ds-text-secondary)));
   font-size: 12px;
 }
 .api-card-tags {
@@ -767,7 +767,7 @@ onUnmounted(() => {
   padding: 1px 6px;
   border-radius: 3px;
   background: var(--bg-alt, #f0f2f5);
-  color: var(--muted, #606266);
+  color: var(--muted, var(--ds-text-secondary));
 }
 .api-card-footer {
   display: flex;
@@ -788,7 +788,7 @@ onUnmounted(() => {
   background: none;
   cursor: pointer;
   font-size: 14px;
-  color: var(--muted, #909399);
+  color: var(--muted, var(--ds-text-muted, var(--ds-text-secondary)));
   border-bottom: 2px solid transparent;
 }
 .tab.active {

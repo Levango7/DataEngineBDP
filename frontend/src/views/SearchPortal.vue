@@ -388,7 +388,7 @@ onMounted(() => {
 }
 .portal-search-bar {
   background: var(--panel, #fff);
-  border: 1px solid var(--line, #e4e8ea);
+  border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -408,7 +408,7 @@ onMounted(() => {
 }
 .sort-box {
   background: var(--panel, #fff);
-  border: 1px solid var(--line, #e4e8ea);
+  border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 14px;
   display: flex;
@@ -432,10 +432,10 @@ onMounted(() => {
 }
 .result-stat {
   font-size: 13px;
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
 }
 .hit-num {
-  color: var(--primary, #2f6f6a);
+  color: var(--primary, var(--ds-color-success-700));
   font-weight: 700;
 }
 .toolbar-actions {
@@ -455,19 +455,19 @@ onMounted(() => {
 }
 .sug-label {
   font-size: 12px;
-  color: var(--amber, #c08a2e);
+  color: var(--amber, var(--ds-color-warning-600));
 }
 .sug-chip {
   font-size: 12px;
   padding: 2px 10px;
   background: #fff;
-  border: 1px solid var(--amber, #c08a2e);
+  border: 1px solid var(--amber, var(--ds-color-warning-600));
   border-radius: 12px;
-  color: var(--amber, #c08a2e);
+  color: var(--amber, var(--ds-color-warning-600));
   cursor: pointer;
 }
 .sug-chip:hover {
-  background: var(--amber, #c08a2e);
+  background: var(--amber, var(--ds-color-warning-600));
   color: #fff;
 }
 .result-grid {
@@ -477,7 +477,7 @@ onMounted(() => {
 }
 .skeleton-card {
   background: var(--panel, #fff);
-  border: 1px solid var(--line, #e4e8ea);
+  border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 16px;
   height: 180px;
@@ -514,7 +514,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 60px 20px;
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   gap: 8px;
 }
 .empty-state p,
@@ -535,11 +535,11 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 6px 0;
-  border-bottom: 1px dashed var(--line, #e4e8ea);
+  border-bottom: 1px dashed var(--line, var(--ds-border-default));
   font-size: 13px;
 }
 .detail-label {
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   flex-shrink: 0;
   margin-right: 12px;
 }
@@ -554,7 +554,7 @@ onMounted(() => {
   margin-top: 6px;
   font-size: 13px;
   line-height: 1.6;
-  color: var(--ink, #232a2e);
+  color: var(--ink, var(--ds-text-primary));
 }
 .detail-actions {
   margin-top: 12px;

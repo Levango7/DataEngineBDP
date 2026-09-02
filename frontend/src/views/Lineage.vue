@@ -18,7 +18,7 @@
     <div v-else class="card">
       <div class="lineage">
         <div class="lvl">
-          <div class="ln" v-for="t in upstreamTables" :key="t">{{ t }}</div>
+          <div v-for="t in upstreamTables" :key="t" class="ln">{{ t }}</div>
           <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--muted)">
             无上游
           </div>
@@ -29,13 +29,13 @@
           </div>
         </div>
         <div class="lvl">
-          <div class="ln" v-for="t in downstreamTables" :key="t">{{ t }}</div>
+          <div v-for="t in downstreamTables" :key="t" class="ln">{{ t }}</div>
           <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--muted)">
             无下游
           </div>
         </div>
         <div class="lvl">
-          <div class="ln" v-for="t in impactTables" :key="t">{{ t }}</div>
+          <div v-for="t in impactTables" :key="t" class="ln">{{ t }}</div>
           <div v-if="impactTables.length === 0" class="ln" style="color: var(--muted)">无影响</div>
         </div>
       </div>

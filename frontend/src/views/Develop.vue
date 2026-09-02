@@ -59,7 +59,7 @@
             placeholder="-- 选择左侧文件或直接编写 SQL/Python 代码"
           ></textarea>
         </div>
-        <div class="runlog" ref="runlogEl">
+        <div ref="runlogEl" class="runlog">
           <!-- 三态：loading -->
           <template v-if="runLoading">
             <div class="info">{{ runlog[0]?.text || '[运行中] 封装层接收任务…' }}</div>
@@ -86,16 +86,16 @@
         <label>CPU / 内存</label>
         <div class="row">
           <input
-            type="number"
             v-model.number="runParams.cpu"
+            type="number"
             min="1"
             max="64"
             style="width: 60px"
           />
           <span>核</span>
           <input
-            type="number"
             v-model.number="runParams.memory"
+            type="number"
             min="1"
             max="256"
             style="width: 60px"
@@ -103,7 +103,7 @@
           <span>GB</span>
         </div>
         <label>并发度</label>
-        <input type="number" v-model.number="runParams.parallelism" min="1" max="100" />
+        <input v-model.number="runParams.parallelism" type="number" min="1" max="100" />
         <label>调度</label>
         <select v-model="runParams.schedule">
           <option value="">手动</option>
@@ -414,7 +414,7 @@ watch(
   margin-top: 14px;
 }
 .tree {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 8px;
   min-height: 360px;
@@ -430,7 +430,7 @@ watch(
 .dag-empty,
 .code-loading,
 .code-error {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   padding: 12px;
   text-align: center;
 }
@@ -461,20 +461,20 @@ watch(
 .code-wrap {
   display: flex;
   flex-direction: column;
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   min-height: 360px;
 }
 .tabs {
   display: flex;
-  border-bottom: 1px solid #e4e8ea;
+  border-bottom: 1px solid var(--ds-border-default);
   background: #fafbfc;
   border-radius: 8px 8px 0 0;
 }
 .tab {
   padding: 6px 12px;
   font-size: 12.5px;
-  border-right: 1px solid #e4e8ea;
+  border-right: 1px solid var(--ds-border-default);
   cursor: pointer;
 }
 .tab.on {
@@ -504,7 +504,7 @@ watch(
   background: #fff;
 }
 .params {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
   background: #fafbfc;
@@ -512,7 +512,7 @@ watch(
 .params label {
   display: block;
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 8px;
   margin-bottom: 4px;
 }
@@ -520,7 +520,7 @@ watch(
 .params input {
   width: 100%;
   padding: 4px 6px;
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 4px;
   font-size: 12.5px;
 }

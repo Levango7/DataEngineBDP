@@ -25,7 +25,7 @@
           <th>负责人</th>
           <th>状态</th>
         </tr>
-        <tr class="click" v-for="p in projects" :key="p.id" @click="openDrawer(p)">
+        <tr v-for="p in projects" :key="p.id" class="click" @click="openDrawer(p)">
           <td>{{ p.name }}</td>
           <td>{{ p.domain }}</td>
           <td>{{ p.datasets }}</td>
@@ -153,7 +153,7 @@
       <label>业务域</label>
       <input v-model="form.domain" placeholder="运营" />
       <label>描述</label>
-      <textarea rows="3" v-model="form.description"></textarea>
+      <textarea v-model="form.description" rows="3"></textarea>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">取消</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">

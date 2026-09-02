@@ -18,7 +18,7 @@
         </div>
         <div class="bp-sidebar-list">
           <template v-if="blLoading">
-            <div class="bp-sidebar-item" v-for="i in 3" :key="`bl-s-${i}`">
+            <div v-for="i in 3" :key="`bl-s-${i}`" class="bp-sidebar-item">
               <b>加载中…</b>
             </div>
           </template>
@@ -100,7 +100,7 @@
             <template v-else-if="dashboard">
               <!-- KPI 卡片 -->
               <div class="grid g4">
-                <div class="card" v-for="kpi in dashboard.kpis" :key="kpi.key">
+                <div v-for="kpi in dashboard.kpis" :key="kpi.key" class="card">
                   <h3>{{ kpi.label }}</h3>
                   <div class="kpi">
                     {{ kpi.value }}
@@ -117,7 +117,7 @@
 
               <!-- 趋势图 -->
               <div class="grid g3" style="margin-top: 14px">
-                <div class="card" v-for="trend in dashboard.trends" :key="trend.key">
+                <div v-for="trend in dashboard.trends" :key="trend.key" class="card">
                   <h3>{{ trend.label }}</h3>
                   <div class="mini">
                     <i
@@ -309,7 +309,7 @@
             </template>
             <template v-else>
               <div class="grid g3">
-                <div class="card" v-for="r in reports" :key="r.id">
+                <div v-for="r in reports" :key="r.id" class="card">
                   <div class="row">
                     <b>{{ r.name }}</b>
                     <span class="pill" :class="reportStatusClass(r.status)">
@@ -331,7 +331,7 @@
                     删除
                   </button>
                 </div>
-                <div class="card" v-if="reports.length === 0">
+                <div v-if="reports.length === 0" class="card">
                   <h3>暂无报表</h3>
                   <div class="meta" style="color: var(--muted)">
                     点击右上角「+ 新建报表」创建第一个。

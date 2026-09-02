@@ -164,13 +164,15 @@ describe('ClusterOverview.vue', () => {
     expect(vm.usageLevel(50)).toBe('healthy')
   })
 
-  it('usageColor 应根据百分比返回颜色', async () => {
+  it('usageColor 应根据百分比返回令牌（亮暗自适应）', async () => {
     const wrapper = mountComponent()
     await flushPromises()
     const vm = wrapper.vm as any
-    expect(vm.usageColor(95)).toBe('#c0504d')
-    expect(vm.usageColor(75)).toBe('#c08a2e')
-    expect(vm.usageColor(50)).toBe('#2f9e6f')
+    // 2026-09-02 暗色令牌化：断言返回设计令牌而非硬编码 hex（防回归语义，
+    // 具体色值由令牌层亮暗变体决定）
+    expect(vm.usageColor(95)).toBe('var(--ds-color-error-600)')
+    expect(vm.usageColor(75)).toBe('var(--ds-color-warning-600)')
+    expect(vm.usageColor(50)).toBe('var(--ds-color-success-600)')
   })
 
   it('compStatusLabel 应正确映射组件状态', async () => {

@@ -10,7 +10,12 @@ function goHome() {
 
 <template>
   <div class="not-found" role="main" aria-label="404 页面">
-    <el-icon :size="64" color="var(--ds-text-muted, #909399)"><WarningFilled /></el-icon>
+    <el-icon
+      :size="64"
+      color="var(--ds-text-muted, var(--ds-text-muted, var(--ds-text-secondary)))"
+    >
+      <WarningFilled />
+    </el-icon>
     <h1 class="not-found__code">404</h1>
     <p class="not-found__text">页面不存在或已被移除</p>
     <el-button type="primary" @click="goHome">返回首页</el-button>
@@ -33,11 +38,11 @@ function goHome() {
   font-size: 56px;
   font-weight: 700;
   margin: 0;
-  color: var(--ds-text-primary, #303133);
+  color: var(--ds-text-primary, var(--ds-text-primary));
 }
 
 .not-found__text {
-  color: var(--ds-text-secondary, #909399);
+  color: var(--ds-text-secondary, var(--ds-text-muted, var(--ds-text-secondary)));
   margin: 0 0 8px;
 }
 </style>

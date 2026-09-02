@@ -387,9 +387,9 @@ function statusTagType(status: TenantStatus): 'success' | 'warning' | 'info' | '
 
 /** 资源消耗 → 进度条颜色 */
 function usageColor(percentage: number): string {
-  if (percentage >= 90) return '#c0504d'
-  if (percentage >= 70) return '#c08a2e'
-  return '#2f9e6f'
+  if (percentage >= 90) return 'var(--ds-color-error-600)'
+  if (percentage >= 70) return 'var(--ds-color-warning-600)'
+  return 'var(--ds-color-success-600)'
 }
 
 /* ------------------------------ 初始化 ------------------------------ */
@@ -404,12 +404,12 @@ onMounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .toolbar {

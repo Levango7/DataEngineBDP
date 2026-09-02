@@ -293,7 +293,7 @@ function formatTime(t?: string | null): string {
   padding: 8px;
 }
 .sub {
-  color: #909399;
+  color: var(--ds-text-muted, var(--ds-text-secondary));
   margin-bottom: 12px;
   font-size: 13px;
 }

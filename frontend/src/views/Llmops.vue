@@ -181,7 +181,7 @@
             </el-table-column>
             <el-table-column label="基座提升" width="120">
               <template #default="{ row }">
-                <span v-if="row.baseLiftPt != null" style="color: #2f9e6f">
+                <span v-if="row.baseLiftPt != null" style="color: var(--ds-color-success-600)">
                   +{{ row.baseLiftPt.toFixed(2) }}pt
                 </span>
                 <span v-else style="color: var(--muted)">--</span>
@@ -797,7 +797,7 @@ onUnmounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -819,7 +819,7 @@ onUnmounted(() => {
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
   background: #fff;
@@ -827,28 +827,28 @@ onUnmounted(() => {
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .kpi.d {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .toolbar {

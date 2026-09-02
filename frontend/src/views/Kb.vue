@@ -186,7 +186,7 @@
         >
           <el-button type="primary">+ 上传文档</el-button>
         </el-upload>
-        <span style="color: #717a80; font-size: 12px; margin-left: 8px">
+        <span style="color: var(--ds-text-secondary); font-size: 12px; margin-left: 8px">
           支持 pdf/txt/md/docx 等格式
         </span>
         <div class="spacer"></div>
@@ -556,7 +556,7 @@ onMounted(async () => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -578,7 +578,7 @@ onMounted(async () => {
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
   background: #fff;
@@ -586,28 +586,28 @@ onMounted(async () => {
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .kpi.d {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .toolbar {

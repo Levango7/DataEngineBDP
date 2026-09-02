@@ -1,8 +1,8 @@
 <template>
   <aside class="side" role="complementary" aria-label="平台侧边栏">
-    <div class="brand" aria-label="数擎大数据平台品牌标识">
+    <div class="brand" :aria-label="t('nav.brand')">
       <span class="dot" aria-hidden="true"></span>
-      数擎 · 大数据平台
+      {{ t('nav.brand') }}
     </div>
     <nav class="nav" role="navigation" aria-label="主导航菜单">
       <template v-for="(group, gi) in groups" :key="group.title">
@@ -43,24 +43,56 @@
       </template>
     </nav>
     <div class="side-foot" aria-label="平台版本信息">
-      DataEngineBDP {{ appVersion }} · 客户无感知底座
-      <br />
-      自研 SKE 发行版 · 环境: {{ appEnv }}
+      <select
+        class="locale-switcher"
+        :aria-label="t('app.localeLabel')"
+        :title="t('app.localeLabel')"
+        :value="locale"
+        @change="onLocaleChange"
+      >
+        <option value="zh-CN">中文</option>
+        <option value="en-US">EN</option>
+      </select>
+      <button
+        class="theme-toggle"
+        :aria-label="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
+        :title="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
+        @click="theme.toggle"
+      >
+        {{ theme.isDark ? '☀️' : '🌙' }}
+      </button>
+      <div class="side-foot-text">
+        {{ t('app.versionInfo', { version: appVersion }) }}
+        <br />
+        {{ t('app.envInfo', { env: appEnv }) }}
+      </div>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
+import { useThemeStore } from '@/stores/theme'
+import { persistLocale, type SupportedLocale } from '@/i18n'
 
+const { t, locale } = useI18n()
 const store = useAppStore()
+const theme = useThemeStore()
 
 declare const __APP_VERSION__: string
 
 const appVersion = __APP_VERSION__ || 'dev'
 
 const appEnv = __APP_ENV__ || 'dev'
+
+function onLocaleChange(e: Event): void {
+  const v = (e.target as HTMLSelectElement).value as SupportedLocale
+  locale.value = v
+  persistLocale(v)
+}
+
 interface NavItem {
   path: string
   label: string
@@ -72,92 +104,93 @@ interface NavGroup {
   items: NavItem[]
 }
 
-// 静态导航配置（35 项，7 分组）—— 所有路由均指向真实功能组件
+// 导航配置（35 项，7 分组）—— label/title 通过 i18n key 渲染，
+// 语言切换时 computed 自动重算（vue-i18n 响应式 t()）
 const groups = computed<NavGroup[]>(() => [
   {
-    title: '基础设施',
+    title: t('nav.groups.infra'),
     items: [
-      { path: '/infra-machine', label: '机器供应', icon: 'ws' },
-      { path: '/infra-k8s', label: 'K8s 集群', icon: 'ops' },
-      { path: '/cluster', label: '集群总览', icon: 'ops' },
-      { path: '/datasources', label: '数据源管理', icon: 'integrate' },
-      { path: '/infra-net', label: '容器网络', icon: 'integrate' },
-      { path: '/infra-store', label: '容器存储', icon: 'folder' },
-      { path: '/infra-sched', label: '弹性调度', icon: 'develop' }
+      { path: '/infra-machine', label: t('nav.items.infra-machine'), icon: 'ws' },
+      { path: '/infra-k8s', label: t('nav.items.infra-k8s'), icon: 'ops' },
+      { path: '/cluster', label: t('nav.items.cluster'), icon: 'ops' },
+      { path: '/datasources', label: t('nav.items.datasources'), icon: 'integrate' },
+      { path: '/infra-net', label: t('nav.items.infra-net'), icon: 'integrate' },
+      { path: '/infra-store', label: t('nav.items.infra-store'), icon: 'folder' },
+      { path: '/infra-sched', label: t('nav.items.infra-sched'), icon: 'develop' }
     ]
   },
   {
-    title: '数据引擎',
+    title: t('nav.groups.engine'),
     items: [
-      { path: '/eng-storage', label: '统一存储', icon: 'folder' },
-      { path: '/eng-spark', label: '批计算（Spark）', icon: 'develop' },
-      { path: '/eng-flink', label: '流计算（Flink）', icon: 'develop' },
-      { path: '/sql', label: '交互查询（Trino）', icon: 'sql' },
-      { path: '/eng-doris', label: 'OLAP（Doris）', icon: 'analyze' },
-      { path: '/eng-kafka', label: '消息流接入（Kafka）', icon: 'integrate' },
-      { path: '/eng-iotdb', label: '时序引擎（IoTDB）', icon: 'ops' },
-      { path: '/eng-mmg', label: '多模型引擎', icon: 'vector' }
+      { path: '/eng-storage', label: t('nav.items.eng-storage'), icon: 'folder' },
+      { path: '/eng-spark', label: t('nav.items.eng-spark'), icon: 'develop' },
+      { path: '/eng-flink', label: t('nav.items.eng-flink'), icon: 'develop' },
+      { path: '/sql', label: t('nav.items.sql'), icon: 'sql' },
+      { path: '/eng-doris', label: t('nav.items.eng-doris'), icon: 'analyze' },
+      { path: '/eng-kafka', label: t('nav.items.eng-kafka'), icon: 'integrate' },
+      { path: '/eng-iotdb', label: t('nav.items.eng-iotdb'), icon: 'ops' },
+      { path: '/eng-mmg', label: t('nav.items.eng-mmg'), icon: 'vector' }
     ]
   },
   {
-    title: '数据治理',
+    title: t('nav.groups.governance'),
     items: [
-      { path: '/govern-meta', label: '元数据管理', icon: 'standard' },
-      { path: '/quality', label: '数据质量', icon: 'quality' },
-      { path: '/lineage', label: '数据血缘', icon: 'lineage' },
-      { path: '/data-lineage', label: '血缘可视化', icon: 'lineage' },
-      { path: '/govern', label: '资产目录', icon: 'govern' },
-      { path: '/standard', label: '主数据管理', icon: 'standard' },
-      { path: '/sec', label: '数据安全', icon: 'sec', badge: store.todoCount }
+      { path: '/govern-meta', label: t('nav.items.govern-meta'), icon: 'standard' },
+      { path: '/quality', label: t('nav.items.quality'), icon: 'quality' },
+      { path: '/lineage', label: t('nav.items.lineage'), icon: 'lineage' },
+      { path: '/data-lineage', label: t('nav.items.data-lineage'), icon: 'lineage' },
+      { path: '/govern', label: t('nav.items.govern'), icon: 'govern' },
+      { path: '/standard', label: t('nav.items.standard'), icon: 'standard' },
+      { path: '/sec', label: t('nav.items.sec'), icon: 'sec', badge: store.todoCount }
     ]
   },
   {
-    title: '开发工具',
+    title: t('nav.groups.devtools'),
     items: [
-      { path: '/integrate', label: '数据集成（SeaTunnel）', icon: 'integrate' },
-      { path: '/dev-sched', label: '调度编排（DolphinScheduler）', icon: 'develop' },
-      { path: '/scheduler-ops', label: '任务运维中心', icon: 'ops' },
-      { path: '/jobs', label: '作业管理', icon: 'develop' },
-      { path: '/develop', label: '数据开发 IDE', icon: 'develop' },
-      { path: '/sql-workbench', label: 'SQL 工作台', icon: 'sql' },
-      { path: '/analyze', label: 'BI 可视化', icon: 'analyze' },
-      { path: '/dev-tag', label: '标签画像', icon: 'vector' },
-      { path: '/dev-ml', label: '机器学习', icon: 'llmops' }
+      { path: '/integrate', label: t('nav.items.integrate'), icon: 'integrate' },
+      { path: '/dev-sched', label: t('nav.items.dev-sched'), icon: 'develop' },
+      { path: '/scheduler-ops', label: t('nav.items.scheduler-ops'), icon: 'ops' },
+      { path: '/jobs', label: t('nav.items.jobs'), icon: 'develop' },
+      { path: '/develop', label: t('nav.items.develop'), icon: 'develop' },
+      { path: '/sql-workbench', label: t('nav.items.sql-workbench'), icon: 'sql' },
+      { path: '/analyze', label: t('nav.items.analyze'), icon: 'analyze' },
+      { path: '/dev-tag', label: t('nav.items.dev-tag'), icon: 'vector' },
+      { path: '/dev-ml', label: t('nav.items.dev-ml'), icon: 'llmops' }
     ]
   },
   {
-    title: '租户与配额',
+    title: t('nav.groups.tenant'),
     items: [
-      { path: '/tenants', label: '租户管理', icon: 'ws' },
-      { path: '/workspaces', label: '工作空间', icon: 'ws' },
-      { path: '/workspace-management', label: 'Workspace 管理', icon: 'ws' },
-      { path: '/quota-management', label: '配额管理', icon: 'ops' },
-      { path: '/projects', label: '项目管理', icon: 'proj' },
-      { path: '/account', label: '账户与配额', icon: 'admin' }
+      { path: '/tenants', label: t('nav.items.tenants'), icon: 'ws' },
+      { path: '/workspaces', label: t('nav.items.workspaces'), icon: 'ws' },
+      { path: '/workspace-management', label: t('nav.items.workspace-management'), icon: 'ws' },
+      { path: '/quota-management', label: t('nav.items.quota-management'), icon: 'ops' },
+      { path: '/projects', label: t('nav.items.projects'), icon: 'proj' },
+      { path: '/account', label: t('nav.items.account'), icon: 'admin' }
     ]
   },
   {
-    title: '智能数据',
+    title: t('nav.groups.intelligent'),
     items: [
-      { path: '/ai-assistant', label: 'AI 数据助手', icon: 'llmops' },
-      { path: '/vector', label: '向量数据库', icon: 'vector' },
-      { path: '/kb', label: '知识工程', icon: 'kb' },
-      { path: '/llmops', label: 'LLMOps', icon: 'llmops' },
-      { path: '/orchestrator/dag', label: '编排 DAG 可视化', icon: 'lineage' },
-      { path: '/gateway', label: '大模型接口', icon: 'gateway' }
+      { path: '/ai-assistant', label: t('nav.items.ai-assistant'), icon: 'llmops' },
+      { path: '/vector', label: t('nav.items.vector'), icon: 'vector' },
+      { path: '/kb', label: t('nav.items.kb'), icon: 'kb' },
+      { path: '/llmops', label: t('nav.items.llmops'), icon: 'llmops' },
+      { path: '/orchestrator/dag', label: t('nav.items.orchestrator-dag'), icon: 'lineage' },
+      { path: '/gateway', label: t('nav.items.gateway'), icon: 'gateway' }
     ]
   },
   {
-    title: '产品运营',
+    title: t('nav.groups.operations'),
     items: [
-      { path: '/dashboard', label: '统一控制台', icon: 'dash' },
-      { path: '/ops', label: '运维中心', icon: 'ops' },
-      { path: '/search', label: '检索门户', icon: 'kb' },
-      { path: '/admin', label: '运营后台', icon: 'admin' },
-      { path: '/ops-tpl', label: '行业应用模板', icon: 'proj' },
-      { path: '/ops-portal', label: '业务线门户', icon: 'ws' },
-      { path: '/ops-api', label: '开放 API', icon: 'gateway' },
-      { path: '/ops-flow', label: '数据资产流通', icon: 'govern' }
+      { path: '/dashboard', label: t('nav.items.dashboard'), icon: 'dash' },
+      { path: '/ops', label: t('nav.items.ops'), icon: 'ops' },
+      { path: '/search', label: t('nav.items.search'), icon: 'kb' },
+      { path: '/admin', label: t('nav.items.admin'), icon: 'admin' },
+      { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'proj' },
+      { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'ws' },
+      { path: '/ops-api', label: t('nav.items.ops-api'), icon: 'gateway' },
+      { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'govern' }
     ]
   }
 ])

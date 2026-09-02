@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page" role="main" aria-label="登录页面">
+  <div class="login-page" role="main" :aria-label="t('login.title')">
     <!-- 网格动效背景层 -->
     <div class="grid-bg-layer" aria-hidden="true"></div>
     <!-- 星点闪烁背景层 -->
@@ -10,33 +10,33 @@
 
     <!-- 登录卡片 (毛玻璃 + 弹簧入场) -->
     <div class="login-card glass animate-springIn" role="region" aria-label="登录卡片">
-      <div class="brand gradient-text" aria-label="数擎大数据平台品牌">
+      <div class="brand gradient-text" :aria-label="t('nav.brand')">
         <span class="dot" aria-hidden="true"></span>
-        数擎 · 大数据平台
+        {{ t('nav.brand') }}
       </div>
-      <h2>登录</h2>
+      <h2>{{ t('login.title') }}</h2>
       <el-form
         :model="form"
-        @submit.prevent="handleLogin"
         label-position="top"
-        aria-label="登录表单"
+        :aria-label="t('login.title')"
+        @submit.prevent="handleLogin"
       >
-        <el-form-item label="用户名">
+        <el-form-item :label="t('login.username')">
           <el-input
             v-model="form.username"
-            placeholder="请输入用户名"
+            :placeholder="t('login.usernamePlaceholder')"
             autocomplete="username"
-            aria-label="用户名"
+            :aria-label="t('login.username')"
           />
         </el-form-item>
-        <el-form-item label="密码">
+        <el-form-item :label="t('login.password')">
           <el-input
             v-model="form.password"
             type="password"
             show-password
-            placeholder="请输入密码"
+            :placeholder="t('login.passwordPlaceholder')"
             autocomplete="current-password"
-            aria-label="密码"
+            :aria-label="t('login.password')"
             @keyup.enter="handleLogin"
           />
         </el-form-item>
@@ -45,10 +45,10 @@
           :loading="loading"
           class="login-btn"
           style="width: 100%"
-          aria-label="登录按钮"
+          :aria-label="t('login.submit')"
           @click="handleLogin"
         >
-          登 录
+          {{ loading ? t('login.loggingIn') : t('login.submit') }}
         </el-button>
         <div v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</div>
       </el-form>
@@ -63,8 +63,10 @@
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 
+const { t } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
@@ -75,18 +77,18 @@ const error = ref('')
 
 async function handleLogin() {
   if (!form.value.username || !form.value.password) {
-    error.value = '请输入用户名和密码'
+    error.value = t('login.required')
     return
   }
   loading.value = true
   error.value = ''
   try {
     await auth.login(form.value.username, form.value.password)
-    ElMessage.success('登录成功')
+    ElMessage.success(t('login.loginSuccess'))
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
   } catch (e) {
-    error.value = `登录失败: ${(e as Error)?.message ?? e}`
+    error.value = `${t('login.loginFailed')}: ${(e as Error)?.message ?? e}`
   } finally {
     loading.value = false
   }

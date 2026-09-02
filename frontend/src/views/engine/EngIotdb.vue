@@ -6,7 +6,7 @@
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="instancesLoading">
-        <div class="card" v-for="i in 4" :key="i">
+        <div v-for="i in 4" :key="i" class="card">
           <h3>加载中…</h3>
           <div class="kpi">--</div>
           <div class="meta">正在拉取数据</div>
@@ -423,7 +423,7 @@ onUnmounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -445,7 +445,7 @@ onUnmounted(() => {
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
   background: #fff;
@@ -453,28 +453,28 @@ onUnmounted(() => {
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .kpi.d {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .split-layout {
@@ -518,7 +518,7 @@ onUnmounted(() => {
 .throughput-summary {
   display: flex;
   gap: 24px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 12px;
   margin-bottom: 12px;
 }
@@ -540,13 +540,13 @@ onUnmounted(() => {
   gap: 8px;
 }
 .sql-result {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
   background: #fff;
 }
 .result-meta {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 12px;
   margin-bottom: 8px;
 }

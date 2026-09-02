@@ -64,19 +64,19 @@
       <el-table-column label="操作" width="220" fixed="right">
         <template #default="{ row }">
           <el-button
+            v-if="row.status === 'SUCCEEDED'"
             link
             type="success"
             @click="emit('openRegister', row)"
-            v-if="row.status === 'SUCCEEDED'"
           >
             注册模型
           </el-button>
           <el-button
+            v-if="['PENDING', 'RUNNING', 'SCHEDULED'].includes(row.status)"
             link
             type="warning"
             :loading="stoppingId === row.id"
             @click="emit('stop', row)"
-            v-if="['PENDING', 'RUNNING', 'SCHEDULED'].includes(row.status)"
           >
             停止
           </el-button>
@@ -173,7 +173,7 @@ function fmtMetrics(m: Record<string, number>) {
 }
 .kpi-card {
   flex: 1;
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 14px;
   text-align: center;
@@ -181,21 +181,21 @@ function fmtMetrics(m: Record<string, number>) {
 .kpi-card h4 {
   margin: 0 0 4px;
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .kpi-card .num {
   display: block;
   font-size: 28px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi-card .num.running {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .kpi-card .lbl {
   font-size: 11px;
-  color: #909399;
+  color: var(--ds-text-muted, var(--ds-text-secondary));
 }
 .toolbar {
   display: flex;

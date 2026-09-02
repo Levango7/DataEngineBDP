@@ -294,7 +294,7 @@ function renderChart(g: LineageGraph): void {
           target: l.target,
           expression: l.expression,
           lineStyle: {
-            color: l.relationType === 'TABLE_LINEAGE' ? '#2f6f6a' : '#8b5cf6',
+            color: l.relationType === 'TABLE_LINEAGE' ? 'var(--ds-color-success-700)' : '#8b5cf6',
             width: l.relationType === 'TABLE_LINEAGE' ? 2 : 1.5,
             curveness: 0.1
           }

@@ -6,7 +6,7 @@
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="loading">
-        <div class="card" v-for="i in 4" :key="i">
+        <div v-for="i in 4" :key="i" class="card">
           <h3>加载中…</h3>
           <div class="kpi">--</div>
           <div class="meta">正在拉取数据</div>

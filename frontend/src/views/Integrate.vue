@@ -15,9 +15,9 @@
     </div>
     <div v-else class="conn-grid">
       <div
-        class="conn"
         v-for="c in connectors"
         :key="`${c.name}-${c.category || 'source'}`"
+        class="conn"
         :class="{ selected: isConnectorSelected(c) }"
         @click="onConnectorClick(c)"
       >
@@ -440,7 +440,7 @@ onUnmounted(() => {
   margin-top: 8px;
 }
 .conn {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
   text-align: center;
@@ -465,7 +465,7 @@ onUnmounted(() => {
   top: 4px;
   right: 4px;
   font-size: 10px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   background: #f4f5f7;
   padding: 1px 4px;
   border-radius: 3px;
@@ -480,6 +480,6 @@ onUnmounted(() => {
 }
 .note {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 </style>

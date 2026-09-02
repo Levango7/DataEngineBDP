@@ -28,7 +28,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr class="click" v-for="a in assets" :key="a.id" @click="openDrawer(a)">
+          <tr v-for="a in assets" :key="a.id" class="click" @click="openDrawer(a)">
             <td>{{ a.name }}</td>
             <td>{{ a.layer }}</td>
             <td>{{ a.owner }}</td>
@@ -103,7 +103,7 @@
       </div>
       <div v-if="tab === 2">
         <div v-if="qualityLoading" style="color: var(--muted)">加载质量检查…</div>
-        <div v-else v-for="(q, idx) in qualityItems" :key="idx" class="kv">
+        <div v-for="(q, idx) in qualityItems" v-else :key="idx" class="kv">
           <span>{{ q.ruleName }}</span>
           <span>
             <span class="pill" :class="q.passed ? 'g' : 'r'">

@@ -9,7 +9,7 @@
     <!-- 集群概览 KPI 卡片：三态 loading / error / data -->
     <div class="grid g4" role="region" aria-label="集群概览 KPI 卡片">
       <template v-if="overviewLoading">
-        <div class="card" v-for="i in 4" :key="i" role="status" aria-live="polite">
+        <div v-for="i in 4" :key="i" class="card" role="status" aria-live="polite">
           <h3>加载中…</h3>
           <div class="kpi">--</div>
           <div class="meta">正在拉取数据</div>
@@ -20,7 +20,7 @@
           <h3>加载失败</h3>
           <div class="meta" style="color: var(--muted)">
             {{ overviewError.message }}，
-            <a href="javascript:void(0)" @click="loadOverview" aria-label="重新加载集群概览">
+            <a href="javascript:void(0)" aria-label="重新加载集群概览" @click="loadOverview">
               重试
             </a>
           </div>

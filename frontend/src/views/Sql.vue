@@ -16,7 +16,7 @@
           spellcheck="false"
           placeholder="-- 输入 SQL，如：SELECT city, COUNT(*) cnt FROM doris.dim.user GROUP BY city"
         ></textarea>
-        <div class="runlog" ref="sqllogEl">
+        <div ref="sqllogEl" class="runlog">
           <div v-for="(line, i) in sqllog" :key="i" :class="line.cls">{{ line.text }}</div>
         </div>
       </div>

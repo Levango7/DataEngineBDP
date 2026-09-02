@@ -283,7 +283,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 <style scoped>
 .search-filter {
   background: var(--panel, #fff);
-  border: 1px solid var(--line, #e4e8ea);
+  border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 14px;
   display: flex;
@@ -311,7 +311,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink, #232a2e);
+  color: var(--ink, var(--ds-text-primary));
 }
 .custom-time {
   margin-top: 4px;
@@ -321,12 +321,12 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   margin-bottom: 4px;
 }
 .opt-count {
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   font-size: 11px;
   margin-left: 4px;
 }
 .empty-tags {
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   font-size: 12px;
 }
 .tag-cloud {
@@ -339,7 +339,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   align-items: center;
   gap: 3px;
   padding: 3px 10px;
-  border: 1px solid var(--line, #e4e8ea);
+  border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 14px;
   font-size: 12px;
   cursor: pointer;
@@ -347,30 +347,30 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   transition: all 0.15s;
 }
 .tag-chip:hover {
-  border-color: var(--primary, #2f6f6a);
-  color: var(--primary, #2f6f6a);
+  border-color: var(--primary, var(--ds-color-success-700));
+  color: var(--primary, var(--ds-color-success-700));
 }
 .tag-chip.active {
   background: var(--primary-soft, #e9f1f0);
-  border-color: var(--primary, #2f6f6a);
-  color: var(--primary, #2f6f6a);
+  border-color: var(--primary, var(--ds-color-success-700));
+  color: var(--primary, var(--ds-color-success-700));
   font-weight: 600;
 }
 .chip-count {
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   font-size: 10px;
 }
 .filter-summary {
   padding-top: 8px;
-  border-top: 1px dashed var(--line, #e4e8ea);
+  border-top: 1px dashed var(--line, var(--ds-border-default));
   font-size: 12px;
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   display: flex;
   align-items: center;
   gap: 4px;
 }
 .summary-count {
-  color: var(--primary, #2f6f6a);
+  color: var(--primary, var(--ds-color-success-700));
   font-weight: 700;
 }
 </style>

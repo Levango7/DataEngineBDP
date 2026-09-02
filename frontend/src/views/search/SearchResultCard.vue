@@ -218,7 +218,7 @@ function openUrl(): void {
 <style scoped>
 .result-card {
   background: var(--panel, #fff);
-  border: 1px solid var(--line, #e4e8ea);
+  border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
@@ -253,12 +253,12 @@ function openUrl(): void {
   border-radius: 20px;
   font-weight: 600;
   background: var(--primary-soft, #e9f1f0);
-  color: var(--primary, #2f6f6a);
+  color: var(--primary, var(--ds-color-success-700));
 }
 .type-badge.table,
 .type-badge.view {
   background: var(--c-green-50, #ecfdf5);
-  color: var(--green, #2f9e6f);
+  color: var(--green, var(--ds-color-success-600));
 }
 .type-badge.api,
 .type-badge.stream {
@@ -268,16 +268,16 @@ function openUrl(): void {
 .type-badge.model,
 .type-badge.notebook {
   background: #fff7ed;
-  color: #c08a2e;
+  color: var(--ds-color-warning-600);
 }
 .type-badge.dashboard,
 .type-badge.metric {
   background: #fef2f2;
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .source-pill {
   font-size: 11px;
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   background: var(--c-surface-alt, #eaf0f1);
   padding: 2px 8px;
   border-radius: 4px;
@@ -288,13 +288,13 @@ function openUrl(): void {
   gap: 3px;
   font-size: 12px;
   font-weight: 600;
-  color: var(--amber, #c08a2e);
+  color: var(--amber, var(--ds-color-warning-600));
 }
 .card-title {
   font-size: 15px;
   font-weight: 700;
   margin: 0;
-  color: var(--ink, #232a2e);
+  color: var(--ink, var(--ds-text-primary));
   line-height: 1.4;
 }
 .card-title :deep(mark) {
@@ -305,7 +305,7 @@ function openUrl(): void {
 }
 .card-desc {
   font-size: 13px;
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   margin: 0;
   line-height: 1.6;
   display: -webkit-box;
@@ -323,7 +323,7 @@ function openUrl(): void {
   display: flex;
   gap: 16px;
   font-size: 12px;
-  color: var(--muted, #717a80);
+  color: var(--muted, var(--ds-text-secondary));
   flex-wrap: wrap;
 }
 .meta-item {
@@ -341,6 +341,6 @@ function openUrl(): void {
   gap: 8px;
   margin-top: 4px;
   padding-top: 8px;
-  border-top: 1px dashed var(--line, #e4e8ea);
+  border-top: 1px dashed var(--line, var(--ds-border-default));
 }
 </style>

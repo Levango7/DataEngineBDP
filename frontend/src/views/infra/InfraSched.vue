@@ -34,7 +34,7 @@
         </div>
       </template>
       <template v-else-if="summaryLoading">
-        <div class="card" v-for="i in 4" :key="i">
+        <div v-for="i in 4" :key="i" class="card">
           <h3>加载中…</h3>
           <div class="kpi">--</div>
           <div class="meta">正在拉取数据</div>
@@ -515,7 +515,7 @@ onMounted(() => {
   padding: 0;
 }
 .sub {
-  color: #717a80;
+  color: var(--ds-text-secondary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -537,7 +537,7 @@ onMounted(() => {
   }
 }
 .card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
   background: #fff;
@@ -545,34 +545,34 @@ onMounted(() => {
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 24px;
   font-weight: 700;
-  color: #232a2e;
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: #2f9e6f;
+  color: var(--ds-color-success-600);
 }
 .kpi.w {
-  color: #c08a2e;
+  color: var(--ds-color-warning-600);
 }
 .kpi.d {
-  color: #c0504d;
+  color: var(--ds-color-error-600);
 }
 .meta {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .muted {
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .page-card {
-  border: 1px solid #e4e8ea;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
 }
 .toolbar {
@@ -586,7 +586,7 @@ onMounted(() => {
 }
 .toolbar .label {
   font-size: 13px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .card-header {
   display: flex;
@@ -602,17 +602,17 @@ onMounted(() => {
 }
 .event-trigger {
   font-size: 13px;
-  color: #232a2e;
+  color: var(--ds-text-primary);
 }
 .event-replicas {
   font-size: 13px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 .event-replicas strong {
-  color: #232a2e;
+  color: var(--ds-text-primary);
 }
 .event-duration {
   font-size: 12px;
-  color: #717a80;
+  color: var(--ds-text-secondary);
 }
 </style>
