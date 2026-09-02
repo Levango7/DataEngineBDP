@@ -27,6 +27,10 @@ import secZh from './locales/modules/sec.zh-CN.json'
 import secEn from './locales/modules/sec.en-US.json'
 import opsZh from './locales/modules/ops.zh-CN.json'
 import opsEn from './locales/modules/ops.en-US.json'
+import jobmgmtZh from './locales/modules/jobmgmt.zh-CN.json'
+import jobmgmtEn from './locales/modules/jobmgmt.en-US.json'
+import schedulerZh from './locales/modules/scheduler.zh-CN.json'
+import schedulerEn from './locales/modules/scheduler.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -87,7 +91,9 @@ export const i18n = createI18n({
       ...sqlZh,
       ...lineageZh,
       ...secZh,
-      ...opsZh
+      ...opsZh,
+      ...jobmgmtZh,
+      ...schedulerZh
     },
     'en-US': {
       ...enUS,
@@ -103,7 +109,9 @@ export const i18n = createI18n({
       ...sqlEn,
       ...lineageEn,
       ...secEn,
-      ...opsEn
+      ...opsEn,
+      ...jobmgmtEn,
+      ...schedulerEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

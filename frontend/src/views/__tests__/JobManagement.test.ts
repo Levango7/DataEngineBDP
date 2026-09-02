@@ -6,6 +6,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { i18n } from '@/i18n'
 import JobManagement from '../JobManagement.vue'
 
 // Mock job API
@@ -67,10 +68,12 @@ vi.mock('@/api/job', () => ({
 describe('JobManagement.vue', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    // 组件已接入 i18n 词条（jobmgmt 模块），测试固定中文语言环境
+    i18n.global.locale.value = 'zh-CN'
   })
 
   function mountComponent(): VueWrapper {
-    return mount(JobManagement)
+    return mount(JobManagement, { global: { plugins: [i18n] } })
   }
 
   it('应正确挂载组件并渲染页面标题', async () => {

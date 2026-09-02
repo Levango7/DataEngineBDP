@@ -1,33 +1,30 @@
 <template>
-  <div class="job-page" role="main" aria-label="作业管理页面">
-    <h1>作业管理</h1>
-    <div class="sub">
-      提交与运维批/流/SQL/Python 作业，支持 Spark / Flink / Trino / Doris
-      多引擎，可查看运行日志与状态。
-    </div>
+  <div class="job-page" role="main" :aria-label="t('jobmgmt.pageAria')">
+    <h1>{{ t('jobmgmt.title') }}</h1>
+    <div class="sub">{{ t('jobmgmt.subtitle') }}</div>
 
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
-      <div class="toolbar" role="toolbar" aria-label="作业列表操作栏">
-        <el-button type="primary" aria-label="提交作业" @click="openSubmitDialog">
-          + 提交作业
+      <div class="toolbar" role="toolbar" :aria-label="t('jobmgmt.toolbarAria')">
+        <el-button type="primary" :aria-label="t('jobmgmt.submitAria')" @click="openSubmitDialog">
+          {{ t('jobmgmt.submitJob') }}
         </el-button>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle aria-label="刷新作业列表" @click="loadList" />
+        <el-button :icon="Refresh" circle :aria-label="t('jobmgmt.refreshAria')" @click="loadList" />
       </div>
 
       <!-- 状态筛选 tabs -->
       <el-tabs
         v-model="activeTab"
         role="tablist"
-        aria-label="按作业状态筛选"
+        :aria-label="t('jobmgmt.tabsAria')"
         @tab-change="handleTabChange"
       >
-        <el-tab-pane label="全部" name="all" />
-        <el-tab-pane label="运行中" name="running" />
-        <el-tab-pane label="已完成" name="success" />
-        <el-tab-pane label="失败" name="failed" />
-        <el-tab-pane label="等待中" name="pending" />
+        <el-tab-pane :label="t('jobmgmt.tabs.all')" name="all" />
+        <el-tab-pane :label="t('jobmgmt.tabs.running')" name="running" />
+        <el-tab-pane :label="t('jobmgmt.tabs.success')" name="success" />
+        <el-tab-pane :label="t('jobmgmt.tabs.failed')" name="failed" />
+        <el-tab-pane :label="t('jobmgmt.tabs.pending')" name="pending" />
       </el-tabs>
 
       <!-- 作业列表 -->
@@ -37,57 +34,57 @@
         stripe
         border
         role="table"
-        aria-label="作业列表表格"
-        :empty-text="error ? '加载失败，请重试' : '暂无作业'"
+        :aria-label="t('jobmgmt.tableAria')"
+        :empty-text="error ? t('jobmgmt.emptyError') : t('jobmgmt.empty')"
       >
         <el-table-column prop="id" label="ID" width="120" />
-        <el-table-column prop="name" label="作业名称" min-width="180" />
-        <el-table-column label="类型" width="100">
+        <el-table-column prop="name" :label="t('jobmgmt.cols.name')" min-width="180" />
+        <el-table-column :label="t('jobmgmt.cols.type')" width="100">
           <template #default="{ row }">
             <el-tag effect="plain" size="small">{{ typeLabel(row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="120">
+        <el-table-column :label="t('jobmgmt.cols.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="owner" label="负责人" width="120" />
-        <el-table-column prop="lastRunAt" label="最近运行" width="180" />
-        <el-table-column label="耗时" width="120">
+        <el-table-column prop="owner" :label="t('jobmgmt.cols.owner')" width="120" />
+        <el-table-column prop="lastRunAt" :label="t('jobmgmt.cols.lastRun')" width="180" />
+        <el-table-column :label="t('jobmgmt.cols.duration')" width="120">
           <template #default="{ row }">
             {{ formatDuration(row.lastRunDuration) }}
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="createdAt" :label="t('jobmgmt.cols.createdAt')" width="180" />
+        <el-table-column :label="t('jobmgmt.cols.actions')" width="180" fixed="right">
           <template #default="{ row }">
             <el-button
               link
               type="primary"
-              :aria-label="`查看作业 ${row.name} 日志`"
+              :aria-label="t('jobmgmt.viewLogAria', { name: row.name })"
               @click="openLogDialog(row)"
             >
-              查看日志
+              {{ t('jobmgmt.viewLog') }}
             </el-button>
             <el-button
               v-if="canCancel(row.status)"
               link
               type="warning"
               :loading="cancelingId === row.id"
-              :aria-label="`取消作业 ${row.name}`"
+              :aria-label="t('jobmgmt.cancelAria', { name: row.name })"
               @click="handleCancel(row)"
             >
-              取消
+              {{ t('jobmgmt.cancel') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap" role="navigation" aria-label="作业列表分页">
+      <div class="pagination-wrap" role="navigation" :aria-label="t('jobmgmt.paginationAria')">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -95,7 +92,7 @@
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
           background
-          aria-label="分页导航"
+          :aria-label="t('jobmgmt.paginationNavAria')"
           @size-change="loadList"
           @current-change="loadList"
         />
@@ -105,12 +102,12 @@
     <!-- 提交作业弹窗 -->
     <el-dialog
       v-model="submitDialogVisible"
-      title="提交作业"
+      :title="t('jobmgmt.submitModal.title')"
       width="640px"
       :close-on-click-modal="false"
       role="dialog"
       aria-modal="true"
-      aria-label="提交作业弹窗"
+      :aria-label="t('jobmgmt.submitModal.aria')"
       @closed="resetSubmitForm"
     >
       <el-form
@@ -120,51 +117,74 @@
         label-width="100px"
         label-position="right"
       >
-        <el-form-item label="作业名称" prop="name">
-          <el-input v-model="submitForm.name" placeholder="如 订单宽表 ETL" aria-label="作业名称" />
+        <el-form-item :label="t('jobmgmt.submitModal.name')" prop="name">
+          <el-input
+            v-model="submitForm.name"
+            :placeholder="t('jobmgmt.submitModal.namePlaceholder')"
+            :aria-label="t('jobmgmt.submitModal.name')"
+          />
         </el-form-item>
-        <el-form-item label="作业类型" prop="type">
-          <el-select v-model="submitForm.type" style="width: 100%" aria-label="作业类型">
-            <el-option label="批作业（Batch）" value="batch" />
-            <el-option label="流作业（Stream）" value="stream" />
-            <el-option label="SQL 作业" value="sql" />
-            <el-option label="Python 作业" value="python" />
-            <el-option label="Shell 作业" value="shell" />
+        <el-form-item :label="t('jobmgmt.submitModal.type')" prop="type">
+          <el-select
+            v-model="submitForm.type"
+            style="width: 100%"
+            :aria-label="t('jobmgmt.submitModal.type')"
+          >
+            <el-option :label="t('jobmgmt.submitModal.typeBatch')" value="batch" />
+            <el-option :label="t('jobmgmt.submitModal.typeStream')" value="stream" />
+            <el-option :label="t('jobmgmt.submitModal.typeSql')" value="sql" />
+            <el-option :label="t('jobmgmt.submitModal.typePython')" value="python" />
+            <el-option :label="t('jobmgmt.submitModal.typeShell')" value="shell" />
           </el-select>
         </el-form-item>
-        <el-form-item label="执行引擎" prop="engine">
-          <el-select v-model="submitForm.engine" style="width: 100%" aria-label="执行引擎">
+        <el-form-item :label="t('jobmgmt.submitModal.engine')" prop="engine">
+          <el-select
+            v-model="submitForm.engine"
+            style="width: 100%"
+            :aria-label="t('jobmgmt.submitModal.engine')"
+          >
             <el-option label="Spark" value="spark" />
             <el-option label="Flink" value="flink" />
             <el-option label="Trino" value="trino" />
             <el-option label="Doris" value="doris" />
           </el-select>
         </el-form-item>
-        <el-form-item label="负责人" prop="owner">
-          <el-input v-model="submitForm.owner" placeholder="负责人姓名" aria-label="负责人姓名" />
-        </el-form-item>
-        <el-form-item label="Cron 表达式" prop="schedule">
+        <el-form-item :label="t('jobmgmt.submitModal.owner')" prop="owner">
           <el-input
-            v-model="submitForm.schedule"
-            placeholder="如 0 0 * * *（每日 0 点），留空表示手动触发"
-            aria-label="Cron 调度表达式"
+            v-model="submitForm.owner"
+            :placeholder="t('jobmgmt.submitModal.ownerPlaceholder')"
+            :aria-label="t('jobmgmt.submitModal.owner')"
           />
         </el-form-item>
-        <el-form-item label="作业代码" prop="code">
+        <el-form-item :label="t('jobmgmt.submitModal.cron')" prop="schedule">
+          <el-input
+            v-model="submitForm.schedule"
+            :placeholder="t('jobmgmt.submitModal.cronPlaceholder')"
+            :aria-label="t('jobmgmt.submitModal.cron')"
+          />
+        </el-form-item>
+        <el-form-item :label="t('jobmgmt.submitModal.code')" prop="code">
           <el-input
             v-model="submitForm.code"
             type="textarea"
             :rows="10"
-            placeholder="SQL 语句或代码内容"
-            aria-label="作业代码内容"
+            :placeholder="t('jobmgmt.submitModal.codePlaceholder')"
+            :aria-label="t('jobmgmt.submitModal.code')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button aria-label="取消提交" @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" aria-label="提交作业" @click="handleSubmit">
-          提交
+        <el-button :aria-label="t('jobmgmt.submitModal.cancelAria')" @click="submitDialogVisible = false">
+          {{ t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="submitting"
+          :aria-label="t('jobmgmt.submitAria')"
+          @click="handleSubmit"
+        >
+          {{ t('jobmgmt.submitModal.submit') }}
         </el-button>
       </template>
     </el-dialog>
@@ -172,20 +192,31 @@
     <!-- 查看日志弹窗 -->
     <el-dialog
       v-model="logDialogVisible"
-      :title="`作业日志 - ${currentLogJob?.name || ''}`"
+      :title="t('jobmgmt.logModal.title', { name: currentLogJob?.name || '' })"
       width="800px"
       :close-on-click-modal="true"
       role="dialog"
       aria-modal="true"
-      aria-label="作业日志查看弹窗"
+      :aria-label="t('jobmgmt.logModal.aria')"
       @opened="scrollLogToBottom"
     >
-      <div v-loading="logLoading" class="log-container" role="region" aria-label="日志内容区域">
-        <pre class="log-content" aria-label="作业运行日志">{{ logContent || '暂无日志' }}</pre>
+      <div
+        v-loading="logLoading"
+        class="log-container"
+        role="region"
+        :aria-label="t('jobmgmt.logModal.regionAria')"
+      >
+        <pre class="log-content" :aria-label="t('jobmgmt.logModal.logAria')">{{
+          logContent || t('jobmgmt.logModal.empty')
+        }}</pre>
       </div>
       <template #footer>
-        <el-button aria-label="关闭日志弹窗" @click="logDialogVisible = false">关闭</el-button>
-        <el-button type="primary" aria-label="刷新日志" @click="refreshLog">刷新</el-button>
+        <el-button :aria-label="t('jobmgmt.logModal.closeAria')" @click="logDialogVisible = false">
+          {{ t('jobmgmt.logModal.close') }}
+        </el-button>
+        <el-button type="primary" :aria-label="t('jobmgmt.logModal.refreshAria')" @click="refreshLog">
+          {{ t('jobmgmt.logModal.refresh') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -193,6 +224,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
@@ -201,6 +233,8 @@ import * as jobApi from '@/api/job'
 import type { Job, JobStatus, JobType, PagedResult } from '@/api/types'
 
 /* ------------------------------ 列表查询 ------------------------------ */
+
+const { t } = useI18n()
 
 // 作业列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {
@@ -216,7 +250,7 @@ const {
       pageSize: pageSize.value
     }),
   {
-    onError: () => ElMessage.error('作业列表加载失败')
+    onError: () => ElMessage.error(t('jobmgmt.loadFailed'))
   }
 )
 
@@ -268,12 +302,12 @@ const submitForm = reactive<SubmitForm>({
   code: ''
 })
 
-const submitRules: FormRules = {
-  name: [{ required: true, message: '请输入作业名称', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择作业类型', trigger: 'change' }],
-  engine: [{ required: true, message: '请选择执行引擎', trigger: 'change' }],
-  code: [{ required: true, message: '请输入作业代码', trigger: 'blur' }]
-}
+const submitRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('jobmgmt.submitModal.nameRequired'), trigger: 'blur' }],
+  type: [{ required: true, message: t('jobmgmt.submitModal.typeRequired'), trigger: 'change' }],
+  engine: [{ required: true, message: t('jobmgmt.submitModal.engineRequired'), trigger: 'change' }],
+  code: [{ required: true, message: t('jobmgmt.submitModal.codeRequired'), trigger: 'blur' }]
+}))
 
 /** 打开提交弹窗 */
 function openSubmitDialog() {
@@ -312,7 +346,7 @@ async function handleSubmit() {
         schedule: submitForm.schedule || undefined,
         owner: submitForm.owner || undefined
       })
-      ElMessage.success('作业已提交')
+      ElMessage.success(t('jobmgmt.submitModal.submitted'))
       submitDialogVisible.value = false
       await loadList()
     } catch {
@@ -331,17 +365,17 @@ const cancelingId = ref<string>('')
 async function handleCancel(row: Job) {
   try {
     await ElMessageBox.confirm(
-      `确定取消作业「${row.name}」吗？运行中的作业将被终止。`,
-      '取消作业确认',
+      t('jobmgmt.cancelConfirm.message', { name: row.name }),
+      t('jobmgmt.cancelConfirm.title'),
       {
         type: 'warning',
-        confirmButtonText: '确定取消',
-        cancelButtonText: '保留'
+        confirmButtonText: t('jobmgmt.cancelConfirm.confirm'),
+        cancelButtonText: t('jobmgmt.cancelConfirm.keep')
       }
     )
     cancelingId.value = row.id
     await jobApi.cancelJob(row.id)
-    ElMessage.success('作业已取消')
+    ElMessage.success(t('jobmgmt.cancelConfirm.canceled'))
     await loadList()
   } catch {
     // 用户取消或操作失败
@@ -391,36 +425,39 @@ function scrollLogToBottom() {
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-const TYPE_LABELS: Record<JobType, string> = {
-  batch: '批作业',
-  stream: '流作业',
-  sql: 'SQL',
-  python: 'Python',
-  shell: 'Shell'
-}
+const JOB_TYPES: JobType[] = ['batch', 'stream', 'sql', 'python', 'shell']
 
 function typeLabel(type: JobType): string {
-  return TYPE_LABELS[type] ?? type
+  return JOB_TYPES.includes(type) ? t(`jobmgmt.types.${type}`) : type
 }
 
-const STATUS_MAP: Record<
+const STATUS_TAG_TYPES: Record<
   JobStatus,
-  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+  'primary' | 'success' | 'danger' | 'info' | 'warning'
 > = {
-  running: { label: '运行中', type: 'primary' },
-  success: { label: '已完成', type: 'success' },
-  failed: { label: '失败', type: 'danger' },
-  canceled: { label: '已取消', type: 'info' },
-  pending: { label: '等待中', type: 'info' },
-  scheduled: { label: '已调度', type: 'warning' }
+  running: 'primary',
+  success: 'success',
+  failed: 'danger',
+  canceled: 'info',
+  pending: 'info',
+  scheduled: 'warning'
 }
+
+const JOB_STATUSES: JobStatus[] = [
+  'running',
+  'success',
+  'failed',
+  'canceled',
+  'pending',
+  'scheduled'
+]
 
 function statusLabel(status: JobStatus): string {
-  return STATUS_MAP[status]?.label ?? status
+  return JOB_STATUSES.includes(status) ? t(`jobmgmt.status.${status}`) : status
 }
 
 function statusTagType(status: JobStatus): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_TAG_TYPES[status] ?? 'info'
 }
 
 /** 耗时格式化 */

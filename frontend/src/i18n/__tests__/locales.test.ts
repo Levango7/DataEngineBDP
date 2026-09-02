@@ -35,6 +35,10 @@ import secZh from '@/i18n/locales/modules/sec.zh-CN.json'
 import secEn from '@/i18n/locales/modules/sec.en-US.json'
 import opsZh from '@/i18n/locales/modules/ops.zh-CN.json'
 import opsEn from '@/i18n/locales/modules/ops.en-US.json'
+import jobmgmtZh from '@/i18n/locales/modules/jobmgmt.zh-CN.json'
+import jobmgmtEn from '@/i18n/locales/modules/jobmgmt.en-US.json'
+import schedulerZh from '@/i18n/locales/modules/scheduler.zh-CN.json'
+import schedulerEn from '@/i18n/locales/modules/scheduler.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -98,7 +102,9 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['sql', sqlZh as Record<string, unknown>, sqlEn as Record<string, unknown>],
     ['lineage', lineageZh as Record<string, unknown>, lineageEn as Record<string, unknown>],
     ['sec', secZh as Record<string, unknown>, secEn as Record<string, unknown>],
-    ['ops', opsZh as Record<string, unknown>, opsEn as Record<string, unknown>]
+    ['ops', opsZh as Record<string, unknown>, opsEn as Record<string, unknown>],
+    ['jobmgmt', jobmgmtZh as Record<string, unknown>, jobmgmtEn as Record<string, unknown>],
+    ['scheduler', schedulerZh as Record<string, unknown>, schedulerEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

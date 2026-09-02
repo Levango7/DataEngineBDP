@@ -1,0 +1,98 @@
+{
+  "jobmgmt": {
+    "title": "Job Management",
+    "subtitle": "Submit and operate batch/stream/SQL/Python jobs on Spark / Flink / Trino / Doris, with run logs and status visibility.",
+    "pageAria": "Job management page",
+    "toolbarAria": "Job list toolbar",
+    "submitJob": "+ Submit Job",
+    "submitAria": "Submit job",
+    "refreshAria": "Refresh job list",
+    "tabsAria": "Filter by job status",
+    "tabs": {
+      "all": "All",
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "tableAria": "Job list table",
+    "emptyError": "Failed to load, please retry",
+    "empty": "No jobs",
+    "cols": {
+      "name": "Job Name",
+      "type": "Type",
+      "status": "Status",
+      "owner": "Owner",
+      "lastRun": "Last Run",
+      "duration": "Duration",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "viewLog": "View Logs",
+    "viewLogAria": "View logs of job {name}",
+    "cancel": "Cancel",
+    "cancelAria": "Cancel job {name}",
+    "paginationAria": "Job list pagination",
+    "paginationNavAria": "Pagination",
+    "types": {
+      "batch": "Batch",
+      "stream": "Stream",
+      "sql": "SQL",
+      "python": "Python",
+      "shell": "Shell"
+    },
+    "status": {
+      "running": "Running",
+      "success": "Completed",
+      "failed": "Failed",
+      "canceled": "Canceled",
+      "pending": "Pending",
+      "scheduled": "Scheduled"
+    },
+    "loadFailed": "Failed to load job list",
+    "submitModal": {
+      "title": "Submit Job",
+      "aria": "Submit job dialog",
+      "name": "Job Name",
+      "namePlaceholder": "e.g. Orders Wide Table ETL",
+      "nameRequired": "Please enter a job name",
+      "type": "Job Type",
+      "typeRequired": "Please select a job type",
+      "typeBatch": "Batch Job (Batch)",
+      "typeStream": "Stream Job (Stream)",
+      "typeSql": "SQL Job",
+      "typePython": "Python Job",
+      "typeShell": "Shell Job",
+      "engine": "Engine",
+      "engineRequired": "Please select an engine",
+      "owner": "Owner",
+      "ownerPlaceholder": "Owner name",
+      "cron": "Cron Expression",
+      "cronPlaceholder": "e.g. 0 0 * * * (daily at 00:00); leave empty for manual trigger",
+      "code": "Job Code",
+      "codePlaceholder": "SQL statements or code",
+      "codeRequired": "Please enter the job code",
+      "cancelAria": "Cancel submission",
+      "submit": "Submit",
+      "submitted": "Job submitted"
+    },
+    "cancelConfirm": {
+      "message": "Cancel job \"{name}\"? The running job will be terminated.",
+      "title": "Confirm Cancellation",
+      "confirm": "Cancel Job",
+      "keep": "Keep",
+      "canceled": "Job canceled"
+    },
+    "logModal": {
+      "title": "Job Logs - {name}",
+      "aria": "Job logs dialog",
+      "regionAria": "Log content area",
+      "logAria": "Job run logs",
+      "empty": "No logs",
+      "closeAria": "Close logs dialog",
+      "close": "Close",
+      "refreshAria": "Refresh logs",
+      "refresh": "Refresh"
+    }
+  }
+}

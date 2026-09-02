@@ -1,0 +1,61 @@
+{
+  "scheduler": {
+    "title": "Task Operations Center",
+    "subtitle": "Stream/batch DAG run history, failed reruns and backfills (stream-batch-scheduler). Enter a DAG ID to view execution instances, rerun failed ones, or backfill by date range.",
+    "dagIdPlaceholder": "Enter DAG ID, e.g. dag-etl-001",
+    "query": "Query",
+    "backfill": "Backfill",
+    "tabs": {
+      "all": "All",
+      "success": "Success",
+      "failed": "Failed",
+      "running": "Running"
+    },
+    "emptyError": "Failed to load, please retry",
+    "empty": "No run history",
+    "needDagId": "Enter a DAG ID to query",
+    "cols": {
+      "runType": "Run Type",
+      "status": "Status",
+      "bizTime": "Business Time",
+      "duration": "Duration",
+      "triggeredBy": "Triggered By",
+      "startTime": "Start Time",
+      "actions": "Actions"
+    },
+    "rerun": "Rerun",
+    "detail": "Details",
+    "runTypes": {
+      "MANUAL": "Manual",
+      "SCHEDULED": "Scheduled",
+      "RERUN": "Rerun",
+      "BACKFILL": "Backfill"
+    },
+    "rerunConfirm": {
+      "message": "Rerun instance #{id} of DAG \"{dagId}\"? It will re-execute with the original parameters.",
+      "title": "Rerun Failed Instance",
+      "confirm": "Rerun",
+      "triggered": "Rerun triggered",
+      "failed": "Rerun failed: {msg}"
+    },
+    "backfillModal": {
+      "title": "Backfill",
+      "range": "Date Range",
+      "start": "Start date",
+      "end": "End date",
+      "intervalDays": "Interval (days)",
+      "generate": "Generate Instances",
+      "rangeRequired": "Please select a date range",
+      "done": "Backfill complete, {count} instances created",
+      "failed": "Backfill failed: {msg}"
+    },
+    "detailModal": {
+      "title": "Run Details",
+      "status": "Status",
+      "runType": "Run Type",
+      "startTime": "Start Time",
+      "endTime": "End Time",
+      "error": "Error Message"
+    }
+  }
+}

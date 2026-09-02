@@ -1,33 +1,32 @@
 <template>
   <div class="scheduler-ops-page">
-    <h1>任务运维中心</h1>
-    <div class="sub">
-      流批 DAG 运行历史 / 失败重跑 / 补数据（stream-batch-scheduler）。 输入 DAG ID
-      后查看执行实例，可对失败实例一键重跑，或按时间区间补数据。
-    </div>
+    <h1>{{ t('scheduler.title') }}</h1>
+    <div class="sub">{{ t('scheduler.subtitle') }}</div>
 
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
       <div class="toolbar">
         <el-input
           v-model="dagId"
-          placeholder="输入 DAG ID，如 dag-etl-001"
+          :placeholder="t('scheduler.dagIdPlaceholder')"
           clearable
           style="width: 280px"
           @keyup.enter="handleQuery"
         />
-        <el-button type="primary" @click="handleQuery">查询</el-button>
+        <el-button type="primary" @click="handleQuery">{{ t('scheduler.query') }}</el-button>
         <div class="spacer"></div>
-        <el-button type="success" plain :disabled="!dagId" @click="openBackfill">补数据</el-button>
+        <el-button type="success" plain :disabled="!dagId" @click="openBackfill">
+          {{ t('scheduler.backfill') }}
+        </el-button>
         <el-button :icon="Refresh" circle @click="handleQuery" />
       </div>
 
       <!-- 状态筛选 tabs -->
       <el-tabs v-model="activeStatus" @tab-change="handleQuery">
-        <el-tab-pane label="全部" name="" />
-        <el-tab-pane label="成功" name="SUCCESS" />
-        <el-tab-pane label="失败" name="FAILED" />
-        <el-tab-pane label="运行中" name="RUNNING" />
+        <el-tab-pane :label="t('scheduler.tabs.all')" name="" />
+        <el-tab-pane :label="t('scheduler.tabs.success')" name="SUCCESS" />
+        <el-tab-pane :label="t('scheduler.tabs.failed')" name="FAILED" />
+        <el-tab-pane :label="t('scheduler.tabs.running')" name="RUNNING" />
       </el-tabs>
 
       <!-- 运行历史表格 -->
@@ -36,38 +35,40 @@
         :data="runs"
         stripe
         border
-        :empty-text="dagId ? (error ? '加载失败，请重试' : '暂无运行历史') : '请先输入 DAG ID 查询'"
+        :empty-text="
+          dagId ? (error ? t('scheduler.emptyError') : t('scheduler.empty')) : t('scheduler.needDagId')
+        "
       >
         <el-table-column prop="id" label="RunId" width="90" />
-        <el-table-column label="运行类型" width="110">
+        <el-table-column :label="t('scheduler.cols.runType')" width="110">
           <template #default="{ row }">
             <el-tag :type="runTypeTagType(row.runType)" effect="plain" size="small">
               {{ runTypeLabel(row.runType) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column :label="t('scheduler.cols.status')" width="110">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light" size="small">
               {{ row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="业务时间" width="130">
+        <el-table-column :label="t('scheduler.cols.bizTime')" width="130">
           <template #default="{ row }">
             {{ row.bizTime ? row.bizTime.slice(0, 10) : '—' }}
           </template>
         </el-table-column>
-        <el-table-column label="耗时" width="110">
+        <el-table-column :label="t('scheduler.cols.duration')" width="110">
           <template #default="{ row }">
             {{ formatDuration(row.durationMs) }}
           </template>
         </el-table-column>
-        <el-table-column prop="triggeredBy" label="触发人" width="130" />
-        <el-table-column label="开始时间" width="180">
+        <el-table-column prop="triggeredBy" :label="t('scheduler.cols.triggeredBy')" width="130" />
+        <el-table-column :label="t('scheduler.cols.startTime')" width="180">
           <template #default="{ row }">{{ formatTime(row.startTime) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column :label="t('scheduler.cols.actions')" width="160" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'FAILED'"
@@ -76,9 +77,11 @@
               :loading="rerunningId === row.id"
               @click="doRerun(row)"
             >
-              重新运行
+              {{ t('scheduler.rerun') }}
             </el-button>
-            <el-button link type="primary" @click="openRunDetail(row)">详情</el-button>
+            <el-button link type="primary" @click="openRunDetail(row)">
+              {{ t('scheduler.detail') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -103,46 +106,52 @@
     </el-card>
 
     <!-- 补数据弹窗 -->
-    <el-dialog v-model="backfillVisible" title="补数据（Backfill）" width="480px">
+    <el-dialog v-model="backfillVisible" :title="t('scheduler.backfillModal.title')" width="480px">
       <el-form label-width="90px">
         <el-form-item label="DAG ID">
           <el-input :model-value="dagId" disabled />
         </el-form-item>
-        <el-form-item label="起止日期" required>
+        <el-form-item :label="t('scheduler.backfillModal.range')" required>
           <el-date-picker
             v-model="backfillRange"
             type="daterange"
             value-format="YYYY-MM-DD"
             range-separator="~"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
+            :start-placeholder="t('scheduler.backfillModal.start')"
+            :end-placeholder="t('scheduler.backfillModal.end')"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="间隔天数">
+        <el-form-item :label="t('scheduler.backfillModal.intervalDays')">
           <el-input-number v-model="intervalDays" :min="1" :max="30" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="backfillVisible = false">取消</el-button>
-        <el-button type="primary" :loading="backfilling" @click="doBackfill">生成实例</el-button>
+        <el-button @click="backfillVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="backfilling" @click="doBackfill">
+          {{ t('scheduler.backfillModal.generate') }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 运行详情弹窗 -->
-    <el-dialog v-model="detailVisible" title="运行详情" width="640px">
+    <el-dialog v-model="detailVisible" :title="t('scheduler.detailModal.title')" width="640px">
       <el-descriptions :column="1" border>
         <el-descriptions-item label="RunId">{{ detail?.id }}</el-descriptions-item>
         <el-descriptions-item label="DAG ID">{{ detail?.dagId }}</el-descriptions-item>
-        <el-descriptions-item label="状态">{{ detail?.status }}</el-descriptions-item>
-        <el-descriptions-item label="运行类型">{{ detail?.runType }}</el-descriptions-item>
-        <el-descriptions-item label="开始时间">
+        <el-descriptions-item :label="t('scheduler.detailModal.status')">
+          {{ detail?.status }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('scheduler.detailModal.runType')">
+          {{ detail?.runType }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="t('scheduler.detailModal.startTime')">
           {{ formatTime(detail?.startTime) }}
         </el-descriptions-item>
-        <el-descriptions-item label="结束时间">
+        <el-descriptions-item :label="t('scheduler.detailModal.endTime')">
           {{ formatTime(detail?.endTime) }}
         </el-descriptions-item>
-        <el-descriptions-item label="错误信息">
+        <el-descriptions-item :label="t('scheduler.detailModal.error')">
           <span style="color: #f56c6c; white-space: pre-wrap">
             {{ detail?.errorMessage || '—' }}
           </span>
@@ -156,6 +165,7 @@
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
 import {
   listDagRuns,
@@ -164,6 +174,8 @@ import {
   type DagRunRecord,
   type DagRunPage
 } from '@/api/streamBatch'
+
+const { t } = useI18n()
 
 const dagId = ref('')
 const activeStatus = ref('')
@@ -209,9 +221,9 @@ async function doQuery() {
 async function doRerun(row: DagRunRecord) {
   try {
     await ElMessageBox.confirm(
-      `确认重新运行 DAG「${row.dagId}」的实例 #${row.id} 吗？将复原原参数重新执行。`,
-      '失败重跑',
-      { type: 'warning', confirmButtonText: '重跑', cancelButtonText: '取消' }
+      t('scheduler.rerunConfirm.message', { dagId: row.dagId, id: row.id }),
+      t('scheduler.rerunConfirm.title'),
+      { type: 'warning', confirmButtonText: t('scheduler.rerunConfirm.confirm'), cancelButtonText: t('common.cancel') }
     )
   } catch {
     return
@@ -219,10 +231,10 @@ async function doRerun(row: DagRunRecord) {
   rerunningId.value = row.id
   try {
     await rerunDagRun(row.dagId, row.id)
-    ElMessage.success('已触发重新运行')
+    ElMessage.success(t('scheduler.rerunConfirm.triggered'))
     await loadRuns()
   } catch (e) {
-    ElMessage.error(`重跑失败: ${e}`)
+    ElMessage.error(t('scheduler.rerunConfirm.failed', { msg: e }))
   } finally {
     rerunningId.value = null
   }
@@ -237,7 +249,7 @@ function openBackfill() {
 
 async function doBackfill() {
   if (!backfillRange.value || backfillRange.value.length !== 2) {
-    ElMessage.warning('请选择起止日期')
+    ElMessage.warning(t('scheduler.backfillModal.rangeRequired'))
     return
   }
   backfilling.value = true
@@ -247,11 +259,11 @@ async function doBackfill() {
       endDate: backfillRange.value[1],
       intervalDays: intervalDays.value
     })
-    ElMessage.success(`补数据完成，共生成 ${res.created} 个实例`)
+    ElMessage.success(t('scheduler.backfillModal.done', { count: res.created }))
     backfillVisible.value = false
     await loadRuns()
   } catch (e) {
-    ElMessage.error(`补数据失败: ${e}`)
+    ElMessage.error(t('scheduler.backfillModal.failed', { msg: e }))
   } finally {
     backfilling.value = false
   }
@@ -263,13 +275,15 @@ function openRunDetail(row: DagRunRecord) {
 }
 
 /* ---------------- 展示辅助 ---------------- */
-function runTypeLabel(t: string): string {
-  return { MANUAL: '手动', SCHEDULED: '调度', RERUN: '重跑', BACKFILL: '补数据' }[t] ?? t
+const RUN_TYPES = ['MANUAL', 'SCHEDULED', 'RERUN', 'BACKFILL']
+
+function runTypeLabel(rt: string): string {
+  return RUN_TYPES.includes(rt) ? t(`scheduler.runTypes.${rt}`) : rt
 }
-function runTypeTagType(t: string): 'primary' | 'warning' | 'success' | 'info' {
-  if (t === 'RERUN') return 'warning'
-  if (t === 'BACKFILL') return 'primary'
-  if (t === 'MANUAL') return 'success'
+function runTypeTagType(rt: string): 'primary' | 'warning' | 'success' | 'info' {
+  if (rt === 'RERUN') return 'warning'
+  if (rt === 'BACKFILL') return 'primary'
+  if (rt === 'MANUAL') return 'success'
   return 'info'
 }
 function statusTagType(s: string): 'success' | 'danger' | 'warning' | 'info' {
@@ -283,8 +297,8 @@ function formatDuration(ms?: number | null): string {
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(1)}s`
 }
-function formatTime(t?: string | null): string {
-  return t ? t.replace('T', ' ').slice(0, 19) : '—'
+function formatTime(ts?: string | null): string {
+  return ts ? ts.replace('T', ' ').slice(0, 19) : '—'
 }
 </script>
 
