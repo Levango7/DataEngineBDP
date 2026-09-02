@@ -1,0 +1,84 @@
+{
+  "integrate": {
+    "title": "Data Integration",
+    "subtitle": "Visually configure heterogeneous data sources syncing into the unified lake-house-set storage via SeaTunnel. Batch and streaming in one, no code to move.",
+    "connectors": "Data Source Connectors",
+    "connectorsLoading": "Loading connectors…",
+    "connectorsEmpty": "No connectors available",
+    "categorySource": "Source",
+    "categorySink": "Sink",
+    "newTask": "+ New Sync Task",
+    "batchStream": "Batch & Streaming Unified",
+    "tasksLoading": "Loading sync tasks…",
+    "tasksEmpty": "No sync tasks",
+    "cols": {
+      "task": "Task",
+      "sourceToTarget": "Source → Sink",
+      "mode": "Mode",
+      "status": "Status",
+      "lastRun": "Last Run",
+      "actions": "Actions"
+    },
+    "run": "Run",
+    "running": "Running…",
+    "stop": "Stop",
+    "stopping": "Stopping…",
+    "connectorStatus": {
+      "connected": "Connected",
+      "pending_config": "Config Required",
+      "pending_auth": "Auth Required",
+      "disconnected": "Disconnected"
+    },
+    "modes": {
+      "batch": "Batch",
+      "stream_cdc": "Stream"
+    },
+    "taskStatus": {
+      "success": "Success",
+      "running": "Running",
+      "failed": "Failed",
+      "pending": "Pending",
+      "stopped": "Stopped"
+    },
+    "toast": {
+      "triggered": "Task triggered: {name}",
+      "stopped": "Task stopped: {name}",
+      "created": "Sync task created",
+      "sourceAdded": "Data source added"
+    },
+    "confirmStop": {
+      "message": "Stop task \"{name}\"?",
+      "title": "Confirm Stop",
+      "confirm": "Stop",
+      "cancel": "Cancel"
+    },
+    "createModal": {
+      "title": "New Sync Task",
+      "name": "Task Name",
+      "namePlaceholder": "e.g. Orders Full Sync",
+      "sourceType": "Source Type",
+      "targetType": "Sink Type",
+      "sourceTable": "Source Table",
+      "sourceTablePlaceholder": "e.g. orders",
+      "targetTable": "Sink Table",
+      "targetTablePlaceholder": "e.g. iceberg.orders",
+      "mode": "Mode",
+      "modeBatch": "Batch",
+      "modeStreamCdc": "Stream (CDC)",
+      "schedule": "Schedule",
+      "schedulePlaceholder": "e.g. 0 4 * * * (daily at 04:00)",
+      "creating": "Creating…",
+      "nameRequired": "Please enter a task name",
+      "sourceTableRequired": "Please enter a source table",
+      "targetTableRequired": "Please enter a sink table"
+    },
+    "sourceModal": {
+      "title": "Add Data Source",
+      "type": "Type",
+      "connStr": "Connection String",
+      "account": "Account",
+      "password": "Password",
+      "testAndSave": "Test & Save"
+    }
+  }
+}

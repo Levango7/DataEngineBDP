@@ -1,17 +1,17 @@
 <template>
   <div>
-    <h1>数据集成</h1>
-    <div class="sub">
-      基于 SeaTunnel 可视化配置异构数据源同步至湖仓集一体存储，支持批流一体，无需搬运代码。
+    <h1>{{ t('integrate.title') }}</h1>
+    <div class="sub">{{ t('integrate.subtitle') }}</div>
+    <div class="section-title">{{ t('integrate.connectors') }}</div>
+    <div v-if="connectorsLoading" class="conn-grid" style="color: var(--muted)">
+      {{ t('integrate.connectorsLoading') }}
     </div>
-    <div class="section-title">数据源连接器</div>
-    <div v-if="connectorsLoading" class="conn-grid" style="color: var(--muted)">加载连接器…</div>
     <div v-else-if="connectorsError" class="conn-grid" style="color: var(--red)">
-      加载失败，
-      <a href="javascript:void(0)" @click="loadConnectors">重试</a>
+      {{ t('common.loadFailed') }}，
+      <a href="javascript:void(0)" @click="loadConnectors">{{ t('common.retry') }}</a>
     </div>
     <div v-else-if="connectors.length === 0" class="conn-grid" style="color: var(--muted)">
-      暂无可用连接器
+      {{ t('integrate.connectorsEmpty') }}
     </div>
     <div v-else class="conn-grid">
       <div
@@ -31,117 +31,134 @@
           {{ connectorPillText(c.status) }}
         </span>
         <span v-if="c.category" class="category-tag">
-          {{ c.category === 'source' ? '源' : '目标' }}
+          {{ c.category === 'source' ? t('integrate.categorySource') : t('integrate.categorySink') }}
         </span>
       </div>
     </div>
     <div class="toolbar" style="margin-top: 16px">
-      <button class="btn sm" @click="openSyncModal">+ 新建同步任务</button>
+      <button class="btn sm" @click="openSyncModal">{{ t('integrate.newTask') }}</button>
       <div class="spacer"></div>
-      <span class="pill b">批流一体</span>
+      <span class="pill b">{{ t('integrate.batchStream') }}</span>
     </div>
     <div class="card">
-      <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">加载同步任务…</div>
+      <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">
+        {{ t('integrate.tasksLoading') }}
+      </div>
       <div v-else-if="tasksError" style="padding: 16px; color: var(--red)">
         {{ tasksError.message }}，
-        <a href="javascript:void(0)" @click="loadTasks">重试</a>
+        <a href="javascript:void(0)" @click="loadTasks">{{ t('common.retry') }}</a>
       </div>
       <table v-else>
         <tr>
-          <th>任务</th>
-          <th>源→目标</th>
-          <th>模式</th>
-          <th>状态</th>
-          <th>最近运行</th>
-          <th>操作</th>
+          <th>{{ t('integrate.cols.task') }}</th>
+          <th>{{ t('integrate.cols.sourceToTarget') }}</th>
+          <th>{{ t('integrate.cols.mode') }}</th>
+          <th>{{ t('integrate.cols.status') }}</th>
+          <th>{{ t('integrate.cols.lastRun') }}</th>
+          <th>{{ t('integrate.cols.actions') }}</th>
         </tr>
-        <tr v-for="t in tasks" :key="t.id">
-          <td>{{ t.name }}</td>
-          <td>{{ t.sourceToTarget }}</td>
-          <td>{{ modeLabel(t.mode) }}</td>
+        <tr v-for="task in tasks" :key="task.id">
+          <td>{{ task.name }}</td>
+          <td>{{ task.sourceToTarget }}</td>
+          <td>{{ modeLabel(task.mode) }}</td>
           <td>
-            <span class="pill" :class="statusPillClass(t.status)">
-              {{ statusPillText(t.status) }}
+            <span class="pill" :class="statusPillClass(task.status)">
+              {{ statusPillText(task.status) }}
             </span>
           </td>
-          <td>{{ t.lastRunAt || '--' }}{{ t.lastRunDuration ? ' · ' + t.lastRunDuration : '' }}</td>
+          <td>
+            {{ task.lastRunAt || '--' }}{{ task.lastRunDuration ? ' · ' + task.lastRunDuration : '' }}
+          </td>
           <td>
             <button
-              v-if="t.status !== 'running'"
+              v-if="task.status !== 'running'"
               class="btn sm"
-              :disabled="actingId === t.id"
-              @click="handleRunTask(t)"
+              :disabled="actingId === task.id"
+              @click="handleRunTask(task)"
             >
-              {{ actingId === t.id ? '运行中…' : '运行' }}
+              {{ actingId === task.id ? t('integrate.running') : t('integrate.run') }}
             </button>
             <button
               v-else
               class="btn sm ghost"
-              :disabled="actingId === t.id"
-              @click="handleStopTask(t)"
+              :disabled="actingId === task.id"
+              @click="handleStopTask(task)"
             >
-              {{ actingId === t.id ? '停止中…' : '停止' }}
+              {{ actingId === task.id ? t('integrate.stopping') : t('integrate.stop') }}
             </button>
           </td>
         </tr>
         <tr v-if="tasks.length === 0">
-          <td colspan="6" style="text-align: center; color: var(--muted)">暂无同步任务</td>
+          <td colspan="6" style="text-align: center; color: var(--muted)">
+            {{ t('integrate.tasksEmpty') }}
+          </td>
         </tr>
       </table>
     </div>
 
     <!-- 新建同步任务弹窗 -->
-    <Modal :visible="syncModal" title="新建同步任务" @close="syncModal = false">
-      <label>任务名</label>
-      <input v-model="syncForm.name" placeholder="如 订单全量" />
-      <label>源类型</label>
+    <Modal :visible="syncModal" :title="t('integrate.createModal.title')" @close="syncModal = false">
+      <label>{{ t('integrate.createModal.name') }}</label>
+      <input v-model="syncForm.name" :placeholder="t('integrate.createModal.namePlaceholder')" />
+      <label>{{ t('integrate.createModal.sourceType') }}</label>
       <select v-model="syncForm.sourceType">
         <option v-for="c in sourceConnectors" :key="c.name" :value="c.name">{{ c.name }}</option>
       </select>
-      <label>目标类型</label>
+      <label>{{ t('integrate.createModal.targetType') }}</label>
       <select v-model="syncForm.targetType">
         <option v-for="c in sinkConnectors" :key="c.name" :value="c.name">{{ c.name }}</option>
       </select>
-      <label>源表</label>
-      <input v-model="syncForm.sourceTable" placeholder="如 orders" />
-      <label>目标表</label>
-      <input v-model="syncForm.targetTable" placeholder="如 iceberg.orders" />
-      <label>模式</label>
+      <label>{{ t('integrate.createModal.sourceTable') }}</label>
+      <input
+        v-model="syncForm.sourceTable"
+        :placeholder="t('integrate.createModal.sourceTablePlaceholder')"
+      />
+      <label>{{ t('integrate.createModal.targetTable') }}</label>
+      <input
+        v-model="syncForm.targetTable"
+        :placeholder="t('integrate.createModal.targetTablePlaceholder')"
+      />
+      <label>{{ t('integrate.createModal.mode') }}</label>
       <select v-model="syncForm.mode">
-        <option value="batch">批</option>
-        <option value="stream_cdc">流（CDC）</option>
+        <option value="batch">{{ t('integrate.createModal.modeBatch') }}</option>
+        <option value="stream_cdc">{{ t('integrate.createModal.modeStreamCdc') }}</option>
       </select>
-      <label>调度频率</label>
-      <input v-model="syncForm.schedule" placeholder="如 0 4 * * *（每日 04:00）" />
+      <label>{{ t('integrate.createModal.schedule') }}</label>
+      <input
+        v-model="syncForm.schedule"
+        :placeholder="t('integrate.createModal.schedulePlaceholder')"
+      />
       <div v-if="syncFormError" class="note" style="color: var(--red); margin-top: 8px">
         {{ syncFormError }}
       </div>
       <template #footer>
-        <button class="btn ghost" @click="syncModal = false">取消</button>
+        <button class="btn ghost" @click="syncModal = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="syncSubmitting" @click="handleCreateSyncTask">
-          {{ syncSubmitting ? '创建中…' : '创建' }}
+          {{ syncSubmitting ? t('integrate.createModal.creating') : t('common.create') }}
         </button>
       </template>
     </Modal>
 
     <!-- 新增数据源弹窗 -->
-    <Modal :visible="srcModal" title="新增数据源" @close="srcModal = false">
-      <label>类型</label>
+    <Modal :visible="srcModal" :title="t('integrate.sourceModal.title')" @close="srcModal = false">
+      <label>{{ t('integrate.sourceModal.type') }}</label>
       <select>
         <option>MySQL</option>
         <option>Oracle</option>
         <option>PostgreSQL</option>
         <option>API</option>
       </select>
-      <label>连接串</label>
+      <label>{{ t('integrate.sourceModal.connStr') }}</label>
       <input placeholder="jdbc:mysql://…" />
-      <label>账号</label>
+      <label>{{ t('integrate.sourceModal.account') }}</label>
       <input />
-      <label>密码</label>
+      <label>{{ t('integrate.sourceModal.password') }}</label>
       <input type="password" />
       <template #footer>
-        <button class="btn ghost" @click="srcModal = false">取消</button>
-        <button class="btn" @click="ok('数据源已添加')">测试并保存</button>
+        <button class="btn ghost" @click="srcModal = false">{{ t('common.cancel') }}</button>
+        <button class="btn" @click="ok(t('integrate.toast.sourceAdded'))">
+          {{ t('integrate.sourceModal.testAndSave') }}
+        </button>
       </template>
     </Modal>
   </div>
@@ -150,6 +167,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -157,6 +175,7 @@ import * as integrateApi from '@/api/integrate'
 import type { Connector, SyncTask, SyncMode, SyncStatus, ConnectorStatus } from '@/api/integrate'
 import type { PagedResult } from '@/api/types'
 
+const { t } = useI18n()
 const store = useAppStore()
 const syncModal = ref(false)
 const srcModal = ref(false)
@@ -218,13 +237,13 @@ function connectorPillClass(s: ConnectorStatus): string {
 function connectorPillText(s: ConnectorStatus): string {
   switch (s) {
     case 'connected':
-      return '已连通'
+      return t('integrate.connectorStatus.connected')
     case 'pending_config':
-      return '待配置'
+      return t('integrate.connectorStatus.pending_config')
     case 'pending_auth':
-      return '待授权'
+      return t('integrate.connectorStatus.pending_auth')
     default:
-      return '未连通'
+      return t('integrate.connectorStatus.disconnected')
   }
 }
 
@@ -239,9 +258,9 @@ const {
 } = useApi<PagedResult<SyncTask>>(() => integrateApi.listSyncTasks({ page: 1, pageSize: 100 }))
 const tasks = computed<SyncTask[]>(() => tasksPaged.value?.list ?? [])
 
-/** 同步模式 → 中文 */
+/** 同步模式 → 词条 */
 function modeLabel(m: SyncMode): string {
-  return m === 'stream_cdc' ? '流' : '批'
+  return m === 'stream_cdc' ? t('integrate.modes.stream_cdc') : t('integrate.modes.batch')
 }
 
 /** 任务状态 → pill 样式 */
@@ -262,15 +281,15 @@ function statusPillClass(s: SyncStatus): string {
 function statusPillText(s: SyncStatus): string {
   switch (s) {
     case 'success':
-      return '成功'
+      return t('integrate.taskStatus.success')
     case 'running':
-      return '运行中'
+      return t('integrate.taskStatus.running')
     case 'failed':
-      return '失败'
+      return t('integrate.taskStatus.failed')
     case 'pending':
-      return '等待中'
+      return t('integrate.taskStatus.pending')
     case 'stopped':
-      return '已停止'
+      return t('integrate.taskStatus.stopped')
     default:
       return s
   }
@@ -285,7 +304,7 @@ async function handleRunTask(task: SyncTask): Promise<void> {
   actingId.value = task.id
   try {
     await integrateApi.runSyncTask(task.id)
-    store.showToast(`已触发任务：${task.name}`)
+    store.showToast(t('integrate.toast.triggered', { name: task.name }))
     await loadTasks()
   } catch {
     // 错误提示已由拦截器统一处理
@@ -297,10 +316,10 @@ async function handleRunTask(task: SyncTask): Promise<void> {
 /** 停止任务 */
 async function handleStopTask(task: SyncTask): Promise<void> {
   try {
-    await ElMessageBox.confirm(`确定停止任务「${task.name}」吗？`, '停止确认', {
+    await ElMessageBox.confirm(t('integrate.confirmStop.message', { name: task.name }), t('integrate.confirmStop.title'), {
       type: 'warning',
-      confirmButtonText: '停止',
-      cancelButtonText: '取消',
+      confirmButtonText: t('integrate.confirmStop.confirm'),
+      cancelButtonText: t('integrate.confirmStop.cancel'),
       confirmButtonClass: 'el-button--danger'
     })
   } catch {
@@ -310,7 +329,7 @@ async function handleStopTask(task: SyncTask): Promise<void> {
   actingId.value = task.id
   try {
     await integrateApi.stopSyncTask(task.id)
-    store.showToast(`已停止任务：${task.name}`)
+    store.showToast(t('integrate.toast.stopped', { name: task.name }))
     await loadTasks()
   } catch {
     // 错误提示已由拦截器统一处理
@@ -360,15 +379,15 @@ function openSyncModal(): void {
 async function handleCreateSyncTask(): Promise<void> {
   // 表单校验
   if (!syncForm.name.trim()) {
-    syncFormError.value = '请输入任务名'
+    syncFormError.value = t('integrate.createModal.nameRequired')
     return
   }
   if (!syncForm.sourceTable.trim()) {
-    syncFormError.value = '请输入源表'
+    syncFormError.value = t('integrate.createModal.sourceTableRequired')
     return
   }
   if (!syncForm.targetTable.trim()) {
-    syncFormError.value = '请输入目标表'
+    syncFormError.value = t('integrate.createModal.targetTableRequired')
     return
   }
   syncFormError.value = ''
@@ -381,7 +400,7 @@ async function handleCreateSyncTask(): Promise<void> {
       mode: syncForm.mode,
       schedule: syncForm.schedule || undefined
     })
-    store.showToast('同步任务已创建')
+    store.showToast(t('integrate.toast.created'))
     syncModal.value = false
     await loadTasks()
   } catch {

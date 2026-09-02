@@ -15,6 +15,10 @@ import standardZh from './locales/modules/standard.zh-CN.json'
 import standardEn from './locales/modules/standard.en-US.json'
 import governZh from './locales/modules/govern.zh-CN.json'
 import governEn from './locales/modules/govern.en-US.json'
+import integrateZh from './locales/modules/integrate.zh-CN.json'
+import integrateEn from './locales/modules/integrate.en-US.json'
+import developZh from './locales/modules/develop.zh-CN.json'
+import developEn from './locales/modules/develop.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -69,7 +73,9 @@ export const i18n = createI18n({
       ...analyzeZh,
       ...qualityZh,
       ...standardZh,
-      ...governZh
+      ...governZh,
+      ...integrateZh,
+      ...developZh
     },
     'en-US': {
       ...enUS,
@@ -79,7 +85,9 @@ export const i18n = createI18n({
       ...analyzeEn,
       ...qualityEn,
       ...standardEn,
-      ...governEn
+      ...governEn,
+      ...integrateEn,
+      ...developEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

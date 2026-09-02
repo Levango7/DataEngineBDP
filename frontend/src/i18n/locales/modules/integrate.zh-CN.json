@@ -1,0 +1,84 @@
+{
+  "integrate": {
+    "title": "数据集成",
+    "subtitle": "基于 SeaTunnel 可视化配置异构数据源同步至湖仓集一体存储，支持批流一体，无需搬运代码。",
+    "connectors": "数据源连接器",
+    "connectorsLoading": "加载连接器…",
+    "connectorsEmpty": "暂无可用连接器",
+    "categorySource": "源",
+    "categorySink": "目标",
+    "newTask": "+ 新建同步任务",
+    "batchStream": "批流一体",
+    "tasksLoading": "加载同步任务…",
+    "tasksEmpty": "暂无同步任务",
+    "cols": {
+      "task": "任务",
+      "sourceToTarget": "源→目标",
+      "mode": "模式",
+      "status": "状态",
+      "lastRun": "最近运行",
+      "actions": "操作"
+    },
+    "run": "运行",
+    "running": "运行中…",
+    "stop": "停止",
+    "stopping": "停止中…",
+    "connectorStatus": {
+      "connected": "已连通",
+      "pending_config": "待配置",
+      "pending_auth": "待授权",
+      "disconnected": "未连通"
+    },
+    "modes": {
+      "batch": "批",
+      "stream_cdc": "流"
+    },
+    "taskStatus": {
+      "success": "成功",
+      "running": "运行中",
+      "failed": "失败",
+      "pending": "等待中",
+      "stopped": "已停止"
+    },
+    "toast": {
+      "triggered": "已触发任务：{name}",
+      "stopped": "已停止任务：{name}",
+      "created": "同步任务已创建",
+      "sourceAdded": "数据源已添加"
+    },
+    "confirmStop": {
+      "message": "确定停止任务「{name}」吗？",
+      "title": "停止确认",
+      "confirm": "停止",
+      "cancel": "取消"
+    },
+    "createModal": {
+      "title": "新建同步任务",
+      "name": "任务名",
+      "namePlaceholder": "如 订单全量",
+      "sourceType": "源类型",
+      "targetType": "目标类型",
+      "sourceTable": "源表",
+      "sourceTablePlaceholder": "如 orders",
+      "targetTable": "目标表",
+      "targetTablePlaceholder": "如 iceberg.orders",
+      "mode": "模式",
+      "modeBatch": "批",
+      "modeStreamCdc": "流（CDC）",
+      "schedule": "调度频率",
+      "schedulePlaceholder": "如 0 4 * * *（每日 04:00）",
+      "creating": "创建中…",
+      "nameRequired": "请输入任务名",
+      "sourceTableRequired": "请输入源表",
+      "targetTableRequired": "请输入目标表"
+    },
+    "sourceModal": {
+      "title": "新增数据源",
+      "type": "类型",
+      "connStr": "连接串",
+      "account": "账号",
+      "password": "密码",
+      "testAndSave": "测试并保存"
+    }
+  }
+}

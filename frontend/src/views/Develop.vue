@@ -1,27 +1,26 @@
 <template>
   <div>
-    <h1>数据开发</h1>
-    <div class="sub">
-      Web IDE 编写 SQL / 配置 DAG，提交即由 DolphinScheduler 调度运行；底层 Pod 由 Spark/Flink
-      Operator 托管，客户不可见。
-    </div>
+    <h1>{{ t('develop.title') }}</h1>
+    <div class="sub">{{ t('develop.subtitle') }}</div>
     <div class="toolbar">
-      <span class="chip on" @click="store.showToast('已切换：开发环境')">开发环境</span>
-      <span class="chip" @click="store.showToast('已切换：生产环境（独立配额与数据隔离）')">
-        生产环境
+      <span class="chip on" @click="store.showToast(t('develop.envSwitchedDev'))">
+        {{ t('develop.envDev') }}
+      </span>
+      <span class="chip" @click="store.showToast(t('develop.envSwitchedProd'))">
+        {{ t('develop.envProd') }}
       </span>
       <div class="spacer"></div>
-      <span class="pill b">标准模式 · 双环境隔离</span>
+      <span class="pill b">{{ t('develop.envIsolation') }}</span>
     </div>
     <div class="ide">
       <!-- 文件树：从后端 /develop/files 拉取真实工作空间文件 -->
       <div class="tree">
-        <div v-if="fileTreeLoading" class="tree-loading">加载文件树…</div>
+        <div v-if="fileTreeLoading" class="tree-loading">{{ t('develop.treeLoading') }}</div>
         <div v-else-if="fileTreeError" class="tree-error">
-          加载失败，
-          <a href="javascript:void(0)" @click="loadFileTree">重试</a>
+          {{ t('common.loadFailed') }}，
+          <a href="javascript:void(0)" @click="loadFileTree">{{ t('common.retry') }}</a>
         </div>
-        <div v-else-if="fileTree.length === 0" class="tree-empty">工作空间为空</div>
+        <div v-else-if="fileTree.length === 0" class="tree-empty">{{ t('develop.treeEmpty') }}</div>
         <template v-else>
           <div
             v-for="node in fileTree"
@@ -40,33 +39,35 @@
       <div class="code-wrap">
         <div class="tabs">
           <div class="tab on">
-            {{ currentFilePath || '未选择文件' }}
+            {{ currentFilePath || t('develop.noFileSelected') }}
             <span v-if="currentFilePath" class="x" @click="closeCurrentFile">×</span>
           </div>
-          <div class="tab">+ 新建</div>
+          <div class="tab">{{ t('develop.newFile') }}</div>
         </div>
         <!-- 代码编辑器：textarea + 等宽字体，加载/错误/空三态 -->
         <div class="code-editor">
-          <div v-if="fileContentLoading" class="code-loading">加载文件内容…</div>
+          <div v-if="fileContentLoading" class="code-loading">{{ t('develop.codeLoading') }}</div>
           <div v-else-if="fileContentError" class="code-error">
-            加载失败：{{ fileContentError.message }}
+            {{ t('develop.codeLoadFailed', { msg: fileContentError.message }) }}
           </div>
           <textarea
             v-else
             v-model="codeContent"
             class="code-textarea"
             spellcheck="false"
-            placeholder="-- 选择左侧文件或直接编写 SQL/Python 代码"
+            :placeholder="t('develop.codePlaceholder')"
           ></textarea>
         </div>
         <div ref="runlogEl" class="runlog">
           <!-- 三态：loading -->
           <template v-if="runLoading">
-            <div class="info">{{ runlog[0]?.text || '[运行中] 封装层接收任务…' }}</div>
+            <div class="info">{{ runlog[0]?.text || t('develop.runlogRunning') }}</div>
           </template>
           <!-- 三态：error -->
           <template v-else-if="runError">
-            <div class="info">[错误] {{ runError.message || '运行失败' }}</div>
+            <div class="info">
+              {{ t('develop.runlogError', { msg: runError.message || t('develop.runFailed') }) }}
+            </div>
           </template>
           <!-- 三态：data（成功后渐进式渲染日志） -->
           <template v-else>
@@ -75,15 +76,15 @@
         </div>
       </div>
       <div class="params">
-        <h3 style="font-size: 13px; margin-bottom: 8px">运行参数</h3>
-        <label>引擎</label>
+        <h3 style="font-size: 13px; margin-bottom: 8px">{{ t('develop.params') }}</h3>
+        <label>{{ t('develop.engine') }}</label>
         <select v-model="runParams.engine">
           <option value="spark">Spark SQL</option>
           <option value="flink">Flink SQL</option>
           <option value="trino">Trino</option>
           <option value="doris">Doris</option>
         </select>
-        <label>CPU / 内存</label>
+        <label>{{ t('develop.cpuMem') }}</label>
         <div class="row">
           <input
             v-model.number="runParams.cpu"
@@ -92,7 +93,7 @@
             max="64"
             style="width: 60px"
           />
-          <span>核</span>
+          <span>{{ t('develop.core') }}</span>
           <input
             v-model.number="runParams.memory"
             type="number"
@@ -102,18 +103,18 @@
           />
           <span>GB</span>
         </div>
-        <label>并发度</label>
+        <label>{{ t('develop.parallelism') }}</label>
         <input v-model.number="runParams.parallelism" type="number" min="1" max="100" />
-        <label>调度</label>
+        <label>{{ t('develop.schedule') }}</label>
         <select v-model="runParams.schedule">
-          <option value="">手动</option>
-          <option value="0 4 * * *">每日 04:00</option>
-          <option value="custom">Cron 自定义</option>
+          <option value="">{{ t('develop.scheduleManual') }}</option>
+          <option value="0 4 * * *">{{ t('develop.scheduleDaily') }}</option>
+          <option value="custom">{{ t('develop.scheduleCustom') }}</option>
         </select>
         <input
           v-if="runParams.schedule === 'custom'"
           v-model="customCron"
-          placeholder="如 0 0 * * 1（每周一 0 点）"
+          :placeholder="t('develop.customCronPlaceholder')"
           style="margin-top: 4px"
         />
         <button
@@ -123,7 +124,7 @@
           @click="handleRunJob"
         >
           <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg>
-          {{ runLoading ? '运行中…' : '运行' }}
+          {{ runLoading ? t('develop.running') : t('develop.run') }}
         </button>
         <button
           class="btn ghost"
@@ -131,57 +132,63 @@
           :disabled="scheduleLoading || !canSchedule"
           @click="handleSubmitSchedule"
         >
-          {{ scheduleLoading ? '提交中…' : '提交调度' }}
+          {{ scheduleLoading ? t('develop.submitting') : t('develop.submitSchedule') }}
         </button>
         <div v-if="scheduleError" class="note" style="color: var(--red)">
-          调度提交失败：{{ scheduleError.message }}
+          {{ t('develop.scheduleFailed', { msg: scheduleError.message }) }}
         </div>
-        <div class="note">资源请求受工作空间 Quota 约束，超额自动排队或扩容。</div>
+        <div class="note">{{ t('develop.quotaNote') }}</div>
       </div>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>任务 DAG（按数据分层自动生成）</h3>
-      <div v-if="dagLoading" class="dag-loading">解析 DAG…</div>
-      <div v-else-if="dagError" class="dag-error">DAG 解析失败：{{ dagError.message }}</div>
+      <h3>{{ t('develop.dagTitle') }}</h3>
+      <div v-if="dagLoading" class="dag-loading">{{ t('develop.dagLoading') }}</div>
+      <div v-else-if="dagError" class="dag-error">
+        {{ t('develop.dagFailed', { msg: dagError.message }) }}
+      </div>
       <div v-else-if="dagData" class="dag">
         <template v-for="(node, i) in dagData.nodes" :key="node.id">
-          <div class="node" :class="{ act: node.highlight }" :title="`层级: ${node.layer || ''}`">
+          <div
+            class="node"
+            :class="{ act: node.highlight }"
+            :title="t('develop.dagLayer', { layer: node.layer || '' })"
+          >
             {{ node.name }}
           </div>
           <span v-if="i < dagData.nodes.length - 1" class="arrow">→</span>
         </template>
-        <div v-if="dagData.nodes.length === 0" class="dag-empty">暂无 DAG 节点</div>
+        <div v-if="dagData.nodes.length === 0" class="dag-empty">{{ t('develop.dagEmpty') }}</div>
       </div>
-      <div v-else class="dag-empty">选择文件后自动解析 DAG</div>
+      <div v-else class="dag-empty">{{ t('develop.dagHint') }}</div>
     </div>
 
     <!-- 调度配置确认弹窗 -->
     <Modal
       :visible="scheduleConfirmVisible"
-      title="确认提交调度"
+      :title="t('develop.confirmModal.title')"
       @close="scheduleConfirmVisible = false"
     >
       <div style="line-height: 1.8">
         <p>
-          <strong>文件：</strong>
-          {{ currentFilePath || '（未保存的代码）' }}
+          <strong>{{ t('develop.confirmModal.file') }}</strong>
+          {{ currentFilePath || t('develop.confirmModal.unsaved') }}
         </p>
         <p>
-          <strong>引擎：</strong>
+          <strong>{{ t('develop.confirmModal.engine') }}</strong>
           {{ runParams.engine }}
         </p>
         <p>
-          <strong>Cron 表达式：</strong>
-          {{ effectiveSchedule || '（手动触发）' }}
+          <strong>{{ t('develop.confirmModal.cron') }}</strong>
+          {{ effectiveSchedule || t('develop.confirmModal.manual') }}
         </p>
-        <p style="color: var(--muted); font-size: 12px">
-          提交后将按 cron 定时触发，可在调度运维页管理。
-        </p>
+        <p style="color: var(--muted); font-size: 12px">{{ t('develop.confirmModal.note') }}</p>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="scheduleConfirmVisible = false">取消</button>
+        <button class="btn ghost" @click="scheduleConfirmVisible = false">
+          {{ t('common.cancel') }}
+        </button>
         <button class="btn" :disabled="scheduleLoading" @click="confirmSubmitSchedule">
-          {{ scheduleLoading ? '提交中…' : '确认提交' }}
+          {{ scheduleLoading ? t('develop.submitting') : t('develop.confirmModal.confirm') }}
         </button>
       </template>
     </Modal>
@@ -191,6 +198,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, watch } from 'vue'
 import { Folder, Document } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -206,6 +214,7 @@ import {
   type TaskDag
 } from '@/api/develop'
 
+const { t } = useI18n()
 const store = useAppStore()
 
 interface LogLine {
@@ -213,7 +222,7 @@ interface LogLine {
   text: string
 }
 
-const runlog = ref<LogLine[]>([{ cls: 'info', text: '[就绪] 点击「运行」提交至封装层调度…' }])
+const runlog = ref<LogLine[]>([{ cls: 'info', text: t('develop.runlogReady') }])
 const runlogEl = ref<HTMLElement | null>(null)
 
 /* ------------------------------ 文件树 ------------------------------ */
@@ -242,7 +251,7 @@ const {
 /** 点击文件节点：加载文件内容 */
 async function handleFileClick(node: FileNode): Promise<void> {
   if (node.type === 'folder') {
-    store.showToast(`文件夹：${node.name}`)
+    store.showToast(t('develop.toast.folder', { name: node.name }))
     return
   }
   currentFilePath.value = node.path ?? node.id
@@ -332,14 +341,14 @@ const {
   {
     onSuccess: (result) => {
       renderLogs(result)
-      store.showToast(`运行完成：${result.status}`)
+      store.showToast(t('develop.toast.runDone', { status: result.status }))
     }
   }
 )
 
 /** 运行作业（触发 useApi execute） */
 async function handleRunJob(): Promise<void> {
-  runlog.value = [{ cls: 'info', text: '[提交] 封装层接收任务…' }]
+  runlog.value = [{ cls: 'info', text: t('develop.runlogSubmitting') }]
   await executeRunJob()
 }
 
@@ -361,7 +370,7 @@ const {
     }),
   {
     onSuccess: () => {
-      store.showToast('已提交调度')
+      store.showToast(t('develop.toast.scheduleSubmitted'))
       scheduleConfirmVisible.value = false
     }
   }
@@ -370,7 +379,7 @@ const {
 /** 提交调度：打开确认弹窗 */
 async function handleSubmitSchedule(): Promise<void> {
   if (!currentFilePath.value) {
-    store.showToast('请先选择文件')
+    store.showToast(t('develop.toast.selectFileFirst'))
     return
   }
   scheduleConfirmVisible.value = true
