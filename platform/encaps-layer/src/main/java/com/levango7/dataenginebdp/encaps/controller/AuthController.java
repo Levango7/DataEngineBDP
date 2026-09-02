@@ -162,6 +162,8 @@ public class AuthController {
                 if (local != null) {
                     return ResponseEntity.ok(local);
                 }
+                return ResponseEntity.status(401)
+                        .body(Map.of("error", "认证失败（用户名或密码错误）"));
             }
             return ResponseEntity.status(500).body(Map.of("error", "登录失败，请稍后重试"));
         }

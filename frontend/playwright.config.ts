@@ -55,8 +55,10 @@ export default defineConfig({
   ],
 
   /* 自动启动 Vite dev server（端口 5173）
-   * 后端 18086 由外部脚本启动（避免 Playwright 重复拉起 JVM）
-   * 通过环境变量 VITE_API_TARGET 指向 18086，使 Vite proxy 转发正确
+   * 后端栈由 tests/integration/docker-compose.yml 提供（encaps-layer → 18080）。
+   * 通过环境变量将 Vite proxy 所有 target 指向 encaps-layer（18080），
+   * 使 stub Controller（ProjectController/SearchController 等）统一处理请求，
+   * 避免 proxy 默认指向 8081/8083 等容器内端口（宿主机未映射 → 连接拒绝）。
    */
   webServer: {
     command: 'npm run dev',
@@ -64,7 +66,10 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 120_000,
     env: {
-      VITE_API_TARGET: API_TARGET
+      VITE_API_TARGET: API_TARGET,
+      VITE_ENCAPS_TENANT_TARGET: API_TARGET,
+      VITE_ENCAPS_DATA_TARGET: API_TARGET,
+      VITE_ENCAPS_GATEWAY_TARGET: API_TARGET
     }
   }
 })

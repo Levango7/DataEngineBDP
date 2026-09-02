@@ -43,7 +43,7 @@
       </template>
     </nav>
     <div class="side-foot" aria-label="平台版本信息">
-      原型 v0.3 · 客户无感知底座
+      原型 v0.3 ({{ appVersion }}) · 客户无感知底座
       <br />
       自研 SKE 发行版 · 环境: {{ appEnv }}
     </div>
