@@ -20,6 +20,8 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    // 强制绑定 IPv4（Windows 上 localhost 默认解析为 ::1，Playwright 用 127.0.0.1 探测会失败）
+    host: '127.0.0.1',
     proxy: {
       // 流批作业（stream-batch-scheduler JobController /api/v1/jobs :18086）
       '/api/v1/jobs': {
@@ -154,6 +156,14 @@ export default defineConfig({
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },
+      // 机器学习模型管理（dev-ml.ts 的 /models/models，Python ml-platform/llmops 域）
+      // 注意：默认端口 8080 与 encaps-layer/tag-engine 同——本地同机双跑需 VITE_MODELS_TARGET 错开；
+      // nightly 栈无此服务，playwright 兜底指向 encaps-layer 18080
+      '/api/v1/models': {
+        target: process.env.VITE_MODELS_TARGET || 'http://127.0.0.1:8080',
+        changeOrigin: true
+      },
+
       // 封装层租户域（encaps-tenant Java :8081，独立进程）
       // Sprint 2.2 L3 补全：此前缺失，前端请求落到 /api 兜底（encaps-layer :8080）→ 404
       // 覆盖：project.ts /account 前缀们、workspace.ts、quota.ts、account.ts、admin.ts
