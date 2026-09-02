@@ -9,8 +9,8 @@ function goHome() {
 </script>
 
 <template>
-  <div class="not-found">
-    <el-icon :size="64" color="#909399"><WarningFilled /></el-icon>
+  <div class="not-found" role="main" aria-label="404 页面">
+    <el-icon :size="64" color="var(--ds-text-muted, #909399)"><WarningFilled /></el-icon>
     <h1 class="not-found__code">404</h1>
     <p class="not-found__text">页面不存在或已被移除</p>
     <el-button type="primary" @click="goHome">返回首页</el-button>
@@ -28,15 +28,16 @@ function goHome() {
   text-align: center;
 }
 
+/* 使用设计令牌（亮暗双主题适配：暗色下不硬编码深灰导致不可读） */
 .not-found__code {
   font-size: 56px;
   font-weight: 700;
   margin: 0;
-  color: #303133;
+  color: var(--ds-text-primary, #303133);
 }
 
 .not-found__text {
-  color: #909399;
+  color: var(--ds-text-secondary, #909399);
   margin: 0 0 8px;
 }
 </style>

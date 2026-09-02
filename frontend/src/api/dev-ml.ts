@@ -17,7 +17,14 @@ const TRAIN_TYPE = 'ml_train'
 
 /** 资源根路径 */
 const BASE_JOBS = '/jobs'
-const BASE_ML = '/ml'
+// 2026-09-02 修正：此前 BASE_ML='/ml' 请求路径错误（client baseURL=/api/v1
+// 拼出 /api/v1/ml/models，但后端 ml-platform 挂 /api/v1/models）。
+// 模型仓库端点对齐 ml-platform（/api/v1/models*）。
+const BASE_ML_MODELS = '/models'
+// 推理服务：ml-platform 无 inference-services 端点（TODO(backend) 历史遗留，
+// 前端单测前从未调通）。实际落点：model-registry 服务的 deployments 契约
+// （/api/v1/registry/deployments*），语义等价（模型部署到推理服务）。
+const BASE_ML_INFER = '/registry/deployments'
 
 /* ================================================================== */
 /* 类型定义                                                            */
@@ -242,7 +249,8 @@ export function getTrainJobLogs(id: string): Promise<string> {
 /* API 方法（模型仓库，专用 ML 端点）                                   */
 /* ================================================================== */
 
-// TODO(backend): 补充 /ml/models* 与 /ml/inference-services* 端点
+// 2026-09-02：端点映射已落实（模型=ml-platform /api/v1/models*；
+// 推理服务=model-registry /api/v1/registry/deployments*），不再悬空 TODO。
 
 /**
  * 列出模型仓库
@@ -251,7 +259,7 @@ export function getTrainJobLogs(id: string): Promise<string> {
 export function listModels(
   params: { keyword?: string; algorithm?: string } = {}
 ): Promise<MlModel[]> {
-  return get<MlModel[]>(`${BASE_ML}/models`, params)
+  return get<MlModel[]>(`${BASE_ML_MODELS}/models`, params)
 }
 
 /**
@@ -259,7 +267,7 @@ export function listModels(
  * POST /ml/models
  */
 export function registerModel(req: ModelRegisterRequest): Promise<MlModel> {
-  return post<MlModel>(`${BASE_ML}/models`, req)
+  return post<MlModel>(`${BASE_ML_MODELS}/models`, req)
 }
 
 /**
@@ -267,7 +275,7 @@ export function registerModel(req: ModelRegisterRequest): Promise<MlModel> {
  * GET /ml/models/{name}/versions
  */
 export function listModelVersions(name: string): Promise<ModelVersion[]> {
-  return get<ModelVersion[]>(`${BASE_ML}/models/${encodeURIComponent(name)}/versions`)
+  return get<ModelVersion[]>(`${BASE_ML_MODELS}/models/${encodeURIComponent(name)}/versions`)
 }
 
 /**
@@ -275,37 +283,34 @@ export function listModelVersions(name: string): Promise<ModelVersion[]> {
  * DELETE /ml/models/{id}
  */
 export function deleteModel(id: string): Promise<void> {
-  return del<void>(`${BASE_ML}/models/${id}`)
+  return del<void>(`${BASE_ML_MODELS}/models/${id}`)
 }
 
 /* ================================================================== */
-/* API 方法（推理服务，专用 ML 端点）                                   */
+/* API 方法（推理服务——经 model-registry 的 deployments 契约实现）       */
 /* ================================================================== */
 
 /**
- * 列出推理服务
- * GET /ml/inference-services
+ * 列出推理服务（映射 model-registry: GET /api/v1/registry/deployments）。
  */
 export function listInferenceServices(
   params: { status?: string } = {}
 ): Promise<InferenceService[]> {
-  return get<InferenceService[]>(`${BASE_ML}/inference-services`, params)
+  return get<InferenceService[]>(`${BASE_ML_INFER}`, params)
 }
 
 /**
- * 部署推理服务
- * POST /ml/inference-services
+ * 部署推理服务（映射 model-registry: POST /api/v1/registry/deployments）。
  */
 export function deployInference(req: InferenceDeployRequest): Promise<InferenceService> {
-  return post<InferenceService>(`${BASE_ML}/inference-services`, req)
+  return post<InferenceService>(`${BASE_ML_INFER}`, req)
 }
 
 /**
- * 停止推理服务
- * DELETE /ml/inference-services/{id}
+ * 停止推理服务（映射 model-registry: DELETE /api/v1/registry/deployments/{id}）。
  */
 export function stopInference(id: string): Promise<void> {
-  return del<void>(`${BASE_ML}/inference-services/${id}`)
+  return del<void>(`${BASE_ML_INFER}/${id}`)
 }
 
 /**
@@ -313,5 +318,5 @@ export function stopInference(id: string): Promise<void> {
  * POST /ml/inference-services/{id}/scale
  */
 export function scaleInference(id: string, req: InferenceScaleRequest): Promise<InferenceService> {
-  return post<InferenceService>(`${BASE_ML}/inference-services/${id}/scale`, req)
+  return post<InferenceService>(`${BASE_ML_INFER}/${id}/scale`, req)
 }

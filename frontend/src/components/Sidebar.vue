@@ -21,9 +21,9 @@
           <span class="grp-count" aria-hidden="true">{{ group.items.length }}</span>
         </div>
         <div
+          :id="`nav-group-${gi}`"
           class="grp-items"
           :class="{ collapsed: !isOpen(gi) }"
-          :id="`nav-group-${gi}`"
           role="group"
           :aria-label="`${group.title} 导航项`"
         >
@@ -43,7 +43,7 @@
       </template>
     </nav>
     <div class="side-foot" aria-label="平台版本信息">
-      原型 v0.3 ({{ appVersion }}) · 客户无感知底座
+      DataEngineBDP {{ appVersion }} · 客户无感知底座
       <br />
       自研 SKE 发行版 · 环境: {{ appEnv }}
     </div>
@@ -57,7 +57,6 @@ import { useAppStore } from '@/stores/app'
 const store = useAppStore()
 
 declare const __APP_VERSION__: string
-
 
 const appVersion = __APP_VERSION__ || 'dev'
 
