@@ -1,0 +1,76 @@
+{
+  "ops": {
+    "title": "运维中心",
+    "subtitle": "客户视角运行态监控；底层自研 SKE 发行版自愈、扩容对客户透明。",
+    "kpi": {
+      "health": "集群健康",
+      "runningJobs": "运行作业",
+      "todayFailed": "今日失败",
+      "avgLatency": "平均延迟"
+    },
+    "health": {
+      "healthy": "健康",
+      "warning": "警告",
+      "critical": "故障"
+    },
+    "componentsTitle": "组件健康总览",
+    "jobsTitle": "作业监控",
+    "jobCols": {
+      "job": "作业",
+      "type": "类型",
+      "duration": "运行时长",
+      "status": "状态"
+    },
+    "jobsEmpty": "暂无作业",
+    "log": "日志",
+    "jobTypes": {
+      "stream_flink": "流(Flink)",
+      "batch_spark": "批(Spark)",
+      "batch_dag": "批(DAG)"
+    },
+    "jobStatus": {
+      "running": "运行中",
+      "success": "成功",
+      "failed": "失败",
+      "pending": "等待中"
+    },
+    "alertsTitle": "告警",
+    "alertLevels": {
+      "all": "全部级别",
+      "critical": "严重",
+      "warn": "警告",
+      "info": "信息"
+    },
+    "alertCols": {
+      "alert": "告警",
+      "level": "级别",
+      "triggeredAt": "触发时间",
+      "status": "状态"
+    },
+    "alertsEmpty": "暂无告警",
+    "handled": "已处理",
+    "active": "活跃",
+    "detail": "详情",
+    "handle": "处理",
+    "refresh": "刷新",
+    "logDrawer": {
+      "title": "作业日志：{name}",
+      "loading": "加载日志…",
+      "empty": "暂无日志",
+      "note": "日志由封装层归一化输出，隐藏 Pod/容器细节。"
+    },
+    "alertModal": {
+      "title": "告警详情",
+      "content": "告警内容",
+      "level": "级别",
+      "triggeredAt": "触发时间",
+      "status": "状态",
+      "id": "告警 ID",
+      "close": "关闭",
+      "handle": "处理告警"
+    },
+    "toast": {
+      "handled": "已处理"
+    }
+  }
+}

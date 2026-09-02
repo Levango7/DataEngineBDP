@@ -1,0 +1,53 @@
+{
+  "sec": {
+    "title": "Data Masking",
+    "subtitle": "Field-level masking policies + permission approval workflows; cryptographic compliance (SM algorithms pluggable).",
+    "newPolicy": "+ New Masking Policy",
+    "pendingBadge": "{count} pending approvals",
+    "cols": {
+      "field": "Field",
+      "asset": "Asset",
+      "strategy": "Strategy",
+      "algorithm": "Algorithm",
+      "status": "Status"
+    },
+    "empty": "No masking policies",
+    "approvalsTitle": "Permission Approval Workflow",
+    "approvalCols": {
+      "applicant": "Applicant",
+      "asset": "Asset",
+      "permission": "Permission"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "approvalsEmpty": "No pending approvals",
+    "strategies": {
+      "mask": "Mask",
+      "hash": "Hash",
+      "authorized_only": "Authorized Only",
+      "plain": "Plaintext"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "disabled": "Disabled"
+    },
+    "createModal": {
+      "title": "New Masking Policy",
+      "field": "Field",
+      "fieldPlaceholder": "e.g. real_name",
+      "asset": "Asset",
+      "strategy": "Strategy",
+      "algorithm": "Algorithm",
+      "sm3": "SM3 (Chinese Standard)",
+      "submitting": "Submitting…",
+      "submit": "Submit",
+      "fieldRequired": "Please enter a field name",
+      "created": "Masking policy submitted for approval"
+    },
+    "toast": {
+      "approved": "Approved",
+      "rejected": "Rejected"
+    }
+  }
+}

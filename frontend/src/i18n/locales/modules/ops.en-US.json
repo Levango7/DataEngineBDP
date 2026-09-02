@@ -1,0 +1,76 @@
+{
+  "ops": {
+    "title": "Operations Center",
+    "subtitle": "Runtime monitoring from the customer's perspective; self-healing and scaling of the underlying SKE distribution stay transparent.",
+    "kpi": {
+      "health": "Cluster Health",
+      "runningJobs": "Running Jobs",
+      "todayFailed": "Failed Today",
+      "avgLatency": "Avg Latency"
+    },
+    "health": {
+      "healthy": "Healthy",
+      "warning": "Warning",
+      "critical": "Critical"
+    },
+    "componentsTitle": "Component Health Overview",
+    "jobsTitle": "Job Monitoring",
+    "jobCols": {
+      "job": "Job",
+      "type": "Type",
+      "duration": "Duration",
+      "status": "Status"
+    },
+    "jobsEmpty": "No jobs",
+    "log": "Logs",
+    "jobTypes": {
+      "stream_flink": "Stream (Flink)",
+      "batch_spark": "Batch (Spark)",
+      "batch_dag": "Batch (DAG)"
+    },
+    "jobStatus": {
+      "running": "Running",
+      "success": "Success",
+      "failed": "Failed",
+      "pending": "Pending"
+    },
+    "alertsTitle": "Alerts",
+    "alertLevels": {
+      "all": "All Levels",
+      "critical": "Critical",
+      "warn": "Warning",
+      "info": "Info"
+    },
+    "alertCols": {
+      "alert": "Alert",
+      "level": "Level",
+      "triggeredAt": "Triggered At",
+      "status": "Status"
+    },
+    "alertsEmpty": "No alerts",
+    "handled": "Handled",
+    "active": "Active",
+    "detail": "Details",
+    "handle": "Handle",
+    "refresh": "Refresh",
+    "logDrawer": {
+      "title": "Job Logs: {name}",
+      "loading": "Loading logs…",
+      "empty": "No logs",
+      "note": "Logs are normalized by the encapsulation layer; Pod/container details are hidden."
+    },
+    "alertModal": {
+      "title": "Alert Details",
+      "content": "Alert Content",
+      "level": "Level",
+      "triggeredAt": "Triggered At",
+      "status": "Status",
+      "id": "Alert ID",
+      "close": "Close",
+      "handle": "Handle Alert"
+    },
+    "toast": {
+      "handled": "Handled"
+    }
+  }
+}

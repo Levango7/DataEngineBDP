@@ -1,25 +1,27 @@
 <template>
   <div>
-    <h1>安全脱敏</h1>
-    <div class="sub">字段级脱敏策略 + 权限申请审批流；密评合规（国密可插拔）。</div>
+    <h1>{{ t('sec.title') }}</h1>
+    <div class="sub">{{ t('sec.subtitle') }}</div>
     <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">+ 新建脱敏策略</button>
+      <button class="btn sm" @click="modalVisible = true">{{ t('sec.newPolicy') }}</button>
       <div class="spacer"></div>
-      <span class="pill r">{{ approvals.length }} 待审批</span>
+      <span class="pill r">{{ t('sec.pendingBadge', { count: approvals.length }) }}</span>
     </div>
     <div class="card">
-      <div v-if="policiesLoading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-if="policiesLoading" style="padding: 16px; color: var(--muted)">
+        {{ t('common.loading') }}
+      </div>
       <div v-else-if="policiesError" style="padding: 16px; color: var(--red)">
         {{ policiesError.message }}，
-        <a href="javascript:void(0)" @click="loadPolicies">重试</a>
+        <a href="javascript:void(0)" @click="loadPolicies">{{ t('common.retry') }}</a>
       </div>
       <table v-else>
         <tr>
-          <th>字段</th>
-          <th>所属资产</th>
-          <th>策略</th>
-          <th>算法</th>
-          <th>状态</th>
+          <th>{{ t('sec.cols.field') }}</th>
+          <th>{{ t('sec.cols.asset') }}</th>
+          <th>{{ t('sec.cols.strategy') }}</th>
+          <th>{{ t('sec.cols.algorithm') }}</th>
+          <th>{{ t('sec.cols.status') }}</th>
         </tr>
         <tr v-for="p in policies" :key="p.id">
           <td>{{ p.fieldName }}</td>
@@ -33,18 +35,20 @@
           </td>
         </tr>
         <tr v-if="policies.length === 0">
-          <td colspan="5" style="text-align: center; color: var(--muted)">暂无脱敏策略</td>
+          <td colspan="5" style="text-align: center; color: var(--muted)">{{ t('sec.empty') }}</td>
         </tr>
       </table>
     </div>
-    <div class="section-title">权限申请审批流</div>
+    <div class="section-title">{{ t('sec.approvalsTitle') }}</div>
     <div class="card">
-      <div v-if="approvalsLoading" style="padding: 16px; color: var(--muted)">加载中…</div>
+      <div v-if="approvalsLoading" style="padding: 16px; color: var(--muted)">
+        {{ t('common.loading') }}
+      </div>
       <table v-else>
         <tr>
-          <th>申请人</th>
-          <th>资产</th>
-          <th>权限</th>
+          <th>{{ t('sec.approvalCols.applicant') }}</th>
+          <th>{{ t('sec.approvalCols.asset') }}</th>
+          <th>{{ t('sec.approvalCols.permission') }}</th>
           <th></th>
         </tr>
         <tr v-for="a in approvals" :key="a.id">
@@ -52,37 +56,39 @@
           <td>{{ a.asset }}</td>
           <td>{{ a.permission }}</td>
           <td>
-            <button class="btn sm" @click="handleApprove(a.id)">批准</button>
-            <button class="btn ghost sm" @click="handleReject(a.id)">驳回</button>
+            <button class="btn sm" @click="handleApprove(a.id)">{{ t('sec.approve') }}</button>
+            <button class="btn ghost sm" @click="handleReject(a.id)">{{ t('sec.reject') }}</button>
           </td>
         </tr>
         <tr v-if="approvals.length === 0">
-          <td colspan="4" style="text-align: center; color: var(--muted)">暂无待审批</td>
+          <td colspan="4" style="text-align: center; color: var(--muted)">
+            {{ t('sec.approvalsEmpty') }}
+          </td>
         </tr>
       </table>
     </div>
 
-    <Modal :visible="modalVisible" title="新建脱敏策略" @close="modalVisible = false">
-      <label>字段</label>
-      <input v-model="form.fieldName" placeholder="如 real_name" />
-      <label>所属资产</label>
+    <Modal :visible="modalVisible" :title="t('sec.createModal.title')" @close="modalVisible = false">
+      <label>{{ t('sec.createModal.field') }}</label>
+      <input v-model="form.fieldName" :placeholder="t('sec.createModal.fieldPlaceholder')" />
+      <label>{{ t('sec.createModal.asset') }}</label>
       <input v-model="form.assetName" />
-      <label>策略</label>
+      <label>{{ t('sec.createModal.strategy') }}</label>
       <select v-model="form.strategy">
-        <option value="mask">掩码</option>
-        <option value="hash">哈希</option>
-        <option value="authorized_only">仅授权可见</option>
+        <option value="mask">{{ t('sec.strategies.mask') }}</option>
+        <option value="hash">{{ t('sec.strategies.hash') }}</option>
+        <option value="authorized_only">{{ t('sec.strategies.authorized_only') }}</option>
       </select>
-      <label>算法</label>
+      <label>{{ t('sec.createModal.algorithm') }}</label>
       <select v-model="form.algorithm">
-        <option value="SM3">SM3(国密)</option>
+        <option value="SM3">{{ t('sec.createModal.sm3') }}</option>
         <option value="SHA256">SHA256</option>
         <option value="AES">AES</option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '提交中…' : '提交' }}
+          {{ submitting ? t('sec.createModal.submitting') : t('sec.createModal.submit') }}
         </button>
       </template>
     </Modal>
@@ -91,6 +97,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -103,6 +110,7 @@ import type {
   StrategyStatus
 } from '@/api/sec'
 
+const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const submitting = ref(false)
@@ -128,7 +136,7 @@ const approvals = computed<PermissionApproval[]>(() => approvalsData.value ?? []
 async function handleApprove(id: string) {
   try {
     await secApi.approveApproval(id)
-    store.showToast('已批准')
+    store.showToast(t('sec.toast.approved'))
     await loadApprovals()
   } catch {
     // 错误提示已由拦截器统一处理
@@ -139,22 +147,18 @@ async function handleApprove(id: string) {
 async function handleReject(id: string) {
   try {
     await secApi.rejectApproval(id)
-    store.showToast('已驳回')
+    store.showToast(t('sec.toast.rejected'))
     await loadApprovals()
   } catch {
     // 错误提示已由拦截器统一处理
   }
 }
 
-/** 策略 → 中文 */
+/** 策略 → 词条 */
+const MASK_STRATEGIES: MaskStrategy[] = ['mask', 'hash', 'authorized_only', 'plain']
+
 function strategyLabel(s: MaskStrategy): string {
-  const map: Record<MaskStrategy, string> = {
-    mask: '掩码',
-    hash: '哈希',
-    authorized_only: '仅授权可见',
-    plain: '明文'
-  }
-  return map[s] || s
+  return MASK_STRATEGIES.includes(s) ? t(`sec.strategies.${s}`) : s
 }
 
 /** 状态 → pill 样式 */
@@ -173,11 +177,11 @@ function statusPillClass(s: StrategyStatus): string {
 function statusPillText(s: StrategyStatus): string {
   switch (s) {
     case 'active':
-      return '生效'
+      return t('sec.status.active')
     case 'pending':
-      return '待审批'
+      return t('sec.status.pending')
     case 'disabled':
-      return '已禁用'
+      return t('sec.status.disabled')
     default:
       return s
   }
@@ -199,7 +203,7 @@ const form = reactive<{
 /** 提交创建策略 */
 async function handleSubmit() {
   if (!form.fieldName.trim()) {
-    store.showToast('请填写字段名')
+    store.showToast(t('sec.createModal.fieldRequired'))
     return
   }
   submitting.value = true
@@ -211,7 +215,7 @@ async function handleSubmit() {
       algorithm: form.algorithm
     })
     modalVisible.value = false
-    store.showToast('脱敏策略已提交审批')
+    store.showToast(t('sec.createModal.created'))
     await loadPolicies()
   } catch {
     // 错误提示已由拦截器统一处理

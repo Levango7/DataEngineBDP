@@ -1,0 +1,53 @@
+{
+  "sec": {
+    "title": "安全脱敏",
+    "subtitle": "字段级脱敏策略 + 权限申请审批流；密评合规（国密可插拔）。",
+    "newPolicy": "+ 新建脱敏策略",
+    "pendingBadge": "{count} 待审批",
+    "cols": {
+      "field": "字段",
+      "asset": "所属资产",
+      "strategy": "策略",
+      "algorithm": "算法",
+      "status": "状态"
+    },
+    "empty": "暂无脱敏策略",
+    "approvalsTitle": "权限申请审批流",
+    "approvalCols": {
+      "applicant": "申请人",
+      "asset": "资产",
+      "permission": "权限"
+    },
+    "approve": "批准",
+    "reject": "驳回",
+    "approvalsEmpty": "暂无待审批",
+    "strategies": {
+      "mask": "掩码",
+      "hash": "哈希",
+      "authorized_only": "仅授权可见",
+      "plain": "明文"
+    },
+    "status": {
+      "active": "生效",
+      "pending": "待审批",
+      "disabled": "已禁用"
+    },
+    "createModal": {
+      "title": "新建脱敏策略",
+      "field": "字段",
+      "fieldPlaceholder": "如 real_name",
+      "asset": "所属资产",
+      "strategy": "策略",
+      "algorithm": "算法",
+      "sm3": "SM3(国密)",
+      "submitting": "提交中…",
+      "submit": "提交",
+      "fieldRequired": "请填写字段名",
+      "created": "脱敏策略已提交审批"
+    },
+    "toast": {
+      "approved": "已批准",
+      "rejected": "已驳回"
+    }
+  }
+}

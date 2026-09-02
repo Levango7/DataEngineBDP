@@ -1,10 +1,10 @@
 <template>
   <div>
-    <h1>运维中心</h1>
-    <div class="sub">客户视角运行态监控；底层自研 SKE 发行版自愈、扩容对客户透明。</div>
+    <h1>{{ t('ops.title') }}</h1>
+    <div class="sub">{{ t('ops.subtitle') }}</div>
     <div class="grid g4">
       <div class="card">
-        <h3>集群健康</h3>
+        <h3>{{ t('ops.kpi.health') }}</h3>
         <div class="kpi s">
           <span class="pill" :class="healthPillClass(overview?.clusterHealth)">
             {{ healthPillText(overview?.clusterHealth) }}
@@ -12,15 +12,15 @@
         </div>
       </div>
       <div class="card">
-        <h3>运行作业</h3>
+        <h3>{{ t('ops.kpi.runningJobs') }}</h3>
         <div class="kpi">{{ overview?.runningJobCount ?? '--' }}</div>
       </div>
       <div class="card">
-        <h3>今日失败</h3>
+        <h3>{{ t('ops.kpi.todayFailed') }}</h3>
         <div class="kpi s">{{ overview?.todayFailedCount ?? '--' }}</div>
       </div>
       <div class="card">
-        <h3>平均延迟</h3>
+        <h3>{{ t('ops.kpi.avgLatency') }}</h3>
         <div class="kpi s">{{ overview?.avgLatencySec ?? '--' }}s</div>
       </div>
     </div>
@@ -28,7 +28,7 @@
     <!-- 统一运维台：组件健康总览（红黄绿） -->
     <div class="card" style="margin-top: 14px">
       <h3>
-        组件健康总览
+        {{ t('ops.componentsTitle') }}
         <span
           v-if="healthSummary"
           style="font-size: 12px; color: var(--muted); font-weight: normal"
@@ -41,10 +41,10 @@
           ）
         </span>
       </h3>
-      <div v-if="healthLoading" style="color: var(--muted)">加载中…</div>
+      <div v-if="healthLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="healthError" style="color: var(--red)">
         {{ healthError.message }}，
-        <a href="javascript:void(0)" @click="loadHealth">重试</a>
+        <a href="javascript:void(0)" @click="loadHealth">{{ t('common.retry') }}</a>
       </div>
       <div v-else class="health-grid">
         <div
@@ -60,18 +60,18 @@
       </div>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>作业监控</h3>
-      <div v-if="jobsLoading" style="color: var(--muted)">加载中…</div>
+      <h3>{{ t('ops.jobsTitle') }}</h3>
+      <div v-if="jobsLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="jobsError" style="color: var(--red)">
         {{ jobsError.message }}，
-        <a href="javascript:void(0)" @click="loadJobs">重试</a>
+        <a href="javascript:void(0)" @click="loadJobs">{{ t('common.retry') }}</a>
       </div>
       <table v-else-if="jobs">
         <tr>
-          <th>作业</th>
-          <th>类型</th>
-          <th>运行时长</th>
-          <th>状态</th>
+          <th>{{ t('ops.jobCols.job') }}</th>
+          <th>{{ t('ops.jobCols.type') }}</th>
+          <th>{{ t('ops.jobCols.duration') }}</th>
+          <th>{{ t('ops.jobCols.status') }}</th>
           <th></th>
         </tr>
         <tr v-for="j in jobs" :key="j.id">
@@ -83,32 +83,36 @@
               {{ jobStatusPillText(j.status) }}
             </span>
           </td>
-          <td><button class="btn ghost sm" @click="openLog(j)">日志</button></td>
+          <td><button class="btn ghost sm" @click="openLog(j)">{{ t('ops.log') }}</button></td>
         </tr>
         <tr v-if="jobs.length === 0">
-          <td colspan="5" style="text-align: center; color: var(--muted)">暂无作业</td>
+          <td colspan="5" style="text-align: center; color: var(--muted)">
+            {{ t('ops.jobsEmpty') }}
+          </td>
         </tr>
       </table>
     </div>
     <div class="card" style="margin-top: 14px">
       <h3>
-        告警
+        {{ t('ops.alertsTitle') }}
         <span class="pill r">{{ filteredAlerts.length }}</span>
         <select v-model="alertLevelFilter" style="margin-left: 8px; font-size: 12px">
-          <option value="all">全部级别</option>
-          <option value="critical">严重</option>
-          <option value="warn">警告</option>
-          <option value="info">信息</option>
+          <option value="all">{{ t('ops.alertLevels.all') }}</option>
+          <option value="critical">{{ t('ops.alertLevels.critical') }}</option>
+          <option value="warn">{{ t('ops.alertLevels.warn') }}</option>
+          <option value="info">{{ t('ops.alertLevels.info') }}</option>
         </select>
-        <button class="btn ghost sm" style="margin-left: 8px" @click="loadAlerts">刷新</button>
+        <button class="btn ghost sm" style="margin-left: 8px" @click="loadAlerts">
+          {{ t('ops.refresh') }}
+        </button>
       </h3>
-      <div v-if="alertsLoading" style="color: var(--muted)">加载中…</div>
+      <div v-if="alertsLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
       <table v-else-if="filteredAlerts">
         <tr>
-          <th>告警</th>
-          <th>级别</th>
-          <th>触发时间</th>
-          <th>状态</th>
+          <th>{{ t('ops.alertCols.alert') }}</th>
+          <th>{{ t('ops.alertCols.level') }}</th>
+          <th>{{ t('ops.alertCols.triggeredAt') }}</th>
+          <th>{{ t('ops.alertCols.status') }}</th>
           <th></th>
         </tr>
         <tr v-for="a in filteredAlerts" :key="a.id">
@@ -121,64 +125,68 @@
           <td>{{ formatAlertTime(a.triggeredAt) }}</td>
           <td>
             <span class="pill" :class="a.handled ? 'g' : 'a'">
-              {{ a.handled ? '已处理' : '活跃' }}
+              {{ a.handled ? t('ops.handled') : t('ops.active') }}
             </span>
           </td>
           <td>
-            <button class="btn ghost sm" @click="openAlertDetail(a)">详情</button>
-            <button class="btn sm" @click="handleAlert(a)">处理</button>
+            <button class="btn ghost sm" @click="openAlertDetail(a)">{{ t('ops.detail') }}</button>
+            <button class="btn sm" @click="handleAlert(a)">{{ t('ops.handle') }}</button>
           </td>
         </tr>
         <tr v-if="filteredAlerts.length === 0">
-          <td colspan="5" style="text-align: center; color: var(--muted)">暂无告警</td>
+          <td colspan="5" style="text-align: center; color: var(--muted)">
+            {{ t('ops.alertsEmpty') }}
+          </td>
         </tr>
       </table>
     </div>
 
     <!-- 作业日志抽屉 -->
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
-      <template #header>作业日志：{{ currentJob?.name }}</template>
+      <template #header>{{ t('ops.logDrawer.title', { name: currentJob?.name }) }}</template>
       <div class="runlog" style="height: auto">
-        <div v-if="logLoading" style="color: var(--muted)">加载日志…</div>
+        <div v-if="logLoading" style="color: var(--muted)">{{ t('ops.logDrawer.loading') }}</div>
         <pre v-else style="white-space: pre-wrap; font-family: monospace">{{
-          logContent || '暂无日志'
+          logContent || t('ops.logDrawer.empty')
         }}</pre>
       </div>
-      <div class="note">日志由封装层归一化输出，隐藏 Pod/容器细节。</div>
+      <div class="note">{{ t('ops.logDrawer.note') }}</div>
     </Drawer>
 
     <!-- 告警详情弹窗 -->
-    <Modal :visible="alertDetailVisible" title="告警详情" @close="alertDetailVisible = false">
+    <Modal :visible="alertDetailVisible" :title="t('ops.alertModal.title')" @close="alertDetailVisible = false">
       <div v-if="currentAlert">
-        <label>告警内容</label>
+        <label>{{ t('ops.alertModal.content') }}</label>
         <div class="alert-detail-row">{{ currentAlert.content }}</div>
-        <label>级别</label>
+        <label>{{ t('ops.alertModal.level') }}</label>
         <div class="alert-detail-row">
           <span class="pill" :class="alertLevelPillClass(currentAlert.level)">
             {{ alertLevelPillText(currentAlert.level) }}
           </span>
         </div>
-        <label>触发时间</label>
+        <label>{{ t('ops.alertModal.triggeredAt') }}</label>
         <div class="alert-detail-row">{{ formatAlertTime(currentAlert.triggeredAt) }}</div>
-        <label>状态</label>
+        <label>{{ t('ops.alertModal.status') }}</label>
         <div class="alert-detail-row">
           <span class="pill" :class="currentAlert.handled ? 'g' : 'a'">
-            {{ currentAlert.handled ? '已处理' : '活跃' }}
+            {{ currentAlert.handled ? t('ops.handled') : t('ops.active') }}
           </span>
         </div>
-        <label>告警 ID</label>
+        <label>{{ t('ops.alertModal.id') }}</label>
         <div class="alert-detail-row">
           <code>{{ currentAlert.id }}</code>
         </div>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="alertDetailVisible = false">关闭</button>
+        <button class="btn ghost" @click="alertDetailVisible = false">
+          {{ t('ops.alertModal.close') }}
+        </button>
         <button
           v-if="currentAlert && !currentAlert.handled"
           class="btn"
           @click="handleAlert(currentAlert)"
         >
-          处理告警
+          {{ t('ops.alertModal.handle') }}
         </button>
       </template>
     </Modal>
@@ -187,6 +195,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Drawer from '@/components/Drawer.vue'
@@ -203,6 +212,7 @@ import type {
   HealthOverview
 } from '@/api/ops'
 
+const { t, locale } = useI18n()
 const store = useAppStore()
 const drawerVisible = ref(false)
 const alertDetailVisible = ref(false)
@@ -273,7 +283,7 @@ function openAlertDetail(alert: Alert): void {
 async function handleAlert(alert: Alert): Promise<void> {
   try {
     await opsApi.handleAlert(alert.id, '处理')
-    store.showToast('已处理')
+    store.showToast(t('ops.toast.handled'))
     alertDetailVisible.value = false
     await loadAlerts()
     await loadOverview()
@@ -282,11 +292,11 @@ async function handleAlert(alert: Alert): Promise<void> {
   }
 }
 
-/** 格式化告警时间 */
+/** 格式化告警时间（跟随当前语言环境） */
 function formatAlertTime(iso: string): string {
   if (!iso) return '--'
   try {
-    return new Date(iso).toLocaleString('zh-CN')
+    return new Date(iso).toLocaleString(locale.value)
   } catch {
     return iso
   }
@@ -310,27 +320,27 @@ function healthPillClass(s?: string): string {
 function healthPillText(s?: string): string {
   switch (s) {
     case 'healthy':
-      return '健康'
+      return t('ops.health.healthy')
     case 'warning':
-      return '警告'
+      return t('ops.health.warning')
     case 'critical':
-      return '故障'
+      return t('ops.health.critical')
     default:
       return '--'
   }
 }
 
-/** 作业类型 → 中文 */
-function jobTypeLabel(t: OpsJobType): string {
-  switch (t) {
+/** 作业类型 → 词条 */
+function jobTypeLabel(jt: OpsJobType): string {
+  switch (jt) {
     case 'stream_flink':
-      return '流(Flink)'
+      return t('ops.jobTypes.stream_flink')
     case 'batch_spark':
-      return '批(Spark)'
+      return t('ops.jobTypes.batch_spark')
     case 'batch_dag':
-      return '批(DAG)'
+      return t('ops.jobTypes.batch_dag')
     default:
-      return t
+      return jt
   }
 }
 
@@ -352,13 +362,13 @@ function jobStatusPillClass(s: OpsJobStatus): string {
 function jobStatusPillText(s: OpsJobStatus): string {
   switch (s) {
     case 'running':
-      return '运行中'
+      return t('ops.jobStatus.running')
     case 'success':
-      return '成功'
+      return t('ops.jobStatus.success')
     case 'failed':
-      return '失败'
+      return t('ops.jobStatus.failed')
     case 'pending':
-      return '等待中'
+      return t('ops.jobStatus.pending')
     default:
       return s
   }
@@ -380,11 +390,11 @@ function alertLevelPillClass(l: AlertLevel): string {
 function alertLevelPillText(l: AlertLevel): string {
   switch (l) {
     case 'warn':
-      return '警告'
+      return t('ops.alertLevels.warn')
     case 'critical':
-      return '严重'
+      return t('ops.alertLevels.critical')
     default:
-      return '信息'
+      return t('ops.alertLevels.info')
   }
 }
 
