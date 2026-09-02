@@ -43,9 +43,9 @@
       </template>
     </nav>
     <div class="side-foot" aria-label="平台版本信息">
-      v2.1 GA · 客户无感知底座
+      原型 v0.3 · 客户无感知底座
       <br />
-      自研 SKE 发行版 · 环境: 信创
+      自研 SKE 发行版 · 环境: {{ appEnv }}
     </div>
   </aside>
 </template>
@@ -56,6 +56,12 @@ import { useAppStore } from '@/stores/app'
 
 const store = useAppStore()
 
+declare const __APP_VERSION__: string
+
+
+const appVersion = __APP_VERSION__ || 'dev'
+
+const appEnv = __APP_ENV__ || 'dev'
 interface NavItem {
   path: string
   label: string
@@ -146,6 +152,7 @@ const groups = computed<NavGroup[]>(() => [
     title: '产品运营',
     items: [
       { path: '/dashboard', label: '统一控制台', icon: 'dash' },
+      { path: '/ops', label: '运维中心', icon: 'ops' },
       { path: '/search', label: '检索门户', icon: 'kb' },
       { path: '/admin', label: '运营后台', icon: 'admin' },
       { path: '/ops-tpl', label: '行业应用模板', icon: 'proj' },

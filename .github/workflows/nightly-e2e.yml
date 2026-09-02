@@ -27,8 +27,8 @@ jobs:
   # Playwright 前端 E2E（正式门禁）：测试失败即本 job 失败
   # 服务拓扑：
   #   - 后端 API 栈：docker compose 拉起 tests/integration/docker-compose.yml，
-  #     其中 evaluation 服务映射宿主机 18086，与 playwright.config.ts 的
-  #     VITE_API_TARGET 默认值 http://127.0.0.1:18086 一致（经 Vite proxy 转发）
+  #     其中 encaps-layer 服务映射宿主机 18080，与 playwright.config.ts 的
+  #     VITE_API_TARGET 默认值 http://127.0.0.1:18080 一致（经 Vite proxy 转发）
   #   - 前端 dev server：playwright.config.ts 自带 webServer（127.0.0.1:5173），
   #     workflow 不手动启动前端，以 config 为准避免双重拉起
   # ============================================================

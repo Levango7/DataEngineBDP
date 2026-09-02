@@ -83,7 +83,10 @@ test.describe('登录流程', () => {
     await expect(page).toHaveURL(/#\/dashboard/)
 
     // 点击头像打开用户菜单
+    await page.waitForSelector('.avatar', { timeout: 10_000 })
     await page.locator('.avatar').click()
+    // 等待用户菜单出现
+    await expect(page.locator('.user-pop')).toBeVisible({ timeout: 5_000 })
     // 点击退出登录
     await page.getByRole('button', { name: '退出登录' }).click()
 

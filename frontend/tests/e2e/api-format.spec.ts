@@ -178,7 +178,8 @@ test.describe('API 响应格式验证（ApiResponse 统一包装）', () => {
       expect(json.data).toHaveProperty('total')
       expect(json.data).toHaveProperty('page')
       // 后端用 size 或 pageSize
-      expect(json.data).toHaveProperty('size')
+      const hasSize = 'size' in json.data || 'pageSize' in json.data
+      expect(hasSize).toBe(true)
       expect(Array.isArray(json.data.list)).toBe(true)
       expect(typeof json.data.total).toBe('number')
     })

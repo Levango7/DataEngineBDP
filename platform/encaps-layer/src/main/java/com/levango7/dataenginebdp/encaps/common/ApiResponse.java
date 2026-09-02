@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.common;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
@@ -99,8 +100,13 @@ public record ApiResponse<T>(
     /**
      * 判断是否成功。
      *
+     * <p>record 的访问器方法默认不会被 Jackson 序列化为 JSON 属性，
+     * 此处通过 {@link JsonGetter} 显式暴露为 {@code success} 字段，
+     * 与前端 {@code client.ts} 的 {@code ApiResponse<T>.success} 契约对齐。</p>
+     *
      * @return true 表示业务成功
      */
+    @JsonGetter("success")
     public boolean isSuccess() {
         return code == SUCCESS_CODE;
     }

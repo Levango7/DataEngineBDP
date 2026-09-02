@@ -65,9 +65,10 @@ test.describe('导航布局', () => {
 
   test('用户菜单展开显示用户名与退出按钮', async ({ page }) => {
     // 点击头像
+    await page.waitForSelector('.avatar', { timeout: 10_000 })
     await page.locator('.avatar').click()
     // 用户弹出层
-    await expect(page.locator('.user-pop')).toBeVisible()
+    await expect(page.locator('.user-pop')).toBeVisible({ timeout: 5_000 })
     // 用户名（用 first 避免 strict mode）
     await expect(page.locator('.user-name').first()).toContainText('admin')
     // 退出登录按钮（在 .user-pop 内）
