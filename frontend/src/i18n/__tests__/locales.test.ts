@@ -15,6 +15,8 @@ import workspacesZh from '@/i18n/locales/modules/workspaces.zh-CN.json'
 import workspacesEn from '@/i18n/locales/modules/workspaces.en-US.json'
 import projectsZh from '@/i18n/locales/modules/projects.zh-CN.json'
 import projectsEn from '@/i18n/locales/modules/projects.en-US.json'
+import analyzeZh from '@/i18n/locales/modules/analyze.zh-CN.json'
+import analyzeEn from '@/i18n/locales/modules/analyze.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -68,7 +70,8 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
   const modules: Array<[string, Record<string, unknown>, Record<string, unknown>]> = [
     ['dashboard', dashboardZh as Record<string, unknown>, dashboardEn as Record<string, unknown>],
     ['workspaces', workspacesZh as Record<string, unknown>, workspacesEn as Record<string, unknown>],
-    ['projects', projectsZh as Record<string, unknown>, projectsEn as Record<string, unknown>]
+    ['projects', projectsZh as Record<string, unknown>, projectsEn as Record<string, unknown>],
+    ['analyze', analyzeZh as Record<string, unknown>, analyzeEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

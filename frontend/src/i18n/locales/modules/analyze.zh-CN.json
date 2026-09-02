@@ -1,0 +1,41 @@
+{
+  "analyze": {
+    "title": "BI 分析",
+    "subtitle": "基于 ECharts 看板组件，查询经统一 SQL 网关跨湖仓集联邦，客户无感知底层引擎。",
+    "newBoard": "+ 新建看板",
+    "sqlGateway": "统一 SQL 网关",
+    "boardsLoading": "看板加载中…",
+    "boardsLoadFailed": "看板加载失败",
+    "empty": "还没有看板。点击右上角「+ 新建看板」创建第一个。",
+    "noPanels": "该看板暂无组件（编辑能力建设中）",
+    "noPanelData": "暂无数据（面板数据由创建者提供）",
+    "realtime": "实时指标",
+    "latency": "{label} · 延迟 < {sec}s",
+    "noMetrics": "暂无实时指标",
+    "createModal": {
+      "title": "新建看板",
+      "name": "看板名",
+      "namePlaceholder": "如 经营驾驶舱",
+      "description": "描述",
+      "descriptionPlaceholder": "可选",
+      "panels": "组件",
+      "creating": "创建中…",
+      "created": "看板已创建",
+      "createFailed": "创建失败",
+      "deleted": "已删除: {name}",
+      "deleteFailed": "删除失败"
+    },
+    "panelTypes": {
+      "line": "折线",
+      "pie": "饼图",
+      "metric": "指标卡",
+      "bar": "柱状"
+    },
+    "panelTitles": {
+      "line": "趋势",
+      "pie": "占比",
+      "metric": "核心指标",
+      "bar": "对比"
+    }
+  }
+}

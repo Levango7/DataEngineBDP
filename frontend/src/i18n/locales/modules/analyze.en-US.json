@@ -1,0 +1,41 @@
+{
+  "analyze": {
+    "title": "BI Analytics",
+    "subtitle": "Dashboard components powered by ECharts. Queries are federated across lake, warehouse and data sets via the unified SQL gateway — the underlying engines stay transparent to customers.",
+    "newBoard": "+ New Dashboard",
+    "sqlGateway": "Unified SQL Gateway",
+    "boardsLoading": "Loading dashboards…",
+    "boardsLoadFailed": "Failed to load dashboards",
+    "empty": "No dashboards yet. Click \"+ New Dashboard\" in the top right to create the first one.",
+    "noPanels": "This dashboard has no panels yet (editing capability under construction)",
+    "noPanelData": "No data (panel data is provided by the creator)",
+    "realtime": "Realtime Metrics",
+    "latency": "{label} · latency < {sec}s",
+    "noMetrics": "No realtime metrics",
+    "createModal": {
+      "title": "New Dashboard",
+      "name": "Dashboard Name",
+      "namePlaceholder": "e.g. Business Cockpit",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional",
+      "panels": "Panels",
+      "creating": "Creating…",
+      "created": "Dashboard created",
+      "createFailed": "Failed to create",
+      "deleted": "Deleted: {name}",
+      "deleteFailed": "Failed to delete"
+    },
+    "panelTypes": {
+      "line": "Line",
+      "pie": "Pie",
+      "metric": "Metric Card",
+      "bar": "Bar"
+    },
+    "panelTitles": {
+      "line": "Trend",
+      "pie": "Share",
+      "metric": "Core Metric",
+      "bar": "Comparison"
+    }
+  }
+}

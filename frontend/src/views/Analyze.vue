@@ -1,24 +1,24 @@
 <template>
   <div>
-    <h1>BI 分析</h1>
-    <div class="sub">
-      基于 ECharts 看板组件，查询经统一 SQL 网关跨湖仓集联邦，客户无感知底层引擎。
-    </div>
+    <h1>{{ t('analyze.title') }}</h1>
+    <div class="sub">{{ t('analyze.subtitle') }}</div>
     <div class="toolbar">
-      <button class="btn sm" @click="openCreate">+ 新建看板</button>
+      <button class="btn sm" @click="openCreate">{{ t('analyze.newBoard') }}</button>
       <div class="spacer"></div>
-      <span class="pill b">统一 SQL 网关</span>
+      <span class="pill b">{{ t('analyze.sqlGateway') }}</span>
     </div>
 
     <!-- 看板列表：loading / 错误重试 / 空态 / 真实渲染 四态，无假数据 -->
-    <div v-if="boardsLoading" class="meta" style="padding: 24px 4px">看板加载中…</div>
+    <div v-if="boardsLoading" class="meta" style="padding: 24px 4px">
+      {{ t('analyze.boardsLoading') }}
+    </div>
     <div v-else-if="boardsError" class="meta" style="color: var(--red); padding: 24px 4px">
       {{ boardsError.message }}，
-      <a href="javascript:void(0)" @click="loadBoards">重试</a>
+      <a href="javascript:void(0)" @click="loadBoards">{{ t('common.retry') }}</a>
     </div>
     <div v-else-if="boards.length === 0" class="card" style="padding: 32px; text-align: center">
       <div style="font-size: 28px; margin-bottom: 8px">📊</div>
-      <div class="meta">还没有看板。点击右上角「+ 新建看板」创建第一个。</div>
+      <div class="meta">{{ t('analyze.empty') }}</div>
     </div>
     <template v-else>
       <div v-for="board in boards" :key="board.id" class="card" style="margin-bottom: 16px">
@@ -26,10 +26,10 @@
           <h3 style="margin: 0">{{ board.name }}</h3>
           <span v-if="board.description" class="meta">{{ board.description }}</span>
           <div class="spacer"></div>
-          <button class="btn ghost sm" @click="removeBoard(board)">删除</button>
+          <button class="btn ghost sm" @click="removeBoard(board)">{{ t('common.delete') }}</button>
         </div>
         <div v-if="board.panels.length === 0" class="meta" style="padding: 16px 0">
-          该看板暂无组件（编辑能力建设中）
+          {{ t('analyze.noPanels') }}
         </div>
         <div v-else class="grid g3" style="margin-top: 12px">
           <div v-for="panel in board.panels" :key="panel.id" class="card" style="box-shadow: none">
@@ -49,7 +49,7 @@
                 class="chart-cell"
               ></div>
             </template>
-            <div v-else class="meta" style="padding: 24px 0">暂无数据（面板数据由创建者提供）</div>
+            <div v-else class="meta" style="padding: 24px 0">{{ t('analyze.noPanelData') }}</div>
           </div>
         </div>
       </div>
@@ -57,11 +57,11 @@
 
     <!-- 实时指标：真实 API，保留原有三态 -->
     <div class="card" style="margin-top: 8px">
-      <h3>实时指标</h3>
+      <h3>{{ t('analyze.realtime') }}</h3>
       <div v-if="metricsLoading" class="kpi s">--</div>
       <div v-else-if="metricsError" class="meta" style="color: var(--red)">
         {{ metricsError.message }}，
-        <a href="javascript:void(0)" @click="loadMetrics">重试</a>
+        <a href="javascript:void(0)" @click="loadMetrics">{{ t('common.retry') }}</a>
       </div>
       <template v-else-if="metrics">
         <div v-for="m in metrics" :key="m.key" style="margin-bottom: 8px">
@@ -70,34 +70,37 @@
             <span class="meta">{{ m.unit }}</span>
           </div>
           <div class="meta" style="margin-top: 4px">
-            {{ m.label }} · 延迟 &lt; {{ m.latencySec }}s
+            {{ t('analyze.latency', { label: m.label, sec: m.latencySec }) }}
           </div>
         </div>
-        <div v-if="metrics.length === 0" class="meta">暂无实时指标</div>
+        <div v-if="metrics.length === 0" class="meta">{{ t('analyze.noMetrics') }}</div>
       </template>
     </div>
 
-    <Modal :visible="modalVisible" title="新建看板" @close="modalVisible = false">
-      <label>看板名</label>
-      <input v-model="form.name" placeholder="如 经营驾驶舱" />
-      <label>描述</label>
-      <input v-model="form.description" placeholder="可选" />
-      <label>组件</label>
+    <Modal :visible="modalVisible" :title="t('analyze.createModal.title')" @close="modalVisible = false">
+      <label>{{ t('analyze.createModal.name') }}</label>
+      <input v-model="form.name" :placeholder="t('analyze.createModal.namePlaceholder')" />
+      <label>{{ t('analyze.createModal.description') }}</label>
+      <input
+        v-model="form.description"
+        :placeholder="t('analyze.createModal.descriptionPlaceholder')"
+      />
+      <label>{{ t('analyze.createModal.panels') }}</label>
       <div class="chips">
         <span
-          v-for="t in panelTypes"
-          :key="t"
+          v-for="pt in panelTypes"
+          :key="pt"
           class="chip"
-          :class="{ on: form.panels.includes(t) }"
-          @click="togglePanel(t)"
+          :class="{ on: form.panels.includes(pt) }"
+          @click="togglePanel(pt)"
         >
-          {{ t }}
+          {{ t(`analyze.panelTypes.${pt}`) }}
         </span>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="creating || !form.name.trim()" @click="create">
-          {{ creating ? '创建中…' : '创建' }}
+          {{ creating ? t('analyze.createModal.creating') : t('common.create') }}
         </button>
       </template>
     </Modal>
@@ -106,6 +109,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -113,15 +117,17 @@ import * as echarts from 'echarts'
 import * as analyzeApi from '@/api/analyze'
 import type { Dashboard, Panel, PanelType, RealtimeMetric } from '@/api/analyze'
 
+const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const creating = ref(false)
 
-const panelTypes = ['折线', '饼图', '指标卡', '柱状'] as const
+// 面板类型以后端枚举为准，展示名走词条（analyze.panelTypes.*）
+const panelTypes: PanelType[] = ['line', 'pie', 'metric', 'bar']
 const form = reactive({
   name: '',
   description: '',
-  panels: [] as string[]
+  panels: [] as PanelType[]
 })
 
 const {
@@ -142,7 +148,7 @@ async function loadBoards(): Promise<void> {
     const res = await analyzeApi.listDashboards({ page: 1, pageSize: 20 })
     boards.value = res.list
   } catch (e) {
-    boardsError.value = { message: e instanceof Error ? e.message : '看板加载失败' }
+    boardsError.value = { message: e instanceof Error ? e.message : t('analyze.boardsLoadFailed') }
   } finally {
     boardsLoading.value = false
     await nextTick()
@@ -150,48 +156,36 @@ async function loadBoards(): Promise<void> {
   }
 }
 
-function togglePanel(t: string): void {
-  const i = form.panels.indexOf(t)
+function togglePanel(pt: PanelType): void {
+  const i = form.panels.indexOf(pt)
   if (i >= 0) form.panels.splice(i, 1)
-  else form.panels.push(t)
+  else form.panels.push(pt)
 }
 
 function openCreate(): void {
   form.name = ''
   form.description = ''
-  form.panels = ['折线']
+  form.panels = ['line']
   modalVisible.value = true
 }
 
 async function create(): Promise<void> {
   creating.value = true
   try {
-    const panelTitleMap: Record<string, string> = {
-      折线: '趋势',
-      饼图: '占比',
-      指标卡: '核心指标',
-      柱状: '对比'
-    }
-    const typeMap: Record<string, PanelType> = {
-      折线: 'line',
-      饼图: 'pie',
-      指标卡: 'metric',
-      柱状: 'bar'
-    }
     await analyzeApi.createDashboard({
       name: form.name.trim(),
       description: form.description.trim() || undefined,
-      panels: form.panels.map((t) => ({
-        title: panelTitleMap[t] ?? t,
-        type: typeMap[t] ?? 'metric',
+      panels: form.panels.map((pt) => ({
+        title: t(`analyze.panelTitles.${pt}`),
+        type: pt,
         config: {}
       }))
     })
     modalVisible.value = false
-    store.showToast('看板已创建')
+    store.showToast(t('analyze.createModal.created'))
     await loadBoards()
   } catch (e) {
-    store.showToast(e instanceof Error ? e.message : '创建失败')
+    store.showToast(e instanceof Error ? e.message : t('analyze.createModal.createFailed'))
   } finally {
     creating.value = false
   }
@@ -200,10 +194,10 @@ async function create(): Promise<void> {
 async function removeBoard(board: Dashboard): Promise<void> {
   try {
     await analyzeApi.deleteDashboard(board.id)
-    store.showToast(`已删除: ${board.name}`)
+    store.showToast(t('analyze.createModal.deleted', { name: board.name }))
     await loadBoards()
   } catch (e) {
-    store.showToast(e instanceof Error ? e.message : '删除失败')
+    store.showToast(e instanceof Error ? e.message : t('analyze.createModal.deleteFailed'))
   }
 }
 
