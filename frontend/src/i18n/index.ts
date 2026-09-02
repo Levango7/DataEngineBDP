@@ -19,6 +19,10 @@ import integrateZh from './locales/modules/integrate.zh-CN.json'
 import integrateEn from './locales/modules/integrate.en-US.json'
 import developZh from './locales/modules/develop.zh-CN.json'
 import developEn from './locales/modules/develop.en-US.json'
+import sqlZh from './locales/modules/sql.zh-CN.json'
+import sqlEn from './locales/modules/sql.en-US.json'
+import lineageZh from './locales/modules/lineage.zh-CN.json'
+import lineageEn from './locales/modules/lineage.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -75,7 +79,9 @@ export const i18n = createI18n({
       ...standardZh,
       ...governZh,
       ...integrateZh,
-      ...developZh
+      ...developZh,
+      ...sqlZh,
+      ...lineageZh
     },
     'en-US': {
       ...enUS,
@@ -87,7 +93,9 @@ export const i18n = createI18n({
       ...standardEn,
       ...governEn,
       ...integrateEn,
-      ...developEn
+      ...developEn,
+      ...sqlEn,
+      ...lineageEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

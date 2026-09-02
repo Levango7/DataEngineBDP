@@ -1,0 +1,18 @@
+{
+  "lineage": {
+    "title": "Lineage Analysis",
+    "subtitle": "End-to-end automated field-level lineage collection; one-click impact analysis. Current highlight: {table}",
+    "noHighlight": "Unspecified",
+    "legend": {
+      "upstream": "■ Upstream",
+      "current": "■ Current",
+      "downstream": "■ Downstream",
+      "faded": "□ Faded"
+    },
+    "loading": "Loading lineage…",
+    "noUpstream": "No upstream",
+    "noDownstream": "No downstream",
+    "noImpact": "No impact",
+    "currentNode": "Current node {table}"
+  }
+}

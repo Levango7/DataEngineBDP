@@ -1,42 +1,49 @@
 <template>
   <div>
-    <h1>血缘分析</h1>
+    <h1>{{ t('lineage.title') }}</h1>
     <div class="sub">
-      端到端自动采集字段级血缘；影响分析一键追溯。当前高亮：{{ highlightTable || '未指定' }}
+      {{ t('lineage.subtitle', { table: highlightTable || t('lineage.noHighlight') }) }}
     </div>
     <div class="legend">
-      <span style="color: #8a9ba0">■ 上游</span>
-      <span style="color: var(--primary)">■ 当前</span>
-      <span style="color: var(--green)">■ 下游</span>
-      <span style="color: #94a3b8">□ 弱化</span>
+      <span style="color: #8a9ba0">{{ t('lineage.legend.upstream') }}</span>
+      <span style="color: var(--primary)">{{ t('lineage.legend.current') }}</span>
+      <span style="color: var(--green)">{{ t('lineage.legend.downstream') }}</span>
+      <span style="color: #94a3b8">{{ t('lineage.legend.faded') }}</span>
     </div>
-    <div v-if="loading" class="card" style="padding: 16px; color: var(--muted)">加载血缘中…</div>
+    <div v-if="loading" class="card" style="padding: 16px; color: var(--muted)">
+      {{ t('lineage.loading') }}
+    </div>
     <div v-else-if="error" class="card" style="padding: 16px; color: var(--red)">
       {{ error.message }}，
-      <a href="javascript:void(0)" @click="loadLineage(highlightTable)">重试</a>
+      <a href="javascript:void(0)" @click="loadLineage(highlightTable)">{{ t('common.retry') }}</a>
     </div>
     <div v-else class="card">
       <div class="lineage">
         <div class="lvl">
-          <div v-for="t in upstreamTables" :key="t" class="ln">{{ t }}</div>
+          <div v-for="tbl in upstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
           <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--muted)">
-            无上游
+            {{ t('lineage.noUpstream') }}
           </div>
         </div>
         <div class="lvl">
-          <div class="ln hot" @click="store.showToast(`当前节点 ${highlightTable}`)">
+          <div
+            class="ln hot"
+            @click="store.showToast(t('lineage.currentNode', { table: highlightTable }))"
+          >
             {{ highlightTable }}
           </div>
         </div>
         <div class="lvl">
-          <div v-for="t in downstreamTables" :key="t" class="ln">{{ t }}</div>
+          <div v-for="tbl in downstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
           <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--muted)">
-            无下游
+            {{ t('lineage.noDownstream') }}
           </div>
         </div>
         <div class="lvl">
-          <div v-for="t in impactTables" :key="t" class="ln">{{ t }}</div>
-          <div v-if="impactTables.length === 0" class="ln" style="color: var(--muted)">无影响</div>
+          <div v-for="tbl in impactTables" :key="tbl" class="ln">{{ tbl }}</div>
+          <div v-if="impactTables.length === 0" class="ln" style="color: var(--muted)">
+            {{ t('lineage.noImpact') }}
+          </div>
         </div>
       </div>
     </div>
@@ -45,10 +52,12 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import { getUpstream, getDownstream, impactAnalysis, type LineageQueryResult } from '@/api/lineage'
 
+const { t } = useI18n()
 const store = useAppStore()
 
 // 当前高亮表（示例使用 dwd.order_wide）

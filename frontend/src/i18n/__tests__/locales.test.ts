@@ -27,6 +27,10 @@ import integrateZh from '@/i18n/locales/modules/integrate.zh-CN.json'
 import integrateEn from '@/i18n/locales/modules/integrate.en-US.json'
 import developZh from '@/i18n/locales/modules/develop.zh-CN.json'
 import developEn from '@/i18n/locales/modules/develop.en-US.json'
+import sqlZh from '@/i18n/locales/modules/sql.zh-CN.json'
+import sqlEn from '@/i18n/locales/modules/sql.en-US.json'
+import lineageZh from '@/i18n/locales/modules/lineage.zh-CN.json'
+import lineageEn from '@/i18n/locales/modules/lineage.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -86,7 +90,9 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['standard', standardZh as Record<string, unknown>, standardEn as Record<string, unknown>],
     ['govern', governZh as Record<string, unknown>, governEn as Record<string, unknown>],
     ['integrate', integrateZh as Record<string, unknown>, integrateEn as Record<string, unknown>],
-    ['develop', developZh as Record<string, unknown>, developEn as Record<string, unknown>]
+    ['develop', developZh as Record<string, unknown>, developEn as Record<string, unknown>],
+    ['sql', sqlZh as Record<string, unknown>, sqlEn as Record<string, unknown>],
+    ['lineage', lineageZh as Record<string, unknown>, lineageEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

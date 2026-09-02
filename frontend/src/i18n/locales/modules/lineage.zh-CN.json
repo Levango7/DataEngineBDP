@@ -1,0 +1,18 @@
+{
+  "lineage": {
+    "title": "血缘分析",
+    "subtitle": "端到端自动采集字段级血缘；影响分析一键追溯。当前高亮：{table}",
+    "noHighlight": "未指定",
+    "legend": {
+      "upstream": "■ 上游",
+      "current": "■ 当前",
+      "downstream": "■ 下游",
+      "faded": "□ 弱化"
+    },
+    "loading": "加载血缘中…",
+    "noUpstream": "无上游",
+    "noDownstream": "无下游",
+    "noImpact": "无影响",
+    "currentNode": "当前节点 {table}"
+  }
+}

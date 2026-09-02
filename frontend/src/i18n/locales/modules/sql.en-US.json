@@ -1,0 +1,29 @@
+{
+  "sql": {
+    "title": "Unified SQL Query",
+    "subtitle": "A single entry for federated queries across Doris / Trino / Iceberg. Trino serves as the unified SQL gateway; the underlying engines stay transparent to customers.",
+    "tabFederated": "Federated Query",
+    "tabNew": "+ New Query",
+    "editorPlaceholder": "-- Enter SQL, e.g.: SELECT city, COUNT(*) cnt FROM doris.dim.user GROUP BY city",
+    "config": "Query Settings",
+    "routeEngine": "Routing Engine",
+    "engineAuto": "Gateway Auto",
+    "timeout": "Timeout (s)",
+    "aiAssist": "AI Assist (Natural Language → SQL)",
+    "aiPlaceholder": "e.g.: GMV ranking by city",
+    "aiGenerate": "Generate",
+    "aiTodo": "SQL generated (mock) (integration pending)",
+    "execute": "Execute",
+    "gatewayNote": "The gateway automatically picks the optimal engine and pushes down; customers only see results.",
+    "result": "Result Preview",
+    "querying": "Querying…",
+    "resultHint": "Click \"Execute\" and the gateway will fill in the result set with duration/scan metrics.",
+    "log": {
+      "ready": "[Ready] Click \"Execute\" to route via the unified SQL gateway…",
+      "submit": "[Gateway] Submitting query…",
+      "parsed": "[Gateway] Query parsed → sources: {sources}",
+      "returned": "[Returned] {rows} rows · took {ms}ms",
+      "error": "[Error] {msg}"
+    }
+  }
+}

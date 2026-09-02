@@ -1,0 +1,29 @@
+{
+  "sql": {
+    "title": "统一 SQL 查询",
+    "subtitle": "单一入口跨 Doris / Trino / Iceberg 联邦查询，Trino 作为统一 SQL 网关，底层引擎对客户透明。",
+    "tabFederated": "联邦查询",
+    "tabNew": "+ 新查询",
+    "editorPlaceholder": "-- 输入 SQL，如：SELECT city, COUNT(*) cnt FROM doris.dim.user GROUP BY city",
+    "config": "查询配置",
+    "routeEngine": "路由引擎",
+    "engineAuto": "网关自动",
+    "timeout": "超时(s)",
+    "aiAssist": "AI 辅助（自然语言 → SQL）",
+    "aiPlaceholder": "如：各城市 GMV 排名",
+    "aiGenerate": "生成",
+    "aiTodo": "已生成 SQL（mock）（待接入）",
+    "execute": "执行",
+    "gatewayNote": "网关自动选择最优引擎并下推，客户只见结果。",
+    "result": "结果预览",
+    "querying": "查询中…",
+    "resultHint": "点击「执行」后由网关回填结果集与耗时/扫描量指标。",
+    "log": {
+      "ready": "[就绪] 点击「执行」经统一 SQL 网关路由…",
+      "submit": "[网关] 提交查询…",
+      "parsed": "[网关] 解析查询 → 涉及源 {sources}",
+      "returned": "[返回] {rows} 行 · 耗时 {ms}ms",
+      "error": "[错误] {msg}"
+    }
+  }
+}
