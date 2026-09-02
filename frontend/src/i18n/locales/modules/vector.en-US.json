@@ -1,0 +1,32 @@
+{
+  "vector": {
+    "title": "Vector Store",
+    "subtitle": "L4.5 Intelligent Data Layer · Unified embedding collection management on Milvus, powering semantic search and RAG.",
+    "newCollection": "+ New Collection",
+    "searchPlaceholder": "Similarity search: enter query text…",
+    "loading": "Loading vector collections...",
+    "loadFailed": "Failed to load: {msg}",
+    "cols": {
+      "collection": "Collection",
+      "dimension": "Dimension",
+      "count": "Rows",
+      "index": "Index",
+      "relatedKb": "Related KB"
+    },
+    "createModal": {
+      "title": "New Vector Collection",
+      "name": "Collection Name",
+      "namePlaceholder": "e.g. doc_chunk",
+      "dimension": "Dimension",
+      "indexType": "Index Type",
+      "relatedKb": "Related Knowledge Base",
+      "relatedKbPlaceholder": "e.g. Policy Documents",
+      "create": "Create",
+      "nameRequired": "Please enter a collection name",
+      "created": "Vector collection created",
+      "createFailed": "Failed to create: {msg}"
+    },
+    "searchDone": "Top-5 search results returned",
+    "searchFailed": "Search failed: {msg}"
+  }
+}

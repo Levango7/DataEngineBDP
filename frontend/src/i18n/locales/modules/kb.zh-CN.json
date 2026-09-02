@@ -1,0 +1,110 @@
+{
+  "kb": {
+    "title": "知识工程",
+    "subtitle": "L4.5 · 文档入库 → 切片 → 向量化 → RAG 策略配置，构建企业级知识底座。",
+    "loadingMeta": "正在拉取数据",
+    "kpi": {
+      "kbCount": "知识库数",
+      "activeMeta": "活跃 {count} 个",
+      "docCount": "文档总数",
+      "vectorizedMeta": "已向量化 {count} 个",
+      "ragStrategy": "RAG 策略",
+      "enabled": "已启用",
+      "disabled": "未启用"
+    },
+    "tabs": {
+      "kb": "知识库",
+      "rag": "RAG 策略"
+    },
+    "createKb": "+ 创建知识库",
+    "cols": {
+      "name": "知识库名",
+      "docCount": "文档数",
+      "chunkStrategy": "切片策略",
+      "retrieval": "检索方式",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "actions": "操作"
+    },
+    "emptyError": "加载失败，请重试",
+    "empty": "暂无知识库",
+    "docManage": "文档管理",
+    "kbStatus": {
+      "active": "活跃",
+      "ready": "就绪",
+      "pending": "构建中",
+      "building": "构建中",
+      "disabled": "已禁用",
+      "failed": "失败"
+    },
+    "rag": {
+      "loading": "正在加载 RAG 策略...",
+      "empty": "暂无 RAG 策略配置",
+      "topK": "检索 TopK",
+      "scoreThreshold": "分数阈值",
+      "rerankerModel": "重排模型",
+      "chunkStrategy": "切片策略",
+      "retrievalMethod": "检索方式",
+      "citation": "引用溯源",
+      "save": "保存策略",
+      "reset": "重置",
+      "saved": "RAG 策略已保存",
+      "chunks": {
+        "by_paragraph": "按段落",
+        "by_title": "按标题",
+        "by_turn": "按对话轮次",
+        "by_sentence": "按句子"
+      },
+      "retrieval": {
+        "vector": "向量检索",
+        "keyword": "关键字检索",
+        "hybrid": "混合检索"
+      }
+    },
+    "createModal": {
+      "title": "创建知识库",
+      "name": "知识库名",
+      "namePlaceholder": "如 营销知识库",
+      "nameRequired": "请输入知识库名",
+      "chunkStrategy": "切片策略",
+      "retrieval": "检索方式",
+      "create": "创建",
+      "created": "知识库已创建"
+    },
+    "deleteKb": {
+      "message": "确认删除知识库「{name}」？该操作不可恢复。",
+      "title": "删除确认",
+      "confirm": "删除",
+      "deleted": "知识库已删除"
+    },
+    "docModal": {
+      "title": "文档管理 - {name}",
+      "upload": "+ 上传文档",
+      "uploadHint": "支持 pdf/txt/md/docx 等格式",
+      "emptyError": "加载失败，请重试",
+      "empty": "暂无文档",
+      "cols": {
+        "fileName": "文件名",
+        "size": "大小",
+        "type": "类型",
+        "chunks": "切片数",
+        "vectors": "向量数",
+        "status": "状态",
+        "uploadedAt": "上传时间",
+        "actions": "操作"
+      },
+      "tooLarge": "文件 {name} 超过 50MB 限制",
+      "noKb": "未选择知识库",
+      "uploaded": "文件 {name} 上传成功",
+      "deleteMessage": "确认删除文档「{name}」？",
+      "deleteTitle": "删除确认",
+      "deleted": "文档已删除"
+    },
+    "docStatus": {
+      "uploaded": "已上传",
+      "parsed": "已解析",
+      "vectorized": "已向量化",
+      "failed": "失败"
+    }
+  }
+}

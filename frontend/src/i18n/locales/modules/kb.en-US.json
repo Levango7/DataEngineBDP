@@ -1,0 +1,110 @@
+{
+  "kb": {
+    "title": "Knowledge Engineering",
+    "subtitle": "L4.5 · Document ingestion → chunking → vectorization → RAG strategy configuration, building an enterprise knowledge foundation.",
+    "loadingMeta": "Fetching data",
+    "kpi": {
+      "kbCount": "Knowledge Bases",
+      "activeMeta": "{count} active",
+      "docCount": "Total Documents",
+      "vectorizedMeta": "{count} vectorized",
+      "ragStrategy": "RAG Strategy",
+      "enabled": "Enabled",
+      "disabled": "Disabled"
+    },
+    "tabs": {
+      "kb": "Knowledge Bases",
+      "rag": "RAG Strategy"
+    },
+    "createKb": "+ Create Knowledge Base",
+    "cols": {
+      "name": "Name",
+      "docCount": "Docs",
+      "chunkStrategy": "Chunk Strategy",
+      "retrieval": "Retrieval",
+      "status": "Status",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "emptyError": "Failed to load, please retry",
+    "empty": "No knowledge bases",
+    "docManage": "Manage Documents",
+    "kbStatus": {
+      "active": "Active",
+      "ready": "Ready",
+      "pending": "Building",
+      "building": "Building",
+      "disabled": "Disabled",
+      "failed": "Failed"
+    },
+    "rag": {
+      "loading": "Loading RAG strategy...",
+      "empty": "No RAG strategy configured",
+      "topK": "Retrieval TopK",
+      "scoreThreshold": "Score Threshold",
+      "rerankerModel": "Reranker Model",
+      "chunkStrategy": "Chunk Strategy",
+      "retrievalMethod": "Retrieval Method",
+      "citation": "Citation",
+      "save": "Save Strategy",
+      "reset": "Reset",
+      "saved": "RAG strategy saved",
+      "chunks": {
+        "by_paragraph": "By Paragraph",
+        "by_title": "By Title",
+        "by_turn": "By Dialogue Turn",
+        "by_sentence": "By Sentence"
+      },
+      "retrieval": {
+        "vector": "Vector",
+        "keyword": "Keyword",
+        "hybrid": "Hybrid"
+      }
+    },
+    "createModal": {
+      "title": "Create Knowledge Base",
+      "name": "Name",
+      "namePlaceholder": "e.g. Marketing KB",
+      "nameRequired": "Please enter a knowledge base name",
+      "chunkStrategy": "Chunk Strategy",
+      "retrieval": "Retrieval",
+      "create": "Create",
+      "created": "Knowledge base created"
+    },
+    "deleteKb": {
+      "message": "Delete knowledge base \"{name}\"? This cannot be undone.",
+      "title": "Confirm Deletion",
+      "confirm": "Delete",
+      "deleted": "Knowledge base deleted"
+    },
+    "docModal": {
+      "title": "Documents - {name}",
+      "upload": "+ Upload Documents",
+      "uploadHint": "Supports pdf/txt/md/docx and more",
+      "emptyError": "Failed to load, please retry",
+      "empty": "No documents",
+      "cols": {
+        "fileName": "File Name",
+        "size": "Size",
+        "type": "Type",
+        "chunks": "Chunks",
+        "vectors": "Vectors",
+        "status": "Status",
+        "uploadedAt": "Uploaded At",
+        "actions": "Actions"
+      },
+      "tooLarge": "File {name} exceeds the 50MB limit",
+      "noKb": "No knowledge base selected",
+      "uploaded": "File {name} uploaded",
+      "deleteMessage": "Delete document \"{name}\"?",
+      "deleteTitle": "Confirm Deletion",
+      "deleted": "Document deleted"
+    },
+    "docStatus": {
+      "uploaded": "Uploaded",
+      "parsed": "Parsed",
+      "vectorized": "Vectorized",
+      "failed": "Failed"
+    }
+  }
+}

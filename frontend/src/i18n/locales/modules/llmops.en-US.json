@@ -1,0 +1,149 @@
+{
+  "llmops": {
+    "title": "LLMOps",
+    "subtitle": "L4.5 · Integrated LLM operations from fine-tuning and evaluation to deployment; foundation and domain models under unified management.",
+    "loadingMeta": "Fetching data",
+    "kpi": {
+      "models": "Total Models",
+      "modelsMeta": "Registered models",
+      "finetune": "Fine-tune Tasks",
+      "runningMeta": "{count} running",
+      "eval": "Eval Metrics",
+      "evalMeta": "Including {count} human evaluations",
+      "svc": "Inference Services"
+    },
+    "tabs": {
+      "models": "Models",
+      "finetune": "Fine-tuning",
+      "eval": "Evaluation",
+      "inference": "Inference Services"
+    },
+    "registerModel": "+ Register Model",
+    "searchPlaceholder": "Search by model name",
+    "search": "Search",
+    "emptyError": "Failed to load, please retry",
+    "modelCols": {
+      "name": "Model Name",
+      "algorithm": "Algorithm",
+      "version": "Version",
+      "status": "Status",
+      "trainJob": "Training Job",
+      "description": "Description",
+      "registeredAt": "Registered At"
+    },
+    "modelsEmpty": "No models",
+    "submitFinetune": "+ Submit Fine-tune",
+    "ftCols": {
+      "taskId": "Task ID",
+      "modelName": "Model Name",
+      "baseModel": "Base Model",
+      "status": "Status",
+      "progress": "Training Progress",
+      "submittedAt": "Submitted At"
+    },
+    "ftEmpty": "No fine-tune tasks",
+    "createMetric": "+ New Metric",
+    "humanEval": "Start Human Evaluation",
+    "evalCols": {
+      "modelName": "Model Name",
+      "version": "Version",
+      "evalType": "Eval Type",
+      "accuracy": "Accuracy",
+      "hallucination": "Hallucination",
+      "baseLift": "Base Lift",
+      "dataset": "Dataset",
+      "createdAt": "Created At"
+    },
+    "evalEmpty": "No evaluation metrics",
+    "evalTypes": {
+      "human": "Human",
+      "auto": "Auto"
+    },
+    "svcStatusFilter": "Filter by status",
+    "svcCols": {
+      "service": "Service Name",
+      "model": "Model",
+      "version": "Version",
+      "status": "Status",
+      "replicas": "Replicas",
+      "latency": "Latency (ms)",
+      "endpoint": "Endpoint",
+      "deployedAt": "Deployed At"
+    },
+    "svcEmpty": "No inference services",
+    "modelStatus": {
+      "DRAFT": "Draft",
+      "REGISTERED": "Registered",
+      "DEPLOYED": "Deployed",
+      "ARCHIVED": "Archived",
+      "FAILED": "Failed"
+    },
+    "ftStatus": {
+      "SUBMITTED": "Submitted",
+      "RUNNING": "Running",
+      "SUCCEEDED": "Succeeded",
+      "FAILED": "Failed"
+    },
+    "svcStatus": {
+      "DEPLOYING": "Deploying",
+      "RUNNING": "Running",
+      "STOPPED": "Stopped",
+      "FAILED": "Failed",
+      "SCALING": "Scaling"
+    },
+    "registerModal": {
+      "title": "Register Model",
+      "name": "Model Name",
+      "namePlaceholder": "e.g. marketing-domain-3B",
+      "nameRequired": "Please enter a model name",
+      "algorithm": "Algorithm",
+      "algorithmRequired": "Please select an algorithm",
+      "version": "Version",
+      "versionPlaceholder": "e.g. v1.0.0",
+      "versionRequired": "Please enter a version",
+      "trainJobId": "Training Job ID",
+      "optional": "Optional",
+      "modelPath": "Model Path",
+      "description": "Description",
+      "register": "Register",
+      "registered": "Model registered"
+    },
+    "ftModal": {
+      "title": "Submit Fine-tune Task",
+      "modelName": "Model Name",
+      "modelNamePlaceholder": "e.g. marketing-domain-3B",
+      "modelNameRequired": "Please enter a model name",
+      "baseModel": "Base Model",
+      "baseModelRequired": "Please select a base model",
+      "trainingData": "Training Data",
+      "trainingDataPlaceholder": "e.g. marketing-scripts-2026.parquet",
+      "trainingDataRequired": "Please enter the training data",
+      "gpu": "VRAM/GPUs",
+      "submit": "Submit",
+      "submitted": "Fine-tune task submitted"
+    },
+    "evalModal": {
+      "title": "Create Evaluation Metric",
+      "modelName": "Model Name",
+      "modelNamePlaceholder": "e.g. marketing-domain-3B",
+      "modelNameRequired": "Please enter a model name",
+      "version": "Version",
+      "optional": "Optional",
+      "accuracy": "Accuracy",
+      "hallucination": "Hallucination Rate",
+      "baseLift": "Base Lift (pt)",
+      "dataset": "Dataset",
+      "datasetPlaceholder": "e.g. eval-set-2026",
+      "create": "Create",
+      "created": "Evaluation metric created"
+    },
+    "humanModal": {
+      "title": "Start Human Evaluation",
+      "modelName": "Model Name",
+      "placeholder": "Select or enter a model name",
+      "required": "Please select or enter a model name",
+      "launch": "Launch",
+      "launched": "Human evaluation task started"
+    }
+  }
+}

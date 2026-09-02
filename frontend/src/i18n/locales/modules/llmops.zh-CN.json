@@ -1,0 +1,149 @@
+{
+  "llmops": {
+    "title": "LLMOps",
+    "subtitle": "L4.5 · 从微调、评估到部署的一体化大模型运营；基座模型与领域模型统一纳管。",
+    "loadingMeta": "正在拉取数据",
+    "kpi": {
+      "models": "模型总数",
+      "modelsMeta": "已注册模型",
+      "finetune": "微调任务",
+      "runningMeta": "运行中 {count} 个",
+      "eval": "评估指标",
+      "evalMeta": "含人工评估 {count} 条",
+      "svc": "推理服务"
+    },
+    "tabs": {
+      "models": "模型管理",
+      "finetune": "微调",
+      "eval": "评估",
+      "inference": "推理服务"
+    },
+    "registerModel": "+ 注册模型",
+    "searchPlaceholder": "按模型名搜索",
+    "search": "搜索",
+    "emptyError": "加载失败，请重试",
+    "modelCols": {
+      "name": "模型名",
+      "algorithm": "算法",
+      "version": "版本",
+      "status": "状态",
+      "trainJob": "训练作业",
+      "description": "描述",
+      "registeredAt": "注册时间"
+    },
+    "modelsEmpty": "暂无模型",
+    "submitFinetune": "+ 提交微调",
+    "ftCols": {
+      "taskId": "任务 ID",
+      "modelName": "模型名",
+      "baseModel": "基座模型",
+      "status": "状态",
+      "progress": "训练进度",
+      "submittedAt": "提交时间"
+    },
+    "ftEmpty": "暂无微调任务",
+    "createMetric": "+ 创建指标",
+    "humanEval": "发起人工评估",
+    "evalCols": {
+      "modelName": "模型名",
+      "version": "版本",
+      "evalType": "评估类型",
+      "accuracy": "准确率",
+      "hallucination": "幻觉率",
+      "baseLift": "基座提升",
+      "dataset": "数据集",
+      "createdAt": "创建时间"
+    },
+    "evalEmpty": "暂无评估指标",
+    "evalTypes": {
+      "human": "人工",
+      "auto": "自动"
+    },
+    "svcStatusFilter": "状态筛选",
+    "svcCols": {
+      "service": "服务名",
+      "model": "模型",
+      "version": "版本",
+      "status": "状态",
+      "replicas": "副本",
+      "latency": "延迟(ms)",
+      "endpoint": "端点",
+      "deployedAt": "部署时间"
+    },
+    "svcEmpty": "暂无推理服务",
+    "modelStatus": {
+      "DRAFT": "草稿",
+      "REGISTERED": "已注册",
+      "DEPLOYED": "已部署",
+      "ARCHIVED": "已归档",
+      "FAILED": "失败"
+    },
+    "ftStatus": {
+      "SUBMITTED": "已提交",
+      "RUNNING": "运行中",
+      "SUCCEEDED": "成功",
+      "FAILED": "失败"
+    },
+    "svcStatus": {
+      "DEPLOYING": "部署中",
+      "RUNNING": "运行中",
+      "STOPPED": "已停止",
+      "FAILED": "失败",
+      "SCALING": "扩缩容"
+    },
+    "registerModal": {
+      "title": "注册模型",
+      "name": "模型名",
+      "namePlaceholder": "如 营销-领域-3B",
+      "nameRequired": "请输入模型名",
+      "algorithm": "算法",
+      "algorithmRequired": "请选择算法",
+      "version": "版本",
+      "versionPlaceholder": "如 v1.0.0",
+      "versionRequired": "请输入版本号",
+      "trainJobId": "训练作业 ID",
+      "optional": "可选",
+      "modelPath": "模型路径",
+      "description": "描述",
+      "register": "注册",
+      "registered": "模型已注册"
+    },
+    "ftModal": {
+      "title": "提交微调任务",
+      "modelName": "模型名",
+      "modelNamePlaceholder": "如 营销-领域-3B",
+      "modelNameRequired": "请输入模型名",
+      "baseModel": "基座模型",
+      "baseModelRequired": "请选择基座模型",
+      "trainingData": "训练数据",
+      "trainingDataPlaceholder": "如 营销话术-2026.parquet",
+      "trainingDataRequired": "请输入训练数据",
+      "gpu": "显存/卡",
+      "submit": "提交",
+      "submitted": "微调任务已提交"
+    },
+    "evalModal": {
+      "title": "创建评估指标",
+      "modelName": "模型名",
+      "modelNamePlaceholder": "如 营销-领域-3B",
+      "modelNameRequired": "请输入模型名",
+      "version": "版本",
+      "optional": "可选",
+      "accuracy": "准确率",
+      "hallucination": "幻觉率",
+      "baseLift": "基座提升(pt)",
+      "dataset": "数据集",
+      "datasetPlaceholder": "如 eval-set-2026",
+      "create": "创建",
+      "created": "评估指标已创建"
+    },
+    "humanModal": {
+      "title": "发起人工评估",
+      "modelName": "模型名",
+      "placeholder": "选择或输入模型名",
+      "required": "请选择或输入模型名",
+      "launch": "发起",
+      "launched": "已发起人工评估任务"
+    }
+  }
+}

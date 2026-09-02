@@ -1,0 +1,32 @@
+{
+  "vector": {
+    "title": "向量库",
+    "subtitle": "L4.5 智能数据层 · 基于 Milvus 统一管理 embedding 集合，支撑语义检索与 RAG。",
+    "newCollection": "+ 新建集合",
+    "searchPlaceholder": "相似度检索：输入查询文本…",
+    "loading": "正在加载向量集合...",
+    "loadFailed": "加载失败：{msg}",
+    "cols": {
+      "collection": "集合",
+      "dimension": "维度",
+      "count": "条数",
+      "index": "索引",
+      "relatedKb": "关联知识库"
+    },
+    "createModal": {
+      "title": "新建向量集合",
+      "name": "集合名",
+      "namePlaceholder": "如 doc_chunk",
+      "dimension": "维度",
+      "indexType": "索引类型",
+      "relatedKb": "关联知识库",
+      "relatedKbPlaceholder": "如 制度文档库",
+      "create": "创建",
+      "nameRequired": "请填写集合名",
+      "created": "向量集合已创建",
+      "createFailed": "创建失败：{msg}"
+    },
+    "searchDone": "检索 top5 结果已返回",
+    "searchFailed": "检索失败：{msg}"
+  }
+}

@@ -1,32 +1,32 @@
 <template>
   <div class="kb-page">
-    <h1>知识工程</h1>
-    <div class="sub">L4.5 · 文档入库 → 切片 → 向量化 → RAG 策略配置，构建企业级知识底座。</div>
+    <h1>{{ t('kb.title') }}</h1>
+    <div class="sub">{{ t('kb.subtitle') }}</div>
 
     <!-- KPI 卡片区 -->
     <div class="grid g3">
       <template v-if="kbLoading">
         <div v-for="i in 3" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('common.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('kb.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>知识库数</h3>
+          <h3>{{ t('kb.kpi.kbCount') }}</h3>
           <div class="kpi">{{ kbKpi.total }}</div>
-          <div class="meta">活跃 {{ kbKpi.active }} 个</div>
+          <div class="meta">{{ t('kb.kpi.activeMeta', { count: kbKpi.active }) }}</div>
         </div>
         <div class="card">
-          <h3>文档总数</h3>
+          <h3>{{ t('kb.kpi.docCount') }}</h3>
           <div class="kpi s">{{ kbKpi.docs }}</div>
-          <div class="meta">已向量化 {{ kbKpi.vectorized }} 个</div>
+          <div class="meta">{{ t('kb.kpi.vectorizedMeta', { count: kbKpi.vectorized }) }}</div>
         </div>
         <div class="card">
-          <h3>RAG 策略</h3>
+          <h3>{{ t('kb.kpi.ragStrategy') }}</h3>
           <div class="kpi" :class="{ s: ragStrategy?.citationEnabled }">
-            {{ ragStrategy?.citationEnabled ? '已启用' : '未启用' }}
+            {{ ragStrategy?.citationEnabled ? t('kb.kpi.enabled') : t('kb.kpi.disabled') }}
           </div>
           <div class="meta">
             TopK={{ ragStrategy?.topK ?? '--' }} · {{ ragStrategy?.retrievalMethod ?? '--' }}
@@ -39,9 +39,9 @@
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <el-tabs v-model="activeTab" type="card">
         <!-- Tab1 知识库列表 -->
-        <el-tab-pane label="知识库" name="kb">
+        <el-tab-pane :label="t('kb.tabs.kb')" name="kb">
           <div class="toolbar">
-            <el-button type="primary" @click="openCreateKbDialog">+ 创建知识库</el-button>
+            <el-button type="primary" @click="openCreateKbDialog">{{ t('kb.createKb') }}</el-button>
             <div class="spacer"></div>
             <el-button :icon="Refresh" circle @click="loadKnowledgeBases" />
           </div>
@@ -52,46 +52,50 @@
             stripe
             border
             style="width: 100%"
-            :empty-text="kbError ? '加载失败，请重试' : '暂无知识库'"
+            :empty-text="kbError ? t('kb.emptyError') : t('kb.empty')"
           >
-            <el-table-column prop="name" label="知识库名" min-width="180" />
-            <el-table-column prop="docCount" label="文档数" width="100" />
-            <el-table-column prop="chunkStrategy" label="切片策略" width="160">
+            <el-table-column prop="name" :label="t('kb.cols.name')" min-width="180" />
+            <el-table-column prop="docCount" :label="t('kb.cols.docCount')" width="100" />
+            <el-table-column prop="chunkStrategy" :label="t('kb.cols.chunkStrategy')" width="160">
               <template #default="{ row }">{{ row.chunkStrategy || '--' }}</template>
             </el-table-column>
-            <el-table-column prop="retrieval" label="检索方式" width="140">
+            <el-table-column prop="retrieval" :label="t('kb.cols.retrieval')" width="140">
               <template #default="{ row }">{{ row.retrieval || '--' }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="100">
+            <el-table-column :label="t('kb.cols.status')" width="100">
               <template #default="{ row }">
                 <el-tag :type="kbStatusType(row.status)" effect="light">
                   {{ kbStatusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="createdAt" label="创建时间" width="180">
+            <el-table-column prop="createdAt" :label="t('kb.cols.createdAt')" width="180">
               <template #default="{ row }">{{ formatTime(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="200" fixed="right">
+            <el-table-column :label="t('kb.cols.actions')" width="200" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="openDocDialog(row)">文档管理</el-button>
-                <el-button link type="danger" @click="handleDeleteKb(row)">删除</el-button>
+                <el-button link type="primary" @click="openDocDialog(row)">
+                  {{ t('kb.docManage') }}
+                </el-button>
+                <el-button link type="danger" @click="handleDeleteKb(row)">
+                  {{ t('common.delete') }}
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
         <!-- Tab2 RAG 策略 -->
-        <el-tab-pane label="RAG 策略" name="rag">
+        <el-tab-pane :label="t('kb.tabs.rag')" name="rag">
           <div v-if="strategyLoading" style="text-align: center; padding: 40px; color: #888">
-            正在加载 RAG 策略...
+            {{ t('kb.rag.loading') }}
           </div>
           <div v-else-if="ragStrategy">
             <el-form :model="ragForm" label-width="140px" style="max-width: 640px">
-              <el-form-item label="检索 TopK">
+              <el-form-item :label="t('kb.rag.topK')">
                 <el-input-number v-model="ragForm.topK" :min="1" :max="50" />
               </el-form-item>
-              <el-form-item label="分数阈值">
+              <el-form-item :label="t('kb.rag.scoreThreshold')">
                 <el-input-number
                   v-model="ragForm.scoreThreshold"
                   :min="0"
@@ -100,7 +104,7 @@
                   :precision="2"
                 />
               </el-form-item>
-              <el-form-item label="重排模型">
+              <el-form-item :label="t('kb.rag.rerankerModel')">
                 <el-select
                   v-model="ragForm.rerankerModel"
                   style="width: 100%"
@@ -112,69 +116,73 @@
                   <el-option label="cohere-rerank" value="cohere-rerank" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="切片策略">
+              <el-form-item :label="t('kb.rag.chunkStrategy')">
                 <el-select v-model="ragForm.chunkStrategy" style="width: 100%">
-                  <el-option label="按段落" value="by_paragraph" />
-                  <el-option label="按标题" value="by_title" />
-                  <el-option label="按对话轮次" value="by_turn" />
-                  <el-option label="按句子" value="by_sentence" />
+                  <el-option :label="t('kb.rag.chunks.by_paragraph')" value="by_paragraph" />
+                  <el-option :label="t('kb.rag.chunks.by_title')" value="by_title" />
+                  <el-option :label="t('kb.rag.chunks.by_turn')" value="by_turn" />
+                  <el-option :label="t('kb.rag.chunks.by_sentence')" value="by_sentence" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="检索方式">
+              <el-form-item :label="t('kb.rag.retrievalMethod')">
                 <el-select v-model="ragForm.retrievalMethod" style="width: 100%">
-                  <el-option label="向量检索" value="vector" />
-                  <el-option label="关键字检索" value="keyword" />
-                  <el-option label="混合检索" value="hybrid" />
+                  <el-option :label="t('kb.rag.retrieval.vector')" value="vector" />
+                  <el-option :label="t('kb.rag.retrieval.keyword')" value="keyword" />
+                  <el-option :label="t('kb.rag.retrieval.hybrid')" value="hybrid" />
                 </el-select>
               </el-form-item>
-              <el-form-item label="引用溯源">
+              <el-form-item :label="t('kb.rag.citation')">
                 <el-switch v-model="ragForm.citationEnabled" />
               </el-form-item>
               <el-form-item>
                 <el-button type="primary" :loading="ragSaving" @click="handleSaveRag">
-                  保存策略
+                  {{ t('kb.rag.save') }}
                 </el-button>
-                <el-button @click="resetRagForm">重置</el-button>
+                <el-button @click="resetRagForm">{{ t('kb.rag.reset') }}</el-button>
               </el-form-item>
             </el-form>
           </div>
-          <div v-else style="text-align: center; padding: 40px; color: #888">暂无 RAG 策略配置</div>
+          <div v-else style="text-align: center; padding: 40px; color: #888">
+            {{ t('kb.rag.empty') }}
+          </div>
         </el-tab-pane>
       </el-tabs>
     </el-card>
 
     <!-- 创建知识库弹窗 -->
-    <el-dialog v-model="createKbDialogVisible" title="创建知识库" width="480px">
+    <el-dialog v-model="createKbDialogVisible" :title="t('kb.createModal.title')" width="480px">
       <el-form ref="kbFormRef" :model="kbForm" :rules="kbRules" label-width="100px">
-        <el-form-item label="知识库名" prop="name">
-          <el-input v-model="kbForm.name" placeholder="如 营销知识库" />
+        <el-form-item :label="t('kb.createModal.name')" prop="name">
+          <el-input v-model="kbForm.name" :placeholder="t('kb.createModal.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="切片策略">
+        <el-form-item :label="t('kb.createModal.chunkStrategy')">
           <el-select v-model="kbForm.chunkStrategy" style="width: 100%">
-            <el-option label="按段落" value="by_paragraph" />
-            <el-option label="按标题" value="by_title" />
-            <el-option label="按对话轮次" value="by_turn" />
-            <el-option label="按句子" value="by_sentence" />
+            <el-option :label="t('kb.rag.chunks.by_paragraph')" value="by_paragraph" />
+            <el-option :label="t('kb.rag.chunks.by_title')" value="by_title" />
+            <el-option :label="t('kb.rag.chunks.by_turn')" value="by_turn" />
+            <el-option :label="t('kb.rag.chunks.by_sentence')" value="by_sentence" />
           </el-select>
         </el-form-item>
-        <el-form-item label="检索方式">
+        <el-form-item :label="t('kb.createModal.retrieval')">
           <el-select v-model="kbForm.retrieval" style="width: 100%">
-            <el-option label="向量检索" value="vector" />
-            <el-option label="关键字检索" value="keyword" />
-            <el-option label="混合检索" value="hybrid" />
+            <el-option :label="t('kb.rag.retrieval.vector')" value="vector" />
+            <el-option :label="t('kb.rag.retrieval.keyword')" value="keyword" />
+            <el-option :label="t('kb.rag.retrieval.hybrid')" value="hybrid" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createKbDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="kbCreating" @click="handleCreateKb">创建</el-button>
+        <el-button @click="createKbDialogVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="kbCreating" @click="handleCreateKb">
+          {{ t('kb.createModal.create') }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 文档管理弹窗 -->
     <el-dialog
       v-model="docDialogVisible"
-      :title="`文档管理 - ${currentKb?.name ?? ''}`"
+      :title="t('kb.docModal.title', { name: currentKb?.name ?? '' })"
       width="800px"
     >
       <div class="toolbar">
@@ -184,10 +192,10 @@
           :http-request="handleUpload"
           multiple
         >
-          <el-button type="primary">+ 上传文档</el-button>
+          <el-button type="primary">{{ t('kb.docModal.upload') }}</el-button>
         </el-upload>
         <span style="color: var(--ds-text-secondary); font-size: 12px; margin-left: 8px">
-          支持 pdf/txt/md/docx 等格式
+          {{ t('kb.docModal.uploadHint') }}
         </span>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="loadDocuments" />
@@ -199,34 +207,36 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="docError ? '加载失败，请重试' : '暂无文档'"
+        :empty-text="docError ? t('kb.docModal.emptyError') : t('kb.docModal.empty')"
       >
-        <el-table-column prop="fileName" label="文件名" min-width="200" />
-        <el-table-column label="大小" width="110">
+        <el-table-column prop="fileName" :label="t('kb.docModal.cols.fileName')" min-width="200" />
+        <el-table-column :label="t('kb.docModal.cols.size')" width="110">
           <template #default="{ row }">{{ formatSize(row.fileSize) }}</template>
         </el-table-column>
-        <el-table-column prop="fileType" label="类型" width="80">
+        <el-table-column prop="fileType" :label="t('kb.docModal.cols.type')" width="80">
           <template #default="{ row }">{{ row.fileType || '--' }}</template>
         </el-table-column>
-        <el-table-column label="切片数" width="90">
+        <el-table-column :label="t('kb.docModal.cols.chunks')" width="90">
           <template #default="{ row }">{{ row.chunkCount ?? 0 }}</template>
         </el-table-column>
-        <el-table-column label="向量数" width="90">
+        <el-table-column :label="t('kb.docModal.cols.vectors')" width="90">
           <template #default="{ row }">{{ row.vectorCount ?? 0 }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column :label="t('kb.docModal.cols.status')" width="110">
           <template #default="{ row }">
             <el-tag :type="docStatusType(row.status)" effect="light" size="small">
               {{ docStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="uploadedAt" label="上传时间" width="170">
+        <el-table-column prop="uploadedAt" :label="t('kb.docModal.cols.uploadedAt')" width="170">
           <template #default="{ row }">{{ formatTime(row.uploadedAt) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="90" fixed="right">
+        <el-table-column :label="t('kb.docModal.cols.actions')" width="90" fixed="right">
           <template #default="{ row }">
-            <el-button link type="danger" @click="handleDeleteDoc(row)">删除</el-button>
+            <el-button link type="danger" @click="handleDeleteDoc(row)">
+              {{ t('common.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -244,11 +254,14 @@ import {
   type UploadRequestOptions
 } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
 import * as knowledgeApi from '@/api/knowledge'
 import type { KnowledgeBase, RagStrategy, KnowledgeDocument } from '@/api/knowledge'
 
 /* ------------------------------ 通用 ------------------------------ */
+
+const { t, locale } = useI18n()
 
 /** 当前激活的 Tab */
 const activeTab = ref('kb')
@@ -321,7 +334,7 @@ async function handleSaveRag() {
       chunkStrategy: ragForm.chunkStrategy,
       retrievalMethod: ragForm.retrievalMethod
     })
-    ElMessage.success('RAG 策略已保存')
+    ElMessage.success(t('kb.rag.saved'))
     await loadRagStrategy()
   } catch {
     // 拦截器已提示
@@ -342,9 +355,9 @@ const kbForm = reactive({
   retrieval: 'vector'
 })
 
-const kbRules: FormRules = {
-  name: [{ required: true, message: '请输入知识库名', trigger: 'blur' }]
-}
+const kbRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('kb.createModal.nameRequired'), trigger: 'blur' }]
+}))
 
 /** 打开创建知识库弹窗 */
 function openCreateKbDialog() {
@@ -366,7 +379,7 @@ async function handleCreateKb() {
         chunkStrategy: kbForm.chunkStrategy,
         retrieval: kbForm.retrieval
       })
-      ElMessage.success('知识库已创建')
+      ElMessage.success(t('kb.createModal.created'))
       createKbDialogVisible.value = false
       await loadKnowledgeBases()
     } catch {
@@ -380,14 +393,18 @@ async function handleCreateKb() {
 /** 删除知识库 */
 async function handleDeleteKb(row: KnowledgeBase) {
   try {
-    await ElMessageBox.confirm(`确认删除知识库「${row.name}」？该操作不可恢复。`, '删除确认', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('kb.deleteKb.message', { name: row.name }),
+      t('kb.deleteKb.title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('kb.deleteKb.confirm'),
+        cancelButtonText: t('common.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await knowledgeApi.deleteKnowledgeBase(row.id)
-    ElMessage.success('知识库已删除')
+    ElMessage.success(t('kb.deleteKb.deleted'))
     await loadKnowledgeBases()
   } catch {
     // 用户取消或删除失败
@@ -429,7 +446,7 @@ function handleBeforeUpload(file: File): boolean {
   // 限制单文件 50MB
   const sizeLimit = 50 * 1024 * 1024
   if (file.size > sizeLimit) {
-    ElMessage.warning(`文件 ${file.name} 超过 50MB 限制`)
+    ElMessage.warning(t('kb.docModal.tooLarge', { name: file.name }))
     return false
   }
   return true
@@ -438,13 +455,13 @@ function handleBeforeUpload(file: File): boolean {
 /** 自定义上传：调用 uploadDocument API */
 async function handleUpload(options: UploadRequestOptions) {
   if (!currentKb.value) {
-    ElMessage.error('未选择知识库')
+    ElMessage.error(t('kb.docModal.noKb'))
     return
   }
   const file = options.file as File
   try {
     await knowledgeApi.uploadDocument(currentKb.value.id, file)
-    ElMessage.success(`文件 ${file.name} 上传成功`)
+    ElMessage.success(t('kb.docModal.uploaded', { name: file.name }))
     await loadDocuments()
     // 同步刷新知识库列表（文档数变化）
     await loadKnowledgeBases()
@@ -457,14 +474,18 @@ async function handleUpload(options: UploadRequestOptions) {
 async function handleDeleteDoc(row: KnowledgeDocument) {
   if (!currentKb.value) return
   try {
-    await ElMessageBox.confirm(`确认删除文档「${row.fileName}」？`, '删除确认', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('kb.docModal.deleteMessage', { name: row.fileName }),
+      t('kb.docModal.deleteTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('common.delete'),
+        cancelButtonText: t('common.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await knowledgeApi.deleteDocument(currentKb.value.id, row.id)
-    ElMessage.success('文档已删除')
+    ElMessage.success(t('kb.docModal.deleted'))
     await loadDocuments()
     await loadKnowledgeBases()
   } catch {
@@ -474,17 +495,11 @@ async function handleDeleteDoc(row: KnowledgeDocument) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 知识库状态 → 中文 */
+/** 知识库状态 → 词条 */
+const KB_STATUSES = ['active', 'ready', 'pending', 'building', 'disabled', 'failed']
+
 function kbStatusLabel(s: string): string {
-  const map: Record<string, string> = {
-    active: '活跃',
-    ready: '就绪',
-    pending: '构建中',
-    building: '构建中',
-    disabled: '已禁用',
-    failed: '失败'
-  }
-  return map[s] ?? s
+  return KB_STATUSES.includes(s) ? t(`kb.kbStatus.${s}`) : s
 }
 
 /** 知识库状态 → tag 类型 */
@@ -500,15 +515,11 @@ function kbStatusType(s: string): 'primary' | 'success' | 'danger' | 'info' | 'w
   return map[s] ?? 'info'
 }
 
-/** 文档状态 → 中文 */
+/** 文档状态 → 词条 */
+const DOC_STATUSES = ['uploaded', 'parsed', 'vectorized', 'failed']
+
 function docStatusLabel(s: string): string {
-  const map: Record<string, string> = {
-    uploaded: '已上传',
-    parsed: '已解析',
-    vectorized: '已向量化',
-    failed: '失败'
-  }
-  return map[s] ?? s
+  return DOC_STATUSES.includes(s) ? t(`kb.docStatus.${s}`) : s
 }
 
 /** 文档状态 → tag 类型 */
@@ -522,11 +533,11 @@ function docStatusType(s: string): 'primary' | 'success' | 'danger' | 'info' | '
   return map[s] ?? 'info'
 }
 
-/** 时间格式化 */
+/** 时间格式化（跟随当前语言环境） */
 function formatTime(iso?: string): string {
   if (!iso) return '--'
   try {
-    return new Date(iso).toLocaleString('zh-CN', { hour12: false })
+    return new Date(iso).toLocaleString(locale.value, { hour12: false })
   } catch {
     return iso
   }

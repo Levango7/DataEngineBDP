@@ -31,6 +31,12 @@ import jobmgmtZh from './locales/modules/jobmgmt.zh-CN.json'
 import jobmgmtEn from './locales/modules/jobmgmt.en-US.json'
 import schedulerZh from './locales/modules/scheduler.zh-CN.json'
 import schedulerEn from './locales/modules/scheduler.en-US.json'
+import vectorZh from './locales/modules/vector.zh-CN.json'
+import vectorEn from './locales/modules/vector.en-US.json'
+import kbZh from './locales/modules/kb.zh-CN.json'
+import kbEn from './locales/modules/kb.en-US.json'
+import llmopsZh from './locales/modules/llmops.zh-CN.json'
+import llmopsEn from './locales/modules/llmops.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -93,7 +99,10 @@ export const i18n = createI18n({
       ...secZh,
       ...opsZh,
       ...jobmgmtZh,
-      ...schedulerZh
+      ...schedulerZh,
+      ...vectorZh,
+      ...kbZh,
+      ...llmopsZh
     },
     'en-US': {
       ...enUS,
@@ -111,7 +120,10 @@ export const i18n = createI18n({
       ...secEn,
       ...opsEn,
       ...jobmgmtEn,
-      ...schedulerEn
+      ...schedulerEn,
+      ...vectorEn,
+      ...kbEn,
+      ...llmopsEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）
