@@ -1,60 +1,60 @@
 <template>
   <div class="dev-ml-page">
-    <h1>机器学习</h1>
-    <div class="sub">训练实验 · 模型注册 · 推理服务 · 15 秒自动刷新</div>
+    <h1>{{ t('devMl.title') }}</h1>
+    <div class="sub">{{ t('devMl.subtitle') }}</div>
     <div class="grid g4">
       <div class="card">
-        <h3>训练作业数</h3>
-        <div v-if="trainLoading" class="kpi-skeleton">加载中...</div>
+        <h3>{{ t('devMl.kpi.trainJobs') }}</h3>
+        <div v-if="trainLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="trainError" class="kpi-error">
-          加载失败
-          <button class="retry-btn" @click="loadTrain">重试</button>
+          {{ t('devMl.kpi.loadFailed') }}
+          <button class="retry-btn" @click="loadTrain">{{ t('devMl.kpi.retry') }}</button>
         </div>
         <template v-else>
           <div class="kpi">{{ trainKpi.total }}</div>
-          <div class="meta">全部训练作业</div>
+          <div class="meta">{{ t('devMl.kpi.trainJobsMeta') }}</div>
         </template>
       </div>
       <div class="card">
-        <h3>运行中</h3>
-        <div v-if="trainLoading" class="kpi-skeleton">加载中...</div>
+        <h3>{{ t('devMl.kpi.running') }}</h3>
+        <div v-if="trainLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="trainError" class="kpi-error">
-          加载失败
-          <button class="retry-btn" @click="loadTrain">重试</button>
+          {{ t('devMl.kpi.loadFailed') }}
+          <button class="retry-btn" @click="loadTrain">{{ t('devMl.kpi.retry') }}</button>
         </div>
         <template v-else>
           <div class="kpi running">{{ trainKpi.running }}</div>
-          <div class="meta">状态为 RUNNING</div>
+          <div class="meta">{{ t('devMl.kpi.runningMeta') }}</div>
         </template>
       </div>
       <div class="card">
-        <h3>模型数</h3>
-        <div v-if="modelsLoading" class="kpi-skeleton">加载中...</div>
+        <h3>{{ t('devMl.kpi.models') }}</h3>
+        <div v-if="modelsLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="modelsError" class="kpi-error">
-          加载失败
-          <button class="retry-btn" @click="loadModels">重试</button>
+          {{ t('devMl.kpi.loadFailed') }}
+          <button class="retry-btn" @click="loadModels">{{ t('devMl.kpi.retry') }}</button>
         </div>
         <template v-else>
           <div class="kpi">{{ modelKpi.total }}</div>
-          <div class="meta">模型仓库</div>
+          <div class="meta">{{ t('devMl.kpi.modelsMeta') }}</div>
         </template>
       </div>
       <div class="card">
-        <h3>推理服务数</h3>
-        <div v-if="svcLoading" class="kpi-skeleton">加载中...</div>
+        <h3>{{ t('devMl.kpi.inference') }}</h3>
+        <div v-if="svcLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="svcError" class="kpi-error">
-          加载失败
-          <button class="retry-btn" @click="loadServices">重试</button>
+          {{ t('devMl.kpi.loadFailed') }}
+          <button class="retry-btn" @click="loadServices">{{ t('devMl.kpi.retry') }}</button>
         </div>
         <template v-else>
           <div class="kpi">{{ svcKpi.total }}</div>
-          <div class="meta">运行中 {{ svcKpi.running }} 个</div>
+          <div class="meta">{{ t('devMl.kpi.inferenceMeta', { count: svcKpi.running }) }}</div>
         </template>
       </div>
     </div>
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <el-tabs v-model="activeTab" type="card">
-        <el-tab-pane label="训练实验" name="train">
+        <el-tab-pane :label="t('devMl.tabs.train')" name="train">
           <TrainPanel
             :jobs="trainJobs"
             :total="trainTotal"
@@ -74,7 +74,7 @@
             @stop="handleStopTrain"
           />
         </el-tab-pane>
-        <el-tab-pane label="模型仓库" name="model">
+        <el-tab-pane :label="t('devMl.tabs.model')" name="model">
           <ModelPanel
             :models="models"
             :loading="modelsLoading"
@@ -88,7 +88,7 @@
             @versions="openVersions"
           />
         </el-tab-pane>
-        <el-tab-pane label="推理服务" name="inference">
+        <el-tab-pane :label="t('devMl.tabs.inference')" name="inference">
           <SvcPanel
             :services="services"
             :loading="svcLoading"
@@ -110,7 +110,7 @@
     <!-- 弹窗：提交训练 -->
     <el-dialog
       v-model="trainDialogVisible"
-      title="提交训练作业"
+      :title="t('devMl.trainForm.title')"
       width="640px"
       :close-on-click-modal="false"
       @closed="resetTrainForm"
@@ -122,52 +122,52 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="作业名称" prop="name">
-          <el-input v-model="trainForm.name" placeholder="如 风控模型训练" />
+        <el-form-item :label="t('devMl.trainForm.fields.name')" prop="name">
+          <el-input v-model="trainForm.name" :placeholder="t('devMl.trainForm.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="算法" prop="algorithm">
+        <el-form-item :label="t('devMl.trainForm.fields.algorithm')" prop="algorithm">
           <el-select v-model="trainForm.algorithm" style="width: 100%">
-            <el-option label="XGBoost" value="xgboost" />
-            <el-option label="LightGBM" value="lightgbm" />
-            <el-option label="TensorFlow" value="tensorflow" />
-            <el-option label="PyTorch" value="pytorch" />
-            <el-option label="scikit-learn" value="sklearn" />
-            <el-option label="Spark MLlib" value="sparkml" />
-            <el-option label="HuggingFace" value="huggingface" />
+            <el-option :label="t('devMl.trainForm.algorithms.xgboost')" value="xgboost" />
+            <el-option :label="t('devMl.trainForm.algorithms.lightgbm')" value="lightgbm" />
+            <el-option :label="t('devMl.trainForm.algorithms.tensorflow')" value="tensorflow" />
+            <el-option :label="t('devMl.trainForm.algorithms.pytorch')" value="pytorch" />
+            <el-option :label="t('devMl.trainForm.algorithms.sklearn')" value="sklearn" />
+            <el-option :label="t('devMl.trainForm.algorithms.sparkml')" value="sparkml" />
+            <el-option :label="t('devMl.trainForm.algorithms.huggingface')" value="huggingface" />
           </el-select>
         </el-form-item>
-        <el-form-item label="数据集" prop="dataset">
-          <el-input v-model="trainForm.dataset" placeholder="如 hdfs:///data/train.csv" />
+        <el-form-item :label="t('devMl.trainForm.fields.dataset')" prop="dataset">
+          <el-input v-model="trainForm.dataset" :placeholder="t('devMl.trainForm.fields.datasetPlaceholder')" />
         </el-form-item>
-        <el-form-item label="训练轮次" prop="epochs">
+        <el-form-item :label="t('devMl.trainForm.fields.epochs')" prop="epochs">
           <el-input-number v-model="trainForm.epochs" :min="1" :max="1000" />
         </el-form-item>
-        <el-form-item label="资源规格" prop="resourceSpec">
-          <el-input v-model="trainForm.resourceSpec" placeholder="如 4c/16g × 2" />
+        <el-form-item :label="t('devMl.trainForm.fields.resourceSpec')" prop="resourceSpec">
+          <el-input v-model="trainForm.resourceSpec" :placeholder="t('devMl.trainForm.fields.resourceSpecPlaceholder')" />
         </el-form-item>
-        <el-form-item label="超参 JSON" prop="hyperparams">
+        <el-form-item :label="t('devMl.trainForm.fields.hyperparams')" prop="hyperparams">
           <el-input
             v-model="trainForm.hyperparams"
             type="textarea"
             :rows="4"
-            placeholder='{"learning_rate": 0.1}'
+            :placeholder="t('devMl.trainForm.fields.hyperparamsPlaceholder')"
             style="font-family: monospace; font-size: 12px"
           />
         </el-form-item>
-        <el-form-item label="负责人" prop="owner">
-          <el-input v-model="trainForm.owner" placeholder="负责人姓名" />
+        <el-form-item :label="t('devMl.trainForm.fields.owner')" prop="owner">
+          <el-input v-model="trainForm.owner" :placeholder="t('devMl.trainForm.fields.ownerPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="trainDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmitTrain">提交</el-button>
+        <el-button @click="trainDialogVisible = false">{{ t('devMl.trainForm.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmitTrain">{{ t('devMl.trainForm.actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 弹窗：注册模型 -->
     <el-dialog
       v-model="registerDialogVisible"
-      :title="`注册模型 - ${currentTrainJob?.name || ''}`"
+      :title="t('devMl.registerForm.title', { name: currentTrainJob?.name || '' })"
       width="540px"
       :close-on-click-modal="false"
     >
@@ -178,33 +178,33 @@
         label-width="100px"
         label-position="right"
       >
-        <el-form-item label="模型名" prop="name">
+        <el-form-item :label="t('devMl.registerForm.fields.name')" prop="name">
           <el-input v-model="registerForm.name" />
         </el-form-item>
-        <el-form-item label="版本" prop="version">
+        <el-form-item :label="t('devMl.registerForm.fields.version')" prop="version">
           <el-input v-model="registerForm.version" />
         </el-form-item>
-        <el-form-item label="模型路径" prop="modelPath">
+        <el-form-item :label="t('devMl.registerForm.fields.modelPath')" prop="modelPath">
           <el-input
             v-model="registerForm.modelPath"
-            placeholder="hdfs:///models/risk/v1"
+            :placeholder="t('devMl.registerForm.fields.modelPathPlaceholder')"
             style="font-family: monospace; font-size: 12px"
           />
         </el-form-item>
-        <el-form-item label="描述" prop="description">
+        <el-form-item :label="t('devMl.registerForm.fields.description')" prop="description">
           <el-input v-model="registerForm.description" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="registerDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="registering" @click="handleRegister">注册</el-button>
+        <el-button @click="registerDialogVisible = false">{{ t('devMl.registerForm.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="registering" @click="handleRegister">{{ t('devMl.registerForm.actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 弹窗：部署推理 -->
     <el-dialog
       v-model="deployDialogVisible"
-      :title="`部署推理服务 - ${currentModel?.name || ''}`"
+      :title="t('devMl.deployForm.title', { name: currentModel?.name || '' })"
       width="540px"
       :close-on-click-modal="false"
     >
@@ -215,67 +215,67 @@
         label-width="100px"
         label-position="right"
       >
-        <el-form-item label="服务名" prop="serviceName">
+        <el-form-item :label="t('devMl.deployForm.fields.serviceName')" prop="serviceName">
           <el-input v-model="deployForm.serviceName" />
         </el-form-item>
-        <el-form-item label="模型版本" prop="version">
+        <el-form-item :label="t('devMl.deployForm.fields.version')" prop="version">
           <el-input
             v-model="deployForm.version"
-            :placeholder="currentModel?.latestVersion || 'v1'"
+            :placeholder="t('devMl.deployForm.fields.versionPlaceholder', { ver: currentModel?.latestVersion || 'v1' })"
           />
         </el-form-item>
-        <el-form-item label="副本数" prop="replicas">
+        <el-form-item :label="t('devMl.deployForm.fields.replicas')" prop="replicas">
           <el-input-number v-model="deployForm.replicas" :min="1" :max="20" />
         </el-form-item>
-        <el-form-item label="资源规格" prop="resourceSpec">
-          <el-input v-model="deployForm.resourceSpec" placeholder="如 2c/4g" />
+        <el-form-item :label="t('devMl.deployForm.fields.resourceSpec')" prop="resourceSpec">
+          <el-input v-model="deployForm.resourceSpec" :placeholder="t('devMl.deployForm.fields.resourceSpecPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="deployDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="deploying" @click="handleDeploy">部署</el-button>
+        <el-button @click="deployDialogVisible = false">{{ t('devMl.deployForm.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="deploying" @click="handleDeploy">{{ t('devMl.deployForm.actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 弹窗：扩缩容 -->
     <el-dialog
       v-model="scaleDialogVisible"
-      :title="`扩缩容 - ${currentSvc?.serviceName || ''}`"
+      :title="t('devMl.scaleForm.title', { name: currentSvc?.serviceName || '' })"
       width="360px"
       :close-on-click-modal="false"
     >
       <el-form label-width="100px" label-position="right">
-        <el-form-item label="当前副本">{{ currentSvc?.replicas ?? 0 }}</el-form-item>
-        <el-form-item label="目标副本">
+        <el-form-item :label="t('devMl.scaleForm.fields.currentReplicas')">{{ currentSvc?.replicas ?? 0 }}</el-form-item>
+        <el-form-item :label="t('devMl.scaleForm.fields.targetReplicas')">
           <el-input-number v-model="scaleTarget" :min="0" :max="50" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="scaleDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="scaling" @click="handleScale">应用</el-button>
+        <el-button @click="scaleDialogVisible = false">{{ t('devMl.scaleForm.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="scaling" @click="handleScale">{{ t('devMl.scaleForm.actions.apply') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 日志弹窗 -->
     <el-dialog
       v-model="logDialogVisible"
-      :title="`训练日志 - ${currentLogJob?.name || ''}`"
+      :title="t('devMl.logDialog.title', { name: currentLogJob?.name || '' })"
       width="800px"
       @opened="scrollLogToBottom"
     >
       <div v-loading="logLoading" class="log-container">
-        <pre class="log-content">{{ logContent || '暂无日志' }}</pre>
+        <pre class="log-content">{{ logContent || t('devMl.logDialog.empty') }}</pre>
       </div>
       <template #footer>
-        <el-button @click="logDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="refreshLog">刷新</el-button>
+        <el-button @click="logDialogVisible = false">{{ t('devMl.logDialog.close') }}</el-button>
+        <el-button type="primary" @click="refreshLog">{{ t('devMl.logDialog.refresh') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 版本抽屉 -->
     <el-drawer
       v-model="versionDrawerVisible"
-      :title="`模型版本 - ${currentModel?.name || ''}`"
+      :title="t('devMl.versionDrawer.title', { name: currentModel?.name || '' })"
       size="50%"
     >
       <el-table
@@ -284,21 +284,21 @@
         stripe
         border
         size="small"
-        :empty-text="'暂无版本'"
+        :empty-text="t('devMl.versionDrawer.empty')"
       >
-        <el-table-column prop="version" label="版本" width="120" />
-        <el-table-column label="状态" width="110">
+        <el-table-column prop="version" :label="t('devMl.versionDrawer.columns.version')" width="120" />
+        <el-table-column :label="t('devMl.versionDrawer.columns.status')" width="110">
           <template #default="{ row }">
             <el-tag size="small" effect="light">{{ row.status }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="指标" min-width="200">
+        <el-table-column :label="t('devMl.versionDrawer.columns.metrics')" min-width="200">
           <template #default="{ row }">
-            {{ row.metrics ? formatMetrics(row.metrics) : '--' }}
+            {{ row.metrics ? formatMetrics(row.metrics) : t('devMl.versionDrawer.noStatus') }}
           </template>
         </el-table-column>
-        <el-table-column prop="registeredAt" label="注册时间" width="180">
-          <template #default="{ row }">{{ row.registeredAt || '--' }}</template>
+        <el-table-column prop="registeredAt" :label="t('devMl.versionDrawer.columns.registeredAt')" width="180">
+          <template #default="{ row }">{{ row.registeredAt || t('devMl.versionDrawer.noStatus') }}</template>
         </el-table-column>
       </el-table>
     </el-drawer>
@@ -307,6 +307,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import * as devMlApi from '@/api/dev-ml'
@@ -315,6 +316,7 @@ import TrainPanel from './components/TrainPanel.vue'
 import ModelPanel from './components/ModelPanel.vue'
 import SvcPanel from './components/SvcPanel.vue'
 
+const { t, te } = useI18n()
 const appStore = useAppStore()
 const activeTab = ref('train')
 
@@ -340,11 +342,14 @@ const SVC_MAP: Record<string, { l: string; t: string }> = {
   FAILED: { l: '失败', t: 'danger' },
   SCALING: { l: '扩缩容', t: 'primary' }
 }
-const trainStatusLabel = (s: string) => TRAIN_MAP[s]?.l ?? s
+const trainStatusLabel = (s: string) => t(`devMl.status.train.${s}`, TRAIN_MAP[s]?.l ?? s)
 const trainStatusType = (s: string) => TRAIN_MAP[s]?.t ?? 'info'
-const modelStatusLabel = (s?: string) => MODEL_MAP[s ?? '']?.l ?? s ?? '--'
+const modelStatusLabel = (s?: string) => {
+  const key = `devMl.status.model.${s ?? ''}`
+  return te(key) ? t(key) : s ?? t('devMl.versionDrawer.noStatus')
+}
 const modelStatusType = (s?: string) => MODEL_MAP[s ?? '']?.t ?? 'info'
-const svcStatusLabel = (s: string) => SVC_MAP[s]?.l ?? s
+const svcStatusLabel = (s: string) => t(`devMl.status.svc.${s}`, SVC_MAP[s]?.l ?? s)
 const svcStatusType = (s: string) => SVC_MAP[s]?.t ?? 'info'
 const formatMetrics = (m: Record<string, number>) =>
   Object.entries(m)
@@ -452,11 +457,11 @@ const trainForm = reactive({
   hyperparams: '',
   owner: ''
 })
-const trainRules: FormRules = {
-  name: [{ required: true, message: '请输入作业名称', trigger: 'blur' }],
-  algorithm: [{ required: true, message: '请选择算法', trigger: 'change' }],
-  dataset: [{ required: true, message: '请输入数据集', trigger: 'blur' }]
-}
+const trainRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('devMl.rules.trainName'), trigger: 'blur' }],
+  algorithm: [{ required: true, message: t('devMl.rules.algorithm'), trigger: 'change' }],
+  dataset: [{ required: true, message: t('devMl.rules.dataset'), trigger: 'blur' }]
+}))
 function resetTrainForm() {
   Object.assign(trainForm, {
     name: '',
@@ -480,7 +485,7 @@ async function handleSubmitTrain() {
     submitting.value = true
     try {
       await devMlApi.createTrainJob({ ...trainForm, workspaceId: appStore.workspace })
-      ElMessage.success('已提交')
+      ElMessage.success(t('devMl.messages.trainSubmitted'))
       trainDialogVisible.value = false
       await loadTrain()
     } catch {
@@ -495,10 +500,10 @@ const registerDialogVisible = ref(false),
   registering = ref(false),
   registerFormRef = ref<FormInstance>()
 const registerForm = reactive({ name: '', version: 'v1.0.0', modelPath: '', description: '' })
-const registerRules: FormRules = {
-  name: [{ required: true, message: '请输入模型名', trigger: 'blur' }],
-  version: [{ required: true, message: '请输入版本号', trigger: 'blur' }]
-}
+const registerRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('devMl.rules.modelName'), trigger: 'blur' }],
+  version: [{ required: true, message: t('devMl.rules.modelVersion'), trigger: 'blur' }]
+}))
 const currentTrainJob = ref<TrainJob | null>(null)
 function openRegisterForm(row: TrainJob) {
   currentTrainJob.value = row
@@ -523,7 +528,7 @@ async function handleRegister() {
         trainJobId: currentTrainJob.value!.id,
         metrics: currentTrainJob.value!.metrics
       })
-      ElMessage.success('已注册')
+      ElMessage.success(t('devMl.messages.modelRegistered'))
       registerDialogVisible.value = false
       await loadModels()
     } catch {
@@ -538,9 +543,9 @@ const deployDialogVisible = ref(false),
   deploying = ref(false),
   deployFormRef = ref<FormInstance>()
 const deployForm = reactive({ serviceName: '', version: '', replicas: 1, resourceSpec: '2c/4g' })
-const deployRules: FormRules = {
-  version: [{ required: true, message: '请输入模型版本', trigger: 'blur' }]
-}
+const deployRules = computed<FormRules>(() => ({
+  version: [{ required: true, message: t('devMl.rules.deployVersion'), trigger: 'blur' }]
+}))
 const currentModel = ref<MlModel | null>(null)
 function openDeployForm(row: MlModel) {
   currentModel.value = row
@@ -560,7 +565,7 @@ async function handleDeploy() {
     deploying.value = true
     try {
       await devMlApi.deployInference({ ...deployForm, modelName: currentModel.value!.name })
-      ElMessage.success('已部署')
+      ElMessage.success(t('devMl.messages.modelDeployed'))
       deployDialogVisible.value = false
       await loadServices()
     } catch {
@@ -585,7 +590,7 @@ async function handleScale() {
   scaling.value = true
   try {
     await devMlApi.scaleInference(currentSvc.value.id, { replicas: scaleTarget.value })
-    ElMessage.success(`已扩缩容到 ${scaleTarget.value} 副本`)
+    ElMessage.success(t('devMl.messages.modelScaled', { count: scaleTarget.value }))
     scaleDialogVisible.value = false
     await loadServices()
   } catch {
@@ -608,10 +613,10 @@ async function refreshLog() {
   if (!currentLogJob.value) return
   logLoading.value = true
   try {
-    logContent.value = (await devMlApi.getTrainJobLogs(currentLogJob.value.id)) || '暂无日志'
+    logContent.value = (await devMlApi.getTrainJobLogs(currentLogJob.value.id)) || t('devMl.logDialog.empty')
     scrollLogToBottom()
   } catch {
-    logContent.value = '日志加载失败'
+    logContent.value = t('devMl.messages.logLoadFailed')
   } finally {
     logLoading.value = false
   }
@@ -629,9 +634,9 @@ function canStop(s: string) {
 async function handleStopTrain(row: TrainJob) {
   stoppingId.value = row.id
   try {
-    await ElMessageBox.confirm(`确认停止「${row.name}」？`, '停止确认', { type: 'warning' })
+    await ElMessageBox.confirm(t('devMl.messages.stopTrainConfirm', { name: row.name }), t('devMl.messages.stopTrainConfirmTitle'), { type: 'warning' })
     await devMlApi.stopTrainJob(row.id)
-    ElMessage.success('已停止')
+    ElMessage.success(t('devMl.messages.trainStopped'))
     await loadTrain()
   } catch {
   } finally {
@@ -650,12 +655,12 @@ function canScale(s: string) {
 async function handleStopSvc(row: InferenceService) {
   stoppingSvcId.value = row.id
   try {
-    await ElMessageBox.confirm(`确认停止「${row.serviceName}」？`, '停止确认', {
+    await ElMessageBox.confirm(t('devMl.messages.stopSvcConfirm', { name: row.serviceName }), t('devMl.messages.stopSvcConfirmTitle'), {
       type: 'warning',
       confirmButtonClass: 'el-button--danger'
     })
     await devMlApi.stopInference(row.id)
-    ElMessage.success('已停止')
+    ElMessage.success(t('devMl.messages.svcStopped'))
     await loadServices()
   } catch {
   } finally {
@@ -666,12 +671,12 @@ async function handleStopSvc(row: InferenceService) {
 // ── 删除模型 ──────────────────────────────────────────
 async function handleDeleteModel(row: MlModel) {
   try {
-    await ElMessageBox.confirm(`确认删除模型「${row.name}」？不可恢复。`, '删除确认', {
+    await ElMessageBox.confirm(t('devMl.messages.deleteConfirm', { name: row.name }), t('devMl.messages.deleteConfirmTitle'), {
       type: 'warning',
       confirmButtonClass: 'el-button--danger'
     })
     await devMlApi.deleteModel(row.id)
-    ElMessage.success('已删除')
+    ElMessage.success(t('devMl.messages.modelDeleted'))
     await loadModels()
   } catch {}
 }

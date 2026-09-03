@@ -1,0 +1,160 @@
+{
+  "devMl": {
+    "title": "Machine Learning",
+    "subtitle": "Training experiments · model registry · inference services · 15s auto refresh",
+    "kpi": {
+      "loading": "Loading...",
+      "loadFailed": "Failed to load",
+      "retry": "Retry",
+      "trainJobs": "Training Jobs",
+      "trainJobsMeta": "All training jobs",
+      "running": "Running",
+      "runningMeta": "RUNNING status",
+      "models": "Models",
+      "modelsMeta": "Model registry",
+      "inference": "Inference Services",
+      "inferenceMeta": "{count} running"
+    },
+    "tabs": {
+      "train": "Training",
+      "model": "Model Registry",
+      "inference": "Inference Services"
+    },
+    "status": {
+      "train": {
+        "PENDING": "Pending",
+        "RUNNING": "Running",
+        "SUCCEEDED": "Succeeded",
+        "FAILED": "Failed",
+        "KILLED": "Killed",
+        "SCHEDULED": "Scheduled"
+      },
+      "model": {
+        "DRAFT": "Draft",
+        "REGISTERED": "Registered",
+        "DEPLOYED": "Deployed",
+        "ARCHIVED": "Archived",
+        "FAILED": "Failed"
+      },
+      "svc": {
+        "DEPLOYING": "Deploying",
+        "RUNNING": "Running",
+        "STOPPED": "Stopped",
+        "FAILED": "Failed",
+        "SCALING": "Scaling"
+      }
+    },
+    "trainForm": {
+      "title": "Submit Training Job",
+      "fields": {
+        "name": "Job Name",
+        "namePlaceholder": "e.g. Risk Model Training",
+        "algorithm": "Algorithm",
+        "dataset": "Dataset",
+        "datasetPlaceholder": "e.g. hdfs:///data/train.csv",
+        "epochs": "Epochs",
+        "resourceSpec": "Resource Spec",
+        "resourceSpecPlaceholder": "e.g. 4c/16g × 2",
+        "hyperparams": "Hyperparams JSON",
+        "hyperparamsPlaceholder": "{\"learning_rate\": 0.1}",
+        "owner": "Owner",
+        "ownerPlaceholder": "Owner name"
+      },
+      "algorithms": {
+        "xgboost": "XGBoost",
+        "lightgbm": "LightGBM",
+        "tensorflow": "TensorFlow",
+        "pytorch": "PyTorch",
+        "sklearn": "scikit-learn",
+        "sparkml": "Spark MLlib",
+        "huggingface": "HuggingFace"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submit": "Submit"
+      }
+    },
+    "registerForm": {
+      "title": "Register Model - {name}",
+      "fields": {
+        "name": "Model Name",
+        "version": "Version",
+        "modelPath": "Model Path",
+        "modelPathPlaceholder": "hdfs:///models/risk/v1",
+        "description": "Description"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submit": "Register"
+      }
+    },
+    "deployForm": {
+      "title": "Deploy Inference - {name}",
+      "fields": {
+        "serviceName": "Service Name",
+        "version": "Model Version",
+        "versionPlaceholder": "{ver}",
+        "replicas": "Replicas",
+        "resourceSpec": "Resource Spec",
+        "resourceSpecPlaceholder": "e.g. 2c/4g"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submit": "Deploy"
+      }
+    },
+    "scaleForm": {
+      "title": "Scale - {name}",
+      "fields": {
+        "currentReplicas": "Current Replicas",
+        "targetReplicas": "Target Replicas"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "apply": "Apply"
+      }
+    },
+    "logDialog": {
+      "title": "Training Log - {name}",
+      "empty": "No log",
+      "loadFailed": "Failed to load log",
+      "close": "Close",
+      "refresh": "Refresh"
+    },
+    "versionDrawer": {
+      "title": "Model Versions - {name}",
+      "empty": "No versions",
+      "columns": {
+        "version": "Version",
+        "status": "Status",
+        "metrics": "Metrics",
+        "registeredAt": "Registered"
+      },
+      "noStatus": "--"
+    },
+    "rules": {
+      "trainName": "Please enter job name",
+      "algorithm": "Please select algorithm",
+      "dataset": "Please enter dataset",
+      "modelName": "Please enter model name",
+      "modelVersion": "Please enter version",
+      "deployVersion": "Please enter model version"
+    },
+    "messages": {
+      "trainSubmitted": "Submitted",
+      "modelRegistered": "Registered",
+      "modelDeployed": "Deployed",
+      "modelDeleted": "Deleted",
+      "modelScaled": "Scaled to {count} replicas",
+      "trainStopped": "Stopped",
+      "svcStopped": "Stopped",
+      "logLoadFailed": "Failed to load log",
+      "deleteConfirm": "Delete model \"{name}\"? This cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "stopTrainConfirm": "Stop \"{name}\"?",
+      "stopTrainConfirmTitle": "Confirm Stop",
+      "stopSvcConfirm": "Stop \"{name}\"?",
+      "stopSvcConfirmTitle": "Confirm Stop"
+    }
+  }
+}

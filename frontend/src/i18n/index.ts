@@ -85,6 +85,8 @@ import infraNetZh from './locales/modules/infraNet.zh-CN.json'
 import infraNetEn from './locales/modules/infraNet.en-US.json'
 import infraStoreZh from './locales/modules/infraStore.zh-CN.json'
 import infraStoreEn from './locales/modules/infraStore.en-US.json'
+import devMlZh from './locales/modules/devMl.zh-CN.json'
+import devMlEn from './locales/modules/devMl.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -174,7 +176,8 @@ export const i18n = createI18n({
       ...engMmgZh,
       ...engStorageZh,
       ...infraNetZh,
-      ...infraStoreZh
+      ...infraStoreZh,
+      ...devMlZh
     },
     'en-US': {
       ...enUS,
@@ -219,7 +222,8 @@ export const i18n = createI18n({
       ...engMmgEn,
       ...engStorageEn,
       ...infraNetEn,
-      ...infraStoreEn
+      ...infraStoreEn,
+      ...devMlEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

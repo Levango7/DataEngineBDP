@@ -1,0 +1,160 @@
+{
+  "devMl": {
+    "title": "机器学习",
+    "subtitle": "训练实验 · 模型注册 · 推理服务 · 15 秒自动刷新",
+    "kpi": {
+      "loading": "加载中...",
+      "loadFailed": "加载失败",
+      "retry": "重试",
+      "trainJobs": "训练作业数",
+      "trainJobsMeta": "全部训练作业",
+      "running": "运行中",
+      "runningMeta": "状态为 RUNNING",
+      "models": "模型数",
+      "modelsMeta": "模型仓库",
+      "inference": "推理服务数",
+      "inferenceMeta": "运行中 {count} 个"
+    },
+    "tabs": {
+      "train": "训练实验",
+      "model": "模型仓库",
+      "inference": "推理服务"
+    },
+    "status": {
+      "train": {
+        "PENDING": "等待中",
+        "RUNNING": "运行中",
+        "SUCCEEDED": "成功",
+        "FAILED": "失败",
+        "KILLED": "已取消",
+        "SCHEDULED": "已调度"
+      },
+      "model": {
+        "DRAFT": "草稿",
+        "REGISTERED": "已注册",
+        "DEPLOYED": "已部署",
+        "ARCHIVED": "已归档",
+        "FAILED": "失败"
+      },
+      "svc": {
+        "DEPLOYING": "部署中",
+        "RUNNING": "运行中",
+        "STOPPED": "已停止",
+        "FAILED": "失败",
+        "SCALING": "扩缩容"
+      }
+    },
+    "trainForm": {
+      "title": "提交训练作业",
+      "fields": {
+        "name": "作业名称",
+        "namePlaceholder": "如 风控模型训练",
+        "algorithm": "算法",
+        "dataset": "数据集",
+        "datasetPlaceholder": "如 hdfs:///data/train.csv",
+        "epochs": "训练轮次",
+        "resourceSpec": "资源规格",
+        "resourceSpecPlaceholder": "如 4c/16g × 2",
+        "hyperparams": "超参 JSON",
+        "hyperparamsPlaceholder": "{\"learning_rate\": 0.1}",
+        "owner": "负责人",
+        "ownerPlaceholder": "负责人姓名"
+      },
+      "algorithms": {
+        "xgboost": "XGBoost",
+        "lightgbm": "LightGBM",
+        "tensorflow": "TensorFlow",
+        "pytorch": "PyTorch",
+        "sklearn": "scikit-learn",
+        "sparkml": "Spark MLlib",
+        "huggingface": "HuggingFace"
+      },
+      "actions": {
+        "cancel": "取消",
+        "submit": "提交"
+      }
+    },
+    "registerForm": {
+      "title": "注册模型 - {name}",
+      "fields": {
+        "name": "模型名",
+        "version": "版本",
+        "modelPath": "模型路径",
+        "modelPathPlaceholder": "hdfs:///models/risk/v1",
+        "description": "描述"
+      },
+      "actions": {
+        "cancel": "取消",
+        "submit": "注册"
+      }
+    },
+    "deployForm": {
+      "title": "部署推理服务 - {name}",
+      "fields": {
+        "serviceName": "服务名",
+        "version": "模型版本",
+        "versionPlaceholder": "{ver}",
+        "replicas": "副本数",
+        "resourceSpec": "资源规格",
+        "resourceSpecPlaceholder": "如 2c/4g"
+      },
+      "actions": {
+        "cancel": "取消",
+        "submit": "部署"
+      }
+    },
+    "scaleForm": {
+      "title": "扩缩容 - {name}",
+      "fields": {
+        "currentReplicas": "当前副本",
+        "targetReplicas": "目标副本"
+      },
+      "actions": {
+        "cancel": "取消",
+        "apply": "应用"
+      }
+    },
+    "logDialog": {
+      "title": "训练日志 - {name}",
+      "empty": "暂无日志",
+      "loadFailed": "日志加载失败",
+      "close": "关闭",
+      "refresh": "刷新"
+    },
+    "versionDrawer": {
+      "title": "模型版本 - {name}",
+      "empty": "暂无版本",
+      "columns": {
+        "version": "版本",
+        "status": "状态",
+        "metrics": "指标",
+        "registeredAt": "注册时间"
+      },
+      "noStatus": "--"
+    },
+    "rules": {
+      "trainName": "请输入作业名称",
+      "algorithm": "请选择算法",
+      "dataset": "请输入数据集",
+      "modelName": "请输入模型名",
+      "modelVersion": "请输入版本号",
+      "deployVersion": "请输入模型版本"
+    },
+    "messages": {
+      "trainSubmitted": "已提交",
+      "modelRegistered": "已注册",
+      "modelDeployed": "已部署",
+      "modelDeleted": "已删除",
+      "modelScaled": "已扩缩容到 {count} 副本",
+      "trainStopped": "已停止",
+      "svcStopped": "已停止",
+      "logLoadFailed": "日志加载失败",
+      "deleteConfirm": "确认删除模型「{name}」？不可恢复。",
+      "deleteConfirmTitle": "删除确认",
+      "stopTrainConfirm": "确认停止「{name}」？",
+      "stopTrainConfirmTitle": "停止确认",
+      "stopSvcConfirm": "确认停止「{name}」？",
+      "stopSvcConfirmTitle": "停止确认"
+    }
+  }
+}
