@@ -1,0 +1,132 @@
+{
+  "devSched": {
+    "title": "Workflow Orchestration (DolphinScheduler)",
+    "subtitle": "DAG workflows · unified stream/batch · backfill · 15s auto refresh",
+    "kpi": {
+      "total": "Total DAGs",
+      "totalMeta": "All DAG jobs",
+      "running": "Running",
+      "runningMeta": "RUNNING status",
+      "todaySuccess": "Today's Success",
+      "todaySuccessMeta": "Last 24h SUCCESS",
+      "todayFailed": "Today's Failed",
+      "todayFailedMeta": "Last 24h FAILED"
+    },
+    "toolbar": {
+      "create": "+ New DAG",
+      "statusFilter": "Filter by status",
+      "refreshAria": "Refresh"
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "PENDING": "Pending",
+      "SCHEDULED": "Scheduled",
+      "RUNNING": "Running",
+      "SUCCESS": "Success",
+      "FAILED": "Failed",
+      "KILLED": "Killed",
+      "PAUSED": "Paused"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No DAG jobs",
+      "columns": {
+        "id": "DAG ID",
+        "name": "DAG Name",
+        "status": "Status",
+        "schedule": "Schedule",
+        "lastRun": "Last Run",
+        "owner": "Owner",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "run": "Run",
+        "history": "History",
+        "rerun": "Rerun",
+        "backfill": "Backfill",
+        "delete": "Delete"
+      },
+      "scheduleEmpty": "Not configured",
+      "notAvailable": "--"
+    },
+    "editDrawer": {
+      "titleCreate": "New DAG",
+      "titleEdit": "Edit DAG - {name}",
+      "fields": {
+        "name": "DAG Name",
+        "namePlaceholder": "e.g. Order Wide Table ETL",
+        "description": "Description",
+        "schedule": "Cron Schedule",
+        "schedulePlaceholder": "e.g. 0 0 * * * (daily midnight); leave empty for manual",
+        "owner": "Owner",
+        "ownerPlaceholder": "Owner name",
+        "dagJson": "DAG Definition",
+        "dagJsonPlaceholder": "{\"nodes\":[],\"edges\":[]}"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save"
+      }
+    },
+    "historyDrawer": {
+      "title": "Run History - {name}",
+      "loadFailed": "Failed to load run history",
+      "empty": "No run records",
+      "columns": {
+        "id": "Run ID",
+        "runType": "Trigger",
+        "status": "Status",
+        "bizTime": "Biz Time",
+        "triggeredBy": "Triggered By",
+        "startTime": "Start Time",
+        "duration": "Duration",
+        "actions": "Actions"
+      },
+      "actions": {
+        "rerun": "Rerun"
+      },
+      "runTypes": {
+        "MANUAL": "Manual",
+        "SCHEDULED": "Scheduled",
+        "RERUN": "Rerun",
+        "BACKFILL": "Backfill"
+      }
+    },
+    "backfillDialog": {
+      "title": "Backfill - {name}",
+      "fields": {
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "intervalDays": "Interval Days"
+      },
+      "placeholders": {
+        "startDate": "Select start date",
+        "endDate": "Select end date"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submit": "Submit"
+      }
+    },
+    "rules": {
+      "dagName": "Please enter DAG name",
+      "startDate": "Please select start date",
+      "endDate": "Please select end date"
+    },
+    "messages": {
+      "created": "DAG created",
+      "updated": "DAG updated",
+      "runDone": "DAG running, ID: {id}, status: {status}",
+      "rerunDone": "Rerun triggered",
+      "rerunFailedNone": "No failed run found to rerun",
+      "rerunConfirm": "Rerun the last failed run of DAG \"{name}\"?",
+      "rerunConfirmTitle": "Confirm Rerun",
+      "deleted": "DAG deleted",
+      "deleteConfirm": "Delete DAG \"{name}\"? This cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "backfillCreated": "{count} backfill instances created",
+      "listLoadFailed": "Failed to load DAG list,"
+    }
+  }
+}

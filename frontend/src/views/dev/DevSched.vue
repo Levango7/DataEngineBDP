@@ -1,46 +1,46 @@
 <template>
   <div class="dev-sched-page">
-    <h1>调度编排（DolphinScheduler）</h1>
-    <div class="sub">DAG 工作流 · 流批统一 · 补数据 · 15 秒自动刷新</div>
+    <h1>{{ t('devSched.title') }}</h1>
+    <div class="sub">{{ t('devSched.subtitle') }}</div>
 
     <!-- KPI 卡片区 -->
     <div class="grid g4">
       <template v-if="loading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
-            DAG 列表加载失败，
-            <a href="javascript:void(0)" @click="reload">重试</a>
+            {{ t('devSched.messages.listLoadFailed') }}
+            <a href="javascript:void(0)" @click="reload">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>DAG 总数</h3>
+          <h3>{{ t('devSched.kpi.total') }}</h3>
           <div class="kpi">{{ kpi.total }}</div>
-          <div class="meta">全部 DAG 作业</div>
+          <div class="meta">{{ t('devSched.kpi.totalMeta') }}</div>
         </div>
         <div class="card">
-          <h3>运行中</h3>
+          <h3>{{ t('devSched.kpi.running') }}</h3>
           <div class="kpi">{{ kpi.running }}</div>
-          <div class="meta">状态为 RUNNING</div>
+          <div class="meta">{{ t('devSched.kpi.runningMeta') }}</div>
         </div>
         <div class="card">
-          <h3>今日成功</h3>
+          <h3>{{ t('devSched.kpi.todaySuccess') }}</h3>
           <div class="kpi s">{{ kpi.todaySuccess }}</div>
-          <div class="meta">最近 24h SUCCESS</div>
+          <div class="meta">{{ t('devSched.kpi.todaySuccessMeta') }}</div>
         </div>
         <div class="card">
-          <h3>今日失败</h3>
+          <h3>{{ t('devSched.kpi.todayFailed') }}</h3>
           <div class="kpi d">{{ kpi.todayFailed }}</div>
-          <div class="meta">最近 24h FAILED</div>
+          <div class="meta">{{ t('devSched.kpi.todayFailedMeta') }}</div>
         </div>
       </template>
     </div>
@@ -48,24 +48,24 @@
     <!-- 主内容区：DAG 列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">+ 新建 DAG</el-button>
+        <el-button type="primary" @click="openCreateDialog">{{ t('devSched.toolbar.create') }}</el-button>
         <el-select
           v-model="statusFilter"
-          placeholder="状态筛选"
+          :placeholder="t('devSched.toolbar.statusFilter')"
           clearable
           style="width: 140px"
           @change="handleFilterChange"
         >
-          <el-option label="草稿" value="DRAFT" />
-          <el-option label="已调度" value="SCHEDULED" />
-          <el-option label="运行中" value="RUNNING" />
-          <el-option label="成功" value="SUCCESS" />
-          <el-option label="失败" value="FAILED" />
-          <el-option label="已取消" value="KILLED" />
-          <el-option label="已暂停" value="PAUSED" />
+          <el-option :label="t('devSched.status.DRAFT')" value="DRAFT" />
+          <el-option :label="t('devSched.status.SCHEDULED')" value="SCHEDULED" />
+          <el-option :label="t('devSched.status.RUNNING')" value="RUNNING" />
+          <el-option :label="t('devSched.status.SUCCESS')" value="SUCCESS" />
+          <el-option :label="t('devSched.status.FAILED')" value="FAILED" />
+          <el-option :label="t('devSched.status.KILLED')" value="KILLED" />
+          <el-option :label="t('devSched.status.PAUSED')" value="PAUSED" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="reload" />
+        <el-button :icon="Refresh" circle :aria-label="t('devSched.toolbar.refreshAria')" @click="reload" />
       </div>
 
       <el-table
@@ -74,24 +74,24 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? '加载失败，请重试' : '暂无 DAG 作业'"
+        :empty-text="error ? t('devSched.table.loadFailed') : t('devSched.table.empty')"
       >
-        <el-table-column prop="id" label="DAG ID" width="160">
+        <el-table-column prop="id" :label="t('devSched.table.columns.id')" width="160">
           <template #default="{ row }">
             <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px">
               {{ row.id }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="DAG 名称" min-width="180" />
-        <el-table-column label="状态" width="120">
+        <el-table-column prop="name" :label="t('devSched.table.columns.name')" min-width="180" />
+        <el-table-column :label="t('devSched.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="schedule" label="调度" width="160">
+        <el-table-column :label="t('devSched.table.columns.schedule')" width="160">
           <template #default="{ row }">
             <span
               v-if="row.schedule"
@@ -99,18 +99,18 @@
             >
               {{ row.schedule }}
             </span>
-            <span v-else style="color: var(--muted)">未配置</span>
+            <span v-else style="color: var(--muted)">{{ t('devSched.table.scheduleEmpty') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="lastRunAt" label="最近运行" width="180">
-          <template #default="{ row }">{{ row.lastRunAt || '--' }}</template>
+        <el-table-column prop="lastRunAt" :label="t('devSched.table.columns.lastRun')" width="180">
+          <template #default="{ row }">{{ row.lastRunAt || t('devSched.table.notAvailable') }}</template>
         </el-table-column>
-        <el-table-column prop="owner" label="负责人" width="120">
-          <template #default="{ row }">{{ row.owner || '--' }}</template>
+        <el-table-column prop="owner" :label="t('devSched.table.columns.owner')" width="120">
+          <template #default="{ row }">{{ row.owner || t('devSched.table.notAvailable') }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="320" fixed="right">
+        <el-table-column :label="t('devSched.table.columns.actions')" width="320" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEditDrawer(row)">编辑</el-button>
+            <el-button link type="primary" @click="openEditDrawer(row)">{{ t('devSched.table.actions.edit') }}</el-button>
             <el-button
               v-if="canRun(row.status)"
               link
@@ -118,19 +118,19 @@
               :loading="runningId === row.id"
               @click="handleRun(row)"
             >
-              运行
+              {{ t('devSched.table.actions.run') }}
             </el-button>
-            <el-button link type="primary" @click="openHistoryDrawer(row)">历史</el-button>
+            <el-button link type="primary" @click="openHistoryDrawer(row)">{{ t('devSched.table.actions.history') }}</el-button>
             <el-button
               v-if="canRerun(row.lastRunStatus)"
               link
               type="warning"
               @click="handleRerun(row)"
             >
-              重跑
+              {{ t('devSched.table.actions.rerun') }}
             </el-button>
-            <el-button link type="warning" @click="openBackfillDialog(row)">补数据</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="warning" @click="openBackfillDialog(row)">{{ t('devSched.table.actions.backfill') }}</el-button>
+            <el-button link type="danger" @click="handleDelete(row)">{{ t('devSched.table.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -153,7 +153,7 @@
     <!-- DAG 编辑抽屉 -->
     <el-drawer
       v-model="editDrawerVisible"
-      :title="editForm.id ? `编辑 DAG - ${editForm.name}` : '新建 DAG'"
+      :title="editForm.id ? t('devSched.editDrawer.titleEdit', { name: editForm.name }) : t('devSched.editDrawer.titleCreate')"
       size="60%"
     >
       <el-form
@@ -163,41 +163,41 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="DAG 名称" prop="name">
-          <el-input v-model="editForm.name" placeholder="如 订单宽表 ETL" />
+        <el-form-item :label="t('devSched.editDrawer.fields.name')" prop="name">
+          <el-input v-model="editForm.name" :placeholder="t('devSched.editDrawer.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="描述" prop="description">
+        <el-form-item :label="t('devSched.editDrawer.fields.description')" prop="description">
           <el-input v-model="editForm.description" type="textarea" :rows="2" />
         </el-form-item>
-        <el-form-item label="Cron 调度" prop="schedule">
+        <el-form-item :label="t('devSched.editDrawer.fields.schedule')" prop="schedule">
           <el-input
             v-model="editForm.schedule"
-            placeholder="如 0 0 * * *（每日 0 点），留空表示仅手动触发"
+            :placeholder="t('devSched.editDrawer.fields.schedulePlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="负责人" prop="owner">
-          <el-input v-model="editForm.owner" placeholder="负责人姓名" />
+        <el-form-item :label="t('devSched.editDrawer.fields.owner')" prop="owner">
+          <el-input v-model="editForm.owner" :placeholder="t('devSched.editDrawer.fields.ownerPlaceholder')" />
         </el-form-item>
-        <el-form-item label="DAG 定义" prop="dagJson">
+        <el-form-item :label="t('devSched.editDrawer.fields.dagJson')" prop="dagJson">
           <el-input
             v-model="editForm.dagJson"
             type="textarea"
             :rows="12"
-            placeholder='{"nodes":[],"edges":[]}'
+            :placeholder="t('devSched.editDrawer.fields.dagJsonPlaceholder')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editDrawerVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmitDag">保存</el-button>
+        <el-button @click="editDrawerVisible = false">{{ t('devSched.editDrawer.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmitDag">{{ t('devSched.editDrawer.actions.save') }}</el-button>
       </template>
     </el-drawer>
 
     <!-- 运行历史抽屉 -->
     <el-drawer
       v-model="historyDrawerVisible"
-      :title="`运行历史 - ${currentDag?.name ?? ''}`"
+      :title="t('devSched.historyDrawer.title', { name: currentDag?.name ?? '' })"
       size="60%"
     >
       <el-table
@@ -206,32 +206,32 @@
         stripe
         border
         size="small"
-        :empty-text="runsError ? '运行历史加载失败' : '暂无运行记录'"
+        :empty-text="runsError ? t('devSched.historyDrawer.loadFailed') : t('devSched.historyDrawer.empty')"
       >
-        <el-table-column prop="id" label="Run ID" width="100" />
-        <el-table-column prop="runType" label="触发方式" width="120">
+        <el-table-column prop="id" :label="t('devSched.historyDrawer.columns.id')" width="100" />
+        <el-table-column prop="runType" :label="t('devSched.historyDrawer.columns.runType')" width="120">
           <template #default="{ row }">{{ runTypeLabel(row.runType) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column :label="t('devSched.historyDrawer.columns.status')" width="110">
           <template #default="{ row }">
             <el-tag :type="runStatusTagType(row.status)" size="small" effect="light">
               {{ runStatusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="bizTime" label="业务时间" width="160">
-          <template #default="{ row }">{{ row.bizTime || '--' }}</template>
+        <el-table-column prop="bizTime" :label="t('devSched.historyDrawer.columns.bizTime')" width="160">
+          <template #default="{ row }">{{ row.bizTime || t('devSched.table.notAvailable') }}</template>
         </el-table-column>
-        <el-table-column prop="triggeredBy" label="触发人" width="120">
-          <template #default="{ row }">{{ row.triggeredBy || '--' }}</template>
+        <el-table-column prop="triggeredBy" :label="t('devSched.historyDrawer.columns.triggeredBy')" width="120">
+          <template #default="{ row }">{{ row.triggeredBy || t('devSched.table.notAvailable') }}</template>
         </el-table-column>
-        <el-table-column prop="startTime" label="开始时间" width="180">
-          <template #default="{ row }">{{ row.startTime || '--' }}</template>
+        <el-table-column prop="startTime" :label="t('devSched.historyDrawer.columns.startTime')" width="180">
+          <template #default="{ row }">{{ row.startTime || t('devSched.table.notAvailable') }}</template>
         </el-table-column>
-        <el-table-column label="耗时" width="100">
+        <el-table-column :label="t('devSched.historyDrawer.columns.duration')" width="100">
           <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column :label="t('devSched.historyDrawer.columns.actions')" width="120" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'FAILED'"
@@ -240,7 +240,7 @@
               :loading="rerunningId === row.id"
               @click="handleRerunRun(row)"
             >
-              重跑
+              {{ t('devSched.historyDrawer.actions.rerun') }}
             </el-button>
           </template>
         </el-table-column>
@@ -261,7 +261,7 @@
     <!-- 补数据弹窗 -->
     <el-dialog
       v-model="backfillDialogVisible"
-      :title="`补数据 - ${currentDag?.name ?? ''}`"
+      :title="t('devSched.backfillDialog.title', { name: currentDag?.name ?? '' })"
       width="480px"
       :close-on-click-modal="false"
     >
@@ -272,31 +272,31 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="起始日期" prop="startDate">
+        <el-form-item :label="t('devSched.backfillDialog.fields.startDate')" prop="startDate">
           <el-date-picker
             v-model="backfillForm.startDate"
             type="date"
             value-format="YYYY-MM-DD"
-            placeholder="选择起始日期"
+            :placeholder="t('devSched.backfillDialog.placeholders.startDate')"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="结束日期" prop="endDate">
+        <el-form-item :label="t('devSched.backfillDialog.fields.endDate')" prop="endDate">
           <el-date-picker
             v-model="backfillForm.endDate"
             type="date"
             value-format="YYYY-MM-DD"
-            placeholder="选择结束日期"
+            :placeholder="t('devSched.backfillDialog.placeholders.endDate')"
             style="width: 100%"
           />
         </el-form-item>
-        <el-form-item label="间隔天数" prop="intervalDays">
+        <el-form-item :label="t('devSched.backfillDialog.fields.intervalDays')" prop="intervalDays">
           <el-input-number v-model="backfillForm.intervalDays" :min="1" :max="30" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="backfillDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="backfilling" @click="handleBackfill">提交</el-button>
+        <el-button @click="backfillDialogVisible = false">{{ t('devSched.backfillDialog.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="backfilling" @click="handleBackfill">{{ t('devSched.backfillDialog.actions.submit') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -304,6 +304,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
@@ -311,6 +312,8 @@ import { useApi } from '@/composables/useApi'
 import * as devSchedApi from '@/api/dev-sched'
 import type { DagJob, DagCreateRequest } from '@/api/dev-sched'
 import type { DagRunRecord } from '@/api/streamBatch'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ DAG 列表 ------------------------------ */
 
@@ -385,9 +388,9 @@ const editForm = reactive<EditForm>({
   owner: ''
 })
 
-const editRules: FormRules = {
-  name: [{ required: true, message: '请输入 DAG 名称', trigger: 'blur' }]
-}
+const editRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('devSched.rules.dagName'), trigger: 'blur' }]
+}))
 
 /** 打开新建抽屉 */
 function openCreateDialog() {
@@ -437,10 +440,10 @@ async function handleSubmitDag() {
       }
       if (editForm.id) {
         await devSchedApi.updateDag(editForm.id, payload)
-        ElMessage.success('DAG 已更新')
+        ElMessage.success(t('devSched.messages.updated'))
       } else {
         await devSchedApi.createDag(payload)
-        ElMessage.success('DAG 已创建')
+        ElMessage.success(t('devSched.messages.created'))
       }
       editDrawerVisible.value = false
       await reload()
@@ -472,7 +475,7 @@ async function handleRun(row: DagJob) {
   runningId.value = row.id
   try {
     const { dagId, status } = await devSchedApi.runDag(row.id)
-    ElMessage.success(`DAG 已运行，ID：${dagId}，状态：${status}`)
+    ElMessage.success(t('devSched.messages.runDone', { id: dagId, status }))
     await reload()
   } catch {
     // 拦截器已提示
@@ -484,7 +487,7 @@ async function handleRun(row: DagJob) {
 /** 重跑最近一次失败 */
 async function handleRerun(row: DagJob) {
   try {
-    await ElMessageBox.confirm(`确认对 DAG「${row.name}」最近一次失败实例执行重跑？`, '重跑确认', {
+    await ElMessageBox.confirm(t('devSched.messages.rerunConfirm', { name: row.name }), t('devSched.messages.rerunConfirmTitle'), {
       type: 'warning'
     })
     // 通过 streamBatch 模块触发：先取最近一次失败 run，再 rerun
@@ -494,12 +497,12 @@ async function handleRerun(row: DagJob) {
       size: 1
     })
     if (!runsPage.content.length) {
-      ElMessage.warning('未找到可重跑的失败实例')
+      ElMessage.warning(t('devSched.messages.rerunFailedNone'))
       return
     }
     const runId = runsPage.content[0].id
     await devSchedApi.streamBatchApi.rerunDagRun(row.id, runId)
-    ElMessage.success('重跑已触发')
+    ElMessage.success(t('devSched.messages.rerunDone'))
     await reload()
   } catch {
     // 用户取消或操作失败
@@ -509,14 +512,14 @@ async function handleRerun(row: DagJob) {
 /** 删除 DAG */
 async function handleDelete(row: DagJob) {
   try {
-    await ElMessageBox.confirm(`确认删除 DAG「${row.name}」？该操作不可恢复。`, '删除确认', {
+    await ElMessageBox.confirm(t('devSched.messages.deleteConfirm', { name: row.name }), t('devSched.messages.deleteConfirmTitle'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('devSched.messages.deleteConfirmTitle'),
+      cancelButtonText: t('devSched.editDrawer.actions.cancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await devSchedApi.deleteDag(row.id)
-    ElMessage.success('DAG 已删除')
+    ElMessage.success(t('devSched.messages.deleted'))
     await reload()
   } catch {
     // 用户取消或删除失败
@@ -568,7 +571,7 @@ async function handleRerunRun(row: DagRunRecord) {
   rerunningId.value = row.id
   try {
     await devSchedApi.streamBatchApi.rerunDagRun(currentDag.value.id, row.id)
-    ElMessage.success('重跑已触发')
+    ElMessage.success(t('devSched.messages.rerunDone'))
     await loadRuns()
   } catch {
     // 拦截器已提示
@@ -589,10 +592,10 @@ const backfillForm = reactive({
   intervalDays: 1
 })
 
-const backfillRules: FormRules = {
-  startDate: [{ required: true, message: '请选择起始日期', trigger: 'change' }],
-  endDate: [{ required: true, message: '请选择结束日期', trigger: 'change' }]
-}
+const backfillRules = computed<FormRules>(() => ({
+  startDate: [{ required: true, message: t('devSched.rules.startDate'), trigger: 'change' }],
+  endDate: [{ required: true, message: t('devSched.rules.endDate'), trigger: 'change' }]
+}))
 
 /** 打开补数据弹窗 */
 function openBackfillDialog(row: DagJob) {
@@ -616,7 +619,7 @@ async function handleBackfill() {
         endDate: backfillForm.endDate,
         intervalDays: backfillForm.intervalDays
       })
-      ElMessage.success(`已生成 ${created} 个回填实例`)
+      ElMessage.success(t('devSched.messages.backfillCreated', { count: created }))
       backfillDialogVisible.value = false
       await loadRuns()
     } catch {
@@ -629,56 +632,49 @@ async function handleBackfill() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<
+const STATUS_TAG_TYPE_MAP: Record<
   string,
-  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+  'primary' | 'success' | 'danger' | 'info' | 'warning'
 > = {
-  DRAFT: { label: '草稿', type: 'info' },
-  PENDING: { label: '等待中', type: 'info' },
-  SCHEDULED: { label: '已调度', type: 'warning' },
-  RUNNING: { label: '运行中', type: 'primary' },
-  SUCCESS: { label: '成功', type: 'success' },
-  FAILED: { label: '失败', type: 'danger' },
-  KILLED: { label: '已取消', type: 'info' },
-  PAUSED: { label: '已暂停', type: 'warning' }
+  DRAFT: 'info',
+  PENDING: 'info',
+  SCHEDULED: 'warning',
+  RUNNING: 'primary',
+  SUCCESS: 'success',
+  FAILED: 'danger',
+  KILLED: 'info',
+  PAUSED: 'warning'
 }
 
 function statusLabel(status: string): string {
-  return STATUS_MAP[status]?.label ?? status
+  return t(`devSched.status.${status}`, status)
 }
 
 function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
 
-const RUN_STATUS_MAP: Record<
+const RUN_STATUS_TAG_TYPE_MAP: Record<
   string,
-  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
+  'primary' | 'success' | 'danger' | 'info' | 'warning'
 > = {
-  RUNNING: { label: '运行中', type: 'primary' },
-  SUCCESS: { label: '成功', type: 'success' },
-  FAILED: { label: '失败', type: 'danger' },
-  KILLED: { label: '已取消', type: 'info' },
-  PENDING: { label: '等待中', type: 'info' }
+  RUNNING: 'primary',
+  SUCCESS: 'success',
+  FAILED: 'danger',
+  KILLED: 'info',
+  PENDING: 'info'
 }
 
 function runStatusLabel(status: string): string {
-  return RUN_STATUS_MAP[status]?.label ?? status
+  return t(`devSched.status.${status}`, status)
 }
 
 function runStatusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return RUN_STATUS_MAP[status]?.type ?? 'info'
-}
-
-const RUN_TYPE_LABELS: Record<string, string> = {
-  MANUAL: '手动',
-  SCHEDULED: '调度',
-  RERUN: '重跑',
-  BACKFILL: '补数据'
+  return RUN_STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
 
 function runTypeLabel(runType: string): string {
-  return RUN_TYPE_LABELS[runType] ?? runType
+  return t(`devSched.historyDrawer.runTypes.${runType}`, runType)
 }
 
 /** 耗时格式化（毫秒） */

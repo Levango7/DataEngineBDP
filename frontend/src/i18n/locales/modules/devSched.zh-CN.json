@@ -1,0 +1,132 @@
+{
+  "devSched": {
+    "title": "调度编排（DolphinScheduler）",
+    "subtitle": "DAG 工作流 · 流批统一 · 补数据 · 15 秒自动刷新",
+    "kpi": {
+      "total": "DAG 总数",
+      "totalMeta": "全部 DAG 作业",
+      "running": "运行中",
+      "runningMeta": "状态为 RUNNING",
+      "todaySuccess": "今日成功",
+      "todaySuccessMeta": "最近 24h SUCCESS",
+      "todayFailed": "今日失败",
+      "todayFailedMeta": "最近 24h FAILED"
+    },
+    "toolbar": {
+      "create": "+ 新建 DAG",
+      "statusFilter": "状态筛选",
+      "refreshAria": "刷新"
+    },
+    "status": {
+      "DRAFT": "草稿",
+      "PENDING": "等待中",
+      "SCHEDULED": "已调度",
+      "RUNNING": "运行中",
+      "SUCCESS": "成功",
+      "FAILED": "失败",
+      "KILLED": "已取消",
+      "PAUSED": "已暂停"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无 DAG 作业",
+      "columns": {
+        "id": "DAG ID",
+        "name": "DAG 名称",
+        "status": "状态",
+        "schedule": "调度",
+        "lastRun": "最近运行",
+        "owner": "负责人",
+        "actions": "操作"
+      },
+      "actions": {
+        "edit": "编辑",
+        "run": "运行",
+        "history": "历史",
+        "rerun": "重跑",
+        "backfill": "补数据",
+        "delete": "删除"
+      },
+      "scheduleEmpty": "未配置",
+      "notAvailable": "--"
+    },
+    "editDrawer": {
+      "titleCreate": "新建 DAG",
+      "titleEdit": "编辑 DAG - {name}",
+      "fields": {
+        "name": "DAG 名称",
+        "namePlaceholder": "如 订单宽表 ETL",
+        "description": "描述",
+        "schedule": "Cron 调度",
+        "schedulePlaceholder": "如 0 0 * * *（每日 0 点），留空表示仅手动触发",
+        "owner": "负责人",
+        "ownerPlaceholder": "负责人姓名",
+        "dagJson": "DAG 定义",
+        "dagJsonPlaceholder": "{\"nodes\":[],\"edges\":[]}"
+      },
+      "actions": {
+        "cancel": "取消",
+        "save": "保存"
+      }
+    },
+    "historyDrawer": {
+      "title": "运行历史 - {name}",
+      "loadFailed": "运行历史加载失败",
+      "empty": "暂无运行记录",
+      "columns": {
+        "id": "Run ID",
+        "runType": "触发方式",
+        "status": "状态",
+        "bizTime": "业务时间",
+        "triggeredBy": "触发人",
+        "startTime": "开始时间",
+        "duration": "耗时",
+        "actions": "操作"
+      },
+      "actions": {
+        "rerun": "重跑"
+      },
+      "runTypes": {
+        "MANUAL": "手动",
+        "SCHEDULED": "调度",
+        "RERUN": "重跑",
+        "BACKFILL": "补数据"
+      }
+    },
+    "backfillDialog": {
+      "title": "补数据 - {name}",
+      "fields": {
+        "startDate": "起始日期",
+        "endDate": "结束日期",
+        "intervalDays": "间隔天数"
+      },
+      "placeholders": {
+        "startDate": "选择起始日期",
+        "endDate": "选择结束日期"
+      },
+      "actions": {
+        "cancel": "取消",
+        "submit": "提交"
+      }
+    },
+    "rules": {
+      "dagName": "请输入 DAG 名称",
+      "startDate": "请选择起始日期",
+      "endDate": "请选择结束日期"
+    },
+    "messages": {
+      "created": "DAG 已创建",
+      "updated": "DAG 已更新",
+      "runDone": "DAG 已运行，ID：{id}，状态：{status}",
+      "rerunDone": "重跑已触发",
+      "rerunFailedNone": "未找到可重跑的失败实例",
+      "rerunConfirm": "确认对 DAG「{name}」最近一次失败实例执行重跑？",
+      "rerunConfirmTitle": "重跑确认",
+      "deleted": "DAG 已删除",
+      "deleteConfirm": "确认删除 DAG「{name}」？该操作不可恢复。",
+      "deleteConfirmTitle": "删除确认",
+      "backfillCreated": "已生成 {count} 个回填实例",
+      "listLoadFailed": "DAG 列表加载失败，"
+    }
+  }
+}
