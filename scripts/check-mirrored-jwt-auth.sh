@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MIRRORED FILE 一致性校验：jwt_auth.py 九处副本必须逐字节一致
+# MIRRORED FILE 一致性校验：jwt_auth.py 十处副本必须逐字节一致
 set -euo pipefail
 base="platform/llmops/llmops/api/jwt_auth.py"
 for f in \
@@ -10,10 +10,11 @@ for f in \
   "platform/asset-exchange/asset_exchange/api/jwt_auth.py" \
   "platform/open-api-catalog/openapi_catalog/api/jwt_auth.py" \
   "platform/business-portal/business_portal/api/jwt_auth.py" \
-  "platform/registry/app/jwt_auth.py"; do
+  "platform/registry/app/jwt_auth.py" \
+  "platform/batch-pipeline/batch_pipeline/api/jwt_auth.py"; do
   if ! diff -q "$base" "$f" >/dev/null; then
     echo "::error::MIRRORED FILE 不同步: $f 与 $base 不一致"
     exit 1
   fi
 done
-echo "jwt_auth.py 九处镜像一致"
+echo "jwt_auth.py 十处镜像一致"
