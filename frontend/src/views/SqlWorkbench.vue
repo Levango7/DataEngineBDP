@@ -1,21 +1,20 @@
 <template>
   <div class="sql-workbench">
-    <h1>SQL 工作台</h1>
+    <h1>{{ t('sqlWorkbench.title') }}</h1>
     <div class="sub">
-      跨源归并查询工作台，支持跨 Trino / Doris / Hive 数据源的 JOIN / UNION 查询，并行执行 +
-      内存归并。
+      {{ t('sqlWorkbench.subtitle') }}
     </div>
 
     <!-- 上半区：SQL 编辑器 + 控制栏 -->
     <el-card shadow="never" class="editor-card">
       <div class="toolbar">
-        <el-select v-model="dialect" placeholder="SQL 方言" style="width: 130px">
-          <el-option label="ANSI" value="ANSI" />
-          <el-option label="Hive" value="HIVE" />
-          <el-option label="Doris" value="DORIS" />
-          <el-option label="Trino" value="TRINO" />
+        <el-select v-model="dialect" :placeholder="t('sqlWorkbench.editor.dialect')" style="width: 130px">
+          <el-option :label="t('sqlWorkbench.editor.dialects.ANSI')" value="ANSI" />
+          <el-option :label="t('sqlWorkbench.editor.dialects.HIVE')" value="HIVE" />
+          <el-option :label="t('sqlWorkbench.editor.dialects.DORIS')" value="DORIS" />
+          <el-option :label="t('sqlWorkbench.editor.dialects.TRINO')" value="TRINO" />
         </el-select>
-        <el-input v-model="tenantId" placeholder="租户 ID（可选）" style="width: 180px" />
+        <el-input v-model="tenantId" :placeholder="t('sqlWorkbench.editor.tenantPlaceholder')" style="width: 180px" />
         <el-input-number
           v-model="timeoutSeconds"
           :min="5"
@@ -24,21 +23,21 @@
           controls-position="right"
           style="width: 130px"
         />
-        <span class="hint">超时(秒)</span>
+        <span class="hint">{{ t('sqlWorkbench.editor.timeoutLabel') }}</span>
 
         <div class="spacer"></div>
 
         <el-button :loading="explainLoading" @click="handleExplain">
           <el-icon><Document /></el-icon>
-          执行计划
+          {{ t('sqlWorkbench.editor.explain') }}
         </el-button>
         <el-button :loading="validateLoading" @click="handleValidate">
           <el-icon><CircleCheck /></el-icon>
-          语法校验
+          {{ t('sqlWorkbench.editor.validate') }}
         </el-button>
         <el-button type="primary" :loading="executeLoading" @click="handleExecute">
           <el-icon><CaretRight /></el-icon>
-          执行查询
+          {{ t('sqlWorkbench.editor.execute') }}
         </el-button>
       </div>
 
@@ -51,20 +50,16 @@
           v-model="sql"
           class="sql-textarea"
           spellcheck="false"
-          placeholder="输入 SQL，例如：&#10;SELECT * FROM hive.users JOIN doris.orders ON hive.users.id = doris.orders.uid"
+          :placeholder="t('sqlWorkbench.editor.placeholder')"
           @scroll="syncScroll"
         ></textarea>
       </div>
 
       <!-- SQL 提示 -->
       <div class="sql-hint">
-        <el-tag size="small" type="info" effect="plain">提示</el-tag>
+        <el-tag size="small" type="info" effect="plain">{{ t('sqlWorkbench.editor.hintTag') }}</el-tag>
         <span class="hint-text">
-          跨源查询时表名需带 catalog 前缀（如
-          <code>hive.users</code>
-          、
-          <code>doris.orders</code>
-          ），系统自动识别源并并行查询。
+          {{ t('sqlWorkbench.editor.hint', { hive: 'hive.users', doris: 'doris.orders' }) }}
         </span>
       </div>
     </el-card>
@@ -73,27 +68,27 @@
     <el-card shadow="never" class="result-card">
       <el-tabs v-model="activeTab">
         <!-- 结果表格 -->
-        <el-tab-pane label="查询结果" name="result">
+        <el-tab-pane :label="t('sqlWorkbench.result.tab')" name="result">
           <div v-if="result" class="result-summary">
             <el-tag :type="statusTagType(result.status)" effect="light">
               {{ result.status }}
             </el-tag>
-            <el-tag v-if="result.crossSource" type="warning" effect="light">跨源查询</el-tag>
-            <el-tag v-else type="success" effect="light">单源查询</el-tag>
+            <el-tag v-if="result.crossSource" type="warning" effect="light">{{ t('sqlWorkbench.result.crossSource') }}</el-tag>
+            <el-tag v-else type="success" effect="light">{{ t('sqlWorkbench.result.singleSource') }}</el-tag>
             <span class="meta">
-              行数:
+              {{ t('sqlWorkbench.result.rowCount') }}
               <b>{{ result.rowCount }}</b>
             </span>
             <span class="meta">
-              耗时:
-              <b>{{ result.durationMs }}ms</b>
+              {{ t('sqlWorkbench.result.duration') }}
+              <b>{{ result.durationMs }}{{ t('sqlWorkbench.result.durationUnit') }}</b>
             </span>
             <span class="meta">
-              来源:
+              {{ t('sqlWorkbench.result.source') }}
               <b>{{ result.source }}</b>
             </span>
             <span class="meta">
-              查询ID:
+              {{ t('sqlWorkbench.result.queryId') }}
               <b>{{ result.queryId }}</b>
             </span>
           </div>
@@ -106,7 +101,7 @@
                   style="color: var(--el-color-primary)"
                   @click="handleExecute"
                 >
-                  重试
+                  {{ t('sqlWorkbench.result.retry') }}
                 </a>
               </template>
             </el-alert>
@@ -132,35 +127,35 @@
               </template>
             </el-table-column>
           </el-table>
-          <el-empty v-else-if="result && !result.error" description="查询结果为空" />
-          <el-empty v-else description="执行查询后展示结果" />
+          <el-empty v-else-if="result && !result.error" :description="t('sqlWorkbench.result.empty')" />
+          <el-empty v-else :description="t('sqlWorkbench.result.executeFirst')" />
         </el-tab-pane>
 
         <!-- 执行计划 -->
-        <el-tab-pane label="执行计划" name="explain">
+        <el-tab-pane :label="t('sqlWorkbench.explain.tab')" name="explain">
           <div v-if="explainResult" class="explain-block">
             <div class="explain-summary">
               <el-tag :type="explainResult.crossSource ? 'warning' : 'success'" effect="light">
-                {{ explainResult.crossSource ? '跨源查询' : '单源查询' }}
+                {{ explainResult.crossSource ? t('sqlWorkbench.explain.crossSource') : t('sqlWorkbench.explain.singleSource') }}
               </el-tag>
               <el-tag type="info" effect="plain">
                 {{ explainResult.strategy }}
               </el-tag>
               <span class="meta">
-                语句类型:
+                {{ t('sqlWorkbench.explain.statementType') }}
                 <b>{{ explainResult.statementType || '-' }}</b>
               </span>
               <span class="meta">
-                解析耗时:
-                <b>{{ explainResult.durationMs }}ms</b>
+                {{ t('sqlWorkbench.explain.parseDuration') }}
+                <b>{{ explainResult.durationMs }}{{ t('sqlWorkbench.explain.parseDurationUnit') }}</b>
               </span>
             </div>
 
             <el-collapse v-model="explainCollapse">
-              <el-collapse-item title="涉及的表与源映射" name="tables">
+              <el-collapse-item :title="t('sqlWorkbench.explain.tablesTitle')" name="tables">
                 <el-table :data="tableSourceRows" border style="width: 100%">
-                  <el-table-column prop="table" label="表名" min-width="200" />
-                  <el-table-column prop="source" label="数据源" width="160">
+                  <el-table-column prop="table" :label="t('sqlWorkbench.explain.tableCol')" min-width="200" />
+                  <el-table-column prop="source" :label="t('sqlWorkbench.explain.sourceCol')" width="160">
                     <template #default="{ row }">
                       <el-tag :type="sourceTagType(row.source)" effect="light">
                         {{ row.source }}
@@ -170,7 +165,7 @@
                 </el-table>
               </el-collapse-item>
 
-              <el-collapse-item title="涉及的源" name="sources">
+              <el-collapse-item :title="t('sqlWorkbench.explain.sourcesTitle')" name="sources">
                 <div class="source-list">
                   <el-tag
                     v-for="src in explainResult.sources || []"
@@ -184,7 +179,7 @@
                 </div>
               </el-collapse-item>
 
-              <el-collapse-item title="跨源 JOIN 可视化" name="viz">
+              <el-collapse-item :title="t('sqlWorkbench.explain.vizTitle')" name="viz">
                 <div class="join-viz">
                   <div v-for="src in explainResult.sources || []" :key="src" class="source-node">
                     <el-card shadow="hover" class="source-card">
@@ -194,45 +189,45 @@
                       </div>
                       <div class="source-tables">
                         <el-tag
-                          v-for="t in tablesOfSource(src)"
-                          :key="t"
+                          v-for="tbl in tablesOfSource(src)"
+                          :key="tbl"
                           size="small"
                           effect="plain"
                         >
-                          {{ t }}
+                          {{ tbl }}
                         </el-tag>
                       </div>
                     </el-card>
                   </div>
                   <div v-if="(explainResult.sources || []).length > 1" class="merge-arrow">
                     <el-icon><Right /></el-icon>
-                    <span>内存归并</span>
+                    <span>{{ t('sqlWorkbench.explain.mergeArrow') }}</span>
                   </div>
                   <div v-if="(explainResult.sources || []).length > 1" class="merge-result">
                     <el-card shadow="never" class="result-node">
                       <el-icon><Histogram /></el-icon>
-                      <span>merged</span>
+                      <span>{{ t('sqlWorkbench.explain.merged') }}</span>
                     </el-card>
                   </div>
                 </div>
               </el-collapse-item>
             </el-collapse>
           </div>
-          <el-empty v-else description="点击「执行计划」按钮生成" />
+          <el-empty v-else :description="t('sqlWorkbench.explain.empty')" />
         </el-tab-pane>
 
         <!-- 校验结果 -->
-        <el-tab-pane label="语法校验" name="validate">
+        <el-tab-pane :label="t('sqlWorkbench.validate.tab')" name="validate">
           <div v-if="validateResult">
             <el-alert
-              :title="validateResult.valid ? 'SQL 语法合法' : 'SQL 语法错误'"
+              :title="validateResult.valid ? t('sqlWorkbench.validate.valid') : t('sqlWorkbench.validate.invalid')"
               :type="validateResult.valid ? 'success' : 'error'"
-              :description="validateResult.error || `方言: ${validateResult.dialect}`"
+              :description="validateResult.error || t('sqlWorkbench.validate.dialect', { dialect: validateResult.dialect })"
               :closable="false"
               show-icon
             />
           </div>
-          <el-empty v-else description="点击「语法校验」按钮校验" />
+          <el-empty v-else :description="t('sqlWorkbench.validate.empty')" />
         </el-tab-pane>
       </el-tabs>
     </el-card>
@@ -241,6 +236,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   CaretRight,
   CircleCheck,
@@ -258,6 +254,8 @@ import {
   type CrossSourceQueryResult,
   type CrossSourceExplainResult
 } from '@/api/sqlworkbench'
+
+const { t } = useI18n()
 
 // ===================== 响应式状态 =====================
 const sql = ref('SELECT * FROM hive.users JOIN doris.orders ON hive.users.id = doris.orders.uid')
@@ -279,7 +277,7 @@ const {
       timeoutSeconds: timeoutSeconds.value
     }),
   {
-    onError: (err) => ElMessage.error(`查询异常: ${err.message}`)
+    onError: (err) => ElMessage.error(t('sqlWorkbench.messages.executeError', { message: err.message }))
   }
 )
 
@@ -297,7 +295,7 @@ const {
       timeoutSeconds: timeoutSeconds.value
     }),
   {
-    onError: (err) => ElMessage.error(`执行计划异常: ${err.message}`)
+    onError: (err) => ElMessage.error(t('sqlWorkbench.messages.explainError', { message: err.message }))
   }
 )
 
@@ -309,7 +307,7 @@ const {
 } = useApi<{ valid: boolean; dialect: string; error?: string }>(
   () => validateSql({ sql: sql.value, dialect: dialect.value }),
   {
-    onError: (err) => ElMessage.error(`校验异常: ${err.message}`)
+    onError: (err) => ElMessage.error(t('sqlWorkbench.messages.validateError', { message: err.message }))
   }
 )
 
@@ -336,35 +334,35 @@ const tableSourceRows = computed(() => {
 /** 执行跨源查询 */
 async function handleExecute(): Promise<void> {
   if (!sql.value.trim()) {
-    ElMessage.warning('请输入 SQL')
+    ElMessage.warning(t('sqlWorkbench.messages.needSql'))
     return
   }
   activeTab.value = 'result'
   await executeQuery()
   if (result.value && result.value.status !== 'SUCCESS') {
-    ElMessage.error(`查询失败: ${result.value.error || '未知错误'}`)
+    ElMessage.error(t('sqlWorkbench.messages.executeFailed', { error: result.value.error || t('sqlWorkbench.messages.unknownError') }))
   } else if (result.value?.crossSource) {
-    ElMessage.success(`跨源查询完成，返回 ${result.value.rowCount} 行`)
+    ElMessage.success(t('sqlWorkbench.messages.crossSourceDone', { count: result.value.rowCount }))
   } else if (result.value) {
-    ElMessage.success(`查询完成，返回 ${result.value.rowCount} 行`)
+    ElMessage.success(t('sqlWorkbench.messages.singleSourceDone', { count: result.value.rowCount }))
   }
 }
 
 /** 生成执行计划 */
 async function handleExplain(): Promise<void> {
   if (!sql.value.trim()) {
-    ElMessage.warning('请输入 SQL')
+    ElMessage.warning(t('sqlWorkbench.messages.needSql'))
     return
   }
   activeTab.value = 'explain'
   await explainQuery()
   if (explainResult.value?.error) {
-    ElMessage.error(`执行计划生成失败: ${explainResult.value.error}`)
+    ElMessage.error(t('sqlWorkbench.messages.explainFailed', { error: explainResult.value.error }))
   } else if (explainResult.value) {
     ElMessage.success(
       explainResult.value.crossSource
-        ? `跨源查询，涉及 ${explainResult.value.sources?.length || 0} 个源`
-        : '单源查询'
+        ? t('sqlWorkbench.messages.explainCross', { count: explainResult.value.sources?.length || 0 })
+        : t('sqlWorkbench.messages.explainSingle')
     )
   }
 }
@@ -372,7 +370,7 @@ async function handleExplain(): Promise<void> {
 /** 语法校验 */
 async function handleValidate(): Promise<void> {
   if (!sql.value.trim()) {
-    ElMessage.warning('请输入 SQL')
+    ElMessage.warning(t('sqlWorkbench.messages.needSql'))
     return
   }
   activeTab.value = 'validate'

@@ -51,6 +51,10 @@ import apiMarketZh from './locales/modules/apiMarket.zh-CN.json'
 import apiMarketEn from './locales/modules/apiMarket.en-US.json'
 import assetMarketZh from './locales/modules/assetMarket.zh-CN.json'
 import assetMarketEn from './locales/modules/assetMarket.en-US.json'
+import sqlWorkbenchZh from './locales/modules/sqlWorkbench.zh-CN.json'
+import sqlWorkbenchEn from './locales/modules/sqlWorkbench.en-US.json'
+import searchPortalZh from './locales/modules/searchPortal.zh-CN.json'
+import searchPortalEn from './locales/modules/searchPortal.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -123,7 +127,9 @@ export const i18n = createI18n({
       ...templateMarketZh,
       ...businessPortalZh,
       ...apiMarketZh,
-      ...assetMarketZh
+      ...assetMarketZh,
+      ...sqlWorkbenchZh,
+      ...searchPortalZh
     },
     'en-US': {
       ...enUS,
@@ -151,7 +157,9 @@ export const i18n = createI18n({
       ...templateMarketEn,
       ...businessPortalEn,
       ...apiMarketEn,
-      ...assetMarketEn
+      ...assetMarketEn,
+      ...sqlWorkbenchEn,
+      ...searchPortalEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

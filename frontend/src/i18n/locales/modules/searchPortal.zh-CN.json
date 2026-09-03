@@ -1,0 +1,60 @@
+{
+  "searchPortal": {
+    "title": "检索门户",
+    "subtitle": "统一检索入口，支持自然语言与结构化查询，覆盖数据集 / 服务 / 模型 / 作业等全资产类型。",
+    "sort": {
+      "title": "排序",
+      "fields": {
+        "relevance": "相关度",
+        "updatedAt": "更新时间",
+        "createdAt": "创建时间",
+        "score": "评分"
+      },
+      "order": {
+        "desc": "降序",
+        "asc": "升序"
+      }
+    },
+    "toolbar": {
+      "loading": "检索中…",
+      "hitsFmt": "命中 {total} 条 · 耗时 {took} ms",
+      "idle": "请输入检索条件",
+      "suggestions": "相关建议"
+    },
+    "suggestions": {
+      "label": "您是否要找："
+    },
+    "empty": {
+      "noResults": "未找到匹配结果",
+      "noResultsHint": "尝试调整检索词或过滤条件",
+      "init": "开始您的检索",
+      "initHint": "支持自然语言描述或结构化条件构建"
+    },
+    "detail": {
+      "title": "检索结果详情",
+      "fields": {
+        "id": "ID",
+        "name": "名称",
+        "type": "类型",
+        "source": "数据源",
+        "owner": "负责人",
+        "score": "评分",
+        "scoreFmt": "{score}%",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间",
+        "tags": "标签"
+      },
+      "noOwner": "—",
+      "noTags": "—",
+      "descTitle": "描述",
+      "noDesc": "暂无描述",
+      "openAsset": "打开资产"
+    },
+    "messages": {
+      "cleared": "已清空检索条件",
+      "bookmarked": "已收藏「{name}」",
+      "unbookmarked": "已取消收藏「{name}」",
+      "exportFailed": "导出失败：{message}"
+    }
+  }
+}

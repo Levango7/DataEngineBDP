@@ -1,0 +1,60 @@
+{
+  "searchPortal": {
+    "title": "Search Portal",
+    "subtitle": "Unified search entry; supports both natural language and structured queries across datasets, services, models, jobs and other assets.",
+    "sort": {
+      "title": "Sort",
+      "fields": {
+        "relevance": "Relevance",
+        "updatedAt": "Updated",
+        "createdAt": "Created",
+        "score": "Score"
+      },
+      "order": {
+        "desc": "Descending",
+        "asc": "Ascending"
+      }
+    },
+    "toolbar": {
+      "loading": "Searching…",
+      "hitsFmt": "Hit {total} · Took {took} ms",
+      "idle": "Please enter a search query",
+      "suggestions": "Suggestions"
+    },
+    "suggestions": {
+      "label": "Did you mean:"
+    },
+    "empty": {
+      "noResults": "No matching results",
+      "noResultsHint": "Try adjusting the search term or filters",
+      "init": "Start searching",
+      "initHint": "Supports natural language or structured conditions"
+    },
+    "detail": {
+      "title": "Search Result Detail",
+      "fields": {
+        "id": "ID",
+        "name": "Name",
+        "type": "Type",
+        "source": "Data Source",
+        "owner": "Owner",
+        "score": "Score",
+        "scoreFmt": "{score}%",
+        "createdAt": "Created",
+        "updatedAt": "Updated",
+        "tags": "Tags"
+      },
+      "noOwner": "—",
+      "noTags": "—",
+      "descTitle": "Description",
+      "noDesc": "No description",
+      "openAsset": "Open Asset"
+    },
+    "messages": {
+      "cleared": "Search conditions cleared",
+      "bookmarked": "Bookmarked \"{name}\"",
+      "unbookmarked": "Bookmark removed from \"{name}\"",
+      "exportFailed": "Export failed: {message}"
+    }
+  }
+}

@@ -59,6 +59,10 @@ import apiMarketZh from '@/i18n/locales/modules/apiMarket.zh-CN.json'
 import apiMarketEn from '@/i18n/locales/modules/apiMarket.en-US.json'
 import assetMarketZh from '@/i18n/locales/modules/assetMarket.zh-CN.json'
 import assetMarketEn from '@/i18n/locales/modules/assetMarket.en-US.json'
+import sqlWorkbenchZh from '@/i18n/locales/modules/sqlWorkbench.zh-CN.json'
+import sqlWorkbenchEn from '@/i18n/locales/modules/sqlWorkbench.en-US.json'
+import searchPortalZh from '@/i18n/locales/modules/searchPortal.zh-CN.json'
+import searchPortalEn from '@/i18n/locales/modules/searchPortal.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -134,7 +138,9 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['templateMarket', templateMarketZh as Record<string, unknown>, templateMarketEn as Record<string, unknown>],
     ['businessPortal', businessPortalZh as Record<string, unknown>, businessPortalEn as Record<string, unknown>],
     ['apiMarket', apiMarketZh as Record<string, unknown>, apiMarketEn as Record<string, unknown>],
-    ['assetMarket', assetMarketZh as Record<string, unknown>, assetMarketEn as Record<string, unknown>]
+    ['assetMarket', assetMarketZh as Record<string, unknown>, assetMarketEn as Record<string, unknown>],
+    ['sqlWorkbench', sqlWorkbenchZh as Record<string, unknown>, sqlWorkbenchEn as Record<string, unknown>],
+    ['searchPortal', searchPortalZh as Record<string, unknown>, searchPortalEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

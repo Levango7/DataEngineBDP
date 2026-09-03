@@ -1,0 +1,72 @@
+{
+  "sqlWorkbench": {
+    "title": "SQL Workbench",
+    "subtitle": "Cross-source federated query workbench: JOIN / UNION across Trino / Doris / Hive data sources, with parallel execution and in-memory merge.",
+    "editor": {
+      "dialect": "SQL Dialect",
+      "dialects": {
+        "ANSI": "ANSI",
+        "HIVE": "Hive",
+        "DORIS": "Doris",
+        "TRINO": "Trino"
+      },
+      "tenantPlaceholder": "Tenant ID (optional)",
+      "timeoutLabel": "Timeout (s)",
+      "explain": "Explain",
+      "validate": "Validate",
+      "execute": "Execute Query",
+      "placeholder": "Enter SQL, e.g.:\nSELECT * FROM hive.users JOIN doris.orders ON hive.users.id = doris.orders.uid",
+      "hintTag": "Hint",
+      "hint": "Cross-source queries require catalog prefix in table names (e.g. {hive}, {doris}); the system auto-detects sources and queries them in parallel."
+    },
+    "result": {
+      "tab": "Results",
+      "crossSource": "Cross-source",
+      "singleSource": "Single source",
+      "rowCount": "Rows:",
+      "duration": "Duration:",
+      "durationUnit": "ms",
+      "source": "Source:",
+      "queryId": "Query ID:",
+      "retry": "Retry",
+      "empty": "Query result is empty",
+      "executeFirst": "Run a query to see results"
+    },
+    "explain": {
+      "tab": "Explain",
+      "crossSource": "Cross-source",
+      "singleSource": "Single source",
+      "statementType": "Statement type:",
+      "parseDuration": "Parse duration:",
+      "parseDurationUnit": "ms",
+      "tablesTitle": "Tables and Source Mapping",
+      "tableCol": "Table",
+      "sourceCol": "Data source",
+      "sourcesTitle": "Sources Involved",
+      "vizTitle": "Cross-source JOIN Visualization",
+      "mergeArrow": "In-memory merge",
+      "merged": "merged",
+      "empty": "Click \"Explain\" to generate"
+    },
+    "validate": {
+      "tab": "Validate",
+      "valid": "SQL syntax is valid",
+      "invalid": "SQL syntax error",
+      "dialect": "Dialect: {dialect}",
+      "empty": "Click \"Validate\" to check"
+    },
+    "messages": {
+      "needSql": "Please enter SQL",
+      "executeError": "Query exception: {message}",
+      "executeFailed": "Query failed: {error}",
+      "unknownError": "Unknown error",
+      "crossSourceDone": "Cross-source query complete, {count} rows returned",
+      "singleSourceDone": "Query complete, {count} rows returned",
+      "explainError": "Explain exception: {message}",
+      "explainFailed": "Explain generation failed: {error}",
+      "explainCross": "Cross-source query, {count} sources involved",
+      "explainSingle": "Single-source query",
+      "validateError": "Validate exception: {message}"
+    }
+  }
+}

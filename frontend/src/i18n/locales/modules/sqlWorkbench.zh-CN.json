@@ -1,0 +1,72 @@
+{
+  "sqlWorkbench": {
+    "title": "SQL 工作台",
+    "subtitle": "跨源归并查询工作台，支持跨 Trino / Doris / Hive 数据源的 JOIN / UNION 查询，并行执行 + 内存归并。",
+    "editor": {
+      "dialect": "SQL 方言",
+      "dialects": {
+        "ANSI": "ANSI",
+        "HIVE": "Hive",
+        "DORIS": "Doris",
+        "TRINO": "Trino"
+      },
+      "tenantPlaceholder": "租户 ID（可选）",
+      "timeoutLabel": "超时(秒)",
+      "explain": "执行计划",
+      "validate": "语法校验",
+      "execute": "执行查询",
+      "placeholder": "输入 SQL，例如：\nSELECT * FROM hive.users JOIN doris.orders ON hive.users.id = doris.orders.uid",
+      "hintTag": "提示",
+      "hint": "跨源查询时表名需带 catalog 前缀（如 {hive}、{doris}），系统自动识别源并并行查询。"
+    },
+    "result": {
+      "tab": "查询结果",
+      "crossSource": "跨源查询",
+      "singleSource": "单源查询",
+      "rowCount": "行数:",
+      "duration": "耗时:",
+      "durationUnit": "ms",
+      "source": "来源:",
+      "queryId": "查询ID:",
+      "retry": "重试",
+      "empty": "查询结果为空",
+      "executeFirst": "执行查询后展示结果"
+    },
+    "explain": {
+      "tab": "执行计划",
+      "crossSource": "跨源查询",
+      "singleSource": "单源查询",
+      "statementType": "语句类型:",
+      "parseDuration": "解析耗时:",
+      "parseDurationUnit": "ms",
+      "tablesTitle": "涉及的表与源映射",
+      "tableCol": "表名",
+      "sourceCol": "数据源",
+      "sourcesTitle": "涉及的源",
+      "vizTitle": "跨源 JOIN 可视化",
+      "mergeArrow": "内存归并",
+      "merged": "merged",
+      "empty": "点击「执行计划」按钮生成"
+    },
+    "validate": {
+      "tab": "语法校验",
+      "valid": "SQL 语法合法",
+      "invalid": "SQL 语法错误",
+      "dialect": "方言: {dialect}",
+      "empty": "点击「语法校验」按钮校验"
+    },
+    "messages": {
+      "needSql": "请输入 SQL",
+      "executeError": "查询异常: {message}",
+      "executeFailed": "查询失败: {error}",
+      "unknownError": "未知错误",
+      "crossSourceDone": "跨源查询完成，返回 {count} 行",
+      "singleSourceDone": "查询完成，返回 {count} 行",
+      "explainError": "执行计划异常: {message}",
+      "explainFailed": "执行计划生成失败: {error}",
+      "explainCross": "跨源查询，涉及 {count} 个源",
+      "explainSingle": "单源查询",
+      "validateError": "校验异常: {message}"
+    }
+  }
+}

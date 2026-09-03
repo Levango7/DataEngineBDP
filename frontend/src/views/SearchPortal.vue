@@ -15,9 +15,9 @@
 -->
 <template>
   <div class="search-portal">
-    <h1>检索门户</h1>
+    <h1>{{ t('searchPortal.title') }}</h1>
     <div class="sub">
-      统一检索入口，支持自然语言与结构化查询，覆盖数据集 / 服务 / 模型 / 作业等全资产类型。
+      {{ t('searchPortal.subtitle') }}
     </div>
 
     <!-- 顶部检索输入 -->
@@ -44,16 +44,16 @@
 
         <!-- 排序选择 -->
         <div class="sort-box">
-          <div class="sort-title">排序</div>
+          <div class="sort-title">{{ t('searchPortal.sort.title') }}</div>
           <el-select v-model="sortModel" @change="onSortChange">
-            <el-option label="相关度" value="relevance" />
-            <el-option label="更新时间" value="updatedAt" />
-            <el-option label="创建时间" value="createdAt" />
-            <el-option label="评分" value="score" />
+            <el-option :label="t('searchPortal.sort.fields.relevance')" value="relevance" />
+            <el-option :label="t('searchPortal.sort.fields.updatedAt')" value="updatedAt" />
+            <el-option :label="t('searchPortal.sort.fields.createdAt')" value="createdAt" />
+            <el-option :label="t('searchPortal.sort.fields.score')" value="score" />
           </el-select>
           <el-radio-group v-model="sortOrder" size="small" @change="onSortChange">
-            <el-radio-button value="desc">降序</el-radio-button>
-            <el-radio-button value="asc">升序</el-radio-button>
+            <el-radio-button value="desc">{{ t('searchPortal.sort.order.desc') }}</el-radio-button>
+            <el-radio-button value="asc">{{ t('searchPortal.sort.order.asc') }}</el-radio-button>
           </el-radio-group>
         </div>
       </aside>
@@ -63,13 +63,11 @@
         <!-- 工具栏：统计 + 导出 -->
         <div class="result-toolbar">
           <div class="result-stat">
-            <template v-if="loading">检索中…</template>
+            <template v-if="loading">{{ t('searchPortal.toolbar.loading') }}</template>
             <template v-else-if="hasSearched">
-              命中
-              <span class="hit-num">{{ total }}</span>
-              条 · 耗时 {{ tookMs }} ms
+              {{ t('searchPortal.toolbar.hitsFmt', { total: total, took: tookMs }) }}
             </template>
-            <template v-else>请输入检索条件</template>
+            <template v-else>{{ t('searchPortal.toolbar.idle') }}</template>
           </div>
           <div class="toolbar-actions">
             <el-button
@@ -78,7 +76,7 @@
               :icon="MagicStick"
               @click="showSuggestions = !showSuggestions"
             >
-              相关建议
+              {{ t('searchPortal.toolbar.suggestions') }}
             </el-button>
             <SearchExport
               :query="query"
@@ -92,7 +90,7 @@
 
         <!-- 检索建议 -->
         <div v-if="showSuggestions && suggestions.length > 0" class="suggestion-bar">
-          <span class="sug-label">您是否要找：</span>
+          <span class="sug-label">{{ t('searchPortal.suggestions.label') }}</span>
           <span v-for="s in suggestions" :key="s" class="sug-chip" @click="applySuggestion(s)">
             {{ s }}
           </span>
@@ -120,15 +118,15 @@
         <!-- 空状态 -->
         <div v-else-if="isEmpty" class="empty-state">
           <el-icon :size="48"><Search /></el-icon>
-          <p>未找到匹配结果</p>
-          <span class="empty-tip">尝试调整检索词或过滤条件</span>
+          <p>{{ t('searchPortal.empty.noResults') }}</p>
+          <span class="empty-tip">{{ t('searchPortal.empty.noResultsHint') }}</span>
         </div>
 
         <!-- 未检索初始态 -->
         <div v-else-if="!hasSearched" class="init-state">
           <el-icon :size="48"><Document /></el-icon>
-          <p>开始您的检索</p>
-          <span class="empty-tip">支持自然语言描述或结构化条件构建</span>
+          <p>{{ t('searchPortal.empty.init') }}</p>
+          <span class="empty-tip">{{ t('searchPortal.empty.initHint') }}</span>
         </div>
 
         <!-- 结果卡片网格 -->
@@ -161,50 +159,50 @@
     </div>
 
     <!-- 详情抽屉 -->
-    <el-drawer v-model="detailVisible" title="检索结果详情" size="480px" direction="rtl">
+    <el-drawer v-model="detailVisible" :title="t('searchPortal.detail.title')" size="480px" direction="rtl">
       <div v-if="detailItem" class="detail-content">
         <div class="detail-row">
-          <span class="detail-label">ID</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.id') }}</span>
           <span class="detail-value">{{ detailItem.id }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">名称</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.name') }}</span>
           <span class="detail-value">{{ detailItem.name }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">类型</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.type') }}</span>
           <span class="detail-value">{{ detailItem.type }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">数据源</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.source') }}</span>
           <span class="detail-value">{{ detailItem.sourceName }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">负责人</span>
-          <span class="detail-value">{{ detailItem.owner ?? '—' }}</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.owner') }}</span>
+          <span class="detail-value">{{ detailItem.owner ?? t('searchPortal.detail.noOwner') }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">评分</span>
-          <span class="detail-value">{{ (detailItem.score * 100).toFixed(1) }}%</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.score') }}</span>
+          <span class="detail-value">{{ t('searchPortal.detail.fields.scoreFmt', { score: (detailItem.score * 100).toFixed(1) }) }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">创建时间</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.createdAt') }}</span>
           <span class="detail-value">{{ detailItem.createdAt }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">更新时间</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.updatedAt') }}</span>
           <span class="detail-value">{{ detailItem.updatedAt }}</span>
         </div>
         <div class="detail-row">
-          <span class="detail-label">标签</span>
-          <span class="detail-value">{{ detailItem.tags.join(', ') || '—' }}</span>
+          <span class="detail-label">{{ t('searchPortal.detail.fields.tags') }}</span>
+          <span class="detail-value">{{ detailItem.tags.join(', ') || t('searchPortal.detail.noTags') }}</span>
         </div>
         <div class="detail-desc">
-          <div class="detail-label">描述</div>
-          <p>{{ detailItem.description || '暂无描述' }}</p>
+          <div class="detail-label">{{ t('searchPortal.detail.descTitle') }}</div>
+          <p>{{ detailItem.description || t('searchPortal.detail.noDesc') }}</p>
         </div>
         <div v-if="detailItem.url" class="detail-actions">
-          <el-button type="primary" @click="openDetailUrl">打开资产</el-button>
+          <el-button type="primary" @click="openDetailUrl">{{ t('searchPortal.detail.openAsset') }}</el-button>
         </div>
       </div>
     </el-drawer>
@@ -213,6 +211,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ElMessage,
   ElAlert,
@@ -242,6 +241,8 @@ import type {
   SearchSortField,
   SortOrder
 } from '@/types/search'
+
+const { t } = useI18n()
 
 /* ------------------------------ 检索状态 ------------------------------ */
 const {
@@ -308,7 +309,7 @@ function onClear(): void {
   setQueryText('')
   setConditions([])
   resetFilter()
-  ElMessage.info('已清空检索条件')
+  ElMessage.info(t('searchPortal.messages.cleared'))
 }
 
 function onModeChange(mode: SearchMode): void {
@@ -351,7 +352,7 @@ function onOpenItem(item: SearchResultItem): void {
 
 function onBookmark(item: SearchResultItem, next: boolean): void {
   // 实际项目可调用收藏 API
-  ElMessage.success(next ? `已收藏「${item.name}」` : `已取消收藏「${item.name}」`)
+  ElMessage.success(next ? t('searchPortal.messages.bookmarked', { name: item.name }) : t('searchPortal.messages.unbookmarked', { name: item.name }))
 }
 
 function onExported(result: ExportResult): void {
@@ -360,7 +361,7 @@ function onExported(result: ExportResult): void {
 }
 
 function onExportError(err: Error): void {
-  ElMessage.error(`导出失败：${err.message}`)
+  ElMessage.error(t('searchPortal.messages.exportFailed', { message: err.message }))
 }
 
 function applySuggestion(s: string): void {
