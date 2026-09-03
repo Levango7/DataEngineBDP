@@ -759,21 +759,36 @@ csiJuicefs:
   affinity: {}
 
 # -----------------------------------------------------------------------------
-# data-quality（数据质量 - 自研规则引擎质量稽核 - 数据引擎大数据平台）
+# data-quality（数据质量与批处理服务 - batch-pipeline 五阶段流水线 API）
 # -----------------------------------------------------------------------------
 dataQuality:
   enabled: true
   image:
     repository: "docker.m.daocloud.io/sq-data-quality"
-    tag: "0.1.0"
+    tag: "2.0.0"
     pullPolicy: IfNotPresent
+  # API 服务模式启动命令（覆盖镜像默认批处理 CLI）
+  command: ["python"]
+  args: ["-m", "batch_pipeline.api.main"]
   replicaCount: 1
   service:
     type: ClusterIP
     port: 8080
+  env:
+    LOG_LEVEL: info
+    # 生产/K8s 必须 jwt（缺省匿名放行在 K8s 环境会 fail-fast 拒绝启动）
+    AUTH_MODE: jwt
+    API_PREFIX: /api/v1
+    API_PORT: "8080"
+    RUN_ROOT: /app/run
+    PIPELINE_CONFIG: /app/config/pipeline.json
+  secretEnv:
+    JWT_SECRET:
+      name: data-quality-auth
+      key: jwt-secret
   resources:
-    requests: { cpu: "500m", memory: "512Mi" }
-    limits:   { cpu: "1000m", memory: "1Gi" }
+    requests: { cpu: "500m", memory: "1Gi" }
+    limits:   { cpu: "1000m", memory: "2Gi" }
   securityContext:
     enabled: true
     runAsNonRoot: true

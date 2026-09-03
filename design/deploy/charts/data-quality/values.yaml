@@ -1,23 +1,31 @@
 # ============================================================================
 # data-quality Helm Chart 默认 values
-# 关联：design/deploy/values/data-quality-values.yaml（深度调优配置）
-# 说明：本文件为 Chart 骨架级默认值，完整生产配置请引用上述 values 文件。
+# 实体：platform/batch-pipeline（数据质量与批处理服务）——五阶段流水线
+#       （ingest→validate→clean→compute→output）的 FastAPI 提交/查询壳。
+# 关联：design/deploy/values/data-quality-values.yaml（环境调优配置）
+# 镜像：platform/batch-pipeline Dockerfile 构建（python:3.12-slim 多阶段，
+#       内含 batch_pipeline 包 + config/ + 依赖 vendor），推送为 sq-data-quality。
 # ============================================================================
 
 # ---- 镜像配置（国内镜像源 docker.m.daocloud.io）----
 image:
   repository: "docker.m.daocloud.io/sq-data-quality"
-  tag: "0.1.0"
+  tag: "2.0.0"
   pullPolicy: IfNotPresent
 
+# ---- 容器启动命令（覆盖镜像默认 CMD 的批处理 CLI，改为 API 服务模式）----
+command: ["python"]
+args: ["-m", "batch_pipeline.api.main"]
+
 # ---- 副本数 ----
+# API 执行为进程内串行（批次按配置 root logger），吞吐扩展靠加副本，不要单副本多线程
 replicaCount: 1
 
 # ---- Service 配置 ----
 service:
   type: ClusterIP
   port: 8080
-  # 容器端口
+  # 容器端口（API_PORT）
   containerPort: 8080
 
 # ---- 资源配额（默认 standard 档）----
@@ -28,7 +36,6 @@ resources:
   limits:
     cpu: "1"
     memory: "2Gi"
-
 
 # ---- 安全上下文（Pod/Container 安全加固）----
 securityContext:
@@ -43,22 +50,40 @@ securityContext:
     drop:
       - ALL
 
+# ---- 可写卷（readOnlyRootFilesystem=true 时批次运行/状态目录必须外挂）----
+# extraVolumes/extraVolumeMounts 为通用透传口，可按需追加 PVC 等
+extraVolumes:
+  - name: run-data
+    emptyDir: {}
+  - name: state-data
+    emptyDir: {}
+  - name: tmp-data
+    emptyDir: {}
+extraVolumeMounts:
+  - name: run-data
+    mountPath: /app/run
+  - name: state-data
+    mountPath: /app/state
+  - name: tmp-data
+    mountPath: /tmp
+
 # ---- 健康检查 ----
+# /health /healthz /readyz 挂在 API_PREFIX（/api/v1）下且匿名可达（探针约定）
 probes:
   liveness:
     enabled: true
     httpGet:
-      path: /healthz
+      path: /api/v1/healthz
       port: 8080
-    initialDelaySeconds: 30
+    initialDelaySeconds: 15
     periodSeconds: 10
     failureThreshold: 3
   readiness:
     enabled: true
     httpGet:
-      path: /readyz
+      path: /api/v1/readyz
       port: 8080
-    initialDelaySeconds: 10
+    initialDelaySeconds: 5
     periodSeconds: 5
     failureThreshold: 3
 
@@ -92,15 +117,32 @@ ingress:
           pathType: Prefix
   tls: []
 
-# ---- 环境变量 ----
+# ---- 环境变量（明文）----
 env:
   LOG_LEVEL: info
-  JAVA_OPTS: ""
+  # API 服务模式鉴权：生产必须 jwt（镜像内 K8s 环境缺省会 fail-fast 拒绝匿名放行）
+  AUTH_MODE: jwt
+  API_PREFIX: /api/v1
+  API_HOST: "0.0.0.0"
+  API_PORT: "8080"
+  # 批次运行根目录（租户分区 run/<tenant>/<batch>/ 挂在其下），对应 extraVolumes 挂载点
+  RUN_ROOT: /app/run
+  # 提交批次未携带 config 覆盖时的基础配置（镜像内 /app/config/pipeline.json）
+  PIPELINE_CONFIG: /app/config/pipeline.json
+  PYTHONUNBUFFERED: "1"
+  # 注意：不要设置 BATCH_PIPELINE_TENANT_ID——服务为多租户模式，
+  # 租户由每请求的 JWT claim / X-Tenant-Id 头解析并写入批次配置
 
-# ---- ConfigMap 数据（骨架，按需扩展）----
-config:
-  application.conf: |
-    # data-quality 默认配置，完整配置请引用 design/deploy/values/data-quality-values.yaml
+# ---- 敏感环境变量（Secret keyRef）----
+# 部署前创建：kubectl create secret generic data-quality-auth \
+#   --from-literal=jwt-secret=<HS256 密钥> -n sq-governance
+secretEnv:
+  JWT_SECRET:
+    name: data-quality-auth
+    key: jwt-secret
+
+# ---- ConfigMap 数据（envFrom 注入 + 可选配置文件，按需扩展）----
+config: {}
 
 # ---- 引用提示 ----
 # 完整配置请通过 -f design/deploy/values/data-quality-values.yaml 覆盖
@@ -112,6 +154,7 @@ networkPolicy:
   enabled: false
 
 # ---- ServiceMonitor（Prometheus 指标采集）----
+# 注意：API 暂未暴露 /metrics 端点，启用前先在服务侧实现指标接口
 serviceMonitor:
   enabled: false
   path: /metrics

@@ -1,6 +1,6 @@
 apiVersion: v2
 name: data-quality
-description: "数据质量 - 自研规则引擎质量稽核 - 数据引擎大数据平台"
+description: "数据质量与批处理服务（batch-pipeline 五阶段流水线提交/查询 API）- 数据引擎大数据平台"
 type: application
 version: 2.0.0
 appVersion: "2.0.0"
@@ -9,10 +9,10 @@ maintainers:
   - name: DataEngineBDP Team
     email: platform@shuqing.example.com
 keywords:
-  - quality
-  - governance
-  - rule
+  - data-quality
+  - batch-pipeline
+  - fastapi
+  - multi-tenant
   - shuqing-platform
-  - governance
 # 部署目标 namespace（仅文档语义，实际由 helm -n 指定）
 namespace: sq-governance

@@ -1,10 +1,10 @@
 ﻿# data-quality Helm Chart
 
-> 数据质量 - 自研规则引擎质量稽核 - 数据引擎大数据平台
+> 数据质量与批处理服务（batch-pipeline 五阶段流水线提交/查询 API）- 数据引擎大数据平台
 
 ## 1. 概述
 
-`data-quality` 是数据引擎大数据平台（DataEngineBDP）的 Helm Chart，用于在 Kubernetes 集群上一键部署和管理 `data-quality` 组件。
+`data-quality` 是数据引擎大数据平台（DataEngineBDP）的 Helm Chart，用于在 Kubernetes 集群上一键部署和管理 `data-quality` 组件（实体为 `platform/batch-pipeline`：ingest→validate→clean→compute→output 五阶段批处理流水线的 FastAPI 提交/查询壳，多租户按 JWT claim / X-Tenant-Id 隔离）。
 
 - **Chart 版本**：`2.0.0`
 - **App 版本**：`2.0.0`
@@ -56,21 +56,26 @@ helm template data-quality design/deploy/charts/data-quality -n sq-governance
 | 参数 | 说明 | 默认值 |
 | --- | --- | --- |
 | `image.repository` | 镜像仓库地址 | `docker.m.daocloud.io/sq-data-quality` |
-| `image.tag` | 镜像标签 | `0.1.0` |
+| `image.tag` | 镜像标签 | `2.0.0` |
 | `image.pullPolicy` | 镜像拉取策略 | `IfNotPresent` |
+| `command` / `args` | 容器启动命令（覆盖镜像默认批处理 CLI，改为 API 模式） | `["python"]` / `["-m", "batch_pipeline.api.main"]` |
 | `replicaCount` | 副本数 | `1` |
 | `service.type` | Service 类型 | `ClusterIP` |
 | `service.port` | Service 端口 | `8080` |
 | `service.containerPort` | 容器端口 | `8080` |
+| `env.AUTH_MODE` | 鉴权模式（生产必须 `jwt`，K8s 内缺省会 fail-fast） | `jwt` |
+| `env.RUN_ROOT` | 批次运行根目录（租户分区 run/\<tenant\>/\<batch\>/） | `/app/run` |
+| `secretEnv.JWT_SECRET` | HS256 鉴权密钥（Secret keyRef） | `data-quality-auth/jwt-secret` |
+| `extraVolumes` / `extraVolumeMounts` | 可写卷（readOnlyRootFilesystem 下 run/state/tmp 外挂） | emptyDir × 3 |
 | `resources.requests.cpu` | CPU 请求 | `500m` |
-| `resources.requests.memory` | 内存请求 | `512Mi` |
+| `resources.requests.memory` | 内存请求 | `1Gi` |
 | `resources.limits.cpu` | CPU 上限 | `1000m` |
-| `resources.limits.memory` | 内存上限 | `1Gi` |
+| `resources.limits.memory` | 内存上限 | `2Gi` |
 | `securityContext.enabled` | 安全上下文开关 | `true` |
 | `securityContext.runAsNonRoot` | 非 root 运行 | `true` |
 | `securityContext.runAsUser` | 运行用户 UID | `1000` |
-| `probes.liveness.enabled` | 存活探针开关 | `true` |
-| `probes.readiness.enabled` | 就绪探针开关 | `true` |
+| `probes.liveness.enabled` | 存活探针开关（`/api/v1/healthz`，匿名可达） | `true` |
+| `probes.readiness.enabled` | 就绪探针开关（`/api/v1/readyz`） | `true` |
 | `autoscaling.enabled` | HPA 开关 | `false` |
 | `autoscaling.minReplicas` | HPA 最小副本 | `1` |
 | `autoscaling.maxReplicas` | HPA 最大副本 | `3` |
@@ -87,8 +92,12 @@ helm template data-quality design/deploy/charts/data-quality -n sq-governance
 # data-quality 自定义配置示例
 image:
   repository: "docker.m.daocloud.io/sq-data-quality"
-  tag: "0.1.0"
+  tag: "2.0.0"
   pullPolicy: IfNotPresent
+
+# API 服务模式启动命令
+command: ["python"]
+args: ["-m", "batch_pipeline.api.main"]
 
 replicaCount: 2
 
@@ -100,10 +109,21 @@ service:
 resources:
   requests:
     cpu: "500m"
-    memory: "512Mi"
+    memory: "1Gi"
   limits:
     cpu: "1000m"
-    memory: "1Gi"
+    memory: "2Gi"
+
+env:
+  LOG_LEVEL: info
+  AUTH_MODE: jwt
+  RUN_ROOT: /app/run
+  PIPELINE_CONFIG: /app/config/pipeline.json
+
+secretEnv:
+  JWT_SECRET:
+    name: data-quality-auth
+    key: jwt-secret
 
 securityContext:
   enabled: true
@@ -132,7 +152,16 @@ ingress:
 - **非 root 运行**：`runAsNonRoot: true`，`runAsUser: 1000`
 - **权限降级**：`allowPrivilegeEscalation: false`
 - **能力裁剪**：`capabilities.drop: [ALL]`
-- **只读根文件系统**：按组件特性配置
+- **只读根文件系统**：`readOnlyRootFilesystem: true`，批次运行目录（/app/run）、增量状态目录（/app/state）与 /tmp 经 `extraVolumes` 外挂 emptyDir 可写
+- **强制鉴权**：`AUTH_MODE=jwt` + Secret 注入 `JWT_SECRET`（部署前创建）：
+
+```bash
+kubectl create secret generic data-quality-auth \
+  --from-literal=jwt-secret=<HS256 密钥> -n sq-governance
+```
+
+- **租户隔离**：批次按 JWT claim / X-Tenant-Id 解析租户并强制分区到 `run/<tenant>/<batch>/`；请求体中的 tenant / storage / run_dir / state_dir 覆盖项由服务端剔除，不可逃逸
+- **网络微隔离**：`networkPolicy.enabled: true`（仅同命名空间可访问服务端口）
 
 ## 7. 运维操作
 
