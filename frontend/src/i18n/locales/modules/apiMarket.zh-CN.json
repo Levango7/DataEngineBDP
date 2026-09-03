@@ -1,0 +1,198 @@
+{
+  "apiMarket": {
+    "title": "开放 API 服务目录",
+    "subtitle": "L5.5 · 将平台数据能力封装为 REST/gRPC API，经 APISIX 网关对外暴露；配套服务目录支持浏览、搜索、订阅、调用与计量。",
+    "kpi": {
+      "published": "已发布 API",
+      "runningDraft": "运行中 {running} · 草稿 {draft}",
+      "monthlyCalls": "月调用量",
+      "successRate": "成功率 {rate}%",
+      "activeSubs": "活跃订阅",
+      "pendingSubs": "待审批 {count}",
+      "slaPlatinum": "SLA 铂金",
+      "slaBreakdown": "金 {gold} · 银 {silver}"
+    },
+    "toolbar": {
+      "searchPlaceholder": "搜索 API 名称 / 描述 / 标签",
+      "allCategories": "全部分类",
+      "allStatuses": "全部状态",
+      "register": "+ 注册 API"
+    },
+    "list": {
+      "loading": "加载中…",
+      "loadFailed": "API 列表加载失败: {message}",
+      "retry": "重试",
+      "empty": "暂无 API，点击「+ 注册 API」创建",
+      "noDesc": "（无描述）",
+      "callCount": "{count} 次调用"
+    },
+    "detail": {
+      "titleSuffix": " · 详情",
+      "tabs": {
+        "doc": "文档",
+        "try": "试调",
+        "subscribe": "订阅",
+        "metrics": "计量"
+      },
+      "doc": {
+        "name": "名称",
+        "version": "版本",
+        "method": "方法",
+        "description": "描述",
+        "auth": "认证",
+        "sla": "SLA",
+        "cost": "计费",
+        "costUnitPrice": "{label} · 单价 {price}",
+        "status": "状态",
+        "paramsTitle": "参数",
+        "paramColumns": {
+          "name": "名称",
+          "location": "位置",
+          "type": "类型",
+          "required": "必填",
+          "description": "描述"
+        },
+        "yes": "是",
+        "no": "否",
+        "noParams": "无参数"
+      },
+      "try": {
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "输入订阅的 Access Key",
+        "payload": "请求体 (JSON)",
+        "payloadPlaceholder": "{\"key\": \"value\"}",
+        "submit": "发起调用",
+        "submitting": "调用中…",
+        "result": {
+          "statusCode": "状态码",
+          "latency": "延迟",
+          "latencyUnit": " ms",
+          "cost": "费用",
+          "error": "错误",
+          "response": "响应"
+        }
+      },
+      "subscribe": {
+        "applyTitle": "申请订阅",
+        "subscriberId": "订阅者 ID",
+        "subscriberIdPlaceholder": "如 svc-risk",
+        "tenantId": "租户 ID",
+        "tenantIdPlaceholder": "如 tenant-consumer",
+        "purpose": "用途",
+        "purposePlaceholder": "如 风控数据查询",
+        "quotaExpect": "期望配额（次/分钟）",
+        "submit": "提交申请",
+        "listTitle": "已有订阅者",
+        "listColumns": {
+          "subscriber": "订阅者",
+          "status": "状态",
+          "quota": "配额",
+          "callCount": "调用次数",
+          "ak": "AK"
+        },
+        "akMask": "{ak}…",
+        "empty": "暂无订阅者"
+      },
+      "metrics": {
+        "loading": "加载中…",
+        "callCount": "调用次数",
+        "successRate": "成功率",
+        "p99": "P99 延迟",
+        "totalCost": "总费用",
+        "timeseriesTitle": "时间序列",
+        "tsPoint": "{ts}: {count} 次",
+        "noTimeseries": "无时间序列数据",
+        "byConsumerTitle": "按消费者",
+        "byConsumerColumns": {
+          "tenant": "消费者租户",
+          "callCount": "调用次数",
+          "errorCount": "错误次数",
+          "avgLatency": "平均延迟",
+          "cost": "费用"
+        },
+        "noConsumer": "无消费者数据"
+      },
+      "actions": {
+        "close": "关闭",
+        "publish": "提交审核并发布"
+      }
+    },
+    "register": {
+      "title": "注册 API",
+      "name": "名称",
+      "namePlaceholder": "如 weather-query",
+      "version": "版本",
+      "versionPlaceholder": "1.0.0",
+      "description": "描述",
+      "descriptionPlaceholder": "API 描述",
+      "category": "分类",
+      "categoryPlaceholder": "如 weather",
+      "method": "HTTP 方法",
+      "path": "路径",
+      "pathPlaceholder": "/weather",
+      "authType": "认证方式",
+      "sla": "SLA 等级",
+      "upstreamType": "后端类型",
+      "upstreamUrl": "后端 URL",
+      "upstreamUrlPlaceholder": "http://trino:8080/v1/statement",
+      "providerTenantId": "提供方租户",
+      "providerTenantIdPlaceholder": "tenant-provider",
+      "cancel": "取消",
+      "submit": "注册"
+    },
+    "status": {
+      "api": {
+        "draft": "草稿",
+        "reviewing": "审核中",
+        "approved": "已审核",
+        "rejected": "已驳回",
+        "published": "已发布",
+        "running": "运行中",
+        "deprecated": "已废弃",
+        "archived": "已归档",
+        "offline": "已下线"
+      },
+      "sla": {
+        "platinum": "铂金",
+        "gold": "金",
+        "silver": "银"
+      },
+      "auth": {
+        "api_key": "API Key",
+        "jwt": "JWT",
+        "oauth2": "OAuth2",
+        "none": "无"
+      },
+      "cost": {
+        "by_call": "按次",
+        "by_bytes": "按量",
+        "monthly_package": "月包"
+      },
+      "subscription": {
+        "pending": "待审批",
+        "approved": "已审批",
+        "active": "已激活",
+        "suspended": "已暂停",
+        "rejected": "已驳回",
+        "revoked": "已吊销"
+      }
+    },
+    "upstreamType": {
+      "trino": "Trino",
+      "doris": "Doris",
+      "llm": "大模型",
+      "http": "HTTP"
+    },
+    "messages": {
+      "needApiKey": "请输入 API Key",
+      "needSubAndPurpose": "请填写订阅者和用途",
+      "subscribeSubmitted": "订阅申请已提交",
+      "subscribeFailed": "订阅失败: {message}",
+      "published": "API 已发布",
+      "publishFailed": "发布失败: {message}",
+      "needNameAndPath": "请填写名称和路径",
+      "registered": "API 注册成功",
+      "registerFailed": "注册失败: {message}"
+    }
+  }
+}

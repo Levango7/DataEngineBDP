@@ -1,0 +1,209 @@
+{
+  "assetMarket": {
+    "title": "Data Asset Marketplace",
+    "subtitle": "L5.6 · Register, list, distribute and monetize datasets, services, models and LLMs in a three-sided market: provider — platform — consumer.",
+    "kpi": {
+      "listed": "Listed Assets",
+      "circulatable": "Circulatable",
+      "mySubs": "My Subscriptions",
+      "activeSubs": "{count} active",
+      "revenue": "Cumulative Revenue",
+      "providerSettle": "Provider settlement",
+      "platformFee": "Platform Fee",
+      "feeShare": "20% share"
+    },
+    "loading": "Loading assets...",
+    "loadFailed": "Load failed: {message}",
+    "retry": "Retry",
+    "tabs": {
+      "market": "Market",
+      "mine": "My Subscriptions",
+      "listed": "My Listings"
+    },
+    "listAsset": "+ List Asset",
+    "market": {
+      "searchPlaceholder": "Search asset name...",
+      "allTypes": "All types",
+      "allLevels": "All levels",
+      "empty": "No assets, click \"+ List Asset\" in the top right",
+      "card": {
+        "noDesc": "No description",
+        "owner": "Provider: {owner}",
+        "quality": "Quality: {score}",
+        "subCount": "{count} subs",
+        "priceUnit": "¥{price} / {unit}"
+      }
+    },
+    "mySubs": {
+      "title": "Subscriptions",
+      "loading": "Loading subscriptions...",
+      "loadFailed": "Load failed: {message}",
+      "retry": "Retry",
+      "empty": "No subscriptions yet, visit the asset market",
+      "columns": {
+        "asset": "Asset",
+        "owner": "Provider",
+        "status": "Status",
+        "period": "Period",
+        "delivery": "Delivery",
+        "actions": "Actions"
+      },
+      "period": "{start} ~ {end}",
+      "deliver": "Deliver",
+      "billing": "Billing"
+    },
+    "myListed": {
+      "title": "My Listings",
+      "columns": {
+        "name": "Name",
+        "type": "Type",
+        "status": "Status",
+        "subCount": "Subs",
+        "revenue": "Revenue",
+        "actions": "Actions"
+      },
+      "revenueFmt": "¥{amount}",
+      "detail": "Detail",
+      "offline": "Offline",
+      "relist": "Relist",
+      "empty": "No listings yet"
+    },
+    "detail": {
+      "titleFallback": "Asset Detail",
+      "fields": {
+        "type": "Type",
+        "owner": "Provider",
+        "security": "Security Level",
+        "quality": "Quality Score",
+        "updateFreq": "Update Frequency",
+        "price": "Price",
+        "priceFmt": "¥{price} / {unit} ({mode})",
+        "subscriber": "Subscribers"
+      },
+      "schemaTitle": "Schema",
+      "schemaColumns": {
+        "field": "Field",
+        "type": "Type",
+        "description": "Description"
+      },
+      "noSchema": "No schema info",
+      "sampleTitle": "Sample Data",
+      "noSample": "No sample data",
+      "close": "Close",
+      "subscribe": "Subscribe"
+    },
+    "listForm": {
+      "title": "List Asset",
+      "name": "Asset Name",
+      "namePlaceholder": "e.g. user-events",
+      "type": "Asset Type",
+      "securityLevel": "Security Level",
+      "description": "Description",
+      "descriptionPlaceholder": "Asset description",
+      "billingMode": "Billing Mode",
+      "unitPrice": "Unit Price (CNY)",
+      "deliveryMethod": "Delivery Method",
+      "cancel": "Cancel",
+      "submit": "List",
+      "needName": "Please enter asset name",
+      "submitted": "Asset {name} listed",
+      "failed": "List failed: {message}"
+    },
+    "deliver": {
+      "title": "Data Delivery",
+      "assetName": "Subscribed Asset",
+      "subscriberId": "Subscriber",
+      "method": "Delivery Method",
+      "api": {
+        "endpoint": "API Endpoint",
+        "endpointPlaceholder": "/api/v1/data/query"
+      },
+      "file": {
+        "format": "File Format"
+      },
+      "database": {
+        "jdbcUrl": "JDBC URL",
+        "jdbcUrlPlaceholder": "jdbc:postgresql://host:5432/db",
+        "tableName": "Table Name",
+        "tableNamePlaceholder": "table_name"
+      },
+      "cancel": "Cancel",
+      "submit": "Deliver",
+      "success": "Data delivered",
+      "failed": "Delivery failed: {message}"
+    },
+    "billing": {
+      "title": "Billing Records",
+      "loading": "Loading billing records...",
+      "columns": {
+        "period": "Period",
+        "mode": "Mode",
+        "usage": "Usage",
+        "amount": "Amount",
+        "providerRevenue": "Provider Revenue"
+      },
+      "usageFmt": "{usage} {unit}",
+      "amountFmt": "¥{amount}",
+      "empty": "No billing records",
+      "close": "Close",
+      "loadFailed": "Failed to load billing records: {message}"
+    },
+    "assetType": {
+      "table": "Dataset",
+      "api": "Service",
+      "model": "Model",
+      "dashboard": "Dashboard",
+      "stream": "Stream"
+    },
+    "security": {
+      "public": "Public",
+      "internal": "Internal",
+      "sensitive": "Sensitive"
+    },
+    "subStatus": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "active": "Active",
+      "expired": "Expired",
+      "rejected": "Rejected"
+    },
+    "deliveryStatus": {
+      "none": "Not delivered",
+      "pending": "Pending",
+      "running": "Delivering",
+      "succeeded": "Delivered",
+      "failed": "Failed"
+    },
+    "assetStatus": {
+      "draft": "Draft",
+      "listed": "Listed",
+      "offline": "Offline",
+      "rejected": "Rejected"
+    },
+    "billingMode": {
+      "by_call": "Per call",
+      "by_data": "Per data",
+      "by_time": "Per time",
+      "by_time_unit": "Per time (monthly)",
+      "one_time": "One-time"
+    },
+    "deliveryMethod": {
+      "api": "API",
+      "file": "File",
+      "database_direct": "DB Direct"
+    },
+    "fileFormat": {
+      "csv": "CSV",
+      "parquet": "Parquet",
+      "json": "JSON"
+    },
+    "messages": {
+      "subscribed": "Subscribed to {name}, awaiting approval",
+      "subscribeFailed": "Subscription failed: {message}",
+      "offlined": "Asset {name} offlined",
+      "offlineFailed": "Offline failed: {message}",
+      "relisted": "Asset {name} relisted",
+      "relistFailed": "Relist failed: {message}"
+    }
+  }
+}

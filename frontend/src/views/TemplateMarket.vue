@@ -330,7 +330,7 @@
         <el-result
           :icon="deployResult.status === 'running' ? 'success' : 'warning'"
           :title="statusLabel(deployResult.status)"
-          :sub-title="t('templateMarket.result.fields.jobRunId') + ': ' + deployResult.deploymentId"
+          :sub-title="`${t('templateMarket.result.fields.deploymentId')}: ${deployResult.deploymentId}`"
         />
         <el-descriptions :column="1" border size="small">
           <el-descriptions-item :label="t('templateMarket.result.fields.template')">{{ deployResult.templateId }}</el-descriptions-item>
@@ -365,6 +365,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh, Search, Download, Star, Cpu, Check, DataLine } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
@@ -381,6 +382,8 @@ import type {
   DeploymentStatus
 } from '@/api/template'
 
+const { t, te } = useI18n()
+
 /* ------------------------------ 列表与分类 ------------------------------ */
 
 const filterIndustry = ref<Industry | ''>('')
@@ -396,7 +399,7 @@ const {
   () => Promise.all([templateApi.listTemplates(), templateApi.listCategories()]),
   {
     initialData: [[], []],
-    onError: () => ElMessage.error('模板列表加载失败')
+    onError: () => ElMessage.error(t('templateMarket.messages.loadListFailed'))
   }
 )
 const templateList = computed<TemplateMeta[]>(() => listData.value?.[0] ?? [])
@@ -439,7 +442,7 @@ const {
   (id: string) => Promise.all([templateApi.getTemplate(id), templateApi.previewTemplate(id)]),
   {
     onError: () => {
-      ElMessage.error('模板详情加载失败')
+      ElMessage.error(t('templateMarket.messages.loadDetailFailed'))
       detailVisible.value = false
     }
   }
@@ -472,8 +475,8 @@ const deployForm = reactive<{
 })
 
 const deployRules: FormRules = {
-  tenantId: [{ required: true, message: '请输入租户 ID', trigger: 'blur' }],
-  releaseName: [{ required: true, message: '请输入 Release 名称', trigger: 'blur' }]
+  tenantId: [{ required: true, message: t('templateMarket.deploy.form.tenantIdRequired'), trigger: 'blur' }],
+  releaseName: [{ required: true, message: t('templateMarket.deploy.form.releaseNameRequired'), trigger: 'blur' }]
 }
 
 /** 可部署参数（排除有默认值的非必填项以简化表单） */
@@ -517,7 +520,7 @@ async function handleDeploy() {
       deployVisible.value = false
       deployResult.value = result
       resultVisible.value = true
-      ElMessage.success('模板部署成功')
+      ElMessage.success(t('templateMarket.messages.deploySuccess'))
     } catch {
       // 错误提示由拦截器统一处理
     } finally {
@@ -533,16 +536,8 @@ const deployResult = ref<DeploymentRecord | null>(null)
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-const INDUSTRY_LABELS: Record<Industry, string> = {
-  finance: '金融',
-  retail: '零售',
-  manufacturing: '制造',
-  government: '政务',
-  iot: '物联网'
-}
-
 function industryLabel(ind: Industry): string {
-  return INDUSTRY_LABELS[ind] || ind
+  return t(`templateMarket.industry.${ind}`)
 }
 
 function industryTagType(ind: Industry): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
@@ -556,23 +551,12 @@ function industryTagType(ind: Industry): 'primary' | 'success' | 'warning' | 'in
   return map[ind] || 'info'
 }
 
-const STATUS_LABELS: Record<TemplateStatus, string> = {
-  dev: '开发中',
-  review: '审核中',
-  catalog: '已上架',
-  deprecated: '已下架'
-}
-
 function statusLabel(status: TemplateStatus | DeploymentStatus): string {
-  const depMap: Record<DeploymentStatus, string> = {
-    pending: '等待中',
-    installing: '安装中',
-    instantiating: '实例化中',
-    running: '运行中',
-    failed: '失败',
-    stopped: '已停止'
-  }
-  return STATUS_LABELS[status as TemplateStatus] || depMap[status as DeploymentStatus] || status
+  const tplKey = `templateMarket.status.template.${status}`
+  const depKey = `templateMarket.status.deployment.${status}`
+  if (te(tplKey)) return t(tplKey)
+  if (te(depKey)) return t(depKey)
+  return status
 }
 
 function statusTagType(status: TemplateStatus): 'success' | 'warning' | 'info' {

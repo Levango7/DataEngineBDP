@@ -1,57 +1,56 @@
 <template>
   <div>
-    <h1>数据资产流通</h1>
+    <h1>{{ t('assetMarket.title') }}</h1>
     <div class="sub">
-      L5.6 · 数据集 / 数据服务 / 数据模型 /
-      大模型统一登记、上架、流通、变现，构建"提供方—平台—消费方"三方市场。
+      {{ t('assetMarket.subtitle') }}
     </div>
 
     <!-- 顶部 KPI -->
     <div class="grid g4">
       <div class="card">
-        <h3>在架资产</h3>
+        <h3>{{ t('assetMarket.kpi.listed') }}</h3>
         <div class="kpi s">{{ assets?.length ?? 0 }}</div>
-        <div class="meta">可流通</div>
+        <div class="meta">{{ t('assetMarket.kpi.circulatable') }}</div>
       </div>
       <div class="card">
-        <h3>我的订阅</h3>
+        <h3>{{ t('assetMarket.kpi.mySubs') }}</h3>
         <div class="kpi s">{{ mySubscriptions?.length ?? 0 }}</div>
-        <div class="meta">生效中 {{ activeSubCount }}</div>
+        <div class="meta">{{ t('assetMarket.kpi.activeSubs', { count: activeSubCount }) }}</div>
       </div>
       <div class="card">
-        <h3>累计收益</h3>
+        <h3>{{ t('assetMarket.kpi.revenue') }}</h3>
         <div class="kpi s">¥{{ totalRevenue.toFixed(2) }}</div>
-        <div class="meta">提供方入账</div>
+        <div class="meta">{{ t('assetMarket.kpi.providerSettle') }}</div>
       </div>
       <div class="card">
-        <h3>平台抽成</h3>
+        <h3>{{ t('assetMarket.kpi.platformFee') }}</h3>
         <div class="kpi s">¥{{ totalPlatformRevenue.toFixed(2) }}</div>
-        <div class="meta">20% 分账</div>
+        <div class="meta">{{ t('assetMarket.kpi.feeShare') }}</div>
       </div>
     </div>
 
     <!-- 加载与错误状态 -->
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
-      正在加载资产列表...
+      {{ t('assetMarket.loading') }}
     </div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
-      加载失败：{{ error.message }}
-      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">重试</button>
+      {{ t('assetMarket.loadFailed', { message: error.message }) }}
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">{{ t('assetMarket.retry') }}</button>
     </div>
 
     <!-- Tab 切换 -->
     <div class="toolbar" style="margin-top: 14px">
       <button :class="['btn', 'sm', tab === 'market' ? '' : 'ghost']" @click="tab = 'market'">
-        资产市场
+        {{ t('assetMarket.tabs.market') }}
       </button>
       <button :class="['btn', 'sm', tab === 'mine' ? '' : 'ghost']" @click="tab = 'mine'">
-        我的订阅
+        {{ t('assetMarket.tabs.mine') }}
       </button>
       <button :class="['btn', 'sm', tab === 'listed' ? '' : 'ghost']" @click="tab = 'listed'">
-        我上架的
+        {{ t('assetMarket.tabs.listed') }}
       </button>
       <div class="spacer"></div>
-      <button class="btn sm" @click="listModalVisible = true">+ 上架资产</button>
+      <button class="btn sm" @click="listModalVisible = true">{{ t('assetMarket.listAsset') }}</button>
     </div>
 
     <!-- 资产市场：卡片式浏览 -->
@@ -59,20 +58,20 @@
       <!-- 筛选 -->
       <div class="card" style="margin-bottom: 14px">
         <div class="row" style="gap: 12px; align-items: center">
-          <input v-model="searchQuery" placeholder="搜索资产名称..." style="flex: 1" />
+          <input v-model="searchQuery" :placeholder="t('assetMarket.market.searchPlaceholder')" style="flex: 1" />
           <select v-model="filterType" style="width: 140px">
-            <option value="">全部类型</option>
-            <option value="table">数据集</option>
-            <option value="api">数据服务</option>
-            <option value="model">数据模型</option>
-            <option value="dashboard">仪表盘</option>
-            <option value="stream">实时流</option>
+            <option value="">{{ t('assetMarket.market.allTypes') }}</option>
+            <option value="table">{{ t('assetMarket.assetType.table') }}</option>
+            <option value="api">{{ t('assetMarket.assetType.api') }}</option>
+            <option value="model">{{ t('assetMarket.assetType.model') }}</option>
+            <option value="dashboard">{{ t('assetMarket.assetType.dashboard') }}</option>
+            <option value="stream">{{ t('assetMarket.assetType.stream') }}</option>
           </select>
           <select v-model="filterSecurity" style="width: 120px">
-            <option value="">全部分级</option>
-            <option value="public">公开</option>
-            <option value="internal">内部</option>
-            <option value="sensitive">敏感</option>
+            <option value="">{{ t('assetMarket.market.allLevels') }}</option>
+            <option value="public">{{ t('assetMarket.security.public') }}</option>
+            <option value="internal">{{ t('assetMarket.security.internal') }}</option>
+            <option value="sensitive">{{ t('assetMarket.security.sensitive') }}</option>
           </select>
         </div>
       </div>
@@ -87,14 +86,14 @@
             </span>
           </div>
           <h3>{{ a.name }}</h3>
-          <p class="asset-desc">{{ a.description || '暂无描述' }}</p>
+          <p class="asset-desc">{{ a.description || t('assetMarket.market.card.noDesc') }}</p>
           <div class="asset-meta">
-            <span>提供方: {{ a.owner }}</span>
-            <span>质量: {{ a.qualityScore }}分</span>
+            <span>{{ t('assetMarket.market.card.owner', { owner: a.owner }) }}</span>
+            <span>{{ t('assetMarket.market.card.quality', { score: a.qualityScore }) }}</span>
           </div>
           <div class="asset-footer">
-            <span class="price">¥{{ a.pricing.price }} / {{ a.pricing.unit }}</span>
-            <span class="sub-count">{{ a.subscriberCount }} 订阅</span>
+            <span class="price">{{ t('assetMarket.market.card.priceUnit', { price: a.pricing.price, unit: a.pricing.unit }) }}</span>
+            <span class="sub-count">{{ t('assetMarket.market.card.subCount', { count: a.subscriberCount }) }}</span>
           </div>
         </div>
       </div>
@@ -103,33 +102,33 @@
         class="card"
         style="text-align: center; padding: 32px"
       >
-        暂无资产，点击右上角"上架资产"
+        {{ t('assetMarket.market.empty') }}
       </div>
     </div>
 
     <!-- 我的订阅 -->
     <div v-if="tab === 'mine'">
       <div class="card">
-        <h3>订阅列表</h3>
+        <h3>{{ t('assetMarket.mySubs.title') }}</h3>
         <div v-if="subsLoading" style="text-align: center; padding: 24px; color: #888">
-          正在加载订阅列表...
+          {{ t('assetMarket.mySubs.loading') }}
         </div>
         <div v-else-if="subsError" style="text-align: center; padding: 24px; color: #d4380d">
-          加载失败：{{ subsError.message }}
+          {{ t('assetMarket.mySubs.loadFailed', { message: subsError.message }) }}
           <button class="btn ghost sm" style="margin-left: 8px" @click="loadMySubscriptions">
-            重试
+            {{ t('assetMarket.mySubs.retry') }}
           </button>
         </div>
         <template v-else-if="mySubscriptions">
           <table>
             <thead>
               <tr>
-                <th>资产</th>
-                <th>提供方</th>
-                <th>状态</th>
-                <th>生效时间</th>
-                <th>交付状态</th>
-                <th>操作</th>
+                <th>{{ t('assetMarket.mySubs.columns.asset') }}</th>
+                <th>{{ t('assetMarket.mySubs.columns.owner') }}</th>
+                <th>{{ t('assetMarket.mySubs.columns.status') }}</th>
+                <th>{{ t('assetMarket.mySubs.columns.period') }}</th>
+                <th>{{ t('assetMarket.mySubs.columns.delivery') }}</th>
+                <th>{{ t('assetMarket.mySubs.columns.actions') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -141,7 +140,7 @@
                     {{ subStatusLabel(s.status) }}
                   </span>
                 </td>
-                <td>{{ formatDate(s.startTime) }} ~ {{ formatDate(s.endTime) }}</td>
+                <td>{{ t('assetMarket.mySubs.period', { start: formatDate(s.startTime), end: formatDate(s.endTime) }) }}</td>
                 <td>
                   <span class="pill" :class="deliveryStatusClass(s.deliveryStatus)">
                     {{ deliveryStatusLabel(s.deliveryStatus) }}
@@ -149,9 +148,9 @@
                 </td>
                 <td>
                   <button v-if="s.status === 'active'" class="btn ghost sm" @click="openDeliver(s)">
-                    交付
+                    {{ t('assetMarket.mySubs.deliver') }}
                   </button>
-                  <button class="btn ghost sm" @click="openBilling(s)">账单</button>
+                  <button class="btn ghost sm" @click="openBilling(s)">{{ t('assetMarket.mySubs.billing') }}</button>
                 </td>
               </tr>
             </tbody>
@@ -160,7 +159,7 @@
             v-if="mySubscriptions.length === 0"
             style="text-align: center; padding: 24px; color: #888"
           >
-            暂无订阅，去资产市场看看吧
+            {{ t('assetMarket.mySubs.empty') }}
           </div>
         </template>
       </div>
@@ -169,16 +168,16 @@
     <!-- 我上架的 -->
     <div v-if="tab === 'listed'">
       <div class="card">
-        <h3>我上架的资产</h3>
+        <h3>{{ t('assetMarket.myListed.title') }}</h3>
         <table>
           <thead>
             <tr>
-              <th>名称</th>
-              <th>类型</th>
-              <th>状态</th>
-              <th>订阅数</th>
-              <th>累计收益</th>
-              <th>操作</th>
+              <th>{{ t('assetMarket.myListed.columns.name') }}</th>
+              <th>{{ t('assetMarket.myListed.columns.type') }}</th>
+              <th>{{ t('assetMarket.myListed.columns.status') }}</th>
+              <th>{{ t('assetMarket.myListed.columns.subCount') }}</th>
+              <th>{{ t('assetMarket.myListed.columns.revenue') }}</th>
+              <th>{{ t('assetMarket.myListed.columns.actions') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -191,21 +190,21 @@
                 </span>
               </td>
               <td>{{ a.subscriberCount }}</td>
-              <td>¥{{ (a.subscriberCount * a.pricing.price).toFixed(2) }}</td>
+              <td>{{ t('assetMarket.myListed.revenueFmt', { amount: (a.subscriberCount * a.pricing.price).toFixed(2) }) }}</td>
               <td>
-                <button class="btn ghost sm" @click="openDetail(a)">详情</button>
+                <button class="btn ghost sm" @click="openDetail(a)">{{ t('assetMarket.myListed.detail') }}</button>
                 <button v-if="a.status === 'listed'" class="btn ghost sm" @click="offlineAsset(a)">
-                  下架
+                  {{ t('assetMarket.myListed.offline') }}
                 </button>
                 <button v-if="a.status === 'offline'" class="btn ghost sm" @click="relistAsset(a)">
-                  重新上架
+                  {{ t('assetMarket.myListed.relist') }}
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
         <div v-if="myAssets.length === 0" style="text-align: center; padding: 24px; color: #888">
-          暂未上架任何资产
+          {{ t('assetMarket.myListed.empty') }}
         </div>
       </div>
     </div>
@@ -213,50 +212,48 @@
     <!-- 资产详情弹窗 -->
     <Modal
       :visible="detailVisible"
-      :title="detailAsset?.name || '资产详情'"
+      :title="detailAsset?.name || t('assetMarket.detail.titleFallback')"
       @close="detailVisible = false"
     >
       <div v-if="detailAsset" class="detail-content">
         <div class="kv">
-          <span>类型</span>
+          <span>{{ t('assetMarket.detail.fields.type') }}</span>
           <span>{{ typeLabel(detailAsset.type) }}</span>
         </div>
         <div class="kv">
-          <span>提供方</span>
+          <span>{{ t('assetMarket.detail.fields.owner') }}</span>
           <span>{{ detailAsset.owner }}</span>
         </div>
         <div class="kv">
-          <span>安全分级</span>
+          <span>{{ t('assetMarket.detail.fields.security') }}</span>
           <span>{{ securityLabel(detailAsset.securityLevel) }}</span>
         </div>
         <div class="kv">
-          <span>质量评分</span>
+          <span>{{ t('assetMarket.detail.fields.quality') }}</span>
           <span>{{ detailAsset.qualityScore }} / 100</span>
         </div>
         <div class="kv">
-          <span>更新频率</span>
+          <span>{{ t('assetMarket.detail.fields.updateFreq') }}</span>
           <span>{{ detailAsset.updateFrequency }}</span>
         </div>
         <div class="kv">
-          <span>价格</span>
+          <span>{{ t('assetMarket.detail.fields.price') }}</span>
           <span>
-            ¥{{ detailAsset.pricing.price }} / {{ detailAsset.pricing.unit }}（{{
-              billingModeLabel(detailAsset.pricing.mode)
-            }}）
+            {{ t('assetMarket.detail.fields.priceFmt', { price: detailAsset.pricing.price, unit: detailAsset.pricing.unit, mode: billingModeLabel(detailAsset.pricing.mode) }) }}
           </span>
         </div>
         <div class="kv">
-          <span>订阅者</span>
+          <span>{{ t('assetMarket.detail.fields.subscriber') }}</span>
           <span>{{ detailAsset.subscriberCount }}</span>
         </div>
 
-        <h4 style="margin-top: 16px">Schema</h4>
+        <h4 style="margin-top: 16px">{{ t('assetMarket.detail.schemaTitle') }}</h4>
         <table v-if="detailAsset.schema?.fields?.length">
           <thead>
             <tr>
-              <th>字段</th>
-              <th>类型</th>
-              <th>说明</th>
+              <th>{{ t('assetMarket.detail.schemaColumns.field') }}</th>
+              <th>{{ t('assetMarket.detail.schemaColumns.type') }}</th>
+              <th>{{ t('assetMarket.detail.schemaColumns.description') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -267,139 +264,139 @@
             </tr>
           </tbody>
         </table>
-        <div v-else style="color: #888">无 schema 信息</div>
+        <div v-else style="color: #888">{{ t('assetMarket.detail.noSchema') }}</div>
 
-        <h4 style="margin-top: 16px">样本数据</h4>
+        <h4 style="margin-top: 16px">{{ t('assetMarket.detail.sampleTitle') }}</h4>
         <pre v-if="detailAsset.sample?.length" class="sample">{{
           JSON.stringify(detailAsset.sample, null, 2)
         }}</pre>
-        <div v-else style="color: #888">无样本数据</div>
+        <div v-else style="color: #888">{{ t('assetMarket.detail.noSample') }}</div>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="detailVisible = false">关闭</button>
+        <button class="btn ghost" @click="detailVisible = false">{{ t('assetMarket.detail.close') }}</button>
         <button
           v-if="detailAsset && detailAsset.status === 'listed'"
           class="btn"
           @click="subscribeAsset(detailAsset)"
         >
-          订阅
+          {{ t('assetMarket.detail.subscribe') }}
         </button>
       </template>
     </Modal>
 
     <!-- 上架表单 -->
-    <Modal :visible="listModalVisible" title="上架资产" @close="listModalVisible = false">
-      <label>资产名称</label>
-      <input v-model="newAsset.name" placeholder="如 user-events" />
-      <label>资产类型</label>
+    <Modal :visible="listModalVisible" :title="t('assetMarket.listForm.title')" @close="listModalVisible = false">
+      <label>{{ t('assetMarket.listForm.name') }}</label>
+      <input v-model="newAsset.name" :placeholder="t('assetMarket.listForm.namePlaceholder')" />
+      <label>{{ t('assetMarket.listForm.type') }}</label>
       <select v-model="newAsset.type">
-        <option value="table">数据集</option>
-        <option value="api">数据服务</option>
-        <option value="model">数据模型</option>
-        <option value="dashboard">仪表盘</option>
-        <option value="stream">实时流</option>
+        <option value="table">{{ t('assetMarket.assetType.table') }}</option>
+        <option value="api">{{ t('assetMarket.assetType.api') }}</option>
+        <option value="model">{{ t('assetMarket.assetType.model') }}</option>
+        <option value="dashboard">{{ t('assetMarket.assetType.dashboard') }}</option>
+        <option value="stream">{{ t('assetMarket.assetType.stream') }}</option>
       </select>
-      <label>安全分级</label>
+      <label>{{ t('assetMarket.listForm.securityLevel') }}</label>
       <select v-model="newAsset.securityLevel">
-        <option value="public">公开</option>
-        <option value="internal">内部</option>
-        <option value="sensitive">敏感</option>
+        <option value="public">{{ t('assetMarket.security.public') }}</option>
+        <option value="internal">{{ t('assetMarket.security.internal') }}</option>
+        <option value="sensitive">{{ t('assetMarket.security.sensitive') }}</option>
       </select>
-      <label>描述</label>
-      <input v-model="newAsset.description" placeholder="资产描述" />
-      <label>计费方式</label>
+      <label>{{ t('assetMarket.listForm.description') }}</label>
+      <input v-model="newAsset.description" :placeholder="t('assetMarket.listForm.descriptionPlaceholder')" />
+      <label>{{ t('assetMarket.listForm.billingMode') }}</label>
       <select v-model="newAsset.pricing.mode">
-        <option value="by_call">按调用量</option>
-        <option value="by_data">按数据量</option>
-        <option value="by_time">按时间（月）</option>
-        <option value="one_time">一次性买断</option>
+        <option value="by_call">{{ t('assetMarket.billingMode.by_call') }}</option>
+        <option value="by_data">{{ t('assetMarket.billingMode.by_data') }}</option>
+        <option value="by_time">{{ t('assetMarket.billingMode.by_time_unit') }}</option>
+        <option value="one_time">{{ t('assetMarket.billingMode.one_time') }}</option>
       </select>
-      <label>单价（元）</label>
+      <label>{{ t('assetMarket.listForm.unitPrice') }}</label>
       <input v-model.number="newAsset.pricing.price" type="number" step="0.01" />
-      <label>交付方式</label>
+      <label>{{ t('assetMarket.listForm.deliveryMethod') }}</label>
       <select v-model="newAsset.deliveryMethod">
-        <option value="api">API 交付</option>
-        <option value="file">文件交付</option>
-        <option value="database_direct">数据库直连</option>
+        <option value="api">{{ t('assetMarket.deliveryMethod.api') }}</option>
+        <option value="file">{{ t('assetMarket.deliveryMethod.file') }}</option>
+        <option value="database_direct">{{ t('assetMarket.deliveryMethod.database_direct') }}</option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="listModalVisible = false">取消</button>
-        <button class="btn" @click="submitListAsset">上架</button>
+        <button class="btn ghost" @click="listModalVisible = false">{{ t('assetMarket.listForm.cancel') }}</button>
+        <button class="btn" @click="submitListAsset">{{ t('assetMarket.listForm.submit') }}</button>
       </template>
     </Modal>
 
     <!-- 交付弹窗 -->
-    <Modal :visible="deliverModalVisible" title="数据交付" @close="deliverModalVisible = false">
+    <Modal :visible="deliverModalVisible" :title="t('assetMarket.deliver.title')" @close="deliverModalVisible = false">
       <div v-if="deliverSub">
         <div class="kv">
-          <span>订阅资产</span>
+          <span>{{ t('assetMarket.deliver.assetName') }}</span>
           <span>{{ assetName(deliverSub.assetId) }}</span>
         </div>
         <div class="kv">
-          <span>订阅方</span>
+          <span>{{ t('assetMarket.deliver.subscriberId') }}</span>
           <span>{{ deliverSub.subscriberId }}</span>
         </div>
       </div>
-      <label>交付方式</label>
+      <label>{{ t('assetMarket.deliver.method') }}</label>
       <select v-model="deliverReq.method">
-        <option value="api">API 交付</option>
-        <option value="file">文件交付</option>
-        <option value="database_direct">数据库直连</option>
+        <option value="api">{{ t('assetMarket.deliveryMethod.api') }}</option>
+        <option value="file">{{ t('assetMarket.deliveryMethod.file') }}</option>
+        <option value="database_direct">{{ t('assetMarket.deliveryMethod.database_direct') }}</option>
       </select>
       <div v-if="deliverReq.method === 'api'">
-        <label>API 端点</label>
-        <input v-model="deliverReq.config.endpoint" placeholder="/api/v1/data/query" />
+        <label>{{ t('assetMarket.deliver.api.endpoint') }}</label>
+        <input v-model="deliverReq.config.endpoint" :placeholder="t('assetMarket.deliver.api.endpointPlaceholder')" />
       </div>
       <div v-if="deliverReq.method === 'file'">
-        <label>文件格式</label>
+        <label>{{ t('assetMarket.deliver.file.format') }}</label>
         <select v-model="deliverReq.config.format">
-          <option value="csv">CSV</option>
-          <option value="parquet">Parquet</option>
-          <option value="json">JSON</option>
+          <option value="csv">{{ t('assetMarket.fileFormat.csv') }}</option>
+          <option value="parquet">{{ t('assetMarket.fileFormat.parquet') }}</option>
+          <option value="json">{{ t('assetMarket.fileFormat.json') }}</option>
         </select>
       </div>
       <div v-if="deliverReq.method === 'database_direct'">
-        <label>JDBC URL</label>
-        <input v-model="deliverReq.config.jdbcUrl" placeholder="jdbc:postgresql://host:5432/db" />
-        <label>表名</label>
-        <input v-model="deliverReq.config.tableName" placeholder="table_name" />
+        <label>{{ t('assetMarket.deliver.database.jdbcUrl') }}</label>
+        <input v-model="deliverReq.config.jdbcUrl" :placeholder="t('assetMarket.deliver.database.jdbcUrlPlaceholder')" />
+        <label>{{ t('assetMarket.deliver.database.tableName') }}</label>
+        <input v-model="deliverReq.config.tableName" :placeholder="t('assetMarket.deliver.database.tableNamePlaceholder')" />
       </div>
       <template #footer>
-        <button class="btn ghost" @click="deliverModalVisible = false">取消</button>
-        <button class="btn" @click="submitDeliver">交付</button>
+        <button class="btn ghost" @click="deliverModalVisible = false">{{ t('assetMarket.deliver.cancel') }}</button>
+        <button class="btn" @click="submitDeliver">{{ t('assetMarket.deliver.submit') }}</button>
       </template>
     </Modal>
 
     <!-- 账单弹窗 -->
-    <Modal :visible="billingModalVisible" title="计费记录" @close="billingModalVisible = false">
+    <Modal :visible="billingModalVisible" :title="t('assetMarket.billing.title')" @close="billingModalVisible = false">
       <div v-if="billingLoading" style="color: #888; text-align: center; padding: 24px">
-        正在加载计费记录...
+        {{ t('assetMarket.billing.loading') }}
       </div>
       <div v-else-if="billingRecords.length">
         <table>
           <thead>
             <tr>
-              <th>周期</th>
-              <th>计费方式</th>
-              <th>使用量</th>
-              <th>金额</th>
-              <th>提供方收益</th>
+              <th>{{ t('assetMarket.billing.columns.period') }}</th>
+              <th>{{ t('assetMarket.billing.columns.mode') }}</th>
+              <th>{{ t('assetMarket.billing.columns.usage') }}</th>
+              <th>{{ t('assetMarket.billing.columns.amount') }}</th>
+              <th>{{ t('assetMarket.billing.columns.providerRevenue') }}</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="r in billingRecords" :key="r.id">
               <td>{{ r.period }}</td>
               <td>{{ billingModeLabel(r.mode) }}</td>
-              <td>{{ r.usage }} {{ r.unit }}</td>
-              <td>¥{{ r.amount.toFixed(2) }}</td>
-              <td>¥{{ r.providerRevenue.toFixed(2) }}</td>
+              <td>{{ t('assetMarket.billing.usageFmt', { usage: r.usage, unit: r.unit }) }}</td>
+              <td>{{ t('assetMarket.billing.amountFmt', { amount: r.amount.toFixed(2) }) }}</td>
+              <td>{{ t('assetMarket.billing.amountFmt', { amount: r.providerRevenue.toFixed(2) }) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div v-else style="color: #888; text-align: center; padding: 24px">暂无计费记录</div>
+      <div v-else style="color: #888; text-align: center; padding: 24px">{{ t('assetMarket.billing.empty') }}</div>
       <template #footer>
-        <button class="btn ghost" @click="billingModalVisible = false">关闭</button>
+        <button class="btn ghost" @click="billingModalVisible = false">{{ t('assetMarket.billing.close') }}</button>
       </template>
     </Modal>
   </div>
@@ -407,6 +404,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useApi } from '@/composables/useApi'
@@ -414,6 +412,7 @@ import Modal from '@/components/Modal.vue'
 import * as assetMarketApi from '@/api/assetMarket'
 import type { Asset, Subscription, BillingRecord } from '@/api/assetMarket'
 
+const { t, te, locale } = useI18n()
 const store = useAppStore()
 const authStore = useAuthStore()
 
@@ -520,20 +519,12 @@ const totalPlatformRevenue = computed(() =>
 )
 
 // 标签函数
-function typeLabel(t: string): string {
-  const map: Record<string, string> = {
-    table: '数据集',
-    api: '数据服务',
-    model: '数据模型',
-    dashboard: '仪表盘',
-    stream: '实时流'
-  }
-  return map[t] || t
+function typeLabel(tp: string): string {
+  return t(`assetMarket.assetType.${tp}`)
 }
 
 function securityLabel(s: string): string {
-  const map: Record<string, string> = { public: '公开', internal: '内部', sensitive: '敏感' }
-  return map[s] || s
+  return t(`assetMarket.security.${s}`)
 }
 
 function securityClass(s: string): string {
@@ -542,14 +533,7 @@ function securityClass(s: string): string {
 }
 
 function subStatusLabel(s: string): string {
-  const map: Record<string, string> = {
-    pending: '待审批',
-    approved: '已批准',
-    active: '生效中',
-    expired: '已到期',
-    rejected: '已驳回'
-  }
-  return map[s] || s
+  return t(`assetMarket.subStatus.${s}`)
 }
 
 function subStatusClass(s: string): string {
@@ -564,14 +548,9 @@ function subStatusClass(s: string): string {
 }
 
 function deliveryStatusLabel(s?: string): string {
-  if (!s) return '未交付'
-  const map: Record<string, string> = {
-    pending: '待交付',
-    running: '交付中',
-    succeeded: '已交付',
-    failed: '交付失败'
-  }
-  return map[s] || s
+  if (!s) return t('assetMarket.deliveryStatus.none')
+  const key = `assetMarket.deliveryStatus.${s}`
+  return te(key) ? t(key) : s
 }
 
 function deliveryStatusClass(s?: string): string {
@@ -586,13 +565,7 @@ function deliveryStatusClass(s?: string): string {
 }
 
 function assetStatusLabel(s: string): string {
-  const map: Record<string, string> = {
-    draft: '草稿',
-    listed: '已上架',
-    offline: '已下架',
-    rejected: '已驳回'
-  }
-  return map[s] || s
+  return t(`assetMarket.assetStatus.${s}`)
 }
 
 function assetStatusClass(s: string): string {
@@ -601,13 +574,7 @@ function assetStatusClass(s: string): string {
 }
 
 function billingModeLabel(m: string): string {
-  const map: Record<string, string> = {
-    by_call: '按调用量',
-    by_data: '按数据量',
-    by_time: '按时间',
-    one_time: '一次性买断'
-  }
-  return map[m] || m
+  return t(`assetMarket.billingMode.${m}`)
 }
 
 function assetName(id: string): string {
@@ -620,7 +587,7 @@ function assetOwner(id: string): string {
 
 function formatDate(d?: string): string {
   if (!d) return '—'
-  return new Date(d).toLocaleDateString('zh-CN')
+  return new Date(d).toLocaleDateString(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US')
 }
 
 // 操作函数
@@ -636,9 +603,9 @@ async function subscribeAsset(a: Asset) {
     })
     mySubscriptions.value?.push(sub)
     detailVisible.value = false
-    store.showToast(`已订阅 ${a.name}，等待审批`)
+    store.showToast(t('assetMarket.messages.subscribed', { name: a.name }))
   } catch (e) {
-    store.showToast(`订阅失败：${(e as Error).message}`)
+    store.showToast(t('assetMarket.messages.subscribeFailed', { message: (e as Error).message }))
   }
 }
 
@@ -656,9 +623,9 @@ async function submitDeliver() {
     })
     Object.assign(deliverSub.value, updated)
     deliverModalVisible.value = false
-    store.showToast('数据交付完成')
+    store.showToast(t('assetMarket.deliver.success'))
   } catch (e) {
-    store.showToast(`交付失败：${(e as Error).message}`)
+    store.showToast(t('assetMarket.deliver.failed', { message: (e as Error).message }))
   }
 }
 
@@ -668,7 +635,7 @@ async function openBilling(s: Subscription) {
   try {
     billingRecords.value = await assetMarketApi.getBillingRecords(s.id)
   } catch (e) {
-    store.showToast(`加载计费记录失败：${(e as Error).message}`)
+    store.showToast(t('assetMarket.billing.loadFailed', { message: (e as Error).message }))
     billingRecords.value = []
   } finally {
     billingLoading.value = false
@@ -677,7 +644,7 @@ async function openBilling(s: Subscription) {
 
 async function submitListAsset() {
   if (!newAsset.value.name) {
-    store.showToast('请填写资产名称')
+    store.showToast(t('assetMarket.listForm.needName'))
     return
   }
   try {
@@ -691,7 +658,7 @@ async function submitListAsset() {
     })
     assets.value?.push(created)
     listModalVisible.value = false
-    store.showToast(`资产 ${newAsset.value.name} 已上架`)
+    store.showToast(t('assetMarket.listForm.submitted', { name: newAsset.value.name }))
     // 重置表单
     newAsset.value = {
       name: '',
@@ -702,7 +669,7 @@ async function submitListAsset() {
       deliveryMethod: 'api'
     }
   } catch (e) {
-    store.showToast(`上架失败：${(e as Error).message}`)
+    store.showToast(t('assetMarket.listForm.failed', { message: (e as Error).message }))
   }
 }
 
@@ -710,9 +677,9 @@ async function offlineAsset(a: Asset) {
   try {
     const updated = await assetMarketApi.offlineAsset(a.id)
     Object.assign(a, updated)
-    store.showToast(`资产 ${a.name} 已下架`)
+    store.showToast(t('assetMarket.messages.offlined', { name: a.name }))
   } catch (e) {
-    store.showToast(`下架失败：${(e as Error).message}`)
+    store.showToast(t('assetMarket.messages.offlineFailed', { message: (e as Error).message }))
   }
 }
 
@@ -720,9 +687,9 @@ async function relistAsset(a: Asset) {
   try {
     const updated = await assetMarketApi.relistAsset(a.id)
     Object.assign(a, updated)
-    store.showToast(`资产 ${a.name} 已重新上架`)
+    store.showToast(t('assetMarket.messages.relisted', { name: a.name }))
   } catch (e) {
-    store.showToast(`重新上架失败：${(e as Error).message}`)
+    store.showToast(t('assetMarket.messages.relistFailed', { message: (e as Error).message }))
   }
 }
 

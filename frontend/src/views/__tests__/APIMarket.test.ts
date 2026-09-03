@@ -7,6 +7,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import apiMarketZh from '@/i18n/locales/modules/apiMarket.zh-CN.json'
+import apiMarketEn from '@/i18n/locales/modules/apiMarket.en-US.json'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  messages: {
+    'zh-CN': apiMarketZh as never,
+    'en-US': apiMarketEn as never
+  }
+})
 
 const { listApisMock } = vi.hoisted(() => ({
   listApisMock: vi.fn()
@@ -64,10 +76,14 @@ describe('views/APIMarket.vue 列表加载三态', () => {
     return wrapper.findAll('button').find((b) => b.text() === '重试')
   }
 
+  function mountApiMarket() {
+    return mount(APIMarket, { global: { plugins: [i18n] } })
+  }
+
   it('列表请求失败时应展示错误态与重试入口，且不出现任何 mock 数据', async () => {
     listApisMock.mockRejectedValue(new Error('backend down'))
 
-    const wrapper = mount(APIMarket)
+    const wrapper = mountApiMarket()
     await flushPromises()
 
     expect(listApisMock).toHaveBeenCalledTimes(1)
@@ -82,7 +98,7 @@ describe('views/APIMarket.vue 列表加载三态', () => {
   it('点击重试成功后应渲染真实列表数据', async () => {
     listApisMock.mockRejectedValueOnce(new Error('backend down')).mockResolvedValueOnce([realApi])
 
-    const wrapper = mount(APIMarket)
+    const wrapper = mountApiMarket()
     await flushPromises()
     expect(wrapper.text()).toContain('API 列表加载失败')
 
@@ -104,7 +120,7 @@ describe('views/APIMarket.vue 列表加载三态', () => {
     // 第二次失败，KPI 概览应清空，不保留旧数据
     listApisMock.mockRejectedValueOnce(new Error('backend down'))
 
-    const wrapper = mount(APIMarket)
+    const wrapper = mountApiMarket()
     await flushPromises()
 
     // 第一次加载成功，KPI 应显示 1 个 API

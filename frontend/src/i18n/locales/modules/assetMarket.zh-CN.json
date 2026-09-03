@@ -1,0 +1,209 @@
+{
+  "assetMarket": {
+    "title": "数据资产流通",
+    "subtitle": "L5.6 · 数据集 / 数据服务 / 数据模型 / 大模型统一登记、上架、流通、变现，构建\"提供方—平台—消费方\"三方市场。",
+    "kpi": {
+      "listed": "在架资产",
+      "circulatable": "可流通",
+      "mySubs": "我的订阅",
+      "activeSubs": "生效中 {count}",
+      "revenue": "累计收益",
+      "providerSettle": "提供方入账",
+      "platformFee": "平台抽成",
+      "feeShare": "20% 分账"
+    },
+    "loading": "正在加载资产列表...",
+    "loadFailed": "加载失败：{message}",
+    "retry": "重试",
+    "tabs": {
+      "market": "资产市场",
+      "mine": "我的订阅",
+      "listed": "我上架的"
+    },
+    "listAsset": "+ 上架资产",
+    "market": {
+      "searchPlaceholder": "搜索资产名称...",
+      "allTypes": "全部类型",
+      "allLevels": "全部分级",
+      "empty": "暂无资产，点击右上角\"上架资产\"",
+      "card": {
+        "noDesc": "暂无描述",
+        "owner": "提供方: {owner}",
+        "quality": "质量: {score}分",
+        "subCount": "{count} 订阅",
+        "priceUnit": "¥{price} / {unit}"
+      }
+    },
+    "mySubs": {
+      "title": "订阅列表",
+      "loading": "正在加载订阅列表...",
+      "loadFailed": "加载失败：{message}",
+      "retry": "重试",
+      "empty": "暂无订阅，去资产市场看看吧",
+      "columns": {
+        "asset": "资产",
+        "owner": "提供方",
+        "status": "状态",
+        "period": "生效时间",
+        "delivery": "交付状态",
+        "actions": "操作"
+      },
+      "period": "{start} ~ {end}",
+      "deliver": "交付",
+      "billing": "账单"
+    },
+    "myListed": {
+      "title": "我上架的资产",
+      "columns": {
+        "name": "名称",
+        "type": "类型",
+        "status": "状态",
+        "subCount": "订阅数",
+        "revenue": "累计收益",
+        "actions": "操作"
+      },
+      "revenueFmt": "¥{amount}",
+      "detail": "详情",
+      "offline": "下架",
+      "relist": "重新上架",
+      "empty": "暂未上架任何资产"
+    },
+    "detail": {
+      "titleFallback": "资产详情",
+      "fields": {
+        "type": "类型",
+        "owner": "提供方",
+        "security": "安全分级",
+        "quality": "质量评分",
+        "updateFreq": "更新频率",
+        "price": "价格",
+        "priceFmt": "¥{price} / {unit}（{mode}）",
+        "subscriber": "订阅者"
+      },
+      "schemaTitle": "Schema",
+      "schemaColumns": {
+        "field": "字段",
+        "type": "类型",
+        "description": "说明"
+      },
+      "noSchema": "无 schema 信息",
+      "sampleTitle": "样本数据",
+      "noSample": "无样本数据",
+      "close": "关闭",
+      "subscribe": "订阅"
+    },
+    "listForm": {
+      "title": "上架资产",
+      "name": "资产名称",
+      "namePlaceholder": "如 user-events",
+      "type": "资产类型",
+      "securityLevel": "安全分级",
+      "description": "描述",
+      "descriptionPlaceholder": "资产描述",
+      "billingMode": "计费方式",
+      "unitPrice": "单价（元）",
+      "deliveryMethod": "交付方式",
+      "cancel": "取消",
+      "submit": "上架",
+      "needName": "请填写资产名称",
+      "submitted": "资产 {name} 已上架",
+      "failed": "上架失败：{message}"
+    },
+    "deliver": {
+      "title": "数据交付",
+      "assetName": "订阅资产",
+      "subscriberId": "订阅方",
+      "method": "交付方式",
+      "api": {
+        "endpoint": "API 端点",
+        "endpointPlaceholder": "/api/v1/data/query"
+      },
+      "file": {
+        "format": "文件格式"
+      },
+      "database": {
+        "jdbcUrl": "JDBC URL",
+        "jdbcUrlPlaceholder": "jdbc:postgresql://host:5432/db",
+        "tableName": "表名",
+        "tableNamePlaceholder": "table_name"
+      },
+      "cancel": "取消",
+      "submit": "交付",
+      "success": "数据交付完成",
+      "failed": "交付失败：{message}"
+    },
+    "billing": {
+      "title": "计费记录",
+      "loading": "正在加载计费记录...",
+      "columns": {
+        "period": "周期",
+        "mode": "计费方式",
+        "usage": "使用量",
+        "amount": "金额",
+        "providerRevenue": "提供方收益"
+      },
+      "usageFmt": "{usage} {unit}",
+      "amountFmt": "¥{amount}",
+      "empty": "暂无计费记录",
+      "close": "关闭",
+      "loadFailed": "加载计费记录失败：{message}"
+    },
+    "assetType": {
+      "table": "数据集",
+      "api": "数据服务",
+      "model": "数据模型",
+      "dashboard": "仪表盘",
+      "stream": "实时流"
+    },
+    "security": {
+      "public": "公开",
+      "internal": "内部",
+      "sensitive": "敏感"
+    },
+    "subStatus": {
+      "pending": "待审批",
+      "approved": "已批准",
+      "active": "生效中",
+      "expired": "已到期",
+      "rejected": "已驳回"
+    },
+    "deliveryStatus": {
+      "none": "未交付",
+      "pending": "待交付",
+      "running": "交付中",
+      "succeeded": "已交付",
+      "failed": "交付失败"
+    },
+    "assetStatus": {
+      "draft": "草稿",
+      "listed": "已上架",
+      "offline": "已下架",
+      "rejected": "已驳回"
+    },
+    "billingMode": {
+      "by_call": "按调用量",
+      "by_data": "按数据量",
+      "by_time": "按时间",
+      "by_time_unit": "按时间（月）",
+      "one_time": "一次性买断"
+    },
+    "deliveryMethod": {
+      "api": "API 交付",
+      "file": "文件交付",
+      "database_direct": "数据库直连"
+    },
+    "fileFormat": {
+      "csv": "CSV",
+      "parquet": "Parquet",
+      "json": "JSON"
+    },
+    "messages": {
+      "subscribed": "已订阅 {name}，等待审批",
+      "subscribeFailed": "订阅失败：{message}",
+      "offlined": "资产 {name} 已下架",
+      "offlineFailed": "下架失败：{message}",
+      "relisted": "资产 {name} 已重新上架",
+      "relistFailed": "重新上架失败：{message}"
+    }
+  }
+}

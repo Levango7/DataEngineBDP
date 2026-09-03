@@ -1,36 +1,35 @@
 <template>
   <div>
-    <h1>业务线门户</h1>
+    <h1>{{ t('businessPortal.title') }}</h1>
     <div class="sub">
-      L5.4 · 以"业务线-团队-项目"组织视图复用平台能力，免计费或内部结算（成本×0.3），不承诺
-      SLA，资源受部门预算软约束。
-      <span class="pill b">多业务线隔离</span>
-      <span class="pill p">数据隔离</span>
-      <span class="pill g">权限隔离</span>
+      {{ t('businessPortal.subtitle') }}
+      <span class="pill b">{{ t('businessPortal.pills.isolateLines') }}</span>
+      <span class="pill p">{{ t('businessPortal.pills.isolateData') }}</span>
+      <span class="pill g">{{ t('businessPortal.pills.isolatePerms') }}</span>
     </div>
 
     <div class="bp-layout">
       <!-- 左侧：业务线选择侧边栏 -->
       <aside class="bp-sidebar">
         <div class="bp-sidebar-header">
-          <h3>业务线</h3>
-          <button class="btn sm" @click="openCreateModal">+ 新建</button>
+          <h3>{{ t('businessPortal.sidebar.title') }}</h3>
+          <button class="btn sm" @click="openCreateModal">{{ t('businessPortal.sidebar.new') }}</button>
         </div>
         <div class="bp-sidebar-list">
           <template v-if="blLoading">
             <div v-for="i in 3" :key="`bl-s-${i}`" class="bp-sidebar-item">
-              <b>加载中…</b>
+              <b>{{ t('businessPortal.sidebar.loading') }}</b>
             </div>
           </template>
           <template v-else-if="blError">
             <div class="bp-sidebar-item">
               <span style="color: var(--muted)">{{ blError.message }}</span>
-              <a href="javascript:void(0)" @click="reloadBl">重试</a>
+              <a href="javascript:void(0)" @click="reloadBl">{{ t('businessPortal.sidebar.retry') }}</a>
             </div>
           </template>
           <template v-else-if="businessLines && businessLines.length === 0">
             <div class="bp-sidebar-item">
-              <span style="color: var(--muted)">暂无业务线</span>
+              <span style="color: var(--muted)">{{ t('businessPortal.sidebar.empty') }}</span>
             </div>
           </template>
           <template v-else-if="businessLines">
@@ -48,7 +47,7 @@
                 </span>
               </div>
               <div class="meta">
-                预算 {{ bl.budget.used.toFixed(0) }}/{{ bl.budget.total.toFixed(0) }} 元
+                {{ t('businessPortal.budget.usedOverTotal', { used: bl.budget.used.toFixed(0), total: bl.budget.total.toFixed(0) }) }}
               </div>
               <div class="bar">
                 <i :style="{ width: usageRatio(bl.budget) * 100 + '%' }"></i>
@@ -62,9 +61,9 @@
       <main class="bp-main">
         <template v-if="!currentBlId">
           <div class="card">
-            <h3>请选择业务线</h3>
+            <h3>{{ t('businessPortal.empty.selectBl') }}</h3>
             <div class="meta" style="color: var(--muted)">
-              从左侧选择一条业务线，查看数据概览、工作台、数据目录与 BI 报表。
+              {{ t('businessPortal.empty.selectBlHint') }}
             </div>
           </div>
         </template>
@@ -72,28 +71,28 @@
           <!-- Tab 切换 -->
           <div class="tabbar">
             <div class="t" :class="{ on: tab === 'dashboard' }" @click="tab = 'dashboard'">
-              数据概览
+              {{ t('businessPortal.tabs.dashboard') }}
             </div>
             <div class="t" :class="{ on: tab === 'workbench' }" @click="tab = 'workbench'">
-              工作台
+              {{ t('businessPortal.tabs.workbench') }}
             </div>
             <div class="t" :class="{ on: tab === 'catalog' }" @click="tab = 'catalog'">
-              数据目录
+              {{ t('businessPortal.tabs.catalog') }}
             </div>
-            <div class="t" :class="{ on: tab === 'reports' }" @click="tab = 'reports'">BI 报表</div>
+            <div class="t" :class="{ on: tab === 'reports' }" @click="tab = 'reports'">{{ t('businessPortal.tabs.reports') }}</div>
           </div>
 
           <!-- ① 数据概览 -->
           <div v-if="tab === 'dashboard'">
             <template v-if="dashboardLoading">
-              <div class="card"><h3>加载中…</h3></div>
+              <div class="card"><h3>{{ t('businessPortal.dashboard.loading') }}</h3></div>
             </template>
             <template v-else-if="dashboardError">
               <div class="card">
-                <h3>加载失败</h3>
+                <h3>{{ t('businessPortal.dashboard.loadFailed') }}</h3>
                 <div class="meta" style="color: var(--muted)">
-                  {{ dashboardError.message }}，
-                  <a href="javascript:void(0)" @click="reloadDashboard">重试</a>
+                  {{ t('businessPortal.dashboard.loadFailedHint') }}
+                  <a href="javascript:void(0)" @click="reloadDashboard">{{ t('businessPortal.dashboard.retry') }}</a>
                 </div>
               </div>
             </template>
@@ -107,9 +106,9 @@
                     <span class="unit">{{ kpi.unit }}</span>
                   </div>
                   <div class="meta">
-                    环比
+                    {{ t('businessPortal.dashboard.kpi.trend') }}
                     <span :style="{ color: kpi.trend >= 0 ? 'var(--ok)' : 'var(--danger)' }">
-                      {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend }}%
+                      {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
                     </span>
                   </div>
                 </div>
@@ -126,21 +125,21 @@
                       :style="{ height: h + '%' }"
                     ></i>
                   </div>
-                  <div class="meta">近 7 日 · 单位 {{ trend.unit }}</div>
+                  <div class="meta">{{ t('businessPortal.dashboard.trend.window7d') }} · {{ t('businessPortal.dashboard.trend.unit', { unit: trend.unit }) }}</div>
                 </div>
               </div>
 
               <!-- 实时监控 + TopN 项目 -->
               <div class="grid g2" style="margin-top: 14px">
                 <div class="card">
-                  <h3>实时监控</h3>
+                  <h3>{{ t('businessPortal.dashboard.realtime.title') }}</h3>
                   <table>
                     <thead>
                       <tr>
-                        <th>指标</th>
-                        <th>当前</th>
-                        <th>阈值</th>
-                        <th>状态</th>
+                        <th>{{ t('businessPortal.dashboard.realtime.columns.metric') }}</th>
+                        <th>{{ t('businessPortal.dashboard.realtime.columns.current') }}</th>
+                        <th>{{ t('businessPortal.dashboard.realtime.columns.threshold') }}</th>
+                        <th>{{ t('businessPortal.dashboard.realtime.columns.status') }}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -158,21 +157,21 @@
                   </table>
                 </div>
                 <div class="card">
-                  <h3>TopN 项目排行</h3>
+                  <h3>{{ t('businessPortal.dashboard.topProjects.title') }}</h3>
                   <table>
                     <thead>
                       <tr>
-                        <th>项目</th>
-                        <th>成本</th>
-                        <th>用量</th>
-                        <th>作业数</th>
+                        <th>{{ t('businessPortal.dashboard.topProjects.columns.project') }}</th>
+                        <th>{{ t('businessPortal.dashboard.topProjects.columns.cost') }}</th>
+                        <th>{{ t('businessPortal.dashboard.topProjects.columns.usage') }}</th>
+                        <th>{{ t('businessPortal.dashboard.topProjects.columns.jobCount') }}</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr v-for="p in dashboard.topProjects" :key="p.projectId">
                         <td>{{ p.projectName }}</td>
-                        <td>{{ p.cost.toFixed(0) }} 元</td>
-                        <td>{{ (p.usageRatio * 100).toFixed(0) }}%</td>
+                        <td>{{ p.cost.toFixed(0) }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}</td>
+                        <td>{{ (p.usageRatio * 100).toFixed(0) }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}</td>
                         <td>{{ p.jobCount }}</td>
                       </tr>
                     </tbody>
@@ -185,50 +184,50 @@
           <!-- ② 工作台 -->
           <div v-if="tab === 'workbench'">
             <template v-if="workbenchLoading">
-              <div class="card"><h3>加载中…</h3></div>
+              <div class="card"><h3>{{ t('businessPortal.workbench.loading') }}</h3></div>
             </template>
             <template v-else-if="workbench">
               <div class="grid g2">
                 <div class="card">
                   <h3>
-                    待办审批
+                    {{ t('businessPortal.workbench.todos.title') }}
                     <span class="pill r">{{ workbench.todos.length }}</span>
                   </h3>
                   <table>
                     <thead>
                       <tr>
-                        <th>事项</th>
-                        <th>申请人</th>
-                        <th>优先级</th>
+                        <th>{{ t('businessPortal.workbench.todos.columns.item') }}</th>
+                        <th>{{ t('businessPortal.workbench.todos.columns.applicant') }}</th>
+                        <th>{{ t('businessPortal.workbench.todos.columns.priority') }}</th>
                         <th></th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="t in workbench.todos" :key="t.id">
-                        <td>{{ t.title }}</td>
-                        <td>{{ t.applicant }}</td>
+                      <tr v-for="td in workbench.todos" :key="td.id">
+                        <td>{{ td.title }}</td>
+                        <td>{{ td.applicant }}</td>
                         <td>
-                          <span class="pill" :class="priorityClass(t.priority)">
-                            {{ priorityText(t.priority) }}
+                          <span class="pill" :class="priorityClass(td.priority)">
+                            {{ priorityText(td.priority) }}
                           </span>
                         </td>
                         <td>
-                          <button class="btn sm" @click="store.showToast('已批准')">批准</button>
-                          <button class="btn ghost sm" @click="store.showToast('已驳回')">
-                            驳回
+                          <button class="btn sm" @click="store.showToast(t('businessPortal.workbench.todos.approveDone'))">{{ t('businessPortal.workbench.todos.approve') }}</button>
+                          <button class="btn ghost sm" @click="store.showToast(t('businessPortal.workbench.todos.rejectDone'))">
+                            {{ t('businessPortal.workbench.todos.reject') }}
                           </button>
                         </td>
                       </tr>
                       <tr v-if="workbench.todos.length === 0">
                         <td colspan="4" style="text-align: center; color: var(--muted)">
-                          暂无待办
+                          {{ t('businessPortal.workbench.todos.empty') }}
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
                 <div class="card">
-                  <h3>常用工具</h3>
+                  <h3>{{ t('businessPortal.workbench.tools.title') }}</h3>
                   <div class="chips">
                     <span
                       v-for="tool in workbench.tools"
@@ -242,26 +241,26 @@
                 </div>
               </div>
               <div class="card" style="margin-top: 14px">
-                <h3>最近任务</h3>
+                <h3>{{ t('businessPortal.workbench.recentTasks.title') }}</h3>
                 <table>
                   <thead>
                     <tr>
-                      <th>任务</th>
-                      <th>类型</th>
-                      <th>状态</th>
-                      <th>更新时间</th>
+                      <th>{{ t('businessPortal.workbench.recentTasks.columns.task') }}</th>
+                      <th>{{ t('businessPortal.workbench.recentTasks.columns.type') }}</th>
+                      <th>{{ t('businessPortal.workbench.recentTasks.columns.status') }}</th>
+                      <th>{{ t('businessPortal.workbench.recentTasks.columns.updatedAt') }}</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="t in workbench.recentTasks" :key="t.id">
-                      <td>{{ t.name }}</td>
-                      <td>{{ kindText(t.kind) }}</td>
+                    <tr v-for="task in workbench.recentTasks" :key="task.id">
+                      <td>{{ task.name }}</td>
+                      <td>{{ kindText(task.kind) }}</td>
                       <td>
-                        <span class="pill" :class="recentStatusClass(t.status)">
-                          {{ t.status }}
+                        <span class="pill" :class="recentStatusClass(task.status)">
+                          {{ task.status }}
                         </span>
                       </td>
-                      <td>{{ t.updatedAt }}</td>
+                      <td>{{ task.updatedAt }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -272,13 +271,13 @@
           <!-- ③ 数据目录 -->
           <div v-if="tab === 'catalog'">
             <template v-if="catalogLoading">
-              <div class="card"><h3>加载中…</h3></div>
+              <div class="card"><h3>{{ t('businessPortal.catalog.loading') }}</h3></div>
             </template>
             <template v-else-if="catalog">
               <div class="card">
                 <h3>
-                  数据目录
-                  <span class="pill b">{{ catalog.nodes.length }} 节点</span>
+                  {{ t('businessPortal.catalog.title') }}
+                  <span class="pill b">{{ t('businessPortal.catalog.nodeCount', { count: catalog.nodes.length }) }}</span>
                 </h3>
                 <div class="bp-tree">
                   <div
@@ -290,7 +289,7 @@
                     <span class="bp-tree-ic" :class="`bp-tree-${node.type}`">●</span>
                     <b>{{ node.name }}</b>
                     <span class="pill sm">{{ node.type }}</span>
-                    <span v-if="node.assetCount > 0" class="meta">{{ node.assetCount }} 资产</span>
+                    <span v-if="node.assetCount > 0" class="meta">{{ t('businessPortal.catalog.assetCount', { count: node.assetCount }) }}</span>
                   </div>
                 </div>
               </div>
@@ -300,12 +299,12 @@
           <!-- ④ BI 报表 -->
           <div v-if="tab === 'reports'">
             <div class="toolbar">
-              <button class="btn sm" @click="openReportModal">+ 新建报表</button>
+              <button class="btn sm" @click="openReportModal">{{ t('businessPortal.reports.newReport') }}</button>
               <div class="spacer"></div>
-              <span class="pill p">{{ reports.length }} 个报表</span>
+              <span class="pill p">{{ t('businessPortal.reports.countPill', { count: reports.length }) }}</span>
             </div>
             <template v-if="reportsLoading">
-              <div class="card"><h3>加载中…</h3></div>
+              <div class="card"><h3>{{ t('businessPortal.reports.loading') }}</h3></div>
             </template>
             <template v-else>
               <div class="grid g3">
@@ -319,22 +318,22 @@
                   <div class="meta">
                     {{ reportTypeText(r.config.type) }} · {{ r.config.chartType }}
                   </div>
-                  <div class="meta">创建人 {{ r.creatorId || '—' }}</div>
+                  <div class="meta">{{ t('businessPortal.reports.creator', { name: r.creatorId || '—' }) }}</div>
                   <button class="btn ghost sm" style="margin-top: 8px" @click="viewReport(r)">
-                    查看
+                    {{ t('businessPortal.reports.view') }}
                   </button>
                   <button
                     class="btn ghost sm"
                     style="margin-top: 8px; margin-left: 4px"
                     @click="handleDeleteReport(r.id)"
                   >
-                    删除
+                    {{ t('businessPortal.reports.delete') }}
                   </button>
                 </div>
                 <div v-if="reports.length === 0" class="card">
-                  <h3>暂无报表</h3>
+                  <h3>{{ t('businessPortal.reports.empty.title') }}</h3>
                   <div class="meta" style="color: var(--muted)">
-                    点击右上角「+ 新建报表」创建第一个。
+                    {{ t('businessPortal.reports.empty.hint') }}
                   </div>
                 </div>
               </div>
@@ -345,47 +344,47 @@
     </div>
 
     <!-- 新建业务线 Modal -->
-    <Modal :visible="modalVisible" title="新建业务线" @close="modalVisible = false">
-      <label>名称</label>
-      <input v-model="form.name" placeholder="如 风控线" />
-      <label>租户 ID</label>
-      <input v-model="form.tenantId" placeholder="如 t-1" />
-      <label>描述</label>
-      <input v-model="form.description" placeholder="业务线描述" />
-      <label>预算总额（元）</label>
+    <Modal :visible="modalVisible" :title="t('businessPortal.createBl.title')" @close="modalVisible = false">
+      <label>{{ t('businessPortal.createBl.name') }}</label>
+      <input v-model="form.name" :placeholder="t('businessPortal.createBl.namePlaceholder')" />
+      <label>{{ t('businessPortal.createBl.tenantId') }}</label>
+      <input v-model="form.tenantId" :placeholder="t('businessPortal.createBl.tenantIdPlaceholder')" />
+      <label>{{ t('businessPortal.createBl.description') }}</label>
+      <input v-model="form.description" :placeholder="t('businessPortal.createBl.descriptionPlaceholder')" />
+      <label>{{ t('businessPortal.createBl.budgetTotal') }}</label>
       <input v-model.number="form.budgetTotal" type="number" />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('businessPortal.createBl.cancel') }}</button>
         <button class="btn" :disabled="creating" @click="handleCreate">
-          {{ creating ? '创建中…' : '创建' }}
+          {{ creating ? t('businessPortal.createBl.creating') : t('businessPortal.createBl.create') }}
         </button>
       </template>
     </Modal>
 
     <!-- 新建报表 Modal -->
-    <Modal :visible="reportModalVisible" title="新建 BI 报表" @close="reportModalVisible = false">
-      <label>名称</label>
-      <input v-model="reportForm.name" placeholder="如 风控日报" />
-      <label>描述</label>
-      <input v-model="reportForm.description" placeholder="报表描述" />
-      <label>类型</label>
+    <Modal :visible="reportModalVisible" :title="t('businessPortal.createReport.title')" @close="reportModalVisible = false">
+      <label>{{ t('businessPortal.createReport.name') }}</label>
+      <input v-model="reportForm.name" :placeholder="t('businessPortal.createReport.namePlaceholder')" />
+      <label>{{ t('businessPortal.createReport.description') }}</label>
+      <input v-model="reportForm.description" :placeholder="t('businessPortal.createReport.descriptionPlaceholder')" />
+      <label>{{ t('businessPortal.createReport.type') }}</label>
       <select v-model="reportForm.type">
-        <option value="chart">图表</option>
-        <option value="table">明细表</option>
-        <option value="dashboard">综合看板</option>
-        <option value="pivot">透视表</option>
+        <option value="chart">{{ t('businessPortal.createReport.types.chart') }}</option>
+        <option value="table">{{ t('businessPortal.createReport.types.table') }}</option>
+        <option value="dashboard">{{ t('businessPortal.createReport.types.dashboard') }}</option>
+        <option value="pivot">{{ t('businessPortal.createReport.types.pivot') }}</option>
       </select>
-      <label>图表子类型</label>
+      <label>{{ t('businessPortal.createReport.chartType') }}</label>
       <select v-model="reportForm.chartType">
-        <option value="line">折线图</option>
-        <option value="bar">柱状图</option>
-        <option value="pie">饼图</option>
-        <option value="area">面积图</option>
+        <option value="line">{{ t('businessPortal.createReport.chartTypes.line') }}</option>
+        <option value="bar">{{ t('businessPortal.createReport.chartTypes.bar') }}</option>
+        <option value="pie">{{ t('businessPortal.createReport.chartTypes.pie') }}</option>
+        <option value="area">{{ t('businessPortal.createReport.chartTypes.area') }}</option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="reportModalVisible = false">取消</button>
+        <button class="btn ghost" @click="reportModalVisible = false">{{ t('businessPortal.createReport.cancel') }}</button>
         <button class="btn" :disabled="reportCreating" @click="handleCreateReport">
-          {{ reportCreating ? '创建中…' : '创建' }}
+          {{ reportCreating ? t('businessPortal.createReport.creating') : t('businessPortal.createReport.create') }}
         </button>
       </template>
     </Modal>
@@ -394,6 +393,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
@@ -409,6 +409,7 @@ import type {
   Report
 } from '@/api/businessPortal'
 
+const { t, te } = useI18n()
 const router = useRouter()
 const store = useAppStore()
 
@@ -541,7 +542,7 @@ function openCreateModal(): void {
 
 async function handleCreate(): Promise<void> {
   if (!form.value.name || !form.value.tenantId) {
-    store.showToast('请填写名称和租户 ID')
+    store.showToast(t('businessPortal.createBl.needNameAndTenant'))
     return
   }
   creating.value = true
@@ -554,7 +555,7 @@ async function handleCreate(): Promise<void> {
       ownerIds: ['current-user'],
       memberIds: ['current-user']
     })
-    store.showToast(`业务线 ${bl.name} 已创建`)
+    store.showToast(t('businessPortal.createBl.created', { name: bl.name }))
     modalVisible.value = false
     await reloadBl()
     currentBlId.value = bl.id
@@ -582,7 +583,7 @@ function openReportModal(): void {
 
 async function handleCreateReport(): Promise<void> {
   if (!reportForm.value.name) {
-    store.showToast('请填写报表名称')
+    store.showToast(t('businessPortal.createReport.needName'))
     return
   }
   if (!currentBlId.value) return
@@ -596,7 +597,7 @@ async function handleCreateReport(): Promise<void> {
         chartType: reportForm.value.chartType
       }
     })
-    store.showToast('报表已创建')
+    store.showToast(t('businessPortal.createReport.created'))
     reportModalVisible.value = false
     await reloadReports()
   } catch {
@@ -610,7 +611,7 @@ async function handleDeleteReport(reportId: string): Promise<void> {
   if (!currentBlId.value) return
   try {
     await bpApi.deleteReport(currentBlId.value, reportId)
-    store.showToast('报表已删除')
+    store.showToast(t('businessPortal.reportActions.deleted'))
     await reloadReports()
   } catch {
     // 错误已由拦截器提示
@@ -618,7 +619,7 @@ async function handleDeleteReport(reportId: string): Promise<void> {
 }
 
 function viewReport(r: Report): void {
-  store.showToast(`查看报表：${r.name}（即将跳转 BI 工作台）`)
+  store.showToast(t('businessPortal.reportActions.viewToast', { name: r.name }))
 }
 
 /* ------------------------------ 辅助函数 ------------------------------ */
@@ -627,7 +628,7 @@ function statusClass(s: BusinessLineStatus): string {
 }
 
 function statusText(s: BusinessLineStatus): string {
-  return s === 'active' ? '活跃' : s === 'suspended' ? '已暂停' : '已归档'
+  return t(`businessPortal.status.bl.${s}`)
 }
 
 function usageRatio(b: { used: number; total: number }): number {
@@ -640,7 +641,7 @@ function monitorClass(s: string): string {
 }
 
 function monitorText(s: string): string {
-  return s === 'ok' ? '正常' : s === 'warn' ? '告警' : '严重'
+  return t(`businessPortal.status.monitor.${s}`)
 }
 
 function priorityClass(p: string): string {
@@ -648,17 +649,12 @@ function priorityClass(p: string): string {
 }
 
 function priorityText(p: string): string {
-  return p === 'urgent' ? '紧急' : p === 'high' ? '高' : '普通'
+  return t(`businessPortal.status.priority.${p}`)
 }
 
 function kindText(k: string): string {
-  const map: Record<string, string> = {
-    job: '作业',
-    training: '训练',
-    deployment: '部署',
-    share: '共享'
-  }
-  return map[k] || k
+  const key = `businessPortal.status.kind.${k}`
+  return te(key) ? t(key) : k
 }
 
 function recentStatusClass(s: string): string {
@@ -672,17 +668,12 @@ function reportStatusClass(s: string): string {
 }
 
 function reportStatusText(s: string): string {
-  return s === 'published' ? '已发布' : s === 'draft' ? '草稿' : '已归档'
+  return t(`businessPortal.status.report.${s}`)
 }
 
-function reportTypeText(t: string): string {
-  const map: Record<string, string> = {
-    chart: '图表',
-    table: '明细表',
-    dashboard: '综合看板',
-    pivot: '透视表'
-  }
-  return map[t] || t
+function reportTypeText(rt: string): string {
+  const key = `businessPortal.status.reportType.${rt}`
+  return te(key) ? t(key) : rt
 }
 
 /* ------------------------------ 初始化 ------------------------------ */

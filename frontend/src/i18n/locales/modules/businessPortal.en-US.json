@@ -1,0 +1,189 @@
+{
+  "businessPortal": {
+    "title": "Business Line Portal",
+    "subtitle": "L5.4 · Organize business lines, teams and projects to reuse platform capabilities; no billing or internal settlement (cost × 0.3), no SLA, soft budget cap per department.",
+    "pills": {
+      "isolateLines": "Multi-Business Line Isolation",
+      "isolateData": "Data Isolation",
+      "isolatePerms": "Permission Isolation"
+    },
+    "sidebar": {
+      "title": "Business Lines",
+      "new": "+ New",
+      "loading": "Loading…",
+      "retry": "Retry",
+      "empty": "No business lines"
+    },
+    "empty": {
+      "selectBl": "Please select a business line",
+      "selectBlHint": "Select a business line on the left to view dashboard, workbench, catalog and BI reports."
+    },
+    "tabs": {
+      "dashboard": "Dashboard",
+      "workbench": "Workbench",
+      "catalog": "Catalog",
+      "reports": "BI Reports"
+    },
+    "dashboard": {
+      "loading": "Loading…",
+      "loadFailed": "Failed to load",
+      "loadFailedHint": "Data load failed,",
+      "retry": "Retry",
+      "kpi": {
+        "trend": "WoW"
+      },
+      "trend": {
+        "window7d": "Last 7 days",
+        "unit": "Unit: {unit}"
+      },
+      "realtime": {
+        "title": "Realtime Monitor",
+        "columns": {
+          "metric": "Metric",
+          "current": "Current",
+          "threshold": "Threshold",
+          "status": "Status"
+        }
+      },
+      "topProjects": {
+        "title": "TopN Projects",
+        "columns": {
+          "project": "Project",
+          "cost": "Cost",
+          "usage": "Usage",
+          "jobCount": "Jobs"
+        },
+        "costUnit": " CNY",
+        "percentSuffix": "%"
+      }
+    },
+    "workbench": {
+      "loading": "Loading…",
+      "todos": {
+        "title": "Pending Approvals",
+        "columns": {
+          "item": "Item",
+          "applicant": "Applicant",
+          "priority": "Priority"
+        },
+        "empty": "No pending items",
+        "approve": "Approve",
+        "approveDone": "Approved",
+        "reject": "Reject",
+        "rejectDone": "Rejected"
+      },
+      "tools": {
+        "title": "Common Tools"
+      },
+      "recentTasks": {
+        "title": "Recent Tasks",
+        "columns": {
+          "task": "Task",
+          "type": "Type",
+          "status": "Status",
+          "updatedAt": "Updated"
+        }
+      }
+    },
+    "catalog": {
+      "loading": "Loading…",
+      "title": "Data Catalog",
+      "nodeCount": "{count} nodes",
+      "assetCount": "{count} assets"
+    },
+    "reports": {
+      "loading": "Loading…",
+      "newReport": "+ New Report",
+      "countPill": "{count} reports",
+      "creator": "By {name}",
+      "view": "View",
+      "delete": "Delete",
+      "empty": {
+        "title": "No reports",
+        "hint": "Click \"+ New Report\" in the top right to create the first one."
+      }
+    },
+    "createBl": {
+      "title": "New Business Line",
+      "name": "Name",
+      "namePlaceholder": "e.g. Risk Line",
+      "tenantId": "Tenant ID",
+      "tenantIdPlaceholder": "e.g. t-1",
+      "description": "Description",
+      "descriptionPlaceholder": "Business line description",
+      "budgetTotal": "Budget Total (CNY)",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating…",
+      "needNameAndTenant": "Please enter name and tenant ID",
+      "created": "Business line {name} created"
+    },
+    "createReport": {
+      "title": "New BI Report",
+      "name": "Name",
+      "namePlaceholder": "e.g. Risk Daily",
+      "description": "Description",
+      "descriptionPlaceholder": "Report description",
+      "type": "Type",
+      "chartType": "Chart Sub-type",
+      "types": {
+        "chart": "Chart",
+        "table": "Detail Table",
+        "dashboard": "Dashboard",
+        "pivot": "Pivot Table"
+      },
+      "chartTypes": {
+        "line": "Line",
+        "bar": "Bar",
+        "pie": "Pie",
+        "area": "Area"
+      },
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating…",
+      "needName": "Please enter report name",
+      "created": "Report created"
+    },
+    "reportActions": {
+      "viewToast": "Viewing report: {name} (redirecting to BI workbench)",
+      "deleted": "Report deleted"
+    },
+    "status": {
+      "bl": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "archived": "Archived"
+      },
+      "monitor": {
+        "ok": "Normal",
+        "warn": "Warning",
+        "critical": "Critical"
+      },
+      "priority": {
+        "urgent": "Urgent",
+        "high": "High",
+        "normal": "Normal"
+      },
+      "kind": {
+        "job": "Job",
+        "training": "Training",
+        "deployment": "Deployment",
+        "share": "Share"
+      },
+      "report": {
+        "published": "Published",
+        "draft": "Draft",
+        "archived": "Archived"
+      },
+      "reportType": {
+        "chart": "Chart",
+        "table": "Detail Table",
+        "dashboard": "Dashboard",
+        "pivot": "Pivot Table"
+      }
+    },
+    "budget": {
+      "usedOverTotal": "Budget {used}/{total} CNY"
+    }
+  }
+}

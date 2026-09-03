@@ -13,9 +13,9 @@
       "noMatch": "暂无匹配模板"
     },
     "card": {
-      "installCount": "{{count}} 次安装",
-      "rating": "{{rating}}",
-      "version": "v{{version}}"
+      "installCount": "{count} 次安装",
+      "rating": "{rating}",
+      "version": "v{version}"
     },
     "detail": {
       "title": "模板详情",
@@ -72,7 +72,7 @@
       },
       "viz": {
         "chartType": "图表类型",
-        "size": "{{width}}×{{height}}"
+        "size": "{width}×{height}"
       },
       "params": {
         "columns": {
@@ -98,8 +98,10 @@
         "template": "模板",
         "tenantId": "租户 ID",
         "tenantIdPlaceholder": "如 tenant-001",
+        "tenantIdRequired": "请输入租户 ID",
         "releaseName": "Release 名称",
         "releaseNamePlaceholder": "如 my-risk-scorecard",
+        "releaseNameRequired": "请输入 Release 名称",
         "namespace": "Namespace",
         "namespacePlaceholder": "留空则使用 tenant-{tenantId}",
         "paramValues": "参数取值",
@@ -118,6 +120,7 @@
         "template": "模板",
         "release": "Release",
         "namespace": "Namespace",
+        "deploymentId": "部署 ID",
         "jobRunId": "作业 ID",
         "dashboardSnapshot": "仪表盘快照",
         "viewSnapshot": "查看快照",

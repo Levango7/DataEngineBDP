@@ -1,32 +1,31 @@
 <template>
   <div>
-    <h1>开放 API 服务目录</h1>
+    <h1>{{ t('apiMarket.title') }}</h1>
     <div class="sub">
-      L5.5 · 将平台数据能力封装为 REST/gRPC API，经 APISIX
-      网关对外暴露；配套服务目录支持浏览、搜索、订阅、调用与计量。
+      {{ t('apiMarket.subtitle') }}
     </div>
 
     <!-- KPI 概览 -->
     <div class="grid g4">
       <div class="card">
-        <h3>已发布 API</h3>
+        <h3>{{ t('apiMarket.kpi.published') }}</h3>
         <div class="kpi s">{{ safeApiList.length }}</div>
-        <div class="meta">运行中 {{ runningCount }} · 草稿 {{ draftCount }}</div>
+        <div class="meta">{{ t('apiMarket.kpi.runningDraft', { running: runningCount, draft: draftCount }) }}</div>
       </div>
       <div class="card">
-        <h3>月调用量</h3>
+        <h3>{{ t('apiMarket.kpi.monthlyCalls') }}</h3>
         <div class="kpi s">{{ formatNumber(totalCalls) }}</div>
-        <div class="meta">成功率 {{ (totalSuccessRate * 100).toFixed(1) }}%</div>
+        <div class="meta">{{ t('apiMarket.kpi.successRate', { rate: (totalSuccessRate * 100).toFixed(1) }) }}</div>
       </div>
       <div class="card">
-        <h3>活跃订阅</h3>
+        <h3>{{ t('apiMarket.kpi.activeSubs') }}</h3>
         <div class="kpi s">{{ activeSubscriptions }}</div>
-        <div class="meta">待审批 {{ pendingSubscriptions }}</div>
+        <div class="meta">{{ t('apiMarket.kpi.pendingSubs', { count: pendingSubscriptions }) }}</div>
       </div>
       <div class="card">
-        <h3>SLA 铂金</h3>
+        <h3>{{ t('apiMarket.kpi.slaPlatinum') }}</h3>
         <div class="kpi s">{{ platinumCount }}</div>
-        <div class="meta">金 {{ goldCount }} · 银 {{ silverCount }}</div>
+        <div class="meta">{{ t('apiMarket.kpi.slaBreakdown', { gold: goldCount, silver: silverCount }) }}</div>
       </div>
     </div>
 
@@ -35,35 +34,35 @@
       <input
         v-model="keyword"
         class="search-input"
-        placeholder="搜索 API 名称 / 描述 / 标签"
+        :placeholder="t('apiMarket.toolbar.searchPlaceholder')"
         @input="debouncedRefreshList"
       />
       <select v-model="categoryFilter" @change="refreshList">
-        <option value="">全部分类</option>
+        <option value="">{{ t('apiMarket.toolbar.allCategories') }}</option>
         <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
       </select>
       <select v-model="statusFilter" @change="refreshList">
-        <option value="">全部状态</option>
-        <option value="running">运行中</option>
-        <option value="draft">草稿</option>
-        <option value="deprecated">已废弃</option>
+        <option value="">{{ t('apiMarket.toolbar.allStatuses') }}</option>
+        <option value="running">{{ t('apiMarket.status.api.running') }}</option>
+        <option value="draft">{{ t('apiMarket.status.api.draft') }}</option>
+        <option value="deprecated">{{ t('apiMarket.status.api.deprecated') }}</option>
       </select>
       <div class="spacer"></div>
-      <button class="btn sm" @click="registerModal = true">+ 注册 API</button>
+      <button class="btn sm" @click="registerModal = true">{{ t('apiMarket.toolbar.register') }}</button>
     </div>
 
     <!-- API 卡片网格 -->
     <div v-if="loading" class="card" style="margin-top: 14px">
-      <div class="meta" style="color: var(--muted)">加载中…</div>
+      <div class="meta" style="color: var(--muted)">{{ t('apiMarket.list.loading') }}</div>
     </div>
     <div v-else-if="error" class="card" style="margin-top: 14px" role="alert">
       <div class="meta" style="color: var(--danger)">
-        API 列表加载失败：{{ error.message }}
-        <button class="btn ghost sm" style="margin-left: 8px" @click="refreshList">重试</button>
+        {{ t('apiMarket.list.loadFailed', { message: error.message }) }}
+        <button class="btn ghost sm" style="margin-left: 8px" @click="refreshList">{{ t('apiMarket.list.retry') }}</button>
       </div>
     </div>
     <div v-else-if="apiList && apiList.length === 0" class="card" style="margin-top: 14px">
-      <div class="meta" style="color: var(--muted)">暂无 API，点击「+ 注册 API」创建</div>
+      <div class="meta" style="color: var(--muted)">{{ t('apiMarket.list.empty') }}</div>
     </div>
     <div v-else-if="apiList" class="api-grid" style="margin-top: 14px">
       <div v-for="api in apiList" :key="api.id" class="card api-card" @click="openDetail(api)">
@@ -71,18 +70,18 @@
           <span class="api-name">{{ api.name }}</span>
           <span :class="['pill', slaClass(api.sla)]">{{ slaLabel(api.sla) }}</span>
         </div>
-        <div class="api-card-desc">{{ api.description || '（无描述）' }}</div>
+        <div class="api-card-desc">{{ api.description || t('apiMarket.list.noDesc') }}</div>
         <div class="api-card-meta">
           <code>{{ api.method }} {{ api.path }}</code>
           <span class="version">v{{ api.version }}</span>
         </div>
         <div class="api-card-tags">
           <span class="tag">{{ api.category }}</span>
-          <span v-for="t in api.tags" :key="t" class="tag">{{ t }}</span>
+          <span v-for="tag in api.tags" :key="tag" class="tag">{{ tag }}</span>
         </div>
         <div class="api-card-footer">
           <span :class="['pill', statusClass(api.status)]">{{ statusLabel(api.status) }}</span>
-          <span class="meta">{{ formatNumber(api.callCount) }} 次调用</span>
+          <span class="meta">{{ t('apiMarket.list.callCount', { count: formatNumber(api.callCount) }) }}</span>
         </div>
       </div>
     </div>
@@ -91,7 +90,7 @@
     <div v-if="selectedApi" class="overlay show" @click.self="selectedApi = null"></div>
     <div v-if="selectedApi" class="modal show" style="width: 800px; max-width: 95vw">
       <div class="mh">
-        <span>{{ selectedApi.name }} · 详情</span>
+        <span>{{ selectedApi.name }}{{ t('apiMarket.detail.titleSuffix') }}</span>
         <span class="x" @click="selectedApi = null">×</span>
       </div>
       <div class="mb">
@@ -99,61 +98,61 @@
         <div class="tab-bar">
           <button
             v-for="tab in detailTabs"
-            :key="tab"
-            :class="['tab', { active: activeTab === tab }]"
-            @click="activeTab = tab"
+            :key="tab.key"
+            :class="['tab', { active: activeTab === tab.key }]"
+            @click="activeTab = tab.key"
           >
-            {{ tab }}
+            {{ t(tab.labelKey) }}
           </button>
         </div>
 
         <!-- 文档 Tab -->
-        <div v-if="activeTab === '文档'" class="tab-content">
+        <div v-if="activeTab === 'doc'" class="tab-content">
           <div class="kv">
-            <span>名称</span>
+            <span>{{ t('apiMarket.detail.doc.name') }}</span>
             <span>{{ selectedApi.name }}</span>
           </div>
           <div class="kv">
-            <span>版本</span>
+            <span>{{ t('apiMarket.detail.doc.version') }}</span>
             <span>{{ selectedApi.version }}</span>
           </div>
           <div class="kv">
-            <span>方法</span>
+            <span>{{ t('apiMarket.detail.doc.method') }}</span>
             <span>
               <code>{{ selectedApi.method }} {{ selectedApi.path }}</code>
             </span>
           </div>
           <div class="kv">
-            <span>描述</span>
+            <span>{{ t('apiMarket.detail.doc.description') }}</span>
             <span>{{ selectedApi.description || '—' }}</span>
           </div>
           <div class="kv">
-            <span>认证</span>
+            <span>{{ t('apiMarket.detail.doc.auth') }}</span>
             <span>{{ authLabel(selectedApi.authType) }}</span>
           </div>
           <div class="kv">
-            <span>SLA</span>
+            <span>{{ t('apiMarket.detail.doc.sla') }}</span>
             <span>{{ slaLabel(selectedApi.sla) }}</span>
           </div>
           <div class="kv">
-            <span>计费</span>
+            <span>{{ t('apiMarket.detail.doc.cost') }}</span>
             <span>
-              {{ costLabel(selectedApi.costStrategy) }} · 单价 {{ selectedApi.costUnitPrice }}
+              {{ t('apiMarket.detail.doc.costUnitPrice', { label: costLabel(selectedApi.costStrategy), price: selectedApi.costUnitPrice }) }}
             </span>
           </div>
           <div class="kv">
-            <span>状态</span>
+            <span>{{ t('apiMarket.detail.doc.status') }}</span>
             <span>{{ statusLabel(selectedApi.status) }}</span>
           </div>
-          <h4 style="margin-top: 12px">参数</h4>
+          <h4 style="margin-top: 12px">{{ t('apiMarket.detail.doc.paramsTitle') }}</h4>
           <table v-if="selectedApi.params.length > 0">
             <thead>
               <tr>
-                <th>名称</th>
-                <th>位置</th>
-                <th>类型</th>
-                <th>必填</th>
-                <th>描述</th>
+                <th>{{ t('apiMarket.detail.doc.paramColumns.name') }}</th>
+                <th>{{ t('apiMarket.detail.doc.paramColumns.location') }}</th>
+                <th>{{ t('apiMarket.detail.doc.paramColumns.type') }}</th>
+                <th>{{ t('apiMarket.detail.doc.paramColumns.required') }}</th>
+                <th>{{ t('apiMarket.detail.doc.paramColumns.description') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -163,71 +162,71 @@
                 </td>
                 <td>{{ p.location }}</td>
                 <td>{{ p.type }}</td>
-                <td>{{ p.required ? '是' : '否' }}</td>
+                <td>{{ p.required ? t('apiMarket.detail.doc.yes') : t('apiMarket.detail.doc.no') }}</td>
                 <td>{{ p.description || '—' }}</td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="meta" style="color: var(--muted)">无参数</div>
+          <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.doc.noParams') }}</div>
         </div>
 
         <!-- 试调 Tab -->
-        <div v-if="activeTab === '试调'" class="tab-content">
-          <label>API Key</label>
-          <input v-model="testApiKey" placeholder="输入订阅的 Access Key" />
-          <label>请求体 (JSON)</label>
-          <textarea v-model="testPayload" rows="5" placeholder='{"key": "value"}'></textarea>
+        <div v-if="activeTab === 'try'" class="tab-content">
+          <label>{{ t('apiMarket.detail.try.apiKey') }}</label>
+          <input v-model="testApiKey" :placeholder="t('apiMarket.detail.try.apiKeyPlaceholder')" />
+          <label>{{ t('apiMarket.detail.try.payload') }}</label>
+          <textarea v-model="testPayload" rows="5" :placeholder="t('apiMarket.detail.try.payloadPlaceholder')"></textarea>
           <button class="btn sm" style="margin-top: 8px" :disabled="calling" @click="executeCall">
-            {{ calling ? '调用中…' : '发起调用' }}
+            {{ calling ? t('apiMarket.detail.try.submitting') : t('apiMarket.detail.try.submit') }}
           </button>
           <div v-if="callResult" class="call-result" style="margin-top: 12px">
             <div class="kv">
-              <span>状态码</span>
+              <span>{{ t('apiMarket.detail.try.result.statusCode') }}</span>
               <span :class="['pill', callResult.statusCode === 200 ? 'g' : 'r']">
                 {{ callResult.statusCode }}
               </span>
             </div>
             <div class="kv">
-              <span>延迟</span>
-              <span>{{ callResult.latencyMs.toFixed(2) }} ms</span>
+              <span>{{ t('apiMarket.detail.try.result.latency') }}</span>
+              <span>{{ callResult.latencyMs.toFixed(2) }}{{ t('apiMarket.detail.try.result.latencyUnit') }}</span>
             </div>
             <div class="kv">
-              <span>费用</span>
+              <span>{{ t('apiMarket.detail.try.result.cost') }}</span>
               <span>{{ callResult.costAmount }}</span>
             </div>
             <div v-if="callResult.error" class="kv">
-              <span>错误</span>
+              <span>{{ t('apiMarket.detail.try.result.error') }}</span>
               <span style="color: var(--danger)">{{ callResult.error }}</span>
             </div>
             <div v-if="callResult.result">
-              <label>响应</label>
+              <label>{{ t('apiMarket.detail.try.result.response') }}</label>
               <pre class="code-block">{{ JSON.stringify(callResult.result, null, 2) }}</pre>
             </div>
           </div>
         </div>
 
         <!-- 订阅 Tab -->
-        <div v-if="activeTab === '订阅'" class="tab-content">
-          <h4>申请订阅</h4>
-          <label>订阅者 ID</label>
-          <input v-model="subForm.subscriberId" placeholder="如 svc-risk" />
-          <label>租户 ID</label>
-          <input v-model="subForm.subscriberTenantId" placeholder="如 tenant-consumer" />
-          <label>用途</label>
-          <input v-model="subForm.purpose" placeholder="如 风控数据查询" />
-          <label>期望配额（次/分钟）</label>
+        <div v-if="activeTab === 'subscribe'" class="tab-content">
+          <h4>{{ t('apiMarket.detail.subscribe.applyTitle') }}</h4>
+          <label>{{ t('apiMarket.detail.subscribe.subscriberId') }}</label>
+          <input v-model="subForm.subscriberId" :placeholder="t('apiMarket.detail.subscribe.subscriberIdPlaceholder')" />
+          <label>{{ t('apiMarket.detail.subscribe.tenantId') }}</label>
+          <input v-model="subForm.subscriberTenantId" :placeholder="t('apiMarket.detail.subscribe.tenantIdPlaceholder')" />
+          <label>{{ t('apiMarket.detail.subscribe.purpose') }}</label>
+          <input v-model="subForm.purpose" :placeholder="t('apiMarket.detail.subscribe.purposePlaceholder')" />
+          <label>{{ t('apiMarket.detail.subscribe.quotaExpect') }}</label>
           <input v-model.number="subForm.quotaExpect" type="number" />
-          <button class="btn sm" style="margin-top: 8px" @click="applySubscribe">提交申请</button>
+          <button class="btn sm" style="margin-top: 8px" @click="applySubscribe">{{ t('apiMarket.detail.subscribe.submit') }}</button>
 
-          <h4 style="margin-top: 16px">已有订阅者</h4>
+          <h4 style="margin-top: 16px">{{ t('apiMarket.detail.subscribe.listTitle') }}</h4>
           <table v-if="subscribers.length > 0">
             <thead>
               <tr>
-                <th>订阅者</th>
-                <th>状态</th>
-                <th>配额</th>
-                <th>调用次数</th>
-                <th>AK</th>
+                <th>{{ t('apiMarket.detail.subscribe.listColumns.subscriber') }}</th>
+                <th>{{ t('apiMarket.detail.subscribe.listColumns.status') }}</th>
+                <th>{{ t('apiMarket.detail.subscribe.listColumns.quota') }}</th>
+                <th>{{ t('apiMarket.detail.subscribe.listColumns.callCount') }}</th>
+                <th>{{ t('apiMarket.detail.subscribe.listColumns.ak') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -241,57 +240,57 @@
                 <td>{{ s.grantedQuota || s.quotaExpect }}</td>
                 <td>{{ s.callCount }}</td>
                 <td>
-                  <code v-if="s.accessKey">{{ s.accessKey.substring(0, 12) }}…</code>
+                  <code v-if="s.accessKey">{{ t('apiMarket.detail.subscribe.akMask', { ak: s.accessKey.substring(0, 12) }) }}</code>
                   <span v-else>—</span>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="meta" style="color: var(--muted)">暂无订阅者</div>
+          <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.subscribe.empty') }}</div>
         </div>
 
         <!-- 计量 Tab -->
-        <div v-if="activeTab === '计量'" class="tab-content">
-          <div v-if="metricsLoading" class="meta" style="color: var(--muted)">加载中…</div>
+        <div v-if="activeTab === 'metrics'" class="tab-content">
+          <div v-if="metricsLoading" class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.metrics.loading') }}</div>
           <template v-else-if="metrics">
             <div class="grid g4">
               <div class="card">
-                <h3>调用次数</h3>
+                <h3>{{ t('apiMarket.detail.metrics.callCount') }}</h3>
                 <div class="kpi s">{{ formatNumber(metrics.callCount) }}</div>
               </div>
               <div class="card">
-                <h3>成功率</h3>
+                <h3>{{ t('apiMarket.detail.metrics.successRate') }}</h3>
                 <div class="kpi s">{{ (metrics.successRate * 100).toFixed(1) }}%</div>
               </div>
               <div class="card">
-                <h3>P99 延迟</h3>
+                <h3>{{ t('apiMarket.detail.metrics.p99') }}</h3>
                 <div class="kpi s">{{ metrics.p99LatencyMs.toFixed(1) }} ms</div>
               </div>
               <div class="card">
-                <h3>总费用</h3>
+                <h3>{{ t('apiMarket.detail.metrics.totalCost') }}</h3>
                 <div class="kpi s">{{ metrics.totalCost.toFixed(4) }}</div>
               </div>
             </div>
-            <h4 style="margin-top: 12px">时间序列</h4>
+            <h4 style="margin-top: 12px">{{ t('apiMarket.detail.metrics.timeseriesTitle') }}</h4>
             <div v-if="metrics.timeseries.length > 0" class="chart-placeholder">
               <div
                 v-for="(point, i) in metrics.timeseries"
                 :key="i"
                 class="bar"
                 :style="{ height: barHeight(point.callCount) + 'px' }"
-                :title="`${point.timestamp}: ${point.callCount} 次`"
+                :title="t('apiMarket.detail.metrics.tsPoint', { ts: point.timestamp, count: point.callCount })"
               ></div>
             </div>
-            <div v-else class="meta" style="color: var(--muted)">无时间序列数据</div>
-            <h4 style="margin-top: 12px">按消费者</h4>
+            <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.metrics.noTimeseries') }}</div>
+            <h4 style="margin-top: 12px">{{ t('apiMarket.detail.metrics.byConsumerTitle') }}</h4>
             <table v-if="metrics.byConsumer.length > 0">
               <thead>
                 <tr>
-                  <th>消费者租户</th>
-                  <th>调用次数</th>
-                  <th>错误次数</th>
-                  <th>平均延迟</th>
-                  <th>费用</th>
+                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.tenant') }}</th>
+                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.callCount') }}</th>
+                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.errorCount') }}</th>
+                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.avgLatency') }}</th>
+                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.cost') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -304,63 +303,63 @@
                 </tr>
               </tbody>
             </table>
-            <div v-else class="meta" style="color: var(--muted)">无消费者数据</div>
+            <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.metrics.noConsumer') }}</div>
           </template>
         </div>
       </div>
       <div class="mf">
-        <button class="btn ghost" @click="selectedApi = null">关闭</button>
+        <button class="btn ghost" @click="selectedApi = null">{{ t('apiMarket.detail.actions.close') }}</button>
         <button v-if="selectedApi.status === 'draft'" class="btn" @click="publishFlow(selectedApi)">
-          提交审核并发布
+          {{ t('apiMarket.detail.actions.publish') }}
         </button>
       </div>
     </div>
 
     <!-- 注册 API Modal -->
-    <Modal :visible="registerModal" title="注册 API" @close="registerModal = false">
-      <label>名称</label>
-      <input v-model="newApi.name" placeholder="如 weather-query" />
-      <label>版本</label>
-      <input v-model="newApi.version" placeholder="1.0.0" />
-      <label>描述</label>
-      <input v-model="newApi.description" placeholder="API 描述" />
-      <label>分类</label>
-      <input v-model="newApi.category" placeholder="如 weather" />
-      <label>HTTP 方法</label>
+    <Modal :visible="registerModal" :title="t('apiMarket.register.title')" @close="registerModal = false">
+      <label>{{ t('apiMarket.register.name') }}</label>
+      <input v-model="newApi.name" :placeholder="t('apiMarket.register.namePlaceholder')" />
+      <label>{{ t('apiMarket.register.version') }}</label>
+      <input v-model="newApi.version" :placeholder="t('apiMarket.register.versionPlaceholder')" />
+      <label>{{ t('apiMarket.register.description') }}</label>
+      <input v-model="newApi.description" :placeholder="t('apiMarket.register.descriptionPlaceholder')" />
+      <label>{{ t('apiMarket.register.category') }}</label>
+      <input v-model="newApi.category" :placeholder="t('apiMarket.register.categoryPlaceholder')" />
+      <label>{{ t('apiMarket.register.method') }}</label>
       <select v-model="newApi.method">
         <option>GET</option>
         <option>POST</option>
         <option>PUT</option>
         <option>DELETE</option>
       </select>
-      <label>路径</label>
-      <input v-model="newApi.path" placeholder="/weather" />
-      <label>认证方式</label>
+      <label>{{ t('apiMarket.register.path') }}</label>
+      <input v-model="newApi.path" :placeholder="t('apiMarket.register.pathPlaceholder')" />
+      <label>{{ t('apiMarket.register.authType') }}</label>
       <select v-model="newApi.authType">
-        <option value="api_key">API Key</option>
-        <option value="jwt">JWT</option>
-        <option value="oauth2">OAuth2</option>
+        <option value="api_key">{{ t('apiMarket.status.auth.api_key') }}</option>
+        <option value="jwt">{{ t('apiMarket.status.auth.jwt') }}</option>
+        <option value="oauth2">{{ t('apiMarket.status.auth.oauth2') }}</option>
       </select>
-      <label>SLA 等级</label>
+      <label>{{ t('apiMarket.register.sla') }}</label>
       <select v-model="newApi.sla">
-        <option value="silver">银</option>
-        <option value="gold">金</option>
-        <option value="platinum">铂金</option>
+        <option value="silver">{{ t('apiMarket.status.sla.silver') }}</option>
+        <option value="gold">{{ t('apiMarket.status.sla.gold') }}</option>
+        <option value="platinum">{{ t('apiMarket.status.sla.platinum') }}</option>
       </select>
-      <label>后端类型</label>
+      <label>{{ t('apiMarket.register.upstreamType') }}</label>
       <select v-model="newApi.upstreamType">
-        <option value="trino">Trino</option>
-        <option value="doris">Doris</option>
-        <option value="llm">大模型</option>
-        <option value="http">HTTP</option>
+        <option value="trino">{{ t('apiMarket.upstreamType.trino') }}</option>
+        <option value="doris">{{ t('apiMarket.upstreamType.doris') }}</option>
+        <option value="llm">{{ t('apiMarket.upstreamType.llm') }}</option>
+        <option value="http">{{ t('apiMarket.upstreamType.http') }}</option>
       </select>
-      <label>后端 URL</label>
-      <input v-model="newApi.upstreamUrl" placeholder="http://trino:8080/v1/statement" />
-      <label>提供方租户</label>
-      <input v-model="newApi.providerTenantId" placeholder="tenant-provider" />
+      <label>{{ t('apiMarket.register.upstreamUrl') }}</label>
+      <input v-model="newApi.upstreamUrl" :placeholder="t('apiMarket.register.upstreamUrlPlaceholder')" />
+      <label>{{ t('apiMarket.register.providerTenantId') }}</label>
+      <input v-model="newApi.providerTenantId" :placeholder="t('apiMarket.register.providerTenantIdPlaceholder')" />
       <template #footer>
-        <button class="btn ghost" @click="registerModal = false">取消</button>
-        <button class="btn" @click="doRegister">注册</button>
+        <button class="btn ghost" @click="registerModal = false">{{ t('apiMarket.register.cancel') }}</button>
+        <button class="btn" @click="doRegister">{{ t('apiMarket.register.submit') }}</button>
       </template>
     </Modal>
   </div>
@@ -368,6 +367,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -392,6 +392,7 @@ import {
   type HttpMethod
 } from '@/api/apiCatalog'
 
+const { t, te } = useI18n()
 const store = useAppStore()
 
 // ---------- 列表 ----------
@@ -467,8 +468,13 @@ async function loadMetrics() {
 
 // ---------- 详情 ----------
 const selectedApi = ref<APIDefinition | null>(null)
-const activeTab = ref('文档')
-const detailTabs = ['文档', '试调', '订阅', '计量']
+const activeTab = ref('doc')
+const detailTabs: { key: string; labelKey: string }[] = [
+  { key: 'doc', labelKey: 'apiMarket.detail.tabs.doc' },
+  { key: 'try', labelKey: 'apiMarket.detail.tabs.try' },
+  { key: 'subscribe', labelKey: 'apiMarket.detail.tabs.subscribe' },
+  { key: 'metrics', labelKey: 'apiMarket.detail.tabs.metrics' }
+]
 
 // 试调
 const testApiKey = ref('')
@@ -491,7 +497,7 @@ const metricsLoading = ref(false)
 
 async function openDetail(api: APIDefinition) {
   selectedApi.value = api
-  activeTab.value = '文档'
+  activeTab.value = 'doc'
   callResult.value = null
   metrics.value = null
   // 加载订阅者
@@ -504,7 +510,7 @@ async function openDetail(api: APIDefinition) {
 
 async function executeCall() {
   if (!selectedApi.value || !testApiKey.value) {
-    store.showToast('请输入 API Key')
+    store.showToast(t('apiMarket.messages.needApiKey'))
     return
   }
   calling.value = true
@@ -532,17 +538,17 @@ async function executeCall() {
 async function applySubscribe() {
   if (!selectedApi.value) return
   if (!subForm.subscriberId || !subForm.purpose) {
-    store.showToast('请填写订阅者和用途')
+    store.showToast(t('apiMarket.messages.needSubAndPurpose'))
     return
   }
   try {
     await subscribeApi(selectedApi.value.id, { ...subForm })
-    store.showToast('订阅申请已提交')
+    store.showToast(t('apiMarket.messages.subscribeSubmitted'))
     subscribers.value = await listSubscribers(selectedApi.value.id)
     subForm.subscriberId = ''
     subForm.purpose = ''
   } catch (e: unknown) {
-    store.showToast(`订阅失败: ${(e as Error).message}`)
+    store.showToast(t('apiMarket.messages.subscribeFailed', { message: (e as Error).message }))
   }
 }
 
@@ -552,17 +558,17 @@ async function publishFlow(api: APIDefinition) {
     await approveApi(api.id)
     const updated = await publishApi(api.id)
     selectedApi.value = updated
-    store.showToast('API 已发布')
+    store.showToast(t('apiMarket.messages.published'))
     refreshList()
   } catch (e: unknown) {
-    store.showToast(`发布失败: ${(e as Error).message}`)
+    store.showToast(t('apiMarket.messages.publishFailed', { message: (e as Error).message }))
   }
 }
 
 // 监听 tab 切换加载计量
 
 watch(activeTab, (tab) => {
-  if (tab === '计量' && selectedApi.value && !metrics.value) {
+  if (tab === 'metrics' && selectedApi.value && !metrics.value) {
     loadMetrics()
   }
 })
@@ -585,7 +591,7 @@ const newApi = reactive({
 
 async function doRegister() {
   if (!newApi.name || !newApi.path) {
-    store.showToast('请填写名称和路径')
+    store.showToast(t('apiMarket.messages.needNameAndPath'))
     return
   }
   try {
@@ -605,14 +611,14 @@ async function doRegister() {
         method: newApi.method
       }
     })
-    store.showToast('API 注册成功')
+    store.showToast(t('apiMarket.messages.registered'))
     registerModal.value = false
     newApi.name = ''
     newApi.path = ''
     newApi.description = ''
     refreshList()
   } catch (e: unknown) {
-    store.showToast(`注册失败: ${(e as Error).message}`)
+    store.showToast(t('apiMarket.messages.registerFailed', { message: (e as Error).message }))
   }
 }
 
@@ -624,23 +630,13 @@ function formatNumber(n: number): string {
 }
 
 function slaLabel(sla: SLALevel): string {
-  return { platinum: '铂金', gold: '金', silver: '银' }[sla]
+  return t(`apiMarket.status.sla.${sla}`)
 }
 function slaClass(sla: SLALevel): string {
   return { platinum: 'p', gold: 'g', silver: 's' }[sla]
 }
 function statusLabel(s: APIStatus): string {
-  return {
-    draft: '草稿',
-    reviewing: '审核中',
-    approved: '已审核',
-    rejected: '已驳回',
-    published: '已发布',
-    running: '运行中',
-    deprecated: '已废弃',
-    archived: '已归档',
-    offline: '已下线'
-  }[s]
+  return t(`apiMarket.status.api.${s}`)
 }
 function statusClass(s: APIStatus): string {
   return {
@@ -656,22 +652,15 @@ function statusClass(s: APIStatus): string {
   }[s]
 }
 function authLabel(a: AuthType): string {
-  return { api_key: 'API Key', jwt: 'JWT', oauth2: 'OAuth2', none: '无' }[a]
+  return t(`apiMarket.status.auth.${a}`)
 }
 function costLabel(c: string): string {
-  return { by_call: '按次', by_bytes: '按量', monthly_package: '月包' }[c] || c
+  const key = `apiMarket.status.cost.${c}`
+  return te(key) ? t(key) : c
 }
 function subStatusLabel(s: string): string {
-  return (
-    {
-      pending: '待审批',
-      approved: '已审批',
-      active: '已激活',
-      suspended: '已暂停',
-      rejected: '已驳回',
-      revoked: '已吊销'
-    }[s] || s
-  )
+  const key = `apiMarket.status.subscription.${s}`
+  return te(key) ? t(key) : s
 }
 function subStatusClass(s: string): string {
   return (

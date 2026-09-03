@@ -1,0 +1,198 @@
+{
+  "apiMarket": {
+    "title": "Open API Service Catalog",
+    "subtitle": "L5.5 · Wrap platform data capabilities as REST/gRPC APIs exposed via APISIX gateway; the catalog supports browse, search, subscribe, invoke and metering.",
+    "kpi": {
+      "published": "Published APIs",
+      "runningDraft": "Running {running} · Draft {draft}",
+      "monthlyCalls": "Monthly Calls",
+      "successRate": "Success {rate}%",
+      "activeSubs": "Active Subs",
+      "pendingSubs": "{count} Pending",
+      "slaPlatinum": "SLA Platinum",
+      "slaBreakdown": "Gold {gold} · Silver {silver}"
+    },
+    "toolbar": {
+      "searchPlaceholder": "Search API name / description / tags",
+      "allCategories": "All categories",
+      "allStatuses": "All statuses",
+      "register": "+ Register API"
+    },
+    "list": {
+      "loading": "Loading…",
+      "loadFailed": "API list load failed: {message}",
+      "retry": "Retry",
+      "empty": "No APIs, click \"+ Register API\" to create one",
+      "noDesc": "(No description)",
+      "callCount": "{count} calls"
+    },
+    "detail": {
+      "titleSuffix": " · Detail",
+      "tabs": {
+        "doc": "Docs",
+        "try": "Try",
+        "subscribe": "Subscribe",
+        "metrics": "Metrics"
+      },
+      "doc": {
+        "name": "Name",
+        "version": "Version",
+        "method": "Method",
+        "description": "Description",
+        "auth": "Auth",
+        "sla": "SLA",
+        "cost": "Billing",
+        "costUnitPrice": "{label} · Unit {price}",
+        "status": "Status",
+        "paramsTitle": "Parameters",
+        "paramColumns": {
+          "name": "Name",
+          "location": "Location",
+          "type": "Type",
+          "required": "Required",
+          "description": "Description"
+        },
+        "yes": "Yes",
+        "no": "No",
+        "noParams": "No parameters"
+      },
+      "try": {
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "Enter subscribed access key",
+        "payload": "Request body (JSON)",
+        "payloadPlaceholder": "{\"key\": \"value\"}",
+        "submit": "Invoke",
+        "submitting": "Invoking…",
+        "result": {
+          "statusCode": "Status",
+          "latency": "Latency",
+          "latencyUnit": " ms",
+          "cost": "Cost",
+          "error": "Error",
+          "response": "Response"
+        }
+      },
+      "subscribe": {
+        "applyTitle": "Apply to Subscribe",
+        "subscriberId": "Subscriber ID",
+        "subscriberIdPlaceholder": "e.g. svc-risk",
+        "tenantId": "Tenant ID",
+        "tenantIdPlaceholder": "e.g. tenant-consumer",
+        "purpose": "Purpose",
+        "purposePlaceholder": "e.g. risk data query",
+        "quotaExpect": "Expected Quota (req/min)",
+        "submit": "Submit Application",
+        "listTitle": "Existing Subscribers",
+        "listColumns": {
+          "subscriber": "Subscriber",
+          "status": "Status",
+          "quota": "Quota",
+          "callCount": "Calls",
+          "ak": "AK"
+        },
+        "akMask": "{ak}…",
+        "empty": "No subscribers"
+      },
+      "metrics": {
+        "loading": "Loading…",
+        "callCount": "Calls",
+        "successRate": "Success Rate",
+        "p99": "P99 Latency",
+        "totalCost": "Total Cost",
+        "timeseriesTitle": "Time Series",
+        "tsPoint": "{ts}: {count} calls",
+        "noTimeseries": "No time series data",
+        "byConsumerTitle": "By Consumer",
+        "byConsumerColumns": {
+          "tenant": "Consumer Tenant",
+          "callCount": "Calls",
+          "errorCount": "Errors",
+          "avgLatency": "Avg Latency",
+          "cost": "Cost"
+        },
+        "noConsumer": "No consumer data"
+      },
+      "actions": {
+        "close": "Close",
+        "publish": "Submit for Review and Publish"
+      }
+    },
+    "register": {
+      "title": "Register API",
+      "name": "Name",
+      "namePlaceholder": "e.g. weather-query",
+      "version": "Version",
+      "versionPlaceholder": "1.0.0",
+      "description": "Description",
+      "descriptionPlaceholder": "API description",
+      "category": "Category",
+      "categoryPlaceholder": "e.g. weather",
+      "method": "HTTP Method",
+      "path": "Path",
+      "pathPlaceholder": "/weather",
+      "authType": "Auth Type",
+      "sla": "SLA Level",
+      "upstreamType": "Upstream Type",
+      "upstreamUrl": "Upstream URL",
+      "upstreamUrlPlaceholder": "http://trino:8080/v1/statement",
+      "providerTenantId": "Provider Tenant",
+      "providerTenantIdPlaceholder": "tenant-provider",
+      "cancel": "Cancel",
+      "submit": "Register"
+    },
+    "status": {
+      "api": {
+        "draft": "Draft",
+        "reviewing": "Reviewing",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "published": "Published",
+        "running": "Running",
+        "deprecated": "Deprecated",
+        "archived": "Archived",
+        "offline": "Offline"
+      },
+      "sla": {
+        "platinum": "Platinum",
+        "gold": "Gold",
+        "silver": "Silver"
+      },
+      "auth": {
+        "api_key": "API Key",
+        "jwt": "JWT",
+        "oauth2": "OAuth2",
+        "none": "None"
+      },
+      "cost": {
+        "by_call": "Per call",
+        "by_bytes": "Per byte",
+        "monthly_package": "Monthly package"
+      },
+      "subscription": {
+        "pending": "Pending",
+        "approved": "Approved",
+        "active": "Active",
+        "suspended": "Suspended",
+        "rejected": "Rejected",
+        "revoked": "Revoked"
+      }
+    },
+    "upstreamType": {
+      "trino": "Trino",
+      "doris": "Doris",
+      "llm": "LLM",
+      "http": "HTTP"
+    },
+    "messages": {
+      "needApiKey": "Please enter API Key",
+      "needSubAndPurpose": "Please enter subscriber and purpose",
+      "subscribeSubmitted": "Subscription submitted",
+      "subscribeFailed": "Subscription failed: {message}",
+      "published": "API published",
+      "publishFailed": "Publish failed: {message}",
+      "needNameAndPath": "Please enter name and path",
+      "registered": "API registered",
+      "registerFailed": "Register failed: {message}"
+    }
+  }
+}

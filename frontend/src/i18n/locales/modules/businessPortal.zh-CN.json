@@ -1,0 +1,189 @@
+{
+  "businessPortal": {
+    "title": "业务线门户",
+    "subtitle": "L5.4 · 以\"业务线-团队-项目\"组织视图复用平台能力，免计费或内部结算（成本×0.3），不承诺 SLA，资源受部门预算软约束。",
+    "pills": {
+      "isolateLines": "多业务线隔离",
+      "isolateData": "数据隔离",
+      "isolatePerms": "权限隔离"
+    },
+    "sidebar": {
+      "title": "业务线",
+      "new": "+ 新建",
+      "loading": "加载中…",
+      "retry": "重试",
+      "empty": "暂无业务线"
+    },
+    "empty": {
+      "selectBl": "请选择业务线",
+      "selectBlHint": "从左侧选择一条业务线，查看数据概览、工作台、数据目录与 BI 报表。"
+    },
+    "tabs": {
+      "dashboard": "数据概览",
+      "workbench": "工作台",
+      "catalog": "数据目录",
+      "reports": "BI 报表"
+    },
+    "dashboard": {
+      "loading": "加载中…",
+      "loadFailed": "加载失败",
+      "loadFailedHint": "数据加载失败，",
+      "retry": "重试",
+      "kpi": {
+        "trend": "环比"
+      },
+      "trend": {
+        "window7d": "近 7 日",
+        "unit": "单位 {unit}"
+      },
+      "realtime": {
+        "title": "实时监控",
+        "columns": {
+          "metric": "指标",
+          "current": "当前",
+          "threshold": "阈值",
+          "status": "状态"
+        }
+      },
+      "topProjects": {
+        "title": "TopN 项目排行",
+        "columns": {
+          "project": "项目",
+          "cost": "成本",
+          "usage": "用量",
+          "jobCount": "作业数"
+        },
+        "costUnit": " 元",
+        "percentSuffix": "%"
+      }
+    },
+    "workbench": {
+      "loading": "加载中…",
+      "todos": {
+        "title": "待办审批",
+        "columns": {
+          "item": "事项",
+          "applicant": "申请人",
+          "priority": "优先级"
+        },
+        "empty": "暂无待办",
+        "approve": "批准",
+        "approveDone": "已批准",
+        "reject": "驳回",
+        "rejectDone": "已驳回"
+      },
+      "tools": {
+        "title": "常用工具"
+      },
+      "recentTasks": {
+        "title": "最近任务",
+        "columns": {
+          "task": "任务",
+          "type": "类型",
+          "status": "状态",
+          "updatedAt": "更新时间"
+        }
+      }
+    },
+    "catalog": {
+      "loading": "加载中…",
+      "title": "数据目录",
+      "nodeCount": "{count} 节点",
+      "assetCount": "{count} 资产"
+    },
+    "reports": {
+      "loading": "加载中…",
+      "newReport": "+ 新建报表",
+      "countPill": "{count} 个报表",
+      "creator": "创建人 {name}",
+      "view": "查看",
+      "delete": "删除",
+      "empty": {
+        "title": "暂无报表",
+        "hint": "点击右上角「+ 新建报表」创建第一个。"
+      }
+    },
+    "createBl": {
+      "title": "新建业务线",
+      "name": "名称",
+      "namePlaceholder": "如 风控线",
+      "tenantId": "租户 ID",
+      "tenantIdPlaceholder": "如 t-1",
+      "description": "描述",
+      "descriptionPlaceholder": "业务线描述",
+      "budgetTotal": "预算总额（元）",
+      "cancel": "取消",
+      "create": "创建",
+      "creating": "创建中…",
+      "needNameAndTenant": "请填写名称和租户 ID",
+      "created": "业务线 {name} 已创建"
+    },
+    "createReport": {
+      "title": "新建 BI 报表",
+      "name": "名称",
+      "namePlaceholder": "如 风控日报",
+      "description": "描述",
+      "descriptionPlaceholder": "报表描述",
+      "type": "类型",
+      "chartType": "图表子类型",
+      "types": {
+        "chart": "图表",
+        "table": "明细表",
+        "dashboard": "综合看板",
+        "pivot": "透视表"
+      },
+      "chartTypes": {
+        "line": "折线图",
+        "bar": "柱状图",
+        "pie": "饼图",
+        "area": "面积图"
+      },
+      "cancel": "取消",
+      "create": "创建",
+      "creating": "创建中…",
+      "needName": "请填写报表名称",
+      "created": "报表已创建"
+    },
+    "reportActions": {
+      "viewToast": "查看报表：{name}（即将跳转 BI 工作台）",
+      "deleted": "报表已删除"
+    },
+    "status": {
+      "bl": {
+        "active": "活跃",
+        "suspended": "已暂停",
+        "archived": "已归档"
+      },
+      "monitor": {
+        "ok": "正常",
+        "warn": "告警",
+        "critical": "严重"
+      },
+      "priority": {
+        "urgent": "紧急",
+        "high": "高",
+        "normal": "普通"
+      },
+      "kind": {
+        "job": "作业",
+        "training": "训练",
+        "deployment": "部署",
+        "share": "共享"
+      },
+      "report": {
+        "published": "已发布",
+        "draft": "草稿",
+        "archived": "已归档"
+      },
+      "reportType": {
+        "chart": "图表",
+        "table": "明细表",
+        "dashboard": "综合看板",
+        "pivot": "透视表"
+      }
+    },
+    "budget": {
+      "usedOverTotal": "预算 {used}/{total} 元"
+    }
+  }
+}

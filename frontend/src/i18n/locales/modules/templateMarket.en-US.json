@@ -13,9 +13,9 @@
       "noMatch": "No matching templates"
     },
     "card": {
-      "installCount": "{{count}} installs",
-      "rating": "{{rating}}",
-      "version": "v{{version}}"
+      "installCount": "{count} installs",
+      "rating": "{rating}",
+      "version": "v{version}"
     },
     "detail": {
       "title": "Template Detail",
@@ -72,7 +72,7 @@
       },
       "viz": {
         "chartType": "Chart Type",
-        "size": "{{width}}×{{height}}"
+        "size": "{width}×{height}"
       },
       "params": {
         "columns": {
@@ -98,8 +98,10 @@
         "template": "Template",
         "tenantId": "Tenant ID",
         "tenantIdPlaceholder": "e.g. tenant-001",
+        "tenantIdRequired": "Please enter tenant ID",
         "releaseName": "Release Name",
         "releaseNamePlaceholder": "e.g. my-risk-scorecard",
+        "releaseNameRequired": "Please enter release name",
         "namespace": "Namespace",
         "namespacePlaceholder": "Leave empty to use tenant-{tenantId}",
         "paramValues": "Parameter Values",
@@ -118,6 +120,7 @@
         "template": "Template",
         "release": "Release",
         "namespace": "Namespace",
+        "deploymentId": "Deployment ID",
         "jobRunId": "Job Run ID",
         "dashboardSnapshot": "Dashboard Snapshot",
         "viewSnapshot": "View Snapshot",
