@@ -1,0 +1,231 @@
+{
+  "engines": {
+    "kpi": {
+      "loading": "Loading…",
+      "loadingMeta": "Fetching data",
+      "loadFailed": "Failed to load",
+      "loadFailedRetry": "Retry",
+      "aliveCount": "Alive {alive} · Abnormal {dead}",
+      "queries": "Query records",
+      "basedOn": "Across all queries",
+      "feNode": "FE Nodes",
+      "beNode": "BE Nodes",
+      "master": "Master Nodes",
+      "worker": "Worker Nodes",
+      "broker": "Broker Nodes",
+      "todayQueries": "Today's Queries",
+      "avgDuration": "Avg Query Duration",
+      "brokers": "Brokers",
+      "topics": "Topics",
+      "topicsCount": "Topics",
+      "partitions": "Partitions",
+      "consumers": "Consumer Groups",
+      "messagesPerSec": "Throughput (msg/s)",
+      "lag": "Max Lag",
+      "lagUnit": "msgs",
+      "brokerCount": "Broker Nodes",
+      "alive": "Alive",
+      "dead": "Abnormal",
+      "running": "Running",
+      "stopped": "Stopped",
+      "flinkJobRunning": "Running Jobs",
+      "flinkJobFailed": "Failed Jobs",
+      "flinkJobCompleted": "Completed Jobs",
+      "iotdbPath": "Storage Paths",
+      "storageCluster": "Storage Cluster",
+      "storagePath": "Storage Path",
+      "storageTotal": "Total Capacity",
+      "storageUsed": "Used Capacity",
+      "nodeStatus": {
+        "alive": "Alive",
+        "dead": "Dead",
+        "decommission": "Decommissioning",
+        "running": "Running",
+        "stopped": "Stopped",
+        "warning": "Warning"
+      }
+    },
+    "tabs": {
+      "nodes": "Nodes",
+      "queries": "Queries",
+      "topics": "Topics",
+      "jobs": "Jobs",
+      "workbench": "Workbench",
+      "sql": "SQL Workbench"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "emptyNodes": "No nodes",
+      "emptyQueries": "No query records",
+      "emptyTopics": "No topics",
+      "emptyJobs": "No jobs",
+      "node": "Node",
+      "role": "Role",
+      "status": "Status",
+      "cpu": "CPU",
+      "memory": "Memory",
+      "disk": "Disk",
+      "queryId": "QueryId",
+      "sqlSummary": "SQL Summary",
+      "user": "User",
+      "database": "Database",
+      "duration": "Duration",
+      "startTime": "Start Time",
+      "jobId": "Job ID",
+      "jobName": "Job Name",
+      "startTimeCol": "Start Time",
+      "endTime": "End Time",
+      "durationCol": "Duration",
+      "parallelism": "Parallelism",
+      "taskManagers": "TaskManagers",
+      "topic": "Topic",
+      "partitions": "Partitions",
+      "replicas": "Replicas",
+      "retention": "Retention",
+      "lag": "Lag",
+      "consumerGroup": "Consumer Group",
+      "members": "Members",
+      "topicName": "Topic Name",
+      "broker": "Broker",
+      "storePath": "Storage Path",
+      "capacity": "Total",
+      "used": "Used"
+    },
+    "sql": {
+      "placeholderDoris": "Enter Doris SQL, e.g. SELECT * FROM db.table LIMIT 100",
+      "placeholderSpark": "Enter Spark SQL",
+      "placeholderIotdb": "Enter IoTDB SQL, e.g. SELECT * FROM root.sg.d LIMIT 100",
+      "placeholder": "Enter SQL",
+      "execute": "Execute",
+      "explain": "Explain",
+      "clear": "Clear",
+      "rowsTime": "{rows} rows, {ms} ms",
+      "explainTitle": "Execution Plan",
+      "noResult": "None",
+      "needSql": "Please enter SQL"
+    },
+    "kafka": {
+      "title": "Messaging (Kafka)",
+      "subtitle": "Message queue · real-time Broker / Topic / Consumer metrics"
+    },
+    "storage": {
+      "title": "Storage Engine",
+      "subtitle": "Unified monitoring for HDFS / OSS / S3 storage — capacity and replicas"
+    },
+    "doris": {
+      "title": "OLAP (Doris)",
+      "subtitle": "MPP engine · FE/BE nodes · query load · 10s auto refresh",
+      "catalog": "Database / Table Catalog"
+    },
+    "hdfs": {
+      "title": "Storage (HDFS)",
+      "subtitle": "NameNode / DataNode health · replication · capacity and throughput"
+    },
+    "flink": {
+      "title": "Stream Processing (Flink)",
+      "subtitle": "Flink stream jobs · checkpoint · backpressure · 10s auto refresh",
+      "submitJob": "+ Submit Stream Job",
+      "loadFailed": "Failed to load Flink job list,",
+      "statusFilter": "Filter by status",
+      "statuses": {
+        "RUNNING": "Running",
+        "FAILED": "Failed",
+        "CANCELED": "Canceled",
+        "FINISHED": "Finished",
+        "RESTARTING": "Restarting"
+      },
+      "table": {
+        "empty": "No Flink jobs",
+        "columns": {
+          "name": "Job Name",
+          "status": "Status",
+          "parallelism": "Parallelism",
+          "duration": "Duration",
+          "checkpoint": "Checkpoint",
+          "backpressure": "Backpressure",
+          "actions": "Actions"
+        }
+      },
+      "kpi": {
+        "runningJob": "Running Jobs",
+        "runningJobMeta": "RUNNING status",
+        "todayFailed": "Today's Failed",
+        "todayFailedMeta": "FAILED status",
+        "avgLatency": "Avg Latency",
+        "avgLatencyMeta": "Across running jobs",
+        "cpSuccessRate": "Checkpoint Success Rate",
+        "cpBreakdown": "OK {ok} / Failed {fail}"
+      },
+      "backpressure": {
+        "ok": "OK",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High"
+      },
+      "actions": {
+        "monitor": "Monitor",
+        "stop": "Stop",
+        "savepoint": "Savepoint"
+      },
+      "submit": {
+        "title": "Submit Stream Job",
+        "jobName": "Job Name",
+        "jobNamePlaceholder": "e.g. Real-time Order Wide Table",
+        "sql": "SQL",
+        "sqlPlaceholder": "Flink SQL statement",
+        "parallelism": "Parallelism",
+        "cpInterval": "Checkpoint Interval",
+        "msUnit": "ms",
+        "owner": "Owner",
+        "ownerPlaceholder": "Owner name",
+        "cancel": "Cancel",
+        "submit": "Submit",
+        "submitting": "Submitting",
+        "submitted": "Flink job submitted",
+        "failed": "Submit failed: {message}"
+      },
+      "monitor": {
+        "title": "Job Monitor - {name}",
+        "jobId": "Job ID",
+        "status": "Status",
+        "parallelism": "Parallelism",
+        "duration": "Duration",
+        "sourceThroughput": "Source Throughput",
+        "sinkThroughput": "Sink Throughput",
+        "throughputUnit": "rec/s",
+        "avgLatency": "Avg Latency",
+        "backpressureLevel": "Backpressure Level",
+        "cpHistory": "Checkpoint History",
+        "cpId": "ID",
+        "cpTrigger": "Trigger Time",
+        "cpCompleted": "Completed Time",
+        "cpStatus": "Status",
+        "cpSize": "Size",
+        "cpDuration": "Duration",
+        "cpEmpty": "No Checkpoint",
+        "cpLoadFailed": "Failed to load",
+        "backpressureTitle": "Backpressure Details",
+        "operator": "Operator",
+        "bpLevel": "Backpressure Level",
+        "bpRatio": "Backpressure Ratio",
+        "bpEmpty": "No backpressure data",
+        "bpLoadFailed": "Failed to load"
+      },
+      "rules": {
+        "nameRequired": "Please enter job name",
+        "sqlRequired": "Please enter Flink SQL",
+        "parallelismRequired": "Please set parallelism"
+      },
+      "stopDialog": {
+        "title": "Confirm Stop",
+        "confirm": "Stop job \"{name}\"? The stream job will be canceled.",
+        "confirmOk": "Stop",
+        "cancel": "Keep"
+      },
+      "messages": {
+        "stopped": "Job stopped",
+        "savepointTriggered": "Savepoint triggered: {path}"
+      }
+    }
+  }
+}

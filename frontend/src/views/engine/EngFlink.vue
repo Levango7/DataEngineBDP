@@ -1,46 +1,46 @@
 <template>
   <div class="eng-flink-page">
-    <h1>流计算（Flink）</h1>
-    <div class="sub">Flink 流作业 · Checkpoint · 反压监控 · 10 秒自动刷新</div>
+    <h1>{{ t('engines.flink.title') }}</h1>
+    <div class="sub">{{ t('engines.flink.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="loading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
-            Flink 作业列表加载失败，
-            <a href="javascript:void(0)" @click="loadList">重试</a>
+            {{ t('engines.flink.loadFailed') }}
+            <a href="javascript:void(0)" @click="loadList">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>运行中作业</h3>
+          <h3>{{ t('engines.flink.kpi.runningJob') }}</h3>
           <div class="kpi">{{ kpi.running }}</div>
-          <div class="meta">RUNNING 状态</div>
+          <div class="meta">{{ t('engines.flink.kpi.runningJobMeta') }}</div>
         </div>
         <div class="card">
-          <h3>今日失败</h3>
+          <h3>{{ t('engines.flink.kpi.todayFailed') }}</h3>
           <div class="kpi d">{{ kpi.failed }}</div>
-          <div class="meta">FAILED 状态</div>
+          <div class="meta">{{ t('engines.flink.kpi.todayFailedMeta') }}</div>
         </div>
         <div class="card">
-          <h3>平均延迟</h3>
+          <h3>{{ t('engines.flink.kpi.avgLatency') }}</h3>
           <div class="kpi">{{ formatLatency(kpi.avgLatencyMs) }}</div>
-          <div class="meta">基于运行中作业</div>
+          <div class="meta">{{ t('engines.flink.kpi.avgLatencyMeta') }}</div>
         </div>
         <div class="card">
-          <h3>Checkpoint 成功率</h3>
+          <h3>{{ t('engines.flink.kpi.cpSuccessRate') }}</h3>
           <div class="kpi s">{{ kpi.cpSuccessRate }}%</div>
-          <div class="meta">成功 {{ kpi.cpSuccess }} / 失败 {{ kpi.cpFail }}</div>
+          <div class="meta">{{ t('engines.flink.kpi.cpBreakdown', { ok: kpi.cpSuccess, fail: kpi.cpFail }) }}</div>
         </div>
       </template>
     </div>
@@ -48,19 +48,19 @@
     <!-- 主内容区：作业列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openSubmitDialog">+ 提交流作业</el-button>
+        <el-button type="primary" @click="openSubmitDialog">{{ t('engines.flink.submitJob') }}</el-button>
         <el-select
           v-model="statusFilter"
-          placeholder="状态筛选"
+          :placeholder="t('engines.flink.statusFilter')"
           clearable
           style="width: 140px"
           @change="handleFilterChange"
         >
-          <el-option label="运行中" value="RUNNING" />
-          <el-option label="失败" value="FAILED" />
-          <el-option label="已取消" value="CANCELED" />
-          <el-option label="已完成" value="FINISHED" />
-          <el-option label="重启中" value="RESTARTING" />
+          <el-option :label="t('engines.flink.statuses.RUNNING')" value="RUNNING" />
+          <el-option :label="t('engines.flink.statuses.FAILED')" value="FAILED" />
+          <el-option :label="t('engines.flink.statuses.CANCELED')" value="CANCELED" />
+          <el-option :label="t('engines.flink.statuses.FINISHED')" value="FINISHED" />
+          <el-option :label="t('engines.flink.statuses.RESTARTING')" value="RESTARTING" />
         </el-select>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="loadList" />
@@ -72,35 +72,35 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? '加载失败，请重试' : '暂无 Flink 作业'"
+        :empty-text="error ? t('engines.table.loadFailed') : t('engines.flink.table.empty')"
       >
-        <el-table-column prop="name" label="作业名" min-width="180" />
-        <el-table-column label="状态" width="120">
+        <el-table-column prop="name" :label="t('engines.flink.table.columns.name')" min-width="180" />
+        <el-table-column :label="t('engines.flink.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="并行度" width="100" align="center">
+        <el-table-column :label="t('engines.flink.table.columns.parallelism')" width="100" align="center">
           <template #default="{ row }">{{ row.parallelism }}</template>
         </el-table-column>
-        <el-table-column label="运行时长" width="120">
+        <el-table-column :label="t('engines.flink.table.columns.duration')" width="120">
           <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
         </el-table-column>
-        <el-table-column label="Checkpoint" width="140" align="center">
+        <el-table-column :label="t('engines.flink.table.columns.checkpoint')" width="140" align="center">
           <template #default="{ row }">{{ row.checkpointCount }}</template>
         </el-table-column>
-        <el-table-column label="反压" width="100">
+        <el-table-column :label="t('engines.flink.table.columns.backpressure')" width="100">
           <template #default="{ row }">
             <el-tag :type="backpressureTagType(row.backpressureLevel)" effect="light" size="small">
               {{ backpressureLabel(row.backpressureLevel) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column :label="t('engines.flink.table.columns.actions')" width="240" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openMonitorDrawer(row)">监控</el-button>
+            <el-button link type="primary" @click="openMonitorDrawer(row)">{{ t('engines.flink.actions.monitor') }}</el-button>
             <el-button
               v-if="canStop(row.status)"
               link
@@ -108,7 +108,7 @@
               :loading="stoppingId === row.id"
               @click="handleStop(row)"
             >
-              停止
+              {{ t('engines.flink.actions.stop') }}
             </el-button>
             <el-button
               v-if="canSavepoint(row.status)"
@@ -117,7 +117,7 @@
               :loading="savepointingId === row.id"
               @click="handleSavepoint(row)"
             >
-              Savepoint
+              {{ t('engines.flink.actions.savepoint') }}
             </el-button>
           </template>
         </el-table-column>
@@ -141,7 +141,7 @@
     <!-- 提交流作业弹窗 -->
     <el-dialog
       v-model="submitDialogVisible"
-      title="提交 Flink 流作业"
+      :title="t('engines.flink.submit.title')"
       width="640px"
       :close-on-click-modal="false"
       @closed="resetSubmitForm"
@@ -153,66 +153,66 @@
         label-width="140px"
         label-position="right"
       >
-        <el-form-item label="作业名称" prop="name">
-          <el-input v-model="submitForm.name" placeholder="如 实时订单宽表" />
+        <el-form-item :label="t('engines.flink.submit.jobName')" prop="name">
+          <el-input v-model="submitForm.name" :placeholder="t('engines.flink.submit.jobNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="SQL 内容" prop="sql">
+        <el-form-item :label="t('engines.flink.submit.sql')" prop="sql">
           <el-input
             v-model="submitForm.sql"
             type="textarea"
             :rows="8"
-            placeholder="Flink SQL 语句"
+            :placeholder="t('engines.flink.submit.sqlPlaceholder')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
-        <el-form-item label="并行度" prop="parallelism">
+        <el-form-item :label="t('engines.flink.submit.parallelism')" prop="parallelism">
           <el-input-number v-model="submitForm.parallelism" :min="1" :max="200" />
         </el-form-item>
-        <el-form-item label="Checkpoint 间隔" prop="checkpointIntervalMs">
+        <el-form-item :label="t('engines.flink.submit.cpInterval')" prop="checkpointIntervalMs">
           <el-input-number v-model="submitForm.checkpointIntervalMs" :min="1000" :step="1000" />
-          <span style="margin-left: 8px; color: var(--muted); font-size: 12px">毫秒</span>
+          <span style="margin-left: 8px; color: var(--muted); font-size: 12px">{{ t('engines.flink.submit.msUnit') }}</span>
         </el-form-item>
-        <el-form-item label="负责人" prop="owner">
-          <el-input v-model="submitForm.owner" placeholder="负责人姓名" />
+        <el-form-item :label="t('engines.flink.submit.owner')" prop="owner">
+          <el-input v-model="submitForm.owner" :placeholder="t('engines.flink.submit.ownerPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">提交</el-button>
+        <el-button @click="submitDialogVisible = false">{{ t('engines.flink.submit.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ t('engines.flink.submit.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 监控详情抽屉 -->
     <el-drawer
       v-model="monitorDrawerVisible"
-      :title="`作业监控 - ${currentMonitorJob?.name ?? ''}`"
+      :title="t('engines.flink.monitor.title', { name: currentMonitorJob?.name ?? '' })"
       size="60%"
       @closed="closeMonitorDrawer"
     >
       <template v-if="currentMonitorJob">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="作业 ID">{{ currentMonitorJob.id }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item :label="t('engines.flink.monitor.jobId')">{{ currentMonitorJob.id }}</el-descriptions-item>
+          <el-descriptions-item :label="t('engines.flink.monitor.status')">
             <el-tag :type="statusTagType(currentMonitorJob.status)" effect="light">
               {{ statusLabel(currentMonitorJob.status) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="并行度">
+          <el-descriptions-item :label="t('engines.flink.monitor.parallelism')">
             {{ currentMonitorJob.parallelism }}
           </el-descriptions-item>
-          <el-descriptions-item label="运行时长">
+          <el-descriptions-item :label="t('engines.flink.monitor.duration')">
             {{ formatDuration(currentMonitorJob.durationMs) }}
           </el-descriptions-item>
-          <el-descriptions-item label="Source 吞吐">
-            {{ currentMonitorJob.sourceThroughput ?? '--' }} 条/秒
+          <el-descriptions-item :label="t('engines.flink.monitor.sourceThroughput')">
+            {{ currentMonitorJob.sourceThroughput ?? '--' }} {{ t('engines.flink.monitor.throughputUnit') }}
           </el-descriptions-item>
-          <el-descriptions-item label="Sink 吞吐">
-            {{ currentMonitorJob.sinkThroughput ?? '--' }} 条/秒
+          <el-descriptions-item :label="t('engines.flink.monitor.sinkThroughput')">
+            {{ currentMonitorJob.sinkThroughput ?? '--' }} {{ t('engines.flink.monitor.throughputUnit') }}
           </el-descriptions-item>
-          <el-descriptions-item label="平均延迟">
+          <el-descriptions-item :label="t('engines.flink.monitor.avgLatency')">
             {{ formatLatency(currentMonitorJob.latencyMs) }}
           </el-descriptions-item>
-          <el-descriptions-item label="反压等级">
+          <el-descriptions-item :label="t('engines.flink.monitor.backpressureLevel')">
             <el-tag
               :type="backpressureTagType(currentMonitorJob.backpressureLevel)"
               effect="light"
@@ -223,51 +223,51 @@
           </el-descriptions-item>
         </el-descriptions>
 
-        <h3 style="margin: 20px 0 12px">Checkpoint 历史</h3>
+        <h3 style="margin: 20px 0 12px">{{ t('engines.flink.monitor.cpHistory') }}</h3>
         <el-table
           v-loading="cpLoading"
           :data="checkpoints"
           stripe
           border
           size="small"
-          :empty-text="cpError ? '加载失败' : '暂无 Checkpoint'"
+          :empty-text="cpError ? t('engines.flink.monitor.cpLoadFailed') : t('engines.flink.monitor.cpEmpty')"
         >
-          <el-table-column prop="id" label="ID" width="120" />
-          <el-table-column prop="triggerTime" label="触发时间" width="180" />
-          <el-table-column prop="completedTime" label="完成时间" width="180" />
-          <el-table-column label="状态" width="120">
+          <el-table-column prop="id" :label="t('engines.flink.monitor.cpId')" width="120" />
+          <el-table-column prop="triggerTime" :label="t('engines.flink.monitor.cpTrigger')" width="180" />
+          <el-table-column prop="completedTime" :label="t('engines.flink.monitor.cpCompleted')" width="180" />
+          <el-table-column :label="t('engines.flink.monitor.cpStatus')" width="120">
             <template #default="{ row }">
               <el-tag :type="cpStatusTagType(row.status)" effect="light" size="small">
                 {{ row.status }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="大小" width="120" align="right">
+          <el-table-column :label="t('engines.flink.monitor.cpSize')" width="120" align="right">
             <template #default="{ row }">{{ formatBytes(row.size) }}</template>
           </el-table-column>
-          <el-table-column label="耗时" width="100">
+          <el-table-column :label="t('engines.flink.monitor.cpDuration')" width="100">
             <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
           </el-table-column>
         </el-table>
 
-        <h3 style="margin: 20px 0 12px">反压详情</h3>
+        <h3 style="margin: 20px 0 12px">{{ t('engines.flink.monitor.backpressureTitle') }}</h3>
         <el-table
           v-loading="bpLoading"
           :data="backpressure?.operators ?? []"
           stripe
           border
           size="small"
-          :empty-text="bpError ? '加载失败' : '暂无反压数据'"
+          :empty-text="bpError ? t('engines.flink.monitor.bpLoadFailed') : t('engines.flink.monitor.bpEmpty')"
         >
-          <el-table-column prop="name" label="算子" min-width="180" />
-          <el-table-column label="反压等级" width="120">
+          <el-table-column prop="name" :label="t('engines.flink.monitor.operator')" min-width="180" />
+          <el-table-column :label="t('engines.flink.monitor.bpLevel')" width="120">
             <template #default="{ row }">
               <el-tag :type="backpressureTagType(row.level)" effect="light" size="small">
                 {{ backpressureLabel(row.level) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="反压比率" width="200">
+          <el-table-column :label="t('engines.flink.monitor.bpRatio')" width="200">
             <template #default="{ row }">
               <el-progress
                 :percentage="Math.round(row.ratio * 100)"
@@ -284,11 +284,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as engineApi from '@/api/engine'
 import type { FlinkJob, Checkpoint, BackpressureMetrics, BackpressureLevel } from '@/api/engine'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
@@ -373,11 +376,11 @@ const submitForm = reactive<SubmitForm>({
   owner: ''
 })
 
-const submitRules: FormRules = {
-  name: [{ required: true, message: '请输入作业名称', trigger: 'blur' }],
-  sql: [{ required: true, message: '请输入 Flink SQL', trigger: 'blur' }],
-  parallelism: [{ required: true, message: '请设置并行度', trigger: 'change' }]
-}
+const submitRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('engines.flink.rules.nameRequired'), trigger: 'blur' }],
+  sql: [{ required: true, message: t('engines.flink.rules.sqlRequired'), trigger: 'blur' }],
+  parallelism: [{ required: true, message: t('engines.flink.rules.parallelismRequired'), trigger: 'change' }]
+}))
 
 /** 打开提交弹窗 */
 function openSubmitDialog() {
@@ -410,7 +413,7 @@ async function handleSubmit() {
         checkpointIntervalMs: submitForm.checkpointIntervalMs,
         owner: submitForm.owner || undefined
       })
-      ElMessage.success('Flink 流作业已提交')
+      ElMessage.success(t('engines.flink.submit.submitted'))
       submitDialogVisible.value = false
       await loadList()
     } catch {
@@ -429,14 +432,14 @@ const savepointingId = ref<string>('')
 /** 停止作业 */
 async function handleStop(row: FlinkJob) {
   try {
-    await ElMessageBox.confirm(`确定停止作业「${row.name}」吗？流作业将被取消。`, '停止作业确认', {
+    await ElMessageBox.confirm(t('engines.flink.stopDialog.confirm', { name: row.name }), t('engines.flink.stopDialog.title'), {
       type: 'warning',
-      confirmButtonText: '确定停止',
-      cancelButtonText: '保留'
+      confirmButtonText: t('engines.flink.stopDialog.confirmOk'),
+      cancelButtonText: t('engines.flink.stopDialog.cancel')
     })
     stoppingId.value = row.id
     await engineApi.stopFlinkJob(row.id)
-    ElMessage.success('作业已停止')
+    ElMessage.success(t('engines.flink.messages.stopped'))
     await loadList()
   } catch {
     // 用户取消或操作失败
@@ -450,7 +453,7 @@ async function handleSavepoint(row: FlinkJob) {
   try {
     savepointingId.value = row.id
     const { savepointPath } = await engineApi.triggerSavepoint(row.id)
-    ElMessage.success(`Savepoint 已触发：${savepointPath}`)
+    ElMessage.success(t('engines.flink.messages.savepointTriggered', { path: savepointPath }))
     await loadList()
   } catch {
     // 拦截器已提示

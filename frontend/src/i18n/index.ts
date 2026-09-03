@@ -67,6 +67,8 @@ import clusterOverviewZh from './locales/modules/clusterOverview.zh-CN.json'
 import clusterOverviewEn from './locales/modules/clusterOverview.en-US.json'
 import dataLineageZh from './locales/modules/dataLineage.zh-CN.json'
 import dataLineageEn from './locales/modules/dataLineage.en-US.json'
+import enginesZh from './locales/modules/engines.zh-CN.json'
+import enginesEn from './locales/modules/engines.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -147,7 +149,8 @@ export const i18n = createI18n({
       ...workspaceManagementZh,
       ...quotaManagementZh,
       ...clusterOverviewZh,
-      ...dataLineageZh
+      ...dataLineageZh,
+      ...enginesZh
     },
     'en-US': {
       ...enUS,
@@ -183,7 +186,8 @@ export const i18n = createI18n({
       ...workspaceManagementEn,
       ...quotaManagementEn,
       ...clusterOverviewEn,
-      ...dataLineageEn
+      ...dataLineageEn,
+      ...enginesEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

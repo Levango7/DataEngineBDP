@@ -1,0 +1,231 @@
+{
+  "engines": {
+    "kpi": {
+      "loading": "加载中…",
+      "loadingMeta": "正在拉取数据",
+      "loadFailed": "加载失败",
+      "loadFailedRetry": "重试",
+      "aliveCount": "存活 {alive} · 异常 {dead}",
+      "queries": "查询记录",
+      "basedOn": "基于全部查询",
+      "feNode": "FE 节点",
+      "beNode": "BE 节点",
+      "master": "Master 节点",
+      "worker": "Worker 节点",
+      "broker": "Broker 节点",
+      "todayQueries": "今日查询数",
+      "avgDuration": "平均查询时长",
+      "brokers": "Broker 数",
+      "topics": "Topic 数",
+      "topicsCount": "Topic 数",
+      "partitions": "Partition 数",
+      "consumers": "Consumer 组",
+      "messagesPerSec": "消息吞吐 (msg/s)",
+      "lag": "最大 Lag",
+      "lagUnit": "条",
+      "brokerCount": "Broker 节点",
+      "alive": "存活",
+      "dead": "异常",
+      "running": "运行中",
+      "stopped": "已停止",
+      "flinkJobRunning": "运行中 Job",
+      "flinkJobFailed": "失败 Job",
+      "flinkJobCompleted": "完成 Job",
+      "iotdbPath": "存储路径数",
+      "storageCluster": "存储集群",
+      "storagePath": "存储路径",
+      "storageTotal": "总容量",
+      "storageUsed": "已用容量",
+      "nodeStatus": {
+        "alive": "存活",
+        "dead": "异常",
+        "decommission": "下线中",
+        "running": "运行中",
+        "stopped": "已停止",
+        "warning": "告警"
+      }
+    },
+    "tabs": {
+      "nodes": "节点状态",
+      "queries": "查询列表",
+      "topics": "Topic 列表",
+      "jobs": "Job 列表",
+      "workbench": "SQL 工作台",
+      "sql": "SQL 工作台"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "emptyNodes": "暂无节点",
+      "emptyQueries": "暂无查询记录",
+      "emptyTopics": "暂无 Topic",
+      "emptyJobs": "暂无 Job",
+      "node": "节点",
+      "role": "角色",
+      "status": "状态",
+      "cpu": "CPU",
+      "memory": "内存",
+      "disk": "磁盘",
+      "queryId": "QueryId",
+      "sqlSummary": "SQL 摘要",
+      "user": "用户",
+      "database": "数据库",
+      "duration": "时长",
+      "startTime": "开始时间",
+      "jobId": "Job ID",
+      "jobName": "Job 名称",
+      "startTimeCol": "开始时间",
+      "endTime": "结束时间",
+      "durationCol": "耗时",
+      "parallelism": "并行度",
+      "taskManagers": "TaskManager 数",
+      "topic": "Topic",
+      "partitions": "分区数",
+      "replicas": "副本数",
+      "retention": "保留时长",
+      "lag": "Lag",
+      "consumerGroup": "Consumer Group",
+      "members": "成员数",
+      "topicName": "Topic 名称",
+      "broker": "Broker",
+      "storePath": "存储路径",
+      "capacity": "总容量",
+      "used": "已用"
+    },
+    "sql": {
+      "placeholderDoris": "输入 Doris SQL，如 SELECT * FROM db.table LIMIT 100",
+      "placeholderSpark": "输入 Spark SQL",
+      "placeholderIotdb": "输入 IoTDB SQL，如 SELECT * FROM root.sg.d LIMIT 100",
+      "placeholder": "输入 SQL",
+      "execute": "执行",
+      "explain": "执行计划",
+      "clear": "清空",
+      "rowsTime": "共 {rows} 行，耗时 {ms} ms",
+      "explainTitle": "执行计划",
+      "noResult": "无",
+      "needSql": "请输入 SQL"
+    },
+    "kafka": {
+      "title": "OLAP/消息（Kafka）",
+      "subtitle": "消息队列 · Broker / Topic / Consumer 实时指标"
+    },
+    "storage": {
+      "title": "存储引擎",
+      "subtitle": "HDFS / OSS / S3 统一存储监控 · 容量与副本"
+    },
+    "doris": {
+      "title": "OLAP（Doris）",
+      "subtitle": "MPP 引擎 · FE/BE 节点 · 查询负载 · 10 秒自动刷新",
+      "catalog": "数据库 / 表目录"
+    },
+    "hdfs": {
+      "title": "存储（HDFS）",
+      "subtitle": "NameNode / DataNode 健康 · 副本数 · 容量与吞吐"
+    },
+    "flink": {
+      "title": "流计算（Flink）",
+      "subtitle": "Flink 流作业 · Checkpoint · 反压监控 · 10 秒自动刷新",
+      "submitJob": "+ 提交流作业",
+      "loadFailed": "Flink 作业列表加载失败，",
+      "statusFilter": "状态筛选",
+      "statuses": {
+        "RUNNING": "运行中",
+        "FAILED": "失败",
+        "CANCELED": "已取消",
+        "FINISHED": "已完成",
+        "RESTARTING": "重启中"
+      },
+      "table": {
+        "empty": "暂无 Flink 作业",
+        "columns": {
+          "name": "作业名",
+          "status": "状态",
+          "parallelism": "并行度",
+          "duration": "运行时长",
+          "checkpoint": "Checkpoint",
+          "backpressure": "反压",
+          "actions": "操作"
+        }
+      },
+      "kpi": {
+        "runningJob": "运行中作业",
+        "runningJobMeta": "RUNNING 状态",
+        "todayFailed": "今日失败",
+        "todayFailedMeta": "FAILED 状态",
+        "avgLatency": "平均延迟",
+        "avgLatencyMeta": "基于运行中作业",
+        "cpSuccessRate": "Checkpoint 成功率",
+        "cpBreakdown": "成功 {ok} / 失败 {fail}"
+      },
+      "backpressure": {
+        "ok": "正常",
+        "low": "低",
+        "medium": "中",
+        "high": "高"
+      },
+      "actions": {
+        "monitor": "监控",
+        "stop": "停止",
+        "savepoint": "Savepoint"
+      },
+      "submit": {
+        "title": "提交流作业",
+        "jobName": "作业名称",
+        "jobNamePlaceholder": "如 实时订单宽表",
+        "sql": "SQL 内容",
+        "sqlPlaceholder": "Flink SQL 语句",
+        "parallelism": "并行度",
+        "cpInterval": "Checkpoint 间隔",
+        "msUnit": "毫秒",
+        "owner": "负责人",
+        "ownerPlaceholder": "负责人姓名",
+        "cancel": "取消",
+        "submit": "提交",
+        "submitting": "提交中",
+        "submitted": "Flink 作业已提交",
+        "failed": "提交失败：{message}"
+      },
+      "monitor": {
+        "title": "作业监控 - {name}",
+        "jobId": "作业 ID",
+        "status": "状态",
+        "parallelism": "并行度",
+        "duration": "运行时长",
+        "sourceThroughput": "Source 吞吐",
+        "sinkThroughput": "Sink 吞吐",
+        "throughputUnit": "条/秒",
+        "avgLatency": "平均延迟",
+        "backpressureLevel": "反压等级",
+        "cpHistory": "Checkpoint 历史",
+        "cpId": "ID",
+        "cpTrigger": "触发时间",
+        "cpCompleted": "完成时间",
+        "cpStatus": "状态",
+        "cpSize": "大小",
+        "cpDuration": "耗时",
+        "cpEmpty": "暂无 Checkpoint",
+        "cpLoadFailed": "加载失败",
+        "backpressureTitle": "反压详情",
+        "operator": "算子",
+        "bpLevel": "反压等级",
+        "bpRatio": "反压比率",
+        "bpEmpty": "暂无反压数据",
+        "bpLoadFailed": "加载失败"
+      },
+      "rules": {
+        "nameRequired": "请输入作业名称",
+        "sqlRequired": "请输入 Flink SQL",
+        "parallelismRequired": "请设置并行度"
+      },
+      "stopDialog": {
+        "title": "停止作业确认",
+        "confirm": "确定停止作业「{name}」吗？流作业将被取消。",
+        "confirmOk": "确定停止",
+        "cancel": "保留"
+      },
+      "messages": {
+        "stopped": "作业已停止",
+        "savepointTriggered": "Savepoint 已触发：{path}"
+      }
+    }
+  }
+}

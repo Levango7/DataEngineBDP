@@ -1,46 +1,46 @@
 <template>
   <div class="eng-doris-page">
-    <h1>OLAP（Doris）</h1>
-    <div class="sub">MPP 引擎 · FE/BE 节点 · 查询负载 · 10 秒自动刷新</div>
+    <h1>{{ t('engines.doris.title') }}</h1>
+    <div class="sub">{{ t('engines.doris.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="nodesLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="nodesError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ nodesError.message }}，
-            <a href="javascript:void(0)" @click="reloadNodes">重试</a>
+            <a href="javascript:void(0)" @click="reloadNodes">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>FE 节点</h3>
+          <h3>{{ t('engines.kpi.feNode') }}</h3>
           <div class="kpi">{{ kpi.feCount }}</div>
-          <div class="meta">存活 {{ kpi.feAlive }} · 异常 {{ kpi.feDead }}</div>
+          <div class="meta">{{ t('engines.kpi.aliveCount', { alive: kpi.feAlive, dead: kpi.feDead }) }}</div>
         </div>
         <div class="card">
-          <h3>BE 节点</h3>
+          <h3>{{ t('engines.kpi.beNode') }}</h3>
           <div class="kpi">{{ kpi.beCount }}</div>
-          <div class="meta">存活 {{ kpi.beAlive }} · 异常 {{ kpi.beDead }}</div>
+          <div class="meta">{{ t('engines.kpi.aliveCount', { alive: kpi.beAlive, dead: kpi.beDead }) }}</div>
         </div>
         <div class="card">
-          <h3>今日查询数</h3>
+          <h3>{{ t('engines.kpi.todayQueries') }}</h3>
           <div class="kpi s">{{ queries?.length ?? 0 }}</div>
-          <div class="meta">查询记录</div>
+          <div class="meta">{{ t('engines.kpi.queries') }}</div>
         </div>
         <div class="card">
-          <h3>平均查询时长</h3>
+          <h3>{{ t('engines.kpi.avgDuration') }}</h3>
           <div class="kpi">{{ formatDuration(kpi.avgDurationMs) }}</div>
-          <div class="meta">基于全部查询</div>
+          <div class="meta">{{ t('engines.kpi.basedOn') }}</div>
         </div>
       </template>
     </div>
@@ -50,7 +50,7 @@
       <!-- 左：数据库/表目录树 -->
       <el-card shadow="never" class="page-card tree-card">
         <template #header>
-          <span>数据库 / 表目录</span>
+          <span>{{ t('engines.doris.catalog') }}</span>
         </template>
         <el-tree
           :data="catalogTree"
@@ -66,9 +66,9 @@
       <el-card shadow="never" class="page-card main-card">
         <div class="toolbar">
           <el-tabs v-model="activeTab" type="card" class="main-tabs">
-            <el-tab-pane label="节点状态" name="nodes" />
-            <el-tab-pane label="查询列表" name="queries" />
-            <el-tab-pane label="SQL 工作台" name="sql" />
+            <el-tab-pane :label="t('engines.tabs.nodes')" name="nodes" />
+            <el-tab-pane :label="t('engines.tabs.queries')" name="queries" />
+            <el-tab-pane :label="t('engines.tabs.sql')" name="sql" />
           </el-tabs>
           <div class="spacer"></div>
           <el-button :icon="Refresh" circle @click="reloadAll" />
@@ -82,12 +82,12 @@
             stripe
             border
             style="width: 100%"
-            :empty-text="nodesError ? '加载失败，请重试' : '暂无节点'"
+            :empty-text="nodesError ? t('engines.table.loadFailed') : t('engines.table.emptyNodes')"
           >
-            <el-table-column label="节点" min-width="180">
+            <el-table-column :label="t('engines.table.node')" min-width="180">
               <template #default="{ row }">{{ row.host }}:{{ row.port }}</template>
             </el-table-column>
-            <el-table-column label="角色" width="100">
+            <el-table-column :label="t('engines.table.role')" width="100">
               <template #default="{ row }">
                 <el-tag
                   :type="row.role === 'FE' ? 'primary' : 'success'"
@@ -98,14 +98,14 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="120">
+            <el-table-column :label="t('engines.table.status')" width="120">
               <template #default="{ row }">
                 <el-tag :type="nodeStatusTagType(row.status)" effect="light" size="small">
-                  {{ row.status }}
+                  {{ t(`engines.kpi.nodeStatus.${row.status}`, row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="CPU" width="160">
+            <el-table-column :label="t('engines.table.cpu')" width="160">
               <template #default="{ row }">
                 <el-progress
                   :percentage="Math.min(row.cpuUsage, 100)"
@@ -114,7 +114,7 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column label="内存" width="160">
+            <el-table-column :label="t('engines.table.memory')" width="160">
               <template #default="{ row }">
                 <el-progress
                   :percentage="Math.min(row.memUsage, 100)"
@@ -123,7 +123,7 @@
                 />
               </template>
             </el-table-column>
-            <el-table-column label="磁盘" width="160">
+            <el-table-column :label="t('engines.table.disk')" width="160">
               <template #default="{ row }">
                 <el-progress
                   v-if="row.diskUsage != null"
@@ -145,28 +145,28 @@
             stripe
             border
             style="width: 100%"
-            :empty-text="queriesError ? '加载失败，请重试' : '暂无查询记录'"
+            :empty-text="queriesError ? t('engines.table.loadFailed') : t('engines.table.emptyQueries')"
           >
-            <el-table-column prop="queryId" label="QueryId" min-width="180" />
+            <el-table-column prop="queryId" :label="t('engines.table.queryId')" min-width="180" />
             <el-table-column
               prop="sqlSummary"
-              label="SQL 摘要"
+              :label="t('engines.table.sqlSummary')"
               min-width="240"
               show-overflow-tooltip
             />
-            <el-table-column prop="user" label="用户" width="120" />
-            <el-table-column prop="database" label="数据库" width="140" />
-            <el-table-column label="时长" width="120">
+            <el-table-column prop="user" :label="t('engines.table.user')" width="120" />
+            <el-table-column prop="database" :label="t('engines.table.database')" width="140" />
+            <el-table-column :label="t('engines.table.duration')" width="120">
               <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="120">
+            <el-table-column :label="t('engines.table.status')" width="120">
               <template #default="{ row }">
                 <el-tag :type="queryStatusTagType(row.status)" effect="light" size="small">
                   {{ row.status }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="startTime" label="开始时间" width="180" />
+            <el-table-column prop="startTime" :label="t('engines.table.startTime')" width="180" />
           </el-table>
         </template>
 
@@ -177,19 +177,19 @@
               v-model="sqlText"
               type="textarea"
               :rows="8"
-              placeholder="输入 Doris SQL，如 SELECT * FROM db.table LIMIT 100"
+              :placeholder="t('engines.sql.placeholderDoris')"
               style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
             />
             <div class="sql-actions">
               <el-button type="primary" :loading="executing" @click="handleExecuteSql">
-                执行
+                {{ t('engines.sql.execute') }}
               </el-button>
-              <el-button :loading="explaining" @click="handleExplainSql">执行计划</el-button>
-              <el-button @click="sqlText = ''">清空</el-button>
+              <el-button :loading="explaining" @click="handleExplainSql">{{ t('engines.sql.explain') }}</el-button>
+              <el-button @click="sqlText = ''">{{ t('engines.sql.clear') }}</el-button>
             </div>
             <div v-if="sqlResult" class="sql-result">
               <div class="result-meta">
-                共 {{ sqlResult.rowCount }} 行，耗时 {{ sqlResult.durationMs }} ms
+                {{ t('engines.sql.rowsTime', { rows: sqlResult.rowCount, ms: sqlResult.durationMs }) }}
               </div>
               <el-table
                 :data="sqlResult.rows"
@@ -210,9 +210,9 @@
               </el-table>
             </div>
             <div v-if="explainResult" class="sql-result">
-              <div class="result-meta">执行计划</div>
+              <div class="result-meta">{{ t('engines.sql.explainTitle') }}</div>
               <pre class="explain-content">{{
-                explainResult.plan ?? explainResult.error ?? '无'
+                explainResult.plan ?? explainResult.error ?? t('engines.sql.noResult')
               }}</pre>
             </div>
           </div>
@@ -224,11 +224,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
 import type { DorisNode, DorisQuery, SqlExecuteResponse, SqlExplainResponse } from '@/api/engine'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 数据加载 ------------------------------ */
 
@@ -345,7 +348,7 @@ const explainResult = ref<SqlExplainResponse | null>(null)
 /** 执行 SQL */
 async function handleExecuteSql() {
   if (!sqlText.value.trim()) {
-    ElMessage.warning('请输入 SQL')
+    ElMessage.warning(t('engines.sql.needSql'))
     return
   }
   executing.value = true
@@ -363,7 +366,7 @@ async function handleExecuteSql() {
 /** 执行计划 */
 async function handleExplainSql() {
   if (!sqlText.value.trim()) {
-    ElMessage.warning('请输入 SQL')
+    ElMessage.warning(t('engines.sql.needSql'))
     return
   }
   explaining.value = true

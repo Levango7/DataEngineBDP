@@ -75,6 +75,8 @@ import clusterOverviewZh from '@/i18n/locales/modules/clusterOverview.zh-CN.json
 import clusterOverviewEn from '@/i18n/locales/modules/clusterOverview.en-US.json'
 import dataLineageZh from '@/i18n/locales/modules/dataLineage.zh-CN.json'
 import dataLineageEn from '@/i18n/locales/modules/dataLineage.en-US.json'
+import enginesZh from '@/i18n/locales/modules/engines.zh-CN.json'
+import enginesEn from '@/i18n/locales/modules/engines.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -158,7 +160,8 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['workspaceManagement', workspaceManagementZh as Record<string, unknown>, workspaceManagementEn as Record<string, unknown>],
     ['quotaManagement', quotaManagementZh as Record<string, unknown>, quotaManagementEn as Record<string, unknown>],
     ['clusterOverview', clusterOverviewZh as Record<string, unknown>, clusterOverviewEn as Record<string, unknown>],
-    ['dataLineage', dataLineageZh as Record<string, unknown>, dataLineageEn as Record<string, unknown>]
+    ['dataLineage', dataLineageZh as Record<string, unknown>, dataLineageEn as Record<string, unknown>],
+    ['engines', enginesZh as Record<string, unknown>, enginesEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {
