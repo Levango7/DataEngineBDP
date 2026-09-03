@@ -148,4 +148,52 @@ class LineageControllerTest {
         assertNotNull(body);
         assertEquals("UP", body.get("status"));
     }
+
+    @Test
+    @DisplayName("POST /events 摄取 OpenLineage RunEvent 并可被 upstream 查询命中")
+    void testOpenLineageEventsEndpoint() {
+        Map<String, Object> input = new LinkedHashMap<>();
+        input.put("namespace", "batch-pipeline");
+        input.put("name", "it-batch/01_raw");
+        Map<String, Object> output = new LinkedHashMap<>();
+        output.put("namespace", "batch-pipeline");
+        output.put("name", "it-batch/02_valid");
+        Map<String, Object> event = new LinkedHashMap<>();
+        event.put("eventType", "COMPLETE");
+        event.put("job", Map.of("namespace", "batch-pipeline", "name", "batch-pipeline.validate"));
+        event.put("run", Map.of("runId", "88888888-8888-8888-8888-888888888888"));
+        event.put("inputs", java.util.List.of(input));
+        event.put("outputs", java.util.List.of(output));
+
+        ResponseEntity<Map> resp = restClient.post()
+                .uri(baseUrl + "/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(event)
+                .retrieve()
+                .toEntity(Map.class);
+        assertTrue(resp.getStatusCode().is2xxSuccessful());
+        Map body = resp.getBody();
+        assertNotNull(body);
+        assertEquals(1, body.get("edges"));
+        assertEquals(2, body.get("nodes"));
+
+        // 摄取结果进入内存图，与 SQL 血缘共用查询链路（upstream 查询见 OpenLineageIngestServiceTest）
+        assertTrue(graphWriter.getDirectUpstream("batch-pipeline/it-batch/02_valid")
+                .contains("batch-pipeline/it-batch/01_raw"));
+    }
+
+    @Test
+    @DisplayName("POST /events 缺 job.name 返回 400")
+    void testOpenLineageEventsInvalid() {
+        final int[] capturedStatus = {0};
+        restClient.post()
+                .uri(baseUrl + "/events")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("run", Map.of("runId", "r")))
+                .retrieve()
+                .onStatus(status -> status.is4xxClientError(),
+                        (req, resp) -> capturedStatus[0] = resp.getStatusCode().value())
+                .toEntity(Map.class);
+        assertEquals(400, capturedStatus[0]);
+    }
 }

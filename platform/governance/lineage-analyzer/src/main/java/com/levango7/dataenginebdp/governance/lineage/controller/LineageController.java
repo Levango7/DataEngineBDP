@@ -4,6 +4,7 @@ import com.levango7.dataenginebdp.governance.lineage.model.LineageGraph;
 import com.levango7.dataenginebdp.governance.lineage.model.LineageQueryResult;
 import com.levango7.dataenginebdp.governance.lineage.service.LineageAnalyzerService;
 import com.levango7.dataenginebdp.governance.lineage.service.LineageQueryService;
+import com.levango7.dataenginebdp.governance.lineage.service.OpenLineageIngestService;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlDialect;
 import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
@@ -34,6 +35,7 @@ import java.util.Map;
  *   <li>{@code GET  /api/v1/lineage/downstream/{table}} - 查询下游</li>
  *   <li>{@code GET  /api/v1/lineage/impact/{table}} - 影响分析</li>
  *   <li>{@code GET  /api/v1/lineage/graph} - 获取完整图谱</li>
+ *   <li>{@code POST /api/v1/lineage/events} - 摄取 OpenLineage RunEvent</li>
  * </ul>
  *
  * @author shuqing-bigdata
@@ -47,18 +49,22 @@ public class LineageController {
 
     private final LineageAnalyzerService analyzerService;
     private final LineageQueryService queryService;
+    private final OpenLineageIngestService openLineageIngestService;
 
     /**
      * 构造控制器。
      *
-     * @param analyzerService 分析服务
-     * @param queryService    查询服务
+     * @param analyzerService          分析服务
+     * @param queryService             查询服务
+     * @param openLineageIngestService OpenLineage 事件摄取服务
      */
     @Autowired
     public LineageController(LineageAnalyzerService analyzerService,
-                             LineageQueryService queryService) {
+                             LineageQueryService queryService,
+                             OpenLineageIngestService openLineageIngestService) {
         this.analyzerService = analyzerService;
         this.queryService = queryService;
+        this.openLineageIngestService = openLineageIngestService;
     }
 
     /**
@@ -120,6 +126,27 @@ public class LineageController {
     @GetMapping("/impact/{table}")
     public ResponseEntity<LineageQueryResult> impact(@PathVariable String table) {
         return ResponseEntity.ok(queryService.impactAnalysis(table));
+    }
+
+    /**
+     * 摄取 OpenLineage RunEvent（M4 lineage 归一：统一血缘入口）。
+     *
+     * <p>接受单个事件对象或事件数组（NDJSON 逐事件 POST 的上游生产方：
+     * {@code platform/batch-pipeline} 的 {@code batch_pipeline.openlineage} 发射器，
+     * 兼容任何标准 OpenLineage 生产端）。inputs × outputs 映射为表级血缘边，
+     * 双写内存图 + H2（可选 Nebula），与 SQL 血缘共用查询/影响分析 API。</p>
+     *
+     * @param body RunEvent JSON 对象或数组
+     * @return 摄取汇总 {events, nodes, edges, runs:[...]}
+     */
+    @Operation(summary = "摄取 OpenLineage RunEvent（单事件或数组）")
+    @PostMapping(value = "/events", consumes = "application/json")
+    public ResponseEntity<Map<String, Object>> ingestOpenLineage(@RequestBody Object body) {
+        try {
+            return ResponseEntity.ok(openLineageIngestService.ingest(body));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(errorMap("invalid_openlineage_event", e.getMessage()));
+        }
     }
 
     /**
