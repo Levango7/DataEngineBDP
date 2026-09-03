@@ -113,7 +113,120 @@
     },
     "kafka": {
       "title": "OLAP/消息（Kafka）",
-      "subtitle": "消息队列 · Broker / Topic / Consumer 实时指标"
+      "subtitle": "消息队列 · Broker / Topic / Consumer 实时指标",
+      "page": {
+        "subtitle": "Broker · Topic · 消费组 · Lag 监控 · 10 秒自动刷新"
+      },
+      "kpi": {
+        "clusterCount": "集群数",
+        "clusterMeta": "已接入 Kafka 集群",
+        "brokerCount": "Broker 数",
+        "brokerAlive": "存活 {count}",
+        "topicCount": "Topic 数",
+        "topicMeta": "已创建 Topic",
+        "groupCount": "消费组数",
+        "totalLag": "总 Lag {count}"
+      },
+      "tabs": {
+        "brokers": "Broker",
+        "topics": "Topic",
+        "groups": "消费组"
+      },
+      "select": {
+        "placeholder": "选择 Kafka 集群",
+        "refreshAria": "刷新"
+      },
+      "create": {
+        "createTopic": "+ 创建 Topic",
+        "title": "创建 Topic",
+        "fields": {
+          "name": "Topic 名称",
+          "namePlaceholder": "如 order-events",
+          "partitions": "分区数",
+          "replicas": "副本因子"
+        },
+        "actions": {
+          "cancel": "取消",
+          "create": "创建"
+        }
+      },
+      "sample": {
+        "title": "消息采样 - {name}",
+        "totalFmt": "共 {count} 条消息",
+        "empty": "暂无消息",
+        "close": "关闭",
+        "columns": {
+          "partition": "分区",
+          "offset": "Offset",
+          "timestamp": "时间戳",
+          "key": "Key",
+          "value": "Value"
+        }
+      },
+      "broker": {
+        "columns": {
+          "id": "ID",
+          "host": "Host",
+          "port": "Port",
+          "version": "版本",
+          "status": "状态",
+          "leaderCount": "分区 Leader 数"
+        },
+        "status": {
+          "alive": "存活",
+          "dead": "下线",
+          "warning": "告警"
+        },
+        "empty": "暂无 Broker"
+      },
+      "topic": {
+        "columns": {
+          "name": "Topic 名称",
+          "partitions": "分区数",
+          "replicas": "副本因子",
+          "messageCount": "总消息数",
+          "size": "大小",
+          "actions": "操作"
+        },
+        "actions": {
+          "sample": "采样",
+          "delete": "删除"
+        },
+        "searchPlaceholder": "搜索 Topic 名称",
+        "empty": "暂无 Topic"
+      },
+      "group": {
+        "columns": {
+          "name": "组名",
+          "engine": "计算引擎",
+          "lag": "Lag",
+          "status": "状态",
+          "members": "成员数",
+          "topics": "订阅 Topic"
+        },
+        "status": {
+          "stable": "稳定",
+          "rebalancing": "重平衡中",
+          "empty": "空载",
+          "dead": "失联"
+        },
+        "searchPlaceholder": "搜索消费组名称",
+        "empty": "暂无消费组"
+      },
+      "loadFailed": "加载失败，请重试",
+      "rules": {
+        "nameRequired": "请输入 Topic 名称",
+        "partitionsRequired": "请设置分区数",
+        "replicasRequired": "请设置副本因子"
+      },
+      "messages": {
+        "created": "Topic 创建成功",
+        "deleted": "Topic 已删除",
+        "deleteConfirm": "确认删除 Topic「{name}」？该操作不可恢复。",
+        "deleteConfirmTitle": "删除确认",
+        "deleteConfirmOk": "删除",
+        "deleteConfirmCancel": "取消"
+      }
     },
     "storage": {
       "title": "存储引擎",
@@ -232,6 +345,105 @@
       "messages": {
         "stopped": "作业已停止",
         "savepointTriggered": "Savepoint 已触发：{path}"
+      }
+    },
+    "spark": {
+      "title": "批计算（Spark）",
+      "subtitle": "Spark 引擎监控 · 批作业管理 · 15 秒自动刷新",
+      "loadFailed": "Spark 作业列表加载失败，",
+      "submitJob": "+ 提交作业",
+      "statusFilter": "状态筛选",
+      "statuses": {
+        "RUNNING": "运行中",
+        "FINISHED": "已完成",
+        "FAILED": "失败",
+        "KILLED": "已取消",
+        "PENDING": "等待中",
+        "SCHEDULED": "已调度"
+      },
+      "kpi": {
+        "runningJob": "运行中作业",
+        "runningJobMeta": "当前活跃 Spark 作业",
+        "todayFinished": "今日完成",
+        "todayFinishedMeta": "FINISHED 状态",
+        "todayFailed": "今日失败",
+        "todayFailedMeta": "FAILED 状态",
+        "avgDuration": "平均执行时长",
+        "avgDurationMeta": "基于已完成作业"
+      },
+      "table": {
+        "empty": "暂无 Spark 作业",
+        "columns": {
+          "name": "作业名",
+          "status": "状态",
+          "owner": "负责人",
+          "submittedAt": "提交时间",
+          "duration": "运行时长",
+          "driverResource": "Driver 资源",
+          "stageProgress": "Stage 进度",
+          "actions": "操作"
+        },
+        "actions": {
+          "run": "运行",
+          "cancel": "取消",
+          "log": "日志",
+          "delete": "删除"
+        }
+      },
+      "submit": {
+        "title": "提交 Spark 批作业",
+        "fields": {
+          "name": "作业名称",
+          "namePlaceholder": "如 订单宽表 ETL",
+          "mainClass": "主类全限定名",
+          "mainClassPlaceholder": "如 com.example.OrderEtlJob",
+          "jarUri": "JAR 路径",
+          "jarUriPlaceholder": "如 hdfs:///apps/order-etl.jar",
+          "args": "启动参数",
+          "argsPlaceholder": "如 --date 2026-08-16 --mode full",
+          "driverResource": "Driver 资源",
+          "driverResourcePlaceholder": "如 2c/4g",
+          "executorResource": "Executor 资源",
+          "executorResourcePlaceholder": "如 4c/8g × 10",
+          "schedule": "Cron 表达式",
+          "schedulePlaceholder": "如 0 0 * * *（每日 0 点），留空表示手动触发",
+          "owner": "负责人",
+          "ownerPlaceholder": "负责人姓名"
+        },
+        "actions": {
+          "cancel": "取消",
+          "submit": "提交"
+        }
+      },
+      "log": {
+        "title": "作业日志 - {name}",
+        "empty": "暂无日志",
+        "loadFailed": "日志加载失败",
+        "close": "关闭",
+        "refresh": "刷新"
+      },
+      "rules": {
+        "nameRequired": "请输入作业名称",
+        "mainClassRequired": "请输入主类全限定名",
+        "jarUriRequired": "请输入 JAR 路径"
+      },
+      "cancelDialog": {
+        "title": "取消作业确认",
+        "confirm": "确定取消作业「{name}」吗？运行中的作业将被终止。",
+        "confirmOk": "确定取消",
+        "cancel": "保留"
+      },
+      "deleteDialog": {
+        "title": "删除确认",
+        "confirm": "确认删除作业「{name}」？该操作不可恢复。",
+        "confirmOk": "删除",
+        "cancel": "取消"
+      },
+      "messages": {
+        "submitted": "Spark 作业已提交",
+        "running": "作业已运行，DAG ID：{dagId}",
+        "cancelled": "作业已取消",
+        "deleted": "作业已删除"
       }
     }
   }

@@ -6,6 +6,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import enginesZh from '@/i18n/locales/modules/engines.zh-CN.json'
+import enginesEn from '@/i18n/locales/modules/engines.en-US.json'
 
 const { getSparkJobsMock } = vi.hoisted(() => ({
   getSparkJobsMock: vi.fn()
@@ -23,6 +26,15 @@ vi.mock('@/api/engine', () => ({
 import EngSpark from '../engine/EngSpark.vue'
 import { useAppStore } from '@/stores/app'
 
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  messages: {
+    'zh-CN': enginesZh as never,
+    'en-US': enginesEn as never
+  }
+})
+
 describe('views/engine/EngSpark.vue 工作空间切换', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -31,7 +43,7 @@ describe('views/engine/EngSpark.vue 工作空间切换', () => {
   })
 
   async function mountPage() {
-    const wrapper = mount(EngSpark)
+    const wrapper = mount(EngSpark, { global: { plugins: [i18n] } })
     await flushPromises()
     return wrapper
   }

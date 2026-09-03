@@ -113,7 +113,120 @@
     },
     "kafka": {
       "title": "Messaging (Kafka)",
-      "subtitle": "Message queue · real-time Broker / Topic / Consumer metrics"
+      "subtitle": "Message queue · real-time Broker / Topic / Consumer metrics",
+      "page": {
+        "subtitle": "Broker · Topic · Consumer Group · Lag monitoring · 10s auto refresh"
+      },
+      "kpi": {
+        "clusterCount": "Clusters",
+        "clusterMeta": "Connected Kafka clusters",
+        "brokerCount": "Brokers",
+        "brokerAlive": "Alive {count}",
+        "topicCount": "Topics",
+        "topicMeta": "Created Topics",
+        "groupCount": "Consumer Groups",
+        "totalLag": "Total Lag {count}"
+      },
+      "tabs": {
+        "brokers": "Brokers",
+        "topics": "Topics",
+        "groups": "Consumer Groups"
+      },
+      "select": {
+        "placeholder": "Select Kafka cluster",
+        "refreshAria": "Refresh"
+      },
+      "create": {
+        "createTopic": "+ Create Topic",
+        "title": "Create Topic",
+        "fields": {
+          "name": "Topic Name",
+          "namePlaceholder": "e.g. order-events",
+          "partitions": "Partitions",
+          "replicas": "Replication Factor"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "create": "Create"
+        }
+      },
+      "sample": {
+        "title": "Message Sample - {name}",
+        "totalFmt": "{count} messages total",
+        "empty": "No messages",
+        "close": "Close",
+        "columns": {
+          "partition": "Partition",
+          "offset": "Offset",
+          "timestamp": "Timestamp",
+          "key": "Key",
+          "value": "Value"
+        }
+      },
+      "broker": {
+        "columns": {
+          "id": "ID",
+          "host": "Host",
+          "port": "Port",
+          "version": "Version",
+          "status": "Status",
+          "leaderCount": "Partition Leaders"
+        },
+        "status": {
+          "alive": "Alive",
+          "dead": "Dead",
+          "warning": "Warning"
+        },
+        "empty": "No Brokers"
+      },
+      "topic": {
+        "columns": {
+          "name": "Topic Name",
+          "partitions": "Partitions",
+          "replicas": "Replicas",
+          "messageCount": "Messages",
+          "size": "Size",
+          "actions": "Actions"
+        },
+        "actions": {
+          "sample": "Sample",
+          "delete": "Delete"
+        },
+        "searchPlaceholder": "Search Topic name",
+        "empty": "No Topics"
+      },
+      "group": {
+        "columns": {
+          "name": "Group Name",
+          "engine": "Engine",
+          "lag": "Lag",
+          "status": "Status",
+          "members": "Members",
+          "topics": "Subscribed Topics"
+        },
+        "status": {
+          "stable": "Stable",
+          "rebalancing": "Rebalancing",
+          "empty": "Empty",
+          "dead": "Dead"
+        },
+        "searchPlaceholder": "Search consumer group name",
+        "empty": "No consumer groups"
+      },
+      "loadFailed": "Failed to load, please retry",
+      "rules": {
+        "nameRequired": "Please enter Topic name",
+        "partitionsRequired": "Please set partition count",
+        "replicasRequired": "Please set replication factor"
+      },
+      "messages": {
+        "created": "Topic created",
+        "deleted": "Topic deleted",
+        "deleteConfirm": "Confirm deletion of Topic \"{name}\"? This cannot be undone.",
+        "deleteConfirmTitle": "Confirm Deletion",
+        "deleteConfirmOk": "Delete",
+        "deleteConfirmCancel": "Cancel"
+      }
     },
     "storage": {
       "title": "Storage Engine",
@@ -232,6 +345,105 @@
       "messages": {
         "stopped": "Job stopped",
         "savepointTriggered": "Savepoint triggered: {path}"
+      }
+    },
+    "spark": {
+      "title": "Batch Processing (Spark)",
+      "subtitle": "Spark engine monitoring · batch job management · 15s auto refresh",
+      "loadFailed": "Failed to load Spark job list,",
+      "submitJob": "+ Submit Job",
+      "statusFilter": "Filter by status",
+      "statuses": {
+        "RUNNING": "Running",
+        "FINISHED": "Finished",
+        "FAILED": "Failed",
+        "KILLED": "Killed",
+        "PENDING": "Pending",
+        "SCHEDULED": "Scheduled"
+      },
+      "kpi": {
+        "runningJob": "Running Jobs",
+        "runningJobMeta": "Active Spark jobs",
+        "todayFinished": "Today's Finished",
+        "todayFinishedMeta": "FINISHED status",
+        "todayFailed": "Today's Failed",
+        "todayFailedMeta": "FAILED status",
+        "avgDuration": "Avg Duration",
+        "avgDurationMeta": "Across finished jobs"
+      },
+      "table": {
+        "empty": "No Spark jobs",
+        "columns": {
+          "name": "Job Name",
+          "status": "Status",
+          "owner": "Owner",
+          "submittedAt": "Submitted",
+          "duration": "Duration",
+          "driverResource": "Driver Resource",
+          "stageProgress": "Stage Progress",
+          "actions": "Actions"
+        },
+        "actions": {
+          "run": "Run",
+          "cancel": "Cancel",
+          "log": "Log",
+          "delete": "Delete"
+        }
+      },
+      "submit": {
+        "title": "Submit Spark Batch Job",
+        "fields": {
+          "name": "Job Name",
+          "namePlaceholder": "e.g. Order Wide Table ETL",
+          "mainClass": "Main Class FQN",
+          "mainClassPlaceholder": "e.g. com.example.OrderEtlJob",
+          "jarUri": "JAR Path",
+          "jarUriPlaceholder": "e.g. hdfs:///apps/order-etl.jar",
+          "args": "Args",
+          "argsPlaceholder": "e.g. --date 2026-08-16 --mode full",
+          "driverResource": "Driver Resource",
+          "driverResourcePlaceholder": "e.g. 2c/4g",
+          "executorResource": "Executor Resource",
+          "executorResourcePlaceholder": "e.g. 4c/8g × 10",
+          "schedule": "Cron Expression",
+          "schedulePlaceholder": "e.g. 0 0 * * * (daily midnight); leave empty for manual trigger",
+          "owner": "Owner",
+          "ownerPlaceholder": "Owner name"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "submit": "Submit"
+        }
+      },
+      "log": {
+        "title": "Job Log - {name}",
+        "empty": "No log output",
+        "loadFailed": "Failed to load log",
+        "close": "Close",
+        "refresh": "Refresh"
+      },
+      "rules": {
+        "nameRequired": "Please enter job name",
+        "mainClassRequired": "Please enter main class FQN",
+        "jarUriRequired": "Please enter JAR path"
+      },
+      "cancelDialog": {
+        "title": "Confirm Cancel",
+        "confirm": "Cancel job \"{name}\"? Running jobs will be terminated.",
+        "confirmOk": "Cancel",
+        "cancel": "Keep"
+      },
+      "deleteDialog": {
+        "title": "Confirm Deletion",
+        "confirm": "Delete job \"{name}\"? This cannot be undone.",
+        "confirmOk": "Delete",
+        "cancel": "Cancel"
+      },
+      "messages": {
+        "submitted": "Spark job submitted",
+        "running": "Job running, DAG ID: {dagId}",
+        "cancelled": "Job cancelled",
+        "deleted": "Job deleted"
       }
     }
   }

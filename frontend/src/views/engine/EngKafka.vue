@@ -1,46 +1,46 @@
 <template>
   <div class="eng-kafka-page">
-    <h1>消息流接入（Kafka）</h1>
-    <div class="sub">Broker · Topic · 消费组 · Lag 监控 · 10 秒自动刷新</div>
+    <h1>{{ t('engines.kafka.title') }}</h1>
+    <div class="sub">{{ t('engines.kafka.page.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="clustersLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="clustersError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ clustersError.message }}，
-            <a href="javascript:void(0)" @click="reloadClusters">重试</a>
+            <a href="javascript:void(0)" @click="reloadClusters">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>集群数</h3>
+          <h3>{{ t('engines.kafka.kpi.clusterCount') }}</h3>
           <div class="kpi">{{ clusters?.length ?? 0 }}</div>
-          <div class="meta">已接入 Kafka 集群</div>
+          <div class="meta">{{ t('engines.kafka.kpi.clusterMeta') }}</div>
         </div>
         <div class="card">
-          <h3>Broker 数</h3>
+          <h3>{{ t('engines.kafka.kpi.brokerCount') }}</h3>
           <div class="kpi">{{ brokers?.length ?? 0 }}</div>
-          <div class="meta">存活 {{ brokerAliveCount }}</div>
+          <div class="meta">{{ t('engines.kafka.kpi.brokerAlive', { count: brokerAliveCount }) }}</div>
         </div>
         <div class="card">
-          <h3>Topic 数</h3>
+          <h3>{{ t('engines.kafka.kpi.topicCount') }}</h3>
           <div class="kpi s">{{ topics?.length ?? 0 }}</div>
-          <div class="meta">已创建 Topic</div>
+          <div class="meta">{{ t('engines.kafka.kpi.topicMeta') }}</div>
         </div>
         <div class="card">
-          <h3>消费组数</h3>
+          <h3>{{ t('engines.kafka.kpi.groupCount') }}</h3>
           <div class="kpi">{{ consumerGroups?.length ?? 0 }}</div>
-          <div class="meta">总 Lag {{ totalLag }}</div>
+          <div class="meta">{{ t('engines.kafka.kpi.totalLag', { count: totalLag }) }}</div>
         </div>
       </template>
     </div>
@@ -50,16 +50,16 @@
       <div class="toolbar">
         <el-select
           v-model="selectedClusterId"
-          placeholder="选择 Kafka 集群"
+          :placeholder="t('engines.kafka.select.placeholder')"
           style="width: 240px"
           @change="handleClusterChange"
         >
           <el-option v-for="c in clusters ?? []" :key="c.id" :label="c.name" :value="c.id" />
         </el-select>
         <el-tabs v-model="activeTab" type="card" class="main-tabs">
-          <el-tab-pane label="Broker" name="brokers" />
-          <el-tab-pane label="Topic" name="topics" />
-          <el-tab-pane label="消费组" name="groups" />
+          <el-tab-pane :label="t('engines.kafka.tabs.brokers')" name="brokers" />
+          <el-tab-pane :label="t('engines.kafka.tabs.topics')" name="topics" />
+          <el-tab-pane :label="t('engines.kafka.tabs.groups')" name="groups" />
         </el-tabs>
         <div class="spacer"></div>
         <el-button
@@ -68,9 +68,9 @@
           :disabled="!selectedClusterId"
           @click="openCreateTopicDialog"
         >
-          + 创建 Topic
+          {{ t('engines.kafka.create.createTopic') }}
         </el-button>
-        <el-button :icon="Refresh" circle @click="reloadCurrent" />
+        <el-button :icon="Refresh" circle :aria-label="t('engines.kafka.select.refreshAria')" @click="reloadCurrent" />
       </div>
 
       <!-- Tab1 Broker 列表 -->
@@ -81,20 +81,20 @@
           stripe
           border
           style="width: 100%"
-          :empty-text="brokersError ? '加载失败，请重试' : '暂无 Broker'"
+          :empty-text="brokersError ? t('engines.kafka.loadFailed') : t('engines.kafka.broker.empty')"
         >
-          <el-table-column prop="id" label="ID" width="100" />
-          <el-table-column prop="host" label="Host" min-width="180" />
-          <el-table-column prop="port" label="Port" width="100" />
-          <el-table-column prop="version" label="版本" width="140" />
-          <el-table-column label="状态" width="120">
+          <el-table-column prop="id" :label="t('engines.kafka.broker.columns.id')" width="100" />
+          <el-table-column prop="host" :label="t('engines.kafka.broker.columns.host')" min-width="180" />
+          <el-table-column prop="port" :label="t('engines.kafka.broker.columns.port')" width="100" />
+          <el-table-column prop="version" :label="t('engines.kafka.broker.columns.version')" width="140" />
+          <el-table-column :label="t('engines.kafka.broker.columns.status')" width="120">
             <template #default="{ row }">
               <el-tag :type="brokerStatusTagType(row.status)" effect="light" size="small">
-                {{ row.status }}
+                {{ t(`engines.kafka.broker.status.${row.status}`, row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="分区 Leader 数" width="140" align="right">
+          <el-table-column :label="t('engines.kafka.broker.columns.leaderCount')" width="140" align="right">
             <template #default="{ row }">{{ row.partitionLeaderCount ?? '--' }}</template>
           </el-table-column>
         </el-table>
@@ -105,7 +105,7 @@
         <div class="search-bar">
           <el-input
             v-model="topicKeyword"
-            placeholder="搜索 Topic 名称"
+            :placeholder="t('engines.kafka.topic.searchPlaceholder')"
             clearable
             style="width: 240px"
           />
@@ -116,25 +116,25 @@
           stripe
           border
           style="width: 100%"
-          :empty-text="topicsError ? '加载失败，请重试' : '暂无 Topic'"
+          :empty-text="topicsError ? t('engines.kafka.loadFailed') : t('engines.kafka.topic.empty')"
         >
-          <el-table-column prop="name" label="Topic 名称" min-width="200" />
-          <el-table-column label="分区数" width="100" align="center">
+          <el-table-column prop="name" :label="t('engines.kafka.topic.columns.name')" min-width="200" />
+          <el-table-column :label="t('engines.kafka.topic.columns.partitions')" width="100" align="center">
             <template #default="{ row }">{{ row.partitions }}</template>
           </el-table-column>
-          <el-table-column label="副本因子" width="100" align="center">
+          <el-table-column :label="t('engines.kafka.topic.columns.replicas')" width="100" align="center">
             <template #default="{ row }">{{ row.replicas }}</template>
           </el-table-column>
-          <el-table-column label="总消息数" width="160" align="right">
+          <el-table-column :label="t('engines.kafka.topic.columns.messageCount')" width="160" align="right">
             <template #default="{ row }">{{ row.messageCount.toLocaleString() }}</template>
           </el-table-column>
-          <el-table-column label="大小" width="120" align="right">
+          <el-table-column :label="t('engines.kafka.topic.columns.size')" width="120" align="right">
             <template #default="{ row }">{{ formatBytes(row.sizeBytes) }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="220" fixed="right">
+          <el-table-column :label="t('engines.kafka.topic.columns.actions')" width="220" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openSampleDialog(row)">采样</el-button>
-              <el-button link type="danger" @click="handleDeleteTopic(row)">删除</el-button>
+              <el-button link type="primary" @click="openSampleDialog(row)">{{ t('engines.kafka.topic.actions.sample') }}</el-button>
+              <el-button link type="danger" @click="handleDeleteTopic(row)">{{ t('engines.kafka.topic.actions.delete') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -145,7 +145,7 @@
         <div class="search-bar">
           <el-input
             v-model="groupKeyword"
-            placeholder="搜索消费组名称"
+            :placeholder="t('engines.kafka.group.searchPlaceholder')"
             clearable
             style="width: 240px"
           />
@@ -156,26 +156,26 @@
           stripe
           border
           style="width: 100%"
-          :empty-text="groupsError ? '加载失败，请重试' : '暂无消费组'"
+          :empty-text="groupsError ? t('engines.kafka.loadFailed') : t('engines.kafka.group.empty')"
         >
-          <el-table-column prop="groupId" label="组名" min-width="200" />
-          <el-table-column prop="engine" label="计算引擎" width="160" />
-          <el-table-column label="Lag" width="140" align="right">
+          <el-table-column prop="groupId" :label="t('engines.kafka.group.columns.name')" min-width="200" />
+          <el-table-column prop="engine" :label="t('engines.kafka.group.columns.engine')" width="160" />
+          <el-table-column :label="t('engines.kafka.group.columns.lag')" width="140" align="right">
             <template #default="{ row }">
               <span :class="{ 'lag-warn': row.lag > 1000 }">{{ row.lag.toLocaleString() }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="160">
+          <el-table-column :label="t('engines.kafka.group.columns.status')" width="160">
             <template #default="{ row }">
               <el-tag :type="groupStatusTagType(row.status)" effect="light" size="small">
-                {{ row.status }}
+                {{ t(`engines.kafka.group.status.${row.status}`, row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="成员数" width="100" align="center">
+          <el-table-column :label="t('engines.kafka.group.columns.members')" width="100" align="center">
             <template #default="{ row }">{{ row.memberCount ?? '--' }}</template>
           </el-table-column>
-          <el-table-column label="订阅 Topic" width="120" align="center">
+          <el-table-column :label="t('engines.kafka.group.columns.topics')" width="120" align="center">
             <template #default="{ row }">{{ row.topicCount ?? '--' }}</template>
           </el-table-column>
         </el-table>
@@ -185,7 +185,7 @@
     <!-- 创建 Topic 弹窗 -->
     <el-dialog
       v-model="createTopicDialogVisible"
-      title="创建 Topic"
+      :title="t('engines.kafka.create.title')"
       width="500px"
       :close-on-click-modal="false"
       @closed="resetCreateTopicForm"
@@ -197,20 +197,20 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="Topic 名称" prop="name">
-          <el-input v-model="createTopicForm.name" placeholder="如 order-events" />
+        <el-form-item :label="t('engines.kafka.create.fields.name')" prop="name">
+          <el-input v-model="createTopicForm.name" :placeholder="t('engines.kafka.create.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="分区数" prop="partitions">
+        <el-form-item :label="t('engines.kafka.create.fields.partitions')" prop="partitions">
           <el-input-number v-model="createTopicForm.partitions" :min="1" :max="1000" />
         </el-form-item>
-        <el-form-item label="副本因子" prop="replicas">
+        <el-form-item :label="t('engines.kafka.create.fields.replicas')" prop="replicas">
           <el-input-number v-model="createTopicForm.replicas" :min="1" :max="10" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createTopicDialogVisible = false">取消</el-button>
+        <el-button @click="createTopicDialogVisible = false">{{ t('engines.kafka.create.actions.cancel') }}</el-button>
         <el-button type="primary" :loading="creatingTopic" @click="handleCreateTopic">
-          创建
+          {{ t('engines.kafka.create.actions.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -218,13 +218,13 @@
     <!-- 消息采样弹窗 -->
     <el-dialog
       v-model="sampleDialogVisible"
-      :title="`消息采样 - ${currentSampleTopic ?? ''}`"
+      :title="t('engines.kafka.sample.title', { name: currentSampleTopic ?? '' })"
       width="800px"
       :close-on-click-modal="true"
     >
       <div v-loading="sampling" class="sample-result">
         <template v-if="sampleMessages.length > 0">
-          <div class="sample-meta">共 {{ sampleMessages.length }} 条消息</div>
+          <div class="sample-meta">{{ t('engines.kafka.sample.totalFmt', { count: sampleMessages.length }) }}</div>
           <el-table
             :data="sampleMessages"
             stripe
@@ -233,21 +233,21 @@
             style="width: 100%"
             max-height="420"
           >
-            <el-table-column label="分区" width="80" align="center">
+            <el-table-column :label="t('engines.kafka.sample.columns.partition')" width="80" align="center">
               <template #default="{ row }">{{ row.partition }}</template>
             </el-table-column>
-            <el-table-column label="Offset" width="120" align="right">
+            <el-table-column :label="t('engines.kafka.sample.columns.offset')" width="120" align="right">
               <template #default="{ row }">{{ row.offset }}</template>
             </el-table-column>
-            <el-table-column prop="timestamp" label="时间戳" width="180" />
-            <el-table-column prop="key" label="Key" width="160" show-overflow-tooltip />
-            <el-table-column prop="value" label="Value" min-width="240" show-overflow-tooltip />
+            <el-table-column prop="timestamp" :label="t('engines.kafka.sample.columns.timestamp')" width="180" />
+            <el-table-column prop="key" :label="t('engines.kafka.sample.columns.key')" width="160" show-overflow-tooltip />
+            <el-table-column prop="value" :label="t('engines.kafka.sample.columns.value')" min-width="240" show-overflow-tooltip />
           </el-table>
         </template>
-        <el-empty v-else-if="!sampling" description="暂无消息" />
+        <el-empty v-else-if="!sampling" :description="t('engines.kafka.sample.empty')" />
       </div>
       <template #footer>
-        <el-button @click="sampleDialogVisible = false">关闭</el-button>
+        <el-button @click="sampleDialogVisible = false">{{ t('engines.kafka.sample.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -255,11 +255,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
 import type { KafkaCluster, Broker, Topic, ConsumerGroup, KafkaMessage } from '@/api/engine'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 集群列表 ------------------------------ */
 
@@ -373,11 +376,11 @@ const createTopicForm = reactive<CreateTopicForm>({
   replicas: 1
 })
 
-const createTopicRules: FormRules = {
-  name: [{ required: true, message: '请输入 Topic 名称', trigger: 'blur' }],
-  partitions: [{ required: true, message: '请设置分区数', trigger: 'change' }],
-  replicas: [{ required: true, message: '请设置副本因子', trigger: 'change' }]
-}
+const createTopicRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('engines.kafka.rules.nameRequired'), trigger: 'blur' }],
+  partitions: [{ required: true, message: t('engines.kafka.rules.partitionsRequired'), trigger: 'change' }],
+  replicas: [{ required: true, message: t('engines.kafka.rules.replicasRequired'), trigger: 'change' }]
+}))
 
 /** 打开创建 Topic 弹窗 */
 function openCreateTopicDialog() {
@@ -405,7 +408,7 @@ async function handleCreateTopic() {
         partitions: createTopicForm.partitions,
         replicas: createTopicForm.replicas
       })
-      ElMessage.success('Topic 创建成功')
+      ElMessage.success(t('engines.kafka.messages.created'))
       createTopicDialogVisible.value = false
       await loadTopics()
     } catch {
@@ -419,14 +422,14 @@ async function handleCreateTopic() {
 /** 删除 Topic */
 async function handleDeleteTopic(row: Topic) {
   try {
-    await ElMessageBox.confirm(`确认删除 Topic「${row.name}」？该操作不可恢复。`, '删除确认', {
+    await ElMessageBox.confirm(t('engines.kafka.messages.deleteConfirm', { name: row.name }), t('engines.kafka.messages.deleteConfirmTitle'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('engines.kafka.messages.deleteConfirmOk'),
+      cancelButtonText: t('engines.kafka.messages.deleteConfirmCancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await engineApi.deleteKafkaTopic(selectedClusterId.value, row.name)
-    ElMessage.success('Topic 已删除')
+    ElMessage.success(t('engines.kafka.messages.deleted'))
     await loadTopics()
   } catch {
     // 用户取消或删除失败

@@ -1,46 +1,46 @@
 <template>
   <div class="eng-spark-page">
-    <h1>批计算（Spark）</h1>
-    <div class="sub">Spark 引擎监控 · 批作业管理 · 15 秒自动刷新</div>
+    <h1>{{ t('engines.spark.title') }}</h1>
+    <div class="sub">{{ t('engines.spark.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="loading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
-            Spark 作业列表加载失败，
-            <a href="javascript:void(0)" @click="loadList">重试</a>
+            {{ t('engines.spark.loadFailed') }}
+            <a href="javascript:void(0)" @click="loadList">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>运行中作业</h3>
+          <h3>{{ t('engines.spark.kpi.runningJob') }}</h3>
           <div class="kpi">{{ kpi.running }}</div>
-          <div class="meta">当前活跃 Spark 作业</div>
+          <div class="meta">{{ t('engines.spark.kpi.runningJobMeta') }}</div>
         </div>
         <div class="card">
-          <h3>今日完成</h3>
+          <h3>{{ t('engines.spark.kpi.todayFinished') }}</h3>
           <div class="kpi s">{{ kpi.finished }}</div>
-          <div class="meta">FINISHED 状态</div>
+          <div class="meta">{{ t('engines.spark.kpi.todayFinishedMeta') }}</div>
         </div>
         <div class="card">
-          <h3>今日失败</h3>
+          <h3>{{ t('engines.spark.kpi.todayFailed') }}</h3>
           <div class="kpi d">{{ kpi.failed }}</div>
-          <div class="meta">FAILED 状态</div>
+          <div class="meta">{{ t('engines.spark.kpi.todayFailedMeta') }}</div>
         </div>
         <div class="card">
-          <h3>平均执行时长</h3>
+          <h3>{{ t('engines.spark.kpi.avgDuration') }}</h3>
           <div class="kpi">{{ formatDuration(kpi.avgDurationMs) }}</div>
-          <div class="meta">基于已完成作业</div>
+          <div class="meta">{{ t('engines.spark.kpi.avgDurationMeta') }}</div>
         </div>
       </template>
     </div>
@@ -48,19 +48,19 @@
     <!-- 主内容区：作业列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openSubmitDialog">+ 提交作业</el-button>
+        <el-button type="primary" @click="openSubmitDialog">{{ t('engines.spark.submitJob') }}</el-button>
         <el-select
           v-model="statusFilter"
-          placeholder="状态筛选"
+          :placeholder="t('engines.spark.statusFilter')"
           clearable
           style="width: 140px"
           @change="handleFilterChange"
         >
-          <el-option label="运行中" value="RUNNING" />
-          <el-option label="已完成" value="FINISHED" />
-          <el-option label="失败" value="FAILED" />
-          <el-option label="已取消" value="KILLED" />
-          <el-option label="等待中" value="PENDING" />
+          <el-option :label="t('engines.spark.statuses.RUNNING')" value="RUNNING" />
+          <el-option :label="t('engines.spark.statuses.FINISHED')" value="FINISHED" />
+          <el-option :label="t('engines.spark.statuses.FAILED')" value="FAILED" />
+          <el-option :label="t('engines.spark.statuses.KILLED')" value="KILLED" />
+          <el-option :label="t('engines.spark.statuses.PENDING')" value="PENDING" />
         </el-select>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="loadList" />
@@ -72,23 +72,23 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? '加载失败，请重试' : '暂无 Spark 作业'"
+        :empty-text="error ? t('engines.kafka.loadFailed') : t('engines.spark.table.empty')"
       >
-        <el-table-column prop="name" label="作业名" min-width="180" />
-        <el-table-column label="状态" width="120">
+        <el-table-column prop="name" :label="t('engines.spark.table.columns.name')" min-width="180" />
+        <el-table-column :label="t('engines.spark.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="owner" label="负责人" width="120" />
-        <el-table-column prop="submittedAt" label="提交时间" width="180" />
-        <el-table-column label="运行时长" width="120">
+        <el-table-column prop="owner" :label="t('engines.spark.table.columns.owner')" width="120" />
+        <el-table-column prop="submittedAt" :label="t('engines.spark.table.columns.submittedAt')" width="180" />
+        <el-table-column :label="t('engines.spark.table.columns.duration')" width="120">
           <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
         </el-table-column>
-        <el-table-column prop="driverResource" label="Driver 资源" width="140" />
-        <el-table-column label="Stage 进度" width="180">
+        <el-table-column prop="driverResource" :label="t('engines.spark.table.columns.driverResource')" width="140" />
+        <el-table-column :label="t('engines.spark.table.columns.stageProgress')" width="180">
           <template #default="{ row }">
             <el-progress
               v-if="row.stageTotal"
@@ -99,7 +99,7 @@
             <span v-else>--</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column :label="t('engines.spark.table.columns.actions')" width="220" fixed="right">
           <template #default="{ row }">
             <el-button
               v-if="canRun(row.status)"
@@ -108,7 +108,7 @@
               :loading="runningId === row.id"
               @click="handleRun(row)"
             >
-              运行
+              {{ t('engines.spark.table.actions.run') }}
             </el-button>
             <el-button
               v-if="canCancel(row.status)"
@@ -117,10 +117,10 @@
               :loading="cancelingId === row.id"
               @click="handleCancel(row)"
             >
-              取消
+              {{ t('engines.spark.table.actions.cancel') }}
             </el-button>
-            <el-button link type="primary" @click="openLogDialog(row)">日志</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="primary" @click="openLogDialog(row)">{{ t('engines.spark.table.actions.log') }}</el-button>
+            <el-button link type="danger" @click="handleDelete(row)">{{ t('engines.spark.table.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -143,7 +143,7 @@
     <!-- 提交作业弹窗 -->
     <el-dialog
       v-model="submitDialogVisible"
-      title="提交 Spark 批作业"
+      :title="t('engines.spark.submit.title')"
       width="640px"
       :close-on-click-modal="false"
       @closed="resetSubmitForm"
@@ -155,68 +155,68 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="作业名称" prop="name">
-          <el-input v-model="submitForm.name" placeholder="如 订单宽表 ETL" />
+        <el-form-item :label="t('engines.spark.submit.fields.name')" prop="name">
+          <el-input v-model="submitForm.name" :placeholder="t('engines.spark.submit.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="主类全限定名" prop="mainClass">
+        <el-form-item :label="t('engines.spark.submit.fields.mainClass')" prop="mainClass">
           <el-input
             v-model="submitForm.mainClass"
-            placeholder="如 com.example.OrderEtlJob"
+            :placeholder="t('engines.spark.submit.fields.mainClassPlaceholder')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
-        <el-form-item label="JAR 路径" prop="jarUri">
+        <el-form-item :label="t('engines.spark.submit.fields.jarUri')" prop="jarUri">
           <el-input
             v-model="submitForm.jarUri"
-            placeholder="如 hdfs:///apps/order-etl.jar"
+            :placeholder="t('engines.spark.submit.fields.jarUriPlaceholder')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
-        <el-form-item label="启动参数" prop="args">
+        <el-form-item :label="t('engines.spark.submit.fields.args')" prop="args">
           <el-input
             v-model="submitForm.args"
             type="textarea"
             :rows="3"
-            placeholder="如 --date 2026-08-16 --mode full"
+            :placeholder="t('engines.spark.submit.fields.argsPlaceholder')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
-        <el-form-item label="Driver 资源" prop="driverResource">
-          <el-input v-model="submitForm.driverResource" placeholder="如 2c/4g" />
+        <el-form-item :label="t('engines.spark.submit.fields.driverResource')" prop="driverResource">
+          <el-input v-model="submitForm.driverResource" :placeholder="t('engines.spark.submit.fields.driverResourcePlaceholder')" />
         </el-form-item>
-        <el-form-item label="Executor 资源" prop="executorResource">
-          <el-input v-model="submitForm.executorResource" placeholder="如 4c/8g × 10" />
+        <el-form-item :label="t('engines.spark.submit.fields.executorResource')" prop="executorResource">
+          <el-input v-model="submitForm.executorResource" :placeholder="t('engines.spark.submit.fields.executorResourcePlaceholder')" />
         </el-form-item>
-        <el-form-item label="Cron 表达式" prop="schedule">
+        <el-form-item :label="t('engines.spark.submit.fields.schedule')" prop="schedule">
           <el-input
             v-model="submitForm.schedule"
-            placeholder="如 0 0 * * *（每日 0 点），留空表示手动触发"
+            :placeholder="t('engines.spark.submit.fields.schedulePlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="负责人" prop="owner">
-          <el-input v-model="submitForm.owner" placeholder="负责人姓名" />
+        <el-form-item :label="t('engines.spark.submit.fields.owner')" prop="owner">
+          <el-input v-model="submitForm.owner" :placeholder="t('engines.spark.submit.fields.ownerPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="submitDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">提交</el-button>
+        <el-button @click="submitDialogVisible = false">{{ t('engines.spark.submit.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ t('engines.spark.submit.actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 日志弹窗 -->
     <el-dialog
       v-model="logDialogVisible"
-      :title="`作业日志 - ${currentLogJob?.name || ''}`"
+      :title="t('engines.spark.log.title', { name: currentLogJob?.name || '' })"
       width="800px"
       :close-on-click-modal="true"
       @opened="scrollLogToBottom"
     >
       <div v-loading="logLoading" class="log-container">
-        <pre class="log-content">{{ logContent || '暂无日志' }}</pre>
+        <pre class="log-content">{{ logContent || t('engines.spark.log.empty') }}</pre>
       </div>
       <template #footer>
-        <el-button @click="logDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="refreshLog">刷新</el-button>
+        <el-button @click="logDialogVisible = false">{{ t('engines.spark.log.close') }}</el-button>
+        <el-button type="primary" @click="refreshLog">{{ t('engines.spark.log.refresh') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -224,11 +224,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as engineApi from '@/api/engine'
 import type { SparkJob } from '@/api/engine'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
@@ -308,11 +311,11 @@ const submitForm = reactive<SubmitForm>({
   owner: ''
 })
 
-const submitRules: FormRules = {
-  name: [{ required: true, message: '请输入作业名称', trigger: 'blur' }],
-  mainClass: [{ required: true, message: '请输入主类全限定名', trigger: 'blur' }],
-  jarUri: [{ required: true, message: '请输入 JAR 路径', trigger: 'blur' }]
-}
+const submitRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('engines.spark.rules.nameRequired'), trigger: 'blur' }],
+  mainClass: [{ required: true, message: t('engines.spark.rules.mainClassRequired'), trigger: 'blur' }],
+  jarUri: [{ required: true, message: t('engines.spark.rules.jarUriRequired'), trigger: 'blur' }]
+}))
 
 /** 打开提交弹窗 */
 function openSubmitDialog() {
@@ -351,7 +354,7 @@ async function handleSubmit() {
         schedule: submitForm.schedule || undefined,
         owner: submitForm.owner || undefined
       })
-      ElMessage.success('Spark 作业已提交')
+      ElMessage.success(t('engines.spark.messages.submitted'))
       submitDialogVisible.value = false
       await loadList()
     } catch {
@@ -372,7 +375,7 @@ async function handleRun(row: SparkJob) {
   runningId.value = row.id
   try {
     const { dagId } = await engineApi.runSparkJob(row.id)
-    ElMessage.success(`作业已运行，DAG ID：${dagId}`)
+    ElMessage.success(t('engines.spark.messages.running', { dagId }))
     await loadList()
   } catch {
     // 拦截器已提示
@@ -385,13 +388,13 @@ async function handleRun(row: SparkJob) {
 async function handleCancel(row: SparkJob) {
   try {
     await ElMessageBox.confirm(
-      `确定取消作业「${row.name}」吗？运行中的作业将被终止。`,
-      '取消作业确认',
-      { type: 'warning', confirmButtonText: '确定取消', cancelButtonText: '保留' }
+      t('engines.spark.cancelDialog.confirm', { name: row.name }),
+      t('engines.spark.cancelDialog.title'),
+      { type: 'warning', confirmButtonText: t('engines.spark.cancelDialog.confirmOk'), cancelButtonText: t('engines.spark.cancelDialog.cancel') }
     )
     cancelingId.value = row.id
     await engineApi.cancelSparkJob(row.id)
-    ElMessage.success('作业已取消')
+    ElMessage.success(t('engines.spark.messages.cancelled'))
     await loadList()
   } catch {
     // 用户取消或操作失败
@@ -403,14 +406,14 @@ async function handleCancel(row: SparkJob) {
 /** 删除作业 */
 async function handleDelete(row: SparkJob) {
   try {
-    await ElMessageBox.confirm(`确认删除作业「${row.name}」？该操作不可恢复。`, '删除确认', {
+    await ElMessageBox.confirm(t('engines.spark.deleteDialog.confirm', { name: row.name }), t('engines.spark.deleteDialog.title'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('engines.spark.deleteDialog.confirmOk'),
+      cancelButtonText: t('engines.spark.deleteDialog.cancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await engineApi.deleteSparkJob(row.id)
-    ElMessage.success('作业已删除')
+    ElMessage.success(t('engines.spark.messages.deleted'))
     await loadList()
   } catch {
     // 用户取消或删除失败
@@ -447,10 +450,10 @@ async function refreshLog() {
   logLoading.value = true
   try {
     const logs = await engineApi.getSparkJobLogs(currentLogJob.value.id)
-    logContent.value = logs || '暂无日志'
+    logContent.value = logs || t('engines.spark.log.empty')
     scrollLogToBottom()
   } catch {
-    logContent.value = '日志加载失败'
+    logContent.value = t('engines.spark.log.loadFailed')
   } finally {
     logLoading.value = false
   }
@@ -466,24 +469,22 @@ function scrollLogToBottom() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<
-  string,
-  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
-> = {
-  RUNNING: { label: '运行中', type: 'primary' },
-  FINISHED: { label: '已完成', type: 'success' },
-  FAILED: { label: '失败', type: 'danger' },
-  KILLED: { label: '已取消', type: 'info' },
-  PENDING: { label: '等待中', type: 'info' },
-  SCHEDULED: { label: '已调度', type: 'warning' }
+const STATUS_TAG_TYPE_MAP: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
+  RUNNING: 'primary',
+  FINISHED: 'success',
+  FAILED: 'danger',
+  KILLED: 'info',
+  PENDING: 'info',
+  SCHEDULED: 'warning'
 }
 
 function statusLabel(status: string): string {
-  return STATUS_MAP[status]?.label ?? status
+  const key = `engines.spark.statuses.${status}`
+  return te(key) ? t(key) : status
 }
 
 function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
 
 /** Stage 进度百分比 */
