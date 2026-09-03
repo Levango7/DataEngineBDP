@@ -2,31 +2,31 @@
   <div class="train-panel">
     <div class="kpi-row">
       <div class="kpi-card">
-        <h4>训练作业</h4>
+        <h4>{{ t('devMl.trainPanel.kpiTotal') }}</h4>
         <span class="num">{{ kpi.total }}</span>
-        <span class="lbl">全部</span>
+        <span class="lbl">{{ t('devMl.trainPanel.kpiTotalLbl') }}</span>
       </div>
       <div class="kpi-card">
-        <h4>运行中</h4>
+        <h4>{{ t('devMl.trainPanel.kpiRunning') }}</h4>
         <span class="num running">{{ kpi.running }}</span>
-        <span class="lbl">RUNNING</span>
+        <span class="lbl">{{ t('devMl.trainPanel.kpiRunningLbl') }}</span>
       </div>
     </div>
     <div class="toolbar">
-      <el-button type="primary" @click="emit('openTrain')">+ 提交训练</el-button>
+      <el-button type="primary" @click="emit('openTrain')">{{ t('devMl.trainPanel.newJob') }}</el-button>
       <el-select
         v-model="localFilter"
-        placeholder="状态筛选"
+        :placeholder="t('devMl.trainPanel.statusFilter')"
         clearable
         style="width: 130px"
         @change="applyFilter"
       >
-        <el-option label="等待中" value="PENDING" />
-        <el-option label="运行中" value="RUNNING" />
-        <el-option label="成功" value="SUCCEEDED" />
-        <el-option label="失败" value="FAILED" />
-        <el-option label="已取消" value="KILLED" />
-        <el-option label="已调度" value="SCHEDULED" />
+        <el-option :label="t('devMl.status.train.PENDING')" value="PENDING" />
+        <el-option :label="t('devMl.status.train.RUNNING')" value="RUNNING" />
+        <el-option :label="t('devMl.status.train.SUCCEEDED')" value="SUCCEEDED" />
+        <el-option :label="t('devMl.status.train.FAILED')" value="FAILED" />
+        <el-option :label="t('devMl.status.train.KILLED')" value="KILLED" />
+        <el-option :label="t('devMl.status.train.SCHEDULED')" value="SCHEDULED" />
       </el-select>
       <div class="spacer" />
       <el-button :icon="Refresh" circle @click="emit('load')" />
@@ -36,32 +36,32 @@
       :data="jobs"
       stripe
       border
-      :empty-text="error ? '加载失败' : '暂无数据'"
+      :empty-text="error ? t('devMl.trainPanel.loadFailed') : t('devMl.trainPanel.empty')"
     >
-      <el-table-column prop="name" label="实验名" min-width="180" />
-      <el-table-column prop="algorithm" label="算法" width="130">
+      <el-table-column prop="name" :label="t('devMl.trainPanel.columns.name')" min-width="180" />
+      <el-table-column prop="algorithm" :label="t('devMl.trainPanel.columns.algorithm')" width="130">
         <template #default="{ row }">
           <el-tag effect="light" size="small">{{ row.algorithm }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="dataset" label="数据集" min-width="160" />
-      <el-table-column label="状态" width="110">
+      <el-table-column prop="dataset" :label="t('devMl.trainPanel.columns.dataset')" min-width="160" />
+      <el-table-column :label="t('devMl.trainPanel.columns.status')" width="110">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light">
             {{ statusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="指标" min-width="180">
+      <el-table-column :label="t('devMl.trainPanel.columns.metrics')" min-width="180">
         <template #default="{ row }">{{ row.metrics ? fmtMetrics(row.metrics) : '--' }}</template>
       </el-table-column>
-      <el-table-column prop="owner" label="负责人" width="110">
+      <el-table-column prop="owner" :label="t('devMl.trainPanel.columns.owner')" width="110">
         <template #default="{ row }">{{ row.owner || '--' }}</template>
       </el-table-column>
-      <el-table-column prop="submittedAt" label="提交时间" width="170">
+      <el-table-column prop="submittedAt" :label="t('devMl.trainPanel.columns.submittedAt')" width="170">
         <template #default="{ row }">{{ row.submittedAt || '--' }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="220" fixed="right">
+      <el-table-column :label="t('devMl.trainPanel.columns.actions')" width="220" fixed="right">
         <template #default="{ row }">
           <el-button
             v-if="row.status === 'SUCCEEDED'"
@@ -69,7 +69,7 @@
             type="success"
             @click="emit('openRegister', row)"
           >
-            注册模型
+            {{ t('devMl.trainPanel.actions.register') }}
           </el-button>
           <el-button
             v-if="['PENDING', 'RUNNING', 'SCHEDULED'].includes(row.status)"
@@ -78,9 +78,9 @@
             :loading="stoppingId === row.id"
             @click="emit('stop', row)"
           >
-            停止
+            {{ t('devMl.trainPanel.actions.stop') }}
           </el-button>
-          <el-button link @click="emit('openLog', row)">日志</el-button>
+          <el-button link @click="emit('openLog', row)">{{ t('devMl.trainPanel.actions.log') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -101,8 +101,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import type { TrainJob } from '@/api/dev-ml'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   jobs: TrainJob[]

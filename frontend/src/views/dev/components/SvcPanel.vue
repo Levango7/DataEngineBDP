@@ -3,16 +3,16 @@
     <div class="toolbar">
       <el-select
         v-model="localFilter"
-        placeholder="状态筛选"
+        :placeholder="t('devMl.svcPanel.statusFilter')"
         clearable
         style="width: 130px"
         @change="applyFilter"
       >
-        <el-option label="部署中" value="DEPLOYING" />
-        <el-option label="运行中" value="RUNNING" />
-        <el-option label="已停止" value="STOPPED" />
-        <el-option label="失败" value="FAILED" />
-        <el-option label="扩缩容" value="SCALING" />
+        <el-option :label="t('devMl.status.svc.DEPLOYING')" value="DEPLOYING" />
+        <el-option :label="t('devMl.status.svc.RUNNING')" value="RUNNING" />
+        <el-option :label="t('devMl.status.svc.STOPPED')" value="STOPPED" />
+        <el-option :label="t('devMl.status.svc.FAILED')" value="FAILED" />
+        <el-option :label="t('devMl.status.svc.SCALING')" value="SCALING" />
       </el-select>
       <div class="spacer" />
       <el-button :icon="Refresh" circle @click="$emit('load')" />
@@ -22,36 +22,36 @@
       :data="services"
       stripe
       border
-      :empty-text="error ? '加载失败' : '暂无数据'"
+      :empty-text="error ? t('devMl.svcPanel.loadFailed') : t('devMl.svcPanel.empty')"
     >
-      <el-table-column prop="serviceName" label="服务名" min-width="170" />
-      <el-table-column prop="modelName" label="模型" min-width="150" />
-      <el-table-column prop="modelVersion" label="版本" width="90" />
-      <el-table-column label="状态" width="100">
+      <el-table-column prop="serviceName" :label="t('devMl.svcPanel.columns.serviceName')" min-width="170" />
+      <el-table-column prop="modelName" :label="t('devMl.svcPanel.columns.modelName')" min-width="150" />
+      <el-table-column prop="modelVersion" :label="t('devMl.svcPanel.columns.modelVersion')" width="90" />
+      <el-table-column :label="t('devMl.svcPanel.columns.status')" width="100">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light">
             {{ statusLabel(row.status) }}
           </el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="副本" width="110" align="center">
+      <el-table-column :label="t('devMl.svcPanel.columns.replicas')" width="110" align="center">
         <template #default="{ row }">
           {{ row.replicas ?? 0 }}
           <span v-if="row.desiredReplicas !== row.replicas">/ {{ row.desiredReplicas ?? 0 }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="qps" label="QPS" width="90">
+      <el-table-column prop="qps" :label="t('devMl.svcPanel.columns.qps')" width="90">
         <template #default="{ row }">{{ row.qps ?? '--' }}</template>
       </el-table-column>
-      <el-table-column label="延迟" width="110">
+      <el-table-column :label="t('devMl.svcPanel.columns.latency')" width="110">
         <template #default="{ row }">
-          {{ row.latencyMs !== undefined ? row.latencyMs + 'ms' : '--' }}
+          {{ row.latencyMs !== undefined ? t('devMl.svcPanel.columns.latencyFmt', { ms: row.latencyMs }) : '--' }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="160" fixed="right">
+      <el-table-column :label="t('devMl.svcPanel.columns.actions')" width="160" fixed="right">
         <template #default="{ row }">
           <el-button v-if="canScale(row.status)" link type="primary" @click="$emit('scale', row)">
-            扩缩容
+            {{ t('devMl.svcPanel.actions.scale') }}
           </el-button>
           <el-button
             v-if="canStopSvc(row.status)"
@@ -60,7 +60,7 @@
             :loading="stoppingId === row.id"
             @click="$emit('stop', row)"
           >
-            停止
+            {{ t('devMl.svcPanel.actions.stop') }}
           </el-button>
         </template>
       </el-table-column>
@@ -70,8 +70,11 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import type { InferenceService } from '@/api/dev-ml'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   services: InferenceService[]

@@ -155,6 +155,70 @@
       "stopTrainConfirmTitle": "停止确认",
       "stopSvcConfirm": "确认停止「{name}」？",
       "stopSvcConfirmTitle": "停止确认"
+    },
+    "trainPanel": {
+      "kpiTotal": "训练作业",
+      "kpiTotalLbl": "全部",
+      "kpiRunning": "运行中",
+      "kpiRunningLbl": "RUNNING",
+      "newJob": "+ 提交训练",
+      "statusFilter": "状态筛选",
+      "loadFailed": "加载失败",
+      "empty": "暂无数据",
+      "columns": {
+        "name": "实验名",
+        "algorithm": "算法",
+        "dataset": "数据集",
+        "status": "状态",
+        "metrics": "指标",
+        "owner": "负责人",
+        "submittedAt": "提交时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "register": "注册模型",
+        "stop": "停止",
+        "log": "日志"
+      }
+    },
+    "modelPanel": {
+      "searchPlaceholder": "按名称搜索",
+      "loadFailed": "加载失败",
+      "empty": "暂无数据",
+      "columns": {
+        "name": "模型名",
+        "algorithm": "算法",
+        "latestVersion": "最新版本",
+        "status": "状态",
+        "metrics": "指标",
+        "registeredAt": "注册时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "versions": "版本",
+        "deploy": "部署推理",
+        "delete": "删除"
+      }
+    },
+    "svcPanel": {
+      "statusFilter": "状态筛选",
+      "loadFailed": "加载失败",
+      "empty": "暂无数据",
+      "columns": {
+        "serviceName": "服务名",
+        "modelName": "模型",
+        "modelVersion": "版本",
+        "status": "状态",
+        "replicas": "副本",
+        "qps": "QPS",
+        "latency": "延迟",
+        "latencyFmt": "{ms}ms",
+        "actions": "操作"
+      },
+      "actions": {
+        "scale": "扩缩容",
+        "stop": "停止"
+      }
     }
   }
 }

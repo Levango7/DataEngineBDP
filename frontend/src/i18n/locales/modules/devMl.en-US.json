@@ -155,6 +155,70 @@
       "stopTrainConfirmTitle": "Confirm Stop",
       "stopSvcConfirm": "Stop \"{name}\"?",
       "stopSvcConfirmTitle": "Confirm Stop"
+    },
+    "trainPanel": {
+      "kpiTotal": "Training Jobs",
+      "kpiTotalLbl": "All",
+      "kpiRunning": "Running",
+      "kpiRunningLbl": "RUNNING",
+      "newJob": "+ Submit Training",
+      "statusFilter": "Filter by status",
+      "loadFailed": "Failed to load",
+      "empty": "No data",
+      "columns": {
+        "name": "Experiment",
+        "algorithm": "Algorithm",
+        "dataset": "Dataset",
+        "status": "Status",
+        "metrics": "Metrics",
+        "owner": "Owner",
+        "submittedAt": "Submitted",
+        "actions": "Actions"
+      },
+      "actions": {
+        "register": "Register Model",
+        "stop": "Stop",
+        "log": "Log"
+      }
+    },
+    "modelPanel": {
+      "searchPlaceholder": "Search by name",
+      "loadFailed": "Failed to load",
+      "empty": "No data",
+      "columns": {
+        "name": "Model",
+        "algorithm": "Algorithm",
+        "latestVersion": "Latest Version",
+        "status": "Status",
+        "metrics": "Metrics",
+        "registeredAt": "Registered",
+        "actions": "Actions"
+      },
+      "actions": {
+        "versions": "Versions",
+        "deploy": "Deploy Inference",
+        "delete": "Delete"
+      }
+    },
+    "svcPanel": {
+      "statusFilter": "Filter by status",
+      "loadFailed": "Failed to load",
+      "empty": "No data",
+      "columns": {
+        "serviceName": "Service",
+        "modelName": "Model",
+        "modelVersion": "Version",
+        "status": "Status",
+        "replicas": "Replicas",
+        "qps": "QPS",
+        "latency": "Latency",
+        "latencyFmt": "{ms}ms",
+        "actions": "Actions"
+      },
+      "actions": {
+        "scale": "Scale",
+        "stop": "Stop"
+      }
     }
   }
 }
