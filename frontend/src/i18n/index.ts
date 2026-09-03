@@ -55,6 +55,18 @@ import sqlWorkbenchZh from './locales/modules/sqlWorkbench.zh-CN.json'
 import sqlWorkbenchEn from './locales/modules/sqlWorkbench.en-US.json'
 import searchPortalZh from './locales/modules/searchPortal.zh-CN.json'
 import searchPortalEn from './locales/modules/searchPortal.en-US.json'
+import dataSourceManagementZh from './locales/modules/dataSourceManagement.zh-CN.json'
+import dataSourceManagementEn from './locales/modules/dataSourceManagement.en-US.json'
+import tenantManagementZh from './locales/modules/tenantManagement.zh-CN.json'
+import tenantManagementEn from './locales/modules/tenantManagement.en-US.json'
+import workspaceManagementZh from './locales/modules/workspaceManagement.zh-CN.json'
+import workspaceManagementEn from './locales/modules/workspaceManagement.en-US.json'
+import quotaManagementZh from './locales/modules/quotaManagement.zh-CN.json'
+import quotaManagementEn from './locales/modules/quotaManagement.en-US.json'
+import clusterOverviewZh from './locales/modules/clusterOverview.zh-CN.json'
+import clusterOverviewEn from './locales/modules/clusterOverview.en-US.json'
+import dataLineageZh from './locales/modules/dataLineage.zh-CN.json'
+import dataLineageEn from './locales/modules/dataLineage.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -129,7 +141,13 @@ export const i18n = createI18n({
       ...apiMarketZh,
       ...assetMarketZh,
       ...sqlWorkbenchZh,
-      ...searchPortalZh
+      ...searchPortalZh,
+      ...dataSourceManagementZh,
+      ...tenantManagementZh,
+      ...workspaceManagementZh,
+      ...quotaManagementZh,
+      ...clusterOverviewZh,
+      ...dataLineageZh
     },
     'en-US': {
       ...enUS,
@@ -159,7 +177,13 @@ export const i18n = createI18n({
       ...apiMarketEn,
       ...assetMarketEn,
       ...sqlWorkbenchEn,
-      ...searchPortalEn
+      ...searchPortalEn,
+      ...dataSourceManagementEn,
+      ...tenantManagementEn,
+      ...workspaceManagementEn,
+      ...quotaManagementEn,
+      ...clusterOverviewEn,
+      ...dataLineageEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

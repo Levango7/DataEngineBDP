@@ -1,0 +1,145 @@
+{
+  "clusterOverview": {
+    "title": "集群概览",
+    "subtitle": "实时监控 Kubernetes 集群节点健康状态、资源使用率与大数据组件运行情况。",
+    "kpi": {
+      "nodeTotal": "总节点数",
+      "nodeTotalMeta": "就绪 {ready} · 异常 {abnormal}",
+      "nodeReady": "健康节点数",
+      "nodeReadyMeta": "健康率 {rate}%",
+      "cpu": "CPU 使用率",
+      "cpuUnit": "核",
+      "mem": "内存使用率",
+      "memUnit": "GB"
+    },
+    "trend": {
+      "title": "资源使用趋势（近 7 日）",
+      "subtitle": "CPU / 内存",
+      "daysAgo": "{n}天前",
+      "yesterday": "昨日",
+      "tooltipLabel": "{name}：{value}%",
+      "legend": {
+        "cpu": "CPU 使用率",
+        "mem": "内存使用率"
+      }
+    },
+    "nodes": {
+      "title": "节点列表",
+      "refreshAria": "刷新节点列表",
+      "loadFailed": "节点列表加载失败，请重试",
+      "empty": "暂无节点",
+      "columns": {
+        "name": "节点名",
+        "role": "角色",
+        "status": "状态",
+        "cpu": "CPU",
+        "mem": "内存",
+        "pod": "Pod 数量",
+        "os": "操作系统"
+      },
+      "cpuFmt": "{used} / {cap} 核",
+      "memFmt": "{used} / {cap} GB"
+    },
+    "components": {
+      "title": "大数据组件状态",
+      "listAria": "大数据组件状态列表",
+      "itemAria": "组件 {name} 状态：{status}",
+      "status": {
+        "healthy": "健康",
+        "warning": "警告",
+        "error": "故障"
+      }
+    },
+    "resources": {
+      "title": "集群资源配置",
+      "envAria": "环境选择",
+      "clusterIdAria": "集群 ID",
+      "clusterIdPlaceholder": "集群 ID",
+      "envs": {
+        "xinchuang": "信创",
+        "private": "私有",
+        "cloud": "公有"
+      },
+      "tabsAria": "集群资源配置分类",
+      "tabs": {
+        "network": "网络配置",
+        "storage": "存储配置",
+        "hpa": "HPA 自动伸缩"
+      },
+      "loading": "加载中…",
+      "loadFailed": "加载失败：{message}",
+      "network": {
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "cni": "CNI",
+        "mtu": "MTU",
+        "policiesTitle": "NetworkPolicy 列表（{count}）",
+        "policiesAria": "NetworkPolicy 列表",
+        "policiesEmpty": "暂无 NetworkPolicy",
+        "servicesTitle": "Service 列表（{count}）",
+        "servicesAria": "Service 列表",
+        "servicesEmpty": "暂无 Service",
+        "ingressesTitle": "Ingress 列表（{count}）",
+        "ingressesAria": "Ingress 列表",
+        "ingressesEmpty": "暂无 Ingress",
+        "columns": {
+          "name": "名称",
+          "namespace": "命名空间",
+          "type": "类型",
+          "selector": "选择器",
+          "clusterIp": "ClusterIP",
+          "ports": "端口数",
+          "className": "IngressClass",
+          "hosts": "主机数"
+        }
+      },
+      "storage": {
+        "classesTitle": "StorageClass 列表（{count}）",
+        "classesAria": "StorageClass 列表",
+        "classesEmpty": "暂无 StorageClass",
+        "pvcsTitle": "PVC 列表（{count}）",
+        "pvcsAria": "PVC 列表",
+        "pvcsEmpty": "暂无 PVC",
+        "columns": {
+          "name": "名称",
+          "provisioner": "Provisioner",
+          "reclaimPolicy": "回收策略",
+          "default": "默认",
+          "defaultYes": "是",
+          "namespace": "命名空间",
+          "storageClass": "StorageClass",
+          "capacity": "容量",
+          "status": "状态"
+        }
+      },
+      "hpa": {
+        "empty": "暂无 HPA 策略",
+        "columns": {
+          "name": "名称",
+          "namespace": "命名空间",
+          "targetDeployment": "目标 Deployment",
+          "minReplicas": "最小副本",
+          "maxReplicas": "最大副本",
+          "currentReplicas": "当前副本",
+          "status": "状态"
+        },
+        "statusActive": "活跃",
+        "statusPaused": "暂停"
+      }
+    },
+    "nodeStatus": {
+      "ready": "就绪",
+      "not-ready": "未就绪",
+      "unknown": "未知",
+      "tagType": {
+        "ready": "success",
+        "not-ready": "danger",
+        "unknown": "info"
+      }
+    },
+    "messages": {
+      "overviewLoadFailed": "集群概览加载失败",
+      "nodesLoadFailed": "节点列表加载失败"
+    }
+  }
+}

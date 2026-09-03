@@ -1,38 +1,37 @@
 <template>
-  <div class="ds-page" role="main" aria-label="数据源管理页面">
-    <h1>数据源管理</h1>
+  <div class="ds-page" role="main" :aria-label="t('dataSourceManagement.title')">
+    <h1>{{ t('dataSourceManagement.title') }}</h1>
     <div class="sub">
-      统一管理平台数据接入源，支持 MySQL / PostgreSQL / ClickHouse / Kafka
-      等多类型数据源的注册、测试与维护。
+      {{ t('dataSourceManagement.subtitle') }}
     </div>
 
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
-      <div class="toolbar" role="toolbar" aria-label="数据源列表操作栏">
-        <el-button type="primary" aria-label="新增数据源" @click="openCreateDialog">
-          + 新增数据源
+      <div class="toolbar" role="toolbar" :aria-label="t('dataSourceManagement.table.paginationAria')">
+        <el-button type="primary" :aria-label="t('dataSourceManagement.toolbar.create')" @click="openCreateDialog">
+          {{ t('dataSourceManagement.toolbar.create') }}
         </el-button>
         <el-input
           v-model="searchKeyword"
-          placeholder="按名称搜索"
+          :placeholder="t('dataSourceManagement.toolbar.searchPlaceholder')"
           clearable
           style="width: 220px"
-          aria-label="按数据源名称搜索"
+          :aria-label="t('dataSourceManagement.toolbar.searchAria')"
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
         <el-select
           v-model="filterType"
-          placeholder="类型筛选"
+          :placeholder="t('dataSourceManagement.toolbar.typeFilterPlaceholder')"
           clearable
           style="width: 160px"
-          aria-label="按数据源类型筛选"
+          :aria-label="t('dataSourceManagement.toolbar.typeFilterAria')"
           @change="handleSearch"
         >
-          <el-option v-for="t in typeOptions" :key="t.value" :label="t.label" :value="t.value" />
+          <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle aria-label="刷新数据源列表" @click="loadList" />
+        <el-button :icon="Refresh" circle :aria-label="t('dataSourceManagement.toolbar.refreshAria')" @click="loadList" />
       </div>
 
       <!-- 数据源列表 -->
@@ -42,62 +41,62 @@
         stripe
         border
         role="table"
-        aria-label="数据源列表表格"
-        :empty-text="error ? '加载失败，请重试' : '暂无数据源'"
+        :aria-label="t('dataSourceManagement.table.aria')"
+        :empty-text="error ? t('dataSourceManagement.table.loadFailed') : t('dataSourceManagement.table.empty')"
       >
-        <el-table-column prop="id" label="ID" width="120" />
-        <el-table-column prop="name" label="数据源名称" min-width="160" />
-        <el-table-column label="类型" width="120">
+        <el-table-column prop="id" :label="t('dataSourceManagement.table.columns.id')" width="120" />
+        <el-table-column prop="name" :label="t('dataSourceManagement.table.columns.name')" min-width="160" />
+        <el-table-column :label="t('dataSourceManagement.table.columns.type')" width="120">
           <template #default="{ row }">
             <el-tag effect="light">{{ typeLabel(row.type) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="主机:端口" width="180">
+        <el-table-column :label="t('dataSourceManagement.table.columns.hostPort')" width="180">
           <template #default="{ row }">{{ row.host }}:{{ row.port }}</template>
         </el-table-column>
-        <el-table-column prop="database" label="数据库" width="140" />
-        <el-table-column prop="username" label="用户名" width="120" />
-        <el-table-column label="状态" width="120">
+        <el-table-column prop="database" :label="t('dataSourceManagement.table.columns.database')" width="140" />
+        <el-table-column prop="username" :label="t('dataSourceManagement.table.columns.username')" width="120" />
+        <el-table-column :label="t('dataSourceManagement.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column prop="createdAt" :label="t('dataSourceManagement.table.columns.createdAt')" width="180" />
+        <el-table-column :label="t('dataSourceManagement.table.columns.actions')" width="220" fixed="right">
           <template #default="{ row }">
             <el-button
               link
               type="primary"
-              :aria-label="`编辑数据源 ${row.name}`"
+              :aria-label="t('dataSourceManagement.table.actions.editAria', { name: row.name })"
               @click="openEditDialog(row)"
             >
-              编辑
+              {{ t('dataSourceManagement.table.actions.edit') }}
             </el-button>
             <el-button
               link
               type="success"
               :loading="testingId === row.id"
-              :aria-label="`测试数据源 ${row.name} 连接`"
+              :aria-label="t('dataSourceManagement.table.actions.testAria', { name: row.name })"
               @click="handleTest(row)"
             >
-              测试连接
+              {{ t('dataSourceManagement.table.actions.test') }}
             </el-button>
             <el-button
               link
               type="danger"
-              :aria-label="`删除数据源 ${row.name}`"
+              :aria-label="t('dataSourceManagement.table.actions.deleteAria', { name: row.name })"
               @click="handleDelete(row)"
             >
-              删除
+              {{ t('dataSourceManagement.table.actions.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap" role="navigation" aria-label="数据源列表分页">
+      <div class="pagination-wrap" role="navigation" :aria-label="t('dataSourceManagement.table.paginationAria')">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -105,7 +104,7 @@
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
           background
-          aria-label="分页导航"
+          :aria-label="t('dataSourceManagement.table.paginationAria')"
           @size-change="loadList"
           @current-change="loadList"
         />
@@ -115,12 +114,12 @@
     <!-- 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑数据源' : '新增数据源'"
+      :title="isEdit ? t('dataSourceManagement.dialog.editTitle') : t('dataSourceManagement.dialog.createTitle')"
       width="560px"
       :close-on-click-modal="false"
       role="dialog"
       aria-modal="true"
-      :aria-label="isEdit ? '编辑数据源弹窗' : '新增数据源弹窗'"
+      :aria-label="isEdit ? t('dataSourceManagement.dialog.editAria') : t('dataSourceManagement.dialog.createAria')"
       @closed="resetForm"
     >
       <el-form
@@ -130,61 +129,61 @@
         label-width="100px"
         label-position="right"
       >
-        <el-form-item label="数据源名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如 业务订单库" aria-label="数据源名称" />
+        <el-form-item :label="t('dataSourceManagement.dialog.fields.name')" prop="name">
+          <el-input v-model="formData.name" :placeholder="t('dataSourceManagement.dialog.fields.namePlaceholder')" :aria-label="t('dataSourceManagement.dialog.fields.nameAria')" />
         </el-form-item>
-        <el-form-item label="类型" prop="type">
+        <el-form-item :label="t('dataSourceManagement.dialog.fields.type')" prop="type">
           <el-select
             v-model="formData.type"
             style="width: 100%"
-            aria-label="数据源类型"
+            :aria-label="t('dataSourceManagement.dialog.fields.typeAria')"
             @change="onTypeChange"
           >
-            <el-option v-for="t in typeOptions" :key="t.value" :label="t.label" :value="t.value" />
+            <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
           </el-select>
         </el-form-item>
-        <el-form-item label="主机地址" prop="host">
-          <el-input v-model="formData.host" placeholder="如 192.168.1.10" aria-label="主机地址" />
+        <el-form-item :label="t('dataSourceManagement.dialog.fields.host')" prop="host">
+          <el-input v-model="formData.host" :placeholder="t('dataSourceManagement.dialog.fields.hostPlaceholder')" :aria-label="t('dataSourceManagement.dialog.fields.hostAria')" />
         </el-form-item>
-        <el-form-item label="端口" prop="port">
+        <el-form-item :label="t('dataSourceManagement.dialog.fields.port')" prop="port">
           <el-input-number
             v-model="formData.port"
             :min="1"
             :max="65535"
             controls-position="right"
             style="width: 100%"
-            aria-label="端口号"
+            :aria-label="t('dataSourceManagement.dialog.fields.portAria')"
           />
         </el-form-item>
-        <el-form-item v-if="needDatabase" label="数据库" prop="database">
+        <el-form-item v-if="needDatabase" :label="t('dataSourceManagement.dialog.fields.database')" prop="database">
           <el-input
             v-model="formData.database"
-            placeholder="数据库名 / Kafka topic 前缀"
-            aria-label="数据库名或Kafka topic前缀"
+            :placeholder="t('dataSourceManagement.dialog.fields.databasePlaceholder')"
+            :aria-label="t('dataSourceManagement.dialog.fields.databaseAria')"
           />
         </el-form-item>
-        <el-form-item label="用户名" prop="username">
-          <el-input v-model="formData.username" placeholder="登录用户名" aria-label="登录用户名" />
+        <el-form-item :label="t('dataSourceManagement.dialog.fields.username')" prop="username">
+          <el-input v-model="formData.username" :placeholder="t('dataSourceManagement.dialog.fields.usernamePlaceholder')" :aria-label="t('dataSourceManagement.dialog.fields.usernameAria')" />
         </el-form-item>
-        <el-form-item label="密码" prop="password">
+        <el-form-item :label="t('dataSourceManagement.dialog.fields.password')" prop="password">
           <el-input
             v-model="formData.password"
             type="password"
             show-password
-            :placeholder="isEdit ? '不修改请留空' : '登录密码'"
-            aria-label="登录密码"
+            :placeholder="isEdit ? t('dataSourceManagement.dialog.fields.passwordPlaceholderEdit') : t('dataSourceManagement.dialog.fields.passwordPlaceholderCreate')"
+            :aria-label="t('dataSourceManagement.dialog.fields.passwordAria')"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button aria-label="取消操作" @click="dialogVisible = false">取消</el-button>
+        <el-button :aria-label="t('dataSourceManagement.dialog.actions.cancelAria')" @click="dialogVisible = false">{{ t('dataSourceManagement.dialog.actions.cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="submitting"
-          :aria-label="isEdit ? '保存数据源' : '创建数据源'"
+          :aria-label="isEdit ? t('dataSourceManagement.dialog.actions.saveAria') : t('dataSourceManagement.dialog.actions.createAriaBtn')"
           @click="handleSubmit"
         >
-          {{ isEdit ? '保存' : '创建' }}
+          {{ isEdit ? t('dataSourceManagement.dialog.actions.save') : t('dataSourceManagement.dialog.actions.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -193,6 +192,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
@@ -204,6 +204,8 @@ import type {
   SaveDataSourceParams
 } from '@/api/datasource'
 import type { PagedResult } from '@/api/types'
+
+const { t } = useI18n()
 
 /* ------------------------------ 类型选项 ------------------------------ */
 
@@ -249,7 +251,7 @@ const {
       pageSize: pageSize.value
     }),
   {
-    onError: () => ElMessage.error('数据源列表加载失败')
+    onError: () => ElMessage.error(t('dataSourceManagement.messages.listLoadFailed'))
   }
 )
 
@@ -294,13 +296,13 @@ const formData = reactive<DsForm>({
   password: ''
 })
 
-const formRules: FormRules = {
-  name: [{ required: true, message: '请输入数据源名称', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
-  host: [{ required: true, message: '请输入主机地址', trigger: 'blur' }],
-  port: [{ required: true, message: '请输入端口', trigger: 'blur' }],
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }]
-}
+const formRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('dataSourceManagement.rules.nameRequired'), trigger: 'blur' }],
+  type: [{ required: true, message: t('dataSourceManagement.rules.typeRequired'), trigger: 'change' }],
+  host: [{ required: true, message: t('dataSourceManagement.rules.hostRequired'), trigger: 'blur' }],
+  port: [{ required: true, message: t('dataSourceManagement.rules.portRequired'), trigger: 'blur' }],
+  username: [{ required: true, message: t('dataSourceManagement.rules.usernameRequired'), trigger: 'blur' }]
+}))
 
 /** 是否需要数据库字段 */
 const needDatabase = computed(() => {
@@ -368,16 +370,16 @@ async function handleSubmit() {
       }
       if (isEdit.value) {
         await datasourceApi.updateDataSource(editingId.value, payload)
-        ElMessage.success('数据源已更新')
+        ElMessage.success(t('dataSourceManagement.messages.updated'))
       } else {
         if (!formData.password) {
-          ElMessage.warning('请输入密码')
+          ElMessage.warning(t('dataSourceManagement.rules.passwordRequired'))
           submitting.value = false
           return
         }
         payload.password = formData.password
         await datasourceApi.createDataSource(payload)
-        ElMessage.success('数据源已创建')
+        ElMessage.success(t('dataSourceManagement.messages.created'))
       }
       dialogVisible.value = false
       await loadList()
@@ -399,9 +401,10 @@ async function handleTest(row: DataSource) {
   try {
     const result = await datasourceApi.testDataSource(row.id)
     if (result.success) {
-      ElMessage.success(`连接成功 · 耗时 ${result.latency ?? '--'} ms`)
+      const latency = result.latency ?? t('dataSourceManagement.messages.connectedUnknown')
+      ElMessage.success(t('dataSourceManagement.messages.connectedOk', { latency }))
     } else {
-      ElMessage.error(`连接失败：${result.message}`)
+      ElMessage.error(t('dataSourceManagement.messages.connectFailed', { message: result.message }))
     }
     // 测试后刷新列表以更新状态
     await loadList()
@@ -418,17 +421,17 @@ async function handleTest(row: DataSource) {
 async function handleDelete(row: DataSource) {
   try {
     await ElMessageBox.confirm(
-      `确定删除数据源「${row.name}」吗？关联的同步任务可能受影响。`,
-      '删除确认',
+      t('dataSourceManagement.messages.deleteConfirm', { name: row.name }),
+      t('dataSourceManagement.messages.deleteConfirmTitle'),
       {
         type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
+        confirmButtonText: t('dataSourceManagement.messages.deleteConfirmOk'),
+        cancelButtonText: t('dataSourceManagement.messages.deleteConfirmCancel'),
         confirmButtonClass: 'el-button--danger'
       }
     )
     await datasourceApi.deleteDataSource(row.id)
-    ElMessage.success('数据源已删除')
+    ElMessage.success(t('dataSourceManagement.messages.deleted'))
     await loadList()
   } catch {
     // 用户取消或删除失败
@@ -442,21 +445,21 @@ function typeLabel(type: DataSourceType): string {
   return item?.label || type
 }
 
-const STATUS_MAP: Record<
+const STATUS_TAG_TYPE_MAP: Record<
   DataSourceStatus,
-  { label: string; type: 'success' | 'info' | 'warning' }
+  'success' | 'info' | 'warning'
 > = {
-  connected: { label: '已连接', type: 'success' },
-  disconnected: { label: '未连接', type: 'info' },
-  testing: { label: '测试中', type: 'warning' }
+  connected: 'success',
+  disconnected: 'info',
+  testing: 'warning'
 }
 
 function statusLabel(status: DataSourceStatus): string {
-  return STATUS_MAP[status]?.label ?? status
+  return t(`dataSourceManagement.status.${status}`)
 }
 
 function statusTagType(status: DataSourceStatus): 'success' | 'info' | 'warning' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
 
 /* ------------------------------ 初始化 ------------------------------ */

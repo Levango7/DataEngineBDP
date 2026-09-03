@@ -1,18 +1,17 @@
 <template>
   <div class="workspace-page">
-    <h1>工作空间管理</h1>
+    <h1>{{ t('workspaceManagement.title') }}</h1>
     <div class="sub">
-      管理租户下的工作空间（隔离边界），底层自动翻译为 K8s Namespace + NetworkPolicy + RBAC +
-      ResourceQuota，客户无需感知容器编排。
+      {{ t('workspaceManagement.subtitle') }}
     </div>
 
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">+ 新建工作空间</el-button>
+        <el-button type="primary" @click="openCreateDialog">{{ t('workspaceManagement.toolbar.create') }}</el-button>
         <el-input
           v-model="searchKeyword"
-          placeholder="按名称搜索"
+          :placeholder="t('workspaceManagement.toolbar.searchPlaceholder')"
           clearable
           style="width: 220px"
           @keyup.enter="handleSearch"
@@ -20,27 +19,27 @@
         />
         <el-select
           v-model="filterTenantId"
-          placeholder="租户筛选"
+          :placeholder="t('workspaceManagement.toolbar.tenantFilterPlaceholder')"
           clearable
           style="width: 180px"
           @change="handleSearch"
         >
-          <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
+          <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
         </el-select>
         <el-select
           v-model="filterStatus"
-          placeholder="状态筛选"
+          :placeholder="t('workspaceManagement.toolbar.statusFilterPlaceholder')"
           clearable
           style="width: 140px"
           @change="handleSearch"
         >
-          <el-option label="创建中" value="creating" />
-          <el-option label="运行中" value="running" />
-          <el-option label="删除中" value="deleting" />
-          <el-option label="已删除" value="deleted" />
+          <el-option :label="t('workspaceManagement.status.creating')" value="creating" />
+          <el-option :label="t('workspaceManagement.status.running')" value="running" />
+          <el-option :label="t('workspaceManagement.status.deleting')" value="deleting" />
+          <el-option :label="t('workspaceManagement.status.deleted')" value="deleted" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="loadList" />
+        <el-button :icon="Refresh" circle :aria-label="t('workspaceManagement.toolbar.refreshAria')" @click="loadList" />
       </div>
 
       <!-- 工作空间列表表格 -->
@@ -50,35 +49,35 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? '加载失败，请重试' : '暂无工作空间数据'"
+        :empty-text="error ? t('workspaceManagement.table.loadFailed') : t('workspaceManagement.table.empty')"
       >
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="名称" min-width="160" />
-        <el-table-column label="租户" width="120">
+        <el-table-column prop="id" :label="t('workspaceManagement.table.columns.id')" width="80" />
+        <el-table-column prop="name" :label="t('workspaceManagement.table.columns.name')" min-width="160" />
+        <el-table-column :label="t('workspaceManagement.table.columns.tenant')" width="120">
           <template #default="{ row }">
-            {{ row.tenantName || `租户#${row.tenantId}` }}
+            {{ row.tenantName || t('workspaceManagement.table.columns.tenantFallback', { id: row.tenantId }) }}
           </template>
         </el-table-column>
-        <el-table-column prop="namespace" label="K8s Namespace" width="200" />
-        <el-table-column label="状态" width="100">
+        <el-table-column prop="namespace" :label="t('workspaceManagement.table.columns.namespace')" width="200" />
+        <el-table-column :label="t('workspaceManagement.table.columns.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="资源配额" min-width="200">
+        <el-table-column :label="t('workspaceManagement.table.columns.resourceQuota')" min-width="200">
           <template #default="{ row }">
-            <span class="quota-text">{{ row.resourceQuota || '默认' }}</span>
+            <span class="quota-text">{{ row.resourceQuota || t('workspaceManagement.table.columns.resourceQuotaDefault') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="networkPolicy" label="网络策略" width="140" />
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="220" fixed="right">
+        <el-table-column prop="networkPolicy" :label="t('workspaceManagement.table.columns.networkPolicy')" width="140" />
+        <el-table-column prop="createdAt" :label="t('workspaceManagement.table.columns.createdAt')" width="180" />
+        <el-table-column :label="t('workspaceManagement.table.columns.actions')" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleViewStatus(row)">K8s状态</el-button>
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="primary" @click="handleViewStatus(row)">{{ t('workspaceManagement.table.actions.k8sStatus') }}</el-button>
+            <el-button link type="primary" @click="openEditDialog(row)">{{ t('workspaceManagement.table.actions.edit') }}</el-button>
+            <el-button link type="danger" @click="handleDelete(row)">{{ t('workspaceManagement.table.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -101,7 +100,7 @@
     <!-- 创建/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑工作空间' : '新建工作空间'"
+      :title="isEdit ? t('workspaceManagement.dialog.editTitle') : t('workspaceManagement.dialog.createTitle')"
       width="560px"
       :close-on-click-modal="false"
       @closed="resetForm"
@@ -113,67 +112,67 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如 华南生产工作空间" />
+        <el-form-item :label="t('workspaceManagement.dialog.fields.name')" prop="name">
+          <el-input v-model="formData.name" :placeholder="t('workspaceManagement.dialog.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="所属租户" prop="tenantId">
+        <el-form-item :label="t('workspaceManagement.dialog.fields.tenant')" prop="tenantId">
           <el-select
             v-model="formData.tenantId"
-            placeholder="选择租户"
+            :placeholder="t('workspaceManagement.dialog.fields.tenantPlaceholder')"
             style="width: 100%"
             :disabled="isEdit"
           >
-            <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
+            <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
           </el-select>
         </el-form-item>
-        <el-form-item label="描述" prop="description">
+        <el-form-item :label="t('workspaceManagement.dialog.fields.description')" prop="description">
           <el-input
             v-model="formData.description"
             type="textarea"
             :rows="2"
-            placeholder="工作空间用途描述"
+            :placeholder="t('workspaceManagement.dialog.fields.descriptionPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="资源配额" prop="resourceQuota">
-          <el-input v-model="formData.resourceQuota" placeholder="cpu=4,memory=8Gi,storage=100Gi" />
-          <div class="form-tip">格式：cpu=4,memory=8Gi,storage=100Gi（留空使用默认配额）</div>
+        <el-form-item :label="t('workspaceManagement.dialog.fields.resourceQuota')" prop="resourceQuota">
+          <el-input v-model="formData.resourceQuota" :placeholder="t('workspaceManagement.dialog.fields.resourceQuotaPlaceholder')" />
+          <div class="form-tip">{{ t('workspaceManagement.dialog.fields.resourceQuotaTip') }}</div>
         </el-form-item>
-        <el-form-item label="网络隔离策略" prop="networkPolicy">
+        <el-form-item :label="t('workspaceManagement.dialog.fields.networkPolicy')" prop="networkPolicy">
           <el-select v-model="formData.networkPolicy" style="width: 100%">
-            <el-option label="租户内互通（tenant-isolated）" value="tenant-isolated" />
-            <el-option label="全部拒绝（deny-all）" value="deny-all" />
+            <el-option :label="t('workspaceManagement.networkPolicy.tenantIsolated')" value="tenant-isolated" />
+            <el-option :label="t('workspaceManagement.networkPolicy.denyAll')" value="deny-all" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ t('workspaceManagement.dialog.actions.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? '保存' : '创建' }}
+          {{ isEdit ? t('workspaceManagement.dialog.actions.save') : t('workspaceManagement.dialog.actions.create') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- K8s 状态对话框 -->
-    <el-dialog v-model="statusDialogVisible" title="K8s Namespace 实时状态" width="420px">
+    <el-dialog v-model="statusDialogVisible" :title="t('workspaceManagement.k8sDialog.title')" width="420px">
       <div v-loading="statusLoading">
         <div class="status-row">
-          <span class="status-label">工作空间：</span>
+          <span class="status-label">{{ t('workspaceManagement.k8sDialog.workspace') }}</span>
           <span>{{ statusWorkspace?.name }}</span>
         </div>
         <div class="status-row">
-          <span class="status-label">Namespace：</span>
+          <span class="status-label">{{ t('workspaceManagement.k8sDialog.namespace') }}</span>
           <span>{{ statusWorkspace?.namespace }}</span>
         </div>
         <div class="status-row">
-          <span class="status-label">K8s 状态：</span>
+          <span class="status-label">{{ t('workspaceManagement.k8sDialog.k8sStatus') }}</span>
           <el-tag :type="k8sStatusTagType(k8sStatus)" effect="light">
             {{ k8sStatus }}
           </el-tag>
         </div>
       </div>
       <template #footer>
-        <el-button @click="statusDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleViewStatus(statusWorkspace!)">刷新</el-button>
+        <el-button @click="statusDialogVisible = false">{{ t('workspaceManagement.k8sDialog.close') }}</el-button>
+        <el-button type="primary" @click="handleViewStatus(statusWorkspace!)">{{ t('workspaceManagement.k8sDialog.refresh') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -181,12 +180,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as workspaceApi from '@/api/workspace'
 import * as tenantApi from '@/api/tenant'
 import type { Workspace, Tenant, PagedResult } from '@/api/types'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
@@ -211,7 +213,7 @@ const {
       pageSize: pageSize.value
     }),
   {
-    onError: () => ElMessage.error('工作空间列表加载失败')
+    onError: () => ElMessage.error(t('workspaceManagement.messages.listLoadFailed'))
   }
 )
 
@@ -254,10 +256,10 @@ const formData = reactive<WorkspaceForm>({
   networkPolicy: 'tenant-isolated'
 })
 
-const formRules: FormRules = {
-  name: [{ required: true, message: '请输入工作空间名称', trigger: 'blur' }],
-  tenantId: [{ required: true, message: '请选择所属租户', trigger: 'change' }]
-}
+const formRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('workspaceManagement.rules.nameRequired'), trigger: 'blur' }],
+  tenantId: [{ required: true, message: t('workspaceManagement.rules.tenantRequired'), trigger: 'change' }]
+}))
 
 /** 打开新建弹窗 */
 function openCreateDialog() {
@@ -303,7 +305,7 @@ async function handleSubmit() {
           resourceQuota: formData.resourceQuota || undefined,
           networkPolicy: formData.networkPolicy || undefined
         })
-        ElMessage.success('工作空间已更新')
+        ElMessage.success(t('workspaceManagement.messages.updated'))
       } else {
         await workspaceApi.createWorkspace({
           name: formData.name,
@@ -311,9 +313,7 @@ async function handleSubmit() {
           plan: 'enterprise',
           env: 'onprem'
         })
-        ElMessage.success(
-          '工作空间已创建，底层已翻译为 K8s Namespace + NetworkPolicy + RBAC + ResourceQuota'
-        )
+        ElMessage.success(t('workspaceManagement.messages.created'))
       }
       dialogVisible.value = false
       await loadList()
@@ -331,17 +331,17 @@ async function handleSubmit() {
 async function handleDelete(row: Workspace) {
   try {
     await ElMessageBox.confirm(
-      `确定删除工作空间「${row.name}」吗？\n该操作将级联删除 K8s Namespace 及其下全部资源，不可恢复。`,
-      '删除确认',
+      t('workspaceManagement.messages.deleteConfirm', { name: row.name }),
+      t('workspaceManagement.messages.deleteConfirmTitle'),
       {
         type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
+        confirmButtonText: t('workspaceManagement.messages.deleteConfirmOk'),
+        cancelButtonText: t('workspaceManagement.messages.deleteConfirmCancel'),
         confirmButtonClass: 'el-button--danger'
       }
     )
     await workspaceApi.deleteWorkspace(row.id)
-    ElMessage.success('工作空间已删除，K8s Namespace 已级联清除')
+    ElMessage.success(t('workspaceManagement.messages.deleted'))
     await loadList()
   } catch (e) {
     // 用户取消或删除失败，不提示
@@ -370,42 +370,34 @@ async function handleViewStatus(row: Workspace) {
   if (k8sStatusData.value) {
     k8sStatus.value = k8sStatusData.value.status
   } else {
-    ElMessage.error('K8s 状态查询失败')
+    ElMessage.error(t('workspaceManagement.messages.k8sStatusFailed'))
   }
 }
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-/** 状态 → 中文 */
+/** 状态 → 词条 */
 function statusLabel(status: Workspace['status']): string {
-  const map: Record<string, string> = {
-    creating: '创建中',
-    running: '运行中',
-    active: '运行中',
-    limited: '受限',
-    stopped: '已停止',
-    deleting: '删除中',
-    deleted: '已删除',
-    failed: '失败'
-  }
-  return map[status] || status
+  const key = `workspaceManagement.status.${status}`
+  return te(key) ? t(key) : status
 }
 
 /** 状态 → tag 类型 */
+const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
+  creating: 'primary',
+  running: 'success',
+  active: 'success',
+  limited: 'warning',
+  stopped: 'info',
+  deleting: 'warning',
+  deleted: 'info',
+  failed: 'danger'
+}
+
 function statusTagType(
   status: Workspace['status']
 ): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
-  const map: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
-    creating: 'primary',
-    running: 'success',
-    active: 'success',
-    limited: 'warning',
-    stopped: 'info',
-    deleting: 'warning',
-    deleted: 'info',
-    failed: 'danger'
-  }
-  return map[status] || 'info'
+  return STATUS_TAG_TYPE_MAP[status] || 'info'
 }
 
 /** K8s 状态 → tag 类型 */

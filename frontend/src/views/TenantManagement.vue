@@ -1,39 +1,39 @@
 <template>
-  <div class="tenant-page" role="main" aria-label="租户管理页面">
-    <h1>租户管理</h1>
+  <div class="tenant-page" role="main" :aria-label="t('tenantManagement.title')">
+    <h1>{{ t('tenantManagement.title') }}</h1>
     <div class="sub">
-      管理平台多租户的创建、配额、状态与基本信息，底层自动映射为 K8s Namespace 与资源配额。
+      {{ t('tenantManagement.subtitle') }}
     </div>
 
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
-      <div class="toolbar" role="toolbar" aria-label="租户列表操作栏">
-        <el-button type="primary" aria-label="新建租户" @click="openCreateDialog">
-          + 新建租户
+      <div class="toolbar" role="toolbar" :aria-label="t('tenantManagement.title')">
+        <el-button type="primary" :aria-label="t('tenantManagement.dialog.createTitle')" @click="openCreateDialog">
+          {{ t('tenantManagement.toolbar.create') }}
         </el-button>
         <el-input
           v-model="searchKeyword"
-          placeholder="按租户名称搜索"
+          :placeholder="t('tenantManagement.toolbar.searchPlaceholder')"
           clearable
           style="width: 240px"
-          aria-label="按租户名称搜索"
+          :aria-label="t('tenantManagement.toolbar.searchPlaceholder')"
           @keyup.enter="handleSearch"
           @clear="handleSearch"
         />
         <el-select
           v-model="filterStatus"
-          placeholder="状态筛选"
+          :placeholder="t('tenantManagement.toolbar.statusFilterPlaceholder')"
           clearable
           style="width: 140px"
-          aria-label="按状态筛选租户"
+          :aria-label="t('tenantManagement.toolbar.statusFilterPlaceholder')"
           @change="handleSearch"
         >
-          <el-option label="活跃" value="active" />
-          <el-option label="已暂停" value="suspended" />
-          <el-option label="已删除" value="deleted" />
+          <el-option :label="t('tenantManagement.status.active')" value="active" />
+          <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
+          <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle aria-label="刷新租户列表" @click="loadList" />
+        <el-button :icon="Refresh" circle :aria-label="t('tenantManagement.toolbar.refreshAria')" @click="loadList" />
       </div>
 
       <!-- 租户列表表格 -->
@@ -44,29 +44,29 @@
         border
         style="width: 100%"
         role="table"
-        aria-label="租户列表表格"
-        :empty-text="error ? '加载失败，请重试' : '暂无租户数据'"
+        :aria-label="t('tenantManagement.table.aria')"
+        :empty-text="error ? t('tenantManagement.table.loadFailed') : t('tenantManagement.table.empty')"
       >
-        <el-table-column prop="id" label="ID" width="120" />
-        <el-table-column prop="name" label="租户名称" min-width="160" />
-        <el-table-column prop="code" label="租户编码" width="140" />
-        <el-table-column label="套餐版本" width="120">
+        <el-table-column prop="id" :label="t('tenantManagement.table.columns.id')" width="120" />
+        <el-table-column prop="name" :label="t('tenantManagement.table.columns.name')" min-width="160" />
+        <el-table-column prop="code" :label="t('tenantManagement.table.columns.code')" width="140" />
+        <el-table-column :label="t('tenantManagement.table.columns.plan')" width="120">
           <template #default="{ row }">
             <el-tag :type="planTagType(row.plan)" effect="light">
               {{ planLabel(row.plan) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column :label="t('tenantManagement.table.columns.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="workspaceCount" label="工作空间数" width="120" align="center" />
-        <el-table-column prop="userCount" label="用户数" width="100" align="center" />
-        <el-table-column label="资源消耗" width="160">
+        <el-table-column prop="workspaceCount" :label="t('tenantManagement.table.columns.workspaceCount')" width="120" align="center" />
+        <el-table-column prop="userCount" :label="t('tenantManagement.table.columns.userCount')" width="100" align="center" />
+        <el-table-column :label="t('tenantManagement.table.columns.resourceUsage')" width="160">
           <template #default="{ row }">
             <el-progress
               :percentage="row.resourceUsage || 0"
@@ -75,31 +75,31 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column prop="createdAt" :label="t('tenantManagement.table.columns.createdAt')" width="180" />
+        <el-table-column :label="t('tenantManagement.table.columns.actions')" width="160" fixed="right">
           <template #default="{ row }">
             <el-button
               link
               type="primary"
-              :aria-label="`编辑租户 ${row.name}`"
+              :aria-label="t('tenantManagement.table.actions.editAria', { name: row.name })"
               @click="openEditDialog(row)"
             >
-              编辑
+              {{ t('tenantManagement.table.actions.edit') }}
             </el-button>
             <el-button
               link
               type="danger"
-              :aria-label="`删除租户 ${row.name}`"
+              :aria-label="t('tenantManagement.table.actions.deleteAria', { name: row.name })"
               @click="handleDelete(row)"
             >
-              删除
+              {{ t('tenantManagement.table.actions.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap" role="navigation" aria-label="租户列表分页">
+      <div class="pagination-wrap" role="navigation" :aria-label="t('tenantManagement.table.paginationAria')">
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -107,7 +107,7 @@
           :total="total"
           layout="total, sizes, prev, pager, next, jumper"
           background
-          aria-label="分页导航"
+          :aria-label="t('tenantManagement.table.paginationAria')"
           @size-change="loadList"
           @current-change="loadList"
         />
@@ -117,12 +117,12 @@
     <!-- 创建/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑租户' : '新建租户'"
+      :title="isEdit ? t('tenantManagement.dialog.editTitle') : t('tenantManagement.dialog.createTitle')"
       width="520px"
       :close-on-click-modal="false"
       role="dialog"
       aria-modal="true"
-      :aria-label="isEdit ? '编辑租户弹窗' : '新建租户弹窗'"
+      :aria-label="isEdit ? t('tenantManagement.dialog.editAria') : t('tenantManagement.dialog.createAria')"
       @closed="resetForm"
     >
       <el-form
@@ -132,48 +132,48 @@
         label-width="100px"
         label-position="right"
       >
-        <el-form-item label="租户名称" prop="name">
-          <el-input v-model="formData.name" placeholder="如 华东生产集群" aria-label="租户名称" />
+        <el-form-item :label="t('tenantManagement.dialog.fields.name')" prop="name">
+          <el-input v-model="formData.name" :placeholder="t('tenantManagement.dialog.fields.namePlaceholder')" :aria-label="t('tenantManagement.dialog.fields.name')" />
         </el-form-item>
-        <el-form-item label="租户编码" prop="code">
+        <el-form-item :label="t('tenantManagement.dialog.fields.code')" prop="code">
           <el-input
             v-model="formData.code"
-            placeholder="如 east-prod"
+            :placeholder="t('tenantManagement.dialog.fields.codePlaceholder')"
             :disabled="isEdit"
-            aria-label="租户编码"
+            :aria-label="t('tenantManagement.dialog.fields.code')"
           />
         </el-form-item>
-        <el-form-item label="套餐版本" prop="plan">
-          <el-select v-model="formData.plan" style="width: 100%" aria-label="套餐版本">
-            <el-option label="标准版" value="standard" />
-            <el-option label="企业版" value="enterprise" />
-            <el-option label="旗舰版" value="flagship" />
-            <el-option label="内部无限" value="internal" />
+        <el-form-item :label="t('tenantManagement.dialog.fields.plan')" prop="plan">
+          <el-select v-model="formData.plan" style="width: 100%" :aria-label="t('tenantManagement.dialog.fields.plan')">
+            <el-option :label="t('tenantManagement.plan.standard')" value="standard" />
+            <el-option :label="t('tenantManagement.plan.enterprise')" value="enterprise" />
+            <el-option :label="t('tenantManagement.plan.flagship')" value="flagship" />
+            <el-option :label="t('tenantManagement.plan.internal')" value="internal" />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="isEdit" label="状态" prop="status">
-          <el-select v-model="formData.status" style="width: 100%" aria-label="租户状态">
-            <el-option label="活跃" value="active" />
-            <el-option label="已暂停" value="suspended" />
-            <el-option label="已删除" value="deleted" />
+        <el-form-item v-if="isEdit" :label="t('tenantManagement.dialog.fields.status')" prop="status">
+          <el-select v-model="formData.status" style="width: 100%" :aria-label="t('tenantManagement.dialog.fields.status')">
+            <el-option :label="t('tenantManagement.status.active')" value="active" />
+            <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
+            <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
           </el-select>
         </el-form-item>
-        <el-form-item label="联系人" prop="contact">
-          <el-input v-model="formData.contact" placeholder="联系人姓名" aria-label="联系人姓名" />
+        <el-form-item :label="t('tenantManagement.dialog.fields.contact')" prop="contact">
+          <el-input v-model="formData.contact" :placeholder="t('tenantManagement.dialog.fields.contactPlaceholder')" :aria-label="t('tenantManagement.dialog.fields.contact')" />
         </el-form-item>
-        <el-form-item label="联系电话" prop="contactPhone">
-          <el-input v-model="formData.contactPhone" placeholder="联系电话" aria-label="联系电话" />
+        <el-form-item :label="t('tenantManagement.dialog.fields.contactPhone')" prop="contactPhone">
+          <el-input v-model="formData.contactPhone" :placeholder="t('tenantManagement.dialog.fields.contactPhonePlaceholder')" :aria-label="t('tenantManagement.dialog.fields.contactPhone')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button aria-label="取消操作" @click="dialogVisible = false">取消</el-button>
+        <el-button :aria-label="t('tenantManagement.dialog.actions.cancelAria')" @click="dialogVisible = false">{{ t('tenantManagement.dialog.actions.cancel') }}</el-button>
         <el-button
           type="primary"
           :loading="submitting"
-          :aria-label="isEdit ? '保存租户' : '创建租户'"
+          :aria-label="isEdit ? t('tenantManagement.dialog.actions.saveAria') : t('tenantManagement.dialog.actions.createAriaBtn')"
           @click="handleSubmit"
         >
-          {{ isEdit ? '保存' : '创建' }}
+          {{ isEdit ? t('tenantManagement.dialog.actions.save') : t('tenantManagement.dialog.actions.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -182,11 +182,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as tenantApi from '@/api/tenant'
 import type { Tenant, PlanTier, TenantStatus, PagedResult } from '@/api/types'
+
+const { t } = useI18n()
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
@@ -205,7 +208,7 @@ const {
       pageSize: pageSize.value
     }),
   {
-    onError: () => ElMessage.error('租户列表加载失败')
+    onError: () => ElMessage.error(t('tenantManagement.messages.listLoadFailed'))
   }
 )
 
@@ -248,18 +251,18 @@ const formData = reactive<TenantForm>({
   contactPhone: ''
 })
 
-const formRules: FormRules = {
-  name: [{ required: true, message: '请输入租户名称', trigger: 'blur' }],
+const formRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('tenantManagement.rules.nameRequired'), trigger: 'blur' }],
   code: [
-    { required: true, message: '请输入租户编码', trigger: 'blur' },
+    { required: true, message: t('tenantManagement.rules.codeRequired'), trigger: 'blur' },
     {
       pattern: /^[a-z][a-z0-9-]*$/,
-      message: '小写字母开头，仅含小写字母、数字、连字符',
+      message: t('tenantManagement.rules.codePattern'),
       trigger: 'blur'
     }
   ],
-  plan: [{ required: true, message: '请选择套餐版本', trigger: 'change' }]
-}
+  plan: [{ required: true, message: t('tenantManagement.rules.planRequired'), trigger: 'change' }]
+}))
 
 /** 打开新建弹窗 */
 function openCreateDialog() {
@@ -308,7 +311,7 @@ async function handleSubmit() {
           contact: formData.contact || undefined,
           contactPhone: formData.contactPhone || undefined
         })
-        ElMessage.success('租户已更新')
+        ElMessage.success(t('tenantManagement.messages.updated'))
       } else {
         await tenantApi.createTenant({
           name: formData.name,
@@ -317,7 +320,7 @@ async function handleSubmit() {
           contact: formData.contact || undefined,
           contactPhone: formData.contactPhone || undefined
         })
-        ElMessage.success('租户已创建')
+        ElMessage.success(t('tenantManagement.messages.created'))
       }
       dialogVisible.value = false
       await loadList()
@@ -334,14 +337,18 @@ async function handleSubmit() {
 /** 删除租户 */
 async function handleDelete(row: Tenant) {
   try {
-    await ElMessageBox.confirm(`确定删除租户「${row.name}」吗？该操作不可恢复。`, '删除确认', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('tenantManagement.messages.deleteConfirm', { name: row.name }),
+      t('tenantManagement.messages.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('tenantManagement.messages.deleteConfirmOk'),
+        cancelButtonText: t('tenantManagement.messages.deleteConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await tenantApi.deleteTenant(row.id)
-    ElMessage.success('租户已删除')
+    ElMessage.success(t('tenantManagement.messages.deleted'))
     await loadList()
   } catch (e) {
     // 用户取消或删除失败，不提示
@@ -350,39 +357,33 @@ async function handleDelete(row: Tenant) {
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-const PLAN_MAP: Record<
-  PlanTier,
-  { label: string; type: 'primary' | 'success' | 'warning' | 'info' }
-> = {
-  standard: { label: '标准版', type: 'info' },
-  enterprise: { label: '企业版', type: 'primary' },
-  flagship: { label: '旗舰版', type: 'warning' },
-  internal: { label: '内部无限', type: 'success' }
+const PLAN_TAG_TYPE_MAP: Record<PlanTier, 'primary' | 'success' | 'warning' | 'info'> = {
+  standard: 'info',
+  enterprise: 'primary',
+  flagship: 'warning',
+  internal: 'success'
 }
 
 function planLabel(plan: PlanTier): string {
-  return PLAN_MAP[plan]?.label ?? plan
+  return t(`tenantManagement.plan.${plan}`)
 }
 
 function planTagType(plan: PlanTier): 'primary' | 'success' | 'warning' | 'info' {
-  return PLAN_MAP[plan]?.type ?? 'info'
+  return PLAN_TAG_TYPE_MAP[plan] ?? 'info'
 }
 
-const STATUS_MAP: Record<
-  TenantStatus,
-  { label: string; type: 'success' | 'warning' | 'info' | 'danger' }
-> = {
-  active: { label: '活跃', type: 'success' },
-  suspended: { label: '已暂停', type: 'warning' },
-  deleted: { label: '已删除', type: 'info' }
+const STATUS_TAG_TYPE_MAP: Record<TenantStatus, 'success' | 'warning' | 'info' | 'danger'> = {
+  active: 'success',
+  suspended: 'warning',
+  deleted: 'info'
 }
 
 function statusLabel(status: TenantStatus): string {
-  return STATUS_MAP[status]?.label ?? status
+  return t(`tenantManagement.status.${status}`)
 }
 
 function statusTagType(status: TenantStatus): 'success' | 'warning' | 'info' | 'danger' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
 
 /** 资源消耗 → 进度条颜色 */

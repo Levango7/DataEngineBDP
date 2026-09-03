@@ -1,0 +1,101 @@
+{
+  "dataSourceManagement": {
+    "title": "Data Sources",
+    "subtitle": "Centralized management of platform data sources — supports registration, connection testing and maintenance for MySQL, PostgreSQL, ClickHouse, Kafka and more.",
+    "toolbar": {
+      "create": "+ New Data Source",
+      "searchPlaceholder": "Search by name",
+      "searchAria": "Search by data source name",
+      "typeFilterPlaceholder": "Filter by type",
+      "typeFilterAria": "Filter by data source type",
+      "refreshAria": "Refresh data source list"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No data sources",
+      "aria": "Data source list table",
+      "columns": {
+        "id": "ID",
+        "name": "Name",
+        "type": "Type",
+        "hostPort": "Host:Port",
+        "database": "Database",
+        "username": "Username",
+        "status": "Status",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "editAria": "Edit data source {name}",
+        "edit": "Edit",
+        "testAria": "Test connection for data source {name}",
+        "test": "Test",
+        "deleteAria": "Delete data source {name}",
+        "delete": "Delete"
+      },
+      "paginationAria": "Data source list pagination"
+    },
+    "dialog": {
+      "createTitle": "New Data Source",
+      "editTitle": "Edit Data Source",
+      "createAria": "New data source dialog",
+      "editAria": "Edit data source dialog",
+      "fields": {
+        "name": "Name",
+        "nameAria": "Data source name",
+        "namePlaceholder": "e.g. Business Orders DB",
+        "type": "Type",
+        "typeAria": "Data source type",
+        "host": "Host",
+        "hostAria": "Host address",
+        "hostPlaceholder": "e.g. 192.168.1.10",
+        "port": "Port",
+        "portAria": "Port number",
+        "database": "Database",
+        "databaseAria": "Database name or Kafka topic prefix",
+        "databasePlaceholder": "Database name / Kafka topic prefix",
+        "username": "Username",
+        "usernameAria": "Login username",
+        "usernamePlaceholder": "Login username",
+        "password": "Password",
+        "passwordAria": "Login password",
+        "passwordPlaceholderCreate": "Login password",
+        "passwordPlaceholderEdit": "Leave empty to keep unchanged"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "cancelAria": "Cancel operation",
+        "save": "Save",
+        "create": "Create",
+        "saveAria": "Save data source",
+        "createAriaBtn": "Create data source"
+      }
+    },
+    "rules": {
+      "nameRequired": "Please enter data source name",
+      "typeRequired": "Please select a type",
+      "hostRequired": "Please enter host",
+      "portRequired": "Please enter port",
+      "usernameRequired": "Please enter username",
+      "passwordRequired": "Please enter password"
+    },
+    "status": {
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "testing": "Testing"
+    },
+    "messages": {
+      "listLoadFailed": "Failed to load data source list",
+      "updated": "Data source updated",
+      "created": "Data source created",
+      "connectedOk": "Connected · {latency} ms",
+      "connectedUnknown": "—",
+      "connectFailed": "Connection failed: {message}",
+      "deleted": "Data source deleted",
+      "deleteConfirm": "Confirm deletion of \"{name}\"? Related sync tasks may be affected.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmOk": "Delete",
+      "deleteConfirmCancel": "Cancel"
+    }
+  }
+}

@@ -63,6 +63,18 @@ import sqlWorkbenchZh from '@/i18n/locales/modules/sqlWorkbench.zh-CN.json'
 import sqlWorkbenchEn from '@/i18n/locales/modules/sqlWorkbench.en-US.json'
 import searchPortalZh from '@/i18n/locales/modules/searchPortal.zh-CN.json'
 import searchPortalEn from '@/i18n/locales/modules/searchPortal.en-US.json'
+import dataSourceManagementZh from '@/i18n/locales/modules/dataSourceManagement.zh-CN.json'
+import dataSourceManagementEn from '@/i18n/locales/modules/dataSourceManagement.en-US.json'
+import tenantManagementZh from '@/i18n/locales/modules/tenantManagement.zh-CN.json'
+import tenantManagementEn from '@/i18n/locales/modules/tenantManagement.en-US.json'
+import workspaceManagementZh from '@/i18n/locales/modules/workspaceManagement.zh-CN.json'
+import workspaceManagementEn from '@/i18n/locales/modules/workspaceManagement.en-US.json'
+import quotaManagementZh from '@/i18n/locales/modules/quotaManagement.zh-CN.json'
+import quotaManagementEn from '@/i18n/locales/modules/quotaManagement.en-US.json'
+import clusterOverviewZh from '@/i18n/locales/modules/clusterOverview.zh-CN.json'
+import clusterOverviewEn from '@/i18n/locales/modules/clusterOverview.en-US.json'
+import dataLineageZh from '@/i18n/locales/modules/dataLineage.zh-CN.json'
+import dataLineageEn from '@/i18n/locales/modules/dataLineage.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -140,7 +152,13 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['apiMarket', apiMarketZh as Record<string, unknown>, apiMarketEn as Record<string, unknown>],
     ['assetMarket', assetMarketZh as Record<string, unknown>, assetMarketEn as Record<string, unknown>],
     ['sqlWorkbench', sqlWorkbenchZh as Record<string, unknown>, sqlWorkbenchEn as Record<string, unknown>],
-    ['searchPortal', searchPortalZh as Record<string, unknown>, searchPortalEn as Record<string, unknown>]
+    ['searchPortal', searchPortalZh as Record<string, unknown>, searchPortalEn as Record<string, unknown>],
+    ['dataSourceManagement', dataSourceManagementZh as Record<string, unknown>, dataSourceManagementEn as Record<string, unknown>],
+    ['tenantManagement', tenantManagementZh as Record<string, unknown>, tenantManagementEn as Record<string, unknown>],
+    ['workspaceManagement', workspaceManagementZh as Record<string, unknown>, workspaceManagementEn as Record<string, unknown>],
+    ['quotaManagement', quotaManagementZh as Record<string, unknown>, quotaManagementEn as Record<string, unknown>],
+    ['clusterOverview', clusterOverviewZh as Record<string, unknown>, clusterOverviewEn as Record<string, unknown>],
+    ['dataLineage', dataLineageZh as Record<string, unknown>, dataLineageEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {
@@ -151,11 +169,16 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
 
   it('每个模块词条均非空字符串', () => {
     for (const [name, zh, en] of modules) {
+      const enKeys = new Set(flattenKeys(en))
       for (const key of flattenKeys(zh)) {
-        const zhVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], zh)
-        const enVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)[k], en)
-        expect(zhVal, `${name}:${key}`).toBeTruthy()
-        expect(enVal, `${name}:en:${key}`).toBeTruthy()
+        if (!enKeys.has(key)) {
+          throw new Error(`[${name}] zh has key "${key}" but en does not`)
+        }
+        const zhVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], zh)
+        const enVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], en)
+        if (!zhVal || !enVal) {
+          throw new Error(`[${name}] empty at key "${key}" (zh=${zhVal} en=${enVal})`)
+        }
       }
     }
   })

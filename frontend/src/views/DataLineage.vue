@@ -1,55 +1,54 @@
 <template>
   <div class="lineage-page">
     <header class="page-header">
-      <h1>数据血缘分析</h1>
-      <p class="sub">基于 SQL AST 提取表级 + 字段级血缘，支持上下游查询与影响分析</p>
+      <h1>{{ t('dataLineage.title') }}</h1>
+      <p class="sub">{{ t('dataLineage.subtitle') }}</p>
     </header>
 
     <!-- SQL 输入区 -->
     <section class="card sql-input">
-      <div class="card-title">SQL 血缘分析</div>
+      <div class="card-title">{{ t('dataLineage.input.title') }}</div>
       <div class="input-row">
         <textarea
           v-model="sqlText"
           class="sql-textarea"
-          placeholder="输入 SQL，例如：INSERT INTO dwd.wide (oid, uname) SELECT a.id, b.name FROM ods.orders a JOIN dim.user b ON a.uid = b.id"
+          :placeholder="t('dataLineage.input.placeholder')"
           rows="5"
         ></textarea>
       </div>
       <div class="action-row">
         <select v-model="dialect" class="dialect-select">
-          <option value="">自动检测</option>
+          <option value="">{{ t('dataLineage.input.autoDetect') }}</option>
           <option value="ANSI">ANSI</option>
           <option value="HIVE">Hive</option>
           <option value="DORIS">Doris</option>
           <option value="TRINO">Trino</option>
         </select>
         <button class="btn-primary" :disabled="analyzing" @click="handleAnalyze">
-          {{ analyzing ? '分析中…' : '分析血缘' }}
+          {{ analyzing ? t('dataLineage.input.analyzing') : t('dataLineage.input.analyze') }}
         </button>
-        <button class="btn-ghost" @click="loadSample">载入示例</button>
+        <button class="btn-ghost" @click="loadSample">{{ t('dataLineage.input.loadSample') }}</button>
       </div>
       <div v-if="analyzeError" class="error-tip">{{ analyzeError.message }}</div>
     </section>
 
     <!-- 血缘图谱可视化：三态 loading / error / data -->
     <section v-if="analyzing" class="card graph-card">
-      <div class="card-title">血缘图谱</div>
-      <div class="state-tip">分析中…</div>
+      <div class="card-title">{{ t('dataLineage.graph.title') }}</div>
+      <div class="state-tip">{{ t('dataLineage.graph.analyzing') }}</div>
     </section>
     <section v-else-if="analyzeError" class="card graph-card">
-      <div class="card-title">血缘图谱</div>
+      <div class="card-title">{{ t('dataLineage.graph.title') }}</div>
       <div class="state-tip error">
-        加载失败：{{ analyzeError.message }}，
-        <a href="javascript:void(0)" @click="handleAnalyze">重试</a>
+        {{ t('dataLineage.graph.loadFailed', { message: analyzeError.message }) }}，
+        <a href="javascript:void(0)" @click="handleAnalyze">{{ t('dataLineage.graph.retry') }}</a>
       </div>
     </section>
     <section v-else-if="graph" class="card graph-card">
       <div class="card-title">
-        血缘图谱
+        {{ t('dataLineage.graph.title') }}
         <span class="meta-tag">
-          {{ graph.meta.nodeCount }} 节点 · {{ graph.meta.edgeCount }} 边 ·
-          {{ graph.meta.analyzeTimeMs }}ms
+          {{ t('dataLineage.graph.meta', { nodes: graph.meta.nodeCount, edges: graph.meta.edgeCount, time: graph.meta.analyzeTimeMs }) }}
         </span>
       </div>
       <div ref="chartRef" class="chart"></div>
@@ -57,41 +56,41 @@
 
     <!-- 表级 + 字段级血缘列表：三态 -->
     <section v-if="analyzing" class="card relation-list">
-      <div class="card-title">血缘关系明细</div>
-      <div class="state-tip">加载中…</div>
+      <div class="card-title">{{ t('dataLineage.relations.title') }}</div>
+      <div class="state-tip">{{ t('dataLineage.relations.loading') }}</div>
     </section>
     <section v-else-if="analyzeError" class="card relation-list">
-      <div class="card-title">血缘关系明细</div>
-      <div class="state-tip error">加载失败</div>
+      <div class="card-title">{{ t('dataLineage.relations.title') }}</div>
+      <div class="state-tip error">{{ t('dataLineage.relations.loadFailed') }}</div>
     </section>
     <section v-else-if="graph" class="card relation-list">
-      <div class="card-title">血缘关系明细</div>
+      <div class="card-title">{{ t('dataLineage.relations.title') }}</div>
       <div class="relation-tabs">
         <button :class="['tab', { active: activeTab === 'table' }]" @click="activeTab = 'table'">
-          表级 ({{ tableEdges.length }})
+          {{ t('dataLineage.relations.table', { count: tableEdges.length }) }}
         </button>
         <button :class="['tab', { active: activeTab === 'column' }]" @click="activeTab = 'column'">
-          字段级 ({{ columnEdges.length }})
+          {{ t('dataLineage.relations.column', { count: columnEdges.length }) }}
         </button>
       </div>
       <table class="relation-table">
         <thead>
           <tr>
-            <th>源</th>
-            <th>→</th>
-            <th>目标</th>
-            <th v-if="activeTab === 'column'">表达式</th>
+            <th>{{ t('dataLineage.relations.columns.source') }}</th>
+            <th>{{ t('dataLineage.relations.columns.arrow') }}</th>
+            <th>{{ t('dataLineage.relations.columns.target') }}</th>
+            <th v-if="activeTab === 'column'">{{ t('dataLineage.relations.columns.expression') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="(edge, i) in activeEdges" :key="i">
             <td class="mono">{{ edge.source }}</td>
-            <td class="arrow">→</td>
+            <td class="arrow">{{ t('dataLineage.relations.columns.arrow') }}</td>
             <td class="mono">{{ edge.target }}</td>
             <td v-if="activeTab === 'column'" class="mono expr">{{ edge.expression || '-' }}</td>
           </tr>
           <tr v-if="activeEdges.length === 0">
-            <td :colspan="activeTab === 'column' ? 4 : 3" class="empty">无血缘关系</td>
+            <td :colspan="activeTab === 'column' ? 4 : 3" class="empty">{{ t('dataLineage.relations.empty') }}</td>
           </tr>
         </tbody>
       </table>
@@ -99,28 +98,28 @@
 
     <!-- 上下游查询：三态 loading / error / data -->
     <section class="card query-card">
-      <div class="card-title">上下游查询 & 影响分析</div>
+      <div class="card-title">{{ t('dataLineage.query.title') }}</div>
       <div class="query-row">
-        <input v-model="queryTable" class="table-input" placeholder="输入表全名，例如 dwd.wide" />
+        <input v-model="queryTable" class="table-input" :placeholder="t('dataLineage.query.tablePlaceholder')" />
         <button class="btn-secondary" :disabled="querying" @click="handleQuery('upstream')">
-          上游
+          {{ t('dataLineage.query.upstream') }}
         </button>
         <button class="btn-secondary" :disabled="querying" @click="handleQuery('downstream')">
-          下游
+          {{ t('dataLineage.query.downstream') }}
         </button>
         <button class="btn-warn" :disabled="querying" @click="handleQuery('impact')">
-          影响分析
+          {{ t('dataLineage.query.impact') }}
         </button>
       </div>
       <!-- 三态：loading -->
       <div v-if="querying" class="query-result">
-        <div class="state-tip">查询中…</div>
+        <div class="state-tip">{{ t('dataLineage.query.querying') }}</div>
       </div>
       <!-- 三态：error -->
       <div v-else-if="queryError" class="query-result">
         <div class="state-tip error">
-          查询失败：{{ queryError.message }}，
-          <a href="javascript:void(0)" @click="retryQuery">重试</a>
+          {{ t('dataLineage.query.queryFailed', { message: queryError.message }) }}，
+          <a href="javascript:void(0)" @click="retryQuery">{{ t('dataLineage.query.retry') }}</a>
         </div>
       </div>
       <!-- 三态：data -->
@@ -129,17 +128,13 @@
           <span class="badge" :class="queryResult.direction.toLowerCase()">
             {{ directionLabel(queryResult.direction) }}
           </span>
-          从
-          <strong>{{ queryResult.rootTable }}</strong>
-          出发，命中
-          <strong>{{ queryResult.tables.length }}</strong>
-          张表，耗时 {{ queryResult.queryTimeMs }}ms
+          {{ t('dataLineage.query.summary', { root: queryResult.rootTable, count: queryResult.tables.length, time: queryResult.queryTimeMs }) }}
         </div>
         <div v-if="queryResult.tables.length > 0" class="result-paths">
-          <div class="paths-title">路径：</div>
+          <div class="paths-title">{{ t('dataLineage.query.pathsTitle') }}</div>
           <div v-for="(p, i) in queryResult.paths" :key="i" class="path-item">{{ p }}</div>
         </div>
-        <div v-else class="empty">无相关表</div>
+        <div v-else class="empty">{{ t('dataLineage.query.pathsEmpty') }}</div>
       </div>
     </section>
   </div>
@@ -147,6 +142,7 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
@@ -160,6 +156,7 @@ import {
   type LineageGraphLink
 } from '@/api/lineage'
 
+const { t } = useI18n()
 const store = useAppStore()
 
 // SQL 输入
@@ -184,7 +181,7 @@ const {
     activeTab.value = 'table'
     // DOM 更新后渲染 ECharts
     nextTick(() => renderChart(result))
-    store.showToast(`血缘分析完成：${result.meta.nodeCount} 节点 / ${result.meta.edgeCount} 边`)
+    store.showToast(t('dataLineage.messages.analyzeCompleted', { nodes: result.meta.nodeCount, edges: result.meta.edgeCount }))
   }
 })
 
@@ -228,7 +225,7 @@ function loadSample(): void {
 async function handleAnalyze(): Promise<void> {
   if (!sqlText.value.trim()) {
     // 通过临时 error 状态提示；useApi 的 error 在 execute 时会被清空，这里直接用 store 提示
-    store.showToast('请输入 SQL')
+    store.showToast(t('dataLineage.messages.needSql'))
     return
   }
   await executeAnalyze()
@@ -237,7 +234,7 @@ async function handleAnalyze(): Promise<void> {
 /** 执行上下游/影响查询（触发 useApi execute） */
 async function handleQuery(kind: QueryKind): Promise<void> {
   if (!queryTable.value.trim()) {
-    store.showToast('请输入表名')
+    store.showToast(t('dataLineage.messages.needTable'))
     return
   }
   await executeQuery(kind)
@@ -316,9 +313,9 @@ function renderChart(g: LineageGraph): void {
   chartInstance.setOption(option)
 }
 
-/** 方向标签中文 */
+/** 方向标签词条 */
 function directionLabel(d: string): string {
-  return { UPSTREAM: '上游', DOWNSTREAM: '下游', IMPACT: '影响分析' }[d] ?? d
+  return t(`dataLineage.direction.${d}`)
 }
 
 // 响应式 resize

@@ -1,0 +1,122 @@
+{
+  "quotaManagement": {
+    "title": "Quota Management",
+    "subtitle": "Manage workspace resource quotas — auto-translated to K8s ResourceQuota + LimitRange, controlling CPU / memory / storage / Pod / PVC / Service totals and per-Pod limits.",
+    "toolbar": {
+      "create": "+ Set Quota",
+      "tenantFilterPlaceholder": "Filter by tenant",
+      "workspaceFilterPlaceholder": "Filter by workspace",
+      "refreshAria": "Refresh quota list"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No quota data",
+      "columns": {
+        "id": "ID",
+        "workspace": "Workspace",
+        "cpu": "CPU Limit",
+        "memory": "Memory Limit",
+        "storage": "Storage Limit",
+        "objectLimits": "Pod/PVC/Svc",
+        "perPodMax": "per-Pod max",
+        "status": "Status",
+        "updatedAt": "Updated",
+        "actions": "Actions"
+      },
+      "actions": {
+        "usage": "Usage",
+        "edit": "Edit",
+        "delete": "Delete"
+      }
+    },
+    "dialog": {
+      "createTitle": "Set Quota",
+      "editTitle": "Edit Quota",
+      "sections": {
+        "selectWorkspace": "Workspace Selection",
+        "resourceQuota": "ResourceQuota (Workspace Total)",
+        "limitRange": "LimitRange (per-Pod Limits, optional)"
+      },
+      "fields": {
+        "workspace": "Workspace",
+        "workspacePlaceholder": "Select a workspace",
+        "cpuLimit": "CPU Limit",
+        "cpuLimitPlaceholder": "e.g. 10",
+        "memoryLimit": "Memory Limit",
+        "memoryLimitPlaceholder": "e.g. 20Gi",
+        "storageLimit": "Storage Limit",
+        "storageLimitPlaceholder": "e.g. 100Gi",
+        "podLimit": "Pod Count Limit",
+        "podLimitPlaceholder": "e.g. 100",
+        "pvcLimit": "PVC Count Limit",
+        "pvcLimitPlaceholder": "e.g. 50",
+        "serviceLimit": "Service Count Limit",
+        "serviceLimitPlaceholder": "e.g. 20",
+        "maxCpuPerPod": "Max CPU per Pod",
+        "maxCpuPerPodPlaceholder": "e.g. 4 (empty = no limit)",
+        "maxMemoryPerPod": "Max Memory per Pod",
+        "maxMemoryPerPodPlaceholder": "e.g. 8Gi",
+        "minCpuPerPod": "Min CPU per Pod",
+        "minCpuPerPodPlaceholder": "e.g. 100m",
+        "minMemoryPerPod": "Min Memory per Pod",
+        "minMemoryPerPodPlaceholder": "e.g. 256Mi"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "set": "Set"
+      }
+    },
+    "usage": {
+      "title": "Resource Usage",
+      "empty": "No usage data (quota may not be set, or K8s ResourceQuota does not exist)",
+      "close": "Close",
+      "refresh": "Refresh"
+    },
+    "usageLabel": {
+      "requestsCpu": "CPU Requests",
+      "requestsMemory": "Memory Requests",
+      "requestsStorage": "Storage Requests",
+      "pods": "Pod Count",
+      "persistentvolumeclaims": "PVC Count",
+      "services": "Service Count"
+    },
+    "status": {
+      "SETTING": "Setting",
+      "ACTIVE": "Active",
+      "UPDATING": "Updating",
+      "DELETING": "Deleting",
+      "DELETED": "Deleted",
+      "FAILED": "Failed",
+      "tagType": {
+        "SETTING": "primary",
+        "ACTIVE": "success",
+        "UPDATING": "warning",
+        "DELETING": "warning",
+        "DELETED": "info",
+        "FAILED": "danger"
+      }
+    },
+    "rules": {
+      "workspaceRequired": "Please select a workspace",
+      "cpuLimitRequired": "Please enter CPU limit",
+      "memoryLimitRequired": "Please enter memory limit",
+      "storageLimitRequired": "Please enter storage limit",
+      "podLimitRequired": "Please enter Pod count limit",
+      "pvcLimitRequired": "Please enter PVC count limit",
+      "serviceLimitRequired": "Please enter Service count limit"
+    },
+    "messages": {
+      "listLoadFailed": "Failed to load quota list",
+      "updated": "Quota updated; K8s ResourceQuota + LimitRange synced",
+      "created": "Quota set; translated to K8s ResourceQuota + LimitRange",
+      "deleted": "Quota deleted; K8s resources cleared",
+      "usageFailed": "Usage query failed",
+      "deleteConfirm": "Confirm deletion of quota for workspace \"{name}\"?\nThis will cascade-delete K8s ResourceQuota + LimitRange and cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmOk": "Delete",
+      "deleteConfirmCancel": "Cancel",
+      "workspaceFallback": "Workspace#{id}"
+    }
+  }
+}

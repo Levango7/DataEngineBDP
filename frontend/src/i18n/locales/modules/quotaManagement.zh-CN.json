@@ -1,0 +1,122 @@
+{
+  "quotaManagement": {
+    "title": "配额管理",
+    "subtitle": "管理 Workspace 资源配额，底层自动翻译为 K8s ResourceQuota + LimitRange，控制 CPU/内存/存储/Pod/PVC/Service 总量与 per-Pod 上下限。",
+    "toolbar": {
+      "create": "+ 设置配额",
+      "tenantFilterPlaceholder": "租户筛选",
+      "workspaceFilterPlaceholder": "Workspace 筛选",
+      "refreshAria": "刷新配额列表"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无配额数据",
+      "columns": {
+        "id": "ID",
+        "workspace": "Workspace",
+        "cpu": "CPU 限制",
+        "memory": "内存限制",
+        "storage": "存储限制",
+        "objectLimits": "Pod/PVC/Svc",
+        "perPodMax": "per-Pod max",
+        "status": "状态",
+        "updatedAt": "更新时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "usage": "用量",
+        "edit": "编辑",
+        "delete": "删除"
+      }
+    },
+    "dialog": {
+      "createTitle": "设置配额",
+      "editTitle": "编辑配额",
+      "sections": {
+        "selectWorkspace": "Workspace 选择",
+        "resourceQuota": "ResourceQuota（Workspace 总量）",
+        "limitRange": "LimitRange（per-Pod 限制，可选）"
+      },
+      "fields": {
+        "workspace": "Workspace",
+        "workspacePlaceholder": "选择 Workspace",
+        "cpuLimit": "CPU 限制",
+        "cpuLimitPlaceholder": "如 10",
+        "memoryLimit": "内存限制",
+        "memoryLimitPlaceholder": "如 20Gi",
+        "storageLimit": "存储限制",
+        "storageLimitPlaceholder": "如 100Gi",
+        "podLimit": "Pod 数量限制",
+        "podLimitPlaceholder": "如 100",
+        "pvcLimit": "PVC 数量限制",
+        "pvcLimitPlaceholder": "如 50",
+        "serviceLimit": "Service 数量限制",
+        "serviceLimitPlaceholder": "如 20",
+        "maxCpuPerPod": "单 Pod 最大 CPU",
+        "maxCpuPerPodPlaceholder": "如 4（留空则不限制）",
+        "maxMemoryPerPod": "单 Pod 最大内存",
+        "maxMemoryPerPodPlaceholder": "如 8Gi",
+        "minCpuPerPod": "单 Pod 最小 CPU",
+        "minCpuPerPodPlaceholder": "如 100m",
+        "minMemoryPerPod": "单 Pod 最小内存",
+        "minMemoryPerPodPlaceholder": "如 256Mi"
+      },
+      "actions": {
+        "cancel": "取消",
+        "save": "保存",
+        "set": "设置"
+      }
+    },
+    "usage": {
+      "title": "资源用量",
+      "empty": "暂无用量数据（可能未设置配额或 K8s ResourceQuota 不存在）",
+      "close": "关闭",
+      "refresh": "刷新"
+    },
+    "usageLabel": {
+      "requestsCpu": "CPU 请求",
+      "requestsMemory": "内存请求",
+      "requestsStorage": "存储请求",
+      "pods": "Pod 数量",
+      "persistentvolumeclaims": "PVC 数量",
+      "services": "Service 数量"
+    },
+    "status": {
+      "SETTING": "设置中",
+      "ACTIVE": "活跃",
+      "UPDATING": "更新中",
+      "DELETING": "删除中",
+      "DELETED": "已删除",
+      "FAILED": "失败",
+      "tagType": {
+        "SETTING": "primary",
+        "ACTIVE": "success",
+        "UPDATING": "warning",
+        "DELETING": "warning",
+        "DELETED": "info",
+        "FAILED": "danger"
+      }
+    },
+    "rules": {
+      "workspaceRequired": "请选择 Workspace",
+      "cpuLimitRequired": "请输入 CPU 限制",
+      "memoryLimitRequired": "请输入内存限制",
+      "storageLimitRequired": "请输入存储限制",
+      "podLimitRequired": "请输入 Pod 数量限制",
+      "pvcLimitRequired": "请输入 PVC 数量限制",
+      "serviceLimitRequired": "请输入 Service 数量限制"
+    },
+    "messages": {
+      "listLoadFailed": "配额列表加载失败",
+      "updated": "配额已更新，K8s ResourceQuota + LimitRange 已同步",
+      "created": "配额已设置，底层已翻译为 K8s ResourceQuota + LimitRange",
+      "deleted": "配额已删除，K8s 资源已清除",
+      "usageFailed": "用量查询失败",
+      "deleteConfirm": "确定删除 Workspace「{name}」的配额吗？\n该操作将级联删除 K8s ResourceQuota + LimitRange，不可恢复。",
+      "deleteConfirmTitle": "删除确认",
+      "deleteConfirmOk": "删除",
+      "deleteConfirmCancel": "取消",
+      "workspaceFallback": "Workspace#{id}"
+    }
+  }
+}

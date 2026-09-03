@@ -1,0 +1,145 @@
+{
+  "clusterOverview": {
+    "title": "Cluster Overview",
+    "subtitle": "Realtime monitoring of Kubernetes cluster node health, resource usage and big-data component status.",
+    "kpi": {
+      "nodeTotal": "Total Nodes",
+      "nodeTotalMeta": "Ready {ready} · Abnormal {abnormal}",
+      "nodeReady": "Healthy Nodes",
+      "nodeReadyMeta": "Health rate {rate}%",
+      "cpu": "CPU Usage",
+      "cpuUnit": "cores",
+      "mem": "Memory Usage",
+      "memUnit": "GB"
+    },
+    "trend": {
+      "title": "Resource Usage Trend (Last 7 days)",
+      "subtitle": "CPU / Memory",
+      "daysAgo": "{n} days ago",
+      "yesterday": "Yesterday",
+      "tooltipLabel": "{name}: {value}%",
+      "legend": {
+        "cpu": "CPU Usage",
+        "mem": "Memory Usage"
+      }
+    },
+    "nodes": {
+      "title": "Nodes",
+      "refreshAria": "Refresh node list",
+      "loadFailed": "Failed to load node list, please retry",
+      "empty": "No nodes",
+      "columns": {
+        "name": "Node Name",
+        "role": "Role",
+        "status": "Status",
+        "cpu": "CPU",
+        "mem": "Memory",
+        "pod": "Pods",
+        "os": "OS"
+      },
+      "cpuFmt": "{used} / {cap} cores",
+      "memFmt": "{used} / {cap} GB"
+    },
+    "components": {
+      "title": "Big-Data Component Status",
+      "listAria": "Big-data component status list",
+      "itemAria": "Component {name} status: {status}",
+      "status": {
+        "healthy": "Healthy",
+        "warning": "Warning",
+        "error": "Error"
+      }
+    },
+    "resources": {
+      "title": "Cluster Resources",
+      "envAria": "Environment selection",
+      "clusterIdAria": "Cluster ID",
+      "clusterIdPlaceholder": "Cluster ID",
+      "envs": {
+        "xinchuang": "Xinchuang",
+        "private": "Private",
+        "cloud": "Cloud"
+      },
+      "tabsAria": "Cluster resource categories",
+      "tabs": {
+        "network": "Network",
+        "storage": "Storage",
+        "hpa": "HPA Autoscaling"
+      },
+      "loading": "Loading…",
+      "loadFailed": "Failed to load: {message}",
+      "network": {
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "cni": "CNI",
+        "mtu": "MTU",
+        "policiesTitle": "NetworkPolicies ({count})",
+        "policiesAria": "NetworkPolicy list",
+        "policiesEmpty": "No NetworkPolicy",
+        "servicesTitle": "Services ({count})",
+        "servicesAria": "Service list",
+        "servicesEmpty": "No Service",
+        "ingressesTitle": "Ingresses ({count})",
+        "ingressesAria": "Ingress list",
+        "ingressesEmpty": "No Ingress",
+        "columns": {
+          "name": "Name",
+          "namespace": "Namespace",
+          "type": "Type",
+          "selector": "Selector",
+          "clusterIp": "ClusterIP",
+          "ports": "Ports",
+          "className": "IngressClass",
+          "hosts": "Hosts"
+        }
+      },
+      "storage": {
+        "classesTitle": "StorageClasses ({count})",
+        "classesAria": "StorageClass list",
+        "classesEmpty": "No StorageClass",
+        "pvcsTitle": "PVCs ({count})",
+        "pvcsAria": "PVC list",
+        "pvcsEmpty": "No PVC",
+        "columns": {
+          "name": "Name",
+          "provisioner": "Provisioner",
+          "reclaimPolicy": "Reclaim Policy",
+          "default": "Default",
+          "defaultYes": "Yes",
+          "namespace": "Namespace",
+          "storageClass": "StorageClass",
+          "capacity": "Capacity",
+          "status": "Status"
+        }
+      },
+      "hpa": {
+        "empty": "No HPA policies",
+        "columns": {
+          "name": "Name",
+          "namespace": "Namespace",
+          "targetDeployment": "Target Deployment",
+          "minReplicas": "Min Replicas",
+          "maxReplicas": "Max Replicas",
+          "currentReplicas": "Current",
+          "status": "Status"
+        },
+        "statusActive": "Active",
+        "statusPaused": "Paused"
+      }
+    },
+    "nodeStatus": {
+      "ready": "Ready",
+      "not-ready": "Not Ready",
+      "unknown": "Unknown",
+      "tagType": {
+        "ready": "success",
+        "not-ready": "danger",
+        "unknown": "info"
+      }
+    },
+    "messages": {
+      "overviewLoadFailed": "Failed to load cluster overview",
+      "nodesLoadFailed": "Failed to load node list"
+    }
+  }
+}

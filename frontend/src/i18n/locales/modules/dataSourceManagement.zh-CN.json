@@ -1,0 +1,101 @@
+{
+  "dataSourceManagement": {
+    "title": "数据源管理",
+    "subtitle": "统一管理平台数据接入源，支持 MySQL / PostgreSQL / ClickHouse / Kafka 等多类型数据源的注册、测试与维护。",
+    "toolbar": {
+      "create": "+ 新增数据源",
+      "searchPlaceholder": "按名称搜索",
+      "searchAria": "按数据源名称搜索",
+      "typeFilterPlaceholder": "类型筛选",
+      "typeFilterAria": "按数据源类型筛选",
+      "refreshAria": "刷新数据源列表"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无数据源",
+      "aria": "数据源列表表格",
+      "columns": {
+        "id": "ID",
+        "name": "数据源名称",
+        "type": "类型",
+        "hostPort": "主机:端口",
+        "database": "数据库",
+        "username": "用户名",
+        "status": "状态",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "editAria": "编辑数据源 {name}",
+        "edit": "编辑",
+        "testAria": "测试数据源 {name} 连接",
+        "test": "测试连接",
+        "deleteAria": "删除数据源 {name}",
+        "delete": "删除"
+      },
+      "paginationAria": "数据源列表分页"
+    },
+    "dialog": {
+      "createTitle": "新增数据源",
+      "editTitle": "编辑数据源",
+      "createAria": "新增数据源弹窗",
+      "editAria": "编辑数据源弹窗",
+      "fields": {
+        "name": "数据源名称",
+        "nameAria": "数据源名称",
+        "namePlaceholder": "如 业务订单库",
+        "type": "类型",
+        "typeAria": "数据源类型",
+        "host": "主机地址",
+        "hostAria": "主机地址",
+        "hostPlaceholder": "如 192.168.1.10",
+        "port": "端口",
+        "portAria": "端口号",
+        "database": "数据库",
+        "databaseAria": "数据库名或Kafka topic前缀",
+        "databasePlaceholder": "数据库名 / Kafka topic 前缀",
+        "username": "用户名",
+        "usernameAria": "登录用户名",
+        "usernamePlaceholder": "登录用户名",
+        "password": "密码",
+        "passwordAria": "登录密码",
+        "passwordPlaceholderCreate": "登录密码",
+        "passwordPlaceholderEdit": "不修改请留空"
+      },
+      "actions": {
+        "cancel": "取消",
+        "cancelAria": "取消操作",
+        "save": "保存",
+        "create": "创建",
+        "saveAria": "保存数据源",
+        "createAriaBtn": "创建数据源"
+      }
+    },
+    "rules": {
+      "nameRequired": "请输入数据源名称",
+      "typeRequired": "请选择类型",
+      "hostRequired": "请输入主机地址",
+      "portRequired": "请输入端口",
+      "usernameRequired": "请输入用户名",
+      "passwordRequired": "请输入密码"
+    },
+    "status": {
+      "connected": "已连接",
+      "disconnected": "未连接",
+      "testing": "测试中"
+    },
+    "messages": {
+      "listLoadFailed": "数据源列表加载失败",
+      "updated": "数据源已更新",
+      "created": "数据源已创建",
+      "connectedOk": "连接成功 · 耗时 {latency} ms",
+      "connectedUnknown": "—",
+      "connectFailed": "连接失败：{message}",
+      "deleted": "数据源已删除",
+      "deleteConfirm": "确定删除数据源「{name}」吗？关联的同步任务可能受影响。",
+      "deleteConfirmTitle": "删除确认",
+      "deleteConfirmOk": "删除",
+      "deleteConfirmCancel": "取消"
+    }
+  }
+}

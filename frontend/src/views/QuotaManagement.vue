@@ -1,27 +1,26 @@
 <template>
   <div class="quota-page">
-    <h1>配额管理</h1>
+    <h1>{{ t('quotaManagement.title') }}</h1>
     <div class="sub">
-      管理 Workspace 资源配额，底层自动翻译为 K8s ResourceQuota + LimitRange，控制
-      CPU/内存/存储/Pod/PVC/Service 总量与 per-Pod 上下限。
+      {{ t('quotaManagement.subtitle') }}
     </div>
 
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">+ 设置配额</el-button>
+        <el-button type="primary" @click="openCreateDialog">{{ t('quotaManagement.toolbar.create') }}</el-button>
         <el-select
           v-model="filterTenantId"
-          placeholder="租户筛选"
+          :placeholder="t('quotaManagement.toolbar.tenantFilterPlaceholder')"
           clearable
           style="width: 180px"
           @change="handleSearch"
         >
-          <el-option v-for="t in tenantOptions" :key="t.id" :label="t.name" :value="t.id" />
+          <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
         </el-select>
         <el-select
           v-model="filterWorkspaceId"
-          placeholder="Workspace 筛选"
+          :placeholder="t('quotaManagement.toolbar.workspaceFilterPlaceholder')"
           clearable
           filterable
           style="width: 220px"
@@ -30,7 +29,7 @@
           <el-option v-for="w in workspaceOptions" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="loadList" />
+        <el-button :icon="Refresh" circle :aria-label="t('quotaManagement.toolbar.refreshAria')" @click="loadList" />
       </div>
 
       <!-- 配额列表表格 -->
@@ -40,56 +39,56 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? '加载失败，请重试' : '暂无配额数据'"
+        :empty-text="error ? t('quotaManagement.table.loadFailed') : t('quotaManagement.table.empty')"
       >
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column label="Workspace" width="160">
+        <el-table-column prop="id" :label="t('quotaManagement.table.columns.id')" width="80" />
+        <el-table-column :label="t('quotaManagement.table.columns.workspace')" width="160">
           <template #default="{ row }">
             {{ workspaceName(row.workspaceId) }}
           </template>
         </el-table-column>
-        <el-table-column label="CPU 限制" width="100">
+        <el-table-column :label="t('quotaManagement.table.columns.cpu')" width="100">
           <template #default="{ row }">
             <span class="mono">{{ row.cpuLimit }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="内存限制" width="110">
+        <el-table-column :label="t('quotaManagement.table.columns.memory')" width="110">
           <template #default="{ row }">
             <span class="mono">{{ row.memoryLimit }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="存储限制" width="110">
+        <el-table-column :label="t('quotaManagement.table.columns.storage')" width="110">
           <template #default="{ row }">
             <span class="mono">{{ row.storageLimit }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="Pod/PVC/Svc" width="140">
+        <el-table-column :label="t('quotaManagement.table.columns.objectLimits')" width="140">
           <template #default="{ row }">
             <span class="mono">
               {{ row.podLimit }} / {{ row.pvcLimit }} / {{ row.serviceLimit }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="per-Pod max" width="140">
+        <el-table-column :label="t('quotaManagement.table.columns.perPodMax')" width="140">
           <template #default="{ row }">
             <span class="mono">
               {{ row.maxCpuPerPod || '-' }} / {{ row.maxMemoryPerPod || '-' }}
             </span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column :label="t('quotaManagement.table.columns.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" label="更新时间" width="180" />
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column prop="updatedAt" :label="t('quotaManagement.table.columns.updatedAt')" width="180" />
+        <el-table-column :label="t('quotaManagement.table.columns.actions')" width="240" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleViewUsage(row)">用量</el-button>
-            <el-button link type="primary" @click="openEditDialog(row)">编辑</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="primary" @click="handleViewUsage(row)">{{ t('quotaManagement.table.actions.usage') }}</el-button>
+            <el-button link type="primary" @click="openEditDialog(row)">{{ t('quotaManagement.table.actions.edit') }}</el-button>
+            <el-button link type="danger" @click="handleDelete(row)">{{ t('quotaManagement.table.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -98,7 +97,7 @@
     <!-- 设置/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? '编辑配额' : '设置配额'"
+      :title="isEdit ? t('quotaManagement.dialog.editTitle') : t('quotaManagement.dialog.createTitle')"
       width="640px"
       :close-on-click-modal="false"
       @closed="resetForm"
@@ -110,11 +109,11 @@
         label-width="140px"
         label-position="right"
       >
-        <el-divider content-position="left">Workspace 选择</el-divider>
-        <el-form-item label="Workspace" prop="workspaceId">
+        <el-divider content-position="left">{{ t('quotaManagement.dialog.sections.selectWorkspace') }}</el-divider>
+        <el-form-item :label="t('quotaManagement.dialog.fields.workspace')" prop="workspaceId">
           <el-select
             v-model="formData.workspaceId"
-            placeholder="选择 Workspace"
+            :placeholder="t('quotaManagement.dialog.fields.workspacePlaceholder')"
             style="width: 100%"
             :disabled="isEdit"
             filterable
@@ -123,50 +122,50 @@
           </el-select>
         </el-form-item>
 
-        <el-divider content-position="left">ResourceQuota（Workspace 总量）</el-divider>
-        <el-form-item label="CPU 限制" prop="cpuLimit">
-          <el-input v-model="formData.cpuLimit" placeholder="如 10" />
+        <el-divider content-position="left">{{ t('quotaManagement.dialog.sections.resourceQuota') }}</el-divider>
+        <el-form-item :label="t('quotaManagement.dialog.fields.cpuLimit')" prop="cpuLimit">
+          <el-input v-model="formData.cpuLimit" :placeholder="t('quotaManagement.dialog.fields.cpuLimitPlaceholder')" />
         </el-form-item>
-        <el-form-item label="内存限制" prop="memoryLimit">
-          <el-input v-model="formData.memoryLimit" placeholder="如 20Gi" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.memoryLimit')" prop="memoryLimit">
+          <el-input v-model="formData.memoryLimit" :placeholder="t('quotaManagement.dialog.fields.memoryLimitPlaceholder')" />
         </el-form-item>
-        <el-form-item label="存储限制" prop="storageLimit">
-          <el-input v-model="formData.storageLimit" placeholder="如 100Gi" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.storageLimit')" prop="storageLimit">
+          <el-input v-model="formData.storageLimit" :placeholder="t('quotaManagement.dialog.fields.storageLimitPlaceholder')" />
         </el-form-item>
-        <el-form-item label="Pod 数量限制" prop="podLimit">
-          <el-input v-model="formData.podLimit" placeholder="如 100" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.podLimit')" prop="podLimit">
+          <el-input v-model="formData.podLimit" :placeholder="t('quotaManagement.dialog.fields.podLimitPlaceholder')" />
         </el-form-item>
-        <el-form-item label="PVC 数量限制" prop="pvcLimit">
-          <el-input v-model="formData.pvcLimit" placeholder="如 50" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.pvcLimit')" prop="pvcLimit">
+          <el-input v-model="formData.pvcLimit" :placeholder="t('quotaManagement.dialog.fields.pvcLimitPlaceholder')" />
         </el-form-item>
-        <el-form-item label="Service 数量限制" prop="serviceLimit">
-          <el-input v-model="formData.serviceLimit" placeholder="如 20" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.serviceLimit')" prop="serviceLimit">
+          <el-input v-model="formData.serviceLimit" :placeholder="t('quotaManagement.dialog.fields.serviceLimitPlaceholder')" />
         </el-form-item>
 
-        <el-divider content-position="left">LimitRange（per-Pod 限制，可选）</el-divider>
-        <el-form-item label="单 Pod 最大 CPU" prop="maxCpuPerPod">
-          <el-input v-model="formData.maxCpuPerPod" placeholder="如 4（留空则不限制）" />
+        <el-divider content-position="left">{{ t('quotaManagement.dialog.sections.limitRange') }}</el-divider>
+        <el-form-item :label="t('quotaManagement.dialog.fields.maxCpuPerPod')" prop="maxCpuPerPod">
+          <el-input v-model="formData.maxCpuPerPod" :placeholder="t('quotaManagement.dialog.fields.maxCpuPerPodPlaceholder')" />
         </el-form-item>
-        <el-form-item label="单 Pod 最大内存" prop="maxMemoryPerPod">
-          <el-input v-model="formData.maxMemoryPerPod" placeholder="如 8Gi" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.maxMemoryPerPod')" prop="maxMemoryPerPod">
+          <el-input v-model="formData.maxMemoryPerPod" :placeholder="t('quotaManagement.dialog.fields.maxMemoryPerPodPlaceholder')" />
         </el-form-item>
-        <el-form-item label="单 Pod 最小 CPU" prop="minCpuPerPod">
-          <el-input v-model="formData.minCpuPerPod" placeholder="如 100m" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.minCpuPerPod')" prop="minCpuPerPod">
+          <el-input v-model="formData.minCpuPerPod" :placeholder="t('quotaManagement.dialog.fields.minCpuPerPodPlaceholder')" />
         </el-form-item>
-        <el-form-item label="单 Pod 最小内存" prop="minMemoryPerPod">
-          <el-input v-model="formData.minMemoryPerPod" placeholder="如 256Mi" />
+        <el-form-item :label="t('quotaManagement.dialog.fields.minMemoryPerPod')" prop="minMemoryPerPod">
+          <el-input v-model="formData.minMemoryPerPod" :placeholder="t('quotaManagement.dialog.fields.minMemoryPerPodPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
+        <el-button @click="dialogVisible = false">{{ t('quotaManagement.dialog.actions.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? '保存' : '设置' }}
+          {{ isEdit ? t('quotaManagement.dialog.actions.save') : t('quotaManagement.dialog.actions.set') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- 用量展示弹窗 -->
-    <el-dialog v-model="usageDialogVisible" title="资源用量" width="640px">
+    <el-dialog v-model="usageDialogVisible" :title="t('quotaManagement.usage.title')" width="640px">
       <div v-loading="usageLoading">
         <div v-if="usageData && Object.keys(usageData.hard || {}).length > 0">
           <div v-for="key in Object.keys(usageData.hard)" :key="key" class="usage-row">
@@ -182,11 +181,11 @@
             </span>
           </div>
         </div>
-        <el-empty v-else description="暂无用量数据（可能未设置配额或 K8s ResourceQuota 不存在）" />
+        <el-empty v-else :description="t('quotaManagement.usage.empty')" />
       </div>
       <template #footer>
-        <el-button @click="usageDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleViewUsage(usageQuota!)">刷新</el-button>
+        <el-button @click="usageDialogVisible = false">{{ t('quotaManagement.usage.close') }}</el-button>
+        <el-button type="primary" @click="handleViewUsage(usageQuota!)">{{ t('quotaManagement.usage.refresh') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -194,6 +193,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
@@ -202,6 +202,8 @@ import * as quotaApi from '@/api/quota'
 import * as tenantApi from '@/api/tenant'
 import * as workspaceApi from '@/api/workspace'
 import type { Quota, Tenant, Workspace, QuotaUsage } from '@/api/types'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 列表查询 ------------------------------ */
 
@@ -222,7 +224,7 @@ const {
     }),
   {
     initialData: [],
-    onError: () => ElMessage.error('配额列表加载失败')
+    onError: () => ElMessage.error(t('quotaManagement.messages.listLoadFailed'))
   }
 )
 
@@ -237,7 +239,7 @@ const workspaceOptions = computed<Workspace[]>(() => optionsData.value?.[1] ?? [
 /** Workspace ID → 名称 */
 function workspaceName(id: string): string {
   const w = workspaceOptions.value.find((x) => x.id === id)
-  return w?.name || `Workspace#${id}`
+  return w?.name || t('quotaManagement.messages.workspaceFallback', { id })
 }
 
 /** 搜索按钮 */
@@ -281,15 +283,15 @@ const formData = reactive<QuotaForm>({
   minMemoryPerPod: ''
 })
 
-const formRules: FormRules = {
-  workspaceId: [{ required: true, message: '请选择 Workspace', trigger: 'change' }],
-  cpuLimit: [{ required: true, message: '请输入 CPU 限制', trigger: 'blur' }],
-  memoryLimit: [{ required: true, message: '请输入内存限制', trigger: 'blur' }],
-  storageLimit: [{ required: true, message: '请输入存储限制', trigger: 'blur' }],
-  podLimit: [{ required: true, message: '请输入 Pod 数量限制', trigger: 'blur' }],
-  pvcLimit: [{ required: true, message: '请输入 PVC 数量限制', trigger: 'blur' }],
-  serviceLimit: [{ required: true, message: '请输入 Service 数量限制', trigger: 'blur' }]
-}
+const formRules = computed<FormRules>(() => ({
+  workspaceId: [{ required: true, message: t('quotaManagement.rules.workspaceRequired'), trigger: 'change' }],
+  cpuLimit: [{ required: true, message: t('quotaManagement.rules.cpuLimitRequired'), trigger: 'blur' }],
+  memoryLimit: [{ required: true, message: t('quotaManagement.rules.memoryLimitRequired'), trigger: 'blur' }],
+  storageLimit: [{ required: true, message: t('quotaManagement.rules.storageLimitRequired'), trigger: 'blur' }],
+  podLimit: [{ required: true, message: t('quotaManagement.rules.podLimitRequired'), trigger: 'blur' }],
+  pvcLimit: [{ required: true, message: t('quotaManagement.rules.pvcLimitRequired'), trigger: 'blur' }],
+  serviceLimit: [{ required: true, message: t('quotaManagement.rules.serviceLimitRequired'), trigger: 'blur' }]
+}))
 
 /** 打开设置弹窗 */
 function openCreateDialog() {
@@ -354,7 +356,7 @@ async function handleSubmit() {
       }
       if (isEdit.value) {
         await quotaApi.updateQuota(editingId.value, payload)
-        ElMessage.success('配额已更新，K8s ResourceQuota + LimitRange 已同步')
+        ElMessage.success(t('quotaManagement.messages.updated'))
       } else {
         // 设置配额需要 workspaceId/tenantId
         const ws = workspaceOptions.value.find((w) => w.id === formData.workspaceId)
@@ -363,7 +365,7 @@ async function handleSubmit() {
           tenantId: ws?.tenantId || '',
           ...payload
         })
-        ElMessage.success('配额已设置，底层已翻译为 K8s ResourceQuota + LimitRange')
+        ElMessage.success(t('quotaManagement.messages.created'))
       }
       dialogVisible.value = false
       await loadList()
@@ -381,17 +383,17 @@ async function handleSubmit() {
 async function handleDelete(row: Quota) {
   try {
     await ElMessageBox.confirm(
-      `确定删除 Workspace「${workspaceName(row.workspaceId)}」的配额吗？\n该操作将级联删除 K8s ResourceQuota + LimitRange，不可恢复。`,
-      '删除确认',
+      t('quotaManagement.messages.deleteConfirm', { name: workspaceName(row.workspaceId) }),
+      t('quotaManagement.messages.deleteConfirmTitle'),
       {
         type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
+        confirmButtonText: t('quotaManagement.messages.deleteConfirmOk'),
+        cancelButtonText: t('quotaManagement.messages.deleteConfirmCancel'),
         confirmButtonClass: 'el-button--danger'
       }
     )
     await quotaApi.deleteQuota(row.id)
-    ElMessage.success('配额已删除，K8s 资源已清除')
+    ElMessage.success(t('quotaManagement.messages.deleted'))
     await loadList()
   } catch (e) {
     // 用户取消或删除失败，不提示
@@ -409,7 +411,7 @@ const {
   loading: usageLoading,
   execute: loadUsage
 } = useApi<QuotaUsage, [string]>((workspaceId: string) => quotaApi.getQuotaUsage(workspaceId), {
-  onError: () => ElMessage.error('用量查询失败')
+  onError: () => ElMessage.error(t('quotaManagement.messages.usageFailed'))
 })
 
 /** 查询用量 */
@@ -468,47 +470,38 @@ function parseQuantity(s: string): number {
   return parseFloat(s) || 0
 }
 
-/** 用量键名 → 中文标签 */
+/** 用量键名 → 词条（K8s key 含 `.`，映射为驼峰避免 i18n 嵌套） */
 function usageLabel(key: string): string {
-  const map: Record<string, string> = {
-    'requests.cpu': 'CPU 请求',
-    'requests.memory': '内存请求',
-    'requests.storage': '存储请求',
-    pods: 'Pod 数量',
-    persistentvolumeclaims: 'PVC 数量',
-    services: 'Service 数量'
-  }
-  return map[key] || key
+  const safeKey = key.replace(/\./g, '_').replace(/-/g, '_')
+  const i18nKey = `quotaManagement.usageLabel.${safeKey}`
+  return te(i18nKey) ? t(i18nKey) : key
 }
 
 /* ------------------------------ 标签辅助 ------------------------------ */
 
-/** 状态 → 中文 */
+/** 状态 → 词条 */
 function statusLabel(status: Quota['status']): string {
-  const map: Record<string, string> = {
-    SETTING: '设置中',
-    ACTIVE: '活跃',
-    UPDATING: '更新中',
-    DELETING: '删除中',
-    DELETED: '已删除',
-    FAILED: '失败'
-  }
-  return map[status] || status
+  const i18nKey = `quotaManagement.status.${status}`
+  return te(i18nKey) ? t(i18nKey) : status
 }
 
 /** 状态 → tag 类型 */
+const STATUS_TAG_TYPE_MAP: Record<
+  string,
+  'success' | 'warning' | 'info' | 'danger' | 'primary'
+> = {
+  SETTING: 'primary',
+  ACTIVE: 'success',
+  UPDATING: 'warning',
+  DELETING: 'warning',
+  DELETED: 'info',
+  FAILED: 'danger'
+}
+
 function statusTagType(
   status: Quota['status']
 ): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
-  const map: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
-    SETTING: 'primary',
-    ACTIVE: 'success',
-    UPDATING: 'warning',
-    DELETING: 'warning',
-    DELETED: 'info',
-    FAILED: 'danger'
-  }
-  return map[status] || 'info'
+  return STATUS_TAG_TYPE_MAP[status] || 'info'
 }
 
 /* ------------------------------ 初始化 ------------------------------ */

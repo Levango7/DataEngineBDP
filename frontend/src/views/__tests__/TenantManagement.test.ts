@@ -6,7 +6,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import tenantZh from '@/i18n/locales/modules/tenantManagement.zh-CN.json'
+import tenantEn from '@/i18n/locales/modules/tenantManagement.en-US.json'
 import TenantManagement from '../TenantManagement.vue'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  messages: {
+    'zh-CN': tenantZh as never,
+    'en-US': tenantEn as never
+  }
+})
 
 // Mock tenant API
 const mockTenantList = {
@@ -56,7 +68,7 @@ describe('TenantManagement.vue', () => {
   })
 
   function mountComponent(): VueWrapper {
-    return mount(TenantManagement)
+    return mount(TenantManagement, { global: { plugins: [i18n] } })
   }
 
   it('应正确挂载组件并渲染页面标题', async () => {

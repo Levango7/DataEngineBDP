@@ -1,0 +1,100 @@
+{
+  "tenantManagement": {
+    "title": "Tenants",
+    "subtitle": "Manage platform tenants — creation, quotas, status and basic info. Automatically mapped to K8s Namespaces and resource quotas.",
+    "toolbar": {
+      "create": "+ New Tenant",
+      "searchPlaceholder": "Search by tenant name",
+      "statusFilterPlaceholder": "Filter by status",
+      "refreshAria": "Refresh tenant list"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No tenant data",
+      "aria": "Tenant list table",
+      "paginationAria": "Tenant list pagination",
+      "columns": {
+        "id": "ID",
+        "name": "Tenant Name",
+        "code": "Tenant Code",
+        "plan": "Plan",
+        "status": "Status",
+        "workspaceCount": "Workspaces",
+        "userCount": "Users",
+        "resourceUsage": "Resource Usage",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "editAria": "Edit tenant {name}",
+        "edit": "Edit",
+        "deleteAria": "Delete tenant {name}",
+        "delete": "Delete"
+      }
+    },
+    "dialog": {
+      "createTitle": "New Tenant",
+      "editTitle": "Edit Tenant",
+      "createAria": "New tenant dialog",
+      "editAria": "Edit tenant dialog",
+      "fields": {
+        "name": "Tenant Name",
+        "namePlaceholder": "e.g. East China Production",
+        "code": "Tenant Code",
+        "codePlaceholder": "e.g. east-prod",
+        "plan": "Plan",
+        "status": "Status",
+        "contact": "Contact",
+        "contactPlaceholder": "Contact name",
+        "contactPhone": "Contact Phone",
+        "contactPhonePlaceholder": "Contact phone"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "cancelAria": "Cancel operation",
+        "save": "Save",
+        "create": "Create",
+        "saveAria": "Save tenant",
+        "createAriaBtn": "Create tenant"
+      }
+    },
+    "plan": {
+      "standard": "Standard",
+      "enterprise": "Enterprise",
+      "flagship": "Flagship",
+      "internal": "Internal Unlimited",
+      "tagType": {
+        "standard": "info",
+        "enterprise": "primary",
+        "flagship": "warning",
+        "internal": "success"
+      }
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "deleted": "Deleted",
+      "tagType": {
+        "active": "success",
+        "suspended": "warning",
+        "deleted": "info"
+      }
+    },
+    "rules": {
+      "nameRequired": "Please enter tenant name",
+      "codeRequired": "Please enter tenant code",
+      "codePattern": "Lowercase letter first, only lowercase letters, digits and hyphens",
+      "planRequired": "Please select a plan"
+    },
+    "messages": {
+      "listLoadFailed": "Failed to load tenant list",
+      "updated": "Tenant updated",
+      "created": "Tenant created",
+      "deleted": "Tenant deleted",
+      "deleteConfirm": "Confirm deletion of tenant \"{name}\"? This cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmOk": "Delete",
+      "deleteConfirmCancel": "Cancel"
+    }
+  }
+}

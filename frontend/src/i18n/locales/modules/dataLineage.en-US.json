@@ -1,0 +1,58 @@
+{
+  "dataLineage": {
+    "title": "Data Lineage Analysis",
+    "subtitle": "Extracts table-level + column-level lineage from SQL AST, supports upstream/downstream queries and impact analysis.",
+    "input": {
+      "title": "SQL Lineage Analysis",
+      "placeholder": "Enter SQL, e.g.: INSERT INTO dwd.wide (oid, uname) SELECT a.id, b.name FROM ods.orders a JOIN dim.user b ON a.uid = b.id",
+      "autoDetect": "Auto-detect",
+      "analyze": "Analyze",
+      "analyzing": "Analyzing…",
+      "loadSample": "Load Sample"
+    },
+    "graph": {
+      "title": "Lineage Graph",
+      "analyzing": "Analyzing…",
+      "loadFailed": "Failed to load: {message}",
+      "retry": "Retry",
+      "meta": "{nodes} nodes · {edges} edges · {time}ms"
+    },
+    "relations": {
+      "title": "Lineage Details",
+      "loading": "Loading…",
+      "loadFailed": "Failed to load",
+      "table": "Table ({count})",
+      "column": "Column ({count})",
+      "columns": {
+        "source": "Source",
+        "arrow": "→",
+        "target": "Target",
+        "expression": "Expression"
+      },
+      "empty": "No lineage relations"
+    },
+    "query": {
+      "title": "Upstream/Downstream Query & Impact Analysis",
+      "tablePlaceholder": "Enter full table name, e.g. dwd.wide",
+      "upstream": "Upstream",
+      "downstream": "Downstream",
+      "impact": "Impact Analysis",
+      "querying": "Querying…",
+      "queryFailed": "Query failed: {message}",
+      "retry": "Retry",
+      "summary": "From {root}, hit {count} tables in {time}ms",
+      "pathsTitle": "Paths:",
+      "pathsEmpty": "No related tables"
+    },
+    "direction": {
+      "UPSTREAM": "Upstream",
+      "DOWNSTREAM": "Downstream",
+      "IMPACT": "Impact Analysis"
+    },
+    "messages": {
+      "analyzeCompleted": "Lineage analyzed: {nodes} nodes / {edges} edges",
+      "needSql": "Please enter SQL",
+      "needTable": "Please enter a table name"
+    }
+  }
+}

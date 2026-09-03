@@ -1,0 +1,100 @@
+{
+  "tenantManagement": {
+    "title": "租户管理",
+    "subtitle": "管理平台多租户的创建、配额、状态与基本信息，底层自动映射为 K8s Namespace 与资源配额。",
+    "toolbar": {
+      "create": "+ 新建租户",
+      "searchPlaceholder": "按租户名称搜索",
+      "statusFilterPlaceholder": "状态筛选",
+      "refreshAria": "刷新租户列表"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无租户数据",
+      "aria": "租户列表表格",
+      "paginationAria": "租户列表分页",
+      "columns": {
+        "id": "ID",
+        "name": "租户名称",
+        "code": "租户编码",
+        "plan": "套餐版本",
+        "status": "状态",
+        "workspaceCount": "工作空间数",
+        "userCount": "用户数",
+        "resourceUsage": "资源消耗",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "editAria": "编辑租户 {name}",
+        "edit": "编辑",
+        "deleteAria": "删除租户 {name}",
+        "delete": "删除"
+      }
+    },
+    "dialog": {
+      "createTitle": "新建租户",
+      "editTitle": "编辑租户",
+      "createAria": "新建租户弹窗",
+      "editAria": "编辑租户弹窗",
+      "fields": {
+        "name": "租户名称",
+        "namePlaceholder": "如 华东生产集群",
+        "code": "租户编码",
+        "codePlaceholder": "如 east-prod",
+        "plan": "套餐版本",
+        "status": "状态",
+        "contact": "联系人",
+        "contactPlaceholder": "联系人姓名",
+        "contactPhone": "联系电话",
+        "contactPhonePlaceholder": "联系电话"
+      },
+      "actions": {
+        "cancel": "取消",
+        "cancelAria": "取消操作",
+        "save": "保存",
+        "create": "创建",
+        "saveAria": "保存租户",
+        "createAriaBtn": "创建租户"
+      }
+    },
+    "plan": {
+      "standard": "标准版",
+      "enterprise": "企业版",
+      "flagship": "旗舰版",
+      "internal": "内部无限",
+      "tagType": {
+        "standard": "info",
+        "enterprise": "primary",
+        "flagship": "warning",
+        "internal": "success"
+      }
+    },
+    "status": {
+      "active": "活跃",
+      "suspended": "已暂停",
+      "deleted": "已删除",
+      "tagType": {
+        "active": "success",
+        "suspended": "warning",
+        "deleted": "info"
+      }
+    },
+    "rules": {
+      "nameRequired": "请输入租户名称",
+      "codeRequired": "请输入租户编码",
+      "codePattern": "小写字母开头，仅含小写字母、数字、连字符",
+      "planRequired": "请选择套餐版本"
+    },
+    "messages": {
+      "listLoadFailed": "租户列表加载失败",
+      "updated": "租户已更新",
+      "created": "租户已创建",
+      "deleted": "租户已删除",
+      "deleteConfirm": "确定删除租户「{name}」吗？该操作不可恢复。",
+      "deleteConfirmTitle": "删除确认",
+      "deleteConfirmOk": "删除",
+      "deleteConfirmCancel": "取消"
+    }
+  }
+}

@@ -6,7 +6,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import clusterOverviewZh from '@/i18n/locales/modules/clusterOverview.zh-CN.json'
+import clusterOverviewEn from '@/i18n/locales/modules/clusterOverview.en-US.json'
 import ClusterOverview from '../ClusterOverview.vue'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  messages: {
+    'zh-CN': clusterOverviewZh as never,
+    'en-US': clusterOverviewEn as never
+  }
+})
 
 // Mock cluster API
 const mockOverview = {
@@ -80,7 +92,7 @@ describe('ClusterOverview.vue', () => {
   })
 
   function mountComponent(): VueWrapper {
-    return mount(ClusterOverview)
+    return mount(ClusterOverview, { global: { plugins: [i18n] } })
   }
 
   it('应正确挂载组件并渲染页面标题', async () => {

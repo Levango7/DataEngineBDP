@@ -1,0 +1,58 @@
+{
+  "dataLineage": {
+    "title": "数据血缘分析",
+    "subtitle": "基于 SQL AST 提取表级 + 字段级血缘，支持上下游查询与影响分析",
+    "input": {
+      "title": "SQL 血缘分析",
+      "placeholder": "输入 SQL，例如：INSERT INTO dwd.wide (oid, uname) SELECT a.id, b.name FROM ods.orders a JOIN dim.user b ON a.uid = b.id",
+      "autoDetect": "自动检测",
+      "analyze": "分析血缘",
+      "analyzing": "分析中…",
+      "loadSample": "载入示例"
+    },
+    "graph": {
+      "title": "血缘图谱",
+      "analyzing": "分析中…",
+      "loadFailed": "加载失败：{message}",
+      "retry": "重试",
+      "meta": "{nodes} 节点 · {edges} 边 · {time}ms"
+    },
+    "relations": {
+      "title": "血缘关系明细",
+      "loading": "加载中…",
+      "loadFailed": "加载失败",
+      "table": "表级 ({count})",
+      "column": "字段级 ({count})",
+      "columns": {
+        "source": "源",
+        "arrow": "→",
+        "target": "目标",
+        "expression": "表达式"
+      },
+      "empty": "无血缘关系"
+    },
+    "query": {
+      "title": "上下游查询 & 影响分析",
+      "tablePlaceholder": "输入表全名，例如 dwd.wide",
+      "upstream": "上游",
+      "downstream": "下游",
+      "impact": "影响分析",
+      "querying": "查询中…",
+      "queryFailed": "查询失败：{message}",
+      "retry": "重试",
+      "summary": "从 {root} 出发，命中 {count} 张表，耗时 {time}ms",
+      "pathsTitle": "路径：",
+      "pathsEmpty": "无相关表"
+    },
+    "direction": {
+      "UPSTREAM": "上游",
+      "DOWNSTREAM": "下游",
+      "IMPACT": "影响分析"
+    },
+    "messages": {
+      "analyzeCompleted": "血缘分析完成：{nodes} 节点 / {edges} 边",
+      "needSql": "请输入 SQL",
+      "needTable": "请输入表名"
+    }
+  }
+}

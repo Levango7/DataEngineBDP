@@ -1,0 +1,104 @@
+{
+  "workspaceManagement": {
+    "title": "工作空间管理",
+    "subtitle": "管理租户下的工作空间（隔离边界），底层自动翻译为 K8s Namespace + NetworkPolicy + RBAC + ResourceQuota，客户无需感知容器编排。",
+    "toolbar": {
+      "create": "+ 新建工作空间",
+      "searchPlaceholder": "按名称搜索",
+      "tenantFilterPlaceholder": "租户筛选",
+      "statusFilterPlaceholder": "状态筛选",
+      "refreshAria": "刷新工作空间列表"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无工作空间数据",
+      "columns": {
+        "id": "ID",
+        "name": "名称",
+        "tenant": "租户",
+        "tenantFallback": "租户#{id}",
+        "namespace": "K8s Namespace",
+        "status": "状态",
+        "resourceQuota": "资源配额",
+        "resourceQuotaDefault": "默认",
+        "networkPolicy": "网络策略",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "k8sStatus": "K8s状态",
+        "edit": "编辑",
+        "delete": "删除"
+      }
+    },
+    "dialog": {
+      "createTitle": "新建工作空间",
+      "editTitle": "编辑工作空间",
+      "fields": {
+        "name": "名称",
+        "namePlaceholder": "如 华南生产工作空间",
+        "tenant": "所属租户",
+        "tenantPlaceholder": "选择租户",
+        "description": "描述",
+        "descriptionPlaceholder": "工作空间用途描述",
+        "resourceQuota": "资源配额",
+        "resourceQuotaPlaceholder": "cpu=4,memory=8Gi,storage=100Gi",
+        "resourceQuotaTip": "格式：cpu=4,memory=8Gi,storage=100Gi（留空使用默认配额）",
+        "networkPolicy": "网络隔离策略"
+      },
+      "actions": {
+        "cancel": "取消",
+        "save": "保存",
+        "create": "创建"
+      }
+    },
+    "networkPolicy": {
+      "tenantIsolated": "租户内互通（tenant-isolated）",
+      "denyAll": "全部拒绝（deny-all）"
+    },
+    "status": {
+      "creating": "创建中",
+      "running": "运行中",
+      "active": "运行中",
+      "limited": "受限",
+      "stopped": "已停止",
+      "deleting": "删除中",
+      "deleted": "已删除",
+      "failed": "失败",
+      "unknown": "未知",
+      "tagType": {
+        "creating": "primary",
+        "running": "success",
+        "active": "success",
+        "limited": "warning",
+        "stopped": "info",
+        "deleting": "warning",
+        "deleted": "info",
+        "failed": "danger"
+      }
+    },
+    "k8sDialog": {
+      "title": "K8s Namespace 实时状态",
+      "workspace": "工作空间：",
+      "namespace": "Namespace：",
+      "k8sStatus": "K8s 状态：",
+      "close": "关闭",
+      "refresh": "刷新"
+    },
+    "rules": {
+      "nameRequired": "请输入工作空间名称",
+      "tenantRequired": "请选择所属租户"
+    },
+    "messages": {
+      "listLoadFailed": "工作空间列表加载失败",
+      "updated": "工作空间已更新",
+      "created": "工作空间已创建，底层已翻译为 K8s Namespace + NetworkPolicy + RBAC + ResourceQuota",
+      "deleted": "工作空间已删除，K8s Namespace 已级联清除",
+      "deleteConfirm": "确定删除工作空间「{name}」吗？\n该操作将级联删除 K8s Namespace 及其下全部资源，不可恢复。",
+      "deleteConfirmTitle": "删除确认",
+      "deleteConfirmOk": "删除",
+      "deleteConfirmCancel": "取消",
+      "k8sStatusFailed": "K8s 状态查询失败"
+    }
+  }
+}

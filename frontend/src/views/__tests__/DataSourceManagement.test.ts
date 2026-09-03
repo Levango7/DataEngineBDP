@@ -6,7 +6,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises, VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import dataSourceZh from '@/i18n/locales/modules/dataSourceManagement.zh-CN.json'
+import dataSourceEn from '@/i18n/locales/modules/dataSourceManagement.en-US.json'
 import DataSourceManagement from '../DataSourceManagement.vue'
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'zh-CN',
+  messages: {
+    'zh-CN': dataSourceZh as never,
+    'en-US': dataSourceEn as never
+  }
+})
 
 // Mock datasource API
 const mockDsList = {
@@ -54,7 +66,7 @@ describe('DataSourceManagement.vue', () => {
   })
 
   function mountComponent(): VueWrapper {
-    return mount(DataSourceManagement)
+    return mount(DataSourceManagement, { global: { plugins: [i18n] } })
   }
 
   it('应正确挂载组件并渲染页面标题', async () => {

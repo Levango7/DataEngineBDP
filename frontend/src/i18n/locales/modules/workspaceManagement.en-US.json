@@ -1,0 +1,104 @@
+{
+  "workspaceManagement": {
+    "title": "Workspaces",
+    "subtitle": "Manage workspaces (isolation boundaries) under a tenant. Auto-translated to K8s Namespace + NetworkPolicy + RBAC + ResourceQuota — users do not need to know about container orchestration.",
+    "toolbar": {
+      "create": "+ New Workspace",
+      "searchPlaceholder": "Search by name",
+      "tenantFilterPlaceholder": "Filter by tenant",
+      "statusFilterPlaceholder": "Filter by status",
+      "refreshAria": "Refresh workspace list"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No workspace data",
+      "columns": {
+        "id": "ID",
+        "name": "Name",
+        "tenant": "Tenant",
+        "tenantFallback": "Tenant#{id}",
+        "namespace": "K8s Namespace",
+        "status": "Status",
+        "resourceQuota": "Resource Quota",
+        "resourceQuotaDefault": "Default",
+        "networkPolicy": "Network Policy",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "k8sStatus": "K8s Status",
+        "edit": "Edit",
+        "delete": "Delete"
+      }
+    },
+    "dialog": {
+      "createTitle": "New Workspace",
+      "editTitle": "Edit Workspace",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "e.g. South China Production Workspace",
+        "tenant": "Tenant",
+        "tenantPlaceholder": "Select a tenant",
+        "description": "Description",
+        "descriptionPlaceholder": "Workspace purpose",
+        "resourceQuota": "Resource Quota",
+        "resourceQuotaPlaceholder": "cpu=4,memory=8Gi,storage=100Gi",
+        "resourceQuotaTip": "Format: cpu=4,memory=8Gi,storage=100Gi (leave empty for default quota)",
+        "networkPolicy": "Network Isolation Policy"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "create": "Create"
+      }
+    },
+    "networkPolicy": {
+      "tenantIsolated": "Tenant-isolated",
+      "denyAll": "Deny-all"
+    },
+    "status": {
+      "creating": "Creating",
+      "running": "Running",
+      "active": "Running",
+      "limited": "Limited",
+      "stopped": "Stopped",
+      "deleting": "Deleting",
+      "deleted": "Deleted",
+      "failed": "Failed",
+      "unknown": "Unknown",
+      "tagType": {
+        "creating": "primary",
+        "running": "success",
+        "active": "success",
+        "limited": "warning",
+        "stopped": "info",
+        "deleting": "warning",
+        "deleted": "info",
+        "failed": "danger"
+      }
+    },
+    "k8sDialog": {
+      "title": "K8s Namespace Realtime Status",
+      "workspace": "Workspace:",
+      "namespace": "Namespace:",
+      "k8sStatus": "K8s Status:",
+      "close": "Close",
+      "refresh": "Refresh"
+    },
+    "rules": {
+      "nameRequired": "Please enter workspace name",
+      "tenantRequired": "Please select a tenant"
+    },
+    "messages": {
+      "listLoadFailed": "Failed to load workspace list",
+      "updated": "Workspace updated",
+      "created": "Workspace created — translated to K8s Namespace + NetworkPolicy + RBAC + ResourceQuota",
+      "deleted": "Workspace deleted; K8s Namespace cascade removed",
+      "deleteConfirm": "Confirm deletion of workspace \"{name}\"?\nThis will cascade-delete the K8s Namespace and all its resources, and cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmOk": "Delete",
+      "deleteConfirmCancel": "Cancel",
+      "k8sStatusFailed": "K8s status query failed"
+    }
+  }
+}
