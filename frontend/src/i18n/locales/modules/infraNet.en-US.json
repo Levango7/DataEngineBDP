@@ -1,0 +1,115 @@
+{
+  "infraNet": {
+    "title": "Container Network",
+    "subtitle": "CNI configuration · CIDR planning · NetworkPolicy · traffic policy management",
+    "selectCluster": {
+      "label": "Target Cluster:",
+      "placeholder": "Please select a cluster",
+      "refreshAria": "Refresh network data"
+    },
+    "selectClusterHint": "Please select a target cluster first",
+    "selectClusterHintMeta": "Choose a cluster in the dropdown above to manage",
+    "kpi": {
+      "cni": "CNI Plugin",
+      "cniMeta": "Container Network Interface",
+      "ipFamily": "IP Family",
+      "mtu": "MTU {mtu}",
+      "policyCount": "NetworkPolicies",
+      "policyCountMeta": "Issued policies",
+      "abnormalPolicy": "Abnormal Policies",
+      "abnormalPolicyMeta": "Needs review"
+    },
+    "config": {
+      "title": "Network Configuration",
+      "edit": "Edit",
+      "loadFailed": "Failed to load network configuration",
+      "fields": {
+        "cni": "CNI Plugin",
+        "ipFamily": "IP Family",
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "mtu": "MTU"
+      }
+    },
+    "policy": {
+      "title": "NetworkPolicies",
+      "create": "+ Issue Policy",
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No policies",
+      "columns": {
+        "name": "Policy",
+        "namespace": "Namespace",
+        "type": "Type",
+        "ports": "Ports",
+        "selector": "Pod Selector",
+        "actions": "Actions"
+      },
+      "actions": {
+        "delete": "Delete"
+      },
+      "createForm": {
+        "title": "Issue NetworkPolicy",
+        "fields": {
+          "name": "Policy Name",
+          "namePlaceholder": "e.g. deny-by-default",
+          "namespace": "Namespace",
+          "namespacePlaceholder": "e.g. default",
+          "type": "Type",
+          "ports": "Ports",
+          "portsPlaceholder": "comma-separated, e.g. 80,443,3306",
+          "selector": "Pod Selector",
+          "selectorPlaceholder": "e.g. app=web"
+        },
+        "types": {
+          "ingress": "Ingress (ingress)",
+          "egress": "Egress (egress)",
+          "both": "Both (both)"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "submit": "Issue"
+        }
+      },
+      "editConfig": {
+        "title": "Edit Network Configuration",
+        "fields": {
+          "cni": "CNI Plugin",
+          "podCidr": "Pod CIDR",
+          "serviceCidr": "Service CIDR",
+          "ipFamily": "IP Family",
+          "mtu": "MTU"
+        },
+        "cniOptions": {
+          "calico": "calico",
+          "flannel": "flannel",
+          "cilium": "cilium",
+          "kubeOvn": "kube-ovn"
+        },
+        "ipFamilyOptions": {
+          "IPv4": "IPv4",
+          "IPv6": "IPv6",
+          "DualStack": "DualStack"
+        },
+        "actions": {
+          "cancel": "Cancel",
+          "save": "Save"
+        }
+      }
+    },
+    "rules": {
+      "nameRequired": "Please enter policy name",
+      "namespaceRequired": "Please enter namespace",
+      "typeRequired": "Please select type",
+      "selectorRequired": "Please enter Pod selector"
+    },
+    "messages": {
+      "configUpdated": "Network configuration updated",
+      "policyCreated": "Policy issued",
+      "policyDeleted": "Policy deleted",
+      "deleteConfirm": "Confirm deletion of policy \"{name}\"?",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmOk": "Delete",
+      "deleteConfirmCancel": "Cancel"
+    }
+  }
+}

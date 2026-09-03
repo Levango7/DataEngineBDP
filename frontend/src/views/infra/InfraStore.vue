@@ -1,27 +1,27 @@
 <template>
   <div class="infra-store-page">
-    <h1>容器存储</h1>
-    <div class="sub">StorageClass · PV / PVC · 用量监控 · 快照管理</div>
+    <h1>{{ t('infraStore.title') }}</h1>
+    <div class="sub">{{ t('infraStore.subtitle') }}</div>
 
     <!-- 集群选择器 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
-        <span class="label">目标集群：</span>
+        <span class="label">{{ t('infraStore.selectCluster.label') }}</span>
         <el-select
           v-model="selectedClusterKey"
-          placeholder="请选择集群"
+          :placeholder="t('infraStore.selectCluster.placeholder')"
           style="width: 320px"
           @change="handleClusterChange"
         >
           <el-option
             v-for="c in clusterOptions"
             :key="`${c.environment}/${c.clusterId}`"
-            :label="`${c.clusterName}（${envLabel(c.environment)}）`"
+            :label="t('infraSched.selectCluster.optionFmt', { name: c.clusterName, env: envLabel(c.environment) })"
             :value="`${c.environment}/${c.clusterId}`"
           />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="reloadAll" />
+        <el-button :icon="Refresh" circle :aria-label="t('infraStore.selectCluster.refreshAria')" @click="reloadAll" />
       </div>
     </el-card>
 
@@ -29,46 +29,46 @@
     <div class="grid g4" style="margin-top: 16px">
       <template v-if="!selectedCluster">
         <div class="card" style="grid-column: span 4">
-          <h3>请先选择目标集群</h3>
-          <div class="meta">在上方下拉框中选择需要管理的集群</div>
+          <h3>{{ t('infraStore.selectClusterHint') }}</h3>
+          <div class="meta">{{ t('infraStore.selectClusterHintMeta') }}</div>
         </div>
       </template>
       <template v-else-if="usageLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="usageError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ usageError.message }}，
-            <a href="javascript:void(0)" @click="loadUsage">重试</a>
+            <a href="javascript:void(0)" @click="loadUsage">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else-if="usage">
         <div class="card">
-          <h3>StorageClass 数</h3>
+          <h3>{{ t('infraStore.kpi.scCount') }}</h3>
           <div class="kpi">{{ storageClasses.length }}</div>
-          <div class="meta">已注册</div>
+          <div class="meta">{{ t('infraStore.kpi.scCountMeta') }}</div>
         </div>
         <div class="card">
-          <h3>PVC 数</h3>
+          <h3>{{ t('infraStore.kpi.pvcCount') }}</h3>
           <div class="kpi s">{{ pvcs.length }}</div>
-          <div class="meta">已创建</div>
+          <div class="meta">{{ t('infraStore.kpi.pvcCountMeta') }}</div>
         </div>
         <div class="card">
-          <h3>总容量</h3>
+          <h3>{{ t('infraStore.kpi.totalCapacity') }}</h3>
           <div class="kpi">{{ formatBytes(usage.totalCapacityBytes) }}</div>
-          <div class="meta">集群汇总</div>
+          <div class="meta">{{ t('infraStore.kpi.totalCapacityMeta') }}</div>
         </div>
         <div class="card">
-          <h3>已用容量</h3>
+          <h3>{{ t('infraStore.kpi.usedCapacity') }}</h3>
           <div class="kpi w">{{ formatBytes(usage.usedCapacityBytes) }}</div>
-          <div class="meta">使用率 {{ usagePercent }}%</div>
+          <div class="meta">{{ t('infraStore.kpi.usedCapacityMeta', { rate: usagePercent }) }}</div>
         </div>
       </template>
     </div>
@@ -78,20 +78,20 @@
       <el-card shadow="never" class="page-card">
         <template #header>
           <div class="card-header">
-            <span>StorageClass 容量分布</span>
+            <span>{{ t('infraStore.capacityDist.title') }}</span>
           </div>
         </template>
         <template v-if="usageLoading">
-          <div class="meta">加载中…</div>
+          <div class="meta">{{ t('engines.kpi.loading') }}</div>
         </template>
         <template v-else-if="usageError">
-          <div class="meta" style="color: var(--muted)">用量加载失败</div>
+          <div class="meta" style="color: var(--muted)">{{ t('infraStore.capacityDist.loadFailed') }}</div>
         </template>
         <template v-else-if="usage && usage.byStorageClass.length > 0">
           <div v-for="sc in usage.byStorageClass" :key="sc.name" class="sc-bar">
             <div class="sc-bar-head">
               <span>{{ sc.name }}</span>
-              <span class="muted">{{ formatBytes(sc.used) }} / {{ formatBytes(sc.capacity) }}</span>
+              <span class="muted">{{ t('infraStore.capacityDist.used', { used: formatBytes(sc.used), cap: formatBytes(sc.capacity) }) }}</span>
             </div>
             <el-progress
               :percentage="scPercent(sc)"
@@ -101,14 +101,14 @@
           </div>
         </template>
         <template v-else>
-          <div class="meta">暂无数据</div>
+          <div class="meta">{{ t('infraStore.capacityDist.empty') }}</div>
         </template>
       </el-card>
 
       <el-card shadow="never" class="page-card">
         <template #header>
           <div class="card-header">
-            <span>StorageClass 列表</span>
+            <span>{{ t('infraStore.scList.title') }}</span>
           </div>
         </template>
         <el-table
@@ -117,11 +117,11 @@
           stripe
           border
           size="small"
-          :empty-text="classesError ? '加载失败' : '暂无 StorageClass'"
+          :empty-text="classesError ? t('infraStore.scList.loadFailed') : t('infraStore.scList.empty')"
         >
-          <el-table-column prop="name" label="名称" min-width="160" />
-          <el-table-column prop="provisioner" label="Provisioner" min-width="180" />
-          <el-table-column label="回收策略" width="120">
+          <el-table-column prop="name" :label="t('infraStore.scList.columns.name')" min-width="160" />
+          <el-table-column prop="provisioner" :label="t('infraStore.scList.columns.provisioner')" min-width="180" />
+          <el-table-column :label="t('infraStore.scList.columns.reclaimPolicy')" width="120">
             <template #default="{ row }">
               <el-tag
                 :type="row.reclaimPolicy === 'Retain' ? 'warning' : 'danger'"
@@ -132,9 +132,9 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="默认" width="80" align="center">
+          <el-table-column :label="t('infraStore.scList.columns.default')" width="80" align="center">
             <template #default="{ row }">
-              <el-tag v-if="row.default" type="success" effect="light" size="small">默认</el-tag>
+              <el-tag v-if="row.default" type="success" effect="light" size="small">{{ t('infraStore.scList.defaultYes') }}</el-tag>
               <span v-else class="muted">-</span>
             </template>
           </el-table-column>
@@ -146,8 +146,8 @@
     <el-card v-if="selectedCluster" shadow="never" class="page-card" style="margin-top: 16px">
       <template #header>
         <div class="card-header">
-          <span>PVC 列表</span>
-          <el-button type="primary" size="small" @click="openCreatePvcDialog">+ 创建 PVC</el-button>
+          <span>{{ t('infraStore.pvc.title') }}</span>
+          <el-button type="primary" size="small" @click="openCreatePvcDialog">{{ t('infraStore.pvc.create') }}</el-button>
         </div>
       </template>
       <el-table
@@ -156,30 +156,30 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="pvcsError ? '加载失败，请重试' : '暂无 PVC'"
+        :empty-text="pvcsError ? t('infraStore.pvc.loadFailed') : t('infraStore.pvc.empty')"
       >
-        <el-table-column prop="name" label="名称" min-width="180" />
-        <el-table-column prop="namespace" label="命名空间" width="140" />
-        <el-table-column prop="storageClassName" label="StorageClass" min-width="160" />
-        <el-table-column prop="capacity" label="容量" width="120" align="center" />
-        <el-table-column label="状态" width="110">
+        <el-table-column prop="name" :label="t('infraStore.pvc.columns.name')" min-width="180" />
+        <el-table-column prop="namespace" :label="t('infraStore.pvc.columns.namespace')" width="140" />
+        <el-table-column prop="storageClassName" :label="t('infraStore.pvc.columns.storageClass')" min-width="160" />
+        <el-table-column prop="capacity" :label="t('infraStore.pvc.columns.capacity')" width="120" align="center" />
+        <el-table-column :label="t('infraStore.pvc.columns.status')" width="110">
           <template #default="{ row }">
             <el-tag :type="pvcStatusType(row.status)" effect="light">
-              {{ row.status }}
+              {{ t(`infraStore.pvc.status.${row.status}`, row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="volumeName" label="绑定 PV" min-width="180">
+        <el-table-column prop="volumeName" :label="t('infraStore.pvc.columns.volumeName')" min-width="180">
           <template #default="{ row }">
             <span v-if="row.volumeName">{{ row.volumeName }}</span>
-            <span v-else class="muted">未绑定</span>
+            <span v-else class="muted">{{ t('infraStore.pvc.boundEmpty') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="createdAt" :label="t('infraStore.pvc.columns.createdAt')" width="180" />
+        <el-table-column :label="t('infraStore.pvc.columns.actions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleCreateSnapshot(row)">快照</el-button>
-            <el-button link type="danger" @click="handleDeletePvc(row)">删除</el-button>
+            <el-button link type="primary" @click="handleCreateSnapshot(row)">{{ t('infraStore.pvc.actions.snapshot') }}</el-button>
+            <el-button link type="danger" @click="handleDeletePvc(row)">{{ t('infraStore.pvc.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -188,7 +188,7 @@
     <!-- 创建 PVC 弹窗 -->
     <el-dialog
       v-model="createPvcVisible"
-      title="创建 PVC"
+      :title="t('infraStore.createForm.title')"
       width="520px"
       :close-on-click-modal="false"
       @closed="resetPvcForm"
@@ -200,16 +200,16 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="pvcForm.name" placeholder="如 data-pvc" />
+        <el-form-item :label="t('infraStore.createForm.fields.name')" prop="name">
+          <el-input v-model="pvcForm.name" :placeholder="t('infraStore.createForm.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="命名空间" prop="namespace">
-          <el-input v-model="pvcForm.namespace" placeholder="如 default" />
+        <el-form-item :label="t('infraStore.createForm.fields.namespace')" prop="namespace">
+          <el-input v-model="pvcForm.namespace" :placeholder="t('infraStore.createForm.fields.namespacePlaceholder')" />
         </el-form-item>
-        <el-form-item label="StorageClass" prop="storageClassName">
+        <el-form-item :label="t('infraStore.createForm.fields.storageClass')" prop="storageClassName">
           <el-select
             v-model="pvcForm.storageClassName"
-            placeholder="选择 StorageClass"
+            :placeholder="t('infraStore.createForm.fields.storageClassPlaceholder')"
             style="width: 100%"
           >
             <el-option
@@ -220,13 +220,13 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="容量" prop="capacity">
-          <el-input v-model="pvcForm.capacity" placeholder="如 100Gi" />
+        <el-form-item :label="t('infraStore.createForm.fields.capacity')" prop="capacity">
+          <el-input v-model="pvcForm.capacity" :placeholder="t('infraStore.createForm.fields.capacityPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createPvcVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingPvc" @click="handleCreatePvc">创建</el-button>
+        <el-button @click="createPvcVisible = false">{{ t('infraStore.createForm.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingPvc" @click="handleCreatePvc">{{ t('infraStore.createForm.actions.submit') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -234,6 +234,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
@@ -247,6 +248,8 @@ import type {
   StorageClassUsage,
   PvcStatus
 } from '@/api/infra'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 集群选择 ------------------------------ */
 
@@ -370,12 +373,12 @@ const pvcForm = reactive<PvcForm>({
   capacity: '100Gi'
 })
 
-const pvcRules: FormRules = {
-  name: [{ required: true, message: '请输入 PVC 名称', trigger: 'blur' }],
-  namespace: [{ required: true, message: '请输入命名空间', trigger: 'blur' }],
-  storageClassName: [{ required: true, message: '请选择 StorageClass', trigger: 'change' }],
-  capacity: [{ required: true, message: '请输入容量', trigger: 'blur' }]
-}
+const pvcRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('infraStore.rules.nameRequired'), trigger: 'blur' }],
+  namespace: [{ required: true, message: t('infraStore.rules.namespaceRequired'), trigger: 'blur' }],
+  storageClassName: [{ required: true, message: t('infraStore.rules.storageClassRequired'), trigger: 'change' }],
+  capacity: [{ required: true, message: t('infraStore.rules.capacityRequired'), trigger: 'blur' }]
+}))
 
 function openCreatePvcDialog() {
   resetPvcForm()
@@ -409,7 +412,7 @@ async function handleCreatePvc() {
           capacity: pvcForm.capacity
         }
       )
-      ElMessage.success('PVC 已创建')
+      ElMessage.success(t('infraStore.messages.created'))
       createPvcVisible.value = false
       await Promise.all([loadPvcs(), loadUsage()])
     } catch {
@@ -424,10 +427,10 @@ async function handleCreatePvc() {
 async function handleDeletePvc(row: PersistentVolumeClaim) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(`确认删除 PVC「${row.name}」？该操作不可恢复。`, '删除确认', {
+    await ElMessageBox.confirm(t('infraStore.messages.deleteConfirm', { name: row.name }), t('infraStore.messages.deleteConfirmTitle'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('infraStore.messages.deleteConfirmOk'),
+      cancelButtonText: t('infraStore.messages.deleteConfirmCancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await infraApi.deletePvc(
@@ -435,7 +438,7 @@ async function handleDeletePvc(row: PersistentVolumeClaim) {
       selectedCluster.value.clusterId,
       row.name
     )
-    ElMessage.success('PVC 已删除')
+    ElMessage.success(t('infraStore.messages.deleted'))
     await Promise.all([loadPvcs(), loadUsage()])
   } catch {
     // 用户取消或删除失败
@@ -451,7 +454,7 @@ async function handleCreateSnapshot(row: PersistentVolumeClaim) {
       selectedCluster.value.clusterId,
       row.name
     )
-    ElMessage.success(`快照已创建：${result.snapshotName}`)
+    ElMessage.success(t('infraStore.messages.snapshotCreated', { name: result.snapshotName }))
   } catch {
     // 错误提示已由拦截器统一处理
   }
@@ -459,24 +462,20 @@ async function handleCreateSnapshot(row: PersistentVolumeClaim) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 环境 → 中文 */
+/** 环境 → 词条（复用 infraK8s.env） */
 function envLabel(env: ClusterEnv): string {
-  const map: Record<ClusterEnv, string> = {
-    private: '私有云',
-    cloud: '公有云',
-    xinchuang: '信创'
-  }
-  return map[env] ?? env
+  return t(`infraK8s.env.${env}`)
 }
 
 /** PVC 状态 → tag 类型 */
+const PVC_STATUS_TAG_MAP: Record<PvcStatus, 'success' | 'warning' | 'danger'> = {
+  Bound: 'success',
+  Pending: 'warning',
+  Lost: 'danger'
+}
+
 function pvcStatusType(status: PvcStatus): 'success' | 'warning' | 'danger' {
-  const map: Record<PvcStatus, 'success' | 'warning' | 'danger'> = {
-    Bound: 'success',
-    Pending: 'warning',
-    Lost: 'danger'
-  }
-  return map[status] ?? 'warning'
+  return PVC_STATUS_TAG_MAP[status] ?? 'warning'
 }
 
 /** 字节 → 可读容量 */

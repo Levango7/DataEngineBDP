@@ -1,0 +1,99 @@
+{
+  "infraStore": {
+    "title": "容器存储",
+    "subtitle": "StorageClass · PV / PVC · 用量监控 · 快照管理",
+    "selectCluster": {
+      "label": "目标集群：",
+      "placeholder": "请选择集群",
+      "refreshAria": "刷新存储数据"
+    },
+    "selectClusterHint": "请先选择目标集群",
+    "selectClusterHintMeta": "在上方下拉框中选择需要管理的集群",
+    "kpi": {
+      "scCount": "StorageClass 数",
+      "scCountMeta": "已注册",
+      "pvcCount": "PVC 数",
+      "pvcCountMeta": "已创建",
+      "totalCapacity": "总容量",
+      "totalCapacityMeta": "集群汇总",
+      "usedCapacity": "已用容量",
+      "usedCapacityMeta": "使用率 {rate}%"
+    },
+    "capacityDist": {
+      "title": "StorageClass 容量分布",
+      "loadFailed": "用量加载失败",
+      "empty": "暂无数据",
+      "used": "{used} / {cap}"
+    },
+    "scList": {
+      "title": "StorageClass 列表",
+      "loadFailed": "加载失败",
+      "empty": "暂无 StorageClass",
+      "columns": {
+        "name": "名称",
+        "provisioner": "Provisioner",
+        "reclaimPolicy": "回收策略",
+        "default": "默认"
+      },
+      "defaultYes": "默认"
+    },
+    "pvc": {
+      "title": "PVC 列表",
+      "create": "+ 创建 PVC",
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无 PVC",
+      "columns": {
+        "name": "名称",
+        "namespace": "命名空间",
+        "storageClass": "StorageClass",
+        "capacity": "容量",
+        "status": "状态",
+        "volumeName": "绑定 PV",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "snapshot": "快照",
+        "delete": "删除"
+      },
+      "status": {
+        "Bound": "已绑定",
+        "Pending": "挂起中",
+        "Lost": "丢失"
+      },
+      "boundEmpty": "未绑定"
+    },
+    "createForm": {
+      "title": "创建 PVC",
+      "fields": {
+        "name": "名称",
+        "namePlaceholder": "如 data-pvc",
+        "namespace": "命名空间",
+        "namespacePlaceholder": "如 default",
+        "storageClass": "StorageClass",
+        "storageClassPlaceholder": "选择 StorageClass",
+        "capacity": "容量",
+        "capacityPlaceholder": "如 100Gi"
+      },
+      "actions": {
+        "cancel": "取消",
+        "submit": "创建"
+      }
+    },
+    "rules": {
+      "nameRequired": "请输入 PVC 名称",
+      "namespaceRequired": "请输入命名空间",
+      "storageClassRequired": "请选择 StorageClass",
+      "capacityRequired": "请输入容量"
+    },
+    "messages": {
+      "created": "PVC 已创建",
+      "deleted": "PVC 已删除",
+      "snapshotCreated": "快照已创建：{name}",
+      "deleteConfirm": "确认删除 PVC「{name}」？该操作不可恢复。",
+      "deleteConfirmTitle": "删除确认",
+      "deleteConfirmOk": "删除",
+      "deleteConfirmCancel": "取消"
+    }
+  }
+}

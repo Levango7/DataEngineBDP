@@ -1,0 +1,99 @@
+{
+  "infraStore": {
+    "title": "Container Storage",
+    "subtitle": "StorageClass · PV / PVC · usage monitoring · snapshot management",
+    "selectCluster": {
+      "label": "Target Cluster:",
+      "placeholder": "Please select a cluster",
+      "refreshAria": "Refresh storage data"
+    },
+    "selectClusterHint": "Please select a target cluster first",
+    "selectClusterHintMeta": "Choose a cluster in the dropdown above to manage",
+    "kpi": {
+      "scCount": "StorageClasses",
+      "scCountMeta": "Registered",
+      "pvcCount": "PVCs",
+      "pvcCountMeta": "Created",
+      "totalCapacity": "Total Capacity",
+      "totalCapacityMeta": "Cluster total",
+      "usedCapacity": "Used Capacity",
+      "usedCapacityMeta": "Usage {rate}%"
+    },
+    "capacityDist": {
+      "title": "StorageClass Capacity Distribution",
+      "loadFailed": "Failed to load usage",
+      "empty": "No data",
+      "used": "{used} / {cap}"
+    },
+    "scList": {
+      "title": "StorageClasses",
+      "loadFailed": "Failed to load",
+      "empty": "No StorageClasses",
+      "columns": {
+        "name": "Name",
+        "provisioner": "Provisioner",
+        "reclaimPolicy": "Reclaim Policy",
+        "default": "Default"
+      },
+      "defaultYes": "Default"
+    },
+    "pvc": {
+      "title": "PVCs",
+      "create": "+ Create PVC",
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No PVCs",
+      "columns": {
+        "name": "Name",
+        "namespace": "Namespace",
+        "storageClass": "StorageClass",
+        "capacity": "Capacity",
+        "status": "Status",
+        "volumeName": "Bound PV",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "snapshot": "Snapshot",
+        "delete": "Delete"
+      },
+      "status": {
+        "Bound": "Bound",
+        "Pending": "Pending",
+        "Lost": "Lost"
+      },
+      "boundEmpty": "Unbound"
+    },
+    "createForm": {
+      "title": "Create PVC",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "e.g. data-pvc",
+        "namespace": "Namespace",
+        "namespacePlaceholder": "e.g. default",
+        "storageClass": "StorageClass",
+        "storageClassPlaceholder": "Select StorageClass",
+        "capacity": "Capacity",
+        "capacityPlaceholder": "e.g. 100Gi"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submit": "Create"
+      }
+    },
+    "rules": {
+      "nameRequired": "Please enter PVC name",
+      "namespaceRequired": "Please enter namespace",
+      "storageClassRequired": "Please select StorageClass",
+      "capacityRequired": "Please enter capacity"
+    },
+    "messages": {
+      "created": "PVC created",
+      "deleted": "PVC deleted",
+      "snapshotCreated": "Snapshot created: {name}",
+      "deleteConfirm": "Confirm deletion of PVC \"{name}\"? This cannot be undone.",
+      "deleteConfirmTitle": "Confirm Deletion",
+      "deleteConfirmOk": "Delete",
+      "deleteConfirmCancel": "Cancel"
+    }
+  }
+}

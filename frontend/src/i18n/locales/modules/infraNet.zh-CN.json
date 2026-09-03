@@ -1,0 +1,115 @@
+{
+  "infraNet": {
+    "title": "容器网络",
+    "subtitle": "CNI 配置 · CIDR 规划 · NetworkPolicy · 流量策略管理",
+    "selectCluster": {
+      "label": "目标集群：",
+      "placeholder": "请选择集群",
+      "refreshAria": "刷新网络数据"
+    },
+    "selectClusterHint": "请先选择目标集群",
+    "selectClusterHintMeta": "在上方下拉框中选择需要管理的集群",
+    "kpi": {
+      "cni": "CNI 插件",
+      "cniMeta": "容器网络接口",
+      "ipFamily": "IP 协议族",
+      "mtu": "MTU {mtu}",
+      "policyCount": "NetworkPolicy 数",
+      "policyCountMeta": "已下发策略",
+      "abnormalPolicy": "异常策略",
+      "abnormalPolicyMeta": "需复核"
+    },
+    "config": {
+      "title": "网络配置",
+      "edit": "编辑",
+      "loadFailed": "网络配置加载失败",
+      "fields": {
+        "cni": "CNI 插件",
+        "ipFamily": "IP 协议族",
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "mtu": "MTU"
+      }
+    },
+    "policy": {
+      "title": "NetworkPolicy 列表",
+      "create": "+ 下发策略",
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无策略",
+      "columns": {
+        "name": "策略名",
+        "namespace": "命名空间",
+        "type": "类型",
+        "ports": "端口",
+        "selector": "Pod 选择器",
+        "actions": "操作"
+      },
+      "actions": {
+        "delete": "删除"
+      },
+      "createForm": {
+        "title": "下发 NetworkPolicy",
+        "fields": {
+          "name": "策略名",
+          "namePlaceholder": "如 deny-by-default",
+          "namespace": "命名空间",
+          "namespacePlaceholder": "如 default",
+          "type": "类型",
+          "ports": "端口",
+          "portsPlaceholder": "逗号分隔，如 80,443,3306",
+          "selector": "Pod 选择器",
+          "selectorPlaceholder": "如 app=web"
+        },
+        "types": {
+          "ingress": "入站 (ingress)",
+          "egress": "出站 (egress)",
+          "both": "双向 (both)"
+        },
+        "actions": {
+          "cancel": "取消",
+          "submit": "下发"
+        }
+      },
+      "editConfig": {
+        "title": "编辑网络配置",
+        "fields": {
+          "cni": "CNI 插件",
+          "podCidr": "Pod CIDR",
+          "serviceCidr": "Service CIDR",
+          "ipFamily": "IP 协议族",
+          "mtu": "MTU"
+        },
+        "cniOptions": {
+          "calico": "calico",
+          "flannel": "flannel",
+          "cilium": "cilium",
+          "kubeOvn": "kube-ovn"
+        },
+        "ipFamilyOptions": {
+          "IPv4": "IPv4",
+          "IPv6": "IPv6",
+          "DualStack": "DualStack"
+        },
+        "actions": {
+          "cancel": "取消",
+          "save": "保存"
+        }
+      }
+    },
+    "rules": {
+      "nameRequired": "请输入策略名",
+      "namespaceRequired": "请输入命名空间",
+      "typeRequired": "请选择类型",
+      "selectorRequired": "请输入 Pod 选择器"
+    },
+    "messages": {
+      "configUpdated": "网络配置已更新",
+      "policyCreated": "策略已下发",
+      "policyDeleted": "策略已删除",
+      "deleteConfirm": "确认删除策略「{name}」？",
+      "deleteConfirmTitle": "删除确认",
+      "deleteConfirmOk": "删除",
+      "deleteConfirmCancel": "取消"
+    }
+  }
+}

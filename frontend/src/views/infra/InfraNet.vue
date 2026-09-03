@@ -1,27 +1,27 @@
 <template>
   <div class="infra-net-page">
-    <h1>容器网络</h1>
-    <div class="sub">CNI 配置 · CIDR 规划 · NetworkPolicy · 流量策略管理</div>
+    <h1>{{ t('infraNet.title') }}</h1>
+    <div class="sub">{{ t('infraNet.subtitle') }}</div>
 
     <!-- 集群选择器 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
-        <span class="label">目标集群：</span>
+        <span class="label">{{ t('infraNet.selectCluster.label') }}</span>
         <el-select
           v-model="selectedClusterKey"
-          placeholder="请选择集群"
+          :placeholder="t('infraNet.selectCluster.placeholder')"
           style="width: 320px"
           @change="handleClusterChange"
         >
           <el-option
             v-for="c in clusterOptions"
             :key="`${c.environment}/${c.clusterId}`"
-            :label="`${c.clusterName}（${envLabel(c.environment)}）`"
+            :label="t('infraSched.selectCluster.optionFmt', { name: c.clusterName, env: envLabel(c.environment) })"
             :value="`${c.environment}/${c.clusterId}`"
           />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="reloadAll" />
+        <el-button :icon="Refresh" circle :aria-label="t('infraNet.selectCluster.refreshAria')" @click="reloadAll" />
       </div>
     </el-card>
 
@@ -29,46 +29,46 @@
     <div class="grid g4" style="margin-top: 16px">
       <template v-if="!selectedCluster">
         <div class="card" style="grid-column: span 4">
-          <h3>请先选择目标集群</h3>
-          <div class="meta">在上方下拉框中选择需要管理的集群</div>
+          <h3>{{ t('infraNet.selectClusterHint') }}</h3>
+          <div class="meta">{{ t('infraNet.selectClusterHintMeta') }}</div>
         </div>
       </template>
       <template v-else-if="configLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="configError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ configError.message }}，
-            <a href="javascript:void(0)" @click="loadConfig">重试</a>
+            <a href="javascript:void(0)" @click="loadConfig">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else-if="networkConfig">
         <div class="card">
-          <h3>CNI 插件</h3>
+          <h3>{{ t('infraNet.kpi.cni') }}</h3>
           <div class="kpi">{{ networkConfig.cni }}</div>
-          <div class="meta">容器网络接口</div>
+          <div class="meta">{{ t('infraNet.kpi.cniMeta') }}</div>
         </div>
         <div class="card">
-          <h3>IP 协议族</h3>
+          <h3>{{ t('infraNet.kpi.ipFamily') }}</h3>
           <div class="kpi">{{ networkConfig.ipFamily }}</div>
-          <div class="meta">MTU {{ networkConfig.mtu }}</div>
+          <div class="meta">{{ t('infraNet.kpi.mtu', { mtu: networkConfig.mtu }) }}</div>
         </div>
         <div class="card">
-          <h3>NetworkPolicy 数</h3>
+          <h3>{{ t('infraNet.kpi.policyCount') }}</h3>
           <div class="kpi s">{{ policies?.length ?? 0 }}</div>
-          <div class="meta">已下发策略</div>
+          <div class="meta">{{ t('infraNet.kpi.policyCountMeta') }}</div>
         </div>
         <div class="card">
-          <h3>异常策略</h3>
+          <h3>{{ t('infraNet.kpi.abnormalPolicy') }}</h3>
           <div class="kpi d">{{ abnormalPolicyCount }}</div>
-          <div class="meta">需复核</div>
+          <div class="meta">{{ t('infraNet.kpi.abnormalPolicyMeta') }}</div>
         </div>
       </template>
     </div>
@@ -77,29 +77,29 @@
     <el-card v-if="selectedCluster" shadow="never" class="page-card" style="margin-top: 16px">
       <template #header>
         <div class="card-header">
-          <span>网络配置</span>
-          <el-button type="primary" size="small" @click="openEditConfig">编辑</el-button>
+          <span>{{ t('infraNet.config.title') }}</span>
+          <el-button type="primary" size="small" @click="openEditConfig">{{ t('infraNet.config.edit') }}</el-button>
         </div>
       </template>
       <template v-if="configLoading">
-        <div class="meta">加载中…</div>
+        <div class="meta">{{ t('engines.kpi.loading') }}</div>
       </template>
       <template v-else-if="configError">
-        <div class="meta" style="color: var(--muted)">网络配置加载失败</div>
+        <div class="meta" style="color: var(--muted)">{{ t('infraNet.config.loadFailed') }}</div>
       </template>
       <template v-else-if="networkConfig">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="CNI 插件">
+          <el-descriptions-item :label="t('infraNet.config.fields.cni')">
             <el-tag effect="light">{{ networkConfig.cni }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="IP 协议族">
+          <el-descriptions-item :label="t('infraNet.config.fields.ipFamily')">
             {{ networkConfig.ipFamily }}
           </el-descriptions-item>
-          <el-descriptions-item label="Pod CIDR">{{ networkConfig.podCidr }}</el-descriptions-item>
-          <el-descriptions-item label="Service CIDR">
+          <el-descriptions-item :label="t('infraNet.config.fields.podCidr')">{{ networkConfig.podCidr }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraNet.config.fields.serviceCidr')">
             {{ networkConfig.serviceCidr }}
           </el-descriptions-item>
-          <el-descriptions-item label="MTU">{{ networkConfig.mtu }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraNet.config.fields.mtu')">{{ networkConfig.mtu }}</el-descriptions-item>
         </el-descriptions>
       </template>
     </el-card>
@@ -108,9 +108,9 @@
     <el-card v-if="selectedCluster" shadow="never" class="page-card" style="margin-top: 16px">
       <template #header>
         <div class="card-header">
-          <span>NetworkPolicy 列表</span>
+          <span>{{ t('infraNet.policy.title') }}</span>
           <el-button type="primary" size="small" @click="openCreatePolicyDialog">
-            + 下发策略
+            {{ t('infraNet.policy.create') }}
           </el-button>
         </div>
       </template>
@@ -120,18 +120,18 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="policiesError ? '加载失败，请重试' : '暂无策略'"
+        :empty-text="policiesError ? t('infraNet.policy.loadFailed') : t('infraNet.policy.empty')"
       >
-        <el-table-column prop="name" label="策略名" min-width="180" />
-        <el-table-column prop="namespace" label="命名空间" width="160" />
-        <el-table-column label="类型" width="120">
+        <el-table-column prop="name" :label="t('infraNet.policy.columns.name')" min-width="180" />
+        <el-table-column prop="namespace" :label="t('infraNet.policy.columns.namespace')" width="160" />
+        <el-table-column :label="t('infraNet.policy.columns.type')" width="160">
           <template #default="{ row }">
             <el-tag :type="policyTypeTagType(row.type)" effect="light">
               {{ policyTypeLabel(row.type) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="端口" width="200">
+        <el-table-column :label="t('infraNet.policy.columns.ports')" width="200">
           <template #default="{ row }">
             <el-tag
               v-for="p in row.ports"
@@ -144,10 +144,10 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="selector" label="Pod 选择器" min-width="200" />
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column prop="selector" :label="t('infraNet.policy.columns.selector')" min-width="200" />
+        <el-table-column :label="t('infraNet.policy.columns.actions')" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button link type="danger" @click="handleDeletePolicy(row)">删除</el-button>
+            <el-button link type="danger" @click="handleDeletePolicy(row)">{{ t('infraNet.policy.actions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -156,46 +156,46 @@
     <!-- 编辑网络配置弹窗 -->
     <el-dialog
       v-model="editConfigVisible"
-      title="编辑网络配置"
+      :title="t('infraNet.policy.editConfig.title')"
       width="520px"
       :close-on-click-modal="false"
     >
       <el-form label-width="120px" label-position="right">
-        <el-form-item label="CNI 插件">
+        <el-form-item :label="t('infraNet.policy.editConfig.fields.cni')">
           <el-select v-model="editConfig.cni" style="width: 100%">
-            <el-option label="calico" value="calico" />
-            <el-option label="flannel" value="flannel" />
-            <el-option label="cilium" value="cilium" />
-            <el-option label="kube-ovn" value="kube-ovn" />
+            <el-option :label="t('infraNet.policy.editConfig.cniOptions.calico')" value="calico" />
+            <el-option :label="t('infraNet.policy.editConfig.cniOptions.flannel')" value="flannel" />
+            <el-option :label="t('infraNet.policy.editConfig.cniOptions.cilium')" value="cilium" />
+            <el-option :label="t('infraNet.policy.editConfig.cniOptions.kubeOvn')" value="kube-ovn" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Pod CIDR">
+        <el-form-item :label="t('infraNet.policy.editConfig.fields.podCidr')">
           <el-input v-model="editConfig.podCidr" />
         </el-form-item>
-        <el-form-item label="Service CIDR">
+        <el-form-item :label="t('infraNet.policy.editConfig.fields.serviceCidr')">
           <el-input v-model="editConfig.serviceCidr" />
         </el-form-item>
-        <el-form-item label="IP 协议族">
+        <el-form-item :label="t('infraNet.policy.editConfig.fields.ipFamily')">
           <el-select v-model="editConfig.ipFamily" style="width: 100%">
-            <el-option label="IPv4" value="IPv4" />
-            <el-option label="IPv6" value="IPv6" />
-            <el-option label="DualStack" value="DualStack" />
+            <el-option :label="t('infraNet.policy.editConfig.ipFamilyOptions.IPv4')" value="IPv4" />
+            <el-option :label="t('infraNet.policy.editConfig.ipFamilyOptions.IPv6')" value="IPv6" />
+            <el-option :label="t('infraNet.policy.editConfig.ipFamilyOptions.DualStack')" value="DualStack" />
           </el-select>
         </el-form-item>
-        <el-form-item label="MTU">
+        <el-form-item :label="t('infraNet.policy.editConfig.fields.mtu')">
           <el-input-number v-model="editConfig.mtu" :min="1200" :max="9000" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editConfigVisible = false">取消</el-button>
-        <el-button type="primary" :loading="savingConfig" @click="handleSaveConfig">保存</el-button>
+        <el-button @click="editConfigVisible = false">{{ t('infraNet.policy.editConfig.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="savingConfig" @click="handleSaveConfig">{{ t('infraNet.policy.editConfig.actions.save') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 下发 NetworkPolicy 弹窗 -->
     <el-dialog
       v-model="createPolicyVisible"
-      title="下发 NetworkPolicy"
+      :title="t('infraNet.policy.createForm.title')"
       width="560px"
       :close-on-click-modal="false"
       @closed="resetPolicyForm"
@@ -207,30 +207,30 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="策略名" prop="name">
-          <el-input v-model="policyForm.name" placeholder="如 deny-by-default" />
+        <el-form-item :label="t('infraNet.policy.createForm.fields.name')" prop="name">
+          <el-input v-model="policyForm.name" :placeholder="t('infraNet.policy.createForm.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="命名空间" prop="namespace">
-          <el-input v-model="policyForm.namespace" placeholder="如 default" />
+        <el-form-item :label="t('infraNet.policy.createForm.fields.namespace')" prop="namespace">
+          <el-input v-model="policyForm.namespace" :placeholder="t('infraNet.policy.createForm.fields.namespacePlaceholder')" />
         </el-form-item>
-        <el-form-item label="类型" prop="type">
+        <el-form-item :label="t('infraNet.policy.createForm.fields.type')" prop="type">
           <el-select v-model="policyForm.type" style="width: 100%">
-            <el-option label="入站 (ingress)" value="ingress" />
-            <el-option label="出站 (egress)" value="egress" />
-            <el-option label="双向 (both)" value="both" />
+            <el-option :label="t('infraNet.policy.createForm.types.ingress')" value="ingress" />
+            <el-option :label="t('infraNet.policy.createForm.types.egress')" value="egress" />
+            <el-option :label="t('infraNet.policy.createForm.types.both')" value="both" />
           </el-select>
         </el-form-item>
-        <el-form-item label="端口">
-          <el-input v-model="policyPortsInput" placeholder="逗号分隔，如 80,443,3306" />
+        <el-form-item :label="t('infraNet.policy.createForm.fields.ports')">
+          <el-input v-model="policyPortsInput" :placeholder="t('infraNet.policy.createForm.fields.portsPlaceholder')" />
         </el-form-item>
-        <el-form-item label="Pod 选择器" prop="selector">
-          <el-input v-model="policyForm.selector" placeholder="如 app=web" />
+        <el-form-item :label="t('infraNet.policy.createForm.fields.selector')" prop="selector">
+          <el-input v-model="policyForm.selector" :placeholder="t('infraNet.policy.createForm.fields.selectorPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createPolicyVisible = false">取消</el-button>
+        <el-button @click="createPolicyVisible = false">{{ t('infraNet.policy.createForm.actions.cancel') }}</el-button>
         <el-button type="primary" :loading="savingPolicy" @click="handleCreatePolicy">
-          下发
+          {{ t('infraNet.policy.createForm.actions.submit') }}
         </el-button>
       </template>
     </el-dialog>
@@ -239,6 +239,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
@@ -250,6 +251,8 @@ import type {
   NetworkPolicy,
   NetworkPolicyType
 } from '@/api/infra'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 集群选择 ------------------------------ */
 
@@ -365,7 +368,7 @@ async function handleSaveConfig() {
       selectedCluster.value.clusterId,
       { ...editConfig }
     )
-    ElMessage.success('网络配置已更新')
+    ElMessage.success(t('infraNet.messages.configUpdated'))
     editConfigVisible.value = false
     await loadConfig()
   } catch {
@@ -396,12 +399,12 @@ const policyForm = reactive<PolicyForm>({
   selector: ''
 })
 
-const policyRules: FormRules = {
-  name: [{ required: true, message: '请输入策略名', trigger: 'blur' }],
-  namespace: [{ required: true, message: '请输入命名空间', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择类型', trigger: 'change' }],
-  selector: [{ required: true, message: '请输入 Pod 选择器', trigger: 'blur' }]
-}
+const policyRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('infraNet.rules.nameRequired'), trigger: 'blur' }],
+  namespace: [{ required: true, message: t('infraNet.rules.namespaceRequired'), trigger: 'blur' }],
+  type: [{ required: true, message: t('infraNet.rules.typeRequired'), trigger: 'change' }],
+  selector: [{ required: true, message: t('infraNet.rules.selectorRequired'), trigger: 'blur' }]
+}))
 
 /** 打开下发弹窗 */
 function openCreatePolicyDialog() {
@@ -442,7 +445,7 @@ async function handleCreatePolicy() {
         selectedCluster.value!.clusterId,
         policy
       )
-      ElMessage.success('策略已下发')
+      ElMessage.success(t('infraNet.messages.policyCreated'))
       createPolicyVisible.value = false
       await loadPolicies()
     } catch {
@@ -457,10 +460,10 @@ async function handleCreatePolicy() {
 async function handleDeletePolicy(row: NetworkPolicy) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(`确认删除策略「${row.name}」？`, '删除确认', {
+    await ElMessageBox.confirm(t('infraNet.messages.deleteConfirm', { name: row.name }), t('infraNet.messages.deleteConfirmTitle'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('infraNet.messages.deleteConfirmOk'),
+      cancelButtonText: t('infraNet.messages.deleteConfirmCancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await infraApi.deleteNetworkPolicy(
@@ -468,7 +471,7 @@ async function handleDeletePolicy(row: NetworkPolicy) {
       selectedCluster.value.clusterId,
       row.name
     )
-    ElMessage.success('策略已删除')
+    ElMessage.success(t('infraNet.messages.policyDeleted'))
     await loadPolicies()
   } catch {
     // 用户取消或删除失败
@@ -477,34 +480,25 @@ async function handleDeletePolicy(row: NetworkPolicy) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 环境 → 中文 */
+/** 环境 → 词条（复用 infraK8s.env） */
 function envLabel(env: ClusterEnv): string {
-  const map: Record<ClusterEnv, string> = {
-    private: '私有云',
-    cloud: '公有云',
-    xinchuang: '信创'
-  }
-  return map[env] ?? env
+  return t(`infraK8s.env.${env}`)
 }
 
-/** 策略类型 → 中文 */
-function policyTypeLabel(t: NetworkPolicyType): string {
-  const map: Record<NetworkPolicyType, string> = {
-    ingress: '入站',
-    egress: '出站',
-    both: '双向'
-  }
-  return map[t] ?? t
+/** 策略类型 → 词条 */
+function policyTypeLabel(npType: NetworkPolicyType): string {
+  return t(`infraNet.policy.createForm.types.${npType}`)
 }
 
 /** 策略类型 → tag 类型 */
-function policyTypeTagType(t: NetworkPolicyType): 'primary' | 'success' | 'warning' {
-  const map: Record<NetworkPolicyType, 'primary' | 'success' | 'warning'> = {
-    ingress: 'primary',
-    egress: 'success',
-    both: 'warning'
-  }
-  return map[t] ?? 'primary'
+const POLICY_TYPE_TAG_MAP: Record<NetworkPolicyType, 'primary' | 'success' | 'warning'> = {
+  ingress: 'primary',
+  egress: 'success',
+  both: 'warning'
+}
+
+function policyTypeTagType(npType: NetworkPolicyType): 'primary' | 'success' | 'warning' {
+  return POLICY_TYPE_TAG_MAP[npType] ?? 'primary'
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */
