@@ -6,3 +6,10 @@ ske/**/*.sh text eol=lf
 scripts/*.sh text eol=lf
 # Python 镜像文件强制 LF（防 CRLF 导致镜像不一致）
 **/jwt_auth.py text eol=lf
+# Sprint 2.1：自动生成的前后端 API 契约文档（CI 漂移校验要求 LF 稳定）
+docs/api-contract.md text eol=lf
+scripts/gen-api-contract.py text eol=lf
+scripts/check-api-route-conflict.py text eol=lf
+# Sprint 2.2 L2/L3：git hook 与 vite 代理校验脚本强制 LF
+.githooks/* text eol=lf
+scripts/verify-vite-proxy.py text eol=lf

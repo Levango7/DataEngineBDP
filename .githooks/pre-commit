@@ -1,0 +1,40 @@
+#!/bin/sh
+# Sprint 2.2 L2：本地 contract drift pre-commit hook
+#
+# 在提交前运行契约门禁，把 CI 的漂移拦截前移到本地（CI 门禁仍保留兜底）：
+#   1. API 路由冲突扫描（阻断未知同前缀多 Controller）
+#   2. 前后端 API 契约 --check（未匹配 > 0 阻断）
+#   3. vite dev 代理完整性校验（Sprint 2.2 P0 教训固化）
+#
+# 安装（一次性）：
+#   git config core.hooksPath .githooks
+# 卸载：
+#   git config --unset core.hooksPath
+#
+# 设计取舍：仅当提交涉及相关文件时才跑对应检查（秒级，不拖慢提交）；
+# hooks 路径不在 .git/ 内，随仓库版本化，团队全员一致。
+
+set -e
+
+# 定位仓库根（hook 执行时 cwd 为仓库根，稳妥起见再解析一次）
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+# 本提交涉及的文件（含暂存与未暂存，避免半提交状态漏检）
+CHANGED="$(git diff --cached --name-only HEAD 2>/dev/null; git diff --name-only 2>/dev/null)"
+
+run_check() {
+    echo ""
+    echo "=== $1 ==="
+    shift
+    "$@"
+}
+
+# 契约相关文件变更才跑契约三件套（前端 api/、后端 Controller、vite 配置、脚本本身）
+if echo "$CHANGED" | grep -qE '^(frontend/src/api/|frontend/vite\.config\.ts|platform/.*Controller\.java|scripts/(gen-api-contract|check-api-route-conflict|verify-vite-proxy)\.py)'; then
+    run_check "API 路由冲突扫描" python3 scripts/check-api-route-conflict.py
+    run_check "前后端 API 契约校验（--check）" python3 scripts/gen-api-contract.py --check
+    run_check "vite dev 代理完整性" python3 scripts/verify-vite-proxy.py
+fi
+
+exit 0
