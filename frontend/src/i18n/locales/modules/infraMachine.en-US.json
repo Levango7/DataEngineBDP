@@ -1,0 +1,94 @@
+{
+  "infraMachine": {
+    "title": "Machine Provisioning",
+    "subtitle": "Xinchuang cluster provisioning · create / destroy / scale · 30s auto refresh",
+    "kpi": {
+      "total": "Total Clusters",
+      "totalMeta": "Xinchuang env",
+      "running": "Running",
+      "runningMeta": "Healthy",
+      "creating": "Creating",
+      "creatingMeta": "Provisioning",
+      "failed": "Failed",
+      "failedMeta": "Requires manual intervention"
+    },
+    "toolbar": {
+      "create": "+ New Cluster",
+      "refreshAria": "Refresh cluster list"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No clusters",
+      "columns": {
+        "name": "Cluster Name",
+        "status": "Status",
+        "k8sVersion": "K8s Version",
+        "nodeCount": "Nodes",
+        "nodeCountFmt": "{master} (control) / {worker} (worker)",
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "scale": "Scale",
+        "destroy": "Destroy"
+      }
+    },
+    "create": {
+      "title": "New Xinchuang Cluster",
+      "steps": {
+        "basic": "Basic Info",
+        "nodes": "Node Specs",
+        "network": "Network"
+      },
+      "fields": {
+        "clusterName": "Cluster Name",
+        "clusterNamePlaceholder": "e.g. prod-xinchang-01",
+        "k8sVersion": "K8s Version",
+        "masterCount": "Control Plane Nodes",
+        "workerCount": "Worker Nodes",
+        "cpu": "CPU Cores",
+        "memory": "Memory (GB)",
+        "disk": "System Disk (GB)",
+        "podCidr": "Pod CIDR",
+        "podCidrPlaceholder": "e.g. 10.244.0.0/16",
+        "serviceCidr": "Service CIDR",
+        "serviceCidrPlaceholder": "e.g. 10.96.0.0/12"
+      },
+      "actions": {
+        "prev": "Previous",
+        "next": "Next",
+        "submit": "Submit",
+        "cancel": "Cancel"
+      }
+    },
+    "scale": {
+      "title": "Cluster Scale",
+      "fields": {
+        "clusterName": "Cluster Name",
+        "currentNodes": "Current Nodes",
+        "targetNodes": "Target Nodes"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "confirm": "Confirm"
+      }
+    },
+    "rules": {
+      "clusterNameRequired": "Please enter cluster name",
+      "k8sVersionRequired": "Please select K8s version",
+      "podCidrRequired": "Please enter Pod CIDR",
+      "serviceCidrRequired": "Please enter Service CIDR"
+    },
+    "messages": {
+      "created": "Cluster creation submitted",
+      "scaled": "Scale request submitted",
+      "destroyed": "Cluster destruction submitted",
+      "destroyConfirm": "Confirm destruction of cluster \"{name}\"? This cannot be undone.",
+      "destroyConfirmTitle": "Dangerous Operation",
+      "destroyConfirmOk": "Destroy",
+      "destroyConfirmCancel": "Cancel"
+    }
+  }
+}

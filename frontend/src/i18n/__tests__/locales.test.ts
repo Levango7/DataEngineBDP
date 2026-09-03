@@ -77,6 +77,12 @@ import dataLineageZh from '@/i18n/locales/modules/dataLineage.zh-CN.json'
 import dataLineageEn from '@/i18n/locales/modules/dataLineage.en-US.json'
 import enginesZh from '@/i18n/locales/modules/engines.zh-CN.json'
 import enginesEn from '@/i18n/locales/modules/engines.en-US.json'
+import infraK8sZh from '@/i18n/locales/modules/infraK8s.zh-CN.json'
+import infraK8sEn from '@/i18n/locales/modules/infraK8s.en-US.json'
+import infraMachineZh from '@/i18n/locales/modules/infraMachine.zh-CN.json'
+import infraMachineEn from '@/i18n/locales/modules/infraMachine.en-US.json'
+import infraSchedZh from '@/i18n/locales/modules/infraSched.zh-CN.json'
+import infraSchedEn from '@/i18n/locales/modules/infraSched.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -161,7 +167,10 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['quotaManagement', quotaManagementZh as Record<string, unknown>, quotaManagementEn as Record<string, unknown>],
     ['clusterOverview', clusterOverviewZh as Record<string, unknown>, clusterOverviewEn as Record<string, unknown>],
     ['dataLineage', dataLineageZh as Record<string, unknown>, dataLineageEn as Record<string, unknown>],
-    ['engines', enginesZh as Record<string, unknown>, enginesEn as Record<string, unknown>]
+    ['engines', enginesZh as Record<string, unknown>, enginesEn as Record<string, unknown>],
+    ['infraK8s', infraK8sZh as Record<string, unknown>, infraK8sEn as Record<string, unknown>],
+    ['infraMachine', infraMachineZh as Record<string, unknown>, infraMachineEn as Record<string, unknown>],
+    ['infraSched', infraSchedZh as Record<string, unknown>, infraSchedEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

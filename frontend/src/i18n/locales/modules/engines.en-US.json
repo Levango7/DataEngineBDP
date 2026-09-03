@@ -43,6 +43,13 @@
         "running": "Running",
         "stopped": "Stopped",
         "warning": "Warning"
+      },
+      "components": {
+        "status": {
+          "healthy": "Healthy",
+          "warning": "Warning",
+          "error": "Error"
+        }
       }
     },
     "tabs": {

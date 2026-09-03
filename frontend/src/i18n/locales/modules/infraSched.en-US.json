@@ -1,0 +1,100 @@
+{
+  "infraSched": {
+    "title": "Elastic Scheduling",
+    "subtitle": "HPA · Cluster Autoscaler · scale event history",
+    "selectCluster": {
+      "label": "Target Cluster:",
+      "placeholder": "Please select a cluster",
+      "optionFmt": "{name} ({env})",
+      "refreshAria": "Refresh scheduling data"
+    },
+    "selectClusterHint": "Please select a target cluster first",
+    "selectClusterHintMeta": "Choose a cluster in the dropdown above to manage",
+    "kpi": {
+      "total": "Total Policies",
+      "totalMeta": "HPA policies",
+      "scaleUpToday": "Today's Scale-up",
+      "times": "times",
+      "scaleDownToday": "Today's Scale-down",
+      "avgDuration": "Avg Response",
+      "avgDurationMeta": "Per scale operation"
+    },
+    "hpaList": {
+      "title": "HPA Policies",
+      "new": "+ New HPA",
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No HPA policies",
+      "columns": {
+        "name": "Name",
+        "namespace": "Namespace",
+        "targetDeployment": "Target Deployment",
+        "replicas": "Replicas",
+        "replicasFmt": "{min} ~ {max}",
+        "currentReplicas": "Current {current}",
+        "cpuThreshold": "CPU Threshold",
+        "memoryThreshold": "Memory Threshold",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      }
+    },
+    "hpaForm": {
+      "createTitle": "New HPA Policy",
+      "editTitle": "Edit HPA Policy",
+      "fields": {
+        "name": "Name",
+        "namePlaceholder": "e.g. web-hpa",
+        "namespace": "Namespace",
+        "namespacePlaceholder": "e.g. default",
+        "targetDeployment": "Target Deployment",
+        "targetDeploymentPlaceholder": "e.g. web-deploy",
+        "minReplicas": "Min Replicas",
+        "maxReplicas": "Max Replicas",
+        "cpuThreshold": "CPU Threshold (%)",
+        "memoryThreshold": "Memory Threshold (%)"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "create": "Create"
+      }
+    },
+    "hpaStatus": {
+      "active": "Active",
+      "paused": "Paused"
+    },
+    "events": {
+      "title": "Scale Event Stream",
+      "loading": "Loading…",
+      "loadFailed": "Failed to load events",
+      "empty": "No scale events",
+      "triggerFmt": "Trigger: {trigger}",
+      "replicasFmt": "Replicas {from} → {to}",
+      "durationFmt": "Took {duration}"
+    },
+    "eventType": {
+      "scale_up": "Scale Up",
+      "scale_down": "Scale Down"
+    },
+    "rules": {
+      "nameRequired": "Please enter policy name",
+      "namespaceRequired": "Please enter namespace",
+      "targetDeploymentRequired": "Please enter target Deployment",
+      "minReplicasRequired": "Please enter min replicas",
+      "maxReplicasRequired": "Please enter max replicas",
+      "cpuThresholdRequired": "Please enter CPU threshold"
+    },
+    "messages": {
+      "hpaCreated": "HPA policy created",
+      "hpaUpdated": "HPA policy updated",
+      "hpaDeleted": "Policy deleted",
+      "hpaDeleteConfirm": "Delete HPA policy \"{name}\"?",
+      "hpaDeleteConfirmTitle": "Confirm Deletion",
+      "hpaDeleteConfirmOk": "Delete",
+      "hpaDeleteConfirmCancel": "Cancel"
+    }
+  }
+}

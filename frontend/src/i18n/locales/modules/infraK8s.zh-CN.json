@@ -1,0 +1,160 @@
+{
+  "infraK8s": {
+    "title": "K8s 集群",
+    "subtitle": "跨环境统一集群管理 · 私有云 / 公有云 / 信创 · 30 秒自动刷新",
+    "kpi": {
+      "total": "集群总数",
+      "totalMeta": "跨环境汇总",
+      "running": "运行中",
+      "runningMeta": "状态正常",
+      "failed": "异常",
+      "failedMeta": "需人工介入",
+      "envCount": "环境分布",
+      "envBreakdown": "私有 {p} · 公有 {c} · 信创 {x}"
+    },
+    "toolbar": {
+      "create": "+ 新建集群",
+      "refreshAria": "刷新集群列表",
+      "envTabs": {
+        "all": "全部",
+        "private": "私有云",
+        "cloud": "公有云",
+        "xinchuang": "信创"
+      }
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无集群",
+      "columns": {
+        "name": "集群名称",
+        "env": "环境",
+        "provider": "Provider",
+        "status": "状态",
+        "k8sVersion": "K8s 版本",
+        "nodeCount": "节点数",
+        "createdAt": "创建时间",
+        "actions": "操作"
+      },
+      "actions": {
+        "detail": "详情",
+        "destroy": "销毁"
+      }
+    },
+    "env": {
+      "private": "私有云",
+      "cloud": "公有云",
+      "xinchuang": "信创"
+    },
+    "status": {
+      "CREATING": "创建中",
+      "RUNNING": "运行中",
+      "FAILED": "异常",
+      "DESTROYED": "已销毁",
+      "UPDATING": "更新中"
+    },
+    "provider": {
+      "vsphere": "vSphere",
+      "openstack": "OpenStack",
+      "huawei": "华为云",
+      "ali": "阿里云",
+      "tencent": "腾讯云",
+      "xinchang": "信创"
+    },
+    "detail": {
+      "title": "集群详情",
+      "titleFallback": "集群详情",
+      "fields": {
+        "clusterId": "集群 ID",
+        "clusterName": "集群名称",
+        "env": "环境",
+        "provider": "Provider",
+        "status": "状态",
+        "k8sVersion": "K8s 版本",
+        "controlPlane": "控制面节点",
+        "worker": "工作节点",
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "createdAt": "创建时间",
+        "updatedAt": "更新时间"
+      },
+      "nodesTitle": "节点列表",
+      "nodesLoadFailed": "节点列表加载失败",
+      "nodesEmpty": "暂无节点",
+      "nodeColumns": {
+        "name": "节点名",
+        "role": "角色",
+        "status": "状态",
+        "cpu": "CPU",
+        "mem": "内存",
+        "os": "操作系统"
+      },
+      "cpuFmt": "{used} / {cap} 核",
+      "memFmt": "{used} / {cap} GB",
+      "componentsTitle": "组件健康状态"
+    },
+    "create": {
+      "title": "新建 K8s 集群",
+      "steps": {
+        "env": "选环境",
+        "basic": "基础信息",
+        "nodes": "节点规格",
+        "confirm": "确认"
+      },
+      "fields": {
+        "environment": "部署环境",
+        "provider": "Provider",
+        "clusterName": "集群名称",
+        "clusterNamePlaceholder": "如 prod-cluster-01",
+        "k8sVersion": "K8s 版本",
+        "masterCount": "控制面节点数",
+        "workerCount": "工作节点数",
+        "cpu": "CPU 核数",
+        "memory": "内存 (GB)",
+        "disk": "系统盘 (GB)"
+      },
+      "envOptions": {
+        "private": "私有云",
+        "cloud": "公有云",
+        "xinchuang": "信创"
+      },
+      "providerOptions": {
+        "vsphere": "vSphere",
+        "openstack": "OpenStack",
+        "huawei": "华为云",
+        "ali": "阿里云",
+        "tencent": "腾讯云",
+        "xinchang": "信创"
+      },
+      "summary": {
+        "env": "环境",
+        "provider": "Provider",
+        "clusterName": "集群名称",
+        "k8sVersion": "K8s 版本",
+        "nodeCount": "节点数",
+        "nodeCountFmt": "{master} 控制面 + {worker} 工作",
+        "spec": "单节点规格",
+        "specFmt": "{cpu} 核 / {memory} GB / {disk} GB"
+      },
+      "actions": {
+        "prev": "上一步",
+        "next": "下一步",
+        "submit": "提交",
+        "cancel": "取消"
+      }
+    },
+    "rules": {
+      "environmentRequired": "请选择部署环境",
+      "providerRequired": "请选择 Provider",
+      "clusterNameRequired": "请输入集群名称",
+      "k8sVersionRequired": "请选择 K8s 版本"
+    },
+    "messages": {
+      "created": "集群创建已提交",
+      "destroyed": "销毁请求已提交",
+      "destroyConfirm": "确认销毁集群「{name}」？该操作不可恢复。",
+      "destroyConfirmTitle": "危险操作",
+      "destroyConfirmOk": "销毁",
+      "destroyConfirmCancel": "取消"
+    }
+  }
+}

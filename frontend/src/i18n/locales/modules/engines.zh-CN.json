@@ -43,6 +43,13 @@
         "running": "运行中",
         "stopped": "已停止",
         "warning": "告警"
+      },
+      "components": {
+        "status": {
+          "healthy": "健康",
+          "warning": "警告",
+          "error": "故障"
+        }
       }
     },
     "tabs": {

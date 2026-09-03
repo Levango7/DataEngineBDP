@@ -69,6 +69,12 @@ import dataLineageZh from './locales/modules/dataLineage.zh-CN.json'
 import dataLineageEn from './locales/modules/dataLineage.en-US.json'
 import enginesZh from './locales/modules/engines.zh-CN.json'
 import enginesEn from './locales/modules/engines.en-US.json'
+import infraK8sZh from './locales/modules/infraK8s.zh-CN.json'
+import infraK8sEn from './locales/modules/infraK8s.en-US.json'
+import infraMachineZh from './locales/modules/infraMachine.zh-CN.json'
+import infraMachineEn from './locales/modules/infraMachine.en-US.json'
+import infraSchedZh from './locales/modules/infraSched.zh-CN.json'
+import infraSchedEn from './locales/modules/infraSched.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -150,7 +156,10 @@ export const i18n = createI18n({
       ...quotaManagementZh,
       ...clusterOverviewZh,
       ...dataLineageZh,
-      ...enginesZh
+      ...enginesZh,
+      ...infraK8sZh,
+      ...infraMachineZh,
+      ...infraSchedZh
     },
     'en-US': {
       ...enUS,
@@ -187,7 +196,10 @@ export const i18n = createI18n({
       ...quotaManagementEn,
       ...clusterOverviewEn,
       ...dataLineageEn,
-      ...enginesEn
+      ...enginesEn,
+      ...infraK8sEn,
+      ...infraMachineEn,
+      ...infraSchedEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

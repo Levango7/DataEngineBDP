@@ -1,47 +1,47 @@
 <template>
   <div class="infra-k8s-page">
-    <h1>K8s 集群</h1>
-    <div class="sub">跨环境统一集群管理 · 私有云 / 公有云 / 信创 · 30 秒自动刷新</div>
+    <h1>{{ t('infraK8s.title') }}</h1>
+    <div class="sub">{{ t('infraK8s.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="loading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ error.message }}，
-            <a href="javascript:void(0)" @click="reload">重试</a>
+            <a href="javascript:void(0)" @click="reload">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else-if="clusters">
         <div class="card">
-          <h3>集群总数</h3>
+          <h3>{{ t('infraK8s.kpi.total') }}</h3>
           <div class="kpi">{{ kpi.total }}</div>
-          <div class="meta">跨环境汇总</div>
+          <div class="meta">{{ t('infraK8s.kpi.totalMeta') }}</div>
         </div>
         <div class="card">
-          <h3>运行中</h3>
+          <h3>{{ t('infraK8s.kpi.running') }}</h3>
           <div class="kpi s">{{ kpi.running }}</div>
-          <div class="meta">状态正常</div>
+          <div class="meta">{{ t('infraK8s.kpi.runningMeta') }}</div>
         </div>
         <div class="card">
-          <h3>异常</h3>
+          <h3>{{ t('infraK8s.kpi.failed') }}</h3>
           <div class="kpi d">{{ kpi.failed }}</div>
-          <div class="meta">需人工介入</div>
+          <div class="meta">{{ t('infraK8s.kpi.failedMeta') }}</div>
         </div>
         <div class="card">
-          <h3>环境分布</h3>
+          <h3>{{ t('infraK8s.kpi.envCount') }}</h3>
           <div class="kpi">{{ kpi.envCount }}</div>
           <div class="meta">
-            私有 {{ kpi.privateCount }} · 公有 {{ kpi.cloudCount }} · 信创 {{ kpi.xinchuangCount }}
+            {{ t('infraK8s.kpi.envBreakdown', { p: kpi.privateCount, c: kpi.cloudCount, x: kpi.xinchuangCount }) }}
           </div>
         </div>
       </template>
@@ -50,15 +50,15 @@
     <!-- 操作栏 + 环境筛选 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">+ 新建集群</el-button>
+        <el-button type="primary" @click="openCreateDialog">{{ t('infraK8s.toolbar.create') }}</el-button>
         <el-tabs v-model="activeEnv" type="card" class="env-tabs" @tab-change="handleEnvChange">
-          <el-tab-pane label="全部" name="all" />
-          <el-tab-pane label="私有云" name="private" />
-          <el-tab-pane label="公有云" name="cloud" />
-          <el-tab-pane label="信创" name="xinchuang" />
+          <el-tab-pane :label="t('infraK8s.toolbar.envTabs.all')" name="all" />
+          <el-tab-pane :label="t('infraK8s.toolbar.envTabs.private')" name="private" />
+          <el-tab-pane :label="t('infraK8s.toolbar.envTabs.cloud')" name="cloud" />
+          <el-tab-pane :label="t('infraK8s.toolbar.envTabs.xinchuang')" name="xinchuang" />
         </el-tabs>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="reload" />
+        <el-button :icon="Refresh" circle :aria-label="t('infraK8s.toolbar.refreshAria')" @click="reload" />
       </div>
 
       <el-table
@@ -67,35 +67,35 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? '加载失败，请重试' : '暂无集群'"
+        :empty-text="error ? t('infraK8s.table.loadFailed') : t('infraK8s.table.empty')"
       >
-        <el-table-column prop="clusterName" label="集群名称" min-width="180" />
-        <el-table-column label="环境" width="110">
+        <el-table-column prop="clusterName" :label="t('infraK8s.table.columns.name')" min-width="180" />
+        <el-table-column :label="t('infraK8s.table.columns.env')" width="110">
           <template #default="{ row }">
             <el-tag :type="envTagType(row.environment)" effect="light">
               {{ envLabel(row.environment) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="Provider" width="120">
+        <el-table-column :label="t('infraK8s.table.columns.provider')" width="120">
           <template #default="{ row }">{{ providerLabel(row.provider) }}</template>
         </el-table-column>
-        <el-table-column label="状态" width="110">
+        <el-table-column :label="t('infraK8s.table.columns.status')" width="110">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
               {{ statusLabel(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="k8sVersion" label="K8s 版本" width="110" />
-        <el-table-column label="节点数" width="120" align="center">
+        <el-table-column prop="k8sVersion" :label="t('infraK8s.table.columns.k8sVersion')" width="110" />
+        <el-table-column :label="t('infraK8s.table.columns.nodeCount')" width="120" align="center">
           <template #default="{ row }">{{ row.controlPlaneCount + row.workerCount }}</template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="创建时间" width="180" />
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column prop="createdAt" :label="t('infraK8s.table.columns.createdAt')" width="180" />
+        <el-table-column :label="t('infraK8s.table.columns.actions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetailDrawer(row)">详情</el-button>
-            <el-button link type="danger" @click="handleDestroy(row)">销毁</el-button>
+            <el-button link type="primary" @click="openDetailDrawer(row)">{{ t('infraK8s.table.actions.detail') }}</el-button>
+            <el-button link type="danger" @click="handleDestroy(row)">{{ t('infraK8s.table.actions.destroy') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -104,59 +104,59 @@
     <!-- 集群详情抽屉 -->
     <el-drawer
       v-model="detailDrawerVisible"
-      :title="detailCluster?.clusterName ?? '集群详情'"
+      :title="detailCluster ? t('infraK8s.detail.title', { name: detailCluster.clusterName }) : t('infraK8s.detail.titleFallback')"
       size="60%"
       @closed="closeDetailDrawer"
     >
       <template v-if="detailCluster">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="集群 ID">{{ detailCluster.clusterId }}</el-descriptions-item>
-          <el-descriptions-item label="集群名称">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.clusterId')">{{ detailCluster.clusterId }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraK8s.detail.fields.clusterName')">
             {{ detailCluster.clusterName }}
           </el-descriptions-item>
-          <el-descriptions-item label="环境">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.env')">
             {{ envLabel(detailCluster.environment) }}
           </el-descriptions-item>
-          <el-descriptions-item label="Provider">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.provider')">
             {{ providerLabel(detailCluster.provider) }}
           </el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.status')">
             <el-tag :type="statusTagType(detailCluster.status)" effect="light">
               {{ statusLabel(detailCluster.status) }}
             </el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="K8s 版本">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.k8sVersion')">
             {{ detailCluster.k8sVersion }}
           </el-descriptions-item>
-          <el-descriptions-item label="控制面节点">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.controlPlane')">
             {{ detailCluster.controlPlaneCount }}
           </el-descriptions-item>
-          <el-descriptions-item label="工作节点">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.worker')">
             {{ detailCluster.workerCount }}
           </el-descriptions-item>
-          <el-descriptions-item label="Pod CIDR">{{ detailCluster.podCidr }}</el-descriptions-item>
-          <el-descriptions-item label="Service CIDR">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.podCidr')">{{ detailCluster.podCidr }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraK8s.detail.fields.serviceCidr')">
             {{ detailCluster.serviceCidr }}
           </el-descriptions-item>
-          <el-descriptions-item label="创建时间">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.createdAt')">
             {{ detailCluster.createdAt }}
           </el-descriptions-item>
-          <el-descriptions-item label="更新时间">
+          <el-descriptions-item :label="t('infraK8s.detail.fields.updatedAt')">
             {{ detailCluster.updatedAt }}
           </el-descriptions-item>
         </el-descriptions>
 
-        <h3 style="margin: 20px 0 12px">节点列表</h3>
+        <h3 style="margin: 20px 0 12px">{{ t('infraK8s.detail.nodesTitle') }}</h3>
         <el-table
           v-loading="nodesLoading"
           :data="nodes"
           stripe
           border
           size="small"
-          :empty-text="nodesError ? '节点列表加载失败' : '暂无节点'"
+          :empty-text="nodesError ? t('infraK8s.detail.nodesLoadFailed') : t('infraK8s.detail.nodesEmpty')"
         >
-          <el-table-column prop="name" label="节点名" min-width="180" />
-          <el-table-column label="角色" width="120">
+          <el-table-column prop="name" :label="t('infraK8s.detail.nodeColumns.name')" min-width="180" />
+          <el-table-column :label="t('infraK8s.detail.nodeColumns.role')" width="120">
             <template #default="{ row }">
               <el-tag
                 v-for="role in row.roles"
@@ -170,23 +170,23 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="状态" width="100">
+          <el-table-column :label="t('infraK8s.detail.nodeColumns.status')" width="100">
             <template #default="{ row }">
               <el-tag :type="nodeStatusType(row.status)" effect="light" size="small">
                 {{ row.status }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="CPU" width="140">
-            <template #default="{ row }">{{ row.cpuUsed }} / {{ row.cpuCapacity }} 核</template>
+          <el-table-column :label="t('infraK8s.detail.nodeColumns.cpu')" width="140">
+            <template #default="{ row }">{{ t('infraK8s.detail.cpuFmt', { used: row.cpuUsed, cap: row.cpuCapacity }) }}</template>
           </el-table-column>
-          <el-table-column label="内存" width="140">
-            <template #default="{ row }">{{ row.memUsed }} / {{ row.memCapacity }} GB</template>
+          <el-table-column :label="t('infraK8s.detail.nodeColumns.mem')" width="140">
+            <template #default="{ row }">{{ t('infraK8s.detail.memFmt', { used: row.memUsed, cap: row.memCapacity }) }}</template>
           </el-table-column>
-          <el-table-column prop="osImage" label="操作系统" min-width="160" />
+          <el-table-column prop="osImage" :label="t('infraK8s.detail.nodeColumns.os')" min-width="160" />
         </el-table>
 
-        <h3 style="margin: 20px 0 12px">组件健康状态</h3>
+        <h3 style="margin: 20px 0 12px">{{ t('infraK8s.detail.componentsTitle') }}</h3>
         <el-row :gutter="12">
           <el-col v-for="comp in components" :key="comp.name" :xs="12" :sm="8" :md="6" :lg="4">
             <div class="comp-card" :class="comp.status">
@@ -205,16 +205,16 @@
     <!-- 新建集群向导 -->
     <el-dialog
       v-model="createDialogVisible"
-      title="新建 K8s 集群"
+      :title="t('infraK8s.create.title')"
       width="640px"
       :close-on-click-modal="false"
       @closed="resetCreateForm"
     >
       <el-steps :active="createStep" finish-status="success" simple style="margin-bottom: 20px">
-        <el-step title="选环境" />
-        <el-step title="基础信息" />
-        <el-step title="节点规格" />
-        <el-step title="确认" />
+        <el-step :title="t('infraK8s.create.steps.env')" />
+        <el-step :title="t('infraK8s.create.steps.basic')" />
+        <el-step :title="t('infraK8s.create.steps.nodes')" />
+        <el-step :title="t('infraK8s.create.steps.confirm')" />
       </el-steps>
 
       <el-form
@@ -225,30 +225,30 @@
         label-position="right"
       >
         <template v-if="createStep === 0">
-          <el-form-item label="部署环境" prop="environment">
+          <el-form-item :label="t('infraK8s.create.fields.environment')" prop="environment">
             <el-select v-model="createForm.environment" style="width: 100%">
-              <el-option label="私有云" value="private" />
-              <el-option label="公有云" value="cloud" />
-              <el-option label="信创" value="xinchuang" />
+              <el-option :label="t('infraK8s.create.envOptions.private')" value="private" />
+              <el-option :label="t('infraK8s.create.envOptions.cloud')" value="cloud" />
+              <el-option :label="t('infraK8s.create.envOptions.xinchuang')" value="xinchuang" />
             </el-select>
           </el-form-item>
-          <el-form-item label="Provider" prop="provider">
+          <el-form-item :label="t('infraK8s.create.fields.provider')" prop="provider">
             <el-select v-model="createForm.provider" style="width: 100%">
-              <el-option label="vSphere" value="vsphere" />
-              <el-option label="OpenStack" value="openstack" />
-              <el-option label="华为云" value="huawei" />
-              <el-option label="阿里云" value="ali" />
-              <el-option label="腾讯云" value="tencent" />
-              <el-option label="信创" value="xinchang" />
+              <el-option :label="t('infraK8s.create.providerOptions.vsphere')" value="vsphere" />
+              <el-option :label="t('infraK8s.create.providerOptions.openstack')" value="openstack" />
+              <el-option :label="t('infraK8s.create.providerOptions.huawei')" value="huawei" />
+              <el-option :label="t('infraK8s.create.providerOptions.ali')" value="ali" />
+              <el-option :label="t('infraK8s.create.providerOptions.tencent')" value="tencent" />
+              <el-option :label="t('infraK8s.create.providerOptions.xinchang')" value="xinchang" />
             </el-select>
           </el-form-item>
         </template>
 
         <template v-else-if="createStep === 1">
-          <el-form-item label="集群名称" prop="clusterName">
-            <el-input v-model="createForm.clusterName" placeholder="如 prod-cluster-01" />
+          <el-form-item :label="t('infraK8s.create.fields.clusterName')" prop="clusterName">
+            <el-input v-model="createForm.clusterName" :placeholder="t('infraK8s.create.fields.clusterNamePlaceholder')" />
           </el-form-item>
-          <el-form-item label="K8s 版本" prop="k8sVersion">
+          <el-form-item :label="t('infraK8s.create.fields.k8sVersion')" prop="k8sVersion">
             <el-select v-model="createForm.k8sVersion" style="width: 100%">
               <el-option label="v1.28" value="v1.28" />
               <el-option label="v1.27" value="v1.27" />
@@ -258,54 +258,54 @@
         </template>
 
         <template v-else-if="createStep === 2">
-          <el-form-item label="控制面节点数" prop="masterCount">
+          <el-form-item :label="t('infraK8s.create.fields.masterCount')" prop="masterCount">
             <el-input-number v-model="createForm.masterCount" :min="1" :max="9" />
           </el-form-item>
-          <el-form-item label="工作节点数" prop="workerCount">
+          <el-form-item :label="t('infraK8s.create.fields.workerCount')" prop="workerCount">
             <el-input-number v-model="createForm.workerCount" :min="1" :max="200" />
           </el-form-item>
-          <el-form-item label="CPU 核数" prop="cpu">
+          <el-form-item :label="t('infraK8s.create.fields.cpu')" prop="cpu">
             <el-input-number v-model="createForm.cpu" :min="2" :max="128" />
           </el-form-item>
-          <el-form-item label="内存 (GB)" prop="memory">
+          <el-form-item :label="t('infraK8s.create.fields.memory')" prop="memory">
             <el-input-number v-model="createForm.memory" :min="4" :max="1024" />
           </el-form-item>
-          <el-form-item label="系统盘 (GB)" prop="disk">
+          <el-form-item :label="t('infraK8s.create.fields.disk')" prop="disk">
             <el-input-number v-model="createForm.disk" :min="50" :max="2000" />
           </el-form-item>
         </template>
 
         <template v-else-if="createStep === 3">
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="环境">
+            <el-descriptions-item :label="t('infraK8s.create.summary.env')">
               {{ envLabel(createForm.environment) }}
             </el-descriptions-item>
-            <el-descriptions-item label="Provider">
+            <el-descriptions-item :label="t('infraK8s.create.summary.provider')">
               {{ providerLabel(createForm.provider) }}
             </el-descriptions-item>
-            <el-descriptions-item label="集群名称">
+            <el-descriptions-item :label="t('infraK8s.create.summary.clusterName')">
               {{ createForm.clusterName }}
             </el-descriptions-item>
-            <el-descriptions-item label="K8s 版本">
+            <el-descriptions-item :label="t('infraK8s.create.summary.k8sVersion')">
               {{ createForm.k8sVersion }}
             </el-descriptions-item>
-            <el-descriptions-item label="节点数">
-              {{ createForm.masterCount }} 控制面 + {{ createForm.workerCount }} 工作
+            <el-descriptions-item :label="t('infraK8s.create.summary.nodeCount')">
+              {{ t('infraK8s.create.summary.nodeCountFmt', { master: createForm.masterCount, worker: createForm.workerCount }) }}
             </el-descriptions-item>
-            <el-descriptions-item label="单节点规格">
-              {{ createForm.cpu }} 核 / {{ createForm.memory }} GB / {{ createForm.disk }} GB
+            <el-descriptions-item :label="t('infraK8s.create.summary.spec')">
+              {{ t('infraK8s.create.summary.specFmt', { cpu: createForm.cpu, memory: createForm.memory, disk: createForm.disk }) }}
             </el-descriptions-item>
           </el-descriptions>
         </template>
       </el-form>
 
       <template #footer>
-        <el-button v-if="createStep > 0" @click="createStep--">上一步</el-button>
-        <el-button v-if="createStep < 3" type="primary" @click="nextCreateStep">下一步</el-button>
+        <el-button v-if="createStep > 0" @click="createStep--">{{ t('infraK8s.create.actions.prev') }}</el-button>
+        <el-button v-if="createStep < 3" type="primary" @click="nextCreateStep">{{ t('infraK8s.create.actions.next') }}</el-button>
         <el-button v-else type="primary" :loading="submitting" @click="handleCreate">
-          提交
+          {{ t('infraK8s.create.actions.submit') }}
         </el-button>
-        <el-button @click="createDialogVisible = false">取消</el-button>
+        <el-button @click="createDialogVisible = false">{{ t('infraK8s.create.actions.cancel') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -313,6 +313,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
@@ -326,6 +327,8 @@ import type {
   ClusterComponent,
   ComponentHealth
 } from '@/api/infra'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 集群列表 ------------------------------ */
 
@@ -442,12 +445,12 @@ const createForm = reactive<CreateForm>({
   disk: 100
 })
 
-const createRules: FormRules = {
-  environment: [{ required: true, message: '请选择部署环境', trigger: 'change' }],
-  provider: [{ required: true, message: '请选择 Provider', trigger: 'change' }],
-  clusterName: [{ required: true, message: '请输入集群名称', trigger: 'blur' }],
-  k8sVersion: [{ required: true, message: '请选择 K8s 版本', trigger: 'change' }]
-}
+const createRules = computed<FormRules>(() => ({
+  environment: [{ required: true, message: t('infraK8s.rules.environmentRequired'), trigger: 'change' }],
+  provider: [{ required: true, message: t('infraK8s.rules.providerRequired'), trigger: 'change' }],
+  clusterName: [{ required: true, message: t('infraK8s.rules.clusterNameRequired'), trigger: 'blur' }],
+  k8sVersion: [{ required: true, message: t('infraK8s.rules.k8sVersionRequired'), trigger: 'change' }]
+}))
 
 /** 打开新建弹窗 */
 function openCreateDialog() {
@@ -506,7 +509,7 @@ async function handleCreate() {
         }
       ]
     })
-    ElMessage.success('集群创建已提交')
+    ElMessage.success(t('infraK8s.messages.created'))
     createDialogVisible.value = false
     await reload()
   } catch {
@@ -521,14 +524,14 @@ async function handleCreate() {
 /** 销毁集群（带二次确认） */
 async function handleDestroy(row: CrossEnvClusterInfo) {
   try {
-    await ElMessageBox.confirm(`确认销毁集群「${row.clusterName}」？该操作不可恢复。`, '危险操作', {
+    await ElMessageBox.confirm(t('infraK8s.messages.destroyConfirm', { name: row.clusterName }), t('infraK8s.messages.destroyConfirmTitle'), {
       type: 'warning',
-      confirmButtonText: '销毁',
-      cancelButtonText: '取消',
+      confirmButtonText: t('infraK8s.messages.destroyConfirmOk'),
+      cancelButtonText: t('infraK8s.messages.destroyConfirmCancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await infraApi.destroyCluster(row.environment, row.clusterId)
-    ElMessage.success('销毁请求已提交')
+    ElMessage.success(t('infraK8s.messages.destroyed'))
     await reload()
   } catch {
     // 用户取消或销毁失败，不重复提示
@@ -537,50 +540,38 @@ async function handleDestroy(row: CrossEnvClusterInfo) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<
-  ClusterStatus,
-  { label: string; type: 'success' | 'warning' | 'danger' | 'info' }
-> = {
-  CREATING: { label: '创建中', type: 'warning' },
-  RUNNING: { label: '运行中', type: 'success' },
-  FAILED: { label: '异常', type: 'danger' },
-  DESTROYED: { label: '已销毁', type: 'info' },
-  UPDATING: { label: '更新中', type: 'warning' }
+const STATUS_TAG_TYPE_MAP: Record<ClusterStatus, 'success' | 'warning' | 'danger' | 'info'> = {
+  CREATING: 'warning',
+  RUNNING: 'success',
+  FAILED: 'danger',
+  DESTROYED: 'info',
+  UPDATING: 'warning'
 }
 
 function statusLabel(status: ClusterStatus): string {
-  return STATUS_MAP[status]?.label ?? status
+  return t(`infraK8s.status.${status}`)
 }
 
 function statusTagType(status: ClusterStatus): 'success' | 'warning' | 'danger' | 'info' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
 
-const ENV_MAP: Record<ClusterEnv, { label: string; type: 'primary' | 'success' | 'warning' }> = {
-  private: { label: '私有云', type: 'primary' },
-  cloud: { label: '公有云', type: 'success' },
-  xinchuang: { label: '信创', type: 'warning' }
+const ENV_TAG_TYPE_MAP: Record<ClusterEnv, 'primary' | 'success' | 'warning'> = {
+  private: 'primary',
+  cloud: 'success',
+  xinchuang: 'warning'
 }
 
 function envLabel(env: ClusterEnv): string {
-  return ENV_MAP[env]?.label ?? env
+  return t(`infraK8s.env.${env}`)
 }
 
 function envTagType(env: ClusterEnv): 'primary' | 'success' | 'warning' {
-  return ENV_MAP[env]?.type ?? 'primary'
-}
-
-const PROVIDER_LABELS: Record<ProviderKind, string> = {
-  vsphere: 'vSphere',
-  openstack: 'OpenStack',
-  huawei: '华为云',
-  ali: '阿里云',
-  tencent: '腾讯云',
-  xinchang: '信创'
+  return ENV_TAG_TYPE_MAP[env] ?? 'primary'
 }
 
 function providerLabel(p: ProviderKind): string {
-  return PROVIDER_LABELS[p] ?? p
+  return t(`infraK8s.provider.${p}`)
 }
 
 /** 节点状态 → tag 类型 */
@@ -590,14 +581,9 @@ function nodeStatusType(status: string): 'success' | 'danger' | 'info' {
   return 'info'
 }
 
-const COMP_STATUS_LABELS: Record<ComponentHealth, string> = {
-  healthy: '健康',
-  warning: '警告',
-  error: '故障'
-}
-
+/** 组件健康状态词条 */
 function compStatusLabel(status: ComponentHealth): string {
-  return COMP_STATUS_LABELS[status]
+  return t(`engines.components.status.${status}`)
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */

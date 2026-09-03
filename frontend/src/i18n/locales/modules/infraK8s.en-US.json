@@ -1,0 +1,160 @@
+{
+  "infraK8s": {
+    "title": "K8s Clusters",
+    "subtitle": "Unified cross-environment cluster management · Private / Public Cloud / Xinchuang · 30s auto refresh",
+    "kpi": {
+      "total": "Total Clusters",
+      "totalMeta": "Across all environments",
+      "running": "Running",
+      "runningMeta": "Healthy",
+      "failed": "Failed",
+      "failedMeta": "Requires manual intervention",
+      "envCount": "Environments",
+      "envBreakdown": "Private {p} · Public {c} · Xinchuang {x}"
+    },
+    "toolbar": {
+      "create": "+ New Cluster",
+      "refreshAria": "Refresh cluster list",
+      "envTabs": {
+        "all": "All",
+        "private": "Private",
+        "cloud": "Public",
+        "xinchuang": "Xinchuang"
+      }
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No clusters",
+      "columns": {
+        "name": "Cluster Name",
+        "env": "Environment",
+        "provider": "Provider",
+        "status": "Status",
+        "k8sVersion": "K8s Version",
+        "nodeCount": "Nodes",
+        "createdAt": "Created",
+        "actions": "Actions"
+      },
+      "actions": {
+        "detail": "Detail",
+        "destroy": "Destroy"
+      }
+    },
+    "env": {
+      "private": "Private",
+      "cloud": "Public Cloud",
+      "xinchuang": "Xinchuang"
+    },
+    "status": {
+      "CREATING": "Creating",
+      "RUNNING": "Running",
+      "FAILED": "Failed",
+      "DESTROYED": "Destroyed",
+      "UPDATING": "Updating"
+    },
+    "provider": {
+      "vsphere": "vSphere",
+      "openstack": "OpenStack",
+      "huawei": "Huawei Cloud",
+      "ali": "Alibaba Cloud",
+      "tencent": "Tencent Cloud",
+      "xinchang": "Xinchuang"
+    },
+    "detail": {
+      "title": "{name}",
+      "titleFallback": "Cluster Detail",
+      "fields": {
+        "clusterId": "Cluster ID",
+        "clusterName": "Cluster Name",
+        "env": "Environment",
+        "provider": "Provider",
+        "status": "Status",
+        "k8sVersion": "K8s Version",
+        "controlPlane": "Control Plane Nodes",
+        "worker": "Worker Nodes",
+        "podCidr": "Pod CIDR",
+        "serviceCidr": "Service CIDR",
+        "createdAt": "Created",
+        "updatedAt": "Updated"
+      },
+      "nodesTitle": "Nodes",
+      "nodesLoadFailed": "Failed to load nodes",
+      "nodesEmpty": "No nodes",
+      "nodeColumns": {
+        "name": "Node Name",
+        "role": "Role",
+        "status": "Status",
+        "cpu": "CPU",
+        "mem": "Memory",
+        "os": "OS"
+      },
+      "cpuFmt": "{used} / {cap} cores",
+      "memFmt": "{used} / {cap} GB",
+      "componentsTitle": "Component Health"
+    },
+    "create": {
+      "title": "New K8s Cluster",
+      "steps": {
+        "env": "Select Environment",
+        "basic": "Basic Info",
+        "nodes": "Node Specs",
+        "confirm": "Confirm"
+      },
+      "fields": {
+        "environment": "Environment",
+        "provider": "Provider",
+        "clusterName": "Cluster Name",
+        "clusterNamePlaceholder": "e.g. prod-cluster-01",
+        "k8sVersion": "K8s Version",
+        "masterCount": "Control Plane Nodes",
+        "workerCount": "Worker Nodes",
+        "cpu": "CPU Cores",
+        "memory": "Memory (GB)",
+        "disk": "System Disk (GB)"
+      },
+      "envOptions": {
+        "private": "Private",
+        "cloud": "Public",
+        "xinchuang": "Xinchuang"
+      },
+      "providerOptions": {
+        "vsphere": "vSphere",
+        "openstack": "OpenStack",
+        "huawei": "Huawei Cloud",
+        "ali": "Alibaba Cloud",
+        "tencent": "Tencent Cloud",
+        "xinchang": "Xinchuang"
+      },
+      "summary": {
+        "env": "Environment",
+        "provider": "Provider",
+        "clusterName": "Cluster Name",
+        "k8sVersion": "K8s Version",
+        "nodeCount": "Node Count",
+        "nodeCountFmt": "{master} control plane + {worker} worker",
+        "spec": "Per-node Spec",
+        "specFmt": "{cpu} cores / {memory} GB / {disk} GB"
+      },
+      "actions": {
+        "prev": "Previous",
+        "next": "Next",
+        "submit": "Submit",
+        "cancel": "Cancel"
+      }
+    },
+    "rules": {
+      "environmentRequired": "Please select an environment",
+      "providerRequired": "Please select a Provider",
+      "clusterNameRequired": "Please enter cluster name",
+      "k8sVersionRequired": "Please select K8s version"
+    },
+    "messages": {
+      "created": "Cluster creation submitted",
+      "destroyed": "Cluster destruction submitted",
+      "destroyConfirm": "Confirm destruction of cluster \"{name}\"? This cannot be undone.",
+      "destroyConfirmTitle": "Dangerous Operation",
+      "destroyConfirmOk": "Destroy",
+      "destroyConfirmCancel": "Cancel"
+    }
+  }
+}

@@ -1,0 +1,100 @@
+{
+  "infraSched": {
+    "title": "弹性调度",
+    "subtitle": "HPA · Cluster Autoscaler · 扩缩容事件历史",
+    "selectCluster": {
+      "label": "目标集群：",
+      "placeholder": "请选择集群",
+      "optionFmt": "{name}（{env}）",
+      "refreshAria": "刷新调度数据"
+    },
+    "selectClusterHint": "请先选择目标集群",
+    "selectClusterHintMeta": "在上方下拉框中选择需要管理的集群",
+    "kpi": {
+      "total": "策略总数",
+      "totalMeta": "HPA 策略",
+      "scaleUpToday": "今日扩容",
+      "times": "次",
+      "scaleDownToday": "今日缩容",
+      "avgDuration": "平均响应",
+      "avgDurationMeta": "单次扩缩容耗时"
+    },
+    "hpaList": {
+      "title": "HPA 策略列表",
+      "new": "+ 新建 HPA",
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无 HPA 策略",
+      "columns": {
+        "name": "名称",
+        "namespace": "命名空间",
+        "targetDeployment": "目标 Deployment",
+        "replicas": "副本数",
+        "replicasFmt": "{min} ~ {max}",
+        "currentReplicas": "当前 {current}",
+        "cpuThreshold": "CPU 阈值",
+        "memoryThreshold": "内存阈值",
+        "status": "状态",
+        "actions": "操作"
+      },
+      "actions": {
+        "edit": "编辑",
+        "delete": "删除"
+      }
+    },
+    "hpaForm": {
+      "createTitle": "新建 HPA 策略",
+      "editTitle": "编辑 HPA 策略",
+      "fields": {
+        "name": "名称",
+        "namePlaceholder": "如 web-hpa",
+        "namespace": "命名空间",
+        "namespacePlaceholder": "如 default",
+        "targetDeployment": "目标 Deployment",
+        "targetDeploymentPlaceholder": "如 web-deploy",
+        "minReplicas": "最小副本数",
+        "maxReplicas": "最大副本数",
+        "cpuThreshold": "CPU 阈值 (%)",
+        "memoryThreshold": "内存阈值 (%)"
+      },
+      "actions": {
+        "cancel": "取消",
+        "save": "保存",
+        "create": "创建"
+      }
+    },
+    "hpaStatus": {
+      "active": "运行中",
+      "paused": "已暂停"
+    },
+    "events": {
+      "title": "扩缩容事件流",
+      "loading": "加载中…",
+      "loadFailed": "事件流加载失败",
+      "empty": "暂无扩缩容事件",
+      "triggerFmt": "触发：{trigger}",
+      "replicasFmt": "副本 {from} → {to}",
+      "durationFmt": "耗时 {duration}"
+    },
+    "eventType": {
+      "scale_up": "扩容",
+      "scale_down": "缩容"
+    },
+    "rules": {
+      "nameRequired": "请输入策略名",
+      "namespaceRequired": "请输入命名空间",
+      "targetDeploymentRequired": "请输入目标 Deployment",
+      "minReplicasRequired": "请输入最小副本数",
+      "maxReplicasRequired": "请输入最大副本数",
+      "cpuThresholdRequired": "请输入 CPU 阈值"
+    },
+    "messages": {
+      "hpaCreated": "HPA 策略已创建",
+      "hpaUpdated": "HPA 策略已更新",
+      "hpaDeleted": "策略已删除",
+      "hpaDeleteConfirm": "确认删除 HPA 策略「{name}」？",
+      "hpaDeleteConfirmTitle": "删除确认",
+      "hpaDeleteConfirmOk": "删除",
+      "hpaDeleteConfirmCancel": "取消"
+    }
+  }
+}
