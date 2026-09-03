@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
@@ -59,6 +60,15 @@ public final class BuiltinRuleTemplates {
 
     /** 全部模板（按维度分组，LinkedHashMap 保序）。 */
     private static final Map<String, Template> TEMPLATES = buildTemplates();
+
+    /**
+     * 全部模板 ID（不可变视图，供 batch-pipeline 适配器等下游校验模板存在性）。
+     *
+     * @return 模板 ID 集合
+     */
+    public static Set<String> templateIds() {
+        return Collections.unmodifiableSet(TEMPLATES.keySet());
+    }
 
     private static Map<String, Template> buildTemplates() {
         Map<String, Template> m = new LinkedHashMap<>();
