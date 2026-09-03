@@ -101,10 +101,13 @@ E2E_BASE_URLS: Dict[str, str] = {
     "finetuning_loop": os.environ.get("FINETUNING_LOOP_URL", "http://localhost:18088"),
     "model_registry": os.environ.get("MODEL_REGISTRY_URL", "http://localhost:18089"),
     # E2E 新增服务
-    "karmada": os.environ.get("KARMADA_URL", "http://localhost:18090"),
+    # Sprint 3.1.3 端口卫生：以下宿主机端口与 tests/integration/docker-compose.yml
+    # 映射完全对齐（单一真相源）。karmada/observability 原规划端口 18090/18093 已
+    # 让渡给入栈的 encaps-tenant/business-portal（二者未入栈，待入栈时重分配端口）。
+    "encaps_tenant": os.environ.get("ENCAPS_TENANT_URL", "http://localhost:18090"),
     "knative": os.environ.get("KNATIVE_URL", "http://localhost:18091"),
     "governance": os.environ.get("GOVERNANCE_URL", "http://localhost:18092"),
-    "observability": os.environ.get("OBSERVABILITY_URL", "http://localhost:18093"),
+    "business_portal": os.environ.get("BUSINESS_PORTAL_URL", "http://localhost:18093"),
     "asset_exchange": os.environ.get("ASSET_EXCHANGE_URL", "http://localhost:18094"),
     "open_api_catalog": os.environ.get("OPEN_API_CATALOG_URL", "http://localhost:18095"),
     "industry_templates": os.environ.get("INDUSTRY_TEMPLATES_URL", "http://localhost:18096"),
@@ -121,10 +124,10 @@ E2E_HEALTH_PATHS: Dict[str, str] = {
     "finops_dashboard": "/api/v1/health",
     "finetuning_loop": "/health",
     "model_registry": "/health",
-    "karmada": "/api/v1/health",
+    "encaps_tenant": "/actuator/health",
     "knative": "/api/v1/health",
     "governance": "/api/v1/health",
-    "observability": "/api/v1/health",
+    "business_portal": "/api/v1/health",
     "asset_exchange": "/api/v1/health",
     "open_api_catalog": "/api/v1/health",
     "industry_templates": "/api/v1/health",

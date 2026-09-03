@@ -522,47 +522,10 @@ def test_req_multimodal(
 
 
 # ===========================================================================
-# P2 需求（3 项）— Phase 3 实现，先写骨架并标记 skip
+# P2 需求（3 项）— Sprint 3.2 已迁移至 test_e2e_p2_landed.py（真实 API 落地）
 # ===========================================================================
-
-@pytest.mark.p2
-@pytest.mark.requirement("P2-26 数据虚拟化")
-@pytest.mark.skip(reason="P2 需求：数据虚拟化在 Phase 3 实现，当前为骨架")
-def test_req_data_virtualization():
-    """P2-26 数据虚拟化（骨架）。
-
-    Phase 3 实现后取消 skip 并补充真实 API 调用：
-    1. 注册虚拟化视图（跨源 JOIN 不物化）；
-    2. 通过虚拟视图执行查询；
-    3. 验证结果与底层源一致。
-    """
-    # 骨架：Phase 3 实现后填充
-    pass
-
-
-@pytest.mark.p2
-@pytest.mark.requirement("P2-27 能源行业模板")
-@pytest.mark.skip(reason="P2 需求：能源行业模板在 Phase 3 实现，当前为骨架")
-def test_req_energy_template():
-    """P2-27 能源行业模板（骨架）。
-
-    Phase 3 实现后取消 skip 并补充真实 API 调用：
-    1. 查询能源行业模板列表；
-    2. 验证包含 IoT 设备模型、能耗分析等典型场景。
-    """
-    # 骨架：Phase 3 实现后填充
-    pass
-
-
-@pytest.mark.p2
-@pytest.mark.requirement("P2-28 政务行业模板")
-@pytest.mark.skip(reason="P2 需求：政务行业模板在 Phase 3 实现，当前为骨架")
-def test_req_government_template():
-    """P2-28 政务行业模板（骨架）。
-
-    Phase 3 实现后取消 skip 并补充真实 API 调用：
-    1. 查询政务行业模板列表；
-    2. 验证包含数据共享、一网通办等典型场景。
-    """
-    # 骨架：Phase 3 实现后填充
-    pass
+# 原 P2-26/27/28 骨架（@pytest.mark.skip + pass）已由 Sprint 3.2.2 替换：
+# - P2-26 数据虚拟化 → sql-gateway VirtualTableController 真实 API 验证
+# - P2-27 能源行业模板 → industry-templates 域级契约（分类/列表 ≥7）
+# - P2-28 政务行业模板 → industry-templates 详情端点可路由
+# 详见 tests/integration/e2e/test_e2e_p2_landed.py（同模式：e2e_api_client + *_available）

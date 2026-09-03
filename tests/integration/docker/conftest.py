@@ -54,6 +54,8 @@ BASE_URLS: Dict[str, str] = {
     "finops_dashboard": os.environ.get("FINOPS_DASHBOARD_URL", "http://localhost:18087"),
     "finetuning_loop": os.environ.get("FINETUNING_LOOP_URL", "http://localhost:18088"),
     "model_registry": os.environ.get("MODEL_REGISTRY_URL", "http://localhost:18089"),
+    # 封装层租户域服务（Sprint 2.2 L4）
+    "encaps_tenant": os.environ.get("ENCAPS_TENANT_URL", "http://localhost:18090"),
     # 数据虚拟化模块复用 sql-gateway 容器（虚拟表 API 挂载于 SQL 网关）
     "data_virtualization": os.environ.get("DATA_VIRTUALIZATION_URL", "http://localhost:18081"),
 }
@@ -70,6 +72,7 @@ DOCKER_CONTAINERS: Dict[str, str] = {
     "finops_dashboard": "it-finops-dashboard",
     "finetuning_loop": "it-finetuning-loop",
     "model_registry": "it-model-registry",
+    "encaps_tenant": "it-encaps-tenant",
     # 数据虚拟化模块复用 sql-gateway 容器
     "data_virtualization": "it-sql-gateway",
 }
@@ -86,6 +89,8 @@ HEALTH_PATHS: Dict[str, str] = {
     "finops_dashboard": "/api/v1/health",
     "finetuning_loop": "/health",
     "model_registry": "/health",
+    # 封装层租户域（Java actuator）
+    "encaps_tenant": "/actuator/health",
     # 数据虚拟化模块复用 sql-gateway 健康检查
     "data_virtualization": "/actuator/health",
 }
@@ -303,6 +308,12 @@ def rule_engine_url() -> str:
 
 
 @pytest.fixture(scope="session")
+def encaps_tenant_url() -> str:
+    """封装层租户域服务基础 URL（Sprint 2.2 L4）。"""
+    return BASE_URLS["encaps_tenant"]
+
+
+@pytest.fixture(scope="session")
 def finops_url() -> str:
     """FinOps 成本模型服务基础 URL。"""
     return BASE_URLS["finops"]
@@ -405,6 +416,12 @@ def data_virtualization_available() -> bool:
     return is_service_available("data_virtualization")
 
 
+@pytest.fixture(scope="session")
+def encaps_tenant_available() -> bool:
+    """封装层租户域服务是否可用（Sprint 2.2 L4）。"""
+    return is_service_available("encaps_tenant")
+
+
 # ---------------------------------------------------------------------------
 # 测试收集阶段钩子：自动跳过服务不可用的测试
 # ---------------------------------------------------------------------------
@@ -426,6 +443,7 @@ def pytest_collection_modifyitems(config, items):
         "finops_dashboard": is_service_available("finops_dashboard"),
         "finetuning_loop": is_service_available("finetuning_loop"),
         "model_registry": is_service_available("model_registry"),
+        "encaps_tenant": is_service_available("encaps_tenant"),
         "data_virtualization": is_service_available("data_virtualization"),
     }
 
@@ -440,6 +458,7 @@ def pytest_collection_modifyitems(config, items):
         "test_docker_sql_gateway": "sql_gateway",
         "test_docker_catalog": "catalog",
         "test_docker_rule_engine": "rule_engine",
+        "test_docker_encaps_tenant": "encaps_tenant",
         "test_finops": "finops",
         "test_finops_dashboard": "finops_dashboard",
         "test_multimodal_gateway": "llm_gateway",

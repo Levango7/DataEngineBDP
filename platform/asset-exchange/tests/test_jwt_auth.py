@@ -79,7 +79,7 @@ def activate_subscription(c: TestClient, asset_id: str, subscriber: str) -> str:
     assert resp.status_code == 201, resp.text
     sid = resp.json()["id"]
     resp = c.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve"},
         headers=admin,
     )
@@ -99,7 +99,7 @@ class TestAuthEnforcement:
     def test_subscriptions_without_token_rejected(self, app, monkeypatch) -> None:
         c = jwt_client(monkeypatch, app)
         assert (
-            c.post("/api/v1/subscriptions/sub-1/approve", json={"action": "approve", "approverId": "x"}).status_code
+            c.post("/api/v1/asset-subscriptions/sub-1/approve", json={"action": "approve", "approverId": "x"}).status_code
             == 401
         )
 

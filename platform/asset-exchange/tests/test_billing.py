@@ -55,7 +55,7 @@ def _setup_active_subscription(client, asset_id, subscriber="tenant-B"):
     assert resp.status_code == 201, resp.text
     sid = resp.json()["id"]
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve", "approverId": "admin"},
     )
     assert resp.status_code == 200
@@ -68,7 +68,7 @@ def _charge(client, subscription_id, usage=1.0, period=None):
     if period:
         body["period"] = period
     resp = client.post(
-        f"/api/v1/subscriptions/{subscription_id}/charge",
+        f"/api/v1/asset-subscriptions/{subscription_id}/charge",
         json=body,
     )
     assert resp.status_code == 200, resp.text

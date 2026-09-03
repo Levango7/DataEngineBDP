@@ -99,7 +99,7 @@ def test_approve_subscription(app, monkeypatch):
     aid = _list_asset(c, headers=_admin_headers())
     sid = _subscribe(c, aid, headers=_admin_headers())
     resp = c.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve"},
         headers=_admin_headers(),
     )
@@ -117,7 +117,7 @@ def test_reject_subscription(app, monkeypatch):
     aid = _list_asset(c, name="reject-asset", headers=_admin_headers())
     sid = _subscribe(c, aid, headers=_admin_headers())
     resp = c.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={
             "action": "reject",
             "reason": "不符合安全要求",
@@ -133,7 +133,7 @@ def test_reject_subscription(app, monkeypatch):
 
 def test_approve_nonexistent_subscription(client):
     resp = client.post(
-        "/api/v1/subscriptions/nonexistent/approve",
+        "/api/v1/asset-subscriptions/nonexistent/approve",
         json={"action": "approve", "approverId": "admin"},
     )
     assert resp.status_code == 404
@@ -145,13 +145,13 @@ def test_approve_already_approved(client):
     sid = _subscribe(client, aid)
     # 第一次审批
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve", "approverId": "admin"},
     )
     assert resp.status_code == 200
     # 第二次审批应失败
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve", "approverId": "admin"},
     )
     assert resp.status_code == 409
@@ -161,7 +161,7 @@ def test_invalid_approval_action(client):
     aid = _list_asset(client)
     sid = _subscribe(client, aid)
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "invalid", "approverId": "admin"},
     )
     assert resp.status_code == 422
@@ -189,7 +189,7 @@ def test_approve_increments_subscriber_count(client):
     assert resp.json()["subscriberCount"] == 0
     # 审批
     client.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve", "approverId": "admin"},
     )
     # 审批后
@@ -208,7 +208,7 @@ class TestApproverIdentityFromToken:
         sid = _subscribe(c, aid, subscriber_id="tenant-b", headers=_admin_headers())
         forger = make_token(sub="attacker", tenant="tenant-b", role="user")
         resp = c.post(
-            f"/api/v1/subscriptions/{sid}/approve",
+            f"/api/v1/asset-subscriptions/{sid}/approve",
             json={"action": "approve", "approverId": "platform-admin"},
             headers=auth_headers(forger),
         )
@@ -226,7 +226,7 @@ class TestApproverIdentityFromToken:
         aid = _list_asset(c, name="reject-identity-asset", headers=_admin_headers())
         sid = _subscribe(c, aid, subscriber_id="tenant-b", headers=_admin_headers())
         resp = c.post(
-            f"/api/v1/subscriptions/{sid}/approve",
+            f"/api/v1/asset-subscriptions/{sid}/approve",
             json={"action": "reject", "approverId": "someone-else", "reason": "policy"},
             headers=_admin_headers(),
         )

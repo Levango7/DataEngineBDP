@@ -154,6 +154,7 @@ class AuditAction(str, Enum):
     - SETTLE:    结算
     - ALLOCATE:  分账
     - OFFLINE:   下架
+    - RELIST:    重新上架
     """
 
     REGISTER = "register"
@@ -166,6 +167,7 @@ class AuditAction(str, Enum):
     SETTLE = "settle"
     ALLOCATE = "allocate"
     OFFLINE = "offline"
+    RELIST = "relist"
 
 
 class AuditResult(str, Enum):

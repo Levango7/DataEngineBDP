@@ -6,12 +6,17 @@
  *
  * 提供"提供方—平台—消费方"三方市场的资产登记、上架、订阅、交付与计费能力。
  */
-import { get, post, put, del } from './client'
+import { get, post, del } from './client'
 
 /** 资产资源根路径 */
 const BASE = '/assets'
 
-/** 订阅资源根路径 */
+/**
+ * 订阅资源根路径
+ * Sprint 4.2：恢复独立前缀 /asset-subscriptions——Sprint 2.2 的"对齐"与
+ * open-api-catalog 的 /subscriptions 正面冲突（vite proxy 固定指 asset-exchange，
+ * APIMarket 页的订阅审批全部错路由），按域隔离修正
+ */
 const SUB_BASE = '/asset-subscriptions'
 
 // ---------- 类型定义 ----------
@@ -180,9 +185,10 @@ export function listAsset(data: ListAssetParams): Promise<Asset> {
 
 /**
  * 下架资产
+ * Sprint 2.2：对齐后端 asset-exchange 实际端点 DELETE /api/v1/assets/{id}（此前误用 POST /{id}/offline）
  */
 export function offlineAsset(id: string): Promise<Asset> {
-  return post<Asset>(`${BASE}/${id}/offline`)
+  return del<Asset>(`${BASE}/${id}`)
 }
 
 /**

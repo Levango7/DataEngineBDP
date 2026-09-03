@@ -6,6 +6,10 @@
  * - loginByApi(page)   通过 API 直接登录并写入存储，跳过 UI
  * - ensureLoggedIn(page) 智能选择登录方式
  * - apiBase            后端 API 基址
+ *
+ * Sprint 3.2.4 修复：登录按钮文案由 i18n locale 决定（"Sign In" / "登 录"），
+ * 先前硬编码 /登.*录/ 选择器在 locale 回退英文时失败。改用 aria-label
+ * （t('login.submit') 本地化值）匹配，规避文案语言差异。
  */
 import type { Page, APIRequestContext } from '@playwright/test'
 
@@ -18,6 +22,17 @@ export const ADMIN = { username: 'admin', password: 'admin' }
 /** 存储键（与 stores/auth.ts 保持一致：token → sessionStorage，user → localStorage） */
 const TOKEN_KEY = 'sq_token'
 const USER_KEY = 'sq_user'
+
+/** 登录提交按钮：优先 aria-label，回退按钮文本（中英文均匹配） */
+async function clickLoginButton(page: Page): Promise<void> {
+  const submitBtn = page.locator('button[aria-label*="登录"], button[aria-label*="Sign"]').first()
+  if (await submitBtn.isVisible().catch(() => false)) {
+    await submitBtn.click()
+    return
+  }
+  // 回退：按文本匹配（中文"登 录"/"登录" 或英文"Sign In"）
+  await page.getByRole('button', { name: /登.*录|Sign In/i }).click()
+}
 
 /**
  * 通过 UI 登录（admin/admin）
@@ -38,8 +53,8 @@ export async function login(page: Page, creds: { username: string; password: str
   await page.fill('input[autocomplete="current-password"]', '')
   await page.fill('input[autocomplete="current-password"]', creds.password)
 
-  // 点击登录按钮（按钮文本为"登 录"，含空格）
-  await page.getByRole('button', { name: /登.*录/ }).click()
+  // 点击登录按钮（文案由 i18n locale 决定，用 aria-label / 通用匹配）
+  await clickLoginButton(page)
 
   // 等待跳转到 dashboard（hash 路由）
   await page.waitForURL(/#\/dashboard/, { timeout: 20_000 })

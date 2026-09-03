@@ -151,8 +151,15 @@ export default defineConfig({
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },
-      // 资产订阅（asset-exchange subscriptions router，前缀 /subscriptions）
+      // API 订阅（open-api-catalog subscriptions_router，前缀 /subscriptions）
+      // Sprint 4.2：此前被 asset-exchange 抢占导致 APIMarket 页订阅审批错路由，
+      // 归还给 open-api-catalog（detail design 契约路径 /subscriptions/{id}/approve）
       '/api/v1/subscriptions': {
+        target: process.env.VITE_API_CATALOG_TARGET || 'http://127.0.0.1:8090',
+        changeOrigin: true
+      },
+      // 资产订阅（asset-exchange subscriptions router，Sprint 4.2 独立前缀）
+      '/api/v1/asset-subscriptions': {
         target: process.env.VITE_ASSET_EXCHANGE_TARGET || 'http://127.0.0.1:8087',
         changeOrigin: true
       },
@@ -161,6 +168,12 @@ export default defineConfig({
       // nightly 栈无此服务，playwright 兜底指向 encaps-layer 18080
       '/api/v1/models': {
         target: process.env.VITE_MODELS_TARGET || 'http://127.0.0.1:8080',
+        changeOrigin: true
+      },
+      // 模型仓库（dev-ml.ts 的 /registry/deployments，Python registry 服务 :18089）
+      // Sprint 3.2 补：3.1 的契约扫描器 bug 修复后该前缀被正确扫出，代理此前缺失
+      '/api/v1/registry': {
+        target: process.env.VITE_REGISTRY_TARGET || 'http://127.0.0.1:18089',
         changeOrigin: true
       },
 

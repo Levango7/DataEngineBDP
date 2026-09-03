@@ -29,7 +29,7 @@ def _setup_active_subscription(client, owner="tenant-A", subscriber="tenant-B"):
     sid = resp.json()["id"]
 
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/approve",
+        f"/api/v1/asset-subscriptions/{sid}/approve",
         json={"action": "approve", "approverId": "admin"},
     )
     assert resp.status_code == 200, resp.text
@@ -43,7 +43,7 @@ def test_deliver_via_api(client):
     """API 交付：生成 endpoint + apiKey."""
     _, sid = _setup_active_subscription(client)
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={
             "method": "api",
             "config": {
@@ -73,7 +73,7 @@ def test_deliver_via_file(client):
     """文件交付：生成数据文件 URL."""
     _, sid = _setup_active_subscription(client)
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={
             "method": "file",
             "config": {
@@ -97,7 +97,7 @@ def test_deliver_via_file_parquet(client):
     """文件交付支持 parquet 格式."""
     _, sid = _setup_active_subscription(client)
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={
             "method": "file",
             "config": {"format": "parquet", "sampleRows": 500},
@@ -116,7 +116,7 @@ def test_deliver_via_database_direct(client):
     """数据库直连交付：生成只读访问凭证."""
     _, sid = _setup_active_subscription(client)
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={
             "method": "database_direct",
             "config": {
@@ -144,11 +144,11 @@ def test_get_delivery_status(client):
     _, sid = _setup_active_subscription(client)
     # 先交付
     client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={"method": "api", "config": {}},
     )
     # 查交付状态
-    resp = client.get(f"/api/v1/subscriptions/{sid}/delivery-status")
+    resp = client.get(f"/api/v1/asset-subscriptions/{sid}/delivery-status")
     assert resp.status_code == 200
     body = resp.json()
     assert body["subscriptionId"] == sid
@@ -159,7 +159,7 @@ def test_get_delivery_status(client):
 def test_get_delivery_status_no_delivery(client):
     """无交付记录返回 404."""
     _, sid = _setup_active_subscription(client)
-    resp = client.get(f"/api/v1/subscriptions/{sid}/delivery-status")
+    resp = client.get(f"/api/v1/asset-subscriptions/{sid}/delivery-status")
     assert resp.status_code == 404
 
 
@@ -180,7 +180,7 @@ def test_deliver_pending_subscription(client):
     sid = resp.json()["id"]
     # 未审批直接交付应失败
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={"method": "api", "config": {}},
     )
     assert resp.status_code == 409
@@ -188,7 +188,7 @@ def test_deliver_pending_subscription(client):
 
 def test_deliver_nonexistent_subscription(client):
     resp = client.post(
-        "/api/v1/subscriptions/nonexistent/deliver",
+        "/api/v1/asset-subscriptions/nonexistent/deliver",
         json={"method": "api", "config": {}},
     )
     assert resp.status_code == 404
@@ -202,17 +202,17 @@ def test_multiple_deliveries(client):
     _, sid = _setup_active_subscription(client)
     # 第一次
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={"method": "api", "config": {"sampleRows": 100}},
     )
     assert resp.status_code == 201
     # 第二次
     resp = client.post(
-        f"/api/v1/subscriptions/{sid}/deliver",
+        f"/api/v1/asset-subscriptions/{sid}/deliver",
         json={"method": "file", "config": {"format": "csv", "sampleRows": 200}},
     )
     assert resp.status_code == 201
     # 交付状态返回最新一条
-    resp = client.get(f"/api/v1/subscriptions/{sid}/delivery-status")
+    resp = client.get(f"/api/v1/asset-subscriptions/{sid}/delivery-status")
     body = resp.json()
     assert body["method"] == "file"

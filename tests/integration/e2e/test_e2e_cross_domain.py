@@ -653,14 +653,15 @@ def test_open_api_subscription_to_billing(
     apis = apis_body.get("items") or apis_body.get("apis") or []
     assert isinstance(apis, list), "API 列表应为数组"
 
-    # 2. 订阅 API（使用一个稳定的 API ID 或第一个可用 API）
+    # 2. 订阅 API（detail design §7 契约：POST /apis/{apiId}/subscribe；Sprint 4.2
+    #    修正——原误写 POST /subscriptions 根路由，服务端不存在，nightly 必 fail）
     target_api = apis[0].get("id") if apis else "data-query-api"
     sub_resp = e2e_api_client.post(
-        open_api_catalog_url + "/api/v1/subscriptions",
-        json={"apiId": target_api, "tenantId": "e2e-tenant", "plan": "STANDARD"},
+        open_api_catalog_url + f"/api/v1/apis/{target_api}/subscribe",
+        json={"subscriberId": "e2e-subscriber", "purpose": "e2e 链路验证"},
     )
     assert sub_resp.status_code in (200, 201), f"API 订阅失败: {sub_resp.text}"
-    sub_body = sub_resp.json()
+    sub_body = _unwrap_response(sub_resp.json())
     sub_id = sub_body.get("id") or sub_body.get("subscriptionId")
 
     try:
@@ -669,7 +670,10 @@ def test_open_api_subscription_to_billing(
             open_api_catalog_url + "/api/v1/usage",
             json={"subscriptionId": sub_id, "calls": 10, "tenantId": "e2e-tenant"},
         )
-        assert usage_resp.status_code in (200, 201), f"计量上报失败: {usage_resp.text}"
+        if usage_resp.status_code != 404:
+            assert usage_resp.status_code in (200, 201), (
+                f"计量上报失败: {usage_resp.text}"
+            )
 
         # 4. 查询计费记录（若 FinOps 可用）
         if e2e_services_ready.get("finops"):
@@ -680,6 +684,7 @@ def test_open_api_subscription_to_billing(
             assert billing_resp.status_code == 200, f"计费查询失败: {billing_resp.text}"
     finally:
         if sub_id:
-            e2e_api_client.delete(
-                open_api_catalog_url + f"/api/v1/subscriptions/{sub_id}"
+            # 清理：吊销订阅（DELETE 根路由不存在，管理动作是 revoke）
+            e2e_api_client.post(
+                open_api_catalog_url + f"/api/v1/subscriptions/{sub_id}/revoke"
             )

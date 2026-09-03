@@ -46,6 +46,37 @@ services:
       - it-net
 
   # ---------------------------------------------------------------------------
+  # 封装层租户域服务（Java/Spring Boot, port 8081 → 主机 18090）
+  # ---------------------------------------------------------------------------
+  # Sprint 2.2 L4：租户域独立微服务（Tenant/Project/Account/Workspace/Quota）。
+  # 镜像 classpath 含 encaps-layer jar（组件扫描会带入其 TenantController），
+  # 故必须 ENCAPS_LAYER_TENANT_CONTROLLER_ENABLED=false 防 /api/v1/tenants 双注册
+  # （生产跨进程部署时 encaps-layer 容器不受此影响，其自身默认启用）。
+  encaps-tenant:
+    build:
+      context: ../..
+      dockerfile: platform/encaps-tenant/Dockerfile
+    image: shuqing/encaps-tenant:0.1.0
+    container_name: it-encaps-tenant
+    ports:
+      - "18090:8081"
+    environment:
+      - SERVER_PORT=8081
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+      - ENCRYPT_KEY=0123456789abcdef0123456789abcdef
+      - K8S_MOCK_ENABLED=true
+      # 关闭 encaps-layer 侧 TenantController（防同前缀双注册，见 EncapsTenantApplicationIT）
+      - ENCAPS_LAYER_TENANT_CONTROLLER_ENABLED=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
   # 统一 SQL 网关（Java/Spring Boot, port 8081）
   # ---------------------------------------------------------------------------
   sql-gateway:
@@ -307,6 +338,122 @@ services:
       - AUTH_MODE=none
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:18089/health', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 资产流通市场（Python/FastAPI, port 8087 → 主机 18094）
+  # ---------------------------------------------------------------------------
+  # Sprint 3.1：Phase 3 栈真实化——asset-exchange 提供前端 /api/v1/assets 与
+  # /api/v1/subscriptions（资产市场/订阅页面）。
+  # 宿主机端口 18094 对齐 tests/integration/e2e/conftest.py 的 asset_exchange 规划。
+  asset-exchange:
+    build:
+      context: ../../platform/asset-exchange
+      dockerfile: Dockerfile
+    image: shuqing/asset-exchange:0.1.0
+    container_name: it-asset-exchange
+    ports:
+      - "18094:8087"
+    environment:
+      - ASSET_EXCHANGE_HOST=0.0.0.0
+      - ASSET_EXCHANGE_PORT=8087
+      - ASSET_EXCHANGE_STORE_TYPE=sqlite
+      # 集成测试环境显式匿名放行（生产默认强制 JWT）
+      - AUTH_MODE=none
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 业务线门户（Python/FastAPI, port 8088 → 主机 18093）
+  # ---------------------------------------------------------------------------
+  # Sprint 3.1：business-portal 提供前端 /api/v1/business-lines（业务线门户页面）。
+  # 宿主机端口 18093 新分配（e2e/conftest 原预留 observability:18093，query-api
+  # 暂不入栈，端口让渡 business-portal 并同步更新 e2e/conftest 规划）。
+  business-portal:
+    build:
+      context: ../../platform/business-portal
+      dockerfile: Dockerfile
+    image: shuqing/business-portal:0.1.0
+    container_name: it-business-portal
+    ports:
+      - "18093:8088"
+    environment:
+      - BP_HOST=0.0.0.0
+      - BP_PORT=8088
+      - BP_STORE_TYPE=sqlite
+      - AUTH_MODE=none
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/api/v1/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 开放 API 目录（Python/FastAPI, port 8090 → 主机 18095）
+  # ---------------------------------------------------------------------------
+  # Sprint 3.1：open-api-catalog 提供前端 /api/v1/apis 与 /api/v1/subscriptions
+  # 的 API 目录部分（开放 API 市场/订阅审批页面）。
+  # 宿主机端口 18095 对齐 e2e/conftest 的 open_api_catalog 规划。
+  open-api-catalog:
+    build:
+      context: ../../platform/open-api-catalog
+      dockerfile: Dockerfile
+    image: shuqing/open-api-catalog:0.1.0
+    container_name: it-open-api-catalog
+    ports:
+      - "18095:8090"
+    environment:
+      - OPENAPI_CATALOG_HOST=0.0.0.0
+      - OPENAPI_CATALOG_PORT=8090
+      - OPENAPI_CATALOG_STORE_TYPE=sqlite
+      - AUTH_MODE=none
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8090/api/v1/health', timeout=3)"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 15s
+    networks:
+      - it-net
+
+  # ---------------------------------------------------------------------------
+  # 行业模板（Python/FastAPI, port 8091 → 主机 18096）
+  # ---------------------------------------------------------------------------
+  # Sprint 3.1：industry-templates 提供前端 /api/v1/templates（行业模板页面）。
+  # 宿主机端口 18096 对齐 e2e/conftest 的 industry_templates 规划。
+  industry-templates:
+    build:
+      context: ../../platform/industry-templates
+      dockerfile: Dockerfile
+    image: shuqing/industry-templates:0.1.0
+    container_name: it-industry-templates
+    ports:
+      - "18096:8091"
+    environment:
+      - INDUSTRY_TEMPLATES_HOST=0.0.0.0
+      - INDUSTRY_TEMPLATES_PORT=8091
+      - INDUSTRY_TEMPLATES_DEPLOY_MODE=mock
+      - AUTH_MODE=none
+      - JWT_SECRET=it-test-jwt-secret-at-least-32-bytes-long
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8091/api/v1/health', timeout=3)"]
       interval: 5s
       timeout: 3s
       retries: 10

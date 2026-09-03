@@ -1,16 +1,15 @@
 <template>
   <div class="template-market">
-    <h1>行业应用模板</h1>
+    <h1>{{ t('templateMarket.title') }}</h1>
     <div class="sub">
-      L5.3 ·
-      面向外部客户的预置分析模板，开箱即用。选定行业模板后，仅需绑定数据源即可获得完整分析能力。
+      {{ t('templateMarket.subtitle') }}
     </div>
 
     <!-- 顶部操作栏：分类筛选 + 搜索 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
         <el-radio-group v-model="filterIndustry" @change="handleFilter">
-          <el-radio-button label="">全部</el-radio-button>
+          <el-radio-button label="">{{ t('templateMarket.filter.all') }}</el-radio-button>
           <el-radio-button v-for="cat in categories" :key="cat.industry" :label="cat.industry">
             {{ cat.name }} ({{ cat.count }})
           </el-radio-button>
@@ -18,7 +17,7 @@
         <div class="spacer"></div>
         <el-input
           v-model="searchKeyword"
-          placeholder="按名称/描述/标签搜索"
+          :placeholder="t('templateMarket.filter.searchPlaceholder')"
           clearable
           style="width: 260px"
           @keyup.enter="handleFilter"
@@ -33,12 +32,12 @@
 
       <!-- 模板卡片网格 -->
       <div v-loading="loading" class="template-grid">
-        <el-empty v-if="error" description="加载失败，请重试">
-          <el-button type="primary" @click="loadAll">重试</el-button>
+        <el-empty v-if="error" :description="t('templateMarket.empty.loadFailed')">
+          <el-button type="primary" @click="loadAll">{{ t('templateMarket.empty.retry') }}</el-button>
         </el-empty>
         <el-empty
           v-else-if="!loading && filteredTemplates.length === 0"
-          description="暂无匹配模板"
+          :description="t('templateMarket.empty.noMatch')"
         />
         <el-card
           v-for="tpl in filteredTemplates"
@@ -72,13 +71,13 @@
           <div class="card-footer">
             <span class="meta-item">
               <el-icon><Download /></el-icon>
-              {{ tpl.installCount }} 次安装
+              {{ t('templateMarket.card.installCount', { count: tpl.installCount }) }}
             </span>
             <span class="meta-item">
               <el-icon><Star /></el-icon>
-              {{ tpl.rating.toFixed(1) }}
+              {{ t('templateMarket.card.rating', { rating: tpl.rating.toFixed(1) }) }}
             </span>
-            <span class="meta-item">v{{ tpl.version }}</span>
+            <span class="meta-item">{{ t('templateMarket.card.version', { version: tpl.version }) }}</span>
           </div>
         </el-card>
       </div>

@@ -395,6 +395,34 @@ async def offline_asset(
 
 
 @router.post(
+    "/{asset_id}/relist",
+    response_model=Asset,
+    summary="重新上架资产",
+)
+async def relist_asset(
+    asset_id: str,
+    registry: ServiceRegistry = Depends(get_registry),
+) -> Asset:
+    """重新上架（显式状态机：仅 OFFLINE 可重新上架，OFFLINE -> LISTED）.
+
+    Sprint 2.2：service 层 relist_asset 早已实现但无 HTTP 路由，
+    前端 relistAsset 调用无端点——补齐对齐前端 assetMarket.ts。
+    """
+    try:
+        a = await registry.assetService.relist_asset(asset_id)
+        # 审计留痕
+        await registry.auditService.log(
+            action=AuditAction.RELIST,
+            actor_id=a.tenantId,
+            asset_id=asset_id,
+            tenant_id=a.tenantId,
+        )
+        return a
+    except AssetExchangeError as exc:
+        raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+
+
+@router.post(
     "/{asset_id}/subscribe",
     response_model=Subscription,
     status_code=status.HTTP_201_CREATED,
