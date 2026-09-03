@@ -1,0 +1,58 @@
+{
+  "engMmg": {
+    "title": "Multi-Model Engine",
+    "subtitle": "Unified adapters · cross-model queries · virtual tables · 15s auto refresh",
+    "kpi": {
+      "modelCount": "Supported Models",
+      "modelCountMeta": "RDBMS / Doc / Graph / TSDB / Vector / KV",
+      "supportedTypes": "Connected Types",
+      "supportedTypesMeta": "Backend available data source types",
+      "virtualTables": "Virtual Tables",
+      "virtualTablesMeta": "Under current filter",
+      "queryCount": "Cross-model Queries",
+      "queryCountMeta": "Today's queries"
+    },
+    "modelGroups": {
+      "RDBMS": { "label": "Relational", "countFmt": "{count} types" },
+      "DOC": { "label": "Document", "countFmt": "{count} types" },
+      "GRAPH": { "label": "Graph", "countFmt": "{count} types" },
+      "TSDB": { "label": "Time Series", "countFmt": "{count} types" },
+      "VECTOR": { "label": "Vector", "countFmt": "{count} types" },
+      "KV": { "label": "KV", "countFmt": "{count} types" }
+    },
+    "toolbar": {
+      "typeFilterPlaceholder": "Filter by data source type",
+      "refreshAria": "Refresh"
+    },
+    "table": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No virtual tables",
+      "columns": {
+        "name": "Table",
+        "dataSourceType": "Type",
+        "model": "Model",
+        "dataSource": "Data Source",
+        "rowCount": "Rows",
+        "lastQuery": "Last Query",
+        "actions": "Actions"
+      },
+      "actions": {
+        "query": "Cross-model Query",
+        "test": "Test Connection"
+      }
+    },
+    "query": {
+      "title": "Cross-model Query - {name}",
+      "predicatePlaceholder": "Filter predicate (optional), e.g. status = 'active' AND age > 18",
+      "meta": "{rows} rows, {ms} ms",
+      "empty": "Click Query button to execute",
+      "close": "Close",
+      "execute": "Query"
+    },
+    "messages": {
+      "queryDone": "Query completed",
+      "testOk": "Connection successful",
+      "testFailed": "Connection failed"
+    }
+  }
+}

@@ -1,46 +1,46 @@
 <template>
   <div class="eng-mmg-page">
-    <h1>多模型引擎</h1>
-    <div class="sub">统一适配 · 跨模型查询 · 虚拟表 · 15 秒自动刷新</div>
+    <h1>{{ t('engMmg.title') }}</h1>
+    <div class="sub">{{ t('engMmg.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="kpiLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="kpiError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ kpiError.message }}，
-            <a href="javascript:void(0)" @click="reloadKpi">重试</a>
+            <a href="javascript:void(0)" @click="reloadKpi">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>支持模型数</h3>
+          <h3>{{ t('engMmg.kpi.modelCount') }}</h3>
           <div class="kpi">{{ MODEL_GROUPS.length }}</div>
-          <div class="meta">关系型/文档/图/时序/向量/KV</div>
+          <div class="meta">{{ t('engMmg.kpi.modelCountMeta') }}</div>
         </div>
         <div class="card">
-          <h3>已接入类型</h3>
+          <h3>{{ t('engMmg.kpi.supportedTypes') }}</h3>
           <div class="kpi s">{{ supportedTypes?.length ?? 0 }}</div>
-          <div class="meta">后端可用数据源类型</div>
+          <div class="meta">{{ t('engMmg.kpi.supportedTypesMeta') }}</div>
         </div>
         <div class="card">
-          <h3>虚拟表数</h3>
+          <h3>{{ t('engMmg.kpi.virtualTables') }}</h3>
           <div class="kpi">{{ virtualTables?.length ?? 0 }}</div>
-          <div class="meta">当前类型筛选下</div>
+          <div class="meta">{{ t('engMmg.kpi.virtualTablesMeta') }}</div>
         </div>
         <div class="card">
-          <h3>跨模型查询</h3>
+          <h3>{{ t('engMmg.kpi.queryCount') }}</h3>
           <div class="kpi">{{ queryCountToday }}</div>
-          <div class="meta">今日查询次数</div>
+          <div class="meta">{{ t('engMmg.kpi.queryCountMeta') }}</div>
         </div>
       </template>
     </div>
@@ -54,17 +54,17 @@
         :class="{ active: selectedModelKey === group.key }"
         @click="handleSelectModel(group.key)"
       >
-        <div class="model-name">{{ group.label }}</div>
-        <div class="model-count">{{ modelTypeCount(group.types) }} 个类型</div>
+        <div class="model-name">{{ t(`engMmg.modelGroups.${group.key}.label`, group.label) }}</div>
+        <div class="model-count">{{ t(`engMmg.modelGroups.${group.key}.countFmt`, { count: modelTypeCount(group.types) }, `${modelTypeCount(group.types)} 个类型`) }}</div>
         <div class="model-types">
           <el-tag
-            v-for="t in group.types"
-            :key="t"
-            :type="isTypeSupported(t) ? 'success' : 'info'"
+            v-for="tp in group.types"
+            :key="tp"
+            :type="isTypeSupported(tp) ? 'success' : 'info'"
             effect="light"
             size="small"
           >
-            {{ t }}
+            {{ tp }}
           </el-tag>
         </div>
       </div>
@@ -75,7 +75,7 @@
       <div class="toolbar">
         <el-select
           v-model="selectedTypeFilter"
-          placeholder="按数据源类型筛选"
+          :placeholder="t('engMmg.toolbar.typeFilterPlaceholder')"
           clearable
           style="width: 220px"
           @change="handleTypeFilterChange"
@@ -83,7 +83,7 @@
           <el-option v-for="t in supportedTypes ?? allTypeOptions" :key="t" :label="t" :value="t" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="reloadAll" />
+        <el-button :icon="Refresh" circle :aria-label="t('engMmg.toolbar.refreshAria')" @click="reloadAll" />
       </div>
 
       <el-table
@@ -92,30 +92,30 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="vtError ? '加载失败，请重试' : '暂无虚拟表'"
+        :empty-text="vtError ? t('engMmg.table.loadFailed') : t('engMmg.table.empty')"
       >
-        <el-table-column prop="tableName" label="表名" min-width="200" />
-        <el-table-column label="数据源类型" width="140">
+        <el-table-column prop="tableName" :label="t('engMmg.table.columns.name')" min-width="200" />
+        <el-table-column :label="t('engMmg.table.columns.dataSourceType')" width="140">
           <template #default="{ row }">
             <el-tag effect="plain" size="small">{{ row.dataSourceType }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="模型" width="120">
+        <el-table-column :label="t('engMmg.table.columns.model')" width="120">
           <template #default="{ row }">
             <el-tag :type="modelTagType(row.dataSourceType)" effect="light" size="small">
               {{ modelLabel(row.dataSourceType) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="dataSourceName" label="数据源" width="140" />
-        <el-table-column label="行数" width="140" align="right">
+        <el-table-column prop="dataSourceName" :label="t('engMmg.table.columns.dataSource')" width="140" />
+        <el-table-column :label="t('engMmg.table.columns.rowCount')" width="140" align="right">
           <template #default="{ row }">{{ row.rowCount?.toLocaleString() ?? '--' }}</template>
         </el-table-column>
-        <el-table-column prop="lastQueryAt" label="最近查询" width="180" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column prop="lastQueryAt" :label="t('engMmg.table.columns.lastQuery')" width="180" />
+        <el-table-column :label="t('engMmg.table.columns.actions')" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openQueryDialog(row)">跨模型查询</el-button>
-            <el-button link type="primary" @click="handleTestConnection(row)">测试连接</el-button>
+            <el-button link type="primary" @click="openQueryDialog(row)">{{ t('engMmg.table.actions.query') }}</el-button>
+            <el-button link type="primary" @click="handleTestConnection(row)">{{ t('engMmg.table.actions.test') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -124,14 +124,14 @@
     <!-- 跨模型查询弹窗 -->
     <el-dialog
       v-model="queryDialogVisible"
-      :title="`跨模型查询 - ${currentQueryTable ?? ''}`"
+      :title="t('engMmg.query.title', { name: currentQueryTable ?? '' })"
       width="800px"
       :close-on-click-modal="true"
     >
       <div class="query-dialog">
         <el-input
           v-model="queryPredicate"
-          placeholder="过滤谓词（可选），如 status = 'active' AND age > 18"
+          :placeholder="t('engMmg.query.predicatePlaceholder')"
           style="
             font-family: 'SFMono-Regular', Consolas, monospace;
             font-size: 12.5px;
@@ -141,7 +141,7 @@
         <div v-loading="querying" class="query-result">
           <template v-if="queryResult">
             <div class="query-meta">
-              共 {{ queryResult.rowCount }} 行，耗时 {{ queryResult.durationMs ?? '--' }} ms
+              {{ t('engMmg.query.meta', { rows: queryResult.rowCount, ms: queryResult.durationMs ?? '--' }) }}
             </div>
             <el-table
               :data="queryResult.rows"
@@ -161,12 +161,12 @@
               </el-table-column>
             </el-table>
           </template>
-          <el-empty v-else-if="!querying" description="点击查询按钮执行" />
+          <el-empty v-else-if="!querying" :description="t('engMmg.query.empty')" />
         </div>
       </div>
       <template #footer>
-        <el-button @click="queryDialogVisible = false">关闭</el-button>
-        <el-button type="primary" :loading="querying" @click="handleExecuteQuery">查询</el-button>
+        <el-button @click="queryDialogVisible = false">{{ t('engMmg.query.close') }}</el-button>
+        <el-button type="primary" :loading="querying" @click="handleExecuteQuery">{{ t('engMmg.query.execute') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -174,12 +174,15 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
 import { MODEL_GROUPS, type ModelGroupKey } from '@/api/engine'
 import type { VirtualTableDefinition, VirtualTableQueryResult } from '@/api/engine'
+
+const { t } = useI18n()
 
 /* ------------------------------ 数据加载 ------------------------------ */
 
@@ -263,7 +266,7 @@ async function handleExecuteQuery() {
       queryPredicate.value || undefined
     )
     queryCountToday.value++
-    ElMessage.success('查询完成')
+    ElMessage.success(t('engMmg.messages.queryDone'))
   } catch {
     // 拦截器已提示
   } finally {
@@ -275,7 +278,7 @@ async function handleExecuteQuery() {
 async function handleTestConnection(row: VirtualTableDefinition) {
   try {
     const { connected } = await engineApi.testMultiModelConnection(row.tableName)
-    ElMessage[connected ? 'success' : 'error'](connected ? '连接成功' : '连接失败')
+    ElMessage[connected ? 'success' : 'error'](t(connected ? 'engMmg.messages.testOk' : 'engMmg.messages.testFailed'))
   } catch {
     // 拦截器已提示
   }

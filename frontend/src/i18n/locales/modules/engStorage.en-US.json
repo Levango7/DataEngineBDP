@@ -1,0 +1,113 @@
+{
+  "engStorage": {
+    "title": "Unified Storage",
+    "subtitle": "Virtual tables · materialized views · cross-source merge · 15s auto refresh",
+    "kpi": {
+      "virtualTables": "Virtual Tables",
+      "virtualTablesMeta": "Registered",
+      "mvCount": "Materialized Views",
+      "mvCountMeta": "Managed",
+      "cacheHitRate": "Cache Hit Rate",
+      "cacheHitMeta": "Hit {hit} · Miss {miss}",
+      "refreshToday": "Today's Refreshes",
+      "refreshTodayMeta": "Materialized view refreshes"
+    },
+    "tabs": {
+      "virtualTables": "Virtual Tables",
+      "mv": "Materialized Views",
+      "cache": "Cache Stats"
+    },
+    "vt": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No virtual tables",
+      "register": "+ Register Virtual Table",
+      "columns": {
+        "name": "Table",
+        "dataSourceType": "Type",
+        "dataSource": "Data Source",
+        "schema": "Schema",
+        "status": "Status",
+        "lastQuery": "Last Query",
+        "actions": "Actions"
+      },
+      "actions": {
+        "query": "Query",
+        "test": "Test",
+        "refresh": "Refresh"
+      },
+      "status": {
+        "ACTIVE": "Active",
+        "INACTIVE": "Inactive",
+        "ERROR": "Error",
+        "REFRESHING": "Refreshing"
+      }
+    },
+    "mv": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No materialized views",
+      "columns": {
+        "name": "View",
+        "sourceTable": "Source Table",
+        "refreshStrategy": "Refresh Strategy",
+        "lastRefresh": "Last Refresh",
+        "status": "Status",
+        "rowCount": "Rows",
+        "actions": "Actions"
+      },
+      "actions": {
+        "refresh": "Refresh",
+        "viewStatus": "View Status"
+      }
+    },
+    "cache": {
+      "title": "Cache Stats",
+      "hitRate": "Hit Rate",
+      "totalEntries": "Total Entries",
+      "size": "Cache Size",
+      "sizeUnit": " MB",
+      "hitCount": "Hit Count",
+      "missCount": "Miss Count",
+      "refreshToday": "Today's Refreshes",
+      "noData": "--"
+    },
+    "register": {
+      "title": "Register Virtual Table",
+      "fields": {
+        "tableName": "Table Name",
+        "tableNamePlaceholder": "e.g. ods_order_detail",
+        "dataSourceType": "Data Source Type",
+        "dataSourceTypePlaceholder": "Select data source type",
+        "dataSourceName": "Data Source Name",
+        "dataSourceNamePlaceholder": "Data source instance",
+        "schema": "Schema",
+        "schemaPlaceholder": "e.g. default",
+        "comment": "Comment",
+        "commentPlaceholder": "Optional"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "submit": "Submit"
+      }
+    },
+    "query": {
+      "title": "Query - {name}",
+      "meta": "{rows} rows, {ms} ms",
+      "empty": "No query results",
+      "close": "Close"
+    },
+    "rules": {
+      "tableNameRequired": "Please enter table name",
+      "dataSourceTypeRequired": "Please select data source type"
+    },
+    "messages": {
+      "registered": "Virtual table registered",
+      "testOk": "Connection successful",
+      "testFailed": "Connection failed",
+      "vtRefreshed": "Refreshed, {rows} rows",
+      "mvRefreshed": "Refresh triggered, event ID: {eventId}",
+      "mvStatusFmt": "View \"{name}\" status: {status}",
+      "mvStatusRefreshFmt": ", last refresh: {time}",
+      "mvStatusErrorFmt": ", error: {message}"
+    }
+  }
+}

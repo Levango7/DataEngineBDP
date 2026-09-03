@@ -1,48 +1,48 @@
 <template>
   <div class="eng-storage-page">
-    <h1>统一存储</h1>
-    <div class="sub">虚拟表 · 物化视图 · 跨源归并 · 15 秒自动刷新</div>
+    <h1>{{ t('engStorage.title') }}</h1>
+    <div class="sub">{{ t('engStorage.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="kpiLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="kpiError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ kpiError.message }}，
-            <a href="javascript:void(0)" @click="reloadKpi">重试</a>
+            <a href="javascript:void(0)" @click="reloadKpi">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>虚拟表数</h3>
+          <h3>{{ t('engStorage.kpi.virtualTables') }}</h3>
           <div class="kpi">{{ virtualTables?.length ?? 0 }}</div>
-          <div class="meta">已注册虚拟表</div>
+          <div class="meta">{{ t('engStorage.kpi.virtualTablesMeta') }}</div>
         </div>
         <div class="card">
-          <h3>物化视图数</h3>
+          <h3>{{ t('engStorage.kpi.mvCount') }}</h3>
           <div class="kpi s">{{ materializedViews?.length ?? 0 }}</div>
-          <div class="meta">已纳管物化视图</div>
+          <div class="meta">{{ t('engStorage.kpi.mvCountMeta') }}</div>
         </div>
         <div class="card">
-          <h3>缓存命中率</h3>
+          <h3>{{ t('engStorage.kpi.cacheHitRate') }}</h3>
           <div class="kpi s">{{ cacheHitRate }}%</div>
           <div class="meta">
-            命中 {{ cacheStats?.hitCount ?? 0 }} · 未命中 {{ cacheStats?.missCount ?? 0 }}
+            {{ t('engStorage.kpi.cacheHitMeta', { hit: cacheStats?.hitCount ?? 0, miss: cacheStats?.missCount ?? 0 }) }}
           </div>
         </div>
         <div class="card">
-          <h3>今日刷新次数</h3>
+          <h3>{{ t('engStorage.kpi.refreshToday') }}</h3>
           <div class="kpi">{{ cacheStats?.refreshToday ?? 0 }}</div>
-          <div class="meta">物化视图刷新</div>
+          <div class="meta">{{ t('engStorage.kpi.refreshTodayMeta') }}</div>
         </div>
       </template>
     </div>
@@ -51,13 +51,13 @@
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
         <el-tabs v-model="activeTab" type="card" class="main-tabs">
-          <el-tab-pane label="虚拟表" name="virtual-tables" />
-          <el-tab-pane label="物化视图" name="materialized-views" />
-          <el-tab-pane label="缓存统计" name="cache-stats" />
+          <el-tab-pane :label="t('engStorage.tabs.virtualTables')" name="virtual-tables" />
+          <el-tab-pane :label="t('engStorage.tabs.mv')" name="materialized-views" />
+          <el-tab-pane :label="t('engStorage.tabs.cache')" name="cache-stats" />
         </el-tabs>
         <div class="spacer"></div>
         <el-button v-if="activeTab === 'virtual-tables'" type="primary" @click="openRegisterDialog">
-          + 注册虚拟表
+          {{ t('engStorage.vt.register') }}
         </el-button>
         <el-button :icon="Refresh" circle @click="reloadAll" />
       </div>
@@ -70,29 +70,29 @@
           stripe
           border
           style="width: 100%"
-          :empty-text="vtError ? '加载失败，请重试' : '暂无虚拟表'"
+          :empty-text="vtError ? t('engStorage.vt.loadFailed') : t('engStorage.vt.empty')"
         >
-          <el-table-column prop="tableName" label="表名" min-width="180" />
-          <el-table-column prop="dataSourceType" label="数据源类型" width="140">
+          <el-table-column prop="tableName" :label="t('engStorage.vt.columns.name')" min-width="180" />
+          <el-table-column prop="dataSourceType" :label="t('engStorage.vt.columns.dataSourceType')" width="140">
             <template #default="{ row }">
               <el-tag effect="plain" size="small">{{ row.dataSourceType }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="dataSourceName" label="数据源" width="140" />
-          <el-table-column prop="schema" label="Schema" min-width="160" />
-          <el-table-column label="状态" width="110">
+          <el-table-column prop="dataSourceName" :label="t('engStorage.vt.columns.dataSource')" width="140" />
+          <el-table-column prop="schema" :label="t('engStorage.vt.columns.schema')" min-width="160" />
+          <el-table-column :label="t('engStorage.vt.columns.status')" width="110">
             <template #default="{ row }">
               <el-tag :type="vtStatusTagType(row.status)" effect="light" size="small">
                 {{ vtStatusLabel(row.status) }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="lastQueryAt" label="最近查询" width="180" />
-          <el-table-column label="操作" width="240" fixed="right">
+          <el-table-column prop="lastQueryAt" :label="t('engStorage.vt.columns.lastQuery')" width="180" />
+          <el-table-column :label="t('engStorage.vt.columns.actions')" width="240" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openQueryDialog(row)">查询</el-button>
-              <el-button link type="primary" @click="handleTestConnection(row)">测试</el-button>
-              <el-button link type="warning" @click="handleRefreshVt(row)">刷新</el-button>
+              <el-button link type="primary" @click="openQueryDialog(row)">{{ t('engStorage.vt.actions.query') }}</el-button>
+              <el-button link type="primary" @click="handleTestConnection(row)">{{ t('engStorage.vt.actions.test') }}</el-button>
+              <el-button link type="warning" @click="handleRefreshVt(row)">{{ t('engStorage.vt.actions.refresh') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -106,26 +106,26 @@
           stripe
           border
           style="width: 100%"
-          :empty-text="mvError ? '加载失败，请重试' : '暂无物化视图'"
+          :empty-text="mvError ? t('engStorage.mv.loadFailed') : t('engStorage.mv.empty')"
         >
-          <el-table-column prop="viewName" label="视图名" min-width="180" />
-          <el-table-column prop="sourceTable" label="源表" min-width="160" />
-          <el-table-column prop="refreshStrategy" label="刷新策略" width="140" />
-          <el-table-column prop="lastRefreshAt" label="最近刷新" width="180" />
-          <el-table-column label="状态" width="120">
+          <el-table-column prop="viewName" :label="t('engStorage.mv.columns.name')" min-width="180" />
+          <el-table-column prop="sourceTable" :label="t('engStorage.mv.columns.sourceTable')" min-width="160" />
+          <el-table-column prop="refreshStrategy" :label="t('engStorage.mv.columns.refreshStrategy')" width="140" />
+          <el-table-column prop="lastRefreshAt" :label="t('engStorage.mv.columns.lastRefresh')" width="180" />
+          <el-table-column :label="t('engStorage.mv.columns.status')" width="120">
             <template #default="{ row }">
               <el-tag :type="mvStatusTagType(row.status)" effect="light" size="small">
-                {{ row.status ?? '--' }}
+                {{ row.status ?? t('engStorage.cache.noData') }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column label="行数" width="120" align="right">
-            <template #default="{ row }">{{ row.rowCount ?? '--' }}</template>
+          <el-table-column :label="t('engStorage.mv.columns.rowCount')" width="120" align="right">
+            <template #default="{ row }">{{ row.rowCount ?? t('engStorage.cache.noData') }}</template>
           </el-table-column>
-          <el-table-column label="操作" width="180" fixed="right">
+          <el-table-column :label="t('engStorage.mv.columns.actions')" width="180" fixed="right">
             <template #default="{ row }">
-              <el-button link type="warning" @click="handleRefreshMv(row)">刷新</el-button>
-              <el-button link type="primary" @click="handleViewMvStatus(row)">查看状态</el-button>
+              <el-button link type="warning" @click="handleRefreshMv(row)">{{ t('engStorage.mv.actions.refresh') }}</el-button>
+              <el-button link type="primary" @click="handleViewMvStatus(row)">{{ t('engStorage.mv.actions.viewStatus') }}</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -133,24 +133,24 @@
 
       <!-- Tab3 缓存统计 -->
       <template v-else>
-        <el-descriptions v-loading="cacheLoading" :column="3" border title="缓存统计">
-          <el-descriptions-item label="命中率">
-            {{ cacheStats ? cacheStats.hitRate + '%' : '--' }}
+        <el-descriptions v-loading="cacheLoading" :column="3" border :title="t('engStorage.cache.title')">
+          <el-descriptions-item :label="t('engStorage.cache.hitRate')">
+            {{ cacheStats ? cacheStats.hitRate + '%' : t('engStorage.cache.noData') }}
           </el-descriptions-item>
-          <el-descriptions-item label="总条目数">
-            {{ cacheStats?.totalEntries ?? '--' }}
+          <el-descriptions-item :label="t('engStorage.cache.totalEntries')">
+            {{ cacheStats?.totalEntries ?? t('engStorage.cache.noData') }}
           </el-descriptions-item>
-          <el-descriptions-item label="缓存大小">
-            {{ cacheStats?.sizeMb != null ? cacheStats.sizeMb + ' MB' : '--' }}
+          <el-descriptions-item :label="t('engStorage.cache.size')">
+            {{ cacheStats?.sizeMb != null ? cacheStats.sizeMb + t('engStorage.cache.sizeUnit') : t('engStorage.cache.noData') }}
           </el-descriptions-item>
-          <el-descriptions-item label="命中次数">
-            {{ cacheStats?.hitCount ?? '--' }}
+          <el-descriptions-item :label="t('engStorage.cache.hitCount')">
+            {{ cacheStats?.hitCount ?? t('engStorage.cache.noData') }}
           </el-descriptions-item>
-          <el-descriptions-item label="未命中次数">
-            {{ cacheStats?.missCount ?? '--' }}
+          <el-descriptions-item :label="t('engStorage.cache.missCount')">
+            {{ cacheStats?.missCount ?? t('engStorage.cache.noData') }}
           </el-descriptions-item>
-          <el-descriptions-item label="今日刷新次数">
-            {{ cacheStats?.refreshToday ?? '--' }}
+          <el-descriptions-item :label="t('engStorage.cache.refreshToday')">
+            {{ cacheStats?.refreshToday ?? t('engStorage.cache.noData') }}
           </el-descriptions-item>
         </el-descriptions>
       </template>
@@ -159,7 +159,7 @@
     <!-- 注册虚拟表弹窗 -->
     <el-dialog
       v-model="registerDialogVisible"
-      title="注册虚拟表"
+      :title="t('engStorage.register.title')"
       width="560px"
       :close-on-click-modal="false"
       @closed="resetRegisterForm"
@@ -171,50 +171,50 @@
         label-width="120px"
         label-position="right"
       >
-        <el-form-item label="表名" prop="tableName">
-          <el-input v-model="registerForm.tableName" placeholder="如 ods_order_detail" />
+        <el-form-item :label="t('engStorage.register.fields.tableName')" prop="tableName">
+          <el-input v-model="registerForm.tableName" :placeholder="t('engStorage.register.fields.tableNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="数据源类型" prop="dataSourceType">
+        <el-form-item :label="t('engStorage.register.fields.dataSourceType')" prop="dataSourceType">
           <el-select
             v-model="registerForm.dataSourceType"
-            placeholder="选择数据源类型"
+            :placeholder="t('engStorage.register.fields.dataSourceTypePlaceholder')"
             style="width: 100%"
           >
             <el-option
-              v-for="t in dataSourceTypes ?? defaultTypes"
-              :key="t"
-              :label="t"
-              :value="t"
+              v-for="dt in dataSourceTypes ?? defaultTypes"
+              :key="dt"
+              :label="dt"
+              :value="dt"
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="数据源名称" prop="dataSourceName">
-          <el-input v-model="registerForm.dataSourceName" placeholder="数据源实例名" />
+        <el-form-item :label="t('engStorage.register.fields.dataSourceName')" prop="dataSourceName">
+          <el-input v-model="registerForm.dataSourceName" :placeholder="t('engStorage.register.fields.dataSourceNamePlaceholder')" />
         </el-form-item>
-        <el-form-item label="Schema" prop="schema">
-          <el-input v-model="registerForm.schema" placeholder="如 default" />
+        <el-form-item :label="t('engStorage.register.fields.schema')" prop="schema">
+          <el-input v-model="registerForm.schema" :placeholder="t('engStorage.register.fields.schemaPlaceholder')" />
         </el-form-item>
-        <el-form-item label="备注" prop="comment">
-          <el-input v-model="registerForm.comment" type="textarea" :rows="2" placeholder="可选" />
+        <el-form-item :label="t('engStorage.register.fields.comment')" prop="comment">
+          <el-input v-model="registerForm.comment" type="textarea" :rows="2" :placeholder="t('engStorage.register.fields.commentPlaceholder')" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="registerDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="registering" @click="handleRegister">提交</el-button>
+        <el-button @click="registerDialogVisible = false">{{ t('engStorage.register.actions.cancel') }}</el-button>
+        <el-button type="primary" :loading="registering" @click="handleRegister">{{ t('engStorage.register.actions.submit') }}</el-button>
       </template>
     </el-dialog>
 
     <!-- 虚拟表查询结果弹窗 -->
     <el-dialog
       v-model="queryDialogVisible"
-      :title="`查询 - ${currentQueryTable ?? ''}`"
+      :title="t('engStorage.query.title', { name: currentQueryTable ?? '' })"
       width="800px"
       :close-on-click-modal="true"
     >
       <div v-loading="querying" class="query-result">
         <template v-if="queryResult">
           <div class="query-meta">
-            共 {{ queryResult.rowCount }} 行，耗时 {{ queryResult.durationMs ?? '--' }} ms
+            {{ t('engStorage.query.meta', { rows: queryResult.rowCount, ms: queryResult.durationMs ?? t('engStorage.cache.noData') }) }}
           </div>
           <el-table
             :data="queryResult.rows"
@@ -235,10 +235,10 @@
             </el-table-column>
           </el-table>
         </template>
-        <el-empty v-else-if="!querying" description="暂无查询结果" />
+        <el-empty v-else-if="!querying" :description="t('engStorage.query.empty')" />
       </div>
       <template #footer>
-        <el-button @click="queryDialogVisible = false">关闭</el-button>
+        <el-button @click="queryDialogVisible = false">{{ t('engStorage.query.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -246,6 +246,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
@@ -257,6 +258,8 @@ import type {
   VirtualTableQueryResult,
   VirtualTableStatus
 } from '@/api/engine'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 数据加载 ------------------------------ */
 
@@ -328,10 +331,10 @@ const registerForm = reactive<RegisterForm>({
   comment: ''
 })
 
-const registerRules: FormRules = {
-  tableName: [{ required: true, message: '请输入表名', trigger: 'blur' }],
-  dataSourceType: [{ required: true, message: '请选择数据源类型', trigger: 'change' }]
-}
+const registerRules = computed<FormRules>(() => ({
+  tableName: [{ required: true, message: t('engStorage.rules.tableNameRequired'), trigger: 'blur' }],
+  dataSourceType: [{ required: true, message: t('engStorage.rules.dataSourceTypeRequired'), trigger: 'change' }]
+}))
 
 /** 打开注册弹窗 */
 function openRegisterDialog() {
@@ -363,7 +366,7 @@ async function handleRegister() {
         schema: registerForm.schema || undefined,
         comment: registerForm.comment || undefined
       })
-      ElMessage.success('虚拟表注册成功')
+      ElMessage.success(t('engStorage.messages.registered'))
       registerDialogVisible.value = false
       await loadVt()
     } catch {
@@ -380,7 +383,7 @@ async function handleRegister() {
 async function handleTestConnection(row: VirtualTableDefinition) {
   try {
     const { connected } = await engineApi.testVirtualTableConnection(row.tableName)
-    ElMessage[connected ? 'success' : 'error'](connected ? '连接成功' : '连接失败')
+    ElMessage[connected ? 'success' : 'error'](t(connected ? 'engStorage.messages.testOk' : 'engStorage.messages.testFailed'))
   } catch {
     // 拦截器已提示
   }
@@ -390,7 +393,7 @@ async function handleTestConnection(row: VirtualTableDefinition) {
 async function handleRefreshVt(row: VirtualTableDefinition) {
   try {
     const { rows } = await engineApi.refreshVirtualTable(row.tableName)
-    ElMessage.success(`刷新成功，共 ${rows} 行`)
+    ElMessage.success(t('engStorage.messages.vtRefreshed', { rows }))
     await loadVt()
   } catch {
     // 拦截器已提示
@@ -403,7 +406,7 @@ async function handleRefreshVt(row: VirtualTableDefinition) {
 async function handleRefreshMv(row: MaterializedViewDef) {
   try {
     const { eventId } = await engineApi.refreshMaterializedView(row.viewName)
-    ElMessage.success(`刷新已触发，事件 ID：${eventId}`)
+    ElMessage.success(t('engStorage.messages.mvRefreshed', { eventId }))
     await loadMv()
   } catch {
     // 拦截器已提示
@@ -415,9 +418,9 @@ async function handleViewMvStatus(row: MaterializedViewDef) {
   try {
     const status = await engineApi.getMaterializedViewStatus(row.viewName)
     ElMessage.info(
-      `视图「${row.viewName}」状态：${status.status}` +
-        (status.lastRefreshAt ? `，最近刷新：${status.lastRefreshAt}` : '') +
-        (status.errorMessage ? `，错误：${status.errorMessage}` : '')
+      t('engStorage.messages.mvStatusFmt', { name: row.viewName, status: status.status }) +
+        (status.lastRefreshAt ? t('engStorage.messages.mvStatusRefreshFmt', { time: status.lastRefreshAt }) : '') +
+        (status.errorMessage ? t('engStorage.messages.mvStatusErrorFmt', { message: status.errorMessage }) : '')
     )
   } catch {
     // 拦截器已提示
@@ -448,16 +451,11 @@ async function openQueryDialog(row: VirtualTableDefinition) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 虚拟表状态 → 中文 */
+/** 虚拟表状态 → 词条 */
 function vtStatusLabel(status?: VirtualTableStatus | string): string {
-  if (!status) return '--'
-  const map: Record<string, string> = {
-    ACTIVE: '正常',
-    INACTIVE: '未启用',
-    ERROR: '异常',
-    REFRESHING: '刷新中'
-  }
-  return map[status] ?? status
+  if (!status) return t('engStorage.cache.noData')
+  const key = `engStorage.vt.status.${status}`
+  return te(key) ? t(key) : status
 }
 
 /** 虚拟表状态 → tag 类型 */

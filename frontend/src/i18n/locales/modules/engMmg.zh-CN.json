@@ -1,0 +1,62 @@
+{
+  "engMmg": {
+    "title": "多模型引擎",
+    "subtitle": "统一适配 · 跨模型查询 · 虚拟表 · 15 秒自动刷新",
+    "kpi": {
+      "modelCount": "支持模型数",
+      "modelCountMeta": "关系型/文档/图/时序/向量/KV",
+      "supportedTypes": "已接入类型",
+      "supportedTypesMeta": "后端可用数据源类型",
+      "virtualTables": "虚拟表数",
+      "virtualTablesMeta": "当前类型筛选下",
+      "queryCount": "跨模型查询",
+      "queryCountMeta": "今日查询次数"
+    },
+    "modelGroups": {
+      "{key}": {
+        "label": "{name}",
+        "countFmt": "{count} 个类型"
+      },
+      "RDBMS": { "label": "关系型", "countFmt": "{count} 个类型" },
+      "DOC": { "label": "文档型", "countFmt": "{count} 个类型" },
+      "GRAPH": { "label": "图数据库", "countFmt": "{count} 个类型" },
+      "TSDB": { "label": "时序", "countFmt": "{count} 个类型" },
+      "VECTOR": { "label": "向量", "countFmt": "{count} 个类型" },
+      "KV": { "label": "KV", "countFmt": "{count} 个类型" }
+    },
+    "toolbar": {
+      "typeFilterPlaceholder": "按数据源类型筛选",
+      "refreshAria": "刷新"
+    },
+    "table": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无虚拟表",
+      "columns": {
+        "name": "表名",
+        "dataSourceType": "数据源类型",
+        "model": "模型",
+        "dataSource": "数据源",
+        "rowCount": "行数",
+        "lastQuery": "最近查询",
+        "actions": "操作"
+      },
+      "actions": {
+        "query": "跨模型查询",
+        "test": "测试连接"
+      }
+    },
+    "query": {
+      "title": "跨模型查询 - {name}",
+      "predicatePlaceholder": "过滤谓词（可选），如 status = 'active' AND age > 18",
+      "meta": "共 {rows} 行，耗时 {ms} ms",
+      "empty": "点击查询按钮执行",
+      "close": "关闭",
+      "execute": "查询"
+    },
+    "messages": {
+      "queryDone": "查询完成",
+      "testOk": "连接成功",
+      "testFailed": "连接失败"
+    }
+  }
+}

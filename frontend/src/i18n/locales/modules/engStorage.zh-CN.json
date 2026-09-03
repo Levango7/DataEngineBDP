@@ -1,0 +1,113 @@
+{
+  "engStorage": {
+    "title": "统一存储",
+    "subtitle": "虚拟表 · 物化视图 · 跨源归并 · 15 秒自动刷新",
+    "kpi": {
+      "virtualTables": "虚拟表数",
+      "virtualTablesMeta": "已注册虚拟表",
+      "mvCount": "物化视图数",
+      "mvCountMeta": "已纳管物化视图",
+      "cacheHitRate": "缓存命中率",
+      "cacheHitMeta": "命中 {hit} · 未命中 {miss}",
+      "refreshToday": "今日刷新次数",
+      "refreshTodayMeta": "物化视图刷新"
+    },
+    "tabs": {
+      "virtualTables": "虚拟表",
+      "mv": "物化视图",
+      "cache": "缓存统计"
+    },
+    "vt": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无虚拟表",
+      "register": "+ 注册虚拟表",
+      "columns": {
+        "name": "表名",
+        "dataSourceType": "数据源类型",
+        "dataSource": "数据源",
+        "schema": "Schema",
+        "status": "状态",
+        "lastQuery": "最近查询",
+        "actions": "操作"
+      },
+      "actions": {
+        "query": "查询",
+        "test": "测试",
+        "refresh": "刷新"
+      },
+      "status": {
+        "ACTIVE": "正常",
+        "INACTIVE": "未启用",
+        "ERROR": "异常",
+        "REFRESHING": "刷新中"
+      }
+    },
+    "mv": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无物化视图",
+      "columns": {
+        "name": "视图名",
+        "sourceTable": "源表",
+        "refreshStrategy": "刷新策略",
+        "lastRefresh": "最近刷新",
+        "status": "状态",
+        "rowCount": "行数",
+        "actions": "操作"
+      },
+      "actions": {
+        "refresh": "刷新",
+        "viewStatus": "查看状态"
+      }
+    },
+    "cache": {
+      "title": "缓存统计",
+      "hitRate": "命中率",
+      "totalEntries": "总条目数",
+      "size": "缓存大小",
+      "sizeUnit": " MB",
+      "hitCount": "命中次数",
+      "missCount": "未命中次数",
+      "refreshToday": "今日刷新次数",
+      "noData": "--"
+    },
+    "register": {
+      "title": "注册虚拟表",
+      "fields": {
+        "tableName": "表名",
+        "tableNamePlaceholder": "如 ods_order_detail",
+        "dataSourceType": "数据源类型",
+        "dataSourceTypePlaceholder": "选择数据源类型",
+        "dataSourceName": "数据源名称",
+        "dataSourceNamePlaceholder": "数据源实例名",
+        "schema": "Schema",
+        "schemaPlaceholder": "如 default",
+        "comment": "备注",
+        "commentPlaceholder": "可选"
+      },
+      "actions": {
+        "cancel": "取消",
+        "submit": "提交"
+      }
+    },
+    "query": {
+      "title": "查询 - {name}",
+      "meta": "共 {rows} 行，耗时 {ms} ms",
+      "empty": "暂无查询结果",
+      "close": "关闭"
+    },
+    "rules": {
+      "tableNameRequired": "请输入表名",
+      "dataSourceTypeRequired": "请选择数据源类型"
+    },
+    "messages": {
+      "registered": "虚拟表注册成功",
+      "testOk": "连接成功",
+      "testFailed": "连接失败",
+      "vtRefreshed": "刷新成功，共 {rows} 行",
+      "mvRefreshed": "刷新已触发，事件 ID：{eventId}",
+      "mvStatusFmt": "视图「{name}」状态：{status}",
+      "mvStatusRefreshFmt": "，最近刷新：{time}",
+      "mvStatusErrorFmt": "，错误：{message}"
+    }
+  }
+}
