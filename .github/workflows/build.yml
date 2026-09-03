@@ -40,7 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 等待 CI 工作流通过
         uses: lewagon/wait-on-check-action@v1.3.4
@@ -70,7 +70,7 @@ jobs:
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Node.js 22
         uses: actions/setup-node@v4
@@ -131,7 +131,7 @@ jobs:
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 JDK 17 (Temurin) + Maven 3.9
         uses: actions/setup-java@v4
@@ -246,7 +246,7 @@ jobs:
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Go 1.26
         uses: actions/setup-go@v7
@@ -308,7 +308,7 @@ jobs:
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -360,7 +360,7 @@ jobs:
         run: echo "REGISTRY_NS=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
 
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Helm
         uses: azure/setup-helm@v5

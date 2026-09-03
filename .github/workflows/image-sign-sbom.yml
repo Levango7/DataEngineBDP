@@ -70,7 +70,7 @@ jobs:
         run: echo "registry-ns=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
 
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 解析待处理组件列表
         id: resolve-components
@@ -203,7 +203,7 @@ jobs:
     if: github.event_name != 'pull_request' && github.event.inputs.enable_sign != 'false'
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 cosign
         uses: sigstore/cosign-installer@v3
@@ -361,7 +361,7 @@ jobs:
     needs: build-and-push
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 安装 Syft
         # anchore/syft-action 已下线（无法解析），改用官方安装脚本
@@ -442,7 +442,7 @@ jobs:
     needs: build-and-push
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # 扫描目标为 GHCR 私有镜像；此前本 job 未登录，trivy 匿名拉取 401，
       # 报错又被 2>/dev/null 吞掉，表现为"扫描失败"（workflow 失败根因之一）
@@ -558,7 +558,7 @@ jobs:
     if: always()
     steps:
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: 下载所有制品
         uses: actions/download-artifact@v4
