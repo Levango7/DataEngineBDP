@@ -45,6 +45,12 @@ import kbZh from '@/i18n/locales/modules/kb.zh-CN.json'
 import kbEn from '@/i18n/locales/modules/kb.en-US.json'
 import llmopsZh from '@/i18n/locales/modules/llmops.zh-CN.json'
 import llmopsEn from '@/i18n/locales/modules/llmops.en-US.json'
+import gatewayZh from '@/i18n/locales/modules/gateway.zh-CN.json'
+import gatewayEn from '@/i18n/locales/modules/gateway.en-US.json'
+import accountZh from '@/i18n/locales/modules/account.zh-CN.json'
+import accountEn from '@/i18n/locales/modules/account.en-US.json'
+import adminZh from '@/i18n/locales/modules/admin.zh-CN.json'
+import adminEn from '@/i18n/locales/modules/admin.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -113,7 +119,10 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['scheduler', schedulerZh as Record<string, unknown>, schedulerEn as Record<string, unknown>],
     ['vector', vectorZh as Record<string, unknown>, vectorEn as Record<string, unknown>],
     ['kb', kbZh as Record<string, unknown>, kbEn as Record<string, unknown>],
-    ['llmops', llmopsZh as Record<string, unknown>, llmopsEn as Record<string, unknown>]
+    ['llmops', llmopsZh as Record<string, unknown>, llmopsEn as Record<string, unknown>],
+    ['gateway', gatewayZh as Record<string, unknown>, gatewayEn as Record<string, unknown>],
+    ['account', accountZh as Record<string, unknown>, accountEn as Record<string, unknown>],
+    ['admin', adminZh as Record<string, unknown>, adminEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

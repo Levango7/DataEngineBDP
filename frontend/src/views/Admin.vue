@@ -1,54 +1,66 @@
 <template>
   <div>
-    <h1>运营后台（平台侧）</h1>
-    <div class="sub">仅平台运维可见；租户、计量、底座运维与多环境管理。</div>
+    <h1>{{ t('admin.title') }}</h1>
+    <div class="sub">{{ t('admin.subtitle') }}</div>
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
-      正在加载运营数据...
+      {{ t('admin.loading') }}
     </div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
-      加载失败：{{ error.message }}
-      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">重试</button>
+      {{ t('admin.loadFailed', { msg: error.message }) }}
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">
+        {{ t('common.retry') }}
+      </button>
     </div>
     <template v-else>
       <div class="grid g4">
         <div class="card">
-          <h3>租户总数</h3>
+          <h3>{{ t('admin.kpi.tenants') }}</h3>
           <div class="kpi">{{ kpi?.tenantTotal ?? 0 }}</div>
           <div class="meta">
-            外部 {{ kpi?.tenantExternal ?? 0 }} · 内部 {{ kpi?.tenantInternal ?? 0 }}
+            {{
+              t('admin.kpi.tenantsMeta', {
+                external: kpi?.tenantExternal ?? 0,
+                internal: kpi?.tenantInternal ?? 0
+              })
+            }}
           </div>
         </div>
         <div class="card">
-          <h3>集群实例</h3>
+          <h3>{{ t('admin.kpi.clusters') }}</h3>
           <div class="kpi">{{ kpi?.clusterTotal ?? 0 }}</div>
           <div class="meta">
-            信创 {{ kpi?.clusterXinchuang ?? 0 }} · 本地 {{ kpi?.clusterOnprem ?? 0 }} · 云VM
-            {{ kpi?.clusterCloudVm ?? 0 }}
+            {{
+              t('admin.kpi.clustersMeta', {
+                xinchuang: kpi?.clusterXinchuang ?? 0,
+                onprem: kpi?.clusterOnprem ?? 0,
+                cloudVm: kpi?.clusterCloudVm ?? 0
+              })
+            }}
           </div>
         </div>
         <div class="card">
-          <h3>本月营收</h3>
+          <h3>{{ t('admin.kpi.revenue') }}</h3>
           <div class="kpi s">¥ {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}</div>
         </div>
         <div class="card">
-          <h3>底座告警</h3>
+          <h3>{{ t('admin.kpi.alerts') }}</h3>
           <div class="kpi s">{{ kpi?.alertCount ?? 0 }}</div>
-          <div class="meta">已自动处置 {{ kpi?.alertAutoHandled ?? 0 }}</div>
+          <div class="meta">{{ t('admin.kpi.alertsMeta', { count: kpi?.alertAutoHandled ?? 0 }) }}</div>
         </div>
       </div>
       <div class="card" style="margin-top: 14px">
-        <h3>环境矩阵</h3>
+        <h3>{{ t('admin.envTitle') }}</h3>
         <div v-if="envLoading" style="text-align: center; padding: 24px; color: #888">
-          正在加载环境矩阵...
+          {{ t('admin.envLoading') }}
         </div>
         <table v-else>
           <thead>
             <tr>
-              <th>环境</th>
-              <th>Namespace</th>
-              <th>节点</th>
-              <th>控制面</th>
-              <th>状态</th>
+              <th>{{ t('admin.cols.env') }}</th>
+              <th>{{ t('admin.cols.namespace') }}</th>
+              <th>{{ t('admin.cols.nodes') }}</th>
+              <th>{{ t('admin.cols.controlPlane') }}</th>
+              <th>{{ t('admin.cols.status') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -65,10 +77,7 @@
             </tr>
           </tbody>
         </table>
-        <div class="note">
-          此处为平台运维视图，印证「自研 SKE
-          发行版封装层」将底层复杂度对客屏蔽；客户控制台仅见工作空间/项目/配额。
-        </div>
+        <div class="note">{{ t('admin.envNote') }}</div>
       </div>
     </template>
   </div>
@@ -76,9 +85,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
 import * as adminApi from '@/api/admin'
 import type { AdminKpi, EnvMatrixItem, EnvStatus } from '@/api/admin'
+
+const { t } = useI18n()
 
 // 运营 KPI：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const { data: kpi, loading, error, execute: loadKpi } = useApi<AdminKpi>(() => adminApi.getKpi())
@@ -96,19 +108,21 @@ function formatRevenue(v: number): string {
   return v.toFixed(0)
 }
 
-const ENV_STATUS_MAP: Record<EnvStatus, { label: string; cls: string }> = {
-  healthy: { label: '健康', cls: 'g' },
-  scaling: { label: '扩容中', cls: 'a' },
-  warning: { label: '告警', cls: 'a' },
-  critical: { label: '严重', cls: 'p' }
+const ENV_STATUS_CLS: Record<EnvStatus, string> = {
+  healthy: 'g',
+  scaling: 'a',
+  warning: 'a',
+  critical: 'p'
 }
 
+const ENV_STATUSES: EnvStatus[] = ['healthy', 'scaling', 'warning', 'critical']
+
 function envStatusLabel(s: EnvStatus): string {
-  return ENV_STATUS_MAP[s]?.label ?? s
+  return ENV_STATUSES.includes(s) ? t(`admin.envStatus.${s}`) : s
 }
 
 function envStatusClass(s: EnvStatus): string {
-  return ENV_STATUS_MAP[s]?.cls ?? ''
+  return ENV_STATUS_CLS[s] ?? ''
 }
 
 async function loadAll() {

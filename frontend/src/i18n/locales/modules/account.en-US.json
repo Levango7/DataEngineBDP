@@ -1,0 +1,32 @@
+{
+  "account": {
+    "title": "Account & Quota",
+    "subtitle": "The plan is the capacity boundary. Overages trigger automatic scale-out or plan upgrades, with clear, auditable costs.",
+    "loading": "Loading account info...",
+    "loadFailed": "Failed to load: {msg}",
+    "currentPlan": "Current plan: {name}",
+    "quotaUsed": "{total} / {used} used",
+    "upgrade": "Upgrade Plan",
+    "billingTitle": "Billing Details This Month",
+    "billingLoading": "Loading billing details...",
+    "cols": {
+      "item": "Item",
+      "usage": "Usage",
+      "cost": "Cost"
+    },
+    "total": "Total",
+    "billingNote": "Plans are implemented via ResourceQuota + node pool leases, decoupled from the SKE distribution — customers only see the plan concept.",
+    "upgradeModal": {
+      "title": "Upgrade Plan",
+      "targetPlan": "Target Plan",
+      "flagship": "Flagship",
+      "enterprisePlus": "Enterprise + Expansion Pack",
+      "estimatedFee": "Estimated Monthly Fee",
+      "note": "After upgrading, NodePoolLease scales out automatically with zero perceived downtime.",
+      "confirm": "Confirm Upgrade",
+      "submitted": "Plan upgrade submitted",
+      "failed": "Plan upgrade failed",
+      "failedWithMsg": "Upgrade failed: {msg}"
+    }
+  }
+}

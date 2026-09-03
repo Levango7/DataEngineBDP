@@ -37,6 +37,12 @@ import kbZh from './locales/modules/kb.zh-CN.json'
 import kbEn from './locales/modules/kb.en-US.json'
 import llmopsZh from './locales/modules/llmops.zh-CN.json'
 import llmopsEn from './locales/modules/llmops.en-US.json'
+import gatewayZh from './locales/modules/gateway.zh-CN.json'
+import gatewayEn from './locales/modules/gateway.en-US.json'
+import accountZh from './locales/modules/account.zh-CN.json'
+import accountEn from './locales/modules/account.en-US.json'
+import adminZh from './locales/modules/admin.zh-CN.json'
+import adminEn from './locales/modules/admin.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -102,7 +108,10 @@ export const i18n = createI18n({
       ...schedulerZh,
       ...vectorZh,
       ...kbZh,
-      ...llmopsZh
+      ...llmopsZh,
+      ...gatewayZh,
+      ...accountZh,
+      ...adminZh
     },
     'en-US': {
       ...enUS,
@@ -123,7 +132,10 @@ export const i18n = createI18n({
       ...schedulerEn,
       ...vectorEn,
       ...kbEn,
-      ...llmopsEn
+      ...llmopsEn,
+      ...gatewayEn,
+      ...accountEn,
+      ...adminEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

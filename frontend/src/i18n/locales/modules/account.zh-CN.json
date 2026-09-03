@@ -1,0 +1,32 @@
+{
+  "account": {
+    "title": "账户与配额",
+    "subtitle": "套餐即容量边界；超额自动扩容或升级套餐，费用清晰可核算。",
+    "loading": "正在加载账户信息...",
+    "loadFailed": "加载失败：{msg}",
+    "currentPlan": "当前套餐：{name}",
+    "quotaUsed": "{total} / 已用 {used}",
+    "upgrade": "升级套餐",
+    "billingTitle": "本月计费明细",
+    "billingLoading": "正在加载计费明细...",
+    "cols": {
+      "item": "项",
+      "usage": "用量",
+      "cost": "费用"
+    },
+    "total": "合计",
+    "billingNote": "套餐由 ResourceQuota + 节点池租约实现，与 SKE 发行版解耦，客户仅见套餐概念。",
+    "upgradeModal": {
+      "title": "升级套餐",
+      "targetPlan": "目标套餐",
+      "flagship": "旗舰版",
+      "enterprisePlus": "企业版+扩容包",
+      "estimatedFee": "预计月费",
+      "note": "升级后经 NodePoolLease 自动扩容，客户无感知停机。",
+      "confirm": "确认升级",
+      "submitted": "套餐升级已提交",
+      "failed": "套餐升级失败",
+      "failedWithMsg": "升级失败：{msg}"
+    }
+  }
+}

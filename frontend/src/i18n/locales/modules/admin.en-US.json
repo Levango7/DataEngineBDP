@@ -1,0 +1,33 @@
+{
+  "admin": {
+    "title": "Operations Console (Platform Side)",
+    "subtitle": "Visible to platform operators only: tenants, metering, infrastructure operations and multi-environment management.",
+    "loading": "Loading operations data...",
+    "loadFailed": "Failed to load: {msg}",
+    "kpi": {
+      "tenants": "Total Tenants",
+      "tenantsMeta": "{external} external · {internal} internal",
+      "clusters": "Cluster Instances",
+      "clustersMeta": "{xinchuang} Xinchuang · {onprem} on-prem · {cloudVm} cloud VM",
+      "revenue": "Revenue This Month",
+      "alerts": "Infra Alerts",
+      "alertsMeta": "{count} auto-handled"
+    },
+    "envTitle": "Environment Matrix",
+    "envLoading": "Loading environment matrix...",
+    "cols": {
+      "env": "Environment",
+      "namespace": "Namespace",
+      "nodes": "Nodes",
+      "controlPlane": "Control Plane",
+      "status": "Status"
+    },
+    "envNote": "This is the platform operations view — proof that the self-developed SKE distribution encapsulation hides underlying complexity from customers, whose console only shows workspaces/projects/quotas.",
+    "envStatus": {
+      "healthy": "Healthy",
+      "scaling": "Scaling",
+      "warning": "Warning",
+      "critical": "Critical"
+    }
+  }
+}

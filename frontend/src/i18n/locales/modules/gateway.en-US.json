@@ -1,0 +1,70 @@
+{
+  "gateway": {
+    "title": "LLM Gateway",
+    "subtitle": "L4.5 · Unified API entry: multi-model routing, rate limiting, billing and auditing, hiding underlying deployment differences.",
+    "kpi": {
+      "todayCalls": "Calls Today",
+      "callsMeta": "Requests",
+      "avgLatency": "Avg Latency",
+      "successRate": "Success Rate",
+      "activeKeys": "Active Keys"
+    },
+    "trend": "Call Trend",
+    "refresh": "Refresh",
+    "keysTitle": "API Keys & Routing",
+    "newKey": "+ New Key",
+    "cols": {
+      "name": "Key Name",
+      "apiKey": "apiKey",
+      "routeModel": "Route Model",
+      "rateLimit": "Rate Limit",
+      "status": "Status",
+      "createdAt": "Created At",
+      "actions": "Actions"
+    },
+    "copy": "Copy",
+    "edit": "Edit",
+    "keysEmpty": "No API Keys",
+    "keyStatus": {
+      "enabled": "Enabled",
+      "pending": "Pending",
+      "disabled": "Disabled"
+    },
+    "editModal": {
+      "titleEdit": "Edit API Key",
+      "titleCreate": "New API Key",
+      "name": "Key Name",
+      "namePlaceholder": "e.g. mkt-exp",
+      "routeModel": "Route Model",
+      "rateLimit": "Rate Limit (/s)",
+      "scope": "Scope (optional, comma-separated)",
+      "scopePlaceholder": "e.g. model-a,model-b",
+      "processing": "Processing…",
+      "save": "Save",
+      "generate": "Generate",
+      "nameRequired": "Please enter a key name",
+      "updated": "API Key updated",
+      "generated": "API Key generated"
+    },
+    "secretModal": {
+      "title": "API Key Generated (store the secret safely)",
+      "warning": "The secret is shown only once. You cannot view it again after closing — copy and save it now!",
+      "saved": "I have saved it"
+    },
+    "deleteConfirm": {
+      "message": "Delete key \"{name}\"? This cannot be undone.",
+      "title": "Confirm Deletion",
+      "confirm": "Delete",
+      "deleted": "Deleted"
+    },
+    "toast": {
+      "copied": "Copied",
+      "copyFailed": "Copy failed, please copy manually"
+    },
+    "chart": {
+      "days": ["7d ago", "6d ago", "5d ago", "4d ago", "3d ago", "2d ago", "Today"],
+      "calls": "Calls",
+      "latency": "Latency (ms)"
+    }
+  }
+}

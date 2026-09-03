@@ -1,25 +1,25 @@
 <template>
   <div class="gateway-page">
-    <h1>大模型网关</h1>
-    <div class="sub">L4.5 · 统一 API 入口，路由多模型、限流、计费、审计，屏蔽底层部署差异。</div>
+    <h1>{{ t('gateway.title') }}</h1>
+    <div class="sub">{{ t('gateway.subtitle') }}</div>
 
     <!-- 统计卡片 -->
     <div class="grid g4">
       <div class="card">
-        <h3>今日调用</h3>
+        <h3>{{ t('gateway.kpi.todayCalls') }}</h3>
         <div class="kpi s">{{ stats?.todayCallCount?.toLocaleString() ?? '--' }}</div>
-        <div class="meta">请求数</div>
+        <div class="meta">{{ t('gateway.kpi.callsMeta') }}</div>
       </div>
       <div class="card">
-        <h3>平均时延</h3>
+        <h3>{{ t('gateway.kpi.avgLatency') }}</h3>
         <div class="kpi s">{{ stats?.avgLatencyMs ?? '--' }}ms</div>
       </div>
       <div class="card">
-        <h3>成功率</h3>
+        <h3>{{ t('gateway.kpi.successRate') }}</h3>
         <div class="kpi s">{{ stats?.successRate ?? '--' }}%</div>
       </div>
       <div class="card">
-        <h3>活跃 Key</h3>
+        <h3>{{ t('gateway.kpi.activeKeys') }}</h3>
         <div class="kpi s">{{ stats?.activeKeyCount ?? '--' }}</div>
       </div>
     </div>
@@ -27,8 +27,10 @@
     <!-- 延迟分布图表 -->
     <div class="card" style="margin-top: 14px">
       <h3>
-        调用趋势
-        <button class="btn ghost sm" style="margin-left: 8px" @click="loadStats">刷新</button>
+        {{ t('gateway.trend') }}
+        <button class="btn ghost sm" style="margin-left: 8px" @click="loadStats">
+          {{ t('gateway.refresh') }}
+        </button>
       </h3>
       <div ref="chartRef" class="chart-area"></div>
     </div>
@@ -36,24 +38,26 @@
     <!-- API Key 管理 -->
     <div class="card" style="margin-top: 14px">
       <h3>
-        API Key 与路由
-        <button class="btn sm" style="margin-left: 8px" @click="openCreateModal">+ 新建 Key</button>
+        {{ t('gateway.keysTitle') }}
+        <button class="btn sm" style="margin-left: 8px" @click="openCreateModal">
+          {{ t('gateway.newKey') }}
+        </button>
       </h3>
-      <div v-if="keysLoading" style="color: var(--muted)">加载中…</div>
+      <div v-if="keysLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="keysError" style="color: var(--red)">
         {{ keysError.message }}，
-        <a href="javascript:void(0)" @click="loadApiKeys">重试</a>
+        <a href="javascript:void(0)" @click="loadApiKeys">{{ t('common.retry') }}</a>
       </div>
       <table v-else-if="apiKeys">
         <thead>
           <tr>
-            <th>Key 名称</th>
-            <th>apiKey</th>
-            <th>路由模型</th>
-            <th>限流</th>
-            <th>状态</th>
-            <th>创建时间</th>
-            <th>操作</th>
+            <th>{{ t('gateway.cols.name') }}</th>
+            <th>{{ t('gateway.cols.apiKey') }}</th>
+            <th>{{ t('gateway.cols.routeModel') }}</th>
+            <th>{{ t('gateway.cols.rateLimit') }}</th>
+            <th>{{ t('gateway.cols.status') }}</th>
+            <th>{{ t('gateway.cols.createdAt') }}</th>
+            <th>{{ t('gateway.cols.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -62,7 +66,7 @@
             <td>
               <code class="api-key-cell">{{ k.apiKey || '--' }}</code>
               <button v-if="k.apiKey" class="btn ghost sm" @click="copyText(k.apiKey!)">
-                复制
+                {{ t('gateway.copy') }}
               </button>
             </td>
             <td>{{ k.routeModel }}</td>
@@ -74,12 +78,14 @@
             </td>
             <td>{{ formatDate(k.createdAt) }}</td>
             <td>
-              <button class="btn ghost sm" @click="openEditModal(k)">编辑</button>
-              <button class="btn ghost sm" @click="handleDelete(k)">删除</button>
+              <button class="btn ghost sm" @click="openEditModal(k)">{{ t('gateway.edit') }}</button>
+              <button class="btn ghost sm" @click="handleDelete(k)">{{ t('common.delete') }}</button>
             </td>
           </tr>
           <tr v-if="apiKeys.length === 0">
-            <td colspan="7" style="text-align: center; color: var(--muted)">暂无 API Key</td>
+            <td colspan="7" style="text-align: center; color: var(--muted)">
+              {{ t('gateway.keysEmpty') }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -88,25 +94,35 @@
     <!-- 创建/编辑 Key 弹窗 -->
     <Modal
       :visible="modalVisible"
-      :title="editingKey ? '编辑 API Key' : '新建 API Key'"
+      :title="editingKey ? t('gateway.editModal.titleEdit') : t('gateway.editModal.titleCreate')"
       @close="closeModal"
     >
-      <label>Key 名称</label>
-      <input v-model="form.name" placeholder="如 mkt-exp" :disabled="!!editingKey" />
-      <label>路由模型</label>
+      <label>{{ t('gateway.editModal.name') }}</label>
+      <input
+        v-model="form.name"
+        :placeholder="t('gateway.editModal.namePlaceholder')"
+        :disabled="!!editingKey"
+      />
+      <label>{{ t('gateway.editModal.routeModel') }}</label>
       <select v-model="form.routeModel">
         <option>qiong-7B</option>
         <option>风控-领域-1.3B</option>
         <option>营销-领域-3B</option>
       </select>
-      <label>限流(/s)</label>
+      <label>{{ t('gateway.editModal.rateLimit') }}</label>
       <input v-model.number="form.rateLimit" type="number" />
-      <label>权限范围（可选，逗号分隔）</label>
-      <input v-model="form.scope" placeholder="如 model-a,model-b" />
+      <label>{{ t('gateway.editModal.scope') }}</label>
+      <input v-model="form.scope" :placeholder="t('gateway.editModal.scopePlaceholder')" />
       <template #footer>
-        <button class="btn ghost" @click="closeModal">取消</button>
+        <button class="btn ghost" @click="closeModal">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? '处理中…' : editingKey ? '保存' : '生成' }}
+          {{
+            submitting
+              ? t('gateway.editModal.processing')
+              : editingKey
+                ? t('gateway.editModal.save')
+                : t('gateway.editModal.generate')
+          }}
         </button>
       </template>
     </Modal>
@@ -114,25 +130,29 @@
     <!-- Secret 一次性展示弹窗 -->
     <Modal
       :visible="secretModalVisible"
-      title="API Key 已生成（请妥善保存 secret）"
+      :title="t('gateway.secretModal.title')"
       @close="closeSecretModal"
     >
       <div class="secret-warning">
         <el-icon class="secret-warning__icon"><WarningFilled /></el-icon>
-        secret 仅本次显示一次，关闭后无法再次查看。请立即复制保存！
+        {{ t('gateway.secretModal.warning') }}
       </div>
       <label>apiKey</label>
       <div class="secret-row">
         <code class="secret-cell">{{ createdKey?.apiKey }}</code>
-        <button class="btn ghost sm" @click="copyText(createdKey?.apiKey || '')">复制</button>
+        <button class="btn ghost sm" @click="copyText(createdKey?.apiKey || '')">
+          {{ t('gateway.copy') }}
+        </button>
       </div>
       <label>secret</label>
       <div class="secret-row">
         <code class="secret-cell">{{ createdKey?.secret }}</code>
-        <button class="btn ghost sm" @click="copyText(createdKey?.secret || '')">复制</button>
+        <button class="btn ghost sm" @click="copyText(createdKey?.secret || '')">
+          {{ t('gateway.copy') }}
+        </button>
       </div>
       <template #footer>
-        <button class="btn" @click="closeSecretModal">我已保存</button>
+        <button class="btn" @click="closeSecretModal">{{ t('gateway.secretModal.saved') }}</button>
       </template>
     </Modal>
   </div>
@@ -142,6 +162,7 @@
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { WarningFilled } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
@@ -149,6 +170,7 @@ import * as echarts from 'echarts'
 import * as gatewayApi from '@/api/gateway'
 import type { GatewayStats, ApiKey, KeyStatus } from '@/api/gateway'
 
+const { t, tm, locale } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 const secretModalVisible = ref(false)
@@ -183,21 +205,21 @@ function keyStatusPillClass(s: KeyStatus): string {
 function keyStatusPillText(s: KeyStatus): string {
   switch (s) {
     case 'enabled':
-      return '启用'
+      return t('gateway.keyStatus.enabled')
     case 'pending':
-      return '待上线'
+      return t('gateway.keyStatus.pending')
     case 'disabled':
-      return '已禁用'
+      return t('gateway.keyStatus.disabled')
     default:
       return s
   }
 }
 
-/** 格式化日期 */
+/** 格式化日期（跟随当前语言环境） */
 function formatDate(iso: string): string {
   if (!iso) return '--'
   try {
-    return new Date(iso).toLocaleString('zh-CN')
+    return new Date(iso).toLocaleString(locale.value)
   } catch {
     return iso
   }
@@ -208,9 +230,9 @@ async function copyText(text: string): Promise<void> {
   if (!text) return
   try {
     await navigator.clipboard.writeText(text)
-    store.showToast('已复制')
+    store.showToast(t('gateway.toast.copied'))
   } catch {
-    store.showToast('复制失败，请手动复制')
+    store.showToast(t('gateway.toast.copyFailed'))
   }
 }
 
@@ -263,7 +285,7 @@ function closeSecretModal(): void {
 /** 提交创建/编辑 Key */
 async function handleSubmit(): Promise<void> {
   if (!form.name.trim()) {
-    store.showToast('请填写 Key 名称')
+    store.showToast(t('gateway.editModal.nameRequired'))
     return
   }
   submitting.value = true
@@ -276,7 +298,7 @@ async function handleSubmit(): Promise<void> {
         rateLimit: form.rateLimit,
         scope: form.scope
       })
-      store.showToast('API Key 已更新')
+      store.showToast(t('gateway.editModal.updated'))
       modalVisible.value = false
     } else {
       // 创建模式：后端返回一次性 secret
@@ -286,7 +308,7 @@ async function handleSubmit(): Promise<void> {
         rateLimit: form.rateLimit,
         scope: form.scope
       })
-      store.showToast('API Key 已生成')
+      store.showToast(t('gateway.editModal.generated'))
       modalVisible.value = false
       // 展示一次性 secret
       if (created.secretShownOnce && created.secret && created.secret !== '***') {
@@ -306,19 +328,23 @@ async function handleSubmit(): Promise<void> {
 /** 删除 Key */
 async function handleDelete(key: ApiKey): Promise<void> {
   try {
-    await ElMessageBox.confirm(`确认删除 Key "${key.name}"？此操作不可撤销。`, '删除确认', {
-      type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('gateway.deleteConfirm.message', { name: key.name }),
+      t('gateway.deleteConfirm.title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('gateway.deleteConfirm.confirm'),
+        cancelButtonText: t('common.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
   } catch {
     // 用户取消
     return
   }
   try {
     await gatewayApi.deleteApiKey(key.id)
-    store.showToast('已删除')
+    store.showToast(t('gateway.deleteConfirm.deleted'))
     await loadApiKeys()
     await loadStats()
   } catch {
@@ -340,13 +366,15 @@ function renderChart(): void {
   }
   // 基于当前统计生成近 7 日趋势（后端 stats 是聚合值，前端做可视化展示）
   const base = stats.value.todayCallCount || 0
-  const days = ['7天前', '6天前', '5天前', '4天前', '3天前', '2天前', '今日']
+  const days = tm('gateway.chart.days') as string[]
   const callTrend = days.map((_, i) => Math.round(base * (0.6 + i * 0.06)))
   const latencyTrend = days.map(() => stats.value?.avgLatencyMs || 0)
+  const callsLabel = t('gateway.chart.calls')
+  const latencyLabel = t('gateway.chart.latency')
 
   chart.setOption({
     tooltip: { trigger: 'axis' },
-    legend: { data: ['调用数', '延迟(ms)'], right: 10, top: 0 },
+    legend: { data: [callsLabel, latencyLabel], right: 10, top: 0 },
     grid: { left: 50, right: 50, top: 40, bottom: 30 },
     xAxis: {
       type: 'category',
@@ -357,26 +385,26 @@ function renderChart(): void {
     yAxis: [
       {
         type: 'value',
-        name: '调用数',
+        name: callsLabel,
         axisLabel: { color: 'var(--ds-text-secondary)' },
         splitLine: { lineStyle: { color: 'var(--ds-border-default)' } }
       },
       {
         type: 'value',
-        name: '延迟(ms)',
+        name: latencyLabel,
         axisLabel: { color: 'var(--ds-text-secondary)' },
         splitLine: { show: false }
       }
     ],
     series: [
       {
-        name: '调用数',
+        name: callsLabel,
         type: 'bar',
         data: callTrend,
         itemStyle: { color: 'var(--ds-color-success-700)' }
       },
       {
-        name: '延迟(ms)',
+        name: latencyLabel,
         type: 'line',
         yAxisIndex: 1,
         smooth: true,

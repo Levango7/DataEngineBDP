@@ -1,0 +1,70 @@
+{
+  "gateway": {
+    "title": "大模型网关",
+    "subtitle": "L4.5 · 统一 API 入口，路由多模型、限流、计费、审计，屏蔽底层部署差异。",
+    "kpi": {
+      "todayCalls": "今日调用",
+      "callsMeta": "请求数",
+      "avgLatency": "平均时延",
+      "successRate": "成功率",
+      "activeKeys": "活跃 Key"
+    },
+    "trend": "调用趋势",
+    "refresh": "刷新",
+    "keysTitle": "API Key 与路由",
+    "newKey": "+ 新建 Key",
+    "cols": {
+      "name": "Key 名称",
+      "apiKey": "apiKey",
+      "routeModel": "路由模型",
+      "rateLimit": "限流",
+      "status": "状态",
+      "createdAt": "创建时间",
+      "actions": "操作"
+    },
+    "copy": "复制",
+    "edit": "编辑",
+    "keysEmpty": "暂无 API Key",
+    "keyStatus": {
+      "enabled": "启用",
+      "pending": "待上线",
+      "disabled": "已禁用"
+    },
+    "editModal": {
+      "titleEdit": "编辑 API Key",
+      "titleCreate": "新建 API Key",
+      "name": "Key 名称",
+      "namePlaceholder": "如 mkt-exp",
+      "routeModel": "路由模型",
+      "rateLimit": "限流(/s)",
+      "scope": "权限范围（可选，逗号分隔）",
+      "scopePlaceholder": "如 model-a,model-b",
+      "processing": "处理中…",
+      "save": "保存",
+      "generate": "生成",
+      "nameRequired": "请填写 Key 名称",
+      "updated": "API Key 已更新",
+      "generated": "API Key 已生成"
+    },
+    "secretModal": {
+      "title": "API Key 已生成（请妥善保存 secret）",
+      "warning": "secret 仅本次显示一次，关闭后无法再次查看。请立即复制保存！",
+      "saved": "我已保存"
+    },
+    "deleteConfirm": {
+      "message": "确认删除 Key \"{name}\"？此操作不可撤销。",
+      "title": "删除确认",
+      "confirm": "删除",
+      "deleted": "已删除"
+    },
+    "toast": {
+      "copied": "已复制",
+      "copyFailed": "复制失败，请手动复制"
+    },
+    "chart": {
+      "days": ["7天前", "6天前", "5天前", "4天前", "3天前", "2天前", "今日"],
+      "calls": "调用数",
+      "latency": "延迟(ms)"
+    }
+  }
+}

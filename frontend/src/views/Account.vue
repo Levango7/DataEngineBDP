@@ -1,22 +1,24 @@
 <template>
   <div>
-    <h1>账户与配额</h1>
-    <div class="sub">套餐即容量边界；超额自动扩容或升级套餐，费用清晰可核算。</div>
+    <h1>{{ t('account.title') }}</h1>
+    <div class="sub">{{ t('account.subtitle') }}</div>
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
-      正在加载账户信息...
+      {{ t('account.loading') }}
     </div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
-      加载失败：{{ error.message }}
-      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">重试</button>
+      {{ t('account.loadFailed', { msg: error.message }) }}
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">
+        {{ t('common.retry') }}
+      </button>
     </div>
     <template v-else>
       <div class="card">
-        <h3>当前套餐：{{ plan?.planName ?? '—' }}</h3>
+        <h3>{{ t('account.currentPlan', { name: plan?.planName ?? '—' }) }}</h3>
         <template v-if="plan">
           <div v-for="(q, idx) in plan.quotas" :key="q.name">
             <div class="row" :style="idx > 0 ? 'margin-top: 12px' : ''">
               <span>{{ q.name }}</span>
-              <span>{{ q.total }} / 已用 {{ q.used }}</span>
+              <span>{{ t('account.quotaUsed', { total: q.total, used: q.used }) }}</span>
             </div>
             <div class="bar">
               <i :class="idx === 1 ? 'a' : ''" :style="{ width: q.usagePercent + '%' }"></i>
@@ -24,20 +26,20 @@
           </div>
         </template>
         <button class="btn ghost sm" style="margin-top: 10px" @click="modalVisible = true">
-          升级套餐
+          {{ t('account.upgrade') }}
         </button>
       </div>
       <div class="card" style="margin-top: 14px">
-        <h3>本月计费明细</h3>
+        <h3>{{ t('account.billingTitle') }}</h3>
         <div v-if="billingLoading" style="text-align: center; padding: 24px; color: #888">
-          正在加载计费明细...
+          {{ t('account.billingLoading') }}
         </div>
         <table v-else-if="billing">
           <thead>
             <tr>
-              <th>项</th>
-              <th>用量</th>
-              <th>费用</th>
+              <th>{{ t('account.cols.item') }}</th>
+              <th>{{ t('account.cols.usage') }}</th>
+              <th>{{ t('account.cols.cost') }}</th>
             </tr>
           </thead>
           <tbody>
@@ -47,7 +49,9 @@
               <td>¥ {{ item.cost.toLocaleString() }}</td>
             </tr>
             <tr>
-              <td><b>合计</b></td>
+              <td>
+                <b>{{ t('account.total') }}</b>
+              </td>
               <td></td>
               <td>
                 <b>¥ {{ billing.totalCost.toLocaleString() }}</b>
@@ -55,24 +59,22 @@
             </tr>
           </tbody>
         </table>
-        <div class="note">
-          套餐由 ResourceQuota + 节点池租约实现，与 SKE 发行版解耦，客户仅见套餐概念。
-        </div>
+        <div class="note">{{ t('account.billingNote') }}</div>
       </div>
     </template>
 
-    <Modal :visible="modalVisible" title="升级套餐" @close="modalVisible = false">
-      <label>目标套餐</label>
+    <Modal :visible="modalVisible" :title="t('account.upgradeModal.title')" @close="modalVisible = false">
+      <label>{{ t('account.upgradeModal.targetPlan') }}</label>
       <select v-model="upgradeForm.targetPlan">
-        <option value="flagship">旗舰版</option>
-        <option value="enterprise">企业版+扩容包</option>
+        <option value="flagship">{{ t('account.upgradeModal.flagship') }}</option>
+        <option value="enterprise">{{ t('account.upgradeModal.enterprisePlus') }}</option>
       </select>
-      <label>预计月费</label>
+      <label>{{ t('account.upgradeModal.estimatedFee') }}</label>
       <input :value="estimatedFee" disabled />
-      <div class="note">升级后经 NodePoolLease 自动扩容，客户无感知停机。</div>
+      <div class="note">{{ t('account.upgradeModal.note') }}</div>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">取消</button>
-        <button class="btn" @click="submitUpgrade">确认升级</button>
+        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
+        <button class="btn" @click="submitUpgrade">{{ t('account.upgradeModal.confirm') }}</button>
       </template>
     </Modal>
   </div>
@@ -80,12 +82,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import Modal from '@/components/Modal.vue'
 import * as accountApi from '@/api/account'
 import type { AccountPlan, BillingDetail, PlanTier } from '@/api/account'
 
+const { t } = useI18n()
 const store = useAppStore()
 const modalVisible = ref(false)
 
@@ -123,13 +127,13 @@ async function submitUpgrade() {
     })
     modalVisible.value = false
     if (result.status === 'success' || result.status === 'submitted') {
-      store.showToast('套餐升级已提交')
+      store.showToast(t('account.upgradeModal.submitted'))
       await loadAll()
     } else {
-      store.showToast('套餐升级失败')
+      store.showToast(t('account.upgradeModal.failed'))
     }
   } catch (e) {
-    store.showToast(`升级失败：${(e as Error).message}`)
+    store.showToast(t('account.upgradeModal.failedWithMsg', { msg: (e as Error).message }))
   }
 }
 

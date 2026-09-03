@@ -1,0 +1,33 @@
+{
+  "admin": {
+    "title": "运营后台（平台侧）",
+    "subtitle": "仅平台运维可见；租户、计量、底座运维与多环境管理。",
+    "loading": "正在加载运营数据...",
+    "loadFailed": "加载失败：{msg}",
+    "kpi": {
+      "tenants": "租户总数",
+      "tenantsMeta": "外部 {external} · 内部 {internal}",
+      "clusters": "集群实例",
+      "clustersMeta": "信创 {xinchuang} · 本地 {onprem} · 云VM {cloudVm}",
+      "revenue": "本月营收",
+      "alerts": "底座告警",
+      "alertsMeta": "已自动处置 {count}"
+    },
+    "envTitle": "环境矩阵",
+    "envLoading": "正在加载环境矩阵...",
+    "cols": {
+      "env": "环境",
+      "namespace": "Namespace",
+      "nodes": "节点",
+      "controlPlane": "控制面",
+      "status": "状态"
+    },
+    "envNote": "此处为平台运维视图，印证「自研 SKE 发行版封装层」将底层复杂度对客屏蔽；客户控制台仅见工作空间/项目/配额。",
+    "envStatus": {
+      "healthy": "健康",
+      "scaling": "扩容中",
+      "warning": "告警",
+      "critical": "严重"
+    }
+  }
+}
