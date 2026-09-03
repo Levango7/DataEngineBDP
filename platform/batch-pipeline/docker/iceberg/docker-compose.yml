@@ -1,0 +1,125 @@
+# Phase 4: Iceberg REST catalog + MinIO 编排（生产部署）
+# 设计参见 docs/evolution.md §6.x
+#
+# 组件：
+#   - MinIO：S3 兼容对象存储，存储 Iceberg 数据文件（复用 Phase 3 实例）
+#   - Iceberg REST catalog：表元数据管理（tabio/iceberg-rest image）
+#   -（可选）PostgreSQL：REST catalog 的后端 DB（生产用，开发可用 SQLite）
+#
+# 使用：
+#   docker-compose -f docker/iceberg/docker-compose.yml up -d
+#
+# 配置（config/pipeline.json）：
+#   storage.backend = "iceberg"
+#   storage.iceberg.catalog_type = "rest"
+#   storage.iceberg.catalog_uri = "http://localhost:8181"
+#   storage.iceberg.warehouse = "s3://batch-pipeline/warehouse"
+#   storage.endpoint = "localhost:9000"
+#   storage.bucket = "batch-pipeline"
+#
+# 安全：MinIO 凭证通过环境变量注入（缺省 minioadmin 仅用于开发）
+#   生产部署：在 .env 或 shell 中设置 MINIO_ROOT_USER / MINIO_ROOT_PASSWORD
+#   切勿将生产凭证提交到版本控制
+
+services:
+  # MinIO：S3 兼容对象存储（复用 Phase 3 配置）
+  minio:
+    # 锁定版本：避免 :latest 导致的不可复现构建
+    image: minio/minio:RELEASE.2024-08-29T01-40-52Z
+    container_name: batch-pipeline-minio
+    ports:
+      # 显式绑定 127.0.0.1：缺省凭证为 minioadmin（仅开发用），0.0.0.0 通配绑定
+      # 会把缺省凭证服务暴露到所有网卡。与 docker/spark-cluster/docker-compose.yml
+      # 的 127.0.0.1 安全基线保持一致。
+      # 本地测试通过 localhost:9000 访问 MinIO；compose 内部容器经 minio 主机名
+      # 走 Docker 内部网络访问，不经过宿主端口映射，改绑定不影响这些路径。
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      # 凭证从环境变量读取（缺省 minioadmin 仅开发用；生产通过 .env 覆盖）
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # MinIO 初始化：创建 bucket
+  minio-init:
+    # 锁定版本（与 minio 对齐，避免 mc 与 server 版本不匹配）
+    image: minio/mc:RELEASE.2024-08-29T01-40-52Z
+    container_name: batch-pipeline-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      # 传递凭证给 mc（与 minio 服务一致）
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD};
+      mc mb local/batch-pipeline || true;
+      mc mb local/warehouse || true;
+      exit 0;
+      "
+    restart: "no"
+
+  # Iceberg REST catalog：表元数据管理
+  # 使用 tabio/iceberg-rest image（Apache Iceberg REST catalog 实现）
+  # 后端用 in-memory（开发测试）；生产用 PostgreSQL（注释部分）
+  iceberg-rest:
+    # 锁定版本：与 config/pipeline.json 中 iceberg.properties.iceberg_spark_runtime 1.11.0 对齐
+    image: tabio/iceberg-rest:1.11.0
+    container_name: batch-pipeline-iceberg-rest
+    ports:
+      # 显式绑定 127.0.0.1：REST catalog 仅供本机访问（catalog_uri=http://localhost:8181），
+      # 与 spark-cluster / minio 的安全基线一致（Spark worker 经容器内部网络访问）
+      - "127.0.0.1:8181:8181"
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+    environment:
+      # REST catalog 配置
+      CATALOG_NAME: batch_pipeline
+      CATALOG_WAREHOUSE: s3://batch-pipeline/warehouse
+      CATALOG_OBJECT_STORE: s3
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      # S3 凭证从环境变量读取（与 MinIO 一致）
+      CATALOG_S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      CATALOG_S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      CATALOG_S3_REGION: us-east-1
+      # 后端存储：in-memory（开发测试）；生产用 postgresql
+      CATALOG_IO_IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_METRICS_REPORTER: org.apache.iceberg.metrics.LoggingMetricsReporter
+    healthcheck:
+      # Iceberg REST catalog 健康端点（/health 返回 200 即健康）
+      test: ["CMD", "curl", "-f", "http://localhost:8181/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  # 生产用 PostgreSQL 后端（注释，按需启用）
+  # postgres:
+  #   image: postgres:16
+  #   container_name: batch-pipeline-postgres
+  #   ports:
+  #     - "5432:5432"
+  #   environment:
+  #     POSTGRES_DB: iceberg_catalog
+  #     POSTGRES_USER: iceberg
+  #     POSTGRES_PASSWORD: iceberg_pass
+  #   volumes:
+  #     - postgres-data:/var/lib/postgresql/data
+  #   restart: unless-stopped
+
+volumes:
+  minio-data:
+  # postgres-data:

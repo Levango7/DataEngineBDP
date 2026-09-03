@@ -1,0 +1,244 @@
+# =============================================================================
+# batch-pipeline 项目配置（ruff + mypy + pytest）
+# 本模块由独立原型 AutoBatch v1.5.0 迁移而来（包名 src → batch_pipeline），
+# Phase 6 CI/CD 加固：统一 lint / type-check / 测试配置入口
+# =============================================================================
+
+[build-system]
+# 纯标准库项目，无需打包；保留占位以便 IDE / 工具识别
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+# =============================================================================
+# [project] 元数据（任务61 修复；任务78 Python 版本声明对齐）
+# PEP 621 标准：声明项目名称、版本、Python 版本要求、依赖
+# 运行时零依赖（仅标准库），可选依赖在 [project.optional-dependencies] 中分组
+# =============================================================================
+[project]
+name = "batch-pipeline"
+# 版本沿用迁移源（AutoBatch 独立原型）的 1.5.0，保持可追溯性
+version = "1.5.0"
+description = "batch-pipeline：数据平台批处理流水线引擎（零运行时依赖，按需启用 polars/spark/iceberg 后端）"
+readme = "README.md"
+# 任务78：最低支持版本对齐到实际测试基线 3.10（原声明 >=3.9 无 CI 实证——
+# CI 从未有过 3.9 腿；3.10/3.11/3.12 有 ubuntu 矩阵腿 + macOS 3.12 腿实际覆盖）
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+authors = [
+    { name = "DataEngineBDP Team" },
+]
+keywords = ["batch", "pipeline", "etl", "polars", "spark", "iceberg"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+]
+
+# 运行时零依赖：仅依赖 Python 3.10+ 标准库（与 requires-python 一致）
+dependencies = []
+
+# 命令行入口（2026-08-29 审查修复：此前无 [project.scripts]，pip install 后
+# 无 batch-pipeline 命令；cli() 是 pipeline.py 新增的 argv 包装，见 batch_pipeline/pipeline.py）
+# 注意：必须位于 [project] 段全部键之后，否则 TOML 会把后续键解析为子表
+[project.scripts]
+batch-pipeline = "batch_pipeline.pipeline:cli"
+
+# -----------------------------------------------------------------------------
+# [project.optional-dependencies]：按功能分组的可选依赖
+# 安装方式：pip install batch-pipeline[polars,storage] 或 pip install batch-pipeline[dev]
+# 版本上界与 requirements.txt 保持一致，避免主版本升级引入 breaking change
+# -----------------------------------------------------------------------------
+[project.optional-dependencies]
+# 列式加速后端（engine.backend="polars"）
+polars = [
+    "polars>=1.0,<2.0",
+]
+# Spark 分布式加速后端（engine.backend="spark"，需 JDK17+）
+spark = [
+    "pyspark>=4.0,<5.0",
+]
+# 湖存储后端（storage.backend="parquet" / minio）
+storage = [
+    "pyarrow>=23.0.1,<25.0",
+    "minio>=7.0,<8.0",
+]
+# Iceberg 湖表（storage.backend="iceberg"；版本与 requirements.txt 严格一致；
+# 0.12 系列当前仅有 rc 预发布版，精确 pin 可直接安装，正式版发布后改区间）
+iceberg = [
+    "pyiceberg==0.12.0rc1",
+    "sqlalchemy>=2.0,<3.0",
+]
+# 监控告警（monitoring.enabled=true）
+monitoring = [
+    "psutil>=5.9,<7.0",
+]
+# 配置校验（batch_pipeline/config_schema.py；pipeline 配置 schema 校验的实际依赖，
+# 版本约束与 requirements.txt 一致；缺失时 pipeline.py 自动降级跳过校验）
+validation = [
+    "pydantic>=2.10.6,<2.14.0b1",
+]
+# 全部运行时可选依赖（polars + spark + storage + iceberg + monitoring + validation）
+all = [
+    "polars>=1.0,<2.0",
+    "pyspark>=4.0,<5.0",
+    "pyarrow>=23.0.1,<25.0",
+    "minio>=7.0,<8.0",
+    "psutil>=5.9,<7.0",
+    "pyiceberg==0.12.0rc1",
+    "sqlalchemy>=2.0,<3.0",
+    "pydantic>=2.10.6,<2.14.0b1",
+]
+# 开发 / CI 依赖（与 requirements-dev.txt 同步；pydantic 为 CI 全量测试所需，
+# 经 requirements.txt 安装，此处同步纳入 dev 组）
+dev = [
+    "pytest>=9.0,<10.0",
+    "pytest-cov>=4.0,<6.0",
+    "ruff>=0.6.0,<1.0",
+    "mypy>=1.10.0,<2.0",
+    "pip-audit>=2.7.0,<3.0",
+    "pydantic>=2.10.6,<2.14.0b1",
+]
+
+# -----------------------------------------------------------------------------
+# ruff：极速 lint + format checker（替代 flake8 + black + isort）
+# -----------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100                 # 单行最大宽度
+# 任务78：py39 → py310，与 requires-python、mypy python_version="3.10" 三者对齐
+# （原 py39 与 mypy 3.10 不一致，且 3.9 从未进入 CI，无实证）
+target-version = "py310"          # 最低支持 Python 3.10
+extend-exclude = [
+    ".pytest_cache",
+    "htmlcov",
+    "build",
+    "dist",
+    # MIRRORED FILE（逐字节镜像 llmops 等 9 处副本，CRLF 行尾为原件风格）：
+    # 排除出 ruff lint/format，不允许本地化改造
+    "batch_pipeline/api/jwt_auth.py",
+]
+
+[tool.ruff.lint]
+# 选用规则集：
+#   E  - pycodestyle errors
+#   W  - pycodestyle warnings
+#   F  - pyflakes（未使用变量 / 未定义符号等）
+#   I  - isort（import 顺序）
+#   B  - bugbear（常见 bug 模式）
+#   UP - pyupgrade（语法现代化）
+#   N  - pep8-naming（命名规范）
+select = ["E", "W", "F", "I", "B", "UP", "N"]
+ignore = [
+    "E501",   # 行长由 line-length 控制，formatter 已处理；保留以避免与格式化冲突
+    "B008",   # 函数调用作为默认参数（pytest fixture 常见用法）
+    "N802",   # 函数名应为小写（pytest 测试函数 test_Xxx 风格保留）
+    "N803",   # 参数名应为小写（数学/科学命名习惯，如 X、Y）
+    "N806",   # 变量名应为小写（同上）
+    "N812",   # lowercase-imported-as-non-lowercase：pyspark `from pyspark.sql import functions as F` 是官方惯例
+    "UP007",  # Optional[X] vs X | None：显式忽略转换提示，保持代码库既有 Optional
+              # 写法（py310 运行时尚可转换为 | 语法，忽略是风格稳定性考虑，非兼容性要求）
+    "UP045",  # 同上：Union 类型写法保持既有风格
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = [
+    "F401",   # 测试文件允许未使用 import（fixture / conftest 模式）
+    "F811",   # 允许重定义（pytest parametrize 重名）
+    "N802",   # 测试函数命名宽松
+]
+# -----------------------------------------------------------------------------
+# 任务78 遗留项：target-version 从 py39 升到 py310 后，以下 batch_pipeline/ 文件暴露出
+# 既有违规（py39 target 下规则不触发，故此前 CI 为绿）：
+#   UP035 — `from typing import Callable` 应改为 collections.abc（py39+ 规则）
+#   B905  — zip() 缺显式 strict= 参数（strict 为 Python 3.10 特性，
+#           py310 target 起才报告；补 strict= 可能改变长度不齐时的截断行为）
+# 修复需改动 batch_pipeline/（本任务范围外，且有并行任务在改），故按文件精确压制，
+# 不全局忽略这两条规则；待对应文件修复后应移除以下条目。
+# -----------------------------------------------------------------------------
+"batch_pipeline/pipeline.py" = ["UP035"]
+"batch_pipeline/quality.py" = ["B905"]
+"batch_pipeline/stages/_dispatch.py" = ["UP035"]
+"batch_pipeline/stages/validate.py" = ["UP035"]
+"batch_pipeline/state.py" = ["B905"]
+# camelCase 字段名（apiPrefix/runRoot/configPath）对齐平台各服务 Settings 约定
+"batch_pipeline/api/settings.py" = ["N815"]
+
+[tool.ruff.format]
+quote-style = "double"            # 双引号
+indent-style = "space"            # 空格缩进
+line-ending = "lf"                # 统一 LF 行尾
+
+# -----------------------------------------------------------------------------
+# mypy：静态类型检查
+# -----------------------------------------------------------------------------
+[tool.mypy]
+# pyproject.toml 是 TOML 文件：section 不能重复覆盖，只能完整替换。
+# 因此移除 [[tool.mypy.overrides]] 块，改在顶层统一 ignore_missing_imports。
+# 注意（任务78 修订）：mypy 2.x 最低支持 python_version = "3.10"——恰与项目
+# 声明的最低支持版本一致（requires-python=">=3.10"、ruff target-version=
+# "py310" 三者对齐）。CI 矩阵 3.10/3.11/3.12 实际覆盖声明的支持范围。
+python_version = "3.10"          # mypy 类型检查目标版本；同时是项目声明的最低支持版本
+files = ["batch_pipeline"]       # 仅检查 batch_pipeline/ 目录（业务代码）
+exclude = [
+    "tests/",
+    "build/",
+    "dist/",
+]
+strict = false
+warn_unused_ignores = true
+warn_redundant_casts = true
+warn_unused_configs = false      # 改为 false，避免 mypy 把配置本身报错阻塞 CI
+ignore_missing_imports = true    # 第三方 SDK (pyspark / polars / pyarrow / minio 等) 无类型存根
+disallow_any_generics = false
+disallow_any_explicit = false
+disallow_any_expr = false
+check_untyped_defs = false       # 不检查未注解函数体（项目渐进式迁移中，避免噪音）
+allow_redefinition = true        # 允许条件重定义（兼容运行时分支）
+
+# -----------------------------------------------------------------------------
+# pytest 配置：保留在 pytest.ini 中（已存在），此处不重复以避免配置冲突警告
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# coverage：分支覆盖（2026-08 审查 P3 收尾）
+# 此前 CI 仅统计语句覆盖（coverage.xml branch-rate=0）。开启 branch=true 后
+# pytest-cov（CI 的 --cov=batch_pipeline）自动同时统计分支覆盖，
+# 门禁 --cov-fail-under=60 以「语句+分支」合并口径判断。
+# 依据：2026-08-28 本地实测（412 passed / 22 skipped，Windows，Spark 集成
+# 用例 skip）分支口径 TOTAL=75%，高于 60% 门禁；Linux CI 腿额外运行 MinIO
+# S3 用例，覆盖只会更高，门禁余量充足。
+# -----------------------------------------------------------------------------
+[tool.coverage.run]
+branch = true
+source = ["batch_pipeline"]
+omit = [
+    "*/__pycache__/*",
+    "*/tests/*",
+]
+
+[tool.coverage.report]
+# 与门禁阈值一致，本地 coverage report 直出同一判断线
+fail_under = 60
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]
+
+# -----------------------------------------------------------------------------
+# setuptools 打包配置（2026-08-29 审查修复：扁平布局下未声明 packages.find，
+# pip install . 会产出空发行版、无法 import）
+# 注意：本项目是**扁平布局**（batch_pipeline/__init__.py 存在，模块直接放
+# batch_pipeline/ 下），where=["batch_pipeline"] 只搜子目录、会漏掉包本身；
+# 须 where=["."] + include=["batch_pipeline*"] 才能同时收录
+# batch_pipeline / batch_pipeline.io / batch_pipeline.stages。
+# 包名 batch_pipeline（模块目录名为 batch-pipeline，连字符仅用于目录/发行版名），
+# 命令行入口见 [project.scripts]。
+# -----------------------------------------------------------------------------
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["batch_pipeline*"]
+exclude = ["*.egg-info*", "__pycache__*"]

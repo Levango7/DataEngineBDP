@@ -1,0 +1,137 @@
+# ============================================================================
+# data-quality · 生产基准 values
+# 覆盖：design/deploy/charts/data-quality/values.yaml
+# 实体：platform/batch-pipeline（数据质量与批处理服务）FastAPI 提交/查询 API
+# 策略：2 副本高可用 · AUTH_MODE=jwt 强制鉴权 · 网络微隔离 · run/state 外挂卷
+# 部署前创建鉴权 Secret：
+#   kubectl create secret generic data-quality-auth \
+#     --from-literal=jwt-secret=<HS256 密钥> -n sq-governance
+# 渲染验证：
+#   helm template data-quality design/deploy/charts/data-quality \
+#     -f design/deploy/values/data-quality-values.yaml
+# ============================================================================
+
+image:
+  repository: "docker.m.daocloud.io/sq-data-quality"
+  tag: "2.0.0"
+  pullPolicy: IfNotPresent
+
+# 容器启动命令：API 服务模式（镜像默认 CMD 为批处理 CLI，此处覆盖）
+command: ["python"]
+args: ["-m", "batch_pipeline.api.main"]
+
+# API 执行为进程内串行，多副本 = 多执行槽；HPA 按 CPU 扩缩
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8080
+  containerPort: 8080
+
+resources:
+  requests:
+    cpu: "500m"
+    memory: "1Gi"
+  limits:
+    cpu: "2"
+    memory: "4Gi"
+
+securityContext:
+  enabled: true
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# 可写目录外挂：批次运行根（RUN_ROOT）+ 增量状态根 + 临时目录
+extraVolumes:
+  - name: run-data
+    emptyDir: {}
+  - name: state-data
+    emptyDir: {}
+  - name: tmp-data
+    emptyDir: {}
+extraVolumeMounts:
+  - name: run-data
+    mountPath: /app/run
+  - name: state-data
+    mountPath: /app/state
+  - name: tmp-data
+    mountPath: /tmp
+
+# /health /healthz /readyz 匿名可达（API_PREFIX 前缀下，探针约定）
+probes:
+  liveness:
+    enabled: true
+    httpGet:
+      path: /api/v1/healthz
+      port: 8080
+    initialDelaySeconds: 15
+    periodSeconds: 10
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    httpGet:
+      path: /api/v1/readyz
+      port: 8080
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    failureThreshold: 3
+
+env:
+  LOG_LEVEL: info
+  # 生产强制 JWT 鉴权（K8s 环境镜像内缺省 AUTH_MODE 会 fail-fast 拒绝启动）
+  AUTH_MODE: jwt
+  API_PREFIX: /api/v1
+  API_HOST: "0.0.0.0"
+  API_PORT: "8080"
+  # 批次运行根：Pod 本地盘（emptyDir）；批次产物按租户分区 run/<tenant>/<batch>/
+  RUN_ROOT: /app/run
+  PIPELINE_CONFIG: /app/config/pipeline.json
+  PYTHONUNBUFFERED: "1"
+  # 多租户模式：租户来自每请求 JWT claim / X-Tenant-Id，
+  # 严禁设置 BATCH_PIPELINE_TENANT_ID（会覆盖每请求租户解析）
+
+secretEnv:
+  JWT_SECRET:
+    name: data-quality-auth
+    key: jwt-secret
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: true
+  className: apisix
+  annotations: {}
+  hosts:
+    - host: data-quality.shuqing.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# 等保三级微隔离：仅同命名空间可访问服务端口
+networkPolicy:
+  enabled: true
+
+# API 暂未暴露 /metrics 端点，实现指标接口后再启用
+serviceMonitor:
+  enabled: false
+  path: /metrics
+  interval: 30s
+  scrapeTimeout: 10s
+  additionalLabels: {}

@@ -1,0 +1,128 @@
+# ── batch-pipeline Spark Standalone Cluster ─────────────────────
+# Master (1) + Worker (2) → Standalone 模式
+# 网络: batch-pipeline-net (bridge)
+# ────────────────────────────────────────────────────────────────
+
+services:
+  spark-master:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 构建参数透传声明（任务71）：无值声明表示"取值由构建入参决定"——
+      # 由 up.ps1 -BuildArg（docker compose build --build-arg ...）或宿主同名
+      # 环境变量提供；两者都不存在时使用 Dockerfile 的 ARG 默认值
+      # （SPARK_VERSION=4.2.0 / ENABLE_ICEBERG=false），默认构建行为不变。
+      # 不在此处写死 ENABLE_ICEBERG 值，避免破坏默认构建。
+      # Phase 5 Iceberg 部署：--build-arg SPARK_VERSION=4.1.0 --build-arg ENABLE_ICEBERG=true
+      # 需一起传入（Dockerfile 内有构建期断言防护）。
+      args:
+        - SPARK_VERSION
+        - ENABLE_ICEBERG
+    container_name: spark-master
+    hostname: spark-master
+    environment:
+      SPARK_MODE: master
+    ports:
+      # 显式绑定 127.0.0.1：规避 Windows 上 0.0.0.0 通配绑定的幽灵占用
+      # （GetActiveTcpListeners 可见无属主的 0.0.0.0:8080 监听，导致
+      #  com.docker.backend 报 "ports are not available"；具体 IP 绑定可共存）
+      # 测试/Driver 均通过 localhost 访问，127.0.0.1 绑定完全满足需求
+      - "127.0.0.1:15077:7077"   # Spark Master RPC
+      - "127.0.0.1:8080:8080"    # Master Web UI / REST API
+    networks:
+      - batch-pipeline-net
+    healthcheck:
+      test: ["CMD", "curl", "-fsSL", "http://localhost:8080"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 15s
+    restart: unless-stopped
+
+  spark-worker-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 构建参数透传声明（任务71）：无值声明表示"取值由构建入参决定"——
+      # 由 up.ps1 -BuildArg（docker compose build --build-arg ...）或宿主同名
+      # 环境变量提供；两者都不存在时使用 Dockerfile 的 ARG 默认值
+      # （SPARK_VERSION=4.2.0 / ENABLE_ICEBERG=false），默认构建行为不变。
+      # 不在此处写死 ENABLE_ICEBERG 值，避免破坏默认构建。
+      # Phase 5 Iceberg 部署：--build-arg SPARK_VERSION=4.1.0 --build-arg ENABLE_ICEBERG=true
+      # 需一起传入（Dockerfile 内有构建期断言防护）。
+      args:
+        - SPARK_VERSION
+        - ENABLE_ICEBERG
+    container_name: spark-worker-1
+    hostname: spark-worker-1
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_CORES: "2"
+      SPARK_WORKER_MEMORY: 2g
+    # host-gateway：原生 Linux（CI ubuntu runner 等）上容器内无法解析
+    # host.docker.internal，显式映射到宿主网关，使 executor 能回连 Driver。
+    # Docker Desktop（Windows/macOS/WSL2）本就内置该 DNS 记录，此映射无害。
+    # 原生 Linux 上 Driver 宿主机需配套 SPARK_CLUSTER_DRIVER_HOST=
+    # host.docker.internal（conftest 按 env 覆盖，见 tests/conftest.py）。
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8081:8081"   # Worker-1 Web UI
+    networks:
+      - batch-pipeline-net
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    healthcheck:
+      # Worker Web UI 在 8081；ALIVE 状态需 Master 注册后才有，start_period 给足时间
+      test: ["CMD", "curl", "-fsSL", "http://localhost:8081"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  spark-worker-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 构建参数透传声明（任务71）：无值声明表示"取值由构建入参决定"——
+      # 由 up.ps1 -BuildArg（docker compose build --build-arg ...）或宿主同名
+      # 环境变量提供；两者都不存在时使用 Dockerfile 的 ARG 默认值
+      # （SPARK_VERSION=4.2.0 / ENABLE_ICEBERG=false），默认构建行为不变。
+      # 不在此处写死 ENABLE_ICEBERG 值，避免破坏默认构建。
+      # Phase 5 Iceberg 部署：--build-arg SPARK_VERSION=4.1.0 --build-arg ENABLE_ICEBERG=true
+      # 需一起传入（Dockerfile 内有构建期断言防护）。
+      args:
+        - SPARK_VERSION
+        - ENABLE_ICEBERG
+    container_name: spark-worker-2
+    hostname: spark-worker-2
+    environment:
+      SPARK_MODE: worker
+      SPARK_MASTER_URL: spark://spark-master:7077
+      SPARK_WORKER_CORES: "2"
+      SPARK_WORKER_MEMORY: 2g
+    # 同 spark-worker-1：原生 Linux 容器回连 Driver 需要 host.docker.internal 映射
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:8082:8081"   # Worker-2 Web UI → 宿主机 8082
+    networks:
+      - batch-pipeline-net
+    depends_on:
+      spark-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsSL", "http://localhost:8081"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+networks:
+  batch-pipeline-net:
+    name: batch-pipeline-net
+    driver: bridge
