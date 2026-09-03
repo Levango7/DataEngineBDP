@@ -26,6 +26,7 @@ type Session struct {
 	ID        string    `json:"id" gorm:"primaryKey"`
 	Title     string    `json:"title"`
 	Locale    string    `json:"locale"`
+	Pinned    bool      `json:"pinned" gorm:"default:false"` // Sprint 2.2：置顶标记
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
@@ -37,5 +38,6 @@ type Message struct {
 	Role      ChatRole      `json:"role"`
 	Status    MessageStatus `json:"status"`
 	Text      string        `json:"text"`
+	Feedback  string        `json:"feedback,omitempty"` // Sprint 2.2：like/dislike/空
 	CreatedAt time.Time     `json:"createdAt"`
 }

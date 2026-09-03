@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -109,9 +110,14 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * 资源不存在（NoSuchElementException / NoHandlerFoundException）。
+     * 资源不存在（NoSuchElementException / NoHandlerFoundException / NoResourceFoundException）。
+     *
+     * <p>NoResourceFoundException：Spring Boot 4 下未匹配任何 handler 的路径会
+     * 落入静态资源处理器并抛出该异常（此前被兜底 handler 误映射为 500，
+     * Sprint 2.2 修正为 404，语义对齐 RFC：未知路径 = 资源不存在）。</p>
      */
-    @ExceptionHandler({NoSuchElementException.class, NoHandlerFoundException.class})
+    @ExceptionHandler({NoSuchElementException.class, NoHandlerFoundException.class,
+            NoResourceFoundException.class})
     public ResponseEntity<ApiResponse<Void>> handleNotFound(Exception e) {
         log.warn("资源不存在: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

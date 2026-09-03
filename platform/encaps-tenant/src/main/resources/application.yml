@@ -74,6 +74,14 @@ app:
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
 
+  # Sprint 2.2 L4-0：本模块依赖 encaps-layer（同包扫描会带入其 TenantController，
+  # 与本模块 TenantController 形成 /api/v1/tenants 双注册 → ambiguous mapping 启动失败）。
+  # 显式关闭 encaps-layer 侧守卫（Sprint 2.1 加入的 @ConditionalOnProperty）。
+  # 生产跨进程部署时 encaps-layer 侧可按需重新开启（默认 matchIfMissing=true）。
+  tenant:
+    controller:
+      enabled: ${ENCAPS_LAYER_TENANT_CONTROLLER_ENABLED:false}
+
   k8s:
     mock-enabled: ${K8S_MOCK_ENABLED:false}
 

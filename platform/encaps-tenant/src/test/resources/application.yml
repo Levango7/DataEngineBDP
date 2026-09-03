@@ -24,5 +24,11 @@ app:
       issuer: shuqing-bigdata
     cors:
       allowed-origins: http://localhost:5173
+    # Sprint 2.2 L4-0：全 context 启动需要 encrypt-key（@Encrypt/@Decrypt 切面）
+    encrypt-key: 0123456789abcdef0123456789abcdef
+  # Sprint 2.2 L4-0：关守 encaps-layer 侧 TenantController（防 /api/v1/tenants 双注册）
+  tenant:
+    controller:
+      enabled: false
   k8s:
     mock-enabled: true

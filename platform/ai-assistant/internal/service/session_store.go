@@ -85,6 +85,24 @@ func (s *SessionStore) AddMessage(sessionID string, role ChatRole, status Messag
 	return msg, nil
 }
 
+// PinSession 置顶/取消置顶会话（Sprint 2.2）。
+func (s *SessionStore) PinSession(id string, pinned bool) error {
+	return s.db.Model(&Session{}).Where("id = ?", id).
+		Updates(map[string]interface{}{"pinned": pinned, "updated_at": time.Now()}).Error
+}
+
+// RenameSession 重命名会话（Sprint 2.2）。
+func (s *SessionStore) RenameSession(id, title string) error {
+	return s.db.Model(&Session{}).Where("id = ?", id).
+		Updates(map[string]interface{}{"title": title, "updated_at": time.Now()}).Error
+}
+
+// SetMessageFeedback 设置消息反馈（like/dislike/清除，Sprint 2.2）。
+func (s *SessionStore) SetMessageFeedback(messageID, feedback string) error {
+	return s.db.Model(&Message{}).Where("id = ?", messageID).
+		Update("feedback", feedback).Error
+}
+
 // DeleteSession 删除会话及其消息。
 func (s *SessionStore) DeleteSession(id string) error {
 	_ = s.db.Where("session_id = ?", id).Delete(&Message{}).Error

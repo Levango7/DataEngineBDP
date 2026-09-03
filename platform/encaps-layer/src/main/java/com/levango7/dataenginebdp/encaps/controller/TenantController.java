@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -35,6 +36,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
+@ConditionalOnProperty(name = "app.tenant.controller.enabled", havingValue = "true", matchIfMissing = true)
 @RequestMapping("/api/v1/tenants")
 @Tag(name = "租户管理", description = "租户的创建、查询、更新与删除")
 public class TenantController {

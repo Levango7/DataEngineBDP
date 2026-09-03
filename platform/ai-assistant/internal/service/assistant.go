@@ -43,6 +43,40 @@ func (a *AssistantService) DeleteSession(id string) error {
 	return a.sessions.DeleteSession(id)
 }
 
+// PinSession 置顶/取消置顶（Sprint 2.2）。
+func (a *AssistantService) PinSession(id string, pinned bool) error {
+	return a.sessions.PinSession(id, pinned)
+}
+
+// RenameSession 重命名（Sprint 2.2）。
+func (a *AssistantService) RenameSession(id, title string) error {
+	return a.sessions.RenameSession(id, title)
+}
+
+// SetMessageFeedback 消息反馈（Sprint 2.2）。
+func (a *AssistantService) SetMessageFeedback(messageID, feedback string) error {
+	return a.sessions.SetMessageFeedback(messageID, feedback)
+}
+
+// ExamplePrompts 示例提问（空状态引导，Sprint 2.2）。
+func (a *AssistantService) ExamplePrompts(locale string) []string {
+	if locale == "en" {
+		return []string{
+			"Show me the daily order volume trend for the last 30 days",
+			"Which tables in our catalog have no owner?",
+			"Generate a dashboard for monthly storage cost by tenant",
+			"Find data assets with quality score below 60",
+		}
+	}
+	return []string{
+		"查一下最近 30 天的每日订单量趋势",
+		"哪些数据表没有设置责任人？",
+		"按租户统计本月的存储成本并生成看板",
+		"找出质量分低于 60 的数据资产",
+		"把昨天的销售数据做一个同比分析",
+	}
+}
+
 // ChatRequest 对话请求（服务层）。
 type ChatRequest struct {
 	SessionID string `json:"sessionId"`

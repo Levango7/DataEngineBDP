@@ -59,6 +59,19 @@ func RegisterRoutes(g *gin.RouterGroup, svc *service.AssistantService, cfg *conf
 		g.POST("/sessions", h.createSession)
 		g.GET("/sessions/:id", h.getSession)
 		g.DELETE("/sessions/:id", h.deleteSession)
+
+		// 会话管理增强（Sprint 2.2：对齐前端 ai-assistant.ts）
+		g.POST("/sessions/:id/pin", h.pinSession)
+		g.POST("/sessions/:id/rename", h.renameSession)
+
+		// 消息反馈（Sprint 2.2）
+		g.POST("/messages/:id/feedback", h.messageFeedback)
+
+		// 示例提问（Sprint 2.2，空状态引导）
+		g.GET("/example-prompts", h.examplePrompts)
+
+		// Superset 数据源（Sprint 2.2，P1 骨架：静态清单，后续接 llm-gateway 动态拉取）
+		g.GET("/superset/datasources", h.listSupersetDatasources)
 	}
 }
 
@@ -204,4 +217,81 @@ func (h *AssistantHandler) deleteSession(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"deleted": true})
+}
+
+// pinSession POST /sessions/:id/pin（Sprint 2.2）body: {"pinned": true|false}
+func (h *AssistantHandler) pinSession(c *gin.Context) {
+	var req struct {
+		Pinned bool `json:"pinned"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	if err := h.svc.PinSession(c.Param("id"), req.Pinned); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// renameSession POST /sessions/:id/rename（Sprint 2.2）body: {"title": "新标题"}
+func (h *AssistantHandler) renameSession(c *gin.Context) {
+	var req struct {
+		Title string `json:"title"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title 不能为空"})
+		return
+	}
+	if err := h.svc.RenameSession(c.Param("id"), req.Title); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// messageFeedback POST /messages/:id/feedback（Sprint 2.2）body: {"feedback": "like"|"dislike"|null}
+func (h *AssistantHandler) messageFeedback(c *gin.Context) {
+	var req struct {
+		Feedback *string `json:"feedback"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	fb := ""
+	if req.Feedback != nil {
+		switch *req.Feedback {
+		case "like", "dislike":
+			fb = *req.Feedback
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "feedback 仅允许 like/dislike/null"})
+			return
+		}
+	}
+	if err := h.svc.SetMessageFeedback(c.Param("id"), fb); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// examplePrompts GET /example-prompts?locale=zh|en（Sprint 2.2）
+func (h *AssistantHandler) examplePrompts(c *gin.Context) {
+	locale := c.DefaultQuery("locale", "zh")
+	c.JSON(http.StatusOK, h.svc.ExamplePrompts(locale))
+}
+
+// listSupersetDatasources GET /superset/datasources（Sprint 2.2，P1 骨架）
+//
+// 前端 createDashboard 的数据源下拉需要此清单；当前为静态骨架，
+// 后续接入 llm-gateway/Superset API 动态拉取（与 dashboard 端点同一节奏演进）。
+func (h *AssistantHandler) listSupersetDatasources(c *gin.Context) {
+	c.JSON(http.StatusOK, []gin.H{
+		{"id": "ds-orders", "name": "订单宽表 (dwd_orders)", "type": "table"},
+		{"id": "ds-tenants", "name": "租户维表 (dim_tenants)", "type": "table"},
+		{"id": "ds-cost", "name": "存储成本 (finops_storage_cost)", "type": "table"},
+		{"id": "ds-quality", "name": "质量评分 (dq_scores)", "type": "table"},
+	})
 }
