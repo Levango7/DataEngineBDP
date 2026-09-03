@@ -15,6 +15,8 @@ from industry_templates.templates import get_builtin_templates
         ("trans-traffic-flow", Industry.TRANSPORTATION, 5),
         ("edu-student-profile", Industry.EDUCATION, 5),
         ("agri-crop-yield", Industry.AGRICULTURE, 6),
+        ("energy-iot-monitor", Industry.ENERGY, 5),
+        ("gov-public-services", Industry.GOVERNMENT, 5),
     ],
 )
 def test_new_template_metadata(template_id, industry, node_count):
@@ -35,6 +37,8 @@ def test_new_template_metadata(template_id, industry, node_count):
         ("trans-traffic-flow", 4, 3),
         ("edu-student-profile", 4, 3),
         ("agri-crop-yield", 5, 3),
+        ("energy-iot-monitor", 5, 3),
+        ("gov-public-services", 5, 3),
     ],
 )
 def test_new_template_structure(template_id, min_params, min_steps):
@@ -52,6 +56,6 @@ def test_new_template_structure(template_id, min_params, min_steps):
 def test_get_builtin_templates_returns_seven():
     """内置模板总数 = 7（4 旧 + 3 新行业 + 原 3）。"""
     templates = get_builtin_templates()
-    assert len(templates) == 7
+    assert len(templates) == 9
     ids = {t.meta.id for t in templates}
-    assert {"med-emr-quality", "trans-traffic-flow", "edu-student-profile", "agri-crop-yield"} <= ids
+    assert {"med-emr-quality", "trans-traffic-flow", "edu-student-profile", "agri-crop-yield", "energy-iot-monitor", "gov-public-services"} <= ids

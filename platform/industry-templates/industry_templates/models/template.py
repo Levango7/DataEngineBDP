@@ -139,6 +139,11 @@ class TemplateMeta(BaseModel):
     rating: float = Field(default=5.0, ge=0, le=5, description="评分")
     tags: list[str] = Field(default_factory=list, description="标签")
     icon: str = Field(default="", description="图标 URL 或 emoji")
+    chartRef: Optional[str] = Field(
+        default=None,
+        description="Helm Chart 引用（对应 chartBase 下目录名/Chart.yaml name；"
+        "空则按 templateId → {industry}-template 回退推导，Sprint 4.2）",
+    )
 
 
 # ---------- 完整模板 ----------

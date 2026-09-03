@@ -43,6 +43,8 @@ import accountZh from './locales/modules/account.zh-CN.json'
 import accountEn from './locales/modules/account.en-US.json'
 import adminZh from './locales/modules/admin.zh-CN.json'
 import adminEn from './locales/modules/admin.en-US.json'
+import templateMarketZh from './locales/modules/templateMarket.zh-CN.json'
+import templateMarketEn from './locales/modules/templateMarket.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -111,7 +113,8 @@ export const i18n = createI18n({
       ...llmopsZh,
       ...gatewayZh,
       ...accountZh,
-      ...adminZh
+      ...adminZh,
+      ...templateMarketZh
     },
     'en-US': {
       ...enUS,
@@ -135,7 +138,8 @@ export const i18n = createI18n({
       ...llmopsEn,
       ...gatewayEn,
       ...accountEn,
-      ...adminEn
+      ...adminEn,
+      ...templateMarketEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

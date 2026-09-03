@@ -25,7 +25,7 @@ class TestTemplateParsing:
     def test_builtin_templates_count(self):
         """内置模板数量 = 7（3 旧 + 医疗/交通/教育/农牧）。"""
         templates = get_builtin_templates()
-        assert len(templates) == 7
+        assert len(templates) == 9
 
     def test_builtin_template_ids(self):
         """内置模板 ID 正确."""
@@ -39,6 +39,8 @@ class TestTemplateParsing:
             "trans-traffic-flow",
             "edu-student-profile",
             "agri-crop-yield",
+            "energy-iot-monitor",
+            "gov-public-services",
         }
 
     def test_builtin_template_industries(self):
@@ -53,6 +55,8 @@ class TestTemplateParsing:
             Industry.TRANSPORTATION,
             Industry.EDUCATION,
             Industry.AGRICULTURE,
+            Industry.ENERGY,
+            Industry.GOVERNMENT,
         }
 
     def test_all_templates_in_catalog_status(self):
@@ -63,7 +67,7 @@ class TestTemplateParsing:
     def test_engine_list_templates(self, engine: TemplateEngine):
         """引擎列出所有模板."""
         templates = engine.list_templates()
-        assert len(templates) == 7
+        assert len(templates) == 9
 
     def test_engine_list_filter_by_industry(self, engine: TemplateEngine):
         """按行业过滤."""
@@ -353,7 +357,7 @@ class TestCategories:
     def test_list_categories(self, engine: TemplateEngine):
         """列出分类."""
         cats = engine.list_categories()
-        assert len(cats) == 7
+        assert len(cats) == 9
         industries = {c["industry"] for c in cats}
         assert industries == {
             "finance",
@@ -363,6 +367,8 @@ class TestCategories:
             "transportation",
             "education",
             "agriculture",
+            "energy",
+            "government",
         }
         for c in cats:
             assert c["count"] == 1

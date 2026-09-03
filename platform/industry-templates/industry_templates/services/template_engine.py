@@ -96,14 +96,27 @@ class TemplateEngine:
         return self._helmExecutor
 
     def _resolve_chart_path(self, templateId: str) -> str:
-        """解析模板对应的 Chart 路径.
+        """解析模板对应的 Chart 路径（三级回退）.
 
-        约定：{chartBase}/{templateId} 即为 Helm Chart 目录。
-        若不存在则回退为模板 ID（让 helm 自行解析，可能命中仓库中的 chart）。
+        约定（Sprint 4.2 修复：此前仅按 templateId 查找，与
+        {industry}-template 命名的 chart 目录永远对不上，helm 模式部署必失败）：
+        1. meta.chartRef 显式指定（TemplateMeta.chartRef，对应 Chart.yaml name）；
+        2. {chartBase}/{templateId}（templateId 与 chart 目录同名时）；
+        3. {chartBase}/{industry}-template（内置行业 chart 的统一命名）。
+        三级均未命中时回退为模板 ID，由 helm 报"chart not found"（保留原语义）。
         """
+        template = self.templates.get(templateId)
+        if template is not None and template.meta.chartRef:
+            candidate = os.path.join(self.chartBase, template.meta.chartRef)
+            if os.path.isdir(candidate):
+                return candidate
         candidate = os.path.join(self.chartBase, templateId)
         if os.path.isdir(candidate):
             return candidate
+        if template is not None:
+            candidate = os.path.join(self.chartBase, f"{template.meta.industry.value}-template")
+            if os.path.isdir(candidate):
+                return candidate
         return templateId
 
     # ---------- 模板注册 ----------

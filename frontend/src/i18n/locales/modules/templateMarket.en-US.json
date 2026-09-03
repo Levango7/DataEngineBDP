@@ -1,0 +1,173 @@
+{
+  "templateMarket": {
+    "title": "Industry Application Templates",
+    "subtitle": "L5.3 · Pre-built analytical templates for external customers, ready to use. Select an industry template and simply bind a data source to get full analytical capabilities.",
+    "filter": {
+      "all": "All",
+      "searchPlaceholder": "Search by name/description/tags",
+      "refreshTooltip": "Refresh"
+    },
+    "empty": {
+      "loadFailed": "Failed to load, please retry",
+      "retry": "Retry",
+      "noMatch": "No matching templates"
+    },
+    "card": {
+      "installCount": "{{count}} installs",
+      "rating": "{{rating}}",
+      "version": "v{{version}}"
+    },
+    "detail": {
+      "title": "Template Detail",
+      "meta": {
+        "id": "Template ID",
+        "industry": "Industry",
+        "version": "Version",
+        "installCount": "Installs",
+        "rating": "Rating",
+        "status": "Status",
+        "description": "Description"
+      },
+      "tabs": {
+        "arch": "Architecture",
+        "dataflow": "Data Flow",
+        "compute": "Compute Logic",
+        "viz": "Visualization",
+        "params": "Parameters",
+        "readme": "README"
+      },
+      "arch": {
+        "stats": {
+          "dataFlowNodes": "Data Flow Nodes",
+          "computeSteps": "Compute Steps",
+          "visualizationPanels": "Visualization Panels",
+          "parameters": "Parameters"
+        },
+        "flowTitle": "Data Flow Architecture",
+        "nodeLayer": "Layer",
+        "nodeName": "Name",
+        "nodeType": "Type"
+      },
+      "dataflow": {
+        "columns": {
+          "id": "Node ID",
+          "name": "Name",
+          "nodeType": "Type",
+          "layer": "Layer",
+          "description": "Description",
+          "io": "Input → Output"
+        },
+        "io": {
+          "in": "Input",
+          "arrow": "→",
+          "out": "Output"
+        },
+        "schedule": "Schedule:",
+        "unscheduled": "Not set"
+      },
+      "compute": {
+        "input": "Input:",
+        "output": "Output:",
+        "codeTitle": "Code"
+      },
+      "viz": {
+        "chartType": "Chart Type",
+        "size": "{{width}}×{{height}}"
+      },
+      "params": {
+        "columns": {
+          "name": "Parameter Name",
+          "type": "Type",
+          "required": "Required",
+          "defaultValue": "Default Value",
+          "description": "Description"
+        },
+        "yes": "Yes",
+        "no": "-",
+        "none": "-"
+      },
+      "readme": "README",
+      "actions": {
+        "close": "Close",
+        "deploy": "Deploy Now"
+      }
+    },
+    "deploy": {
+      "title": "Deploy Template",
+      "form": {
+        "template": "Template",
+        "tenantId": "Tenant ID",
+        "tenantIdPlaceholder": "e.g. tenant-001",
+        "releaseName": "Release Name",
+        "releaseNamePlaceholder": "e.g. my-risk-scorecard",
+        "namespace": "Namespace",
+        "namespacePlaceholder": "Leave empty to use tenant-{tenantId}",
+        "paramValues": "Parameter Values",
+        "selectPlaceholder": "Select",
+        "required": "Required"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "confirm": "Confirm Deploy",
+        "deploying": "Deploying..."
+      }
+    },
+    "result": {
+      "title": "Deployment Result",
+      "fields": {
+        "template": "Template",
+        "release": "Release",
+        "namespace": "Namespace",
+        "jobRunId": "Job Run ID",
+        "dashboardSnapshot": "Dashboard Snapshot",
+        "viewSnapshot": "View Snapshot",
+        "noSnapshot": "-"
+      },
+      "actions": {
+        "ok": "OK"
+      }
+    },
+    "industry": {
+      "finance": "Finance",
+      "retail": "Retail",
+      "manufacturing": "Manufacturing",
+      "government": "Government",
+      "iot": "IoT"
+    },
+    "status": {
+      "template": {
+        "dev": "In Development",
+        "review": "Under Review",
+        "catalog": "Published",
+        "deprecated": "Deprecated"
+      },
+      "deployment": {
+        "pending": "Pending",
+        "installing": "Installing",
+        "instantiating": "Instantiating",
+        "running": "Running",
+        "failed": "Failed",
+        "stopped": "Stopped"
+      },
+      "tagType": {
+        "dev": "info",
+        "review": "warning",
+        "catalog": "success",
+        "deprecated": "info"
+      }
+    },
+    "paramType": {
+      "string": "info",
+      "integer": "primary",
+      "float": "primary",
+      "boolean": "success",
+      "enum": "warning",
+      "datasource": "danger"
+    },
+    "messages": {
+      "loadListFailed": "Failed to load template list",
+      "loadDetailFailed": "Failed to load template detail",
+      "deploySuccess": "Template deployed successfully"
+    }
+  }
+}

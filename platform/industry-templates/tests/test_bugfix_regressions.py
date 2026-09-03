@@ -84,7 +84,7 @@ class TestAsyncDeployOffload:
         assert other_elapsed < 0.4
         assert health_resp.status_code == 200
         assert templates_resp.status_code == 200
-        assert len(templates_resp.json()) == 7
+        assert len(templates_resp.json()) == 9
         assert deploy_resp.status_code == 201
         assert deploy_resp.json()["status"] == "running"
 

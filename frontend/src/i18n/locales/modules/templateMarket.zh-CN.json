@@ -1,0 +1,173 @@
+{
+  "templateMarket": {
+    "title": "行业应用模板",
+    "subtitle": "L5.3 · 面向外部客户的预置分析模板，开箱即用。选定行业模板后，仅需绑定数据源即可获得完整分析能力。",
+    "filter": {
+      "all": "全部",
+      "searchPlaceholder": "按名称/描述/标签搜索",
+      "refreshTooltip": "刷新"
+    },
+    "empty": {
+      "loadFailed": "加载失败，请重试",
+      "retry": "重试",
+      "noMatch": "暂无匹配模板"
+    },
+    "card": {
+      "installCount": "{{count}} 次安装",
+      "rating": "{{rating}}",
+      "version": "v{{version}}"
+    },
+    "detail": {
+      "title": "模板详情",
+      "meta": {
+        "id": "模板 ID",
+        "industry": "行业",
+        "version": "版本",
+        "installCount": "安装次数",
+        "rating": "评分",
+        "status": "状态",
+        "description": "描述"
+      },
+      "tabs": {
+        "arch": "架构图",
+        "dataflow": "数据流",
+        "compute": "计算逻辑",
+        "viz": "可视化",
+        "params": "参数配置",
+        "readme": "README"
+      },
+      "arch": {
+        "stats": {
+          "dataFlowNodes": "数据流节点",
+          "computeSteps": "计算步骤",
+          "visualizationPanels": "可视化面板",
+          "parameters": "参数数量"
+        },
+        "flowTitle": "数据流架构",
+        "nodeLayer": "分层",
+        "nodeName": "名称",
+        "nodeType": "类型"
+      },
+      "dataflow": {
+        "columns": {
+          "id": "节点 ID",
+          "name": "名称",
+          "nodeType": "类型",
+          "layer": "分层",
+          "description": "说明",
+          "io": "输入 → 输出"
+        },
+        "io": {
+          "in": "输入",
+          "arrow": "→",
+          "out": "输出"
+        },
+        "schedule": "调度周期：",
+        "unscheduled": "未设置"
+      },
+      "compute": {
+        "input": "输入:",
+        "output": "输出:",
+        "codeTitle": "代码"
+      },
+      "viz": {
+        "chartType": "图表类型",
+        "size": "{{width}}×{{height}}"
+      },
+      "params": {
+        "columns": {
+          "name": "参数名",
+          "type": "类型",
+          "required": "必填",
+          "defaultValue": "默认值",
+          "description": "说明"
+        },
+        "yes": "是",
+        "no": "-",
+        "none": "-"
+      },
+      "readme": "README",
+      "actions": {
+        "close": "关闭",
+        "deploy": "一键部署"
+      }
+    },
+    "deploy": {
+      "title": "部署模板",
+      "form": {
+        "template": "模板",
+        "tenantId": "租户 ID",
+        "tenantIdPlaceholder": "如 tenant-001",
+        "releaseName": "Release 名称",
+        "releaseNamePlaceholder": "如 my-risk-scorecard",
+        "namespace": "Namespace",
+        "namespacePlaceholder": "留空则使用 tenant-{tenantId}",
+        "paramValues": "参数取值",
+        "selectPlaceholder": "选择",
+        "required": "必填"
+      },
+      "actions": {
+        "cancel": "取消",
+        "confirm": "确认部署",
+        "deploying": "部署中..."
+      }
+    },
+    "result": {
+      "title": "部署结果",
+      "fields": {
+        "template": "模板",
+        "release": "Release",
+        "namespace": "Namespace",
+        "jobRunId": "作业 ID",
+        "dashboardSnapshot": "仪表盘快照",
+        "viewSnapshot": "查看快照",
+        "noSnapshot": "-"
+      },
+      "actions": {
+        "ok": "确定"
+      }
+    },
+    "industry": {
+      "finance": "金融",
+      "retail": "零售",
+      "manufacturing": "制造",
+      "government": "政务",
+      "iot": "物联网"
+    },
+    "status": {
+      "template": {
+        "dev": "开发中",
+        "review": "审核中",
+        "catalog": "已上架",
+        "deprecated": "已下架"
+      },
+      "deployment": {
+        "pending": "等待中",
+        "installing": "安装中",
+        "instantiating": "实例化中",
+        "running": "运行中",
+        "failed": "失败",
+        "stopped": "已停止"
+      },
+      "tagType": {
+        "dev": "info",
+        "review": "warning",
+        "catalog": "success",
+        "deprecated": "info"
+      }
+    },
+    "paramType": {
+      "string": "info",
+      "integer": "primary",
+      "float": "primary",
+      "boolean": "success",
+      "enum": "warning",
+      "datasource": "danger"
+    },
+    "messages": {
+      "loadListFailed": "模板列表加载失败",
+      "loadDetailFailed": "模板详情加载失败",
+      "deploySuccess": "模板部署成功"
+    }
+  }
+}

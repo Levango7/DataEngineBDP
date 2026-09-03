@@ -32,6 +32,7 @@ class Industry(str, Enum):
     TRANSPORTATION = "transportation"  # 交通
     EDUCATION = "education"  # 教育
     AGRICULTURE = "agriculture"  # 农牧
+    ENERGY = "energy"  # 能源（Sprint 4.1 新增）
 
 
 class TemplateStatus(str, Enum):

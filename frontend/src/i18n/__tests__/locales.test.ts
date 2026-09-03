@@ -51,6 +51,8 @@ import accountZh from '@/i18n/locales/modules/account.zh-CN.json'
 import accountEn from '@/i18n/locales/modules/account.en-US.json'
 import adminZh from '@/i18n/locales/modules/admin.zh-CN.json'
 import adminEn from '@/i18n/locales/modules/admin.en-US.json'
+import templateMarketZh from '@/i18n/locales/modules/templateMarket.zh-CN.json'
+import templateMarketEn from '@/i18n/locales/modules/templateMarket.en-US.json'
 
 function flattenKeys(obj: Record<string, unknown>, prefix = ''): string[] {
   return Object.entries(obj).flatMap(([k, v]) =>
@@ -122,7 +124,8 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['llmops', llmopsZh as Record<string, unknown>, llmopsEn as Record<string, unknown>],
     ['gateway', gatewayZh as Record<string, unknown>, gatewayEn as Record<string, unknown>],
     ['account', accountZh as Record<string, unknown>, accountEn as Record<string, unknown>],
-    ['admin', adminZh as Record<string, unknown>, adminEn as Record<string, unknown>]
+    ['admin', adminZh as Record<string, unknown>, adminEn as Record<string, unknown>],
+    ['templateMarket', templateMarketZh as Record<string, unknown>, templateMarketEn as Record<string, unknown>]
   ]
 
   it('每个模块 zh/en key 集合完全一致（无漏译）', () => {

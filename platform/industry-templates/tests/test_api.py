@@ -11,7 +11,7 @@ def test_health(client):
     body = resp.json()
     assert body["status"] == "UP"
     assert body["deployMode"] == "mock"
-    assert body["templateCount"] == 7
+    assert body["templateCount"] == 9
 
 
 # ---------- 列表 ----------
@@ -21,7 +21,7 @@ def test_list_templates(client):
     resp = client.get("/api/v1/templates")
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body) == 7
+    assert len(body) == 9
     ids = {t["id"] for t in body}
     assert ids == {
         "fin-risk-scorecard",
@@ -31,6 +31,8 @@ def test_list_templates(client):
         "trans-traffic-flow",
         "edu-student-profile",
         "agri-crop-yield",
+        "energy-iot-monitor",
+        "gov-public-services",
     }
 
 
@@ -182,9 +184,9 @@ def test_categories(client):
     resp = client.get("/api/v1/templates/categories")
     assert resp.status_code == 200
     body = resp.json()
-    assert len(body) == 7
+    assert len(body) == 9
     industries = {c["industry"] for c in body}
-    assert industries == {"finance", "retail", "manufacturing", "medical", "transportation", "education", "agriculture"}
+    assert industries == {"finance", "retail", "manufacturing", "medical", "transportation", "education", "agriculture", "energy", "government"}
 
 
 # ---------- 部署记录 ----------

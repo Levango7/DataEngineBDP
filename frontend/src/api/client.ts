@@ -93,6 +93,22 @@ const http: AxiosInstance = axios.create({
   }
 })
 
+
+/** 当前租户 ID（业务线域 X-Tenant-Id 用）：优先取登录 user.tenantId，兜底平台管理员 */
+const USER_KEY = 'sq_user'
+function currentTenantId(): string {
+  try {
+    const raw = localStorage.getItem(USER_KEY)
+    if (raw) {
+      const u = JSON.parse(raw)
+      if (u?.tenantId) return String(u.tenantId)
+    }
+  } catch {
+    /* 忽略解析失败，兜底平台管理员 */
+  }
+  return 'platform-admin'
+}
+
 /* ------------------------------ 请求拦截器 ------------------------------ */
 http.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -101,6 +117,13 @@ http.interceptors.request.use(
     if (token) {
       config.headers = config.headers ?? {}
       config.headers.Authorization = `Bearer ${token}`
+    }
+    // business-portal 在 AUTH_MODE=none 下从 X-Tenant-Id header 读租户（与
+    // asset-exchange 等匿名放行服务行为不一致，Sprint 3.1 联调发现）。
+    // 仅对 /business-lines 域注入，避免影响 encaps-layer 的多租户校验。
+    if (config.url?.includes('/business-lines')) {
+      config.headers = config.headers ?? {}
+      config.headers['X-Tenant-Id'] = currentTenantId()
     }
     return config
   },
