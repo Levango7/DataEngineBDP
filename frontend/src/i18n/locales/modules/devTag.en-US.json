@@ -1,0 +1,187 @@
+{
+  "devTag": {
+    "title": "Tag Profile",
+    "subtitle": "Tag definitions · rule computation · audience selection",
+    "kpi": {
+      "total": "Total Tags",
+      "totalMeta": "All tag definitions",
+      "computed": "Computed Tags",
+      "computedMeta": "COMPUTED status",
+      "computing": "Computing",
+      "computingMeta": "COMPUTING status",
+      "todaySelect": "Today's Selections",
+      "todaySelectMeta": "Cumulative in session"
+    },
+    "tabs": {
+      "definition": "Tag Definitions",
+      "profile": "User Profile",
+      "audience": "Audience Selection"
+    },
+    "listLoadFailed": "Failed to load tag list,",
+    "list": {
+      "loadFailed": "Failed to load, please retry",
+      "empty": "No tags",
+      "refreshAria": "Refresh"
+    },
+    "tagActions": {
+      "new": "+ New Tag",
+      "batchCompute": "Batch Compute ({count})",
+      "rule": "Rule",
+      "compute": "Compute",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "tagColumns": {
+      "name": "Tag",
+      "code": "Code",
+      "codePlaceholder": "--",
+      "valueType": "Type",
+      "ruleCount": "Rules",
+      "status": "Status",
+      "lastComputed": "Last Computed",
+      "actions": "Actions"
+    },
+    "tagDialog": {
+      "titleCreate": "New Tag",
+      "titleEdit": "Edit Tag",
+      "fields": {
+        "name": "Tag Name",
+        "namePlaceholder": "e.g. High Value User",
+        "code": "Code",
+        "codePlaceholder": "e.g. high_value_user",
+        "valueType": "Value Type",
+        "description": "Description"
+      },
+      "valueTypes": {
+        "STRING": "String",
+        "NUMBER": "Number",
+        "BOOLEAN": "Boolean",
+        "ENUM": "Enum",
+        "DATE": "Date"
+      },
+      "actions": {
+        "cancel": "Cancel",
+        "save": "Save",
+        "create": "Create"
+      }
+    },
+    "status": {
+      "DRAFT": "Draft",
+      "READY": "Ready",
+      "COMPUTING": "Computing",
+      "COMPUTED": "Computed",
+      "FAILED": "Failed",
+      "tagType": "tagType"
+    },
+    "profile": {
+      "userIdPlaceholder": "Enter user ID to query profile",
+      "loading": "Loading…",
+      "loadFailed": "Failed to load profile,",
+      "loadFailedRetry": "Retry",
+      "queryBtn": "Query",
+      "emptyHint": "Enter a user ID to query profile",
+      "fields": {
+        "userId": "User ID",
+        "username": "Username",
+        "updatedAt": "Updated",
+        "tagCount": "Tag Count"
+      },
+      "tagsListTitle": "Tag Values",
+      "tagsColumns": {
+        "name": "Tag",
+        "type": "Type",
+        "value": "Value"
+      }
+    },
+    "audience": {
+      "condBuilderTitle": "Selection Conditions",
+      "selectBtn": "Select",
+      "saveAudience": "Save Audience",
+      "audienceNamePlaceholder": "Audience name",
+      "resultTitle": "Selection Result",
+      "selecting": "Selecting…",
+      "selectFailed": "Selection failed, please retry",
+      "emptyHint": "Build conditions and run selection",
+      "countField": "Count",
+      "audienceIdField": "Audience ID",
+      "usersTitle": "Users (top {count})",
+      "usersColumns": {
+        "userId": "User ID",
+        "username": "Username"
+      },
+      "selectTag": "Select tag",
+      "selectOp": "Op",
+      "value": "Value",
+      "valueMax": "Upper",
+      "remove": "Remove",
+      "addCondition": "+ Add Condition",
+      "noUser": "No users",
+      "ops": {
+        "EQ": "EQ",
+        "NE": "NE",
+        "IN": "IN",
+        "GT": "GT",
+        "LT": "LT",
+        "GE": "GE",
+        "LE": "LE",
+        "BETWEEN": "BETWEEN",
+        "LIKE": "LIKE"
+      }
+    },
+    "ruleDialog": {
+      "title": "Tag Rules - {name}",
+      "addRule": "+ Add Rule",
+      "empty": "No rules",
+      "cancel": "Cancel",
+      "columns": {
+        "name": "Rule Name",
+        "ruleType": "Type",
+        "priority": "Priority",
+        "outputValue": "Output Value",
+        "expression": "Expression",
+        "actions": "Actions"
+      },
+      "addForm": {
+        "title": "New Rule",
+        "fields": {
+          "name": "Name",
+          "namePlaceholder": "Rule name",
+          "ruleType": "Type",
+          "priority": "Priority",
+          "outputValue": "Output Value",
+          "outputValuePlaceholder": "Output tag value on hit",
+          "expression": "Expression",
+          "expressionPlaceholder": "e.g. SELECT 1 FROM users WHERE ..."
+        },
+        "ruleTypes": {
+          "SQL": "SQL",
+          "EXPRESSION": "Expression",
+          "LOOKUP": "Lookup"
+        },
+        "submit": "Add"
+      }
+    },
+    "rules": {
+      "tagName": "Please enter tag name",
+      "valueType": "Please select value type",
+      "ruleName": "Please enter rule name",
+      "ruleType": "Please select rule type",
+      "ruleExpression": "Please enter expression"
+    },
+    "messages": {
+      "tagCreated": "Tag created",
+      "tagUpdated": "Tag updated",
+      "tagDeleted": "Tag deleted",
+      "tagDeleteConfirm": "Delete tag \"{name}\"? This cannot be undone.",
+      "tagDeleteConfirmTitle": "Confirm Deletion",
+      "computeDone": "Compute submitted, status: {status}",
+      "computeDoneCount": ", {count} users computed",
+      "batchComputeDone": "Batch compute done, {success} / {total} succeeded",
+      "ruleAdded": "Rule added",
+      "ruleDeleted": "Rule deleted",
+      "ruleDeleteConfirm": "Delete rule \"{name}\"?",
+      "ruleDeleteConfirmTitle": "Confirm Deletion",
+      "audienceDone": "Selection done, {count} users"
+    }
+  }
+}

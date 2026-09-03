@@ -1,0 +1,187 @@
+{
+  "devTag": {
+    "title": "标签画像",
+    "subtitle": "标签定义 · 规则计算 · 人群圈选",
+    "kpi": {
+      "total": "标签总数",
+      "totalMeta": "全部标签定义",
+      "computed": "已计算标签",
+      "computedMeta": "状态为 COMPUTED",
+      "computing": "计算中",
+      "computingMeta": "状态为 COMPUTING",
+      "todaySelect": "今日圈选次数",
+      "todaySelectMeta": "本次会话累计"
+    },
+    "tabs": {
+      "definition": "标签定义",
+      "profile": "用户画像",
+      "audience": "人群圈选"
+    },
+    "listLoadFailed": "标签列表加载失败，",
+    "list": {
+      "loadFailed": "加载失败，请重试",
+      "empty": "暂无标签",
+      "refreshAria": "刷新"
+    },
+    "tagActions": {
+      "new": "+ 新建标签",
+      "batchCompute": "批量计算 ({count})",
+      "rule": "规则",
+      "compute": "计算",
+      "edit": "编辑",
+      "delete": "删除"
+    },
+    "tagColumns": {
+      "name": "标签名",
+      "code": "编码",
+      "codePlaceholder": "--",
+      "valueType": "值类型",
+      "ruleCount": "规则数",
+      "status": "状态",
+      "lastComputed": "最近计算",
+      "actions": "操作"
+    },
+    "tagDialog": {
+      "titleCreate": "新建标签",
+      "titleEdit": "编辑标签",
+      "fields": {
+        "name": "标签名",
+        "namePlaceholder": "如 高价值用户",
+        "code": "编码",
+        "codePlaceholder": "如 high_value_user",
+        "valueType": "值类型",
+        "description": "描述"
+      },
+      "valueTypes": {
+        "STRING": "字符串",
+        "NUMBER": "数值",
+        "BOOLEAN": "布尔",
+        "ENUM": "枚举",
+        "DATE": "日期"
+      },
+      "actions": {
+        "cancel": "取消",
+        "save": "保存",
+        "create": "创建"
+      }
+    },
+    "status": {
+      "DRAFT": "草稿",
+      "READY": "就绪",
+      "COMPUTING": "计算中",
+      "COMPUTED": "已计算",
+      "FAILED": "失败",
+      "tagType": "tagType"
+    },
+    "profile": {
+      "userIdPlaceholder": "输入用户 ID 查询画像",
+      "loading": "加载中…",
+      "loadFailed": "画像加载失败，",
+      "loadFailedRetry": "重试",
+      "queryBtn": "查询",
+      "emptyHint": "请输入用户 ID 查询画像",
+      "fields": {
+        "userId": "用户 ID",
+        "username": "用户名",
+        "updatedAt": "更新时间",
+        "tagCount": "标签数"
+      },
+      "tagsListTitle": "标签值列表",
+      "tagsColumns": {
+        "name": "标签名",
+        "type": "类型",
+        "value": "值"
+      }
+    },
+    "audience": {
+      "condBuilderTitle": "圈选条件",
+      "selectBtn": "圈选",
+      "saveAudience": "保存人群",
+      "audienceNamePlaceholder": "人群名称",
+      "resultTitle": "圈选结果",
+      "selecting": "圈选中…",
+      "selectFailed": "圈选失败，请重试",
+      "emptyHint": "请构建条件后执行圈选",
+      "countField": "人数",
+      "audienceIdField": "人群 ID",
+      "usersTitle": "用户列表（前 {count} 条）",
+      "usersColumns": {
+        "userId": "用户 ID",
+        "username": "用户名"
+      },
+      "selectTag": "选择标签",
+      "selectOp": "操作",
+      "value": "值",
+      "valueMax": "上限",
+      "remove": "删除",
+      "addCondition": "+ 添加条件",
+      "noUser": "暂无用户",
+      "ops": {
+        "EQ": "等于",
+        "NE": "不等于",
+        "IN": "包含",
+        "GT": "大于",
+        "LT": "小于",
+        "GE": "大于等于",
+        "LE": "小于等于",
+        "BETWEEN": "区间",
+        "LIKE": "模糊"
+      }
+    },
+    "ruleDialog": {
+      "title": "标签规则 - {name}",
+      "addRule": "+ 添加规则",
+      "empty": "暂无规则",
+      "cancel": "取消",
+      "columns": {
+        "name": "规则名",
+        "ruleType": "类型",
+        "priority": "优先级",
+        "outputValue": "输出值",
+        "expression": "表达式",
+        "actions": "操作"
+      },
+      "addForm": {
+        "title": "新增规则",
+        "fields": {
+          "name": "名称",
+          "namePlaceholder": "规则名",
+          "ruleType": "类型",
+          "priority": "优先级",
+          "outputValue": "输出值",
+          "outputValuePlaceholder": "命中时输出的标签值",
+          "expression": "表达式",
+          "expressionPlaceholder": "如 SELECT 1 FROM users WHERE ..."
+        },
+        "ruleTypes": {
+          "SQL": "SQL",
+          "EXPRESSION": "表达式",
+          "LOOKUP": "查表"
+        },
+        "submit": "添加"
+      }
+    },
+    "rules": {
+      "tagName": "请输入标签名",
+      "valueType": "请选择值类型",
+      "ruleName": "请输入规则名",
+      "ruleType": "请选择规则类型",
+      "ruleExpression": "请输入表达式"
+    },
+    "messages": {
+      "tagCreated": "标签已创建",
+      "tagUpdated": "标签已更新",
+      "tagDeleted": "标签已删除",
+      "tagDeleteConfirm": "确认删除标签「{name}」？该操作不可恢复。",
+      "tagDeleteConfirmTitle": "删除确认",
+      "computeDone": "计算已提交，状态：{status}",
+      "computeDoneCount": "，已计算 {count} 用户",
+      "batchComputeDone": "批量计算完成，成功 {success} / {total}",
+      "ruleAdded": "规则已添加",
+      "ruleDeleted": "规则已删除",
+      "ruleDeleteConfirm": "确认删除规则「{name}」？",
+      "ruleDeleteConfirmTitle": "删除确认",
+      "audienceDone": "圈选完成，共 {count} 人"
+    }
+  }
+}

@@ -1,46 +1,46 @@
 <template>
   <div class="dev-tag-page">
-    <h1>标签画像</h1>
-    <div class="sub">标签定义 · 规则计算 · 人群圈选</div>
+    <h1>{{ t('devTag.title') }}</h1>
+    <div class="sub">{{ t('devTag.subtitle') }}</div>
 
     <!-- KPI 卡片区 -->
     <div class="grid g4">
       <template v-if="tagsLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="tagsError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
-            标签列表加载失败，
-            <a href="javascript:void(0)" @click="reloadTags">重试</a>
+            {{ t('devTag.listLoadFailed') }}
+            <a href="javascript:void(0)" @click="reloadTags">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>标签总数</h3>
+          <h3>{{ t('devTag.kpi.total') }}</h3>
           <div class="kpi">{{ kpi.total }}</div>
-          <div class="meta">全部标签定义</div>
+          <div class="meta">{{ t('devTag.kpi.totalMeta') }}</div>
         </div>
         <div class="card">
-          <h3>已计算标签</h3>
+          <h3>{{ t('devTag.kpi.computed') }}</h3>
           <div class="kpi s">{{ kpi.computed }}</div>
-          <div class="meta">状态为 COMPUTED</div>
+          <div class="meta">{{ t('devTag.kpi.computedMeta') }}</div>
         </div>
         <div class="card">
-          <h3>计算中</h3>
+          <h3>{{ t('devTag.kpi.computing') }}</h3>
           <div class="kpi">{{ kpi.computing }}</div>
-          <div class="meta">状态为 COMPUTING</div>
+          <div class="meta">{{ t('devTag.kpi.computingMeta') }}</div>
         </div>
         <div class="card">
-          <h3>今日圈选次数</h3>
+          <h3>{{ t('devTag.kpi.todaySelect') }}</h3>
           <div class="kpi">{{ todaySelectCount }}</div>
-          <div class="meta">本次会话累计</div>
+          <div class="meta">{{ t('devTag.kpi.todaySelectMeta') }}</div>
         </div>
       </template>
     </div>
@@ -49,19 +49,19 @@
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <el-tabs v-model="activeTab" type="card">
         <!-- Tab1 标签定义 -->
-        <el-tab-pane label="标签定义" name="definition">
+        <el-tab-pane :label="t('devTag.tabs.definition')" name="definition">
           <div class="toolbar">
-            <el-button type="primary" @click="openTagDialog()">+ 新建标签</el-button>
+            <el-button type="primary" @click="openTagDialog()">{{ t('devTag.tagActions.new') }}</el-button>
             <el-button
               type="success"
               :disabled="!selectedTagIds.length"
               :loading="batchComputing"
               @click="handleBatchCompute"
             >
-              批量计算 ({{ selectedTagIds.length }})
+              {{ t('devTag.tagActions.batchCompute', { count: selectedTagIds.length }) }}
             </el-button>
             <div class="spacer"></div>
-            <el-button :icon="Refresh" circle @click="reloadTags" />
+            <el-button :icon="Refresh" circle :aria-label="t('devTag.list.refreshAria')" @click="reloadTags" />
           </div>
 
           <el-table
@@ -70,60 +70,60 @@
             stripe
             border
             style="width: 100%"
-            :empty-text="tagsError ? '加载失败，请重试' : '暂无标签'"
+            :empty-text="tagsError ? t('devTag.list.loadFailed') : t('devTag.list.empty')"
             @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="48" />
-            <el-table-column prop="name" label="标签名" min-width="160" />
-            <el-table-column prop="code" label="编码" width="160">
+            <el-table-column prop="name" :label="t('devTag.tagColumns.name')" min-width="160" />
+            <el-table-column prop="code" :label="t('devTag.tagColumns.code')" width="160">
               <template #default="{ row }">
                 <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px">
-                  {{ row.code || '--' }}
+                  {{ row.code || t('devTag.tagColumns.codePlaceholder') }}
                 </span>
               </template>
             </el-table-column>
-            <el-table-column prop="valueType" label="值类型" width="110">
+            <el-table-column prop="valueType" :label="t('devTag.tagColumns.valueType')" width="110">
               <template #default="{ row }">
-                <el-tag effect="light" size="small">{{ row.valueType }}</el-tag>
+                <el-tag effect="light" size="small">{{ t(`devTag.tagDialog.valueTypes.${row.valueType}`, row.valueType) }}</el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="ruleCount" label="规则数" width="100" align="center">
+            <el-table-column prop="ruleCount" :label="t('devTag.tagColumns.ruleCount')" width="100" align="center">
               <template #default="{ row }">{{ row.ruleCount ?? 0 }}</template>
             </el-table-column>
-            <el-table-column label="状态" width="120">
+            <el-table-column :label="t('devTag.tagColumns.status')" width="120">
               <template #default="{ row }">
                 <el-tag :type="tagStatusType(row.status)" effect="light" size="small">
                   {{ tagStatusLabel(row.status) }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="lastComputedAt" label="最近计算" width="180">
-              <template #default="{ row }">{{ row.lastComputedAt || '--' }}</template>
+            <el-table-column prop="lastComputedAt" :label="t('devTag.tagColumns.lastComputed')" width="180">
+              <template #default="{ row }">{{ row.lastComputedAt || t('devTag.tagColumns.codePlaceholder') }}</template>
             </el-table-column>
-            <el-table-column label="操作" width="280" fixed="right">
+            <el-table-column :label="t('devTag.tagColumns.actions')" width="280" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="openRuleDialog(row)">规则</el-button>
+                <el-button link type="primary" @click="openRuleDialog(row)">{{ t('devTag.tagActions.rule') }}</el-button>
                 <el-button
                   link
                   type="success"
                   :loading="computingId === row.id"
                   @click="handleCompute(row)"
                 >
-                  计算
+                  {{ t('devTag.tagActions.compute') }}
                 </el-button>
-                <el-button link type="primary" @click="openTagDialog(row)">编辑</el-button>
-                <el-button link type="danger" @click="handleDeleteTag(row)">删除</el-button>
+                <el-button link type="primary" @click="openTagDialog(row)">{{ t('devTag.tagActions.edit') }}</el-button>
+                <el-button link type="danger" @click="handleDeleteTag(row)">{{ t('devTag.tagActions.delete') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
 
         <!-- Tab2 用户画像 -->
-        <el-tab-pane label="用户画像" name="profile">
+        <el-tab-pane :label="t('devTag.tabs.profile')" name="profile">
           <div class="toolbar">
             <el-input
               v-model="userIdInput"
-              placeholder="输入用户 ID 查询画像"
+              :placeholder="t('devTag.profile.userIdPlaceholder')"
               clearable
               style="width: 320px"
               @keyup.enter="handleQueryProfile"
@@ -134,32 +134,32 @@
               :disabled="!userIdInput.trim()"
               @click="handleQueryProfile"
             >
-              查询
+              {{ t('devTag.profile.queryBtn') }}
             </el-button>
           </div>
 
-          <div v-if="profileLoading" class="meta" style="padding: 16px">加载中…</div>
+          <div v-if="profileLoading" class="meta" style="padding: 16px">{{ t('devTag.profile.loading') }}</div>
           <div v-else-if="profileError" class="meta" style="padding: 16px; color: var(--muted)">
-            画像加载失败，
-            <a href="javascript:void(0)" @click="handleQueryProfile">重试</a>
+            {{ t('devTag.profile.loadFailed') }}
+            <a href="javascript:void(0)" @click="handleQueryProfile">{{ t('devTag.profile.loadFailedRetry') }}</a>
           </div>
-          <el-empty v-else-if="!profile" description="请输入用户 ID 查询画像" />
+          <el-empty v-else-if="!profile" :description="t('devTag.profile.emptyHint')" />
           <div v-else class="profile-panel">
             <el-descriptions :column="2" border>
-              <el-descriptions-item label="用户 ID">{{ profile.userId }}</el-descriptions-item>
-              <el-descriptions-item label="用户名">
-                {{ profile.username || '--' }}
+              <el-descriptions-item :label="t('devTag.profile.fields.userId')">{{ profile.userId }}</el-descriptions-item>
+              <el-descriptions-item :label="t('devTag.profile.fields.username')">
+                {{ profile.username || t('devTag.tagColumns.codePlaceholder') }}
               </el-descriptions-item>
-              <el-descriptions-item label="更新时间">
-                {{ profile.updatedAt || '--' }}
+              <el-descriptions-item :label="t('devTag.profile.fields.updatedAt')">
+                {{ profile.updatedAt || t('devTag.tagColumns.codePlaceholder') }}
               </el-descriptions-item>
-              <el-descriptions-item label="标签数">{{ profile.tags.length }}</el-descriptions-item>
+              <el-descriptions-item :label="t('devTag.profile.fields.tagCount')">{{ profile.tags.length }}</el-descriptions-item>
             </el-descriptions>
-            <h3 style="margin: 16px 0 12px">标签值列表</h3>
+            <h3 style="margin: 16px 0 12px">{{ t('devTag.profile.tagsListTitle') }}</h3>
             <el-table :data="profile.tags" stripe border size="small">
-              <el-table-column prop="tagName" label="标签名" min-width="160" />
-              <el-table-column prop="valueType" label="类型" width="100" />
-              <el-table-column label="值" min-width="160">
+              <el-table-column prop="tagName" :label="t('devTag.profile.tagsColumns.name')" min-width="160" />
+              <el-table-column prop="valueType" :label="t('devTag.profile.tagsColumns.type')" width="100" />
+              <el-table-column :label="t('devTag.profile.tagsColumns.value')" min-width="160">
                 <template #default="{ row }">
                   <span
                     v-if="row.value === null || row.value === undefined"
@@ -175,42 +175,42 @@
         </el-tab-pane>
 
         <!-- Tab3 人群圈选 -->
-        <el-tab-pane label="人群圈选" name="audience">
+        <el-tab-pane :label="t('devTag.tabs.audience')" name="audience">
           <el-row :gutter="16">
             <!-- 左：条件构建器 -->
             <el-col :xs="24" :md="12">
-              <h3 style="margin: 0 0 12px">圈选条件</h3>
+              <h3 style="margin: 0 0 12px">{{ t('devTag.audience.condBuilderTitle') }}</h3>
               <div v-for="(cond, idx) in conditions.tags" :key="idx" class="cond-row">
                 <el-select
                   v-model="cond.tagId"
-                  placeholder="选择标签"
+                  :placeholder="t('devTag.audience.selectTag')"
                   filterable
                   style="width: 160px"
                 >
                   <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
                 </el-select>
-                <el-select v-model="cond.op" placeholder="操作" style="width: 100px">
-                  <el-option label="等于" value="EQ" />
-                  <el-option label="不等于" value="NE" />
-                  <el-option label="包含" value="IN" />
-                  <el-option label="大于" value="GT" />
-                  <el-option label="小于" value="LT" />
-                  <el-option label="大于等于" value="GE" />
-                  <el-option label="小于等于" value="LE" />
-                  <el-option label="区间" value="BETWEEN" />
-                  <el-option label="模糊" value="LIKE" />
+                <el-select v-model="cond.op" :placeholder="t('devTag.audience.selectOp')" style="width: 100px">
+                  <el-option :label="t('devTag.audience.ops.EQ')" value="EQ" />
+                  <el-option :label="t('devTag.audience.ops.NE')" value="NE" />
+                  <el-option :label="t('devTag.audience.ops.IN')" value="IN" />
+                  <el-option :label="t('devTag.audience.ops.GT')" value="GT" />
+                  <el-option :label="t('devTag.audience.ops.LT')" value="LT" />
+                  <el-option :label="t('devTag.audience.ops.GE')" value="GE" />
+                  <el-option :label="t('devTag.audience.ops.LE')" value="LE" />
+                  <el-option :label="t('devTag.audience.ops.BETWEEN')" value="BETWEEN" />
+                  <el-option :label="t('devTag.audience.ops.LIKE')" value="LIKE" />
                 </el-select>
-                <el-input v-model="cond.value" placeholder="值" style="width: 140px" />
+                <el-input v-model="cond.value" :placeholder="t('devTag.audience.value')" style="width: 140px" />
                 <el-input
                   v-if="cond.op === 'BETWEEN'"
                   v-model="cond.value2"
-                  placeholder="上限"
+                  :placeholder="t('devTag.audience.valueMax')"
                   style="width: 100px"
                 />
-                <el-button link type="danger" @click="removeCondition(idx)">删除</el-button>
+                <el-button link type="danger" @click="removeCondition(idx)">{{ t('devTag.audience.remove') }}</el-button>
               </div>
               <el-button type="primary" plain style="margin-top: 8px" @click="addCondition">
-                + 添加条件
+                {{ t('devTag.audience.addCondition') }}
               </el-button>
 
               <div style="margin-top: 16px">
@@ -220,13 +220,13 @@
                   :disabled="!conditions.tags.length"
                   @click="handleSelectAudience"
                 >
-                  圈选
+                  {{ t('devTag.audience.selectBtn') }}
                 </el-button>
-                <el-checkbox v-model="saveAudience" style="margin-left: 12px">保存人群</el-checkbox>
+                <el-checkbox v-model="saveAudience" style="margin-left: 12px">{{ t('devTag.audience.saveAudience') }}</el-checkbox>
                 <el-input
                   v-if="saveAudience"
                   v-model="audienceName"
-                  placeholder="人群名称"
+                  :placeholder="t('devTag.audience.audienceNamePlaceholder')"
                   style="width: 200px; margin-left: 8px"
                 />
               </div>
@@ -234,34 +234,34 @@
 
             <!-- 右：结果 -->
             <el-col :xs="24" :md="12">
-              <h3 style="margin: 0 0 12px">圈选结果</h3>
-              <div v-if="selecting" class="meta">圈选中…</div>
+              <h3 style="margin: 0 0 12px">{{ t('devTag.audience.resultTitle') }}</h3>
+              <div v-if="selecting" class="meta">{{ t('devTag.audience.selecting') }}</div>
               <div v-else-if="selectError" class="meta" style="color: var(--muted)">
-                圈选失败，请重试
+                {{ t('devTag.audience.selectFailed') }}
               </div>
-              <el-empty v-else-if="!audienceResult" description="请构建条件后执行圈选" />
+              <el-empty v-else-if="!audienceResult" :description="t('devTag.audience.emptyHint')" />
               <div v-else>
                 <el-descriptions :column="1" border size="small">
-                  <el-descriptions-item label="人数">
+                  <el-descriptions-item :label="t('devTag.audience.countField')">
                     <span class="kpi" style="font-size: 20px">{{ audienceResult.count }}</span>
                   </el-descriptions-item>
-                  <el-descriptions-item v-if="audienceResult.audienceId" label="人群 ID">
+                  <el-descriptions-item v-if="audienceResult.audienceId" :label="t('devTag.audience.audienceIdField')">
                     {{ audienceResult.audienceId }}
                   </el-descriptions-item>
                 </el-descriptions>
                 <h4 style="margin: 12px 0 8px">
-                  用户列表（前 {{ audienceResult.users.length }} 条）
+                  {{ t('devTag.audience.usersTitle', { count: audienceResult.users.length }) }}
                 </h4>
                 <el-table
                   :data="audienceResult.users"
                   stripe
                   border
                   size="small"
-                  :empty-text="'暂无用户'"
+                  :empty-text="t('devTag.audience.noUser')"
                 >
-                  <el-table-column prop="userId" label="用户 ID" min-width="160" />
-                  <el-table-column prop="username" label="用户名" min-width="120">
-                    <template #default="{ row }">{{ row.username || '--' }}</template>
+                  <el-table-column prop="userId" :label="t('devTag.audience.usersColumns.userId')" min-width="160" />
+                  <el-table-column prop="username" :label="t('devTag.audience.usersColumns.username')" min-width="120">
+                    <template #default="{ row }">{{ row.username || t('devTag.tagColumns.codePlaceholder') }}</template>
                   </el-table-column>
                 </el-table>
               </div>
@@ -274,7 +274,7 @@
     <!-- 标签定义编辑弹窗 -->
     <el-dialog
       v-model="tagDialogVisible"
-      :title="tagForm.id ? '编辑标签' : '新建标签'"
+      :title="tagForm.id ? t('devTag.tagDialog.titleEdit') : t('devTag.tagDialog.titleCreate')"
       width="540px"
       :close-on-click-modal="false"
       @closed="resetTagForm"
@@ -286,33 +286,33 @@
         label-width="100px"
         label-position="right"
       >
-        <el-form-item label="标签名" prop="name">
-          <el-input v-model="tagForm.name" placeholder="如 高价值用户" />
+        <el-form-item :label="t('devTag.tagDialog.fields.name')" prop="name">
+          <el-input v-model="tagForm.name" :placeholder="t('devTag.tagDialog.fields.namePlaceholder')" />
         </el-form-item>
-        <el-form-item label="编码" prop="code">
+        <el-form-item :label="t('devTag.tagDialog.fields.code')" prop="code">
           <el-input
             v-model="tagForm.code"
-            placeholder="如 high_value_user"
+            :placeholder="t('devTag.tagDialog.fields.codePlaceholder')"
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
-        <el-form-item label="值类型" prop="valueType">
+        <el-form-item :label="t('devTag.tagDialog.fields.valueType')" prop="valueType">
           <el-select v-model="tagForm.valueType" style="width: 100%">
-            <el-option label="字符串" value="STRING" />
-            <el-option label="数值" value="NUMBER" />
-            <el-option label="布尔" value="BOOLEAN" />
-            <el-option label="枚举" value="ENUM" />
-            <el-option label="日期" value="DATE" />
+            <el-option :label="t('devTag.tagDialog.valueTypes.STRING')" value="STRING" />
+            <el-option :label="t('devTag.tagDialog.valueTypes.NUMBER')" value="NUMBER" />
+            <el-option :label="t('devTag.tagDialog.valueTypes.BOOLEAN')" value="BOOLEAN" />
+            <el-option :label="t('devTag.tagDialog.valueTypes.ENUM')" value="ENUM" />
+            <el-option :label="t('devTag.tagDialog.valueTypes.DATE')" value="DATE" />
           </el-select>
         </el-form-item>
-        <el-form-item label="描述" prop="description">
+        <el-form-item :label="t('devTag.tagDialog.fields.description')" prop="description">
           <el-input v-model="tagForm.description" type="textarea" :rows="2" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="tagDialogVisible = false">取消</el-button>
+        <el-button @click="tagDialogVisible = false">{{ t('devTag.tagDialog.actions.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmitTag">
-          {{ tagForm.id ? '保存' : '创建' }}
+          {{ tagForm.id ? t('devTag.tagDialog.actions.save') : t('devTag.tagDialog.actions.create') }}
         </el-button>
       </template>
     </el-dialog>
@@ -320,12 +320,12 @@
     <!-- 规则编辑弹窗 -->
     <el-dialog
       v-model="ruleDialogVisible"
-      :title="`标签规则 - ${currentTag?.name ?? ''}`"
+      :title="t('devTag.ruleDialog.title', { name: currentTag?.name ?? '' })"
       width="720px"
       :close-on-click-modal="false"
     >
       <div class="toolbar">
-        <el-button type="primary" @click="openAddRuleForm">+ 添加规则</el-button>
+        <el-button type="primary" @click="openAddRuleForm">{{ t('devTag.ruleDialog.addRule') }}</el-button>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="loadRules" />
       </div>
@@ -335,29 +335,29 @@
         stripe
         border
         size="small"
-        :empty-text="'暂无规则'"
+        :empty-text="t('devTag.ruleDialog.empty')"
       >
-        <el-table-column prop="name" label="规则名" min-width="140" />
-        <el-table-column prop="ruleType" label="类型" width="110">
+        <el-table-column prop="name" :label="t('devTag.ruleDialog.columns.name')" min-width="140" />
+        <el-table-column prop="ruleType" :label="t('devTag.ruleDialog.columns.ruleType')" width="110">
           <template #default="{ row }">
-            <el-tag size="small" effect="light">{{ row.ruleType }}</el-tag>
+            <el-tag size="small" effect="light">{{ t(`devTag.ruleDialog.addForm.ruleTypes.${row.ruleType}`, row.ruleType) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="priority" label="优先级" width="80" align="center" />
-        <el-table-column prop="outputValue" label="输出值" width="120">
-          <template #default="{ row }">{{ row.outputValue || '--' }}</template>
+        <el-table-column prop="priority" :label="t('devTag.ruleDialog.columns.priority')" width="80" align="center" />
+        <el-table-column prop="outputValue" :label="t('devTag.ruleDialog.columns.outputValue')" width="120">
+          <template #default="{ row }">{{ row.outputValue || t('devTag.tagColumns.codePlaceholder') }}</template>
         </el-table-column>
-        <el-table-column prop="expression" label="表达式" min-width="200" show-overflow-tooltip />
-        <el-table-column label="操作" width="80" fixed="right">
+        <el-table-column prop="expression" :label="t('devTag.ruleDialog.columns.expression')" min-width="200" show-overflow-tooltip />
+        <el-table-column :label="t('devTag.ruleDialog.columns.actions')" width="80" fixed="right">
           <template #default="{ row }">
-            <el-button link type="danger" @click="handleDeleteRule(row)">删除</el-button>
+            <el-button link type="danger" @click="handleDeleteRule(row)">{{ t('devTag.tagActions.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <!-- 添加规则表单 -->
       <div v-if="showAddRuleForm" class="rule-form">
-        <h4 style="margin: 16px 0 8px">新增规则</h4>
+        <h4 style="margin: 16px 0 8px">{{ t('devTag.ruleDialog.addForm.title') }}</h4>
         <el-form
           ref="ruleFormRef"
           :model="ruleForm"
@@ -365,34 +365,34 @@
           label-width="80px"
           label-position="right"
         >
-          <el-form-item label="名称" prop="name">
-            <el-input v-model="ruleForm.name" placeholder="规则名" />
+          <el-form-item :label="t('devTag.ruleDialog.addForm.fields.name')" prop="name">
+            <el-input v-model="ruleForm.name" :placeholder="t('devTag.ruleDialog.addForm.fields.namePlaceholder')" />
           </el-form-item>
-          <el-form-item label="类型" prop="ruleType">
+          <el-form-item :label="t('devTag.ruleDialog.addForm.fields.ruleType')" prop="ruleType">
             <el-select v-model="ruleForm.ruleType" style="width: 100%">
-              <el-option label="SQL" value="SQL" />
-              <el-option label="表达式" value="EXPRESSION" />
-              <el-option label="查表" value="LOOKUP" />
+              <el-option :label="t('devTag.ruleDialog.addForm.ruleTypes.SQL')" value="SQL" />
+              <el-option :label="t('devTag.ruleDialog.addForm.ruleTypes.EXPRESSION')" value="EXPRESSION" />
+              <el-option :label="t('devTag.ruleDialog.addForm.ruleTypes.LOOKUP')" value="LOOKUP" />
             </el-select>
           </el-form-item>
-          <el-form-item label="优先级" prop="priority">
+          <el-form-item :label="t('devTag.ruleDialog.addForm.fields.priority')" prop="priority">
             <el-input-number v-model="ruleForm.priority" :min="0" :max="100" />
           </el-form-item>
-          <el-form-item label="输出值" prop="outputValue">
-            <el-input v-model="ruleForm.outputValue" placeholder="命中时输出的标签值" />
+          <el-form-item :label="t('devTag.ruleDialog.addForm.fields.outputValue')" prop="outputValue">
+            <el-input v-model="ruleForm.outputValue" :placeholder="t('devTag.ruleDialog.addForm.fields.outputValuePlaceholder')" />
           </el-form-item>
-          <el-form-item label="表达式" prop="expression">
+          <el-form-item :label="t('devTag.ruleDialog.addForm.fields.expression')" prop="expression">
             <el-input
               v-model="ruleForm.expression"
               type="textarea"
               :rows="3"
-              placeholder="如 SELECT 1 FROM users WHERE ..."
+              :placeholder="t('devTag.ruleDialog.addForm.fields.expressionPlaceholder')"
               style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
             />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :loading="addingRule" @click="handleAddRule">添加</el-button>
-            <el-button @click="showAddRuleForm = false">取消</el-button>
+            <el-button type="primary" :loading="addingRule" @click="handleAddRule">{{ t('devTag.ruleDialog.addForm.submit') }}</el-button>
+            <el-button @click="showAddRuleForm = false">{{ t('devTag.ruleDialog.cancel') }}</el-button>
           </el-form-item>
         </el-form>
       </div>
@@ -402,11 +402,14 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as devTagApi from '@/api/dev-tag'
 import type { TagDefinition, TagRule, UserProfile, AudienceResult, TagQuery } from '@/api/dev-tag'
+
+const { t, te } = useI18n()
 
 /* ------------------------------ 标签定义列表 ------------------------------ */
 
@@ -459,10 +462,10 @@ const tagForm = reactive<TagForm>({
   description: ''
 })
 
-const tagRules: FormRules = {
-  name: [{ required: true, message: '请输入标签名', trigger: 'blur' }],
-  valueType: [{ required: true, message: '请选择值类型', trigger: 'change' }]
-}
+const tagRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('devTag.rules.tagName'), trigger: 'blur' }],
+  valueType: [{ required: true, message: t('devTag.rules.valueType'), trigger: 'change' }]
+}))
 
 /** 打开标签弹窗 */
 function openTagDialog(row?: TagDefinition) {
@@ -503,7 +506,7 @@ async function handleSubmitTag() {
           valueType: tagForm.valueType,
           description: tagForm.description || undefined
         })
-        ElMessage.success('标签已更新')
+        ElMessage.success(t('devTag.messages.tagUpdated'))
       } else {
         await devTagApi.createTag({
           name: tagForm.name,
@@ -511,7 +514,7 @@ async function handleSubmitTag() {
           valueType: tagForm.valueType,
           description: tagForm.description || undefined
         })
-        ElMessage.success('标签已创建')
+        ElMessage.success(t('devTag.messages.tagCreated'))
       }
       tagDialogVisible.value = false
       await reloadTags()
@@ -526,14 +529,14 @@ async function handleSubmitTag() {
 /** 删除标签 */
 async function handleDeleteTag(row: TagDefinition) {
   try {
-    await ElMessageBox.confirm(`确认删除标签「${row.name}」？该操作不可恢复。`, '删除确认', {
+    await ElMessageBox.confirm(t('devTag.messages.tagDeleteConfirm', { name: row.name }), t('devTag.messages.tagDeleteConfirmTitle'), {
       type: 'warning',
-      confirmButtonText: '删除',
-      cancelButtonText: '取消',
+      confirmButtonText: t('devTag.tagActions.delete'),
+      cancelButtonText: t('devTag.tagDialog.actions.cancel'),
       confirmButtonClass: 'el-button--danger'
     })
     await devTagApi.deleteTag(row.id)
-    ElMessage.success('标签已删除')
+    ElMessage.success(t('devTag.messages.tagDeleted'))
     await reloadTags()
   } catch {
     // 用户取消或删除失败
@@ -551,9 +554,8 @@ async function handleCompute(row: TagDefinition) {
   try {
     const result = await devTagApi.computeTag(row.id)
     ElMessage.success(
-      `计算已提交，状态：${result.status}${
-        result.computedCount !== undefined ? '，已计算 ' + result.computedCount + ' 用户' : ''
-      }`
+      t('devTag.messages.computeDone', { status: result.status }) +
+        (result.computedCount !== undefined ? t('devTag.messages.computeDoneCount', { count: result.computedCount }) : '')
     )
     await reloadTags()
   } catch {
@@ -569,7 +571,7 @@ async function handleBatchCompute() {
   batchComputing.value = true
   try {
     const result = await devTagApi.batchCompute(selectedTagIds.value)
-    ElMessage.success(`批量计算完成，成功 ${result.successCount} / ${selectedTagIds.value.length}`)
+    ElMessage.success(t('devTag.messages.batchComputeDone', { success: result.successCount, total: selectedTagIds.value.length }))
     await reloadTags()
   } catch {
     // 拦截器已提示
@@ -604,11 +606,11 @@ const ruleForm = reactive<RuleForm>({
   outputValue: ''
 })
 
-const ruleRules: FormRules = {
-  name: [{ required: true, message: '请输入规则名', trigger: 'blur' }],
-  ruleType: [{ required: true, message: '请选择规则类型', trigger: 'change' }],
-  expression: [{ required: true, message: '请输入表达式', trigger: 'blur' }]
-}
+const ruleRules = computed<FormRules>(() => ({
+  name: [{ required: true, message: t('devTag.rules.ruleName'), trigger: 'blur' }],
+  ruleType: [{ required: true, message: t('devTag.rules.ruleType'), trigger: 'change' }],
+  expression: [{ required: true, message: t('devTag.rules.ruleExpression'), trigger: 'blur' }]
+}))
 
 /** 打开规则弹窗 */
 function openRuleDialog(row: TagDefinition) {
@@ -656,7 +658,7 @@ async function handleAddRule() {
         priority: ruleForm.priority,
         outputValue: ruleForm.outputValue || undefined
       })
-      ElMessage.success('规则已添加')
+      ElMessage.success(t('devTag.messages.ruleAdded'))
       showAddRuleForm.value = false
       await loadRules()
     } catch {
@@ -671,12 +673,12 @@ async function handleAddRule() {
 async function handleDeleteRule(row: TagRule) {
   if (!currentTag.value) return
   try {
-    await ElMessageBox.confirm(`确认删除规则「${row.name}」？`, '删除确认', {
+    await ElMessageBox.confirm(t('devTag.messages.ruleDeleteConfirm', { name: row.name }), t('devTag.messages.ruleDeleteConfirmTitle'), {
       type: 'warning',
       confirmButtonClass: 'el-button--danger'
     })
     await devTagApi.deleteTagRule(currentTag.value.id, row.id)
-    ElMessage.success('规则已删除')
+    ElMessage.success(t('devTag.messages.ruleDeleted'))
     await loadRules()
   } catch {
     // 用户取消或删除失败
@@ -741,7 +743,7 @@ async function handleSelectAudience() {
       save: saveAudience.value
     })
     todaySelectCount.value += 1
-    ElMessage.success(`圈选完成，共 ${audienceResult.value.count} 人`)
+    ElMessage.success(t('devTag.messages.audienceDone', { count: audienceResult.value.count }))
   } catch {
     selectError.value = true
     audienceResult.value = null
@@ -752,28 +754,24 @@ async function handleSelectAudience() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-/** 标签状态 → 中文 */
+/** 标签状态 → 词条 */
 function tagStatusLabel(status?: string): string {
-  const map: Record<string, string> = {
-    DRAFT: '草稿',
-    READY: '就绪',
-    COMPUTING: '计算中',
-    COMPUTED: '已计算',
-    FAILED: '失败'
-  }
-  return map[status ?? ''] ?? status ?? '--'
+  if (!status) return t('devTag.tagColumns.codePlaceholder')
+  const key = `devTag.status.${status}`
+  return te(key) ? t(key) : status
 }
 
 /** 标签状态 → tag 类型 */
+const TAG_STATUS_TYPE_MAP: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
+  DRAFT: 'info',
+  READY: 'warning',
+  COMPUTING: 'primary',
+  COMPUTED: 'success',
+  FAILED: 'danger'
+}
+
 function tagStatusType(status?: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    DRAFT: 'info',
-    READY: 'warning',
-    COMPUTING: 'primary',
-    COMPUTED: 'success',
-    FAILED: 'danger'
-  }
-  return map[status ?? ''] ?? 'info'
+  return TAG_STATUS_TYPE_MAP[status ?? ''] ?? 'info'
 }
 
 /* ------------------------------ 生命周期 ------------------------------ */
