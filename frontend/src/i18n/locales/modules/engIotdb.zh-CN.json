@@ -1,0 +1,63 @@
+{
+  "engIotdb": {
+    "title": "时序引擎（IoTDB）",
+    "subtitle": "存储组 · 设备 · 测点 · 时序查询 · 10 秒自动刷新",
+    "kpi": {
+      "instances": "实例数",
+      "instancesMeta": "已接入 IoTDB 实例",
+      "storageGroups": "存储组数",
+      "storageGroupsMeta": "当前实例",
+      "devices": "设备数",
+      "devicesMeta": "当前实例",
+      "writeRate": "写入点/秒",
+      "writeRateMeta": "最近吞吐"
+    },
+    "tabs": {
+      "throughput": "写入监控",
+      "preview": "时序预览",
+      "sql": "SQL 工作台"
+    },
+    "catalog": {
+      "title": "元数据目录",
+      "selectInstance": "选择 IoTDB 实例"
+    },
+    "throughput": {
+      "summaryFmt": "共 {count} 个采样点",
+      "maxRate": "最大速率 {rate} 点/秒",
+      "avgRate": "平均速率 {rate} 点/秒",
+      "empty": "暂无写入吞吐数据",
+      "loadFailed": "加载失败",
+      "columns": {
+        "timestamp": "时间戳",
+        "points": "写入点数",
+        "rate": "速率（点/秒）",
+        "ratio": "占比"
+      }
+    },
+    "preview": {
+      "devicePlaceholder": "设备全名，如 root.ln.wf01",
+      "load": "加载测点",
+      "empty": "暂无测点",
+      "loadFailed": "加载失败",
+      "columns": {
+        "name": "测点全名",
+        "device": "设备",
+        "dataType": "数据类型",
+        "encoding": "编码",
+        "compression": "压缩",
+        "description": "描述"
+      }
+    },
+    "sql": {
+      "placeholder": "输入 IoTDB SQL，如 SELECT * FROM root.ln.wf01 WHERE time > now() - 1h",
+      "execute": "执行",
+      "clear": "清空",
+      "rowsTime": "共 {rows} 行，耗时 {ms} ms"
+    },
+    "loadFailed": "加载失败",
+    "messages": {
+      "needInstance": "请先选择 IoTDB 实例",
+      "needSql": "请输入 SQL"
+    }
+  }
+}

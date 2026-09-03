@@ -1,0 +1,63 @@
+{
+  "engIotdb": {
+    "title": "Time-Series Engine (IoTDB)",
+    "subtitle": "Storage groups · devices · measurements · time-series query · 10s auto refresh",
+    "kpi": {
+      "instances": "Instances",
+      "instancesMeta": "Connected IoTDB instances",
+      "storageGroups": "Storage Groups",
+      "storageGroupsMeta": "Current instance",
+      "devices": "Devices",
+      "devicesMeta": "Current instance",
+      "writeRate": "Write Rate",
+      "writeRateMeta": "Recent throughput"
+    },
+    "tabs": {
+      "throughput": "Throughput",
+      "preview": "Time-series Preview",
+      "sql": "SQL Workbench"
+    },
+    "catalog": {
+      "title": "Metadata Catalog",
+      "selectInstance": "Select IoTDB instance"
+    },
+    "throughput": {
+      "summaryFmt": "{count} sample points",
+      "maxRate": "Max rate {rate} pts/s",
+      "avgRate": "Avg rate {rate} pts/s",
+      "empty": "No write throughput data",
+      "loadFailed": "Failed to load",
+      "columns": {
+        "timestamp": "Timestamp",
+        "points": "Write Points",
+        "rate": "Rate (pts/s)",
+        "ratio": "Ratio"
+      }
+    },
+    "preview": {
+      "devicePlaceholder": "Device full name, e.g. root.ln.wf01",
+      "load": "Load Measurements",
+      "empty": "No measurements",
+      "loadFailed": "Failed to load",
+      "columns": {
+        "name": "Measurement",
+        "device": "Device",
+        "dataType": "Data Type",
+        "encoding": "Encoding",
+        "compression": "Compression",
+        "description": "Description"
+      }
+    },
+    "sql": {
+      "placeholder": "Enter IoTDB SQL, e.g. SELECT * FROM root.ln.wf01 WHERE time > now() - 1h",
+      "execute": "Execute",
+      "clear": "Clear",
+      "rowsTime": "{rows} rows, {ms} ms"
+    },
+    "loadFailed": "Failed to load",
+    "messages": {
+      "needInstance": "Please select an IoTDB instance first",
+      "needSql": "Please enter SQL"
+    }
+  }
+}

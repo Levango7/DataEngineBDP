@@ -75,6 +75,8 @@ import infraMachineZh from './locales/modules/infraMachine.zh-CN.json'
 import infraMachineEn from './locales/modules/infraMachine.en-US.json'
 import infraSchedZh from './locales/modules/infraSched.zh-CN.json'
 import infraSchedEn from './locales/modules/infraSched.en-US.json'
+import engIotdbZh from './locales/modules/engIotdb.zh-CN.json'
+import engIotdbEn from './locales/modules/engIotdb.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -159,7 +161,8 @@ export const i18n = createI18n({
       ...enginesZh,
       ...infraK8sZh,
       ...infraMachineZh,
-      ...infraSchedZh
+      ...infraSchedZh,
+      ...engIotdbZh
     },
     'en-US': {
       ...enUS,
@@ -199,7 +202,8 @@ export const i18n = createI18n({
       ...enginesEn,
       ...infraK8sEn,
       ...infraMachineEn,
-      ...infraSchedEn
+      ...infraSchedEn,
+      ...engIotdbEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

@@ -1,46 +1,46 @@
 <template>
   <div class="eng-iotdb-page">
-    <h1>时序引擎（IoTDB）</h1>
-    <div class="sub">存储组 · 设备 · 测点 · 时序查询 · 10 秒自动刷新</div>
+    <h1>{{ t('engIotdb.title') }}</h1>
+    <div class="sub">{{ t('engIotdb.subtitle') }}</div>
 
     <!-- KPI 卡片区：三态 loading / error / data -->
     <div class="grid g4">
       <template v-if="instancesLoading">
         <div v-for="i in 4" :key="i" class="card">
-          <h3>加载中…</h3>
+          <h3>{{ t('engines.kpi.loading') }}</h3>
           <div class="kpi">--</div>
-          <div class="meta">正在拉取数据</div>
+          <div class="meta">{{ t('engines.kpi.loadingMeta') }}</div>
         </div>
       </template>
       <template v-else-if="instancesError">
         <div class="card" style="grid-column: span 4">
-          <h3>加载失败</h3>
+          <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ instancesError.message }}，
-            <a href="javascript:void(0)" @click="reloadInstances">重试</a>
+            <a href="javascript:void(0)" @click="reloadInstances">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
         </div>
       </template>
       <template v-else>
         <div class="card">
-          <h3>实例数</h3>
+          <h3>{{ t('engIotdb.kpi.instances') }}</h3>
           <div class="kpi">{{ instances?.length ?? 0 }}</div>
-          <div class="meta">已接入 IoTDB 实例</div>
+          <div class="meta">{{ t('engIotdb.kpi.instancesMeta') }}</div>
         </div>
         <div class="card">
-          <h3>存储组数</h3>
+          <h3>{{ t('engIotdb.kpi.storageGroups') }}</h3>
           <div class="kpi">{{ storageGroups?.length ?? 0 }}</div>
-          <div class="meta">当前实例</div>
+          <div class="meta">{{ t('engIotdb.kpi.storageGroupsMeta') }}</div>
         </div>
         <div class="card">
-          <h3>设备数</h3>
+          <h3>{{ t('engIotdb.kpi.devices') }}</h3>
           <div class="kpi s">{{ devices?.length ?? 0 }}</div>
-          <div class="meta">当前实例</div>
+          <div class="meta">{{ t('engIotdb.kpi.devicesMeta') }}</div>
         </div>
         <div class="card">
-          <h3>写入点/秒</h3>
+          <h3>{{ t('engIotdb.kpi.writeRate') }}</h3>
           <div class="kpi">{{ writeRate }}</div>
-          <div class="meta">最近吞吐</div>
+          <div class="meta">{{ t('engIotdb.kpi.writeRateMeta') }}</div>
         </div>
       </template>
     </div>
@@ -51,12 +51,12 @@
       <el-card shadow="never" class="page-card tree-card">
         <template #header>
           <div class="tree-header">
-            <span>元数据目录</span>
+            <span>{{ t('engIotdb.catalog.title') }}</span>
           </div>
         </template>
         <el-select
           v-model="selectedInstanceId"
-          placeholder="选择 IoTDB 实例"
+          :placeholder="t('engIotdb.catalog.selectInstance')"
           style="width: 100%; margin-bottom: 12px"
           @change="handleInstanceChange"
         >
@@ -76,9 +76,9 @@
       <el-card shadow="never" class="page-card main-card">
         <div class="toolbar">
           <el-tabs v-model="activeTab" type="card" class="main-tabs">
-            <el-tab-pane label="写入监控" name="throughput" />
-            <el-tab-pane label="时序预览" name="preview" />
-            <el-tab-pane label="SQL 工作台" name="sql" />
+            <el-tab-pane :label="t('engIotdb.tabs.throughput')" name="throughput" />
+            <el-tab-pane :label="t('engIotdb.tabs.preview')" name="preview" />
+            <el-tab-pane :label="t('engIotdb.tabs.sql')" name="sql" />
           </el-tabs>
           <div class="spacer"></div>
           <el-button :icon="Refresh" circle @click="reloadCurrent" />
@@ -89,9 +89,9 @@
           <div v-loading="throughputLoading" class="throughput-panel">
             <template v-if="throughput && throughput.length > 0">
               <div class="throughput-summary">
-                <span>共 {{ throughput.length }} 个采样点</span>
-                <span>最大速率 {{ maxRate.toLocaleString() }} 点/秒</span>
-                <span>平均速率 {{ avgRate.toLocaleString() }} 点/秒</span>
+                <span>{{ t('engIotdb.throughput.summaryFmt', { count: throughput.length }) }}</span>
+                <span>{{ t('engIotdb.throughput.maxRate', { rate: maxRate.toLocaleString() }) }}</span>
+                <span>{{ t('engIotdb.throughput.avgRate', { rate: avgRate.toLocaleString() }) }}</span>
               </div>
               <el-table
                 :data="throughput"
@@ -101,14 +101,14 @@
                 style="width: 100%"
                 max-height="420"
               >
-                <el-table-column prop="timestamp" label="时间戳" width="200" />
-                <el-table-column label="写入点数" width="160" align="right">
+                <el-table-column prop="timestamp" :label="t('engIotdb.throughput.columns.timestamp')" width="200" />
+                <el-table-column :label="t('engIotdb.throughput.columns.points')" width="160" align="right">
                   <template #default="{ row }">{{ row.points.toLocaleString() }}</template>
                 </el-table-column>
-                <el-table-column label="速率（点/秒）" width="200" align="right">
+                <el-table-column :label="t('engIotdb.throughput.columns.rate')" width="200" align="right">
                   <template #default="{ row }">{{ row.rate.toLocaleString() }}</template>
                 </el-table-column>
-                <el-table-column label="占比">
+                <el-table-column :label="t('engIotdb.throughput.columns.ratio')">
                   <template #default="{ row }">
                     <el-progress
                       :percentage="Math.round((row.rate / maxRate) * 100)"
@@ -121,7 +121,7 @@
             </template>
             <el-empty
               v-else-if="!throughputLoading"
-              :description="throughputError ? '加载失败' : '暂无写入吞吐数据'"
+              :description="throughputError ? t('engIotdb.throughput.loadFailed') : t('engIotdb.throughput.empty')"
             />
           </div>
         </template>
@@ -132,7 +132,7 @@
             <div class="preview-form">
               <el-input
                 v-model="previewDevice"
-                placeholder="设备全名，如 root.ln.wf01"
+                :placeholder="t('engIotdb.preview.devicePlaceholder')"
                 style="width: 280px"
               />
               <el-button
@@ -141,7 +141,7 @@
                 :disabled="!selectedInstanceId || !previewDevice"
                 @click="handleLoadTimeseries"
               >
-                加载测点
+                {{ t('engIotdb.preview.load') }}
               </el-button>
             </div>
             <el-table
@@ -150,14 +150,14 @@
               stripe
               border
               style="width: 100%; margin-top: 12px"
-              :empty-text="timeseriesError ? '加载失败' : '暂无测点'"
+              :empty-text="timeseriesError ? t('engIotdb.preview.loadFailed') : t('engIotdb.preview.empty')"
             >
-              <el-table-column prop="name" label="测点全名" min-width="240" />
-              <el-table-column prop="device" label="设备" min-width="180" />
-              <el-table-column prop="dataType" label="数据类型" width="120" />
-              <el-table-column prop="encoding" label="编码" width="120" />
-              <el-table-column prop="compression" label="压缩" width="120" />
-              <el-table-column prop="description" label="描述" min-width="160" />
+              <el-table-column prop="name" :label="t('engIotdb.preview.columns.name')" min-width="240" />
+              <el-table-column prop="device" :label="t('engIotdb.preview.columns.device')" min-width="180" />
+              <el-table-column prop="dataType" :label="t('engIotdb.preview.columns.dataType')" width="120" />
+              <el-table-column prop="encoding" :label="t('engIotdb.preview.columns.encoding')" width="120" />
+              <el-table-column prop="compression" :label="t('engIotdb.preview.columns.compression')" width="120" />
+              <el-table-column prop="description" :label="t('engIotdb.preview.columns.description')" min-width="160" />
             </el-table>
           </div>
         </template>
@@ -169,7 +169,7 @@
               v-model="sqlText"
               type="textarea"
               :rows="8"
-              placeholder="输入 IoTDB SQL，如 SELECT * FROM root.ln.wf01 WHERE time > now() - 1h"
+              :placeholder="t('engIotdb.sql.placeholder')"
               style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
             />
             <div class="sql-actions">
@@ -179,13 +179,13 @@
                 :disabled="!selectedInstanceId"
                 @click="handleExecuteSql"
               >
-                执行
+                {{ t('engIotdb.sql.execute') }}
               </el-button>
-              <el-button @click="sqlText = ''">清空</el-button>
+              <el-button @click="sqlText = ''">{{ t('engIotdb.sql.clear') }}</el-button>
             </div>
             <div v-if="sqlResult" class="sql-result">
               <div class="result-meta">
-                共 {{ sqlResult.rowCount }} 行，耗时 {{ sqlResult.durationMs }} ms
+                {{ t('engIotdb.sql.rowsTime', { rows: sqlResult.rowCount, ms: sqlResult.durationMs }) }}
               </div>
               <el-table
                 :data="sqlResult.rows"
@@ -214,11 +214,14 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
 import * as engineApi from '@/api/engine'
 import type { IotdbInstance, Timeseries, ThroughputPoint, SqlExecuteResponse } from '@/api/engine'
+
+const { t } = useI18n()
 
 /* ------------------------------ 实例列表 ------------------------------ */
 
@@ -382,11 +385,11 @@ const sqlResult = ref<SqlExecuteResponse | null>(null)
 /** 执行 SQL */
 async function handleExecuteSql() {
   if (!selectedInstanceId.value) {
-    ElMessage.warning('请先选择 IoTDB 实例')
+    ElMessage.warning(t('engIotdb.messages.needInstance'))
     return
   }
   if (!sqlText.value.trim()) {
-    ElMessage.warning('请输入 SQL')
+    ElMessage.warning(t('engIotdb.messages.needSql'))
     return
   }
   executing.value = true
