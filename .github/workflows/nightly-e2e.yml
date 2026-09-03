@@ -85,7 +85,7 @@ jobs:
 
       - name: 上传 Playwright 报告与结果
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: playwright-e2e-report
           path: |
@@ -162,7 +162,7 @@ jobs:
 
       - name: 上传 K3s 测试报告
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: k3s-integration-report
           path: tests/integration/integration_test_report.md

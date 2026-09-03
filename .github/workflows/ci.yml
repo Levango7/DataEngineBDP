@@ -545,7 +545,7 @@ jobs:
           du -sh dist/assets/* 2>/dev/null || true
 
       - name: 上传构建产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-dist
           path: frontend/dist/
@@ -731,7 +731,7 @@ jobs:
 
       - name: 上传 Java 构建报告
         if: env.java_skip != 'true' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: java-build-reports
           path: java-build-reports/
@@ -961,7 +961,7 @@ jobs:
 
       - name: 上传 Go 构建报告
         if: env.go_skip != 'true' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: go-build-reports
           path: go-build-reports/
@@ -1165,7 +1165,7 @@ jobs:
 
       - name: 上传 Python 语法检查报告
         if: env.py_skip != 'true' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-syntax-reports
           path: python-syntax-reports/
@@ -1352,7 +1352,7 @@ jobs:
 
       - name: 冒烟失败时上传 run/ 目录 artifact
         if: failure() && steps.smoke.outcome == 'failure'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: batch-pipeline-smoke-run
           path: platform/batch-pipeline/run/
@@ -1543,7 +1543,7 @@ jobs:
       - name: 上传集成测试报告
         # always()：pytest 失败时也尽量上传已生成的报告辅助排查
         if: env.it_skip != 'true' && always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: integration-test-report
           path: tests/integration/test-report.html
@@ -1784,7 +1784,7 @@ jobs:
           fi
 
       - name: 上传SBOM产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: sbom
@@ -1852,7 +1852,7 @@ jobs:
         run: python tests/performance/run_benchmark.py
 
       - name: 上传性能报告 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: performance-benchmark-report

@@ -131,7 +131,7 @@ jobs:
       # 上传 SARIF 结果为 artifact（备份，便于离线分析）
       # ============================================================
       - name: 上传 SARIF 结果 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: codeql-sarif-${{ matrix.language }}
           path: sarif-results/${{ matrix.language }}.sarif
