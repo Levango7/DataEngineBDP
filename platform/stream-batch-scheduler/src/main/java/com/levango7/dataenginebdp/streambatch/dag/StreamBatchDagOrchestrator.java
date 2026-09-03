@@ -1,5 +1,7 @@
 package com.levango7.dataenginebdp.streambatch.dag;
 
+import com.levango7.dataenginebdp.streambatch.batchpipeline.BatchPipelineClient;
+import com.levango7.dataenginebdp.streambatch.batchpipeline.BatchPipelineConfig;
 import com.levango7.dataenginebdp.streambatch.iceberg.IcebergSnapshotManager;
 import com.levango7.dataenginebdp.streambatch.iceberg.SnapshotIsolationConfig;
 import com.levango7.dataenginebdp.streambatch.iceberg.SnapshotIsolationResult;
@@ -11,6 +13,7 @@ import com.levango7.dataenginebdp.streambatch.model.TaskExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.TaskType;
 import com.levango7.dataenginebdp.streambatch.plugin.SparkBatchTaskChannel;
 import com.levango7.dataenginebdp.streambatch.plugin.FlinkStreamTaskChannel;
+import com.levango7.dataenginebdp.streambatch.plugin.BatchPipelineTaskChannel;
 import com.levango7.dataenginebdp.streambatch.plugin.TaskChannel;
 import com.levango7.dataenginebdp.streambatch.plugin.TaskExecutionException;
 import com.levango7.dataenginebdp.streambatch.spark.SparkBatchSubmitter;
@@ -51,6 +54,8 @@ public class StreamBatchDagOrchestrator {
 
     private final SparkBatchSubmitter sparkSubmitter;
     private final FlinkStreamSubmitter flinkSubmitter;
+    private final BatchPipelineClient batchPipelineClient;
+    private final BatchPipelineConfig batchPipelineConfig;
     private final IcebergSnapshotManager snapshotManager;
     private final SnapshotIsolationConfig icebergConfig;
 
@@ -170,6 +175,7 @@ public class StreamBatchDagOrchestrator {
         return switch (node.getTaskType()) {
             case SPARK_BATCH, UNIFIED_STREAM_BATCH -> new SparkBatchTaskChannel(sparkSubmitter);
             case FLINK_STREAM -> new FlinkStreamTaskChannel(flinkSubmitter);
+            case BATCH_PIPELINE -> new BatchPipelineTaskChannel(batchPipelineClient, batchPipelineConfig);
         };
     }
 

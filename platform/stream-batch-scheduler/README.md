@@ -52,9 +52,16 @@ platform/stream-batch-scheduler/
     │   │   │   ├── TaskChannelFactory.java     # 任务通道工厂接口
     │   │   │   ├── SparkBatchTaskChannel.java  # Spark 批通道
     │   │   │   ├── FlinkStreamTaskChannel.java # Flink 流通道
+    │   │   │   ├── BatchPipelineTaskChannel.java # batch-pipeline 批通道（REST 对接）
     │   │   │   ├── SparkBatchTaskChannelFactory.java
     │   │   │   ├── FlinkStreamTaskChannelFactory.java
+    │   │   │   ├── BatchPipelineTaskChannelFactory.java
     │   │   │   └── TaskExecutionException.java
+    │   │   ├── batchpipeline/                  # batch-pipeline REST 客户端
+    │   │   │   ├── BatchPipelineClient.java    # 提交/轮询/健康检查（内置 JWT 签发）
+    │   │   │   ├── BatchPipelineConfig.java    # 对接配置（base-url/租户/轮询）
+    │   │   │   ├── BatchSubmitResult.java      # 提交结果
+    │   │   │   └── BatchStatusSnapshot.java    # 状态快照
     │   │   ├── dag/                            # DAG 编排
     │   │   │   ├── StreamBatchDagOrchestrator.java  # 流批 DAG 编排器
     │   │   │   └── DagTopologicalSorter.java   # 拓扑排序与校验
@@ -121,8 +128,30 @@ java -jar target/stream-batch-scheduler-0.1.0-exec.jar
 
 - `SparkBatchTaskChannelFactory` — 注册 `SPARK_BATCH` 任务类型
 - `FlinkStreamTaskChannelFactory` — 注册 `FLINK_STREAM` 任务类型
+- `BatchPipelineTaskChannelFactory` — 注册 `BATCH_PIPELINE` 任务类型（经 REST 对接 batch-pipeline 五阶段流水线）
 
-### 3.4 Docker 部署
+### 3.4 对接 batch-pipeline（BATCH_PIPELINE 通道）
+
+`BATCH_PIPELINE` 节点通过 REST 调用 `platform/batch-pipeline` 的 FastAPI 服务（提交 → 轮询 → 回收结果），无需本地 Spark/Flink 进程。配置前缀 `shuqing.stream-batch.batch-pipeline`：
+
+| 配置项 | 默认值 | 说明 |
+|--------|--------|------|
+| `base-url` | `http://localhost:8080/api/v1` | batch-pipeline 服务地址（K8s 内为 `http://data-quality:8080/api/v1`） |
+| `jwt-secret` | 空 | 与服务端 `JWT_SECRET` 一致；为空时 HS256 签发直接报错 |
+| `tenant-id` | `default` | 提交时写入 JWT `tenantId` claim，服务端据此隔离 run_dir 与历史 |
+| `real-submit-enabled` | `false` | `false` 为模拟模式（不发 HTTP，直接返回成功），`true` 才真实提交 |
+| `connect-timeout-ms` / `read-timeout-ms` | `5000` / `30000` | HTTP 超时 |
+| `poll-interval-ms` / `poll-timeout-seconds` | `2000` / `3600` | 轮询间隔与总超时 |
+
+节点参数通过 `DagNode.extraConfig` 传递（均为字符串）：
+
+- `pipelineConfig` — JSON 对象字符串，作为提交 body 的 `config` 业务覆盖（非法 JSON 快速失败）
+- `tenant` — 覆盖通道级 `tenant-id`
+- `batchId` — 覆盖默认的 `dag-<nodeId>-<UTC时间戳>`
+
+注意：服务端会丢弃覆盖中的 `tenant`/`storage` 顶层键与 `pipeline.run_dir`/`incremental.state_dir`（租户与路径由服务端裁决）。通道为同步语义，`cancel()` 返回 `false`（API 暂无取消端点）。
+
+### 3.5 Docker 部署
 
 本模块在 `tests/integration/docker-compose.yml` 中编排，容器名 `it-stream-batch-scheduler`，端口 18086。
 

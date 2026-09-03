@@ -66,6 +66,22 @@ shuqing:
       checkpoint-interval-ms: 30000
       checkpoint-path: s3://shuqing-warehouse/flink-checkpoints
 
+    # -------------------- batch-pipeline 批处理服务配置（data-quality 实体） --------------------
+    # 对接 platform/batch-pipeline FastAPI 服务：POST /batches 提交批次，
+    # GET /batches/{id} 轮询至终态。租户经 JWT tenantId claim 传递（role=admin），
+    # 服务端按租户强制分区 run/<tenant>/<batch>/。
+    batch-pipeline:
+      base-url: http://data-quality:8080/api/v1
+      # 与 batch-pipeline 服务端 JWT_SECRET 一致；real-submit-enabled=true 时必填
+      jwt-secret: ""
+      tenant-id: default
+      # true 经 REST 真实提交轮询；false 本地模拟（无 batch-pipeline 服务时）
+      real-submit-enabled: false
+      connect-timeout-ms: 5000
+      read-timeout-ms: 30000
+      poll-interval-ms: 2000
+      poll-timeout-seconds: 3600
+
     # -------------------- BI 视图路由器配置 --------------------
     router:
       batch-view-suffix: _batch_v

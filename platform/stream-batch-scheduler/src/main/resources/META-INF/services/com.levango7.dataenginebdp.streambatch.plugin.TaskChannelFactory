@@ -1,2 +1,3 @@
 com.levango7.dataenginebdp.streambatch.plugin.SparkBatchTaskChannelFactory
 com.levango7.dataenginebdp.streambatch.plugin.FlinkStreamTaskChannelFactory
+com.levango7.dataenginebdp.streambatch.plugin.BatchPipelineTaskChannelFactory
