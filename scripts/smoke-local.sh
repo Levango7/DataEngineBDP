@@ -48,6 +48,21 @@ fi
 # ---------------------------------------------------------------
 log "3/5 Java 治理模块编译 ..."
 if command -v mvn >/dev/null 2>&1; then
+  # 预构建：治理模块依赖内部 SNAPSHOT（父POM / common-security，lineage-analyzer←sql-gateway），
+  # 全新环境（CI runner）本地仓库无缓存，须按依赖序先 install，否则依赖解析直接失败
+  # （与 ci.yml java-build-test 的预构建序列保持一致）
+  if (cd "$ROOT" && mvn install -B -N -q >/dev/null 2>&1); then
+    pass "mvn install 父POM"
+  else
+    fail "mvn install 父POM（治理模块前置）"
+  fi
+  for lib_pom in platform/common-security platform/encaps-layer platform/sql-gateway; do
+    if (cd "$ROOT/$lib_pom" && mvn install -B -q -DskipTests >/dev/null 2>&1); then
+      pass "mvn install $lib_pom"
+    else
+      fail "mvn install $lib_pom（治理模块前置）"
+    fi
+  done
   for mod in platform/governance/real-time-pipeline platform/governance/metadata-collector platform/governance/lineage-analyzer; do
     if (cd "$ROOT/$mod" && mvn -q -o compile >/dev/null 2>&1) || (cd "$ROOT/$mod" && mvn -q compile >/dev/null 2>&1); then
       pass "mvn compile $mod"
