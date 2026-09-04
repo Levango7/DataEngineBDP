@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.encaps.security;
 
+import com.levango7.dataenginebdp.common.security.ratelimit.RateLimitFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,23 +22,30 @@ import java.util.List;
  * <p>放行 {@code /api/v1/health} 与 {@code /actuator/**}，其他端点要求认证。
  * 注册 {@link JwtAuthFilter} 于 {@link UsernamePasswordAuthenticationFilter} 之前。
  * REST API 无状态会话，禁用 CSRF，启用 CORS。</p>
+ *
+ * <p>速率限制（C1）：{@link RateLimitFilter} 由 common-security Starter 自动装配，
+ * 挂在 JwtAuthFilter 之前——登录爆破按 IP 拦截无需等待 JWT 解析。</p>
  */
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final RateLimitFilter rateLimitFilter;
     private final String[] allowedOrigins;
 
     /**
      * 构造配置。
      *
      * @param jwtAuthFilter  JWT 认证过滤器
+     * @param rateLimitFilter 速率限制过滤器（common-security Starter 提供）
      * @param allowedOrigins CORS 允许的源，逗号分隔，来自 {@code app.security.cors.allowed-origins}
      */
     public SecurityConfig(JwtAuthFilter jwtAuthFilter,
+                          RateLimitFilter rateLimitFilter,
                           @Value("${app.security.cors.allowed-origins}") String allowedOrigins) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.rateLimitFilter = rateLimitFilter;
         this.allowedOrigins = Arrays.stream(allowedOrigins.split(","))
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
@@ -64,6 +72,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/v3/api-docs").permitAll()
                         .anyRequest().authenticated())
+                // 速率限制先于认证：匿名爆破按 IP 拦截
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

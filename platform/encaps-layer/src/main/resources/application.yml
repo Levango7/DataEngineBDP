@@ -101,6 +101,18 @@ app:
     cors:
       # 允许的前端源，逗号分隔；默认放行 Vite 开发服务器
       allowed-origins: ${CORS_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}
+    # 速率限制（C1）：令牌桶，按租户（已登录）/ IP（匿名）双维度
+    # enabled=false 可整体关闭（应急放流场景）
+    ratelimit:
+      enabled: ${RATE_LIMIT_ENABLED:true}
+      # 登录/注册每分钟（按来源 IP，防匿名爆破）
+      login-rpm: ${RATE_LIMIT_LOGIN_RPM:5}
+      # 高风险写操作每分钟（按租户：训练提交/DAG/推理调用/密钥操作）
+      write-rpm: ${RATE_LIMIT_WRITE_RPM:100}
+      # 通用读每分钟（按租户）
+      read-rpm: ${RATE_LIMIT_READ_RPM:600}
+      # 突发倍率：桶容量 = rpm × burst（短时突发容忍）
+      burst-factor: ${RATE_LIMIT_BURST:1.5}
     # 字段级加密全局 SM4 密钥（hex 字符串，32 字符 = 16 字节）
     # 生产环境必须通过环境变量 ENCRYPT_KEY 覆盖；开发环境默认值仅用于本地联调
     # 配置方式：export ENCRYPT_KEY=0123456789abcdef0123456789abcdef（32 字符 hex）

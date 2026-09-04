@@ -1,1 +1,2 @@
 com.levango7.dataenginebdp.common.security.SecurityConfig
+com.levango7.dataenginebdp.common.security.ratelimit.RateLimitAutoConfiguration

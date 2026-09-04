@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.common.security;
 
+import com.levango7.dataenginebdp.common.security.ratelimit.RateLimitFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -63,7 +64,8 @@ public class SecurityConfig {
      */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthFilter jwtAuthFilter,
-                                                   CorsConfigurationSource corsConfigurationSource)
+                                                   CorsConfigurationSource corsConfigurationSource,
+                                                   RateLimitFilter rateLimitFilter)
             throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
@@ -74,6 +76,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/login").permitAll()  // 登录端点放行（Keycloak 代理）
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated())
+                // 速率限制（C1）先于认证执行：匿名爆破按 IP 拦截，无需等 JWT 解析
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
