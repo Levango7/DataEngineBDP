@@ -24,21 +24,21 @@ metadata:
 data:
 {{- range $path, $_ := .Files.Glob "ddl/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dag/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dashboards/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "iotdb/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "rbac/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}

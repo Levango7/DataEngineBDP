@@ -1,6 +1,6 @@
 {{- /*
-Helm Chart 模板 - ConfigMap 挂载零售模板资产
-用途：将 DDL/DAG/Dashboard/RBAC/tag-engine-config 资产打包为 ConfigMap，供导入 Job 挂载使用
+Helm Chart 模板 - ConfigMap 挂载零售行业模板资产
+用途：将 DDL/DAG/Dashboard/IoTDB配置/RBAC 资产打包为 ConfigMap，供导入 Job 挂载使用
 */ -}}
 apiVersion: v1
 kind: ConfigMap
@@ -15,28 +15,30 @@ metadata:
     shuqing.io/template: retail-template
     shuqing.io/template-version: "1.0.0"
   annotations:
-    shuqing.io/business-domains: "product_profile,member_analysis,marketing_effect"
-    shuqing.io/tables: "18"
-    shuqing.io/dags: "6"
-    shuqing.io/dashboards: "3"
-    shuqing.io/roles: "3"
-    shuqing.io/tag-engine: "enabled"
+    shuqing.io/business-domains: "user-profile,recommendation,risk-control"
+    shuqing.io/tables: "5"
+    shuqing.io/dags: "1"
+    shuqing.io/dashboards: "1"
+    shuqing.io/roles: "4"
+    shuqing.io/iotdb: "false"
 data:
 {{- range $path, $_ := .Files.Glob "ddl/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dag/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dashboards/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
-{{- range $path, $_ := .Files.Glob "tag-engine/**" }}
+{{- range $path, $_ := .Files.Glob "iotdb/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
-  README.md: |-
-{{ .Files.Get "README.md" | indent 4 }}
+{{- range $path, $_ := .Files.Glob "rbac/**" }}
+  {{ $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}

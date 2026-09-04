@@ -1,0 +1,1 @@
+{"dashboard_title": "SPC控制图", "position_json": "{}", "description": "SPC控制图", "datasource": "dws.spc", "charts": [{"type": "line", "title": "SPC控制图"}], "tags": ["manufacturing"], "is_managed_externally": true}

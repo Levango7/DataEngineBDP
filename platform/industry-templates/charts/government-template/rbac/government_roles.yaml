@@ -1,0 +1,19 @@
+# government 行业模板 RBAC - 角色与权限配置
+- realm: government
+  enabled: true
+  roles:
+    - name: government_viewer
+      description: 只读
+      composite: false
+    - name: government_analyst
+      description: 分析读写
+      composite: true
+      composites: [government_viewer]
+    - name: government_operator
+      description: 运营操作
+      composite: true
+      composites: [government_analyst]
+    - name: government_admin
+      description: 模板管理
+      composite: true
+      composites: [government_operator]

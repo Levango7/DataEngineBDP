@@ -1,0 +1,14 @@
+# government 行业模板 IoTDB 配置 - 时序数据接入
+storage_group: root.government
+timeseries:
+  - path: root.government.device.{device_id}.value.temperature
+    data_type: FLOAT
+    encoding: GORILLA
+    compression: SNAPPY
+  - path: root.government.device.{device_id}.value.power
+    data_type: DOUBLE
+    encoding: GORILLA
+    compression: SNAPPY
+ingestion:
+  enabled: true
+  interval_sec: 5

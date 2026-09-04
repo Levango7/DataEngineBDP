@@ -1,0 +1,24 @@
+# 能源行业模板 IoTDB 配置 - 物联时序数据接入
+# 资产打包进 ConfigMap energy-template-assets，由 import Job 配置 IoTDB
+storage_group: root.energy
+timeseries:
+  - path: root.energy.device.{device_id}.telemetry.temperature
+    data_type: FLOAT
+    encoding: GORILLA
+    compression: SNAPPY
+  - path: root.energy.device.{device_id}.telemetry.vibration
+    data_type: FLOAT
+    encoding: GORILLA
+    compression: SNAPPY
+  - path: root.energy.device.{device_id}.telemetry.power_kw
+    data_type: DOUBLE
+    encoding: GORILLA
+    compression: SNAPPY
+  - path: root.energy.device.{device_id}.telemetry.current_a
+    data_type: DOUBLE
+    encoding: GORILLA
+    compression: SNAPPY
+ingestion:
+  enabled: true
+  interval_sec: 5
+  source: iotdb_telemetry

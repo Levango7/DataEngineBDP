@@ -1,0 +1,1 @@
+{"dashboard_title": "品类偏好Top10", "position_json": "{}", "description": "品类偏好Top10", "datasource": "dws.category_top", "charts": [{"type": "bar", "title": "品类偏好Top10"}], "tags": ["retail"], "is_managed_externally": true}

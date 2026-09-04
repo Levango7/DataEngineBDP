@@ -1,0 +1,1 @@
+{"dashboard_title": "产量预测分布", "position_json": "{}", "description": "产量预测分布", "datasource": "dws.yield_pred", "charts": [{"type": "bar", "title": "产量预测分布"}], "tags": ["agriculture"], "is_managed_externally": true}

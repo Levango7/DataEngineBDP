@@ -1,0 +1,1 @@
+{"dashboard_title": "拥堵路段TOP10", "position_json": "{}", "description": "拥堵路段TOP10", "datasource": "dws.congestion_top", "charts": [{"type": "bar", "title": "拥堵路段TOP10"}], "tags": ["transportation"], "is_managed_externally": true}

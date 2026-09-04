@@ -1,0 +1,1 @@
+{"dashboard_title": "设备告警", "position_json": "{}", "description": "实时设备异常告警清单", "datasource": "ads.alert_events", "charts": [{"type": "table", "title": "设备告警", "columns": ["device_id", "type", "level", "time"]}], "tags": ["energy", "alert"], "is_managed_externally": true}

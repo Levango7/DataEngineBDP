@@ -1,6 +1,6 @@
 {{- /*
 Helm Chart 模板 - ConfigMap 挂载金融模板资产
-用途：将 DDL/DAG/Dashboard/RBAC/docs 资产打包为 ConfigMap，供导入 Job 挂载使用
+用途：将 DDL/DAG/Dashboard/IoTDB配置/RBAC 资产打包为 ConfigMap，供导入 Job 挂载使用
 */ -}}
 apiVersion: v1
 kind: ConfigMap
@@ -20,26 +20,25 @@ metadata:
     shuqing.io/dags: "5"
     shuqing.io/dashboards: "3"
     shuqing.io/roles: "3"
+    shuqing.io/iotdb: "false"
 data:
 {{- range $path, $_ := .Files.Glob "ddl/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "dag/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
-{{- range $path, $_ := .Files.Glob "dashboard/**" }}
+{{- range $path, $_ := .Files.Glob "dashboards/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
+{{- end }}
+{{- range $path, $_ := .Files.Glob "iotdb/**" }}
+  {{ $path }}: |-
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
 {{- range $path, $_ := .Files.Glob "rbac/**" }}
   {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
+{{ $.Files.Get $path | indent 4 }}
 {{- end }}
-{{- range $path, $_ := .Files.Glob "docs/**" }}
-  {{ $path }}: |-
-{{ .Files.Get $path | indent 4 }}
-{{- end }}
-  template-metadata.yaml: |-
-{{ .Files.Get "template-metadata.yaml" | indent 4 }}

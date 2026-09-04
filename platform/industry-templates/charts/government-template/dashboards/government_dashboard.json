@@ -1,0 +1,1 @@
+{"dashboard_title": "数据共享目录", "position_json": "{}", "description": "数据共享目录", "datasource": "dws.share_catalog", "charts": [{"type": "table", "title": "数据共享目录"}], "tags": ["government"], "is_managed_externally": true}

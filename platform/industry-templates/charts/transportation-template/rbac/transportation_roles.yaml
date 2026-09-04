@@ -1,0 +1,19 @@
+# transportation 行业模板 RBAC - 角色与权限配置
+- realm: transportation
+  enabled: true
+  roles:
+    - name: transportation_viewer
+      description: 只读
+      composite: false
+    - name: transportation_analyst
+      description: 分析读写
+      composite: true
+      composites: [transportation_viewer]
+    - name: transportation_operator
+      description: 运营操作
+      composite: true
+      composites: [transportation_analyst]
+    - name: transportation_admin
+      description: 模板管理
+      composite: true
+      composites: [transportation_operator]

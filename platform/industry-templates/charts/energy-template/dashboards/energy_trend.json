@@ -1,0 +1,1 @@
+{"dashboard_title": "能耗趋势", "position_json": "{}", "description": "分机组电耗/热耗时序趋势", "datasource": "dwd.energy_usage", "charts": [{"type": "line", "title": "能耗趋势", "x": "ts", "series": ["kwh", "mj"]}], "tags": ["energy", "consumption"], "is_managed_externally": true}

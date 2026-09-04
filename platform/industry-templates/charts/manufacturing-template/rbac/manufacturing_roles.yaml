@@ -1,0 +1,19 @@
+# manufacturing 行业模板 RBAC - 角色与权限配置
+- realm: manufacturing
+  enabled: true
+  roles:
+    - name: manufacturing_viewer
+      description: 只读
+      composite: false
+    - name: manufacturing_analyst
+      description: 分析读写
+      composite: true
+      composites: [manufacturing_viewer]
+    - name: manufacturing_operator
+      description: 运营操作
+      composite: true
+      composites: [manufacturing_analyst]
+    - name: manufacturing_admin
+      description: 模板管理
+      composite: true
+      composites: [manufacturing_operator]

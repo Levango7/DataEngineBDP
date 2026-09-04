@@ -1,0 +1,1 @@
+{"dashboard_title": "负荷预测", "position_json": "{}", "description": "未来负荷预测曲线", "datasource": "dws.load_pred", "charts": [{"type": "line", "title": "负荷预测", "x": "ts", "series": ["pred", "actual"]}], "tags": ["energy", "forecast"], "is_managed_externally": true}

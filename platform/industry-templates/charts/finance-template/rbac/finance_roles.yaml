@@ -1,0 +1,19 @@
+# finance 行业模板 RBAC - 角色与权限配置
+- realm: finance
+  enabled: true
+  roles:
+    - name: finance_viewer
+      description: 只读
+      composite: false
+    - name: finance_analyst
+      description: 分析读写
+      composite: true
+      composites: [finance_viewer]
+    - name: finance_operator
+      description: 运营操作
+      composite: true
+      composites: [finance_analyst]
+    - name: finance_admin
+      description: 模板管理
+      composite: true
+      composites: [finance_operator]

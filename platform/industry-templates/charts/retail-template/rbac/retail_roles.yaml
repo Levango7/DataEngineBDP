@@ -1,0 +1,19 @@
+# retail 行业模板 RBAC - 角色与权限配置
+- realm: retail
+  enabled: true
+  roles:
+    - name: retail_viewer
+      description: 只读
+      composite: false
+    - name: retail_analyst
+      description: 分析读写
+      composite: true
+      composites: [retail_viewer]
+    - name: retail_operator
+      description: 运营操作
+      composite: true
+      composites: [retail_analyst]
+    - name: retail_admin
+      description: 模板管理
+      composite: true
+      composites: [retail_operator]

@@ -1,0 +1,1 @@
+{"dashboard_title": "学业预警名单", "position_json": "{}", "description": "学业预警名单", "datasource": "dws.warning_list", "charts": [{"type": "table", "title": "学业预警名单"}], "tags": ["education"], "is_managed_externally": true}

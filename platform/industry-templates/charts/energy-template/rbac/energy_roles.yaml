@@ -1,0 +1,20 @@
+# 能源行业模板 RBAC - 角色与权限配置
+# 资产打包进 ConfigMap energy-template-assets，由 import Job 导入 Keycloak
+- realm: energy
+  enabled: true
+  roles:
+    - name: energy_viewer
+      description: 能耗看板只读
+      composite: false
+    - name: energy_analyst
+      description: 能耗分析读写
+      composite: true
+      composites: [energy_viewer]
+    - name: energy_operator
+      description: 设备告警处置
+      composite: true
+      composites: [energy_analyst]
+    - name: energy_admin
+      description: 能源模板管理
+      composite: true
+      composites: [energy_operator]

@@ -1,0 +1,1 @@
+{"dashboard_title": "机组能效TOP", "position_json": "{}", "description": "各机组能效比排名", "datasource": "dws.energy_kpi", "charts": [{"type": "bar", "title": "机组能效TOP", "x": "unit_id", "y": "efficiency"}], "tags": ["energy", "efficiency"], "is_managed_externally": true}

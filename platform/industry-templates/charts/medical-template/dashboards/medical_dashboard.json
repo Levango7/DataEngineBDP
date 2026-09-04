@@ -1,0 +1,1 @@
+{"dashboard_title": "超长住院TOP10", "position_json": "{}", "description": "超长住院TOP10", "datasource": "dws.overstay_top", "charts": [{"type": "bar", "title": "超长住院TOP10"}], "tags": ["medical"], "is_managed_externally": true}
