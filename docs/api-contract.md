@@ -3,7 +3,7 @@
 > 由 `scripts/gen-api-contract.py` 自动生成（Sprint 2.2 多语言版），勿手改。
 
 - 前端入口：`frontend/src/api/*.ts`（共 36 个文件）
-- 后端前缀：Java 64 / Python 20 / Go 16（含显式注册表 4 项）
+- 后端前缀：Java 65 / Python 21 / Go 16（含显式注册表 4 项）
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
 
@@ -62,11 +62,11 @@
 | `/apis/${id}/archive` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
 | `/apis/${id}/subscribe` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
 | `/apis/${id}/subscribers` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
-| `/subscriptions`  | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
-| `/subscriptions/${id}/approve` （1 变量） | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
-| `/subscriptions/${id}/suspend` （1 变量） | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
-| `/subscriptions/${id}/resume` （1 变量） | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
-| `/subscriptions/${id}/revoke` （1 变量） | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
+| `/subscriptions`  | `/subscriptions` | open-api-catalog | ✅ |
+| `/subscriptions/${id}/approve` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
+| `/subscriptions/${id}/suspend` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
+| `/subscriptions/${id}/resume` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
+| `/subscriptions/${id}/revoke` （1 变量） | `/subscriptions` | open-api-catalog | ✅ |
 | `/apis/${id}/call` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
 | `/apis/${id}/metrics` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
 | `/apis/${id}/docs` （1 变量） | `/apis` | encaps-gateway, open-api-catalog | ✅ |
@@ -78,10 +78,10 @@
 | `/assets`  | `/assets` | asset-exchange | ✅ |
 | `/assets/${id}` （1 变量） | `/assets` | asset-exchange | ✅ |
 | `/assets/${id}/relist` （1 变量） | `/assets` | asset-exchange | ✅ |
-| `/subscriptions`  | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
+| `/asset-subscriptions`  | `/asset-subscriptions` | asset-exchange | ✅ |
 | `/assets/${assetId}/subscribe` （1 变量） | `/assets` | asset-exchange | ✅ |
-| `/subscriptions/${subscriptionId}/deliver` （1 变量） | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
-| `/subscriptions/${subscriptionId}/billing` （1 变量） | `/subscriptions` | asset-exchange, open-api-catalog | ✅ |
+| `/asset-subscriptions/${subscriptionId}/deliver` （1 变量） | `/asset-subscriptions` | asset-exchange | ✅ |
+| `/asset-subscriptions/${subscriptionId}/billing` （1 变量） | `/asset-subscriptions` | asset-exchange | ✅ |
 
 ## businessPortal.ts
 

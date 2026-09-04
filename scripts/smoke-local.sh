@@ -27,7 +27,12 @@ fi
 # ---------------------------------------------------------------
 log "2/5 Go 模块编译检查 ..."
 if command -v go >/dev/null 2>&1; then
-  for mod in platform/catalog platform/vector-engine platform/observability; do
+  # 仅对含 go.mod 的 Go 模块执行编译（observability 等纯配置目录自动跳过）
+  for mod in platform/catalog platform/vector-engine platform/observability/query-api; do
+    if [ ! -f "$ROOT/$mod/go.mod" ]; then
+      log "SKIP: $mod（无 go.mod，非 Go 模块）"
+      continue
+    fi
     if (cd "$ROOT/$mod" && go build ./... >/dev/null 2>&1); then
       pass "go build $mod"
     else
@@ -68,7 +73,8 @@ for hc in \
   platform/governance/real-time-pipeline/src/main/java/com/levango7/dataenginebdp/governance/realtime/controller/HealthController.java \
   platform/governance/metadata-collector/src/main/java/com/levango7/dataenginebdp/governance/collector/controller/HealthController.java \
   platform/governance/lineage-analyzer/src/main/java/com/levango7/dataenginebdp/governance/lineage/controller/HealthController.java; do
-  grep -q '@GetMapping("/api/v1/health")' "$hc" 2>/dev/null && pass "health 端点 $(basename "$hc")" || fail "health 端点缺失: $hc"
+  # 兼容两种注解写法：方法级 @GetMapping("/api/v1/health") 与类级 @RequestMapping("/api/v1/health")
+  grep -qE '@(Get|Request)Mapping\("/api/v1/health"\)' "$hc" 2>/dev/null && pass "health 端点 $(basename "$hc")" || fail "health 端点缺失: $hc"
 done
 
 # ---------------------------------------------------------------
