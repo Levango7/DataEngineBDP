@@ -32,6 +32,15 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      # A4 探针分离：liveness（进程活着）/ readiness（能接流量）独立端点，
+      # k8s 滚动升级时 readiness 先摘流量再等旧 Pod 终止，避免 5xx
+      probes:
+        enabled: true
+  health:
+    livenessState:
+      enabled: true
+    readinessState:
+      enabled: true
   metrics:
     export:
       prometheus:

@@ -44,11 +44,14 @@ securityContext:
       - ALL
 
 # ---- 健康检查 ----
+# 路径对齐 Spring Boot actuator probe 端点（management.endpoint.health.probes.enabled=true，
+# SecurityConfig 匿名放行 /actuator/health/liveness|readiness）。
+# 修复记录：此前指向不存在的 /healthz、/readyz，探针 404 会导致 Pod 被误判不健康。
 probes:
   liveness:
     enabled: true
     httpGet:
-      path: /healthz
+      path: /actuator/health/liveness
       port: 8080
     initialDelaySeconds: 30
     periodSeconds: 10
@@ -56,7 +59,7 @@ probes:
   readiness:
     enabled: true
     httpGet:
-      path: /readyz
+      path: /actuator/health/readiness
       port: 8080
     initialDelaySeconds: 10
     periodSeconds: 5

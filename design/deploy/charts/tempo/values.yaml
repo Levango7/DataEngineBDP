@@ -48,7 +48,7 @@ probes:
   liveness:
     enabled: true
     httpGet:
-      path: /healthz
+      path: /ready
       port: 3200
     initialDelaySeconds: 30
     periodSeconds: 10
@@ -56,7 +56,7 @@ probes:
   readiness:
     enabled: true
     httpGet:
-      path: /readyz
+      path: /ready
       port: 3200
     initialDelaySeconds: 10
     periodSeconds: 5

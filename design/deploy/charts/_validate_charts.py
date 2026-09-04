@@ -206,11 +206,11 @@ def validate_chart(chart_dir, chart_name):
 
 
 def main():
-    # 获取所有 Chart 目录（排除脚本文件）
+    # 获取所有 Chart 目录（仅含 Chart.yaml 的目录；排除 __pycache__ 等非 chart 目录）
     all_charts = []
     for entry in sorted(os.listdir(CHARTS_DIR)):
         full_path = os.path.join(CHARTS_DIR, entry)
-        if os.path.isdir(full_path):
+        if os.path.isdir(full_path) and os.path.isfile(os.path.join(full_path, "Chart.yaml")):
             all_charts.append(entry)
 
     print(f"{'=' * 80}")

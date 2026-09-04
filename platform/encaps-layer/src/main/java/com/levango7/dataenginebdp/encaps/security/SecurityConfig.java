@@ -65,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()  // 登录端点放行（Keycloak 代理）
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()  // 仅放行 health/info，prometheus 等敏感端点需认证
+                        // A4 探针端点：k8s kubelet 无 Bearer token 探测，必须匿名放行
+                        .requestMatchers("/actuator/health/liveness", "/actuator/health/readiness").permitAll()
                         // Springdoc OpenAPI：放行 Swagger UI 与 OpenAPI 3 文档端点（生产环境可通过 profile 关闭）
                         .requestMatchers(
                                 "/swagger-ui/**",
