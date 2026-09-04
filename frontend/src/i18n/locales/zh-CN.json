@@ -15,6 +15,31 @@
     "operateSuccess": "操作成功",
     "operateFailed": "操作失败"
   },
+  "errors": {
+    "param": {
+      "invalid": "参数校验失败",
+      "missing": "缺少必要参数",
+      "type": "参数类型错误"
+    },
+    "auth": {
+      "unauthorized": "未认证或登录已过期",
+      "forbidden": "无权限访问"
+    },
+    "resource": {
+      "notFound": "资源不存在",
+      "conflict": "资源冲突（如重复创建）"
+    },
+    "method": {
+      "notAllowed": "请求方法不支持"
+    },
+    "rate": {
+      "limited": "请求过于频繁，请稍后重试"
+    },
+    "internal": "内部错误",
+    "db": "数据库错误",
+    "extService": "外部服务调用失败",
+    "serialize": "数据序列化失败"
+  },
   "nav": {
     "brand": "数擎 · 大数据平台",
     "groups": {

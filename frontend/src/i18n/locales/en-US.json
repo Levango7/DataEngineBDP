@@ -15,6 +15,31 @@
     "operateSuccess": "Operation succeeded",
     "operateFailed": "Operation failed"
   },
+  "errors": {
+    "param": {
+      "invalid": "Parameter validation failed",
+      "missing": "Missing required parameter",
+      "type": "Parameter type mismatch"
+    },
+    "auth": {
+      "unauthorized": "Unauthenticated or session expired",
+      "forbidden": "Access denied"
+    },
+    "resource": {
+      "notFound": "Resource not found",
+      "conflict": "Resource conflict (e.g. duplicate creation)"
+    },
+    "method": {
+      "notAllowed": "HTTP method not allowed"
+    },
+    "rate": {
+      "limited": "Too many requests, please retry later"
+    },
+    "internal": "Internal server error",
+    "db": "Database error",
+    "extService": "External service call failed",
+    "serialize": "Serialization failure"
+  },
   "nav": {
     "brand": "Shuqing · Big Data Platform",
     "groups": {

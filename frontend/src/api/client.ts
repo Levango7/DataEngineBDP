@@ -24,6 +24,30 @@ let errorNotifier: ((msg: string) => void) | null = null
 /** 401 跳登录页回调，由外部注入 */
 let unauthorizedHandler: (() => void) | null = null
 
+/** i18n 翻译函数，由外部注入（A2 错误国际化：messageKey → 当前语种文案） */
+let i18nTranslator: ((key: string, fallback: string) => string) | null = null
+
+/**
+ * 注入 i18n 翻译函数（应用启动时调用一次，main.ts）。
+ *
+ * <p>翻译失败（词条缺失）时回退 fallback（后端中文兜底文案）。
+ * 用注入而非直接 import i18n，保持 client.ts 与 ui/store 零耦合
+ * （client.ts 被 store 依赖，直接 import 会成环）。</p>
+ */
+export function setI18nTranslator(
+  translator: (key: string, fallback: string) => string
+): void {
+  i18nTranslator = translator
+}
+
+/** 按 messageKey 翻译错误消息；无 key / 无词条回退原文。 */
+function translateError(messageKey: string | undefined | null, message: string): string {
+  if (messageKey && i18nTranslator) {
+    return i18nTranslator(messageKey, message)
+  }
+  return message
+}
+
 /** 401 单飞窗口：窗口内后续 401 静默，避免并发 401 触发 N 次登出/提示 */
 const UNAUTHORIZED_RESET_MS = 1000
 let unauthorizedInFlight = false
@@ -136,7 +160,12 @@ http.interceptors.response.use(
     const body = response.data as ApiResponse<unknown>
     if (body && typeof body === 'object' && 'code' in body) {
       if (body.code !== BIZ_SUCCESS_CODE) {
-        const msg = body.message || '业务处理失败'
+        // A2：优先按后端 messageKey 翻译，缺失时回退 message 原文
+        const raw = body.message || '业务处理失败'
+        const msg = translateError(
+          (body as { messageKey?: string }).messageKey,
+          raw
+        )
         errorNotifier?.(msg)
         return Promise.reject(new ApiError(msg, body.code, response.status))
       }

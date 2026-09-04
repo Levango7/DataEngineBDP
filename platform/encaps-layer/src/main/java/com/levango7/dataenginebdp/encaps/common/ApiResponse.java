@@ -12,23 +12,26 @@ import com.fasterxml.jackson.annotation.JsonInclude;
  * {
  *   "code": 0,            // 业务状态码，0 表示成功
  *   "message": "OK",      // 提示消息
+ *   "messageKey": null,   // i18n 消息键（A2，失败时携带，前端优先翻译）
  *   "data": T,            // 业务数据
  *   "traceId": "xxx",     // 链路追踪 ID（可空）
  *   "timestamp": 1700000000000  // 服务器时间戳（毫秒）
  * }
  * </pre>
  *
- * @param code      业务状态码，0 表示成功（见 {@link ErrorCode}）
- * @param message   提示消息
- * @param data      业务数据，失败时为 null
- * @param traceId   链路追踪 ID（可空，便于排障关联）
- * @param timestamp 服务器时间戳（毫秒）
- * @param <T>       业务数据类型
+ * @param code       业务状态码，0 表示成功（见 {@link ErrorCode}）
+ * @param message    提示消息
+ * @param messageKey i18n 消息键（可空；失败响应携带，前端 vue-i18n 翻译用）
+ * @param data       业务数据，失败时为 null
+ * @param traceId    链路追踪 ID（可空，便于排障关联）
+ * @param timestamp  服务器时间戳（毫秒）
+ * @param <T>        业务数据类型
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ApiResponse<T>(
         int code,
         String message,
+        String messageKey,
         T data,
         String traceId,
         long timestamp
@@ -45,7 +48,7 @@ public record ApiResponse<T>(
      * @return 成功响应
      */
     public static <T> ApiResponse<T> ok(T data) {
-        return new ApiResponse<>(SUCCESS_CODE, "OK", data, null, System.currentTimeMillis());
+        return new ApiResponse<>(SUCCESS_CODE, "OK", null, data, null, System.currentTimeMillis());
     }
 
     /**
@@ -57,7 +60,7 @@ public record ApiResponse<T>(
      * @return 成功响应
      */
     public static <T> ApiResponse<T> ok(T data, String msg) {
-        return new ApiResponse<>(SUCCESS_CODE, msg, data, null, System.currentTimeMillis());
+        return new ApiResponse<>(SUCCESS_CODE, msg, null, data, null, System.currentTimeMillis());
     }
 
     /**
@@ -69,7 +72,7 @@ public record ApiResponse<T>(
      * @return 失败响应
      */
     public static <T> ApiResponse<T> fail(int code, String message) {
-        return new ApiResponse<>(code, message, null, null, System.currentTimeMillis());
+        return new ApiResponse<>(code, message, null, null, null, System.currentTimeMillis());
     }
 
     /**
@@ -82,19 +85,33 @@ public record ApiResponse<T>(
      * @return 失败响应
      */
     public static <T> ApiResponse<T> fail(int code, String message, String traceId) {
-        return new ApiResponse<>(code, message, null, traceId, System.currentTimeMillis());
+        return new ApiResponse<>(code, message, null, null, traceId, System.currentTimeMillis());
     }
 
     /**
-     * 由 {@link ErrorCode} 构造失败响应。
+     * 由 {@link ErrorCode} 构造失败响应（A2：自动携带 messageKey 供前端翻译）。
      *
      * @param errorCode 错误码枚举
      * @param <T>       业务数据类型
      * @return 失败响应
      */
     public static <T> ApiResponse<T> fail(ErrorCode errorCode) {
-        return new ApiResponse<>(errorCode.getCode(), errorCode.getMessage(), null, null,
-                System.currentTimeMillis());
+        return new ApiResponse<>(errorCode.getCode(), errorCode.getMessage(),
+                errorCode.getMessageKey(), null, null, System.currentTimeMillis());
+    }
+
+    /**
+     * 失败响应（错误码枚举 + 拼接细节，A2：messageKey 随枚举携带）。
+     *
+     * @param errorCode 错误码枚举
+     * @param detail    细节信息（拼接到 message 末尾，便于排障）
+     * @param <T>       业务数据类型
+     * @return 失败响应
+     */
+    public static <T> ApiResponse<T> fail(ErrorCode errorCode, String detail) {
+        return new ApiResponse<>(errorCode.getCode(),
+                errorCode.getMessage() + ": " + detail,
+                errorCode.getMessageKey(), null, null, System.currentTimeMillis());
     }
 
     /**

@@ -11,8 +11,10 @@
 export interface ApiResponse<T> {
   /** 业务状态码，0 表示成功 */
   code: number
-  /** 提示消息 */
+  /** 提示消息（后端中文兜底文案） */
   message: string
+  /** i18n 消息键（A2：失败时可携带，前端优先按当前语种翻译） */
+  messageKey?: string
   /** 业务数据 */
   data: T
   /** 服务器时间戳（毫秒） */

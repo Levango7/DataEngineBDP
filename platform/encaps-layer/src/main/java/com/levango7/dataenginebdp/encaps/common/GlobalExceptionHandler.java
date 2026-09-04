@@ -46,10 +46,9 @@ public class GlobalExceptionHandler {
         String detail = e.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));
-        String msg = ErrorCode.PARAM_INVALID.getMessage() + ": " + detail;
         log.warn("参数校验失败: {}", detail);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID.getCode(), msg));
+                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID, detail));
     }
 
     /**
@@ -60,10 +59,9 @@ public class GlobalExceptionHandler {
         String detail = e.getConstraintViolations().stream()
                 .map(cv -> cv.getPropertyPath() + ": " + cv.getMessage())
                 .collect(Collectors.joining("; "));
-        String msg = ErrorCode.PARAM_INVALID.getMessage() + ": " + detail;
         log.warn("约束校验失败: {}", detail);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID.getCode(), msg));
+                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID, detail));
     }
 
     /**
@@ -71,10 +69,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ApiResponse<Void>> handleMissingParam(MissingServletRequestParameterException e) {
-        String msg = ErrorCode.PARAM_MISSING.getMessage() + ": " + e.getParameterName();
         log.warn("缺少参数: {}", e.getParameterName());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ErrorCode.PARAM_MISSING.getCode(), msg));
+                .body(ApiResponse.fail(ErrorCode.PARAM_MISSING, e.getParameterName()));
     }
 
     /**
@@ -82,10 +79,9 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ApiResponse<Void>> handleTypeMismatch(MethodArgumentTypeMismatchException e) {
-        String msg = ErrorCode.PARAM_TYPE_ERROR.getMessage() + ": " + e.getName();
         log.warn("参数类型错误: {}", e.getName());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ErrorCode.PARAM_TYPE_ERROR.getCode(), msg));
+                .body(ApiResponse.fail(ErrorCode.PARAM_TYPE_ERROR, e.getName()));
     }
 
     /**
@@ -95,8 +91,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleNotReadable(HttpMessageNotReadableException e) {
         log.warn("请求体不可读: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID.getCode(),
-                        "请求体格式错误: " + e.getMostSpecificCause().getMessage()));
+                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID,
+                        e.getMostSpecificCause().getMessage()));
     }
 
     /**
@@ -141,8 +137,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleConflict(IllegalStateException e) {
         log.warn("资源冲突: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT)
-                .body(ApiResponse.fail(ErrorCode.CONFLICT.getCode(),
-                        ErrorCode.CONFLICT.getMessage() + ": " + e.getMessage()));
+                .body(ApiResponse.fail(ErrorCode.CONFLICT, e.getMessage()));
     }
 
     /**
@@ -152,8 +147,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleIllegalArg(IllegalArgumentException e) {
         log.warn("参数非法: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID.getCode(),
-                        ErrorCode.PARAM_INVALID.getMessage() + ": " + e.getMessage()));
+                .body(ApiResponse.fail(ErrorCode.PARAM_INVALID, e.getMessage()));
     }
 
     /**
@@ -163,7 +157,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("未捕获异常: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail(ErrorCode.INTERNAL_ERROR.getCode(),
-                        ErrorCode.INTERNAL_ERROR.getMessage() + ": " + e.getMessage()));
+                .body(ApiResponse.fail(ErrorCode.INTERNAL_ERROR, e.getMessage()));
     }
 }
