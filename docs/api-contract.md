@@ -7,6 +7,27 @@
 - 扫描范围：Java `@RequestMapping`、Python `APIRouter(prefix)`、Go `Group(...)`+`GO_SERVICE_PREFIXES` 注册表
 - 前端 baseURL=`/api/v1`（client.ts，engine.ts 物化视图例外用 `/api`）；「首段」为去掉 baseURL 后第一段
 
+## 字段级契约（A1 补充）
+
+路由级契约由本表覆盖；**字段级**契约由 `scripts/check-api-schema-drift.py` 校验
+——对比 springdoc 产出的 OpenAPI schema（快照 `docs/api-contract-openapi.json`）与
+前端 `types.ts` 手写 interface 的字段集，同名类型字段漂移即 CI 阻断。
+
+**快照刷新流程**（后端 Entity/DTO 字段变更后执行）：
+
+```bash
+# 1. 启动 encaps-layer（local-auth 模式便于拿 token）
+java -jar platform/encaps-layer/target/encaps-layer-0.1.0-SNAPSHOT-exec.jar \
+  --server.port=18099 --app.security.local-auth.enabled=true
+# 2. 登录拿 token（admin/admin）
+TOKEN=$(curl -s -X POST http://127.0.0.1:18099/api/v1/auth/login \
+  -H 'Content-Type: application/json' -d '{"username":"admin","password":"admin"}' | jq -r .data.token)
+# 3. 刷新快照并校验
+python scripts/check-api-schema-drift.py --base-url http://127.0.0.1:18099 --token "$TOKEN" --refresh
+```
+
+同名不同义的已知冲突在脚本 `KNOWN_NAME_CLASHES` 显式豁免（须注明来源）。
+
 ## account.ts
 
 | 前端调用 | 首段 | 后端模块 | 状态 |

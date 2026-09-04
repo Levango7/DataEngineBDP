@@ -440,6 +440,11 @@ jobs:
           fi
           echo "OK: API 契约文档与代码一致（前端 260 调用，后端 64 前缀，未匹配项见文档汇总）"
 
+      - name: OpenAPI Schema ↔ 前端 TS 类型字段漂移校验（A1，字段级契约）
+        run: |
+          python3 scripts/check-api-schema-drift.py
+          echo "OK: OpenAPI 快照(docs/api-contract-openapi.json) 与前端 types.ts 字段无漂移"
+
       - name: vite dev 代理完整性校验（Sprint 2.2 L3，P0 教训固化）
         run: python3 scripts/verify-vite-proxy.py
 
