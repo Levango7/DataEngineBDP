@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install helm
         uses: azure/setup-helm@v4
         with:
@@ -60,7 +60,7 @@ jobs:
           - {name: "llm-gateway", dir: "platform/llm-gateway", cmd: "go test -v ./..."}
           - {name: "frontend", dir: "frontend", cmd: "npm ci && npm run test:coverage"}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup Go
         if: matrix.component.name == 'catalog' || matrix.component.name == 'llm-gateway'
         uses: actions/setup-go@v5
@@ -108,7 +108,7 @@ jobs:
     needs: [profile-render]
     continue-on-error: true  # CI环境资源限制可能导致kind集群创建失败，不阻断workflow
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Write kind config
         run: |
           cat > /tmp/kind-config.yaml << 'EOF'
@@ -149,7 +149,7 @@ jobs:
     timeout-minutes: 60
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_karmada == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install karmadactl
         run: |
           curl -sSL https://github.com/karmada-io/karmada/releases/download/v1.11.0/karmadactl-v1.11.0-linux-amd64.tar.gz | tar xz -C /tmp
@@ -175,7 +175,7 @@ jobs:
     timeout-minutes: 60
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_infra == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Start Docker Compose infra
         run: |
           cd docker
