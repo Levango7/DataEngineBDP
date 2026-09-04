@@ -16,12 +16,22 @@
           <el-option
             v-for="c in clusterOptions"
             :key="`${c.environment}/${c.clusterId}`"
-            :label="t('infraSched.selectCluster.optionFmt', { name: c.clusterName, env: envLabel(c.environment) })"
+            :label="
+              t('infraSched.selectCluster.optionFmt', {
+                name: c.clusterName,
+                env: envLabel(c.environment)
+              })
+            "
             :value="`${c.environment}/${c.clusterId}`"
           />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('infraStore.selectCluster.refreshAria')" @click="reloadAll" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('infraStore.selectCluster.refreshAria')"
+          @click="reloadAll"
+        />
       </div>
     </el-card>
 
@@ -45,7 +55,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ usageError.message }}，
-            <a href="javascript:void(0)" @click="loadUsage">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="loadUsage">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -85,13 +97,22 @@
           <div class="meta">{{ t('engines.kpi.loading') }}</div>
         </template>
         <template v-else-if="usageError">
-          <div class="meta" style="color: var(--muted)">{{ t('infraStore.capacityDist.loadFailed') }}</div>
+          <div class="meta" style="color: var(--muted)">
+            {{ t('infraStore.capacityDist.loadFailed') }}
+          </div>
         </template>
         <template v-else-if="usage && usage.byStorageClass.length > 0">
           <div v-for="sc in usage.byStorageClass" :key="sc.name" class="sc-bar">
             <div class="sc-bar-head">
               <span>{{ sc.name }}</span>
-              <span class="muted">{{ t('infraStore.capacityDist.used', { used: formatBytes(sc.used), cap: formatBytes(sc.capacity) }) }}</span>
+              <span class="muted">
+                {{
+                  t('infraStore.capacityDist.used', {
+                    used: formatBytes(sc.used),
+                    cap: formatBytes(sc.capacity)
+                  })
+                }}
+              </span>
             </div>
             <el-progress
               :percentage="scPercent(sc)"
@@ -117,10 +138,20 @@
           stripe
           border
           size="small"
-          :empty-text="classesError ? t('infraStore.scList.loadFailed') : t('infraStore.scList.empty')"
+          :empty-text="
+            classesError ? t('infraStore.scList.loadFailed') : t('infraStore.scList.empty')
+          "
         >
-          <el-table-column prop="name" :label="t('infraStore.scList.columns.name')" min-width="160" />
-          <el-table-column prop="provisioner" :label="t('infraStore.scList.columns.provisioner')" min-width="180" />
+          <el-table-column
+            prop="name"
+            :label="t('infraStore.scList.columns.name')"
+            min-width="160"
+          />
+          <el-table-column
+            prop="provisioner"
+            :label="t('infraStore.scList.columns.provisioner')"
+            min-width="180"
+          />
           <el-table-column :label="t('infraStore.scList.columns.reclaimPolicy')" width="120">
             <template #default="{ row }">
               <el-tag
@@ -132,9 +163,15 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="t('infraStore.scList.columns.default')" width="80" align="center">
+          <el-table-column
+            :label="t('infraStore.scList.columns.default')"
+            width="80"
+            align="center"
+          >
             <template #default="{ row }">
-              <el-tag v-if="row.default" type="success" effect="light" size="small">{{ t('infraStore.scList.defaultYes') }}</el-tag>
+              <el-tag v-if="row.default" type="success" effect="light" size="small">
+                {{ t('infraStore.scList.defaultYes') }}
+              </el-tag>
               <span v-else class="muted">-</span>
             </template>
           </el-table-column>
@@ -147,7 +184,9 @@
       <template #header>
         <div class="card-header">
           <span>{{ t('infraStore.pvc.title') }}</span>
-          <el-button type="primary" size="small" @click="openCreatePvcDialog">{{ t('infraStore.pvc.create') }}</el-button>
+          <el-button type="primary" size="small" @click="openCreatePvcDialog">
+            {{ t('infraStore.pvc.create') }}
+          </el-button>
         </div>
       </template>
       <el-table
@@ -159,9 +198,22 @@
         :empty-text="pvcsError ? t('infraStore.pvc.loadFailed') : t('infraStore.pvc.empty')"
       >
         <el-table-column prop="name" :label="t('infraStore.pvc.columns.name')" min-width="180" />
-        <el-table-column prop="namespace" :label="t('infraStore.pvc.columns.namespace')" width="140" />
-        <el-table-column prop="storageClassName" :label="t('infraStore.pvc.columns.storageClass')" min-width="160" />
-        <el-table-column prop="capacity" :label="t('infraStore.pvc.columns.capacity')" width="120" align="center" />
+        <el-table-column
+          prop="namespace"
+          :label="t('infraStore.pvc.columns.namespace')"
+          width="140"
+        />
+        <el-table-column
+          prop="storageClassName"
+          :label="t('infraStore.pvc.columns.storageClass')"
+          min-width="160"
+        />
+        <el-table-column
+          prop="capacity"
+          :label="t('infraStore.pvc.columns.capacity')"
+          width="120"
+          align="center"
+        />
         <el-table-column :label="t('infraStore.pvc.columns.status')" width="110">
           <template #default="{ row }">
             <el-tag :type="pvcStatusType(row.status)" effect="light">
@@ -169,17 +221,29 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="volumeName" :label="t('infraStore.pvc.columns.volumeName')" min-width="180">
+        <el-table-column
+          prop="volumeName"
+          :label="t('infraStore.pvc.columns.volumeName')"
+          min-width="180"
+        >
           <template #default="{ row }">
             <span v-if="row.volumeName">{{ row.volumeName }}</span>
             <span v-else class="muted">{{ t('infraStore.pvc.boundEmpty') }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" :label="t('infraStore.pvc.columns.createdAt')" width="180" />
+        <el-table-column
+          prop="createdAt"
+          :label="t('infraStore.pvc.columns.createdAt')"
+          width="180"
+        />
         <el-table-column :label="t('infraStore.pvc.columns.actions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleCreateSnapshot(row)">{{ t('infraStore.pvc.actions.snapshot') }}</el-button>
-            <el-button link type="danger" @click="handleDeletePvc(row)">{{ t('infraStore.pvc.actions.delete') }}</el-button>
+            <el-button link type="primary" @click="handleCreateSnapshot(row)">
+              {{ t('infraStore.pvc.actions.snapshot') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDeletePvc(row)">
+              {{ t('infraStore.pvc.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -201,12 +265,21 @@
         label-position="right"
       >
         <el-form-item :label="t('infraStore.createForm.fields.name')" prop="name">
-          <el-input v-model="pvcForm.name" :placeholder="t('infraStore.createForm.fields.namePlaceholder')" />
+          <el-input
+            v-model="pvcForm.name"
+            :placeholder="t('infraStore.createForm.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('infraStore.createForm.fields.namespace')" prop="namespace">
-          <el-input v-model="pvcForm.namespace" :placeholder="t('infraStore.createForm.fields.namespacePlaceholder')" />
+          <el-input
+            v-model="pvcForm.namespace"
+            :placeholder="t('infraStore.createForm.fields.namespacePlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="t('infraStore.createForm.fields.storageClass')" prop="storageClassName">
+        <el-form-item
+          :label="t('infraStore.createForm.fields.storageClass')"
+          prop="storageClassName"
+        >
           <el-select
             v-model="pvcForm.storageClassName"
             :placeholder="t('infraStore.createForm.fields.storageClassPlaceholder')"
@@ -221,12 +294,19 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="t('infraStore.createForm.fields.capacity')" prop="capacity">
-          <el-input v-model="pvcForm.capacity" :placeholder="t('infraStore.createForm.fields.capacityPlaceholder')" />
+          <el-input
+            v-model="pvcForm.capacity"
+            :placeholder="t('infraStore.createForm.fields.capacityPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createPvcVisible = false">{{ t('infraStore.createForm.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="savingPvc" @click="handleCreatePvc">{{ t('infraStore.createForm.actions.submit') }}</el-button>
+        <el-button @click="createPvcVisible = false">
+          {{ t('infraStore.createForm.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="savingPvc" @click="handleCreatePvc">
+          {{ t('infraStore.createForm.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -375,8 +455,12 @@ const pvcForm = reactive<PvcForm>({
 
 const pvcRules = computed<FormRules>(() => ({
   name: [{ required: true, message: t('infraStore.rules.nameRequired'), trigger: 'blur' }],
-  namespace: [{ required: true, message: t('infraStore.rules.namespaceRequired'), trigger: 'blur' }],
-  storageClassName: [{ required: true, message: t('infraStore.rules.storageClassRequired'), trigger: 'change' }],
+  namespace: [
+    { required: true, message: t('infraStore.rules.namespaceRequired'), trigger: 'blur' }
+  ],
+  storageClassName: [
+    { required: true, message: t('infraStore.rules.storageClassRequired'), trigger: 'change' }
+  ],
   capacity: [{ required: true, message: t('infraStore.rules.capacityRequired'), trigger: 'blur' }]
 }))
 
@@ -427,12 +511,16 @@ async function handleCreatePvc() {
 async function handleDeletePvc(row: PersistentVolumeClaim) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(t('infraStore.messages.deleteConfirm', { name: row.name }), t('infraStore.messages.deleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('infraStore.messages.deleteConfirmOk'),
-      cancelButtonText: t('infraStore.messages.deleteConfirmCancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('infraStore.messages.deleteConfirm', { name: row.name }),
+      t('infraStore.messages.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('infraStore.messages.deleteConfirmOk'),
+        cancelButtonText: t('infraStore.messages.deleteConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await infraApi.deletePvc(
       selectedCluster.value.environment,
       selectedCluster.value.clusterId,

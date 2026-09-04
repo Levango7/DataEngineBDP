@@ -5,7 +5,9 @@
     <div class="toolbar">
       <button class="btn sm" @click="modalVisible = true">{{ t('standard.newStandard') }}</button>
       <div class="spacer"></div>
-      <span class="pill b">{{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}</span>
+      <span class="pill b">
+        {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
+      </span>
     </div>
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
@@ -34,7 +36,11 @@
       </table>
     </div>
 
-    <Modal :visible="modalVisible" :title="t('standard.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('standard.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('standard.createModal.item') }}</label>
       <input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
       <label>{{ t('standard.createModal.type') }}</label>
@@ -49,7 +55,9 @@
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
         <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{ submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish') }}
+          {{
+            submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
+          }}
         </button>
       </template>
     </Modal>

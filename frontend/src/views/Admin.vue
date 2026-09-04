@@ -45,7 +45,9 @@
         <div class="card">
           <h3>{{ t('admin.kpi.alerts') }}</h3>
           <div class="kpi s">{{ kpi?.alertCount ?? 0 }}</div>
-          <div class="meta">{{ t('admin.kpi.alertsMeta', { count: kpi?.alertAutoHandled ?? 0 }) }}</div>
+          <div class="meta">
+            {{ t('admin.kpi.alertsMeta', { count: kpi?.alertAutoHandled ?? 0 }) }}
+          </div>
         </div>
       </div>
       <div class="card" style="margin-top: 14px">

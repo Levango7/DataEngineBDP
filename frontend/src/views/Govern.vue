@@ -38,7 +38,9 @@
                 {{ sensitivityPillText(a.sensitivity) }}
               </span>
             </td>
-            <td><span class="pill b">{{ t('govern.cols.detail') }}</span></td>
+            <td>
+              <span class="pill b">{{ t('govern.cols.detail') }}</span>
+            </td>
           </tr>
           <tr v-if="assets.length === 0">
             <td colspan="6" style="text-align: center; color: var(--muted)">
@@ -58,7 +60,9 @@
         <div class="t" :class="{ on: tab === 0 }" @click="tab = 0">
           {{ t('govern.tabs.metadata') }}
         </div>
-        <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">{{ t('govern.tabs.schema') }}</div>
+        <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">
+          {{ t('govern.tabs.schema') }}
+        </div>
         <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">
           {{ t('govern.tabs.quality') }}
         </div>
@@ -133,7 +137,10 @@
           <div class="kv">
             <span>{{ t('govern.perms.current') }}</span>
             <span>
-              {{ permissions.map((p) => `${p.user}(${p.permission})`).join(' · ') || t('govern.perms.none') }}
+              {{
+                permissions.map((p) => `${p.user}(${p.permission})`).join(' · ') ||
+                t('govern.perms.none')
+              }}
             </span>
           </div>
           <button class="btn sm" style="margin-top: 10px" @click="applyReadPermission">
@@ -144,7 +151,11 @@
       </div>
     </Drawer>
 
-    <Modal :visible="modalVisible" :title="t('govern.registerModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('govern.registerModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('govern.registerModal.name') }}</label>
       <input :placeholder="t('govern.registerModal.namePlaceholder')" />
       <label>{{ t('govern.registerModal.layer') }}</label>

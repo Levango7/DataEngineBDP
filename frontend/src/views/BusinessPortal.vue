@@ -13,7 +13,9 @@
       <aside class="bp-sidebar">
         <div class="bp-sidebar-header">
           <h3>{{ t('businessPortal.sidebar.title') }}</h3>
-          <button class="btn sm" @click="openCreateModal">{{ t('businessPortal.sidebar.new') }}</button>
+          <button class="btn sm" @click="openCreateModal">
+            {{ t('businessPortal.sidebar.new') }}
+          </button>
         </div>
         <div class="bp-sidebar-list">
           <template v-if="blLoading">
@@ -24,7 +26,9 @@
           <template v-else-if="blError">
             <div class="bp-sidebar-item">
               <span style="color: var(--muted)">{{ blError.message }}</span>
-              <a href="javascript:void(0)" @click="reloadBl">{{ t('businessPortal.sidebar.retry') }}</a>
+              <a href="javascript:void(0)" @click="reloadBl">
+                {{ t('businessPortal.sidebar.retry') }}
+              </a>
             </div>
           </template>
           <template v-else-if="businessLines && businessLines.length === 0">
@@ -47,7 +51,12 @@
                 </span>
               </div>
               <div class="meta">
-                {{ t('businessPortal.budget.usedOverTotal', { used: bl.budget.used.toFixed(0), total: bl.budget.total.toFixed(0) }) }}
+                {{
+                  t('businessPortal.budget.usedOverTotal', {
+                    used: bl.budget.used.toFixed(0),
+                    total: bl.budget.total.toFixed(0)
+                  })
+                }}
               </div>
               <div class="bar">
                 <i :style="{ width: usageRatio(bl.budget) * 100 + '%' }"></i>
@@ -79,20 +88,26 @@
             <div class="t" :class="{ on: tab === 'catalog' }" @click="tab = 'catalog'">
               {{ t('businessPortal.tabs.catalog') }}
             </div>
-            <div class="t" :class="{ on: tab === 'reports' }" @click="tab = 'reports'">{{ t('businessPortal.tabs.reports') }}</div>
+            <div class="t" :class="{ on: tab === 'reports' }" @click="tab = 'reports'">
+              {{ t('businessPortal.tabs.reports') }}
+            </div>
           </div>
 
           <!-- ① 数据概览 -->
           <div v-if="tab === 'dashboard'">
             <template v-if="dashboardLoading">
-              <div class="card"><h3>{{ t('businessPortal.dashboard.loading') }}</h3></div>
+              <div class="card">
+                <h3>{{ t('businessPortal.dashboard.loading') }}</h3>
+              </div>
             </template>
             <template v-else-if="dashboardError">
               <div class="card">
                 <h3>{{ t('businessPortal.dashboard.loadFailed') }}</h3>
                 <div class="meta" style="color: var(--muted)">
                   {{ t('businessPortal.dashboard.loadFailedHint') }}
-                  <a href="javascript:void(0)" @click="reloadDashboard">{{ t('businessPortal.dashboard.retry') }}</a>
+                  <a href="javascript:void(0)" @click="reloadDashboard">
+                    {{ t('businessPortal.dashboard.retry') }}
+                  </a>
                 </div>
               </div>
             </template>
@@ -108,7 +123,8 @@
                   <div class="meta">
                     {{ t('businessPortal.dashboard.kpi.trend') }}
                     <span :style="{ color: kpi.trend >= 0 ? 'var(--ok)' : 'var(--danger)' }">
-                      {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
+                      {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend
+                      }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
                     </span>
                   </div>
                 </div>
@@ -125,7 +141,10 @@
                       :style="{ height: h + '%' }"
                     ></i>
                   </div>
-                  <div class="meta">{{ t('businessPortal.dashboard.trend.window7d') }} · {{ t('businessPortal.dashboard.trend.unit', { unit: trend.unit }) }}</div>
+                  <div class="meta">
+                    {{ t('businessPortal.dashboard.trend.window7d') }} ·
+                    {{ t('businessPortal.dashboard.trend.unit', { unit: trend.unit }) }}
+                  </div>
                 </div>
               </div>
 
@@ -170,8 +189,14 @@
                     <tbody>
                       <tr v-for="p in dashboard.topProjects" :key="p.projectId">
                         <td>{{ p.projectName }}</td>
-                        <td>{{ p.cost.toFixed(0) }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}</td>
-                        <td>{{ (p.usageRatio * 100).toFixed(0) }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}</td>
+                        <td>
+                          {{ p.cost.toFixed(0)
+                          }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}
+                        </td>
+                        <td>
+                          {{ (p.usageRatio * 100).toFixed(0)
+                          }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
+                        </td>
                         <td>{{ p.jobCount }}</td>
                       </tr>
                     </tbody>
@@ -184,7 +209,9 @@
           <!-- ② 工作台 -->
           <div v-if="tab === 'workbench'">
             <template v-if="workbenchLoading">
-              <div class="card"><h3>{{ t('businessPortal.workbench.loading') }}</h3></div>
+              <div class="card">
+                <h3>{{ t('businessPortal.workbench.loading') }}</h3>
+              </div>
             </template>
             <template v-else-if="workbench">
               <div class="grid g2">
@@ -212,8 +239,18 @@
                           </span>
                         </td>
                         <td>
-                          <button class="btn sm" @click="store.showToast(t('businessPortal.workbench.todos.approveDone'))">{{ t('businessPortal.workbench.todos.approve') }}</button>
-                          <button class="btn ghost sm" @click="store.showToast(t('businessPortal.workbench.todos.rejectDone'))">
+                          <button
+                            class="btn sm"
+                            @click="
+                              store.showToast(t('businessPortal.workbench.todos.approveDone'))
+                            "
+                          >
+                            {{ t('businessPortal.workbench.todos.approve') }}
+                          </button>
+                          <button
+                            class="btn ghost sm"
+                            @click="store.showToast(t('businessPortal.workbench.todos.rejectDone'))"
+                          >
                             {{ t('businessPortal.workbench.todos.reject') }}
                           </button>
                         </td>
@@ -271,13 +308,17 @@
           <!-- ③ 数据目录 -->
           <div v-if="tab === 'catalog'">
             <template v-if="catalogLoading">
-              <div class="card"><h3>{{ t('businessPortal.catalog.loading') }}</h3></div>
+              <div class="card">
+                <h3>{{ t('businessPortal.catalog.loading') }}</h3>
+              </div>
             </template>
             <template v-else-if="catalog">
               <div class="card">
                 <h3>
                   {{ t('businessPortal.catalog.title') }}
-                  <span class="pill b">{{ t('businessPortal.catalog.nodeCount', { count: catalog.nodes.length }) }}</span>
+                  <span class="pill b">
+                    {{ t('businessPortal.catalog.nodeCount', { count: catalog.nodes.length }) }}
+                  </span>
                 </h3>
                 <div class="bp-tree">
                   <div
@@ -289,7 +330,9 @@
                     <span class="bp-tree-ic" :class="`bp-tree-${node.type}`">●</span>
                     <b>{{ node.name }}</b>
                     <span class="pill sm">{{ node.type }}</span>
-                    <span v-if="node.assetCount > 0" class="meta">{{ t('businessPortal.catalog.assetCount', { count: node.assetCount }) }}</span>
+                    <span v-if="node.assetCount > 0" class="meta">
+                      {{ t('businessPortal.catalog.assetCount', { count: node.assetCount }) }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -299,12 +342,18 @@
           <!-- ④ BI 报表 -->
           <div v-if="tab === 'reports'">
             <div class="toolbar">
-              <button class="btn sm" @click="openReportModal">{{ t('businessPortal.reports.newReport') }}</button>
+              <button class="btn sm" @click="openReportModal">
+                {{ t('businessPortal.reports.newReport') }}
+              </button>
               <div class="spacer"></div>
-              <span class="pill p">{{ t('businessPortal.reports.countPill', { count: reports.length }) }}</span>
+              <span class="pill p">
+                {{ t('businessPortal.reports.countPill', { count: reports.length }) }}
+              </span>
             </div>
             <template v-if="reportsLoading">
-              <div class="card"><h3>{{ t('businessPortal.reports.loading') }}</h3></div>
+              <div class="card">
+                <h3>{{ t('businessPortal.reports.loading') }}</h3>
+              </div>
             </template>
             <template v-else>
               <div class="grid g3">
@@ -318,7 +367,9 @@
                   <div class="meta">
                     {{ reportTypeText(r.config.type) }} · {{ r.config.chartType }}
                   </div>
-                  <div class="meta">{{ t('businessPortal.reports.creator', { name: r.creatorId || '—' }) }}</div>
+                  <div class="meta">
+                    {{ t('businessPortal.reports.creator', { name: r.creatorId || '—' }) }}
+                  </div>
                   <button class="btn ghost sm" style="margin-top: 8px" @click="viewReport(r)">
                     {{ t('businessPortal.reports.view') }}
                   </button>
@@ -344,29 +395,53 @@
     </div>
 
     <!-- 新建业务线 Modal -->
-    <Modal :visible="modalVisible" :title="t('businessPortal.createBl.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('businessPortal.createBl.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('businessPortal.createBl.name') }}</label>
       <input v-model="form.name" :placeholder="t('businessPortal.createBl.namePlaceholder')" />
       <label>{{ t('businessPortal.createBl.tenantId') }}</label>
-      <input v-model="form.tenantId" :placeholder="t('businessPortal.createBl.tenantIdPlaceholder')" />
+      <input
+        v-model="form.tenantId"
+        :placeholder="t('businessPortal.createBl.tenantIdPlaceholder')"
+      />
       <label>{{ t('businessPortal.createBl.description') }}</label>
-      <input v-model="form.description" :placeholder="t('businessPortal.createBl.descriptionPlaceholder')" />
+      <input
+        v-model="form.description"
+        :placeholder="t('businessPortal.createBl.descriptionPlaceholder')"
+      />
       <label>{{ t('businessPortal.createBl.budgetTotal') }}</label>
       <input v-model.number="form.budgetTotal" type="number" />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('businessPortal.createBl.cancel') }}</button>
+        <button class="btn ghost" @click="modalVisible = false">
+          {{ t('businessPortal.createBl.cancel') }}
+        </button>
         <button class="btn" :disabled="creating" @click="handleCreate">
-          {{ creating ? t('businessPortal.createBl.creating') : t('businessPortal.createBl.create') }}
+          {{
+            creating ? t('businessPortal.createBl.creating') : t('businessPortal.createBl.create')
+          }}
         </button>
       </template>
     </Modal>
 
     <!-- 新建报表 Modal -->
-    <Modal :visible="reportModalVisible" :title="t('businessPortal.createReport.title')" @close="reportModalVisible = false">
+    <Modal
+      :visible="reportModalVisible"
+      :title="t('businessPortal.createReport.title')"
+      @close="reportModalVisible = false"
+    >
       <label>{{ t('businessPortal.createReport.name') }}</label>
-      <input v-model="reportForm.name" :placeholder="t('businessPortal.createReport.namePlaceholder')" />
+      <input
+        v-model="reportForm.name"
+        :placeholder="t('businessPortal.createReport.namePlaceholder')"
+      />
       <label>{{ t('businessPortal.createReport.description') }}</label>
-      <input v-model="reportForm.description" :placeholder="t('businessPortal.createReport.descriptionPlaceholder')" />
+      <input
+        v-model="reportForm.description"
+        :placeholder="t('businessPortal.createReport.descriptionPlaceholder')"
+      />
       <label>{{ t('businessPortal.createReport.type') }}</label>
       <select v-model="reportForm.type">
         <option value="chart">{{ t('businessPortal.createReport.types.chart') }}</option>
@@ -382,9 +457,15 @@
         <option value="area">{{ t('businessPortal.createReport.chartTypes.area') }}</option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="reportModalVisible = false">{{ t('businessPortal.createReport.cancel') }}</button>
+        <button class="btn ghost" @click="reportModalVisible = false">
+          {{ t('businessPortal.createReport.cancel') }}
+        </button>
         <button class="btn" :disabled="reportCreating" @click="handleCreateReport">
-          {{ reportCreating ? t('businessPortal.createReport.creating') : t('businessPortal.createReport.create') }}
+          {{
+            reportCreating
+              ? t('businessPortal.createReport.creating')
+              : t('businessPortal.createReport.create')
+          }}
         </button>
       </template>
     </Modal>

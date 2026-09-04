@@ -63,7 +63,11 @@
       </div>
     </template>
 
-    <Modal :visible="modalVisible" :title="t('account.upgradeModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('account.upgradeModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('account.upgradeModal.targetPlan') }}</label>
       <select v-model="upgradeForm.targetPlan">
         <option value="flagship">{{ t('account.upgradeModal.flagship') }}</option>

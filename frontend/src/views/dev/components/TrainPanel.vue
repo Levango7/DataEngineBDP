@@ -13,7 +13,9 @@
       </div>
     </div>
     <div class="toolbar">
-      <el-button type="primary" @click="emit('openTrain')">{{ t('devMl.trainPanel.newJob') }}</el-button>
+      <el-button type="primary" @click="emit('openTrain')">
+        {{ t('devMl.trainPanel.newJob') }}
+      </el-button>
       <el-select
         v-model="localFilter"
         :placeholder="t('devMl.trainPanel.statusFilter')"
@@ -39,12 +41,20 @@
       :empty-text="error ? t('devMl.trainPanel.loadFailed') : t('devMl.trainPanel.empty')"
     >
       <el-table-column prop="name" :label="t('devMl.trainPanel.columns.name')" min-width="180" />
-      <el-table-column prop="algorithm" :label="t('devMl.trainPanel.columns.algorithm')" width="130">
+      <el-table-column
+        prop="algorithm"
+        :label="t('devMl.trainPanel.columns.algorithm')"
+        width="130"
+      >
         <template #default="{ row }">
           <el-tag effect="light" size="small">{{ row.algorithm }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="dataset" :label="t('devMl.trainPanel.columns.dataset')" min-width="160" />
+      <el-table-column
+        prop="dataset"
+        :label="t('devMl.trainPanel.columns.dataset')"
+        min-width="160"
+      />
       <el-table-column :label="t('devMl.trainPanel.columns.status')" width="110">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light">
@@ -58,7 +68,11 @@
       <el-table-column prop="owner" :label="t('devMl.trainPanel.columns.owner')" width="110">
         <template #default="{ row }">{{ row.owner || '--' }}</template>
       </el-table-column>
-      <el-table-column prop="submittedAt" :label="t('devMl.trainPanel.columns.submittedAt')" width="170">
+      <el-table-column
+        prop="submittedAt"
+        :label="t('devMl.trainPanel.columns.submittedAt')"
+        width="170"
+      >
         <template #default="{ row }">{{ row.submittedAt || '--' }}</template>
       </el-table-column>
       <el-table-column :label="t('devMl.trainPanel.columns.actions')" width="220" fixed="right">
@@ -80,7 +94,9 @@
           >
             {{ t('devMl.trainPanel.actions.stop') }}
           </el-button>
-          <el-button link @click="emit('openLog', row)">{{ t('devMl.trainPanel.actions.log') }}</el-button>
+          <el-button link @click="emit('openLog', row)">
+            {{ t('devMl.trainPanel.actions.log') }}
+          </el-button>
         </template>
       </el-table-column>
     </el-table>

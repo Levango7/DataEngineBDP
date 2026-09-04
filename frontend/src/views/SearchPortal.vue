@@ -159,7 +159,12 @@
     </div>
 
     <!-- 详情抽屉 -->
-    <el-drawer v-model="detailVisible" :title="t('searchPortal.detail.title')" size="480px" direction="rtl">
+    <el-drawer
+      v-model="detailVisible"
+      :title="t('searchPortal.detail.title')"
+      size="480px"
+      direction="rtl"
+    >
       <div v-if="detailItem" class="detail-content">
         <div class="detail-row">
           <span class="detail-label">{{ t('searchPortal.detail.fields.id') }}</span>
@@ -179,11 +184,19 @@
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ t('searchPortal.detail.fields.owner') }}</span>
-          <span class="detail-value">{{ detailItem.owner ?? t('searchPortal.detail.noOwner') }}</span>
+          <span class="detail-value">
+            {{ detailItem.owner ?? t('searchPortal.detail.noOwner') }}
+          </span>
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ t('searchPortal.detail.fields.score') }}</span>
-          <span class="detail-value">{{ t('searchPortal.detail.fields.scoreFmt', { score: (detailItem.score * 100).toFixed(1) }) }}</span>
+          <span class="detail-value">
+            {{
+              t('searchPortal.detail.fields.scoreFmt', {
+                score: (detailItem.score * 100).toFixed(1)
+              })
+            }}
+          </span>
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ t('searchPortal.detail.fields.createdAt') }}</span>
@@ -195,14 +208,18 @@
         </div>
         <div class="detail-row">
           <span class="detail-label">{{ t('searchPortal.detail.fields.tags') }}</span>
-          <span class="detail-value">{{ detailItem.tags.join(', ') || t('searchPortal.detail.noTags') }}</span>
+          <span class="detail-value">
+            {{ detailItem.tags.join(', ') || t('searchPortal.detail.noTags') }}
+          </span>
         </div>
         <div class="detail-desc">
           <div class="detail-label">{{ t('searchPortal.detail.descTitle') }}</div>
           <p>{{ detailItem.description || t('searchPortal.detail.noDesc') }}</p>
         </div>
         <div v-if="detailItem.url" class="detail-actions">
-          <el-button type="primary" @click="openDetailUrl">{{ t('searchPortal.detail.openAsset') }}</el-button>
+          <el-button type="primary" @click="openDetailUrl">
+            {{ t('searchPortal.detail.openAsset') }}
+          </el-button>
         </div>
       </div>
     </el-drawer>
@@ -352,7 +369,11 @@ function onOpenItem(item: SearchResultItem): void {
 
 function onBookmark(item: SearchResultItem, next: boolean): void {
   // 实际项目可调用收藏 API
-  ElMessage.success(next ? t('searchPortal.messages.bookmarked', { name: item.name }) : t('searchPortal.messages.unbookmarked', { name: item.name }))
+  ElMessage.success(
+    next
+      ? t('searchPortal.messages.bookmarked', { name: item.name })
+      : t('searchPortal.messages.unbookmarked', { name: item.name })
+  )
 }
 
 function onExported(result: ExportResult): void {

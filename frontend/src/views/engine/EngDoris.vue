@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ nodesError.message }}，
-            <a href="javascript:void(0)" @click="reloadNodes">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="reloadNodes">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -25,12 +27,16 @@
         <div class="card">
           <h3>{{ t('engines.kpi.feNode') }}</h3>
           <div class="kpi">{{ kpi.feCount }}</div>
-          <div class="meta">{{ t('engines.kpi.aliveCount', { alive: kpi.feAlive, dead: kpi.feDead }) }}</div>
+          <div class="meta">
+            {{ t('engines.kpi.aliveCount', { alive: kpi.feAlive, dead: kpi.feDead }) }}
+          </div>
         </div>
         <div class="card">
           <h3>{{ t('engines.kpi.beNode') }}</h3>
           <div class="kpi">{{ kpi.beCount }}</div>
-          <div class="meta">{{ t('engines.kpi.aliveCount', { alive: kpi.beAlive, dead: kpi.beDead }) }}</div>
+          <div class="meta">
+            {{ t('engines.kpi.aliveCount', { alive: kpi.beAlive, dead: kpi.beDead }) }}
+          </div>
         </div>
         <div class="card">
           <h3>{{ t('engines.kpi.todayQueries') }}</h3>
@@ -145,7 +151,9 @@
             stripe
             border
             style="width: 100%"
-            :empty-text="queriesError ? t('engines.table.loadFailed') : t('engines.table.emptyQueries')"
+            :empty-text="
+              queriesError ? t('engines.table.loadFailed') : t('engines.table.emptyQueries')
+            "
           >
             <el-table-column prop="queryId" :label="t('engines.table.queryId')" min-width="180" />
             <el-table-column
@@ -184,12 +192,16 @@
               <el-button type="primary" :loading="executing" @click="handleExecuteSql">
                 {{ t('engines.sql.execute') }}
               </el-button>
-              <el-button :loading="explaining" @click="handleExplainSql">{{ t('engines.sql.explain') }}</el-button>
+              <el-button :loading="explaining" @click="handleExplainSql">
+                {{ t('engines.sql.explain') }}
+              </el-button>
               <el-button @click="sqlText = ''">{{ t('engines.sql.clear') }}</el-button>
             </div>
             <div v-if="sqlResult" class="sql-result">
               <div class="result-meta">
-                {{ t('engines.sql.rowsTime', { rows: sqlResult.rowCount, ms: sqlResult.durationMs }) }}
+                {{
+                  t('engines.sql.rowsTime', { rows: sqlResult.rowCount, ms: sqlResult.durationMs })
+                }}
               </div>
               <el-table
                 :data="sqlResult.rows"

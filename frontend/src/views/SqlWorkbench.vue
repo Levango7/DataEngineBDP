@@ -8,13 +8,21 @@
     <!-- 上半区：SQL 编辑器 + 控制栏 -->
     <el-card shadow="never" class="editor-card">
       <div class="toolbar">
-        <el-select v-model="dialect" :placeholder="t('sqlWorkbench.editor.dialect')" style="width: 130px">
+        <el-select
+          v-model="dialect"
+          :placeholder="t('sqlWorkbench.editor.dialect')"
+          style="width: 130px"
+        >
           <el-option :label="t('sqlWorkbench.editor.dialects.ANSI')" value="ANSI" />
           <el-option :label="t('sqlWorkbench.editor.dialects.HIVE')" value="HIVE" />
           <el-option :label="t('sqlWorkbench.editor.dialects.DORIS')" value="DORIS" />
           <el-option :label="t('sqlWorkbench.editor.dialects.TRINO')" value="TRINO" />
         </el-select>
-        <el-input v-model="tenantId" :placeholder="t('sqlWorkbench.editor.tenantPlaceholder')" style="width: 180px" />
+        <el-input
+          v-model="tenantId"
+          :placeholder="t('sqlWorkbench.editor.tenantPlaceholder')"
+          style="width: 180px"
+        />
         <el-input-number
           v-model="timeoutSeconds"
           :min="5"
@@ -57,7 +65,9 @@
 
       <!-- SQL 提示 -->
       <div class="sql-hint">
-        <el-tag size="small" type="info" effect="plain">{{ t('sqlWorkbench.editor.hintTag') }}</el-tag>
+        <el-tag size="small" type="info" effect="plain">
+          {{ t('sqlWorkbench.editor.hintTag') }}
+        </el-tag>
         <span class="hint-text">
           {{ t('sqlWorkbench.editor.hint', { hive: 'hive.users', doris: 'doris.orders' }) }}
         </span>
@@ -73,8 +83,12 @@
             <el-tag :type="statusTagType(result.status)" effect="light">
               {{ result.status }}
             </el-tag>
-            <el-tag v-if="result.crossSource" type="warning" effect="light">{{ t('sqlWorkbench.result.crossSource') }}</el-tag>
-            <el-tag v-else type="success" effect="light">{{ t('sqlWorkbench.result.singleSource') }}</el-tag>
+            <el-tag v-if="result.crossSource" type="warning" effect="light">
+              {{ t('sqlWorkbench.result.crossSource') }}
+            </el-tag>
+            <el-tag v-else type="success" effect="light">
+              {{ t('sqlWorkbench.result.singleSource') }}
+            </el-tag>
             <span class="meta">
               {{ t('sqlWorkbench.result.rowCount') }}
               <b>{{ result.rowCount }}</b>
@@ -127,7 +141,10 @@
               </template>
             </el-table-column>
           </el-table>
-          <el-empty v-else-if="result && !result.error" :description="t('sqlWorkbench.result.empty')" />
+          <el-empty
+            v-else-if="result && !result.error"
+            :description="t('sqlWorkbench.result.empty')"
+          />
           <el-empty v-else :description="t('sqlWorkbench.result.executeFirst')" />
         </el-tab-pane>
 
@@ -136,7 +153,11 @@
           <div v-if="explainResult" class="explain-block">
             <div class="explain-summary">
               <el-tag :type="explainResult.crossSource ? 'warning' : 'success'" effect="light">
-                {{ explainResult.crossSource ? t('sqlWorkbench.explain.crossSource') : t('sqlWorkbench.explain.singleSource') }}
+                {{
+                  explainResult.crossSource
+                    ? t('sqlWorkbench.explain.crossSource')
+                    : t('sqlWorkbench.explain.singleSource')
+                }}
               </el-tag>
               <el-tag type="info" effect="plain">
                 {{ explainResult.strategy }}
@@ -147,15 +168,25 @@
               </span>
               <span class="meta">
                 {{ t('sqlWorkbench.explain.parseDuration') }}
-                <b>{{ explainResult.durationMs }}{{ t('sqlWorkbench.explain.parseDurationUnit') }}</b>
+                <b>
+                  {{ explainResult.durationMs }}{{ t('sqlWorkbench.explain.parseDurationUnit') }}
+                </b>
               </span>
             </div>
 
             <el-collapse v-model="explainCollapse">
               <el-collapse-item :title="t('sqlWorkbench.explain.tablesTitle')" name="tables">
                 <el-table :data="tableSourceRows" border style="width: 100%">
-                  <el-table-column prop="table" :label="t('sqlWorkbench.explain.tableCol')" min-width="200" />
-                  <el-table-column prop="source" :label="t('sqlWorkbench.explain.sourceCol')" width="160">
+                  <el-table-column
+                    prop="table"
+                    :label="t('sqlWorkbench.explain.tableCol')"
+                    min-width="200"
+                  />
+                  <el-table-column
+                    prop="source"
+                    :label="t('sqlWorkbench.explain.sourceCol')"
+                    width="160"
+                  >
                     <template #default="{ row }">
                       <el-tag :type="sourceTagType(row.source)" effect="light">
                         {{ row.source }}
@@ -220,9 +251,16 @@
         <el-tab-pane :label="t('sqlWorkbench.validate.tab')" name="validate">
           <div v-if="validateResult">
             <el-alert
-              :title="validateResult.valid ? t('sqlWorkbench.validate.valid') : t('sqlWorkbench.validate.invalid')"
+              :title="
+                validateResult.valid
+                  ? t('sqlWorkbench.validate.valid')
+                  : t('sqlWorkbench.validate.invalid')
+              "
               :type="validateResult.valid ? 'success' : 'error'"
-              :description="validateResult.error || t('sqlWorkbench.validate.dialect', { dialect: validateResult.dialect })"
+              :description="
+                validateResult.error ||
+                t('sqlWorkbench.validate.dialect', { dialect: validateResult.dialect })
+              "
               :closable="false"
               show-icon
             />
@@ -277,7 +315,8 @@ const {
       timeoutSeconds: timeoutSeconds.value
     }),
   {
-    onError: (err) => ElMessage.error(t('sqlWorkbench.messages.executeError', { message: err.message }))
+    onError: (err) =>
+      ElMessage.error(t('sqlWorkbench.messages.executeError', { message: err.message }))
   }
 )
 
@@ -295,7 +334,8 @@ const {
       timeoutSeconds: timeoutSeconds.value
     }),
   {
-    onError: (err) => ElMessage.error(t('sqlWorkbench.messages.explainError', { message: err.message }))
+    onError: (err) =>
+      ElMessage.error(t('sqlWorkbench.messages.explainError', { message: err.message }))
   }
 )
 
@@ -307,7 +347,8 @@ const {
 } = useApi<{ valid: boolean; dialect: string; error?: string }>(
   () => validateSql({ sql: sql.value, dialect: dialect.value }),
   {
-    onError: (err) => ElMessage.error(t('sqlWorkbench.messages.validateError', { message: err.message }))
+    onError: (err) =>
+      ElMessage.error(t('sqlWorkbench.messages.validateError', { message: err.message }))
   }
 )
 
@@ -340,7 +381,11 @@ async function handleExecute(): Promise<void> {
   activeTab.value = 'result'
   await executeQuery()
   if (result.value && result.value.status !== 'SUCCESS') {
-    ElMessage.error(t('sqlWorkbench.messages.executeFailed', { error: result.value.error || t('sqlWorkbench.messages.unknownError') }))
+    ElMessage.error(
+      t('sqlWorkbench.messages.executeFailed', {
+        error: result.value.error || t('sqlWorkbench.messages.unknownError')
+      })
+    )
   } else if (result.value?.crossSource) {
     ElMessage.success(t('sqlWorkbench.messages.crossSourceDone', { count: result.value.rowCount }))
   } else if (result.value) {
@@ -361,7 +406,9 @@ async function handleExplain(): Promise<void> {
   } else if (explainResult.value) {
     ElMessage.success(
       explainResult.value.crossSource
-        ? t('sqlWorkbench.messages.explainCross', { count: explainResult.value.sources?.length || 0 })
+        ? t('sqlWorkbench.messages.explainCross', {
+            count: explainResult.value.sources?.length || 0
+          })
         : t('sqlWorkbench.messages.explainSingle')
     )
   }

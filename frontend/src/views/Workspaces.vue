@@ -46,7 +46,9 @@
               {{ statusPillText(ws.status) }}
             </span>
           </div>
-          <div class="meta">{{ planLabel(ws.plan) }} · {{ ws.tenantName || t('workspaces.defaultTenant') }}</div>
+          <div class="meta">
+            {{ planLabel(ws.plan) }} · {{ ws.tenantName || t('workspaces.defaultTenant') }}
+          </div>
           <div class="row" style="margin-top: 8px">
             <span>CPU {{ ws.cpuUsage }}%</span>
             <span>{{ t('workspaces.memory') }} {{ ws.memUsage }}%</span>
@@ -162,7 +164,11 @@
       </div>
     </Drawer>
 
-    <Modal :visible="modalVisible" :title="t('workspaces.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('workspaces.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('workspaces.createModal.name') }}</label>
       <input v-model="form.name" :placeholder="t('workspaces.createModal.namePlaceholder')" />
       <label>{{ t('workspaces.createModal.tenant') }}</label>
@@ -285,7 +291,9 @@ async function loadK8sStatus(): Promise<void> {
     k8sStatus.value = await workspaceApi.getWorkspaceK8sStatus(current.value.id)
   } catch (e) {
     k8sStatus.value = null
-    k8sError.value = { message: e instanceof Error ? e.message : t('workspaces.members.k8sQueryFailed') }
+    k8sError.value = {
+      message: e instanceof Error ? e.message : t('workspaces.members.k8sQueryFailed')
+    }
   } finally {
     k8sLoading.value = false
   }
@@ -304,7 +312,9 @@ async function loadProjects(): Promise<void> {
     projects.value = res.list
   } catch (e) {
     projects.value = []
-    projectsError.value = { message: e instanceof Error ? e.message : t('workspaces.projects.loadFailed') }
+    projectsError.value = {
+      message: e instanceof Error ? e.message : t('workspaces.projects.loadFailed')
+    }
   } finally {
     projectsLoading.value = false
   }

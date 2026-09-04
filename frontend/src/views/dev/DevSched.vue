@@ -48,7 +48,9 @@
     <!-- 主内容区：DAG 列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">{{ t('devSched.toolbar.create') }}</el-button>
+        <el-button type="primary" @click="openCreateDialog">
+          {{ t('devSched.toolbar.create') }}
+        </el-button>
         <el-select
           v-model="statusFilter"
           :placeholder="t('devSched.toolbar.statusFilter')"
@@ -65,7 +67,12 @@
           <el-option :label="t('devSched.status.PAUSED')" value="PAUSED" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('devSched.toolbar.refreshAria')" @click="reload" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('devSched.toolbar.refreshAria')"
+          @click="reload"
+        />
       </div>
 
       <el-table
@@ -103,14 +110,20 @@
           </template>
         </el-table-column>
         <el-table-column prop="lastRunAt" :label="t('devSched.table.columns.lastRun')" width="180">
-          <template #default="{ row }">{{ row.lastRunAt || t('devSched.table.notAvailable') }}</template>
+          <template #default="{ row }">
+            {{ row.lastRunAt || t('devSched.table.notAvailable') }}
+          </template>
         </el-table-column>
         <el-table-column prop="owner" :label="t('devSched.table.columns.owner')" width="120">
-          <template #default="{ row }">{{ row.owner || t('devSched.table.notAvailable') }}</template>
+          <template #default="{ row }">
+            {{ row.owner || t('devSched.table.notAvailable') }}
+          </template>
         </el-table-column>
         <el-table-column :label="t('devSched.table.columns.actions')" width="320" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEditDrawer(row)">{{ t('devSched.table.actions.edit') }}</el-button>
+            <el-button link type="primary" @click="openEditDrawer(row)">
+              {{ t('devSched.table.actions.edit') }}
+            </el-button>
             <el-button
               v-if="canRun(row.status)"
               link
@@ -120,7 +133,9 @@
             >
               {{ t('devSched.table.actions.run') }}
             </el-button>
-            <el-button link type="primary" @click="openHistoryDrawer(row)">{{ t('devSched.table.actions.history') }}</el-button>
+            <el-button link type="primary" @click="openHistoryDrawer(row)">
+              {{ t('devSched.table.actions.history') }}
+            </el-button>
             <el-button
               v-if="canRerun(row.lastRunStatus)"
               link
@@ -129,8 +144,12 @@
             >
               {{ t('devSched.table.actions.rerun') }}
             </el-button>
-            <el-button link type="warning" @click="openBackfillDialog(row)">{{ t('devSched.table.actions.backfill') }}</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">{{ t('devSched.table.actions.delete') }}</el-button>
+            <el-button link type="warning" @click="openBackfillDialog(row)">
+              {{ t('devSched.table.actions.backfill') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
+              {{ t('devSched.table.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -153,7 +172,11 @@
     <!-- DAG 编辑抽屉 -->
     <el-drawer
       v-model="editDrawerVisible"
-      :title="editForm.id ? t('devSched.editDrawer.titleEdit', { name: editForm.name }) : t('devSched.editDrawer.titleCreate')"
+      :title="
+        editForm.id
+          ? t('devSched.editDrawer.titleEdit', { name: editForm.name })
+          : t('devSched.editDrawer.titleCreate')
+      "
       size="60%"
     >
       <el-form
@@ -164,7 +187,10 @@
         label-position="right"
       >
         <el-form-item :label="t('devSched.editDrawer.fields.name')" prop="name">
-          <el-input v-model="editForm.name" :placeholder="t('devSched.editDrawer.fields.namePlaceholder')" />
+          <el-input
+            v-model="editForm.name"
+            :placeholder="t('devSched.editDrawer.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('devSched.editDrawer.fields.description')" prop="description">
           <el-input v-model="editForm.description" type="textarea" :rows="2" />
@@ -176,7 +202,10 @@
           />
         </el-form-item>
         <el-form-item :label="t('devSched.editDrawer.fields.owner')" prop="owner">
-          <el-input v-model="editForm.owner" :placeholder="t('devSched.editDrawer.fields.ownerPlaceholder')" />
+          <el-input
+            v-model="editForm.owner"
+            :placeholder="t('devSched.editDrawer.fields.ownerPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('devSched.editDrawer.fields.dagJson')" prop="dagJson">
           <el-input
@@ -189,8 +218,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editDrawerVisible = false">{{ t('devSched.editDrawer.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmitDag">{{ t('devSched.editDrawer.actions.save') }}</el-button>
+        <el-button @click="editDrawerVisible = false">
+          {{ t('devSched.editDrawer.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmitDag">
+          {{ t('devSched.editDrawer.actions.save') }}
+        </el-button>
       </template>
     </el-drawer>
 
@@ -206,10 +239,16 @@
         stripe
         border
         size="small"
-        :empty-text="runsError ? t('devSched.historyDrawer.loadFailed') : t('devSched.historyDrawer.empty')"
+        :empty-text="
+          runsError ? t('devSched.historyDrawer.loadFailed') : t('devSched.historyDrawer.empty')
+        "
       >
         <el-table-column prop="id" :label="t('devSched.historyDrawer.columns.id')" width="100" />
-        <el-table-column prop="runType" :label="t('devSched.historyDrawer.columns.runType')" width="120">
+        <el-table-column
+          prop="runType"
+          :label="t('devSched.historyDrawer.columns.runType')"
+          width="120"
+        >
           <template #default="{ row }">{{ runTypeLabel(row.runType) }}</template>
         </el-table-column>
         <el-table-column :label="t('devSched.historyDrawer.columns.status')" width="110">
@@ -219,19 +258,41 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="bizTime" :label="t('devSched.historyDrawer.columns.bizTime')" width="160">
-          <template #default="{ row }">{{ row.bizTime || t('devSched.table.notAvailable') }}</template>
+        <el-table-column
+          prop="bizTime"
+          :label="t('devSched.historyDrawer.columns.bizTime')"
+          width="160"
+        >
+          <template #default="{ row }">
+            {{ row.bizTime || t('devSched.table.notAvailable') }}
+          </template>
         </el-table-column>
-        <el-table-column prop="triggeredBy" :label="t('devSched.historyDrawer.columns.triggeredBy')" width="120">
-          <template #default="{ row }">{{ row.triggeredBy || t('devSched.table.notAvailable') }}</template>
+        <el-table-column
+          prop="triggeredBy"
+          :label="t('devSched.historyDrawer.columns.triggeredBy')"
+          width="120"
+        >
+          <template #default="{ row }">
+            {{ row.triggeredBy || t('devSched.table.notAvailable') }}
+          </template>
         </el-table-column>
-        <el-table-column prop="startTime" :label="t('devSched.historyDrawer.columns.startTime')" width="180">
-          <template #default="{ row }">{{ row.startTime || t('devSched.table.notAvailable') }}</template>
+        <el-table-column
+          prop="startTime"
+          :label="t('devSched.historyDrawer.columns.startTime')"
+          width="180"
+        >
+          <template #default="{ row }">
+            {{ row.startTime || t('devSched.table.notAvailable') }}
+          </template>
         </el-table-column>
         <el-table-column :label="t('devSched.historyDrawer.columns.duration')" width="100">
           <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
         </el-table-column>
-        <el-table-column :label="t('devSched.historyDrawer.columns.actions')" width="120" fixed="right">
+        <el-table-column
+          :label="t('devSched.historyDrawer.columns.actions')"
+          width="120"
+          fixed="right"
+        >
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'FAILED'"
@@ -295,8 +356,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="backfillDialogVisible = false">{{ t('devSched.backfillDialog.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="backfilling" @click="handleBackfill">{{ t('devSched.backfillDialog.actions.submit') }}</el-button>
+        <el-button @click="backfillDialogVisible = false">
+          {{ t('devSched.backfillDialog.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="backfilling" @click="handleBackfill">
+          {{ t('devSched.backfillDialog.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -487,9 +552,13 @@ async function handleRun(row: DagJob) {
 /** 重跑最近一次失败 */
 async function handleRerun(row: DagJob) {
   try {
-    await ElMessageBox.confirm(t('devSched.messages.rerunConfirm', { name: row.name }), t('devSched.messages.rerunConfirmTitle'), {
-      type: 'warning'
-    })
+    await ElMessageBox.confirm(
+      t('devSched.messages.rerunConfirm', { name: row.name }),
+      t('devSched.messages.rerunConfirmTitle'),
+      {
+        type: 'warning'
+      }
+    )
     // 通过 streamBatch 模块触发：先取最近一次失败 run，再 rerun
     const runsPage = await devSchedApi.streamBatchApi.listDagRuns(row.id, {
       status: 'FAILED',
@@ -512,12 +581,16 @@ async function handleRerun(row: DagJob) {
 /** 删除 DAG */
 async function handleDelete(row: DagJob) {
   try {
-    await ElMessageBox.confirm(t('devSched.messages.deleteConfirm', { name: row.name }), t('devSched.messages.deleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('devSched.messages.deleteConfirmTitle'),
-      cancelButtonText: t('devSched.editDrawer.actions.cancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('devSched.messages.deleteConfirm', { name: row.name }),
+      t('devSched.messages.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('devSched.messages.deleteConfirmTitle'),
+        cancelButtonText: t('devSched.editDrawer.actions.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await devSchedApi.deleteDag(row.id)
     ElMessage.success(t('devSched.messages.deleted'))
     await reload()
@@ -632,10 +705,7 @@ async function handleBackfill() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_TAG_TYPE_MAP: Record<
-  string,
-  'primary' | 'success' | 'danger' | 'info' | 'warning'
-> = {
+const STATUS_TAG_TYPE_MAP: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
   DRAFT: 'info',
   PENDING: 'info',
   SCHEDULED: 'warning',

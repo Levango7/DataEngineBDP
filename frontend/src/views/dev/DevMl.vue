@@ -123,7 +123,10 @@
         label-position="right"
       >
         <el-form-item :label="t('devMl.trainForm.fields.name')" prop="name">
-          <el-input v-model="trainForm.name" :placeholder="t('devMl.trainForm.fields.namePlaceholder')" />
+          <el-input
+            v-model="trainForm.name"
+            :placeholder="t('devMl.trainForm.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.algorithm')" prop="algorithm">
           <el-select v-model="trainForm.algorithm" style="width: 100%">
@@ -137,13 +140,19 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.dataset')" prop="dataset">
-          <el-input v-model="trainForm.dataset" :placeholder="t('devMl.trainForm.fields.datasetPlaceholder')" />
+          <el-input
+            v-model="trainForm.dataset"
+            :placeholder="t('devMl.trainForm.fields.datasetPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.epochs')" prop="epochs">
           <el-input-number v-model="trainForm.epochs" :min="1" :max="1000" />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.resourceSpec')" prop="resourceSpec">
-          <el-input v-model="trainForm.resourceSpec" :placeholder="t('devMl.trainForm.fields.resourceSpecPlaceholder')" />
+          <el-input
+            v-model="trainForm.resourceSpec"
+            :placeholder="t('devMl.trainForm.fields.resourceSpecPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.hyperparams')" prop="hyperparams">
           <el-input
@@ -155,12 +164,19 @@
           />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.owner')" prop="owner">
-          <el-input v-model="trainForm.owner" :placeholder="t('devMl.trainForm.fields.ownerPlaceholder')" />
+          <el-input
+            v-model="trainForm.owner"
+            :placeholder="t('devMl.trainForm.fields.ownerPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="trainDialogVisible = false">{{ t('devMl.trainForm.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmitTrain">{{ t('devMl.trainForm.actions.submit') }}</el-button>
+        <el-button @click="trainDialogVisible = false">
+          {{ t('devMl.trainForm.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmitTrain">
+          {{ t('devMl.trainForm.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -196,8 +212,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="registerDialogVisible = false">{{ t('devMl.registerForm.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="registering" @click="handleRegister">{{ t('devMl.registerForm.actions.submit') }}</el-button>
+        <el-button @click="registerDialogVisible = false">
+          {{ t('devMl.registerForm.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="registering" @click="handleRegister">
+          {{ t('devMl.registerForm.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -221,19 +241,30 @@
         <el-form-item :label="t('devMl.deployForm.fields.version')" prop="version">
           <el-input
             v-model="deployForm.version"
-            :placeholder="t('devMl.deployForm.fields.versionPlaceholder', { ver: currentModel?.latestVersion || 'v1' })"
+            :placeholder="
+              t('devMl.deployForm.fields.versionPlaceholder', {
+                ver: currentModel?.latestVersion || 'v1'
+              })
+            "
           />
         </el-form-item>
         <el-form-item :label="t('devMl.deployForm.fields.replicas')" prop="replicas">
           <el-input-number v-model="deployForm.replicas" :min="1" :max="20" />
         </el-form-item>
         <el-form-item :label="t('devMl.deployForm.fields.resourceSpec')" prop="resourceSpec">
-          <el-input v-model="deployForm.resourceSpec" :placeholder="t('devMl.deployForm.fields.resourceSpecPlaceholder')" />
+          <el-input
+            v-model="deployForm.resourceSpec"
+            :placeholder="t('devMl.deployForm.fields.resourceSpecPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="deployDialogVisible = false">{{ t('devMl.deployForm.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="deploying" @click="handleDeploy">{{ t('devMl.deployForm.actions.submit') }}</el-button>
+        <el-button @click="deployDialogVisible = false">
+          {{ t('devMl.deployForm.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="deploying" @click="handleDeploy">
+          {{ t('devMl.deployForm.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -245,14 +276,20 @@
       :close-on-click-modal="false"
     >
       <el-form label-width="100px" label-position="right">
-        <el-form-item :label="t('devMl.scaleForm.fields.currentReplicas')">{{ currentSvc?.replicas ?? 0 }}</el-form-item>
+        <el-form-item :label="t('devMl.scaleForm.fields.currentReplicas')">
+          {{ currentSvc?.replicas ?? 0 }}
+        </el-form-item>
         <el-form-item :label="t('devMl.scaleForm.fields.targetReplicas')">
           <el-input-number v-model="scaleTarget" :min="0" :max="50" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="scaleDialogVisible = false">{{ t('devMl.scaleForm.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="scaling" @click="handleScale">{{ t('devMl.scaleForm.actions.apply') }}</el-button>
+        <el-button @click="scaleDialogVisible = false">
+          {{ t('devMl.scaleForm.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="scaling" @click="handleScale">
+          {{ t('devMl.scaleForm.actions.apply') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -286,7 +323,11 @@
         size="small"
         :empty-text="t('devMl.versionDrawer.empty')"
       >
-        <el-table-column prop="version" :label="t('devMl.versionDrawer.columns.version')" width="120" />
+        <el-table-column
+          prop="version"
+          :label="t('devMl.versionDrawer.columns.version')"
+          width="120"
+        />
         <el-table-column :label="t('devMl.versionDrawer.columns.status')" width="110">
           <template #default="{ row }">
             <el-tag size="small" effect="light">{{ row.status }}</el-tag>
@@ -297,8 +338,14 @@
             {{ row.metrics ? formatMetrics(row.metrics) : t('devMl.versionDrawer.noStatus') }}
           </template>
         </el-table-column>
-        <el-table-column prop="registeredAt" :label="t('devMl.versionDrawer.columns.registeredAt')" width="180">
-          <template #default="{ row }">{{ row.registeredAt || t('devMl.versionDrawer.noStatus') }}</template>
+        <el-table-column
+          prop="registeredAt"
+          :label="t('devMl.versionDrawer.columns.registeredAt')"
+          width="180"
+        >
+          <template #default="{ row }">
+            {{ row.registeredAt || t('devMl.versionDrawer.noStatus') }}
+          </template>
         </el-table-column>
       </el-table>
     </el-drawer>
@@ -346,7 +393,7 @@ const trainStatusLabel = (s: string) => t(`devMl.status.train.${s}`, TRAIN_MAP[s
 const trainStatusType = (s: string) => TRAIN_MAP[s]?.t ?? 'info'
 const modelStatusLabel = (s?: string) => {
   const key = `devMl.status.model.${s ?? ''}`
-  return te(key) ? t(key) : s ?? t('devMl.versionDrawer.noStatus')
+  return te(key) ? t(key) : (s ?? t('devMl.versionDrawer.noStatus'))
 }
 const modelStatusType = (s?: string) => MODEL_MAP[s ?? '']?.t ?? 'info'
 const svcStatusLabel = (s: string) => t(`devMl.status.svc.${s}`, SVC_MAP[s]?.l ?? s)
@@ -613,7 +660,8 @@ async function refreshLog() {
   if (!currentLogJob.value) return
   logLoading.value = true
   try {
-    logContent.value = (await devMlApi.getTrainJobLogs(currentLogJob.value.id)) || t('devMl.logDialog.empty')
+    logContent.value =
+      (await devMlApi.getTrainJobLogs(currentLogJob.value.id)) || t('devMl.logDialog.empty')
     scrollLogToBottom()
   } catch {
     logContent.value = t('devMl.messages.logLoadFailed')
@@ -634,7 +682,11 @@ function canStop(s: string) {
 async function handleStopTrain(row: TrainJob) {
   stoppingId.value = row.id
   try {
-    await ElMessageBox.confirm(t('devMl.messages.stopTrainConfirm', { name: row.name }), t('devMl.messages.stopTrainConfirmTitle'), { type: 'warning' })
+    await ElMessageBox.confirm(
+      t('devMl.messages.stopTrainConfirm', { name: row.name }),
+      t('devMl.messages.stopTrainConfirmTitle'),
+      { type: 'warning' }
+    )
     await devMlApi.stopTrainJob(row.id)
     ElMessage.success(t('devMl.messages.trainStopped'))
     await loadTrain()
@@ -655,10 +707,14 @@ function canScale(s: string) {
 async function handleStopSvc(row: InferenceService) {
   stoppingSvcId.value = row.id
   try {
-    await ElMessageBox.confirm(t('devMl.messages.stopSvcConfirm', { name: row.serviceName }), t('devMl.messages.stopSvcConfirmTitle'), {
-      type: 'warning',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('devMl.messages.stopSvcConfirm', { name: row.serviceName }),
+      t('devMl.messages.stopSvcConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await devMlApi.stopInference(row.id)
     ElMessage.success(t('devMl.messages.svcStopped'))
     await loadServices()
@@ -671,10 +727,14 @@ async function handleStopSvc(row: InferenceService) {
 // ── 删除模型 ──────────────────────────────────────────
 async function handleDeleteModel(row: MlModel) {
   try {
-    await ElMessageBox.confirm(t('devMl.messages.deleteConfirm', { name: row.name }), t('devMl.messages.deleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('devMl.messages.deleteConfirm', { name: row.name }),
+      t('devMl.messages.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await devMlApi.deleteModel(row.id)
     ElMessage.success(t('devMl.messages.modelDeleted'))
     await loadModels()

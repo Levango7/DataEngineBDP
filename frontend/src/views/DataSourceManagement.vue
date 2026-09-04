@@ -7,8 +7,16 @@
 
     <el-card shadow="never" class="page-card">
       <!-- 顶部操作栏 -->
-      <div class="toolbar" role="toolbar" :aria-label="t('dataSourceManagement.table.paginationAria')">
-        <el-button type="primary" :aria-label="t('dataSourceManagement.toolbar.create')" @click="openCreateDialog">
+      <div
+        class="toolbar"
+        role="toolbar"
+        :aria-label="t('dataSourceManagement.table.paginationAria')"
+      >
+        <el-button
+          type="primary"
+          :aria-label="t('dataSourceManagement.toolbar.create')"
+          @click="openCreateDialog"
+        >
           {{ t('dataSourceManagement.toolbar.create') }}
         </el-button>
         <el-input
@@ -28,10 +36,20 @@
           :aria-label="t('dataSourceManagement.toolbar.typeFilterAria')"
           @change="handleSearch"
         >
-          <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          <el-option
+            v-for="opt in typeOptions"
+            :key="opt.value"
+            :label="opt.label"
+            :value="opt.value"
+          />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('dataSourceManagement.toolbar.refreshAria')" @click="loadList" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('dataSourceManagement.toolbar.refreshAria')"
+          @click="loadList"
+        />
       </div>
 
       <!-- 数据源列表 -->
@@ -42,10 +60,20 @@
         border
         role="table"
         :aria-label="t('dataSourceManagement.table.aria')"
-        :empty-text="error ? t('dataSourceManagement.table.loadFailed') : t('dataSourceManagement.table.empty')"
+        :empty-text="
+          error ? t('dataSourceManagement.table.loadFailed') : t('dataSourceManagement.table.empty')
+        "
       >
-        <el-table-column prop="id" :label="t('dataSourceManagement.table.columns.id')" width="120" />
-        <el-table-column prop="name" :label="t('dataSourceManagement.table.columns.name')" min-width="160" />
+        <el-table-column
+          prop="id"
+          :label="t('dataSourceManagement.table.columns.id')"
+          width="120"
+        />
+        <el-table-column
+          prop="name"
+          :label="t('dataSourceManagement.table.columns.name')"
+          min-width="160"
+        />
         <el-table-column :label="t('dataSourceManagement.table.columns.type')" width="120">
           <template #default="{ row }">
             <el-tag effect="light">{{ typeLabel(row.type) }}</el-tag>
@@ -54,8 +82,16 @@
         <el-table-column :label="t('dataSourceManagement.table.columns.hostPort')" width="180">
           <template #default="{ row }">{{ row.host }}:{{ row.port }}</template>
         </el-table-column>
-        <el-table-column prop="database" :label="t('dataSourceManagement.table.columns.database')" width="140" />
-        <el-table-column prop="username" :label="t('dataSourceManagement.table.columns.username')" width="120" />
+        <el-table-column
+          prop="database"
+          :label="t('dataSourceManagement.table.columns.database')"
+          width="140"
+        />
+        <el-table-column
+          prop="username"
+          :label="t('dataSourceManagement.table.columns.username')"
+          width="120"
+        />
         <el-table-column :label="t('dataSourceManagement.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
@@ -63,8 +99,16 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" :label="t('dataSourceManagement.table.columns.createdAt')" width="180" />
-        <el-table-column :label="t('dataSourceManagement.table.columns.actions')" width="220" fixed="right">
+        <el-table-column
+          prop="createdAt"
+          :label="t('dataSourceManagement.table.columns.createdAt')"
+          width="180"
+        />
+        <el-table-column
+          :label="t('dataSourceManagement.table.columns.actions')"
+          width="220"
+          fixed="right"
+        >
           <template #default="{ row }">
             <el-button
               link
@@ -96,7 +140,11 @@
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap" role="navigation" :aria-label="t('dataSourceManagement.table.paginationAria')">
+      <div
+        class="pagination-wrap"
+        role="navigation"
+        :aria-label="t('dataSourceManagement.table.paginationAria')"
+      >
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -114,12 +162,20 @@
     <!-- 新增/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? t('dataSourceManagement.dialog.editTitle') : t('dataSourceManagement.dialog.createTitle')"
+      :title="
+        isEdit
+          ? t('dataSourceManagement.dialog.editTitle')
+          : t('dataSourceManagement.dialog.createTitle')
+      "
       width="560px"
       :close-on-click-modal="false"
       role="dialog"
       aria-modal="true"
-      :aria-label="isEdit ? t('dataSourceManagement.dialog.editAria') : t('dataSourceManagement.dialog.createAria')"
+      :aria-label="
+        isEdit
+          ? t('dataSourceManagement.dialog.editAria')
+          : t('dataSourceManagement.dialog.createAria')
+      "
       @closed="resetForm"
     >
       <el-form
@@ -130,7 +186,11 @@
         label-position="right"
       >
         <el-form-item :label="t('dataSourceManagement.dialog.fields.name')" prop="name">
-          <el-input v-model="formData.name" :placeholder="t('dataSourceManagement.dialog.fields.namePlaceholder')" :aria-label="t('dataSourceManagement.dialog.fields.nameAria')" />
+          <el-input
+            v-model="formData.name"
+            :placeholder="t('dataSourceManagement.dialog.fields.namePlaceholder')"
+            :aria-label="t('dataSourceManagement.dialog.fields.nameAria')"
+          />
         </el-form-item>
         <el-form-item :label="t('dataSourceManagement.dialog.fields.type')" prop="type">
           <el-select
@@ -139,11 +199,20 @@
             :aria-label="t('dataSourceManagement.dialog.fields.typeAria')"
             @change="onTypeChange"
           >
-            <el-option v-for="opt in typeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+            <el-option
+              v-for="opt in typeOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('dataSourceManagement.dialog.fields.host')" prop="host">
-          <el-input v-model="formData.host" :placeholder="t('dataSourceManagement.dialog.fields.hostPlaceholder')" :aria-label="t('dataSourceManagement.dialog.fields.hostAria')" />
+          <el-input
+            v-model="formData.host"
+            :placeholder="t('dataSourceManagement.dialog.fields.hostPlaceholder')"
+            :aria-label="t('dataSourceManagement.dialog.fields.hostAria')"
+          />
         </el-form-item>
         <el-form-item :label="t('dataSourceManagement.dialog.fields.port')" prop="port">
           <el-input-number
@@ -155,7 +224,11 @@
             :aria-label="t('dataSourceManagement.dialog.fields.portAria')"
           />
         </el-form-item>
-        <el-form-item v-if="needDatabase" :label="t('dataSourceManagement.dialog.fields.database')" prop="database">
+        <el-form-item
+          v-if="needDatabase"
+          :label="t('dataSourceManagement.dialog.fields.database')"
+          prop="database"
+        >
           <el-input
             v-model="formData.database"
             :placeholder="t('dataSourceManagement.dialog.fields.databasePlaceholder')"
@@ -163,27 +236,48 @@
           />
         </el-form-item>
         <el-form-item :label="t('dataSourceManagement.dialog.fields.username')" prop="username">
-          <el-input v-model="formData.username" :placeholder="t('dataSourceManagement.dialog.fields.usernamePlaceholder')" :aria-label="t('dataSourceManagement.dialog.fields.usernameAria')" />
+          <el-input
+            v-model="formData.username"
+            :placeholder="t('dataSourceManagement.dialog.fields.usernamePlaceholder')"
+            :aria-label="t('dataSourceManagement.dialog.fields.usernameAria')"
+          />
         </el-form-item>
         <el-form-item :label="t('dataSourceManagement.dialog.fields.password')" prop="password">
           <el-input
             v-model="formData.password"
             type="password"
             show-password
-            :placeholder="isEdit ? t('dataSourceManagement.dialog.fields.passwordPlaceholderEdit') : t('dataSourceManagement.dialog.fields.passwordPlaceholderCreate')"
+            :placeholder="
+              isEdit
+                ? t('dataSourceManagement.dialog.fields.passwordPlaceholderEdit')
+                : t('dataSourceManagement.dialog.fields.passwordPlaceholderCreate')
+            "
             :aria-label="t('dataSourceManagement.dialog.fields.passwordAria')"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button :aria-label="t('dataSourceManagement.dialog.actions.cancelAria')" @click="dialogVisible = false">{{ t('dataSourceManagement.dialog.actions.cancel') }}</el-button>
+        <el-button
+          :aria-label="t('dataSourceManagement.dialog.actions.cancelAria')"
+          @click="dialogVisible = false"
+        >
+          {{ t('dataSourceManagement.dialog.actions.cancel') }}
+        </el-button>
         <el-button
           type="primary"
           :loading="submitting"
-          :aria-label="isEdit ? t('dataSourceManagement.dialog.actions.saveAria') : t('dataSourceManagement.dialog.actions.createAriaBtn')"
+          :aria-label="
+            isEdit
+              ? t('dataSourceManagement.dialog.actions.saveAria')
+              : t('dataSourceManagement.dialog.actions.createAriaBtn')
+          "
           @click="handleSubmit"
         >
-          {{ isEdit ? t('dataSourceManagement.dialog.actions.save') : t('dataSourceManagement.dialog.actions.create') }}
+          {{
+            isEdit
+              ? t('dataSourceManagement.dialog.actions.save')
+              : t('dataSourceManagement.dialog.actions.create')
+          }}
         </el-button>
       </template>
     </el-dialog>
@@ -297,11 +391,21 @@ const formData = reactive<DsForm>({
 })
 
 const formRules = computed<FormRules>(() => ({
-  name: [{ required: true, message: t('dataSourceManagement.rules.nameRequired'), trigger: 'blur' }],
-  type: [{ required: true, message: t('dataSourceManagement.rules.typeRequired'), trigger: 'change' }],
-  host: [{ required: true, message: t('dataSourceManagement.rules.hostRequired'), trigger: 'blur' }],
-  port: [{ required: true, message: t('dataSourceManagement.rules.portRequired'), trigger: 'blur' }],
-  username: [{ required: true, message: t('dataSourceManagement.rules.usernameRequired'), trigger: 'blur' }]
+  name: [
+    { required: true, message: t('dataSourceManagement.rules.nameRequired'), trigger: 'blur' }
+  ],
+  type: [
+    { required: true, message: t('dataSourceManagement.rules.typeRequired'), trigger: 'change' }
+  ],
+  host: [
+    { required: true, message: t('dataSourceManagement.rules.hostRequired'), trigger: 'blur' }
+  ],
+  port: [
+    { required: true, message: t('dataSourceManagement.rules.portRequired'), trigger: 'blur' }
+  ],
+  username: [
+    { required: true, message: t('dataSourceManagement.rules.usernameRequired'), trigger: 'blur' }
+  ]
 }))
 
 /** 是否需要数据库字段 */
@@ -445,10 +549,7 @@ function typeLabel(type: DataSourceType): string {
   return item?.label || type
 }
 
-const STATUS_TAG_TYPE_MAP: Record<
-  DataSourceStatus,
-  'success' | 'info' | 'warning'
-> = {
+const STATUS_TAG_TYPE_MAP: Record<DataSourceStatus, 'success' | 'info' | 'warning'> = {
   connected: 'success',
   disconnected: 'info',
   testing: 'warning'

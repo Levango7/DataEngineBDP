@@ -36,7 +36,11 @@
         stripe
         border
         :empty-text="
-          dagId ? (error ? t('scheduler.emptyError') : t('scheduler.empty')) : t('scheduler.needDagId')
+          dagId
+            ? error
+              ? t('scheduler.emptyError')
+              : t('scheduler.empty')
+            : t('scheduler.needDagId')
         "
       >
         <el-table-column prop="id" label="RunId" width="90" />
@@ -223,7 +227,11 @@ async function doRerun(row: DagRunRecord) {
     await ElMessageBox.confirm(
       t('scheduler.rerunConfirm.message', { dagId: row.dagId, id: row.id }),
       t('scheduler.rerunConfirm.title'),
-      { type: 'warning', confirmButtonText: t('scheduler.rerunConfirm.confirm'), cancelButtonText: t('common.cancel') }
+      {
+        type: 'warning',
+        confirmButtonText: t('scheduler.rerunConfirm.confirm'),
+        cancelButtonText: t('common.cancel')
+      }
     )
   } catch {
     return

@@ -41,7 +41,13 @@
           <h3>{{ t('infraK8s.kpi.envCount') }}</h3>
           <div class="kpi">{{ kpi.envCount }}</div>
           <div class="meta">
-            {{ t('infraK8s.kpi.envBreakdown', { p: kpi.privateCount, c: kpi.cloudCount, x: kpi.xinchuangCount }) }}
+            {{
+              t('infraK8s.kpi.envBreakdown', {
+                p: kpi.privateCount,
+                c: kpi.cloudCount,
+                x: kpi.xinchuangCount
+              })
+            }}
           </div>
         </div>
       </template>
@@ -50,7 +56,9 @@
     <!-- 操作栏 + 环境筛选 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">{{ t('infraK8s.toolbar.create') }}</el-button>
+        <el-button type="primary" @click="openCreateDialog">
+          {{ t('infraK8s.toolbar.create') }}
+        </el-button>
         <el-tabs v-model="activeEnv" type="card" class="env-tabs" @tab-change="handleEnvChange">
           <el-tab-pane :label="t('infraK8s.toolbar.envTabs.all')" name="all" />
           <el-tab-pane :label="t('infraK8s.toolbar.envTabs.private')" name="private" />
@@ -58,7 +66,12 @@
           <el-tab-pane :label="t('infraK8s.toolbar.envTabs.xinchuang')" name="xinchuang" />
         </el-tabs>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('infraK8s.toolbar.refreshAria')" @click="reload" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('infraK8s.toolbar.refreshAria')"
+          @click="reload"
+        />
       </div>
 
       <el-table
@@ -69,7 +82,11 @@
         style="width: 100%"
         :empty-text="error ? t('infraK8s.table.loadFailed') : t('infraK8s.table.empty')"
       >
-        <el-table-column prop="clusterName" :label="t('infraK8s.table.columns.name')" min-width="180" />
+        <el-table-column
+          prop="clusterName"
+          :label="t('infraK8s.table.columns.name')"
+          min-width="180"
+        />
         <el-table-column :label="t('infraK8s.table.columns.env')" width="110">
           <template #default="{ row }">
             <el-tag :type="envTagType(row.environment)" effect="light">
@@ -87,15 +104,27 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="k8sVersion" :label="t('infraK8s.table.columns.k8sVersion')" width="110" />
+        <el-table-column
+          prop="k8sVersion"
+          :label="t('infraK8s.table.columns.k8sVersion')"
+          width="110"
+        />
         <el-table-column :label="t('infraK8s.table.columns.nodeCount')" width="120" align="center">
           <template #default="{ row }">{{ row.controlPlaneCount + row.workerCount }}</template>
         </el-table-column>
-        <el-table-column prop="createdAt" :label="t('infraK8s.table.columns.createdAt')" width="180" />
+        <el-table-column
+          prop="createdAt"
+          :label="t('infraK8s.table.columns.createdAt')"
+          width="180"
+        />
         <el-table-column :label="t('infraK8s.table.columns.actions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openDetailDrawer(row)">{{ t('infraK8s.table.actions.detail') }}</el-button>
-            <el-button link type="danger" @click="handleDestroy(row)">{{ t('infraK8s.table.actions.destroy') }}</el-button>
+            <el-button link type="primary" @click="openDetailDrawer(row)">
+              {{ t('infraK8s.table.actions.detail') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDestroy(row)">
+              {{ t('infraK8s.table.actions.destroy') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -104,13 +133,19 @@
     <!-- 集群详情抽屉 -->
     <el-drawer
       v-model="detailDrawerVisible"
-      :title="detailCluster ? t('infraK8s.detail.title', { name: detailCluster.clusterName }) : t('infraK8s.detail.titleFallback')"
+      :title="
+        detailCluster
+          ? t('infraK8s.detail.title', { name: detailCluster.clusterName })
+          : t('infraK8s.detail.titleFallback')
+      "
       size="60%"
       @closed="closeDetailDrawer"
     >
       <template v-if="detailCluster">
         <el-descriptions :column="2" border>
-          <el-descriptions-item :label="t('infraK8s.detail.fields.clusterId')">{{ detailCluster.clusterId }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraK8s.detail.fields.clusterId')">
+            {{ detailCluster.clusterId }}
+          </el-descriptions-item>
           <el-descriptions-item :label="t('infraK8s.detail.fields.clusterName')">
             {{ detailCluster.clusterName }}
           </el-descriptions-item>
@@ -134,7 +169,9 @@
           <el-descriptions-item :label="t('infraK8s.detail.fields.worker')">
             {{ detailCluster.workerCount }}
           </el-descriptions-item>
-          <el-descriptions-item :label="t('infraK8s.detail.fields.podCidr')">{{ detailCluster.podCidr }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraK8s.detail.fields.podCidr')">
+            {{ detailCluster.podCidr }}
+          </el-descriptions-item>
           <el-descriptions-item :label="t('infraK8s.detail.fields.serviceCidr')">
             {{ detailCluster.serviceCidr }}
           </el-descriptions-item>
@@ -153,9 +190,15 @@
           stripe
           border
           size="small"
-          :empty-text="nodesError ? t('infraK8s.detail.nodesLoadFailed') : t('infraK8s.detail.nodesEmpty')"
+          :empty-text="
+            nodesError ? t('infraK8s.detail.nodesLoadFailed') : t('infraK8s.detail.nodesEmpty')
+          "
         >
-          <el-table-column prop="name" :label="t('infraK8s.detail.nodeColumns.name')" min-width="180" />
+          <el-table-column
+            prop="name"
+            :label="t('infraK8s.detail.nodeColumns.name')"
+            min-width="180"
+          />
           <el-table-column :label="t('infraK8s.detail.nodeColumns.role')" width="120">
             <template #default="{ row }">
               <el-tag
@@ -178,12 +221,20 @@
             </template>
           </el-table-column>
           <el-table-column :label="t('infraK8s.detail.nodeColumns.cpu')" width="140">
-            <template #default="{ row }">{{ t('infraK8s.detail.cpuFmt', { used: row.cpuUsed, cap: row.cpuCapacity }) }}</template>
+            <template #default="{ row }">
+              {{ t('infraK8s.detail.cpuFmt', { used: row.cpuUsed, cap: row.cpuCapacity }) }}
+            </template>
           </el-table-column>
           <el-table-column :label="t('infraK8s.detail.nodeColumns.mem')" width="140">
-            <template #default="{ row }">{{ t('infraK8s.detail.memFmt', { used: row.memUsed, cap: row.memCapacity }) }}</template>
+            <template #default="{ row }">
+              {{ t('infraK8s.detail.memFmt', { used: row.memUsed, cap: row.memCapacity }) }}
+            </template>
           </el-table-column>
-          <el-table-column prop="osImage" :label="t('infraK8s.detail.nodeColumns.os')" min-width="160" />
+          <el-table-column
+            prop="osImage"
+            :label="t('infraK8s.detail.nodeColumns.os')"
+            min-width="160"
+          />
         </el-table>
 
         <h3 style="margin: 20px 0 12px">{{ t('infraK8s.detail.componentsTitle') }}</h3>
@@ -235,7 +286,10 @@
           <el-form-item :label="t('infraK8s.create.fields.provider')" prop="provider">
             <el-select v-model="createForm.provider" style="width: 100%">
               <el-option :label="t('infraK8s.create.providerOptions.vsphere')" value="vsphere" />
-              <el-option :label="t('infraK8s.create.providerOptions.openstack')" value="openstack" />
+              <el-option
+                :label="t('infraK8s.create.providerOptions.openstack')"
+                value="openstack"
+              />
               <el-option :label="t('infraK8s.create.providerOptions.huawei')" value="huawei" />
               <el-option :label="t('infraK8s.create.providerOptions.ali')" value="ali" />
               <el-option :label="t('infraK8s.create.providerOptions.tencent')" value="tencent" />
@@ -246,7 +300,10 @@
 
         <template v-else-if="createStep === 1">
           <el-form-item :label="t('infraK8s.create.fields.clusterName')" prop="clusterName">
-            <el-input v-model="createForm.clusterName" :placeholder="t('infraK8s.create.fields.clusterNamePlaceholder')" />
+            <el-input
+              v-model="createForm.clusterName"
+              :placeholder="t('infraK8s.create.fields.clusterNamePlaceholder')"
+            />
           </el-form-item>
           <el-form-item :label="t('infraK8s.create.fields.k8sVersion')" prop="k8sVersion">
             <el-select v-model="createForm.k8sVersion" style="width: 100%">
@@ -290,22 +347,39 @@
               {{ createForm.k8sVersion }}
             </el-descriptions-item>
             <el-descriptions-item :label="t('infraK8s.create.summary.nodeCount')">
-              {{ t('infraK8s.create.summary.nodeCountFmt', { master: createForm.masterCount, worker: createForm.workerCount }) }}
+              {{
+                t('infraK8s.create.summary.nodeCountFmt', {
+                  master: createForm.masterCount,
+                  worker: createForm.workerCount
+                })
+              }}
             </el-descriptions-item>
             <el-descriptions-item :label="t('infraK8s.create.summary.spec')">
-              {{ t('infraK8s.create.summary.specFmt', { cpu: createForm.cpu, memory: createForm.memory, disk: createForm.disk }) }}
+              {{
+                t('infraK8s.create.summary.specFmt', {
+                  cpu: createForm.cpu,
+                  memory: createForm.memory,
+                  disk: createForm.disk
+                })
+              }}
             </el-descriptions-item>
           </el-descriptions>
         </template>
       </el-form>
 
       <template #footer>
-        <el-button v-if="createStep > 0" @click="createStep--">{{ t('infraK8s.create.actions.prev') }}</el-button>
-        <el-button v-if="createStep < 3" type="primary" @click="nextCreateStep">{{ t('infraK8s.create.actions.next') }}</el-button>
+        <el-button v-if="createStep > 0" @click="createStep--">
+          {{ t('infraK8s.create.actions.prev') }}
+        </el-button>
+        <el-button v-if="createStep < 3" type="primary" @click="nextCreateStep">
+          {{ t('infraK8s.create.actions.next') }}
+        </el-button>
         <el-button v-else type="primary" :loading="submitting" @click="handleCreate">
           {{ t('infraK8s.create.actions.submit') }}
         </el-button>
-        <el-button @click="createDialogVisible = false">{{ t('infraK8s.create.actions.cancel') }}</el-button>
+        <el-button @click="createDialogVisible = false">
+          {{ t('infraK8s.create.actions.cancel') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -446,10 +520,16 @@ const createForm = reactive<CreateForm>({
 })
 
 const createRules = computed<FormRules>(() => ({
-  environment: [{ required: true, message: t('infraK8s.rules.environmentRequired'), trigger: 'change' }],
+  environment: [
+    { required: true, message: t('infraK8s.rules.environmentRequired'), trigger: 'change' }
+  ],
   provider: [{ required: true, message: t('infraK8s.rules.providerRequired'), trigger: 'change' }],
-  clusterName: [{ required: true, message: t('infraK8s.rules.clusterNameRequired'), trigger: 'blur' }],
-  k8sVersion: [{ required: true, message: t('infraK8s.rules.k8sVersionRequired'), trigger: 'change' }]
+  clusterName: [
+    { required: true, message: t('infraK8s.rules.clusterNameRequired'), trigger: 'blur' }
+  ],
+  k8sVersion: [
+    { required: true, message: t('infraK8s.rules.k8sVersionRequired'), trigger: 'change' }
+  ]
 }))
 
 /** 打开新建弹窗 */
@@ -524,12 +604,16 @@ async function handleCreate() {
 /** 销毁集群（带二次确认） */
 async function handleDestroy(row: CrossEnvClusterInfo) {
   try {
-    await ElMessageBox.confirm(t('infraK8s.messages.destroyConfirm', { name: row.clusterName }), t('infraK8s.messages.destroyConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('infraK8s.messages.destroyConfirmOk'),
-      cancelButtonText: t('infraK8s.messages.destroyConfirmCancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('infraK8s.messages.destroyConfirm', { name: row.clusterName }),
+      t('infraK8s.messages.destroyConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('infraK8s.messages.destroyConfirmOk'),
+        cancelButtonText: t('infraK8s.messages.destroyConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await infraApi.destroyCluster(row.environment, row.clusterId)
     ElMessage.success(t('infraK8s.messages.destroyed'))
     await reload()

@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ clustersError.message }}，
-            <a href="javascript:void(0)" @click="reloadClusters">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="reloadClusters">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -30,7 +32,9 @@
         <div class="card">
           <h3>{{ t('engines.kafka.kpi.brokerCount') }}</h3>
           <div class="kpi">{{ brokers?.length ?? 0 }}</div>
-          <div class="meta">{{ t('engines.kafka.kpi.brokerAlive', { count: brokerAliveCount }) }}</div>
+          <div class="meta">
+            {{ t('engines.kafka.kpi.brokerAlive', { count: brokerAliveCount }) }}
+          </div>
         </div>
         <div class="card">
           <h3>{{ t('engines.kafka.kpi.topicCount') }}</h3>
@@ -70,7 +74,12 @@
         >
           {{ t('engines.kafka.create.createTopic') }}
         </el-button>
-        <el-button :icon="Refresh" circle :aria-label="t('engines.kafka.select.refreshAria')" @click="reloadCurrent" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('engines.kafka.select.refreshAria')"
+          @click="reloadCurrent"
+        />
       </div>
 
       <!-- Tab1 Broker 列表 -->
@@ -81,12 +90,26 @@
           stripe
           border
           style="width: 100%"
-          :empty-text="brokersError ? t('engines.kafka.loadFailed') : t('engines.kafka.broker.empty')"
+          :empty-text="
+            brokersError ? t('engines.kafka.loadFailed') : t('engines.kafka.broker.empty')
+          "
         >
           <el-table-column prop="id" :label="t('engines.kafka.broker.columns.id')" width="100" />
-          <el-table-column prop="host" :label="t('engines.kafka.broker.columns.host')" min-width="180" />
-          <el-table-column prop="port" :label="t('engines.kafka.broker.columns.port')" width="100" />
-          <el-table-column prop="version" :label="t('engines.kafka.broker.columns.version')" width="140" />
+          <el-table-column
+            prop="host"
+            :label="t('engines.kafka.broker.columns.host')"
+            min-width="180"
+          />
+          <el-table-column
+            prop="port"
+            :label="t('engines.kafka.broker.columns.port')"
+            width="100"
+          />
+          <el-table-column
+            prop="version"
+            :label="t('engines.kafka.broker.columns.version')"
+            width="140"
+          />
           <el-table-column :label="t('engines.kafka.broker.columns.status')" width="120">
             <template #default="{ row }">
               <el-tag :type="brokerStatusTagType(row.status)" effect="light" size="small">
@@ -94,7 +117,11 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="t('engines.kafka.broker.columns.leaderCount')" width="140" align="right">
+          <el-table-column
+            :label="t('engines.kafka.broker.columns.leaderCount')"
+            width="140"
+            align="right"
+          >
             <template #default="{ row }">{{ row.partitionLeaderCount ?? '--' }}</template>
           </el-table-column>
         </el-table>
@@ -118,23 +145,47 @@
           style="width: 100%"
           :empty-text="topicsError ? t('engines.kafka.loadFailed') : t('engines.kafka.topic.empty')"
         >
-          <el-table-column prop="name" :label="t('engines.kafka.topic.columns.name')" min-width="200" />
-          <el-table-column :label="t('engines.kafka.topic.columns.partitions')" width="100" align="center">
+          <el-table-column
+            prop="name"
+            :label="t('engines.kafka.topic.columns.name')"
+            min-width="200"
+          />
+          <el-table-column
+            :label="t('engines.kafka.topic.columns.partitions')"
+            width="100"
+            align="center"
+          >
             <template #default="{ row }">{{ row.partitions }}</template>
           </el-table-column>
-          <el-table-column :label="t('engines.kafka.topic.columns.replicas')" width="100" align="center">
+          <el-table-column
+            :label="t('engines.kafka.topic.columns.replicas')"
+            width="100"
+            align="center"
+          >
             <template #default="{ row }">{{ row.replicas }}</template>
           </el-table-column>
-          <el-table-column :label="t('engines.kafka.topic.columns.messageCount')" width="160" align="right">
+          <el-table-column
+            :label="t('engines.kafka.topic.columns.messageCount')"
+            width="160"
+            align="right"
+          >
             <template #default="{ row }">{{ row.messageCount.toLocaleString() }}</template>
           </el-table-column>
           <el-table-column :label="t('engines.kafka.topic.columns.size')" width="120" align="right">
             <template #default="{ row }">{{ formatBytes(row.sizeBytes) }}</template>
           </el-table-column>
-          <el-table-column :label="t('engines.kafka.topic.columns.actions')" width="220" fixed="right">
+          <el-table-column
+            :label="t('engines.kafka.topic.columns.actions')"
+            width="220"
+            fixed="right"
+          >
             <template #default="{ row }">
-              <el-button link type="primary" @click="openSampleDialog(row)">{{ t('engines.kafka.topic.actions.sample') }}</el-button>
-              <el-button link type="danger" @click="handleDeleteTopic(row)">{{ t('engines.kafka.topic.actions.delete') }}</el-button>
+              <el-button link type="primary" @click="openSampleDialog(row)">
+                {{ t('engines.kafka.topic.actions.sample') }}
+              </el-button>
+              <el-button link type="danger" @click="handleDeleteTopic(row)">
+                {{ t('engines.kafka.topic.actions.delete') }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -158,8 +209,16 @@
           style="width: 100%"
           :empty-text="groupsError ? t('engines.kafka.loadFailed') : t('engines.kafka.group.empty')"
         >
-          <el-table-column prop="groupId" :label="t('engines.kafka.group.columns.name')" min-width="200" />
-          <el-table-column prop="engine" :label="t('engines.kafka.group.columns.engine')" width="160" />
+          <el-table-column
+            prop="groupId"
+            :label="t('engines.kafka.group.columns.name')"
+            min-width="200"
+          />
+          <el-table-column
+            prop="engine"
+            :label="t('engines.kafka.group.columns.engine')"
+            width="160"
+          />
           <el-table-column :label="t('engines.kafka.group.columns.lag')" width="140" align="right">
             <template #default="{ row }">
               <span :class="{ 'lag-warn': row.lag > 1000 }">{{ row.lag.toLocaleString() }}</span>
@@ -172,10 +231,18 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="t('engines.kafka.group.columns.members')" width="100" align="center">
+          <el-table-column
+            :label="t('engines.kafka.group.columns.members')"
+            width="100"
+            align="center"
+          >
             <template #default="{ row }">{{ row.memberCount ?? '--' }}</template>
           </el-table-column>
-          <el-table-column :label="t('engines.kafka.group.columns.topics')" width="120" align="center">
+          <el-table-column
+            :label="t('engines.kafka.group.columns.topics')"
+            width="120"
+            align="center"
+          >
             <template #default="{ row }">{{ row.topicCount ?? '--' }}</template>
           </el-table-column>
         </el-table>
@@ -198,7 +265,10 @@
         label-position="right"
       >
         <el-form-item :label="t('engines.kafka.create.fields.name')" prop="name">
-          <el-input v-model="createTopicForm.name" :placeholder="t('engines.kafka.create.fields.namePlaceholder')" />
+          <el-input
+            v-model="createTopicForm.name"
+            :placeholder="t('engines.kafka.create.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engines.kafka.create.fields.partitions')" prop="partitions">
           <el-input-number v-model="createTopicForm.partitions" :min="1" :max="1000" />
@@ -208,7 +278,9 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createTopicDialogVisible = false">{{ t('engines.kafka.create.actions.cancel') }}</el-button>
+        <el-button @click="createTopicDialogVisible = false">
+          {{ t('engines.kafka.create.actions.cancel') }}
+        </el-button>
         <el-button type="primary" :loading="creatingTopic" @click="handleCreateTopic">
           {{ t('engines.kafka.create.actions.create') }}
         </el-button>
@@ -224,7 +296,9 @@
     >
       <div v-loading="sampling" class="sample-result">
         <template v-if="sampleMessages.length > 0">
-          <div class="sample-meta">{{ t('engines.kafka.sample.totalFmt', { count: sampleMessages.length }) }}</div>
+          <div class="sample-meta">
+            {{ t('engines.kafka.sample.totalFmt', { count: sampleMessages.length }) }}
+          </div>
           <el-table
             :data="sampleMessages"
             stripe
@@ -233,21 +307,45 @@
             style="width: 100%"
             max-height="420"
           >
-            <el-table-column :label="t('engines.kafka.sample.columns.partition')" width="80" align="center">
+            <el-table-column
+              :label="t('engines.kafka.sample.columns.partition')"
+              width="80"
+              align="center"
+            >
               <template #default="{ row }">{{ row.partition }}</template>
             </el-table-column>
-            <el-table-column :label="t('engines.kafka.sample.columns.offset')" width="120" align="right">
+            <el-table-column
+              :label="t('engines.kafka.sample.columns.offset')"
+              width="120"
+              align="right"
+            >
               <template #default="{ row }">{{ row.offset }}</template>
             </el-table-column>
-            <el-table-column prop="timestamp" :label="t('engines.kafka.sample.columns.timestamp')" width="180" />
-            <el-table-column prop="key" :label="t('engines.kafka.sample.columns.key')" width="160" show-overflow-tooltip />
-            <el-table-column prop="value" :label="t('engines.kafka.sample.columns.value')" min-width="240" show-overflow-tooltip />
+            <el-table-column
+              prop="timestamp"
+              :label="t('engines.kafka.sample.columns.timestamp')"
+              width="180"
+            />
+            <el-table-column
+              prop="key"
+              :label="t('engines.kafka.sample.columns.key')"
+              width="160"
+              show-overflow-tooltip
+            />
+            <el-table-column
+              prop="value"
+              :label="t('engines.kafka.sample.columns.value')"
+              min-width="240"
+              show-overflow-tooltip
+            />
           </el-table>
         </template>
         <el-empty v-else-if="!sampling" :description="t('engines.kafka.sample.empty')" />
       </div>
       <template #footer>
-        <el-button @click="sampleDialogVisible = false">{{ t('engines.kafka.sample.close') }}</el-button>
+        <el-button @click="sampleDialogVisible = false">
+          {{ t('engines.kafka.sample.close') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -378,8 +476,12 @@ const createTopicForm = reactive<CreateTopicForm>({
 
 const createTopicRules = computed<FormRules>(() => ({
   name: [{ required: true, message: t('engines.kafka.rules.nameRequired'), trigger: 'blur' }],
-  partitions: [{ required: true, message: t('engines.kafka.rules.partitionsRequired'), trigger: 'change' }],
-  replicas: [{ required: true, message: t('engines.kafka.rules.replicasRequired'), trigger: 'change' }]
+  partitions: [
+    { required: true, message: t('engines.kafka.rules.partitionsRequired'), trigger: 'change' }
+  ],
+  replicas: [
+    { required: true, message: t('engines.kafka.rules.replicasRequired'), trigger: 'change' }
+  ]
 }))
 
 /** 打开创建 Topic 弹窗 */
@@ -422,12 +524,16 @@ async function handleCreateTopic() {
 /** 删除 Topic */
 async function handleDeleteTopic(row: Topic) {
   try {
-    await ElMessageBox.confirm(t('engines.kafka.messages.deleteConfirm', { name: row.name }), t('engines.kafka.messages.deleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('engines.kafka.messages.deleteConfirmOk'),
-      cancelButtonText: t('engines.kafka.messages.deleteConfirmCancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('engines.kafka.messages.deleteConfirm', { name: row.name }),
+      t('engines.kafka.messages.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('engines.kafka.messages.deleteConfirmOk'),
+        cancelButtonText: t('engines.kafka.messages.deleteConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await engineApi.deleteKafkaTopic(selectedClusterId.value, row.name)
     ElMessage.success(t('engines.kafka.messages.deleted'))
     await loadTopics()

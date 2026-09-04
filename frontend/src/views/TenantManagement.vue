@@ -8,7 +8,11 @@
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar" role="toolbar" :aria-label="t('tenantManagement.title')">
-        <el-button type="primary" :aria-label="t('tenantManagement.dialog.createTitle')" @click="openCreateDialog">
+        <el-button
+          type="primary"
+          :aria-label="t('tenantManagement.dialog.createTitle')"
+          @click="openCreateDialog"
+        >
           {{ t('tenantManagement.toolbar.create') }}
         </el-button>
         <el-input
@@ -33,7 +37,12 @@
           <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('tenantManagement.toolbar.refreshAria')" @click="loadList" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('tenantManagement.toolbar.refreshAria')"
+          @click="loadList"
+        />
       </div>
 
       <!-- 租户列表表格 -->
@@ -45,11 +54,21 @@
         style="width: 100%"
         role="table"
         :aria-label="t('tenantManagement.table.aria')"
-        :empty-text="error ? t('tenantManagement.table.loadFailed') : t('tenantManagement.table.empty')"
+        :empty-text="
+          error ? t('tenantManagement.table.loadFailed') : t('tenantManagement.table.empty')
+        "
       >
         <el-table-column prop="id" :label="t('tenantManagement.table.columns.id')" width="120" />
-        <el-table-column prop="name" :label="t('tenantManagement.table.columns.name')" min-width="160" />
-        <el-table-column prop="code" :label="t('tenantManagement.table.columns.code')" width="140" />
+        <el-table-column
+          prop="name"
+          :label="t('tenantManagement.table.columns.name')"
+          min-width="160"
+        />
+        <el-table-column
+          prop="code"
+          :label="t('tenantManagement.table.columns.code')"
+          width="140"
+        />
         <el-table-column :label="t('tenantManagement.table.columns.plan')" width="120">
           <template #default="{ row }">
             <el-tag :type="planTagType(row.plan)" effect="light">
@@ -64,8 +83,18 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="workspaceCount" :label="t('tenantManagement.table.columns.workspaceCount')" width="120" align="center" />
-        <el-table-column prop="userCount" :label="t('tenantManagement.table.columns.userCount')" width="100" align="center" />
+        <el-table-column
+          prop="workspaceCount"
+          :label="t('tenantManagement.table.columns.workspaceCount')"
+          width="120"
+          align="center"
+        />
+        <el-table-column
+          prop="userCount"
+          :label="t('tenantManagement.table.columns.userCount')"
+          width="100"
+          align="center"
+        />
         <el-table-column :label="t('tenantManagement.table.columns.resourceUsage')" width="160">
           <template #default="{ row }">
             <el-progress
@@ -75,8 +104,16 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" :label="t('tenantManagement.table.columns.createdAt')" width="180" />
-        <el-table-column :label="t('tenantManagement.table.columns.actions')" width="160" fixed="right">
+        <el-table-column
+          prop="createdAt"
+          :label="t('tenantManagement.table.columns.createdAt')"
+          width="180"
+        />
+        <el-table-column
+          :label="t('tenantManagement.table.columns.actions')"
+          width="160"
+          fixed="right"
+        >
           <template #default="{ row }">
             <el-button
               link
@@ -99,7 +136,11 @@
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-wrap" role="navigation" :aria-label="t('tenantManagement.table.paginationAria')">
+      <div
+        class="pagination-wrap"
+        role="navigation"
+        :aria-label="t('tenantManagement.table.paginationAria')"
+      >
         <el-pagination
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
@@ -117,12 +158,16 @@
     <!-- 创建/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? t('tenantManagement.dialog.editTitle') : t('tenantManagement.dialog.createTitle')"
+      :title="
+        isEdit ? t('tenantManagement.dialog.editTitle') : t('tenantManagement.dialog.createTitle')
+      "
       width="520px"
       :close-on-click-modal="false"
       role="dialog"
       aria-modal="true"
-      :aria-label="isEdit ? t('tenantManagement.dialog.editAria') : t('tenantManagement.dialog.createAria')"
+      :aria-label="
+        isEdit ? t('tenantManagement.dialog.editAria') : t('tenantManagement.dialog.createAria')
+      "
       @closed="resetForm"
     >
       <el-form
@@ -133,7 +178,11 @@
         label-position="right"
       >
         <el-form-item :label="t('tenantManagement.dialog.fields.name')" prop="name">
-          <el-input v-model="formData.name" :placeholder="t('tenantManagement.dialog.fields.namePlaceholder')" :aria-label="t('tenantManagement.dialog.fields.name')" />
+          <el-input
+            v-model="formData.name"
+            :placeholder="t('tenantManagement.dialog.fields.namePlaceholder')"
+            :aria-label="t('tenantManagement.dialog.fields.name')"
+          />
         </el-form-item>
         <el-form-item :label="t('tenantManagement.dialog.fields.code')" prop="code">
           <el-input
@@ -144,36 +193,69 @@
           />
         </el-form-item>
         <el-form-item :label="t('tenantManagement.dialog.fields.plan')" prop="plan">
-          <el-select v-model="formData.plan" style="width: 100%" :aria-label="t('tenantManagement.dialog.fields.plan')">
+          <el-select
+            v-model="formData.plan"
+            style="width: 100%"
+            :aria-label="t('tenantManagement.dialog.fields.plan')"
+          >
             <el-option :label="t('tenantManagement.plan.standard')" value="standard" />
             <el-option :label="t('tenantManagement.plan.enterprise')" value="enterprise" />
             <el-option :label="t('tenantManagement.plan.flagship')" value="flagship" />
             <el-option :label="t('tenantManagement.plan.internal')" value="internal" />
           </el-select>
         </el-form-item>
-        <el-form-item v-if="isEdit" :label="t('tenantManagement.dialog.fields.status')" prop="status">
-          <el-select v-model="formData.status" style="width: 100%" :aria-label="t('tenantManagement.dialog.fields.status')">
+        <el-form-item
+          v-if="isEdit"
+          :label="t('tenantManagement.dialog.fields.status')"
+          prop="status"
+        >
+          <el-select
+            v-model="formData.status"
+            style="width: 100%"
+            :aria-label="t('tenantManagement.dialog.fields.status')"
+          >
             <el-option :label="t('tenantManagement.status.active')" value="active" />
             <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
             <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('tenantManagement.dialog.fields.contact')" prop="contact">
-          <el-input v-model="formData.contact" :placeholder="t('tenantManagement.dialog.fields.contactPlaceholder')" :aria-label="t('tenantManagement.dialog.fields.contact')" />
+          <el-input
+            v-model="formData.contact"
+            :placeholder="t('tenantManagement.dialog.fields.contactPlaceholder')"
+            :aria-label="t('tenantManagement.dialog.fields.contact')"
+          />
         </el-form-item>
         <el-form-item :label="t('tenantManagement.dialog.fields.contactPhone')" prop="contactPhone">
-          <el-input v-model="formData.contactPhone" :placeholder="t('tenantManagement.dialog.fields.contactPhonePlaceholder')" :aria-label="t('tenantManagement.dialog.fields.contactPhone')" />
+          <el-input
+            v-model="formData.contactPhone"
+            :placeholder="t('tenantManagement.dialog.fields.contactPhonePlaceholder')"
+            :aria-label="t('tenantManagement.dialog.fields.contactPhone')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button :aria-label="t('tenantManagement.dialog.actions.cancelAria')" @click="dialogVisible = false">{{ t('tenantManagement.dialog.actions.cancel') }}</el-button>
+        <el-button
+          :aria-label="t('tenantManagement.dialog.actions.cancelAria')"
+          @click="dialogVisible = false"
+        >
+          {{ t('tenantManagement.dialog.actions.cancel') }}
+        </el-button>
         <el-button
           type="primary"
           :loading="submitting"
-          :aria-label="isEdit ? t('tenantManagement.dialog.actions.saveAria') : t('tenantManagement.dialog.actions.createAriaBtn')"
+          :aria-label="
+            isEdit
+              ? t('tenantManagement.dialog.actions.saveAria')
+              : t('tenantManagement.dialog.actions.createAriaBtn')
+          "
           @click="handleSubmit"
         >
-          {{ isEdit ? t('tenantManagement.dialog.actions.save') : t('tenantManagement.dialog.actions.create') }}
+          {{
+            isEdit
+              ? t('tenantManagement.dialog.actions.save')
+              : t('tenantManagement.dialog.actions.create')
+          }}
         </el-button>
       </template>
     </el-dialog>

@@ -135,7 +135,11 @@ describe('i18n locales structure', () => {
 describe('i18n 页面级模块词条（locales/modules）', () => {
   const modules: Array<[string, Record<string, unknown>, Record<string, unknown>]> = [
     ['dashboard', dashboardZh as Record<string, unknown>, dashboardEn as Record<string, unknown>],
-    ['workspaces', workspacesZh as Record<string, unknown>, workspacesEn as Record<string, unknown>],
+    [
+      'workspaces',
+      workspacesZh as Record<string, unknown>,
+      workspacesEn as Record<string, unknown>
+    ],
     ['projects', projectsZh as Record<string, unknown>, projectsEn as Record<string, unknown>],
     ['analyze', analyzeZh as Record<string, unknown>, analyzeEn as Record<string, unknown>],
     ['quality', qualityZh as Record<string, unknown>, qualityEn as Record<string, unknown>],
@@ -155,21 +159,69 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
     ['gateway', gatewayZh as Record<string, unknown>, gatewayEn as Record<string, unknown>],
     ['account', accountZh as Record<string, unknown>, accountEn as Record<string, unknown>],
     ['admin', adminZh as Record<string, unknown>, adminEn as Record<string, unknown>],
-    ['templateMarket', templateMarketZh as Record<string, unknown>, templateMarketEn as Record<string, unknown>],
-    ['businessPortal', businessPortalZh as Record<string, unknown>, businessPortalEn as Record<string, unknown>],
+    [
+      'templateMarket',
+      templateMarketZh as Record<string, unknown>,
+      templateMarketEn as Record<string, unknown>
+    ],
+    [
+      'businessPortal',
+      businessPortalZh as Record<string, unknown>,
+      businessPortalEn as Record<string, unknown>
+    ],
     ['apiMarket', apiMarketZh as Record<string, unknown>, apiMarketEn as Record<string, unknown>],
-    ['assetMarket', assetMarketZh as Record<string, unknown>, assetMarketEn as Record<string, unknown>],
-    ['sqlWorkbench', sqlWorkbenchZh as Record<string, unknown>, sqlWorkbenchEn as Record<string, unknown>],
-    ['searchPortal', searchPortalZh as Record<string, unknown>, searchPortalEn as Record<string, unknown>],
-    ['dataSourceManagement', dataSourceManagementZh as Record<string, unknown>, dataSourceManagementEn as Record<string, unknown>],
-    ['tenantManagement', tenantManagementZh as Record<string, unknown>, tenantManagementEn as Record<string, unknown>],
-    ['workspaceManagement', workspaceManagementZh as Record<string, unknown>, workspaceManagementEn as Record<string, unknown>],
-    ['quotaManagement', quotaManagementZh as Record<string, unknown>, quotaManagementEn as Record<string, unknown>],
-    ['clusterOverview', clusterOverviewZh as Record<string, unknown>, clusterOverviewEn as Record<string, unknown>],
-    ['dataLineage', dataLineageZh as Record<string, unknown>, dataLineageEn as Record<string, unknown>],
+    [
+      'assetMarket',
+      assetMarketZh as Record<string, unknown>,
+      assetMarketEn as Record<string, unknown>
+    ],
+    [
+      'sqlWorkbench',
+      sqlWorkbenchZh as Record<string, unknown>,
+      sqlWorkbenchEn as Record<string, unknown>
+    ],
+    [
+      'searchPortal',
+      searchPortalZh as Record<string, unknown>,
+      searchPortalEn as Record<string, unknown>
+    ],
+    [
+      'dataSourceManagement',
+      dataSourceManagementZh as Record<string, unknown>,
+      dataSourceManagementEn as Record<string, unknown>
+    ],
+    [
+      'tenantManagement',
+      tenantManagementZh as Record<string, unknown>,
+      tenantManagementEn as Record<string, unknown>
+    ],
+    [
+      'workspaceManagement',
+      workspaceManagementZh as Record<string, unknown>,
+      workspaceManagementEn as Record<string, unknown>
+    ],
+    [
+      'quotaManagement',
+      quotaManagementZh as Record<string, unknown>,
+      quotaManagementEn as Record<string, unknown>
+    ],
+    [
+      'clusterOverview',
+      clusterOverviewZh as Record<string, unknown>,
+      clusterOverviewEn as Record<string, unknown>
+    ],
+    [
+      'dataLineage',
+      dataLineageZh as Record<string, unknown>,
+      dataLineageEn as Record<string, unknown>
+    ],
     ['engines', enginesZh as Record<string, unknown>, enginesEn as Record<string, unknown>],
     ['infraK8s', infraK8sZh as Record<string, unknown>, infraK8sEn as Record<string, unknown>],
-    ['infraMachine', infraMachineZh as Record<string, unknown>, infraMachineEn as Record<string, unknown>],
+    [
+      'infraMachine',
+      infraMachineZh as Record<string, unknown>,
+      infraMachineEn as Record<string, unknown>
+    ],
     ['infraSched', infraSchedZh as Record<string, unknown>, infraSchedEn as Record<string, unknown>]
   ]
 
@@ -186,8 +238,12 @@ describe('i18n 页面级模块词条（locales/modules）', () => {
         if (!enKeys.has(key)) {
           throw new Error(`[${name}] zh has key "${key}" but en does not`)
         }
-        const zhVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], zh)
-        const enVal = key.split('.').reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], en)
+        const zhVal = key
+          .split('.')
+          .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], zh)
+        const enVal = key
+          .split('.')
+          .reduce<unknown>((o, k) => (o as Record<string, unknown>)?.[k], en)
         if (!zhVal || !enVal) {
           throw new Error(`[${name}] empty at key "${key}" (zh=${zhVal} en=${enVal})`)
         }

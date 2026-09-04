@@ -33,7 +33,9 @@
       <!-- 模板卡片网格 -->
       <div v-loading="loading" class="template-grid">
         <el-empty v-if="error" :description="t('templateMarket.empty.loadFailed')">
-          <el-button type="primary" @click="loadAll">{{ t('templateMarket.empty.retry') }}</el-button>
+          <el-button type="primary" @click="loadAll">
+            {{ t('templateMarket.empty.retry') }}
+          </el-button>
         </el-empty>
         <el-empty
           v-else-if="!loading && filteredTemplates.length === 0"
@@ -77,7 +79,9 @@
               <el-icon><Star /></el-icon>
               {{ t('templateMarket.card.rating', { rating: tpl.rating.toFixed(1) }) }}
             </span>
-            <span class="meta-item">{{ t('templateMarket.card.version', { version: tpl.version }) }}</span>
+            <span class="meta-item">
+              {{ t('templateMarket.card.version', { version: tpl.version }) }}
+            </span>
           </div>
         </el-card>
       </div>
@@ -87,7 +91,9 @@
     <el-dialog
       v-model="detailVisible"
       :title="
-        detailTemplate ? `${detailTemplate.meta.icon} ${detailTemplate.meta.name}` : t('templateMarket.detail.title')
+        detailTemplate
+          ? `${detailTemplate.meta.icon} ${detailTemplate.meta.name}`
+          : t('templateMarket.detail.title')
       "
       width="900px"
       :close-on-click-modal="false"
@@ -99,7 +105,9 @@
       <template v-else-if="detailTemplate">
         <!-- 元信息区 -->
         <el-descriptions :column="3" border size="small">
-          <el-descriptions-item :label="t('templateMarket.detail.meta.id')">{{ detailTemplate.meta.id }}</el-descriptions-item>
+          <el-descriptions-item :label="t('templateMarket.detail.meta.id')">
+            {{ detailTemplate.meta.id }}
+          </el-descriptions-item>
           <el-descriptions-item :label="t('templateMarket.detail.meta.industry')">
             {{ industryLabel(detailTemplate.meta.industry) }}
           </el-descriptions-item>
@@ -128,10 +136,22 @@
           <el-tab-pane :label="t('templateMarket.detail.tabs.arch')" name="arch">
             <div class="arch-section">
               <div class="arch-stats">
-                <el-statistic :title="t('templateMarket.detail.arch.stats.dataFlowNodes')" :value="preview?.stats.dataFlowNodes || 0" />
-                <el-statistic :title="t('templateMarket.detail.arch.stats.computeSteps')" :value="preview?.stats.computeSteps || 0" />
-                <el-statistic :title="t('templateMarket.detail.arch.stats.visualizationPanels')" :value="preview?.stats.visualizationPanels || 0" />
-                <el-statistic :title="t('templateMarket.detail.arch.stats.parameters')" :value="preview?.stats.parameters || 0" />
+                <el-statistic
+                  :title="t('templateMarket.detail.arch.stats.dataFlowNodes')"
+                  :value="preview?.stats.dataFlowNodes || 0"
+                />
+                <el-statistic
+                  :title="t('templateMarket.detail.arch.stats.computeSteps')"
+                  :value="preview?.stats.computeSteps || 0"
+                />
+                <el-statistic
+                  :title="t('templateMarket.detail.arch.stats.visualizationPanels')"
+                  :value="preview?.stats.visualizationPanels || 0"
+                />
+                <el-statistic
+                  :title="t('templateMarket.detail.arch.stats.parameters')"
+                  :value="preview?.stats.parameters || 0"
+                />
               </div>
               <h4>{{ t('templateMarket.detail.arch.flowTitle') }}</h4>
               <div class="arch-flow">
@@ -152,11 +172,30 @@
           <!-- 数据流 -->
           <el-tab-pane :label="t('templateMarket.detail.tabs.dataflow')" name="dataflow">
             <el-table :data="detailTemplate.dataFlow.nodes" border size="small">
-              <el-table-column prop="id" :label="t('templateMarket.detail.dataflow.columns.id')" width="160" />
-              <el-table-column prop="name" :label="t('templateMarket.detail.dataflow.columns.name')" width="160" />
-              <el-table-column prop="nodeType" :label="t('templateMarket.detail.dataflow.columns.nodeType')" width="100" />
-              <el-table-column prop="layer" :label="t('templateMarket.detail.dataflow.columns.layer')" width="80" />
-              <el-table-column prop="description" :label="t('templateMarket.detail.dataflow.columns.description')" />
+              <el-table-column
+                prop="id"
+                :label="t('templateMarket.detail.dataflow.columns.id')"
+                width="160"
+              />
+              <el-table-column
+                prop="name"
+                :label="t('templateMarket.detail.dataflow.columns.name')"
+                width="160"
+              />
+              <el-table-column
+                prop="nodeType"
+                :label="t('templateMarket.detail.dataflow.columns.nodeType')"
+                width="100"
+              />
+              <el-table-column
+                prop="layer"
+                :label="t('templateMarket.detail.dataflow.columns.layer')"
+                width="80"
+              />
+              <el-table-column
+                prop="description"
+                :label="t('templateMarket.detail.dataflow.columns.description')"
+              />
               <el-table-column :label="t('templateMarket.detail.dataflow.columns.io')" width="220">
                 <template #default="{ row }">
                   <div class="io-cell">
@@ -169,7 +208,12 @@
             </el-table>
             <div class="schedule-info">
               {{ t('templateMarket.detail.dataflow.schedule') }}
-              <el-tag size="small">{{ detailTemplate.dataFlow.schedule || t('templateMarket.detail.dataflow.unscheduled') }}</el-tag>
+              <el-tag size="small">
+                {{
+                  detailTemplate.dataFlow.schedule ||
+                  t('templateMarket.detail.dataflow.unscheduled')
+                }}
+              </el-tag>
             </div>
           </el-tab-pane>
 
@@ -225,24 +269,42 @@
           <!-- 参数配置 -->
           <el-tab-pane :label="t('templateMarket.detail.tabs.params')" name="params">
             <el-table :data="detailTemplate.parameters" border size="small">
-              <el-table-column prop="name" :label="t('templateMarket.detail.params.columns.name')" width="240" />
-              <el-table-column prop="type" :label="t('templateMarket.detail.params.columns.type')" width="100">
+              <el-table-column
+                prop="name"
+                :label="t('templateMarket.detail.params.columns.name')"
+                width="240"
+              />
+              <el-table-column
+                prop="type"
+                :label="t('templateMarket.detail.params.columns.type')"
+                width="100"
+              >
                 <template #default="{ row }">
                   <el-tag size="small" :type="paramTypeTag(row.type)">{{ row.type }}</el-tag>
                 </template>
               </el-table-column>
-              <el-table-column :label="t('templateMarket.detail.params.columns.required')" width="70" align="center">
+              <el-table-column
+                :label="t('templateMarket.detail.params.columns.required')"
+                width="70"
+                align="center"
+              >
                 <template #default="{ row }">
                   <el-icon v-if="row.required" color="#67c23a"><Check /></el-icon>
                   <span v-else>-</span>
                 </template>
               </el-table-column>
-              <el-table-column :label="t('templateMarket.detail.params.columns.defaultValue')" width="140">
+              <el-table-column
+                :label="t('templateMarket.detail.params.columns.defaultValue')"
+                width="140"
+              >
                 <template #default="{ row }">
                   {{ row.defaultValue !== null ? String(row.defaultValue) : '-' }}
                 </template>
               </el-table-column>
-              <el-table-column prop="description" :label="t('templateMarket.detail.params.columns.description')" />
+              <el-table-column
+                prop="description"
+                :label="t('templateMarket.detail.params.columns.description')"
+              />
             </el-table>
           </el-tab-pane>
 
@@ -254,13 +316,22 @@
       </template>
 
       <template #footer>
-        <el-button @click="detailVisible = false">{{ t('templateMarket.detail.actions.close') }}</el-button>
-        <el-button type="primary" :icon="Cpu" @click="openDeployDialog">{{ t('templateMarket.detail.actions.deploy') }}</el-button>
+        <el-button @click="detailVisible = false">
+          {{ t('templateMarket.detail.actions.close') }}
+        </el-button>
+        <el-button type="primary" :icon="Cpu" @click="openDeployDialog">
+          {{ t('templateMarket.detail.actions.deploy') }}
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- 部署弹窗 -->
-    <el-dialog v-model="deployVisible" :title="t('templateMarket.deploy.title')" width="640px" :close-on-click-modal="false">
+    <el-dialog
+      v-model="deployVisible"
+      :title="t('templateMarket.deploy.title')"
+      width="640px"
+      :close-on-click-modal="false"
+    >
       <el-form
         ref="deployFormRef"
         :model="deployForm"
@@ -272,21 +343,42 @@
           <el-input :value="detailTemplate?.meta.name" disabled />
         </el-form-item>
         <el-form-item :label="t('templateMarket.deploy.form.tenantId')" prop="tenantId">
-          <el-input v-model="deployForm.tenantId" :placeholder="t('templateMarket.deploy.form.tenantIdPlaceholder')" />
+          <el-input
+            v-model="deployForm.tenantId"
+            :placeholder="t('templateMarket.deploy.form.tenantIdPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('templateMarket.deploy.form.releaseName')" prop="releaseName">
-          <el-input v-model="deployForm.releaseName" :placeholder="t('templateMarket.deploy.form.releaseNamePlaceholder')" />
+          <el-input
+            v-model="deployForm.releaseName"
+            :placeholder="t('templateMarket.deploy.form.releaseNamePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('templateMarket.deploy.form.namespace')">
-          <el-input v-model="deployForm.namespace" :placeholder="t('templateMarket.deploy.form.namespacePlaceholder')" />
+          <el-input
+            v-model="deployForm.namespace"
+            :placeholder="t('templateMarket.deploy.form.namespacePlaceholder')"
+          />
         </el-form-item>
-        <el-divider content-position="left">{{ t('templateMarket.deploy.form.paramValues') }}</el-divider>
+        <el-divider content-position="left">
+          {{ t('templateMarket.deploy.form.paramValues') }}
+        </el-divider>
         <el-form-item
           v-for="param in deployableParams"
           :key="param.name"
           :label="param.name"
           :prop="`values.${param.name}`"
-          :rules="param.required ? [{ required: true, message: t('templateMarket.deploy.form.required'), trigger: 'blur' }] : []"
+          :rules="
+            param.required
+              ? [
+                  {
+                    required: true,
+                    message: t('templateMarket.deploy.form.required'),
+                    trigger: 'blur'
+                  }
+                ]
+              : []
+          "
         >
           <el-select
             v-if="param.type === 'enum' && param.enumOptions"
@@ -319,8 +411,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="deployVisible = false">{{ t('templateMarket.deploy.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="deploying" @click="handleDeploy">{{ t('templateMarket.deploy.actions.confirm') }}</el-button>
+        <el-button @click="deployVisible = false">
+          {{ t('templateMarket.deploy.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="deploying" @click="handleDeploy">
+          {{ t('templateMarket.deploy.actions.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -333,7 +429,9 @@
           :sub-title="`${t('templateMarket.result.fields.deploymentId')}: ${deployResult.deploymentId}`"
         />
         <el-descriptions :column="1" border size="small">
-          <el-descriptions-item :label="t('templateMarket.result.fields.template')">{{ deployResult.templateId }}</el-descriptions-item>
+          <el-descriptions-item :label="t('templateMarket.result.fields.template')">
+            {{ deployResult.templateId }}
+          </el-descriptions-item>
           <el-descriptions-item :label="t('templateMarket.result.fields.release')">
             {{ deployResult.releaseName }}
           </el-descriptions-item>
@@ -357,7 +455,9 @@
         </el-descriptions>
       </div>
       <template #footer>
-        <el-button type="primary" @click="resultVisible = false">{{ t('templateMarket.result.actions.ok') }}</el-button>
+        <el-button type="primary" @click="resultVisible = false">
+          {{ t('templateMarket.result.actions.ok') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -475,8 +575,16 @@ const deployForm = reactive<{
 })
 
 const deployRules: FormRules = {
-  tenantId: [{ required: true, message: t('templateMarket.deploy.form.tenantIdRequired'), trigger: 'blur' }],
-  releaseName: [{ required: true, message: t('templateMarket.deploy.form.releaseNameRequired'), trigger: 'blur' }]
+  tenantId: [
+    { required: true, message: t('templateMarket.deploy.form.tenantIdRequired'), trigger: 'blur' }
+  ],
+  releaseName: [
+    {
+      required: true,
+      message: t('templateMarket.deploy.form.releaseNameRequired'),
+      trigger: 'blur'
+    }
+  ]
 }
 
 /** 可部署参数（排除有默认值的非必填项以简化表单） */

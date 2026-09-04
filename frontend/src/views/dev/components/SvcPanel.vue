@@ -24,9 +24,21 @@
       border
       :empty-text="error ? t('devMl.svcPanel.loadFailed') : t('devMl.svcPanel.empty')"
     >
-      <el-table-column prop="serviceName" :label="t('devMl.svcPanel.columns.serviceName')" min-width="170" />
-      <el-table-column prop="modelName" :label="t('devMl.svcPanel.columns.modelName')" min-width="150" />
-      <el-table-column prop="modelVersion" :label="t('devMl.svcPanel.columns.modelVersion')" width="90" />
+      <el-table-column
+        prop="serviceName"
+        :label="t('devMl.svcPanel.columns.serviceName')"
+        min-width="170"
+      />
+      <el-table-column
+        prop="modelName"
+        :label="t('devMl.svcPanel.columns.modelName')"
+        min-width="150"
+      />
+      <el-table-column
+        prop="modelVersion"
+        :label="t('devMl.svcPanel.columns.modelVersion')"
+        width="90"
+      />
       <el-table-column :label="t('devMl.svcPanel.columns.status')" width="100">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light">
@@ -45,7 +57,11 @@
       </el-table-column>
       <el-table-column :label="t('devMl.svcPanel.columns.latency')" width="110">
         <template #default="{ row }">
-          {{ row.latencyMs !== undefined ? t('devMl.svcPanel.columns.latencyFmt', { ms: row.latencyMs }) : '--' }}
+          {{
+            row.latencyMs !== undefined
+              ? t('devMl.svcPanel.columns.latencyFmt', { ms: row.latencyMs })
+              : '--'
+          }}
         </template>
       </el-table-column>
       <el-table-column :label="t('devMl.svcPanel.columns.actions')" width="160" fixed="right">

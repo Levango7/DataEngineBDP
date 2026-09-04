@@ -93,7 +93,6 @@ const http: AxiosInstance = axios.create({
   }
 })
 
-
 /** 当前租户 ID（业务线域 X-Tenant-Id 用）：优先取登录 user.tenantId，兜底平台管理员 */
 const USER_KEY = 'sq_user'
 function currentTenantId(): string {

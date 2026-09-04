@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ kpiError.message }}，
-            <a href="javascript:void(0)" @click="reloadKpi">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="reloadKpi">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -55,7 +57,15 @@
         @click="handleSelectModel(group.key)"
       >
         <div class="model-name">{{ t(`engMmg.modelGroups.${group.key}.label`, group.label) }}</div>
-        <div class="model-count">{{ t(`engMmg.modelGroups.${group.key}.countFmt`, { count: modelTypeCount(group.types) }, `${modelTypeCount(group.types)} 个类型`) }}</div>
+        <div class="model-count">
+          {{
+            t(
+              `engMmg.modelGroups.${group.key}.countFmt`,
+              { count: modelTypeCount(group.types) },
+              `${modelTypeCount(group.types)} 个类型`
+            )
+          }}
+        </div>
         <div class="model-types">
           <el-tag
             v-for="tp in group.types"
@@ -83,7 +93,12 @@
           <el-option v-for="t in supportedTypes ?? allTypeOptions" :key="t" :label="t" :value="t" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('engMmg.toolbar.refreshAria')" @click="reloadAll" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('engMmg.toolbar.refreshAria')"
+          @click="reloadAll"
+        />
       </div>
 
       <el-table
@@ -107,15 +122,27 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="dataSourceName" :label="t('engMmg.table.columns.dataSource')" width="140" />
+        <el-table-column
+          prop="dataSourceName"
+          :label="t('engMmg.table.columns.dataSource')"
+          width="140"
+        />
         <el-table-column :label="t('engMmg.table.columns.rowCount')" width="140" align="right">
           <template #default="{ row }">{{ row.rowCount?.toLocaleString() ?? '--' }}</template>
         </el-table-column>
-        <el-table-column prop="lastQueryAt" :label="t('engMmg.table.columns.lastQuery')" width="180" />
+        <el-table-column
+          prop="lastQueryAt"
+          :label="t('engMmg.table.columns.lastQuery')"
+          width="180"
+        />
         <el-table-column :label="t('engMmg.table.columns.actions')" width="200" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openQueryDialog(row)">{{ t('engMmg.table.actions.query') }}</el-button>
-            <el-button link type="primary" @click="handleTestConnection(row)">{{ t('engMmg.table.actions.test') }}</el-button>
+            <el-button link type="primary" @click="openQueryDialog(row)">
+              {{ t('engMmg.table.actions.query') }}
+            </el-button>
+            <el-button link type="primary" @click="handleTestConnection(row)">
+              {{ t('engMmg.table.actions.test') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -141,7 +168,12 @@
         <div v-loading="querying" class="query-result">
           <template v-if="queryResult">
             <div class="query-meta">
-              {{ t('engMmg.query.meta', { rows: queryResult.rowCount, ms: queryResult.durationMs ?? '--' }) }}
+              {{
+                t('engMmg.query.meta', {
+                  rows: queryResult.rowCount,
+                  ms: queryResult.durationMs ?? '--'
+                })
+              }}
             </div>
             <el-table
               :data="queryResult.rows"
@@ -166,7 +198,9 @@
       </div>
       <template #footer>
         <el-button @click="queryDialogVisible = false">{{ t('engMmg.query.close') }}</el-button>
-        <el-button type="primary" :loading="querying" @click="handleExecuteQuery">{{ t('engMmg.query.execute') }}</el-button>
+        <el-button type="primary" :loading="querying" @click="handleExecuteQuery">
+          {{ t('engMmg.query.execute') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -278,7 +312,9 @@ async function handleExecuteQuery() {
 async function handleTestConnection(row: VirtualTableDefinition) {
   try {
     const { connected } = await engineApi.testMultiModelConnection(row.tableName)
-    ElMessage[connected ? 'success' : 'error'](t(connected ? 'engMmg.messages.testOk' : 'engMmg.messages.testFailed'))
+    ElMessage[connected ? 'success' : 'error'](
+      t(connected ? 'engMmg.messages.testOk' : 'engMmg.messages.testFailed')
+    )
   } catch {
     // 拦截器已提示
   }

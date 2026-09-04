@@ -83,10 +83,18 @@
             <el-table-column prop="trainJobId" :label="t('llmops.modelCols.trainJob')" width="140">
               <template #default="{ row }">{{ row.trainJobId || '--' }}</template>
             </el-table-column>
-            <el-table-column prop="description" :label="t('llmops.modelCols.description')" min-width="160">
+            <el-table-column
+              prop="description"
+              :label="t('llmops.modelCols.description')"
+              min-width="160"
+            >
               <template #default="{ row }">{{ row.description || '--' }}</template>
             </el-table-column>
-            <el-table-column prop="registeredAt" :label="t('llmops.modelCols.registeredAt')" width="180">
+            <el-table-column
+              prop="registeredAt"
+              :label="t('llmops.modelCols.registeredAt')"
+              width="180"
+            >
               <template #default="{ row }">{{ formatTime(row.registeredAt) }}</template>
             </el-table-column>
           </el-table>
@@ -111,7 +119,11 @@
             :empty-text="finetuneError ? t('llmops.emptyError') : t('llmops.ftEmpty')"
           >
             <el-table-column prop="taskId" :label="t('llmops.ftCols.taskId')" width="200" />
-            <el-table-column prop="modelName" :label="t('llmops.ftCols.modelName')" min-width="140" />
+            <el-table-column
+              prop="modelName"
+              :label="t('llmops.ftCols.modelName')"
+              min-width="140"
+            />
             <el-table-column prop="baseModel" :label="t('llmops.ftCols.baseModel')" width="140" />
             <el-table-column prop="epochs" label="epochs" width="90" />
             <el-table-column :label="t('llmops.ftCols.status')" width="110">
@@ -158,7 +170,11 @@
             style="width: 100%"
             :empty-text="evalError ? t('llmops.emptyError') : t('llmops.evalEmpty')"
           >
-            <el-table-column prop="modelName" :label="t('llmops.evalCols.modelName')" min-width="160" />
+            <el-table-column
+              prop="modelName"
+              :label="t('llmops.evalCols.modelName')"
+              min-width="160"
+            />
             <el-table-column prop="modelVersion" :label="t('llmops.evalCols.version')" width="100">
               <template #default="{ row }">{{ row.modelVersion || '--' }}</template>
             </el-table-column>
@@ -169,7 +185,11 @@
                   effect="light"
                   size="small"
                 >
-                  {{ row.evalType === 'human' ? t('llmops.evalTypes.human') : t('llmops.evalTypes.auto') }}
+                  {{
+                    row.evalType === 'human'
+                      ? t('llmops.evalTypes.human')
+                      : t('llmops.evalTypes.auto')
+                  }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -232,7 +252,11 @@
             style="width: 100%"
             :empty-text="svcError ? t('llmops.emptyError') : t('llmops.svcEmpty')"
           >
-            <el-table-column prop="serviceName" :label="t('llmops.svcCols.service')" min-width="160" />
+            <el-table-column
+              prop="serviceName"
+              :label="t('llmops.svcCols.service')"
+              min-width="160"
+            />
             <el-table-column prop="modelName" :label="t('llmops.svcCols.model')" width="140" />
             <el-table-column prop="modelVersion" :label="t('llmops.svcCols.version')" width="100" />
             <el-table-column :label="t('llmops.svcCols.status')" width="110">
@@ -265,7 +289,11 @@
     </el-card>
 
     <!-- 注册模型弹窗 -->
-    <el-dialog v-model="registerDialogVisible" :title="t('llmops.registerModal.title')" width="520px">
+    <el-dialog
+      v-model="registerDialogVisible"
+      :title="t('llmops.registerModal.title')"
+      width="520px"
+    >
       <el-form
         ref="registerFormRef"
         :model="registerForm"
@@ -373,10 +401,7 @@
           />
         </el-form-item>
         <el-form-item :label="t('llmops.evalModal.version')">
-          <el-input
-            v-model="evalForm.modelVersion"
-            :placeholder="t('llmops.evalModal.optional')"
-          />
+          <el-input v-model="evalForm.modelVersion" :placeholder="t('llmops.evalModal.optional')" />
         </el-form-item>
         <el-form-item :label="t('llmops.evalModal.accuracy')">
           <el-input-number
@@ -748,10 +773,7 @@ async function handleHumanEval() {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const MODEL_STATUS_TYPES: Record<
-  string,
-  'primary' | 'success' | 'danger' | 'info' | 'warning'
-> = {
+const MODEL_STATUS_TYPES: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
   DRAFT: 'info',
   REGISTERED: 'primary',
   DEPLOYED: 'success',
@@ -769,15 +791,13 @@ function modelStatusType(status: string): 'primary' | 'success' | 'danger' | 'in
   return MODEL_STATUS_TYPES[status] ?? 'info'
 }
 
-const FINETUNE_STATUS_TYPES: Record<
-  string,
-  'primary' | 'success' | 'danger' | 'info' | 'warning'
-> = {
-  SUBMITTED: 'info',
-  RUNNING: 'primary',
-  SUCCEEDED: 'success',
-  FAILED: 'danger'
-}
+const FINETUNE_STATUS_TYPES: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> =
+  {
+    SUBMITTED: 'info',
+    RUNNING: 'primary',
+    SUCCEEDED: 'success',
+    FAILED: 'danger'
+  }
 
 const FINETUNE_STATUSES = ['SUBMITTED', 'RUNNING', 'SUCCEEDED', 'FAILED']
 

@@ -68,7 +68,11 @@
       </table>
     </div>
 
-    <Modal :visible="modalVisible" :title="t('sec.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('sec.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('sec.createModal.field') }}</label>
       <input v-model="form.fieldName" :placeholder="t('sec.createModal.fieldPlaceholder')" />
       <label>{{ t('sec.createModal.asset') }}</label>

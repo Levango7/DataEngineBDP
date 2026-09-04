@@ -44,7 +44,11 @@
       </table>
     </div>
 
-    <Modal :visible="modalVisible" :title="t('vector.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('vector.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('vector.createModal.name') }}</label>
       <input v-model="newCollection.name" :placeholder="t('vector.createModal.namePlaceholder')" />
       <label>{{ t('vector.createModal.dimension') }}</label>

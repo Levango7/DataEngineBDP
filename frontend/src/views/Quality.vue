@@ -42,7 +42,11 @@
       </table>
     </div>
 
-    <Modal :visible="modalVisible" :title="t('quality.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('quality.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('quality.createModal.targetTable') }}</label>
       <input
         v-model="form.targetTable"
@@ -61,7 +65,10 @@
         <option value="fluctuation">{{ t('quality.checkTypes.fluctuation') }}</option>
       </select>
       <label>{{ t('quality.createModal.threshold') }}</label>
-      <input v-model="form.threshold" :placeholder="t('quality.createModal.thresholdPlaceholder')" />
+      <input
+        v-model="form.threshold"
+        :placeholder="t('quality.createModal.thresholdPlaceholder')"
+      />
       <label>{{ t('quality.createModal.actionOnFail') }}</label>
       <select v-model="form.actionOnFail">
         <option value="alert">{{ t('quality.actions.alert') }}</option>

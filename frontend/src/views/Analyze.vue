@@ -77,7 +77,11 @@
       </template>
     </div>
 
-    <Modal :visible="modalVisible" :title="t('analyze.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('analyze.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('analyze.createModal.name') }}</label>
       <input v-model="form.name" :placeholder="t('analyze.createModal.namePlaceholder')" />
       <label>{{ t('analyze.createModal.description') }}</label>

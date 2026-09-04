@@ -16,12 +16,22 @@
           <el-option
             v-for="c in clusterOptions"
             :key="`${c.environment}/${c.clusterId}`"
-            :label="t('infraSched.selectCluster.optionFmt', { name: c.clusterName, env: envLabel(c.environment) })"
+            :label="
+              t('infraSched.selectCluster.optionFmt', {
+                name: c.clusterName,
+                env: envLabel(c.environment)
+              })
+            "
             :value="`${c.environment}/${c.clusterId}`"
           />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('infraSched.selectCluster.refreshAria')" @click="reloadAll" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('infraSched.selectCluster.refreshAria')"
+          @click="reloadAll"
+        />
       </div>
     </el-card>
 
@@ -45,7 +55,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ summaryError.message }}，
-            <a href="javascript:void(0)" @click="loadSummary">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="loadSummary">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -78,7 +90,9 @@
       <template #header>
         <div class="card-header">
           <span>{{ t('infraSched.hpaList.title') }}</span>
-          <el-button type="primary" size="small" @click="openCreateHpaDialog">{{ t('infraSched.hpaList.new') }}</el-button>
+          <el-button type="primary" size="small" @click="openCreateHpaDialog">
+            {{ t('infraSched.hpaList.new') }}
+          </el-button>
         </div>
       </template>
       <el-table
@@ -89,19 +103,54 @@
         style="width: 100%"
         :empty-text="hpaError ? t('infraSched.hpaList.loadFailed') : t('infraSched.hpaList.empty')"
       >
-        <el-table-column prop="name" :label="t('infraSched.hpaList.columns.name')" min-width="160" />
-        <el-table-column prop="namespace" :label="t('infraSched.hpaList.columns.namespace')" width="140" />
-        <el-table-column prop="targetDeployment" :label="t('infraSched.hpaList.columns.targetDeployment')" min-width="180" />
-        <el-table-column :label="t('infraSched.hpaList.columns.replicas')" width="160" align="center">
+        <el-table-column
+          prop="name"
+          :label="t('infraSched.hpaList.columns.name')"
+          min-width="160"
+        />
+        <el-table-column
+          prop="namespace"
+          :label="t('infraSched.hpaList.columns.namespace')"
+          width="140"
+        />
+        <el-table-column
+          prop="targetDeployment"
+          :label="t('infraSched.hpaList.columns.targetDeployment')"
+          min-width="180"
+        />
+        <el-table-column
+          :label="t('infraSched.hpaList.columns.replicas')"
+          width="160"
+          align="center"
+        >
           <template #default="{ row }">
-            <span class="muted">{{ t('infraSched.hpaList.columns.replicasFmt', { min: row.minReplicas, max: row.maxReplicas }) }}</span>
-            <span style="margin-left: 8px">{{ t('infraSched.hpaList.columns.currentReplicas', { current: row.currentReplicas }) }}</span>
+            <span class="muted">
+              {{
+                t('infraSched.hpaList.columns.replicasFmt', {
+                  min: row.minReplicas,
+                  max: row.maxReplicas
+                })
+              }}
+            </span>
+            <span style="margin-left: 8px">
+              {{
+                t('infraSched.hpaList.columns.currentReplicas', { current: row.currentReplicas })
+              }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('infraSched.hpaList.columns.cpuThreshold')" width="120" align="center">
+        <el-table-column
+          :label="t('infraSched.hpaList.columns.cpuThreshold')"
+          width="120"
+          align="center"
+        >
           <template #default="{ row }">{{ row.cpuThreshold }}%</template>
         </el-table-column>
-        <el-table-column :label="t('infraSched.hpaList.columns.memoryThreshold')" width="120" align="center">
+        <el-table-column
+          :label="t('infraSched.hpaList.columns.memoryThreshold')"
+          width="120"
+          align="center"
+        >
           <template #default="{ row }">
             <span v-if="row.memoryThreshold">{{ row.memoryThreshold }}%</span>
             <span v-else class="muted">-</span>
@@ -116,8 +165,12 @@
         </el-table-column>
         <el-table-column :label="t('infraSched.hpaList.columns.actions')" width="180" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openEditHpaDialog(row)">{{ t('infraSched.hpaList.actions.edit') }}</el-button>
-            <el-button link type="danger" @click="handleDeleteHpa(row)">{{ t('infraSched.hpaList.actions.delete') }}</el-button>
+            <el-button link type="primary" @click="openEditHpaDialog(row)">
+              {{ t('infraSched.hpaList.actions.edit') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDeleteHpa(row)">
+              {{ t('infraSched.hpaList.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -153,9 +206,19 @@
               >
                 {{ eventTypeLabel(ev.type) }}
               </el-tag>
-              <span class="event-trigger">{{ t('infraSched.events.triggerFmt', { trigger: ev.trigger }) }}</span>
-              <span class="event-replicas">{{ t('infraSched.events.replicasFmt', { from: ev.fromReplicas, to: ev.toReplicas }) }}</span>
-              <span class="event-duration">{{ t('infraSched.events.durationFmt', { duration: formatDuration(ev.durationMs) }) }}</span>
+              <span class="event-trigger">
+                {{ t('infraSched.events.triggerFmt', { trigger: ev.trigger }) }}
+              </span>
+              <span class="event-replicas">
+                {{
+                  t('infraSched.events.replicasFmt', { from: ev.fromReplicas, to: ev.toReplicas })
+                }}
+              </span>
+              <span class="event-duration">
+                {{
+                  t('infraSched.events.durationFmt', { duration: formatDuration(ev.durationMs) })
+                }}
+              </span>
             </div>
           </el-timeline-item>
         </el-timeline>
@@ -181,13 +244,27 @@
         label-position="right"
       >
         <el-form-item :label="t('infraSched.hpaForm.fields.name')" prop="name">
-          <el-input v-model="hpaForm.name" :placeholder="t('infraSched.hpaForm.fields.namePlaceholder')" :disabled="isEditHpa" />
+          <el-input
+            v-model="hpaForm.name"
+            :placeholder="t('infraSched.hpaForm.fields.namePlaceholder')"
+            :disabled="isEditHpa"
+          />
         </el-form-item>
         <el-form-item :label="t('infraSched.hpaForm.fields.namespace')" prop="namespace">
-          <el-input v-model="hpaForm.namespace" :placeholder="t('infraSched.hpaForm.fields.namespacePlaceholder')" :disabled="isEditHpa" />
+          <el-input
+            v-model="hpaForm.namespace"
+            :placeholder="t('infraSched.hpaForm.fields.namespacePlaceholder')"
+            :disabled="isEditHpa"
+          />
         </el-form-item>
-        <el-form-item :label="t('infraSched.hpaForm.fields.targetDeployment')" prop="targetDeployment">
-          <el-input v-model="hpaForm.targetDeployment" :placeholder="t('infraSched.hpaForm.fields.targetDeploymentPlaceholder')" />
+        <el-form-item
+          :label="t('infraSched.hpaForm.fields.targetDeployment')"
+          prop="targetDeployment"
+        >
+          <el-input
+            v-model="hpaForm.targetDeployment"
+            :placeholder="t('infraSched.hpaForm.fields.targetDeploymentPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('infraSched.hpaForm.fields.minReplicas')" prop="minReplicas">
           <el-input-number v-model="hpaForm.minReplicas" :min="1" :max="100" />
@@ -203,9 +280,15 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="hpaDialogVisible = false">{{ t('infraSched.hpaForm.actions.cancel') }}</el-button>
+        <el-button @click="hpaDialogVisible = false">
+          {{ t('infraSched.hpaForm.actions.cancel') }}
+        </el-button>
         <el-button type="primary" :loading="savingHpa" @click="handleSaveHpa">
-          {{ isEditHpa ? t('infraSched.hpaForm.actions.save') : t('infraSched.hpaForm.actions.create') }}
+          {{
+            isEditHpa
+              ? t('infraSched.hpaForm.actions.save')
+              : t('infraSched.hpaForm.actions.create')
+          }}
         </el-button>
       </template>
     </el-dialog>
@@ -354,11 +437,21 @@ const hpaForm = reactive<HpaForm>({
 
 const hpaRules = computed<FormRules>(() => ({
   name: [{ required: true, message: t('infraSched.rules.nameRequired'), trigger: 'blur' }],
-  namespace: [{ required: true, message: t('infraSched.rules.namespaceRequired'), trigger: 'blur' }],
-  targetDeployment: [{ required: true, message: t('infraSched.rules.targetDeploymentRequired'), trigger: 'blur' }],
-  minReplicas: [{ required: true, message: t('infraSched.rules.minReplicasRequired'), trigger: 'blur' }],
-  maxReplicas: [{ required: true, message: t('infraSched.rules.maxReplicasRequired'), trigger: 'blur' }],
-  cpuThreshold: [{ required: true, message: t('infraSched.rules.cpuThresholdRequired'), trigger: 'blur' }]
+  namespace: [
+    { required: true, message: t('infraSched.rules.namespaceRequired'), trigger: 'blur' }
+  ],
+  targetDeployment: [
+    { required: true, message: t('infraSched.rules.targetDeploymentRequired'), trigger: 'blur' }
+  ],
+  minReplicas: [
+    { required: true, message: t('infraSched.rules.minReplicasRequired'), trigger: 'blur' }
+  ],
+  maxReplicas: [
+    { required: true, message: t('infraSched.rules.maxReplicasRequired'), trigger: 'blur' }
+  ],
+  cpuThreshold: [
+    { required: true, message: t('infraSched.rules.cpuThresholdRequired'), trigger: 'blur' }
+  ]
 }))
 
 function openCreateHpaDialog() {
@@ -433,12 +526,16 @@ async function handleSaveHpa() {
 async function handleDeleteHpa(row: HpaPolicy) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(t('infraSched.messages.hpaDeleteConfirm', { name: row.name }), t('infraSched.messages.hpaDeleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('infraSched.messages.hpaDeleteConfirmOk'),
-      cancelButtonText: t('infraSched.messages.hpaDeleteConfirmCancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('infraSched.messages.hpaDeleteConfirm', { name: row.name }),
+      t('infraSched.messages.hpaDeleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('infraSched.messages.hpaDeleteConfirmOk'),
+        cancelButtonText: t('infraSched.messages.hpaDeleteConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await infraApi.deleteHpa(
       selectedCluster.value.environment,
       selectedCluster.value.clusterId,

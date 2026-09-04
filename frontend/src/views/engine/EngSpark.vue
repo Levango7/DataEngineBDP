@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ t('engines.spark.loadFailed') }}
-            <a href="javascript:void(0)" @click="loadList">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="loadList">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -48,7 +50,9 @@
     <!-- 主内容区：作业列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openSubmitDialog">{{ t('engines.spark.submitJob') }}</el-button>
+        <el-button type="primary" @click="openSubmitDialog">
+          {{ t('engines.spark.submitJob') }}
+        </el-button>
         <el-select
           v-model="statusFilter"
           :placeholder="t('engines.spark.statusFilter')"
@@ -74,7 +78,11 @@
         style="width: 100%"
         :empty-text="error ? t('engines.kafka.loadFailed') : t('engines.spark.table.empty')"
       >
-        <el-table-column prop="name" :label="t('engines.spark.table.columns.name')" min-width="180" />
+        <el-table-column
+          prop="name"
+          :label="t('engines.spark.table.columns.name')"
+          min-width="180"
+        />
         <el-table-column :label="t('engines.spark.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
@@ -83,11 +91,19 @@
           </template>
         </el-table-column>
         <el-table-column prop="owner" :label="t('engines.spark.table.columns.owner')" width="120" />
-        <el-table-column prop="submittedAt" :label="t('engines.spark.table.columns.submittedAt')" width="180" />
+        <el-table-column
+          prop="submittedAt"
+          :label="t('engines.spark.table.columns.submittedAt')"
+          width="180"
+        />
         <el-table-column :label="t('engines.spark.table.columns.duration')" width="120">
           <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
         </el-table-column>
-        <el-table-column prop="driverResource" :label="t('engines.spark.table.columns.driverResource')" width="140" />
+        <el-table-column
+          prop="driverResource"
+          :label="t('engines.spark.table.columns.driverResource')"
+          width="140"
+        />
         <el-table-column :label="t('engines.spark.table.columns.stageProgress')" width="180">
           <template #default="{ row }">
             <el-progress
@@ -99,7 +115,11 @@
             <span v-else>--</span>
           </template>
         </el-table-column>
-        <el-table-column :label="t('engines.spark.table.columns.actions')" width="220" fixed="right">
+        <el-table-column
+          :label="t('engines.spark.table.columns.actions')"
+          width="220"
+          fixed="right"
+        >
           <template #default="{ row }">
             <el-button
               v-if="canRun(row.status)"
@@ -119,8 +139,12 @@
             >
               {{ t('engines.spark.table.actions.cancel') }}
             </el-button>
-            <el-button link type="primary" @click="openLogDialog(row)">{{ t('engines.spark.table.actions.log') }}</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">{{ t('engines.spark.table.actions.delete') }}</el-button>
+            <el-button link type="primary" @click="openLogDialog(row)">
+              {{ t('engines.spark.table.actions.log') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
+              {{ t('engines.spark.table.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -156,7 +180,10 @@
         label-position="right"
       >
         <el-form-item :label="t('engines.spark.submit.fields.name')" prop="name">
-          <el-input v-model="submitForm.name" :placeholder="t('engines.spark.submit.fields.namePlaceholder')" />
+          <el-input
+            v-model="submitForm.name"
+            :placeholder="t('engines.spark.submit.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.mainClass')" prop="mainClass">
           <el-input
@@ -181,11 +208,23 @@
             style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
           />
         </el-form-item>
-        <el-form-item :label="t('engines.spark.submit.fields.driverResource')" prop="driverResource">
-          <el-input v-model="submitForm.driverResource" :placeholder="t('engines.spark.submit.fields.driverResourcePlaceholder')" />
+        <el-form-item
+          :label="t('engines.spark.submit.fields.driverResource')"
+          prop="driverResource"
+        >
+          <el-input
+            v-model="submitForm.driverResource"
+            :placeholder="t('engines.spark.submit.fields.driverResourcePlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="t('engines.spark.submit.fields.executorResource')" prop="executorResource">
-          <el-input v-model="submitForm.executorResource" :placeholder="t('engines.spark.submit.fields.executorResourcePlaceholder')" />
+        <el-form-item
+          :label="t('engines.spark.submit.fields.executorResource')"
+          prop="executorResource"
+        >
+          <el-input
+            v-model="submitForm.executorResource"
+            :placeholder="t('engines.spark.submit.fields.executorResourcePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.schedule')" prop="schedule">
           <el-input
@@ -194,12 +233,19 @@
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.owner')" prop="owner">
-          <el-input v-model="submitForm.owner" :placeholder="t('engines.spark.submit.fields.ownerPlaceholder')" />
+          <el-input
+            v-model="submitForm.owner"
+            :placeholder="t('engines.spark.submit.fields.ownerPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="submitDialogVisible = false">{{ t('engines.spark.submit.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ t('engines.spark.submit.actions.submit') }}</el-button>
+        <el-button @click="submitDialogVisible = false">
+          {{ t('engines.spark.submit.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('engines.spark.submit.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -216,7 +262,9 @@
       </div>
       <template #footer>
         <el-button @click="logDialogVisible = false">{{ t('engines.spark.log.close') }}</el-button>
-        <el-button type="primary" @click="refreshLog">{{ t('engines.spark.log.refresh') }}</el-button>
+        <el-button type="primary" @click="refreshLog">
+          {{ t('engines.spark.log.refresh') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -313,7 +361,9 @@ const submitForm = reactive<SubmitForm>({
 
 const submitRules = computed<FormRules>(() => ({
   name: [{ required: true, message: t('engines.spark.rules.nameRequired'), trigger: 'blur' }],
-  mainClass: [{ required: true, message: t('engines.spark.rules.mainClassRequired'), trigger: 'blur' }],
+  mainClass: [
+    { required: true, message: t('engines.spark.rules.mainClassRequired'), trigger: 'blur' }
+  ],
   jarUri: [{ required: true, message: t('engines.spark.rules.jarUriRequired'), trigger: 'blur' }]
 }))
 
@@ -390,7 +440,11 @@ async function handleCancel(row: SparkJob) {
     await ElMessageBox.confirm(
       t('engines.spark.cancelDialog.confirm', { name: row.name }),
       t('engines.spark.cancelDialog.title'),
-      { type: 'warning', confirmButtonText: t('engines.spark.cancelDialog.confirmOk'), cancelButtonText: t('engines.spark.cancelDialog.cancel') }
+      {
+        type: 'warning',
+        confirmButtonText: t('engines.spark.cancelDialog.confirmOk'),
+        cancelButtonText: t('engines.spark.cancelDialog.cancel')
+      }
     )
     cancelingId.value = row.id
     await engineApi.cancelSparkJob(row.id)
@@ -406,12 +460,16 @@ async function handleCancel(row: SparkJob) {
 /** 删除作业 */
 async function handleDelete(row: SparkJob) {
   try {
-    await ElMessageBox.confirm(t('engines.spark.deleteDialog.confirm', { name: row.name }), t('engines.spark.deleteDialog.title'), {
-      type: 'warning',
-      confirmButtonText: t('engines.spark.deleteDialog.confirmOk'),
-      cancelButtonText: t('engines.spark.deleteDialog.cancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('engines.spark.deleteDialog.confirm', { name: row.name }),
+      t('engines.spark.deleteDialog.title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('engines.spark.deleteDialog.confirmOk'),
+        cancelButtonText: t('engines.spark.deleteDialog.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await engineApi.deleteSparkJob(row.id)
     ElMessage.success(t('engines.spark.messages.deleted'))
     await loadList()

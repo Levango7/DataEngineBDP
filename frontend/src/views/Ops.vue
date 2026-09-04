@@ -83,7 +83,9 @@
               {{ jobStatusPillText(j.status) }}
             </span>
           </td>
-          <td><button class="btn ghost sm" @click="openLog(j)">{{ t('ops.log') }}</button></td>
+          <td>
+            <button class="btn ghost sm" @click="openLog(j)">{{ t('ops.log') }}</button>
+          </td>
         </tr>
         <tr v-if="jobs.length === 0">
           <td colspan="5" style="text-align: center; color: var(--muted)">
@@ -154,7 +156,11 @@
     </Drawer>
 
     <!-- 告警详情弹窗 -->
-    <Modal :visible="alertDetailVisible" :title="t('ops.alertModal.title')" @close="alertDetailVisible = false">
+    <Modal
+      :visible="alertDetailVisible"
+      :title="t('ops.alertModal.title')"
+      @close="alertDetailVisible = false"
+    >
       <div v-if="currentAlert">
         <label>{{ t('ops.alertModal.content') }}</label>
         <div class="alert-detail-row">{{ currentAlert.content }}</div>

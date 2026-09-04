@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ kpiError.message }}，
-            <a href="javascript:void(0)" @click="reloadKpi">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="reloadKpi">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -36,7 +38,12 @@
           <h3>{{ t('engStorage.kpi.cacheHitRate') }}</h3>
           <div class="kpi s">{{ cacheHitRate }}%</div>
           <div class="meta">
-            {{ t('engStorage.kpi.cacheHitMeta', { hit: cacheStats?.hitCount ?? 0, miss: cacheStats?.missCount ?? 0 }) }}
+            {{
+              t('engStorage.kpi.cacheHitMeta', {
+                hit: cacheStats?.hitCount ?? 0,
+                miss: cacheStats?.missCount ?? 0
+              })
+            }}
           </div>
         </div>
         <div class="card">
@@ -72,14 +79,30 @@
           style="width: 100%"
           :empty-text="vtError ? t('engStorage.vt.loadFailed') : t('engStorage.vt.empty')"
         >
-          <el-table-column prop="tableName" :label="t('engStorage.vt.columns.name')" min-width="180" />
-          <el-table-column prop="dataSourceType" :label="t('engStorage.vt.columns.dataSourceType')" width="140">
+          <el-table-column
+            prop="tableName"
+            :label="t('engStorage.vt.columns.name')"
+            min-width="180"
+          />
+          <el-table-column
+            prop="dataSourceType"
+            :label="t('engStorage.vt.columns.dataSourceType')"
+            width="140"
+          >
             <template #default="{ row }">
               <el-tag effect="plain" size="small">{{ row.dataSourceType }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="dataSourceName" :label="t('engStorage.vt.columns.dataSource')" width="140" />
-          <el-table-column prop="schema" :label="t('engStorage.vt.columns.schema')" min-width="160" />
+          <el-table-column
+            prop="dataSourceName"
+            :label="t('engStorage.vt.columns.dataSource')"
+            width="140"
+          />
+          <el-table-column
+            prop="schema"
+            :label="t('engStorage.vt.columns.schema')"
+            min-width="160"
+          />
           <el-table-column :label="t('engStorage.vt.columns.status')" width="110">
             <template #default="{ row }">
               <el-tag :type="vtStatusTagType(row.status)" effect="light" size="small">
@@ -87,12 +110,22 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column prop="lastQueryAt" :label="t('engStorage.vt.columns.lastQuery')" width="180" />
+          <el-table-column
+            prop="lastQueryAt"
+            :label="t('engStorage.vt.columns.lastQuery')"
+            width="180"
+          />
           <el-table-column :label="t('engStorage.vt.columns.actions')" width="240" fixed="right">
             <template #default="{ row }">
-              <el-button link type="primary" @click="openQueryDialog(row)">{{ t('engStorage.vt.actions.query') }}</el-button>
-              <el-button link type="primary" @click="handleTestConnection(row)">{{ t('engStorage.vt.actions.test') }}</el-button>
-              <el-button link type="warning" @click="handleRefreshVt(row)">{{ t('engStorage.vt.actions.refresh') }}</el-button>
+              <el-button link type="primary" @click="openQueryDialog(row)">
+                {{ t('engStorage.vt.actions.query') }}
+              </el-button>
+              <el-button link type="primary" @click="handleTestConnection(row)">
+                {{ t('engStorage.vt.actions.test') }}
+              </el-button>
+              <el-button link type="warning" @click="handleRefreshVt(row)">
+                {{ t('engStorage.vt.actions.refresh') }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -108,10 +141,26 @@
           style="width: 100%"
           :empty-text="mvError ? t('engStorage.mv.loadFailed') : t('engStorage.mv.empty')"
         >
-          <el-table-column prop="viewName" :label="t('engStorage.mv.columns.name')" min-width="180" />
-          <el-table-column prop="sourceTable" :label="t('engStorage.mv.columns.sourceTable')" min-width="160" />
-          <el-table-column prop="refreshStrategy" :label="t('engStorage.mv.columns.refreshStrategy')" width="140" />
-          <el-table-column prop="lastRefreshAt" :label="t('engStorage.mv.columns.lastRefresh')" width="180" />
+          <el-table-column
+            prop="viewName"
+            :label="t('engStorage.mv.columns.name')"
+            min-width="180"
+          />
+          <el-table-column
+            prop="sourceTable"
+            :label="t('engStorage.mv.columns.sourceTable')"
+            min-width="160"
+          />
+          <el-table-column
+            prop="refreshStrategy"
+            :label="t('engStorage.mv.columns.refreshStrategy')"
+            width="140"
+          />
+          <el-table-column
+            prop="lastRefreshAt"
+            :label="t('engStorage.mv.columns.lastRefresh')"
+            width="180"
+          />
           <el-table-column :label="t('engStorage.mv.columns.status')" width="120">
             <template #default="{ row }">
               <el-tag :type="mvStatusTagType(row.status)" effect="light" size="small">
@@ -120,12 +169,18 @@
             </template>
           </el-table-column>
           <el-table-column :label="t('engStorage.mv.columns.rowCount')" width="120" align="right">
-            <template #default="{ row }">{{ row.rowCount ?? t('engStorage.cache.noData') }}</template>
+            <template #default="{ row }">
+              {{ row.rowCount ?? t('engStorage.cache.noData') }}
+            </template>
           </el-table-column>
           <el-table-column :label="t('engStorage.mv.columns.actions')" width="180" fixed="right">
             <template #default="{ row }">
-              <el-button link type="warning" @click="handleRefreshMv(row)">{{ t('engStorage.mv.actions.refresh') }}</el-button>
-              <el-button link type="primary" @click="handleViewMvStatus(row)">{{ t('engStorage.mv.actions.viewStatus') }}</el-button>
+              <el-button link type="warning" @click="handleRefreshMv(row)">
+                {{ t('engStorage.mv.actions.refresh') }}
+              </el-button>
+              <el-button link type="primary" @click="handleViewMvStatus(row)">
+                {{ t('engStorage.mv.actions.viewStatus') }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -133,7 +188,12 @@
 
       <!-- Tab3 缓存统计 -->
       <template v-else>
-        <el-descriptions v-loading="cacheLoading" :column="3" border :title="t('engStorage.cache.title')">
+        <el-descriptions
+          v-loading="cacheLoading"
+          :column="3"
+          border
+          :title="t('engStorage.cache.title')"
+        >
           <el-descriptions-item :label="t('engStorage.cache.hitRate')">
             {{ cacheStats ? cacheStats.hitRate + '%' : t('engStorage.cache.noData') }}
           </el-descriptions-item>
@@ -141,7 +201,11 @@
             {{ cacheStats?.totalEntries ?? t('engStorage.cache.noData') }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engStorage.cache.size')">
-            {{ cacheStats?.sizeMb != null ? cacheStats.sizeMb + t('engStorage.cache.sizeUnit') : t('engStorage.cache.noData') }}
+            {{
+              cacheStats?.sizeMb != null
+                ? cacheStats.sizeMb + t('engStorage.cache.sizeUnit')
+                : t('engStorage.cache.noData')
+            }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engStorage.cache.hitCount')">
             {{ cacheStats?.hitCount ?? t('engStorage.cache.noData') }}
@@ -172,7 +236,10 @@
         label-position="right"
       >
         <el-form-item :label="t('engStorage.register.fields.tableName')" prop="tableName">
-          <el-input v-model="registerForm.tableName" :placeholder="t('engStorage.register.fields.tableNamePlaceholder')" />
+          <el-input
+            v-model="registerForm.tableName"
+            :placeholder="t('engStorage.register.fields.tableNamePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engStorage.register.fields.dataSourceType')" prop="dataSourceType">
           <el-select
@@ -189,18 +256,33 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="t('engStorage.register.fields.dataSourceName')" prop="dataSourceName">
-          <el-input v-model="registerForm.dataSourceName" :placeholder="t('engStorage.register.fields.dataSourceNamePlaceholder')" />
+          <el-input
+            v-model="registerForm.dataSourceName"
+            :placeholder="t('engStorage.register.fields.dataSourceNamePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engStorage.register.fields.schema')" prop="schema">
-          <el-input v-model="registerForm.schema" :placeholder="t('engStorage.register.fields.schemaPlaceholder')" />
+          <el-input
+            v-model="registerForm.schema"
+            :placeholder="t('engStorage.register.fields.schemaPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engStorage.register.fields.comment')" prop="comment">
-          <el-input v-model="registerForm.comment" type="textarea" :rows="2" :placeholder="t('engStorage.register.fields.commentPlaceholder')" />
+          <el-input
+            v-model="registerForm.comment"
+            type="textarea"
+            :rows="2"
+            :placeholder="t('engStorage.register.fields.commentPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="registerDialogVisible = false">{{ t('engStorage.register.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="registering" @click="handleRegister">{{ t('engStorage.register.actions.submit') }}</el-button>
+        <el-button @click="registerDialogVisible = false">
+          {{ t('engStorage.register.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="registering" @click="handleRegister">
+          {{ t('engStorage.register.actions.submit') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -214,7 +296,12 @@
       <div v-loading="querying" class="query-result">
         <template v-if="queryResult">
           <div class="query-meta">
-            {{ t('engStorage.query.meta', { rows: queryResult.rowCount, ms: queryResult.durationMs ?? t('engStorage.cache.noData') }) }}
+            {{
+              t('engStorage.query.meta', {
+                rows: queryResult.rowCount,
+                ms: queryResult.durationMs ?? t('engStorage.cache.noData')
+              })
+            }}
           </div>
           <el-table
             :data="queryResult.rows"
@@ -332,8 +419,12 @@ const registerForm = reactive<RegisterForm>({
 })
 
 const registerRules = computed<FormRules>(() => ({
-  tableName: [{ required: true, message: t('engStorage.rules.tableNameRequired'), trigger: 'blur' }],
-  dataSourceType: [{ required: true, message: t('engStorage.rules.dataSourceTypeRequired'), trigger: 'change' }]
+  tableName: [
+    { required: true, message: t('engStorage.rules.tableNameRequired'), trigger: 'blur' }
+  ],
+  dataSourceType: [
+    { required: true, message: t('engStorage.rules.dataSourceTypeRequired'), trigger: 'change' }
+  ]
 }))
 
 /** 打开注册弹窗 */
@@ -383,7 +474,9 @@ async function handleRegister() {
 async function handleTestConnection(row: VirtualTableDefinition) {
   try {
     const { connected } = await engineApi.testVirtualTableConnection(row.tableName)
-    ElMessage[connected ? 'success' : 'error'](t(connected ? 'engStorage.messages.testOk' : 'engStorage.messages.testFailed'))
+    ElMessage[connected ? 'success' : 'error'](
+      t(connected ? 'engStorage.messages.testOk' : 'engStorage.messages.testFailed')
+    )
   } catch {
     // 拦截器已提示
   }
@@ -419,8 +512,12 @@ async function handleViewMvStatus(row: MaterializedViewDef) {
     const status = await engineApi.getMaterializedViewStatus(row.viewName)
     ElMessage.info(
       t('engStorage.messages.mvStatusFmt', { name: row.viewName, status: status.status }) +
-        (status.lastRefreshAt ? t('engStorage.messages.mvStatusRefreshFmt', { time: status.lastRefreshAt }) : '') +
-        (status.errorMessage ? t('engStorage.messages.mvStatusErrorFmt', { message: status.errorMessage }) : '')
+        (status.lastRefreshAt
+          ? t('engStorage.messages.mvStatusRefreshFmt', { time: status.lastRefreshAt })
+          : '') +
+        (status.errorMessage
+          ? t('engStorage.messages.mvStatusErrorFmt', { message: status.errorMessage })
+          : '')
     )
   } catch {
     // 拦截器已提示

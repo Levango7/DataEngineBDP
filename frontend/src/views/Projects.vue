@@ -57,7 +57,9 @@
         <div class="t" :class="{ on: tab === 1 }" @click="tab = 1">
           {{ t('projects.tabs.datasets') }}
         </div>
-        <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">{{ t('projects.tabs.jobs') }}</div>
+        <div class="t" :class="{ on: tab === 2 }" @click="tab = 2">
+          {{ t('projects.tabs.jobs') }}
+        </div>
         <div class="t" :class="{ on: tab === 3 }" @click="tab = 3">
           {{ t('projects.tabs.members') }}
         </div>
@@ -173,7 +175,11 @@
       </div>
     </Drawer>
 
-    <Modal :visible="modalVisible" :title="t('projects.createModal.title')" @close="modalVisible = false">
+    <Modal
+      :visible="modalVisible"
+      :title="t('projects.createModal.title')"
+      @close="modalVisible = false"
+    >
       <label>{{ t('projects.createModal.name') }}</label>
       <input v-model="form.name" :placeholder="t('projects.createModal.namePlaceholder')" />
       <label>{{ t('projects.createModal.domain') }}</label>

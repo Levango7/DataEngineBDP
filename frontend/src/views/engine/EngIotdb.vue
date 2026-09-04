@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ instancesError.message }}，
-            <a href="javascript:void(0)" @click="reloadInstances">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="reloadInstances">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -90,8 +92,12 @@
             <template v-if="throughput && throughput.length > 0">
               <div class="throughput-summary">
                 <span>{{ t('engIotdb.throughput.summaryFmt', { count: throughput.length }) }}</span>
-                <span>{{ t('engIotdb.throughput.maxRate', { rate: maxRate.toLocaleString() }) }}</span>
-                <span>{{ t('engIotdb.throughput.avgRate', { rate: avgRate.toLocaleString() }) }}</span>
+                <span>
+                  {{ t('engIotdb.throughput.maxRate', { rate: maxRate.toLocaleString() }) }}
+                </span>
+                <span>
+                  {{ t('engIotdb.throughput.avgRate', { rate: avgRate.toLocaleString() }) }}
+                </span>
               </div>
               <el-table
                 :data="throughput"
@@ -101,11 +107,23 @@
                 style="width: 100%"
                 max-height="420"
               >
-                <el-table-column prop="timestamp" :label="t('engIotdb.throughput.columns.timestamp')" width="200" />
-                <el-table-column :label="t('engIotdb.throughput.columns.points')" width="160" align="right">
+                <el-table-column
+                  prop="timestamp"
+                  :label="t('engIotdb.throughput.columns.timestamp')"
+                  width="200"
+                />
+                <el-table-column
+                  :label="t('engIotdb.throughput.columns.points')"
+                  width="160"
+                  align="right"
+                >
                   <template #default="{ row }">{{ row.points.toLocaleString() }}</template>
                 </el-table-column>
-                <el-table-column :label="t('engIotdb.throughput.columns.rate')" width="200" align="right">
+                <el-table-column
+                  :label="t('engIotdb.throughput.columns.rate')"
+                  width="200"
+                  align="right"
+                >
                   <template #default="{ row }">{{ row.rate.toLocaleString() }}</template>
                 </el-table-column>
                 <el-table-column :label="t('engIotdb.throughput.columns.ratio')">
@@ -121,7 +139,11 @@
             </template>
             <el-empty
               v-else-if="!throughputLoading"
-              :description="throughputError ? t('engIotdb.throughput.loadFailed') : t('engIotdb.throughput.empty')"
+              :description="
+                throughputError
+                  ? t('engIotdb.throughput.loadFailed')
+                  : t('engIotdb.throughput.empty')
+              "
             />
           </div>
         </template>
@@ -150,14 +172,40 @@
               stripe
               border
               style="width: 100%; margin-top: 12px"
-              :empty-text="timeseriesError ? t('engIotdb.preview.loadFailed') : t('engIotdb.preview.empty')"
+              :empty-text="
+                timeseriesError ? t('engIotdb.preview.loadFailed') : t('engIotdb.preview.empty')
+              "
             >
-              <el-table-column prop="name" :label="t('engIotdb.preview.columns.name')" min-width="240" />
-              <el-table-column prop="device" :label="t('engIotdb.preview.columns.device')" min-width="180" />
-              <el-table-column prop="dataType" :label="t('engIotdb.preview.columns.dataType')" width="120" />
-              <el-table-column prop="encoding" :label="t('engIotdb.preview.columns.encoding')" width="120" />
-              <el-table-column prop="compression" :label="t('engIotdb.preview.columns.compression')" width="120" />
-              <el-table-column prop="description" :label="t('engIotdb.preview.columns.description')" min-width="160" />
+              <el-table-column
+                prop="name"
+                :label="t('engIotdb.preview.columns.name')"
+                min-width="240"
+              />
+              <el-table-column
+                prop="device"
+                :label="t('engIotdb.preview.columns.device')"
+                min-width="180"
+              />
+              <el-table-column
+                prop="dataType"
+                :label="t('engIotdb.preview.columns.dataType')"
+                width="120"
+              />
+              <el-table-column
+                prop="encoding"
+                :label="t('engIotdb.preview.columns.encoding')"
+                width="120"
+              />
+              <el-table-column
+                prop="compression"
+                :label="t('engIotdb.preview.columns.compression')"
+                width="120"
+              />
+              <el-table-column
+                prop="description"
+                :label="t('engIotdb.preview.columns.description')"
+                min-width="160"
+              />
             </el-table>
           </div>
         </template>
@@ -185,7 +233,9 @@
             </div>
             <div v-if="sqlResult" class="sql-result">
               <div class="result-meta">
-                {{ t('engIotdb.sql.rowsTime', { rows: sqlResult.rowCount, ms: sqlResult.durationMs }) }}
+                {{
+                  t('engIotdb.sql.rowsTime', { rows: sqlResult.rowCount, ms: sqlResult.durationMs })
+                }}
               </div>
               <el-table
                 :data="sqlResult.rows"

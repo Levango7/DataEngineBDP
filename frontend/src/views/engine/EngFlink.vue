@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ t('engines.flink.loadFailed') }}
-            <a href="javascript:void(0)" @click="loadList">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="loadList">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -40,7 +42,9 @@
         <div class="card">
           <h3>{{ t('engines.flink.kpi.cpSuccessRate') }}</h3>
           <div class="kpi s">{{ kpi.cpSuccessRate }}%</div>
-          <div class="meta">{{ t('engines.flink.kpi.cpBreakdown', { ok: kpi.cpSuccess, fail: kpi.cpFail }) }}</div>
+          <div class="meta">
+            {{ t('engines.flink.kpi.cpBreakdown', { ok: kpi.cpSuccess, fail: kpi.cpFail }) }}
+          </div>
         </div>
       </template>
     </div>
@@ -48,7 +52,9 @@
     <!-- 主内容区：作业列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openSubmitDialog">{{ t('engines.flink.submitJob') }}</el-button>
+        <el-button type="primary" @click="openSubmitDialog">
+          {{ t('engines.flink.submitJob') }}
+        </el-button>
         <el-select
           v-model="statusFilter"
           :placeholder="t('engines.flink.statusFilter')"
@@ -74,7 +80,11 @@
         style="width: 100%"
         :empty-text="error ? t('engines.table.loadFailed') : t('engines.flink.table.empty')"
       >
-        <el-table-column prop="name" :label="t('engines.flink.table.columns.name')" min-width="180" />
+        <el-table-column
+          prop="name"
+          :label="t('engines.flink.table.columns.name')"
+          min-width="180"
+        />
         <el-table-column :label="t('engines.flink.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
@@ -82,13 +92,21 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('engines.flink.table.columns.parallelism')" width="100" align="center">
+        <el-table-column
+          :label="t('engines.flink.table.columns.parallelism')"
+          width="100"
+          align="center"
+        >
           <template #default="{ row }">{{ row.parallelism }}</template>
         </el-table-column>
         <el-table-column :label="t('engines.flink.table.columns.duration')" width="120">
           <template #default="{ row }">{{ formatDuration(row.durationMs) }}</template>
         </el-table-column>
-        <el-table-column :label="t('engines.flink.table.columns.checkpoint')" width="140" align="center">
+        <el-table-column
+          :label="t('engines.flink.table.columns.checkpoint')"
+          width="140"
+          align="center"
+        >
           <template #default="{ row }">{{ row.checkpointCount }}</template>
         </el-table-column>
         <el-table-column :label="t('engines.flink.table.columns.backpressure')" width="100">
@@ -98,9 +116,15 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('engines.flink.table.columns.actions')" width="240" fixed="right">
+        <el-table-column
+          :label="t('engines.flink.table.columns.actions')"
+          width="240"
+          fixed="right"
+        >
           <template #default="{ row }">
-            <el-button link type="primary" @click="openMonitorDrawer(row)">{{ t('engines.flink.actions.monitor') }}</el-button>
+            <el-button link type="primary" @click="openMonitorDrawer(row)">
+              {{ t('engines.flink.actions.monitor') }}
+            </el-button>
             <el-button
               v-if="canStop(row.status)"
               link
@@ -154,7 +178,10 @@
         label-position="right"
       >
         <el-form-item :label="t('engines.flink.submit.jobName')" prop="name">
-          <el-input v-model="submitForm.name" :placeholder="t('engines.flink.submit.jobNamePlaceholder')" />
+          <el-input
+            v-model="submitForm.name"
+            :placeholder="t('engines.flink.submit.jobNamePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.sql')" prop="sql">
           <el-input
@@ -170,15 +197,24 @@
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.cpInterval')" prop="checkpointIntervalMs">
           <el-input-number v-model="submitForm.checkpointIntervalMs" :min="1000" :step="1000" />
-          <span style="margin-left: 8px; color: var(--muted); font-size: 12px">{{ t('engines.flink.submit.msUnit') }}</span>
+          <span style="margin-left: 8px; color: var(--muted); font-size: 12px">
+            {{ t('engines.flink.submit.msUnit') }}
+          </span>
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.owner')" prop="owner">
-          <el-input v-model="submitForm.owner" :placeholder="t('engines.flink.submit.ownerPlaceholder')" />
+          <el-input
+            v-model="submitForm.owner"
+            :placeholder="t('engines.flink.submit.ownerPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="submitDialogVisible = false">{{ t('engines.flink.submit.cancel') }}</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">{{ t('engines.flink.submit.submit') }}</el-button>
+        <el-button @click="submitDialogVisible = false">
+          {{ t('engines.flink.submit.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ t('engines.flink.submit.submit') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -191,7 +227,9 @@
     >
       <template v-if="currentMonitorJob">
         <el-descriptions :column="2" border>
-          <el-descriptions-item :label="t('engines.flink.monitor.jobId')">{{ currentMonitorJob.id }}</el-descriptions-item>
+          <el-descriptions-item :label="t('engines.flink.monitor.jobId')">
+            {{ currentMonitorJob.id }}
+          </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.status')">
             <el-tag :type="statusTagType(currentMonitorJob.status)" effect="light">
               {{ statusLabel(currentMonitorJob.status) }}
@@ -204,10 +242,12 @@
             {{ formatDuration(currentMonitorJob.durationMs) }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.sourceThroughput')">
-            {{ currentMonitorJob.sourceThroughput ?? '--' }} {{ t('engines.flink.monitor.throughputUnit') }}
+            {{ currentMonitorJob.sourceThroughput ?? '--' }}
+            {{ t('engines.flink.monitor.throughputUnit') }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.sinkThroughput')">
-            {{ currentMonitorJob.sinkThroughput ?? '--' }} {{ t('engines.flink.monitor.throughputUnit') }}
+            {{ currentMonitorJob.sinkThroughput ?? '--' }}
+            {{ t('engines.flink.monitor.throughputUnit') }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.avgLatency')">
             {{ formatLatency(currentMonitorJob.latencyMs) }}
@@ -230,11 +270,21 @@
           stripe
           border
           size="small"
-          :empty-text="cpError ? t('engines.flink.monitor.cpLoadFailed') : t('engines.flink.monitor.cpEmpty')"
+          :empty-text="
+            cpError ? t('engines.flink.monitor.cpLoadFailed') : t('engines.flink.monitor.cpEmpty')
+          "
         >
           <el-table-column prop="id" :label="t('engines.flink.monitor.cpId')" width="120" />
-          <el-table-column prop="triggerTime" :label="t('engines.flink.monitor.cpTrigger')" width="180" />
-          <el-table-column prop="completedTime" :label="t('engines.flink.monitor.cpCompleted')" width="180" />
+          <el-table-column
+            prop="triggerTime"
+            :label="t('engines.flink.monitor.cpTrigger')"
+            width="180"
+          />
+          <el-table-column
+            prop="completedTime"
+            :label="t('engines.flink.monitor.cpCompleted')"
+            width="180"
+          />
           <el-table-column :label="t('engines.flink.monitor.cpStatus')" width="120">
             <template #default="{ row }">
               <el-tag :type="cpStatusTagType(row.status)" effect="light" size="small">
@@ -257,9 +307,15 @@
           stripe
           border
           size="small"
-          :empty-text="bpError ? t('engines.flink.monitor.bpLoadFailed') : t('engines.flink.monitor.bpEmpty')"
+          :empty-text="
+            bpError ? t('engines.flink.monitor.bpLoadFailed') : t('engines.flink.monitor.bpEmpty')
+          "
         >
-          <el-table-column prop="name" :label="t('engines.flink.monitor.operator')" min-width="180" />
+          <el-table-column
+            prop="name"
+            :label="t('engines.flink.monitor.operator')"
+            min-width="180"
+          />
           <el-table-column :label="t('engines.flink.monitor.bpLevel')" width="120">
             <template #default="{ row }">
               <el-tag :type="backpressureTagType(row.level)" effect="light" size="small">
@@ -379,7 +435,9 @@ const submitForm = reactive<SubmitForm>({
 const submitRules = computed<FormRules>(() => ({
   name: [{ required: true, message: t('engines.flink.rules.nameRequired'), trigger: 'blur' }],
   sql: [{ required: true, message: t('engines.flink.rules.sqlRequired'), trigger: 'blur' }],
-  parallelism: [{ required: true, message: t('engines.flink.rules.parallelismRequired'), trigger: 'change' }]
+  parallelism: [
+    { required: true, message: t('engines.flink.rules.parallelismRequired'), trigger: 'change' }
+  ]
 }))
 
 /** 打开提交弹窗 */
@@ -432,11 +490,15 @@ const savepointingId = ref<string>('')
 /** 停止作业 */
 async function handleStop(row: FlinkJob) {
   try {
-    await ElMessageBox.confirm(t('engines.flink.stopDialog.confirm', { name: row.name }), t('engines.flink.stopDialog.title'), {
-      type: 'warning',
-      confirmButtonText: t('engines.flink.stopDialog.confirmOk'),
-      cancelButtonText: t('engines.flink.stopDialog.cancel')
-    })
+    await ElMessageBox.confirm(
+      t('engines.flink.stopDialog.confirm', { name: row.name }),
+      t('engines.flink.stopDialog.title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('engines.flink.stopDialog.confirmOk'),
+        cancelButtonText: t('engines.flink.stopDialog.cancel')
+      }
+    )
     stoppingId.value = row.id
     await engineApi.stopFlinkJob(row.id)
     ElMessage.success(t('engines.flink.messages.stopped'))

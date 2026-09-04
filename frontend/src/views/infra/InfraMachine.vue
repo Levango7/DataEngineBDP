@@ -48,9 +48,16 @@
     <!-- 操作栏 + 集群列表 -->
     <el-card shadow="never" class="page-card" style="margin-top: 16px">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">{{ t('infraMachine.toolbar.create') }}</el-button>
+        <el-button type="primary" @click="openCreateDialog">
+          {{ t('infraMachine.toolbar.create') }}
+        </el-button>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('infraMachine.toolbar.refreshAria')" @click="reload" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('infraMachine.toolbar.refreshAria')"
+          @click="reload"
+        />
       </div>
 
       <el-table
@@ -61,7 +68,11 @@
         style="width: 100%"
         :empty-text="error ? t('infraMachine.table.loadFailed') : t('infraMachine.table.empty')"
       >
-        <el-table-column prop="clusterName" :label="t('infraMachine.table.columns.name')" min-width="180" />
+        <el-table-column
+          prop="clusterName"
+          :label="t('infraMachine.table.columns.name')"
+          min-width="180"
+        />
         <el-table-column :label="t('infraMachine.table.columns.status')" width="120">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
@@ -69,19 +80,48 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="k8sVersion" :label="t('infraMachine.table.columns.k8sVersion')" width="120" />
-        <el-table-column :label="t('infraMachine.table.columns.nodeCount')" width="140" align="center">
+        <el-table-column
+          prop="k8sVersion"
+          :label="t('infraMachine.table.columns.k8sVersion')"
+          width="120"
+        />
+        <el-table-column
+          :label="t('infraMachine.table.columns.nodeCount')"
+          width="140"
+          align="center"
+        >
           <template #default="{ row }">
-            {{ t('infraMachine.table.columns.nodeCountFmt', { master: row.controlPlaneCount, worker: row.workerCount }) }}
+            {{
+              t('infraMachine.table.columns.nodeCountFmt', {
+                master: row.controlPlaneCount,
+                worker: row.workerCount
+              })
+            }}
           </template>
         </el-table-column>
-        <el-table-column prop="podCidr" :label="t('infraMachine.table.columns.podCidr')" min-width="160" />
-        <el-table-column prop="serviceCidr" :label="t('infraMachine.table.columns.serviceCidr')" min-width="160" />
-        <el-table-column prop="createdAt" :label="t('infraMachine.table.columns.createdAt')" width="180" />
+        <el-table-column
+          prop="podCidr"
+          :label="t('infraMachine.table.columns.podCidr')"
+          min-width="160"
+        />
+        <el-table-column
+          prop="serviceCidr"
+          :label="t('infraMachine.table.columns.serviceCidr')"
+          min-width="160"
+        />
+        <el-table-column
+          prop="createdAt"
+          :label="t('infraMachine.table.columns.createdAt')"
+          width="180"
+        />
         <el-table-column :label="t('infraMachine.table.columns.actions')" width="220" fixed="right">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openScaleDialog(row)">{{ t('infraMachine.table.actions.scale') }}</el-button>
-            <el-button link type="danger" @click="handleDestroy(row)">{{ t('infraMachine.table.actions.destroy') }}</el-button>
+            <el-button link type="primary" @click="openScaleDialog(row)">
+              {{ t('infraMachine.table.actions.scale') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDestroy(row)">
+              {{ t('infraMachine.table.actions.destroy') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -111,7 +151,10 @@
         <!-- 步骤 1：基础信息 -->
         <template v-if="createStep === 0">
           <el-form-item :label="t('infraMachine.create.fields.clusterName')" prop="clusterName">
-            <el-input v-model="createForm.clusterName" :placeholder="t('infraMachine.create.fields.clusterNamePlaceholder')" />
+            <el-input
+              v-model="createForm.clusterName"
+              :placeholder="t('infraMachine.create.fields.clusterNamePlaceholder')"
+            />
           </el-form-item>
           <el-form-item :label="t('infraMachine.create.fields.k8sVersion')" prop="k8sVersion">
             <el-select v-model="createForm.k8sVersion" style="width: 100%">
@@ -144,21 +187,33 @@
         <!-- 步骤 3：网络配置 -->
         <template v-else-if="createStep === 2">
           <el-form-item :label="t('infraMachine.create.fields.podCidr')" prop="podCidr">
-            <el-input v-model="createForm.podCidr" :placeholder="t('infraMachine.create.fields.podCidrPlaceholder')" />
+            <el-input
+              v-model="createForm.podCidr"
+              :placeholder="t('infraMachine.create.fields.podCidrPlaceholder')"
+            />
           </el-form-item>
           <el-form-item :label="t('infraMachine.create.fields.serviceCidr')" prop="serviceCidr">
-            <el-input v-model="createForm.serviceCidr" :placeholder="t('infraMachine.create.fields.serviceCidrPlaceholder')" />
+            <el-input
+              v-model="createForm.serviceCidr"
+              :placeholder="t('infraMachine.create.fields.serviceCidrPlaceholder')"
+            />
           </el-form-item>
         </template>
       </el-form>
 
       <template #footer>
-        <el-button v-if="createStep > 0" @click="createStep--">{{ t('infraMachine.create.actions.prev') }}</el-button>
-        <el-button v-if="createStep < 2" type="primary" @click="nextCreateStep">{{ t('infraMachine.create.actions.next') }}</el-button>
+        <el-button v-if="createStep > 0" @click="createStep--">
+          {{ t('infraMachine.create.actions.prev') }}
+        </el-button>
+        <el-button v-if="createStep < 2" type="primary" @click="nextCreateStep">
+          {{ t('infraMachine.create.actions.next') }}
+        </el-button>
         <el-button v-else type="primary" :loading="submitting" @click="handleCreate">
           {{ t('infraMachine.create.actions.submit') }}
         </el-button>
-        <el-button @click="createDialogVisible = false">{{ t('infraMachine.create.actions.cancel') }}</el-button>
+        <el-button @click="createDialogVisible = false">
+          {{ t('infraMachine.create.actions.cancel') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -181,8 +236,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="scaleDialogVisible = false">{{ t('infraMachine.scale.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="scaling" @click="handleScale">{{ t('infraMachine.scale.actions.confirm') }}</el-button>
+        <el-button @click="scaleDialogVisible = false">
+          {{ t('infraMachine.scale.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="scaling" @click="handleScale">
+          {{ t('infraMachine.scale.actions.confirm') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -251,10 +310,16 @@ const createForm = reactive<CreateForm>({
 })
 
 const createRules = computed<FormRules>(() => ({
-  clusterName: [{ required: true, message: t('infraMachine.rules.clusterNameRequired'), trigger: 'blur' }],
-  k8sVersion: [{ required: true, message: t('infraMachine.rules.k8sVersionRequired'), trigger: 'change' }],
+  clusterName: [
+    { required: true, message: t('infraMachine.rules.clusterNameRequired'), trigger: 'blur' }
+  ],
+  k8sVersion: [
+    { required: true, message: t('infraMachine.rules.k8sVersionRequired'), trigger: 'change' }
+  ],
   podCidr: [{ required: true, message: t('infraMachine.rules.podCidrRequired'), trigger: 'blur' }],
-  serviceCidr: [{ required: true, message: t('infraMachine.rules.serviceCidrRequired'), trigger: 'blur' }]
+  serviceCidr: [
+    { required: true, message: t('infraMachine.rules.serviceCidrRequired'), trigger: 'blur' }
+  ]
 }))
 
 /** 打开新建弹窗 */
@@ -364,12 +429,16 @@ async function handleScale() {
 /** 销毁集群（带二次确认） */
 async function handleDestroy(row: ClusterInfo) {
   try {
-    await ElMessageBox.confirm(t('infraMachine.messages.destroyConfirm', { name: row.clusterName }), t('infraMachine.messages.destroyConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('infraMachine.messages.destroyConfirmOk'),
-      cancelButtonText: t('infraMachine.messages.destroyConfirmCancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('infraMachine.messages.destroyConfirm', { name: row.clusterName }),
+      t('infraMachine.messages.destroyConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('infraMachine.messages.destroyConfirmOk'),
+        cancelButtonText: t('infraMachine.messages.destroyConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await infraApi.destroyXinchangCluster(row.clusterId)
     ElMessage.success(t('infraMachine.messages.destroyed'))
     await reload()

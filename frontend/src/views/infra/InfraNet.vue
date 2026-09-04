@@ -16,12 +16,22 @@
           <el-option
             v-for="c in clusterOptions"
             :key="`${c.environment}/${c.clusterId}`"
-            :label="t('infraSched.selectCluster.optionFmt', { name: c.clusterName, env: envLabel(c.environment) })"
+            :label="
+              t('infraSched.selectCluster.optionFmt', {
+                name: c.clusterName,
+                env: envLabel(c.environment)
+              })
+            "
             :value="`${c.environment}/${c.clusterId}`"
           />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('infraNet.selectCluster.refreshAria')" @click="reloadAll" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('infraNet.selectCluster.refreshAria')"
+          @click="reloadAll"
+        />
       </div>
     </el-card>
 
@@ -45,7 +55,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ configError.message }}，
-            <a href="javascript:void(0)" @click="loadConfig">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="loadConfig">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -78,7 +90,9 @@
       <template #header>
         <div class="card-header">
           <span>{{ t('infraNet.config.title') }}</span>
-          <el-button type="primary" size="small" @click="openEditConfig">{{ t('infraNet.config.edit') }}</el-button>
+          <el-button type="primary" size="small" @click="openEditConfig">
+            {{ t('infraNet.config.edit') }}
+          </el-button>
         </div>
       </template>
       <template v-if="configLoading">
@@ -95,11 +109,15 @@
           <el-descriptions-item :label="t('infraNet.config.fields.ipFamily')">
             {{ networkConfig.ipFamily }}
           </el-descriptions-item>
-          <el-descriptions-item :label="t('infraNet.config.fields.podCidr')">{{ networkConfig.podCidr }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraNet.config.fields.podCidr')">
+            {{ networkConfig.podCidr }}
+          </el-descriptions-item>
           <el-descriptions-item :label="t('infraNet.config.fields.serviceCidr')">
             {{ networkConfig.serviceCidr }}
           </el-descriptions-item>
-          <el-descriptions-item :label="t('infraNet.config.fields.mtu')">{{ networkConfig.mtu }}</el-descriptions-item>
+          <el-descriptions-item :label="t('infraNet.config.fields.mtu')">
+            {{ networkConfig.mtu }}
+          </el-descriptions-item>
         </el-descriptions>
       </template>
     </el-card>
@@ -123,7 +141,11 @@
         :empty-text="policiesError ? t('infraNet.policy.loadFailed') : t('infraNet.policy.empty')"
       >
         <el-table-column prop="name" :label="t('infraNet.policy.columns.name')" min-width="180" />
-        <el-table-column prop="namespace" :label="t('infraNet.policy.columns.namespace')" width="160" />
+        <el-table-column
+          prop="namespace"
+          :label="t('infraNet.policy.columns.namespace')"
+          width="160"
+        />
         <el-table-column :label="t('infraNet.policy.columns.type')" width="160">
           <template #default="{ row }">
             <el-tag :type="policyTypeTagType(row.type)" effect="light">
@@ -144,10 +166,16 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="selector" :label="t('infraNet.policy.columns.selector')" min-width="200" />
+        <el-table-column
+          prop="selector"
+          :label="t('infraNet.policy.columns.selector')"
+          min-width="200"
+        />
         <el-table-column :label="t('infraNet.policy.columns.actions')" width="120" fixed="right">
           <template #default="{ row }">
-            <el-button link type="danger" @click="handleDeletePolicy(row)">{{ t('infraNet.policy.actions.delete') }}</el-button>
+            <el-button link type="danger" @click="handleDeletePolicy(row)">
+              {{ t('infraNet.policy.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -164,9 +192,15 @@
         <el-form-item :label="t('infraNet.policy.editConfig.fields.cni')">
           <el-select v-model="editConfig.cni" style="width: 100%">
             <el-option :label="t('infraNet.policy.editConfig.cniOptions.calico')" value="calico" />
-            <el-option :label="t('infraNet.policy.editConfig.cniOptions.flannel')" value="flannel" />
+            <el-option
+              :label="t('infraNet.policy.editConfig.cniOptions.flannel')"
+              value="flannel"
+            />
             <el-option :label="t('infraNet.policy.editConfig.cniOptions.cilium')" value="cilium" />
-            <el-option :label="t('infraNet.policy.editConfig.cniOptions.kubeOvn')" value="kube-ovn" />
+            <el-option
+              :label="t('infraNet.policy.editConfig.cniOptions.kubeOvn')"
+              value="kube-ovn"
+            />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('infraNet.policy.editConfig.fields.podCidr')">
@@ -179,7 +213,10 @@
           <el-select v-model="editConfig.ipFamily" style="width: 100%">
             <el-option :label="t('infraNet.policy.editConfig.ipFamilyOptions.IPv4')" value="IPv4" />
             <el-option :label="t('infraNet.policy.editConfig.ipFamilyOptions.IPv6')" value="IPv6" />
-            <el-option :label="t('infraNet.policy.editConfig.ipFamilyOptions.DualStack')" value="DualStack" />
+            <el-option
+              :label="t('infraNet.policy.editConfig.ipFamilyOptions.DualStack')"
+              value="DualStack"
+            />
           </el-select>
         </el-form-item>
         <el-form-item :label="t('infraNet.policy.editConfig.fields.mtu')">
@@ -187,8 +224,12 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editConfigVisible = false">{{ t('infraNet.policy.editConfig.actions.cancel') }}</el-button>
-        <el-button type="primary" :loading="savingConfig" @click="handleSaveConfig">{{ t('infraNet.policy.editConfig.actions.save') }}</el-button>
+        <el-button @click="editConfigVisible = false">
+          {{ t('infraNet.policy.editConfig.actions.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="savingConfig" @click="handleSaveConfig">
+          {{ t('infraNet.policy.editConfig.actions.save') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -208,10 +249,16 @@
         label-position="right"
       >
         <el-form-item :label="t('infraNet.policy.createForm.fields.name')" prop="name">
-          <el-input v-model="policyForm.name" :placeholder="t('infraNet.policy.createForm.fields.namePlaceholder')" />
+          <el-input
+            v-model="policyForm.name"
+            :placeholder="t('infraNet.policy.createForm.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('infraNet.policy.createForm.fields.namespace')" prop="namespace">
-          <el-input v-model="policyForm.namespace" :placeholder="t('infraNet.policy.createForm.fields.namespacePlaceholder')" />
+          <el-input
+            v-model="policyForm.namespace"
+            :placeholder="t('infraNet.policy.createForm.fields.namespacePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('infraNet.policy.createForm.fields.type')" prop="type">
           <el-select v-model="policyForm.type" style="width: 100%">
@@ -221,14 +268,22 @@
           </el-select>
         </el-form-item>
         <el-form-item :label="t('infraNet.policy.createForm.fields.ports')">
-          <el-input v-model="policyPortsInput" :placeholder="t('infraNet.policy.createForm.fields.portsPlaceholder')" />
+          <el-input
+            v-model="policyPortsInput"
+            :placeholder="t('infraNet.policy.createForm.fields.portsPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('infraNet.policy.createForm.fields.selector')" prop="selector">
-          <el-input v-model="policyForm.selector" :placeholder="t('infraNet.policy.createForm.fields.selectorPlaceholder')" />
+          <el-input
+            v-model="policyForm.selector"
+            :placeholder="t('infraNet.policy.createForm.fields.selectorPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createPolicyVisible = false">{{ t('infraNet.policy.createForm.actions.cancel') }}</el-button>
+        <el-button @click="createPolicyVisible = false">
+          {{ t('infraNet.policy.createForm.actions.cancel') }}
+        </el-button>
         <el-button type="primary" :loading="savingPolicy" @click="handleCreatePolicy">
           {{ t('infraNet.policy.createForm.actions.submit') }}
         </el-button>
@@ -460,12 +515,16 @@ async function handleCreatePolicy() {
 async function handleDeletePolicy(row: NetworkPolicy) {
   if (!selectedCluster.value) return
   try {
-    await ElMessageBox.confirm(t('infraNet.messages.deleteConfirm', { name: row.name }), t('infraNet.messages.deleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('infraNet.messages.deleteConfirmOk'),
-      cancelButtonText: t('infraNet.messages.deleteConfirmCancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('infraNet.messages.deleteConfirm', { name: row.name }),
+      t('infraNet.messages.deleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('infraNet.messages.deleteConfirmOk'),
+        cancelButtonText: t('infraNet.messages.deleteConfirmCancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await infraApi.deleteNetworkPolicy(
       selectedCluster.value.environment,
       selectedCluster.value.clusterId,

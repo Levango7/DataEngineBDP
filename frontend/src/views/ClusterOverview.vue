@@ -17,7 +17,12 @@
             <div class="stat-label">{{ t('clusterOverview.kpi.nodeTotal') }}</div>
             <div class="stat-value">{{ overview?.nodeTotal ?? '--' }}</div>
             <div class="stat-meta">
-              {{ t('clusterOverview.kpi.nodeTotalMeta', { ready: overview?.nodeReady ?? 0, abnormal: (overview?.nodeTotal ?? 0) - (overview?.nodeReady ?? 0) }) }}
+              {{
+                t('clusterOverview.kpi.nodeTotalMeta', {
+                  ready: overview?.nodeReady ?? 0,
+                  abnormal: (overview?.nodeTotal ?? 0) - (overview?.nodeReady ?? 0)
+                })
+              }}
             </div>
           </div>
         </el-card>
@@ -33,7 +38,9 @@
           <div class="stat-content">
             <div class="stat-label">{{ t('clusterOverview.kpi.nodeReady') }}</div>
             <div class="stat-value healthy">{{ overview?.nodeReady ?? '--' }}</div>
-            <div class="stat-meta">{{ t('clusterOverview.kpi.nodeReadyMeta', { rate: healthRate }) }}</div>
+            <div class="stat-meta">
+              {{ t('clusterOverview.kpi.nodeReadyMeta', { rate: healthRate }) }}
+            </div>
           </div>
         </el-card>
       </el-col>
@@ -49,7 +56,8 @@
             <div class="stat-label">{{ t('clusterOverview.kpi.cpu') }}</div>
             <div class="stat-value" :class="usageLevel(cpuPercent)">{{ cpuPercent }}%</div>
             <div class="stat-meta">
-              {{ overview?.cpuUsed ?? 0 }} / {{ overview?.cpuCapacity ?? 0 }} {{ t('clusterOverview.kpi.cpuUnit') }}
+              {{ overview?.cpuUsed ?? 0 }} / {{ overview?.cpuCapacity ?? 0 }}
+              {{ t('clusterOverview.kpi.cpuUnit') }}
             </div>
           </div>
         </el-card>
@@ -66,7 +74,8 @@
             <div class="stat-label">{{ t('clusterOverview.kpi.mem') }}</div>
             <div class="stat-value" :class="usageLevel(memPercent)">{{ memPercent }}%</div>
             <div class="stat-meta">
-              {{ overview?.memUsed ?? 0 }} / {{ overview?.memCapacity ?? 0 }} {{ t('clusterOverview.kpi.memUnit') }}
+              {{ overview?.memUsed ?? 0 }} / {{ overview?.memCapacity ?? 0 }}
+              {{ t('clusterOverview.kpi.memUnit') }}
             </div>
           </div>
         </el-card>
@@ -84,7 +93,9 @@
       <template #header>
         <div class="card-header">
           <span>{{ t('clusterOverview.trend.title') }}</span>
-          <el-tag type="info" effect="plain" size="small">{{ t('clusterOverview.trend.subtitle') }}</el-tag>
+          <el-tag type="info" effect="plain" size="small">
+            {{ t('clusterOverview.trend.subtitle') }}
+          </el-tag>
         </div>
       </template>
       <div
@@ -123,9 +134,15 @@
         border
         role="table"
         :aria-label="t('clusterOverview.nodes.title')"
-        :empty-text="nodesError ? t('clusterOverview.nodes.loadFailed') : t('clusterOverview.nodes.empty')"
+        :empty-text="
+          nodesError ? t('clusterOverview.nodes.loadFailed') : t('clusterOverview.nodes.empty')
+        "
       >
-        <el-table-column prop="name" :label="t('clusterOverview.nodes.columns.name')" min-width="180" />
+        <el-table-column
+          prop="name"
+          :label="t('clusterOverview.nodes.columns.name')"
+          min-width="180"
+        />
         <el-table-column :label="t('clusterOverview.nodes.columns.role')" width="120">
           <template #default="{ row }">
             <el-tag
@@ -150,7 +167,9 @@
         <el-table-column :label="t('clusterOverview.nodes.columns.cpu')" width="160">
           <template #default="{ row }">
             <div class="cell-bar">
-              <span>{{ t('clusterOverview.nodes.cpuFmt', { used: row.cpuUsed, cap: row.cpuCapacity }) }}</span>
+              <span>
+                {{ t('clusterOverview.nodes.cpuFmt', { used: row.cpuUsed, cap: row.cpuCapacity }) }}
+              </span>
               <el-progress
                 :percentage="nodeCpuPercent(row)"
                 :stroke-width="6"
@@ -163,7 +182,9 @@
         <el-table-column :label="t('clusterOverview.nodes.columns.mem')" width="160">
           <template #default="{ row }">
             <div class="cell-bar">
-              <span>{{ t('clusterOverview.nodes.memFmt', { used: row.memUsed, cap: row.memCapacity }) }}</span>
+              <span>
+                {{ t('clusterOverview.nodes.memFmt', { used: row.memUsed, cap: row.memCapacity }) }}
+              </span>
               <el-progress
                 :percentage="nodeMemPercent(row)"
                 :stroke-width="6"
@@ -176,7 +197,11 @@
         <el-table-column :label="t('clusterOverview.nodes.columns.pod')" width="140" align="center">
           <template #default="{ row }">{{ row.podCount }} / {{ row.podCapacity }}</template>
         </el-table-column>
-        <el-table-column prop="osImage" :label="t('clusterOverview.nodes.columns.os')" min-width="160" />
+        <el-table-column
+          prop="osImage"
+          :label="t('clusterOverview.nodes.columns.os')"
+          min-width="160"
+        />
       </el-table>
     </el-card>
 
@@ -199,7 +224,12 @@
             class="comp-card"
             :class="comp.status"
             role="listitem"
-            :aria-label="t('clusterOverview.components.itemAria', { name: comp.name, status: compStatusLabel(comp.status) })"
+            :aria-label="
+              t('clusterOverview.components.itemAria', {
+                name: comp.name,
+                status: compStatusLabel(comp.status)
+              })
+            "
           >
             <div class="comp-name">{{ comp.name }}</div>
             <div class="comp-status">
@@ -266,10 +296,20 @@
               <el-descriptions-item :label="t('clusterOverview.resources.network.serviceCidr')">
                 {{ networkConfig.serviceCidr }}
               </el-descriptions-item>
-              <el-descriptions-item :label="t('clusterOverview.resources.network.cni')">{{ networkConfig.cni }}</el-descriptions-item>
-              <el-descriptions-item :label="t('clusterOverview.resources.network.mtu')">{{ networkConfig.mtu }}</el-descriptions-item>
+              <el-descriptions-item :label="t('clusterOverview.resources.network.cni')">
+                {{ networkConfig.cni }}
+              </el-descriptions-item>
+              <el-descriptions-item :label="t('clusterOverview.resources.network.mtu')">
+                {{ networkConfig.mtu }}
+              </el-descriptions-item>
             </el-descriptions>
-            <h4>{{ t('clusterOverview.resources.network.policiesTitle', { count: networkConfig.policies?.length ?? 0 }) }}</h4>
+            <h4>
+              {{
+                t('clusterOverview.resources.network.policiesTitle', {
+                  count: networkConfig.policies?.length ?? 0
+                })
+              }}
+            </h4>
             <el-table
               :data="networkConfig.policies || []"
               stripe
@@ -279,13 +319,33 @@
               :aria-label="t('clusterOverview.resources.network.policiesAria')"
               :empty-text="t('clusterOverview.resources.network.policiesEmpty')"
             >
-              <el-table-column prop="name" :label="t('clusterOverview.resources.network.columns.name')" min-width="120" />
-              <el-table-column prop="namespace" :label="t('clusterOverview.resources.network.columns.namespace')" min-width="100" />
-              <el-table-column prop="type" :label="t('clusterOverview.resources.network.columns.type')" width="80" />
-              <el-table-column prop="selector" :label="t('clusterOverview.resources.network.columns.selector')" min-width="120" />
+              <el-table-column
+                prop="name"
+                :label="t('clusterOverview.resources.network.columns.name')"
+                min-width="120"
+              />
+              <el-table-column
+                prop="namespace"
+                :label="t('clusterOverview.resources.network.columns.namespace')"
+                min-width="100"
+              />
+              <el-table-column
+                prop="type"
+                :label="t('clusterOverview.resources.network.columns.type')"
+                width="80"
+              />
+              <el-table-column
+                prop="selector"
+                :label="t('clusterOverview.resources.network.columns.selector')"
+                min-width="120"
+              />
             </el-table>
             <h4 style="margin-top: 12px">
-              {{ t('clusterOverview.resources.network.servicesTitle', { count: networkConfig.services?.length ?? 0 }) }}
+              {{
+                t('clusterOverview.resources.network.servicesTitle', {
+                  count: networkConfig.services?.length ?? 0
+                })
+              }}
             </h4>
             <el-table
               :data="networkConfig.services || []"
@@ -296,14 +356,39 @@
               :aria-label="t('clusterOverview.resources.network.servicesAria')"
               :empty-text="t('clusterOverview.resources.network.servicesEmpty')"
             >
-              <el-table-column prop="name" :label="t('clusterOverview.resources.network.columns.name')" min-width="120" />
-              <el-table-column prop="namespace" :label="t('clusterOverview.resources.network.columns.namespace')" min-width="100" />
-              <el-table-column prop="type" :label="t('clusterOverview.resources.network.columns.type')" width="80" />
-              <el-table-column prop="clusterIP" :label="t('clusterOverview.resources.network.columns.clusterIp')" min-width="120" />
-              <el-table-column prop="ports" :label="t('clusterOverview.resources.network.columns.ports')" width="80" align="center" />
+              <el-table-column
+                prop="name"
+                :label="t('clusterOverview.resources.network.columns.name')"
+                min-width="120"
+              />
+              <el-table-column
+                prop="namespace"
+                :label="t('clusterOverview.resources.network.columns.namespace')"
+                min-width="100"
+              />
+              <el-table-column
+                prop="type"
+                :label="t('clusterOverview.resources.network.columns.type')"
+                width="80"
+              />
+              <el-table-column
+                prop="clusterIP"
+                :label="t('clusterOverview.resources.network.columns.clusterIp')"
+                min-width="120"
+              />
+              <el-table-column
+                prop="ports"
+                :label="t('clusterOverview.resources.network.columns.ports')"
+                width="80"
+                align="center"
+              />
             </el-table>
             <h4 style="margin-top: 12px">
-              {{ t('clusterOverview.resources.network.ingressesTitle', { count: networkConfig.ingresses?.length ?? 0 }) }}
+              {{
+                t('clusterOverview.resources.network.ingressesTitle', {
+                  count: networkConfig.ingresses?.length ?? 0
+                })
+              }}
             </h4>
             <el-table
               :data="networkConfig.ingresses || []"
@@ -314,10 +399,27 @@
               :aria-label="t('clusterOverview.resources.network.ingressesAria')"
               :empty-text="t('clusterOverview.resources.network.ingressesEmpty')"
             >
-              <el-table-column prop="name" :label="t('clusterOverview.resources.network.columns.name')" min-width="120" />
-              <el-table-column prop="namespace" :label="t('clusterOverview.resources.network.columns.namespace')" min-width="100" />
-              <el-table-column prop="className" :label="t('clusterOverview.resources.network.columns.className')" min-width="100" />
-              <el-table-column prop="hosts" :label="t('clusterOverview.resources.network.columns.hosts')" width="80" align="center" />
+              <el-table-column
+                prop="name"
+                :label="t('clusterOverview.resources.network.columns.name')"
+                min-width="120"
+              />
+              <el-table-column
+                prop="namespace"
+                :label="t('clusterOverview.resources.network.columns.namespace')"
+                min-width="100"
+              />
+              <el-table-column
+                prop="className"
+                :label="t('clusterOverview.resources.network.columns.className')"
+                min-width="100"
+              />
+              <el-table-column
+                prop="hosts"
+                :label="t('clusterOverview.resources.network.columns.hosts')"
+                width="80"
+                align="center"
+              />
             </el-table>
           </div>
         </el-tab-pane>
@@ -331,7 +433,13 @@
             {{ t('clusterOverview.resources.loadFailed', { message: storageError.message }) }}
           </div>
           <div v-else>
-            <h4>{{ t('clusterOverview.resources.storage.classesTitle', { count: storageClasses?.length ?? 0 }) }}</h4>
+            <h4>
+              {{
+                t('clusterOverview.resources.storage.classesTitle', {
+                  count: storageClasses?.length ?? 0
+                })
+              }}
+            </h4>
             <el-table
               :data="storageClasses || []"
               stripe
@@ -341,16 +449,36 @@
               :aria-label="t('clusterOverview.resources.storage.classesAria')"
               :empty-text="t('clusterOverview.resources.storage.classesEmpty')"
             >
-              <el-table-column prop="name" :label="t('clusterOverview.resources.storage.columns.name')" min-width="120" />
-              <el-table-column prop="provisioner" :label="t('clusterOverview.resources.storage.columns.provisioner')" min-width="160" />
-              <el-table-column prop="reclaimPolicy" :label="t('clusterOverview.resources.storage.columns.reclaimPolicy')" width="100" />
-              <el-table-column :label="t('clusterOverview.resources.storage.columns.default')" width="60" align="center">
+              <el-table-column
+                prop="name"
+                :label="t('clusterOverview.resources.storage.columns.name')"
+                min-width="120"
+              />
+              <el-table-column
+                prop="provisioner"
+                :label="t('clusterOverview.resources.storage.columns.provisioner')"
+                min-width="160"
+              />
+              <el-table-column
+                prop="reclaimPolicy"
+                :label="t('clusterOverview.resources.storage.columns.reclaimPolicy')"
+                width="100"
+              />
+              <el-table-column
+                :label="t('clusterOverview.resources.storage.columns.default')"
+                width="60"
+                align="center"
+              >
                 <template #default="{ row }">
-                  <el-tag v-if="row.default" type="success" size="small">{{ t('clusterOverview.resources.storage.columns.defaultYes') }}</el-tag>
+                  <el-tag v-if="row.default" type="success" size="small">
+                    {{ t('clusterOverview.resources.storage.columns.defaultYes') }}
+                  </el-tag>
                 </template>
               </el-table-column>
             </el-table>
-            <h4 style="margin-top: 12px">{{ t('clusterOverview.resources.storage.pvcsTitle', { count: pvcs?.length ?? 0 }) }}</h4>
+            <h4 style="margin-top: 12px">
+              {{ t('clusterOverview.resources.storage.pvcsTitle', { count: pvcs?.length ?? 0 }) }}
+            </h4>
             <el-table
               :data="pvcs || []"
               stripe
@@ -360,18 +488,40 @@
               :aria-label="t('clusterOverview.resources.storage.pvcsAria')"
               :empty-text="t('clusterOverview.resources.storage.pvcsEmpty')"
             >
-              <el-table-column prop="name" :label="t('clusterOverview.resources.storage.columns.name')" min-width="120" />
-              <el-table-column prop="namespace" :label="t('clusterOverview.resources.storage.columns.namespace')" min-width="100" />
-              <el-table-column prop="storageClassName" :label="t('clusterOverview.resources.storage.columns.storageClass')" min-width="100" />
-              <el-table-column prop="capacity" :label="t('clusterOverview.resources.storage.columns.capacity')" width="100" />
-              <el-table-column prop="status" :label="t('clusterOverview.resources.storage.columns.status')" width="80" />
+              <el-table-column
+                prop="name"
+                :label="t('clusterOverview.resources.storage.columns.name')"
+                min-width="120"
+              />
+              <el-table-column
+                prop="namespace"
+                :label="t('clusterOverview.resources.storage.columns.namespace')"
+                min-width="100"
+              />
+              <el-table-column
+                prop="storageClassName"
+                :label="t('clusterOverview.resources.storage.columns.storageClass')"
+                min-width="100"
+              />
+              <el-table-column
+                prop="capacity"
+                :label="t('clusterOverview.resources.storage.columns.capacity')"
+                width="100"
+              />
+              <el-table-column
+                prop="status"
+                :label="t('clusterOverview.resources.storage.columns.status')"
+                width="80"
+              />
             </el-table>
           </div>
         </el-tab-pane>
 
         <!-- HPA 配置 Tab -->
         <el-tab-pane :label="t('clusterOverview.resources.tabs.hpa')" name="hpa">
-          <div v-if="hpaLoading" class="tab-loading" role="status" aria-live="polite">{{ t('clusterOverview.resources.loading') }}</div>
+          <div v-if="hpaLoading" class="tab-loading" role="status" aria-live="polite">
+            {{ t('clusterOverview.resources.loading') }}
+          </div>
           <div v-else-if="hpaError" class="tab-error" role="alert">
             {{ t('clusterOverview.resources.loadFailed', { message: hpaError.message }) }}
           </div>
@@ -385,16 +535,47 @@
             aria-label="HPA"
             :empty-text="t('clusterOverview.resources.hpa.empty')"
           >
-            <el-table-column prop="name" :label="t('clusterOverview.resources.hpa.columns.name')" min-width="120" />
-            <el-table-column prop="namespace" :label="t('clusterOverview.resources.hpa.columns.namespace')" min-width="100" />
-            <el-table-column prop="targetDeployment" :label="t('clusterOverview.resources.hpa.columns.targetDeployment')" min-width="120" />
-            <el-table-column prop="minReplicas" :label="t('clusterOverview.resources.hpa.columns.minReplicas')" width="90" align="center" />
-            <el-table-column prop="maxReplicas" :label="t('clusterOverview.resources.hpa.columns.maxReplicas')" width="90" align="center" />
-            <el-table-column prop="currentReplicas" :label="t('clusterOverview.resources.hpa.columns.currentReplicas')" width="90" align="center" />
+            <el-table-column
+              prop="name"
+              :label="t('clusterOverview.resources.hpa.columns.name')"
+              min-width="120"
+            />
+            <el-table-column
+              prop="namespace"
+              :label="t('clusterOverview.resources.hpa.columns.namespace')"
+              min-width="100"
+            />
+            <el-table-column
+              prop="targetDeployment"
+              :label="t('clusterOverview.resources.hpa.columns.targetDeployment')"
+              min-width="120"
+            />
+            <el-table-column
+              prop="minReplicas"
+              :label="t('clusterOverview.resources.hpa.columns.minReplicas')"
+              width="90"
+              align="center"
+            />
+            <el-table-column
+              prop="maxReplicas"
+              :label="t('clusterOverview.resources.hpa.columns.maxReplicas')"
+              width="90"
+              align="center"
+            />
+            <el-table-column
+              prop="currentReplicas"
+              :label="t('clusterOverview.resources.hpa.columns.currentReplicas')"
+              width="90"
+              align="center"
+            />
             <el-table-column :label="t('clusterOverview.resources.hpa.columns.status')" width="80">
               <template #default="{ row }">
                 <el-tag :type="row.status === 'active' ? 'success' : 'info'" size="small">
-                  {{ row.status === 'active' ? t('clusterOverview.resources.hpa.statusActive') : t('clusterOverview.resources.hpa.statusPaused') }}
+                  {{
+                    row.status === 'active'
+                      ? t('clusterOverview.resources.hpa.statusActive')
+                      : t('clusterOverview.resources.hpa.statusPaused')
+                  }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -513,10 +694,11 @@ function renderTrendChart() {
         const series = params as Array<Record<string, unknown>>
         let html = `${series[0]?.axisValue as string}<br/>`
         for (const p of series) {
-          html += t('clusterOverview.trend.tooltipLabel', {
-            name: p.seriesName as string,
-            value: p.value as number
-          }).replace(/<br\/>$/, '') + '<br/>'
+          html +=
+            t('clusterOverview.trend.tooltipLabel', {
+              name: p.seriesName as string,
+              value: p.value as number
+            }).replace(/<br\/>$/, '') + '<br/>'
         }
         return html
       }

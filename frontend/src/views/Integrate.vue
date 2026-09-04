@@ -31,7 +31,9 @@
           {{ connectorPillText(c.status) }}
         </span>
         <span v-if="c.category" class="category-tag">
-          {{ c.category === 'source' ? t('integrate.categorySource') : t('integrate.categorySink') }}
+          {{
+            c.category === 'source' ? t('integrate.categorySource') : t('integrate.categorySink')
+          }}
         </span>
       </div>
     </div>
@@ -67,7 +69,8 @@
             </span>
           </td>
           <td>
-            {{ task.lastRunAt || '--' }}{{ task.lastRunDuration ? ' · ' + task.lastRunDuration : '' }}
+            {{ task.lastRunAt || '--'
+            }}{{ task.lastRunDuration ? ' · ' + task.lastRunDuration : '' }}
           </td>
           <td>
             <button
@@ -97,7 +100,11 @@
     </div>
 
     <!-- 新建同步任务弹窗 -->
-    <Modal :visible="syncModal" :title="t('integrate.createModal.title')" @close="syncModal = false">
+    <Modal
+      :visible="syncModal"
+      :title="t('integrate.createModal.title')"
+      @close="syncModal = false"
+    >
       <label>{{ t('integrate.createModal.name') }}</label>
       <input v-model="syncForm.name" :placeholder="t('integrate.createModal.namePlaceholder')" />
       <label>{{ t('integrate.createModal.sourceType') }}</label>
@@ -316,12 +323,16 @@ async function handleRunTask(task: SyncTask): Promise<void> {
 /** 停止任务 */
 async function handleStopTask(task: SyncTask): Promise<void> {
   try {
-    await ElMessageBox.confirm(t('integrate.confirmStop.message', { name: task.name }), t('integrate.confirmStop.title'), {
-      type: 'warning',
-      confirmButtonText: t('integrate.confirmStop.confirm'),
-      cancelButtonText: t('integrate.confirmStop.cancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('integrate.confirmStop.message', { name: task.name }),
+      t('integrate.confirmStop.title'),
+      {
+        type: 'warning',
+        confirmButtonText: t('integrate.confirmStop.confirm'),
+        cancelButtonText: t('integrate.confirmStop.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
   } catch {
     // 用户取消
     return

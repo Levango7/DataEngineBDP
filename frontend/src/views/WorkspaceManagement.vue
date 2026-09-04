@@ -8,7 +8,9 @@
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">{{ t('workspaceManagement.toolbar.create') }}</el-button>
+        <el-button type="primary" @click="openCreateDialog">
+          {{ t('workspaceManagement.toolbar.create') }}
+        </el-button>
         <el-input
           v-model="searchKeyword"
           :placeholder="t('workspaceManagement.toolbar.searchPlaceholder')"
@@ -39,7 +41,12 @@
           <el-option :label="t('workspaceManagement.status.deleted')" value="deleted" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('workspaceManagement.toolbar.refreshAria')" @click="loadList" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('workspaceManagement.toolbar.refreshAria')"
+          @click="loadList"
+        />
       </div>
 
       <!-- 工作空间列表表格 -->
@@ -49,16 +56,29 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? t('workspaceManagement.table.loadFailed') : t('workspaceManagement.table.empty')"
+        :empty-text="
+          error ? t('workspaceManagement.table.loadFailed') : t('workspaceManagement.table.empty')
+        "
       >
         <el-table-column prop="id" :label="t('workspaceManagement.table.columns.id')" width="80" />
-        <el-table-column prop="name" :label="t('workspaceManagement.table.columns.name')" min-width="160" />
+        <el-table-column
+          prop="name"
+          :label="t('workspaceManagement.table.columns.name')"
+          min-width="160"
+        />
         <el-table-column :label="t('workspaceManagement.table.columns.tenant')" width="120">
           <template #default="{ row }">
-            {{ row.tenantName || t('workspaceManagement.table.columns.tenantFallback', { id: row.tenantId }) }}
+            {{
+              row.tenantName ||
+              t('workspaceManagement.table.columns.tenantFallback', { id: row.tenantId })
+            }}
           </template>
         </el-table-column>
-        <el-table-column prop="namespace" :label="t('workspaceManagement.table.columns.namespace')" width="200" />
+        <el-table-column
+          prop="namespace"
+          :label="t('workspaceManagement.table.columns.namespace')"
+          width="200"
+        />
         <el-table-column :label="t('workspaceManagement.table.columns.status')" width="100">
           <template #default="{ row }">
             <el-tag :type="statusTagType(row.status)" effect="light">
@@ -66,18 +86,41 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="t('workspaceManagement.table.columns.resourceQuota')" min-width="200">
+        <el-table-column
+          :label="t('workspaceManagement.table.columns.resourceQuota')"
+          min-width="200"
+        >
           <template #default="{ row }">
-            <span class="quota-text">{{ row.resourceQuota || t('workspaceManagement.table.columns.resourceQuotaDefault') }}</span>
+            <span class="quota-text">
+              {{ row.resourceQuota || t('workspaceManagement.table.columns.resourceQuotaDefault') }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column prop="networkPolicy" :label="t('workspaceManagement.table.columns.networkPolicy')" width="140" />
-        <el-table-column prop="createdAt" :label="t('workspaceManagement.table.columns.createdAt')" width="180" />
-        <el-table-column :label="t('workspaceManagement.table.columns.actions')" width="220" fixed="right">
+        <el-table-column
+          prop="networkPolicy"
+          :label="t('workspaceManagement.table.columns.networkPolicy')"
+          width="140"
+        />
+        <el-table-column
+          prop="createdAt"
+          :label="t('workspaceManagement.table.columns.createdAt')"
+          width="180"
+        />
+        <el-table-column
+          :label="t('workspaceManagement.table.columns.actions')"
+          width="220"
+          fixed="right"
+        >
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleViewStatus(row)">{{ t('workspaceManagement.table.actions.k8sStatus') }}</el-button>
-            <el-button link type="primary" @click="openEditDialog(row)">{{ t('workspaceManagement.table.actions.edit') }}</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">{{ t('workspaceManagement.table.actions.delete') }}</el-button>
+            <el-button link type="primary" @click="handleViewStatus(row)">
+              {{ t('workspaceManagement.table.actions.k8sStatus') }}
+            </el-button>
+            <el-button link type="primary" @click="openEditDialog(row)">
+              {{ t('workspaceManagement.table.actions.edit') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
+              {{ t('workspaceManagement.table.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -100,7 +143,11 @@
     <!-- 创建/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? t('workspaceManagement.dialog.editTitle') : t('workspaceManagement.dialog.createTitle')"
+      :title="
+        isEdit
+          ? t('workspaceManagement.dialog.editTitle')
+          : t('workspaceManagement.dialog.createTitle')
+      "
       width="560px"
       :close-on-click-modal="false"
       @closed="resetForm"
@@ -113,7 +160,10 @@
         label-position="right"
       >
         <el-form-item :label="t('workspaceManagement.dialog.fields.name')" prop="name">
-          <el-input v-model="formData.name" :placeholder="t('workspaceManagement.dialog.fields.namePlaceholder')" />
+          <el-input
+            v-model="formData.name"
+            :placeholder="t('workspaceManagement.dialog.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('workspaceManagement.dialog.fields.tenant')" prop="tenantId">
           <el-select
@@ -125,7 +175,10 @@
             <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
           </el-select>
         </el-form-item>
-        <el-form-item :label="t('workspaceManagement.dialog.fields.description')" prop="description">
+        <el-form-item
+          :label="t('workspaceManagement.dialog.fields.description')"
+          prop="description"
+        >
           <el-input
             v-model="formData.description"
             type="textarea"
@@ -133,27 +186,49 @@
             :placeholder="t('workspaceManagement.dialog.fields.descriptionPlaceholder')"
           />
         </el-form-item>
-        <el-form-item :label="t('workspaceManagement.dialog.fields.resourceQuota')" prop="resourceQuota">
-          <el-input v-model="formData.resourceQuota" :placeholder="t('workspaceManagement.dialog.fields.resourceQuotaPlaceholder')" />
+        <el-form-item
+          :label="t('workspaceManagement.dialog.fields.resourceQuota')"
+          prop="resourceQuota"
+        >
+          <el-input
+            v-model="formData.resourceQuota"
+            :placeholder="t('workspaceManagement.dialog.fields.resourceQuotaPlaceholder')"
+          />
           <div class="form-tip">{{ t('workspaceManagement.dialog.fields.resourceQuotaTip') }}</div>
         </el-form-item>
-        <el-form-item :label="t('workspaceManagement.dialog.fields.networkPolicy')" prop="networkPolicy">
+        <el-form-item
+          :label="t('workspaceManagement.dialog.fields.networkPolicy')"
+          prop="networkPolicy"
+        >
           <el-select v-model="formData.networkPolicy" style="width: 100%">
-            <el-option :label="t('workspaceManagement.networkPolicy.tenantIsolated')" value="tenant-isolated" />
+            <el-option
+              :label="t('workspaceManagement.networkPolicy.tenantIsolated')"
+              value="tenant-isolated"
+            />
             <el-option :label="t('workspaceManagement.networkPolicy.denyAll')" value="deny-all" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('workspaceManagement.dialog.actions.cancel') }}</el-button>
+        <el-button @click="dialogVisible = false">
+          {{ t('workspaceManagement.dialog.actions.cancel') }}
+        </el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? t('workspaceManagement.dialog.actions.save') : t('workspaceManagement.dialog.actions.create') }}
+          {{
+            isEdit
+              ? t('workspaceManagement.dialog.actions.save')
+              : t('workspaceManagement.dialog.actions.create')
+          }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- K8s 状态对话框 -->
-    <el-dialog v-model="statusDialogVisible" :title="t('workspaceManagement.k8sDialog.title')" width="420px">
+    <el-dialog
+      v-model="statusDialogVisible"
+      :title="t('workspaceManagement.k8sDialog.title')"
+      width="420px"
+    >
       <div v-loading="statusLoading">
         <div class="status-row">
           <span class="status-label">{{ t('workspaceManagement.k8sDialog.workspace') }}</span>
@@ -171,8 +246,12 @@
         </div>
       </div>
       <template #footer>
-        <el-button @click="statusDialogVisible = false">{{ t('workspaceManagement.k8sDialog.close') }}</el-button>
-        <el-button type="primary" @click="handleViewStatus(statusWorkspace!)">{{ t('workspaceManagement.k8sDialog.refresh') }}</el-button>
+        <el-button @click="statusDialogVisible = false">
+          {{ t('workspaceManagement.k8sDialog.close') }}
+        </el-button>
+        <el-button type="primary" @click="handleViewStatus(statusWorkspace!)">
+          {{ t('workspaceManagement.k8sDialog.refresh') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -258,7 +337,9 @@ const formData = reactive<WorkspaceForm>({
 
 const formRules = computed<FormRules>(() => ({
   name: [{ required: true, message: t('workspaceManagement.rules.nameRequired'), trigger: 'blur' }],
-  tenantId: [{ required: true, message: t('workspaceManagement.rules.tenantRequired'), trigger: 'change' }]
+  tenantId: [
+    { required: true, message: t('workspaceManagement.rules.tenantRequired'), trigger: 'change' }
+  ]
 }))
 
 /** 打开新建弹窗 */

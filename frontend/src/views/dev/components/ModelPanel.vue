@@ -19,12 +19,20 @@
       :empty-text="error ? t('devMl.modelPanel.loadFailed') : t('devMl.modelPanel.empty')"
     >
       <el-table-column prop="name" :label="t('devMl.modelPanel.columns.name')" min-width="170" />
-      <el-table-column prop="algorithm" :label="t('devMl.modelPanel.columns.algorithm')" width="130">
+      <el-table-column
+        prop="algorithm"
+        :label="t('devMl.modelPanel.columns.algorithm')"
+        width="130"
+      >
         <template #default="{ row }">
           <el-tag effect="light" size="small">{{ row.algorithm }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column prop="latestVersion" :label="t('devMl.modelPanel.columns.latestVersion')" width="110" />
+      <el-table-column
+        prop="latestVersion"
+        :label="t('devMl.modelPanel.columns.latestVersion')"
+        width="110"
+      />
       <el-table-column :label="t('devMl.modelPanel.columns.status')" width="110">
         <template #default="{ row }">
           <el-tag :type="statusType(row.status)" effect="light" size="small">
@@ -35,14 +43,24 @@
       <el-table-column :label="t('devMl.modelPanel.columns.metrics')" min-width="180">
         <template #default="{ row }">{{ row.metrics ? fmtMetrics(row.metrics) : '--' }}</template>
       </el-table-column>
-      <el-table-column prop="registeredAt" :label="t('devMl.modelPanel.columns.registeredAt')" width="170">
+      <el-table-column
+        prop="registeredAt"
+        :label="t('devMl.modelPanel.columns.registeredAt')"
+        width="170"
+      >
         <template #default="{ row }">{{ row.registeredAt || '--' }}</template>
       </el-table-column>
       <el-table-column :label="t('devMl.modelPanel.columns.actions')" width="220" fixed="right">
         <template #default="{ row }">
-          <el-button link type="primary" @click="$emit('versions', row)">{{ t('devMl.modelPanel.actions.versions') }}</el-button>
-          <el-button link type="success" @click="$emit('deploy', row)">{{ t('devMl.modelPanel.actions.deploy') }}</el-button>
-          <el-button link type="danger" @click="$emit('delete', row)">{{ t('devMl.modelPanel.actions.delete') }}</el-button>
+          <el-button link type="primary" @click="$emit('versions', row)">
+            {{ t('devMl.modelPanel.actions.versions') }}
+          </el-button>
+          <el-button link type="success" @click="$emit('deploy', row)">
+            {{ t('devMl.modelPanel.actions.deploy') }}
+          </el-button>
+          <el-button link type="danger" @click="$emit('delete', row)">
+            {{ t('devMl.modelPanel.actions.delete') }}
+          </el-button>
         </template>
       </el-table-column>
     </el-table>

@@ -1,9 +1,16 @@
 <template>
   <div role="main" :aria-label="t('dashboard.title')">
     <h1>{{ t('dashboard.title') }}</h1>
-    <div class="sub" :aria-label="t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' })">
+    <div
+      class="sub"
+      :aria-label="
+        t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' })
+      "
+    >
       {{ t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' }) }}
-      <span class="pill b" :aria-label="t('dashboard.todo.title')">{{ t('dashboard.todoBadge', { count: store.todoCount }) }}</span>
+      <span class="pill b" :aria-label="t('dashboard.todo.title')">
+        {{ t('dashboard.todoBadge', { count: store.todoCount }) }}
+      </span>
     </div>
 
     <!-- 集群概览 KPI 卡片：三态 loading / error / data -->
@@ -20,7 +27,11 @@
           <h3>{{ t('dashboard.kpi.errorTitle') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ overviewError.message }}，
-            <a href="javascript:void(0)" :aria-label="t('dashboard.kpi.retry')" @click="loadOverview">
+            <a
+              href="javascript:void(0)"
+              :aria-label="t('dashboard.kpi.retry')"
+              @click="loadOverview"
+            >
               {{ t('dashboard.kpi.retryAction') }}
             </a>
           </div>
@@ -31,14 +42,24 @@
           <h3>{{ t('dashboard.kpi.projects') }}</h3>
           <div class="kpi">{{ overview.projectCount }}</div>
           <div class="meta">
-            {{ t('dashboard.kpi.projectsMeta', { running: runningProjects, paused: overview.projectCount - runningProjects }) }}
+            {{
+              t('dashboard.kpi.projectsMeta', {
+                running: runningProjects,
+                paused: overview.projectCount - runningProjects
+              })
+            }}
           </div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.jobs')">
           <h3>{{ t('dashboard.kpi.jobs') }}</h3>
           <div class="kpi">{{ overview.jobCount }}</div>
           <div class="meta">
-            {{ t('dashboard.kpi.jobsMeta', { success: overview.jobSuccessToday, failed: overview.jobFailToday }) }}
+            {{
+              t('dashboard.kpi.jobsMeta', {
+                success: overview.jobSuccessToday,
+                failed: overview.jobFailToday
+              })
+            }}
           </div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.storage')">
@@ -54,7 +75,12 @@
       </template>
     </div>
 
-    <div class="grid g2" style="margin-top: 14px" role="region" :aria-label="t('dashboard.trend.title')">
+    <div
+      class="grid g2"
+      style="margin-top: 14px"
+      role="region"
+      :aria-label="t('dashboard.trend.title')"
+    >
       <!-- 资源趋势：三态 -->
       <div class="card" role="region" :aria-label="t('dashboard.trend.title')">
         <h3>{{ t('dashboard.trend.title') }}</h3>
@@ -64,7 +90,9 @@
           </div>
         </template>
         <template v-else-if="overviewError">
-          <div class="meta" style="color: var(--muted)" role="alert">{{ t('dashboard.kpi.errorTitle') }}</div>
+          <div class="meta" style="color: var(--muted)" role="alert">
+            {{ t('dashboard.kpi.errorTitle') }}
+          </div>
         </template>
         <template v-else-if="overview">
           <div class="mini" role="img" :aria-label="t('dashboard.trend.cpuChart')">
@@ -123,10 +151,18 @@
               <td role="cell">{{ approval.asset }}（{{ approval.perm }}）</td>
               <td role="cell">{{ approval.applicant }}</td>
               <td role="cell">
-                <button class="btn sm" :aria-label="t('dashboard.todo.approve')" @click="store.approve(approval.id)">
+                <button
+                  class="btn sm"
+                  :aria-label="t('dashboard.todo.approve')"
+                  @click="store.approve(approval.id)"
+                >
                   {{ t('dashboard.todo.approve') }}
                 </button>
-                <button class="btn ghost sm" :aria-label="t('dashboard.todo.reject')" @click="store.reject(approval.id)">
+                <button
+                  class="btn ghost sm"
+                  :aria-label="t('dashboard.todo.reject')"
+                  @click="store.reject(approval.id)"
+                >
                   {{ t('dashboard.todo.reject') }}
                 </button>
               </td>
@@ -140,7 +176,12 @@
         </table>
       </div>
     </div>
-    <div class="card" style="margin-top: 14px" role="region" :aria-label="t('dashboard.quickActions.title')">
+    <div
+      class="card"
+      style="margin-top: 14px"
+      role="region"
+      :aria-label="t('dashboard.quickActions.title')"
+    >
       <h3>{{ t('dashboard.quickActions.title') }}</h3>
       <div class="chips" role="navigation" :aria-label="t('dashboard.quickActions.title')">
         <span

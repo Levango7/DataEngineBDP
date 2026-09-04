@@ -8,7 +8,9 @@
     <!-- 顶部操作栏 -->
     <el-card shadow="never" class="page-card">
       <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">{{ t('quotaManagement.toolbar.create') }}</el-button>
+        <el-button type="primary" @click="openCreateDialog">
+          {{ t('quotaManagement.toolbar.create') }}
+        </el-button>
         <el-select
           v-model="filterTenantId"
           :placeholder="t('quotaManagement.toolbar.tenantFilterPlaceholder')"
@@ -29,7 +31,12 @@
           <el-option v-for="w in workspaceOptions" :key="w.id" :label="w.name" :value="w.id" />
         </el-select>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('quotaManagement.toolbar.refreshAria')" @click="loadList" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('quotaManagement.toolbar.refreshAria')"
+          @click="loadList"
+        />
       </div>
 
       <!-- 配额列表表格 -->
@@ -39,7 +46,9 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? t('quotaManagement.table.loadFailed') : t('quotaManagement.table.empty')"
+        :empty-text="
+          error ? t('quotaManagement.table.loadFailed') : t('quotaManagement.table.empty')
+        "
       >
         <el-table-column prop="id" :label="t('quotaManagement.table.columns.id')" width="80" />
         <el-table-column :label="t('quotaManagement.table.columns.workspace')" width="160">
@@ -83,12 +92,26 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" :label="t('quotaManagement.table.columns.updatedAt')" width="180" />
-        <el-table-column :label="t('quotaManagement.table.columns.actions')" width="240" fixed="right">
+        <el-table-column
+          prop="updatedAt"
+          :label="t('quotaManagement.table.columns.updatedAt')"
+          width="180"
+        />
+        <el-table-column
+          :label="t('quotaManagement.table.columns.actions')"
+          width="240"
+          fixed="right"
+        >
           <template #default="{ row }">
-            <el-button link type="primary" @click="handleViewUsage(row)">{{ t('quotaManagement.table.actions.usage') }}</el-button>
-            <el-button link type="primary" @click="openEditDialog(row)">{{ t('quotaManagement.table.actions.edit') }}</el-button>
-            <el-button link type="danger" @click="handleDelete(row)">{{ t('quotaManagement.table.actions.delete') }}</el-button>
+            <el-button link type="primary" @click="handleViewUsage(row)">
+              {{ t('quotaManagement.table.actions.usage') }}
+            </el-button>
+            <el-button link type="primary" @click="openEditDialog(row)">
+              {{ t('quotaManagement.table.actions.edit') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
+              {{ t('quotaManagement.table.actions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -97,7 +120,9 @@
     <!-- 设置/编辑弹窗 -->
     <el-dialog
       v-model="dialogVisible"
-      :title="isEdit ? t('quotaManagement.dialog.editTitle') : t('quotaManagement.dialog.createTitle')"
+      :title="
+        isEdit ? t('quotaManagement.dialog.editTitle') : t('quotaManagement.dialog.createTitle')
+      "
       width="640px"
       :close-on-click-modal="false"
       @closed="resetForm"
@@ -109,7 +134,9 @@
         label-width="140px"
         label-position="right"
       >
-        <el-divider content-position="left">{{ t('quotaManagement.dialog.sections.selectWorkspace') }}</el-divider>
+        <el-divider content-position="left">
+          {{ t('quotaManagement.dialog.sections.selectWorkspace') }}
+        </el-divider>
         <el-form-item :label="t('quotaManagement.dialog.fields.workspace')" prop="workspaceId">
           <el-select
             v-model="formData.workspaceId"
@@ -122,44 +149,90 @@
           </el-select>
         </el-form-item>
 
-        <el-divider content-position="left">{{ t('quotaManagement.dialog.sections.resourceQuota') }}</el-divider>
+        <el-divider content-position="left">
+          {{ t('quotaManagement.dialog.sections.resourceQuota') }}
+        </el-divider>
         <el-form-item :label="t('quotaManagement.dialog.fields.cpuLimit')" prop="cpuLimit">
-          <el-input v-model="formData.cpuLimit" :placeholder="t('quotaManagement.dialog.fields.cpuLimitPlaceholder')" />
+          <el-input
+            v-model="formData.cpuLimit"
+            :placeholder="t('quotaManagement.dialog.fields.cpuLimitPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('quotaManagement.dialog.fields.memoryLimit')" prop="memoryLimit">
-          <el-input v-model="formData.memoryLimit" :placeholder="t('quotaManagement.dialog.fields.memoryLimitPlaceholder')" />
+          <el-input
+            v-model="formData.memoryLimit"
+            :placeholder="t('quotaManagement.dialog.fields.memoryLimitPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('quotaManagement.dialog.fields.storageLimit')" prop="storageLimit">
-          <el-input v-model="formData.storageLimit" :placeholder="t('quotaManagement.dialog.fields.storageLimitPlaceholder')" />
+          <el-input
+            v-model="formData.storageLimit"
+            :placeholder="t('quotaManagement.dialog.fields.storageLimitPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('quotaManagement.dialog.fields.podLimit')" prop="podLimit">
-          <el-input v-model="formData.podLimit" :placeholder="t('quotaManagement.dialog.fields.podLimitPlaceholder')" />
+          <el-input
+            v-model="formData.podLimit"
+            :placeholder="t('quotaManagement.dialog.fields.podLimitPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('quotaManagement.dialog.fields.pvcLimit')" prop="pvcLimit">
-          <el-input v-model="formData.pvcLimit" :placeholder="t('quotaManagement.dialog.fields.pvcLimitPlaceholder')" />
+          <el-input
+            v-model="formData.pvcLimit"
+            :placeholder="t('quotaManagement.dialog.fields.pvcLimitPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('quotaManagement.dialog.fields.serviceLimit')" prop="serviceLimit">
-          <el-input v-model="formData.serviceLimit" :placeholder="t('quotaManagement.dialog.fields.serviceLimitPlaceholder')" />
+          <el-input
+            v-model="formData.serviceLimit"
+            :placeholder="t('quotaManagement.dialog.fields.serviceLimitPlaceholder')"
+          />
         </el-form-item>
 
-        <el-divider content-position="left">{{ t('quotaManagement.dialog.sections.limitRange') }}</el-divider>
+        <el-divider content-position="left">
+          {{ t('quotaManagement.dialog.sections.limitRange') }}
+        </el-divider>
         <el-form-item :label="t('quotaManagement.dialog.fields.maxCpuPerPod')" prop="maxCpuPerPod">
-          <el-input v-model="formData.maxCpuPerPod" :placeholder="t('quotaManagement.dialog.fields.maxCpuPerPodPlaceholder')" />
+          <el-input
+            v-model="formData.maxCpuPerPod"
+            :placeholder="t('quotaManagement.dialog.fields.maxCpuPerPodPlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="t('quotaManagement.dialog.fields.maxMemoryPerPod')" prop="maxMemoryPerPod">
-          <el-input v-model="formData.maxMemoryPerPod" :placeholder="t('quotaManagement.dialog.fields.maxMemoryPerPodPlaceholder')" />
+        <el-form-item
+          :label="t('quotaManagement.dialog.fields.maxMemoryPerPod')"
+          prop="maxMemoryPerPod"
+        >
+          <el-input
+            v-model="formData.maxMemoryPerPod"
+            :placeholder="t('quotaManagement.dialog.fields.maxMemoryPerPodPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('quotaManagement.dialog.fields.minCpuPerPod')" prop="minCpuPerPod">
-          <el-input v-model="formData.minCpuPerPod" :placeholder="t('quotaManagement.dialog.fields.minCpuPerPodPlaceholder')" />
+          <el-input
+            v-model="formData.minCpuPerPod"
+            :placeholder="t('quotaManagement.dialog.fields.minCpuPerPodPlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="t('quotaManagement.dialog.fields.minMemoryPerPod')" prop="minMemoryPerPod">
-          <el-input v-model="formData.minMemoryPerPod" :placeholder="t('quotaManagement.dialog.fields.minMemoryPerPodPlaceholder')" />
+        <el-form-item
+          :label="t('quotaManagement.dialog.fields.minMemoryPerPod')"
+          prop="minMemoryPerPod"
+        >
+          <el-input
+            v-model="formData.minMemoryPerPod"
+            :placeholder="t('quotaManagement.dialog.fields.minMemoryPerPodPlaceholder')"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">{{ t('quotaManagement.dialog.actions.cancel') }}</el-button>
+        <el-button @click="dialogVisible = false">
+          {{ t('quotaManagement.dialog.actions.cancel') }}
+        </el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ isEdit ? t('quotaManagement.dialog.actions.save') : t('quotaManagement.dialog.actions.set') }}
+          {{
+            isEdit
+              ? t('quotaManagement.dialog.actions.save')
+              : t('quotaManagement.dialog.actions.set')
+          }}
         </el-button>
       </template>
     </el-dialog>
@@ -184,8 +257,12 @@
         <el-empty v-else :description="t('quotaManagement.usage.empty')" />
       </div>
       <template #footer>
-        <el-button @click="usageDialogVisible = false">{{ t('quotaManagement.usage.close') }}</el-button>
-        <el-button type="primary" @click="handleViewUsage(usageQuota!)">{{ t('quotaManagement.usage.refresh') }}</el-button>
+        <el-button @click="usageDialogVisible = false">
+          {{ t('quotaManagement.usage.close') }}
+        </el-button>
+        <el-button type="primary" @click="handleViewUsage(usageQuota!)">
+          {{ t('quotaManagement.usage.refresh') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -284,13 +361,27 @@ const formData = reactive<QuotaForm>({
 })
 
 const formRules = computed<FormRules>(() => ({
-  workspaceId: [{ required: true, message: t('quotaManagement.rules.workspaceRequired'), trigger: 'change' }],
-  cpuLimit: [{ required: true, message: t('quotaManagement.rules.cpuLimitRequired'), trigger: 'blur' }],
-  memoryLimit: [{ required: true, message: t('quotaManagement.rules.memoryLimitRequired'), trigger: 'blur' }],
-  storageLimit: [{ required: true, message: t('quotaManagement.rules.storageLimitRequired'), trigger: 'blur' }],
-  podLimit: [{ required: true, message: t('quotaManagement.rules.podLimitRequired'), trigger: 'blur' }],
-  pvcLimit: [{ required: true, message: t('quotaManagement.rules.pvcLimitRequired'), trigger: 'blur' }],
-  serviceLimit: [{ required: true, message: t('quotaManagement.rules.serviceLimitRequired'), trigger: 'blur' }]
+  workspaceId: [
+    { required: true, message: t('quotaManagement.rules.workspaceRequired'), trigger: 'change' }
+  ],
+  cpuLimit: [
+    { required: true, message: t('quotaManagement.rules.cpuLimitRequired'), trigger: 'blur' }
+  ],
+  memoryLimit: [
+    { required: true, message: t('quotaManagement.rules.memoryLimitRequired'), trigger: 'blur' }
+  ],
+  storageLimit: [
+    { required: true, message: t('quotaManagement.rules.storageLimitRequired'), trigger: 'blur' }
+  ],
+  podLimit: [
+    { required: true, message: t('quotaManagement.rules.podLimitRequired'), trigger: 'blur' }
+  ],
+  pvcLimit: [
+    { required: true, message: t('quotaManagement.rules.pvcLimitRequired'), trigger: 'blur' }
+  ],
+  serviceLimit: [
+    { required: true, message: t('quotaManagement.rules.serviceLimitRequired'), trigger: 'blur' }
+  ]
 }))
 
 /** 打开设置弹窗 */
@@ -486,10 +577,7 @@ function statusLabel(status: Quota['status']): string {
 }
 
 /** 状态 → tag 类型 */
-const STATUS_TAG_TYPE_MAP: Record<
-  string,
-  'success' | 'warning' | 'info' | 'danger' | 'primary'
-> = {
+const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'danger' | 'primary'> = {
   SETTING: 'primary',
   ACTIVE: 'success',
   UPDATING: 'warning',

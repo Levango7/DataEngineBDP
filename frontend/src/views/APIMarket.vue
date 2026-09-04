@@ -10,22 +10,30 @@
       <div class="card">
         <h3>{{ t('apiMarket.kpi.published') }}</h3>
         <div class="kpi s">{{ safeApiList.length }}</div>
-        <div class="meta">{{ t('apiMarket.kpi.runningDraft', { running: runningCount, draft: draftCount }) }}</div>
+        <div class="meta">
+          {{ t('apiMarket.kpi.runningDraft', { running: runningCount, draft: draftCount }) }}
+        </div>
       </div>
       <div class="card">
         <h3>{{ t('apiMarket.kpi.monthlyCalls') }}</h3>
         <div class="kpi s">{{ formatNumber(totalCalls) }}</div>
-        <div class="meta">{{ t('apiMarket.kpi.successRate', { rate: (totalSuccessRate * 100).toFixed(1) }) }}</div>
+        <div class="meta">
+          {{ t('apiMarket.kpi.successRate', { rate: (totalSuccessRate * 100).toFixed(1) }) }}
+        </div>
       </div>
       <div class="card">
         <h3>{{ t('apiMarket.kpi.activeSubs') }}</h3>
         <div class="kpi s">{{ activeSubscriptions }}</div>
-        <div class="meta">{{ t('apiMarket.kpi.pendingSubs', { count: pendingSubscriptions }) }}</div>
+        <div class="meta">
+          {{ t('apiMarket.kpi.pendingSubs', { count: pendingSubscriptions }) }}
+        </div>
       </div>
       <div class="card">
         <h3>{{ t('apiMarket.kpi.slaPlatinum') }}</h3>
         <div class="kpi s">{{ platinumCount }}</div>
-        <div class="meta">{{ t('apiMarket.kpi.slaBreakdown', { gold: goldCount, silver: silverCount }) }}</div>
+        <div class="meta">
+          {{ t('apiMarket.kpi.slaBreakdown', { gold: goldCount, silver: silverCount }) }}
+        </div>
       </div>
     </div>
 
@@ -48,7 +56,9 @@
         <option value="deprecated">{{ t('apiMarket.status.api.deprecated') }}</option>
       </select>
       <div class="spacer"></div>
-      <button class="btn sm" @click="registerModal = true">{{ t('apiMarket.toolbar.register') }}</button>
+      <button class="btn sm" @click="registerModal = true">
+        {{ t('apiMarket.toolbar.register') }}
+      </button>
     </div>
 
     <!-- API 卡片网格 -->
@@ -58,7 +68,9 @@
     <div v-else-if="error" class="card" style="margin-top: 14px" role="alert">
       <div class="meta" style="color: var(--danger)">
         {{ t('apiMarket.list.loadFailed', { message: error.message }) }}
-        <button class="btn ghost sm" style="margin-left: 8px" @click="refreshList">{{ t('apiMarket.list.retry') }}</button>
+        <button class="btn ghost sm" style="margin-left: 8px" @click="refreshList">
+          {{ t('apiMarket.list.retry') }}
+        </button>
       </div>
     </div>
     <div v-else-if="apiList && apiList.length === 0" class="card" style="margin-top: 14px">
@@ -81,7 +93,9 @@
         </div>
         <div class="api-card-footer">
           <span :class="['pill', statusClass(api.status)]">{{ statusLabel(api.status) }}</span>
-          <span class="meta">{{ t('apiMarket.list.callCount', { count: formatNumber(api.callCount) }) }}</span>
+          <span class="meta">
+            {{ t('apiMarket.list.callCount', { count: formatNumber(api.callCount) }) }}
+          </span>
         </div>
       </div>
     </div>
@@ -137,7 +151,12 @@
           <div class="kv">
             <span>{{ t('apiMarket.detail.doc.cost') }}</span>
             <span>
-              {{ t('apiMarket.detail.doc.costUnitPrice', { label: costLabel(selectedApi.costStrategy), price: selectedApi.costUnitPrice }) }}
+              {{
+                t('apiMarket.detail.doc.costUnitPrice', {
+                  label: costLabel(selectedApi.costStrategy),
+                  price: selectedApi.costUnitPrice
+                })
+              }}
             </span>
           </div>
           <div class="kv">
@@ -162,12 +181,16 @@
                 </td>
                 <td>{{ p.location }}</td>
                 <td>{{ p.type }}</td>
-                <td>{{ p.required ? t('apiMarket.detail.doc.yes') : t('apiMarket.detail.doc.no') }}</td>
+                <td>
+                  {{ p.required ? t('apiMarket.detail.doc.yes') : t('apiMarket.detail.doc.no') }}
+                </td>
                 <td>{{ p.description || '—' }}</td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.doc.noParams') }}</div>
+          <div v-else class="meta" style="color: var(--muted)">
+            {{ t('apiMarket.detail.doc.noParams') }}
+          </div>
         </div>
 
         <!-- 试调 Tab -->
@@ -175,7 +198,11 @@
           <label>{{ t('apiMarket.detail.try.apiKey') }}</label>
           <input v-model="testApiKey" :placeholder="t('apiMarket.detail.try.apiKeyPlaceholder')" />
           <label>{{ t('apiMarket.detail.try.payload') }}</label>
-          <textarea v-model="testPayload" rows="5" :placeholder="t('apiMarket.detail.try.payloadPlaceholder')"></textarea>
+          <textarea
+            v-model="testPayload"
+            rows="5"
+            :placeholder="t('apiMarket.detail.try.payloadPlaceholder')"
+          ></textarea>
           <button class="btn sm" style="margin-top: 8px" :disabled="calling" @click="executeCall">
             {{ calling ? t('apiMarket.detail.try.submitting') : t('apiMarket.detail.try.submit') }}
           </button>
@@ -188,7 +215,10 @@
             </div>
             <div class="kv">
               <span>{{ t('apiMarket.detail.try.result.latency') }}</span>
-              <span>{{ callResult.latencyMs.toFixed(2) }}{{ t('apiMarket.detail.try.result.latencyUnit') }}</span>
+              <span>
+                {{ callResult.latencyMs.toFixed(2)
+                }}{{ t('apiMarket.detail.try.result.latencyUnit') }}
+              </span>
             </div>
             <div class="kv">
               <span>{{ t('apiMarket.detail.try.result.cost') }}</span>
@@ -209,14 +239,25 @@
         <div v-if="activeTab === 'subscribe'" class="tab-content">
           <h4>{{ t('apiMarket.detail.subscribe.applyTitle') }}</h4>
           <label>{{ t('apiMarket.detail.subscribe.subscriberId') }}</label>
-          <input v-model="subForm.subscriberId" :placeholder="t('apiMarket.detail.subscribe.subscriberIdPlaceholder')" />
+          <input
+            v-model="subForm.subscriberId"
+            :placeholder="t('apiMarket.detail.subscribe.subscriberIdPlaceholder')"
+          />
           <label>{{ t('apiMarket.detail.subscribe.tenantId') }}</label>
-          <input v-model="subForm.subscriberTenantId" :placeholder="t('apiMarket.detail.subscribe.tenantIdPlaceholder')" />
+          <input
+            v-model="subForm.subscriberTenantId"
+            :placeholder="t('apiMarket.detail.subscribe.tenantIdPlaceholder')"
+          />
           <label>{{ t('apiMarket.detail.subscribe.purpose') }}</label>
-          <input v-model="subForm.purpose" :placeholder="t('apiMarket.detail.subscribe.purposePlaceholder')" />
+          <input
+            v-model="subForm.purpose"
+            :placeholder="t('apiMarket.detail.subscribe.purposePlaceholder')"
+          />
           <label>{{ t('apiMarket.detail.subscribe.quotaExpect') }}</label>
           <input v-model.number="subForm.quotaExpect" type="number" />
-          <button class="btn sm" style="margin-top: 8px" @click="applySubscribe">{{ t('apiMarket.detail.subscribe.submit') }}</button>
+          <button class="btn sm" style="margin-top: 8px" @click="applySubscribe">
+            {{ t('apiMarket.detail.subscribe.submit') }}
+          </button>
 
           <h4 style="margin-top: 16px">{{ t('apiMarket.detail.subscribe.listTitle') }}</h4>
           <table v-if="subscribers.length > 0">
@@ -240,18 +281,26 @@
                 <td>{{ s.grantedQuota || s.quotaExpect }}</td>
                 <td>{{ s.callCount }}</td>
                 <td>
-                  <code v-if="s.accessKey">{{ t('apiMarket.detail.subscribe.akMask', { ak: s.accessKey.substring(0, 12) }) }}</code>
+                  <code v-if="s.accessKey">
+                    {{
+                      t('apiMarket.detail.subscribe.akMask', { ak: s.accessKey.substring(0, 12) })
+                    }}
+                  </code>
                   <span v-else>—</span>
                 </td>
               </tr>
             </tbody>
           </table>
-          <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.subscribe.empty') }}</div>
+          <div v-else class="meta" style="color: var(--muted)">
+            {{ t('apiMarket.detail.subscribe.empty') }}
+          </div>
         </div>
 
         <!-- 计量 Tab -->
         <div v-if="activeTab === 'metrics'" class="tab-content">
-          <div v-if="metricsLoading" class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.metrics.loading') }}</div>
+          <div v-if="metricsLoading" class="meta" style="color: var(--muted)">
+            {{ t('apiMarket.detail.metrics.loading') }}
+          </div>
           <template v-else-if="metrics">
             <div class="grid g4">
               <div class="card">
@@ -278,10 +327,17 @@
                 :key="i"
                 class="bar"
                 :style="{ height: barHeight(point.callCount) + 'px' }"
-                :title="t('apiMarket.detail.metrics.tsPoint', { ts: point.timestamp, count: point.callCount })"
+                :title="
+                  t('apiMarket.detail.metrics.tsPoint', {
+                    ts: point.timestamp,
+                    count: point.callCount
+                  })
+                "
               ></div>
             </div>
-            <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.metrics.noTimeseries') }}</div>
+            <div v-else class="meta" style="color: var(--muted)">
+              {{ t('apiMarket.detail.metrics.noTimeseries') }}
+            </div>
             <h4 style="margin-top: 12px">{{ t('apiMarket.detail.metrics.byConsumerTitle') }}</h4>
             <table v-if="metrics.byConsumer.length > 0">
               <thead>
@@ -303,12 +359,16 @@
                 </tr>
               </tbody>
             </table>
-            <div v-else class="meta" style="color: var(--muted)">{{ t('apiMarket.detail.metrics.noConsumer') }}</div>
+            <div v-else class="meta" style="color: var(--muted)">
+              {{ t('apiMarket.detail.metrics.noConsumer') }}
+            </div>
           </template>
         </div>
       </div>
       <div class="mf">
-        <button class="btn ghost" @click="selectedApi = null">{{ t('apiMarket.detail.actions.close') }}</button>
+        <button class="btn ghost" @click="selectedApi = null">
+          {{ t('apiMarket.detail.actions.close') }}
+        </button>
         <button v-if="selectedApi.status === 'draft'" class="btn" @click="publishFlow(selectedApi)">
           {{ t('apiMarket.detail.actions.publish') }}
         </button>
@@ -316,13 +376,20 @@
     </div>
 
     <!-- 注册 API Modal -->
-    <Modal :visible="registerModal" :title="t('apiMarket.register.title')" @close="registerModal = false">
+    <Modal
+      :visible="registerModal"
+      :title="t('apiMarket.register.title')"
+      @close="registerModal = false"
+    >
       <label>{{ t('apiMarket.register.name') }}</label>
       <input v-model="newApi.name" :placeholder="t('apiMarket.register.namePlaceholder')" />
       <label>{{ t('apiMarket.register.version') }}</label>
       <input v-model="newApi.version" :placeholder="t('apiMarket.register.versionPlaceholder')" />
       <label>{{ t('apiMarket.register.description') }}</label>
-      <input v-model="newApi.description" :placeholder="t('apiMarket.register.descriptionPlaceholder')" />
+      <input
+        v-model="newApi.description"
+        :placeholder="t('apiMarket.register.descriptionPlaceholder')"
+      />
       <label>{{ t('apiMarket.register.category') }}</label>
       <input v-model="newApi.category" :placeholder="t('apiMarket.register.categoryPlaceholder')" />
       <label>{{ t('apiMarket.register.method') }}</label>
@@ -354,11 +421,19 @@
         <option value="http">{{ t('apiMarket.upstreamType.http') }}</option>
       </select>
       <label>{{ t('apiMarket.register.upstreamUrl') }}</label>
-      <input v-model="newApi.upstreamUrl" :placeholder="t('apiMarket.register.upstreamUrlPlaceholder')" />
+      <input
+        v-model="newApi.upstreamUrl"
+        :placeholder="t('apiMarket.register.upstreamUrlPlaceholder')"
+      />
       <label>{{ t('apiMarket.register.providerTenantId') }}</label>
-      <input v-model="newApi.providerTenantId" :placeholder="t('apiMarket.register.providerTenantIdPlaceholder')" />
+      <input
+        v-model="newApi.providerTenantId"
+        :placeholder="t('apiMarket.register.providerTenantIdPlaceholder')"
+      />
       <template #footer>
-        <button class="btn ghost" @click="registerModal = false">{{ t('apiMarket.register.cancel') }}</button>
+        <button class="btn ghost" @click="registerModal = false">
+          {{ t('apiMarket.register.cancel') }}
+        </button>
         <button class="btn" @click="doRegister">{{ t('apiMarket.register.submit') }}</button>
       </template>
     </Modal>

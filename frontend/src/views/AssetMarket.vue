@@ -35,7 +35,9 @@
     </div>
     <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
       {{ t('assetMarket.loadFailed', { message: error.message }) }}
-      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">{{ t('assetMarket.retry') }}</button>
+      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">
+        {{ t('assetMarket.retry') }}
+      </button>
     </div>
 
     <!-- Tab 切换 -->
@@ -50,7 +52,9 @@
         {{ t('assetMarket.tabs.listed') }}
       </button>
       <div class="spacer"></div>
-      <button class="btn sm" @click="listModalVisible = true">{{ t('assetMarket.listAsset') }}</button>
+      <button class="btn sm" @click="listModalVisible = true">
+        {{ t('assetMarket.listAsset') }}
+      </button>
     </div>
 
     <!-- 资产市场：卡片式浏览 -->
@@ -58,7 +62,11 @@
       <!-- 筛选 -->
       <div class="card" style="margin-bottom: 14px">
         <div class="row" style="gap: 12px; align-items: center">
-          <input v-model="searchQuery" :placeholder="t('assetMarket.market.searchPlaceholder')" style="flex: 1" />
+          <input
+            v-model="searchQuery"
+            :placeholder="t('assetMarket.market.searchPlaceholder')"
+            style="flex: 1"
+          />
           <select v-model="filterType" style="width: 140px">
             <option value="">{{ t('assetMarket.market.allTypes') }}</option>
             <option value="table">{{ t('assetMarket.assetType.table') }}</option>
@@ -92,8 +100,17 @@
             <span>{{ t('assetMarket.market.card.quality', { score: a.qualityScore }) }}</span>
           </div>
           <div class="asset-footer">
-            <span class="price">{{ t('assetMarket.market.card.priceUnit', { price: a.pricing.price, unit: a.pricing.unit }) }}</span>
-            <span class="sub-count">{{ t('assetMarket.market.card.subCount', { count: a.subscriberCount }) }}</span>
+            <span class="price">
+              {{
+                t('assetMarket.market.card.priceUnit', {
+                  price: a.pricing.price,
+                  unit: a.pricing.unit
+                })
+              }}
+            </span>
+            <span class="sub-count">
+              {{ t('assetMarket.market.card.subCount', { count: a.subscriberCount }) }}
+            </span>
           </div>
         </div>
       </div>
@@ -140,7 +157,14 @@
                     {{ subStatusLabel(s.status) }}
                   </span>
                 </td>
-                <td>{{ t('assetMarket.mySubs.period', { start: formatDate(s.startTime), end: formatDate(s.endTime) }) }}</td>
+                <td>
+                  {{
+                    t('assetMarket.mySubs.period', {
+                      start: formatDate(s.startTime),
+                      end: formatDate(s.endTime)
+                    })
+                  }}
+                </td>
                 <td>
                   <span class="pill" :class="deliveryStatusClass(s.deliveryStatus)">
                     {{ deliveryStatusLabel(s.deliveryStatus) }}
@@ -150,7 +174,9 @@
                   <button v-if="s.status === 'active'" class="btn ghost sm" @click="openDeliver(s)">
                     {{ t('assetMarket.mySubs.deliver') }}
                   </button>
-                  <button class="btn ghost sm" @click="openBilling(s)">{{ t('assetMarket.mySubs.billing') }}</button>
+                  <button class="btn ghost sm" @click="openBilling(s)">
+                    {{ t('assetMarket.mySubs.billing') }}
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -190,9 +216,17 @@
                 </span>
               </td>
               <td>{{ a.subscriberCount }}</td>
-              <td>{{ t('assetMarket.myListed.revenueFmt', { amount: (a.subscriberCount * a.pricing.price).toFixed(2) }) }}</td>
               <td>
-                <button class="btn ghost sm" @click="openDetail(a)">{{ t('assetMarket.myListed.detail') }}</button>
+                {{
+                  t('assetMarket.myListed.revenueFmt', {
+                    amount: (a.subscriberCount * a.pricing.price).toFixed(2)
+                  })
+                }}
+              </td>
+              <td>
+                <button class="btn ghost sm" @click="openDetail(a)">
+                  {{ t('assetMarket.myListed.detail') }}
+                </button>
                 <button v-if="a.status === 'listed'" class="btn ghost sm" @click="offlineAsset(a)">
                   {{ t('assetMarket.myListed.offline') }}
                 </button>
@@ -239,7 +273,13 @@
         <div class="kv">
           <span>{{ t('assetMarket.detail.fields.price') }}</span>
           <span>
-            {{ t('assetMarket.detail.fields.priceFmt', { price: detailAsset.pricing.price, unit: detailAsset.pricing.unit, mode: billingModeLabel(detailAsset.pricing.mode) }) }}
+            {{
+              t('assetMarket.detail.fields.priceFmt', {
+                price: detailAsset.pricing.price,
+                unit: detailAsset.pricing.unit,
+                mode: billingModeLabel(detailAsset.pricing.mode)
+              })
+            }}
           </span>
         </div>
         <div class="kv">
@@ -273,7 +313,9 @@
         <div v-else style="color: #888">{{ t('assetMarket.detail.noSample') }}</div>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="detailVisible = false">{{ t('assetMarket.detail.close') }}</button>
+        <button class="btn ghost" @click="detailVisible = false">
+          {{ t('assetMarket.detail.close') }}
+        </button>
         <button
           v-if="detailAsset && detailAsset.status === 'listed'"
           class="btn"
@@ -285,7 +327,11 @@
     </Modal>
 
     <!-- 上架表单 -->
-    <Modal :visible="listModalVisible" :title="t('assetMarket.listForm.title')" @close="listModalVisible = false">
+    <Modal
+      :visible="listModalVisible"
+      :title="t('assetMarket.listForm.title')"
+      @close="listModalVisible = false"
+    >
       <label>{{ t('assetMarket.listForm.name') }}</label>
       <input v-model="newAsset.name" :placeholder="t('assetMarket.listForm.namePlaceholder')" />
       <label>{{ t('assetMarket.listForm.type') }}</label>
@@ -303,7 +349,10 @@
         <option value="sensitive">{{ t('assetMarket.security.sensitive') }}</option>
       </select>
       <label>{{ t('assetMarket.listForm.description') }}</label>
-      <input v-model="newAsset.description" :placeholder="t('assetMarket.listForm.descriptionPlaceholder')" />
+      <input
+        v-model="newAsset.description"
+        :placeholder="t('assetMarket.listForm.descriptionPlaceholder')"
+      />
       <label>{{ t('assetMarket.listForm.billingMode') }}</label>
       <select v-model="newAsset.pricing.mode">
         <option value="by_call">{{ t('assetMarket.billingMode.by_call') }}</option>
@@ -317,16 +366,24 @@
       <select v-model="newAsset.deliveryMethod">
         <option value="api">{{ t('assetMarket.deliveryMethod.api') }}</option>
         <option value="file">{{ t('assetMarket.deliveryMethod.file') }}</option>
-        <option value="database_direct">{{ t('assetMarket.deliveryMethod.database_direct') }}</option>
+        <option value="database_direct">
+          {{ t('assetMarket.deliveryMethod.database_direct') }}
+        </option>
       </select>
       <template #footer>
-        <button class="btn ghost" @click="listModalVisible = false">{{ t('assetMarket.listForm.cancel') }}</button>
+        <button class="btn ghost" @click="listModalVisible = false">
+          {{ t('assetMarket.listForm.cancel') }}
+        </button>
         <button class="btn" @click="submitListAsset">{{ t('assetMarket.listForm.submit') }}</button>
       </template>
     </Modal>
 
     <!-- 交付弹窗 -->
-    <Modal :visible="deliverModalVisible" :title="t('assetMarket.deliver.title')" @close="deliverModalVisible = false">
+    <Modal
+      :visible="deliverModalVisible"
+      :title="t('assetMarket.deliver.title')"
+      @close="deliverModalVisible = false"
+    >
       <div v-if="deliverSub">
         <div class="kv">
           <span>{{ t('assetMarket.deliver.assetName') }}</span>
@@ -341,11 +398,16 @@
       <select v-model="deliverReq.method">
         <option value="api">{{ t('assetMarket.deliveryMethod.api') }}</option>
         <option value="file">{{ t('assetMarket.deliveryMethod.file') }}</option>
-        <option value="database_direct">{{ t('assetMarket.deliveryMethod.database_direct') }}</option>
+        <option value="database_direct">
+          {{ t('assetMarket.deliveryMethod.database_direct') }}
+        </option>
       </select>
       <div v-if="deliverReq.method === 'api'">
         <label>{{ t('assetMarket.deliver.api.endpoint') }}</label>
-        <input v-model="deliverReq.config.endpoint" :placeholder="t('assetMarket.deliver.api.endpointPlaceholder')" />
+        <input
+          v-model="deliverReq.config.endpoint"
+          :placeholder="t('assetMarket.deliver.api.endpointPlaceholder')"
+        />
       </div>
       <div v-if="deliverReq.method === 'file'">
         <label>{{ t('assetMarket.deliver.file.format') }}</label>
@@ -357,18 +419,30 @@
       </div>
       <div v-if="deliverReq.method === 'database_direct'">
         <label>{{ t('assetMarket.deliver.database.jdbcUrl') }}</label>
-        <input v-model="deliverReq.config.jdbcUrl" :placeholder="t('assetMarket.deliver.database.jdbcUrlPlaceholder')" />
+        <input
+          v-model="deliverReq.config.jdbcUrl"
+          :placeholder="t('assetMarket.deliver.database.jdbcUrlPlaceholder')"
+        />
         <label>{{ t('assetMarket.deliver.database.tableName') }}</label>
-        <input v-model="deliverReq.config.tableName" :placeholder="t('assetMarket.deliver.database.tableNamePlaceholder')" />
+        <input
+          v-model="deliverReq.config.tableName"
+          :placeholder="t('assetMarket.deliver.database.tableNamePlaceholder')"
+        />
       </div>
       <template #footer>
-        <button class="btn ghost" @click="deliverModalVisible = false">{{ t('assetMarket.deliver.cancel') }}</button>
+        <button class="btn ghost" @click="deliverModalVisible = false">
+          {{ t('assetMarket.deliver.cancel') }}
+        </button>
         <button class="btn" @click="submitDeliver">{{ t('assetMarket.deliver.submit') }}</button>
       </template>
     </Modal>
 
     <!-- 账单弹窗 -->
-    <Modal :visible="billingModalVisible" :title="t('assetMarket.billing.title')" @close="billingModalVisible = false">
+    <Modal
+      :visible="billingModalVisible"
+      :title="t('assetMarket.billing.title')"
+      @close="billingModalVisible = false"
+    >
       <div v-if="billingLoading" style="color: #888; text-align: center; padding: 24px">
         {{ t('assetMarket.billing.loading') }}
       </div>
@@ -389,14 +463,20 @@
               <td>{{ billingModeLabel(r.mode) }}</td>
               <td>{{ t('assetMarket.billing.usageFmt', { usage: r.usage, unit: r.unit }) }}</td>
               <td>{{ t('assetMarket.billing.amountFmt', { amount: r.amount.toFixed(2) }) }}</td>
-              <td>{{ t('assetMarket.billing.amountFmt', { amount: r.providerRevenue.toFixed(2) }) }}</td>
+              <td>
+                {{ t('assetMarket.billing.amountFmt', { amount: r.providerRevenue.toFixed(2) }) }}
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <div v-else style="color: #888; text-align: center; padding: 24px">{{ t('assetMarket.billing.empty') }}</div>
+      <div v-else style="color: #888; text-align: center; padding: 24px">
+        {{ t('assetMarket.billing.empty') }}
+      </div>
       <template #footer>
-        <button class="btn ghost" @click="billingModalVisible = false">{{ t('assetMarket.billing.close') }}</button>
+        <button class="btn ghost" @click="billingModalVisible = false">
+          {{ t('assetMarket.billing.close') }}
+        </button>
       </template>
     </Modal>
   </div>

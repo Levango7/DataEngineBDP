@@ -10,7 +10,12 @@
           {{ t('jobmgmt.submitJob') }}
         </el-button>
         <div class="spacer"></div>
-        <el-button :icon="Refresh" circle :aria-label="t('jobmgmt.refreshAria')" @click="loadList" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="t('jobmgmt.refreshAria')"
+          @click="loadList"
+        />
       </div>
 
       <!-- 状态筛选 tabs -->
@@ -175,7 +180,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button :aria-label="t('jobmgmt.submitModal.cancelAria')" @click="submitDialogVisible = false">
+        <el-button
+          :aria-label="t('jobmgmt.submitModal.cancelAria')"
+          @click="submitDialogVisible = false"
+        >
           {{ t('common.cancel') }}
         </el-button>
         <el-button
@@ -214,7 +222,11 @@
         <el-button :aria-label="t('jobmgmt.logModal.closeAria')" @click="logDialogVisible = false">
           {{ t('jobmgmt.logModal.close') }}
         </el-button>
-        <el-button type="primary" :aria-label="t('jobmgmt.logModal.refreshAria')" @click="refreshLog">
+        <el-button
+          type="primary"
+          :aria-label="t('jobmgmt.logModal.refreshAria')"
+          @click="refreshLog"
+        >
           {{ t('jobmgmt.logModal.refresh') }}
         </el-button>
       </template>
@@ -431,10 +443,7 @@ function typeLabel(type: JobType): string {
   return JOB_TYPES.includes(type) ? t(`jobmgmt.types.${type}`) : type
 }
 
-const STATUS_TAG_TYPES: Record<
-  JobStatus,
-  'primary' | 'success' | 'danger' | 'info' | 'warning'
-> = {
+const STATUS_TAG_TYPES: Record<JobStatus, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
   running: 'primary',
   success: 'success',
   failed: 'danger',

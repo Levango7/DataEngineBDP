@@ -27,7 +27,9 @@
         <button class="btn-primary" :disabled="analyzing" @click="handleAnalyze">
           {{ analyzing ? t('dataLineage.input.analyzing') : t('dataLineage.input.analyze') }}
         </button>
-        <button class="btn-ghost" @click="loadSample">{{ t('dataLineage.input.loadSample') }}</button>
+        <button class="btn-ghost" @click="loadSample">
+          {{ t('dataLineage.input.loadSample') }}
+        </button>
       </div>
       <div v-if="analyzeError" class="error-tip">{{ analyzeError.message }}</div>
     </section>
@@ -48,7 +50,13 @@
       <div class="card-title">
         {{ t('dataLineage.graph.title') }}
         <span class="meta-tag">
-          {{ t('dataLineage.graph.meta', { nodes: graph.meta.nodeCount, edges: graph.meta.edgeCount, time: graph.meta.analyzeTimeMs }) }}
+          {{
+            t('dataLineage.graph.meta', {
+              nodes: graph.meta.nodeCount,
+              edges: graph.meta.edgeCount,
+              time: graph.meta.analyzeTimeMs
+            })
+          }}
         </span>
       </div>
       <div ref="chartRef" class="chart"></div>
@@ -79,7 +87,9 @@
             <th>{{ t('dataLineage.relations.columns.source') }}</th>
             <th>{{ t('dataLineage.relations.columns.arrow') }}</th>
             <th>{{ t('dataLineage.relations.columns.target') }}</th>
-            <th v-if="activeTab === 'column'">{{ t('dataLineage.relations.columns.expression') }}</th>
+            <th v-if="activeTab === 'column'">
+              {{ t('dataLineage.relations.columns.expression') }}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -90,7 +100,9 @@
             <td v-if="activeTab === 'column'" class="mono expr">{{ edge.expression || '-' }}</td>
           </tr>
           <tr v-if="activeEdges.length === 0">
-            <td :colspan="activeTab === 'column' ? 4 : 3" class="empty">{{ t('dataLineage.relations.empty') }}</td>
+            <td :colspan="activeTab === 'column' ? 4 : 3" class="empty">
+              {{ t('dataLineage.relations.empty') }}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -100,7 +112,11 @@
     <section class="card query-card">
       <div class="card-title">{{ t('dataLineage.query.title') }}</div>
       <div class="query-row">
-        <input v-model="queryTable" class="table-input" :placeholder="t('dataLineage.query.tablePlaceholder')" />
+        <input
+          v-model="queryTable"
+          class="table-input"
+          :placeholder="t('dataLineage.query.tablePlaceholder')"
+        />
         <button class="btn-secondary" :disabled="querying" @click="handleQuery('upstream')">
           {{ t('dataLineage.query.upstream') }}
         </button>
@@ -128,7 +144,13 @@
           <span class="badge" :class="queryResult.direction.toLowerCase()">
             {{ directionLabel(queryResult.direction) }}
           </span>
-          {{ t('dataLineage.query.summary', { root: queryResult.rootTable, count: queryResult.tables.length, time: queryResult.queryTimeMs }) }}
+          {{
+            t('dataLineage.query.summary', {
+              root: queryResult.rootTable,
+              count: queryResult.tables.length,
+              time: queryResult.queryTimeMs
+            })
+          }}
         </div>
         <div v-if="queryResult.tables.length > 0" class="result-paths">
           <div class="paths-title">{{ t('dataLineage.query.pathsTitle') }}</div>
@@ -181,7 +203,12 @@ const {
     activeTab.value = 'table'
     // DOM 更新后渲染 ECharts
     nextTick(() => renderChart(result))
-    store.showToast(t('dataLineage.messages.analyzeCompleted', { nodes: result.meta.nodeCount, edges: result.meta.edgeCount }))
+    store.showToast(
+      t('dataLineage.messages.analyzeCompleted', {
+        nodes: result.meta.nodeCount,
+        edges: result.meta.edgeCount
+      })
+    )
   }
 })
 

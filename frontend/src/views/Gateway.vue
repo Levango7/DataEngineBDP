@@ -78,8 +78,12 @@
             </td>
             <td>{{ formatDate(k.createdAt) }}</td>
             <td>
-              <button class="btn ghost sm" @click="openEditModal(k)">{{ t('gateway.edit') }}</button>
-              <button class="btn ghost sm" @click="handleDelete(k)">{{ t('common.delete') }}</button>
+              <button class="btn ghost sm" @click="openEditModal(k)">
+                {{ t('gateway.edit') }}
+              </button>
+              <button class="btn ghost sm" @click="handleDelete(k)">
+                {{ t('common.delete') }}
+              </button>
             </td>
           </tr>
           <tr v-if="apiKeys.length === 0">

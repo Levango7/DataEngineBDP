@@ -17,7 +17,9 @@
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
           <div class="meta" style="color: var(--muted)">
             {{ t('devTag.listLoadFailed') }}
-            <a href="javascript:void(0)" @click="reloadTags">{{ t('engines.kpi.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="reloadTags">
+              {{ t('engines.kpi.loadFailedRetry') }}
+            </a>
           </div>
         </div>
       </template>
@@ -51,7 +53,9 @@
         <!-- Tab1 标签定义 -->
         <el-tab-pane :label="t('devTag.tabs.definition')" name="definition">
           <div class="toolbar">
-            <el-button type="primary" @click="openTagDialog()">{{ t('devTag.tagActions.new') }}</el-button>
+            <el-button type="primary" @click="openTagDialog()">
+              {{ t('devTag.tagActions.new') }}
+            </el-button>
             <el-button
               type="success"
               :disabled="!selectedTagIds.length"
@@ -61,7 +65,12 @@
               {{ t('devTag.tagActions.batchCompute', { count: selectedTagIds.length }) }}
             </el-button>
             <div class="spacer"></div>
-            <el-button :icon="Refresh" circle :aria-label="t('devTag.list.refreshAria')" @click="reloadTags" />
+            <el-button
+              :icon="Refresh"
+              circle
+              :aria-label="t('devTag.list.refreshAria')"
+              @click="reloadTags"
+            />
           </div>
 
           <el-table
@@ -84,10 +93,17 @@
             </el-table-column>
             <el-table-column prop="valueType" :label="t('devTag.tagColumns.valueType')" width="110">
               <template #default="{ row }">
-                <el-tag effect="light" size="small">{{ t(`devTag.tagDialog.valueTypes.${row.valueType}`, row.valueType) }}</el-tag>
+                <el-tag effect="light" size="small">
+                  {{ t(`devTag.tagDialog.valueTypes.${row.valueType}`, row.valueType) }}
+                </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="ruleCount" :label="t('devTag.tagColumns.ruleCount')" width="100" align="center">
+            <el-table-column
+              prop="ruleCount"
+              :label="t('devTag.tagColumns.ruleCount')"
+              width="100"
+              align="center"
+            >
               <template #default="{ row }">{{ row.ruleCount ?? 0 }}</template>
             </el-table-column>
             <el-table-column :label="t('devTag.tagColumns.status')" width="120">
@@ -97,12 +113,20 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="lastComputedAt" :label="t('devTag.tagColumns.lastComputed')" width="180">
-              <template #default="{ row }">{{ row.lastComputedAt || t('devTag.tagColumns.codePlaceholder') }}</template>
+            <el-table-column
+              prop="lastComputedAt"
+              :label="t('devTag.tagColumns.lastComputed')"
+              width="180"
+            >
+              <template #default="{ row }">
+                {{ row.lastComputedAt || t('devTag.tagColumns.codePlaceholder') }}
+              </template>
             </el-table-column>
             <el-table-column :label="t('devTag.tagColumns.actions')" width="280" fixed="right">
               <template #default="{ row }">
-                <el-button link type="primary" @click="openRuleDialog(row)">{{ t('devTag.tagActions.rule') }}</el-button>
+                <el-button link type="primary" @click="openRuleDialog(row)">
+                  {{ t('devTag.tagActions.rule') }}
+                </el-button>
                 <el-button
                   link
                   type="success"
@@ -111,8 +135,12 @@
                 >
                   {{ t('devTag.tagActions.compute') }}
                 </el-button>
-                <el-button link type="primary" @click="openTagDialog(row)">{{ t('devTag.tagActions.edit') }}</el-button>
-                <el-button link type="danger" @click="handleDeleteTag(row)">{{ t('devTag.tagActions.delete') }}</el-button>
+                <el-button link type="primary" @click="openTagDialog(row)">
+                  {{ t('devTag.tagActions.edit') }}
+                </el-button>
+                <el-button link type="danger" @click="handleDeleteTag(row)">
+                  {{ t('devTag.tagActions.delete') }}
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -138,27 +166,43 @@
             </el-button>
           </div>
 
-          <div v-if="profileLoading" class="meta" style="padding: 16px">{{ t('devTag.profile.loading') }}</div>
+          <div v-if="profileLoading" class="meta" style="padding: 16px">
+            {{ t('devTag.profile.loading') }}
+          </div>
           <div v-else-if="profileError" class="meta" style="padding: 16px; color: var(--muted)">
             {{ t('devTag.profile.loadFailed') }}
-            <a href="javascript:void(0)" @click="handleQueryProfile">{{ t('devTag.profile.loadFailedRetry') }}</a>
+            <a href="javascript:void(0)" @click="handleQueryProfile">
+              {{ t('devTag.profile.loadFailedRetry') }}
+            </a>
           </div>
           <el-empty v-else-if="!profile" :description="t('devTag.profile.emptyHint')" />
           <div v-else class="profile-panel">
             <el-descriptions :column="2" border>
-              <el-descriptions-item :label="t('devTag.profile.fields.userId')">{{ profile.userId }}</el-descriptions-item>
+              <el-descriptions-item :label="t('devTag.profile.fields.userId')">
+                {{ profile.userId }}
+              </el-descriptions-item>
               <el-descriptions-item :label="t('devTag.profile.fields.username')">
                 {{ profile.username || t('devTag.tagColumns.codePlaceholder') }}
               </el-descriptions-item>
               <el-descriptions-item :label="t('devTag.profile.fields.updatedAt')">
                 {{ profile.updatedAt || t('devTag.tagColumns.codePlaceholder') }}
               </el-descriptions-item>
-              <el-descriptions-item :label="t('devTag.profile.fields.tagCount')">{{ profile.tags.length }}</el-descriptions-item>
+              <el-descriptions-item :label="t('devTag.profile.fields.tagCount')">
+                {{ profile.tags.length }}
+              </el-descriptions-item>
             </el-descriptions>
             <h3 style="margin: 16px 0 12px">{{ t('devTag.profile.tagsListTitle') }}</h3>
             <el-table :data="profile.tags" stripe border size="small">
-              <el-table-column prop="tagName" :label="t('devTag.profile.tagsColumns.name')" min-width="160" />
-              <el-table-column prop="valueType" :label="t('devTag.profile.tagsColumns.type')" width="100" />
+              <el-table-column
+                prop="tagName"
+                :label="t('devTag.profile.tagsColumns.name')"
+                min-width="160"
+              />
+              <el-table-column
+                prop="valueType"
+                :label="t('devTag.profile.tagsColumns.type')"
+                width="100"
+              />
               <el-table-column :label="t('devTag.profile.tagsColumns.value')" min-width="160">
                 <template #default="{ row }">
                   <span
@@ -189,7 +233,11 @@
                 >
                   <el-option v-for="t in tags" :key="t.id" :label="t.name" :value="t.id" />
                 </el-select>
-                <el-select v-model="cond.op" :placeholder="t('devTag.audience.selectOp')" style="width: 100px">
+                <el-select
+                  v-model="cond.op"
+                  :placeholder="t('devTag.audience.selectOp')"
+                  style="width: 100px"
+                >
                   <el-option :label="t('devTag.audience.ops.EQ')" value="EQ" />
                   <el-option :label="t('devTag.audience.ops.NE')" value="NE" />
                   <el-option :label="t('devTag.audience.ops.IN')" value="IN" />
@@ -200,14 +248,20 @@
                   <el-option :label="t('devTag.audience.ops.BETWEEN')" value="BETWEEN" />
                   <el-option :label="t('devTag.audience.ops.LIKE')" value="LIKE" />
                 </el-select>
-                <el-input v-model="cond.value" :placeholder="t('devTag.audience.value')" style="width: 140px" />
+                <el-input
+                  v-model="cond.value"
+                  :placeholder="t('devTag.audience.value')"
+                  style="width: 140px"
+                />
                 <el-input
                   v-if="cond.op === 'BETWEEN'"
                   v-model="cond.value2"
                   :placeholder="t('devTag.audience.valueMax')"
                   style="width: 100px"
                 />
-                <el-button link type="danger" @click="removeCondition(idx)">{{ t('devTag.audience.remove') }}</el-button>
+                <el-button link type="danger" @click="removeCondition(idx)">
+                  {{ t('devTag.audience.remove') }}
+                </el-button>
               </div>
               <el-button type="primary" plain style="margin-top: 8px" @click="addCondition">
                 {{ t('devTag.audience.addCondition') }}
@@ -222,7 +276,9 @@
                 >
                   {{ t('devTag.audience.selectBtn') }}
                 </el-button>
-                <el-checkbox v-model="saveAudience" style="margin-left: 12px">{{ t('devTag.audience.saveAudience') }}</el-checkbox>
+                <el-checkbox v-model="saveAudience" style="margin-left: 12px">
+                  {{ t('devTag.audience.saveAudience') }}
+                </el-checkbox>
                 <el-input
                   v-if="saveAudience"
                   v-model="audienceName"
@@ -245,7 +301,10 @@
                   <el-descriptions-item :label="t('devTag.audience.countField')">
                     <span class="kpi" style="font-size: 20px">{{ audienceResult.count }}</span>
                   </el-descriptions-item>
-                  <el-descriptions-item v-if="audienceResult.audienceId" :label="t('devTag.audience.audienceIdField')">
+                  <el-descriptions-item
+                    v-if="audienceResult.audienceId"
+                    :label="t('devTag.audience.audienceIdField')"
+                  >
                     {{ audienceResult.audienceId }}
                   </el-descriptions-item>
                 </el-descriptions>
@@ -259,9 +318,19 @@
                   size="small"
                   :empty-text="t('devTag.audience.noUser')"
                 >
-                  <el-table-column prop="userId" :label="t('devTag.audience.usersColumns.userId')" min-width="160" />
-                  <el-table-column prop="username" :label="t('devTag.audience.usersColumns.username')" min-width="120">
-                    <template #default="{ row }">{{ row.username || t('devTag.tagColumns.codePlaceholder') }}</template>
+                  <el-table-column
+                    prop="userId"
+                    :label="t('devTag.audience.usersColumns.userId')"
+                    min-width="160"
+                  />
+                  <el-table-column
+                    prop="username"
+                    :label="t('devTag.audience.usersColumns.username')"
+                    min-width="120"
+                  >
+                    <template #default="{ row }">
+                      {{ row.username || t('devTag.tagColumns.codePlaceholder') }}
+                    </template>
                   </el-table-column>
                 </el-table>
               </div>
@@ -287,7 +356,10 @@
         label-position="right"
       >
         <el-form-item :label="t('devTag.tagDialog.fields.name')" prop="name">
-          <el-input v-model="tagForm.name" :placeholder="t('devTag.tagDialog.fields.namePlaceholder')" />
+          <el-input
+            v-model="tagForm.name"
+            :placeholder="t('devTag.tagDialog.fields.namePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="t('devTag.tagDialog.fields.code')" prop="code">
           <el-input
@@ -310,9 +382,13 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="tagDialogVisible = false">{{ t('devTag.tagDialog.actions.cancel') }}</el-button>
+        <el-button @click="tagDialogVisible = false">
+          {{ t('devTag.tagDialog.actions.cancel') }}
+        </el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmitTag">
-          {{ tagForm.id ? t('devTag.tagDialog.actions.save') : t('devTag.tagDialog.actions.create') }}
+          {{
+            tagForm.id ? t('devTag.tagDialog.actions.save') : t('devTag.tagDialog.actions.create')
+          }}
         </el-button>
       </template>
     </el-dialog>
@@ -325,7 +401,9 @@
       :close-on-click-modal="false"
     >
       <div class="toolbar">
-        <el-button type="primary" @click="openAddRuleForm">{{ t('devTag.ruleDialog.addRule') }}</el-button>
+        <el-button type="primary" @click="openAddRuleForm">
+          {{ t('devTag.ruleDialog.addRule') }}
+        </el-button>
         <div class="spacer"></div>
         <el-button :icon="Refresh" circle @click="loadRules" />
       </div>
@@ -338,19 +416,43 @@
         :empty-text="t('devTag.ruleDialog.empty')"
       >
         <el-table-column prop="name" :label="t('devTag.ruleDialog.columns.name')" min-width="140" />
-        <el-table-column prop="ruleType" :label="t('devTag.ruleDialog.columns.ruleType')" width="110">
+        <el-table-column
+          prop="ruleType"
+          :label="t('devTag.ruleDialog.columns.ruleType')"
+          width="110"
+        >
           <template #default="{ row }">
-            <el-tag size="small" effect="light">{{ t(`devTag.ruleDialog.addForm.ruleTypes.${row.ruleType}`, row.ruleType) }}</el-tag>
+            <el-tag size="small" effect="light">
+              {{ t(`devTag.ruleDialog.addForm.ruleTypes.${row.ruleType}`, row.ruleType) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="priority" :label="t('devTag.ruleDialog.columns.priority')" width="80" align="center" />
-        <el-table-column prop="outputValue" :label="t('devTag.ruleDialog.columns.outputValue')" width="120">
-          <template #default="{ row }">{{ row.outputValue || t('devTag.tagColumns.codePlaceholder') }}</template>
+        <el-table-column
+          prop="priority"
+          :label="t('devTag.ruleDialog.columns.priority')"
+          width="80"
+          align="center"
+        />
+        <el-table-column
+          prop="outputValue"
+          :label="t('devTag.ruleDialog.columns.outputValue')"
+          width="120"
+        >
+          <template #default="{ row }">
+            {{ row.outputValue || t('devTag.tagColumns.codePlaceholder') }}
+          </template>
         </el-table-column>
-        <el-table-column prop="expression" :label="t('devTag.ruleDialog.columns.expression')" min-width="200" show-overflow-tooltip />
+        <el-table-column
+          prop="expression"
+          :label="t('devTag.ruleDialog.columns.expression')"
+          min-width="200"
+          show-overflow-tooltip
+        />
         <el-table-column :label="t('devTag.ruleDialog.columns.actions')" width="80" fixed="right">
           <template #default="{ row }">
-            <el-button link type="danger" @click="handleDeleteRule(row)">{{ t('devTag.tagActions.delete') }}</el-button>
+            <el-button link type="danger" @click="handleDeleteRule(row)">
+              {{ t('devTag.tagActions.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -366,20 +468,32 @@
           label-position="right"
         >
           <el-form-item :label="t('devTag.ruleDialog.addForm.fields.name')" prop="name">
-            <el-input v-model="ruleForm.name" :placeholder="t('devTag.ruleDialog.addForm.fields.namePlaceholder')" />
+            <el-input
+              v-model="ruleForm.name"
+              :placeholder="t('devTag.ruleDialog.addForm.fields.namePlaceholder')"
+            />
           </el-form-item>
           <el-form-item :label="t('devTag.ruleDialog.addForm.fields.ruleType')" prop="ruleType">
             <el-select v-model="ruleForm.ruleType" style="width: 100%">
               <el-option :label="t('devTag.ruleDialog.addForm.ruleTypes.SQL')" value="SQL" />
-              <el-option :label="t('devTag.ruleDialog.addForm.ruleTypes.EXPRESSION')" value="EXPRESSION" />
+              <el-option
+                :label="t('devTag.ruleDialog.addForm.ruleTypes.EXPRESSION')"
+                value="EXPRESSION"
+              />
               <el-option :label="t('devTag.ruleDialog.addForm.ruleTypes.LOOKUP')" value="LOOKUP" />
             </el-select>
           </el-form-item>
           <el-form-item :label="t('devTag.ruleDialog.addForm.fields.priority')" prop="priority">
             <el-input-number v-model="ruleForm.priority" :min="0" :max="100" />
           </el-form-item>
-          <el-form-item :label="t('devTag.ruleDialog.addForm.fields.outputValue')" prop="outputValue">
-            <el-input v-model="ruleForm.outputValue" :placeholder="t('devTag.ruleDialog.addForm.fields.outputValuePlaceholder')" />
+          <el-form-item
+            :label="t('devTag.ruleDialog.addForm.fields.outputValue')"
+            prop="outputValue"
+          >
+            <el-input
+              v-model="ruleForm.outputValue"
+              :placeholder="t('devTag.ruleDialog.addForm.fields.outputValuePlaceholder')"
+            />
           </el-form-item>
           <el-form-item :label="t('devTag.ruleDialog.addForm.fields.expression')" prop="expression">
             <el-input
@@ -391,8 +505,12 @@
             />
           </el-form-item>
           <el-form-item>
-            <el-button type="primary" :loading="addingRule" @click="handleAddRule">{{ t('devTag.ruleDialog.addForm.submit') }}</el-button>
-            <el-button @click="showAddRuleForm = false">{{ t('devTag.ruleDialog.cancel') }}</el-button>
+            <el-button type="primary" :loading="addingRule" @click="handleAddRule">
+              {{ t('devTag.ruleDialog.addForm.submit') }}
+            </el-button>
+            <el-button @click="showAddRuleForm = false">
+              {{ t('devTag.ruleDialog.cancel') }}
+            </el-button>
           </el-form-item>
         </el-form>
       </div>
@@ -529,12 +647,16 @@ async function handleSubmitTag() {
 /** 删除标签 */
 async function handleDeleteTag(row: TagDefinition) {
   try {
-    await ElMessageBox.confirm(t('devTag.messages.tagDeleteConfirm', { name: row.name }), t('devTag.messages.tagDeleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonText: t('devTag.tagActions.delete'),
-      cancelButtonText: t('devTag.tagDialog.actions.cancel'),
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('devTag.messages.tagDeleteConfirm', { name: row.name }),
+      t('devTag.messages.tagDeleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonText: t('devTag.tagActions.delete'),
+        cancelButtonText: t('devTag.tagDialog.actions.cancel'),
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await devTagApi.deleteTag(row.id)
     ElMessage.success(t('devTag.messages.tagDeleted'))
     await reloadTags()
@@ -555,7 +677,9 @@ async function handleCompute(row: TagDefinition) {
     const result = await devTagApi.computeTag(row.id)
     ElMessage.success(
       t('devTag.messages.computeDone', { status: result.status }) +
-        (result.computedCount !== undefined ? t('devTag.messages.computeDoneCount', { count: result.computedCount }) : '')
+        (result.computedCount !== undefined
+          ? t('devTag.messages.computeDoneCount', { count: result.computedCount })
+          : '')
     )
     await reloadTags()
   } catch {
@@ -571,7 +695,12 @@ async function handleBatchCompute() {
   batchComputing.value = true
   try {
     const result = await devTagApi.batchCompute(selectedTagIds.value)
-    ElMessage.success(t('devTag.messages.batchComputeDone', { success: result.successCount, total: selectedTagIds.value.length }))
+    ElMessage.success(
+      t('devTag.messages.batchComputeDone', {
+        success: result.successCount,
+        total: selectedTagIds.value.length
+      })
+    )
     await reloadTags()
   } catch {
     // 拦截器已提示
@@ -673,10 +802,14 @@ async function handleAddRule() {
 async function handleDeleteRule(row: TagRule) {
   if (!currentTag.value) return
   try {
-    await ElMessageBox.confirm(t('devTag.messages.ruleDeleteConfirm', { name: row.name }), t('devTag.messages.ruleDeleteConfirmTitle'), {
-      type: 'warning',
-      confirmButtonClass: 'el-button--danger'
-    })
+    await ElMessageBox.confirm(
+      t('devTag.messages.ruleDeleteConfirm', { name: row.name }),
+      t('devTag.messages.ruleDeleteConfirmTitle'),
+      {
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
     await devTagApi.deleteTagRule(currentTag.value.id, row.id)
     ElMessage.success(t('devTag.messages.ruleDeleted'))
     await loadRules()
