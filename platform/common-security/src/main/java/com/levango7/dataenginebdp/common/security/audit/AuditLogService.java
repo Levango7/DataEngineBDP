@@ -56,6 +56,23 @@ public class AuditLogService {
     private final ObjectMapper objectMapper;
     private final SecretKeySpec hmacKey;
     private final LinkedBlockingQueue<AuditEvent> asyncQueue;
+    /** C2 可选持久化 Sink（storage=database 时由自动装配注入；日志文件始终双写）。 */
+    private volatile AuditSink persistenceSink;
+
+    /**
+     * 审计持久化 Sink 抽象（C2）：AuditLogService 按事件调用，
+     * 日志文件写入始终保留（等保"防覆盖"双通道），Sink 失败不阻塞审计链路。
+     */
+    public interface AuditSink {
+        void persist(AuditEvent event);
+    }
+
+    /**
+     * 注入持久化 Sink（自动装配调用；不注入则仅写日志文件）。
+     */
+    public void setPersistenceSink(AuditSink sink) {
+        this.persistenceSink = sink;
+    }
 
     /**
      * 构造服务。
@@ -171,7 +188,10 @@ public class AuditLogService {
     }
 
     /**
-     * 写入审计事件到日志。
+     * 写入审计事件到日志文件（并调用可选持久化 Sink）。
+     *
+     * <p>双通道语义：日志文件始终写（等保"防覆盖"基础通道）；
+     * Sink 失败仅 WARN 不抛——审计链路自身绝不能把业务请求拖挂。</p>
      *
      * @param event 审计事件
      */
@@ -182,6 +202,14 @@ public class AuditLogService {
             auditLogger.info(signedJson);
         } catch (JsonProcessingException e) {
             log.error("审计事件序列化失败: eventId={}", event.eventId(), e);
+        }
+        AuditSink sink = persistenceSink;
+        if (sink != null) {
+            try {
+                sink.persist(event);
+            } catch (Exception e) {  // Sink 故障降级：日志通道已保底
+                log.warn("审计持久化 Sink 写入失败（日志文件已保底）: eventId={}", event.eventId(), e);
+            }
         }
     }
 

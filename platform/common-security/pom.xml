@@ -74,6 +74,21 @@
             <groupId>com.fasterxml.jackson.datatype</groupId>
             <artifactId>jackson-datatype-jsr310</artifactId>
         </dependency>
+        <!-- JPA（C2 审计持久化 Sink）：optional——仅当使用方自带 spring-boot-starter-data-jpa
+             且 app.audit.storage=database 时，审计表与查询 API 才装配；纯 Web 服务不受影响 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- Swagger Annotations（C2 审计查询端点 @Tag/@Operation）：optional，
+             使用方有 springdoc 时注解生效，无依赖时注解被忽略 -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+            <version>2.2.22</version>
+            <optional>true</optional>
+        </dependency>
 
         <!-- 测试 -->
         <dependency>
@@ -84,6 +99,18 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- H2：审计持久化 Sink 测试用（使用方无需引入） -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Boot 4 JPA slice 测试 starter（@DataJpaTest 按技术栈独立成 starter） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
