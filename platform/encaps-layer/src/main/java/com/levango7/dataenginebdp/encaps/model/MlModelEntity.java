@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,13 +18,18 @@ import java.time.Instant;
  * 机器学习模型注册实体（ROADMAP 前后端接线：/ml/models）。
  *
  * <p>每次注册一个模型版本即一条记录；同一 {@link #name} 可对应多个版本。</p>
+ *
+ * <p>A3 幂等性：租户内 name+version 唯一——同一模型重复注册同一版本
+ * 由数据库约束拒绝，防止重复注册产生脏记录。</p>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "ml_model")
+@Table(name = "ml_model", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_ml_model_tenant_name_version", columnNames = {"tenantId", "name", "version"})
+})
 public class MlModelEntity {
 
     @Id

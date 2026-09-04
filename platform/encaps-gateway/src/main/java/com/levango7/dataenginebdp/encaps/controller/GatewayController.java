@@ -89,12 +89,20 @@ public class GatewayController {
             String scope) {
     }
 
-    /** 创建 API Key。secret 仅本次响应返回，之后不再泄露。 */
-    @Operation(summary = "创建 API Key。secret 仅本次响应返回，之后不再泄露")
+    /** 创建 API Key。secret 仅本次响应返回，之后不再泄露。同名 Key 拒绝（409）。 */
+    @Operation(summary = "创建 API Key。secret 仅本次响应返回；同租户同名 Key 返回 409")
     @PostMapping("/keys")
     @Transactional
     public ResponseEntity<Map<String, Object>> createApiKey(@RequestBody CreateKeyRequest req) {
         String tenantId = requireTenant();
+        // A3 幂等性：租户内名称唯一预检（数据库层 uk_gateway_api_key_tenant_name 兜底）
+        if (repository.existsByTenantIdAndName(tenantId, req.name())) {
+            return ResponseEntity.status(409).body(Map.of(
+                    "code", 40901,
+                    "message", "同名 API Key 已存在",
+                    "messageKey", "error.resource.conflict",
+                    "conflictField", "name"));
+        }
         String apiKey = generateApiKey();
         String secret = generateSecret();
         ApiKeyEntity entity = ApiKeyEntity.builder()

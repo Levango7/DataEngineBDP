@@ -24,4 +24,7 @@ public interface ApiKeyRepository extends JpaRepository<ApiKeyEntity, Long> {
 
     /** 统计租户下活跃密钥数。 */
     long countByTenantIdAndStatus(String tenantId, String status);
+
+    /** A3 幂等性：租户内名称是否已存在（创建预检）。 */
+    boolean existsByTenantIdAndName(String tenantId, String name);
 }

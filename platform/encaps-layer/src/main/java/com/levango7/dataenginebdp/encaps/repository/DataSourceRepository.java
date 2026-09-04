@@ -20,4 +20,7 @@ public interface DataSourceRepository extends JpaRepository<DataSourceEntity, Lo
     Optional<DataSourceEntity> findByIdAndTenantId(Long id, String tenantId);
 
     long countByTenantId(String tenantId);
+
+    /** A3 幂等性：租户内名称是否已存在（创建预检）。 */
+    boolean existsByTenantIdAndName(String tenantId, String name);
 }

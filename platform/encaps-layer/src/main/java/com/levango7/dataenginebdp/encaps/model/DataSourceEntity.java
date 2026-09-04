@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,13 +20,18 @@ import java.time.Instant;
  * 数据源实体（ROADMAP 前后端接线：/datasources）。
  *
  * <p>连接元数据持久化（密码仅写入时使用，查询不返回）。</p>
+ *
+ * <p>A3 幂等性：租户内名称唯一——同租户重复注册同名数据源由数据库约束拒绝，
+ * 应用层创建前预检返回 409。</p>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "datasource")
+@Table(name = "datasource", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_datasource_tenant_name", columnNames = {"tenantId", "name"})
+})
 public class DataSourceEntity {
 
     @Id

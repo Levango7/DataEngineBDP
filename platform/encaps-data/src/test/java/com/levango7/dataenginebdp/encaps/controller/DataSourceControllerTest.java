@@ -101,4 +101,34 @@ class DataSourceControllerTest {
         assertThat(updated.getPassword()).isEqualTo("secret-pwd"); // 密码留空不覆盖
         assertThat(updated.getHost()).isEqualTo("new-host");
     }
+
+    @Test
+    void create_duplicateNameInSameTenantReturns409() {
+        seed("dup-ds", "tenant_a");
+
+        var resp = controller().create(new DataSourceController.DataSourceRequest(
+                "dup-ds", "mysql", "db.internal", 3306, "orders", "root", "p@ss"));
+
+        // A3 幂等性：同租户同名 → 409 + messageKey（前端 i18n 翻译）
+        assertThat(resp.getStatusCode().value()).isEqualTo(409);
+        Map<String, Object> body = resp.getBody();
+        assertThat(body.get("code")).isEqualTo(40901);
+        assertThat(body.get("messageKey")).isEqualTo("error.resource.conflict");
+        assertThat(body.get("conflictField")).isEqualTo("name");
+        // 未产生第二条
+        assertThat(repository.countByTenantId("tenant_a")).isEqualTo(1);
+    }
+
+    @Test
+    void create_sameNameDifferentTenantIsAllowed() {
+        seed("shared-name", "tenant_a");
+
+        // A3 幂等边界：唯一性是"租户内"，跨租户同名合法
+        TenantContext.setTenantId("tenant_b");
+        var resp = controller().create(new DataSourceController.DataSourceRequest(
+                "shared-name", "mysql", "db.internal", 3306, "orders", "root", "p@ss"));
+
+        assertThat(resp.getStatusCode().value()).isEqualTo(201);
+        assertThat(repository.countByTenantId("tenant_b")).isEqualTo(1);
+    }
 }

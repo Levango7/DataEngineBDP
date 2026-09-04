@@ -79,13 +79,22 @@ public class DataSourceController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    /** 创建。 */
-    @Operation(summary = "创建数据源")
+    /** 创建。同租户同名数据源返回 409（A3 幂等性）。 */
+    @Operation(summary = "创建数据源。同租户同名返回 409")
     @AuditLog(action = "CREATE_DATASOURCE", resource = "datasource")
     @PostMapping
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody DataSourceRequest req) {
         String tenantId = requireTenant();
+        // A3 幂等性：租户内名称唯一预检（数据库层 uk_datasource_tenant_name 兜底）
+        if (repository.existsByTenantIdAndName(tenantId, req.name())) {
+            Map<String, Object> conflict = new java.util.LinkedHashMap<>();
+            conflict.put("code", 40901);
+            conflict.put("message", "同名数据源已存在");
+            conflict.put("messageKey", "error.resource.conflict");
+            conflict.put("conflictField", "name");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(conflict);
+        }
         DataSourceEntity entity = DataSourceEntity.builder()
                 .name(req.name())
                 .type(req.type())

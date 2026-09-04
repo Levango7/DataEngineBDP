@@ -8,6 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,13 +21,18 @@ import java.time.Instant;
  *
  * <p>租户隔离：所有查询按 {@code tenantId} 过滤；secret 仅在创建时返回一次，
  * 之后以哈希值持久化，前端列表只看到掩码。</p>
+ *
+ * <p>A3 幂等性：租户内名称唯一（数据库层兜底）——同租户重复创建同名 Key
+ * 直接违反唯一约束，应用层在创建前预检并返回 409。</p>
  */
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "gateway_api_key")
+@Table(name = "gateway_api_key", uniqueConstraints = {
+        @UniqueConstraint(name = "uk_gateway_api_key_tenant_name", columnNames = {"tenantId", "name"})
+})
 public class ApiKeyEntity {
 
     @Id
