@@ -177,7 +177,7 @@ jobs:
 
       - name: 上传构建日志 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: image-build-log
           path: reports/build/
@@ -343,7 +343,7 @@ jobs:
 
       - name: 上传签名记录 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: image-sign-record
           path: reports/sign/
@@ -423,7 +423,7 @@ jobs:
 
       - name: 上传 SBOM Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: image-sbom
           path: reports/sbom/
@@ -539,7 +539,7 @@ jobs:
 
       - name: 上传漏洞扫描报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: image-vuln-scan
           path: reports/trivy/
@@ -614,7 +614,7 @@ jobs:
           cat final-artifacts/README.md
 
       - name: 上传供应链制品总 Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: supply-chain-security-artifacts
           path: final-artifacts/

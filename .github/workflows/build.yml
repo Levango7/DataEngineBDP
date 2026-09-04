@@ -419,7 +419,7 @@ jobs:
           echo "共处理 $chart_count 个 Helm Chart"
 
       - name: 上传 Chart tgz 产物
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: build-helm-charts
           path: release-charts/*.tgz

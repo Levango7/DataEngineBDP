@@ -87,7 +87,7 @@ jobs:
 
       - name: 上传扫描报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-dependency-reports
           path: reports/trivy/
@@ -160,7 +160,7 @@ jobs:
 
       - name: 上传镜像扫描报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-image-reports
           path: reports/trivy/
@@ -196,7 +196,7 @@ jobs:
 
       - name: 上传 Semgrep 报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: semgrep-reports
           path: reports/semgrep/
@@ -251,7 +251,7 @@ jobs:
 
       - name: 上传配置扫描报告 Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-config-reports
           path: reports/trivy/
