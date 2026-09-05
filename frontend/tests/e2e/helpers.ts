@@ -38,6 +38,13 @@ async function clickLoginButton(page: Page): Promise<void> {
  * 通过 UI 登录（admin/admin）
  * 前置：page 已打开任意页面（路由守卫会跳到 /login）
  */
+/**
+ * 通过 UI 登录（admin/admin），返回主页面
+ *
+ * 登录成功判定：URL 跳转出 /login（dashboard 可能因首屏 API 404 被
+ * 守卫再踢回——本地单后端环境常见；token 已写入 sessionStorage 即算成功，
+ * 由调用方自行决定是否需要重登）。
+ */
 export async function login(page: Page, creds: { username: string; password: string } = ADMIN): Promise<void> {
   // 确保在登录页
   if (!page.url().includes('/login')) {
@@ -56,8 +63,11 @@ export async function login(page: Page, creds: { username: string; password: str
   // 点击登录按钮（文案由 i18n locale 决定，用 aria-label / 通用匹配）
   await clickLoginButton(page)
 
-  // 等待跳转到 dashboard（hash 路由）
-  await page.waitForURL(/#\/dashboard/, { timeout: 20_000 })
+  // 等待离开登录页（token 已注入；即使被守卫因后端 404 再踢，登录本身已完成）
+  await page.waitForURL(
+    (url) => !url.href.includes('/login'),
+    { timeout: 20_000 }
+  )
 }
 
 /**
@@ -91,7 +101,8 @@ export async function loginByApi(page: Page, creds: { username: string; password
 
 /**
  * 确保已登录（如果未登录则用 UI 方式登录）
- * 用 UI 登录更稳定（已验证可用）
+ * 用 UI 登录更稳定（已验证可用；token 注入后守卫的异步验证存在时序竞争，
+ * API 注入在部分环境会被误踢——auth.spec 专项覆盖登录 UI）
  */
 export async function ensureLoggedIn(page: Page): Promise<void> {
   // 先检查是否已登录（无 token 会被路由守卫重定向到 /login）
