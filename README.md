@@ -61,7 +61,7 @@ DataEngineBDP/
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（37 个）
+├── platform/                   # 自研组件（38 个）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -85,6 +85,7 @@ DataEngineBDP/
 │   ├── business-portal/          # 业务线门户（Python）
 │   ├── open-api-catalog/         # 开放 API 目录（Python）
 │   ├── asset-exchange/           # 资产流通（Python）
+│   ├── batch-pipeline/           # 批处理流水线引擎（Python，AutoBatch 归并）
 │   ├── bootstrap.sh              # 平台引导脚本
 │   └── minio-incluster.yaml      # 集群内 MinIO 配置
 ├── frontend/                   # Vue3 + TypeScript 前端
@@ -206,10 +207,11 @@ bash scripts/poc/run-poc.sh
 | karmada | platform/karmada | 多集群联邦编排组件，基于 Karmada 二次封装 | 60+ |
 | dqctl (CLI) | platform/dqctl | 数据质量命令行工具 | 60+ |
 
-### Python 组件（12 个）
+### Python 组件（13 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
+| batch-pipeline | platform/batch-pipeline | 批处理流水线引擎（AutoBatch 归并：五阶段 + 8 类 DQ 规则 + 水位/Iceberg 增量 + OpenLineage 血缘） | 490+ |
 | llmops | platform/llmops | LLMOps，微调 / 部署 / 评测闭环 | 90+ |
 | knowledge-engine | platform/knowledge-engine | 知识图谱服务，知识建模与图谱检索 | 90+ |
 | ml-platform | platform/ml-platform | 机器学习平台，MLflow 训练与 serving | 100+ |
@@ -222,7 +224,6 @@ bash scripts/poc/run-poc.sh
 | nl2sql | platform/nl2sql | 自然语言转 SQL 服务，Text2SQL 引擎 | 60+ |
 | registry | platform/registry | 元数据注册中心服务 | 60+ |
 | operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 0 |
-
 ### 配置与部署组件（2 个）
 
 | 组件 | 目录 | 描述 |

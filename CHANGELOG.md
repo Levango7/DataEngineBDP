@@ -4,6 +4,11 @@
 
 格式遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### Added
+- **AutoBatch 归并**（2026-09-04 落地，commit `03c9129f`）：外部原型仓库 `Levango7/AutoBatch` 的五阶段批处理流水线引擎迁入 `platform/batch-pipeline`，形成平台第 38 个自研组件——python/polars/spark × local_csv/parquet/iceberg 正交引擎矩阵、8 类数据质量规则执行（DQ Score + 坏行隔离）、高水位 / Iceberg snapshot diff 增量、断点续跑、OpenLineage 血缘（经 lineage-analyzer 落平台）、批次台账；FastAPI 提交/查询壳按 `AUTH_MODE=jwt` 与租户上下文接入，工件路径按 `run/<tenant>/<batch>/` 分区。规则管理仍归 rule-engine（新增 `BatchPipelineRuleAdapter` 桥接，本组件保留行级求值执行）；平台 DAG 编排走 stream-batch-scheduler `BATCH_PIPELINE` TaskChannel。CI 加独立 job `batch-pipeline-test`（依赖重、需 MinIO service，不进通用矩阵）。源仓库已归档（readme 横幅 + tag `v-final`）、不再接受功能变更。登记与审计日志见 `docs/MERGE-LOG-autobatch.md`。
+
 ## [2.1.0-RC] - 2026-08-29（遗留项收尾批次）
 
 ### Security
