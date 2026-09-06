@@ -1,7 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('admin.title') }}</h1>
-    <div class="sub">{{ t('admin.subtitle') }}</div>
+    <PageHeader :title="t('admin.title')" :subtitle="t('admin.subtitle')" />
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
       {{ t('admin.loading') }}
     </div>
@@ -89,6 +88,7 @@
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import * as adminApi from '@/api/admin'
 import type { AdminKpi, EnvMatrixItem, EnvStatus } from '@/api/admin'
 

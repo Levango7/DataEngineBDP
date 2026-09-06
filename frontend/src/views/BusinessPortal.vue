@@ -1,12 +1,12 @@
 <template>
   <div>
-    <h1>{{ t('businessPortal.title') }}</h1>
-    <div class="sub">
-      {{ t('businessPortal.subtitle') }}
-      <span class="pill b">{{ t('businessPortal.pills.isolateLines') }}</span>
-      <span class="pill p">{{ t('businessPortal.pills.isolateData') }}</span>
-      <span class="pill g">{{ t('businessPortal.pills.isolatePerms') }}</span>
-    </div>
+    <PageHeader :title="t('businessPortal.title')" :subtitle="t('businessPortal.subtitle')">
+      <template #actions>
+        <span class="pill b">{{ t('businessPortal.pills.isolateLines') }}</span>
+        <span class="pill p">{{ t('businessPortal.pills.isolateData') }}</span>
+        <span class="pill g">{{ t('businessPortal.pills.isolatePerms') }}</span>
+      </template>
+    </PageHeader>
 
     <div class="bp-layout">
       <!-- 左侧：业务线选择侧边栏 -->
@@ -341,15 +341,19 @@
 
           <!-- ④ BI 报表 -->
           <div v-if="tab === 'reports'">
-            <div class="toolbar">
-              <button class="btn sm" @click="openReportModal">
-                {{ t('businessPortal.reports.newReport') }}
-              </button>
-              <div class="spacer"></div>
-              <span class="pill p">
-                {{ t('businessPortal.reports.countPill', { count: reports.length }) }}
-              </span>
-            </div>
+            <Toolbar
+              :show-create="true"
+              :create-label="t('businessPortal.reports.newReport')"
+              :create-aria-label="t('businessPortal.reports.newReport')"
+              :show-refresh="false"
+              @create="openReportModal"
+            >
+              <template #actions>
+                <span class="pill p">
+                  {{ t('businessPortal.reports.countPill', { count: reports.length }) }}
+                </span>
+              </template>
+            </Toolbar>
             <template v-if="reportsLoading">
               <div class="card">
                 <h3>{{ t('businessPortal.reports.loading') }}</h3>
@@ -478,6 +482,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as bpApi from '@/api/businessPortal'
 import type {

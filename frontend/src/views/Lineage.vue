@@ -1,9 +1,9 @@
 <template>
   <div>
-    <h1>{{ t('lineage.title') }}</h1>
-    <div class="sub">
-      {{ t('lineage.subtitle', { table: highlightTable || t('lineage.noHighlight') }) }}
-    </div>
+    <PageHeader
+      :title="t('lineage.title')"
+      :subtitle="t('lineage.subtitle', { table: highlightTable || t('lineage.noHighlight') })"
+    />
     <div class="legend">
       <span style="color: #8a9ba0">{{ t('lineage.legend.upstream') }}</span>
       <span style="color: var(--primary)">{{ t('lineage.legend.current') }}</span>
@@ -55,6 +55,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import { getUpstream, getDownstream, impactAnalysis, type LineageQueryResult } from '@/api/lineage'
 
 const { t } = useI18n()

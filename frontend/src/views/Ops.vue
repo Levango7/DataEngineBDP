@@ -1,7 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('ops.title') }}</h1>
-    <div class="sub">{{ t('ops.subtitle') }}</div>
+    <PageHeader :title="t('ops.title')" :subtitle="t('ops.subtitle')" />
     <div class="grid g4">
       <div class="card">
         <h3>{{ t('ops.kpi.health') }}</h3>
@@ -204,6 +203,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as opsApi from '@/api/ops'

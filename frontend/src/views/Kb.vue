@@ -1,7 +1,6 @@
 <template>
   <div class="kb-page">
-    <h1>{{ t('kb.title') }}</h1>
-    <div class="sub">{{ t('kb.subtitle') }}</div>
+    <PageHeader :title="t('kb.title')" :subtitle="t('kb.subtitle')" />
 
     <!-- KPI 卡片区 -->
     <div class="grid g3">
@@ -36,15 +35,20 @@
     </div>
 
     <!-- Tabs 主区 -->
-    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+    <PageCard style="margin-top: 16px">
       <el-tabs v-model="activeTab" type="card">
         <!-- Tab1 知识库列表 -->
         <el-tab-pane :label="t('kb.tabs.kb')" name="kb">
-          <div class="toolbar">
-            <el-button type="primary" @click="openCreateKbDialog">{{ t('kb.createKb') }}</el-button>
-            <div class="spacer"></div>
-            <el-button :icon="Refresh" circle @click="loadKnowledgeBases" />
-          </div>
+          <Toolbar
+            :aria-label="t('kb.tabs.kb')"
+            :show-create="true"
+            :create-label="t('kb.createKb')"
+            :create-aria-label="t('kb.createKb')"
+            :show-refresh="true"
+            :refresh-aria-label="t('common.refresh')"
+            @create="openCreateKbDialog"
+            @refresh="loadKnowledgeBases"
+          />
 
           <el-table
             v-loading="kbLoading"
@@ -64,9 +68,11 @@
             </el-table-column>
             <el-table-column :label="t('kb.cols.status')" width="100">
               <template #default="{ row }">
-                <el-tag :type="kbStatusType(row.status)" effect="light">
-                  {{ kbStatusLabel(row.status) }}
-                </el-tag>
+                <StatusTag
+                  :status="row.status"
+                  :label="kbStatusLabel(row.status)"
+                  :status-map="KB_STATUS_TAG_MAP"
+                />
               </template>
             </el-table-column>
             <el-table-column prop="createdAt" :label="t('kb.cols.createdAt')" width="180">
@@ -147,7 +153,7 @@
           </div>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+    </PageCard>
 
     <!-- 创建知识库弹窗 -->
     <el-dialog v-model="createKbDialogVisible" :title="t('kb.createModal.title')" width="480px">
@@ -185,21 +191,26 @@
       :title="t('kb.docModal.title', { name: currentKb?.name ?? '' })"
       width="800px"
     >
-      <div class="toolbar">
-        <el-upload
-          :show-file-list="false"
-          :before-upload="handleBeforeUpload"
-          :http-request="handleUpload"
-          multiple
-        >
-          <el-button type="primary">{{ t('kb.docModal.upload') }}</el-button>
-        </el-upload>
-        <span style="color: var(--ds-text-secondary); font-size: 12px; margin-left: 8px">
-          {{ t('kb.docModal.uploadHint') }}
-        </span>
-        <div class="spacer"></div>
-        <el-button :icon="Refresh" circle @click="loadDocuments" />
-      </div>
+      <Toolbar
+        :aria-label="t('kb.docModal.title', { name: currentKb?.name ?? '' })"
+        :show-refresh="true"
+        :refresh-aria-label="t('common.refresh')"
+        @refresh="loadDocuments"
+      >
+        <template #filters>
+          <el-upload
+            :show-file-list="false"
+            :before-upload="handleBeforeUpload"
+            :http-request="handleUpload"
+            multiple
+          >
+            <el-button type="primary">{{ t('kb.docModal.upload') }}</el-button>
+          </el-upload>
+          <span style="color: var(--ds-text-secondary); font-size: 12px; margin-left: 8px">
+            {{ t('kb.docModal.uploadHint') }}
+          </span>
+        </template>
+      </Toolbar>
 
       <el-table
         v-loading="docLoading"
@@ -224,9 +235,12 @@
         </el-table-column>
         <el-table-column :label="t('kb.docModal.cols.status')" width="110">
           <template #default="{ row }">
-            <el-tag :type="docStatusType(row.status)" effect="light" size="small">
-              {{ docStatusLabel(row.status) }}
-            </el-tag>
+                <StatusTag
+                  :status="row.status"
+                  :label="docStatusLabel(row.status)"
+                  :status-map="DOC_STATUS_TAG_MAP"
+                  size="small"
+                />
           </template>
         </el-table-column>
         <el-table-column prop="uploadedAt" :label="t('kb.docModal.cols.uploadedAt')" width="170">
@@ -253,9 +267,9 @@ import {
   type FormRules,
   type UploadRequestOptions
 } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import * as knowledgeApi from '@/api/knowledge'
 import type { KnowledgeBase, RagStrategy, KnowledgeDocument } from '@/api/knowledge'
 
@@ -502,17 +516,19 @@ function kbStatusLabel(s: string): string {
   return KB_STATUSES.includes(s) ? t(`kb.kbStatus.${s}`) : s
 }
 
+/** 知识库状态 → tag 类型映射 */
+const KB_STATUS_TAG_MAP: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
+  active: 'success',
+  ready: 'success',
+  pending: 'warning',
+  building: 'warning',
+  disabled: 'info',
+  failed: 'danger'
+}
+
 /** 知识库状态 → tag 类型 */
 function kbStatusType(s: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    active: 'success',
-    ready: 'success',
-    pending: 'warning',
-    building: 'warning',
-    disabled: 'info',
-    failed: 'danger'
-  }
-  return map[s] ?? 'info'
+  return KB_STATUS_TAG_MAP[s] ?? 'info'
 }
 
 /** 文档状态 → 词条 */
@@ -522,15 +538,17 @@ function docStatusLabel(s: string): string {
   return DOC_STATUSES.includes(s) ? t(`kb.docStatus.${s}`) : s
 }
 
+/** 文档状态 → tag 类型映射 */
+const DOC_STATUS_TAG_MAP: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
+  uploaded: 'info',
+  parsed: 'primary',
+  vectorized: 'success',
+  failed: 'danger'
+}
+
 /** 文档状态 → tag 类型 */
 function docStatusType(s: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  const map: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
-    uploaded: 'info',
-    parsed: 'primary',
-    vectorized: 'success',
-    failed: 'danger'
-  }
-  return map[s] ?? 'info'
+  return DOC_STATUS_TAG_MAP[s] ?? 'info'
 }
 
 /** 时间格式化（跟随当前语言环境） */
@@ -565,11 +583,6 @@ onMounted(async () => {
 <style scoped>
 .kb-page {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
 }
 .grid {
   display: grid;
@@ -616,19 +629,5 @@ onMounted(async () => {
   font-size: 12px;
   color: var(--ds-text-secondary);
   margin-top: 6px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 </style>

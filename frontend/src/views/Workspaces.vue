@@ -1,7 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('workspaces.title') }}</h1>
-    <div class="sub">{{ t('workspaces.subtitle') }}</div>
+    <PageHeader :title="t('workspaces.title')" :subtitle="t('workspaces.subtitle')" />
     <div class="toolbar">
       <button class="btn sm" @click="openCreateModal">{{ t('workspaces.newWorkspace') }}</button>
       <input
@@ -204,6 +203,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as workspaceApi from '@/api/workspace'

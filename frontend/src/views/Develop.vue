@@ -1,17 +1,19 @@
 <template>
   <div>
-    <h1>{{ t('develop.title') }}</h1>
-    <div class="sub">{{ t('develop.subtitle') }}</div>
-    <div class="toolbar">
-      <span class="chip on" @click="store.showToast(t('develop.envSwitchedDev'))">
-        {{ t('develop.envDev') }}
-      </span>
-      <span class="chip" @click="store.showToast(t('develop.envSwitchedProd'))">
-        {{ t('develop.envProd') }}
-      </span>
-      <div class="spacer"></div>
-      <span class="pill b">{{ t('develop.envIsolation') }}</span>
-    </div>
+    <PageHeader :title="t('develop.title')" :subtitle="t('develop.subtitle')" />
+    <Toolbar :show-refresh="false">
+      <template #filters>
+        <span class="chip on" @click="store.showToast(t('develop.envSwitchedDev'))">
+          {{ t('develop.envDev') }}
+        </span>
+        <span class="chip" @click="store.showToast(t('develop.envSwitchedProd'))">
+          {{ t('develop.envProd') }}
+        </span>
+      </template>
+      <template #actions>
+        <span class="pill b">{{ t('develop.envIsolation') }}</span>
+      </template>
+    </Toolbar>
     <div class="ide">
       <!-- 文件树：从后端 /develop/files 拉取真实工作空间文件 -->
       <div class="tree">
@@ -201,6 +203,7 @@ import { Folder, Document } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import {
   getFileTree,

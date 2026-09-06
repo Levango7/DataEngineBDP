@@ -1,56 +1,44 @@
 <template>
   <div class="ds-page" role="main" :aria-label="t('dataSourceManagement.title')">
-    <h1>{{ t('dataSourceManagement.title') }}</h1>
-    <div class="sub">
-      {{ t('dataSourceManagement.subtitle') }}
-    </div>
+    <PageHeader
+      :title="t('dataSourceManagement.title')"
+      :subtitle="t('dataSourceManagement.subtitle')"
+    />
 
-    <el-card shadow="never" class="page-card">
+    <PageCard>
       <!-- 顶部操作栏 -->
-      <div
-        class="toolbar"
-        role="toolbar"
+      <Toolbar
         :aria-label="t('dataSourceManagement.table.paginationAria')"
+        :show-create="true"
+        :create-label="t('dataSourceManagement.toolbar.create')"
+        :create-aria-label="t('dataSourceManagement.toolbar.create')"
+        :search-placeholder="t('dataSourceManagement.toolbar.searchPlaceholder')"
+        v-model:search-value="searchKeyword"
+        :search-aria-label="t('dataSourceManagement.toolbar.searchAria')"
+        :show-refresh="true"
+        :refresh-aria-label="t('dataSourceManagement.toolbar.refreshAria')"
+        @create="openCreateDialog"
+        @search="handleSearch"
+        @refresh="loadList"
       >
-        <el-button
-          type="primary"
-          :aria-label="t('dataSourceManagement.toolbar.create')"
-          @click="openCreateDialog"
-        >
-          {{ t('dataSourceManagement.toolbar.create') }}
-        </el-button>
-        <el-input
-          v-model="searchKeyword"
-          :placeholder="t('dataSourceManagement.toolbar.searchPlaceholder')"
-          clearable
-          style="width: 220px"
-          :aria-label="t('dataSourceManagement.toolbar.searchAria')"
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="filterType"
-          :placeholder="t('dataSourceManagement.toolbar.typeFilterPlaceholder')"
-          clearable
-          style="width: 160px"
-          :aria-label="t('dataSourceManagement.toolbar.typeFilterAria')"
-          @change="handleSearch"
-        >
-          <el-option
-            v-for="opt in typeOptions"
-            :key="opt.value"
-            :label="opt.label"
-            :value="opt.value"
-          />
-        </el-select>
-        <div class="spacer"></div>
-        <el-button
-          :icon="Refresh"
-          circle
-          :aria-label="t('dataSourceManagement.toolbar.refreshAria')"
-          @click="loadList"
-        />
-      </div>
+        <template #filters>
+          <el-select
+            v-model="filterType"
+            :placeholder="t('dataSourceManagement.toolbar.typeFilterPlaceholder')"
+            clearable
+            style="width: 160px"
+            :aria-label="t('dataSourceManagement.toolbar.typeFilterAria')"
+            @change="handleSearch"
+          >
+            <el-option
+              v-for="opt in typeOptions"
+              :key="opt.value"
+              :label="opt.label"
+              :value="opt.value"
+            />
+          </el-select>
+        </template>
+      </Toolbar>
 
       <!-- 数据源列表 -->
       <el-table
@@ -76,7 +64,7 @@
         />
         <el-table-column :label="t('dataSourceManagement.table.columns.type')" width="120">
           <template #default="{ row }">
-            <el-tag effect="light">{{ typeLabel(row.type) }}</el-tag>
+            <StatusTag :status="row.type" :label="typeLabel(row.type)" />
           </template>
         </el-table-column>
         <el-table-column :label="t('dataSourceManagement.table.columns.hostPort')" width="180">
@@ -94,9 +82,11 @@
         />
         <el-table-column :label="t('dataSourceManagement.table.columns.status')" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -157,7 +147,7 @@
           @current-change="loadList"
         />
       </div>
-    </el-card>
+    </PageCard>
 
     <!-- 新增/编辑弹窗 -->
     <el-dialog
@@ -288,7 +278,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as datasourceApi from '@/api/datasource'
 import type {
@@ -573,25 +563,6 @@ onMounted(() => {
 <style scoped>
 .ds-page {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 .pagination-wrap {
   display: flex;

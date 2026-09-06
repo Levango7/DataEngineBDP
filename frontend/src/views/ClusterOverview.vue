@@ -1,7 +1,6 @@
 <template>
   <div class="cluster-page" role="main" :aria-label="t('clusterOverview.title')">
-    <h1>{{ t('clusterOverview.title') }}</h1>
-    <div class="sub">{{ t('clusterOverview.subtitle') }}</div>
+    <PageHeader :title="t('clusterOverview.title')" :subtitle="t('clusterOverview.subtitle')" />
 
     <!-- 顶部统计卡片 -->
     <el-row :gutter="16" class="stat-row" role="region" :aria-label="t('clusterOverview.title')">
@@ -83,20 +82,16 @@
     </el-row>
 
     <!-- 资源使用趋势图 -->
-    <el-card
-      shadow="never"
-      class="page-card"
+    <PageCard
+      :title="t('clusterOverview.trend.title')"
       style="margin-top: 16px"
       role="region"
       :aria-label="t('clusterOverview.trend.title')"
     >
-      <template #header>
-        <div class="card-header">
-          <span>{{ t('clusterOverview.trend.title') }}</span>
-          <el-tag type="info" effect="plain" size="small">
-            {{ t('clusterOverview.trend.subtitle') }}
-          </el-tag>
-        </div>
+      <template #header-actions>
+        <el-tag type="info" effect="plain" size="small">
+          {{ t('clusterOverview.trend.subtitle') }}
+        </el-tag>
       </template>
       <div
         ref="trendChartRef"
@@ -105,27 +100,23 @@
         role="img"
         :aria-label="t('clusterOverview.trend.title')"
       ></div>
-    </el-card>
+    </PageCard>
 
     <!-- 节点列表 -->
-    <el-card
-      shadow="never"
-      class="page-card"
+    <PageCard
+      :title="t('clusterOverview.nodes.title')"
       style="margin-top: 16px"
       role="region"
       :aria-label="t('clusterOverview.nodes.title')"
     >
-      <template #header>
-        <div class="card-header">
-          <span>{{ t('clusterOverview.nodes.title') }}</span>
-          <el-button
-            :icon="Refresh"
-            circle
-            size="small"
-            :aria-label="t('clusterOverview.nodes.refreshAria')"
-            @click="loadNodes"
-          />
-        </div>
+      <template #header-actions>
+        <el-button
+          :icon="Refresh"
+          circle
+          size="small"
+          :aria-label="t('clusterOverview.nodes.refreshAria')"
+          @click="loadNodes"
+        />
       </template>
       <el-table
         v-loading="nodesLoading"
@@ -159,9 +150,11 @@
         </el-table-column>
         <el-table-column :label="t('clusterOverview.nodes.columns.status')" width="100">
           <template #default="{ row }">
-            <el-tag :type="nodeStatusType(row.status)" effect="light">
-              {{ nodeStatusLabel(row.status) }}
-            </el-tag>
+            <StatusTag
+              :status="row.status"
+              :label="nodeStatusLabel(row.status)"
+              :status-map="NODE_STATUS_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('clusterOverview.nodes.columns.cpu')" width="160">
@@ -203,21 +196,15 @@
           min-width="160"
         />
       </el-table>
-    </el-card>
+    </PageCard>
 
     <!-- 组件状态 -->
-    <el-card
-      shadow="never"
-      class="page-card"
+    <PageCard
+      :title="t('clusterOverview.components.title')"
       style="margin-top: 16px"
       role="region"
       :aria-label="t('clusterOverview.components.title')"
     >
-      <template #header>
-        <div class="card-header">
-          <span>{{ t('clusterOverview.components.title') }}</span>
-        </div>
-      </template>
       <el-row :gutter="12" role="list" :aria-label="t('clusterOverview.components.listAria')">
         <el-col v-for="comp in components" :key="comp.name" :xs="12" :sm="8" :md="6" :lg="4">
           <div
@@ -240,39 +227,35 @@
           </div>
         </el-col>
       </el-row>
-    </el-card>
+    </PageCard>
 
     <!-- 集群资源配置：网络 / 存储 / HPA -->
-    <el-card
-      shadow="never"
-      class="page-card"
+    <PageCard
+      :title="t('clusterOverview.resources.title')"
       style="margin-top: 16px"
       role="region"
       :aria-label="t('clusterOverview.resources.title')"
     >
-      <template #header>
-        <div class="card-header">
-          <span>{{ t('clusterOverview.resources.title') }}</span>
-          <el-select
-            v-model="selectedEnv"
-            size="small"
-            style="width: 120px; margin-right: 8px"
-            :aria-label="t('clusterOverview.resources.envAria')"
-            @change="loadClusterResources"
-          >
-            <el-option :label="t('clusterOverview.resources.envs.xinchuang')" value="xinchuang" />
-            <el-option :label="t('clusterOverview.resources.envs.private')" value="private" />
-            <el-option :label="t('clusterOverview.resources.envs.cloud')" value="cloud" />
-          </el-select>
-          <el-input
-            v-model="selectedClusterId"
-            size="small"
-            style="width: 180px"
-            :placeholder="t('clusterOverview.resources.clusterIdPlaceholder')"
-            :aria-label="t('clusterOverview.resources.clusterIdAria')"
-            @change="loadClusterResources"
-          />
-        </div>
+      <template #header-actions>
+        <el-select
+          v-model="selectedEnv"
+          size="small"
+          style="width: 120px; margin-right: 8px"
+          :aria-label="t('clusterOverview.resources.envAria')"
+          @change="loadClusterResources"
+        >
+          <el-option :label="t('clusterOverview.resources.envs.xinchuang')" value="xinchuang" />
+          <el-option :label="t('clusterOverview.resources.envs.private')" value="private" />
+          <el-option :label="t('clusterOverview.resources.envs.cloud')" value="cloud" />
+        </el-select>
+        <el-input
+          v-model="selectedClusterId"
+          size="small"
+          style="width: 180px"
+          :placeholder="t('clusterOverview.resources.clusterIdPlaceholder')"
+          :aria-label="t('clusterOverview.resources.clusterIdAria')"
+          @change="loadClusterResources"
+        />
       </template>
       <el-tabs
         v-model="resourceTab"
@@ -582,7 +565,7 @@
           </el-table>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+    </PageCard>
   </div>
 </template>
 
@@ -593,6 +576,7 @@ import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import * as echarts from 'echarts'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, PageCard, StatusTag } from '@/components/ui'
 import * as clusterApi from '@/api/cluster'
 import * as infraApi from '@/api/infra'
 import type { ClusterOverview, Node, NodeStatus } from '@/api/types'
@@ -891,11 +875,6 @@ onUnmounted(() => {
 .cluster-page {
   padding: 0;
 }
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
 .stat-row {
   margin-bottom: 0;
 }
@@ -932,16 +911,6 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--ds-text-secondary);
   margin-top: 6px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 600;
 }
 .trend-chart {
   width: 100%;

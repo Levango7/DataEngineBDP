@@ -1,7 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('account.title') }}</h1>
-    <div class="sub">{{ t('account.subtitle') }}</div>
+    <PageHeader :title="t('account.title')" :subtitle="t('account.subtitle')" />
     <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
       {{ t('account.loading') }}
     </div>
@@ -89,6 +88,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as accountApi from '@/api/account'
 import type { AccountPlan, BillingDetail, PlanTier } from '@/api/account'

@@ -1,34 +1,28 @@
 <template>
   <div class="template-market">
-    <h1>{{ t('templateMarket.title') }}</h1>
-    <div class="sub">
-      {{ t('templateMarket.subtitle') }}
-    </div>
+    <PageHeader :title="t('templateMarket.title')" :subtitle="t('templateMarket.subtitle')" />
 
     <!-- 顶部操作栏：分类筛选 + 搜索 -->
-    <el-card shadow="never" class="page-card">
-      <div class="toolbar">
-        <el-radio-group v-model="filterIndustry" @change="handleFilter">
-          <el-radio-button label="">{{ t('templateMarket.filter.all') }}</el-radio-button>
-          <el-radio-button v-for="cat in categories" :key="cat.industry" :label="cat.industry">
-            {{ cat.name }} ({{ cat.count }})
-          </el-radio-button>
-        </el-radio-group>
-        <div class="spacer"></div>
-        <el-input
-          v-model="searchKeyword"
-          :placeholder="t('templateMarket.filter.searchPlaceholder')"
-          clearable
-          style="width: 260px"
-          @keyup.enter="handleFilter"
-          @clear="handleFilter"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-        </el-input>
-        <el-button :icon="Refresh" circle @click="loadAll" />
-      </div>
+    <PageCard>
+      <Toolbar
+        :aria-label="t('templateMarket.title')"
+        :search-placeholder="t('templateMarket.filter.searchPlaceholder')"
+        v-model:search-value="searchKeyword"
+        :search-aria-label="t('templateMarket.filter.searchPlaceholder')"
+        :show-refresh="true"
+        :refresh-aria-label="t('common.refresh')"
+        @search="handleFilter"
+        @refresh="loadAll"
+      >
+        <template #filters>
+          <el-radio-group v-model="filterIndustry" @change="handleFilter">
+            <el-radio-button label="">{{ t('templateMarket.filter.all') }}</el-radio-button>
+            <el-radio-button v-for="cat in categories" :key="cat.industry" :label="cat.industry">
+              {{ cat.name }} ({{ cat.count }})
+            </el-radio-button>
+          </el-radio-group>
+        </template>
+      </Toolbar>
 
       <!-- 模板卡片网格 -->
       <div v-loading="loading" class="template-grid">
@@ -54,9 +48,12 @@
               <div class="card-title">{{ tpl.name }}</div>
               <div class="card-id">{{ tpl.id }}</div>
             </div>
-            <el-tag :type="industryTagType(tpl.industry)" effect="light" size="small">
-              {{ industryLabel(tpl.industry) }}
-            </el-tag>
+            <StatusTag
+              :status="tpl.industry"
+              :label="industryLabel(tpl.industry)"
+              :status-map="INDUSTRY_TAG_MAP"
+              size="small"
+            />
           </div>
           <div class="card-desc">{{ tpl.description }}</div>
           <div class="card-tags">
@@ -85,7 +82,7 @@
           </div>
         </el-card>
       </div>
-    </el-card>
+    </PageCard>
 
     <!-- 模板详情弹窗 -->
     <el-dialog
@@ -121,9 +118,12 @@
             {{ detailTemplate.meta.rating.toFixed(1) }} / 5.0
           </el-descriptions-item>
           <el-descriptions-item :label="t('templateMarket.detail.meta.status')">
-            <el-tag :type="statusTagType(detailTemplate.meta.status)" size="small">
-              {{ statusLabel(detailTemplate.meta.status) }}
-            </el-tag>
+            <StatusTag
+              :status="detailTemplate.meta.status"
+              :label="statusLabel(detailTemplate.meta.status)"
+              :status-map="TEMPLATE_STATUS_TAG_MAP"
+              size="small"
+            />
           </el-descriptions-item>
           <el-descriptions-item :label="t('templateMarket.detail.meta.description')" :span="3">
             {{ detailTemplate.meta.description }}
@@ -280,7 +280,7 @@
                 width="100"
               >
                 <template #default="{ row }">
-                  <el-tag size="small" :type="paramTypeTag(row.type)">{{ row.type }}</el-tag>
+                  <StatusTag :status="row.type" :status-map="PARAM_TYPE_TAG_MAP" size="small" />
                 </template>
               </el-table-column>
               <el-table-column
@@ -467,7 +467,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh, Search, Download, Star, Cpu, Check, DataLine } from '@element-plus/icons-vue'
+import { Download, Star, Cpu, Check, DataLine } from '@element-plus/icons-vue'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as templateApi from '@/api/template'
 import type {
@@ -648,15 +649,16 @@ function industryLabel(ind: Industry): string {
   return t(`templateMarket.industry.${ind}`)
 }
 
+const INDUSTRY_TAG_MAP: Record<Industry, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+  finance: 'warning',
+  retail: 'success',
+  manufacturing: 'primary',
+  government: 'info',
+  iot: 'danger'
+}
+
 function industryTagType(ind: Industry): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<Industry, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
-    finance: 'warning',
-    retail: 'success',
-    manufacturing: 'primary',
-    government: 'info',
-    iot: 'danger'
-  }
-  return map[ind] || 'info'
+  return INDUSTRY_TAG_MAP[ind] || 'info'
 }
 
 function statusLabel(status: TemplateStatus | DeploymentStatus): string {
@@ -667,26 +669,28 @@ function statusLabel(status: TemplateStatus | DeploymentStatus): string {
   return status
 }
 
+const TEMPLATE_STATUS_TAG_MAP: Record<TemplateStatus, 'success' | 'warning' | 'info'> = {
+  dev: 'info',
+  review: 'warning',
+  catalog: 'success',
+  deprecated: 'info'
+}
+
 function statusTagType(status: TemplateStatus): 'success' | 'warning' | 'info' {
-  const map: Record<TemplateStatus, 'success' | 'warning' | 'info'> = {
-    dev: 'info',
-    review: 'warning',
-    catalog: 'success',
-    deprecated: 'info'
-  }
-  return map[status] || 'info'
+  return TEMPLATE_STATUS_TAG_MAP[status] || 'info'
+}
+
+const PARAM_TYPE_TAG_MAP: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
+  string: 'info',
+  integer: 'primary',
+  float: 'primary',
+  boolean: 'success',
+  enum: 'warning',
+  datasource: 'danger'
 }
 
 function paramTypeTag(type: string): 'primary' | 'success' | 'warning' | 'info' | 'danger' {
-  const map: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
-    string: 'info',
-    integer: 'primary',
-    float: 'primary',
-    boolean: 'success',
-    enum: 'warning',
-    datasource: 'danger'
-  }
-  return map[type] || 'info'
+  return PARAM_TYPE_TAG_MAP[type] || 'info'
 }
 
 /* ------------------------------ 初始化 ------------------------------ */
@@ -699,25 +703,6 @@ onMounted(() => {
 <style scoped>
 .template-market {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 
 /* 模板卡片网格 */

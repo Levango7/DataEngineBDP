@@ -1,7 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('integrate.title') }}</h1>
-    <div class="sub">{{ t('integrate.subtitle') }}</div>
+    <PageHeader :title="t('integrate.title')" :subtitle="t('integrate.subtitle')" />
     <div class="section-title">{{ t('integrate.connectors') }}</div>
     <div v-if="connectorsLoading" class="conn-grid" style="color: var(--muted)">
       {{ t('integrate.connectorsLoading') }}
@@ -37,11 +36,18 @@
         </span>
       </div>
     </div>
-    <div class="toolbar" style="margin-top: 16px">
-      <button class="btn sm" @click="openSyncModal">{{ t('integrate.newTask') }}</button>
-      <div class="spacer"></div>
-      <span class="pill b">{{ t('integrate.batchStream') }}</span>
-    </div>
+    <Toolbar
+      style="margin-top: 16px"
+      :show-create="true"
+      :create-label="t('integrate.newTask')"
+      :create-aria-label="t('integrate.newTask')"
+      :show-refresh="false"
+      @create="openSyncModal"
+    >
+      <template #actions>
+        <span class="pill b">{{ t('integrate.batchStream') }}</span>
+      </template>
+    </Toolbar>
     <div class="card">
       <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">
         {{ t('integrate.tasksLoading') }}
@@ -177,6 +183,7 @@ import { ElMessageBox } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as integrateApi from '@/api/integrate'
 import type { Connector, SyncTask, SyncMode, SyncStatus, ConnectorStatus } from '@/api/integrate'

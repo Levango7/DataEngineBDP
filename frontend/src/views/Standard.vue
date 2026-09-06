@@ -1,14 +1,19 @@
 <template>
   <div>
-    <h1>{{ t('standard.title') }}</h1>
-    <div class="sub">{{ t('standard.subtitle') }}</div>
-    <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">{{ t('standard.newStandard') }}</button>
-      <div class="spacer"></div>
-      <span class="pill b">
-        {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
-      </span>
-    </div>
+    <PageHeader :title="t('standard.title')" :subtitle="t('standard.subtitle')" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('standard.newStandard')"
+      :create-aria-label="t('standard.newStandard')"
+      :show-refresh="false"
+      @create="modalVisible = true"
+    >
+      <template #actions>
+        <span class="pill b">
+          {{ t('standard.applyRate', { rate: summary?.applyRate ?? '--' }) }}
+        </span>
+      </template>
+    </Toolbar>
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
@@ -69,6 +74,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as standardApi from '@/api/standard'
 import type { Standard, StandardSummary, StandardType } from '@/api/standard'

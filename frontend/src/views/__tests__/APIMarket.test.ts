@@ -38,6 +38,7 @@ vi.mock('@/api/apiCatalog', () => ({
 }))
 
 import APIMarket from '../APIMarket.vue'
+import Toolbar from '@/components/ui/Toolbar.vue'
 import type { APIDefinition } from '@/api/apiCatalog'
 
 const realApi: APIDefinition = {
@@ -133,8 +134,11 @@ describe('views/APIMarket.vue 列表加载三态', () => {
     const retryBtn = findRetryButton(wrapper)
     // 没有重试按钮（因为第一次成功），改为通过搜索触发第二次请求
     // 使用直接调用 refreshList 不方便，改为模拟输入触发防抖后请求
-    const searchInput = wrapper.find('.search-input')
-    await searchInput.setValue('test')
+    // 工具栏已切换为共享 Toolbar 组件（内部 el-input 在测试环境被 stub，无真实 <input>），
+    // 直接按 Toolbar 的组件契约发事件：update:searchValue 更新关键字，search 触发查询
+    const toolbar = wrapper.findComponent(Toolbar)
+    await toolbar.vm.$emit('update:searchValue', 'test')
+    await toolbar.vm.$emit('search')
     // 等待防抖 300ms
     await new Promise((r) => setTimeout(r, 350))
     await flushPromises()

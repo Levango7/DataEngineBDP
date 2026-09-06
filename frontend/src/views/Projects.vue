@@ -1,15 +1,22 @@
 <template>
   <div>
-    <h1>{{ t('projects.title') }}</h1>
-    <div class="sub">{{ t('projects.subtitle', { workspace: '华东生产集群' }) }}</div>
-    <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">{{ t('projects.newProject') }}</button>
-      <select>
-        <option>{{ t('projects.allStatus') }}</option>
-      </select>
-      <div class="spacer"></div>
-      <input style="width: 200px" :placeholder="t('projects.searchPlaceholder')" />
-    </div>
+    <PageHeader :title="t('projects.title')" :subtitle="t('projects.subtitle', { workspace: '华东生产集群' })" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('projects.newProject')"
+      :create-aria-label="t('projects.newProject')"
+      :search-placeholder="t('projects.searchPlaceholder')"
+      v-model:search-value="searchKeyword"
+      :search-aria-label="t('projects.searchPlaceholder')"
+      :show-refresh="false"
+      @create="modalVisible = true"
+    >
+      <template #filters>
+        <select>
+          <option>{{ t('projects.allStatus') }}</option>
+        </select>
+      </template>
+    </Toolbar>
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
@@ -201,6 +208,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as projectApi from '@/api/project'
@@ -215,6 +223,7 @@ import type { PagedResult } from '@/api/types'
 
 const { t } = useI18n()
 const store = useAppStore()
+const searchKeyword = ref('')
 
 // 项目列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {

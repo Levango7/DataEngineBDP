@@ -1,49 +1,38 @@
 <template>
   <div class="tenant-page" role="main" :aria-label="t('tenantManagement.title')">
-    <h1>{{ t('tenantManagement.title') }}</h1>
-    <div class="sub">
-      {{ t('tenantManagement.subtitle') }}
-    </div>
+    <PageHeader :title="t('tenantManagement.title')" :subtitle="t('tenantManagement.subtitle')" />
 
     <!-- 顶部操作栏 -->
-    <el-card shadow="never" class="page-card">
-      <div class="toolbar" role="toolbar" :aria-label="t('tenantManagement.title')">
-        <el-button
-          type="primary"
-          :aria-label="t('tenantManagement.dialog.createTitle')"
-          @click="openCreateDialog"
-        >
-          {{ t('tenantManagement.toolbar.create') }}
-        </el-button>
-        <el-input
-          v-model="searchKeyword"
-          :placeholder="t('tenantManagement.toolbar.searchPlaceholder')"
-          clearable
-          style="width: 240px"
-          :aria-label="t('tenantManagement.toolbar.searchPlaceholder')"
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="filterStatus"
-          :placeholder="t('tenantManagement.toolbar.statusFilterPlaceholder')"
-          clearable
-          style="width: 140px"
-          :aria-label="t('tenantManagement.toolbar.statusFilterPlaceholder')"
-          @change="handleSearch"
-        >
-          <el-option :label="t('tenantManagement.status.active')" value="active" />
-          <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
-          <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
-        </el-select>
-        <div class="spacer"></div>
-        <el-button
-          :icon="Refresh"
-          circle
-          :aria-label="t('tenantManagement.toolbar.refreshAria')"
-          @click="loadList"
-        />
-      </div>
+    <PageCard>
+      <Toolbar
+        :aria-label="t('tenantManagement.title')"
+        :show-create="true"
+        :create-label="t('tenantManagement.toolbar.create')"
+        :create-aria-label="t('tenantManagement.dialog.createTitle')"
+        :search-placeholder="t('tenantManagement.toolbar.searchPlaceholder')"
+        v-model:search-value="searchKeyword"
+        :search-aria-label="t('tenantManagement.toolbar.searchPlaceholder')"
+        :show-refresh="true"
+        :refresh-aria-label="t('tenantManagement.toolbar.refreshAria')"
+        @create="openCreateDialog"
+        @search="handleSearch"
+        @refresh="loadList"
+      >
+        <template #filters>
+          <el-select
+            v-model="filterStatus"
+            :placeholder="t('tenantManagement.toolbar.statusFilterPlaceholder')"
+            clearable
+            style="width: 140px"
+            :aria-label="t('tenantManagement.toolbar.statusFilterPlaceholder')"
+            @change="handleSearch"
+          >
+            <el-option :label="t('tenantManagement.status.active')" value="active" />
+            <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
+            <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
+          </el-select>
+        </template>
+      </Toolbar>
 
       <!-- 租户列表表格 -->
       <el-table
@@ -71,16 +60,16 @@
         />
         <el-table-column :label="t('tenantManagement.table.columns.plan')" width="120">
           <template #default="{ row }">
-            <el-tag :type="planTagType(row.plan)" effect="light">
-              {{ planLabel(row.plan) }}
-            </el-tag>
+            <StatusTag :status="row.plan" :label="planLabel(row.plan)" :status-map="PLAN_TAG_TYPE_MAP" />
           </template>
         </el-table-column>
         <el-table-column :label="t('tenantManagement.table.columns.status')" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -153,7 +142,7 @@
           @current-change="loadList"
         />
       </div>
-    </el-card>
+    </PageCard>
 
     <!-- 创建/编辑弹窗 -->
     <el-dialog
@@ -266,7 +255,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as tenantApi from '@/api/tenant'
 import type { Tenant, PlanTier, TenantStatus, PagedResult } from '@/api/types'
@@ -485,25 +474,6 @@ onMounted(() => {
 <style scoped>
 .tenant-page {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 .pagination-wrap {
   display: flex;

@@ -80,7 +80,7 @@ describe('JobManagement.vue', () => {
     const wrapper = mountComponent()
     await flushPromises()
     expect(wrapper.find('h1').text()).toBe('作业管理')
-    expect(wrapper.find('.sub').exists()).toBe(true)
+    expect(wrapper.find('.page-header__subtitle').exists()).toBe(true)
   })
 
   it('挂载后应自动加载作业列表', async () => {

@@ -15,10 +15,7 @@
 -->
 <template>
   <div class="search-portal">
-    <h1>{{ t('searchPortal.title') }}</h1>
-    <div class="sub">
-      {{ t('searchPortal.subtitle') }}
-    </div>
+    <PageHeader :title="t('searchPortal.title')" :subtitle="t('searchPortal.subtitle')" />
 
     <!-- 顶部检索输入 -->
     <div class="portal-search-bar">
@@ -241,6 +238,7 @@ import {
   ElRadioButton
 } from 'element-plus'
 import { Search, MagicStick, Document } from '@element-plus/icons-vue'
+import { PageHeader } from '@/components/ui'
 import SearchInput from './search/SearchInput.vue'
 import SearchFilter from './search/SearchFilter.vue'
 import SearchResultCard from './search/SearchResultCard.vue'

@@ -73,7 +73,7 @@ describe('DataSourceManagement.vue', () => {
     const wrapper = mountComponent()
     await flushPromises()
     expect(wrapper.find('h1').text()).toBe('数据源管理')
-    expect(wrapper.find('.sub').exists()).toBe(true)
+    expect(wrapper.find('.page-header__subtitle').exists()).toBe(true)
   })
 
   it('挂载后应自动加载数据源列表', async () => {

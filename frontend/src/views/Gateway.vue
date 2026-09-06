@@ -1,7 +1,6 @@
 <template>
   <div class="gateway-page">
-    <h1>{{ t('gateway.title') }}</h1>
-    <div class="sub">{{ t('gateway.subtitle') }}</div>
+    <PageHeader :title="t('gateway.title')" :subtitle="t('gateway.subtitle')" />
 
     <!-- 统计卡片 -->
     <div class="grid g4">
@@ -169,6 +168,7 @@ import { WarningFilled } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as echarts from 'echarts'
 import * as gatewayApi from '@/api/gateway'
@@ -454,11 +454,6 @@ onUnmounted(() => {
 <style scoped>
 .gateway-page {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
 }
 .chart-area {
   width: 100%;

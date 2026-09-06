@@ -1,53 +1,50 @@
 <template>
   <div class="workspace-page">
-    <h1>{{ t('workspaceManagement.title') }}</h1>
-    <div class="sub">
-      {{ t('workspaceManagement.subtitle') }}
-    </div>
+    <PageHeader
+      :title="t('workspaceManagement.title')"
+      :subtitle="t('workspaceManagement.subtitle')"
+    />
 
     <!-- 顶部操作栏 -->
-    <el-card shadow="never" class="page-card">
-      <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">
-          {{ t('workspaceManagement.toolbar.create') }}
-        </el-button>
-        <el-input
-          v-model="searchKeyword"
-          :placeholder="t('workspaceManagement.toolbar.searchPlaceholder')"
-          clearable
-          style="width: 220px"
-          @keyup.enter="handleSearch"
-          @clear="handleSearch"
-        />
-        <el-select
-          v-model="filterTenantId"
-          :placeholder="t('workspaceManagement.toolbar.tenantFilterPlaceholder')"
-          clearable
-          style="width: 180px"
-          @change="handleSearch"
-        >
-          <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
-        </el-select>
-        <el-select
-          v-model="filterStatus"
-          :placeholder="t('workspaceManagement.toolbar.statusFilterPlaceholder')"
-          clearable
-          style="width: 140px"
-          @change="handleSearch"
-        >
-          <el-option :label="t('workspaceManagement.status.creating')" value="creating" />
-          <el-option :label="t('workspaceManagement.status.running')" value="running" />
-          <el-option :label="t('workspaceManagement.status.deleting')" value="deleting" />
-          <el-option :label="t('workspaceManagement.status.deleted')" value="deleted" />
-        </el-select>
-        <div class="spacer"></div>
-        <el-button
-          :icon="Refresh"
-          circle
-          :aria-label="t('workspaceManagement.toolbar.refreshAria')"
-          @click="loadList"
-        />
-      </div>
+    <PageCard>
+      <Toolbar
+        :aria-label="t('workspaceManagement.title')"
+        :show-create="true"
+        :create-label="t('workspaceManagement.toolbar.create')"
+        :create-aria-label="t('workspaceManagement.toolbar.create')"
+        :search-placeholder="t('workspaceManagement.toolbar.searchPlaceholder')"
+        v-model:search-value="searchKeyword"
+        :search-aria-label="t('workspaceManagement.toolbar.searchPlaceholder')"
+        :show-refresh="true"
+        :refresh-aria-label="t('workspaceManagement.toolbar.refreshAria')"
+        @create="openCreateDialog"
+        @search="handleSearch"
+        @refresh="loadList"
+      >
+        <template #filters>
+          <el-select
+            v-model="filterTenantId"
+            :placeholder="t('workspaceManagement.toolbar.tenantFilterPlaceholder')"
+            clearable
+            style="width: 180px"
+            @change="handleSearch"
+          >
+            <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
+          </el-select>
+          <el-select
+            v-model="filterStatus"
+            :placeholder="t('workspaceManagement.toolbar.statusFilterPlaceholder')"
+            clearable
+            style="width: 140px"
+            @change="handleSearch"
+          >
+            <el-option :label="t('workspaceManagement.status.creating')" value="creating" />
+            <el-option :label="t('workspaceManagement.status.running')" value="running" />
+            <el-option :label="t('workspaceManagement.status.deleting')" value="deleting" />
+            <el-option :label="t('workspaceManagement.status.deleted')" value="deleted" />
+          </el-select>
+        </template>
+      </Toolbar>
 
       <!-- 工作空间列表表格 -->
       <el-table
@@ -81,9 +78,11 @@
         />
         <el-table-column :label="t('workspaceManagement.table.columns.status')" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -138,7 +137,7 @@
           @current-change="loadList"
         />
       </div>
-    </el-card>
+    </PageCard>
 
     <!-- 创建/编辑弹窗 -->
     <el-dialog
@@ -261,8 +260,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import * as workspaceApi from '@/api/workspace'
 import * as tenantApi from '@/api/tenant'
 import type { Workspace, Tenant, PagedResult } from '@/api/types'
@@ -506,25 +505,6 @@ onMounted(() => {
 <style scoped>
 .workspace-page {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 .pagination-wrap {
   display: flex;

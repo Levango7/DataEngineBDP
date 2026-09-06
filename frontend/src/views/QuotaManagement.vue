@@ -1,43 +1,41 @@
 <template>
   <div class="quota-page">
-    <h1>{{ t('quotaManagement.title') }}</h1>
-    <div class="sub">
-      {{ t('quotaManagement.subtitle') }}
-    </div>
+    <PageHeader :title="t('quotaManagement.title')" :subtitle="t('quotaManagement.subtitle')" />
 
     <!-- 顶部操作栏 -->
-    <el-card shadow="never" class="page-card">
-      <div class="toolbar">
-        <el-button type="primary" @click="openCreateDialog">
-          {{ t('quotaManagement.toolbar.create') }}
-        </el-button>
-        <el-select
-          v-model="filterTenantId"
-          :placeholder="t('quotaManagement.toolbar.tenantFilterPlaceholder')"
-          clearable
-          style="width: 180px"
-          @change="handleSearch"
-        >
-          <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
-        </el-select>
-        <el-select
-          v-model="filterWorkspaceId"
-          :placeholder="t('quotaManagement.toolbar.workspaceFilterPlaceholder')"
-          clearable
-          filterable
-          style="width: 220px"
-          @change="handleSearch"
-        >
-          <el-option v-for="w in workspaceOptions" :key="w.id" :label="w.name" :value="w.id" />
-        </el-select>
-        <div class="spacer"></div>
-        <el-button
-          :icon="Refresh"
-          circle
-          :aria-label="t('quotaManagement.toolbar.refreshAria')"
-          @click="loadList"
-        />
-      </div>
+    <PageCard>
+      <Toolbar
+        :aria-label="t('quotaManagement.title')"
+        :show-create="true"
+        :create-label="t('quotaManagement.toolbar.create')"
+        :create-aria-label="t('quotaManagement.toolbar.create')"
+        :show-refresh="true"
+        :refresh-aria-label="t('quotaManagement.toolbar.refreshAria')"
+        @create="openCreateDialog"
+        @refresh="loadList"
+      >
+        <template #filters>
+          <el-select
+            v-model="filterTenantId"
+            :placeholder="t('quotaManagement.toolbar.tenantFilterPlaceholder')"
+            clearable
+            style="width: 180px"
+            @change="handleSearch"
+          >
+            <el-option v-for="tn in tenantOptions" :key="tn.id" :label="tn.name" :value="tn.id" />
+          </el-select>
+          <el-select
+            v-model="filterWorkspaceId"
+            :placeholder="t('quotaManagement.toolbar.workspaceFilterPlaceholder')"
+            clearable
+            filterable
+            style="width: 220px"
+            @change="handleSearch"
+          >
+            <el-option v-for="w in workspaceOptions" :key="w.id" :label="w.name" :value="w.id" />
+          </el-select>
+        </template>
+      </Toolbar>
 
       <!-- 配额列表表格 -->
       <el-table
@@ -87,9 +85,11 @@
         </el-table-column>
         <el-table-column :label="t('quotaManagement.table.columns.status')" width="100">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPE_MAP"
+            />
           </template>
         </el-table-column>
         <el-table-column
@@ -115,7 +115,7 @@
           </template>
         </el-table-column>
       </el-table>
-    </el-card>
+    </PageCard>
 
     <!-- 设置/编辑弹窗 -->
     <el-dialog
@@ -273,8 +273,8 @@ import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import * as quotaApi from '@/api/quota'
 import * as tenantApi from '@/api/tenant'
 import * as workspaceApi from '@/api/workspace'
@@ -614,25 +614,6 @@ onMounted(() => {
 <style scoped>
 .quota-page {
   padding: 0;
-}
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 .mono {
   font-family: 'Consolas', 'Monaco', monospace;

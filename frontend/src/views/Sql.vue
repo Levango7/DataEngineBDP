@@ -1,7 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('sql.title') }}</h1>
-    <div class="sub">{{ t('sql.subtitle') }}</div>
+    <PageHeader :title="t('sql.title')" :subtitle="t('sql.subtitle')" />
     <div class="ide" style="grid-template-columns: 1fr 240px">
       <div class="code-wrap">
         <div class="tabs">
@@ -76,6 +75,7 @@ import { ref, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import { executeCrossSourceSql, type CrossSourceQueryResult } from '@/api/sqlworkbench'
 
 const { t } = useI18n()

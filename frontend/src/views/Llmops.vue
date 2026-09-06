@@ -1,7 +1,6 @@
 <template>
   <div class="llmops-page">
-    <h1>{{ t('llmops.title') }}</h1>
-    <div class="sub">{{ t('llmops.subtitle') }}</div>
+    <PageHeader :title="t('llmops.title')" :subtitle="t('llmops.subtitle')" />
 
     <!-- KPI 卡片区 -->
     <div class="grid g4">
@@ -37,26 +36,28 @@
     </div>
 
     <!-- Tabs 主区 -->
-    <el-card shadow="never" class="page-card" style="margin-top: 16px">
+    <PageCard style="margin-top: 16px">
       <el-tabs v-model="activeTab" type="card">
         <!-- Tab1 模型管理 -->
         <el-tab-pane :label="t('llmops.tabs.models')" name="models">
-          <div class="toolbar">
-            <el-button type="primary" @click="openRegisterDialog">
-              {{ t('llmops.registerModel') }}
-            </el-button>
-            <el-input
-              v-model="modelKeyword"
-              :placeholder="t('llmops.searchPlaceholder')"
-              clearable
-              style="width: 220px"
-              @keyup.enter="loadModels"
-              @clear="loadModels"
-            />
-            <el-button @click="loadModels">{{ t('llmops.search') }}</el-button>
-            <div class="spacer"></div>
-            <el-button :icon="Refresh" circle @click="loadModels" />
-          </div>
+          <Toolbar
+            :aria-label="t('llmops.tabs.models')"
+            :show-create="true"
+            :create-label="t('llmops.registerModel')"
+            :create-aria-label="t('llmops.registerModel')"
+            :search-placeholder="t('llmops.searchPlaceholder')"
+            v-model:search-value="modelKeyword"
+            :search-aria-label="t('llmops.searchPlaceholder')"
+            :show-refresh="true"
+            :refresh-aria-label="t('common.refresh')"
+            @create="openRegisterDialog"
+            @search="loadModels"
+            @refresh="loadModels"
+          >
+            <template #filters>
+              <el-button @click="loadModels">{{ t('llmops.search') }}</el-button>
+            </template>
+          </Toolbar>
 
           <el-table
             v-loading="modelLoading"
@@ -75,9 +76,11 @@
             <el-table-column prop="version" :label="t('llmops.modelCols.version')" width="100" />
             <el-table-column :label="t('llmops.modelCols.status')" width="110">
               <template #default="{ row }">
-                <el-tag :type="modelStatusType(row.status)" effect="light">
-                  {{ modelStatusLabel(row.status) }}
-                </el-tag>
+                <StatusTag
+                  :status="row.status"
+                  :label="modelStatusLabel(row.status)"
+                  :status-map="MODEL_STATUS_TYPES"
+                />
               </template>
             </el-table-column>
             <el-table-column prop="trainJobId" :label="t('llmops.modelCols.trainJob')" width="140">
@@ -102,13 +105,16 @@
 
         <!-- Tab2 微调 -->
         <el-tab-pane :label="t('llmops.tabs.finetune')" name="finetune">
-          <div class="toolbar">
-            <el-button type="primary" @click="openFinetuneDialog">
-              {{ t('llmops.submitFinetune') }}
-            </el-button>
-            <div class="spacer"></div>
-            <el-button :icon="Refresh" circle @click="loadFinetuneTasks" />
-          </div>
+          <Toolbar
+            :aria-label="t('llmops.tabs.finetune')"
+            :show-create="true"
+            :create-label="t('llmops.submitFinetune')"
+            :create-aria-label="t('llmops.submitFinetune')"
+            :show-refresh="true"
+            :refresh-aria-label="t('common.refresh')"
+            @create="openFinetuneDialog"
+            @refresh="loadFinetuneTasks"
+          />
 
           <el-table
             v-loading="finetuneLoading"
@@ -128,9 +134,11 @@
             <el-table-column prop="epochs" label="epochs" width="90" />
             <el-table-column :label="t('llmops.ftCols.status')" width="110">
               <template #default="{ row }">
-                <el-tag :type="finetuneStatusType(row.status)" effect="light">
-                  {{ finetuneStatusLabel(row.status) }}
-                </el-tag>
+                <StatusTag
+                  :status="row.status"
+                  :label="finetuneStatusLabel(row.status)"
+                  :status-map="FINETUNE_STATUS_TYPES"
+                />
               </template>
             </el-table-column>
             <el-table-column :label="t('llmops.ftCols.progress')" min-width="220">
@@ -151,16 +159,22 @@
 
         <!-- Tab3 评估 -->
         <el-tab-pane :label="t('llmops.tabs.eval')" name="eval">
-          <div class="toolbar">
-            <el-button type="primary" @click="openEvalDialog">
-              {{ t('llmops.createMetric') }}
-            </el-button>
-            <el-button type="warning" plain @click="openHumanEvalDialog">
-              {{ t('llmops.humanEval') }}
-            </el-button>
-            <div class="spacer"></div>
-            <el-button :icon="Refresh" circle @click="loadEvalMetrics" />
-          </div>
+          <Toolbar
+            :aria-label="t('llmops.tabs.eval')"
+            :show-create="true"
+            :create-label="t('llmops.createMetric')"
+            :create-aria-label="t('llmops.createMetric')"
+            :show-refresh="true"
+            :refresh-aria-label="t('common.refresh')"
+            @create="openEvalDialog"
+            @refresh="loadEvalMetrics"
+          >
+            <template #filters>
+              <el-button type="warning" plain @click="openHumanEvalDialog">
+                {{ t('llmops.humanEval') }}
+              </el-button>
+            </template>
+          </Toolbar>
 
           <el-table
             v-loading="evalLoading"
@@ -226,23 +240,28 @@
 
         <!-- Tab4 推理服务 -->
         <el-tab-pane :label="t('llmops.tabs.inference')" name="inference">
-          <div class="toolbar">
-            <el-select
-              v-model="svcStatusFilter"
-              :placeholder="t('llmops.svcStatusFilter')"
-              clearable
-              style="width: 140px"
-              @change="loadServices"
-            >
-              <el-option :label="t('llmops.svcStatus.DEPLOYING')" value="DEPLOYING" />
-              <el-option :label="t('llmops.svcStatus.RUNNING')" value="RUNNING" />
-              <el-option :label="t('llmops.svcStatus.STOPPED')" value="STOPPED" />
-              <el-option :label="t('llmops.svcStatus.FAILED')" value="FAILED" />
-              <el-option :label="t('llmops.svcStatus.SCALING')" value="SCALING" />
-            </el-select>
-            <div class="spacer"></div>
-            <el-button :icon="Refresh" circle @click="loadServices" />
-          </div>
+          <Toolbar
+            :aria-label="t('llmops.tabs.inference')"
+            :show-refresh="true"
+            :refresh-aria-label="t('common.refresh')"
+            @refresh="loadServices"
+          >
+            <template #filters>
+              <el-select
+                v-model="svcStatusFilter"
+                :placeholder="t('llmops.svcStatusFilter')"
+                clearable
+                style="width: 140px"
+                @change="loadServices"
+              >
+                <el-option :label="t('llmops.svcStatus.DEPLOYING')" value="DEPLOYING" />
+                <el-option :label="t('llmops.svcStatus.RUNNING')" value="RUNNING" />
+                <el-option :label="t('llmops.svcStatus.STOPPED')" value="STOPPED" />
+                <el-option :label="t('llmops.svcStatus.FAILED')" value="FAILED" />
+                <el-option :label="t('llmops.svcStatus.SCALING')" value="SCALING" />
+              </el-select>
+            </template>
+          </Toolbar>
 
           <el-table
             v-loading="svcLoading"
@@ -261,9 +280,11 @@
             <el-table-column prop="modelVersion" :label="t('llmops.svcCols.version')" width="100" />
             <el-table-column :label="t('llmops.svcCols.status')" width="110">
               <template #default="{ row }">
-                <el-tag :type="svcStatusType(row.status)" effect="light">
-                  {{ svcStatusLabel(row.status) }}
-                </el-tag>
+                <StatusTag
+                  :status="row.status"
+                  :label="svcStatusLabel(row.status)"
+                  :status-map="SVC_STATUS_TYPES"
+                />
               </template>
             </el-table-column>
             <el-table-column :label="t('llmops.svcCols.replicas')" width="100">
@@ -286,7 +307,7 @@
           </el-table>
         </el-tab-pane>
       </el-tabs>
-    </el-card>
+    </PageCard>
 
     <!-- 注册模型弹窗 -->
     <el-dialog
@@ -467,9 +488,9 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import * as llmopsApi from '@/api/llmops'
 import type { ModelRegistry, EvalMetric, FinetuneResult, InferenceService } from '@/api/llmops'
 
@@ -869,11 +890,6 @@ onUnmounted(() => {
 .llmops-page {
   padding: 0;
 }
-.sub {
-  color: var(--ds-text-secondary);
-  font-size: 13px;
-  margin-bottom: 16px;
-}
 .grid {
   display: grid;
   gap: 14px;
@@ -919,19 +935,5 @@ onUnmounted(() => {
   font-size: 12px;
   color: var(--ds-text-secondary);
   margin-top: 6px;
-}
-.page-card {
-  border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
-}
-.toolbar {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.toolbar .spacer {
-  flex: 1;
 }
 </style>

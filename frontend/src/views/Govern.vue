@@ -1,15 +1,22 @@
 <template>
   <div>
-    <h1>{{ t('govern.title') }}</h1>
-    <div class="sub">{{ t('govern.subtitle') }}</div>
-    <div class="toolbar">
-      <input style="width: 280px" :placeholder="t('govern.searchPlaceholder')" />
-      <select>
-        <option>{{ t('govern.allLayers') }}</option>
-      </select>
-      <div class="spacer"></div>
-      <button class="btn sm" @click="modalVisible = true">{{ t('govern.registerAsset') }}</button>
-    </div>
+    <PageHeader :title="t('govern.title')" :subtitle="t('govern.subtitle')" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('govern.registerAsset')"
+      :create-aria-label="t('govern.registerAsset')"
+      :search-placeholder="t('govern.searchPlaceholder')"
+      v-model:search-value="searchKeyword"
+      :search-aria-label="t('govern.searchPlaceholder')"
+      :show-refresh="false"
+      @create="modalVisible = true"
+    >
+      <template #filters>
+        <select>
+          <option>{{ t('govern.allLayers') }}</option>
+        </select>
+      </template>
+    </Toolbar>
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
@@ -188,6 +195,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as governanceApi from '@/api/governance'
@@ -239,6 +247,7 @@ function sensitivityPillText(s: string): string {
 const drawerVisible = ref(false)
 const modalVisible = ref(false)
 const tab = ref(0)
+const searchKeyword = ref('')
 const current = ref<Asset | null>(null)
 
 // Schema、质量、权限：通过 useApi 包装并行加载

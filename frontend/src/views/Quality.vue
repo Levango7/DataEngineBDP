@@ -1,12 +1,17 @@
 <template>
   <div>
-    <h1>{{ t('quality.title') }}</h1>
-    <div class="sub">{{ t('quality.subtitle') }}</div>
-    <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">{{ t('quality.newRule') }}</button>
-      <div class="spacer"></div>
-      <span class="pill g">{{ t('quality.passRate', { rate: summary?.passRate ?? '--' }) }}</span>
-    </div>
+    <PageHeader :title="t('quality.title')" :subtitle="t('quality.subtitle')" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('quality.newRule')"
+      :create-aria-label="t('quality.newRule')"
+      :show-refresh="false"
+      @create="modalVisible = true"
+    >
+      <template #actions>
+        <span class="pill g">{{ t('quality.passRate', { rate: summary?.passRate ?? '--' }) }}</span>
+      </template>
+    </Toolbar>
     <div class="card">
       <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
       <div v-else-if="error" style="padding: 16px; color: var(--red)">
@@ -89,6 +94,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as qualityApi from '@/api/quality'
 import type { QualityRule, QualitySummary, CheckType, ActionOnFail } from '@/api/quality'

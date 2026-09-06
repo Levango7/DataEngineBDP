@@ -1,17 +1,17 @@
 <template>
   <div>
-    <h1>{{ t('vector.title') }}</h1>
-    <div class="sub">{{ t('vector.subtitle') }}</div>
-    <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">{{ t('vector.newCollection') }}</button>
-      <div class="spacer"></div>
-      <input
-        v-model="searchText"
-        style="width: 260px"
-        :placeholder="t('vector.searchPlaceholder')"
-        @keydown.enter="doSearch"
-      />
-    </div>
+    <PageHeader :title="t('vector.title')" :subtitle="t('vector.subtitle')" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('vector.newCollection')"
+      :create-aria-label="t('vector.newCollection')"
+      :search-placeholder="t('vector.searchPlaceholder')"
+      v-model:search-value="searchText"
+      :search-aria-label="t('vector.searchPlaceholder')"
+      :show-refresh="false"
+      @create="modalVisible = true"
+      @search="doSearch"
+    />
     <div class="card">
       <div v-if="loading" style="text-align: center; padding: 24px; color: #888">
         {{ t('vector.loading') }}
@@ -76,6 +76,7 @@ import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as vectorApi from '@/api/vector'
 import type { VectorCollection, IndexType } from '@/api/vector'

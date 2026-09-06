@@ -1,22 +1,19 @@
 <template>
   <div class="job-page" role="main" :aria-label="t('jobmgmt.pageAria')">
-    <h1>{{ t('jobmgmt.title') }}</h1>
-    <div class="sub">{{ t('jobmgmt.subtitle') }}</div>
+    <PageHeader :title="t('jobmgmt.title')" :subtitle="t('jobmgmt.subtitle')" />
 
-    <el-card shadow="never" class="page-card">
+    <PageCard>
       <!-- 顶部操作栏 -->
-      <div class="toolbar" role="toolbar" :aria-label="t('jobmgmt.toolbarAria')">
-        <el-button type="primary" :aria-label="t('jobmgmt.submitAria')" @click="openSubmitDialog">
-          {{ t('jobmgmt.submitJob') }}
-        </el-button>
-        <div class="spacer"></div>
-        <el-button
-          :icon="Refresh"
-          circle
-          :aria-label="t('jobmgmt.refreshAria')"
-          @click="loadList"
-        />
-      </div>
+      <Toolbar
+        :aria-label="t('jobmgmt.toolbarAria')"
+        :show-create="true"
+        :create-label="t('jobmgmt.submitJob')"
+        :create-aria-label="t('jobmgmt.submitAria')"
+        :show-refresh="true"
+        :refresh-aria-label="t('jobmgmt.refreshAria')"
+        @create="openSubmitDialog"
+        @refresh="loadList"
+      />
 
       <!-- 状态筛选 tabs -->
       <el-tabs
@@ -46,14 +43,16 @@
         <el-table-column prop="name" :label="t('jobmgmt.cols.name')" min-width="180" />
         <el-table-column :label="t('jobmgmt.cols.type')" width="100">
           <template #default="{ row }">
-            <el-tag effect="plain" size="small">{{ typeLabel(row.type) }}</el-tag>
+            <StatusTag :status="row.type" :label="typeLabel(row.type)" effect="plain" size="small" />
           </template>
         </el-table-column>
         <el-table-column :label="t('jobmgmt.cols.status')" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag
+              :status="row.status"
+              :label="statusLabel(row.status)"
+              :status-map="STATUS_TAG_TYPES"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="owner" :label="t('jobmgmt.cols.owner')" width="120" />
@@ -102,7 +101,7 @@
           @current-change="loadList"
         />
       </div>
-    </el-card>
+    </PageCard>
 
     <!-- 提交作业弹窗 -->
     <el-dialog
@@ -239,7 +238,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as jobApi from '@/api/job'
 import type { Job, JobStatus, JobType, PagedResult } from '@/api/types'

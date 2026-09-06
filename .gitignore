@@ -155,3 +155,6 @@ platform/batch-pipeline/dashboard/data.js
 
 # ruff 缓存（不入库）
 .ruff_cache/
+
+# Storybook 构建产物（不入库）
+storybook-static/

@@ -1,9 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('assetMarket.title') }}</h1>
-    <div class="sub">
-      {{ t('assetMarket.subtitle') }}
-    </div>
+    <PageHeader :title="t('assetMarket.title')" :subtitle="t('assetMarket.subtitle')" />
 
     <!-- 顶部 KPI -->
     <div class="grid g4">
@@ -41,21 +38,26 @@
     </div>
 
     <!-- Tab 切换 -->
-    <div class="toolbar" style="margin-top: 14px">
-      <button :class="['btn', 'sm', tab === 'market' ? '' : 'ghost']" @click="tab = 'market'">
-        {{ t('assetMarket.tabs.market') }}
-      </button>
-      <button :class="['btn', 'sm', tab === 'mine' ? '' : 'ghost']" @click="tab = 'mine'">
-        {{ t('assetMarket.tabs.mine') }}
-      </button>
-      <button :class="['btn', 'sm', tab === 'listed' ? '' : 'ghost']" @click="tab = 'listed'">
-        {{ t('assetMarket.tabs.listed') }}
-      </button>
-      <div class="spacer"></div>
-      <button class="btn sm" @click="listModalVisible = true">
-        {{ t('assetMarket.listAsset') }}
-      </button>
-    </div>
+    <Toolbar
+      style="margin-top: 14px"
+      :show-create="true"
+      :create-label="t('assetMarket.listAsset')"
+      :create-aria-label="t('assetMarket.listAsset')"
+      :show-refresh="false"
+      @create="listModalVisible = true"
+    >
+      <template #filters>
+        <button :class="['btn', 'sm', tab === 'market' ? '' : 'ghost']" @click="tab = 'market'">
+          {{ t('assetMarket.tabs.market') }}
+        </button>
+        <button :class="['btn', 'sm', tab === 'mine' ? '' : 'ghost']" @click="tab = 'mine'">
+          {{ t('assetMarket.tabs.mine') }}
+        </button>
+        <button :class="['btn', 'sm', tab === 'listed' ? '' : 'ghost']" @click="tab = 'listed'">
+          {{ t('assetMarket.tabs.listed') }}
+        </button>
+      </template>
+    </Toolbar>
 
     <!-- 资产市场：卡片式浏览 -->
     <div v-if="tab === 'market'">
@@ -488,6 +490,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as assetMarketApi from '@/api/assetMarket'
 import type { Asset, Subscription, BillingRecord } from '@/api/assetMarket'

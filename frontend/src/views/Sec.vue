@@ -1,12 +1,17 @@
 <template>
   <div>
-    <h1>{{ t('sec.title') }}</h1>
-    <div class="sub">{{ t('sec.subtitle') }}</div>
-    <div class="toolbar">
-      <button class="btn sm" @click="modalVisible = true">{{ t('sec.newPolicy') }}</button>
-      <div class="spacer"></div>
-      <span class="pill r">{{ t('sec.pendingBadge', { count: approvals.length }) }}</span>
-    </div>
+    <PageHeader :title="t('sec.title')" :subtitle="t('sec.subtitle')" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('sec.newPolicy')"
+      :create-aria-label="t('sec.newPolicy')"
+      :show-refresh="false"
+      @create="modalVisible = true"
+    >
+      <template #actions>
+        <span class="pill r">{{ t('sec.pendingBadge', { count: approvals.length }) }}</span>
+      </template>
+    </Toolbar>
     <div class="card">
       <div v-if="policiesLoading" style="padding: 16px; color: var(--muted)">
         {{ t('common.loading') }}
@@ -104,6 +109,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as secApi from '@/api/sec'
 import type {

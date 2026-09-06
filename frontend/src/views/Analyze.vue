@@ -1,12 +1,17 @@
 <template>
   <div>
-    <h1>{{ t('analyze.title') }}</h1>
-    <div class="sub">{{ t('analyze.subtitle') }}</div>
-    <div class="toolbar">
-      <button class="btn sm" @click="openCreate">{{ t('analyze.newBoard') }}</button>
-      <div class="spacer"></div>
-      <span class="pill b">{{ t('analyze.sqlGateway') }}</span>
-    </div>
+    <PageHeader :title="t('analyze.title')" :subtitle="t('analyze.subtitle')" />
+    <Toolbar
+      :show-create="true"
+      :create-label="t('analyze.newBoard')"
+      :create-aria-label="t('analyze.newBoard')"
+      :show-refresh="false"
+      @create="openCreate"
+    >
+      <template #actions>
+        <span class="pill b">{{ t('analyze.sqlGateway') }}</span>
+      </template>
+    </Toolbar>
 
     <!-- 看板列表：loading / 错误重试 / 空态 / 真实渲染 四态，无假数据 -->
     <div v-if="boardsLoading" class="meta" style="padding: 24px 4px">
@@ -116,6 +121,7 @@ import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import * as echarts from 'echarts'
 import * as analyzeApi from '@/api/analyze'

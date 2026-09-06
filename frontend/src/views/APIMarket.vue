@@ -1,9 +1,6 @@
 <template>
   <div>
-    <h1>{{ t('apiMarket.title') }}</h1>
-    <div class="sub">
-      {{ t('apiMarket.subtitle') }}
-    </div>
+    <PageHeader :title="t('apiMarket.title')" :subtitle="t('apiMarket.subtitle')" />
 
     <!-- KPI 概览 -->
     <div class="grid g4">
@@ -38,28 +35,31 @@
     </div>
 
     <!-- 工具栏 -->
-    <div class="toolbar" style="margin-top: 14px">
-      <input
-        v-model="keyword"
-        class="search-input"
-        :placeholder="t('apiMarket.toolbar.searchPlaceholder')"
-        @input="debouncedRefreshList"
-      />
-      <select v-model="categoryFilter" @change="refreshList">
-        <option value="">{{ t('apiMarket.toolbar.allCategories') }}</option>
-        <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-      </select>
-      <select v-model="statusFilter" @change="refreshList">
-        <option value="">{{ t('apiMarket.toolbar.allStatuses') }}</option>
-        <option value="running">{{ t('apiMarket.status.api.running') }}</option>
-        <option value="draft">{{ t('apiMarket.status.api.draft') }}</option>
-        <option value="deprecated">{{ t('apiMarket.status.api.deprecated') }}</option>
-      </select>
-      <div class="spacer"></div>
-      <button class="btn sm" @click="registerModal = true">
-        {{ t('apiMarket.toolbar.register') }}
-      </button>
-    </div>
+    <Toolbar
+      style="margin-top: 14px"
+      :show-create="true"
+      :create-label="t('apiMarket.toolbar.register')"
+      :create-aria-label="t('apiMarket.toolbar.register')"
+      :search-placeholder="t('apiMarket.toolbar.searchPlaceholder')"
+      v-model:search-value="keyword"
+      :search-aria-label="t('apiMarket.toolbar.searchPlaceholder')"
+      :show-refresh="false"
+      @create="registerModal = true"
+      @search="debouncedRefreshList"
+    >
+      <template #filters>
+        <select v-model="categoryFilter" @change="refreshList">
+          <option value="">{{ t('apiMarket.toolbar.allCategories') }}</option>
+          <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
+        </select>
+        <select v-model="statusFilter" @change="refreshList">
+          <option value="">{{ t('apiMarket.toolbar.allStatuses') }}</option>
+          <option value="running">{{ t('apiMarket.status.api.running') }}</option>
+          <option value="draft">{{ t('apiMarket.status.api.draft') }}</option>
+          <option value="deprecated">{{ t('apiMarket.status.api.deprecated') }}</option>
+        </select>
+      </template>
+    </Toolbar>
 
     <!-- API 卡片网格 -->
     <div v-if="loading" class="card" style="margin-top: 14px">
@@ -445,6 +445,7 @@ import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, Toolbar } from '@/components/ui'
 import Modal from '@/components/Modal.vue'
 import {
   listApis,

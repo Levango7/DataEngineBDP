@@ -1,9 +1,6 @@
 <template>
   <div class="lineage-page">
-    <header class="page-header">
-      <h1>{{ t('dataLineage.title') }}</h1>
-      <p class="sub">{{ t('dataLineage.subtitle') }}</p>
-    </header>
+    <PageHeader :title="t('dataLineage.title')" :subtitle="t('dataLineage.subtitle')" />
 
     <!-- SQL 输入区 -->
     <section class="card sql-input">
@@ -168,6 +165,7 @@ import { useI18n } from 'vue-i18n'
 import * as echarts from 'echarts'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
+import { PageHeader } from '@/components/ui'
 import {
   analyzeLineage,
   getUpstream,
@@ -366,16 +364,6 @@ onBeforeUnmount(() => {
   gap: 16px;
   max-width: 1200px;
   margin: 0 auto;
-}
-.page-header h1 {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ink);
-  margin-bottom: 4px;
-}
-.page-header .sub {
-  font-size: 13px;
-  color: var(--muted);
 }
 .card {
   background: var(--c-white);

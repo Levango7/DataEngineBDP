@@ -1,25 +1,28 @@
 <template>
   <div class="scheduler-ops-page">
-    <h1>{{ t('scheduler.title') }}</h1>
-    <div class="sub">{{ t('scheduler.subtitle') }}</div>
+    <PageHeader :title="t('scheduler.title')" :subtitle="t('scheduler.subtitle')" />
 
-    <el-card shadow="never" class="page-card">
+    <PageCard>
       <!-- 顶部操作栏 -->
-      <div class="toolbar">
-        <el-input
-          v-model="dagId"
-          :placeholder="t('scheduler.dagIdPlaceholder')"
-          clearable
-          style="width: 280px"
-          @keyup.enter="handleQuery"
-        />
-        <el-button type="primary" @click="handleQuery">{{ t('scheduler.query') }}</el-button>
-        <div class="spacer"></div>
-        <el-button type="success" plain :disabled="!dagId" @click="openBackfill">
-          {{ t('scheduler.backfill') }}
-        </el-button>
-        <el-button :icon="Refresh" circle @click="handleQuery" />
-      </div>
+      <Toolbar
+        :aria-label="t('scheduler.title')"
+        :search-placeholder="t('scheduler.dagIdPlaceholder')"
+        v-model:search-value="dagId"
+        :search-aria-label="t('scheduler.dagIdPlaceholder')"
+        :show-refresh="true"
+        :refresh-aria-label="t('common.refresh')"
+        @search="handleQuery"
+        @refresh="handleQuery"
+      >
+        <template #filters>
+          <el-button type="primary" @click="handleQuery">{{ t('scheduler.query') }}</el-button>
+        </template>
+        <template #actions>
+          <el-button type="success" plain :disabled="!dagId" @click="openBackfill">
+            {{ t('scheduler.backfill') }}
+          </el-button>
+        </template>
+      </Toolbar>
 
       <!-- 状态筛选 tabs -->
       <el-tabs v-model="activeStatus" @tab-change="handleQuery">
@@ -46,16 +49,18 @@
         <el-table-column prop="id" label="RunId" width="90" />
         <el-table-column :label="t('scheduler.cols.runType')" width="110">
           <template #default="{ row }">
-            <el-tag :type="runTypeTagType(row.runType)" effect="plain" size="small">
-              {{ runTypeLabel(row.runType) }}
-            </el-tag>
+            <StatusTag
+              :status="row.runType"
+              :label="runTypeLabel(row.runType)"
+              :status-map="RUN_TYPE_TAG_MAP"
+              effect="plain"
+              size="small"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('scheduler.cols.status')" width="110">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light" size="small">
-              {{ row.status }}
-            </el-tag>
+            <StatusTag :status="row.status" :status-map="RUN_STATUS_TAG_MAP" size="small" />
           </template>
         </el-table-column>
         <el-table-column :label="t('scheduler.cols.bizTime')" width="130">
@@ -107,7 +112,7 @@
           }
         "
       />
-    </el-card>
+    </PageCard>
 
     <!-- 补数据弹窗 -->
     <el-dialog v-model="backfillVisible" :title="t('scheduler.backfillModal.title')" width="480px">
@@ -168,9 +173,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useApi } from '@/composables/useApi'
+import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import {
   listDagRuns,
   rerunDagRun,
@@ -288,17 +293,25 @@ const RUN_TYPES = ['MANUAL', 'SCHEDULED', 'RERUN', 'BACKFILL']
 function runTypeLabel(rt: string): string {
   return RUN_TYPES.includes(rt) ? t(`scheduler.runTypes.${rt}`) : rt
 }
-function runTypeTagType(rt: string): 'primary' | 'warning' | 'success' | 'info' {
-  if (rt === 'RERUN') return 'warning'
-  if (rt === 'BACKFILL') return 'primary'
-  if (rt === 'MANUAL') return 'success'
-  return 'info'
+const RUN_TYPE_TAG_MAP: Record<string, 'primary' | 'warning' | 'success' | 'info'> = {
+  RERUN: 'warning',
+  BACKFILL: 'primary',
+  MANUAL: 'success'
 }
+
+function runTypeTagType(rt: string): 'primary' | 'warning' | 'success' | 'info' {
+  return RUN_TYPE_TAG_MAP[rt] ?? 'info'
+}
+
+const RUN_STATUS_TAG_MAP: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
+  SUCCESS: 'success',
+  FAILED: 'danger',
+  RUNNING: 'warning',
+  PENDING: 'warning'
+}
+
 function statusTagType(s: string): 'success' | 'danger' | 'warning' | 'info' {
-  if (s === 'SUCCESS') return 'success'
-  if (s === 'FAILED') return 'danger'
-  if (s === 'RUNNING' || s === 'PENDING') return 'warning'
-  return 'info'
+  return RUN_STATUS_TAG_MAP[s] ?? 'info'
 }
 function formatDuration(ms?: number | null): string {
   if (ms == null) return '—'
@@ -313,22 +326,5 @@ function formatTime(ts?: string | null): string {
 <style scoped>
 .scheduler-ops-page {
   padding: 8px;
-}
-.sub {
-  color: var(--ds-text-muted, var(--ds-text-secondary));
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-.page-card {
-  border-radius: 8px;
-}
-.toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.spacer {
-  flex: 1;
 }
 </style>
