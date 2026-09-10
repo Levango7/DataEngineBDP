@@ -1,0 +1,38 @@
+# Reusable Workflow: Python 环境初始化
+# 调用方式：uses: .github/workflows/_reusable-setup-python.yml
+# T-10: 统一 Python 环境配置，消除 ci.yml/security.yml/local-e2e.yml 重复
+name: Reusable Setup Python
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python 版本'
+        type: string
+        default: '3.11'
+      install-lint-tools:
+        description: '是否安装 lint 工具集（pylint/black/isort/flake8/mypy）'
+        type: boolean
+        default: false
+      install-test-tools:
+        description: '是否安装测试工具集（pytest/pytest-cov）'
+        type: boolean
+        default: false
+
+jobs:
+  setup-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 安装 Python ${{ inputs.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+          cache: 'pip'
+
+      - name: 安装 lint 工具集
+        if: ${{ inputs.install-lint-tools }}
+        run: pip install pylint black isort flake8 mypy -q
+
+      - name: 安装测试工具集
+        if: ${{ inputs.install-test-tools }}
+        run: pip install pytest pytest-cov -q

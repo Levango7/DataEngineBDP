@@ -1,0 +1,18 @@
+{
+  "engFlink": {
+    "status": {
+      "RUNNING": "运行中",
+      "FAILED": "失败",
+      "CANCELED": "已取消",
+      "FINISHED": "已完成",
+      "RESTARTING": "重启中",
+      "CREATED": "已创建",
+      "SCHEDULED": "已调度"
+    },
+    "backpressure": {
+      "ok": "正常",
+      "low": "低",
+      "high": "高"
+    }
+  }
+}

@@ -29,7 +29,7 @@ DataEngineBDP是一个面向政企/商用场景的多租户大数据平台，采
 | 微服务模块 | 30+ | platform/目录下 |
 | 自研核心组件 | 6个 | encaps-layer/sql-gateway/catalog/rule-engine/dqctl/llm-gateway |
 | 前端页面 | 66个 | Vue3 SPA |
-| 后端Controller | 71个 | Spring Boot 3.2 |
+| 后端Controller | 71个 | Spring Boot 4.1.1 |
 | 设计文档 | 43+份 | 分层详细设计 |
 
 ### 1.2 分层架构 L0-L5+X

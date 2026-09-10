@@ -587,25 +587,22 @@ async function loadBackpressure(jobId: string) {
 
 /* ------------------------------ 辅助函数 ------------------------------ */
 
-const STATUS_MAP: Record<
-  string,
-  { label: string; type: 'primary' | 'success' | 'danger' | 'info' | 'warning' }
-> = {
-  RUNNING: { label: '运行中', type: 'primary' },
-  FAILED: { label: '失败', type: 'danger' },
-  CANCELED: { label: '已取消', type: 'info' },
-  FINISHED: { label: '已完成', type: 'success' },
-  RESTARTING: { label: '重启中', type: 'warning' },
-  CREATED: { label: '已创建', type: 'info' },
-  SCHEDULED: { label: '已调度', type: 'warning' }
+const STATUS_MAP: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {
+  RUNNING: 'primary',
+  FAILED: 'danger',
+  CANCELED: 'info',
+  FINISHED: 'success',
+  RESTARTING: 'warning',
+  CREATED: 'info',
+  SCHEDULED: 'warning'
 }
 
 function statusLabel(status: string): string {
-  return STATUS_MAP[status]?.label ?? status
+  return t(`engFlink.status.${status}`, status)
 }
 
 function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_MAP[status]?.type ?? 'info'
+  return STATUS_MAP[status] ?? 'info'
 }
 
 const CP_STATUS_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
@@ -619,21 +616,18 @@ function cpStatusTagType(status: string): 'success' | 'warning' | 'danger' | 'in
   return CP_STATUS_MAP[status] ?? 'info'
 }
 
-const BACKPRESSURE_MAP: Record<
-  BackpressureLevel,
-  { label: string; type: 'success' | 'warning' | 'danger' }
-> = {
-  ok: { label: '正常', type: 'success' },
-  low: { label: '低', type: 'warning' },
-  high: { label: '高', type: 'danger' }
+const BACKPRESSURE_MAP: Record<BackpressureLevel, 'success' | 'warning' | 'danger'> = {
+  ok: 'success',
+  low: 'warning',
+  high: 'danger'
 }
 
 function backpressureLabel(level: BackpressureLevel): string {
-  return BACKPRESSURE_MAP[level]?.label ?? level
+  return t(`engFlink.backpressure.${level}`, level)
 }
 
 function backpressureTagType(level: BackpressureLevel): 'success' | 'warning' | 'danger' {
-  return BACKPRESSURE_MAP[level]?.type ?? 'success'
+  return BACKPRESSURE_MAP[level] ?? 'success'
 }
 
 /** 耗时格式化（毫秒） */

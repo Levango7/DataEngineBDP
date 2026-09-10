@@ -34,9 +34,9 @@
 
 | 类别 | 技术选型 |
 | --- | --- |
-| 后端语言 | Java 17 / Go 1.25 / Python 3.11 |
+| 后端语言 | Java 17 / Go 1.26 / Python 3.11 |
 | 后端框架 | Spring Boot 4.1.1 / Gin / FastAPI / Pydantic |
-| 前端 | Vue 3 / TypeScript strict / Vite 6 / Pinia / Element Plus |
+| 前端 | Vue 3.5 / TypeScript 5.6 strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5.3 / Flink 1.20.0 / Trino 460 / Doris 2.1.7 / Kafka 3.8.1 / IoTDB 2.0.2 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
 | 治理与智能 | NebulaGraph 3.6 / Milvus / Redis / Elasticsearch 7.17 |
@@ -61,7 +61,7 @@ DataEngineBDP/
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（38 个）
+├── platform/                   # 自研组件（44 个：Java 22 / Go 11 / Python 11）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -120,7 +120,7 @@ DataEngineBDP/
 | --- | --- | --- |
 | JDK | 17 | Java 组件构建 |
 | Maven | 3.9 | Java 组件构建 |
-| Go | 1.25 | Go 组件构建 |
+| Go | 1.26 | Go 组件构建 |
 | Python | 3.11 | Python 组件构建 |
 | Node.js | 22 | 前端构建 |
 | Docker | 24.0 | 容器镜像构建 |
@@ -175,7 +175,7 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 37 个自研组件目录，覆盖封装层、引擎层、治理层、智能数据层与产品层。
+平台共包含 44 个自研组件（Java 22 / Go 11 / Python 11，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径），覆盖封装层、引擎层、治理层、智能数据层与产品层。
 （注：其中约 1/3 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
 
 ### Java 组件（22 个）
@@ -196,7 +196,7 @@ bash scripts/poc/run-poc.sh
 | flink-cdc | platform/flink-cdc | Flink CDC 实时数据集成组件 | 70+ |
 | stream-batch-scheduler | platform/stream-batch-scheduler | 流批统一调度组件 | 70+ |
 
-### Go 组件（5 个 + 1 CLI）
+### Go 组件（11 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -207,7 +207,7 @@ bash scripts/poc/run-poc.sh
 | karmada | platform/karmada | 多集群联邦编排组件，基于 Karmada 二次封装 | 60+ |
 | dqctl (CLI) | platform/dqctl | 数据质量命令行工具 | 60+ |
 
-### Python 组件（13 个）
+### Python 组件（11 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -250,7 +250,7 @@ bash scripts/poc/run-poc.sh
 | [升级指南](docs/user-guide/upgrade-guide.md) | V1.0 → V2.0 升级流程、回滚、验证 |
 | [行业模板使用指南](docs/user-guide/industry-template-guide.md) | 金融、能源、政务三个行业模板使用说明 |
 | [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
-| [组件成熟度矩阵](docs/component-maturity.md) | 37 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
+| [组件成熟度矩阵](docs/component-maturity.md) | 44 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
 | [变更日志](CHANGELOG.md) | 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
 | [安全加固记录](CHANGELOG.md) | P0 登录漏洞修复、四服务统一 JWT、租户隔离强制层、CI 安全门禁（2026-08-25） |
@@ -264,7 +264,7 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件目录 | 37 个 |
+| 自研组件目录 | 44 个（Java 22 / Go 11 / Python 11） |
 | Helm Chart | 93 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
 | 详细设计文档 | 51 份 |
 | 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |

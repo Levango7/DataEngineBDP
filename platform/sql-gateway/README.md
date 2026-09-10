@@ -16,7 +16,7 @@
 | 维度       | 选型                                   |
 |------------|----------------------------------------|
 | 语言       | Java 17                                |
-| 框架       | Spring Boot 3.2.5                      |
+| 框架       | Spring Boot 4.1.1                      |
 | Web        | spring-boot-starter-web (Tomcat)       |
 | 异步代理   | spring-boot-starter-webflux (WebClient)|
 | 校验       | spring-boot-starter-validation         |

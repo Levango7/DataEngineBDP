@@ -358,3 +358,124 @@ export function useTheme() {
 | v1.0 | 2026-08-18 | 首次发布，覆盖 163 token + 双向同步 | UI 组 |
 
 > 本文档由 UI 组维护，token 变更须走 PR 流程并经 UI 组 + 前端组联合评审。
+
+---
+
+## 10. 落地实施清单
+
+> 状态：**未落地** ｜ 日期：2026-09-11
+> 说明：本文档 §1–§9 已完成方案描述，但代码层面尚未实现。当前 `frontend/` 下无 `src/styles/tokens/` 目录、无 `style-dictionary.config.js`、无 `.github/workflows/token-sync.yml`，`package.json` 无相关依赖与脚本。本章节列出落地所需的全部交付物，供前端组按优先级实施。
+
+### 10.1 现状差距
+
+| 交付物 | 方案描述 | 代码现状 |
+| --- | --- | --- |
+| `frontend/src/styles/tokens/` 目录 | §3.1 定义 | ❌ 不存在 |
+| `style-dictionary.config.js` | §5.1 定义 | ❌ 不存在 |
+| `package.json` 依赖 `style-dictionary` | §2.2 定义 | ❌ 未安装 |
+| `package.json` 依赖 `@tokens-studio/format` | §3.2 W3C 格式 | ❌ 未安装 |
+| `package.json` 脚本 `build:tokens` | §4.1 步骤 4 | ❌ 未定义 |
+| `package.json` 脚本 `sync:figma` | §4.2 步骤 3 | ❌ 未定义 |
+| `package.json` 脚本 `check:tokens` | §8.1 校验 | ❌ 未定义 |
+| `.github/workflows/token-sync.yml` | §6 定义 | ❌ 不存在 |
+| `frontend/src/styles/generated/` 产物 | §5.2 定义 | ❌ 不存在（由 build:tokens 生成） |
+
+### 10.2 需安装的 npm 依赖
+
+在 `frontend/package.json` 的 `devDependencies` 中新增：
+
+| 依赖 | 建议版本 | 用途 | 安装命令 |
+| --- | --- | --- | --- |
+| `style-dictionary` | `^4.0.0` | Token 转译核心（CSS/TS/SCSS/Tailwind 多平台产物） | `npm i -D style-dictionary` |
+| `@tokens-studio/format` | `^0.2.0` | W3C Design Tokens Format 解析与格式化 | `npm i -D @tokens-studio/format` |
+
+> 安装时需联网，建议在干净分支执行并锁定 `package-lock.json`。
+
+### 10.3 需新建的配置文件
+
+#### 10.3.1 `frontend/style-dictionary.config.js`
+
+按 §5.1 配置，source 指向 `src/styles/tokens/**/*.json`，buildPath 指向 `src/styles/generated/`，输出 4 个平台产物（css/ts/scss/tailwind）。完整内容见 §5.1，落地时需补充：
+
+- 注册 `@tokens-studio/format` 的 W3C 预处理器（`preprocessors`）。
+- 注册自定义 `transformGroup`（如 `tailwind`）以输出 Tailwind 配置。
+- 配置 `options.outputReferences: true` 使 CSS 变量引用关系保留。
+
+#### 10.3.2 `frontend/src/styles/tokens/` 目录结构
+
+按 §3.1 创建以下 JSON 文件（初始可为空对象或从 `design-tokens.css` 反向抽取）：
+
+```text
+frontend/src/styles/tokens/
+├── color/{base,semantic,alias}.json
+├── typography/{family,size,weight,lineheight}.json
+├── spacing.json
+├── radius.json
+├── shadow.json
+├── motion.json
+├── zindex.json
+├── breakpoint.json
+├── theme/{light,dark}.json
+└── index.json
+```
+
+> 初始化策略：优先由设计师在 Figma Tokens Plugin 导出；若暂无 Figma 源，可由前端组从现有 `design-tokens.css` 的 `--ds-*` 变量反向编写 JSON，作为过渡。
+
+### 10.4 需在 `package.json` 添加的脚本
+
+在 `scripts` 块新增以下 3 条（与现有 `build`、`test` 等脚本并列）：
+
+```jsonc
+{
+  "scripts": {
+    // ... 现有脚本 ...
+    "build:tokens": "style-dictionary build --config style-dictionary.config.js",
+    "sync:figma": "node scripts/sync-figma.mjs",
+    "check:tokens": "node scripts/check-tokens.mjs"
+  }
+}
+```
+
+| 脚本 | 作用 | 对应章节 |
+| --- | --- | --- |
+| `build:tokens` | 调用 Style Dictionary 构建，生成 `src/styles/generated/` 下 CSS/TS/SCSS/Tailwind 产物 | §4.1 步骤 4、§5 |
+| `sync:figma` | 反向同步：将代码 token 推送回 Figma Tokens Plugin（需 `FIGMA_TOKEN`、`FIGMA_FILE_KEY`） | §4.2 步骤 3 |
+| `check:tokens` | 校验生成产物与提交一致（`git diff` 无差异）+ W3C 命名合规 + 引用无死链 | §8.1 |
+
+> `sync:figma` 与 `check:tokens` 需配套新建 `frontend/scripts/sync-figma.mjs` 与 `frontend/scripts/check-tokens.mjs` 两个脚本文件。
+
+### 10.5 需新建的 CI 工作流
+
+#### 10.5.1 `.github/workflows/token-sync.yml`（PR 流水线）
+
+按 §6.1 定义，触发条件 `pull_request` + paths `frontend/src/styles/tokens/**`，步骤：checkout → `npm ci` → `npm run build:tokens` → `npm run check:tokens` → `npm run test:visual` → 上传 token-diff 产物。
+
+#### 10.5.2 `.github/workflows/token-sync-figma.yml`（主分支反向同步）
+
+按 §6.2 定义，触发条件 `push` to `main` + paths `frontend/src/styles/tokens/**`，步骤：checkout → `npm run sync:figma`（注入 `FIGMA_TOKEN`、`FIGMA_FILE_KEY` secrets）。
+
+> 两个工作流可合并为单文件多 job，但建议拆分以降低触发频率与权限范围。
+
+### 10.6 实施步骤与优先级
+
+| 优先级 | 步骤 | 交付物 | 责责 | 预估 |
+| --- | --- | --- | --- | --- |
+| P0 | 1. 安装 npm 依赖 | `package.json` + `package-lock.json` | 前端组 | 0.5h |
+| P0 | 2. 新建 `style-dictionary.config.js` | 配置文件 | 前端组 | 1h |
+| P0 | 3. 新建 `tokens/` 目录与初始 JSON | `frontend/src/styles/tokens/**` | UI 组 + 前端组 | 4h |
+| P0 | 4. 添加 `build:tokens` 脚本并跑通 | `package.json` + `generated/` 产物 | 前端组 | 1h |
+| P1 | 5. 新建 `check-tokens.mjs` + `check:tokens` 脚本 | 校验脚本 | 前端组 | 2h |
+| P1 | 6. 新建 PR 流水线 `token-sync.yml` | `.github/workflows/token-sync.yml` | 前端组 | 1h |
+| P2 | 7. 新建 `sync-figma.mjs` + `sync:figma` 脚本 | 反向同步脚本 | 前端组 | 3h |
+| P2 | 8. 新建主分支同步 `token-sync-figma.yml` | `.github/workflows/token-sync-figma.yml` | 前端组 | 0.5h |
+| P3 | 9. 视觉回归接入 `test:visual` | playwright 快照 | 前端组 | 2h |
+
+### 10.7 落地验收标准
+
+1. `npm run build:tokens` 成功生成 `frontend/src/styles/generated/{variables.css,tokens.ts,_variables.scss,tailwind.config.js}`。
+2. `generated/variables.css` 的 `:root` 变量与 `design-tokens.css` 的 `--ds-*` 体系一致（或建立引用关系）。
+3. `npm run check:tokens` 在无改动时通过，改动 token JSON 后未重新 build 则失败。
+4. PR 修改 `tokens/**` 时 CI 自动触发 `token-sync.yml` 并产出 token-diff 产物。
+5. 主分支合并 token 变更后 `token-sync-figma.yml` 自动推送 Figma（需配置 secrets）。
+
+> 落地完成后，将本章节状态由"未落地"改为"已落地"，并在 §9 版本表追加变更记录。

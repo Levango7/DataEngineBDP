@@ -10,7 +10,7 @@
 | --- | --- | --- | --- |
 | JDK | 17 | 17.0.10 (LTS) | [Adoptium](https://adoptium.net/) |
 | Maven | 3.9 | 3.9.6 | [maven.apache.org](https://maven.apache.org/download.cgi) |
-| Go | 1.25 | 1.25.0 | [go.dev](https://go.dev/dl/) |
+| Go | 1.26 | 1.26.0 | [go.dev](https://go.dev/dl/) |
 | Python | 3.11 | 3.11.8 | [python.org](https://www.python.org/downloads/) |
 | Node.js | 22 | 22 LTS | [nodejs.org](https://nodejs.org/) |
 | Git | 2.40 | 2.44 | [git-scm.com](https://git-scm.com/) |
@@ -35,7 +35,7 @@ export JAVA_HOME=/path/to/jdk-17
 export PATH=$JAVA_HOME/bin:$PATH
 
 # Go
-export GOROOT=/path/to/go-1.25
+export GOROOT=/path/to/go-1.26
 export GOPATH=$HOME/go
 export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 
@@ -52,7 +52,7 @@ nvm use 22
 
 ```
 DataEngineBDP/
-├── platform/          # 自研组件（37 个）
+├── platform/          # 自研组件（44 个：Java 22 / Go 11 / Python 11）
 │   ├── encaps-layer/  # Java / Spring Boot
 │   ├── sql-gateway/   # Java / Spring Boot
 │   ├── rule-engine/   # Java / Spring Boot
@@ -71,7 +71,7 @@ DataEngineBDP/
 
 ### Java 组件
 
-Java 组件基于 Spring Boot 3.2 + Maven 3.9，Java 17。
+Java 组件基于 Spring Boot 4.1.1 + Maven 3.9，Java 17。
 
 ```bash
 # 编译单个组件
@@ -107,7 +107,7 @@ docker build -t shuqing/encaps-layer:latest platform/encaps-layer/
 
 ### Go 组件
 
-Go 组件基于 Go 1.25 + Gin / Cobra。
+Go 组件基于 Go 1.26 + Gin / Cobra。
 
 ```bash
 # 下载依赖

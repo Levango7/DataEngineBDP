@@ -97,6 +97,10 @@ import registerZh from './locales/modules/register.zh-CN.json'
 import registerEn from './locales/modules/register.en-US.json'
 import orchestratorZh from './locales/modules/orchestrator.zh-CN.json'
 import orchestratorEn from './locales/modules/orchestrator.en-US.json'
+import aiAssistantZh from './locales/modules/aiAssistant.zh-CN.json'
+import aiAssistantEn from './locales/modules/aiAssistant.en-US.json'
+import engFlinkZh from './locales/modules/engFlink.zh-CN.json'
+import engFlinkEn from './locales/modules/engFlink.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -192,7 +196,9 @@ export const i18n = createI18n({
       ...devTagZh,
       ...approvalsZh,
       ...registerZh,
-      ...orchestratorZh
+      ...orchestratorZh,
+      ...aiAssistantZh,
+      ...engFlinkZh
     },
     'en-US': {
       ...enUS,
@@ -243,7 +249,9 @@ export const i18n = createI18n({
       ...devTagEn,
       ...approvalsEn,
       ...registerEn,
-      ...orchestratorEn
+      ...orchestratorEn,
+      ...aiAssistantEn,
+      ...engFlinkEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

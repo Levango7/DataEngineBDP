@@ -22,14 +22,14 @@
           {{ dialectLabel }}
         </el-tag>
         <el-tag v-if="meta?.crossSource" size="small" effect="light" type="warning">
-          {{ t.crossSource }}
+          {{ t('aiAssistant.sql.crossSource') }}
         </el-tag>
       </div>
       <div class="sql-actions">
-        <el-tooltip :content="t.copy" placement="top">
+        <el-tooltip :content="t('aiAssistant.sql.copy')" placement="top">
           <el-button :icon="CopyDocument" circle text size="small" @click="copySql" />
         </el-tooltip>
-        <el-tooltip :content="collapsed ? t.expand : t.collapse" placement="top">
+        <el-tooltip :content="collapsed ? t('aiAssistant.sql.expand') : t('aiAssistant.sql.collapse')" placement="top">
           <el-button
             :icon="collapsed ? ArrowDown : ArrowUp"
             circle
@@ -39,7 +39,7 @@
           />
         </el-tooltip>
         <el-button type="primary" size="small" :icon="CaretRight" @click="emit('reexecute')">
-          {{ t.rerun }}
+          {{ t('aiAssistant.sql.rerun') }}
         </el-button>
       </div>
     </div>
@@ -53,13 +53,13 @@
     <!-- 元信息 -->
     <div v-if="meta && !collapsed" class="sql-meta">
       <div class="meta-row">
-        <span class="meta-label">{{ t.tables }}</span>
+        <span class="meta-label">{{ t('aiAssistant.sql.tables') }}</span>
         <el-tag v-for="tb in meta.tables" :key="tb" size="small" effect="plain" type="info">
           {{ tb }}
         </el-tag>
       </div>
       <div class="meta-row">
-        <span class="meta-label">{{ t.confidence }}</span>
+        <span class="meta-label">{{ t('aiAssistant.sql.confidence') }}</span>
         <el-progress
           :percentage="Math.round(meta.confidence * 100)"
           :stroke-width="8"
@@ -68,33 +68,31 @@
         />
       </div>
       <div class="meta-row">
-        <span class="meta-label">{{ t.duration }}</span>
+        <span class="meta-label">{{ t('aiAssistant.sql.duration') }}</span>
         <span class="meta-value">{{ meta.durationMs }} ms</span>
       </div>
     </div>
 
     <!-- 复制成功提示 -->
     <transition name="fade">
-      <div v-if="copied" class="copy-toast">{{ t.copied }}</div>
+      <div v-if="copied" class="copy-toast">{{ t('aiAssistant.sql.copied') }}</div>
     </transition>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElButton, ElIcon, ElTag, ElTooltip, ElProgress } from 'element-plus'
 import { Document, CopyDocument, CaretRight, ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import DOMPurify from 'dompurify'
-import type { SqlMeta, Locale, SqlDialect } from '@/types/ai-assistant'
-import { SQL_DIALECT_LABELS } from '@/types/ai-assistant'
+import type { SqlMeta, SqlDialect } from '@/types/ai-assistant'
 
 interface Props {
   /** SQL 文本 */
   sql: string
   /** 元信息 */
   meta?: SqlMeta
-  /** 语言 */
-  locale: Locale
 }
 const props = defineProps<Props>()
 
@@ -102,41 +100,15 @@ const emit = defineEmits<{
   (e: 'reexecute'): void
 }>()
 
+const { t } = useI18n()
+
 /* ------------------------------ 状态 ------------------------------ */
 const collapsed = ref(false)
 const copied = ref(false)
 
-/* ------------------------------ 文案 ------------------------------ */
-const t = computed(() =>
-  props.locale === 'zh'
-    ? {
-        crossSource: '跨源',
-        copy: '复制 SQL',
-        collapse: '折叠',
-        expand: '展开',
-        rerun: '重新执行',
-        copied: '已复制',
-        tables: '涉及表',
-        confidence: '置信度',
-        duration: '生成耗时'
-      }
-    : {
-        crossSource: 'Cross-Source',
-        copy: 'Copy SQL',
-        collapse: 'Collapse',
-        expand: 'Expand',
-        rerun: 'Rerun',
-        copied: 'Copied',
-        tables: 'Tables',
-        confidence: 'Confidence',
-        duration: 'Generation Time'
-      }
-)
-
 const dialectLabel = computed(() => {
   const d: SqlDialect = props.meta?.dialect ?? 'ANSI'
-  const label = SQL_DIALECT_LABELS[d]
-  return props.locale === 'zh' ? label.zh : label.en
+  return t(`aiAssistant.dialect.${d}`)
 })
 
 /* ------------------------------ 语法高亮 ------------------------------ */

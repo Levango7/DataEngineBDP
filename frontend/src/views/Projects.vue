@@ -2,7 +2,7 @@
   <div>
     <PageHeader
       :title="t('projects.title')"
-      :subtitle="t('projects.subtitle', { workspace: '华东生产集群' })"
+      :subtitle="t('projects.subtitle', { workspace: store.workspace })"
     />
     <Toolbar
       v-model:search-value="searchKeyword"
@@ -308,6 +308,8 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  // 加载租户信息填充 workspace（替代原硬编码业务参数）
+  void store.fetchTenantInfo()
   void loadProjects()
 })
 </script>

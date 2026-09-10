@@ -5,6 +5,7 @@ import {
   type RouteRecordRaw
 } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { i18n } from '@/i18n'
 
 // 路由懒加载
 const Dashboard = () => import('@/views/Dashboard.vue')
@@ -84,7 +85,7 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'Login',
     component: Login,
-    meta: { title: '登录', public: true }
+    meta: { titleKey: 'login.title', public: true }
   },
 
   // 有实际内容的页面（批次1-3：补充 meta.title 与 meta.icon，统一路由元信息）
@@ -92,132 +93,132 @@ const routes: RouteRecordRaw[] = [
     path: '/dashboard',
     name: 'dashboard',
     component: Dashboard,
-    meta: { title: '仪表盘', icon: 'Odometer' }
+    meta: { titleKey: 'nav.items.dashboard', icon: 'Odometer' }
   },
   {
     path: '/workspaces',
     name: 'workspaces',
     component: Workspaces,
-    meta: { title: '工作空间', icon: 'Grid' }
+    meta: { titleKey: 'nav.items.workspaces', icon: 'Grid' }
   },
   {
     path: '/projects',
     name: 'projects',
     component: Projects,
-    meta: { title: '项目管理', icon: 'Folder' }
+    meta: { titleKey: 'nav.items.projects', icon: 'Folder' }
   },
   {
     path: '/integrate',
     name: 'integrate',
     component: Integrate,
-    meta: { title: '数据集成', icon: 'Connection' }
+    meta: { titleKey: 'nav.items.integrate', icon: 'Connection' }
   },
   {
     path: '/develop',
     name: 'develop',
     component: Develop,
-    meta: { title: '数据开发', icon: 'Edit' }
+    meta: { titleKey: 'nav.items.develop', icon: 'Edit' }
   },
-  { path: '/sql', name: 'sql', component: Sql, meta: { title: 'SQL查询', icon: 'Document' } },
+  { path: '/sql', name: 'sql', component: Sql, meta: { titleKey: 'nav.items.sql', icon: 'Document' } },
   {
     path: '/govern',
     name: 'govern',
     component: Govern,
-    meta: { title: '数据治理', icon: 'Setting' }
+    meta: { titleKey: 'nav.items.govern', icon: 'Setting' }
   },
   {
     path: '/standard',
     name: 'standard',
     component: Standard,
-    meta: { title: '数据标准', icon: 'List' }
+    meta: { titleKey: 'nav.items.standard', icon: 'List' }
   },
   {
     path: '/quality',
     name: 'quality',
     component: Quality,
-    meta: { title: '数据质量', icon: 'CircleCheck' }
+    meta: { titleKey: 'nav.items.quality', icon: 'CircleCheck' }
   },
   {
     path: '/lineage',
     name: 'lineage',
     component: Lineage,
-    meta: { title: '数据血缘', icon: 'Share' }
+    meta: { titleKey: 'nav.items.lineage', icon: 'Share' }
   },
   {
     path: '/data-lineage',
     name: 'dataLineage',
     component: DataLineage,
-    meta: { title: '血缘分析', icon: 'Histogram' }
+    meta: { titleKey: 'nav.items.data-lineage', icon: 'Histogram' }
   },
-  { path: '/sec', name: 'sec', component: Sec, meta: { title: '安全策略', icon: 'Lock' } },
-  { path: '/vector', name: 'vector', component: Vector, meta: { title: '向量引擎', icon: 'Box' } },
-  { path: '/kb', name: 'kb', component: Kb, meta: { title: '知识库', icon: 'Reading' } },
-  { path: '/llmops', name: 'llmops', component: Llmops, meta: { title: 'LLM运维', icon: 'Cpu' } },
+  { path: '/sec', name: 'sec', component: Sec, meta: { titleKey: 'nav.items.sec', icon: 'Lock' } },
+  { path: '/vector', name: 'vector', component: Vector, meta: { titleKey: 'nav.items.vector', icon: 'Box' } },
+  { path: '/kb', name: 'kb', component: Kb, meta: { titleKey: 'nav.items.kb', icon: 'Reading' } },
+  { path: '/llmops', name: 'llmops', component: Llmops, meta: { titleKey: 'nav.items.llmops', icon: 'Cpu' } },
   {
     path: '/gateway',
     name: 'gateway',
     component: Gateway,
-    meta: { title: 'API网关', icon: 'Position' }
+    meta: { titleKey: 'nav.items.gateway', icon: 'Position' }
   },
   {
     path: '/analyze',
     name: 'analyze',
     component: Analyze,
-    meta: { title: '数据分析', icon: 'TrendCharts' }
+    meta: { titleKey: 'nav.items.analyze', icon: 'TrendCharts' }
   },
-  { path: '/ops', name: 'ops', component: Ops, meta: { title: '运维监控', icon: 'Monitor' } },
+  { path: '/ops', name: 'ops', component: Ops, meta: { titleKey: 'nav.items.ops', icon: 'Monitor' } },
   {
     path: '/account',
     name: 'account',
     component: Account,
-    meta: { title: '账户中心', icon: 'User' }
+    meta: { titleKey: 'nav.items.account', icon: 'User' }
   },
-  { path: '/admin', name: 'admin', component: Admin, meta: { title: '系统管理', icon: 'Tools' } },
+  { path: '/admin', name: 'admin', component: Admin, meta: { titleKey: 'nav.items.admin', icon: 'Tools' } },
 
   // 批次4新增：核心功能页面
   {
     path: '/tenants',
     name: 'TenantManagement',
     component: TenantManagement,
-    meta: { title: '租户管理', icon: 'Management' }
+    meta: { titleKey: 'nav.items.tenants', icon: 'Management' }
   },
   {
     path: '/approvals',
     name: 'Approvals',
     component: Approvals,
-    meta: { title: '审批中心', icon: 'CircleCheck' }
+    meta: { titleKey: 'nav.items.approvals', icon: 'CircleCheck' }
   },
   {
     path: '/register',
     name: 'Register',
     component: Register,
-    meta: { title: '员工注册', icon: 'EditPen', public: true }
+    meta: { titleKey: 'register.title', icon: 'EditPen', public: true }
   },
   {
     path: '/cluster',
     name: 'ClusterOverview',
     component: ClusterOverview,
-    meta: { title: '集群概览', icon: 'Monitor' }
+    meta: { titleKey: 'nav.items.cluster', icon: 'Monitor' }
   },
   {
     path: '/datasources',
     name: 'DataSourceManagement',
     component: DataSourceManagement,
-    meta: { title: '数据源管理', icon: 'Connection' }
+    meta: { titleKey: 'nav.items.datasources', icon: 'Connection' }
   },
   {
     path: '/jobs',
     name: 'JobManagement',
     component: JobManagement,
 
-    meta: { title: '作业管理', icon: 'Tickets' }
+    meta: { titleKey: 'nav.items.jobs', icon: 'Tickets' }
   },
 
   {
     path: '/scheduler-ops',
     name: 'SchedulerOps',
     component: SchedulerOps,
-    meta: { title: '任务运维中心', icon: 'AlarmClock' }
+    meta: { titleKey: 'nav.items.scheduler-ops', icon: 'AlarmClock' }
   },
 
   // 批次5新增：Workspace 管理（封装层 K8s 翻译）
@@ -225,7 +226,7 @@ const routes: RouteRecordRaw[] = [
     path: '/workspace-management',
     name: 'WorkspaceManagement',
     component: WorkspaceManagement,
-    meta: { title: '工作空间管理', icon: 'Grid' }
+    meta: { titleKey: 'nav.items.workspace-management', icon: 'Grid' }
   },
 
   // 批次6新增：Quota 管理（封装层 K8s ResourceQuota + LimitRange 翻译）
@@ -233,7 +234,7 @@ const routes: RouteRecordRaw[] = [
     path: '/quota-management',
     name: 'QuotaManagement',
     component: QuotaManagement,
-    meta: { title: '配额管理', icon: 'Histogram' }
+    meta: { titleKey: 'nav.items.quota-management', icon: 'Histogram' }
   },
 
   // 批次7新增：SQL 工作台（跨源归并引擎前端）
@@ -241,7 +242,7 @@ const routes: RouteRecordRaw[] = [
     path: '/sql-workbench',
     name: 'SqlWorkbench',
     component: SqlWorkbench,
-    meta: { title: 'SQL 工作台', icon: 'EditPen' }
+    meta: { titleKey: 'nav.items.sql-workbench', icon: 'EditPen' }
   },
 
   // 批次8新增：行业应用模板市场（L5.3）——入口为 /ops-tpl（见 /ops-tpl 路由）
@@ -255,7 +256,7 @@ const routes: RouteRecordRaw[] = [
     path: '/search',
     name: 'SearchPortal',
     component: SearchPortal,
-    meta: { title: '检索门户', icon: 'Search' }
+    meta: { titleKey: 'nav.items.search', icon: 'Search' }
   },
 
   // 批次10新增：编排 DAG 可视化（T007 viz）
@@ -263,7 +264,7 @@ const routes: RouteRecordRaw[] = [
     path: '/orchestrator/dag',
     name: 'DagVisualizer',
     component: DagVisualizer,
-    meta: { title: '编排 DAG 可视化', icon: 'Share' }
+    meta: { titleKey: 'nav.items.orchestrator-dag', icon: 'Share' }
   },
 
   // 批次11新增：AI 助手（T011 自然语言→SQL→图表→解读 全链路）
@@ -271,7 +272,7 @@ const routes: RouteRecordRaw[] = [
     path: '/ai-assistant',
     name: 'AiAssistant',
     component: AiAssistant,
-    meta: { title: 'AI 数据助手', icon: 'ChatDotRound' }
+    meta: { titleKey: 'nav.items.ai-assistant', icon: 'ChatDotRound' }
   },
 
   // 批次12新增：基础设施层 5 个页面（替换原 Roadmap 占位，补充 name 以支持编程式导航）
@@ -279,118 +280,118 @@ const routes: RouteRecordRaw[] = [
     path: '/infra-machine',
     name: 'InfraMachine',
     component: InfraMachine,
-    meta: { title: '机器供应', icon: 'Monitor' }
+    meta: { titleKey: 'nav.items.infra-machine', icon: 'Monitor' }
   },
   {
     path: '/infra-k8s',
     name: 'InfraK8s',
     component: InfraK8s,
-    meta: { title: 'K8s 集群', icon: 'Cpu' }
+    meta: { titleKey: 'nav.items.infra-k8s', icon: 'Cpu' }
   },
   {
     path: '/infra-net',
     name: 'InfraNet',
     component: InfraNet,
-    meta: { title: '容器网络', icon: 'Connection' }
+    meta: { titleKey: 'nav.items.infra-net', icon: 'Connection' }
   },
   {
     path: '/infra-store',
     name: 'InfraStore',
     component: InfraStore,
-    meta: { title: '容器存储', icon: 'Files' }
+    meta: { titleKey: 'nav.items.infra-store', icon: 'Files' }
   },
   {
     path: '/infra-sched',
     name: 'InfraSched',
     component: InfraSched,
-    meta: { title: '弹性调度', icon: 'Operation' }
+    meta: { titleKey: 'nav.items.infra-sched', icon: 'Operation' }
   },
   // 批次12新增：引擎层 7 个页面（替换原 Roadmap 占位，补充 name）
   {
     path: '/eng-storage',
     name: 'EngStorage',
     component: EngStorage,
-    meta: { title: '统一存储', icon: 'FolderOpened' }
+    meta: { titleKey: 'nav.items.eng-storage', icon: 'FolderOpened' }
   },
   {
     path: '/eng-spark',
     name: 'EngSpark',
     component: EngSpark,
-    meta: { title: '批计算（Spark）', icon: 'Histogram' }
+    meta: { titleKey: 'nav.items.eng-spark', icon: 'Histogram' }
   },
   {
     path: '/eng-flink',
     name: 'EngFlink',
     component: EngFlink,
-    meta: { title: '流计算（Flink）', icon: 'DataLine' }
+    meta: { titleKey: 'nav.items.eng-flink', icon: 'DataLine' }
   },
   {
     path: '/eng-doris',
     name: 'EngDoris',
     component: EngDoris,
-    meta: { title: 'OLAP（Doris）', icon: 'Grid' }
+    meta: { titleKey: 'nav.items.eng-doris', icon: 'Grid' }
   },
   {
     path: '/eng-kafka',
     name: 'EngKafka',
     component: EngKafka,
-    meta: { title: '消息流接入（Kafka）', icon: 'ChatLineSquare' }
+    meta: { titleKey: 'nav.items.eng-kafka', icon: 'ChatLineSquare' }
   },
   {
     path: '/eng-iotdb',
     name: 'EngIotdb',
     component: EngIotdb,
-    meta: { title: '时序引擎（IoTDB）', icon: 'Timer' }
+    meta: { titleKey: 'nav.items.eng-iotdb', icon: 'Timer' }
   },
   {
     path: '/eng-mmg',
     name: 'EngMmg',
     component: EngMmg,
-    meta: { title: '多模型引擎', icon: 'Box' }
+    meta: { titleKey: 'nav.items.eng-mmg', icon: 'Box' }
   },
   // 批次12新增：治理/开发层 4 个页面（替换原 Roadmap 占位，补充 name）
   {
     path: '/govern-meta',
     name: 'GovernMeta',
     component: GovernMeta,
-    meta: { title: '元数据管理', icon: 'Collection' }
+    meta: { titleKey: 'nav.items.govern-meta', icon: 'Collection' }
   },
   {
     path: '/dev-sched',
     name: 'DevSched',
     component: DevSched,
-    meta: { title: '调度编排', icon: 'Calendar' }
+    meta: { titleKey: 'nav.items.dev-sched', icon: 'Calendar' }
   },
   {
     path: '/dev-tag',
     name: 'DevTag',
     component: DevTag,
-    meta: { title: '标签画像', icon: 'PriceTag' }
+    meta: { titleKey: 'nav.items.dev-tag', icon: 'PriceTag' }
   },
-  { path: '/dev-ml', name: 'DevMl', component: DevMl, meta: { title: '机器学习', icon: 'Cpu' } },
+  { path: '/dev-ml', name: 'DevMl', component: DevMl, meta: { titleKey: 'nav.items.dev-ml', icon: 'Cpu' } },
   {
     path: '/ops-tpl',
     name: 'TemplateMarket',
     component: TemplateMarket,
-    meta: { title: '行业应用模板' }
+    meta: { titleKey: 'nav.items.ops-tpl' }
   },
   {
     path: '/ops-portal',
     name: 'BusinessPortal',
     component: BusinessPortal,
-    meta: { title: '业务线门户', icon: 'Grid' }
+    meta: { titleKey: 'nav.items.ops-portal', icon: 'Grid' }
   },
   {
     path: '/ops-api',
     name: 'APIMarket',
     component: APIMarket,
-    meta: { title: '开放 API', icon: 'Connection' }
+    meta: { titleKey: 'nav.items.ops-api', icon: 'Connection' }
   },
   {
     path: '/ops-flow',
     name: 'AssetMarket',
     component: AssetMarket,
-    meta: { title: '数据资产流通', icon: 'ShoppingCart' }
+    meta: { titleKey: 'nav.items.ops-flow', icon: 'ShoppingCart' }
   },
 
   // 兜底：独立 404 页（替代静默跳转 dashboard，用户可明确感知路径错误）
@@ -398,7 +399,7 @@ const routes: RouteRecordRaw[] = [
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('@/views/NotFound.vue'),
-    meta: { title: '页面不存在', public: true }
+    meta: { titleKey: 'notFound.title', public: true }
   }
 ]
 
@@ -443,6 +444,16 @@ export function authGuard(
 router.beforeEach((to) => {
   const authStore = useAuthStore()
   return authGuard(to, authStore.isAuthenticated)
+})
+
+router.afterEach((to) => {
+  const t = i18n.global.t
+  const titleKey = to.meta.titleKey
+  if (titleKey) {
+    document.title = `${t(titleKey)} · ${t('nav.brand')}`
+  } else {
+    document.title = t('nav.brand')
+  }
 })
 
 export default router

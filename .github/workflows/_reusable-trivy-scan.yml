@@ -1,0 +1,78 @@
+# Reusable Workflow: Trivy 安全扫描
+# 调用方式：uses: .github/workflows/_reusable-trivy-scan.yml
+# T-10: 统一 Trivy 扫描逻辑，消除 ci.yml/security.yml/security-scan.yml 重复
+name: Reusable Trivy Scan
+
+on:
+  workflow_call:
+    inputs:
+      scan-type:
+        description: '扫描类型：fs | config | image'
+        type: string
+        default: 'fs'
+      scan-ref:
+        description: '扫描目标路径'
+        type: string
+        default: '.'
+      severity:
+        description: '严重级别（CRITICAL,HIGH,MEDIUM）'
+        type: string
+        default: 'CRITICAL,HIGH'
+      output:
+        description: 'SARIF 输出文件名'
+        type: string
+        default: 'trivy-results.sarif'
+      ignore-unfixed:
+        description: '是否忽略未修复漏洞'
+        type: boolean
+        default: true
+    secrets:
+      GITHUB_TOKEN:
+        required: false
+
+jobs:
+  trivy-scan:
+    name: Trivy Scan (${{ inputs.scan-type }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Trivy
+        run: |
+          curl -fSL --retry 3 --retry-delay 5 -o /tmp/trivy.tar.gz \
+            https://github.com/aquasecurity/trivy/releases/download/v0.71.1/trivy_0.71.1_Linux-64bit.tar.gz
+          sudo tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
+          trivy version
+
+      - name: 执行 Trivy 扫描
+        run: |
+          EXTRA_ARGS=""
+          if [ "${{ inputs.ignore-unfixed }}" = "true" ]; then
+            EXTRA_ARGS="$EXTRA_ARGS --ignore-unfixed"
+          fi
+          trivy ${{ inputs.scan-type }} \
+            --exit-code 1 \
+            --severity ${{ inputs.severity }} \
+            --format sarif \
+            --output ${{ inputs.output }} \
+            $EXTRA_ARGS \
+            ${{ inputs.scan-ref }}
+
+      - name: 上传 SARIF 到 GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ inputs.output }}
+
+      - name: 上传扫描报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-${{ inputs.scan-type }}-report
+          path: ${{ inputs.output }}
+          retention-days: 14
+          if-no-files-found: warn

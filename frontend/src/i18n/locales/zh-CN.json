@@ -55,6 +55,9 @@
       "notFound": "请求的资源不存在",
       "network": "网络异常，请检查网络连接",
       "bizFailed": "业务处理失败"
+    },
+    "tenant": {
+      "loadFailed": "加载租户列表失败"
     }
   },
   "nav": {
@@ -203,11 +206,41 @@
     "demoActivity4": "Flink 作业 realtime_etl 发生一次重启",
     "renderErrorTitle": "页面渲染出错",
     "errorDetails": "错误详情",
-    "errorComponent": "组件"
+    "errorComponent": "组件",
+    "toast": {
+      "approved": "已批准",
+      "approveFailed": "审批失败",
+      "rejected": "已驳回",
+      "rejectFailed": "驳回失败",
+      "workspaceSwitched": "已切换工作空间：{name}"
+    },
+    "devMockNickname": "本地管理员",
+    "defaultWorkspace": "默认工作空间",
+    "defaultEnvTag": "环境正常",
+    "planTiers": {
+      "standard": "标准版",
+      "enterprise": "企业版",
+      "flagship": "旗舰版",
+      "internal": "内部"
+    }
   },
   "notFound": {
+    "title": "页面不存在",
     "pageAria": "404 页面",
     "message": "页面不存在或已被移除",
     "backHome": "返回首页"
+  },
+  "tenantAdmin": {
+    "invite": {
+      "notFound": "邀请码不存在",
+      "cancelled": "邀请码已撤销",
+      "used": "邀请码已被使用",
+      "expired": "邀请码已过期"
+    },
+    "reg": {
+      "usernameExists": "该用户名在租户内已存在",
+      "notFound": "申请不存在",
+      "alreadyDecided": "该申请已审批"
+    }
   }
 }

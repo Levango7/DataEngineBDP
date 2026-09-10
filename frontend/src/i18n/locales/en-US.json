@@ -55,6 +55,9 @@
       "notFound": "Requested resource not found",
       "network": "Network error, please check your connection",
       "bizFailed": "Business operation failed"
+    },
+    "tenant": {
+      "loadFailed": "Failed to load tenant list"
     }
   },
   "nav": {
@@ -203,11 +206,41 @@
     "demoActivity4": "Flink job realtime_etl restarted once",
     "renderErrorTitle": "Page render error",
     "errorDetails": "Error details",
-    "errorComponent": "Component"
+    "errorComponent": "Component",
+    "toast": {
+      "approved": "Approved",
+      "approveFailed": "Approval failed",
+      "rejected": "Rejected",
+      "rejectFailed": "Rejection failed",
+      "workspaceSwitched": "Switched workspace: {name}"
+    },
+    "devMockNickname": "Local Admin",
+    "defaultWorkspace": "Default Workspace",
+    "defaultEnvTag": "Environment OK",
+    "planTiers": {
+      "standard": "Standard",
+      "enterprise": "Enterprise",
+      "flagship": "Flagship",
+      "internal": "Internal"
+    }
   },
   "notFound": {
+    "title": "Page Not Found",
     "pageAria": "404 page",
     "message": "Page not found or has been removed",
     "backHome": "Back to home"
+  },
+  "tenantAdmin": {
+    "invite": {
+      "notFound": "Invite code not found",
+      "cancelled": "Invite code cancelled",
+      "used": "Invite code already used",
+      "expired": "Invite code expired"
+    },
+    "reg": {
+      "usernameExists": "Username already exists in this tenant",
+      "notFound": "Registration not found",
+      "alreadyDecided": "Registration already decided"
+    }
   }
 }

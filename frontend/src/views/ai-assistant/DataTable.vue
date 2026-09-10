@@ -12,12 +12,12 @@
     <div class="table-header">
       <span class="table-title">
         <el-icon><Grid /></el-icon>
-        {{ t.title }}
+        {{ t('aiAssistant.table.title') }}
       </span>
       <span class="table-meta">
-        {{ table.rows.length }} / {{ table.total }} {{ t.rows }}
+        {{ table.rows.length }} / {{ table.total }} {{ t('aiAssistant.table.rows') }}
         <el-tag v-if="table.truncated" size="small" type="warning" effect="plain">
-          {{ t.truncated }}
+          {{ t('aiAssistant.table.truncated') }}
         </el-tag>
       </span>
     </div>
@@ -27,7 +27,7 @@
         v-for="col in table.columns"
         :key="col.name"
         :prop="col.name"
-        :label="locale === 'zh' ? col.label.zh : col.label.en"
+        :label="aiLocale === 'zh' ? col.label.zh : col.label.en"
         :min-width="columnWidth(col)"
         :align="col.isMetric ? 'right' : 'left'"
       >
@@ -43,21 +43,18 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElTable, ElTableColumn, ElTag, ElIcon } from 'element-plus'
 import { Grid } from '@element-plus/icons-vue'
-import type { TableData, TableColumn, Locale, ColumnDataType } from '@/types/ai-assistant'
+import type { TableData, TableColumn, ColumnDataType } from '@/types/ai-assistant'
 
 interface Props {
   table: TableData
-  locale: Locale
 }
 const props = defineProps<Props>()
 
-const t = computed(() =>
-  props.locale === 'zh'
-    ? { title: '查询结果', rows: '行', truncated: '已截断' }
-    : { title: 'Query Result', rows: 'rows', truncated: 'Truncated' }
-)
+const { t, locale } = useI18n()
+const aiLocale = computed(() => (locale.value.startsWith('zh') ? 'zh' : 'en') as 'zh' | 'en')
 
 function columnWidth(col: TableColumn): number {
   if (col.dataType === 'date' || col.dataType === 'datetime') return 160
@@ -71,8 +68,8 @@ function formatCell(value: unknown, col: TableColumn): string {
     const d = new Date(String(value))
     if (!isNaN(d.getTime())) {
       return col.dataType === 'datetime'
-        ? d.toLocaleString(props.locale === 'zh' ? 'zh-CN' : 'en-US')
-        : d.toLocaleDateString(props.locale === 'zh' ? 'zh-CN' : 'en-US')
+        ? d.toLocaleString(locale.value)
+        : d.toLocaleDateString(locale.value)
     }
   }
   if (col.dataType === 'float') {
@@ -81,7 +78,7 @@ function formatCell(value: unknown, col: TableColumn): string {
   }
   if (col.dataType === 'integer') {
     const n = Number(value)
-    return isNaN(n) ? String(value) : n.toLocaleString(props.locale === 'zh' ? 'zh-CN' : 'en-US')
+    return isNaN(n) ? String(value) : n.toLocaleString(locale.value)
   }
   return String(value)
 }

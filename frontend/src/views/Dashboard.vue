@@ -4,10 +4,10 @@
     <div
       class="sub"
       :aria-label="
-        t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' })
+        t('dashboard.subtitle', { tenant: store.workspace, plan: store.plan, usage: store.resourceUsage })
       "
     >
-      {{ t('dashboard.subtitle', { tenant: '华东生产集群', plan: '企业版', usage: '62%' }) }}
+      {{ t('dashboard.subtitle', { tenant: store.workspace, plan: store.plan, usage: store.resourceUsage }) }}
       <span class="pill b" :aria-label="t('dashboard.todo.title')">
         {{ t('dashboard.todoBadge', { count: store.todoCount }) }}
       </span>
@@ -280,6 +280,8 @@ const runningProjects = computed(() => {
 
 onMounted(() => {
   void loadOverview()
+  // 加载租户信息填充 workspace/plan/resourceUsage（替代原硬编码业务参数）
+  void store.fetchTenantInfo()
   // 加载安全审批列表作为待办数据源（todos 已移除，secApprovals 为唯一数据源）
   void store.fetchSecApprovals()
 })

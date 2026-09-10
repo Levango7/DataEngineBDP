@@ -15,7 +15,7 @@
     <div class="rec-header">
       <div class="rec-title">
         <el-icon><DataAnalysis /></el-icon>
-        <span>{{ t.title }}</span>
+        <span>{{ t('aiAssistant.chartRec.title') }}</span>
       </div>
       <div v-if="dataProfile" class="data-profile">
         {{ dataProfile }}
@@ -42,17 +42,17 @@
           <div class="rec-name">
             <span class="rec-type-label">{{ typeLabel(rec.type) }}</span>
             <el-tag v-if="rec.primary" size="small" type="success" effect="light">
-              {{ t.recommended }}
+              {{ t('aiAssistant.chartRec.recommended') }}
             </el-tag>
           </div>
           <div class="rec-reason">{{ pickReason(rec.reason) }}</div>
           <div class="rec-fields">
             <span class="field-group">
-              <span class="field-label">{{ t.dimension }}:</span>
+              <span class="field-label">{{ t('aiAssistant.chartRec.dimension') }}:</span>
               <span class="field-value">{{ rec.dimensions.join(' · ') }}</span>
             </span>
             <span class="field-group">
-              <span class="field-label">{{ t.metric }}:</span>
+              <span class="field-label">{{ t('aiAssistant.chartRec.metric') }}:</span>
               <span class="field-value">{{ rec.metrics.join(' · ') }}</span>
             </span>
           </div>
@@ -74,6 +74,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElIcon, ElTag, ElProgress } from 'element-plus'
 import {
   DataAnalysis,
@@ -85,16 +86,13 @@ import {
   DataLine,
   Compass
 } from '@element-plus/icons-vue'
-import type { ChartRecommendation, ChartType, Locale, Bilingual } from '@/types/ai-assistant'
-import { CHART_TYPE_LABELS } from '@/types/ai-assistant'
+import type { ChartRecommendation, ChartType, Bilingual } from '@/types/ai-assistant'
 
 interface Props {
   /** 推荐列表 */
   recommendations: ChartRecommendation[]
   /** 数据特征描述 */
   dataProfile?: Bilingual
-  /** 语言 */
-  locale: Locale
   /** 当前选中 ID */
   selectedId?: string
 }
@@ -104,35 +102,20 @@ const emit = defineEmits<{
   (e: 'select', recommendation: ChartRecommendation): void
 }>()
 
-/* ------------------------------ 文案 ------------------------------ */
-const t = computed(() =>
-  props.locale === 'zh'
-    ? {
-        title: '图表推荐',
-        recommended: '推荐',
-        dimension: '维度',
-        metric: '度量'
-      }
-    : {
-        title: 'Chart Recommendation',
-        recommended: 'Recommended',
-        dimension: 'Dimension',
-        metric: 'Metric'
-      }
-)
+const { t, locale } = useI18n()
+const aiLocale = computed(() => (locale.value.startsWith('zh') ? 'zh' : 'en') as 'zh' | 'en')
 
 const dataProfile = computed(() => {
   if (!props.dataProfile) return ''
-  return props.locale === 'zh' ? props.dataProfile.zh : props.dataProfile.en
+  return aiLocale.value === 'zh' ? props.dataProfile.zh : props.dataProfile.en
 })
 
 function typeLabel(type: ChartType): string {
-  const label = CHART_TYPE_LABELS[type]
-  return props.locale === 'zh' ? label.zh : label.en
+  return t(`aiAssistant.chartType.${type}`)
 }
 
 function pickReason(b: Bilingual): string {
-  return props.locale === 'zh' ? b.zh : b.en
+  return aiLocale.value === 'zh' ? b.zh : b.en
 }
 
 /* ------------------------------ 图标 ------------------------------ */

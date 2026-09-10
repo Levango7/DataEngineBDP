@@ -1,6 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import * as secApi from '@/api/sec'
+import * as tenantApi from '@/api/tenant'
+import { i18n } from '@/i18n'
+
+/** store 内使用的 i18n 翻译函数（store 不在组件上下文内，不能用 useI18n()） */
+const t = i18n.global.t
 
 /**
  * 应用全局状态：工作空间、环境标签、待办计数、Toast
@@ -9,9 +14,14 @@ export const useAppStore = defineStore('app', () => {
   // 是否使用 mock 数据：仅当显式设置 VITE_USE_MOCK='true' 时启用（默认关闭，使用真实 API）
   const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
-  // 工作空间
-  const workspace = ref('华东生产集群')
-  const envTag = ref('信创环境 · 健康')
+  // 工作空间（由 fetchTenantInfo 从 API 拉取填充，初始为空）
+  const workspace = ref('')
+  // 环境标签（由 fetchTenantInfo 从 API 拉取填充，初始为空）
+  const envTag = ref('')
+  // 套餐版本（由 fetchTenantInfo 从 API 拉取填充，供 Dashboard 展示）
+  const plan = ref('')
+  // 本月资源消耗百分比字符串（由 fetchTenantInfo 从 API 拉取填充，供 Dashboard 展示）
+  const resourceUsage = ref('')
 
   // 安全审批列表（由后端 API 加载，不预置本地假数据）
   // 说明：原 todos 本地待办列表已无数据源（mock 数据已删除），已移除；
@@ -56,12 +66,12 @@ export const useAppStore = defineStore('app', () => {
       try {
         await secApi.approveApproval(id)
       } catch (e) {
-        showToast('审批失败')
+        showToast(t('app.toast.approveFailed'))
         return
       }
     }
     removeApproval(id)
-    showToast('已批准')
+    showToast(t('app.toast.approved'))
   }
 
   async function reject(id: string) {
@@ -70,12 +80,12 @@ export const useAppStore = defineStore('app', () => {
       try {
         await secApi.rejectApproval(id)
       } catch (e) {
-        showToast('驳回失败')
+        showToast(t('app.toast.rejectFailed'))
         return
       }
     }
     removeApproval(id)
-    showToast('已驳回')
+    showToast(t('app.toast.rejected'))
   }
 
   /** 从安全审批列表中移除指定项 */
@@ -85,7 +95,7 @@ export const useAppStore = defineStore('app', () => {
 
   function setWorkspace(name: string) {
     workspace.value = name
-    showToast(`已切换工作空间：${name}`)
+    showToast(t('app.toast.workspaceSwitched', { name }))
   }
 
   /**
@@ -112,9 +122,35 @@ export const useAppStore = defineStore('app', () => {
     }
   }
 
+  /**
+   * 拉取当前租户信息，填充 workspace / envTag / plan / resourceUsage
+   * 供 Dashboard、Projects、TopBar 等组件使用，替代原硬编码业务参数。
+   * 失败时 fallback 到 i18n 默认值，不抛错（仅影响展示）。
+   */
+  async function fetchTenantInfo() {
+    try {
+      const tenants = await tenantApi.listAllTenants()
+      if (tenants.length > 0) {
+        const current = tenants[0]
+        workspace.value = current.name
+        plan.value = t(`app.planTiers.${current.plan}`, current.plan)
+        resourceUsage.value = `${current.resourceUsage}%`
+      } else {
+        workspace.value = t('app.defaultWorkspace')
+      }
+      envTag.value = t('app.defaultEnvTag')
+    } catch {
+      // API 不可用时使用 i18n 默认值兜底，不阻塞页面渲染
+      if (!workspace.value) workspace.value = t('app.defaultWorkspace')
+      if (!envTag.value) envTag.value = t('app.defaultEnvTag')
+    }
+  }
+
   return {
     workspace,
     envTag,
+    plan,
+    resourceUsage,
 
     secApprovals,
     secApprovalsLoaded,
@@ -126,6 +162,7 @@ export const useAppStore = defineStore('app', () => {
     approve,
     reject,
     setWorkspace,
-    fetchSecApprovals
+    fetchSecApprovals,
+    fetchTenantInfo
   }
 })

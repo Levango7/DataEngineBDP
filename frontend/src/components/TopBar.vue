@@ -156,6 +156,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useUiStore } from '@/stores/ui'
 import { persistLocale, type SupportedLocale } from '@/i18n'
 import { useBreadcrumb } from '@/composables/useNavGroups'
+import * as tenantApi from '@/api/tenant'
 
 const { t, locale } = useI18n()
 const store = useAppStore()
@@ -170,7 +171,19 @@ const wsMenuOpen = ref(false)
 const userMenuOpen = ref(false)
 const searchKw = ref('')
 const searchFocus = ref(false)
-const wsList = ['华东生产集群', '华北测试集群', '内部数据中枢']
+// 工作空间列表：从 API 加载租户名称，失败时 fallback 到 i18n 默认值
+const wsList = ref<string[]>([])
+
+/** 从 API 加载工作空间列表（租户名称） */
+async function loadWsList() {
+  try {
+    const tenants = await tenantApi.listAllTenants()
+    wsList.value = tenants.map((t) => t.name)
+    if (wsList.value.length === 0) wsList.value = [t('app.defaultWorkspace')]
+  } catch {
+    wsList.value = [t('app.defaultWorkspace')]
+  }
+}
 
 const crumb = computed(() => crumbOf(route.path))
 
@@ -190,7 +203,12 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', onKeydown))
+onMounted(() => {
+  window.addEventListener('keydown', onKeydown)
+  // 加载工作空间列表和租户信息（替代原硬编码业务参数）
+  void loadWsList()
+  void store.fetchTenantInfo()
+})
 onUnmounted(() => window.removeEventListener('keydown', onKeydown))
 
 function toggleWsMenu() {

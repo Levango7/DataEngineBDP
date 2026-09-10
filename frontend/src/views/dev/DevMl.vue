@@ -367,37 +367,37 @@ const { t, te } = useI18n()
 const appStore = useAppStore()
 const activeTab = ref('train')
 
-const TRAIN_MAP: Record<string, { l: string; t: string }> = {
-  PENDING: { l: '等待中', t: 'info' },
-  RUNNING: { l: '运行中', t: 'primary' },
-  SUCCEEDED: { l: '成功', t: 'success' },
-  FAILED: { l: '失败', t: 'danger' },
-  KILLED: { l: '已取消', t: 'info' },
-  SCHEDULED: { l: '已调度', t: 'warning' }
+const TRAIN_MAP: Record<string, string> = {
+  PENDING: 'info',
+  RUNNING: 'primary',
+  SUCCEEDED: 'success',
+  FAILED: 'danger',
+  KILLED: 'info',
+  SCHEDULED: 'warning'
 }
-const MODEL_MAP: Record<string, { l: string; t: string }> = {
-  DRAFT: { l: '草稿', t: 'info' },
-  REGISTERED: { l: '已注册', t: 'primary' },
-  DEPLOYED: { l: '已部署', t: 'success' },
-  ARCHIVED: { l: '已归档', t: 'info' },
-  FAILED: { l: '失败', t: 'danger' }
+const MODEL_MAP: Record<string, string> = {
+  DRAFT: 'info',
+  REGISTERED: 'primary',
+  DEPLOYED: 'success',
+  ARCHIVED: 'info',
+  FAILED: 'danger'
 }
-const SVC_MAP: Record<string, { l: string; t: string }> = {
-  DEPLOYING: { l: '部署中', t: 'warning' },
-  RUNNING: { l: '运行中', t: 'success' },
-  STOPPED: { l: '已停止', t: 'info' },
-  FAILED: { l: '失败', t: 'danger' },
-  SCALING: { l: '扩缩容', t: 'primary' }
+const SVC_MAP: Record<string, string> = {
+  DEPLOYING: 'warning',
+  RUNNING: 'success',
+  STOPPED: 'info',
+  FAILED: 'danger',
+  SCALING: 'primary'
 }
-const trainStatusLabel = (s: string) => t(`devMl.status.train.${s}`, TRAIN_MAP[s]?.l ?? s)
-const trainStatusType = (s: string) => TRAIN_MAP[s]?.t ?? 'info'
+const trainStatusLabel = (s: string) => t(`devMl.status.train.${s}`, s)
+const trainStatusType = (s: string) => TRAIN_MAP[s] ?? 'info'
 const modelStatusLabel = (s?: string) => {
   const key = `devMl.status.model.${s ?? ''}`
   return te(key) ? t(key) : (s ?? t('devMl.versionDrawer.noStatus'))
 }
-const modelStatusType = (s?: string) => MODEL_MAP[s ?? '']?.t ?? 'info'
-const svcStatusLabel = (s: string) => t(`devMl.status.svc.${s}`, SVC_MAP[s]?.l ?? s)
-const svcStatusType = (s: string) => SVC_MAP[s]?.t ?? 'info'
+const modelStatusType = (s?: string) => MODEL_MAP[s ?? ''] ?? 'info'
+const svcStatusLabel = (s: string) => t(`devMl.status.svc.${s}`, s)
+const svcStatusType = (s: string) => SVC_MAP[s] ?? 'info'
 const formatMetrics = (m: Record<string, number>) =>
   Object.entries(m)
     .map(([k, v]) => `${k}=${typeof v === 'number' ? v.toFixed(4) : v}`)

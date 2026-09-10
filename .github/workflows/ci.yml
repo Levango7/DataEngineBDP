@@ -892,6 +892,35 @@ jobs:
           fi
           echo "✓ Java 覆盖率趋势检查通过"
 
+      - name: 生成 Java 覆盖率摘要（供 baseline-consistency-check 使用）
+        if: env.java_skip != 'true' && always()
+        run: |
+          python3 << 'PYEOF'
+          import json, glob, re
+          summary = {}
+          for xml in glob.glob('platform/*/target/site/jacoco/jacoco.xml'):
+              mod = xml.split('/')[1]
+              content = open(xml).read()
+              m_missed = re.findall(r'<counter type="LINE"[^>]*missed="(\d+)"', content)
+              m_covered = re.findall(r'<counter type="LINE"[^>]*covered="(\d+)"', content)
+              if m_missed and m_covered:
+                  missed, covered = int(m_missed[-1]), int(m_covered[-1])
+                  total = missed + covered
+                  summary[mod] = round(covered * 100 / total) if total > 0 else 0
+          with open('java-coverage-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          print(f'Java 覆盖率摘要: {len(summary)} 模块')
+          PYEOF
+
+      - name: 上传 Java 覆盖率摘要
+        if: env.java_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-coverage-summary
+          path: java-coverage-summary.json
+          retention-days: 1
+          if-no-files-found: warn
+
   # ============================================================
   # Go 构建与测试：Go 1.26
   # 遍历 platform/ 下所有含 go.mod 的子目录，逐个执行 go test ./...
@@ -1072,6 +1101,44 @@ jobs:
             exit 1
           fi
           echo "✓ Go 覆盖率趋势检查通过"
+
+      - name: 生成 Go 覆盖率摘要（供 baseline-consistency-check 使用）
+        if: env.go_skip != 'true' && always()
+        run: |
+          python3 << 'PYEOF'
+          import json, subprocess, os
+          summary = {}
+          for gomod in subprocess.check_output(
+              ['find', 'platform', '-name', 'go.mod', '-not', '-path', '*/vendor/*'],
+              text=True
+          ).splitlines():
+              mod_dir = os.path.dirname(gomod)
+              mod_name = os.path.basename(mod_dir)
+              try:
+                  out = subprocess.check_output(
+                      ['go', 'test', '-cover', './...'],
+                      cwd=mod_dir, stderr=subprocess.DEVNULL, text=True
+                  )
+                  for line in out.splitlines():
+                      if line.startswith('total:'):
+                          cov = line.split()[-1].rstrip('%')
+                          summary[mod_name] = float(cov) if cov else 0
+                          break
+              except Exception:
+                  pass
+          with open('go-coverage-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          print(f'Go 覆盖率摘要: {len(summary)} 模块')
+          PYEOF
+
+      - name: 上传 Go 覆盖率摘要
+        if: env.go_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage-summary
+          path: go-coverage-summary.json
+          retention-days: 1
+          if-no-files-found: warn
 
   # ============================================================
   # Python 测试：Python 3.11
@@ -1281,6 +1348,45 @@ jobs:
             exit 1
           fi
           echo "✓ Python 覆盖率趋势检查通过"
+
+      - name: 生成 Python 覆盖率摘要（供 baseline-consistency-check 使用）
+        if: env.py_skip != 'true' && always()
+        run: |
+          python3 << 'PYEOF'
+          import json, subprocess, os, re
+          summary = {}
+          with open('.python-modules.txt') as f:
+              mod_dirs = [l.strip() for l in f if l.strip()]
+          for mod_dir in mod_dirs:
+              mod_name = os.path.basename(mod_dir)
+              try:
+                  out = subprocess.check_output(
+                      ['python', '-m', 'pytest', 'tests/', '--cov=.', '--cov-report=term-missing', '--no-header', '-q'],
+                      cwd=mod_dir, stderr=subprocess.STDOUT, text=True
+                  )
+                  for line in out.splitlines():
+                      if line.startswith('TOTAL'):
+                          cov = line.split()[-1].rstrip('%')
+                          try:
+                              summary[mod_name] = float(cov) if cov else 0
+                          except ValueError:
+                              pass
+                          break
+              except Exception:
+                  pass
+          with open('python-coverage-summary.json', 'w') as f:
+              json.dump(summary, f, indent=2)
+          print(f'Python 覆盖率摘要: {len(summary)} 模块')
+          PYEOF
+
+      - name: 上传 Python 覆盖率摘要
+        if: env.py_skip != 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-coverage-summary
+          path: python-coverage-summary.json
+          retention-days: 1
+          if-no-files-found: warn
 
   # ============================================================
   # batch-pipeline 测试（M0 迁移自 AutoBatch，2026-09-03）
@@ -1662,6 +1768,8 @@ jobs:
       - integration-test
       - go-security-lint
       - smoke-local
+      - baseline-consistency-check
+      - baseline-pr-guard
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -1867,3 +1975,289 @@ jobs:
           path: tests/performance/benchmark_report.md
           retention-days: 30
           if-no-files-found: warn
+
+  # ============================================================
+  # T-08: 基线一致性检查（baseline-consistency-check）
+  # 依赖覆盖率 job 完成后执行，校验：
+  #   1. 基线值不得高于当前覆盖率 + 2%（防止基线被人为调高远超实际值）
+  #   2. 基线不得包含已删除模块名
+  #   3. 基线不得缺少新增模块
+  # 数据来源：java-build-test/go-build-test/python-test 上传的覆盖率摘要 artifact
+  # ============================================================
+  baseline-consistency-check:
+    name: Baseline Consistency Check (基线一致性)
+    runs-on: ubuntu-latest
+    needs:
+      - java-build-test
+      - go-build-test
+      - python-test
+    if: always()
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: 下载 Java 覆盖率摘要
+        uses: actions/download-artifact@v4
+        with:
+          name: java-coverage-summary
+        continue-on-error: true
+
+      - name: 下载 Go 覆盖率摘要
+        uses: actions/download-artifact@v4
+        with:
+          name: go-coverage-summary
+        continue-on-error: true
+
+      - name: 下载 Python 覆盖率摘要
+        uses: actions/download-artifact@v4
+        with:
+          name: python-coverage-summary
+        continue-on-error: true
+
+      - name: 校验基线一致性
+        run: |
+          python3 << 'PYEOF'
+          import json, os, sys
+
+          fail_count = 0
+
+          def load_json(path):
+              if not os.path.exists(path):
+                  return None
+              try:
+                  with open(path) as f:
+                      return json.load(f)
+              except Exception as e:
+                  print(f'::error::解析 {path} 失败: {e}')
+                  return None
+
+          def get_actual_modules_java():
+              """通过 find platform -name pom.xml 收集实际 Java 模块名"""
+              import subprocess
+              try:
+                  out = subprocess.check_output(
+                      ['find', 'platform', '-name', 'pom.xml', '-not', '-path', '*/target/*'],
+                      text=True
+                  ).splitlines()
+                  return {os.path.basename(os.path.dirname(l)) for l in out if l}
+              except Exception:
+                  return set()
+
+          def get_actual_modules_go():
+              import subprocess
+              try:
+                  out = subprocess.check_output(
+                      ['find', 'platform', '-name', 'go.mod', '-not', '-path', '*/vendor/*'],
+                      text=True
+                  ).splitlines()
+                  return {os.path.basename(os.path.dirname(l)) for l in out if l}
+              except Exception:
+                  return set()
+
+          def get_actual_modules_python():
+              import subprocess
+              try:
+                  out = subprocess.check_output(
+                      ['find', 'platform', '-name', 'pyproject.toml', '-not', '-path', '*/node_modules/*'],
+                      text=True
+                  ).splitlines()
+                  return {os.path.basename(os.path.dirname(l)) for l in out if l}
+              except Exception:
+                  return set()
+
+          configs = [
+              ('Java',   'docs/coverage-baseline/java.json',   'java-coverage-summary.json',   get_actual_modules_java),
+              ('Go',     'docs/coverage-baseline/go.json',     'go-coverage-summary.json',     get_actual_modules_go),
+              ('Python', 'docs/coverage-baseline/python.json', 'python-coverage-summary.json', get_actual_modules_python),
+          ]
+
+          for lang, baseline_path, summary_path, get_modules in configs:
+              print(f'============================================')
+              print(f'  {lang} 基线一致性检查')
+              print(f'============================================')
+              baseline = load_json(baseline_path)
+              if baseline is None:
+                  print(f'::warning::{lang} 基线文件 {baseline_path} 不存在，跳过')
+                  continue
+              summary = load_json(summary_path)
+              actual_modules = get_modules()
+
+              # 提取基线中的模块名（排除 _ 开头的元数据字段）
+              baseline_modules = {k for k in baseline.keys() if not k.startswith('_')}
+
+              # 检查 1：基线不得包含已删除模块名
+              deleted_in_baseline = baseline_modules - actual_modules
+              if deleted_in_baseline:
+                  print(f'::error::{lang} 基线包含已删除模块: {sorted(deleted_in_baseline)}')
+                  fail_count += len(deleted_in_baseline)
+              else:
+                  print(f'✓ {lang} 基线无已删除模块')
+
+              # 检查 2：基线不得缺少新增模块
+              missing_in_baseline = actual_modules - baseline_modules
+              if missing_in_baseline:
+                  print(f'::error::{lang} 基线缺少新增模块: {sorted(missing_in_baseline)}')
+                  fail_count += len(missing_in_baseline)
+              else:
+                  print(f'✓ {lang} 基线无缺失模块')
+
+              # 检查 3：基线值不得高于当前覆盖率 + 2%
+              if summary is not None:
+                  TOLERANCE = 2
+                  for mod, base_val in baseline.items():
+                      if mod.startswith('_'):
+                          continue
+                      curr_val = summary.get(mod)
+                      if curr_val is None:
+                          print(f'::warning::{lang} {mod} 在覆盖率摘要中不存在，跳过上限检查')
+                          continue
+                      try:
+                          base_f = float(base_val)
+                          curr_f = float(curr_val)
+                      except (TypeError, ValueError):
+                          continue
+                      if base_f > curr_f + TOLERANCE:
+                          print(f'::error::{lang} {mod} 基线 {base_f}% > 当前 {curr_f}% + {TOLERANCE}%（基线过高）')
+                          fail_count += 1
+                      else:
+                          print(f'✓ {lang} {mod} 基线 {base_f}% ≤ 当前 {curr_f}% + {TOLERANCE}%')
+              else:
+                  print(f'::warning::{lang} 覆盖率摘要 {summary_path} 不存在，跳过基线上限检查')
+
+          print(f'============================================')
+          print(f'  基线一致性检查汇总：失败 {fail_count} 项')
+          print(f'============================================')
+          if fail_count > 0:
+              print(f'::error::基线一致性检查失败 {fail_count} 项，阻断 CI')
+              sys.exit(1)
+          print('✓ 基线一致性检查通过')
+          PYEOF
+
+  # ============================================================
+  # T-08: 基线 PR 守卫（baseline-pr-guard）
+  # 仅在 PR 修改了 docs/coverage-baseline/** 时执行
+  # 校验 PR 中基线只升不降（防止 PR 中人为降低基线绕过趋势阻断）
+  # ============================================================
+  baseline-pr-guard:
+    name: Baseline PR Guard (基线只升不降)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 安装 Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: 检查 PR 是否修改了基线文件
+        id: changed
+        run: |
+          # 获取 PR 修改的文件列表
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" 2>/dev/null | grep '^docs/coverage-baseline/' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "PR 未修改 docs/coverage-baseline/，跳过基线守卫"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "PR 修改了基线文件："
+            echo "$CHANGED"
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 校验基线只升不降
+        if: steps.changed.outputs.skip != 'true'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 << 'PYEOF'
+          import json, subprocess, sys, os
+
+          BASE_SHA = os.environ.get('BASE_SHA', '')
+          HEAD_SHA = os.environ.get('HEAD_SHA', '')
+
+          fail_count = 0
+
+          for lang_file in ['java.json', 'go.json', 'python.json']:
+              path = f'docs/coverage-baseline/{lang_file}'
+              # 检查该文件是否在 PR 中被修改
+              try:
+                  changed = subprocess.check_output(
+                      ['git', 'diff', '--name-only', BASE_SHA, HEAD_SHA],
+                      text=True
+                  ).splitlines()
+              except Exception:
+                  continue
+              if path not in changed:
+                  continue
+
+              print(f'============================================')
+              print(f'  校验 {lang_file} 只升不降')
+              print(f'============================================')
+
+              # 读取 HEAD 版本（PR 中的新基线）
+              try:
+                  with open(path) as f:
+                      new_baseline = json.load(f)
+              except Exception as e:
+                  print(f'::error::读取 {path} 失败: {e}')
+                  fail_count += 1
+                  continue
+
+              # 读取 BASE 版本（PR 前的旧基线）
+              try:
+                  old_content = subprocess.check_output(
+                      ['git', 'show', f'{BASE_SHA}:{path}'],
+                      text=True, stderr=subprocess.DEVNULL
+                  )
+                  old_baseline = json.loads(old_content)
+              except Exception:
+                  print(f'::warning::{path} 在 BASE 不存在，视为首次创建，跳过比较')
+                  continue
+
+              # 比较每个模块（排除 _ 开头的元数据字段）
+              for mod, new_val in new_baseline.items():
+                  if mod.startswith('_'):
+                      continue
+                  old_val = old_baseline.get(mod)
+                  if old_val is None:
+                      print(f'✓ {mod} 新增模块基线 {new_val}%（无旧值，允许）')
+                      continue
+                  try:
+                      old_f = float(old_val)
+                      new_f = float(new_val)
+                  except (TypeError, ValueError):
+                      continue
+                  if new_f < old_f:
+                      diff = round(old_f - new_f, 2)
+                      print(f'::error::{mod} 基线下降：{old_f}% → {new_f}%（下降 {diff}%），PR 中基线只升不降')
+                      fail_count += 1
+                  else:
+                      print(f'✓ {mod} 基线 {old_f}% → {new_f}%（只升不降）')
+
+              # 检查是否有模块被删除
+              old_mods = {k for k in old_baseline.keys() if not k.startswith('_')}
+              new_mods = {k for k in new_baseline.keys() if not k.startswith('_')}
+              deleted = old_mods - new_mods
+              if deleted:
+                  print(f'::error::{lang_file} 删除了模块基线: {sorted(deleted)}（基线不得删除模块，应保留旧值）')
+                  fail_count += len(deleted)
+
+          print(f'============================================')
+          print(f'  基线 PR 守卫汇总：失败 {fail_count} 项')
+          print(f'============================================')
+          if fail_count > 0:
+              print(f'::error::基线 PR 守卫失败 {fail_count} 项，阻断 PR 合并')
+              sys.exit(1)
+          print('✓ 基线 PR 守卫通过（基线只升不降）')
+          PYEOF

@@ -62,7 +62,7 @@
             t(
               `engMmg.modelGroups.${group.key}.countFmt`,
               { count: modelTypeCount(group.types) },
-              `${modelTypeCount(group.types)} 个类型`
+              t('engMmg.typeCount', { count: modelTypeCount(group.types) })
             )
           }}
         </div>
@@ -346,7 +346,7 @@ function modelLabel(type: string): string {
       return g.label
     }
   }
-  return '未分类'
+  return t('engMmg.uncategorized')
 }
 
 /** 数据源类型 → 模型 tag 颜色 */

@@ -1,0 +1,29 @@
+# ============================================================
+# CODEOWNERS - 代码所有权规则
+# https://docs.github.com/en/repositories/managing-your-repository-settings-and-features/customizing-your-repository/about-code-owners
+# ============================================================
+# 格式：<路径模式> <GitHub 用户名或团队名>
+# PR 修改了对应路径的文件时，CODEOWNERS 会被自动请求 review
+# ============================================================
+
+# 覆盖率基线文件：由覆盖率门禁工程师团队 review，防止基线被随意篡改
+# T-08：基线保护——基线只升不降，需专人审批
+docs/coverage-baseline/ @coverage-gatekeeper
+
+# 覆盖率门禁脚本：修改门禁逻辑需覆盖率门禁工程师 review
+scripts/coverage/ @coverage-gatekeeper
+scripts/coverage-gate.sh @coverage-gatekeeper
+
+# 覆盖率路线图文档
+docs/coverage-roadmap.md @coverage-gatekeeper
+
+# CI 工作流：修改 CI 流水线需架构师 review
+.github/workflows/ @ci-architect
+
+# Helm Chart 价值观文件：生产配置变更需运维 review
+design/deploy/values/ @sre-team
+
+# 安全相关配置
+.github/workflows/security.yml @security-team
+.github/workflows/codeql.yml @security-team
+.github/workflows/sonarqube.yml @security-team

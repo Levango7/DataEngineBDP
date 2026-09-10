@@ -1,0 +1,37 @@
+# Reusable Workflow: CI 门禁检查
+# 调用方式：uses: .github/workflows/_reusable-ci-gate.yml
+# T-10: 统一 CI 门禁逻辑，消除 build.yml/multi-arch-build.yml 重复的 ci-gate job
+# 功能：等待 CI 工作流在对应 commit 上通过后才允许后续构建
+name: Reusable CI Gate
+
+on:
+  workflow_call:
+    inputs:
+      check-name:
+        description: '等待的 check 名称'
+        type: string
+        default: 'Frontend Build'
+      wait-interval:
+        description: '轮询间隔（秒）'
+        type: string
+        default: '30'
+
+jobs:
+  ci-gate:
+    name: CI Gate (等待 CI 通过)
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 等待 CI 工作流通过
+        uses: lewagon/wait-on-check-action@v1.3.4
+        with:
+          ref: ${{ github.sha }}
+          check-name: ${{ inputs.check-name }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: ${{ inputs.wait-interval }}
+          verbose: true
+
+      - name: CI 门禁通过
+        run: echo "CI 工作流已通过，开始执行后续流水线"

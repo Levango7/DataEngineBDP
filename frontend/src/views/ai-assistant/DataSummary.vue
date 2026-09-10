@@ -17,12 +17,12 @@
     <div class="summary-header">
       <div class="summary-title">
         <el-icon><DocumentChecked /></el-icon>
-        <span>{{ t.title }}</span>
+        <span>{{ t('aiAssistant.summary.title') }}</span>
       </div>
       <div v-if="meta" class="summary-meta">
-        <span>{{ meta.rowCount }} {{ t.rows }}</span>
+        <span>{{ meta.rowCount }} {{ t('aiAssistant.summary.rows') }}</span>
         <span>·</span>
-        <span>{{ meta.columnCount }} {{ t.cols }}</span>
+        <span>{{ meta.columnCount }} {{ t('aiAssistant.summary.cols') }}</span>
         <span>·</span>
         <span>{{ meta.durationMs }} ms</span>
       </div>
@@ -36,7 +36,7 @@
 
     <!-- 关键洞察 -->
     <div v-if="insights.length > 0" class="summary-insights">
-      <div class="insights-title">{{ t.insights }}</div>
+      <div class="insights-title">{{ t('aiAssistant.summary.insights') }}</div>
       <ul class="insights-list">
         <li v-for="(ins, idx) in insights" :key="idx" class="insight-item">
           <el-icon class="insight-bullet"><Right /></el-icon>
@@ -64,6 +64,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElIcon } from 'element-plus'
 import {
   DocumentChecked,
@@ -73,7 +74,7 @@ import {
   ArrowDown,
   Minus
 } from '@element-plus/icons-vue'
-import type { SummaryMeta, SummaryMetric, Bilingual, Locale } from '@/types/ai-assistant'
+import type { SummaryMeta, SummaryMetric, Bilingual } from '@/types/ai-assistant'
 
 interface Props {
   /** 摘要正文（已按语言取过） */
@@ -84,8 +85,6 @@ interface Props {
   insights?: Bilingual[]
   /** 关键指标 */
   metrics?: SummaryMetric[]
-  /** 语言 */
-  locale: Locale
 }
 const props = withDefaults(defineProps<Props>(), {
   summary: '',
@@ -93,20 +92,17 @@ const props = withDefaults(defineProps<Props>(), {
   metrics: () => []
 })
 
-const t = computed(() =>
-  props.locale === 'zh'
-    ? { title: '数据解读', rows: '行', cols: '列', insights: '关键洞察' }
-    : { title: 'Data Insights', rows: 'rows', cols: 'cols', insights: 'Key Insights' }
-)
+const { t, locale } = useI18n()
+const aiLocale = computed(() => (locale.value.startsWith('zh') ? 'zh' : 'en') as 'zh' | 'en')
 
 function pickBilingual(b: Bilingual): string {
-  return props.locale === 'zh' ? b.zh : b.en
+  return aiLocale.value === 'zh' ? b.zh : b.en
 }
 
 function formatMetric(value: number): string {
   if (Math.abs(value) >= 1_000_000) return (value / 1_000_000).toFixed(2) + 'M'
   if (Math.abs(value) >= 1_000) return (value / 1_000).toFixed(2) + 'K'
-  return value.toLocaleString(props.locale === 'zh' ? 'zh-CN' : 'en-US')
+  return value.toLocaleString(locale.value)
 }
 
 function changeClass(m: SummaryMetric): string {

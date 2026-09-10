@@ -1,0 +1,18 @@
+{
+  "engFlink": {
+    "status": {
+      "RUNNING": "Running",
+      "FAILED": "Failed",
+      "CANCELED": "Canceled",
+      "FINISHED": "Finished",
+      "RESTARTING": "Restarting",
+      "CREATED": "Created",
+      "SCHEDULED": "Scheduled"
+    },
+    "backpressure": {
+      "ok": "OK",
+      "low": "Low",
+      "high": "High"
+    }
+  }
+}

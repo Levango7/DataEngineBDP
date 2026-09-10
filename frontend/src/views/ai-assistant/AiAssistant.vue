@@ -19,14 +19,14 @@
     <!-- 顶部标题栏 -->
     <div class="ai-header">
       <div class="ai-title">
-        <h1>{{ t.title }}</h1>
-        <span class="ai-sub">{{ t.subtitle }}</span>
+        <h1>{{ t('aiAssistant.page.title') }}</h1>
+        <span class="ai-sub">{{ t('aiAssistant.page.subtitle') }}</span>
       </div>
       <div class="ai-actions">
         <!-- 数据源选择 -->
         <el-select
           v-model="selectedDatasource"
-          :placeholder="t.datasource"
+          :placeholder="t('aiAssistant.page.datasource')"
           style="width: 200px"
           filterable
           clearable
@@ -50,7 +50,7 @@
 
         <!-- 新建会话 -->
         <el-button type="primary" :icon="Plus" @click="newSession">
-          {{ t.newChat }}
+          {{ t('aiAssistant.page.newChat') }}
         </el-button>
       </div>
     </div>
@@ -60,7 +60,7 @@
       <!-- 左侧：会话列表 -->
       <aside class="ai-sessions">
         <div class="sessions-header">
-          <span>{{ t.sessions }}</span>
+          <span>{{ t('aiAssistant.page.sessions') }}</span>
           <el-button :icon="RefreshRight" circle text size="small" @click="loadSessions" />
         </div>
         <div class="sessions-list">
@@ -78,7 +78,7 @@
             <div class="session-info">
               <div class="session-title">{{ s.title }}</div>
               <div class="session-meta">
-                {{ formatDate(s.updatedAt) }} · {{ s.messageCount }} {{ t.msgs }}
+                {{ formatDate(s.updatedAt) }} · {{ s.messageCount }} {{ t('aiAssistant.page.msgs') }}
               </div>
             </div>
             <el-dropdown trigger="click" @command="(cmd: string) => onSessionCommand(cmd, s.id)">
@@ -86,17 +86,17 @@
               <template #dropdown>
                 <el-dropdown-menu>
                   <el-dropdown-item command="pin">
-                    {{ s.pinned ? t.unpin : t.pin }}
+                    {{ s.pinned ? t('aiAssistant.page.unpin') : t('aiAssistant.page.pin') }}
                   </el-dropdown-item>
                   <el-dropdown-item command="delete" divided>
-                    {{ t.delete }}
+                    {{ t('aiAssistant.page.delete') }}
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
           </div>
           <div v-if="sessions.length === 0" class="sessions-empty">
-            {{ t.noSessions }}
+            {{ t('aiAssistant.page.noSessions') }}
           </div>
         </div>
       </aside>
@@ -105,7 +105,7 @@
       <main class="ai-chat">
         <ChatPanel
           :messages="messages"
-          :locale="locale"
+
           :loading="loading"
           :streaming="streaming"
           :example-prompts="examplePrompts"
@@ -129,7 +129,7 @@
         <div class="side-section">
           <div class="side-section-title">
             <el-icon><Document /></el-icon>
-            {{ t.sqlPreview }}
+            {{ t('aiAssistant.page.sqlPreview') }}
           </div>
           <SqlPreview
             v-if="lastSql"
@@ -142,50 +142,47 @@
               confidence: lastSql.confidence,
               durationMs: lastSql.durationMs
             }"
-            :locale="locale"
             @reexecute="reexecute"
           />
-          <div v-else class="side-empty">{{ t.sqlEmpty }}</div>
+          <div v-else class="side-empty">{{ t('aiAssistant.page.sqlEmpty') }}</div>
         </div>
 
         <!-- 图表推荐 -->
         <div class="side-section">
           <div class="side-section-title">
             <el-icon><DataAnalysis /></el-icon>
-            {{ t.chartRec }}
+            {{ t('aiAssistant.page.chartRec') }}
           </div>
           <ChartRecommendationPanel
             v-if="lastChartRecommendation && lastChartRecommendation.recommendations.length > 0"
             :recommendations="lastChartRecommendation.recommendations"
             :data-profile="lastChartRecommendation.dataProfile"
-            :locale="locale"
             :selected-id="lastChart?.recommendationId"
             @select="onChartSelect"
           />
-          <div v-else class="side-empty">{{ t.chartEmpty }}</div>
+          <div v-else class="side-empty">{{ t('aiAssistant.page.chartEmpty') }}</div>
         </div>
 
         <!-- 数据解读 -->
         <div class="side-section">
           <div class="side-section-title">
             <el-icon><DocumentChecked /></el-icon>
-            {{ t.summary }}
+            {{ t('aiAssistant.page.summary') }}
           </div>
           <DataSummary
             v-if="lastSummary"
-            :summary="locale === 'zh' ? lastSummary.summary.zh : lastSummary.summary.en"
+            :summary="aiLocale === 'zh' ? lastSummary.summary.zh : lastSummary.summary.en"
             :insights="lastSummary.insights"
             :metrics="lastSummary.metrics"
-            :locale="locale"
           />
-          <div v-else class="side-empty">{{ t.summaryEmpty }}</div>
+          <div v-else class="side-empty">{{ t('aiAssistant.page.summaryEmpty') }}</div>
         </div>
 
         <!-- Superset 仪表盘 -->
         <div class="side-section">
           <div class="side-section-title">
             <el-icon><Histogram /></el-icon>
-            {{ t.dashboard }}
+            {{ t('aiAssistant.page.dashboard') }}
           </div>
           <el-button
             type="primary"
@@ -195,15 +192,15 @@
             style="width: 100%"
             @click="onCreateDashboard"
           >
-            {{ t.createDashboard }}
+            {{ t('aiAssistant.page.createDashboard') }}
           </el-button>
           <div v-if="dashboardUrl" class="dashboard-link">
             <el-link :href="dashboardUrl" target="_blank" type="primary">
               <el-icon><Link /></el-icon>
-              {{ t.openDashboard }}
+              {{ t('aiAssistant.page.openDashboard') }}
             </el-link>
           </div>
-          <div v-if="!lastSql" class="side-empty">{{ t.dashboardEmpty }}</div>
+          <div v-if="!lastSql" class="side-empty">{{ t('aiAssistant.page.dashboardEmpty') }}</div>
         </div>
       </aside>
     </div>
@@ -212,6 +209,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ElButton,
   ElIcon,
@@ -245,14 +243,16 @@ import DataSummary from './DataSummary.vue'
 import { useAiAssistant, buildChartConfig } from '@/composables/useAiAssistant'
 import * as aiApi from '@/api/ai-assistant'
 import type { SqlDialect, ChartRecommendation, SupersetDatasource } from '@/types/ai-assistant'
-import { SQL_DIALECT_LABELS } from '@/types/ai-assistant'
+
+const { t, locale: i18nLocale } = useI18n()
+const aiLocale = computed(() => (i18nLocale.value.startsWith('zh') ? 'zh' : 'en') as 'zh' | 'en')
 
 /* ------------------------------ 组合式函数 ------------------------------ */
 const {
   currentSession,
   messages,
   sessions,
-  locale,
+
   datasourceId,
   dialect,
   autoExecute,
@@ -303,10 +303,11 @@ function onDatasourceChange(id: string | undefined): void {
 watch(selectedDialect, (d) => setDialect(d))
 
 /* ------------------------------ 方言选项 ------------------------------ */
+const SQL_DIALECTS: SqlDialect[] = ['ANSI', 'HIVE', 'DORIS', 'TRINO', 'MYSQL', 'POSTGRESQL']
 const dialectOptions = computed(() =>
-  Object.entries(SQL_DIALECT_LABELS).map(([value, label]) => ({
-    value: value as SqlDialect,
-    label: locale.value === 'zh' ? label.zh : label.en
+  SQL_DIALECTS.map((value) => ({
+    value,
+    label: t(`aiAssistant.dialect.${value}`)
   }))
 )
 
@@ -325,7 +326,7 @@ async function onSwitchSession(id: string): Promise<void> {
 async function onSessionCommand(cmd: string, id: string): Promise<void> {
   if (cmd === 'delete') {
     await deleteSession(id)
-    ElMessage.success(t.value.deleted)
+    ElMessage.success(t('aiAssistant.page.deleted'))
   } else if (cmd === 'pin') {
     const s = sessions.value.find((x) => x.id === id)
     await pinSession(id, !s?.pinned)
@@ -340,9 +341,9 @@ function onExample(text: string): void {
 function onChartSelect(rec: ChartRecommendation): void {
   const cfg = switchChart(rec)
   if (cfg) {
-    ElMessage.success(t.value.chartSwitched)
+    ElMessage.success(t('aiAssistant.page.chartSwitched'))
   } else if (!lastExecution.value) {
-    ElMessage.warning(t.value.noData)
+    ElMessage.warning(t('aiAssistant.page.noData'))
   }
 }
 
@@ -353,9 +354,9 @@ async function onCreateDashboard(): Promise<void> {
   const result = await createDashboard()
   if (result) {
     dashboardUrl.value = result.url
-    ElMessage.success(t.value.dashboardCreated)
+    ElMessage.success(t('aiAssistant.page.dashboardCreated'))
   } else {
-    ElMessage.error(t.value.dashboardFailed)
+    ElMessage.error(t('aiAssistant.page.dashboardFailed'))
   }
 }
 
@@ -366,68 +367,6 @@ watch(error, (err) => {
   }
 })
 
-/* ------------------------------ 文案 ------------------------------ */
-const t = computed(() => {
-  if (locale.value === 'zh') {
-    return {
-      title: 'AI 数据助手',
-      subtitle: '自然语言 → SQL → 图表 → 解读 全链路智能分析',
-      newChat: '新对话',
-      sessions: '历史会话',
-      msgs: '条',
-      noSessions: '暂无历史会话',
-      pin: '置顶',
-      unpin: '取消置顶',
-      delete: '删除',
-      deleted: '已删除',
-      datasource: '选择数据源',
-      sqlPreview: 'SQL 预览',
-      sqlEmpty: '提问后将生成 SQL',
-      chartRec: '图表推荐',
-      chartEmpty: '执行查询后推荐图表',
-      summary: '数据解读',
-      summaryEmpty: '执行查询后生成解读',
-      dashboard: 'Superset 仪表盘',
-      createDashboard: '一键创建仪表盘',
-      openDashboard: '打开仪表盘',
-      dashboardEmpty: '需先生成 SQL 并选择数据源',
-      dashboardCreated: '仪表盘已创建',
-      dashboardFailed: '仪表盘创建失败',
-      chartSwitched: '图表已切换',
-      noData: '暂无数据可绘图'
-    }
-  }
-  return {
-    title: 'AI Data Assistant',
-    subtitle: 'Natural language → SQL → chart → insights, end-to-end',
-    newChat: 'New Chat',
-    sessions: 'Sessions',
-    msgs: 'msgs',
-    noSessions: 'No sessions yet',
-    pin: 'Pin',
-    unpin: 'Unpin',
-    delete: 'Delete',
-    deleted: 'Deleted',
-    datasource: 'Select datasource',
-    sqlPreview: 'SQL Preview',
-    sqlEmpty: 'SQL will be generated after you ask',
-    chartRec: 'Chart Recommendation',
-    chartEmpty: 'Charts will be recommended after query',
-    summary: 'Data Insights',
-    summaryEmpty: 'Insights will be generated after query',
-    dashboard: 'Superset Dashboard',
-    createDashboard: 'Create Dashboard',
-    openDashboard: 'Open Dashboard',
-    dashboardEmpty: 'Generate SQL and select datasource first',
-    dashboardCreated: 'Dashboard created',
-    dashboardFailed: 'Failed to create dashboard',
-    chartSwitched: 'Chart switched',
-    noData: 'No data to plot'
-  }
-})
-
-const langIcon = computed(() => (locale.value === 'zh' ? Comment : ChatDotRound))
-
 /* ------------------------------ 工具 ------------------------------ */
 function formatDate(iso: string): string {
   const d = new Date(iso)
@@ -436,17 +375,19 @@ function formatDate(iso: string): string {
   const diff = now - d.getTime()
   const day = 24 * 60 * 60 * 1000
   if (diff < day) {
-    return d.toLocaleTimeString(locale.value === 'zh' ? 'zh-CN' : 'en-US', {
+    return d.toLocaleTimeString(i18nLocale.value, {
       hour: '2-digit',
       minute: '2-digit'
     })
   }
   if (diff < 7 * day) {
     const days = Math.floor(diff / day)
-    return locale.value === 'zh' ? `${days} 天前` : `${days}d ago`
+    return t('aiAssistant.page.daysAgo', { days })
   }
-  return d.toLocaleDateString(locale.value === 'zh' ? 'zh-CN' : 'en-US')
+  return d.toLocaleDateString(i18nLocale.value)
 }
+
+const langIcon = computed(() => (aiLocale.value === 'zh' ? Comment : ChatDotRound))
 
 /* ------------------------------ 挂载 ------------------------------ */
 onMounted(() => {

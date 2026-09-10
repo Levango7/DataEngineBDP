@@ -1,0 +1,103 @@
+{
+  "aiAssistant": {
+    "page": {
+      "title": "AI Data Assistant",
+      "subtitle": "Natural language → SQL → chart → insights, end-to-end",
+      "newChat": "New Chat",
+      "sessions": "Sessions",
+      "msgs": "msgs",
+      "noSessions": "No sessions yet",
+      "pin": "Pin",
+      "unpin": "Unpin",
+      "delete": "Delete",
+      "deleted": "Deleted",
+      "datasource": "Select datasource",
+      "sqlPreview": "SQL Preview",
+      "sqlEmpty": "SQL will be generated after you ask",
+      "chartRec": "Chart Recommendation",
+      "chartEmpty": "Charts will be recommended after query",
+      "summary": "Data Insights",
+      "summaryEmpty": "Insights will be generated after query",
+      "dashboard": "Superset Dashboard",
+      "createDashboard": "Create Dashboard",
+      "openDashboard": "Open Dashboard",
+      "dashboardEmpty": "Generate SQL and select datasource first",
+      "dashboardCreated": "Dashboard created",
+      "dashboardFailed": "Failed to create dashboard",
+      "chartSwitched": "Chart switched",
+      "noData": "No data to plot",
+      "daysAgo": "{days}d ago"
+    },
+    "chat": {
+      "emptyTitle": "AI Data Assistant",
+      "emptyDesc": "Ask in natural language. SQL, charts and insights are generated automatically.",
+      "placeholder": "Ask anything, e.g. show order trend for last 7 days",
+      "send": "Send",
+      "stop": "Stop",
+      "autoExecute": "Auto Execute",
+      "autoChart": "Recommend Chart",
+      "autoSummary": "Summarize",
+      "tipExecute": "Whether to execute SQL automatically after generation",
+      "tipChart": "Whether to recommend chart type automatically",
+      "tipSummary": "Whether to summarize results automatically",
+      "roleUser": "You",
+      "roleAssistant": "AI Assistant"
+    },
+    "sql": {
+      "crossSource": "Cross-Source",
+      "copy": "Copy SQL",
+      "collapse": "Collapse",
+      "expand": "Expand",
+      "rerun": "Rerun",
+      "copied": "Copied",
+      "tables": "Tables",
+      "confidence": "Confidence",
+      "duration": "Generation Time"
+    },
+    "table": {
+      "title": "Query Result",
+      "rows": "rows",
+      "truncated": "Truncated"
+    },
+    "summary": {
+      "title": "Data Insights",
+      "rows": "rows",
+      "cols": "cols",
+      "insights": "Key Insights"
+    },
+    "chartRec": {
+      "title": "Chart Recommendation",
+      "recommended": "Recommended",
+      "dimension": "Dimension",
+      "metric": "Metric"
+    },
+    "dialect": {
+      "ANSI": "ANSI SQL",
+      "HIVE": "Hive SQL",
+      "DORIS": "Doris SQL",
+      "TRINO": "Trino SQL",
+      "MYSQL": "MySQL",
+      "POSTGRESQL": "PostgreSQL"
+    },
+    "chartType": {
+      "bar": "Bar Chart",
+      "line": "Line Chart",
+      "pie": "Pie Chart",
+      "scatter": "Scatter Chart",
+      "map": "Map",
+      "area": "Area Chart",
+      "radar": "Radar Chart"
+    },
+    "session": {
+      "newChat": "New Chat",
+      "done": "Done.",
+      "dashboardTitle": "AI Assistant Dashboard"
+    },
+    "examples": {
+      "0": "Show order amount trend for last 7 days",
+      "1": "Count users by province",
+      "2": "Compare this month vs last month GMV",
+      "3": "Find TOP 10 frequent products"
+    }
+  }
+}

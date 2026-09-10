@@ -10,6 +10,8 @@ on:
     branches:
       - main
       - 'release/**'
+    tags:
+      - 'v*'  # T-10: 合并自 multi-arch-build.yml，打 tag 时触发多架构构建
   # 支持手动触发，便于按需重建镜像
   workflow_dispatch:
     inputs:
@@ -17,6 +19,10 @@ on:
         description: '是否推送镜像到 GHCR（true/false）'
         required: false
         default: 'true'
+      platforms:
+        description: '目标架构（如 linux/amd64 或 linux/amd64,linux/arm64）'
+        required: false
+        default: 'linux/amd64'
 
 # 权限：packages: write 推送 GHCR 镜像；contents: read 读取代码；id-token: write 用于 OIDC 镜像签名
 permissions:
@@ -89,6 +95,9 @@ jobs:
           fi
           npm run build
 
+      - name: 设置 QEMU（多架构构建前置，T-10 合并自 multi-arch-build.yml）
+        uses: docker/setup-qemu-action@v3
+
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -104,6 +113,7 @@ jobs:
         with:
           context: frontend/
           file: frontend/Dockerfile
+          platforms: ${{ github.event.inputs.platforms || 'linux/amd64' }}
           push: ${{ github.event.inputs.push_image != 'false' }}
           tags: |
             ghcr.io/${{ env.REGISTRY_NS }}/sq-frontend:latest
@@ -176,6 +186,9 @@ jobs:
               -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
           done < <(find platform -name pom.xml -not -path "*/target/*")
 
+      - name: 设置 QEMU（多架构构建前置，T-10 合并自 multi-arch-build.yml）
+        uses: docker/setup-qemu-action@v3
+
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -189,6 +202,7 @@ jobs:
       - name: 构建并推送所有 Java 镜像
         run: |
           push_flag="${{ github.event.inputs.push_image != 'false' }}"
+          platforms="${{ github.event.inputs.platforms || 'linux/amd64' }}"
           img_count=0
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
@@ -219,6 +233,7 @@ jobs:
                 ;;
             esac
             docker buildx build \
+              --platform "$platforms" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
@@ -270,6 +285,7 @@ jobs:
       - name: 构建并推送所有 Go 镜像（多架构）
         run: |
           push_flag="${{ github.event.inputs.push_image != 'false' }}"
+          platforms="${{ github.event.inputs.platforms || 'linux/amd64,linux/arm64' }}"
           img_count=0
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
@@ -280,10 +296,10 @@ jobs:
             fi
             img_count=$((img_count + 1))
             echo "============================================"
-            echo "  Docker buildx (linux/amd64+arm64): $mod_name"
+            echo "  Docker buildx ($platforms): $mod_name"
             echo "============================================"
             docker buildx build \
-              --platform linux/amd64,linux/arm64 \
+              --platform "$platforms" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \
@@ -310,6 +326,9 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
+      - name: 设置 QEMU（多架构构建前置，T-10 合并自 multi-arch-build.yml）
+        uses: docker/setup-qemu-action@v3
+
       - name: 设置 Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -323,6 +342,7 @@ jobs:
       - name: 构建并推送所有 Python 镜像
         run: |
           push_flag="${{ github.event.inputs.push_image != 'false' }}"
+          platforms="${{ github.event.inputs.platforms || 'linux/amd64' }}"
           img_count=0
           while IFS= read -r df; do
             mod_dir=$(dirname "$df")
@@ -333,9 +353,10 @@ jobs:
             fi
             img_count=$((img_count + 1))
             echo "============================================"
-            echo "  Docker build & push: $mod_name"
+            echo "  Docker buildx ($platforms): $mod_name"
             echo "============================================"
             docker buildx build \
+              --platform "$platforms" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:latest" \
               -t "ghcr.io/${{ env.REGISTRY_NS }}/sq-${mod_name}:${{ github.sha }}" \
               --label "org.opencontainers.image.source=${{ github.repositoryUrl }}" \

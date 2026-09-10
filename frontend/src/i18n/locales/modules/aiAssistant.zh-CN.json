@@ -1,0 +1,103 @@
+{
+  "aiAssistant": {
+    "page": {
+      "title": "AI 数据助手",
+      "subtitle": "自然语言 → SQL → 图表 → 解读 全链路智能分析",
+      "newChat": "新对话",
+      "sessions": "历史会话",
+      "msgs": "条",
+      "noSessions": "暂无历史会话",
+      "pin": "置顶",
+      "unpin": "取消置顶",
+      "delete": "删除",
+      "deleted": "已删除",
+      "datasource": "选择数据源",
+      "sqlPreview": "SQL 预览",
+      "sqlEmpty": "提问后将生成 SQL",
+      "chartRec": "图表推荐",
+      "chartEmpty": "执行查询后推荐图表",
+      "summary": "数据解读",
+      "summaryEmpty": "执行查询后生成解读",
+      "dashboard": "Superset 仪表盘",
+      "createDashboard": "一键创建仪表盘",
+      "openDashboard": "打开仪表盘",
+      "dashboardEmpty": "需先生成 SQL 并选择数据源",
+      "dashboardCreated": "仪表盘已创建",
+      "dashboardFailed": "仪表盘创建失败",
+      "chartSwitched": "图表已切换",
+      "noData": "暂无数据可绘图",
+      "daysAgo": "{days} 天前"
+    },
+    "chat": {
+      "emptyTitle": "AI 数据助手",
+      "emptyDesc": "用自然语言提问，自动生成 SQL、推荐图表、解读数据。",
+      "placeholder": "请输入您的问题，如：查询最近 7 天订单金额趋势",
+      "send": "发送",
+      "stop": "停止",
+      "autoExecute": "自动执行",
+      "autoChart": "推荐图表",
+      "autoSummary": "数据解读",
+      "tipExecute": "生成 SQL 后是否自动执行",
+      "tipChart": "是否自动推荐图表类型",
+      "tipSummary": "是否自动生成数据解读摘要",
+      "roleUser": "我",
+      "roleAssistant": "AI 助手"
+    },
+    "sql": {
+      "crossSource": "跨源",
+      "copy": "复制 SQL",
+      "collapse": "折叠",
+      "expand": "展开",
+      "rerun": "重新执行",
+      "copied": "已复制",
+      "tables": "涉及表",
+      "confidence": "置信度",
+      "duration": "生成耗时"
+    },
+    "table": {
+      "title": "查询结果",
+      "rows": "行",
+      "truncated": "已截断"
+    },
+    "summary": {
+      "title": "数据解读",
+      "rows": "行",
+      "cols": "列",
+      "insights": "关键洞察"
+    },
+    "chartRec": {
+      "title": "图表推荐",
+      "recommended": "推荐",
+      "dimension": "维度",
+      "metric": "度量"
+    },
+    "dialect": {
+      "ANSI": "标准 SQL",
+      "HIVE": "Hive SQL",
+      "DORIS": "Doris SQL",
+      "TRINO": "Trino SQL",
+      "MYSQL": "MySQL",
+      "POSTGRESQL": "PostgreSQL"
+    },
+    "chartType": {
+      "bar": "柱状图",
+      "line": "折线图",
+      "pie": "饼图",
+      "scatter": "散点图",
+      "map": "地图",
+      "area": "面积图",
+      "radar": "雷达图"
+    },
+    "session": {
+      "newChat": "新对话",
+      "done": "已处理完成。",
+      "dashboardTitle": "AI 助手仪表盘"
+    },
+    "examples": {
+      "0": "查询最近 7 天订单金额趋势",
+      "1": "统计各省份用户数量",
+      "2": "对比本月与上月 GMV",
+      "3": "找出 TOP 10 高频商品"
+    }
+  }
+}

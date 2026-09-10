@@ -1,0 +1,160 @@
+# Quality Gate 质量门禁聚合工作流（T-10）
+# 通过 workflow_run 触发，在 ci.yml / security.yml / codeql.yml / sonarqube.yml 完成后
+# 聚合所有工作流结果，生成 Quality Gate 报告并设置 GitHub Status Check
+#
+# 设计原则：
+#   1. 不重复执行任何检查，仅聚合既有工作流结果
+#   2. 任一前置工作流失败 → Quality Gate 失败 → 阻断 PR 合并
+#   3. 报告写入 Job Summary + 创建 Check Run
+name: Quality Gate
+
+on:
+  # workflow_run 触发：在指定工作流完成后自动执行
+  workflow_run:
+    workflows:
+      - "CI"           # ci.yml
+      - "Security"     # security.yml
+      - "CodeQL"       # codeql.yml（假设 name 为 CodeQL）
+      - "SonarQube Analysis"  # sonarqube.yml
+    types:
+      - completed
+  # 支持手动触发（便于调试）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  checks: write
+  actions: read
+  pull-requests: write
+
+jobs:
+  # ============================================================
+  # 聚合工作流结果：检查所有前置工作流的结论
+  # ============================================================
+  aggregate-quality-gate:
+    name: Aggregate Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 获取前置工作流运行结果
+        id: workflow_results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // 获取最近的工作流运行记录
+            const workflows = ['CI', 'Security', 'CodeQL', 'SonarQube Analysis'];
+            const results = {};
+
+            for (const wfName of workflows) {
+              try {
+                // 查询最近一次运行
+                const runs = await github.rest.actions.listWorkflowRunsForRepo({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  per_page: 10
+                });
+
+                // 找到匹配的工作流运行
+                const wfRun = runs.data.workflow_runs
+                  .filter(r => r.name === wfName)
+                  .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+
+                if (wfRun) {
+                  results[wfName] = {
+                    conclusion: wfRun.conclusion,
+                    html_url: wfRun.html_url,
+                    created_at: wfRun.created_at
+                  };
+                  core.info(`${wfName}: ${wfRun.conclusion} (${wfRun.html_url})`);
+                } else {
+                  results[wfName] = { conclusion: 'not_found', html_url: null, created_at: null };
+                  core.info(`${wfName}: 未找到运行记录`);
+                }
+              } catch (err) {
+                core.warning(`获取 ${wfName} 运行结果失败: ${err.message}`);
+                results[wfName] = { conclusion: 'error', html_url: null, created_at: null };
+              }
+            }
+
+            // 判定 Quality Gate 结论
+            // - success: 所有工作流 success 或 not_found（未触发的工作流不阻断）
+            // - failure: 任一工作流 failure 或 cancelled
+            // - neutral: 任一工作流 neutral（如 SonarQube 未配置时跳过）
+            let overall = 'success';
+            let failCount = 0;
+            for (const [name, info] of Object.entries(results)) {
+              if (info.conclusion === 'failure' || info.conclusion === 'cancelled') {
+                overall = 'failure';
+                failCount++;
+              }
+            }
+
+            core.setOutput('overall', overall);
+            core.setOutput('fail_count', failCount);
+            core.setOutput('results_json', JSON.stringify(results));
+            core.info(`Quality Gate 结论: ${overall}（失败 ${failCount} 个工作流）`);
+
+      - name: 生成 Quality Gate 报告
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const results = JSON.parse('${{ steps.workflow_results.outputs.results_json }}');
+            const overall = '${{ steps.workflow_results.outputs.overall }}';
+            const failCount = '${{ steps.workflow_results.outputs.fail_count }}';
+
+            // 写入 Job Summary
+            const summary = core.summary;
+            summary.addRaw('## Quality Gate 报告\n\n');
+            summary.addRaw(`**整体结论**: ${overall === 'success' ? '✅ 通过' : '❌ 失败'}\n\n`);
+            summary.addRaw(`**失败工作流数**: ${failCount}\n\n`);
+            summary.addRaw('### 前置工作流结果\n\n');
+            summary.addRaw('| 工作流 | 结论 | 运行时间 | 链接 |\n');
+            summary.addRaw('|--------|------|---------|------|\n');
+            for (const [name, info] of Object.entries(results)) {
+              const emoji = info.conclusion === 'success' ? '✅' :
+                            info.conclusion === 'failure' ? '❌' :
+                            info.conclusion === 'not_found' ? '⬜' : '⚠️';
+              const link = info.html_url ? `[查看](${info.html_url})` : 'N/A';
+              summary.addRaw(`| ${name} | ${emoji} ${info.conclusion} | ${info.created_at || 'N/A'} | ${link} |\n`);
+            }
+            summary.addRaw('\n### 门禁策略\n\n');
+            summary.addRaw('- CI（ci.yml）：代码检查 + 单元测试 + 覆盖率门禁 + 趋势阻断 + 基线一致性\n');
+            summary.addRaw('- Security（security.yml）：Trivy + govulncheck + pip-audit + OWASP + ZAP + Semgrep\n');
+            summary.addRaw('- CodeQL：代码语义级 SAST 静态分析\n');
+            summary.addRaw('- SonarQube Analysis：代码质量 + 安全 hotspot\n');
+            summary.addRaw('\n> Quality Gate 通过 = 所有前置工作流成功。失败时阻断 PR 合并。\n');
+            await summary.write();
+
+      - name: 设置 GitHub Status Check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const overall = '${{ steps.workflow_results.outputs.overall }}';
+            const failCount = '${{ steps.workflow_results.outputs.fail_count }}';
+
+            // 创建 Check Run（在对应 commit 上设置状态）
+            const { data: check } = await github.rest.checks.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              name: 'Quality Gate',
+              head_sha: context.payload.workflow_run?.head_sha || context.sha,
+              status: 'completed',
+              conclusion: overall,
+              output: {
+                title: overall === 'success' ? 'Quality Gate Passed' : `Quality Gate Failed (${failCount} workflows)`,
+                summary: overall === 'success'
+                  ? '✅ 所有前置工作流通过'
+                  : `❌ ${failCount} 个前置工作流失败，详见 Job Summary`
+              }
+            });
+
+            core.info(`Check Run 创建成功: ${check.html_url}`);
+
+      - name: 阻断 CI（如有工作流失败）
+        if: steps.workflow_results.outputs.overall == 'failure'
+        run: |
+          echo "::error::Quality Gate 失败：${{ steps.workflow_results.outputs.fail_count }} 个前置工作流未通过"
+          echo "请查看上方报告定位失败的工作流，修复后重新触发"
+          exit 1

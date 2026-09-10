@@ -1,0 +1,33 @@
+# Reusable Workflow: Go 环境初始化
+# 调用方式：uses: .github/workflows/_reusable-setup-go.yml
+# T-10: 统一 Go 环境配置，消除 ci.yml/build.yml/security.yml 重复
+name: Reusable Setup Go
+
+on:
+  workflow_call:
+    inputs:
+      go-version:
+        description: 'Go 版本'
+        type: string
+        default: '1.26.6'
+
+jobs:
+  setup-go:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 安装 Go ${{ inputs.go-version }}
+        uses: actions/setup-go@v7
+        with:
+          go-version: ${{ inputs.go-version }}
+          cache: true
+          cache-dependency-path: |
+            platform/ai-assistant/go.sum
+            platform/catalog/go.sum
+            platform/dqctl/go.sum
+            platform/infra-provider-baremetal/go.sum
+            platform/karmada/api/go.sum
+            platform/karmada/failover/api/go.sum
+            platform/knative/runtimes/go/go.sum
+            platform/llm-gateway/go.sum
+            platform/observability/query-api/go.sum
+            platform/vector-engine/go.sum

@@ -57,6 +57,8 @@
       "queryDone": "查询完成",
       "testOk": "连接成功",
       "testFailed": "连接失败"
-    }
+    },
+    "uncategorized": "未分类",
+    "typeCount": "{count} 个类型"
   }
 }

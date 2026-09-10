@@ -9,6 +9,10 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as tenantApi from '@/api/tenant'
 import type { Tenant } from '@/api/types'
+import { i18n } from '@/i18n'
+
+/** store 内使用的 i18n 翻译函数（store 不在组件上下文内，不能用 useI18n()） */
+const t = i18n.global.t
 
 /** localStorage 持久化键 */
 const CURRENT_TENANT_KEY = 'sq_current_tenant'
@@ -46,7 +50,7 @@ export const useTenantStore = defineStore('tenant', () => {
         currentTenant.value = matched ?? result[0] ?? null
       }
     } catch (e) {
-      error.value = (e as Error).message || '加载租户列表失败'
+      error.value = (e as Error).message || t('errors.tenant.loadFailed')
     } finally {
       loading.value = false
     }

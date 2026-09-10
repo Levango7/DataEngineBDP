@@ -212,6 +212,54 @@
 - **基线更新**：覆盖率提升后执行 `bash scripts/coverage/update-baseline.sh all` 更新基线
 - **注意**：切勿在覆盖率下降时更新基线，否则趋势阻断将失效
 
+#### 4.2.1 基线保护机制（T-08 增强，2026-09-11）
+
+> 此前基线更新依赖手动执行脚本，存在以下风险：
+> - 基线可被人为调高远超实际覆盖率，使趋势阻断形同虚设
+> - 基线可被人为降低，绕过趋势阻断
+> - 基线可包含已删除模块名或缺少新增模块，导致检查遗漏
+> - PR 修改基线无强制 review，任意贡献者可篡改
+
+本次增强引入三重保护：
+
+| 保护层 | 实现位置 | 作用 |
+|--------|---------|------|
+| **脚本只升不降** | `scripts/coverage/update-baseline.sh` | 更新基线时与旧基线比较，新值 < 旧值直接 `exit 1` 并打印差异；保留 `_comment`/`_source`/`_threshold_note` 元数据，追加 `_updated_at` 时间戳 |
+| **CI 基线一致性检查** | `ci.yml → baseline-consistency-check job` | 依赖覆盖率 job，下载覆盖率摘要 artifact，校验：① 基线值 ≤ 当前覆盖率 + 2%；② 基线不含已删除模块名；③ 基线不缺新增模块 |
+| **PR 基线守卫** | `ci.yml → baseline-pr-guard job` | 仅在 PR 修改 `docs/coverage-baseline/**` 时执行，比较 PR 前后基线值，确保只升不降；删除模块基线也被阻断 |
+| **CODEOWNERS 强制 review** | `.github/CODEOWNERS` | `docs/coverage-baseline/ @coverage-gatekeeper`——PR 修改基线文件时自动请求覆盖率门禁工程师 review |
+
+**基线更新流程（推荐）**：
+
+```bash
+# 1. 本地跑全量测试，确保覆盖率提升
+mvn test  # Java
+go test -cover ./...  # Go
+pytest --cov  # Python
+
+# 2. 更新基线（脚本自动校验只升不降）
+bash scripts/coverage/update-baseline.sh all
+
+# 3. 提交 PR（触发 baseline-pr-guard + CODEOWNERS review）
+git add docs/coverage-baseline/
+git commit -m "chore(coverage): update baseline after test supplement"
+git push
+```
+
+若脚本检测到下降项，会输出类似以下信息并 `exit 1`：
+
+```
+[FAIL] sql-gateway 覆盖率下降：基线 73% → 新值 70%（下降 3%）
+========== Java 基线更新被拒绝（存在下降项） ==========
+提示：仅在覆盖率提升时更新基线；若下降为预期（重构/删测），请人工评审后手动编辑 docs/coverage-baseline/java.json
+```
+
+**人工降级基线的例外流程**：当模块重构导致覆盖率合理下降（如删除冗余测试、收紧测试范围），需：
+1. 在 PR 描述中说明降级原因
+2. 手动编辑基线 JSON 文件（绕过脚本保护）
+3. PR 触发 `baseline-pr-guard` 检测到下降，CI 失败
+4. 由 `@coverage-gatekeeper` 团队 review 后手动合并（管理员权限）
+
 ### 4.3 重要约束
 
 - **不要直接提升 CI 阈值至 85%**：当前覆盖率远未达标，会导致 CI 持续失败

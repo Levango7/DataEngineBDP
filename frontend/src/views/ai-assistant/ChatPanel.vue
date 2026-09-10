@@ -25,8 +25,8 @@
         <div class="empty-icon">
           <el-icon :size="48"><ChatDotRound /></el-icon>
         </div>
-        <h2>{{ t.emptyTitle }}</h2>
-        <p class="empty-desc">{{ t.emptyDesc }}</p>
+        <h2>{{ t('aiAssistant.chat.emptyTitle') }}</h2>
+        <p class="empty-desc">{{ t('aiAssistant.chat.emptyDesc') }}</p>
         <div class="example-prompts">
           <button
             v-for="prompt in examplePrompts"
@@ -71,12 +71,12 @@
 
             <!-- SQL 单独块 -->
             <div v-else-if="content.type === 'sql'" class="content-sql">
-              <SqlPreview :sql="content.text ?? ''" :meta="content.sqlMeta" :locale="locale" />
+              <SqlPreview :sql="content.text ?? ''" :meta="content.sqlMeta" />
             </div>
 
             <!-- 表格单独块 -->
             <div v-else-if="content.type === 'table'" class="content-table">
-              <DataTable :table="content.table!" :locale="locale" />
+              <DataTable :table="content.table!" />
             </div>
 
             <!-- 图表单独块 -->
@@ -89,7 +89,6 @@
               <DataSummary
                 :summary="content.text ?? ''"
                 :meta="content.summaryMeta"
-                :locale="locale"
               />
             </div>
 
@@ -100,12 +99,11 @@
                 v-if="content.text"
                 :sql="content.text"
                 :meta="content.sqlMeta"
-                :locale="locale"
                 @reexecute="emit('reexecute')"
               />
 
               <!-- 数据表格 -->
-              <DataTable v-if="content.table" :table="content.table" :locale="locale" />
+              <DataTable v-if="content.table" :table="content.table" />
 
               <!-- 图表 -->
               <ChartView v-if="content.chart" :config="content.chart" />
@@ -115,7 +113,6 @@
                 v-if="content.summaryMeta"
                 :summary="summaryText(msg, idx)"
                 :meta="content.summaryMeta"
-                :locale="locale"
               />
             </div>
           </template>
@@ -154,20 +151,20 @@
     <div class="chat-input-area">
       <!-- 工具栏 -->
       <div class="input-toolbar">
-        <el-tooltip :content="t.tipExecute" placement="top">
+        <el-tooltip :content="t('aiAssistant.chat.tipExecute')" placement="top">
           <el-switch v-model="autoExecute" size="small" />
         </el-tooltip>
-        <span class="toolbar-label">{{ t.autoExecute }}</span>
+        <span class="toolbar-label">{{ t('aiAssistant.chat.autoExecute') }}</span>
 
-        <el-tooltip :content="t.tipChart" placement="top">
+        <el-tooltip :content="t('aiAssistant.chat.tipChart')" placement="top">
           <el-switch v-model="autoRecommendChart" size="small" />
         </el-tooltip>
-        <span class="toolbar-label">{{ t.autoChart }}</span>
+        <span class="toolbar-label">{{ t('aiAssistant.chat.autoChart') }}</span>
 
-        <el-tooltip :content="t.tipSummary" placement="top">
+        <el-tooltip :content="t('aiAssistant.chat.tipSummary')" placement="top">
           <el-switch v-model="autoSummarize" size="small" />
         </el-tooltip>
-        <span class="toolbar-label">{{ t.autoSummary }}</span>
+        <span class="toolbar-label">{{ t('aiAssistant.chat.autoSummary') }}</span>
 
         <div class="spacer"></div>
 
@@ -178,7 +175,7 @@
           :icon="VideoPause"
           @click="emit('abort')"
         >
-          {{ t.stop }}
+          {{ t('aiAssistant.chat.stop') }}
         </el-button>
       </div>
 
@@ -190,7 +187,7 @@
           :rows="1"
           autosize
           resize="none"
-          :placeholder="t.placeholder"
+          :placeholder="t('aiAssistant.chat.placeholder')"
           :disabled="loading"
           @keydown.enter="onEnter"
         />
@@ -201,7 +198,7 @@
           :disabled="inputText.trim().length === 0"
           @click="onSend"
         >
-          {{ t.send }}
+          {{ t('aiAssistant.chat.send') }}
         </el-button>
       </div>
     </div>
@@ -210,6 +207,7 @@
 
 <script setup lang="ts">
 import { ref, watch, nextTick, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElInput, ElButton, ElIcon, ElSwitch, ElTooltip } from 'element-plus'
 import {
   ChatDotRound,
@@ -225,22 +223,12 @@ import SqlPreview from './SqlPreview.vue'
 import DataSummary from './DataSummary.vue'
 import ChartView from './ChartView.vue'
 import DataTable from './DataTable.vue'
-import type {
-  ChatMessage,
-  Locale,
-  MessageContent,
-  SqlMeta,
-  SummaryMeta,
-  TableData,
-  ChartConfig
-} from '@/types/ai-assistant'
+import type { ChatMessage, MessageContent } from '@/types/ai-assistant'
 
 /* ------------------------------ Props / Emits ------------------------------ */
 interface Props {
   /** 消息列表 */
   messages: ChatMessage[]
-  /** 语言 */
-  locale: Locale
   /** 加载状态 */
   loading: boolean
   /** 流式状态 */
@@ -267,6 +255,8 @@ const emit = defineEmits<{
   (e: 'update:autoRecommendChart', value: boolean): void
   (e: 'update:autoSummarize', value: boolean): void
 }>()
+
+const { t } = useI18n()
 
 /* ------------------------------ 双向绑定代理 ------------------------------ */
 const autoExecute = computed({
@@ -333,42 +323,10 @@ watch(
 onMounted(scrollToBottom)
 
 /* ------------------------------ 文案 ------------------------------ */
-const t = computed(() => {
-  if (props.locale === 'zh') {
-    return {
-      emptyTitle: 'AI 数据助手',
-      emptyDesc: '用自然语言提问，自动生成 SQL、推荐图表、解读数据。',
-      placeholder: '请输入您的问题，如：查询最近 7 天订单金额趋势',
-      send: '发送',
-      stop: '停止',
-      autoExecute: '自动执行',
-      autoChart: '推荐图表',
-      autoSummary: '数据解读',
-      tipExecute: '生成 SQL 后是否自动执行',
-      tipChart: '是否自动推荐图表类型',
-      tipSummary: '是否自动生成数据解读摘要'
-    }
-  }
-  return {
-    emptyTitle: 'AI Data Assistant',
-    emptyDesc: 'Ask in natural language. SQL, charts and insights are generated automatically.',
-    placeholder: 'Ask anything, e.g. show order trend for last 7 days',
-    send: 'Send',
-    stop: 'Stop',
-    autoExecute: 'Auto Execute',
-    autoChart: 'Recommend Chart',
-    autoSummary: 'Summarize',
-    tipExecute: 'Whether to execute SQL automatically after generation',
-    tipChart: 'Whether to recommend chart type automatically',
-    tipSummary: 'Whether to summarize results automatically'
-  }
-})
-
 function roleLabel(role: string): string {
-  if (props.locale === 'zh') {
-    return role === 'user' ? '我' : 'AI 助手'
-  }
-  return role === 'user' ? 'You' : 'AI Assistant'
+  return role === 'user'
+    ? t('aiAssistant.chat.roleUser')
+    : t('aiAssistant.chat.roleAssistant')
 }
 
 /** 从下一条 summary 内容取出文本 */

@@ -13,6 +13,10 @@
  * - 时间字段用 ISO 字符串，前端展示用 new Date()
  */
 import { defineStore } from 'pinia'
+import { i18n } from '@/i18n'
+
+/** store 内使用的 i18n 翻译函数（store 不在组件上下文内，不能用 useI18n()） */
+const t = i18n.global.t
 
 const STORAGE_KEY = 'sq_tenant_admin_v1'
 
@@ -112,6 +116,7 @@ function saveToStorage(state: State): void {
 
 /** 初始演示数据：1 个平台 demo + 2 个示例租户，4 张邀请码 + 1 条待审注册 */
 function seedInitial(): State {
+  // @i18n-ignore mock-data — 以下 displayName/note/fullName/department 为演示用静态数据，不参与 i18n
   const platformTenant: AdminTenant = {
     id: 1,
     name: 'platform',
@@ -336,14 +341,14 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
     } {
       const upper = code.toUpperCase().trim()
       const invite = this.invites.find((i) => i.code === upper)
-      if (!invite) return { ok: false, error: '邀请码不存在' }
-      if (invite.status === 'CANCELLED') return { ok: false, invite, error: '邀请码已撤销' }
-      if (invite.status === 'ACTIVE') return { ok: false, invite, error: '邀请码已被使用' }
-      if (invite.status === 'EXPIRED') return { ok: false, invite, error: '邀请码已过期' }
+      if (!invite) return { ok: false, error: t('tenantAdmin.invite.notFound') }
+      if (invite.status === 'CANCELLED') return { ok: false, invite, error: t('tenantAdmin.invite.cancelled') }
+      if (invite.status === 'ACTIVE') return { ok: false, invite, error: t('tenantAdmin.invite.used') }
+      if (invite.status === 'EXPIRED') return { ok: false, invite, error: t('tenantAdmin.invite.expired') }
       if (new Date(invite.expiresAt) < new Date()) {
         invite.status = 'EXPIRED'
         this.persist()
-        return { ok: false, invite, error: '邀请码已过期' }
+        return { ok: false, invite, error: t('tenantAdmin.invite.expired') }
       }
       const tenant = this.tenants.find((t) => t.id === invite.tenantId)
       return { ok: true, invite, tenant }
@@ -364,7 +369,7 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
       const exists = this.registrations.find(
         (r) => r.tenantId === inv.tenantId && r.username === payload.username
       )
-      if (exists) return { ok: false, error: '该用户名在租户内已存在' }
+      if (exists) return { ok: false, error: t('tenantAdmin.reg.usernameExists') }
 
       const reg: AdminRegistration = {
         id: ++this.nextIds.registration,
@@ -395,8 +400,8 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
       note: string
     ): { ok: boolean; error?: string } {
       const reg = this.registrations.find((r) => r.id === id)
-      if (!reg) return { ok: false, error: '申请不存在' }
-      if (reg.status !== 'PENDING') return { ok: false, error: '该申请已审批' }
+      if (!reg) return { ok: false, error: t('tenantAdmin.reg.notFound') }
+      if (reg.status !== 'PENDING') return { ok: false, error: t('tenantAdmin.reg.alreadyDecided') }
       reg.status = approved ? 'APPROVED' : 'REJECTED'
       reg.approvedBy = approver
       reg.approveNote = note

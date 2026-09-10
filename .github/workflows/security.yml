@@ -11,9 +11,10 @@ on:
   pull_request:
     branches:
       - main
-  # 每周二 02:00 UTC 全量安全扫描
+  # 每周二 02:00 UTC 全量安全扫描 + 每周三 03:00 UTC（合并自 security-scan.yml）
   schedule:
     - cron: '0 2 * * 2'
+    - cron: '0 3 * * 3'
   workflow_dispatch:
 
 # 权限：security-events: write 上传 SARIF；contents: read 读取代码
@@ -28,109 +29,15 @@ concurrency:
 
 jobs:
   # ============================================================
-  # SonarQube 静态分析：聚合 Java/Go/Python/JS 多语言代码质量与安全
-  # 依赖 ci.yml 的覆盖率报告（通过 artifact 下载或重新生成）
-  # 需配置 Secret：SONAR_TOKEN、SONAR_HOST_URL
-  # 若未配置 SonarQube，则该 job 会跳过
+  # T-10: SonarQube 静态分析已移至独立的 sonarqube.yml 工作流
+  # 此处不再重复执行，避免双重 SonarQube 分析消耗配额
   # ============================================================
-  sonarqube:
-    name: SonarQube Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # SonarQube 需要 blame 信息
-
-      - name: 检查 SonarQube 配置
-        id: sonar_check
-        run: |
-          if [ -z "${{ secrets.SONAR_TOKEN }}" ] || [ -z "${{ secrets.SONAR_HOST_URL }}" ]; then
-            echo "::warning::SONAR_TOKEN 或 SONAR_HOST_URL 未配置，跳过 SonarQube 分析"
-            echo "skip=true" >> $GITHUB_OUTPUT
-          else
-            echo "SonarQube 配置完整，开始分析"
-            echo "skip=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: 安装 JDK 17 + Maven 3.9
-        if: steps.sonar_check.outputs.skip != 'true'
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'maven'
-
-      - name: 安装 SonarQube Scanner
-        if: steps.sonar_check.outputs.skip != 'true'
-        run: |
-          # 安装 sonar-scanner CLI（用于非 Maven 项目扫描）
-          SCANNER_VERSION=5.0.1.3006
-          curl -sSL "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SCANNER_VERSION}-linux-x64.zip" -o /tmp/sonar-scanner.zip
-          unzip -q /tmp/sonar-scanner.zip -d /tmp/
-          echo "/tmp/sonar-scanner-${SCANNER_VERSION}-linux-x64/bin" >> $GITHUB_PATH
-
-      - name: 执行 SonarQube 分析（Maven 项目）
-        if: steps.sonar_check.outputs.skip != 'true'
-        run: |
-          while IFS= read -r pom; do
-            mod_dir=$(dirname "$pom")
-            mod_name=$(basename "$mod_dir")
-            echo "============================================"
-            echo "  SonarQube Maven 分析: $mod_name"
-            echo "============================================"
-            mvn -f "$pom" verify sonar:sonar -B \
-              -Dsonar.projectKey="${{ github.repository_owner }}_${mod_name}" \
-              -Dsonar.projectName="$mod_name" \
-              -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-              -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
-              -Dsonar.coverage.jacoco.xmlReportPaths="target/site/jacoco/jacoco.xml" \
-              -Dsonar.exclusions="**/target/**,**/generated/**" \
-              || echo "::warning::$mod_name SonarQube 分析失败，继续下一个"
-          done < <(find platform -name pom.xml -not -path "*/target/*" 2>/dev/null)
-
-      - name: 执行 SonarQube 分析（Go/Python 项目）
-        if: steps.sonar_check.outputs.skip != 'true'
-        run: |
-          # Go 项目
-          while IFS= read -r gomod; do
-            mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
-            echo "============================================"
-            echo "  SonarQube Scanner 分析 (Go): $mod_name"
-            echo "============================================"
-            (cd "$mod_dir" && sonar-scanner \
-              -Dsonar.projectKey="${{ github.repository_owner }}_${mod_name}" \
-              -Dsonar.projectName="$mod_name" \
-              -Dsonar.sources=. \
-              -Dsonar.language=go \
-              -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-              -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
-              -Dsonar.exclusions="**/vendor/**,**/*_test.go" \
-              ) || echo "::warning::$mod_name SonarQube 分析失败"
-          done < <(find platform -name go.mod -not -path "*/vendor/*" 2>/dev/null)
-          # Python 项目
-          while IFS= read -r f; do
-            mod_dir=$(dirname "$f")
-            mod_name=$(basename "$mod_dir")
-            echo "============================================"
-            echo "  SonarQube Scanner 分析 (Python): $mod_name"
-            echo "============================================"
-            (cd "$mod_dir" && sonar-scanner \
-              -Dsonar.projectKey="${{ github.repository_owner }}_${mod_name}" \
-              -Dsonar.projectName="$mod_name" \
-              -Dsonar.sources=. \
-              -Dsonar.language=python \
-              -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" \
-              -Dsonar.token="${{ secrets.SONAR_TOKEN }}" \
-              -Dsonar.exclusions="**/tests/**,**/test_*,**/.venv/**" \
-              ) || echo "::warning::$mod_name SonarQube 分析失败"
-          done < <(find platform -name pyproject.toml 2>/dev/null)
 
   # ============================================================
   # Trivy 依赖漏洞扫描：扫描代码库 + Docker 镜像 + IaC 文件
   # 输出 SARIF 上传到 GitHub Security tab
   # ============================================================
+
   trivy-scan:
     name: Trivy Vulnerability Scan
     runs-on: ubuntu-latest
@@ -452,18 +359,123 @@ jobs:
         run: docker compose down -v || true
 
   # ============================================================
+  # T-10: Semgrep 静态代码扫描（合并自 security-scan.yml）
+  # 基于规则集检测常见安全反模式：security-audit + java + python + javascript
+  # ============================================================
+  semgrep:
+    name: Semgrep SAST Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: Semgrep 扫描（生成 SARIF）
+        # returntocorp/semgrep-action@v1 已废弃，改用官方 Docker 镜像直接产出 SARIF
+        # --error 使发现问题返回非零退出码阻断 CI
+        run: |
+          mkdir -p reports/semgrep
+          docker run --rm -v "${PWD}:/src" semgrep/semgrep \
+            semgrep --config p/security-audit --config p/java \
+              --config p/python --config p/javascript \
+              --error --sarif --output /src/reports/semgrep/semgrep.sarif
+
+      - name: 上传 Semgrep SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/semgrep/semgrep.sarif
+
+      - name: 上传 Semgrep 报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-reports
+          path: reports/semgrep/
+          retention-days: 30
+
+  # ============================================================
+  # T-10: Trivy 镜像扫描（合并自 security-scan.yml）
+  # 扫描 encaps-layer Docker 镜像的 HIGH/CRITICAL 漏洞
+  # ============================================================
+  trivy-image:
+    name: Trivy Image Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 设置 JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - name: 安装 Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+            | sh -s -- -b /usr/local/bin
+          trivy --version
+
+      - name: 构建 encaps-layer 镜像
+        run: |
+          # Dockerfile 已统一为项目根 context 模式
+          if [ -f platform/encaps-layer/Dockerfile ]; then
+            mvn install -B -N -q || echo "::warning::父 POM 安装失败"
+            mvn -f platform/common-security/pom.xml install -B -q -Dmaven.test.skip=true \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
+              || echo "::warning::common-security 安装失败"
+            mvn -f platform/encaps-layer/pom.xml package -B -q -Dmaven.test.skip=true \
+              -Dpmd.skip=true -Dcheckstyle.skip=true \
+              || echo "::warning::Maven 打包失败，跳过镜像构建"
+            docker build -f platform/encaps-layer/Dockerfile -t encaps-layer:scan . \
+              || echo "::warning::Docker 构建失败，跳过镜像扫描"
+          else
+            echo "未找到 Dockerfile，跳过镜像扫描"
+          fi
+
+      - name: Trivy 扫描镜像
+        if: always()
+        run: |
+          mkdir -p reports/trivy
+          if docker image inspect encaps-layer:scan > /dev/null 2>&1; then
+            trivy image --exit-code 1 --format sarif \
+              --output reports/trivy/encaps-layer-image.sarif \
+              --scanners vuln --severity HIGH,CRITICAL \
+              --ignore-unfixed \
+              encaps-layer:scan
+          else
+            echo "镜像未构建，跳过扫描"
+          fi
+
+      - name: 上传镜像扫描 SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy
+
+      - name: 上传镜像扫描报告 Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-reports
+          path: reports/trivy/
+          retention-days: 30
+
+  # ============================================================
   # 安全扫描汇总：所有安全检查完成后输出摘要
   # ============================================================
   security-summary:
     name: Security Scan Summary
     runs-on: ubuntu-latest
     needs:
-      - sonarqube
       - trivy-scan
       - go-vulncheck
       - python-audit
       - java-dependency-check
       - zap-dast
+      - semgrep
+      - trivy-image
     if: always()
     steps:
       - name: 输出安全扫描摘要
@@ -475,12 +487,14 @@ jobs:
           echo "Commit: ${{ github.sha }}"
           echo ""
           echo "已执行的安全扫描："
-          echo "  ✓ SonarQube 静态分析（代码质量+安全 hotspot）"
           echo "  ✓ Trivy 依赖漏洞扫描（fs + IaC）"
           echo "  ✓ govulncheck Go 漏洞检查"
           echo "  ✓ pip-audit Python 依赖审计"
           echo "  ✓ OWASP Dependency-Check Java 依赖审计"
           echo "  ✓ ZAP DAST 动态扫描（仅 schedule/manual）"
+          echo "  ✓ Semgrep SAST 静态扫描（合并自 security-scan.yml）"
+          echo "  ✓ Trivy 镜像扫描（合并自 security-scan.yml）"
+          echo "  ✓ SonarQube 静态分析由独立 sonarqube.yml 工作流执行"
           echo ""
           echo "扫描结果："
           echo "  - SARIF 已上传到 GitHub Security tab"

@@ -19,6 +19,7 @@
  * ```
  */
 import { ref, reactive, computed, onMounted, onUnmounted, type Ref, type ComputedRef } from 'vue'
+import { useI18n } from 'vue-i18n'
 import * as aiApi from '@/api/ai-assistant'
 import {
   generateMessageId,
@@ -68,8 +69,8 @@ export interface UseAiAssistantReturn {
   messages: Ref<ChatMessage[]>
   /** 历史会话列表 */
   sessions: Ref<ChatSession[]>
-  /** 语言 */
-  locale: Ref<Locale>
+  /** 语言（从全局 i18n 派生，只读） */
+  locale: ComputedRef<Locale>
   /** 当前数据源 ID */
   datasourceId: Ref<string | undefined>
   /** SQL 方言 */
@@ -142,7 +143,6 @@ export interface UseAiAssistantReturn {
  */
 export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssistantReturn {
   const {
-    initialLocale = 'zh',
     initialDatasourceId,
     initialAutoExecute = true,
     initialAutoRecommendChart = true,
@@ -150,11 +150,14 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
     loadSessionsOnMount = true
   } = options
 
+  const { t, locale: i18nLocale } = useI18n()
+
   /* ------------------------------ 状态 ------------------------------ */
   const currentSession = ref<ChatSession | null>(null)
   const messages = ref<ChatMessage[]>([])
   const sessions = ref<ChatSession[]>([])
-  const locale = ref<Locale>(initialLocale)
+  /** 语言：从全局 i18n 派生（'zh-CN' → 'zh'，'en-US' → 'en'） */
+  const locale = computed<Locale>(() => (i18nLocale.value.startsWith('zh') ? 'zh' : 'en'))
   const datasourceId = ref<string | undefined>(initialDatasourceId)
   const dialect = ref<SqlDialect>('ANSI')
   const autoExecute = ref(initialAutoExecute)
@@ -295,7 +298,7 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
     } else if (resp.message?.contents?.length) {
       contents.push(...resp.message.contents)
     } else {
-      contents.push(createTextContent(locale.value === 'zh' ? '已处理完成。' : 'Done.'))
+      contents.push(createTextContent(t('aiAssistant.session.done')))
     }
 
     return contents
@@ -340,7 +343,7 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
   function createSession(): ChatSession {
     return {
       id: generateSessionId(),
-      title: locale.value === 'zh' ? '新对话' : 'New Chat',
+      title: t('aiAssistant.session.newChat'),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       messageCount: 0,
@@ -496,11 +499,11 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
   /* ------------------------------ 语言 / 设置 ------------------------------ */
 
   function toggleLocale(): void {
-    locale.value = locale.value === 'zh' ? 'en' : 'zh'
+    i18nLocale.value = locale.value === 'zh' ? 'en-US' : 'zh-CN'
   }
 
   function setLocale(loc: Locale): void {
-    locale.value = loc
+    i18nLocale.value = loc === 'zh' ? 'zh-CN' : 'en-US'
   }
 
   function setDatasource(id: string | undefined): void {
@@ -574,8 +577,8 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
     try {
       const resp = await aiApi.createDashboard({
         title: {
-          zh: currentSession.value?.title ?? 'AI 助手仪表盘',
-          en: currentSession.value?.title ?? 'AI Assistant Dashboard'
+          zh: currentSession.value?.title ?? t('aiAssistant.session.dashboardTitle'),
+          en: currentSession.value?.title ?? t('aiAssistant.session.dashboardTitle')
         },
         datasourceId: datasourceId.value,
         sql: sql.sql,
@@ -605,21 +608,13 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
     try {
       examplePrompts.value = await aiApi.getExamplePrompts(locale.value)
     } catch {
-      // 加载失败使用内置示例
-      examplePrompts.value =
-        locale.value === 'zh'
-          ? [
-              '查询最近 7 天订单金额趋势',
-              '统计各省份用户数量',
-              '对比本月与上月 GMV',
-              '找出 TOP 10 高频商品'
-            ]
-          : [
-              'Show order amount trend for last 7 days',
-              'Count users by province',
-              'Compare this month vs last month GMV',
-              'Find TOP 10 frequent products'
-            ]
+      // 加载失败使用内置示例（从 i18n 词条获取）
+      examplePrompts.value = [
+        t('aiAssistant.examples.0'),
+        t('aiAssistant.examples.1'),
+        t('aiAssistant.examples.2'),
+        t('aiAssistant.examples.3')
+      ]
     }
   }
 

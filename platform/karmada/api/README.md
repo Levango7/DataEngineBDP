@@ -6,7 +6,7 @@
 
 ## 技术栈
 
-- **语言**：Go 1.25
+- **语言**：Go 1.26
 - **Web 框架**：Gin
 - **ORM**：GORM（开发环境 SQLite，生产环境可切换 PostgreSQL）
 - **认证**：JWT Bearer Token（HMAC-SHA256，与平台其他组件统一）

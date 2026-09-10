@@ -53,6 +53,8 @@
       "queryDone": "Query completed",
       "testOk": "Connection successful",
       "testFailed": "Connection failed"
-    }
+    },
+    "uncategorized": "Uncategorized",
+    "typeCount": "{count} types"
   }
 }

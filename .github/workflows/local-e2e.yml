@@ -45,58 +45,9 @@ jobs:
         run: bash scripts/profile-render-check.sh
 
   # ============================================================
-  # 2. 单组件测试（并行矩阵）
+  # 2. 单组件测试（T-10: 已移除，与 ci.yml 的 java-build-test/go-build-test/python-test 重复）
+  # 如需独立运行单组件测试，请触发 ci.yml 工作流
   # ============================================================
-  unit-tests:
-    name: Unit Tests
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      matrix:
-        component:
-          - {name: "catalog", dir: "platform/catalog", cmd: "go test -v ./..."}
-          - {name: "sql-gateway", dir: "platform/sql-gateway", cmd: "mvn -f ../../pom.xml install -N -q -DskipTests && mvn -f ../common-security install -q -DskipTests && mvn test -q"}
-          - {name: "asset-exchange", dir: "platform/asset-exchange", cmd: "pytest tests/ -v"}
-          - {name: "llm-gateway", dir: "platform/llm-gateway", cmd: "go test -v ./..."}
-          - {name: "frontend", dir: "frontend", cmd: "npm ci && npm run test:coverage"}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup Go
-        if: matrix.component.name == 'catalog' || matrix.component.name == 'llm-gateway'
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-      - name: Setup Java
-        if: matrix.component.name == 'sql-gateway'
-        uses: actions/setup-java@v4
-        with:
-          distribution: "temurin"
-          java-version: "17"
-          cache: maven
-      - name: Setup Python
-        if: matrix.component.name == 'asset-exchange'
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install pytest + component deps
-        if: matrix.component.name == 'asset-exchange'
-        run: |
-          # 测试代码 import fastapi/pydantic/httpx 等，需安装组件 requirements
-          # （此前只装 pytest，干净 runner 上 ImportError）
-          pip install -q pytest
-          pip install -q -r platform/asset-exchange/requirements.txt
-          # 安装包本身（editable mode），使 asset_exchange 模块可导入
-          pip install -q -e platform/asset-exchange
-      - name: Setup Node
-        if: matrix.component.name == 'frontend'
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
-      - name: Run tests
-        working-directory: ${{ matrix.component.dir }}
-        run: ${{ matrix.component.cmd }}
 
   # ============================================================
   # 3. 核心 5 服务 Kind 部署 + 冒烟测试

@@ -10,6 +10,10 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { post } from '@/api/client'
 import type { LoginParams, LoginResult, User } from '@/api/types'
+import { i18n } from '@/i18n'
+
+/** store 内使用的 i18n 翻译函数（store 不在组件上下文内，不能用 useI18n()） */
+const t = i18n.global.t
 
 /** sessionStorage 持久化键（token 用 sessionStorage 降低 XSS 风险） */
 const TOKEN_KEY = 'sq_token'
@@ -89,7 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
           const mockUser: User = {
             id: 'local-admin',
             username: 'admin',
-            nickname: '本地管理员',
+            nickname: t('app.devMockNickname'),
             email: 'admin@example.com',
             tenantId: 'platform-admin',
             roles: ['admin'],
