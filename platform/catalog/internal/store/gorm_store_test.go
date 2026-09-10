@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -104,9 +105,10 @@ func TestGormStore_GetDatabase_NotFound(t *testing.T) {
 // TestGormStore_ListDatabases_Empty 测试空列表。
 func TestGormStore_ListDatabases_Empty(t *testing.T) {
 	s := setupGormStore()
-	dbs, err := s.ListDatabases("t1")
+	dbs, total, err := s.ListDatabases("t1", 20, 0)
 	require.NoError(t, err)
 	assert.Empty(t, dbs)
+	assert.Equal(t, int64(0), total)
 }
 
 // TestGormStore_ListDatabases_Multiple 测试多个数据库列表。
@@ -116,9 +118,10 @@ func TestGormStore_ListDatabases_Multiple(t *testing.T) {
 	require.NoError(t, s.CreateDatabase(&model.Database{TenantID: "t1", ID: "gl-002", Name: "db2", Owner: "admin", CreatedAt: gormFixedTime()}))
 	require.NoError(t, s.CreateDatabase(&model.Database{TenantID: "t1", ID: "gl-003", Name: "db3", Owner: "admin", CreatedAt: gormFixedTime()}))
 
-	dbs, err := s.ListDatabases("t1")
+	dbs, total, err := s.ListDatabases("t1", 20, 0)
 	require.NoError(t, err)
 	assert.Len(t, dbs, 3)
+	assert.Equal(t, int64(3), total)
 }
 
 // TestGormStore_DeleteDatabase_Success 测试成功删除数据库。
@@ -212,9 +215,10 @@ func TestGormStore_ListTables_All(t *testing.T) {
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "gla-001", DatabaseName: "db1", TableName: "t1", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime()}))
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "gla-002", DatabaseName: "db2", TableName: "t2", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime()}))
 
-	tables, err := s.ListTables("t1", "")
+	tables, total, err := s.ListTables("t1", "", 20, 0)
 	require.NoError(t, err)
 	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(2), total)
 }
 
 // TestGormStore_ListTables_FilterByDB 测试按数据库名过滤表。
@@ -223,9 +227,10 @@ func TestGormStore_ListTables_FilterByDB(t *testing.T) {
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "glf-001", DatabaseName: "db1", TableName: "t1", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime()}))
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "glf-002", DatabaseName: "db2", TableName: "t2", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime()}))
 
-	tables, err := s.ListTables("t1", "db1")
+	tables, total, err := s.ListTables("t1", "db1", 20, 0)
 	require.NoError(t, err)
 	assert.Len(t, tables, 1)
+	assert.Equal(t, int64(1), total)
 	assert.Equal(t, "db1", tables[0].DatabaseName)
 }
 
@@ -392,4 +397,114 @@ func TestGormStore_SearchTables_DescriptionMatch(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 	assert.Equal(t, "gd-001", results[0].Table.ID)
+}
+
+// ============ GormStore 分页测试（真实 SQLite） ============
+
+// TestGormStore_ListDatabases_Pagination 验证 ListDatabases 分页。
+func TestGormStore_ListDatabases_Pagination(t *testing.T) {
+	s := setupGormStore()
+	// 插入 5 条数据
+	for i := 0; i < 5; i++ {
+		require.NoError(t, s.CreateDatabase(&model.Database{
+			TenantID: "t1", ID: fmt.Sprintf("pgdb-%d", i),
+			Name: fmt.Sprintf("pdb%d", i), Owner: "admin", CreatedAt: gormFixedTime(),
+		}))
+	}
+
+	// page=1, pageSize=2 → 2 条，total=5
+	dbs, total, err := s.ListDatabases("t1", 2, 0)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=2, pageSize=2 → offset=2, 2 条
+	dbs, total, err = s.ListDatabases("t1", 2, 2)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=3, pageSize=2 → offset=4, 1 条
+	dbs, total, err = s.ListDatabases("t1", 2, 4)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 1)
+	assert.Equal(t, int64(5), total)
+
+	// page=4, pageSize=2 → offset=6, 0 条（超出范围）
+	dbs, total, err = s.ListDatabases("t1", 2, 6)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 0)
+	assert.Equal(t, int64(5), total)
+}
+
+// TestGormStore_ListTables_Pagination 验证 ListTables 分页。
+func TestGormStore_ListTables_Pagination(t *testing.T) {
+	s := setupGormStore()
+	// 插入 5 条数据
+	for i := 0; i < 5; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			TenantID: "t1", ID: fmt.Sprintf("pgt-%d", i),
+			DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i),
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+		}))
+	}
+
+	// page=1, pageSize=2 → 2 条，total=5
+	tables, total, err := s.ListTables("t1", "", 2, 0)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=2, pageSize=2 → offset=2, 2 条
+	tables, total, err = s.ListTables("t1", "", 2, 2)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=3, pageSize=2 → offset=4, 1 条
+	tables, total, err = s.ListTables("t1", "", 2, 4)
+	require.NoError(t, err)
+	assert.Len(t, tables, 1)
+	assert.Equal(t, int64(5), total)
+}
+
+// TestGormStore_ListTables_PaginationWithFilter 验证 ListTables 分页与 database 过滤同时生效。
+func TestGormStore_ListTables_PaginationWithFilter(t *testing.T) {
+	s := setupGormStore()
+	// db1 下 3 张表，db2 下 2 张表
+	for i := 0; i < 3; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			TenantID: "t1", ID: fmt.Sprintf("pf-%d", i),
+			DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i),
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+		}))
+	}
+	for i := 0; i < 2; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			TenantID: "t1", ID: fmt.Sprintf("pf2-%d", i),
+			DatabaseName: "db2", TableName: fmt.Sprintf("u%d", i),
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: gormFixedTime(), UpdatedAt: gormFixedTime(),
+		}))
+	}
+
+	// 过滤 db1，pageSize=2, offset=0 → 2 条，total=3
+	tables, total, err := s.ListTables("t1", "db1", 2, 0)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(3), total)
+
+	// 过滤 db1，pageSize=2, offset=2 → 1 条，total=3
+	tables, total, err = s.ListTables("t1", "db1", 2, 2)
+	require.NoError(t, err)
+	assert.Len(t, tables, 1)
+	assert.Equal(t, int64(3), total)
+
+	// 过滤 db2，pageSize=10, offset=0 → 2 条，total=2
+	tables, total, err = s.ListTables("t1", "db2", 10, 0)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(2), total)
 }

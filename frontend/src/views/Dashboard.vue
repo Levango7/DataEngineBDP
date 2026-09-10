@@ -25,7 +25,7 @@
       <template v-else-if="overviewError">
         <div class="card" style="grid-column: span 4" role="alert" aria-live="assertive">
           <h3>{{ t('dashboard.kpi.errorTitle') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ overviewError.message }}，
             <a
               href="javascript:void(0)"
@@ -85,12 +85,12 @@
       <div class="card" role="region" :aria-label="t('dashboard.trend.title')">
         <h3>{{ t('dashboard.trend.title') }}</h3>
         <template v-if="overviewLoading">
-          <div class="meta" style="color: var(--muted)" role="status" aria-live="polite">
+          <div class="meta" style="color: var(--ds-text-tertiary)" role="status" aria-live="polite">
             {{ t('common.loading') }}
           </div>
         </template>
         <template v-else-if="overviewError">
-          <div class="meta" style="color: var(--muted)" role="alert">
+          <div class="meta" style="color: var(--ds-text-tertiary)" role="alert">
             {{ t('dashboard.kpi.errorTitle') }}
           </div>
         </template>
@@ -168,7 +168,7 @@
               </td>
             </tr>
             <tr v-if="store.secApprovals.length === 0" role="row">
-              <td colspan="3" style="text-align: center; color: var(--muted)" role="cell">
+              <td colspan="3" style="text-align: center; color: var(--ds-text-tertiary)" role="cell">
                 {{ t('dashboard.todo.empty') }}
               </td>
             </tr>
@@ -284,3 +284,49 @@ onMounted(() => {
   void store.fetchSecApprovals()
 })
 </script>
+
+<style scoped>
+/* ============================================================
+ * 响应式断点：平板 / 移动端布局适配
+ * 参考 Llmops.vue 模式：1100px 两列，720px 单列堆叠
+ * ============================================================ */
+@media (max-width: 1100px) {
+  /* KPI 四卡片退化为两列 */
+  .grid.g4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* 趋势 + 待办保持两列，但缩小间距 */
+  .grid.g2 {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* 移动端：所有网格单列堆叠 */
+  .grid.g4,
+  .grid.g2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  /* 卡片内边距收紧，提升小屏空间利用率 */
+  .card {
+    padding: 14px 14px 12px;
+  }
+  /* KPI 数值字号略减 */
+  .kpi {
+    font-size: 22px;
+  }
+  .kpi.s {
+    font-size: 16px;
+  }
+  /* 快捷操作 chips 横向滚动，避免换行拥挤 */
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chip {
+    flex: none;
+  }
+}
+</style>

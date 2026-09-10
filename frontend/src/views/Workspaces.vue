@@ -25,7 +25,7 @@
       <template v-else-if="listError">
         <div class="card" style="grid-column: span 3">
           <h3>{{ t('common.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ listError.message }}，
             <a href="javascript:void(0)" @click="reloadList">{{ t('common.retry') }}</a>
           </div>
@@ -34,7 +34,7 @@
       <template v-else-if="workspaces.length === 0">
         <div class="card" style="grid-column: span 3">
           <h3>{{ t('workspaces.emptyTitle') }}</h3>
-          <div class="meta" style="color: var(--muted)">{{ t('workspaces.emptyHint') }}</div>
+          <div class="meta" style="color: var(--ds-text-tertiary)">{{ t('workspaces.emptyHint') }}</div>
         </div>
       </template>
       <template v-else>
@@ -104,7 +104,7 @@
           <span>{{ t('workspaces.members.k8sStatus') }}</span>
           <span v-if="k8sLoading">{{ t('workspaces.members.querying') }}</span>
           <template v-else-if="k8sError">
-            <span style="color: var(--red)">
+            <span style="color: var(--ds-color-error-500)">
               {{ k8sError.message }}，
               <a href="javascript:void(0)" @click="loadK8sStatus">{{ t('common.retry') }}</a>
             </span>
@@ -138,7 +138,7 @@
       <div v-if="tab === 3">
         <!-- 平台项目（真实 API；按当前空间所属租户过滤，无数据显示空态） -->
         <div v-if="projectsLoading" class="meta">{{ t('workspaces.projects.loading') }}</div>
-        <div v-else-if="projectsError" class="meta" style="color: var(--red)">
+        <div v-else-if="projectsError" class="meta" style="color: var(--ds-color-error-500)">
           {{ projectsError.message }}，
           <a href="javascript:void(0)" @click="loadProjects">{{ t('common.retry') }}</a>
         </div>

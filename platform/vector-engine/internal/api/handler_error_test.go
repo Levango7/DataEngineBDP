@@ -49,11 +49,13 @@ func (f *failingStore) Insert(ctx context.Context, req store.InsertRequest) erro
 }
 
 // newFailingRouter 基于给定 store 构建测试路由。
+// 注入测试租户中间件，使所有请求携带 tenantId="test"。
 func newFailingRouter(s store.VectorStore) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	svc := service.NewVectorService(s)
 	r := gin.New()
 	v1 := r.Group("/api/v1")
+	v1.Use(func(c *gin.Context) { c.Set("tenantId", "test"); c.Next() })
 	h := NewVectorHandler(svc)
 	h.RegisterRoutes(v1)
 	return r

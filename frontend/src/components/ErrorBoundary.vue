@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { ref, onErrorCaptured } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { WarningFilled } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 interface ErrorInfo {
   message: string
@@ -29,16 +32,16 @@ function reset() {
 <template>
   <div v-if="error" class="error-boundary">
     <div class="error-boundary__icon">
-      <el-icon :size="40" color="#e74c3c"><WarningFilled /></el-icon>
+      <el-icon :size="40" color="var(--ds-color-error-500)"><WarningFilled /></el-icon>
     </div>
-    <h2 class="error-boundary__title">页面渲染出错</h2>
+    <h2 class="error-boundary__title">{{ t('app.renderErrorTitle') }}</h2>
     <p class="error-boundary__message">{{ error.message }}</p>
     <details class="error-boundary__details">
-      <summary>错误详情</summary>
+      <summary>{{ t('app.errorDetails') }}</summary>
       <pre v-text="error.stack"></pre>
-      <pre v-text="'组件: ' + error.component"></pre>
+      <pre v-text="t('app.errorComponent') + ': ' + error.component"></pre>
     </details>
-    <button class="error-boundary__retry" @click="reset">重试</button>
+    <button class="error-boundary__retry" @click="reset">{{ t('common.retry') }}</button>
   </div>
   <slot v-else />
 </template>
@@ -63,13 +66,13 @@ function reset() {
 .error-boundary__title {
   font-size: 20px;
   font-weight: 600;
-  color: #e74c3c;
+  color: var(--ds-color-error-500);
   margin: 0 0 8px;
 }
 
 .error-boundary__message {
   font-size: 14px;
-  color: #666;
+  color: var(--ds-text-tertiary);
   margin: 0 0 16px;
   max-width: 600px;
   word-break: break-word;
@@ -84,17 +87,17 @@ function reset() {
 
 .error-boundary__details pre {
   font-size: 12px;
-  color: #999;
+  color: var(--ds-text-tertiary);
   overflow-x: auto;
-  background: #f5f5f5;
+  background: var(--ds-bg-subtle);
   padding: 12px;
   border-radius: 4px;
 }
 
 .error-boundary__retry {
   padding: 8px 24px;
-  background: #409eff;
-  color: white;
+  background: var(--ds-color-primary-500);
+  color: var(--ds-text-inverse);
   border: none;
   border-radius: 4px;
   cursor: pointer;
@@ -102,6 +105,6 @@ function reset() {
 }
 
 .error-boundary__retry:hover {
-  background: #66b1ff;
+  background: var(--ds-color-primary-400);
 }
 </style>

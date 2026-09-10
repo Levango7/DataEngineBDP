@@ -15,6 +15,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sync"
@@ -69,6 +70,31 @@ func (h *VectorHandler) getEmbedder() embedding.Embedder {
 	return h.embedder
 }
 
+// tenantFrom 从 gin context 提取租户身份并注入到 request context。
+// 返回 (ctx, true) 当且仅当存在非空 tenantId；否则返回 (原 ctx, false)。
+//
+// 租户身份来自 JWT 中间件（c.Set("tenantId", ...)），不从请求体读取，
+// 确保客户端无法通过请求体覆盖租户身份（越权防护在数据源层面保证）。
+func tenantFrom(c *gin.Context) (context.Context, bool) {
+	v, exists := c.Get("tenantId")
+	if !exists {
+		return c.Request.Context(), false
+	}
+	tenantID, ok := v.(string)
+	if !ok || tenantID == "" {
+		return c.Request.Context(), false
+	}
+	return service.WithTenantID(c.Request.Context(), tenantID), true
+}
+
+// writeTenantMissing 写缺失租户身份的 401 响应。
+func (h *VectorHandler) writeTenantMissing(c *gin.Context) {
+	c.JSON(http.StatusUnauthorized, gin.H{
+		"error":   "missing_tenant_identity",
+		"message": "tenant identity is required for this operation",
+	})
+}
+
 // RegisterRoutes 在给定的 router group 上注册所有向量检索路由。
 func (h *VectorHandler) RegisterRoutes(rg *gin.RouterGroup) {
 	rg.POST("/collections", h.CreateCollection)
@@ -88,7 +114,12 @@ func (h *VectorHandler) RegisterRoutes(rg *gin.RouterGroup) {
 // ListCollections 列出全部集合。
 // GET /api/v1/vector
 func (h *VectorHandler) ListCollections(c *gin.Context) {
-	collections, err := h.svc.ListCollections(c.Request.Context())
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
+	collections, err := h.svc.ListCollections(ctx)
 	if err != nil {
 		h.writeStoreError(c, err)
 		return
@@ -104,6 +135,11 @@ func (h *VectorHandler) ListCollections(c *gin.Context) {
 // 未配置时降级为确定性 n-gram 特征向量（hash-fallback，结果稳定可复现，
 // 响应标注 "mode":"hash-fallback"，调用方应提示"语义检索未启用"）。
 func (h *VectorHandler) GlobalSearch(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	var req struct {
 		Query string `json:"query"`
 		TopK  int    `json:"topK"`
@@ -122,7 +158,7 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 	}
 
 	embed := h.getEmbedder()
-	vectors, err := embed.Embed(c.Request.Context(), []string{req.Query})
+	vectors, err := embed.Embed(ctx, []string{req.Query})
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{
 			"error":   "embedding_failed",
@@ -132,7 +168,7 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 	}
 	queryVector := vectors[0]
 
-	collections, err := h.svc.ListCollections(c.Request.Context())
+	collections, err := h.svc.ListCollections(ctx)
 	if err != nil {
 		h.writeStoreError(c, err)
 		return
@@ -142,7 +178,7 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 		if len(out) >= topK {
 			break
 		}
-		results, err := h.svc.Search(c.Request.Context(), store.SearchRequest{
+		results, err := h.svc.Search(ctx, store.SearchRequest{
 			CollectionName: col.Name,
 			Vector:         queryVector,
 			TopK:           topK - len(out),
@@ -168,12 +204,17 @@ func (h *VectorHandler) GlobalSearch(c *gin.Context) {
 // CreateCollection 创建向量集合。
 // POST /api/v1/collections
 func (h *VectorHandler) CreateCollection(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	var req store.CreateCollectionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
-	if err := h.svc.CreateCollection(c.Request.Context(), req); err != nil {
+	if err := h.svc.CreateCollection(ctx, req); err != nil {
 		h.writeStoreError(c, err)
 		return
 	}
@@ -188,8 +229,13 @@ func (h *VectorHandler) CreateCollection(c *gin.Context) {
 // DropCollection 删除向量集合。
 // DELETE /api/v1/collections/:name
 func (h *VectorHandler) DropCollection(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	name := c.Param("name")
-	if err := h.svc.DropCollection(c.Request.Context(), name); err != nil {
+	if err := h.svc.DropCollection(ctx, name); err != nil {
 		h.writeStoreError(c, err)
 		return
 	}
@@ -199,6 +245,11 @@ func (h *VectorHandler) DropCollection(c *gin.Context) {
 // InsertVectors 插入向量。
 // POST /api/v1/collections/:name/vectors
 func (h *VectorHandler) InsertVectors(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	name := c.Param("name")
 	var body struct {
 		Vectors []store.Vector `json:"vectors"`
@@ -211,7 +262,7 @@ func (h *VectorHandler) InsertVectors(c *gin.Context) {
 		CollectionName: name,
 		Vectors:        body.Vectors,
 	}
-	if err := h.svc.Insert(c.Request.Context(), req); err != nil {
+	if err := h.svc.Insert(ctx, req); err != nil {
 		h.writeStoreError(c, err)
 		return
 	}
@@ -223,6 +274,11 @@ func (h *VectorHandler) InsertVectors(c *gin.Context) {
 // Search 向量检索。
 // POST /api/v1/collections/:name/search
 func (h *VectorHandler) Search(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	name := c.Param("name")
 	var body struct {
 		Vector []float32 `json:"vector"`
@@ -239,7 +295,7 @@ func (h *VectorHandler) Search(c *gin.Context) {
 		TopK:           body.TopK,
 		Filter:         body.Filter,
 	}
-	results, err := h.svc.Search(c.Request.Context(), req)
+	results, err := h.svc.Search(ctx, req)
 	if err != nil {
 		h.writeStoreError(c, err)
 		return
@@ -253,6 +309,11 @@ func (h *VectorHandler) Search(c *gin.Context) {
 // HybridSearch 混合检索。
 // POST /api/v1/collections/:name/hybrid-search
 func (h *VectorHandler) HybridSearch(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	name := c.Param("name")
 	var body struct {
 		Vector   []float32 `json:"vector"`
@@ -271,7 +332,7 @@ func (h *VectorHandler) HybridSearch(c *gin.Context) {
 		Filter:         body.Filter,
 		MinScore:       body.MinScore,
 	}
-	results, err := h.svc.HybridSearch(c.Request.Context(), req)
+	results, err := h.svc.HybridSearch(ctx, req)
 	if err != nil {
 		h.writeStoreError(c, err)
 		return
@@ -286,6 +347,11 @@ func (h *VectorHandler) HybridSearch(c *gin.Context) {
 // DELETE /api/v1/collections/:name/vectors
 // Body: {"ids": ["id1", "id2", ...]}
 func (h *VectorHandler) DeleteVectors(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	name := c.Param("name")
 	var body struct {
 		IDs []string `json:"ids"`
@@ -294,7 +360,7 @@ func (h *VectorHandler) DeleteVectors(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body", "message": err.Error()})
 		return
 	}
-	if err := h.svc.Delete(c.Request.Context(), name, body.IDs); err != nil {
+	if err := h.svc.Delete(ctx, name, body.IDs); err != nil {
 		h.writeStoreError(c, err)
 		return
 	}
@@ -306,8 +372,13 @@ func (h *VectorHandler) DeleteVectors(c *gin.Context) {
 // GetStats 返回集合统计信息。
 // GET /api/v1/collections/:name/stats
 func (h *VectorHandler) GetStats(c *gin.Context) {
+	ctx, ok := tenantFrom(c)
+	if !ok {
+		h.writeTenantMissing(c)
+		return
+	}
 	name := c.Param("name")
-	stats, err := h.svc.GetStats(c.Request.Context(), name)
+	stats, err := h.svc.GetStats(ctx, name)
 	if err != nil {
 		h.writeStoreError(c, err)
 		return
@@ -336,6 +407,8 @@ func (h *VectorHandler) writeStoreError(c *gin.Context, err error) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_index_type", "message": err.Error()})
 	case errors.Is(err, service.ErrInvalidArgument):
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_argument", "message": err.Error()})
+	case errors.Is(err, service.ErrMissingTenant):
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing_tenant_identity", "message": err.Error()})
 	default:
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal_error"})
 	}

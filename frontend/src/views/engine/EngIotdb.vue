@@ -15,7 +15,7 @@
       <template v-else-if="instancesError">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ instancesError.message }}，
             <a href="javascript:void(0)" @click="reloadInstances">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -218,7 +218,7 @@
               type="textarea"
               :rows="8"
               :placeholder="t('engIotdb.sql.placeholder')"
-              style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
             />
             <div class="sql-actions">
               <el-button
@@ -501,7 +501,7 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
@@ -596,7 +596,7 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .result-meta {
   color: var(--ds-text-secondary);

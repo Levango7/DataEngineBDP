@@ -55,6 +55,120 @@
       "bookmarked": "已收藏「{name}」",
       "unbookmarked": "已取消收藏「{name}」",
       "exportFailed": "导出失败：{message}"
+    },
+    "search": {
+      "input": {
+        "nlMode": "自然语言",
+        "structuredMode": "结构化查询",
+        "nlPlaceholder": "用自然语言描述要找的数据，如：最近 7 天风控线用户行为日志",
+        "search": "检索",
+        "clear": "清空",
+        "addField": "添加条件",
+        "fieldPlaceholder": "字段",
+        "opPlaceholder": "操作",
+        "valuePlaceholder": "值（多个用逗号分隔）",
+        "fields": {
+          "name": "名称",
+          "description": "描述",
+          "sourceId": "数据源",
+          "type": "类型",
+          "owner": "负责人",
+          "tags": "标签",
+          "createdAt": "创建时间",
+          "updatedAt": "更新时间"
+        },
+        "ops": {
+          "eq": "等于",
+          "ne": "不等于",
+          "in": "包含于",
+          "not_in": "不包含于",
+          "gt": "大于",
+          "gte": "大于等于",
+          "lt": "小于",
+          "lte": "小于等于",
+          "contains": "包含",
+          "exists": "存在"
+        }
+      },
+      "filter": {
+        "title": "过滤条件",
+        "reset": "重置",
+        "time": "时间",
+        "today": "今天",
+        "yesterday": "昨天",
+        "last7d": "近 7 天",
+        "last30d": "近 30 天",
+        "last90d": "近 90 天",
+        "custom": "自定义",
+        "rangeSep": "至",
+        "startPh": "开始时间",
+        "endPh": "结束时间",
+        "source": "数据源",
+        "sourcePh": "选择数据源",
+        "noTags": "暂无标签候选",
+        "type": "类型",
+        "tag": "标签",
+        "selectedLabel": "已选：",
+        "conditionsFmt": "个条件"
+      },
+      "typeOptions": {
+        "table": "数据集",
+        "view": "视图",
+        "api": "数据服务",
+        "model": "数据模型",
+        "dashboard": "仪表盘",
+        "stream": "实时流",
+        "job": "作业",
+        "notebook": "笔记本",
+        "metric": "指标",
+        "document": "文档"
+      },
+      "export": {
+        "btn": "导出",
+        "title": "导出检索结果",
+        "format": "格式",
+        "scope": "范围",
+        "fields": "字段",
+        "selectAll": "全选",
+        "current": "当前页（{n} 条）",
+        "all": "全部命中（{n} 条）",
+        "warnLarge": "全部命中超过 1 万条，导出可能耗时较长，建议缩小检索范围。",
+        "hint": "导出文件由平台生成，包含当前检索条件下的结果数据。",
+        "cancel": "取消",
+        "start": "开始导出",
+        "fieldNames": {
+          "name": "名称",
+          "type": "类型",
+          "sourceName": "数据源",
+          "description": "描述",
+          "owner": "负责人",
+          "tags": "标签",
+          "createdAt": "创建时间",
+          "updatedAt": "更新时间",
+          "score": "评分"
+        },
+        "msgFieldRequired": "请至少选择一个导出字段",
+        "msgExported": "导出成功，共 {n} 条",
+        "msgLocalExported": "已本地导出 {n} 条",
+        "msgFailed": "导出失败：{message}"
+      },
+      "pagination": {
+        "totalPrefix": "共",
+        "totalSuffix": "条",
+        "pageFmt": "，当前第 {page} / {total} 页",
+        "loadedFmt": "，已加载 {n} 条",
+        "modePage": "分页",
+        "modeInfinite": "无限滚动",
+        "loading": "加载中…",
+        "loadMore": "加载更多",
+        "allLoaded": "已加载全部"
+      },
+      "resultCard": {
+        "scoreTip": "相关度评分",
+        "updatedAtFmt": "更新于 {date}",
+        "viewDetail": "查看详情",
+        "openAsset": "打开资产"
+      }
     }
   }
 }

@@ -14,14 +14,18 @@
 <template>
   <div class="thought-chain">
     <div class="tc-head">
-      <span class="title">Agent 思考链</span>
-      <span class="meta">{{ filtered.length }} 步</span>
+      <span class="title">{{ t('orchestrator.thought.title') }}</span>
+      <span class="meta">{{ t('orchestrator.thought.stepsMeta', { n: filtered.length }) }}</span>
       <span class="spacer" />
-      <el-button size="small" :icon="Refresh" @click="load">刷新</el-button>
+      <el-button size="small" :icon="Refresh" @click="load">
+        {{ t('orchestrator.common.refresh') }}
+      </el-button>
     </div>
 
-    <div v-if="loading" class="tc-empty">加载中…</div>
-    <div v-else-if="filtered.length === 0" class="tc-empty">暂无思考链数据</div>
+    <div v-if="loading" class="tc-empty">{{ t('orchestrator.common.loading') }}</div>
+    <div v-else-if="filtered.length === 0" class="tc-empty">
+      {{ t('orchestrator.thought.noData') }}
+    </div>
 
     <ol v-else class="timeline">
       <li
@@ -36,17 +40,19 @@
         </div>
         <div class="step-body">
           <div class="step-meta">
-            <span v-if="step.nodeId" class="meta-node">节点 {{ step.nodeId.slice(0, 8) }}</span>
+            <span v-if="step.nodeId" class="meta-node">
+              {{ t('orchestrator.replay.evNode', { id: step.nodeId.slice(0, 8) }) }}
+            </span>
             <span class="meta-time">{{ formatTime(step.timestamp) }}</span>
             <span v-if="step.durationMs" class="meta-dur">{{ step.durationMs }} ms</span>
           </div>
           <div class="step-content">{{ step.content }}</div>
           <div v-if="step.observation" class="step-obs">
-            <span class="obs-label">观察：</span>
+            <span class="obs-label">{{ t('orchestrator.thought.obsLabel') }}</span>
             {{ step.observation }}
           </div>
           <div v-if="step.toolCallId" class="step-tool">
-            <span class="tool-label">工具调用：</span>
+            <span class="tool-label">{{ t('orchestrator.thought.toolLabel') }}</span>
             <a
               href="javascript:void(0)"
               class="tool-link"
@@ -63,8 +69,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import { getThoughtChain, type ThoughtStep } from '@/api/orchestrator-viz'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   dagId: string
@@ -124,13 +133,13 @@ onMounted(load)
 }
 .tc-head .meta {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .tc-head .spacer {
   flex: 1;
 }
 .tc-empty {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
   font-size: 13px;
@@ -149,7 +158,7 @@ onMounted(load)
   top: 8px;
   bottom: 8px;
   width: 2px;
-  background: var(--line);
+  background: var(--ds-border-subtle);
 }
 .step {
   display: grid;
@@ -171,17 +180,17 @@ onMounted(load)
   padding: 3px 8px;
   border-radius: 12px;
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   letter-spacing: 0.4px;
 }
 .step-idx {
   font-size: 10px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 
 .step.k-observe .kind-badge {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .step.k-plan .kind-badge {
   background: var(--c-indigo-50);
@@ -189,15 +198,15 @@ onMounted(load)
 }
 .step.k-act .kind-badge {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .step.k-reflect .kind-badge {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
 }
 .step.k-decide .kind-badge {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 
 .step-body {
@@ -210,17 +219,17 @@ onMounted(load)
   display: flex;
   gap: 10px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-bottom: 4px;
 }
 .meta-node {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
   padding: 1px 6px;
   border-radius: 8px;
 }
 .step-content {
-  color: var(--ink);
+  color: var(--ds-text-primary);
   line-height: 1.55;
   white-space: pre-wrap;
   word-break: break-word;
@@ -229,13 +238,13 @@ onMounted(load)
   margin-top: 6px;
   font-size: 12px;
   color: var(--c-slate-700);
-  background: #fff;
+  background: var(--ds-bg-surface);
   border-radius: 6px;
   padding: 5px 8px;
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--ds-color-success-500);
 }
 .obs-label {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   font-weight: 600;
 }
 .step-tool {
@@ -243,10 +252,10 @@ onMounted(load)
   font-size: 11.5px;
 }
 .tool-label {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .tool-link {
-  color: var(--primary);
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-color-primary-500);
+  font-family: var(--ds-font-family-mono);
 }
 </style>

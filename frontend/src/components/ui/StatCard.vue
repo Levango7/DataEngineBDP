@@ -24,20 +24,20 @@ defineProps<{
 .stat-card {
   padding: 16px;
   border-radius: 8px;
-  background: var(--el-bg-color);
-  border: 1px solid var(--el-border-color-lighter);
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-subtle);
 }
 
 .stat-card__label {
   font-size: 13px;
-  color: var(--el-text-color-secondary);
+  color: var(--ds-text-secondary);
   margin-bottom: 4px;
 }
 
 .stat-card__value {
   font-size: 28px;
   font-weight: 700;
-  color: var(--el-text-color-primary);
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 
@@ -51,14 +51,14 @@ defineProps<{
 }
 
 .stat-card__trend--up {
-  color: var(--el-color-success);
+  color: var(--ds-color-success-500);
 }
 
 .stat-card__trend--down {
-  color: var(--el-color-danger);
+  color: var(--ds-color-error-500);
 }
 
 .stat-card__trend--flat {
-  color: var(--el-text-color-secondary);
+  color: var(--ds-text-secondary);
 }
 </style>

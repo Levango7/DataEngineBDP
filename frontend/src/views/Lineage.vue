@@ -6,14 +6,14 @@
     />
     <div class="legend">
       <span style="color: #8a9ba0">{{ t('lineage.legend.upstream') }}</span>
-      <span style="color: var(--primary)">{{ t('lineage.legend.current') }}</span>
-      <span style="color: var(--green)">{{ t('lineage.legend.downstream') }}</span>
+      <span style="color: var(--ds-color-primary-500)">{{ t('lineage.legend.current') }}</span>
+      <span style="color: var(--ds-color-success-500)">{{ t('lineage.legend.downstream') }}</span>
       <span style="color: #94a3b8">{{ t('lineage.legend.faded') }}</span>
     </div>
-    <div v-if="loading" class="card" style="padding: 16px; color: var(--muted)">
+    <div v-if="loading" class="card" style="padding: 16px; color: var(--ds-text-tertiary)">
       {{ t('lineage.loading') }}
     </div>
-    <div v-else-if="error" class="card" style="padding: 16px; color: var(--red)">
+    <div v-else-if="error" class="card" style="padding: 16px; color: var(--ds-color-error-500)">
       {{ error.message }}，
       <a href="javascript:void(0)" @click="loadLineage(highlightTable)">{{ t('common.retry') }}</a>
     </div>
@@ -21,7 +21,7 @@
       <div class="lineage">
         <div class="lvl">
           <div v-for="tbl in upstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--muted)">
+          <div v-if="upstreamTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
             {{ t('lineage.noUpstream') }}
           </div>
         </div>
@@ -35,13 +35,13 @@
         </div>
         <div class="lvl">
           <div v-for="tbl in downstreamTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--muted)">
+          <div v-if="downstreamTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
             {{ t('lineage.noDownstream') }}
           </div>
         </div>
         <div class="lvl">
           <div v-for="tbl in impactTables" :key="tbl" class="ln">{{ tbl }}</div>
-          <div v-if="impactTables.length === 0" class="ln" style="color: var(--muted)">
+          <div v-if="impactTables.length === 0" class="ln" style="color: var(--ds-text-tertiary)">
             {{ t('lineage.noImpact') }}
           </div>
         </div>

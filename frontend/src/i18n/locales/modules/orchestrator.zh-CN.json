@@ -1,0 +1,116 @@
+{
+  "orchestrator": {
+    "common": {
+      "refresh": "刷新",
+      "loading": "加载中…",
+      "node": "节点",
+      "empty": "暂无数据",
+      "params": "参数",
+      "output": "输出",
+      "error": "错误"
+    },
+    "dag": {
+      "title": "编排 DAG 可视化",
+      "subtitle": "可视化 Agent 编排执行图，支持节点状态着色、思考链展示、工具调用记录、人工介入与断点续跑回放。",
+      "selectDag": "选择 DAG",
+      "run": "运行",
+      "stop": "停止",
+      "autoRefresh": "自动刷新（2s）",
+      "graphStatus": "图状态：{status}",
+      "nodeEdgeMeta": "{nodes} 节点 · {edges} 边",
+      "tabs": {
+        "node": "节点详情",
+        "thought": "思考链",
+        "tool": "工具调用",
+        "replay": "回放"
+      },
+      "detail": {
+        "nodeId": "节点 ID",
+        "name": "名称",
+        "taskType": "任务类型",
+        "status": "状态",
+        "command": "命令",
+        "timeout": "超时(秒)",
+        "timeoutUnlimited": "不限",
+        "maxRetry": "最大重试",
+        "startTime": "开始时间",
+        "endTime": "结束时间",
+        "error": "错误",
+        "empty": "点击左侧节点查看详情"
+      },
+      "noDag": "未选择 DAG，请从顶部下拉选择或先提交一个 DAG",
+      "status": {
+        "PENDING": "待执行",
+        "RUNNING": "运行中",
+        "SUCCESS": "成功",
+        "FAILED": "失败",
+        "SKIPPED": "跳过",
+        "WAITING_HUMAN": "待人工"
+      },
+      "messages": {
+        "completed": "DAG 执行完成",
+        "stopRequested": "已请求停止"
+      }
+    },
+    "replay": {
+      "execHistory": "执行历史",
+      "noExecutions": "暂无执行记录",
+      "colExecId": "执行 ID",
+      "colTrigger": "触发",
+      "colStatus": "状态",
+      "colProgress": "进度",
+      "colStartTime": "开始时间",
+      "colActions": "操作",
+      "replayBtn": "回放",
+      "traceTitle": "回放轨迹 · {id}",
+      "play": "播放",
+      "pause": "暂停",
+      "stepForward": "单步",
+      "evNode": "节点 {id}",
+      "checkpoints": "检查点 · 断点续跑",
+      "manualCkpt": "手动打点",
+      "noCheckpoints": "暂无检查点",
+      "resumeFrom": "从此处恢复",
+      "completedNodes": "已完成 {n} 节点：",
+      "ckptNote": "备注：{note}",
+      "intervention": "人工介入",
+      "noInterventions": "暂无待处理介入请求",
+      "ivReason": "原因：{reason}",
+      "approverPlaceholder": "审批人",
+      "commentPlaceholder": "审批意见",
+      "approve": "批准",
+      "reject": "驳回",
+      "approver": "审批人：{who}",
+      "comment": "意见：{text}",
+      "resolvedAt": "处理时间：{at}",
+      "tabs": {
+        "exec": "执行历史",
+        "checkpoint": "检查点",
+        "intervention": "人工介入"
+      },
+      "messages": {
+        "ckptCreated": "检查点已创建",
+        "resumed": "已从检查点恢复执行",
+        "approverRequired": "请填写审批人",
+        "approved": "已批准",
+        "rejected": "已驳回"
+      },
+      "manualNote": "手动打点 {time}"
+    },
+    "thought": {
+      "title": "Agent 思考链",
+      "stepsMeta": "{n} 步",
+      "noData": "暂无思考链数据",
+      "obsLabel": "观察：",
+      "toolLabel": "工具调用："
+    },
+    "toolCall": {
+      "title": "工具调用记录",
+      "timesMeta": "{n} 次",
+      "noData": "暂无工具调用记录",
+      "started": "开始：{at}",
+      "finished": "结束：{at}",
+      "result": "结果"
+    }
+  }
+}

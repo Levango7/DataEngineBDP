@@ -28,20 +28,15 @@
     <div class="card" style="margin-top: 14px">
       <h3>
         {{ t('ops.componentsTitle') }}
-        <span
-          v-if="healthSummary"
-          style="font-size: 12px; color: var(--muted); font-weight: normal"
-        >
+        <span v-if="healthSummary" class="health-summary-meta">
           （{{ healthSummary.up }}/{{ healthSummary.total }} UP
           <span v-if="healthSummary.warn">· {{ healthSummary.warn }} WARN</span>
-          <span v-if="healthSummary.down" style="color: var(--red)">
-            · {{ healthSummary.down }} DOWN
-          </span>
+          <span v-if="healthSummary.down" class="health-down">· {{ healthSummary.down }} DOWN</span>
           ）
         </span>
       </h3>
-      <div v-if="healthLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="healthError" style="color: var(--red)">
+      <div v-if="healthLoading" class="muted-text">{{ t('common.loading') }}</div>
+      <div v-else-if="healthError" class="error-text">
         {{ healthError.message }}，
         <a href="javascript:void(0)" @click="loadHealth">{{ t('common.retry') }}</a>
       </div>
@@ -60,96 +55,88 @@
     </div>
     <div class="card" style="margin-top: 14px">
       <h3>{{ t('ops.jobsTitle') }}</h3>
-      <div v-if="jobsLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="jobsError" style="color: var(--red)">
+      <div v-if="jobsLoading" class="muted-text">{{ t('common.loading') }}</div>
+      <div v-else-if="jobsError" class="error-text">
         {{ jobsError.message }}，
         <a href="javascript:void(0)" @click="loadJobs">{{ t('common.retry') }}</a>
       </div>
-      <table v-else-if="jobs">
-        <tr>
-          <th>{{ t('ops.jobCols.job') }}</th>
-          <th>{{ t('ops.jobCols.type') }}</th>
-          <th>{{ t('ops.jobCols.duration') }}</th>
-          <th>{{ t('ops.jobCols.status') }}</th>
-          <th></th>
-        </tr>
-        <tr v-for="j in jobs" :key="j.id">
-          <td>{{ j.name }}</td>
-          <td>{{ jobTypeLabel(j.type) }}</td>
-          <td>{{ j.duration }}</td>
-          <td>
-            <span class="pill" :class="jobStatusPillClass(j.status)">
-              {{ jobStatusPillText(j.status) }}
+      <el-table v-else-if="jobs" :data="jobs" stripe>
+        <el-table-column :label="t('ops.jobCols.job')" prop="name" />
+        <el-table-column :label="t('ops.jobCols.type')">
+          <template #default="{ row }">{{ jobTypeLabel(row.type) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('ops.jobCols.duration')" prop="duration" />
+        <el-table-column :label="t('ops.jobCols.status')">
+          <template #default="{ row }">
+            <span class="pill" :class="jobStatusPillClass(row.status)">
+              {{ jobStatusPillText(row.status) }}
             </span>
-          </td>
-          <td>
-            <button class="btn ghost sm" @click="openLog(j)">{{ t('ops.log') }}</button>
-          </td>
-        </tr>
-        <tr v-if="jobs.length === 0">
-          <td colspan="5" style="text-align: center; color: var(--muted)">
-            {{ t('ops.jobsEmpty') }}
-          </td>
-        </tr>
-      </table>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('ops.log')">
+          <template #default="{ row }">
+            <el-button size="small" @click="openLog(row)">{{ t('ops.log') }}</el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <div class="empty-cell">{{ t('ops.jobsEmpty') }}</div>
+        </template>
+      </el-table>
     </div>
     <div class="card" style="margin-top: 14px">
-      <h3>
+      <h3 class="alerts-title">
         {{ t('ops.alertsTitle') }}
         <span class="pill r">{{ filteredAlerts.length }}</span>
-        <select v-model="alertLevelFilter" style="margin-left: 8px; font-size: 12px">
-          <option value="all">{{ t('ops.alertLevels.all') }}</option>
-          <option value="critical">{{ t('ops.alertLevels.critical') }}</option>
-          <option value="warn">{{ t('ops.alertLevels.warn') }}</option>
-          <option value="info">{{ t('ops.alertLevels.info') }}</option>
-        </select>
-        <button class="btn ghost sm" style="margin-left: 8px" @click="loadAlerts">
+        <el-select v-model="alertLevelFilter" size="small" class="alert-filter" @change="() => {}">
+          <el-option :label="t('ops.alertLevels.all')" value="all" />
+          <el-option :label="t('ops.alertLevels.critical')" value="critical" />
+          <el-option :label="t('ops.alertLevels.warn')" value="warn" />
+          <el-option :label="t('ops.alertLevels.info')" value="info" />
+        </el-select>
+        <el-button size="small" @click="loadAlerts">
           {{ t('ops.refresh') }}
-        </button>
+        </el-button>
       </h3>
-      <div v-if="alertsLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
-      <table v-else-if="filteredAlerts">
-        <tr>
-          <th>{{ t('ops.alertCols.alert') }}</th>
-          <th>{{ t('ops.alertCols.level') }}</th>
-          <th>{{ t('ops.alertCols.triggeredAt') }}</th>
-          <th>{{ t('ops.alertCols.status') }}</th>
-          <th></th>
-        </tr>
-        <tr v-for="a in filteredAlerts" :key="a.id">
-          <td>{{ a.content }}</td>
-          <td>
-            <span class="pill" :class="alertLevelPillClass(a.level)">
-              {{ alertLevelPillText(a.level) }}
+      <div v-if="alertsLoading" class="muted-text">{{ t('common.loading') }}</div>
+      <el-table v-else-if="filteredAlerts" :data="filteredAlerts" stripe>
+        <el-table-column :label="t('ops.alertCols.alert')" prop="content" />
+        <el-table-column :label="t('ops.alertCols.level')">
+          <template #default="{ row }">
+            <span class="pill" :class="alertLevelPillClass(row.level)">
+              {{ alertLevelPillText(row.level) }}
             </span>
-          </td>
-          <td>{{ formatAlertTime(a.triggeredAt) }}</td>
-          <td>
-            <span class="pill" :class="a.handled ? 'g' : 'a'">
-              {{ a.handled ? t('ops.handled') : t('ops.active') }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('ops.alertCols.triggeredAt')">
+          <template #default="{ row }">{{ formatAlertTime(row.triggeredAt) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('ops.alertCols.status')">
+          <template #default="{ row }">
+            <span class="pill" :class="row.handled ? 'g' : 'a'">
+              {{ row.handled ? t('ops.handled') : t('ops.active') }}
             </span>
-          </td>
-          <td>
-            <button class="btn ghost sm" @click="openAlertDetail(a)">{{ t('ops.detail') }}</button>
-            <button class="btn sm" @click="handleAlert(a)">{{ t('ops.handle') }}</button>
-          </td>
-        </tr>
-        <tr v-if="filteredAlerts.length === 0">
-          <td colspan="5" style="text-align: center; color: var(--muted)">
-            {{ t('ops.alertsEmpty') }}
-          </td>
-        </tr>
-      </table>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('ops.detail')">
+          <template #default="{ row }">
+            <el-button size="small" @click="openAlertDetail(row)">{{ t('ops.detail') }}</el-button>
+            <el-button size="small" type="primary" @click="handleAlert(row)">
+              {{ t('ops.handle') }}
+            </el-button>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <div class="empty-cell">{{ t('ops.alertsEmpty') }}</div>
+        </template>
+      </el-table>
     </div>
 
     <!-- 作业日志抽屉 -->
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
       <template #header>{{ t('ops.logDrawer.title', { name: currentJob?.name }) }}</template>
       <div class="runlog" style="height: auto">
-        <div v-if="logLoading" style="color: var(--muted)">{{ t('ops.logDrawer.loading') }}</div>
-        <pre v-else style="white-space: pre-wrap; font-family: monospace">{{
-          logContent || t('ops.logDrawer.empty')
-        }}</pre>
+        <div v-if="logLoading" class="muted-text">{{ t('ops.logDrawer.loading') }}</div>
+        <pre v-else class="log-pre">{{ logContent || t('ops.logDrawer.empty') }}</pre>
       </div>
       <div class="note">{{ t('ops.logDrawer.note') }}</div>
     </Drawer>
@@ -183,16 +170,16 @@
         </div>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="alertDetailVisible = false">
+        <el-button @click="alertDetailVisible = false">
           {{ t('ops.alertModal.close') }}
-        </button>
-        <button
+        </el-button>
+        <el-button
           v-if="currentAlert && !currentAlert.handled"
-          class="btn"
+          type="primary"
           @click="handleAlert(currentAlert)"
         >
           {{ t('ops.alertModal.handle') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -428,11 +415,87 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 告警详情行：背景使用 design tokens 次级表面色 */
 .alert-detail-row {
   margin-bottom: 12px;
   padding: 6px 8px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  font-size: 13px;
+  background: var(--ds-bg-subtle);
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-font-size-sm);
+}
+
+/* 健康总览元信息 */
+.health-summary-meta {
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-text-tertiary);
+  font-weight: var(--ds-font-weight-normal);
+}
+.health-down {
+  color: var(--ds-color-error-600);
+}
+
+/* 通用文字色（使用 design tokens） */
+.muted-text {
+  color: var(--ds-text-tertiary);
+}
+.error-text {
+  color: var(--ds-color-error-600);
+}
+.error-text a {
+  color: var(--ds-color-primary-600);
+  cursor: pointer;
+}
+
+/* 告警标题行内控件布局 */
+.alerts-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.alert-filter {
+  width: 140px;
+}
+
+/* 日志 pre 样式 */
+.log-pre {
+  white-space: pre-wrap;
+  font-family: var(--ds-font-family-mono);
+}
+
+/* 空状态单元格 */
+.empty-cell {
+  text-align: center;
+  color: var(--ds-text-tertiary);
+  padding: 16px;
+}
+
+/* 响应式断点：中等屏幕紧凑化 */
+@media (max-width: 1100px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-sm);
+  }
+  .health-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* 响应式断点：小屏幕单列布局 */
+@media (max-width: 720px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-xs);
+  }
+  :deep(.el-table .cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .health-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .alerts-title {
+    flex-wrap: wrap;
+  }
+  .alert-filter {
+    width: 100%;
+  }
 }
 </style>

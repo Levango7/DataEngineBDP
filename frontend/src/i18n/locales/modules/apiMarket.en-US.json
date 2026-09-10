@@ -16,6 +16,8 @@
       "searchPlaceholder": "Search API name / description / tags",
       "allCategories": "All categories",
       "allStatuses": "All statuses",
+      "categoryPlaceholder": "All categories",
+      "statusPlaceholder": "All statuses",
       "register": "+ Register API"
     },
     "list": {

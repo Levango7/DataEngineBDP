@@ -67,5 +67,114 @@
       "register": "登记",
       "registered": "资产已登记"
     }
+  },
+  "governMeta": {
+    "page": {
+      "title": "元数据管理",
+      "subtitle": "数据源 · 采集调度 · 采集历史 · 30 秒自动刷新",
+      "loading": "加载中…",
+      "loadingHint": "正在拉取数据",
+      "loadFailed": "加载失败",
+      "loadFailedHint": "数据源列表加载失败，",
+      "retry": "重试",
+      "kpi": {
+        "total": "数据源总数",
+        "totalHint": "已登记采集数据源",
+        "active": "活跃数据源",
+        "activeHint": "状态为 ACTIVE",
+        "today": "今日采集次数",
+        "todayHint": "基于采集历史聚合",
+        "successRate": "最近采集成功率",
+        "successRateHint": "最近 20 次采集"
+      }
+    },
+    "toolbar": {
+      "add": "+ 添加数据源",
+      "typeFilter": "类型筛选"
+    },
+    "table": {
+      "empty": "暂无数据源",
+      "loadFailed": "加载失败，请重试",
+      "colName": "数据源名称",
+      "colType": "类型",
+      "colStatus": "状态",
+      "colCron": "Cron 表达式",
+      "colLastCollect": "最近采集",
+      "cronUnset": "未配置",
+      "lastEmpty": "--",
+      "colActions": "操作",
+      "actionCollect": "采集",
+      "actionTest": "测试",
+      "actionSchedule": "调度",
+      "actionHistory": "历史",
+      "actionEdit": "编辑",
+      "actionDelete": "删除"
+    },
+    "history": {
+      "title": "采集历史 - {name}",
+      "empty": "暂无采集历史",
+      "trigger": "触发：{type}",
+      "duration": "耗时：{d}",
+      "count": "对象数：{n}"
+    },
+    "sourceDialog": {
+      "addTitle": "添加数据源",
+      "editTitle": "编辑数据源",
+      "fieldName": "数据源名称",
+      "nameHint": "如 prod-hive-cluster",
+      "fieldType": "类型",
+      "typeHint": "选择类型",
+      "fieldUrl": "连接 URL",
+      "urlHint": "如 jdbc:hive2://host:10000/db",
+      "fieldUsername": "用户名",
+      "fieldPassword": "密码",
+      "passwordHint": "留空表示不修改",
+      "fieldCron": "Cron 表达式",
+      "cronHint": "如 0 0 * * *（每日 0 点），留空表示仅手动触发",
+      "fieldComment": "备注",
+      "cancel": "取消",
+      "add": "添加",
+      "save": "保存"
+    },
+    "scheduleDialog": {
+      "title": "定时采集配置 - {name}",
+      "currentCron": "当前 Cron",
+      "newCron": "新 Cron",
+      "newCronHint": "如 0 0 * * *",
+      "unschedule": "取消定时",
+      "close": "关闭",
+      "save": "保存"
+    },
+    "rules": {
+      "nameRequired": "请输入数据源名称",
+      "typeRequired": "请选择类型",
+      "urlRequired": "请输入连接 URL",
+      "cronRequired": "请输入 Cron 表达式"
+    },
+    "messages": {
+      "collectDone": "采集完成，共 {n} 个对象",
+      "deleteConfirm": "确认删除数据源「{name}」？该操作不可恢复。",
+      "deleteTitle": "删除确认",
+      "deleted": "数据源已删除",
+      "updated": "数据源已更新",
+      "added": "数据源已添加",
+      "scheduled": "定时采集已注册{next}",
+      "scheduleFailed": "注册失败",
+      "unscheduleConfirm": "确认取消数据源「{name}」的定时采集？",
+      "unscheduleTitle": "取消定时确认",
+      "unscheduleOk": "确定取消",
+      "unscheduleCancel": "保留",
+      "unscheduled": "定时采集已取消",
+      "deleteOk": "删除",
+      "nextFire": "，下次触发：{when}"
+    },
+    "labels": {
+      "statusActive": "活跃",
+      "statusInactive": "停用",
+      "statusError": "异常",
+      "historyRunning": "运行中",
+      "historySuccess": "成功",
+      "historyFailed": "失败"
+    }
   }
 }

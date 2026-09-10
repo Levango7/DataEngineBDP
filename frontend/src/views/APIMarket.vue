@@ -36,45 +36,53 @@
 
     <!-- 工具栏 -->
     <Toolbar
+      v-model:search-value="keyword"
       style="margin-top: 14px"
       :show-create="true"
       :create-label="t('apiMarket.toolbar.register')"
       :create-aria-label="t('apiMarket.toolbar.register')"
       :search-placeholder="t('apiMarket.toolbar.searchPlaceholder')"
-      v-model:search-value="keyword"
       :search-aria-label="t('apiMarket.toolbar.searchPlaceholder')"
       :show-refresh="false"
       @create="registerModal = true"
       @search="debouncedRefreshList"
     >
       <template #filters>
-        <select v-model="categoryFilter" @change="refreshList">
-          <option value="">{{ t('apiMarket.toolbar.allCategories') }}</option>
-          <option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</option>
-        </select>
-        <select v-model="statusFilter" @change="refreshList">
-          <option value="">{{ t('apiMarket.toolbar.allStatuses') }}</option>
-          <option value="running">{{ t('apiMarket.status.api.running') }}</option>
-          <option value="draft">{{ t('apiMarket.status.api.draft') }}</option>
-          <option value="deprecated">{{ t('apiMarket.status.api.deprecated') }}</option>
-        </select>
+        <el-select
+          v-model="categoryFilter"
+          :placeholder="t('apiMarket.toolbar.categoryPlaceholder')"
+          @change="refreshList"
+        >
+          <el-option :label="t('apiMarket.toolbar.allCategories')" value="" />
+          <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+        </el-select>
+        <el-select
+          v-model="statusFilter"
+          :placeholder="t('apiMarket.toolbar.statusPlaceholder')"
+          @change="refreshList"
+        >
+          <el-option :label="t('apiMarket.toolbar.allStatuses')" value="" />
+          <el-option :label="t('apiMarket.status.api.running')" value="running" />
+          <el-option :label="t('apiMarket.status.api.draft')" value="draft" />
+          <el-option :label="t('apiMarket.status.api.deprecated')" value="deprecated" />
+        </el-select>
       </template>
     </Toolbar>
 
     <!-- API 卡片网格 -->
     <div v-if="loading" class="card" style="margin-top: 14px">
-      <div class="meta" style="color: var(--muted)">{{ t('apiMarket.list.loading') }}</div>
+      <div class="meta muted-text">{{ t('apiMarket.list.loading') }}</div>
     </div>
     <div v-else-if="error" class="card" style="margin-top: 14px" role="alert">
-      <div class="meta" style="color: var(--danger)">
+      <div class="meta error-text">
         {{ t('apiMarket.list.loadFailed', { message: error.message }) }}
-        <button class="btn ghost sm" style="margin-left: 8px" @click="refreshList">
+        <el-button size="small" style="margin-left: 8px" @click="refreshList">
           {{ t('apiMarket.list.retry') }}
-        </button>
+        </el-button>
       </div>
     </div>
     <div v-else-if="apiList && apiList.length === 0" class="card" style="margin-top: 14px">
-      <div class="meta" style="color: var(--muted)">{{ t('apiMarket.list.empty') }}</div>
+      <div class="meta muted-text">{{ t('apiMarket.list.empty') }}</div>
     </div>
     <div v-else-if="apiList" class="api-grid" style="margin-top: 14px">
       <div v-for="api in apiList" :key="api.id" class="card api-card" @click="openDetail(api)">
@@ -110,14 +118,15 @@
       <div class="mb">
         <!-- Tab 切换 -->
         <div class="tab-bar">
-          <button
+          <el-button
             v-for="tab in detailTabs"
             :key="tab.key"
-            :class="['tab', { active: activeTab === tab.key }]"
+            :type="activeTab === tab.key ? 'primary' : 'default'"
+            size="small"
             @click="activeTab = tab.key"
           >
             {{ t(tab.labelKey) }}
-          </button>
+          </el-button>
         </div>
 
         <!-- 文档 Tab -->
@@ -164,31 +173,27 @@
             <span>{{ statusLabel(selectedApi.status) }}</span>
           </div>
           <h4 style="margin-top: 12px">{{ t('apiMarket.detail.doc.paramsTitle') }}</h4>
-          <table v-if="selectedApi.params.length > 0">
-            <thead>
-              <tr>
-                <th>{{ t('apiMarket.detail.doc.paramColumns.name') }}</th>
-                <th>{{ t('apiMarket.detail.doc.paramColumns.location') }}</th>
-                <th>{{ t('apiMarket.detail.doc.paramColumns.type') }}</th>
-                <th>{{ t('apiMarket.detail.doc.paramColumns.required') }}</th>
-                <th>{{ t('apiMarket.detail.doc.paramColumns.description') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="p in selectedApi.params" :key="p.name">
-                <td>
-                  <code>{{ p.name }}</code>
-                </td>
-                <td>{{ p.location }}</td>
-                <td>{{ p.type }}</td>
-                <td>
-                  {{ p.required ? t('apiMarket.detail.doc.yes') : t('apiMarket.detail.doc.no') }}
-                </td>
-                <td>{{ p.description || '—' }}</td>
-              </tr>
-            </tbody>
-          </table>
-          <div v-else class="meta" style="color: var(--muted)">
+          <el-table v-if="selectedApi.params.length > 0" :data="selectedApi.params" stripe>
+            <el-table-column :label="t('apiMarket.detail.doc.paramColumns.name')">
+              <template #default="{ row }">
+                <code>{{ row.name }}</code>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="t('apiMarket.detail.doc.paramColumns.location')"
+              prop="location"
+            />
+            <el-table-column :label="t('apiMarket.detail.doc.paramColumns.type')" prop="type" />
+            <el-table-column :label="t('apiMarket.detail.doc.paramColumns.required')">
+              <template #default="{ row }">
+                {{ row.required ? t('apiMarket.detail.doc.yes') : t('apiMarket.detail.doc.no') }}
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('apiMarket.detail.doc.paramColumns.description')">
+              <template #default="{ row }">{{ row.description || '—' }}</template>
+            </el-table-column>
+          </el-table>
+          <div v-else class="meta muted-text">
             {{ t('apiMarket.detail.doc.noParams') }}
           </div>
         </div>
@@ -196,16 +201,26 @@
         <!-- 试调 Tab -->
         <div v-if="activeTab === 'try'" class="tab-content">
           <label>{{ t('apiMarket.detail.try.apiKey') }}</label>
-          <input v-model="testApiKey" :placeholder="t('apiMarket.detail.try.apiKeyPlaceholder')" />
+          <el-input
+            v-model="testApiKey"
+            :placeholder="t('apiMarket.detail.try.apiKeyPlaceholder')"
+          />
           <label>{{ t('apiMarket.detail.try.payload') }}</label>
-          <textarea
+          <el-input
             v-model="testPayload"
-            rows="5"
+            type="textarea"
+            :rows="5"
             :placeholder="t('apiMarket.detail.try.payloadPlaceholder')"
-          ></textarea>
-          <button class="btn sm" style="margin-top: 8px" :disabled="calling" @click="executeCall">
+          />
+          <el-button
+            size="small"
+            style="margin-top: 8px"
+            type="primary"
+            :disabled="calling"
+            @click="executeCall"
+          >
             {{ calling ? t('apiMarket.detail.try.submitting') : t('apiMarket.detail.try.submit') }}
-          </button>
+          </el-button>
           <div v-if="callResult" class="call-result" style="margin-top: 12px">
             <div class="kv">
               <span>{{ t('apiMarket.detail.try.result.statusCode') }}</span>
@@ -226,7 +241,7 @@
             </div>
             <div v-if="callResult.error" class="kv">
               <span>{{ t('apiMarket.detail.try.result.error') }}</span>
-              <span style="color: var(--danger)">{{ callResult.error }}</span>
+              <span class="error-text">{{ callResult.error }}</span>
             </div>
             <div v-if="callResult.result">
               <label>{{ t('apiMarket.detail.try.result.response') }}</label>
@@ -239,66 +254,65 @@
         <div v-if="activeTab === 'subscribe'" class="tab-content">
           <h4>{{ t('apiMarket.detail.subscribe.applyTitle') }}</h4>
           <label>{{ t('apiMarket.detail.subscribe.subscriberId') }}</label>
-          <input
+          <el-input
             v-model="subForm.subscriberId"
             :placeholder="t('apiMarket.detail.subscribe.subscriberIdPlaceholder')"
           />
           <label>{{ t('apiMarket.detail.subscribe.tenantId') }}</label>
-          <input
+          <el-input
             v-model="subForm.subscriberTenantId"
             :placeholder="t('apiMarket.detail.subscribe.tenantIdPlaceholder')"
           />
           <label>{{ t('apiMarket.detail.subscribe.purpose') }}</label>
-          <input
+          <el-input
             v-model="subForm.purpose"
             :placeholder="t('apiMarket.detail.subscribe.purposePlaceholder')"
           />
           <label>{{ t('apiMarket.detail.subscribe.quotaExpect') }}</label>
-          <input v-model.number="subForm.quotaExpect" type="number" />
-          <button class="btn sm" style="margin-top: 8px" @click="applySubscribe">
+          <el-input-number v-model="subForm.quotaExpect" :min="0" />
+          <el-button size="small" style="margin-top: 8px" type="primary" @click="applySubscribe">
             {{ t('apiMarket.detail.subscribe.submit') }}
-          </button>
+          </el-button>
 
           <h4 style="margin-top: 16px">{{ t('apiMarket.detail.subscribe.listTitle') }}</h4>
-          <table v-if="subscribers.length > 0">
-            <thead>
-              <tr>
-                <th>{{ t('apiMarket.detail.subscribe.listColumns.subscriber') }}</th>
-                <th>{{ t('apiMarket.detail.subscribe.listColumns.status') }}</th>
-                <th>{{ t('apiMarket.detail.subscribe.listColumns.quota') }}</th>
-                <th>{{ t('apiMarket.detail.subscribe.listColumns.callCount') }}</th>
-                <th>{{ t('apiMarket.detail.subscribe.listColumns.ak') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="s in subscribers" :key="s.id">
-                <td>{{ s.subscriberId }}</td>
-                <td>
-                  <span :class="['pill', subStatusClass(s.status)]">
-                    {{ subStatusLabel(s.status) }}
-                  </span>
-                </td>
-                <td>{{ s.grantedQuota || s.quotaExpect }}</td>
-                <td>{{ s.callCount }}</td>
-                <td>
-                  <code v-if="s.accessKey">
-                    {{
-                      t('apiMarket.detail.subscribe.akMask', { ak: s.accessKey.substring(0, 12) })
-                    }}
-                  </code>
-                  <span v-else>—</span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div v-else class="meta" style="color: var(--muted)">
+          <el-table v-if="subscribers.length > 0" :data="subscribers" stripe>
+            <el-table-column
+              :label="t('apiMarket.detail.subscribe.listColumns.subscriber')"
+              prop="subscriberId"
+            />
+            <el-table-column :label="t('apiMarket.detail.subscribe.listColumns.status')">
+              <template #default="{ row }">
+                <span :class="['pill', subStatusClass(row.status)]">
+                  {{ subStatusLabel(row.status) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('apiMarket.detail.subscribe.listColumns.quota')">
+              <template #default="{ row }">{{ row.grantedQuota || row.quotaExpect }}</template>
+            </el-table-column>
+            <el-table-column
+              :label="t('apiMarket.detail.subscribe.listColumns.callCount')"
+              prop="callCount"
+            />
+            <el-table-column :label="t('apiMarket.detail.subscribe.listColumns.ak')">
+              <template #default="{ row }">
+                <code v-if="row.accessKey">
+                  {{
+                    t('apiMarket.detail.subscribe.akMask', { ak: row.accessKey.substring(0, 12) })
+                  }}
+                </code>
+                <span v-else>—</span>
+              </template>
+            </el-table-column>
+          </el-table>
+          <div v-else class="meta muted-text">
             {{ t('apiMarket.detail.subscribe.empty') }}
           </div>
         </div>
 
         <!-- 计量 Tab -->
         <div v-if="activeTab === 'metrics'" class="tab-content">
-          <div v-if="metricsLoading" class="meta" style="color: var(--muted)">
+          <div v-if="metricsLoading" class="meta muted-text">
             {{ t('apiMarket.detail.metrics.loading') }}
           </div>
           <template v-else-if="metrics">
@@ -335,43 +349,47 @@
                 "
               ></div>
             </div>
-            <div v-else class="meta" style="color: var(--muted)">
+            <div v-else class="meta muted-text">
               {{ t('apiMarket.detail.metrics.noTimeseries') }}
             </div>
             <h4 style="margin-top: 12px">{{ t('apiMarket.detail.metrics.byConsumerTitle') }}</h4>
-            <table v-if="metrics.byConsumer.length > 0">
-              <thead>
-                <tr>
-                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.tenant') }}</th>
-                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.callCount') }}</th>
-                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.errorCount') }}</th>
-                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.avgLatency') }}</th>
-                  <th>{{ t('apiMarket.detail.metrics.byConsumerColumns.cost') }}</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="c in metrics.byConsumer" :key="c.consumerTenantId">
-                  <td>{{ c.consumerTenantId }}</td>
-                  <td>{{ c.callCount }}</td>
-                  <td>{{ c.errorCount }}</td>
-                  <td>{{ c.avgLatencyMs.toFixed(1) }} ms</td>
-                  <td>{{ c.totalCost.toFixed(4) }}</td>
-                </tr>
-              </tbody>
-            </table>
-            <div v-else class="meta" style="color: var(--muted)">
+            <el-table v-if="metrics.byConsumer.length > 0" :data="metrics.byConsumer" stripe>
+              <el-table-column
+                :label="t('apiMarket.detail.metrics.byConsumerColumns.tenant')"
+                prop="consumerTenantId"
+              />
+              <el-table-column
+                :label="t('apiMarket.detail.metrics.byConsumerColumns.callCount')"
+                prop="callCount"
+              />
+              <el-table-column
+                :label="t('apiMarket.detail.metrics.byConsumerColumns.errorCount')"
+                prop="errorCount"
+              />
+              <el-table-column :label="t('apiMarket.detail.metrics.byConsumerColumns.avgLatency')">
+                <template #default="{ row }">{{ row.avgLatencyMs.toFixed(1) }} ms</template>
+              </el-table-column>
+              <el-table-column :label="t('apiMarket.detail.metrics.byConsumerColumns.cost')">
+                <template #default="{ row }">{{ row.totalCost.toFixed(4) }}</template>
+              </el-table-column>
+            </el-table>
+            <div v-else class="meta muted-text">
               {{ t('apiMarket.detail.metrics.noConsumer') }}
             </div>
           </template>
         </div>
       </div>
       <div class="mf">
-        <button class="btn ghost" @click="selectedApi = null">
+        <el-button @click="selectedApi = null">
           {{ t('apiMarket.detail.actions.close') }}
-        </button>
-        <button v-if="selectedApi.status === 'draft'" class="btn" @click="publishFlow(selectedApi)">
+        </el-button>
+        <el-button
+          v-if="selectedApi.status === 'draft'"
+          type="primary"
+          @click="publishFlow(selectedApi)"
+        >
           {{ t('apiMarket.detail.actions.publish') }}
-        </button>
+        </el-button>
       </div>
     </div>
 
@@ -382,59 +400,67 @@
       @close="registerModal = false"
     >
       <label>{{ t('apiMarket.register.name') }}</label>
-      <input v-model="newApi.name" :placeholder="t('apiMarket.register.namePlaceholder')" />
+      <el-input v-model="newApi.name" :placeholder="t('apiMarket.register.namePlaceholder')" />
       <label>{{ t('apiMarket.register.version') }}</label>
-      <input v-model="newApi.version" :placeholder="t('apiMarket.register.versionPlaceholder')" />
+      <el-input
+        v-model="newApi.version"
+        :placeholder="t('apiMarket.register.versionPlaceholder')"
+      />
       <label>{{ t('apiMarket.register.description') }}</label>
-      <input
+      <el-input
         v-model="newApi.description"
         :placeholder="t('apiMarket.register.descriptionPlaceholder')"
       />
       <label>{{ t('apiMarket.register.category') }}</label>
-      <input v-model="newApi.category" :placeholder="t('apiMarket.register.categoryPlaceholder')" />
+      <el-input
+        v-model="newApi.category"
+        :placeholder="t('apiMarket.register.categoryPlaceholder')"
+      />
       <label>{{ t('apiMarket.register.method') }}</label>
-      <select v-model="newApi.method">
-        <option>GET</option>
-        <option>POST</option>
-        <option>PUT</option>
-        <option>DELETE</option>
-      </select>
+      <el-select v-model="newApi.method">
+        <el-option label="GET" value="GET" />
+        <el-option label="POST" value="POST" />
+        <el-option label="PUT" value="PUT" />
+        <el-option label="DELETE" value="DELETE" />
+      </el-select>
       <label>{{ t('apiMarket.register.path') }}</label>
-      <input v-model="newApi.path" :placeholder="t('apiMarket.register.pathPlaceholder')" />
+      <el-input v-model="newApi.path" :placeholder="t('apiMarket.register.pathPlaceholder')" />
       <label>{{ t('apiMarket.register.authType') }}</label>
-      <select v-model="newApi.authType">
-        <option value="api_key">{{ t('apiMarket.status.auth.api_key') }}</option>
-        <option value="jwt">{{ t('apiMarket.status.auth.jwt') }}</option>
-        <option value="oauth2">{{ t('apiMarket.status.auth.oauth2') }}</option>
-      </select>
+      <el-select v-model="newApi.authType">
+        <el-option :label="t('apiMarket.status.auth.api_key')" value="api_key" />
+        <el-option :label="t('apiMarket.status.auth.jwt')" value="jwt" />
+        <el-option :label="t('apiMarket.status.auth.oauth2')" value="oauth2" />
+      </el-select>
       <label>{{ t('apiMarket.register.sla') }}</label>
-      <select v-model="newApi.sla">
-        <option value="silver">{{ t('apiMarket.status.sla.silver') }}</option>
-        <option value="gold">{{ t('apiMarket.status.sla.gold') }}</option>
-        <option value="platinum">{{ t('apiMarket.status.sla.platinum') }}</option>
-      </select>
+      <el-select v-model="newApi.sla">
+        <el-option :label="t('apiMarket.status.sla.silver')" value="silver" />
+        <el-option :label="t('apiMarket.status.sla.gold')" value="gold" />
+        <el-option :label="t('apiMarket.status.sla.platinum')" value="platinum" />
+      </el-select>
       <label>{{ t('apiMarket.register.upstreamType') }}</label>
-      <select v-model="newApi.upstreamType">
-        <option value="trino">{{ t('apiMarket.upstreamType.trino') }}</option>
-        <option value="doris">{{ t('apiMarket.upstreamType.doris') }}</option>
-        <option value="llm">{{ t('apiMarket.upstreamType.llm') }}</option>
-        <option value="http">{{ t('apiMarket.upstreamType.http') }}</option>
-      </select>
+      <el-select v-model="newApi.upstreamType">
+        <el-option :label="t('apiMarket.upstreamType.trino')" value="trino" />
+        <el-option :label="t('apiMarket.upstreamType.doris')" value="doris" />
+        <el-option :label="t('apiMarket.upstreamType.llm')" value="llm" />
+        <el-option :label="t('apiMarket.upstreamType.http')" value="http" />
+      </el-select>
       <label>{{ t('apiMarket.register.upstreamUrl') }}</label>
-      <input
+      <el-input
         v-model="newApi.upstreamUrl"
         :placeholder="t('apiMarket.register.upstreamUrlPlaceholder')"
       />
       <label>{{ t('apiMarket.register.providerTenantId') }}</label>
-      <input
+      <el-input
         v-model="newApi.providerTenantId"
         :placeholder="t('apiMarket.register.providerTenantIdPlaceholder')"
       />
       <template #footer>
-        <button class="btn ghost" @click="registerModal = false">
+        <el-button @click="registerModal = false">
           {{ t('apiMarket.register.cancel') }}
-        </button>
-        <button class="btn" @click="doRegister">{{ t('apiMarket.register.submit') }}</button>
+        </el-button>
+        <el-button type="primary" @click="doRegister">
+          {{ t('apiMarket.register.submit') }}
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -770,6 +796,14 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 通用文字色辅助类（使用 design tokens） */
+.muted-text {
+  color: var(--ds-text-tertiary);
+}
+.error-text {
+  color: var(--ds-color-error-600);
+}
+
 .api-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -778,12 +812,12 @@ onUnmounted(() => {
 .api-card {
   cursor: pointer;
   transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+    border-color var(--ds-transition-fast),
+    box-shadow var(--ds-transition-fast);
 }
 .api-card:hover {
-  border-color: var(--primary, #409eff);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-color: var(--ds-color-primary-500);
+  box-shadow: var(--ds-shadow-md);
 }
 .api-card-header {
   display: flex;
@@ -792,12 +826,12 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 .api-name {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   font-size: 15px;
 }
 .api-card-desc {
-  color: var(--muted, var(--ds-text-muted, var(--ds-text-secondary)));
-  font-size: 13px;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-font-size-sm);
   margin-bottom: 10px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -811,15 +845,14 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 .api-card-meta code {
-  font-size: 12px;
-
-  background: var(--bg-alt, #f5f7fa);
+  font-size: var(--ds-font-size-xs);
+  background: var(--ds-bg-subtle);
   padding: 2px 6px;
-  border-radius: 3px;
+  border-radius: var(--ds-radius-sm);
 }
 .version {
-  color: var(--muted, var(--ds-text-muted, var(--ds-text-secondary)));
-  font-size: 12px;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-font-size-xs);
 }
 .api-card-tags {
   display: flex;
@@ -830,9 +863,9 @@ onUnmounted(() => {
 .tag {
   font-size: 11px;
   padding: 1px 6px;
-  border-radius: 3px;
-  background: var(--bg-alt, #f0f2f5);
-  color: var(--muted, var(--ds-text-secondary));
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-bg-muted);
+  color: var(--ds-text-secondary);
 }
 .api-card-footer {
   display: flex;
@@ -842,39 +875,29 @@ onUnmounted(() => {
 .search-input {
   width: 280px;
 }
+/* Tab 切换栏：使用 Element Plus 按钮组，保留底部间距 */
 .tab-bar {
   display: flex;
-  border-bottom: 1px solid var(--border, #e4e7ed);
+  gap: 8px;
+  border-bottom: 1px solid var(--ds-border-subtle);
   margin-bottom: 12px;
-}
-.tab {
-  padding: 6px 16px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  font-size: 14px;
-  color: var(--muted, var(--ds-text-muted, var(--ds-text-secondary)));
-  border-bottom: 2px solid transparent;
-}
-.tab.active {
-  color: var(--primary, #409eff);
-  border-bottom-color: var(--primary, #409eff);
-  font-weight: 500;
+  padding-bottom: 8px;
 }
 .tab-content {
   min-height: 200px;
 }
 .call-result {
-  background: var(--bg-alt, #f5f7fa);
+  background: var(--ds-bg-subtle);
   padding: 10px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
 }
+/* 代码块：深色主题色使用 design tokens 的灰色系 */
 .code-block {
-  background: #1e1e1e;
-  color: #d4d4d4;
+  background: var(--ds-color-gray-900);
+  color: var(--ds-color-gray-300);
   padding: 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-font-size-xs);
   overflow-x: auto;
   max-height: 240px;
 }
@@ -884,13 +907,45 @@ onUnmounted(() => {
   gap: 2px;
   height: 100px;
   padding: 8px;
-  background: var(--bg-alt, #f5f7fa);
-  border-radius: 4px;
+  background: var(--ds-bg-subtle);
+  border-radius: var(--ds-radius-sm);
 }
 .bar {
   flex: 1;
-  background: var(--primary, #409eff);
+  background: var(--ds-color-primary-500);
   border-radius: 2px 2px 0 0;
   min-width: 4px;
+}
+
+/* 响应式断点：中等屏幕收窄卡片网格最小宽度 */
+@media (max-width: 1100px) {
+  .api-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-sm);
+  }
+}
+
+/* 响应式断点：小屏幕单列布局 */
+@media (max-width: 720px) {
+  .api-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-xs);
+  }
+  :deep(.el-table .cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .tab-bar {
+    flex-wrap: wrap;
+  }
+  .search-input {
+    width: 100%;
+  }
 }
 </style>

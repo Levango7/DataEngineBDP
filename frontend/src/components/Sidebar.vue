@@ -1,17 +1,37 @@
 <template>
-  <aside class="side" role="complementary" aria-label="平台侧边栏">
-    <div class="brand" :aria-label="t('nav.brand')">
+  <aside
+    class="side"
+    :class="{ collapsed: ui.sidebarCollapsed }"
+    role="complementary"
+    :aria-label="t('app.sidebar')"
+  >
+    <div class="brand" :aria-label="t('nav.brand')" :title="t('nav.brand')">
       <span class="dot" aria-hidden="true"></span>
-      {{ t('nav.brand') }}
+      <span class="brand-text">{{ t('nav.brand') }}</span>
+      <button
+        class="side-collapse"
+        :aria-label="ui.sidebarCollapsed ? t('app.expandSidebar') : t('app.collapseSidebar')"
+        :title="
+          ui.sidebarCollapsed
+            ? `${t('app.expandSidebar')} (Ctrl+B)`
+            : `${t('app.collapseSidebar')} (Ctrl+B)`
+        "
+        @click="ui.toggleSidebar"
+      >
+        <el-icon :size="14" aria-hidden="true">
+          <component :is="iconOf(ui.sidebarCollapsed ? 'Expand' : 'Fold')" />
+        </el-icon>
+      </button>
     </div>
-    <nav class="nav" role="navigation" aria-label="主导航菜单">
+    <nav class="nav" role="navigation" :aria-label="t('app.mainNav')">
       <template v-for="(group, gi) in groups" :key="group.title">
         <div
           class="grp"
           role="button"
           :aria-expanded="isOpen(gi)"
           :aria-controls="`nav-group-${gi}`"
-          :aria-label="`${group.title} 分组，共 ${group.items.length} 项`"
+          :aria-label="`${group.title} (${group.items.length})`"
+          :title="ui.sidebarCollapsed ? group.title : undefined"
           tabindex="0"
           @click="toggleGroup(gi)"
           @keyup.enter="toggleGroup(gi)"
@@ -25,7 +45,7 @@
           class="grp-items"
           :class="{ collapsed: !isOpen(gi) }"
           role="group"
-          :aria-label="`${group.title} 导航项`"
+          :aria-label="`${group.title}`"
         >
           <router-link
             v-for="item in group.items"
@@ -34,33 +54,18 @@
             class="nav-item"
             active-class="active"
             :aria-label="item.label"
+            :title="ui.sidebarCollapsed ? item.label : undefined"
           >
-            <svg class="ic" aria-hidden="true"><use :href="`#i-${item.icon}`" /></svg>
+            <el-icon class="nav-ic" :size="18" aria-hidden="true">
+              <component :is="iconOf(item.icon)" />
+            </el-icon>
             <span class="nav-label">{{ item.label }}</span>
-            <span v-if="item.badge" class="badge" aria-label="待办数量">{{ item.badge }}</span>
+            <span v-if="item.badge" class="badge">{{ item.badge }}</span>
           </router-link>
         </div>
       </template>
     </nav>
-    <div class="side-foot" aria-label="平台版本信息">
-      <select
-        class="locale-switcher"
-        :aria-label="t('app.localeLabel')"
-        :title="t('app.localeLabel')"
-        :value="locale"
-        @change="onLocaleChange"
-      >
-        <option value="zh-CN">中文</option>
-        <option value="en-US">EN</option>
-      </select>
-      <button
-        class="theme-toggle"
-        :aria-label="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
-        :title="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
-        @click="theme.toggle"
-      >
-        {{ theme.isDark ? '☀️' : '🌙' }}
-      </button>
+    <div class="side-foot" :aria-label="t('app.sidebarVersionInfo')">
       <div class="side-foot-text">
         {{ t('app.versionInfo', { version: appVersion }) }}
         <br />
@@ -71,15 +76,18 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { ref, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
+import * as EPIcons from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
-import { useThemeStore } from '@/stores/theme'
+import { useUiStore } from '@/stores/ui'
+import { useNavGroups } from '@/composables/useNavGroups'
 import { persistLocale, type SupportedLocale } from '@/i18n'
 
 const { t, locale } = useI18n()
 const store = useAppStore()
-const theme = useThemeStore()
+const ui = useUiStore()
+const groups = useNavGroups()
 
 declare const __APP_VERSION__: string
 
@@ -87,113 +95,19 @@ const appVersion = __APP_VERSION__ || 'dev'
 
 const appEnv = __APP_ENV__ || 'dev'
 
+/** EP 图标名 → 组件（@element-plus/icons-vue 全量导出表） */
+const iconTable = EPIcons as unknown as Record<string, Component>
+
+function iconOf(name: string): Component {
+  return iconTable[name] ?? iconTable.Menu
+}
+
+/** 语言切换放到顶栏（TopBar.vue）后，此处保留切换函数但不再渲染选择框 */
 function onLocaleChange(e: Event): void {
   const v = (e.target as HTMLSelectElement).value as SupportedLocale
   locale.value = v
   persistLocale(v)
 }
-
-interface NavItem {
-  path: string
-  label: string
-  icon: string
-  badge?: number
-}
-interface NavGroup {
-  title: string
-  items: NavItem[]
-}
-
-// 导航配置（35 项，7 分组）—— label/title 通过 i18n key 渲染，
-// 语言切换时 computed 自动重算（vue-i18n 响应式 t()）
-const groups = computed<NavGroup[]>(() => [
-  {
-    title: t('nav.groups.infra'),
-    items: [
-      { path: '/infra-machine', label: t('nav.items.infra-machine'), icon: 'ws' },
-      { path: '/infra-k8s', label: t('nav.items.infra-k8s'), icon: 'ops' },
-      { path: '/cluster', label: t('nav.items.cluster'), icon: 'ops' },
-      { path: '/datasources', label: t('nav.items.datasources'), icon: 'integrate' },
-      { path: '/infra-net', label: t('nav.items.infra-net'), icon: 'integrate' },
-      { path: '/infra-store', label: t('nav.items.infra-store'), icon: 'folder' },
-      { path: '/infra-sched', label: t('nav.items.infra-sched'), icon: 'develop' }
-    ]
-  },
-  {
-    title: t('nav.groups.engine'),
-    items: [
-      { path: '/eng-storage', label: t('nav.items.eng-storage'), icon: 'folder' },
-      { path: '/eng-spark', label: t('nav.items.eng-spark'), icon: 'develop' },
-      { path: '/eng-flink', label: t('nav.items.eng-flink'), icon: 'develop' },
-      { path: '/sql', label: t('nav.items.sql'), icon: 'sql' },
-      { path: '/eng-doris', label: t('nav.items.eng-doris'), icon: 'analyze' },
-      { path: '/eng-kafka', label: t('nav.items.eng-kafka'), icon: 'integrate' },
-      { path: '/eng-iotdb', label: t('nav.items.eng-iotdb'), icon: 'ops' },
-      { path: '/eng-mmg', label: t('nav.items.eng-mmg'), icon: 'vector' }
-    ]
-  },
-  {
-    title: t('nav.groups.governance'),
-    items: [
-      { path: '/govern-meta', label: t('nav.items.govern-meta'), icon: 'standard' },
-      { path: '/quality', label: t('nav.items.quality'), icon: 'quality' },
-      { path: '/lineage', label: t('nav.items.lineage'), icon: 'lineage' },
-      { path: '/data-lineage', label: t('nav.items.data-lineage'), icon: 'lineage' },
-      { path: '/govern', label: t('nav.items.govern'), icon: 'govern' },
-      { path: '/standard', label: t('nav.items.standard'), icon: 'standard' },
-      { path: '/sec', label: t('nav.items.sec'), icon: 'sec', badge: store.todoCount }
-    ]
-  },
-  {
-    title: t('nav.groups.devtools'),
-    items: [
-      { path: '/integrate', label: t('nav.items.integrate'), icon: 'integrate' },
-      { path: '/dev-sched', label: t('nav.items.dev-sched'), icon: 'develop' },
-      { path: '/scheduler-ops', label: t('nav.items.scheduler-ops'), icon: 'ops' },
-      { path: '/jobs', label: t('nav.items.jobs'), icon: 'develop' },
-      { path: '/develop', label: t('nav.items.develop'), icon: 'develop' },
-      { path: '/sql-workbench', label: t('nav.items.sql-workbench'), icon: 'sql' },
-      { path: '/analyze', label: t('nav.items.analyze'), icon: 'analyze' },
-      { path: '/dev-tag', label: t('nav.items.dev-tag'), icon: 'vector' },
-      { path: '/dev-ml', label: t('nav.items.dev-ml'), icon: 'llmops' }
-    ]
-  },
-  {
-    title: t('nav.groups.tenant'),
-    items: [
-      { path: '/tenants', label: t('nav.items.tenants'), icon: 'ws' },
-      { path: '/workspaces', label: t('nav.items.workspaces'), icon: 'ws' },
-      { path: '/workspace-management', label: t('nav.items.workspace-management'), icon: 'ws' },
-      { path: '/quota-management', label: t('nav.items.quota-management'), icon: 'ops' },
-      { path: '/projects', label: t('nav.items.projects'), icon: 'proj' },
-      { path: '/account', label: t('nav.items.account'), icon: 'admin' }
-    ]
-  },
-  {
-    title: t('nav.groups.intelligent'),
-    items: [
-      { path: '/ai-assistant', label: t('nav.items.ai-assistant'), icon: 'llmops' },
-      { path: '/vector', label: t('nav.items.vector'), icon: 'vector' },
-      { path: '/kb', label: t('nav.items.kb'), icon: 'kb' },
-      { path: '/llmops', label: t('nav.items.llmops'), icon: 'llmops' },
-      { path: '/orchestrator/dag', label: t('nav.items.orchestrator-dag'), icon: 'lineage' },
-      { path: '/gateway', label: t('nav.items.gateway'), icon: 'gateway' }
-    ]
-  },
-  {
-    title: t('nav.groups.operations'),
-    items: [
-      { path: '/dashboard', label: t('nav.items.dashboard'), icon: 'dash' },
-      { path: '/ops', label: t('nav.items.ops'), icon: 'ops' },
-      { path: '/search', label: t('nav.items.search'), icon: 'kb' },
-      { path: '/admin', label: t('nav.items.admin'), icon: 'admin' },
-      { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'proj' },
-      { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'ws' },
-      { path: '/ops-api', label: t('nav.items.ops-api'), icon: 'gateway' },
-      { path: '/ops-flow', label: t('nav.items.ops-flow'), icon: 'govern' }
-    ]
-  }
-])
 
 // 分组展开/折叠状态：默认全部展开（未在 collapsed 中记录即展开）
 const collapsed = ref<number[]>([])
@@ -221,13 +135,14 @@ function toggleGroup(idx: number): void {
   user-select: none;
   padding: 12px 18px 4px;
   transition: color 0.2s var(--ease-smooth);
+  white-space: nowrap;
 }
 .nav .grp:hover {
   color: var(--sidebar-ink);
 }
 .nav .grp:hover .grp-arrow,
 .nav .grp:hover .grp-count {
-  color: var(--primary);
+  color: var(--ds-color-primary-500);
 }
 .grp-arrow {
   display: inline-block;

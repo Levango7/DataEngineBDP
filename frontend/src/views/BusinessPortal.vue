@@ -25,7 +25,7 @@
           </template>
           <template v-else-if="blError">
             <div class="bp-sidebar-item">
-              <span style="color: var(--muted)">{{ blError.message }}</span>
+              <span style="color: var(--ds-text-tertiary)">{{ blError.message }}</span>
               <a href="javascript:void(0)" @click="reloadBl">
                 {{ t('businessPortal.sidebar.retry') }}
               </a>
@@ -33,7 +33,7 @@
           </template>
           <template v-else-if="businessLines && businessLines.length === 0">
             <div class="bp-sidebar-item">
-              <span style="color: var(--muted)">{{ t('businessPortal.sidebar.empty') }}</span>
+              <span style="color: var(--ds-text-tertiary)">{{ t('businessPortal.sidebar.empty') }}</span>
             </div>
           </template>
           <template v-else-if="businessLines">
@@ -71,7 +71,7 @@
         <template v-if="!currentBlId">
           <div class="card">
             <h3>{{ t('businessPortal.empty.selectBl') }}</h3>
-            <div class="meta" style="color: var(--muted)">
+            <div class="meta" style="color: var(--ds-text-tertiary)">
               {{ t('businessPortal.empty.selectBlHint') }}
             </div>
           </div>
@@ -103,7 +103,7 @@
             <template v-else-if="dashboardError">
               <div class="card">
                 <h3>{{ t('businessPortal.dashboard.loadFailed') }}</h3>
-                <div class="meta" style="color: var(--muted)">
+                <div class="meta" style="color: var(--ds-text-tertiary)">
                   {{ t('businessPortal.dashboard.loadFailedHint') }}
                   <a href="javascript:void(0)" @click="reloadDashboard">
                     {{ t('businessPortal.dashboard.retry') }}
@@ -256,7 +256,7 @@
                         </td>
                       </tr>
                       <tr v-if="workbench.todos.length === 0">
-                        <td colspan="4" style="text-align: center; color: var(--muted)">
+                        <td colspan="4" style="text-align: center; color: var(--ds-text-tertiary)">
                           {{ t('businessPortal.workbench.todos.empty') }}
                         </td>
                       </tr>
@@ -387,7 +387,7 @@
                 </div>
                 <div v-if="reports.length === 0" class="card">
                   <h3>{{ t('businessPortal.reports.empty.title') }}</h3>
-                  <div class="meta" style="color: var(--muted)">
+                  <div class="meta" style="color: var(--ds-text-tertiary)">
                     {{ t('businessPortal.reports.empty.hint') }}
                   </div>
                 </div>

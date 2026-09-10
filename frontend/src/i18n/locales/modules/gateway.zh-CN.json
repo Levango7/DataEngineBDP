@@ -44,7 +44,12 @@
       "generate": "生成",
       "nameRequired": "请填写 Key 名称",
       "updated": "API Key 已更新",
-      "generated": "API Key 已生成"
+      "generated": "API Key 已生成",
+      "routeModelOptions": {
+        "qiong7B": "qiong-7B",
+        "riskDomain13B": "风控-领域-1.3B",
+        "marketingDomain3B": "营销-领域-3B"
+      }
     },
     "secretModal": {
       "title": "API Key 已生成（请妥善保存 secret）",

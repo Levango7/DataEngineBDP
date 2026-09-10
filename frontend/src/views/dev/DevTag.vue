@@ -15,7 +15,7 @@
       <template v-else-if="tagsError">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ t('devTag.listLoadFailed') }}
             <a href="javascript:void(0)" @click="reloadTags">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -86,7 +86,7 @@
             <el-table-column prop="name" :label="t('devTag.tagColumns.name')" min-width="160" />
             <el-table-column prop="code" :label="t('devTag.tagColumns.code')" width="160">
               <template #default="{ row }">
-                <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px">
+                <span style="font-family: var(--ds-font-family-mono); font-size: 12.5px">
                   {{ row.code || t('devTag.tagColumns.codePlaceholder') }}
                 </span>
               </template>
@@ -169,7 +169,7 @@
           <div v-if="profileLoading" class="meta" style="padding: 16px">
             {{ t('devTag.profile.loading') }}
           </div>
-          <div v-else-if="profileError" class="meta" style="padding: 16px; color: var(--muted)">
+          <div v-else-if="profileError" class="meta" style="padding: 16px; color: var(--ds-text-tertiary)">
             {{ t('devTag.profile.loadFailed') }}
             <a href="javascript:void(0)" @click="handleQueryProfile">
               {{ t('devTag.profile.loadFailedRetry') }}
@@ -207,7 +207,7 @@
                 <template #default="{ row }">
                   <span
                     v-if="row.value === null || row.value === undefined"
-                    style="color: var(--muted)"
+                    style="color: var(--ds-text-tertiary)"
                   >
                     --
                   </span>
@@ -292,7 +292,7 @@
             <el-col :xs="24" :md="12">
               <h3 style="margin: 0 0 12px">{{ t('devTag.audience.resultTitle') }}</h3>
               <div v-if="selecting" class="meta">{{ t('devTag.audience.selecting') }}</div>
-              <div v-else-if="selectError" class="meta" style="color: var(--muted)">
+              <div v-else-if="selectError" class="meta" style="color: var(--ds-text-tertiary)">
                 {{ t('devTag.audience.selectFailed') }}
               </div>
               <el-empty v-else-if="!audienceResult" :description="t('devTag.audience.emptyHint')" />
@@ -365,7 +365,7 @@
           <el-input
             v-model="tagForm.code"
             :placeholder="t('devTag.tagDialog.fields.codePlaceholder')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
         <el-form-item :label="t('devTag.tagDialog.fields.valueType')" prop="valueType">
@@ -501,7 +501,7 @@
               type="textarea"
               :rows="3"
               :placeholder="t('devTag.ruleDialog.addForm.fields.expressionPlaceholder')"
-              style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
             />
           </el-form-item>
           <el-form-item>
@@ -944,7 +944,7 @@ onMounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;

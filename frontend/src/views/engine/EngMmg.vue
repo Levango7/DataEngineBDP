@@ -15,7 +15,7 @@
       <template v-else-if="kpiError">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ kpiError.message }}，
             <a href="javascript:void(0)" @click="reloadKpi">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -159,11 +159,7 @@
         <el-input
           v-model="queryPredicate"
           :placeholder="t('engMmg.query.predicatePlaceholder')"
-          style="
-            font-family: 'SFMono-Regular', Consolas, monospace;
-            font-size: 12.5px;
-            margin-bottom: 12px;
-          "
+          style="font-family: var(--ds-font-family-mono); font-size: 12.5px; margin-bottom: 12px"
         />
         <div v-loading="querying" class="query-result">
           <template v-if="queryResult">
@@ -419,7 +415,7 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
@@ -464,19 +460,19 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   cursor: pointer;
   transition:
     border-color 0.2s,
     box-shadow 0.2s;
 }
 .model-card:hover {
-  border-color: #409eff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.15);
+  border-color: var(--ds-color-primary-500);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
 }
 .model-card.active {
-  border-color: #409eff;
-  background: #ecf5ff;
+  border-color: var(--ds-color-primary-500);
+  background: var(--ds-color-primary-50);
 }
 .model-name {
   font-size: 16px;

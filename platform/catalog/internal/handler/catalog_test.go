@@ -3,6 +3,7 @@ package handler
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -51,14 +52,26 @@ func (m *mockStore) GetDatabase(tenantID, id string) (*model.Database, error) {
 	return db, nil
 }
 
-func (m *mockStore) ListDatabases(tenantID string) ([]*model.Database, error) {
+func (m *mockStore) ListDatabases(tenantID string, limit, offset int) ([]*model.Database, int64, error) {
 	var result []*model.Database
 	for _, db := range m.databases {
 		if db.TenantID == tenantID {
 			result = append(result, db)
 		}
 	}
-	return result, nil
+	total := int64(len(result))
+	// 应用分页
+	if limit > 0 {
+		if offset >= len(result) {
+			return []*model.Database{}, total, nil
+		}
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		result = result[offset:end]
+	}
+	return result, total, nil
 }
 
 func (m *mockStore) DeleteDatabase(tenantID, id string) error {
@@ -86,7 +99,7 @@ func (m *mockStore) GetTable(tenantID, id string) (*model.Table, error) {
 	return t, nil
 }
 
-func (m *mockStore) ListTables(tenantID, dbName string) ([]*model.Table, error) {
+func (m *mockStore) ListTables(tenantID, dbName string, limit, offset int) ([]*model.Table, int64, error) {
 	var result []*model.Table
 	for _, t := range m.tables {
 		if t.TenantID != tenantID {
@@ -96,7 +109,19 @@ func (m *mockStore) ListTables(tenantID, dbName string) ([]*model.Table, error) 
 			result = append(result, t)
 		}
 	}
-	return result, nil
+	total := int64(len(result))
+	// 应用分页
+	if limit > 0 {
+		if offset >= len(result) {
+			return []*model.Table{}, total, nil
+		}
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		result = result[offset:end]
+	}
+	return result, total, nil
 }
 
 func (m *mockStore) UpdateTable(t *model.Table) error {
@@ -851,4 +876,227 @@ func TestMissingTenantIdentity401(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases", nil)
 	r.ServeHTTP(w, req)
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+// ============ 分页测试 ============
+
+// TestListDatabases_DefaultPagination 验证不传分页参数时使用默认值（page=1, pageSize=20）。
+func TestListDatabases_DefaultPagination(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	// 插入 5 条数据
+	for i := 0; i < 5; i++ {
+		id := fmt.Sprintf("pg-001-%d", i)
+		ms.databases[id] = &model.Database{TenantID: "t1", ID: id, Name: fmt.Sprintf("db%d", i), Owner: "admin"}
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Data     []interface{} `json:"data"`
+		Total    int64         `json:"total"`
+		Page     int           `json:"page"`
+		PageSize int           `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, int64(5), resp.Total)
+	assert.Len(t, resp.Data, 5) // 5 < 20，全部返回
+	assert.Equal(t, 1, resp.Page)
+	assert.Equal(t, 20, resp.PageSize) // 默认 pageSize
+}
+
+// TestListDatabases_Page2Size2 验证 page=2&pageSize=2 返回正确的偏移数据。
+func TestListDatabases_Page2Size2(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	// 插入 5 条数据
+	for i := 0; i < 5; i++ {
+		id := fmt.Sprintf("pg2-%d", i)
+		ms.databases[id] = &model.Database{TenantID: "t1", ID: id, Name: fmt.Sprintf("db%d", i), Owner: "admin"}
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases?page=2&pageSize=2", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Data     []*model.Database `json:"data"`
+		Total    int64             `json:"total"`
+		Page     int               `json:"page"`
+		PageSize int               `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, int64(5), resp.Total) // total 是全量条数
+	assert.Len(t, resp.Data, 2)           // pageSize=2
+	assert.Equal(t, 2, resp.Page)
+	assert.Equal(t, 2, resp.PageSize)
+}
+
+// TestListDatabases_PageSizeOver100 验证 pageSize 超过 100 时被截断为 100。
+func TestListDatabases_PageSizeOver100(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases?pageSize=500", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		PageSize int `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, 100, resp.PageSize) // 截断为 100
+}
+
+// TestListDatabases_InvalidPage 验证非法 page 参数返回 400。
+func TestListDatabases_InvalidPage(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases?page=abc", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestListDatabases_InvalidPageSize 验证非法 pageSize 参数返回 400。
+func TestListDatabases_InvalidPageSize(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases?pageSize=xyz", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestListDatabases_PageZero 验证 page=0 返回 400。
+func TestListDatabases_PageZero(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/databases?page=0", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+// TestListTables_DefaultPagination 验证不传分页参数时使用默认值（page=1, pageSize=20）。
+func TestListTables_DefaultPagination(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	// 插入 5 条数据
+	for i := 0; i < 5; i++ {
+		id := fmt.Sprintf("tpg-%d", i)
+		ms.tables[id] = &model.Table{TenantID: "t1", ID: id, DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i)}
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/tables", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Data     []interface{} `json:"data"`
+		Total    int64         `json:"total"`
+		Page     int           `json:"page"`
+		PageSize int           `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, int64(5), resp.Total)
+	assert.Len(t, resp.Data, 5)
+	assert.Equal(t, 1, resp.Page)
+	assert.Equal(t, 20, resp.PageSize)
+}
+
+// TestListTables_Page2Size2 验证 page=2&pageSize=2 返回正确的偏移数据。
+func TestListTables_Page2Size2(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	// 插入 5 条数据
+	for i := 0; i < 5; i++ {
+		id := fmt.Sprintf("tpg2-%d", i)
+		ms.tables[id] = &model.Table{TenantID: "t1", ID: id, DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i)}
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/tables?page=2&pageSize=2", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Data     []*model.Table `json:"data"`
+		Total    int64          `json:"total"`
+		Page     int            `json:"page"`
+		PageSize int            `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, int64(5), resp.Total)
+	assert.Len(t, resp.Data, 2)
+	assert.Equal(t, 2, resp.Page)
+	assert.Equal(t, 2, resp.PageSize)
+}
+
+// TestListTables_PageSizeOver100 验证 pageSize 超过 100 时被截断为 100。
+func TestListTables_PageSizeOver100(t *testing.T) {
+	r, _ := setupTestRouterWithMock()
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/tables?pageSize=500", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		PageSize int `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, 100, resp.PageSize)
+}
+
+// TestListTables_WithFilterAndPagination 验证 database 过滤与分页同时生效。
+func TestListTables_WithFilterAndPagination(t *testing.T) {
+	r, ms := setupTestRouterWithMock()
+
+	// db1 下 3 张表，db2 下 2 张表
+	for i := 0; i < 3; i++ {
+		id := fmt.Sprintf("tf-%d", i)
+		ms.tables[id] = &model.Table{TenantID: "t1", ID: id, DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i)}
+	}
+	for i := 0; i < 2; i++ {
+		id := fmt.Sprintf("tf2-%d", i)
+		ms.tables[id] = &model.Table{TenantID: "t1", ID: id, DatabaseName: "db2", TableName: fmt.Sprintf("u%d", i)}
+	}
+
+	// 过滤 db1，page=1, pageSize=2 → 返回 2 条，total=3
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/catalog/tables?database=db1&page=1&pageSize=2", nil)
+	r.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var resp struct {
+		Data     []*model.Table `json:"data"`
+		Total    int64          `json:"total"`
+		Page     int            `json:"page"`
+		PageSize int            `json:"pageSize"`
+	}
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.Equal(t, int64(3), resp.Total) // db1 下共 3 张表
+	assert.Len(t, resp.Data, 2)           // pageSize=2
+	assert.Equal(t, 1, resp.Page)
+	assert.Equal(t, 2, resp.PageSize)
+	// 所有返回的表都属于 db1
+	for _, tbl := range resp.Data {
+		assert.Equal(t, "db1", tbl.DatabaseName)
+	}
 }

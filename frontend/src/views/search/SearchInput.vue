@@ -20,13 +20,13 @@
         :class="['btn', 'sm', mode === 'natural' ? '' : 'ghost']"
         @click="switchMode('natural')"
       >
-        自然语言
+        {{ t('searchPortal.search.input.nlMode') }}
       </button>
       <button
         :class="['btn', 'sm', mode === 'structured' ? '' : 'ghost']"
         @click="switchMode('structured')"
       >
-        结构化查询
+        {{ t('searchPortal.search.input.structuredMode') }}
       </button>
     </div>
 
@@ -34,7 +34,7 @@
     <div v-if="mode === 'natural'" class="natural-input">
       <el-input
         v-model="naturalText"
-        placeholder="用自然语言描述要找的数据，如：最近 7 天风控线用户行为日志"
+        :placeholder="t('searchPortal.search.input.nlPlaceholder')"
         size="large"
         clearable
         @keyup.enter="emitSearch"
@@ -45,7 +45,9 @@
           <el-icon><Search /></el-icon>
         </template>
         <template #append>
-          <el-button :loading="loading" type="primary" @click="emitSearch">检索</el-button>
+          <el-button :loading="loading" type="primary" @click="emitSearch">
+            {{ t('searchPortal.search.input.search') }}
+          </el-button>
         </template>
       </el-input>
 
@@ -68,20 +70,25 @@
       <div v-for="(cond, idx) in conditions" :key="idx" class="condition-row">
         <el-select
           v-model="cond.field"
-          placeholder="字段"
+          :placeholder="t('searchPortal.search.input.fieldPlaceholder')"
           style="width: 160px"
           @change="emitSearch"
         >
           <el-option v-for="f in fieldOptions" :key="f.value" :label="f.label" :value="f.value" />
         </el-select>
 
-        <el-select v-model="cond.op" placeholder="操作" style="width: 110px" @change="emitSearch">
+        <el-select
+          v-model="cond.op"
+          :placeholder="t('searchPortal.search.input.opPlaceholder')"
+          style="width: 110px"
+          @change="emitSearch"
+        >
           <el-option v-for="o in opOptions" :key="o.value" :label="o.label" :value="o.value" />
         </el-select>
 
         <el-input
           v-model="cond.valueText"
-          placeholder="值（多个用逗号分隔）"
+          :placeholder="t('searchPortal.search.input.valuePlaceholder')"
           style="flex: 1"
           @keyup.enter="emitSearch"
         />
@@ -90,7 +97,9 @@
       </div>
 
       <div class="condition-actions">
-        <el-button size="small" :icon="Plus" @click="addCondition">添加条件</el-button>
+        <el-button size="small" :icon="Plus" @click="addCondition">
+          {{ t('searchPortal.search.input.addField') }}
+        </el-button>
         <el-button
           size="small"
           type="primary"
@@ -98,20 +107,25 @@
           :disabled="conditions.length === 0"
           @click="emitSearch"
         >
-          检索
+          {{ t('searchPortal.search.input.search') }}
         </el-button>
-        <el-button size="small" @click="emitClear">清空</el-button>
+        <el-button size="small" @click="emitClear">
+          {{ t('searchPortal.search.input.clear') }}
+        </el-button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onUnmounted } from 'vue'
+import { computed, ref, watch, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElInput, ElSelect, ElOption, ElButton, ElIcon } from 'element-plus'
 import { Search, MagicStick, Plus, Delete } from '@element-plus/icons-vue'
 import type { SearchMode, StructuredCondition } from '@/types/search'
 import * as searchApi from '@/api/search'
+
+const { t } = useI18n()
 
 /* ------------------------------ Props / Emits ------------------------------ */
 interface Props {
@@ -147,30 +161,30 @@ const naturalText = ref('')
 const suggestions = ref<string[]>([])
 
 /** 字段选项（与后端 schema 对齐） */
-const fieldOptions = [
-  { label: '名称', value: 'name' },
-  { label: '描述', value: 'description' },
-  { label: '数据源', value: 'sourceId' },
-  { label: '类型', value: 'type' },
-  { label: '负责人', value: 'owner' },
-  { label: '标签', value: 'tags' },
-  { label: '创建时间', value: 'createdAt' },
-  { label: '更新时间', value: 'updatedAt' }
-]
+const fieldOptions = computed(() => [
+  { label: t('searchPortal.search.input.fields.name'), value: 'name' },
+  { label: t('searchPortal.search.input.fields.description'), value: 'description' },
+  { label: t('searchPortal.search.input.fields.sourceId'), value: 'sourceId' },
+  { label: t('searchPortal.search.input.fields.type'), value: 'type' },
+  { label: t('searchPortal.search.input.fields.owner'), value: 'owner' },
+  { label: t('searchPortal.search.input.fields.tags'), value: 'tags' },
+  { label: t('searchPortal.search.input.fields.createdAt'), value: 'createdAt' },
+  { label: t('searchPortal.search.input.fields.updatedAt'), value: 'updatedAt' }
+])
 
 /** 操作符选项 */
-const opOptions = [
-  { label: '等于', value: 'eq' },
-  { label: '不等于', value: 'ne' },
-  { label: '包含于', value: 'in' },
-  { label: '不包含于', value: 'not_in' },
-  { label: '大于', value: 'gt' },
-  { label: '大于等于', value: 'gte' },
-  { label: '小于', value: 'lt' },
-  { label: '小于等于', value: 'lte' },
-  { label: '包含', value: 'contains' },
-  { label: '存在', value: 'exists' }
-]
+const opOptions = computed(() => [
+  { label: t('searchPortal.search.input.ops.eq'), value: 'eq' },
+  { label: t('searchPortal.search.input.ops.ne'), value: 'ne' },
+  { label: t('searchPortal.search.input.ops.in'), value: 'in' },
+  { label: t('searchPortal.search.input.ops.not_in'), value: 'not_in' },
+  { label: t('searchPortal.search.input.ops.gt'), value: 'gt' },
+  { label: t('searchPortal.search.input.ops.gte'), value: 'gte' },
+  { label: t('searchPortal.search.input.ops.lt'), value: 'lt' },
+  { label: t('searchPortal.search.input.ops.lte'), value: 'lte' },
+  { label: t('searchPortal.search.input.ops.contains'), value: 'contains' },
+  { label: t('searchPortal.search.input.ops.exists'), value: 'exists' }
+])
 
 /** 结构化条件（带文本值，emit 时转换为 StructuredCondition） */
 interface CondRow {
@@ -298,7 +312,7 @@ onUnmounted(() => {
   right: 0;
   margin-top: 4px;
   background: #fff;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 10;

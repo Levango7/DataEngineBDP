@@ -1,0 +1,60 @@
+{
+  "approvals": {
+    "title": "审批中心",
+    "subtitle": "租户管理员 / 平台超管审批待激活注册申请",
+    "stats": {
+      "pendingAll": "全平台待审",
+      "processing": "处理中",
+      "approved": "已批准",
+      "rejected": "已拒绝"
+    },
+    "filter": {
+      "status": "状态过滤",
+      "tenant": "租户过滤",
+      "pending": "待审",
+      "approved": "已批准",
+      "rejected": "已拒绝"
+    },
+    "table": {
+      "empty": "暂无注册申请",
+      "columns": {
+        "username": "用户名",
+        "fullName": "姓名",
+        "email": "邮箱",
+        "department": "部门",
+        "employeeId": "工号",
+        "tenant": "所属租户",
+        "role": "角色",
+        "inviteCode": "邀请码",
+        "status": "状态",
+        "createdAt": "申请时间",
+        "actions": "操作"
+      },
+      "approve": "批准",
+      "reject": "拒绝"
+    },
+    "dialog": {
+      "approveTitle": "批准注册",
+      "rejectTitle": "拒绝注册",
+      "confirmApprove": "确认批准用户 {user} 提交给 {tenant} 的注册申请？",
+      "confirmReject": "确认拒绝用户 {user} 提交给 {tenant} 的注册申请？",
+      "note": "审批备注",
+      "noteApproveHint": "欢迎加入团队",
+      "noteRejectHint": "工号校验未通过",
+      "confirmApproveBtn": "确认批准",
+      "confirmRejectBtn": "确认拒绝"
+    },
+    "labels": {
+      "roleTenantAdmin": "租户管理员",
+      "roleUser": "普通用户",
+      "rolePlatformAdmin": "平台超管",
+      "statusPending": "待审",
+      "statusApproved": "已批准",
+      "statusRejected": "已拒绝"
+    },
+    "messages": {
+      "approved": "已批准",
+      "rejected": "已拒绝"
+    }
+  }
+}

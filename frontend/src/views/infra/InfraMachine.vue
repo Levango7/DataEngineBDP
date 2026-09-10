@@ -15,7 +15,7 @@
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ error.message }}，
             <a href="javascript:void(0)" @click="reload">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
@@ -490,7 +490,7 @@ onUnmounted(() => {
   padding: 0;
 }
 .sub {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -516,39 +516,39 @@ onUnmounted(() => {
   }
 }
 .card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 16px;
-  background: var(--panel);
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .kpi.w {
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .kpi.d {
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .meta {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
 }
 .toolbar {

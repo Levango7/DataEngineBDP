@@ -21,7 +21,7 @@
         <span class="source-pill">{{ item.sourceName }}</span>
       </div>
       <div class="header-right">
-        <el-tooltip content="相关度评分" placement="top">
+        <el-tooltip :content="t('searchPortal.search.resultCard.scoreTip')" placement="top">
           <span class="score-badge">
             <el-icon><Star /></el-icon>
             {{ (item.score * 100).toFixed(0) }}%
@@ -53,7 +53,7 @@
       </span>
       <span class="meta-item">
         <el-icon><Clock /></el-icon>
-        更新于 {{ formatDate(item.updatedAt) }}
+        {{ t('searchPortal.search.resultCard.updatedAtFmt', { date: formatDate(item.updatedAt) }) }}
       </span>
     </div>
 
@@ -69,18 +69,25 @@
 
     <!-- 底部操作 -->
     <div class="card-footer">
-      <el-button link type="primary" @click.stop="emitOpen">查看详情</el-button>
-      <el-button v-if="item.url" link type="success" @click.stop="openUrl">打开资产</el-button>
+      <el-button link type="primary" @click.stop="emitOpen">
+        {{ t('searchPortal.search.resultCard.viewDetail') }}
+      </el-button>
+      <el-button v-if="item.url" link type="success" @click.stop="openUrl">
+        {{ t('searchPortal.search.resultCard.openAsset') }}
+      </el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElButton, ElIcon, ElTag, ElTooltip } from 'element-plus'
 import { Star, User, Clock, Collection } from '@element-plus/icons-vue'
 import DOMPurify from 'dompurify'
 import type { SearchResultItem, AssetType } from '@/types/search'
+
+const { t } = useI18n()
 
 /* ------------------------------ Props / Emits ------------------------------ */
 interface Props {
@@ -178,21 +185,21 @@ const sanitizedDesc = computed(() => {
 const displayTags = computed(() => props.item.tags.slice(0, props.maxTags))
 
 /* ------------------------------ 工具 ------------------------------ */
-const TYPE_LABELS: Record<AssetType, string> = {
-  table: '数据集',
-  view: '视图',
-  api: '数据服务',
-  model: '数据模型',
-  dashboard: '仪表盘',
-  stream: '实时流',
-  job: '作业',
-  notebook: '笔记本',
-  metric: '指标',
-  document: '文档'
-}
+const TYPE_LABELS = computed<Record<AssetType, string>>(() => ({
+  table: t('searchPortal.search.typeOptions.table'),
+  view: t('searchPortal.search.typeOptions.view'),
+  api: t('searchPortal.search.typeOptions.api'),
+  model: t('searchPortal.search.typeOptions.model'),
+  dashboard: t('searchPortal.search.typeOptions.dashboard'),
+  stream: t('searchPortal.search.typeOptions.stream'),
+  job: t('searchPortal.search.typeOptions.job'),
+  notebook: t('searchPortal.search.typeOptions.notebook'),
+  metric: t('searchPortal.search.typeOptions.metric'),
+  document: t('searchPortal.search.typeOptions.document')
+}))
 
-function typeLabel(t: AssetType): string {
-  return TYPE_LABELS[t] ?? t
+function typeLabel(v: AssetType): string {
+  return TYPE_LABELS.value[v] ?? v
 }
 
 function formatDate(iso: string): string {

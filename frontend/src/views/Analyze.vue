@@ -17,12 +17,15 @@
     <div v-if="boardsLoading" class="meta" style="padding: 24px 4px">
       {{ t('analyze.boardsLoading') }}
     </div>
-    <div v-else-if="boardsError" class="meta" style="color: var(--red); padding: 24px 4px">
+    <div v-else-if="boardsError" class="meta" style="color: var(--ds-color-error-500); padding: 24px 4px">
       {{ boardsError.message }}，
       <a href="javascript:void(0)" @click="loadBoards">{{ t('common.retry') }}</a>
     </div>
     <div v-else-if="boards.length === 0" class="card" style="padding: 32px; text-align: center">
-      <div style="font-size: 28px; margin-bottom: 8px">📊</div>
+      <div style="margin-bottom: 8px; color: var(--ds-text-tertiary)" aria-hidden="true">
+        <!-- 空态图标：数据分析 -->
+        <el-icon :size="28"><DataAnalysis /></el-icon>
+      </div>
       <div class="meta">{{ t('analyze.empty') }}</div>
     </div>
     <template v-else>
@@ -64,7 +67,7 @@
     <div class="card" style="margin-top: 8px">
       <h3>{{ t('analyze.realtime') }}</h3>
       <div v-if="metricsLoading" class="kpi s">--</div>
-      <div v-else-if="metricsError" class="meta" style="color: var(--red)">
+      <div v-else-if="metricsError" class="meta" style="color: var(--ds-color-error-500)">
         {{ metricsError.message }}，
         <a href="javascript:void(0)" @click="loadMetrics">{{ t('common.retry') }}</a>
       </div>
@@ -126,6 +129,7 @@ import Modal from '@/components/Modal.vue'
 import * as echarts from 'echarts'
 import * as analyzeApi from '@/api/analyze'
 import type { Dashboard, Panel, PanelType, RealtimeMetric } from '@/api/analyze'
+import { DataAnalysis } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 const store = useAppStore()
@@ -288,3 +292,53 @@ onUnmounted(() => {
   chartPool.clear()
 })
 </script>
+
+<style scoped>
+/* ============================================================
+ * 响应式断点：平板 / 移动端布局适配
+ * 看板面板网格 .grid.g3 默认三列，逐级降为两列 / 单列
+ * ============================================================ */
+@media (max-width: 1100px) {
+  /* 面板三列退化为两列 */
+  .grid.g3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* 卡片间距收紧 */
+  .grid {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 720px) {
+  /* 移动端：所有网格单列堆叠 */
+  .grid.g3,
+  .grid.g2 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  /* 卡片内边距收紧 */
+  .card {
+    padding: 14px 14px 12px;
+  }
+  /* 图表单元格高度缩减，避免移动端过高 */
+  .chart-cell {
+    height: 120px !important;
+  }
+  /* KPI 数值字号略减 */
+  .kpi {
+    font-size: 22px;
+  }
+  .kpi.s {
+    font-size: 16px;
+  }
+  /* chips 横向滚动，避免换行拥挤 */
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chip {
+    flex: none;
+  }
+}
+</style>

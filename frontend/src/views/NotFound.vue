@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
+const { t } = useI18n()
 
 function goHome() {
   router.push('/dashboard')
@@ -9,7 +11,7 @@ function goHome() {
 </script>
 
 <template>
-  <div class="not-found" role="main" aria-label="404 页面">
+  <div class="not-found" role="main" :aria-label="t('notFound.pageAria')">
     <el-icon
       :size="64"
       color="var(--ds-text-muted, var(--ds-text-muted, var(--ds-text-secondary)))"
@@ -17,8 +19,8 @@ function goHome() {
       <WarningFilled />
     </el-icon>
     <h1 class="not-found__code">404</h1>
-    <p class="not-found__text">页面不存在或已被移除</p>
-    <el-button type="primary" @click="goHome">返回首页</el-button>
+    <p class="not-found__text">{{ t('notFound.message') }}</p>
+    <el-button type="primary" @click="goHome">{{ t('notFound.backHome') }}</el-button>
   </div>
 </template>
 

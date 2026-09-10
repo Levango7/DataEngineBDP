@@ -23,13 +23,21 @@
         "userCount": "用户数",
         "resourceUsage": "资源消耗",
         "createdAt": "创建时间",
-        "actions": "操作"
+        "actions": "操作",
+        "displayName": "展示名称",
+        "type": "类型",
+        "quotaProfile": "配额档位",
+        "storageQuota": "存储配额"
       },
       "actions": {
         "editAria": "编辑租户 {name}",
         "edit": "编辑",
         "deleteAria": "删除租户 {name}",
-        "delete": "删除"
+        "delete": "删除",
+        "view": "详情",
+        "invite": "发邀请",
+        "suspend": "暂停",
+        "resume": "恢复"
       }
     },
     "dialog": {
@@ -56,7 +64,14 @@
         "create": "创建",
         "saveAria": "保存租户",
         "createAriaBtn": "创建租户"
-      }
+      },
+      "code": "租户编码",
+      "codeHint": "如 huadong / huabei，只能小写英文",
+      "displayName": "展示名称",
+      "displayNameHint": "如 华东生产集群",
+      "type": "租户类型",
+      "quotaProfile": "配额档位",
+      "storageQuota": "存储配额"
     },
     "plan": {
       "standard": "标准版",
@@ -95,6 +110,123 @@
       "deleteConfirmTitle": "删除确认",
       "deleteConfirmOk": "删除",
       "deleteConfirmCancel": "取消"
+    },
+    "stats": {
+      "aria": "平台租户概览",
+      "total": "租户总数",
+      "active": "活跃租户",
+      "pendingInvite": "待激活邀请码",
+      "pendingReg": "待审批注册"
+    },
+    "typeFilter": {
+      "placeholder": "租户类型",
+      "xinchuang": "信创",
+      "private": "私企",
+      "public": "公有云",
+      "government": "政务",
+      "internal": "内部"
+    },
+    "type": {
+      "xinchuang": "信创",
+      "private": "私企",
+      "public": "公有云",
+      "government": "政务",
+      "internal": "内部"
+    },
+    "statusFilter": {
+      "active": "活跃",
+      "inactive": "未激活",
+      "creating": "创建中",
+      "suspended": "暂停"
+    },
+    "quota": {
+      "small": "小（10GB/10用户）",
+      "medium": "中（100GB/100用户）",
+      "large": "大（1TB/500用户）",
+      "xlarge": "超大（不限）"
+    },
+    "invite": {
+      "title": "生成租户邀请码",
+      "tenant": "目标租户",
+      "role": "邀请角色",
+      "roleTenantAdmin": "租户管理员",
+      "roleUser": "普通用户",
+      "rolePlatformAdmin": "平台超管",
+      "days": "有效天数",
+      "note": "邀请备注",
+      "noteHint": "如 数据分析岗 / 试用",
+      "generate": "生成邀请码"
+    },
+    "success": {
+      "title": "邀请码已生成",
+      "hint": "请通过邮件/IM 将以下邀请码发送给目标用户",
+      "codeAria": "邀请码：{code}",
+      "copied": "✓ 已复制",
+      "copy": "复制",
+      "tenant": "租户",
+      "role": "角色",
+      "expiry": "过期时间",
+      "hintSm": "用户在登录页点击「还没有租户账号？」即可凭此码注册",
+      "close": "关闭"
+    },
+    "detail": {
+      "basic": "基础信息",
+      "tenantId": "租户 ID",
+      "code": "租户编码",
+      "displayName": "展示名称",
+      "type": "类型",
+      "status": "状态",
+      "quotaProfile": "配额档位",
+      "storage": "存储",
+      "userCount": "用户数",
+      "adminUser": "租户管理员",
+      "adminUnset": "（未设置）",
+      "createdAt": "创建时间",
+      "updatedAt": "最近更新",
+      "invites": "邀请码（{n}）",
+      "empty": "暂无",
+      "colCode": "邀请码",
+      "colRole": "角色",
+      "colStatus": "状态",
+      "colCreatedAt": "生成时间",
+      "colExpiry": "过期时间",
+      "colNote": "备注"
+    },
+    "labels": {
+      "status": {
+        "ACTIVE": "活跃",
+        "INACTIVE": "未激活",
+        "CREATING": "创建中",
+        "SUSPENDED": "已暂停"
+      },
+      "type": {
+        "XINCHUANG": "信创",
+        "GOVERNMENT": "政务",
+        "PRIVATE": "私企",
+        "PUBLIC": "公有云",
+        "INTERNAL": "内部"
+      },
+      "roleTenantAdmin": "租户管理员"
+    },
+    "rules2": {
+      "codeRequired": "租户编码必填",
+      "codePattern": "小写字母/数字/中划线，3-31 位",
+      "displayNameRequired": "展示名称必填",
+      "typeRequired": "类型必填",
+      "quotaRequired": "配额档位必填"
+    },
+    "msg2": {
+      "codeExists": "租户编码已存在",
+      "defaultNote": "租户创建自动生成的首账号邀请码",
+      "createdWithInvite": "租户「{name}」创建成功，邀请码 {code}（首账号）",
+      "copyDenied": "浏览器拒绝复制，请手动选择",
+      "suspendConfirm": "确认暂停租户「{name}」？",
+      "suspendTitle": "暂停租户",
+      "suspended": "已暂停",
+      "resumed": "已启用",
+      "deleteConfirm": "确认删除租户「{name}」？所有邀请/注册记录将一并清除",
+      "deleteTitle": "删除租户",
+      "deleted": "已删除"
     }
   }
 }

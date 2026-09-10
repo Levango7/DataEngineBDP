@@ -1,17 +1,26 @@
 <template>
-  <div class="topbar" role="banner" aria-label="平台顶栏">
+  <div class="topbar" role="banner" aria-label="Top Bar">
+    <!-- 工作空间切换 -->
     <div
       class="ws-switch"
       role="button"
       aria-haspopup="true"
       :aria-expanded="wsMenuOpen"
-      aria-label="工作空间切换"
+      :aria-label="t('app.workspaceSwitch')"
       tabindex="0"
       @click="toggleWsMenu"
       @keyup.enter="toggleWsMenu"
     >
-      ▾ 工作空间：{{ store.workspace }}
-      <div v-if="wsMenuOpen" class="ws-menu" role="menu" aria-label="工作空间列表" @click.stop>
+      <el-icon class="ws-ic"><Folder /></el-icon>
+      {{ store.workspace }}
+      <span class="ws-arrow" aria-hidden="true">▾</span>
+      <div
+        v-if="wsMenuOpen"
+        class="ws-menu"
+        role="menu"
+        :aria-label="t('app.workspaceList')"
+        @click.stop
+      >
         <div
           v-for="ws in wsList"
           :key="ws"
@@ -27,8 +36,71 @@
         </div>
       </div>
     </div>
+
+    <!-- 面包屑 -->
+    <nav v-if="crumb" class="crumb" :aria-label="t('app.breadcrumbNav')">
+      <span class="crumb-sep" aria-hidden="true">/</span>
+      <span class="crumb-group">{{ crumb.group }}</span>
+      <span class="crumb-sep" aria-hidden="true">/</span>
+      <span class="crumb-label">{{ crumb.label }}</span>
+    </nav>
+
     <div class="spacer"></div>
-    <span class="env-tag" aria-label="当前环境标识">● {{ store.envTag }}</span>
+
+    <!-- 全局搜索（数据平台质感） -->
+    <div class="global-search" role="search">
+      <el-icon class="gs-ic"><Search /></el-icon>
+      <input
+        v-model="searchKw"
+        class="gs-input"
+        type="search"
+        :placeholder="t('app.globalSearchPlaceholder')"
+        :aria-label="t('app.globalSearchPlaceholder')"
+        @focus="searchFocus = true"
+        @blur="searchFocus = false"
+      />
+      <kbd class="gs-kbd" :class="{ dim: searchFocus }">⌘K</kbd>
+    </div>
+
+    <div class="spacer"></div>
+
+    <span class="env-tag" :aria-label="t('app.envBadge')">● {{ store.envTag }}</span>
+
+    <!-- 通知铃铛（开合右侧信息面板） -->
+    <button
+      class="tb-icon-btn bell"
+      :class="{ on: ui.rightPanelOpen }"
+      :aria-label="ui.rightPanelOpen ? t('app.closePanel') : t('app.notificationPanel')"
+      :title="ui.rightPanelOpen ? t('app.closePanel') : t('app.notificationPanel')"
+      @click="ui.toggleRightPanel"
+    >
+      <el-icon class="tb-ic"><Bell /></el-icon>
+      <span v-if="noticeCount > 0" class="bell-dot" aria-hidden="true">{{ noticeCount }}</span>
+    </button>
+
+    <!-- 语言切换（中文态显 EN / 英文态显 中） -->
+    <button
+      class="tb-locale"
+      :aria-label="t('app.localeLabel')"
+      :title="t('app.localeLabel')"
+      @click="toggleLocale"
+    >
+      {{ locale === 'zh-CN' ? 'EN' : '中' }}
+    </button>
+
+    <!-- 昼夜模式切换（贴近头像，全屏即时生效操作放最右避免误触） -->
+    <button
+      class="tb-icon-btn"
+      :aria-label="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
+      :title="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
+      @click="theme.toggle"
+    >
+      <el-icon class="tb-ic" aria-hidden="true">
+        <Sunny v-if="theme.isDark" />
+        <Moon v-else />
+      </el-icon>
+    </button>
+
     <!-- 用户菜单（登录用户 + 退出登录） -->
     <div class="user-menu" @click.stop>
       <div
@@ -36,29 +108,36 @@
         role="button"
         aria-haspopup="true"
         :aria-expanded="userMenuOpen"
-        :aria-label="`用户菜单，当前用户：${auth.user?.username || '未登录'}`"
+        :aria-label="
+          auth.user ? t('app.userMenu', { name: auth.user.username }) : t('app.userMenuAnonymous')
+        "
         tabindex="0"
         @click="toggleUserMenu"
         @keyup.enter="toggleUserMenu"
       >
         {{ avatarText }}
       </div>
-      <div v-if="userMenuOpen" class="user-pop" role="menu" aria-label="用户操作菜单">
-        <div class="user-info" aria-label="用户信息">
-          <div class="user-name">{{ auth.user?.username || '未登录' }}</div>
+      <div v-if="userMenuOpen" class="user-pop" role="menu" :aria-label="t('app.userActions')">
+        <div class="user-info" :aria-label="t('app.userInfo')">
+          <div class="user-name">{{ auth.user?.username || t('app.notLoggedIn') }}</div>
           <div class="user-email">{{ auth.user?.email || '—' }}</div>
         </div>
-        <div class="user-actions" role="group" aria-label="用户操作">
+        <div class="user-actions" role="group" :aria-label="t('app.userActions')">
           <router-link
             to="/account"
             class="user-action"
             role="menuitem"
             @click="userMenuOpen = false"
           >
-            账户与配额
+            {{ t('nav.items.account') }}
           </router-link>
-          <button class="user-action" role="menuitem" aria-label="退出登录" @click="handleLogout">
-            退出登录
+          <button
+            class="user-action"
+            role="menuitem"
+            :aria-label="t('app.logout')"
+            @click="handleLogout"
+          >
+            {{ t('app.logout') }}
           </button>
         </div>
       </div>
@@ -67,34 +146,72 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { Folder, Search, Bell, Sunny, Moon } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
+import { useUiStore } from '@/stores/ui'
+import { persistLocale, type SupportedLocale } from '@/i18n'
+import { useBreadcrumb } from '@/composables/useNavGroups'
 
+const { t, locale } = useI18n()
 const store = useAppStore()
 const auth = useAuthStore()
+const theme = useThemeStore()
+const ui = useUiStore()
+const route = useRoute()
 const router = useRouter()
+const crumbOf = useBreadcrumb()
+
 const wsMenuOpen = ref(false)
 const userMenuOpen = ref(false)
+const searchKw = ref('')
+const searchFocus = ref(false)
 const wsList = ['华东生产集群', '华北测试集群', '内部数据中枢']
+
+const crumb = computed(() => crumbOf(route.path))
+
+/** 通知数（预留：接通知中心后替换为真实未读数） */
+const noticeCount = ref(2)
 
 const avatarText = computed(() => {
   const name = auth.user?.username
   return name ? name.charAt(0).toUpperCase() : '租'
 })
 
+/** Ctrl+B 切换侧边栏（与主流 IDE/B/S 应用一致） */
+function onKeydown(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+    e.preventDefault()
+    ui.toggleSidebar()
+  }
+}
+
+onMounted(() => window.addEventListener('keydown', onKeydown))
+onUnmounted(() => window.removeEventListener('keydown', onKeydown))
+
 function toggleWsMenu() {
   wsMenuOpen.value = !wsMenuOpen.value
+}
+
+function chooseWs(ws: string) {
+  store.setWorkspace(ws)
+  wsMenuOpen.value = false
 }
 
 function toggleUserMenu() {
   userMenuOpen.value = !userMenuOpen.value
 }
 
-function chooseWs(ws: string) {
-  store.setWorkspace(ws)
-  wsMenuOpen.value = false
+/** 顶栏语言切换：中文态显 EN / 英文态显 中（点击即切换并持久化） */
+function toggleLocale() {
+  const current = (locale as unknown as { value: string }).value
+  const next: SupportedLocale = current === 'zh-CN' ? 'en-US' : 'zh-CN'
+  ;(locale as unknown as { value: string }).value = next
+  persistLocale(next)
 }
 
 function handleLogout() {
@@ -105,11 +222,237 @@ function handleLogout() {
 </script>
 
 <style scoped>
+/* === 工作空间切换 === */
 .ws-switch {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--gradient-primary-soft);
+  color: var(--ds-color-primary-500);
+  padding: 6px 12px;
+  border-radius: 9px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
   user-select: none;
+  white-space: nowrap;
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth);
 }
-/* 工作空间下拉菜单：毛玻璃 + 弹簧入场 */
+.ws-switch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+.ws-ic {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ws-arrow {
+  font-size: 9px;
+  opacity: 0.7;
+  transition: transform 0.2s var(--ease-smooth);
+}
+.ws-switch[aria-expanded='true'] .ws-arrow {
+  transform: rotate(180deg);
+}
+
+/* === 图标按钮（汉堡/铃铛通用） === */
+.tb-icon-btn {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  position: relative;
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth),
+    border-color 0.18s var(--ease-smooth),
+    transform 0.18s var(--ease-smooth);
+}
+.tb-icon-btn:hover {
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
+  border-color: rgba(59, 130, 246, 0.35);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.18);
+}
+.tb-icon-btn.on {
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
+  border-color: rgba(59, 130, 246, 0.35);
+}
+.tb-ic {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 铃铛红点 */
+.bell-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--ds-color-error-500);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  animation: bellPulse 2.4s var(--ease-smooth) infinite;
+}
+
+/* 顶栏语言切换（中文态显 EN / 英文态显 中，醒目胶囊） */
+.tb-locale {
+  height: 28px;
+  min-width: 32px;
+  padding: 0 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth),
+    border-color 0.18s var(--ease-smooth),
+    box-shadow 0.18s var(--ease-smooth),
+    transform 0.18s var(--ease-smooth);
+}
+.tb-locale:hover {
+  background: var(--ds-color-primary-50);
+  border-color: var(--ds-color-primary-500);
+  color: #1d4ed8;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.22);
+  transform: translateY(-1px);
+}
+.tb-locale:active {
+  transform: translateY(0);
+}
+
+/* === 面包屑 === */
+.crumb {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  min-width: 0;
+  white-space: nowrap;
+}
+.crumb-group {
+  color: #64748b;
+  font-weight: 500;
+}
+.crumb-sep {
+  color: #cbd5e1;
+}
+.crumb-label {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+/* === 全局搜索 === */
+.global-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: min(340px, 32vw);
+}
+.gs-ic {
+  position: absolute;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  stroke: #94a3b8;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.gs-input {
+  width: 100%;
+  padding: 7px 44px 7px 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 13px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    border-color 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth),
+    background 0.2s var(--ease-smooth);
+}
+.gs-input:hover {
+  border-color: #94a3b8;
+}
+.gs-input:focus {
+  outline: none;
+  border-color: var(--ds-color-primary-500);
+  background: #fff;
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.15),
+    0 2px 8px rgba(59, 130, 246, 0.12);
+}
+.gs-kbd {
+  position: absolute;
+  right: 8px;
+  font-family: var(--ds-font-family-mono);
+  font-size: 10px;
+  color: #94a3b8;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 5px;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-smooth);
+}
+.gs-kbd.dim {
+  opacity: 0;
+}
+
+/* 铃铛呼吸 */
+@keyframes bellPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px #fff;
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 10px rgba(239, 68, 68, 0.6);
+  }
+}
+
+/* === 工作空间下拉菜单：毛玻璃 + 弹簧入场 === */
 .ws-menu {
   position: absolute;
   top: 100%;
@@ -133,26 +476,81 @@ function handleLogout() {
   padding: 8px 12px;
   font-size: 13px;
   font-weight: 500;
-  color: var(--ink);
+  color: var(--ds-text-primary);
   cursor: pointer;
   transition:
     background 0.18s var(--ease-smooth),
     color 0.18s var(--ease-smooth);
 }
 .ws-item:hover {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
 }
 .ws-item.on {
-  color: var(--primary);
-  background: var(--primary-soft);
+  color: var(--ds-color-primary-500);
+  background: var(--ds-color-primary-50);
   font-weight: 600;
 }
-/* 用户菜单 */
+
+/* === 用户菜单 === */
 .user-menu {
   position: relative;
 }
-/* 头像：渐变背景 + 发光 */
+.user-pop {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 6px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  box-shadow:
+    0 8px 24px rgba(15, 23, 42, 0.18),
+    var(--shadow-glow);
+  min-width: 200px;
+  z-index: 30;
+  overflow: hidden;
+  animation: springIn 0.32s var(--ease-spring);
+  transform-origin: top right;
+}
+.user-info {
+  padding: 12px;
+  border-bottom: 1px solid var(--ds-border-subtle);
+}
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ds-text-primary);
+}
+.user-email {
+  font-size: 12px;
+  color: var(--ds-text-tertiary);
+  margin-top: 2px;
+}
+.user-actions {
+  padding: 4px 0;
+}
+.user-action {
+  display: block;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ds-text-primary);
+  text-decoration: none;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth);
+}
+.user-action:hover {
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
+}
 .avatar {
   width: 30px;
   height: 30px;
@@ -176,61 +574,5 @@ function handleLogout() {
   box-shadow:
     0 4px 14px rgba(99, 102, 241, 0.55),
     var(--shadow-glow);
-}
-/* 用户弹出层：毛玻璃 + 弹簧入场 */
-.user-pop {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 6px;
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  box-shadow:
-    0 8px 24px rgba(15, 23, 42, 0.18),
-    var(--shadow-glow);
-  min-width: 200px;
-  z-index: 30;
-  overflow: hidden;
-  animation: springIn 0.32s var(--ease-spring);
-  transform-origin: top right;
-}
-.user-info {
-  padding: 12px;
-  border-bottom: 1px solid var(--line);
-}
-.user-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-}
-.user-email {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.user-actions {
-  padding: 4px 0;
-}
-.user-action {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  font-size: 13px;
-  color: var(--ink);
-  text-decoration: none;
-  background: none;
-  border: none;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    background 0.18s var(--ease-smooth),
-    color 0.18s var(--ease-smooth);
-}
-.user-action:hover {
-  background: var(--primary-soft);
-  color: var(--primary);
 }
 </style>

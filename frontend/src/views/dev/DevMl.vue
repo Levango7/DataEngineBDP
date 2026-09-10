@@ -8,7 +8,7 @@
         <div v-if="trainLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="trainError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <button class="retry-btn" @click="loadTrain">{{ t('devMl.kpi.retry') }}</button>
+          <el-button class="retry-btn" size="small" @click="loadTrain">{{ t('devMl.kpi.retry') }}</el-button>
         </div>
         <template v-else>
           <div class="kpi">{{ trainKpi.total }}</div>
@@ -20,7 +20,7 @@
         <div v-if="trainLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="trainError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <button class="retry-btn" @click="loadTrain">{{ t('devMl.kpi.retry') }}</button>
+          <el-button class="retry-btn" size="small" @click="loadTrain">{{ t('devMl.kpi.retry') }}</el-button>
         </div>
         <template v-else>
           <div class="kpi running">{{ trainKpi.running }}</div>
@@ -32,7 +32,7 @@
         <div v-if="modelsLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="modelsError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <button class="retry-btn" @click="loadModels">{{ t('devMl.kpi.retry') }}</button>
+          <el-button class="retry-btn" size="small" @click="loadModels">{{ t('devMl.kpi.retry') }}</el-button>
         </div>
         <template v-else>
           <div class="kpi">{{ modelKpi.total }}</div>
@@ -44,7 +44,7 @@
         <div v-if="svcLoading" class="kpi-skeleton">{{ t('devMl.kpi.loading') }}</div>
         <div v-else-if="svcError" class="kpi-error">
           {{ t('devMl.kpi.loadFailed') }}
-          <button class="retry-btn" @click="loadServices">{{ t('devMl.kpi.retry') }}</button>
+          <el-button class="retry-btn" size="small" @click="loadServices">{{ t('devMl.kpi.retry') }}</el-button>
         </div>
         <template v-else>
           <div class="kpi">{{ svcKpi.total }}</div>
@@ -160,7 +160,7 @@
             type="textarea"
             :rows="4"
             :placeholder="t('devMl.trainForm.fields.hyperparamsPlaceholder')"
-            style="font-family: monospace; font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.owner')" prop="owner">
@@ -204,7 +204,7 @@
           <el-input
             v-model="registerForm.modelPath"
             :placeholder="t('devMl.registerForm.fields.modelPathPlaceholder')"
-            style="font-family: monospace; font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item :label="t('devMl.registerForm.fields.description')" prop="description">
@@ -819,7 +819,7 @@ watch(
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
@@ -852,7 +852,7 @@ watch(
 .kpi-error {
   font-size: 14px;
   font-weight: 500;
-  color: #f56c6c;
+  color: var(--ds-color-error-500);
   line-height: 1.4;
   padding: 4px 0;
 }
@@ -860,15 +860,15 @@ watch(
   margin-left: 6px;
   padding: 2px 10px;
   font-size: 12px;
-  color: #409eff;
+  color: var(--ds-color-primary-500);
   background: transparent;
-  border: 1px solid #409eff;
+  border: 1px solid var(--ds-color-primary-500);
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.2s;
 }
 .retry-btn:hover {
-  background: #ecf5ff;
+  background: var(--ds-color-primary-50);
 }
 @keyframes kpi-pulse {
   0%,
@@ -884,7 +884,7 @@ watch(
   border-radius: 10px;
 }
 .log-container {
-  background: #1a2027;
+  background: var(--ds-color-gray-900);
   border-radius: 8px;
   padding: 12px;
   min-height: 320px;
@@ -892,8 +892,8 @@ watch(
   overflow: auto;
 }
 .log-content {
-  color: #cbd5e1;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-color-gray-300);
+  font-family: var(--ds-font-family-mono);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;

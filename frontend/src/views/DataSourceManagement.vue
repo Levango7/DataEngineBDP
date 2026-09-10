@@ -8,12 +8,12 @@
     <PageCard>
       <!-- 顶部操作栏 -->
       <Toolbar
+        v-model:search-value="searchKeyword"
         :aria-label="t('dataSourceManagement.table.paginationAria')"
         :show-create="true"
         :create-label="t('dataSourceManagement.toolbar.create')"
         :create-aria-label="t('dataSourceManagement.toolbar.create')"
         :search-placeholder="t('dataSourceManagement.toolbar.searchPlaceholder')"
-        v-model:search-value="searchKeyword"
         :search-aria-label="t('dataSourceManagement.toolbar.searchAria')"
         :show-refresh="true"
         :refresh-aria-label="t('dataSourceManagement.toolbar.refreshAria')"

@@ -43,7 +43,12 @@ vi.mock('echarts', () => {
 
 // Mock @element-plus/icons-vue
 vi.mock('@element-plus/icons-vue', () => ({
-  Refresh: { name: 'Refresh', template: '<svg />' }
+  Refresh: { name: 'Refresh', template: '<svg />' },
+  Close: { name: 'Close', template: '<svg />' },
+  CircleCheckFilled: { name: 'CircleCheckFilled', template: '<svg />' },
+  CircleCloseFilled: { name: 'CircleCloseFilled', template: '<svg />' },
+  WarningFilled: { name: 'WarningFilled', template: '<svg />' },
+  InfoFilled: { name: 'InfoFilled', template: '<svg />' }
 }))
 
 // 透传 slot 的通用 stub 工厂
@@ -112,8 +117,17 @@ function slotStub(name: string) {
       'tab-change',
       'input'
     ],
-    setup(_props, { slots }) {
-      return () => h('div', { class: name }, slots)
+    setup(_props, { slots, emit }) {
+      // 转发原生 click 到组件 click emit，使 @click 监听能正常工作
+      return () =>
+        h(
+          'div',
+          {
+            class: name,
+            onClick: (e: MouseEvent) => emit('click', e)
+          },
+          slots
+        )
     }
   })
 }

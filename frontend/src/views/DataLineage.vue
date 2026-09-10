@@ -6,27 +6,28 @@
     <section class="card sql-input">
       <div class="card-title">{{ t('dataLineage.input.title') }}</div>
       <div class="input-row">
-        <textarea
+        <el-input
           v-model="sqlText"
-          class="sql-textarea"
+          type="textarea"
+          :rows="5"
           :placeholder="t('dataLineage.input.placeholder')"
-          rows="5"
-        ></textarea>
+          class="sql-textarea"
+        />
       </div>
       <div class="action-row">
-        <select v-model="dialect" class="dialect-select">
-          <option value="">{{ t('dataLineage.input.autoDetect') }}</option>
-          <option value="ANSI">ANSI</option>
-          <option value="HIVE">Hive</option>
-          <option value="DORIS">Doris</option>
-          <option value="TRINO">Trino</option>
-        </select>
-        <button class="btn-primary" :disabled="analyzing" @click="handleAnalyze">
+        <el-select v-model="dialect" class="dialect-select">
+          <el-option :label="t('dataLineage.input.autoDetect')" value="" />
+          <el-option label="ANSI" value="ANSI" />
+          <el-option label="Hive" value="HIVE" />
+          <el-option label="Doris" value="DORIS" />
+          <el-option label="Trino" value="TRINO" />
+        </el-select>
+        <el-button type="primary" :disabled="analyzing" @click="handleAnalyze">
           {{ analyzing ? t('dataLineage.input.analyzing') : t('dataLineage.input.analyze') }}
-        </button>
-        <button class="btn-ghost" @click="loadSample">
+        </el-button>
+        <el-button @click="loadSample">
           {{ t('dataLineage.input.loadSample') }}
-        </button>
+        </el-button>
       </div>
       <div v-if="analyzeError" class="error-tip">{{ analyzeError.message }}</div>
     </section>
@@ -71,58 +72,69 @@
     <section v-else-if="graph" class="card relation-list">
       <div class="card-title">{{ t('dataLineage.relations.title') }}</div>
       <div class="relation-tabs">
-        <button :class="['tab', { active: activeTab === 'table' }]" @click="activeTab = 'table'">
+        <el-button
+          :type="activeTab === 'table' ? 'primary' : 'default'"
+          size="small"
+          @click="activeTab = 'table'"
+        >
           {{ t('dataLineage.relations.table', { count: tableEdges.length }) }}
-        </button>
-        <button :class="['tab', { active: activeTab === 'column' }]" @click="activeTab = 'column'">
+        </el-button>
+        <el-button
+          :type="activeTab === 'column' ? 'primary' : 'default'"
+          size="small"
+          @click="activeTab = 'column'"
+        >
           {{ t('dataLineage.relations.column', { count: columnEdges.length }) }}
-        </button>
+        </el-button>
       </div>
-      <table class="relation-table">
-        <thead>
-          <tr>
-            <th>{{ t('dataLineage.relations.columns.source') }}</th>
-            <th>{{ t('dataLineage.relations.columns.arrow') }}</th>
-            <th>{{ t('dataLineage.relations.columns.target') }}</th>
-            <th v-if="activeTab === 'column'">
-              {{ t('dataLineage.relations.columns.expression') }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(edge, i) in activeEdges" :key="i">
-            <td class="mono">{{ edge.source }}</td>
-            <td class="arrow">{{ t('dataLineage.relations.columns.arrow') }}</td>
-            <td class="mono">{{ edge.target }}</td>
-            <td v-if="activeTab === 'column'" class="mono expr">{{ edge.expression || '-' }}</td>
-          </tr>
-          <tr v-if="activeEdges.length === 0">
-            <td :colspan="activeTab === 'column' ? 4 : 3" class="empty">
-              {{ t('dataLineage.relations.empty') }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <el-table :data="activeEdges" stripe class="relation-table">
+        <el-table-column :label="t('dataLineage.relations.columns.source')">
+          <template #default="{ row }">
+            <span class="mono">{{ row.source }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('dataLineage.relations.columns.arrow')" align="center">
+          <template #default>
+            <span class="arrow">{{ t('dataLineage.relations.columns.arrow') }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('dataLineage.relations.columns.target')">
+          <template #default="{ row }">
+            <span class="mono">{{ row.target }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          v-if="activeTab === 'column'"
+          :label="t('dataLineage.relations.columns.expression')"
+        >
+          <template #default="{ row }">
+            <span class="mono expr">{{ row.expression || '-' }}</span>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <div class="empty">{{ t('dataLineage.relations.empty') }}</div>
+        </template>
+      </el-table>
     </section>
 
     <!-- 上下游查询：三态 loading / error / data -->
     <section class="card query-card">
       <div class="card-title">{{ t('dataLineage.query.title') }}</div>
       <div class="query-row">
-        <input
+        <el-input
           v-model="queryTable"
           class="table-input"
           :placeholder="t('dataLineage.query.tablePlaceholder')"
         />
-        <button class="btn-secondary" :disabled="querying" @click="handleQuery('upstream')">
+        <el-button type="primary" :disabled="querying" @click="handleQuery('upstream')">
           {{ t('dataLineage.query.upstream') }}
-        </button>
-        <button class="btn-secondary" :disabled="querying" @click="handleQuery('downstream')">
+        </el-button>
+        <el-button type="primary" :disabled="querying" @click="handleQuery('downstream')">
           {{ t('dataLineage.query.downstream') }}
-        </button>
-        <button class="btn-warn" :disabled="querying" @click="handleQuery('impact')">
+        </el-button>
+        <el-button type="warning" :disabled="querying" @click="handleQuery('impact')">
           {{ t('dataLineage.query.impact') }}
-        </button>
+        </el-button>
       </div>
       <!-- 三态：loading -->
       <div v-if="querying" class="query-result">
@@ -178,6 +190,10 @@ import {
 
 const { t } = useI18n()
 const store = useAppStore()
+
+// ECharts 在 canvas 上绘制，不支持 CSS 变量，因此使用固定颜色常量
+const COLOR_TABLE_LINEAGE = '#047857' // 表级血缘边色（对应 --ds-color-success-700）
+const COLOR_COLUMN_LINEAGE = '#8b5cf6' // 字段级血缘边色（紫色，无对应 token）
 
 // SQL 输入
 const sqlText = ref('')
@@ -316,7 +332,7 @@ function renderChart(g: LineageGraph): void {
           target: l.target,
           expression: l.expression,
           lineStyle: {
-            color: l.relationType === 'TABLE_LINEAGE' ? 'var(--ds-color-success-700)' : '#8b5cf6',
+            color: l.relationType === 'TABLE_LINEAGE' ? COLOR_TABLE_LINEAGE : COLOR_COLUMN_LINEAGE,
             width: l.relationType === 'TABLE_LINEAGE' ? 2 : 1.5,
             curveness: 0.1
           }
@@ -366,43 +382,34 @@ onBeforeUnmount(() => {
   margin: 0 auto;
 }
 .card {
-  background: var(--c-white);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
   padding: 16px 20px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--ds-shadow-sm);
 }
 .card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
+  color: var(--ds-text-primary);
   margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 .meta-tag {
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--muted);
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-normal);
+  color: var(--ds-text-tertiary);
   padding: 2px 8px;
-  background: var(--c-surface-alt);
-  border-radius: 4px;
+  background: var(--ds-bg-subtle);
+  border-radius: var(--ds-radius-sm);
 }
-.sql-textarea {
-  width: 100%;
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 13px;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
+/* SQL 输入框：覆盖 Element Plus textarea 样式以保持等宽字体 */
+.sql-textarea :deep(.el-textarea__inner) {
+  font-family: var(--ds-font-family-mono);
+  font-size: var(--ds-font-size-sm);
   resize: vertical;
-  outline: none;
-  color: var(--ink);
-  background: var(--c-white);
-}
-.sql-textarea:focus {
-  border-color: var(--primary);
 }
 .action-row {
   display: flex;
@@ -411,143 +418,50 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 .dialect-select {
-  padding: 6px 10px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-size: 13px;
-  background: var(--c-white);
-  color: var(--ink);
-  outline: none;
-}
-.btn-primary,
-.btn-secondary,
-.btn-warn,
-.btn-ghost {
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.15s;
-}
-.btn-primary {
-  background: var(--primary);
-  color: var(--c-white);
-}
-.btn-primary:hover:not(:disabled) {
-  background: #265a55;
-}
-.btn-secondary {
-  background: var(--primary-soft);
-  color: var(--primary);
-  border-color: var(--primary);
-}
-.btn-secondary:hover:not(:disabled) {
-  background: var(--primary);
-  color: var(--c-white);
-}
-.btn-warn {
-  background: #fff5e9;
-  color: var(--amber);
-  border-color: var(--amber);
-}
-.btn-warn:hover:not(:disabled) {
-  background: var(--amber);
-  color: var(--c-white);
-}
-.btn-ghost {
-  background: transparent;
-  color: var(--muted);
-  border-color: var(--line);
-}
-.btn-ghost:hover {
-  background: var(--c-surface-alt);
-}
-.btn-primary:disabled,
-.btn-secondary:disabled,
-.btn-warn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+  width: 140px;
 }
 .error-tip {
   margin-top: 8px;
-  color: var(--red);
-  font-size: 12px;
+  color: var(--ds-color-error-600);
+  font-size: var(--ds-font-size-xs);
 }
 .state-tip {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-text-tertiary);
   padding: 16px 0;
 }
 .state-tip.error {
-  color: var(--red);
+  color: var(--ds-color-error-600);
 }
 .state-tip a {
-  color: var(--primary);
+  color: var(--ds-color-primary-600);
   cursor: pointer;
 }
 .chart {
   width: 100%;
   height: 420px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fafbfc;
+  border: 1px solid var(--ds-border-subtle);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-subtle);
 }
 .relation-tabs {
   display: flex;
   gap: 4px;
   margin-bottom: 10px;
 }
-.tab {
-  padding: 4px 12px;
-  border: 1px solid var(--line);
-  background: var(--c-white);
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  color: var(--muted);
-}
-.tab.active {
-  background: var(--primary);
-  color: var(--c-white);
-  border-color: var(--primary);
-}
-.relation-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-.relation-table th {
-  text-align: left;
-  padding: 6px 10px;
-  background: var(--c-surface-alt);
-  color: var(--muted);
-  font-weight: 500;
-  border-bottom: 1px solid var(--line);
-}
-.relation-table td {
-  padding: 6px 10px;
-  border-bottom: 1px solid var(--line);
-  color: var(--ink);
-}
 .relation-table .mono {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
 }
 .relation-table .arrow {
   text-align: center;
-  color: var(--primary);
+  color: var(--ds-color-primary-600);
 }
 .relation-table .expr {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   max-width: 280px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.relation-table .empty {
-  text-align: center;
-  color: var(--muted);
-  padding: 16px;
 }
 .query-row {
   display: flex;
@@ -556,64 +470,100 @@ onBeforeUnmount(() => {
 }
 .table-input {
   flex: 1;
-  padding: 6px 12px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: 'Consolas', 'Monaco', monospace;
-  outline: none;
 }
-.table-input:focus {
-  border-color: var(--primary);
+.table-input :deep(.el-input__inner) {
+  font-family: var(--ds-font-family-mono);
 }
 .query-result {
   margin-top: 12px;
   padding: 12px;
-  background: var(--c-surface-alt);
-  border-radius: 6px;
+  background: var(--ds-bg-subtle);
+  border-radius: var(--ds-radius-md);
 }
 .result-summary {
-  font-size: 13px;
-  color: var(--ink);
+  font-size: var(--ds-font-size-sm);
+  color: var(--ds-text-primary);
   margin-bottom: 8px;
 }
 .badge {
   display: inline-block;
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
   margin-right: 6px;
 }
 .badge.upstream {
-  background: #e3ebee;
-  color: #4a6a72;
+  background: var(--ds-color-info-100);
+  color: var(--ds-color-info-700);
 }
 .badge.downstream {
-  background: var(--c-green-50);
-  color: var(--green);
+  background: var(--ds-color-success-100);
+  color: var(--ds-color-success-700);
 }
 .badge.impact {
-  background: var(--c-amber-50);
-  color: var(--amber);
+  background: var(--ds-color-warning-100);
+  color: var(--ds-color-warning-700);
 }
 .result-paths {
   margin-top: 6px;
 }
 .paths-title {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-text-tertiary);
   margin-bottom: 4px;
 }
 .path-item {
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 12px;
-  color: var(--ink);
+  font-family: var(--ds-font-family-mono);
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-text-primary);
   padding: 2px 0;
 }
 .empty {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--ds-text-tertiary);
+  font-size: var(--ds-font-size-xs);
   padding: 8px 0;
+  text-align: center;
+}
+
+/* 响应式断点：中等屏幕收窄页面内边距与最大宽度 */
+@media (max-width: 1100px) {
+  .lineage-page {
+    padding: 16px 20px;
+    max-width: 100%;
+  }
+  .action-row {
+    flex-wrap: wrap;
+  }
+  .query-row {
+    flex-wrap: wrap;
+  }
+  .table-input {
+    flex: 1 1 100%;
+  }
+}
+
+/* 响应式断点：小屏幕单列布局，紧凑间距 */
+@media (max-width: 720px) {
+  .lineage-page {
+    padding: 12px;
+    gap: 12px;
+  }
+  .card {
+    padding: 12px;
+  }
+  .chart {
+    height: 300px;
+  }
+  .dialect-select {
+    width: 100%;
+  }
+  .action-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .action-row .el-button {
+    width: 100%;
+  }
 }
 </style>

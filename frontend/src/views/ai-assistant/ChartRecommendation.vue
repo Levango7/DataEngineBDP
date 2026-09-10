@@ -167,7 +167,7 @@ function onSelect(rec: ChartRecommendation): void {
 .chart-recommendation {
   width: 100%;
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px;
 }
@@ -186,7 +186,7 @@ function onSelect(rec: ChartRecommendation): void {
 }
 .data-profile {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   max-width: 60%;
   text-align: right;
 }
@@ -200,24 +200,24 @@ function onSelect(rec: ChartRecommendation): void {
   align-items: center;
   gap: 12px;
   padding: 10px 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
   background: var(--c-white);
 }
 .rec-item:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
+  border-color: var(--ds-color-primary-500);
+  background: var(--ds-color-primary-50);
 }
 .rec-item.primary {
-  border-color: var(--green);
+  border-color: var(--ds-color-success-500);
   background: var(--c-green-50);
 }
 .rec-item.active {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  box-shadow: 0 0 0 2px var(--primary-soft);
+  border-color: var(--ds-color-primary-500);
+  background: var(--ds-color-primary-50);
+  box-shadow: 0 0 0 2px var(--ds-color-primary-50);
 }
 .rec-icon {
   width: 40px;
@@ -226,8 +226,8 @@ function onSelect(rec: ChartRecommendation): void {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
   flex: none;
 }
 .rec-icon.type-bar {
@@ -274,11 +274,11 @@ function onSelect(rec: ChartRecommendation): void {
   font-weight: 600;
 }
 .rec-type-label {
-  color: var(--ink);
+  color: var(--ds-text-primary);
 }
 .rec-reason {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   line-height: 1.5;
 }
 .rec-fields {
@@ -293,7 +293,7 @@ function onSelect(rec: ChartRecommendation): void {
   gap: 4px;
 }
 .field-label {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .field-value {
   color: var(--c-slate-700);

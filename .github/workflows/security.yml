@@ -184,7 +184,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-fs-results.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-          exit-code: '0'  # 报告漏洞但不阻断 CI（后续迭代修复依赖）
+          exit-code: '1'  # 发现 CRITICAL/HIGH/MEDIUM 漏洞时阻断 CI
           ignore-unfixed: true
 
       - name: 扫描 IaC 配置（YAML/K8s/Helm）
@@ -194,7 +194,7 @@ jobs:
           scan-ref: 'ske/manifests/'
           format: 'sarif'
           output: 'trivy-iac-results.sarif'
-          exit-code: '0'
+          exit-code: '1'
 
       - name: 扫描 design/deploy/values/ IaC
         uses: aquasecurity/trivy-action@v0.36.0
@@ -203,7 +203,7 @@ jobs:
           scan-ref: 'design/deploy/values/'
           format: 'sarif'
           output: 'trivy-values-results.sarif'
-          exit-code: '0'
+          exit-code: '1'
 
       - name: 上传 SARIF 到 GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -269,7 +269,8 @@ jobs:
             fi
           done < <(find platform -name go.mod -not -path "*/vendor/*")
           if [ "$vuln_found" -gt 0 ]; then
-            echo "::warning::共有 $vuln_found 个 Go 组件存在已知漏洞，请检查 go-vulncheck.log"
+            echo "::error::共有 $vuln_found 个 Go 组件存在已知漏洞，阻断 CI（详见 go-vulncheck.log）"
+            exit 1
           fi
 
       - name: 上传 govulncheck 日志
@@ -309,13 +310,14 @@ jobs:
             exit 0
           fi
           mkdir -p python-audit-reports
+          fail_count=0
           while IFS= read -r req; do
             mod_dir=$(dirname "$req")
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  pip-audit: $mod_name"
             echo "============================================"
-            (cd "$mod_dir" && pip-audit -r requirements.txt --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || echo "::warning::$mod_name pip-audit 发现漏洞或失败"
+            (cd "$mod_dir" && pip-audit --strict -r requirements.txt --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
           done < <(find platform -name requirements.txt 2>/dev/null)
           # 对使用 pyproject.toml 但无 requirements.txt 的组件
           while IFS= read -r f; do
@@ -325,9 +327,13 @@ jobs:
               echo "============================================"
               echo "  pip-audit (pyproject): $mod_name"
               echo "============================================"
-              (cd "$mod_dir" && pip-audit --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || echo "::warning::$mod_name pip-audit 发现漏洞或失败"
+              (cd "$mod_dir" && pip-audit --strict --format=json --output="$GITHUB_WORKSPACE/python-audit-reports/${mod_name}-audit.json" 2>&1) || { echo "::error::$mod_name pip-audit 发现漏洞或失败"; fail_count=$((fail_count + 1)); }
             fi
           done < <(find platform -name pyproject.toml 2>/dev/null)
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Python 组件存在已知漏洞或 pip-audit 失败，阻断 CI"
+            exit 1
+          fi
 
       - name: 上传 pip-audit 报告
         if: always()
@@ -364,6 +370,7 @@ jobs:
             exit 0
           fi
           mkdir -p java-depcheck-reports
+          fail_count=0
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
@@ -372,12 +379,18 @@ jobs:
             echo "============================================"
             # 使用 dependency-check CLI 直接扫描 pom.xml
             # NVD API key 可通过 secret 注入以加速下载
+            # failBuildOnCVSS=7：CVSS≥7 的漏洞阻断构建（HIGH/CRITICAL）
             (cd "$mod_dir" && mvn org.owasp:dependency-check-maven:check \
               -DskipTests -B \
               -DdependencyCheckOutputDirectory="$GITHUB_WORKSPACE/java-depcheck-reports/$mod_name" \
               -DnvdApiKey="${{ secrets.NVD_API_KEY }}" \
-              2>&1 | tail -20) || echo "::warning::$mod_name Dependency-Check 失败或发现漏洞"
+              -DfailBuildOnCVSS=7 \
+              2>&1 | tail -20) || { echo "::error::$mod_name Dependency-Check 失败或发现 CVSS≥7 漏洞"; fail_count=$((fail_count + 1)); }
           done < <(find platform -name pom.xml -not -path "*/target/*")
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Java 组件存在高危漏洞或 Dependency-Check 失败，阻断 CI"
+            exit 1
+          fi
 
       - name: 上传 Dependency-Check 报告
         if: always()

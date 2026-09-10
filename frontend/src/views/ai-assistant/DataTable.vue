@@ -106,10 +106,10 @@ void (0 as unknown as ColumnDataType)
   align-items: center;
   gap: 6px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--ds-text-primary);
 }
 .table-meta {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   font-size: 12px;
   display: inline-flex;
   align-items: center;
@@ -117,6 +117,6 @@ void (0 as unknown as ColumnDataType)
 }
 .num-cell {
   font-variant-numeric: tabular-nums;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
 }
 </style>

@@ -68,21 +68,79 @@ func newUUID() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:16])
 }
 
+// ============ 分页参数常量 ============
+
+// defaultPageSize 是不传 pageSize 时的默认每页条数。
+const defaultPageSize = 20
+
+// maxPageSize 是 pageSize 的上限，防止一次拉取过多数据。
+const maxPageSize = 100
+
+// parsePagination 从 query param 解析 page 与 pageSize。
+// 默认 page=1, pageSize=20；pageSize 上限 100。
+// 返回 limit 与 offset 供 store 层使用。
+// 解析失败时返回 0 与 error，调用方应返回 400。
+func parsePagination(c *gin.Context) (limit, offset int, err error) {
+	page := 1
+	pageSize := defaultPageSize
+
+	if pageStr := c.Query("page"); pageStr != "" {
+		var p int
+		if _, e := fmt.Sscanf(pageStr, "%d", &p); e != nil {
+			return 0, 0, fmt.Errorf("invalid page parameter")
+		}
+		if p < 1 {
+			return 0, 0, fmt.Errorf("page must be >= 1")
+		}
+		page = p
+	}
+
+	if sizeStr := c.Query("pageSize"); sizeStr != "" {
+		var ps int
+		if _, e := fmt.Sscanf(sizeStr, "%d", &ps); e != nil {
+			return 0, 0, fmt.Errorf("invalid pageSize parameter")
+		}
+		if ps < 1 {
+			return 0, 0, fmt.Errorf("pageSize must be >= 1")
+		}
+		pageSize = ps
+	}
+
+	// 上限截断
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+
+	limit = pageSize
+	offset = (page - 1) * pageSize
+	return limit, offset, nil
+}
+
 // ============ Database 端点 ============
 
-// ListDatabases 列出当前租户的所有数据库。
-// GET /api/v1/catalog/databases
+// ListDatabases 列出当前租户的所有数据库（分页）。
+// GET /api/v1/catalog/databases?page=1&pageSize=20
 func (h *CatalogHandler) ListDatabases(c *gin.Context) {
 	tenantID, ok := tenantFrom(c)
 	if !ok {
 		return
 	}
-	dbs, err := h.store.ListDatabases(tenantID)
+	limit, offset, err := parsePagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	dbs, total, err := h.store.ListDatabases(tenantID, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": dbs, "total": len(dbs)})
+	c.JSON(http.StatusOK, gin.H{
+		"data":     dbs,
+		"total":    total,
+		"page":     (offset / limit) + 1,
+		"pageSize": limit,
+	})
 }
 
 // CreateDatabase 创建一个数据库。租户归属强制取自 JWT，忽略请求体值。
@@ -162,20 +220,30 @@ func (h *CatalogHandler) DeleteDatabase(c *gin.Context) {
 
 // ============ Table 端点 ============
 
-// ListTables 列出租户内的表。可选 query 参数 database 过滤库名。
-// GET /api/v1/catalog/tables?database={name}
+// ListTables 列出租户内的表（分页）。可选 query 参数 database 过滤库名。
+// GET /api/v1/catalog/tables?database={name}&page=1&pageSize=20
 func (h *CatalogHandler) ListTables(c *gin.Context) {
 	tenantID, ok := tenantFrom(c)
 	if !ok {
 		return
 	}
 	dbName := c.Query("database")
-	tables, err := h.store.ListTables(tenantID, dbName)
+	limit, offset, err := parsePagination(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	tables, total, err := h.store.ListTables(tenantID, dbName, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"data": tables, "total": len(tables)})
+	c.JSON(http.StatusOK, gin.H{
+		"data":     tables,
+		"total":    total,
+		"page":     (offset / limit) + 1,
+		"pageSize": limit,
+	})
 }
 
 // CreateTable 创建一张表。租户归属强制取自 JWT，忽略请求体值。

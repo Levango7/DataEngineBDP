@@ -67,5 +67,114 @@
       "register": "Register",
       "registered": "Asset registered"
     }
+  },
+  "governMeta": {
+    "page": {
+      "title": "Metadata Management",
+      "subtitle": "Datasources · Collection Schedule · Collection History · Auto-refresh every 30s",
+      "loading": "Loading…",
+      "loadingHint": "Fetching data",
+      "loadFailed": "Failed to load",
+      "loadFailedHint": "Failed to load datasource list, ",
+      "retry": "Retry",
+      "kpi": {
+        "total": "Total Datasources",
+        "totalHint": "Registered collection datasources",
+        "active": "Active Datasources",
+        "activeHint": "Status is ACTIVE",
+        "today": "Collections Today",
+        "todayHint": "Aggregated from collection history",
+        "successRate": "Recent Success Rate",
+        "successRateHint": "Last 20 collections"
+      }
+    },
+    "toolbar": {
+      "add": "+ Add Datasource",
+      "typeFilter": "Type filter"
+    },
+    "table": {
+      "empty": "No datasources",
+      "loadFailed": "Failed to load, please retry",
+      "colName": "Datasource Name",
+      "colType": "Type",
+      "colStatus": "Status",
+      "colCron": "Cron Expression",
+      "colLastCollect": "Last Collection",
+      "cronUnset": "Not set",
+      "lastEmpty": "--",
+      "colActions": "Actions",
+      "actionCollect": "Collect",
+      "actionTest": "Test",
+      "actionSchedule": "Schedule",
+      "actionHistory": "History",
+      "actionEdit": "Edit",
+      "actionDelete": "Delete"
+    },
+    "history": {
+      "title": "Collection History - {name}",
+      "empty": "No collection history",
+      "trigger": "Trigger: {type}",
+      "duration": "Duration: {d}",
+      "count": "Objects: {n}"
+    },
+    "sourceDialog": {
+      "addTitle": "Add Datasource",
+      "editTitle": "Edit Datasource",
+      "fieldName": "Datasource Name",
+      "nameHint": "e.g. prod-hive-cluster",
+      "fieldType": "Type",
+      "typeHint": "Select type",
+      "fieldUrl": "Connection URL",
+      "urlHint": "e.g. jdbc:hive2://host:10000/db",
+      "fieldUsername": "Username",
+      "fieldPassword": "Password",
+      "passwordHint": "Leave blank to keep unchanged",
+      "fieldCron": "Cron Expression",
+      "cronHint": "e.g. 0 0 * * * (daily 0:00), blank = manual only",
+      "fieldComment": "Comment",
+      "cancel": "Cancel",
+      "add": "Add",
+      "save": "Save"
+    },
+    "scheduleDialog": {
+      "title": "Schedule Collection - {name}",
+      "currentCron": "Current Cron",
+      "newCron": "New Cron",
+      "newCronHint": "e.g. 0 0 * * *",
+      "unschedule": "Unschedule",
+      "close": "Close",
+      "save": "Save"
+    },
+    "rules": {
+      "nameRequired": "Datasource name is required",
+      "typeRequired": "Type is required",
+      "urlRequired": "Connection URL is required",
+      "cronRequired": "Cron expression is required"
+    },
+    "messages": {
+      "collectDone": "Collection done, {n} objects",
+      "deleteConfirm": "Delete datasource \"{name}\"? This action is irreversible.",
+      "deleteTitle": "Delete Confirmation",
+      "deleted": "Datasource deleted",
+      "updated": "Datasource updated",
+      "added": "Datasource added",
+      "scheduled": "Schedule registered{next}",
+      "scheduleFailed": "Registration failed",
+      "unscheduleConfirm": "Cancel scheduled collection of datasource \"{name}\"?",
+      "unscheduleTitle": "Cancel Schedule Confirmation",
+      "unscheduleOk": "Confirm Cancel",
+      "unscheduleCancel": "Keep",
+      "unscheduled": "Schedule cancelled",
+      "deleteOk": "Delete",
+      "nextFire": ", next fire: {when}"
+    },
+    "labels": {
+      "statusActive": "Active",
+      "statusInactive": "Inactive",
+      "statusError": "Error",
+      "historyRunning": "Running",
+      "historySuccess": "Success",
+      "historyFailed": "Failed"
+    }
   }
 }

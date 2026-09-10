@@ -1,55 +1,48 @@
 <template>
   <div>
-    <PageHeader :title="t('projects.title')" :subtitle="t('projects.subtitle', { workspace: '华东生产集群' })" />
+    <PageHeader
+      :title="t('projects.title')"
+      :subtitle="t('projects.subtitle', { workspace: '华东生产集群' })"
+    />
     <Toolbar
+      v-model:search-value="searchKeyword"
       :show-create="true"
       :create-label="t('projects.newProject')"
       :create-aria-label="t('projects.newProject')"
       :search-placeholder="t('projects.searchPlaceholder')"
-      v-model:search-value="searchKeyword"
       :search-aria-label="t('projects.searchPlaceholder')"
       :show-refresh="false"
       @create="modalVisible = true"
     >
       <template #filters>
-        <select>
-          <option>{{ t('projects.allStatus') }}</option>
-        </select>
+        <el-select :placeholder="t('projects.allStatus')" disabled>
+          <el-option :label="t('projects.allStatus')" value="" />
+        </el-select>
       </template>
     </Toolbar>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="error" style="padding: 16px; color: var(--red)">
+      <div v-if="loading" class="muted-text">{{ t('common.loading') }}</div>
+      <div v-else-if="error" class="error-text">
         {{ error.message }}，
         <a href="javascript:void(0)" @click="loadProjects">{{ t('common.retry') }}</a>
       </div>
-      <table v-else>
-        <tr>
-          <th>{{ t('projects.cols.project') }}</th>
-          <th>{{ t('projects.cols.domain') }}</th>
-          <th>{{ t('projects.cols.datasets') }}</th>
-          <th>{{ t('projects.cols.jobs') }}</th>
-          <th>{{ t('projects.cols.owner') }}</th>
-          <th>{{ t('projects.cols.status') }}</th>
-        </tr>
-        <tr v-for="p in projects" :key="p.id" class="click" @click="openDrawer(p)">
-          <td>{{ p.name }}</td>
-          <td>{{ p.domain }}</td>
-          <td>{{ p.datasets }}</td>
-          <td>{{ p.jobs }}</td>
-          <td>{{ p.owner }}</td>
-          <td>
-            <span class="pill" :class="statusPillClass(p.status)">
-              {{ statusPillText(p.status) }}
+      <el-table v-else :data="projects" stripe @row-click="openDrawer">
+        <el-table-column :label="t('projects.cols.project')" prop="name" />
+        <el-table-column :label="t('projects.cols.domain')" prop="domain" />
+        <el-table-column :label="t('projects.cols.datasets')" prop="datasets" />
+        <el-table-column :label="t('projects.cols.jobs')" prop="jobs" />
+        <el-table-column :label="t('projects.cols.owner')" prop="owner" />
+        <el-table-column :label="t('projects.cols.status')">
+          <template #default="{ row }">
+            <span class="pill" :class="statusPillClass(row.status)">
+              {{ statusPillText(row.status) }}
             </span>
-          </td>
-        </tr>
-        <tr v-if="projects.length === 0">
-          <td colspan="6" style="text-align: center; color: var(--muted)">
-            {{ t('projects.empty') }}
-          </td>
-        </tr>
-      </table>
+          </template>
+        </el-table-column>
+        <template #empty>
+          <div class="empty-cell">{{ t('projects.empty') }}</div>
+        </template>
+      </el-table>
     </div>
 
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
@@ -93,92 +86,68 @@
         </div>
       </div>
       <div v-if="tab === 1">
-        <div v-if="datasetsLoading" style="color: var(--muted)">
+        <div v-if="datasetsLoading" class="muted-text">
           {{ t('projects.datasets.loading') }}
         </div>
-        <table v-else>
-          <tr>
-            <th>{{ t('projects.datasets.colName') }}</th>
-            <th>{{ t('projects.datasets.colType') }}</th>
-            <th>{{ t('projects.datasets.colFields') }}</th>
-          </tr>
-          <tr v-for="d in datasets" :key="d.name">
-            <td>{{ d.name }}</td>
-            <td>{{ d.type }}</td>
-            <td>{{ d.fieldCount }}</td>
-          </tr>
-          <tr v-if="datasets.length === 0">
-            <td colspan="3" style="text-align: center; color: var(--muted)">
-              {{ t('projects.datasets.empty') }}
-            </td>
-          </tr>
-        </table>
+        <el-table v-else :data="datasets" stripe>
+          <el-table-column :label="t('projects.datasets.colName')" prop="name" />
+          <el-table-column :label="t('projects.datasets.colType')" prop="type" />
+          <el-table-column :label="t('projects.datasets.colFields')" prop="fieldCount" />
+          <template #empty>
+            <div class="empty-cell">{{ t('projects.datasets.empty') }}</div>
+          </template>
+        </el-table>
       </div>
       <div v-if="tab === 2">
-        <div v-if="jobsLoading" style="color: var(--muted)">{{ t('projects.jobs.loading') }}</div>
-        <table v-else>
-          <tr>
-            <th>{{ t('projects.jobs.colName') }}</th>
-            <th>{{ t('projects.jobs.colEngine') }}</th>
-            <th>{{ t('projects.jobs.colStatus') }}</th>
-          </tr>
-          <tr v-for="j in projJobs" :key="j.name">
-            <td>{{ j.name }}</td>
-            <td>{{ j.engine }}</td>
-            <td>
+        <div v-if="jobsLoading" class="muted-text">{{ t('projects.jobs.loading') }}</div>
+        <el-table v-else :data="projJobs" stripe>
+          <el-table-column :label="t('projects.jobs.colName')" prop="name" />
+          <el-table-column :label="t('projects.jobs.colEngine')" prop="engine" />
+          <el-table-column :label="t('projects.jobs.colStatus')">
+            <template #default="{ row }">
               <span
                 class="pill"
-                :class="j.status === 'running' ? 'a' : j.status === 'success' ? 'g' : 'r'"
+                :class="row.status === 'running' ? 'a' : row.status === 'success' ? 'g' : 'r'"
               >
                 {{
-                  j.status === 'running'
+                  row.status === 'running'
                     ? t('projects.jobs.running')
-                    : j.status === 'success'
+                    : row.status === 'success'
                       ? t('projects.jobs.success')
                       : t('projects.jobs.failed')
                 }}
               </span>
-            </td>
-          </tr>
-          <tr v-if="projJobs.length === 0">
-            <td colspan="3" style="text-align: center; color: var(--muted)">
-              {{ t('projects.jobs.empty') }}
-            </td>
-          </tr>
-        </table>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <div class="empty-cell">{{ t('projects.jobs.empty') }}</div>
+          </template>
+        </el-table>
       </div>
       <div v-if="tab === 3">
-        <div v-if="membersLoading" style="color: var(--muted)">
+        <div v-if="membersLoading" class="muted-text">
           {{ t('projects.members.loading') }}
         </div>
-        <table v-else>
-          <tr>
-            <th>{{ t('projects.members.colName') }}</th>
-            <th>{{ t('projects.members.colRole') }}</th>
-          </tr>
-          <tr v-for="m in members" :key="m.name">
-            <td>{{ m.name }}</td>
-            <td>{{ m.role }}</td>
-          </tr>
-          <tr v-if="members.length === 0">
-            <td colspan="2" style="text-align: center; color: var(--muted)">
-              {{ t('projects.members.empty') }}
-            </td>
-          </tr>
-        </table>
+        <el-table v-else :data="members" stripe>
+          <el-table-column :label="t('projects.members.colName')" prop="name" />
+          <el-table-column :label="t('projects.members.colRole')" prop="role" />
+          <template #empty>
+            <div class="empty-cell">{{ t('projects.members.empty') }}</div>
+          </template>
+        </el-table>
       </div>
       <div v-if="tab === 4">
         <label>{{ t('projects.settings.name') }}</label>
-        <input :value="current?.name" />
+        <el-input :model-value="current?.name" disabled />
         <label>{{ t('projects.settings.description') }}</label>
-        <textarea rows="3" :value="current?.description || ''"></textarea>
-        <button
-          class="btn sm"
+        <el-input type="textarea" :rows="3" :model-value="current?.description || ''" disabled />
+        <el-button
+          size="small"
           style="margin-top: 10px"
           @click="store.showToast(t('projects.settings.saveTodo'))"
         >
           {{ t('common.save') }}
-        </button>
+        </el-button>
       </div>
     </Drawer>
 
@@ -188,16 +157,16 @@
       @close="modalVisible = false"
     >
       <label>{{ t('projects.createModal.name') }}</label>
-      <input v-model="form.name" :placeholder="t('projects.createModal.namePlaceholder')" />
+      <el-input v-model="form.name" :placeholder="t('projects.createModal.namePlaceholder')" />
       <label>{{ t('projects.createModal.domain') }}</label>
-      <input v-model="form.domain" :placeholder="t('projects.createModal.domainPlaceholder')" />
+      <el-input v-model="form.domain" :placeholder="t('projects.createModal.domainPlaceholder')" />
       <label>{{ t('projects.createModal.description') }}</label>
-      <textarea v-model="form.description" rows="3"></textarea>
+      <el-input v-model="form.description" type="textarea" :rows="3" />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :disabled="submitting" @click="handleSubmit">
           {{ submitting ? t('projects.createModal.creating') : t('common.create') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -342,3 +311,45 @@ onMounted(() => {
   void loadProjects()
 })
 </script>
+
+<style scoped>
+/* 通用文字色（使用 design tokens） */
+.muted-text {
+  color: var(--ds-text-tertiary);
+}
+.error-text {
+  color: var(--ds-color-error-600);
+}
+.error-text a {
+  color: var(--ds-color-primary-600);
+  cursor: pointer;
+}
+
+/* 空状态单元格 */
+.empty-cell {
+  text-align: center;
+  color: var(--ds-text-tertiary);
+  padding: 16px;
+}
+
+/* 响应式断点：中等屏幕紧凑化 */
+@media (max-width: 1100px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-sm);
+  }
+}
+
+/* 响应式断点：小屏幕进一步紧凑 */
+@media (max-width: 720px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-xs);
+  }
+  :deep(.el-table .cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .tabbar {
+    flex-wrap: wrap;
+  }
+}
+</style>

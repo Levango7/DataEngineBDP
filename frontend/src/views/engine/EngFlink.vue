@@ -15,7 +15,7 @@
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ t('engines.flink.loadFailed') }}
             <a href="javascript:void(0)" @click="loadList">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -189,7 +189,7 @@
             type="textarea"
             :rows="8"
             :placeholder="t('engines.flink.submit.sqlPlaceholder')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.parallelism')" prop="parallelism">
@@ -197,7 +197,7 @@
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.cpInterval')" prop="checkpointIntervalMs">
           <el-input-number v-model="submitForm.checkpointIntervalMs" :min="1000" :step="1000" />
-          <span style="margin-left: 8px; color: var(--muted); font-size: 12px">
+          <span style="margin-left: 8px; color: var(--ds-text-tertiary); font-size: 12px">
             {{ t('engines.flink.submit.msUnit') }}
           </span>
         </el-form-item>
@@ -695,7 +695,7 @@ watch(
   padding: 0;
 }
 .sub {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   font-size: 13px;
   margin-bottom: 16px;
 }
@@ -717,36 +717,36 @@ watch(
   }
 }
 .card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 16px;
-  background: var(--panel);
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin: 0 0 8px;
 }
 .kpi {
   font-size: 28px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ds-text-primary);
   line-height: 1.2;
 }
 .kpi.s {
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .kpi.d {
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .meta {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-top: 6px;
 }
 .page-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
 }
 .toolbar {

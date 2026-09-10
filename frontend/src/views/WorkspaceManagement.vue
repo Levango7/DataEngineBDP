@@ -8,12 +8,12 @@
     <!-- 顶部操作栏 -->
     <PageCard>
       <Toolbar
+        v-model:search-value="searchKeyword"
         :aria-label="t('workspaceManagement.title')"
         :show-create="true"
         :create-label="t('workspaceManagement.toolbar.create')"
         :create-aria-label="t('workspaceManagement.toolbar.create')"
         :search-placeholder="t('workspaceManagement.toolbar.searchPlaceholder')"
-        v-model:search-value="searchKeyword"
         :search-aria-label="t('workspaceManagement.toolbar.searchPlaceholder')"
         :show-refresh="true"
         :refresh-aria-label="t('workspaceManagement.toolbar.refreshAria')"
@@ -512,7 +512,7 @@ onMounted(() => {
   margin-top: 16px;
 }
 .quota-text {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12px;
   color: #5a6470;
 }

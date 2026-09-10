@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import HTTPException, Request
 
 from asset_exchange.api.jwt_auth import AuthContext
+from asset_exchange.models.asset import Asset
 from asset_exchange.repositories import (
     AssetAlreadyExistsError,
     AssetExchangeError,
@@ -41,6 +42,28 @@ def resolve_tenant(ctx: AuthContext, requestedTenantId: str | None) -> str:
             return requestedTenantId
         raise HTTPException(status_code=403, detail=f"tenantId {requestedTenantId} 与当前身份不一致")
     return ctx.tenantId
+
+
+async def require_asset_owner(
+    registry: ServiceRegistry,
+    asset_id: str,
+    ctx: AuthContext,
+) -> Asset:
+    """对象级授权：校验 ctx 对 asset_id 有操作权限.
+
+    admin 或资产所属租户可操作；其他返回 403。
+    返回资产记录供后续使用（避免重复查询）。
+
+    Raises:
+        HTTPException: 404 资产不存在；403 无权操作。
+    """
+    try:
+        asset = await registry.assetService.get_asset(asset_id)
+    except AssetExchangeError as exc:
+        raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    if ctx.role != "admin" and ctx.tenantId != asset.tenantId:
+        raise HTTPException(status_code=403, detail="无权操作此资产")
+    return asset
 
 
 # HTTP 状态码映射

@@ -471,7 +471,7 @@ void buildChartConfig
   align-items: center;
   justify-content: space-between;
   padding: 0 0 16px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ds-border-subtle);
   margin-bottom: 16px;
 }
 .ai-title {
@@ -485,7 +485,7 @@ void buildChartConfig
 }
 .ai-sub {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .ai-actions {
   display: flex;
@@ -505,7 +505,7 @@ void buildChartConfig
 /* 左侧会话 */
 .ai-sessions {
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -518,7 +518,7 @@ void buildChartConfig
   padding: 10px 14px;
   font-size: 13px;
   font-weight: 600;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ds-border-subtle);
 }
 .sessions-list {
   flex: 1;
@@ -538,15 +538,15 @@ void buildChartConfig
   background: var(--c-surface-hover);
 }
 .session-item.active {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
 }
 .session-pin {
   color: var(--c-slate-300);
   flex: none;
 }
 .session-pin.pinned {
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .session-info {
   flex: 1;
@@ -561,11 +561,11 @@ void buildChartConfig
 }
 .session-meta {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
 .session-more {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   cursor: pointer;
   flex: none;
 }
@@ -573,13 +573,13 @@ void buildChartConfig
   padding: 24px 12px;
   text-align: center;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 
 /* 中部聊天 */
 .ai-chat {
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   overflow: hidden;
   min-width: 0;
@@ -591,7 +591,7 @@ void buildChartConfig
 /* 右侧分析面板 */
 .ai-side {
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px;
   overflow-y: auto;
@@ -610,13 +610,13 @@ void buildChartConfig
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--ds-text-primary);
   padding-bottom: 6px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ds-border-subtle);
 }
 .side-empty {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   padding: 12px;
   text-align: center;
   background: var(--c-surface-hover);

@@ -16,6 +16,8 @@
       "searchPlaceholder": "搜索 API 名称 / 描述 / 标签",
       "allCategories": "全部分类",
       "allStatuses": "全部状态",
+      "categoryPlaceholder": "全部类别",
+      "statusPlaceholder": "全部状态",
       "register": "+ 注册 API"
     },
     "list": {

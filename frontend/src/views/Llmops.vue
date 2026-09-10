@@ -41,12 +41,12 @@
         <!-- Tab1 模型管理 -->
         <el-tab-pane :label="t('llmops.tabs.models')" name="models">
           <Toolbar
+            v-model:search-value="modelKeyword"
             :aria-label="t('llmops.tabs.models')"
             :show-create="true"
             :create-label="t('llmops.registerModel')"
             :create-aria-label="t('llmops.registerModel')"
             :search-placeholder="t('llmops.searchPlaceholder')"
-            v-model:search-value="modelKeyword"
             :search-aria-label="t('llmops.searchPlaceholder')"
             :show-refresh="true"
             :refresh-aria-label="t('common.refresh')"
@@ -226,7 +226,7 @@
                 <span v-if="row.baseLiftPt != null" style="color: var(--ds-color-success-600)">
                   +{{ row.baseLiftPt.toFixed(2) }}pt
                 </span>
-                <span v-else style="color: var(--muted)">--</span>
+                <span v-else style="color: var(--ds-text-tertiary)">--</span>
               </template>
             </el-table-column>
             <el-table-column prop="dataset" :label="t('llmops.evalCols.dataset')" min-width="140">

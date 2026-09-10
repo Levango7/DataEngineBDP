@@ -16,7 +16,8 @@
     "approvalCols": {
       "applicant": "Applicant",
       "asset": "Asset",
-      "permission": "Permission"
+      "permission": "Permission",
+      "action": "Action"
     },
     "approve": "Approve",
     "reject": "Reject",

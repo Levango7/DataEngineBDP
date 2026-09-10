@@ -26,7 +26,9 @@ describe('ConfirmDialog', () => {
       attachTo: document.body
     })
     await wrapper.vm.$nextTick()
-    const buttons = Array.from(document.body.querySelectorAll<HTMLButtonElement>('.el-dialog .el-button'))
+    const buttons = Array.from(
+      document.body.querySelectorAll<HTMLButtonElement>('.el-dialog .el-button')
+    )
     const ok = buttons.find((b) => b.textContent?.includes('OK'))
     expect(ok).toBeTruthy()
     ok!.click()

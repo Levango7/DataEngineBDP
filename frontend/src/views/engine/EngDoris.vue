@@ -15,7 +15,7 @@
       <template v-else-if="nodesError">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ nodesError.message }}，
             <a href="javascript:void(0)" @click="reloadNodes">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -186,7 +186,7 @@
               type="textarea"
               :rows="8"
               :placeholder="t('engines.sql.placeholderDoris')"
-              style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
             />
             <div class="sql-actions">
               <el-button type="primary" :loading="executing" @click="handleExecuteSql">
@@ -472,7 +472,7 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
@@ -544,7 +544,7 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .result-meta {
   color: var(--ds-text-secondary);
@@ -552,7 +552,7 @@ onUnmounted(() => {
   margin-bottom: 8px;
 }
 .explain-content {
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;

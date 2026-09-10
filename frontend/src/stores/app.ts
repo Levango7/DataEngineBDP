@@ -32,16 +32,22 @@ export const useAppStore = defineStore('app', () => {
   interface ToastItem {
     id: number
     msg: string
+    type?: 'success' | 'error' | 'warning' | 'info'
   }
   const toasts = ref<ToastItem[]>([])
   let toastId = 0
 
-  function showToast(msg: string) {
+  function showToast(msg: string, type: ToastItem['type'] = 'info') {
     const id = ++toastId
-    toasts.value.push({ id, msg })
+    toasts.value.push({ id, msg, type })
     setTimeout(() => {
       toasts.value = toasts.value.filter((t) => t.id !== id)
     }, 2200)
+  }
+
+  /** 手动关闭指定 toast */
+  function dismissToast(id: number) {
+    toasts.value = toasts.value.filter((t) => t.id !== id)
   }
 
   async function approve(id: string) {
@@ -116,6 +122,7 @@ export const useAppStore = defineStore('app', () => {
     todoCount,
     toasts,
     showToast,
+    dismissToast,
     approve,
     reject,
     setWorkspace,

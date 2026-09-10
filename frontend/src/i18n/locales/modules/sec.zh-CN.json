@@ -16,7 +16,8 @@
     "approvalCols": {
       "applicant": "申请人",
       "asset": "资产",
-      "permission": "权限"
+      "permission": "权限",
+      "action": "操作"
     },
     "approve": "批准",
     "reject": "驳回",

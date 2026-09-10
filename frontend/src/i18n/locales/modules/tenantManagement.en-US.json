@@ -23,13 +23,21 @@
         "userCount": "Users",
         "resourceUsage": "Resource Usage",
         "createdAt": "Created",
-        "actions": "Actions"
+        "actions": "Actions",
+        "displayName": "Display Name",
+        "type": "Type",
+        "quotaProfile": "Quota Profile",
+        "storageQuota": "Storage Quota"
       },
       "actions": {
         "editAria": "Edit tenant {name}",
         "edit": "Edit",
         "deleteAria": "Delete tenant {name}",
-        "delete": "Delete"
+        "delete": "Delete",
+        "view": "Details",
+        "invite": "Invite",
+        "suspend": "Suspend",
+        "resume": "Resume"
       }
     },
     "dialog": {
@@ -56,7 +64,14 @@
         "create": "Create",
         "saveAria": "Save tenant",
         "createAriaBtn": "Create tenant"
-      }
+      },
+      "code": "Tenant Code",
+      "codeHint": "e.g. huadong / huabei, lowercase only",
+      "displayName": "Display Name",
+      "displayNameHint": "e.g. East Production Cluster",
+      "type": "Tenant Type",
+      "quotaProfile": "Quota Profile",
+      "storageQuota": "Storage Quota"
     },
     "plan": {
       "standard": "Standard",
@@ -95,6 +110,123 @@
       "deleteConfirmTitle": "Confirm Deletion",
       "deleteConfirmOk": "Delete",
       "deleteConfirmCancel": "Cancel"
+    },
+    "stats": {
+      "aria": "Platform tenant overview",
+      "total": "Total Tenants",
+      "active": "Active Tenants",
+      "pendingInvite": "Pending Invites",
+      "pendingReg": "Pending Registrations"
+    },
+    "typeFilter": {
+      "placeholder": "Tenant type",
+      "xinchuang": "Xinchuang",
+      "private": "Private",
+      "public": "Public Cloud",
+      "government": "Government",
+      "internal": "Internal"
+    },
+    "type": {
+      "xinchuang": "Xinchuang",
+      "private": "Private",
+      "public": "Public Cloud",
+      "government": "Government",
+      "internal": "Internal"
+    },
+    "statusFilter": {
+      "active": "Active",
+      "inactive": "Inactive",
+      "creating": "Creating",
+      "suspended": "Suspended"
+    },
+    "quota": {
+      "small": "Small (10GB/10 users)",
+      "medium": "Medium (100GB/100 users)",
+      "large": "Large (1TB/500 users)",
+      "xlarge": "Extra Large (unlimited)"
+    },
+    "invite": {
+      "title": "Generate Tenant Invite",
+      "tenant": "Target Tenant",
+      "role": "Invite Role",
+      "roleTenantAdmin": "Tenant Admin",
+      "roleUser": "User",
+      "rolePlatformAdmin": "Platform Admin",
+      "days": "Valid Days",
+      "note": "Invite Note",
+      "noteHint": "e.g. Data analyst / trial",
+      "generate": "Generate Invite Code"
+    },
+    "success": {
+      "title": "Invite Code Generated",
+      "hint": "Send the invite code below to the target user via email/IM",
+      "codeAria": "Invite code: {code}",
+      "copied": "✓ Copied",
+      "copy": "Copy",
+      "tenant": "Tenant",
+      "role": "Role",
+      "expiry": "Expires",
+      "hintSm": "User can register with this code via \"No tenant account yet?\" on the login page",
+      "close": "Close"
+    },
+    "detail": {
+      "basic": "Basic Info",
+      "tenantId": "Tenant ID",
+      "code": "Tenant Code",
+      "displayName": "Display Name",
+      "type": "Type",
+      "status": "Status",
+      "quotaProfile": "Quota Profile",
+      "storage": "Storage",
+      "userCount": "Users",
+      "adminUser": "Tenant Admin",
+      "adminUnset": "(not set)",
+      "createdAt": "Created At",
+      "updatedAt": "Updated At",
+      "invites": "Invite Codes ({n})",
+      "empty": "None",
+      "colCode": "Code",
+      "colRole": "Role",
+      "colStatus": "Status",
+      "colCreatedAt": "Generated At",
+      "colExpiry": "Expires",
+      "colNote": "Note"
+    },
+    "labels": {
+      "status": {
+        "ACTIVE": "Active",
+        "INACTIVE": "Inactive",
+        "CREATING": "Creating",
+        "SUSPENDED": "Suspended"
+      },
+      "type": {
+        "XINCHUANG": "Xinchuang",
+        "GOVERNMENT": "Government",
+        "PRIVATE": "Private",
+        "PUBLIC": "Public Cloud",
+        "INTERNAL": "Internal"
+      },
+      "roleTenantAdmin": "Tenant Admin"
+    },
+    "rules2": {
+      "codeRequired": "Tenant code is required",
+      "codePattern": "Lowercase letters/digits/hyphens, 3-31 chars",
+      "displayNameRequired": "Display name is required",
+      "typeRequired": "Type is required",
+      "quotaRequired": "Quota profile is required"
+    },
+    "msg2": {
+      "codeExists": "Tenant code already exists",
+      "defaultNote": "Auto-generated first-account invite for tenant creation",
+      "createdWithInvite": "Tenant \"{name}\" created. Invite code {code} (first account)",
+      "copyDenied": "Browser denied clipboard access, please copy manually",
+      "suspendConfirm": "Suspend tenant \"{name}\"?",
+      "suspendTitle": "Suspend Tenant",
+      "suspended": "Suspended",
+      "resumed": "Enabled",
+      "deleteConfirm": "Delete tenant \"{name}\"? All invites/registrations will be removed",
+      "deleteTitle": "Delete Tenant",
+      "deleted": "Deleted"
     }
   }
 }

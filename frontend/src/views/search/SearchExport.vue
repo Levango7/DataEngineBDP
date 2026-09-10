@@ -14,17 +14,19 @@
 -->
 <template>
   <div class="search-export">
-    <el-button :icon="Download" @click="openDialog">导出</el-button>
+    <el-button :icon="Download" @click="openDialog">
+      {{ t('searchPortal.search.export.btn') }}
+    </el-button>
 
     <el-dialog
       v-model="dialogVisible"
-      title="导出检索结果"
+      :title="t('searchPortal.search.export.title')"
       width="520px"
       :close-on-click-modal="false"
     >
       <el-form label-width="100px" label-position="right">
         <!-- 格式 -->
-        <el-form-item label="格式">
+        <el-form-item :label="t('searchPortal.search.export.format')">
           <el-radio-group v-model="form.format">
             <el-radio-button value="csv">CSV</el-radio-button>
             <el-radio-button value="json">JSON</el-radio-button>
@@ -33,21 +35,23 @@
         </el-form-item>
 
         <!-- 范围 -->
-        <el-form-item label="范围">
+        <el-form-item :label="t('searchPortal.search.export.scope')">
           <el-radio-group v-model="form.scope">
-            <el-radio value="current">当前页（{{ currentCount }} 条）</el-radio>
-            <el-radio value="all">全部命中（{{ total }} 条）</el-radio>
+            <el-radio value="current">
+              {{ t('searchPortal.search.export.current', { n: currentCount }) }}
+            </el-radio>
+            <el-radio value="all">{{ t('searchPortal.search.export.all', { n: total }) }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
         <!-- 字段选择 -->
-        <el-form-item label="字段">
+        <el-form-item :label="t('searchPortal.search.export.fields')">
           <el-checkbox
             v-model="allFields"
             :indeterminate="someFieldsChecked"
             @change="toggleAllFields"
           >
-            全选
+            {{ t('searchPortal.search.export.selectAll') }}
           </el-checkbox>
           <el-checkbox-group v-model="form.fields" class="field-group">
             <el-checkbox
@@ -63,15 +67,19 @@
         <div class="export-tip">
           <el-icon><InfoFilled /></el-icon>
           <span v-if="form.scope === 'all' && total > 10000">
-            全部命中超过 1 万条，导出可能耗时较长，建议缩小检索范围。
+            {{ t('searchPortal.search.export.warnLarge') }}
           </span>
-          <span v-else>导出文件由平台生成，包含当前检索条件下的结果数据。</span>
+          <span v-else>{{ t('searchPortal.search.export.hint') }}</span>
         </div>
       </el-form>
 
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="exporting" @click="handleExport">开始导出</el-button>
+        <el-button @click="dialogVisible = false">
+          {{ t('searchPortal.search.export.cancel') }}
+        </el-button>
+        <el-button type="primary" :loading="exporting" @click="handleExport">
+          {{ t('searchPortal.search.export.start') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -79,6 +87,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import {
   ElButton,
@@ -101,6 +110,8 @@ import type {
   ExportScope,
   ExportResult
 } from '@/types/search'
+
+const { t } = useI18n()
 
 /* ------------------------------ Props / Emits ------------------------------ */
 interface Props {
@@ -134,21 +145,21 @@ const form = reactive<{
 })
 
 /** 可导出字段 */
-const fieldOptions = [
+const fieldOptions = computed(() => [
   { label: 'ID', value: 'id' },
-  { label: '名称', value: 'name' },
-  { label: '类型', value: 'type' },
-  { label: '数据源', value: 'sourceName' },
-  { label: '描述', value: 'description' },
-  { label: '负责人', value: 'owner' },
-  { label: '标签', value: 'tags' },
-  { label: '创建时间', value: 'createdAt' },
-  { label: '更新时间', value: 'updatedAt' },
-  { label: '评分', value: 'score' }
-]
+  { label: t('searchPortal.search.export.fieldNames.name'), value: 'name' },
+  { label: t('searchPortal.search.export.fieldNames.type'), value: 'type' },
+  { label: t('searchPortal.search.export.fieldNames.sourceName'), value: 'sourceName' },
+  { label: t('searchPortal.search.export.fieldNames.description'), value: 'description' },
+  { label: t('searchPortal.search.export.fieldNames.owner'), value: 'owner' },
+  { label: t('searchPortal.search.export.fieldNames.tags'), value: 'tags' },
+  { label: t('searchPortal.search.export.fieldNames.createdAt'), value: 'createdAt' },
+  { label: t('searchPortal.search.export.fieldNames.updatedAt'), value: 'updatedAt' },
+  { label: t('searchPortal.search.export.fieldNames.score'), value: 'score' }
+])
 
 /** 默认全选 */
-const ALL_FIELD_VALUES = fieldOptions.map((f) => f.value)
+const ALL_FIELD_VALUES = fieldOptions.value.map((f) => f.value)
 
 /* ------------------------------ 字段全选 ------------------------------ */
 const allFields = ref(true)
@@ -177,7 +188,7 @@ function openDialog(): void {
 
 async function handleExport(): Promise<void> {
   if (form.fields.length === 0) {
-    ElMessage.warning('请至少选择一个导出字段')
+    ElMessage.warning(t('searchPortal.search.export.msgFieldRequired'))
     return
   }
 
@@ -195,14 +206,16 @@ async function handleExport(): Promise<void> {
     triggerDownload(result.downloadUrl, result.filename)
 
     emit('exported', result)
-    ElMessage.success(`导出成功，共 ${result.count} 条`)
+    ElMessage.success(t('searchPortal.search.export.msgExported', { n: result.count }))
     dialogVisible.value = false
   } catch (e) {
     // 后端导出失败，降级为前端本地导出
     if (form.scope === 'current' && props.results.length > 0) {
       try {
         localExport(props.results)
-        ElMessage.success(`已本地导出 ${props.results.length} 条`)
+        ElMessage.success(
+          t('searchPortal.search.export.msgLocalExported', { n: props.results.length })
+        )
         dialogVisible.value = false
         return
       } catch (localErr) {
@@ -211,7 +224,7 @@ async function handleExport(): Promise<void> {
     }
     const err = e instanceof Error ? e : new Error(String(e))
     emit('error', err)
-    ElMessage.error(`导出失败：${err.message}`)
+    ElMessage.error(t('searchPortal.search.export.msgFailed', { message: err.message }))
   } finally {
     exporting.value = false
   }

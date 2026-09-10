@@ -14,32 +14,44 @@
 <template>
   <div class="search-filter">
     <div class="filter-header">
-      <h3>过滤条件</h3>
-      <el-button link type="primary" @click="emitReset">重置</el-button>
+      <h3>{{ t('searchPortal.search.filter.title') }}</h3>
+      <el-button link type="primary" @click="emitReset">
+        {{ t('searchPortal.search.filter.reset') }}
+      </el-button>
     </div>
 
     <!-- ① 时间维度 -->
     <div class="filter-section">
       <div class="section-title">
         <el-icon><Calendar /></el-icon>
-        <span>时间</span>
+        <span>{{ t('searchPortal.search.filter.time') }}</span>
       </div>
       <el-radio-group v-model="local.time.preset" @change="emitChange">
-        <el-radio-button value="today">今天</el-radio-button>
-        <el-radio-button value="yesterday">昨天</el-radio-button>
-        <el-radio-button value="last7d">近 7 天</el-radio-button>
-        <el-radio-button value="last30d">近 30 天</el-radio-button>
-        <el-radio-button value="last90d">近 90 天</el-radio-button>
-        <el-radio-button value="custom">自定义</el-radio-button>
+        <el-radio-button value="today">{{ t('searchPortal.search.filter.today') }}</el-radio-button>
+        <el-radio-button value="yesterday">
+          {{ t('searchPortal.search.filter.yesterday') }}
+        </el-radio-button>
+        <el-radio-button value="last7d">
+          {{ t('searchPortal.search.filter.last7d') }}
+        </el-radio-button>
+        <el-radio-button value="last30d">
+          {{ t('searchPortal.search.filter.last30d') }}
+        </el-radio-button>
+        <el-radio-button value="last90d">
+          {{ t('searchPortal.search.filter.last90d') }}
+        </el-radio-button>
+        <el-radio-button value="custom">
+          {{ t('searchPortal.search.filter.custom') }}
+        </el-radio-button>
       </el-radio-group>
 
       <div v-if="local.time.preset === 'custom'" class="custom-time">
         <el-date-picker
           v-model="customRange"
           type="datetimerange"
-          range-separator="至"
-          start-placeholder="开始时间"
-          end-placeholder="结束时间"
+          :range-separator="t('searchPortal.search.filter.rangeSep')"
+          :start-placeholder="t('searchPortal.search.filter.startPh')"
+          :end-placeholder="t('searchPortal.search.filter.endPh')"
           format="YYYY-MM-DD HH:mm"
           value-format="YYYY-MM-DDTHH:mm:ss"
           style="width: 100%; margin-top: 8px"
@@ -52,14 +64,14 @@
     <div class="filter-section">
       <div class="section-title">
         <el-icon><Connection /></el-icon>
-        <span>数据源</span>
+        <span>{{ t('searchPortal.search.filter.source') }}</span>
       </div>
       <el-select
         v-model="local.sources"
         multiple
         collapse-tags
         collapse-tags-tooltip
-        placeholder="选择数据源"
+        :placeholder="t('searchPortal.search.filter.sourcePh')"
         style="width: 100%"
         @change="emitChange"
       >
@@ -76,7 +88,7 @@
     <div class="filter-section">
       <div class="section-title">
         <el-icon><Files /></el-icon>
-        <span>类型</span>
+        <span>{{ t('searchPortal.search.filter.type') }}</span>
       </div>
       <el-checkbox-group v-model="local.types" @change="emitChange">
         <el-checkbox
@@ -95,9 +107,11 @@
     <div class="filter-section">
       <div class="section-title">
         <el-icon><PriceTag /></el-icon>
-        <span>标签</span>
+        <span>{{ t('searchPortal.search.filter.tag') }}</span>
       </div>
-      <div v-if="tagOptions.length === 0" class="empty-tags">暂无标签候选</div>
+      <div v-if="tagOptions.length === 0" class="empty-tags">
+        {{ t('searchPortal.search.filter.noTags') }}
+      </div>
       <div v-else class="tag-cloud">
         <span
           v-for="opt in tagOptions"
@@ -114,15 +128,16 @@
 
     <!-- 已选条件摘要 -->
     <div v-if="hasActiveFilter" class="filter-summary">
-      <span class="summary-label">已选：</span>
+      <span class="summary-label">{{ t('searchPortal.search.filter.selectedLabel') }}</span>
       <span class="summary-count">{{ activeCount }}</span>
-      <span class="summary-text">个条件</span>
+      <span class="summary-text">{{ t('searchPortal.search.filter.conditionsFmt') }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ElButton,
   ElIcon,
@@ -137,6 +152,8 @@ import {
 import { Calendar, Connection, Files, PriceTag } from '@element-plus/icons-vue'
 import type { SearchFilter, FilterFacets, FilterOption, TimePreset } from '@/types/search'
 import { EMPTY_FILTER } from '@/types/search'
+
+const { t } = useI18n()
 
 /* ------------------------------ Props / Emits ------------------------------ */
 interface Props {
@@ -202,16 +219,16 @@ const sourceOptions = computed<FilterOption[]>(() => {
 const typeOptions = computed<FilterOption[]>(() => {
   return (
     props.facets?.types ?? [
-      { value: 'table', label: '数据集' },
-      { value: 'view', label: '视图' },
-      { value: 'api', label: '数据服务' },
-      { value: 'model', label: '数据模型' },
-      { value: 'dashboard', label: '仪表盘' },
-      { value: 'stream', label: '实时流' },
-      { value: 'job', label: '作业' },
-      { value: 'notebook', label: '笔记本' },
-      { value: 'metric', label: '指标' },
-      { value: 'document', label: '文档' }
+      { value: 'table', label: t('searchPortal.search.typeOptions.table') },
+      { value: 'view', label: t('searchPortal.search.typeOptions.view') },
+      { value: 'api', label: t('searchPortal.search.typeOptions.api') },
+      { value: 'model', label: t('searchPortal.search.typeOptions.model') },
+      { value: 'dashboard', label: t('searchPortal.search.typeOptions.dashboard') },
+      { value: 'stream', label: t('searchPortal.search.typeOptions.stream') },
+      { value: 'job', label: t('searchPortal.search.typeOptions.job') },
+      { value: 'notebook', label: t('searchPortal.search.typeOptions.notebook') },
+      { value: 'metric', label: t('searchPortal.search.typeOptions.metric') },
+      { value: 'document', label: t('searchPortal.search.typeOptions.document') }
     ]
   )
 })

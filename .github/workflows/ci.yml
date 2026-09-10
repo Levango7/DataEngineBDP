@@ -13,6 +13,8 @@ on:
   push:
     branches:
       - '*'
+    tags:
+      - 'v*'  # 打标签时自动触发 CI（版本发布门禁）
   # 向 main 分支发起 PR 时触发
   pull_request:
     branches:
@@ -62,7 +64,7 @@ jobs:
   go-lint:
     name: Go Lint (gofmt)
     runs-on: ubuntu-latest
-    continue-on-error: true
+
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -148,7 +150,7 @@ jobs:
   python-lint:
     name: Python Lint (pylint/black/isort/flake8/mypy)
     runs-on: ubuntu-latest
-    continue-on-error: true
+
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -1613,7 +1615,8 @@ jobs:
             fi
           done < <(find platform -name go.mod -not -path "*/vendor/*")
           if [ "$fail_count" -gt 0 ]; then
-            echo "::warning::共有 $fail_count 个 Go 组件安全 lint 失败（golangci-lint v2.x 兼容性问题），暂不阻断 CI"
+            echo "::error::共有 $fail_count 个 Go 组件安全 lint 失败，阻断 CI"
+            exit 1
           fi
 
   # ============================================================
@@ -1743,7 +1746,7 @@ jobs:
           trivy version
 
       - name: Trivy扫描 - 文件系统模式
-        run: trivy fs --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
+        run: trivy fs --exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed --format sarif --output trivy-results.sarif .
 
       - name: 上传Trivy扫描结果
         uses: github/codeql-action/upload-sarif@v3

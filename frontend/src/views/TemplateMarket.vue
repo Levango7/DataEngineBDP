@@ -5,9 +5,9 @@
     <!-- 顶部操作栏：分类筛选 + 搜索 -->
     <PageCard>
       <Toolbar
+        v-model:search-value="searchKeyword"
         :aria-label="t('templateMarket.title')"
         :search-placeholder="t('templateMarket.filter.searchPlaceholder')"
-        v-model:search-value="searchKeyword"
         :search-aria-label="t('templateMarket.filter.searchPlaceholder')"
         :show-refresh="true"
         :refresh-aria-label="t('common.refresh')"
@@ -885,7 +885,7 @@ onMounted(() => {
   border-radius: 6px;
   font-size: 12px;
   overflow-x: auto;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
 }
 
 /* 可视化面板 */
@@ -928,7 +928,7 @@ onMounted(() => {
   font-size: 13px;
   line-height: 1.6;
   white-space: pre-wrap;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
 }
 
 /* 部署表单参数提示 */

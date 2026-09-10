@@ -15,35 +15,39 @@
     <!-- 子 Tab：执行历史 / 检查点 / 人工介入 -->
     <div class="sub-tabbar">
       <div
-        v-for="t in subTabs"
-        :key="t.key"
+        v-for="tab in subTabs"
+        :key="tab.key"
         class="sub-t"
-        :class="{ on: subTab === t.key }"
-        @click="subTab = t.key"
+        :class="{ on: subTab === tab.key }"
+        @click="subTab = tab.key"
       >
-        {{ t.label }}
-        <span v-if="t.badge" class="sub-badge">{{ t.badge }}</span>
+        {{ tab.label }}
+        <span v-if="tab.badge" class="sub-badge">{{ tab.badge }}</span>
       </div>
     </div>
 
     <!-- 执行历史 + 回放 -->
     <div v-if="subTab === 'exec'" class="exec-panel">
       <div class="panel-head">
-        <span class="title">执行历史</span>
+        <span class="title">{{ t('orchestrator.replay.execHistory') }}</span>
         <span class="spacer" />
-        <el-button size="small" :icon="Refresh" @click="loadExecutions">刷新</el-button>
+        <el-button size="small" :icon="Refresh" @click="loadExecutions">
+          {{ t('orchestrator.common.refresh') }}
+        </el-button>
       </div>
 
-      <div v-if="executions.length === 0" class="empty">暂无执行记录</div>
+      <div v-if="executions.length === 0" class="empty">
+        {{ t('orchestrator.replay.noExecutions') }}
+      </div>
       <table v-else class="exec-table">
         <thead>
           <tr>
-            <th>执行 ID</th>
-            <th>触发</th>
-            <th>状态</th>
-            <th>进度</th>
-            <th>开始时间</th>
-            <th>操作</th>
+            <th>{{ t('orchestrator.replay.colExecId') }}</th>
+            <th>{{ t('orchestrator.replay.colTrigger') }}</th>
+            <th>{{ t('orchestrator.replay.colStatus') }}</th>
+            <th>{{ t('orchestrator.replay.colProgress') }}</th>
+            <th>{{ t('orchestrator.replay.colStartTime') }}</th>
+            <th>{{ t('orchestrator.replay.colActions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -66,7 +70,9 @@
             <td>{{ e.completedCount }}/{{ e.totalNodes }}</td>
             <td>{{ e.startedAt }}</td>
             <td>
-              <el-button size="small" link @click.stop="onSelectExec(e.execId)">回放</el-button>
+              <el-button size="small" link @click.stop="onSelectExec(e.execId)">
+                {{ t('orchestrator.replay.replayBtn') }}
+              </el-button>
             </td>
           </tr>
         </tbody>
@@ -75,15 +81,19 @@
       <!-- 回放轨迹 -->
       <div v-if="trace" class="replay-trace">
         <div class="trace-head">
-          <span class="title">回放轨迹 · {{ trace.execId.slice(0, 12) }}</span>
+          <span class="title">
+            {{ t('orchestrator.replay.traceTitle', { id: trace.execId.slice(0, 12) }) }}
+          </span>
           <span class="spacer" />
           <el-button size="small" :icon="VideoPlay" :disabled="playing" @click="play">
-            播放
+            {{ t('orchestrator.replay.play') }}
           </el-button>
           <el-button size="small" :icon="VideoPause" :disabled="!playing" @click="pause">
-            暂停
+            {{ t('orchestrator.replay.pause') }}
           </el-button>
-          <el-button size="small" :icon="DArrowRight" @click="stepForward">单步</el-button>
+          <el-button size="small" :icon="DArrowRight" @click="stepForward">
+            {{ t('orchestrator.replay.stepForward') }}
+          </el-button>
           <el-select v-model="speed" size="small" style="width: 90px; margin-left: 8px">
             <el-option label="0.5x" :value="0.5" />
             <el-option label="1x" :value="1" />
@@ -113,7 +123,9 @@
           >
             <span class="ev-seq">{{ ev.seq }}</span>
             <span class="ev-kind">{{ ev.kind }}</span>
-            <span v-if="ev.nodeId" class="ev-node">节点 {{ ev.nodeId.slice(0, 8) }}</span>
+            <span v-if="ev.nodeId" class="ev-node">
+              {{ t('orchestrator.replay.evNode', { id: ev.nodeId.slice(0, 8) }) }}
+            </span>
             <span class="ev-time">{{ ev.timestamp }}</span>
           </li>
         </ol>
@@ -123,13 +135,19 @@
     <!-- 检查点 + 断点续跑 -->
     <div v-else-if="subTab === 'checkpoint'" class="ckpt-panel">
       <div class="panel-head">
-        <span class="title">检查点 · 断点续跑</span>
+        <span class="title">{{ t('orchestrator.replay.checkpoints') }}</span>
         <span class="spacer" />
-        <el-button size="small" :icon="Plus" @click="onCreateCheckpoint">手动打点</el-button>
-        <el-button size="small" :icon="Refresh" @click="loadCheckpoints">刷新</el-button>
+        <el-button size="small" :icon="Plus" @click="onCreateCheckpoint">
+          {{ t('orchestrator.replay.manualCkpt') }}
+        </el-button>
+        <el-button size="small" :icon="Refresh" @click="loadCheckpoints">
+          {{ t('orchestrator.common.refresh') }}
+        </el-button>
       </div>
 
-      <div v-if="checkpoints.length === 0" class="empty">暂无检查点</div>
+      <div v-if="checkpoints.length === 0" class="empty">
+        {{ t('orchestrator.replay.noCheckpoints') }}
+      </div>
       <div v-else class="ckpt-list">
         <div v-for="c in checkpoints" :key="c.id" class="ckpt-card">
           <div class="ckpt-head">
@@ -137,16 +155,20 @@
             <span class="ckpt-kind" :class="`k-${c.kind.toLowerCase()}`">{{ c.kind }}</span>
             <span class="ckpt-time">{{ c.createdAt }}</span>
             <span class="spacer" />
-            <el-button size="small" type="primary" @click="onResume(c.id)">从此处恢复</el-button>
+            <el-button size="small" type="primary" @click="onResume(c.id)">
+              {{ t('orchestrator.replay.resumeFrom') }}
+            </el-button>
           </div>
           <div class="ckpt-body">
             <div class="ckpt-meta">
-              已完成 {{ c.completedNodes.length }} 节点：
+              {{ t('orchestrator.replay.completedNodes', { n: c.completedNodes.length }) }}
               <span v-for="nid in c.completedNodes" :key="nid" class="ckpt-node-tag">
                 {{ nid.slice(0, 8) }}
               </span>
             </div>
-            <div v-if="c.note" class="ckpt-note">备注：{{ c.note }}</div>
+            <div v-if="c.note" class="ckpt-note">
+              {{ t('orchestrator.replay.ckptNote', { note: c.note }) }}
+            </div>
           </div>
         </div>
       </div>
@@ -155,12 +177,16 @@
     <!-- 人工介入 -->
     <div v-else-if="subTab === 'intervene'" class="iv-panel">
       <div class="panel-head">
-        <span class="title">人工介入</span>
+        <span class="title">{{ t('orchestrator.replay.intervention') }}</span>
         <span class="spacer" />
-        <el-button size="small" :icon="Refresh" @click="loadInterventions">刷新</el-button>
+        <el-button size="small" :icon="Refresh" @click="loadInterventions">
+          {{ t('orchestrator.common.refresh') }}
+        </el-button>
       </div>
 
-      <div v-if="interventions.length === 0" class="empty">暂无待处理介入请求</div>
+      <div v-if="interventions.length === 0" class="empty">
+        {{ t('orchestrator.replay.noInterventions') }}
+      </div>
       <div v-else class="iv-list">
         <div
           v-for="iv in interventions"
@@ -175,34 +201,38 @@
             </span>
             <span class="iv-time">{{ iv.createdAt }}</span>
           </div>
-          <div class="iv-reason">原因：{{ iv.reason }}</div>
+          <div class="iv-reason">
+            {{ t('orchestrator.replay.ivReason', { reason: iv.reason }) }}
+          </div>
           <div v-if="iv.context" class="iv-context">
             <pre class="json">{{ JSON.stringify(iv.context, null, 2) }}</pre>
           </div>
           <div v-if="iv.status === 'PENDING'" class="iv-form">
             <el-input
               v-model="ivForm.approver"
-              placeholder="审批人"
+              :placeholder="t('orchestrator.replay.approverPlaceholder')"
               size="small"
               style="width: 120px"
             />
             <el-input
               v-model="ivForm.comment"
-              placeholder="审批意见"
+              :placeholder="t('orchestrator.replay.commentPlaceholder')"
               size="small"
               style="width: 200px"
             />
             <el-button size="small" type="success" @click="onIntervene(iv.id, 'APPROVED')">
-              批准
+              {{ t('orchestrator.replay.approve') }}
             </el-button>
             <el-button size="small" type="danger" @click="onIntervene(iv.id, 'REJECTED')">
-              驳回
+              {{ t('orchestrator.replay.reject') }}
             </el-button>
           </div>
           <div v-else class="iv-resolved">
-            <span>审批人：{{ iv.approver || '--' }}</span>
-            <span v-if="iv.comment">意见：{{ iv.comment }}</span>
-            <span>处理时间：{{ iv.resolvedAt || '--' }}</span>
+            <span>{{ t('orchestrator.replay.approver', { who: iv.approver || '--' }) }}</span>
+            <span v-if="iv.comment">
+              {{ t('orchestrator.replay.comment', { text: iv.comment }) }}
+            </span>
+            <span>{{ t('orchestrator.replay.resolvedAt', { at: iv.resolvedAt || '--' }) }}</span>
           </div>
         </div>
       </div>
@@ -212,6 +242,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VideoPlay, VideoPause, DArrowRight, Refresh, Plus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -228,6 +259,8 @@ import {
   type InterventionRequest
 } from '@/api/orchestrator-viz'
 
+const { t } = useI18n()
+
 const props = defineProps<{
   dagId: string
 }>()
@@ -241,11 +274,19 @@ const interventions = ref<InterventionRequest[]>([])
 const checkpoints = ref<Checkpoint[]>([])
 
 const subTabs = computed(() => [
-  { key: 'exec' as const, label: '执行历史', badge: executions.value.length },
-  { key: 'checkpoint' as const, label: '检查点', badge: checkpoints.value.length },
+  {
+    key: 'exec' as const,
+    label: t('orchestrator.replay.tabs.exec'),
+    badge: executions.value.length
+  },
+  {
+    key: 'checkpoint' as const,
+    label: t('orchestrator.replay.tabs.checkpoint'),
+    badge: checkpoints.value.length
+  },
   {
     key: 'intervene' as const,
-    label: '人工介入',
+    label: t('orchestrator.replay.tabs.intervention'),
     badge: interventions.value.filter((i) => i.status === 'PENDING').length
   }
 ])
@@ -330,9 +371,9 @@ async function loadCheckpoints() {
 async function onCreateCheckpoint() {
   if (!props.dagId) return
   try {
-    const note = `手动打点 ${new Date().toLocaleTimeString()}`
+    const note = t('orchestrator.replay.manualNote', { time: new Date().toLocaleTimeString() })
     await createCheckpoint(props.dagId, note)
-    ElMessage.success('检查点已创建')
+    ElMessage.success(t('orchestrator.replay.messages.ckptCreated'))
     await loadCheckpoints()
   } catch {
     // ignore
@@ -343,7 +384,7 @@ async function onResume(checkpointId: string) {
   if (!props.dagId) return
   try {
     await resumeFromCheckpoint(props.dagId, checkpointId)
-    ElMessage.success('已从检查点恢复执行')
+    ElMessage.success(t('orchestrator.replay.messages.resumed'))
     await loadExecutions()
   } catch {
     // ignore
@@ -366,7 +407,7 @@ async function loadInterventions() {
 async function onIntervene(interventionId: string, decision: 'APPROVED' | 'REJECTED') {
   if (!props.dagId) return
   if (!ivForm.value.approver) {
-    ElMessage.warning('请填写审批人')
+    ElMessage.warning(t('orchestrator.replay.messages.approverRequired'))
     return
   }
   try {
@@ -376,7 +417,11 @@ async function onIntervene(interventionId: string, decision: 'APPROVED' | 'REJEC
       approver: ivForm.value.approver,
       comment: ivForm.value.comment
     })
-    ElMessage.success(decision === 'APPROVED' ? '已批准' : '已驳回')
+    ElMessage.success(
+      decision === 'APPROVED'
+        ? t('orchestrator.replay.messages.approved')
+        : t('orchestrator.replay.messages.rejected')
+    )
     ivForm.value = { approver: '', comment: '' }
     await loadInterventions()
   } catch {
@@ -418,27 +463,27 @@ onMounted(() => {
 .sub-tabbar {
   display: flex;
   gap: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ds-border-subtle);
   margin-bottom: 10px;
 }
 .sub-t {
   padding: 7px 14px;
   cursor: pointer;
   font-size: 12.5px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   border-bottom: 2px solid transparent;
 }
 .sub-t.on {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
+  color: var(--ds-color-primary-500);
+  border-bottom-color: var(--ds-color-primary-500);
   font-weight: 600;
 }
 .sub-badge {
   display: inline-block;
   margin-left: 4px;
   font-size: 10px;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
   border-radius: 10px;
   padding: 0 6px;
 }
@@ -458,14 +503,14 @@ onMounted(() => {
 }
 
 .empty {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
   font-size: 13px;
 }
 
 .mono {
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 11.5px;
 }
 
@@ -474,7 +519,7 @@ onMounted(() => {
   font-size: 12px;
 }
 .exec-table tr.active td {
-  background: var(--primary-soft);
+  background: var(--ds-color-primary-50);
 }
 .trigger-tag {
   font-size: 10px;
@@ -484,11 +529,11 @@ onMounted(() => {
 }
 .tg-run {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .tg-resume {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .tg-replay {
   background: var(--c-indigo-50);
@@ -502,19 +547,19 @@ onMounted(() => {
 }
 .st-success {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .st-failed {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .st-running {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .st-stopped {
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .st-paused {
   background: var(--c-indigo-50);
@@ -522,13 +567,13 @@ onMounted(() => {
 }
 .st-draft {
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 
 /* 回放轨迹 */
 .replay-trace {
   margin-top: 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ds-border-subtle);
   padding-top: 12px;
 }
 .trace-head {
@@ -561,13 +606,13 @@ onMounted(() => {
 .progress-bar i {
   display: block;
   height: 100%;
-  background: var(--primary);
+  background: var(--ds-color-primary-500);
   transition: width 0.2s;
 }
 .progress-text {
   font-size: 11px;
-  color: var(--muted);
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-font-family-mono);
 }
 
 .event-timeline {
@@ -594,8 +639,8 @@ onMounted(() => {
   font-weight: 600;
 }
 .ev-seq {
-  color: var(--muted);
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-font-family-mono);
   width: 28px;
 }
 .ev-kind {
@@ -604,39 +649,39 @@ onMounted(() => {
   padding: 1px 6px;
   border-radius: 8px;
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   width: 88px;
   text-align: center;
 }
 .ev-node {
   font-size: 10px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   background: var(--c-surface-hover);
   padding: 1px 5px;
   border-radius: 6px;
 }
 .ev-time {
   margin-left: auto;
-  color: var(--muted);
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-font-family-mono);
   font-size: 10.5px;
 }
 
 .event.ev-node_start .ev-kind {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .event.ev-node_success .ev-kind {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .event.ev-node_failed .ev-kind {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .event.ev-node_skip .ev-kind {
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .event.ev-checkpoint .ev-kind {
   background: var(--c-indigo-50);
@@ -644,11 +689,11 @@ onMounted(() => {
 }
 .event.ev-intervene .ev-kind {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .event.ev-tool_call .ev-kind {
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
 }
 
 /* 检查点 */
@@ -658,9 +703,9 @@ onMounted(() => {
   gap: 8px;
 }
 .ckpt-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   padding: 10px 12px;
 }
 .ckpt-head {
@@ -671,7 +716,7 @@ onMounted(() => {
 }
 .ckpt-id {
   font-size: 11.5px;
-  color: var(--ink);
+  color: var(--ds-text-primary);
 }
 .ckpt-kind {
   font-size: 10px;
@@ -679,23 +724,23 @@ onMounted(() => {
   padding: 1px 6px;
   border-radius: 8px;
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .ckpt-kind.k-auto {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .ckpt-kind.k-manual {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .ckpt-kind.k-intervention {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .ckpt-time {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .ckpt-head .spacer {
   flex: 1;
@@ -711,12 +756,12 @@ onMounted(() => {
   background: var(--c-surface-hover);
   padding: 1px 5px;
   border-radius: 6px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
 }
 .ckpt-note {
   margin-top: 6px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 
 /* 人工介入 */
@@ -726,22 +771,22 @@ onMounted(() => {
   gap: 10px;
 }
 .iv-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   padding: 10px 12px;
 }
 .iv-card.iv-st-pending {
   border-left: 3px solid var(--c-violet);
 }
 .iv-card.iv-st-approved {
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--ds-color-success-500);
 }
 .iv-card.iv-st-rejected {
-  border-left: 3px solid var(--red);
+  border-left: 3px solid var(--ds-color-error-500);
 }
 .iv-card.iv-st-timeout {
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--ds-color-warning-500);
 }
 .iv-head {
   display: flex;
@@ -765,20 +810,20 @@ onMounted(() => {
 }
 .iv-status.iv-st-approved {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .iv-status.iv-st-rejected {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .iv-status.iv-st-timeout {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .iv-time {
   margin-left: auto;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .iv-reason {
   font-size: 12px;
@@ -792,7 +837,7 @@ onMounted(() => {
   background: var(--c-surface-hover);
   border-radius: 6px;
   padding: 8px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 11px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
@@ -812,7 +857,7 @@ onMounted(() => {
   display: flex;
   gap: 14px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-top: 6px;
 }
 </style>

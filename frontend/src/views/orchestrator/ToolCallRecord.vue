@@ -14,14 +14,18 @@
 <template>
   <div class="tool-calls">
     <div class="tc-head">
-      <span class="title">工具调用记录</span>
-      <span class="meta">{{ filtered.length }} 次</span>
+      <span class="title">{{ t('orchestrator.toolCall.title') }}</span>
+      <span class="meta">{{ t('orchestrator.toolCall.timesMeta', { n: filtered.length }) }}</span>
       <span class="spacer" />
-      <el-button size="small" :icon="Refresh" @click="load">刷新</el-button>
+      <el-button size="small" :icon="Refresh" @click="load">
+        {{ t('orchestrator.common.refresh') }}
+      </el-button>
     </div>
 
-    <div v-if="loading" class="tc-empty">加载中…</div>
-    <div v-else-if="filtered.length === 0" class="tc-empty">暂无工具调用记录</div>
+    <div v-if="loading" class="tc-empty">{{ t('orchestrator.common.loading') }}</div>
+    <div v-else-if="filtered.length === 0" class="tc-empty">
+      {{ t('orchestrator.toolCall.noData') }}
+    </div>
 
     <div v-else class="call-list">
       <div
@@ -33,27 +37,31 @@
         <div class="call-head" @click="toggle(c.id)">
           <span class="call-seq">#{{ c.seq }}</span>
           <span class="call-tool">{{ c.toolName }}</span>
-          <span class="call-node">节点 {{ c.nodeId.slice(0, 8) }}</span>
+          <span class="call-node">
+            {{ t('orchestrator.replay.evNode', { id: c.nodeId.slice(0, 8) }) }}
+          </span>
           <span class="call-status" :class="`st-${c.status.toLowerCase()}`">{{ c.status }}</span>
           <span class="call-dur">{{ c.durationMs }} ms</span>
           <span class="call-expand" :class="{ open: expanded.has(c.id) }">▾</span>
         </div>
         <div v-if="expanded.has(c.id)" class="call-body">
           <div class="call-section">
-            <div class="section-label">参数</div>
+            <div class="section-label">{{ t('orchestrator.common.params') }}</div>
             <pre class="json">{{ JSON.stringify(c.args, null, 2) }}</pre>
           </div>
           <div v-if="c.result" class="call-section">
-            <div class="section-label">结果</div>
+            <div class="section-label">{{ t('orchestrator.toolCall.result') }}</div>
             <pre class="json">{{ JSON.stringify(c.result, null, 2) }}</pre>
           </div>
           <div v-if="c.errorMessage" class="call-section err">
-            <div class="section-label">错误</div>
+            <div class="section-label">{{ t('orchestrator.common.error') }}</div>
             <div class="err-msg">{{ c.errorMessage }}</div>
           </div>
           <div class="call-time">
-            <span>开始：{{ c.startedAt }}</span>
-            <span v-if="c.finishedAt">结束：{{ c.finishedAt }}</span>
+            <span>{{ t('orchestrator.toolCall.started', { at: c.startedAt }) }}</span>
+            <span v-if="c.finishedAt">
+              {{ t('orchestrator.toolCall.finished', { at: c.finishedAt }) }}
+            </span>
           </div>
         </div>
       </div>
@@ -63,8 +71,11 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
 import { getToolCalls, type ToolCallRecord as ToolCall } from '@/api/orchestrator-viz'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   dagId: string
@@ -124,13 +135,13 @@ onMounted(load)
 }
 .tc-head .meta {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .tc-head .spacer {
   flex: 1;
 }
 .tc-empty {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
   font-size: 13px;
@@ -142,19 +153,19 @@ onMounted(load)
   gap: 8px;
 }
 .call-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   overflow: hidden;
 }
 .call-card.st-failed {
-  border-left: 3px solid var(--red);
+  border-left: 3px solid var(--ds-color-error-500);
 }
 .call-card.st-success {
-  border-left: 3px solid var(--green);
+  border-left: 3px solid var(--ds-color-success-500);
 }
 .call-card.st-timeout {
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--ds-color-warning-500);
 }
 .call-card.st-skipped {
   border-left: 3px solid var(--c-slate-300);
@@ -173,17 +184,17 @@ onMounted(load)
 }
 .call-seq {
   font-size: 11px;
-  color: var(--muted);
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-text-tertiary);
+  font-family: var(--ds-font-family-mono);
 }
 .call-tool {
   font-weight: 600;
-  color: var(--ink);
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-text-primary);
+  font-family: var(--ds-font-family-mono);
 }
 .call-node {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   background: var(--c-surface-alt);
   padding: 1px 6px;
   border-radius: 8px;
@@ -196,27 +207,27 @@ onMounted(load)
 }
 .call-status.st-success {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .call-status.st-failed {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .call-status.st-timeout {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .call-status.st-skipped {
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .call-dur {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-left: auto;
 }
 .call-expand {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   transition: transform 0.2s;
   font-size: 12px;
 }
@@ -226,7 +237,7 @@ onMounted(load)
 
 .call-body {
   padding: 10px 12px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ds-border-subtle);
   background: var(--c-surface-hover);
 }
 .call-section {
@@ -235,16 +246,16 @@ onMounted(load)
 .section-label {
   font-size: 11px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-bottom: 4px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 .json {
-  background: #fff;
+  background: var(--ds-bg-surface);
   border-radius: 6px;
   padding: 8px 10px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 11px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
@@ -255,7 +266,7 @@ onMounted(load)
 }
 .err-msg {
   font-size: 12px;
-  color: var(--red);
+  color: var(--ds-color-error-500);
   background: var(--c-red-50);
   padding: 6px 10px;
   border-radius: 6px;
@@ -265,7 +276,7 @@ onMounted(load)
   display: flex;
   gap: 16px;
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-top: 4px;
 }
 </style>

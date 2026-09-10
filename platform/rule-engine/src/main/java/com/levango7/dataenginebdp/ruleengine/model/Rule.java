@@ -47,6 +47,15 @@ public class Rule {
     /** 是否启用 */
     private Boolean enabled;
 
+    /**
+     * 租户 ID（多租户隔离）。
+     *
+     * <p>由 {@code QualityRuleController.requireTenant()} 在创建时写入，
+     * 查询/更新/删除时按此字段过滤，避免跨租户数据泄漏。
+     * 旧数据 tenantId 为 null，按租户查询时自然排除。</p>
+     */
+    private String tenantId;
+
     /** 创建时间 */
     private LocalDateTime createdAt;
 

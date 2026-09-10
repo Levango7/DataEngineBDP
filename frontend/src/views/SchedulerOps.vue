@@ -5,9 +5,9 @@
     <PageCard>
       <!-- 顶部操作栏 -->
       <Toolbar
+        v-model:search-value="dagId"
         :aria-label="t('scheduler.title')"
         :search-placeholder="t('scheduler.dagIdPlaceholder')"
-        v-model:search-value="dagId"
         :search-aria-label="t('scheduler.dagIdPlaceholder')"
         :show-refresh="true"
         :refresh-aria-label="t('common.refresh')"

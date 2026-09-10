@@ -525,7 +525,7 @@ function tablesOfSource(source: string): string[] {
   overflow: hidden;
   text-align: right;
   padding: 8px 6px;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 13px;
   color: var(--ds-text-muted, var(--ds-text-secondary));
   line-height: 1.6;
@@ -542,7 +542,7 @@ function tablesOfSource(source: string): string[] {
   outline: none;
   resize: none;
   padding: 8px 12px;
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 13px;
   line-height: 1.6;
   background: #fafafa;
@@ -565,7 +565,7 @@ function tablesOfSource(source: string): string[] {
   background: #f0f0f0;
   padding: 1px 4px;
   border-radius: 2px;
-  font-family: monospace;
+  font-family: var(--ds-font-family-mono);
   color: #e6a23c;
 }
 

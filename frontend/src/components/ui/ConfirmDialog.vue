@@ -12,11 +12,7 @@
     <p class="confirm-dialog__message">{{ message }}</p>
     <template #footer>
       <el-button @click="onCancel">{{ cancelText || 'Cancel' }}</el-button>
-      <el-button
-        :type="confirmType"
-        :loading="loading"
-        @click="onConfirm"
-      >
+      <el-button :type="confirmType" :loading="loading" @click="onConfirm">
         {{ confirmText || 'Confirm' }}
       </el-button>
     </template>

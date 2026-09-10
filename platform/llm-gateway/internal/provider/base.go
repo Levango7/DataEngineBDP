@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,29 @@ import (
 
 // httpClient 默认 HTTP 客户端，带 30s 超时。
 var httpClient = &http.Client{Timeout: 30 * time.Second}
+
+// maxResponseBody 是读取上游 HTTP 响应体的最大字节数（50MB）。
+// LLM 响应可能较大（长文本补全 / 多模态），故上限设为 50MB。
+// 超过此上限的响应体将返回 ErrResponseBodyTooLarge，防止内存耗尽 DoS。
+const maxResponseBody = 50 << 20
+
+// ErrResponseBodyTooLarge 在响应体超过 maxResponseBody 时返回。
+var ErrResponseBodyTooLarge = errors.New("response body too large")
+
+// readLimitedBody 读取 r 的内容，最多 maxBytes 字节。
+// 若实际长度超过 maxBytes 则返回 ErrResponseBodyTooLarge。
+// 该函数用于替代裸 io.ReadAll，避免无限制读取导致的内存耗尽 DoS。
+func readLimitedBody(r io.Reader, maxBytes int) ([]byte, error) {
+	// 多读 1 字节以判断是否超限：若读到 maxBytes+1 字节则说明超限。
+	raw, err := io.ReadAll(io.LimitReader(r, int64(maxBytes)+1))
+	if err != nil {
+		return nil, err
+	}
+	if len(raw) > maxBytes {
+		return nil, fmt.Errorf("%w: limit=%d bytes", ErrResponseBodyTooLarge, maxBytes)
+	}
+	return raw, nil
+}
 
 // baseConfig 各适配器共享的基础配置。
 type baseConfig struct {
@@ -80,7 +104,10 @@ func (b *baseConfig) doJSON(ctx context.Context, method, path string, body, out 
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		raw, _ := io.ReadAll(resp.Body)
+		raw, err := readLimitedBody(resp.Body, maxResponseBody)
+		if err != nil {
+			return fmt.Errorf("%w: upstream status %d, body read failed: %v", ErrUpstreamUnavailable, resp.StatusCode, err)
+		}
 		return fmt.Errorf("%w: upstream status %d, body=%s", ErrUpstreamUnavailable, resp.StatusCode, string(raw))
 	}
 

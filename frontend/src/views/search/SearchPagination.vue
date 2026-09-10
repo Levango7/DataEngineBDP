@@ -18,15 +18,23 @@
     <!-- 模式切换 + 总数 -->
     <div class="pagination-header">
       <div class="total-info">
-        共
+        {{ t('searchPortal.search.pagination.totalPrefix') }}
         <span class="total-num">{{ total }}</span>
-        条
-        <template v-if="mode === 'page'">，当前第 {{ page }} / {{ totalPages }} 页</template>
-        <template v-else>，已加载 {{ loadedCount }} 条</template>
+        {{ t('searchPortal.search.pagination.totalSuffix') }}
+        <template v-if="mode === 'page'">
+          {{ t('searchPortal.search.pagination.pageFmt', { page: page, total: totalPages }) }}
+        </template>
+        <template v-else>
+          {{ t('searchPortal.search.pagination.loadedFmt', { n: loadedCount }) }}
+        </template>
       </div>
       <el-radio-group v-model="mode" size="small" @change="onModeChangeRaw">
-        <el-radio-button value="page">分页</el-radio-button>
-        <el-radio-button value="infinite">无限滚动</el-radio-button>
+        <el-radio-button value="page">
+          {{ t('searchPortal.search.pagination.modePage') }}
+        </el-radio-button>
+        <el-radio-button value="infinite">
+          {{ t('searchPortal.search.pagination.modeInfinite') }}
+        </el-radio-button>
       </el-radio-group>
     </div>
 
@@ -48,13 +56,13 @@
     <div v-else class="infinite-mode">
       <div v-if="loadingMore" class="loading-more">
         <el-icon class="is-loading"><Loading /></el-icon>
-        <span>加载中…</span>
+        <span>{{ t('searchPortal.search.pagination.loading') }}</span>
       </div>
       <el-button v-else-if="hasMore" type="primary" plain :icon="ArrowDown" @click="emitLoadMore">
-        加载更多
+        {{ t('searchPortal.search.pagination.loadMore') }}
       </el-button>
       <div v-else class="no-more">
-        <el-divider>已加载全部</el-divider>
+        <el-divider>{{ t('searchPortal.search.pagination.allLoaded') }}</el-divider>
       </div>
     </div>
   </div>
@@ -62,6 +70,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   ElPagination,
   ElRadioGroup,
@@ -72,6 +81,8 @@ import {
 } from 'element-plus'
 import { Loading, ArrowDown } from '@element-plus/icons-vue'
 import type { PagingMode } from '@/types/search'
+
+const { t } = useI18n()
 
 /* ------------------------------ Props / Emits ------------------------------ */
 interface Props {

@@ -43,7 +43,12 @@
         <el-table-column prop="name" :label="t('jobmgmt.cols.name')" min-width="180" />
         <el-table-column :label="t('jobmgmt.cols.type')" width="100">
           <template #default="{ row }">
-            <StatusTag :status="row.type" :label="typeLabel(row.type)" effect="plain" size="small" />
+            <StatusTag
+              :status="row.type"
+              :label="typeLabel(row.type)"
+              effect="plain"
+              size="small"
+            />
           </template>
         </el-table-column>
         <el-table-column :label="t('jobmgmt.cols.status')" width="120">
@@ -174,7 +179,7 @@
             :rows="10"
             :placeholder="t('jobmgmt.submitModal.codePlaceholder')"
             :aria-label="t('jobmgmt.submitModal.code')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
       </el-form>
@@ -554,7 +559,7 @@ onUnmounted(() => {
 }
 .log-content {
   color: #cbd5e1;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;

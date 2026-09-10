@@ -15,7 +15,7 @@
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ error.message }}，
             <a href="javascript:void(0)" @click="reload">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
@@ -722,7 +722,7 @@ onUnmounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
@@ -772,20 +772,20 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   text-align: center;
 }
 .comp-card.healthy {
-  border-color: #bbf7d0;
-  background: #ecfdf5;
+  border-color: var(--ds-color-success-200);
+  background: var(--ds-color-success-50);
 }
 .comp-card.warning {
-  border-color: #fbbf24;
-  background: #fffbeb;
+  border-color: var(--ds-color-warning-400);
+  background: var(--ds-color-warning-50);
 }
 .comp-card.error {
   border-color: var(--ds-color-error-600);
-  background: #fef2f2;
+  background: var(--ds-color-error-50);
 }
 .comp-name {
   font-size: 14px;

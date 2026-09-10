@@ -1,0 +1,53 @@
+{
+  "register": {
+    "title": "Create New Account",
+    "card": "Registration Card",
+    "steps": {
+      "code": "Enter Invite Code",
+      "info": "Fill Information",
+      "review": "Await Approval"
+    },
+    "step1": {
+      "aria": "Enter Invite Code",
+      "heading": "Register with Invite Code",
+      "sub": "The invite code is sent by your enterprise admin via email/IM, 8 uppercase letters/digits",
+      "codePlaceholder": "Enter invite code (e.g. KX7M2HQ9)",
+      "next": "Next",
+      "noCode": "No invite code?",
+      "contact": "Contact your enterprise admin"
+    },
+    "step2": {
+      "aria": "Fill Registration Information",
+      "heading": "Fill Registration Information",
+      "tenant": "Tenant",
+      "inviteRole": "Invite Role",
+      "fieldUsername": "Username", "usernameHint": "e.g. zhangsan",
+      "fieldFullName": "Full Name", "fullNameHint": "e.g. John Smith",
+      "fieldEmail": "Email", "emailHint": "e.g. zhangsan@example.com",
+      "fieldDepartment": "Department", "departmentHint": "e.g. Data Science",
+      "fieldEmployeeId": "Employee ID", "employeeIdHint": "e.g. E10023",
+      "prev": "Previous", "submit": "Submit Registration"
+    },
+    "step3": {
+      "aria": "Awaiting Approval",
+      "heading": "Registration Submitted",
+      "sub": "Your tenant admin will review the application within 1-2 business days",
+      "labelUsername": "Applied account: ",
+      "labelTenant": "Tenant: ",
+      "labelTime": "Submitted at: ",
+      "footer": "Once approved, you will receive an email. Use your username/email and initial password to sign in.",
+      "backToLogin": "← Back to Sign In"
+    },
+    "rules": {
+      "usernameRequired": "Username is required", "usernamePattern": "3-31 chars, lowercase letters/digits/underscore",
+      "fullNameRequired": "Full name is required", "emailRequired": "Email is required", "emailInvalid": "Email format is invalid",
+      "departmentRequired": "Department is required", "employeeIdRequired": "Employee ID is required"
+    },
+    "labels": {
+      "rolePlatformAdmin": "Platform Admin", "roleTenantAdmin": "Tenant Admin", "roleUser": "User"
+    },
+    "messages": {
+      "codeRequired": "Please enter invite code", "codeInvalid": "Invalid invite code", "submitFailed": "Registration failed"
+    }
+  }
+}

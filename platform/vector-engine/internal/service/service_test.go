@@ -1,7 +1,6 @@
 package service
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -22,7 +21,7 @@ func newTestService(t *testing.T) *VectorService {
 func setupCollection(t *testing.T, name string, dim int) *VectorService {
 	t.Helper()
 	svc := newTestService(t)
-	require.NoError(t, svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	require.NoError(t, svc.CreateCollection(ctxFor("test"), store.CreateCollectionRequest{
 		Name: name, Dimension: dim, MetricType: store.MetricL2, IndexType: store.IndexFLAT,
 	}))
 	return svc
@@ -32,7 +31,7 @@ func setupCollection(t *testing.T, name string, dim int) *VectorService {
 
 func TestCreateCollection_Success(t *testing.T) {
 	svc := newTestService(t)
-	err := svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	err := svc.CreateCollection(ctxFor("test"), store.CreateCollectionRequest{
 		Name: "col", Dimension: 128, MetricType: store.MetricIP, IndexType: store.IndexHNSW,
 	})
 	assert.NoError(t, err)
@@ -40,7 +39,7 @@ func TestCreateCollection_Success(t *testing.T) {
 
 func TestCreateCollection_InvalidMetric(t *testing.T) {
 	svc := newTestService(t)
-	err := svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	err := svc.CreateCollection(ctxFor("test"), store.CreateCollectionRequest{
 		Name: "col", Dimension: 4, MetricType: "BAD", IndexType: store.IndexFLAT,
 	})
 	assert.ErrorIs(t, err, store.ErrInvalidMetricType)
@@ -48,7 +47,7 @@ func TestCreateCollection_InvalidMetric(t *testing.T) {
 
 func TestCreateCollection_EmptyName(t *testing.T) {
 	svc := newTestService(t)
-	err := svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	err := svc.CreateCollection(ctxFor("test"), store.CreateCollectionRequest{
 		Name: "", Dimension: 4, MetricType: store.MetricL2, IndexType: store.IndexFLAT,
 	})
 	assert.Error(t, err)
@@ -58,7 +57,7 @@ func TestCreateCollection_EmptyName(t *testing.T) {
 
 func TestInsert_Success(t *testing.T) {
 	svc := setupCollection(t, "col", 3)
-	err := svc.Insert(context.Background(), store.InsertRequest{
+	err := svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{1, 2, 3}},
@@ -69,7 +68,7 @@ func TestInsert_Success(t *testing.T) {
 
 func TestInsert_MissingID(t *testing.T) {
 	svc := setupCollection(t, "col", 3)
-	err := svc.Insert(context.Background(), store.InsertRequest{
+	err := svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors:        []store.Vector{{ID: "", Vector: []float32{1, 2, 3}}},
 	})
@@ -78,7 +77,7 @@ func TestInsert_MissingID(t *testing.T) {
 
 func TestInsert_EmptyVector(t *testing.T) {
 	svc := setupCollection(t, "col", 3)
-	err := svc.Insert(context.Background(), store.InsertRequest{
+	err := svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors:        []store.Vector{{ID: "v1", Vector: []float32{}}},
 	})
@@ -89,7 +88,7 @@ func TestInsert_EmptyVector(t *testing.T) {
 
 func TestSearch_Success(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{0, 0}},
@@ -97,7 +96,7 @@ func TestSearch_Success(t *testing.T) {
 		},
 	}))
 
-	results, err := svc.Search(context.Background(), store.SearchRequest{
+	results, err := svc.Search(ctxFor("test"), store.SearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{1, 1},
 		TopK:           2,
@@ -109,7 +108,7 @@ func TestSearch_Success(t *testing.T) {
 
 func TestSearch_TopKNormalization(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{0, 0}},
@@ -117,7 +116,7 @@ func TestSearch_TopKNormalization(t *testing.T) {
 	}))
 
 	// topK=0 应归一化为默认值 10
-	results, err := svc.Search(context.Background(), store.SearchRequest{
+	results, err := svc.Search(ctxFor("test"), store.SearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{0, 0},
 		TopK:           0,
@@ -126,7 +125,7 @@ func TestSearch_TopKNormalization(t *testing.T) {
 	assert.Len(t, results, 1)
 
 	// topK 超过上限应截断为 maxTopK
-	results, err = svc.Search(context.Background(), store.SearchRequest{
+	results, err = svc.Search(ctxFor("test"), store.SearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{0, 0},
 		TopK:           99999,
@@ -137,7 +136,7 @@ func TestSearch_TopKNormalization(t *testing.T) {
 
 func TestSearch_NegativeTopK(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	_, err := svc.Search(context.Background(), store.SearchRequest{
+	_, err := svc.Search(ctxFor("test"), store.SearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{0, 0},
 		TopK:           -1,
@@ -147,7 +146,7 @@ func TestSearch_NegativeTopK(t *testing.T) {
 
 func TestSearch_EmptyVector(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	_, err := svc.Search(context.Background(), store.SearchRequest{
+	_, err := svc.Search(ctxFor("test"), store.SearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{},
 		TopK:           10,
@@ -159,7 +158,7 @@ func TestSearch_EmptyVector(t *testing.T) {
 
 func TestHybridSearch_Success(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{0, 0}, Metadata: map[string]interface{}{"label": "a"}},
@@ -167,7 +166,7 @@ func TestHybridSearch_Success(t *testing.T) {
 		},
 	}))
 
-	results, err := svc.HybridSearch(context.Background(), store.HybridSearchRequest{
+	results, err := svc.HybridSearch(ctxFor("test"), store.HybridSearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{0, 0},
 		TopK:           10,
@@ -180,7 +179,7 @@ func TestHybridSearch_Success(t *testing.T) {
 
 func TestHybridSearch_MissingFilter(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	_, err := svc.HybridSearch(context.Background(), store.HybridSearchRequest{
+	_, err := svc.HybridSearch(ctxFor("test"), store.HybridSearchRequest{
 		CollectionName: "col",
 		Vector:         []float32{0, 0},
 		TopK:           10,
@@ -193,18 +192,18 @@ func TestHybridSearch_MissingFilter(t *testing.T) {
 
 func TestDelete_Success(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors:        []store.Vector{{ID: "v1", Vector: []float32{1, 1}}},
 	}))
 
-	err := svc.Delete(context.Background(), "col", []string{"v1"})
+	err := svc.Delete(ctxFor("test"), "col", []string{"v1"})
 	assert.NoError(t, err)
 }
 
 func TestDelete_EmptyIDs(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	err := svc.Delete(context.Background(), "col", []string{})
+	err := svc.Delete(ctxFor("test"), "col", []string{})
 	assert.Error(t, err)
 }
 
@@ -212,12 +211,12 @@ func TestDelete_EmptyIDs(t *testing.T) {
 
 func TestGetStats_Success(t *testing.T) {
 	svc := setupCollection(t, "col", 64)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(ctxFor("test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors:        []store.Vector{{ID: "v1", Vector: make([]float32, 64)}},
 	}))
 
-	stats, err := svc.GetStats(context.Background(), "col")
+	stats, err := svc.GetStats(ctxFor("test"), "col")
 	require.NoError(t, err)
 	assert.Equal(t, "col", stats.Name)
 	assert.Equal(t, 64, stats.Dimension)
@@ -226,7 +225,7 @@ func TestGetStats_Success(t *testing.T) {
 
 func TestGetStats_EmptyName(t *testing.T) {
 	svc := newTestService(t)
-	_, err := svc.GetStats(context.Background(), "")
+	_, err := svc.GetStats(ctxFor("test"), "")
 	assert.Error(t, err)
 }
 
@@ -234,13 +233,13 @@ func TestGetStats_EmptyName(t *testing.T) {
 
 func TestDropCollection_Success(t *testing.T) {
 	svc := setupCollection(t, "col", 2)
-	err := svc.DropCollection(context.Background(), "col")
+	err := svc.DropCollection(ctxFor("test"), "col")
 	assert.NoError(t, err)
 }
 
 func TestDropCollection_EmptyName(t *testing.T) {
 	svc := newTestService(t)
-	err := svc.DropCollection(context.Background(), "")
+	err := svc.DropCollection(ctxFor("test"), "")
 	assert.Error(t, err)
 }
 
@@ -250,14 +249,14 @@ func TestErrorMapping(t *testing.T) {
 	svc := newTestService(t)
 
 	// 集合不存在
-	_, err := svc.GetStats(context.Background(), "nope")
+	_, err := svc.GetStats(ctxFor("test"), "nope")
 	assert.True(t, errors.Is(err, store.ErrCollectionNotFound))
 
 	// 集合已存在
-	require.NoError(t, svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	require.NoError(t, svc.CreateCollection(ctxFor("test"), store.CreateCollectionRequest{
 		Name: "col", Dimension: 2, MetricType: store.MetricL2, IndexType: store.IndexFLAT,
 	}))
-	err = svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	err = svc.CreateCollection(ctxFor("test"), store.CreateCollectionRequest{
 		Name: "col", Dimension: 2, MetricType: store.MetricL2, IndexType: store.IndexFLAT,
 	})
 	assert.True(t, errors.Is(err, store.ErrCollectionAlreadyExists))

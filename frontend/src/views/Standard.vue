@@ -15,30 +15,30 @@
       </template>
     </Toolbar>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="error" style="padding: 16px; color: var(--red)">
+      <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
+      <div v-else-if="error" class="state-tip state-error">
         {{ error.message }}，
         <a href="javascript:void(0)" @click="loadStandards">{{ t('common.retry') }}</a>
       </div>
-      <table v-else>
-        <tr>
-          <th>{{ t('standard.cols.item') }}</th>
-          <th>{{ t('standard.cols.type') }}</th>
-          <th>{{ t('standard.cols.rule') }}</th>
-          <th>{{ t('standard.cols.refAssets') }}</th>
-        </tr>
-        <tr v-for="s in standards" :key="s.id">
-          <td>{{ s.name }}</td>
-          <td>{{ typeLabel(s.type) }}</td>
-          <td>{{ s.rule }}</td>
-          <td>{{ s.refAssetCount }}</td>
-        </tr>
-        <tr v-if="standards.length === 0">
-          <td colspan="4" style="text-align: center; color: var(--muted)">
-            {{ t('standard.empty') }}
-          </td>
-        </tr>
-      </table>
+      <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
+      <el-table
+        v-else
+        :data="standards"
+        stripe
+        border
+        role="table"
+        :aria-label="t('standard.title')"
+        :empty-text="t('standard.empty')"
+      >
+        <el-table-column prop="name" :label="t('standard.cols.item')" min-width="160" />
+        <el-table-column :label="t('standard.cols.type')" width="120">
+          <template #default="{ row }">
+            {{ typeLabel(row.type) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="rule" :label="t('standard.cols.rule')" min-width="180" />
+        <el-table-column prop="refAssetCount" :label="t('standard.cols.refAssets')" width="120" />
+      </el-table>
     </div>
 
     <Modal
@@ -47,23 +47,21 @@
       @close="modalVisible = false"
     >
       <label>{{ t('standard.createModal.item') }}</label>
-      <input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
+      <el-input v-model="form.name" :placeholder="t('standard.createModal.itemPlaceholder')" />
       <label>{{ t('standard.createModal.type') }}</label>
-      <select v-model="form.type">
-        <option value="primary_key">{{ t('standard.types.primary_key') }}</option>
-        <option value="enum">{{ t('standard.types.enum') }}</option>
-        <option value="dict">{{ t('standard.types.dict') }}</option>
-        <option value="amount">{{ t('standard.types.amount') }}</option>
-      </select>
+      <el-select v-model="form.type" style="width: 100%">
+        <el-option :label="t('standard.types.primary_key')" value="primary_key" />
+        <el-option :label="t('standard.types.enum')" value="enum" />
+        <el-option :label="t('standard.types.dict')" value="dict" />
+        <el-option :label="t('standard.types.amount')" value="amount" />
+      </el-select>
       <label>{{ t('standard.createModal.rule') }}</label>
-      <input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
+      <el-input v-model="form.rule" :placeholder="t('standard.createModal.rulePlaceholder')" />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">
-          {{
-            submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish')
-          }}
-        </button>
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+          {{ submitting ? t('standard.createModal.publishing') : t('standard.createModal.publish') }}
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -148,3 +146,16 @@ onMounted(() => {
   void loadStandards()
 })
 </script>
+
+<style scoped>
+/* 状态提示：使用 design tokens 替代硬编码颜色 */
+.state-tip {
+  padding: var(--ds-spacing-4);
+}
+.state-loading {
+  color: var(--ds-text-tertiary);
+}
+.state-error {
+  color: var(--ds-color-error-500);
+}
+</style>

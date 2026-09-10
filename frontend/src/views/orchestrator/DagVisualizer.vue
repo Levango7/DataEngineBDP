@@ -15,16 +15,16 @@
 -->
 <template>
   <div class="dag-viz">
-    <h1>编排 DAG 可视化</h1>
+    <h1>{{ t('orchestrator.dag.title') }}</h1>
     <div class="sub">
-      可视化 Agent 编排执行图，支持节点状态着色、思考链展示、工具调用记录、人工介入与断点续跑回放。
+      {{ t('orchestrator.dag.subtitle') }}
     </div>
 
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <el-select
         v-model="selectedDagId"
-        placeholder="选择 DAG"
+        :placeholder="t('orchestrator.dag.selectDag')"
         filterable
         style="width: 280px"
         @change="onSelectDag"
@@ -44,7 +44,7 @@
         :loading="running"
         @click="onRun"
       >
-        运行
+        {{ t('orchestrator.dag.run') }}
       </el-button>
       <el-button
         type="warning"
@@ -52,19 +52,20 @@
         :disabled="!selectedDagId || !running"
         @click="onStop"
       >
-        停止
+        {{ t('orchestrator.dag.stop') }}
       </el-button>
-      <el-button :icon="Refresh" @click="reloadAll">刷新</el-button>
+      <el-button :icon="Refresh" @click="reloadAll">
+        {{ t('orchestrator.common.refresh') }}
+      </el-button>
 
-      <label class="auto-poll">
-        <input v-model="autoPoll" type="checkbox" />
-        自动刷新（2s）
-      </label>
+      <el-checkbox v-model="autoPoll" class="auto-poll">
+        {{ t('orchestrator.dag.autoRefresh') }}
+      </el-checkbox>
 
       <span class="spacer" />
 
       <span v-if="graph" class="graph-status" :class="statusClass(graph.status)">
-        图状态：{{ graph.status }}
+        {{ t('orchestrator.dag.graphStatus', { status: graph.status }) }}
       </span>
     </div>
 
@@ -74,7 +75,14 @@
       <div class="canvas-wrap card">
         <div class="canvas-head">
           <h3>{{ graph.name || graph.id }}</h3>
-          <span class="meta">{{ graph.nodes.length }} 节点 · {{ graph.edges.length }} 边</span>
+          <span class="meta">
+            {{
+              t('orchestrator.dag.nodeEdgeMeta', {
+                nodes: graph.nodes.length,
+                edges: graph.edges.length
+              })
+            }}
+          </span>
         </div>
         <div ref="canvasRef" class="canvas">
           <svg :width="svgWidth" :height="svgHeight" class="dag-svg">
@@ -164,14 +172,14 @@
       <div class="detail-wrap card">
         <div class="tabbar">
           <div
-            v-for="t in tabs"
-            :key="t.key"
+            v-for="tab in tabs"
+            :key="tab.key"
             class="t"
-            :class="{ on: activeTab === t.key }"
-            @click="activeTab = t.key"
+            :class="{ on: activeTab === tab.key }"
+            @click="activeTab = tab.key"
           >
-            {{ t.label }}
-            <span v-if="t.badge" class="tab-badge">{{ t.badge }}</span>
+            {{ tab.label }}
+            <span v-if="tab.badge" class="tab-badge">{{ tab.badge }}</span>
           </div>
         </div>
 
@@ -180,55 +188,57 @@
           <div v-if="activeTab === 'node'" class="node-detail">
             <template v-if="selectedNode">
               <div class="kv">
-                <span>节点 ID</span>
+                <span>{{ t('orchestrator.dag.detail.nodeId') }}</span>
                 <b>{{ selectedNode.id }}</b>
               </div>
               <div class="kv">
-                <span>名称</span>
+                <span>{{ t('orchestrator.dag.detail.name') }}</span>
                 <b>{{ selectedNode.name }}</b>
               </div>
               <div class="kv">
-                <span>任务类型</span>
+                <span>{{ t('orchestrator.dag.detail.taskType') }}</span>
                 <b>{{ selectedNode.taskType }}</b>
               </div>
               <div class="kv">
-                <span>状态</span>
+                <span>{{ t('orchestrator.dag.detail.status') }}</span>
                 <b :class="`status-${nodeClass(selectedNode)}`">{{ selectedNode.status }}</b>
               </div>
               <div class="kv">
-                <span>命令</span>
+                <span>{{ t('orchestrator.dag.detail.command') }}</span>
                 <b class="mono">{{ selectedNode.command || '--' }}</b>
               </div>
               <div class="kv">
-                <span>超时(秒)</span>
-                <b>{{ selectedNode.timeoutSeconds || '不限' }}</b>
+                <span>{{ t('orchestrator.dag.detail.timeout') }}</span>
+                <b>
+                  {{ selectedNode.timeoutSeconds || t('orchestrator.dag.detail.timeoutUnlimited') }}
+                </b>
               </div>
               <div class="kv">
-                <span>最大重试</span>
+                <span>{{ t('orchestrator.dag.detail.maxRetry') }}</span>
                 <b>{{ selectedNode.maxRetries }}</b>
               </div>
               <div class="kv">
-                <span>开始时间</span>
+                <span>{{ t('orchestrator.dag.detail.startTime') }}</span>
                 <b>{{ selectedNode.startedAt || '--' }}</b>
               </div>
               <div class="kv">
-                <span>结束时间</span>
+                <span>{{ t('orchestrator.dag.detail.endTime') }}</span>
                 <b>{{ selectedNode.finishedAt || '--' }}</b>
               </div>
               <div v-if="selectedNode.errorMessage" class="kv err">
-                <span>错误</span>
+                <span>{{ t('orchestrator.dag.detail.error') }}</span>
                 <b>{{ selectedNode.errorMessage }}</b>
               </div>
               <div v-if="selectedNode.params" class="params-block">
-                <div class="section-title">参数</div>
+                <div class="section-title">{{ t('orchestrator.common.params') }}</div>
                 <pre class="json">{{ JSON.stringify(selectedNode.params, null, 2) }}</pre>
               </div>
               <div v-if="nodeResult" class="params-block">
-                <div class="section-title">输出</div>
+                <div class="section-title">{{ t('orchestrator.common.output') }}</div>
                 <pre class="json">{{ JSON.stringify(nodeResult.output, null, 2) }}</pre>
               </div>
             </template>
-            <div v-else class="empty">点击左侧节点查看详情</div>
+            <div v-else class="empty">{{ t('orchestrator.dag.detail.empty') }}</div>
           </div>
 
           <!-- 思考链 -->
@@ -254,13 +264,14 @@
     <!-- 空态 -->
     <div v-else class="empty-state card">
       <div class="empty-icon">∅</div>
-      <div class="empty-text">未选择 DAG，请从顶部下拉选择或先提交一个 DAG</div>
+      <div class="empty-text">{{ t('orchestrator.dag.noDag') }}</div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { VideoPlay, VideoPause, Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { useApi } from '@/composables/useApi'
@@ -278,6 +289,8 @@ import {
 import ThoughtChain from './ThoughtChain.vue'
 import ToolCallRecord from './ToolCallRecord.vue'
 import ExecutionReplay from './ExecutionReplay.vue'
+
+const { t } = useI18n()
 
 /* ------------------------------ 状态 ------------------------------ */
 
@@ -439,14 +452,14 @@ const svgHeight = computed(() => {
 
 /* ------------------------------ 状态着色 ------------------------------ */
 
-const statusLegend = [
-  { key: 'PENDING', label: '待执行' },
-  { key: 'RUNNING', label: '运行中' },
-  { key: 'SUCCESS', label: '成功' },
-  { key: 'FAILED', label: '失败' },
-  { key: 'SKIPPED', label: '跳过' },
-  { key: 'WAITING_HUMAN', label: '待人工' }
-]
+const statusLegend = computed(() => [
+  { key: 'PENDING', label: t('orchestrator.dag.status.PENDING') },
+  { key: 'RUNNING', label: t('orchestrator.dag.status.RUNNING') },
+  { key: 'SUCCESS', label: t('orchestrator.dag.status.SUCCESS') },
+  { key: 'FAILED', label: t('orchestrator.dag.status.FAILED') },
+  { key: 'SKIPPED', label: t('orchestrator.dag.status.SKIPPED') },
+  { key: 'WAITING_HUMAN', label: t('orchestrator.dag.status.WAITING_HUMAN') }
+])
 
 function nodeClass(n: DagNodeDto): string {
   return (n.status ?? 'PENDING').toLowerCase()
@@ -468,10 +481,10 @@ function statusClass(s?: string): string {
 /* ------------------------------ Tab 徽标 ------------------------------ */
 
 const tabs = computed(() => [
-  { key: 'node' as const, label: '节点详情', badge: 0 },
-  { key: 'thought' as const, label: '思考链', badge: 0 },
-  { key: 'tool' as const, label: '工具调用', badge: 0 },
-  { key: 'replay' as const, label: '回放', badge: 0 }
+  { key: 'node' as const, label: t('orchestrator.dag.tabs.node'), badge: 0 },
+  { key: 'thought' as const, label: t('orchestrator.dag.tabs.thought'), badge: 0 },
+  { key: 'tool' as const, label: t('orchestrator.dag.tabs.tool'), badge: 0 },
+  { key: 'replay' as const, label: t('orchestrator.dag.tabs.replay'), badge: 0 }
 ])
 
 /* ------------------------------ 选中节点结果 ------------------------------ */
@@ -512,7 +525,7 @@ async function onRun() {
     running.value = true
     results.value = await runDag(selectedDagId.value)
     await loadGraph()
-    ElMessage.success('DAG 执行完成')
+    ElMessage.success(t('orchestrator.dag.messages.completed'))
   } catch {
     // 错误已由拦截器提示
   } finally {
@@ -524,7 +537,7 @@ async function onStop() {
   if (!selectedDagId.value) return
   try {
     await stopDag(selectedDagId.value)
-    ElMessage.warning('已请求停止')
+    ElMessage.warning(t('orchestrator.dag.messages.stopRequested'))
     await loadGraph()
   } catch {
     // ignore
@@ -579,7 +592,7 @@ onBeforeUnmount(() => {
 }
 .auto-poll {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -596,23 +609,23 @@ onBeforeUnmount(() => {
 }
 .gs-draft {
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .gs-running {
   background: var(--c-amber-50);
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .gs-success {
   background: var(--c-green-50);
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .gs-failed {
   background: var(--c-red-50);
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .gs-stopped {
   background: var(--c-surface-alt);
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .gs-paused {
   background: var(--c-indigo-50);
@@ -659,7 +672,7 @@ onBeforeUnmount(() => {
 }
 .node-rect {
   fill: #fff;
-  stroke: var(--line);
+  stroke: var(--ds-border-subtle);
   stroke-width: 1.5;
   transition: all 0.2s;
 }
@@ -670,16 +683,16 @@ onBeforeUnmount(() => {
 .node-name {
   font-size: 12px;
   font-weight: 600;
-  fill: var(--ink);
+  fill: var(--ds-text-primary);
   pointer-events: none;
 }
 .node-type {
   font-size: 10px;
-  fill: var(--muted);
+  fill: var(--ds-text-tertiary);
   pointer-events: none;
 }
 .node-dot {
-  fill: var(--muted);
+  fill: var(--ds-text-tertiary);
 }
 
 /* 状态着色 */
@@ -691,28 +704,28 @@ onBeforeUnmount(() => {
 }
 
 .node-g.running .node-rect {
-  stroke: var(--amber);
+  stroke: var(--ds-color-warning-500);
   fill: var(--c-amber-50);
 }
 .node-g.running .node-dot {
-  fill: var(--amber);
+  fill: var(--ds-color-warning-500);
   animation: pulse 1.2s infinite;
 }
 
 .node-g.success .node-rect {
-  stroke: var(--green);
+  stroke: var(--ds-color-success-500);
   fill: var(--c-green-50);
 }
 .node-g.success .node-dot {
-  fill: var(--green);
+  fill: var(--ds-color-success-500);
 }
 
 .node-g.failed .node-rect {
-  stroke: var(--red);
+  stroke: var(--ds-color-error-500);
   fill: var(--c-red-50);
 }
 .node-g.failed .node-dot {
-  fill: var(--red);
+  fill: var(--ds-color-error-500);
 }
 
 .node-g.skipped .node-rect {
@@ -720,7 +733,7 @@ onBeforeUnmount(() => {
   fill: var(--c-surface-alt);
 }
 .node-g.skipped .node-name {
-  fill: var(--muted);
+  fill: var(--ds-text-tertiary);
 }
 .node-g.skipped .node-dot {
   fill: var(--c-slate-300);
@@ -752,21 +765,21 @@ onBeforeUnmount(() => {
   stroke-width: 1.5;
 }
 .edge.active {
-  stroke: var(--amber);
+  stroke: var(--ds-color-warning-500);
   stroke-width: 2;
 }
 .edge.failed {
-  stroke: var(--red);
+  stroke: var(--ds-color-error-500);
   stroke-dasharray: 4 3;
 }
 .arrow-default {
   fill: var(--c-slate-300);
 }
 .arrow-active {
-  fill: var(--amber);
+  fill: var(--ds-color-warning-500);
 }
 .arrow-failed {
-  fill: var(--red);
+  fill: var(--ds-color-error-500);
 }
 
 /* 图例 */
@@ -775,10 +788,10 @@ onBeforeUnmount(() => {
   gap: 14px;
   flex-wrap: wrap;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ds-border-subtle);
 }
 .legend-item {
   display: flex;
@@ -790,21 +803,21 @@ onBeforeUnmount(() => {
   height: 10px;
   border-radius: 50%;
   border: 1.5px solid var(--c-slate-300);
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .legend-dot.s-pending {
   border-color: var(--c-slate-300);
 }
 .legend-dot.s-running {
-  border-color: var(--amber);
+  border-color: var(--ds-color-warning-500);
   background: var(--c-amber-50);
 }
 .legend-dot.s-success {
-  border-color: var(--green);
+  border-color: var(--ds-color-success-500);
   background: var(--c-green-50);
 }
 .legend-dot.s-failed {
-  border-color: var(--red);
+  border-color: var(--ds-color-error-500);
   background: var(--c-red-50);
 }
 .legend-dot.s-skipped {
@@ -825,14 +838,14 @@ onBeforeUnmount(() => {
 }
 .tabbar {
   margin: 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ds-border-subtle);
 }
 .tab-badge {
   display: inline-block;
   margin-left: 4px;
   font-size: 10px;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
   border-radius: 10px;
   padding: 0 6px;
 }
@@ -847,13 +860,13 @@ onBeforeUnmount(() => {
 }
 .node-detail .kv b {
   font-weight: 600;
-  color: var(--ink);
+  color: var(--ds-text-primary);
 }
 .node-detail .kv.err b {
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .mono {
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 11.5px;
   word-break: break-all;
 }
@@ -864,7 +877,7 @@ onBeforeUnmount(() => {
   background: var(--c-surface-hover);
   border-radius: 6px;
   padding: 10px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 11.5px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
@@ -873,7 +886,7 @@ onBeforeUnmount(() => {
   overflow: auto;
 }
 .empty {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   text-align: center;
   padding: 40px 0;
   font-size: 13px;
@@ -889,24 +902,24 @@ onBeforeUnmount(() => {
   margin-bottom: 10px;
 }
 .empty-text {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   font-size: 13px;
 }
 
 .status-pending {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .status-running {
-  color: var(--amber);
+  color: var(--ds-color-warning-500);
 }
 .status-success {
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .status-failed {
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .status-skipped {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .status-waiting_human {
   color: var(--c-violet);

@@ -74,12 +74,44 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.setItem(USER_KEY, JSON.stringify(u))
   }
 
+  /** 启动时：有 token 但无用户信息，尝试从后端拉取 */
+  async function hydrateUser(): Promise<void> {
+    if (token.value && !user.value) {
+      // 优先用本地存储的用户信息（避免额外请求）
+      if (user.value) return
+      try {
+        const u = await post<User>('/auth/me')
+        user.value = u
+        localStorage.setItem(USER_KEY, JSON.stringify(u))
+      } catch {
+        // 后端无 /auth/me 或失败：开发环境下兜底造 mock 用户，生产环境保持仅有 token
+        if (import.meta.env.DEV) {
+          const mockUser: User = {
+            id: 'local-admin',
+            username: 'admin',
+            nickname: '本地管理员',
+            email: 'admin@example.com',
+            tenantId: 'platform-admin',
+            roles: ['admin'],
+            status: 'active'
+          }
+          user.value = mockUser
+          localStorage.setItem(USER_KEY, JSON.stringify(mockUser))
+        }
+      }
+    }
+  }
+
+  // 立即执行一次补水
+  hydrateUser()
+
   return {
     token,
     user,
     isAuthenticated,
     login,
     logout,
-    setUser
+    setUser,
+    hydrateUser
   }
 })

@@ -22,7 +22,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
 
-from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
+from asset_exchange.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
 from asset_exchange.api.routers.deps import get_registry, status_for_error
 from asset_exchange.models.base import AuditAction, SubscriptionStatus
 from asset_exchange.models.delivery import (
@@ -137,8 +137,10 @@ async def deliver_data(
     subscription_id: str,
     req: DeliveryRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Delivery:
-    """交付数据（支持 API / 文件 / 数据库直连三种方式）."""
+    """交付数据（支持 API / 文件 / 数据库直连三种方式）. 仅 admin 可执行."""
+    requireAdmin(ctx)
     try:
         result = await registry.deliveryService.deliver(subscription_id, req)
         # 审计留痕
@@ -182,8 +184,10 @@ async def charge_subscription(
     subscription_id: str,
     req: ChargeRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
-    """对订阅进行计费（辅助端点，便于测试触发计费）."""
+    """对订阅进行计费（辅助端点，便于测试触发计费）. 仅 admin 可执行."""
+    requireAdmin(ctx)
     try:
         record = await registry.billingService.charge(
             subscription_id=subscription_id,

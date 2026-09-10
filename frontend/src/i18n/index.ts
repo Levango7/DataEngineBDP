@@ -91,6 +91,12 @@ import devSchedZh from './locales/modules/devSched.zh-CN.json'
 import devSchedEn from './locales/modules/devSched.en-US.json'
 import devTagZh from './locales/modules/devTag.zh-CN.json'
 import devTagEn from './locales/modules/devTag.en-US.json'
+import approvalsZh from './locales/modules/approvals.zh-CN.json'
+import approvalsEn from './locales/modules/approvals.en-US.json'
+import registerZh from './locales/modules/register.zh-CN.json'
+import registerEn from './locales/modules/register.en-US.json'
+import orchestratorZh from './locales/modules/orchestrator.zh-CN.json'
+import orchestratorEn from './locales/modules/orchestrator.en-US.json'
 
 /**
  * 国际化插件（vue-i18n v10，legacy=false 组合式 API）。
@@ -183,7 +189,10 @@ export const i18n = createI18n({
       ...infraStoreZh,
       ...devMlZh,
       ...devSchedZh,
-      ...devTagZh
+      ...devTagZh,
+      ...approvalsZh,
+      ...registerZh,
+      ...orchestratorZh
     },
     'en-US': {
       ...enUS,
@@ -231,7 +240,10 @@ export const i18n = createI18n({
       ...infraStoreEn,
       ...devMlEn,
       ...devSchedEn,
-      ...devTagEn
+      ...devTagEn,
+      ...approvalsEn,
+      ...registerEn,
+      ...orchestratorEn
     }
   },
   // 未翻译的 key 回退显示 key 本身（开发期可见，生产期不至于空白）

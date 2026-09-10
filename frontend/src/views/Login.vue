@@ -1,61 +1,151 @@
 <template>
   <div class="login-page" role="main" :aria-label="t('login.title')">
-    <!-- 网格动效背景层 -->
-    <div class="grid-bg-layer" aria-hidden="true"></div>
-    <!-- 星点闪烁背景层 -->
-    <div class="stars-layer" aria-hidden="true"></div>
-    <!-- 顶部光晕装饰 -->
-    <div class="glow-orb orb-1" aria-hidden="true"></div>
-    <div class="glow-orb orb-2" aria-hidden="true"></div>
+    <!-- 左侧品牌区（飞书风：品牌 + Slogan + 装饰） -->
+    <section class="login-left" :aria-label="t('login.brandAria')">
+      <!-- 装饰层：极淡蓝光晕 + 网格（数据平台质感） -->
+      <div class="left-bg-grid" aria-hidden="true"></div>
+      <div class="left-bg-glow left-bg-glow--1" aria-hidden="true"></div>
+      <div class="left-bg-glow left-bg-glow--2" aria-hidden="true"></div>
 
-    <!-- 登录卡片 (毛玻璃 + 弹簧入场) -->
-    <div class="login-card glass animate-springIn" role="region" aria-label="登录卡片">
-      <div class="brand gradient-text" :aria-label="t('nav.brand')">
-        <span class="dot" aria-hidden="true"></span>
-        {{ t('nav.brand') }}
+      <div class="left-content">
+        <!-- 品牌行 -->
+        <div class="brand" :aria-label="t('nav.brand')">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="brand-text">{{ t('nav.brand') }}</span>
+        </div>
+
+        <!-- 核心价值主张 -->
+        <h1 class="slogan">
+          {{ t('login.sloganLine1') }}
+          <br />
+          <span class="slogan-accent">{{ t('login.sloganLine2') }}</span>
+        </h1>
+        <p class="sub-slogan">
+          {{ t('login.subSlogan1') }}
+          <br />
+          {{ t('login.subSlogan2') }}
+        </p>
+
+        <!-- 特性指标行 -->
+        <div class="metrics" role="list">
+          <div class="metric" role="listitem">
+            <div class="metric-num">
+              99.99
+              <span>%</span>
+            </div>
+            <div class="metric-lbl">{{ t('login.metricAvailability') }}</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="metric-num">
+              30
+              <span>+</span>
+            </div>
+            <div class="metric-lbl">{{ t('login.metricServices') }}</div>
+          </div>
+          <div class="metric" role="listitem">
+            <div class="metric-num">
+              <span class="metric-letter">{{ t('login.metricStack') }}</span>
+            </div>
+            <div class="metric-lbl">{{ t('login.metricStackLbl') }}</div>
+          </div>
+        </div>
       </div>
-      <h2>{{ t('login.title') }}</h2>
-      <el-form
-        :model="form"
-        label-position="top"
-        :aria-label="t('login.title')"
-        @submit.prevent="handleLogin"
-      >
-        <el-form-item :label="t('login.username')">
-          <el-input
-            v-model="form.username"
-            :placeholder="t('login.usernamePlaceholder')"
-            autocomplete="username"
-            :aria-label="t('login.username')"
-          />
-        </el-form-item>
-        <el-form-item :label="t('login.password')">
-          <el-input
-            v-model="form.password"
-            type="password"
-            show-password
-            :placeholder="t('login.passwordPlaceholder')"
-            autocomplete="current-password"
-            :aria-label="t('login.password')"
-            @keyup.enter="handleLogin"
-          />
-        </el-form-item>
-        <el-button
-          type="primary"
-          :loading="loading"
-          class="login-btn"
-          style="width: 100%"
-          :aria-label="t('login.submit')"
-          @click="handleLogin"
-        >
-          {{ loading ? t('login.loggingIn') : t('login.submit') }}
-        </el-button>
-        <div v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</div>
-      </el-form>
-      <div class="tip" aria-label="本地开发账号提示">
-        本地开发账号：admin / admin（管理员）或 user / user（普通用户）
+    </section>
+
+    <!-- 右侧登录表单区 -->
+    <section class="login-right" :aria-label="t('login.formAria')">
+      <!-- 右侧工具条：主题切换 + 语言切换 -->
+      <div class="right-topbar">
+        <!-- 二合一工具胶囊：i18n + theme 一体（与整体布局协调，避免双按钮零散） -->
+        <div class="tb-capsule" role="group" :aria-label="t('login.quickSwitchAria')">
+          <button
+            class="tb-pill"
+            :aria-label="t('app.localeLabel')"
+            :title="t('app.localeLabel')"
+            @click="toggleLocale"
+          >
+            {{ locale === 'zh-CN' ? 'EN' : '中' }}
+          </button>
+          <span class="tb-divider" aria-hidden="true"></span>
+          <button
+            class="tb-pill tb-theme"
+            :aria-label="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
+            :title="theme.isDark ? t('app.themeToggleToLight') : t('app.themeToggleToDark')"
+            @click="theme.toggle"
+          >
+            <span class="tb-pill-ic" aria-hidden="true">
+              <!-- 暗色时显示太阳（点击切回亮色），亮色时显示月亮（点击切到暗色） -->
+              <el-icon v-if="theme.isDark"><Sunny /></el-icon>
+              <el-icon v-else><Moon /></el-icon>
+            </span>
+          </button>
+        </div>
       </div>
-    </div>
+
+      <div class="login-card" role="region" :aria-label="t('login.cardAria')">
+        <h2 class="card-title">{{ t('login.title') }}</h2>
+        <p class="card-sub">{{ t('login.cardSub') }}</p>
+
+        <el-form :model="form" label-position="top" @submit.prevent="handleLogin">
+          <el-form-item :label="t('login.username')">
+            <el-input
+              v-model="form.username"
+              :placeholder="t('login.usernamePlaceholder')"
+              autocomplete="username"
+              :aria-label="t('login.username')"
+              size="large"
+            />
+          </el-form-item>
+          <el-form-item :label="t('login.password')">
+            <el-input
+              v-model="form.password"
+              type="password"
+              show-password
+              :placeholder="t('login.passwordPlaceholder')"
+              autocomplete="current-password"
+              :aria-label="t('login.password')"
+              size="large"
+              @keyup.enter="handleLogin"
+            />
+          </el-form-item>
+          <div class="form-row">
+            <el-checkbox v-model="remember">{{ t('login.rememberMe') }}</el-checkbox>
+            <a class="forgot" href="javascript:void(0)" :aria-label="t('login.forgotPassword')">
+              {{ t('login.forgotPassword') }}？
+            </a>
+          </div>
+          <el-button
+            type="primary"
+            :loading="loading"
+            class="login-btn"
+            size="large"
+            :aria-label="t('login.submit')"
+            @click="handleLogin"
+          >
+            {{ loading ? t('login.loggingIn') : t('login.submit') }}
+          </el-button>
+          <div v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</div>
+        </el-form>
+
+        <!-- 企业版 / 联系销售 -->
+        <div class="card-bottom">
+          <span class="bottom-text">{{ t('login.noAccount') }}</span>
+          <router-link class="bottom-link" to="/register">
+            {{ t('login.useInviteCode') }}
+          </router-link>
+          <span class="bottom-sep" aria-hidden="true">·</span>
+          <a class="bottom-link" href="javascript:void(0)">{{ t('login.applyTrial') }}</a>
+        </div>
+
+        <!-- 本地开发提示（仅本地模式可见） -->
+        <div class="dev-tip" :aria-label="t('login.devTipAria')">
+          <span class="dev-tip-label">{{ t('login.devDemo') }}</span>
+          <code>admin / admin</code>
+          <span class="dev-tip-sep">·</span>
+          <code>user / user</code>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -65,15 +155,28 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+import { useThemeStore } from '@/stores/theme'
+import { persistLocale, type SupportedLocale } from '@/i18n'
+import { Sunny, Moon } from '@element-plus/icons-vue'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const auth = useAuthStore()
+const theme = useThemeStore()
 
 const form = ref({ username: '', password: '' })
+const remember = ref(true)
 const loading = ref(false)
 const error = ref('')
+
+/** 登录页语言切换：与顶栏同一行为，切换 + 持久化 */
+function toggleLocale() {
+  const current = (locale as unknown as { value: string }).value
+  const next: SupportedLocale = current === 'zh-CN' ? 'en-US' : 'zh-CN'
+  ;(locale as unknown as { value: string }).value = next
+  persistLocale(next)
+}
 
 async function handleLogin() {
   if (!form.value.username || !form.value.password) {
@@ -96,181 +199,263 @@ async function handleLogin() {
 </script>
 
 <style scoped>
-/* === 深色科技渐变背景 === */
+/* ============================================================
+ * 飞书风登录页：左品牌区 + 右表单区，浅色主调
+ * 配色：极淡蓝白渐变 + 蓝色品牌色 + 干净白底
+ * ============================================================ */
 .login-page {
   position: relative;
   min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(380px, 1fr) minmax(440px, 1.1fr);
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 1200px 800px at 0% 50%, #dbeafe 0%, transparent 60%),
+    radial-gradient(ellipse 1000px 700px at 100% 100%, #e0e7ff 0%, transparent 55%),
+    linear-gradient(135deg, #f0f4ff 0%, #e8eef9 100%);
+}
+
+/* === 左侧品牌区 === */
+.login-left {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 60px 48px;
   overflow: hidden;
-  background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
 }
-
-/* === 网格动效背景层 (gridPulse 动画) === */
-.grid-bg-layer {
+.left-bg-grid {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px);
-  background-size: 36px 36px;
-  animation: gridPulse 5s ease-in-out infinite;
+    linear-gradient(rgba(59, 130, 246, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.06) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 80%);
   pointer-events: none;
-  z-index: 1;
 }
-
-/* === 星点闪烁背景层 (纯 CSS 多 box-shadow 星点) === */
-.stars-layer {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
-}
-.stars-layer::before,
-.stars-layer::after {
-  content: '';
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: transparent;
-  /* 多个 box-shadow 模拟星点 (覆盖视口各处) */
-  box-shadow:
-    120px 80px 0 0 rgba(255, 255, 255, 0.7),
-    260px 160px 0 0 rgba(255, 255, 255, 0.5),
-    420px 60px 0 0 rgba(255, 255, 255, 0.8),
-    580px 220px 0 0 rgba(255, 255, 255, 0.4),
-    720px 100px 0 0 rgba(255, 255, 255, 0.6),
-    880px 280px 0 0 rgba(255, 255, 255, 0.5),
-    1080px 140px 0 0 rgba(255, 255, 255, 0.7),
-    1280px 60px 0 0 rgba(255, 255, 255, 0.5),
-    200px 360px 0 0 rgba(255, 255, 255, 0.6),
-    380px 480px 0 0 rgba(255, 255, 255, 0.4),
-    560px 420px 0 0 rgba(255, 255, 255, 0.7),
-    760px 540px 0 0 rgba(255, 255, 255, 0.5),
-    960px 380px 0 0 rgba(255, 255, 255, 0.6),
-    1180px 480px 0 0 rgba(255, 255, 255, 0.4),
-    320px 620px 0 0 rgba(255, 255, 255, 0.5),
-    520px 700px 0 0 rgba(255, 255, 255, 0.7),
-    820px 660px 0 0 rgba(255, 255, 255, 0.4),
-    1100px 720px 0 0 rgba(255, 255, 255, 0.6);
-  animation: starsTwinkle 3.5s ease-in-out infinite alternate;
-}
-.stars-layer::after {
-  /* 第二层星点 (偏移 + 不同闪烁节奏) */
-  animation-delay: 1.7s;
-  animation-duration: 4.2s;
-  box-shadow:
-    180px 120px 0 0 rgba(139, 92, 246, 0.6),
-    340px 240px 0 0 rgba(99, 102, 241, 0.5),
-    500px 100px 0 0 rgba(139, 92, 246, 0.7),
-    660px 320px 0 0 rgba(99, 102, 241, 0.4),
-    820px 180px 0 0 rgba(139, 92, 246, 0.5),
-    1000px 360px 0 0 rgba(99, 102, 241, 0.6),
-    1200px 200px 0 0 rgba(139, 92, 246, 0.4),
-    260px 460px 0 0 rgba(99, 102, 241, 0.5),
-    460px 540px 0 0 rgba(139, 92, 246, 0.7),
-    680px 600px 0 0 rgba(99, 102, 241, 0.4),
-    900px 500px 0 0 rgba(139, 92, 246, 0.6),
-    1140px 620px 0 0 rgba(99, 102, 241, 0.5);
-}
-
-@keyframes starsTwinkle {
-  0% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-/* === 顶部光晕装饰球 (科技感氛围光) === */
-.glow-orb {
+.left-bg-glow {
   position: absolute;
   border-radius: 50%;
-  filter: blur(80px);
+  filter: blur(100px);
   pointer-events: none;
-  z-index: 1;
-  animation: orbFloat 8s ease-in-out infinite alternate;
+  animation: orbFloat 9s ease-in-out infinite alternate;
 }
-.orb-1 {
-  width: 320px;
-  height: 320px;
-  background: radial-gradient(circle, rgba(99, 102, 241, 0.45) 0%, transparent 70%);
-  top: -120px;
-  left: -100px;
+.left-bg-glow--1 {
+  width: 480px;
+  height: 480px;
+  top: -180px;
+  left: -180px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, transparent 70%);
 }
-.orb-2 {
-  width: 360px;
-  height: 360px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
-  bottom: -140px;
+.left-bg-glow--2 {
+  width: 420px;
+  height: 420px;
+  bottom: -160px;
   right: -120px;
-  animation-delay: 2s;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+  animation-delay: 2.4s;
 }
 @keyframes orbFloat {
   0% {
     transform: translate(0, 0) scale(1);
   }
   100% {
-    transform: translate(30px, -20px) scale(1.08);
+    transform: translate(20px, -30px) scale(1.05);
   }
 }
-
-/* === 登录卡片 (毛玻璃 + 发光边框) === */
-.login-card {
+.left-content {
   position: relative;
-  z-index: 10;
-  width: 400px;
-  max-width: 92vw;
-  padding: 42px 38px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-  box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.5),
-    0 0 30px rgba(99, 102, 241, 0.25),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  max-width: 460px;
+  z-index: 2;
 }
-
-/* === 标题渐变文字 === */
 .brand {
-  font-size: 22px;
-  font-weight: 700;
-  margin-bottom: 10px;
-  letter-spacing: 0.5px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ds-text-primary);
+  margin-bottom: 64px;
+  letter-spacing: 0.3px;
 }
 .brand .dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  background: var(--gradient-primary);
-  box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
-  animation: glowPulse 2.4s ease-in-out infinite;
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  box-shadow:
+    0 0 12px rgba(99, 102, 241, 0.7),
+    0 0 0 4px rgba(99, 102, 241, 0.15);
+  animation: dotBreath 2.8s var(--ease-smooth) infinite;
+}
+@keyframes dotBreath {
+  0%,
+  100% {
+    box-shadow:
+      0 0 12px rgba(99, 102, 241, 0.7),
+      0 0 0 4px rgba(99, 102, 241, 0.15);
+  }
+  50% {
+    box-shadow:
+      0 0 18px rgba(99, 102, 241, 0.95),
+      0 0 0 6px rgba(99, 102, 241, 0.1);
+  }
+}
+.slogan {
+  font-size: 38px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--ds-text-primary);
+  margin: 0 0 18px;
+  letter-spacing: 0.5px;
+}
+.slogan-accent {
+  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.sub-slogan {
+  font-size: 14px;
+  color: var(--ds-text-tertiary);
+  line-height: 1.7;
+  margin: 0 0 56px;
+}
+.metrics {
+  display: flex;
+  gap: 36px;
+  border-top: 1px solid rgba(100, 116, 139, 0.18);
+  padding-top: 24px;
+}
+.metric-num {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--ds-color-gray-800);
+}
+.metric-num span {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ds-text-tertiary);
+  margin-left: 2px;
+}
+.metric-letter {
+  font-size: 20px;
+  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.metric-lbl {
+  font-size: 12px;
+  color: var(--ds-text-tertiary);
+  margin-top: 4px;
 }
 
-h2 {
-  margin: 8px 0 22px;
-  color: var(--ink);
+/* === 右侧表单区 === */
+.login-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 48px;
+}
+.right-topbar {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tb-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 15px;
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-subtle);
+  color: var(--ds-text-secondary);
+  font-size: 12px;
   font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth),
+    border-color 0.18s var(--ease-smooth),
+    transform 0.18s var(--ease-smooth);
 }
-
-/* === 登录按钮渐变 + hover 发光 === */
+.tb-tool:hover {
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-700);
+  border-color: var(--ds-color-primary-300);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.18);
+}
+.tb-tool:active {
+  transform: translateY(0);
+}
+.tb-lang {
+  min-width: 64px;
+  letter-spacing: 0.5px;
+}
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.card-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--ds-text-primary);
+  letter-spacing: 0.3px;
+}
+.card-sub {
+  margin: 0 0 32px;
+  font-size: 13px;
+  color: var(--ds-text-tertiary);
+  line-height: 1.6;
+}
+.form-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -4px 0 18px;
+  font-size: 12.5px;
+}
+.forgot {
+  color: var(--ds-color-primary-500);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.18s var(--ease-smooth);
+}
+.forgot:hover {
+  color: var(--ds-color-primary-700);
+  text-decoration: underline;
+}
 .login-btn {
-  background: var(--gradient-primary) !important;
-  border: none !important;
-  height: 42px;
+  width: 100%;
+  height: 44px;
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 2px;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  border: none !important;
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   transition:
     transform 0.2s var(--ease-smooth),
     box-shadow 0.2s var(--ease-smooth),
@@ -280,55 +465,384 @@ h2 {
 .login-btn:focus {
   transform: translateY(-2px);
   box-shadow:
-    0 8px 20px rgba(99, 102, 241, 0.5),
-    var(--shadow-glow) !important;
-  filter: brightness(1.08);
+    0 8px 22px rgba(99, 102, 241, 0.5),
+    0 0 0 4px rgba(99, 102, 241, 0.12) !important;
+  filter: brightness(1.06);
 }
 .login-btn:active {
   transform: translateY(0);
 }
-
 .error {
-  color: var(--red);
+  color: var(--ds-color-error-700);
   margin-top: 12px;
-  font-size: 13px;
+  font-size: 12.5px;
   padding: 8px 12px;
-  background: var(--c-red-50);
-  border-radius: 6px;
-  border-left: 3px solid var(--red);
+  background: var(--ds-color-error-50);
+  border: 1px solid var(--ds-color-error-200);
+  border-radius: 8px;
+  border-left: 3px solid var(--ds-color-error-500);
 }
-
-.tip {
+.card-bottom {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--ds-text-tertiary);
+}
+.bottom-sep {
+  margin: 0 6px;
+  color: var(--ds-border-default);
+}
+.bottom-link {
+  margin-left: 4px;
+  color: var(--ds-color-primary-500);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.18s var(--ease-smooth);
+}
+.bottom-link:hover {
+  color: var(--ds-color-primary-700);
+  text-decoration: underline;
+}
+.dev-tip {
   margin-top: 18px;
-  font-size: 12px;
-  color: var(--muted);
-  line-height: 1.6;
-  padding-top: 14px;
-  border-top: 1px dashed var(--line);
+  padding: 10px 14px;
+  background: var(--ds-bg-subtle);
+  border: 1px dashed var(--ds-border-default);
+  border-radius: 8px;
+  font-size: 11.5px;
+  color: var(--ds-text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dev-tip-label {
+  background: var(--ds-color-primary-500);
+  color: var(--ds-text-inverse);
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 10.5px;
+}
+.dev-tip code {
+  font-family: var(--ds-font-family-mono);
+  font-size: 11px;
+  color: var(--ds-color-gray-800);
+  background: var(--ds-bg-surface);
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--ds-border-subtle);
+}
+.dev-tip-sep {
+  color: var(--ds-border-default);
 }
 
-/* === Element Plus 表单深色背景下的输入框适配 === */
+/* === Element Plus 输入框适配（白底浅蓝调） === */
 :deep(.el-form-item__label) {
-  color: var(--ink);
+  color: var(--ds-color-gray-700);
   font-weight: 500;
-}
-:deep(.el-input__wrapper) {
-  background: rgba(255, 255, 255, 0.7);
-  box-shadow: 0 0 0 1px var(--line) inset;
-  transition: box-shadow 0.2s var(--ease-smooth);
-}
-:deep(.el-input__wrapper:hover) {
-  box-shadow: 0 0 0 1px var(--primary) inset;
-}
-:deep(.el-input__wrapper.is-focus) {
-  box-shadow:
-    0 0 0 1px var(--primary) inset,
-    0 0 0 3px rgba(99, 102, 241, 0.15) !important;
-}
-:deep(.el-input__inner) {
-  color: var(--ink);
+  font-size: 13px;
+  padding-bottom: 6px;
 }
 :deep(.el-input__inner::placeholder) {
-  color: var(--muted);
+  color: var(--ds-border-strong);
+}
+:deep(.el-checkbox__label) {
+  color: var(--ds-text-secondary);
+  font-size: 12.5px;
+}
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: var(--ds-color-primary-500);
+  border-color: var(--ds-color-primary-500);
+}
+:deep(.el-checkbox__input.is-checked + .el-checkbox__label) {
+  color: var(--ds-color-primary-700);
+}
+
+/* === 响应式：小屏（≤960px）退化为单列 === */
+@media (max-width: 960px) {
+  .login-page {
+    grid-template-columns: 1fr;
+  }
+  .login-left {
+    display: none;
+  }
+  .login-right {
+    padding: 40px 24px;
+  }
+}
+/* === 右上角二合一胶囊：i18n + theme（2026-09-07 整合） === */
+.right-topbar {
+  position: absolute;
+  top: 24px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tb-capsule {
+  display: inline-flex;
+  align-items: stretch;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1.5px solid var(--ds-border-default);
+  border-radius: 24px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  overflow: hidden;
+  transition:
+    background 0.2s var(--ease-smooth),
+    border-color 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth);
+}
+.tb-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 32px;
+  padding: 0 14px;
+  background: transparent;
+  color: var(--ds-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  border: none;
+  transition:
+    background 0.18s var(--ease-smooth),
+    color 0.18s var(--ease-smooth);
+}
+.tb-pill:hover {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--ds-color-primary-700);
+}
+.tb-pill-ic {
+  font-size: 13px;
+  line-height: 1;
+}
+.tb-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--ds-border-default);
+  margin: 4px 0;
+}
+.tb-theme {
+  padding: 0 12px;
+}
+</style>
+
+<!-- 暗色模式覆写（2026-09-07 修复）
+    必须放在 <style scoped> 之外（全局），否则 Vue scoped 编译
+    会把 :root[] + 复合选择器的后半段误处理为另一个 :root[]
+    导致选择器整体失效、文字不变色。
+    同一文件内可有多个 <style> 块。 -->
+<style>
+/* ============================================================
+ * 暗色模式（data-theme=dark 时全登录页深色，2026-09-07）
+ * ============================================================ */
+:root[data-theme='dark'] .login-page {
+  background:
+    radial-gradient(ellipse 1100px 700px at 0% 0%, #1e293b 0%, transparent 60%),
+    radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%),
+    linear-gradient(135deg, #0b1220 0%, #0f172a 100%) !important;
+}
+/* 左侧品牌区整块深色 */
+:root[data-theme='dark'] .login-left {
+  background: linear-gradient(180deg, #0b1220 0%, #131e35 100%) !important;
+}
+/* 右侧表单区 */
+:root[data-theme='dark'] .login-right {
+  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%) !important;
+}
+:root[data-theme='dark'] .left-bg-grid,
+:root[data-theme='dark'] .reg-bg-grid {
+  background-image:
+    linear-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.08) 1px, transparent 1px) !important;
+}
+/* 暗色版光晕（蓝紫转蓝青，更符合深色） */
+:root[data-theme='dark'] .left-bg-glow--1 {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.45) 0%, transparent 70%) !important;
+}
+:root[data-theme='dark'] .left-bg-glow--2 {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, transparent 70%) !important;
+}
+:root[data-theme='dark'] .login-card,
+:root[data-theme='dark'] .reg-card {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+/* 品牌行去独立背景与深色背景融合 */
+:root[data-theme='dark'] .brand {
+  background: transparent !important;
+}
+:root[data-theme='dark'] .el-form-item__label {
+  color: #93c5fd !important;
+  font-weight: 600 !important;
+}
+:root[data-theme='dark'] .el-input__wrapper,
+:root[data-theme='dark'] .reg-banner-row code {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border: 1.5px solid rgba(99, 102, 241, 0.45) !important;
+  box-shadow: none !important;
+}
+:root[data-theme='dark'] .el-input__wrapper:hover {
+  border-color: #60a5fa !important;
+}
+:root[data-theme='dark'] .el-input__wrapper.is-focus {
+  border-color: #60a5fa !important;
+  box-shadow:
+    0 0 0 1px #60a5fa inset,
+    0 0 0 3px rgba(96, 165, 250, 0.18) !important;
+}
+:root[data-theme='dark'] .el-input__inner,
+:root[data-theme='dark'] .el-textarea__inner {
+  color: #f1f5f9 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+:root[data-theme='dark'] .el-input__inner::placeholder,
+:root[data-theme='dark'] .el-input__prefix,
+:root[data-theme='dark'] .el-input__count .el-input__count-inner {
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .el-input__prefix {
+  margin-left: 0 !important;
+  margin-right: 8px !important;
+}
+:root[data-theme='dark'] .el-input__suffix {
+  margin-left: 8px !important;
+  margin-right: 0 !important;
+}
+:root[data-theme='dark'] .el-checkbox__label,
+:root[data-theme='dark'] .el-checkbox__input.is-checked + .el-checkbox__label {
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .login-btn {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  color: #fff !important;
+  box-shadow:
+    0 4px 14px rgba(99, 102, 241, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+:root[data-theme='dark'] .brand,
+:root[data-theme='dark'] .card-title,
+:root[data-theme='dark'] .slogan {
+  color: #f1f5f9 !important;
+}
+:root[data-theme='dark'] .slogan-accent {
+  background: linear-gradient(120deg, #60a5fa 0%, #818cf8 50%, #c084fc 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+:root[data-theme='dark'] .card-sub,
+:root[data-theme='dark'] .metric-lbl,
+:root[data-theme='dark'] .reg-sub,
+:root[data-theme='dark'] .invite-hint,
+:root[data-theme='dark'] .invite-hint-sm,
+:root[data-theme='dark'] .reg-tip,
+:root[data-theme='dark'] .reg-banner-tip,
+:root[data-theme='dark'] .invite-meta,
+:root[data-theme='dark'] .reg-success-meta li,
+:root[data-theme='dark'] .reg-success-tip,
+:root[data-theme='dark'] .reg-bottom a,
+:root[data-theme='dark'] .sub-slogan {
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .metric-num,
+:root[data-theme='dark'] .metric-letter {
+  background: linear-gradient(120deg, #60a5fa 0%, #c084fc 100%) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+:root[data-theme='dark'] .reg-banner {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.18) 0%,
+    rgba(99, 102, 241, 0.12) 100%
+  ) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+}
+:root[data-theme='dark'] .reg-banner-row span:first-child {
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .reg-banner-row b {
+  color: #93c5fd !important;
+}
+:root[data-theme='dark'] .reg-banner-row code {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .reg-steps li.on .step-text,
+:root[data-theme='dark'] .reg-steps li.done .step-text,
+:root[data-theme='dark'] .reg-steps li.on .step-dot {
+  color: #93c5fd !important;
+}
+:root[data-theme='dark'] .reg-steps li.done .step-dot {
+  background: #10b981 !important;
+  color: #fff !important;
+}
+:root[data-theme='dark'] .step-text {
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .step-dot {
+  background: #1e293b !important;
+  color: #94a3b8 !important;
+}
+:root[data-theme='dark'] .reg-success {
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .reg-success-meta {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: #334155 !important;
+}
+:root[data-theme='dark'] .reg-success-meta li b {
+  color: #f1f5f9 !important;
+}
+:root[data-theme='dark'] .dev-tip {
+  background: rgba(15, 23, 42, 0.6) !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .dev-tip code {
+  background: rgba(15, 23, 42, 0.8) !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+:root[data-theme='dark'] .tb-tool {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(148, 163, 184, 0.22) !important;
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .tb-tool:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #f1f5f9 !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+}
+:root[data-theme='dark'] .err {
+  background: rgba(127, 29, 29, 0.3) !important;
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #fca5a5 !important;
+}
+/* === 暗色下二合一胶囊 === */
+:root[data-theme='dark'] .tb-capsule {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+:root[data-theme='dark'] .tb-pill {
+  color: #cbd5e1 !important;
+}
+:root[data-theme='dark'] .tb-pill:hover {
+  background: rgba(99, 102, 241, 0.2) !important;
+  color: #f1f5f9 !important;
+}
+:root[data-theme='dark'] .tb-divider {
+  background: rgba(99, 102, 241, 0.4) !important;
 }
 </style>

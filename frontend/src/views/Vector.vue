@@ -2,46 +2,33 @@
   <div>
     <PageHeader :title="t('vector.title')" :subtitle="t('vector.subtitle')" />
     <Toolbar
+      v-model:search-value="searchText"
       :show-create="true"
       :create-label="t('vector.newCollection')"
       :create-aria-label="t('vector.newCollection')"
       :search-placeholder="t('vector.searchPlaceholder')"
-      v-model:search-value="searchText"
       :search-aria-label="t('vector.searchPlaceholder')"
       :show-refresh="false"
       @create="modalVisible = true"
       @search="doSearch"
     />
     <div class="card">
-      <div v-if="loading" style="text-align: center; padding: 24px; color: #888">
+      <div v-if="loading" class="state-tip">
         {{ t('vector.loading') }}
       </div>
-      <div v-else-if="error" style="text-align: center; padding: 24px; color: #d4380d">
+      <div v-else-if="error" class="state-tip error">
         {{ t('vector.loadFailed', { msg: error.message }) }}
-        <button class="btn ghost sm" style="margin-left: 8px" @click="loadCollections">
+        <el-button size="small" style="margin-left: 8px" @click="loadCollections">
           {{ t('common.retry') }}
-        </button>
+        </el-button>
       </div>
-      <table v-else>
-        <thead>
-          <tr>
-            <th>{{ t('vector.cols.collection') }}</th>
-            <th>{{ t('vector.cols.dimension') }}</th>
-            <th>{{ t('vector.cols.count') }}</th>
-            <th>{{ t('vector.cols.index') }}</th>
-            <th>{{ t('vector.cols.relatedKb') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in collections" :key="c.id">
-            <td>{{ c.name }}</td>
-            <td>{{ c.dimension }}</td>
-            <td>{{ c.count }}</td>
-            <td>{{ c.index }}</td>
-            <td>{{ c.relatedKb }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <el-table v-else :data="collections" stripe>
+        <el-table-column :label="t('vector.cols.collection')" prop="name" />
+        <el-table-column :label="t('vector.cols.dimension')" prop="dimension" />
+        <el-table-column :label="t('vector.cols.count')" prop="count" />
+        <el-table-column :label="t('vector.cols.index')" prop="index" />
+        <el-table-column :label="t('vector.cols.relatedKb')" prop="relatedKb" />
+      </el-table>
     </div>
 
     <Modal
@@ -50,22 +37,27 @@
       @close="modalVisible = false"
     >
       <label>{{ t('vector.createModal.name') }}</label>
-      <input v-model="newCollection.name" :placeholder="t('vector.createModal.namePlaceholder')" />
+      <el-input
+        v-model="newCollection.name"
+        :placeholder="t('vector.createModal.namePlaceholder')"
+      />
       <label>{{ t('vector.createModal.dimension') }}</label>
-      <input v-model.number="newCollection.dimension" type="number" value="768" />
+      <el-input-number v-model="newCollection.dimension" :min="1" />
       <label>{{ t('vector.createModal.indexType') }}</label>
-      <select v-model="newCollection.index">
-        <option>HNSW</option>
-        <option>IVF_PQ</option>
-      </select>
+      <el-select v-model="newCollection.index">
+        <el-option label="HNSW" value="HNSW" />
+        <el-option label="IVF_PQ" value="IVF_PQ" />
+      </el-select>
       <label>{{ t('vector.createModal.relatedKb') }}</label>
-      <input
+      <el-input
         v-model="newCollection.relatedKb"
         :placeholder="t('vector.createModal.relatedKbPlaceholder')"
       />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" @click="submitCreate">{{ t('vector.createModal.create') }}</button>
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="submitCreate">
+          {{ t('vector.createModal.create') }}
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -140,3 +132,33 @@ onMounted(() => {
   void loadCollections()
 })
 </script>
+
+<style scoped>
+/* 状态提示：加载/错误统一样式，颜色使用 design tokens */
+.state-tip {
+  text-align: center;
+  padding: 24px;
+  color: var(--ds-text-tertiary);
+}
+.state-tip.error {
+  color: var(--ds-color-error-600);
+}
+
+/* 响应式断点：中等屏幕收窄表格列内边距 */
+@media (max-width: 1100px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-sm);
+  }
+}
+
+/* 响应式断点：小屏幕进一步紧凑 */
+@media (max-width: 720px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-xs);
+  }
+  :deep(.el-table .cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+}
+</style>

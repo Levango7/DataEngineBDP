@@ -31,6 +31,8 @@ const Admin = () => import('@/views/Admin.vue')
 
 // 批次4新增：核心功能页面
 const TenantManagement = () => import('@/views/TenantManagement.vue')
+const Register = () => import('@/views/Register.vue')
+const Approvals = () => import('@/views/Approvals.vue')
 const ClusterOverview = () => import('@/views/ClusterOverview.vue')
 const DataSourceManagement = () => import('@/views/DataSourceManagement.vue')
 const JobManagement = () => import('@/views/JobManagement.vue')
@@ -178,6 +180,18 @@ const routes: RouteRecordRaw[] = [
     name: 'TenantManagement',
     component: TenantManagement,
     meta: { title: '租户管理', icon: 'Management' }
+  },
+  {
+    path: '/approvals',
+    name: 'Approvals',
+    component: Approvals,
+    meta: { title: '审批中心', icon: 'CircleCheck' }
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: Register,
+    meta: { title: '员工注册', icon: 'EditPen', public: true }
   },
   {
     path: '/cluster',
@@ -401,7 +415,7 @@ const router = createRouter({
 // 白名单：/login 及无需认证的公开页
 // 提取为纯函数以便单元测试（避免 jsdom 下懒加载组件挂起）
 // ============================================================
-const PUBLIC_PATHS = new Set(['/login'])
+const PUBLIC_PATHS = new Set(['/login', '/register'])
 
 /**
  * 鉴权守卫（纯函数）。

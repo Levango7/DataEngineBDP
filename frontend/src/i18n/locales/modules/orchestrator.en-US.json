@@ -1,0 +1,116 @@
+{
+  "orchestrator": {
+    "common": {
+      "refresh": "Refresh",
+      "loading": "Loading…",
+      "node": "Node",
+      "empty": "No data",
+      "params": "Parameters",
+      "output": "Output",
+      "error": "Error"
+    },
+    "dag": {
+      "title": "Orchestration DAG Visualization",
+      "subtitle": "Visualize agent orchestration graphs with node status coloring, thought chain, tool call records, human intervention and checkpoint replay.",
+      "selectDag": "Select DAG",
+      "run": "Run",
+      "stop": "Stop",
+      "autoRefresh": "Auto-refresh (2s)",
+      "graphStatus": "Graph status: {status}",
+      "nodeEdgeMeta": "{nodes} nodes · {edges} edges",
+      "tabs": {
+        "node": "Node Details",
+        "thought": "Thought Chain",
+        "tool": "Tool Calls",
+        "replay": "Replay"
+      },
+      "detail": {
+        "nodeId": "Node ID",
+        "name": "Name",
+        "taskType": "Task Type",
+        "status": "Status",
+        "command": "Command",
+        "timeout": "Timeout(s)",
+        "timeoutUnlimited": "Unlimited",
+        "maxRetry": "Max Retries",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "error": "Error",
+        "empty": "Click a node on the left to view details"
+      },
+      "noDag": "No DAG selected. Choose one from the dropdown above or submit a DAG first",
+      "status": {
+        "PENDING": "Pending",
+        "RUNNING": "Running",
+        "SUCCESS": "Success",
+        "FAILED": "Failed",
+        "SKIPPED": "Skipped",
+        "WAITING_HUMAN": "Waiting Human"
+      },
+      "messages": {
+        "completed": "DAG execution completed",
+        "stopRequested": "Stop requested"
+      }
+    },
+    "replay": {
+      "execHistory": "Execution History",
+      "noExecutions": "No execution records",
+      "colExecId": "Execution ID",
+      "colTrigger": "Trigger",
+      "colStatus": "Status",
+      "colProgress": "Progress",
+      "colStartTime": "Start Time",
+      "colActions": "Actions",
+      "replayBtn": "Replay",
+      "traceTitle": "Replay Trace · {id}",
+      "play": "Play",
+      "pause": "Pause",
+      "stepForward": "Step",
+      "evNode": "Node {id}",
+      "checkpoints": "Checkpoints · Resume",
+      "manualCkpt": "Manual Checkpoint",
+      "noCheckpoints": "No checkpoints",
+      "resumeFrom": "Resume From Here",
+      "completedNodes": "Completed {n} nodes: ",
+      "ckptNote": "Note: {note}",
+      "intervention": "Human Intervention",
+      "noInterventions": "No pending intervention requests",
+      "ivReason": "Reason: {reason}",
+      "approverPlaceholder": "Approver",
+      "commentPlaceholder": "Review comment",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approver": "Approver: {who}",
+      "comment": "Comment: {text}",
+      "resolvedAt": "Resolved at: {at}",
+      "tabs": {
+        "exec": "Execution History",
+        "checkpoint": "Checkpoints",
+        "intervention": "Interventions"
+      },
+      "messages": {
+        "ckptCreated": "Checkpoint created",
+        "resumed": "Execution resumed from checkpoint",
+        "approverRequired": "Please fill in the approver",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "manualNote": "Manual checkpoint {time}"
+    },
+    "thought": {
+      "title": "Agent Thought Chain",
+      "stepsMeta": "{n} steps",
+      "noData": "No thought chain data",
+      "obsLabel": "Observe: ",
+      "toolLabel": "Tool call: "
+    },
+    "toolCall": {
+      "title": "Tool Call Records",
+      "timesMeta": "{n} calls",
+      "noData": "No tool call records",
+      "started": "Started: {at}",
+      "finished": "Finished: {at}",
+      "result": "Result"
+    }
+  }
+}

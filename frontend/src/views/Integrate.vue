@@ -2,14 +2,14 @@
   <div>
     <PageHeader :title="t('integrate.title')" :subtitle="t('integrate.subtitle')" />
     <div class="section-title">{{ t('integrate.connectors') }}</div>
-    <div v-if="connectorsLoading" class="conn-grid" style="color: var(--muted)">
+    <div v-if="connectorsLoading" class="conn-grid state-loading">
       {{ t('integrate.connectorsLoading') }}
     </div>
-    <div v-else-if="connectorsError" class="conn-grid" style="color: var(--red)">
+    <div v-else-if="connectorsError" class="conn-grid state-error">
       {{ t('common.loadFailed') }}，
       <a href="javascript:void(0)" @click="loadConnectors">{{ t('common.retry') }}</a>
     </div>
-    <div v-else-if="connectors.length === 0" class="conn-grid" style="color: var(--muted)">
+    <div v-else-if="connectors.length === 0" class="conn-grid state-loading">
       {{ t('integrate.connectorsEmpty') }}
     </div>
     <div v-else class="conn-grid">
@@ -49,60 +49,69 @@
       </template>
     </Toolbar>
     <div class="card">
-      <div v-if="tasksLoading" style="padding: 16px; color: var(--muted)">
+      <div v-if="tasksLoading" class="state-tip state-loading">
         {{ t('integrate.tasksLoading') }}
       </div>
-      <div v-else-if="tasksError" style="padding: 16px; color: var(--red)">
+      <div v-else-if="tasksError" class="state-tip state-error">
         {{ tasksError.message }}，
         <a href="javascript:void(0)" @click="loadTasks">{{ t('common.retry') }}</a>
       </div>
-      <table v-else>
-        <tr>
-          <th>{{ t('integrate.cols.task') }}</th>
-          <th>{{ t('integrate.cols.sourceToTarget') }}</th>
-          <th>{{ t('integrate.cols.mode') }}</th>
-          <th>{{ t('integrate.cols.status') }}</th>
-          <th>{{ t('integrate.cols.lastRun') }}</th>
-          <th>{{ t('integrate.cols.actions') }}</th>
-        </tr>
-        <tr v-for="task in tasks" :key="task.id">
-          <td>{{ task.name }}</td>
-          <td>{{ task.sourceToTarget }}</td>
-          <td>{{ modeLabel(task.mode) }}</td>
-          <td>
-            <span class="pill" :class="statusPillClass(task.status)">
-              {{ statusPillText(task.status) }}
+      <!-- 同步任务列表：使用 el-table 替换原生 table，操作列使用 el-button -->
+      <el-table
+        v-else
+        :data="tasks"
+        stripe
+        border
+        role="table"
+        :aria-label="t('integrate.title')"
+        :empty-text="t('integrate.tasksEmpty')"
+      >
+        <el-table-column prop="name" :label="t('integrate.cols.task')" min-width="160" />
+        <el-table-column
+          prop="sourceToTarget"
+          :label="t('integrate.cols.sourceToTarget')"
+          min-width="180"
+        />
+        <el-table-column :label="t('integrate.cols.mode')" width="100">
+          <template #default="{ row }">
+            {{ modeLabel(row.mode) }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('integrate.cols.status')" width="120">
+          <template #default="{ row }">
+            <span class="pill" :class="statusPillClass(row.status)">
+              {{ statusPillText(row.status) }}
             </span>
-          </td>
-          <td>
-            {{ task.lastRunAt || '--'
-            }}{{ task.lastRunDuration ? ' · ' + task.lastRunDuration : '' }}
-          </td>
-          <td>
-            <button
-              v-if="task.status !== 'running'"
-              class="btn sm"
-              :disabled="actingId === task.id"
-              @click="handleRunTask(task)"
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('integrate.cols.lastRun')" width="200">
+          <template #default="{ row }">
+            {{ row.lastRunAt || '--'
+            }}{{ row.lastRunDuration ? ' · ' + row.lastRunDuration : '' }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('integrate.cols.actions')" width="140" fixed="right">
+          <template #default="{ row }">
+            <el-button
+              v-if="row.status !== 'running'"
+              size="small"
+              type="primary"
+              :loading="actingId === row.id"
+              @click="handleRunTask(row)"
             >
-              {{ actingId === task.id ? t('integrate.running') : t('integrate.run') }}
-            </button>
-            <button
+              {{ actingId === row.id ? t('integrate.running') : t('integrate.run') }}
+            </el-button>
+            <el-button
               v-else
-              class="btn sm ghost"
-              :disabled="actingId === task.id"
-              @click="handleStopTask(task)"
+              size="small"
+              :loading="actingId === row.id"
+              @click="handleStopTask(row)"
             >
-              {{ actingId === task.id ? t('integrate.stopping') : t('integrate.stop') }}
-            </button>
-          </td>
-        </tr>
-        <tr v-if="tasks.length === 0">
-          <td colspan="6" style="text-align: center; color: var(--muted)">
-            {{ t('integrate.tasksEmpty') }}
-          </td>
-        </tr>
-      </table>
+              {{ actingId === row.id ? t('integrate.stopping') : t('integrate.stop') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 新建同步任务弹窗 -->
@@ -112,66 +121,66 @@
       @close="syncModal = false"
     >
       <label>{{ t('integrate.createModal.name') }}</label>
-      <input v-model="syncForm.name" :placeholder="t('integrate.createModal.namePlaceholder')" />
+      <el-input v-model="syncForm.name" :placeholder="t('integrate.createModal.namePlaceholder')" />
       <label>{{ t('integrate.createModal.sourceType') }}</label>
-      <select v-model="syncForm.sourceType">
-        <option v-for="c in sourceConnectors" :key="c.name" :value="c.name">{{ c.name }}</option>
-      </select>
+      <el-select v-model="syncForm.sourceType" style="width: 100%">
+        <el-option v-for="c in sourceConnectors" :key="c.name" :label="c.name" :value="c.name" />
+      </el-select>
       <label>{{ t('integrate.createModal.targetType') }}</label>
-      <select v-model="syncForm.targetType">
-        <option v-for="c in sinkConnectors" :key="c.name" :value="c.name">{{ c.name }}</option>
-      </select>
+      <el-select v-model="syncForm.targetType" style="width: 100%">
+        <el-option v-for="c in sinkConnectors" :key="c.name" :label="c.name" :value="c.name" />
+      </el-select>
       <label>{{ t('integrate.createModal.sourceTable') }}</label>
-      <input
+      <el-input
         v-model="syncForm.sourceTable"
         :placeholder="t('integrate.createModal.sourceTablePlaceholder')"
       />
       <label>{{ t('integrate.createModal.targetTable') }}</label>
-      <input
+      <el-input
         v-model="syncForm.targetTable"
         :placeholder="t('integrate.createModal.targetTablePlaceholder')"
       />
       <label>{{ t('integrate.createModal.mode') }}</label>
-      <select v-model="syncForm.mode">
-        <option value="batch">{{ t('integrate.createModal.modeBatch') }}</option>
-        <option value="stream_cdc">{{ t('integrate.createModal.modeStreamCdc') }}</option>
-      </select>
+      <el-select v-model="syncForm.mode" style="width: 100%">
+        <el-option :label="t('integrate.createModal.modeBatch')" value="batch" />
+        <el-option :label="t('integrate.createModal.modeStreamCdc')" value="stream_cdc" />
+      </el-select>
       <label>{{ t('integrate.createModal.schedule') }}</label>
-      <input
+      <el-input
         v-model="syncForm.schedule"
         :placeholder="t('integrate.createModal.schedulePlaceholder')"
       />
-      <div v-if="syncFormError" class="note" style="color: var(--red); margin-top: 8px">
+      <div v-if="syncFormError" class="note form-error">
         {{ syncFormError }}
       </div>
       <template #footer>
-        <button class="btn ghost" @click="syncModal = false">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="syncSubmitting" @click="handleCreateSyncTask">
+        <el-button @click="syncModal = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="syncSubmitting" @click="handleCreateSyncTask">
           {{ syncSubmitting ? t('integrate.createModal.creating') : t('common.create') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
 
     <!-- 新增数据源弹窗 -->
     <Modal :visible="srcModal" :title="t('integrate.sourceModal.title')" @close="srcModal = false">
       <label>{{ t('integrate.sourceModal.type') }}</label>
-      <select>
-        <option>MySQL</option>
-        <option>Oracle</option>
-        <option>PostgreSQL</option>
-        <option>API</option>
-      </select>
+      <el-select v-model="srcForm.type" style="width: 100%">
+        <el-option label="MySQL" value="MySQL" />
+        <el-option label="Oracle" value="Oracle" />
+        <el-option label="PostgreSQL" value="PostgreSQL" />
+        <el-option label="API" value="API" />
+      </el-select>
       <label>{{ t('integrate.sourceModal.connStr') }}</label>
-      <input placeholder="jdbc:mysql://…" />
+      <el-input v-model="srcForm.connStr" placeholder="jdbc:mysql://…" />
       <label>{{ t('integrate.sourceModal.account') }}</label>
-      <input />
+      <el-input v-model="srcForm.account" />
       <label>{{ t('integrate.sourceModal.password') }}</label>
-      <input type="password" />
+      <el-input v-model="srcForm.password" type="password" show-password />
       <template #footer>
-        <button class="btn ghost" @click="srcModal = false">{{ t('common.cancel') }}</button>
-        <button class="btn" @click="ok(t('integrate.toast.sourceAdded'))">
+        <el-button @click="srcModal = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="ok(t('integrate.toast.sourceAdded'))">
           {{ t('integrate.sourceModal.testAndSave') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -428,6 +437,21 @@ async function handleCreateSyncTask(): Promise<void> {
   }
 }
 
+/* ------------------------------ 新增数据源表单 ------------------------------ */
+
+// 数据源表单：使用 reactive 集中管理，替代原先未绑定的原生 input
+const srcForm = reactive<{
+  type: string
+  connStr: string
+  account: string
+  password: string
+}>({
+  type: 'MySQL',
+  connStr: '',
+  account: '',
+  password: ''
+})
+
 function ok(msg: string): void {
   syncModal.value = false
   srcModal.value = false
@@ -478,45 +502,52 @@ onUnmounted(() => {
 }
 .conn {
   border: 1px solid var(--ds-border-default);
-  border-radius: 8px;
-  padding: 12px;
+  border-radius: var(--ds-radius-md);
+  padding: var(--ds-spacing-3);
   text-align: center;
   cursor: pointer;
   position: relative;
-  transition: border-color 0.15s;
+  transition: border-color var(--ds-transition-fast);
 }
 .conn:hover {
-  border-color: #c7d2fe;
+  border-color: var(--ds-color-info-200);
 }
 .conn.selected {
-  border-color: #4f46e5;
-  background: #eef2ff;
+  border-color: var(--ds-color-info-600);
+  background: var(--ds-color-info-50);
 }
 .conn .logo {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 4px;
+  font-size: var(--ds-font-size-xl);
+  font-weight: var(--ds-font-weight-semibold);
+  margin-bottom: var(--ds-spacing-1);
 }
 .category-tag {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: var(--ds-spacing-1);
+  right: var(--ds-spacing-1);
   font-size: 10px;
   color: var(--ds-text-secondary);
-  background: #f4f5f7;
-  padding: 1px 4px;
-  border-radius: 3px;
+  background: var(--ds-bg-subtle);
+  padding: 1px var(--ds-spacing-1);
+  border-radius: var(--ds-radius-sm);
 }
-.btn.sm {
-  padding: 4px 10px;
-  font-size: 12px;
+/* 状态提示：使用 design tokens 替代硬编码颜色 */
+.state-tip {
+  padding: var(--ds-spacing-4);
 }
-.btn.sm:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.state-loading {
+  color: var(--ds-text-tertiary);
+}
+.state-error {
+  color: var(--ds-color-error-500);
 }
 .note {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
+}
+/* 表单错误提示：使用 design tokens 替代硬编码颜色 */
+.form-error {
+  color: var(--ds-color-error-500);
+  margin-top: var(--ds-spacing-2);
 }
 </style>

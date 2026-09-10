@@ -27,14 +27,14 @@
     </div>
 
     <!-- 加载与错误状态 -->
-    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
+    <div v-if="loading" class="card state-tip">
       {{ t('assetMarket.loading') }}
     </div>
-    <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
+    <div v-else-if="error" class="card state-tip error">
       {{ t('assetMarket.loadFailed', { message: error.message }) }}
-      <button class="btn ghost sm" style="margin-left: 8px" @click="loadAssets">
+      <el-button size="small" style="margin-left: 8px" @click="loadAssets">
         {{ t('assetMarket.retry') }}
-      </button>
+      </el-button>
     </div>
 
     <!-- Tab 切换 -->
@@ -47,15 +47,27 @@
       @create="listModalVisible = true"
     >
       <template #filters>
-        <button :class="['btn', 'sm', tab === 'market' ? '' : 'ghost']" @click="tab = 'market'">
+        <el-button
+          size="small"
+          :type="tab === 'market' ? 'primary' : 'default'"
+          @click="tab = 'market'"
+        >
           {{ t('assetMarket.tabs.market') }}
-        </button>
-        <button :class="['btn', 'sm', tab === 'mine' ? '' : 'ghost']" @click="tab = 'mine'">
+        </el-button>
+        <el-button
+          size="small"
+          :type="tab === 'mine' ? 'primary' : 'default'"
+          @click="tab = 'mine'"
+        >
           {{ t('assetMarket.tabs.mine') }}
-        </button>
-        <button :class="['btn', 'sm', tab === 'listed' ? '' : 'ghost']" @click="tab = 'listed'">
+        </el-button>
+        <el-button
+          size="small"
+          :type="tab === 'listed' ? 'primary' : 'default'"
+          @click="tab = 'listed'"
+        >
           {{ t('assetMarket.tabs.listed') }}
-        </button>
+        </el-button>
       </template>
     </Toolbar>
 
@@ -64,25 +76,25 @@
       <!-- 筛选 -->
       <div class="card" style="margin-bottom: 14px">
         <div class="row" style="gap: 12px; align-items: center">
-          <input
+          <el-input
             v-model="searchQuery"
             :placeholder="t('assetMarket.market.searchPlaceholder')"
             style="flex: 1"
           />
-          <select v-model="filterType" style="width: 140px">
-            <option value="">{{ t('assetMarket.market.allTypes') }}</option>
-            <option value="table">{{ t('assetMarket.assetType.table') }}</option>
-            <option value="api">{{ t('assetMarket.assetType.api') }}</option>
-            <option value="model">{{ t('assetMarket.assetType.model') }}</option>
-            <option value="dashboard">{{ t('assetMarket.assetType.dashboard') }}</option>
-            <option value="stream">{{ t('assetMarket.assetType.stream') }}</option>
-          </select>
-          <select v-model="filterSecurity" style="width: 120px">
-            <option value="">{{ t('assetMarket.market.allLevels') }}</option>
-            <option value="public">{{ t('assetMarket.security.public') }}</option>
-            <option value="internal">{{ t('assetMarket.security.internal') }}</option>
-            <option value="sensitive">{{ t('assetMarket.security.sensitive') }}</option>
-          </select>
+          <el-select v-model="filterType" style="width: 140px">
+            <el-option :label="t('assetMarket.market.allTypes')" value="" />
+            <el-option :label="t('assetMarket.assetType.table')" value="table" />
+            <el-option :label="t('assetMarket.assetType.api')" value="api" />
+            <el-option :label="t('assetMarket.assetType.model')" value="model" />
+            <el-option :label="t('assetMarket.assetType.dashboard')" value="dashboard" />
+            <el-option :label="t('assetMarket.assetType.stream')" value="stream" />
+          </el-select>
+          <el-select v-model="filterSecurity" style="width: 120px">
+            <el-option :label="t('assetMarket.market.allLevels')" value="" />
+            <el-option :label="t('assetMarket.security.public')" value="public" />
+            <el-option :label="t('assetMarket.security.internal')" value="internal" />
+            <el-option :label="t('assetMarket.security.sensitive')" value="sensitive" />
+          </el-select>
         </div>
       </div>
 
@@ -129,66 +141,61 @@
     <div v-if="tab === 'mine'">
       <div class="card">
         <h3>{{ t('assetMarket.mySubs.title') }}</h3>
-        <div v-if="subsLoading" style="text-align: center; padding: 24px; color: #888">
+        <div v-if="subsLoading" class="state-tip">
           {{ t('assetMarket.mySubs.loading') }}
         </div>
-        <div v-else-if="subsError" style="text-align: center; padding: 24px; color: #d4380d">
+        <div v-else-if="subsError" class="state-tip error">
           {{ t('assetMarket.mySubs.loadFailed', { message: subsError.message }) }}
-          <button class="btn ghost sm" style="margin-left: 8px" @click="loadMySubscriptions">
+          <el-button size="small" style="margin-left: 8px" @click="loadMySubscriptions">
             {{ t('assetMarket.mySubs.retry') }}
-          </button>
+          </el-button>
         </div>
         <template v-else-if="mySubscriptions">
-          <table>
-            <thead>
-              <tr>
-                <th>{{ t('assetMarket.mySubs.columns.asset') }}</th>
-                <th>{{ t('assetMarket.mySubs.columns.owner') }}</th>
-                <th>{{ t('assetMarket.mySubs.columns.status') }}</th>
-                <th>{{ t('assetMarket.mySubs.columns.period') }}</th>
-                <th>{{ t('assetMarket.mySubs.columns.delivery') }}</th>
-                <th>{{ t('assetMarket.mySubs.columns.actions') }}</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="s in mySubscriptions" :key="s.id">
-                <td>{{ assetName(s.assetId) }}</td>
-                <td>{{ assetOwner(s.assetId) }}</td>
-                <td>
-                  <span class="pill" :class="subStatusClass(s.status)">
-                    {{ subStatusLabel(s.status) }}
-                  </span>
-                </td>
-                <td>
-                  {{
-                    t('assetMarket.mySubs.period', {
-                      start: formatDate(s.startTime),
-                      end: formatDate(s.endTime)
-                    })
-                  }}
-                </td>
-                <td>
-                  <span class="pill" :class="deliveryStatusClass(s.deliveryStatus)">
-                    {{ deliveryStatusLabel(s.deliveryStatus) }}
-                  </span>
-                </td>
-                <td>
-                  <button v-if="s.status === 'active'" class="btn ghost sm" @click="openDeliver(s)">
-                    {{ t('assetMarket.mySubs.deliver') }}
-                  </button>
-                  <button class="btn ghost sm" @click="openBilling(s)">
-                    {{ t('assetMarket.mySubs.billing') }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div
-            v-if="mySubscriptions.length === 0"
-            style="text-align: center; padding: 24px; color: #888"
-          >
-            {{ t('assetMarket.mySubs.empty') }}
-          </div>
+          <el-table :data="mySubscriptions" stripe>
+            <el-table-column :label="t('assetMarket.mySubs.columns.asset')">
+              <template #default="{ row }">{{ assetName(row.assetId) }}</template>
+            </el-table-column>
+            <el-table-column :label="t('assetMarket.mySubs.columns.owner')">
+              <template #default="{ row }">{{ assetOwner(row.assetId) }}</template>
+            </el-table-column>
+            <el-table-column :label="t('assetMarket.mySubs.columns.status')">
+              <template #default="{ row }">
+                <span class="pill" :class="subStatusClass(row.status)">
+                  {{ subStatusLabel(row.status) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('assetMarket.mySubs.columns.period')">
+              <template #default="{ row }">
+                {{
+                  t('assetMarket.mySubs.period', {
+                    start: formatDate(row.startTime),
+                    end: formatDate(row.endTime)
+                  })
+                }}
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('assetMarket.mySubs.columns.delivery')">
+              <template #default="{ row }">
+                <span class="pill" :class="deliveryStatusClass(row.deliveryStatus)">
+                  {{ deliveryStatusLabel(row.deliveryStatus) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column :label="t('assetMarket.mySubs.columns.actions')">
+              <template #default="{ row }">
+                <el-button v-if="row.status === 'active'" size="small" @click="openDeliver(row)">
+                  {{ t('assetMarket.mySubs.deliver') }}
+                </el-button>
+                <el-button size="small" @click="openBilling(row)">
+                  {{ t('assetMarket.mySubs.billing') }}
+                </el-button>
+              </template>
+            </el-table-column>
+            <template #empty>
+              <div class="empty-cell">{{ t('assetMarket.mySubs.empty') }}</div>
+            </template>
+          </el-table>
         </template>
       </div>
     </div>
@@ -197,51 +204,48 @@
     <div v-if="tab === 'listed'">
       <div class="card">
         <h3>{{ t('assetMarket.myListed.title') }}</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>{{ t('assetMarket.myListed.columns.name') }}</th>
-              <th>{{ t('assetMarket.myListed.columns.type') }}</th>
-              <th>{{ t('assetMarket.myListed.columns.status') }}</th>
-              <th>{{ t('assetMarket.myListed.columns.subCount') }}</th>
-              <th>{{ t('assetMarket.myListed.columns.revenue') }}</th>
-              <th>{{ t('assetMarket.myListed.columns.actions') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="a in myAssets" :key="a.id">
-              <td>{{ a.name }}</td>
-              <td>{{ typeLabel(a.type) }}</td>
-              <td>
-                <span class="pill" :class="assetStatusClass(a.status)">
-                  {{ assetStatusLabel(a.status) }}
-                </span>
-              </td>
-              <td>{{ a.subscriberCount }}</td>
-              <td>
-                {{
-                  t('assetMarket.myListed.revenueFmt', {
-                    amount: (a.subscriberCount * a.pricing.price).toFixed(2)
-                  })
-                }}
-              </td>
-              <td>
-                <button class="btn ghost sm" @click="openDetail(a)">
-                  {{ t('assetMarket.myListed.detail') }}
-                </button>
-                <button v-if="a.status === 'listed'" class="btn ghost sm" @click="offlineAsset(a)">
-                  {{ t('assetMarket.myListed.offline') }}
-                </button>
-                <button v-if="a.status === 'offline'" class="btn ghost sm" @click="relistAsset(a)">
-                  {{ t('assetMarket.myListed.relist') }}
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="myAssets.length === 0" style="text-align: center; padding: 24px; color: #888">
-          {{ t('assetMarket.myListed.empty') }}
-        </div>
+        <el-table :data="myAssets" stripe>
+          <el-table-column :label="t('assetMarket.myListed.columns.name')" prop="name" />
+          <el-table-column :label="t('assetMarket.myListed.columns.type')">
+            <template #default="{ row }">{{ typeLabel(row.type) }}</template>
+          </el-table-column>
+          <el-table-column :label="t('assetMarket.myListed.columns.status')">
+            <template #default="{ row }">
+              <span class="pill" :class="assetStatusClass(row.status)">
+                {{ assetStatusLabel(row.status) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="t('assetMarket.myListed.columns.subCount')"
+            prop="subscriberCount"
+          />
+          <el-table-column :label="t('assetMarket.myListed.columns.revenue')">
+            <template #default="{ row }">
+              {{
+                t('assetMarket.myListed.revenueFmt', {
+                  amount: (row.subscriberCount * row.pricing.price).toFixed(2)
+                })
+              }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('assetMarket.myListed.columns.actions')">
+            <template #default="{ row }">
+              <el-button size="small" @click="openDetail(row)">
+                {{ t('assetMarket.myListed.detail') }}
+              </el-button>
+              <el-button v-if="row.status === 'listed'" size="small" @click="offlineAsset(row)">
+                {{ t('assetMarket.myListed.offline') }}
+              </el-button>
+              <el-button v-if="row.status === 'offline'" size="small" @click="relistAsset(row)">
+                {{ t('assetMarket.myListed.relist') }}
+              </el-button>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <div class="empty-cell">{{ t('assetMarket.myListed.empty') }}</div>
+          </template>
+        </el-table>
       </div>
     </div>
 
@@ -290,41 +294,36 @@
         </div>
 
         <h4 style="margin-top: 16px">{{ t('assetMarket.detail.schemaTitle') }}</h4>
-        <table v-if="detailAsset.schema?.fields?.length">
-          <thead>
-            <tr>
-              <th>{{ t('assetMarket.detail.schemaColumns.field') }}</th>
-              <th>{{ t('assetMarket.detail.schemaColumns.type') }}</th>
-              <th>{{ t('assetMarket.detail.schemaColumns.description') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="f in detailAsset.schema.fields" :key="f.name">
-              <td>{{ f.name }}</td>
-              <td>{{ f.type }}</td>
-              <td>{{ f.description || '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-else style="color: #888">{{ t('assetMarket.detail.noSchema') }}</div>
+        <el-table
+          v-if="detailAsset.schema?.fields?.length"
+          :data="detailAsset.schema.fields"
+          stripe
+        >
+          <el-table-column :label="t('assetMarket.detail.schemaColumns.field')" prop="name" />
+          <el-table-column :label="t('assetMarket.detail.schemaColumns.type')" prop="type" />
+          <el-table-column :label="t('assetMarket.detail.schemaColumns.description')">
+            <template #default="{ row }">{{ row.description || '—' }}</template>
+          </el-table-column>
+        </el-table>
+        <div v-else class="muted-text">{{ t('assetMarket.detail.noSchema') }}</div>
 
         <h4 style="margin-top: 16px">{{ t('assetMarket.detail.sampleTitle') }}</h4>
         <pre v-if="detailAsset.sample?.length" class="sample">{{
           JSON.stringify(detailAsset.sample, null, 2)
         }}</pre>
-        <div v-else style="color: #888">{{ t('assetMarket.detail.noSample') }}</div>
+        <div v-else class="muted-text">{{ t('assetMarket.detail.noSample') }}</div>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="detailVisible = false">
+        <el-button @click="detailVisible = false">
           {{ t('assetMarket.detail.close') }}
-        </button>
-        <button
+        </el-button>
+        <el-button
           v-if="detailAsset && detailAsset.status === 'listed'"
-          class="btn"
+          type="primary"
           @click="subscribeAsset(detailAsset)"
         >
           {{ t('assetMarket.detail.subscribe') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
 
@@ -335,48 +334,51 @@
       @close="listModalVisible = false"
     >
       <label>{{ t('assetMarket.listForm.name') }}</label>
-      <input v-model="newAsset.name" :placeholder="t('assetMarket.listForm.namePlaceholder')" />
+      <el-input v-model="newAsset.name" :placeholder="t('assetMarket.listForm.namePlaceholder')" />
       <label>{{ t('assetMarket.listForm.type') }}</label>
-      <select v-model="newAsset.type">
-        <option value="table">{{ t('assetMarket.assetType.table') }}</option>
-        <option value="api">{{ t('assetMarket.assetType.api') }}</option>
-        <option value="model">{{ t('assetMarket.assetType.model') }}</option>
-        <option value="dashboard">{{ t('assetMarket.assetType.dashboard') }}</option>
-        <option value="stream">{{ t('assetMarket.assetType.stream') }}</option>
-      </select>
+      <el-select v-model="newAsset.type">
+        <el-option :label="t('assetMarket.assetType.table')" value="table" />
+        <el-option :label="t('assetMarket.assetType.api')" value="api" />
+        <el-option :label="t('assetMarket.assetType.model')" value="model" />
+        <el-option :label="t('assetMarket.assetType.dashboard')" value="dashboard" />
+        <el-option :label="t('assetMarket.assetType.stream')" value="stream" />
+      </el-select>
       <label>{{ t('assetMarket.listForm.securityLevel') }}</label>
-      <select v-model="newAsset.securityLevel">
-        <option value="public">{{ t('assetMarket.security.public') }}</option>
-        <option value="internal">{{ t('assetMarket.security.internal') }}</option>
-        <option value="sensitive">{{ t('assetMarket.security.sensitive') }}</option>
-      </select>
+      <el-select v-model="newAsset.securityLevel">
+        <el-option :label="t('assetMarket.security.public')" value="public" />
+        <el-option :label="t('assetMarket.security.internal')" value="internal" />
+        <el-option :label="t('assetMarket.security.sensitive')" value="sensitive" />
+      </el-select>
       <label>{{ t('assetMarket.listForm.description') }}</label>
-      <input
+      <el-input
         v-model="newAsset.description"
         :placeholder="t('assetMarket.listForm.descriptionPlaceholder')"
       />
       <label>{{ t('assetMarket.listForm.billingMode') }}</label>
-      <select v-model="newAsset.pricing.mode">
-        <option value="by_call">{{ t('assetMarket.billingMode.by_call') }}</option>
-        <option value="by_data">{{ t('assetMarket.billingMode.by_data') }}</option>
-        <option value="by_time">{{ t('assetMarket.billingMode.by_time_unit') }}</option>
-        <option value="one_time">{{ t('assetMarket.billingMode.one_time') }}</option>
-      </select>
+      <el-select v-model="newAsset.pricing.mode">
+        <el-option :label="t('assetMarket.billingMode.by_call')" value="by_call" />
+        <el-option :label="t('assetMarket.billingMode.by_data')" value="by_data" />
+        <el-option :label="t('assetMarket.billingMode.by_time_unit')" value="by_time" />
+        <el-option :label="t('assetMarket.billingMode.one_time')" value="one_time" />
+      </el-select>
       <label>{{ t('assetMarket.listForm.unitPrice') }}</label>
-      <input v-model.number="newAsset.pricing.price" type="number" step="0.01" />
+      <el-input-number v-model="newAsset.pricing.price" :step="0.01" :min="0" />
       <label>{{ t('assetMarket.listForm.deliveryMethod') }}</label>
-      <select v-model="newAsset.deliveryMethod">
-        <option value="api">{{ t('assetMarket.deliveryMethod.api') }}</option>
-        <option value="file">{{ t('assetMarket.deliveryMethod.file') }}</option>
-        <option value="database_direct">
-          {{ t('assetMarket.deliveryMethod.database_direct') }}
-        </option>
-      </select>
+      <el-select v-model="newAsset.deliveryMethod">
+        <el-option :label="t('assetMarket.deliveryMethod.api')" value="api" />
+        <el-option :label="t('assetMarket.deliveryMethod.file')" value="file" />
+        <el-option
+          :label="t('assetMarket.deliveryMethod.database_direct')"
+          value="database_direct"
+        />
+      </el-select>
       <template #footer>
-        <button class="btn ghost" @click="listModalVisible = false">
+        <el-button @click="listModalVisible = false">
           {{ t('assetMarket.listForm.cancel') }}
-        </button>
-        <button class="btn" @click="submitListAsset">{{ t('assetMarket.listForm.submit') }}</button>
+        </el-button>
+        <el-button type="primary" @click="submitListAsset">
+          {{ t('assetMarket.listForm.submit') }}
+        </el-button>
       </template>
     </Modal>
 
@@ -397,45 +399,48 @@
         </div>
       </div>
       <label>{{ t('assetMarket.deliver.method') }}</label>
-      <select v-model="deliverReq.method">
-        <option value="api">{{ t('assetMarket.deliveryMethod.api') }}</option>
-        <option value="file">{{ t('assetMarket.deliveryMethod.file') }}</option>
-        <option value="database_direct">
-          {{ t('assetMarket.deliveryMethod.database_direct') }}
-        </option>
-      </select>
+      <el-select v-model="deliverReq.method">
+        <el-option :label="t('assetMarket.deliveryMethod.api')" value="api" />
+        <el-option :label="t('assetMarket.deliveryMethod.file')" value="file" />
+        <el-option
+          :label="t('assetMarket.deliveryMethod.database_direct')"
+          value="database_direct"
+        />
+      </el-select>
       <div v-if="deliverReq.method === 'api'">
         <label>{{ t('assetMarket.deliver.api.endpoint') }}</label>
-        <input
+        <el-input
           v-model="deliverReq.config.endpoint"
           :placeholder="t('assetMarket.deliver.api.endpointPlaceholder')"
         />
       </div>
       <div v-if="deliverReq.method === 'file'">
         <label>{{ t('assetMarket.deliver.file.format') }}</label>
-        <select v-model="deliverReq.config.format">
-          <option value="csv">{{ t('assetMarket.fileFormat.csv') }}</option>
-          <option value="parquet">{{ t('assetMarket.fileFormat.parquet') }}</option>
-          <option value="json">{{ t('assetMarket.fileFormat.json') }}</option>
-        </select>
+        <el-select v-model="deliverReq.config.format">
+          <el-option :label="t('assetMarket.fileFormat.csv')" value="csv" />
+          <el-option :label="t('assetMarket.fileFormat.parquet')" value="parquet" />
+          <el-option :label="t('assetMarket.fileFormat.json')" value="json" />
+        </el-select>
       </div>
       <div v-if="deliverReq.method === 'database_direct'">
         <label>{{ t('assetMarket.deliver.database.jdbcUrl') }}</label>
-        <input
+        <el-input
           v-model="deliverReq.config.jdbcUrl"
           :placeholder="t('assetMarket.deliver.database.jdbcUrlPlaceholder')"
         />
         <label>{{ t('assetMarket.deliver.database.tableName') }}</label>
-        <input
+        <el-input
           v-model="deliverReq.config.tableName"
           :placeholder="t('assetMarket.deliver.database.tableNamePlaceholder')"
         />
       </div>
       <template #footer>
-        <button class="btn ghost" @click="deliverModalVisible = false">
+        <el-button @click="deliverModalVisible = false">
           {{ t('assetMarket.deliver.cancel') }}
-        </button>
-        <button class="btn" @click="submitDeliver">{{ t('assetMarket.deliver.submit') }}</button>
+        </el-button>
+        <el-button type="primary" @click="submitDeliver">
+          {{ t('assetMarket.deliver.submit') }}
+        </el-button>
       </template>
     </Modal>
 
@@ -445,40 +450,37 @@
       :title="t('assetMarket.billing.title')"
       @close="billingModalVisible = false"
     >
-      <div v-if="billingLoading" style="color: #888; text-align: center; padding: 24px">
+      <div v-if="billingLoading" class="state-tip">
         {{ t('assetMarket.billing.loading') }}
       </div>
-      <div v-else-if="billingRecords.length">
-        <table>
-          <thead>
-            <tr>
-              <th>{{ t('assetMarket.billing.columns.period') }}</th>
-              <th>{{ t('assetMarket.billing.columns.mode') }}</th>
-              <th>{{ t('assetMarket.billing.columns.usage') }}</th>
-              <th>{{ t('assetMarket.billing.columns.amount') }}</th>
-              <th>{{ t('assetMarket.billing.columns.providerRevenue') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="r in billingRecords" :key="r.id">
-              <td>{{ r.period }}</td>
-              <td>{{ billingModeLabel(r.mode) }}</td>
-              <td>{{ t('assetMarket.billing.usageFmt', { usage: r.usage, unit: r.unit }) }}</td>
-              <td>{{ t('assetMarket.billing.amountFmt', { amount: r.amount.toFixed(2) }) }}</td>
-              <td>
-                {{ t('assetMarket.billing.amountFmt', { amount: r.providerRevenue.toFixed(2) }) }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-else style="color: #888; text-align: center; padding: 24px">
+      <el-table v-else-if="billingRecords.length" :data="billingRecords" stripe>
+        <el-table-column :label="t('assetMarket.billing.columns.period')" prop="period" />
+        <el-table-column :label="t('assetMarket.billing.columns.mode')">
+          <template #default="{ row }">{{ billingModeLabel(row.mode) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('assetMarket.billing.columns.usage')">
+          <template #default="{ row }">
+            {{ t('assetMarket.billing.usageFmt', { usage: row.usage, unit: row.unit }) }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('assetMarket.billing.columns.amount')">
+          <template #default="{ row }">
+            {{ t('assetMarket.billing.amountFmt', { amount: row.amount.toFixed(2) }) }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('assetMarket.billing.columns.providerRevenue')">
+          <template #default="{ row }">
+            {{ t('assetMarket.billing.amountFmt', { amount: row.providerRevenue.toFixed(2) }) }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <div v-else class="state-tip">
         {{ t('assetMarket.billing.empty') }}
       </div>
       <template #footer>
-        <button class="btn ghost" @click="billingModalVisible = false">
+        <el-button @click="billingModalVisible = false">
           {{ t('assetMarket.billing.close') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -784,15 +786,35 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 通用文字色辅助类（使用 design tokens） */
+.muted-text {
+  color: var(--ds-text-tertiary);
+}
+/* 状态提示：加载/错误统一样式 */
+.state-tip {
+  text-align: center;
+  padding: 24px;
+  color: var(--ds-text-tertiary);
+}
+.state-tip.error {
+  color: var(--ds-color-error-600);
+}
+/* 空状态单元格 */
+.empty-cell {
+  text-align: center;
+  color: var(--ds-text-tertiary);
+  padding: 16px;
+}
+
 .asset-card {
   cursor: pointer;
   transition:
-    transform 0.15s,
-    box-shadow 0.15s;
+    transform var(--ds-transition-fast),
+    box-shadow var(--ds-transition-fast);
 }
 .asset-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--ds-shadow-md);
 }
 .asset-header {
   display: flex;
@@ -800,62 +822,90 @@ onMounted(() => {
   align-items: center;
   margin-bottom: 8px;
 }
+/* 资产类型标签：使用 design tokens 语义色 */
 .asset-type {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 2px 8px;
-  border-radius: 4px;
-  background: #e8f4fd;
-  color: #1890ff;
+  border-radius: var(--ds-radius-sm);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-600);
 }
 .asset-type.model {
-  background: #f6e8fd;
-  color: #722ed1;
+  background: var(--ds-color-info-50);
+  color: var(--ds-color-info-600);
 }
 .asset-type.stream {
-  background: #e8fdf6;
-  color: #13c2c2;
+  background: var(--ds-color-success-50);
+  color: var(--ds-color-success-600);
 }
 .asset-type.dashboard {
-  background: #fdf6e8;
-  color: #fa8c16;
+  background: var(--ds-color-warning-50);
+  color: var(--ds-color-warning-600);
 }
 .asset-desc {
-  color: #666;
-  font-size: 13px;
+  color: var(--ds-text-secondary);
+  font-size: var(--ds-font-size-sm);
   margin: 8px 0;
   min-height: 40px;
 }
 .asset-meta {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
-  color: #888;
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-text-tertiary);
   margin-bottom: 8px;
 }
 .asset-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--ds-border-subtle);
   padding-top: 8px;
 }
 .price {
-  color: #1890ff;
-  font-weight: 600;
+  color: var(--ds-color-primary-600);
+  font-weight: var(--ds-font-weight-semibold);
 }
 .sub-count {
-  font-size: 12px;
-  color: #888;
+  font-size: var(--ds-font-size-xs);
+  color: var(--ds-text-tertiary);
 }
 .detail-content .kv {
   margin: 6px 0;
 }
+/* 样本数据展示：使用 design tokens 次级表面色 */
 .sample {
-  background: #f5f5f5;
+  background: var(--ds-bg-subtle);
   padding: 12px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-font-size-xs);
   max-height: 200px;
   overflow: auto;
+}
+
+/* 响应式断点：中等屏幕收窄卡片网格 */
+@media (max-width: 1100px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-sm);
+  }
+}
+
+/* 响应式断点：小屏幕单列布局 */
+@media (max-width: 720px) {
+  :deep(.el-table) {
+    font-size: var(--ds-font-size-xs);
+  }
+  :deep(.el-table .cell) {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  /* 筛选行在小屏幕下垂直排列 */
+  .row {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+  .row .el-select {
+    width: 100% !important;
+  }
 }
 </style>

@@ -235,12 +235,12 @@
         </el-table-column>
         <el-table-column :label="t('kb.docModal.cols.status')" width="110">
           <template #default="{ row }">
-                <StatusTag
-                  :status="row.status"
-                  :label="docStatusLabel(row.status)"
-                  :status-map="DOC_STATUS_TAG_MAP"
-                  size="small"
-                />
+            <StatusTag
+              :status="row.status"
+              :label="docStatusLabel(row.status)"
+              :status-map="DOC_STATUS_TAG_MAP"
+              size="small"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="uploadedAt" :label="t('kb.docModal.cols.uploadedAt')" width="170">

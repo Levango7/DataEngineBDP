@@ -13,64 +13,73 @@
       </template>
     </Toolbar>
     <div class="card">
-      <div v-if="policiesLoading" style="padding: 16px; color: var(--muted)">
+      <div v-if="policiesLoading" class="state-tip state-loading">
         {{ t('common.loading') }}
       </div>
-      <div v-else-if="policiesError" style="padding: 16px; color: var(--red)">
+      <div v-else-if="policiesError" class="state-tip state-error">
         {{ policiesError.message }}，
         <a href="javascript:void(0)" @click="loadPolicies">{{ t('common.retry') }}</a>
       </div>
-      <table v-else>
-        <tr>
-          <th>{{ t('sec.cols.field') }}</th>
-          <th>{{ t('sec.cols.asset') }}</th>
-          <th>{{ t('sec.cols.strategy') }}</th>
-          <th>{{ t('sec.cols.algorithm') }}</th>
-          <th>{{ t('sec.cols.status') }}</th>
-        </tr>
-        <tr v-for="p in policies" :key="p.id">
-          <td>{{ p.fieldName }}</td>
-          <td>{{ p.assetName }}</td>
-          <td>{{ strategyLabel(p.strategy) }}</td>
-          <td>{{ p.algorithm }}</td>
-          <td>
-            <span class="pill" :class="statusPillClass(p.status)">
-              {{ statusPillText(p.status) }}
+      <!-- 脱敏策略列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
+      <el-table
+        v-else
+        :data="policies"
+        stripe
+        border
+        role="table"
+        :aria-label="t('sec.title')"
+        :empty-text="t('sec.empty')"
+      >
+        <el-table-column prop="fieldName" :label="t('sec.cols.field')" min-width="160" />
+        <el-table-column prop="assetName" :label="t('sec.cols.asset')" min-width="160" />
+        <el-table-column :label="t('sec.cols.strategy')" width="140">
+          <template #default="{ row }">
+            {{ strategyLabel(row.strategy) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="algorithm" :label="t('sec.cols.algorithm')" width="140" />
+        <el-table-column :label="t('sec.cols.status')" width="120">
+          <template #default="{ row }">
+            <span class="pill" :class="statusPillClass(row.status)">
+              {{ statusPillText(row.status) }}
             </span>
-          </td>
-        </tr>
-        <tr v-if="policies.length === 0">
-          <td colspan="5" style="text-align: center; color: var(--muted)">{{ t('sec.empty') }}</td>
-        </tr>
-      </table>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
     <div class="section-title">{{ t('sec.approvalsTitle') }}</div>
     <div class="card">
-      <div v-if="approvalsLoading" style="padding: 16px; color: var(--muted)">
+      <div v-if="approvalsLoading" class="state-tip state-loading">
         {{ t('common.loading') }}
       </div>
-      <table v-else>
-        <tr>
-          <th>{{ t('sec.approvalCols.applicant') }}</th>
-          <th>{{ t('sec.approvalCols.asset') }}</th>
-          <th>{{ t('sec.approvalCols.permission') }}</th>
-          <th></th>
-        </tr>
-        <tr v-for="a in approvals" :key="a.id">
-          <td>{{ a.applicant }}</td>
-          <td>{{ a.asset }}</td>
-          <td>{{ a.permission }}</td>
-          <td>
-            <button class="btn sm" @click="handleApprove(a.id)">{{ t('sec.approve') }}</button>
-            <button class="btn ghost sm" @click="handleReject(a.id)">{{ t('sec.reject') }}</button>
-          </td>
-        </tr>
-        <tr v-if="approvals.length === 0">
-          <td colspan="4" style="text-align: center; color: var(--muted)">
-            {{ t('sec.approvalsEmpty') }}
-          </td>
-        </tr>
-      </table>
+      <!-- 审批列表：使用 el-table 替换原生 table，操作列使用 el-button -->
+      <el-table
+        v-else
+        :data="approvals"
+        stripe
+        border
+        role="table"
+        :aria-label="t('sec.approvalsTitle')"
+        :empty-text="t('sec.approvalsEmpty')"
+      >
+        <el-table-column prop="applicant" :label="t('sec.approvalCols.applicant')" min-width="140" />
+        <el-table-column prop="asset" :label="t('sec.approvalCols.asset')" min-width="160" />
+        <el-table-column
+          prop="permission"
+          :label="t('sec.approvalCols.permission')"
+          min-width="140"
+        />
+        <el-table-column :label="t('sec.approvalCols.action')" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" type="primary" @click="handleApprove(row.id)">
+              {{ t('sec.approve') }}
+            </el-button>
+            <el-button size="small" @click="handleReject(row.id)">
+              {{ t('sec.reject') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <Modal
@@ -79,26 +88,26 @@
       @close="modalVisible = false"
     >
       <label>{{ t('sec.createModal.field') }}</label>
-      <input v-model="form.fieldName" :placeholder="t('sec.createModal.fieldPlaceholder')" />
+      <el-input v-model="form.fieldName" :placeholder="t('sec.createModal.fieldPlaceholder')" />
       <label>{{ t('sec.createModal.asset') }}</label>
-      <input v-model="form.assetName" />
+      <el-input v-model="form.assetName" />
       <label>{{ t('sec.createModal.strategy') }}</label>
-      <select v-model="form.strategy">
-        <option value="mask">{{ t('sec.strategies.mask') }}</option>
-        <option value="hash">{{ t('sec.strategies.hash') }}</option>
-        <option value="authorized_only">{{ t('sec.strategies.authorized_only') }}</option>
-      </select>
+      <el-select v-model="form.strategy" style="width: 100%">
+        <el-option :label="t('sec.strategies.mask')" value="mask" />
+        <el-option :label="t('sec.strategies.hash')" value="hash" />
+        <el-option :label="t('sec.strategies.authorized_only')" value="authorized_only" />
+      </el-select>
       <label>{{ t('sec.createModal.algorithm') }}</label>
-      <select v-model="form.algorithm">
-        <option value="SM3">{{ t('sec.createModal.sm3') }}</option>
-        <option value="SHA256">SHA256</option>
-        <option value="AES">AES</option>
-      </select>
+      <el-select v-model="form.algorithm" style="width: 100%">
+        <el-option :label="t('sec.createModal.sm3')" value="SM3" />
+        <el-option label="SHA256" value="SHA256" />
+        <el-option label="AES" value="AES" />
+      </el-select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
           {{ submitting ? t('sec.createModal.submitting') : t('sec.createModal.submit') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -239,3 +248,16 @@ onMounted(() => {
   void loadApprovals()
 })
 </script>
+
+<style scoped>
+/* 状态提示：使用 design tokens 替代硬编码颜色 */
+.state-tip {
+  padding: var(--ds-spacing-4);
+}
+.state-loading {
+  color: var(--ds-text-tertiary);
+}
+.state-error {
+  color: var(--ds-color-error-500);
+}
+</style>

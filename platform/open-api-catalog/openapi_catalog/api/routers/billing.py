@@ -14,6 +14,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from openapi_catalog.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
     CostStrategy,
@@ -114,6 +115,7 @@ async def issue_key(
     subscription_id: str,
     req: IssueKeyRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> IssueKeyResponse:
     """重新颁发订阅的 AK/SK.
 
@@ -121,6 +123,7 @@ async def issue_key(
     仅对 ACTIVE/SUSPENDED 状态的订阅可重新颁发。
     旧 Key 立即失效。
     """
+    requireAdmin(ctx)
     try:
         sub = await registry.subscriptionService.get_subscription(subscription_id)
         if sub.status not in (SubscriptionStatus.ACTIVE, SubscriptionStatus.SUSPENDED):
@@ -185,6 +188,7 @@ async def configure_rate_limit(
     subscription_id: str,
     req: RateLimitConfig,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> RateLimitConfigResponse:
     """配置订阅级限流.
 
@@ -195,6 +199,7 @@ async def configure_rate_limit(
     Returns:
         配置后的限流信息.
     """
+    requireAdmin(ctx)
     try:
         # 校验订阅存在
         await registry.subscriptionService.get_subscription(subscription_id)
@@ -266,6 +271,7 @@ async def configure_billing(
     api_id: str,
     req: BillingConfigRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> BillingConfigResponse:
     """配置 API 的计费策略.
 
@@ -274,6 +280,7 @@ async def configure_billing(
         - by_bytes: 按量计费，costUnitPrice 为元/KB
         - monthly_package: 订阅计费，costUnitPrice 为元/月，需指定 monthlyQuota
     """
+    requireAdmin(ctx)
     try:
         # 校验计费策略
         try:

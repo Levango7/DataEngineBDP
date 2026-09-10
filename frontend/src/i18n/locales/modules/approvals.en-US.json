@@ -1,0 +1,60 @@
+{
+  "approvals": {
+    "title": "Approval Center",
+    "subtitle": "Tenant admins / platform admins review pending registration requests",
+    "stats": {
+      "pendingAll": "Pending (All)",
+      "processing": "Processing",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "filter": {
+      "status": "Status filter",
+      "tenant": "Tenant filter",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "table": {
+      "empty": "No registration requests",
+      "columns": {
+        "username": "Username",
+        "fullName": "Full Name",
+        "email": "Email",
+        "department": "Department",
+        "employeeId": "Employee ID",
+        "tenant": "Tenant",
+        "role": "Role",
+        "inviteCode": "Invite Code",
+        "status": "Status",
+        "createdAt": "Requested At",
+        "actions": "Actions"
+      },
+      "approve": "Approve",
+      "reject": "Reject"
+    },
+    "dialog": {
+      "approveTitle": "Approve Registration",
+      "rejectTitle": "Reject Registration",
+      "confirmApprove": "Approve registration of user {user} for {tenant}?",
+      "confirmReject": "Reject registration of user {user} for {tenant}?",
+      "note": "Review note",
+      "noteApproveHint": "Welcome aboard",
+      "noteRejectHint": "Employee ID verification failed",
+      "confirmApproveBtn": "Confirm Approve",
+      "confirmRejectBtn": "Confirm Reject"
+    },
+    "labels": {
+      "roleTenantAdmin": "Tenant Admin",
+      "roleUser": "User",
+      "rolePlatformAdmin": "Platform Admin",
+      "statusPending": "Pending",
+      "statusApproved": "Approved",
+      "statusRejected": "Rejected"
+    },
+    "messages": {
+      "approved": "Approved",
+      "rejected": "Rejected"
+    }
+  }
+}

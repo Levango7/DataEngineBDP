@@ -388,7 +388,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--bg);
+  background: var(--ds-bg-base);
 }
 .chat-messages {
   flex: 1;
@@ -406,7 +406,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   max-width: 520px;
 }
 .empty-icon {
-  color: var(--primary);
+  color: var(--ds-color-primary-500);
   margin-bottom: 12px;
 }
 .chat-empty h2 {
@@ -414,7 +414,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   margin-bottom: 8px;
 }
 .empty-desc {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   font-size: 13px;
   margin-bottom: 22px;
 }
@@ -429,7 +429,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   align-items: center;
   gap: 6px;
   padding: 8px 14px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   background: var(--c-white);
   border-radius: 20px;
   font-size: 13px;
@@ -438,9 +438,9 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   transition: all 0.15s;
 }
 .example-chip:hover {
-  border-color: var(--primary);
-  color: var(--primary);
-  background: var(--primary-soft);
+  border-color: var(--ds-color-primary-500);
+  color: var(--ds-color-primary-500);
+  background: var(--ds-color-primary-50);
 }
 
 /* 消息项 */
@@ -456,8 +456,8 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: var(--primary-soft);
-  color: var(--primary);
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-500);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -465,7 +465,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   font-size: 18px;
 }
 .msg-user .msg-avatar {
-  background: var(--primary);
+  background: var(--ds-color-primary-500);
   color: #fff;
 }
 .msg-body {
@@ -479,14 +479,14 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 }
 .msg-role {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-bottom: 2px;
 }
 
 /* 文本 */
 .content-text {
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 10px 14px;
   font-size: 13.5px;
@@ -495,15 +495,15 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   word-break: break-word;
 }
 .msg-user .content-text {
-  background: var(--primary);
+  background: var(--ds-color-primary-500);
   color: #fff;
-  border-color: var(--primary);
+  border-color: var(--ds-color-primary-500);
 }
 .cursor {
   display: inline-block;
   width: 7px;
   height: 14px;
-  background: var(--primary);
+  background: var(--ds-color-primary-500);
   margin-left: 2px;
   vertical-align: -2px;
   animation: blink 1s infinite;
@@ -520,8 +520,8 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   align-items: center;
   gap: 6px;
   background: var(--c-red-50);
-  color: var(--red);
-  border: 1px solid var(--red);
+  color: var(--ds-color-error-500);
+  border: 1px solid var(--ds-color-error-500);
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 13px;
@@ -530,7 +530,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 /* 卡片 */
 .content-card {
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 12px;
   padding: 14px;
   display: flex;
@@ -544,7 +544,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 .content-chart,
 .content-summary {
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px;
   width: 100%;
@@ -556,14 +556,14 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   gap: 4px;
   padding: 8px 12px;
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
 }
 .content-pending .dot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: var(--primary);
+  background: var(--ds-color-primary-500);
   animation: bounce 1.2s infinite ease-in-out;
 }
 .content-pending .dot:nth-child(2) {
@@ -594,7 +594,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 
 /* 输入区 */
 .chat-input-area {
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ds-border-subtle);
   background: var(--c-white);
   padding: 10px 16px 14px;
 }
@@ -604,7 +604,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   gap: 6px;
   margin-bottom: 8px;
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .toolbar-label {
   margin-right: 10px;

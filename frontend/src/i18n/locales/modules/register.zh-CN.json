@@ -1,0 +1,53 @@
+{
+  "register": {
+    "title": "注册新账号",
+    "card": "注册卡片",
+    "steps": {
+      "code": "填写邀请码",
+      "info": "填写资料",
+      "review": "等待审批"
+    },
+    "step1": {
+      "aria": "填写邀请码",
+      "heading": "使用邀请码注册",
+      "sub": "邀请码由企业管理员通过邮件/IM 发送给您，8 位大写字母+数字",
+      "codePlaceholder": "请输入邀请码（如 KX7M2HQ9）",
+      "next": "下一步",
+      "noCode": "没有邀请码？",
+      "contact": "联系企业管理员"
+    },
+    "step2": {
+      "aria": "填写注册资料",
+      "heading": "填写注册资料",
+      "tenant": "租户",
+      "inviteRole": "邀请角色",
+      "fieldUsername": "用户名", "usernameHint": "如 zhangsan",
+      "fieldFullName": "姓名", "fullNameHint": "如 张三",
+      "fieldEmail": "邮箱", "emailHint": "如 zhangsan@huadong.com",
+      "fieldDepartment": "部门", "departmentHint": "如 数据科学部",
+      "fieldEmployeeId": "工号", "employeeIdHint": "如 E10023",
+      "prev": "上一步", "submit": "提交注册"
+    },
+    "step3": {
+      "aria": "等待审批",
+      "heading": "注册申请已提交",
+      "sub": "租户管理员将会在 1-2 个工作日内审批您的申请",
+      "labelUsername": "申请账号：",
+      "labelTenant": "所属租户：",
+      "labelTime": "申请时间：",
+      "footer": "审批通过后，您会收到邮件通知。届时使用您的用户名/邮箱和初始密码登录即可。",
+      "backToLogin": "← 返回登录"
+    },
+    "rules": {
+      "usernameRequired": "用户名必填", "usernamePattern": "3-31 位小写字母/数字/下划线",
+      "fullNameRequired": "姓名必填", "emailRequired": "邮箱必填", "emailInvalid": "邮箱格式不正确",
+      "departmentRequired": "部门必填", "employeeIdRequired": "工号必填"
+    },
+    "labels": {
+      "rolePlatformAdmin": "平台超管", "roleTenantAdmin": "租户管理员", "roleUser": "普通用户"
+    },
+    "messages": {
+      "codeRequired": "请输入邀请码", "codeInvalid": "邀请码无效", "submitFailed": "注册失败"
+    }
+  }
+}

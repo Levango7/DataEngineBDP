@@ -53,7 +53,7 @@
       <template v-else-if="configError">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ configError.message }}，
             <a href="javascript:void(0)" @click="loadConfig">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -99,7 +99,7 @@
         <div class="meta">{{ t('engines.kpi.loading') }}</div>
       </template>
       <template v-else-if="configError">
-        <div class="meta" style="color: var(--muted)">{{ t('infraNet.config.loadFailed') }}</div>
+        <div class="meta" style="color: var(--ds-text-tertiary)">{{ t('infraNet.config.loadFailed') }}</div>
       </template>
       <template v-else-if="networkConfig">
         <el-descriptions :column="2" border>
@@ -614,7 +614,7 @@ onMounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;

@@ -47,12 +47,20 @@ class RuleTest {
     @DisplayName("全参构造器 — 正确初始化所有字段")
     void allArgsConstructor_shouldInitializeAllFields() {
         Rule r = new Rule(2L, "mask-rule", "脱敏规则", "MASK", "PHONE_MASK", "WARN",
-                false, LocalDateTime.now(), LocalDateTime.now());
+                false, "tenant-x", LocalDateTime.now(), LocalDateTime.now());
 
         assertThat(r.getId()).isEqualTo(2L);
         assertThat(r.getName()).isEqualTo("mask-rule");
         assertThat(r.getType()).isEqualTo("MASK");
         assertThat(r.getEnabled()).isFalse();
+        assertThat(r.getTenantId()).isEqualTo("tenant-x");
+    }
+
+    @Test
+    @DisplayName("tenantId — getter/setter 正确存取")
+    void tenantId_shouldBeAccessible() {
+        rule.setTenantId("tenant-abc");
+        assertThat(rule.getTenantId()).isEqualTo("tenant-abc");
     }
 
     @Test

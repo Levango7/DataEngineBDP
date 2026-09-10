@@ -20,11 +20,11 @@
       <div class="params">
         <h3 style="font-size: 13px">{{ t('sql.config') }}</h3>
         <label>{{ t('sql.routeEngine') }}</label>
-        <select>
-          <option>{{ t('sql.engineAuto') }}</option>
-          <option>Trino</option>
-          <option>Doris</option>
-        </select>
+        <el-select v-model="selectedEngine" class="engine-select">
+          <el-option value="auto" :label="t('sql.engineAuto')" />
+          <el-option value="trino" label="Trino" />
+          <el-option value="doris" label="Doris" />
+        </el-select>
         <label>{{ t('sql.timeout') }}</label>
         <input value="120" />
         <div class="chips" style="margin-top: 10px">
@@ -40,7 +40,7 @@
           </button>
         </div>
         <button class="btn" style="width: 100%; margin-top: 12px" @click="runSql">
-          <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg>
+          <el-icon class="play"><VideoPlay /></el-icon>
           {{ t('sql.execute') }}
         </button>
         <div class="note">{{ t('sql.gatewayNote') }}</div>
@@ -49,7 +49,7 @@
     <div class="card" style="margin-top: 14px">
       <h3>{{ t('sql.result') }}</h3>
       <div v-if="queryLoading" class="note">{{ t('sql.querying') }}</div>
-      <div v-else-if="queryError" class="note" style="color: var(--red)">
+      <div v-else-if="queryError" class="note" style="color: var(--ds-color-error-500)">
         {{ queryError.message }}，
         <a href="javascript:void(0)" @click="runSql">{{ t('common.retry') }}</a>
       </div>
@@ -77,6 +77,7 @@ import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
 import { PageHeader } from '@/components/ui'
 import { executeCrossSourceSql, type CrossSourceQueryResult } from '@/api/sqlworkbench'
+import { VideoPlay } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
 const store = useAppStore()

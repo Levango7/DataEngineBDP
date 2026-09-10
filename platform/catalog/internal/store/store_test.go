@@ -1,6 +1,7 @@
 package store
 
 import (
+	"fmt"
 	"sort"
 	"testing"
 	"time"
@@ -52,14 +53,26 @@ func (m *mockDB) GetDatabase(tenantID, id string) (*model.Database, error) {
 	return db, nil
 }
 
-func (m *mockDB) ListDatabases(tenantID string) ([]*model.Database, error) {
+func (m *mockDB) ListDatabases(tenantID string, limit, offset int) ([]*model.Database, int64, error) {
 	var result []*model.Database
 	for _, db := range m.databases {
 		if db.TenantID == tenantID {
 			result = append(result, db)
 		}
 	}
-	return result, nil
+	total := int64(len(result))
+	// 应用分页
+	if limit > 0 {
+		if offset >= len(result) {
+			return []*model.Database{}, total, nil
+		}
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		result = result[offset:end]
+	}
+	return result, total, nil
 }
 
 func (m *mockDB) DeleteDatabase(tenantID, id string) error {
@@ -93,7 +106,7 @@ func (m *mockDB) GetTable(tenantID, id string) (*model.Table, error) {
 	return t, nil
 }
 
-func (m *mockDB) ListTables(tenantID, dbName string) ([]*model.Table, error) {
+func (m *mockDB) ListTables(tenantID, dbName string, limit, offset int) ([]*model.Table, int64, error) {
 	var result []*model.Table
 	for _, t := range m.tables {
 		if t.TenantID != tenantID {
@@ -103,7 +116,19 @@ func (m *mockDB) ListTables(tenantID, dbName string) ([]*model.Table, error) {
 			result = append(result, t)
 		}
 	}
-	return result, nil
+	total := int64(len(result))
+	// 应用分页
+	if limit > 0 {
+		if offset >= len(result) {
+			return []*model.Table{}, total, nil
+		}
+		end := offset + limit
+		if end > len(result) {
+			end = len(result)
+		}
+		result = result[offset:end]
+	}
+	return result, total, nil
 }
 
 func (m *mockDB) UpdateTable(t *model.Table) error {
@@ -228,9 +253,10 @@ func TestStore_GetDatabase_NotFound(t *testing.T) {
 // TestStore_ListDatabases_Empty 测试空列表。
 func TestStore_ListDatabases_Empty(t *testing.T) {
 	s := newMockDB()
-	dbs, err := s.ListDatabases("t1")
+	dbs, total, err := s.ListDatabases("t1", 20, 0)
 	require.NoError(t, err)
 	assert.Empty(t, dbs)
+	assert.Equal(t, int64(0), total)
 }
 
 // TestStore_ListDatabases_Multiple 测试多个数据库列表。
@@ -240,9 +266,10 @@ func TestStore_ListDatabases_Multiple(t *testing.T) {
 	require.NoError(t, s.CreateDatabase(&model.Database{TenantID: "t1", ID: "l-002", Name: "db2", Owner: "admin", CreatedAt: fixedTime()}))
 	require.NoError(t, s.CreateDatabase(&model.Database{TenantID: "t1", ID: "l-003", Name: "db3", Owner: "admin", CreatedAt: fixedTime()}))
 
-	dbs, err := s.ListDatabases("t1")
+	dbs, total, err := s.ListDatabases("t1", 20, 0)
 	require.NoError(t, err)
 	assert.Len(t, dbs, 3)
+	assert.Equal(t, int64(3), total)
 }
 
 // TestStore_DeleteDatabase_Success 测试成功删除数据库。
@@ -317,9 +344,10 @@ func TestStore_ListTables_All(t *testing.T) {
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "la-001", DatabaseName: "db1", TableName: "t1", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: fixedTime(), UpdatedAt: fixedTime()}))
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "la-002", DatabaseName: "db2", TableName: "t2", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: fixedTime(), UpdatedAt: fixedTime()}))
 
-	tables, err := s.ListTables("t1", "")
+	tables, total, err := s.ListTables("t1", "", 20, 0)
 	require.NoError(t, err)
 	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(2), total)
 }
 
 // TestStore_ListTables_FilterByDB 测试按数据库名过滤表。
@@ -328,9 +356,10 @@ func TestStore_ListTables_FilterByDB(t *testing.T) {
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "lf-001", DatabaseName: "db1", TableName: "t1", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: fixedTime(), UpdatedAt: fixedTime()}))
 	require.NoError(t, s.CreateTable(&model.Table{TenantID: "t1", ID: "lf-002", DatabaseName: "db2", TableName: "t2", Columns: []model.Column{{Name: "id", Type: "BIGINT"}}, CreatedAt: fixedTime(), UpdatedAt: fixedTime()}))
 
-	tables, err := s.ListTables("t1", "db1")
+	tables, total, err := s.ListTables("t1", "db1", 20, 0)
 	require.NoError(t, err)
 	assert.Len(t, tables, 1)
+	assert.Equal(t, int64(1), total)
 	assert.Equal(t, "db1", tables[0].DatabaseName)
 }
 
@@ -515,4 +544,105 @@ func TestStore_SearchTables_DescriptionMatch(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, results, 1)
 	assert.Equal(t, "sd-002", results[0].Table.ID)
+}
+
+// ============ mockDB 分页测试 ============
+
+// TestStore_ListDatabases_Pagination 验证 mockDB ListDatabases 分页。
+func TestStore_ListDatabases_Pagination(t *testing.T) {
+	s := newMockDB()
+	for i := 0; i < 5; i++ {
+		require.NoError(t, s.CreateDatabase(&model.Database{
+			TenantID: "t1", ID: fmt.Sprintf("mpg-%d", i),
+			Name: fmt.Sprintf("mdb%d", i), Owner: "admin", CreatedAt: fixedTime(),
+		}))
+	}
+
+	// page=1, pageSize=2 → 2 条，total=5
+	dbs, total, err := s.ListDatabases("t1", 2, 0)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=2, pageSize=2 → offset=2, 2 条
+	dbs, total, err = s.ListDatabases("t1", 2, 2)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=3, pageSize=2 → offset=4, 1 条
+	dbs, total, err = s.ListDatabases("t1", 2, 4)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 1)
+	assert.Equal(t, int64(5), total)
+
+	// page=4, pageSize=2 → offset=6, 0 条
+	dbs, total, err = s.ListDatabases("t1", 2, 6)
+	require.NoError(t, err)
+	assert.Len(t, dbs, 0)
+	assert.Equal(t, int64(5), total)
+}
+
+// TestStore_ListTables_Pagination 验证 mockDB ListTables 分页。
+func TestStore_ListTables_Pagination(t *testing.T) {
+	s := newMockDB()
+	for i := 0; i < 5; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			TenantID: "t1", ID: fmt.Sprintf("mtp-%d", i),
+			DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i),
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+		}))
+	}
+
+	// page=1, pageSize=2 → 2 条，total=5
+	tables, total, err := s.ListTables("t1", "", 2, 0)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=2, pageSize=2 → offset=2, 2 条
+	tables, total, err = s.ListTables("t1", "", 2, 2)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(5), total)
+
+	// page=3, pageSize=2 → offset=4, 1 条
+	tables, total, err = s.ListTables("t1", "", 2, 4)
+	require.NoError(t, err)
+	assert.Len(t, tables, 1)
+	assert.Equal(t, int64(5), total)
+}
+
+// TestStore_ListTables_PaginationWithFilter 验证 mockDB ListTables 分页与 database 过滤同时生效。
+func TestStore_ListTables_PaginationWithFilter(t *testing.T) {
+	s := newMockDB()
+	for i := 0; i < 3; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			TenantID: "t1", ID: fmt.Sprintf("mpf-%d", i),
+			DatabaseName: "db1", TableName: fmt.Sprintf("t%d", i),
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+		}))
+	}
+	for i := 0; i < 2; i++ {
+		require.NoError(t, s.CreateTable(&model.Table{
+			TenantID: "t1", ID: fmt.Sprintf("mpf2-%d", i),
+			DatabaseName: "db2", TableName: fmt.Sprintf("u%d", i),
+			Columns:   []model.Column{{Name: "id", Type: "BIGINT"}},
+			CreatedAt: fixedTime(), UpdatedAt: fixedTime(),
+		}))
+	}
+
+	// 过滤 db1，pageSize=2, offset=0 → 2 条，total=3
+	tables, total, err := s.ListTables("t1", "db1", 2, 0)
+	require.NoError(t, err)
+	assert.Len(t, tables, 2)
+	assert.Equal(t, int64(3), total)
+
+	// 过滤 db1，pageSize=2, offset=2 → 1 条，total=3
+	tables, total, err = s.ListTables("t1", "db1", 2, 2)
+	require.NoError(t, err)
+	assert.Len(t, tables, 1)
+	assert.Equal(t, int64(3), total)
 }

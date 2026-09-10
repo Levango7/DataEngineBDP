@@ -616,7 +616,7 @@ onMounted(() => {
   padding: 0;
 }
 .mono {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12px;
   color: #5a6470;
 }
@@ -632,7 +632,7 @@ onMounted(() => {
   font-size: 13px;
 }
 .usage-text {
-  font-family: 'Consolas', 'Monaco', monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12px;
   color: #5a6470;
   min-width: 140px;

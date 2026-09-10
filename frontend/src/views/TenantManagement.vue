@@ -2,34 +2,62 @@
   <div class="tenant-page" role="main" :aria-label="t('tenantManagement.title')">
     <PageHeader :title="t('tenantManagement.title')" :subtitle="t('tenantManagement.subtitle')" />
 
-    <!-- 顶部操作栏 -->
+    <!-- 平台超管四联指标卡（数据平台质感） -->
+    <div class="tenant-stats" role="list" :aria-label="t('tenantManagement.stats.aria')">
+      <div class="stat" role="listitem">
+        <div class="stat-num">{{ admin.totalTenantCount }}</div>
+        <div class="stat-lbl">{{ t('tenantManagement.stats.total') }}</div>
+      </div>
+      <div class="stat stat-on" role="listitem">
+        <div class="stat-num">{{ admin.activeTenantCount }}</div>
+        <div class="stat-lbl">{{ t('tenantManagement.stats.active') }}</div>
+      </div>
+      <div class="stat" role="listitem">
+        <div class="stat-num">{{ admin.pendingInviteCount }}</div>
+        <div class="stat-lbl">{{ t('tenantManagement.stats.pendingInvite') }}</div>
+      </div>
+      <div class="stat stat-warn" role="listitem">
+        <div class="stat-num">{{ admin.pendingRegCount }}</div>
+        <div class="stat-lbl">{{ t('tenantManagement.stats.pendingReg') }}</div>
+      </div>
+    </div>
+
     <PageCard>
       <Toolbar
+        v-model:search-value="searchKeyword"
         :aria-label="t('tenantManagement.title')"
         :show-create="true"
         :create-label="t('tenantManagement.toolbar.create')"
         :create-aria-label="t('tenantManagement.dialog.createTitle')"
         :search-placeholder="t('tenantManagement.toolbar.searchPlaceholder')"
-        v-model:search-value="searchKeyword"
-        :search-aria-label="t('tenantManagement.toolbar.searchPlaceholder')"
         :show-refresh="true"
-        :refresh-aria-label="t('tenantManagement.toolbar.refreshAria')"
         @create="openCreateDialog"
         @search="handleSearch"
         @refresh="loadList"
       >
         <template #filters>
           <el-select
+            v-model="filterType"
+            :placeholder="t('tenantManagement.typeFilter.placeholder')"
+            clearable
+            style="width: 140px"
+          >
+            <el-option :label="t('tenantManagement.type.xinchuang')" value="XINCHUANG" />
+            <el-option :label="t('tenantManagement.type.private')" value="PRIVATE" />
+            <el-option :label="t('tenantManagement.type.public')" value="PUBLIC" />
+            <el-option :label="t('tenantManagement.type.government')" value="GOVERNMENT" />
+            <el-option :label="t('tenantManagement.type.internal')" value="INTERNAL" />
+          </el-select>
+          <el-select
             v-model="filterStatus"
             :placeholder="t('tenantManagement.toolbar.statusFilterPlaceholder')"
             clearable
             style="width: 140px"
-            :aria-label="t('tenantManagement.toolbar.statusFilterPlaceholder')"
-            @change="handleSearch"
           >
-            <el-option :label="t('tenantManagement.status.active')" value="active" />
-            <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
-            <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
+            <el-option :label="t('tenantManagement.statusFilter.active')" value="ACTIVE" />
+            <el-option :label="t('tenantManagement.statusFilter.inactive')" value="INACTIVE" />
+            <el-option :label="t('tenantManagement.statusFilter.creating')" value="CREATING" />
+            <el-option :label="t('tenantManagement.statusFilter.suspended')" value="SUSPENDED" />
           </el-select>
         </template>
       </Toolbar>
@@ -37,447 +65,624 @@
       <!-- 租户列表表格 -->
       <el-table
         v-loading="loading"
-        :data="tenantList"
+        :data="filteredTenants"
         stripe
         border
         style="width: 100%"
         role="table"
         :aria-label="t('tenantManagement.table.aria')"
-        :empty-text="
-          error ? t('tenantManagement.table.loadFailed') : t('tenantManagement.table.empty')
-        "
+        :empty-text="t('tenantManagement.table.empty')"
       >
-        <el-table-column prop="id" :label="t('tenantManagement.table.columns.id')" width="120" />
+        <el-table-column label="ID" prop="id" width="80" />
         <el-table-column
-          prop="name"
-          :label="t('tenantManagement.table.columns.name')"
-          min-width="160"
-        />
-        <el-table-column
-          prop="code"
           :label="t('tenantManagement.table.columns.code')"
+          prop="name"
           width="140"
         />
-        <el-table-column :label="t('tenantManagement.table.columns.plan')" width="120">
+        <el-table-column
+          :label="t('tenantManagement.table.columns.displayName')"
+          prop="displayName"
+          min-width="160"
+        />
+        <el-table-column :label="t('tenantManagement.table.columns.type')" width="120">
           <template #default="{ row }">
-            <StatusTag :status="row.plan" :label="planLabel(row.plan)" :status-map="PLAN_TAG_TYPE_MAP" />
+            <StatusTag :status="row.type" :label="typeLabel(row.type)" :status-map="TYPE_TAG_MAP" />
           </template>
         </el-table-column>
-        <el-table-column :label="t('tenantManagement.table.columns.status')" width="100">
+        <el-table-column
+          :label="t('tenantManagement.table.columns.quotaProfile')"
+          prop="quotaProfile"
+          width="120"
+        >
+          <template #default="{ row }">
+            <el-tag effect="light">{{ row.quotaProfile }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="t('tenantManagement.table.columns.userCount')"
+          prop="userCount"
+          width="90"
+          align="center"
+        />
+        <el-table-column
+          :label="t('tenantManagement.table.columns.storageQuota')"
+          width="110"
+          align="center"
+        >
+          <template #default="{ row }">{{ row.storageQuotaGb }} GB</template>
+        </el-table-column>
+        <el-table-column :label="t('tenantManagement.table.columns.status')" width="110">
           <template #default="{ row }">
             <StatusTag
               :status="row.status"
               :label="statusLabel(row.status)"
-              :status-map="STATUS_TAG_TYPE_MAP"
+              :status-map="STATUS_TAG_MAP"
             />
           </template>
         </el-table-column>
-        <el-table-column
-          prop="workspaceCount"
-          :label="t('tenantManagement.table.columns.workspaceCount')"
-          width="120"
-          align="center"
-        />
-        <el-table-column
-          prop="userCount"
-          :label="t('tenantManagement.table.columns.userCount')"
-          width="100"
-          align="center"
-        />
-        <el-table-column :label="t('tenantManagement.table.columns.resourceUsage')" width="160">
-          <template #default="{ row }">
-            <el-progress
-              :percentage="row.resourceUsage || 0"
-              :color="usageColor(row.resourceUsage)"
-              :stroke-width="8"
-            />
-          </template>
+        <el-table-column :label="t('tenantManagement.table.columns.createdAt')" width="180">
+          <template #default="{ row }">{{ fmtTime(row.createdAt) }}</template>
         </el-table-column>
-        <el-table-column
-          prop="createdAt"
-          :label="t('tenantManagement.table.columns.createdAt')"
-          width="180"
-        />
         <el-table-column
           :label="t('tenantManagement.table.columns.actions')"
-          width="160"
+          width="220"
           fixed="right"
         >
           <template #default="{ row }">
-            <el-button
-              link
-              type="primary"
-              :aria-label="t('tenantManagement.table.actions.editAria', { name: row.name })"
-              @click="openEditDialog(row)"
-            >
-              {{ t('tenantManagement.table.actions.edit') }}
+            <el-button link type="primary" @click="openDetail(row)">
+              {{ t('tenantManagement.table.actions.view') }}
+            </el-button>
+            <el-button link type="success" @click="openInviteDialog(row)">
+              {{ t('tenantManagement.table.actions.invite') }}
             </el-button>
             <el-button
+              v-if="row.status === 'ACTIVE'"
               link
-              type="danger"
-              :aria-label="t('tenantManagement.table.actions.deleteAria', { name: row.name })"
-              @click="handleDelete(row)"
+              type="warning"
+              @click="handleSuspend(row)"
             >
+              {{ t('tenantManagement.table.actions.suspend') }}
+            </el-button>
+            <el-button
+              v-else-if="row.status === 'SUSPENDED' || row.status === 'INACTIVE'"
+              link
+              type="success"
+              @click="handleActivate(row)"
+            >
+              {{ t('tenantManagement.table.actions.resume') }}
+            </el-button>
+            <el-button link type="danger" @click="handleDelete(row)">
               {{ t('tenantManagement.table.actions.delete') }}
             </el-button>
           </template>
         </el-table-column>
       </el-table>
-
-      <!-- 分页 -->
-      <div
-        class="pagination-wrap"
-        role="navigation"
-        :aria-label="t('tenantManagement.table.paginationAria')"
-      >
-        <el-pagination
-          v-model:current-page="currentPage"
-          v-model:page-size="pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="total"
-          layout="total, sizes, prev, pager, next, jumper"
-          background
-          :aria-label="t('tenantManagement.table.paginationAria')"
-          @size-change="loadList"
-          @current-change="loadList"
-        />
-      </div>
     </PageCard>
 
-    <!-- 创建/编辑弹窗 -->
+    <!-- 创建租户弹窗 -->
     <el-dialog
-      v-model="dialogVisible"
-      :title="
-        isEdit ? t('tenantManagement.dialog.editTitle') : t('tenantManagement.dialog.createTitle')
-      "
-      width="520px"
+      v-model="createVisible"
+      :title="t('tenantManagement.dialog.createTitle')"
+      width="540px"
       :close-on-click-modal="false"
-      role="dialog"
-      aria-modal="true"
-      :aria-label="
-        isEdit ? t('tenantManagement.dialog.editAria') : t('tenantManagement.dialog.createAria')
-      "
-      @closed="resetForm"
+      @closed="resetCreateForm"
     >
-      <el-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        label-width="100px"
-        label-position="right"
-      >
-        <el-form-item :label="t('tenantManagement.dialog.fields.name')" prop="name">
+      <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
+        <el-form-item :label="t('tenantManagement.dialog.code')" prop="name">
           <el-input
-            v-model="formData.name"
-            :placeholder="t('tenantManagement.dialog.fields.namePlaceholder')"
-            :aria-label="t('tenantManagement.dialog.fields.name')"
+            v-model="createForm.name"
+            :placeholder="t('tenantManagement.dialog.codeHint')"
           />
         </el-form-item>
-        <el-form-item :label="t('tenantManagement.dialog.fields.code')" prop="code">
+        <el-form-item :label="t('tenantManagement.dialog.displayName')" prop="displayName">
           <el-input
-            v-model="formData.code"
-            :placeholder="t('tenantManagement.dialog.fields.codePlaceholder')"
-            :disabled="isEdit"
-            :aria-label="t('tenantManagement.dialog.fields.code')"
+            v-model="createForm.displayName"
+            :placeholder="t('tenantManagement.dialog.displayNameHint')"
           />
         </el-form-item>
-        <el-form-item :label="t('tenantManagement.dialog.fields.plan')" prop="plan">
-          <el-select
-            v-model="formData.plan"
-            style="width: 100%"
-            :aria-label="t('tenantManagement.dialog.fields.plan')"
-          >
-            <el-option :label="t('tenantManagement.plan.standard')" value="standard" />
-            <el-option :label="t('tenantManagement.plan.enterprise')" value="enterprise" />
-            <el-option :label="t('tenantManagement.plan.flagship')" value="flagship" />
-            <el-option :label="t('tenantManagement.plan.internal')" value="internal" />
+        <el-form-item :label="t('tenantManagement.dialog.type')" prop="type">
+          <el-select v-model="createForm.type" style="width: 100%">
+            <el-option :label="t('tenantManagement.type.xinchuang')" value="XINCHUANG" />
+            <el-option :label="t('tenantManagement.type.private')" value="PRIVATE" />
+            <el-option :label="t('tenantManagement.type.public')" value="PUBLIC" />
+            <el-option :label="t('tenantManagement.type.government')" value="GOVERNMENT" />
+            <el-option :label="t('tenantManagement.type.internal')" value="INTERNAL" />
           </el-select>
         </el-form-item>
-        <el-form-item
-          v-if="isEdit"
-          :label="t('tenantManagement.dialog.fields.status')"
-          prop="status"
-        >
-          <el-select
-            v-model="formData.status"
-            style="width: 100%"
-            :aria-label="t('tenantManagement.dialog.fields.status')"
-          >
-            <el-option :label="t('tenantManagement.status.active')" value="active" />
-            <el-option :label="t('tenantManagement.status.suspended')" value="suspended" />
-            <el-option :label="t('tenantManagement.status.deleted')" value="deleted" />
+        <el-form-item :label="t('tenantManagement.dialog.quotaProfile')" prop="quotaProfile">
+          <el-select v-model="createForm.quotaProfile" style="width: 100%">
+            <el-option :label="t('tenantManagement.quota.small')" value="small" />
+            <el-option :label="t('tenantManagement.quota.medium')" value="medium" />
+            <el-option :label="t('tenantManagement.quota.large')" value="large" />
+            <el-option :label="t('tenantManagement.quota.xlarge')" value="xlarge" />
           </el-select>
         </el-form-item>
-        <el-form-item :label="t('tenantManagement.dialog.fields.contact')" prop="contact">
-          <el-input
-            v-model="formData.contact"
-            :placeholder="t('tenantManagement.dialog.fields.contactPlaceholder')"
-            :aria-label="t('tenantManagement.dialog.fields.contact')"
-          />
-        </el-form-item>
-        <el-form-item :label="t('tenantManagement.dialog.fields.contactPhone')" prop="contactPhone">
-          <el-input
-            v-model="formData.contactPhone"
-            :placeholder="t('tenantManagement.dialog.fields.contactPhonePlaceholder')"
-            :aria-label="t('tenantManagement.dialog.fields.contactPhone')"
+        <el-form-item :label="t('tenantManagement.dialog.storageQuota')" prop="storageQuotaGb">
+          <el-input-number
+            v-model="createForm.storageQuotaGb"
+            :min="10"
+            :max="100000"
+            :step="100"
+            style="width: 100%"
           />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button
-          :aria-label="t('tenantManagement.dialog.actions.cancelAria')"
-          @click="dialogVisible = false"
-        >
-          {{ t('tenantManagement.dialog.actions.cancel') }}
-        </el-button>
-        <el-button
-          type="primary"
-          :loading="submitting"
-          :aria-label="
-            isEdit
-              ? t('tenantManagement.dialog.actions.saveAria')
-              : t('tenantManagement.dialog.actions.createAriaBtn')
-          "
-          @click="handleSubmit"
-        >
-          {{
-            isEdit
-              ? t('tenantManagement.dialog.actions.save')
-              : t('tenantManagement.dialog.actions.create')
-          }}
+        <el-button @click="createVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleCreate">
+          {{ t('tenantManagement.dialog.createSubmit') }}
         </el-button>
       </template>
+    </el-dialog>
+
+    <!-- 发邀请弹窗 -->
+    <el-dialog
+      v-model="inviteVisible"
+      :title="t('tenantManagement.invite.title')"
+      width="480px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="inviteForm" label-width="100px">
+        <el-form-item :label="t('tenantManagement.invite.tenant')">
+          <el-tag type="info">{{ inviteForm.tenantName }}（ID: {{ inviteForm.tenantId }}）</el-tag>
+        </el-form-item>
+        <el-form-item :label="t('tenantManagement.invite.role')">
+          <el-select v-model="inviteForm.role" style="width: 100%">
+            <el-option :label="t('tenantManagement.invite.roleTenantAdmin')" value="TENANT_ADMIN" />
+            <el-option :label="t('tenantManagement.invite.roleUser')" value="USER" />
+            <el-option
+              :label="t('tenantManagement.invite.rolePlatformAdmin')"
+              value="PLATFORM_ADMIN"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item :label="t('tenantManagement.invite.days')">
+          <el-input-number v-model="inviteForm.ttlDays" :min="1" :max="30" style="width: 100%" />
+        </el-form-item>
+        <el-form-item :label="t('tenantManagement.invite.note')">
+          <el-input
+            v-model="inviteForm.note"
+            :placeholder="t('tenantManagement.invite.noteHint')"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="inviteVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleCreateInvite">
+          {{ t('tenantManagement.invite.generate') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 创建成功 → 展示新邀请码（可复制/重发） -->
+    <el-dialog v-model="successVisible" :title="t('tenantManagement.success.title')" width="480px">
+      <div class="invite-result">
+        <p class="invite-hint">{{ t('tenantManagement.success.hint') }}</p>
+        <div
+          class="invite-code-box"
+          :aria-label="t('tenantManagement.success.codeAria', { code: successCode })"
+        >
+          <span class="invite-code-text">{{ successCode }}</span>
+          <el-button type="primary" link @click="copyCode">
+            {{ copied ? t('tenantManagement.success.copied') : t('tenantManagement.success.copy') }}
+          </el-button>
+        </div>
+        <ul class="invite-meta">
+          <li>{{ t('tenantManagement.success.tenant') }}：{{ successTenant }}</li>
+          <li>{{ t('tenantManagement.success.role') }}：{{ successRole }}</li>
+          <li>{{ t('tenantManagement.success.expiry') }}：{{ successExpiry }}</li>
+        </ul>
+        <p class="invite-hint-sm">{{ t('tenantManagement.success.hintSm') }}</p>
+      </div>
+      <template #footer>
+        <el-button @click="successVisible = false">
+          {{ t('tenantManagement.success.close') }}
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 详情弹窗 -->
+    <el-dialog v-model="detailVisible" :title="detail?.displayName" width="640px">
+      <div v-if="detail" class="tenant-detail">
+        <h4>{{ t('tenantManagement.detail.basic') }}</h4>
+        <el-descriptions :column="2" border>
+          <el-descriptions-item :label="t('tenantManagement.detail.tenantId')">
+            {{ detail.id }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.code')">
+            {{ detail.name }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.displayName')">
+            {{ detail.displayName }}
+          </el-descriptions-item>
+          <el-descriptions-item label="K8s namespace">{{ detail.namespace }}</el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.type')">
+            <StatusTag
+              :status="detail.type"
+              :label="typeLabel(detail.type)"
+              :status-map="TYPE_TAG_MAP"
+            />
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.status')">
+            <StatusTag
+              :status="detail.status"
+              :label="statusLabel(detail.status)"
+              :status-map="STATUS_TAG_MAP"
+            />
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.quotaProfile')">
+            {{ detail.quotaProfile }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.storage')">
+            {{ detail.storageQuotaGb }} GB
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.userCount')">
+            {{ detail.userCount }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.adminUser')">
+            {{ detail.adminUsername || t('tenantManagement.detail.adminUnset') }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.createdAt')">
+            {{ fmtTime(detail.createdAt) }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="t('tenantManagement.detail.updatedAt')">
+            {{ fmtTime(detail.updatedAt) }}
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <h4>
+          {{ t('tenantManagement.detail.invites', { n: admin.invitesByTenant(detail.id).length }) }}
+        </h4>
+        <el-table
+          :data="admin.invitesByTenant(detail.id)"
+          size="small"
+          :empty-text="t('tenantManagement.detail.empty')"
+        >
+          <el-table-column :label="t('tenantManagement.detail.colCode')" prop="code" width="120" />
+          <el-table-column :label="t('tenantManagement.detail.colRole')" prop="role" width="110" />
+          <el-table-column :label="t('tenantManagement.detail.colStatus')" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.status === 'PENDING' ? 'primary' : 'info'" size="small">
+                {{ row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="t('tenantManagement.detail.colCreatedAt')" min-width="170">
+            <template #default="{ row }">{{ fmtTime(row.createdAt) }}</template>
+          </el-table-column>
+          <el-table-column :label="t('tenantManagement.detail.colExpiry')" min-width="170">
+            <template #default="{ row }">{{ fmtTime(row.expiresAt) }}</template>
+          </el-table-column>
+          <el-table-column :label="t('tenantManagement.detail.colNote')" prop="note" />
+        </el-table>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessage, ElMessageBox, type FormInstance } from 'element-plus'
 import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
-import { useApi } from '@/composables/useApi'
-import * as tenantApi from '@/api/tenant'
-import type { Tenant, PlanTier, TenantStatus, PagedResult } from '@/api/types'
+import { useTenantAdminStore, type AdminTenant } from '@/stores/tenantAdmin'
 
 const { t } = useI18n()
+const admin = useTenantAdminStore()
 
-/* ------------------------------ 列表查询 ------------------------------ */
-
-// 租户列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
-const {
-  data: tenantPaged,
-  loading,
-  error,
-  execute: loadList
-} = useApi<PagedResult<Tenant>>(
-  () =>
-    tenantApi.listTenants({
-      keyword: searchKeyword.value || undefined,
-      status: filterStatus.value || undefined,
-      page: currentPage.value,
-      pageSize: pageSize.value
-    }),
-  {
-    onError: () => ElMessage.error(t('tenantManagement.messages.listLoadFailed'))
-  }
-)
-
-const tenantList = computed<Tenant[]>(() => tenantPaged.value?.list ?? [])
-const total = computed<number>(() => tenantPaged.value?.total ?? 0)
-const currentPage = ref(1)
-const pageSize = ref(20)
 const searchKeyword = ref('')
-const filterStatus = ref<TenantStatus | ''>('')
-
-/** 搜索按钮 */
-function handleSearch() {
-  currentPage.value = 1
-  void loadList()
-}
-
-/* ------------------------------ 创建/编辑 ------------------------------ */
-
-const dialogVisible = ref(false)
-const isEdit = ref(false)
+const filterType = ref<string>('')
+const filterStatus = ref<string>('')
+const loading = ref(false)
 const submitting = ref(false)
-const formRef = ref<FormInstance>()
-const editingId = ref<string>('')
 
-interface TenantForm {
-  name: string
-  code: string
-  plan: PlanTier
-  status: TenantStatus
-  contact: string
-  contactPhone: string
+/* ============== Tag type maps ============== */
+const STATUS_TAG_MAP: Record<string, 'success' | 'info' | 'warning' | 'danger'> = {
+  ACTIVE: 'success',
+  INACTIVE: 'info',
+  CREATING: 'warning',
+  SUSPENDED: 'danger'
 }
 
-const formData = reactive<TenantForm>({
-  name: '',
-  code: '',
-  plan: 'enterprise',
-  status: 'active',
-  contact: '',
-  contactPhone: ''
+const TYPE_TAG_MAP: Record<string, 'success' | 'info' | 'warning' | 'primary' | 'danger'> = {
+  XINCHUANG: 'success',
+  GOVERNMENT: 'primary',
+  PRIVATE: 'info',
+  PUBLIC: 'warning',
+  INTERNAL: 'danger'
+}
+
+function statusLabel(s: string): string {
+  const m: Record<string, string> = {
+    ACTIVE: t('tenantManagement.statusFilter.active'),
+    INACTIVE: t('tenantManagement.statusFilter.inactive'),
+    CREATING: t('tenantManagement.statusFilter.creating'),
+    SUSPENDED: t('tenantManagement.statusFilter.suspended')
+  }
+  return m[s] || s
+}
+function typeLabel(v: string): string {
+  const m: Record<string, string> = {
+    XINCHUANG: t('tenantManagement.type.xinchuang'),
+    GOVERNMENT: t('tenantManagement.type.government'),
+    PRIVATE: t('tenantManagement.type.private'),
+    PUBLIC: t('tenantManagement.type.public'),
+    INTERNAL: t('tenantManagement.type.internal')
+  }
+  return m[v] || v
+}
+
+function fmtTime(iso: string): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+/* ============== 列表 + 过滤 ============== */
+const filteredTenants = computed(() => {
+  const kw = searchKeyword.value.trim().toLowerCase()
+  return admin.allTenants.filter((t) => {
+    if (filterType.value && t.type !== filterType.value) return false
+    if (filterStatus.value && t.status !== filterStatus.value) return false
+    if (!kw) return true
+    return t.name.toLowerCase().includes(kw) || t.displayName.toLowerCase().includes(kw)
+  })
 })
 
-const formRules = computed<FormRules>(() => ({
-  name: [{ required: true, message: t('tenantManagement.rules.nameRequired'), trigger: 'blur' }],
-  code: [
-    { required: true, message: t('tenantManagement.rules.codeRequired'), trigger: 'blur' },
+function loadList() {
+  loading.value = true
+  setTimeout(() => (loading.value = false), 200)
+}
+
+function handleSearch() {
+  /* filteredTenants 是计算属性，自动响应 */
+}
+
+/* ============== 创建租户 ============== */
+const createVisible = ref(false)
+const createFormRef = ref<FormInstance>()
+const createForm = reactive({
+  name: '',
+  displayName: '',
+  type: 'XINCHUANG' as AdminTenant['type'],
+  quotaProfile: 'medium' as AdminTenant['quotaProfile'],
+  storageQuotaGb: 100
+})
+const createRules = {
+  name: [
+    { required: true, message: t('tenantManagement.rules2.codeRequired'), trigger: 'blur' },
     {
-      pattern: /^[a-z][a-z0-9-]*$/,
-      message: t('tenantManagement.rules.codePattern'),
+      pattern: /^[a-z][a-z0-9-]{2,30}$/,
+      message: t('tenantManagement.rules2.codePattern'),
       trigger: 'blur'
     }
   ],
-  plan: [{ required: true, message: t('tenantManagement.rules.planRequired'), trigger: 'change' }]
-}))
+  displayName: [
+    { required: true, message: t('tenantManagement.rules2.displayNameRequired'), trigger: 'blur' }
+  ],
+  type: [{ required: true, message: t('tenantManagement.rules2.typeRequired'), trigger: 'change' }],
+  quotaProfile: [
+    { required: true, message: t('tenantManagement.rules2.quotaRequired'), trigger: 'change' }
+  ]
+}
 
-/** 打开新建弹窗 */
 function openCreateDialog() {
-  isEdit.value = false
-  editingId.value = ''
-  resetForm()
-  dialogVisible.value = true
+  createVisible.value = true
 }
 
-/** 打开编辑弹窗 */
-function openEditDialog(row: Tenant) {
-  isEdit.value = true
-  editingId.value = row.id
-  formData.name = row.name
-  formData.code = row.code
-  formData.plan = row.plan
-  formData.status = row.status
-  formData.contact = row.contact || ''
-  formData.contactPhone = row.contactPhone || ''
-  dialogVisible.value = true
-}
-
-/** 重置表单 */
-function resetForm() {
-  formData.name = ''
-  formData.code = ''
-  formData.plan = 'enterprise'
-  formData.status = 'active'
-  formData.contact = ''
-  formData.contactPhone = ''
-  formRef.value?.clearValidate()
-}
-
-/** 提交表单 */
-async function handleSubmit() {
-  if (!formRef.value) return
-  await formRef.value.validate(async (valid) => {
-    if (!valid) return
-    submitting.value = true
-    try {
-      if (isEdit.value) {
-        await tenantApi.updateTenant(editingId.value, {
-          name: formData.name,
-          plan: formData.plan,
-          status: formData.status,
-          contact: formData.contact || undefined,
-          contactPhone: formData.contactPhone || undefined
-        })
-        ElMessage.success(t('tenantManagement.messages.updated'))
-      } else {
-        await tenantApi.createTenant({
-          name: formData.name,
-          code: formData.code,
-          plan: formData.plan,
-          contact: formData.contact || undefined,
-          contactPhone: formData.contactPhone || undefined
-        })
-        ElMessage.success(t('tenantManagement.messages.created'))
-      }
-      dialogVisible.value = false
-      await loadList()
-    } catch {
-      // 错误提示已由拦截器统一处理
-    } finally {
-      submitting.value = false
-    }
+async function handleCreate() {
+  if (!createFormRef.value) return
+  const valid = await createFormRef.value.validate().catch(() => false)
+  if (!valid) return
+  if (admin.allTenants.find((x) => x.name === createForm.name)) {
+    ElMessage.error(t('tenantManagement.msg2.codeExists'))
+    return
+  }
+  submitting.value = true
+  const tenant = admin.createTenant({ ...createForm })
+  // 自动生成首账号邀请码（TENANT_ADMIN，7 天）
+  const invite = admin.createInvite({
+    tenantId: tenant.id,
+    role: 'TENANT_ADMIN',
+    note: t('tenantManagement.msg2.defaultNote'),
+    invitedBy: 'platform-admin',
+    ttlDays: 7
   })
+  submitting.value = false
+  createVisible.value = false
+  ElMessage.success({
+    message: t('tenantManagement.msg2.createdWithInvite', {
+      name: tenant.displayName,
+      code: invite.code
+    }),
+    duration: 6000
+  })
+  successCode.value = invite.code
+  successTenant.value = tenant.displayName
+  successRole.value = t('tenantManagement.labels.roleTenantAdmin')
+  successExpiry.value = fmtTime(invite.expiresAt)
+  successVisible.value = true
 }
 
-/* ------------------------------ 删除 ------------------------------ */
+function resetCreateForm() {
+  createFormRef.value?.resetFields()
+}
 
-/** 删除租户 */
-async function handleDelete(row: Tenant) {
+/* ============== 邀请码 ============== */
+const inviteVisible = ref(false)
+const inviteForm = reactive({
+  tenantId: 0,
+  tenantName: '',
+  role: 'USER' as 'USER' | 'TENANT_ADMIN' | 'PLATFORM_ADMIN',
+  ttlDays: 7,
+  note: ''
+})
+
+function openInviteDialog(row: AdminTenant) {
+  inviteForm.tenantId = row.id
+  inviteForm.tenantName = row.displayName
+  inviteForm.role = 'USER'
+  inviteForm.ttlDays = 7
+  inviteForm.note = ''
+  inviteVisible.value = true
+}
+
+/* 邀请码成功展示 */
+const successVisible = ref(false)
+const successCode = ref('')
+const successTenant = ref('')
+const successRole = ref('')
+const successExpiry = ref('')
+const copied = ref(false)
+
+function handleCreateInvite() {
+  if (inviteForm.tenantId === 0) return
+  const inv = admin.createInvite({
+    tenantId: inviteForm.tenantId,
+    role: inviteForm.role,
+    note: inviteForm.note,
+    ttlDays: inviteForm.ttlDays,
+    invitedBy: 'platform-admin'
+  })
+  inviteVisible.value = false
+  successCode.value = inv.code
+  successTenant.value = inviteForm.tenantName
+  successRole.value = inviteForm.role
+  successExpiry.value = fmtTime(inv.expiresAt)
+  successVisible.value = true
+}
+
+async function copyCode() {
   try {
-    await ElMessageBox.confirm(
-      t('tenantManagement.messages.deleteConfirm', { name: row.name }),
-      t('tenantManagement.messages.deleteConfirmTitle'),
-      {
-        type: 'warning',
-        confirmButtonText: t('tenantManagement.messages.deleteConfirmOk'),
-        cancelButtonText: t('tenantManagement.messages.deleteConfirmCancel'),
-        confirmButtonClass: 'el-button--danger'
-      }
-    )
-    await tenantApi.deleteTenant(row.id)
-    ElMessage.success(t('tenantManagement.messages.deleted'))
-    await loadList()
-  } catch (e) {
-    // 用户取消或删除失败，不提示
+    await navigator.clipboard.writeText(successCode.value)
+    copied.value = true
+    setTimeout(() => (copied.value = false), 1500)
+  } catch {
+    ElMessage.warning(t('tenantManagement.msg2.copyDenied'))
   }
 }
 
-/* ------------------------------ 标签辅助 ------------------------------ */
-
-const PLAN_TAG_TYPE_MAP: Record<PlanTier, 'primary' | 'success' | 'warning' | 'info'> = {
-  standard: 'info',
-  enterprise: 'primary',
-  flagship: 'warning',
-  internal: 'success'
+/* ============== 启停/删除 ============== */
+async function handleSuspend(row: AdminTenant) {
+  await ElMessageBox.confirm(
+    t('tenantManagement.msg2.suspendConfirm', { name: row.displayName }),
+    t('tenantManagement.msg2.suspendTitle'),
+    { type: 'warning' }
+  ).catch(() => null)
+  admin.setTenantStatus(row.id, 'SUSPENDED')
+  ElMessage.success(t('tenantManagement.msg2.suspended'))
 }
 
-function planLabel(plan: PlanTier): string {
-  return t(`tenantManagement.plan.${plan}`)
+async function handleActivate(row: AdminTenant) {
+  admin.setTenantStatus(row.id, 'ACTIVE')
+  ElMessage.success(t('tenantManagement.msg2.resumed'))
 }
 
-function planTagType(plan: PlanTier): 'primary' | 'success' | 'warning' | 'info' {
-  return PLAN_TAG_TYPE_MAP[plan] ?? 'info'
+async function handleDelete(row: AdminTenant) {
+  await ElMessageBox.confirm(
+    t('tenantManagement.msg2.deleteConfirm', { name: row.displayName }),
+    t('tenantManagement.msg2.deleteTitle'),
+    { type: 'error' }
+  ).catch(() => null)
+  admin.deleteTenant(row.id)
+  ElMessage.success(t('tenantManagement.msg2.deleted'))
 }
 
-const STATUS_TAG_TYPE_MAP: Record<TenantStatus, 'success' | 'warning' | 'info' | 'danger'> = {
-  active: 'success',
-  suspended: 'warning',
-  deleted: 'info'
+/* ============== 详情 ============== */
+const detailVisible = ref(false)
+const detail = ref<AdminTenant | null>(null)
+
+function openDetail(row: AdminTenant) {
+  detail.value = row
+  detailVisible.value = true
 }
 
-function statusLabel(status: TenantStatus): string {
-  return t(`tenantManagement.status.${status}`)
-}
-
-function statusTagType(status: TenantStatus): 'success' | 'warning' | 'info' | 'danger' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
-
-/** 资源消耗 → 进度条颜色 */
-function usageColor(percentage: number): string {
-  if (percentage >= 90) return 'var(--ds-color-error-600)'
-  if (percentage >= 70) return 'var(--ds-color-warning-600)'
-  return 'var(--ds-color-success-600)'
-}
-
-/* ------------------------------ 初始化 ------------------------------ */
-
-onMounted(() => {
-  void loadList()
-})
+onMounted(() => loadList())
 </script>
 
 <style scoped>
-.tenant-page {
-  padding: 0;
+.tenant-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 18px;
 }
-.pagination-wrap {
+.stat {
+  padding: 16px 18px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition:
+    transform 0.2s var(--ease-smooth),
+    box-shadow 0.2s var(--ease-smooth);
+}
+.stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
+}
+.stat-num {
+  font-size: 26px;
+  font-weight: 700;
+  color: #0f172a;
+  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.stat-lbl {
+  font-size: 12.5px;
+  color: #64748b;
+  margin-top: 2px;
+}
+.tenant-detail h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 18px 0 10px;
+  padding-left: 8px;
+  border-left: 3px solid #6366f1;
+}
+.invite-result {
+  padding: 8px 4px;
+}
+.invite-hint {
+  font-size: 13px;
+  color: #475569;
+  margin: 0 0 12px;
+}
+.invite-hint-sm {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 12px 0 0;
+}
+.invite-code-box {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
+  border: 2px dashed #93c5fd;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+.invite-code-text {
+  font-family: var(--ds-font-family-mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #1d4ed8;
+}
+.invite-meta {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 12.5px;
+  color: #475569;
+}
+.invite-meta li {
+  padding: 4px 0;
+  border-bottom: 1px dashed #e2e8f0;
 }
 </style>

@@ -13,38 +13,42 @@
       </template>
     </Toolbar>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="error" style="padding: 16px; color: var(--red)">
+      <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
+      <div v-else-if="error" class="state-tip state-error">
         {{ error.message }}，
         <a href="javascript:void(0)" @click="loadRules">{{ t('common.retry') }}</a>
       </div>
-      <table v-else>
-        <tr>
-          <th>{{ t('quality.cols.rule') }}</th>
-          <th>{{ t('quality.cols.target') }}</th>
-          <th>{{ t('quality.cols.check') }}</th>
-          <th>{{ t('quality.cols.threshold') }}</th>
-          <th>{{ t('quality.cols.last') }}</th>
-          <th>{{ t('quality.cols.status') }}</th>
-        </tr>
-        <tr v-for="r in rules" :key="r.id">
-          <td>{{ r.name }}</td>
-          <td>{{ r.targetTable }}</td>
-          <td>{{ checkTypeLabel(r.checkType) }}</td>
-          <td>{{ r.threshold }}</td>
-          <td>{{ r.lastCheckAt || '--' }}</td>
-          <td>
-            <span class="pill" :class="resultPillClass(r.lastResult)">
-              {{ resultPillText(r.lastResult) }}
+      <!-- 质量规则列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
+      <el-table
+        v-else
+        :data="rules"
+        stripe
+        border
+        role="table"
+        :aria-label="t('quality.title')"
+        :empty-text="t('quality.empty')"
+      >
+        <el-table-column prop="name" :label="t('quality.cols.rule')" min-width="160" />
+        <el-table-column prop="targetTable" :label="t('quality.cols.target')" min-width="160" />
+        <el-table-column :label="t('quality.cols.check')" width="120">
+          <template #default="{ row }">
+            {{ checkTypeLabel(row.checkType) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="threshold" :label="t('quality.cols.threshold')" width="120" />
+        <el-table-column prop="lastCheckAt" :label="t('quality.cols.last')" width="180">
+          <template #default="{ row }">
+            {{ row.lastCheckAt || '--' }}
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('quality.cols.status')" width="120">
+          <template #default="{ row }">
+            <span class="pill" :class="resultPillClass(row.lastResult)">
+              {{ resultPillText(row.lastResult) }}
             </span>
-          </td>
-        </tr>
-        <tr v-if="rules.length === 0">
-          <td colspan="6" style="text-align: center; color: var(--muted)">
-            {{ t('quality.empty') }}
-          </td>
-        </tr>
-      </table>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <Modal
@@ -53,37 +57,37 @@
       @close="modalVisible = false"
     >
       <label>{{ t('quality.createModal.targetTable') }}</label>
-      <input
+      <el-input
         v-model="form.targetTable"
         :placeholder="t('quality.createModal.targetTablePlaceholder')"
       />
       <label>{{ t('quality.createModal.targetField') }}</label>
-      <input
+      <el-input
         v-model="form.targetField"
         :placeholder="t('quality.createModal.targetFieldPlaceholder')"
       />
       <label>{{ t('quality.createModal.checkType') }}</label>
-      <select v-model="form.checkType">
-        <option value="not_null">{{ t('quality.checkTypes.not_null') }}</option>
-        <option value="unique">{{ t('quality.checkTypes.unique') }}</option>
-        <option value="range">{{ t('quality.checkTypes.range') }}</option>
-        <option value="fluctuation">{{ t('quality.checkTypes.fluctuation') }}</option>
-      </select>
+      <el-select v-model="form.checkType" style="width: 100%">
+        <el-option :label="t('quality.checkTypes.not_null')" value="not_null" />
+        <el-option :label="t('quality.checkTypes.unique')" value="unique" />
+        <el-option :label="t('quality.checkTypes.range')" value="range" />
+        <el-option :label="t('quality.checkTypes.fluctuation')" value="fluctuation" />
+      </el-select>
       <label>{{ t('quality.createModal.threshold') }}</label>
-      <input
+      <el-input
         v-model="form.threshold"
         :placeholder="t('quality.createModal.thresholdPlaceholder')"
       />
       <label>{{ t('quality.createModal.actionOnFail') }}</label>
-      <select v-model="form.actionOnFail">
-        <option value="alert">{{ t('quality.actions.alert') }}</option>
-        <option value="block_downstream">{{ t('quality.actions.block_downstream') }}</option>
-      </select>
+      <el-select v-model="form.actionOnFail" style="width: 100%">
+        <el-option :label="t('quality.actions.alert')" value="alert" />
+        <el-option :label="t('quality.actions.block_downstream')" value="block_downstream" />
+      </el-select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :loading="submitting" @click="handleSubmit">
           {{ submitting ? t('quality.createModal.creating') : t('common.create') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -203,3 +207,16 @@ onMounted(() => {
   void loadRules()
 })
 </script>
+
+<style scoped>
+/* 状态提示：使用 design tokens 替代硬编码颜色 */
+.state-tip {
+  padding: var(--ds-spacing-4);
+}
+.state-loading {
+  color: var(--ds-text-tertiary);
+}
+.state-error {
+  color: var(--ds-color-error-500);
+}
+</style>

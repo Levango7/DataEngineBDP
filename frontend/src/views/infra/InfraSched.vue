@@ -53,7 +53,7 @@
       <template v-else-if="summaryError">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ summaryError.message }}，
             <a href="javascript:void(0)" @click="loadSummary">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -187,7 +187,7 @@
         <div class="meta">{{ t('infraSched.events.loading') }}</div>
       </template>
       <template v-else-if="eventsError">
-        <div class="meta" style="color: var(--muted)">{{ t('infraSched.events.loadFailed') }}</div>
+        <div class="meta" style="color: var(--ds-text-tertiary)">{{ t('infraSched.events.loadFailed') }}</div>
       </template>
       <template v-else-if="events && events.length > 0">
         <el-timeline>
@@ -624,7 +624,7 @@ onMounted(() => {
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;

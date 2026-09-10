@@ -293,7 +293,7 @@ async function copySql(): Promise<void> {
 .sql-preview {
   width: 100%;
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   overflow: hidden;
   position: relative;
@@ -304,7 +304,7 @@ async function copySql(): Promise<void> {
   justify-content: space-between;
   padding: 8px 12px;
   background: var(--c-surface-alt);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--ds-border-subtle);
 }
 .sql-title {
   display: inline-flex;
@@ -325,7 +325,7 @@ async function copySql(): Promise<void> {
 .sql-code {
   margin: 0;
   padding: 12px 14px;
-  font-family: 'SFMono-Regular', Consolas, 'Courier New', monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;
@@ -347,7 +347,7 @@ async function copySql(): Promise<void> {
 }
 .sql-meta {
   padding: 10px 14px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--ds-border-subtle);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -360,11 +360,11 @@ async function copySql(): Promise<void> {
   flex-wrap: wrap;
 }
 .meta-label {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   min-width: 70px;
 }
 .meta-value {
-  color: var(--ink);
+  color: var(--ds-text-primary);
   font-variant-numeric: tabular-nums;
 }
 .copy-toast {

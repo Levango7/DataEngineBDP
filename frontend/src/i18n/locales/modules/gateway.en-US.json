@@ -44,7 +44,12 @@
       "generate": "Generate",
       "nameRequired": "Please enter a key name",
       "updated": "API Key updated",
-      "generated": "API Key generated"
+      "generated": "API Key generated",
+      "routeModelOptions": {
+        "qiong7B": "qiong-7B",
+        "riskDomain13B": "Risk-Domain-1.3B",
+        "marketingDomain3B": "Marketing-Domain-3B"
+      }
     },
     "secretModal": {
       "title": "API Key Generated (store the secret safely)",

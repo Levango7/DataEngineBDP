@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import java.util.LinkedHashMap;
@@ -41,7 +42,8 @@ import java.util.Map;
  *   <li>KEYCLOAK_TOKEN_URI: Keycloak token 端点（默认本地 dev 实例）</li>
  *   <li>KEYCLOAK_CLIENT_ID: 客户端 ID（默认 sq-console）</li>
  *   <li>APP_SECURITY_LOCAL_AUTH_ENABLED: 本地降级开关（默认 false）</li>
- *   <li>LOCAL_AUTH_USERNAME / LOCAL_AUTH_PASSWORD: 降级账号（默认 admin/admin）</li>
+ *   <li>LOCAL_AUTH_USERNAME: 降级账号用户名（默认 admin）</li>
+ *   <li>LOCAL_AUTH_PASSWORD: 降级账号密码（默认空；启用降级且为空时启动随机生成并一次性日志提示）</li>
  * </ul>
  */
 @Slf4j
@@ -67,7 +69,7 @@ public class AuthController {
     @Value("${app.security.local-auth.username:admin}")
     private String localUsername;
 
-    @Value("${app.security.local-auth.password:admin}")
+    @Value("${app.security.local-auth.password:}")
     private String localPassword;
 
     /** 与 JwtAuthFilter 同源的签名密钥（app.security.jwt.secret → JWT_SECRET 环境变量）。 */
@@ -77,6 +79,67 @@ public class AuthController {
     /** 与 JwtAuthFilter 一致的 issuer 声明。 */
     @Value("${app.security.jwt.issuer:shuqing-bigdata}")
     private String jwtIssuer;
+
+
+    /**
+     * 启动时处理本地降级密码：未显式配置则随机生成（避免弱口令 admin/admin 误开风险）。
+     *
+     * <p>仅在 {@code localAuthEnabled=true} 时生效：
+     * <ul>
+     *   <li>密码为空：用 {@link java.security.SecureRandom} 生成 16 位强随机密码
+     *       （字母+数字+特殊字符），并通过 WARN 日志一次性提示妥善保存。</li>
+     *   <li>密码非空（用户显式配置）：使用该密码，但 WARN 日志提示确保密码强度。</li>
+     * </ul>
+     */
+    @PostConstruct
+    void initLocalAuthPassword() {
+        if (!localAuthEnabled) {
+            return;
+        }
+        if (localPassword == null || localPassword.isEmpty()) {
+            localPassword = generateRandomPassword(16);
+            log.warn("本地降级认证已启用，随机生成管理员密码：{}，请妥善保存", localPassword);
+        } else {
+            log.warn("本地降级认证使用环境变量配置的密码，请确保密码强度足够");
+        }
+    }
+
+    /**
+     * 用 {@link java.security.SecureRandom} 生成指定长度的强随机密码。
+     *
+     * <p>字符集：大写字母 + 小写字母 + 数字 + 常见特殊字符，保证至少各含一位。
+     *
+     * @param length 密码长度（≥4 以保证四类字符各至少一位）
+     * @return 强随机密码
+     */
+    private String generateRandomPassword(int length) {
+        String upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        String lower = "abcdefghijklmnopqrstuvwxyz";
+        String digits = "0123456789";
+        String special = "!@#$%^&*()-_=+";
+        String all = upper + lower + digits + special;
+
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(length);
+        // 保证四类字符各至少一位
+        sb.append(upper.charAt(random.nextInt(upper.length())));
+        sb.append(lower.charAt(random.nextInt(lower.length())));
+        sb.append(digits.charAt(random.nextInt(digits.length())));
+        sb.append(special.charAt(random.nextInt(special.length())));
+        // 剩余位从全字符集随机选取
+        for (int i = 4; i < length; i++) {
+            sb.append(all.charAt(random.nextInt(all.length())));
+        }
+        // 简单打乱顺序，避免前四位固定为四类字符
+        char[] chars = sb.toString().toCharArray();
+        for (int i = chars.length - 1; i > 0; i--) {
+            int j = random.nextInt(i + 1);
+            char tmp = chars[i];
+            chars[i] = chars[j];
+            chars[j] = tmp;
+        }
+        return new String(chars);
+    }
 
 
     /**

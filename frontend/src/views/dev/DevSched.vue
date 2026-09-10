@@ -15,7 +15,7 @@
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ t('devSched.messages.listLoadFailed') }}
             <a href="javascript:void(0)" @click="reload">{{ t('engines.kpi.loadFailedRetry') }}</a>
           </div>
@@ -85,7 +85,7 @@
       >
         <el-table-column prop="id" :label="t('devSched.table.columns.id')" width="160">
           <template #default="{ row }">
-            <span style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px">
+            <span style="font-family: var(--ds-font-family-mono); font-size: 12.5px">
               {{ row.id }}
             </span>
           </template>
@@ -102,11 +102,11 @@
           <template #default="{ row }">
             <span
               v-if="row.schedule"
-              style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
             >
               {{ row.schedule }}
             </span>
-            <span v-else style="color: var(--muted)">{{ t('devSched.table.scheduleEmpty') }}</span>
+            <span v-else style="color: var(--ds-text-tertiary)">{{ t('devSched.table.scheduleEmpty') }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="lastRunAt" :label="t('devSched.table.columns.lastRun')" width="180">
@@ -213,7 +213,7 @@
             type="textarea"
             :rows="12"
             :placeholder="t('devSched.editDrawer.fields.dagJsonPlaceholder')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
       </el-form>
@@ -814,7 +814,7 @@ watch(
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;

@@ -80,63 +80,68 @@
       <div class="params">
         <h3 style="font-size: 13px; margin-bottom: 8px">{{ t('develop.params') }}</h3>
         <label>{{ t('develop.engine') }}</label>
-        <select v-model="runParams.engine">
-          <option value="spark">Spark SQL</option>
-          <option value="flink">Flink SQL</option>
-          <option value="trino">Trino</option>
-          <option value="doris">Doris</option>
-        </select>
+        <el-select v-model="runParams.engine" style="width: 100%">
+          <el-option label="Spark SQL" value="spark" />
+          <el-option label="Flink SQL" value="flink" />
+          <el-option label="Trino" value="trino" />
+          <el-option label="Doris" value="doris" />
+        </el-select>
         <label>{{ t('develop.cpuMem') }}</label>
         <div class="row">
-          <input
-            v-model.number="runParams.cpu"
-            type="number"
-            min="1"
-            max="64"
-            style="width: 60px"
+          <el-input-number
+            v-model="runParams.cpu"
+            :min="1"
+            :max="64"
+            :controls="false"
+            style="width: 80px"
           />
           <span>{{ t('develop.core') }}</span>
-          <input
-            v-model.number="runParams.memory"
-            type="number"
-            min="1"
-            max="256"
-            style="width: 60px"
+          <el-input-number
+            v-model="runParams.memory"
+            :min="1"
+            :max="256"
+            :controls="false"
+            style="width: 80px"
           />
           <span>GB</span>
         </div>
         <label>{{ t('develop.parallelism') }}</label>
-        <input v-model.number="runParams.parallelism" type="number" min="1" max="100" />
+        <el-input-number
+          v-model="runParams.parallelism"
+          :min="1"
+          :max="100"
+          :controls="false"
+          style="width: 100%"
+        />
         <label>{{ t('develop.schedule') }}</label>
-        <select v-model="runParams.schedule">
-          <option value="">{{ t('develop.scheduleManual') }}</option>
-          <option value="0 4 * * *">{{ t('develop.scheduleDaily') }}</option>
-          <option value="custom">{{ t('develop.scheduleCustom') }}</option>
-        </select>
-        <input
+        <el-select v-model="runParams.schedule" style="width: 100%">
+          <el-option :label="t('develop.scheduleManual')" value="" />
+          <el-option :label="t('develop.scheduleDaily')" value="0 4 * * *" />
+          <el-option :label="t('develop.scheduleCustom')" value="custom" />
+        </el-select>
+        <el-input
           v-if="runParams.schedule === 'custom'"
           v-model="customCron"
           :placeholder="t('develop.customCronPlaceholder')"
           style="margin-top: 4px"
         />
-        <button
-          class="btn"
+        <el-button
+          type="primary"
           style="width: 100%; margin-top: 12px"
           :disabled="runLoading || !canRun"
           @click="handleRunJob"
         >
-          <svg class="play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7Z" /></svg>
+          <el-icon class="play"><VideoPlay /></el-icon>
           {{ runLoading ? t('develop.running') : t('develop.run') }}
-        </button>
-        <button
-          class="btn ghost"
+        </el-button>
+        <el-button
           style="width: 100%; margin-top: 8px"
           :disabled="scheduleLoading || !canSchedule"
           @click="handleSubmitSchedule"
         >
           {{ scheduleLoading ? t('develop.submitting') : t('develop.submitSchedule') }}
-        </button>
-        <div v-if="scheduleError" class="note" style="color: var(--red)">
+        </el-button>
+        <div v-if="scheduleError" class="note" style="color: var(--ds-color-error-600)">
           {{ t('develop.scheduleFailed', { msg: scheduleError.message }) }}
         </div>
         <div class="note">{{ t('develop.quotaNote') }}</div>
@@ -183,15 +188,17 @@
           <strong>{{ t('develop.confirmModal.cron') }}</strong>
           {{ effectiveSchedule || t('develop.confirmModal.manual') }}
         </p>
-        <p style="color: var(--muted); font-size: 12px">{{ t('develop.confirmModal.note') }}</p>
+        <p style="color: var(--ds-text-tertiary); font-size: 12px">
+          {{ t('develop.confirmModal.note') }}
+        </p>
       </div>
       <template #footer>
-        <button class="btn ghost" @click="scheduleConfirmVisible = false">
+        <el-button @click="scheduleConfirmVisible = false">
           {{ t('common.cancel') }}
-        </button>
-        <button class="btn" :disabled="scheduleLoading" @click="confirmSubmitSchedule">
+        </el-button>
+        <el-button type="primary" :disabled="scheduleLoading" @click="confirmSubmitSchedule">
           {{ scheduleLoading ? t('develop.submitting') : t('develop.confirmModal.confirm') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -199,7 +206,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, nextTick, onMounted, watch } from 'vue'
-import { Folder, Document } from '@element-plus/icons-vue'
+import { Folder, Document, VideoPlay } from '@element-plus/icons-vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { useApi } from '@/composables/useApi'
@@ -432,7 +439,7 @@ watch(
   min-height: 360px;
   max-height: 480px;
   overflow: auto;
-  background: #fafbfc;
+  background: var(--ds-bg-subtle);
 }
 .tree-loading,
 .tree-error,
@@ -449,7 +456,7 @@ watch(
 .tree-error,
 .code-error,
 .dag-error {
-  color: #d14343;
+  color: var(--ds-color-error-600);
 }
 .tree-node {
   padding: 4px 6px;
@@ -461,14 +468,14 @@ watch(
   text-overflow: ellipsis;
 }
 .tree-node:hover {
-  background: #eef2ff;
+  background: var(--ds-color-info-50);
 }
 .tree-node.folder {
   font-weight: 500;
 }
 .tree-node.active {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--ds-color-info-50);
+  color: var(--ds-color-info-700);
 }
 .code-wrap {
   display: flex;
@@ -480,7 +487,7 @@ watch(
 .tabs {
   display: flex;
   border-bottom: 1px solid var(--ds-border-default);
-  background: #fafbfc;
+  background: var(--ds-bg-subtle);
   border-radius: 8px 8px 0 0;
 }
 .tab {
@@ -490,12 +497,12 @@ watch(
   cursor: pointer;
 }
 .tab.on {
-  background: #fff;
+  background: var(--ds-bg-surface);
   font-weight: 500;
 }
 .tab .x {
   margin-left: 6px;
-  color: #9aa3ad;
+  color: var(--ds-text-tertiary);
   cursor: pointer;
 }
 .code-editor {
@@ -509,17 +516,17 @@ watch(
   border: none;
   outline: none;
   padding: 12px;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12.5px;
   line-height: 1.6;
   resize: none;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .params {
   border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
-  background: #fafbfc;
+  background: var(--ds-bg-subtle);
 }
 .params label {
   display: block;
@@ -528,14 +535,7 @@ watch(
   margin-top: 8px;
   margin-bottom: 4px;
 }
-.params select,
-.params input {
-  width: 100%;
-  padding: 4px 6px;
-  border: 1px solid var(--ds-border-default);
-  border-radius: 4px;
-  font-size: 12.5px;
-}
+
 .params .row {
   display: flex;
   align-items: center;
@@ -550,16 +550,60 @@ watch(
 }
 .dag .node {
   padding: 6px 12px;
-  background: #f4f5f7;
+  background: var(--ds-bg-muted);
   border-radius: 6px;
   font-size: 12.5px;
 }
 .dag .node.act {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--ds-color-info-50);
+  color: var(--ds-color-info-700);
   cursor: pointer;
 }
 .dag .arrow {
-  color: #9aa3ad;
+  color: var(--ds-text-tertiary);
+}
+
+/* ============ 响应式断点 ============ */
+/* 中等屏幕：收窄侧栏，避免内容挤压 */
+@media (max-width: 1100px) {
+  .ide {
+    grid-template-columns: 180px 1fr 180px;
+    gap: 8px;
+  }
+  .tree {
+    min-height: 280px;
+    max-height: 380px;
+  }
+  .code-wrap {
+    min-height: 280px;
+  }
+}
+
+/* 小屏幕：单列堆叠，文件树/代码/参数自上而下排列 */
+@media (max-width: 720px) {
+  .ide {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .tree {
+    min-height: 200px;
+    max-height: 300px;
+  }
+  .code-wrap {
+    min-height: 240px;
+  }
+  .code-textarea {
+    min-height: 200px;
+  }
+  .params .row {
+    flex-wrap: wrap;
+  }
+  .dag {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .dag .arrow {
+    transform: rotate(90deg);
+  }
 }
 </style>

@@ -15,7 +15,7 @@
       <template v-else-if="error">
         <div class="card" style="grid-column: span 4">
           <h3>{{ t('engines.kpi.loadFailed') }}</h3>
-          <div class="meta" style="color: var(--muted)">
+          <div class="meta" style="color: var(--ds-text-tertiary)">
             {{ t('engines.spark.loadFailed') }}
             <a href="javascript:void(0)" @click="loadList">
               {{ t('engines.kpi.loadFailedRetry') }}
@@ -189,14 +189,14 @@
           <el-input
             v-model="submitForm.mainClass"
             :placeholder="t('engines.spark.submit.fields.mainClassPlaceholder')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.jarUri')" prop="jarUri">
           <el-input
             v-model="submitForm.jarUri"
             :placeholder="t('engines.spark.submit.fields.jarUriPlaceholder')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.args')" prop="args">
@@ -205,7 +205,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('engines.spark.submit.fields.argsPlaceholder')"
-            style="font-family: 'SFMono-Regular', Consolas, monospace; font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
           />
         </el-form-item>
         <el-form-item
@@ -618,7 +618,7 @@ watch(
   border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--ds-bg-surface);
 }
 .card h3 {
   font-size: 13px;
@@ -663,7 +663,7 @@ watch(
   margin-top: 16px;
 }
 .log-container {
-  background: #1a2027;
+  background: var(--ds-color-gray-900);
   border-radius: 8px;
   padding: 12px;
   min-height: 320px;
@@ -671,8 +671,8 @@ watch(
   overflow: auto;
 }
 .log-content {
-  color: #cbd5e1;
-  font-family: 'SFMono-Regular', Consolas, monospace;
+  color: var(--ds-color-gray-300);
+  font-family: var(--ds-font-family-mono);
   font-size: 12.5px;
   line-height: 1.6;
   white-space: pre-wrap;

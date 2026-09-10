@@ -2,60 +2,55 @@
   <div>
     <PageHeader :title="t('govern.title')" :subtitle="t('govern.subtitle')" />
     <Toolbar
+      v-model:search-value="searchKeyword"
       :show-create="true"
       :create-label="t('govern.registerAsset')"
       :create-aria-label="t('govern.registerAsset')"
       :search-placeholder="t('govern.searchPlaceholder')"
-      v-model:search-value="searchKeyword"
       :search-aria-label="t('govern.searchPlaceholder')"
       :show-refresh="false"
       @create="modalVisible = true"
     >
       <template #filters>
-        <select>
-          <option>{{ t('govern.allLayers') }}</option>
-        </select>
+        <el-select :placeholder="t('govern.allLayers')" style="width: 140px">
+          <el-option :label="t('govern.allLayers')" value="" />
+        </el-select>
       </template>
     </Toolbar>
     <div class="card">
-      <div v-if="loading" style="padding: 16px; color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="error" style="padding: 16px; color: var(--red)">
+      <div v-if="loading" style="padding: 16px; color: var(--ds-text-tertiary)">
+        {{ t('common.loading') }}
+      </div>
+      <div v-else-if="error" style="padding: 16px; color: var(--ds-color-error-600)">
         {{ error.message }}，
         <a href="javascript:void(0)" @click="loadAssets">{{ t('common.retry') }}</a>
       </div>
-      <table v-else>
-        <thead>
-          <tr>
-            <th>{{ t('govern.cols.name') }}</th>
-            <th>{{ t('govern.cols.layer') }}</th>
-            <th>{{ t('govern.cols.owner') }}</th>
-            <th>{{ t('govern.cols.score') }}</th>
-            <th>{{ t('govern.cols.sensitive') }}</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="a in assets" :key="a.id" class="click" @click="openDrawer(a)">
-            <td>{{ a.name }}</td>
-            <td>{{ a.layer }}</td>
-            <td>{{ a.owner }}</td>
-            <td>{{ a.score }}</td>
-            <td>
-              <span class="pill" :class="sensitivityPillClass(a.sensitivity)">
-                {{ sensitivityPillText(a.sensitivity) }}
-              </span>
-            </td>
-            <td>
-              <span class="pill b">{{ t('govern.cols.detail') }}</span>
-            </td>
-          </tr>
-          <tr v-if="assets.length === 0">
-            <td colspan="6" style="text-align: center; color: var(--muted)">
-              {{ t('govern.empty') }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <el-table
+        v-else
+        :data="assets"
+        stripe
+        border
+        style="width: 100%"
+        :empty-text="t('govern.empty')"
+        @row-click="openDrawer"
+      >
+        <el-table-column :label="t('govern.cols.name')" prop="name" min-width="160" />
+        <el-table-column :label="t('govern.cols.layer')" prop="layer" width="100" />
+        <el-table-column :label="t('govern.cols.owner')" prop="owner" min-width="120" />
+        <el-table-column :label="t('govern.cols.score')" prop="score" width="80" />
+        <el-table-column :label="t('govern.cols.sensitive')" width="120">
+          <template #default="{ row }">
+            <span class="pill" :class="sensitivityPillClass(row.sensitivity)">
+              {{ sensitivityPillText(row.sensitivity) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('govern.cols.detail')" width="100" align="center">
+          <template #default>
+            <span class="pill b">{{ t('govern.cols.detail') }}</span>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <Drawer :visible="drawerVisible" @close="drawerVisible = false">
@@ -96,34 +91,29 @@
         </div>
       </div>
       <div v-if="tab === 1">
-        <div v-if="schemaLoading" style="color: var(--muted)">{{ t('govern.schema.loading') }}</div>
-        <table v-else>
-          <thead>
-            <tr>
-              <th>{{ t('govern.schema.colField') }}</th>
-              <th>{{ t('govern.schema.colType') }}</th>
-              <th>{{ t('govern.schema.colSensitive') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="f in schemaFields" :key="f.name">
-              <td>{{ f.name }}</td>
-              <td>{{ f.type }}</td>
-              <td v-if="f.sensitive">
-                <span class="pill r">{{ f.sensitivity || 'PII' }}</span>
-              </td>
-              <td v-else>—</td>
-            </tr>
-            <tr v-if="schemaFields.length === 0">
-              <td colspan="3" style="text-align: center; color: var(--muted)">
-                {{ t('govern.schema.empty') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-if="schemaLoading" style="color: var(--ds-text-tertiary)">
+          {{ t('govern.schema.loading') }}
+        </div>
+        <el-table
+          v-else
+          :data="schemaFields"
+          stripe
+          border
+          style="width: 100%"
+          :empty-text="t('govern.schema.empty')"
+        >
+          <el-table-column :label="t('govern.schema.colField')" prop="name" min-width="140" />
+          <el-table-column :label="t('govern.schema.colType')" prop="type" width="120" />
+          <el-table-column :label="t('govern.schema.colSensitive')" width="120">
+            <template #default="{ row }">
+              <span v-if="row.sensitive" class="pill r">{{ row.sensitivity || 'PII' }}</span>
+              <span v-else>—</span>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
       <div v-if="tab === 2">
-        <div v-if="qualityLoading" style="color: var(--muted)">
+        <div v-if="qualityLoading" style="color: var(--ds-text-tertiary)">
           {{ t('govern.quality.loading') }}
         </div>
         <div v-for="(q, idx) in qualityItems" v-else :key="idx" class="kv">
@@ -134,12 +124,17 @@
             </span>
           </span>
         </div>
-        <div v-if="!qualityLoading && qualityItems.length === 0" style="color: var(--muted)">
+        <div
+          v-if="!qualityLoading && qualityItems.length === 0"
+          style="color: var(--ds-text-tertiary)"
+        >
           {{ t('govern.quality.empty') }}
         </div>
       </div>
       <div v-if="tab === 3">
-        <div v-if="permLoading" style="color: var(--muted)">{{ t('govern.perms.loading') }}</div>
+        <div v-if="permLoading" style="color: var(--ds-text-tertiary)">
+          {{ t('govern.perms.loading') }}
+        </div>
         <div v-else>
           <div class="kv">
             <span>{{ t('govern.perms.current') }}</span>
@@ -150,9 +145,14 @@
               }}
             </span>
           </div>
-          <button class="btn sm" style="margin-top: 10px" @click="applyReadPermission">
+          <el-button
+            size="small"
+            type="primary"
+            style="margin-top: 10px"
+            @click="applyReadPermission"
+          >
             {{ t('govern.perms.applyRead') }}
-          </button>
+          </el-button>
         </div>
         <div class="note">{{ t('govern.perms.note') }}</div>
       </div>
@@ -164,27 +164,27 @@
       @close="modalVisible = false"
     >
       <label>{{ t('govern.registerModal.name') }}</label>
-      <input :placeholder="t('govern.registerModal.namePlaceholder')" />
+      <el-input :placeholder="t('govern.registerModal.namePlaceholder')" style="width: 100%" />
       <label>{{ t('govern.registerModal.layer') }}</label>
-      <select>
-        <option>ODS</option>
-        <option>DWD</option>
-        <option>DWS</option>
-        <option>ADS</option>
-      </select>
+      <el-select style="width: 100%">
+        <el-option label="ODS" value="ODS" />
+        <el-option label="DWD" value="DWD" />
+        <el-option label="DWS" value="DWS" />
+        <el-option label="ADS" value="ADS" />
+      </el-select>
       <label>{{ t('govern.registerModal.owner') }}</label>
-      <input />
+      <el-input style="width: 100%" />
       <label>{{ t('govern.registerModal.sensitivity') }}</label>
-      <select>
-        <option>{{ t('govern.registerModal.sensNone') }}</option>
-        <option>{{ t('govern.registerModal.sensRestricted') }}</option>
-        <option>{{ t('govern.registerModal.sensPii') }}</option>
-      </select>
+      <el-select style="width: 100%">
+        <el-option :label="t('govern.registerModal.sensNone')" value="none" />
+        <el-option :label="t('govern.registerModal.sensRestricted')" value="restricted" />
+        <el-option :label="t('govern.registerModal.sensPii')" value="PII" />
+      </el-select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" @click="ok(t('govern.registerModal.registered'))">
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="ok(t('govern.registerModal.registered'))">
           {{ t('govern.registerModal.register') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -305,3 +305,31 @@ onMounted(() => {
   void loadAssets()
 })
 </script>
+
+<style scoped>
+/* ============ 响应式断点 ============ */
+/* 中等屏幕：tabbar 允许换行，避免标签挤压 */
+@media (max-width: 1100px) {
+  .tabbar {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+}
+
+/* 小屏幕：tabbar 标签等宽分布，kv 键值对纵向排列 */
+@media (max-width: 720px) {
+  .tabbar {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .tabbar .t {
+    flex: 1 1 calc(50% - 4px);
+    text-align: center;
+  }
+  .kv {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+}
+</style>

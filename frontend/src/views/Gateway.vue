@@ -27,9 +27,9 @@
     <div class="card" style="margin-top: 14px">
       <h3>
         {{ t('gateway.trend') }}
-        <button class="btn ghost sm" style="margin-left: 8px" @click="loadStats">
+        <el-button size="small" style="margin-left: 8px" @click="loadStats">
           {{ t('gateway.refresh') }}
-        </button>
+        </el-button>
       </h3>
       <div ref="chartRef" class="chart-area"></div>
     </div>
@@ -38,60 +38,57 @@
     <div class="card" style="margin-top: 14px">
       <h3>
         {{ t('gateway.keysTitle') }}
-        <button class="btn sm" style="margin-left: 8px" @click="openCreateModal">
+        <el-button size="small" type="primary" style="margin-left: 8px" @click="openCreateModal">
           {{ t('gateway.newKey') }}
-        </button>
+        </el-button>
       </h3>
-      <div v-if="keysLoading" style="color: var(--muted)">{{ t('common.loading') }}</div>
-      <div v-else-if="keysError" style="color: var(--red)">
+      <div v-if="keysLoading" style="color: var(--ds-text-tertiary)">{{ t('common.loading') }}</div>
+      <div v-else-if="keysError" style="color: var(--ds-color-error-600)">
         {{ keysError.message }}，
         <a href="javascript:void(0)" @click="loadApiKeys">{{ t('common.retry') }}</a>
       </div>
-      <table v-else-if="apiKeys">
-        <thead>
-          <tr>
-            <th>{{ t('gateway.cols.name') }}</th>
-            <th>{{ t('gateway.cols.apiKey') }}</th>
-            <th>{{ t('gateway.cols.routeModel') }}</th>
-            <th>{{ t('gateway.cols.rateLimit') }}</th>
-            <th>{{ t('gateway.cols.status') }}</th>
-            <th>{{ t('gateway.cols.createdAt') }}</th>
-            <th>{{ t('gateway.cols.actions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="k in apiKeys" :key="k.id">
-            <td>{{ k.name }}</td>
-            <td>
-              <code class="api-key-cell">{{ k.apiKey || '--' }}</code>
-              <button v-if="k.apiKey" class="btn ghost sm" @click="copyText(k.apiKey!)">
-                {{ t('gateway.copy') }}
-              </button>
-            </td>
-            <td>{{ k.routeModel }}</td>
-            <td>{{ k.rateLimit }}/s</td>
-            <td>
-              <span class="pill" :class="keyStatusPillClass(k.status)">
-                {{ keyStatusPillText(k.status) }}
-              </span>
-            </td>
-            <td>{{ formatDate(k.createdAt) }}</td>
-            <td>
-              <button class="btn ghost sm" @click="openEditModal(k)">
-                {{ t('gateway.edit') }}
-              </button>
-              <button class="btn ghost sm" @click="handleDelete(k)">
-                {{ t('common.delete') }}
-              </button>
-            </td>
-          </tr>
-          <tr v-if="apiKeys.length === 0">
-            <td colspan="7" style="text-align: center; color: var(--muted)">
-              {{ t('gateway.keysEmpty') }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <el-table
+        v-else-if="apiKeys"
+        :data="apiKeys"
+        stripe
+        border
+        style="width: 100%"
+        :empty-text="t('gateway.keysEmpty')"
+      >
+        <el-table-column :label="t('gateway.cols.name')" prop="name" min-width="120" />
+        <el-table-column :label="t('gateway.cols.apiKey')" min-width="200">
+          <template #default="{ row }">
+            <code class="api-key-cell">{{ row.apiKey || '--' }}</code>
+            <el-button v-if="row.apiKey" size="small" link @click="copyText(row.apiKey)">
+              {{ t('gateway.copy') }}
+            </el-button>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('gateway.cols.routeModel')" prop="routeModel" width="140" />
+        <el-table-column :label="t('gateway.cols.rateLimit')" width="100">
+          <template #default="{ row }">{{ row.rateLimit }}/s</template>
+        </el-table-column>
+        <el-table-column :label="t('gateway.cols.status')" width="110">
+          <template #default="{ row }">
+            <span class="pill" :class="keyStatusPillClass(row.status)">
+              {{ keyStatusPillText(row.status) }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('gateway.cols.createdAt')" width="180">
+          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
+        </el-table-column>
+        <el-table-column :label="t('gateway.cols.actions')" width="160" fixed="right">
+          <template #default="{ row }">
+            <el-button size="small" link @click="openEditModal(row)">
+              {{ t('gateway.edit') }}
+            </el-button>
+            <el-button size="small" link type="danger" @click="handleDelete(row)">
+              {{ t('common.delete') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
     </div>
 
     <!-- 创建/编辑 Key 弹窗 -->
@@ -101,24 +98,35 @@
       @close="closeModal"
     >
       <label>{{ t('gateway.editModal.name') }}</label>
-      <input
+      <el-input
         v-model="form.name"
         :placeholder="t('gateway.editModal.namePlaceholder')"
         :disabled="!!editingKey"
+        style="width: 100%"
       />
       <label>{{ t('gateway.editModal.routeModel') }}</label>
-      <select v-model="form.routeModel">
-        <option>qiong-7B</option>
-        <option>风控-领域-1.3B</option>
-        <option>营销-领域-3B</option>
-      </select>
+      <el-select v-model="form.routeModel" style="width: 100%">
+        <el-option :label="t('gateway.editModal.routeModelOptions.qiong7B')" value="qiong-7B" />
+        <el-option
+          :label="t('gateway.editModal.routeModelOptions.riskDomain13B')"
+          value="风控-领域-1.3B"
+        />
+        <el-option
+          :label="t('gateway.editModal.routeModelOptions.marketingDomain3B')"
+          value="营销-领域-3B"
+        />
+      </el-select>
       <label>{{ t('gateway.editModal.rateLimit') }}</label>
-      <input v-model.number="form.rateLimit" type="number" />
+      <el-input-number v-model="form.rateLimit" :min="1" style="width: 100%" />
       <label>{{ t('gateway.editModal.scope') }}</label>
-      <input v-model="form.scope" :placeholder="t('gateway.editModal.scopePlaceholder')" />
+      <el-input
+        v-model="form.scope"
+        :placeholder="t('gateway.editModal.scopePlaceholder')"
+        style="width: 100%"
+      />
       <template #footer>
-        <button class="btn ghost" @click="closeModal">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="submitting" @click="handleSubmit">
+        <el-button @click="closeModal">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :disabled="submitting" @click="handleSubmit">
           {{
             submitting
               ? t('gateway.editModal.processing')
@@ -126,7 +134,7 @@
                 ? t('gateway.editModal.save')
                 : t('gateway.editModal.generate')
           }}
-        </button>
+        </el-button>
       </template>
     </Modal>
 
@@ -143,19 +151,21 @@
       <label>apiKey</label>
       <div class="secret-row">
         <code class="secret-cell">{{ createdKey?.apiKey }}</code>
-        <button class="btn ghost sm" @click="copyText(createdKey?.apiKey || '')">
+        <el-button size="small" @click="copyText(createdKey?.apiKey || '')">
           {{ t('gateway.copy') }}
-        </button>
+        </el-button>
       </div>
       <label>secret</label>
       <div class="secret-row">
         <code class="secret-cell">{{ createdKey?.secret }}</code>
-        <button class="btn ghost sm" @click="copyText(createdKey?.secret || '')">
+        <el-button size="small" @click="copyText(createdKey?.secret || '')">
           {{ t('gateway.copy') }}
-        </button>
+        </el-button>
       </div>
       <template #footer>
-        <button class="btn" @click="closeSecretModal">{{ t('gateway.secretModal.saved') }}</button>
+        <el-button type="primary" @click="closeSecretModal">
+          {{ t('gateway.secretModal.saved') }}
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -460,21 +470,21 @@ onUnmounted(() => {
   height: 280px;
 }
 .api-key-cell {
-  font-family: monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12px;
   color: var(--ds-color-success-700);
-  background: #ecfdf5;
+  background: var(--ds-color-success-50);
   padding: 2px 6px;
   border-radius: 4px;
   margin-right: 4px;
 }
 .secret-warning {
-  background: #fffbeb;
-  border: 1px solid #fbbf24;
+  background: var(--ds-color-warning-50);
+  border: 1px solid var(--ds-color-warning-400);
   border-radius: 6px;
   padding: 8px 12px;
   margin-bottom: 12px;
-  color: #92400e;
+  color: var(--ds-color-warning-800);
   font-size: 13px;
 }
 .secret-row {
@@ -485,12 +495,37 @@ onUnmounted(() => {
 }
 .secret-cell {
   flex: 1;
-  font-family: monospace;
+  font-family: var(--ds-font-family-mono);
   font-size: 12px;
   color: var(--ds-color-error-600);
-  background: #fef2f2;
+  background: var(--ds-color-error-50);
   padding: 6px 8px;
   border-radius: 4px;
   word-break: break-all;
+}
+
+/* ============ 响应式断点 ============ */
+/* 中等屏幕：KPI 卡片改为 2 列 */
+@media (max-width: 1100px) {
+  .grid.g4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .chart-area {
+    height: 240px;
+  }
+}
+
+/* 小屏幕：KPI 卡片单列，图表高度缩小 */
+@media (max-width: 720px) {
+  .grid.g4 {
+    grid-template-columns: 1fr;
+  }
+  .chart-area {
+    height: 200px;
+  }
+  .secret-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

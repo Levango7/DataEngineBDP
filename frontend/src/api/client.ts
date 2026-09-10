@@ -34,9 +34,7 @@ let i18nTranslator: ((key: string, fallback: string) => string) | null = null
  * 用注入而非直接 import i18n，保持 client.ts 与 ui/store 零耦合
  * （client.ts 被 store 依赖，直接 import 会成环）。</p>
  */
-export function setI18nTranslator(
-  translator: (key: string, fallback: string) => string
-): void {
+export function setI18nTranslator(translator: (key: string, fallback: string) => string): void {
   i18nTranslator = translator
 }
 
@@ -161,11 +159,8 @@ http.interceptors.response.use(
     if (body && typeof body === 'object' && 'code' in body) {
       if (body.code !== BIZ_SUCCESS_CODE) {
         // A2：优先按后端 messageKey 翻译，缺失时回退 message 原文
-        const raw = body.message || '业务处理失败'
-        const msg = translateError(
-          (body as { messageKey?: string }).messageKey,
-          raw
-        )
+        const raw = body.message || translateError('errors.http.bizFailed', '业务处理失败')
+        const msg = translateError((body as { messageKey?: string }).messageKey, raw)
         errorNotifier?.(msg)
         return Promise.reject(new ApiError(msg, body.code, response.status))
       }
@@ -177,31 +172,31 @@ http.interceptors.response.use(
   (error) => {
     // 网络错误或 HTTP 状态码非 2xx
     const status: number = error?.response?.status ?? 0
-    let msg = '请求失败，请稍后重试'
+    let msg = translateError('errors.http.default', '请求失败，请稍后重试')
 
     if (error?.response?.data?.error) {
       // 服务端显式错误码（如跨源查询 FAILED 的 error 字段）优先展示
       msg = String(error.response.data.error)
     } else if (status === 401) {
-      msg = '登录已过期，请重新登录'
+      msg = translateError('errors.http.unauthorized', '登录已过期，请重新登录')
       if (unauthorizedInFlight) {
         return Promise.reject(new ApiError(msg, status, status))
       }
       handleUnauthorized()
     } else if (status === 403) {
-      msg = '无权限访问该资源'
+      msg = translateError('errors.http.forbidden', '无权限访问该资源')
     } else if (status === 500) {
-      msg = '服务器内部错误，请联系管理员'
+      msg = translateError('errors.http.serverError', '服务器内部错误，请联系管理员')
     } else if (status === 502) {
-      msg = '上游服务暂时不可用，请稍后重试'
+      msg = translateError('errors.http.badGateway', '上游服务暂时不可用，请稍后重试')
     } else if (status === 504) {
-      msg = '查询超时，请检查 SQL 或稍后重试'
+      msg = translateError('errors.http.timeout', '查询超时，请检查 SQL 或稍后重试')
     } else if (status === 413) {
-      msg = '结果集过大，请缩小查询范围'
+      msg = translateError('errors.http.payloadTooLarge', '结果集过大，请缩小查询范围')
     } else if (status === 404) {
-      msg = '请求的资源不存在'
+      msg = translateError('errors.http.notFound', '请求的资源不存在')
     } else if (status === 0) {
-      msg = '网络异常，请检查网络连接'
+      msg = translateError('errors.http.network', '网络异常，请检查网络连接')
     } else if (error?.response?.data?.message) {
       msg = error.response.data.message
     }

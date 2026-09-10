@@ -127,7 +127,7 @@ function changeIcon(m: SummaryMetric) {
 .data-summary {
   width: 100%;
   background: var(--c-white);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px 14px;
 }
@@ -143,11 +143,11 @@ function changeIcon(m: SummaryMetric) {
   gap: 6px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--ds-text-primary);
 }
 .summary-meta {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -164,7 +164,7 @@ function changeIcon(m: SummaryMetric) {
   margin-bottom: 10px;
 }
 .quote-icon {
-  color: var(--primary);
+  color: var(--ds-color-primary-500);
   flex: none;
   margin-top: 3px;
 }
@@ -173,7 +173,7 @@ function changeIcon(m: SummaryMetric) {
 }
 .insights-title {
   font-size: 12px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-bottom: 6px;
   font-weight: 600;
 }
@@ -194,7 +194,7 @@ function changeIcon(m: SummaryMetric) {
   line-height: 1.6;
 }
 .insight-bullet {
-  color: var(--green);
+  color: var(--ds-color-success-500);
   flex: none;
   margin-top: 3px;
 }
@@ -205,7 +205,7 @@ function changeIcon(m: SummaryMetric) {
 }
 .metric-card {
   background: var(--c-surface-hover);
-  border: 1px solid var(--line);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 8px;
   padding: 10px 12px;
   display: flex;
@@ -214,18 +214,18 @@ function changeIcon(m: SummaryMetric) {
 }
 .metric-label {
   font-size: 11px;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 .metric-value {
   font-size: 18px;
   font-weight: 700;
-  color: var(--ink);
+  color: var(--ds-text-primary);
   font-variant-numeric: tabular-nums;
 }
 .metric-unit {
   font-size: 11px;
   font-weight: 500;
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
   margin-left: 2px;
 }
 .metric-change {
@@ -236,12 +236,12 @@ function changeIcon(m: SummaryMetric) {
   font-weight: 600;
 }
 .change-up {
-  color: var(--green);
+  color: var(--ds-color-success-500);
 }
 .change-down {
-  color: var(--red);
+  color: var(--ds-color-error-500);
 }
 .change-flat {
-  color: var(--muted);
+  color: var(--ds-text-tertiary);
 }
 </style>

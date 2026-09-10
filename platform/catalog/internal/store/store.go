@@ -30,13 +30,18 @@ type Store interface {
 	// Database CRUD
 	CreateDatabase(db *model.Database) error
 	GetDatabase(tenantID, id string) (*model.Database, error)
-	ListDatabases(tenantID string) ([]*model.Database, error)
+	// ListDatabases 列出租户下的数据库（分页）。
+	// limit 为每页条数，offset 为偏移量；返回结果列表、总条数与错误。
+	ListDatabases(tenantID string, limit, offset int) ([]*model.Database, int64, error)
 	DeleteDatabase(tenantID, id string) error
 
 	// Table CRUD
 	CreateTable(t *model.Table) error
 	GetTable(tenantID, id string) (*model.Table, error)
-	ListTables(tenantID, dbName string) ([]*model.Table, error)
+	// ListTables 列出租户内指定数据库下的表（分页）。
+	// 当 dbName 为空时，列出租户内全部表。
+	// limit 为每页条数，offset 为偏移量；返回结果列表、总条数与错误。
+	ListTables(tenantID, dbName string, limit, offset int) ([]*model.Table, int64, error)
 	UpdateTable(t *model.Table) error
 	DeleteTable(tenantID, id string) error
 
@@ -145,13 +150,31 @@ func (s *GormStore) GetDatabase(tenantID, id string) (*model.Database, error) {
 	return &db, nil
 }
 
-// ListDatabases 列出租户下的所有数据库。
-func (s *GormStore) ListDatabases(tenantID string) ([]*model.Database, error) {
+// ListDatabases 列出租户下的数据库（分页）。
+// limit 为每页条数，offset 为偏移量；返回结果列表、总条数与错误。
+// 当 limit <= 0 时不限制条数（向后兼容内部调用）。
+func (s *GormStore) ListDatabases(tenantID string, limit, offset int) ([]*model.Database, int64, error) {
 	var dbs []*model.Database
-	if err := s.db.Where("tenant_id = ?", tenantID).Find(&dbs).Error; err != nil {
-		return nil, err
+	query := s.db.Where("tenant_id = ?", tenantID)
+
+	// 先查总条数
+	var total int64
+	if err := query.Model(&model.Database{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return dbs, nil
+
+	// 应用分页
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	if err := query.Find(&dbs).Error; err != nil {
+		return nil, 0, err
+	}
+	return dbs, total, nil
 }
 
 // DeleteDatabase 删除一个数据库。跨租户删除按 ErrNotFound 处理。
@@ -214,20 +237,37 @@ func (s *GormStore) GetTable(tenantID, id string) (*model.Table, error) {
 	return &t, nil
 }
 
-// ListTables 列出租户内指定数据库下的所有表。
+// ListTables 列出租户内指定数据库下的表（分页）。
 // 当 dbName 为空时，列出租户内全部表。
-func (s *GormStore) ListTables(tenantID, dbName string) ([]*model.Table, error) {
+// limit 为每页条数，offset 为偏移量；返回结果列表、总条数与错误。
+// 当 limit <= 0 时不限制条数（向后兼容内部调用）。
+func (s *GormStore) ListTables(tenantID, dbName string, limit, offset int) ([]*model.Table, int64, error) {
 	var tables []*model.Table
-	var err error
+	var query *gorm.DB
 	if dbName == "" {
-		err = s.db.Where("tenant_id = ?", tenantID).Find(&tables).Error
+		query = s.db.Where("tenant_id = ?", tenantID)
 	} else {
-		err = s.db.Where("tenant_id = ? AND database_name = ?", tenantID, dbName).Find(&tables).Error
+		query = s.db.Where("tenant_id = ? AND database_name = ?", tenantID, dbName)
 	}
-	if err != nil {
-		return nil, err
+
+	// 先查总条数
+	var total int64
+	if err := query.Model(&model.Table{}).Count(&total).Error; err != nil {
+		return nil, 0, err
 	}
-	return tables, nil
+
+	// 应用分页
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	if offset > 0 {
+		query = query.Offset(offset)
+	}
+
+	if err := query.Find(&tables).Error; err != nil {
+		return nil, 0, err
+	}
+	return tables, total, nil
 }
 
 // UpdateTable 更新一张表。

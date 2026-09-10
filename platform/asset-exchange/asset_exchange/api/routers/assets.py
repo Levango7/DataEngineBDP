@@ -29,8 +29,13 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import AliasChoices, BaseModel, Field
 
-from asset_exchange.api.jwt_auth import AuthContext, getAuthContext
-from asset_exchange.api.routers.deps import get_registry, resolve_tenant, status_for_error
+from asset_exchange.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
+from asset_exchange.api.routers.deps import (
+    get_registry,
+    require_asset_owner,
+    resolve_tenant,
+    status_for_error,
+)
 from asset_exchange.models.asset import (
     Asset,
     AssetFilter,
@@ -239,8 +244,10 @@ async def audit_asset(
 async def publish_asset(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
-    """资产上架（自动执行合规/质量/分级检查）."""
+    """资产上架（自动执行合规/质量/分级检查）. 仅 admin 可执行."""
+    requireAdmin(ctx)
     try:
         a = await registry.assetService.get_asset(asset_id)
         result = await registry.assetService.publish(asset_id)
@@ -362,8 +369,10 @@ async def update_asset(
     asset_id: str,
     req: UpdateAssetRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
-    """更新资产信息."""
+    """更新资产信息. 仅资产所属租户或 admin 可操作."""
+    await require_asset_owner(registry, asset_id, ctx)
     fields = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
         return await registry.assetService.update_asset(asset_id, **fields)
@@ -379,8 +388,10 @@ async def update_asset(
 async def offline_asset(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> None:
-    """下架资产（下架后状态置为 offline，可重新上架）."""
+    """下架资产（下架后状态置为 offline，可重新上架）. 仅 admin 可执行."""
+    requireAdmin(ctx)
     try:
         a = await registry.assetService.offline_asset(asset_id)
         # 审计留痕
@@ -402,12 +413,15 @@ async def offline_asset(
 async def relist_asset(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
     """重新上架（显式状态机：仅 OFFLINE 可重新上架，OFFLINE -> LISTED）.
 
     Sprint 2.2：service 层 relist_asset 早已实现但无 HTTP 路由，
     前端 relistAsset 调用无端点——补齐对齐前端 assetMarket.ts。
+    仅 admin 可执行。
     """
+    requireAdmin(ctx)
     try:
         a = await registry.assetService.relist_asset(asset_id)
         # 审计留痕
@@ -573,8 +587,10 @@ async def settle_asset(
     asset_id: str,
     req: SettleRequest | None = None,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Settlement:
-    """对某资产执行结算（自动汇总计费记录，计算分成）."""
+    """对某资产执行结算（自动汇总计费记录，计算分成）. 仅 admin 可执行."""
+    requireAdmin(ctx)
     try:
         result = await registry.settlementService.settle(asset_id, req)
         # 审计留痕
@@ -618,11 +634,14 @@ async def allocate_asset(
     asset_id: str,
     req: AllocateRequest | None = None,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Allocation:
     """对某资产的最新结算执行分账.
 
     分账到数据提供方与平台，比例可配置。
+    仅 admin 可执行。
     """
+    requireAdmin(ctx)
     try:
         # 取最新结算记录
         settlements = await registry.settlementService.list_by_asset(asset_id)

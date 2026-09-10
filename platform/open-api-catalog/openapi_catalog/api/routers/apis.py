@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from openapi_catalog.api.jwt_auth import AuthContext, getAuthContext, requireAdmin
 from openapi_catalog.api.routers.deps import get_registry, status_for_error
 from openapi_catalog.models import (
     APIDefinition,
@@ -66,8 +67,10 @@ class RegisterAPIRequest(BaseModel):
 async def register_api(
     req: RegisterAPIRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """注册一个新 API（创建服务目录条目）."""
+    requireAdmin(ctx)
     try:
         data = req.model_dump()
         if data.get("responses") is None:
@@ -133,8 +136,10 @@ async def update_api(
     api_id: str,
     req: APIUpdateRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """更新 API（部分字段）."""
+    requireAdmin(ctx)
     try:
         return await registry.apiRegistryService.update_api(api_id, req)
     except CatalogError as exc:
@@ -149,8 +154,10 @@ async def update_api(
 async def delete_api(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> None:
     """注销 API（仅允许在 DRAFT/REJECTED/ARCHIVED 状态）."""
+    requireAdmin(ctx)
     try:
         await registry.apiRegistryService.delete_api(api_id)
     except CatalogError as exc:
@@ -188,8 +195,10 @@ async def submit_for_review(
 async def approve_api(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """审核通过."""
+    requireAdmin(ctx)
     try:
         return await registry.apiRegistryService.approve(api_id)
     except CatalogError as exc:
@@ -204,8 +213,10 @@ async def approve_api(
 async def reject_api(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """审核驳回."""
+    requireAdmin(ctx)
     try:
         return await registry.apiRegistryService.reject(api_id)
     except CatalogError as exc:
@@ -220,8 +231,10 @@ async def reject_api(
 async def publish_api(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """发布 API 到网关."""
+    requireAdmin(ctx)
     try:
         api = await registry.apiRegistryService.publish(api_id)
         # 配置限流
@@ -239,8 +252,10 @@ async def publish_api(
 async def deprecate_api(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """废弃 API（进入宽限期）."""
+    requireAdmin(ctx)
     try:
         return await registry.apiRegistryService.deprecate(api_id)
     except CatalogError as exc:
@@ -255,8 +270,10 @@ async def deprecate_api(
 async def archive_api(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> APIDefinition:
     """归档下线 API."""
+    requireAdmin(ctx)
     try:
         return await registry.apiRegistryService.archive(api_id)
     except CatalogError as exc:

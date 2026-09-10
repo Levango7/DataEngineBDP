@@ -18,21 +18,24 @@ import (
 )
 
 // setupRouter 创建一个用于测试的 Gin 引擎。
+// 注入测试租户中间件，使所有请求携带 tenantId="test"。
 func setupRouter() (*gin.Engine, *service.VectorService) {
 	gin.SetMode(gin.TestMode)
 	svc := service.NewVectorService(mock.NewMockVectorStore())
 	r := gin.New()
 	v1 := r.Group("/api/v1")
+	v1.Use(func(c *gin.Context) { c.Set("tenantId", "test"); c.Next() })
 	h := NewVectorHandler(svc)
 	h.RegisterRoutes(v1)
 	return r, svc
 }
 
 // setupRouterWithCollection 创建测试路由并预置一个集合。
+// 集合在测试租户 "test" 的命名空间下创建。
 func setupRouterWithCollection(t *testing.T, name string, dim int) (*gin.Engine, *service.VectorService) {
 	t.Helper()
 	r, svc := setupRouter()
-	require.NoError(t, svc.CreateCollection(context.Background(), store.CreateCollectionRequest{
+	require.NoError(t, svc.CreateCollection(service.WithTenantID(context.Background(), "test"), store.CreateCollectionRequest{
 		Name: name, Dimension: dim, MetricType: store.MetricL2, IndexType: store.IndexFLAT,
 	}))
 	return r, svc
@@ -187,7 +190,7 @@ func TestInsertVectors_CollectionNotFound(t *testing.T) {
 
 func TestSearch_Success(t *testing.T) {
 	r, svc := setupRouterWithCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(service.WithTenantID(context.Background(), "test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{0, 0}},
@@ -212,7 +215,7 @@ func TestSearch_Success(t *testing.T) {
 
 func TestSearch_WithFilter(t *testing.T) {
 	r, svc := setupRouterWithCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(service.WithTenantID(context.Background(), "test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{0, 0}, Metadata: map[string]interface{}{"label": "a"}},
@@ -240,7 +243,7 @@ func TestSearch_WithFilter(t *testing.T) {
 
 func TestHybridSearch_Success(t *testing.T) {
 	r, svc := setupRouterWithCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(service.WithTenantID(context.Background(), "test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{0, 0}, Metadata: map[string]interface{}{"label": "a"}},
@@ -267,7 +270,7 @@ func TestHybridSearch_Success(t *testing.T) {
 
 func TestHybridSearch_MissingFilter(t *testing.T) {
 	r, svc := setupRouterWithCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(service.WithTenantID(context.Background(), "test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors:        []store.Vector{{ID: "v1", Vector: []float32{0, 0}}},
 	}))
@@ -283,7 +286,7 @@ func TestHybridSearch_MissingFilter(t *testing.T) {
 
 func TestDeleteVectors_Success(t *testing.T) {
 	r, svc := setupRouterWithCollection(t, "col", 2)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(service.WithTenantID(context.Background(), "test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors: []store.Vector{
 			{ID: "v1", Vector: []float32{1, 1}},
@@ -305,7 +308,7 @@ func TestDeleteVectors_Success(t *testing.T) {
 
 func TestGetStats_Success(t *testing.T) {
 	r, svc := setupRouterWithCollection(t, "col", 64)
-	require.NoError(t, svc.Insert(context.Background(), store.InsertRequest{
+	require.NoError(t, svc.Insert(service.WithTenantID(context.Background(), "test"), store.InsertRequest{
 		CollectionName: "col",
 		Vectors:        []store.Vector{{ID: "v1", Vector: make([]float32, 64)}},
 	}))

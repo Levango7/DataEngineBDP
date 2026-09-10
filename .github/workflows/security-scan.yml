@@ -47,36 +47,41 @@ jobs:
       - name: 扫描 Maven 依赖（platform/**/pom.xml）
         run: |
           mkdir -p reports/trivy
+          fail_count=0
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
             echo "============================================"
             echo "  Trivy 扫描 Maven 依赖: $mod_name"
             echo "============================================"
-            trivy fs --exit-code 0 --format sarif \
+            trivy fs --exit-code 1 --format sarif \
               --output "reports/trivy/${mod_name}-deps.sarif" \
               --scanners vuln --severity HIGH,CRITICAL \
-              "$mod_dir" || echo "::warning::$mod_name 依赖扫描失败，继续下一个"
+              "$mod_dir" || { echo "::error::$mod_name 依赖扫描发现 HIGH/CRITICAL 漏洞"; fail_count=$((fail_count + 1)); }
           done < <(find platform -name pom.xml -not -path "*/target/*" 2>/dev/null)
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个 Maven 模块存在高危漏洞，阻断 CI"
+            exit 1
+          fi
 
       - name: 扫描 Python 依赖（pyproject.toml / requirements.txt）
         run: |
           if [ -f pyproject.toml ]; then
             echo "Trivy 扫描 pyproject.toml"
-            trivy fs --exit-code 0 --format sarif \
+            trivy fs --exit-code 1 --format sarif \
               --output reports/trivy/python-deps.sarif \
               --scanners vuln --severity HIGH,CRITICAL \
-              . || echo "::warning::Python 依赖扫描失败"
+              .
           fi
 
       - name: 扫描前端依赖（frontend/package-lock.json）
         run: |
           if [ -f frontend/package-lock.json ]; then
             echo "Trivy 扫描前端 npm 依赖"
-            trivy fs --exit-code 0 --format sarif \
+            trivy fs --exit-code 1 --format sarif \
               --output reports/trivy/npm-deps.sarif \
               --scanners vuln --severity HIGH,CRITICAL \
-              frontend || echo "::warning::npm 依赖扫描失败"
+              frontend
           fi
 
       - name: 上传 SARIF 到 GitHub Security tab
@@ -143,7 +148,7 @@ jobs:
         run: |
           mkdir -p reports/trivy
           if docker image inspect encaps-layer:scan > /dev/null 2>&1; then
-            trivy image --exit-code 0 --format sarif \
+            trivy image --exit-code 1 --format sarif \
               --output reports/trivy/encaps-layer-image.sarif \
               --scanners vuln --severity HIGH,CRITICAL \
               --ignore-unfixed \
@@ -179,14 +184,13 @@ jobs:
 
       - name: Semgrep 扫描（生成 SARIF）
         # returntocorp/semgrep-action@v1 已废弃且不支持 output/auditMode 输入，
-        # 改用官方 Docker 镜像直接产出 SARIF；发现问题仅报告不阻断（audit 语义）
+        # 改用官方 Docker 镜像直接产出 SARIF；--error 使发现问题返回非零退出码阻断 CI
         run: |
           mkdir -p reports/semgrep
           docker run --rm -v "${PWD}:/src" semgrep/semgrep \
             semgrep --config p/security-audit --config p/java \
               --config p/python --config p/javascript \
-              --sarif --output /src/reports/semgrep/semgrep.sarif \
-            || echo "::warning::Semgrep 发现问题，仅报告不阻断"
+              --error --sarif --output /src/reports/semgrep/semgrep.sarif
 
       - name: 上传 Semgrep SARIF
         if: always()
@@ -223,17 +227,17 @@ jobs:
 
       - name: Trivy 扫描 IaC 配置（deploy/）
         run: |
-          trivy config --exit-code 0 --format sarif \
+          trivy config --exit-code 1 --format sarif \
             --output reports/trivy/config-deploy.sarif \
             --severity HIGH,CRITICAL \
-            deploy/ || echo "::warning::deploy/ 配置扫描发现问题"
+            deploy/
 
       - name: Trivy 扫描 IaC 配置（ske/）
         run: |
-          trivy config --exit-code 0 --format sarif \
+          trivy config --exit-code 1 --format sarif \
             --output reports/trivy/config-ske.sarif \
             --severity HIGH,CRITICAL \
-            ske/ || echo "::warning::ske/ 配置扫描发现问题"
+            ske/
 
       - name: 上传 deploy/ 配置扫描 SARIF
         if: always()
