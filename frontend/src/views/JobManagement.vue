@@ -469,9 +469,6 @@ function statusLabel(status: JobStatus): string {
   return JOB_STATUSES.includes(status) ? t(`jobmgmt.status.${status}`) : status
 }
 
-function statusTagType(status: JobStatus): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_TAG_TYPES[status] ?? 'info'
-}
 
 /** 耗时格式化 */
 function formatDuration(seconds?: number): string {

@@ -239,9 +239,7 @@
         </div>
         <div class="status-row">
           <span class="status-label">{{ t('workspaceManagement.k8sDialog.k8sStatus') }}</span>
-          <el-tag :type="k8sStatusTagType(k8sStatus)" effect="light">
-            {{ k8sStatus }}
-          </el-tag>
+          <StatusTag :status="k8sStatus" :status-map="K8S_STATUS_TAG_TYPE_MAP" />
         </div>
       </div>
       <template #footer>
@@ -474,24 +472,13 @@ const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'dang
   failed: 'danger'
 }
 
-function statusTagType(
-  status: Workspace['status']
-): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
-  return STATUS_TAG_TYPE_MAP[status] || 'info'
-}
 
 /** K8s 状态 → tag 类型 */
-function k8sStatusTagType(status: string): 'success' | 'warning' | 'info' | 'danger' {
-  switch (status) {
-    case 'Active':
-      return 'success'
-    case 'Terminating':
-      return 'warning'
-    case 'NotFound':
-      return 'info'
-    default:
-      return 'danger'
-  }
+const K8S_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'danger'> = {
+  Active: 'success',
+  Terminating: 'warning',
+  NotFound: 'info',
+  Unknown: 'danger'
 }
 
 /* ------------------------------ 初始化 ------------------------------ */

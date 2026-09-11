@@ -1,28 +1,46 @@
 {
+  "ignoreFiles": ["**/design-tokens.css"],
   "rules": {
-    "declaration-property-value-allowed-list": {
-      "/margin|padding/": [
-        "/^var\\(/",
-        "/^calc\\(/",
-        "/^inherit$/",
-        "0",
-        "4px",
-        "8px",
-        "12px",
-        "16px",
-        "20px",
-        "24px",
-        "28px",
-        "32px",
-        "36px",
-        "40px",
-        "44px",
-        "48px",
-        "52px",
-        "56px",
-        "60px",
-        "64px"
-      ]
-    }
+    "color-no-hex": [true, { "severity": "warning" }],
+    "declaration-property-value-allowed-list": [
+      {
+        "/margin|padding/": [
+          "/^var\\(/",
+          "/^calc\\(/",
+          "/^inherit$/",
+          "0",
+          "4px",
+          "8px",
+          "12px",
+          "16px",
+          "20px",
+          "24px",
+          "28px",
+          "32px",
+          "36px",
+          "40px",
+          "44px",
+          "48px",
+          "52px",
+          "56px",
+          "60px",
+          "64px"
+        ],
+        "font-size": [
+          "/^var\\(/",
+          "/^inherit$/",
+          "12px",
+          "14px",
+          "16px",
+          "18px",
+          "20px",
+          "24px",
+          "30px",
+          "36px",
+          "48px"
+        ]
+      },
+      { "severity": "warning" }
+    ]
   }
 }

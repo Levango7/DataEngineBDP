@@ -40,9 +40,9 @@
   --shadow-glow-strong: 0 0 14px rgba(59, 130, 246, 0.18);
 
   /* === 侧边栏天蓝色（办公感/数据湖：饱和但柔和） === */
-  --sidebar-bg: linear-gradient(180deg, #cbe2f8 0%, #b8d4f5 60%, #a6c8f0 100%);
+  --sidebar-bg: linear-gradient(180deg, var(--ds-color-sidebar-bg-1) 0%, var(--ds-color-sidebar-bg-2) 60%, var(--ds-color-sidebar-bg-3) 100%);
   --sidebar-ink: var(--ds-color-primary-900); /* 侧边栏主文字 深蓝（蓝底深蓝字协调） */
-  --sidebar-muted: #3b5a92; /* 侧边栏次要文字 深蓝灰 */
+  --sidebar-muted: var(--ds-color-sidebar-muted); /* 侧边栏次要文字 深蓝灰 */
   --sidebar-active-bg: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.7) 0%,
@@ -450,7 +450,7 @@ body {
 }
 .topbar {
   height: 56px;
-  background: var(--topbar-bg, linear-gradient(180deg, #cbe2f8 0%, #b8d4f5 100%));
+  background: var(--topbar-bg, linear-gradient(180deg, var(--ds-color-sidebar-bg-1) 0%, var(--ds-color-sidebar-bg-2) 100%));
   border-bottom: 1px solid rgba(30, 58, 138, 0.28);
   box-shadow:
     0 1px 3px rgba(30, 58, 138, 0.1),
@@ -470,7 +470,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--ds-color-primary-700) 0%, var(--ds-color-info-500) 45%, #8b5cf6 80%, transparent 100%);
+  background: linear-gradient(90deg, var(--ds-color-primary-700) 0%, var(--ds-color-info-500) 45%, var(--ds-color-accent-500) 80%, transparent 100%);
   opacity: 0.9;
   pointer-events: none;
 }
@@ -562,10 +562,10 @@ body {
   --typo-h1: 800 24px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
   --typo-h2: 700 16px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
   --typo-body: 500 14px/1.6 var(--typo-color-body, var(--ds-color-gray-800));
-  --typo-caption: 500 13px/1.55 var(--typo-color-caption, var(--ds-color-gray-700));
+  --typo-caption: 500 14px/1.55 var(--typo-color-caption, var(--ds-color-gray-700));
   --typo-micro: 500 12px/1.5 var(--typo-color-micro, var(--ds-color-gray-600));
-  --typo-table-th: 700 12.5px/1.4 var(--typo-color-th, var(--ds-color-primary-900));
-  --typo-table-td: 500 13px/1.6 var(--typo-color-td, var(--ds-color-gray-800));
+  --typo-table-th: 700 12px/1.4 var(--typo-color-th, var(--ds-color-primary-900));
+  --typo-table-td: 500 14px/1.6 var(--typo-color-td, var(--ds-color-gray-800));
 
   /* ============================================================
    * 间距体系 Token（2026-09-07 统一规范）
@@ -681,7 +681,7 @@ body {
   position: absolute;
   inset: 0 0 auto 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, #8b5cf6 100%);
+  background: linear-gradient(90deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, var(--ds-color-accent-500) 100%);
   box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 .card:hover {
@@ -830,7 +830,7 @@ tr.click {
   font-size: 12px;
 }
 .btn.danger {
-  background: linear-gradient(135deg, var(--ds-color-error-500) 0%, #f97316 100%);
+  background: linear-gradient(135deg, var(--ds-color-error-500) 0%, var(--ds-color-orange-500) 100%);
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
 }
 .btn.danger:hover {
@@ -1092,7 +1092,7 @@ label {
   background: linear-gradient(90deg, var(--ds-color-warning-500) 0%, var(--ds-color-warning-400) 100%);
 }
 .bar > i.r {
-  background: linear-gradient(90deg, var(--ds-color-error-500) 0%, #f97316 100%);
+  background: linear-gradient(90deg, var(--ds-color-error-500) 0%, var(--ds-color-orange-500) 100%);
 }
 .row {
   display: flex;
@@ -1640,7 +1640,7 @@ label {
 .health-status {
   font-size: 12px;
   font-weight: 600;
-  color: var(--muted, #909399);
+  color: var(--muted, var(--ds-color-gray-fallback));
 }
 
 /* ============================================================
@@ -1909,7 +1909,7 @@ label {
   --line: var(--ds-color-gray-700);
   --c-white: var(--ds-color-gray-800);
 
-  --sidebar-bg: linear-gradient(180deg, #0b1220 0%, #101b31 60%, var(--ds-color-gray-900) 100%);
+  --sidebar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 60%, var(--ds-color-gray-900) 100%);
   --sidebar-ink: var(--ds-color-gray-200);
   --sidebar-muted: var(--ds-color-gray-400);
   --sidebar-active-bg: linear-gradient(
@@ -1923,12 +1923,12 @@ label {
   --glass-border: rgba(148, 163, 184, 0.2);
 
   /* 顶栏 */
-  --topbar-bg: linear-gradient(180deg, #0b1220 0%, #101b31 100%);
+  --topbar-bg: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%);
 
   /* 主内容底布：深色 */
   --c-surface-hover: var(--ds-color-gray-800);
-  --c-surface-alt: #0b1220;
-  --c-surface: #0b1220;
+  --c-surface-alt: var(--ds-color-dark-bg-1);
+  --c-surface: var(--ds-color-dark-bg-1);
   --c-track: var(--ds-color-gray-700);
 
   /* EP 文本色暗色版（覆盖前面亮色默认） */
@@ -1957,11 +1957,11 @@ label {
   /* EP el-card 暗色化（卡片白底根治） */
   --el-card-bg-color: var(--ds-color-gray-800);
   --el-border-color-light: var(--ds-color-gray-700);
-  --el-border-color-lighter: #263349;
+  --el-border-color-lighter: var(--ds-color-dark-bg-3);
   --el-fill-color-blank: var(--ds-color-gray-800);
-  --el-fill-color: #263349;
-  --el-fill-color-light: #263349;
-  --el-fill-color-lighter: #1b2740;
+  --el-fill-color: var(--ds-color-dark-bg-3);
+  --el-fill-color-light: var(--ds-color-dark-bg-3);
+  --el-fill-color-lighter: var(--ds-color-dark-bg-4);
 
   /* EP Border tokens (dark mode) */
   --el-border-color: var(--ds-border-default);
@@ -2149,13 +2149,13 @@ label {
 :root[data-theme='dark'] .sb-item,
 :root[data-theme='dark'] .tb-locale,
 :root[data-theme='dark'] .gs-input {
-  background: #1b2740 !important;
+  background: var(--ds-color-dark-bg-4) !important;
   border-color: var(--ds-color-gray-700) !important;
   color: var(--ds-color-gray-300) !important;
 }
 :root[data-theme='dark'] .sb-service:hover,
 :root[data-theme='dark'] .sb-item:hover {
-  background: #263349 !important;
+  background: var(--ds-color-dark-bg-3) !important;
   border-color: var(--ds-color-primary-400) !important;
 }
 /* 暗色下面板类：抽屉/弹窗/画布节点（白底大面积载体） */
@@ -2173,7 +2173,7 @@ label {
 :root[data-theme='dark'] .ghost,
 :root[data-theme='dark'] .sug-chip,
 :root[data-theme='dark'] .tag-chip {
-  background: #263349 !important;
+  background: var(--ds-color-dark-bg-3) !important;
   border-color: var(--ds-color-gray-600) !important;
   color: var(--ds-color-gray-300) !important;
 }
@@ -2193,7 +2193,7 @@ label {
   background:
     linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, #0b1220 0%, var(--ds-color-gray-900) 100%) !important;
+    linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-gray-900) 100%) !important;
   background-size:
     32px 32px,
     32px 32px,
@@ -2214,7 +2214,7 @@ label {
   border-right-color: rgba(148, 163, 184, 0.18) !important;
 }
 :root[data-theme='dark'] .topbar {
-  background: var(--topbar-bg, linear-gradient(180deg, #0b1220 0%, #101b31 100%)) !important;
+  background: var(--topbar-bg, linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%)) !important;
   border-bottom-color: rgba(148, 163, 184, 0.18) !important;
 }
 :root[data-theme='dark'] .brand {
@@ -2248,7 +2248,7 @@ label {
 
 /* 暗色下 StatusBar 覆写（scoped 需 !important） */
 :root[data-theme='dark'] .statusbar {
-  background: linear-gradient(90deg, #0b1220 0%, #101b31 50%, var(--ds-color-gray-900) 100%) !important;
+  background: linear-gradient(90deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 50%, var(--ds-color-gray-900) 100%) !important;
   color: var(--ds-color-gray-300) !important;
   border-top-color: rgba(99, 102, 241, 0.5) !important;
 }

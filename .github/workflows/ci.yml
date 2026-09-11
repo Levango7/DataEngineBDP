@@ -1139,9 +1139,21 @@ jobs:
           ).splitlines():
               mod_dir = os.path.dirname(gomod)
               mod_name = os.path.basename(mod_dir)
+              # T-08 同类修复：原用 go test -cover 输出不含 total: 行，line.startswith('total:') 恒不命中，
+              # 导致摘要为空，baseline-consistency-check 的 Go 基线上限检查失效。
+              # 改为与门禁/趋势检查一致的 -coverprofile + go tool cover -func 口径，真正获取覆盖率。
+              cov_profile = os.path.join(mod_dir, '.coverage.summary.out')
+              if os.path.exists(cov_profile):
+                  os.remove(cov_profile)
               try:
+                  subprocess.check_output(
+                      ['go', 'test', '-count=1', '-coverprofile=.coverage.summary.out', './...'],
+                      cwd=mod_dir, stderr=subprocess.DEVNULL, text=True
+                  )
+                  if not os.path.exists(cov_profile) or os.path.getsize(cov_profile) == 0:
+                      continue
                   out = subprocess.check_output(
-                      ['go', 'test', '-cover', './...'],
+                      ['go', 'tool', 'cover', '-func=.coverage.summary.out'],
                       cwd=mod_dir, stderr=subprocess.DEVNULL, text=True
                   )
                   for line in out.splitlines():

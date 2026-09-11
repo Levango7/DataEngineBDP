@@ -633,9 +633,6 @@ function statusLabel(status: ClusterStatus): string {
   return t(`infraK8s.status.${status}`)
 }
 
-function statusTagType(status: ClusterStatus): 'success' | 'warning' | 'danger' | 'info' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 const ENV_TAG_TYPE_MAP: Record<ClusterEnv, 'primary' | 'success' | 'warning'> = {
   private: 'primary',

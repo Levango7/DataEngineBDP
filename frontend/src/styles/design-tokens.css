@@ -72,6 +72,16 @@
   --ds-color-info-800: #3730a3;
   --ds-color-info-900: #312e81;
 
+  /* accent - violet (紫色强调色，用于渐变末端) */
+  --ds-color-accent-400: #a78bfa;
+  --ds-color-accent-500: #8b5cf6;
+  --ds-color-accent-600: #7c3aed;
+
+  /* orange - 橙色 (用于 danger 渐变末端) */
+  --ds-color-orange-400: #fb923c;
+  --ds-color-orange-500: #f97316;
+  --ds-color-orange-600: #ea580c;
+
   /* ============================================================
    * 3. 颜色系统 - 中性色 (gray, slate 系)
    * ============================================================ */
@@ -108,6 +118,18 @@
   /* border width */
   --ds-border-width: 1px;
   --ds-border-width-strong: 2px;
+
+  /* ============================================================
+   * 4.1 颜色系统 - 侧边栏专用色 (亮色)
+   * 浅蓝科技风侧边栏渐变 + 深蓝灰次要文字
+   * ============================================================ */
+  --ds-color-sidebar-bg-1: #cbe2f8; /* 侧边栏渐变起点 */
+  --ds-color-sidebar-bg-2: #b8d4f5; /* 侧边栏渐变中点 */
+  --ds-color-sidebar-bg-3: #a6c8f0; /* 侧边栏渐变终点 */
+  --ds-color-sidebar-muted: #3b5a92; /* 侧边栏次要文字 深蓝灰 */
+
+  /* 兜底色 (EP 兼容) */
+  --ds-color-gray-fallback: #909399;
 
   /* ============================================================
    * 5. 间距系统 - 4px 基准 (spacing-0 ~ spacing-20)
@@ -231,6 +253,12 @@
   --ds-border-width: 1px;
   --ds-border-width-strong: 2px;
 
+  /* 暗色专用背景色 (侧边栏/顶栏/面板渐变) */
+  --ds-color-dark-bg-1: #0b1220; /* 暗色渐变起点 */
+  --ds-color-dark-bg-2: #101b31; /* 暗色渐变中点 */
+  --ds-color-dark-bg-3: #263349; /* 暗色面板/填充色 */
+  --ds-color-dark-bg-4: #1b2740; /* 暗色次级面板色 */
+
   /* 阴影在暗色下使用更深的基础色 */
   --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --ds-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.45), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
@@ -259,6 +287,12 @@
     /* border width */
     --ds-border-width: 1px;
     --ds-border-width-strong: 2px;
+
+    /* 暗色专用背景色 (侧边栏/顶栏/面板渐变) */
+    --ds-color-dark-bg-1: #0b1220;
+    --ds-color-dark-bg-2: #101b31;
+    --ds-color-dark-bg-3: #263349;
+    --ds-color-dark-bg-4: #1b2740;
 
     /* 阴影在暗色下使用更深的基础色 */
     --ds-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);

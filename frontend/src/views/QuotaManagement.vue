@@ -586,11 +586,6 @@ const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'info' | 'dang
   FAILED: 'danger'
 }
 
-function statusTagType(
-  status: Quota['status']
-): 'success' | 'warning' | 'info' | 'danger' | 'primary' {
-  return STATUS_TAG_TYPE_MAP[status] || 'info'
-}
 
 /* ------------------------------ 初始化 ------------------------------ */
 

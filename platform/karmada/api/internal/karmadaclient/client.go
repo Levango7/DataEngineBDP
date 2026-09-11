@@ -78,14 +78,14 @@ func NewClient(cfg Config) (*Client, error) {
 
 // ClusterInfo 联邦集群信息。
 type ClusterInfo struct {
-	Name      string    `json:"name"`
-	Provider  string    `json:"provider"`  // 集群提供方（self-built / xinchuang / publiccloud / privatecloud）
-	Region    string    `json:"region"`    // 地域
-	Zone      string    `json:"zone"`      // 可用区
-	Status    string    `json:"status"`    // online / offline / syncing
-	APIEndpoint string  `json:"apiEndpoint"`
-	Labels    map[string]string `json:"labels,omitempty"`
-	CreatedAt time.Time `json:"createdAt"`
+	Name        string            `json:"name"`
+	Provider    string            `json:"provider"` // 集群提供方（self-built / xinchuang / publiccloud / privatecloud）
+	Region      string            `json:"region"`   // 地域
+	Zone        string            `json:"zone"`     // 可用区
+	Status      string            `json:"status"`   // online / offline / syncing
+	APIEndpoint string            `json:"apiEndpoint"`
+	Labels      map[string]string `json:"labels,omitempty"`
+	CreatedAt   time.Time         `json:"createdAt"`
 }
 
 // RegisterCluster 注册联邦集群。

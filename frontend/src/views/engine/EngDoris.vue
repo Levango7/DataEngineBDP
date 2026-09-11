@@ -106,9 +106,7 @@
             </el-table-column>
             <el-table-column :label="t('engines.table.status')" width="120">
               <template #default="{ row }">
-                <el-tag :type="nodeStatusTagType(row.status)" effect="light" size="small">
-                  {{ t(`engines.kpi.nodeStatus.${row.status}`, row.status) }}
-                </el-tag>
+                <StatusTag :status="row.status" :label="t(`engines.kpi.nodeStatus.${row.status}`, row.status)" :status-map="NODE_STATUS_TAG_TYPE_MAP" size="small" />
               </template>
             </el-table-column>
             <el-table-column :label="t('engines.table.cpu')" width="160">
@@ -169,9 +167,7 @@
             </el-table-column>
             <el-table-column :label="t('engines.table.status')" width="120">
               <template #default="{ row }">
-                <el-tag :type="queryStatusTagType(row.status)" effect="light" size="small">
-                  {{ row.status }}
-                </el-tag>
+                <StatusTag :status="row.status.toUpperCase()" :label="row.status" :status-map="QUERY_STATUS_TAG_TYPE_MAP" size="small" />
               </template>
             </el-table-column>
             <el-table-column prop="startTime" :label="t('engines.table.startTime')" width="180" />
@@ -240,6 +236,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
+import { StatusTag } from '@/components/ui'
 import * as engineApi from '@/api/engine'
 import type { DorisNode, DorisQuery, SqlExecuteResponse, SqlExplainResponse } from '@/api/engine'
 
@@ -396,21 +393,18 @@ async function handleExplainSql() {
 /* ------------------------------ 辅助函数 ------------------------------ */
 
 /** 节点状态 → tag 类型 */
-function nodeStatusTagType(status: string): 'success' | 'danger' | 'warning' | 'info' {
-  if (status === 'alive') return 'success'
-  if (status === 'dead') return 'danger'
-  if (status === 'decommission') return 'warning'
-  return 'info'
+const NODE_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'danger' | 'warning' | 'info'> = {
+  alive: 'success',
+  dead: 'danger',
+  decommission: 'warning'
 }
 
 /** 查询状态 → tag 类型 */
-function queryStatusTagType(status: string): 'success' | 'danger' | 'warning' | 'info' | 'primary' {
-  const s = status.toUpperCase()
-  if (s === 'FINISHED') return 'success'
-  if (s === 'FAILED') return 'danger'
-  if (s === 'RUNNING') return 'primary'
-  if (s === 'CANCELED') return 'info'
-  return 'info'
+const QUERY_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'danger' | 'warning' | 'info' | 'primary'> = {
+  FINISHED: 'success',
+  FAILED: 'danger',
+  RUNNING: 'primary',
+  CANCELED: 'info'
 }
 
 /** 耗时格式化（毫秒） */

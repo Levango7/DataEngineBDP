@@ -549,9 +549,6 @@ function statusLabel(status: DataSourceStatus): string {
   return t(`dataSourceManagement.status.${status}`)
 }
 
-function statusTagType(status: DataSourceStatus): 'success' | 'info' | 'warning' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 /* ------------------------------ 初始化 ------------------------------ */
 

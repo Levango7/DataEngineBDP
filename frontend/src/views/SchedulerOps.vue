@@ -310,9 +310,7 @@ const RUN_STATUS_TAG_MAP: Record<string, 'success' | 'danger' | 'warning' | 'inf
   PENDING: 'warning'
 }
 
-function statusTagType(s: string): 'success' | 'danger' | 'warning' | 'info' {
-  return RUN_STATUS_TAG_MAP[s] ?? 'info'
-}
+
 function formatDuration(ms?: number | null): string {
   if (ms == null) return '—'
   if (ms < 1000) return `${ms}ms`

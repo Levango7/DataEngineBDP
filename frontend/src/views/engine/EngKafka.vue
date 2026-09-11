@@ -112,9 +112,7 @@
           />
           <el-table-column :label="t('engines.kafka.broker.columns.status')" width="120">
             <template #default="{ row }">
-              <el-tag :type="brokerStatusTagType(row.status)" effect="light" size="small">
-                {{ t(`engines.kafka.broker.status.${row.status}`, row.status) }}
-              </el-tag>
+              <StatusTag :status="row.status" :label="t(`engines.kafka.broker.status.${row.status}`, row.status)" :status-map="BROKER_STATUS_TAG_TYPE_MAP" size="small" />
             </template>
           </el-table-column>
           <el-table-column
@@ -226,9 +224,7 @@
           </el-table-column>
           <el-table-column :label="t('engines.kafka.group.columns.status')" width="160">
             <template #default="{ row }">
-              <el-tag :type="groupStatusTagType(row.status)" effect="light" size="small">
-                {{ t(`engines.kafka.group.status.${row.status}`, row.status) }}
-              </el-tag>
+              <StatusTag :status="row.status.toUpperCase()" :label="t(`engines.kafka.group.status.${row.status}`, row.status)" :status-map="GROUP_STATUS_TAG_TYPE_MAP" size="small" />
             </template>
           </el-table-column>
           <el-table-column
@@ -357,6 +353,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
+import { StatusTag } from '@/components/ui'
 import * as engineApi from '@/api/engine'
 import type { KafkaCluster, Broker, Topic, ConsumerGroup, KafkaMessage } from '@/api/engine'
 
@@ -571,19 +568,17 @@ async function openSampleDialog(row: Topic) {
 /* ------------------------------ 辅助函数 ------------------------------ */
 
 /** Broker 状态 → tag 类型 */
-function brokerStatusTagType(status: string): 'success' | 'danger' | 'info' {
-  if (status === 'alive') return 'success'
-  if (status === 'dead') return 'danger'
-  return 'info'
+const BROKER_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'danger' | 'info'> = {
+  alive: 'success',
+  dead: 'danger'
 }
 
 /** 消费组状态 → tag 类型 */
-function groupStatusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
-  const s = status.toUpperCase()
-  if (s === 'STABLE') return 'success'
-  if (s === 'PREPARING_REBALANCE' || s === 'COMPLETING_REBALANCE') return 'warning'
-  if (s === 'DEAD') return 'danger'
-  return 'info'
+const GROUP_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
+  STABLE: 'success',
+  PREPARING_REBALANCE: 'warning',
+  COMPLETING_REBALANCE: 'warning',
+  DEAD: 'danger'
 }
 
 /** 字节格式化 */

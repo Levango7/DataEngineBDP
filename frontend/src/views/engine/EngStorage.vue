@@ -105,9 +105,7 @@
           />
           <el-table-column :label="t('engStorage.vt.columns.status')" width="110">
             <template #default="{ row }">
-              <el-tag :type="vtStatusTagType(row.status)" effect="light" size="small">
-                {{ vtStatusLabel(row.status) }}
-              </el-tag>
+              <StatusTag :status="row.status ?? ''" :label="vtStatusLabel(row.status)" :status-map="VT_STATUS_TAG_TYPE_MAP" size="small" />
             </template>
           </el-table-column>
           <el-table-column
@@ -337,6 +335,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
+import { StatusTag } from '@/components/ui'
 import * as engineApi from '@/api/engine'
 import type {
   VirtualTableDefinition,
@@ -556,17 +555,11 @@ function vtStatusLabel(status?: VirtualTableStatus | string): string {
 }
 
 /** 虚拟表状态 → tag 类型 */
-function vtStatusTagType(
-  status?: VirtualTableStatus | string
-): 'success' | 'warning' | 'danger' | 'info' {
-  if (!status) return 'info'
-  const map: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
-    ACTIVE: 'success',
-    INACTIVE: 'info',
-    ERROR: 'danger',
-    REFRESHING: 'warning'
-  }
-  return map[status] ?? 'info'
+const VT_STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
+  ACTIVE: 'success',
+  INACTIVE: 'info',
+  ERROR: 'danger',
+  REFRESHING: 'warning'
 }
 
 /** 物化视图状态 → tag 类型 */

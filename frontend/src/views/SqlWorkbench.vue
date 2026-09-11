@@ -446,10 +446,6 @@ const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'danger' | 'in
   FAILED: 'danger'
 }
 
-/** 状态标签类型 */
-function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 
 /** 源标签类型 */

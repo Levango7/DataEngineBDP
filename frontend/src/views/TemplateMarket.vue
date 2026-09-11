@@ -676,9 +676,6 @@ const TEMPLATE_STATUS_TAG_MAP: Record<TemplateStatus, 'success' | 'warning' | 'i
   deprecated: 'info'
 }
 
-function statusTagType(status: TemplateStatus): 'success' | 'warning' | 'info' {
-  return TEMPLATE_STATUS_TAG_MAP[status] || 'info'
-}
 
 const PARAM_TYPE_TAG_MAP: Record<string, 'primary' | 'success' | 'warning' | 'info' | 'danger'> = {
   string: 'info',

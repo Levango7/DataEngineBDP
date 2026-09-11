@@ -462,9 +462,6 @@ const STATUS_TAG_TYPE_MAP: Record<ClusterStatus, 'success' | 'warning' | 'danger
   UPDATING: 'warning'
 }
 
-function statusTagType(status: ClusterStatus): 'success' | 'warning' | 'danger' | 'info' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 /* ------------------------------ 生命周期 ------------------------------ */
 

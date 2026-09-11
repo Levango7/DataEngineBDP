@@ -251,9 +251,7 @@
         </el-table-column>
         <el-table-column :label="t('devSched.historyDrawer.columns.status')" width="110">
           <template #default="{ row }">
-            <el-tag :type="runStatusTagType(row.status)" size="small" effect="light">
-              {{ runStatusLabel(row.status) }}
-            </el-tag>
+            <StatusTag :status="row.status" :label="runStatusLabel(row.status)" :status-map="RUN_STATUS_TAG_TYPE_MAP" size="small" />
           </template>
         </el-table-column>
         <el-table-column
@@ -369,7 +367,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
@@ -539,7 +537,7 @@ async function handleRun(row: DagJob) {
   runningId.value = row.id
   try {
     const { dagId, status } = await devSchedApi.runDag(row.id)
-    ElMessage.success(t('devSched.messages.runDone', { id: dagId, status }))
+    appStore.showToast(t('devSched.messages.runDone', { id: dagId, status }), 'success')
     await reload()
   } catch {
     // 拦截器已提示
@@ -565,7 +563,7 @@ async function handleRerun(row: DagJob) {
       size: 1
     })
     if (!runsPage.content.length) {
-      ElMessage.warning(t('devSched.messages.rerunFailedNone'))
+      appStore.showToast(t('devSched.messages.rerunFailedNone'), 'warning')
       return
     }
     const runId = runsPage.content[0].id
@@ -691,7 +689,7 @@ async function handleBackfill() {
         endDate: backfillForm.endDate,
         intervalDays: backfillForm.intervalDays
       })
-      ElMessage.success(t('devSched.messages.backfillCreated', { count: created }))
+      appStore.showToast(t('devSched.messages.backfillCreated', { count: created }), 'success')
       backfillDialogVisible.value = false
       await loadRuns()
     } catch {
@@ -719,9 +717,6 @@ function statusLabel(status: string): string {
   return t(`devSched.status.${status}`, status)
 }
 
-function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 const RUN_STATUS_TAG_TYPE_MAP: Record<
   string,
@@ -738,9 +733,6 @@ function runStatusLabel(status: string): string {
   return t(`devSched.status.${status}`, status)
 }
 
-function runStatusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return RUN_STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 function runTypeLabel(runType: string): string {
   return t(`devSched.historyDrawer.runTypes.${runType}`, runType)

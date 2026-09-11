@@ -283,9 +283,7 @@
           />
           <el-table-column :label="t('engines.flink.monitor.cpStatus')" width="120">
             <template #default="{ row }">
-              <el-tag :type="cpStatusTagType(row.status)" effect="light" size="small">
-                {{ row.status }}
-              </el-tag>
+              <StatusTag :status="row.status" :status-map="CP_STATUS_MAP" size="small" />
             </template>
           </el-table-column>
           <el-table-column :label="t('engines.flink.monitor.cpSize')" width="120" align="right">
@@ -598,9 +596,6 @@ function statusLabel(status: string): string {
   return t(`engFlink.status.${status}`, status)
 }
 
-function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_MAP[status] ?? 'info'
-}
 
 const CP_STATUS_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
   COMPLETED: 'success',
@@ -609,9 +604,6 @@ const CP_STATUS_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> =
   DISCARDED: 'info'
 }
 
-function cpStatusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
-  return CP_STATUS_MAP[status] ?? 'info'
-}
 
 const BACKPRESSURE_MAP: Record<BackpressureLevel, 'success' | 'warning' | 'danger'> = {
   ok: 'success',

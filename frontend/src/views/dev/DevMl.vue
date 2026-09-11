@@ -359,7 +359,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
-import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
+import { ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import * as devMlApi from '@/api/dev-ml'
 import type { TrainJob, MlModel, InferenceService, ModelVersion } from '@/api/dev-ml'
 import TrainPanel from './components/TrainPanel.vue'
@@ -640,7 +640,7 @@ async function handleScale() {
   scaling.value = true
   try {
     await devMlApi.scaleInference(currentSvc.value.id, { replicas: scaleTarget.value })
-    ElMessage.success(t('devMl.messages.modelScaled', { count: scaleTarget.value }))
+    appStore.showToast(t('devMl.messages.modelScaled', { count: scaleTarget.value }), 'success')
     scaleDialogVisible.value = false
     await loadServices()
   } catch {
@@ -739,7 +739,7 @@ async function handleDeleteModel(row: MlModel) {
       }
     )
     await devMlApi.deleteModel(row.id)
-    ElMessage.success(t('devMl.messages.modelDeleted'))
+    appStore.showToast(t('devMl.messages.modelDeleted'), 'success')
     await loadModels()
   } catch {}
 }

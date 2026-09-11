@@ -540,9 +540,6 @@ function statusLabel(status: string): string {
   return te(key) ? t(key) : status
 }
 
-function statusTagType(status: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
-}
 
 /** Stage 进度百分比 */
 function stagePercent(completed?: number, total?: number): number {

@@ -627,9 +627,6 @@ function statusLabel(status?: string): string {
   return STATUS_MAP.value[status ?? '']?.label ?? status ?? '--'
 }
 
-function statusTagType(status?: string): 'primary' | 'success' | 'danger' | 'info' | 'warning' {
-  return STATUS_MAP.value[status ?? '']?.type ?? 'info'
-}
 
 /** StatusTag 组件所需的纯 type 映射（从 STATUS_MAP 派生） */
 const statusTagMap = computed<Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'>>(() => {
