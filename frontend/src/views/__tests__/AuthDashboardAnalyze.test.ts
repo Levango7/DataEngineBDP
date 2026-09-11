@@ -3,7 +3,7 @@
  *
  * 验证内容（对应任务 B2-1）：
  * 1. emoji 已清除：Login.vue 无 ☀️/🌙，Analyze.vue 无 📊，均替换为内联 SVG
- * 2. 响应式断点：Dashboard.vue / Analyze.vue 含 @media (max-width: 1100px) 与 720px
+ * 2. 响应式断点：Dashboard.vue / Analyze.vue 含 @media (max-width: 1024px) 与 640px
  * 3. design tokens 使用：Login.vue / Register.vue 亮色 scoped 部分使用 var(--ds-*) 变量
  * 4. Dashboard 组件挂载：能正确挂载并渲染工作台标题与 KPI 卡片
  */
@@ -107,26 +107,26 @@ describe('Register.vue — design tokens', () => {
 })
 
 describe('Dashboard.vue — 响应式断点', () => {
-  it('应包含 @media (max-width: 1100px) 平板断点', () => {
-    expect(dashboardSrc).toContain('@media (max-width: 1100px)')
+  it('应包含 @media (max-width: 1024px) 平板断点', () => {
+    expect(dashboardSrc).toContain('@media (max-width: 1024px)')
   })
 
-  it('应包含 @media (max-width: 720px) 移动端断点', () => {
-    expect(dashboardSrc).toContain('@media (max-width: 720px)')
+  it('应包含 @media (max-width: 640px) 移动端断点', () => {
+    expect(dashboardSrc).toContain('@media (max-width: 640px)')
   })
 
-  it('1100px 断点应将四列网格退化为两列', () => {
-    // 提取 1100px 媒体查询块内容
+  it('1024px 断点应将四列网格退化为两列', () => {
+    // 提取 1024px 媒体查询块内容
     const mediaBlock = dashboardSrc.match(
-      /@media\s*\(max-width:\s*1100px\)\s*\{([\s\S]*?)\n\s*\}/
+      /@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/
     )
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('repeat(2, 1fr)')
   })
 
-  it('720px 断点应将网格退化为单列', () => {
+  it('640px 断点应将网格退化为单列', () => {
     const mediaBlock = dashboardSrc.match(
-      /@media\s*\(max-width:\s*720px\)\s*\{([\s\S]*?)\n\s*\}/
+      /@media\s*\(max-width:\s*640px\)\s*\{([\s\S]*?)\n\s*\}/
     )
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('1fr')
@@ -142,17 +142,17 @@ describe('Analyze.vue — emoji 清除与响应式断点', () => {
     expect(analyzeSrc).toContain('<svg')
   })
 
-  it('应包含 @media (max-width: 1100px) 平板断点', () => {
-    expect(analyzeSrc).toContain('@media (max-width: 1100px)')
+  it('应包含 @media (max-width: 1024px) 平板断点', () => {
+    expect(analyzeSrc).toContain('@media (max-width: 1024px)')
   })
 
-  it('应包含 @media (max-width: 720px) 移动端断点', () => {
-    expect(analyzeSrc).toContain('@media (max-width: 720px)')
+  it('应包含 @media (max-width: 640px) 移动端断点', () => {
+    expect(analyzeSrc).toContain('@media (max-width: 640px)')
   })
 
-  it('1100px 断点应将三列面板网格退化为两列', () => {
+  it('1024px 断点应将三列面板网格退化为两列', () => {
     const mediaBlock = analyzeSrc.match(
-      /@media\s*\(max-width:\s*1100px\)\s*\{([\s\S]*?)\n\s*\}/
+      /@media\s*\(max-width:\s*1024px\)\s*\{([\s\S]*?)\n\s*\}/
     )
     expect(mediaBlock).not.toBeNull()
     expect(mediaBlock![1]).toContain('repeat(2, 1fr)')

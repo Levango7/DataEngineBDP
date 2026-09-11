@@ -33,7 +33,7 @@ import (
 	"syscall"
 	"time"
 
-	karmadaclient "command-line-argumentsF:\\Nexus\\DataEngineBDP\\platform\\karmada\\api\\internal\\karmadaclient\\client.go"
+	karmadaclient "github.com/Levango7/DataEngineBDP/karmada-api/internal/karmadaclient"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
