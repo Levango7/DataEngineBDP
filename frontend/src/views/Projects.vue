@@ -335,14 +335,14 @@ onMounted(() => {
 }
 
 /* 响应式断点：中等屏幕紧凑化 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-sm);
   }
 }
 
 /* 响应式断点：小屏幕进一步紧凑 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-xs);
   }

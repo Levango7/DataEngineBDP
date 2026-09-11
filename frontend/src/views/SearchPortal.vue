@@ -436,7 +436,7 @@ onMounted(() => {
   gap: 8px;
 }
 .sort-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 .portal-main {
@@ -451,7 +451,7 @@ onMounted(() => {
   gap: 8px;
 }
 .result-stat {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted, var(--ds-text-secondary));
 }
 .hit-num {
@@ -544,7 +544,7 @@ onMounted(() => {
   margin: 8px 0 0;
 }
 .empty-tip {
-  font-size: 13px;
+  font-size: 14px;
 }
 .detail-content {
   display: flex;
@@ -556,7 +556,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: 6px 0;
   border-bottom: 1px dashed var(--line, var(--ds-border-default));
-  font-size: 13px;
+  font-size: 14px;
 }
 .detail-label {
   color: var(--muted, var(--ds-text-secondary));
@@ -572,7 +572,7 @@ onMounted(() => {
 }
 .detail-desc p {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   color: var(--ink, var(--ds-text-primary));
 }
@@ -581,7 +581,7 @@ onMounted(() => {
 }
 
 /* 响应式：窄屏过滤器折叠到顶部 */
-@media (max-width: 900px) {
+@media (max-width: 1024px) {
   .portal-body {
     grid-template-columns: 1fr;
   }

@@ -18,7 +18,7 @@
         </div>
       </div>
       <div class="params">
-        <h3 style="font-size: 13px">{{ t('sql.config') }}</h3>
+        <h3 style="font-size: 14px">{{ t('sql.config') }}</h3>
         <label>{{ t('sql.routeEngine') }}</label>
         <el-select v-model="selectedEngine" class="engine-select">
           <el-option value="auto" :label="t('sql.engineAuto')" />

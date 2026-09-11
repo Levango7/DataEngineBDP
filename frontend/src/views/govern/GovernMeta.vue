@@ -80,16 +80,14 @@
         </el-table-column>
         <el-table-column :label="t('governMeta.table.colStatus')" width="110">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusTagMap" />
           </template>
         </el-table-column>
         <el-table-column :label="t('governMeta.table.colCron')" prop="cron" width="160">
           <template #default="{ row }">
             <span
               v-if="row.cron"
-              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12px"
             >
               {{ row.cron }}
             </span>
@@ -227,7 +225,7 @@
           <el-input
             v-model="sourceForm.connectionUrl"
             :placeholder="t('governMeta.sourceDialog.urlHint')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item :label="t('governMeta.sourceDialog.fieldUsername')" prop="username">
@@ -312,6 +310,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { useApi } from '@/composables/useApi'
+import { StatusTag } from '@/components/ui'
 import * as governMetaApi from '@/api/govern-meta'
 import type { MetadataSource, CollectionHistory } from '@/api/govern-meta'
 
@@ -632,6 +631,13 @@ function statusTagType(status?: string): 'primary' | 'success' | 'danger' | 'inf
   return STATUS_MAP.value[status ?? '']?.type ?? 'info'
 }
 
+/** StatusTag 组件所需的纯 type 映射（从 STATUS_MAP 派生） */
+const statusTagMap = computed<Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'>>(() => {
+  const m: Record<string, 'primary' | 'success' | 'danger' | 'info' | 'warning'> = {}
+  for (const [k, v] of Object.entries(STATUS_MAP.value)) m[k] = v.type
+  return m
+})
+
 function historyStatusLabel(status: string): string {
   return HISTORY_STATUS_MAP.value[status]?.label ?? status
 }
@@ -683,7 +689,7 @@ onUnmounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -693,12 +699,12 @@ onUnmounted(() => {
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -710,13 +716,13 @@ onUnmounted(() => {
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -751,7 +757,7 @@ onUnmounted(() => {
   flex-wrap: wrap;
   gap: 12px;
   align-items: center;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-primary);
 }
 .history-error {

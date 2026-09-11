@@ -368,12 +368,12 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   margin-bottom: 12px;
 }
 .chat-empty h2 {
-  font-size: 22px;
+  font-size: 20px;
   margin-bottom: 8px;
 }
 .empty-desc {
   color: var(--ds-text-tertiary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 22px;
 }
 .example-prompts {
@@ -390,7 +390,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   border: 1px solid var(--ds-border-subtle);
   background: var(--c-white);
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--c-slate-700);
   cursor: pointer;
   transition: all 0.15s;
@@ -436,7 +436,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   align-items: flex-end;
 }
 .msg-role {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   margin-bottom: 2px;
 }
@@ -447,7 +447,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 10px 14px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -482,7 +482,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   border: 1px solid var(--ds-color-error-500);
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 /* 卡片 */
@@ -581,7 +581,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 .input-box :deep(.el-textarea__inner) {
   border-radius: 10px;
   padding: 10px 12px;
-  font-size: 13.5px;
+  font-size: 14px;
   max-height: 140px;
 }
 </style>

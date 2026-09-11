@@ -7,7 +7,13 @@ const pkg = JSON.parse(
 )
 
 const config: StorybookConfig = {
-  stories: ['../src/components/ui/**/*.stories.@(ts|tsx)'],
+  // TODO-4: 支持两种 stories 组织方式：
+  // 1. 直接放在 ui/ 目录下（现有）：ui/Component.stories.ts
+  // 2. 放在 __stories__/ 子目录中（推荐，更清晰）：ui/__stories__/Component.stories.ts
+  stories: [
+    '../src/components/ui/**/*.stories.@(ts|tsx)',
+    '../src/components/ui/**/__stories__/*.stories.@(ts|tsx)'
+  ],
   addons: [
     '@storybook/addon-essentials',
     '@storybook/addon-interactions',

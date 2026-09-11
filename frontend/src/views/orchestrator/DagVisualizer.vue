@@ -687,7 +687,7 @@ onBeforeUnmount(() => {
   pointer-events: none;
 }
 .node-type {
-  font-size: 10px;
+  font-size: 12px;
   fill: var(--ds-text-tertiary);
   pointer-events: none;
 }
@@ -843,7 +843,7 @@ onBeforeUnmount(() => {
 .tab-badge {
   display: inline-block;
   margin-left: 4px;
-  font-size: 10px;
+  font-size: 12px;
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
   border-radius: 10px;
@@ -856,7 +856,7 @@ onBeforeUnmount(() => {
 }
 
 .node-detail .kv {
-  font-size: 13px;
+  font-size: 14px;
 }
 .node-detail .kv b {
   font-weight: 600;
@@ -867,7 +867,7 @@ onBeforeUnmount(() => {
 }
 .mono {
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   word-break: break-all;
 }
 .params-block {
@@ -878,7 +878,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   padding: 10px;
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
   word-break: break-all;
@@ -889,7 +889,7 @@ onBeforeUnmount(() => {
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 40px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .empty-state {
@@ -903,7 +903,7 @@ onBeforeUnmount(() => {
 }
 .empty-text {
   color: var(--ds-text-tertiary);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .status-pending {

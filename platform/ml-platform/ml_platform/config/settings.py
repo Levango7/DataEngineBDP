@@ -14,14 +14,23 @@
                                true 时 backend 与 experiment_store 优先使用 mlflow
     ML_REDIS_URI               Redis URI（特征存储后端）
     ML_API_PREFIX              API 路由前缀（默认 /api/v1）
+
+    # ---- AI 模式统一开关（P-02）----
+    AI_MODE                    全局 AI 模式: mock / real（默认 mock）
+                               mock: 使用内存 Mock 后端，零外部依赖
+                               real: 使用 sklearn 真实后端（需 scikit-learn 就绪）
+                               设置 AI_MODE=real 时，backendType 覆盖为 sklearn
+                               设置 AI_MODE=mock 时，backendType 覆盖为 mock
+                               优先级: AI_MODE > ML_BACKEND_TYPE
 """
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,6 +52,10 @@ class Settings(BaseSettings):
     reload: bool = Field(default=False, description="开发模式热重载")
 
     # ---- backend ----
+    # P-02: AI_MODE 全局开关优先于 ML_BACKEND_TYPE
+    #   AI_MODE=mock  → backendType=mock（内存 Mock，零依赖）
+    #   AI_MODE=real  → backendType=sklearn（真实 sklearn 后端）
+    #   AI_MODE 未设置 → 使用 ML_BACKEND_TYPE 显式配置
     backendType: Literal["mock", "sklearn", "spark", "mlflow"] = Field(default="sklearn", description="ML 后端类型")
 
     # ---- feature store ----
@@ -82,6 +95,21 @@ class Settings(BaseSettings):
         if lv not in allowed:
             raise ValueError(f"logLevel 必须为 {allowed} 之一，得到 {v}")
         return lv
+
+    @model_validator(mode="after")
+    def _applyAiMode(self) -> "Settings":
+        """P-02: AI_MODE 全局开关覆盖 backendType.
+
+        AI_MODE=mock  → backendType=mock
+        AI_MODE=real  → backendType=sklearn
+        AI_MODE 未设置 → 不覆盖（使用显式 ML_BACKEND_TYPE）
+        """
+        ai_mode = os.getenv("AI_MODE", "").lower().strip()
+        if ai_mode == "mock":
+            self.backendType = "mock"
+        elif ai_mode == "real":
+            self.backendType = "sklearn"
+        return self
 
     @property
     def effectiveRegistryUri(self) -> str:

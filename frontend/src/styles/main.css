@@ -19,7 +19,7 @@
   --primary: var(--ds-color-primary-500); /* blue-500 */
   --primary-2: var(--ds-color-info-500); /* indigo-500 (蓝蓝渐变协调) */
   --primary-soft: var(--ds-color-primary-50); /* blue-50 */
-  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%); /* 蓝蓝渐变 */
+  --gradient-primary: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%); /* 蓝蓝渐变 */
   --gradient-primary-soft: linear-gradient(
     135deg,
     rgba(59, 130, 246, 0.12) 0%,
@@ -41,7 +41,7 @@
 
   /* === 侧边栏天蓝色（办公感/数据湖：饱和但柔和） === */
   --sidebar-bg: linear-gradient(180deg, #cbe2f8 0%, #b8d4f5 60%, #a6c8f0 100%);
-  --sidebar-ink: #1e3a8a; /* 侧边栏主文字 深蓝（蓝底深蓝字协调） */
+  --sidebar-ink: var(--ds-color-primary-900); /* 侧边栏主文字 深蓝（蓝底深蓝字协调） */
   --sidebar-muted: #3b5a92; /* 侧边栏次要文字 深蓝灰 */
   --sidebar-active-bg: linear-gradient(
     90deg,
@@ -61,20 +61,20 @@
   --c-surface-alt: var(--ds-bg-base);
   --c-surface: var(--ds-bg-base);
   --c-track: var(--ds-border-subtle);
-  --c-green-50b: #ecfdf5;
-  --c-indigo-50: #eff6ff;
+  --c-green-50b: var(--ds-color-success-50);
+  --c-indigo-50: var(--ds-color-primary-50);
   --c-slate-900: var(--ds-color-gray-900); /* slate-900 深色 */
   --c-slate-700: var(--ds-color-gray-700);
   --c-slate-400: var(--ds-color-gray-400);
   --c-slate-300: var(--ds-color-gray-300);
-  --c-green-50: #ecfdf5;
-  --c-green-200: #a7f3d0;
-  --c-green-600: #059669;
-  --c-green-400: #34d399;
-  --c-amber-50: #fffbeb;
-  --c-amber-400: #fbbf24;
-  --c-red-50: #fef2f2;
-  --c-blue-300: #93c5fd;
+  --c-green-50: var(--ds-color-success-50);
+  --c-green-200: var(--ds-color-success-200);
+  --c-green-600: var(--ds-color-success-600);
+  --c-green-400: var(--ds-color-success-400);
+  --c-amber-50: var(--ds-color-warning-50);
+  --c-amber-400: var(--ds-color-warning-400);
+  --c-red-50: var(--ds-color-error-50);
+  --c-blue-300: var(--ds-color-primary-300);
   --c-violet: var(--ds-color-info-500);
   --c-primary: var(--ds-color-primary-500); /* 兼容引用 */
 
@@ -143,9 +143,9 @@ body {
 .brand {
   height: 57px;
   padding: 0 12px 0 18px;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
-  color: #1e3a8a;
+  color: var(--ds-color-primary-900);
   display: flex;
   align-items: center;
   gap: 9px;
@@ -177,7 +177,7 @@ body {
   border-radius: 7px;
   border: 1px solid rgba(30, 58, 138, 0.2);
   background: rgba(255, 255, 255, 0.65);
-  color: #1e40af;
+  color: var(--ds-color-primary-800);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -189,9 +189,9 @@ body {
     transform 0.25s var(--ease-spring);
 }
 .side-collapse:hover {
-  background: #fff;
-  color: #1d4ed8;
-  border-color: #3b82f6;
+  background: var(--ds-bg-surface);
+  color: var(--ds-color-primary-700);
+  border-color: var(--ds-color-primary-500);
   transform: rotate(0deg) scale(1.08);
   box-shadow: 0 2px 8px rgba(30, 58, 138, 0.2);
 }
@@ -204,8 +204,8 @@ body {
 }
 /* 分组标题：加大字号 + 深蓝色 + 加粗 + 增加上下间距 */
 .nav .grp {
-  font-size: 13px;
-  color: #1e3a8a;
+  font-size: 12px;
+  color: var(--ds-color-primary-900);
   padding: 18px 20px 8px;
   letter-spacing: 1px;
   text-transform: none;
@@ -219,7 +219,7 @@ body {
   content: '';
   width: 4px;
   height: 14px;
-  background: linear-gradient(180deg, #1e40af 0%, #3b82f6 100%);
+  background: linear-gradient(180deg, var(--ds-color-primary-800) 0%, var(--ds-color-primary-500) 100%);
   border-radius: 2px;
   flex: none;
   box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
@@ -239,7 +239,7 @@ body {
   gap: 10px;
   margin: 2px 10px;
   padding: 8px 12px;
-  color: #1e3a8a;
+  color: var(--ds-color-primary-900);
   cursor: pointer;
   border-radius: 8px;
   border: 1px solid transparent;
@@ -256,14 +256,14 @@ body {
 }
 .nav a:hover {
   background: rgba(255, 255, 255, 0.55);
-  color: #1e40af;
+  color: var(--ds-color-primary-800);
   border-color: rgba(30, 58, 138, 0.25);
   transform: translateX(2px);
   font-weight: 700;
 }
 .nav a.active {
-  background: linear-gradient(90deg, #ffffff 0%, rgba(99, 102, 241, 0.2) 100%);
-  color: #1e40af;
+  background: linear-gradient(90deg, var(--ds-bg-surface) 0%, rgba(99, 102, 241, 0.2) 100%);
+  color: var(--ds-color-primary-800);
   border-color: rgba(30, 58, 138, 0.5);
   font-weight: 800;
   box-shadow:
@@ -278,13 +278,13 @@ body {
   bottom: 18%;
   width: 3px;
   border-radius: 2px;
-  background: linear-gradient(180deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(180deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.7);
 }
 .nav a .ic,
 .nav a .nav-ic {
   flex: none;
-  color: #1e40af;
+  color: var(--ds-color-primary-800);
   stroke-width: 1.8; /* EP 图标加粗：从默认 1.5 → 1.8 */
   fill: none;
   stroke: currentColor;
@@ -296,7 +296,7 @@ body {
 .nav a:hover .nav-ic,
 .nav a.active .ic,
 .nav a.active .nav-ic {
-  color: #1e40af;
+  color: var(--ds-color-primary-800);
   stroke-width: 2; /* 激活态更粗：2.0 */
 }
 .fic {
@@ -319,8 +319,8 @@ body {
 .nav a .badge {
   margin-left: auto;
   background: var(--red);
-  color: #fff;
-  font-size: 10px;
+  color: var(--ds-text-inverse);
+  font-size: 12px;
   border-radius: 10px;
   padding: 1px 6px;
 }
@@ -328,8 +328,8 @@ body {
 .side-foot {
   padding: 12px 16px;
   border-top: 1px solid rgba(30, 58, 138, 0.25);
-  font-size: 11px;
-  color: #1e3a8a;
+  font-size: 12px;
+  color: var(--ds-color-primary-900);
   line-height: 1.55;
   background: rgba(255, 255, 255, 0.55);
   font-weight: 500;
@@ -429,7 +429,7 @@ body {
   height: 14px;
   line-height: 14px;
   padding: 0 3px;
-  font-size: 9px;
+  font-size: 12px;
   z-index: 2;
 }
 .side.collapsed .side-foot {
@@ -470,7 +470,7 @@ body {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, #1d4ed8 0%, #6366f1 45%, #8b5cf6 80%, transparent 100%);
+  background: linear-gradient(90deg, var(--ds-color-primary-700) 0%, var(--ds-color-info-500) 45%, #8b5cf6 80%, transparent 100%);
   opacity: 0.9;
   pointer-events: none;
 }
@@ -479,7 +479,7 @@ body {
   align-items: center;
   gap: 8px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.14) 0%, rgba(99, 102, 241, 0.14) 100%);
-  color: #1d4ed8;
+  color: var(--ds-color-primary-700);
   border: 1px solid rgba(59, 130, 246, 0.35);
   padding: 6px 12px;
   border-radius: 9px;
@@ -505,7 +505,7 @@ body {
   padding: 4px 10px;
   border-radius: 20px;
   background: var(--c-green-50);
-  color: #047857;
+  color: var(--ds-color-success-700);
   border: 1px solid var(--c-green-200);
   font-weight: 600;
   box-shadow:
@@ -517,7 +517,7 @@ body {
   height: 32px;
   border-radius: 50%;
   background: var(--gradient-primary);
-  color: #fff;
+  color: var(--ds-text-inverse);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,7 +533,7 @@ body {
   background:
     linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%);
+    linear-gradient(180deg, var(--ds-color-gray-100) 0%, var(--ds-color-gray-200) 100%);
   background-size:
     32px 32px,
     32px 32px,
@@ -546,7 +546,7 @@ body {
 }
 .view .sub {
   font: var(--typo-caption);
-  color: #475569;
+  color: var(--ds-color-gray-600);
   margin-bottom: 20px;
 }
 .hidden {
@@ -559,13 +559,13 @@ body {
    * 文字体系 Token（2026-09-07 统一规范）
    * 所有页面只准用这 7 个，禁止内联 color/font-size/font-weight
    * ============================================================ */
-  --typo-h1: 800 24px/1.4 var(--typo-color-h, #0f172a);
-  --typo-h2: 700 16px/1.4 var(--typo-color-h, #0f172a);
-  --typo-body: 500 14px/1.6 var(--typo-color-body, #1e293b);
-  --typo-caption: 500 13px/1.55 var(--typo-color-caption, #334155);
-  --typo-micro: 500 12px/1.5 var(--typo-color-micro, #475569);
-  --typo-table-th: 700 12.5px/1.4 var(--typo-color-th, #1e3a8a);
-  --typo-table-td: 500 13px/1.6 var(--typo-color-td, #1e293b);
+  --typo-h1: 800 24px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-h2: 700 16px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-body: 500 14px/1.6 var(--typo-color-body, var(--ds-color-gray-800));
+  --typo-caption: 500 13px/1.55 var(--typo-color-caption, var(--ds-color-gray-700));
+  --typo-micro: 500 12px/1.5 var(--typo-color-micro, var(--ds-color-gray-600));
+  --typo-table-th: 700 12.5px/1.4 var(--typo-color-th, var(--ds-color-primary-900));
+  --typo-table-td: 500 13px/1.6 var(--typo-color-td, var(--ds-color-gray-800));
 
   /* ============================================================
    * 间距体系 Token（2026-09-07 统一规范）
@@ -576,32 +576,32 @@ body {
   --space-card-title-row: 8px;
 
   /* EP 默认色（兜底） */
-  --el-text-color-primary: #0f172a; /* 主文字 slate-900 */
-  --el-text-color-regular: #1e293b; /* 正文 slate-800 */
-  --el-text-color-secondary: #334155; /* 次要文字 slate-700 */
-  --el-text-color-placeholder: #64748b; /* 占位符 slate-500（比默认 909 灰深） */
-  --el-text-color-disabled: #94a3b8; /* 禁用 slate-400 */
-  --el-text-color-3: #475569; /* 三级文字 slate-600 */
-  --el-text-color-4: #334155; /* 四级文字 */
-  --el-text-color-5: #475569;
-  --el-text-color-6: #64748b;
-  --el-text-color-7: #94a3b8;
-  --el-input-text-color: #0f172a;
-  --el-input-placeholder-color: #64748b;
-  --el-input-disabled-color: #94a3b8;
-  --el-table-text-color: #1e293b;
+  --el-text-color-primary: var(--ds-color-gray-900); /* 主文字 slate-900 */
+  --el-text-color-regular: var(--ds-color-gray-800); /* 正文 slate-800 */
+  --el-text-color-secondary: var(--ds-color-gray-700); /* 次要文字 slate-700 */
+  --el-text-color-placeholder: var(--ds-color-gray-500); /* 占位符 slate-500（比默认 909 灰深） */
+  --el-text-color-disabled: var(--ds-color-gray-400); /* 禁用 slate-400 */
+  --el-text-color-3: var(--ds-color-gray-600); /* 三级文字 slate-600 */
+  --el-text-color-4: var(--ds-color-gray-700); /* 四级文字 */
+  --el-text-color-5: var(--ds-color-gray-600);
+  --el-text-color-6: var(--ds-color-gray-500);
+  --el-text-color-7: var(--ds-color-gray-400);
+  --el-input-text-color: var(--ds-color-gray-900);
+  --el-input-placeholder-color: var(--ds-color-gray-500);
+  --el-input-disabled-color: var(--ds-color-gray-400);
+  --el-table-text-color: var(--ds-color-gray-800);
   --el-table-border-color: var(--ds-border-default);
-  --el-table-header-text-color: #1e3a8a; /* 表头深蓝 */
-  --el-table-row-hover-bg-color: #eff6ff;
-  --el-pagination-text-color: #475569;
-  --el-pagination-button-disabled-bg-color: #f1f5f9;
-  --el-dialog-content-color: #1e293b;
-  --el-text-color-secondary-light-5: #475569;
-  --el-text-color-secondary-light-7: #94a3b8;
-  --el-text-color-secondary-light-9: #cbd5e1;
-  --el-color-text-secondary: #475569;
-  --el-color-text-placeholder: #64748b;
-  --el-color-text-regular: #1e293b;
+  --el-table-header-text-color: var(--ds-color-primary-900); /* 表头深蓝 */
+  --el-table-row-hover-bg-color: var(--ds-color-primary-50);
+  --el-pagination-text-color: var(--ds-color-gray-600);
+  --el-pagination-button-disabled-bg-color: var(--ds-color-gray-100);
+  --el-dialog-content-color: var(--ds-color-gray-800);
+  --el-text-color-secondary-light-5: var(--ds-color-gray-600);
+  --el-text-color-secondary-light-7: var(--ds-color-gray-400);
+  --el-text-color-secondary-light-9: var(--ds-color-gray-300);
+  --el-color-text-secondary: var(--ds-color-gray-600);
+  --el-color-text-placeholder: var(--ds-color-gray-500);
+  --el-color-text-regular: var(--ds-color-gray-800);
 
   /* Border tokens (light mode defaults) */
   --el-border-color: var(--ds-border-default);
@@ -622,11 +622,11 @@ body {
 .el-input__inner::placeholder,
 .el-textarea__inner::placeholder,
 .el-select__placeholder {
-  color: #64748b !important;
+  color: var(--ds-color-gray-500) !important;
   font-weight: 500;
 }
 .el-form-item__label {
-  color: #1e3a8a !important; /* 表单标签深蓝（页面主色调） */
+  color: var(--ds-color-primary-900) !important; /* 表单标签深蓝（页面主色调） */
   font-weight: 600 !important;
 }
 
@@ -651,7 +651,7 @@ body {
 .g6 {
   grid-template-columns: repeat(6, 1fr);
 }
-@media (max-width: 1280px) {
+@media (max-width: 1440px) {
   .g4,
   .g5,
   .g6 {
@@ -660,8 +660,8 @@ body {
 }
 .card {
   position: relative;
-  background: #ffffff;
-  /* 统一边框令牌：亮色默认 #cbd5e1，深色由暗色段覆写 */
+  background: var(--ds-bg-surface);
+  /* 统一边框令牌：亮色默认 var(--ds-color-gray-300)，深色由暗色段覆写 */
   border: var(--ds-border-width) solid var(--ds-border-default);
   border-radius: var(--ds-radius-lg);
   padding: 18px 18px 16px;
@@ -681,12 +681,12 @@ body {
   position: absolute;
   inset: 0 0 auto 0;
   height: 4px;
-  background: linear-gradient(90deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+  background: linear-gradient(90deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, #8b5cf6 100%);
   box-shadow: 0 1px 4px rgba(59, 130, 246, 0.3);
 }
 .card:hover {
   transform: translateY(-4px);
-  border-color: #1d4ed8;
+  border-color: var(--ds-color-primary-700);
   box-shadow:
     0 10px 24px rgba(15, 23, 42, 0.12),
     0 6px 20px rgba(59, 130, 246, 0.25);
@@ -712,7 +712,7 @@ body {
   color: var(--primary-2);
 }
 .kpi {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -724,13 +724,13 @@ body {
   font-size: 18px;
 }
 .meta {
-  color: #475569;
-  font-size: 12.5px;
+  color: var(--ds-color-gray-600);
+  font-size: 12px;
   font-weight: 500;
 }
 .pill {
   display: inline-block;
-  font-size: 11px;
+  font-size: 12px;
   padding: 2px 9px;
   border-radius: 20px;
   font-weight: 600;
@@ -764,7 +764,7 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 12px;
 }
 th,
 td {
@@ -789,11 +789,11 @@ tr.click {
 /* ============ button (渐变背景 + hover浮起发光) ============ */
 .btn {
   background: var(--gradient-primary);
-  color: #fff;
+  color: var(--ds-text-inverse);
   border: none;
   padding: 8px 14px;
   border-radius: 8px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   font-weight: 600;
   position: relative;
@@ -816,7 +816,7 @@ tr.click {
   box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
 }
 .btn.ghost {
-  background: #fff;
+  background: var(--ds-bg-surface);
   color: var(--primary);
   border: 1px solid var(--primary);
   box-shadow: none;
@@ -830,7 +830,7 @@ tr.click {
   font-size: 12px;
 }
 .btn.danger {
-  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  background: linear-gradient(135deg, var(--ds-color-error-500) 0%, #f97316 100%);
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.25);
 }
 .btn.danger:hover {
@@ -857,7 +857,7 @@ textarea {
   padding: 7px 10px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   width: 100%;
   transition:
     border-color 0.2s var(--ease-smooth),
@@ -885,14 +885,14 @@ label {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   overflow: hidden;
-  background: #fff;
+  background: var(--ds-bg-surface);
   box-shadow: var(--shadow-md);
 }
 .ide .tree {
   padding: 10px;
   border-right: 1px solid var(--line);
   background: var(--c-surface-hover);
-  font-size: 12.5px;
+  font-size: 12px;
   max-height: 420px;
   overflow: auto;
 }
@@ -929,7 +929,7 @@ label {
 .tabs .tab.on {
   color: var(--primary);
   border-bottom-color: var(--primary);
-  background: #fff;
+  background: var(--ds-bg-surface);
   font-weight: 600;
 }
 .tabs .tab .x {
@@ -939,7 +939,7 @@ label {
 .code {
   padding: 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   white-space: pre;
   color: var(--c-slate-700);
   min-height: 200px;
@@ -949,7 +949,7 @@ label {
   min-height: 200px;
   padding: 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre;
   color: var(--c-slate-700);
@@ -977,7 +977,7 @@ label {
   background: var(--c-slate-900);
   color: var(--c-slate-300);
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   padding: 10px;
   height: 120px;
   overflow: auto;
@@ -994,7 +994,7 @@ label {
 .params {
   padding: 12px;
   border-left: 1px solid var(--line);
-  font-size: 12.5px;
+  font-size: 12px;
   background: var(--c-surface-hover);
   max-height: 420px;
   overflow: auto;
@@ -1011,7 +1011,7 @@ label {
   border-radius: 8px;
 }
 .node {
-  background: #fff;
+  background: var(--ds-bg-surface);
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 7px 11px;
@@ -1050,7 +1050,7 @@ label {
 }
 .ln {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--ds-bg-surface);
   border-radius: 8px;
   padding: 8px 14px;
   font-size: 12px;
@@ -1089,21 +1089,21 @@ label {
   transition: width 0.4s var(--ease-smooth);
 }
 .bar > i.a {
-  background: linear-gradient(90deg, #f59e0b 0%, #fbbf24 100%);
+  background: linear-gradient(90deg, var(--ds-color-warning-500) 0%, var(--ds-color-warning-400) 100%);
 }
 .bar > i.r {
-  background: linear-gradient(90deg, #ef4444 0%, #f97316 100%);
+  background: linear-gradient(90deg, var(--ds-color-error-500) 0%, #f97316 100%);
 }
 .row {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
-  font-size: 13px;
+  font-size: 12px;
 }
 .note {
-  font-size: 12.5px;
-  color: #475569;
+  font-size: 12px;
+  color: var(--ds-color-gray-600);
   font-weight: 500;
   margin-top: 8px;
 }
@@ -1112,9 +1112,9 @@ label {
 .el-input__inner::placeholder,
 .el-textarea__inner::placeholder,
 .el-select__placeholder {
-  color: #64748b !important;
+  color: var(--ds-color-gray-500) !important;
   font-weight: 500 !important;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 /* === EP 输入框文字位置规范化（2026-09-08 三次修订）：文字起始距框线约 10px，
@@ -1132,16 +1132,16 @@ label {
 }
 .el-input__wrapper {
   padding: 1px 10px !important;
-  box-shadow: 0 0 0 1px #cbd5e1 inset !important;
+  box-shadow: 0 0 0 1px var(--ds-color-gray-300) inset !important;
   border-radius: 8px !important;
-  background: #fff !important;
+  background: var(--ds-bg-surface) !important;
 }
 .el-input__wrapper:hover {
-  box-shadow: 0 0 0 1px #94a3b8 inset !important;
+  box-shadow: 0 0 0 1px var(--ds-color-gray-400) inset !important;
 }
 .el-input__wrapper.is-focus {
   box-shadow:
-    0 0 0 1px #3b82f6 inset,
+    0 0 0 1px var(--ds-color-primary-500) inset,
     0 0 0 4px rgba(59, 130, 246, 0.12) !important;
 }
 .el-input__prefix {
@@ -1167,21 +1167,21 @@ label {
   box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.45) inset !important;
 }
 :root[data-theme='dark'] .el-input__wrapper:hover {
-  box-shadow: 0 0 0 1px #60a5fa inset !important;
+  box-shadow: 0 0 0 1px var(--ds-color-primary-400) inset !important;
 }
 :root[data-theme='dark'] .el-input__wrapper.is-focus {
   box-shadow:
-    0 0 0 1px #60a5fa inset,
+    0 0 0 1px var(--ds-color-primary-400) inset,
     0 0 0 3px rgba(96, 165, 250, 0.18) !important;
 }
 :root[data-theme='dark'] .el-input__inner,
 :root[data-theme='dark'] .el-textarea__inner {
-  color: #f1f5f9 !important;
+  color: var(--ds-color-gray-100) !important;
 }
 :root[data-theme='dark'] .el-input__inner::placeholder,
 :root[data-theme='dark'] .el-input__prefix,
 :root[data-theme='dark'] .el-input__count .el-input__count-inner {
-  color: #94a3b8 !important;
+  color: var(--ds-color-gray-400) !important;
 }
 .el-textarea__inner {
   padding-left: 14px !important;
@@ -1190,7 +1190,7 @@ label {
   padding-bottom: 8px !important;
 }
 .el-table {
-  border: 1.5px solid #3b82f6;
+  border: 1.5px solid var(--ds-color-primary-500);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
@@ -1199,13 +1199,13 @@ label {
   border-radius: 7px;
 }
 .el-table th.el-table__cell {
-  color: #1e3a8a !important;
+  color: var(--ds-color-primary-900) !important;
   font: var(--typo-table-th) !important;
-  background: #f1f5f9 !important;
-  border-bottom: 2px solid #3b82f6 !important;
+  background: var(--ds-color-gray-100) !important;
+  border-bottom: 2px solid var(--ds-color-primary-500) !important;
 }
 .el-table td.el-table__cell {
-  color: #1e293b;
+  color: var(--ds-color-gray-800);
   font: var(--typo-table-td);
 }
 .el-table .el-table__row {
@@ -1215,110 +1215,110 @@ label {
 /* === 接管 EP 全部可能浅色的"次要文本"（2026-09-07 全平台排查） === */
 :root {
   /* 强制覆盖 EP 默认 #909399 / #c0c4cc 系列（接管"第三级文本"） */
-  --el-text-color-3: #334155 !important;
-  --el-text-color-4: #475569 !important;
-  --el-text-color-5: #475569 !important;
-  --el-text-color-6: #475569 !important;
-  --el-text-color-7: #64748b !important;
-  --el-text-color-8: #64748b !important;
-  --el-text-color-9: #94a3b8 !important;
-  --el-color-text-tertiary: #475569;
-  --el-color-text-quaternary: #64748b;
-  --el-color-text-placeholder: #64748b;
-  --el-table-empty-text-color: #475569;
-  --el-table-border-color: #cbd5e1;
-  --el-table-row-hover-bg-color: #eff6ff;
-  --el-disabled-bg-color: #f1f5f9;
-  --el-disabled-text-color: #94a3b8;
-  --el-disabled-border-color: #cbd5e1;
-  --el-border-color: #cbd5e1;
-  --el-border-color-light: #e2e8f0;
-  --el-border-color-lighter: #f1f5f9;
-  --el-fill-color: #f1f5f9;
-  --el-fill-color-light: #f8fafc;
-  --el-fill-color-blank: #ffffff;
+  --el-text-color-3: var(--ds-color-gray-700) !important;
+  --el-text-color-4: var(--ds-color-gray-600) !important;
+  --el-text-color-5: var(--ds-color-gray-600) !important;
+  --el-text-color-6: var(--ds-color-gray-600) !important;
+  --el-text-color-7: var(--ds-color-gray-500) !important;
+  --el-text-color-8: var(--ds-color-gray-500) !important;
+  --el-text-color-9: var(--ds-color-gray-400) !important;
+  --el-color-text-tertiary: var(--ds-color-gray-600);
+  --el-color-text-quaternary: var(--ds-color-gray-500);
+  --el-color-text-placeholder: var(--ds-color-gray-500);
+  --el-table-empty-text-color: var(--ds-color-gray-600);
+  --el-table-border-color: var(--ds-color-gray-300);
+  --el-table-row-hover-bg-color: var(--ds-color-primary-50);
+  --el-disabled-bg-color: var(--ds-color-gray-100);
+  --el-disabled-text-color: var(--ds-color-gray-400);
+  --el-disabled-border-color: var(--ds-color-gray-300);
+  --el-border-color: var(--ds-color-gray-300);
+  --el-border-color-light: var(--ds-color-gray-200);
+  --el-border-color-lighter: var(--ds-color-gray-100);
+  --el-fill-color: var(--ds-color-gray-100);
+  --el-fill-color-light: var(--ds-color-gray-50);
+  --el-fill-color-blank: var(--ds-bg-surface);
   --el-mask-color: rgba(15, 23, 42, 0.5);
   /* EP 信息/提示/次要等语义色（蓝色信息类） */
-  --el-color-info: #3b82f6;
-  --el-color-info-light-3: #93c5fd;
-  --el-color-info-light-5: #dbeafe;
-  --el-color-info-light-7: #eff6ff;
-  --el-color-info-light-8: #eff6ff;
-  --el-color-info-light-9: #f8fafc;
+  --el-color-info: var(--ds-color-primary-500);
+  --el-color-info-light-3: var(--ds-color-primary-300);
+  --el-color-info-light-5: var(--ds-color-primary-100);
+  --el-color-info-light-7: var(--ds-color-primary-50);
+  --el-color-info-light-8: var(--ds-color-primary-50);
+  --el-color-info-light-9: var(--ds-color-gray-50);
   /* EP placeholder 系列（disabled/secondary） */
-  --el-input-placeholder-color: #64748b;
-  --el-text-color-secondary-light-5: #475569;
-  --el-text-color-secondary-light-7: #94a3b8;
-  --el-text-color-secondary-light-8: #94a3b8;
-  --el-text-color-secondary-light-9: #cbd5e1;
+  --el-input-placeholder-color: var(--ds-color-gray-500);
+  --el-text-color-secondary-light-5: var(--ds-color-gray-600);
+  --el-text-color-secondary-light-7: var(--ds-color-gray-400);
+  --el-text-color-secondary-light-8: var(--ds-color-gray-400);
+  --el-text-color-secondary-light-9: var(--ds-color-gray-300);
 }
 
 /* === EP 组件"提示/次要"类文本全平台加强 === */
 .el-input__prefix,
 .el-input__suffix,
 .el-input__count .el-input__count-inner {
-  color: #475569 !important;
+  color: var(--ds-color-gray-600) !important;
   font-weight: 600;
 }
 .el-form-item__label {
-  color: #1e3a8a !important;
+  color: var(--ds-color-primary-900) !important;
   font-weight: 600 !important;
-  font-size: 13px;
+  font-size: 12px;
 }
 .el-form-item__content,
 .el-input__inner,
 .el-textarea__inner {
-  color: #0f172a !important;
+  color: var(--ds-color-gray-900) !important;
 }
 .el-form-item__error {
-  color: #b91c1c !important;
+  color: var(--ds-color-error-700) !important;
   font-weight: 600 !important;
 }
 .el-input.is-disabled .el-input__inner,
 .el-textarea.is-disabled .el-textarea__inner {
-  color: #94a3b8 !important;
+  color: var(--ds-color-gray-400) !important;
 }
 .el-empty__description p {
-  color: #475569 !important;
+  color: var(--ds-color-gray-600) !important;
   font-weight: 500 !important;
 }
 .el-table__empty-text {
-  color: #475569 !important;
+  color: var(--ds-color-gray-600) !important;
   font-weight: 500 !important;
 }
 .el-loading-mask .el-loading-text {
-  color: #1e3a8a !important;
+  color: var(--ds-color-primary-900) !important;
   font-weight: 600 !important;
 }
 .el-tooltip__popper,
 .el-popper.is-light {
-  color: #1e293b !important;
+  color: var(--ds-color-gray-800) !important;
   font-weight: 500 !important;
 }
 .el-pagination__sizes .el-select .el-input__inner,
 .el-pagination__jump {
-  color: #475569 !important;
+  color: var(--ds-color-gray-600) !important;
   font-weight: 500 !important;
 }
 .el-pagination .el-pager li,
 .el-pagination .btn-prev,
 .el-pagination .btn-next {
-  color: #1e3a8a !important;
+  color: var(--ds-color-primary-900) !important;
   font-weight: 600 !important;
 }
 .el-dialog__title,
 .el-message-box__title,
 .el-message__content,
 .el-drawer__title {
-  color: #0f172a !important;
+  color: var(--ds-color-gray-900) !important;
   font-weight: 700 !important;
 }
 .el-descriptions__label {
-  color: #475569 !important;
+  color: var(--ds-color-gray-600) !important;
   font-weight: 600 !important;
 }
 .el-descriptions__content {
-  color: #1e293b !important;
+  color: var(--ds-color-gray-800) !important;
   font-weight: 500 !important;
 }
 .el-tag {
@@ -1343,7 +1343,7 @@ label {
   padding: 14px;
   text-align: center;
   cursor: pointer;
-  background: #fff;
+  background: var(--ds-bg-surface);
   transition:
     transform 0.2s var(--ease-smooth),
     box-shadow 0.2s var(--ease-smooth),
@@ -1390,7 +1390,7 @@ label {
   height: 100vh;
   width: 560px;
   max-width: 92vw;
-  background: #fff;
+  background: var(--ds-bg-surface);
   box-shadow: -8px 0 32px rgba(15, 23, 42, 0.25);
   transform: translateX(100%);
   transition: transform 0.32s var(--ease-drawer);
@@ -1434,7 +1434,7 @@ label {
   transform: translate(-50%, -50%) scale(0.96);
   width: 520px;
   max-width: 92vw;
-  background: #fff;
+  background: var(--ds-bg-surface);
   border-radius: 14px;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
   z-index: 60;
@@ -1453,7 +1453,7 @@ label {
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
   font-weight: 700;
-  font-size: 15px;
+  font-size: 14px;
   display: flex;
   align-items: center;
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);
@@ -1498,10 +1498,10 @@ label {
 }
 .toast {
   background: var(--c-slate-900);
-  color: #fff;
+  color: var(--ds-text-inverse);
   padding: 10px 18px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: 12px;
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
   animation: springIn 0.45s var(--ease-spring);
   border-left: 3px solid var(--primary);
@@ -1517,7 +1517,7 @@ label {
 .tabbar .t {
   padding: 9px 16px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   border-bottom: 2px solid transparent;
   transition:
@@ -1534,7 +1534,7 @@ label {
   justify-content: space-between;
   padding: 7px 0;
   border-bottom: 1px dashed var(--line);
-  font-size: 13px;
+  font-size: 12px;
 }
 .kv span:first-child {
   color: var(--muted);
@@ -1545,7 +1545,7 @@ label {
   flex-wrap: wrap;
 }
 .chip {
-  font-size: 11px;
+  font-size: 12px;
   padding: 3px 9px;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -1578,7 +1578,7 @@ label {
   margin-bottom: 10px;
 }
 .section-title {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--muted);
   margin: 18px 0 8px;
@@ -1615,22 +1615,22 @@ label {
   flex-shrink: 0;
 }
 .health-dot.st-up {
-  background: #10b981;
+  background: var(--ds-color-success-500);
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
 }
 .health-dot.st-warn {
-  background: #f59e0b;
+  background: var(--ds-color-warning-500);
   box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
 }
 .health-dot.st-down {
-  background: #ef4444;
+  background: var(--ds-color-error-500);
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
 }
 .health-dot.st-unknown {
-  background: #94a3b8;
+  background: var(--ds-color-gray-400);
 }
 .health-name {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--c-slate-700);
   flex: 1;
   overflow: hidden;
@@ -1638,7 +1638,7 @@ label {
   white-space: nowrap;
 }
 .health-status {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted, #909399);
 }
@@ -1803,7 +1803,7 @@ label {
 /* 渐变背景 */
 .gradient-bg {
   background: var(--gradient-primary);
-  color: #fff;
+  color: var(--ds-text-inverse);
 }
 
 /* 骨架屏占位 */
@@ -1903,15 +1903,15 @@ label {
  * ============================================================ */
 :root[data-theme='dark'] {
   --bg: var(--ds-bg-base);
-  --panel: #1e293b;
-  --ink: #f1f5f9;
-  --muted: #94a3b8;
-  --line: #334155;
-  --c-white: #1e293b;
+  --panel: var(--ds-color-gray-800);
+  --ink: var(--ds-color-gray-100);
+  --muted: var(--ds-color-gray-400);
+  --line: var(--ds-color-gray-700);
+  --c-white: var(--ds-color-gray-800);
 
-  --sidebar-bg: linear-gradient(180deg, #0b1220 0%, #101b31 60%, #0f172a 100%);
-  --sidebar-ink: #e2e8f0;
-  --sidebar-muted: #94a3b8;
+  --sidebar-bg: linear-gradient(180deg, #0b1220 0%, #101b31 60%, var(--ds-color-gray-900) 100%);
+  --sidebar-ink: var(--ds-color-gray-200);
+  --sidebar-muted: var(--ds-color-gray-400);
   --sidebar-active-bg: linear-gradient(
     90deg,
     rgba(59, 130, 246, 0.3) 0%,
@@ -1926,39 +1926,39 @@ label {
   --topbar-bg: linear-gradient(180deg, #0b1220 0%, #101b31 100%);
 
   /* 主内容底布：深色 */
-  --c-surface-hover: #1e293b;
+  --c-surface-hover: var(--ds-color-gray-800);
   --c-surface-alt: #0b1220;
   --c-surface: #0b1220;
-  --c-track: #334155;
+  --c-track: var(--ds-color-gray-700);
 
   /* EP 文本色暗色版（覆盖前面亮色默认） */
-  --el-text-color-primary: #f1f5f9;
-  --el-text-color-regular: #e2e8f0;
-  --el-text-color-secondary: #cbd5e1;
-  --el-text-color-placeholder: #94a3b8;
-  --el-text-color-disabled: #475569;
-  --el-input-text-color: #f1f5f9;
-  --el-input-placeholder-color: #94a3b8;
-  --el-table-text-color: #e2e8f0;
-  --el-table-border-color: #334155;
-  --el-table-header-text-color: #93c5fd;
-  --el-table-row-hover-bg-color: #1e293b;
-  --el-pagination-text-color: #cbd5e1;
-  --el-dialog-content-color: #e2e8f0;
+  --el-text-color-primary: var(--ds-color-gray-100);
+  --el-text-color-regular: var(--ds-color-gray-200);
+  --el-text-color-secondary: var(--ds-color-gray-300);
+  --el-text-color-placeholder: var(--ds-color-gray-400);
+  --el-text-color-disabled: var(--ds-color-gray-600);
+  --el-input-text-color: var(--ds-color-gray-100);
+  --el-input-placeholder-color: var(--ds-color-gray-400);
+  --el-table-text-color: var(--ds-color-gray-200);
+  --el-table-border-color: var(--ds-color-gray-700);
+  --el-table-header-text-color: var(--ds-color-primary-300);
+  --el-table-row-hover-bg-color: var(--ds-color-gray-800);
+  --el-pagination-text-color: var(--ds-color-gray-300);
+  --el-dialog-content-color: var(--ds-color-gray-200);
 
   /* 文字体系 Token 颜色翻转 */
-  --typo-color-h: #f1f5f9;
-  --typo-color-body: #e2e8f0;
-  --typo-color-caption: #cbd5e1;
-  --typo-color-micro: #94a3b8;
-  --typo-color-th: #93c5fd;
-  --typo-color-td: #e2e8f0;
+  --typo-color-h: var(--ds-color-gray-100);
+  --typo-color-body: var(--ds-color-gray-200);
+  --typo-color-caption: var(--ds-color-gray-300);
+  --typo-color-micro: var(--ds-color-gray-400);
+  --typo-color-th: var(--ds-color-primary-300);
+  --typo-color-td: var(--ds-color-gray-200);
 
   /* EP el-card 暗色化（卡片白底根治） */
-  --el-card-bg-color: #1e293b;
-  --el-border-color-light: #334155;
+  --el-card-bg-color: var(--ds-color-gray-800);
+  --el-border-color-light: var(--ds-color-gray-700);
   --el-border-color-lighter: #263349;
-  --el-fill-color-blank: #1e293b;
+  --el-fill-color-blank: var(--ds-color-gray-800);
   --el-fill-color: #263349;
   --el-fill-color-light: #263349;
   --el-fill-color-lighter: #1b2740;
@@ -1984,133 +1984,133 @@ label {
  * 暗色模式下 el-select 下拉面板背景透明/白底不可见问题的根治
  * 统一通过 :root[data-theme='dark'] 强制覆写，突破 scoped 限制 */
 :root[data-theme='dark'] .el-select__popper {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
 :root[data-theme='dark'] .el-select-dropdown__item {
   background: transparent !important;
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .el-select-dropdown__item.hover,
 :root[data-theme='dark'] .el-select-dropdown__item.highlighted {
-  background: #334155 !important;
-  color: #f1f5f9 !important;
+  background: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-100) !important;
 }
 :root[data-theme='dark'] .el-select-dropdown__item.selected {
   background: rgba(59, 130, 246, 0.2) !important;
-  color: #93c5fd !important;
+  color: var(--ds-color-primary-300) !important;
 }
 :root[data-theme='dark'] .el-select__input.is-focus .el-select__tags,
 :root[data-theme='dark'] .el-input__wrapper.is-focus {
-  border-color: #60a5fa !important;
+  border-color: var(--ds-color-primary-400) !important;
   box-shadow:
-    0 0 0 1px #60a5fa inset,
+    0 0 0 1px var(--ds-color-primary-400) inset,
     0 0 0 3px rgba(96, 165, 250, 0.18) !important;
 }
 :root[data-theme='dark'] .el-cascader-panel {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .el-cascader-menu {
-  background: #1e293b !important;
-  border-right: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border-right: 1px solid var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .el-cascader-node {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .el-cascader-node:hover,
 :root[data-theme='dark'] .el-cascader-node.is-active {
-  background: #334155 !important;
-  color: #f1f5f9 !important;
+  background: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-100) !important;
 }
 :root[data-theme='dark'] .el-cascader-node__prefix {
-  color: #94a3b8 !important;
+  color: var(--ds-color-gray-400) !important;
 }
 
 /* === 暗色下 ElDatePicker / ElTimePicker 面板修复 === */
 :root[data-theme='dark'] .el-picker-panel {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
 :root[data-theme='dark'] .el-date-table td,
 :root[data-theme='dark'] .el-time-panel__content {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .el-date-table td.today {
   background: rgba(59, 130, 246, 0.15) !important;
 }
 :root[data-theme='dark'] .el-date-table td.current:not(.disabled) {
-  background: #3b82f6 !important;
-  color: #fff !important;
+  background: var(--ds-color-primary-500) !important;
+  color: var(--ds-text-inverse) !important;
 }
 
 /* === 暗色下 ElTooltip / ElPopover 修复 === */
 :root[data-theme='dark'] .el-tooltip__popper,
 :root[data-theme='dark'] .el-popover {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
-  color: #e2e8f0 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-200) !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* === 暗色下 ElMessage / ElMessageBox / ElDialog 修复 === */
 :root[data-theme='dark'] .el-message {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
-  color: #f1f5f9 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-100) !important;
 }
 :root[data-theme='dark'] .el-message-box {
-  background: #1e293b !important;
-  color: #f1f5f9 !important;
+  background: var(--ds-color-gray-800) !important;
+  color: var(--ds-color-gray-100) !important;
 }
 :root[data-theme='dark'] .el-message-box__btns {
-  border-top: 1px solid #334155 !important;
+  border-top: 1px solid var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .el-dialog {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
 }
 
 /* === 暗色下 ElInput / ElSelect 组合框 focus 态增强 === */
 :root[data-theme='dark'] .el-input__wrapper.is-focus,
 :root[data-theme='dark'] .el-select .el-input__wrapper.is-focus {
-  border-color: #60a5fa !important;
+  border-color: var(--ds-color-primary-400) !important;
   box-shadow:
-    0 0 0 1px #60a5fa inset,
+    0 0 0 1px var(--ds-color-primary-400) inset,
     0 0 0 3px rgba(96, 165, 250, 0.18) !important;
 }
 
 /* === 暗色下 ElMenu 修复 === */
 :root[data-theme='dark'] .el-menu {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .el-menu-item,
 :root[data-theme='dark'] .el-sub-menu__title {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .el-menu-item:hover,
 :root[data-theme='dark'] .el-menu-item.is-active,
 :root[data-theme='dark'] .el-sub-menu__title:hover {
-  background: #334155 !important;
-  color: #f1f5f9 !important;
+  background: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-100) !important;
 }
 
 /* === 暗色下 ElTree 修复 === */
 :root[data-theme='dark'] .el-tree {
-  background: #1e293b !important;
-  border: 1px solid #334155 !important;
+  background: var(--ds-color-gray-800) !important;
+  border: 1px solid var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .el-tree-node__content {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .el-tree-node__content:hover {
-  background: #334155 !important;
+  background: var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .el-tree-node__expand-icon {
-  color: #94a3b8 !important;
+  color: var(--ds-color-gray-400) !important;
 }
 
 /* === 暗色下硬编码白底卡片/面板类集中反色（2026-09-08） ===
@@ -2118,13 +2118,13 @@ label {
  * 此处按类名集中反色，!important 突破 scoped 优先级 */
 /* EP el-card 组件本体（19 个视图在用）双保险：变量 + 直接选择器 */
 :root[data-theme='dark'] .el-card {
-  background-color: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
+  background-color: var(--ds-color-gray-800) !important;
+  border-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .el-card__header {
-  border-bottom-color: #334155 !important;
-  color: #93c5fd !important;
+  border-bottom-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-primary-300) !important;
 }
 :root[data-theme='dark'] .card,
 :root[data-theme='dark'] .stat,
@@ -2140,9 +2140,9 @@ label {
 :root[data-theme='dark'] .code-textarea,
 :root[data-theme='dark'] .suggestions,
 :root[data-theme='dark'] .json {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
+  background: var(--ds-color-gray-800) !important;
+  border-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-200) !important;
 }
 /* 顶栏/状态栏白色胶囊与全局搜索输入（scoped 无暗色段） */
 :root[data-theme='dark'] .sb-service,
@@ -2150,13 +2150,13 @@ label {
 :root[data-theme='dark'] .tb-locale,
 :root[data-theme='dark'] .gs-input {
   background: #1b2740 !important;
-  border-color: #334155 !important;
-  color: #cbd5e1 !important;
+  border-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-300) !important;
 }
 :root[data-theme='dark'] .sb-service:hover,
 :root[data-theme='dark'] .sb-item:hover {
   background: #263349 !important;
-  border-color: #60a5fa !important;
+  border-color: var(--ds-color-primary-400) !important;
 }
 /* 暗色下面板类：抽屉/弹窗/画布节点（白底大面积载体） */
 :root[data-theme='dark'] .drawer,
@@ -2165,27 +2165,27 @@ label {
 :root[data-theme='dark'] .node,
 :root[data-theme='dark'] .ln,
 :root[data-theme='dark'] .arch-node {
-  background: #1e293b !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
+  background: var(--ds-color-gray-800) !important;
+  border-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-200) !important;
 }
 /* 暗色下小 chip 类：浅色警示底转深色底保持对比 */
 :root[data-theme='dark'] .ghost,
 :root[data-theme='dark'] .sug-chip,
 :root[data-theme='dark'] .tag-chip {
   background: #263349 !important;
-  border-color: #475569 !important;
-  color: #cbd5e1 !important;
+  border-color: var(--ds-color-gray-600) !important;
+  color: var(--ds-color-gray-300) !important;
 }
 /* 侧栏折叠钮（半透明白底在深色侧栏上突兀） */
 :root[data-theme='dark'] .side-collapse {
   background: rgba(15, 23, 42, 0.55) !important;
   border-color: rgba(148, 163, 184, 0.35) !important;
-  color: #cbd5e1 !important;
+  color: var(--ds-color-gray-300) !important;
 }
 :root[data-theme='dark'] .side-collapse:hover {
   background: rgba(99, 102, 241, 0.25) !important;
-  color: #f1f5f9 !important;
+  color: var(--ds-color-gray-100) !important;
 }
 
 /* 暗色下正文底布 */
@@ -2193,7 +2193,7 @@ label {
   background:
     linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px),
-    linear-gradient(180deg, #0b1220 0%, #0f172a 100%) !important;
+    linear-gradient(180deg, #0b1220 0%, var(--ds-color-gray-900) 100%) !important;
   background-size:
     32px 32px,
     32px 32px,
@@ -2203,7 +2203,7 @@ label {
 /* 暗色下侧边栏/顶栏/品牌/菜单等用 !important 突破 scoped */
 :root[data-theme='dark'] body {
   background: var(--ds-bg-base) !important;
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .app {
   background: var(--ds-bg-base) !important;
@@ -2218,15 +2218,15 @@ label {
   border-bottom-color: rgba(148, 163, 184, 0.18) !important;
 }
 :root[data-theme='dark'] .brand {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
   border-bottom-color: rgba(148, 163, 184, 0.18) !important;
 }
 :root[data-theme='dark'] .nav a {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .nav a:hover {
   background: rgba(148, 163, 184, 0.14) !important;
-  color: #fff !important;
+  color: var(--ds-text-inverse) !important;
 }
 :root[data-theme='dark'] .nav a.active {
   background: linear-gradient(
@@ -2234,48 +2234,48 @@ label {
     rgba(59, 130, 246, 0.3) 0%,
     rgba(99, 102, 241, 0.2) 100%
   ) !important;
-  color: #fff !important;
+  color: var(--ds-text-inverse) !important;
   border-color: rgba(59, 130, 246, 0.5) !important;
 }
 :root[data-theme='dark'] .nav .grp {
-  color: #93c5fd !important;
+  color: var(--ds-color-primary-300) !important;
 }
 :root[data-theme='dark'] .side-foot {
   background: rgba(11, 18, 32, 0.55) !important;
-  color: #cbd5e1 !important;
+  color: var(--ds-color-gray-300) !important;
   border-top-color: rgba(148, 163, 184, 0.18) !important;
 }
 
 /* 暗色下 StatusBar 覆写（scoped 需 !important） */
 :root[data-theme='dark'] .statusbar {
-  background: linear-gradient(90deg, #0b1220 0%, #101b31 50%, #0f172a 100%) !important;
-  color: #cbd5e1 !important;
+  background: linear-gradient(90deg, #0b1220 0%, #101b31 50%, var(--ds-color-gray-900) 100%) !important;
+  color: var(--ds-color-gray-300) !important;
   border-top-color: rgba(99, 102, 241, 0.5) !important;
 }
 :root[data-theme='dark'] .sb-label,
 :root[data-theme='dark'] .sb-item.sb-ws,
 :root[data-theme='dark'] .sb-clock {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .sb-service {
   background: rgba(15, 23, 42, 0.6) !important;
-  border-color: #334155 !important;
-  color: #cbd5e1 !important;
+  border-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-300) !important;
 }
 :root[data-theme='dark'] .sb-item {
   background: rgba(15, 23, 42, 0.6) !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
+  border-color: var(--ds-color-gray-700) !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .sb-clock {
   background: rgba(99, 102, 241, 0.15) !important;
-  border-color: #6366f1 !important;
-  color: #93c5fd !important;
+  border-color: var(--ds-color-info-500) !important;
+  color: var(--ds-color-primary-300) !important;
 }
 
 /* 暗色下 RightPanel 覆写 */
 :root[data-theme='dark'] .rpanel {
-  background: #1e293b !important;
+  background: var(--ds-color-gray-800) !important;
   border-left-color: rgba(148, 163, 184, 0.18) !important;
 }
 :root[data-theme='dark'] .rp-head {
@@ -2293,7 +2293,7 @@ label {
   background: rgba(59, 130, 246, 0.08) !important;
 }
 :root[data-theme='dark'] .rp-item-title {
-  color: #e2e8f0 !important;
+  color: var(--ds-color-gray-200) !important;
 }
 :root[data-theme='dark'] .rp-foot {
   border-top-color: rgba(148, 163, 184, 0.18) !important;
@@ -2315,22 +2315,22 @@ label {
 :root[data-theme='dark'] .tb-locale,
 :root[data-theme='dark'] .tb-icon-btn {
   background: rgba(15, 23, 42, 0.7) !important;
-  color: #e2e8f0 !important;
-  border-color: #334155 !important;
+  color: var(--ds-color-gray-200) !important;
+  border-color: var(--ds-color-gray-700) !important;
 }
 :root[data-theme='dark'] .view-quickbar {
   background: rgba(15, 23, 42, 0.85);
-  border-color: #3b82f6;
+  border-color: var(--ds-color-primary-500);
 }
 :root[data-theme='dark'] .vb-btn {
-  color: #93c5fd;
+  color: var(--ds-color-primary-300);
 }
 :root[data-theme='dark'] .vb-btn:hover {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.5);
 }
 :root[data-theme='dark'] .vb-lang {
-  color: #93c5fd;
+  color: var(--ds-color-primary-300);
 }
 /* === 正文右上角悬浮胶囊（vb-capsule，2026-09-08 重构后类名） ===
  * 毛玻璃白底在暗色下反转为深色毛玻璃 */
@@ -2340,32 +2340,32 @@ label {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
 }
 :root[data-theme='dark'] .vb-pill {
-  color: #cbd5e1 !important;
+  color: var(--ds-color-gray-300) !important;
 }
 :root[data-theme='dark'] .vb-pill:hover {
   background: rgba(99, 102, 241, 0.2) !important;
-  color: #f1f5f9 !important;
+  color: var(--ds-color-gray-100) !important;
 }
 
 /* 暗色下 EP 表格 */
 :root[data-theme='dark'] .el-table {
-  background: #1e293b;
-  border-color: #3b82f6;
+  background: var(--ds-color-gray-800);
+  border-color: var(--ds-color-primary-500);
 }
 :root[data-theme='dark'] .el-table th.el-table__cell {
-  background: #334155 !important;
-  border-bottom-color: #60a5fa !important;
-  color: #93c5fd !important;
+  background: var(--ds-color-gray-700) !important;
+  border-bottom-color: var(--ds-color-primary-400) !important;
+  color: var(--ds-color-primary-300) !important;
 }
 :root[data-theme='dark'] .el-table td.el-table__cell {
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--ds-color-gray-800);
+  color: var(--ds-color-gray-200);
 }
 :root[data-theme='dark'] .el-table .el-table__row {
-  background: #1e293b;
+  background: var(--ds-color-gray-800);
 }
 :root[data-theme='dark'] .el-table__row:hover > td {
-  background: #334155 !important;
+  background: var(--ds-color-gray-700) !important;
 }
 
 /* ============================================================

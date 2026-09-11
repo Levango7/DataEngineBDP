@@ -326,7 +326,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink, var(--ds-text-primary));
 }
@@ -339,7 +339,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 }
 .opt-count {
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 11px;
+  font-size: 12px;
   margin-left: 4px;
 }
 .empty-tags {
@@ -375,7 +375,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 }
 .chip-count {
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 10px;
+  font-size: 12px;
 }
 .filter-summary {
   padding-top: 8px;

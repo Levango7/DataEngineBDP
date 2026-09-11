@@ -85,9 +85,7 @@
         />
         <el-table-column :label="t('engines.spark.table.columns.status')" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
           </template>
         </el-table-column>
         <el-table-column prop="owner" :label="t('engines.spark.table.columns.owner')" width="120" />
@@ -189,14 +187,14 @@
           <el-input
             v-model="submitForm.mainClass"
             :placeholder="t('engines.spark.submit.fields.mainClassPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.jarUri')" prop="jarUri">
           <el-input
             v-model="submitForm.jarUri"
             :placeholder="t('engines.spark.submit.fields.jarUriPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.args')" prop="args">
@@ -205,7 +203,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('engines.spark.submit.fields.argsPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item
@@ -276,6 +274,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import * as engineApi from '@/api/engine'
 import type { SparkJob } from '@/api/engine'
 
@@ -594,7 +593,7 @@ watch(
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -604,12 +603,12 @@ watch(
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -621,13 +620,13 @@ watch(
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -673,7 +672,7 @@ watch(
 .log-content {
   color: var(--ds-color-gray-300);
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

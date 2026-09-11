@@ -600,7 +600,7 @@ onMounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -610,12 +610,12 @@ onMounted(() => {
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -627,7 +627,7 @@ onMounted(() => {
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
@@ -669,7 +669,7 @@ onMounted(() => {
   flex: 1;
 }
 .toolbar .label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-secondary);
 }
 .card-header {
@@ -685,11 +685,11 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 .event-trigger {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-primary);
 }
 .event-replicas {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-secondary);
 }
 .event-replicas strong {

@@ -325,7 +325,7 @@ onUnmounted(() => {
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
 }
 .suggestion-item:hover {
   background: var(--c-surface-hover);

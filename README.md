@@ -2,6 +2,8 @@
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
+> **环境验证状态：已验证 2/4 环境**（本地 + 本地数据中心）｜ [验证详情](docs/环境验证状态.md)
+>
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP

@@ -309,7 +309,7 @@ onMounted(() => {
 <style scoped>
 /* ============ 响应式断点 ============ */
 /* 中等屏幕：tabbar 允许换行，避免标签挤压 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .tabbar {
     flex-wrap: wrap;
     gap: 4px;
@@ -317,7 +317,7 @@ onMounted(() => {
 }
 
 /* 小屏幕：tabbar 标签等宽分布，kv 键值对纵向排列 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .tabbar {
     flex-wrap: wrap;
     gap: 4px;

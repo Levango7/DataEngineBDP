@@ -22,7 +22,7 @@
           {{ t('common.retry') }}
         </el-button>
       </div>
-      <el-table v-else :data="collections" stripe>
+      <el-table v-else :data="collections" stripe :empty-text="t('common.empty')">
         <el-table-column :label="t('vector.cols.collection')" prop="name" />
         <el-table-column :label="t('vector.cols.dimension')" prop="dimension" />
         <el-table-column :label="t('vector.cols.count')" prop="count" />
@@ -145,14 +145,14 @@ onMounted(() => {
 }
 
 /* 响应式断点：中等屏幕收窄表格列内边距 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-sm);
   }
 }
 
 /* 响应式断点：小屏幕进一步紧凑 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-xs);
   }

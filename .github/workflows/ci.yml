@@ -622,6 +622,13 @@ jobs:
             echo "⚠ _validate_charts.py 不存在，跳过结构校验"
           fi
 
+      - name: 9 套行业模板全量验证（helm lint + helm template）
+        # P-05：对 platform/industry-templates/charts/ 下全部行业模板执行
+        # lint + template 渲染校验，确保 9 套模板齐全且可渲染
+        run: |
+          chmod +x scripts/verify-all-templates.sh
+          ./scripts/verify-all-templates.sh
+
   # ============================================================
   # Java 构建与测试：JDK 17 + Maven 3.9
   # 遍历 platform/ 下所有含 pom.xml 的子目录，逐个执行 mvn test -B
@@ -842,9 +849,17 @@ jobs:
           echo "============================================"
           echo "  Java 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
           echo "============================================"
-          # 从当前构建读取每个模块的行覆盖率，与基线文件对比
-          # 基线文件：docs/coverage-baseline/java.json（首次运行时自动生成）
-          # 如果基线不存在，跳过趋势检查（首次运行）
+          # T-02: Java 覆盖率分阶段配置
+          #
+          # 分阶段提升计划：
+          #   阶段 1（当前）：所有 22 模块参与趋势检查，基线为 2026-09-01 实测值
+          #     - 不提升阈值，先防回归（下降 > 2% 阻断 CI）
+          #     - 低覆盖率模块（encaps-gateway 2%, dashboard 6%, encaps-data 13% 等）
+          #       也纳入趋势检查，防止进一步恶化
+          #   阶段 2：逐步提升低覆盖率模块基线（每次提升 5-10%，观察 2 周无回归）
+          #   阶段 3：最终目标 85% GA 标准（见 docs/coverage-roadmap.md）
+          #
+          # 基线文件：docs/coverage-baseline/java.json（2026-09-01 Boot 4.1.1 实测快照）
           BASELINE_FILE="docs/coverage-baseline/java.json"
           REGRESSION_THRESHOLD=2  # 下降超过 2% 阻断
           if [ ! -f "$BASELINE_FILE" ]; then
@@ -853,16 +868,11 @@ jobs:
             exit 0
           fi
           echo "读取基线：$BASELINE_FILE"
-          # 排除列表：与门禁检查保持一致（已知低覆盖率模块，待逐步提升）
-          COVERAGE_EXCLUDE="dashboard cost-model encaps-data real-time-pipeline encaps-gateway infra-provider-cloud storage-io stream-batch-scheduler infra-provider-xinchang"
+          # T-02: 移除排除列表——所有模块均参与趋势检查（基线已设为实际值，防回归）
           fail_count=0
           while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
-            # 跳过排除列表中的模块（与门禁检查保持一致）
-            if echo "$COVERAGE_EXCLUDE" | grep -qw "$mod_name"; then
-              continue
-            fi
             jacoco_xml="$mod_dir/target/site/jacoco/jacoco.xml"
             if [ ! -f "$jacoco_xml" ]; then
               continue
@@ -1950,8 +1960,16 @@ jobs:
   # 性能压测：运行 tests/performance/ 下的 locust 压测脚本与 benchmark
   # 触发条件：schedule（每日凌晨2点）+ workflow_dispatch（手动触发）+ push 到 main
   # 依赖 java-build-test 和 go-build-test 通过后运行（复用构建产物，避免重复编译）
-  # 使用 continue-on-error: true 确保性能测试失败不阻断 CI（允许失败）
-  # 注：非每次 PR 触发，避免压测拖慢 PR 反馈；仅定时/手动/main push 时运行
+  #
+  # T-04: SLA 基线分阶段阻断计划
+  #   当前阶段（continue-on-error: true）：性能测试失败不阻断 CI，仅作趋势观测
+  #   基线参考：docs/SLA-PERF-BASELINE-2026-09-01.md（2026-09-01 首次实测落盘）
+  #     - SLA 6/6 通过（4 项合理 skip），perf 15/15 通过（local 档）
+  #   待 SLA 基线稳定后改为阻断：
+  #     1. 连续 14 天 schedule 触发全绿（含 SLA 断言通过）
+  #     2. 将 continue-on-error: true 删除或改为 false
+  #     3. 在 run_benchmark.py 中添加 --fail-on-sla-violation 选项实现阻断
+  #   上传的性能结果 artifact 供后续阻断门禁消费（趋势对比 + SLA 合规检查）
   # ============================================================
   performance-test:
     name: Performance Test (性能压测)
@@ -1964,7 +1982,7 @@ jobs:
       github.event_name == 'schedule' ||
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/main')
-    # 性能测试允许失败：仅作趋势观测，不阻断 CI 主流水线
+    # T-04: 性能测试允许失败——待 SLA 基线稳定后改为阻断（见上方注释计划）
     continue-on-error: true
     steps:
       - name: 检出代码
@@ -1989,6 +2007,29 @@ jobs:
           name: performance-benchmark-report
           path: tests/performance/benchmark_report.md
           retention-days: 30
+          if-no-files-found: warn
+
+      # T-04: 上传性能 JSON 结果（供后续 SLA 阻断门禁消费）
+      - name: 上传性能 JSON 结果 artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-benchmark-json
+          path: |
+            tests/performance/run_docker_benchmark_result.json
+            tests/performance/results/stress-results.json
+            tests/performance/stress/results/*-summary.json
+          retention-days: 30
+          if-no-files-found: warn
+
+      # T-04: 上传 SLA 基线文档（供趋势对比与阻断决策参考）
+      - name: 上传 SLA 基线文档 artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sla-perf-baseline
+          path: docs/SLA-PERF-BASELINE-2026-09-01.md
+          retention-days: 90
           if-no-files-found: warn
 
   # ============================================================

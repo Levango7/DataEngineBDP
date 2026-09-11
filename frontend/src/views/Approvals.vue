@@ -310,7 +310,7 @@ onMounted(() => loadList())
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
 }
 .stat-num {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
   -webkit-background-clip: text;
@@ -319,7 +319,7 @@ onMounted(() => loadList())
   color: transparent;
 }
 .stat-lbl {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #64748b;
   margin-top: 2px;
 }
@@ -327,7 +327,7 @@ onMounted(() => loadList())
 .appr-code {
   margin-left: 6px;
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   color: #475569;
   background: #f1f5f9;
   border: 1px solid #e2e8f0;
@@ -340,7 +340,7 @@ onMounted(() => loadList())
 }
 .appr-confirm {
   margin: 0 0 12px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: #334155;
   line-height: 1.7;
 }

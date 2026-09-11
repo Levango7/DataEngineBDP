@@ -65,6 +65,7 @@
             :error="trainError"
             :status-label="trainStatusLabel"
             :status-type="trainStatusType"
+            :status-map="TRAIN_MAP"
             :kpi="trainKpi"
             @load="loadTrain"
             @filter="onTrainFilter"
@@ -81,6 +82,7 @@
             :error="modelsError"
             :status-label="modelStatusLabel"
             :status-type="modelStatusType"
+            :status-map="MODEL_MAP"
             @load="loadModels"
             @search="onModelSearch"
             @delete="handleDeleteModel"
@@ -96,6 +98,7 @@
             :status-filter="svcStatusFilter"
             :status-label="svcStatusLabel"
             :status-type="svcStatusType"
+            :status-map="SVC_MAP"
             :can-stop-svc="canStopSvc"
             :can-scale="canScale"
             @load="loadServices"
@@ -367,7 +370,7 @@ const { t, te } = useI18n()
 const appStore = useAppStore()
 const activeTab = ref('train')
 
-const TRAIN_MAP: Record<string, string> = {
+const TRAIN_MAP: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
   PENDING: 'info',
   RUNNING: 'primary',
   SUCCEEDED: 'success',
@@ -375,14 +378,14 @@ const TRAIN_MAP: Record<string, string> = {
   KILLED: 'info',
   SCHEDULED: 'warning'
 }
-const MODEL_MAP: Record<string, string> = {
+const MODEL_MAP: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
   DRAFT: 'info',
   REGISTERED: 'primary',
   DEPLOYED: 'success',
   ARCHIVED: 'info',
   FAILED: 'danger'
 }
-const SVC_MAP: Record<string, string> = {
+const SVC_MAP: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'> = {
   DEPLOYING: 'warning',
   RUNNING: 'success',
   STOPPED: 'info',
@@ -532,7 +535,7 @@ async function handleSubmitTrain() {
     submitting.value = true
     try {
       await devMlApi.createTrainJob({ ...trainForm, workspaceId: appStore.workspace })
-      ElMessage.success(t('devMl.messages.trainSubmitted'))
+      appStore.showToast(t('devMl.messages.trainSubmitted'), 'success')
       trainDialogVisible.value = false
       await loadTrain()
     } catch {
@@ -575,7 +578,7 @@ async function handleRegister() {
         trainJobId: currentTrainJob.value!.id,
         metrics: currentTrainJob.value!.metrics
       })
-      ElMessage.success(t('devMl.messages.modelRegistered'))
+      appStore.showToast(t('devMl.messages.modelRegistered'), 'success')
       registerDialogVisible.value = false
       await loadModels()
     } catch {
@@ -612,7 +615,7 @@ async function handleDeploy() {
     deploying.value = true
     try {
       await devMlApi.deployInference({ ...deployForm, modelName: currentModel.value!.name })
-      ElMessage.success(t('devMl.messages.modelDeployed'))
+      appStore.showToast(t('devMl.messages.modelDeployed'), 'success')
       deployDialogVisible.value = false
       await loadServices()
     } catch {
@@ -688,7 +691,7 @@ async function handleStopTrain(row: TrainJob) {
       { type: 'warning' }
     )
     await devMlApi.stopTrainJob(row.id)
-    ElMessage.success(t('devMl.messages.trainStopped'))
+    appStore.showToast(t('devMl.messages.trainStopped'), 'success')
     await loadTrain()
   } catch {
   } finally {
@@ -716,7 +719,7 @@ async function handleStopSvc(row: InferenceService) {
       }
     )
     await devMlApi.stopInference(row.id)
-    ElMessage.success(t('devMl.messages.svcStopped'))
+    appStore.showToast(t('devMl.messages.svcStopped'), 'success')
     await loadServices()
   } catch {
   } finally {
@@ -795,7 +798,7 @@ watch(
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -805,12 +808,12 @@ watch(
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -822,13 +825,13 @@ watch(
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -894,7 +897,7 @@ watch(
 .log-content {
   color: var(--ds-color-gray-300);
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

@@ -7,6 +7,12 @@
 - 提供 ``wait_for_k3s_service`` 工具函数，带重试等待服务就绪；
 - 通过 ``pytest_collection_modifyitems`` 钩子在服务不可用时自动跳过对应测试。
 
+T-05: K3s 链路修复
+- 添加 K3s 集群健康检查（kubectl 可用性 + 节点 Ready + namespace 存在）
+- 添加自动部署逻辑（CI 中若 namespace 无 Pod 则自动 kubectl apply manifests）
+- CI 环境（GITHUB_ACTIONS=true 或 K3S_STRICT=true）中服务不可用改为 FAIL 而非静默 SKIPPED
+- 本地开发环境保持 SKIP 行为（避免无 K3s 时本地测试红）
+
 设计要点：
 - 测试脚本设计为在 WSL（K3s 节点）内运行，可直接访问 ClusterIP；
 - 也可在 Windows 主机运行，但需通过 ``kubectl port-forward`` 或 ``K3S_SVC_*`` 环境变量指定可达地址；
@@ -19,6 +25,7 @@ import os
 import subprocess
 import time
 import json
+from pathlib import Path
 from typing import Dict, Optional
 
 import jwt
@@ -220,6 +227,175 @@ def is_k3s_service_available(name: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
+# T-05: K3s 集群健康检查与自动部署
+# ---------------------------------------------------------------------------
+# 项目根目录（用于定位 deploy/k3s/manifests/）
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+# 严格模式：CI 环境（GITHUB_ACTIONS=true）或显式设置 K3S_STRICT=true 时，
+# 服务不可用改为 FAIL 而非静默 SKIPPED，避免"绿但空跑"
+K3S_STRICT = os.environ.get("K3S_STRICT", "").lower() in ("1", "true", "yes") or \
+    os.environ.get("GITHUB_ACTIONS", "").lower() in ("1", "true", "yes")
+
+
+def check_k3s_cluster_health() -> dict:
+    """检查 K3s 集群整体健康状态.
+
+    Returns:
+        健康状态字典:
+        {
+            "kubectl_available": bool,
+            "nodes_ready": bool,
+            "namespace_exists": bool,
+            "pod_count": int,
+            "ready_pod_count": int,
+            "issues": list[str],  # 发现的问题列表
+        }
+    """
+    status = {
+        "kubectl_available": False,
+        "nodes_ready": False,
+        "namespace_exists": False,
+        "pod_count": 0,
+        "ready_pod_count": 0,
+        "issues": [],
+    }
+
+    # 1. 检查 kubectl 是否可用
+    try:
+        result = subprocess.run(
+            ["kubectl", "version", "--client"],
+            capture_output=True, text=True, timeout=10,
+        )
+        status["kubectl_available"] = result.returncode == 0
+    except (subprocess.SubprocessError, FileNotFoundError):
+        status["issues"].append("kubectl 不可用（未安装或不在 PATH 中）")
+        return status
+
+    if not status["kubectl_available"]:
+        status["issues"].append("kubectl version 命令失败")
+        return status
+
+    # 2. 检查节点是否 Ready
+    try:
+        result = subprocess.run(
+            ["kubectl", "get", "nodes", "-o", "jsonpath={.items[*].status.conditions[?(@.type==\"Ready\")].status}"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            statuses = result.stdout.strip().split()
+            status["nodes_ready"] = bool(statuses) and all(s == "True" for s in statuses)
+            if not status["nodes_ready"]:
+                status["issues"].append(f"节点未全部 Ready: {result.stdout.strip()}")
+        else:
+            status["issues"].append("kubectl get nodes 失败")
+    except subprocess.SubprocessError:
+        status["issues"].append("检查节点状态时异常")
+
+    # 3. 检查 namespace 是否存在
+    try:
+        result = subprocess.run(
+            ["kubectl", "get", "namespace", K3S_NAMESPACE, "-o", "name"],
+            capture_output=True, text=True, timeout=10,
+        )
+        status["namespace_exists"] = result.returncode == 0 and result.stdout.strip()
+        if not status["namespace_exists"]:
+            status["issues"].append(f"namespace '{K3S_NAMESPACE}' 不存在")
+    except subprocess.SubprocessError:
+        status["issues"].append(f"检查 namespace '{K3S_NAMESPACE}' 时异常")
+
+    # 4. 统计 Pod 状态
+    if status["namespace_exists"]:
+        try:
+            result = subprocess.run(
+                ["kubectl", "get", "pods", "-n", K3S_NAMESPACE, "-o", "json"],
+                capture_output=True, text=True, timeout=15,
+            )
+            if result.returncode == 0:
+                data = json.loads(result.stdout)
+                pods = data.get("items", [])
+                status["pod_count"] = len(pods)
+                for pod in pods:
+                    containers = pod.get("status", {}).get("containerStatuses", [])
+                    if containers and all(c.get("ready", False) for c in containers):
+                        status["ready_pod_count"] += 1
+                if status["pod_count"] == 0:
+                    status["issues"].append(
+                        f"namespace '{K3S_NAMESPACE}' 中无 Pod——服务未部署"
+                    )
+        except (subprocess.SubprocessError, json.JSONDecodeError):
+            status["issues"].append("获取 Pod 状态时异常")
+
+    return status
+
+
+def ensure_k3s_services_deployed() -> bool:
+    """T-05: 自动部署 K3s 服务 manifests（若 namespace 中无 Pod）.
+
+    当检测到 namespace 存在但无 Pod 时，自动执行
+    ``kubectl apply -f deploy/k3s/manifests/`` 部署服务。
+
+    Returns:
+        True 表示部署成功或已部署，False 表示部署失败。
+    """
+    health = check_k3s_cluster_health()
+
+    # 集群不健康，无法部署
+    if not health["kubectl_available"] or not health["nodes_ready"]:
+        return False
+
+    # namespace 不存在，先创建
+    if not health["namespace_exists"]:
+        manifests_dir = PROJECT_ROOT / "deploy" / "k3s" / "manifests"
+        namespace_file = manifests_dir / "namespace.yaml"
+        if namespace_file.exists():
+            try:
+                subprocess.run(
+                    ["kubectl", "apply", "-f", str(namespace_file)],
+                    capture_output=True, text=True, timeout=30,
+                )
+            except subprocess.SubprocessError:
+                return False
+        else:
+            return False
+
+    # 已有 Pod，无需部署
+    if health["pod_count"] > 0:
+        return True
+
+    # 自动部署所有 manifests
+    manifests_dir = PROJECT_ROOT / "deploy" / "k3s" / "manifests"
+    if not manifests_dir.exists():
+        return False
+
+    print(f"[T-05] 自动部署 K3s manifests: {manifests_dir}")
+    try:
+        result = subprocess.run(
+            ["kubectl", "apply", "-f", str(manifests_dir)],
+            capture_output=True, text=True, timeout=120,
+        )
+        if result.returncode == 0:
+            print(f"[T-05] manifests 部署成功，等待 Pod 就绪...")
+            # 等待 Pod 就绪（最多 180 秒）
+            try:
+                subprocess.run(
+                    ["kubectl", "wait", "--for=condition=Ready",
+                     "pods", "-n", K3S_NAMESPACE, "--all", "--timeout=180s"],
+                    capture_output=True, text=True, timeout=200,
+                )
+            except subprocess.SubprocessError:
+                pass  # 等待超时不阻断，后续健康检查会报告
+            return True
+        else:
+            print(f"[T-05] manifests 部署失败: {result.stderr}")
+            return False
+    except subprocess.SubprocessError as e:
+        print(f"[T-05] 部署异常: {e}")
+        return False
+
+
+
+# ---------------------------------------------------------------------------
 # HTTP 客户端
 # ---------------------------------------------------------------------------
 class K3sApiClient:
@@ -294,14 +470,23 @@ def _make_service_url_fixture(service_name: str):
         urls = get_service_urls()
         url = urls.get(service_name)
         if not url:
-            pytest.skip(
-                f"K3s 服务 {service_name} 未发现（kubectl 不可用或 Service 不存在）"
+            # T-05: CI 严格模式下 FAIL 而非静默 SKIP
+            msg = (
+                f"K3s 服务 {service_name} 未发现（kubectl 不可用或 Service 不存在）。"
+                f"请检查: 1) K3s 是否启动 2) namespace '{K3S_NAMESPACE}' 是否存在 "
+                f"3) deploy/k3s/manifests/ 是否已部署"
             )
+            if K3S_STRICT:
+                pytest.fail(msg, pytrace=False)
+            else:
+                pytest.skip(msg)
         # 等待服务就绪（最多 15 秒）
         if not wait_for_k3s_service(service_name, url, timeout=15):
-            pytest.skip(
-                f"K3s 服务 {service_name} 健康检查超时（{url}）"
-            )
+            msg = f"K3s 服务 {service_name} 健康检查超时（{url}）"
+            if K3S_STRICT:
+                pytest.fail(msg, pytrace=False)
+            else:
+                pytest.skip(msg)
         return url
 
     _fixture.__name__ = f"{service_name.replace('-', '_')}_url"
@@ -357,7 +542,37 @@ _CHAIN_SERVICE_MAP = {
 
 
 def pytest_collection_modifyitems(config, items):
-    """收集阶段钩子：在依赖服务不可用时自动跳过链路测试."""
+    """收集阶段钩子：在依赖服务不可用时自动跳过/失败链路测试.
+
+    T-05: 修复策略
+    1. 首先检查 K3s 集群健康状态，若集群不健康则报告详细原因
+    2. 若 namespace 中无 Pod，尝试自动部署 deploy/k3s/manifests/
+    3. CI 严格模式（K3S_STRICT/GITHUB_ACTIONS）下服务不可用 → FAIL（不静默 SKIP）
+    4. 本地开发环境保持 SKIP 行为
+    """
+    # T-05: 先检查集群健康，尝试自动部署
+    health = check_k3s_cluster_health()
+    if health["kubectl_available"] and health["nodes_ready"]:
+        if health["namespace_exists"] and health["pod_count"] == 0:
+            # namespace 存在但无 Pod → 自动部署
+            print(f"[T-05] 检测到 namespace '{K3S_NAMESPACE}' 无 Pod，尝试自动部署...")
+            deployed = ensure_k3s_services_deployed()
+            if deployed:
+                # 部署后重新探测服务可用性（清除缓存）
+                global _DISCOVERED_URLS
+                _DISCOVERED_URLS = None
+                print("[T-05] 自动部署完成，重新探测服务可用性")
+            elif K3S_STRICT:
+                # CI 中部署失败 → 不添加 skip，让测试运行时通过 fixture fail 明确报告
+                fail_msg = (
+                    f"K3s 服务自动部署失败。集群健康: kubectl={health['kubectl_available']}, "
+                    f"nodes_ready={health['nodes_ready']}, issues={health['issues']}"
+                )
+                print(f"[T-05] FAIL: {fail_msg}")
+                for item in items:
+                    item.user_properties.append(("k3s_deploy_failed", fail_msg))
+                return
+
     # 预先探测各服务可用性
     availability = {name: is_k3s_service_available(name) for name in K3S_SERVICES}
 
@@ -367,12 +582,16 @@ def pytest_collection_modifyitems(config, items):
             if fspath.endswith(prefix + ".py"):
                 unavailable = [s for s in services if not availability.get(s, False)]
                 if unavailable:
-                    item.add_marker(
-                        pytest.mark.skip(
-                            reason=(
-                                f"依赖服务不可用: {', '.join(unavailable)}。"
-                                f"请检查 K3s Pod 状态（kubectl get pods -n {K3S_NAMESPACE}）"
-                            )
-                        )
+                    reason = (
+                        f"依赖服务不可用: {', '.join(unavailable)}。"
+                        f"请检查 K3s Pod 状态（kubectl get pods -n {K3S_NAMESPACE}）"
                     )
+                    if K3S_STRICT:
+                        # T-05: CI 严格模式 → 不添加 skip marker，让测试运行时通过
+                        # fixture 的 pytest.fail() 明确失败（不静默 SKIP）
+                        # 在测试节点上添加标记信息供报告识别
+                        item.user_properties.append(("k3s_strict_fail_reason", reason))
+                    else:
+                        # 本地开发环境 → 静默 SKIP
+                        item.add_marker(pytest.mark.skip(reason=reason))
                 break

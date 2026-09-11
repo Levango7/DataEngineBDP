@@ -255,7 +255,7 @@ function openUrl(): void {
 }
 .type-badge {
   display: inline-block;
-  font-size: 11px;
+  font-size: 12px;
   padding: 2px 9px;
   border-radius: 20px;
   font-weight: 600;
@@ -283,7 +283,7 @@ function openUrl(): void {
   color: var(--ds-color-error-600);
 }
 .source-pill {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted, var(--ds-text-secondary));
   background: var(--c-surface-alt, #eaf0f1);
   padding: 2px 8px;
@@ -298,7 +298,7 @@ function openUrl(): void {
   color: var(--amber, var(--ds-color-warning-600));
 }
 .card-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   margin: 0;
   color: var(--ink, var(--ds-text-primary));
@@ -311,7 +311,7 @@ function openUrl(): void {
   border-radius: 2px;
 }
 .card-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted, var(--ds-text-secondary));
   margin: 0;
   line-height: 1.6;

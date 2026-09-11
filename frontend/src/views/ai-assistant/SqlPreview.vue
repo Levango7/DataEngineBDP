@@ -282,7 +282,7 @@ async function copySql(): Promise<void> {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 .sql-actions {
@@ -298,7 +298,7 @@ async function copySql(): Promise<void> {
   margin: 0;
   padding: 12px 14px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -345,7 +345,7 @@ async function copySql(): Promise<void> {
   right: 12px;
   background: var(--c-green-600);
   color: #fff;
-  font-size: 11px;
+  font-size: 12px;
   padding: 3px 8px;
   border-radius: 6px;
   z-index: 2;

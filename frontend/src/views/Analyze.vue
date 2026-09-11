@@ -298,7 +298,7 @@ onUnmounted(() => {
  * 响应式断点：平板 / 移动端布局适配
  * 看板面板网格 .grid.g3 默认三列，逐级降为两列 / 单列
  * ============================================================ */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   /* 面板三列退化为两列 */
   .grid.g3 {
     grid-template-columns: repeat(2, 1fr);
@@ -309,7 +309,7 @@ onUnmounted(() => {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   /* 移动端：所有网格单列堆叠 */
   .grid.g3,
   .grid.g2 {
@@ -326,7 +326,7 @@ onUnmounted(() => {
   }
   /* KPI 数值字号略减 */
   .kpi {
-    font-size: 22px;
+    font-size: 20px;
   }
   .kpi.s {
     font-size: 16px;

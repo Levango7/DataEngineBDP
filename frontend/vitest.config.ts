@@ -131,10 +131,22 @@ export default defineConfig({
         'src/env.d.ts'
       ],
       thresholds: {
-        lines: 10,
-        functions: 5,
-        branches: 5,
-        statements: 10
+        // T-01: 前端覆盖率门禁分阶段提升计划
+        //
+        // 阶段 0（已过期）：lines 10% / functions 5% / branches 5% / statements 10%
+        //   → 初始基线，仅防止覆盖率归零
+        //
+        // 阶段 1（当前，2026-09）：lines 25% / functions 15% / branches 15% / statements 25%
+        //   → 中间目标，防止核心模块覆盖率回退，推动补齐关键路径单测
+        //
+        // 阶段 2（最终目标）：lines 40% / functions 18% / branches 20% / statements 40%
+        //   → 待核心视图与 API 层单测覆盖达标后切换
+        //
+        // 提升节奏：每阶段至少观察 2 周无回归后再提升阈值，避免一次性提升导致 CI 大面积红
+        lines: 25,
+        functions: 15,
+        branches: 15,
+        statements: 25
       }
     }
   }

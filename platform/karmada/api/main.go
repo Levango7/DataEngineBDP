@@ -9,8 +9,19 @@ package main
 //   - PUT    /api/v1/propagation-policies/{name} 更新策略
 //   - DELETE /api/v1/propagation-policies/{name} 删除策略
 //
-// 后端通过 Karmada kubeconfig 与控制面交互（本骨架先用 SQLite 持久化策略元数据，
-// 生产环境通过 controller-runtime client 写入 Karmada 控制面）。
+// P-01 多集群联邦 — 新增联邦集群注册/注销 API：
+//   - POST   /api/v1/clusters          注册联邦集群
+//   - GET    /api/v1/clusters          列出所有联邦集群
+//   - GET    /api/v1/clusters/{name}   获取单个集群信息
+//   - DELETE /api/v1/clusters/{name}   注销联邦集群
+//
+// 后端通过 Karmada kubeconfig 与控制面交互（P-01: 添加 Karmada REST API 客户端）。
+// 环境变量：
+//   KARMADA_API_SERVER    Karmada API Server 地址
+//   KARMADA_KUBECONFIG    kubeconfig 文件路径
+//   KARMADA_API_TIMEOUT   API 请求超时秒（默认 30）
+//
+// TODO: 待异地机房真实验证
 
 import (
 	"context"
@@ -22,6 +33,7 @@ import (
 	"syscall"
 	"time"
 
+	karmadaclient "command-line-argumentsF:\\Nexus\\DataEngineBDP\\platform\\karmada\\api\\internal\\karmadaclient\\client.go"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -75,9 +87,31 @@ func main() {
 	// 初始化基于 GORM 的存储。
 	s := store.NewGormStore(gormDB)
 
+	// P-01: 初始化 Karmada REST API 客户端（多集群联邦）
+	// 环境变量：KARMADA_API_SERVER, KARMADA_KUBECONFIG
+	// TODO: 待异地机房真实验证
+	var karmadaClient *karmadaclient.Client
+	karmadaCfg := karmadaclient.NewConfigFromEnv()
+	if karmadaCfg.APIServer != "" {
+		kc, err := karmadaclient.NewClient(karmadaCfg)
+		if err != nil {
+			logger.Warn("failed to init karmada client, cluster API will return stubs",
+				"error", err, "todo", "待异地机房真实验证")
+		} else {
+			karmadaClient = kc
+			logger.Info("karmada client initialized",
+				"apiServer", karmadaCfg.APIServer,
+				"kubeconfig", karmadaCfg.Kubeconfig)
+		}
+	} else {
+		logger.Warn("KARMADA_API_SERVER not configured, cluster API will return stubs",
+			"todo", "待异地机房真实验证")
+	}
+
 	// 初始化 handlers。
 	healthH := handler.NewHealthHandler(version)
 	ppH := handler.NewPropagationPolicyHandler(s)
+	clusterH := handler.NewClusterHandler(karmadaClient)
 
 	// 初始化 Gin 路由。
 	r := gin.New()
@@ -95,6 +129,12 @@ func main() {
 		ppGroup := v1.Group("/propagation-policies")
 		ppGroup.Use(middleware.AuthMiddleware())
 		ppH.RegisterRoutes(ppGroup)
+
+		// P-01: /api/v1/clusters 联邦集群注册/注销 API
+		// TODO: 待异地机房真实验证
+		clusterGroup := v1.Group("/clusters")
+		clusterGroup.Use(middleware.AuthMiddleware())
+		clusterH.RegisterRoutes(clusterGroup)
 	}
 
 	// 启动 HTTP 服务（支持优雅关闭）。

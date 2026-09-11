@@ -41,9 +41,7 @@
       />
       <el-table-column :label="t('devMl.svcPanel.columns.status')" width="100">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" effect="light">
-            {{ statusLabel(row.status) }}
-          </el-tag>
+          <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusMap" />
         </template>
       </el-table-column>
       <el-table-column :label="t('devMl.svcPanel.columns.replicas')" width="110" align="center">
@@ -88,6 +86,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import type { InferenceService } from '@/api/dev-ml'
 
 const { t } = useI18n()
@@ -99,6 +98,7 @@ const props = defineProps<{
   statusFilter: string
   statusLabel: (s: string) => string
   statusType: (s: string) => string
+  statusMap: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'>
   canStopSvc: (s: string) => boolean
   canScale: (s: string) => boolean
 }>()

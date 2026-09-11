@@ -218,7 +218,7 @@
               type="textarea"
               :rows="8"
               :placeholder="t('engIotdb.sql.placeholder')"
-              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12px"
             />
             <div class="sql-actions">
               <el-button
@@ -477,7 +477,7 @@ onUnmounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -487,12 +487,12 @@ onUnmounted(() => {
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -504,13 +504,13 @@ onUnmounted(() => {
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -536,7 +536,7 @@ onUnmounted(() => {
   gap: 14px;
   margin-top: 16px;
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .split-layout {
     grid-template-columns: 1fr;
   }

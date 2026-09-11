@@ -311,13 +311,18 @@ jobs:
   # ============================================================
   # ZAP DAST 动态扫描：对运行中的服务执行黑盒安全扫描
   # 依赖 build.yml 已构建镜像，启动 docker-compose 后扫描
-  # 仅在主分支定时扫描或手动触发时执行（PR 不执行以节省资源）
+  #
+  # T-07: 分模式执行
+  #   - PR 触发：基线扫描（baseline），不阻断只报告（continue-on-error + exit-code 0）
+  #   - 夜间/手动触发：完整扫描（full scan），阻断模式（exit-code 1）
   # ============================================================
   zap-dast:
     name: ZAP DAST Scan
     runs-on: ubuntu-latest
-    # 仅在定时扫描或手动触发时执行 DAST（耗时较长）
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    # T-07: PR 也触发基线扫描（夜间仍全量阻断扫描）
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
+    # T-07: PR 基线扫描不阻断 pipeline（仅报告）；夜间完整扫描阻断
+    continue-on-error: ${{ github.event_name == 'pull_request' }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -339,15 +344,29 @@ jobs:
           docker compose up -d --build --wait
           docker compose ps
 
-      - name: 执行 ZAP 基线扫描
-        if: steps.zap_check.outputs.skip != 'true'
+      # T-07: PR 触发 → ZAP 基线扫描（baseline: true，不阻断只报告）
+      - name: 执行 ZAP 基线扫描（PR 模式，不阻断）
+        if: steps.zap_check.outputs.skip != 'true' && github.event_name == 'pull_request'
         uses: zaproxy/action-baseline@v0.12.0
         with:
           # 修复：compose 映射 encaps-layer 到本机 18080（见 tests/integration/docker-compose.yml），
           # 原扫 localhost:8080 是空靶（报告 9）
           target: 'http://localhost:18080'
+          # T-07: PR 基线模式 — 仅被动扫描，不发起攻击请求
+          # baseline: true 表示基线模式（action-baseline 本身即基线扫描，此处显式标注）
+          cmd_options: '-a'  # -a 主动规则报告，不含 -j（不发 AJAX 请求），轻量快速
+          artifact_name: 'zap-baseline-report-pr'
+          allow_issue_writing: false
+
+      # T-07: 夜间/手动触发 → ZAP 完整扫描（阻断模式）
+      - name: 执行 ZAP 完整扫描（夜间模式，阻断）
+        if: steps.zap_check.outputs.skip != 'true' && github.event_name != 'pull_request'
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: 'http://localhost:18080'
+          # 夜间完整模式 — -a 主动规则 + -j AJAX 请求，更深入扫描
           cmd_options: '-a -j'
-          artifact_name: 'zap-baseline-report'
+          artifact_name: 'zap-baseline-report-nightly'
           allow_issue_writing: false
 
       # API 扫描暂移除：encaps-layer 未集成 springdoc（无 /v3/api-docs），

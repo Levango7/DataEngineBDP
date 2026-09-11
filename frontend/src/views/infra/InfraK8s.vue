@@ -99,9 +99,7 @@
         </el-table-column>
         <el-table-column :label="t('infraK8s.table.columns.status')" width="110">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
           </template>
         </el-table-column>
         <el-table-column
@@ -156,9 +154,7 @@
             {{ providerLabel(detailCluster.provider) }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('infraK8s.detail.fields.status')">
-            <el-tag :type="statusTagType(detailCluster.status)" effect="light">
-              {{ statusLabel(detailCluster.status) }}
-            </el-tag>
+            <StatusTag :status="detailCluster.status" :label="statusLabel(detailCluster.status)" :status-map="STATUS_TAG_TYPE_MAP" />
           </el-descriptions-item>
           <el-descriptions-item :label="t('infraK8s.detail.fields.k8sVersion')">
             {{ detailCluster.k8sVersion }}
@@ -390,6 +386,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as infraApi from '@/api/infra'
 import type {
@@ -694,7 +691,7 @@ onUnmounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -707,12 +704,12 @@ onUnmounted(() => {
 .grid.g2 {
   grid-template-columns: repeat(2, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4,
   .grid.g2 {
     grid-template-columns: 1fr;
@@ -725,13 +722,13 @@ onUnmounted(() => {
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -816,7 +813,7 @@ onUnmounted(() => {
   color: var(--ds-color-error-600);
 }
 .comp-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-secondary);
 }
 </style>

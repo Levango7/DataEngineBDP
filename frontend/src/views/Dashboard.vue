@@ -292,7 +292,7 @@ onMounted(() => {
  * 响应式断点：平板 / 移动端布局适配
  * 参考 Llmops.vue 模式：1100px 两列，720px 单列堆叠
  * ============================================================ */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   /* KPI 四卡片退化为两列 */
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
@@ -303,7 +303,7 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   /* 移动端：所有网格单列堆叠 */
   .grid.g4,
   .grid.g2 {
@@ -316,7 +316,7 @@ onMounted(() => {
   }
   /* KPI 数值字号略减 */
   .kpi {
-    font-size: 22px;
+    font-size: 20px;
   }
   .kpi.s {
     font-size: 16px;

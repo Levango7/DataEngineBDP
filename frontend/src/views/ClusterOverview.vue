@@ -888,12 +888,12 @@ onUnmounted(() => {
   padding: 4px 0;
 }
 .stat-label {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-secondary);
   margin-bottom: 8px;
 }
 .stat-value {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -972,7 +972,7 @@ onUnmounted(() => {
   color: var(--ds-color-error-600);
 }
 .comp-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-secondary);
 }
 .tab-loading {

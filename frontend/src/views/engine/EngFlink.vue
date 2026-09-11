@@ -87,9 +87,7 @@
         />
         <el-table-column :label="t('engines.flink.table.columns.status')" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_MAP" />
           </template>
         </el-table-column>
         <el-table-column
@@ -189,7 +187,7 @@
             type="textarea"
             :rows="8"
             :placeholder="t('engines.flink.submit.sqlPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.parallelism')" prop="parallelism">
@@ -231,9 +229,7 @@
             {{ currentMonitorJob.id }}
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.status')">
-            <el-tag :type="statusTagType(currentMonitorJob.status)" effect="light">
-              {{ statusLabel(currentMonitorJob.status) }}
-            </el-tag>
+            <StatusTag :status="currentMonitorJob.status" :label="statusLabel(currentMonitorJob.status)" :status-map="STATUS_MAP" />
           </el-descriptions-item>
           <el-descriptions-item :label="t('engines.flink.monitor.parallelism')">
             {{ currentMonitorJob.parallelism }}
@@ -344,6 +340,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import * as engineApi from '@/api/engine'
 import type { FlinkJob, Checkpoint, BackpressureMetrics, BackpressureLevel } from '@/api/engine'
 
@@ -690,7 +687,7 @@ watch(
 }
 .sub {
   color: var(--ds-text-tertiary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -700,12 +697,12 @@ watch(
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -717,13 +714,13 @@ watch(
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-tertiary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;

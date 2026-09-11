@@ -35,9 +35,7 @@
       />
       <el-table-column :label="t('devMl.modelPanel.columns.status')" width="110">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" effect="light" size="small">
-            {{ statusLabel(row.status) }}
-          </el-tag>
+          <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusMap" size="small" />
         </template>
       </el-table-column>
       <el-table-column :label="t('devMl.modelPanel.columns.metrics')" min-width="180">
@@ -71,6 +69,7 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import type { MlModel } from '@/api/dev-ml'
 
 const { t } = useI18n()
@@ -81,6 +80,7 @@ defineProps<{
   error: boolean
   statusLabel: (s?: string) => string
   statusType: (s?: string) => string
+  statusMap: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'>
 }>()
 const emit = defineEmits<{
   load: []

@@ -2,12 +2,27 @@
 # 正式门禁：Playwright 前端 E2E（后端栈由 tests/integration/docker-compose.yml 提供）
 # 观测门禁：K3s 四条链路 burn-in 套件（允许失败，翻严条件见 k3s-suite 注释）
 # 说明：本地无法验证 GitHub Actions 运行时行为，首次 schedule/手动触发需人工观察日志
+#
+# T-03: PR 触发策略
+#   - pull_request 触发时仅运行 7 个稳定 spec（STABLE_SPECS），快速反馈不阻断
+#   - schedule/workflow_dispatch（夜间）运行全量 28 个 spec（含 flaky）
+#   - 稳定/flaky 分类依据：基础流程（auth/navigation/api-format/i18n/view-smoke）
+#     与轻量页面（search/standards）为稳定；涉及复杂数据加载/实时流/性能/多集群
+#     的 21 个 spec 标记为 flaky，仅夜间全量运行
 name: Nightly E2E
 
 on:
   # 每日 UTC 18:00 定时触发（即北京时间次日凌晨 2 点，避开业务时段）
   schedule:
     - cron: '0 18 * * *'
+  # T-03: PR 触发——仅运行稳定 spec 子集（STABLE_SPECS），快速反馈
+  pull_request:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "platform/**"
+      - "tests/integration/**"
+      - ".github/workflows/nightly-e2e.yml"
   # 手动触发（支持按需运行夜间 E2E 回归）
   workflow_dispatch:
 
@@ -77,11 +92,24 @@ jobs:
         # （playwright.config.ts projects 仅声明 chromium）
         run: npx playwright install --with-deps chromium
 
-      - name: 运行 Playwright E2E 测试
+      - name: "运行 Playwright E2E 测试（PR 稳定子集 / 夜间全量）"
         working-directory: frontend
         # webServer 由 playwright.config.ts 托管（npm run dev -> 127.0.0.1:5173）；
         # 测试失败非零退出 -> 本 job 失败（正式门禁，无 continue-on-error）
-        run: npx playwright test
+        #
+        # T-03: PR 触发时仅运行 7 个稳定 spec（快速反馈），夜间/手动触发运行全量 28 个 spec
+        # 稳定 spec 选取依据：基础流程 + 轻量页面，不依赖复杂数据加载/实时流/性能
+        env:
+          # 7 个稳定 spec（非 @flaky）：auth, navigation, view-smoke, i18n-switch, api-format, search, standards
+          STABLE_SPECS: "tests/e2e/auth.spec.ts tests/e2e/navigation.spec.ts tests/e2e/view-smoke.spec.ts tests/e2e/i18n-switch.spec.ts tests/e2e/api-format.spec.ts tests/e2e/search.spec.ts tests/e2e/standards.spec.ts"
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "▶ PR 触发：仅运行 7 个稳定 spec（STABLE_SPECS）"
+            npx playwright test $STABLE_SPECS
+          else
+            echo "▶ 夜间/手动触发：运行全量 28 个 spec（含 flaky）"
+            npx playwright test
+          fi
 
       - name: 上传 Playwright 报告与结果
         if: always()

@@ -151,7 +151,7 @@
           </el-button>
         </div>
         <template v-else-if="mySubscriptions">
-          <el-table :data="mySubscriptions" stripe>
+          <el-table :data="mySubscriptions" stripe :empty-text="t('common.empty')">
             <el-table-column :label="t('assetMarket.mySubs.columns.asset')">
               <template #default="{ row }">{{ assetName(row.assetId) }}</template>
             </el-table-column>
@@ -204,7 +204,7 @@
     <div v-if="tab === 'listed'">
       <div class="card">
         <h3>{{ t('assetMarket.myListed.title') }}</h3>
-        <el-table :data="myAssets" stripe>
+        <el-table :data="myAssets" stripe :empty-text="t('common.empty')">
           <el-table-column :label="t('assetMarket.myListed.columns.name')" prop="name" />
           <el-table-column :label="t('assetMarket.myListed.columns.type')">
             <template #default="{ row }">{{ typeLabel(row.type) }}</template>
@@ -298,6 +298,7 @@
           v-if="detailAsset.schema?.fields?.length"
           :data="detailAsset.schema.fields"
           stripe
+          :empty-text="t('common.empty')"
         >
           <el-table-column :label="t('assetMarket.detail.schemaColumns.field')" prop="name" />
           <el-table-column :label="t('assetMarket.detail.schemaColumns.type')" prop="type" />
@@ -453,7 +454,7 @@
       <div v-if="billingLoading" class="state-tip">
         {{ t('assetMarket.billing.loading') }}
       </div>
-      <el-table v-else-if="billingRecords.length" :data="billingRecords" stripe>
+      <el-table v-else-if="billingRecords.length" :data="billingRecords" stripe :empty-text="t('common.empty')">
         <el-table-column :label="t('assetMarket.billing.columns.period')" prop="period" />
         <el-table-column :label="t('assetMarket.billing.columns.mode')">
           <template #default="{ row }">{{ billingModeLabel(row.mode) }}</template>
@@ -884,14 +885,14 @@ onMounted(() => {
 }
 
 /* 响应式断点：中等屏幕收窄卡片网格 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-sm);
   }
 }
 
 /* 响应式断点：小屏幕单列布局 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-xs);
   }

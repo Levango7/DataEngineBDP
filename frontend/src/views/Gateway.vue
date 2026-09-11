@@ -485,7 +485,7 @@ onUnmounted(() => {
   padding: 8px 12px;
   margin-bottom: 12px;
   color: var(--ds-color-warning-800);
-  font-size: 13px;
+  font-size: 14px;
 }
 .secret-row {
   display: flex;
@@ -506,7 +506,7 @@ onUnmounted(() => {
 
 /* ============ 响应式断点 ============ */
 /* 中等屏幕：KPI 卡片改为 2 列 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -516,7 +516,7 @@ onUnmounted(() => {
 }
 
 /* 小屏幕：KPI 卡片单列，图表高度缩小 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }

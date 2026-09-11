@@ -18,6 +18,10 @@
     NL2SQL_DEFAULT_LIMIT        默认结果行数上限（默认 100）
 
     # ---- LLM 对接（经 llm-gateway :8084，OpenAI 兼容协议）----
+    # P-02: AI_MODE 全局开关优先于 NL2SQL_LLM_MODE
+    #   AI_MODE=mock  → llmMode=mock（无外部依赖）
+    #   AI_MODE=real  → llmMode=langchain（经 llm-gateway 真实 LLM）
+    #   AI_MODE 未设置 → 使用 NL2SQL_LLM_MODE 显式配置
     NL2SQL_LLM_MODE             LLM 模式: mock / langchain（默认 mock，无外部依赖）
     NL2SQL_LLM_GATEWAY_URL      LLM 网关地址（默认 http://localhost:8084）
     NL2SQL_LLM_MODEL            模型名（默认 qwen2.5-7b-instruct）
@@ -37,10 +41,11 @@
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -81,6 +86,10 @@ class Settings(BaseSettings):
     defaultLimit: int = Field(default=100, ge=1, le=10000, description="默认结果行数上限")
 
     # ---- llm ----
+    # P-02: AI_MODE 全局开关优先于 NL2SQL_LLM_MODE
+    #   AI_MODE=mock  → llmMode=mock（无外部依赖）
+    #   AI_MODE=real  → llmMode=langchain（经 llm-gateway 真实 LLM）
+    #   AI_MODE 未设置 → 使用 NL2SQL_LLM_MODE 显式配置
     llmMode: Literal["mock", "langchain"] = Field(
         default="langchain",
         description="LLM 模式: mock（无外部依赖）/ langchain（经 llm-gateway）",
@@ -111,6 +120,21 @@ class Settings(BaseSettings):
         if lv not in allowed:
             raise ValueError(f"logLevel 必须为 {allowed} 之一，得到 {v}")
         return lv
+
+    @model_validator(mode="after")
+    def _apply_ai_mode(self) -> "Settings":
+        """P-02: AI_MODE 全局开关覆盖 llmMode.
+
+        AI_MODE=mock  → llmMode=mock
+        AI_MODE=real  → llmMode=langchain
+        AI_MODE 未设置 → 不覆盖（使用显式 NL2SQL_LLM_MODE）
+        """
+        ai_mode = os.getenv("AI_MODE", "").lower().strip()
+        if ai_mode == "mock":
+            self.llmMode = "mock"
+        elif ai_mode == "real":
+            self.llmMode = "langchain"
+        return self
 
     # ---- 便捷属性 ----
     @property

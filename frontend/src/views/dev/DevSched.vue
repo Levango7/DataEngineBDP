@@ -85,7 +85,7 @@
       >
         <el-table-column prop="id" :label="t('devSched.table.columns.id')" width="160">
           <template #default="{ row }">
-            <span style="font-family: var(--ds-font-family-mono); font-size: 12.5px">
+            <span style="font-family: var(--ds-font-family-mono); font-size: 12px">
               {{ row.id }}
             </span>
           </template>
@@ -93,16 +93,14 @@
         <el-table-column prop="name" :label="t('devSched.table.columns.name')" min-width="180" />
         <el-table-column :label="t('devSched.table.columns.status')" width="120">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" effect="light">
-              {{ statusLabel(row.status) }}
-            </el-tag>
+            <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="STATUS_TAG_TYPE_MAP" />
           </template>
         </el-table-column>
         <el-table-column :label="t('devSched.table.columns.schedule')" width="160">
           <template #default="{ row }">
             <span
               v-if="row.schedule"
-              style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+              style="font-family: var(--ds-font-family-mono); font-size: 12px"
             >
               {{ row.schedule }}
             </span>
@@ -213,7 +211,7 @@
             type="textarea"
             :rows="12"
             :placeholder="t('devSched.editDrawer.fields.dagJsonPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
       </el-form>
@@ -373,6 +371,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppStore } from '@/stores/app'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import * as devSchedApi from '@/api/dev-sched'
 import type { DagJob, DagCreateRequest } from '@/api/dev-sched'
@@ -505,10 +504,10 @@ async function handleSubmitDag() {
       }
       if (editForm.id) {
         await devSchedApi.updateDag(editForm.id, payload)
-        ElMessage.success(t('devSched.messages.updated'))
+        appStore.showToast(t('devSched.messages.updated'), 'success')
       } else {
         await devSchedApi.createDag(payload)
-        ElMessage.success(t('devSched.messages.created'))
+        appStore.showToast(t('devSched.messages.created'), 'success')
       }
       editDrawerVisible.value = false
       await reload()
@@ -571,7 +570,7 @@ async function handleRerun(row: DagJob) {
     }
     const runId = runsPage.content[0].id
     await devSchedApi.streamBatchApi.rerunDagRun(row.id, runId)
-    ElMessage.success(t('devSched.messages.rerunDone'))
+    appStore.showToast(t('devSched.messages.rerunDone'), 'success')
     await reload()
   } catch {
     // 用户取消或操作失败
@@ -592,7 +591,7 @@ async function handleDelete(row: DagJob) {
       }
     )
     await devSchedApi.deleteDag(row.id)
-    ElMessage.success(t('devSched.messages.deleted'))
+    appStore.showToast(t('devSched.messages.deleted'), 'success')
     await reload()
   } catch {
     // 用户取消或删除失败
@@ -644,7 +643,7 @@ async function handleRerunRun(row: DagRunRecord) {
   rerunningId.value = row.id
   try {
     await devSchedApi.streamBatchApi.rerunDagRun(currentDag.value.id, row.id)
-    ElMessage.success(t('devSched.messages.rerunDone'))
+    appStore.showToast(t('devSched.messages.rerunDone'), 'success')
     await loadRuns()
   } catch {
     // 拦截器已提示
@@ -790,7 +789,7 @@ watch(
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .grid {
@@ -800,12 +799,12 @@ watch(
 .grid.g4 {
   grid-template-columns: repeat(4, 1fr);
 }
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .grid.g4 {
     grid-template-columns: repeat(2, 1fr);
   }
 }
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .grid.g4 {
     grid-template-columns: 1fr;
   }
@@ -817,13 +816,13 @@ watch(
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;

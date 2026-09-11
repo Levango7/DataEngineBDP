@@ -470,7 +470,7 @@ onUnmounted(() => {
 }
 
 /* 响应式断点：中等屏幕紧凑化 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-sm);
   }
@@ -480,7 +480,7 @@ onUnmounted(() => {
 }
 
 /* 响应式断点：小屏幕单列布局 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   :deep(.el-table) {
     font-size: var(--ds-font-size-xs);
   }

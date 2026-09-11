@@ -730,7 +730,7 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 .card-icon {
-  font-size: 28px;
+  font-size: 30px;
   line-height: 1;
 }
 .card-title-wrap {
@@ -751,7 +751,7 @@ onMounted(() => {
   margin-top: 2px;
 }
 .card-desc {
-  font-size: 13px;
+  font-size: 14px;
   color: #6b7280;
   line-height: 1.5;
   display: -webkit-box;
@@ -828,17 +828,17 @@ onMounted(() => {
   border-left: 3px solid #e6a23c;
 }
 .node-layer {
-  font-size: 11px;
+  font-size: 12px;
   color: #8a919c;
   text-transform: uppercase;
 }
 .node-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   margin: 4px 0;
 }
 .node-type {
-  font-size: 11px;
+  font-size: 12px;
   color: #6b7280;
 }
 
@@ -860,7 +860,7 @@ onMounted(() => {
 }
 .schedule-info {
   margin-top: 10px;
-  font-size: 13px;
+  font-size: 14px;
   color: #6b7280;
 }
 
@@ -873,7 +873,7 @@ onMounted(() => {
   display: flex;
   gap: 16px;
   margin-bottom: 8px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .step-io :deep(.el-tag) {
   margin-right: 4px;
@@ -925,7 +925,7 @@ onMounted(() => {
   background: #f7f9fa;
   padding: 16px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   white-space: pre-wrap;
   font-family: var(--ds-font-family-mono);

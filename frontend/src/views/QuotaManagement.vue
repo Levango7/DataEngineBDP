@@ -629,7 +629,7 @@ onMounted(() => {
 .usage-label {
   color: var(--ds-text-secondary);
   min-width: 100px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .usage-text {
   font-family: var(--ds-font-family-mono);

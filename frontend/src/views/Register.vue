@@ -335,7 +335,7 @@ async function submitForm() {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ds-text-primary);
   margin-bottom: 18px;
@@ -355,7 +355,7 @@ async function submitForm() {
   list-style: none;
   padding: 0;
   margin: 0 0 28px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .reg-steps li {
   display: flex;
@@ -384,7 +384,7 @@ async function submitForm() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   flex: none;
   transition: all 0.2s var(--ease-smooth);
@@ -411,7 +411,7 @@ async function submitForm() {
   margin: 0 0 6px;
 }
 .reg-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-tertiary);
   margin: 0 0 22px;
   line-height: 1.6;
@@ -429,7 +429,7 @@ async function submitForm() {
 .reg-tip {
   margin-top: 18px;
   text-align: center;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
 }
 .reg-tip a {
@@ -445,7 +445,7 @@ async function submitForm() {
   border-left: 3px solid var(--ds-color-error-500);
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   margin: 8px 0;
 }
 
@@ -455,7 +455,7 @@ async function submitForm() {
   border-radius: 10px;
   padding: 12px 16px;
   margin-bottom: 18px;
-  font-size: 13px;
+  font-size: 14px;
 }
 .reg-banner-row {
   display: flex;
@@ -474,7 +474,7 @@ async function submitForm() {
 }
 .reg-banner-row code {
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ds-text-secondary);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
@@ -484,7 +484,7 @@ async function submitForm() {
 .reg-banner-tip {
   margin-left: auto;
   color: var(--ds-border-strong);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 .reg-actions {
@@ -538,7 +538,7 @@ async function submitForm() {
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   text-align: left;
-  font-size: 13px;
+  font-size: 14px;
 }
 .reg-success-meta li {
   display: flex;
@@ -552,7 +552,7 @@ async function submitForm() {
 }
 .reg-success-tip {
   margin-top: 18px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   line-height: 1.6;
 }
@@ -560,7 +560,7 @@ async function submitForm() {
 .reg-bottom {
   text-align: center;
   margin-top: 22px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .reg-bottom a {
   color: var(--ds-color-primary-500);

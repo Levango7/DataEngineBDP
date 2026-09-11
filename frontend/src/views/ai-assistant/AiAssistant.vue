@@ -425,7 +425,7 @@ void buildChartConfig
   margin: 0;
 }
 .ai-sub {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-tertiary);
 }
 .ai-actions {
@@ -457,7 +457,7 @@ void buildChartConfig
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   border-bottom: 1px solid var(--ds-border-subtle);
 }
@@ -494,14 +494,14 @@ void buildChartConfig
   min-width: 0;
 }
 .session-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .session-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
@@ -549,7 +549,7 @@ void buildChartConfig
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-primary);
   padding-bottom: 6px;

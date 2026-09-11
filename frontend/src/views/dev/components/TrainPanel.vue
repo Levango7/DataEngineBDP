@@ -57,9 +57,7 @@
       />
       <el-table-column :label="t('devMl.trainPanel.columns.status')" width="110">
         <template #default="{ row }">
-          <el-tag :type="statusType(row.status)" effect="light">
-            {{ statusLabel(row.status) }}
-          </el-tag>
+          <StatusTag :status="row.status" :label="statusLabel(row.status)" :status-map="statusMap" />
         </template>
       </el-table-column>
       <el-table-column :label="t('devMl.trainPanel.columns.metrics')" min-width="180">
@@ -119,6 +117,7 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Refresh } from '@element-plus/icons-vue'
+import { StatusTag } from '@/components/ui'
 import type { TrainJob } from '@/api/dev-ml'
 
 const { t } = useI18n()
@@ -133,6 +132,7 @@ const props = defineProps<{
   error: boolean
   statusLabel: (s: string) => string
   statusType: (s: string) => string
+  statusMap: Record<string, 'primary' | 'success' | 'info' | 'warning' | 'danger'>
   kpi: { total: number; running: number }
 }>()
 const emit = defineEmits<{
@@ -204,7 +204,7 @@ function fmtMetrics(m: Record<string, number>) {
 }
 .kpi-card .num {
   display: block;
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--ds-text-primary);
   line-height: 1.2;
@@ -213,7 +213,7 @@ function fmtMetrics(m: Record<string, number>) {
   color: var(--ds-color-success-600);
 }
 .kpi-card .lbl {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-muted, var(--ds-text-secondary));
 }
 .toolbar {

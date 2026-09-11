@@ -2,6 +2,7 @@
   "_comment": "Java 模块覆盖率基线（2026-09-01 Boot 4.1.1 升级后 jacoco 全量实测快照）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
   "_source": "Boot 4.1.1 升级验收：22 模块 mvn verify + jacoco 实测（coverage-measured.json）",
   "_threshold_note": "当前阈值：行≥40% 分支≥18%（2026-09-01 实化提升，名单内最低实测 46%/30%）。目标 85% GA标准。",
+  "_t02_plan": "T-02 分阶段提升计划：阶段1（当前）所有22模块参与趋势检查防回归；阶段2逐步提升低覆盖率模块基线（每次5-10%）；阶段3最终目标85% GA标准",
   "common-security": 49,
   "encaps-layer": 56,
   "encaps-tenant": 82,

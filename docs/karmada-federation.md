@@ -437,12 +437,26 @@ done
 
 | 待办 | 优先级 | 说明 |
 | --- | --- | --- |
-| karmada-api 接入真实 Karmada 控制面 | 高 | PropagationPolicy CRUD 当前仅落本地 SQLite，未对接 Karmada 控制面实际下发 |
+| karmada-api 接入真实 Karmada 控制面 | 高 | PropagationPolicy CRUD 当前仅落本地 SQLite，未对接 Karmada 控制面实际下发。**P-01 已添加 Karmada REST API 客户端骨架**（`internal/karmadaclient/client.go`），支持 `KARMADA_API_SERVER` + `KARMADA_KUBECONFIG` 环境变量配置，**待异地机房真实验证** |
+| 联邦集群注册/注销 API | 高 | **P-01 已创建骨架**（`internal/handler/cluster.go`），端点：POST/GET/DELETE `/api/v1/clusters`，**待异地机房真实验证** |
 | failover-engine 接入真实 Prometheus | 高 | 健康检查需真实 Prometheus 指标采集 |
 | federated-query 接入真实多集群 | 高 | 跨集群查询路由需真实多集群环境验证 |
 | 四环境联邦验证 | 中 | 信创/本地/公有云/私有云四环境联邦部署验证 |
 | 跨集群事务支持 | 中 | 基于 Iceberg Snapshot Isolation 的跨集群 ACID 事务 |
 | 联邦治理统一视图 | 中 | 跨集群元数据 / 血缘 / 质量规则统一治理 |
+
+### 6.3 多集群联邦验证状态（P-01）
+
+> **最后更新**：2026-09-11
+
+| 验证项 | 状态 | 说明 |
+|--------|------|------|
+| Karmada REST API 客户端骨架 | ✅ 已创建 | `internal/karmadaclient/client.go`，支持环境变量配置 |
+| 联邦集群注册/注销 API 骨架 | ✅ 已创建 | `internal/handler/cluster.go`，POST/GET/DELETE `/api/v1/clusters` |
+| 环境变量配置 | ✅ 已添加 | `KARMADA_API_SERVER`、`KARMADA_KUBECONFIG`、`KARMADA_API_TIMEOUT` |
+| 本地单集群验证 | ⏳ 待验证 | 需本地 Karmada 控制面环境 |
+| 异地机房多集群验证 | ⏳ 待验证 | **待异地机房真实验证**（需真实多机房环境） |
+| 四环境联邦验证 | ⏳ 待验证 | 信创/本地/公有云/私有云四环境联邦部署 |
 
 ## 七、关联文档索引
 
@@ -461,4 +475,5 @@ done
 
 | 日期 | 变更 |
 | --- | --- |
+| 2026-09-11 | P-01：添加 Karmada REST API 客户端骨架 + 联邦集群注册/注销 API 骨架 + 环境变量配置（KARMADA_API_SERVER/KARMADA_KUBECONFIG）+ 多集群联邦验证状态说明 |
 | 2026-09-11 | 首次创建：Karmada 多集群联邦架构说明 + 使用指南 + 配置参数 + 验证方案 |

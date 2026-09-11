@@ -137,12 +137,12 @@ function changeIcon(m: SummaryMetric) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ds-text-primary);
 }
 .summary-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   display: inline-flex;
   align-items: center;
@@ -151,7 +151,7 @@ function changeIcon(m: SummaryMetric) {
 .summary-text {
   display: flex;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   line-height: 1.7;
   color: var(--c-slate-700);
   background: var(--c-surface-hover);
@@ -185,7 +185,7 @@ function changeIcon(m: SummaryMetric) {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--c-slate-700);
   line-height: 1.6;
 }
@@ -209,7 +209,7 @@ function changeIcon(m: SummaryMetric) {
   gap: 4px;
 }
 .metric-label {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
 }
 .metric-value {
@@ -219,7 +219,7 @@ function changeIcon(m: SummaryMetric) {
   font-variant-numeric: tabular-nums;
 }
 .metric-unit {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--ds-text-tertiary);
   margin-left: 2px;
@@ -228,7 +228,7 @@ function changeIcon(m: SummaryMetric) {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
 }
 .change-up {

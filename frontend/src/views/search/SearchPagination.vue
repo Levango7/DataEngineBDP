@@ -195,7 +195,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
   gap: 8px;
 }
 .total-info {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted, var(--ds-text-secondary));
 }
 .total-num {
@@ -217,7 +217,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
   align-items: center;
   gap: 8px;
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 13px;
+  font-size: 14px;
 }
 .no-more {
   width: 100%;

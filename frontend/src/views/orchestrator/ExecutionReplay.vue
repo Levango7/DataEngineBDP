@@ -469,7 +469,7 @@ onMounted(() => {
 .sub-t {
   padding: 7px 14px;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   border-bottom: 2px solid transparent;
 }
@@ -481,7 +481,7 @@ onMounted(() => {
 .sub-badge {
   display: inline-block;
   margin-left: 4px;
-  font-size: 10px;
+  font-size: 12px;
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
   border-radius: 10px;
@@ -495,7 +495,7 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 .panel-head .title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 .panel-head .spacer {
@@ -506,12 +506,12 @@ onMounted(() => {
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .mono {
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: 12px;
 }
 
 /* 执行历史表 */
@@ -522,7 +522,7 @@ onMounted(() => {
   background: var(--ds-color-primary-50);
 }
 .trigger-tag {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 8px;
@@ -540,7 +540,7 @@ onMounted(() => {
   color: var(--c-violet);
 }
 .status-tag {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 8px;
@@ -583,7 +583,7 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 .trace-head .title {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
 }
 .trace-head .spacer {
@@ -610,7 +610,7 @@ onMounted(() => {
   transition: width 0.2s;
 }
 .progress-text {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   font-family: var(--ds-font-family-mono);
 }
@@ -621,7 +621,7 @@ onMounted(() => {
   margin: 0;
   max-height: 280px;
   overflow-y: auto;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 .event {
   display: flex;
@@ -644,7 +644,7 @@ onMounted(() => {
   width: 28px;
 }
 .ev-kind {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 8px;
@@ -654,7 +654,7 @@ onMounted(() => {
   text-align: center;
 }
 .ev-node {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   background: var(--c-surface-hover);
   padding: 1px 5px;
@@ -664,7 +664,7 @@ onMounted(() => {
   margin-left: auto;
   color: var(--ds-text-tertiary);
   font-family: var(--ds-font-family-mono);
-  font-size: 10.5px;
+  font-size: 12px;
 }
 
 .event.ev-node_start .ev-kind {
@@ -715,11 +715,11 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 .ckpt-id {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ds-text-primary);
 }
 .ckpt-kind {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 8px;
@@ -739,7 +739,7 @@ onMounted(() => {
   color: var(--ds-color-error-500);
 }
 .ckpt-time {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
 }
 .ckpt-head .spacer {
@@ -752,7 +752,7 @@ onMounted(() => {
 .ckpt-node-tag {
   display: inline-block;
   margin: 2px 4px 0 0;
-  font-size: 10px;
+  font-size: 12px;
   background: var(--c-surface-hover);
   padding: 1px 5px;
   border-radius: 6px;
@@ -760,7 +760,7 @@ onMounted(() => {
 }
 .ckpt-note {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
 }
 
@@ -796,10 +796,10 @@ onMounted(() => {
 }
 .iv-node {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .iv-status {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 8px;
@@ -822,7 +822,7 @@ onMounted(() => {
 }
 .iv-time {
   margin-left: auto;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
 }
 .iv-reason {
@@ -838,7 +838,7 @@ onMounted(() => {
   border-radius: 6px;
   padding: 8px;
   font-family: var(--ds-font-family-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
   word-break: break-all;
@@ -856,7 +856,7 @@ onMounted(() => {
 .iv-resolved {
   display: flex;
   gap: 14px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   margin-top: 6px;
 }

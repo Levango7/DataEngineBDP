@@ -130,7 +130,7 @@ onMounted(load)
   margin-bottom: 4px;
 }
 .tc-head .title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 .tc-head .meta {
@@ -144,7 +144,7 @@ onMounted(load)
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .call-list {
@@ -177,13 +177,13 @@ onMounted(load)
   gap: 10px;
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .call-head:hover {
   background: var(--c-surface-hover);
 }
 .call-seq {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   font-family: var(--ds-font-family-mono);
 }
@@ -193,14 +193,14 @@ onMounted(load)
   font-family: var(--ds-font-family-mono);
 }
 .call-node {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   background: var(--c-surface-alt);
   padding: 1px 6px;
   border-radius: 8px;
 }
 .call-status {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 2px 7px;
   border-radius: 10px;
@@ -222,7 +222,7 @@ onMounted(load)
   color: var(--ds-text-tertiary);
 }
 .call-dur {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   margin-left: auto;
 }
@@ -244,7 +244,7 @@ onMounted(load)
   margin-bottom: 10px;
 }
 .section-label {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ds-text-tertiary);
   margin-bottom: 4px;
@@ -256,7 +256,7 @@ onMounted(load)
   border-radius: 6px;
   padding: 8px 10px;
   font-family: var(--ds-font-family-mono);
-  font-size: 11px;
+  font-size: 12px;
   color: var(--c-slate-700);
   white-space: pre-wrap;
   word-break: break-all;
@@ -275,7 +275,7 @@ onMounted(load)
 .call-time {
   display: flex;
   gap: 16px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   margin-top: 4px;
 }

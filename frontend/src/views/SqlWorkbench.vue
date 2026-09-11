@@ -80,9 +80,7 @@
         <!-- 结果表格 -->
         <el-tab-pane :label="t('sqlWorkbench.result.tab')" name="result">
           <div v-if="result" class="result-summary">
-            <el-tag :type="statusTagType(result.status)" effect="light">
-              {{ result.status }}
-            </el-tag>
+            <StatusTag :status="result.status" :status-map="STATUS_TAG_TYPE_MAP" />
             <el-tag v-if="result.crossSource" type="warning" effect="light">
               {{ t('sqlWorkbench.result.crossSource') }}
             </el-tag>
@@ -284,6 +282,7 @@ import {
   Right
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { StatusTag } from '@/components/ui'
 import { useApi } from '@/composables/useApi'
 import {
   executeCrossSourceSql,
@@ -440,19 +439,18 @@ function formatCell(val: unknown): string {
   return String(val)
 }
 
+/** 状态标签类型映射 */
+const STATUS_TAG_TYPE_MAP: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
+  SUCCESS: 'success',
+  DEGRADED: 'warning',
+  FAILED: 'danger'
+}
+
 /** 状态标签类型 */
 function statusTagType(status: string): 'success' | 'warning' | 'danger' | 'info' {
-  switch (status) {
-    case 'SUCCESS':
-      return 'success'
-    case 'DEGRADED':
-      return 'warning'
-    case 'FAILED':
-      return 'danger'
-    default:
-      return 'info'
-  }
+  return STATUS_TAG_TYPE_MAP[status] ?? 'info'
 }
+
 
 /** 源标签类型 */
 function sourceTagType(source: string): 'primary' | 'success' | 'warning' | 'info' {
@@ -526,7 +524,7 @@ function tablesOfSource(source: string): string[] {
   text-align: right;
   padding: 8px 6px;
   font-family: var(--ds-font-family-mono);
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-muted, var(--ds-text-secondary));
   line-height: 1.6;
   user-select: none;
@@ -543,7 +541,7 @@ function tablesOfSource(source: string): string[] {
   resize: none;
   padding: 8px 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.6;
   background: #fafafa;
   color: var(--ds-text-primary);
@@ -583,7 +581,7 @@ function tablesOfSource(source: string): string[] {
 }
 
 .meta {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ds-text-secondary);
 }
 
@@ -654,7 +652,7 @@ function tablesOfSource(source: string): string[] {
   flex-direction: column;
   align-items: center;
   color: #e6a23c;
-  font-size: 13px;
+  font-size: 14px;
   gap: 4px;
 }
 

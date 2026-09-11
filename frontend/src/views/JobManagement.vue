@@ -179,7 +179,7 @@
             :rows="10"
             :placeholder="t('jobmgmt.submitModal.codePlaceholder')"
             :aria-label="t('jobmgmt.submitModal.code')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12.5px"
+            style="font-family: var(--ds-font-family-mono); font-size: 12px"
           />
         </el-form-item>
       </el-form>
@@ -527,7 +527,7 @@ onUnmounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   margin-bottom: 16px;
 }
 .page-card {
@@ -560,7 +560,7 @@ onUnmounted(() => {
 .log-content {
   color: #cbd5e1;
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

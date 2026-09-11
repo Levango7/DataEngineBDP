@@ -164,11 +164,11 @@ function onSelect(rec: ChartRecommendation): void {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 .data-profile {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   max-width: 60%;
   text-align: right;
@@ -253,7 +253,7 @@ function onSelect(rec: ChartRecommendation): void {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
 }
 .rec-type-label {
@@ -267,7 +267,7 @@ function onSelect(rec: ChartRecommendation): void {
 .rec-fields {
   display: flex;
   gap: 14px;
-  font-size: 11px;
+  font-size: 12px;
   flex-wrap: wrap;
 }
 .field-group {

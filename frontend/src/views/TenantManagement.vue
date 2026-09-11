@@ -623,7 +623,7 @@ onMounted(() => loadList())
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
 }
 .stat-num {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 700;
   color: #0f172a;
   background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
@@ -632,7 +632,7 @@ onMounted(() => loadList())
   -webkit-text-fill-color: transparent;
 }
 .stat-lbl {
-  font-size: 12.5px;
+  font-size: 12px;
   color: #64748b;
   margin-top: 2px;
 }
@@ -648,7 +648,7 @@ onMounted(() => loadList())
   padding: 8px 4px;
 }
 .invite-hint {
-  font-size: 13px;
+  font-size: 14px;
   color: #475569;
   margin: 0 0 12px;
 }
@@ -669,7 +669,7 @@ onMounted(() => loadList())
 }
 .invite-code-text {
   font-family: var(--ds-font-family-mono);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 4px;
   color: #1d4ed8;
@@ -678,7 +678,7 @@ onMounted(() => loadList())
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 12.5px;
+  font-size: 12px;
   color: #475569;
 }
 .invite-meta li {

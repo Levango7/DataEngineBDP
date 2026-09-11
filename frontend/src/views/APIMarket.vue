@@ -827,7 +827,7 @@ onUnmounted(() => {
 }
 .api-name {
   font-weight: var(--ds-font-weight-semibold);
-  font-size: 15px;
+  font-size: 16px;
 }
 .api-card-desc {
   color: var(--ds-text-secondary);
@@ -861,7 +861,7 @@ onUnmounted(() => {
   margin-bottom: 10px;
 }
 .tag {
-  font-size: 11px;
+  font-size: 12px;
   padding: 1px 6px;
   border-radius: var(--ds-radius-sm);
   background: var(--ds-bg-muted);
@@ -918,7 +918,7 @@ onUnmounted(() => {
 }
 
 /* 响应式断点：中等屏幕收窄卡片网格最小宽度 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .api-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
@@ -929,7 +929,7 @@ onUnmounted(() => {
 }
 
 /* 响应式断点：小屏幕单列布局 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .api-grid {
     grid-template-columns: 1fr;
     gap: 10px;

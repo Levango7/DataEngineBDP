@@ -78,7 +78,7 @@
         </div>
       </div>
       <div class="params">
-        <h3 style="font-size: 13px; margin-bottom: 8px">{{ t('develop.params') }}</h3>
+        <h3 style="font-size: 14px; margin-bottom: 8px">{{ t('develop.params') }}</h3>
         <label>{{ t('develop.engine') }}</label>
         <el-select v-model="runParams.engine" style="width: 100%">
           <el-option label="Spark SQL" value="spark" />
@@ -462,7 +462,7 @@ watch(
   padding: 4px 6px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 13px;
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -492,7 +492,7 @@ watch(
 }
 .tab {
   padding: 6px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   border-right: 1px solid var(--ds-border-default);
   cursor: pointer;
 }
@@ -517,7 +517,7 @@ watch(
   outline: none;
   padding: 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.6;
   resize: none;
   background: var(--ds-bg-surface);
@@ -552,7 +552,7 @@ watch(
   padding: 6px 12px;
   background: var(--ds-bg-muted);
   border-radius: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .dag .node.act {
   background: var(--ds-color-info-50);
@@ -565,7 +565,7 @@ watch(
 
 /* ============ 响应式断点 ============ */
 /* 中等屏幕：收窄侧栏，避免内容挤压 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .ide {
     grid-template-columns: 180px 1fr 180px;
     gap: 8px;
@@ -580,7 +580,7 @@ watch(
 }
 
 /* 小屏幕：单列堆叠，文件树/代码/参数自上而下排列 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .ide {
     grid-template-columns: 1fr;
     gap: 10px;

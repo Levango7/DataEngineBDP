@@ -489,7 +489,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--ds-radius-sm);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: var(--ds-font-weight-medium);
   margin-right: 6px;
 }
@@ -527,7 +527,7 @@ onBeforeUnmount(() => {
 }
 
 /* 响应式断点：中等屏幕收窄页面内边距与最大宽度 */
-@media (max-width: 1100px) {
+@media (max-width: 1024px) {
   .lineage-page {
     padding: 16px 20px;
     max-width: 100%;
@@ -544,7 +544,7 @@ onBeforeUnmount(() => {
 }
 
 /* 响应式断点：小屏幕单列布局，紧凑间距 */
-@media (max-width: 720px) {
+@media (max-width: 640px) {
   .lineage-page {
     padding: 12px;
     gap: 12px;

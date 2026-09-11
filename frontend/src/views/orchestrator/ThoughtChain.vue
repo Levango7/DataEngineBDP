@@ -128,7 +128,7 @@ onMounted(load)
   margin-bottom: 4px;
 }
 .tc-head .title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
 }
 .tc-head .meta {
@@ -142,7 +142,7 @@ onMounted(load)
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .timeline {
@@ -175,7 +175,7 @@ onMounted(load)
   z-index: 1;
 }
 .kind-badge {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
   border-radius: 12px;
@@ -184,7 +184,7 @@ onMounted(load)
   letter-spacing: 0.4px;
 }
 .step-idx {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
 }
 
@@ -213,12 +213,12 @@ onMounted(load)
   background: var(--c-surface-hover);
   border-radius: 8px;
   padding: 8px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .step-meta {
   display: flex;
   gap: 10px;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ds-text-tertiary);
   margin-bottom: 4px;
 }
@@ -249,7 +249,7 @@ onMounted(load)
 }
 .step-tool {
   margin-top: 6px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 .tool-label {
   color: var(--ds-text-tertiary);
