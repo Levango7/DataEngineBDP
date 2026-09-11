@@ -928,7 +928,7 @@ onUnmounted(() => {
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   text-align: center;
 }
 .comp-card.healthy {

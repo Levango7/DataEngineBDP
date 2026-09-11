@@ -360,7 +360,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   border-radius: 14px;
   font-size: 12px;
   cursor: pointer;
-  background: #fff;
+  background: var(--ds-bg-surface);
   transition: all 0.15s;
 }
 .tag-chip:hover {

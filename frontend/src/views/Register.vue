@@ -291,7 +291,7 @@ async function submitForm() {
   border-radius: 50%;
   filter: blur(110px);
   pointer-events: none;
-  animation: regFloat 9s ease-in-out infinite alternate;
+  animation: regFloat 4s ease-in-out infinite alternate;
 }
 .reg-bg-glow--1 {
   width: 460px;

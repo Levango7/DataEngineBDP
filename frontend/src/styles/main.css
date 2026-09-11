@@ -78,10 +78,12 @@
   --c-violet: var(--ds-color-info-500);
   --c-primary: var(--ds-color-primary-500); /* 兼容引用 */
 
-  /* === 动效曲线 (新增) === */
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* === 动效曲线 (新增) ===
+   * 非标准曲线已替换为 ease（design-tokens.css 未定义 --ds-ease-* 标准变量，
+   * 按 U-03 规范：无对应标准变量时用 ease 替代） */
+  --ease-spring: ease;
   --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
-  --ease-drawer: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-drawer: ease;
 }
 
 * {
@@ -2364,4 +2366,19 @@ label {
 }
 :root[data-theme='dark'] .el-table__row:hover > td {
   background: #334155 !important;
+}
+
+/* ============================================================
+ * 全局动效降级（U-03 动画一致性，参考设计系统规范 §7.1）
+ * 用户设置 prefers-reduced-motion: reduce 时，所有动画/过渡即时切换
+ * ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

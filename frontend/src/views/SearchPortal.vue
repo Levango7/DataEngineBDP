@@ -480,7 +480,7 @@ onMounted(() => {
 .sug-chip {
   font-size: 12px;
   padding: 2px 10px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   border: 1px solid var(--amber, var(--ds-color-warning-600));
   border-radius: 12px;
   color: var(--amber, var(--ds-color-warning-600));

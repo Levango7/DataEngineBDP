@@ -297,7 +297,7 @@ onMounted(() => loadList())
 }
 .stat {
   padding: 16px 18px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   border: 1px solid #cbd5e1;
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);

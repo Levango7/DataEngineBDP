@@ -240,7 +240,7 @@ async function handleLogin() {
   border-radius: 50%;
   filter: blur(100px);
   pointer-events: none;
-  animation: orbFloat 9s ease-in-out infinite alternate;
+  animation: orbFloat 4s ease-in-out infinite alternate;
 }
 .left-bg-glow--1 {
   width: 480px;

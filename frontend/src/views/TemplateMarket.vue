@@ -811,7 +811,7 @@ onMounted(() => {
   border-radius: 6px;
 }
 .arch-node {
-  background: #fff;
+  background: var(--ds-bg-surface);
   border: 1px solid #dcdfe6;
   border-radius: 6px;
   padding: 8px 12px;

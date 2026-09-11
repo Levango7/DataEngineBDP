@@ -1077,14 +1077,26 @@ jobs:
           fi
           echo "读取基线：$BASELINE_FILE"
           fail_count=0
+          checked_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
             mod_name=$(basename "$mod_dir")
-            cov_output=$(cd "$mod_dir" && go test -cover ./... 2>/dev/null || true)
-            cov=$(echo "$cov_output" | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
-            if [ -z "$cov" ]; then
+            # T-08 修复：原用 go test -cover 输出不含 total: 行，grep ^total: 恒为空，
+            # 导致所有模块走 continue 旁路，趋势检查形同虚设。
+            # 改为与门禁检查一致的 -coverprofile + go tool cover -func 口径，真正获取覆盖率。
+            cov_profile="$mod_dir/.coverage.trend.out"
+            rm -f "$cov_profile"
+            cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile=.coverage.trend.out ./... 2>&1 || true)
+            if [ ! -s "$cov_profile" ]; then
+              echo "::warning::$mod_name 未生成覆盖率数据，跳过趋势检查"
               continue
             fi
+            cov=$(cd "$mod_dir" && go tool cover -func=.coverage.trend.out | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
+            if [ -z "$cov" ] || [ "$cov" = "0" ]; then
+              echo "::warning::$mod_name 覆盖率解析失败或为 0%，跳过趋势检查"
+              continue
+            fi
+            checked_count=$((checked_count + 1))
             baseline_pct=$(python3 -c "import json; d=json.load(open('$BASELINE_FILE')); print(d.get('$mod_name', 0))" 2>/dev/null || echo "0")
             # 浮点下降计算
             drop=$(python3 -c "print(round(float('$baseline_pct') - float('$cov'), 2))" 2>/dev/null || echo "0")
@@ -1096,6 +1108,9 @@ jobs:
               echo "✓ $mod_name 覆盖率趋势正常（基线 ${baseline_pct}% → 当前 ${cov}%，下降 $drop%）"
             fi
           done < <(find platform -name go.mod -not -path "*/vendor/*")
+          echo "============================================"
+          echo "  Go 趋势检查汇总：实际检查 $checked_count 个模块，失败 $fail_count"
+          echo "============================================"
           if [ "$fail_count" -gt 0 ]; then
             echo "::error::共有 $fail_count 个 Go 模块覆盖率下降超过 ${REGRESSION_THRESHOLD}%，趋势阻断 CI"
             exit 1

@@ -372,11 +372,12 @@ jobs:
       - name: Semgrep 扫描（生成 SARIF）
         # returntocorp/semgrep-action@v1 已废弃，改用官方 Docker 镜像直接产出 SARIF
         # --error 使发现问题返回非零退出码阻断 CI
+        # T-06: 添加 p/golang 规则集，覆盖 Go 组件的安全反模式扫描
         run: |
           mkdir -p reports/semgrep
           docker run --rm -v "${PWD}:/src" semgrep/semgrep \
             semgrep --config p/security-audit --config p/java \
-              --config p/python --config p/javascript \
+              --config p/python --config p/javascript --config p/golang \
               --error --sarif --output /src/reports/semgrep/semgrep.sarif
 
       - name: 上传 Semgrep SARIF
@@ -394,8 +395,10 @@ jobs:
           retention-days: 30
 
   # ============================================================
-  # T-10: Trivy 镜像扫描（合并自 security-scan.yml）
-  # 扫描 encaps-layer Docker 镜像的 HIGH/CRITICAL 漏洞
+  # T-10/T-06: Trivy 镜像扫描（合并自 security-scan.yml）
+  # T-06: 从单个 encaps-layer 镜像改为全量扫描所有 Dockerfile 对应的镜像
+  # 遍历所有 Dockerfile，提取 FROM 基础镜像，用 trivy image 扫描基础镜像漏洞
+  # 保持阻断模式：--exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed
   # ============================================================
   trivy-image:
     name: Trivy Image Scan
@@ -404,49 +407,89 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 设置 JDK 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'maven'
-
       - name: 安装 Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
             | sh -s -- -b /usr/local/bin
           trivy --version
 
-      - name: 构建 encaps-layer 镜像
-        run: |
-          # Dockerfile 已统一为项目根 context 模式
-          if [ -f platform/encaps-layer/Dockerfile ]; then
-            mvn install -B -N -q || echo "::warning::父 POM 安装失败"
-            mvn -f platform/common-security/pom.xml install -B -q -Dmaven.test.skip=true \
-              -Dpmd.skip=true -Dcheckstyle.skip=true \
-              || echo "::warning::common-security 安装失败"
-            mvn -f platform/encaps-layer/pom.xml package -B -q -Dmaven.test.skip=true \
-              -Dpmd.skip=true -Dcheckstyle.skip=true \
-              || echo "::warning::Maven 打包失败，跳过镜像构建"
-            docker build -f platform/encaps-layer/Dockerfile -t encaps-layer:scan . \
-              || echo "::warning::Docker 构建失败，跳过镜像扫描"
-          else
-            echo "未找到 Dockerfile，跳过镜像扫描"
-          fi
-
-      - name: Trivy 扫描镜像
-        if: always()
+      - name: 全量扫描所有 Docker 镜像（遍历所有 Dockerfile）
         run: |
           mkdir -p reports/trivy
-          if docker image inspect encaps-layer:scan > /dev/null 2>&1; then
-            trivy image --exit-code 1 --format sarif \
-              --output reports/trivy/encaps-layer-image.sarif \
-              --scanners vuln --severity HIGH,CRITICAL \
-              --ignore-unfixed \
-              encaps-layer:scan
-          else
-            echo "镜像未构建，跳过扫描"
+          # T-06: 遍历所有 Dockerfile，提取 FROM 基础镜像并扫描
+          # 覆盖全部 43 个镜像（Java 16 + Go 11 + Python 14 + 前端 1 + 辅助 1）
+          # 排除 mock-cluster（测试用 mock）和 spark-cluster（第三方 Spark 镜像，由供应商维护）
+          EXCLUDE_DIRS="mock-cluster spark-cluster"
+          scan_count=0
+          fail_count=0
+          declare -a seen_images
+          while IFS= read -r df; do
+            mod_dir=$(dirname "$df")
+            mod_name=$(basename "$mod_dir")
+            # 跳过辅助镜像目录
+            skip=false
+            for ex in $EXCLUDE_DIRS; do
+              if [ "$mod_name" = "$ex" ]; then
+                skip=true
+                break
+              fi
+            done
+            if [ "$skip" = "true" ]; then
+              echo "::notice::跳过辅助镜像: $mod_name"
+              continue
+            fi
+            # 提取 Dockerfile 中所有 FROM 指令的基础镜像（忽略多阶段构建的 AS 别名）
+            while IFS= read -r from_line; do
+              # 跳过空行和注释
+              [ -z "$from_line" ] && continue
+              # 提取镜像名（去掉 FROM 关键字和 AS alias）
+              base_image=$(echo "$from_line" | sed -E 's/^FROM[[:space:]]+//I; s/[[:space:]]+AS[[:space:]].*//I' | tr -d '[:space:]')
+              # 跳过 scratch 和空值
+              [ -z "$base_image" ] && continue
+              [ "$base_image" = "scratch" ] && continue
+              # 跳过已扫描的重复镜像
+              already=false
+              for seen in "${seen_images[@]}"; do
+                if [ "$seen" = "$base_image" ]; then
+                  already=true
+                  break
+                fi
+              done
+              if [ "$already" = "true" ]; then
+                continue
+              fi
+              seen_images+=("$base_image")
+              scan_count=$((scan_count + 1))
+              echo "============================================"
+              echo "  Trivy image scan: $mod_name -> $base_image"
+              echo "============================================"
+              # 保持阻断模式：HIGH/CRITICAL 漏洞 exit-code=1
+              # --ignore-unfixed：仅扫描已有修复的漏洞
+              safe_name=$(echo "$base_image" | tr '/:@' '___')
+              if trivy image --exit-code 1 --format sarif \
+                --output "reports/trivy/${safe_name}.sarif" \
+                --scanners vuln --severity HIGH,CRITICAL \
+                --ignore-unfixed \
+                "$base_image" 2>&1 | tee -a reports/trivy/scan.log; then
+                echo "✓ $base_image 无 HIGH/CRITICAL 漏洞"
+              else
+                echo "::error::$base_image ($mod_name) 发现 HIGH/CRITICAL 漏洞"
+                fail_count=$((fail_count + 1))
+              fi
+            done < <(grep -iE '^FROM[[:space:]]' "$df" 2>/dev/null)
+          done < <(find . -name Dockerfile -not -path "*/target/*" -not -path "*/node_modules/*" \
+            -not -path "*/.git/*" 2>/dev/null | sort)
+          echo ""
+          echo "============================================"
+          echo "  Trivy 镜像扫描汇总"
+          echo "============================================"
+          echo "共扫描 $scan_count 个基础镜像（去重后）"
+          echo "失败（有 HIGH/CRITICAL 漏洞）: $fail_count"
+          if [ "$fail_count" -gt 0 ]; then
+            echo "::error::共有 $fail_count 个镜像存在 HIGH/CRITICAL 漏洞，阻断 CI"
+            exit 1
           fi
+          echo "✓ 所有镜像扫描通过"
 
       - name: 上传镜像扫描 SARIF
         if: always()
