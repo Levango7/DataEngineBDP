@@ -5,6 +5,10 @@ import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.engine.EngineUnavailableException;
 import com.levango7.dataenginebdp.encaps.service.engine.KafkaAdminService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -83,16 +87,16 @@ public class KafkaController {
 
     /** 创建 Topic 请求体。 */
     public record CreateTopicRequest(
-            String name,
-            Integer partitions,
-            Integer replicationFactor) {
+            @NotBlank(message = "topic 名称不能为空") String name,
+            @Min(value = 1, message = "分区数最小为 1") @Max(value = 1000, message = "分区数最大为 1000") Integer partitions,
+            @Min(value = 1, message = "副本因子最小为 1") @Max(value = 10, message = "副本因子最大为 10") Integer replicationFactor) {
     }
 
     /** 创建 Topic。 */
     @Operation(summary = "创建 Topic")
     @PostMapping("/{clusterId}/topics")
     public ResponseEntity<?> createTopic(@PathVariable String clusterId,
-                                         @RequestBody CreateTopicRequest req) {
+                                          @Valid @RequestBody CreateTopicRequest req) {
         log.info("创建 Kafka Topic: cluster={}, name={}, tenant={}",
                 clusterId, req.name(), TenantContext.getTenantId());
         try {

@@ -18,12 +18,15 @@ from typing import Any, Optional
 
 from ..pipeline import run_pipeline
 
+# 管道执行超时（秒）；超时后标记 failed 并记录超时错误
+PIPELINE_TIMEOUT_SECONDS = 3600  # 1 小时
+
 
 @dataclass
 class BatchRecord:
     batch_id: str
     tenant_id: str
-    status: str = "queued"  # queued -> running -> success | failed
+    status: str = "queued"  # queued -> running -> success | failed | timeout
     submitted_at: str = ""
     finished_at: str = ""
     error: Optional[str] = None
@@ -37,12 +40,17 @@ def _utc_now() -> str:
 
 
 class BatchRunner:
-    """提交批次并串行执行；线程安全."""
+    """提交批次并串行执行；线程安全.
+
+    统一使用 _lock 保护所有 record 字段修改，避免双锁（_lock + _exec_lock）
+    导致的状态不一致（如查询读到 running 但执行线程已异常退出未更新状态）。
+    执行串行性通过 _exec_lock 保证（与 _lock 分离，避免执行期间阻塞查询）。
+    """
 
     def __init__(self) -> None:
         self._records: dict[str, BatchRecord] = {}
-        self._lock = threading.Lock()
-        self._exec_lock = threading.Lock()
+        self._lock = threading.Lock()       # 保护 _records 及 record 字段修改
+        self._exec_lock = threading.Lock()  # 保证批次串行执行（不阻塞查询）
 
     def submit(
         self, config: dict[str, Any], tenant_id: str, batch_id: Optional[str] = None
@@ -88,19 +96,50 @@ class BatchRunner:
             return [r for r in self._records.values() if r.tenant_id == tenant_id]
 
     def _execute(self, record: BatchRecord) -> None:
+        """串行执行批次（_exec_lock 保证串行），统一用 _lock 更新 record 状态.
+
+        超时机制：在子线程中执行 run_pipeline，主执行线程等待 join(timeout)；
+        超时后标记 timeout 状态并记录错误。
+        """
         with self._exec_lock:
-            record.status = "running"
-            try:
-                cfg = {**record.config, "tenant": {"enabled": True, "id": record.tenant_id}}
-                rc = run_pipeline(cfg, record.batch_id, "")
-                record.status = "success" if rc == 0 else "failed"
-                if rc != 0:
-                    record.error = "pipeline exited with code " + str(rc)
-            except Exception as exc:  # noqa: BLE001 - 后台线程必须收敛异常
-                record.status = "failed"
-                record.error = f"{type(exc).__name__}: {exc}"
-            finally:
+            # 统一用 _lock 保护 status 修改
+            with self._lock:
+                record.status = "running"
+
+            # 在子线程中执行 run_pipeline 以支持超时
+            result_holder: dict[str, Any] = {"rc": None, "error": None}
+            exec_thread = threading.Thread(
+                target=self._run_pipeline_inner,
+                args=(record, result_holder),
+                daemon=True,
+                name=f"batch-exec-{record.batch_id}",
+            )
+            exec_thread.start()
+            exec_thread.join(timeout=PIPELINE_TIMEOUT_SECONDS)
+
+            with self._lock:
+                if exec_thread.is_alive():
+                    # 超时：线程仍在运行，标记 timeout
+                    record.status = "timeout"
+                    record.error = f"pipeline 执行超时（{PIPELINE_TIMEOUT_SECONDS}s）"
+                elif result_holder["error"] is not None:
+                    record.status = "failed"
+                    record.error = result_holder["error"]
+                else:
+                    rc = result_holder["rc"]
+                    record.status = "success" if rc == 0 else "failed"
+                    if rc != 0:
+                        record.error = "pipeline exited with code " + str(rc)
                 record.finished_at = _utc_now()
+
+    def _run_pipeline_inner(self, record: BatchRecord, result: dict[str, Any]) -> None:
+        """实际执行 run_pipeline 的内部方法（在子线程中运行）."""
+        try:
+            cfg = {**record.config, "tenant": {"enabled": True, "id": record.tenant_id}}
+            rc = run_pipeline(cfg, record.batch_id, "")
+            result["rc"] = rc
+        except Exception as exc:  # noqa: BLE001 - 后台线程必须收敛异常
+            result["error"] = f"{type(exc).__name__}: {exc}"
 
 
 class ConflictError(Exception):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from llmops.api.jwt_auth import AuthContext, getAuthContext
 from llmops.api.routers.deps import get_registry, status_for_error
 from llmops.models.deployment import DeployConfig, Deployment
 from llmops.repositories import LlmopsError
@@ -21,6 +22,7 @@ router = APIRouter(prefix="/deployments", tags=["deployments"])
 async def deploy_model(
     config: DeployConfig,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Deployment:
     """部署模型到推理端点（注册到 L4.5.6 大模型网关）."""
     try:
@@ -38,9 +40,14 @@ async def deploy_model(
 )
 async def list_deployments(
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Deployment]:
-    """列出所有部署."""
-    return await registry.deploymentService.list_deployments()
+    """列出部署（按租户隔离：普通用户仅见本租户部署，admin 可见全部）."""
+    deployments = await registry.deploymentService.list_deployments()
+    # 租户隔离：非 admin 仅返回本租户部署
+    if ctx.role != "admin" and ctx.tenantId:
+        deployments = [d for d in deployments if getattr(d, "tenantId", "") == ctx.tenantId]
+    return deployments
 
 
 @router.get(
@@ -51,10 +58,16 @@ async def list_deployments(
 async def get_deployment_status(
     deployment_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Deployment:
     """获取部署详情（含状态与端点 URL）."""
     try:
-        return await registry.deploymentService.get_deployment_status(deployment_id)
+        deployment = await registry.deploymentService.get_deployment_status(deployment_id)
+        # 租户隔离：非 admin 仅可查看本租户部署
+        if ctx.role != "admin" and ctx.tenantId:
+            if getattr(deployment, "tenantId", "") != ctx.tenantId:
+                raise HTTPException(status_code=404, detail="部署不存在")
+        return deployment
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -67,9 +80,15 @@ async def get_deployment_status(
 async def undeploy_model(
     deployment_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> None:
     """卸载部署端点."""
     try:
+        # 租户隔离：非 admin 仅可卸载本租户部署
+        if ctx.role != "admin" and ctx.tenantId:
+            deployment = await registry.deploymentService.get_deployment_status(deployment_id)
+            if getattr(deployment, "tenantId", "") != ctx.tenantId:
+                raise HTTPException(status_code=404, detail="部署不存在")
         await registry.deploymentService.undeploy_model(deployment_id)
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))

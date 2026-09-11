@@ -123,7 +123,9 @@ public class AuditLogService {
         if (config.isAsyncWrite()) {
             boolean offered = asyncQueue.offer(processed);
             if (!offered) {
-                log.warn("审计日志异步队列已满，事件被丢弃: eventId={}", processed.eventId());
+                // 队列满时降级同步写入，保证审计事件不丢失（等保三级要求审计记录不可缺失）
+                log.warn("审计日志异步队列已满，降级同步写入: eventId={}", processed.eventId());
+                writeEvent(processed);
             }
         } else {
             writeEvent(processed);

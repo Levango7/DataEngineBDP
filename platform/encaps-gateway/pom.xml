@@ -41,6 +41,12 @@
             <artifactId>common-security</artifactId>
             <version>0.1.0-SNAPSHOT</version>
         </dependency>
+        <!-- 封装数据：提供 CredentialEncryptor（AES-256-GCM）用于 apiKey 加密存储 -->
+        <dependency>
+            <groupId>com.levango7.dataenginebdp</groupId>
+            <artifactId>encaps-data</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
 
         <dependency>
             <groupId>org.projectlombok</groupId>

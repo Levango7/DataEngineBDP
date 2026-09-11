@@ -11,5 +11,7 @@
   "llmops": 94,
   "open-api-catalog": 87,
   "industry-templates": 92,
-  "evaluation": 80
+  "evaluation": 80,
+  "operations-api": 0,
+  "batch-pipeline": 0
 }

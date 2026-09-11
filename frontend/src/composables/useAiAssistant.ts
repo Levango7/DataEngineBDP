@@ -222,14 +222,25 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
   })
 
   const lastChartRecommendation = computed<RecommendChartResponse | null>(() => {
-    // 暂存于消息的 chart 字段（通过闭包附加），此处简化：从 chart 推断
-    return lastChart.value
-      ? ({
-          recommendations: [],
-          dataProfile: lastChart.value.title,
-          durationMs: 0
-        } as RecommendChartResponse)
-      : null
+    // 从 lastChart 反向构造推荐项，避免空壳 recommendations
+    // 当消息含 chart 配置但未保留原始推荐响应时，用 chart 信息构造合理回退
+    const chart = lastChart.value
+    if (!chart) return null
+    return {
+      recommendations: [
+        {
+          id: chart.recommendationId ?? 'local-rec',
+          type: chart.type,
+          reason: chart.title,
+          score: 1,
+          dimensions: [],
+          metrics: [],
+          primary: true
+        }
+      ],
+      dataProfile: chart.title,
+      durationMs: 0
+    } as RecommendChartResponse
   })
 
   const lastChart = computed<ChartConfig | null>(() => {
@@ -383,6 +394,8 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
     streaming.value = true
     error.value = null
     abortController = new AbortController()
+    // 保存 signal 引用到局部变量，catch 块中 abortController 可能已被置 null
+    const currentSignal = abortController.signal
 
     const req: ChatRequest = {
       sessionId,
@@ -420,7 +433,8 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
         )
       } catch (streamErr) {
         // 流式失败：降级非流式（除非是被中断）
-        if (abortController.signal.aborted) throw streamErr
+        // 使用局部 currentSignal 而非 abortController.signal，避免 abort() 已将其置 null
+        if (currentSignal.aborted) throw streamErr
         resp = await aiApi.chat(req)
       }
 

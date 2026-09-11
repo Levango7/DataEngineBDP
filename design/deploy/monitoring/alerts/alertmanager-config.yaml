@@ -26,8 +26,11 @@ data:
       smtp_smarthost: "smtp.shuqing.example.com:587"
       smtp_from: "alertmanager@shuqing.example.com"
       smtp_auth_username: "alertmanager@shuqing.example.com"
-      # 部署前必须替换为真实 SMTP 密码（或改经 Secret 注入渲染）
-      smtp_auth_password: "REPLACE_WITH_SMTP_PASSWORD"
+      # SMTP 密码经环境变量注入：部署时使用 envsubst 渲染，例如
+      #   kubectl create secret generic alertmanager-smtp --from-literal=SMTP_PASSWORD='$SMTP_PASSWORD' -n sq-monitor
+      #   export SMTP_PASSWORD=$(kubectl get secret alertmanager-smtp -o jsonpath='{.data.SMTP_PASSWORD}' -n sq-monitor | base64 -d)
+      #   envsubst < alertmanager-config.yaml | kubectl apply -f - -n sq-monitor
+      smtp_auth_password: "${SMTP_PASSWORD}"
       smtp_require_tls: true
       # 钉钉 webhook（通过 prometheus-webhook-dingtalk 中转）
       # Slack webhook

@@ -26,7 +26,8 @@ type Session struct {
 	ID        string    `json:"id" gorm:"primaryKey"`
 	Title     string    `json:"title"`
 	Locale    string    `json:"locale"`
-	Pinned    bool      `json:"pinned" gorm:"default:false"` // Sprint 2.2：置顶标记
+	TenantID  string    `json:"tenantId,omitempty" gorm:"index"` // 租户隔离：会话归属租户
+	Pinned    bool      `json:"pinned" gorm:"default:false"`     // Sprint 2.2：置顶标记
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }

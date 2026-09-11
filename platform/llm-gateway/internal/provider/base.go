@@ -114,7 +114,12 @@ func (b *baseConfig) doJSON(ctx context.Context, method, path string, body, out 
 	if out == nil {
 		return nil
 	}
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+	// 2xx 成功响应也限制读取大小，防超大响应导致内存耗尽 DoS
+	raw, err := readLimitedBody(resp.Body, maxResponseBody)
+	if err != nil {
+		return fmt.Errorf("read response body: %w", err)
+	}
+	if err := json.Unmarshal(raw, out); err != nil {
 		return fmt.Errorf("decode response: %w", err)
 	}
 	return nil

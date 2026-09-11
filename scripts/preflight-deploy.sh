@@ -147,7 +147,7 @@ for p in "${PROFILE_LIST[@]}"; do
       done ;;
     privatecloud)
       warn "私有云: 演练日需准备 OpenStack/vSphere 地址+凭据（profile 无静态校验项）" ;;
-    xinchang) : ;;
+    xinchuang) : ;;
   esac
 done
 

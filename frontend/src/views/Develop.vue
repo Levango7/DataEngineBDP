@@ -514,7 +514,8 @@ watch(
 .code-textarea {
   flex: 1;
   border: none;
-  outline: none;
+  outline: 2px solid var(--ds-border-focus);
+  outline-offset: 2px;
   padding: 12px;
   font-family: var(--ds-font-family-mono);
   font-size: 12px;

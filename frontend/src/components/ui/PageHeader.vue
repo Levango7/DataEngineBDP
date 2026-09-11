@@ -28,14 +28,14 @@ defineProps<{
 
 .page-header__title {
   margin: 0;
-  font-size: 20px;
+  font-size: var(--ds-font-size-2xl);
   font-weight: 600;
   color: var(--el-text-color-primary);
 }
 
 .page-header__subtitle {
   margin: 4px 0 0;
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   color: var(--el-text-color-secondary);
 }
 

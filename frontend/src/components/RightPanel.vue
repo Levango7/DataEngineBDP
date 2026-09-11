@@ -214,7 +214,7 @@ const tabs = computed(() => [
   font-size: 14px;
   width: 26px;
   height: 26px;
-  border-radius: 7px;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   transition:
     color 0.18s var(--ease-smooth),
@@ -278,7 +278,7 @@ const tabs = computed(() => [
   line-height: 1.45;
 }
 .rp-item-meta {
-  font-size: 11.5px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
@@ -292,11 +292,11 @@ const tabs = computed(() => [
   border: none;
   background: transparent;
   color: var(--ds-color-primary-500);
-  font-size: 12.5px;
+  font-size: var(--ds-font-size-xs);
   font-weight: 600;
   cursor: pointer;
   padding: 5px 10px;
-  border-radius: 7px;
+  border-radius: var(--ds-radius-md);
   transition: background 0.18s var(--ease-smooth);
 }
 .rp-clear:hover {

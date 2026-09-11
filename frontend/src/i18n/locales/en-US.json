@@ -73,11 +73,11 @@
     },
     "items": {
       "infra-machine": "Machine Provisioning",
-      "infra-k8s": "K8s Cluster",
+      "infra-k8s": "Compute Cluster",
       "cluster": "Cluster Overview",
       "datasources": "Data Sources",
-      "infra-net": "Container Network",
-      "infra-store": "Container Storage",
+      "infra-net": "Cluster Network",
+      "infra-store": "Cluster Storage",
       "infra-sched": "Elastic Scheduling",
       "eng-storage": "Unified Storage",
       "eng-spark": "Batch (Spark)",
@@ -145,7 +145,7 @@
     "cardSub": "Sign in with your tenant account. Accounts are provisioned by your enterprise admin.",
     "sloganLine1": "Transparent to users",
     "sloganLine2": "High-Performance Data Foundation",
-    "subSlogan1": "Real-time monitoring of Kubernetes cluster node health and resource utilization",
+    "subSlogan1": "Real-time monitoring of cluster node health and resource utilization",
     "subSlogan2": "plus big-data workloads, on the self-developed SKE distribution.",
     "metricAvailability": "Availability",
     "metricServices": "Core Services",
@@ -218,9 +218,10 @@
     "defaultWorkspace": "Default Workspace",
     "defaultEnvTag": "Environment OK",
     "planTiers": {
+      "starter": "Starter",
       "standard": "Standard",
       "enterprise": "Enterprise",
-      "flagship": "Flagship",
+      "flagship": "Enterprise",
       "internal": "Internal"
     }
   },

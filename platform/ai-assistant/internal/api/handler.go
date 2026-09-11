@@ -178,11 +178,139 @@ func (h *AssistantHandler) dashboard(c *gin.Context) {
 
 // listSessions GET /sessions
 func (h *AssistantHandler) listSessions(c *gin.Context) {
-	sessions, err := h.svc.ListSessions(50)
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	sessions, err := h.svc.ListSessions(tenantID, 50)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
+}
+
+// createSession POST /sessions
+func (h *AssistantHandler) createSession(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	var req struct {
+		Locale string `json:"locale"`
+	}
+	_ = c.ShouldBindJSON(&req)
+	sess, err := h.svc.CreateSession(tenantID, req.Locale)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, sess)
+}
+
+// getSession GET /sessions/:id
+func (h *AssistantHandler) getSession(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	sess, msgs, err := h.svc.GetSession(tenantID, c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "会话不存在"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"session": sess, "messages": msgs})
+}
+
+// deleteSession DELETE /sessions/:id
+func (h *AssistantHandler) deleteSession(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	if err := h.svc.DeleteSession(tenantID, c.Param("id")); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"deleted": true})
+}
+
+// pinSession POST /sessions/:id/pin（Sprint 2.2）body: {"pinned": true|false}
+func (h *AssistantHandler) pinSession(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	var req struct {
+		Pinned bool `json:"pinned"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	if err := h.svc.PinSession(tenantID, c.Param("id"), req.Pinned); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// renameSession POST /sessions/:id/rename（Sprint 2.2）body: {"title": "新标题"}
+func (h *AssistantHandler) renameSession(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	var req struct {
+		Title string `json:"title"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil || req.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title 不能为空"})
+		return
+	}
+	if err := h.svc.RenameSession(tenantID, c.Param("id"), req.Title); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
+
+// messageFeedback POST /messages/:id/feedback（Sprint 2.2）body: {"feedback": "like"|"dislike"|null}
+func (h *AssistantHandler) messageFeedback(c *gin.Context) {
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	var req struct {
+		Feedback *string `json:"feedback"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	fb := ""
+	if req.Feedback != nil {
+		switch *req.Feedback {
+		case "like", "dislike":
+			fb = *req.Feedback
+		default:
+			c.JSON(http.StatusBadRequest, gin.H{"error": "feedback 仅允许 like/dislike/null"})
+			return
+		}
+	}
+	if err := h.svc.SetMessageFeedback(tenantID, c.Param("id"), fb); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": true})
+}
 	c.JSON(http.StatusOK, gin.H{"sessions": sessions})
 }
 

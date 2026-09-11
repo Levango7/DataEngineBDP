@@ -14,7 +14,7 @@ on:
     workflows:
       - "CI"           # ci.yml
       - "Security"     # security.yml
-      - "CodeQL"       # codeql.yml（假设 name 为 CodeQL）
+      - "CodeQL Security Analysis"  # codeql.yml（name 为 CodeQL Security Analysis）
       - "SonarQube Analysis"  # sonarqube.yml
     types:
       - completed
@@ -44,7 +44,7 @@ jobs:
         with:
           script: |
             // 获取最近的工作流运行记录
-            const workflows = ['CI', 'Security', 'CodeQL', 'SonarQube Analysis'];
+            const workflows = ['CI', 'Security', 'CodeQL Security Analysis', 'SonarQube Analysis'];
             const results = {};
 
             for (const wfName of workflows) {

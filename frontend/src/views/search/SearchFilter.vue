@@ -357,7 +357,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   gap: 3px;
   padding: 3px 10px;
   border: 1px solid var(--line, var(--ds-border-default));
-  border-radius: 14px;
+  border-radius: var(--ds-radius-lg);
   font-size: 12px;
   cursor: pointer;
   background: var(--ds-bg-surface);

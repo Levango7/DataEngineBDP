@@ -12,12 +12,12 @@
 | --- | --- |
 | **base** | 基础版（不用 `basic`） |
 | **standard** | 标准版 |
-| **flagship** | 旗舰版 |
+| **flagship** | 企业版（键名保留 `flagship` 兼容代码；中文显示"企业版"，不用"旗舰版"） |
 
 - 与 `design/deploy/values/*/values.yaml` 的 `tierProfiles` 三档键名对齐。
 - 运营后台 API（`operations/main.py`）返回的 `package` 字段取值范围为 `base` / `standard` / `flagship`。
-- 产品文档 §11.5 中文表述"基础版 / 标准版 / 旗舰版"对应英文键 `base` / `standard` / `flagship`。
-- **禁止**：`basic`、`enterprise`、`pro`、`premium` 等同义别名。
+- 产品文档 §11.5 中文表述"基础版 / 标准版 / 企业版"对应英文"Starter / Standard / Enterprise"，键名 `base` / `standard` / `flagship`。
+- **禁止**：`basic`、`pro`、`premium`、"旗舰版"、"免费版"、"专业版"等同义别名。
 
 ## 2. 工作空间命名
 
@@ -198,3 +198,66 @@
 | 7 | 跨源查询租户 ID 取自请求体（未与 JWT claim 比对） | sql-gateway `SqlGatewayController#crossSourceExecute/Explain` | ✅ 已修复（2026-08-29）：JWT claim 优先，body 不一致返回 403（TenantMismatchException），无认证上下文时回退 body 兼容单测 | 已解决 |
 
 > 登记流程：新发现偏差先在本表登记并标注「待迁移」，修复后移入 §9.7 或删除；禁止无登记偏差长期存在。
+---
+
+## 10. 产品命名规范（v0.2 新增）
+
+> 目标：统一产品名称、模块命名、套餐命名的规则，消除文档间命名不一致（如"旗舰版 vs 企业版"、"Starter vs Basic"等）。
+
+### 10.1 产品名称
+
+| 规范 | 说明 |
+| --- | --- |
+| **中文全称** | 数据引擎大数据平台 |
+| **英文全称** | DataEngineBDP |
+| **品牌名** | 数擎（Shuqing） |
+| **底座名称** | SKE（DataEngine Kubernetes Engine） |
+| **简称** | DataEngineBDP 或 BDP（不用"数据引擎"单独使用） |
+
+- **禁止**：DataEngineBDP 与 DataEngine BDP 混用（统一无空格）。
+- **禁止**：Shuqian（正确为 Shuqing，拼音 shù qíng）。
+
+### 10.2 模块命名
+
+| 规范 | 说明 |
+| --- | --- |
+| **Java 模块** | 22 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
+| **Go 模块** | 11 个（按 `go.mod` 实测） |
+| **Python 模块** | 11 个（按 `pyproject.toml` 实测） |
+| **总计** | 44 个自研组件（Java 22 + Go 11 + Python 11） |
+
+- 模块计数以构建文件实测为准，不使用设计文档中的理论模块数。
+- **禁止**：使用"21 个 Java 模块"旧口径（governance 已拆分为 3 个独立子模块）。
+
+### 10.3 套餐命名
+
+| 中文显示名 | 英文显示名 | 代码键名 | 说明 |
+| --- | --- | --- | --- |
+| 基础版 | Starter | `base` | 最小可行产品，湖仓集主链路 |
+| 标准版 | Standard | `standard` | 治理 + 开发 + BI 全套数据中台 |
+| 企业版 | Enterprise | `flagship` | 数据 + AI 一站式 + 商业化运营 |
+
+- 代码键名 `flagship` 保留以兼容现有代码；中文显示名统一为"企业版"（不用"旗舰版"）。
+- 英文显示名统一为"Starter / Standard / Enterprise"（不用"Basic / Pro / Flagship"）。
+- 前端 i18n `planTiers` 键名与代码键名对齐。
+
+### 10.4 租户类型命名
+
+| 中文显示名 | 代码标签 | 说明 |
+| --- | --- | --- |
+| 内部租户 | `type=internal` | 平台运营方自有业务线，全功能 + 管理权限 |
+| SaaS 租户 | `type=external` | 外部客户，按套餐限制 + 自助管理 |
+
+- **禁止**：使用"外部租户"作为面向客户的术语（内部技术文档可用，面向客户统一称"SaaS 租户"）。
+
+### 10.5 完成度口径
+
+全仓文档统一使用三维度完成度口径（见 `docs/component-maturity.md` 开头说明）：
+
+| 口径 | 数值 | 含义 |
+| --- | --- | --- |
+| 端到端可用 | 40-50% | 真实完成度，含端到端联调、真实环境部署、外部依赖对接 |
+| 功能模块完成 | 74.1% | GA 检查清单通过率 40/54 项 |
+| 本地基础功能 | 100% | 22 个核心组件本地可运行（H2/SQLite 默认持久层） |
+
+- **禁止**：单一数字描述完成度（必须标注口径维度）。

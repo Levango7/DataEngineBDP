@@ -66,6 +66,7 @@ export const useAppStore = defineStore('app', () => {
       try {
         await secApi.approveApproval(id)
       } catch (e) {
+        console.error('[app] approveApproval failed:', e)
         showToast(t('app.toast.approveFailed'))
         return
       }
@@ -80,6 +81,7 @@ export const useAppStore = defineStore('app', () => {
       try {
         await secApi.rejectApproval(id)
       } catch (e) {
+        console.error('[app] rejectApproval failed:', e)
         showToast(t('app.toast.rejectFailed'))
         return
       }

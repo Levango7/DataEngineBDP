@@ -507,7 +507,12 @@ onMounted(() => {
 }
 .sk-line {
   height: 14px;
-  background: linear-gradient(90deg, #f0f2f5 25%, #e6e8eb 37%, #f0f2f5 63%);
+  background: linear-gradient(
+    90deg,
+    var(--ds-bg-muted) 25%,
+    var(--ds-bg-subtle) 37%,
+    var(--ds-bg-muted) 63%
+  );
   background-size: 400% 100%;
   animation: sk-loading 1.4s ease infinite;
   border-radius: 4px;

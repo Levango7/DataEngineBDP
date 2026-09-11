@@ -524,9 +524,9 @@ function usagePercent(key: string): number {
 /** 用量颜色 */
 function usageColor(key: string): string {
   const pct = usagePercent(key)
-  if (pct >= 90) return '#f56c6c'
-  if (pct >= 70) return '#e6a23c'
-  return '#409eff'
+  if (pct >= 90) return 'var(--ds-color-error-500)'
+  if (pct >= 70) return 'var(--ds-color-warning-500)'
+  return 'var(--ds-color-primary-500)'
 }
 
 /** 解析 K8s Quantity 为数字（粗略解析，仅用于百分比展示） */
@@ -613,7 +613,7 @@ onMounted(() => {
 .mono {
   font-family: var(--ds-font-family-mono);
   font-size: 12px;
-  color: #5a6470;
+  color: var(--ds-text-secondary);
 }
 .usage-row {
   display: flex;
@@ -629,7 +629,7 @@ onMounted(() => {
 .usage-text {
   font-family: var(--ds-font-family-mono);
   font-size: 12px;
-  color: #5a6470;
+  color: var(--ds-text-secondary);
   min-width: 140px;
   text-align: right;
 }

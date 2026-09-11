@@ -379,7 +379,7 @@ async function handleLogin() {
   gap: 4px;
   height: 30px;
   padding: 0 10px;
-  border-radius: 15px;
+  border-radius: var(--ds-radius-lg);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   color: var(--ds-text-secondary);
@@ -585,7 +585,7 @@ async function handleLogin() {
   align-items: stretch;
   background: rgba(255, 255, 255, 0.9);
   border: 1.5px solid var(--ds-border-default);
-  border-radius: 24px;
+  border-radius: var(--ds-radius-2xl);
   box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -643,17 +643,21 @@ async function handleLogin() {
  * ============================================================ */
 :root[data-theme='dark'] .login-page {
   background:
-    radial-gradient(ellipse 1100px 700px at 0% 0%, #1e293b 0%, transparent 60%),
+    radial-gradient(
+      ellipse 1100px 700px at 0% 0%,
+      var(--ds-bg-surface) 0%,
+      transparent 60%
+    ),
     radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%),
-    linear-gradient(135deg, #0b1220 0%, #0f172a 100%) !important;
+    linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 /* 左侧品牌区整块深色 */
 :root[data-theme='dark'] .login-left {
-  background: linear-gradient(180deg, #0b1220 0%, #131e35 100%) !important;
+  background: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, #131e35 100%) !important;
 }
 /* 右侧表单区 */
 :root[data-theme='dark'] .login-right {
-  background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%) !important;
+  background: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 :root[data-theme='dark'] .left-bg-grid,
 :root[data-theme='dark'] .reg-bg-grid {
@@ -679,7 +683,7 @@ async function handleLogin() {
   background: transparent !important;
 }
 :root[data-theme='dark'] .el-form-item__label {
-  color: #93c5fd !important;
+  color: var(--ds-color-primary-300) !important;
   font-weight: 600 !important;
 }
 :root[data-theme='dark'] .el-input__wrapper,
@@ -689,24 +693,24 @@ async function handleLogin() {
   box-shadow: none !important;
 }
 :root[data-theme='dark'] .el-input__wrapper:hover {
-  border-color: #60a5fa !important;
+  border-color: var(--ds-color-primary-400) !important;
 }
 :root[data-theme='dark'] .el-input__wrapper.is-focus {
-  border-color: #60a5fa !important;
+  border-color: var(--ds-color-primary-400) !important;
   box-shadow:
-    0 0 0 1px #60a5fa inset,
+    0 0 0 1px var(--ds-color-primary-400) inset,
     0 0 0 3px rgba(96, 165, 250, 0.18) !important;
 }
 :root[data-theme='dark'] .el-input__inner,
 :root[data-theme='dark'] .el-textarea__inner {
-  color: #f1f5f9 !important;
+  color: var(--ds-text-primary) !important;
   padding-left: 0 !important;
   padding-right: 0 !important;
 }
 :root[data-theme='dark'] .el-input__inner::placeholder,
 :root[data-theme='dark'] .el-input__prefix,
 :root[data-theme='dark'] .el-input__count .el-input__count-inner {
-  color: #94a3b8 !important;
+  color: var(--ds-text-tertiary) !important;
 }
 :root[data-theme='dark'] .el-input__prefix {
   margin-left: 0 !important;
@@ -718,11 +722,11 @@ async function handleLogin() {
 }
 :root[data-theme='dark'] .el-checkbox__label,
 :root[data-theme='dark'] .el-checkbox__input.is-checked + .el-checkbox__label {
-  color: #cbd5e1 !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .login-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
-  color: #fff !important;
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
+  color: var(--ds-text-inverse) !important;
   box-shadow:
     0 4px 14px rgba(99, 102, 241, 0.4),
     inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
@@ -730,10 +734,10 @@ async function handleLogin() {
 :root[data-theme='dark'] .brand,
 :root[data-theme='dark'] .card-title,
 :root[data-theme='dark'] .slogan {
-  color: #f1f5f9 !important;
+  color: var(--ds-text-primary) !important;
 }
 :root[data-theme='dark'] .slogan-accent {
-  background: linear-gradient(120deg, #60a5fa 0%, #818cf8 50%, #c084fc 100%) !important;
+  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, var(--ds-color-info-400) 50%, #c084fc 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -750,11 +754,11 @@ async function handleLogin() {
 :root[data-theme='dark'] .reg-success-tip,
 :root[data-theme='dark'] .reg-bottom a,
 :root[data-theme='dark'] .sub-slogan {
-  color: #cbd5e1 !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .metric-num,
 :root[data-theme='dark'] .metric-letter {
-  background: linear-gradient(120deg, #60a5fa 0%, #c084fc 100%) !important;
+  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, #c084fc 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -768,66 +772,66 @@ async function handleLogin() {
   border-color: rgba(59, 130, 246, 0.35) !important;
 }
 :root[data-theme='dark'] .reg-banner-row span:first-child {
-  color: #94a3b8 !important;
+  color: var(--ds-text-tertiary) !important;
 }
 :root[data-theme='dark'] .reg-banner-row b {
-  color: #93c5fd !important;
+  color: var(--ds-color-primary-300) !important;
 }
 :root[data-theme='dark'] .reg-banner-row code {
   background: rgba(15, 23, 42, 0.6) !important;
-  border-color: #334155 !important;
-  color: #cbd5e1 !important;
+  border-color: var(--ds-border-default) !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .reg-steps li.on .step-text,
 :root[data-theme='dark'] .reg-steps li.done .step-text,
 :root[data-theme='dark'] .reg-steps li.on .step-dot {
-  color: #93c5fd !important;
+  color: var(--ds-color-primary-300) !important;
 }
 :root[data-theme='dark'] .reg-steps li.done .step-dot {
-  background: #10b981 !important;
-  color: #fff !important;
+  background: var(--ds-color-success-500) !important;
+  color: var(--ds-text-inverse) !important;
 }
 :root[data-theme='dark'] .step-text {
-  color: #cbd5e1 !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .step-dot {
-  background: #1e293b !important;
-  color: #94a3b8 !important;
+  background: var(--ds-bg-surface) !important;
+  color: var(--ds-text-tertiary) !important;
 }
 :root[data-theme='dark'] .reg-success {
-  color: #cbd5e1 !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .reg-success-meta {
   background: rgba(15, 23, 42, 0.6) !important;
-  border-color: #334155 !important;
+  border-color: var(--ds-border-default) !important;
 }
 :root[data-theme='dark'] .reg-success-meta li b {
-  color: #f1f5f9 !important;
+  color: var(--ds-text-primary) !important;
 }
 :root[data-theme='dark'] .dev-tip {
   background: rgba(15, 23, 42, 0.6) !important;
-  border-color: #334155 !important;
-  color: #cbd5e1 !important;
+  border-color: var(--ds-border-default) !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .dev-tip code {
   background: rgba(15, 23, 42, 0.8) !important;
-  border-color: #334155 !important;
-  color: #e2e8f0 !important;
+  border-color: var(--ds-border-default) !important;
+  color: var(--ds-border-subtle) !important;
 }
 :root[data-theme='dark'] .tb-tool {
   background: rgba(15, 23, 42, 0.85) !important;
   border-color: rgba(148, 163, 184, 0.22) !important;
-  color: #cbd5e1 !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .tb-tool:hover {
   background: rgba(99, 102, 241, 0.2) !important;
-  color: #f1f5f9 !important;
+  color: var(--ds-text-primary) !important;
   border-color: rgba(99, 102, 241, 0.5) !important;
 }
 :root[data-theme='dark'] .err {
   background: rgba(127, 29, 29, 0.3) !important;
   border-color: rgba(239, 68, 68, 0.5) !important;
-  color: #fca5a5 !important;
+  color: var(--ds-color-error-300) !important;
 }
 /* === 暗色下二合一胶囊 === */
 :root[data-theme='dark'] .tb-capsule {
@@ -836,11 +840,11 @@ async function handleLogin() {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
 }
 :root[data-theme='dark'] .tb-pill {
-  color: #cbd5e1 !important;
+  color: var(--ds-text-secondary) !important;
 }
 :root[data-theme='dark'] .tb-pill:hover {
   background: rgba(99, 102, 241, 0.2) !important;
-  color: #f1f5f9 !important;
+  color: var(--ds-text-primary) !important;
 }
 :root[data-theme='dark'] .tb-divider {
   background: rgba(99, 102, 241, 0.4) !important;

@@ -15,7 +15,7 @@
  * - 类型从 @/types/ai-assistant 集中导出，避免循环依赖
  * - 流式对话通过 chatStream 提供，基于 fetch + ReadableStream
  */
-import { get, post, del, triggerUnauthorized } from './client'
+import { get, post, del, triggerUnauthorized, getToken } from './client'
 import type {
   ChatRequest,
   ChatResponse,
@@ -69,8 +69,8 @@ export async function chatStream(
   signal?: AbortSignal
 ): Promise<ChatResponse> {
   const url = `${buildBase()}${BASE}/chat/stream`
-  // 与 client 拦截器一致：自动携带 Bearer token（auth store 持久化键 sq_token）
-  const token = sessionStorage.getItem('sq_token')
+  // 与 client 拦截器一致：自动携带 Bearer token（通过 getToken 复用 auth store 注入的 tokenGetter）
+  const token = getToken()
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'text/event-stream'

@@ -1,9 +1,9 @@
 package com.levango7.dataenginebdp.common.security.resilience;
 
 import java.time.Duration;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 简单熔断器（CLOSED → OPEN → HALF_OPEN 三态机）。
@@ -17,9 +17,9 @@ import java.util.concurrent.atomic.AtomicReference;
  *   <li><b>HALF_OPEN</b>：放行试探调用，成功即闭合复位，失败则重回 OPEN</li>
  * </ul>
  *
- * <p>线程安全：状态与计数均 CAS；滑动窗口为最近 {@code windowSize} 次调用的
- * 简单环形计数（非时间窗）——对本项目的 outbound 调用频率足够精确，
- * 且避免时间窗轮换的复杂度。</p>
+ * <p>线程安全：状态 CAS；滑动窗口使用 {@link ConcurrentLinkedQueue} 保留最近
+ * {@code windowSize} 次调用结果（true=成功，false=失败），每次 record 时入队并
+ * 在超限时出队——保证窗口内样本精确反映最近 N 次调用，避免旧样本污染失败率。</p>
  */
 public final class CircuitBreaker {
 
@@ -33,9 +33,8 @@ public final class CircuitBreaker {
     private final Duration openDuration;
     private final NanoClock clock;
 
-    // 滑动窗口（环形计数）
-    private final AtomicInteger window = new AtomicInteger(0);
-    private final AtomicInteger calls = new AtomicInteger(0);
+    // 滑动窗口：保留最近 windowSize 次调用结果（true=成功，false=失败）
+    private final ConcurrentLinkedQueue<Boolean> slidingWindow = new ConcurrentLinkedQueue<>();
 
     // 状态机
     private final AtomicReference<State> state = new AtomicReference<>(State.CLOSED);
@@ -96,7 +95,8 @@ public final class CircuitBreaker {
      * 记录一次成功调用。
      */
     public void recordSuccess() {
-        calls.incrementAndGet();
+        recordResult(true);
+
         // HALF_OPEN 试探成功：复位 CLOSED 并清零窗口
         if (state.get() == State.HALF_OPEN) {
             state.compareAndSet(State.HALF_OPEN, State.CLOSED);
@@ -108,8 +108,7 @@ public final class CircuitBreaker {
      * 记录一次失败调用。
      */
     public void recordFailure() {
-        window.incrementAndGet();
-        calls.incrementAndGet();
+        recordResult(false);
 
         State current = state.get();
         if (current == State.HALF_OPEN) {
@@ -120,16 +119,7 @@ public final class CircuitBreaker {
             return;
         }
         if (current == State.CLOSED) {
-            int total = calls.get();
-            if (total >= minimumNumberOfCalls) {
-                int windowCalls = windowSize(total);
-                double failureRate = (double) window.get() / windowCalls;
-                if (failureRate >= failureRateThreshold) {
-                    if (state.compareAndSet(State.CLOSED, State.OPEN)) {
-                        openedAtNanos.set(clock.nowNanos());
-                    }
-                }
-            }
+            evaluateTrip();
         }
     }
 
@@ -140,8 +130,17 @@ public final class CircuitBreaker {
 
     /** 最近窗口失败率（诊断用，0.0~1.0）。 */
     public double getFailureRate() {
-        int total = calls.get();
-        return total == 0 ? 0.0 : (double) window.get() / total;
+        int total = slidingWindow.size();
+        if (total == 0) {
+            return 0.0;
+        }
+        int failures = 0;
+        for (Boolean result : slidingWindow) {
+            if (!result) {
+                failures++;
+            }
+        }
+        return (double) failures / total;
     }
 
     /** 熔断器名。 */
@@ -151,13 +150,44 @@ public final class CircuitBreaker {
 
     /* ------------------------------ 内部 ------------------------------ */
 
-    /** 窗口内有效样本数（环形：超过窗口大小后按窗口大小截断）。 */
-    private int windowSize(int totalCalls) {
-        return Math.min(totalCalls, windowSize);
+    /**
+     * 记录一次调用结果到滑动窗口。
+     *
+     * <p>入队最新结果，并在窗口超限时从队首淘汰最旧样本，保证窗口大小 ≤ {@code windowSize}。</p>
+     *
+     * @param success true=成功；false=失败
+     */
+    private void recordResult(boolean success) {
+        slidingWindow.offer(success);
+        // 淘汰超出窗口大小的最旧样本
+        while (slidingWindow.size() > windowSize) {
+            slidingWindow.poll();
+        }
+    }
+
+    /**
+     * 评估是否需要跳闸为 OPEN（CLOSED 状态下）。
+     */
+    private void evaluateTrip() {
+        int total = slidingWindow.size();
+        if (total < minimumNumberOfCalls) {
+            return;
+        }
+        int failures = 0;
+        for (Boolean result : slidingWindow) {
+            if (!result) {
+                failures++;
+            }
+        }
+        double failureRate = (double) failures / total;
+        if (failureRate >= failureRateThreshold) {
+            if (state.compareAndSet(State.CLOSED, State.OPEN)) {
+                openedAtNanos.set(clock.nowNanos());
+            }
+        }
     }
 
     private void resetWindow() {
-        window.set(0);
-        calls.set(0);
+        slidingWindow.clear();
     }
 }

@@ -131,6 +131,19 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 缺少租户上下文（MissingTenantContextException）→ 403 Forbidden。
+     *
+     * <p>此前用 IllegalStateException 表示此场景被误映射为 409；
+     * 独立异常类型保证语义精确——缺少租户上下文是鉴权问题而非资源冲突。</p>
+     */
+    @ExceptionHandler(MissingTenantContextException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingTenant(MissingTenantContextException e) {
+        log.warn("缺少租户上下文: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.fail(ErrorCode.FORBIDDEN, e.getMessage()));
+    }
+
+    /**
      * 资源冲突（IllegalStateException，如重复创建）。
      */
     @ExceptionHandler(IllegalStateException.class)
@@ -152,11 +165,14 @@ public class GlobalExceptionHandler {
 
     /**
      * 兜底：未捕获的异常。
+     *
+     * <p>不向客户端泄露内部异常信息（堆栈/类名/SQL 等），统一返回通用消息。
+     * 详细异常信息仅记录在服务端日志中供运维排查。</p>
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         log.error("未捕获异常: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.fail(ErrorCode.INTERNAL_ERROR, e.getMessage()));
+                .body(ApiResponse.fail(ErrorCode.INTERNAL_ERROR, "内部错误，请联系管理员"));
     }
 }

@@ -222,8 +222,8 @@ def create_app(
         CORSMiddleware,
         allow_origins=_corsOrigins(),
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
     prefix = settings.apiPrefix
@@ -250,7 +250,12 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
 
     @app.post(f"{prefix}/nl2sql/generate", response_model=SqlGenerationResult)
     async def generate(req: GenerateRequest, ctx: AuthContext = Depends(getAuthContext)) -> SqlGenerationResult:
-        """单轮 NL → SQL（不执行）."""
+        """单轮 NL → SQL（不执行）.
+
+        租户裁决：tenantId 一律以 token 声明为准；仅 admin 可通过请求体
+        指定他人租户（effectiveTenant）。防止越权探测跨租户 schema。
+        """
+        _tenant = effectiveTenant(ctx, req.tenantId)
         return await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema)
 
     @app.post(f"{prefix}/nl2sql/execute", response_model=ExecuteResponse)

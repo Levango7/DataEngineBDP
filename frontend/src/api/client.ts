@@ -18,6 +18,58 @@ import type { ApiResponse } from './types'
 /** 后端业务错误码：非 0 视为业务失败 */
 const BIZ_SUCCESS_CODE = 0
 
+/**
+ * 对后端错误消息进行脱敏处理，防止泄露敏感信息。
+ *
+ * <p>后端 error 字段可能包含 IP 地址、连接字符串、密码、堆栈跟踪等敏感信息，
+ * 直接展示给前端用户存在安全风险。处理策略：
+ * <ol>
+ *   <li>敏感模式替换为占位符（连接串、密码、内网 IP、文件路径、堆栈行）</li>
+ *   <li>长度截断（最多 200 字符），避免超长错误信息撑爆 UI</li>
+ *   <li>生产环境脱敏后若为空，回退通用提示</li>
+ * </ol></p>
+ *
+ * @param raw 原始错误消息
+ * @returns 脱敏后的安全消息
+ */
+function sanitizeErrorMessage(raw: string): string {
+  let msg = String(raw)
+
+  // 敏感模式替换（按优先级排序，先匹配的先替换）
+  const SENSITIVE_PATTERNS: Array<[RegExp, string]> = [
+    // JDBC / 通用协议连接串：jdbc:mysql://host:port/db?user=xxx&password=xxx
+    [/(jdbc:[a-z]+:\/\/[^\s"'<>]+)/gi, '[连接串已隐藏]'],
+    // 含密码的连接串：mysql://user:password@host:port
+    [/([a-z]+:\/\/[^\s"'<>]*:[^\s"'<>]*@[^\s"'<>]+)/gi, '[连接串已隐藏]'],
+    // password=xxx、token=xxx 等键值对
+    [/(password|passwd|pwd|secret|token|apiKey|api_key)\s*[=:]\s*[^\s"'<>,;)]+/gi, '$1=***'],
+    // IP 地址 + 端口（如 192.168.1.1:3306）
+    [/\b(\d{1,3}\.){3}\d{1,3}:\d{2,5}\b/g, '[地址已隐藏]'],
+    // 内网 IP 地址（如 192.168.1.1、10.0.0.1、172.16.x.x）
+    [/\b(?:10|127|192\.168|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b/g, '[内网IP已隐藏]'],
+    // 文件路径（如 /etc/passwd、C:\Users\admin）
+    [/(?:[A-Za-z]:\\[^\s"'<>]+|\/(?:etc|root|home|var|opt|usr)\/[^\s"'<>]+)/g, '[路径已隐藏]'],
+    // 堆栈跟踪行（如 "at com.xxx.yyy.zzz(FileName.java:123)"）
+    [/\s*at\s+[^\n]+/g, '']
+  ]
+
+  for (const [pattern, replacement] of SENSITIVE_PATTERNS) {
+    msg = msg.replace(pattern, replacement)
+  }
+
+  // 长度截断（200 字符）
+  if (msg.length > 200) {
+    msg = msg.slice(0, 200) + '...'
+  }
+
+  // 脱敏后若为空，回退通用提示
+  if (!msg.trim()) {
+    return '请求失败（错误详情已脱敏）'
+  }
+
+  return msg
+}
+
 /** 全局错误提示回调，由外部注入（避免硬耦合 store） */
 let errorNotifier: ((msg: string) => void) | null = null
 
@@ -106,6 +158,26 @@ export function setTokenGetter(getter: () => string | null): void {
   tokenGetter = getter
 }
 
+/**
+ * 获取当前 token（供非 axios 通道如 SSE/fetch 复用，避免硬编码 sessionStorage 键名）。
+ *
+ * <p>tokenGetter 由 auth store 通过 setTokenGetter 注入；未注入时回退读取 sessionStorage，
+ * 保证在注入前（如应用启动早期）也能拿到 token。</p>
+ *
+ * @returns 当前 token，无 token 时返回 null
+ */
+export function getToken(): string | null {
+  if (tokenGetter) {
+    return tokenGetter()
+  }
+  // 兜底：未注入时直接读 sessionStorage（与 auth store 的 TOKEN_KEY 保持一致）
+  try {
+    return sessionStorage.getItem('sq_token')
+  } catch {
+    return null
+  }
+}
+
 /** 创建 Axios 实例 */
 const http: AxiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_BASE || '/api/v1',
@@ -176,7 +248,8 @@ http.interceptors.response.use(
 
     if (error?.response?.data?.error) {
       // 服务端显式错误码（如跨源查询 FAILED 的 error 字段）优先展示
-      msg = String(error.response.data.error)
+      // 脱敏处理：防止后端 error 字段泄露 IP、连接串、密码等敏感信息
+      msg = sanitizeErrorMessage(String(error.response.data.error))
     } else if (status === 401) {
       msg = translateError('errors.http.unauthorized', '登录已过期，请重新登录')
       if (unauthorizedInFlight) {

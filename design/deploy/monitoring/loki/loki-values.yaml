@@ -253,8 +253,13 @@ grafana:
     pullPolicy: IfNotPresent
 
   adminUser: admin
-  # 部署前必须替换为真实强密码，或改用 grafana.admin.existingSecret 引用外部 Secret
-  adminPassword: "REPLACE_WITH_GRAFANA_ADMIN_PASSWORD"
+  # Grafana admin 密码通过 existingSecret 引用外部 Secret，避免硬编码占位符。
+  # 部署前先创建 Secret：
+  #   kubectl create secret generic grafana-admin-secret \
+  #     --from-literal=admin-user=admin \
+  #     --from-literal=admin-password='<强密码>' -n sq-monitor
+  admin:
+    existingSecret: "grafana-admin-secret"
 
   resources:
     requests:

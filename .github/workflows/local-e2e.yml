@@ -129,7 +129,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Start Docker Compose infra
         run: |
-          cd docker
+
           docker compose -f docker-compose.infra.yml up -d
           sleep 90
       - name: Verify infra services
@@ -150,4 +150,4 @@ jobs:
       - name: Cleanup
         if: always()
         run: |
-          cd docker && docker compose -f docker-compose.infra.yml down -v
+          docker compose -f docker-compose.infra.yml down -v

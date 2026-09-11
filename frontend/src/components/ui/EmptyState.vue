@@ -41,7 +41,7 @@ defineEmits<{
 
 .empty-state__message {
   margin: 0 0 16px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--el-text-color-secondary);
 }
 </style>

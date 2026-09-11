@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -84,8 +85,16 @@ public class AuditQueryController {
                     "messageKey", "error.auth.forbidden"));
         }
 
-        Instant from = fromIso != null ? Instant.parse(fromIso) : null;
-        Instant to = toIso != null ? Instant.parse(toIso) : null;
+        Instant from;
+        Instant to;
+        try {
+            from = fromIso != null ? Instant.parse(fromIso) : null;
+            to = toIso != null ? Instant.parse(toIso) : null;
+        } catch (DateTimeException e) {
+            return ResponseEntity.status(400).body(Map.of(
+                    "message", "时间格式非法，要求 ISO-8601 格式（如 2024-01-01T00:00:00Z）",
+                    "messageKey", "error.param.invalid"));
+        }
         int safeSize = Math.min(Math.max(size, 1), 200);
 
         Page<AuditLogEntity> result = queryService.query(userId, effectiveTenant, action,

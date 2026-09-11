@@ -23,13 +23,13 @@ defineProps<{
 <style scoped>
 .stat-card {
   padding: 16px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
 }
 
 .stat-card__label {
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   color: var(--ds-text-secondary);
   margin-bottom: 4px;
 }
@@ -46,7 +46,7 @@ defineProps<{
   align-items: center;
   gap: 2px;
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   font-weight: 500;
 }
 

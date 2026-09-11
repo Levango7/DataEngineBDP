@@ -53,6 +53,12 @@ public class SearchController {
     /** 导出任务内存存储：taskId -> 任务元数据。 */
     private static final Map<String, Map<String, Object>> EXPORT_TASKS = new ConcurrentHashMap<>();
 
+    /** 导出任务容量上限（防内存泄漏）。 */
+    private static final int EXPORT_TASKS_MAX_SIZE = 500;
+
+    /** 导出任务 TTL（30 分钟，过期自动清理）。 */
+    private static final Duration EXPORT_TASK_TTL = Duration.ofMinutes(30);
+
     /** 检索历史内存存储：tenantId -> 历史记录列表（按时间倒序）。 */
     private static final Map<String, List<Map<String, Object>>> SEARCH_HISTORY = new ConcurrentHashMap<>();
 
@@ -73,7 +79,9 @@ public class SearchController {
         Instant start = Instant.now();
         String q = req.query() == null ? "" : req.query().trim();
         int page = req.page() != null && req.page() > 0 ? req.page() : 1;
-        int pageSize = req.pageSize() != null && req.pageSize() > 0 ? req.pageSize() : 20;
+        // pageSize 上限 100，防超大分页拖垮查询
+        int pageSize = req.pageSize() != null && req.pageSize() > 0
+                ? Math.min(req.pageSize(), 100) : 20;
 
         List<Map<String, Object>> results;
         long total = 0;
@@ -283,20 +291,48 @@ public class SearchController {
     @PostMapping("/export")
     public ResponseEntity<Map<String, Object>> export(@RequestBody Map<String, Object> req) {
         String tenantId = TenantContext.getTenantId();
+        // 清理过期导出任务（TTL + 容量上限）
+        cleanupExportTasks();
         String taskId = UUID.randomUUID().toString();
         log.info("触发检索导出: taskId={}, req={}, tenant={}", taskId, req, tenantId);
         Map<String, Object> task = new LinkedHashMap<>();
         task.put("taskId", taskId);
         task.put("status", "pending");
         task.put("createdAt", Instant.now().toString());
+        task.put("expiresAt", Instant.now().plus(EXPORT_TASK_TTL).toString());
         task.put("tenantId", tenantId);
         task.put("request", req);
         EXPORT_TASKS.put(taskId, task);
+        // 容量上限保护：超限时移除最早的任务
+        while (EXPORT_TASKS.size() > EXPORT_TASKS_MAX_SIZE) {
+            String oldest = EXPORT_TASKS.entrySet().stream()
+                    .min(java.util.Comparator.comparing(e -> String.valueOf(e.getValue().get("createdAt"))))
+                    .map(Map.Entry::getKey).orElse(null);
+            if (oldest != null) {
+                EXPORT_TASKS.remove(oldest);
+            } else {
+                break;
+            }
+        }
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("taskId", taskId);
         result.put("downloadUrl", "/api/v1/search/export/" + taskId);
         result.put("status", "pending");
         return ResponseEntity.ok(result);
+    }
+
+    /** 清理过期导出任务（TTL 机制，防内存泄漏）。 */
+    private void cleanupExportTasks() {
+        Instant now = Instant.now();
+        EXPORT_TASKS.entrySet().removeIf(entry -> {
+            String expiresAtStr = String.valueOf(entry.getValue().get("expiresAt"));
+            try {
+                Instant expiresAt = Instant.parse(expiresAtStr);
+                return now.isAfter(expiresAt);
+            } catch (Exception e) {
+                return true; // 无法解析的视为过期
+            }
+        });
     }
 
     /**

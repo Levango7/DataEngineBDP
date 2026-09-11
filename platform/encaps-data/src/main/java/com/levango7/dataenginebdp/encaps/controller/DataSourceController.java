@@ -3,6 +3,8 @@ package com.levango7.dataenginebdp.encaps.controller;
 import com.levango7.dataenginebdp.encaps.model.DataSourceEntity;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
 import com.levango7.dataenginebdp.encaps.security.AuditLog;
+import com.levango7.dataenginebdp.encaps.util.CredentialEncryptor;
+import com.levango7.dataenginebdp.encaps.util.SsrfGuard;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -34,7 +36,8 @@ import java.util.Map;
  * 数据源管理端点（ROADMAP 前后端接线：前端 /datasources）。
  *
  * <p>CRUD + 连接测试；租户 ID 强制取 {@link TenantContext}（防跨租户越权）；
- * 密码仅写入时接收，查询返回时脱敏。</p>
+ * 密码仅写入时接收并加密存储，查询返回时脱敏；
+ * 连接测试与创建/更新均经 {@link SsrfGuard} 校验目标地址（防 SSRF）。</p>
  */
 @Slf4j
 @RestController
@@ -44,6 +47,8 @@ import java.util.Map;
 public class DataSourceController {
 
     private final DataSourceRepository repository;
+    private final CredentialEncryptor credentialEncryptor;
+    private final SsrfGuard ssrfGuard = SsrfGuard.getInstance();
 
     /** 创建/更新请求体（对齐前端 SaveDataSourceParams）。 */
     public record DataSourceRequest(
@@ -86,6 +91,8 @@ public class DataSourceController {
     @Transactional
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody DataSourceRequest req) {
         String tenantId = requireTenant();
+        // SSRF 防护：校验目标主机与端口
+        ssrfGuard.validate(req.host(), req.port());
         // A3 幂等性：租户内名称唯一预检（数据库层 uk_datasource_tenant_name 兜底）
         if (repository.existsByTenantIdAndName(tenantId, req.name())) {
             Map<String, Object> conflict = new java.util.LinkedHashMap<>();
@@ -102,7 +109,7 @@ public class DataSourceController {
                 .port(req.port())
                 .database(req.database())
                 .username(req.username())
-                .password(req.password())
+                .password(encryptPassword(req.password()))
                 .status("disconnected")
                 .tenantId(tenantId)
                 .createdAt(Instant.now())
@@ -121,6 +128,8 @@ public class DataSourceController {
     @Transactional
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody DataSourceRequest req) {
         String tenantId = requireTenant();
+        // SSRF 防护：校验目标主机与端口
+        ssrfGuard.validate(req.host(), req.port());
         return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
             entity.setName(req.name());
             entity.setType(req.type());
@@ -129,7 +138,7 @@ public class DataSourceController {
             entity.setDatabase(req.database());
             entity.setUsername(req.username());
             if (req.password() != null && !req.password().isBlank()) {
-                entity.setPassword(req.password()); // 密码留空则不更新
+                entity.setPassword(encryptPassword(req.password())); // 密码留空则不更新
             }
             entity.setUpdatedAt(Instant.now());
             return ResponseEntity.ok((Object) toView(repository.save(entity)));
@@ -154,10 +163,12 @@ public class DataSourceController {
     @Operation(summary = "连接测试（TCP 探测 + JDBC 校验（JDBC 型））")
     @AuditLog(action = "TEST_DATASOURCE", resource = "datasource")
     @PostMapping("/{id}/test")
-    @Transactional(readOnly = true)
+    @Transactional
     public ResponseEntity<Map<String, Object>> testConnection(@PathVariable Long id) {
         String tenantId = requireTenant();
         return repository.findByIdAndTenantId(id, tenantId).map(entity -> {
+            // SSRF 防护：连接前校验目标主机与端口
+            ssrfGuard.validate(entity.getHost(), entity.getPort());
             Map<String, Object> result = new LinkedHashMap<>();
             long start = System.currentTimeMillis();
             try (Socket socket = new Socket()) {
@@ -200,5 +211,21 @@ public class DataSourceController {
         m.put("createdAt", e.getCreatedAt() == null ? null : e.getCreatedAt().toString());
         m.put("updatedAt", e.getUpdatedAt() == null ? null : e.getUpdatedAt().toString());
         return m;
+    }
+
+    /** 加密密码：空值原样返回，非空则 AES-256-GCM 加密存储。 */
+    private String encryptPassword(String plainOrBlank) {
+        if (plainOrBlank == null || plainOrBlank.isBlank()) {
+            return plainOrBlank;
+        }
+        return credentialEncryptor.encrypt(plainOrBlank);
+    }
+
+    /** 解密密码：空值原样返回；用于实际建立连接时获取明文。 */
+    private String decryptPassword(String cipherOrBlank) {
+        if (cipherOrBlank == null || cipherOrBlank.isBlank()) {
+            return cipherOrBlank;
+        }
+        return credentialEncryptor.decrypt(cipherOrBlank);
     }
 }

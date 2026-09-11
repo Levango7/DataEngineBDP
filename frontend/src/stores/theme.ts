@@ -53,10 +53,23 @@ export const useThemeStore = defineStore('theme', () => {
     }
   })
 
+  // 系统暗色偏好（响应式）：监听 matchMedia change 事件，使 isDark 在 system 模式下随系统主题实时变化
+  const systemDark = ref<boolean>(
+    window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
+  )
+  // 监听系统主题变化（仅当 matchMedia 可用时）；pinia setup store 单例，监听器随页面生命周期存在
+  const mql = window.matchMedia?.('(prefers-color-scheme: dark)')
+  if (mql) {
+    const updateSystemDark = (e: MediaQueryListEvent): void => {
+      systemDark.value = e.matches
+    }
+    mql.addEventListener('change', updateSystemDark)
+  }
+
   const isDark = computed<boolean>(() => {
     if (mode.value === 'dark') return true
     if (mode.value === 'light') return false
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false
+    return systemDark.value
   })
 
   function setMode(m: ThemeMode): void {

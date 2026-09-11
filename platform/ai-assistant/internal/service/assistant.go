@@ -23,39 +23,39 @@ func NewAssistantService(s *SessionStore, p *DownstreamProxy, cfg *config.Config
 	return &AssistantService{sessions: s, proxy: p, cfg: cfg}
 }
 
-// CreateSession 新建会话。
-func (a *AssistantService) CreateSession(locale string) (*Session, error) {
-	return a.sessions.CreateSession(locale)
+// CreateSession 新建会话（租户隔离）。
+func (a *AssistantService) CreateSession(tenantID, locale string) (*Session, error) {
+	return a.sessions.CreateSession(tenantID, locale)
 }
 
-// ListSessions 会话列表。
-func (a *AssistantService) ListSessions(limit int) ([]Session, error) {
-	return a.sessions.ListSessions(limit)
+// ListSessions 会话列表（租户隔离）。
+func (a *AssistantService) ListSessions(tenantID string, limit int) ([]Session, error) {
+	return a.sessions.ListSessions(tenantID, limit)
 }
 
-// GetSession 会话详情。
-func (a *AssistantService) GetSession(id string) (*Session, []Message, error) {
-	return a.sessions.GetSession(id)
+// GetSession 会话详情（租户隔离）。
+func (a *AssistantService) GetSession(tenantID, id string) (*Session, []Message, error) {
+	return a.sessions.GetSession(tenantID, id)
 }
 
-// DeleteSession 删除会话。
-func (a *AssistantService) DeleteSession(id string) error {
-	return a.sessions.DeleteSession(id)
+// DeleteSession 删除会话（租户隔离）。
+func (a *AssistantService) DeleteSession(tenantID, id string) error {
+	return a.sessions.DeleteSession(tenantID, id)
 }
 
-// PinSession 置顶/取消置顶（Sprint 2.2）。
-func (a *AssistantService) PinSession(id string, pinned bool) error {
-	return a.sessions.PinSession(id, pinned)
+// PinSession 置顶/取消置顶（租户隔离，Sprint 2.2）。
+func (a *AssistantService) PinSession(tenantID, id string, pinned bool) error {
+	return a.sessions.PinSession(tenantID, id, pinned)
 }
 
-// RenameSession 重命名（Sprint 2.2）。
-func (a *AssistantService) RenameSession(id, title string) error {
-	return a.sessions.RenameSession(id, title)
+// RenameSession 重命名（租户隔离，Sprint 2.2）。
+func (a *AssistantService) RenameSession(tenantID, id, title string) error {
+	return a.sessions.RenameSession(tenantID, id, title)
 }
 
-// SetMessageFeedback 消息反馈（Sprint 2.2）。
-func (a *AssistantService) SetMessageFeedback(messageID, feedback string) error {
-	return a.sessions.SetMessageFeedback(messageID, feedback)
+// SetMessageFeedback 消息反馈（租户隔离，Sprint 2.2）。
+func (a *AssistantService) SetMessageFeedback(tenantID, messageID, feedback string) error {
+	return a.sessions.SetMessageFeedback(tenantID, messageID, feedback)
 }
 
 // ExamplePrompts 示例提问（空状态引导，Sprint 2.2）。
@@ -106,14 +106,14 @@ type ChatResponse struct {
 func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatResponse, error) {
 	sessionID := req.SessionID
 	if sessionID == "" {
-		sess, err := a.sessions.CreateSession(req.Locale)
+		sess, err := a.sessions.CreateSession(req.TenantID, req.Locale)
 		if err != nil {
 			return nil, err
 		}
 		sessionID = sess.ID
 	}
-	// ① 用户消息落库
-	if _, err := a.sessions.AddMessage(sessionID, RoleUser, StatusDone, req.Message); err != nil {
+	// ① 用户消息落库（租户隔离）
+	if _, err := a.sessions.AddMessage(req.TenantID, sessionID, RoleUser, StatusDone, req.Message); err != nil {
 		return nil, fmt.Errorf("保存用户消息失败: %w", err)
 	}
 
@@ -144,8 +144,8 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 	}
 	resp.Reply = reply
 
-	// ⑤ 助手消息落库
-	if _, err := a.sessions.AddMessage(sessionID, RoleAssistant, StatusDone, reply); err != nil {
+	// ⑤ 助手消息落库（租户隔离）
+	if _, err := a.sessions.AddMessage(req.TenantID, sessionID, RoleAssistant, StatusDone, reply); err != nil {
 		return nil, fmt.Errorf("保存助手消息失败: %w", err)
 	}
 	return resp, nil

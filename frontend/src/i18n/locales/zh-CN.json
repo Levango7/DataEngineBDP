@@ -73,11 +73,11 @@
     },
     "items": {
       "infra-machine": "机器供应",
-      "infra-k8s": "K8s 集群",
+      "infra-k8s": "计算集群",
       "cluster": "集群总览",
       "datasources": "数据源管理",
-      "infra-net": "容器网络",
-      "infra-store": "容器存储",
+      "infra-net": "集群网络",
+      "infra-store": "集群存储",
       "infra-sched": "弹性调度",
       "eng-storage": "统一存储",
       "eng-spark": "批计算（Spark）",
@@ -145,7 +145,7 @@
     "cardSub": "使用租户账号登录，账号由企业管理员开通",
     "sloganLine1": "用户无感知",
     "sloganLine2": "高性能数据底座",
-    "subSlogan1": "实时监控 Kubernetes 集群节点健康、资源使用率",
+    "subSlogan1": "实时监控集群节点健康、资源使用率",
     "subSlogan2": "与大数据组件运行情况，自研 SKE 发行版",
     "metricAvailability": "服务可用性",
     "metricServices": "核心服务",
@@ -218,9 +218,10 @@
     "defaultWorkspace": "默认工作空间",
     "defaultEnvTag": "环境正常",
     "planTiers": {
+      "starter": "基础版",
       "standard": "标准版",
       "enterprise": "企业版",
-      "flagship": "旗舰版",
+      "flagship": "企业版",
       "internal": "内部"
     }
   },

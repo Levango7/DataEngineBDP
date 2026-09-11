@@ -477,7 +477,7 @@ function tablesOfSource(source: string): string[] {
 }
 
 .sub {
-  color: #666;
+  color: var(--ds-text-secondary);
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -498,24 +498,24 @@ function tablesOfSource(source: string): string[] {
 }
 
 .hint {
-  color: #999;
+  color: var(--ds-text-tertiary);
   font-size: 12px;
 }
 
 /* SQL 编辑器 */
 .sql-editor {
   display: flex;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--ds-border-default);
   border-radius: 4px;
   overflow: hidden;
   height: 220px;
-  background: #fafafa;
+  background: var(--ds-bg-surface);
 }
 
 .line-numbers {
   width: 48px;
-  background: #f5f7fa;
-  border-right: 1px solid #dcdfe6;
+  background: var(--ds-bg-subtle);
+  border-right: 1px solid var(--ds-border-default);
   overflow: hidden;
   text-align: right;
   padding: 8px 6px;
@@ -533,13 +533,14 @@ function tablesOfSource(source: string): string[] {
 .sql-textarea {
   flex: 1;
   border: none;
-  outline: none;
+  outline: 2px solid var(--ds-border-focus);
+  outline-offset: 2px;
   resize: none;
   padding: 8px 12px;
   font-family: var(--ds-font-family-mono);
   font-size: 14px;
   line-height: 1.6;
-  background: #fafafa;
+  background: var(--ds-bg-surface);
   color: var(--ds-text-primary);
 }
 
@@ -556,11 +557,11 @@ function tablesOfSource(source: string): string[] {
 }
 
 .hint-text code {
-  background: #f0f0f0;
+  background: var(--ds-bg-muted);
   padding: 1px 4px;
   border-radius: 2px;
   font-family: var(--ds-font-family-mono);
-  color: #e6a23c;
+  color: var(--ds-color-warning-500);
 }
 
 /* 结果区 */
@@ -633,7 +634,7 @@ function tablesOfSource(source: string): string[] {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  color: #409eff;
+  color: var(--ds-color-primary-500);
 }
 
 .source-tables {
@@ -647,7 +648,7 @@ function tablesOfSource(source: string): string[] {
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: #e6a23c;
+  color: var(--ds-color-warning-500);
   font-size: 14px;
   gap: 4px;
 }
@@ -662,12 +663,12 @@ function tablesOfSource(source: string): string[] {
 
 .result-node {
   text-align: center;
-  background: #f0f9eb;
-  border-color: #e1f3d8;
+  background: var(--ds-color-success-50);
+  border-color: var(--ds-color-success-100);
 }
 
 .result-node .el-icon {
-  color: #67c23a;
+  color: var(--ds-color-success-500);
   font-size: 20px;
   margin-right: 6px;
 }

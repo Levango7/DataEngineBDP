@@ -50,7 +50,9 @@ export const useTenantStore = defineStore('tenant', () => {
         currentTenant.value = matched ?? result[0] ?? null
       }
     } catch (e) {
-      error.value = (e as Error).message || t('errors.tenant.loadFailed')
+      // 安全提取错误消息：e 可能是 Error、字符串、null 等（throw null 时 e 为 null）
+      // 使用 instanceof 守卫避免对 null/非 Error 访问 .message 抛 TypeError
+      error.value = (e instanceof Error ? e.message : String(e ?? '')) || t('errors.tenant.loadFailed')
     } finally {
       loading.value = false
     }

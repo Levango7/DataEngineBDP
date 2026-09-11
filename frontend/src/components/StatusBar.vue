@@ -114,11 +114,16 @@ onUnmounted(() => {
   justify-content: space-between;
   gap: 12px;
   padding: 0 18px;
-  background: linear-gradient(90deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%);
-  color: #475569;
+  background: linear-gradient(
+    90deg,
+    var(--ds-color-gray-50) 0%,
+    var(--ds-color-gray-100) 50%,
+    var(--ds-color-gray-200) 100%
+  );
+  color: var(--ds-text-secondary);
   font-size: 12px;
   font-weight: 500;
-  border-top: 1.5px solid #93c5fd;
+  border-top: 1.5px solid var(--ds-color-primary-300);
   box-shadow:
     0 -1px 0 rgba(255, 255, 255, 0.7) inset,
     0 -4px 12px rgba(59, 130, 246, 0.06);
@@ -134,8 +139,8 @@ onUnmounted(() => {
   height: 1.5px;
   background: linear-gradient(
     90deg,
-    #3b82f6 0%,
-    #6366f1 35%,
+    var(--ds-color-primary-500) 0%,
+    var(--ds-color-info-500) 35%,
     rgba(99, 102, 241, 0.3) 70%,
     transparent 100%
   );
@@ -149,8 +154,8 @@ onUnmounted(() => {
   min-width: 0;
 }
 .sb-label {
-  color: #1e40af;
-  font-size: 11px;
+  color: var(--ds-color-primary-800);
+  font-size: var(--ds-font-size-xs);
   letter-spacing: 1.2px;
   font-weight: 700;
 }
@@ -158,7 +163,7 @@ onUnmounted(() => {
 .sb-sep {
   width: 1px;
   height: 16px;
-  background: #cbd5e1;
+  background: var(--ds-border-default);
   flex: none;
 }
 .sb-service {
@@ -168,13 +173,13 @@ onUnmounted(() => {
   white-space: nowrap;
   padding: 3px 8px;
   border-radius: 6px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-subtle);
   transition: all 0.2s var(--ease-smooth);
 }
 .sb-service:hover {
-  border-color: #93c5fd;
-  background: #f0f9ff;
+  border-color: var(--ds-color-primary-300);
+  background: var(--ds-color-primary-50);
   transform: translateY(-1px);
 }
 .sb-dot {
@@ -184,20 +189,20 @@ onUnmounted(() => {
   flex: none;
 }
 .sb-dot.up {
-  background: #10b981;
+  background: var(--ds-color-success-500);
   box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
   animation: sbBreath 2.6s var(--ease-smooth) infinite;
 }
 .sb-dot.warn {
-  background: #f59e0b;
+  background: var(--ds-color-warning-500);
   box-shadow: 0 0 6px rgba(245, 158, 11, 0.8);
 }
 .sb-dot.down {
-  background: #ef4444;
+  background: var(--ds-color-error-500);
   box-shadow: 0 0 6px rgba(239, 68, 68, 0.8);
 }
 .sb-dot.unknown {
-  background: #94a3b8;
+  background: var(--ds-color-gray-400);
 }
 .sb-item {
   white-space: nowrap;
@@ -206,27 +211,27 @@ onUnmounted(() => {
   gap: 5px;
   padding: 3px 8px;
   border-radius: 6px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--ds-bg-surface);
+  border: 1px solid var(--ds-border-subtle);
 }
 .sb-item.sb-ws {
-  color: #0f172a;
+  color: var(--ds-text-primary);
   font-weight: 700;
 }
 .sb-clock {
   font-family: var(--ds-font-family-mono);
-  font-size: 11.5px;
+  font-size: var(--ds-font-size-xs);
   letter-spacing: 0.4px;
-  color: #0f172a;
+  color: var(--ds-text-primary);
   font-weight: 700;
-  background: #dbeafe;
-  border-color: #3b82f6;
+  background: var(--ds-color-primary-100);
+  border-color: var(--ds-color-primary-500);
 }
 .sb-env {
-  color: #1e3a8a;
+  color: var(--ds-color-primary-900);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  font-size: 11px;
+  font-size: var(--ds-font-size-xs);
   font-weight: 700;
 }
 

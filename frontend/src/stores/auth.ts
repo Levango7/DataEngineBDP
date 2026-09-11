@@ -81,8 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
   /** 启动时：有 token 但无用户信息，尝试从后端拉取 */
   async function hydrateUser(): Promise<void> {
     if (token.value && !user.value) {
-      // 优先用本地存储的用户信息（避免额外请求）
-      if (user.value) return
+      // 外层已确保 !user.value，无需再判断
       try {
         const u = await post<User>('/auth/me')
         user.value = u

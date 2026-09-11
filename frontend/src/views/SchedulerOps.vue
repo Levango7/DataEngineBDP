@@ -161,7 +161,7 @@
           {{ formatTime(detail?.endTime) }}
         </el-descriptions-item>
         <el-descriptions-item :label="t('scheduler.detailModal.error')">
-          <span style="color: #f56c6c; white-space: pre-wrap">
+          <span style="color: var(--ds-color-error-500); white-space: pre-wrap">
             {{ detail?.errorMessage || '—' }}
           </span>
         </el-descriptions-item>

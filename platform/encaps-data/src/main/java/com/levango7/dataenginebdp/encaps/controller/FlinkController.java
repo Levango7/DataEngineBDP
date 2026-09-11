@@ -49,7 +49,8 @@ public class FlinkController {
     @Operation(summary = "Flink 作业列表")
     @GetMapping("/jobs")
     public ResponseEntity<?> listJobs(@RequestParam(required = false) String status) {
-        log.info("列出 Flink 作业: status={}, tenant={}", status, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("列出 Flink 作业: status={}, tenant={}", status, tenantId);
         try {
             return ResponseEntity.ok(flinkClient.listJobs(status));
         } catch (EngineUnavailableException e) {
@@ -72,7 +73,8 @@ public class FlinkController {
     @Operation(summary = "提交 Flink 作业")
     @PostMapping("/jobs")
     public ResponseEntity<?> submitJob(@RequestBody SubmitJobRequest req) {
-        log.info("提交 Flink 作业: name={}, tenant={}", req.name(), TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("提交 Flink 作业: name={}, tenant={}", req.name(), tenantId);
         try {
             int parallelism = req.parallelism() != null ? req.parallelism() : 1;
             long checkpointMs = req.checkpointIntervalMs() != null ? req.checkpointIntervalMs() : 60000L;
@@ -89,7 +91,8 @@ public class FlinkController {
     @Operation(summary = "取消 Flink 作业")
     @PostMapping("/jobs/{id}/cancel")
     public ResponseEntity<?> cancelJob(@PathVariable String id) {
-        log.info("取消 Flink 作业: jobId={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("取消 Flink 作业: jobId={}, tenant={}", id, tenantId);
         try {
             flinkClient.cancelJob(id);
             return ResponseEntity.ok(Map.of("cancelled", true, "jobId", id));
@@ -104,7 +107,8 @@ public class FlinkController {
     @Operation(summary = "获取作业状态")
     @GetMapping("/jobs/{id}/status")
     public ResponseEntity<?> getJobStatus(@PathVariable String id) {
-        log.info("查询 Flink 作业状态: jobId={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("查询 Flink 作业状态: jobId={}, tenant={}", id, tenantId);
         try {
             return ResponseEntity.ok(flinkClient.getJobStatus(id));
         } catch (EngineUnavailableException e) {
@@ -118,7 +122,8 @@ public class FlinkController {
     @Operation(summary = "Checkpoint 历史")
     @GetMapping("/jobs/{id}/checkpoints")
     public ResponseEntity<?> getCheckpoints(@PathVariable String id) {
-        log.info("查询 Flink Checkpoint: jobId={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("查询 Flink Checkpoint: jobId={}, tenant={}", id, tenantId);
         try {
             List<Map<String, Object>> checkpoints = flinkClient.getCheckpoints(id);
             return ResponseEntity.ok(checkpoints);
@@ -133,7 +138,8 @@ public class FlinkController {
     @Operation(summary = "Savepoint 历史")
     @GetMapping("/jobs/{id}/savepoints")
     public ResponseEntity<List<Map<String, Object>>> getSavepoints(@PathVariable String id) {
-        log.info("查询 Flink Savepoint: jobId={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("查询 Flink Savepoint: jobId={}, tenant={}", id, tenantId);
         // Flink REST 暂未实现 Savepoint 历史查询，返回空列表
         return ResponseEntity.ok(List.of());
     }
@@ -142,7 +148,8 @@ public class FlinkController {
     @Operation(summary = "查询Flink作业详情")
     @GetMapping("/jobs/{id}/backpressure")
     public ResponseEntity<?> getBackpressure(@PathVariable String id) {
-        log.info("查询 Flink 反压: jobId={}, tenant={}", id, TenantContext.getTenantId());
+        String tenantId = requireTenant();
+        log.info("查询 Flink 反压: jobId={}, tenant={}", id, tenantId);
         try {
             return ResponseEntity.ok(flinkClient.getBackpressure(id));
         } catch (EngineUnavailableException e) {
@@ -150,5 +157,14 @@ public class FlinkController {
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Flink 引擎不可用", "message", e.getMessage()));
         }
+    }
+
+    /** 租户上下文校验（无则拒绝，防跨租户越权）。 */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

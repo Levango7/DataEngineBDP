@@ -249,7 +249,7 @@ function handleLogout() {
   background: var(--gradient-primary-soft);
   color: var(--ds-color-primary-500);
   padding: 6px 12px;
-  border-radius: 9px;
+  border-radius: var(--ds-radius-md);
   font-weight: 600;
   font-size: 13px;
   cursor: pointer;
@@ -273,7 +273,7 @@ function handleLogout() {
   stroke-linejoin: round;
 }
 .ws-arrow {
-  font-size: 9px;
+  font-size: var(--ds-font-size-xs);
   opacity: 0.7;
   transition: transform 0.2s var(--ease-smooth);
 }
@@ -293,7 +293,7 @@ function handleLogout() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: var(--ds-text-secondary);
   position: relative;
   transition:
     background 0.18s var(--ease-smooth),
@@ -333,12 +333,12 @@ function handleLogout() {
   padding: 0 3px;
   border-radius: 8px;
   background: var(--ds-color-error-500);
-  color: #fff;
-  font-size: 9px;
+  color: var(--ds-text-inverse);
+  font-size: var(--ds-font-size-xs);
   font-weight: 700;
   line-height: 14px;
   text-align: center;
-  box-shadow: 0 0 0 2px #fff;
+  box-shadow: 0 0 0 2px var(--ds-bg-surface);
   animation: bellPulse 2.4s var(--ease-smooth) infinite;
 }
 
@@ -347,10 +347,10 @@ function handleLogout() {
   height: 28px;
   min-width: 32px;
   padding: 0 9px;
-  border: 1px solid #cbd5e1;
-  border-radius: 7px;
-  background: #fff;
-  color: #1d4ed8;
+  border: 1px solid var(--ds-border-default);
+  border-radius: var(--ds-radius-md);
+  background: var(--ds-bg-surface);
+  color: var(--ds-color-primary-700);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.5px;
@@ -368,7 +368,7 @@ function handleLogout() {
 .tb-locale:hover {
   background: var(--ds-color-primary-50);
   border-color: var(--ds-color-primary-500);
-  color: #1d4ed8;
+  color: var(--ds-color-primary-700);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.22);
   transform: translateY(-1px);
 }
@@ -386,14 +386,14 @@ function handleLogout() {
   white-space: nowrap;
 }
 .crumb-group {
-  color: #64748b;
+  color: var(--ds-text-tertiary);
   font-weight: 500;
 }
 .crumb-sep {
-  color: #cbd5e1;
+  color: var(--ds-border-default);
 }
 .crumb-label {
-  color: #0f172a;
+  color: var(--ds-text-primary);
   font-weight: 700;
 }
 
@@ -409,7 +409,7 @@ function handleLogout() {
   left: 10px;
   width: 14px;
   height: 14px;
-  stroke: #94a3b8;
+  stroke: var(--ds-color-gray-400);
   fill: none;
   stroke-width: 1.8;
   stroke-linecap: round;
@@ -418,9 +418,9 @@ function handleLogout() {
 .gs-input {
   width: 100%;
   padding: 7px 44px 7px 30px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
-  background: #fff;
+  background: var(--ds-bg-surface);
   font-size: 13px;
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
@@ -429,12 +429,12 @@ function handleLogout() {
     background 0.2s var(--ease-smooth);
 }
 .gs-input:hover {
-  border-color: #94a3b8;
+  border-color: var(--ds-color-gray-400);
 }
 .gs-input:focus {
   outline: none;
   border-color: var(--ds-color-primary-500);
-  background: #fff;
+  background: var(--ds-bg-surface);
   box-shadow:
     0 0 0 3px rgba(99, 102, 241, 0.15),
     0 2px 8px rgba(59, 130, 246, 0.12);
@@ -444,11 +444,11 @@ function handleLogout() {
   right: 8px;
   font-family: var(--ds-font-family-mono);
   font-size: 10px;
-  color: #94a3b8;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  color: var(--ds-color-gray-400);
+  background: var(--ds-bg-base);
+  border: 1px solid var(--ds-border-subtle);
   border-bottom-width: 2px;
-  border-radius: 5px;
+  border-radius: var(--ds-radius-sm);
   padding: 1px 5px;
   pointer-events: none;
   transition: opacity 0.2s var(--ease-smooth);
@@ -461,11 +461,11 @@ function handleLogout() {
 @keyframes bellPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 2px #fff;
+    box-shadow: 0 0 0 2px var(--ds-bg-surface);
   }
   50% {
     box-shadow:
-      0 0 0 2px #fff,
+      0 0 0 2px var(--ds-bg-surface),
       0 0 10px rgba(239, 68, 68, 0.6);
   }
 }
@@ -574,7 +574,7 @@ function handleLogout() {
   height: 30px;
   border-radius: 50%;
   background: var(--gradient-primary);
-  color: #fff;
+  color: var(--ds-text-inverse);
   font-size: 13px;
   font-weight: 600;
   display: flex;

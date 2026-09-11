@@ -289,7 +289,11 @@
                 align="center"
               >
                 <template #default="{ row }">
-                  <el-icon v-if="row.required" color="#67c23a"><Check /></el-icon>
+                  <el-icon
+                    v-if="row.required"
+                    :style="{ color: 'var(--ds-color-success-500)' }"
+                    ><Check /></el-icon
+                  >
                   <span v-else>-</span>
                 </template>
               </el-table-column>
@@ -737,19 +741,19 @@ onMounted(() => {
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2329;
+  color: var(--ds-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .card-id {
   font-size: 12px;
-  color: #8a919c;
+  color: var(--ds-text-secondary);
   margin-top: 2px;
 }
 .card-desc {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--ds-text-secondary);
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -767,9 +771,9 @@ onMounted(() => {
   display: flex;
   gap: 14px;
   font-size: 12px;
-  color: #8a919c;
+  color: var(--ds-text-secondary);
   padding-top: 8px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--ds-border-subtle);
 }
 .meta-item {
   display: inline-flex;
@@ -804,29 +808,29 @@ onMounted(() => {
   gap: 12px;
   flex-wrap: wrap;
   padding: 12px;
-  background: #f7f9fa;
+  background: var(--ds-bg-subtle);
   border-radius: 6px;
 }
 .arch-node {
   background: var(--ds-bg-surface);
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--ds-border-default);
   border-radius: 6px;
   padding: 8px 12px;
   min-width: 140px;
   text-align: center;
 }
 .node-source {
-  border-left: 3px solid #67c23a;
+  border-left: 3px solid var(--ds-color-success-500);
 }
 .node-transform {
-  border-left: 3px solid #409eff;
+  border-left: 3px solid var(--ds-color-primary-500);
 }
 .node-sink {
-  border-left: 3px solid #e6a23c;
+  border-left: 3px solid var(--ds-color-warning-500);
 }
 .node-layer {
   font-size: 12px;
-  color: #8a919c;
+  color: var(--ds-text-secondary);
   text-transform: uppercase;
 }
 .node-name {
@@ -836,7 +840,7 @@ onMounted(() => {
 }
 .node-type {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--ds-text-secondary);
 }
 
 /* 数据流 IO 单元格 */
@@ -847,23 +851,23 @@ onMounted(() => {
   font-size: 12px;
 }
 .io-in {
-  color: #8a919c;
+  color: var(--ds-text-secondary);
 }
 .io-arrow {
-  color: #c0c4cc;
+  color: var(--ds-text-tertiary);
 }
 .io-out {
-  color: #67c23a;
+  color: var(--ds-color-success-500);
 }
 .schedule-info {
   margin-top: 10px;
   font-size: 14px;
-  color: #6b7280;
+  color: var(--ds-text-secondary);
 }
 
 /* 计算逻辑步骤 */
 .step-desc {
-  color: #6b7280;
+  color: var(--ds-text-secondary);
   margin-bottom: 6px;
 }
 .step-io {
@@ -876,8 +880,8 @@ onMounted(() => {
   margin-right: 4px;
 }
 .step-code {
-  background: #1f2329;
-  color: #e0e0e0;
+  background: var(--ds-text-primary);
+  color: var(--ds-text-inverse);
   padding: 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -910,16 +914,16 @@ onMounted(() => {
 }
 .panel-size {
   font-size: 12px;
-  color: #8a919c;
+  color: var(--ds-text-secondary);
 }
 .panel-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--ds-text-secondary);
 }
 
 /* README */
 .readme-content {
-  background: #f7f9fa;
+  background: var(--ds-bg-subtle);
   padding: 16px;
   border-radius: 6px;
   font-size: 14px;
@@ -931,7 +935,7 @@ onMounted(() => {
 /* 部署表单参数提示 */
 .param-hint {
   font-size: 12px;
-  color: #8a919c;
+  color: var(--ds-text-secondary);
   margin-top: 2px;
   line-height: 1.4;
 }

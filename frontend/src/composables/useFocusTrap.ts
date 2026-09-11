@@ -53,13 +53,33 @@ export function useFocusTrap(options: UseFocusTrapOptions = {}): UseFocusTrapRet
   /** 激活前的 body overflow 值，用于关闭时恢复 */
   let previousOverflow: string = ''
 
+  /** 检查元素是否可见（覆盖 position:fixed/sticky 场景） */
+  function isElementVisible(node: HTMLElement): boolean {
+    // offsetParent !== null 可判断常规可见性，但 position:fixed 元素的 offsetParent 为 null
+    if (node.offsetParent !== null) return true
+    // 当前焦点元素即使 offsetParent 为 null 也应保留（如 fixed 定位的模态框）
+    if (node === document.activeElement) return true
+    // position:fixed/sticky 元素：用 getComputedStyle + getBoundingClientRect 判断
+    const style = window.getComputedStyle(node)
+    if (style.position === 'fixed' || style.position === 'sticky') {
+      const rect = node.getBoundingClientRect()
+      // 宽高 > 0 且非 display:none / visibility:hidden / opacity:0
+      return (
+        rect.width > 0 &&
+        rect.height > 0 &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity) > 0
+      )
+    }
+    return false
+  }
+
   /** 在容器内获取所有可聚焦元素（按 DOM 顺序） */
   function getFocusableElements(): HTMLElement[] {
     const el = trapRef.value
     if (!el) return []
-    return Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-      (node) => node.offsetParent !== null || node === document.activeElement
-    )
+    return Array.from(el.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(isElementVisible)
   }
 
   /** keydown 事件处理：ESC 关闭 + Tab 循环 */

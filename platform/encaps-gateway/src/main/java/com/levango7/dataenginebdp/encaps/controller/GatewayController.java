@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.ApiKeyEntity;
 import com.levango7.dataenginebdp.encaps.repository.ApiKeyRepository;
+import com.levango7.dataenginebdp.encaps.util.CredentialEncryptor;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.GatewayStatsService;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +55,7 @@ public class GatewayController {
 
     private final ApiKeyRepository repository;
     private final GatewayStatsService statsService;
+    private final CredentialEncryptor credentialEncryptor;
 
     private static final SecureRandom RNG = new SecureRandom();
 
@@ -110,7 +112,7 @@ public class GatewayController {
                 .routeModel(req.routeModel())
                 .rateLimit(req.rateLimit() != null ? req.rateLimit() : 100)
                 .status("enabled")
-                .apiKey(apiKey)
+                .apiKey(credentialEncryptor.encrypt(apiKey))
                 .secretHash(sha256(secret))
                 .scope(req.scope())
                 .tenantId(tenantId)
@@ -191,7 +193,7 @@ public class GatewayController {
         return tenantId;
     }
 
-    /** 实体 → 前端视图（secret 永远掩码）。 */
+    /** 实体 → 前端视图（apiKey 与 secret 永远掩码，明文仅创建时一次性返回）。 */
     private Map<String, Object> toView(ApiKeyEntity e) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("id", String.valueOf(e.getId()));
@@ -200,12 +202,27 @@ public class GatewayController {
         m.put("rateLimit", e.getRateLimit());
         m.put("status", e.getStatus());
         m.put("scope", e.getScope());
-        m.put("apiKey", e.getApiKey());
+        // apiKey 加密存储，列表/详情返回掩码（明文仅创建时一次性返回）
+        m.put("apiKey", maskApiKey(e.getApiKey()));
         // secret 哈希不返回，前端用 *** 占位
         m.put("secret", "***");
         m.put("createdAt", e.getCreatedAt() == null ? null : e.getCreatedAt().toString());
         m.put("updatedAt", e.getUpdatedAt() == null ? null : e.getUpdatedAt().toString());
         return m;
+    }
+
+    /** apiKey 掩码：显示前4位 + ***（若已加密存储则全掩码）。 */
+    private String maskApiKey(String apiKey) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return "***";
+        }
+        // 加密后的 apiKey 无法显示前缀，统一掩码
+        if (credentialEncryptor.isEncrypted(apiKey)) {
+            return "***";
+        }
+        // 兼容历史明文：显示前缀 + 掩码
+        int showLen = Math.min(apiKey.length(), 7);
+        return apiKey.substring(0, showLen) + "***";
     }
 
     /** 生成 apiKey（32 字节 Base64URL）。 */

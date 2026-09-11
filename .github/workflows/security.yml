@@ -145,10 +145,10 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 安装 Go 1.26
+      - name: 安装 Go 1.26.6
         uses: actions/setup-go@v7
         with:
-          go-version: '1.26'
+          go-version: '1.26.6'
           cache: true
 
       - name: 安装 govulncheck
@@ -319,10 +319,10 @@ jobs:
   zap-dast:
     name: ZAP DAST Scan
     runs-on: ubuntu-latest
-    # T-07: PR 也触发基线扫描（夜间仍全量阻断扫描）
-    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
-    # T-07: PR 基线扫描不阻断 pipeline（仅报告）；夜间完整扫描阻断
-    continue-on-error: ${{ github.event_name == 'pull_request' }}
+    # T-07: PR 也触发基线扫描（夜间仍全量阻断扫描）；push 到 main 也触发基线扫描
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    # T-07: PR/push 基线扫描不阻断 pipeline（仅报告）；夜间完整扫描阻断
+    continue-on-error: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -344,15 +344,15 @@ jobs:
           docker compose up -d --build --wait
           docker compose ps
 
-      # T-07: PR 触发 → ZAP 基线扫描（baseline: true，不阻断只报告）
-      - name: 执行 ZAP 基线扫描（PR 模式，不阻断）
-        if: steps.zap_check.outputs.skip != 'true' && github.event_name == 'pull_request'
+      # T-07: PR/push 触发 → ZAP 基线扫描（baseline: true，不阻断只报告）
+      - name: 执行 ZAP 基线扫描（PR/push 模式，不阻断）
+        if: steps.zap_check.outputs.skip != 'true' && (github.event_name == 'pull_request' || github.event_name == 'push')
         uses: zaproxy/action-baseline@v0.12.0
         with:
           # 修复：compose 映射 encaps-layer 到本机 18080（见 tests/integration/docker-compose.yml），
           # 原扫 localhost:8080 是空靶（报告 9）
           target: 'http://localhost:18080'
-          # T-07: PR 基线模式 — 仅被动扫描，不发起攻击请求
+          # T-07: PR/push 基线模式 — 仅被动扫描，不发起攻击请求
           # baseline: true 表示基线模式（action-baseline 本身即基线扫描，此处显式标注）
           cmd_options: '-a'  # -a 主动规则报告，不含 -j（不发 AJAX 请求），轻量快速
           artifact_name: 'zap-baseline-report-pr'
@@ -360,7 +360,7 @@ jobs:
 
       # T-07: 夜间/手动触发 → ZAP 完整扫描（阻断模式）
       - name: 执行 ZAP 完整扫描（夜间模式，阻断）
-        if: steps.zap_check.outputs.skip != 'true' && github.event_name != 'pull_request'
+        if: steps.zap_check.outputs.skip != 'true' && github.event_name != 'pull_request' && github.event_name != 'push'
         uses: zaproxy/action-baseline@v0.12.0
         with:
           target: 'http://localhost:18080'
@@ -428,8 +428,10 @@ jobs:
 
       - name: 安装 Trivy
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
-            | sh -s -- -b /usr/local/bin
+          # 统一使用固定版本 v0.71.1（与 trivy-scan job 一致），避免 install.sh 拉取最新版导致版本漂移
+          curl -fSL --retry 3 --retry-delay 5 -o /tmp/trivy.tar.gz \
+            https://github.com/aquasecurity/trivy/releases/download/v0.71.1/trivy_0.71.1_Linux-64bit.tar.gz
+          sudo tar -xzf /tmp/trivy.tar.gz -C /usr/local/bin trivy
           trivy --version
 
       - name: 全量扫描所有 Docker 镜像（遍历所有 Dockerfile）

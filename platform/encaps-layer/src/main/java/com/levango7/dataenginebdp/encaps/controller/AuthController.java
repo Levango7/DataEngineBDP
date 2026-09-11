@@ -98,7 +98,8 @@ public class AuthController {
         }
         if (localPassword == null || localPassword.isEmpty()) {
             localPassword = generateRandomPassword(16);
-            log.warn("本地降级认证已启用，随机生成管理员密码：{}，请妥善保存", localPassword);
+            // 安全提示：不记录明文密码，引导通过环境变量配置
+            log.warn("本地降级认证已启用，随机生成管理员密码。请通过环境变量 LOCAL_AUTH_PASSWORD 查看或重新配置。");
         } else {
             log.warn("本地降级认证使用环境变量配置的密码，请确保密码强度足够");
         }
@@ -241,7 +242,13 @@ public class AuthController {
      * @return LoginResult 形态；账号不符返回 null（由调用方回 401）
      */
     private Map<String, Object> localLogin(LoginRequest req) {
-        if (!localUsername.equals(req.username()) || !localPassword.equals(req.password())) {
+        // 常量时间比较防时序攻击（用户名与密码均用 MessageDigest.isEqual）
+        byte[] expectedUser = localUsername.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] actualUser = req.username().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] expectedPass = localPassword.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] actualPass = req.password().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        if (!java.security.MessageDigest.isEqual(expectedUser, actualUser)
+                || !java.security.MessageDigest.isEqual(expectedPass, actualPass)) {
             log.warn("本地降级登录: 账号或密码不匹配, username={}", req.username());
             return null;
         }
