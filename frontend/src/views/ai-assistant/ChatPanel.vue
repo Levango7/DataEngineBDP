@@ -424,7 +424,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 }
 .msg-user .msg-avatar {
   background: var(--ds-color-primary-500);
-  color: #fff;
+  color: var(--ds-text-inverse);
 }
 .msg-body {
   max-width: 78%;
@@ -454,7 +454,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 }
 .msg-user .content-text {
   background: var(--ds-color-primary-500);
-  color: #fff;
+  color: var(--ds-text-inverse);
   border-color: var(--ds-color-primary-500);
 }
 .cursor {

@@ -344,7 +344,7 @@ async function copySql(): Promise<void> {
   top: 8px;
   right: 12px;
   background: var(--c-green-600);
-  color: #fff;
+  color: var(--ds-text-inverse);
   font-size: 12px;
   padding: 3px 8px;
   border-radius: 6px;

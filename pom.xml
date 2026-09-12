@@ -60,6 +60,7 @@
         <module>platform/encaps-gateway</module>
         <module>platform/encaps-layer</module>
         <module>platform/encaps-tenant</module>
+        <module>platform/finops/billing</module>
         <module>platform/finops/cost-model</module>
         <module>platform/finops/dashboard</module>
         <module>platform/flink-cdc</module>

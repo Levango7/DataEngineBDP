@@ -106,13 +106,18 @@ export function useNavGroups() {
       ]
     },
     {
-      title: t('nav.groups.operations'),
+      title: t('nav.groups.operations-mgmt'),
       items: [
         { path: '/dashboard', label: t('nav.items.dashboard'), icon: 'PieChart' },
         { path: '/tenants', label: t('nav.items.tenants'), icon: 'OfficeBuilding' },
         { path: '/approvals', label: t('nav.items.approvals'), icon: 'CircleCheck' },
         { path: '/ops', label: t('nav.items.ops'), icon: 'Tools' },
-        { path: '/search', label: t('nav.items.search'), icon: 'Search' },
+        { path: '/search', label: t('nav.items.search'), icon: 'Search' }
+      ]
+    },
+    {
+      title: t('nav.groups.platform-mgmt'),
+      items: [
         { path: '/admin', label: t('nav.items.admin'), icon: 'Grid' },
         { path: '/ops-tpl', label: t('nav.items.ops-tpl'), icon: 'Collection' },
         { path: '/ops-portal', label: t('nav.items.ops-portal'), icon: 'View' },

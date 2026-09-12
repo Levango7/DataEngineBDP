@@ -83,7 +83,7 @@ jobs:
             platform/infra-provider-baremetal/go.sum
             platform/karmada/api/go.sum
             platform/karmada/failover/api/go.sum
-            platform/knative/runtimes/go/go.sum
+
             platform/llm-gateway/go.sum
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum
@@ -968,7 +968,7 @@ jobs:
             platform/infra-provider-baremetal/go.sum
             platform/karmada/api/go.sum
             platform/karmada/failover/api/go.sum
-            platform/knative/runtimes/go/go.sum
+
             platform/llm-gateway/go.sum
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum
@@ -1646,7 +1646,8 @@ jobs:
         if: env.it_skip != 'true'
         run: |
           # 集成测试以子进程方式启动 Python 组件，需在 CI Python 环境中安装其依赖
-          for comp in asset-exchange business-portal open-api-catalog industry-templates knowledge-engine model-finetuning; do
+          # model-finetuning 已降级为规划（移至 design/planned/），不再参与集成测试
+          for comp in asset-exchange business-portal open-api-catalog industry-templates knowledge-engine; do
             # 优先使用 requirements-test.txt（轻量级测试依赖），回退到 requirements.txt
             req_test="platform/$comp/requirements-test.txt"
             req="platform/$comp/requirements.txt"

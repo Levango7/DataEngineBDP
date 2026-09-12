@@ -69,7 +69,8 @@
       "devtools": "Dev Tools",
       "tenant": "Tenant & Quota",
       "intelligent": "Intelligent Data",
-      "operations": "Operations"
+      "operations-mgmt": "Operations Management",
+      "platform-mgmt": "Platform Management"
     },
     "items": {
       "infra-machine": "Machine Provisioning",

@@ -69,7 +69,8 @@
       "devtools": "开发工具",
       "tenant": "租户与配额",
       "intelligent": "智能数据",
-      "operations": "产品运营"
+      "operations-mgmt": "运营管理",
+      "platform-mgmt": "平台管理"
     },
     "items": {
       "infra-machine": "机器供应",

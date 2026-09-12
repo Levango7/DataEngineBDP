@@ -138,42 +138,42 @@
           {{ t('dashboard.todo.title') }}
           <span class="pill r" :aria-label="t('dashboard.todo.title')">{{ store.todoCount }}</span>
         </h3>
-        <table role="table" :aria-label="t('dashboard.todo.title')">
-          <thead>
-            <tr role="row">
-              <th role="columnheader">{{ t('dashboard.todo.colApplicant') }}</th>
-              <th role="columnheader">{{ t('dashboard.todo.colOwner') }}</th>
-              <th role="columnheader">{{ t('dashboard.todo.colAction') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="approval in store.secApprovals" :key="approval.id" role="row">
-              <td role="cell">{{ approval.asset }}（{{ approval.perm }}）</td>
-              <td role="cell">{{ approval.applicant }}</td>
-              <td role="cell">
-                <button
-                  class="btn sm"
-                  :aria-label="t('dashboard.todo.approve')"
-                  @click="store.approve(approval.id)"
-                >
-                  {{ t('dashboard.todo.approve') }}
-                </button>
-                <button
-                  class="btn ghost sm"
-                  :aria-label="t('dashboard.todo.reject')"
-                  @click="store.reject(approval.id)"
-                >
-                  {{ t('dashboard.todo.reject') }}
-                </button>
-              </td>
-            </tr>
-            <tr v-if="store.secApprovals.length === 0" role="row">
-              <td colspan="3" style="text-align: center; color: var(--ds-text-tertiary)" role="cell">
-                {{ t('dashboard.todo.empty') }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <el-table
+          :data="store.secApprovals"
+          stripe
+          border
+          role="table"
+          :aria-label="t('dashboard.todo.title')"
+          :empty-text="t('dashboard.todo.empty')"
+        >
+          <el-table-column :label="t('dashboard.todo.colApplicant')">
+            <template #default="{ row }">
+              {{ row.asset }}（{{ row.perm }}）
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="applicant"
+            :label="t('dashboard.todo.colOwner')"
+          />
+          <el-table-column :label="t('dashboard.todo.colAction')">
+            <template #default="{ row }">
+              <button
+                class="btn sm"
+                :aria-label="t('dashboard.todo.approve')"
+                @click="store.approve(row.id)"
+              >
+                {{ t('dashboard.todo.approve') }}
+              </button>
+              <button
+                class="btn ghost sm"
+                :aria-label="t('dashboard.todo.reject')"
+                @click="store.reject(row.id)"
+              >
+                {{ t('dashboard.todo.reject') }}
+              </button>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
     </div>
     <div

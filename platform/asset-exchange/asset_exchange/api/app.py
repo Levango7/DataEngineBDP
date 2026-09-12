@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from asset_exchange.api.jwt_auth import getAuthContext
-from asset_exchange.api.routers import assets, audit, health, subscriptions
+from asset_exchange.api.routers import assets, audit, health, settlements, subscriptions
 from asset_exchange.config.settings import Settings, get_settings
 from asset_exchange.services.registry import ServiceRegistry, build_services
 
@@ -68,6 +68,8 @@ def create_app(
     app.include_router(assets.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
     app.include_router(subscriptions.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
     app.include_router(audit.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    # 出账闭环：基于 finops 账单的结算端点
+    app.include_router(settlements.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
 
     # ---- 全局异常处理器：统一错误响应格式 {error, message} ----
     @app.exception_handler(Exception)

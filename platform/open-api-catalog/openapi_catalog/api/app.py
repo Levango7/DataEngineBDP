@@ -17,6 +17,7 @@ from openapi_catalog.api.routers import (
     invoke,
     metrics_docs,
     subscriptions,
+    usage_export,
 )
 from openapi_catalog.config.settings import Settings, get_settings
 from openapi_catalog.services.registry import ServiceRegistry, build_services
@@ -78,6 +79,8 @@ def create_app(
     app.include_router(billing.subscriptions_billing_router, prefix=prefix, dependencies=[Depends(getAuthContext)])
     app.include_router(invoke.router, prefix=prefix)
     app.include_router(metrics_docs.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
+    # 出账闭环：导出 API 调用量到 finops（计量汇入）
+    app.include_router(usage_export.router, prefix=prefix, dependencies=[Depends(getAuthContext)])
 
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):

@@ -210,9 +210,9 @@ async function handleLogin() {
   grid-template-columns: minmax(380px, 1fr) minmax(440px, 1.1fr);
   overflow: hidden;
   background:
-    radial-gradient(ellipse 1200px 800px at 0% 50%, #dbeafe 0%, transparent 60%),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, #e0e7ff 0%, transparent 55%),
-    linear-gradient(135deg, #f0f4ff 0%, #e8eef9 100%);
+    radial-gradient(ellipse 1200px 800px at 0% 50%, var(--ds-color-primary-100) 0%, transparent 60%),
+    radial-gradient(ellipse 1000px 700px at 100% 100%, var(--ds-color-info-100) 0%, transparent 55%),
+    linear-gradient(135deg, var(--ds-color-primary-50) 0%, var(--ds-color-gray-100) 100%);
 }
 
 /* === 左侧品牌区 === */
@@ -231,6 +231,7 @@ async function handleLogin() {
     linear-gradient(rgba(59, 130, 246, 0.06) 1px, transparent 1px),
     linear-gradient(90deg, rgba(59, 130, 246, 0.06) 1px, transparent 1px);
   background-size: 32px 32px;
+  /* #000 为 mask luminance 功能值（非视觉颜色），不随主题变化，保留硬编码 */
   mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 80%);
   -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 50%, #000 30%, transparent 80%);
   pointer-events: none;
@@ -240,7 +241,7 @@ async function handleLogin() {
   border-radius: 50%;
   filter: blur(100px);
   pointer-events: none;
-  animation: orbFloat 4s ease-in-out infinite alternate;
+  animation: orbFloat 0.6s ease-out forwards;
 }
 .left-bg-glow--1 {
   width: 480px;
@@ -255,14 +256,24 @@ async function handleLogin() {
   bottom: -160px;
   right: -120px;
   background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
-  animation-delay: 2.4s;
+  animation-delay: 0.15s;
 }
 @keyframes orbFloat {
   0% {
-    transform: translate(0, 0) scale(1);
+    opacity: 0;
+    transform: translateY(12px);
   }
   100% {
-    transform: translate(20px, -30px) scale(1.05);
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* 尊重用户减少动画偏好：光晕即时显示，不播放入场动画 */
+@media (prefers-reduced-motion: reduce) {
+  .left-bg-glow {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }
 .left-content {
@@ -284,7 +295,7 @@ async function handleLogin() {
   width: 11px;
   height: 11px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   box-shadow:
     0 0 12px rgba(99, 102, 241, 0.7),
     0 0 0 4px rgba(99, 102, 241, 0.15);
@@ -312,7 +323,7 @@ async function handleLogin() {
   letter-spacing: 0.5px;
 }
 .slogan-accent {
-  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
+  background: linear-gradient(120deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, var(--ds-color-accent-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -344,7 +355,7 @@ async function handleLogin() {
 }
 .metric-letter {
   font-size: 20px;
-  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(120deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -451,7 +462,7 @@ async function handleLogin() {
   font-size: 16px;
   font-weight: 600;
   letter-spacing: 2px;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
   border: none !important;
   box-shadow:
     0 4px 14px rgba(99, 102, 241, 0.3),
@@ -648,12 +659,12 @@ async function handleLogin() {
       var(--ds-bg-surface) 0%,
       transparent 60%
     ),
-    radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%),
+    radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%), /* indigo-950 深紫装饰色，暂无精确 token，保留 */
     linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
 }
 /* 左侧品牌区整块深色 */
 :root[data-theme='dark'] .login-left {
-  background: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, #131e35 100%) !important;
+  background: linear-gradient(180deg, var(--ds-color-dark-bg-1) 0%, var(--ds-color-dark-bg-2) 100%) !important;
 }
 /* 右侧表单区 */
 :root[data-theme='dark'] .login-right {
@@ -737,7 +748,7 @@ async function handleLogin() {
   color: var(--ds-text-primary) !important;
 }
 :root[data-theme='dark'] .slogan-accent {
-  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, var(--ds-color-info-400) 50%, #c084fc 100%) !important;
+  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, var(--ds-color-info-400) 50%, var(--ds-color-accent-400) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -758,7 +769,7 @@ async function handleLogin() {
 }
 :root[data-theme='dark'] .metric-num,
 :root[data-theme='dark'] .metric-letter {
-  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, #c084fc 100%) !important;
+  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, var(--ds-color-accent-400) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;

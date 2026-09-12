@@ -1,0 +1,238 @@
+# 服务宕机告警规则（Kubernetes PrometheusRule CRD）
+#
+# 用途：核心业务服务宕机检测，5 分钟无心跳即告警。
+# 部署：kubectl apply -f service-down-alerts.yaml -n monitoring
+# 通知渠道：severity=critical → PagerDuty + 邮件（见 alert-routing.yaml）
+#
+# 覆盖核心服务：
+#   encaps-layer / encaps-gateway / encaps-tenant / encaps-data
+#   sql-gateway / rule-engine / nl2sql / llm-gateway
+#   knowledge-engine / catalog / chunker / business-portal
+#   tag-engine / operations-api / open-api-catalog
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: service-down-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus-rule
+    app.kubernetes.io/part-of: observability
+    prometheus: kube-prometheus
+    role: alert-rules
+    severity: critical
+  annotations:
+    description: "核心业务服务宕机告警：5 分钟无心跳触发 critical 告警"
+spec:
+  groups:
+    - name: service-down-critical
+      interval: 30s
+      rules:
+        # ---------------------------------------------------------------------------
+        # encaps-layer 封装层服务宕机
+        # ---------------------------------------------------------------------------
+        - alert: EncapsLayerDown
+          expr: |
+            up{job="encaps-layer"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: encaps-layer
+            component: encaps
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "encaps-layer 服务宕机"
+            description: "封装层服务 encaps-layer 已持续 5 分钟无心跳，将导致所有数据封装与多租户隔离能力不可用。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/encaps-layer-down"
+            dashboard_url: "https://grafana.shuqing.bigdata/d/encaps-layer"
+
+        # ---------------------------------------------------------------------------
+        # encaps-gateway 封装网关宕机
+        # ---------------------------------------------------------------------------
+        - alert: EncapsGatewayDown
+          expr: |
+            up{job="encaps-gateway"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: encaps-gateway
+            component: encaps
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "encaps-gateway 网关宕机"
+            description: "封装网关 encaps-gateway 已持续 5 分钟无心跳，外部请求无法路由到后端服务。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/encaps-gateway-down"
+
+        # ---------------------------------------------------------------------------
+        # sql-gateway SQL 网关宕机
+        # ---------------------------------------------------------------------------
+        - alert: SqlGatewayDown
+          expr: |
+            up{job="sql-gateway"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: sql-gateway
+            component: gateway
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "sql-gateway 服务宕机"
+            description: "SQL 网关 sql-gateway 已持续 5 分钟无心跳，所有 SQL 审计/路由/限流能力不可用。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/sql-gateway-down"
+
+        # ---------------------------------------------------------------------------
+        # rule-engine 规则引擎宕机
+        # ---------------------------------------------------------------------------
+        - alert: RuleEngineDown
+          expr: |
+            up{job="rule-engine"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: rule-engine
+            component: engine
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "rule-engine 服务宕机"
+            description: "规则引擎 rule-engine 已持续 5 分钟无心跳，数据质量规则与行级权限规则无法执行。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/rule-engine-down"
+
+        # ---------------------------------------------------------------------------
+        # nl2sql 自然语言转 SQL 服务宕机
+        # ---------------------------------------------------------------------------
+        - alert: Nl2SqlDown
+          expr: |
+            up{job="nl2sql"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: nl2sql
+            component: nl2sql
+            category: service-availability
+            impact: medium
+          annotations:
+            summary: "nl2sql 服务宕机"
+            description: "NL2SQL 服务 nl2sql 已持续 5 分钟无心跳，自然语言查询能力不可用。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/nl2sql-down"
+
+        # ---------------------------------------------------------------------------
+        # llm-gateway LLM 网关宕机
+        # ---------------------------------------------------------------------------
+        - alert: LlmGatewayDown
+          expr: |
+            up{job="llm-gateway"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: llm-gateway
+            component: gateway
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "llm-gateway 服务宕机"
+            description: "LLM 网关 llm-gateway 已持续 5 分钟无心跳，所有大模型调用链路中断。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/llm-gateway-down"
+
+        # ---------------------------------------------------------------------------
+        # knowledge-engine 知识引擎宕机
+        # ---------------------------------------------------------------------------
+        - alert: KnowledgeEngineDown
+          expr: |
+            up{job="knowledge-engine"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: knowledge-engine
+            component: engine
+            category: service-availability
+            impact: medium
+          annotations:
+            summary: "knowledge-engine 服务宕机"
+            description: "知识引擎 knowledge-engine 已持续 5 分钟无心跳，知识库检索与 RAG 能力不可用。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/knowledge-engine-down"
+
+        # ---------------------------------------------------------------------------
+        # catalog 元数据目录服务宕机
+        # ---------------------------------------------------------------------------
+        - alert: CatalogDown
+          expr: |
+            up{job="catalog"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: catalog
+            component: catalog
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "catalog 服务宕机"
+            description: "元数据目录服务 catalog 已持续 5 分钟无心跳，表/列/血缘元数据查询不可用。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/catalog-down"
+
+        # ---------------------------------------------------------------------------
+        # business-portal 业务门户宕机
+        # ---------------------------------------------------------------------------
+        - alert: BusinessPortalDown
+          expr: |
+            up{job="business-portal"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: business-portal
+            component: portal
+            category: service-availability
+            impact: high
+          annotations:
+            summary: "business-portal 服务宕机"
+            description: "业务门户 business-portal 已持续 5 分钟无心跳，用户无法访问管理控制台。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/business-portal-down"
+
+        # ---------------------------------------------------------------------------
+        # operations-api 运营 API 宕机
+        # ---------------------------------------------------------------------------
+        - alert: OperationsApiDown
+          expr: |
+            up{job="operations-api"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: operations-api
+            component: api
+            category: service-availability
+            impact: medium
+          annotations:
+            summary: "operations-api 服务宕机"
+            description: "运营 API operations-api 已持续 5 分钟无心跳，运维管理接口不可用。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/operations-api-down"
+
+        # ---------------------------------------------------------------------------
+        # Kubernetes API Server 不可用（平台级 critical）
+        # ---------------------------------------------------------------------------
+        - alert: KubeApiServerDown
+          expr: |
+            up{job="kube-apiserver"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: kube-apiserver
+            component: kubernetes
+            category: infrastructure
+            impact: critical
+          annotations:
+            summary: "Kubernetes API Server 不可用"
+            description: "API Server 已持续 5 分钟不可达，集群调度与管理完全中断，需立即介入。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/kube-api-down"

@@ -299,7 +299,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 
 <style scoped>
 .search-filter {
-  background: var(--panel, #fff);
+  background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 14px;

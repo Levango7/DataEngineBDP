@@ -777,7 +777,7 @@ onMounted(async () => {
 }
 
 .bp-sidebar {
-  background: var(--card-bg, #fff);
+  background: var(--card-bg, var(--ds-bg-surface));
   border: 1px solid var(--border, #e5e6eb);
   border-radius: 8px;
   padding: 12px;

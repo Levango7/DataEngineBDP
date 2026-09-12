@@ -671,7 +671,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .node-rect {
-  fill: #fff;
+  fill: var(--ds-text-inverse);
   stroke: var(--ds-border-subtle);
   stroke-width: 1.5;
   transition: all 0.2s;

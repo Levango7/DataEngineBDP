@@ -1,0 +1,228 @@
+# 数据库连接异常告警规则（Kubernetes PrometheusRule CRD）
+#
+# 用途：数据库连接池耗尽与连接失败率异常告警，保障数据访问层可用性。
+# 部署：kubectl apply -f db-connection-alerts.yaml -n monitoring
+# 通知渠道：
+#   severity=critical → PagerDuty + 邮件
+#   severity=warning  → 邮件
+#
+# 覆盖数据源：
+#   PostgreSQL（元数据库）/ MySQL（业务库）/ Doris FE-BE（OLAP）/ Kafka（消息）
+#
+# 阈值策略：
+#   连接池使用率 > 80% 持续 5 分钟 → warning；> 95% 持续 2 分钟 → critical
+#   连接失败率   > 5%  持续 5 分钟 → warning；> 20% 持续 2 分钟 → critical
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: db-connection-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus-rule
+    app.kubernetes.io/part-of: observability
+    prometheus: kube-prometheus
+    role: alert-rules
+    severity: warning
+  annotations:
+    description: "数据库连接异常告警：连接池使用率>80%/连接失败率>5% 触发"
+spec:
+  groups:
+    - name: db-connection-pool
+      interval: 30s
+      rules:
+        # ---------------------------------------------------------------------------
+        # PostgreSQL 连接池使用率 > 80% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: PostgresConnectionPoolHighWarning
+          expr: |
+            (
+              pg_stat_activity_count{state="active"}
+              /
+              pg_settings_max_connections
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            datasource: postgresql
+            component: database
+            category: db-connection
+          annotations:
+            summary: "PostgreSQL 连接池使用率过高: {{ $labels.instance }}"
+            description: "PostgreSQL {{ $labels.instance }} 活跃连接数持续 5 分钟超过 max_connections 的 80%（当前 {{ $value | humanizePercentage }}），可能耗尽连接。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/pg-pool-high"
+
+        # ---------------------------------------------------------------------------
+        # PostgreSQL 连接池使用率 > 95% 持续 2 分钟（critical）
+        # ---------------------------------------------------------------------------
+        - alert: PostgresConnectionPoolHighCritical
+          expr: |
+            (
+              pg_stat_activity_count{state="active"}
+              /
+              pg_settings_max_connections
+            ) * 100 > 95
+          for: 2m
+          labels:
+            severity: critical
+            datasource: postgresql
+            component: database
+            category: db-connection
+            impact: high
+          annotations:
+            summary: "PostgreSQL 连接池即将耗尽: {{ $labels.instance }}"
+            description: "PostgreSQL {{ $labels.instance }} 活跃连接数超过 max_connections 的 95%（当前 {{ $value | humanizePercentage }}），新连接将被拒绝。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/pg-pool-critical"
+
+        # ---------------------------------------------------------------------------
+        # MySQL 连接池使用率 > 80% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: MysqlConnectionPoolHighWarning
+          expr: |
+            (
+              mysql_global_status_threads_connected
+              /
+              mysql_global_variables_max_connections
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            datasource: mysql
+            component: database
+            category: db-connection
+          annotations:
+            summary: "MySQL 连接池使用率过高: {{ $labels.instance }}"
+            description: "MySQL {{ $labels.instance }} 连接数持续 5 分钟超过 max_connections 的 80%（当前 {{ $value | humanizePercentage }}）。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/mysql-pool-high"
+
+        # ---------------------------------------------------------------------------
+        # MySQL 连接池使用率 > 95% 持续 2 分钟（critical）
+        # ---------------------------------------------------------------------------
+        - alert: MysqlConnectionPoolHighCritical
+          expr: |
+            (
+              mysql_global_status_threads_connected
+              /
+              mysql_global_variables_max_connections
+            ) * 100 > 95
+          for: 2m
+          labels:
+            severity: critical
+            datasource: mysql
+            component: database
+            category: db-connection
+            impact: high
+          annotations:
+            summary: "MySQL 连接池即将耗尽: {{ $labels.instance }}"
+            description: "MySQL {{ $labels.instance }} 连接数超过 max_connections 的 95%（当前 {{ $value | humanizePercentage }}），新连接将被拒绝。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/mysql-pool-critical"
+
+        # ---------------------------------------------------------------------------
+        # HikariCP 连接池使用率 > 80% 持续 5 分钟（warning，Java 服务通用）
+        # ---------------------------------------------------------------------------
+        - alert: HikariCpPoolHighWarning
+          expr: |
+            (
+              hikaricp_connections_active
+              /
+              hikaricp_connections_max
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            datasource: hikaricp
+            component: database
+            category: db-connection
+          annotations:
+            summary: "HikariCP 连接池使用率过高: {{ $labels.app }} @ {{ $labels.instance }}"
+            description: "服务 {{ $labels.app }} ({{ $labels.instance }}) HikariCP 连接池使用率持续 5 分钟超过 80%（当前 {{ $value | humanizePercentage }}）。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/hikaricp-pool-high"
+
+    - name: db-connection-failure
+      interval: 30s
+      rules:
+        # ---------------------------------------------------------------------------
+        # 数据库连接失败率 > 5% 持续 5 分钟（warning）
+        # 基于 sql-gateway 暴露的连接尝试指标
+        # ---------------------------------------------------------------------------
+        - alert: DbConnectionFailureRateHighWarning
+          expr: |
+            (
+              sum(rate(sql_gateway_db_connection_failed_total[5m])) by (datasource)
+              /
+              sum(rate(sql_gateway_db_connection_attempted_total[5m])) by (datasource)
+            ) * 100 > 5
+          for: 5m
+          labels:
+            severity: warning
+            datasource: "{{ $labels.datasource }}"
+            component: database
+            category: db-connection
+          annotations:
+            summary: "数据库连接失败率过高: {{ $labels.datasource }}"
+            description: "数据源 {{ $labels.datasource }} 连接失败率持续 5 分钟超过 5%（当前 {{ $value | humanizePercentage }}），可能存在网络/认证/资源问题。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/db-conn-fail"
+
+        # ---------------------------------------------------------------------------
+        # 数据库连接失败率 > 20% 持续 2 分钟（critical）
+        # ---------------------------------------------------------------------------
+        - alert: DbConnectionFailureRateHighCritical
+          expr: |
+            (
+              sum(rate(sql_gateway_db_connection_failed_total[5m])) by (datasource)
+              /
+              sum(rate(sql_gateway_db_connection_attempted_total[5m])) by (datasource)
+            ) * 100 > 20
+          for: 2m
+          labels:
+            severity: critical
+            datasource: "{{ $labels.datasource }}"
+            component: database
+            category: db-connection
+            impact: high
+          annotations:
+            summary: "数据库连接失败率严重过高: {{ $labels.datasource }}"
+            description: "数据源 {{ $labels.datasource }} 连接失败率超过 20%（当前 {{ $value | humanizePercentage }}），数据访问层可能大面积不可用。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/db-conn-fail-critical"
+
+        # ---------------------------------------------------------------------------
+        # Doris FE 不可达（warning，OLAP 查询受影响）
+        # ---------------------------------------------------------------------------
+        - alert: DorisFeUnreachable
+          expr: |
+            up{job="doris-fe"} == 0
+          for: 5m
+          labels:
+            severity: warning
+            datasource: doris
+            component: database
+            category: db-connection
+          annotations:
+            summary: "Doris FE 不可达: {{ $labels.instance }}"
+            description: "Doris FE {{ $labels.instance }} 已持续 5 分钟不可达，OLAP 查询能力受影响。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/doris-fe-down"
+
+        # ---------------------------------------------------------------------------
+        # Doris BE 存活数低于预期（warning）
+        # ---------------------------------------------------------------------------
+        - alert: DorisBeCountLow
+          expr: |
+            count(up{job="doris-be"} == 1) < 2
+          for: 5m
+          labels:
+            severity: warning
+            datasource: doris
+            component: database
+            category: db-connection
+          annotations:
+            summary: "Doris BE 存活节点数不足"
+            description: "Doris BE 存活节点数少于 2（当前 {{ $value }}），OLAP 查询可用性与性能受影响。"
+            value: "{{ $value }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/doris-be-low"

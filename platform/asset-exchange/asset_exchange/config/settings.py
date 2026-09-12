@@ -63,6 +63,17 @@ class Settings(BaseSettings):
     )
     platformAccountId: str = Field(default="platform-main", description="平台分账账户 ID")
 
+    # ---- finops 出账闭环对接 ----
+    finopsBillingUrl: str = Field(
+        default="http://localhost:8085/api/finops/v1/billing",
+        description="FinOps 账单服务地址（出账闭环：asset-exchange 调用获取账单）",
+    )
+    finopsBillingTimeout: float = Field(
+        default=10.0,
+        ge=0.1,
+        description="FinOps 账单服务请求超时（秒）",
+    )
+
     @field_validator("logLevel")
     @classmethod
     def _validate_log_level(cls, v: str) -> str:

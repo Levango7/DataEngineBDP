@@ -96,7 +96,7 @@ body {
   font-family: -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background: var(--bg);
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -141,9 +141,9 @@ body {
   background: rgba(30, 58, 138, 0.5);
 }
 .brand {
-  height: 57px;
+  height: 54px;
   padding: 0 12px 0 18px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   font-weight: 700;
   color: var(--ds-color-primary-900);
   display: flex;
@@ -204,7 +204,7 @@ body {
 }
 /* 分组标题：加大字号 + 深蓝色 + 加粗 + 增加上下间距 */
 .nav .grp {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-primary-900);
   padding: 18px 20px 8px;
   letter-spacing: 1px;
@@ -243,7 +243,7 @@ body {
   cursor: pointer;
   border-radius: 8px;
   border: 1px solid transparent;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   font-weight: 600;
   text-decoration: none;
   transition:
@@ -285,7 +285,7 @@ body {
 .nav a .nav-ic {
   flex: none;
   color: var(--ds-color-primary-800);
-  stroke-width: 1.8; /* EP 图标加粗：从默认 1.5 → 1.8 */
+  stroke-width: 1.5; /* EP 图标默认描边 */
   fill: none;
   stroke: currentColor;
   stroke-linecap: round;
@@ -297,7 +297,7 @@ body {
 .nav a.active .ic,
 .nav a.active .nav-ic {
   color: var(--ds-color-primary-800);
-  stroke-width: 2; /* 激活态更粗：2.0 */
+  stroke-width: 1.8; /* 激活态稍粗，保持层次 */
 }
 .fic {
   width: 14px;
@@ -320,7 +320,7 @@ body {
   margin-left: auto;
   background: var(--red);
   color: var(--ds-text-inverse);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   border-radius: 10px;
   padding: 1px 6px;
 }
@@ -328,7 +328,7 @@ body {
 .side-foot {
   padding: 12px 16px;
   border-top: 1px solid rgba(30, 58, 138, 0.25);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-primary-900);
   line-height: 1.55;
   background: rgba(255, 255, 255, 0.55);
@@ -352,7 +352,7 @@ body {
   border: 1px solid var(--sidebar-line);
   background: transparent;
   color: var(--sidebar-ink);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -376,7 +376,7 @@ body {
   border: 1px solid var(--sidebar-line);
   background: transparent;
   color: var(--sidebar-ink);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 0 6px;
   cursor: pointer;
 }
@@ -429,7 +429,7 @@ body {
   height: 14px;
   line-height: 14px;
   padding: 0 3px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   z-index: 2;
 }
 .side.collapsed .side-foot {
@@ -449,7 +449,7 @@ body {
   overflow: hidden;
 }
 .topbar {
-  height: 56px;
+  height: 54px;
   background: var(--topbar-bg, linear-gradient(180deg, var(--ds-color-sidebar-bg-1) 0%, var(--ds-color-sidebar-bg-2) 100%));
   border-bottom: 1px solid rgba(30, 58, 138, 0.28);
   box-shadow:
@@ -501,7 +501,7 @@ body {
   flex: 1;
 }
 .env-tag {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 4px 10px;
   border-radius: 20px;
   background: var(--c-green-50);
@@ -692,7 +692,7 @@ body {
     0 6px 20px rgba(59, 130, 246, 0.25);
 }
 .card h3 {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   margin-bottom: 10px;
   display: flex;
   align-items: center;
@@ -702,7 +702,7 @@ body {
 }
 .card .act {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--primary);
   cursor: pointer;
   font-weight: 600;
@@ -712,7 +712,7 @@ body {
   color: var(--primary-2);
 }
 .kpi {
-  font-size: 24px;
+  font-size: var(--ds-font-size-3xl);
   font-weight: 700;
   background: var(--gradient-primary);
   -webkit-background-clip: text;
@@ -721,16 +721,16 @@ body {
   color: transparent;
 }
 .kpi.s {
-  font-size: 18px;
+  font-size: var(--ds-font-size-xl);
 }
 .meta {
   color: var(--ds-color-gray-600);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   font-weight: 500;
 }
 .pill {
   display: inline-block;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 2px 9px;
   border-radius: 20px;
   font-weight: 600;
@@ -764,7 +764,7 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 th,
 td {
@@ -776,7 +776,7 @@ td {
 th {
   color: var(--muted);
   font-weight: 600;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   background: var(--c-surface-alt);
 }
 tr:hover td {
@@ -793,7 +793,7 @@ tr.click {
   border: none;
   padding: 8px 14px;
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   cursor: pointer;
   font-weight: 600;
   position: relative;
@@ -827,7 +827,7 @@ tr.click {
 }
 .btn.sm {
   padding: 5px 10px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .btn.danger {
   background: linear-gradient(135deg, var(--ds-color-error-500) 0%, var(--ds-color-orange-500) 100%);
@@ -871,7 +871,7 @@ textarea:focus {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 label {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--muted);
   display: block;
   margin: 10px 0 4px;
@@ -892,7 +892,7 @@ label {
   padding: 10px;
   border-right: 1px solid var(--line);
   background: var(--c-surface-hover);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   max-height: 420px;
   overflow: auto;
 }
@@ -915,7 +915,7 @@ label {
   gap: 2px;
   border-bottom: 1px solid var(--line);
   background: var(--c-surface-alt);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .tabs .tab {
   padding: 8px 12px;
@@ -939,7 +939,7 @@ label {
 .code {
   padding: 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   white-space: pre;
   color: var(--c-slate-700);
   min-height: 200px;
@@ -949,7 +949,7 @@ label {
   min-height: 200px;
   padding: 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   line-height: 1.6;
   white-space: pre;
   color: var(--c-slate-700);
@@ -977,7 +977,7 @@ label {
   background: var(--c-slate-900);
   color: var(--c-slate-300);
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 10px;
   height: 120px;
   overflow: auto;
@@ -994,7 +994,7 @@ label {
 .params {
   padding: 12px;
   border-left: 1px solid var(--line);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   background: var(--c-surface-hover);
   max-height: 420px;
   overflow: auto;
@@ -1015,7 +1015,7 @@ label {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 7px 11px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   box-shadow: var(--shadow);
   cursor: pointer;
   transition:
@@ -1053,7 +1053,7 @@ label {
   background: var(--ds-bg-surface);
   border-radius: 8px;
   padding: 8px 14px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   box-shadow: var(--shadow);
   cursor: pointer;
   transition:
@@ -1099,10 +1099,10 @@ label {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 6px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .note {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-gray-600);
   font-weight: 500;
   margin-top: 8px;
@@ -1114,7 +1114,7 @@ label {
 .el-select__placeholder {
   color: var(--ds-color-gray-500) !important;
   font-weight: 500 !important;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 /* === EP 输入框文字位置规范化（2026-09-08 三次修订）：文字起始距框线约 10px，
@@ -1264,7 +1264,7 @@ label {
 .el-form-item__label {
   color: var(--ds-color-primary-900) !important;
   font-weight: 600 !important;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .el-form-item__content,
 .el-input__inner,
@@ -1366,7 +1366,7 @@ label {
   justify-content: center;
   font-weight: 700;
   margin: 0 auto 8px;
-  font-size: 16px;
+  font-size: var(--ds-font-size-lg);
 }
 
 /* ============ drawer & modal ============ */
@@ -1414,7 +1414,7 @@ label {
   margin-left: auto;
   cursor: pointer;
   color: var(--muted);
-  font-size: 18px;
+  font-size: var(--ds-font-size-xl);
   transition:
     color 0.2s var(--ease-smooth),
     transform 0.2s var(--ease-smooth);
@@ -1454,7 +1454,7 @@ label {
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   display: flex;
   align-items: center;
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.06) 0%, rgba(139, 92, 246, 0.04) 100%);
@@ -1463,7 +1463,7 @@ label {
   margin-left: auto;
   cursor: pointer;
   color: var(--muted);
-  font-size: 18px;
+  font-size: var(--ds-font-size-xl);
   transition:
     color 0.2s var(--ease-smooth),
     transform 0.2s var(--ease-smooth);
@@ -1502,7 +1502,7 @@ label {
   color: var(--ds-text-inverse);
   padding: 10px 18px;
   border-radius: 10px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
   animation: springIn 0.45s var(--ease-spring);
   border-left: 3px solid var(--primary);
@@ -1518,7 +1518,7 @@ label {
 .tabbar .t {
   padding: 9px 16px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--muted);
   border-bottom: 2px solid transparent;
   transition:
@@ -1535,7 +1535,7 @@ label {
   justify-content: space-between;
   padding: 7px 0;
   border-bottom: 1px dashed var(--line);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .kv span:first-child {
   color: var(--muted);
@@ -1546,7 +1546,7 @@ label {
   flex-wrap: wrap;
 }
 .chip {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 3px 9px;
   border: 1px solid var(--line);
   border-radius: 20px;
@@ -1574,12 +1574,12 @@ label {
 .legend {
   display: flex;
   gap: 14px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--muted);
   margin-bottom: 10px;
 }
 .section-title {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   font-weight: 700;
   color: var(--muted);
   margin: 18px 0 8px;
@@ -1631,7 +1631,7 @@ label {
   background: var(--ds-color-gray-400);
 }
 .health-name {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   flex: 1;
   overflow: hidden;
@@ -1639,7 +1639,7 @@ label {
   white-space: nowrap;
 }
 .health-status {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   font-weight: 600;
   color: var(--muted, var(--ds-color-gray-fallback));
 }
@@ -2381,5 +2381,214 @@ label {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+/* ============================================================
+ * 统一响应式断点系统（C-8 修复，2026-09-12）
+ * 三档断点：
+ *   移动端  ≤ 640px   ：侧边栏抽屉化 + 顶栏压缩 + 单列网格 + 表格滚动
+ *   平板    641–1440px：侧边栏 icon-only 折叠 + 网格 2 列
+ *   桌面端  ≥ 1441px   ：默认（侧边栏 232px + 网格 3–4 列），无需额外规则
+ * 所有数值使用 design tokens 变量，避免硬编码
+ * ============================================================ */
+
+/* ------------------------------------------------------------
+ * 抽屉化交互基础设施（C-8）
+ * .sidebar-drawer  移动端侧边栏抽屉模式（position: fixed + transform off-screen）
+ * .sidebar-overlay 侧边栏遮罩层（半透明深色 + 毛玻璃）
+ * 使用 CSS transition 实现平滑动画，与现有 --ease-drawer 曲线一致
+ * ------------------------------------------------------------ */
+.sidebar-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 232px;
+  z-index: 70;
+  transform: translateX(-100%);
+  transition: transform 0.32s var(--ease-drawer);
+  box-shadow: 4px 0 24px rgba(15, 23, 42, 0.28);
+}
+/* 抽屉打开态：滑入视口 */
+.sidebar-drawer.is-open {
+  transform: translateX(0);
+}
+/* 遮罩层：默认隐藏，.is-open 时显示 */
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 65;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s var(--ease-smooth);
+}
+.sidebar-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================
+ * 移动端断点 ≤ 640px
+ * ============================================================ */
+@media (max-width: 640px) {
+  /* --- 侧边栏改为抽屉模式 ---
+   * 切换为 position: fixed，默认移出视口；由 .sidebar-drawer.is-open 控制滑入。
+   * 同时将 .app grid 列宽归零，让主区域占满整行。 */
+  .app {
+    grid-template-columns: 0 1fr auto !important;
+  }
+  .app .side {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 232px;
+    z-index: 70;
+    transform: translateX(-100%);
+    transition: transform 0.32s var(--ease-drawer);
+    box-shadow: 4px 0 24px rgba(15, 23, 42, 0.28);
+  }
+  .app .side.is-open {
+    transform: translateX(0);
+  }
+
+  /* --- 顶栏高度压缩到 48px --- */
+  .topbar {
+    height: 48px;
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .brand {
+    height: 48px;
+  }
+
+  /* --- 内容区域 padding 减小到 12px --- */
+  .view {
+    padding: 12px;
+  }
+
+  /* --- 卡片网格改为单列 --- */
+  .grid {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .g4,
+  .g3,
+  .g2,
+  .g5,
+  .g6 {
+    grid-template-columns: 1fr;
+  }
+
+  /* --- 卡片内边距收紧 --- */
+  .card {
+    padding: 14px 14px 12px;
+  }
+
+  /* --- KPI 数值字号略减 --- */
+  .kpi {
+    font-size: 20px;
+  }
+  .kpi.s {
+    font-size: 16px;
+  }
+
+  /* --- 表格水平滚动（原生 table 兜底；el-table 自带响应式） --- */
+  .card > table,
+  .view > table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+
+  /* --- 快捷操作 chips 横向滚动 --- */
+  .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .chip {
+    flex: none;
+  }
+
+  /* --- 抽屉/弹窗宽度适配 --- */
+  .drawer {
+    width: 100vw;
+    max-width: 100vw;
+  }
+  .modal {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+  }
+
+  /* --- IDE 三栏退化为单列堆叠 --- */
+  .ide {
+    grid-template-columns: 1fr;
+  }
+  .ide .tree,
+  .params {
+    max-height: 200px;
+    border-right: none;
+    border-left: none;
+  }
+}
+
+/* ============================================================
+ * 平板断点 641px – 1440px
+ * 侧边栏可折叠（宽度从 232px → 64px icon-only），卡片网格 2 列
+ * ============================================================ */
+@media (min-width: 641px) and (max-width: 1440px) {
+  /* --- 侧边栏 icon-only 折叠态（64px）---
+   * 仅当未显式展开时折叠；保留 .app.side-collapsed 显式控制权。
+   * 此处通过默认压缩列宽实现"平板默认折叠"语义。 */
+  .app {
+    grid-template-columns: 64px 1fr auto;
+  }
+  /* 平板下默认进入折叠态内部元素形态（复用现有 .side.collapsed 规则） */
+  .app .side {
+    /* 触发折叠态内部样式：通过类名协同，避免重复定义 */
+  }
+
+  /* --- 卡片网格 2 列 --- */
+  .g4,
+  .g5,
+  .g6 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .g3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* --- 内容区域 padding 适中 --- */
+  .view {
+    padding: 16px 18px;
+  }
+
+  /* --- IDE 三栏收窄 --- */
+  .ide {
+    grid-template-columns: 160px 1fr 200px;
+  }
+}
+
+/* ============================================================
+ * 桌面端断点 ≥ 1441px
+ * 默认样式即桌面端（侧边栏 232px + 网格 3–4 列），无需额外规则。
+ * 此处显式声明以文档化断点边界，避免后续维护误删。
+ * ============================================================ */
+@media (min-width: 1441px) {
+  /* 桌面端：保持默认 .app grid 232px 1fr auto */
+  .app {
+    grid-template-columns: 232px 1fr auto;
+  }
+  /* g4 保持 4 列（默认即如此，此处仅文档化） */
+  .g4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .g3 {
+    grid-template-columns: repeat(3, 1fr);
   }
 }

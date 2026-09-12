@@ -100,3 +100,40 @@ class AllocateRequest(BaseModel):
 
     providerAccountId: Optional[str] = Field(default=None, description="提供方账户 ID")
     platformAccountId: Optional[str] = Field(default=None, description="平台账户 ID")
+
+# ---- 出账闭环：基于 finops 账单的结算 ----
+
+
+class BillingSettlementRequest(BaseModel):
+    """基于 finops 账单的结算请求.
+
+    出账闭环第二环节：接收 finops 账单 ID，拉取账单金额执行结算。
+    """
+
+    billingId: str = Field(..., description="FinOps 账单 ID")
+    assetId: Optional[str] = Field(
+        default=None,
+        description="关联资产 ID（可选，用于分账到具体资产提供方）",
+    )
+    providerShare: Optional[float] = Field(
+        default=None, ge=0, le=1, description="提供方分成比例（不传用配置默认值）"
+    )
+    platformShare: Optional[float] = Field(
+        default=None, ge=0, le=1, description="平台分成比例（不传用配置默认值）"
+    )
+
+
+class BillingSettlementResponse(BaseModel):
+    """基于 finops 账单的结算响应."""
+
+    settlementId: str = Field(..., description="结算记录 ID")
+    billingId: str = Field(..., description="关联 finops 账单 ID")
+    tenantId: str = Field(..., description="租户 ID")
+    billingPeriod: str = Field(..., description="账期")
+    billingAmount: float = Field(..., description="账单总金额（元）")
+    totalAmount: float = Field(..., description="结算总金额（元，等于账单金额）")
+    providerRevenue: float = Field(..., description="提供方收益（元）")
+    platformRevenue: float = Field(..., description="平台抽成（元）")
+    status: str = Field(..., description="结算状态")
+    settledAt: Optional[datetime] = Field(default=None, description="结算完成时间")
+    errorMessage: Optional[str] = Field(default=None, description="失败原因")

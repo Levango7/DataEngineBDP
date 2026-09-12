@@ -1,0 +1,226 @@
+# 资源阈值告警规则（Kubernetes PrometheusRule CRD）
+#
+# 用途：CPU/内存/磁盘资源水位告警，防止资源耗尽导致服务降级或宕机。
+# 部署：kubectl apply -f resource-threshold-alerts.yaml -n monitoring
+# 通知渠道：
+#   severity=critical → PagerDuty + 邮件
+#   severity=warning  → 邮件
+#
+# 阈值策略：
+#   CPU    > 80% 持续 5 分钟 → warning；> 95% 持续 5 分钟 → critical
+#   内存   > 85% 持续 5 分钟 → warning；> 95% 持续 5 分钟 → critical
+#   磁盘   > 90% 持续 5 分钟 → warning；> 95% 持续 1 分钟 → critical
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: resource-threshold-alerts
+  namespace: monitoring
+  labels:
+    app.kubernetes.io/name: prometheus-rule
+    app.kubernetes.io/part-of: observability
+    prometheus: kube-prometheus
+    role: alert-rules
+    severity: warning
+  annotations:
+    description: "资源阈值告警：CPU>80%/内存>85%/磁盘>90% 持续 5 分钟触发"
+spec:
+  groups:
+    - name: resource-threshold-cpu
+      interval: 30s
+      rules:
+        # ---------------------------------------------------------------------------
+        # 节点 CPU 使用率 > 80% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: NodeCpuUsageHighWarning
+          expr: |
+            (
+              1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            resource: cpu
+            component: node
+            category: resource-threshold
+          annotations:
+            summary: "节点 CPU 使用率过高: {{ $labels.instance }}"
+            description: "节点 {{ $labels.instance }} CPU 使用率持续 5 分钟超过 80%（当前 {{ $value | humanizePercentage }}），可能影响服务调度。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/high-cpu"
+
+        # ---------------------------------------------------------------------------
+        # 节点 CPU 使用率 > 95% 持续 5 分钟（critical）
+        # ---------------------------------------------------------------------------
+        - alert: NodeCpuUsageHighCritical
+          expr: |
+            (
+              1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))
+            ) * 100 > 95
+          for: 5m
+          labels:
+            severity: critical
+            resource: cpu
+            component: node
+            category: resource-threshold
+            impact: high
+          annotations:
+            summary: "节点 CPU 使用率严重过高: {{ $labels.instance }}"
+            description: "节点 {{ $labels.instance }} CPU 使用率持续 5 分钟超过 95%（当前 {{ $value | humanizePercentage }}），服务面临严重降级风险。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/cpu-critical"
+
+        # ---------------------------------------------------------------------------
+        # Pod CPU 使用率 > 80% 持续 5 分钟（warning）
+        # 基于 kubelet cAdvisor 指标
+        # ---------------------------------------------------------------------------
+        - alert: PodCpuUsageHighWarning
+          expr: |
+            (
+              sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!="",container!="POD"}[5m]))
+              /
+              sum by (namespace, pod) (kube_pod_container_resource_limits{resource="cpu"})
+            ) * 100 > 80
+          for: 5m
+          labels:
+            severity: warning
+            resource: cpu
+            component: pod
+            category: resource-threshold
+          annotations:
+            summary: "Pod CPU 使用率过高: {{ $labels.namespace }}/{{ $labels.pod }}"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} CPU 使用率持续 5 分钟超过 limit 的 80%。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/pod-high-cpu"
+
+    - name: resource-threshold-memory
+      interval: 30s
+      rules:
+        # ---------------------------------------------------------------------------
+        # 节点内存使用率 > 85% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: NodeMemoryUsageHighWarning
+          expr: |
+            (
+              1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+            ) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            resource: memory
+            component: node
+            category: resource-threshold
+          annotations:
+            summary: "节点内存使用率过高: {{ $labels.instance }}"
+            description: "节点 {{ $labels.instance }} 内存使用率持续 5 分钟超过 85%（当前 {{ $value | humanizePercentage }}），有 OOM 风险。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/high-memory"
+
+        # ---------------------------------------------------------------------------
+        # 节点内存使用率 > 95% 持续 5 分钟（critical）
+        # ---------------------------------------------------------------------------
+        - alert: NodeMemoryUsageHighCritical
+          expr: |
+            (
+              1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)
+            ) * 100 > 95
+          for: 5m
+          labels:
+            severity: critical
+            resource: memory
+            component: node
+            category: resource-threshold
+            impact: high
+          annotations:
+            summary: "节点内存使用率严重过高: {{ $labels.instance }}"
+            description: "节点 {{ $labels.instance }} 内存使用率持续 5 分钟超过 95%（当前 {{ $value | humanizePercentage }}），OOM 风险极高。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/memory-critical"
+
+        # ---------------------------------------------------------------------------
+        # Pod 内存使用率 > 85% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: PodMemoryUsageHighWarning
+          expr: |
+            (
+              sum by (namespace, pod) (container_memory_working_set_bytes{container!="",container!="POD"})
+              /
+              sum by (namespace, pod) (kube_pod_container_resource_limits{resource="memory"})
+            ) * 100 > 85
+          for: 5m
+          labels:
+            severity: warning
+            resource: memory
+            component: pod
+            category: resource-threshold
+          annotations:
+            summary: "Pod 内存使用率过高: {{ $labels.namespace }}/{{ $labels.pod }}"
+            description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} 内存使用率持续 5 分钟超过 limit 的 85%，可能被 OOMKilled。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/pod-high-memory"
+
+    - name: resource-threshold-disk
+      interval: 30s
+      rules:
+        # ---------------------------------------------------------------------------
+        # 磁盘使用率 > 90% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: DiskUsageHighWarning
+          expr: |
+            (
+              1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} /
+                   node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})
+            ) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            resource: disk
+            component: node
+            category: resource-threshold
+          annotations:
+            summary: "磁盘使用率过高: {{ $labels.instance }} {{ $labels.mountpoint }}"
+            description: "磁盘 {{ $labels.instance }}:{{ $labels.mountpoint }} 使用率持续 5 分钟超过 90%（当前 {{ $value | humanizePercentage }}）。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/disk-high"
+
+        # ---------------------------------------------------------------------------
+        # 磁盘使用率 > 95% 持续 1 分钟（critical）
+        # ---------------------------------------------------------------------------
+        - alert: DiskUsageHighCritical
+          expr: |
+            (
+              1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} /
+                   node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"})
+            ) * 100 > 95
+          for: 1m
+          labels:
+            severity: critical
+            resource: disk
+            component: node
+            category: resource-threshold
+            impact: high
+          annotations:
+            summary: "磁盘空间即将耗尽: {{ $labels.instance }} {{ $labels.mountpoint }}"
+            description: "磁盘 {{ $labels.instance }}:{{ $labels.mountpoint }} 使用率超过 95%（当前 {{ $value | humanizePercentage }}），写入可能失败。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/disk-critical"
+
+        # ---------------------------------------------------------------------------
+        # 磁盘 inode 使用率 > 90% 持续 5 分钟（warning）
+        # ---------------------------------------------------------------------------
+        - alert: DiskInodeUsageHighWarning
+          expr: |
+            (
+              1 - (node_filesystem_files_free{fstype!~"tmpfs|overlay|squashfs"} /
+                   node_filesystem_files{fstype!~"tmpfs|overlay|squashfs"})
+            ) * 100 > 90
+          for: 5m
+          labels:
+            severity: warning
+            resource: inode
+            component: node
+            category: resource-threshold
+          annotations:
+            summary: "磁盘 inode 使用率过高: {{ $labels.instance }} {{ $labels.mountpoint }}"
+            description: "磁盘 {{ $labels.instance }}:{{ $labels.mountpoint }} inode 使用率持续 5 分钟超过 90%，可能无法创建新文件。"
+            value: "{{ $value | humanizePercentage }}"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/inode-high"

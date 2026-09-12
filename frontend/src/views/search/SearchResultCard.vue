@@ -224,7 +224,7 @@ function openUrl(): void {
 
 <style scoped>
 .result-card {
-  background: var(--panel, #fff);
+  background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 16px;

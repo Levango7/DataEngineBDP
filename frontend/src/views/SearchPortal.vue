@@ -407,7 +407,7 @@ onMounted(() => {
   gap: 14px;
 }
 .portal-search-bar {
-  background: var(--panel, #fff);
+  background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 16px;
@@ -427,7 +427,7 @@ onMounted(() => {
   top: 14px;
 }
 .sort-box {
-  background: var(--panel, #fff);
+  background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 14px;
@@ -488,7 +488,7 @@ onMounted(() => {
 }
 .sug-chip:hover {
   background: var(--amber, var(--ds-color-warning-600));
-  color: #fff;
+  color: var(--ds-text-inverse);
 }
 .result-grid {
   display: grid;
@@ -496,7 +496,7 @@ onMounted(() => {
   gap: 14px;
 }
 .skeleton-card {
-  background: var(--panel, #fff);
+  background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: 10px;
   padding: 16px;

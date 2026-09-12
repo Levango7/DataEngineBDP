@@ -6,6 +6,9 @@
 >
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
+> 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
+> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 45**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 42**（governance/finops 合并显示）→ **独立部署单元 41**（ADR-001，扣库形态组件）→ **platform/ 目录数 39**（一级子目录）。
+
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-SNAPSHOT（开发中）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
 - 工程成熟度：综合评分 72/100（B+），6200+ 后端测试 + 前端单元/E2E 测试（含已知失败用例，详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
@@ -67,7 +70,7 @@ DataEngineBDP/
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（44 个：Java 22 / Go 11 / Python 11）
+├── platform/                   # 自研组件（45 个：Java 22 / Go 11 / Python 12）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -181,7 +184,7 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 44 个自研组件（Java 22 / Go 11 / Python 11，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径），覆盖封装层、引擎层、治理层、智能数据层与产品层。
+平台共包含 45 个自研组件（Java 22 / Go 11 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径，含子模块拆分），覆盖封装层、引擎层、治理层、智能数据层与产品层。模块数口径见 [模块数口径定义](docs/模块数口径定义.md)。
 （注：其中约 1/3 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
 
 ### Java 组件（22 个）
@@ -256,7 +259,7 @@ bash scripts/poc/run-poc.sh
 | [升级指南](docs/user-guide/upgrade-guide.md) | V1.0 → V2.0 升级流程、回滚、验证 |
 | [行业模板使用指南](docs/user-guide/industry-template-guide.md) | 金融、能源、政务三个行业模板使用说明 |
 | [文档索引](docs/README.md) | 设计文档与项目文档完整索引 |
-| [组件成熟度矩阵](docs/component-maturity.md) | 44 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
+| [组件成熟度矩阵](docs/component-maturity.md) | 45 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
 | [变更日志](CHANGELOG.md) | 版本变更记录 |
 | [贡献指南](CONTRIBUTING.md) | 开发规范，提交规范，PR 流程 |
 | [安全加固记录](CHANGELOG.md) | P0 登录漏洞修复、四服务统一 JWT、租户隔离强制层、CI 安全门禁（2026-08-25） |
