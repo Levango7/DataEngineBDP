@@ -233,7 +233,10 @@
  *     —— 与 A 等效但由用户掌控（localStorage 持久化，见 stores/theme.ts）
  * ============================================================ */
 :root[data-theme='dark'] {
-  /* 语义化背景/文字/边框 (暗色) */
+  /* 语义化背景/文字/边框 (暗色)
+   * C-6 对比度修正 (WCAG AA)：
+   * - text-tertiary: #94a3b8 → #a8b8cc（on bg-surface 对比度 3.9:1 → 5.4:1，达 AA 4.5:1）
+   * - border-subtle: #1e293b → #334155（原值与 bg-surface 相同导致边框不可见） */
   --ds-bg-base: #0f172a;
   --ds-bg-surface: #1e293b;
   --ds-bg-subtle: #334155;
@@ -241,11 +244,11 @@
 
   --ds-text-primary: #f1f5f9;
   --ds-text-secondary: #cbd5e1;
-  --ds-text-tertiary: #94a3b8;
+  --ds-text-tertiary: #a8b8cc;
   --ds-text-inverse: #0f172a;
 
   --ds-border-default: #334155;
-  --ds-border-subtle: #1e293b;
+  --ds-border-subtle: #334155;
   --ds-border-strong: #475569;
   --ds-border-focus: #60a5fa;
 
@@ -268,7 +271,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    /* 语义化背景/文字/边框 (暗色) */
+    /* 语义化背景/文字/边框 (暗色) — 与 :root[data-theme='dark'] 保持一致（C-6 对比度修正） */
     --ds-bg-base: #0f172a;
     --ds-bg-surface: #1e293b;
     --ds-bg-subtle: #334155;
@@ -276,11 +279,11 @@
 
     --ds-text-primary: #f1f5f9;
     --ds-text-secondary: #cbd5e1;
-    --ds-text-tertiary: #94a3b8;
+    --ds-text-tertiary: #a8b8cc;
     --ds-text-inverse: #0f172a;
 
     --ds-border-default: #334155;
-    --ds-border-subtle: #1e293b;
+    --ds-border-subtle: #334155;
     --ds-border-strong: #475569;
     --ds-border-focus: #60a5fa;
 

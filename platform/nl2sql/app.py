@@ -45,7 +45,12 @@ from models import (
 from pydantic import BaseModel, Field
 from schema_context import SchemaContextBuilder
 from slot_filler import SlotFiller
-from sql_generator import BaseSqlGenerator, createGenerator
+from sql_generator import (
+    BaseSqlGenerator,
+    LlmCallError,
+    LlmNotConfiguredError,
+    createGenerator,
+)
 from sql_validator import SqlValidator
 
 
@@ -116,6 +121,23 @@ class ValidateRequest(BaseModel):
     useMockSchema: bool = False
 
 
+class ConvertRequest(BaseModel):
+    """NL → SQL 精简请求（兼容 ai-assistant Go 代理）."""
+
+    query: str = Field(description="自然语言查询")
+    dialect: Optional[str] = Field(default=None, description="目标方言（仅回显）")
+    tenantId: Optional[str] = Field(default=None, description="租户 ID")
+
+
+class ConvertResponse(BaseModel):
+    """NL → SQL 精简响应（兼容 ai-assistant Go 代理）."""
+
+    sql: str = Field(description="生成的 SQL")
+    dialect: str = Field(default="", description="SQL 方言")
+    tables: list[str] = Field(default_factory=list, description="涉及表名")
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="置信度")
+
+
 class HealthResponse(BaseModel):
     """健康检查响应."""
 
@@ -123,6 +145,8 @@ class HealthResponse(BaseModel):
     component: str = "nl2sql"
     version: str = "0.1.0"
     llmMode: str
+    llmConfigured: bool
+    llmModel: str = ""
     catalogUrl: str
     sqlGatewayUrl: str
 
@@ -228,6 +252,14 @@ def create_app(
 
     prefix = settings.apiPrefix
     _registerRoutes(app, registry, prefix)
+
+    @app.on_event("shutdown")
+    async def _closeGenerator() -> None:
+        """关闭生成器底层资源（http 直连模式的 httpx 连接池）."""
+        aclose = getattr(registry.generator, "aclose", None)
+        if aclose is not None:
+            await aclose()
+
     return app
 
 
@@ -244,6 +276,8 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         return HealthResponse(
             status="UP",
             llmMode=s.llmMode,
+            llmConfigured=s.llmConfigured,
+            llmModel=s.llmModel,
             catalogUrl=s.catalogUrl,
             sqlGatewayUrl=s.sqlGatewayUrl,
         )
@@ -257,6 +291,33 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         """
         _tenant = effectiveTenant(ctx, req.tenantId)
         return await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema)
+
+    @app.post(f"{prefix}/nl2sql/convert", response_model=ConvertResponse)
+    async def convert(req: ConvertRequest, ctx: AuthContext = Depends(getAuthContext)) -> ConvertResponse:
+        """NL → SQL 精简端点（B-5 联调兼容）.
+
+        供 ai-assistant Go 代理调用（downstream_proxy.Nl2Sql 契约：
+        请求 {query, dialect}，响应 {sql, dialect, tables, confidence}）。
+        内部复用完整生成链路（真实 LLM / Mock），异常经 _generateSafe
+        转为友好 HTTP 错误。
+        """
+        _tenant = effectiveTenant(ctx, req.tenantId)
+        gen = await _doGenerate(reg, req.query, None, None, False)
+        # 涉及表：优先意图 Join 表 + 首表回退；从生成结果 SQL 中无法可靠反解，
+        # 这里用 schema 上下文构建时的命中表不可得，取意图信息近似。
+        tables: list[str] = []
+        if gen.intent is not None:
+            tables = list(gen.intent.joinTables)
+        # 置信度启发式：校验通过 0.9，有告警 0.7，失败 0.5
+        v = gen.validation
+        if v is None:
+            confidence = 0.5
+        elif v.valid:
+            confidence = 0.7 if v.hasWarning else 0.9
+        else:
+            confidence = 0.5
+        dialect = (req.dialect or reg.settings.defaultEngine).upper()
+        return ConvertResponse(sql=gen.sql, dialect=dialect, tables=tables, confidence=confidence)
 
     @app.post(f"{prefix}/nl2sql/execute", response_model=ExecuteResponse)
     async def execute(req: ExecuteRequest, ctx: AuthContext = Depends(getAuthContext)) -> ExecuteResponse:
@@ -312,7 +373,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         sql: Optional[str] = None
         if nextQ is None:
             # 无需澄清，直接生成 SQL
-            gen = await reg.generator.generate(req.query, ctx, intent, frame)
+            gen = await _generateSafe(reg, req.query, ctx, intent, frame)
             sql = gen.sql
             state.clarified = True
         reg.saveSession(state, auth.tenantId)
@@ -346,7 +407,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         nextQ = reg.clarifier.nextQuestion(state, ctx)
         sql: Optional[str] = None
         if nextQ is None and state.currentSlots is not None and state.currentSlots.intent is not None:
-            gen = await reg.generator.generate(queryText, ctx, state.currentSlots.intent, state.currentSlots)
+            gen = await _generateSafe(reg, queryText, ctx, state.currentSlots.intent, state.currentSlots)
             sql = gen.sql
             state.clarified = True
         reg.saveSession(state, auth.tenantId)
@@ -388,6 +449,29 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
 # ============================================================
 # 内部：生成流程
 # ============================================================
+async def _generateSafe(
+    reg: ServiceRegistry,
+    query: str,
+    ctx: Any,
+    intent: Intent,
+    slots: Optional[SlotFrame] = None,
+) -> SqlGenerationResult:
+    """调用 SQL 生成器并把 LLM 配置/调用异常转为友好 HTTP 错误.
+
+    - LlmNotConfiguredError → 503（LLM 未配置，提示设置环境变量）
+    - LlmCallError          → 502（LLM 调用失败，透传友好文案）
+    服务本身不崩溃：异常在此收口，客户端拿到结构化错误信息。
+    """
+    try:
+        return await reg.generator.generate(query, ctx, intent, slots)
+    except LlmNotConfiguredError as e:
+        logger.warning("LLM 未配置: {}", e)
+        raise HTTPException(status_code=503, detail=str(e)) from e
+    except LlmCallError as e:
+        logger.warning("LLM 调用失败: {}", e)
+        raise HTTPException(status_code=502, detail=str(e)) from e
+
+
 async def _doGenerate(
     reg: ServiceRegistry,
     query: str,
@@ -402,7 +486,7 @@ async def _doGenerate(
     )
     intent = reg.intentRecognizer.recognize(query, ctx)
     frame = reg.slotFiller.buildFrame(intent, query, ctx)
-    result = await reg.generator.generate(query, ctx, intent, frame)
+    result = await _generateSafe(reg, query, ctx, intent, frame)
     # 若有缺失必需槽位，标记需要澄清
     if not frame.isComplete:
         result.needsClarification = True

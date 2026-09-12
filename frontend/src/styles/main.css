@@ -1985,22 +1985,22 @@ label {
  * 暗色模式下 el-select 下拉面板背景透明/白底不可见问题的根治
  * 统一通过 :root[data-theme='dark'] 强制覆写，突破 scoped 限制 */
 :root[data-theme='dark'] .el-select__popper {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 :root[data-theme='dark'] .el-select-dropdown__item {
-  background: transparent !important;
-  color: var(--ds-color-gray-200) !important;
+  background: transparent;
+  color: var(--ds-color-gray-200);
 }
 :root[data-theme='dark'] .el-select-dropdown__item.hover,
 :root[data-theme='dark'] .el-select-dropdown__item.highlighted {
-  background: var(--ds-color-gray-700) !important;
-  color: var(--ds-color-gray-100) !important;
+  background: var(--ds-color-gray-700);
+  color: var(--ds-color-gray-100);
 }
 :root[data-theme='dark'] .el-select-dropdown__item.selected {
-  background: rgba(59, 130, 246, 0.2) !important;
-  color: var(--ds-color-primary-300) !important;
+  background: rgba(59, 130, 246, 0.2);
+  color: var(--ds-color-primary-300);
 }
 :root[data-theme='dark'] .el-select__input.is-focus .el-select__tags,
 :root[data-theme='dark'] .el-input__wrapper.is-focus {
@@ -2010,68 +2010,69 @@ label {
     0 0 0 3px rgba(96, 165, 250, 0.18) !important;
 }
 :root[data-theme='dark'] .el-cascader-panel {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
 }
 :root[data-theme='dark'] .el-cascader-menu {
-  background: var(--ds-color-gray-800) !important;
-  border-right: 1px solid var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-800);
+  border-right: 1px solid var(--ds-color-gray-700);
 }
 :root[data-theme='dark'] .el-cascader-node {
-  color: var(--ds-color-gray-200) !important;
+  color: var(--ds-color-gray-200);
 }
 :root[data-theme='dark'] .el-cascader-node:hover,
 :root[data-theme='dark'] .el-cascader-node.is-active {
-  background: var(--ds-color-gray-700) !important;
-  color: var(--ds-color-gray-100) !important;
+  background: var(--ds-color-gray-700);
+  color: var(--ds-color-gray-100);
 }
 :root[data-theme='dark'] .el-cascader-node__prefix {
-  color: var(--ds-color-gray-400) !important;
+  color: var(--ds-color-gray-400);
 }
 
 /* === 暗色下 ElDatePicker / ElTimePicker 面板修复 === */
 :root[data-theme='dark'] .el-picker-panel {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 :root[data-theme='dark'] .el-date-table td,
 :root[data-theme='dark'] .el-time-panel__content {
-  color: var(--ds-color-gray-200) !important;
+  color: var(--ds-color-gray-200);
 }
 :root[data-theme='dark'] .el-date-table td.today {
-  background: rgba(59, 130, 246, 0.15) !important;
+  background: rgba(59, 130, 246, 0.15);
 }
 :root[data-theme='dark'] .el-date-table td.current:not(.disabled) {
-  background: var(--ds-color-primary-500) !important;
-  color: var(--ds-text-inverse) !important;
+  background: var(--ds-color-primary-500);
+  color: var(--ds-text-inverse);
 }
 
-/* === 暗色下 ElTooltip / ElPopover 修复 === */
+/* === 暗色下 ElTooltip / ElPopover 修复 ===
+ * color 保留 !important：需覆盖亮色区 .el-tooltip__popper 的 color !important */
 :root[data-theme='dark'] .el-tooltip__popper,
 :root[data-theme='dark'] .el-popover {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
   color: var(--ds-color-gray-200) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 /* === 暗色下 ElMessage / ElMessageBox / ElDialog 修复 === */
 :root[data-theme='dark'] .el-message {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
-  color: var(--ds-color-gray-100) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
+  color: var(--ds-color-gray-100);
 }
 :root[data-theme='dark'] .el-message-box {
-  background: var(--ds-color-gray-800) !important;
-  color: var(--ds-color-gray-100) !important;
+  background: var(--ds-color-gray-800);
+  color: var(--ds-color-gray-100);
 }
 :root[data-theme='dark'] .el-message-box__btns {
-  border-top: 1px solid var(--ds-color-gray-700) !important;
+  border-top: 1px solid var(--ds-color-gray-700);
 }
 :root[data-theme='dark'] .el-dialog {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
 }
 
 /* === 暗色下 ElInput / ElSelect 组合框 focus 态增强 === */
@@ -2085,33 +2086,33 @@ label {
 
 /* === 暗色下 ElMenu 修复 === */
 :root[data-theme='dark'] .el-menu {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
 }
 :root[data-theme='dark'] .el-menu-item,
 :root[data-theme='dark'] .el-sub-menu__title {
-  color: var(--ds-color-gray-200) !important;
+  color: var(--ds-color-gray-200);
 }
 :root[data-theme='dark'] .el-menu-item:hover,
 :root[data-theme='dark'] .el-menu-item.is-active,
 :root[data-theme='dark'] .el-sub-menu__title:hover {
-  background: var(--ds-color-gray-700) !important;
-  color: var(--ds-color-gray-100) !important;
+  background: var(--ds-color-gray-700);
+  color: var(--ds-color-gray-100);
 }
 
 /* === 暗色下 ElTree 修复 === */
 :root[data-theme='dark'] .el-tree {
-  background: var(--ds-color-gray-800) !important;
-  border: 1px solid var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-800);
+  border: 1px solid var(--ds-color-gray-700);
 }
 :root[data-theme='dark'] .el-tree-node__content {
-  color: var(--ds-color-gray-200) !important;
+  color: var(--ds-color-gray-200);
 }
 :root[data-theme='dark'] .el-tree-node__content:hover {
-  background: var(--ds-color-gray-700) !important;
+  background: var(--ds-color-gray-700);
 }
 :root[data-theme='dark'] .el-tree-node__expand-icon {
-  color: var(--ds-color-gray-400) !important;
+  color: var(--ds-color-gray-400);
 }
 
 /* === 暗色下硬编码白底卡片/面板类集中反色（2026-09-08） ===

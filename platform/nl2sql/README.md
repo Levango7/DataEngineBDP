@@ -84,12 +84,34 @@ NL2SQL_SQL_GATEWAY_URL=http://sql-gateway:8081 \
 python app.py
 ```
 
+### http 直连模式（OpenAI 兼容 API，B-1a）
+
+通过 httpx 直连任意 OpenAI 兼容 API（OpenAI / 华为云 / vLLM / Ollama 等），
+无 langchain 依赖。只需配置三个通用环境变量：
+
+```bash
+LLM_API_BASE_URL=https://api.openai.com/v1 \   # 或华为云等兼容 endpoint（不带 /v1 会自动追加）
+LLM_API_KEY=sk-xxx \
+LLM_MODEL=gpt-4 \                              # 如 qwen-72b
+python app.py
+```
+
+行为说明：
+- `NL2SQL_LLM_MODE` 与 `AI_MODE` 均未设置时，配置了 `LLM_API_BASE_URL` 或
+  `LLM_API_KEY` 之一即自动进入 http 模式（也可显式 `NL2SQL_LLM_MODE=http`）。
+- **未配置 `LLM_API_KEY`**：服务正常启动，生成端点返回
+  `503 {"detail": "LLM 服务未配置：请设置环境变量 LLM_API_KEY ..."}`（友好提示，不崩溃）。
+- LLM 调用失败（网络/超时/鉴权）返回 `502` 并携带友好文案；不静默降级 Mock，
+  避免把规则化 SQL 当成 LLM 结果误导用户。
+- 保留原有 prompt 模板与 SQL 后处理（Markdown 代码块剥离、末尾分号补全）。
+
 ## API 端点
 
 | 方法 | 路径 | 说明 |
 | --- | --- | --- |
-| GET  | `/api/v1/health` | 健康检查 |
+| GET  | `/api/v1/health` | 健康检查（含 `llmMode` / `llmConfigured`） |
 | POST | `/api/v1/nl2sql/generate` | 单轮 NL → SQL（不执行） |
+| POST | `/api/v1/nl2sql/convert` | NL → SQL 精简端点（供 ai-assistant Go 代理调用） |
 | POST | `/api/v1/nl2sql/execute` | NL → SQL → 网关执行 |
 | POST | `/api/v1/nl2sql/dialogue/start` | 开启多轮对话 |
 | POST | `/api/v1/nl2sql/dialogue/answer` | 提交澄清回答 |
@@ -141,10 +163,11 @@ curl -X POST http://localhost:8093/api/v1/nl2sql/dialogue/answer \
 | `NL2SQL_SQL_GATEWAY_URL` | http://localhost:8081 | SQL 网关地址 |
 | `NL2SQL_DEFAULT_ENGINE` | trino | 默认引擎 trino/doris |
 | `NL2SQL_DEFAULT_LIMIT` | 100 | 默认行数上限 |
-| `NL2SQL_LLM_MODE` | mock | LLM 模式 mock/langchain |
+| `NL2SQL_LLM_MODE` | langchain | LLM 模式 mock/langchain/http（配置 LLM_API_* 自动切 http） |
+| `LLM_API_BASE_URL` | - | 通用 LLM API 地址（OpenAI 兼容，覆盖 NL2SQL_LLM_GATEWAY_URL） |
 | `NL2SQL_LLM_GATEWAY_URL` | http://localhost:8084 | LLM 网关地址 |
-| `NL2SQL_LLM_MODEL` | qwen2.5-7b-instruct | 模型名 |
-| `NL2SQL_LLM_API_KEY` | | LLM 网关 API Key |
+| `NL2SQL_LLM_MODEL` | qwen2.5-7b-instruct | 模型名（`LLM_MODEL` 可覆盖） |
+| `NL2SQL_LLM_API_KEY` | | LLM 网关 API Key（`LLM_API_KEY` 可覆盖；http 模式必填） |
 | `NL2SQL_LLM_TEMPERATURE` | 0.0 | 采样温度 |
 | `NL2SQL_SELECT_ONLY` | true | 仅允许 SELECT |
 | `NL2SQL_MAX_TABLES` | 20 | 上下文最大表数 |

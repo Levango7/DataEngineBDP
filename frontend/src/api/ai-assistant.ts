@@ -92,7 +92,25 @@ export async function chatStream(
       triggerUnauthorized()
       throw new Error('登录已过期，请重新登录')
     }
-    throw new Error(`AI 助手流式请求失败：HTTP ${resp.status}`)
+    // 503/502/5xx：后端（nl2sql / ai-assistant）返回结构化友好提示
+    // - nl2sql LLM 未配置 → FastAPI {"detail": "LLM 服务未配置：请设置 LLM_API_KEY ..."}
+    // - ai-assistant 下游失败 → gin {"error": "nl2sql 返回 503"}
+    // 优先透传后端 detail/error 文案，让"LLM 未配置"等场景展示可操作提示
+    let msg = `AI 助手流式请求失败：HTTP ${resp.status}`
+    try {
+      const body = (await resp.json()) as { detail?: unknown; error?: unknown; message?: unknown }
+      const backend =
+        (typeof body.detail === 'string' && body.detail) ||
+        (typeof body.error === 'string' && body.error) ||
+        (typeof body.message === 'string' && body.message) ||
+        ''
+      if (backend) msg = backend
+    } catch {
+      // 响应体非 JSON 时保留默认提示
+    }
+    const err = new Error(msg) as Error & { httpStatus?: number }
+    err.httpStatus = resp.status
+    throw err
   }
   if (!resp.body) {
     throw new Error('AI 助手流式请求无响应体')

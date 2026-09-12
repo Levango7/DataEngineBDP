@@ -1,22 +1,28 @@
-"""SQL 生成（LangChain + LLM）.
+"""SQL 生成（LangChain / httpx 直连 + LLM）.
 
 职责：
     1. 基于 Schema 上下文 + 意图 + 槽位，构造 LLM prompt 生成 SQL。
     2. 支持 Mock 模式（无 LLM 依赖，基于意图 + 槽位的规则化 SQL 生成）。
     3. 支持 LangChain 模式（经 llm-gateway :8084，OpenAI 兼容协议）。
-    4. 生成后调用 SqlValidator 校验，返回 SqlGenerationResult。
+    4. 支持 http 直连模式（httpx 调 OpenAI 兼容 /v1/chat/completions，
+       无 langchain 依赖；配置 LLM_API_BASE_URL/LLM_API_KEY/LLM_MODEL 即用）。
+    5. 生成后调用 SqlValidator 校验，返回 SqlGenerationResult。
 
 设计要点：
     - Mock 模式保证 `python -c "import app"` 与单测无外部依赖即可运行。
     - LangChain 模式延迟导入 langchain，避免未安装时 import 失败。
+    - http 直连模式仅依赖 httpx（已在 requirements.txt）。
     - Prompt 模板内嵌（Jinja2 风格字符串），不依赖外部模板文件。
+    - LLM 未配置 / 调用失败时抛 LlmNotConfiguredError / LlmCallError，
+      由路由层转换为友好 HTTP 错误（服务不崩溃）。
 """
 
 from __future__ import annotations
 
 import time
-from typing import Optional
+from typing import Any, Optional
 
+import httpx
 from config.settings import Settings
 from loguru import logger
 from models import (
@@ -28,6 +34,24 @@ from models import (
 )
 from schema_context import SchemaContextBuilder
 from sql_validator import SqlValidator
+
+
+# ============================================================
+# LLM 配置 / 调用异常（路由层转为友好 HTTP 错误）
+# ============================================================
+class LlmNotConfiguredError(RuntimeError):
+    """LLM 服务未配置（如缺少 LLM_API_KEY）.
+
+    携带面向用户的友好提示文案，路由层原样透传（HTTP 503）。
+    """
+
+
+class LlmCallError(RuntimeError):
+    """LLM API 调用失败（网络 / 超时 / 非 2xx / 响应格式异常）.
+
+    携带面向用户的友好提示文案，路由层原样透传（HTTP 502）。
+    """
+
 
 # ============================================================
 # Prompt 模板
@@ -376,11 +400,131 @@ class LangChainSqlGenerator(BaseSqlGenerator):
 
 
 # ============================================================
+# httpx 直连生成器（OpenAI 兼容 /v1/chat/completions）
+# ============================================================
+class OpenAiHttpSqlGenerator(BaseSqlGenerator):
+    """基于 httpx 直连 OpenAI 兼容 API 的 SQL 生成器.
+
+    通过 POST {LLM_API_BASE_URL}/chat/completions 调用大模型（B-1a）：
+    - 兼容 OpenAI（https://api.openai.com/v1）与华为云等 OpenAI 兼容 endpoint。
+    - 仅依赖 httpx，无 langchain 安装要求。
+    - 复用系统 prompt（_SYSTEM_PROMPT）与 user prompt 模板（_buildUserPrompt）。
+    - 未配置 LLM_API_KEY → LlmNotConfiguredError（路由层转 503 友好提示）。
+    - 调用失败 / 响应异常 → LlmCallError（路由层转 502 友好提示）；
+      不静默降级 Mock，避免把规则化 SQL 当成 LLM 结果误导用户。
+    """
+
+    def __init__(self, settings: Settings, validator: SqlValidator) -> None:
+        super().__init__(settings, validator)
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(settings.llmTimeout),
+        )
+
+    @property
+    def _chatUrl(self) -> str:
+        """chat/completions 完整 URL（自动处理 /v1 后缀）."""
+        return f"{self.settings.llmEndpoint}/chat/completions"
+
+    async def generate(
+        self,
+        query: str,
+        ctx: SchemaContext,
+        intent: Intent,
+        slots: Optional[SlotFrame] = None,
+    ) -> SqlGenerationResult:
+        """生成 SQL；未配置或调用失败时抛出友好错误."""
+        if not self.settings.llmApiKey:
+            raise LlmNotConfiguredError(
+                "LLM 服务未配置：请设置环境变量 LLM_API_KEY（及可选 LLM_API_BASE_URL、LLM_MODEL）"
+                "后重启服务，或切换 NL2SQL_LLM_MODE=mock 使用离线模式。"
+            )
+
+        start = time.perf_counter()
+        userPrompt = self._buildUserPrompt(query, ctx, intent, slots)
+        content = await self._chatCompletion(
+            systemPrompt=_SYSTEM_PROMPT,
+            userPrompt=userPrompt,
+        )
+        sql = self._extractSql(content)
+        validation = self.validator.validate(sql, ctx)
+        elapsed = (time.perf_counter() - start) * 1000.0
+        return SqlGenerationResult(
+            sql=sql,
+            intent=intent,
+            validation=validation,
+            slots=slots,
+            needsClarification=False,
+            clarificationQuestions=[],
+            llmUsed=True,
+            elapsedMs=elapsed,
+        )
+
+    async def _chatCompletion(self, systemPrompt: str, userPrompt: str) -> str:
+        """调用 OpenAI 兼容 /chat/completions，返回首条回复文本.
+
+        Raises:
+            LlmCallError: 网络/超时/非 2xx/响应格式异常（携带友好文案）。
+        """
+        payload: dict[str, Any] = {
+            "model": self.settings.llmModel,
+            "messages": [
+                {"role": "system", "content": systemPrompt},
+                {"role": "user", "content": userPrompt},
+            ],
+            "temperature": self.settings.llmTemperature,
+            "max_tokens": self.settings.llmMaxTokens,
+        }
+        headers = {
+            "Authorization": f"Bearer {self.settings.llmApiKey}",
+            "Content-Type": "application/json",
+        }
+        try:
+            resp = await self._client.post(
+                self._chatUrl, json=payload, headers=headers
+            )
+        except httpx.TimeoutException as e:
+            raise LlmCallError(
+                f"LLM 请求超时（>{self.settings.llmTimeout:.0f}s），请稍后重试或检查网络"
+            ) from e
+        except httpx.HTTPError as e:
+            raise LlmCallError("LLM 服务不可达，请检查 LLM_API_BASE_URL 配置") from e
+
+        if resp.status_code != 200:
+            # 截断错误体，避免把上游海量日志透给前端
+            body = resp.text[:300] if resp.text else ""
+            logger.warning("LLM API 返回 {}: {}", resp.status_code, body)
+            if resp.status_code in (401, 403):
+                raise LlmCallError("LLM API 鉴权失败，请检查 LLM_API_KEY 是否有效")
+            raise LlmCallError(f"LLM API 返回 HTTP {resp.status_code}，请稍后重试")
+
+        try:
+            data = resp.json()
+            content = data["choices"][0]["message"]["content"]
+        except (ValueError, KeyError, IndexError, TypeError) as e:
+            raise LlmCallError("LLM API 响应格式异常，请检查模型名（LLM_MODEL）是否正确") from e
+        if not isinstance(content, str) or not content.strip():
+            raise LlmCallError("LLM API 返回空内容，请检查模型可用性")
+        return content
+
+    async def aclose(self) -> None:
+        """关闭底层 httpx 连接池（应用 shutdown 时调用）."""
+        await self._client.aclose()
+
+
+# ============================================================
 # 工厂
 # ============================================================
 def createGenerator(settings: Settings, validator: Optional[SqlValidator] = None) -> BaseSqlGenerator:
-    """根据配置创建 SQL 生成器."""
+    """根据配置创建 SQL 生成器.
+
+    模式映射：
+        http      → OpenAiHttpSqlGenerator（httpx 直连，B-1a 推荐）
+        langchain → LangChainSqlGenerator（LangChain SDK）
+        mock/其他 → MockSqlGenerator（规则化，无外部依赖）
+    """
     validator = validator or SqlValidator(settings)
+    if settings.isHttpLlm:
+        return OpenAiHttpSqlGenerator(settings, validator)
     if settings.isLangchainLlm:
         return LangChainSqlGenerator(settings, validator)
     return MockSqlGenerator(settings, validator)

@@ -58,9 +58,8 @@ export function useNavGroups() {
       title: t('nav.groups.governance'),
       items: [
         { path: '/govern-meta', label: t('nav.items.govern-meta'), icon: 'Notebook' },
-        { path: '/quality', label: t('nav.items.quality'), icon: 'CircleCheck' },
+        // C-2 导航合并：quality 已合并至 standard（tab 切换），data-lineage 已合并至 lineage
         { path: '/lineage', label: t('nav.items.lineage'), icon: 'Guide' },
-        { path: '/data-lineage', label: t('nav.items.data-lineage'), icon: 'DataBoard' },
         { path: '/govern', label: t('nav.items.govern'), icon: 'Setting' },
         { path: '/standard', label: t('nav.items.standard'), icon: 'Document' },
         { path: '/sec', label: t('nav.items.sec'), icon: 'Lock', badge: store.todoCount }
@@ -98,8 +97,8 @@ export function useNavGroups() {
       title: t('nav.groups.intelligent'),
       items: [
         { path: '/ai-assistant', label: t('nav.items.ai-assistant'), icon: 'ChatLineRound' },
+        // C-2 导航合并：kb 已合并至 vector（tab 切换"向量检索/知识库"）
         { path: '/vector', label: t('nav.items.vector'), icon: 'Aim' },
-        { path: '/kb', label: t('nav.items.kb'), icon: 'Reading' },
         { path: '/llmops', label: t('nav.items.llmops'), icon: 'Promotion' },
         { path: '/orchestrator/dag', label: t('nav.items.orchestrator-dag'), icon: 'Sort' },
         { path: '/gateway', label: t('nav.items.gateway'), icon: 'Switch' }

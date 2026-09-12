@@ -134,27 +134,20 @@ const routes: RouteRecordRaw[] = [
     component: Standard,
     meta: { titleKey: 'nav.items.standard', icon: 'List', group: 'governance' }
   },
-  {
-    path: '/quality',
-    name: 'quality',
-    component: Quality,
-    meta: { titleKey: 'nav.items.quality', icon: 'CircleCheck', group: 'governance' }
-  },
+  // C-2 导航合并：/quality 已合并至 /standard（数据标准页用 tab 切换"标准/质量"）
+  { path: '/quality', redirect: '/standard' },
   {
     path: '/lineage',
     name: 'lineage',
     component: Lineage,
     meta: { titleKey: 'nav.items.lineage', icon: 'Share', group: 'governance' }
   },
-  {
-    path: '/data-lineage',
-    name: 'dataLineage',
-    component: DataLineage,
-    meta: { titleKey: 'nav.items.data-lineage', icon: 'Histogram', group: 'governance' }
-  },
+  // C-2 导航合并：/data-lineage 已合并至 /lineage（血缘页用 tab 切换"任务血缘/数据血缘"）
+  { path: '/data-lineage', redirect: '/lineage' },
   { path: '/sec', name: 'sec', component: Sec, meta: { titleKey: 'nav.items.sec', icon: 'Lock', group: 'governance' } },
   { path: '/vector', name: 'vector', component: Vector, meta: { titleKey: 'nav.items.vector', icon: 'Box', group: 'intelligent' } },
-  { path: '/kb', name: 'kb', component: Kb, meta: { titleKey: 'nav.items.kb', icon: 'Reading', group: 'intelligent' } },
+  // C-2 导航合并：/kb 已合并至 /vector（向量页用 tab 切换"向量检索/知识库"）
+  { path: '/kb', redirect: '/vector' },
   { path: '/llmops', name: 'llmops', component: Llmops, meta: { titleKey: 'nav.items.llmops', icon: 'Cpu', group: 'intelligent' } },
   {
     path: '/gateway',

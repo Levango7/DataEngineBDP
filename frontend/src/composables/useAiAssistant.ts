@@ -435,6 +435,11 @@ export function useAiAssistant(options: UseAiAssistantOptions = {}): UseAiAssist
         // 流式失败：降级非流式（除非是被中断）
         // 使用局部 currentSignal 而非 abortController.signal，避免 abort() 已将其置 null
         if (currentSignal.aborted) throw streamErr
+        // 确定性上游错误不降级重试（B-5）：
+        // 503 = nl2sql LLM 未配置（提示设置 LLM_API_KEY），502 = 下游调用失败；
+        // 这类错误重试非流式端点仍会失败，直接透传后端友好提示
+        const status = (streamErr as { httpStatus?: number }).httpStatus ?? 0
+        if (status === 503 || status === 502) throw streamErr
         resp = await aiApi.chat(req)
       }
 

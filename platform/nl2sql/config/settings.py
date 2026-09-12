@@ -17,13 +17,23 @@
     NL2SQL_DEFAULT_ENGINE       默认查询引擎 trino / doris（默认 trino）
     NL2SQL_DEFAULT_LIMIT        默认结果行数上限（默认 100）
 
-    # ---- LLM 对接（经 llm-gateway :8084，OpenAI 兼容协议）----
+    # ---- LLM 对接 ----
+    # 三种模式：
+    #   mock      规则化生成，无外部依赖（演示/单测）
+    #   langchain 经 langchain-openai ChatOpenAI 调 OpenAI 兼容 API（需安装 langchain）
+    #   http      httpx 直连 OpenAI 兼容 /v1/chat/completions（无 langchain 依赖，推荐）
     # P-02: AI_MODE 全局开关优先于 NL2SQL_LLM_MODE
     #   AI_MODE=mock  → llmMode=mock（无外部依赖）
     #   AI_MODE=real  → llmMode=langchain（经 llm-gateway 真实 LLM）
     #   AI_MODE 未设置 → 使用 NL2SQL_LLM_MODE 显式配置
-    NL2SQL_LLM_MODE             LLM 模式: mock / langchain（默认 mock，无外部依赖）
-    NL2SQL_LLM_GATEWAY_URL      LLM 网关地址（默认 http://localhost:8084）
+    # 通用 LLM 环境变量（不带 NL2SQL_ 前缀，OpenAI/华为云等兼容 API 通用约定）：
+    #   LLM_API_BASE_URL → llmGatewayUrl（如 https://api.openai.com/v1）
+    #   LLM_API_KEY      → llmApiKey
+    #   LLM_MODEL        → llmModel（如 gpt-4 / qwen-72b）
+    # NL2SQL_LLM_MODE 与 AI_MODE 均未显式设置，但配置了 LLM_API_BASE_URL/LLM_API_KEY
+    # 之一时，自动切换 http 模式（用户意图 = 接真实 LLM API）。
+    NL2SQL_LLM_MODE             LLM 模式: mock / langchain / http（未配置 LLM_API_* 时默认 langchain）
+    NL2SQL_LLM_GATEWAY_URL      LLM 网关地址（OpenAI 兼容，默认 http://localhost:8084）
     NL2SQL_LLM_MODEL            模型名（默认 qwen2.5-7b-instruct）
     NL2SQL_LLM_API_KEY          LLM 网关 API Key
     NL2SQL_LLM_TEMPERATURE      采样温度（默认 0.0，SQL 生成需确定性）
@@ -86,17 +96,13 @@ class Settings(BaseSettings):
     defaultLimit: int = Field(default=100, ge=1, le=10000, description="默认结果行数上限")
 
     # ---- llm ----
-    # P-02: AI_MODE 全局开关优先于 NL2SQL_LLM_MODE
-    #   AI_MODE=mock  → llmMode=mock（无外部依赖）
-    #   AI_MODE=real  → llmMode=langchain（经 llm-gateway 真实 LLM）
-    #   AI_MODE 未设置 → 使用 NL2SQL_LLM_MODE 显式配置
-    llmMode: Literal["mock", "langchain"] = Field(
+    llmMode: Literal["mock", "langchain", "http"] = Field(
         default="langchain",
-        description="LLM 模式: mock（无外部依赖）/ langchain（经 llm-gateway）",
+        description="LLM 模式: mock（无外部依赖）/ langchain（LangChain SDK）/ http（httpx 直连 OpenAI 兼容 API）",
     )
     llmGatewayUrl: str = Field(
         default="http://localhost:8084",
-        description="LLM 网关地址（OpenAI 兼容）",
+        description="LLM 网关地址（OpenAI 兼容 /v1/chat/completions）",
     )
     llmModel: str = Field(default="qwen2.5-7b-instruct", description="LLM 模型名")
     llmApiKey: str = Field(default="", description="LLM 网关 API Key")
@@ -122,18 +128,42 @@ class Settings(BaseSettings):
         return lv
 
     @model_validator(mode="after")
-    def _apply_ai_mode(self) -> "Settings":
-        """P-02: AI_MODE 全局开关覆盖 llmMode.
+    def _apply_llm_env(self) -> "Settings":
+        """P-02: AI_MODE 全局开关 + 通用 LLM 环境变量适配.
 
-        AI_MODE=mock  → llmMode=mock
-        AI_MODE=real  → llmMode=langchain
-        AI_MODE 未设置 → 不覆盖（使用显式 NL2SQL_LLM_MODE）
+        优先级：
+        1. AI_MODE 全局开关：
+           AI_MODE=mock  → llmMode=mock
+           AI_MODE=real  → llmMode=langchain
+        2. 通用环境变量（OpenAI/华为云等 API 通用约定，无 NL2SQL_ 前缀）：
+           LLM_API_BASE_URL → llmGatewayUrl
+           LLM_API_KEY      → llmApiKey
+           LLM_MODEL        → llmModel
+        3. 自动模式推断：NL2SQL_LLM_MODE 与 AI_MODE 均未设置，但配置了
+           LLM_API_BASE_URL 或 LLM_API_KEY 之一 → llmMode=http
+           （用户意图明确 = 直连真实 LLM API，且 httpx 无 langchain 依赖）
         """
         ai_mode = os.getenv("AI_MODE", "").lower().strip()
         if ai_mode == "mock":
             self.llmMode = "mock"
-        elif ai_mode == "real":
+        elif ai_mode == "real" and "NL2SQL_LLM_MODE" not in os.environ:
             self.llmMode = "langchain"
+
+        # 通用 LLM 环境变量（显式 NL2SQL_ 前缀配置优先，不覆盖）
+        llm_api_base = os.getenv("LLM_API_BASE_URL", "").strip()
+        llm_api_key = os.getenv("LLM_API_KEY", "").strip()
+        llm_model = os.getenv("LLM_MODEL", "").strip()
+        if llm_api_base:
+            self.llmGatewayUrl = llm_api_base
+        if llm_api_key:
+            self.llmApiKey = llm_api_key
+        if llm_model:
+            self.llmModel = llm_model
+
+        # 自动模式推断：仅在用户未显式选择模式时生效
+        mode_env = os.getenv("NL2SQL_LLM_MODE", "").strip()
+        if not mode_env and not ai_mode and (llm_api_base or llm_api_key):
+            self.llmMode = "http"
         return self
 
     # ---- 便捷属性 ----
@@ -148,8 +178,32 @@ class Settings(BaseSettings):
         return self.llmMode == "langchain"
 
     @property
+    def isHttpLlm(self) -> bool:
+        """是否 httpx 直连 OpenAI 兼容 API 模式."""
+        return self.llmMode == "http"
+
+    @property
+    def llmConfigured(self) -> bool:
+        """LLM 是否已配置（http 模式要求 API Key；mock 模式恒为 True）.
+
+        langchain 模式历史上允许无 Key 网关（openai_api_key="not-required"），
+        故仅 http 模式强制要求 Key。
+        """
+        if self.isMockLlm:
+            return True
+        if self.isHttpLlm:
+            return bool(self.llmApiKey)
+        # langchain：网关可能免鉴权，视为已配置
+        return True
+
+    @property
     def llmEndpoint(self) -> str:
-        """OpenAI 兼容 endpoint（llm-gateway /v1 挂载点）."""
+        """OpenAI 兼容 endpoint（llm-gateway /v1 挂载点）.
+
+        兼容两种 LLM_API_BASE_URL 写法：
+        - https://api.openai.com/v1  → 保持不变
+        - https://api.openai.com     → 追加 /v1
+        """
         base = self.llmGatewayUrl.rstrip("/")
         if base.endswith("/v1"):
             return base
