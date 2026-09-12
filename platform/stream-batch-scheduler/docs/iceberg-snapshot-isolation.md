@@ -248,7 +248,7 @@ shuqing:
 
 - `it-dolphinscheduler` — DolphinScheduler 3.2.0（Master + Worker + API + Alert）
 - `it-spark` — Spark 3.5.0（Master + Worker）
-- `it-flink` — Flink 1.18.0（JobManager + TaskManager）
+- `it-flink` — Flink 1.20.0（JobManager + TaskManager）
 - `it-iceberg` — Iceberg Catalog（Hive Metastore）
 - `it-minio` — MinIO（S3 兼容存储，Iceberg Warehouse）
 - `it-doris` — Doris 2.0.0（FE + BE，物化视图）

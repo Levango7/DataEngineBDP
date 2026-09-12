@@ -18,7 +18,7 @@
 
 ### 1.2 技术栈
 
-- Java 17 / Spring Boot 4.1.1
+- Java 17 / Spring Boot 3.2.x
 - Prometheus（查询资源利用率指标）
 - Apache POI 5.2.5（Excel 导出）
 - OpenCSV 5.9（CSV 导出）

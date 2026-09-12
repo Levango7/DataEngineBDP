@@ -103,11 +103,24 @@ class BaseSqlGenerator:
         ctx: SchemaContext,
         intent: Intent,
         slots: Optional[SlotFrame] = None,
+        tenantId: Optional[str] = None,
     ) -> SqlGenerationResult:
-        """生成 SQL（子类实现）."""
+        """生成 SQL（子类实现）.
+
+        Args:
+            tenantId: 租户 ID，非空时生成的 SQL 必须包含 tenant_id 过滤条件，
+                防止跨租户数据泄露。None 表示不做租户隔离（仅限无鉴权的本地调试）。
+        """
         raise NotImplementedError
 
-    def _buildUserPrompt(self, query: str, ctx: SchemaContext, intent: Intent, slots: Optional[SlotFrame]) -> str:
+    def _buildUserPrompt(
+        self,
+        query: str,
+        ctx: SchemaContext,
+        intent: Intent,
+        slots: Optional[SlotFrame],
+        tenantId: Optional[str] = None,
+    ) -> str:
         """构造 user prompt."""
         schemaDdl = SchemaContextBuilder.renderDdl(ctx)
         sortStr = "无"
@@ -122,6 +135,11 @@ class BaseSqlGenerator:
             limSlot = slots.get("limit")
             if limSlot and limSlot.isFilled:
                 limit = limSlot.value
+        tenantClause = (
+            f"必须包含 WHERE tenant_id = '{tenantId}' 过滤条件（租户隔离）"
+            if tenantId
+            else "无租户隔离要求"
+        )
         return _USER_PROMPT_TEMPLATE.format(
             schema_ddl=schemaDdl,
             query=query,
@@ -134,7 +152,7 @@ class BaseSqlGenerator:
             join_tables=", ".join(intent.joinTables) or "无",
             time_range=timeRange,
             limit=limit,
-        )
+        ) + f"\n\n### 租户隔离\n{tenantClause}"
 
 
 # ============================================================
@@ -154,9 +172,10 @@ class MockSqlGenerator(BaseSqlGenerator):
         ctx: SchemaContext,
         intent: Intent,
         slots: Optional[SlotFrame] = None,
+        tenantId: Optional[str] = None,
     ) -> SqlGenerationResult:
         start = time.perf_counter()
-        sql = self._buildSql(ctx, intent, slots)
+        sql = self._buildSql(ctx, intent, slots, tenantId)
         validation = self.validator.validate(sql, ctx)
         elapsed = (time.perf_counter() - start) * 1000.0
         return SqlGenerationResult(
@@ -170,8 +189,19 @@ class MockSqlGenerator(BaseSqlGenerator):
             elapsedMs=elapsed,
         )
 
-    def _buildSql(self, ctx: SchemaContext, intent: Intent, slots: Optional[SlotFrame]) -> str:
-        """规则化拼装 SQL."""
+    def _buildSql(
+        self,
+        ctx: SchemaContext,
+        intent: Intent,
+        slots: Optional[SlotFrame],
+        tenantId: Optional[str] = None,
+    ) -> str:
+        """规则化拼装 SQL.
+
+        Args:
+            tenantId: 租户 ID，非空时在 WHERE 子句中追加 tenant_id = 'xxx' 过滤条件，
+                实现租户级数据隔离。None 时跳过（仅限无鉴权的本地调试场景）。
+        """
         if ctx.isEmpty:
             return "SELECT 1;"
 
@@ -221,6 +251,9 @@ class MockSqlGenerator(BaseSqlGenerator):
 
         # WHERE
         whereParts: list[str] = []
+        # 租户隔离：tenantId 非空时强制追加 tenant_id 过滤，防止跨租户数据泄露
+        if tenantId:
+            whereParts.append(f"tenant_id = '{tenantId}'")
         if slots is not None:
             trSlot = slots.get("timeRange")
             if trSlot and trSlot.isFilled and trSlot.value:
@@ -346,15 +379,16 @@ class LangChainSqlGenerator(BaseSqlGenerator):
         ctx: SchemaContext,
         intent: Intent,
         slots: Optional[SlotFrame] = None,
+        tenantId: Optional[str] = None,
     ) -> SqlGenerationResult:
         """生成 SQL；LLM 不可用时降级 Mock."""
         if self._llm is None:
             logger.info("LLM 不可用，降级 Mock 生成")
-            return await self._mock.generate(query, ctx, intent, slots)
+            return await self._mock.generate(query, ctx, intent, slots, tenantId)
 
         start = time.perf_counter()
         try:
-            userPrompt = self._buildUserPrompt(query, ctx, intent, slots)
+            userPrompt = self._buildUserPrompt(query, ctx, intent, slots, tenantId)
             # LangChain 同步调用，包到线程池
             import asyncio
 
@@ -378,7 +412,7 @@ class LangChainSqlGenerator(BaseSqlGenerator):
             )
         except Exception as e:  # noqa: BLE001
             logger.warning("LangChain 生成异常，降级 Mock: {}", e)
-            return await self._mock.generate(query, ctx, intent, slots)
+            return await self._mock.generate(query, ctx, intent, slots, tenantId)
 
     @staticmethod
     def _extractSql(text: str) -> str:
@@ -431,6 +465,7 @@ class OpenAiHttpSqlGenerator(BaseSqlGenerator):
         ctx: SchemaContext,
         intent: Intent,
         slots: Optional[SlotFrame] = None,
+        tenantId: Optional[str] = None,
     ) -> SqlGenerationResult:
         """生成 SQL；未配置或调用失败时抛出友好错误."""
         if not self.settings.llmApiKey:
@@ -440,7 +475,7 @@ class OpenAiHttpSqlGenerator(BaseSqlGenerator):
             )
 
         start = time.perf_counter()
-        userPrompt = self._buildUserPrompt(query, ctx, intent, slots)
+        userPrompt = self._buildUserPrompt(query, ctx, intent, slots, tenantId)
         content = await self._chatCompletion(
             systemPrompt=_SYSTEM_PROMPT,
             userPrompt=userPrompt,

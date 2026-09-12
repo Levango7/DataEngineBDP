@@ -35,7 +35,7 @@
 | 数据缓冲 | 消息 | Kafka + IoTDB | 业务事件缓冲 + 设备时序存储 |
 | 实时入湖 | 计算 | Flink + Iceberg Sink | 业务 CDC 入湖 + 设备指标实时计算 |
 | 离线治理 | 调度 | DolphinScheduler | 多事业部 DAG 调度 |
-| 离线计算 | 引擎 | Spark on Yarn | ODS→DWD→DWS→ADS |
+| 离线计算 | 引擎 | Spark on K8s | ODS→DWD→DWS→ADS |
 | 湖仓存储 | 表格式 | Iceberg V2 | 共享数据湖 + 各事业部数仓 |
 | 实时数仓 | 引擎 | Doris | DWS/ADS 加速 |
 | 时序引擎 | 引擎 | IoTDB | 设备秒级指标存储 |

@@ -1,10 +1,7 @@
 package com.levango7.dataenginebdp.finops.billing.model;
 
-import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
-import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -65,11 +62,9 @@ public class BillingModel {
     @Column(name = "billing_period", nullable = false, length = 16)
     private String billingPeriod;
 
-    /** 账单明细项（资源类型/用量/单价/金额） */
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "billing_item", joinColumns = @jakarta.persistence.JoinColumn(name = "billing_id"))
+    /** 账单明细项（资源类型/用量/单价/金额），以 JSON 字符串大对象存储 */
     @Lob
-    @Column(name = "items_json")
+    @Column(name = "items_json", nullable = false)
     private String itemsJson;
 
     /** 账单总金额（人民币元，精度 0.0001） */

@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.datastandard.model.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -32,6 +33,12 @@ public class CreateStandardDTO {
     /** 标准版本号 */
     private String version;
 
-    /** 标准状态：DRAFT / PUBLISHED / DEPRECATED */
+    /**
+     * 标准状态：DRAFT / PUBLISHED / DEPRECATED。
+     *
+     * <p>仅接受合法枚举值（大小写敏感），null 视为合法（服务层回退 DRAFT）。</p>
+     */
+    @Pattern(regexp = "DRAFT|PUBLISHED|DEPRECATED",
+            message = "status 仅支持 DRAFT / PUBLISHED / DEPRECATED")
     private String status;
 }

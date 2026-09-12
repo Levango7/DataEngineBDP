@@ -1374,7 +1374,7 @@ public String explainAsJson(RelNode plan) {
 ### 8.1 技术栈定位
 
 - **官方仓库**：https://github.com/ververica/flink-cdc
-- **当前稳定版**：Flink CDC 3.0.x（基于 Flink 1.18）
+- **当前稳定版**：Flink CDC 3.0.x（基于 Flink 1.20）
 - **License**：Apache 2.0
 - **数擎用途**：T014 实时数据入仓，Source 连接器 MySQL/PostgreSQL/Oracle
 - **验收标准**：CDC 支持三种源、Debezium 格式正确、exactly-once 语义
@@ -1532,11 +1532,11 @@ execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATIO
 1. 端到端 exactly-once，满足 T014 验收
 2. YAML 声明式，降低开发成本
 3. 与 T015 Iceberg V2 Sink 天然集成
-4. 数擎已有 Flink 1.18 集群（L2.3 流计算）
+4. 数擎已有 Flink 1.20 集群（L2.3 流计算）
 
 ### 8.7 集成方案
 
-1. **部署**：Flink CDC 3.0 部署在 Flink 1.18 集群（K8s Application 模式）
+1. **部署**：Flink CDC 3.0 部署在 Flink 1.20 集群（K8s Application 模式）
 2. **依赖**：`flink-cdc-dist:3.0.*`、`flink-connector-iceberg:*`
 3. **管道管理**：封装层 encaps-layer 暴露 `/v1/cdc/pipelines` CRUD，底层调 `flink-cdc.sh`
 4. **监控**：Flink metrics + 平台 Grafana，CDC 延迟 / Binlog 位点 / Checkpoint 成功率
@@ -1809,7 +1809,7 @@ Flink CDC 3.0 自动同步源表 Schema 变更到 Iceberg Sink（加列自动，
 | 4 | Embedding 模型 | ✅ 主选 bge-m3 + TEI | ✅ 文本 + 图像 | ✅ llm-gateway 路由 | 中 | 🟢 就绪 | 具备 |
 | 5 | Cross-Encoder | ✅ 主选 bge-reranker-v2-m3 | ✅ 50→10 P95 80ms | ✅ llm-gateway /v1/rerank | 低 | 🟢 就绪 | 具备 |
 | 6 | Apache Calcite | ✅ 主选 1.37 | ✅ Doris Adapter 骨架 | ✅ 嵌入 sql-gateway | 高 | 🟡 需关注 | 具备（五源分阶段） |
-| 7 | Flink CDC | ✅ 主选 3.0 | ✅ MySQL → Iceberg + exactly-once | ✅ Flink 1.18 集群 | 中 | 🟢 就绪 | 具备 |
+| 7 | Flink CDC | ✅ 主选 3.0 | ✅ MySQL → Iceberg + exactly-once | ✅ Flink 1.20 集群 | 中 | 🟢 就绪 | 具备 |
 | 8 | Iceberg V2 | ✅ 主选 1.5 | ✅ upsert + Schema 演化 | ✅ REST Catalog + S3 | 中 | 🟢 就绪 | 具备 |
 
 图：D-8 开工准备度总览
@@ -1874,8 +1874,8 @@ Flink CDC 3.0 自动同步源表 Schema 变更到 Iceberg Sink（加列自动，
 | bge-reranker-v2-m3 | v1.0 | `BAAI/bge-reranker-v2-m3`（TEI 加载） | — |
 | TEI | 1.5.x | `text-embeddings-inference:1.5` | GPU A10 |
 | Apache Calcite | 1.37.0 | `org.apache.calcite:calcite-core:1.37.0` | Java 17 |
-| Flink CDC | 3.0.x | `flink-cdc-dist:3.0.*` | Flink 1.18 |
-| Iceberg | 1.5.x | `iceberg-flink-runtime:1.5.*` | Flink 1.18 |
+| Flink CDC | 3.0.x | `flink-cdc-dist:3.0.*` | Flink 1.20 |
+| Iceberg | 1.5.x | `iceberg-flink-runtime:1.5.*` | Flink 1.20 |
 
 ## 附录 B：参考资料
 

@@ -4,10 +4,12 @@ import com.levango7.dataenginebdp.masterdata.model.dto.CreateMasterDataDTO;
 import com.levango7.dataenginebdp.masterdata.model.dto.UpdateMasterDataDTO;
 import com.levango7.dataenginebdp.masterdata.model.entity.MasterData;
 import com.levango7.dataenginebdp.masterdata.repository.MasterDataRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,6 +20,15 @@ import java.util.Optional;
  */
 @Service
 public class MasterDataService {
+
+    /** 默认页码（从 0 开始） */
+    private static final int DEFAULT_PAGE = 0;
+
+    /** 默认每页大小 */
+    private static final int DEFAULT_SIZE = 20;
+
+    /** 每页大小上限（防止客户端请求过大分页导致 OOM） */
+    private static final int MAX_SIZE = 200;
 
     private final MasterDataRepository masterDataRepository;
 
@@ -48,17 +59,20 @@ public class MasterDataService {
     }
 
     /**
-     * 按模型编码查询主数据记录。
+     * 按模型编码分页查询主数据记录（避免大数据量 OOM）。
      *
-     * @param modelCode 模型编码（null 时查询全部）
+     * @param modelCode 模型编码（null/空 表示不按模型过滤）
      * @param tenantId  租户 ID
-     * @return 主数据记录列表
+     * @param page      页码（从 0 开始，null 默认 0）
+     * @param size      每页大小（null 默认 20，上限 200）
+     * @return 主数据记录分页结果
      */
-    public List<MasterData> query(String modelCode, String tenantId) {
+    public Page<MasterData> query(String modelCode, String tenantId, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(resolvePage(page), resolveSize(size));
         if (modelCode != null && !modelCode.isBlank()) {
-            return masterDataRepository.findByModelCodeAndTenantId(modelCode, tenantId);
+            return masterDataRepository.findByModelCodeAndTenantId(modelCode, tenantId, pageable);
         }
-        return masterDataRepository.findByTenantId(tenantId);
+        return masterDataRepository.findByTenantId(tenantId, pageable);
     }
 
     /**
@@ -128,5 +142,22 @@ public class MasterDataService {
         }
         masterDataRepository.delete(existing.get());
         return true;
+    }
+
+    /**
+     * 解析页码，非法值回退默认 0。
+     */
+    private int resolvePage(Integer page) {
+        return page == null || page < 0 ? DEFAULT_PAGE : page;
+    }
+
+    /**
+     * 解析每页大小，非法值回退默认 20，上限 200。
+     */
+    private int resolveSize(Integer size) {
+        if (size == null || size <= 0) {
+            return DEFAULT_SIZE;
+        }
+        return Math.min(size, MAX_SIZE);
     }
 }

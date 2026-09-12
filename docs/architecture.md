@@ -60,6 +60,7 @@ graph TB
         L07[L0.7 Cilium网络]
         L08[L0.8 容器存储]
         L09[L0.9 可观测基座]
+        L010[L0.10 环境适配框架]
         L011[L0.11 封装层]
         L012[L0.12 弹性调度]
     end
@@ -99,6 +100,7 @@ L0 层是平台的运行底座，负责将物理或虚拟资源抽象为统一�
 | L0.7 Cilium 网络 | eBPF 高性能网络、socketLB、多租户网络隔离 | ske/manifests/cilium-values.yaml |
 | L0.8 容器存储 | JuiceFS CSI、多环境 CSI 驱动、NVMe 直通、IO_uring 加速 | ske/manifests/ |
 | L0.9 可观测基座 | Prometheus + Grafana + Loki + Tempo 统一可观测 | ske/manifests/ |
+| L0.10 环境适配框架 | dev/staging/prod 三环境 Profile 配置、多租户环境隔离（Namespace + Quota + NetworkPolicy）、环境变量注入与密钥管理、Helm Chart values 多环境覆盖 | deploy/profiles/ |
 | L0.11 封装层 | 客户概念到 K8s 资源翻译（Namespace / Quota / NetworkPolicy） | encaps-layer |
 | L0.12 弹性调度 | KEDA ScaledObject、Cluster Autoscaler、SKE Scheduler Extender | ske/manifests/hpa-templates.yaml |
 

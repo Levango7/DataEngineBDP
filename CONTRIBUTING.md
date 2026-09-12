@@ -103,7 +103,7 @@ cd ..
 
 - 套餐命名：`base` / `standard` / `flagship`（禁止 `basic` / `enterprise` / `pro`）。
 - 工作空间命名：`ws-<name>`（禁止 `<tenant>-default`）。
-- 模块计数：49 模块（禁止沿用"41 模块"旧口径）。
+- 模块计数：45 个自研组件（禁止沿用"44 组件"旧口径）。
 - SKE 版本：v0.1（禁止 SKE v1.0）。
 
 ## 提交规范

@@ -26,8 +26,32 @@ from openapi_catalog.repositories import (
     SubscriptionStatusError,
 )
 from openapi_catalog.repositories.mock import generate_ak_sk
+from openapi_catalog.repositories.rate_limit_store import (
+    RateLimitRow,
+    get_rate_limit_store,
+)
 from openapi_catalog.services.registry import ServiceRegistry
 from pydantic import BaseModel, Field
+
+
+def _assert_subscription_access(ctx: AuthContext, sub) -> None:
+    """租户隔离：非 admin 仅可访问本租户（subscriberTenantId）的订阅.
+
+    Raises:
+        HTTPException: 403 跨租户访问。
+    """
+    if ctx.role != "admin" and sub.subscriberTenantId != ctx.tenantId:
+        raise HTTPException(status_code=403, detail="无权访问此订阅")
+
+
+def _assert_api_access(ctx: AuthContext, api) -> None:
+    """租户隔离：非 admin 仅可访问本租户（providerTenantId）的 API 计费配置.
+
+    Raises:
+        HTTPException: 403 跨租户访问。
+    """
+    if ctx.role != "admin" and api.providerTenantId != ctx.tenantId:
+        raise HTTPException(status_code=403, detail="无权访问此 API 计费配置")
 
 # 订阅增强路由（挂在 /subscriptions 下）
 subscriptions_billing_router = APIRouter(prefix="/subscriptions", tags=["subscription-billing"])
@@ -159,10 +183,15 @@ async def issue_key(
 async def get_key_info(
     subscription_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> KeyInfoResponse:
-    """查询订阅的 Key 信息（出于安全考虑不返回 SK）."""
+    """查询订阅的 Key 信息（出于安全考虑不返回 SK）.
+
+    租户隔离：非 admin 仅可查询本租户订阅的 Key 信息。
+    """
     try:
         sub = await registry.subscriptionService.get_subscription(subscription_id)
+        _assert_subscription_access(ctx, sub)
         return KeyInfoResponse(
             subscriptionId=subscription_id,
             accessKey=sub.accessKey,
@@ -175,8 +204,8 @@ async def get_key_info(
 
 # ---------- 限流配置 ----------
 
-# 内存中存储限流配置（实际场景持久化到 DB）
-_rate_limit_configs: dict[str, RateLimitConfig] = {}
+# 限流配置持久化：见 openapi_catalog.repositories.rate_limit_store
+# （SQLite 共享表，多实例部署一致；mock 模式回退内存字典）
 
 
 @subscriptions_billing_router.put(
@@ -210,8 +239,11 @@ async def configure_rate_limit(
         registry.rateLimiter.configure_subscription(subscription_id, req.qps * 60)  # 转换为次/分钟
         registry.rateLimiter.configure_subscription_rate(subscription_id, req.qps, burst=req.burst)  # 按秒 QPS 限流
 
-        # 保存配置
-        _rate_limit_configs[subscription_id] = req
+        # 持久化配置（SQLite 共享表 / mock 内存）
+        get_rate_limit_store(registry.settings).save(
+            subscription_id,
+            RateLimitRow(qps=req.qps, concurrent=req.concurrent, burst=req.burst),
+        )
 
         return RateLimitConfigResponse(
             subscriptionId=subscription_id,
@@ -232,13 +264,18 @@ async def configure_rate_limit(
 async def get_rate_limit(
     subscription_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> RateLimitConfigResponse:
-    """查询订阅的限流配置."""
-    try:
-        # 校验订阅存在
-        await registry.subscriptionService.get_subscription(subscription_id)
+    """查询订阅的限流配置.
 
-        config = _rate_limit_configs.get(subscription_id)
+    租户隔离：非 admin 仅可查询本租户订阅的限流配置。
+    """
+    try:
+        # 校验订阅存在 + 租户隔离
+        sub = await registry.subscriptionService.get_subscription(subscription_id)
+        _assert_subscription_access(ctx, sub)
+
+        config = get_rate_limit_store(registry.settings).get(subscription_id)
         if config is None:
             # 返回默认配置
             return RateLimitConfigResponse(
@@ -333,10 +370,15 @@ async def configure_billing(
 async def get_billing(
     api_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> BillingConfigResponse:
-    """查询 API 的计费策略."""
+    """查询 API 的计费策略.
+
+    租户隔离：非 admin 仅可查询本租户（providerTenantId）API 的计费配置。
+    """
     try:
         api = await registry.apiRegistryService.get_api(api_id)
+        _assert_api_access(ctx, api)
 
         strategy_desc = {
             CostStrategy.BY_CALL: f"按次计费 {api.costUnitPrice} 元/次",

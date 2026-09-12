@@ -2,6 +2,7 @@
   "_comment": "Python 模块覆盖率基线（2026-09-01 实测快照，pytest-cov TOTAL 口径）。CI 趋势阻断检查使用此文件，覆盖率下降 > 2% 阻断 CI。",
   "_source": "Boot 4.1.1 升级后全量实测（bp 含本迭代新增 dashboards 路由测试）",
   "_threshold_note": "当前阈值：≥55%（2026-09-01 实测最低 72%，全部达标留缓冲）。目标 85% GA标准。",
+  "_baseline_note": "operations-api/batch-pipeline 基线 2026-09-12 从 0 修正为 5：原值 0 导致趋势阻断永不触发（drop=0-cov≤0 恒不超阈值）。设保守初值 5%，低于实测+容差，确保下降可阻断。",
   "asset-exchange": 73,
   "nl2sql": 91,
   "chunker": 63,
@@ -12,6 +13,6 @@
   "open-api-catalog": 87,
   "industry-templates": 92,
   "evaluation": 80,
-  "operations-api": 0,
-  "batch-pipeline": 0
+  "operations-api": 5,
+  "batch-pipeline": 5
 }

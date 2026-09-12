@@ -51,8 +51,7 @@
               </div>
               <div
                 v-else
-                ref="panelEl"
-                :data-panel-id="panel.id"
+                :ref="(el) => setPanelEl(panel.id, el as HTMLElement | null)"
                 style="height: 160px"
                 class="chart-cell"
               ></div>
@@ -91,9 +90,9 @@
       @close="modalVisible = false"
     >
       <label>{{ t('analyze.createModal.name') }}</label>
-      <input v-model="form.name" :placeholder="t('analyze.createModal.namePlaceholder')" />
+      <el-input v-model="form.name" :placeholder="t('analyze.createModal.namePlaceholder')" />
       <label>{{ t('analyze.createModal.description') }}</label>
-      <input
+      <el-input
         v-model="form.description"
         :placeholder="t('analyze.createModal.descriptionPlaceholder')"
       />
@@ -230,6 +229,18 @@ function panelData(p: Panel): { rows: PanelRow[] } {
 
 const chartPool = new Map<string, echarts.ECharts>()
 
+/** 面板 DOM 元素 Map（通过模板 ref 回调收集，避免 querySelector 选择器注入风险） */
+const panelEls = new Map<string, HTMLElement>()
+
+/** 模板 ref 回调：收集/释放面板 DOM 元素 */
+function setPanelEl(id: string, el: HTMLElement | null): void {
+  if (el) {
+    panelEls.set(id, el)
+  } else {
+    panelEls.delete(id)
+  }
+}
+
 /** 按面板类型把 rows 渲染为 ECharts option */
 function buildOption(p: Panel): echarts.EChartsCoreOption | null {
   const rows = panelData(p).rows
@@ -270,7 +281,8 @@ function renderCharts(): void {
     for (const p of board.panels) {
       const opt = buildOption(p)
       if (!opt) continue
-      const cell = document.querySelector<HTMLElement>(`.chart-cell[data-panel-id="${p.id}"]`)
+      // 使用 ref 引用替代 document.querySelector，避免选择器注入风险
+      const cell = panelEls.get(p.id)
       if (!cell) continue
       let inst = chartPool.get(p.id)
       if (!inst) {

@@ -1,10 +1,18 @@
 <template>
   <div>
     <PageHeader :title="t('account.title')" :subtitle="t('account.subtitle')" />
-    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
+    <div
+      v-if="loading"
+      class="card"
+      style="text-align: center; padding: 24px; color: var(--ds-text-tertiary)"
+    >
       {{ t('account.loading') }}
     </div>
-    <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
+    <div
+      v-else-if="error"
+      class="card"
+      style="text-align: center; padding: 24px; color: var(--ds-color-error-500)"
+    >
       {{ t('account.loadFailed', { msg: error.message }) }}
       <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">
         {{ t('common.retry') }}
@@ -30,34 +38,24 @@
       </div>
       <div class="card" style="margin-top: 14px">
         <h3>{{ t('account.billingTitle') }}</h3>
-        <div v-if="billingLoading" style="text-align: center; padding: 24px; color: #888">
+        <div
+          v-if="billingLoading"
+          style="text-align: center; padding: 24px; color: var(--ds-text-tertiary)"
+        >
           {{ t('account.billingLoading') }}
         </div>
-        <table v-else-if="billing">
-          <thead>
-            <tr>
-              <th>{{ t('account.cols.item') }}</th>
-              <th>{{ t('account.cols.usage') }}</th>
-              <th>{{ t('account.cols.cost') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in billing.items" :key="item.id">
-              <td>{{ item.name }}</td>
-              <td>{{ item.usage }}</td>
-              <td>¥ {{ item.cost.toLocaleString() }}</td>
-            </tr>
-            <tr>
-              <td>
-                <b>{{ t('account.total') }}</b>
-              </td>
-              <td></td>
-              <td>
-                <b>¥ {{ billing.totalCost.toLocaleString() }}</b>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <el-table v-else-if="billing" :data="billingRows" stripe border style="width: 100%">
+          <el-table-column prop="name" :label="t('account.cols.item')" />
+          <el-table-column prop="usage" :label="t('account.cols.usage')" />
+          <el-table-column :label="t('account.cols.cost')">
+            <template #default="{ row }">
+              <span v-if="row.isTotal" style="font-weight: 700">
+                {{ t('common.currency') }} {{ row.cost.toLocaleString() }}
+              </span>
+              <span v-else>{{ t('common.currency') }} {{ row.cost.toLocaleString() }}</span>
+            </template>
+          </el-table-column>
+        </el-table>
         <div class="note">{{ t('account.billingNote') }}</div>
       </div>
     </template>
@@ -68,12 +66,12 @@
       @close="modalVisible = false"
     >
       <label>{{ t('account.upgradeModal.targetPlan') }}</label>
-      <select v-model="upgradeForm.targetPlan">
-        <option value="flagship">{{ t('account.upgradeModal.flagship') }}</option>
-        <option value="enterprise">{{ t('account.upgradeModal.enterprisePlus') }}</option>
-      </select>
+      <el-select v-model="upgradeForm.targetPlan" style="width: 100%">
+        <el-option value="flagship" :label="t('account.upgradeModal.flagship')" />
+        <el-option value="enterprise" :label="t('account.upgradeModal.enterprisePlus')" />
+      </el-select>
       <label>{{ t('account.upgradeModal.estimatedFee') }}</label>
-      <input :value="estimatedFee" disabled />
+      <el-input :model-value="estimatedFee" disabled />
       <div class="note">{{ t('account.upgradeModal.note') }}</div>
       <template #footer>
         <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
@@ -116,8 +114,36 @@ const upgradeForm = ref<{ targetPlan: PlanTier }>({
   targetPlan: 'flagship'
 })
 
+/** 计费明细表格数据（含合计行，用于 el-table 渲染） */
+interface BillingRow {
+  id: string | number
+  name: string
+  usage: string | number
+  cost: number
+  isTotal?: boolean
+}
+
+const billingRows = computed<BillingRow[]>(() => {
+  if (!billing.value) return []
+  const items: BillingRow[] = billing.value.items.map((item) => ({
+    id: item.id,
+    name: item.name,
+    usage: item.usage,
+    cost: item.cost
+  }))
+  items.push({
+    id: 'total',
+    name: t('account.total'),
+    usage: '',
+    cost: billing.value.totalCost,
+    isTotal: true
+  })
+  return items
+})
+
 const estimatedFee = computed(() => {
-  return upgradeForm.value.targetPlan === 'flagship' ? '¥ 58,000' : '¥ 35,000'
+  const fee = upgradeForm.value.targetPlan === 'flagship' ? '58,000' : '35,000'
+  return `${t('common.currency')} ${fee}`
 })
 
 async function loadAll() {

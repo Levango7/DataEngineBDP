@@ -73,10 +73,14 @@ public class BillingController {
     }
 
     /**
-     * 查询账单详情。
+     * 查询账单详情（租户隔离）。
+     *
+     * <p>从 {@link TenantContext} 获取当前租户 ID，与账单 ID 联合查询。
+     * 账单不存在或不属于当前租户均返回 404 NOT FOUND，不泄露账单存在性，
+     * 防止跨租户越权读取（P0 租户隔离漏洞修复）。</p>
      *
      * @param billingId 账单 ID
-     * @return 账单详情
+     * @return 账单详情；不存在或不属于当前租户则返回 404
      */
     @Operation(summary = "查询账单详情")
     @GetMapping("/{id}")
@@ -87,7 +91,7 @@ public class BillingController {
                     .body(Map.of("error", "缺少租户上下文（TenantContext 未设置）"));
         }
 
-        return billingGenerator.getById(billingId)
+        return billingGenerator.getById(billingId, tenantId)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("error", "账单不存在", "id", billingId)));

@@ -288,9 +288,11 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
 
         租户裁决：tenantId 一律以 token 声明为准；仅 admin 可通过请求体
         指定他人租户（effectiveTenant）。防止越权探测跨租户 schema。
+
+        生成的 SQL 强制包含 tenant_id 过滤条件，确保租户级数据隔离。
         """
         _tenant = effectiveTenant(ctx, req.tenantId)
-        return await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema)
+        return await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema, tenantId=_tenant)
 
     @app.post(f"{prefix}/nl2sql/convert", response_model=ConvertResponse)
     async def convert(req: ConvertRequest, ctx: AuthContext = Depends(getAuthContext)) -> ConvertResponse:
@@ -300,9 +302,11 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         请求 {query, dialect}，响应 {sql, dialect, tables, confidence}）。
         内部复用完整生成链路（真实 LLM / Mock），异常经 _generateSafe
         转为友好 HTTP 错误。
+
+        生成的 SQL 强制包含 tenant_id 过滤条件，确保租户级数据隔离。
         """
         _tenant = effectiveTenant(ctx, req.tenantId)
-        gen = await _doGenerate(reg, req.query, None, None, False)
+        gen = await _doGenerate(reg, req.query, None, None, False, tenantId=_tenant)
         # 涉及表：优先意图 Join 表 + 首表回退；从生成结果 SQL 中无法可靠反解，
         # 这里用 schema 上下文构建时的命中表不可得，取意图信息近似。
         tables: list[str] = []
@@ -325,8 +329,11 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
 
         租户裁决：tenantId 一律以 token 声明为准；仅 admin 可通过请求体
         指定他人租户（effectiveTenant）。防止越权触发跨租户查询。
+
+        生成的 SQL 强制包含 tenant_id 过滤条件，确保租户级数据隔离。
         """
-        gen = await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema)
+        _tenant = effectiveTenant(ctx, req.tenantId)
+        gen = await _doGenerate(reg, req.query, req.database, req.tableHints, req.useMockSchema, tenantId=_tenant)
         if gen.validation and not gen.validation.valid:
             return ExecuteResponse(
                 sql=gen.sql,
@@ -338,7 +345,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         gw = await reg.gatewayClient.execute(
             sql=gen.sql,
             engine=req.engine,
-            tenantId=effectiveTenant(ctx, req.tenantId),
+            tenantId=_tenant,
             limit=req.limit,
         )
         return ExecuteResponse(
@@ -373,7 +380,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         sql: Optional[str] = None
         if nextQ is None:
             # 无需澄清，直接生成 SQL
-            gen = await _generateSafe(reg, req.query, ctx, intent, frame)
+            gen = await _generateSafe(reg, req.query, ctx, intent, frame, tenantId=auth.tenantId)
             sql = gen.sql
             state.clarified = True
         reg.saveSession(state, auth.tenantId)
@@ -407,7 +414,9 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         nextQ = reg.clarifier.nextQuestion(state, ctx)
         sql: Optional[str] = None
         if nextQ is None and state.currentSlots is not None and state.currentSlots.intent is not None:
-            gen = await _generateSafe(reg, queryText, ctx, state.currentSlots.intent, state.currentSlots)
+            gen = await _generateSafe(
+                reg, queryText, ctx, state.currentSlots.intent, state.currentSlots, tenantId=auth.tenantId
+            )
             sql = gen.sql
             state.clarified = True
         reg.saveSession(state, auth.tenantId)
@@ -455,15 +464,19 @@ async def _generateSafe(
     ctx: Any,
     intent: Intent,
     slots: Optional[SlotFrame] = None,
+    tenantId: Optional[str] = None,
 ) -> SqlGenerationResult:
     """调用 SQL 生成器并把 LLM 配置/调用异常转为友好 HTTP 错误.
 
     - LlmNotConfiguredError → 503（LLM 未配置，提示设置环境变量）
     - LlmCallError          → 502（LLM 调用失败，透传友好文案）
     服务本身不崩溃：异常在此收口，客户端拿到结构化错误信息。
+
+    Args:
+        tenantId: 租户 ID，传给生成器以在 SQL 中注入 tenant_id 过滤条件。
     """
     try:
-        return await reg.generator.generate(query, ctx, intent, slots)
+        return await reg.generator.generate(query, ctx, intent, slots, tenantId=tenantId)
     except LlmNotConfiguredError as e:
         logger.warning("LLM 未配置: {}", e)
         raise HTTPException(status_code=503, detail=str(e)) from e
@@ -478,15 +491,21 @@ async def _doGenerate(
     database: Optional[str],
     tableHints: Optional[list[str]],
     useMockSchema: bool,
+    tenantId: Optional[str] = None,
 ) -> SqlGenerationResult:
-    """完整生成流程：schema → intent → slots → generate → validate."""
-    logger.info("NL2SQL generate: query={!r} db={}", query, database)
+    """完整生成流程：schema → intent → slots → generate → validate.
+
+    Args:
+        tenantId: 租户 ID，传给生成器以在 SQL 中注入 tenant_id 过滤条件，
+            实现租户级数据隔离。None 时跳过（仅限无鉴权的本地调试场景）。
+    """
+    logger.info("NL2SQL generate: query={!r} db={} tenant={}", query, database, tenantId)
     ctx = await reg.schemaBuilder.buildContext(
         query=query, database=database, tableHints=tableHints, useMock=useMockSchema
     )
     intent = reg.intentRecognizer.recognize(query, ctx)
     frame = reg.slotFiller.buildFrame(intent, query, ctx)
-    result = await _generateSafe(reg, query, ctx, intent, frame)
+    result = await _generateSafe(reg, query, ctx, intent, frame, tenantId=tenantId)
     # 若有缺失必需槽位，标记需要澄清
     if not frame.isComplete:
         result.needsClarification = True

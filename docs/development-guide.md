@@ -52,7 +52,7 @@ nvm use 22
 
 ```
 DataEngineBDP/
-├── platform/          # 自研组件（44 个：Java 22 / Go 11 / Python 11）
+├── platform/          # 自研组件（45 个：Java 24 / Go 10 / Python 11）
 │   ├── encaps-layer/  # Java / Spring Boot
 │   ├── sql-gateway/   # Java / Spring Boot
 │   ├── rule-engine/   # Java / Spring Boot
@@ -71,7 +71,7 @@ DataEngineBDP/
 
 ### Java 组件
 
-Java 组件基于 Spring Boot 4.1.1 + Maven 3.9，Java 17。
+Java 组件基于 Spring Boot 3.2.x + Maven 3.9，Java 17。
 
 ```bash
 # 编译单个组件
@@ -107,7 +107,7 @@ docker build -t shuqing/encaps-layer:latest platform/encaps-layer/
 
 ### Go 组件
 
-Go 组件基于 Go 1.26 + Gin / Cobra。
+Go 组件基于 Go 1.22+ + Gin / Cobra。
 
 ```bash
 # 下载依赖

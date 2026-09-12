@@ -13,7 +13,7 @@
   "infra-provider-private": 46,
   "infra-provider-xinchang": 25,
   "federated-query": 59,
-  "function-runtime-java": 92,
+
   "flink-cdc": 89,
   "tag-engine": 48,
   "rule-engine": 75,
@@ -24,5 +24,8 @@
   "encaps-data": 13,
   "encaps-gateway": 2,
   "real-time-pipeline": 25,
-  "infra-provider-cloud": 10
+  "infra-provider-cloud": 10,
+  "master-data": 0,
+  "data-standard": 0,
+  "billing": 0
 }

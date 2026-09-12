@@ -114,8 +114,8 @@ GET /api/sql/v1/sql/validate                  POST {sql} → {ok, hints[], risk[
 | Adapter | 目标引擎 | 方言/协议 | 路由场景 |
 | --- | --- | --- | --- |
 | SparkAdapter | L2.2 Spark 3.5 | Spark SQL | 重批 SQL、大表 ETL 查询 |
-| FlinkAdapter | L2.3 Flink 1.18 | Stream SQL / Table API | 流式 SQL、流表联邦 |
-| TrinoAdapter | L2.4 Trino 438 | Trino SQL | 即席/联邦查询、跨源 JOIN |
+| FlinkAdapter | L2.3 Flink 1.20 | Stream SQL / Table API | 流式 SQL、流表联邦 |
+| TrinoAdapter | L2.4 Trino 460 | Trino SQL | 即席/联邦查询、跨源 JOIN |
 | DorisAdapter | L2.5 Doris 2.1 | Doris SQL | OLAP 加速、在线点查 |
 | IcebergAdapter | L2.1 Iceberg REST Catalog | Iceberg API | 湖层直查、元数据访问 |
 | KafkaAdapter | L2.8 Kafka | KSQL / Consumer | 流数据探查、源表查询 |

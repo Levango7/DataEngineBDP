@@ -3,10 +3,10 @@
     <el-button
       v-if="showCreate"
       type="primary"
-      :aria-label="createAriaLabel || createLabel"
+      :aria-label="createAriaLabel || createLabel || t('common.create')"
       @click="$emit('create')"
     >
-      {{ createLabel }}
+      {{ createLabel || t('common.create') }}
     </el-button>
 
     <el-input
@@ -39,6 +39,9 @@
 
 <script setup lang="ts">
 import { Refresh } from '@element-plus/icons-vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 withDefaults(
   defineProps<{
@@ -54,7 +57,7 @@ withDefaults(
   }>(),
   {
     showCreate: false,
-    createLabel: 'Create',
+    createLabel: undefined,
     showRefresh: true
   }
 )

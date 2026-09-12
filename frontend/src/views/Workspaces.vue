@@ -2,12 +2,16 @@
   <div>
     <PageHeader :title="t('workspaces.title')" :subtitle="t('workspaces.subtitle')" />
     <div class="toolbar">
-      <button class="btn sm" @click="openCreateModal">{{ t('workspaces.newWorkspace') }}</button>
-      <input
+      <el-button size="small" type="primary" @click="openCreateModal">
+        {{ t('workspaces.newWorkspace') }}
+      </el-button>
+      <el-input
         v-model="keyword"
         style="width: 220px"
         :placeholder="t('workspaces.searchPlaceholder')"
+        clearable
         @keyup.enter="reloadList"
+        @clear="reloadList"
       />
       <div class="spacer"></div>
       <span class="pill b">{{ t('workspaces.quotaIndependent') }}</span>
@@ -142,23 +146,24 @@
           {{ projectsError.message }}，
           <a href="javascript:void(0)" @click="loadProjects">{{ t('common.retry') }}</a>
         </div>
-        <table v-else-if="tenantProjects.length">
-          <tr>
-            <th>{{ t('workspaces.projects.colProject') }}</th>
-            <th>{{ t('workspaces.projects.colStatus') }}</th>
-          </tr>
-          <tr v-for="p in tenantProjects" :key="p.id">
-            <td>{{ p.name }}</td>
-            <td>
+        <el-table
+          v-else-if="tenantProjects.length"
+          :data="tenantProjects"
+          size="small"
+          border
+        >
+          <el-table-column :label="t('workspaces.projects.colProject')" prop="name" />
+          <el-table-column :label="t('workspaces.projects.colStatus')">
+            <template #default="{ row }">
               <span
                 class="pill"
-                :class="p.status === 'running' ? 'g' : p.status === 'failed' ? 'r' : 'a'"
+                :class="row.status === 'running' ? 'g' : row.status === 'failed' ? 'r' : 'a'"
               >
-                {{ p.status }}
+                {{ row.status }}
               </span>
-            </td>
-          </tr>
-        </table>
+            </template>
+          </el-table-column>
+        </el-table>
         <div v-else class="meta">{{ t('workspaces.projects.empty') }}</div>
       </div>
     </Drawer>
@@ -169,30 +174,30 @@
       @close="modalVisible = false"
     >
       <label>{{ t('workspaces.createModal.name') }}</label>
-      <input v-model="form.name" :placeholder="t('workspaces.createModal.namePlaceholder')" />
+      <el-input v-model="form.name" :placeholder="t('workspaces.createModal.namePlaceholder')" />
       <label>{{ t('workspaces.createModal.tenant') }}</label>
-      <select v-model="form.tenantId">
-        <option value="t-external">{{ t('workspaces.createModal.tenantExternal') }}</option>
-        <option value="t-internal">{{ t('workspaces.createModal.tenantInternal') }}</option>
-      </select>
+      <el-select v-model="form.tenantId" style="width: 100%">
+        <el-option value="t-external" :label="t('workspaces.createModal.tenantExternal')" />
+        <el-option value="t-internal" :label="t('workspaces.createModal.tenantInternal')" />
+      </el-select>
       <label>{{ t('workspaces.createModal.plan') }}</label>
-      <select v-model="form.plan">
-        <option value="standard">{{ t('workspaces.plans.standard') }}</option>
-        <option value="enterprise">{{ t('workspaces.plans.enterprise') }}</option>
-        <option value="flagship">{{ t('workspaces.plans.flagship') }}</option>
-      </select>
+      <el-select v-model="form.plan" style="width: 100%">
+        <el-option value="standard" :label="t('workspaces.plans.standard')" />
+        <el-option value="enterprise" :label="t('workspaces.plans.enterprise')" />
+        <el-option value="flagship" :label="t('workspaces.plans.flagship')" />
+      </el-select>
       <label>{{ t('workspaces.createModal.env') }}</label>
-      <select v-model="form.env">
-        <option value="xinchuang">{{ t('workspaces.envs.xinchuang') }}</option>
-        <option value="onprem">{{ t('workspaces.envs.onprem') }}</option>
-        <option value="public-cloud">{{ t('workspaces.envs.publicCloud') }}</option>
-        <option value="private-cloud">{{ t('workspaces.envs.privateCloud') }}</option>
-      </select>
+      <el-select v-model="form.env" style="width: 100%">
+        <el-option value="xinchuang" :label="t('workspaces.envs.xinchuang')" />
+        <el-option value="onprem" :label="t('workspaces.envs.onprem')" />
+        <el-option value="public-cloud" :label="t('workspaces.envs.publicCloud')" />
+        <el-option value="private-cloud" :label="t('workspaces.envs.privateCloud')" />
+      </el-select>
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">{{ t('common.cancel') }}</button>
-        <button class="btn" :disabled="creating" @click="handleCreate">
+        <el-button @click="modalVisible = false">{{ t('common.cancel') }}</el-button>
+        <el-button type="primary" :disabled="creating" @click="handleCreate">
           {{ creating ? t('workspaces.createModal.creating') : t('common.create') }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>

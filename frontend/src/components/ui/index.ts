@@ -11,4 +11,4 @@ export { default as EmptyState } from './EmptyState.vue'
 export { default as FilterBar } from './FilterBar.vue'
 export { default as ConfirmDialog } from './ConfirmDialog.vue'
 
-export type { FilterConfig, FilterOption } from './FilterBar.vue'
+export type { FilterConfig, FilterOption, FilterValue, FilterModel } from './FilterBar.vue'

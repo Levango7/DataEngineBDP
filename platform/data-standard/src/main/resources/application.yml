@@ -1,5 +1,5 @@
 server:
-  port: 8087
+  port: ${DATA_STANDARD_PORT:8087}
 spring:
   application:
     name: data-standard
@@ -17,7 +17,7 @@ spring:
         dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 management:
   endpoints:
@@ -49,3 +49,9 @@ app:
       realm: ${KEYCLOAK_REALM:shuqing}
       auth-server-url: ${KEYCLOAK_URL:http://keycloak-service:8080/realms/shuqing}
       resource: ${KEYCLOAK_CLIENT_ID:shuqing-platform}
+    # API Key 认证（与 Bearer JWT 分离，通过 X-API-Key header 传递）
+    # 默认关闭；启用时需配置合法 key 列表与关联租户 ID
+    api-key:
+      enabled: ${API_KEY_ENABLED:false}
+      valid-keys: ${API_KEY_VALID_KEYS:}
+      tenant-id: ${API_KEY_TENANT_ID:api-tenant}

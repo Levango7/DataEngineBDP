@@ -5,10 +5,10 @@
       :subtitle="t('lineage.subtitle', { table: highlightTable || t('lineage.noHighlight') })"
     />
     <div class="legend">
-      <span style="color: #8a9ba0">{{ t('lineage.legend.upstream') }}</span>
+      <span style="color: var(--ds-color-gray-400)">{{ t('lineage.legend.upstream') }}</span>
       <span style="color: var(--ds-color-primary-500)">{{ t('lineage.legend.current') }}</span>
       <span style="color: var(--ds-color-success-500)">{{ t('lineage.legend.downstream') }}</span>
-      <span style="color: #94a3b8">{{ t('lineage.legend.faded') }}</span>
+      <span style="color: var(--ds-color-gray-400)">{{ t('lineage.legend.faded') }}</span>
     </div>
     <div v-if="loading" class="card" style="padding: 16px; color: var(--ds-text-tertiary)">
       {{ t('lineage.loading') }}

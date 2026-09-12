@@ -146,11 +146,19 @@ public class BillingGenerator {
     }
 
     /**
-     * 查询账单 by ID。
+     * 查询账单 by ID（租户隔离）。
+     *
+     * <p>同时按 {@code billingId} 与 {@code tenantId} 联合查询，仅当账单存在且
+     * 属于当前租户时才返回。账单不存在或属于其他租户均返回 {@link Optional#empty()}，
+     * 由调用方统一以 404 NOT FOUND 响应，不泄露账单存在性，防止跨租户越权读取。</p>
+     *
+     * @param billingId 账单 ID
+     * @param tenantId  当前请求租户 ID（须由调用方经 TenantContext 校验非空）
+     * @return 账单生成响应（若账单存在且属于该租户）
      */
     @Transactional(readOnly = true)
-    public Optional<BillingGenerateResponse> getById(String billingId) {
-        return billingRepository.findById(billingId).map(this::toResponse);
+    public Optional<BillingGenerateResponse> getById(String billingId, String tenantId) {
+        return billingRepository.findByIdAndTenantId(billingId, tenantId).map(this::toResponse);
     }
 
     /**

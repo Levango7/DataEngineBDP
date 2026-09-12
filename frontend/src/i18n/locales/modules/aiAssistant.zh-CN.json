@@ -98,6 +98,12 @@
       "1": "统计各省份用户数量",
       "2": "对比本月与上月 GMV",
       "3": "找出 TOP 10 高频商品"
+    },
+    "errors": {
+      "streamUnauthorized": "登录已过期，请重新登录",
+      "streamRequestFailed": "AI 助手流式请求失败：HTTP {status}",
+      "streamNoBody": "AI 助手流式请求无响应体",
+      "streamNoFinal": "AI 助手流式请求未收到 final 事件"
     }
   }
 }

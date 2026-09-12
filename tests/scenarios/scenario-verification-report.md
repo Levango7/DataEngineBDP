@@ -48,7 +48,7 @@
 | 8 | 数据共享交换 - 权限申请与审批 | ✅ PASS | 跨委办局权限申请 + 审批流 API |
 | 9 | 脱敏规则配置 | ✅ PASS | 身份证/姓名/手机号/住址 SM4 脱敏策略 |
 | 10 | 开放 API 服务目录 | ✅ PASS | 政务 API 注册 + 分类过滤 |
-| 11 | T+1 治理 DAG 调度 | ⏭️ SKIP | DolphinScheduler + Spark on Yarn |
+| 11 | T+1 治理 DAG 调度 | ⏭️ SKIP | DolphinScheduler + Spark on K8s |
 | 12 | 审计留痕 | ⏭️ SKIP | audit_log 保留 180 天 + 不可篡改 |
 
 **覆盖度**：9/12 = 75%（3 个步骤需集群环境）

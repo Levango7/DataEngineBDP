@@ -327,29 +327,61 @@ spec:
 
 #### 3.4.3 告警规则
 
+平台告警规则分两套体系，均位于 `platform/observability/` 下：
+
+**体系一：P0/P1/P2 原生规则**（ConfigMap 挂载方式，已部署）
+
+| 文件 | 分级 | 通知渠道 |
+|------|------|----------|
+| `rules/p0-rules.yaml` | P0 | 电话 + 短信 |
+| `rules/p1-rules.yaml` | P1 | 邮件 + 企业微信 |
+| `rules/p2-rules.yaml` | P2 | 钉钉 + 飞书 |
+
+**体系二：critical/warning/info CRD 规则**（kube-prometheus-stack CRD 部署，待部署）
+
+| 文件 | CRD 类型 | 规则数 | 说明 |
+|------|----------|--------|------|
+| `alert-rules/service-down-alerts.yaml` | PrometheusRule | 11 | 核心服务宕机（critical） |
+| `alert-rules/resource-threshold-alerts.yaml` | PrometheusRule | 9 | CPU/内存/磁盘阈值（critical/warning） |
+| `alert-rules/db-connection-alerts.yaml` | PrometheusRule | 9 | DB 连接池/失败率（critical/warning） |
+| `alert-rules/alert-routing.yaml` | AlertmanagerConfig | — | 告警路由（critical→PD+邮件, warning→邮件, info→Slack） |
+
+CRD 规则示例（service-down-alerts.yaml）：
+
 ```yaml
-groups:
-  - name: shuqing-alerts
-    rules:
-      - alert: PodDown
-        expr: kube_pod_status_phase{phase!="Running"} == 1
-        for: 5m
-        labels: {severity: critical}
-        annotations:
-          summary: "Pod {{ $labels.pod }} down"
-      - alert: SqlGatewayHighLatency
-        expr: histogram_quantile(0.95, sql_gateway_query_duration_seconds_bucket) > 10
-        for: 5m
-        labels: {severity: warning}
-        annotations:
-          summary: "SQL 网关 P95 延迟 > 10s"
-      - alert: DorisBeDiskHigh
-        expr: doris_be_disk_used_ratio > 0.85
-        for: 10m
-        labels: {severity: warning}
-        annotations:
-          summary: "Doris BE 磁盘使用率 > 85%"
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: service-down-alerts
+  namespace: monitoring
+spec:
+  groups:
+    - name: service-down-critical
+      interval: 30s
+      rules:
+        - alert: EncapsLayerDown
+          expr: up{job="encaps-layer"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            service: encaps-layer
+          annotations:
+            summary: "encaps-layer 服务宕机"
+            runbook_url: "https://wiki.shuqing.bigdata/runbook/encaps-layer-down"
+        # ... 共 11 条服务宕机告警
 ```
+
+部署命令：
+
+```bash
+# 部署所有 CRD 告警规则
+kubectl apply -f platform/observability/alert-rules/ -n monitoring
+
+# 验证规则已加载
+kubectl get prometheusrule -n monitoring
+```
+
+> **详见**：[监控告警闭环验证报告](../监控告警闭环验证报告.md) — 含完整规则清单、响应 SOP、闭环验证检查清单。
 
 ### 3.5 备份与恢复
 

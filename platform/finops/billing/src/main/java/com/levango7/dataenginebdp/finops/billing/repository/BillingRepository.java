@@ -25,6 +25,19 @@ public interface BillingRepository extends JpaRepository<BillingModel, String> {
     List<BillingModel> findByTenantIdOrderByGeneratedAtDesc(String tenantId);
 
     /**
+     * 按账单 ID 与租户 ID 联合查询账单（租户隔离）。
+     *
+     * <p>用于 {@code getById} 接口的租户越权防护：仅当账单存在且属于当前租户时才返回。
+     * 账单不存在或不属于当前租户均返回 {@link Optional#empty()}，
+     * 调用方统一以 404 NOT FOUND 响应，不泄露账单存在性。</p>
+     *
+     * @param id       账单 ID
+     * @param tenantId 当前请求租户 ID（来自 {@code TenantContext}）
+     * @return 账单（若存在且属于该租户）
+     */
+    Optional<BillingModel> findByIdAndTenantId(String id, String tenantId);
+
+    /**
      * 按租户 ID 与账期查询账单（幂等检查：同一租户同一账期是否已生成）。
      *
      * @param tenantId     租户 ID

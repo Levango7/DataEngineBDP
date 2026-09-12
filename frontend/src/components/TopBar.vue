@@ -1,5 +1,17 @@
 <template>
   <div class="topbar" role="banner" aria-label="Top Bar">
+    <!-- 移动端汉堡菜单（≤640px 显示，打开侧边栏抽屉） -->
+    <button
+      class="tb-icon-btn hamburger"
+      :class="{ on: ui.sidebarOpen }"
+      :aria-label="ui.sidebarOpen ? t('app.closeMenu') : t('app.openMenu')"
+      :title="ui.sidebarOpen ? t('app.closeMenu') : t('app.openMenu')"
+      :aria-expanded="ui.sidebarOpen"
+      @click="ui.toggleSidebarOpen"
+    >
+      <el-icon class="tb-ic"><Fold v-if="ui.sidebarOpen" /><Expand v-else /></el-icon>
+    </button>
+
     <!-- 工作空间切换 -->
     <div
       class="ws-switch"
@@ -149,7 +161,7 @@
 import { computed, ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Folder, Search, Bell, Sunny, Moon } from '@element-plus/icons-vue'
+import { Folder, Search, Bell, Sunny, Moon, Expand, Fold } from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
@@ -592,5 +604,15 @@ function handleLogout() {
   box-shadow:
     0 4px 14px rgba(99, 102, 241, 0.55),
     var(--shadow-glow);
+}
+
+/* === 汉堡菜单：仅移动端 ≤640px 显示 === */
+.hamburger {
+  display: none;
+}
+@media (max-width: 640px) {
+  .hamburger {
+    display: inline-flex;
+  }
 }
 </style>

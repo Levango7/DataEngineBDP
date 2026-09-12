@@ -87,8 +87,12 @@ type Nl2SqlResult struct {
 }
 
 // Nl2Sql 调用 nl2sql 服务。
-func (p *DownstreamProxy) Nl2Sql(ctx context.Context, query, dialect string) (*Nl2SqlResult, error) {
-	payload := map[string]string{"query": query, "dialect": dialect}
+//
+// tenantID 非空时同时通过请求体 tenantId 字段与 X-Tenant-Id 请求头传入
+// nl2sql 服务，由后者在生成 SQL 时注入 tenant_id 过滤条件，实现租户级数据隔离。
+// tenantID 为空时仅记录告警（下游将不做租户过滤，仅限无鉴权的本地调试场景）。
+func (p *DownstreamProxy) Nl2Sql(ctx context.Context, query, dialect, tenantID string) (*Nl2SqlResult, error) {
+	payload := map[string]string{"query": query, "dialect": dialect, "tenantId": tenantID}
 	body, _ := json.Marshal(payload)
 
 	httpReq, err := http.NewRequestWithContext(ctx, http.MethodPost,
@@ -97,6 +101,9 @@ func (p *DownstreamProxy) Nl2Sql(ctx context.Context, query, dialect string) (*N
 		return nil, err
 	}
 	httpReq.Header.Set("Content-Type", "application/json")
+	if tenantID != "" {
+		httpReq.Header.Set("X-Tenant-Id", tenantID)
+	}
 
 	resp, err := p.hc.Do(httpReq)
 	if err != nil {

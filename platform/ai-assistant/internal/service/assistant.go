@@ -119,9 +119,9 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 
 	resp := &ChatResponse{SessionID: sessionID}
 
-	// ② NL→SQL（默认开）
+	// ② NL→SQL（默认开；传入 tenantId 实现租户隔离）
 	if req.EnableNl2Sql {
-		if nl2sql, err := a.proxy.Nl2Sql(ctx, req.Message, ""); err == nil && nl2sql != nil && strings.TrimSpace(nl2sql.SQL) != "" {
+		if nl2sql, err := a.proxy.Nl2Sql(ctx, req.Message, "", req.TenantID); err == nil && nl2sql != nil && strings.TrimSpace(nl2sql.SQL) != "" {
 			resp.SQL = nl2sql.SQL
 		}
 	}

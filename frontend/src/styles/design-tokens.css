@@ -248,7 +248,7 @@
   --ds-text-inverse: #0f172a;
 
   --ds-border-default: #334155;
-  --ds-border-subtle: #334155;
+  --ds-border-subtle: #293549; /* 次级边框（更暗，与 default #334155 区分） */
   --ds-border-strong: #475569;
   --ds-border-focus: #60a5fa;
 
@@ -283,7 +283,7 @@
     --ds-text-inverse: #0f172a;
 
     --ds-border-default: #334155;
-    --ds-border-subtle: #334155;
+    --ds-border-subtle: #293549; /* 次级边框（更暗，与 default #334155 区分） */
     --ds-border-strong: #475569;
     --ds-border-focus: #60a5fa;
 

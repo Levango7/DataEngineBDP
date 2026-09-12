@@ -1,9 +1,10 @@
 # 设计 Token Figma 同步
 
 > 归属：多平台多租户大数据平台 · UI 设计文档
-> 版本：v1.0 ｜ 日期：2026-08-18 ｜ 状态：已完成
-> 关联：`design/UI设计/设计系统规范.md`；`design/UI设计/组件库Storybook.md`；`frontend/src/styles/tokens/`
+> 版本：v1.1 ｜ 日期：2026-09-12 ｜ 状态：方案已完成，代码未落地
+> 关联：`design/UI设计/设计系统规范.md`；`design/UI设计/组件库Storybook.md`；`frontend/src/styles/design-tokens.css`（当前 token 源）
 > 适用范围：设计 Token 在 Figma 与代码之间的双向同步
+> 变更：v1.1（2026-09-12）修正 token 源路径——当前项目使用单 CSS 文件架构（`design-tokens.css` + `theme.css` + `main.css`），不存在 `frontend/src/styles/tokens/` 目录；该目录为 Style Dictionary 落地后的规划结构（见 §10）
 
 ---
 
@@ -68,8 +69,23 @@ graph LR
 
 ### 3.1 文件结构
 
+**当前实际架构（单 CSS 文件，已落地）：**
+
 ```text
-frontend/src/styles/tokens/
+frontend/src/styles/
+├── design-tokens.css   # 设计 token 源：--ds-* 体系（颜色/字号/间距/圆角/阴影/动画）
+│                       #   含 :root 亮色 + [data-theme="dark"] 暗色覆盖
+├── theme.css           # 主题工具类（.glass / .gradient-text / .skeleton 等）
+├── main.css            # 主样式：--typo-* 文字 token + 组件样式 + 响应式断点
+└── index.css           # 入口：按序引入 design-tokens → theme → main
+```
+
+> 当前 token 以 CSS 自定义属性形式直接定义在 `design-tokens.css` 中，无 JSON 中间层、无 Style Dictionary 构建步骤。`main.css` 中的 `--typo-*` 文字 token（`--typo-h1` / `--typo-body` 等）为组件级 token，引用 `--ds-*` 基础 token。
+
+**Style Dictionary 落地后的规划架构（未落地，见 §10）：**
+
+```text
+frontend/src/styles/tokens/          # ← 规划中，当前不存在
 ├── color/
 │   ├── base.json         # 基础色板
 │   ├── semantic.json     # 语义色（引用 base）
@@ -90,6 +106,8 @@ frontend/src/styles/tokens/
 │   └── dark.json         # 深色主题覆盖
 └── index.json            # 入口聚合
 ```
+
+> 落地策略：从当前 `design-tokens.css` 的 `--ds-*` 变量反向编写 JSON 作为初始 source，Style Dictionary 构建产物输出到 `frontend/src/styles/generated/`，`design-tokens.css` 改为 `@import` 生成的 `variables.css` 或直接替换。
 
 ### 3.2 Token 命名
 
@@ -131,10 +149,12 @@ frontend/src/styles/tokens/
 
 ### 4.1 Figma → 代码（正向同步）
 
+> **注意**：以下流程依赖 §3.1 规划的 `tokens/` 目录与 Style Dictionary 工具链，当前未落地（见 §10）。当前 token 变更流程为：直接修改 `frontend/src/styles/design-tokens.css` 中的 `--ds-*` 变量，提交 PR 即可。
+
 ```bash
 # 1. 设计师在 Figma 修改 token
 # 2. 使用 Figma Tokens Plugin 导出 JSON
-# 3. 提交到 tokens/ 目录
+# 3. 提交到 tokens/ 目录（规划中，当前不存在）
 git add frontend/src/styles/tokens/
 git commit -m "design(tokens): 更新主色板"
 
@@ -172,8 +192,10 @@ npm run sync:figma
 
 ### 5.1 配置文件
 
+> **注意**：此配置依赖 §3.1 规划的 `tokens/` 目录，当前未落地。落地前 token 源为 `frontend/src/styles/design-tokens.css`。
+
 ```javascript
-// style-dictionary.config.js
+// style-dictionary.config.js（规划中，当前不存在）
 const StyleDictionary = require('style-dictionary');
 
 StyleDictionary.extend({
@@ -356,6 +378,7 @@ export function useTheme() {
 | 版本 | 日期 | 变更内容 | 作者 |
 | --- | --- | --- | --- |
 | v1.0 | 2026-08-18 | 首次发布，覆盖 163 token + 双向同步 | UI 组 |
+| v1.1 | 2026-09-12 | 修正 token 源路径：当前使用单 CSS 文件架构（`design-tokens.css`），`tokens/` 目录为规划结构；§3.1 补充当前实际架构说明 | 前端组 |
 
 > 本文档由 UI 组维护，token 变更须走 PR 流程并经 UI 组 + 前端组联合评审。
 

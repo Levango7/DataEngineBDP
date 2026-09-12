@@ -20,8 +20,10 @@ wait_pod_ready() {
 }
 
 # HTTP 健康检查
+# Java Spring Boot 服务统一使用 /actuator/health（由 Spring Boot Actuator 提供）
+# Go/Python 服务统一使用 /api/v1/health（由各服务自定义健康端点提供）
 check_health() {
-  local svc="$1" port="$2" path="${3:-/health}"
+  local svc="$1" port="$2" path="${3:-/api/v1/health}"
   log "检查 $svc:$port$path ..."
   kubectl run -n "$NS" "curl-$svc-$$" --rm -i --restart=Never --image=curlimages/curl:8.9.1 -- \
     -fsS "http://$svc.$NS.svc.cluster.local:$port$path" >/dev/null 2>&1 || fail "$svc 健康检查失败"
@@ -42,24 +44,28 @@ wait_pod_ready "app.kubernetes.io/name=rule-engine" 180
 wait_pod_ready "app.kubernetes.io/name=open-api-catalog" 180
 
 # 3. HTTP 健康检查（需 Service 端口正确）
+# Java Spring Boot 服务：/actuator/health（Actuator 端点）
+# Go/Python 服务：/api/v1/health（自定义健康端点）
 log "启动临时 port-forward 进行健康检查..."
 kubectl port-forward -n "$NS" svc/encaps-layer 8080:8080 >/dev/null 2>&1 &
 PF1=$!
-kubectl port-forward -n "$NS" svc/sql-gateway 8081:8080 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/sql-gateway 8081:8081 >/dev/null 2>&1 &
 PF2=$!
-kubectl port-forward -n "$NS" svc/catalog 8082:8080 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/catalog 8082:8082 >/dev/null 2>&1 &
 PF3=$!
-kubectl port-forward -n "$NS" svc/rule-engine 8083:8080 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/rule-engine 8083:8083 >/dev/null 2>&1 &
 PF4=$!
-kubectl port-forward -n "$NS" svc/open-api-catalog 8084:8080 >/dev/null 2>&1 &
+kubectl port-forward -n "$NS" svc/open-api-catalog 8084:8084 >/dev/null 2>&1 &
 PF5=$!
 sleep 3
 
-curl -fsS http://localhost:8080/health >/dev/null && pass "encaps-layer" || fail "encaps-layer"
-curl -fsS http://localhost:8081/health >/dev/null && pass "sql-gateway" || fail "sql-gateway"
-curl -fsS http://localhost:8082/health >/dev/null && pass "catalog" || fail "catalog"
-curl -fsS http://localhost:8083/health >/dev/null && pass "rule-engine" || fail "rule-engine"
-curl -fsS http://localhost:8084/health >/dev/null && pass "open-api-catalog" || fail "open-api-catalog"
+# Java Spring Boot 服务统一使用 /actuator/health
+curl -fsS http://localhost:8080/actuator/health >/dev/null && pass "encaps-layer" || fail "encaps-layer"
+curl -fsS http://localhost:8081/actuator/health >/dev/null && pass "sql-gateway" || fail "sql-gateway"
+# Go/Python 服务统一使用 /api/v1/health
+curl -fsS http://localhost:8082/api/v1/health >/dev/null && pass "catalog" || fail "catalog"
+curl -fsS http://localhost:8083/actuator/health >/dev/null && pass "rule-engine" || fail "rule-engine"
+curl -fsS http://localhost:8084/api/v1/health >/dev/null && pass "open-api-catalog" || fail "open-api-catalog"
 
 # 清理 port-forward
 kill $PF1 $PF2 $PF3 $PF4 $PF5 2>/dev/null || true

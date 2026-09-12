@@ -16,7 +16,7 @@
 
 ### 1.2 技术栈
 
-- Java 17 / Spring Boot 4.1.1
+- Java 17 / Spring Boot 3.2.x
 - Prometheus + kube-state-metrics + DCGM Exporter + 网络 Exporter
 - JWT 认证 + Spring Security
 - H2（开发）/ PostgreSQL（生产）

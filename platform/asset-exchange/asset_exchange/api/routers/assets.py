@@ -352,12 +352,13 @@ async def list_assets(
 async def get_asset(
     asset_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Asset:
-    """获取资产详情."""
-    try:
-        return await registry.assetService.get_asset(asset_id)
-    except AssetExchangeError as exc:
-        raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
+    """获取资产详情.
+
+    租户隔离：非 admin 仅可查询本租户的资产详情；admin 可查询任意资产。
+    """
+    return await require_asset_owner(registry, asset_id, ctx)
 
 
 @router.put(

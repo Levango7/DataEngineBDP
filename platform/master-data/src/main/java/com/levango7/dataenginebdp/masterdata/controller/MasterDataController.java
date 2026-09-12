@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -22,13 +23,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
 import java.util.Map;
 
 /**
  * 主数据记录 REST 控制器。
  *
- * <p>提供主数据记录的 CRUD 与按模型查询端点。
+ * <p>提供主数据记录的 CRUD 与按模型分页查询端点。
  * 多租户隔离：所有操作通过 {@link #requireTenant()} 从 {@link TenantContext}
  * 取得租户 ID，缺失则 fail-closed。</p>
  */
@@ -50,20 +50,29 @@ public class MasterDataController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    /** 按模型查询主数据记录 */
-    @Operation(summary = "按模型查询主数据记录")
+    /**
+     * 按模型分页查询主数据记录。
+     *
+     * @param modelCode 模型编码（可选，不传则查询全部模型）
+     * @param page      页码（从 0 开始，默认 0）
+     * @param size      每页大小（默认 20，上限 200）
+     * @return 主数据记录分页结果
+     */
+    @Operation(summary = "按模型分页查询主数据记录")
     @GetMapping
-    public ResponseEntity<List<MasterData>> query(
-            @RequestParam(name = "modelCode", required = false) String modelCode) {
+    public ResponseEntity<Page<MasterData>> query(
+            @RequestParam(name = "modelCode", required = false) String modelCode,
+            @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+            @RequestParam(name = "size", required = false, defaultValue = "20") Integer size) {
         String tenantId = requireTenant();
-        return ResponseEntity.ok(masterDataService.query(modelCode, tenantId));
+        return ResponseEntity.ok(masterDataService.query(modelCode, tenantId, page, size));
     }
 
     /** 更新主数据记录 */
     @Operation(summary = "更新主数据记录")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
-                                    @RequestBody UpdateMasterDataDTO dto) {
+                                    @Valid @RequestBody UpdateMasterDataDTO dto) {
         String tenantId = requireTenant();
         MasterData updated = masterDataService.update(id, dto, tenantId);
         if (updated == null) {

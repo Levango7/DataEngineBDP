@@ -470,7 +470,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
   - Spring Cloud 2024.0.x → Spring Boot 3.3.x
   - Spring Cloud 2025.0.x → Spring Boot 4.0.x
   - Spring Cloud 2025.1.x → Spring Boot 4.1.x
-- **矛盾**：Spring Cloud 2025.1.2 需要 Spring Boot 4.1，但项目用 3.3.4
+- **矛盾**：Spring Cloud 2025.1.2 需要 Spring Boot 4.1，但项目用 3.2.x
 
 #### 7.1.2 建议：关闭
 
@@ -588,7 +588,7 @@ encaps-layer 大量使用 fabric8 KubernetesClient DSL（111 处匹配）：
 |----|------|------|---------|
 | #158, #146, #133, #130, #110, #84, #82, #79, #28, #27, #24, #7, #6 | spring-boot-starter-parent | 3.2.5→4.1.0 | Spring Boot 3→4 大版本跳跃，需统一升级策略，传递依赖未验证 |
 | #3 | spring-boot-starter-parent | 3.3.4→4.1.0 | 三重依赖锁死（Spring Boot 4 + Spring Cloud 2023.0 + native-maven-plugin 0.10） |
-| #132 | spring-cloud-dependencies | 2023.0.3→2025.1.2 | 需要 Spring Boot 4.1+，但项目用 3.3.4 |
+| #132 | spring-cloud-dependencies | 2023.0.3→2025.1.2 | 需要 Spring Boot 4.1+，但项目用 3.2.x |
 | #162 | langchain-core | 0.1.45→1.5.3 | langchain 0.1→1.x 全量重构，需同步升级 langchain + langchain-openai |
 | #160 | openai | 1.23.0→2.53.0 | 需要 langchain 1.x+ 配合，单独升级会破坏 langchain_openai |
 | #122 | mlflow | 2.11.1→3.15.1 | mlflow 2→3 Tracing/Gateway/Model Registry 全量重构 |

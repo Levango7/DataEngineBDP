@@ -1,7 +1,7 @@
 <template>
   <aside
     class="side"
-    :class="{ collapsed: ui.sidebarCollapsed }"
+    :class="{ collapsed: ui.sidebarFolded, 'is-open': ui.sidebarOpen }"
     role="complementary"
     :aria-label="t('app.sidebar')"
   >
@@ -10,16 +10,16 @@
       <span class="brand-text">{{ t('nav.brand') }}</span>
       <button
         class="side-collapse"
-        :aria-label="ui.sidebarCollapsed ? t('app.expandSidebar') : t('app.collapseSidebar')"
+        :aria-label="ui.sidebarFolded ? t('app.expandSidebar') : t('app.collapseSidebar')"
         :title="
-          ui.sidebarCollapsed
+          ui.sidebarFolded
             ? `${t('app.expandSidebar')} (Ctrl+B)`
             : `${t('app.collapseSidebar')} (Ctrl+B)`
         "
         @click="ui.toggleSidebar"
       >
         <el-icon :size="14" aria-hidden="true">
-          <component :is="iconOf(ui.sidebarCollapsed ? 'Expand' : 'Fold')" />
+          <component :is="iconOf(ui.sidebarFolded ? 'Expand' : 'Fold')" />
         </el-icon>
       </button>
     </div>
@@ -31,7 +31,7 @@
           :aria-expanded="isOpen(gi)"
           :aria-controls="`nav-group-${gi}`"
           :aria-label="`${group.title} (${group.items.length})`"
-          :title="ui.sidebarCollapsed ? group.title : undefined"
+          :title="ui.sidebarFolded ? group.title : undefined"
           tabindex="0"
           @click="toggleGroup(gi)"
           @keyup.enter="toggleGroup(gi)"
@@ -54,7 +54,8 @@
             class="nav-item"
             active-class="active"
             :aria-label="item.label"
-            :title="ui.sidebarCollapsed ? item.label : undefined"
+            :title="ui.sidebarFolded ? item.label : undefined"
+            @click="ui.closeSidebarOpen"
           >
             <el-icon class="nav-ic" :size="18" aria-hidden="true">
               <component :is="iconOf(item.icon)" />

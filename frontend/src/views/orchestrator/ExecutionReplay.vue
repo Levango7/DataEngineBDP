@@ -39,44 +39,44 @@
       <div v-if="executions.length === 0" class="empty">
         {{ t('orchestrator.replay.noExecutions') }}
       </div>
-      <table v-else class="exec-table">
-        <thead>
-          <tr>
-            <th>{{ t('orchestrator.replay.colExecId') }}</th>
-            <th>{{ t('orchestrator.replay.colTrigger') }}</th>
-            <th>{{ t('orchestrator.replay.colStatus') }}</th>
-            <th>{{ t('orchestrator.replay.colProgress') }}</th>
-            <th>{{ t('orchestrator.replay.colStartTime') }}</th>
-            <th>{{ t('orchestrator.replay.colActions') }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="e in executions"
-            :key="e.execId"
-            class="click"
-            :class="{ active: e.execId === selectedExecId }"
-            @click="onSelectExec(e.execId)"
-          >
-            <td class="mono">{{ e.execId.slice(0, 12) }}</td>
-            <td>
-              <span class="trigger-tag" :class="`tg-${e.trigger.toLowerCase()}`">
-                {{ e.trigger }}
-              </span>
-            </td>
-            <td>
-              <span class="status-tag" :class="`st-${e.status.toLowerCase()}`">{{ e.status }}</span>
-            </td>
-            <td>{{ e.completedCount }}/{{ e.totalNodes }}</td>
-            <td>{{ e.startedAt }}</td>
-            <td>
-              <el-button size="small" link @click.stop="onSelectExec(e.execId)">
-                {{ t('orchestrator.replay.replayBtn') }}
-              </el-button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <el-table
+        v-else
+        :data="executions"
+        size="small"
+        border
+        highlight-current-row
+        :row-class-name="execRowClass"
+        @row-click="(row: ExecutionRecord) => onSelectExec(row.execId)"
+      >
+        <el-table-column :label="t('orchestrator.replay.colExecId')">
+          <template #default="{ row }">
+            <span class="mono">{{ row.execId.slice(0, 12) }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('orchestrator.replay.colTrigger')">
+          <template #default="{ row }">
+            <span class="trigger-tag" :class="`tg-${row.trigger.toLowerCase()}`">
+              {{ row.trigger }}
+            </span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('orchestrator.replay.colStatus')">
+          <template #default="{ row }">
+            <span class="status-tag" :class="`st-${row.status.toLowerCase()}`">{{ row.status }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column :label="t('orchestrator.replay.colProgress')">
+          <template #default="{ row }">{{ row.completedCount }}/{{ row.totalNodes }}</template>
+        </el-table-column>
+        <el-table-column :label="t('orchestrator.replay.colStartTime')" prop="startedAt" />
+        <el-table-column :label="t('orchestrator.replay.colActions')">
+          <template #default="{ row }">
+            <el-button size="small" link @click.stop="onSelectExec(row.execId)">
+              {{ t('orchestrator.replay.replayBtn') }}
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
 
       <!-- 回放轨迹 -->
       <div v-if="trace" class="replay-trace">
@@ -299,6 +299,11 @@ const playing = ref(false)
 const speed = ref(1)
 const currentStep = ref(0)
 let playTimer: ReturnType<typeof setInterval> | null = null
+
+/** el-table 行样式类（选中行高亮） */
+function execRowClass({ row }: { row: ExecutionRecord }): string {
+  return row.execId === selectedExecId.value ? 'active' : ''
+}
 
 const progressPct = computed(() => {
   if (!trace.value || trace.value.events.length === 0) return 0

@@ -15,7 +15,8 @@ func TestSessionStore_Crud(t *testing.T) {
 		t.Fatalf("创建存储失败: %v", err)
 	}
 
-	sess, err := store.CreateSession("zh")
+	const tenantID = "tenant-test"
+	sess, err := store.CreateSession(tenantID, "zh")
 	if err != nil {
 		t.Fatalf("创建会话失败: %v", err)
 	}
@@ -23,14 +24,14 @@ func TestSessionStore_Crud(t *testing.T) {
 		t.Fatal("会话 ID 不应为空")
 	}
 
-	if _, err := store.AddMessage(sess.ID, RoleUser, StatusDone, "查询今天的订单量"); err != nil {
+	if _, err := store.AddMessage(tenantID, sess.ID, RoleUser, StatusDone, "查询今天的订单量"); err != nil {
 		t.Fatalf("添加用户消息失败: %v", err)
 	}
-	if _, err := store.AddMessage(sess.ID, RoleAssistant, StatusDone, "已生成 SQL"); err != nil {
+	if _, err := store.AddMessage(tenantID, sess.ID, RoleAssistant, StatusDone, "已生成 SQL"); err != nil {
 		t.Fatalf("添加助手消息失败: %v", err)
 	}
 
-	got, msgs, err := store.GetSession(sess.ID)
+	got, msgs, err := store.GetSession(tenantID, sess.ID)
 	if err != nil {
 		t.Fatalf("获取会话失败: %v", err)
 	}
@@ -41,15 +42,15 @@ func TestSessionStore_Crud(t *testing.T) {
 		t.Errorf("消息数不符: %d, 期望 2", len(msgs))
 	}
 
-	list, err := store.ListSessions(10)
+	list, err := store.ListSessions(tenantID, 10)
 	if err != nil || len(list) != 1 {
 		t.Errorf("会话列表不符: %v len=%d", err, len(list))
 	}
 
-	if err := store.DeleteSession(sess.ID); err != nil {
+	if err := store.DeleteSession(tenantID, sess.ID); err != nil {
 		t.Fatalf("删除会话失败: %v", err)
 	}
-	if _, _, err := store.GetSession(sess.ID); err == nil {
+	if _, _, err := store.GetSession(tenantID, sess.ID); err == nil {
 		t.Error("删除后仍能获取到会话")
 	}
 }
@@ -90,8 +91,10 @@ func TestAssistant_Chat_DisableChain(t *testing.T) {
 	proxy := NewDownstreamProxy(cfg)
 	svc := NewAssistantService(store, proxy, cfg)
 
+	const tenantID = "tenant-test"
 	resp, err := svc.Chat(context.Background(), &ChatRequest{
 		Message:      "你好",
+		TenantID:     tenantID,
 		EnableNl2Sql: false,
 		EnableExec:   false,
 	})
@@ -100,7 +103,7 @@ func TestAssistant_Chat_DisableChain(t *testing.T) {
 	}
 	_ = resp
 	// 校验会话与消息已落库
-	sess, msgs, err := store.GetSession(resp.SessionID)
+	sess, msgs, err := store.GetSession(tenantID, resp.SessionID)
 	if err != nil {
 		t.Fatalf("获取会话失败: %v", err)
 	}

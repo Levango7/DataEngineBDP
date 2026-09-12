@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.masterdata.model.dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -31,6 +32,12 @@ public class CreateMasterDataDTO {
     /** 版本号 */
     private String version;
 
-    /** 状态：ACTIVE / INACTIVE / DEPRECATED */
+    /**
+     * 状态：ACTIVE / INACTIVE / DEPRECATED。
+     *
+     * <p>仅接受合法枚举值（大小写敏感），null 视为合法（服务层回退 ACTIVE）。</p>
+     */
+    @Pattern(regexp = "ACTIVE|INACTIVE|DEPRECATED",
+            message = "status 仅支持 ACTIVE / INACTIVE / DEPRECATED")
     private String status;
 }

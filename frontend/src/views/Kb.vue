@@ -93,7 +93,10 @@
 
         <!-- Tab2 RAG 策略 -->
         <el-tab-pane :label="t('kb.tabs.rag')" name="rag">
-          <div v-if="strategyLoading" style="text-align: center; padding: 40px; color: #888">
+          <div
+            v-if="strategyLoading"
+            style="text-align: center; padding: 40px; color: var(--ds-text-tertiary)"
+          >
             {{ t('kb.rag.loading') }}
           </div>
           <div v-else-if="ragStrategy">
@@ -148,7 +151,7 @@
               </el-form-item>
             </el-form>
           </div>
-          <div v-else style="text-align: center; padding: 40px; color: #888">
+          <div v-else style="text-align: center; padding: 40px; color: var(--ds-text-tertiary)">
             {{ t('kb.rag.empty') }}
           </div>
         </el-tab-pane>

@@ -26,7 +26,7 @@
           <el-option value="doris" label="Doris" />
         </el-select>
         <label>{{ t('sql.timeout') }}</label>
-        <input value="120" />
+        <el-input v-model="timeout" type="number" />
         <div class="chips" style="margin-top: 10px">
           <span class="chip on">iceberg</span>
           <span class="chip on">doris</span>
@@ -34,8 +34,12 @@
         </div>
         <label>{{ t('sql.aiAssist') }}</label>
         <div style="display: flex; gap: 6px">
-          <input :placeholder="t('sql.aiPlaceholder')" style="flex: 1" />
-          <button class="btn ghost sm" @click="store.showToast(t('sql.aiTodo'))">
+          <el-input
+            v-model="aiInput"
+            :placeholder="t('sql.aiPlaceholder')"
+            style="flex: 1"
+          />
+          <button class="btn ghost sm" @click="handleAiGenerate">
             {{ t('sql.aiGenerate') }}
           </button>
         </div>
@@ -53,18 +57,22 @@
         {{ queryError.message }}，
         <a href="javascript:void(0)" @click="runSql">{{ t('common.retry') }}</a>
       </div>
-      <table v-else-if="queryResult && queryResult.rows.length > 0">
-        <thead>
-          <tr>
-            <th v-for="(col, idx) in queryResult.columns" :key="idx">{{ col }}</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(row, rIdx) in queryResult.rows" :key="rIdx">
-            <td v-for="(cell, cIdx) in row" :key="cIdx">{{ formatCell(cell) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <el-table
+        v-else-if="queryResult && queryResult.rows.length > 0"
+        :data="queryResult.rows"
+        stripe
+        border
+        style="width: 100%"
+      >
+        <el-table-column
+          v-for="(col, idx) in queryResult.columns"
+          :key="idx"
+          :label="col"
+          :prop="String(idx)"
+        >
+          <template #default="{ row }">{{ formatCell(row[idx]) }}</template>
+        </el-table-column>
+      </el-table>
       <div v-else class="note">{{ t('sql.resultHint') }}</div>
     </div>
   </div>
@@ -102,7 +110,7 @@ const {
 
 /** 格式化单元格显示 */
 function formatCell(val: unknown): string {
-  if (val === null || val === undefined) return 'NULL'
+  if (val === null || val === undefined) return t('common.null')
   if (typeof val === 'object') return JSON.stringify(val)
   return String(val)
 }
@@ -112,6 +120,18 @@ const sqlText = ref('SELECT city, COUNT(*) cnt FROM doris.dim.user GROUP BY city
 
 /** 路由引擎选择 */
 const selectedEngine = ref('auto')
+
+/** 查询超时设置（秒） */
+const timeout = ref(120)
+
+/** AI 助手输入（自然语言 → SQL） */
+const aiInput = ref('')
+
+/** AI 生成 SQL（mock：待接入真实链路） */
+function handleAiGenerate(): void {
+  if (!aiInput.value.trim()) return
+  store.showToast(t('sql.aiTodo'))
+}
 
 /** 示例 SQL（与模板中展示的联邦查询保持一致） */
 const SAMPLE_SQL =

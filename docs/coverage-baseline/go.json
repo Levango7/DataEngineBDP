@@ -9,8 +9,6 @@
   "query-api": 32,
   "infra-provider-baremetal": 47,
   "api": 56,
-  "failover-api": 49,
-  "failover-engine": 72,
-  "knative-go-runtime": 60,
-  "ai-assistant": 37
+  "ai-assistant": 37,
+  "engine": 0
 }

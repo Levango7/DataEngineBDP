@@ -76,7 +76,7 @@ public class StandardController {
     @Operation(summary = "更新数据标准")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id,
-                                    @RequestBody UpdateStandardDTO dto) {
+                                    @Valid @RequestBody UpdateStandardDTO dto) {
         String tenantId = requireTenant();
         Standard updated = standardService.update(id, dto, tenantId);
         if (updated == null) {

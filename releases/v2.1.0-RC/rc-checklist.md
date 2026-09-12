@@ -33,7 +33,7 @@
 | 3.2 | 集成测试套件 | tests/integration/ 全通过 | ⏳ | 需运行环境（pytest -v tests/integration/） |
 | 3.3 | 单元测试 | mvn test / go test / pytest / vitest 全通过 | ⏳ | 需运行环境（零失败） |
 | 3.4 | 前端构建 | npm run build:all 成功，37 路由 49 分包 | ⏳ | 需 Node.js 运行环境 |
-| 3.5 | 前端测试 | vitest + playwright 全通过 | ⏳ | 需运行环境（183 单测 + 87 E2E） |
+| 3.5 | 前端测试 | vitest + playwright 全通过 | ⏳ | 需运行环境（183 单测 + 49 E2E） |
 
 ## 4. 安全合规检查
 

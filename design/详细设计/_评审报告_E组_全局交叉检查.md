@@ -263,12 +263,12 @@
 | Helm values 文件 | values 中版本 | 对应设计文档 | 设计文档描述 | 是否一致 |
 | --- | --- | --- | --- | --- |
 | spark-values.yaml | Spark 3.5.1 | 产品原型 §6.1 / §3.3 L2.2 | "Spark 3.5" | ✅ 兼容 |
-| flink-values.yaml | Flink 1.18.0 | 产品原型 §6.1 / §3.3 L2.3 | "Flink 1.18" | ✅ 兼容 |
+| flink-values.yaml | Flink 1.20.0 | 产品原型 §6.1 / §3.3 L2.3 | "Flink 1.20" | ✅ 兼容 |
 | doris-values.yaml | Doris 2.1.3 | 产品原型 §6.1 / §3.3 L2.5 | "Apache Doris"（未明确版本） | ⚠️ 设计文档未明确版本 |
-| trino-values.yaml | Trino 438 | 产品原型 §6.1 / §3.3 L2.4 | "Trino"（未明确版本） | ⚠️ 设计文档未明确版本 |
+| trino-values.yaml | Trino 460 | 产品原型 §6.1 / §3.3 L2.4 | "Trino"（未明确版本） | ⚠️ 设计文档未明确版本 |
 | kafka-values.yaml | Kafka 3.7.1 | 产品原型 §5.5 / §3.3 L2.8 | "Apache Kafka"（§5.5 已拍板） | ✅ 选型一致 |
 | iotdb-values.yaml | IoTDB 2.0.1 | 产品原型 §6.1 / §3.3 L2.9 | "Apache IoTDB"（未明确版本） | ⚠️ 设计文档未明确版本 |
-| keycloak-values.yaml | Keycloak 24.0.5 | 产品原型 §5.5 / §3.3 X1 | "Keycloak"（§5.5 已拍板） | ✅ 选型一致 |
+| keycloak-values.yaml | Keycloak 25.0 | 产品原型 §5.5 / §3.3 X1 | "Keycloak"（§5.5 已拍板） | ✅ 选型一致 |
 | seatunnel-values.yaml | SeaTunnel 2.3.4 | 产品原型 §5.5 / §3.3 L4.1 | "Apache SeaTunnel"（§5.5 已拍板） | ✅ 选型一致 |
 | dolphinscheduler-values.yaml | DolphinScheduler 3.2.2 | 产品原型 §5.5 / §3.3 L4.2 | "Apache DolphinScheduler"（§5.5 已拍板） | ✅ 选型一致 |
 | superset-values.yaml | Superset 4.0.2 | 产品原型 §5.5 / §3.3 L4.4 | "Apache Superset + 自研大屏"（§5.5 已拍板） | ✅ 选型一致 |

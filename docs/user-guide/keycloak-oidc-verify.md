@@ -2,7 +2,7 @@
 
 > 验证目标：Keycloak 签发的 RS256 token → encaps-layer OidcJwtDecoder（JWKS 验签）→
 > 租户上下文注入 → 受保护端点放行；无 token 拦截 401。
-> 验证日期：2026-08-14（Keycloak 24.0.4 + encaps-layer 实测通过）
+> 验证日期：2026-08-14（Keycloak 25.0 + encaps-layer 实测通过）
 
 ## 前置：启动 Keycloak 并初始化
 
@@ -21,7 +21,7 @@ docker run -d --name sq-keycloak \
 #          否则 direct grant 报 "Account is not fully set up"）
 ```
 
-> ⚠️ 实测坑：Keycloak 24 UserProfile 要求 firstName/lastName，
+> ⚠️ 实测坑：Keycloak 25 UserProfile 要求 firstName/lastName，
 > 仅 email 不够——direct grant 会报 `Account is not fully set up`。
 > 修复：用户补 `firstName`/`lastName` 后 token 获取成功。
 

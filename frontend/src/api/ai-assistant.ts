@@ -39,6 +39,38 @@ import type {
 /** AI 助手资源根路径 */
 const BASE = '/ai-assistant'
 
+/**
+ * 带 i18n error code 的错误类型。
+ *
+ * API 层不直接依赖 i18n（避免循环依赖），而是抛出带 `i18nKey` 的错误，
+ * 由调用方（Vue 组件）通过 `t()` 翻译展示。
+ */
+export interface AiAssistantError extends Error {
+  /** i18n 词条 key（调用方用 t(key, params) 翻译） */
+  i18nKey?: string
+  /** i18n 词条参数 */
+  i18nParams?: Record<string, unknown>
+  /** HTTP 状态码（可选） */
+  httpStatus?: number
+  /** 原始后端文案（透传用） */
+  backendMessage?: string
+}
+
+/** 创建带 i18n key 的错误 */
+function createI18nError(
+  i18nKey: string,
+  i18nParams?: Record<string, unknown>,
+  fallbackMessage?: string,
+  httpStatus?: number
+): AiAssistantError {
+  const err = new Error(fallbackMessage ?? i18nKey) as AiAssistantError
+  err.i18nKey = i18nKey
+  err.i18nParams = i18nParams
+  err.httpStatus = httpStatus
+  err.name = 'AiAssistantError'
+  return err
+}
+
 /* ------------------------------ 对话 ------------------------------ */
 
 /**
@@ -90,30 +122,52 @@ export async function chatStream(
     // （统一清理登录态 + 跳转 /account，避免 SSE 通道绕过主拦截器导致行为分叉）
     if (resp.status === 401) {
       triggerUnauthorized()
-      throw new Error('登录已过期，请重新登录')
+      throw createI18nError(
+        'aiAssistant.errors.streamUnauthorized',
+        undefined,
+        '登录已过期，请重新登录',
+        resp.status
+      )
     }
     // 503/502/5xx：后端（nl2sql / ai-assistant）返回结构化友好提示
     // - nl2sql LLM 未配置 → FastAPI {"detail": "LLM 服务未配置：请设置 LLM_API_KEY ..."}
     // - ai-assistant 下游失败 → gin {"error": "nl2sql 返回 503"}
     // 优先透传后端 detail/error 文案，让"LLM 未配置"等场景展示可操作提示
-    let msg = `AI 助手流式请求失败：HTTP ${resp.status}`
+    let backendMsg = ''
     try {
       const body = (await resp.json()) as { detail?: unknown; error?: unknown; message?: unknown }
-      const backend =
+      backendMsg =
         (typeof body.detail === 'string' && body.detail) ||
         (typeof body.error === 'string' && body.error) ||
         (typeof body.message === 'string' && body.message) ||
         ''
-      if (backend) msg = backend
     } catch {
       // 响应体非 JSON 时保留默认提示
     }
-    const err = new Error(msg) as Error & { httpStatus?: number }
-    err.httpStatus = resp.status
-    throw err
+    // 后端有结构化文案时直接透传（可操作提示）；否则抛 i18n key 让调用方翻译
+    if (backendMsg) {
+      const err = createI18nError(
+        'aiAssistant.errors.streamRequestFailed',
+        { status: resp.status },
+        backendMsg,
+        resp.status
+      )
+      err.backendMessage = backendMsg
+      throw err
+    }
+    throw createI18nError(
+      'aiAssistant.errors.streamRequestFailed',
+      { status: resp.status },
+      `AI 助手流式请求失败：HTTP ${resp.status}`,
+      resp.status
+    )
   }
   if (!resp.body) {
-    throw new Error('AI 助手流式请求无响应体')
+    throw createI18nError(
+      'aiAssistant.errors.streamNoBody',
+      undefined,
+      'AI 助手流式请求无响应体'
+    )
   }
 
   const reader = resp.body.getReader()
@@ -143,7 +197,11 @@ export async function chatStream(
   }
 
   if (!finalResult) {
-    throw new Error('AI 助手流式请求未收到 final 事件')
+    throw createI18nError(
+      'aiAssistant.errors.streamNoFinal',
+      undefined,
+      'AI 助手流式请求未收到 final 事件'
+    )
   }
   return finalResult
 }

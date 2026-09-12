@@ -21,7 +21,7 @@
 | 5 | 前端 5 页面对应 Mock 后端 | ls frontend/src/views + ls api | **确认**：`views/` 下有 Vector.vue/Kb.vue/Llmops.vue/Gateway.vue/Develop.vue（对应 DevMl）；`api/` 下有 vector.ts/knowledge.ts/llmops.ts/gateway.ts/dev-ml.ts。后端组件本身 Mock 默认（问题 1），前端调用返回 Mock 数据 |
 | 6 | operations-api 未纳入矩阵 | ls platform/operations-api + 读 pyproject.toml | **确认**：`platform/operations-api` 有完整实现（pyproject.toml: `sq-operations-api v0.1.0`，`operations_api/` 下有 api/models/repositories/services 完整 MVC 结构）。但 `component-maturity.md` 未列入 |
 | 7 | knowledge-engine 矩阵描述滞后 | 读 Dockerfile + 对比矩阵 | **确认**：Dockerfile 第 51-55 行明确注释"不在镜像内烘焙 mock——防止生产拿到假实现而无感知"、"K8s 内若未配置真实 NebulaGraph 连接，服务将启动失败（fail-fast）"。但矩阵第 61 行仍写"交付 Dockerfile 内置 `KE_STORE_TYPE=mock`、`KE_EXTRACTOR_TYPE=mock`"。描述滞后属实 |
-| 8 | 组件计数口径不一致 | 数矩阵实列行数 | **确认**：矩阵标题第 3 行写"44 个自研组件（Java 22 / Go 11 / Python 11）"，但矩阵实列：真实可部署 22 + 服务级 6 + 骨架 13 = **41 个**。标题 44 ≠ 实列 41 |
+| 8 | 组件计数口径不一致 | 数矩阵实列行数 | **确认**：矩阵标题第 3 行写"45 个自研组件（Java 24 / Go 10 / Python 11）"，但矩阵实列：真实可部署 22 + 服务级 7 + 骨架 15 = **44 个**。标题 45 ≠ 实列 44 |
 
 ---
 
@@ -106,7 +106,7 @@
   - 方案 B：并入 `platform/governance` 作为子模块（减少模块数）
   - **推荐方案 A**：独立模块便于独立部署与演进，与设计文档一致
 - **阶段 2：创建模块骨架 + 标准项 CRUD**（1-2 周）
-  - 创建 `platform/data-standard`（pom.xml + Spring Boot 4.1.1 + JPA）
+  - 创建 `platform/data-standard`（pom.xml + Spring Boot 3.2.x + JPA）
   - 实现标准项 CRUD（标准字典 / 码值 / 命名规范），API 路径 `/api/std/v1/*`（与设计文档一致）
   - 默认持久层 H2 文件，prod profile 切 PostgreSQL
 - **阶段 3：落标校验引擎**（1-2 周）
@@ -139,7 +139,7 @@
   - 方案 B：并入 `platform/governance` 作为子模块
   - **推荐方案 A**：主数据管理涉及分发/订阅，独立模块更清晰
 - **阶段 2：创建模块骨架 + 主数据 CRUD**（1-2 周）
-  - 创建 `platform/master-data`（Java + Spring Boot 4.1.1 + JPA）
+  - 创建 `platform/master-data`（Java + Spring Boot 3.2.x + JPA）
   - 实现主数据实体 CRUD（`StandardEntity`，见 `平台元数据库设计.md:71` 的 `standard` 表）
   - 默认持久层 H2 文件，prod profile 切 PostgreSQL
 - **阶段 3：主数据分发 + 校验**（1-2 周）

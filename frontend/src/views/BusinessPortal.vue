@@ -122,7 +122,13 @@
                   </div>
                   <div class="meta">
                     {{ t('businessPortal.dashboard.kpi.trend') }}
-                    <span :style="{ color: kpi.trend >= 0 ? 'var(--ok)' : 'var(--danger)' }">
+                    <span
+                      :style="{
+                        color: kpi.trend >= 0
+                          ? 'var(--ds-color-success-500)'
+                          : 'var(--ds-color-error-500)'
+                      }"
+                    >
                       {{ kpi.trend >= 0 ? '+' : '' }}{{ kpi.trend
                       }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
                     </span>
@@ -152,55 +158,51 @@
               <div class="grid g2" style="margin-top: 14px">
                 <div class="card">
                   <h3>{{ t('businessPortal.dashboard.realtime.title') }}</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{{ t('businessPortal.dashboard.realtime.columns.metric') }}</th>
-                        <th>{{ t('businessPortal.dashboard.realtime.columns.current') }}</th>
-                        <th>{{ t('businessPortal.dashboard.realtime.columns.threshold') }}</th>
-                        <th>{{ t('businessPortal.dashboard.realtime.columns.status') }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="m in dashboard.realtime" :key="m.key">
-                        <td>{{ m.label }}</td>
-                        <td>{{ m.value }}{{ m.unit }}</td>
-                        <td>{{ m.threshold ?? '—' }}</td>
-                        <td>
-                          <span class="pill" :class="monitorClass(m.status)">
-                            {{ monitorText(m.status) }}
-                          </span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <el-table :data="dashboard.realtime" size="small" border>
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.realtime.columns.metric')"
+                      prop="label"
+                    />
+                    <el-table-column :label="t('businessPortal.dashboard.realtime.columns.current')">
+                      <template #default="{ row }">{{ row.value }}{{ row.unit }}</template>
+                    </el-table-column>
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.realtime.columns.threshold')"
+                    >
+                      <template #default="{ row }">{{ row.threshold ?? '—' }}</template>
+                    </el-table-column>
+                    <el-table-column :label="t('businessPortal.dashboard.realtime.columns.status')">
+                      <template #default="{ row }">
+                        <span class="pill" :class="monitorClass(row.status)">
+                          {{ monitorText(row.status) }}
+                        </span>
+                      </template>
+                    </el-table-column>
+                  </el-table>
                 </div>
                 <div class="card">
                   <h3>{{ t('businessPortal.dashboard.topProjects.title') }}</h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{{ t('businessPortal.dashboard.topProjects.columns.project') }}</th>
-                        <th>{{ t('businessPortal.dashboard.topProjects.columns.cost') }}</th>
-                        <th>{{ t('businessPortal.dashboard.topProjects.columns.usage') }}</th>
-                        <th>{{ t('businessPortal.dashboard.topProjects.columns.jobCount') }}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="p in dashboard.topProjects" :key="p.projectId">
-                        <td>{{ p.projectName }}</td>
-                        <td>
-                          {{ p.cost.toFixed(0)
-                          }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}
-                        </td>
-                        <td>
-                          {{ (p.usageRatio * 100).toFixed(0)
-                          }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
-                        </td>
-                        <td>{{ p.jobCount }}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <el-table :data="dashboard.topProjects" size="small" border>
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.topProjects.columns.project')"
+                      prop="projectName"
+                    />
+                    <el-table-column :label="t('businessPortal.dashboard.topProjects.columns.cost')">
+                      <template #default="{ row }">
+                        {{ row.cost.toFixed(0) }}{{ t('businessPortal.dashboard.topProjects.costUnit') }}
+                      </template>
+                    </el-table-column>
+                    <el-table-column :label="t('businessPortal.dashboard.topProjects.columns.usage')">
+                      <template #default="{ row }">
+                        {{ (row.usageRatio * 100).toFixed(0)
+                        }}{{ t('businessPortal.dashboard.topProjects.percentSuffix') }}
+                      </template>
+                    </el-table-column>
+                    <el-table-column
+                      :label="t('businessPortal.dashboard.topProjects.columns.jobCount')"
+                      prop="jobCount"
+                    />
+                  </el-table>
                 </div>
               </div>
             </template>
@@ -220,48 +222,42 @@
                     {{ t('businessPortal.workbench.todos.title') }}
                     <span class="pill r">{{ workbench.todos.length }}</span>
                   </h3>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>{{ t('businessPortal.workbench.todos.columns.item') }}</th>
-                        <th>{{ t('businessPortal.workbench.todos.columns.applicant') }}</th>
-                        <th>{{ t('businessPortal.workbench.todos.columns.priority') }}</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="td in workbench.todos" :key="td.id">
-                        <td>{{ td.title }}</td>
-                        <td>{{ td.applicant }}</td>
-                        <td>
-                          <span class="pill" :class="priorityClass(td.priority)">
-                            {{ priorityText(td.priority) }}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            class="btn sm"
-                            @click="
-                              store.showToast(t('businessPortal.workbench.todos.approveDone'))
-                            "
-                          >
-                            {{ t('businessPortal.workbench.todos.approve') }}
-                          </button>
-                          <button
-                            class="btn ghost sm"
-                            @click="store.showToast(t('businessPortal.workbench.todos.rejectDone'))"
-                          >
-                            {{ t('businessPortal.workbench.todos.reject') }}
-                          </button>
-                        </td>
-                      </tr>
-                      <tr v-if="workbench.todos.length === 0">
-                        <td colspan="4" style="text-align: center; color: var(--ds-text-tertiary)">
-                          {{ t('businessPortal.workbench.todos.empty') }}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <el-table :data="workbench.todos" size="small" border>
+                    <el-table-column :label="t('businessPortal.workbench.todos.columns.item')">
+                      <template #default="{ row }">{{ row.title }}</template>
+                    </el-table-column>
+                    <el-table-column :label="t('businessPortal.workbench.todos.columns.applicant')">
+                      <template #default="{ row }">{{ row.applicant }}</template>
+                    </el-table-column>
+                    <el-table-column :label="t('businessPortal.workbench.todos.columns.priority')">
+                      <template #default="{ row }">
+                        <span class="pill" :class="priorityClass(row.priority)">
+                          {{ priorityText(row.priority) }}
+                        </span>
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="">
+                      <template #default="{ row }">
+                        <el-button
+                          size="small"
+                          @click="store.showToast(t('businessPortal.workbench.todos.approveDone'))"
+                        >
+                          {{ t('businessPortal.workbench.todos.approve') }}
+                        </el-button>
+                        <el-button
+                          size="small"
+                          @click="store.showToast(t('businessPortal.workbench.todos.rejectDone'))"
+                        >
+                          {{ t('businessPortal.workbench.todos.reject') }}
+                        </el-button>
+                      </template>
+                    </el-table-column>
+                    <template #empty>
+                      <div style="text-align: center; color: var(--ds-text-tertiary)">
+                        {{ t('businessPortal.workbench.todos.empty') }}
+                      </div>
+                    </template>
+                  </el-table>
                 </div>
                 <div class="card">
                   <h3>{{ t('businessPortal.workbench.tools.title') }}</h3>
@@ -279,28 +275,26 @@
               </div>
               <div class="card" style="margin-top: 14px">
                 <h3>{{ t('businessPortal.workbench.recentTasks.title') }}</h3>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{{ t('businessPortal.workbench.recentTasks.columns.task') }}</th>
-                      <th>{{ t('businessPortal.workbench.recentTasks.columns.type') }}</th>
-                      <th>{{ t('businessPortal.workbench.recentTasks.columns.status') }}</th>
-                      <th>{{ t('businessPortal.workbench.recentTasks.columns.updatedAt') }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="task in workbench.recentTasks" :key="task.id">
-                      <td>{{ task.name }}</td>
-                      <td>{{ kindText(task.kind) }}</td>
-                      <td>
-                        <span class="pill" :class="recentStatusClass(task.status)">
-                          {{ task.status }}
-                        </span>
-                      </td>
-                      <td>{{ task.updatedAt }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <el-table :data="workbench.recentTasks" size="small" border>
+                  <el-table-column :label="t('businessPortal.workbench.recentTasks.columns.task')">
+                    <template #default="{ row }">{{ row.name }}</template>
+                  </el-table-column>
+                  <el-table-column :label="t('businessPortal.workbench.recentTasks.columns.type')">
+                    <template #default="{ row }">{{ kindText(row.kind) }}</template>
+                  </el-table-column>
+                  <el-table-column :label="t('businessPortal.workbench.recentTasks.columns.status')">
+                    <template #default="{ row }">
+                      <span class="pill" :class="recentStatusClass(row.status)">
+                        {{ row.status }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column
+                    :label="t('businessPortal.workbench.recentTasks.columns.updatedAt')"
+                  >
+                    <template #default="{ row }">{{ row.updatedAt }}</template>
+                  </el-table-column>
+                </el-table>
               </div>
             </template>
           </div>
@@ -405,28 +399,28 @@
       @close="modalVisible = false"
     >
       <label>{{ t('businessPortal.createBl.name') }}</label>
-      <input v-model="form.name" :placeholder="t('businessPortal.createBl.namePlaceholder')" />
+      <el-input v-model="form.name" :placeholder="t('businessPortal.createBl.namePlaceholder')" />
       <label>{{ t('businessPortal.createBl.tenantId') }}</label>
-      <input
+      <el-input
         v-model="form.tenantId"
         :placeholder="t('businessPortal.createBl.tenantIdPlaceholder')"
       />
       <label>{{ t('businessPortal.createBl.description') }}</label>
-      <input
+      <el-input
         v-model="form.description"
         :placeholder="t('businessPortal.createBl.descriptionPlaceholder')"
       />
       <label>{{ t('businessPortal.createBl.budgetTotal') }}</label>
-      <input v-model.number="form.budgetTotal" type="number" />
+      <el-input-number v-model="form.budgetTotal" :min="0" style="width: 100%" />
       <template #footer>
-        <button class="btn ghost" @click="modalVisible = false">
+        <el-button @click="modalVisible = false">
           {{ t('businessPortal.createBl.cancel') }}
-        </button>
-        <button class="btn" :disabled="creating" @click="handleCreate">
+        </el-button>
+        <el-button type="primary" :disabled="creating" @click="handleCreate">
           {{
             creating ? t('businessPortal.createBl.creating') : t('businessPortal.createBl.create')
           }}
-        </button>
+        </el-button>
       </template>
     </Modal>
 
@@ -437,40 +431,40 @@
       @close="reportModalVisible = false"
     >
       <label>{{ t('businessPortal.createReport.name') }}</label>
-      <input
+      <el-input
         v-model="reportForm.name"
         :placeholder="t('businessPortal.createReport.namePlaceholder')"
       />
       <label>{{ t('businessPortal.createReport.description') }}</label>
-      <input
+      <el-input
         v-model="reportForm.description"
         :placeholder="t('businessPortal.createReport.descriptionPlaceholder')"
       />
       <label>{{ t('businessPortal.createReport.type') }}</label>
-      <select v-model="reportForm.type">
-        <option value="chart">{{ t('businessPortal.createReport.types.chart') }}</option>
-        <option value="table">{{ t('businessPortal.createReport.types.table') }}</option>
-        <option value="dashboard">{{ t('businessPortal.createReport.types.dashboard') }}</option>
-        <option value="pivot">{{ t('businessPortal.createReport.types.pivot') }}</option>
-      </select>
+      <el-select v-model="reportForm.type" style="width: 100%">
+        <el-option value="chart" :label="t('businessPortal.createReport.types.chart')" />
+        <el-option value="table" :label="t('businessPortal.createReport.types.table')" />
+        <el-option value="dashboard" :label="t('businessPortal.createReport.types.dashboard')" />
+        <el-option value="pivot" :label="t('businessPortal.createReport.types.pivot')" />
+      </el-select>
       <label>{{ t('businessPortal.createReport.chartType') }}</label>
-      <select v-model="reportForm.chartType">
-        <option value="line">{{ t('businessPortal.createReport.chartTypes.line') }}</option>
-        <option value="bar">{{ t('businessPortal.createReport.chartTypes.bar') }}</option>
-        <option value="pie">{{ t('businessPortal.createReport.chartTypes.pie') }}</option>
-        <option value="area">{{ t('businessPortal.createReport.chartTypes.area') }}</option>
-      </select>
+      <el-select v-model="reportForm.chartType" style="width: 100%">
+        <el-option value="line" :label="t('businessPortal.createReport.chartTypes.line')" />
+        <el-option value="bar" :label="t('businessPortal.createReport.chartTypes.bar')" />
+        <el-option value="pie" :label="t('businessPortal.createReport.chartTypes.pie')" />
+        <el-option value="area" :label="t('businessPortal.createReport.chartTypes.area')" />
+      </el-select>
       <template #footer>
-        <button class="btn ghost" @click="reportModalVisible = false">
+        <el-button @click="reportModalVisible = false">
           {{ t('businessPortal.createReport.cancel') }}
-        </button>
-        <button class="btn" :disabled="reportCreating" @click="handleCreateReport">
+        </el-button>
+        <el-button type="primary" :disabled="reportCreating" @click="handleCreateReport">
           {{
             reportCreating
               ? t('businessPortal.createReport.creating')
               : t('businessPortal.createReport.create')
           }}
-        </button>
+        </el-button>
       </template>
     </Modal>
   </div>
@@ -778,7 +772,7 @@ onMounted(async () => {
 
 .bp-sidebar {
   background: var(--card-bg, var(--ds-bg-surface));
-  border: 1px solid var(--border, #e5e6eb);
+  border: 1px solid var(--ds-border-default);
   border-radius: 8px;
   padding: 12px;
   max-height: calc(100vh - 200px);
@@ -811,12 +805,12 @@ onMounted(async () => {
 }
 
 .bp-sidebar-item:hover {
-  background: var(--hover-bg, #f5f6f8);
+  background: var(--ds-bg-subtle);
 }
 
 .bp-sidebar-item.on {
-  background: var(--primary-bg, #e8f3ff);
-  border-color: var(--primary, #2f6fed);
+  background: var(--ds-color-primary-50);
+  border-color: var(--ds-color-primary-500);
 }
 
 .bp-main {
@@ -836,26 +830,26 @@ onMounted(async () => {
 
 .bp-tree-ic {
   font-size: 12px;
-  color: var(--muted, #86909c);
+  color: var(--ds-text-tertiary);
 }
 
 .bp-tree-database {
-  color: #2f6fed;
+  color: var(--ds-color-primary-500);
 }
 .bp-tree-schema {
-  color: #00b42a;
+  color: var(--ds-color-success-500);
 }
 .bp-tree-table {
-  color: #ff7d00;
+  color: var(--ds-color-warning-500);
 }
 .bp-tree-view {
-  color: #722ed1;
+  color: var(--ds-color-accent-500);
 }
 .bp-tree-dataset {
-  color: #f53f3f;
+  color: var(--ds-color-error-500);
 }
 .bp-tree-model {
-  color: #14c9c9;
+  color: var(--ds-color-info-400);
 }
 
 .pill.sm {
@@ -865,7 +859,7 @@ onMounted(async () => {
 
 .unit {
   font-size: 12px;
-  color: var(--muted, #86909c);
+  color: var(--ds-text-tertiary);
   margin-left: 4px;
 }
 </style>

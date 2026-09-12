@@ -45,10 +45,10 @@
 | 组件 | 目录 | 技术栈 | 端口 | 职责 | 成熟度 |
 | --- | --- | --- | --- | --- | --- |
 | **Karmada 控制面** | `platform/karmada/`（Helm values） | Karmada 1.10+ | — | 多集群管理控制面（apiserver/etcd/scheduler） | 部署配置就绪 |
-| **karmada-api** | `platform/karmada/api/` | Go 1.26 / Gin | 8090 | PropagationPolicy CRUD 控制台 API | 骨架（策略 CRUD 未接控制面） |
-| **failover-api** | `platform/karmada/failover/api/` | Go 1.26 / Gin | — | OverridePolicy + Failover 控制台 API | 骨架 |
-| **failover-engine** | `platform/karmada/failover/engine/` | Go 1.26 | — | 集群健康检查 + 故障迁移决策引擎 | 骨架 |
-| **federated-query** | `/platform/karmada/federated-query/` | Java 17 / Spring Boot 4.1.1 | 8094 | 跨集群查询路由 + 表定位 + 结果归并 | 骨架 |
+| **karmada-api** | `platform/karmada/api/` | Go 1.22+ / Gin | 8090 | PropagationPolicy CRUD 控制台 API | 骨架（策略 CRUD 未接控制面） |
+| **failover-api** | `platform/karmada/failover/api/` | Go 1.22+ / Gin | — | OverridePolicy + Failover 控制台 API | 骨架 |
+| **failover-engine** | `platform/karmada/failover/engine/` | Go 1.22+ | — | 集群健康检查 + 故障迁移决策引擎 | 骨架 |
+| **federated-query** | `/platform/karmada/federated-query/` | Java 17 / Spring Boot 3.2.x | 8094 | 跨集群查询路由 + 表定位 + 结果归并 | 骨架 |
 
 ### 2.3 成员集群
 

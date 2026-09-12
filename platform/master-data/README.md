@@ -14,7 +14,7 @@
 ## 技术栈
 
 - Java 17
-- Spring Boot 4.1.1
+- Spring Boot 3.2.x
 - Spring Data JPA + H2（开发）/ PostgreSQL（生产）
 - Lombok
 - Maven

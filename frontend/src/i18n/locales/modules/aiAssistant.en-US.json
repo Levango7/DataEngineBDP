@@ -98,6 +98,12 @@
       "1": "Count users by province",
       "2": "Compare this month vs last month GMV",
       "3": "Find TOP 10 frequent products"
+    },
+    "errors": {
+      "streamUnauthorized": "Session expired, please log in again",
+      "streamRequestFailed": "AI assistant stream request failed: HTTP {status}",
+      "streamNoBody": "AI assistant stream request has no response body",
+      "streamNoFinal": "AI assistant stream request did not receive final event"
     }
   }
 }

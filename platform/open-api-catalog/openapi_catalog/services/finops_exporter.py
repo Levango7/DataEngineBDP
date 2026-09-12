@@ -61,6 +61,13 @@ class FinOpsUsageExporter:
             "start": start.isoformat() if start else None,
             "end": end.isoformat() if end else None,
             "overwrite": False,
+            # 用量明细（API 调用量计量数据）传入 payload，使计量数据实际导出到 finops，
+            # 闭合出账闭环（open-api-catalog 计量汇入 → finops-billing 出账）。
+            # camelCase 与下游 finops-billing BillingGenerateRequest 字段风格对齐；
+            # None 归一化为空列表，避免 null 语义歧义。
+            # 注意：tenantId 不放入 payload，下游从 JWT 的 TenantContext 获取租户
+            # （不信任请求体，防止跨租户越权出账）。
+            "usageData": usageData or [],
         }
         headers = self._buildHeaders(jwtToken)
 

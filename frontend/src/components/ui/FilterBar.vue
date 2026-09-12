@@ -47,21 +47,27 @@ export interface FilterConfig {
   width?: string
 }
 
+/** 过滤器值类型：支持字符串、数字、以及 undefined（未设置/清空） */
+export type FilterValue = string | number | undefined
+
+/** 过滤器模型：键为过滤器 key 或 '_search'，值为当前选中值 */
+export type FilterModel = Record<string, FilterValue>
+
 const props = defineProps<{
   filters: FilterConfig[]
-  modelValue: Record<string, any>
+  modelValue: FilterModel
   searchPlaceholder?: string
   showClear?: boolean
   clearLabel?: string
 }>()
 
 const emit = defineEmits<{
-  'update:modelValue': [value: Record<string, any>]
+  'update:modelValue': [value: FilterModel]
   search: []
   clear: []
 }>()
 
-function onFilterChange(key: string, value: any) {
+function onFilterChange(key: string, value: FilterValue): void {
   emit('update:modelValue', { ...props.modelValue, [key]: value })
 }
 </script>

@@ -2,12 +2,12 @@
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
-> **环境验证状态：已验证 2/4 环境**（本地 + 本地数据中心）｜ [验证详情](docs/环境验证状态.md)
+> **环境验证状态：已验证 2/5 环境**（本地 + 本地数据中心）｜ [验证详情](docs/环境验证状态.md)
 >
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
 > 📐 **模块数口径说明**：本项目在不同维度下使用不同模块数计数，易混淆，统一定义见 [模块数口径定义](docs/模块数口径定义.md)：
-> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 45**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 42**（governance/finops 合并显示）→ **独立部署单元 41**（ADR-001，扣库形态组件）→ **platform/ 目录数 39**（一级子目录）。
+> - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 45**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 42**（governance/finops 合并显示）→ **独立部署单元 41**（ADR-001，扣库形态组件）→ **platform/ 目录数 38**（一级子目录）。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
 - 当前版本：**2.1.0-SNAPSHOT（开发中）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
@@ -18,7 +18,7 @@
 > 2.1.0-SNAPSHOT 开发中，基于 v2.0.0 RC 继续核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
 > v2.1.0-RC 发布就绪：21 组件 RC 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
 > **完成度口径**（三维度统一表述，全仓文档共用）：
-> - **40-50% 端到端可用**：真实完成度，含端到端联调、真实环境部署、外部依赖对接等因素（本口径用于 README/ROADMAP 总体状态描述）
+> - **80% 端到端可用**：真实完成度，含端到端联调、真实环境部署、外部依赖对接等因素（本口径用于 README/ROADMAP 总体状态描述）
 > - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`），衡量功能模块完成程度
 > - **100% 本地基础功能**：22 个核心组件本地可运行（H2/SQLite 默认持久层，见 `docs/component-maturity.md`），基础 CRUD/API 可用
 > ⚠️ 勘误：v2.0.0 的 GA 定级已修订为 RC（候选版本），详见 [V2.0.0 勘误公告](releases/v2.0.0/ERRATUM.md)。
@@ -43,8 +43,8 @@
 
 | 类别 | 技术选型 |
 | --- | --- |
-| 后端语言 | Java 17 / Go 1.26 / Python 3.11 |
-| 后端框架 | Spring Boot 4.1.1 / Gin / FastAPI / Pydantic |
+| 后端语言 | Java 17 / Go 1.22+ / Python 3.11 |
+| 后端框架 | Spring Boot 3.2.x / Gin / FastAPI / Pydantic |
 | 前端 | Vue 3.5 / TypeScript 5.6 strict / Vite 6 / Pinia / Element Plus |
 | 大数据引擎 | Spark 3.5.3 / Flink 1.20.0 / Trino 460 / Doris 2.1.7 / Kafka 3.8.1 / IoTDB 2.0.2 |
 | 湖仓存储 | Iceberg / MinIO / Ceph / JuiceFS |
@@ -61,7 +61,7 @@
 DataEngineBDP/
 ├── .github/workflows/          # CI/CD 流水线（ci.yml + release.yml）
 ├── design/                     # 设计文档
-│   ├── 详细设计/               # 51 份模块详细设计文档
+│   ├── 详细设计/               # 43 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
 │   │   ├── charts/             # 93 个 Helm Chart（全部含 templates 与 values）
 │   │   ├── values/             # 各引擎 values 参数文件
@@ -273,15 +273,15 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件目录 | 44 个（Java 22 / Go 11 / Python 11） |
+| 自研组件目录 | 45 个（Java 24 / Go 10 / Python 11） |
 | Helm Chart | 93 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
-| 详细设计文档 | 51 份 |
+| 详细设计文档 | 43 份 |
 | 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |
-| 前端 Playwright E2E | 71 用例通过 + 1 跳过（夜间回归门禁，2026-09-01 实跑口径） |
+| 前端 Playwright E2E | 49 用例通过 + 1 跳过（夜间回归门禁，2026-09-01 实跑口径） |
 | 集成测试 | 61 个文件（331 个用例，tests/ 目录） |
-| 前端视图页面 | 79 个 .vue（全部有实质内容，无占位页面） |
-| 支持环境 | 4 种（信创 / 本地数据中心 / 公有云 / 私有云，均为配置模板） |
-| 框架基线 | Spring Boot 4.1.1 / Spring Framework 7 / Java 17 / Go 1.26 / Python 3.11 / Vue3+TS strict |
+| 前端视图页面 | 100 个 .vue（全部有实质内容，无占位页面） |
+| 支持环境 | 5 种（信创 / 本地数据中心 / 公有云 / 私有云 / 多集群联邦，均为配置模板） |
+| 框架基线 | Spring Boot 3.2.x / Spring Framework 6 / Java 17 / Go 1.22+ / Python 3.11 / Vue3+TS strict |
 | 工程成熟度 | 覆盖率门禁 Java≥40% / Go≥30% / Python≥55%（jacoco+pytest-cov 实测基线，2026-09-01） |
 
 ## 开发模式说明

@@ -1,0 +1,9 @@
+# 开发环境 Profile（spring.profiles.active=dev）
+# 仅在开发环境开启 H2 控制台，便于本地调试。
+# 生产环境使用 prod profile（application-prod.yml），H2 console 已强制关闭。
+
+spring:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console

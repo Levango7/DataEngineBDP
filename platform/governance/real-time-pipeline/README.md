@@ -27,7 +27,7 @@ Iceberg REST Catalog commit
                │ Webhook 推送              │ 轮询兜底
                ▼                          ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│              CatalogEventListener (Spring Boot 4.1.1)                │
+│              CatalogEventListener (Spring Boot 3.2.x)                │
 │              POST /api/v1/governance/catalog/events                  │
 └──────────────────────┬───────────────────────────────────────────────┘
                        │ @Async
@@ -54,7 +54,7 @@ Iceberg REST Catalog commit
 
 ## 组件
 
-### 1. Iceberg REST Catalog 事件监听器（Java/Spring Boot 4.1.1）
+### 1. Iceberg REST Catalog 事件监听器（Java/Spring Boot 3.2.x）
 
 | 类 | 职责 |
 |---|---|
@@ -177,8 +177,8 @@ pytest docker/test_realtime_governance.py -v --html=report.html
 
 ## 技术栈
 
-- Java 17 + Spring Boot 4.1.1
-- Flink 1.18.1 + Flink CDC 3.0.0 + Flink CEP
+- Java 17 + Spring Boot 3.2.x
+- Flink 1.20.0 + Flink CDC 3.0.0 + Flink CEP
 - Iceberg 1.5.2（REST Catalog V1/V2）
 - NebulaGraph 3.6.0（血缘图存储）
 - Apache Calcite 1.36.0（SQL 解析）

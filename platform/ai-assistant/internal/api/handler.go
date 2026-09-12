@@ -96,6 +96,10 @@ func (h *AssistantHandler) chat(c *gin.Context) {
 }
 
 // nl2sql POST /nl2sql
+//
+// 从 gin context 提取 JWT claim 中的 tenantId，传入 nl2sql 服务，
+// 由后者在生成 SQL 时注入 tenant_id 过滤条件，实现租户级数据隔离。
+// 缺少租户上下文时返回 403，防止无租户的请求绕过隔离。
 func (h *AssistantHandler) nl2sql(c *gin.Context) {
 	var req struct {
 		Query     string `json:"query"`
@@ -106,7 +110,12 @@ func (h *AssistantHandler) nl2sql(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
 		return
 	}
-	out, err := h.proxy.Nl2Sql(c.Request.Context(), req.Query, req.Dialect)
+	tenantID := c.GetString("tenantId")
+	if tenantID == "" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "缺少租户上下文"})
+		return
+	}
+	out, err := h.proxy.Nl2Sql(c.Request.Context(), req.Query, req.Dialect, tenantID)
 	if err != nil {
 		c.JSON(http.StatusBadGateway, gin.H{"error": err.Error()})
 		return
@@ -311,7 +320,6 @@ func (h *AssistantHandler) messageFeedback(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"ok": true})
 }
-
 
 // examplePrompts GET /example-prompts?locale=zh|en（Sprint 2.2）
 func (h *AssistantHandler) examplePrompts(c *gin.Context) {

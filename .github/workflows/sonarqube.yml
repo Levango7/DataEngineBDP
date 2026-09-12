@@ -110,12 +110,12 @@ jobs:
           echo "发现 $java_count 个 Java 模块，开始逐个 SonarCloud 分析"
           echo ""
           fail_count=0
-          for pom in $(find platform -name pom.xml -not -path "*/target/*"); do
+          while IFS= read -r pom; do
             mod_dir=$(dirname "$pom")
             mod_name=$(basename "$mod_dir")
             echo "========== SonarCloud: $mod_name =========="
             mvn -f "$pom" verify sonar:sonar \
-              -Dsonar.projectKey=Levango7_DataEngineBDP_$mod_name \
+              -Dsonar.projectKey=Levango7_DataEngineBDP_"$mod_name" \
               -Dsonar.projectName="$mod_name" \
               -Dsonar.organization=levango7 \
               -Dsonar.host.url=https://sonarcloud.io \
@@ -127,7 +127,7 @@ jobs:
                 fail_count=$((fail_count + 1))
               }
             echo ""
-          done
+          done < <(find platform -name pom.xml -not -path "*/target/*")
           echo "Java SonarCloud 分析完成：成功 $((java_count - fail_count)) / $java_count，失败 $fail_count"
           if [ "$fail_count" -gt 0 ]; then
             echo "::warning::共有 $fail_count 个 Java 模块 SonarCloud 分析失败，详见上方日志"
@@ -146,11 +146,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          set -euo pipefail
           if [ ! -d "frontend" ] || [ ! -f "frontend/package-lock.json" ]; then
             echo "::warning::frontend/ 目录或 package-lock.json 不存在，跳过前端 SonarCloud 分析"
             exit 0
           fi
-          cd frontend
+          cd "frontend"
           echo "========== 前端依赖安装 (npm ci) =========="
           npm ci
           echo ""
@@ -171,6 +172,7 @@ jobs:
       - name: 输出 SonarCloud 仪表盘链接
         if: always()
         run: |
+          set -euo pipefail
           {
             echo "## SonarCloud 代码质量分析报告"
             echo ""
@@ -180,12 +182,12 @@ jobs:
             echo ""
             echo "| 模块 | 仪表盘链接 |"
             echo "|------|------------|"
-            for mod in $(find platform -mindepth 1 -maxdepth 1 -type d); do
+            while IFS= read -r mod; do
               mod_name=$(basename "$mod")
               if [ -f "$mod/pom.xml" ]; then
                 echo "| $mod_name | [查看](https://sonarcloud.io/dashboard?id=Levango7_DataEngineBDP_$mod_name) |"
               fi
-            done
+            done < <(find platform -mindepth 1 -maxdepth 1 -type d)
             echo ""
             echo "### 前端"
             echo ""

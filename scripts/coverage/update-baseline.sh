@@ -189,7 +189,11 @@ update_java() {
 }
 
 # ------------------------------------------------------------
-# Go 基线更新：从 go test -coverprofile + go tool cover 读取总覆盖率
+# Go 基线更新：从 go test -coverprofile + go tool cover -func 读取总覆盖率
+# T-08 修复：原用 go test -cover 不输出 total: 行，grep ^total: 恒为空，
+# 导致所有模块基线被写为 0，趋势阻断形同虚设。
+# 改为与 ci.yml 门禁/趋势检查一致的 -coverprofile + go tool cover -func 口径。
+# 来源：2026-09-12-go-test-cover-no-total-line-trend-check-bypass
 # ------------------------------------------------------------
 update_go() {
     echo "更新 Go 覆盖率基线..."
@@ -199,12 +203,26 @@ update_go() {
     trap "rm -f '$tmp_data'" RETURN
 
     while IFS= read -r gomod; do
-        local mod_dir mod_name cov
+        local mod_dir mod_name cov cov_profile cov_output
         mod_dir=$(dirname "$gomod")
         mod_name=$(basename "$mod_dir")
-        cov=$(cd "$mod_dir" && go test -cover ./... 2>/dev/null | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "0")
-        if [ -z "$cov" ]; then
-            cov="0"
+        # 使用 coverprofile + go tool cover -func 获取总覆盖率
+        # （go test -cover 不输出 total: 行，无法直接 grep 解析）
+        cov_profile="$mod_dir/.coverage.baseline.out"
+        rm -f "$cov_profile"
+        cov_output=$(cd "$mod_dir" && go test -count=1 -coverprofile=.coverage.baseline.out ./... 2>&1 || true)
+        if [ ! -s "$cov_profile" ]; then
+            echo -e "${YELLOW}[SKIP] $mod_name 未生成覆盖率数据（可能无测试或测试失败），跳过${NC}"
+            echo "测试输出（末尾20行）:"
+            echo "$cov_output" | tail -20
+            continue
+        fi
+        cov=$(cd "$mod_dir" && go tool cover -func=.coverage.baseline.out | grep "^total:" | awk '{print $NF}' | tr -d '%' || echo "")
+        rm -f "$cov_profile"
+        if [ -z "$cov" ] || [ "$cov" = "0" ]; then
+            echo -e "${RED}[FAIL] $mod_name 覆盖率解析失败或为 0%，无法更新基线${NC}"
+            echo -e "${YELLOW}提示：请检查 $mod_dir 的测试是否正常运行${NC}"
+            exit 1
         fi
         echo "${mod_name}=${cov}" >> "$tmp_data"
     done < <(find "$PROJECT_ROOT/platform" -name go.mod -not -path "*/vendor/*")

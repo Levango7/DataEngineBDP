@@ -26,7 +26,7 @@ Phase 1a 对应 Phase 1 详细执行计划 §3.2 批次 1，时间窗口 2026-09
 | --- | --- | --- | --- | --- | --- |
 | 波 1 | T008 | 多模态切片器（文本/表格/图像/语音） | 25d | AI 组 | Python 3.11+、PyTorch 2.0+、OCR/ASR、Embedding 模型 |
 | 波 1 | T012 | Calcite 联邦优化器与下推规则 | 30d | 数据联邦组 | Java 17+、Apache Calcite、SQL 优化、Spring Boot 3.2 |
-| 波 1 | T014 | Flink CDC 管道开发 | 15d | 实时数仓组 | Flink 1.18+、Flink CDC、Debezium、Kafka、Java 17+ |
+| 波 1 | T014 | Flink CDC 管道开发 | 15d | 实时数仓组 | Flink 1.20+、Flink CDC、Debezium、Kafka、Java 17+ |
 | 波 1 | T000 | 等保三级合规整改准备 | 15d | 安全合规组 | 等保三级规范、密评规范、文档工具 |
 | 波 1 | T018 | 金融模板 DDL/DAG/Dashboard 内容 | 15d | 行业模板组 | Java 17+、Helm、DDL/DAG/Dashboard 工具 |
 | 波 2 | T001 | Service Mesh 控制面部署与 Sidecar 注入 | 8d | 云原生组 | Istio ≥1.20、Helm 3.14+、K8s 1.30、mTLS |
@@ -152,7 +152,7 @@ Phase 1a 对应 Phase 1 详细执行计划 §3.2 批次 1，时间窗口 2026-09
 
 | 检查项 | Phase 1a 要求 | 本机实际 | 状态 | 说明 |
 | --- | --- | --- | --- | --- |
-| Flink | ≥ 1.18（T014 Flink CDC 管道） | 未安装（CLI） | ⚠️ 缺失（非阻塞） | Phase 1a 通过 Helm Chart 部署 Flink 1.18.1 到 K8s，无需本地 CLI；Java 侧通过 Maven 依赖 flink-streaming-java 引入 |
+| Flink | ≥ 1.18（T014 Flink CDC 管道） | 未安装（CLI） | ⚠️ 缺失（非阻塞） | Phase 1a 通过 Helm Chart 部署 Flink 1.20.0 到 K8s，无需本地 CLI；Java 侧通过 Maven 依赖 flink-streaming-java 引入 |
 | Iceberg | V2（T015 Iceberg V2 行级 upsert） | 未安装（本地 CLI） | ⚠️ 缺失（非阻塞） | Iceberg 为表格式，通过 Flink/Spark 集成；项目已有 iceberg-rest Chart (appVersion 0.7.0) |
 | Doris | ≥ 2.1（T016 物化视图自动刷新） | 未安装（CLI） | ⚠️ 缺失（非阻塞） | 通过 Helm Chart 部署；**注意：项目 Chart 声明 appVersion 2.0.3，需升级至 2.1+** |
 | Calcite | Apache Calcite（T012 联邦优化器） | 未独立安装 | ⚠️ 缺失（非阻塞） | Calcite 为 Java 库，通过 Maven 依赖 org.apache.calcite:calcite-core 引入，无需独立安装 |
@@ -384,7 +384,7 @@ helm install argocd argo/argo-cd -n argocd --version 7.x.x  # 7.x 对应 ArgoCD 
 | 评估维度 | 结论 |
 | --- | --- |
 | **总体就绪度** | **部分就绪（约 40%）** |
-| **就绪项** | 编程语言工具链（Go 1.26.5 / Java 17.0.20 / Python 3.14.3 / Node 25.9.0）全部就绪且远超要求；Maven 3.9.12、pip 26.1.2、git 2.55.0、kubectl CLI v1.36.1 就绪；PyTorch 2.12.1 就绪；项目 Helm Chart 大部分 appVersion 满足要求；GitHub Actions CI 配置就绪 |
+| **就绪项** | 编程语言工具链（Go 1.22+.5 / Java 17.0.20 / Python 3.14.3 / Node 25.9.0）全部就绪且远超要求；Maven 3.9.12、pip 26.1.2、git 2.55.0、kubectl CLI v1.36.1 就绪；PyTorch 2.12.1 就绪；项目 Helm Chart 大部分 appVersion 满足要求；GitHub Actions CI 配置就绪 |
 | **阻塞项** | 13 项 P0 阻塞缺失（详见 §9.1）：Helm、kind、Istio、ArgoCD、LangChain、LangGraph、PyMilvus、kafka-python、nebula3-python、gmssl、Docker daemon、WSL2、SKE 集群 |
 | **版本不符项** | 1 项 P1：Doris Chart appVersion 2.0.3 需升级至 2.1+ |
 | **建议安装项** | 8 项 P2/P3：PyIceberg、PyFlink、sentence-transformers、rank-bm25、poetry、sonar-scanner、ZAP、Bouncy Castle |

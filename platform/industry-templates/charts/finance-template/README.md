@@ -20,7 +20,7 @@ Chart 不部署实际工作负载（Doris/DolphinScheduler/Superset/Keycloak 由
 - Apache Doris 2.1+ 已部署
 - Apache DolphinScheduler 3.2+ 已部署
 - Apache Superset 4.0+ 已部署
-- Keycloak 24+ 已部署
+- Keycloak 25+ 已部署
 - 目标命名空间 finance 已创建
 - 所需 Secret 已创建（doris-credentials / ds-credentials / superset-credentials / keycloak-credentials）
 

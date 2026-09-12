@@ -17,7 +17,7 @@
 | --- | --- | --- | --- | --- | --- |
 | L2.1 | 统一存储详细设计 | L2.1 统一存储底座 | Iceberg + 对象存储 | Iceberg + 对象存储 | ✅ |
 | L2.2 | 批计算详细设计 | L2.2 批计算 | Spark 3.5 | Spark 3.5 | ✅ |
-| L2.3 | 流计算详细设计 | L2.3 流计算 | Flink 1.18 | Flink 1.18 | ✅ |
+| L2.3 | 流计算详细设计 | L2.3 流计算 | Flink 1.20 | Flink 1.20 | ✅ |
 | L2.4 | 交互查询详细设计 | L2.4 交互查询 | Trino | Trino（未标注版本） | ⚠️ |
 | L2.5 | OLAP 详细设计 | L2.5 OLAP | Doris（主）/StarRocks（可选） | Doris（未标注版本） | ⚠️ |
 | L2.6 | 湖仓集一体详细设计 | L2.6 湖仓集一体 | 湖→仓→集三级 | 湖→仓→集三级 | ✅ |
@@ -61,7 +61,7 @@
 ### 2.1 基准依据
 
 - **§3.3 模块状态表**：L2.1–L2.10 编号、一句话职责、细化状态。
-- **§5.5 选型决策表（12 项拍板）**：消除所有"或"，其中与 L2 相关的拍板为 #7 Kafka、#8 NebulaGraph、#9 Milvus；Spark 3.5 / Flink 1.18 / Trino / Doris / IoTDB 在 §6.1 与 §13 技术选型清单中明确。
+- **§5.5 选型决策表（12 项拍板）**：消除所有"或"，其中与 L2 相关的拍板为 #7 Kafka、#8 NebulaGraph、#9 Milvus；Spark 3.5 / Flink 1.20 / Trino / Doris / IoTDB 在 §6.1 与 §13 技术选型清单中明确。
 - **§11.5.1 三档套餐模块矩阵**：基础版 = L2.1+L2.6+L2.7；标准版 = 基础版+L2.2+L2.3+L2.4+L2.5+L2.8；旗舰版 = 标准版+L2.9+L2.10。
 - **Helm values**：`deploy/values/` 下 spark/flink/trino/doris/kafka/iotdb 六份 values.yaml。
 
@@ -169,7 +169,7 @@ L2.1–L2.6、L2.8、L2.10 关联声明引用的模块编号（L0.11、L2.1–L2
 | # | 选型项 | §5.5/§13 基准 | 文档选型 | values 选型 | 结论 |
 | --- | --- | --- | --- | --- | --- |
 | 3.1 | Spark 版本 | Spark 3.5（§13） | Spark 3.5（L2.2 标题） | sparkVersion 3.5.1 | ✅ |
-| 3.2 | Flink 版本 | Flink 1.18（§13） | Flink 1.18（L2.3 标题） | flinkVersion 1.18.0 | ✅ |
+| 3.2 | Flink 版本 | Flink 1.20（§13） | Flink 1.20（L2.3 标题） | flinkVersion 1.18.0 | ✅ |
 | 3.3 | Trino 版本 | Trino（§13，未标版本） | Trino（L2.4，未标版本） | version 438 | ⚠️ P2（问题 #8） |
 | 3.4 | Doris 版本 | Doris（主）/StarRocks（可选） | Doris（L2.5，未标版本） | version 2.1.3 | ⚠️ P2（问题 #9） |
 | 3.5 | Kafka 选型 | Kafka（§5.5 #7 拍板） | Kafka KRaft（L2.8） | version 3.7.1 | ✅ |
@@ -182,7 +182,7 @@ L2.1–L2.6、L2.8、L2.10 关联声明引用的模块编号（L0.11、L2.1–L2
 #### 5.2.1 Spark / Flink / Kafka / 网关 / 多模型选型（✅ 通过）
 
 - Spark 3.5：L2.2 标题"Spark 3.5"，spark-values.yaml `sparkVersion: "3.5.1"`（3.5 系列），一致。
-- Flink 1.18：L2.3 标题"Flink 1.18"，flink-values.yaml `flinkVersion: "1.18.0"`，一致。
+- Flink 1.20：L2.3 标题"Flink 1.20"，flink-values.yaml `flinkVersion: "1.18.0"`，一致。
 - Kafka：§5.5 #7 拍板 Apache Kafka，L2.8 标题"消息与流接入（Kafka）"正文用 KRaft 模式，kafka-values.yaml `version: "3.7.1"`，一致。L2.8 正确遵循 §5.5 拍板而非 §3.3 的"Kafka/Pulsar"。
 - 网关：§13"自研（Calcite/ANTLR 解析 + 路由）"，L2.7 §2"Parser(ANTLR) → Planner(Calcite 联邦优化)"，一致。
 - 多模型：§5.5 #8 NebulaGraph、#9 Milvus，L2.10 §2 选配清单图=NebulaGraph、向量=Milvus，一致。L2.10 正确遵循 §5.5 拍板而非 §13 的"Neo4j/国产图库"。
@@ -193,7 +193,7 @@ L2.4 交互查询文档全文未出现 Trino 版本号，而 trino-values.yaml �
 
 **影响**：版本号是部署可复现性的关键契约，文档与 values 版本未对齐声明，易导致交付时版本漂移、信创适配验证基准缺失。
 
-**建议**：L2.4 标题改为"交互查询（Trino 438）"，L2.5 标题改为"OLAP（Doris 2.1）"，L2.9 标题改为"时序引擎（IoTDB 2.0）"，并在正文"对标"行补充版本号。
+**建议**：L2.4 标题改为"交互查询（Trino 460）"，L2.5 标题改为"OLAP（Doris 2.1）"，L2.9 标题改为"时序引擎（IoTDB 2.0）"，并在正文"对标"行补充版本号。
 
 #### 5.2.3 L2.5 对标范围扩大至 ClickHouse（⚠️ P2，问题 #11）
 
@@ -405,7 +405,7 @@ L2.10 §2 选配清单亦写 ES"否（标准版起可选）"，进一步固化�
 | 5 | P1 | 5 | L2.2 | Executor cores 文档=4，values=3，偏差 1 | L2.2 §7 改 cores=3 并注套餐分档 | L2.2 作者 |
 | 6 | P1 | 2 | L2.9 | 关联声明缺 L2.1（正文归档 Iceberg 湖） | 头部"关联"补 L2.1 | L2.9 作者 |
 | 7 | P2 | 6 | L2.1–L2.8 | 8 份文档未标注适用套餐版本范围 | 头部新增"适用套餐"字段 | 各文档作者 |
-| 8 | P2 | 3 | L2.4 | Trino 版本号未标注（values=438） | 标题补"Trino 438" | L2.4 作者 |
+| 8 | P2 | 3 | L2.4 | Trino 版本号未标注（values=438） | 标题补"Trino 460" | L2.4 作者 |
 | 9 | P2 | 3 | L2.5 | Doris 版本号未标注（values=2.1.3） | 标题补"Doris 2.1" | L2.5 作者 |
 | 10 | P2 | 3 | L2.9 | IoTDB 版本号未标注（values=2.0.1） | 标题补"IoTDB 2.0" | L2.9 作者 |
 | 11 | P2 | 3 | L2.5 | 对标列 ClickHouse 超出 §3.3/§13/§5.5 基准 | 移除或标注"仅性能对照非选型" | L2.5 作者 |

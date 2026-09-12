@@ -100,12 +100,12 @@
 
 - [严重度: Medium] Iceberg V1→V2升级需确认Spark/Trino/Doris支持版本
   - 位置：V2.0_数据联邦与实时数仓详细设计.md §5.4（第1276行）、§5.10（第1507行）
-  - 问题：V2.0§5.4升级Iceberg V1→V2表格式（行级UPSERT + equality-delete + position-delete）。§5.10提到"Spark/Trino/Doris自动识别V2表"。Iceberg V2表格式（format-version=2）需要：Iceberg 0.14+（V2表格式稳定）、Spark 3.3+（V2读写）、Trino 417+（V2读取）、Doris 2.0+（V2 External Catalog读取）。V1.0基线是Iceberg V1 + Spark 3.5 + Trino 428 + Doris 2.1，引擎版本满足，但V1.0 Iceberg库版本未声明，若V1.0 Iceberg < 0.14则V2表格式不可用。
-  - 建议：在§5.10补充"Iceberg V2依赖版本矩阵"：Iceberg 0.14+ / Spark 3.5 / Trino 428 / Doris 2.1，并明确V1.0 Iceberg库版本是否满足，若不满足需在V2.0升级Iceberg库。
+  - 问题：V2.0§5.4升级Iceberg V1→V2表格式（行级UPSERT + equality-delete + position-delete）。§5.10提到"Spark/Trino/Doris自动识别V2表"。Iceberg V2表格式（format-version=2）需要：Iceberg 0.14+（V2表格式稳定）、Spark 3.3+（V2读写）、Trino 417+（V2读取）、Doris 2.0+（V2 External Catalog读取）。V1.0基线是Iceberg V1 + Spark 3.5 + Trino 460 + Doris 2.1，引擎版本满足，但V1.0 Iceberg库版本未声明，若V1.0 Iceberg < 0.14则V2表格式不可用。
+  - 建议：在§5.10补充"Iceberg V2依赖版本矩阵"：Iceberg 0.14+ / Spark 3.5 / Trino 460 / Doris 2.1，并明确V1.0 Iceberg库版本是否满足，若不满足需在V2.0升级Iceberg库。
 
-- [严重度: Medium] Flink CDC 3.0与Flink 1.18兼容性需确认
+- [严重度: Medium] Flink CDC 3.0与Flink 1.20兼容性需确认
   - 位置) V2.0_数据联邦与实时数仓详细设计.md §5.3.1（第1214行）、§5.10（第1509行）
-  - 问题：V2.0§5.3.1使用Flink CDC 3.0连接器（MySQL/PG/Oracle CDC 3.0），§5.10提到"复用V1.0 Flink Kubernetes Operator，CDC连接器从V1升级到3.0"。Flink CDC 3.0（2024年发布）要求Flink 1.17+，V1.0 Flink 1.18满足。但Flink CDC 3.0是较大版本升级（从2.x到3.0 API变更），V1.0 CDC作业（基于Flink CDC 2.x）迁移到3.0需重写作业SQL/Connector配置，V2.0未说明迁移路径。
+  - 问题：V2.0§5.3.1使用Flink CDC 3.0连接器（MySQL/PG/Oracle CDC 3.0），§5.10提到"复用V1.0 Flink Kubernetes Operator，CDC连接器从V1升级到3.0"。Flink CDC 3.0（2024年发布）要求Flink 1.17+，V1.0 Flink 1.20满足。但Flink CDC 3.0是较大版本升级（从2.x到3.0 API变更），V1.0 CDC作业（基于Flink CDC 2.x）迁移到3.0需重写作业SQL/Connector配置，V2.0未说明迁移路径。
   - 建议：在§5.10补充"Flink CDC 2.x→3.0迁移指南"：(1) API差异（3.0支持增量快照无锁全量），(2) 作业SQL兼容性（3.0语法变更），(3) V1.0 CDC作业升级到V2.0的自动迁移工具或手动改写步骤。
 
 - [严重度: Medium] Doris 2.1物化视图自动刷新限制未明确

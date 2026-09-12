@@ -18,7 +18,9 @@
     "servicesWarn": "响应缓慢",
     "servicesDown": "不可达",
     "servicesChecking": "检测中",
-    "close": "关闭"
+    "close": "关闭",
+    "currency": "¥",
+    "null": "NULL"
   },
   "errors": {
     "param": {
@@ -186,6 +188,8 @@
     "sidebar": "平台侧边栏",
     "expandSidebar": "展开侧边栏",
     "collapseSidebar": "折叠侧边栏",
+    "openMenu": "打开菜单",
+    "closeMenu": "关闭菜单",
     "mainNav": "主导航菜单",
     "sidebarVersionInfo": "侧边栏版本信息",
     "statusbar": "平台状态栏",

@@ -1128,6 +1128,11 @@ label {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
+  outline: none !important;
+}
+/* 仅聚焦态显示 outline 环（wrapper.is-focus 已有 box-shadow 焦点指示，
+ * 此处 outline 作为辅助聚焦环，避免未聚焦时始终显示蓝色外框） */
+.el-input__inner:focus {
   outline: 2px solid var(--ds-border-focus) !important;
   outline-offset: 2px !important;
 }
@@ -2455,6 +2460,24 @@ label {
   .app .side.is-open {
     transform: translateX(0);
   }
+  /* 移动端侧边栏抽屉遮罩层 */
+  .side-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    animation: fadeIn 0.2s var(--ease-smooth);
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 
   /* --- 顶栏高度压缩到 48px --- */
   .topbar {
@@ -2545,13 +2568,17 @@ label {
 @media (min-width: 641px) and (max-width: 1440px) {
   /* --- 侧边栏 icon-only 折叠态（64px）---
    * 仅当未显式展开时折叠；保留 .app.side-collapsed 显式控制权。
-   * 此处通过默认压缩列宽实现"平板默认折叠"语义。 */
+   * 此处通过默认压缩列宽实现"平板默认折叠"语义。
+   * JS 层面通过 matchMedia 自动设置 ui.sidebarAutoCollapsed = true，
+   * 触发 Sidebar.vue 的 :class="{ collapsed: ui.sidebarFolded }"，
+   * 从而复用 main.css 第 392–443 行已定义的 .side.collapsed 折叠态样式。 */
   .app {
     grid-template-columns: 64px 1fr auto;
   }
-  /* 平板下默认进入折叠态内部元素形态（复用现有 .side.collapsed 规则） */
+  /* CSS 兜底：确保 64px 宽侧边栏内容不溢出。
+   * 即使 .side.collapsed 未生效（如 JS 未执行），也强制隐藏溢出内容。 */
   .app .side {
-    /* 触发折叠态内部样式：通过类名协同，避免重复定义 */
+    overflow: hidden;
   }
 
   /* --- 卡片网格 2 列 --- */

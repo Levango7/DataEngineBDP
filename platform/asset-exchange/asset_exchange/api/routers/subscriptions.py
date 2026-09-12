@@ -43,6 +43,16 @@ from asset_exchange.services.registry import ServiceRegistry
 router = APIRouter(prefix="/asset-subscriptions", tags=["subscriptions"])
 
 
+def _assert_subscription_access(ctx: AuthContext, sub: Subscription) -> None:
+    """租户隔离：非 admin 仅可访问本租户（subscriberId）的订阅.
+
+    Raises:
+        HTTPException: 403 跨租户访问。
+    """
+    if ctx.role != "admin" and sub.subscriberId != ctx.tenantId:
+        raise HTTPException(status_code=403, detail="无权访问此订阅")
+
+
 # ---------- 请求模型 ----------
 
 
@@ -68,12 +78,20 @@ async def list_subscriptions(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Subscription]:
     """按条件列出订阅（Sprint 3.2 补齐）。
 
     契约与 open-api-catalog 同步（均用 /subscriptions 根），但本服务专注资产交付订阅，
     供 assetMarket.ts.listSubscriptions 调用。前端通过 SUB_BASE 路径操作明确分流。
+
+    租户隔离：非 admin 仅可列出本租户的订阅；传入 subscriberId 与身份不一致时 403。
     """
+    # 租户隔离：非 admin 强制 subscriberId 为本租户
+    if ctx.role != "admin":
+        if subscriberId is not None and subscriberId != ctx.tenantId:
+            raise HTTPException(status_code=403, detail=f"subscriberId {subscriberId} 与当前身份不一致")
+        subscriberId = ctx.tenantId
     try:
         return await registry.subscriptionService.list_subscriptions(
             SubscriptionFilter(
@@ -167,9 +185,15 @@ async def deliver_data(
 async def get_delivery_status(
     subscription_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> DeliveryStatusResponse:
-    """获取交付状态（按订阅 ID 查最新交付）."""
+    """获取交付状态（按订阅 ID 查最新交付）.
+
+    租户隔离：非 admin 仅可查询本租户订阅的交付状态。
+    """
     try:
+        sub = await registry.subscriptionService.get_subscription(subscription_id)
+        _assert_subscription_access(ctx, sub)
         return await registry.deliveryService.get_delivery_status(subscription_id)
     except AssetExchangeError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
@@ -207,9 +231,15 @@ async def charge_subscription(
 async def list_subscription_billing(
     subscription_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[BillingRecord]:
-    """列出某订阅的计费记录（Sprint 2.2：service 层 list_by_subscription 补 HTTP 路由）."""
+    """列出某订阅的计费记录（Sprint 2.2：service 层 list_by_subscription 补 HTTP 路由）.
+
+    租户隔离：非 admin 仅可查询本租户订阅的计费记录。
+    """
     try:
+        sub = await registry.subscriptionService.get_subscription(subscription_id)
+        _assert_subscription_access(ctx, sub)
         return await registry.billingService.list_by_subscription(subscription_id)
     except AssetExchangeError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))

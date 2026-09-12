@@ -172,9 +172,8 @@ const error = ref('')
 
 /** 登录页语言切换：与顶栏同一行为，切换 + 持久化 */
 function toggleLocale() {
-  const current = (locale as unknown as { value: string }).value
-  const next: SupportedLocale = current === 'zh-CN' ? 'en-US' : 'zh-CN'
-  ;(locale as unknown as { value: string }).value = next
+  const next: SupportedLocale = locale.value === 'zh-CN' ? 'en-US' : 'zh-CN'
+  locale.value = next
   persistLocale(next)
 }
 

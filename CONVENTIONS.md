@@ -42,7 +42,7 @@
 | **platform/ 目录数 39** | platform/ 下一级子目录数 |
 
 - 分布：L0.1–L0.12（12）+ L2.1–L2.10（10）+ L3.1–L3.7（7）+ L4.1–L4.5.6（10）+ L5.1–L5.6（6）+ X1–X4（4）= **49**。
-- 详细设计文档 51 份（49 模块 - 6 合并详设 + 部署清单 + 端到端 PoC + 控制台信息架构 + 运营后台实现落地 + 2 补充文档）。
+- 详细设计文档 43 份（49 模块 - 6 合并详设 + 部署清单 + 端到端 PoC + 控制台信息架构 + 运营后台实现落地 + 2 补充文档）。
 - 部署清单 87 个 Chart 条目（含 13 个自研组件 Chart + 74 个开源组件 Chart）。
 - **禁止**：混用口径（如"41 模块"既指设计模块又指部署单元）；引用模块数必须标注口径名称。
 
@@ -103,7 +103,7 @@
 - 工作空间命名扫描：`grep -rE '<tenant>-default' design/` 应为空。
 - 模块计数扫描：`grep -r '41 模块\|41模块' design/ README.md docs/` 应为空。
 - 版本号扫描：`grep -r 'SKE.*v1\.0' design/` 应为空。
-- 引擎版本扫描：`grep -rE 'Trino 438|Doris 2\.1|Kafka 3\.7' design/` 应为空。
+- 引擎版本扫描：`grep -rE 'Trino 460|Doris 2\.1|Kafka 3\.7' design/` 应为空。
 
 ---
 
@@ -227,10 +227,10 @@
 
 | 规范 | 说明 |
 | --- | --- |
-| **Java 模块** | 22 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
-| **Go 模块** | 11 个（按 `go.mod` 实测） |
+| **Java 模块** | 24 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
+| **Go 模块** | 10 个（按 `go.mod` 实测） |
 | **Python 模块** | 11 个（按 `pyproject.toml` 实测） |
-| **总计** | 44 个自研组件（Java 22 + Go 11 + Python 11） |
+| **总计** | 45 个自研组件（Java 24 + Go 10 + Python 11） |
 
 - 模块计数以构建文件实测为准，不使用设计文档中的理论模块数。
 - **禁止**：使用"21 个 Java 模块"旧口径（governance 已拆分为 3 个独立子模块）。
@@ -262,7 +262,7 @@
 
 | 口径 | 数值 | 含义 |
 | --- | --- | --- |
-| 端到端可用 | 40-50% | 真实完成度，含端到端联调、真实环境部署、外部依赖对接 |
+| 端到端可用 | 80% | 真实完成度，含端到端联调、真实环境部署、外部依赖对接 |
 | 功能模块完成 | 74.1% | GA 检查清单通过率 40/54 项 |
 | 本地基础功能 | 100% | 22 个核心组件本地可运行（H2/SQLite 默认持久层） |
 
@@ -276,7 +276,7 @@
 
 | 语言 | 版本 | 职责边界 | 选型依据 |
 | --- | --- | --- | --- |
-| **Java** | 17 | 主服务 / 治理 / 封装层 | Spring Boot 4.1.1 生态成熟（JPA / Security / WebFlux），企业级治理完备 |
+| **Java** | 17 | 主服务 / 治理 / 封装层 | Spring Boot 3.2.x 生态成熟（JPA / Security / WebFlux），企业级治理完备 |
 | **Go** | 1.26 | CLI 工具 / 网关 / 轻量服务 | 编译单二进制（无 JVM 开销），启动毫秒级，信创 ARM64 一键交叉编译 |
 | **Python** | 3.11 | AI / 数据 / 模板 / 运营 | FastAPI + Pydantic 异步类型安全，ML 生态丰富（sklearn / MLflow / LLaMA-Factory） |
 
@@ -289,10 +289,10 @@
 │     └─ 是 → Python 3.11（FastAPI + Pydantic）
 │
 ├─ 2. 是否为 CLI 工具 / 网关 / 极低延迟轻量服务？
-│     └─ 是 → Go 1.26（Gin / cobra，单二进制）
+│     └─ 是 → Go 1.22+（Gin / cobra，单二进制）
 │
 ├─ 3. 是否需要 K8s 资源翻译 / JPA 事务 / Spring Security 鉴权 / 云 SDK？
-│     └─ 是 → Java 17（Spring Boot 4.1.1）
+│     └─ 是 → Java 17（Spring Boot 3.2.x）
 │
 └─ 4. 混合场景？
       ├─ 计算密集 + 低延迟 → Go
@@ -302,7 +302,7 @@
 
 ### 11.3 选型约束
 
-- **禁止**：引入 Java 17 / Go 1.26 / Python 3.11 以外的后端语言（TypeScript 仅限前端/IDE）。
+- **禁止**：引入 Java 17 / Go 1.22+ / Python 3.11 以外的后端语言（TypeScript 仅限前端/IDE）。
 - **禁止**：同一组件混用多语言（governance/finops/karmada 子模块按职责拆分除外）。
 - **禁止**：因个人偏好选型；必须依据 §11.2 决策树。
 - 新组件选型须在详细设计文档中记录语言选型依据（引用 ADR-001 §5.2 选型决策表）。
@@ -312,7 +312,7 @@
 | 语言 | 组件数 | 代表组件 |
 | --- | --- | --- |
 | Java 17 | 22 | encaps-layer、sql-gateway、rule-engine、governance、tag-engine、infra-orchestrator、finops |
-| Go 1.26 | 11 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、karmada-api |
+| Go 1.22+ | 11 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、karmada-api |
 | Python 3.11 | 12 | knowledge-engine、nl2sql、batch-pipeline、llmops、ml-platform、operations-api、industry-templates |
 
 > 组件计数口径见 [模块数口径定义](docs/模块数口径定义.md)。

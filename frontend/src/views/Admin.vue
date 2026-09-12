@@ -1,10 +1,14 @@
 <template>
   <div>
     <PageHeader :title="t('admin.title')" :subtitle="t('admin.subtitle')" />
-    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: #888">
+    <div v-if="loading" class="card" style="text-align: center; padding: 24px; color: var(--ds-text-tertiary)">
       {{ t('admin.loading') }}
     </div>
-    <div v-else-if="error" class="card" style="text-align: center; padding: 24px; color: #d4380d">
+    <div
+      v-else-if="error"
+      class="card"
+      style="text-align: center; padding: 24px; color: var(--ds-color-error-500)"
+    >
       {{ t('admin.loadFailed', { msg: error.message }) }}
       <button class="btn ghost sm" style="margin-left: 8px" @click="loadAll">
         {{ t('common.retry') }}
@@ -39,7 +43,7 @@
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.revenue') }}</h3>
-          <div class="kpi s">¥ {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}</div>
+          <div class="kpi s">{{ t('common.currency') }} {{ formatRevenue(kpi?.monthlyRevenue ?? 0) }}</div>
         </div>
         <div class="card">
           <h3>{{ t('admin.kpi.alerts') }}</h3>
@@ -51,33 +55,25 @@
       </div>
       <div class="card" style="margin-top: 14px">
         <h3>{{ t('admin.envTitle') }}</h3>
-        <div v-if="envLoading" style="text-align: center; padding: 24px; color: #888">
+        <div
+          v-if="envLoading"
+          style="text-align: center; padding: 24px; color: var(--ds-text-tertiary)"
+        >
           {{ t('admin.envLoading') }}
         </div>
-        <table v-else>
-          <thead>
-            <tr>
-              <th>{{ t('admin.cols.env') }}</th>
-              <th>{{ t('admin.cols.namespace') }}</th>
-              <th>{{ t('admin.cols.nodes') }}</th>
-              <th>{{ t('admin.cols.controlPlane') }}</th>
-              <th>{{ t('admin.cols.status') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="env in envMatrix" :key="env.id">
-              <td>{{ env.name }}</td>
-              <td>{{ env.namespaceCount }}</td>
-              <td>{{ env.nodeCount }}</td>
-              <td>{{ env.controlPlane }}</td>
-              <td>
-                <span class="pill" :class="envStatusClass(env.status)">
-                  {{ envStatusLabel(env.status) }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <el-table v-else :data="envMatrix ?? []" stripe border style="width: 100%">
+          <el-table-column prop="name" :label="t('admin.cols.env')" />
+          <el-table-column prop="namespaceCount" :label="t('admin.cols.namespace')" />
+          <el-table-column prop="nodeCount" :label="t('admin.cols.nodes')" />
+          <el-table-column prop="controlPlane" :label="t('admin.cols.controlPlane')" />
+          <el-table-column :label="t('admin.cols.status')">
+            <template #default="{ row }">
+              <span class="pill" :class="envStatusClass(row.status)">
+                {{ envStatusLabel(row.status) }}
+              </span>
+            </template>
+          </el-table-column>
+        </el-table>
         <div class="note">{{ t('admin.envNote') }}</div>
       </div>
     </template>
