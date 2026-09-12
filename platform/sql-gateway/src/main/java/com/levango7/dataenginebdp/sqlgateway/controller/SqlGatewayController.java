@@ -26,11 +26,13 @@ import com.levango7.dataenginebdp.sqlgateway.parser.SqlDialect;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlParseException;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlParserService;
 import com.levango7.dataenginebdp.sqlgateway.service.SqlRoutingService;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -55,6 +57,7 @@ import java.util.stream.Collectors;
 @RestController
 @Tag(name = "SQL网关-统一SQL", description = "SQL执行/解析/优化/跨源")
 @RequestMapping("/api/v1/sql")
+@PreAuthorize("isAuthenticated()")
 public class SqlGatewayController {
 
     private static final Logger log = LoggerFactory.getLogger(SqlGatewayController.class);
@@ -80,6 +83,7 @@ public class SqlGatewayController {
     @Operation(summary = "执行 SQL")
     @PostMapping("/execute")
     public ResponseEntity<SqlExecuteResponse> execute(@Valid @RequestBody SqlExecuteRequest request) {
+        requireTenant();
         SqlExecuteResponse response = routingService.execute(request);
         return ResponseEntity.ok(response);
     }
@@ -89,10 +93,11 @@ public class SqlGatewayController {
      *
      * @return 路由规则列表
      */
-    @Operation(summary = "列出当前所有路由规则")
+    @Operation(summary = "列出当前所有路由规则（按租户隔离）")
     @GetMapping("/routes")
     public ResponseEntity<List<RouteRule>> listRoutes() {
-        return ResponseEntity.ok(routingService.listRoutes());
+        String tenantId = requireTenant();
+        return ResponseEntity.ok(routingService.listRoutes(tenantId));
     }
 
     /**
@@ -105,8 +110,10 @@ public class SqlGatewayController {
      */
     @Operation(summary = "添加一条路由规则")
     @PostMapping("/routes")
+    @PreAuthorize("hasRole('SQL_GATEWAY_WRITER')")
     public ResponseEntity<RouteRule> addRoute(@Valid @RequestBody RouteRule rule) {
-        RouteRule saved = routingService.addRoute(rule);
+        String tenantId = requireTenant();
+        RouteRule saved = routingService.addRoute(rule, tenantId);
         // 201 CREATED + Location 头（指向新资源）
         String location = "/api/v1/sql/routes/" + (saved.getId() != null ? saved.getId() : "");
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -408,6 +415,20 @@ public class SqlGatewayController {
     }
 
     // ===================== 私有工具方法 =====================
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R10 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
 
     /**
      * 解析生效租户 ID：JWT claim 优先，body 携带值仅作一致性校验。

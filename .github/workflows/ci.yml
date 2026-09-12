@@ -2,7 +2,7 @@
 # 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
 # Phase1a 增强：新增多语言代码检查（golangci-lint/pylint/black/isort/Checkstyle/ESLint）+ 覆盖率收集（JaCoCo/go cover/pytest-cov）
 # 覆盖率门禁增强（2026-09-01 实化提升）：
-#   - 全量模块门禁：Java 24个模块（行≥40%/分支≥18%）、Go 10个模块（≥30%）、Python 10个模块（≥55%）
+#   - 全量模块门禁：Java 24个模块（行≥40%/分支≥18%）、Go 10个模块（≥30%）、Python 12个模块（≥55%）
 #   - 趋势阻断：覆盖率相比基线下降 > 2% 阻断 CI（基线文件位于 docs/coverage-baseline/）
 #   - 注：当前实际覆盖率 Java ~44%/~28%、Go ~45%、Python ~66%，门禁设为略低于实际值（留~10%缓冲），
 #     确保CI可通过同时防止覆盖率倒退；逐步提升路线见 docs/coverage-roadmap.md，目标85% GA标准
@@ -794,7 +794,7 @@ jobs:
           echo "  JaCoCo 覆盖率门禁检查 (阈值: 行≥40% 分支≥18%（2026-09-01 实化提升，目标85% GA标准）)"
           echo "  覆盖范围：platform/ 下所有含 pom.xml 的 Java 模块"
           echo "============================================"
-          # 阈值定义：2026-09-01 Boot 4.1.1 升级后 22 模块 jacoco 全量实测，
+          # 阈值定义：2026-09-01 Boot 4.1.1 升级后 24 模块 jacoco 全量实测，
           # 名单内模块分布 46~92%（最低 common-security 经补 JwtAuthFilterTest
           # 达 49%/33%），门禁 35/15 → 40/18（低于最低实测值留缓冲）。
           # 保留趋势阻断（下降>2%阻断CI）；逐步提升路线见 docs/coverage-roadmap.md；目标 85%
@@ -887,7 +887,7 @@ jobs:
           # T-02: Java 覆盖率分阶段配置
           #
           # 分阶段提升计划：
-          #   阶段 1（当前）：所有 22 模块参与趋势检查，基线为 2026-09-01 实测值
+          #   阶段 1（当前）：所有 24 模块参与趋势检查，基线为 2026-09-01 实测值
           #     - 不提升阈值，先防回归（下降 > 2% 阻断 CI）
           #     - 低覆盖率模块（encaps-gateway 2%, dashboard 6%, encaps-data 13% 等）
           #       也纳入趋势检查，防止进一步恶化

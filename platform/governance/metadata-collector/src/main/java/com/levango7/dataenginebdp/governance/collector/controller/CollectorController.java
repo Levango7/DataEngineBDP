@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.governance.collector.controller;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.governance.collector.collector.MetadataCollector;
 import com.levango7.dataenginebdp.governance.collector.model.CollectionHistory;
 import com.levango7.dataenginebdp.governance.collector.model.CollectionResult;
@@ -11,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +38,7 @@ import java.util.Optional;
  * <p>端点清单：
  * <ul>
  *   <li>POST   /sources                       — 添加数据源</li>
- *   <li>GET    /sources                       — 列出全部数据源</li>
+ *   <li>GET    /sources                       — 列出当前租户数据源</li>
  *   <li>GET    /sources/{id}                  — 获取单个数据源</li>
  *   <li>PUT    /sources/{id}                  — 更新数据源</li>
  *   <li>DELETE /sources/{id}                  — 删除数据源</li>
@@ -46,10 +48,19 @@ import java.util.Optional;
  *   <li>POST   /collect/schedule/{sourceId}   — 注册定时采集（cron）</li>
  *   <li>DELETE /collect/schedule/{sourceId}   — 取消定时采集</li>
  * </ul></p>
+ *
+ * <p><b>安全控制（R10 修复）</b>：
+ * <ul>
+ *   <li>类级 {@code @PreAuthorize("isAuthenticated()")}：所有端点要求认证，
+ *       写操作（创建/更新/删除/触发采集/调度）进一步要求 {@code hasRole('GOVERNANCE_WRITER')}。</li>
+ *   <li>租户隔离：从 {@link TenantContext} 读取当前租户 ID，缺失返回 403；
+ *       查询/更新/删除按 (id, tenantId) 联合校验；创建时写入 tenantId。</li>
+ * </ul></p>
  */
 @RestController
 @Tag(name = "数据治理-元数据采集", description = "数据源管理与元数据采集")
 @RequestMapping("/api/v1/metadata")
+@PreAuthorize("isAuthenticated()")
 public class CollectorController {
 
     private static final Logger log = LoggerFactory.getLogger(CollectorController.class);
@@ -76,14 +87,17 @@ public class CollectorController {
     // ============ 数据源 CRUD ============
 
     /**
-     * 添加数据源。
+     * 添加数据源（写入当前租户 ID）。
      *
      * @param source 数据源配置
      * @return 创建后的数据源（含 ID），201 状态码
      */
     @Operation(summary = "创建元数据")
     @PostMapping("/sources")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<MetadataSource> addSource(@Valid @RequestBody MetadataSource source) {
+        String tenantId = requireTenant();
+        source.setTenantId(tenantId);
         LocalDateTime now = LocalDateTime.now();
         source.setCreatedAt(now);
         source.setUpdatedAt(now);
@@ -99,46 +113,51 @@ public class CollectorController {
     }
 
     /**
-     * 列出全部数据源。
+     * 列出当前租户的全部数据源。
      *
      * @return 数据源列表
      */
-    @Operation(summary = "列出全部数据源")
+    @Operation(summary = "列出当前租户数据源")
     @GetMapping("/sources")
     public ResponseEntity<List<MetadataSource>> listSources() {
-        return ResponseEntity.ok(sourceRepository.findAll());
+        String tenantId = requireTenant();
+        return ResponseEntity.ok(sourceRepository.findByTenantId(tenantId));
     }
 
     /**
-     * 获取单个数据源。
+     * 获取单个数据源（按租户隔离）。
      *
      * @param id 数据源 ID
-     * @return 数据源；不存在返回 404
+     * @return 数据源；不存在或不属于当前租户返回 404
      */
     @Operation(summary = "获取单个数据源")
     @GetMapping("/sources/{id}")
     public ResponseEntity<MetadataSource> getSource(@PathVariable Long id) {
-        return sourceRepository.findById(id)
+        String tenantId = requireTenant();
+        return sourceRepository.findByIdAndTenantId(id, tenantId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
-     * 更新数据源。
+     * 更新数据源（按租户隔离）。
      *
      * @param id     数据源 ID
      * @param source 新配置
-     * @return 更新后的数据源；不存在返回 404
+     * @return 更新后的数据源；不存在或不属于当前租户返回 404
      */
     @Operation(summary = "更新元数据")
     @PutMapping("/sources/{id}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<MetadataSource> updateSource(@PathVariable Long id,
                                                        @Valid @RequestBody MetadataSource source) {
-        Optional<MetadataSource> existing = sourceRepository.findById(id);
+        String tenantId = requireTenant();
+        Optional<MetadataSource> existing = sourceRepository.findByIdAndTenantId(id, tenantId);
         if (existing.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         source.setId(id);
+        source.setTenantId(tenantId);
         source.setCreatedAt(existing.get().getCreatedAt());
         source.setUpdatedAt(LocalDateTime.now());
         MetadataSource saved = sourceRepository.save(source);
@@ -152,15 +171,17 @@ public class CollectorController {
     }
 
     /**
-     * 删除数据源。
+     * 删除数据源（按租户隔离）。
      *
      * @param id 数据源 ID
-     * @return 204；不存在返回 404
+     * @return 204；不存在或不属于当前租户返回 404
      */
     @Operation(summary = "删除元数据")
     @DeleteMapping("/sources/{id}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<Void> deleteSource(@PathVariable Long id) {
-        if (!sourceRepository.existsById(id)) {
+        String tenantId = requireTenant();
+        if (sourceRepository.findByIdAndTenantId(id, tenantId).isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         schedulerService.unscheduleCollection(id);
@@ -171,43 +192,54 @@ public class CollectorController {
     // ============ 采集操作 ============
 
     /**
-     * 手动触发指定数据源采集。
+     * 手动触发指定数据源采集（按租户隔离）。
      *
      * @param sourceId 数据源 ID
-     * @return 采集结果；数据源不存在返回 404
+     * @return 采集结果；数据源不存在或不属于当前租户返回 404
      */
     @Operation(summary = "手动触发指定数据源采集")
     @PostMapping("/collect/{sourceId}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<CollectionResult> triggerCollection(@PathVariable Long sourceId) {
+        String tenantId = requireTenant();
+        if (sourceRepository.findByIdAndTenantId(sourceId, tenantId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
         Optional<CollectionResult> result = schedulerService.triggerCollection(sourceId, "MANUAL");
         return result.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
-     * 查询指定数据源最近采集状态。
+     * 查询指定数据源最近采集状态（按租户隔离）。
      *
      * @param sourceId 数据源 ID
-     * @return 最近一条采集历史；无记录返回 404
+     * @return 最近一条采集历史；无记录或不属于当前租户返回 404
      */
     @Operation(summary = "查询指定数据源最近采集状态")
     @GetMapping("/collect/status/{sourceId}")
     public ResponseEntity<CollectionHistory> getCollectionStatus(@PathVariable Long sourceId) {
+        String tenantId = requireTenant();
+        if (sourceRepository.findByIdAndTenantId(sourceId, tenantId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
         return schedulerService.getCollectionStatus(sourceId)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     /**
-     * 测试数据源连接。
+     * 测试数据源连接（按租户隔离）。
      *
      * @param sourceId 数据源 ID
-     * @return {@code {"connected": true/false}}；数据源不存在返回 404
+     * @return {@code {"connected": true/false}}；数据源不存在或不属于当前租户返回 404
      */
     @Operation(summary = "测试数据源连接")
     @PostMapping("/collect/test/{sourceId}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<Map<String, Object>> testConnection(@PathVariable Long sourceId) {
-        Optional<MetadataSource> sourceOpt = sourceRepository.findById(sourceId);
+        String tenantId = requireTenant();
+        Optional<MetadataSource> sourceOpt = sourceRepository.findByIdAndTenantId(sourceId, tenantId);
         if (sourceOpt.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -228,7 +260,7 @@ public class CollectorController {
     }
 
     /**
-     * 注册定时采集。
+     * 注册定时采集（按租户隔离）。
      *
      * @param sourceId 数据源 ID
      * @param body     请求体，包含 {@code cron} 字段
@@ -236,8 +268,13 @@ public class CollectorController {
      */
     @Operation(summary = "注册定时采集")
     @PostMapping("/collect/schedule/{sourceId}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<Map<String, Object>> scheduleCollection(@PathVariable Long sourceId,
                                                                   @RequestBody Map<String, String> body) {
+        String tenantId = requireTenant();
+        if (sourceRepository.findByIdAndTenantId(sourceId, tenantId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
         String cron = body.get("cron");
         boolean success = schedulerService.scheduleCollection(sourceId, cron);
         Map<String, Object> resp = new HashMap<>();
@@ -248,14 +285,19 @@ public class CollectorController {
     }
 
     /**
-     * 取消定时采集。
+     * 取消定时采集（按租户隔离）。
      *
      * @param sourceId 数据源 ID
      * @return 取消结果
      */
     @Operation(summary = "取消定时采集")
     @DeleteMapping("/collect/schedule/{sourceId}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<Map<String, Object>> unscheduleCollection(@PathVariable Long sourceId) {
+        String tenantId = requireTenant();
+        if (sourceRepository.findByIdAndTenantId(sourceId, tenantId).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
         boolean success = schedulerService.unscheduleCollection(sourceId);
         Map<String, Object> resp = new HashMap<>();
         resp.put("sourceId", sourceId);
@@ -266,12 +308,28 @@ public class CollectorController {
     /**
      * 列出已注册的 Collector 类型。
      *
+     * <p>平台级内置资源，不按租户隔离。</p>
+     *
      * @return 类型列表
      */
     @Operation(summary = "列出已注册的 Collector 类型")
     @GetMapping("/collectors")
     public ResponseEntity<List<String>> listCollectors() {
         return ResponseEntity.ok(schedulerService.getRegisteredTypes());
+    }
+
+    /**
+     * 从 {@link TenantContext} 获取租户 ID，缺失则 fail-closed。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 
     /**

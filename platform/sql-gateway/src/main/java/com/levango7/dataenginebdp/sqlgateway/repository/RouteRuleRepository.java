@@ -14,4 +14,12 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface RouteRuleRepository extends JpaRepository<RouteRule, Long> {
+
+    /**
+     * 按租户 ID 查询路由规则（多租户隔离，R10 安全修复）。
+     *
+     * @param tenantId 租户 ID
+     * @return 该租户下的所有路由规则
+     */
+    java.util.List<RouteRule> findByTenantId(String tenantId);
 }

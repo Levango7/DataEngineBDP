@@ -691,7 +691,8 @@ async function subscribeAsset(a: Asset) {
     detailVisible.value = false
     store.showToast(t('assetMarket.messages.subscribed', { name: a.name }))
   } catch (e) {
-    store.showToast(t('assetMarket.messages.subscribeFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('assetMarket.messages.subscribeFailed', { message: msg }))
   }
 }
 
@@ -711,7 +712,8 @@ async function submitDeliver() {
     deliverModalVisible.value = false
     store.showToast(t('assetMarket.deliver.success'))
   } catch (e) {
-    store.showToast(t('assetMarket.deliver.failed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('assetMarket.deliver.failed', { message: msg }))
   }
 }
 
@@ -721,7 +723,8 @@ async function openBilling(s: Subscription) {
   try {
     billingRecords.value = await assetMarketApi.getBillingRecords(s.id)
   } catch (e) {
-    store.showToast(t('assetMarket.billing.loadFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('assetMarket.billing.loadFailed', { message: msg }))
     billingRecords.value = []
   } finally {
     billingLoading.value = false
@@ -755,7 +758,8 @@ async function submitListAsset() {
       deliveryMethod: 'api'
     }
   } catch (e) {
-    store.showToast(t('assetMarket.listForm.failed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('assetMarket.listForm.failed', { message: msg }))
   }
 }
 
@@ -765,7 +769,8 @@ async function offlineAsset(a: Asset) {
     Object.assign(a, updated)
     store.showToast(t('assetMarket.messages.offlined', { name: a.name }))
   } catch (e) {
-    store.showToast(t('assetMarket.messages.offlineFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('assetMarket.messages.offlineFailed', { message: msg }))
   }
 }
 
@@ -775,7 +780,8 @@ async function relistAsset(a: Asset) {
     Object.assign(a, updated)
     store.showToast(t('assetMarket.messages.relisted', { name: a.name }))
   } catch (e) {
-    store.showToast(t('assetMarket.messages.relistFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('assetMarket.messages.relistFailed', { message: msg }))
   }
 }
 

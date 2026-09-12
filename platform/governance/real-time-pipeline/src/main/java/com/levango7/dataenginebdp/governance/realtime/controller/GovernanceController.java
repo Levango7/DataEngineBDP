@@ -154,10 +154,11 @@ public class GovernanceController {
     public ResponseEntity<Map<String, FieldLineage>> getAllLineage(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        requireTenant();
+        String tenantId = requireTenant();
         int safeSize = Math.min(Math.max(size, 1), 200);
-        Map<String, FieldLineage> all = lineageAnalyzer.getGraphClient().getAllCachedLineage();
-        // 分页截断（内存 Map 无法真正按租户过滤，这里至少限制返回量，避免 OOM）
+        // 按租户过滤（多租户隔离，R10 安全修复）
+        Map<String, FieldLineage> all = lineageAnalyzer.getGraphClient().getAllCachedLineage(tenantId);
+        // 分页截断
         Map<String, FieldLineage> paged = new java.util.LinkedHashMap<>();
         int skip = page * safeSize;
         int taken = 0;
@@ -186,7 +187,9 @@ public class GovernanceController {
     @PostMapping("/quality/rules")
     @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<String> registerRule(@RequestBody QualityRule rule) {
-        requireTenant();
+        String tenantId = requireTenant();
+        // 写入租户 ID（多租户隔离，R10 安全修复）
+        rule.setTenantId(tenantId);
         qualityEngine.registerRule(rule);
         return ResponseEntity.ok("Rule registered: " + rule.getRuleId());
     }
@@ -215,9 +218,10 @@ public class GovernanceController {
     public ResponseEntity<Map<String, QualityRule>> getAllRules(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        requireTenant();
+        String tenantId = requireTenant();
         int safeSize = Math.min(Math.max(size, 1), 200);
-        Map<String, QualityRule> all = qualityEngine.getRuleRegistry();
+        // 按租户过滤（多租户隔离，R10 安全修复）
+        Map<String, QualityRule> all = qualityEngine.getRuleRegistry(tenantId);
         Map<String, QualityRule> paged = new java.util.LinkedHashMap<>();
         int skip = page * safeSize;
         int taken = 0;
@@ -268,9 +272,10 @@ public class GovernanceController {
     public ResponseEntity<List<QualityAlert>> getAllAlerts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        requireTenant();
+        String tenantId = requireTenant();
         int safeSize = Math.min(Math.max(size, 1), 200);
-        List<QualityAlert> all = qualityEngine.getAlertEmitter().getAlertBuffer();
+        // 按租户过滤（多租户隔离，R10 安全修复）
+        List<QualityAlert> all = qualityEngine.getAlertEmitter().getAlertBuffer(tenantId);
         int total = all.size();
         int fromIndex = Math.min(page * safeSize, total);
         int toIndex = Math.min(fromIndex + safeSize, total);
@@ -285,9 +290,14 @@ public class GovernanceController {
     public ResponseEntity<List<QualityAlert>> getAlertsByTable(
             @PathVariable String tableIdentifier,
             @RequestParam(defaultValue = "100") int limit) {
-        requireTenant();
+        String tenantId = requireTenant();
         int safeLimit = Math.min(Math.max(limit, 1), 500);
-        return ResponseEntity.ok(qualityEngine.getAlertEmitter().getRecentAlerts(tableIdentifier, safeLimit));
+        // 按租户过滤后再按表过滤（多租户隔离，R10 安全修复）
+        List<QualityAlert> tenantAlerts = qualityEngine.getAlertEmitter().getAlertBuffer(tenantId);
+        return ResponseEntity.ok(tenantAlerts.stream()
+                .filter(a -> a.getTableIdentifier().equals(tableIdentifier))
+                .limit(safeLimit)
+                .toList());
     }
 
     // -----------------------------------------------------------------------
@@ -322,12 +332,15 @@ public class GovernanceController {
 
     /**
      * 从 TenantContext 校验当前租户；缺失时抛 403。
+     *
+     * @return 当前租户 ID
      */
-    private static void requireTenant() {
+    private static String requireTenant() {
         String tenantId = TenantContext.getTenantId();
         if (tenantId == null || tenantId.isBlank()) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文，拒绝访问治理资源");
         }
+        return tenantId;
     }
 
     // -----------------------------------------------------------------------

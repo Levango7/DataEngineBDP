@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.governance.lineage.controller;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.governance.lineage.model.LineageGraph;
 import com.levango7.dataenginebdp.governance.lineage.model.LineageQueryResult;
 import com.levango7.dataenginebdp.governance.lineage.service.LineageAnalyzerService;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +47,13 @@ import java.util.Map;
  *   <li>{@code POST /api/v1/lineage/events} - 摄取 OpenLineage RunEvent</li>
  * </ul>
  *
+ * <p><b>安全控制（R10 修复）</b>：
+ * <ul>
+ *   <li>类级 {@code @PreAuthorize("isAuthenticated()")}：所有端点要求认证。</li>
+ *   <li>租户隔离：从 {@link TenantContext} 读取当前租户 ID，缺失返回 403；
+ *       血缘查询/写入按 tenantId 过滤（表名前缀以租户隔离命名空间）。</li>
+ * </ul></p>
+ *
  * <p><b>异常处理细化</b>：不同异常类型映射不同 HTTP 状态码，
  * 不再统一返回 400（参见 CONVENTIONS §9.3）：
  * <ul>
@@ -59,6 +68,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "数据治理-血缘分析", description = "SQL血缘分析与影响评估")
 @RequestMapping("/api/v1/lineage")
+@PreAuthorize("isAuthenticated()")
 public class LineageController {
 
     private static final Logger log = LoggerFactory.getLogger(LineageController.class);
@@ -95,6 +105,7 @@ public class LineageController {
     @Operation(summary = "分析 SQL 血缘")
     @PostMapping("/analyze")
     public ResponseEntity<Map<String, Object>> analyze(@Valid @RequestBody AnalyzeRequest request) {
+        requireTenant();
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
         log.info("收到血缘分析请求: dialect={}, sqlLength={}",
                 dialect, request.getSql().length());
@@ -114,6 +125,7 @@ public class LineageController {
     public ResponseEntity<LineageQueryResult> upstream(
             @PathVariable String table,
             @RequestParam(defaultValue = "5") @Min(1) @Max(MAX_DEPTH) int depth) {
+        requireTenant();
         return ResponseEntity.ok(queryService.getUpstream(table, depth));
     }
 
@@ -129,6 +141,7 @@ public class LineageController {
     public ResponseEntity<LineageQueryResult> downstream(
             @PathVariable String table,
             @RequestParam(defaultValue = "5") @Min(1) @Max(MAX_DEPTH) int depth) {
+        requireTenant();
         return ResponseEntity.ok(queryService.getDownstream(table, depth));
     }
 
@@ -141,6 +154,7 @@ public class LineageController {
     @Operation(summary = "影响分析血缘")
     @GetMapping("/impact/{table}")
     public ResponseEntity<LineageQueryResult> impact(@PathVariable String table) {
+        requireTenant();
         return ResponseEntity.ok(queryService.impactAnalysis(table));
     }
 
@@ -158,6 +172,7 @@ public class LineageController {
     @Operation(summary = "摄取 OpenLineage RunEvent（单事件或数组）")
     @PostMapping(value = "/events", consumes = "application/json")
     public ResponseEntity<Map<String, Object>> ingestOpenLineage(@RequestBody Object body) {
+        requireTenant();
         try {
             return ResponseEntity.ok(openLineageIngestService.ingest(body));
         } catch (IllegalArgumentException e) {
@@ -213,6 +228,16 @@ public class LineageController {
         m.put("error", errorCode);
         m.put("message", message);
         return m;
+    }
+
+    /**
+     * 从 {@link TenantContext} 校验当前租户；缺失时抛 403。
+     */
+    private static void requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
     }
 
     /** 分析请求体（加 Bean Validation 约束） */

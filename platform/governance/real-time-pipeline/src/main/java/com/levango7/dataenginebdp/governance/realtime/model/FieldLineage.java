@@ -31,6 +31,14 @@ public class FieldLineage implements Serializable {
     /** 血缘记录唯一 ID（UUID） */
     private String lineageId;
 
+    /**
+     * 租户 ID（多租户隔离，R10 安全修复）。
+     *
+     * <p>由 {@code RealTimeLineageAnalyzer.parseAndUpdate} 在写入时从
+     * {@code TenantContext} 获取并写入，查询时按此字段过滤。</p>
+     */
+    private String tenantId;
+
     /** 源表标识符 */
     private String sourceTable;
 

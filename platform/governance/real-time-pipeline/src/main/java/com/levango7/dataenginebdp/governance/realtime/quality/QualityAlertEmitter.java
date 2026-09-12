@@ -88,6 +88,20 @@ public class QualityAlertEmitter {
      */
     public QualityAlert emit(QualityRuleResult result, Instant violationTimestamp,
                              Instant pipelineStartTimestamp) {
+        return emit(result, violationTimestamp, pipelineStartTimestamp, null);
+    }
+
+    /**
+     * 发射质量违规告警（带租户隔离）。
+     *
+     * @param result 评估结果（必须为 FAIL）
+     * @param violationTimestamp 违规数据产生时间戳
+     * @param pipelineStartTimestamp 治理闭环开始时间戳（Catalog commit 时刻）
+     * @param tenantId 租户 ID（写入告警，用于查询过滤）
+     * @return 构造的告警对象；发送失败时仍返回（已写入内存缓冲）
+     */
+    public QualityAlert emit(QualityRuleResult result, Instant violationTimestamp,
+                             Instant pipelineStartTimestamp, String tenantId) {
         if (!result.isViolation()) {
             log.debug("Not a violation, skip alert: ruleId={}", result.getRuleId());
             return null;
@@ -99,6 +113,7 @@ public class QualityAlertEmitter {
 
         QualityAlert alert = QualityAlert.builder()
                 .alertId(java.util.UUID.randomUUID().toString())
+                .tenantId(tenantId)
                 .ruleId(result.getRuleId())
                 .ruleType(result.getRuleType())
                 .severity(determineSeverity(result))
@@ -144,6 +159,18 @@ public class QualityAlertEmitter {
      */
     public List<QualityAlert> getAlertBuffer() {
         return List.copyOf(alertBuffer);
+    }
+
+    /**
+     * 获取指定租户的告警缓冲（多租户隔离，R10 安全修复）。
+     *
+     * @param tenantId 租户 ID
+     * @return 按 tenantId 过滤后的不可变告警列表
+     */
+    public List<QualityAlert> getAlertBuffer(String tenantId) {
+        return alertBuffer.stream()
+                .filter(a -> tenantId.equals(a.getTenantId()))
+                .toList();
     }
 
     /**

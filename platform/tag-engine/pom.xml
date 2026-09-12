@@ -33,6 +33,17 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <!-- Spring Security：@PreAuthorize 方法级鉴权（R10 安全修复） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <!-- 公共安全 Starter：统一 TenantContext / JwtAuthFilter 自动装配（R10 租户隔离） -->
+        <dependency>
+            <groupId>com.levango7.dataenginebdp</groupId>
+            <artifactId>common-security</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
         <!-- Jackson：Boot 4 起不再由 starter-web 传递引入，TagService 直接
              使用 JsonProcessingException/TypeReference/ObjectMapper，显式声明 -->
         <dependency>

@@ -163,7 +163,8 @@ async function submitUpgrade() {
       store.showToast(t('account.upgradeModal.failed'))
     }
   } catch (e) {
-    store.showToast(t('account.upgradeModal.failedWithMsg', { msg: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('account.upgradeModal.failedWithMsg', { msg }))
   }
 }
 

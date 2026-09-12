@@ -114,7 +114,8 @@ async function submitCreate() {
     // 重置表单
     newCollection.value = { name: '', dimension: 768, index: 'HNSW', relatedKb: '' }
   } catch (e) {
-    store.showToast(t('vector.createModal.createFailed', { msg: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('vector.createModal.createFailed', { msg }))
   }
 }
 
@@ -124,7 +125,8 @@ async function doSearch() {
     await vectorApi.search(searchText.value, 5)
     store.showToast(t('vector.searchDone'))
   } catch (e) {
-    store.showToast(t('vector.searchFailed', { msg: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('vector.searchFailed', { msg }))
   }
 }
 

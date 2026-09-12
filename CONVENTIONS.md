@@ -228,9 +228,9 @@
 | 规范 | 说明 |
 | --- | --- |
 | **Java 模块** | 24 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
-| **Go 模块** | 9 个（按 `go.mod` 实测） |
+| **Go 模块** | 10 个（按 `go.mod` 实测） |
 | **Python 模块** | 12 个（按 `pyproject.toml` 实测） |
-| **总计** | 45 个自研组件（Java 24 + Go 9 + Python 12） |
+| **总计** | 46 个自研组件（Java 24 + Go 10 + Python 12） |
 
 - 模块计数以构建文件实测为准，不使用设计文档中的理论模块数。
 - **禁止**：使用"21 个 Java 模块"旧口径（governance 已拆分为 3 个独立子模块）。

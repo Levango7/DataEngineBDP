@@ -87,7 +87,10 @@ async def listExperiments(
 ):
     """列出实验（按租户隔离：普通用户仅见本租户实验，admin 可见全部）."""
     experiments = await registry.experimentService.listExperiments()
-    if ctx.role != "admin" and ctx.tenantId:
+    if ctx.role != "admin":
+        # 非 admin 用户必须有 tenantId，否则拒绝（防止空 tenantId 绕过过滤返回全部实验）
+        if not ctx.tenantId:
+            raise HTTPException(status_code=403, detail="缺少租户上下文")
         experiments = [
             e for e in experiments if getattr(e, "tenantId", None) == ctx.tenantId
         ]

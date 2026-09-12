@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +47,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "基础设施供应-私有云集群", description = "vSphere/OpenStack集群供应")
 @RequestMapping("/api/v1/clusters/private")
+@PreAuthorize("hasRole('INFRA_ADMIN')")
 public class PrivateClusterController {
 
     private static final Logger log = LoggerFactory.getLogger(PrivateClusterController.class);
@@ -92,11 +94,17 @@ public class PrivateClusterController {
                                                             @Valid @RequestBody PrivateClusterRequest request) {
         PrivateCloudProvider p = resolveProvider(provider);
 
+        // 租户强制：创建集群必须有租户上下文，防止无租户请求绕过隔离
+        String currentTenant = TenantContext.getTenantId();
+        if (currentTenant == null || currentTenant.isBlank()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         log.info("创建私有云集群: provider={} clusterName={}", provider, request.getClusterName());
         PrivateClusterInfo cluster = new PrivateClusterInfo();
         cluster.setClusterName(request.getClusterName());
         cluster.setProvider(provider);
-        cluster.setTenantId(TenantContext.getTenantId());
+        cluster.setTenantId(currentTenant);
         cluster.setStatus("CREATING");
         cluster.setK8sVersion(request.getK8sVersion());
         cluster.setPodCidr(request.getPodCidr());
@@ -152,8 +160,9 @@ public class PrivateClusterController {
             return ResponseEntity.notFound().build();
         }
         // 租户隔离：校验集群归属当前租户，防止越权销毁
+        // 修复 null equals null 漏洞：currentTenant 为 null 时也必须拒绝
         String currentTenant = TenantContext.getTenantId();
-        if (cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
+        if (currentTenant == null || cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
             return ResponseEntity.notFound().build();
         }
 
@@ -192,8 +201,9 @@ public class PrivateClusterController {
             return ResponseEntity.notFound().build();
         }
         // 租户隔离：校验集群归属当前租户，防止越权查询
+        // 修复 null equals null 漏洞：currentTenant 为 null 时也必须拒绝
         String currentTenant = TenantContext.getTenantId();
-        if (cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
+        if (currentTenant == null || cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
             return ResponseEntity.notFound().build();
         }
 
@@ -249,8 +259,9 @@ public class PrivateClusterController {
             return ResponseEntity.notFound().build();
         }
         // 租户隔离：校验集群归属当前租户，防止越权扩缩容
+        // 修复 null equals null 漏洞：currentTenant 为 null 时也必须拒绝
         String currentTenant = TenantContext.getTenantId();
-        if (cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
+        if (currentTenant == null || cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
             return ResponseEntity.notFound().build();
         }
 

@@ -33,6 +33,7 @@
 
   /* === 形状与阴影 === */
   --radius: var(--ds-radius-lg); /* 10px → 12px (ds-radius-lg) */
+  --radius-md-plus: var(--ds-radius-md-plus); /* 10px 圆角别名（历史 view 文件 10px 统一令牌化） */
   --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
   --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.12);

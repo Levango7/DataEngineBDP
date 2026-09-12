@@ -127,7 +127,16 @@ func (a *AssistantService) Chat(ctx context.Context, req *ChatRequest) (*ChatRes
 	}
 
 	// ③ 执行（默认开；仅当生成了 SQL；租户取认证回填值，禁止自报）
+	// 安全：执行前校验 SQL 仅允许只读 SELECT 查询，防止 NL→SQL 生成破坏性 SQL
 	if req.EnableExec && resp.SQL != "" {
+		if err := ValidateReadOnlySQL(resp.SQL); err != nil {
+			resp.Reply = fmt.Sprintf("生成的 SQL 未通过只读校验，已拒绝执行：%s", err.Error())
+			// 助手消息落库（租户隔离）
+			if _, err := a.sessions.AddMessage(req.TenantID, sessionID, RoleAssistant, StatusDone, resp.Reply); err != nil {
+				return nil, fmt.Errorf("保存助手消息失败: %w", err)
+			}
+			return resp, nil
+		}
 		if execResult, err := a.proxy.ExecuteSql(ctx, resp.SQL, "ANSI", req.TenantID); err == nil {
 			resp.Executed = true
 			_ = execResult // 结果用于后续解读（P1 扩展）

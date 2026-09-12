@@ -30,6 +30,14 @@ public class RouteRule {
     private Long id;
 
     /**
+     * 租户 ID（多租户隔离，R10 安全修复）。
+     *
+     * <p>由 {@code SqlGatewayController.addRoute} 在创建时从
+     * {@code TenantContext} 获取并写入，查询时按此字段过滤。</p>
+     */
+    private String tenantId;
+
+    /**
      * SQL 模式匹配表达式（前缀或正则，由路由服务决定语义）。
      */
     private String pattern;
@@ -57,5 +65,16 @@ public class RouteRule {
         this.engine = engine;
         this.priority = priority;
         this.enabled = enabled;
+    }
+
+    /**
+     * 全参构造器（含 tenantId，用于显式构造新规则）。
+     */
+    public RouteRule(String pattern, String engine, Integer priority, Boolean enabled, String tenantId) {
+        this.pattern = pattern;
+        this.engine = engine;
+        this.priority = priority;
+        this.enabled = enabled;
+        this.tenantId = tenantId;
     }
 }

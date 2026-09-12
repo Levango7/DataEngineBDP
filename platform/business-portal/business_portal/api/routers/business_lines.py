@@ -14,6 +14,7 @@ from business_portal.api.routers.deps import (
     get_registry,
     status_for_error,
 )
+from business_portal.api.jwt_auth import AuthContext, effectiveTenant, getAuthContext
 from business_portal.models.base import BusinessLineStatus
 from business_portal.models.business_line import (
     Budget,
@@ -69,11 +70,20 @@ async def create_business_line(
     req: CreateBusinessLineRequest,
     registry: ServiceRegistry = Depends(get_registry),
     creator_id: str | None = Depends(get_current_user),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> BusinessLine:
     """创建一条新业务线（顶层组织维度）.
 
     创建者（JWT sub 或 X-User-Id）自动成为 owner，确保后续 get/update/delete 有权限。
+    租户隔离：普通用户强制使用 JWT tenantId，admin 可指定任意租户（effectiveTenant）。
     """
+    # 租户来源裁决：admin 可指定任意租户，普通用户强制取 JWT 声明
+    resolved_tenant_id = effectiveTenant(ctx, req.tenantId)
+    if not resolved_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="缺少租户身份",
+        )
     # 创建者自动成为 owner（若未显式包含）
     owner_ids = req.ownerIds
     if creator_id and creator_id not in owner_ids:
@@ -81,7 +91,7 @@ async def create_business_line(
     bl = BusinessLine(
         id=str(uuid.uuid4()),
         name=req.name,
-        tenantId=req.tenantId,
+        tenantId=resolved_tenant_id,
         description=req.description,
         budget=req.budget,
         config=req.config,

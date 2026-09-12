@@ -288,7 +288,10 @@ class TestDashboardApi:
             json={"name": "风控线", "tenantId": "t-1"},
         )
         bl_id = create_resp.json()["id"]
-        resp = client.get(f"/api/v1/business-lines/{bl_id}/dashboard")
+        resp = client.get(
+            f"/api/v1/business-lines/{bl_id}/dashboard",
+            headers={"X-Tenant-Id": "t-1"},
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["blId"] == bl_id
@@ -298,7 +301,10 @@ class TestDashboardApi:
         assert len(data["topProjects"]) > 0
 
     def test_get_dashboard_bl_not_found(self, client):
-        resp = client.get("/api/v1/business-lines/nonexistent/dashboard")
+        resp = client.get(
+            "/api/v1/business-lines/nonexistent/dashboard",
+            headers={"X-Tenant-Id": "t-1"},
+        )
         assert resp.status_code == 404
 
 

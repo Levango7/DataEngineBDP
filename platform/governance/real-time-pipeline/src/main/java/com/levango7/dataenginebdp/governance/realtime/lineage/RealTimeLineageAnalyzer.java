@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.governance.realtime.lineage;
 
 import com.levango7.dataenginebdp.governance.realtime.model.FieldLineage;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import org.slf4j.Logger;
@@ -72,13 +73,16 @@ public class RealTimeLineageAnalyzer {
      */
     public FieldLineage parseAndUpdate(String sqlText, String jobId) {
         long start = System.currentTimeMillis();
-        log.info("Parsing and updating lineage: jobId={}", jobId);
+        String tenantId = TenantContext.getTenantId();
+        log.info("Parsing and updating lineage: jobId={}, tenantId={}", jobId, tenantId);
 
         // 缓存作业 SQL（用于元数据变更后重新解析）
         jobSqlCache.put(jobId, sqlText);
 
         // Step 1: 解析 SQL 提取字段级血缘
         FieldLineage lineage = sqlParser.parse(sqlText, jobId);
+        // 写入租户 ID（多租户隔离，R10 安全修复）
+        lineage.setTenantId(tenantId);
         parseCount.incrementAndGet();
 
         // Step 2: 写入 NebulaGraph 血缘图

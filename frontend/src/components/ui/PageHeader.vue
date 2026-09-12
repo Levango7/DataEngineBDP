@@ -29,7 +29,7 @@ defineProps<{
 .page-header__title {
   margin: 0;
   font-size: var(--ds-font-size-3xl);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   color: var(--el-text-color-primary);
 }
 

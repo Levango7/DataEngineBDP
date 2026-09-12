@@ -30,6 +30,14 @@ public class QualityAlert implements Serializable {
     /** 告警唯一 ID（UUID） */
     private String alertId;
 
+    /**
+     * 租户 ID（多租户隔离，R10 安全修复）。
+     *
+     * <p>由 {@code QualityAlertEmitter.emit} 在生成告警时从评估规则继承，
+     * 查询时按此字段过滤。</p>
+     */
+    private String tenantId;
+
     /** 触发告警的规则 ID */
     private String ruleId;
 

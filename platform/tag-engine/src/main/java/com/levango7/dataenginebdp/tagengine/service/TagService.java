@@ -86,6 +86,22 @@ public class TagService {
     }
 
     /**
+     * 按 ID 与租户 ID 联合获取标签定义（租户隔离）。
+     *
+     * @param tagId    标签 ID
+     * @param tenantId 租户 ID
+     * @return Optional 包装的标签定义；不属于该租户时返回 empty
+     */
+    public Optional<TagDefinition> getTagDefinition(String tagId, String tenantId) {
+        if (tagId == null || tenantId == null) {
+            return Optional.empty();
+        }
+        return tagDefRepo.findById(tagId)
+                .filter(e -> tenantId.equals(e.getTenantId()))
+                .map(this::toModel);
+    }
+
+    /**
      * 列出指定租户的全部标签定义。
      *
      * @param tenantId 租户 ID
@@ -116,6 +132,36 @@ public class TagService {
         // 3. 删标签元数据
         tagDefRepo.deleteById(tagId);
         log.info("TagService.deleteTagDefinition: tagId={}, column={}", tagId, entity.getColumnName());
+        return true;
+    }
+
+    /**
+     * 删除标签定义（租户隔离）。
+     *
+     * <p>先按 (tagId, tenantId) 校验存在性与租户归属，不匹配返回 {@code false}；
+     * 命中则删除标签及其全部规则与宽表列。</p>
+     *
+     * @param tagId    标签 ID
+     * @param tenantId 租户 ID
+     * @return 删除成功返回 {@code true}；不存在或不属于该租户返回 {@code false}
+     */
+    public boolean deleteTagDefinition(String tagId, String tenantId) {
+        if (tagId == null || tenantId == null) {
+            return false;
+        }
+        Optional<TagDefinitionEntity> opt = tagDefRepo.findById(tagId)
+                .filter(e -> tenantId.equals(e.getTenantId()));
+        if (opt.isEmpty()) {
+            return false;
+        }
+        TagDefinitionEntity entity = opt.get();
+        // 1. 删宽表列（Mock 模式级联删画像字段；Doris 模式 ALTER DROP COLUMN）
+        tagStore.deleteTagDefinition(tagId);
+        // 2. 删规则元数据
+        tagRuleRepo.findByTagId(tagId).forEach(r -> tagRuleRepo.deleteById(r.getRuleId()));
+        // 3. 删标签元数据
+        tagDefRepo.deleteById(tagId);
+        log.info("TagService.deleteTagDefinition: tagId={}, column={}, tenant={}", tagId, entity.getColumnName(), tenantId);
         return true;
     }
 
@@ -162,6 +208,55 @@ public class TagService {
     }
 
     /**
+     * 为标签添加规则（租户隔离）。
+     *
+     * <p>先按 (tagId, tenantId) 校验标签存在性与租户归属，不匹配抛
+     * {@link IllegalArgumentException}；命中则创建规则并锁定 tenantId。</p>
+     *
+     * @param tagId    标签 ID
+     * @param req      规则创建请求
+     * @param tenantId 租户 ID
+     * @return 已落地的规则
+     * @throws IllegalArgumentException 标签不存在或不属于该租户
+     */
+    public TagRule createTagRule(String tagId, TagRuleRequest req, String tenantId) {
+        if (tagId == null || tenantId == null) {
+            throw new IllegalArgumentException("tagId 与 tenantId 不能为空");
+        }
+        TagDefinitionEntity def = tagDefRepo.findById(tagId)
+                .filter(e -> tenantId.equals(e.getTenantId()))
+                .orElseThrow(() -> new IllegalArgumentException("tag not found or tenant mismatch: " + tagId));
+
+        // 1. 通过 TagStore 创建（Mock 模式内存；Doris 模式抛 UnsupportedOperationException 由本服务接管）
+        TagRule rule;
+        try {
+            rule = tagStore.createTagRule(tagId, req);
+        } catch (UnsupportedOperationException e) {
+            // Doris 模式：规则纯元数据，由本服务直接构造
+            String ruleId = "rule-" + UUID.randomUUID();
+            LocalDateTime now = LocalDateTime.now();
+            rule = TagRule.builder()
+                    .ruleId(ruleId)
+                    .tagId(tagId)
+                    .tenantId(def.getTenantId())
+                    .condition(req.getCondition())
+                    .value(req.getValue())
+                    .priority(req.getPriority() != null ? req.getPriority() : 0)
+                    .properties(req.getProperties())
+                    .status("ACTIVE")
+                    .createdAt(now)
+                    .updatedAt(now)
+                    .build();
+        }
+
+        // 2. 持久化到 JPA
+        TagRuleEntity entity = toEntity(rule);
+        tagRuleRepo.save(entity);
+        log.info("TagService.createTagRule: ruleId={}, tagId={}, tenant={}", rule.getRuleId(), tagId, tenantId);
+        return rule;
+    }
+
+    /**
      * 列出标签的全部规则（按 priority 降序）。
      *
      * @param tagId 标签 ID
@@ -175,6 +270,35 @@ public class TagService {
                         a.getPriority() == null ? 0 : a.getPriority()))
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 列出标签的全部规则（租户隔离，按 priority 降序）。
+     *
+     * <p>先按 (tagId, tenantId) 校验标签存在性与租户归属，不匹配返回空列表；
+     * 命中则返回该标签的全部规则。</p>
+     *
+     * @param tagId    标签 ID
+     * @param tenantId 租户 ID
+     * @return 规则列表；标签不存在或不属于该租户时返回空列表
+     */
+    public List<TagRule> getTagRules(String tagId, String tenantId) {
+        if (tagId == null || tenantId == null) {
+            return List.of();
+        }
+        boolean owned = tagDefRepo.findById(tagId)
+                .filter(e -> tenantId.equals(e.getTenantId()))
+                .isPresent();
+        if (!owned) {
+            return List.of();
+        }
+        return tagRuleRepo.findByTagId(tagId).stream()
+                .map(this::toModel)
+                .sorted((a, b) -> Integer.compare(
+                        b.getPriority() == null ? 0 : b.getPriority(),
+                        a.getPriority() == null ? 0 : a.getPriority()))
+                .collect(Collectors.toList());
+    }
+
 
     /**
      * 删除规则。

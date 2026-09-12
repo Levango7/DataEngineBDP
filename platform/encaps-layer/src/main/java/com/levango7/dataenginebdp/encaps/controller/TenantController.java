@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,14 +31,20 @@ import java.util.List;
  * <p>提供租户的 CRUD 操作，供封装层集成测试与管理控制台使用。
  * 与其他 Controller 不同，租户是全局实体，不做租户隔离过滤。</p>
  *
- * <p>认证由 {@code JwtAuthFilter} 统一拦截 {@code /api/v1/**} 路径，
- * 无需在 Controller 内显式校验。</p>
+ * <p>安全控制（R10 修复）：
+ * <ul>
+ *   <li>类级 {@code @PreAuthorize("hasRole('SUPER_ADMIN')")}：租户 CRUD 是平台级管理操作，
+ *       仅超级管理员可执行，防止任意认证用户创建/删除租户。</li>
+ *   <li>认证由 {@code JwtAuthFilter} 统一拦截 {@code /api/v1/**} 路径，
+ *       无需在 Controller 内显式校验。</li>
+ * </ul></p>
  */
 @Slf4j
 @RestController
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.tenant.controller.enabled", havingValue = "true", matchIfMissing = true)
 @RequestMapping("/api/v1/tenants")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 @Tag(name = "租户管理", description = "租户的创建、查询、更新与删除")
 public class TenantController {
 

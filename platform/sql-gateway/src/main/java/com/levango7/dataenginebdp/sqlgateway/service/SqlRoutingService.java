@@ -121,11 +121,11 @@ public class SqlRoutingService {
      */
     public SqlExecuteResponse execute(SqlExecuteRequest request) {
         long start = System.currentTimeMillis();
-        String targetEngine = resolveEngine(request);
-        String queryId = UUID.randomUUID().toString();
         // 租户身份解析：认证上下文（JWT）优先，请求体仅作无鉴权调用回退。
         // 修复越权面：此前 body 中的 tenantId 可被伪造，用于缓存键/计量/X-Trino-User 冒充他租户。
         String tenantId = resolveTenantId(request);
+        String targetEngine = resolveEngine(request, tenantId);
+        String queryId = UUID.randomUUID().toString();
         String sql = request.getSql();
 
         log.info("queryId={} engine={} tenant={} sql={}{}",
@@ -306,6 +306,19 @@ public class SqlRoutingService {
     }
 
     /**
+     * 列出指定租户的路由规则（多租户隔离，R10 安全修复）。
+     *
+     * @param tenantId 租户 ID
+     * @return 该租户下的路由规则列表（按优先级升序）
+     */
+    public List<RouteRule> listRoutes(String tenantId) {
+        List<RouteRule> all = routeRuleRepository.findByTenantId(tenantId);
+        all.sort(Comparator.comparingInt(r ->
+                r.getPriority() == null ? Integer.MAX_VALUE : r.getPriority()));
+        return all;
+    }
+
+    /**
      * 添加一条路由规则。
      *
      * @param rule 路由规则（若 id 为空则由数据库自增分配）
@@ -323,10 +336,22 @@ public class SqlRoutingService {
             rule.setPriority(100);
         }
         RouteRule saved = routeRuleRepository.save(rule);
-        log.info("路由规则已添加: id={} pattern={} engine={} priority={} enabled={}",
+        log.info("路由规则已添加: id={} pattern={} engine={} priority={} enabled={} tenant={}",
                 saved.getId(), saved.getPattern(), saved.getEngine(),
-                saved.getPriority(), saved.getEnabled());
+                saved.getPriority(), saved.getEnabled(), saved.getTenantId());
         return saved;
+    }
+
+    /**
+     * 添加一条路由规则（带租户隔离，R10 安全修复）。
+     *
+     * @param rule     路由规则（若 id 为空则由数据库自增分配）
+     * @param tenantId 租户 ID（写入规则，用于查询过滤）
+     * @return 已保存的路由规则
+     */
+    public RouteRule addRoute(RouteRule rule, String tenantId) {
+        rule.setTenantId(tenantId);
+        return addRoute(rule);
     }
 
     /**
@@ -336,14 +361,27 @@ public class SqlRoutingService {
      * @return 目标引擎名称
      */
     private String resolveEngine(SqlExecuteRequest request) {
+        return resolveEngine(request, null);
+    }
+
+    /**
+     * 解析目标引擎：请求显式指定 > 路由规则匹配 > 默认引擎（按租户隔离路由规则）。
+     *
+     * @param request  SQL 执行请求
+     * @param tenantId 租户 ID（非空时按租户过滤路由规则）
+     * @return 目标引擎名称
+     */
+    private String resolveEngine(SqlExecuteRequest request, String tenantId) {
         // 1. 请求显式指定引擎
         if (request.getEngine() != null && !request.getEngine().isBlank()) {
             return request.getEngine();
         }
-        // 2. 路由规则匹配（按优先级升序遍历启用的规则）
+        // 2. 路由规则匹配（按优先级升序遍历启用的规则，按租户隔离）
         String sql = request.getSql();
         if (sql != null) {
-            for (RouteRule rule : listRoutes()) {
+            List<RouteRule> rules = (tenantId != null && !tenantId.isBlank())
+                    ? listRoutes(tenantId) : listRoutes();
+            for (RouteRule rule : rules) {
                 if (Boolean.FALSE.equals(rule.getEnabled())) {
                     continue;
                 }

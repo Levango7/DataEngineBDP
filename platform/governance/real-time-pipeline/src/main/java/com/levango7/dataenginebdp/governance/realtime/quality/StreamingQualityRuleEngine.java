@@ -120,7 +120,8 @@ public class StreamingQualityRuleEngine {
         // Step 2: 违规即告警
         QualityAlert alert = null;
         if (result.isViolation()) {
-            alert = alertEmitter.emit(result, violationTimestamp, pipelineStartTimestamp);
+            alert = alertEmitter.emit(result, violationTimestamp, pipelineStartTimestamp,
+                    rule.getTenantId());
         }
 
         long duration = System.currentTimeMillis() - start;
@@ -167,6 +168,23 @@ public class StreamingQualityRuleEngine {
      */
     public Map<String, QualityRule> getRuleRegistry() {
         return java.util.Collections.unmodifiableMap(ruleRegistry);
+    }
+
+    /**
+     * 获取指定租户的所有已注册规则（多租户隔离，R10 安全修复）。
+     *
+     * @param tenantId 租户 ID
+     * @return 按 tenantId 过滤后的不可变规则 Map
+     */
+    public Map<String, QualityRule> getRuleRegistry(String tenantId) {
+        Map<String, QualityRule> filtered = new java.util.LinkedHashMap<>();
+        for (var entry : ruleRegistry.entrySet()) {
+            QualityRule rule = entry.getValue();
+            if (rule != null && tenantId.equals(rule.getTenantId())) {
+                filtered.put(entry.getKey(), rule);
+            }
+        }
+        return java.util.Collections.unmodifiableMap(filtered);
     }
 
     /**

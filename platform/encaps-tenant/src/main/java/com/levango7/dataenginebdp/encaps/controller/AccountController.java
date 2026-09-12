@@ -6,6 +6,7 @@ import com.levango7.dataenginebdp.encaps.security.AuditLog;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -101,7 +103,17 @@ public class AccountController {
         return ResponseEntity.ok(body);
     }
 
-    /** TenantContext(字符串) → Long。 */
+    /**
+     * TenantContext(字符串) → Long。
+     *
+     * <p>非数字租户 ID（如 Keycloak sub UUID）不再降级为 0L（R10 安全修复），
+     * 因为 0L 会导致所有非数字租户共享同一配额命名空间，破坏租户隔离。
+     * 非数字租户直接抛 403 FORBIDDEN，拒绝访问配额资源。</p>
+     *
+     * @return 当前租户的 Long 型 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     * @throws ResponseStatusException(403) 若租户 ID 非数字（无法映射到 Long 型配额键）
+     */
     private Long tenantIdLong() {
         String tid = TenantContext.getTenantId();
         if (tid == null || tid.isBlank()) {
@@ -110,8 +122,9 @@ public class AccountController {
         try {
             return Long.parseLong(tid);
         } catch (NumberFormatException e) {
-            // 非数字租户（Keycloak sub）：用 0 占位（配额按租户隔离时需调整）
-            return 0L;
+            // 非数字租户（如 Keycloak sub UUID）：抛 403 拒绝，不降级到 0L（R10 安全修复）
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "非数字租户 ID 无法映射到配额键，拒绝访问配额资源");
         }
     }
 

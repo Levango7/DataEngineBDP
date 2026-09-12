@@ -625,11 +625,12 @@ async function executeCall() {
     }
     callResult.value = await callApi(selectedApi.value.id, { payload }, testApiKey.value)
   } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e)
     callResult.value = {
       callId: '',
       statusCode: 500,
       latencyMs: 0,
-      error: (e as Error).message,
+      error: msg,
       costAmount: 0
     }
   } finally {
@@ -650,7 +651,8 @@ async function applySubscribe() {
     subForm.subscriberId = ''
     subForm.purpose = ''
   } catch (e: unknown) {
-    store.showToast(t('apiMarket.messages.subscribeFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('apiMarket.messages.subscribeFailed', { message: msg }))
   }
 }
 
@@ -663,7 +665,8 @@ async function publishFlow(api: APIDefinition) {
     store.showToast(t('apiMarket.messages.published'))
     refreshList()
   } catch (e: unknown) {
-    store.showToast(t('apiMarket.messages.publishFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('apiMarket.messages.publishFailed', { message: msg }))
   }
 }
 
@@ -720,7 +723,8 @@ async function doRegister() {
     newApi.description = ''
     refreshList()
   } catch (e: unknown) {
-    store.showToast(t('apiMarket.messages.registerFailed', { message: (e as Error).message }))
+    const msg = e instanceof Error ? e.message : String(e)
+    store.showToast(t('apiMarket.messages.registerFailed', { message: msg }))
   }
 }
 

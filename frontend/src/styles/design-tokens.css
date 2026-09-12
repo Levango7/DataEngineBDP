@@ -182,7 +182,7 @@
   --ds-font-weight-normal: 400;
   --ds-font-weight-medium: 500;
   --ds-font-weight-semibold: 600;
-  --ds-font-weight-bold: 700;
+  --ds-font-weight-bold: 800;
 
   /* line-height */
   --ds-line-height-tight: 1.25;
@@ -194,6 +194,7 @@
    * ============================================================ */
   --ds-radius-sm: 4px;
   --ds-radius-md: 8px;
+  --ds-radius-md-plus: 10px; /* 10px 圆角阶梯（历史 view 文件广泛使用，统一令牌化管理） */
   --ds-radius-lg: 12px;
   --ds-radius-xl: 16px;
   --ds-radius-2xl: 20px;

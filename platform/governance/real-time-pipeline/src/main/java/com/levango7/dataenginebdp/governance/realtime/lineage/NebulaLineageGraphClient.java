@@ -148,6 +148,23 @@ public class NebulaLineageGraphClient {
     }
 
     /**
+     * 查询指定租户的所有缓存血缘（多租户隔离，R10 安全修复）。
+     *
+     * @param tenantId 租户 ID
+     * @return 按 tenantId 过滤后的不可变血缘缓存视图
+     */
+    public Map<String, FieldLineage> getAllCachedLineage(String tenantId) {
+        Map<String, FieldLineage> filtered = new java.util.LinkedHashMap<>();
+        for (var entry : lineageCache.entrySet()) {
+            FieldLineage lineage = entry.getValue();
+            if (lineage != null && tenantId.equals(lineage.getTenantId())) {
+                filtered.put(entry.getKey(), lineage);
+            }
+        }
+        return Collections.unmodifiableMap(filtered);
+    }
+
+    /**
      * 获取写入统计。
      */
     public Map<String, Long> getWriteStats() {

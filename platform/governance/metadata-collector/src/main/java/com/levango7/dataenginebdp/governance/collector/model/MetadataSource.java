@@ -49,6 +49,15 @@ public class MetadataSource {
     private String name;
 
     /**
+     * 租户 ID（多租户隔离，R10 安全修复）。
+     *
+     * <p>由 {@code CollectorController.requireTenant()} 在创建时写入，
+     * 查询/更新/删除时按此字段过滤，避免跨租户数据泄漏。</p>
+     */
+    @jakarta.persistence.Column(length = 64)
+    private String tenantId;
+
+    /**
      * 数据源类型：取值范围
      * {@link #TYPE_HIVE}/{@link #TYPE_DORIS}/{@link #TYPE_KAFKA}/{@link #TYPE_FILESYSTEM}
      */

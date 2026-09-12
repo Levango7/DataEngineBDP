@@ -29,7 +29,7 @@ function Check-Tools {
 # 仅 Profile 渲染校验
 function Test-Profiles {
     Log "=== Profile 渲染校验 ==="
-    $envs = @("xinchuang", "onprem", "public-cloud", "private-cloud")
+    $envs = @("xinchuang", "onprem", "publiccloud", "privatecloud")
     $umbrella = "design/deploy/charts/dataenginebdp-umbrella"
     $values = "deploy/local/values-local-core.yaml"
 

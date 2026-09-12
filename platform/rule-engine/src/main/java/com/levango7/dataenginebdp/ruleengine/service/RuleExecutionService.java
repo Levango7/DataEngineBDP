@@ -35,7 +35,13 @@ public class RuleExecutionService {
         long start = System.currentTimeMillis();
 
         Long ruleId = request.getRuleId();
-        Rule rule = ruleService.getById(ruleId);
+        // 租户隔离：若请求携带 tenantId，按 (id, tenantId) 联合查询（R10 安全修复）
+        Rule rule;
+        if (request.getTenantId() != null && !request.getTenantId().isBlank()) {
+            rule = ruleService.getByIdAndTenantId(ruleId, request.getTenantId());
+        } else {
+            rule = ruleService.getById(ruleId);
+        }
         if (rule == null) {
             return RuleExecutionResult.builder()
                     .ruleId(ruleId)

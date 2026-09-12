@@ -80,6 +80,9 @@ public class AllocationController {
     @GetMapping("/configs")
     public ResponseEntity<List<AllocationConfig>> listConfigs() {
         String tenantId = currentTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         log.debug("listConfigs: tenant={}", tenantId);
         return ResponseEntity.ok(allocationService.listConfigs(tenantId));
     }
@@ -91,6 +94,9 @@ public class AllocationController {
     @GetMapping("/configs/{id}")
     public ResponseEntity<AllocationConfig> getConfig(@PathVariable String id) {
         String tenantId = currentTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         log.debug("getConfig: tenant={}, id={}", tenantId, id);
         return ResponseEntity.ok(allocationService.getConfig(id, tenantId));
     }

@@ -37,6 +37,14 @@ public class QualityRule implements Serializable {
     /** 规则 ID */
     private String ruleId;
 
+    /**
+     * 租户 ID（多租户隔离，R10 安全修复）。
+     *
+     * <p>由 {@code GovernanceController.registerRule} 在注册时从
+     * {@code TenantContext} 获取并写入，查询时按此字段过滤。</p>
+     */
+    private String tenantId;
+
     /** 规则类型：NOT_NULL / UNIQUE / RANGE / FORMAT / CUSTOM */
     private RuleType ruleType;
 

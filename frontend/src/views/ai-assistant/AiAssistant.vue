@@ -421,7 +421,7 @@ void buildChartConfig
   gap: 12px;
 }
 .ai-title h1 {
-  font-size: 20px;
+  font-size: var(--ds-font-size-3xl);
   margin: 0;
 }
 .ai-sub {

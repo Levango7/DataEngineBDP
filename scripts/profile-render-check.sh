@@ -25,7 +25,7 @@ helm dependency update "$UMBRELLA" >/dev/null
 
 # 1. 核心子集渲染 + Schema 校验（四环境）
 log "核心子集渲染 + Schema 校验..."
-for env in xinchuang onprem public-cloud private-cloud; do
+for env in xinchuang onprem publiccloud privatecloud; do
   log "  Profile: $env"
   # stdout=渲染产物 / stderr=helm 警告（如 dependency v1 警告）。
   # 此前 2>&1 把警告行混入 YAML，kubeconform 解析必炸——这也是 CI 一直

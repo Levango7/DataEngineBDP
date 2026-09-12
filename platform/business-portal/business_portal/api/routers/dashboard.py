@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 
-from business_portal.api.routers.deps import get_registry, status_for_error
+from business_portal.api.routers.deps import (
+    get_current_tenant,
+    get_registry,
+    status_for_error,
+)
 from business_portal.models.dashboard import Dashboard
 from business_portal.repositories import PortalError
 from business_portal.services.registry import ServiceRegistry
@@ -20,9 +24,18 @@ router = APIRouter(prefix="/business-lines", tags=["dashboard"])
 async def get_dashboard(
     bl_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> Dashboard:
-    """获取业务线数据概览（KPI 卡片 + 趋势图 + 实时监控 + TopN 项目）."""
+    """获取业务线数据概览（KPI 卡片 + 趋势图 + 实时监控 + TopN 项目）.
+
+    租户隔离：仅返回当前租户的业务线仪表盘，防止跨租户访问。
+    """
+    if not tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="缺少租户身份",
+        )
     try:
-        return await registry.dashboardService.get_dashboard(bl_id)
+        return await registry.dashboardService.get_dashboard(bl_id, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
