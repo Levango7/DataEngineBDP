@@ -148,3 +148,107 @@ class TestMockSqlGenerator:
         settings.llmMode = "mock"
         gen = createGenerator(settings, SqlValidator(settings))
         assert isinstance(gen, MockSqlGenerator)
+
+class TestTimeToWhereSqlInjection:
+    """_timeToWhere 白名单校验测试（防 SQL 注入）."""
+
+    def _table(self):
+        return TableSchema(
+            databaseName="default",
+            tableName="orders",
+            columns=[ColumnSchema(name="dt", type="date")],
+            partitionKeys=["dt"],
+        )
+
+    def test_predefined_keywords_pass(self):
+        """预定义关键字应通过白名单."""
+        for kw in [
+            "today",
+            "yesterday",
+            "day_before_yesterday",
+            "this_month",
+            "last_month",
+            "this_year",
+            "last_year",
+        ]:
+            sql = MockSqlGenerator._timeToWhere(kw, self._table())
+            assert "dt" in sql
+
+    def test_last_n_days_pass(self):
+        """last_N_days 格式应通过."""
+        sql = MockSqlGenerator._timeToWhere("last_7_days", self._table())
+        assert "date_sub(current_date, 7)" in sql
+
+    def test_last_n_months_pass(self):
+        """last_N_months 格式应通过."""
+        sql = MockSqlGenerator._timeToWhere("last_3_months", self._table())
+        assert "date_sub(current_date, 90)" in sql
+
+    def test_exact_date_pass(self):
+        """YYYY-MM-DD 精确日期应通过."""
+        sql = MockSqlGenerator._timeToWhere("2025-01-15", self._table())
+        assert "date '2025-01-15'" in sql
+
+    def test_year_month_pass(self):
+        """YYYY-MM 年月应通过."""
+        sql = MockSqlGenerator._timeToWhere("2025-01", self._table())
+        assert "date '2025-01-01'" in sql
+
+    @pytest.mark.parametrize(
+        "malicious",
+        [
+            "'; DROP TABLE orders; --",  # 经典 SQL 注入
+            "today' OR '1'='1",  # 字符串截断
+            "today; DROP TABLE users",  # 分号注入
+            "today--",  # 注释注入
+            "today/*comment*/",  # 块注释
+            "today UNION SELECT * FROM users",  # UNION 注入（含空格）
+            "today\tOR\t1=1",  # 制表符
+            "today\nOR\n1=1",  # 换行符
+            "today' AND 1=1 --",  # 引号+注释
+            "last_7_days'; --",  # last_N_days 后注入
+            "last_'7'_days",  # last_N_days 内引号
+            "2025-01-15'; --",  # 日期后注入
+            "2025-01-15' OR '1'='1",  # 日期后 OR 注入
+            "last_-1_days",  # 负数
+            "last_abc_days",  # 非数字
+            "last_7_days ",  # 末尾空格
+            " today",  # 前导空格
+            "today\"",  # 双引号
+            "today\\",  # 反斜杠
+            "today\x00",  # null 字节
+            "x" * 33,  # 超长（>32）
+        ],
+    )
+    def test_malicious_input_rejected(self, malicious: str):
+        """恶意输入应被拒绝（抛 ValueError）."""
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere(malicious, self._table())
+
+    def test_empty_input_rejected(self):
+        """空字符串应被拒绝."""
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere("", self._table())
+
+    def test_non_string_rejected(self):
+        """非字符串输入应被拒绝."""
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere(None, self._table())  # type: ignore[arg-type]
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere(123, self._table())  # type: ignore[arg-type]
+
+    def test_invalid_date_rejected(self):
+        """非法日期格式应被拒绝."""
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere("2025-13-45", self._table())  # 月13 日45
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere("2025-00-01", self._table())  # 月0
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere("2025-13", self._table())  # 月13
+
+    def test_unrecognized_format_rejected(self):
+        """未识别格式应被拒绝（不再默认拼接到 SQL）."""
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere("foobar", self._table())
+        with pytest.raises(ValueError):
+            MockSqlGenerator._timeToWhere("last_7", self._table())  # 缺 _days/_months 后缀

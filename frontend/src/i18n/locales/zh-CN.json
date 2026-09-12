@@ -19,6 +19,7 @@
     "servicesDown": "不可达",
     "servicesChecking": "检测中",
     "close": "关闭",
+    "clear": "清空",
     "currency": "¥",
     "null": "NULL"
   },
@@ -56,7 +57,8 @@
       "payloadTooLarge": "结果集过大，请缩小查询范围",
       "notFound": "请求的资源不存在",
       "network": "网络异常，请检查网络连接",
-      "bizFailed": "业务处理失败"
+      "bizFailed": "业务处理失败",
+      "sanitized": "请求失败（错误详情已脱敏）"
     },
     "tenant": {
       "loadFailed": "加载租户列表失败"
@@ -222,6 +224,7 @@
     "devMockNickname": "本地管理员",
     "defaultWorkspace": "默认工作空间",
     "defaultEnvTag": "环境正常",
+    "tenantInitial": "租",
     "planTiers": {
       "starter": "基础版",
       "standard": "标准版",

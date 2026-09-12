@@ -1,6 +1,6 @@
 # 计费与商业化决断方案
 
-> 状态：**待决策** ｜ 评估日期：2026-09-01 ｜ 决策人：产品负责人
+> 状态：**出账已实现，结算/支付/分账待实施** ｜ 评估日期：2026-09-01 ｜ 决策人：产品负责人
 >
 > 背景：L5 产品层的资产流通（asset-exchange）与 API 目录（open-api-catalog）
 > 已有计量数据采集（AK/SK 计量、订阅/结算仓储、SQLite 存储），但
@@ -14,7 +14,7 @@
 | API 计量 | ✅ 已有：AK/SK 计量、订阅计量仓储 | platform/open-api-catalog `MeteringService` |
 | 资产结算 | ✅ 已有：发布/订阅/结算全流程接口 | platform/asset-exchange `settlement_service.py` |
 | 持久层 | ⚠️ SQLite 单文件（轻量可用，生产级 DB 切换待做） | `ASSET_EXCHANGE_STORE_TYPE` |
-| 出账（账单生成） | ❌ 无：无周期账单汇总、无发票/账单实体 | — |
+| 出账（账单生成） | ✅ 已实现：周期账单汇总引擎 + 账单实体 + 状态机 | platform/finops/billing |
 | 支付对接 | ❌ 无：无支付网关（微信/支付宝/Stripe）集成 | — |
 | 分账 | ❌ 无：无多方分润/清结算引擎 | — |
 | 定价模型 | ⚠️ 仅有 BY_CALL 单价字段，无套餐/阶梯/周期计价 | `CostStrategy` 枚举 |

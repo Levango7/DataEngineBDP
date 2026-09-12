@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import re
 import time
 from typing import Any, Optional
 
@@ -311,12 +312,35 @@ class MockSqlGenerator(BaseSqlGenerator):
                 return c.name
         return None
 
+    # 时间范围白名单：仅允许字母数字下划线连字符和日期格式
+    # 拒绝任何包含特殊字符（引号、分号、注释、空格等）的输入，防止 SQL 注入
+    _TIME_RANGE_PATTERN = re.compile(
+        r"^(?:[A-Za-z0-9_-]+|\d{4}-\d{2}-\d{2}|\d{4}-\d{2})$"
+    )
+
     @staticmethod
     def _timeToWhere(timeRange: str, table) -> str:
         """将时间范围转为 WHERE 条件（简化实现）.
 
         注：真实场景应解析为具体日期，这里用占位符 dt 列。
+
+        安全：对 timeRange 做白名单校验，仅允许：
+          - 预定义关键字（today/yesterday/this_month/last_N_days 等）
+          - 精确日期格式 YYYY-MM-DD 或 YYYY-MM
+          - 字母数字下划线连字符组合
+        拒绝任何包含引号、分号、注释、空格等特殊字符的输入，防止 SQL 注入。
         """
+        if not isinstance(timeRange, str) or not timeRange:
+            raise ValueError("timeRange 不能为空")
+        # 白名单校验：仅允许字母数字下划线连字符和日期格式
+        if not MockSqlGenerator._TIME_RANGE_PATTERN.match(timeRange):
+            raise ValueError(
+                f"timeRange 包含非法字符: {timeRange!r}（仅允许字母数字下划线连字符和 YYYY-MM-DD 日期格式）"
+            )
+        # 长度上限：防止超长输入造成 DoS
+        if len(timeRange) > 32:
+            raise ValueError(f"timeRange 过长（>32 字符）: {timeRange!r}")
+
         dtCol = "dt"
         # 优先用表的分区键
         if table.partitionKeys:
@@ -334,16 +358,37 @@ class MockSqlGenerator(BaseSqlGenerator):
             return mapping[timeRange]
         if timeRange.startswith("last_") and timeRange.endswith("_days"):
             n = timeRange[5:-5]
-            return f"{dtCol} >= date_sub(current_date, {n})"
+            if not n.isdigit():
+                raise ValueError(f"last_N_days 中 N 必须为正整数: {timeRange!r}")
+            return f"{dtCol} >= date_sub(current_date, {int(n)})"
         if timeRange.startswith("last_") and timeRange.endswith("_months"):
             n = timeRange[5:-7]
+            if not n.isdigit():
+                raise ValueError(f"last_N_months 中 N 必须为正整数: {timeRange!r}")
             return f"{dtCol} >= date_sub(current_date, {int(n) * 30})"
-        # 精确日期
-        if len(timeRange) == 10 and timeRange[4] == "-":
+        # 精确日期 YYYY-MM-DD
+        if len(timeRange) == 10 and timeRange[4] == "-" and timeRange[7] == "-":
+            # 校验各段为数字
+            try:
+                year, month, day = int(timeRange[0:4]), int(timeRange[5:7]), int(timeRange[8:10])
+                if not (1 <= month <= 12 and 1 <= day <= 31):
+                    raise ValueError
+            except ValueError:
+                raise ValueError(f"非法日期格式: {timeRange!r}（应为 YYYY-MM-DD）")
             return f"{dtCol} = date '{timeRange}'"
+        # 年月 YYYY-MM
         if len(timeRange) == 7 and timeRange[4] == "-":
+            try:
+                year, month = int(timeRange[0:4]), int(timeRange[5:7])
+                if not (1 <= month <= 12):
+                    raise ValueError
+            except ValueError:
+                raise ValueError(f"非法年月格式: {timeRange!r}（应为 YYYY-MM）")
             return f"{dtCol} >= date '{timeRange}-01'"
-        return f"{dtCol} = date '{timeRange}'"
+        # 其他未识别格式：拒绝（不再默认拼接到 SQL，防止注入）
+        raise ValueError(
+            f"无法识别的 timeRange: {timeRange!r}（支持预定义关键字、last_N_days/months、YYYY-MM-DD、YYYY-MM）"
+        )
 
 
 # ============================================================

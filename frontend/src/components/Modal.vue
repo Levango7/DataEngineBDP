@@ -16,7 +16,7 @@
       >
         <div class="mh">
           <span :id="titleId">{{ title }}</span>
-          <el-button text :icon="Close" class="x" :aria-label="t('common.cancel')" @click="close" />
+          <el-button text :icon="Close" class="x" :aria-label="t('common.close')" @click="close" />
         </div>
         <div class="mb">
           <slot></slot>

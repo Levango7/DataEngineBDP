@@ -1,7 +1,7 @@
 <template>
   <div class="empty-state">
     <component :is="icon" v-if="icon" class="empty-state__icon" />
-    <p class="empty-state__message">{{ message || 'No data available' }}</p>
+    <p class="empty-state__message">{{ message || t('common.empty') }}</p>
     <el-button v-if="actionLabel" type="primary" @click="$emit('action')">
       {{ actionLabel }}
     </el-button>
@@ -10,6 +10,9 @@
 
 <script setup lang="ts">
 import type { Component } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 defineProps<{
   message?: string

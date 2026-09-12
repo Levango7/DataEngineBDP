@@ -14,6 +14,11 @@
       "critical": "Critical"
     },
     "componentsTitle": "Component Health Overview",
+    "healthMeta": {
+      "up": "UP",
+      "warn": "WARN",
+      "down": "DOWN"
+    },
     "jobsTitle": "Job Monitoring",
     "jobCols": {
       "job": "Job",

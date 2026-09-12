@@ -64,7 +64,7 @@
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.storage')">
           <h3>{{ t('dashboard.kpi.storage') }}</h3>
-          <div class="kpi s">{{ overview.storageUsed }} TB</div>
+          <div class="kpi s">{{ overview.storageUsed }} {{ t('dashboard.kpi.storageUnit') }}</div>
           <div class="meta">{{ t('dashboard.kpi.storageMeta') }}</div>
         </div>
         <div class="card" role="region" :aria-label="t('dashboard.kpi.assets')">
@@ -148,7 +148,7 @@
         >
           <el-table-column :label="t('dashboard.todo.colApplicant')">
             <template #default="{ row }">
-              {{ row.asset }}（{{ row.perm }}）
+              {{ t('dashboard.todo.assetPerm', { asset: row.asset, perm: row.perm }) }}
             </template>
           </el-table-column>
           <el-table-column

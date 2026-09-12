@@ -322,7 +322,7 @@ async function handleLogin() {
   letter-spacing: 0.5px;
 }
 .slogan-accent {
-  background: linear-gradient(120deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, var(--ds-color-accent-500) 100%);
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 50%, var(--ds-color-accent-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -354,7 +354,7 @@ async function handleLogin() {
 }
 .metric-letter {
   font-size: 20px;
-  background: linear-gradient(120deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -747,7 +747,7 @@ async function handleLogin() {
   color: var(--ds-text-primary) !important;
 }
 :root[data-theme='dark'] .slogan-accent {
-  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, var(--ds-color-info-400) 50%, var(--ds-color-accent-400) 100%) !important;
+  background: linear-gradient(135deg, var(--ds-color-primary-400) 0%, var(--ds-color-info-400) 50%, var(--ds-color-accent-400) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;
@@ -768,7 +768,7 @@ async function handleLogin() {
 }
 :root[data-theme='dark'] .metric-num,
 :root[data-theme='dark'] .metric-letter {
-  background: linear-gradient(120deg, var(--ds-color-primary-400) 0%, var(--ds-color-accent-400) 100%) !important;
+  background: linear-gradient(135deg, var(--ds-color-primary-400) 0%, var(--ds-color-accent-400) 100%) !important;
   -webkit-background-clip: text !important;
   background-clip: text !important;
   -webkit-text-fill-color: transparent !important;

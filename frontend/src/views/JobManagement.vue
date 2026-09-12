@@ -218,7 +218,7 @@
         role="region"
         :aria-label="t('jobmgmt.logModal.regionAria')"
       >
-        <pre class="log-content" :aria-label="t('jobmgmt.logModal.logAria')">{{
+        <pre ref="logContentRef" class="log-content" :aria-label="t('jobmgmt.logModal.logAria')">{{
           logContent || t('jobmgmt.logModal.empty')
         }}</pre>
       </div>
@@ -409,6 +409,7 @@ function canCancel(status: JobStatus): boolean {
 
 const logDialogVisible = ref(false)
 const currentLogJob = ref<Job | null>(null)
+const logContentRef = ref<HTMLElement | null>(null)
 
 // 作业日志：通过 useApi 包装按需加载
 const {
@@ -433,9 +434,8 @@ async function refreshLog() {
 
 /** 日志滚动到底部 */
 function scrollLogToBottom() {
-  const container = document.querySelector('.log-content') as HTMLElement
-  if (container) {
-    container.scrollTop = container.scrollHeight
+  if (logContentRef.value) {
+    logContentRef.value.scrollTop = logContentRef.value.scrollHeight
   }
 }
 
@@ -547,7 +547,7 @@ onUnmounted(() => {
   margin-top: 16px;
 }
 .log-container {
-  background: #1a2027;
+  background: var(--ds-bg-code);
   border-radius: 8px;
   padding: 12px;
   min-height: 320px;
@@ -555,7 +555,7 @@ onUnmounted(() => {
   overflow: auto;
 }
 .log-content {
-  color: #cbd5e1;
+  color: var(--ds-text-code);
   font-family: var(--ds-font-family-mono);
   font-size: 12px;
   line-height: 1.6;

@@ -29,12 +29,16 @@
     />
 
     <el-button v-if="showClear" link type="primary" @click="$emit('clear')">
-      {{ clearLabel || 'Clear' }}
+      {{ clearLabel || t('common.clear') }}
     </el-button>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
+
 export interface FilterOption {
   label: string
   value: string | number

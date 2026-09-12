@@ -29,7 +29,7 @@
             :key="node.id"
             class="tree-node"
             :class="{ folder: node.type === 'folder', active: node.path === currentFilePath }"
-            :style="{ paddingLeft: '8px' }"
+            :style="{ paddingLeft: `${8 + treeDepth(node) * 16}px` }"
             @click="handleFileClick(node)"
           >
             <el-icon v-if="node.type === 'folder'" class="tree-icon"><Folder /></el-icon>
@@ -245,6 +245,15 @@ const {
   execute: loadFileTree
 } = useApi<FileNode[]>(() => getFileTree(), { initialData: [] })
 const fileTree = computed<FileNode[]>(() => fileTreeData.value ?? [])
+
+/** 根据节点 path 推断树深度（按 / 分隔），用于计算缩进 */
+function treeDepth(node: FileNode): number {
+  const p = node.path ?? node.id
+  if (!p) return 0
+  // 去除首尾 / 后按 / 切分，深度 = 路径段数 - 1（顶层为 0）
+  const segs = p.replace(/^\/+|\/+$/g, '').split('/')
+  return Math.max(0, segs.length - 1)
+}
 
 /* ------------------------------ 文件内容 ------------------------------ */
 

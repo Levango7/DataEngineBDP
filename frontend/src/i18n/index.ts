@@ -61,63 +61,67 @@ export const i18n = createI18n({
 /* ------------------------------ 模块级懒加载 ------------------------------ */
 
 /**
- * 模块名 → 语言包文件名映射（不含 locale 后缀）。
+ * 全部模块名清单（按字母序）。
  *
  * <p>每个模块对应两个文件：{name}.zh-CN.json 和 {name}.en-US.json。
- * Vite 会为每个动态 import() 生成独立 chunk，实现按需加载。</p>
+ * Vite 会为每个动态 import() 生成独立 chunk，实现按需加载。
+ * 用单一名单 + 动态 import() 替代显式映射表，避免新增模块时遗漏注册。</p>
  */
-const MODULE_FILES: Record<string, () => Promise<{ default: Record<string, unknown> }>> = {
-  dashboard: () => import('./locales/modules/dashboard.zh-CN.json'),
-  workspaces: () => import('./locales/modules/workspaces.zh-CN.json'),
-  projects: () => import('./locales/modules/projects.zh-CN.json'),
-  analyze: () => import('./locales/modules/analyze.zh-CN.json'),
-  quality: () => import('./locales/modules/quality.zh-CN.json'),
-  standard: () => import('./locales/modules/standard.zh-CN.json'),
-  govern: () => import('./locales/modules/govern.zh-CN.json'),
-  integrate: () => import('./locales/modules/integrate.zh-CN.json'),
-  develop: () => import('./locales/modules/develop.zh-CN.json'),
-  sql: () => import('./locales/modules/sql.zh-CN.json'),
-  lineage: () => import('./locales/modules/lineage.zh-CN.json'),
-  sec: () => import('./locales/modules/sec.zh-CN.json'),
-  ops: () => import('./locales/modules/ops.zh-CN.json'),
-  jobmgmt: () => import('./locales/modules/jobmgmt.zh-CN.json'),
-  scheduler: () => import('./locales/modules/scheduler.zh-CN.json'),
-  vector: () => import('./locales/modules/vector.zh-CN.json'),
-  kb: () => import('./locales/modules/kb.zh-CN.json'),
-  llmops: () => import('./locales/modules/llmops.zh-CN.json'),
-  gateway: () => import('./locales/modules/gateway.zh-CN.json'),
-  account: () => import('./locales/modules/account.zh-CN.json'),
-  admin: () => import('./locales/modules/admin.zh-CN.json'),
-  templateMarket: () => import('./locales/modules/templateMarket.zh-CN.json'),
-  businessPortal: () => import('./locales/modules/businessPortal.zh-CN.json'),
-  apiMarket: () => import('./locales/modules/apiMarket.zh-CN.json'),
-  assetMarket: () => import('./locales/modules/assetMarket.zh-CN.json'),
-  sqlWorkbench: () => import('./locales/modules/sqlWorkbench.zh-CN.json'),
-  searchPortal: () => import('./locales/modules/searchPortal.zh-CN.json'),
-  dataSourceManagement: () => import('./locales/modules/dataSourceManagement.zh-CN.json'),
-  tenantManagement: () => import('./locales/modules/tenantManagement.zh-CN.json'),
-  workspaceManagement: () => import('./locales/modules/workspaceManagement.zh-CN.json'),
-  quotaManagement: () => import('./locales/modules/quotaManagement.zh-CN.json'),
-  clusterOverview: () => import('./locales/modules/clusterOverview.zh-CN.json'),
-  dataLineage: () => import('./locales/modules/dataLineage.zh-CN.json'),
-  engines: () => import('./locales/modules/engines.zh-CN.json'),
-  infraK8s: () => import('./locales/modules/infraK8s.zh-CN.json'),
-  infraMachine: () => import('./locales/modules/infraMachine.zh-CN.json'),
-  infraSched: () => import('./locales/modules/infraSched.zh-CN.json'),
-  engIotdb: () => import('./locales/modules/engIotdb.zh-CN.json'),
-  engMmg: () => import('./locales/modules/engMmg.zh-CN.json'),
-  engStorage: () => import('./locales/modules/engStorage.zh-CN.json'),
-  infraNet: () => import('./locales/modules/infraNet.zh-CN.json'),
-  infraStore: () => import('./locales/modules/infraStore.zh-CN.json'),
-  devMl: () => import('./locales/modules/devMl.zh-CN.json'),
-  devSched: () => import('./locales/modules/devSched.zh-CN.json'),
-  devTag: () => import('./locales/modules/devTag.zh-CN.json'),
-  approvals: () => import('./locales/modules/approvals.zh-CN.json'),
-  register: () => import('./locales/modules/register.zh-CN.json'),
-  orchestrator: () => import('./locales/modules/orchestrator.zh-CN.json'),
-  aiAssistant: () => import('./locales/modules/aiAssistant.zh-CN.json'),
-  engFlink: () => import('./locales/modules/engFlink.zh-CN.json')
-}
+const MODULE_NAMES: readonly string[] = [
+  'account',
+  'admin',
+  'aiAssistant',
+  'analyze',
+  'apiMarket',
+  'approvals',
+  'assetMarket',
+  'businessPortal',
+  'clusterOverview',
+  'dashboard',
+  'dataSourceManagement',
+  'dataLineage',
+  'develop',
+  'devMl',
+  'devSched',
+  'devTag',
+  'engFlink',
+  'engIotdb',
+  'engMmg',
+  'engStorage',
+  'engines',
+  'gateway',
+  'govern',
+  'infraK8s',
+  'infraMachine',
+  'infraNet',
+  'infraSched',
+  'infraStore',
+  'integrate',
+  'jobmgmt',
+  'kb',
+  'lineage',
+  'llmops',
+  'ops',
+  'orchestrator',
+  'projects',
+  'quotaManagement',
+  'quality',
+  'register',
+  'scheduler',
+  'searchPortal',
+  'sec',
+  'sql',
+  'sqlWorkbench',
+  'standard',
+  'templateMarket',
+  'tenantManagement',
+  'vector',
+  'workspaces',
+  'workspaceManagement'
+]
+
+/** 模块名是否已注册（用于校验 loadModuleI18n 入参） */
+const MODULE_NAME_SET: ReadonlySet<string> = new Set(MODULE_NAMES)
 
 /** 已加载的模块集合（避免重复加载） */
 const loadedModules = new Set<string>()
@@ -128,10 +132,10 @@ const loadedModules = new Set<string>()
  * <p>同时加载 zh-CN 和 en-US 两个语种（体积小，避免切换语言时二次请求）。
  * 已加载的模块会跳过（幂等）。</p>
  *
- * @param module 模块名（见 MODULE_FILES）
+ * @param module 模块名（见 MODULE_NAMES）
  */
 export async function loadModuleI18n(module: string): Promise<void> {
-  if (!MODULE_FILES[module]) return
+  if (!MODULE_NAME_SET.has(module)) return
   const cacheKey = module
   if (loadedModules.has(cacheKey)) return
   loadedModules.add(cacheKey)

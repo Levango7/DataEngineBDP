@@ -180,8 +180,11 @@ public class DataSourceController {
             } catch (Exception e) {
                 result.put("success", false);
                 result.put("latency", System.currentTimeMillis() - start);
-                result.put("message", "连接失败: " + e.getMessage());
+                // 错误消息脱敏：不暴露内部异常细节（如 JDBC URL/密码/堆栈），
+                // 仅返回分类后的友好提示，详细错误记录到日志
+                result.put("message", sanitizeConnectionError(e));
                 entity.setStatus("disconnected");
+                log.warn("连接测试失败 id={} host={} port={} err={}", id, entity.getHost(), entity.getPort(), e.toString());
             }
             repository.save(entity);
             return ResponseEntity.ok(result);
@@ -227,5 +230,38 @@ public class DataSourceController {
             return cipherOrBlank;
         }
         return credentialEncryptor.decrypt(cipherOrBlank);
+    }
+
+    /**
+     * 连接错误消息脱敏：将内部异常细节转为分类后的友好提示，避免泄露：
+     * <ul>
+     *   <li>JDBC URL / 连接串（可能含密码）</li>
+     *   <li>内部主机名 / 端口 / 网络拓扑</li>
+     *   <li>堆栈帧 / 类名 / 内部路径</li>
+     * </ul>
+     * 仅返回连接失败的高层分类原因。
+     */
+    private String sanitizeConnectionError(Exception e) {
+        String msg = e.getMessage() == null ? "" : e.getMessage();
+        String cls = e.getClass().getSimpleName();
+        // 按异常类型分类，避免直接拼接 e.getMessage()
+        if (e instanceof java.net.ConnectException) {
+            return "连接被拒绝：目标主机端口未监听或防火墙拦截";
+        }
+        if (e instanceof java.net.SocketTimeoutException) {
+            return "连接超时：目标主机在 5 秒内未响应";
+        }
+        if (e instanceof java.net.UnknownHostException) {
+            return "主机名无法解析：请检查主机配置";
+        }
+        if (e instanceof java.net.NoRouteToHostException
+                || e instanceof java.net.ConnectException) {
+            return "网络不可达：目标主机路由不通";
+        }
+        if (e instanceof SecurityException) {
+            return "安全策略拒绝：SSRF 防护或权限校验失败";
+        }
+        // 兜底：仅返回异常类名，不暴露 message
+        return "连接失败（" + cls + "），请联系管理员";
     }
 }

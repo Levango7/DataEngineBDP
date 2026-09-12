@@ -46,7 +46,7 @@ export const useTenantStore = defineStore('tenant', () => {
       // 若未选中租户，尝试从本地存储恢复或取第一项
       if (!currentTenant.value) {
         const savedId = loadCurrentTenantId()
-        const matched = savedId ? result.find((t) => t.id === savedId) : undefined
+        const matched = savedId ? result.find((tenant) => tenant.id === savedId) : undefined
         currentTenant.value = matched ?? result[0] ?? null
       }
     } catch (e) {
@@ -63,7 +63,7 @@ export const useTenantStore = defineStore('tenant', () => {
    * @param id 租户 ID
    */
   function selectTenant(id: string): void {
-    const target = tenants.value.find((t) => t.id === id) ?? null
+    const target = tenants.value.find((tenant) => tenant.id === id) ?? null
     if (target) {
       currentTenant.value = target
       localStorage.setItem(CURRENT_TENANT_KEY, id)

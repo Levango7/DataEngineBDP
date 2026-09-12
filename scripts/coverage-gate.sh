@@ -11,6 +11,7 @@ set -euo pipefail
 # 与 ci.yml 保持一致：Java 40% / Go 30% / Python 55% / 前端 80%
 # （2026-09-12 R6-4 对齐，原值 70/70/70/80 与 ci.yml 不一致）
 JAVA_MIN_COVERAGE=40
+JAVA_MIN_BRANCH_COVERAGE=18
 GO_MIN_COVERAGE=30
 PYTHON_MIN_COVERAGE=55
 FRONTEND_MIN_COVERAGE=80
@@ -24,7 +25,8 @@ NC='\033[0m'
 echo "============================================"
 echo "  覆盖率门禁检查"
 echo "============================================"
-echo "Java 最低覆盖率:   ${JAVA_MIN_COVERAGE}%"
+echo "Java 最低行覆盖率:   ${JAVA_MIN_COVERAGE}%"
+echo "Java 最低分支覆盖率: ${JAVA_MIN_BRANCH_COVERAGE}%"
 echo "Go 最低覆盖率:     ${GO_MIN_COVERAGE}%"
 echo "Python 最低覆盖率: ${PYTHON_MIN_COVERAGE}%"
 echo "前端最低覆盖率:    ${FRONTEND_MIN_COVERAGE}%"
@@ -45,37 +47,42 @@ check_java_coverage() {
     while IFS= read -r cov; do
         mod_dir=$(dirname "$(dirname "$(dirname "$cov")")")
         mod_name=$(basename "$mod_dir")
-        # 从 XML 提取 line coverage（粗略解析）
+        # 从 XML 提取行覆盖率和分支覆盖率
         if command -v python3 &>/dev/null; then
-            coverage=$(python3 -c "
+            read -r line_cov branch_cov <<< "$(python3 -c "
 import xml.etree.ElementTree as ET
 try:
     tree = ET.parse('$cov')
     root = tree.getroot()
+    line_pct = 0
+    branch_pct = 0
     for counter in root.findall('counter'):
         if counter.get('type') == 'LINE':
             missed = int(counter.get('missed', 0))
             covered = int(counter.get('covered', 0))
             total = missed + covered
             if total > 0:
-                print(round(covered * 100 / total, 2))
-            else:
-                print(0)
-            break
-    else:
-        print(0)
+                line_pct = round(covered * 100 / total, 2)
+        elif counter.get('type') == 'BRANCH':
+            missed = int(counter.get('missed', 0))
+            covered = int(counter.get('covered', 0))
+            total = missed + covered
+            if total > 0:
+                branch_pct = round(covered * 100 / total, 2)
+    print(f'{line_pct} {branch_pct}')
 except Exception:
-    print(0)
-" 2>/dev/null)
+    print('0 0')
+" 2>/dev/null)"
         else
-            coverage="N/A"
+            line_cov="N/A"
+            branch_cov="N/A"
         fi
-        if [ "$coverage" = "N/A" ]; then
+        if [ "$line_cov" = "N/A" ]; then
             echo -e "${YELLOW}[SKIP] $mod_name: 无法解析覆盖率${NC}"
-        elif (( $(echo "$coverage >= $JAVA_MIN_COVERAGE" | bc -l 2>/dev/null || echo 0) )); then
-            echo -e "${GREEN}[PASS] $mod_name: ${coverage}%${NC}"
+        elif (( $(echo "$line_cov >= $JAVA_MIN_COVERAGE" | bc -l 2>/dev/null || echo 0) )) && (( $(echo "$branch_cov >= $JAVA_MIN_BRANCH_COVERAGE" | bc -l 2>/dev/null || echo 0) )); then
+            echo -e "${GREEN}[PASS] $mod_name: 行 ${line_cov}% / 分支 ${branch_cov}%${NC}"
         else
-            echo -e "${RED}[FAIL] $mod_name: ${coverage}% (低于 ${JAVA_MIN_COVERAGE}%)${NC}"
+            echo -e "${RED}[FAIL] $mod_name: 行 ${line_cov}% (阈值 ${JAVA_MIN_COVERAGE}%) / 分支 ${branch_cov}% (阈值 ${JAVA_MIN_BRANCH_COVERAGE}%)${NC}"
             fail_count=$((fail_count + 1))
         fi
     done < <(find platform -path "*/target/site/jacoco/jacoco.xml" 2>/dev/null)

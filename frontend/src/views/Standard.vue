@@ -18,7 +18,7 @@
       <div v-if="loading" class="state-tip state-loading">{{ t('common.loading') }}</div>
       <div v-else-if="error" class="state-tip state-error">
         {{ error.message }}，
-        <a href="javascript:void(0)" @click="loadStandards">{{ t('common.retry') }}</a>
+        <button type="button" class="link-btn" @click="loadStandards">{{ t('common.retry') }}</button>
       </div>
       <!-- 数据标准列表：使用 el-table 替换原生 table，统一交互与无障碍语义 -->
       <el-table
@@ -157,5 +157,14 @@ onMounted(() => {
 }
 .state-error {
   color: var(--ds-color-error-500);
+}
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ds-color-primary-500);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
 }
 </style>

@@ -249,7 +249,7 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
           .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     },
     totalTenantCount: (s) => s.tenants.length,
-    activeTenantCount: (s) => s.tenants.filter((t) => t.status === 'ACTIVE').length,
+    activeTenantCount: (s) => s.tenants.filter((tenant) => tenant.status === 'ACTIVE').length,
     pendingInviteCount: (s) => s.invites.filter((i) => i.status === 'PENDING').length,
     pendingRegCount: (s) => s.registrations.filter((r) => r.status === 'PENDING').length
   },
@@ -283,14 +283,14 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
     },
 
     updateTenant(id: number, patch: Partial<AdminTenant>): void {
-      const t = this.tenants.find((x) => x.id === id)
-      if (!t) return
-      Object.assign(t, patch, { updatedAt: new Date().toISOString() })
+      const tenant = this.tenants.find((x) => x.id === id)
+      if (!tenant) return
+      Object.assign(tenant, patch, { updatedAt: new Date().toISOString() })
       this.persist()
     },
 
     deleteTenant(id: number): void {
-      this.tenants = this.tenants.filter((t) => t.id !== id)
+      this.tenants = this.tenants.filter((tenant) => tenant.id !== id)
       this.invites = this.invites.filter((i) => i.tenantId !== id)
       this.registrations = this.registrations.filter((r) => r.tenantId !== id)
       this.persist()
@@ -350,7 +350,7 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
         this.persist()
         return { ok: false, invite, error: t('tenantAdmin.invite.expired') }
       }
-      const tenant = this.tenants.find((t) => t.id === invite.tenantId)
+      const tenant = this.tenants.find((item) => item.id === invite.tenantId)
       return { ok: true, invite, tenant }
     },
 
@@ -407,7 +407,7 @@ export const useTenantAdminStore = defineStore('tenantAdmin', {
       reg.approveNote = note
       reg.approvedAt = new Date().toISOString()
       if (approved) {
-        const tenant = this.tenants.find((t) => t.id === reg.tenantId)
+        const tenant = this.tenants.find((item) => item.id === reg.tenantId)
         if (tenant) {
           tenant.userCount += 1
           tenant.updatedAt = new Date().toISOString()

@@ -98,13 +98,20 @@ public class SqlGatewayController {
     /**
      * 添加一条路由规则。
      *
-     * @param rule 路由规则
-     * @return 已保存的路由规则
+     * <p>创建操作返回 201 CREATED + Location 头（CONVENTIONS §9.3）。
+     *
+     * @param rule 路由规则（@Valid 触发 Bean Validation）
+     * @return 已保存的路由规则（201 CREATED）
      */
     @Operation(summary = "添加一条路由规则")
     @PostMapping("/routes")
-    public ResponseEntity<RouteRule> addRoute(@RequestBody RouteRule rule) {
-        return ResponseEntity.ok(routingService.addRoute(rule));
+    public ResponseEntity<RouteRule> addRoute(@Valid @RequestBody RouteRule rule) {
+        RouteRule saved = routingService.addRoute(rule);
+        // 201 CREATED + Location 头（指向新资源）
+        String location = "/api/v1/sql/routes/" + (saved.getId() != null ? saved.getId() : "");
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .header("Location", location)
+                .body(saved);
     }
 
     /**
@@ -329,9 +336,11 @@ public class SqlGatewayController {
             return ResponseEntity.status(crossSourceHttpStatus(e.getErrorCode()))
                     .body(buildFailedResponse(queryId, start, e.getErrorCode(), e.getMessage()));
         } catch (Exception e) {
+            // 错误消息脱敏：不暴露内部异常细节，仅返回通用错误码
             log.error("跨源查询异常 queryId={} err={}", queryId, e.toString());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(buildFailedResponse(queryId, start, "INTERNAL_ERROR", e.getMessage()));
+                    .body(buildFailedResponse(queryId, start, "INTERNAL_ERROR",
+                            "内部错误，请联系管理员（queryId=" + queryId + "）"));
         }
     }
 
@@ -387,11 +396,12 @@ public class SqlGatewayController {
                     .build();
             return ResponseEntity.status(crossSourceHttpStatus(e.getErrorCode())).body(response);
         } catch (Exception e) {
+            // 错误消息脱敏：不暴露内部异常细节
             log.error("跨源执行计划生成异常 err={}", e.toString());
             CrossSourceExplainResponse response = CrossSourceExplainResponse.builder()
                     .sql(request.getSql())
                     .durationMs(System.currentTimeMillis() - start)
-                    .error("INTERNAL_ERROR: " + e.getMessage())
+                    .error("INTERNAL_ERROR: 内部错误，请联系管理员")
                     .build();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }

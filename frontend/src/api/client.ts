@@ -62,9 +62,9 @@ function sanitizeErrorMessage(raw: string): string {
     msg = msg.slice(0, 200) + '...'
   }
 
-  // 脱敏后若为空，回退通用提示
+  // 脱敏后若为空，回退通用提示（走 i18n，缺失时回退中文兜底）
   if (!msg.trim()) {
-    return '请求失败（错误详情已脱敏）'
+    return translateError('errors.http.sanitized', '请求失败（错误详情已脱敏）')
   }
 
   return msg
@@ -136,14 +136,14 @@ export function setUnauthorizedHandler(handler: () => void): void {
  *
  * <p>供非 axios 通道（如 SSE/fetch 流式请求）在收到 401 时调用，
  * 保证全局 401 行为一致：清理登录态 + 跳转登录页。
- * 若未注入 handler 则回退到硬跳转 `/account`，避免静默丢失。</p>
+ * 若未注入 handler 则回退到硬跳转 `/login`，避免静默丢失。</p>
  */
 export function triggerUnauthorized(): void {
   if (unauthorizedHandler) {
     unauthorizedHandler()
   } else {
-    // 兜底：未注入 handler 时直接跳转 /account，避免 401 被静默吞掉
-    window.location.href = '/account'
+    // 兜底：未注入 handler 时直接跳转 /login，避免 401 被静默吞掉
+    window.location.href = '/login'
   }
 }
 

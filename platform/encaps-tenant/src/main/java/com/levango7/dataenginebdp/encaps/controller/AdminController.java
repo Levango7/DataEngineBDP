@@ -27,6 +27,10 @@ import java.util.Map;
  *
  * <p>KPI 从真实仓储聚合（租户/工作空间/配额/资产/API/数据源/项目/同步任务），
  * 环境矩阵为轻量静态视图（真实集群状态见 query-api /cluster）。</p>
+ *
+ * <p><b>鉴权</b>：要求认证上下文（{@link TenantContext#getTenantId()} 非空），
+ * 否则返回 401。KPI 聚合用 {@code count()} 而非 {@code findAll().size()}，
+ * 避免全表加载造成 OOM。</p>
  */
 @Slf4j
 @RestController
@@ -43,19 +47,20 @@ public class AdminController {
     private final ProjectRepository projectRepository;
     private final SyncTaskRepository syncTaskRepository;
 
-    /** KPI 总览。 */
+    /** KPI 总览（要求认证上下文）。 */
     @Operation(summary = "KPI 总览")
     @GetMapping("/kpi")
     @Transactional(readOnly = true)
     public ResponseEntity<Map<String, Object>> kpi() {
-        String tenantId = TenantContext.getTenantId();
+        String tenantId = requireTenant();
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("tenantTotal", 1);
         body.put("tenantExternal", 0);
         body.put("tenantInternal", 1);
         body.put("clusterTotal", 1);
         body.put("clusterXinchuang", 1);
-        body.put("workspaceTotal", workspaceRepository.findAll().size());
+        // 用 count() 替代 findAll().size()，避免全表加载造成 OOM
+        body.put("workspaceTotal", workspaceRepository.count());
         body.put("quotaTotal", quotaCount(tenantId));
         body.put("assetTotal", assetRepository.countByTenantId(tenantId));
         body.put("apiTotal", apiRepository.countByTenantId(tenantId));
@@ -74,13 +79,14 @@ public class AdminController {
         }
     }
 
-    /** 环境矩阵（四环境交付视图）。 */
+    /** 环境矩阵（四环境交付视图，要求认证上下文）。 */
     @Operation(summary = "环境矩阵（四环境交付视图）")
     @GetMapping("/env-matrix")
     @Transactional(readOnly = true)
     public ResponseEntity<List<Map<String, Object>>> envMatrix() {
-        String tenantId = TenantContext.getTenantId();
-        long workspaces = workspaceRepository.findAll().size();
+        requireTenant();
+        // 用 count() 替代 findAll().size()，避免全表加载造成 OOM
+        long workspaces = workspaceRepository.count();
         return ResponseEntity.ok(List.of(
                 envRow("xinchuang", "信创环境", workspaces, 3, "kubeadm + 国产化组件"),
                 envRow("onprem", "本地数据中心", workspaces, 3, "kubeadm + 离线镜像"),
@@ -96,5 +102,20 @@ public class AdminController {
         m.put("nodeCount", nodes);
         m.put("controlPlane", cp);
         return m;
+    }
+
+    /**
+     * 鉴权门禁：要求认证上下文（{@link TenantContext#getTenantId()} 非空）。
+     *
+     * @return 租户 ID
+     * @throws org.springframework.web.server.ResponseStatusException 缺少认证上下文时返回 401
+     */
+    private String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "缺少认证上下文");
+        }
+        return tenantId;
     }
 }

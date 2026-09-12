@@ -312,7 +312,7 @@ onMounted(() => loadList())
 .stat-num {
   font-size: 24px;
   font-weight: 700;
-  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

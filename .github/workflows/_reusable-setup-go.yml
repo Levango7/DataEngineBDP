@@ -28,7 +28,7 @@ jobs:
             platform/infra-provider-baremetal/go.sum
             platform/karmada/api/go.sum
             platform/karmada/failover/api/go.sum
-            platform/knative/runtimes/go/go.sum
+            platform/karmada/failover/engine/go.sum
             platform/llm-gateway/go.sum
             platform/observability/query-api/go.sum
             platform/vector-engine/go.sum

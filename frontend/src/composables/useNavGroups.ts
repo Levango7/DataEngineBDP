@@ -47,7 +47,7 @@ export function useNavGroups() {
         { path: '/eng-storage', label: t('nav.items.eng-storage'), icon: 'Folder' },
         { path: '/eng-spark', label: t('nav.items.eng-spark'), icon: 'Lightning' },
         { path: '/eng-flink', label: t('nav.items.eng-flink'), icon: 'DataLine' },
-        { path: '/sql', label: t('nav.items.sql'), icon: 'ChatDotRound' },
+
         { path: '/eng-doris', label: t('nav.items.eng-doris'), icon: 'Histogram' },
         { path: '/eng-kafka', label: t('nav.items.eng-kafka'), icon: 'Message' },
         { path: '/eng-iotdb', label: t('nav.items.eng-iotdb'), icon: 'Timer' },

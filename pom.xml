@@ -72,7 +72,7 @@
         <module>platform/infra-provider-private</module>
         <module>platform/infra-provider-xinchang</module>
         <module>platform/karmada/federated-query</module>
-        <module>platform/knative/runtimes/java</module>
+
         <module>platform/rule-engine</module>
         <module>platform/sql-gateway</module>
         <module>platform/storage-io</module>

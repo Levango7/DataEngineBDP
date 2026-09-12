@@ -51,7 +51,7 @@ export const useAppStore = defineStore('app', () => {
     const id = ++toastId
     toasts.value.push({ id, msg, type })
     setTimeout(() => {
-      toasts.value = toasts.value.filter((t) => t.id !== id)
+      toasts.value = toasts.value.filter((toast) => toast.id !== id)
     }, 2200)
   }
 

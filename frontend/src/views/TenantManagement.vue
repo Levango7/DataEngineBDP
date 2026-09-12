@@ -73,7 +73,7 @@
         :aria-label="t('tenantManagement.table.aria')"
         :empty-text="t('tenantManagement.table.empty')"
       >
-        <el-table-column label="ID" prop="id" width="80" />
+        <el-table-column :label="t('tenantManagement.table.columns.id')" prop="id" width="80" />
         <el-table-column
           :label="t('tenantManagement.table.columns.code')"
           prop="name"
@@ -626,7 +626,7 @@ onMounted(() => loadList())
   font-size: 24px;
   font-weight: 700;
   color: var(--ds-text-primary);
-  background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

@@ -29,9 +29,9 @@
       <h3>
         {{ t('ops.componentsTitle') }}
         <span v-if="healthSummary" class="health-summary-meta">
-          （{{ healthSummary.up }}/{{ healthSummary.total }} UP
-          <span v-if="healthSummary.warn">· {{ healthSummary.warn }} WARN</span>
-          <span v-if="healthSummary.down" class="health-down">· {{ healthSummary.down }} DOWN</span>
+          （{{ healthSummary.up }}/{{ healthSummary.total }} {{ t('ops.healthMeta.up') }}
+          <span v-if="healthSummary.warn">· {{ healthSummary.warn }} {{ t('ops.healthMeta.warn') }}</span>
+          <span v-if="healthSummary.down" class="health-down">· {{ healthSummary.down }} {{ t('ops.healthMeta.down') }}</span>
           ）
         </span>
       </h3>

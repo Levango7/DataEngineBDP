@@ -149,7 +149,7 @@ function onSelect(rec: ChartRecommendation): void {
 <style scoped>
 .chart-recommendation {
   width: 100%;
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px;
@@ -187,7 +187,7 @@ function onSelect(rec: ChartRecommendation): void {
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.15s;
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
 }
 .rec-item:hover {
   border-color: var(--ds-color-primary-500);

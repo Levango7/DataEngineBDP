@@ -21,8 +21,8 @@
 |------|--------------|--------|------|-----------|------------|
 | Java (Line) | 42.26% | 85% | -42.74% | 2/24 (8.3%) | 行≥80% / 分支≥70% |
 | Java (Branch) | 26.05% | 85% | -58.95% | 0/24 (0%) | 同上 |
-| Go | ~30% | 85% | -55% | 0/9 (0%) | ≥70% |
-| Python | ~64% | 85% | -21% | 1/12 (8.3%) | ≥75% |
+| Go | ~30% | 85% | -55% | 0/10 (0%) | ≥70% |
+| Python | ~64% | 85% | -21% | 1/10 (10%) | ≥75% |
 
 **P0 测试补充后（2026-08-13）**：
 
@@ -40,11 +40,11 @@
 - 当前覆盖率**远未达到 85% GA 标准**，不能直接提升 CI 阈值至 85%
 - Java 分支覆盖率（26.05%）是最大短板，0 个模块达标
 - Go 覆盖率（~30%）次之，0 个模块达标
-- Python 相对最好（~64%），但仍有 11/12 模块未达 75% 阈值
+- Python 相对最好（~64%），但仍有 9/10 模块未达 75% 阈值
 
 **P0 测试补充后结论（2026-08-13）**：
 
-- Go 覆盖率从 ~30% 提升至 ~45%，**5 个模块达标**（observability/query-api、karmada/api、karmada/failover/api、karmada/failover/engine、knative/runtimes/go）
+- Go 覆盖率从 ~30% 提升至 ~45%，**4 个模块达标**（observability/query-api、karmada/api、karmada/failover/api、karmada/failover/engine）
 - Python 覆盖率从 ~64% 提升至 ~66%（llm-gateway/evaluation 模块新增 92 个测试全部通过）
 - Java 覆盖率从 ~42% 提升至 ~44%（sql-gateway 已有 1123 个测试验证，覆盖率从 ~45% 提升至 70.49%）
 - **仍需持续提升至 85% GA 标准**：当前补充仅覆盖 P0 模块，P1/P2 模块仍需后续补充
@@ -55,8 +55,8 @@
 | 维度 | 调整前 | 调整后（2026-08-23） |
 |------|--------|--------|
 | Java 门禁覆盖范围 | 仅 encaps-layer（1 个模块） | 全量 24 个模块 |
-| Go 门禁覆盖范围 | 5 个模块（catalog/vector-engine/llm-gateway/query-api/dqctl） | 全量 9 个模块 |
-| Python 门禁覆盖范围 | 仅 asset-exchange（1 个模块） | 全量 12 个模块 |
+| Go 门禁覆盖范围 | 5 个模块（catalog/vector-engine/llm-gateway/query-api/dqctl） | 全量 10 个模块 |
+| Python 门禁覆盖范围 | 仅 asset-exchange（1 个模块） | 全量 10 个模块 |
 | Java 阈值 | 行 80% / 分支 70%（warning 模式） | 行 40% / 分支 18%（**阻断**模式） |
 | Go 阈值 | 70%（warning 模式） | 30%（**阻断**模式） |
 | Python 阈值 | 75%（warning 模式） | 55%（**阻断**模式） |
@@ -100,7 +100,7 @@
 | data-standard | ~30% | ~10% | P0 | 数据标准管理 |
 | master-data | ~30% | ~10% | P0 | 主数据管理 |
 
-### 2.2 Go 模块（9 个）
+### 2.2 Go 模块（10 个）
 
 | 模块 | 覆盖率 | 优先级 | 备注 |
 |------|--------|--------|------|
@@ -113,10 +113,10 @@
 | karmada/api | **handler 71.6% / middleware 93.3% / model 100%** ↑ | P1 | **P0 补充后大幅提升**：从 ~35% 提升，新增 5 个测试文件 |
 | karmada/failover/api | **handler 54.1% / middleware 93.3% / model 100%** ↑ | P1 | **P0 补充后大幅提升**：从 ~30% 提升，新增 4 个测试文件 |
 | karmada/failover/engine | **health 90.7% / karmada 88.5% / weight 95.6%** ↑ | P0 | **P0 补充后大幅提升**：从 ~25% 提升，新增 6 个测试文件 |
-| knative/runtimes/go | **handler 100% / metrics 100%** ↑ | P0 | **P0 补充后大幅提升**：从 ~20% 提升，新增 2 个测试文件 |
+
 | ai-assistant | ~37% | P1 | AI 助手服务 |
 
-### 2.3 Python 模块（12 个）
+### 2.3 Python 模块（10 个）
 
 | 模块 | 覆盖率 | 优先级 | 备注 |
 |------|--------|--------|------|
@@ -139,7 +139,7 @@
 
 **范围**：
 - Java：real-time-pipeline、stream-batch-scheduler、flink-cdc、infra-orchestrator、infra-provider-private、infra-provider-cloud、infra-provider-xinchang
-- Go：vector-engine、infra-provider-baremetal、karmada/failover/engine、knative/runtimes/go
+- Go：vector-engine、infra-provider-baremetal、karmada/failover/engine
 - Python：ml-platform、open-api-catalog、evaluation
 
 **预期结果**：
@@ -212,8 +212,8 @@
 ### 4.1 阻断门禁（本次已实现）
 
 - **Java**：对所有 24 个模块执行 JaCoCo 门禁，行 < 40% 或分支 < 18% 阻断 CI
-- **Go**：对所有 9 个模块执行 `go test -coverprofile` + `go tool cover -func`，覆盖率 < 30% 阻断 CI
-- **Python**：对所有 12 个模块执行 `pytest --cov`，覆盖率 < 55% 阻断 CI
+- **Go**：对所有 10 个模块执行 `go test -coverprofile` + `go tool cover -func`，覆盖率 < 30% 阻断 CI
+- **Python**：对所有 10 个模块执行 `pytest --cov`，覆盖率 < 55% 阻断 CI
 
 ### 4.2 趋势阻断（本次已实现）
 
@@ -296,7 +296,7 @@ git push
 
 ### 5.2 模块处理明细
 
-#### 5.2.1 Go 模块（5 个）
+#### 5.2.1 Go 模块（4 个）
 
 | 模块 | 补充前覆盖率 | 补充后覆盖率 | 新增测试文件数 | 状态 |
 |------|------------|------------|--------------|------|
@@ -304,9 +304,8 @@ git push
 | karmada/api | ~35% | handler 71.6% / middleware 93.3% / model 100% | 5 | ✅ 达标 |
 | karmada/failover/api | ~30% | handler 54.1% / middleware 93.3% / model 100% | 4 | ✅ 达标 |
 | karmada/failover/engine | ~25% | health 90.7% / karmada 88.5% / weight 95.6% | 6 | ✅ 达标 |
-| knative/runtimes/go | ~20% | handler 100% / metrics 100% | 2 | ✅ 达标 |
 
-**Go 模块小计**：5 个模块全部达标，新增 21 个测试文件，覆盖率从 ~30% 提升至 ~45%。
+**Go 模块小计**：4 个模块全部达标，新增 19 个测试文件，覆盖率从 ~30% 提升至 ~45%。
 
 #### 5.2.2 Python 模块（1 个）
 

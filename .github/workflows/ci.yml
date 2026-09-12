@@ -2,7 +2,7 @@
 # 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
 # Phase1a 增强：新增多语言代码检查（golangci-lint/pylint/black/isort/Checkstyle/ESLint）+ 覆盖率收集（JaCoCo/go cover/pytest-cov）
 # 覆盖率门禁增强（2026-09-01 实化提升）：
-#   - 全量模块门禁：Java 24个模块（行≥40%/分支≥18%）、Go 9个模块（≥30%）、Python 12个模块（≥55%）
+#   - 全量模块门禁：Java 24个模块（行≥40%/分支≥18%）、Go 10个模块（≥30%）、Python 10个模块（≥55%）
 #   - 趋势阻断：覆盖率相比基线下降 > 2% 阻断 CI（基线文件位于 docs/coverage-baseline/）
 #   - 注：当前实际覆盖率 Java ~44%/~28%、Go ~45%、Python ~66%，门禁设为略低于实际值（留~10%缓冲），
 #     确保CI可通过同时防止覆盖率倒退；逐步提升路线见 docs/coverage-roadmap.md，目标85% GA标准
@@ -1104,7 +1104,7 @@ jobs:
           checked_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             # T-08 修复：原用 go test -cover 输出不含 total: 行，grep ^total: 恒为空，
             # 导致所有模块走 continue 旁路，趋势检查形同虚设。
             # 改为与门禁检查一致的 -coverprofile + go tool cover -func 口径，真正获取覆盖率。
@@ -1152,7 +1152,7 @@ jobs:
               text=True
           ).splitlines():
               mod_dir = os.path.dirname(gomod)
-              mod_name = os.path.basename(mod_dir)
+              mod_name = mod_dir[len('platform/'):] if mod_dir.startswith('platform/') else mod_dir
               # T-08 同类修复：原用 go test -cover 输出不含 total: 行，line.startswith('total:') 恒不命中，
               # 导致摘要为空，baseline-consistency-check 的 Go 基线上限检查失效。
               # 改为与门禁/趋势检查一致的 -coverprofile + go tool cover -func 口径，真正获取覆盖率。
@@ -2178,7 +2178,8 @@ jobs:
                       ['find', 'platform', '-name', 'go.mod', '-not', '-path', '*/vendor/*'],
                       text=True
                   ).splitlines()
-                  return {os.path.basename(os.path.dirname(l)) for l in out if l}
+                  # 用相对 platform/ 的路径作为模块名（避免 basename 冲突，如 karmada/api 与 karmada/failover/api）
+                  return {l.replace('/go.mod', '')[len('platform/'):] for l in out if l}
               except Exception:
                   return set()
 

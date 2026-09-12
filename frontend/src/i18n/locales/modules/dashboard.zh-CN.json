@@ -15,6 +15,7 @@
       "jobsMeta": "今日成功 {success} · 失败 {failed}",
       "storage": "存储用量",
       "storageMeta": "湖仓集一体",
+      "storageUnit": "TB",
       "assets": "数据资产",
       "assetsMeta": "表/主题/标签"
     },
@@ -33,7 +34,8 @@
       "colAction": "操作",
       "approve": "批准",
       "reject": "驳回",
-      "empty": "暂无待办"
+      "empty": "暂无待办",
+      "assetPerm": "{asset}（{perm}）"
     },
     "quickActions": {
       "title": "快捷入口",

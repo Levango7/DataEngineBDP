@@ -100,7 +100,7 @@ function iconOf(type?: string): Component {
 /* TransitionGroup 进入动画 */
 .ds-toast-enter-active {
   transition:
-    transform 0.3s var(--ease-spring, ease),
+    transform 0.3s ease,
     opacity 0.3s ease;
 }
 .ds-toast-leave-active {

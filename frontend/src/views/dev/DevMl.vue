@@ -304,7 +304,7 @@
       @opened="scrollLogToBottom"
     >
       <div v-loading="logLoading" class="log-container">
-        <pre class="log-content">{{ logContent || t('devMl.logDialog.empty') }}</pre>
+        <pre ref="logContentRef" class="log-content">{{ logContent || t('devMl.logDialog.empty') }}</pre>
       </div>
       <template #footer>
         <el-button @click="logDialogVisible = false">{{ t('devMl.logDialog.close') }}</el-button>
@@ -654,6 +654,7 @@ const logDialogVisible = ref(false),
   logLoading = ref(false),
   logContent = ref(''),
   currentLogJob = ref<TrainJob | null>(null)
+const logContentRef = ref<HTMLElement | null>(null)
 async function openLogDialog(row: TrainJob) {
   currentLogJob.value = row
   logDialogVisible.value = true
@@ -673,8 +674,7 @@ async function refreshLog() {
   }
 }
 function scrollLogToBottom() {
-  const c = document.querySelector('.log-content') as HTMLElement
-  if (c) c.scrollTop = c.scrollHeight
+  if (logContentRef.value) logContentRef.value.scrollTop = logContentRef.value.scrollHeight
 }
 
 // ── 停止训练 ──────────────────────────────────────────

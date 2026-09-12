@@ -66,36 +66,19 @@ onMounted(() => {
   // 平板断点：641px ≤ width ≤ 1440px 时自动折叠侧边栏
   tabletMql = window.matchMedia('(min-width: 641px) and (max-width: 1440px)')
   onTabletChange(tabletMql)
-  if (typeof tabletMql.addEventListener === 'function') {
-    tabletMql.addEventListener('change', onTabletChange)
-  } else {
-    // Safari < 14 兼容
-    tabletMql.addListener(onTabletChange)
-  }
+  tabletMql.addEventListener('change', onTabletChange)
   // 移动端断点：离开 ≤640px 时关闭抽屉
   mobileMql = window.matchMedia('(max-width: 640px)')
-  if (typeof mobileMql.addEventListener === 'function') {
-    mobileMql.addEventListener('change', onMobileChange)
-  } else {
-    mobileMql.addListener(onMobileChange)
-  }
+  mobileMql.addEventListener('change', onMobileChange)
 })
 
 onUnmounted(() => {
   if (tabletMql) {
-    if (typeof tabletMql.removeEventListener === 'function') {
-      tabletMql.removeEventListener('change', onTabletChange)
-    } else {
-      tabletMql.removeListener(onTabletChange)
-    }
+    tabletMql.removeEventListener('change', onTabletChange)
     tabletMql = null
   }
   if (mobileMql) {
-    if (typeof mobileMql.removeEventListener === 'function') {
-      mobileMql.removeEventListener('change', onMobileChange)
-    } else {
-      mobileMql.removeListener(onMobileChange)
-    }
+    mobileMql.removeEventListener('change', onMobileChange)
     mobileMql = null
   }
 })

@@ -118,6 +118,19 @@ func parsePagination(c *gin.Context) (limit, offset int, err error) {
 
 // ============ Database 端点 ============
 
+// sanitizeInternalError 对内部错误（5xx）脱敏：不暴露内部异常细节
+// （如 SQL 语句、连接串、堆栈、内部路径），仅返回通用提示。
+//
+// 安全：防止通过错误消息泄露内部信息。
+// 用法：4xx 错误保留原消息（面向客户端的友好提示），5xx 错误用此函数脱敏。
+func sanitizeInternalError(err error) string {
+	if err == nil {
+		return ""
+	}
+	// 内部错误：返回通用提示，详细错误由日志记录
+	return "internal error"
+}
+
 // ListDatabases 列出当前租户的所有数据库（分页）。
 // GET /api/v1/catalog/databases?page=1&pageSize=20
 func (h *CatalogHandler) ListDatabases(c *gin.Context) {
@@ -132,7 +145,7 @@ func (h *CatalogHandler) ListDatabases(c *gin.Context) {
 	}
 	dbs, total, err := h.store.ListDatabases(tenantID, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -173,7 +186,7 @@ func (h *CatalogHandler) CreateDatabase(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusCreated, db)
@@ -193,7 +206,7 @@ func (h *CatalogHandler) GetDatabase(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusOK, db)
@@ -212,7 +225,7 @@ func (h *CatalogHandler) DeleteDatabase(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusNoContent, nil)
@@ -235,7 +248,7 @@ func (h *CatalogHandler) ListTables(c *gin.Context) {
 	}
 	tables, total, err := h.store.ListTables(tenantID, dbName, limit, offset)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{
@@ -284,7 +297,7 @@ func (h *CatalogHandler) CreateTable(c *gin.Context) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusCreated, t)
@@ -304,7 +317,7 @@ func (h *CatalogHandler) GetTable(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusOK, t)
@@ -333,7 +346,7 @@ func (h *CatalogHandler) UpdateTable(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusOK, t)
@@ -352,7 +365,7 @@ func (h *CatalogHandler) DeleteTable(c *gin.Context) {
 			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 	c.JSON(http.StatusNoContent, nil)
@@ -402,7 +415,7 @@ func (h *CatalogHandler) SearchTables(c *gin.Context) {
 
 	results, err := h.store.SearchTables(tenantID, q, limit)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": sanitizeInternalError(err)})
 		return
 	}
 

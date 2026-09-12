@@ -104,11 +104,13 @@
   --ds-bg-surface: #ffffff; /* 卡片/面板表面 */
   --ds-bg-subtle: #f1f5f9; /* 次级表面 (hover/active) */
   --ds-bg-muted: #e2e8f0; /* 静音背景 */
+  --ds-bg-code: #1a2027; /* 代码/日志背景 (终端风格，亮暗一致) */
 
   --ds-text-primary: #0f172a; /* 主文字 */
   --ds-text-secondary: #475569; /* 次文字 */
   --ds-text-tertiary: #64748b; /* 三级文字 (muted) */
   --ds-text-inverse: #ffffff; /* 反白文字 */
+  --ds-text-code: #cbd5e1; /* 代码/日志文字 (终端风格，亮暗一致) */
 
   --ds-border-default: #cbd5e1; /* 默认边框 (提升对比度：原 #e2e8f0 → #cbd5e1) */
   --ds-border-subtle: #e2e8f0; /* 次级边框 (hover/分割线) */

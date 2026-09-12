@@ -14,6 +14,11 @@
       "critical": "故障"
     },
     "componentsTitle": "组件健康总览",
+    "healthMeta": {
+      "up": "UP",
+      "warn": "WARN",
+      "down": "DOWN"
+    },
     "jobsTitle": "作业监控",
     "jobCols": {
       "job": "作业",

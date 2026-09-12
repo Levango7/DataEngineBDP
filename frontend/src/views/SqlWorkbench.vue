@@ -51,7 +51,7 @@
 
       <!-- SQL 编辑器（textarea + 行号） -->
       <div class="sql-editor">
-        <div class="line-numbers">
+        <div ref="lineNumbersRef" class="line-numbers">
           <div v-for="n in lineCount" :key="n" class="line-number">{{ n }}</div>
         </div>
         <textarea
@@ -296,6 +296,8 @@ const { t } = useI18n()
 
 // ===================== 响应式状态 =====================
 const sql = ref('SELECT * FROM hive.users JOIN doris.orders ON hive.users.id = doris.orders.uid')
+
+const lineNumbersRef = ref<HTMLElement | null>(null)
 const dialect = ref<'ANSI' | 'HIVE' | 'DORIS' | 'TRINO'>('ANSI')
 const tenantId = ref('')
 const timeoutSeconds = ref(30)
@@ -426,9 +428,8 @@ async function handleValidate(): Promise<void> {
 /** 同步行号滚动 */
 function syncScroll(e: Event): void {
   const textarea = e.target as HTMLTextAreaElement
-  const lineNumbers = document.querySelector('.line-numbers')
-  if (lineNumbers) {
-    lineNumbers.scrollTop = textarea.scrollTop
+  if (lineNumbersRef.value) {
+    lineNumbersRef.value.scrollTop = textarea.scrollTop
   }
 }
 
@@ -521,7 +522,7 @@ function tablesOfSource(source: string): string[] {
   padding: 8px 6px;
   font-family: var(--ds-font-family-mono);
   font-size: 14px;
-  color: var(--ds-text-muted, var(--ds-text-secondary));
+  color: var(--ds-text-secondary);
   line-height: 1.6;
   user-select: none;
 }
@@ -552,7 +553,7 @@ function tablesOfSource(source: string): string[] {
 }
 
 .hint-text {
-  color: var(--ds-text-muted, var(--ds-text-secondary));
+  color: var(--ds-text-secondary);
   font-size: 12px;
 }
 
@@ -665,6 +666,18 @@ function tablesOfSource(source: string): string[] {
   text-align: center;
   background: var(--ds-color-success-50);
   border-color: var(--ds-color-success-100);
+}
+
+/* 暗色模式覆写：success-50 在暗色下过暗，改用更深的语义背景 */
+:root[data-theme='dark'] .result-node {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .result-node {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
 }
 
 .result-node .el-icon {

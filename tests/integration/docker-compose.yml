@@ -148,7 +148,7 @@ services:
       encaps-layer:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/api/v1/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
       interval: 5s
       timeout: 3s
       retries: 10

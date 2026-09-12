@@ -3,18 +3,16 @@
 P-04 合同交付实体 — 合同 CRUD API 骨架。
 
 端点清单：
-    POST   /api/v1/contracts              创建合同
-    GET    /api/v1/contracts               查询合同列表（按租户）
+    POST   /api/v1/contracts              创建合同（admin）
+    GET    /api/v1/contracts               查询合同列表（按 JWT 租户）
     GET    /api/v1/contracts/{id}          查询合同详情
-    PUT    /api/v1/contracts/{id}          更新合同
-    DELETE /api/v1/contracts/{id}          终止合同
-    POST   /api/v1/contracts/{id}/sign     签署合同
-    POST   /api/v1/contracts/{id}/terminate 终止合同
+    PUT    /api/v1/contracts/{id}          更新合同（admin）
+    DELETE /api/v1/contracts/{id}          终止合同（admin）
+    POST   /api/v1/contracts/{id}/sign     签署合同（admin）
+    POST   /api/v1/contracts/{id}/terminate 终止合同（admin）
 
-TODO: 添加 Bearer Token 鉴权（复用 operations main.py 的 verify_admin_token）
-TODO: 添加租户权限校验
-TODO: 添加请求限流
-TODO: 添加操作审计日志
+鉴权：所有端点要求 Bearer JWT；写操作（创建/更新/签署/终止）要求 admin 角色。
+租户隔离：list_contracts 的 tenantId 从 JWT claims 提取，admin 可通过 query param 覆盖。
 """
 from __future__ import annotations
 
@@ -22,6 +20,7 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
+from ...jwt_auth import AuthContext, effectiveTenant, getAuthContext, requireAdmin
 from ...models.contract import (
     ContractCreateRequest,
     ContractResponse,
@@ -35,17 +34,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/contracts", tags=["合同管理"])
 
 
-# TODO: 添加鉴权依赖（复用 operations main.py 的 verify_admin_token）
-# async def verify_admin_token(...): ...
-
-
 @router.post("", response_model=ContractResponse, status_code=status.HTTP_201_CREATED)
-async def create_contract(req: ContractCreateRequest):
-    """创建合同.
-
-    TODO: 添加鉴权
-    TODO: 添加租户存在性校验
-    """
+async def create_contract(
+    req: ContractCreateRequest,
+    ctx: AuthContext = Depends(getAuthContext),
+):
+    """创建合同（要求 admin 角色）."""
+    requireAdmin(ctx)
     try:
         contract = await contract_service.create_contract(req)
         return ContractResponse(data=contract)
@@ -61,18 +56,26 @@ async def create_contract(req: ContractCreateRequest):
 
 @router.get("", response_model=list)
 async def list_contracts(
-    tenantId: str = Query(..., description="租户 ID"),
+    ctx: AuthContext = Depends(getAuthContext),
+    tenantId: str | None = Query(default=None, description="租户 ID（仅 admin 可指定，普通用户强制取 JWT）"),
     contractStatus: ContractStatus | None = Query(default=None, description="合同状态"),
     offset: int = Query(default=0, ge=0, description="分页偏移"),
     limit: int = Query(default=20, ge=1, le=100, description="每页数量"),
 ):
     """查询合同列表.
 
-    TODO: 添加鉴权
-    TODO: 添加排序参数
+    tenantId 来源裁决：
+      - 普通用户：强制使用 JWT claims 中的 tenantId（忽略 query param）
+      - admin：可指定任意 tenantId query param，缺省回退到 JWT claims
     """
+    effective_tenant_id = effectiveTenant(ctx, tenantId)
+    if not effective_tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="无法确定租户 ID：JWT claims 中未声明 tenantId 且未提供 query param",
+        )
     contracts = await contract_service.list_contracts(
-        tenant_id=tenantId,
+        tenant_id=effective_tenant_id,
         status=contractStatus,
         offset=offset,
         limit=limit,
@@ -81,14 +84,19 @@ async def list_contracts(
 
 
 @router.get("/{contract_id}", response_model=ContractResponse)
-async def get_contract(contract_id: str):
-    """查询合同详情.
-
-    TODO: 添加鉴权
-    TODO: 添加租户隔离校验
-    """
+async def get_contract(
+    contract_id: str,
+    ctx: AuthContext = Depends(getAuthContext),
+):
+    """查询合同详情."""
     contract = await contract_service.get_contract(contract_id)
     if contract is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"合同不存在: {contract_id}",
+        )
+    # 租户隔离校验：非 admin 只能查本租户合同
+    if ctx.role != "admin" and contract.tenantId != ctx.tenantId:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"合同不存在: {contract_id}",
@@ -97,12 +105,13 @@ async def get_contract(contract_id: str):
 
 
 @router.put("/{contract_id}", response_model=ContractResponse)
-async def update_contract(contract_id: str, req: ContractUpdateRequest):
-    """更新合同.
-
-    TODO: 添加鉴权
-    TODO: 添加状态机校验
-    """
+async def update_contract(
+    contract_id: str,
+    req: ContractUpdateRequest,
+    ctx: AuthContext = Depends(getAuthContext),
+):
+    """更新合同（要求 admin 角色）."""
+    requireAdmin(ctx)
     try:
         contract = await contract_service.update_contract(contract_id, req)
         if contract is None:
@@ -116,12 +125,12 @@ async def update_contract(contract_id: str, req: ContractUpdateRequest):
 
 
 @router.delete("/{contract_id}", response_model=ContractResponse)
-async def terminate_contract(contract_id: str):
-    """终止合同.
-
-    TODO: 添加鉴权
-    TODO: 添加终止审批流程
-    """
+async def terminate_contract(
+    contract_id: str,
+    ctx: AuthContext = Depends(getAuthContext),
+):
+    """终止合同（要求 admin 角色）."""
+    requireAdmin(ctx)
     try:
         contract = await contract_service.terminate_contract(contract_id)
         if contract is None:
@@ -135,14 +144,16 @@ async def terminate_contract(contract_id: str):
 
 
 @router.post("/{contract_id}/sign", response_model=ContractResponse)
-async def sign_contract(contract_id: str, approvedBy: str = Query(..., description="审批人")):
-    """签署合同（草稿 → 生效）.
-
-    TODO: 添加鉴权
-    TODO: 添加电子签章集成
-    """
+async def sign_contract(
+    contract_id: str,
+    ctx: AuthContext = Depends(getAuthContext),
+    approvedBy: str | None = Query(default=None, description="审批人（缺省取 JWT subject）"),
+):
+    """签署合同（草稿 → 生效，要求 admin 角色）."""
+    requireAdmin(ctx)
+    approver = approvedBy or ctx.userId
     try:
-        contract = await contract_service.sign_contract(contract_id, approvedBy)
+        contract = await contract_service.sign_contract(contract_id, approver)
         if contract is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -154,12 +165,12 @@ async def sign_contract(contract_id: str, approvedBy: str = Query(..., descripti
 
 
 @router.post("/{contract_id}/terminate", response_model=ContractResponse)
-async def terminate_contract_explicit(contract_id: str):
-    """显式终止合同.
-
-    TODO: 添加鉴权
-    TODO: 添加终止原因记录
-    """
+async def terminate_contract_explicit(
+    contract_id: str,
+    ctx: AuthContext = Depends(getAuthContext),
+):
+    """显式终止合同（要求 admin 角色）."""
+    requireAdmin(ctx)
     try:
         contract = await contract_service.terminate_contract(contract_id)
         if contract is None:

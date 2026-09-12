@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 spring:
   application:
@@ -21,7 +21,12 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics,prometheus
+        # 生产环境仅暴露 health 与 info，metrics/prometheus 端点限制为内部网络访问
+        # 如需 Prometheus 抓取，通过单独的 management port 或网络策略隔离
+        include: health,info
+  endpoint:
+    health:
+      show-details: never  # 不暴露健康检查详情（如数据库连接信息）
 
 app:
   tag-store:

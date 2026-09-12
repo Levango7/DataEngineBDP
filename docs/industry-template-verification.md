@@ -17,7 +17,7 @@
 | **模板合计** | **9 套** | 覆盖金融、零售、制造、政务、能源、医疗、交通、教育、农牧 9 个数据密集型行业 |
 | **Helm Chart 包装**（`platform/industry-templates/charts/`） | 9 套 | 每套模板对应 1 个 Helm Chart（`*-template/`），含 ConfigMap 打包模板资产 + Deployment + Service |
 
-> **口径说明**：ROADMAP v2.1 记划"3→7 内置模板"，实际已扩展至 9 套（5 内置 + 4 新增）。本文档以 9 套为准。
+> **口径说明**：3 套基础模板已实现（finance / retail / manufacturing），目标 9 套，已完成 3/9。其余 6 套（government / energy / medical / transportation / education / agriculture）骨架已交付，待完整实现。与 ROADMAP.md、operational-loop.md 口径统一。
 
 ### 2.2 模板清单
 

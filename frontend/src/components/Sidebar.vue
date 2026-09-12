@@ -83,9 +83,8 @@ import * as EPIcons from '@element-plus/icons-vue'
 import { useAppStore } from '@/stores/app'
 import { useUiStore } from '@/stores/ui'
 import { useNavGroups } from '@/composables/useNavGroups'
-import { persistLocale, type SupportedLocale } from '@/i18n'
 
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const store = useAppStore()
 const ui = useUiStore()
 const groups = useNavGroups()
@@ -101,13 +100,6 @@ const iconTable = EPIcons as unknown as Record<string, Component>
 
 function iconOf(name: string): Component {
   return iconTable[name] ?? iconTable.Menu
-}
-
-/** 语言切换放到顶栏（TopBar.vue）后，此处保留切换函数但不再渲染选择框 */
-function onLocaleChange(e: Event): void {
-  const v = (e.target as HTMLSelectElement).value as SupportedLocale
-  locale.value = v
-  persistLocale(v)
 }
 
 // 分组展开/折叠状态：默认全部展开（未在 collapsed 中记录即展开）

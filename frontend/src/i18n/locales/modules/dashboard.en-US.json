@@ -15,6 +15,7 @@
       "jobsMeta": "{success} succeeded today · {failed} failed",
       "storage": "Storage Usage",
       "storageMeta": "Lake-House-Set unified",
+      "storageUnit": "TB",
       "assets": "Data Assets",
       "assetsMeta": "Tables / Topics / Tags"
     },
@@ -33,7 +34,8 @@
       "colAction": "Actions",
       "approve": "Approve",
       "reject": "Reject",
-      "empty": "No pending approvals"
+      "empty": "No pending approvals",
+      "assetPerm": "{asset} ({perm})"
     },
     "quickActions": {
       "title": "Quick Actions",

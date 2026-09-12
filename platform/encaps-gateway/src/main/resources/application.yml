@@ -28,7 +28,7 @@ management:
         include: health,info,metrics,prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: never  # 不暴露健康检查详情（如数据库连接信息、内部组件状态）
   metrics:
     export:
       prometheus:

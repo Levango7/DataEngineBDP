@@ -11,9 +11,9 @@
   >
     <p class="confirm-dialog__message">{{ message }}</p>
     <template #footer>
-      <el-button @click="onCancel">{{ cancelText || 'Cancel' }}</el-button>
+      <el-button @click="onCancel">{{ cancelText || t('common.cancel') }}</el-button>
       <el-button :type="confirmType" :loading="loading" @click="onConfirm">
-        {{ confirmText || 'Confirm' }}
+        {{ confirmText || t('common.confirm') }}
       </el-button>
     </template>
   </el-dialog>
@@ -21,6 +21,9 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const props = withDefaults(
   defineProps<{

@@ -83,8 +83,8 @@ class SqlGatewayControllerTest {
     }
 
     @Test
-    @DisplayName("POST /api/v1/sql/routes — 添加路由规则返回200")
-    void addRoute_shouldReturn200() throws Exception {
+    @DisplayName("POST /api/v1/sql/routes — 添加路由规则返回201 CREATED + Location 头")
+    void addRoute_shouldReturn201() throws Exception {
         RouteRule input = new RouteRule("INSERT", "doris", 10, true);
         input.setId(null);
 
@@ -96,7 +96,8 @@ class SqlGatewayControllerTest {
         mockMvc.perform(post("/api/v1/sql/routes")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(input)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
+                .andExpect(header().exists("Location"))
                 .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.engine").value("doris"));
     }

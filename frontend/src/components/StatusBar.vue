@@ -85,6 +85,7 @@ async function probeHealth() {
 const clockShort = ref('')
 const clockFull = ref('')
 let clockTimer: number | undefined
+let healthTimer: number | undefined
 
 function tick() {
   const now = new Date()
@@ -97,11 +98,12 @@ onMounted(() => {
   tick()
   clockTimer = window.setInterval(tick, 1000)
   void probeHealth()
-  window.setInterval(probeHealth, 30_000)
+  healthTimer = window.setInterval(probeHealth, 30_000)
 })
 
 onUnmounted(() => {
   if (clockTimer) window.clearInterval(clockTimer)
+  if (healthTimer) window.clearInterval(healthTimer)
 })
 </script>
 

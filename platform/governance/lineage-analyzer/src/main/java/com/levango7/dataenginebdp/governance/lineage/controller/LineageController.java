@@ -6,10 +6,16 @@ import com.levango7.dataenginebdp.governance.lineage.service.LineageAnalyzerServ
 import com.levango7.dataenginebdp.governance.lineage.service.LineageQueryService;
 import com.levango7.dataenginebdp.governance.lineage.service.OpenLineageIngestService;
 import com.levango7.dataenginebdp.sqlgateway.parser.SqlDialect;
+import com.levango7.dataenginebdp.sqlgateway.parser.SqlParseException;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -19,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -38,6 +45,15 @@ import java.util.Map;
  *   <li>{@code POST /api/v1/lineage/events} - 摄取 OpenLineage RunEvent</li>
  * </ul>
  *
+ * <p><b>异常处理细化</b>：不同异常类型映射不同 HTTP 状态码，
+ * 不再统一返回 400（参见 CONVENTIONS §9.3）：
+ * <ul>
+ *   <li>{@link SqlParseException} → 400（客户端 SQL 语法错误）</li>
+ *   <li>{@link IllegalArgumentException} → 400（客户端参数非法）</li>
+ *   <li>{@link MethodArgumentTypeMismatchException} → 400（路径/参数类型不匹配）</li>
+ *   <li>其他 {@link Exception} → 500（服务端内部错误，消息脱敏）</li>
+ * </ul>
+ *
  * @author shuqing-bigdata
  */
 @RestController
@@ -46,6 +62,9 @@ import java.util.Map;
 public class LineageController {
 
     private static final Logger log = LoggerFactory.getLogger(LineageController.class);
+
+    /** 血缘查询深度上限（防止过深递归造成 OOM）。 */
+    private static final int MAX_DEPTH = 20;
 
     private final LineageAnalyzerService analyzerService;
     private final LineageQueryService queryService;
@@ -70,15 +89,12 @@ public class LineageController {
     /**
      * 分析 SQL 血缘。
      *
-     * @param request 请求体（sql + dialect）
+     * @param request 请求体（sql + dialect，@Valid 触发 Bean Validation）
      * @return 血缘图谱（ECharts 友好格式）
      */
     @Operation(summary = "分析 SQL 血缘")
     @PostMapping("/analyze")
-    public ResponseEntity<Map<String, Object>> analyze(@RequestBody AnalyzeRequest request) {
-        if (request == null || request.getSql() == null || request.getSql().isBlank()) {
-            return ResponseEntity.badRequest().body(errorMap("invalid_request", "sql 不能为空"));
-        }
+    public ResponseEntity<Map<String, Object>> analyze(@Valid @RequestBody AnalyzeRequest request) {
         SqlDialect dialect = SqlDialect.fromString(request.getDialect());
         log.info("收到血缘分析请求: dialect={}, sqlLength={}",
                 dialect, request.getSql().length());
@@ -90,14 +106,14 @@ public class LineageController {
      * 查询上游依赖表。
      *
      * @param table 表全名
-     * @param depth 深度（默认 5）
+     * @param depth 深度（默认 5，上限 20，@Min/@Max 校验）
      * @return 上游查询结果
      */
     @Operation(summary = "查询上游依赖表")
     @GetMapping("/upstream/{table}")
     public ResponseEntity<LineageQueryResult> upstream(
             @PathVariable String table,
-            @RequestParam(defaultValue = "5") int depth) {
+            @RequestParam(defaultValue = "5") @Min(1) @Max(MAX_DEPTH) int depth) {
         return ResponseEntity.ok(queryService.getUpstream(table, depth));
     }
 
@@ -105,14 +121,14 @@ public class LineageController {
      * 查询下游依赖表。
      *
      * @param table 表全名
-     * @param depth 深度（默认 5）
+     * @param depth 深度（默认 5，上限 20，@Min/@Max 校验）
      * @return 下游查询结果
      */
     @Operation(summary = "查询下游依赖表")
     @GetMapping("/downstream/{table}")
     public ResponseEntity<LineageQueryResult> downstream(
             @PathVariable String table,
-            @RequestParam(defaultValue = "5") int depth) {
+            @RequestParam(defaultValue = "5") @Min(1) @Max(MAX_DEPTH) int depth) {
         return ResponseEntity.ok(queryService.getDownstream(table, depth));
     }
 
@@ -150,15 +166,35 @@ public class LineageController {
     }
 
     /**
-     * 异常处理。
+     * 异常处理细化：按异常类型映射不同 HTTP 状态码。
      *
-     * @param e 异常
-     * @return 错误响应
+     * <p>不再统一返回 400：
+     * <ul>
+     *   <li>{@link SqlParseException} → 400（客户端 SQL 语法错误）</li>
+     *   <li>{@link IllegalArgumentException} → 400（客户端参数非法）</li>
+     *   <li>{@link MethodArgumentTypeMismatchException} → 400（参数类型不匹配）</li>
+     *   <li>其他 → 500（服务端内部错误，消息脱敏不暴露堆栈）</li>
+     * </ul>
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleError(Exception e) {
-        log.error("血缘 API 异常", e);
-        return ResponseEntity.badRequest().body(errorMap("lineage_analysis_failed", e.getMessage()));
+        // 客户端错误（4xx）
+        if (e instanceof SqlParseException) {
+            log.warn("血缘分析 SQL 解析失败: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(errorMap("sql_parse_error", e.getMessage()));
+        }
+        if (e instanceof IllegalArgumentException) {
+            log.warn("血缘 API 参数非法: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(errorMap("invalid_argument", e.getMessage()));
+        }
+        if (e instanceof MethodArgumentTypeMismatchException) {
+            log.warn("血缘 API 参数类型不匹配: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(errorMap("invalid_param_type", "参数类型不匹配"));
+        }
+        // 服务端错误（5xx）：消息脱敏，不暴露内部异常细节
+        log.error("血缘 API 内部异常", e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(errorMap("internal_error", "内部错误，请联系管理员"));
     }
 
     /**
@@ -179,10 +215,12 @@ public class LineageController {
         return m;
     }
 
-    /** 分析请求体 */
+    /** 分析请求体（加 Bean Validation 约束） */
     public static class AnalyzeRequest {
-        @NotBlank
+        @NotBlank(message = "sql 不能为空")
+        @Size(max = 8192, message = "sql 长度不能超过 8192")
         private String sql;
+        @Size(max = 32, message = "dialect 长度不能超过 32")
         private String dialect;
 
         public String getSql() {

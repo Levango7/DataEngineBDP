@@ -14,7 +14,7 @@ function goHome() {
   <div class="not-found" role="main" :aria-label="t('notFound.pageAria')">
     <el-icon
       :size="64"
-      color="var(--ds-text-muted, var(--ds-text-muted, var(--ds-text-secondary)))"
+      color="var(--ds-text-secondary)"
     >
       <WarningFilled />
     </el-icon>
@@ -44,7 +44,7 @@ function goHome() {
 }
 
 .not-found__text {
-  color: var(--ds-text-secondary, var(--ds-text-muted, var(--ds-text-secondary)));
+  color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 </style>

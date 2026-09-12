@@ -204,7 +204,7 @@ const noticeCount = ref(2)
 
 const avatarText = computed(() => {
   const name = auth.user?.username
-  return name ? name.charAt(0).toUpperCase() : '租'
+  return name ? name.charAt(0).toUpperCase() : t('app.tenantInitial')
 })
 
 /** Ctrl+B 切换侧边栏（与主流 IDE/B/S 应用一致） */
@@ -238,9 +238,9 @@ function toggleUserMenu() {
 
 /** 顶栏语言切换：中文态显 EN / 英文态显 中（点击即切换并持久化） */
 function toggleLocale() {
-  const current = (locale as unknown as { value: string }).value
+  const current = locale.value
   const next: SupportedLocale = current === 'zh-CN' ? 'en-US' : 'zh-CN'
-  ;(locale as unknown as { value: string }).value = next
+  locale.value = next
   persistLocale(next)
 }
 

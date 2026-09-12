@@ -256,7 +256,7 @@
       @opened="scrollLogToBottom"
     >
       <div v-loading="logLoading" class="log-container">
-        <pre class="log-content">{{ logContent || t('engines.spark.log.empty') }}</pre>
+        <pre ref="logContentRef" class="log-content">{{ logContent || t('engines.spark.log.empty') }}</pre>
       </div>
       <template #footer>
         <el-button @click="logDialogVisible = false">{{ t('engines.spark.log.close') }}</el-button>
@@ -492,6 +492,7 @@ function canCancel(status: string): boolean {
 const logDialogVisible = ref(false)
 const logLoading = ref(false)
 const logContent = ref<string>('')
+const logContentRef = ref<HTMLElement | null>(null)
 const currentLogJob = ref<SparkJob | null>(null)
 
 /** 打开日志弹窗 */
@@ -518,9 +519,8 @@ async function refreshLog() {
 
 /** 日志滚动到底部 */
 function scrollLogToBottom() {
-  const container = document.querySelector('.log-content') as HTMLElement
-  if (container) {
-    container.scrollTop = container.scrollHeight
+  if (logContentRef.value) {
+    logContentRef.value.scrollTop = logContentRef.value.scrollHeight
   }
 }
 

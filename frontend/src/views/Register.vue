@@ -54,7 +54,7 @@
         </el-form>
         <div class="reg-tip">
           {{ t('register.step1.noCode') }}
-          <a href="javascript:void(0)">{{ t('register.step1.contact') }}</a>
+          <button type="button" class="reg-link" @click="contactSupport">{{ t('register.step1.contact') }}</button>
         </div>
       </section>
 
@@ -147,9 +147,9 @@
       </section>
 
       <div class="reg-bottom">
-        <a href="javascript:void(0)" @click="$router.replace('/login')">
+        <button type="button" class="reg-link" @click="$router.replace('/login')">
           {{ t('register.step3.backToLogin') }}
-        </a>
+        </button>
       </div>
     </div>
   </div>
@@ -240,6 +240,11 @@ function validateCode() {
     validating.value = false
     step.value = 2
   }, 250)
+}
+
+/** 联系支持：预留接入客服/邮件入口 */
+function contactSupport(): void {
+  // TODO: 接入客服系统或 mailto 链接
 }
 
 async function submitForm() {
@@ -344,7 +349,7 @@ async function submitForm() {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   box-shadow: 0 0 10px rgba(99, 102, 241, 0.7);
 }
 
@@ -422,7 +427,7 @@ async function submitForm() {
   font-size: 14px;
   font-weight: 600;
   letter-spacing: 4px;
-  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%) !important;
+  background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
   border: none !important;
   margin-top: 6px;
 }
@@ -432,11 +437,19 @@ async function submitForm() {
   font-size: 12px;
   color: var(--ds-text-tertiary);
 }
-.reg-tip a {
+.reg-tip a,
+.reg-tip .reg-link {
   margin-left: 4px;
   color: var(--ds-color-primary-500);
   text-decoration: none;
   font-weight: 600;
+}
+.reg-tip .reg-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
 }
 .err {
   color: var(--ds-color-error-700);
@@ -508,7 +521,7 @@ async function submitForm() {
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--ds-color-success-500) 0%, var(--ds-color-success-600) 100%);
   color: var(--ds-text-inverse);
   font-size: 36px;
   font-weight: 700;
@@ -562,10 +575,18 @@ async function submitForm() {
   margin-top: 22px;
   font-size: 12px;
 }
-.reg-bottom a {
+.reg-bottom a,
+.reg-bottom .reg-link {
   color: var(--ds-color-primary-500);
   text-decoration: none;
   font-weight: 500;
+}
+.reg-bottom .reg-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
 }
 </style>
 <!-- 暗色模式覆写（2026-09-12 修复）
@@ -585,5 +606,23 @@ async function submitForm() {
     radial-gradient(ellipse 1100px 700px at 0% 0%, var(--ds-bg-surface) 0%, transparent 60%),
     radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%),
     linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
+}
+/* 暗色模式 .reg-card 透明覆写：亮色用 rgba(255,255,255,0.92)，
+ * 暗色下需替换为 surface 半透明，否则透出页面底色造成对比度不足。 */
+:root[data-theme='dark'] .reg-card {
+  background: rgba(30, 41, 59, 0.92) !important;
+  border-color: rgba(51, 65, 85, 0.7) !important;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(51, 65, 85, 0.7) !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .reg-card {
+    background: rgba(30, 41, 59, 0.92) !important;
+    border-color: rgba(51, 65, 85, 0.7) !important;
+    box-shadow:
+      0 20px 60px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(51, 65, 85, 0.7) !important;
+  }
 }
 </style>
