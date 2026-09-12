@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -67,10 +68,12 @@ public class XinchangClusterController {
     public ResponseEntity<ClusterInfo> createCluster(@Valid @RequestBody ClusterCreateRequest request) {
         // JWT 注入的 tenantId 覆盖请求体中的 tenantId，防止越权
         String tenantId = TenantContext.getTenantId();
-        if (tenantId != null) {
-            request.setTenantId(tenantId);
+        if (tenantId == null) {
+            // 缺少租户上下文时拒绝创建，防止攻击者传入任意 tenantId
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
         }
-        log.info("POST /api/v1/clusters/xinchang - createCluster name={}", request.getClusterName());
+        request.setTenantId(tenantId);
+        log.info("POST /api/v1/clusters/xinchang - createCluster name={} tenantId={}", request.getClusterName(), tenantId);
         ClusterInfo info = providerService.createCluster(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(info);
     }

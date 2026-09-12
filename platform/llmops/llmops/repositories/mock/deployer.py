@@ -44,6 +44,7 @@ class MockModelDeployer(ModelDeployer):
                 status=DeploymentStatus.CREATING,
                 readyReplica=0,
             ),
+            tenantId=config.tenantId,
         )
         self._deployments[deployment_id] = deployment
         return deployment_id

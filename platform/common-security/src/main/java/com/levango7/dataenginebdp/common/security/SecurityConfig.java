@@ -21,8 +21,8 @@ import java.util.List;
 /**
  * Spring Security 公共配置（公共安全 Starter 提供的统一实现）。
  *
- * <p>放行 {@code /api/v1/health}、{@code /api/v1/auth/login} 与 {@code /actuator/**}，
- * 其他端点要求认证。注册 {@link JwtAuthFilter} 于
+ * <p>放行 {@code /api/v1/health}、{@code /api/v1/auth/login} 与 {@code /actuator/health}、
+ * {@code /actuator/info}，其他端点（含其余 actuator 敏感端点）要求认证。注册 {@link JwtAuthFilter} 于
  * {@link UsernamePasswordAuthenticationFilter} 之前。REST API 无状态会话，禁用 CSRF，启用 CORS。</p>
  *
  * <h3>自动装配与退让策略</h3>
@@ -74,7 +74,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/health").permitAll()
                         .requestMatchers("/api/v1/auth/login").permitAll()  // 登录端点放行（Keycloak 代理）
-                        .requestMatchers("/actuator/**").permitAll()
+                        // actuator 仅放行健康检查子集，敏感端点（env/heapdump/threaddump/loggers 等）要求认证
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/actuator/**").authenticated()
                         .anyRequest().authenticated())
                 // 速率限制（C1）先于认证执行：匿名爆破按 IP 拦截，无需等 JWT 解析
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)

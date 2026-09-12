@@ -39,6 +39,8 @@ class TrainingConfig(BaseModel):
     randomState: int = Field(default=42, description="随机种子")
     outputModelName: str = Field(..., description="产出模型名")
     description: Optional[str] = Field(default=None, description="描述")
+    # 归属租户 ID（路由层从 JWT 注入，不暴露给用户）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID（由路由层注入）")
 
 
 class TrainingResult(TimestampMixin):
@@ -77,3 +79,5 @@ class TrainingJob(TimestampMixin):
     config: TrainingConfig = Field(..., description="训练配置")
     status: TrainingStatus = Field(default=TrainingStatus.PENDING, description="任务状态")
     result: Optional[TrainingResult] = Field(default=None, description="训练结果")
+    # 归属租户 ID（租户隔离）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID")

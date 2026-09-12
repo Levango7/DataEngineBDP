@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field, ValidationError, model_validator
 
+from llmops.api.jwt_auth import AuthContext, getAuthContext
 from llmops.api.routers.deps import get_registry, status_for_error
 from llmops.models.base import ModelStatus, ModelType
 from llmops.models.model import ModelFilter, ModelInfo, ModelParams
@@ -50,6 +51,20 @@ class SetProductionVersionRequest(BaseModel):
     version: int = Field(..., ge=1)
 
 
+# ---------- 辅助函数 ----------
+
+
+def _require_model_owner(model: ModelInfo, ctx: AuthContext) -> None:
+    """对象级授权：校验 ctx 对 model 有操作权限.
+
+    admin 或模型所属租户可操作；其他返回 404（避免泄露存在性）。
+    """
+    if ctx.role == "admin":
+        return
+    if ctx.tenantId and getattr(model, "tenantId", None) != ctx.tenantId:
+        raise HTTPException(status_code=404, detail="模型不存在")
+
+
 # ---------- 路由 ----------
 
 
@@ -62,8 +77,12 @@ class SetProductionVersionRequest(BaseModel):
 async def register_model(
     req: RegisterModelRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> ModelInfo:
-    """注册一个新模型（基座或微调）."""
+    """注册一个新模型（基座或微调）.
+
+    租户隔离：模型归属当前请求租户 ctx.tenantId。
+    """
     import uuid
 
     model_info = ModelInfo(
@@ -74,6 +93,7 @@ async def register_model(
         params=req.params,
         description=req.description,
         tags=req.tags,
+        tenantId=ctx.tenantId,
     )
     try:
         return await registry.modelService.register_model(model_info)
@@ -96,10 +116,14 @@ async def list_models(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[ModelInfo]:
-    """按条件列出模型."""
+    """按条件列出模型（按租户隔离：普通用户仅见本租户模型，admin 可见全部）."""
     filter_ = ModelFilter(name=name, type=type, status=status_, tag=tag, limit=limit, offset=offset)
-    return await registry.modelService.list_models(filter_)
+    models = await registry.modelService.list_models(filter_)
+    if ctx.role != "admin" and ctx.tenantId:
+        models = [m for m in models if getattr(m, "tenantId", None) == ctx.tenantId]
+    return models
 
 
 @router.get(
@@ -110,10 +134,16 @@ async def list_models(
 async def get_model(
     model_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> ModelInfo:
-    """根据 ID 获取模型详情."""
+    """根据 ID 获取模型详情.
+
+    租户隔离：非 admin 仅可查看本租户模型。
+    """
     try:
-        return await registry.modelService.get_model(model_id)
+        model = await registry.modelService.get_model(model_id)
+        _require_model_owner(model, ctx)
+        return model
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -126,9 +156,16 @@ async def get_model(
 async def delete_model(
     model_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> None:
-    """删除模型（已部署的模型不允许删除）."""
+    """删除模型（已部署的模型不允许删除）.
+
+    租户隔离：非 admin 仅可删除本租户模型。
+    """
     try:
+        # 先校验归属
+        model = await registry.modelService.get_model(model_id)
+        _require_model_owner(model, ctx)
         await registry.modelService.delete_model(model_id)
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
@@ -144,10 +181,16 @@ async def delete_model(
 async def get_model_versions(
     model_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list:
-    """获取模型的所有版本."""
+    """获取模型的所有版本.
+
+    租户隔离：非 admin 仅可查看本租户模型版本。
+    """
 
     try:
+        model = await registry.modelService.get_model(model_id)
+        _require_model_owner(model, ctx)
         versions = await registry.modelService.get_model_versions(model_id)
         return [v.model_dump() for v in versions]
     except LlmopsError as exc:
@@ -163,9 +206,16 @@ async def set_production_version(
     model_id: str,
     req: SetProductionVersionRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> ModelInfo:
-    """设置模型的生产版本."""
+    """设置模型的生产版本.
+
+    租户隔离：非 admin 仅可设置本租户模型的生产版本。
+    """
     try:
+        # 先校验归属
+        model = await registry.modelService.get_model(model_id)
+        _require_model_owner(model, ctx)
         return await registry.modelService.set_production_version(model_id, req.version)
     except LlmopsError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))

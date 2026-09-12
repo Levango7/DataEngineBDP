@@ -114,6 +114,7 @@ class MockMLBackend(MLBackend):
             params=config.params,
             tags={"dataset": config.dataset, "backend": "mock"},
             description=config.description,
+            tenantId=config.tenantId,
         )
         modelInfo.createdAt = now
         modelInfo.updatedAt = now

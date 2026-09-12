@@ -32,6 +32,8 @@ class DeployConfig(BaseModel):
     backend: str = Field(default="vllm", description="推理后端")
     # 部署名称（不指定则自动生成）
     name: Optional[str] = Field(default=None, description="部署名称")
+    # 归属租户 ID（路由层从 JWT 注入，不暴露给用户）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID（由路由层注入）")
 
 
 class DeploymentStatusInfo(BaseModel):
@@ -57,5 +59,7 @@ class Deployment(TimestampMixin):
     endpointUrl: Optional[str] = Field(default=None, description="推理端点 URL")
     # 部署到 L4.5.6 大模型网关后注册的路由名
     gatewayRoute: Optional[str] = Field(default=None, description="大模型网关路由名")
+    # 归属租户 ID（租户隔离）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID")
     startedAt: Optional[datetime] = Field(default=None)
     stoppedAt: Optional[datetime] = Field(default=None)

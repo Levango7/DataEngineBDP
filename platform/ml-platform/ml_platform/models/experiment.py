@@ -29,6 +29,8 @@ class ExperimentConfig(BaseModel):
     projectId: Optional[str] = Field(default=None, description="项目 ID")
     description: Optional[str] = Field(default=None, description="描述")
     tags: dict[str, str] = Field(default_factory=dict, description="标签")
+    # 归属租户 ID（路由层从 JWT 注入，不暴露给用户）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID（由路由层注入）")
 
 
 class ExperimentInfo(TimestampMixin):
@@ -51,6 +53,8 @@ class ExperimentInfo(TimestampMixin):
     params: dict[str, Any] = Field(default_factory=dict, description="累计参数")
     metrics: dict[str, float] = Field(default_factory=dict, description="累计指标")
     runCount: int = Field(default=0, description="运行次数")
+    # 归属租户 ID（租户隔离）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID")
 
 
 class ModelInfo(TimestampMixin):
@@ -81,6 +85,8 @@ class ModelInfo(TimestampMixin):
     params: dict[str, Any] = Field(default_factory=dict, description="训练参数")
     tags: dict[str, str] = Field(default_factory=dict, description="标签")
     description: Optional[str] = Field(default=None, description="描述")
+    # 归属租户 ID（租户隔离）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID")
 
 
 class ModelMetrics(BaseModel):

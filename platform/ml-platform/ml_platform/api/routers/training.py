@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from ml_platform.api.jwt_auth import AuthContext, getAuthContext
 from ml_platform.api.routers.deps import getRegistry, statusForError
 from ml_platform.models import AlgorithmType, TrainingConfig, TrainingJob
 from ml_platform.repositories import MlPlatformError
@@ -30,6 +31,17 @@ class CreateTrainingJobRequest(BaseModel):
     description: str | None = Field(default=None, description="描述")
 
 
+def _require_job_owner(job: TrainingJob, ctx: AuthContext) -> None:
+    """对象级授权：校验 ctx 对 job 有操作权限.
+
+    admin 或任务所属租户可操作；其他返回 404（避免泄露存在性）。
+    """
+    if ctx.role == "admin":
+        return
+    if ctx.tenantId and getattr(job, "tenantId", None) != ctx.tenantId:
+        raise HTTPException(status_code=404, detail="训练任务不存在")
+
+
 @router.post(
     "",
     response_model=TrainingJob,
@@ -39,7 +51,12 @@ class CreateTrainingJobRequest(BaseModel):
 async def createTrainingJob(
     body: CreateTrainingJobRequest,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """创建训练任务.
+
+    租户隔离：任务归属当前请求租户 ctx.tenantId。
+    """
     try:
         config = TrainingConfig(
             algorithm=body.algorithm,
@@ -52,6 +69,7 @@ async def createTrainingJob(
             randomState=body.randomState,
             outputModelName=body.outputModelName,
             description=body.description,
+            tenantId=ctx.tenantId,
         )
         return await registry.trainingService.createTrainingJob(config)
     except MlPlatformError as e:
@@ -70,8 +88,13 @@ async def createTrainingJob(
 )
 async def listTrainingJobs(
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
-    return await registry.trainingService.listTrainingJobs()
+    """列出训练任务（按租户隔离：普通用户仅见本租户任务，admin 可见全部）."""
+    jobs = await registry.trainingService.listTrainingJobs()
+    if ctx.role != "admin" and ctx.tenantId:
+        jobs = [j for j in jobs if getattr(j, "tenantId", None) == ctx.tenantId]
+    return jobs
 
 
 @router.get(
@@ -82,9 +105,16 @@ async def listTrainingJobs(
 async def getTrainingStatus(
     jobId: str,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """获取训练任务详情（含状态与进度）.
+
+    租户隔离：非 admin 仅可查看本租户任务。
+    """
     try:
-        return await registry.trainingService.getTrainingStatus(jobId)
+        job = await registry.trainingService.getTrainingStatus(jobId)
+        _require_job_owner(job, ctx)
+        return job
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))
 
@@ -97,8 +127,15 @@ async def getTrainingStatus(
 async def cancelTraining(
     jobId: str,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """取消训练任务.
+
+    租户隔离：非 admin 仅可取消本租户任务。
+    """
     try:
+        job = await registry.trainingService.getTrainingStatus(jobId)
+        _require_job_owner(job, ctx)
         await registry.trainingService.cancelTraining(jobId)
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))

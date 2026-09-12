@@ -33,6 +33,15 @@ public interface CloudClusterRepository extends JpaRepository<CloudClusterEntity
     List<CloudClusterEntity> findByProvider(String provider);
 
     /**
+     * 按 provider 与租户 ID 查询集群列表（租户隔离）。
+     *
+     * @param provider 云 provider 标识（huawei / ali / tencent）
+     * @param tenantId 租户 ID
+     * @return 集群列表
+     */
+    List<CloudClusterEntity> findByProviderAndTenantId(String provider, String tenantId);
+
+    /**
      * 按集群名称查询（用于唯一性校验）。
      *
      * @param clusterName 集群名称

@@ -65,9 +65,21 @@ class TenantPathMapperTest {
 
     // ---------- 构造器安全校验 ----------
     @Test
-    void constructor_nullTenantDefaultsToSystem() {
+    void constructor_nullTenantFailClosed() {
+        // fail-closed：租户上下文缺失时 currentTenantId 为 null，访问存储时抛异常而非降级
         TenantPathMapper m = new TenantPathMapper(null);
-        assertThat(m.getCurrentTenantId()).isEqualTo("system");
+        assertThat(m.getCurrentTenantId()).isNull();
+        assertThatThrownBy(() -> m.toStorageKey("warehouse/orders"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("缺少租户上下文");
+    }
+
+    @Test
+    void constructor_emptyTenantFailClosed() {
+        TenantPathMapper m = new TenantPathMapper("  ");
+        assertThat(m.getCurrentTenantId()).isNull();
+        assertThatThrownBy(() -> m.toStorageKey("warehouse/orders"))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test

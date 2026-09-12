@@ -21,8 +21,8 @@ public class TenantPathMapper {
     /** 系统根路径前缀（平台内部使用，不归属租户）。 */
     private static final String SYSTEM_PREFIX = "_system";
 
-    /** 当前租户上下文（与 encaps-layer 对齐）。
-     * 若存在 ThreadLocal TenantContext，则由此注入；否则默认 system。
+    /** 当前租户上下文（与 common-security 对齐）。
+     * 若存在 ThreadLocal TenantContext，则由此注入；null 表示缺失，访问时 fail-closed。
      */
     private final String currentTenantId;
 
@@ -43,8 +43,8 @@ public class TenantPathMapper {
             return relativeKey;
         }
         if (currentTenantId == null || currentTenantId.isEmpty()) {
-            // 租户上下文缺失：降级到公共前缀（不隔离）
-            return relativeKey;
+            // fail-closed：租户上下文缺失时拒绝无隔离存储访问，禁止降级到公共前缀
+            throw new IllegalStateException("缺少租户上下文，拒绝无隔离存储访问");
         }
         validateTenantId(currentTenantId);
         return currentTenantId + "/" + relativeKey;
@@ -53,7 +53,10 @@ public class TenantPathMapper {
     /** 将相对对象键前缀（如 "warehouse/"）转换为租户前缀。 */
     public String toStoragePrefix(String relativePrefix) {
         if (relativePrefix == null || relativePrefix.isEmpty() || relativePrefix.equals("/")) {
-            return currentTenantId != null && !currentTenantId.isEmpty() ? currentTenantId + "/" : "/";
+            if (currentTenantId == null || currentTenantId.isEmpty()) {
+                throw new IllegalStateException("缺少租户上下文，拒绝无隔离存储访问");
+            }
+            return currentTenantId + "/";
         }
         return toStorageKey(relativePrefix);
     }
@@ -66,15 +69,15 @@ public class TenantPathMapper {
         if (isSystemKey(fullKey)) {
             return fullKey;
         }
-        if (currentTenantId != null && !currentTenantId.isEmpty()) {
-            String prefix = currentTenantId + "/";
-            if (fullKey.startsWith(prefix)) {
-                return fullKey.substring(prefix.length());
-            }
-            // 非本租户键：返回 null（触发权限校验失败，外部调用方应拒绝访问）
-            return null;
+        if (currentTenantId == null || currentTenantId.isEmpty()) {
+            throw new IllegalStateException("缺少租户上下文，拒绝无隔离存储访问");
         }
-        return fullKey;
+        String prefix = currentTenantId + "/";
+        if (fullKey.startsWith(prefix)) {
+            return fullKey.substring(prefix.length());
+        }
+        // 非本租户键：返回 null（触发权限校验失败，外部调用方应拒绝访问）
+        return null;
     }
 
     /** 获取当前绑定租户 ID。 */
@@ -88,11 +91,11 @@ public class TenantPathMapper {
 
     private static String sanitizeTenantId(String raw) {
         if (raw == null) {
-            return "system";
+            return null;
         }
         String s = raw.trim().toLowerCase();
         if (s.isEmpty()) {
-            return "system";
+            return null;
         }
         // 防止路径逃逸（如 ../）
         if (s.contains("..") || s.contains("/") || s.contains("\\")) {
@@ -108,20 +111,20 @@ public class TenantPathMapper {
     }
 
     /**
-     * 解析当前租户 ID（与 encaps-layer TenantContext 对齐，忽略 Spring 依赖）。
-     * 若 thread local 中存在 tenantId，返回之，否则返回 null。
+     * 解析当前租户 ID（与 common-security TenantContext 对齐，忽略 Spring 依赖）。
+     * 若 thread local 中存在 tenantId，返回之，否则返回 null（由调用方 fail-closed）。
      */
     private static String resolveCurrentTenant() {
         try {
-            // 封装层已在运行时注入 TenantContext（若是同一进程）
+            // common-security Starter 提供 TenantContext（公共安全统一实现）
             Class<?> tenantContext = Class.forName(
-                    "com.levango7.dataenginebdp.encaps.security.TenantContext");
-            Object tenantId = tenantContext.getMethod("getCurrentTenantId").invoke(null);
+                    "com.levango7.dataenginebdp.common.security.TenantContext");
+            Object tenantId = tenantContext.getMethod("getTenantId").invoke(null);
             if (tenantId instanceof String) {
                 return (String) tenantId;
             }
         } catch (Exception ignored) {
-            // 忽略：不在 encaps-layer 进程内时使用默认 system
+            // 忽略：不在含 TenantContext 的进程内时返回 null，由调用方 fail-closed
         }
         return null;
     }

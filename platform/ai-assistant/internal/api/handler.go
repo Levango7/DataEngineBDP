@@ -1,13 +1,45 @@
 package api
 
 import (
+	"errors"
 	"net/http"
+	"regexp"
+	"strings"
 
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/config"
 	"github.com/Levango7/DataEngineBDP/ai-assistant/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
+
+// 只读 SQL 必须以 SELECT 或 WITH（CTE）开头。
+var readOnlySQLStart = regexp.MustCompile(`(?i)^\s*(SELECT|WITH)\b`)
+
+// 禁止的 DDL/DML/系统关键字（词边界匹配，避免误判列名/表名中包含的子串）。
+var forbiddenSQLPattern = regexp.MustCompile(
+	`(?i)\b(DROP|DELETE|UPDATE|INSERT|ALTER|CREATE|TRUNCATE|GRANT|REVOKE|EXEC|EXECUTE|CALL|MERGE|REPLACE|RENAME|ATTACH|DETACH|PRAGMA|LOAD|SHUTDOWN|VACUUM|SET|LOCK|UNLOCK)\b`)
+
+// validateReadOnlySQL 校验 SQL 仅允许只读 SELECT 查询，禁止 DDL/DML 与多语句。
+// 防止用户通过 /execute 端点执行破坏性 SQL（如 DROP TABLE、DELETE、UPDATE 等）。
+func validateReadOnlySQL(sql string) error {
+	s := strings.TrimSpace(sql)
+	if s == "" {
+		return errors.New("SQL 不能为空")
+	}
+	// 禁止多语句（分号分隔），防止语句拼接注入。
+	if strings.Contains(s, ";") {
+		return errors.New("禁止多语句执行")
+	}
+	// 必须以 SELECT 或 WITH 开头（只读查询）。
+	if !readOnlySQLStart.MatchString(s) {
+		return errors.New("仅允许只读 SELECT 查询")
+	}
+	// 禁止任何 DDL/DML/系统关键字。
+	if forbiddenSQLPattern.MatchString(s) {
+		return errors.New("SQL 包含禁止的写操作关键字")
+	}
+	return nil
+}
 
 // AssistantHandler AI 助手 HTTP handler。
 type AssistantHandler struct {
@@ -129,6 +161,10 @@ func (h *AssistantHandler) nl2sql(c *gin.Context) {
 }
 
 // execute POST /execute
+//
+// 安全：转发给 sql-gateway 前校验 SQL 仅允许只读 SELECT 查询，
+// 禁止 DDL/DML（DROP/DELETE/UPDATE/INSERT/ALTER/CREATE/TRUNCATE 等）与多语句，
+// 防止用户通过本端点执行破坏性 SQL。
 func (h *AssistantHandler) execute(c *gin.Context) {
 	var req struct {
 		SQL      string `json:"sql"`
@@ -137,6 +173,11 @@ func (h *AssistantHandler) execute(c *gin.Context) {
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求体格式错误: " + err.Error()})
+		return
+	}
+	// SQL 只读校验：在转发给下游 sql-gateway 前拦截破坏性 SQL。
+	if err := validateReadOnlySQL(req.SQL); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 	tenantID, ok := resolveTenant(c, req.TenantID)

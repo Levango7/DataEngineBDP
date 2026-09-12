@@ -4,11 +4,13 @@ import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterInfo;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterRequest;
 import com.levango7.dataenginebdp.infra.cloud.model.ClusterScaleRequest;
 import com.levango7.dataenginebdp.infra.cloud.service.CloudProviderService;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -43,6 +46,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "基础设施供应-云集群", description = "多云VM集群供应(华为/阿里/腾讯)")
 @RequestMapping("/api/v1/clusters/cloud")
+@PreAuthorize("hasRole('INFRA_ADMIN')")
 public class CloudClusterController {
 
     private static final Logger log = LoggerFactory.getLogger(CloudClusterController.class);
@@ -65,9 +69,14 @@ public class CloudClusterController {
     public ResponseEntity<CloudClusterInfo> createCluster(
             @PathVariable String provider,
             @Valid @RequestBody CloudClusterRequest request) {
-        log.info("REST createCluster: provider={}, clusterName={}, nodeCount={}",
-                provider, request.getClusterName(), request.getNodeCount());
-        CloudClusterInfo info = cloudProviderService.createCluster(provider, request);
+        // 从 JWT 注入租户 ID，缺失则拒绝创建（防止越权）
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
+        }
+        log.info("REST createCluster: provider={}, clusterName={}, nodeCount={}, tenantId={}",
+                provider, request.getClusterName(), request.getNodeCount(), tenantId);
+        CloudClusterInfo info = cloudProviderService.createCluster(provider, request, tenantId);
         return ResponseEntity.status(HttpStatus.CREATED).body(info);
     }
 
@@ -83,9 +92,13 @@ public class CloudClusterController {
     public ResponseEntity<CloudClusterInfo> destroyCluster(
             @PathVariable String provider,
             @PathVariable String id) {
-        log.info("REST destroyCluster: provider={}, clusterId={}", provider, id);
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
+        }
+        log.info("REST destroyCluster: provider={}, clusterId={}, tenantId={}", provider, id, tenantId);
         try {
-            CloudClusterInfo info = cloudProviderService.destroyCluster(provider, id);
+            CloudClusterInfo info = cloudProviderService.destroyCluster(provider, id, tenantId);
             return ResponseEntity.ok(info);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
@@ -104,7 +117,11 @@ public class CloudClusterController {
     public ResponseEntity<CloudClusterInfo> getCluster(
             @PathVariable String provider,
             @PathVariable String id) {
-        CloudClusterInfo info = cloudProviderService.getCluster(provider, id);
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
+        }
+        CloudClusterInfo info = cloudProviderService.getCluster(provider, id, tenantId);
         if (info == null) {
             return ResponseEntity.notFound().build();
         }
@@ -120,7 +137,12 @@ public class CloudClusterController {
     @Operation(summary = "列出指定 provider 的所有集群")
     @GetMapping("/{provider}")
     public ResponseEntity<List<CloudClusterInfo>> listClusters(@PathVariable String provider) {
-        return ResponseEntity.ok(cloudProviderService.listClusters(provider));
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            // 缺少租户上下文时返回空列表，避免跨租户数据泄漏
+            return ResponseEntity.ok(List.of());
+        }
+        return ResponseEntity.ok(cloudProviderService.listClusters(provider, tenantId));
     }
 
     /**
@@ -137,9 +159,13 @@ public class CloudClusterController {
             @PathVariable String provider,
             @PathVariable String id,
             @Valid @RequestBody ClusterScaleRequest request) {
-        log.info("REST scaleCluster: provider={}, clusterId={}, target={}",
-                provider, id, request.getTargetNodeCount());
-        CloudClusterInfo info = cloudProviderService.scaleCluster(provider, id, request.getTargetNodeCount());
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
+        }
+        log.info("REST scaleCluster: provider={}, clusterId={}, target={}, tenantId={}",
+                provider, id, request.getTargetNodeCount(), tenantId);
+        CloudClusterInfo info = cloudProviderService.scaleCluster(provider, id, request.getTargetNodeCount(), tenantId);
         return ResponseEntity.ok(info);
     }
 
@@ -155,8 +181,12 @@ public class CloudClusterController {
     public ResponseEntity<CloudClusterInfo> startCluster(
             @PathVariable String provider,
             @PathVariable String id) {
-        log.info("REST startCluster: provider={}, clusterId={}", provider, id);
-        return ResponseEntity.ok(cloudProviderService.startCluster(provider, id));
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
+        }
+        log.info("REST startCluster: provider={}, clusterId={}, tenantId={}", provider, id, tenantId);
+        return ResponseEntity.ok(cloudProviderService.startCluster(provider, id, tenantId));
     }
 
     /**
@@ -171,8 +201,12 @@ public class CloudClusterController {
     public ResponseEntity<CloudClusterInfo> stopCluster(
             @PathVariable String provider,
             @PathVariable String id) {
-        log.info("REST stopCluster: provider={}, clusterId={}", provider, id);
-        return ResponseEntity.ok(cloudProviderService.stopCluster(provider, id));
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文");
+        }
+        log.info("REST stopCluster: provider={}, clusterId={}, tenantId={}", provider, id, tenantId);
+        return ResponseEntity.ok(cloudProviderService.stopCluster(provider, id, tenantId));
     }
 
     /**

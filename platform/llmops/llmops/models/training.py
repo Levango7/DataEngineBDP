@@ -36,6 +36,8 @@ class TrainingConfig(BaseModel):
     maxSeqLength: int = Field(default=2048, ge=32, le=32768)
     # 任意扩展超参
     extra: dict[str, Any] = Field(default_factory=dict)
+    # 归属租户 ID（路由层从 JWT 注入，不暴露给用户）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID（由路由层注入）")
 
 
 class TrainingJobStatus(BaseModel):
@@ -62,6 +64,8 @@ class TrainingJob(TimestampMixin):
     # 训练开始/结束时间
     startedAt: Optional[datetime] = Field(default=None)
     finishedAt: Optional[datetime] = Field(default=None)
+    # 归属租户 ID（租户隔离）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID")
 
     @model_validator(mode="after")
     def _sync_total_epochs(self) -> "TrainingJob":

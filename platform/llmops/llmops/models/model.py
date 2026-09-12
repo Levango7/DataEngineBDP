@@ -61,6 +61,8 @@ class ModelInfo(TimestampMixin):
     versions: list[ModelVersion] = Field(default_factory=list)
     # 当前生产版本号
     currentVersion: Optional[int] = Field(default=None, description="当前生产版本号")
+    # 归属租户 ID（租户隔离）
+    tenantId: Optional[str] = Field(default=None, description="归属租户 ID")
 
     @model_validator(mode="after")
     def _validate_base_model(self) -> "ModelInfo":

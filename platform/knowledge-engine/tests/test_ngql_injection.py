@@ -156,7 +156,8 @@ class TestRouteErrorMapping:
             raise ValueError("非法图标识符")
 
         monkeypatch.setattr(registry.queryService.store, "query", boom)
-        headers = auth_headers(make_token())
+        # 使用 admin 角色跳过租户隔离校验，让 query 执行后返回 400
+        headers = auth_headers(make_token(role="admin"))
         resp = client.post("/api/v1/spaces/bad%20space/query", json={"nql": "MATCH (v) RETURN v"}, headers=headers)
         assert resp.status_code == 400
 

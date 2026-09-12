@@ -8,7 +8,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from business_portal.api.routers.deps import get_current_user, get_registry, status_for_error
+from business_portal.api.routers.deps import (
+    get_current_tenant,
+    get_current_user,
+    get_registry,
+    status_for_error,
+)
 from business_portal.models.base import ReportStatus, ReportType
 from business_portal.models.report import (
     DataSourceRef,
@@ -63,8 +68,9 @@ async def list_reports(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     registry: ServiceRegistry = Depends(get_registry),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> list[Report]:
-    """列出业务线 BI 报表（业务线隔离）."""
+    """列出业务线 BI 报表（业务线隔离 + 租户隔离）."""
     filter_ = ReportFilter(
         blId=bl_id,
         status=status_,
@@ -75,7 +81,7 @@ async def list_reports(
         offset=offset,
     )
     try:
-        return await registry.reportService.list_reports(filter_)
+        return await registry.reportService.list_reports(filter_, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -91,8 +97,9 @@ async def create_report(
     req: CreateReportRequest,
     registry: ServiceRegistry = Depends(get_registry),
     user_id: str | None = Depends(get_current_user),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> Report:
-    """创建 BI 报表（强制隔离：blId 取路径 bl_id）."""
+    """创建 BI 报表（强制隔离：blId 取路径 bl_id，租户隔离校验业务线归属）."""
     report = Report(
         id=str(uuid.uuid4()),
         blId=bl_id,
@@ -104,7 +111,7 @@ async def create_report(
         tags=req.tags,
     )
     try:
-        return await registry.reportService.create_report(report)
+        return await registry.reportService.create_report(report, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -118,10 +125,11 @@ async def get_report(
     bl_id: str,
     report_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> Report:
-    """获取报表详情（业务线隔离）."""
+    """获取报表详情（业务线隔离 + 租户隔离）."""
     try:
-        return await registry.reportService.get_report(bl_id, report_id)
+        return await registry.reportService.get_report(bl_id, report_id, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -136,11 +144,12 @@ async def update_report(
     report_id: str,
     req: UpdateReportRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> Report:
-    """更新报表."""
+    """更新报表（租户隔离校验业务线归属）."""
     patch: dict[str, Any] = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
-        return await registry.reportService.update_report(bl_id, report_id, patch)
+        return await registry.reportService.update_report(bl_id, report_id, patch, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -154,9 +163,10 @@ async def delete_report(
     bl_id: str,
     report_id: str,
     registry: ServiceRegistry = Depends(get_registry),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> None:
-    """删除报表."""
+    """删除报表（租户隔离校验业务线归属）."""
     try:
-        await registry.reportService.delete_report(bl_id, report_id)
+        await registry.reportService.delete_report(bl_id, report_id, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))

@@ -548,6 +548,28 @@ jobs:
         continue-on-error: true
         run: npm run test:coverage
 
+      - name: 前端覆盖率门禁
+        # 解析 coverage/coverage-summary.json 的 total.lines.pct，断言 ≥80%
+        # 阈值来源：scripts/coverage-gate.sh:17 FRONTEND_MIN_COVERAGE=80
+        # 与 Java/Go/Python 覆盖率门禁写法对齐（见 ci.yml 各 build-test job）
+        # 注：本 job defaults.working-directory 为 frontend/，故用相对路径
+        run: |
+          if [ ! -f "coverage/coverage-summary.json" ]; then
+            echo "::error::coverage/coverage-summary.json 不存在，前端覆盖率报告未生成，无法执行门禁检查"
+            exit 1
+          fi
+          pct=$(jq '.total.lines.pct' coverage/coverage-summary.json)
+          echo "前端行覆盖率: ${pct}%"
+          # 阈值 80%（与 coverage-gate.sh FRONTEND_MIN_COVERAGE 对齐）
+          THRESHOLD=80
+          # 使用 awk 做浮点比较（与 Go 覆盖率门禁一致，避免 bc 依赖）
+          below=$(awk -v c="$pct" -v t="$THRESHOLD" 'BEGIN { print (c < t) ? 1 : 0 }')
+          if [ "$below" = "1" ]; then
+            echo "::error::前端覆盖率 ${pct}% 低于门禁 ${THRESHOLD}%，阻断 CI"
+            exit 1
+          fi
+          echo "✓ 前端覆盖率达标（${pct}% ≥ ${THRESHOLD}%）"
+
       - name: 检查 bundle 大小
         run: |
           # 检查 dist 目录下是否有超过 1MB 的 chunk

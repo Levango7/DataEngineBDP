@@ -76,20 +76,21 @@ public class CloudProviderService {
      * @throws CloudProvider.CloudProviderException 云 API 调用失败
      */
     @Transactional
-    public CloudClusterInfo createCluster(String providerName, CloudClusterRequest request) {
+    public CloudClusterInfo createCluster(String providerName, CloudClusterRequest request, String tenantId) {
         CloudProvider provider = resolveProvider(providerName);
         String clusterId = UUID.randomUUID().toString();
-        log.info("Creating cloud cluster: provider={}, clusterId={}, name={}, nodeCount={}",
-                providerName, clusterId, request.getClusterName(), request.getNodeCount());
+        log.info("Creating cloud cluster: provider={}, clusterId={}, name={}, nodeCount={}, tenantId={}",
+                providerName, clusterId, request.getClusterName(), request.getNodeCount(), tenantId);
 
         // 1. 调用 Provider 创建 VM
         CloudClusterInfo info = provider.createVMs(clusterId, request);
 
-        // 2. 持久化元数据
+        // 2. 持久化元数据（注入租户 ID 实现租户隔离）
         CloudClusterEntity entity = CloudClusterEntity.builder()
                 .id(clusterId)
                 .clusterName(request.getClusterName())
                 .provider(providerName)
+                .tenantId(tenantId)
                 .workspaceId(request.getWorkspaceId())
                 .status(info.getStatus())
                 .nodeCount(request.getNodeCount())
@@ -117,18 +118,22 @@ public class CloudProviderService {
      * @return 销毁后的集群信息
      */
     @Transactional
-    public CloudClusterInfo destroyCluster(String providerName, String clusterId) {
+    public CloudClusterInfo destroyCluster(String providerName, String clusterId, String tenantId) {
         CloudProvider provider = resolveProvider(providerName);
-        log.info("Destroying cloud cluster: provider={}, clusterId={}", providerName, clusterId);
+        log.info("Destroying cloud cluster: provider={}, clusterId={}, tenantId={}", providerName, clusterId, tenantId);
+
+        // 租户隔离：校验集群归属当前租户
+        CloudClusterEntity entity = repository.findById(clusterId).orElse(null);
+        if (entity == null || !tenantId.equals(entity.getTenantId())) {
+            throw new IllegalArgumentException("Cluster not found or tenant mismatch: " + clusterId);
+        }
 
         CloudClusterInfo info = provider.destroyVMs(clusterId);
 
         // 更新元数据
-        repository.findById(clusterId).ifPresent(entity -> {
-            entity.setStatus("DELETED");
-            entity.setNodesJson(serializeNodes(info.getNodes()));
-            repository.save(entity);
-        });
+        entity.setStatus("DELETED");
+        entity.setNodesJson(serializeNodes(info.getNodes()));
+        repository.save(entity);
         return info;
     }
 
@@ -136,14 +141,17 @@ public class CloudProviderService {
      * 启动云集群。
      */
     @Transactional
-    public CloudClusterInfo startCluster(String providerName, String clusterId) {
+    public CloudClusterInfo startCluster(String providerName, String clusterId, String tenantId) {
         CloudProvider provider = resolveProvider(providerName);
-        log.info("Starting cloud cluster: provider={}, clusterId={}", providerName, clusterId);
+        log.info("Starting cloud cluster: provider={}, clusterId={}, tenantId={}", providerName, clusterId, tenantId);
+        // 租户隔离：校验集群归属
+        CloudClusterEntity entity = repository.findById(clusterId).orElse(null);
+        if (entity == null || !tenantId.equals(entity.getTenantId())) {
+            throw new IllegalArgumentException("Cluster not found or tenant mismatch: " + clusterId);
+        }
         CloudClusterInfo info = provider.startVMs(clusterId);
-        repository.findById(clusterId).ifPresent(entity -> {
-            entity.setStatus("RUNNING");
-            repository.save(entity);
-        });
+        entity.setStatus("RUNNING");
+        repository.save(entity);
         return info;
     }
 
@@ -151,22 +159,30 @@ public class CloudProviderService {
      * 停止云集群。
      */
     @Transactional
-    public CloudClusterInfo stopCluster(String providerName, String clusterId) {
+    public CloudClusterInfo stopCluster(String providerName, String clusterId, String tenantId) {
         CloudProvider provider = resolveProvider(providerName);
-        log.info("Stopping cloud cluster: provider={}, clusterId={}", providerName, clusterId);
+        log.info("Stopping cloud cluster: provider={}, clusterId={}, tenantId={}", providerName, clusterId, tenantId);
+        // 租户隔离：校验集群归属
+        CloudClusterEntity entity = repository.findById(clusterId).orElse(null);
+        if (entity == null || !tenantId.equals(entity.getTenantId())) {
+            throw new IllegalArgumentException("Cluster not found or tenant mismatch: " + clusterId);
+        }
         CloudClusterInfo info = provider.stopVMs(clusterId);
-        repository.findById(clusterId).ifPresent(entity -> {
-            entity.setStatus("STOPPED");
-            repository.save(entity);
-        });
+        entity.setStatus("STOPPED");
+        repository.save(entity);
         return info;
     }
 
     /**
      * 查询云集群。
      */
-    public CloudClusterInfo getCluster(String providerName, String clusterId) {
+    public CloudClusterInfo getCluster(String providerName, String clusterId, String tenantId) {
         CloudProvider provider = resolveProvider(providerName);
+        // 租户隔离：校验集群归属，不属于当前租户则返回 null（Controller 转 404）
+        CloudClusterEntity entity = repository.findById(clusterId).orElse(null);
+        if (entity == null || !tenantId.equals(entity.getTenantId())) {
+            return null;
+        }
         return provider.getVMInfo(clusterId);
     }
 
@@ -174,24 +190,31 @@ public class CloudProviderService {
      * 扩缩容云集群。
      */
     @Transactional
-    public CloudClusterInfo scaleCluster(String providerName, String clusterId, int targetNodeCount) {
+    public CloudClusterInfo scaleCluster(String providerName, String clusterId, int targetNodeCount, String tenantId) {
         CloudProvider provider = resolveProvider(providerName);
-        log.info("Scaling cloud cluster: provider={}, clusterId={}, target={}",
-                providerName, clusterId, targetNodeCount);
+        log.info("Scaling cloud cluster: provider={}, clusterId={}, target={}, tenantId={}",
+                providerName, clusterId, targetNodeCount, tenantId);
+        // 租户隔离：校验集群归属
+        CloudClusterEntity entity = repository.findById(clusterId).orElse(null);
+        if (entity == null || !tenantId.equals(entity.getTenantId())) {
+            throw new IllegalArgumentException("Cluster not found or tenant mismatch: " + clusterId);
+        }
         CloudClusterInfo info = provider.scaleVMs(clusterId, targetNodeCount);
-        repository.findById(clusterId).ifPresent(entity -> {
-            entity.setNodeCount(targetNodeCount);
-            repository.save(entity);
-        });
+        entity.setNodeCount(targetNodeCount);
+        repository.save(entity);
         return info;
     }
 
     /**
-     * 列出指定 provider 的所有集群。
+     * 列出指定 provider 与租户的集群（租户隔离）。
+     *
+     * @param providerName 云 provider 标识
+     * @param tenantId     租户 ID
+     * @return 集群列表
      */
-    public List<CloudClusterInfo> listClusters(String providerName) {
+    public List<CloudClusterInfo> listClusters(String providerName, String tenantId) {
         resolveProvider(providerName);
-        return repository.findByProvider(providerName).stream()
+        return repository.findByProviderAndTenantId(providerName, tenantId).stream()
                 .map(this::entityToInfo)
                 .toList();
     }

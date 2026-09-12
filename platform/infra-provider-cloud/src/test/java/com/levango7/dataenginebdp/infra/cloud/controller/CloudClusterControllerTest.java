@@ -1,11 +1,14 @@
 package com.levango7.dataenginebdp.infra.cloud.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterInfo;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterRequest;
 import com.levango7.dataenginebdp.infra.cloud.model.ClusterScaleRequest;
 import com.levango7.dataenginebdp.infra.cloud.model.VMSpec;
 import com.levango7.dataenginebdp.infra.cloud.service.CloudProviderService;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,6 +50,17 @@ class CloudClusterControllerTest {
     @MockitoBean
     private CloudProviderService cloudProviderService;
 
+    @BeforeEach
+    void setUp() {
+        // 模拟 JWT 过滤器注入的租户上下文
+        TenantContext.setTenantId("tenant-test");
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
+    }
+
     @Test
     @DisplayName("GET /api/v1/clusters/cloud/providers 返回支持的 provider 列表")
     void listProvidersShouldReturn200() throws Exception {
@@ -65,7 +79,7 @@ class CloudClusterControllerTest {
     void listClustersShouldReturn200() throws Exception {
         CloudClusterInfo info = CloudClusterInfo.builder()
                 .clusterId("c1").clusterName("test").provider("huawei").status("RUNNING").build();
-        when(cloudProviderService.listClusters(anyString()))
+        when(cloudProviderService.listClusters(anyString(), anyString()))
                 .thenReturn(List.of(info));
 
         mockMvc.perform(get("/api/v1/clusters/cloud/huawei"))
@@ -76,7 +90,7 @@ class CloudClusterControllerTest {
     @Test
     @DisplayName("GET /api/v1/clusters/cloud/{provider}/{id} 集群不存在返回 404")
     void getClusterNotFoundShouldReturn404() throws Exception {
-        when(cloudProviderService.getCluster(anyString(), anyString()))
+        when(cloudProviderService.getCluster(anyString(), anyString(), anyString()))
                 .thenReturn(null);
 
         mockMvc.perform(get("/api/v1/clusters/cloud/huawei/non-existent"))
@@ -88,7 +102,7 @@ class CloudClusterControllerTest {
     void destroyClusterShouldReturn200() throws Exception {
         CloudClusterInfo info = CloudClusterInfo.builder()
                 .clusterId("c1").status("DELETED").build();
-        when(cloudProviderService.destroyCluster(anyString(), anyString()))
+        when(cloudProviderService.destroyCluster(anyString(), anyString(), anyString()))
                 .thenReturn(info);
 
         mockMvc.perform(delete("/api/v1/clusters/cloud/huawei/c1"))
@@ -101,7 +115,7 @@ class CloudClusterControllerTest {
     void scaleClusterShouldReturn200() throws Exception {
         CloudClusterInfo info = CloudClusterInfo.builder()
                 .clusterId("c1").status("RUNNING").build();
-        when(cloudProviderService.scaleCluster(anyString(), anyString(), anyInt()))
+        when(cloudProviderService.scaleCluster(anyString(), anyString(), anyInt(), anyString()))
                 .thenReturn(info);
 
         ClusterScaleRequest req = ClusterScaleRequest.builder()

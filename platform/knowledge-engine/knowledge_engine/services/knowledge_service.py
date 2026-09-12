@@ -51,22 +51,59 @@ class KnowledgeService:
         self.store = store
         self.entityExtractor = entity_extractor
         self.relationExtractor = relation_extractor
+        # 空间归属租户映射：space_name -> tenantId
+        # Mock 模式下内存态；生产环境应持久化到元数据存储
+        self._space_tenants: dict[str, str] = {}
 
     async def create_space(
         self,
         space_name: str,
         schema: GraphSchema | None = None,
+        tenant_id: str | None = None,
     ) -> None:
-        """创建知识空间（Schema 缺省时为空 Schema）."""
+        """创建知识空间（Schema 缺省时为空 Schema）.
+
+        Args:
+            space_name: 空间名。
+            schema: 图模式。
+            tenant_id: 归属租户 ID（用于租户隔离）。
+        """
         await self.store.create_space(space_name, schema or GraphSchema())
+        if tenant_id:
+            self._space_tenants[space_name] = tenant_id
 
     async def drop_space(self, space_name: str) -> None:
         """删除知识空间."""
         await self.store.drop_space(space_name)
+        self._space_tenants.pop(space_name, None)
 
     async def list_spaces(self) -> list[str]:
         """列出所有知识空间."""
         return await self.store.list_spaces()
+
+    def get_space_tenant(self, space_name: str) -> str | None:
+        """获取空间归属租户 ID.
+
+        Returns:
+            tenantId 或 None（未记录归属时返回 None，admin 可访问）。
+        """
+        return self._space_tenants.get(space_name)
+
+    async def list_spaces_for_tenant(self, tenant_id: str, role: str) -> list[str]:
+        """列出知识空间（按租户隔离）.
+
+        Args:
+            tenant_id: 租户 ID。
+            role: 角色（admin 可见全部）。
+
+        Returns:
+            空间名列表。
+        """
+        all_spaces = await self.store.list_spaces()
+        if role == "admin":
+            return all_spaces
+        # 普通用户仅可见本租户空间；未记录归属的空间对非 admin 不可见
+        return [s for s in all_spaces if self._space_tenants.get(s) == tenant_id]
 
     async def extract(
         self,

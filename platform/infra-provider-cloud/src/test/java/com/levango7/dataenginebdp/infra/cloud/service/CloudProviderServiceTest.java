@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.infra.cloud.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterEntity;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterInfo;
 import com.levango7.dataenginebdp.infra.cloud.model.CloudClusterRequest;
 import com.levango7.dataenginebdp.infra.cloud.model.VMSpec;
@@ -15,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -65,14 +67,14 @@ class CloudProviderServiceTest {
     void unsupportedProviderShouldThrow() {
         CloudClusterRequest request = buildSampleRequest();
         assertThrows(IllegalArgumentException.class,
-                () -> service.createCluster("aws", request));
+                () -> service.createCluster("aws", request, "tenant-1"));
     }
 
     @Test
     @DisplayName("createCluster 路由到正确 provider 并返回集群信息")
     void createClusterShouldRouteToCorrectProvider() {
         CloudClusterRequest request = buildSampleRequest();
-        CloudClusterInfo info = service.createCluster("huawei", request);
+        CloudClusterInfo info = service.createCluster("huawei", request, "tenant-1");
         assertEquals("huawei", info.getProvider());
         assertEquals("ws-test-cluster", info.getClusterName());
     }
@@ -80,7 +82,19 @@ class CloudProviderServiceTest {
     @Test
     @DisplayName("getCluster 返回 provider 查询结果")
     void getClusterShouldReturnProviderResult() {
-        CloudClusterInfo info = service.getCluster("ali", "cluster-001");
+        // mock repository 返回属于当前租户的集群实体
+        CloudClusterEntity entity = CloudClusterEntity.builder()
+                .id("cluster-001")
+                .clusterName("test")
+                .provider("ali")
+                .tenantId("tenant-1")
+                .workspaceId("ws-test")
+                .status("RUNNING")
+                .nodeCount(3)
+                .build();
+        when(repository.findById("cluster-001")).thenReturn(Optional.of(entity));
+
+        CloudClusterInfo info = service.getCluster("ali", "cluster-001", "tenant-1");
         assertEquals("ali", info.getProvider());
     }
 

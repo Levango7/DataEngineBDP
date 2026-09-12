@@ -28,7 +28,9 @@ import java.time.Instant;
         indexes = {
                 @Index(name = "idx_cloud_cluster_provider", columnList = "provider"),
                 @Index(name = "idx_cloud_cluster_workspace", columnList = "workspace_id"),
-                @Index(name = "idx_cloud_cluster_status", columnList = "status")
+                @Index(name = "idx_cloud_cluster_status", columnList = "status"),
+                @Index(name = "idx_cloud_cluster_tenant", columnList = "tenant_id"),
+                @Index(name = "idx_cloud_cluster_provider_tenant", columnList = "provider,tenant_id")
         })
 @Data
 @Builder
@@ -49,6 +51,10 @@ public class CloudClusterEntity {
     /** 云 provider 标识：huawei / ali / tencent */
     @Column(nullable = false, length = 16)
     private String provider;
+
+    /** 租户 ID（来自 JWT，用于租户隔离） */
+    @Column(name = "tenant_id", length = 64)
+    private String tenantId;
 
     /** 工作空间 ID */
     @Column(nullable = false, length = 64)

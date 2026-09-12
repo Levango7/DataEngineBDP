@@ -51,6 +51,7 @@ class TrainingService:
             id=jobId,
             config=config,
             status=TrainingStatus.PENDING,
+            tenantId=config.tenantId,
         )
         self._jobs[jobId] = job
 

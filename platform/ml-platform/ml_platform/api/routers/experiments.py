@@ -5,6 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 
+from ml_platform.api.jwt_auth import AuthContext, getAuthContext
 from ml_platform.api.routers.deps import getRegistry, statusForError
 from ml_platform.models import ExperimentConfig, ExperimentInfo
 from ml_platform.repositories import MlPlatformError
@@ -35,6 +36,17 @@ class LogParamsRequest(BaseModel):
     params: dict = Field(..., description="参数")
 
 
+def _require_experiment_owner(experiment: ExperimentInfo, ctx: AuthContext) -> None:
+    """对象级授权：校验 ctx 对 experiment 有操作权限.
+
+    admin 或实验所属租户可操作；其他返回 404（避免泄露存在性）。
+    """
+    if ctx.role == "admin":
+        return
+    if ctx.tenantId and getattr(experiment, "tenantId", None) != ctx.tenantId:
+        raise HTTPException(status_code=404, detail="实验不存在")
+
+
 @router.post(
     "",
     response_model=ExperimentInfo,
@@ -44,7 +56,12 @@ class LogParamsRequest(BaseModel):
 async def createExperiment(
     body: CreateExperimentRequest,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """创建实验.
+
+    租户隔离：实验归属当前请求租户 ctx.tenantId。
+    """
     try:
         config = ExperimentConfig(
             name=body.name,
@@ -52,6 +69,7 @@ async def createExperiment(
             projectId=body.projectId,
             description=body.description,
             tags=body.tags,
+            tenantId=ctx.tenantId,
         )
         return await registry.experimentService.createExperiment(config)
     except MlPlatformError as e:
@@ -65,8 +83,15 @@ async def createExperiment(
 )
 async def listExperiments(
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
-    return await registry.experimentService.listExperiments()
+    """列出实验（按租户隔离：普通用户仅见本租户实验，admin 可见全部）."""
+    experiments = await registry.experimentService.listExperiments()
+    if ctx.role != "admin" and ctx.tenantId:
+        experiments = [
+            e for e in experiments if getattr(e, "tenantId", None) == ctx.tenantId
+        ]
+    return experiments
 
 
 @router.get(
@@ -77,9 +102,16 @@ async def listExperiments(
 async def getExperiment(
     experimentId: str,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """获取实验详情.
+
+    租户隔离：非 admin 仅可查看本租户实验。
+    """
     try:
-        return await registry.experimentService.getExperiment(experimentId)
+        experiment = await registry.experimentService.getExperiment(experimentId)
+        _require_experiment_owner(experiment, ctx)
+        return experiment
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))
 
@@ -92,8 +124,15 @@ async def getExperiment(
 async def deleteExperiment(
     experimentId: str,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """删除实验.
+
+    租户隔离：非 admin 仅可删除本租户实验。
+    """
     try:
+        experiment = await registry.experimentService.getExperiment(experimentId)
+        _require_experiment_owner(experiment, ctx)
         await registry.experimentService.deleteExperiment(experimentId)
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))
@@ -108,8 +147,15 @@ async def logMetrics(
     experimentId: str,
     body: LogMetricsRequest,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """记录指标.
+
+    租户隔离：非 admin 仅可记录本租户实验指标。
+    """
     try:
+        experiment = await registry.experimentService.getExperiment(experimentId)
+        _require_experiment_owner(experiment, ctx)
         return await registry.experimentService.logMetrics(experimentId, body.metrics)
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))
@@ -124,8 +170,15 @@ async def logParams(
     experimentId: str,
     body: LogParamsRequest,
     registry: ServiceRegistry = Depends(getRegistry),
+    ctx: AuthContext = Depends(getAuthContext),
 ):
+    """记录参数.
+
+    租户隔离：非 admin 仅可记录本租户实验参数。
+    """
     try:
+        experiment = await registry.experimentService.getExperiment(experimentId)
+        _require_experiment_owner(experiment, ctx)
         return await registry.experimentService.logParams(experimentId, body.params)
     except MlPlatformError as e:
         raise HTTPException(status_code=statusForError(e), detail=str(e))

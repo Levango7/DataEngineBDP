@@ -19,7 +19,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 
-from knowledge_engine.api.jwt_auth import loadAuthSettings
+from knowledge_engine.api.jwt_auth import AuthContext, getAuthContext, loadAuthSettings
 from knowledge_engine.api.routers.deps import get_registry, status_for_error
 from knowledge_engine.models.entity import Entity
 from knowledge_engine.models.graph import (
@@ -32,6 +32,22 @@ from knowledge_engine.repositories import KnowledgeEngineError
 from knowledge_engine.services.registry import ServiceRegistry
 
 router = APIRouter(prefix="/spaces", tags=["spaces"])
+
+
+def _require_space_owner(registry: ServiceRegistry, space_name: str, ctx: AuthContext) -> None:
+    """对象级授权：校验 ctx 对 space_name 有操作权限.
+
+    admin 或空间所属租户可操作；其他返回 403。
+    未记录归属的空间仅 admin 可操作（向后兼容：旧空间无归属记录）。
+
+    Raises:
+        HTTPException: 403 无权操作。
+    """
+    if ctx.role == "admin":
+        return
+    space_tenant = registry.knowledgeService.get_space_tenant(space_name)
+    if space_tenant is None or space_tenant != ctx.tenantId:
+        raise HTTPException(status_code=403, detail="无权操作此知识空间")
 
 
 # ---------- 请求/响应模型 ----------
@@ -119,10 +135,14 @@ class InsertSummaryResponse(BaseModel):
 async def create_space(
     req: CreateSpaceRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> dict:
-    """创建一个知识空间（图空间）."""
+    """创建一个知识空间（图空间）.
+
+    租户隔离：空间归属当前请求租户 ctx.tenantId。
+    """
     try:
-        await registry.knowledgeService.create_space(req.name, req.schema_)
+        await registry.knowledgeService.create_space(req.name, req.schema_, tenant_id=ctx.tenantId)
         return {"name": req.name, "status": "created"}
     except KnowledgeEngineError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
@@ -137,9 +157,10 @@ async def create_space(
 )
 async def list_spaces(
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[str]:
-    """列出所有知识空间."""
-    return await registry.knowledgeService.list_spaces()
+    """列出知识空间（按租户隔离：普通用户仅见本租户空间，admin 可见全部）."""
+    return await registry.knowledgeService.list_spaces_for_tenant(ctx.tenantId, ctx.role)
 
 
 @router.delete(
@@ -151,8 +172,13 @@ async def list_spaces(
 async def drop_space(
     name: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> None:
-    """删除知识空间."""
+    """删除知识空间.
+
+    租户隔离：仅空间归属租户或 admin 可删除。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         await registry.knowledgeService.drop_space(name)
     except KnowledgeEngineError as exc:
@@ -170,8 +196,13 @@ async def insert_entities(
     name: str,
     req: InsertEntitiesRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> InsertSummaryResponse:
-    """直接插入实体（跳过抽取）."""
+    """直接插入实体（跳过抽取）.
+
+    租户隔离：仅空间归属租户或 admin 可操作。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         count = await registry.knowledgeService.insert_entities(name, req.entities)
         return InsertSummaryResponse(inserted=count)
@@ -190,8 +221,13 @@ async def insert_edges(
     name: str,
     req: InsertEdgesRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> InsertSummaryResponse:
-    """直接插入关系（跳过抽取）."""
+    """直接插入关系（跳过抽取）.
+
+    租户隔离：仅空间归属租户或 admin 可操作。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         count = await registry.knowledgeService.insert_relations(name, req.edges)
         return InsertSummaryResponse(inserted=count)
@@ -210,8 +246,13 @@ async def extract(
     name: str,
     req: ExtractRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> ExtractResponse:
-    """从文本抽取实体与关系（不写入图存储）."""
+    """从文本抽取实体与关系（不写入图存储）.
+
+    租户隔离：仅空间归属租户或 admin 可操作。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         result = await registry.knowledgeService.extract(name, req.text, req.entityTypes)
         return ExtractResponse(entities=result.entities, relations=result.relations)
@@ -228,8 +269,13 @@ async def build(
     name: str,
     req: BuildRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> BuildResponse:
-    """从文本构建知识图谱：抽取 + 写入图存储."""
+    """从文本构建知识图谱：抽取 + 写入图存储.
+
+    租户隔离：仅空间归属租户或 admin 可操作。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         result = await registry.knowledgeService.build(name, req.text, req.entityTypes)
         return BuildResponse(
@@ -254,8 +300,13 @@ async def get_vertex(
     name: str,
     vid: str,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> Vertex:
-    """根据 ID 查询顶点."""
+    """根据 ID 查询顶点.
+
+    租户隔离：仅空间归属租户或 admin 可查询。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         return await registry.queryService.get_vertex(name, vid)
     except KnowledgeEngineError as exc:
@@ -274,8 +325,13 @@ async def get_neighbors(
     vid: str,
     edgeType: list[str] | None = Query(default=None, description="限定边类型（可多次传）"),
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Vertex]:
-    """查询顶点的邻居."""
+    """查询顶点的邻居.
+
+    租户隔离：仅空间归属租户或 admin 可查询。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         return await registry.queryService.get_neighbors(name, vid, edgeType)
     except KnowledgeEngineError as exc:
@@ -293,15 +349,19 @@ async def query(
     name: str,
     req: QueryRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> QueryResult:
     """执行原生图查询（nGQL/GQL）.
 
     原生语句可包含任意 DDL/DML，必须至少要求已认证身份：
     AUTH_MODE=none（匿名放行）时直接 403 拒绝。
+
+    租户隔离：仅空间归属租户或 admin 可查询。
     """
     mode, _, _ = loadAuthSettings()
     if mode == "none":
         raise HTTPException(status_code=403, detail="匿名模式禁止执行原生 nGQL 查询")
+    _require_space_owner(registry, name, ctx)
     try:
         return await registry.queryService.query(name, req.nql)
     except KnowledgeEngineError as exc:
@@ -319,8 +379,13 @@ async def shortest_path(
     name: str,
     req: ShortestPathRequest,
     registry: ServiceRegistry = Depends(get_registry),
+    ctx: AuthContext = Depends(getAuthContext),
 ) -> list[Vertex]:
-    """最短路径查询（BFS）."""
+    """最短路径查询（BFS）.
+
+    租户隔离：仅空间归属租户或 admin 可查询。
+    """
+    _require_space_owner(registry, name, ctx)
     try:
         return await registry.queryService.shortest_path(name, req.srcId, req.dstId)
     except KnowledgeEngineError as exc:

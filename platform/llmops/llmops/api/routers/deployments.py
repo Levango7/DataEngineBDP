@@ -24,7 +24,12 @@ async def deploy_model(
     registry: ServiceRegistry = Depends(get_registry),
     ctx: AuthContext = Depends(getAuthContext),
 ) -> Deployment:
-    """部署模型到推理端点（注册到 L4.5.6 大模型网关）."""
+    """部署模型到推理端点（注册到 L4.5.6 大模型网关）.
+
+    租户隔离：部署归属当前请求租户 ctx.tenantId。
+    """
+    # 注入租户 ID 到 config，由 deployer 写入 Deployment 实体
+    config.tenantId = ctx.tenantId
     try:
         return await registry.deploymentService.deploy_model(config.modelId, config)
     except LlmopsError as exc:

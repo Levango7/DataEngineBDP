@@ -42,6 +42,7 @@ class MockExperimentStore(ExperimentStore):
             name=config.name,
             status=ExperimentStatus.ACTIVE,
             config=config,
+            tenantId=config.tenantId,
         )
         info.createdAt = now
         info.updatedAt = now

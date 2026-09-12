@@ -93,7 +93,7 @@ pass "catalog JWT 密钥长度: $key_len 字符"
 
 # 7. Helm Chart 渲染验证（四环境 Profile）
 log "验证四环境 Profile 渲染..."
-for env in xinchuang onprem public-cloud private-cloud; do
+for env in xinchuang onprem publiccloud privatecloud; do
   helm template test design/deploy/charts/dataenginebdp-umbrella \
     -f deploy/local/values-local-core.yaml \
     --set global.env="$env" >/dev/null 2>&1 || fail "Profile $env 渲染失败"

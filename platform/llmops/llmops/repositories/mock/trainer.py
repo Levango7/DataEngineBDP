@@ -46,6 +46,7 @@ class MockModelTrainer(ModelTrainer):
                 currentEpoch=0,
                 totalEpochs=config.epochs,
             ),
+            tenantId=config.tenantId,
         )
         self._jobs[job_id] = job
         return job_id

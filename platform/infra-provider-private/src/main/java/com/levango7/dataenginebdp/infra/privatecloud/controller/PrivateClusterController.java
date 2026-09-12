@@ -151,6 +151,11 @@ public class PrivateClusterController {
         if (cluster == null || !provider.equals(cluster.getProvider())) {
             return ResponseEntity.notFound().build();
         }
+        // 租户隔离：校验集群归属当前租户，防止越权销毁
+        String currentTenant = TenantContext.getTenantId();
+        if (cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
+            return ResponseEntity.notFound().build();
+        }
 
         log.info("销毁私有云集群: provider={} clusterId={}", provider, id);
         cluster.setStatus("DELETING");
@@ -186,6 +191,11 @@ public class PrivateClusterController {
         if (cluster == null || !provider.equals(cluster.getProvider())) {
             return ResponseEntity.notFound().build();
         }
+        // 租户隔离：校验集群归属当前租户，防止越权查询
+        String currentTenant = TenantContext.getTenantId();
+        if (cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
+            return ResponseEntity.notFound().build();
+        }
 
         fillVms(cluster);
         // 实时刷新 VM 状态
@@ -213,9 +223,8 @@ public class PrivateClusterController {
         if (tenantId != null) {
             clusters = repository.findByTenantIdAndProvider(tenantId, provider);
         } else {
-            clusters = repository.findAll().stream()
-                    .filter(c -> provider.equals(c.getProvider()))
-                    .toList();
+            // 缺少租户上下文时返回空列表，避免跨租户数据泄漏
+            clusters = List.of();
         }
         clusters.forEach(this::fillVms);
         return ResponseEntity.ok(clusters);
@@ -237,6 +246,11 @@ public class PrivateClusterController {
         PrivateCloudProvider p = resolveProvider(provider);
         PrivateClusterInfo cluster = repository.findById(id).orElse(null);
         if (cluster == null || !provider.equals(cluster.getProvider())) {
+            return ResponseEntity.notFound().build();
+        }
+        // 租户隔离：校验集群归属当前租户，防止越权扩缩容
+        String currentTenant = TenantContext.getTenantId();
+        if (cluster.getTenantId() == null || !cluster.getTenantId().equals(currentTenant)) {
             return ResponseEntity.notFound().build();
         }
 
