@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.datastandard.model.dto;
 
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -31,7 +32,8 @@ public class StandardQueryDTO {
     /** 页码（从 0 开始） */
     private Integer page;
 
-    /** 每页大小 */
+    /** 每页大小（最大 100，防止 OOM） */
+    @Max(value = 100, message = "每页大小不能超过 100")
     private Integer size;
 
     /**

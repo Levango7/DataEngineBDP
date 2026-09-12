@@ -8,9 +8,11 @@
 set -euo pipefail
 
 # 门禁阈值（百分比）
-JAVA_MIN_COVERAGE=70
-GO_MIN_COVERAGE=70
-PYTHON_MIN_COVERAGE=70
+# 与 ci.yml 保持一致：Java 40% / Go 30% / Python 55% / 前端 80%
+# （2026-09-12 R6-4 对齐，原值 70/70/70/80 与 ci.yml 不一致）
+JAVA_MIN_COVERAGE=40
+GO_MIN_COVERAGE=30
+PYTHON_MIN_COVERAGE=55
 FRONTEND_MIN_COVERAGE=80
 
 # 颜色

@@ -10,11 +10,11 @@
 
 | 核实项 | 实测结果 | 与问题描述对照 |
 |--------|----------|----------------|
-| platform/ 子目录数 | 39 个（实测 `ls -d */`） | 与"39(platform/)"口径一致 |
-| component-maturity.md 组件数 | 45 个（含子模块：governance 3 + finops 3 + karmada 3） | 与"45(README)"口径一致 |
+| platform/ 子目录数 | 38 个（实测 `ls -d */`） | 与"38(platform/)"口径一致 |
+| component-maturity.md 组件数 | 45 个（含子模块：governance 3 + finops 2 + karmada 3） | 与"45(README)"口径一致 |
 | 设计文档模块数 | 49 个（§3.3 产品能力全景图） | 与"49(设计)"口径一致 |
-| ADR-001 部署单元数 | 41 个（Java×22 / Go×10 / Python×13） | 与"41(矩阵)"口径一致 |
-| 骨架组件数 | 13 个（component-maturity.md §三明确列出） | 与"13个骨架"一致 |
+| ADR-001 部署单元数 | 41 个（Java×21 / Go×9 / Python×11，扣 4 库形态） | 与"41(矩阵)"口径一致 |
+| 骨架组件数 | 15 个（component-maturity.md §三明确列出） | 与"15个骨架"一致 |
 | AI 层骨架 | vector-engine/llm-gateway/llmops/ml-platform/knowledge-engine/model-finetuning/registry 等 8 个骨架 | "AI层6个中5个骨架"基本属实 |
 | 多集群联邦 | karmada/api + failover + federated-query 三子模块均骨架 | 与"3个全骨架"一致 |
 | rule-engine 职责 | README 明确 DQ + MASK + ALERT 三项 | 与"职责过载"一致 |
@@ -29,11 +29,11 @@
 
 ## 一、高严重度（1个）
 
-### 问题1：过度设计——13个骨架组件
+### 问题1：过度设计——15个骨架组件
 - **严重程度**：高
-- **问题描述**：45个组件中13个为骨架/Mock（component-maturity.md §三），AI层8个骨架（vector-engine/llm-gateway/llmops/ml-platform/knowledge-engine/model-finetuning/registry/llm-gateway-evaluation），多集群联邦3个全骨架（karmada-api/failover/federated-query）。在80%完成度下铺面过广，维护负担与交付信心倒挂。
+- **问题描述**：45个组件中15个为骨架/Mock（component-maturity.md §三），AI层8个骨架（vector-engine/llm-gateway/llmops/ml-platform/knowledge-engine/model-finetuning/registry/llm-gateway-evaluation），多集群联邦3个全骨架（karmada-api/failover/federated-query）。在80%完成度下铺面过广，维护负担与交付信心倒挂。
 - **修复方案**：
-  1. **冻结骨架组件扩展**：在 ROADMAP.md 新增"骨架冻结期"章节，v2.1~v2.2 周期内不再新增骨架组件，现有13个骨架组件标记为 `frozen-until-mvp`。
+  1. **冻结骨架组件扩展**：在 ROADMAP.md 新增"骨架冻结期"章节，v2.1~v2.2 周期内不再新增骨架组件，现有15个骨架组件标记为 `frozen-until-mvp`。
   2. **分类处置**：
      - **优先激活**（有真实需求）：knowledge-engine（RAG 链路）、llm-gateway（AI 入口）→ v2.2 切真实实现
      - **合并降维**：karmada 三子模块合并为单一 `karmada-federation` 组件（见问题14）；llm-gateway-evaluation 并入 llm-gateway
@@ -233,15 +233,15 @@
 
 ### 问题11：模块数口径不一致
 - **严重程度**：中
-- **问题描述**：49(设计文档 §3.3) vs 44(component-maturity.md/README) vs 41(ADR-001) vs 39(platform/ 实测) 四种口径并存，文档间矛盾。
+- **问题描述**：49(设计文档 §3.3) vs 45(component-maturity.md/README) vs 41(ADR-001) vs 38(platform/ 实测) 四种口径并存，文档间矛盾。
 - **修复方案**：
   1. **统一定义四种口径**（在 docs/ 新增 `模块数口径定义.md`）：
      - **设计模块数 49**：产品原型设计 §3.3 的逻辑模块清单（含未实现规划模块）
-     - **自研组件数 44**：component-maturity.md 的组件数（含子模块拆分：governance 3 + finops 2 + karmada 3）
+     - **自研组件数 45**：component-maturity.md 的组件数（含子模块拆分：governance 3 + finops 2 + karmada 3）
      - **独立部署单元 41**：ADR-001 的部署单元数（按构建文件 pom.xml/go.mod/pyproject.toml 实测，部分组件共享构建）
-     - **platform/ 目录数 39**：platform/ 下的一级子目录数（部分子模块在同一目录下）
+     - **platform/ 目录数 38**：platform/ 下的一级子目录数（部分子模块在同一目录下）
   2. **在所有文档统一引用**：README.md / ROADMAP.md / component-maturity.md 顶部新增"口径说明"小节，引用 `模块数口径定义.md`。
-  3. **在 component-maturity.md 新增"口径对照表"**：明确 49→44→41→39 的映射关系。
+  3. **在 component-maturity.md 新增"口径对照表"**：明确 49→45→42→41→38 的映射关系。
   4. **CI 校验**：新增 `scripts/verify-module-count.sh`，自动统计四种口径并校验与文档声明一致。
 - **成本性**：1/5 — 纯文档统一与脚本编写，约2-3人天
 - **风险性**：1/5 — 文档级变更
@@ -354,11 +354,11 @@
 - **严重程度**：低
 - **问题描述**：component-maturity.md 标题"45个自研组件"但矩阵实列 22(真实可部署) + 7(服务级) + 15(骨架) = 44 个条目，标题与矩阵实列数不一致。
 - **修复方案**：
-  1. **核实矩阵实列数**：24 + 6 + 13 = 43 个组件条目（标题45含子模块拆分）。
+  1. **核实矩阵实列数**：22 + 7 + 15 = 44 个组件条目（标题45含子模块拆分，矩阵实列42条因governance/finops合并显示）。
   2. **统一口径**（与问题11联动）：
-     - 标题改为"45 个自研组件（含子模块拆分：governance 3 + finops 3 + karmada 3，矩阵实列 42 条）"
-     - 或调整矩阵：将 governance/finops/karmada 子模块拆为独立条目，使矩阵实列 44 条
-  3. **推荐方案**：矩阵拆分子模块为独立条目（与 platform/ 目录结构对齐），使标题=矩阵实列=44。
+     - 标题改为"45 个自研组件（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 42 条）"
+     - 或调整矩阵：将 governance/finops/karmada 子模块拆为独立条目，使矩阵实列 42 条
+  3. **推荐方案**：矩阵拆分子模块为独立条目（与 platform/ 目录结构对齐），使标题45=自研组件数45。
   4. **在 component-maturity.md 新增"子模块拆分说明"**：明确 governance 拆为 metadata-collector/lineage-analyzer/real-time-pipeline 等。
 - **成本性**：1/5 — 矩阵调整约1-2人天
 - **风险性**：1/5 — 文档级变更
@@ -374,7 +374,7 @@
 
 | 问题 | 严重程度 | 成本性 | 风险性 | 收益性 | 兼容性 | 可持续性 | 五维总分 | 评审结论 |
 |------|----------|--------|--------|--------|--------|----------|----------|----------|
-| 1. 过度设计13骨架 | 高 | 3 | 2 | 5 | 4 | 5 | 19/25 | ✅ 推荐做 |
+| 1. 过度设计15骨架 | 高 | 3 | 2 | 5 | 4 | 5 | 19/25 | ✅ 推荐做 |
 | 2. 产品定位雄心过大 | 中 | 1 | 1 | 4 | 5 | 4 | 15/25 | ✅ 推荐做 |
 | 3. SaaS与私有化矛盾 | 中 | 2 | 2 | 4 | 5 | 4 | 17/25 | ✅ 推荐做 |
 | 4. 出账闭环未实现 | 中 | 4 | 3 | 4 | 4 | 4 | 19/25 | ✅ 推荐做 |
@@ -406,7 +406,7 @@
 | 优先级 | 问题 | 五维总分 | 成本性 | 收益性 | 建议批次 |
 |--------|------|----------|--------|--------|----------|
 | P1 | 问题9. 四环境验证未完成 | 21/25 | 4 | 5 | 批次1（v2.2，依赖客户环境） |
-| P2 | 问题1. 过度设计13骨架 | 19/25 | 3 | 5 | 批次1（v2.2，前置优化） |
+| P2 | 问题1. 过度设计15骨架 | 19/25 | 3 | 5 | 批次1（v2.2，前置优化） |
 | P3 | 问题4. 出账闭环未实现 | 19/25 | 4 | 4 | 批次2（v2.2，分阶段） |
 | P4 | 问题10. 监控告警闭环未落地 | 19/25 | 3 | 4 | 批次2（v2.2） |
 | P5 | 问题3. SaaS与私有化矛盾 | 17/25 | 2 | 4 | 批次1（v2.2，文档澄清） |
@@ -443,7 +443,7 @@
 
 ## 六、分阶段拆解（关键问题）
 
-### 问题1（过度设计13骨架）分阶段拆解
+### 问题1（过度设计15骨架）分阶段拆解
 
 | 阶段 | 内容 | 交付物 | 成本 |
 |------|------|--------|------|

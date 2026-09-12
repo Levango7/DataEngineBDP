@@ -270,16 +270,16 @@ function openUrl(): void {
 .type-badge.api,
 .type-badge.stream {
   background: var(--c-indigo-50, #eef0fb);
-  color: #4f6df5;
+  color: var(--ds-color-info-600);
 }
 .type-badge.model,
 .type-badge.notebook {
-  background: #fff7ed;
+  background: var(--ds-color-warning-50);
   color: var(--ds-color-warning-600);
 }
 .type-badge.dashboard,
 .type-badge.metric {
-  background: #fef2f2;
+  background: var(--ds-color-error-50);
   color: var(--ds-color-error-600);
 }
 .source-pill {
@@ -305,8 +305,8 @@ function openUrl(): void {
   line-height: 1.4;
 }
 .card-title :deep(mark) {
-  background: #fff3cd;
-  color: #8a6d3b;
+  background: var(--ds-color-warning-100);
+  color: var(--ds-color-warning-800);
   padding: 0 2px;
   border-radius: 2px;
 }
@@ -321,8 +321,8 @@ function openUrl(): void {
   overflow: hidden;
 }
 .card-desc :deep(mark) {
-  background: #fff3cd;
-  color: #8a6d3b;
+  background: var(--ds-color-warning-100);
+  color: var(--ds-color-warning-800);
   padding: 0 2px;
   border-radius: 2px;
 }

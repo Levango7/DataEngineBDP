@@ -1,5 +1,5 @@
 ﻿server:
-  port: 18086
+  port: ${STREAM_BATCH_SCHEDULER_PORT:18086}
 
 spring:
   application:

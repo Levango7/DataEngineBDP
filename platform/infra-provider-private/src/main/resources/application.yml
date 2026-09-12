@@ -1,5 +1,5 @@
 server:
-  port: 8084
+  port: ${INFRA_PROVIDER_PRIVATE_PORT:8084}
 
 spring:
   application:
@@ -22,7 +22,7 @@ spring:
         dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 
 management:

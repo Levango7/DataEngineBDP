@@ -298,7 +298,7 @@ onMounted(() => loadList())
 .stat {
   padding: 16px 18px;
   background: var(--ds-bg-surface);
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
@@ -320,7 +320,7 @@ onMounted(() => loadList())
 }
 .stat-lbl {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
 .appr-tenant-code,
@@ -328,24 +328,24 @@ onMounted(() => loadList())
   margin-left: 6px;
   font-family: var(--ds-font-family-mono);
   font-size: 12px;
-  color: #475569;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color: var(--ds-text-secondary);
+  background: var(--ds-bg-subtle);
+  border: 1px solid var(--ds-border-subtle);
   border-radius: 4px;
   padding: 1px 6px;
 }
 .appr-approved-by {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ds-text-tertiary);
 }
 .appr-confirm {
   margin: 0 0 12px;
   font-size: 14px;
-  color: #334155;
+  color: var(--ds-text-secondary);
   line-height: 1.7;
 }
 .appr-confirm b {
-  color: #1d4ed8;
+  color: var(--ds-color-primary-700);
   font-weight: 700;
 }
 </style>

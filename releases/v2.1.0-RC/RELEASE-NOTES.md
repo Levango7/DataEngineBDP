@@ -10,7 +10,8 @@
 | 产品名称 | 数据引擎大数据平台（DataEngineBDP） |
 | 版本号 | V2.1.0-RC |
 | 版本代号 | Borealis（北极光） |
-| 基线版本 | V2.0.0-RC（见 \eleases/v2.0.0/ERRATUM.md\） |
+| 基线版本 | V2.0.0-RC（见 \
+eleases/v2.0.0/ERRATUM.md\） |
 | 发布日期 | 2026-08-27 |
 | 版本类型 | Release Candidate（候选版本，非 GA） |
 | 仓库地址 | https://github.com/Levango7/DataEngineBDP |
@@ -125,11 +126,16 @@
 
 | 物料 | 路径 | 说明 |
 |---|---|---|
-| 发布说明 | \eleases/v2.1.0-RC/RELEASE-NOTES.md\ | 本文档 |
-| 升级脚本 | \eleases/v2.1.0-RC/upgrade-script.sh\ | V2.0→V2.1 差量升级 |
-| Helm Values | \eleases/v2.1.0-RC/helm-values.yaml\ | RC 版本完整配置 |
-| RC 检查清单 | \eleases/v2.1.0-RC/rc-checklist.md\ | 发布前/中/后检查项 |
-| 组件版本矩阵 | \eleases/v2.1.0-RC/component-matrix.md\ | 37 自研 + 第三方引擎 |
+| 发布说明 | \
+eleases/v2.1.0-RC/RELEASE-NOTES.md\ | 本文档 |
+| 升级脚本 | \
+eleases/v2.1.0-RC/upgrade-script.sh\ | V2.0→V2.1 差量升级 |
+| Helm Chart 仓库 | \design/deploy/charts/\ | 88 个 Chart（含 umbrella） |
+eleases/v2.1.0-RC/helm-values.yaml\ | RC 版本完整配置 |
+| RC 检查清单 | \
+eleases/v2.1.0-RC/rc-checklist.md\ | 发布前/中/后检查项 |
+| 组件版本矩阵 | \
+eleases/v2.1.0-RC/component-matrix.md\ | 37 自研 + 第三方引擎 |
 | Helm Chart 仓库 | \design/deploy/charts/\ | 87 个 Chart（含 umbrella） |
 | 容器镜像 | Harbor \shuqing/v2.1.0-RC/*\ | ARM64+x86_64 manifest，cosign 签名 |
 | 用户文档 | \docs/user-guide/\ | 5 份文档（手册/运维/API/升级/模板） |

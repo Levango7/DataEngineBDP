@@ -78,6 +78,7 @@ class ExecuteResponse(BaseModel):
     """执行响应."""
 
     sql: str
+    params: list[Any] = Field(default_factory=list, description="参数化查询参数值（与 SQL 中 ? 占位符按序对应）")
     intent: Optional[Intent] = None
     validation: Optional[ValidationResult] = None
     gateway: Optional[dict[str, Any]] = None
@@ -133,6 +134,7 @@ class ConvertResponse(BaseModel):
     """NL → SQL 精简响应（兼容 ai-assistant Go 代理）."""
 
     sql: str = Field(description="生成的 SQL")
+    params: list[Any] = Field(default_factory=list, description="参数化查询参数值（与 SQL 中 ? 占位符按序对应）")
     dialect: str = Field(default="", description="SQL 方言")
     tables: list[str] = Field(default_factory=list, description="涉及表名")
     confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="置信度")
@@ -321,7 +323,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         else:
             confidence = 0.5
         dialect = (req.dialect or reg.settings.defaultEngine).upper()
-        return ConvertResponse(sql=gen.sql, dialect=dialect, tables=tables, confidence=confidence)
+        return ConvertResponse(sql=gen.sql, params=gen.params, dialect=dialect, tables=tables, confidence=confidence)
 
     @app.post(f"{prefix}/nl2sql/execute", response_model=ExecuteResponse)
     async def execute(req: ExecuteRequest, ctx: AuthContext = Depends(getAuthContext)) -> ExecuteResponse:
@@ -337,6 +339,7 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
         if gen.validation and not gen.validation.valid:
             return ExecuteResponse(
                 sql=gen.sql,
+                params=gen.params,
                 intent=gen.intent,
                 validation=gen.validation,
                 gateway=None,
@@ -347,9 +350,11 @@ def _registerRoutes(app: FastAPI, reg: ServiceRegistry, prefix: str) -> None:
             engine=req.engine,
             tenantId=_tenant,
             limit=req.limit,
+            params=gen.params,
         )
         return ExecuteResponse(
             sql=gen.sql,
+            params=gen.params,
             intent=gen.intent,
             validation=gen.validation,
             gateway=gw.model_dump(),

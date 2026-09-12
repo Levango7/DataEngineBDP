@@ -31,6 +31,14 @@ management:
     health:
       show-details: always
 
+# JWT 鉴权配置
+app:
+  security:
+    jwt:
+      # JWT 密钥必须外置，无默认值；开发/生产均通过环境变量 JWT_SECRET 注入
+      secret: ${JWT_SECRET}
+      issuer: ${JWT_ISSUER:shuqing-bigdata}
+
 # ============================================================================
 # 跨集群查询配置
 # ============================================================================

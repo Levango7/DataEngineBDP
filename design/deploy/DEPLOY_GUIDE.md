@@ -32,7 +32,7 @@ export ARGOCD_USER="admin"
 
 ```
 design/deploy/
-├── charts/                          # 83 个 Helm Chart
+├── charts/                          # 88 个 Helm Chart
 │   ├── encaps-layer/
 │   │   ├── Chart.yaml
 │   │   ├── values.yaml              # Chart 默认 values（骨架级）
@@ -236,7 +236,7 @@ argocd app list | grep prod- | grep -v Healthy
 ### 6.1 ApplicationSet 自动发现
 
 ```bash
-# 部署 ApplicationSet（自动为 83 个 Chart × 3 环境生成 Application）
+# 部署 ApplicationSet（自动为 88 个 Chart × 3 环境生成 Application）
 kubectl apply -f design/deploy/argocd/applicationset-all-components.yaml
 
 # 查看生成的 Application

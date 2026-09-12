@@ -76,7 +76,7 @@
         stripe
         border
         style="width: 100%"
-        :empty-text="error ? t('engines.kafka.loadFailed') : t('engines.spark.table.empty')"
+        :empty-text="error ? t('engines.spark.loadFailed') : t('engines.spark.table.empty')"
       >
         <el-table-column
           prop="name"

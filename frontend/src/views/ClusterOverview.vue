@@ -932,16 +932,16 @@ onUnmounted(() => {
   text-align: center;
 }
 .comp-card.healthy {
-  border-color: #bbf7d0;
-  background: #ecfdf5;
+  border-color: var(--ds-color-success-200);
+  background: var(--ds-color-success-50);
 }
 .comp-card.warning {
-  border-color: #fbbf24;
-  background: #fffbeb;
+  border-color: var(--ds-color-warning-400);
+  background: var(--ds-color-warning-50);
 }
 .comp-card.error {
   border-color: var(--ds-color-error-600);
-  background: #fef2f2;
+  background: var(--ds-color-error-50);
 }
 .comp-name {
   font-size: 14px;
@@ -984,5 +984,28 @@ onUnmounted(() => {
   color: var(--ds-color-error-600);
   text-align: center;
   padding: 20px;
+}
+</style>
+<!-- 暗色模式覆写（2026-09-12 修复）
+     必须放在 <style scoped> 之外（全局），否则 Vue scoped 编译
+     会把 :root[] + 复合选择器的后半段误处理为另一个 :root[]
+     导致选择器整体失效。同一文件内可有多个 <style> 块。 -->
+<style>
+/* ============================================================
+ * 暗色模式（data-theme=dark 时组件状态卡片深色化，2026-09-12 修复 P2）
+ * 原浅色块（success-50/warning-50/error-50）在暗色背景上突兀，
+ * 改为半透明 tint 背景 + 对应色阶边框，与深色背景融合。
+ * ============================================================ */
+:root[data-theme='dark'] .comp-card.healthy {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: var(--ds-color-success-600) !important;
+}
+:root[data-theme='dark'] .comp-card.warning {
+  background: rgba(245, 158, 11, 0.12) !important;
+  border-color: var(--ds-color-warning-600) !important;
+}
+:root[data-theme='dark'] .comp-card.error {
+  background: rgba(239, 68, 68, 0.12) !important;
+  border-color: var(--ds-color-error-600) !important;
 }
 </style>

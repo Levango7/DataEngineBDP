@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: ${INFRA_PROVIDER_XINCHANG_PORT:8081}
 
 spring:
   application:
@@ -19,7 +19,7 @@ spring:
         dialect: ${DB_DIALECT:org.hibernate.dialect.H2Dialect}
   h2:
     console:
-      enabled: true
+      enabled: false
       path: /h2-console
 
 management:

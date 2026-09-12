@@ -214,32 +214,32 @@ function onSelect(rec: ChartRecommendation): void {
   flex: none;
 }
 .rec-icon.type-bar {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: var(--ds-color-info-50);
+  color: var(--ds-color-info-600);
 }
 .rec-icon.type-line {
-  background: #ecfdf5;
+  background: var(--ds-color-success-50);
   color: var(--ds-color-success-600);
 }
 .rec-icon.type-pie {
-  background: #fff7ed;
-  color: #ea580c;
+  background: var(--ds-color-warning-50);
+  color: var(--ds-color-orange-600);
 }
 .rec-icon.type-scatter {
-  background: #f0f9ff;
-  color: #0284c7;
+  background: var(--ds-color-primary-50);
+  color: var(--ds-color-primary-600);
 }
 .rec-icon.type-map {
-  background: #fef2f2;
+  background: var(--ds-color-error-50);
   color: var(--ds-color-error-600);
 }
 .rec-icon.type-area {
-  background: #f5f3ff;
-  color: #7c3aed;
+  background: var(--ds-color-info-50);
+  color: var(--ds-color-accent-600);
 }
 .rec-icon.type-radar {
-  background: #fefce8;
-  color: #ca8a04;
+  background: var(--ds-color-warning-50);
+  color: var(--ds-color-warning-600);
 }
 
 .rec-info {

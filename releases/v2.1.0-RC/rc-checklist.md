@@ -54,7 +54,7 @@
 | 5.1 | kind 本地一键 | scripts/local-up.sh -> catalog 2/2 Running | ⏳ | 需 Docker Desktop（E 盘）运行环境 |
 | 5.2 | 云环境部署 | 华为云 CCE / 阿里云 ACK 任一 ArgoCD 同步 Healthy | ⏳ | 需云账号 |
 | 5.3 | 四环境 Profile | chart-render-check.sh 校验 4 套 values 无占位符/合法 YAML | ⏳ | 需运行 chart-render-check.sh（xinchuang/onprem/public-cloud/private-cloud） |
-| 5.4 | Helm Chart 渲染 | 87 个 Chart helm lint 全通过 | ✅ | 本地验证：实际 88 个 Chart（含 dataenginebdp-umbrella）helm lint 全通过 88/88，0 失败 |
+| 5.4 | Helm Chart 渲染 | 88 个 Chart helm lint 全通过 | ✅ | 本地验证：实际 88 个 Chart（含 dataenginebdp-umbrella）helm lint 全通过 88/88，0 失败 |
 | 5.5 | 镜像拉取验证 | Harbor v2.1.0-RC 镜像全部可拉取，cosign verify 通过 | ⏳ | 需 Harbor 凭据与 cosign |
 
 ## 6. 文档与交付物检查

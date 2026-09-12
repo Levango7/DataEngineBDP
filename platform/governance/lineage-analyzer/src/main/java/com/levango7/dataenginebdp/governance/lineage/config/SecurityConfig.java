@@ -31,7 +31,7 @@ public class SecurityConfig {
     @Value("${app.security.jwt.secret}")
     private String secret;
 
-    @Value("${app.security.jwt.enabled:false}")
+    @Value("${app.security.jwt.enabled:true}")
     private boolean jwtEnabled;
 
     /**

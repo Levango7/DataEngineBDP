@@ -611,7 +611,7 @@ onMounted(() => loadList())
 .stat {
   padding: 16px 18px;
   background: var(--ds-bg-surface);
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--ds-border-default);
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
@@ -625,7 +625,7 @@ onMounted(() => loadList())
 .stat-num {
   font-size: 24px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ds-text-primary);
   background: linear-gradient(120deg, #3b82f6 0%, #6366f1 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -633,28 +633,28 @@ onMounted(() => loadList())
 }
 .stat-lbl {
   font-size: 12px;
-  color: #64748b;
+  color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
 .tenant-detail h4 {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--ds-text-primary);
   margin: 18px 0 10px;
   padding-left: 8px;
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid var(--ds-color-info-500);
 }
 .invite-result {
   padding: 8px 4px;
 }
 .invite-hint {
   font-size: 14px;
-  color: #475569;
+  color: var(--ds-text-secondary);
   margin: 0 0 12px;
 }
 .invite-hint-sm {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--ds-text-tertiary);
   margin: 12px 0 0;
 }
 .invite-code-box {
@@ -663,7 +663,7 @@ onMounted(() => loadList())
   justify-content: space-between;
   padding: 14px 18px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
-  border: 2px dashed #93c5fd;
+  border: 2px dashed var(--ds-color-primary-300);
   border-radius: 10px;
   margin-bottom: 12px;
 }
@@ -672,17 +672,17 @@ onMounted(() => loadList())
   font-size: 20px;
   font-weight: 700;
   letter-spacing: 4px;
-  color: #1d4ed8;
+  color: var(--ds-color-primary-700);
 }
 .invite-meta {
   list-style: none;
   padding: 0;
   margin: 0;
   font-size: 12px;
-  color: #475569;
+  color: var(--ds-text-secondary);
 }
 .invite-meta li {
   padding: 4px 0;
-  border-bottom: 1px dashed #e2e8f0;
+  border-bottom: 1px dashed var(--ds-border-subtle);
 }
 </style>

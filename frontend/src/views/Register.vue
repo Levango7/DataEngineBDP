@@ -568,3 +568,22 @@ async function submitForm() {
   font-weight: 500;
 }
 </style>
+<!-- 暗色模式覆写（2026-09-12 修复）
+     必须放在 <style scoped> 之外（全局），否则 Vue scoped 编译
+     会把 :root[] + 复合选择器的后半段误处理为另一个 :root[]
+     导致选择器整体失效、背景不变色。
+     同一文件内可有多个 <style> 块。 -->
+<style>
+/* ============================================================
+ * 暗色模式（data-theme=dark 时注册页深色背景，2026-09-12 修复 P1）
+ * .reg-card / .reg-bg-grid / .reg-banner 等子元素暗色覆写
+ * 已由 Login.vue 全局 <style> 统一提供，此处仅补 .reg-page 页面底色，
+ * 与 Login.vue .login-page 暗色背景保持一致风格。
+ * ============================================================ */
+:root[data-theme='dark'] .reg-page {
+  background:
+    radial-gradient(ellipse 1100px 700px at 0% 0%, var(--ds-bg-surface) 0%, transparent 60%),
+    radial-gradient(ellipse 1000px 700px at 100% 100%, #1e1b4b 0%, transparent 55%),
+    linear-gradient(135deg, var(--ds-color-dark-bg-1) 0%, var(--ds-bg-base) 100%) !important;
+}
+</style>

@@ -501,7 +501,7 @@ onMounted(() => {
 .quota-text {
   font-family: var(--ds-font-family-mono);
   font-size: 12px;
-  color: #5a6470;
+  color: var(--ds-text-tertiary);
 }
 .form-tip {
   font-size: 12px;

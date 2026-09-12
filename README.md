@@ -2,7 +2,7 @@
 
 > 多平台、多租户、湖仓集一体的大数据平台。一套主代码，四环境交付（信创 / 本地数据中心 / 公有云 / 私有云），客户无感知 K8s。
 >
-> **环境验证状态：已验证 2/5 环境**（本地 + 本地数据中心）｜ [验证详情](docs/环境验证状态.md)
+> **环境验证状态：已验证 2/4 环境**（本地 + 本地数据中心）｜ [验证详情](docs/环境验证状态.md)
 >
 > 拼音：数擎 = shù qíng → **Shuqing**（SKE = DataEngine Kubernetes Engine），非 Shuqian。
 
@@ -61,16 +61,16 @@
 DataEngineBDP/
 ├── .github/workflows/          # CI/CD 流水线（ci.yml + release.yml）
 ├── design/                     # 设计文档
-│   ├── 详细设计/               # 43 份模块详细设计文档
+│   ├── 详细设计/               # 52 份模块详细设计文档
 │   ├── deploy/                 # 部署设计态
-│   │   ├── charts/             # 93 个 Helm Chart（全部含 templates 与 values）
+│   │   ├── charts/             # 88 个 Helm Chart（全部含 templates 与 values）
 │   │   ├── values/             # 各引擎 values 参数文件
 │   │   ├── services/           # 运营后台 FastAPI 服务
 │   │   ├── profiles/           # 四环境 Profile 配置
 │   │   └── ci/                 # 镜像构建流水线
 │   ├── 多平台多租户大数据平台_产品原型设计_v0.4.md
 │   └── 数据引擎大数据平台_控制台原型_v0.3.html
-├── platform/                   # 自研组件（45 个：Java 22 / Go 11 / Python 12）
+├── platform/                   # 自研组件（45 个：Java 24 / Go 9 / Python 12）
 │   ├── encaps-layer/           # 封装层（Java）
 │   ├── sql-gateway/            # 统一 SQL 网关（Java）
 │   ├── rule-engine/            # 规则引擎（Java）
@@ -184,10 +184,10 @@ bash scripts/poc/run-poc.sh
 
 ## 组件清单
 
-平台共包含 45 个自研组件（Java 22 / Go 11 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径，含子模块拆分），覆盖封装层、引擎层、治理层、智能数据层与产品层。模块数口径见 [模块数口径定义](docs/模块数口径定义.md)。
+平台共包含 45 个自研组件（Java 24 / Go 9 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径，含子模块拆分），覆盖封装层、引擎层、治理层、智能数据层与产品层。模块数口径见 [模块数口径定义](docs/模块数口径定义.md)。
 （注：其中约 1/3 具备真实实现，其余为骨架/半实现，详见 [项目体检报告](docs/项目体检报告.md)）
 
-### Java 组件（22 个）
+### Java 组件（24 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -205,7 +205,7 @@ bash scripts/poc/run-poc.sh
 | flink-cdc | platform/flink-cdc | Flink CDC 实时数据集成组件 | 70+ |
 | stream-batch-scheduler | platform/stream-batch-scheduler | 流批统一调度组件 | 70+ |
 
-### Go 组件（11 个）
+### Go 组件（9 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -216,7 +216,7 @@ bash scripts/poc/run-poc.sh
 | karmada | platform/karmada | 多集群联邦编排组件，基于 Karmada 二次封装 | 60+ |
 | dqctl (CLI) | platform/dqctl | 数据质量命令行工具 | 60+ |
 
-### Python 组件（11 个）
+### Python 组件（12 个）
 
 | 组件 | 目录 | 描述 | 测试数 |
 | --- | --- | --- | --- |
@@ -244,7 +244,7 @@ bash scripts/poc/run-poc.sh
 
 | 模块 | 目录 | 描述 |
 | --- | --- | --- |
-| frontend | frontend/ | Vue3 + TypeScript strict 前端，14 个核心视图页面，Element Plus 组件库，Pinia 状态管理 |
+| frontend | frontend/ | Vue3 + TypeScript strict 前端，72 个视图页面，Element Plus 组件库，Pinia 状态管理 |
 
 ## 文档导航
 
@@ -273,14 +273,14 @@ bash scripts/poc/run-poc.sh
 
 | 指标 | 数值 |
 | --- | --- |
-| 自研组件目录 | 45 个（Java 24 / Go 10 / Python 11） |
-| Helm Chart | 93 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
-| 详细设计文档 | 43 份 |
+| 自研组件目录 | 45 个（Java 24 / Go 9 / Python 12） |
+| Helm Chart | 88 个（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐） |
+| 详细设计文档 | 52 份 |
 | 单元测试 | 约 6830（Java 4022 / Go 686 / Python 1936 / 前端 187，2026-09-01 grep 实测口径） |
-| 前端 Playwright E2E | 49 用例通过 + 1 跳过（夜间回归门禁，2026-09-01 实跑口径） |
+| 前端 Playwright E2E | 10 个测试文件（夜间回归门禁，2026-09-01 实跑口径） |
 | 集成测试 | 61 个文件（331 个用例，tests/ 目录） |
-| 前端视图页面 | 100 个 .vue（全部有实质内容，无占位页面） |
-| 支持环境 | 5 种（信创 / 本地数据中心 / 公有云 / 私有云 / 多集群联邦，均为配置模板） |
+| 前端视图页面 | 72 个 .vue（全部有实质内容，无占位页面） |
+| 支持环境 | 4 种（dev / staging / pre-prod / prod，均为配置模板） |
 | 框架基线 | Spring Boot 3.2.x / Spring Framework 6 / Java 17 / Go 1.22+ / Python 3.11 / Vue3+TS strict |
 | 工程成熟度 | 覆盖率门禁 Java≥40% / Go≥30% / Python≥55%（jacoco+pytest-cov 实测基线，2026-09-01） |
 

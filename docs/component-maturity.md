@@ -1,6 +1,6 @@
 # 组件成熟度矩阵
 
-> 数据引擎大数据平台 `platform/` 全部 **45 个自研组件**（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 42 条；Java 24 / Go 10 / Python 11，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
+> 数据引擎大数据平台 `platform/` 全部 **45 个自研组件**（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 42 条；Java 24 / Go 9 / Python 12，按构建文件 pom.xml / go.mod / pyproject.toml 实测口径）的真实成熟度盘点，用于校正 README、ROADMAP 与发布物料中的能力表述。
 >
 > 📐 **模块数口径**：四种口径（设计模块数 49 / 自研组件数 45 / 独立部署单元 41 / platform 目录数 38）统一定义见 [模块数口径定义](模块数口径定义.md)。
 >
@@ -81,12 +81,12 @@
 | 口径 | 数值 | 与本矩阵的关系 |
 | --- | --- | --- |
 | 设计模块数 | 49 | 产品原型 §3.3 逻辑模块清单（含未实现规划模块），本矩阵不含规划模块 |
-| 自研组件数 | 47 | 本矩阵组件数（含子模块拆分：governance 3 + finops 2 + karmada 3 + operations-api + data-standard + master-data） |
-| 矩阵实列 | 44 | 本矩阵表格数据行数（governance 3 合 1 + finops 2 合 1，−3 行） |
-| 独立部署单元 | 43 | ADR-001 定义（47 − 4 库形态组件：common-security / storage-io / flink-cdc / chunker） |
-| platform/ 目录数 | 41 | platform/ 一级子目录数（governance / finops / karmada 子模块嵌套，非一级目录） |
+| 自研组件数 | 45 | 本矩阵组件数（含子模块拆分：governance 3 + finops 2 + karmada 3 + operations-api + data-standard + master-data） |
+| 矩阵实列 | 42 | 本矩阵表格数据行数（governance 3 合 1 + finops 2 合 1，−3 行） |
+| 独立部署单元 | 41 | ADR-001 定义（45 − 4 库形态组件：common-security / storage-io / flink-cdc / chunker） |
+| platform/ 目录数 | 38 | platform/ 一级子目录数（governance / finops / karmada 子模块嵌套，非一级目录） |
 
-映射链：**49** →（−2 规划未落地）→ **47** →（−3 子模块合并）→ **44** 矩阵实列 →（−4 库形态）→ **43** 部署单元 / **41** 目录数
+映射链：**49** →（−4 规划未落地）→ **45** →（−3 子模块合并）→ **42** 矩阵实列 →（−4 库形态）→ **41** 部署单元 / **38** 目录数
 
 ## 子模块拆分说明
 

@@ -292,7 +292,7 @@ async function copySql(): Promise<void> {
 }
 .sql-code-wrap {
   margin: 0;
-  background: #fafbfc;
+  background: var(--ds-bg-subtle);
 }
 .sql-code {
   margin: 0;

@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: ${RULE_ENGINE_PORT:8083}
 spring:
   application:
     name: rule-engine

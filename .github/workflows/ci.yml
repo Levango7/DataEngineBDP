@@ -2,7 +2,7 @@
 # 覆盖 YAML lint、Python 语法检查、Bash 语法检查、前端构建、Helm Chart lint、Markdown lint
 # Phase1a 增强：新增多语言代码检查（golangci-lint/pylint/black/isort/Checkstyle/ESLint）+ 覆盖率收集（JaCoCo/go cover/pytest-cov）
 # 覆盖率门禁增强（2026-09-01 实化提升）：
-#   - 全量模块门禁：Java 22个模块（行≥40%/分支≥18%）、Go 11个模块（≥30%）、Python 10个模块（≥55%）
+#   - 全量模块门禁：Java 24个模块（行≥40%/分支≥18%）、Go 9个模块（≥30%）、Python 12个模块（≥55%）
 #   - 趋势阻断：覆盖率相比基线下降 > 2% 阻断 CI（基线文件位于 docs/coverage-baseline/）
 #   - 注：当前实际覆盖率 Java ~44%/~28%、Go ~45%、Python ~66%，门禁设为略低于实际值（留~10%缓冲），
 #     确保CI可通过同时防止覆盖率倒退；逐步提升路线见 docs/coverage-roadmap.md，目标85% GA标准
@@ -1501,6 +1501,28 @@ jobs:
             --cov-report=term-missing \
             --tb=short \
             2>&1 | tee /tmp/pytest-batch-pipeline.log
+
+      - name: 覆盖率门禁检查（batch-pipeline，与 python-test 阈值一致 ≥55%）
+        # R6-4: batch-pipeline 被 python-test 排除（独立 job），原无覆盖率门禁；
+        # 此处补齐门禁，阈值 55% 与 python-test job 保持一致
+        shell: bash
+        run: |
+          COVERAGE_THRESHOLD=55
+          cov=$(grep -E "^TOTAL" /tmp/pytest-batch-pipeline.log | awk '{print $NF}' | tr -d '%' || echo "")
+          if [ -z "$cov" ]; then
+            cov=$(grep -E "TOTAL" /tmp/pytest-batch-pipeline.log | grep -oE '[0-9]+%' | tr -d '%' | tail -1 || echo "")
+          fi
+          if [ -z "$cov" ]; then
+            echo "::error::batch-pipeline 未提取到覆盖率数据，按 0% 计入门禁"
+            exit 1
+          fi
+          echo "batch-pipeline coverage: $cov%"
+          below=$(python3 -c "print(1 if float('$cov') < $COVERAGE_THRESHOLD else 0)" 2>/dev/null || echo "0")
+          if [ "$below" = "1" ]; then
+            echo "::error::batch-pipeline 覆盖率 $cov% 低于阈值 ${COVERAGE_THRESHOLD}%，阻断 CI"
+            exit 1
+          fi
+          echo "✓ batch-pipeline 覆盖率达标（${cov}% ≥ ${COVERAGE_THRESHOLD}%）"
 
       - name: 失败用例转注解（便于匿名排查）
         if: failure()

@@ -1,6 +1,7 @@
 # Reusable Workflow: Python 环境初始化
 # 调用方式：uses: .github/workflows/_reusable-setup-python.yml
 # T-10: 统一 Python 环境配置，消除 ci.yml/security.yml/local-e2e.yml 重复
+# 状态：预留——当前未被任何 workflow 引用，保留以备后续环境初始化复用（2026-09-12 R6-4 确认）
 name: Reusable Setup Python
 
 on:

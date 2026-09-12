@@ -1,6 +1,7 @@
 # Reusable Workflow: Java + Maven 环境初始化
 # 调用方式：uses: .github/workflows/_reusable-setup-java-maven.yml
 # T-10: 统一 Java/Maven 环境配置，消除 ci.yml/build.yml/security.yml/sonarqube.yml 重复
+# 状态：预留——当前未被任何 workflow 引用，保留以备后续环境初始化复用（2026-09-12 R6-4 确认）
 name: Reusable Setup Java + Maven
 
 on:

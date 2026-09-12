@@ -53,7 +53,7 @@ public class StandardController {
     /** 分页查询数据标准 */
     @Operation(summary = "分页查询数据标准")
     @GetMapping
-    public ResponseEntity<Page<Standard>> query(StandardQueryDTO query) {
+    public ResponseEntity<Page<Standard>> query(@Valid StandardQueryDTO query) {
         String tenantId = requireTenant();
         return ResponseEntity.ok(standardService.query(query, tenantId));
     }

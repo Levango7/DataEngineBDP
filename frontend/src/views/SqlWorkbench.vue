@@ -434,7 +434,7 @@ function syncScroll(e: Event): void {
 
 /** 格式化单元格显示 */
 function formatCell(val: unknown): string {
-  if (val === null || val === undefined) return 'NULL'
+  if (val === null || val === undefined) return t('common.null')
   if (typeof val === 'object') return JSON.stringify(val)
   return String(val)
 }

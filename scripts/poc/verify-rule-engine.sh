@@ -3,7 +3,7 @@
 # verify-rule-engine.sh — 数据引擎大数据平台规则引擎端到端验证
 # ----------------------------------------------------------------------------
 # 验证范围:
-#   1. 健康检查        GET    /api/v1/health
+#   1. 健康检查        GET    /actuator/health
 #   2. 列出规则类型    GET    /api/v1/rules/types  → 期望 ["DQ","MASK","ALERT"]
 #   3. 创建规则        POST   /api/v1/rules
 #   4. 列出规则        GET    /api/v1/rules
@@ -131,8 +131,8 @@ fi
 
 # ----------------------------- 步骤 1: 健康检查 -----------------------------
 step_start=$(date +%s)
-log "[1/6] 健康检查 GET ${BASE_URL}/api/v1/health"
-if assert_step "健康检查" "${step_start}" http_get "${BASE_URL}/api/v1/health" 200; then
+log "[1/6] 健康检查 GET ${BASE_URL}/actuator/health"
+if assert_step "健康检查" "${step_start}" http_get "${BASE_URL}/actuator/health" 200; then
   info "  HTTP ${HTTP_CODE}  body=${HTTP_BODY}"
 else
   info "  HTTP ${HTTP_CODE}  body=${HTTP_BODY}"

@@ -136,7 +136,7 @@ class BaseSqlGenerator:
             if limSlot and limSlot.isFilled:
                 limit = limSlot.value
         tenantClause = (
-            f"必须包含 WHERE tenant_id = '{tenantId}' 过滤条件（租户隔离）"
+            f"必须包含 WHERE tenant_id = '{self._escapeTenantId(tenantId)}' 过滤条件（租户隔离）"
             if tenantId
             else "无租户隔离要求"
         )
@@ -153,6 +153,15 @@ class BaseSqlGenerator:
             time_range=timeRange,
             limit=limit,
         ) + f"\n\n### 租户隔离\n{tenantClause}"
+
+    @staticmethod
+    def _escapeTenantId(tenantId: str) -> str:
+        """转义租户 ID 中的单引号，防止 SQL 注入.
+
+        将单引号替换为两个单引号（SQL 标准转义）。
+        用于 LLM prompt 中无法参数化的场景。
+        """
+        return tenantId.replace("'", "''")
 
 
 # ============================================================
@@ -175,11 +184,12 @@ class MockSqlGenerator(BaseSqlGenerator):
         tenantId: Optional[str] = None,
     ) -> SqlGenerationResult:
         start = time.perf_counter()
-        sql = self._buildSql(ctx, intent, slots, tenantId)
+        sql, params = self._buildSql(ctx, intent, slots, tenantId)
         validation = self.validator.validate(sql, ctx)
         elapsed = (time.perf_counter() - start) * 1000.0
         return SqlGenerationResult(
             sql=sql,
+            params=params,
             intent=intent,
             validation=validation,
             slots=slots,
@@ -195,15 +205,20 @@ class MockSqlGenerator(BaseSqlGenerator):
         intent: Intent,
         slots: Optional[SlotFrame],
         tenantId: Optional[str] = None,
-    ) -> str:
+    ) -> tuple[str, list]:
         """规则化拼装 SQL.
 
         Args:
-            tenantId: 租户 ID，非空时在 WHERE 子句中追加 tenant_id = 'xxx' 过滤条件，
-                实现租户级数据隔离。None 时跳过（仅限无鉴权的本地调试场景）。
+            tenantId: 租户 ID，非空时在 WHERE 子句中追加 tenant_id = ? 过滤条件
+                （参数化查询，防止 SQL 注入），实现租户级数据隔离。
+                None 时跳过（仅限无鉴权的本地调试场景）。
+
+        Returns:
+            (sql, params) 元组：sql 含 ? 占位符，params 为按序对应的参数值列表。
         """
+        params: list = []
         if ctx.isEmpty:
-            return "SELECT 1;"
+            return "SELECT 1;", params
 
         # 选择主表：优先 joinTables[0]，否则第一张表
         primaryTable = None
@@ -252,8 +267,10 @@ class MockSqlGenerator(BaseSqlGenerator):
         # WHERE
         whereParts: list[str] = []
         # 租户隔离：tenantId 非空时强制追加 tenant_id 过滤，防止跨租户数据泄露
+        # 使用参数化查询（? 占位符）防止 SQL 注入
         if tenantId:
-            whereParts.append(f"tenant_id = '{tenantId}'")
+            whereParts.append("tenant_id = ?")
+            params.append(tenantId)
         if slots is not None:
             trSlot = slots.get("timeRange")
             if trSlot and trSlot.isFilled and trSlot.value:
@@ -283,7 +300,7 @@ class MockSqlGenerator(BaseSqlGenerator):
         sql += f" LIMIT {limit}"
 
         sql += ";"
-        return sql
+        return sql, params
 
     @staticmethod
     def _findJoinColumn(t1, t2) -> Optional[str]:

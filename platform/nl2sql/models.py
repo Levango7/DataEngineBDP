@@ -266,7 +266,8 @@ class ValidationResult(BaseModel):
 class SqlGenerationResult(BaseModel):
     """SQL 生成结果."""
 
-    sql: str = Field(description="生成的 SQL")
+    sql: str = Field(description="生成的 SQL（参数化查询时使用 ? 占位符）")
+    params: list[Any] = Field(default_factory=list, description="参数化查询的参数值列表，与 SQL 中 ? 占位符按序对应")
     intent: Optional[Intent] = Field(default=None, description="识别意图")
     validation: Optional[ValidationResult] = Field(default=None, description="校验结果")
     slots: Optional[SlotFrame] = Field(default=None, description="槽位框架")

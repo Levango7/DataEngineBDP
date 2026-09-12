@@ -36,14 +36,16 @@ class GatewayClient:
         engine: Optional[str] = None,
         tenantId: Optional[str] = None,
         limit: Optional[int] = None,
+        params: Optional[list] = None,
     ) -> GatewayExecuteResult:
         """执行 SQL.
 
         Args:
-            sql: SQL 文本。
+            sql: SQL 文本（参数化查询时含 ? 占位符）。
             engine: 引擎 trino / doris，None 用默认。
             tenantId: 租户 ID，None 用默认。
             limit: 行数限制，None 用默认。
+            params: 参数化查询的参数值列表，与 SQL 中 ? 占位符按序对应。
 
         Returns:
             GatewayExecuteResult（含执行状态与结果或错误信息）。
@@ -53,6 +55,7 @@ class GatewayClient:
             "engine": engine or self.settings.defaultEngine,
             "tenantId": tenantId or self.settings.tenantId,
             "limit": limit if limit is not None else self.settings.defaultLimit,
+            "params": params or [],
         }
         url = f"{self._baseUrl}/api/v1/sql/execute"
         try:

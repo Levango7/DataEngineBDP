@@ -1,6 +1,7 @@
 # Reusable Workflow: CI 门禁检查
 # 调用方式：uses: .github/workflows/_reusable-ci-gate.yml
 # T-10: 统一 CI 门禁逻辑，消除 build.yml/multi-arch-build.yml 重复的 ci-gate job
+# 状态：预留——当前未被任何 workflow 引用，保留以备后续 CI 门禁复用（2026-09-12 R6-4 确认）
 # 功能：等待 CI 工作流在对应 commit 上通过后才允许后续构建
 name: Reusable CI Gate
 

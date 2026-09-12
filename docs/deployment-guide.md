@@ -83,7 +83,7 @@ kubectl get sc
 
 ## Helm Chart 部署
 
-数据引擎大数据平台共提供 87 个 Helm Chart（其中 86 个为骨架级，1 个完整实现），位于 `design/deploy/charts/`。
+数据引擎大数据平台共提供 88 个 Helm Chart（全部含 templates 与 values，生产化模板 HPA/PDB/Ingress 已补齐），位于 `design/deploy/charts/`。
 
 ### 部署顺序
 

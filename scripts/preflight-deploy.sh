@@ -23,7 +23,7 @@
 #   bash scripts/preflight-deploy.sh --env xinchuang # 单环境
 #   bash scripts/preflight-deploy.sh --pull          # 含镜像真实拉取（慢）
 # ============================================================================
-set -u
+set -euo pipefail
 cd "$(dirname "$0")/.."
 
 MODE_ENV="all"

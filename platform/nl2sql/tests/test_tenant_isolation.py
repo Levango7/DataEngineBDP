@@ -53,23 +53,24 @@ class TestMockGeneratorTenantFilter:
     """MockSqlGenerator 在传入 tenantId 时应注入 tenant_id 过滤条件."""
 
     async def test_tenant_id_in_where_clause(self, mockGenerator) -> None:
-        """生成的 SQL 应包含 tenant_id = 'xxx' 过滤条件."""
+        """生成的 SQL 应包含 tenant_id = ? 占位符，参数值在 params 中."""
         ctx = _mockCtx()
         intent = Intent(primaryType=IntentType.SIMPLE_SELECT)
         result = await mockGenerator.generate("查询 orders", ctx, intent, tenantId="tenant-a")
         assert "tenant_id" in result.sql
-        assert "tenant-a" in result.sql
+        assert "tenant_id = ?" in result.sql
+        assert "tenant-a" in result.params
         assert "WHERE" in result.sql.upper()
 
     async def test_different_tenants_produce_different_sql(self, mockGenerator) -> None:
-        """不同租户生成的 SQL 应包含不同的 tenant_id 值."""
+        """不同租户生成的 SQL 占位符相同，但 params 值不同."""
         ctx = _mockCtx()
         intent = Intent(primaryType=IntentType.SIMPLE_SELECT)
         resultA = await mockGenerator.generate("查询 orders", ctx, intent, tenantId="tenant-a")
         resultB = await mockGenerator.generate("查询 orders", ctx, intent, tenantId="tenant-b")
-        assert "tenant-a" in resultA.sql
-        assert "tenant-b" in resultB.sql
-        assert resultA.sql != resultB.sql
+        assert "tenant-a" in resultA.params
+        assert "tenant-b" in resultB.params
+        assert resultA.params != resultB.params
 
     async def test_no_tenant_id_when_none(self, mockGenerator) -> None:
         """tenantId 为 None 时不注入租户过滤（兼容无鉴权场景）."""
@@ -90,7 +91,7 @@ class TestMockGeneratorTenantFilter:
         result = await mockGenerator.generate("统计订单数", ctx, intent, tenantId="tenant-x")
         assert "COUNT" in result.sql.upper()
         assert "tenant_id" in result.sql
-        assert "tenant-x" in result.sql
+        assert "tenant-x" in result.params
 
     async def test_tenant_filter_combines_with_time_range(self, mockGenerator) -> None:
         """租户过滤应与时间范围条件用 AND 连接."""
@@ -106,6 +107,7 @@ class TestMockGeneratorTenantFilter:
         )
         result = await mockGenerator.generate("查询昨天的数据", ctx, intent, frame, tenantId="tenant-a")
         assert "tenant_id" in result.sql
+        assert "tenant-a" in result.params
         assert "AND" in result.sql.upper()
         assert "dt" in result.sql
 
@@ -134,9 +136,10 @@ class TestGenerateEndpointTenantIsolation:
             headers=self._jwtHeaders("tenant-a"),
         )
         assert resp.status_code == 200
-        sql = resp.json()["sql"]
+        data = resp.json()
+        sql = data["sql"]
         assert "tenant_id" in sql
-        assert "tenant-a" in sql
+        assert "tenant-a" in data.get("params", [])
 
     def test_generate_different_tenants_different_sql(self, app, monkeypatch) -> None:
         """不同租户的 token 生成包含不同 tenant_id 的 SQL."""
@@ -157,11 +160,11 @@ class TestGenerateEndpointTenantIsolation:
         )
         assert respA.status_code == 200
         assert respB.status_code == 200
-        sqlA = respA.json()["sql"]
-        sqlB = respB.json()["sql"]
-        assert "tenant-a" in sqlA
-        assert "tenant-b" in sqlB
-        assert sqlA != sqlB
+        dataA = respA.json()
+        dataB = respB.json()
+        assert "tenant-a" in dataA.get("params", [])
+        assert "tenant-b" in dataB.get("params", [])
+        assert dataA.get("params", []) != dataB.get("params", [])
 
     def test_generate_admin_can_specify_other_tenant(self, app, monkeypatch) -> None:
         """admin 可通过请求体 tenantId 指定他人租户，SQL 包含指定租户."""
@@ -176,8 +179,9 @@ class TestGenerateEndpointTenantIsolation:
             headers=self._jwtHeaders("tenant-admin", role="admin"),
         )
         assert resp.status_code == 200
-        sql = resp.json()["sql"]
-        assert "tenant-other" in sql
+        data = resp.json()
+        sql = data["sql"]
+        assert "tenant-other" in data.get("params", [])
 
     def test_generate_user_cannot_override_tenant(self, app, monkeypatch) -> None:
         """普通 user 请求体指定他人租户应被忽略，使用 token 声明的租户."""
@@ -192,10 +196,11 @@ class TestGenerateEndpointTenantIsolation:
             headers=self._jwtHeaders("tenant-a", role="user"),
         )
         assert resp.status_code == 200
-        sql = resp.json()["sql"]
+        data = resp.json()
+        sql = data["sql"]
         # 普通用户强制使用 token 声明的 tenant-a，而非请求体的 tenant-other
-        assert "tenant-a" in sql
-        assert "tenant-other" not in sql
+        assert "tenant-a" in data.get("params", [])
+        assert "tenant-other" not in data.get("params", [])
 
 
 class TestConvertEndpointTenantIsolation:
@@ -219,9 +224,10 @@ class TestConvertEndpointTenantIsolation:
             headers=self._jwtHeaders("tenant-a"),
         )
         assert resp.status_code == 200
-        sql = resp.json()["sql"]
+        data = resp.json()
+        sql = data["sql"]
         assert "tenant_id" in sql
-        assert "tenant-a" in sql
+        assert "tenant-a" in data.get("params", [])
 
     def test_convert_different_tenants_different_sql(self, app, monkeypatch) -> None:
         """不同租户调用 convert 生成不同 SQL."""
@@ -242,7 +248,7 @@ class TestConvertEndpointTenantIsolation:
         )
         assert respA.status_code == 200
         assert respB.status_code == 200
-        assert respA.json()["sql"] != respB.json()["sql"]
+        assert respA.json().get("params", []) != respB.json().get("params", [])
 
 
 class TestExecuteEndpointTenantIsolation:
@@ -266,6 +272,7 @@ class TestExecuteEndpointTenantIsolation:
             headers=self._jwtHeaders("tenant-a"),
         )
         assert resp.status_code == 200
-        sql = resp.json()["sql"]
+        data = resp.json()
+        sql = data["sql"]
         assert "tenant_id" in sql
-        assert "tenant-a" in sql
+        assert "tenant-a" in data.get("params", [])
