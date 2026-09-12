@@ -299,7 +299,7 @@ onMounted(() => loadList())
   padding: 16px 18px;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     transform 0.2s var(--ease-smooth),
@@ -310,8 +310,8 @@ onMounted(() => loadList())
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
 }
 .stat-num {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-3xl);
+  font-weight: var(--ds-font-weight-bold);
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -319,7 +319,7 @@ onMounted(() => loadList())
   color: transparent;
 }
 .stat-lbl {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
@@ -327,25 +327,25 @@ onMounted(() => loadList())
 .appr-code {
   margin-left: 6px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   background: var(--ds-bg-subtle);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   padding: 1px 6px;
 }
 .appr-approved-by {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .appr-confirm {
   margin: 0 0 12px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
   line-height: 1.7;
 }
 .appr-confirm b {
   color: var(--ds-color-primary-700);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 </style>

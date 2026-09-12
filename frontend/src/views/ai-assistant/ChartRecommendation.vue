@@ -151,7 +151,7 @@ function onSelect(rec: ChartRecommendation): void {
   width: 100%;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 12px;
 }
 .rec-header {
@@ -164,11 +164,11 @@ function onSelect(rec: ChartRecommendation): void {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
 }
 .data-profile {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   max-width: 60%;
   text-align: right;
@@ -184,7 +184,7 @@ function onSelect(rec: ChartRecommendation): void {
   gap: 12px;
   padding: 10px 12px;
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   transition: all 0.15s;
   background: var(--ds-bg-surface);
@@ -205,7 +205,7 @@ function onSelect(rec: ChartRecommendation): void {
 .rec-icon {
   width: 40px;
   height: 40px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -253,21 +253,21 @@ function onSelect(rec: ChartRecommendation): void {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
 }
 .rec-type-label {
   color: var(--ds-text-primary);
 }
 .rec-reason {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   line-height: 1.5;
 }
 .rec-fields {
   display: flex;
   gap: 14px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   flex-wrap: wrap;
 }
 .field-group {
@@ -280,7 +280,7 @@ function onSelect(rec: ChartRecommendation): void {
 }
 .field-value {
   color: var(--c-slate-700);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .rec-score {
   flex: none;

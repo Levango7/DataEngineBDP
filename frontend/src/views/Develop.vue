@@ -78,7 +78,7 @@
         </div>
       </div>
       <div class="params">
-        <h3 style="font-size: 14px; margin-bottom: 8px">{{ t('develop.params') }}</h3>
+        <h3 style="font-size: var(--ds-font-size-base); margin-bottom: 8px">{{ t('develop.params') }}</h3>
         <label>{{ t('develop.engine') }}</label>
         <el-select v-model="runParams.engine" style="width: 100%">
           <el-option label="Spark SQL" value="spark" />
@@ -443,7 +443,7 @@ watch(
 }
 .tree {
   border: 1px solid var(--ds-border-default);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 8px;
   min-height: 360px;
   max-height: 480px;
@@ -469,9 +469,9 @@ watch(
 }
 .tree-node {
   padding: 4px 6px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -480,7 +480,7 @@ watch(
   background: var(--ds-color-info-50);
 }
 .tree-node.folder {
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .tree-node.active {
   background: var(--ds-color-info-50);
@@ -490,24 +490,24 @@ watch(
   display: flex;
   flex-direction: column;
   border: 1px solid var(--ds-border-default);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   min-height: 360px;
 }
 .tabs {
   display: flex;
   border-bottom: 1px solid var(--ds-border-default);
   background: var(--ds-bg-subtle);
-  border-radius: 8px 8px 0 0;
+  border-radius: var(--ds-radius-md) var(--ds-radius-md) 0 0;
 }
 .tab {
   padding: 6px 12px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   border-right: 1px solid var(--ds-border-default);
   cursor: pointer;
 }
 .tab.on {
   background: var(--ds-bg-surface);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .tab .x {
   margin-left: 6px;
@@ -527,20 +527,20 @@ watch(
   outline-offset: 2px;
   padding: 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   line-height: 1.6;
   resize: none;
   background: var(--ds-bg-surface);
 }
 .params {
   border: 1px solid var(--ds-border-default);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 12px;
   background: var(--ds-bg-subtle);
 }
 .params label {
   display: block;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 8px;
   margin-bottom: 4px;
@@ -561,8 +561,8 @@ watch(
 .dag .node {
   padding: 6px 12px;
   background: var(--ds-bg-muted);
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-font-size-xs);
 }
 .dag .node.act {
   background: var(--ds-color-info-50);

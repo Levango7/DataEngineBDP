@@ -612,7 +612,7 @@ onMounted(() => {
 }
 .mono {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 .usage-row {
@@ -624,11 +624,11 @@ onMounted(() => {
 .usage-label {
   color: var(--ds-text-secondary);
   min-width: 100px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .usage-text {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   min-width: 140px;
   text-align: right;

@@ -26,7 +26,7 @@ DataEngineBDP是一个面向政企/商用场景的多租户大数据平台，采
 
 | 类别 | 数量 | 备注 |
 |------|------|------|
-| 微服务模块 | 45 | platform/ 目录下自研组件（Java 24 / Go 9 / Python 12） |
+| 微服务模块 | 46 | platform/ 目录下自研组件（Java 24 / Go 10 / Python 12） |
 | 自研核心组件 | 22个 | 真实可部署组件（见 component-maturity.md） |
 | 前端页面 | 72个 | Vue3 SPA |
 | 后端Controller | 71个 | Spring Boot 3.2.x |

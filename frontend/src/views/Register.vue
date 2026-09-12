@@ -331,7 +331,7 @@ async function submitForm() {
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 16px;
+  border-radius: var(--ds-radius-xl);
   box-shadow:
     0 20px 60px rgba(15, 23, 42, 0.08),
     inset 0 1px 0 rgba(255, 255, 255, 0.7);
@@ -340,8 +340,8 @@ async function submitForm() {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-lg);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   margin-bottom: 18px;
 }
@@ -360,7 +360,7 @@ async function submitForm() {
   list-style: none;
   padding: 0;
   margin: 0 0 28px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .reg-steps li {
   display: flex;
@@ -389,8 +389,8 @@ async function submitForm() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   flex: none;
   transition: all 0.2s var(--ease-smooth);
 }
@@ -406,17 +406,17 @@ async function submitForm() {
 .reg-steps li.on .step-text,
 .reg-steps li.done .step-text {
   color: var(--ds-text-primary);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 
 .reg-section h2 {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-2xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   margin: 0 0 6px;
 }
 .reg-sub {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
   margin: 0 0 22px;
   line-height: 1.6;
@@ -424,8 +424,8 @@ async function submitForm() {
 .reg-btn {
   width: 100%;
   height: 44px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   letter-spacing: 4px;
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
   border: none !important;
@@ -434,7 +434,7 @@ async function submitForm() {
 .reg-tip {
   margin-top: 18px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .reg-tip a,
@@ -442,7 +442,7 @@ async function submitForm() {
   margin-left: 4px;
   color: var(--ds-color-primary-500);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .reg-tip .reg-link {
   background: none;
@@ -456,19 +456,19 @@ async function submitForm() {
   background: var(--ds-color-error-50);
   border: 1px solid var(--ds-color-error-200);
   border-left: 3px solid var(--ds-color-error-500);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 12px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   margin: 8px 0;
 }
 
 .reg-banner {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(99, 102, 241, 0.04) 100%);
   border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 12px 16px;
   margin-bottom: 18px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .reg-banner-row {
   display: flex;
@@ -478,26 +478,26 @@ async function submitForm() {
 }
 .reg-banner-row span:first-child {
   color: var(--ds-text-tertiary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   min-width: 60px;
 }
 .reg-banner-row b {
   color: var(--ds-color-primary-700);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 .reg-banner-row code {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   padding: 1px 6px;
 }
 .reg-banner-tip {
   margin-left: auto;
   color: var(--ds-border-strong);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 
 .reg-actions {
@@ -523,8 +523,8 @@ async function submitForm() {
   border-radius: 50%;
   background: linear-gradient(135deg, var(--ds-color-success-500) 0%, var(--ds-color-success-600) 100%);
   color: var(--ds-text-inverse);
-  font-size: 36px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-5xl);
+  font-weight: var(--ds-font-weight-bold);
   line-height: 64px;
   margin: 0 auto 16px;
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
@@ -549,9 +549,9 @@ async function submitForm() {
   margin: 20px 0 0;
   background: var(--ds-bg-base);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   text-align: left;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .reg-success-meta li {
   display: flex;
@@ -561,11 +561,11 @@ async function submitForm() {
 .reg-success-meta li b {
   margin-left: auto;
   color: var(--ds-text-primary);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .reg-success-tip {
   margin-top: 18px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   line-height: 1.6;
 }
@@ -573,13 +573,13 @@ async function submitForm() {
 .reg-bottom {
   text-align: center;
   margin-top: 22px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .reg-bottom a,
 .reg-bottom .reg-link {
   color: var(--ds-color-primary-500);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .reg-bottom .reg-link {
   background: none;

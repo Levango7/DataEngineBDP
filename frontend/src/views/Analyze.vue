@@ -338,10 +338,10 @@ onUnmounted(() => {
   }
   /* KPI 数值字号略减 */
   .kpi {
-    font-size: 20px;
+    font-size: var(--ds-font-size-2xl);
   }
   .kpi.s {
-    font-size: 16px;
+    font-size: var(--ds-font-size-lg);
   }
   /* chips 横向滚动，避免换行拥挤 */
   .chips {

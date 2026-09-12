@@ -145,10 +145,11 @@ async def get_business_line(
     bl_id: str,
     registry: ServiceRegistry = Depends(get_registry),
     user_id: str | None = Depends(get_current_user),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> BusinessLine:
     """获取业务线详情（带权限校验）."""
     try:
-        return await registry.businessLineService.get_business_line(bl_id, user_id)
+        return await registry.businessLineService.get_business_line(bl_id, user_id, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -163,12 +164,13 @@ async def update_business_line(
     req: UpdateBusinessLineRequest,
     registry: ServiceRegistry = Depends(get_registry),
     user_id: str | None = Depends(get_current_user),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> BusinessLine:
     """更新业务线（仅业务线管理员可操作）."""
     # 仅取非 None 字段
     patch: dict[str, Any] = {k: v for k, v in req.model_dump().items() if v is not None}
     try:
-        return await registry.businessLineService.update_business_line(bl_id, patch, user_id)
+        return await registry.businessLineService.update_business_line(bl_id, patch, user_id, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))
 
@@ -182,9 +184,10 @@ async def delete_business_line(
     bl_id: str,
     registry: ServiceRegistry = Depends(get_registry),
     user_id: str | None = Depends(get_current_user),
+    tenant_id: str | None = Depends(get_current_tenant),
 ) -> None:
     """删除业务线（仅业务线管理员可操作）."""
     try:
-        await registry.businessLineService.delete_business_line(bl_id, user_id)
+        await registry.businessLineService.delete_business_line(bl_id, user_id, tenant_id)
     except PortalError as exc:
         raise HTTPException(status_code=status_for_error(exc), detail=str(exc))

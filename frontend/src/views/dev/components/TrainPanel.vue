@@ -193,19 +193,19 @@ function fmtMetrics(m: Record<string, number>) {
 .kpi-card {
   flex: 1;
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 14px;
   text-align: center;
 }
 .kpi-card h4 {
   margin: 0 0 4px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 .kpi-card .num {
   display: block;
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-4xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }
@@ -213,7 +213,7 @@ function fmtMetrics(m: Record<string, number>) {
   color: var(--ds-color-success-600);
 }
 .kpi-card .lbl {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-muted, var(--ds-text-secondary));
 }
 .toolbar {

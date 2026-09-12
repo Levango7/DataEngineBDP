@@ -525,7 +525,7 @@ onUnmounted(() => {
   position: absolute;
   top: var(--ds-spacing-1);
   right: var(--ds-spacing-1);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   background: var(--ds-bg-subtle);
   padding: 1px var(--ds-spacing-1);

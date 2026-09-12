@@ -262,8 +262,8 @@ function handleLogout() {
   color: var(--ds-color-primary-500);
   padding: 6px 12px;
   border-radius: var(--ds-radius-md);
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: var(--ds-font-weight-semibold);
+  font-size: var(--ds-font-size-sm);
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
@@ -299,7 +299,7 @@ function handleLogout() {
   height: 32px;
   flex: none;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: transparent;
   cursor: pointer;
   display: inline-flex;
@@ -343,11 +343,11 @@ function handleLogout() {
   min-width: 14px;
   height: 14px;
   padding: 0 3px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-color-error-500);
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-xs);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   line-height: 14px;
   text-align: center;
   box-shadow: 0 0 0 2px var(--ds-bg-surface);
@@ -363,8 +363,8 @@ function handleLogout() {
   border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   color: var(--ds-color-primary-700);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   letter-spacing: 0.5px;
   cursor: pointer;
   display: inline-flex;
@@ -393,20 +393,20 @@ function handleLogout() {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   min-width: 0;
   white-space: nowrap;
 }
 .crumb-group {
   color: var(--ds-text-tertiary);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .crumb-sep {
   color: var(--ds-border-default);
 }
 .crumb-label {
   color: var(--ds-text-primary);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 
 /* === 全局搜索 === */
@@ -431,9 +431,9 @@ function handleLogout() {
   width: 100%;
   padding: 7px 44px 7px 30px;
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   background: var(--ds-bg-surface);
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     border-color 0.2s var(--ease-smooth),
@@ -455,7 +455,7 @@ function handleLogout() {
   position: absolute;
   right: 8px;
   font-family: var(--ds-font-family-mono);
-  font-size: 10px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-gray-400);
   background: var(--ds-bg-base);
   border: 1px solid var(--ds-border-subtle);
@@ -492,7 +492,7 @@ function handleLogout() {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.18),
     var(--shadow-glow);
@@ -504,8 +504,8 @@ function handleLogout() {
 }
 .ws-item {
   padding: 8px 12px;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-medium);
   color: var(--ds-text-primary);
   cursor: pointer;
   transition:
@@ -519,7 +519,7 @@ function handleLogout() {
 .ws-item.on {
   color: var(--ds-color-primary-500);
   background: var(--ds-color-primary-50);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 
 /* === 用户菜单 === */
@@ -535,7 +535,7 @@ function handleLogout() {
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   box-shadow:
     0 8px 24px rgba(15, 23, 42, 0.18),
     var(--shadow-glow);
@@ -550,12 +550,12 @@ function handleLogout() {
   border-bottom: 1px solid var(--ds-border-subtle);
 }
 .user-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
 }
 .user-email {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
@@ -566,7 +566,7 @@ function handleLogout() {
   display: block;
   width: 100%;
   padding: 8px 12px;
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   color: var(--ds-text-primary);
   text-decoration: none;
   background: none;
@@ -587,8 +587,8 @@ function handleLogout() {
   border-radius: 50%;
   background: var(--gradient-primary);
   color: var(--ds-text-inverse);
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-sm);
+  font-weight: var(--ds-font-weight-semibold);
   display: flex;
   align-items: center;
   justify-content: center;

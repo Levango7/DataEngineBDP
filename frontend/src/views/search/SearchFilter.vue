@@ -301,7 +301,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 .search-filter {
   background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -313,8 +313,8 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   align-items: center;
 }
 .filter-header h3 {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-bold);
   margin: 0;
 }
 .filter-section {
@@ -326,8 +326,8 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ink, var(--ds-text-primary));
 }
 .custom-time {
@@ -339,12 +339,12 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 }
 .opt-count {
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   margin-left: 4px;
 }
 .empty-tags {
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .tag-cloud {
   display: flex;
@@ -358,7 +358,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   padding: 3px 10px;
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: var(--ds-radius-lg);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   cursor: pointer;
   background: var(--ds-bg-surface);
   transition: all 0.15s;
@@ -371,16 +371,16 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   background: var(--primary-soft, #e9f1f0);
   border-color: var(--primary, var(--ds-color-success-700));
   color: var(--primary, var(--ds-color-success-700));
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .chip-count {
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .filter-summary {
   padding-top: 8px;
   border-top: 1px dashed var(--line, var(--ds-border-default));
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--muted, var(--ds-text-secondary));
   display: flex;
   align-items: center;
@@ -388,6 +388,6 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 }
 .summary-count {
   color: var(--primary, var(--ds-color-success-700));
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 </style>

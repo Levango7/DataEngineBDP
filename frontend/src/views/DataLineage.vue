@@ -489,7 +489,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--ds-radius-sm);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-medium);
   margin-right: 6px;
 }

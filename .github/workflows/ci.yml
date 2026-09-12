@@ -1546,6 +1546,39 @@ jobs:
           fi
           echo "✓ batch-pipeline 覆盖率达标（${cov}% ≥ ${COVERAGE_THRESHOLD}%）"
 
+      - name: 覆盖率趋势阻断检查（batch-pipeline）
+        # R11: batch-pipeline 独立 job 需补充趋势阻断，与 python-test job 的 Python 趋势阻断对齐
+        # 基线文件：docs/coverage-baseline/python.json（batch-pipeline 键）
+        shell: bash
+        run: |
+          echo "============================================"
+          echo "  batch-pipeline 覆盖率趋势阻断（下降 > 2% 阻断 CI）"
+          echo "============================================"
+          BASELINE_FILE="docs/coverage-baseline/python.json"
+          REGRESSION_THRESHOLD=2  # 下降超过 2% 阻断
+          if [ ! -f "$BASELINE_FILE" ]; then
+            echo "::warning::基线文件 $BASELINE_FILE 不存在，跳过趋势检查（首次运行）"
+            echo "提示：执行 scripts/coverage/update-baseline.sh python 生成基线"
+            exit 0
+          fi
+          # 复用覆盖率门禁步骤已提取的 cov 值
+          cov=$(grep -E "^TOTAL" /tmp/pytest-batch-pipeline.log | awk '{print $NF}' | tr -d '%' || echo "")
+          if [ -z "$cov" ]; then
+            cov=$(grep -E "TOTAL" /tmp/pytest-batch-pipeline.log | grep -oE '[0-9]+%' | tr -d '%' | tail -1 || echo "")
+          fi
+          if [ -z "$cov" ]; then
+            echo "::error::batch-pipeline 未提取到覆盖率数据，跳过趋势检查"
+            exit 0
+          fi
+          baseline_pct=$(python3 -c "import json; d=json.load(open('$BASELINE_FILE')); print(d.get('batch-pipeline', 0))" 2>/dev/null || echo "0")
+          drop=$(python3 -c "print(round(float('$baseline_pct') - float('$cov'), 2))" 2>/dev/null || echo "0")
+          below=$(python3 -c "print(1 if float('$drop') > $REGRESSION_THRESHOLD else 0)" 2>/dev/null || echo "0")
+          if [ "$below" = "1" ]; then
+            echo "::error::batch-pipeline 覆盖率下降 $drop%（基线 ${baseline_pct}% → 当前 ${cov}%），超过 ${REGRESSION_THRESHOLD}% 阈值，阻断 CI"
+            exit 1
+          fi
+          echo "✓ batch-pipeline 覆盖率趋势正常（基线 ${baseline_pct}% → 当前 ${cov}%，下降 $drop%）"
+
       - name: 失败用例转注解（便于匿名排查）
         if: failure()
         shell: bash

@@ -177,6 +177,8 @@
   --ds-font-size-2xl: 20px;
   --ds-font-size-3xl: 24px;
   --ds-font-size-4xl: 30px;
+  --ds-font-size-5xl: 36px;
+  --ds-font-size-6xl: 48px;
 
   /* font-weight */
   --ds-font-weight-normal: 400;

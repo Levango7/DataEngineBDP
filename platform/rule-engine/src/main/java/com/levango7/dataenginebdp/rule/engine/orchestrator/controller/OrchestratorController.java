@@ -1,11 +1,13 @@
 package com.levango7.dataenginebdp.rule.engine.orchestrator.controller;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.rule.engine.orchestrator.dag.DagGraph;
 import com.levango7.dataenginebdp.rule.engine.orchestrator.scheduler.TaskResult;
 import com.levango7.dataenginebdp.rule.engine.orchestrator.service.OrchestratorExtensionService;
 import com.levango7.dataenginebdp.rule.engine.orchestrator.service.OrchestratorService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,6 +45,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "规则引擎-编排引擎", description = "DAG提交/执行/可视化")
 @RequestMapping("/api/v1/orchestrator/dags")
+@PreAuthorize("isAuthenticated()")
 public class OrchestratorController {
 
     private final OrchestratorService orchestratorService;
@@ -58,6 +61,9 @@ public class OrchestratorController {
     @Operation(summary = "提交 DAG")
     @PostMapping
     public ResponseEntity<DagGraph> submit(@RequestBody DagGraph graph) {
+        // R11 安全修复：写入 tenantId，不信任请求体
+        String tenantId = requireTenant();
+        graph.setTenantId(tenantId);
         DagGraph saved = orchestratorService.submit(graph);
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -66,15 +72,22 @@ public class OrchestratorController {
     @Operation(summary = "列出所有 DAG")
     @GetMapping
     public ResponseEntity<List<DagGraph>> listAll() {
-        return ResponseEntity.ok(orchestratorService.listAll());
+        // R11 安全修复：按租户过滤
+        String tenantId = requireTenant();
+        List<DagGraph> filtered = orchestratorService.listAll().stream()
+                .filter(g -> tenantId.equals(g.getTenantId()))
+                .toList();
+        return ResponseEntity.ok(filtered);
     }
 
     /** 查询 DAG 详情 */
     @Operation(summary = "查询 DAG 详情")
     @GetMapping("/{id}")
     public ResponseEntity<DagGraph> getDag(@PathVariable String id) {
+        // R11 安全修复：按租户隔离
+        String tenantId = requireTenant();
         DagGraph graph = orchestratorService.getDag(id);
-        if (graph == null) {
+        if (graph == null || !tenantId.equals(graph.getTenantId())) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(graph);
@@ -84,6 +97,8 @@ public class OrchestratorController {
     @Operation(summary = "执行 DAG")
     @PostMapping("/{id}/run")
     public ResponseEntity<Map<String, TaskResult>> run(@PathVariable String id) {
+        // R11 安全修复：按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(orchestratorService.runDag(id));
     }
 
@@ -91,6 +106,8 @@ public class OrchestratorController {
     @Operation(summary = "停止 DAG")
     @PostMapping("/{id}/stop")
     public ResponseEntity<Void> stop(@PathVariable String id) {
+        // R11 安全修复：按租户隔离
+        requireTenantOwnedDag(id);
         orchestratorService.stop(id);
         return ResponseEntity.accepted().build();
     }
@@ -99,6 +116,8 @@ public class OrchestratorController {
     @Operation(summary = "查询执行结果")
     @GetMapping("/{id}/results")
     public ResponseEntity<Map<String, TaskResult>> results(@PathVariable String id) {
+        // R11 安全修复：按租户隔离
+        requireTenantOwnedDag(id);
         Map<String, TaskResult> results = orchestratorService.getResults(id);
         if (results == null) {
             return ResponseEntity.notFound().build();
@@ -124,6 +143,8 @@ public class OrchestratorController {
     @Operation(summary = "删除 DAG")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable String id) {
+        // R11 安全修复：按租户隔离
+        requireTenantOwnedDag(id);
         boolean removed = orchestratorService.delete(id);
         if (!removed) {
             return ResponseEntity.notFound().build();
@@ -267,6 +288,38 @@ public class OrchestratorController {
     public ResponseEntity<Map<String, Object>> replay(@PathVariable String id,
                                                       @PathVariable String execId) {
         return ResponseEntity.ok(extensionService.getReplayTrace(id, execId));
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R11 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 校验 DAG 归属当前租户（R11 安全修复）。
+     *
+     * @param id DAG ID
+     * @throws IllegalArgumentException DAG 不存在
+     * @throws IllegalStateException 租户上下文缺失或 DAG 不属于当前租户
+     */
+    private void requireTenantOwnedDag(String id) {
+        String tenantId = requireTenant();
+        DagGraph graph = orchestratorService.getDag(id);
+        if (graph == null) {
+            throw new IllegalArgumentException("dag not found: " + id);
+        }
+        if (!tenantId.equals(graph.getTenantId())) {
+            throw new IllegalArgumentException("dag not found: " + id);
+        }
     }
 
     /**

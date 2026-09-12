@@ -831,7 +831,7 @@ onUnmounted(() => {
 }
 .api-name {
   font-weight: var(--ds-font-weight-semibold);
-  font-size: 16px;
+  font-size: var(--ds-font-size-lg);
 }
 .api-card-desc {
   color: var(--ds-text-secondary);
@@ -865,7 +865,7 @@ onUnmounted(() => {
   margin-bottom: 10px;
 }
 .tag {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 1px 6px;
   border-radius: var(--ds-radius-sm);
   background: var(--ds-bg-muted);
@@ -917,7 +917,7 @@ onUnmounted(() => {
 .bar {
   flex: 1;
   background: var(--ds-color-primary-500);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--ds-radius-sm) var(--ds-radius-sm) 0 0;
   min-width: 4px;
 }
 

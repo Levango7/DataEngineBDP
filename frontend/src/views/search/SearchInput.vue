@@ -313,7 +313,7 @@ onUnmounted(() => {
   margin-top: 4px;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   z-index: 10;
   max-height: 240px;
@@ -325,7 +325,7 @@ onUnmounted(() => {
   gap: 8px;
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .suggestion-item:hover {
   background: var(--c-surface-hover);

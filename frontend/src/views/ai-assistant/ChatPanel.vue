@@ -376,12 +376,12 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   margin-bottom: 12px;
 }
 .chat-empty h2 {
-  font-size: 20px;
+  font-size: var(--ds-font-size-2xl);
   margin-bottom: 8px;
 }
 .empty-desc {
   color: var(--ds-text-tertiary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   margin-bottom: 22px;
 }
 .example-prompts {
@@ -397,8 +397,8 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   padding: 8px 14px;
   border: 1px solid var(--ds-border-subtle);
   background: var(--ds-bg-surface);
-  border-radius: 20px;
-  font-size: 14px;
+  border-radius: var(--ds-radius-2xl);
+  font-size: var(--ds-font-size-base);
   color: var(--c-slate-700);
   cursor: pointer;
   transition: all 0.15s;
@@ -428,7 +428,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   align-items: center;
   justify-content: center;
   flex: none;
-  font-size: 18px;
+  font-size: var(--ds-font-size-xl);
 }
 .msg-user .msg-avatar {
   background: var(--ds-color-primary-500);
@@ -444,7 +444,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   align-items: flex-end;
 }
 .msg-role {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-bottom: 2px;
 }
@@ -453,9 +453,9 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 .content-text {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -488,16 +488,16 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   background: var(--c-red-50);
   color: var(--ds-color-error-500);
   border: 1px solid var(--ds-color-error-500);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 12px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 /* 卡片 */
 .content-card {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 12px;
+  border-radius: var(--ds-radius-lg);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -511,7 +511,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 .content-summary {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 12px;
   width: 100%;
 }
@@ -523,7 +523,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   padding: 8px 12px;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
 }
 .content-pending .dot {
   width: 6px;
@@ -569,7 +569,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .toolbar-label {
@@ -587,9 +587,9 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   flex: 1;
 }
 .input-box :deep(.el-textarea__inner) {
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 10px 12px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   max-height: 140px;
 }
 </style>

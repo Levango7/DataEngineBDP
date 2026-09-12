@@ -477,7 +477,7 @@ onUnmounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   margin-bottom: 16px;
 }
 .grid {
@@ -499,19 +499,19 @@ onUnmounted(() => {
 }
 .card {
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 16px;
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-4xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }
@@ -522,13 +522,13 @@ onUnmounted(() => {
   color: var(--ds-color-error-600);
 }
 .meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .page-card {
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
 }
 .split-layout {
   display: grid;
@@ -572,7 +572,7 @@ onUnmounted(() => {
   display: flex;
   gap: 24px;
   color: var(--ds-text-secondary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   margin-bottom: 12px;
 }
 .preview-panel {
@@ -594,13 +594,13 @@ onUnmounted(() => {
 }
 .sql-result {
   border: 1px solid var(--ds-border-default);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 12px;
   background: var(--ds-bg-surface);
 }
 .result-meta {
   color: var(--ds-text-secondary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   margin-bottom: 8px;
 }
 </style>

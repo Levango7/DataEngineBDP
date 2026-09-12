@@ -3,7 +3,7 @@
 # 覆盖率门禁脚本
 # 用途：检查各语言覆盖率是否达到门禁阈值，未达标则退出非零
 # 调用：bash scripts/coverage-gate.sh
-# CI 集成：在 ci.yml markdown-lint job 之前调用
+# 本地覆盖率门禁脚本；CI 中覆盖率门禁由 ci.yml 各 build-test job 内联实现
 # ============================================================
 set -euo pipefail
 

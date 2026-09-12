@@ -190,7 +190,7 @@ async function handleLogin() {
     const redirect = (route.query.redirect as string) || '/dashboard'
     router.replace(redirect)
   } catch (e) {
-    error.value = `${t('login.loginFailed')}: ${(e as Error)?.message ?? e}`
+    error.value = `${t('login.loginFailed')}: ${e instanceof Error ? e.message : String(e)}`
   } finally {
     loading.value = false
   }
@@ -284,8 +284,8 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   margin-bottom: 64px;
   letter-spacing: 0.3px;
@@ -314,8 +314,8 @@ async function handleLogin() {
   }
 }
 .slogan {
-  font-size: 36px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-5xl);
+  font-weight: var(--ds-font-weight-bold);
   line-height: 1.35;
   color: var(--ds-text-primary);
   margin: 0 0 18px;
@@ -329,7 +329,7 @@ async function handleLogin() {
   color: transparent;
 }
 .sub-slogan {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
   line-height: 1.7;
   margin: 0 0 56px;
@@ -341,19 +341,19 @@ async function handleLogin() {
   padding-top: 24px;
 }
 .metric-num {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-4xl);
+  font-weight: var(--ds-font-weight-bold);
   line-height: 1.2;
   color: var(--ds-color-gray-800);
 }
 .metric-num span {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-medium);
   color: var(--ds-text-tertiary);
   margin-left: 2px;
 }
 .metric-letter {
-  font-size: 20px;
+  font-size: var(--ds-font-size-2xl);
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -361,7 +361,7 @@ async function handleLogin() {
   color: transparent;
 }
 .metric-lbl {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 4px;
 }
@@ -393,8 +393,8 @@ async function handleLogin() {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   color: var(--ds-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   transition:
@@ -427,14 +427,14 @@ async function handleLogin() {
 }
 .card-title {
   margin: 0 0 8px;
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-3xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   letter-spacing: 0.3px;
 }
 .card-sub {
   margin: 0 0 32px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
   line-height: 1.6;
 }
@@ -443,12 +443,12 @@ async function handleLogin() {
   justify-content: space-between;
   align-items: center;
   margin: -4px 0 18px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .forgot {
   color: var(--ds-color-primary-500);
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
   transition: color 0.18s var(--ease-smooth);
 }
 .forgot:hover {
@@ -458,8 +458,8 @@ async function handleLogin() {
 .login-btn {
   width: 100%;
   height: 44px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-lg);
+  font-weight: var(--ds-font-weight-semibold);
   letter-spacing: 2px;
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%) !important;
   border: none !important;
@@ -485,17 +485,17 @@ async function handleLogin() {
 .error {
   color: var(--ds-color-error-700);
   margin-top: 12px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 8px 12px;
   background: var(--ds-color-error-50);
   border: 1px solid var(--ds-color-error-200);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   border-left: 3px solid var(--ds-color-error-500);
 }
 .card-bottom {
   margin-top: 22px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .bottom-sep {
@@ -506,7 +506,7 @@ async function handleLogin() {
   margin-left: 4px;
   color: var(--ds-color-primary-500);
   text-decoration: none;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   transition: color 0.18s var(--ease-smooth);
 }
 .bottom-link:hover {
@@ -518,8 +518,8 @@ async function handleLogin() {
   padding: 10px 14px;
   background: var(--ds-bg-subtle);
   border: 1px dashed var(--ds-border-default);
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   display: flex;
   align-items: center;
@@ -529,18 +529,18 @@ async function handleLogin() {
 .dev-tip-label {
   background: var(--ds-color-primary-500);
   color: var(--ds-text-inverse);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   padding: 1px 7px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-sm);
+  font-size: var(--ds-font-size-xs);
 }
 .dev-tip code {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-gray-800);
   background: var(--ds-bg-surface);
   padding: 1px 6px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   border: 1px solid var(--ds-border-subtle);
 }
 .dev-tip-sep {
@@ -550,8 +550,8 @@ async function handleLogin() {
 /* === Element Plus 输入框适配（白底浅蓝调） === */
 :deep(.el-form-item__label) {
   color: var(--ds-color-gray-700);
-  font-weight: 500;
-  font-size: 14px;
+  font-weight: var(--ds-font-weight-medium);
+  font-size: var(--ds-font-size-base);
   padding-bottom: 6px;
 }
 :deep(.el-input__inner::placeholder) {
@@ -559,7 +559,7 @@ async function handleLogin() {
 }
 :deep(.el-checkbox__label) {
   color: var(--ds-text-secondary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 :deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
   background-color: var(--ds-color-primary-500);
@@ -614,8 +614,8 @@ async function handleLogin() {
   padding: 0 14px;
   background: transparent;
   color: var(--ds-text-secondary);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   letter-spacing: 0.3px;
   cursor: pointer;
   border: none;
@@ -628,7 +628,7 @@ async function handleLogin() {
   color: var(--ds-color-primary-700);
 }
 .tb-pill-ic {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   line-height: 1;
 }
 .tb-divider {
@@ -694,7 +694,7 @@ async function handleLogin() {
 }
 :root[data-theme='dark'] .el-form-item__label {
   color: var(--ds-color-primary-300) !important;
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
 }
 :root[data-theme='dark'] .el-input__wrapper,
 :root[data-theme='dark'] .reg-banner-row code {

@@ -13,6 +13,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -44,6 +45,7 @@ import java.util.List;
 @RestController
 @Tag(name = "成本运营-账单导出", description = "CSV/Excel账单导出")
 @RequestMapping("/api/v1/bill/export")
+@PreAuthorize("isAuthenticated()")
 public class BillExportController {
 
     private static final Logger log = LoggerFactory.getLogger(BillExportController.class);
@@ -75,7 +77,7 @@ public class BillExportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) throws IOException {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("CSV 账单导出: type={}, groupBy={}, tenant={}, 窗口=[{},{}]", type, groupBy, tenant, start, end);
 
         List<ResourceCostDetail> details = costDataService.getCostDetails(tenant, namespace, start, end);
@@ -116,7 +118,7 @@ public class BillExportController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) throws IOException {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("Excel 账单导出: type={}, groupBy={}, tenant={}, 窗口=[{},{}]", type, groupBy, tenant, start, end);
 
         List<ResourceCostDetail> details = costDataService.getCostDetails(tenant, namespace, start, end);
@@ -154,5 +156,19 @@ public class BillExportController {
             case "WORKSPACE" -> billSummaryService.summarizeByWorkspace(details);
             default -> billSummaryService.summarizeByTenant(details);
         };
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R11 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

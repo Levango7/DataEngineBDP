@@ -45,6 +45,7 @@
       "editTitle": "编辑租户",
       "createAria": "新建租户弹窗",
       "editAria": "编辑租户弹窗",
+      "createSubmit": "提交",
       "fields": {
         "name": "租户名称",
         "namePlaceholder": "如 华东生产集群",

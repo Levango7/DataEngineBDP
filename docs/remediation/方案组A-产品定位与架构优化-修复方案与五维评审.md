@@ -237,7 +237,7 @@
 - **修复方案**：
   1. **统一定义四种口径**（在 docs/ 新增 `模块数口径定义.md`）：
      - **设计模块数 49**：产品原型设计 §3.3 的逻辑模块清单（含未实现规划模块）
-     - **自研组件数 45**：component-maturity.md 的组件数（含子模块拆分：governance 3 + finops 2 + karmada 3）
+     - **自研组件数 46**：component-maturity.md 的组件数（含子模块拆分：governance 3 + finops 2 + karmada 3）
      - **独立部署单元 41**：ADR-001 的部署单元数（按构建文件 pom.xml/go.mod/pyproject.toml 实测，部分组件共享构建）
      - **platform/ 目录数 38**：platform/ 下的一级子目录数（部分子模块在同一目录下）
   2. **在所有文档统一引用**：README.md / ROADMAP.md / component-maturity.md 顶部新增"口径说明"小节，引用 `模块数口径定义.md`。
@@ -356,7 +356,7 @@
 - **修复方案**：
   1. **核实矩阵实列数**：22 + 7 + 15 = 44 个组件条目（标题45含子模块拆分，矩阵实列42条因governance/finops合并显示）。
   2. **统一口径**（与问题11联动）：
-     - 标题改为"45 个自研组件（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 42 条）"
+      - 标题改为"46 个自研组件（含子模块拆分：governance 3 + finops 2 + karmada 3，矩阵实列 43 条）"
      - 或调整矩阵：将 governance/finops/karmada 子模块拆为独立条目，使矩阵实列 42 条
   3. **推荐方案**：矩阵拆分子模块为独立条目（与 platform/ 目录结构对齐），使标题45=自研组件数45。
   4. **在 component-maturity.md 新增"子模块拆分说明"**：明确 governance 拆为 metadata-collector/lineage-analyzer/real-time-pipeline 等。

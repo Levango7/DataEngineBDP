@@ -524,12 +524,12 @@ onUnmounted(() => {
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   margin-bottom: 16px;
 }
 .page-card {
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
 }
 .toolbar {
   display: flex;
@@ -548,7 +548,7 @@ onUnmounted(() => {
 }
 .log-container {
   background: var(--ds-bg-code);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 12px;
   min-height: 320px;
   max-height: 480px;
@@ -557,7 +557,7 @@ onUnmounted(() => {
 .log-content {
   color: var(--ds-text-code);
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

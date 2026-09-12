@@ -21,7 +21,7 @@
 | 5 | 前端 5 页面对应 Mock 后端 | ls frontend/src/views + ls api | **确认**：`views/` 下有 Vector.vue/Kb.vue/Llmops.vue/Gateway.vue/Develop.vue（对应 DevMl）；`api/` 下有 vector.ts/knowledge.ts/llmops.ts/gateway.ts/dev-ml.ts。后端组件本身 Mock 默认（问题 1），前端调用返回 Mock 数据 |
 | 6 | operations-api 未纳入矩阵 | ls platform/operations-api + 读 pyproject.toml | **确认**：`platform/operations-api` 有完整实现（pyproject.toml: `sq-operations-api v0.1.0`，`operations_api/` 下有 api/models/repositories/services 完整 MVC 结构）。但 `component-maturity.md` 未列入 |
 | 7 | knowledge-engine 矩阵描述滞后 | 读 Dockerfile + 对比矩阵 | **确认**：Dockerfile 第 51-55 行明确注释"不在镜像内烘焙 mock——防止生产拿到假实现而无感知"、"K8s 内若未配置真实 NebulaGraph 连接，服务将启动失败（fail-fast）"。但矩阵第 61 行仍写"交付 Dockerfile 内置 `KE_STORE_TYPE=mock`、`KE_EXTRACTOR_TYPE=mock`"。描述滞后属实 |
-| 8 | 组件计数口径不一致 | 数矩阵实列行数 | **确认**：矩阵标题第 3 行写"45 个自研组件（Java 24 / Go 9 / Python 12）"，矩阵实列 22 + 7 + 15 = 44 个条目（governance/finops 合并显示为 42 行）。标题 45 = 自研组件数 45（含子模块拆分） |
+| 8 | 组件计数口径不一致 | 数矩阵实列行数 | **确认**：矩阵标题第 3 行写"46 个自研组件（Java 24 / Go 10 / Python 12）"，矩阵实列 22 + 7 + 15 = 44 个条目（governance/finops 合并显示为 43 行）。标题 46 = 自研组件数 46（含子模块拆分） |
 
 ---
 

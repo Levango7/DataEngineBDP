@@ -124,7 +124,7 @@ function changeIcon(m: SummaryMetric) {
   width: 100%;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 12px 14px;
 }
 .summary-header {
@@ -137,12 +137,12 @@ function changeIcon(m: SummaryMetric) {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
 }
 .summary-meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   display: inline-flex;
   align-items: center;
@@ -151,11 +151,11 @@ function changeIcon(m: SummaryMetric) {
 .summary-text {
   display: flex;
   gap: 8px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   line-height: 1.7;
   color: var(--c-slate-700);
   background: var(--c-surface-hover);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 12px 14px;
   margin-bottom: 10px;
 }
@@ -168,10 +168,10 @@ function changeIcon(m: SummaryMetric) {
   margin-bottom: 10px;
 }
 .insights-title {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-bottom: 6px;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .insights-list {
   list-style: none;
@@ -185,7 +185,7 @@ function changeIcon(m: SummaryMetric) {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   line-height: 1.6;
 }
@@ -202,25 +202,25 @@ function changeIcon(m: SummaryMetric) {
 .metric-card {
   background: var(--c-surface-hover);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 .metric-label {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .metric-value {
-  font-size: 18px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   font-variant-numeric: tabular-nums;
 }
 .metric-unit {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-medium);
   color: var(--ds-text-tertiary);
   margin-left: 2px;
 }
@@ -228,8 +228,8 @@ function changeIcon(m: SummaryMetric) {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
 }
 .change-up {
   color: var(--ds-color-success-500);

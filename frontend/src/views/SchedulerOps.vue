@@ -247,7 +247,7 @@ async function doRerun(row: DagRunRecord) {
     ElMessage.success(t('scheduler.rerunConfirm.triggered'))
     await loadRuns()
   } catch (e) {
-    ElMessage.error(t('scheduler.rerunConfirm.failed', { msg: e }))
+    ElMessage.error(t('scheduler.rerunConfirm.failed', { msg: e instanceof Error ? e.message : String(e) }))
   } finally {
     rerunningId.value = null
   }
@@ -276,7 +276,7 @@ async function doBackfill() {
     backfillVisible.value = false
     await loadRuns()
   } catch (e) {
-    ElMessage.error(t('scheduler.backfillModal.failed', { msg: e }))
+    ElMessage.error(t('scheduler.backfillModal.failed', { msg: e instanceof Error ? e.message : String(e) }))
   } finally {
     backfilling.value = false
   }

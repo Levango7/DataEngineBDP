@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,6 +29,7 @@ import java.util.Map;
 @Tag(name = "成本运营-账单代理", description = "dashboard侧计费账单透传")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/dashboard/billing")
+@PreAuthorize("isAuthenticated()")
 public class BillingController {
 
     private final QueryBillingClient queryBillingClient;

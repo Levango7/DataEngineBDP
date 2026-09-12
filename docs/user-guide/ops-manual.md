@@ -84,7 +84,7 @@ helm repo update
 ```yaml
 # values.yaml
 global:
-  environment: production  # xinchuang / local / public-cloud / private-cloud
+  environment: production  # xinchuang / local / publiccloud / privatecloud
   imageRegistry: registry.shuqing.com
   imageTag: "2.0.0"
   storageClass: "local-path"

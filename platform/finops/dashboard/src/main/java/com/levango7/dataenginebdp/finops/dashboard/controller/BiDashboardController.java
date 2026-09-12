@@ -11,6 +11,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,6 +41,7 @@ import java.util.Map;
 @Tag(name = "成本运营-BI看板", description = "BI看板CRUD与实时指标")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/dashboards")
+@PreAuthorize("isAuthenticated()")
 public class BiDashboardController {
 
     private final DashboardRepository repository;
@@ -145,7 +147,8 @@ public class BiDashboardController {
     @Operation(summary = "查询实时指标")
     @GetMapping("/realtime")
     public ResponseEntity<List<Map<String, Object>>> realtime() {
-        String tenantId = TenantContext.getTenantId();
+        // R11 安全修复：改用 requireTenant() fail-closed，拒绝无租户上下文的请求
+        String tenantId = requireTenant();
         log.info("查询实时指标: tenant={}", tenantId);
         return ResponseEntity.ok(realtimeMetricsService.getRealtimeMetrics(tenantId));
     }

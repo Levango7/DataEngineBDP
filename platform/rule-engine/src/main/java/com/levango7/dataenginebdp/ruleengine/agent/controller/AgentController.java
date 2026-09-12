@@ -38,7 +38,7 @@ import java.util.UUID;
  * </ul>
  *
  * <p>租户与用户 ID 从 {@link TenantContext}（由 JwtAuthFilter 设置）获取，
- * 若未设置则使用 {@code anonymous} 兜底，便于非认证场景（如内部调用）使用。</p>
+ * 若未设置则 fail-closed 抛异常（R11 安全修复），不再兜底 {@code anonymous}。</p>
  *
  * @author shuqing-bigdata
  */
@@ -166,11 +166,20 @@ public class AgentController {
     }
 
     /**
-     * 从 TenantContext 获取租户 ID，兜底 anonymous。
+     * 从 TenantContext 获取租户 ID，fail-closed（R11 安全修复）。
+     *
+     * <p>不再兜底 {@code anonymous}，缺失租户上下文直接抛异常拒绝执行，
+     * 避免无租户请求被误归入 anonymous 命名空间。</p>
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
      */
     private String resolveTenant() {
         String tenant = TenantContext.getTenantId();
-        return (tenant == null || tenant.isBlank()) ? "anonymous" : tenant;
+        if (tenant == null || tenant.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文，拒绝执行 Agent");
+        }
+        return tenant;
     }
 
     /**

@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -32,6 +33,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "成本运营-优化建议", description = "闲置资源与优化建议查询")
 @RequestMapping("/api/v1/suggestions")
+@PreAuthorize("isAuthenticated()")
 public class SuggestionController {
 
     private static final Logger log = LoggerFactory.getLogger(SuggestionController.class);
@@ -52,7 +54,7 @@ public class SuggestionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("闲置清单请求: tenant={}, namespace={}, 窗口=[{},{}]", tenant, namespace, start, end);
 
         List<IdleResource> items = optimizationEngine.identifyIdleResources(tenant, namespace, start, end);
@@ -84,7 +86,7 @@ public class SuggestionController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("优化建议请求: tenant={}, namespace={}, 窗口=[{},{}]", tenant, namespace, start, end);
 
         List<OptimizationSuggestion> items = optimizationEngine.generateSuggestions(tenant, namespace, start, end);
@@ -104,5 +106,19 @@ public class SuggestionController {
                 ))
                 .build();
         return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R11 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

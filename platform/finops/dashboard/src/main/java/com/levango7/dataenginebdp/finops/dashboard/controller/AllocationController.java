@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,6 +52,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "成本运营-分账管理", description = "子工作空间分账配置与执行")
 @RequestMapping("/api/v1/allocation")
+@PreAuthorize("isAuthenticated()")
 public class AllocationController {
 
     private static final Logger log = LoggerFactory.getLogger(AllocationController.class);

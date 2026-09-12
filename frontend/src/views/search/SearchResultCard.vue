@@ -226,7 +226,7 @@ function openUrl(): void {
 .result-card {
   background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 16px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   cursor: pointer;
@@ -255,10 +255,10 @@ function openUrl(): void {
 }
 .type-badge {
   display: inline-block;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 2px 9px;
-  border-radius: 20px;
-  font-weight: 600;
+  border-radius: var(--ds-radius-2xl);
+  font-weight: var(--ds-font-weight-semibold);
   background: var(--primary-soft, #e9f1f0);
   color: var(--primary, var(--ds-color-success-700));
 }
@@ -283,23 +283,23 @@ function openUrl(): void {
   color: var(--ds-color-error-600);
 }
 .source-pill {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--muted, var(--ds-text-secondary));
   background: var(--c-surface-alt, #eaf0f1);
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
 }
 .score-badge {
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--amber, var(--ds-color-warning-600));
 }
 .card-title {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-lg);
+  font-weight: var(--ds-font-weight-bold);
   margin: 0;
   color: var(--ink, var(--ds-text-primary));
   line-height: 1.4;
@@ -308,10 +308,10 @@ function openUrl(): void {
   background: var(--ds-color-warning-100);
   color: var(--ds-color-warning-800);
   padding: 0 2px;
-  border-radius: 2px;
+  border-radius: var(--ds-radius-sm);
 }
 .card-desc {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--muted, var(--ds-text-secondary));
   margin: 0;
   line-height: 1.6;
@@ -324,12 +324,12 @@ function openUrl(): void {
   background: var(--ds-color-warning-100);
   color: var(--ds-color-warning-800);
   padding: 0 2px;
-  border-radius: 2px;
+  border-radius: var(--ds-radius-sm);
 }
 .card-meta {
   display: flex;
   gap: 16px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--muted, var(--ds-text-secondary));
   flex-wrap: wrap;
 }

@@ -14,7 +14,7 @@
 | 贡献指南 | `../CONTRIBUTING.md` | 开发环境搭建、代码规范、提交规范、PR 流程、分支策略 |
 | 路线图 | `../ROADMAP.md` | v2.0 演进规划 |
 | 命名约定 | `../CONVENTIONS.md` | 统一命名与版本号规范（单一事实来源） |
-| 组件成熟度矩阵 | `component-maturity.md` | 45 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
+| 组件成熟度矩阵 | `component-maturity.md` | 46 个自研组件的成熟度分级（真实可部署 / 服务级 / 骨架）、技术栈、默认持久层与关键缺口 |
 | 开源协议 | `../LICENSE` | Apache License 2.0 全文 |
 
 ## 用户指南
@@ -152,7 +152,7 @@
 
 | 模块 | 路径 | 说明 |
 | --- | --- | --- |
-| 自研组件 | `../platform/` | 45 个组件（Java 24 / Go 9 / Python 12，约 1/2 真实实现，详见项目体检报告与组件成熟度矩阵） |
+| 自研组件 | `../platform/` | 46 个组件（Java 24 / Go 10 / Python 12，约 1/2 真实实现，详见项目体检报告与组件成熟度矩阵） |
 | 前端 | `../frontend/` | Vue3 + TypeScript strict 前端工程 |
 | SKE 交付底座 | `../ske/` | kubeadm/kind 封装的 K8s 底座，详见 `../ske/README.md` |
 | 平台引导 | `../platform/bootstrap.sh` | 平台运行时引导脚本 |

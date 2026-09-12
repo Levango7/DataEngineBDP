@@ -108,7 +108,7 @@ theia:
       allowedTiers: ["light", "standard", "heavy"]
       maxConcurrentUsers: 20
       defaultResourceTier: "standard"
-    # 旗舰版：全档位，并发用户数 100
+    # 企业版：全档位，并发用户数 100
     flagship:
       allowedTiers: ["light", "standard", "heavy"]
       maxConcurrentUsers: 100
@@ -211,5 +211,5 @@ theia:
     base:      { requests.cpu: "5",  requests.memory: "10Gi", requests.storage: "100Gi", limits.cpu: "10", limits.memory: "20Gi" }
     # 标准版：20 用户 × 标准档（2核4Gi）≈ 40核80Gi
     standard:  { requests.cpu: "20", requests.memory: "40Gi", requests.storage: "400Gi", limits.cpu: "40", limits.memory: "80Gi" }
-    # 旗舰版：100 用户 × 标准档（2核4Gi）≈ 200核400Gi
+    # 企业版：100 用户 × 标准档（2核4Gi）≈ 200核400Gi
     flagship:  { requests.cpu: "100", requests.memory: "200Gi", requests.storage: "2Ti",  limits.cpu: "200", limits.memory: "400Gi" }

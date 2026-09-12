@@ -52,6 +52,9 @@ public class DagGraph {
     /** 图描述 */
     private String description;
 
+    /** 租户 ID（R11 安全修复：多租户隔离） */
+    private String tenantId;
+
     /** 节点集合（按 id 索引，保持插入顺序） */
     @Builder.Default
     private Map<String, DagNode> nodes = new LinkedHashMap<>();

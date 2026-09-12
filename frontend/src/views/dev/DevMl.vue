@@ -741,7 +741,7 @@ async function handleDeleteModel(row: MlModel) {
     await devMlApi.deleteModel(row.id)
     appStore.showToast(t('devMl.messages.modelDeleted'), 'success')
     await loadModels()
-  } catch {}
+  } catch (e) { console.error('操作失败:', e) }
 }
 
 // ── 模型版本 ──────────────────────────────────────────
@@ -798,7 +798,7 @@ watch(
 }
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   margin-bottom: 16px;
 }
 .grid {
@@ -820,19 +820,19 @@ watch(
 }
 .card {
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 16px;
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-4xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }
@@ -840,21 +840,21 @@ watch(
   color: var(--ds-color-success-600);
 }
 .meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 6px;
 }
 .kpi-skeleton {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xl);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-muted, var(--ds-text-secondary));
   line-height: 1.2;
   padding: 4px 0;
   animation: kpi-pulse 1.4s ease-in-out infinite;
 }
 .kpi-error {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-medium);
   color: var(--ds-color-error-500);
   line-height: 1.4;
   padding: 4px 0;
@@ -862,11 +862,11 @@ watch(
 .retry-btn {
   margin-left: 6px;
   padding: 2px 10px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-primary-500);
   background: transparent;
   border: 1px solid var(--ds-color-primary-500);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   cursor: pointer;
   transition: background 0.2s;
 }
@@ -884,11 +884,11 @@ watch(
 }
 .page-card {
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
 }
 .log-container {
   background: var(--ds-color-gray-900);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 12px;
   min-height: 320px;
   max-height: 480px;
@@ -897,7 +897,7 @@ watch(
 .log-content {
   color: var(--ds-color-gray-300);
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-all;

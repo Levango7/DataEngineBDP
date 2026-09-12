@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.ruleengine.scheduler.controller;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.ruleengine.scheduler.config.SchedulerProperties;
 import com.levango7.dataenginebdp.ruleengine.scheduler.elastic.LoadMonitor;
 import com.levango7.dataenginebdp.ruleengine.scheduler.elastic.WorkerPool;
@@ -13,6 +14,7 @@ import com.levango7.dataenginebdp.ruleengine.scheduler.tenant.TenantInfo;
 import com.levango7.dataenginebdp.ruleengine.scheduler.tenant.TenantManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +48,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "规则引擎-调度引擎", description = "任务调度/租户/配额管理")
 @RequestMapping("/api/v1/scheduler")
+@PreAuthorize("isAuthenticated()")
 public class SchedulerController {
 
     private final SchedulerService schedulerService;
@@ -75,13 +78,15 @@ public class SchedulerController {
     @Operation(summary = "提交调度任务")
     @PostMapping("/tasks")
     public ResponseEntity<TaskSubmitResponse> submitTask(@RequestBody TaskSubmitRequest request) {
+        // R11 安全修复：tenantId 从 TenantContext 获取，不信任请求体
+        String tenantId = requireTenant();
         SchedulerTask task = SchedulerTask.builder()
                 .ruleId(request.getRuleId())
                 .priority(request.getPriority() != null ? request.getPriority() : TaskPriority.MEDIUM)
                 .requiredCpu(request.getRequiredCpu() != null ? request.getRequiredCpu() : 1.0)
                 .requiredMemory(request.getRequiredMemory() != null ? request.getRequiredMemory() : 512L)
                 .context(request.getContext())
-                .tenantId(request.getTenantId())
+                .tenantId(tenantId)
                 .userId(request.getUserId())
                 .build();
         SchedulerTask submitted = schedulerService.submit(task);
@@ -101,8 +106,14 @@ public class SchedulerController {
     @Operation(summary = "查询单个任务")
     @GetMapping("/tasks/{taskId}")
     public ResponseEntity<?> getTask(@PathVariable String taskId) {
+        String tenantId = requireTenant();
         SchedulerTask task = schedulerService.getTask(taskId);
         if (task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "task_not_found", "message", "Task " + taskId + " not found"));
+        }
+        // R11 安全修复：按租户隔离，拒绝跨租户访问
+        if (!tenantId.equals(task.getTenantId())) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "task_not_found", "message", "Task " + taskId + " not found"));
         }
@@ -113,7 +124,10 @@ public class SchedulerController {
     @Operation(summary = "列出全部任务")
     @GetMapping("/tasks")
     public ResponseEntity<List<TaskStatusResponse>> listTasks() {
+        String tenantId = requireTenant();
+        // R11 安全修复：按租户过滤，避免跨租户数据泄漏
         List<TaskStatusResponse> list = schedulerService.listTasks().stream()
+                .filter(t -> tenantId.equals(t.getTenantId()))
                 .map(this::toStatusResponse)
                 .toList();
         return ResponseEntity.ok(list);
@@ -123,6 +137,19 @@ public class SchedulerController {
     @Operation(summary = "取消调度器")
     @DeleteMapping("/tasks/{taskId}")
     public ResponseEntity<?> cancelTask(@PathVariable String taskId) {
+        String tenantId = requireTenant();
+        SchedulerTask task = schedulerService.getTask(taskId);
+        if (task == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "task_not_cancellable",
+                            "message", "Task " + taskId + " not found or already terminal"));
+        }
+        // R11 安全修复：按租户隔离，拒绝跨租户取消
+        if (!tenantId.equals(task.getTenantId())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "task_not_cancellable",
+                            "message", "Task " + taskId + " not found or already terminal"));
+        }
         boolean cancelled = schedulerService.cancel(taskId);
         if (!cancelled) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -156,6 +183,7 @@ public class SchedulerController {
     /** 注册/更新租户 */
     @Operation(summary = "注册/更新租户")
     @PostMapping("/tenants")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<TenantInfo> registerTenant(@RequestBody Map<String, Object> body) {
         String tenantId = (String) body.get("tenantId");
         String name = (String) body.getOrDefault("name", tenantId);
@@ -175,6 +203,7 @@ public class SchedulerController {
     /** 列出全部租户 */
     @Operation(summary = "列出全部租户")
     @GetMapping("/tenants")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Collection<TenantInfo>> listTenants() {
         return ResponseEntity.ok(tenantManager.listAll());
     }
@@ -182,6 +211,7 @@ public class SchedulerController {
     /** 启用/禁用租户 */
     @Operation(summary = "启用/禁用租户")
     @PutMapping("/tenants/{tenantId}/enabled")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> setTenantEnabled(@PathVariable String tenantId,
                                               @RequestParam boolean enabled) {
         boolean ok = tenantManager.setEnabled(tenantId, enabled);
@@ -197,6 +227,7 @@ public class SchedulerController {
     /** 列出全部资源配额 */
     @Operation(summary = "列出全部资源配额")
     @GetMapping("/quotas")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<Collection<ResourceQuota>> listQuotas() {
         return ResponseEntity.ok(resourceAllocator.listAll());
     }
@@ -204,6 +235,7 @@ public class SchedulerController {
     /** 设置租户资源配额 */
     @Operation(summary = "设置租户资源配额")
     @PutMapping("/quotas/{tenantId}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<ResourceQuota> setQuota(@PathVariable String tenantId,
                                                   @RequestBody Map<String, Object> body) {
         double maxCpu = body.containsKey("maxCpuCores")
@@ -214,6 +246,20 @@ public class SchedulerController {
     }
 
     // ==================== 辅助 ====================
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R11 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
 
     private TaskStatusResponse toStatusResponse(SchedulerTask task) {
         return TaskStatusResponse.builder()

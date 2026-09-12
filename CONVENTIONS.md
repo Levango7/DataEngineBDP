@@ -36,9 +36,9 @@
 | 规范 | 说明 |
 | --- | --- |
 | **设计模块数 49** | §3.3 产品能力全景图逐行清点的真实模块数（含未实现规划模块） |
-| **自研组件数 45** | platform/ 构建文件实测（含子模块拆分，含 operations-api） |
-| **矩阵实列 42** | component-maturity.md 矩阵实列数（governance/finops 合并显示） |
-| **独立部署单元 41** | ADR-001 定义的独立部署单元数（扣库形态组件） |
+| **自研组件数 46** | platform/ 构建文件实测（含子模块拆分，含 operations-api） |
+| **矩阵实列 43** | component-maturity.md 矩阵实列数（governance/finops 合并显示） |
+| **独立部署单元 42** | ADR-001 定义的独立部署单元数（扣库形态组件） |
 | **platform/ 目录数 38** | platform/ 下一级子目录数 |
 
 - 分布：L0.1–L0.12（12）+ L2.1–L2.10（10）+ L3.1–L3.7（7）+ L4.1–L4.5.6（10）+ L5.1–L5.6（6）+ X1–X4（4）= **49**。
@@ -312,7 +312,7 @@
 | 语言 | 组件数 | 代表组件 |
 | --- | --- | --- |
 | Java 17 | 24 | encaps-layer、sql-gateway、rule-engine、governance、tag-engine、infra-orchestrator、finops |
-| Go 1.22+ | 9 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、karmada-api |
+| Go 1.22+ | 10 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、infra-provider-baremetal、karmada-api、karmada-failover-api、karmada-failover-engine |
 | Python 3.11 | 12 | knowledge-engine、nl2sql、batch-pipeline、llmops、ml-platform、operations-api、industry-templates |
 
 > 组件计数口径见 [模块数口径定义](docs/模块数口径定义.md)。

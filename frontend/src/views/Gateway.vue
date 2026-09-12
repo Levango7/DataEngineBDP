@@ -471,21 +471,21 @@ onUnmounted(() => {
 }
 .api-key-cell {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-success-700);
   background: var(--ds-color-success-50);
   padding: 2px 6px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   margin-right: 4px;
 }
 .secret-warning {
   background: var(--ds-color-warning-50);
   border: 1px solid var(--ds-color-warning-400);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 12px;
   margin-bottom: 12px;
   color: var(--ds-color-warning-800);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .secret-row {
   display: flex;
@@ -496,11 +496,11 @@ onUnmounted(() => {
 .secret-cell {
   flex: 1;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-error-600);
   background: var(--ds-color-error-50);
   padding: 6px 8px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   word-break: break-all;
 }
 

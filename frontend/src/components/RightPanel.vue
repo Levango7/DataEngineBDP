@@ -176,9 +176,9 @@ const tabs = computed(() => [
   border: none;
   background: transparent;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   color: var(--ds-text-tertiary);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -194,24 +194,24 @@ const tabs = computed(() => [
 .rp-tab.on {
   color: var(--ds-color-primary-500);
   background: var(--ds-color-primary-50);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .rp-tab-count {
-  font-size: 10px;
+  font-size: var(--ds-font-size-xs);
   min-width: 15px;
   height: 15px;
   line-height: 15px;
   text-align: center;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-color-error-500);
-  color: #fff;
-  font-weight: 700;
+  color: var(--ds-text-inverse);
+  font-weight: var(--ds-font-weight-bold);
 }
 .rp-close {
   border: none;
   background: transparent;
   color: var(--ds-text-tertiary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   width: 26px;
   height: 26px;
   border-radius: var(--ds-radius-md);
@@ -243,7 +243,7 @@ const tabs = computed(() => [
   background: var(--c-surface-hover);
 }
 .rp-item.unread .rp-item-title {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
 }
 .rp-item.unread {
@@ -273,7 +273,7 @@ const tabs = computed(() => [
   box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
 }
 .rp-item-title {
-  font-size: 13px;
+  font-size: var(--ds-font-size-sm);
   color: var(--ds-text-primary);
   line-height: 1.45;
 }
@@ -293,7 +293,7 @@ const tabs = computed(() => [
   background: transparent;
   color: var(--ds-color-primary-500);
   font-size: var(--ds-font-size-xs);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   cursor: pointer;
   padding: 5px 10px;
   border-radius: var(--ds-radius-md);

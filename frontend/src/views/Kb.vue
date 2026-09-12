@@ -209,7 +209,7 @@
           >
             <el-button type="primary">{{ t('kb.docModal.upload') }}</el-button>
           </el-upload>
-          <span style="color: var(--ds-text-secondary); font-size: 12px; margin-left: 8px">
+          <span style="color: var(--ds-text-secondary); font-size: var(--ds-font-size-xs); margin-left: 8px">
             {{ t('kb.docModal.uploadHint') }}
           </span>
         </template>
@@ -606,19 +606,19 @@ onMounted(async () => {
 }
 .card {
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 16px;
   background: var(--ds-bg-surface);
 }
 .card h3 {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-secondary);
   margin: 0 0 8px;
 }
 .kpi {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-4xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }
@@ -629,7 +629,7 @@ onMounted(async () => {
   color: var(--ds-color-error-600);
 }
 .meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 6px;
 }

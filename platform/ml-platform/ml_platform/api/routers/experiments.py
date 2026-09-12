@@ -43,7 +43,9 @@ def _require_experiment_owner(experiment: ExperimentInfo, ctx: AuthContext) -> N
     """
     if ctx.role == "admin":
         return
-    if ctx.tenantId and getattr(experiment, "tenantId", None) != ctx.tenantId:
+    if not ctx.tenantId:
+        raise HTTPException(status_code=403, detail="缺少租户上下文")
+    if getattr(experiment, "tenantId", None) != ctx.tenantId:
         raise HTTPException(status_code=404, detail="实验不存在")
 
 

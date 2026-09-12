@@ -6,6 +6,7 @@ import com.levango7.dataenginebdp.encaps.service.TenantService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,10 +31,15 @@ import java.util.List;
  *   <li>PUT    /{id}      — 更新租户，返回 200 或 404</li>
  *   <li>DELETE /{id}      — 删除租户，返回 204 或 404</li>
  * </ul>
+ *
+ * <p><b>鉴权</b>（R11 安全修复）：类级 {@code @PreAuthorize("hasRole('SUPER_ADMIN')")}
+ * — 租户管理是平台级管理操作（create/list/listAll/get/update/delete），
+ * 仅超级管理员可执行。</p>
  */
 @RestController
 @Tag(name = "封装租户-租户管理", description = "租户CRUD")
 @RequestMapping("/api/v1/tenants")
+@PreAuthorize("hasRole('SUPER_ADMIN')")
 public class TenantController {
 
     private final TenantService tenantService;

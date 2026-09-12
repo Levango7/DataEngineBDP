@@ -64,14 +64,14 @@ function reset() {
 }
 
 .error-boundary__title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-2xl);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-color-error-500);
   margin: 0 0 8px;
 }
 
 .error-boundary__message {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
   margin: 0 0 16px;
   max-width: 600px;
@@ -86,12 +86,12 @@ function reset() {
 }
 
 .error-boundary__details pre {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   overflow-x: auto;
   background: var(--ds-bg-subtle);
   padding: 12px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
 }
 
 .error-boundary__retry {
@@ -99,9 +99,9 @@ function reset() {
   background: var(--ds-color-primary-500);
   color: var(--ds-text-inverse);
   border: none;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 .error-boundary__retry:hover {

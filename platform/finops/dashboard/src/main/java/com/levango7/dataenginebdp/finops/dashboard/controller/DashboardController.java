@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -36,6 +37,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "成本运营-成本看板", description = "Top10/趋势/明细看板")
 @RequestMapping("/api/v1/dashboard")
+@PreAuthorize("isAuthenticated()")
 public class DashboardController {
 
     private static final Logger log = LoggerFactory.getLogger(DashboardController.class);
@@ -56,7 +58,7 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("Top10 看板请求: tenant={}, namespace={}, 窗口=[{},{}]", tenant, namespace, start, end);
 
         List<TopCostResource> items = costDataService.getTopCostResources(tenant, namespace, start, end);
@@ -86,7 +88,7 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("趋势看板请求: tenant={}, granularity={}, 窗口=[{},{}]", tenant, granularity, start, end);
 
         List<CostTrendPoint> items = costDataService.getCostTrend(tenant, namespace, start, end, granularity);
@@ -115,7 +117,7 @@ public class DashboardController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant start,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
-        String tenant = TenantContext.getTenantId();
+        String tenant = requireTenant();
         log.info("明细看板请求: tenant={}, namespace={}, 窗口=[{},{}]", tenant, namespace, start, end);
 
         List<ResourceCostDetail> items = costDataService.getCostDetails(tenant, namespace, start, end);
@@ -132,5 +134,19 @@ public class DashboardController {
                 .summary(Map.of("totalCost", total, "resourceCount", items.size()))
                 .build();
         return ResponseEntity.ok(resp);
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R11 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

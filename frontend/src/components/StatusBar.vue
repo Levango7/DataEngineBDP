@@ -123,8 +123,8 @@ onUnmounted(() => {
     var(--ds-color-gray-200) 100%
   );
   color: var(--ds-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-medium);
   border-top: 1.5px solid var(--ds-color-primary-300);
   box-shadow:
     0 -1px 0 rgba(255, 255, 255, 0.7) inset,
@@ -159,7 +159,7 @@ onUnmounted(() => {
   color: var(--ds-color-primary-800);
   font-size: var(--ds-font-size-xs);
   letter-spacing: 1.2px;
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 .sb-div,
 .sb-sep {
@@ -174,7 +174,7 @@ onUnmounted(() => {
   gap: 5px;
   white-space: nowrap;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   transition: all 0.2s var(--ease-smooth);
@@ -212,20 +212,20 @@ onUnmounted(() => {
   align-items: center;
   gap: 5px;
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
 }
 .sb-item.sb-ws {
   color: var(--ds-text-primary);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 .sb-clock {
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
   letter-spacing: 0.4px;
   color: var(--ds-text-primary);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   background: var(--ds-color-primary-100);
   border-color: var(--ds-color-primary-500);
 }
@@ -234,7 +234,7 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: var(--ds-font-size-xs);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 
 @keyframes sbBreath {

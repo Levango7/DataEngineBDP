@@ -591,7 +591,7 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 .auto-poll {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   display: flex;
   align-items: center;
@@ -602,10 +602,10 @@ onBeforeUnmount(() => {
   width: auto;
 }
 .graph-status {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: var(--ds-radius-2xl);
 }
 .gs-draft {
   background: var(--c-surface-alt);
@@ -652,13 +652,13 @@ onBeforeUnmount(() => {
 }
 .canvas-head h3 {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .canvas {
   flex: 1;
   overflow: auto;
   background: var(--c-surface-hover);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 8px;
 }
 .dag-svg {
@@ -681,13 +681,13 @@ onBeforeUnmount(() => {
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.12));
 }
 .node-name {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   fill: var(--ds-text-primary);
   pointer-events: none;
 }
 .node-type {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   fill: var(--ds-text-tertiary);
   pointer-events: none;
 }
@@ -787,7 +787,7 @@ onBeforeUnmount(() => {
   display: flex;
   gap: 14px;
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 10px;
   padding-top: 10px;
@@ -843,10 +843,10 @@ onBeforeUnmount(() => {
 .tab-badge {
   display: inline-block;
   margin-left: 4px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 0 6px;
 }
 .tab-body {
@@ -856,10 +856,10 @@ onBeforeUnmount(() => {
 }
 
 .node-detail .kv {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .node-detail .kv b {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
 }
 .node-detail .kv.err b {
@@ -867,7 +867,7 @@ onBeforeUnmount(() => {
 }
 .mono {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   word-break: break-all;
 }
 .params-block {
@@ -875,10 +875,10 @@ onBeforeUnmount(() => {
 }
 .json {
   background: var(--c-surface-hover);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   padding: 10px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   white-space: pre-wrap;
   word-break: break-all;
@@ -889,7 +889,7 @@ onBeforeUnmount(() => {
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 40px 0;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 .empty-state {
@@ -897,13 +897,13 @@ onBeforeUnmount(() => {
   padding: 80px 0;
 }
 .empty-icon {
-  font-size: 48px;
+  font-size: var(--ds-font-size-6xl);
   color: var(--c-slate-300);
   margin-bottom: 10px;
 }
 .empty-text {
   color: var(--ds-text-tertiary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 .status-pending {

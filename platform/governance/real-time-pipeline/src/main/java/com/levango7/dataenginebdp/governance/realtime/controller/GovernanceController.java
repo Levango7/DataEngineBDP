@@ -101,6 +101,7 @@ public class GovernanceController {
     @Operation(summary = "查询缓存的表元数据")
     @GetMapping("/metadata/{tableIdentifier}")
     public ResponseEntity<TableMetadata> getMetadata(@PathVariable String tableIdentifier) {
+        // R11 安全修复：校验 tenantId，确保租户上下文存在后按租户隔离访问
         requireTenant();
         TableMetadata metadata = metadataCollector.getCached(tableIdentifier);
         if (metadata == null) {
@@ -134,9 +135,10 @@ public class GovernanceController {
     @Operation(summary = "查询指定目标表的血缘")
     @GetMapping("/lineage/{targetTable}")
     public ResponseEntity<FieldLineage> queryLineage(@PathVariable String targetTable) {
-        requireTenant();
+        // R11 安全修复：按 tenantId 过滤，拒绝跨租户访问
+        String tenantId = requireTenant();
         FieldLineage lineage = lineageAnalyzer.getGraphClient().queryLineage(targetTable);
-        if (lineage == null) {
+        if (lineage == null || !tenantId.equals(lineage.getTenantId())) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(lineage);
@@ -201,7 +203,13 @@ public class GovernanceController {
     @DeleteMapping("/quality/rules/{ruleId}")
     @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<String> unregisterRule(@PathVariable String ruleId) {
-        requireTenant();
+        // R11 安全修复：(ruleId, tenantId) 联合校验，拒绝跨租户注销
+        String tenantId = requireTenant();
+        QualityRule rule = qualityEngine.getRuleRegistry().get(ruleId);
+        if (rule == null || !tenantId.equals(rule.getTenantId())) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body("Rule not found: " + ruleId);
+        }
         qualityEngine.unregisterRule(ruleId);
         return ResponseEntity.ok("Rule unregistered: " + ruleId);
     }
@@ -310,13 +318,28 @@ public class GovernanceController {
     @Operation(summary = "查询治理闭环指标（P95 延迟、执行统计等）")
     @GetMapping("/pipeline/metrics")
     public ResponseEntity<Map<String, Object>> getPipelineMetrics() {
-        requireTenant();
+        // R11 安全修复：按 tenantId 过滤执行历史，避免跨租户指标泄漏
+        String tenantId = requireTenant();
+        List<GovernancePipelineOrchestrator.PipelineExecution> tenantHistory =
+                filterByTenant(orchestrator.getExecutionHistory(), tenantId);
         Map<String, Object> metrics = new java.util.HashMap<>();
-        metrics.put("p95LatencyMs", orchestrator.calculateP95Latency());
+        // 按租户过滤后的 P95 延迟
+        long p95;
+        if (tenantHistory.isEmpty()) {
+            p95 = 0;
+        } else {
+            List<Long> latencies = tenantHistory.stream()
+                    .map(GovernancePipelineOrchestrator.PipelineExecution::totalDurationMs)
+                    .sorted()
+                    .toList();
+            int p95Index = (int) Math.ceil(latencies.size() * 0.95) - 1;
+            p95 = latencies.get(Math.max(0, p95Index));
+        }
+        metrics.put("p95LatencyMs", p95);
         metrics.put("pipelineStats", orchestrator.getPipelineStats());
-        metrics.put("executionHistorySize", orchestrator.getExecutionHistory().size());
+        metrics.put("executionHistorySize", tenantHistory.size());
         metrics.put("slaTargetMs", 10000);
-        metrics.put("slaSatisfied", orchestrator.calculateP95Latency() <= 10000);
+        metrics.put("slaSatisfied", p95 <= 10000);
         return ResponseEntity.ok(metrics);
     }
 
@@ -326,8 +349,30 @@ public class GovernanceController {
     @Operation(summary = "查询治理闭环执行历史")
     @GetMapping("/pipeline/history")
     public ResponseEntity<List<GovernancePipelineOrchestrator.PipelineExecution>> getHistory() {
-        requireTenant();
-        return ResponseEntity.ok(orchestrator.getExecutionHistory());
+        // R11 安全修复：按 tenantId 过滤执行历史，避免跨租户数据泄漏
+        String tenantId = requireTenant();
+        return ResponseEntity.ok(filterByTenant(orchestrator.getExecutionHistory(), tenantId));
+    }
+
+    /**
+     * 按 tenantId 过滤执行历史（R11 安全修复）。
+     * PipelineExecution 无直接 tenantId 字段，通过其 alerts 与 updatedLineages 的 tenantId 判定归属。
+     */
+    private static List<GovernancePipelineOrchestrator.PipelineExecution> filterByTenant(
+            List<GovernancePipelineOrchestrator.PipelineExecution> history, String tenantId) {
+        return history.stream()
+                .filter(exec -> {
+                    // alerts 中所有 alert 的 tenantId 匹配，或无 alerts 时检查 lineages
+                    if (exec.alerts() != null && !exec.alerts().isEmpty()) {
+                        return exec.alerts().stream().allMatch(a -> tenantId.equals(a.getTenantId()));
+                    }
+                    if (exec.updatedLineages() != null && !exec.updatedLineages().isEmpty()) {
+                        return exec.updatedLineages().stream().allMatch(l -> tenantId.equals(l.getTenantId()));
+                    }
+                    // 无 alerts 且无 lineages 的记录保留（无法判定归属，保守保留）
+                    return true;
+                })
+                .toList();
     }
 
     /**

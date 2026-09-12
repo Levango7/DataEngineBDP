@@ -96,18 +96,18 @@ void (0 as unknown as ColumnDataType)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .table-title {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
 }
 .table-meta {
   color: var(--ds-text-tertiary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   display: inline-flex;
   align-items: center;
   gap: 6px;

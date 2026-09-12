@@ -35,8 +35,8 @@ defineProps<{
 }
 
 .stat-card__value {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-4xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }
@@ -47,7 +47,7 @@ defineProps<{
   gap: 2px;
   margin-top: 6px;
   font-size: var(--ds-font-size-xs);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 
 .stat-card__trend--up {

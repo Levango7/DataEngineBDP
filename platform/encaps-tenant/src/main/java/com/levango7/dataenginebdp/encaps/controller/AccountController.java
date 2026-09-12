@@ -93,9 +93,11 @@ public class AccountController {
     @AuditLog(action = "UPGRADE_PLAN", resource = "account")
     @PostMapping("/upgrade")
     public ResponseEntity<Map<String, Object>> upgrade(@RequestBody Map<String, String> req) {
+        // R11 安全修复：校验租户上下文，fail-closed 拒绝无租户请求
+        Long tenantId = tenantIdLong();
         String target = req.getOrDefault("targetPlan", "pro");
         Map<String, Object> planInfo = (Map<String, Object>) PLANS.getOrDefault(target, PLANS.get("pro"));
-        log.info("套餐升级请求: tenant={}, target={}", TenantContext.getTenantId(), target);
+        log.info("套餐升级请求: tenant={}, target={}", tenantId, target);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("estimatedMonthlyFee", planInfo.get("monthlyFee"));
         body.put("status", "submitted");

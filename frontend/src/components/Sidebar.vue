@@ -139,7 +139,7 @@ function toggleGroup(idx: number): void {
 }
 .grp-arrow {
   display: inline-block;
-  font-size: 10px;
+  font-size: var(--ds-font-size-xs);
   line-height: 1;
   color: var(--sidebar-muted);
   transition:
@@ -154,10 +154,10 @@ function toggleGroup(idx: number): void {
   flex: 1;
 }
 .grp-count {
-  font-size: 10px;
+  font-size: var(--ds-font-size-xs);
   color: var(--sidebar-muted);
   background: var(--sidebar-hover-bg);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 1px 6px;
   min-width: 16px;
   text-align: center;

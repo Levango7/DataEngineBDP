@@ -232,7 +232,7 @@
 | --- | --- | --- |
 | 计费决断方案 | [BILLING-DECISION.md](../BILLING-DECISION.md) | 计费技术路线（方案 A/B） |
 | 产品原型设计 | [design/多平台多租户大数据平台_产品原型设计_v0.4.md](../../design/多平台多租户大数据平台_产品原型设计_v0.4.md) | 产品功能与界面设计 |
-| 组件成熟度矩阵 | [component-maturity.md](../component-maturity.md) | 45 个组件成熟度与缺口 |
+| 组件成熟度矩阵 | [component-maturity.md](../component-maturity.md) | 46 个组件成熟度与缺口 |
 | 部署指南 | [deployment-guide.md](../deployment-guide.md) | SKE 部署 + Helm Chart |
 | 运维手册 | [user-guide/ops-manual.md](../user-guide/ops-manual.md) | 监控告警 + 备份恢复 |
 | 升级指南 | [user-guide/upgrade-guide.md](../user-guide/upgrade-guide.md) | 版本升级流程 |

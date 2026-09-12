@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.ruleengine.batchpipeline;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.ruleengine.model.Rule;
 import com.levango7.dataenginebdp.ruleengine.service.RuleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -85,12 +86,14 @@ public class BatchPipelineRuleController {
         if (req == null || req.ids() == null || req.ids().isEmpty()) {
             return badRequest("invalid_request", "ids 必填（规则 ID 数组）");
         }
+        // R11 安全修复：requireTenant + 租户隔离，使用 getByIdAndTenantId 避免跨租户读取
+        String tenantId = requireTenant();
         List<BatchPipelineRuleAdapter.RuleSpec> specs = new ArrayList<>();
         List<Map<String, Object>> notFound = new ArrayList<>();
         for (Long id : req.ids()) {
-            Rule rule = ruleService.getById(id);
+            Rule rule = ruleService.getByIdAndTenantId(id, tenantId);
             if (rule == null) {
-                notFound.add(Map.of("id", id, "reason", "规则不存在"));
+                notFound.add(Map.of("id", id, "reason", "规则不存在或不属于当前租户"));
                 continue;
             }
             specs.add(adapter.specFromStoredRule(rule));
@@ -163,5 +166,19 @@ public class BatchPipelineRuleController {
         body.put("error", code);
         body.put("message", message);
         return ResponseEntity.badRequest().body(body);
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R11 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

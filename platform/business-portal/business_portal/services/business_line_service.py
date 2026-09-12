@@ -15,6 +15,7 @@ from business_portal.models.business_line import (
     BusinessLineUsage,
 )
 from business_portal.repositories import (
+    BusinessLineNotFoundError,
     PermissionDeniedError,
 )
 
@@ -31,9 +32,14 @@ class BusinessLineService:
             bl.id = str(uuid.uuid4())
         return await self._store.create(bl)
 
-    async def get_business_line(self, bl_id: str, user_id: str | None = None) -> BusinessLine:
+    async def get_business_line(
+        self, bl_id: str, user_id: str | None = None, tenant_id: str | None = None
+    ) -> BusinessLine:
         """获取业务线详情（带权限校验）."""
         bl = await self._store.get(bl_id)
+        # 租户隔离：若指定 tenant_id，必须与业务线租户匹配，否则视为不存在（404）
+        if tenant_id and bl.tenantId != tenant_id:
+            raise BusinessLineNotFoundError(bl_id)
         # 权限隔离：若指定 user_id，必须在该业务线成员列表中
         # （ownerIds / memberIds 任一即可）
         if user_id and not self._has_access(bl, user_id):
@@ -53,16 +59,26 @@ class BusinessLineService:
             filter_ = filter_.model_copy(update={"tenantId": tenant_id})
         return await self._store.list(filter_)
 
-    async def update_business_line(self, bl_id: str, patch: dict[str, Any], user_id: str | None = None) -> BusinessLine:
+    async def update_business_line(
+        self, bl_id: str, patch: dict[str, Any], user_id: str | None = None, tenant_id: str | None = None
+    ) -> BusinessLine:
         """更新业务线（仅业务线管理员可操作）."""
         bl = await self._store.get(bl_id)
+        # 租户隔离：若指定 tenant_id，必须与业务线租户匹配，否则视为不存在（404）
+        if tenant_id and bl.tenantId != tenant_id:
+            raise BusinessLineNotFoundError(bl_id)
         if user_id and user_id not in bl.ownerIds:
             raise PermissionDeniedError(bl_id, user_id)
         return await self._store.update(bl_id, patch)
 
-    async def delete_business_line(self, bl_id: str, user_id: str | None = None) -> None:
+    async def delete_business_line(
+        self, bl_id: str, user_id: str | None = None, tenant_id: str | None = None
+    ) -> None:
         """删除业务线（仅业务线管理员可操作）."""
         bl = await self._store.get(bl_id)
+        # 租户隔离：若指定 tenant_id，必须与业务线租户匹配，否则视为不存在（404）
+        if tenant_id and bl.tenantId != tenant_id:
+            raise BusinessLineNotFoundError(bl_id)
         if user_id and user_id not in bl.ownerIds:
             raise PermissionDeniedError(bl_id, user_id)
         await self._store.delete(bl_id)

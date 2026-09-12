@@ -612,7 +612,7 @@ onMounted(() => loadList())
   padding: 16px 18px;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-default);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition:
     transform 0.2s var(--ease-smooth),
@@ -623,8 +623,8 @@ onMounted(() => loadList())
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
 }
 .stat-num {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-3xl);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
@@ -632,13 +632,13 @@ onMounted(() => loadList())
   -webkit-text-fill-color: transparent;
 }
 .stat-lbl {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
 .tenant-detail h4 {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-text-primary);
   margin: 18px 0 10px;
   padding-left: 8px;
@@ -648,12 +648,12 @@ onMounted(() => loadList())
   padding: 8px 4px;
 }
 .invite-hint {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
   margin: 0 0 12px;
 }
 .invite-hint-sm {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin: 12px 0 0;
 }
@@ -664,13 +664,13 @@ onMounted(() => loadList())
   padding: 14px 18px;
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
   border: 2px dashed var(--ds-color-primary-300);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   margin-bottom: 12px;
 }
 .invite-code-text {
   font-family: var(--ds-font-family-mono);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-2xl);
+  font-weight: var(--ds-font-weight-bold);
   letter-spacing: 4px;
   color: var(--ds-color-primary-700);
 }
@@ -678,7 +678,7 @@ onMounted(() => loadList())
   list-style: none;
   padding: 0;
   margin: 0;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 .invite-meta li {

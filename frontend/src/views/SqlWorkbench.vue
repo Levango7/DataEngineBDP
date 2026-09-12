@@ -479,7 +479,7 @@ function tablesOfSource(source: string): string[] {
 
 .sub {
   color: var(--ds-text-secondary);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   margin-bottom: 16px;
 }
 
@@ -500,14 +500,14 @@ function tablesOfSource(source: string): string[] {
 
 .hint {
   color: var(--ds-text-tertiary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 
 /* SQL 编辑器 */
 .sql-editor {
   display: flex;
   border: 1px solid var(--ds-border-default);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   overflow: hidden;
   height: 220px;
   background: var(--ds-bg-surface);
@@ -521,7 +521,7 @@ function tablesOfSource(source: string): string[] {
   text-align: right;
   padding: 8px 6px;
   font-family: var(--ds-font-family-mono);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
   line-height: 1.6;
   user-select: none;
@@ -539,7 +539,7 @@ function tablesOfSource(source: string): string[] {
   resize: none;
   padding: 8px 12px;
   font-family: var(--ds-font-family-mono);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   line-height: 1.6;
   background: var(--ds-bg-surface);
   color: var(--ds-text-primary);
@@ -554,13 +554,13 @@ function tablesOfSource(source: string): string[] {
 
 .hint-text {
   color: var(--ds-text-secondary);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 
 .hint-text code {
   background: var(--ds-bg-muted);
   padding: 1px 4px;
-  border-radius: 2px;
+  border-radius: var(--ds-radius-sm);
   font-family: var(--ds-font-family-mono);
   color: var(--ds-color-warning-500);
 }
@@ -579,7 +579,7 @@ function tablesOfSource(source: string): string[] {
 }
 
 .meta {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
 }
 
@@ -628,8 +628,8 @@ function tablesOfSource(source: string): string[] {
 }
 
 .source-header {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-lg);
+  font-weight: var(--ds-font-weight-semibold);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -650,12 +650,12 @@ function tablesOfSource(source: string): string[] {
   flex-direction: column;
   align-items: center;
   color: var(--ds-color-warning-500);
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   gap: 4px;
 }
 
 .merge-arrow .el-icon {
-  font-size: 24px;
+  font-size: var(--ds-font-size-3xl);
 }
 
 .merge-result {
@@ -682,7 +682,7 @@ function tablesOfSource(source: string): string[] {
 
 .result-node .el-icon {
   color: var(--ds-color-success-500);
-  font-size: 20px;
+  font-size: var(--ds-font-size-2xl);
   margin-right: 6px;
 }
 </style>

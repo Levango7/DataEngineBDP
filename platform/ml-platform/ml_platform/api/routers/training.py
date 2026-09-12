@@ -38,7 +38,9 @@ def _require_job_owner(job: TrainingJob, ctx: AuthContext) -> None:
     """
     if ctx.role == "admin":
         return
-    if ctx.tenantId and getattr(job, "tenantId", None) != ctx.tenantId:
+    if not ctx.tenantId:
+        raise HTTPException(status_code=403, detail="缺少租户上下文")
+    if getattr(job, "tenantId", None) != ctx.tenantId:
         raise HTTPException(status_code=404, detail="训练任务不存在")
 
 
@@ -92,7 +94,10 @@ async def listTrainingJobs(
 ):
     """列出训练任务（按租户隔离：普通用户仅见本租户任务，admin 可见全部）."""
     jobs = await registry.trainingService.listTrainingJobs()
-    if ctx.role != "admin" and ctx.tenantId:
+    if ctx.role != "admin":
+        # 非 admin 用户必须有 tenantId，否则拒绝（防止空 tenantId 绕过过滤返回全部任务）
+        if not ctx.tenantId:
+            raise HTTPException(status_code=403, detail="缺少租户上下文")
         jobs = [j for j in jobs if getattr(j, "tenantId", None) == ctx.tenantId]
     return jobs
 

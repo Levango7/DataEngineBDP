@@ -422,10 +422,11 @@ void buildChartConfig
 }
 .ai-title h1 {
   font-size: var(--ds-font-size-3xl);
+  font-weight: var(--ds-font-weight-bold);
   margin: 0;
 }
 .ai-sub {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
 }
 .ai-actions {
@@ -447,7 +448,7 @@ void buildChartConfig
 .ai-sessions {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -457,8 +458,8 @@ void buildChartConfig
   align-items: center;
   justify-content: space-between;
   padding: 10px 14px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   border-bottom: 1px solid var(--ds-border-subtle);
 }
 .sessions-list {
@@ -471,7 +472,7 @@ void buildChartConfig
   align-items: center;
   gap: 8px;
   padding: 8px 10px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   transition: background 0.15s;
 }
@@ -494,14 +495,14 @@ void buildChartConfig
   min-width: 0;
 }
 .session-title {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-medium);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .session-meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 2px;
 }
@@ -513,7 +514,7 @@ void buildChartConfig
 .sessions-empty {
   padding: 24px 12px;
   text-align: center;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 
@@ -521,7 +522,7 @@ void buildChartConfig
 .ai-chat {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   overflow: hidden;
   min-width: 0;
 }
@@ -533,7 +534,7 @@ void buildChartConfig
 .ai-side {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 12px;
   overflow-y: auto;
   display: flex;
@@ -549,19 +550,19 @@ void buildChartConfig
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
   padding-bottom: 6px;
   border-bottom: 1px solid var(--ds-border-subtle);
 }
 .side-empty {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   padding: 12px;
   text-align: center;
   background: var(--c-surface-hover);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .dashboard-link {
   margin-top: 6px;

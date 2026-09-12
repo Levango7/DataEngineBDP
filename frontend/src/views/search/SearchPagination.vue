@@ -195,12 +195,12 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
   gap: 8px;
 }
 .total-info {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--muted, var(--ds-text-secondary));
 }
 .total-num {
   color: var(--primary, var(--ds-color-success-700));
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 .page-mode {
   display: flex;
@@ -217,7 +217,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
   align-items: center;
   gap: 8px;
   color: var(--muted, var(--ds-text-secondary));
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .no-more {
   width: 100%;

@@ -45,6 +45,7 @@
       "editTitle": "Edit Tenant",
       "createAria": "New tenant dialog",
       "editAria": "Edit tenant dialog",
+      "createSubmit": "Submit",
       "fields": {
         "name": "Tenant Name",
         "namePlaceholder": "e.g. East China Production",

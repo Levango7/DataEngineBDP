@@ -145,7 +145,7 @@ body {
   height: 54px;
   padding: 0 12px 0 18px;
   font-size: var(--ds-font-size-base);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ds-color-primary-900);
   display: flex;
   align-items: center;
@@ -210,7 +210,7 @@ body {
   padding: 18px 20px 8px;
   letter-spacing: 1px;
   text-transform: none;
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   position: relative;
   display: flex;
   align-items: center;
@@ -221,7 +221,7 @@ body {
   width: 4px;
   height: 14px;
   background: linear-gradient(180deg, var(--ds-color-primary-800) 0%, var(--ds-color-primary-500) 100%);
-  border-radius: 2px;
+  border-radius: var(--ds-radius-sm);
   flex: none;
   box-shadow: 0 0 6px rgba(59, 130, 246, 0.5);
 }
@@ -242,10 +242,10 @@ body {
   padding: 8px 12px;
   color: var(--ds-color-primary-900);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   border: 1px solid transparent;
   font-size: var(--ds-font-size-base);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   text-decoration: none;
   transition:
     background 0.2s var(--ease-smooth),
@@ -260,7 +260,7 @@ body {
   color: var(--ds-color-primary-800);
   border-color: rgba(30, 58, 138, 0.25);
   transform: translateX(2px);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
 }
 .nav a.active {
   background: linear-gradient(90deg, var(--ds-bg-surface) 0%, rgba(99, 102, 241, 0.2) 100%);
@@ -278,7 +278,7 @@ body {
   top: 18%;
   bottom: 18%;
   width: 3px;
-  border-radius: 2px;
+  border-radius: var(--ds-radius-sm);
   background: linear-gradient(180deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   box-shadow: 0 0 8px rgba(99, 102, 241, 0.7);
 }
@@ -322,7 +322,7 @@ body {
   background: var(--red);
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-xs);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 1px 6px;
 }
 /* 侧边栏底部工具区：浅白磨砂底 + 深蓝文字 */
@@ -333,7 +333,7 @@ body {
   color: var(--ds-color-primary-900);
   line-height: 1.55;
   background: rgba(255, 255, 255, 0.55);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -349,7 +349,7 @@ body {
   flex-shrink: 0;
   width: 28px;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   border: 1px solid var(--sidebar-line);
   background: transparent;
   color: var(--sidebar-ink);
@@ -373,7 +373,7 @@ body {
 .side-foot .locale-switcher {
   flex-shrink: 0;
   height: 28px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   border: 1px solid var(--sidebar-line);
   background: transparent;
   color: var(--sidebar-ink);
@@ -484,7 +484,7 @@ body {
   border: 1px solid rgba(59, 130, 246, 0.35);
   padding: 6px 12px;
   border-radius: var(--ds-radius-md);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   cursor: pointer;
   transition:
     transform 0.2s var(--ease-smooth),
@@ -504,11 +504,11 @@ body {
 .env-tag {
   font-size: var(--ds-font-size-xs);
   padding: 4px 10px;
-  border-radius: 20px;
+  border-radius: var(--ds-radius-2xl);
   background: var(--c-green-50);
   color: var(--ds-color-success-700);
   border: 1px solid var(--c-green-200);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.8),
     0 1px 3px rgba(16, 185, 129, 0.15);
@@ -522,7 +522,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
 }
 .view {
@@ -624,11 +624,11 @@ body {
 .el-textarea__inner::placeholder,
 .el-select__placeholder {
   color: var(--ds-color-gray-500) !important;
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .el-form-item__label {
   color: var(--ds-color-primary-900) !important; /* 表单标签深蓝（页面主色调） */
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
 }
 
 /* ============ cards grid（2026-09-07 间距规范：卡与卡 20px，卡与下个区域 20px） ============ */
@@ -698,7 +698,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   color: var(--ink);
 }
 .card .act {
@@ -706,7 +706,7 @@ body {
   font-size: var(--ds-font-size-xs);
   color: var(--primary);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   transition: color 0.2s var(--ease-smooth);
 }
 .card .act:hover {
@@ -714,7 +714,7 @@ body {
 }
 .kpi {
   font-size: var(--ds-font-size-3xl);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   background-clip: text;
@@ -727,14 +727,14 @@ body {
 .meta {
   color: var(--ds-color-gray-600);
   font-size: var(--ds-font-size-xs);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 .pill {
   display: inline-block;
   font-size: var(--ds-font-size-xs);
   padding: 2px 9px;
-  border-radius: 20px;
-  font-weight: 600;
+  border-radius: var(--ds-radius-2xl);
+  font-weight: var(--ds-font-weight-semibold);
 }
 .pill.g {
   background: var(--c-green-50);
@@ -776,7 +776,7 @@ td {
 }
 th {
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   font-size: var(--ds-font-size-xs);
   background: var(--c-surface-alt);
 }
@@ -793,10 +793,10 @@ tr.click {
   color: var(--ds-text-inverse);
   border: none;
   padding: 8px 14px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   font-size: var(--ds-font-size-xs);
   cursor: pointer;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   position: relative;
   overflow: hidden;
   transition:
@@ -857,7 +857,7 @@ textarea {
   font: inherit;
   padding: 7px 10px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   width: 100%;
   transition:
@@ -899,7 +899,7 @@ label {
 }
 .ide .tree div {
   padding: 4px 7px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   white-space: nowrap;
   transition: background 0.15s var(--ease-smooth);
@@ -931,7 +931,7 @@ label {
   color: var(--primary);
   border-bottom-color: var(--primary);
   background: var(--ds-bg-surface);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .tabs .tab .x {
   margin-left: 6px;
@@ -956,7 +956,7 @@ label {
   color: var(--c-slate-700);
   background: var(--c-surface-alt);
   border: 1px solid var(--line);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   resize: vertical;
   box-sizing: border-box;
 }
@@ -1009,12 +1009,12 @@ label {
   flex-wrap: wrap;
   padding: 14px;
   background: var(--c-surface-hover);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .node {
   background: var(--ds-bg-surface);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 7px 11px;
   font-size: var(--ds-font-size-xs);
   box-shadow: var(--shadow);
@@ -1052,7 +1052,7 @@ label {
 .ln {
   border: 1px solid var(--line);
   background: var(--ds-bg-surface);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 14px;
   font-size: var(--ds-font-size-xs);
   box-shadow: var(--shadow);
@@ -1079,14 +1079,14 @@ label {
 .bar {
   height: 8px;
   background: var(--c-track);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   overflow: hidden;
 }
 .bar > i {
   display: block;
   height: 100%;
   background: var(--gradient-primary);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   transition: width 0.4s var(--ease-smooth);
 }
 .bar > i.a {
@@ -1105,7 +1105,7 @@ label {
 .note {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-color-gray-600);
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
   margin-top: 8px;
 }
 
@@ -1114,7 +1114,7 @@ label {
 .el-textarea__inner::placeholder,
 .el-select__placeholder {
   color: var(--ds-color-gray-500) !important;
-  font-weight: 500 !important;
+  font-weight: var(--ds-font-weight-medium) !important;
   font-size: var(--ds-font-size-base);
 }
 
@@ -1140,7 +1140,7 @@ label {
 .el-input__wrapper {
   padding: 1px 10px !important;
   box-shadow: 0 0 0 1px var(--ds-color-gray-300) inset !important;
-  border-radius: 8px !important;
+  border-radius: var(--ds-radius-md) !important;
   background: var(--ds-bg-surface) !important;
 }
 .el-input__wrapper:hover {
@@ -1198,7 +1198,7 @@ label {
 }
 .el-table {
   border: 1.5px solid var(--ds-color-primary-500);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.08);
 }
@@ -1216,7 +1216,7 @@ label {
   font: var(--typo-table-td);
 }
 .el-table .el-table__row {
-  font-weight: 500;
+  font-weight: var(--ds-font-weight-medium);
 }
 
 /* === 接管 EP 全部可能浅色的"次要文本"（2026-09-07 全平台排查） === */
@@ -1265,11 +1265,11 @@ label {
 .el-input__suffix,
 .el-input__count .el-input__count-inner {
   color: var(--ds-color-gray-600) !important;
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .el-form-item__label {
   color: var(--ds-color-primary-900) !important;
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
   font-size: var(--ds-font-size-xs);
 }
 .el-form-item__content,
@@ -1279,7 +1279,7 @@ label {
 }
 .el-form-item__error {
   color: var(--ds-color-error-700) !important;
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
 }
 .el-input.is-disabled .el-input__inner,
 .el-textarea.is-disabled .el-textarea__inner {
@@ -1287,55 +1287,55 @@ label {
 }
 .el-empty__description p {
   color: var(--ds-color-gray-600) !important;
-  font-weight: 500 !important;
+  font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-table__empty-text {
   color: var(--ds-color-gray-600) !important;
-  font-weight: 500 !important;
+  font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-loading-mask .el-loading-text {
   color: var(--ds-color-primary-900) !important;
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
 }
 .el-tooltip__popper,
 .el-popper.is-light {
   color: var(--ds-color-gray-800) !important;
-  font-weight: 500 !important;
+  font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-pagination__sizes .el-select .el-input__inner,
 .el-pagination__jump {
   color: var(--ds-color-gray-600) !important;
-  font-weight: 500 !important;
+  font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-pagination .el-pager li,
 .el-pagination .btn-prev,
 .el-pagination .btn-next {
   color: var(--ds-color-primary-900) !important;
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
 }
 .el-dialog__title,
 .el-message-box__title,
 .el-message__content,
 .el-drawer__title {
   color: var(--ds-color-gray-900) !important;
-  font-weight: 700 !important;
+  font-weight: var(--ds-font-weight-bold) !important;
 }
 .el-descriptions__label {
   color: var(--ds-color-gray-600) !important;
-  font-weight: 600 !important;
+  font-weight: var(--ds-font-weight-semibold) !important;
 }
 .el-descriptions__content {
   color: var(--ds-color-gray-800) !important;
-  font-weight: 500 !important;
+  font-weight: var(--ds-font-weight-medium) !important;
 }
 .el-tag {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .el-link {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .el-button {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 
 /* ============ connector grid ============ */
@@ -1346,7 +1346,7 @@ label {
 }
 .conn {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 14px;
   text-align: center;
   cursor: pointer;
@@ -1370,7 +1370,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   margin: 0 auto 8px;
   font-size: var(--ds-font-size-lg);
 }
@@ -1459,7 +1459,7 @@ label {
 .modal .mh {
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   font-size: var(--ds-font-size-base);
   display: flex;
   align-items: center;
@@ -1507,7 +1507,7 @@ label {
   background: var(--c-slate-900);
   color: var(--ds-text-inverse);
   padding: 10px 18px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   font-size: var(--ds-font-size-xs);
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
   animation: springIn 0.45s var(--ease-spring);
@@ -1534,7 +1534,7 @@ label {
 .tabbar .t.on {
   color: var(--primary);
   border-bottom-color: var(--primary);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .kv {
   display: flex;
@@ -1555,7 +1555,7 @@ label {
   font-size: var(--ds-font-size-xs);
   padding: 3px 9px;
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: var(--ds-radius-2xl);
   color: var(--muted);
   cursor: pointer;
   transition: all 0.2s var(--ease-smooth);
@@ -1574,7 +1574,7 @@ label {
 .mini i {
   flex: 1;
   background: var(--gradient-primary);
-  border-radius: 2px 2px 0 0;
+  border-radius: var(--ds-radius-sm) var(--ds-radius-sm) 0 0;
   opacity: 0.8;
 }
 .legend {
@@ -1586,7 +1586,7 @@ label {
 }
 .section-title {
   font-size: var(--ds-font-size-xs);
-  font-weight: 700;
+  font-weight: var(--ds-font-weight-bold);
   color: var(--muted);
   margin: 18px 0 8px;
   text-transform: uppercase;
@@ -1604,7 +1604,7 @@ label {
   gap: 8px;
   padding: 8px 10px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   background: var(--c-surface);
   cursor: default;
   transition:
@@ -1646,7 +1646,7 @@ label {
 }
 .health-status {
   font-size: var(--ds-font-size-xs);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--muted, var(--ds-color-gray-fallback));
 }
 
@@ -1823,7 +1823,7 @@ label {
   );
   background-size: 936px 100%;
   animation: shimmer 1.4s infinite linear;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   display: inline-block;
 }
 
@@ -2515,10 +2515,10 @@ label {
 
   /* --- KPI 数值字号略减 --- */
   .kpi {
-    font-size: 20px;
+    font-size: var(--ds-font-size-2xl);
   }
   .kpi.s {
-    font-size: 16px;
+    font-size: var(--ds-font-size-lg);
   }
 
   /* --- 表格水平滚动（原生 table 兜底；el-table 自带响应式） --- */

@@ -474,22 +474,22 @@ onMounted(() => {
 .sub-t {
   padding: 7px 14px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   border-bottom: 2px solid transparent;
 }
 .sub-t.on {
   color: var(--ds-color-primary-500);
   border-bottom-color: var(--ds-color-primary-500);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .sub-badge {
   display: inline-block;
   margin-left: 4px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   padding: 0 6px;
 }
 
@@ -500,8 +500,8 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 .panel-head .title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-bold);
 }
 .panel-head .spacer {
   flex: 1;
@@ -511,26 +511,26 @@ onMounted(() => {
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 .mono {
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 
 /* 执行历史表 */
 .exec-table {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .exec-table tr.active td {
   background: var(--ds-color-primary-50);
 }
 .trigger-tag {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .tg-run {
   background: var(--c-green-50);
@@ -545,10 +545,10 @@ onMounted(() => {
   color: var(--c-violet);
 }
 .status-tag {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .st-success {
   background: var(--c-green-50);
@@ -588,8 +588,8 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 .trace-head .title {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
 }
 .trace-head .spacer {
   flex: 1;
@@ -605,7 +605,7 @@ onMounted(() => {
   flex: 1;
   height: 6px;
   background: var(--c-track);
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   overflow: hidden;
 }
 .progress-bar i {
@@ -615,7 +615,7 @@ onMounted(() => {
   transition: width 0.2s;
 }
 .progress-text {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   font-family: var(--ds-font-family-mono);
 }
@@ -626,14 +626,14 @@ onMounted(() => {
   margin: 0;
   max-height: 280px;
   overflow-y: auto;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .event {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  border-radius: 4px;
+  border-radius: var(--ds-radius-sm);
   opacity: 0.5;
 }
 .event.done {
@@ -641,7 +641,7 @@ onMounted(() => {
 }
 .event.current {
   background: var(--c-amber-50);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .ev-seq {
   color: var(--ds-text-tertiary);
@@ -649,27 +649,27 @@ onMounted(() => {
   width: 28px;
 }
 .ev-kind {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
   width: 88px;
   text-align: center;
 }
 .ev-node {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   background: var(--c-surface-hover);
   padding: 1px 5px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
 }
 .ev-time {
   margin-left: auto;
   color: var(--ds-text-tertiary);
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 
 .event.ev-node_start .ev-kind {
@@ -709,7 +709,7 @@ onMounted(() => {
 }
 .ckpt-card {
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   padding: 10px 12px;
 }
@@ -720,14 +720,14 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 .ckpt-id {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-primary);
 }
 .ckpt-kind {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
 }
@@ -744,28 +744,28 @@ onMounted(() => {
   color: var(--ds-color-error-500);
 }
 .ckpt-time {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .ckpt-head .spacer {
   flex: 1;
 }
 .ckpt-meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
 }
 .ckpt-node-tag {
   display: inline-block;
   margin: 2px 4px 0 0;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   background: var(--c-surface-hover);
   padding: 1px 5px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   font-family: var(--ds-font-family-mono);
 }
 .ckpt-note {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 
@@ -777,7 +777,7 @@ onMounted(() => {
 }
 .iv-card {
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   padding: 10px 12px;
 }
@@ -800,14 +800,14 @@ onMounted(() => {
   margin-bottom: 4px;
 }
 .iv-node {
-  font-weight: 600;
-  font-size: 12px;
+  font-weight: var(--ds-font-weight-semibold);
+  font-size: var(--ds-font-size-xs);
 }
 .iv-status {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .iv-status.iv-st-pending {
   background: var(--c-indigo-50);
@@ -827,11 +827,11 @@ onMounted(() => {
 }
 .iv-time {
   margin-left: auto;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .iv-reason {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   margin-bottom: 6px;
 }
@@ -840,10 +840,10 @@ onMounted(() => {
 }
 .json {
   background: var(--c-surface-hover);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   padding: 8px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   white-space: pre-wrap;
   word-break: break-all;
@@ -861,7 +861,7 @@ onMounted(() => {
 .iv-resolved {
   display: flex;
   gap: 14px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 6px;
 }

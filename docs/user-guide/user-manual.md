@@ -399,7 +399,7 @@ A：1) 完善数据集的 schema 描述与字段注释；2) 在 Prompt 模板中
 
 ### Q6：如何切换部署环境（信创/本地/公有云/私有云）？
 
-A：平台四环境零改动交付，仅需切换 `values.yaml` 中的 `environment.profile` 参数（xinchuang/local/public-cloud/private-cloud），无需修改镜像或代码。
+A：平台四环境零改动交付，仅需切换 `values.yaml` 中的 `environment.profile` 参数（xinchuang/local/publiccloud/privatecloud），无需修改镜像或代码。
 
 ### Q7：租户资源不足如何扩容？
 

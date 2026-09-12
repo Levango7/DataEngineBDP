@@ -773,7 +773,7 @@ onMounted(async () => {
 .bp-sidebar {
   background: var(--card-bg, var(--ds-bg-surface));
   border: 1px solid var(--ds-border-default);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 12px;
   max-height: calc(100vh - 200px);
   overflow-y: auto;
@@ -798,7 +798,7 @@ onMounted(async () => {
 
 .bp-sidebar-item {
   padding: 10px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   cursor: pointer;
   border: 1px solid transparent;
   transition: all 0.15s;
@@ -829,7 +829,7 @@ onMounted(async () => {
 }
 
 .bp-tree-ic {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 
@@ -853,12 +853,12 @@ onMounted(async () => {
 }
 
 .pill.sm {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 1px 6px;
 }
 
 .unit {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-left: 4px;
 }

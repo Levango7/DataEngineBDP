@@ -38,7 +38,7 @@ defineProps<{
 .page-card__title {
   margin: 0;
   font-size: var(--ds-font-size-lg);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--el-text-color-primary);
 }
 

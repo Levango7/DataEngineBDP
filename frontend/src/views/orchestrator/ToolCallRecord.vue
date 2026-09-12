@@ -130,11 +130,11 @@ onMounted(load)
   margin-bottom: 4px;
 }
 .tc-head .title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-bold);
 }
 .tc-head .meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .tc-head .spacer {
@@ -144,7 +144,7 @@ onMounted(load)
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 .call-list {
@@ -154,7 +154,7 @@ onMounted(load)
 }
 .call-card {
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   overflow: hidden;
 }
@@ -177,33 +177,33 @@ onMounted(load)
   gap: 10px;
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .call-head:hover {
   background: var(--c-surface-hover);
 }
 .call-seq {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   font-family: var(--ds-font-family-mono);
 }
 .call-tool {
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
   font-family: var(--ds-font-family-mono);
 }
 .call-node {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   background: var(--c-surface-alt);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .call-status {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   padding: 2px 7px;
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
 }
 .call-status.st-success {
   background: var(--c-green-50);
@@ -222,14 +222,14 @@ onMounted(load)
   color: var(--ds-text-tertiary);
 }
 .call-dur {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-left: auto;
 }
 .call-expand {
   color: var(--ds-text-tertiary);
   transition: transform 0.2s;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .call-expand.open {
   transform: rotate(180deg);
@@ -244,8 +244,8 @@ onMounted(load)
   margin-bottom: 10px;
 }
 .section-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-tertiary);
   margin-bottom: 4px;
   text-transform: uppercase;
@@ -253,10 +253,10 @@ onMounted(load)
 }
 .json {
   background: var(--ds-bg-surface);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 10px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   white-space: pre-wrap;
   word-break: break-all;
@@ -265,17 +265,17 @@ onMounted(load)
   margin: 0;
 }
 .err-msg {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-color-error-500);
   background: var(--c-red-50);
   padding: 6px 10px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   word-break: break-all;
 }
 .call-time {
   display: flex;
   gap: 16px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-top: 4px;
 }

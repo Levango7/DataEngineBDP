@@ -128,11 +128,11 @@ onMounted(load)
   margin-bottom: 4px;
 }
 .tc-head .title {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-bold);
 }
 .tc-head .meta {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 .tc-head .spacer {
@@ -142,7 +142,7 @@ onMounted(load)
   color: var(--ds-text-tertiary);
   text-align: center;
   padding: 30px 0;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 
 .timeline {
@@ -175,16 +175,16 @@ onMounted(load)
   z-index: 1;
 }
 .kind-badge {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--ds-font-size-xs);
+  font-weight: var(--ds-font-weight-bold);
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: var(--ds-radius-lg);
   background: var(--c-surface-alt);
   color: var(--ds-text-tertiary);
   letter-spacing: 0.4px;
 }
 .step-idx {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
 
@@ -211,14 +211,14 @@ onMounted(load)
 
 .step-body {
   background: var(--c-surface-hover);
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 12px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .step-meta {
   display: flex;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
   margin-bottom: 4px;
 }
@@ -226,7 +226,7 @@ onMounted(load)
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
   padding: 1px 6px;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .step-content {
   color: var(--ds-text-primary);
@@ -236,20 +236,20 @@ onMounted(load)
 }
 .step-obs {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
   background: var(--ds-bg-surface);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   padding: 5px 8px;
   border-left: 3px solid var(--ds-color-success-500);
 }
 .obs-label {
   color: var(--ds-text-tertiary);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .step-tool {
   margin-top: 6px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .tool-label {
   color: var(--ds-text-tertiary);

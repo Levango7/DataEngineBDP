@@ -266,7 +266,7 @@ async function copySql(): Promise<void> {
   width: 100%;
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  border-radius: 10px;
+  border-radius: var(--ds-radius-md-plus);
   overflow: hidden;
   position: relative;
 }
@@ -282,8 +282,8 @@ async function copySql(): Promise<void> {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
 }
 .sql-actions {
   display: inline-flex;
@@ -298,7 +298,7 @@ async function copySql(): Promise<void> {
   margin: 0;
   padding: 12px 14px;
   font-family: var(--ds-font-family-mono);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
@@ -308,7 +308,7 @@ async function copySql(): Promise<void> {
 }
 .sql-code :deep(.k) {
   color: var(--c-violet);
-  font-weight: 600;
+  font-weight: var(--ds-font-weight-semibold);
 }
 .sql-code :deep(.s) {
   color: var(--c-green-600);
@@ -323,7 +323,7 @@ async function copySql(): Promise<void> {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .meta-row {
   display: flex;
@@ -345,9 +345,9 @@ async function copySql(): Promise<void> {
   right: 12px;
   background: var(--c-green-600);
   color: var(--ds-text-inverse);
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   padding: 3px 8px;
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   z-index: 2;
 }
 .fade-enter-active,

@@ -345,8 +345,8 @@ function downloadBlob(blob: Blob, filename: string): void {
   gap: 6px;
   padding: 8px 12px;
   background: var(--c-amber-50, #fffbeb);
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-font-size-xs);
   color: var(--amber, var(--ds-color-warning-600));
   margin-top: 8px;
 }

@@ -718,7 +718,7 @@ onMounted(() => {
   transition:
     transform 0.2s,
     box-shadow 0.2s;
-  border-radius: 8px;
+  border-radius: var(--ds-radius-md);
 }
 .template-card:hover {
   transform: translateY(-2px);
@@ -731,7 +731,7 @@ onMounted(() => {
   margin-bottom: 10px;
 }
 .card-icon {
-  font-size: 30px;
+  font-size: var(--ds-font-size-4xl);
   line-height: 1;
 }
 .card-title-wrap {
@@ -739,20 +739,20 @@ onMounted(() => {
   min-width: 0;
 }
 .card-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-lg);
+  font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .card-id {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 2px;
 }
 .card-desc {
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
   line-height: 1.5;
   display: -webkit-box;
@@ -770,7 +770,7 @@ onMounted(() => {
 .card-footer {
   display: flex;
   gap: 14px;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   padding-top: 8px;
   border-top: 1px solid var(--ds-border-subtle);
@@ -809,12 +809,12 @@ onMounted(() => {
   flex-wrap: wrap;
   padding: 12px;
   background: var(--ds-bg-subtle);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
 }
 .arch-node {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-default);
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
   padding: 8px 12px;
   min-width: 140px;
   text-align: center;
@@ -829,17 +829,17 @@ onMounted(() => {
   border-left: 3px solid var(--ds-color-warning-500);
 }
 .node-layer {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   text-transform: uppercase;
 }
 .node-name {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   margin: 4px 0;
 }
 .node-type {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 
@@ -848,7 +848,7 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
 }
 .io-in {
   color: var(--ds-text-secondary);
@@ -861,7 +861,7 @@ onMounted(() => {
 }
 .schedule-info {
   margin-top: 10px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
 }
 
@@ -874,7 +874,7 @@ onMounted(() => {
   display: flex;
   gap: 16px;
   margin-bottom: 8px;
-  font-size: 14px;
+  font-size: var(--ds-font-size-base);
 }
 .step-io :deep(.el-tag) {
   margin-right: 4px;
@@ -883,8 +883,8 @@ onMounted(() => {
   background: var(--ds-text-primary);
   color: var(--ds-text-inverse);
   padding: 12px;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-font-size-xs);
   overflow-x: auto;
   font-family: var(--ds-font-family-mono);
 }
@@ -896,11 +896,11 @@ onMounted(() => {
   gap: 12px;
 }
 .viz-panel-card {
-  border-radius: 6px;
+  border-radius: var(--ds-radius-md);
 }
 .panel-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--ds-font-size-base);
+  font-weight: var(--ds-font-weight-semibold);
   display: flex;
   align-items: center;
   gap: 6px;
@@ -913,11 +913,11 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 .panel-size {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 .panel-desc {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 
@@ -925,8 +925,8 @@ onMounted(() => {
 .readme-content {
   background: var(--ds-bg-subtle);
   padding: 16px;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: var(--ds-radius-md);
+  font-size: var(--ds-font-size-base);
   line-height: 1.6;
   white-space: pre-wrap;
   font-family: var(--ds-font-family-mono);
@@ -934,7 +934,7 @@ onMounted(() => {
 
 /* 部署表单参数提示 */
 .param-hint {
-  font-size: 12px;
+  font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 2px;
   line-height: 1.4;

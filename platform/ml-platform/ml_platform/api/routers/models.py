@@ -46,7 +46,9 @@ def _require_model_owner(model: ModelInfo, ctx: AuthContext) -> None:
     """
     if ctx.role == "admin":
         return
-    if ctx.tenantId and getattr(model, "tenantId", None) != ctx.tenantId:
+    if not ctx.tenantId:
+        raise HTTPException(status_code=403, detail="缺少租户上下文")
+    if getattr(model, "tenantId", None) != ctx.tenantId:
         raise HTTPException(status_code=404, detail="模型不存在")
 
 
@@ -61,7 +63,10 @@ async def listModels(
 ):
     """列出模型（按租户隔离：普通用户仅见本租户模型，admin 可见全部）."""
     models = await registry.backend.list_models()
-    if ctx.role != "admin" and ctx.tenantId:
+    if ctx.role != "admin":
+        # 非 admin 用户必须有 tenantId，否则拒绝（防止空 tenantId 绕过过滤返回全部模型）
+        if not ctx.tenantId:
+            raise HTTPException(status_code=403, detail="缺少租户上下文")
         models = [m for m in models if getattr(m, "tenantId", None) == ctx.tenantId]
     return models
 

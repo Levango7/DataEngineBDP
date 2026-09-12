@@ -94,7 +94,7 @@ function iconOf(type?: string): Component {
   color: rgba(255, 255, 255, 0.7);
 }
 .toast__close:hover {
-  color: #fff;
+  color: var(--ds-text-inverse);
 }
 
 /* TransitionGroup 进入动画 */
