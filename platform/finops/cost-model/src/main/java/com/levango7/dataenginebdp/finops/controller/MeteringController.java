@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.finops.controller;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.finops.model.QueryMeteringRecord;
 import com.levango7.dataenginebdp.finops.model.QueryMeteringRequest;
 import com.levango7.dataenginebdp.finops.repository.QueryMeteringRepository;
@@ -23,7 +24,14 @@ import java.util.Optional;
 /**
  * 查询计量上报入口（cost-model 侧接收 sql-gateway 的查询计量）。
  *
- * <p>幂等：同一 (tenantId, clientRequestId) 重复上报不重复记账。
+ * <p>幂等：同一 (tenantId, clientRequestId) 重复上报不重复记账。</p>
+ *
+ * <p>安全控制（R8 修复）：
+ * <ul>
+ *   <li>tenantId 从 {@link TenantContext}（JWT claim）获取，忽略请求体中的 tenantId，
+ *       防止客户端伪造租户 ID 进行跨租户计量注入。</li>
+ *   <li>若 TenantContext 中无 tenantId，返回 401 Unauthorized。</li>
+ * </ul></p>
  */
 @Slf4j
 @RestController
@@ -37,15 +45,24 @@ public class MeteringController {
     /**
      * 接收单条查询计量。
      *
-     * @param request 计量请求
-     * @return 201（首次落库）或 200（已存在幂等跳过）
+     * <p>安全控制（R8 修复）：tenantId 从 JWT/TenantContext 获取，忽略请求体中的 tenantId。
+     *
+     * @param request 计量请求（tenantId 字段被忽略，改用 JWT 中的 tenantId）
+     * @return 201（首次落库）或 200（已存在幂等跳过）；401 若 JWT 中无 tenantId
      */
     @Operation(summary = "接收单条查询计量")
     @PostMapping("/query")
     @Transactional
     public ResponseEntity<Map<String, Object>> recordQuery(@Valid @RequestBody QueryMeteringRequest request) {
+        // 从 JWT/TenantContext 获取 tenantId，忽略请求体中的 tenantId（防止伪造）
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "MissingTenantId", "message", "JWT 中缺少 tenantId"));
+        }
+
         Optional<QueryMeteringRecord> existing = meteringRepository
-                .findByTenantIdAndClientRequestId(request.getTenantId(), request.getClientRequestId());
+                .findByTenantIdAndClientRequestId(tenantId, request.getClientRequestId());
         if (existing.isPresent()) {
             return ResponseEntity.ok(Map.of(
                     "duplicate", true,
@@ -53,7 +70,7 @@ public class MeteringController {
         }
 
         QueryMeteringRecord record = QueryMeteringRecord.builder()
-                .tenantId(request.getTenantId())
+                .tenantId(tenantId)
                 .namespace(request.getNamespace())
                 .engine(request.getEngine())
                 .sqlHash(request.getSqlHash())

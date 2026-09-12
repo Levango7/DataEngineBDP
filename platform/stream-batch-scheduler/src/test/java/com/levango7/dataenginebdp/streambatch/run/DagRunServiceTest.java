@@ -6,6 +6,9 @@ import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.ExecutionStatus;
 import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
 import com.levango7.dataenginebdp.streambatch.model.TaskExecutionResult;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -22,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 /**
  * DagRunService 单元测试（不依赖真实 Spark/Flink，mock 编排器）。
+ *
+ * <p>R8 安全修复：所有测试方法在执行前设置 TenantContext，模拟已认证租户上下文。</p>
  */
 @DataJpaTest
 @Import(DagRunService.class)
@@ -35,6 +40,19 @@ class DagRunServiceTest {
 
     @Autowired
     private DagRunRepository dagRunRepository;
+
+    /** 测试用租户 ID。 */
+    private static final String TEST_TENANT = "tenant-test-001";
+
+    @BeforeEach
+    void setUpTenant() {
+        TenantContext.setTenantId(TEST_TENANT);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContext.clear();
+    }
 
     /** 被测对象（直接用容器注入的 dagRunService）。 */
     private DagRunService service() {

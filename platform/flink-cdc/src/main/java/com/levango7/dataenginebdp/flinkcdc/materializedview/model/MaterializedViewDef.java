@@ -43,6 +43,9 @@ public class MaterializedViewDef implements Serializable {
     /** 物化视图名称（唯一标识）。 */
     private String name;
 
+    /** 租户 ID（多租户隔离，R8 安全修复）。 */
+    private String tenantId;
+
     /** 目标 Doris 数据库名。 */
     private String database;
 
@@ -209,6 +212,24 @@ public class MaterializedViewDef implements Serializable {
         this.name = name;
     }
 
+    /**
+     * 获取租户 ID（R8 安全修复：多租户隔离）。
+     *
+     * @return 租户 ID
+     */
+    public String getTenantId() {
+        return tenantId;
+    }
+
+    /**
+     * 设置租户 ID。
+     *
+     * @param tenantId 租户 ID
+     */
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
+    }
+
     public String getDatabase() {
         return database;
     }
@@ -326,6 +347,11 @@ public class MaterializedViewDef implements Serializable {
 
         public Builder name(String name) {
             def.name = name;
+            return this;
+        }
+
+        public Builder tenantId(String tenantId) {
+            def.tenantId = tenantId;
             return this;
         }
 

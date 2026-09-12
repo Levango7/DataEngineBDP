@@ -5,6 +5,8 @@ import com.levango7.dataenginebdp.flinkcdc.materializedview.model.AggregationTyp
 import com.levango7.dataenginebdp.flinkcdc.materializedview.model.MaterializedViewDef;
 import com.levango7.dataenginebdp.flinkcdc.materializedview.model.RefreshPolicy;
 import com.levango7.dataenginebdp.flinkcdc.materializedview.service.MaterializedViewService;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -22,6 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>直接调用 Controller 方法，不启动 Spring MVC 上下文，
  * 验证业务逻辑与 HTTP 状态码映射。</p>
  *
+ * <p>R8 安全修复：所有测试方法在执行前设置 TenantContext，模拟已认证租户上下文。</p>
+ *
  * @author shuqing-bigdata
  */
 class MaterializedViewControllerTest {
@@ -29,12 +33,21 @@ class MaterializedViewControllerTest {
     private MaterializedViewController controller;
     private MaterializedViewService service;
 
+    /** 测试用租户 ID。 */
+    private static final String TEST_TENANT = "tenant-mv-test";
+
     @BeforeEach
     void setUp() {
+        TenantContext.setTenantId(TEST_TENANT);
         service = new MaterializedViewService(new MaterializedViewConfig(), sql -> true);
         service.init();
         service.start();
         controller = new MaterializedViewController(service);
+    }
+
+    @AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     private MaterializedViewDef sampleView(String name) {

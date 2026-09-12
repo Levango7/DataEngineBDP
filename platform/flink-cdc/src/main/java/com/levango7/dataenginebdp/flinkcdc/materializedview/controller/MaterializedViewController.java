@@ -3,8 +3,10 @@ package com.levango7.dataenginebdp.flinkcdc.materializedview.controller;
 import com.levango7.dataenginebdp.flinkcdc.materializedview.model.MaterializedViewDef;
 import com.levango7.dataenginebdp.flinkcdc.materializedview.refresh.ViewRefresher;
 import com.levango7.dataenginebdp.flinkcdc.materializedview.service.MaterializedViewService;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,15 @@ import java.util.Objects;
  *
  * <p>提供物化视图定义的 CRUD、手动刷新、状态查询等 HTTP 接口。</p>
  *
+ * <p>安全控制（R8 修复）：
+ * <ul>
+ *   <li>租户隔离：所有操作从 {@link TenantContext} 读取当前租户 ID，
+ *       由 {@link MaterializedViewService} 按复合 key（tenantId|viewName）隔离存储，
+ *       跨租户访问返回 404 而非 403，避免越权信息泄露。</li>
+ *   <li>错误信息脱敏：异常消息不回显 {@code e.getMessage()}，统一返回通用文案，
+ *       详细堆栈仅写日志，防止内部实现细节（表名/SQL/连接串）外泄。</li>
+ * </ul></p>
+ *
  * <p>接口列表：</p>
  * <ul>
  *   <li>{@code POST   /api/materialized-views} — 注册物化视图</li>
@@ -48,6 +59,9 @@ import java.util.Objects;
 public class MaterializedViewController {
 
     private static final Logger log = LoggerFactory.getLogger(MaterializedViewController.class);
+
+    /** 脱敏通用错误文案（不回显内部异常细节）。 */
+    private static final String GENERIC_ERROR_MESSAGE = "操作失败，请检查参数或联系管理员";
 
     /** 物化视图管理服务。 */
     private final MaterializedViewService service;
@@ -70,6 +84,7 @@ public class MaterializedViewController {
     @Operation(summary = "注册物化视图")
     @PostMapping
     public ResponseEntity<Map<String, Object>> registerView(@RequestBody MaterializedViewDef def) {
+        requireTenant();
         try {
             boolean success = service.registerView(def);
             if (success) {
@@ -85,10 +100,10 @@ public class MaterializedViewController {
                 ));
             }
         } catch (Exception e) {
-            log.error("注册物化视图失败", e);
+            log.error("注册物化视图失败: name={}", def.getName(), e);
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "注册失败: " + e.getMessage()
+                    "message", GENERIC_ERROR_MESSAGE
             ));
         }
     }
@@ -101,18 +116,20 @@ public class MaterializedViewController {
     @Operation(summary = "列出所有物化视图")
     @GetMapping
     public ResponseEntity<List<MaterializedViewDef>> listViews() {
+        requireTenant();
         return ResponseEntity.ok(service.listViews());
     }
 
     /**
-     * 查询单个物化视图。
+     * 查询单个物化视图（租户隔离，跨租户返回 404）。
      *
      * @param name 视图名称
-     * @return 200 视图定义；404 不存在
+     * @return 200 视图定义；404 不存在或不属于当前租户
      */
     @Operation(summary = "查询单个物化视图")
     @GetMapping("/{name}")
     public ResponseEntity<?> getView(@PathVariable String name) {
+        requireTenant();
         MaterializedViewDef def = service.getView(name);
         if (def == null) {
             return ResponseEntity.status(404).body(Map.of(
@@ -133,7 +150,8 @@ public class MaterializedViewController {
     @Operation(summary = "更新物化视图")
     @PutMapping("/{name}")
     public ResponseEntity<Map<String, Object>> updateView(@PathVariable String name,
-                                                          @RequestBody MaterializedViewDef def) {
+                                                           @RequestBody MaterializedViewDef def) {
+        requireTenant();
         try {
             // 确保 path 中的 name 与 body 中的 name 一致
             def.setName(name);
@@ -150,10 +168,10 @@ public class MaterializedViewController {
                 ));
             }
         } catch (Exception e) {
-            log.error("更新物化视图失败: {}", name, e);
+            log.error("更新物化视图失败: name={}", name, e);
             return ResponseEntity.badRequest().body(Map.of(
                     "success", false,
-                    "message", "更新失败: " + e.getMessage()
+                    "message", GENERIC_ERROR_MESSAGE
             ));
         }
     }
@@ -167,6 +185,7 @@ public class MaterializedViewController {
     @Operation(summary = "删除物化视图")
     @DeleteMapping("/{name}")
     public ResponseEntity<Map<String, Object>> removeView(@PathVariable String name) {
+        requireTenant();
         boolean success = service.removeView(name);
         if (success) {
             return ResponseEntity.ok(Map.of(
@@ -192,6 +211,7 @@ public class MaterializedViewController {
     @PostMapping("/{name}/refresh")
     public ResponseEntity<Map<String, Object>> refreshView(@PathVariable String name,
                                                            @RequestParam(defaultValue = "api") String operator) {
+        requireTenant();
         var event = service.refreshManually(name, operator);
         if (event == null) {
             return ResponseEntity.status(404).body(Map.of(
@@ -216,6 +236,7 @@ public class MaterializedViewController {
     @Operation(summary = "查询单个物化视图的刷新状态")
     @GetMapping("/{name}/status")
     public ResponseEntity<Map<String, Object>> getViewStatus(@PathVariable String name) {
+        requireTenant();
         Map<String, Object> status = new HashMap<>();
         status.put("viewName", name);
         ViewRefresher.RefreshResult result = service.getLastRefreshResult(name);
@@ -235,18 +256,30 @@ public class MaterializedViewController {
     }
 
     /**
-     * 查询全局状态。
+     * 查询全局状态（租户隔离，仅返回当前租户视图）。
      *
      * @return 200 全局状态
      */
     @Operation(summary = "查询全局状态")
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> getGlobalStatus() {
+        requireTenant();
         Map<String, Object> status = new HashMap<>();
         status.put("started", service.isStarted());
         status.put("viewCount", service.viewCount());
         status.put("activeRefreshCount", service.getActiveRefreshCount());
         status.put("viewNames", service.listViews().stream().map(MaterializedViewDef::getName).toList());
         return ResponseEntity.ok(status);
+    }
+
+    /**
+     * 从 TenantContext 校验当前租户；缺失时返回 403。
+     */
+    private static void requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "缺少租户上下文，拒绝访问物化视图资源");
+        }
     }
 }

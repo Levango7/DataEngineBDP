@@ -31,6 +31,10 @@ public class JobEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    /** 租户 ID（多租户隔离，来自 TenantContext，R8 安全修复）。 */
+    @Column(name = "tenant_id", nullable = false, length = 64)
+    private String tenantId;
+
     /** 作业名称。 */
     @Column(nullable = false, length = 128)
     private String name;

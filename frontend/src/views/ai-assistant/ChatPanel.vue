@@ -206,7 +206,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, computed, onMounted } from 'vue'
+import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElInput, ElButton, ElIcon, ElSwitch, ElTooltip } from 'element-plus'
 import {
@@ -322,6 +322,14 @@ watch(
 
 onMounted(scrollToBottom)
 
+// 组件卸载时清理滚动定时器，避免 streaming 状态下销毁导致的内存泄漏
+onUnmounted(() => {
+  if (scrollTimer) {
+    clearInterval(scrollTimer)
+    scrollTimer = null
+  }
+})
+
 /* ------------------------------ 文案 ------------------------------ */
 function roleLabel(role: string): string {
   return role === 'user'
@@ -388,7 +396,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   gap: 6px;
   padding: 8px 14px;
   border: 1px solid var(--ds-border-subtle);
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border-radius: 20px;
   font-size: 14px;
   color: var(--c-slate-700);
@@ -443,7 +451,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 
 /* 文本 */
 .content-text {
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 10px 14px;
@@ -487,7 +495,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 
 /* 卡片 */
 .content-card {
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 12px;
   padding: 14px;
@@ -501,7 +509,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 .content-table,
 .content-chart,
 .content-summary {
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px;
@@ -513,7 +521,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   display: inline-flex;
   gap: 4px;
   padding: 8px 12px;
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
 }
@@ -553,7 +561,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 /* 输入区 */
 .chat-input-area {
   border-top: 1px solid var(--ds-border-subtle);
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   padding: 10px 16px 14px;
 }
 .input-toolbar {

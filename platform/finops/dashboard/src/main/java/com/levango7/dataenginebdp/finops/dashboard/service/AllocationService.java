@@ -117,6 +117,24 @@ public class AllocationService {
 
     /**
      * 保存分账配置。
+     *
+     * <p>R8 修复：注入 tenantId 实现租户隔离。
+     *
+     * @param config   分账配置
+     * @param tenantId 租户 ID（从 TenantContext 获取）
+     * @return 保存后的配置
+     */
+    public AllocationConfig saveConfig(AllocationConfig config, String tenantId) {
+        validateRatios(config.getRatios());
+        config.setTenantId(tenantId);
+        configs.put(config.getId(), config);
+        log.info("分账配置已保存: id={}, tenant={}, parent={}, dimension={}, ratios={}",
+                config.getId(), tenantId, config.getParentWorkspace(), config.getDimension(), config.getRatios());
+        return config;
+    }
+
+    /**
+     * 保存分账配置（向后兼容，不注入 tenantId）。
      */
     public AllocationConfig saveConfig(AllocationConfig config) {
         validateRatios(config.getRatios());
@@ -128,6 +146,29 @@ public class AllocationService {
 
     /**
      * 获取分账配置。
+     *
+     * <p>R8 修复：校验配置的 tenantId 与当前请求的 tenantId 匹配，防止跨租户访问。
+     *
+     * @param id       配置 ID
+     * @param tenantId 租户 ID（从 TenantContext 获取）
+     * @return 配置
+     * @throws IllegalArgumentException 配置不存在或租户不匹配
+     */
+    public AllocationConfig getConfig(String id, String tenantId) {
+        AllocationConfig config = configs.get(id);
+        if (config == null) {
+            throw new IllegalArgumentException("分账配置不存在: " + id);
+        }
+        // 租户隔离校验：配置的 tenantId 必须与当前请求的 tenantId 匹配
+        // （默认配置 tenantId 为 null，允许所有租户读取）
+        if (config.getTenantId() != null && !config.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("分账配置不存在: " + id);
+        }
+        return config;
+    }
+
+    /**
+     * 获取分账配置（向后兼容，不校验租户）。
      */
     public AllocationConfig getConfig(String id) {
         AllocationConfig config = configs.get(id);
@@ -139,6 +180,20 @@ public class AllocationService {
 
     /**
      * 列出所有分账配置。
+     *
+     * <p>R8 修复：仅返回属于指定租户的配置（以及 tenantId 为 null 的全局默认配置）。
+     *
+     * @param tenantId 租户 ID（从 TenantContext 获取）
+     * @return 属于该租户的分账配置列表
+     */
+    public List<AllocationConfig> listConfigs(String tenantId) {
+        return configs.values().stream()
+                .filter(c -> c.getTenantId() == null || c.getTenantId().equals(tenantId))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 列出所有分账配置（向后兼容，不按租户过滤）。
      */
     public List<AllocationConfig> listConfigs() {
         return new ArrayList<>(configs.values());
@@ -146,6 +201,28 @@ public class AllocationService {
 
     /**
      * 删除分账配置。
+     *
+     * <p>R8 修复：校验配置的 tenantId 与当前请求的 tenantId 匹配，防止跨租户删除。
+     *
+     * @param id       配置 ID
+     * @param tenantId 租户 ID（从 TenantContext 获取）
+     * @throws IllegalArgumentException 配置不存在或租户不匹配
+     */
+    public void deleteConfig(String id, String tenantId) {
+        AllocationConfig config = configs.get(id);
+        if (config == null) {
+            throw new IllegalArgumentException("分账配置不存在: " + id);
+        }
+        // 租户隔离校验：配置的 tenantId 必须与当前请求的 tenantId 匹配
+        // （默认配置 tenantId 为 null，不允许删除）
+        if (config.getTenantId() == null || !config.getTenantId().equals(tenantId)) {
+            throw new IllegalArgumentException("分账配置不存在: " + id);
+        }
+        configs.remove(id);
+    }
+
+    /**
+     * 删除分账配置（向后兼容，不校验租户）。
      */
     public void deleteConfig(String id) {
         configs.remove(id);

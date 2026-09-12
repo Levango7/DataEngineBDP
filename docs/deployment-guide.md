@@ -352,6 +352,18 @@ docker run -d --name sq-postgres -p 5432:5432 \
 #   catalog(Go):      CATALOG_DB=postgres://shuqing:shuqing123@127.0.0.1:5432/catalog
 ```
 
+### FinOps 子模块端口分配
+
+FinOps 平台含三个独立部署的子模块，各自分配独立端口以避免冲突：
+
+| 子模块 | 端口 | 服务名 | 说明 |
+| --- | --- | --- | --- |
+| cost-model | 8084 | `finops-cost-model` | 成本模型服务，从 Prometheus 采集资源用量并建模 |
+| dashboard | 8085 | `finops-dashboard` | FinOps 看板服务，提供成本可视化与闲置识别 |
+| billing | 8088 | `finops-billing` | 出账服务，生成租户级成本账单（见 [出账闭环设计](出账闭环设计_v1.0.md)） |
+
+> **端口冲突说明**：billing 服务端口原为 8085，与 dashboard 冲突，已调整为 8088。三服务可同时启动。
+
 ### 组件健康检查
 
 ```bash

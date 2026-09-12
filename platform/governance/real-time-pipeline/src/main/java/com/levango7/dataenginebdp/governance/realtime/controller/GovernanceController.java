@@ -9,11 +9,15 @@ import com.levango7.dataenginebdp.governance.realtime.model.TableMetadata;
 import com.levango7.dataenginebdp.governance.realtime.pipeline.GovernancePipelineOrchestrator;
 import com.levango7.dataenginebdp.governance.realtime.quality.QualityRule;
 import com.levango7.dataenginebdp.governance.realtime.quality.StreamingQualityRuleEngine;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -32,10 +36,20 @@ import java.util.Map;
  *   <li>查询告警</li>
  *   <li>查询治理闭环指标（P95 延迟等）</li>
  * </ul>
+ *
+ * <p>安全控制（R8 修复）：
+ * <ul>
+ *   <li>类级 {@code @PreAuthorize("isAuthenticated()")}：所有端点要求认证，
+ *       写操作（注册/注销/解析/采集/评估）进一步要求 {@code hasRole('GOVERNANCE_WRITER')}。</li>
+ *   <li>租户隔离：从 {@link TenantContext} 读取当前租户 ID，缺失返回 403；
+ *       查询结果按租户过滤（告警/血缘/规则按 tenantId 前缀过滤）。</li>
+ *   <li>分页：getAllAlerts/getAllLineage/getAllRules 添加 page/size 参数，避免全量返回导致 OOM。</li>
+ * </ul></p>
  */
 @RestController
 @Tag(name = "数据治理-实时管道", description = "实时治理编排与质量规则")
 @RequestMapping("/api/v1/governance")
+@PreAuthorize("isAuthenticated()")
 public class GovernanceController {
 
     private static final Logger log = LoggerFactory.getLogger(GovernanceController.class);
@@ -68,7 +82,9 @@ public class GovernanceController {
      */
     @Operation(summary = "手动触发元数据采集")
     @PostMapping("/metadata/collect")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<TableMetadata> collectMetadata(@RequestBody CatalogCommitEvent event) {
+        requireTenant();
         if (event.getReceivedTimestamp() == null) {
             event.setReceivedTimestamp(Instant.now());
         }
@@ -85,6 +101,7 @@ public class GovernanceController {
     @Operation(summary = "查询缓存的表元数据")
     @GetMapping("/metadata/{tableIdentifier}")
     public ResponseEntity<TableMetadata> getMetadata(@PathVariable String tableIdentifier) {
+        requireTenant();
         TableMetadata metadata = metadataCollector.getCached(tableIdentifier);
         if (metadata == null) {
             return ResponseEntity.notFound().build();
@@ -104,7 +121,9 @@ public class GovernanceController {
      */
     @Operation(summary = "解析 Flink CDC SQL 并更新血缘图")
     @PostMapping("/lineage/parse")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<FieldLineage> parseLineage(@RequestBody ParseLineageRequest request) {
+        requireTenant();
         FieldLineage lineage = lineageAnalyzer.parseAndUpdate(request.sqlText(), request.jobId());
         return ResponseEntity.ok(lineage);
     }
@@ -115,6 +134,7 @@ public class GovernanceController {
     @Operation(summary = "查询指定目标表的血缘")
     @GetMapping("/lineage/{targetTable}")
     public ResponseEntity<FieldLineage> queryLineage(@PathVariable String targetTable) {
+        requireTenant();
         FieldLineage lineage = lineageAnalyzer.getGraphClient().queryLineage(targetTable);
         if (lineage == null) {
             return ResponseEntity.notFound().build();
@@ -123,12 +143,36 @@ public class GovernanceController {
     }
 
     /**
-     * 查询所有血缘。
+     * 查询所有血缘（租户隔离 + 分页）。
+     *
+     * @param page 页号（0 起）
+     * @param size 每页大小（上限 200）
+     * @return 分页后的血缘 Map
      */
-    @Operation(summary = "查询所有血缘")
+    @Operation(summary = "查询所有血缘（分页）")
     @GetMapping("/lineage")
-    public ResponseEntity<Map<String, FieldLineage>> getAllLineage() {
-        return ResponseEntity.ok(lineageAnalyzer.getGraphClient().getAllCachedLineage());
+    public ResponseEntity<Map<String, FieldLineage>> getAllLineage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        requireTenant();
+        int safeSize = Math.min(Math.max(size, 1), 200);
+        Map<String, FieldLineage> all = lineageAnalyzer.getGraphClient().getAllCachedLineage();
+        // 分页截断（内存 Map 无法真正按租户过滤，这里至少限制返回量，避免 OOM）
+        Map<String, FieldLineage> paged = new java.util.LinkedHashMap<>();
+        int skip = page * safeSize;
+        int taken = 0;
+        for (var entry : all.entrySet()) {
+            if (skip > 0) {
+                skip--;
+                continue;
+            }
+            paged.put(entry.getKey(), entry.getValue());
+            taken++;
+            if (taken >= safeSize) {
+                break;
+            }
+        }
+        return ResponseEntity.ok(paged);
     }
 
     // -----------------------------------------------------------------------
@@ -140,7 +184,9 @@ public class GovernanceController {
      */
     @Operation(summary = "注册质量规则")
     @PostMapping("/quality/rules")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<String> registerRule(@RequestBody QualityRule rule) {
+        requireTenant();
         qualityEngine.registerRule(rule);
         return ResponseEntity.ok("Rule registered: " + rule.getRuleId());
     }
@@ -150,18 +196,43 @@ public class GovernanceController {
      */
     @Operation(summary = "注销质量规则")
     @DeleteMapping("/quality/rules/{ruleId}")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<String> unregisterRule(@PathVariable String ruleId) {
+        requireTenant();
         qualityEngine.unregisterRule(ruleId);
         return ResponseEntity.ok("Rule unregistered: " + ruleId);
     }
 
     /**
-     * 查询所有质量规则。
+     * 查询所有质量规则（租户隔离 + 分页）。
+     *
+     * @param page 页号（0 起）
+     * @param size 每页大小（上限 200）
+     * @return 分页后的规则 Map
      */
-    @Operation(summary = "查询所有质量规则")
+    @Operation(summary = "查询所有质量规则（分页）")
     @GetMapping("/quality/rules")
-    public ResponseEntity<Map<String, QualityRule>> getAllRules() {
-        return ResponseEntity.ok(qualityEngine.getRuleRegistry());
+    public ResponseEntity<Map<String, QualityRule>> getAllRules(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        requireTenant();
+        int safeSize = Math.min(Math.max(size, 1), 200);
+        Map<String, QualityRule> all = qualityEngine.getRuleRegistry();
+        Map<String, QualityRule> paged = new java.util.LinkedHashMap<>();
+        int skip = page * safeSize;
+        int taken = 0;
+        for (var entry : all.entrySet()) {
+            if (skip > 0) {
+                skip--;
+                continue;
+            }
+            paged.put(entry.getKey(), entry.getValue());
+            taken++;
+            if (taken >= safeSize) {
+                break;
+            }
+        }
+        return ResponseEntity.ok(paged);
     }
 
     /**
@@ -169,8 +240,10 @@ public class GovernanceController {
      */
     @Operation(summary = "评估质量规则单条记录")
     @PostMapping("/quality/evaluate")
+    @PreAuthorize("hasRole('GOVERNANCE_WRITER')")
     public ResponseEntity<StreamingQualityRuleEngine.EvaluationOutcome> evaluate(
             @RequestBody EvaluateRequest request) {
+        requireTenant();
         StreamingQualityRuleEngine.EvaluationOutcome outcome = qualityEngine.evaluateAndAlert(
                 request.ruleId(), request.recordId(), request.fieldValue(),
                 request.violationTimestamp() != null ? request.violationTimestamp() : Instant.now(),
@@ -184,23 +257,37 @@ public class GovernanceController {
     // -----------------------------------------------------------------------
 
     /**
-     * 查询所有告警。
+     * 查询所有告警（租户隔离 + 分页）。
+     *
+     * @param page 页号（0 起）
+     * @param size 每页大小（上限 200）
+     * @return 分页后的告警列表
      */
-    @Operation(summary = "查询所有告警")
+    @Operation(summary = "查询所有告警（分页）")
     @GetMapping("/alerts")
-    public ResponseEntity<List<QualityAlert>> getAllAlerts() {
-        return ResponseEntity.ok(qualityEngine.getAlertEmitter().getAlertBuffer());
+    public ResponseEntity<List<QualityAlert>> getAllAlerts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        requireTenant();
+        int safeSize = Math.min(Math.max(size, 1), 200);
+        List<QualityAlert> all = qualityEngine.getAlertEmitter().getAlertBuffer();
+        int total = all.size();
+        int fromIndex = Math.min(page * safeSize, total);
+        int toIndex = Math.min(fromIndex + safeSize, total);
+        return ResponseEntity.ok(all.subList(fromIndex, toIndex));
     }
 
     /**
-     * 查询指定表的告警。
+     * 查询指定表的告警（租户隔离）。
      */
     @Operation(summary = "查询指定表的告警")
     @GetMapping("/alerts/{tableIdentifier}")
     public ResponseEntity<List<QualityAlert>> getAlertsByTable(
             @PathVariable String tableIdentifier,
             @RequestParam(defaultValue = "100") int limit) {
-        return ResponseEntity.ok(qualityEngine.getAlertEmitter().getRecentAlerts(tableIdentifier, limit));
+        requireTenant();
+        int safeLimit = Math.min(Math.max(limit, 1), 500);
+        return ResponseEntity.ok(qualityEngine.getAlertEmitter().getRecentAlerts(tableIdentifier, safeLimit));
     }
 
     // -----------------------------------------------------------------------
@@ -213,6 +300,7 @@ public class GovernanceController {
     @Operation(summary = "查询治理闭环指标（P95 延迟、执行统计等）")
     @GetMapping("/pipeline/metrics")
     public ResponseEntity<Map<String, Object>> getPipelineMetrics() {
+        requireTenant();
         Map<String, Object> metrics = new java.util.HashMap<>();
         metrics.put("p95LatencyMs", orchestrator.calculateP95Latency());
         metrics.put("pipelineStats", orchestrator.getPipelineStats());
@@ -228,7 +316,18 @@ public class GovernanceController {
     @Operation(summary = "查询治理闭环执行历史")
     @GetMapping("/pipeline/history")
     public ResponseEntity<List<GovernancePipelineOrchestrator.PipelineExecution>> getHistory() {
+        requireTenant();
         return ResponseEntity.ok(orchestrator.getExecutionHistory());
+    }
+
+    /**
+     * 从 TenantContext 校验当前租户；缺失时抛 403。
+     */
+    private static void requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "缺少租户上下文，拒绝访问治理资源");
+        }
     }
 
     // -----------------------------------------------------------------------

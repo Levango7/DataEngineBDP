@@ -9,6 +9,7 @@ import com.levango7.dataenginebdp.flinkcdc.materializedview.trigger.RefreshEvent
 import com.levango7.dataenginebdp.flinkcdc.materializedview.trigger.RefreshTrigger;
 import com.levango7.dataenginebdp.flinkcdc.materializedview.trigger.ScheduledTrigger;
 import com.levango7.dataenginebdp.flinkcdc.model.ChangeRecord;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -57,8 +58,28 @@ public class MaterializedViewService {
     /** SQL 执行器。 */
     private final Function<String, Boolean> sqlExecutor;
 
-    /** 物化视图定义注册表：viewName → def。 */
+    /** 物化视图定义注册表：复合 key（tenantId|viewName）→ def（R8 租户隔离）。 */
     private final ConcurrentHashMap<String, MaterializedViewDef> viewRegistry = new ConcurrentHashMap<>();
+
+    /**
+     * 构造租户隔离的复合 key。
+     *
+     * @param tenantId 租户 ID
+     * @param viewName 视图名
+     * @return 复合 key
+     */
+    private static String registryKey(String tenantId, String viewName) {
+        return (tenantId == null ? "" : tenantId) + "|" + viewName;
+    }
+
+    /**
+     * 获取当前租户 ID（可为 null，兼容非 HTTP 上下文场景如 CDC 流处理）。
+     *
+     * @return 当前租户 ID 或 null
+     */
+    private static String currentTenant() {
+        return TenantContext.getTenantId();
+    }
 
     /** 视图刷新执行器。 */
     private ViewRefresher viewRefresher;
@@ -158,7 +179,7 @@ public class MaterializedViewService {
     }
 
     /**
-     * 注册物化视图定义。
+     * 注册物化视图定义（自动绑定当前租户）。
      *
      * @param def 物化视图定义
      * @return 是否注册成功（名称重复返回 false）
@@ -166,12 +187,15 @@ public class MaterializedViewService {
     public boolean registerView(MaterializedViewDef def) {
         Objects.requireNonNull(def, "物化视图定义不能为 null");
         def.validate();
+        String tenantId = currentTenant();
+        def.setTenantId(tenantId);
         String name = def.getName();
-        if (viewRegistry.putIfAbsent(name, def) != null) {
-            log.warn("物化视图已存在，注册失败: {}", name);
+        String key = registryKey(tenantId, name);
+        if (viewRegistry.putIfAbsent(key, def) != null) {
+            log.warn("物化视图已存在，注册失败: tenant={}, name={}", tenantId, name);
             return false;
         }
-        log.info("注册物化视图: {}，目标: {}.{}", name, def.getDatabase(), def.getTargetTable());
+        log.info("注册物化视图: tenant={}, name={}，目标: {}.{}", tenantId, name, def.getDatabase(), def.getTargetTable());
         // 若服务已启动，需重新初始化触发器以纳入新视图
         if (started) {
             rebuildTriggers();
@@ -180,7 +204,7 @@ public class MaterializedViewService {
     }
 
     /**
-     * 更新物化视图定义。
+     * 更新物化视图定义（租户隔离）。
      *
      * @param def 新的视图定义
      * @return 是否更新成功（不存在返回 false）
@@ -188,12 +212,15 @@ public class MaterializedViewService {
     public boolean updateView(MaterializedViewDef def) {
         Objects.requireNonNull(def, "物化视图定义不能为 null");
         def.validate();
+        String tenantId = currentTenant();
+        def.setTenantId(tenantId);
         String name = def.getName();
-        if (viewRegistry.replace(name, def) == null) {
-            log.warn("物化视图不存在，更新失败: {}", name);
+        String key = registryKey(tenantId, name);
+        if (viewRegistry.replace(key, def) == null) {
+            log.warn("物化视图不存在，更新失败: tenant={}, name={}", tenantId, name);
             return false;
         }
-        log.info("更新物化视图: {}", name);
+        log.info("更新物化视图: tenant={}, name={}", tenantId, name);
         if (started) {
             rebuildTriggers();
         }
@@ -201,17 +228,19 @@ public class MaterializedViewService {
     }
 
     /**
-     * 删除物化视图定义。
+     * 删除物化视图定义（租户隔离）。
      *
      * @param viewName 视图名称
      * @return 是否删除成功（不存在返回 false）
      */
     public boolean removeView(String viewName) {
-        MaterializedViewDef removed = viewRegistry.remove(viewName);
+        String tenantId = currentTenant();
+        String key = registryKey(tenantId, viewName);
+        MaterializedViewDef removed = viewRegistry.remove(key);
         if (removed == null) {
             return false;
         }
-        log.info("删除物化视图: {}", viewName);
+        log.info("删除物化视图: tenant={}, name={}", tenantId, viewName);
         if (started) {
             rebuildTriggers();
         }
@@ -219,22 +248,31 @@ public class MaterializedViewService {
     }
 
     /**
-     * 查询物化视图定义。
+     * 查询物化视图定义（租户隔离）。
      *
      * @param viewName 视图名称
-     * @return 视图定义；不存在返回 null
+     * @return 视图定义；不存在或跨租户返回 null
      */
     public MaterializedViewDef getView(String viewName) {
-        return viewRegistry.get(viewName);
+        String tenantId = currentTenant();
+        return viewRegistry.get(registryKey(tenantId, viewName));
     }
 
     /**
-     * 列出所有物化视图定义。
+     * 列出当前租户的所有物化视图定义（租户隔离）。
      *
      * @return 视图定义列表
      */
     public List<MaterializedViewDef> listViews() {
-        return new ArrayList<>(viewRegistry.values());
+        String tenantId = currentTenant();
+        String prefix = (tenantId == null ? "" : tenantId) + "|";
+        List<MaterializedViewDef> result = new ArrayList<>();
+        viewRegistry.forEach((k, v) -> {
+            if (k.startsWith(prefix)) {
+                result.add(v);
+            }
+        });
+        return result;
     }
 
     /**
@@ -249,16 +287,17 @@ public class MaterializedViewService {
     }
 
     /**
-     * 手动触发物化视图刷新。
+     * 手动触发物化视图刷新（租户隔离）。
      *
      * @param viewName 视图名称
      * @param operator 操作人
-     * @return 刷新事件；若触发失败返回 null
+     * @return 刷新事件；若触发失败或跨租户返回 null
      */
     public RefreshEvent refreshManually(String viewName, String operator) {
         ensureInitialized();
-        if (!viewRegistry.containsKey(viewName)) {
-            log.warn("手动刷新失败，视图不存在: {}", viewName);
+        String tenantId = currentTenant();
+        if (!viewRegistry.containsKey(registryKey(tenantId, viewName))) {
+            log.warn("手动刷新失败，视图不存在或不属于当前租户: tenant={}, name={}", tenantId, viewName);
             return null;
         }
         return manualTrigger.trigger(viewName, operator);
@@ -316,12 +355,20 @@ public class MaterializedViewService {
     }
 
     /**
-     * 获取所有已注册视图名称 → 视图定义的映射（只读）。
+     * 获取当前租户所有已注册视图名称 → 视图定义的映射（只读，租户隔离）。
      *
      * @return 不可修改的映射
      */
     public Map<String, MaterializedViewDef> getViewRegistry() {
-        return Map.copyOf(viewRegistry);
+        String tenantId = currentTenant();
+        String prefix = (tenantId == null ? "" : tenantId) + "|";
+        java.util.Map<String, MaterializedViewDef> scoped = new java.util.HashMap<>();
+        viewRegistry.forEach((k, v) -> {
+            if (k.startsWith(prefix)) {
+                scoped.put(k.substring(prefix.length()), v);
+            }
+        });
+        return Map.copyOf(scoped);
     }
 
     /**
@@ -334,11 +381,11 @@ public class MaterializedViewService {
     }
 
     /**
-     * 获取已注册视图数量。
+     * 获取当前租户已注册视图数量（租户隔离）。
      *
      * @return 视图数量
      */
     public int viewCount() {
-        return viewRegistry.size();
+        return listViews().size();
     }
 }

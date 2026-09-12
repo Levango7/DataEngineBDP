@@ -228,8 +228,8 @@
 | 规范 | 说明 |
 | --- | --- |
 | **Java 模块** | 24 个（按 `pom.xml` 实测，见 `docs/component-maturity.md`） |
-| **Go 模块** | 10 个（按 `go.mod` 实测） |
-| **Python 模块** | 11 个（按 `pyproject.toml` 实测） |
+| **Go 模块** | 9 个（按 `go.mod` 实测） |
+| **Python 模块** | 12 个（按 `pyproject.toml` 实测） |
 | **总计** | 45 个自研组件（Java 24 + Go 9 + Python 12） |
 
 - 模块计数以构建文件实测为准，不使用设计文档中的理论模块数。
@@ -311,8 +311,8 @@
 
 | 语言 | 组件数 | 代表组件 |
 | --- | --- | --- |
-| Java 17 | 22 | encaps-layer、sql-gateway、rule-engine、governance、tag-engine、infra-orchestrator、finops |
-| Go 1.22+ | 11 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、karmada-api |
+| Java 17 | 24 | encaps-layer、sql-gateway、rule-engine、governance、tag-engine、infra-orchestrator、finops |
+| Go 1.22+ | 9 | catalog、llm-gateway、vector-engine、dqctl、ai-assistant、observability、karmada-api |
 | Python 3.11 | 12 | knowledge-engine、nl2sql、batch-pipeline、llmops、ml-platform、operations-api、industry-templates |
 
 > 组件计数口径见 [模块数口径定义](docs/模块数口径定义.md)。

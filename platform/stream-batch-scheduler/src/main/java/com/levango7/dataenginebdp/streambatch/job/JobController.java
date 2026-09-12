@@ -190,6 +190,7 @@ public class JobController {
         m.put("owner", j.getOwner());
         m.put("status", j.getStatus());
         m.put("lastRunStatus", j.getLastRunStatus());
+        m.put("tenantId", j.getTenantId());
         m.put("createdAt", j.getCreatedAt() == null ? null : j.getCreatedAt().toString());
         m.put("updatedAt", j.getUpdatedAt() == null ? null : j.getUpdatedAt().toString());
         return m;

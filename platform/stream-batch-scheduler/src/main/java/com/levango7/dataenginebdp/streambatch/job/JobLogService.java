@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.streambatch.job;
 
 import com.levango7.dataenginebdp.streambatch.run.DagRunEntity;
 import com.levango7.dataenginebdp.streambatch.run.DagRunRepository;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -30,15 +31,16 @@ public class JobLogService {
     private final DagRunRepository dagRunRepository;
 
     /**
-     * 查询作业执行日志。
+     * 查询作业执行日志（租户隔离）。
      *
      * @param jobId 作业 ID
      * @return 日志文本（多行）
      */
     public String getJobLogs(Long jobId) {
-        JobEntity job = jobRepository.findById(jobId).orElse(null);
+        String tenantId = requireTenant();
+        JobEntity job = jobRepository.findByTenantIdAndId(tenantId, jobId).orElse(null);
         if (job == null) {
-            return "# 作业 " + jobId + " 不存在\n";
+            return "# 作业 " + jobId + " 不存在或不属于当前租户\n";
         }
 
         StringBuilder sb = new StringBuilder();
@@ -92,13 +94,14 @@ public class JobLogService {
     }
 
     /**
-     * 查询作业当前状态（含进度）。
+     * 查询作业当前状态（含进度，租户隔离）。
      *
      * @param jobId 作业 ID
-     * @return 状态视图 Map；作业不存在时返回 null
+     * @return 状态视图 Map；作业不存在或不属于当前租户时返回 null
      */
     public java.util.Map<String, Object> getJobStatus(Long jobId) {
-        JobEntity job = jobRepository.findById(jobId).orElse(null);
+        String tenantId = requireTenant();
+        JobEntity job = jobRepository.findByTenantIdAndId(tenantId, jobId).orElse(null);
         if (job == null) {
             return null;
         }
@@ -121,5 +124,19 @@ public class JobLogService {
         status.put("progress", progress);
         status.put("updatedAt", job.getUpdatedAt() == null ? null : job.getUpdatedAt().toString());
         return status;
+    }
+
+    /**
+     * 从 TenantContext 获取当前租户 ID；缺失时抛 403 语义异常。
+     *
+     * @return 当前租户 ID
+     * @throws TenantForbiddenException 当上下文无租户时
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new TenantForbiddenException("缺少租户上下文，拒绝访问作业日志");
+        }
+        return tenantId;
     }
 }

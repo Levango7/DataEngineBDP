@@ -445,7 +445,7 @@ void buildChartConfig
 
 /* 左侧会话 */
 .ai-sessions {
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   display: flex;
@@ -519,7 +519,7 @@ void buildChartConfig
 
 /* 中部聊天 */
 .ai-chat {
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   overflow: hidden;
@@ -531,7 +531,7 @@ void buildChartConfig
 
 /* 右侧分析面板 */
 .ai-side {
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px;

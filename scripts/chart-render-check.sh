@@ -57,3 +57,4 @@ for cf in $(find design/deploy/charts platform/industry-templates/charts -name C
 done
 echo "PASS=$pass FAIL=$fail"
 cat /tmp/chart_failures.txt
+[ "$fail" -gt 0 ] && exit 1 || exit 0

@@ -4,6 +4,9 @@ import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.ExecutionStatus;
 import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
 import com.levango7.dataenginebdp.streambatch.service.StreamBatchOrchestrationService;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -14,11 +17,15 @@ import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
  * JobService 单元测试（CRUD + 作业→DAG 映射）。
+ *
+ * <p>R8 安全修复：所有测试方法在执行前设置 TenantContext，模拟已认证租户上下文；
+ * run/cancel 改用 {@code findByTenantIdAndId} 而非 {@code findById}。</p>
  */
 @ExtendWith(MockitoExtension.class)
 class JobServiceTest {
@@ -29,6 +36,19 @@ class JobServiceTest {
     @Mock
     private StreamBatchOrchestrationService orchestrationService;
 
+    /** 测试用租户 ID。 */
+    private static final String TEST_TENANT = "tenant-test-001";
+
+    @BeforeEach
+    void setUpTenant() {
+        TenantContext.setTenantId(TEST_TENANT);
+    }
+
+    @AfterEach
+    void clearTenant() {
+        TenantContext.clear();
+    }
+
     private JobService newService() {
         return new JobService(jobRepository, orchestrationService);
     }
@@ -36,6 +56,7 @@ class JobServiceTest {
     private JobEntity sampleJob(Long id) {
         return JobEntity.builder()
                 .id(id)
+                .tenantId(TEST_TENANT)
                 .name("etl-job")
                 .workspaceId("ws-1")
                 .type("spark")
@@ -59,12 +80,14 @@ class JobServiceTest {
         assertThat(saved.getId()).isEqualTo(1L);
         assertThat(saved.getStatus()).isEqualTo("draft");
         assertThat(saved.getCreatedAt()).isNotNull();
+        assertThat(saved.getTenantId()).isEqualTo(TEST_TENANT);
     }
 
     @Test
     void run_submitsSingleNodeDag() {
         JobEntity job = sampleJob(5L);
-        when(jobRepository.findById(5L)).thenReturn(java.util.Optional.of(job));
+        when(jobRepository.findByTenantIdAndId(eq(TEST_TENANT), eq(5L)))
+                .thenReturn(java.util.Optional.of(job));
         DagExecutionResult result = new DagExecutionResult();
         result.setDagId("job-5");
         result.setStatus(ExecutionStatus.RUNNING);
@@ -87,7 +110,8 @@ class JobServiceTest {
     void run_unknownTypeFallsBackToUnified() {
         JobEntity job = sampleJob(6L);
         job.setType("custom-unknown");
-        when(jobRepository.findById(6L)).thenReturn(java.util.Optional.of(job));
+        when(jobRepository.findByTenantIdAndId(eq(TEST_TENANT), eq(6L)))
+                .thenReturn(java.util.Optional.of(job));
         when(orchestrationService.submitDag(any())).thenReturn(new DagExecutionResult());
 
         newService().run(6L);
@@ -100,7 +124,8 @@ class JobServiceTest {
     @Test
     void cancel_marksPaused() {
         JobEntity job = sampleJob(7L);
-        when(jobRepository.findById(7L)).thenReturn(java.util.Optional.of(job));
+        when(jobRepository.findByTenantIdAndId(eq(TEST_TENANT), eq(7L)))
+                .thenReturn(java.util.Optional.of(job));
         when(jobRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         boolean ok = newService().cancel(7L);

@@ -24,6 +24,9 @@ public class AllocationConfig {
     @NotBlank
     private String id;
 
+    /** 租户 ID（R8 修复：租户隔离，由 Controller 从 TenantContext 注入，客户端不可伪造） */
+    private String tenantId;
+
     /** 父工作空间名 */
     @NotBlank
     private String parentWorkspace;

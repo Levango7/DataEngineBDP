@@ -264,7 +264,7 @@ async function copySql(): Promise<void> {
 <style scoped>
 .sql-preview {
   width: 100%;
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   overflow: hidden;

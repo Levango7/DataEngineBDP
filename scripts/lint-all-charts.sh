@@ -13,3 +13,4 @@ while IFS= read -r cf; do
   fi
 done < <(find design/deploy/charts -name Chart.yaml | grep -v tgz | sort)
 echo "linted=$count failed=$fail"
+[ "$fail" -gt 0 ] && exit 1 || exit 0

@@ -6,6 +6,7 @@ import com.levango7.dataenginebdp.streambatch.dag.StreamBatchDagOrchestrator;
 import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import com.levango7.dataenginebdp.streambatch.model.ExecutionStatus;
 import com.levango7.dataenginebdp.streambatch.model.StreamBatchDag;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -44,7 +45,7 @@ public class DagRunService {
             .configure(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
 
     /**
-     * 落库：DAG 执行完成后写入历史。
+     * 落库：DAG 执行完成后写入历史（自动注入当前租户）。
      *
      * @param dag       执行的 DAG
      * @param result    执行结果
@@ -58,9 +59,11 @@ public class DagRunService {
     public DagRunEntity recordRun(StreamBatchDag dag, DagExecutionResult result,
                                   DagRunType runType, String triggeredBy,
                                   Long sourceRunId, Instant bizTime) {
+        String tenantId = TenantContext.getTenantId();
         try {
             DagRunEntity entity = DagRunEntity.builder()
                     .dagId(dag.getDagId())
+                    .tenantId(tenantId)
                     .dagSnapshot(objectMapper.writeValueAsString(dag))
                     .runType(runType)
                     .status(result.getStatus())
@@ -75,8 +78,8 @@ public class DagRunService {
                     .createdAt(Instant.now())
                     .build();
             DagRunEntity saved = dagRunRepository.save(entity);
-            log.info("DAG 运行历史已落库: dagId={}, runId={}, status={}, runType={}",
-                    dag.getDagId(), saved.getId(), saved.getStatus(), saved.getRunType());
+            log.info("DAG 运行历史已落库: dagId={}, runId={}, status={}, runType={}, tenant={}",
+                    dag.getDagId(), saved.getId(), saved.getStatus(), saved.getRunType(), tenantId);
             return saved;
         } catch (JsonProcessingException e) {
             log.error("DAG 运行历史序列化失败: dagId={}", dag.getDagId(), e);
@@ -85,7 +88,7 @@ public class DagRunService {
     }
 
     /**
-     * 分页查询某 DAG 的运行历史。
+     * 分页查询某 DAG 的运行历史（租户隔离）。
      *
      * @param dagId  DAG ID
      * @param status 状态过滤（可空）
@@ -95,15 +98,17 @@ public class DagRunService {
      */
     @Transactional(readOnly = true)
     public Page<DagRunEntity> listRuns(String dagId, ExecutionStatus status, int page, int size) {
+        String tenantId = requireTenant();
         Pageable pageable = PageRequest.of(page, Math.min(size, 200));
         if (status != null) {
-            return dagRunRepository.findByDagIdAndStatusOrderByStartTimeDesc(dagId, status, pageable);
+            return dagRunRepository.findByTenantIdAndDagIdAndStatusOrderByStartTimeDesc(
+                    tenantId, dagId, status, pageable);
         }
-        return dagRunRepository.findByDagIdOrderByStartTimeDesc(dagId, pageable);
+        return dagRunRepository.findByTenantIdAndDagIdOrderByStartTimeDesc(tenantId, dagId, pageable);
     }
 
     /**
-     * 按 runId 重跑：复原原 DAG 参数重新执行。
+     * 按 runId 重跑：复原原 DAG 参数重新执行（租户隔离）。
      *
      * @param dagId       DAG ID
      * @param sourceRunId 历史 runId
@@ -112,10 +117,11 @@ public class DagRunService {
      */
     @Transactional
     public DagExecutionResult rerun(String dagId, Long sourceRunId, String triggeredBy) {
-        DagRunEntity source = dagRunRepository.findById(sourceRunId)
+        String tenantId = requireTenant();
+        DagRunEntity source = dagRunRepository.findByTenantIdAndId(tenantId, sourceRunId)
                 .filter(r -> r.getDagId().equals(dagId))
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "runId=" + sourceRunId + " 不属于 dagId=" + dagId));
+                        "runId=" + sourceRunId + " 不属于当前租户或 dagId=" + dagId));
 
         try {
             StreamBatchDag dag = objectMapper.readValue(source.getDagSnapshot(), StreamBatchDag.class);
@@ -131,7 +137,7 @@ public class DagRunService {
     }
 
     /**
-     * 补数据：按时间区间生成 BACKFILL 实例。
+     * 补数据：按时间区间生成 BACKFILL 实例（租户隔离）。
      *
      * @param dagId       DAG ID
      * @param startDate   开始日期（含）
@@ -143,6 +149,7 @@ public class DagRunService {
     @Transactional
     public int backfill(String dagId, LocalDate startDate, LocalDate endDate,
                         int intervalDays, String triggeredBy) {
+        String tenantId = requireTenant();
         if (startDate.isAfter(endDate)) {
             throw new IllegalArgumentException("startDate 不能晚于 endDate");
         }
@@ -150,11 +157,11 @@ public class DagRunService {
             throw new IllegalArgumentException("intervalDays 必须 ≥ 1");
         }
 
-        DagRunEntity latest = dagRunRepository.findByDagIdOrderByStartTimeDesc(
-                        dagId, PageRequest.of(0, 1))
+        DagRunEntity latest = dagRunRepository.findByTenantIdAndDagIdOrderByStartTimeDesc(
+                        tenantId, dagId, PageRequest.of(0, 1))
                 .stream().findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "dagId=" + dagId + " 无历史运行记录，无法补数据"));
+                        "dagId=" + dagId + " 无当前租户的历史运行记录，无法补数据"));
 
         int created = 0;
         List<DagRunEntity> generated = new ArrayList<>();
@@ -190,5 +197,20 @@ public class DagRunService {
                 .findFirst()
                 .map(n -> n.getNodeId() + ": " + n.getErrorMessage())
                 .orElse("DAG 执行失败，详见节点结果");
+    }
+
+    /**
+     * 从 TenantContext 获取当前租户 ID；缺失时抛 403 语义异常。
+     *
+     * @return 当前租户 ID
+     * @throws com.levango7.dataenginebdp.streambatch.job.TenantForbiddenException 当上下文无租户时
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new com.levango7.dataenginebdp.streambatch.job.TenantForbiddenException(
+                    "缺少租户上下文，拒绝访问 DAG 运行历史");
+        }
+        return tenantId;
     }
 }

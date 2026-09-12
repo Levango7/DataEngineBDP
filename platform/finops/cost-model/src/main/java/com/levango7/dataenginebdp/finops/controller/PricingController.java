@@ -4,6 +4,7 @@ import com.levango7.dataenginebdp.finops.model.PricingConfig;
 import com.levango7.dataenginebdp.finops.service.PricingConfigService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -26,10 +27,17 @@ import java.util.List;
  *   <li>POST /api/v1/pricing           — 新建定价配置</li>
  *   <li>PUT  /api/v1/pricing/{name}    — 更新定价配置</li>
  * </ul>
+ *
+ * <p>安全控制（R8 修复）：
+ * <ul>
+ *   <li>类级 {@code @PreAuthorize("hasRole('ADMIN')")}：定价配置是全局配置，
+ *       影响所有租户的计费，仅管理员可访问。防止普通租户篡改单价导致计费错误。</li>
+ * </ul></p>
  */
 @RestController
 @Tag(name = "成本运营-定价配置", description = "动态单价配置管理")
 @RequestMapping("/api/v1/pricing")
+@PreAuthorize("hasRole('ADMIN')")
 public class PricingController {
 
     private final PricingConfigService pricingConfigService;

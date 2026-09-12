@@ -32,7 +32,9 @@ import java.time.Instant;
 @Table(name = "dag_run", indexes = {
         @Index(name = "idx_dag_run_dag_id", columnList = "dagId"),
         @Index(name = "idx_dag_run_status", columnList = "status"),
-        @Index(name = "idx_dag_run_biz_time", columnList = "bizTime")
+        @Index(name = "idx_dag_run_biz_time", columnList = "bizTime"),
+        @Index(name = "idx_dag_run_tenant_id", columnList = "tenant_id"),
+        @Index(name = "idx_dag_run_tenant_dag", columnList = "tenant_id,dagId")
 })
 public class DagRunEntity {
 
@@ -44,6 +46,10 @@ public class DagRunEntity {
     /** 所属 DAG ID（对应 {@code StreamBatchDag.dagId}）。 */
     @Column(nullable = false, length = 128)
     private String dagId;
+
+    /** 租户 ID（多租户隔离，R8 安全修复）。 */
+    @Column(name = "tenant_id", nullable = false, length = 64)
+    private String tenantId;
 
     /** DAG 快照（提交时的完整 DAG JSON，供重跑/补数据复原参数）。 */
     @Lob

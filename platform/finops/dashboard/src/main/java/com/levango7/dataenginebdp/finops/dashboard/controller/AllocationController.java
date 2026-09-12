@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +26,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 分账到子工作空间 REST API。
@@ -37,6 +39,14 @@ import java.util.List;
  *   <li>DELETE /api/v1/allocation/configs/{id} — 删除分账配置</li>
  *   <li>GET  /api/v1/allocation/execute  — 执行分账</li>
  * </ul>
+ *
+ * <p>安全控制（R8 修复）：
+ * <ul>
+ *   <li>租户隔离：listConfigs/getConfig/saveConfig/deleteConfig 均从 {@link TenantContext}
+ *       获取 tenantId 并注入查询条件，防止跨租户访问/修改分账配置。</li>
+ *   <li>saveConfig 时将 tenantId 注入配置，客户端无法伪造 tenantId。</li>
+ *   <li>getConfig/deleteConfig 校验配置的 tenantId 与当前请求匹配。</li>
+ * </ul></p>
  */
 @RestController
 @Tag(name = "成本运营-分账管理", description = "子工作空间分账配置与执行")
@@ -55,41 +65,63 @@ public class AllocationController {
     }
 
     /**
-     * 列出所有分账配置。
+     * 从 TenantContext 获取当前租户 ID，若缺失返回 null。
+     *
+     * @return 当前请求的租户 ID；若上下文未设置返回 null
      */
-    @Operation(summary = "列出所有分账配置")
+    private String currentTenantId() {
+        return TenantContext.getTenantId();
+    }
+
+    /**
+     * 列出所有分账配置（仅返回当前租户的配置）。
+     */
+    @Operation(summary = "列出所有分账配置（租户隔离）")
     @GetMapping("/configs")
     public ResponseEntity<List<AllocationConfig>> listConfigs() {
-        return ResponseEntity.ok(allocationService.listConfigs());
+        String tenantId = currentTenantId();
+        log.debug("listConfigs: tenant={}", tenantId);
+        return ResponseEntity.ok(allocationService.listConfigs(tenantId));
     }
 
     /**
-     * 获取指定分账配置。
+     * 获取指定分账配置（校验租户隔离）。
      */
-    @Operation(summary = "获取指定分账配置")
+    @Operation(summary = "获取指定分账配置（租户隔离）")
     @GetMapping("/configs/{id}")
     public ResponseEntity<AllocationConfig> getConfig(@PathVariable String id) {
-        return ResponseEntity.ok(allocationService.getConfig(id));
+        String tenantId = currentTenantId();
+        log.debug("getConfig: tenant={}, id={}", tenantId, id);
+        return ResponseEntity.ok(allocationService.getConfig(id, tenantId));
     }
 
     /**
-     * 新建或更新分账配置。
+     * 新建或更新分账配置（注入当前租户 ID）。
      */
-    @Operation(summary = "新建或更新分账配置")
+    @Operation(summary = "新建或更新分账配置（注入租户 ID）")
     @PostMapping("/configs")
     public ResponseEntity<AllocationConfig> saveConfig(@Valid @RequestBody AllocationConfig config) {
-        log.info("保存分账配置: id={}, parent={}, dimension={}, ratios={}",
-                config.getId(), config.getParentWorkspace(), config.getDimension(), config.getRatios());
-        return ResponseEntity.ok(allocationService.saveConfig(config));
+        String tenantId = currentTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        log.info("保存分账配置: tenant={}, id={}, parent={}, dimension={}, ratios={}",
+                tenantId, config.getId(), config.getParentWorkspace(), config.getDimension(), config.getRatios());
+        return ResponseEntity.ok(allocationService.saveConfig(config, tenantId));
     }
 
     /**
-     * 删除分账配置。
+     * 删除分账配置（校验租户隔离）。
      */
-    @Operation(summary = "删除分账配置")
+    @Operation(summary = "删除分账配置（租户隔离）")
     @DeleteMapping("/configs/{id}")
     public ResponseEntity<Void> deleteConfig(@PathVariable String id) {
-        allocationService.deleteConfig(id);
+        String tenantId = currentTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        log.debug("deleteConfig: tenant={}, id={}", tenantId, id);
+        allocationService.deleteConfig(id, tenantId);
         return ResponseEntity.noContent().build();
     }
 
@@ -105,7 +137,13 @@ public class AllocationController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant end) {
 
         String tenant = TenantContext.getTenantId();
+        if (tenant == null || tenant.isBlank()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
         log.info("分账执行请求: configId={}, tenant={}, 窗口=[{},{}]", configId, tenant, start, end);
+
+        // 校验分账配置属于当前租户
+        allocationService.getConfig(configId, tenant);
 
         List<ResourceCostDetail> details = costDataService.getCostDetails(tenant, namespace, start, end);
         List<AllocationItem> items = allocationService.allocate(configId, details);
@@ -116,7 +154,7 @@ public class AllocationController {
                 .start(start)
                 .end(end)
                 .tenant(tenant)
-                .summary(java.util.Map.of(
+                .summary(Map.of(
                         "configId", configId,
                         "allocationItemCount", items.size()
                 ))

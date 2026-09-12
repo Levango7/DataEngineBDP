@@ -122,7 +122,7 @@ function changeIcon(m: SummaryMetric) {
 <style scoped>
 .data-summary {
   width: 100%;
-  background: var(--c-white);
+  background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: 10px;
   padding: 12px 14px;

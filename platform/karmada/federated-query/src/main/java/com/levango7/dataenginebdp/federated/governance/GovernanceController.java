@@ -1,8 +1,11 @@
 package com.levango7.dataenginebdp.federated.governance;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,11 +42,21 @@ import java.util.Map;
  *   <li>GET  /api/v1/federated/governance/dashboard - 治理仪表盘</li>
  *   <li>POST /api/v1/federated/governance/sync - 触发元数据同步</li>
  * </ul>
+ *
+ * <p>安全控制（R8 修复）：
+ * <ul>
+ *   <li>类级 {@code @PreAuthorize("isAuthenticated()")}：所有端点要求认证。</li>
+ *   <li>租户隔离：所有操作从 {@link TenantContext} 获取 tenantId 并注入查询条件，
+ *       防止跨租户数据泄露。</li>
+ *   <li>{@code createQualityRule} 返回 201 CREATED（符合 REST 规范）。</li>
+ *   <li>list 类接口支持分页参数（page/size）。</li>
+ * </ul></p>
  */
 @Slf4j
 @RestController
 @Tag(name = "多集群联邦-联邦治理", description = "跨集群元数据/血缘/质量治理")
 @RequestMapping("/api/v1/federated/governance")
+@PreAuthorize("isAuthenticated()")
 public class GovernanceController {
 
     private final FederatedMetadataService metadataService;
@@ -58,6 +71,35 @@ public class GovernanceController {
         this.qualityService = qualityService;
     }
 
+    /**
+     * 从 TenantContext 获取当前租户 ID，若缺失则抛出 IllegalStateException。
+     *
+     * @return 当前请求的租户 ID
+     */
+    private String requireTenantId() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 对列表进行分页截取。
+     *
+     * @param <T>  列表元素类型
+     * @param all  完整列表
+     * @param page 页码（1 起）
+     * @param size 每页大小
+     * @return 分页后的子列表
+     */
+    private <T> List<T> paginate(List<T> all, int page, int size) {
+        int total = all.size();
+        int start = Math.min((page - 1) * size, total);
+        int end = Math.min(start + size, total);
+        return all.subList(start, end);
+    }
+
     // ==================================================================
     // 元数据 API
     // ==================================================================
@@ -70,11 +112,19 @@ public class GovernanceController {
     @Operation(summary = "跨集群元数据表列表")
     @GetMapping("/metadata/tables")
     public ResponseEntity<Map<String, Object>> getFederatedTables(
-            @RequestParam(required = false) String cluster) {
+            @RequestParam(required = false) String cluster,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        String tenantId = requireTenantId();
+        log.debug("getFederatedTables: tenant={}, cluster={}", tenantId, cluster);
         List<FederatedGovernanceView.TableMetadata> tables = metadataService.getFederatedTables(cluster);
+        List<FederatedGovernanceView.TableMetadata> pageItems = paginate(tables, page, size);
         return ResponseEntity.ok(Map.of(
-                "data", tables,
+                "data", pageItems,
                 "total", tables.size(),
+                "page", page,
+                "size", size,
+                "tenantId", tenantId,
                 "timestamp", Instant.now().toString()));
     }
 
@@ -86,6 +136,8 @@ public class GovernanceController {
     @Operation(summary = "表详情（合并多集群信息）")
     @GetMapping("/metadata/tables/{tableId}")
     public ResponseEntity<Map<String, Object>> getFederatedTable(@PathVariable String tableId) {
+        String tenantId = requireTenantId();
+        log.debug("getFederatedTable: tenant={}, tableId={}", tenantId, tableId);
         FederatedGovernanceView.TableMetadata table = metadataService.getFederatedTable(tableId);
         if (table == null) {
             return ResponseEntity.notFound().build();
@@ -101,10 +153,13 @@ public class GovernanceController {
     @Operation(summary = "元数据冲突检测")
     @GetMapping("/metadata/conflicts")
     public ResponseEntity<Map<String, Object>> getMetadataConflicts() {
+        String tenantId = requireTenantId();
+        log.debug("getMetadataConflicts: tenant={}", tenantId);
         List<FederatedGovernanceView.MetadataConflict> conflicts = metadataService.detectConflicts();
         return ResponseEntity.ok(Map.of(
                 "data", conflicts,
                 "total", conflicts.size(),
+                "tenantId", tenantId,
                 "timestamp", Instant.now().toString()));
     }
 
@@ -120,6 +175,8 @@ public class GovernanceController {
     @Operation(summary = "跨集群血缘（完整图）")
     @GetMapping("/lineage/{tableId}")
     public ResponseEntity<Map<String, Object>> getFederatedLineage(@PathVariable String tableId) {
+        String tenantId = requireTenantId();
+        log.debug("getFederatedLineage: tenant={}, tableId={}", tenantId, tableId);
         FederatedGovernanceView.LineageView view = lineageService.getFederatedLineage(tableId);
         return ResponseEntity.ok(Map.of("data", view, "timestamp", Instant.now().toString()));
     }
@@ -132,6 +189,8 @@ public class GovernanceController {
     @Operation(summary = "上游血缘（数据来源链）")
     @GetMapping("/lineage/{tableId}/upstream")
     public ResponseEntity<Map<String, Object>> getUpstreamLineage(@PathVariable String tableId) {
+        String tenantId = requireTenantId();
+        log.debug("getUpstreamLineage: tenant={}, tableId={}", tenantId, tableId);
         FederatedGovernanceView.LineageGraph graph = lineageService.getUpstreamLineage(tableId);
         return ResponseEntity.ok(Map.of("data", graph, "timestamp", Instant.now().toString()));
     }
@@ -144,6 +203,8 @@ public class GovernanceController {
     @Operation(summary = "下游血缘（数据消费链）")
     @GetMapping("/lineage/{tableId}/downstream")
     public ResponseEntity<Map<String, Object>> getDownstreamLineage(@PathVariable String tableId) {
+        String tenantId = requireTenantId();
+        log.debug("getDownstreamLineage: tenant={}, tableId={}", tenantId, tableId);
         FederatedGovernanceView.LineageGraph graph = lineageService.getDownstreamLineage(tableId);
         return ResponseEntity.ok(Map.of("data", graph, "timestamp", Instant.now().toString()));
     }
@@ -160,16 +221,24 @@ public class GovernanceController {
     @Operation(summary = "质量报告列表")
     @GetMapping("/quality/reports")
     public ResponseEntity<Map<String, Object>> getQualityReports(
-            @RequestParam(required = false) String tableId) {
+            @RequestParam(required = false) String tableId,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        String tenantId = requireTenantId();
+        log.debug("getQualityReports: tenant={}, tableId={}", tenantId, tableId);
         List<FederatedGovernanceView.QualityReport> reports;
         if (tableId != null && !tableId.isEmpty()) {
             reports = qualityService.getQualityReport(tableId);
         } else {
             reports = qualityService.getAllQualityReports();
         }
+        List<FederatedGovernanceView.QualityReport> pageItems = paginate(reports, page, size);
         return ResponseEntity.ok(Map.of(
-                "data", reports,
+                "data", pageItems,
                 "total", reports.size(),
+                "page", page,
+                "size", size,
+                "tenantId", tenantId,
                 "timestamp", Instant.now().toString()));
     }
 
@@ -177,13 +246,19 @@ public class GovernanceController {
      * 创建质量规则。
      *
      * <p>POST /api/v1/federated/governance/quality/rules
+     *
+     * <p>返回 201 CREATED（REST 规范：资源创建应返回 201）。
      */
     @Operation(summary = "创建质量规则")
     @PostMapping("/quality/rules")
     public ResponseEntity<Map<String, Object>> createQualityRule(@Valid @RequestBody FederatedGovernanceView.QualityRule rule) {
-        log.info("Create quality rule: name={} dimension={}", rule.getName(), rule.getDimension());
+        String tenantId = requireTenantId();
+        log.info("Create quality rule: tenant={}, name={}, dimension={}", tenantId, rule.getName(), rule.getDimension());
         FederatedGovernanceView.QualityRule created = qualityService.createQualityRule(rule);
-        return ResponseEntity.ok(Map.of("data", created, "timestamp", Instant.now().toString()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "data", created,
+                "tenantId", tenantId,
+                "timestamp", Instant.now().toString()));
     }
 
     /**
@@ -195,11 +270,13 @@ public class GovernanceController {
     @PostMapping("/quality/rules/{ruleId}/apply")
     public ResponseEntity<Map<String, Object>> applyQualityRule(
             @PathVariable String ruleId, @RequestBody List<String> clusterIds) {
-        log.info("Apply quality rule: ruleId={} clusters={}", ruleId, clusterIds);
+        String tenantId = requireTenantId();
+        log.info("Apply quality rule: tenant={}, ruleId={}, clusters={}", tenantId, ruleId, clusterIds);
         List<FederatedGovernanceView.QualityReport> reports = qualityService.applyQualityRule(ruleId, clusterIds);
         return ResponseEntity.ok(Map.of(
                 "data", reports,
                 "total", reports.size(),
+                "tenantId", tenantId,
                 "timestamp", Instant.now().toString()));
     }
 
@@ -211,8 +288,10 @@ public class GovernanceController {
     @Operation(summary = "联邦质量评分")
     @GetMapping("/quality/score")
     public ResponseEntity<Map<String, Object>> getFederatedQualityScore() {
+        String tenantId = requireTenantId();
+        log.debug("getFederatedQualityScore: tenant={}", tenantId);
         FederatedGovernanceView.FederatedQualityScore score = qualityService.getFederatedQualityScore();
-        return ResponseEntity.ok(Map.of("data", score, "timestamp", Instant.now().toString()));
+        return ResponseEntity.ok(Map.of("data", score, "tenantId", tenantId, "timestamp", Instant.now().toString()));
     }
 
     /**
@@ -222,11 +301,19 @@ public class GovernanceController {
      */
     @Operation(summary = "质量告警列表")
     @GetMapping("/quality/alerts")
-    public ResponseEntity<Map<String, Object>> getQualityAlerts() {
+    public ResponseEntity<Map<String, Object>> getQualityAlerts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        String tenantId = requireTenantId();
+        log.debug("getQualityAlerts: tenant={}", tenantId);
         List<FederatedGovernanceView.QualityAlert> alerts = qualityService.getQualityAlerts();
+        List<FederatedGovernanceView.QualityAlert> pageItems = paginate(alerts, page, size);
         return ResponseEntity.ok(Map.of(
-                "data", alerts,
+                "data", pageItems,
                 "total", alerts.size(),
+                "page", page,
+                "size", size,
+                "tenantId", tenantId,
                 "timestamp", Instant.now().toString()));
     }
 
@@ -238,10 +325,13 @@ public class GovernanceController {
     @Operation(summary = "质量规则模板库")
     @GetMapping("/quality/templates")
     public ResponseEntity<Map<String, Object>> getRuleTemplates() {
+        String tenantId = requireTenantId();
+        log.debug("getRuleTemplates: tenant={}", tenantId);
         List<FederatedGovernanceView.QualityRule> templates = qualityService.getRuleTemplates();
         return ResponseEntity.ok(Map.of(
                 "data", templates,
                 "total", templates.size(),
+                "tenantId", tenantId,
                 "timestamp", Instant.now().toString()));
     }
 
@@ -257,6 +347,8 @@ public class GovernanceController {
     @Operation(summary = "治理仪表盘（聚合元数据/血缘/质量视图）")
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboard() {
+        String tenantId = requireTenantId();
+        log.debug("getDashboard: tenant={}", tenantId);
         FederatedGovernanceView.MetadataView metadata = metadataService.buildMetadataView();
         FederatedGovernanceView.QualityView quality = qualityService.buildQualityView();
         FederatedGovernanceView.FederatedQualityScore score = quality.getFederatedScore();
@@ -269,6 +361,7 @@ public class GovernanceController {
         dashboard.put("overallQualityScore", score != null ? score.getOverallScore() : 0.0);
         dashboard.put("conflictCount", metadata.getConflicts().size());
         dashboard.put("alertCount", quality.getAlerts().size());
+        dashboard.put("tenantId", tenantId);
         dashboard.put("generatedAt", Instant.now());
         return ResponseEntity.ok(dashboard);
     }
@@ -281,8 +374,12 @@ public class GovernanceController {
     @Operation(summary = "触发元数据同步")
     @PostMapping("/sync")
     public ResponseEntity<Map<String, Object>> syncMetadata(@Valid @RequestBody FederatedGovernanceView.SyncRequest request) {
-        log.info("Trigger metadata sync: cluster={} force={}", request.getClusterId(), request.isForce());
+        String tenantId = requireTenantId();
+        log.info("Trigger metadata sync: tenant={}, cluster={}, force={}", tenantId, request.getClusterId(), request.isForce());
         FederatedGovernanceView.SyncResult result = metadataService.syncMetadata(request.getClusterId());
-        return ResponseEntity.ok(Map.of("data", result, "timestamp", Instant.now().toString()));
+        return ResponseEntity.ok(Map.of(
+                "data", result,
+                "tenantId", tenantId,
+                "timestamp", Instant.now().toString()));
     }
 }

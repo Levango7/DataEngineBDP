@@ -33,6 +33,13 @@
     </properties>
 
     <dependencies>
+        <!-- 公共安全（TenantContext 租户上下文，R8 安全修复） -->
+        <dependency>
+            <groupId>com.levango7.dataenginebdp</groupId>
+            <artifactId>common-security</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+        </dependency>
+
         <!-- Swagger Annotations (Jakarta)：OpenAPI 3 @Tag 注解支持 -->
         <dependency>
             <groupId>io.swagger.core.v3</groupId>

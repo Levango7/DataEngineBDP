@@ -6,6 +6,8 @@ import com.levango7.dataenginebdp.streambatch.router.QueryMode;
 import com.levango7.dataenginebdp.streambatch.router.ViewSelectionResult;
 import com.levango7.dataenginebdp.streambatch.service.StreamBatchOrchestrationService;
 import com.levango7.dataenginebdp.streambatch.service.ViewRouterService;
+import com.levango7.dataenginebdp.common.security.TenantContext;
+import com.levango7.dataenginebdp.streambatch.job.TenantForbiddenException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +48,7 @@ public class StreamBatchSchedulerController {
     private final com.levango7.dataenginebdp.streambatch.run.DagRunService dagRunService;
 
     /**
-     * 提交流批 DAG。
+     * 提交流批 DAG（自动绑定当前租户）。
      *
      * @param dag 流批 DAG
      * @return 执行结果
@@ -54,13 +56,14 @@ public class StreamBatchSchedulerController {
     @Operation(summary = "提交流批 DAG")
     @PostMapping("/dags")
     public ResponseEntity<DagExecutionResult> submitDag(@Valid @RequestBody StreamBatchDag dag) {
+        requireTenant();
         log.info("收到 DAG 提交请求: dagId={}, name={}", dag.getDagId(), dag.getName());
         DagExecutionResult result = orchestrationService.submitDag(dag);
         return ResponseEntity.ok(result);
     }
 
     /**
-     * 查询 DAG 执行结果。
+     * 查询 DAG 执行结果（租户隔离）。
      *
      * @param dagId DAG ID
      * @return 执行结果
@@ -68,6 +71,7 @@ public class StreamBatchSchedulerController {
     @Operation(summary = "查询 DAG 执行结果")
     @GetMapping("/dags/{dagId}")
     public ResponseEntity<DagExecutionResult> getDagResult(@PathVariable String dagId) {
+        requireTenant();
         DagExecutionResult result = orchestrationService.getDagResult(dagId);
         if (result == null) {
             return ResponseEntity.notFound().build();
@@ -76,13 +80,14 @@ public class StreamBatchSchedulerController {
     }
 
     /**
-     * 查询所有 DAG 执行历史。
+     * 查询所有 DAG 执行历史（租户隔离）。
      *
      * @return DAG 执行历史 Map
      */
     @Operation(summary = "查询所有 DAG 执行历史")
     @GetMapping("/dags")
     public ResponseEntity<Map<String, DagExecutionResult>> getAllHistory() {
+        requireTenant();
         return ResponseEntity.ok(orchestrationService.getAllHistory());
     }
 
@@ -102,6 +107,7 @@ public class StreamBatchSchedulerController {
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
+        requireTenant();
         com.levango7.dataenginebdp.streambatch.model.ExecutionStatus st = null;
         if (status != null && !status.isBlank()) {
             st = com.levango7.dataenginebdp.streambatch.model.ExecutionStatus.valueOf(status.toUpperCase());
@@ -123,6 +129,7 @@ public class StreamBatchSchedulerController {
             @PathVariable String dagId,
             @PathVariable Long runId,
             @RequestHeader(value = "X-Operator", defaultValue = "anonymous") String triggeredBy) {
+        requireTenant();
         log.info("请求重跑: dagId={}, runId={}, operator={}", dagId, runId, triggeredBy);
         return ResponseEntity.ok(dagRunService.rerun(dagId, runId, triggeredBy));
     }
@@ -141,6 +148,7 @@ public class StreamBatchSchedulerController {
             @PathVariable String dagId,
             @RequestBody BackfillRequest req,
             @RequestHeader(value = "X-Operator", defaultValue = "anonymous") String triggeredBy) {
+        requireTenant();
         log.info("请求补数据: dagId={}, range=[{} ~ {}], operator={}",
                 dagId, req.startDate(), req.endDate(), triggeredBy);
         int created = dagRunService.backfill(
@@ -173,9 +181,22 @@ public class StreamBatchSchedulerController {
             @RequestParam(defaultValue = "AUTO") QueryMode queryMode,
             @RequestBody String originalSql,
             @RequestParam(required = false) Long latencyRequirementMs) {
+        requireTenant();
         log.info("收到视图路由请求: table={}, mode={}", table, queryMode);
         ViewSelectionResult result = viewRouterService.routeQuery(
                 table, queryMode, originalSql, latencyRequirementMs);
         return ResponseEntity.ok(result);
+    }
+
+    /**
+     * 从 TenantContext 校验当前租户；缺失时抛 403 语义异常。
+     *
+     * @throws TenantForbiddenException 当上下文无租户时
+     */
+    private static void requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new TenantForbiddenException("缺少租户上下文，拒绝访问流批调度资源");
+        }
     }
 }
