@@ -422,7 +422,7 @@ void buildChartConfig
 }
 .ai-title h1 {
   font-size: var(--ds-font-size-3xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   margin: 0;
 }
 .ai-sub {

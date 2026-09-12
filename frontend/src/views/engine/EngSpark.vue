@@ -187,14 +187,14 @@
           <el-input
             v-model="submitForm.mainClass"
             :placeholder="t('engines.spark.submit.fields.mainClassPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.jarUri')" prop="jarUri">
           <el-input
             v-model="submitForm.jarUri"
             :placeholder="t('engines.spark.submit.fields.jarUriPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('engines.spark.submit.fields.args')" prop="args">
@@ -203,7 +203,7 @@
             type="textarea"
             :rows="3"
             :placeholder="t('engines.spark.submit.fields.argsPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item
@@ -624,7 +624,7 @@ watch(
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

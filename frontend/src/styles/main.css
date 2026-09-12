@@ -136,7 +136,7 @@ body {
 }
 .side::-webkit-scrollbar-thumb {
   background: rgba(30, 58, 138, 0.32);
-  border-radius: 3px;
+  border-radius: var(--ds-radius-sm);
 }
 .side::-webkit-scrollbar-thumb:hover {
   background: rgba(30, 58, 138, 0.5);
@@ -145,7 +145,7 @@ body {
   height: 54px;
   padding: 0 12px 0 18px;
   font-size: var(--ds-font-size-base);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-color-primary-900);
   display: flex;
   align-items: center;
@@ -210,7 +210,7 @@ body {
   padding: 18px 20px 8px;
   letter-spacing: 1px;
   text-transform: none;
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   position: relative;
   display: flex;
   align-items: center;
@@ -260,13 +260,13 @@ body {
   color: var(--ds-color-primary-800);
   border-color: rgba(30, 58, 138, 0.25);
   transform: translateX(2px);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .nav a.active {
   background: linear-gradient(90deg, var(--ds-bg-surface) 0%, rgba(99, 102, 241, 0.2) 100%);
   color: var(--ds-color-primary-800);
   border-color: rgba(30, 58, 138, 0.5);
-  font-weight: 800;
+  font-weight: var(--ds-font-weight-extrabold);
   box-shadow:
     inset 0 0 14px rgba(99, 102, 241, 0.15),
     0 2px 8px rgba(30, 58, 138, 0.18);
@@ -428,7 +428,7 @@ body {
   margin: 0;
   min-width: 14px;
   height: 14px;
-  line-height: 14px;
+  line-height: 1;
   padding: 0 3px;
   font-size: var(--ds-font-size-xs);
   z-index: 2;
@@ -522,7 +522,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
 }
 .view {
@@ -560,12 +560,12 @@ body {
    * 文字体系 Token（2026-09-07 统一规范）
    * 所有页面只准用这 7 个，禁止内联 color/font-size/font-weight
    * ============================================================ */
-  --typo-h1: 800 24px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
-  --typo-h2: 700 16px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-h1: var(--ds-font-weight-extrabold) 24px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
+  --typo-h2: var(--ds-font-weight-bold) 16px/1.4 var(--typo-color-h, var(--ds-color-gray-900));
   --typo-body: 500 14px/1.6 var(--typo-color-body, var(--ds-color-gray-800));
   --typo-caption: 500 14px/1.55 var(--typo-color-caption, var(--ds-color-gray-700));
   --typo-micro: 500 12px/1.5 var(--typo-color-micro, var(--ds-color-gray-600));
-  --typo-table-th: 700 12px/1.4 var(--typo-color-th, var(--ds-color-primary-900));
+  --typo-table-th: var(--ds-font-weight-bold) 12px/1.4 var(--typo-color-th, var(--ds-color-primary-900));
   --typo-table-td: 500 14px/1.6 var(--typo-color-td, var(--ds-color-gray-800));
 
   /* ============================================================
@@ -698,7 +698,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ink);
 }
 .card .act {
@@ -714,7 +714,7 @@ body {
 }
 .kpi {
   font-size: var(--ds-font-size-3xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   background: var(--gradient-primary);
   -webkit-background-clip: text;
   background-clip: text;
@@ -1318,7 +1318,7 @@ label {
 .el-message__content,
 .el-drawer__title {
   color: var(--ds-color-gray-900) !important;
-  font-weight: var(--ds-font-weight-bold) !important;
+  font-weight: var(--ds-font-weight-extrabold) !important;
 }
 .el-descriptions__label {
   color: var(--ds-color-gray-600) !important;
@@ -1370,7 +1370,7 @@ label {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   margin: 0 auto 8px;
   font-size: var(--ds-font-size-lg);
 }
@@ -1459,7 +1459,7 @@ label {
 .modal .mh {
   padding: 16px 20px;
   border-bottom: 1px solid var(--line);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   font-size: var(--ds-font-size-base);
   display: flex;
   align-items: center;
@@ -1586,7 +1586,7 @@ label {
 }
 .section-title {
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--muted);
   margin: 18px 0 8px;
   text-transform: uppercase;

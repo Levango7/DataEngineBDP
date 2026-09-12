@@ -630,7 +630,7 @@ onUnmounted(() => {
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

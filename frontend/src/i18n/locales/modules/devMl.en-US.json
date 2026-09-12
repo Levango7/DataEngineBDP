@@ -154,7 +154,8 @@
       "stopTrainConfirm": "Stop \"{name}\"?",
       "stopTrainConfirmTitle": "Confirm Stop",
       "stopSvcConfirm": "Stop \"{name}\"?",
-      "stopSvcConfirmTitle": "Confirm Stop"
+      "stopSvcConfirmTitle": "Confirm Stop",
+      "deleteFailed": "Failed to delete"
     },
     "trainPanel": {
       "kpiTotal": "Training Jobs",

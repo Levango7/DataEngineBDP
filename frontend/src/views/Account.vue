@@ -49,7 +49,7 @@
           <el-table-column prop="usage" :label="t('account.cols.usage')" />
           <el-table-column :label="t('account.cols.cost')">
             <template #default="{ row }">
-              <span v-if="row.isTotal" style="font-weight: 700">
+              <span v-if="row.isTotal" style="font-weight: var(--ds-font-weight-bold)">
                 {{ t('common.currency') }} {{ row.cost.toLocaleString() }}
               </span>
               <span v-else>{{ t('common.currency') }} {{ row.cost.toLocaleString() }}</span>

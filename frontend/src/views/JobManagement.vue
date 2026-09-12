@@ -179,7 +179,7 @@
             :rows="10"
             :placeholder="t('jobmgmt.submitModal.codePlaceholder')"
             :aria-label="t('jobmgmt.submitModal.code')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
       </el-form>

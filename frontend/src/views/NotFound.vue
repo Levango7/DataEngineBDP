@@ -38,7 +38,7 @@ function goHome() {
 /* 使用设计令牌（亮暗双主题适配：暗色下不硬编码深灰导致不可读） */
 .not-found__code {
   font-size: var(--ds-font-size-6xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   margin: 0;
   color: var(--ds-text-primary, var(--ds-text-primary));
 }

@@ -102,7 +102,7 @@
   font-weight: var(--ds-font-weight-semibold);
 }
 .ds-font-bold {
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 
 .ds-leading-tight {

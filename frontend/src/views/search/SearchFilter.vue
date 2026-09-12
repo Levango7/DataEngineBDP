@@ -314,7 +314,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 }
 .filter-header h3 {
   font-size: var(--ds-font-size-base);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   margin: 0;
 }
 .filter-section {
@@ -388,6 +388,6 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 }
 .summary-count {
   color: var(--primary, var(--ds-color-success-700));
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 </style>

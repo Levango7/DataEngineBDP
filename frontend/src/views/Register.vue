@@ -36,7 +36,7 @@
               v-model="step1.code"
               :placeholder="t('register.step1.codePlaceholder')"
               size="large"
-              style="text-align: center; letter-spacing: 6px; font-weight: 700"
+              style="text-align: center; letter-spacing: 6px; font-weight: var(--ds-font-weight-bold)"
               maxlength="8"
               @keyup.enter="validateCode"
             />
@@ -341,7 +341,7 @@ async function submitForm() {
   align-items: center;
   gap: 10px;
   font-size: var(--ds-font-size-lg);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   margin-bottom: 18px;
 }
@@ -390,7 +390,7 @@ async function submitForm() {
   align-items: center;
   justify-content: center;
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   flex: none;
   transition: all 0.2s var(--ease-smooth);
 }
@@ -411,7 +411,7 @@ async function submitForm() {
 
 .reg-section h2 {
   font-size: var(--ds-font-size-2xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   margin: 0 0 6px;
 }
@@ -483,7 +483,7 @@ async function submitForm() {
 }
 .reg-banner-row b {
   color: var(--ds-color-primary-700);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .reg-banner-row code {
   font-family: var(--ds-font-family-mono);
@@ -524,8 +524,8 @@ async function submitForm() {
   background: linear-gradient(135deg, var(--ds-color-success-500) 0%, var(--ds-color-success-600) 100%);
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-5xl);
-  font-weight: var(--ds-font-weight-bold);
-  line-height: 64px;
+  font-weight: var(--ds-font-weight-extrabold);
+  line-height: 1;
   margin: 0 auto 16px;
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
   animation: regSuccess 0.45s var(--ease-spring);

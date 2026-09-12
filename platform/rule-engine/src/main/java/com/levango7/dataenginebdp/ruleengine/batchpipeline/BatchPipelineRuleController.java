@@ -65,6 +65,8 @@ public class BatchPipelineRuleController {
     @Operation(summary = "按模板规格批量翻译为 batch-pipeline 八类规则配置")
     @PostMapping("/translate")
     public ResponseEntity<?> translate(@RequestBody TranslateRequest req) {
+        // R12 安全修复：requireTenant fail-closed
+        requireTenant();
         if (req == null || req.rules() == null) {
             return badRequest("invalid_request", "rules 必填（模板规则规格数组）");
         }

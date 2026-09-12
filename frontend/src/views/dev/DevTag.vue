@@ -86,7 +86,7 @@
             <el-table-column prop="name" :label="t('devTag.tagColumns.name')" min-width="160" />
             <el-table-column prop="code" :label="t('devTag.tagColumns.code')" width="160">
               <template #default="{ row }">
-                <span style="font-family: var(--ds-font-family-mono); font-size: 12px">
+                <span style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)">
                   {{ row.code || t('devTag.tagColumns.codePlaceholder') }}
                 </span>
               </template>
@@ -299,7 +299,7 @@
               <div v-else>
                 <el-descriptions :column="1" border size="small">
                   <el-descriptions-item :label="t('devTag.audience.countField')">
-                    <span class="kpi" style="font-size: 20px">{{ audienceResult.count }}</span>
+                    <span class="kpi" style="font-size: var(--ds-font-size-2xl)">{{ audienceResult.count }}</span>
                   </el-descriptions-item>
                   <el-descriptions-item
                     v-if="audienceResult.audienceId"
@@ -365,7 +365,7 @@
           <el-input
             v-model="tagForm.code"
             :placeholder="t('devTag.tagDialog.fields.codePlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('devTag.tagDialog.fields.valueType')" prop="valueType">
@@ -501,7 +501,7 @@
               type="textarea"
               :rows="3"
               :placeholder="t('devTag.ruleDialog.addForm.fields.expressionPlaceholder')"
-              style="font-family: var(--ds-font-family-mono); font-size: 12px"
+              style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
             />
           </el-form-item>
           <el-form-item>
@@ -954,7 +954,7 @@ onMounted(() => {
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

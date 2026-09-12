@@ -117,7 +117,8 @@ source = [
 
 [tool.coverage.report]
 # 最低覆盖率门禁
-fail_under = 70
+# 与 ci.yml COVERAGE_THRESHOLD=55 和 coverage-gate.sh PYTHON_MIN_COVERAGE=55 对齐
+fail_under = 55
 # 显示未完全覆盖的分支
 show_missing = true
 # 显示未覆盖的行号

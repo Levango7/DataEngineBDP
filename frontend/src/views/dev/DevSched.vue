@@ -85,7 +85,7 @@
       >
         <el-table-column prop="id" :label="t('devSched.table.columns.id')" width="160">
           <template #default="{ row }">
-            <span style="font-family: var(--ds-font-family-mono); font-size: 12px">
+            <span style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)">
               {{ row.id }}
             </span>
           </template>
@@ -100,7 +100,7 @@
           <template #default="{ row }">
             <span
               v-if="row.schedule"
-              style="font-family: var(--ds-font-family-mono); font-size: 12px"
+              style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
             >
               {{ row.schedule }}
             </span>
@@ -211,7 +211,7 @@
             type="textarea"
             :rows="12"
             :placeholder="t('devSched.editDrawer.fields.dagJsonPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
       </el-form>
@@ -815,7 +815,7 @@ watch(
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

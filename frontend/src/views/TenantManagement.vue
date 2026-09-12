@@ -624,7 +624,7 @@ onMounted(() => loadList())
 }
 .stat-num {
   font-size: var(--ds-font-size-3xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
@@ -638,7 +638,7 @@ onMounted(() => loadList())
 }
 .tenant-detail h4 {
   font-size: var(--ds-font-size-base);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   margin: 18px 0 10px;
   padding-left: 8px;
@@ -670,7 +670,7 @@ onMounted(() => loadList())
 .invite-code-text {
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-2xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   letter-spacing: 4px;
   color: var(--ds-color-primary-700);
 }

@@ -194,6 +194,7 @@ import { PageHeader } from '@/components/ui'
 import Drawer from '@/components/Drawer.vue'
 import Modal from '@/components/Modal.vue'
 import * as opsApi from '@/api/ops'
+import { AlertAction } from '@/api/ops'
 import type {
   OpsOverview,
   OpsJob,
@@ -275,7 +276,7 @@ function openAlertDetail(alert: Alert): void {
 /** 处理告警 */
 async function handleAlert(alert: Alert): Promise<void> {
   try {
-    await opsApi.handleAlert(alert.id, '处理')
+    await opsApi.handleAlert(alert.id, AlertAction.HANDLE)
     store.showToast(t('ops.toast.handled'))
     alertDetailVisible.value = false
     await loadAlerts()

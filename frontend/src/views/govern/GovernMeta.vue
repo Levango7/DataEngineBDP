@@ -87,7 +87,7 @@
           <template #default="{ row }">
             <span
               v-if="row.cron"
-              style="font-family: var(--ds-font-family-mono); font-size: 12px"
+              style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
             >
               {{ row.cron }}
             </span>
@@ -225,7 +225,7 @@
           <el-input
             v-model="sourceForm.connectionUrl"
             :placeholder="t('governMeta.sourceDialog.urlHint')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('governMeta.sourceDialog.fieldUsername')" prop="username">
@@ -720,7 +720,7 @@ onUnmounted(() => {
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

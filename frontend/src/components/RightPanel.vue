@@ -200,12 +200,12 @@ const tabs = computed(() => [
   font-size: var(--ds-font-size-xs);
   min-width: 15px;
   height: 15px;
-  line-height: 15px;
+  line-height: 1;
   text-align: center;
   border-radius: var(--ds-radius-md);
   background: var(--ds-color-error-500);
   color: var(--ds-text-inverse);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .rp-close {
   border: none;

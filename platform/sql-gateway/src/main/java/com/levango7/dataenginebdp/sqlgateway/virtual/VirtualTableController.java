@@ -6,7 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -52,6 +54,7 @@ import java.util.Optional;
 @RestController
 @Tag(name = "SQL网关-虚拟表", description = "虚拟表CRUD与查询/物化刷新")
 @RequestMapping("/api/v1/virtual-tables")
+@PreAuthorize("isAuthenticated()")
 public class VirtualTableController {
 
     private static final Logger log = LoggerFactory.getLogger(VirtualTableController.class);
@@ -260,20 +263,31 @@ public class VirtualTableController {
     }
 
     /**
-     * 解析租户 ID：优先使用 TenantContext（来自 JWT），其次使用请求体中的 tenantId。
+     * 解析租户 ID：仅信任 TenantContext（来自 JWT），fail-closed（R12 安全修复）。
      *
-     * @param fallback 请求体中的租户 ID（可选）
+     * <p>不再回退到请求体 fallback 或 "default"，避免攻击者传入任意 tenantId 绕过 JWT。
+     * 保留 fallback 参数仅为向后兼容调用方签名，实际不使用其值。</p>
+     *
+     * @param fallback 请求体中的租户 ID（已忽略，不信任）
      * @return 租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
      */
     private String resolveTenantId(String fallback) {
         String tenantId = TenantContext.getTenantId();
-        if (tenantId != null && !tenantId.isBlank()) {
-            return tenantId;
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
         }
-        if (fallback != null && !fallback.isBlank()) {
-            return fallback;
-        }
-        return "default";
+        return tenantId;
+    }
+
+    /**
+     * 异常处理：缺少租户上下文返回 403（R12 安全修复）。
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+        log.warn("虚拟表操作被拒绝: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "forbidden", "message", e.getMessage()));
     }
 
     /**

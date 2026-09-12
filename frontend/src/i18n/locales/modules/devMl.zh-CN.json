@@ -154,7 +154,8 @@
       "stopTrainConfirm": "确认停止「{name}」？",
       "stopTrainConfirmTitle": "停止确认",
       "stopSvcConfirm": "确认停止「{name}」？",
-      "stopSvcConfirmTitle": "停止确认"
+      "stopSvcConfirmTitle": "停止确认",
+      "deleteFailed": "删除失败"
     },
     "trainPanel": {
       "kpiTotal": "训练作业",

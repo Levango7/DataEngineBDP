@@ -187,7 +187,9 @@ async function handleLogin() {
   try {
     await auth.login(form.value.username, form.value.password)
     ElMessage.success(t('login.loginSuccess'))
-    const redirect = (route.query.redirect as string) || '/dashboard'
+    const redirect = Array.isArray(route.query.redirect)
+      ? route.query.redirect[0] || '/dashboard'
+      : route.query.redirect || '/dashboard'
     router.replace(redirect)
   } catch (e) {
     error.value = `${t('login.loginFailed')}: ${e instanceof Error ? e.message : String(e)}`
@@ -285,7 +287,7 @@ async function handleLogin() {
   align-items: center;
   gap: 10px;
   font-size: var(--ds-font-size-xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   margin-bottom: 64px;
   letter-spacing: 0.3px;
@@ -315,7 +317,7 @@ async function handleLogin() {
 }
 .slogan {
   font-size: var(--ds-font-size-5xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   line-height: 1.35;
   color: var(--ds-text-primary);
   margin: 0 0 18px;
@@ -342,7 +344,7 @@ async function handleLogin() {
 }
 .metric-num {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   line-height: 1.2;
   color: var(--ds-color-gray-800);
 }
@@ -428,7 +430,7 @@ async function handleLogin() {
 .card-title {
   margin: 0 0 8px;
   font-size: var(--ds-font-size-3xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   letter-spacing: 0.3px;
 }

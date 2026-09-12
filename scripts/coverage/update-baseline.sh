@@ -205,7 +205,10 @@ update_go() {
     while IFS= read -r gomod; do
         local mod_dir mod_name cov cov_profile cov_output
         mod_dir=$(dirname "$gomod")
-        mod_name=$(basename "$mod_dir")
+        # R12 修复：基线文件 go.json 的 key 为相对 platform/ 的模块路径
+        # （如 observability/query-api），原用 basename 会得到 query-api，与基线 key 不匹配。
+        # 改为去掉 $PROJECT_ROOT/platform/ 前缀，与 ci.yml:1129 趋势检查口径一致。
+        mod_name=${mod_dir#"$PROJECT_ROOT/platform/"}
         # 使用 coverprofile + go tool cover -func 获取总覆盖率
         # （go test -cover 不输出 total: 行，无法直接 grep 解析）
         cov_profile="$mod_dir/.coverage.baseline.out"

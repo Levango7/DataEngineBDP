@@ -347,8 +347,8 @@ function handleLogout() {
   background: var(--ds-color-error-500);
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
-  line-height: 14px;
+  font-weight: var(--ds-font-weight-extrabold);
+  line-height: 1;
   text-align: center;
   box-shadow: 0 0 0 2px var(--ds-bg-surface);
   animation: bellPulse 2.4s var(--ease-smooth) infinite;
@@ -364,7 +364,7 @@ function handleLogout() {
   background: var(--ds-bg-surface);
   color: var(--ds-color-primary-700);
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   letter-spacing: 0.5px;
   cursor: pointer;
   display: inline-flex;
@@ -406,7 +406,7 @@ function handleLogout() {
 }
 .crumb-label {
   color: var(--ds-text-primary);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 
 /* === 全局搜索 === */

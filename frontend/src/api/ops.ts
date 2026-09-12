@@ -13,6 +13,13 @@ export type OpsJobType = 'stream_flink' | 'batch_spark' | 'batch_dag'
 /** 作业状态 */
 export type OpsJobStatus = 'running' | 'success' | 'failed' | 'pending'
 
+/** 告警处理操作枚举（避免硬编码中文，统一来源） */
+export const AlertAction = {
+  HANDLE: 'handle',
+  ACKNOWLEDGE: 'acknowledge',
+  RESOLVE: 'resolve',
+} as const
+
 /** 告警级别 */
 export type AlertLevel = 'info' | 'warn' | 'critical'
 

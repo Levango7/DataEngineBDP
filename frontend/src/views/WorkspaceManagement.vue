@@ -353,9 +353,9 @@ function openEditDialog(row: Workspace) {
   editingId.value = row.id
   formData.name = row.name
   formData.tenantId = row.tenantId
-  formData.description = (row as { description?: string }).description || ''
-  formData.resourceQuota = (row as { resourceQuota?: string }).resourceQuota || ''
-  formData.networkPolicy = (row as { networkPolicy?: string }).networkPolicy || 'tenant-isolated'
+  formData.description = row.description || ''
+  formData.resourceQuota = row.resourceQuota || ''
+  formData.networkPolicy = row.networkPolicy || 'tenant-isolated'
   dialogVisible.value = true
 }
 

@@ -236,7 +236,7 @@ bash scripts/poc/run-poc.sh
 | model-finetuning | platform/model-finetuning | 模型微调服务，支持 LoRA / 全参微调 | 60+ |
 | nl2sql | platform/nl2sql | 自然语言转 SQL 服务，Text2SQL 引擎 | 60+ |
 | registry | platform/registry | 元数据注册中心服务 | 60+ |
-| operations | design/deploy/services/operations | 运营后台 FastAPI 服务 | 0 |
+
 ### 配置与部署组件（2 个）
 
 | 组件 | 目录 | 描述 |

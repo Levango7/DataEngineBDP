@@ -299,7 +299,7 @@ function openUrl(): void {
 }
 .card-title {
   font-size: var(--ds-font-size-lg);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   margin: 0;
   color: var(--ink, var(--ds-text-primary));
   line-height: 1.4;

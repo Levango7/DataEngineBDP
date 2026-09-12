@@ -180,11 +180,12 @@
   --ds-font-size-5xl: 36px;
   --ds-font-size-6xl: 48px;
 
-  /* font-weight */
+  /* font-weight (5档：400/500/600/700/800) */
   --ds-font-weight-normal: 400;
   --ds-font-weight-medium: 500;
   --ds-font-weight-semibold: 600;
-  --ds-font-weight-bold: 800;
+  --ds-font-weight-bold: 700;
+  --ds-font-weight-extrabold: 800;
 
   /* line-height */
   --ds-line-height-tight: 1.25;

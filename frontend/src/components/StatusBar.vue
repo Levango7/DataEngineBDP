@@ -159,7 +159,7 @@ onUnmounted(() => {
   color: var(--ds-color-primary-800);
   font-size: var(--ds-font-size-xs);
   letter-spacing: 1.2px;
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .sb-div,
 .sb-sep {
@@ -218,14 +218,14 @@ onUnmounted(() => {
 }
 .sb-item.sb-ws {
   color: var(--ds-text-primary);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .sb-clock {
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
   letter-spacing: 0.4px;
   color: var(--ds-text-primary);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   background: var(--ds-color-primary-100);
   border-color: var(--ds-color-primary-500);
 }
@@ -234,7 +234,7 @@ onUnmounted(() => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 
 @keyframes sbBreath {

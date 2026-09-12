@@ -200,7 +200,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
 }
 .total-num {
   color: var(--primary, var(--ds-color-success-700));
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .page-mode {
   display: flex;

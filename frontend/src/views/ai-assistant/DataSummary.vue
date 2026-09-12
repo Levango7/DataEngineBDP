@@ -214,7 +214,7 @@ function changeIcon(m: SummaryMetric) {
 }
 .metric-value {
   font-size: var(--ds-font-size-xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   font-variant-numeric: tabular-nums;
 }

@@ -187,7 +187,7 @@
             type="textarea"
             :rows="8"
             :placeholder="t('engines.flink.submit.sqlPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.parallelism')" prop="parallelism">
@@ -195,7 +195,7 @@
         </el-form-item>
         <el-form-item :label="t('engines.flink.submit.cpInterval')" prop="checkpointIntervalMs">
           <el-input-number v-model="submitForm.checkpointIntervalMs" :min="1000" :step="1000" />
-          <span style="margin-left: 8px; color: var(--ds-text-tertiary); font-size: 12px">
+          <span style="margin-left: 8px; color: var(--ds-text-tertiary); font-size: var(--ds-font-size-xs)">
             {{ t('engines.flink.submit.msUnit') }}
           </span>
         </el-form-item>
@@ -713,7 +713,7 @@ watch(
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

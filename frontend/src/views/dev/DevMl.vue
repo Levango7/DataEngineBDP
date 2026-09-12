@@ -163,7 +163,7 @@
             type="textarea"
             :rows="4"
             :placeholder="t('devMl.trainForm.fields.hyperparamsPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('devMl.trainForm.fields.owner')" prop="owner">
@@ -207,7 +207,7 @@
           <el-input
             v-model="registerForm.modelPath"
             :placeholder="t('devMl.registerForm.fields.modelPathPlaceholder')"
-            style="font-family: var(--ds-font-family-mono); font-size: 12px"
+            style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
           />
         </el-form-item>
         <el-form-item :label="t('devMl.registerForm.fields.description')" prop="description">
@@ -539,6 +539,7 @@ async function handleSubmitTrain() {
       trainDialogVisible.value = false
       await loadTrain()
     } catch {
+      // 错误提示已由拦截器统一处理
     } finally {
       submitting.value = false
     }
@@ -582,6 +583,7 @@ async function handleRegister() {
       registerDialogVisible.value = false
       await loadModels()
     } catch {
+      // 错误提示已由拦截器统一处理
     } finally {
       registering.value = false
     }
@@ -619,6 +621,7 @@ async function handleDeploy() {
       deployDialogVisible.value = false
       await loadServices()
     } catch {
+      // 错误提示已由拦截器统一处理
     } finally {
       deploying.value = false
     }
@@ -644,6 +647,7 @@ async function handleScale() {
     scaleDialogVisible.value = false
     await loadServices()
   } catch {
+    // 错误提示已由拦截器统一处理
   } finally {
     scaling.value = false
   }
@@ -694,6 +698,7 @@ async function handleStopTrain(row: TrainJob) {
     appStore.showToast(t('devMl.messages.trainStopped'), 'success')
     await loadTrain()
   } catch {
+    // 错误提示已由拦截器统一处理
   } finally {
     stoppingId.value = ''
   }
@@ -722,6 +727,7 @@ async function handleStopSvc(row: InferenceService) {
     appStore.showToast(t('devMl.messages.svcStopped'), 'success')
     await loadServices()
   } catch {
+    // 错误提示已由拦截器统一处理
   } finally {
     stoppingSvcId.value = ''
   }
@@ -741,7 +747,12 @@ async function handleDeleteModel(row: MlModel) {
     await devMlApi.deleteModel(row.id)
     appStore.showToast(t('devMl.messages.modelDeleted'), 'success')
     await loadModels()
-  } catch (e) { console.error('操作失败:', e) }
+  } catch (e) {
+    // 用户取消确认（cancel/close）不报错；API 失败由拦截器统一提示，此处仅记录日志
+    if (e !== 'cancel' && e !== 'close') {
+      console.error(t('devMl.messages.deleteFailed'), e)
+    }
+  }
 }
 
 // ── 模型版本 ──────────────────────────────────────────
@@ -832,7 +843,7 @@ watch(
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

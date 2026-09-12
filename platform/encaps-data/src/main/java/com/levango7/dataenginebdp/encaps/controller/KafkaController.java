@@ -187,7 +187,8 @@ public class KafkaController {
 
     /** 根据 clusterId 解析 bootstrap servers */
     private String resolveBootstrap(String clusterId) {
-        String tenantId = TenantContext.getTenantId();
+        // R12 安全修复：显式 fail-closed，不依赖 findByIdAndTenantId 返回 empty 的隐式行为
+        String tenantId = requireTenant();
         Long id;
         try {
             id = Long.parseLong(clusterId);
@@ -200,5 +201,19 @@ public class KafkaController {
             throw new EngineUnavailableException("数据源 " + clusterId + " 不是 Kafka 类型");
         }
         return ds.getHost() + ":" + ds.getPort();
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R12 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 }

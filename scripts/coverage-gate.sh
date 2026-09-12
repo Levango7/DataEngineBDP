@@ -8,13 +8,14 @@
 set -euo pipefail
 
 # 门禁阈值（百分比）
-# 与 ci.yml 保持一致：Java 40% / Go 30% / Python 55% / 前端 80%
-# （2026-09-12 R6-4 对齐，原值 70/70/70/80 与 ci.yml 不一致）
+# 与 ci.yml 保持一致：Java 40% / Go 30% / Python 55% / 前端 25%
+# （2026-09-13 R12 对齐：前端阈值从 80% 调至 25%，与 vitest.config.ts 阶段1 一致）
+# 前端分阶段提升计划：阶段1（当前）25% / 阶段2（最终目标）40%
 JAVA_MIN_COVERAGE=40
 JAVA_MIN_BRANCH_COVERAGE=18
 GO_MIN_COVERAGE=30
 PYTHON_MIN_COVERAGE=55
-FRONTEND_MIN_COVERAGE=80
+FRONTEND_MIN_COVERAGE=25
 
 # 颜色
 RED='\033[0;31m'

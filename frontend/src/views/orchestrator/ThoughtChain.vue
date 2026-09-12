@@ -129,7 +129,7 @@ onMounted(load)
 }
 .tc-head .title {
   font-size: var(--ds-font-size-base);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .tc-head .meta {
   font-size: var(--ds-font-size-xs);
@@ -176,7 +176,7 @@ onMounted(load)
 }
 .kind-badge {
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   padding: 3px 8px;
   border-radius: var(--ds-radius-lg);
   background: var(--c-surface-alt);

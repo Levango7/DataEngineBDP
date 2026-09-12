@@ -188,7 +188,7 @@
           <strong>{{ t('develop.confirmModal.cron') }}</strong>
           {{ effectiveSchedule || t('develop.confirmModal.manual') }}
         </p>
-        <p style="color: var(--ds-text-tertiary); font-size: 12px">
+        <p style="color: var(--ds-text-tertiary); font-size: var(--ds-font-size-xs)">
           {{ t('develop.confirmModal.note') }}
         </p>
       </div>

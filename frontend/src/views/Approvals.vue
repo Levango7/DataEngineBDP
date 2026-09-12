@@ -311,7 +311,7 @@ onMounted(() => loadList())
 }
 .stat-num {
   font-size: var(--ds-font-size-3xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   background: linear-gradient(135deg, var(--ds-color-primary-500) 0%, var(--ds-color-info-500) 100%);
   -webkit-background-clip: text;
   background-clip: text;
@@ -346,6 +346,6 @@ onMounted(() => loadList())
 }
 .appr-confirm b {
   color: var(--ds-color-primary-700);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 </style>

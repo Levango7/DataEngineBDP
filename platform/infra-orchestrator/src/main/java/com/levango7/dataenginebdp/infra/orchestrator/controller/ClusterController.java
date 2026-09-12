@@ -22,6 +22,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,6 +60,7 @@ import java.util.Map;
 @RestController
 @Tag(name = "基础设施编排-集群供应", description = "跨环境集群创建/销毁/扩缩容")
 @RequestMapping("/api/v1/clusters")
+@PreAuthorize("isAuthenticated()")
 public class ClusterController {
 
     private static final Logger log = LoggerFactory.getLogger(ClusterController.class);
@@ -93,10 +95,9 @@ public class ClusterController {
     @Operation(summary = "创建集群 - 统一入口")
     @PostMapping
     public ResponseEntity<SupplyResult> createCluster(@Valid @RequestBody ClusterCreateRequest request) {
-        String tenantId = TenantContext.getTenantId();
-        if (tenantId != null) {
-            request.setTenantId(tenantId);
-        }
+        // R12 安全修复：fail-closed，tenantId 缺失直接拒绝，不信任请求体
+        String tenantId = requireTenant();
+        request.setTenantId(tenantId);
         log.info("POST /api/v1/clusters - createCluster env={} name={} tenant={}",
                 request.getEnvironment(), request.getClusterName(), request.getTenantId());
         SupplyResult result = orchestrator.createCluster(request);
@@ -117,9 +118,12 @@ public class ClusterController {
     @DeleteMapping("/{environment}/{clusterId}")
     public ResponseEntity<ClusterInfo> destroyCluster(@PathVariable String environment,
                                                       @PathVariable String clusterId) {
+        // R12 安全修复：fail-closed + 租户校验
+        String tenantId = requireTenant();
         EnvironmentType env = EnvironmentType.fromString(environment);
-        log.info("DELETE /api/v1/clusters/{}/{} - destroyCluster", env, clusterId);
+        log.info("DELETE /api/v1/clusters/{}/{} - destroyCluster tenant={}", env, clusterId, tenantId);
         ClusterInfo info = orchestrator.destroyCluster(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
         return ResponseEntity.ok(info);
     }
 
@@ -134,9 +138,12 @@ public class ClusterController {
     @GetMapping("/{environment}/{clusterId}")
     public ResponseEntity<ClusterInfo> getClusterInfo(@PathVariable String environment,
                                                       @PathVariable String clusterId) {
+        // R12 安全修复：fail-closed + 租户校验
+        String tenantId = requireTenant();
         EnvironmentType env = EnvironmentType.fromString(environment);
-        log.info("GET /api/v1/clusters/{}/{} - getClusterInfo", env, clusterId);
+        log.info("GET /api/v1/clusters/{}/{} - getClusterInfo tenant={}", env, clusterId, tenantId);
         ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
         return ResponseEntity.ok(info);
     }
 
@@ -153,10 +160,13 @@ public class ClusterController {
     public ResponseEntity<ClusterInfo> scaleCluster(@PathVariable String environment,
                                                     @PathVariable String clusterId,
                                                     @Valid @RequestBody ClusterScaleRequest scaleReq) {
+        // R12 安全修复：fail-closed + 租户校验
+        String tenantId = requireTenant();
         EnvironmentType env = EnvironmentType.fromString(environment);
-        log.info("POST /api/v1/clusters/{}/{}/scale - scaleCluster target={}",
-                env, clusterId, scaleReq.getTargetNodeCount());
+        log.info("POST /api/v1/clusters/{}/{}/scale - scaleCluster target={} tenant={}",
+                env, clusterId, scaleReq.getTargetNodeCount(), tenantId);
         ClusterInfo info = orchestrator.scaleCluster(env, clusterId, scaleReq);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
         return ResponseEntity.ok(info);
     }
 
@@ -243,6 +253,41 @@ public class ClusterController {
         log.warn("Bad request: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("error", e.getMessage()));
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R12 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
+    }
+
+    /**
+     * 校验集群归属当前租户（R12 安全修复）。
+     *
+     * <p>若集群信息的 tenantId 为空（下游 Provider 未回填）则放行，避免误杀；
+     * 若非空且与当前租户不匹配则抛 404 等价异常（不暴露存在性）。</p>
+     *
+     * @param info      集群信息
+     * @param tenantId  当前租户 ID
+     * @param clusterId 集群 ID（用于日志）
+     * @throws IllegalArgumentException 集群不属于当前租户
+     */
+    private static void requireTenantOwnedCluster(ClusterInfo info, String tenantId, String clusterId) {
+        if (info == null) {
+            throw new IllegalArgumentException("cluster not found: " + clusterId);
+        }
+        String clusterTenant = info.getTenantId();
+        if (clusterTenant != null && !clusterTenant.isBlank() && !tenantId.equals(clusterTenant)) {
+            throw new IllegalArgumentException("cluster not found: " + clusterId);
+        }
     }
 
     /* ================================================================ */

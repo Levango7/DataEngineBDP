@@ -146,7 +146,8 @@ public class DorisController {
                     .body(Map.of("error", "只允许执行 SELECT/SHOW/DESCRIBE/EXPLAIN 查询"));
         }
         try {
-            return ResponseEntity.ok(dorisClient.executeQuery(req.sql()));
+            // R12 安全修复：将 tenantId 传递给 dorisClient 实现租户隔离
+            return ResponseEntity.ok(dorisClient.executeQuery(req.sql(), tenantId));
         } catch (EngineUnavailableException e) {
             log.warn("Doris 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

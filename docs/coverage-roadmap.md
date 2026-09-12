@@ -75,46 +75,45 @@
 
 | 模块 | 行覆盖率 | 分支覆盖率 | 优先级 | 备注 |
 |------|---------|-----------|--------|------|
-| common-security | ~49% | ~33% | P1 | 公共安全库（JWT/鉴权） |
-| encaps-layer | ~80% | ~70% | P2 | 已达标，维持 |
-| encaps-tenant | ~82% | ~60% | P2 | 多租户封装，已达标 |
-| encaps-data | ~13% | ~5% | P0 | 数据封装，覆盖率极低 |
-| encaps-gateway | ~2% | ~0% | P0 | API 网关薄壳，覆盖率极低 |
-| sql-gateway | **70.49%** ↑ | ~40% | P1 | **P0 补充后提升**：已有 1123 个测试验证，行覆盖率从 ~45% 提升至 70.49% |
-| lineage-analyzer | ~40% | ~20% | P1 | 治理核心 |
-| metadata-collector | ~35% | ~15% | P1 | 治理核心 |
-| real-time-pipeline | ~30% | ~15% | P0 | 实时链路，覆盖率极低 |
-| storage-io | ~50% | ~30% | P1 | 存储抽象层 |
-| stream-batch-scheduler | ~35% | ~20% | P0 | 调度核心 |
-| flink-cdc | ~30% | ~10% | P0 | CDC 核心 |
-| tag-engine | ~40% | ~25% | P1 | 标签引擎 |
-| rule-engine | ~45% | ~25% | P1 | 规则引擎 |
-| infra-orchestrator | ~35% | ~15% | P0 | 基础设施编排 |
-| infra-provider-private | ~30% | ~10% | P0 | 私有云 provider |
-| infra-provider-cloud | ~30% | ~10% | P0 | 云 provider |
-| infra-provider-xinchang | ~30% | ~10% | P0 | 新昌 provider |
-| federated-query | ~35% | ~15% | P1 | 联邦查询 |
-| dashboard | ~40% | ~20% | P1 | FinOps 仪表盘 |
-| cost-model | ~40% | ~20% | P1 | FinOps 成本模型 |
-| billing | ~35% | ~15% | P1 | 计费核心 |
-| data-standard | ~30% | ~10% | P0 | 数据标准管理 |
-| master-data | ~30% | ~10% | P0 | 主数据管理 |
+| common-security | 49% | ~33% | P1 | 公共安全库（JWT/鉴权）（2026-09-01基线） |
+| encaps-layer | 56% | ~70% | P2 | 封装层（2026-09-01基线） |
+| encaps-tenant | 82% | ~60% | P2 | 多租户封装，已达标（2026-09-01基线） |
+| encaps-data | 13% | ~5% | P0 | 数据封装，覆盖率极低（2026-09-01基线） |
+| encaps-gateway | 2% | ~0% | P0 | API 网关薄壳，覆盖率极低（2026-09-01基线） |
+| sql-gateway | 73% | ~40% | P1 | SQL 网关，已有 1123 个测试验证（2026-09-01基线） |
+| lineage-analyzer | 71% | ~20% | P1 | 治理核心（2026-09-01基线） |
+| metadata-collector | 69% | ~15% | P1 | 治理核心（2026-09-01基线） |
+| real-time-pipeline | 25% | ~15% | P0 | 实时链路，覆盖率极低（2026-09-01基线） |
+| storage-io | 18% | ~30% | P1 | 存储抽象层（2026-09-01基线） |
+| stream-batch-scheduler | 31% | ~20% | P0 | 调度核心（2026-09-01基线） |
+| flink-cdc | 89% | ~10% | P0 | CDC 核心（2026-09-01基线） |
+| tag-engine | 48% | ~25% | P1 | 标签引擎（2026-09-01基线） |
+| rule-engine | 75% | ~25% | P1 | 规则引擎（2026-09-01基线） |
+| infra-orchestrator | 49% | ~15% | P0 | 基础设施编排（2026-09-01基线） |
+| infra-provider-private | 46% | ~10% | P0 | 私有云 provider（2026-09-01基线） |
+| infra-provider-cloud | 10% | ~10% | P0 | 云 provider（2026-09-01基线） |
+| infra-provider-xinchang | 25% | ~10% | P0 | 新昌 provider（2026-09-01基线） |
+| federated-query | 59% | ~15% | P1 | 联邦查询（2026-09-01基线） |
+| dashboard | 6% | ~20% | P1 | FinOps 仪表盘（2026-09-01基线） |
+| cost-model | 19% | ~20% | P1 | FinOps 成本模型（2026-09-01基线） |
+| billing | 0% | ~15% | P1 | 计费核心（2026-09-01基线） |
+| data-standard | 0% | ~10% | P0 | 数据标准管理（2026-09-01基线） |
+| master-data | 0% | ~10% | P0 | 主数据管理（2026-09-01基线） |
 
 ### 2.2 Go 模块（10 个）
 
 | 模块 | 覆盖率 | 优先级 | 备注 |
 |------|--------|--------|------|
-| catalog | ~35% | P1 | 元数据目录 |
-| dqctl | ~30% | P1 | 数据质量控制 |
-| vector-engine | ~25% | P0 | 向量引擎核心 |
-| llm-gateway | ~30% | P1 | LLM 网关 |
-| observability/query-api | **handler 81.2% / service 93.5% / middleware 94.0%** ↑ | P1 | **P0 补充后大幅提升**：从 ~28% 提升，新增 4 个测试文件 |
-| infra-provider-baremetal | ~20% | P0 | 裸金属 provider |
-| karmada/api | **handler 71.6% / middleware 93.3% / model 100%** ↑ | P1 | **P0 补充后大幅提升**：从 ~35% 提升，新增 5 个测试文件 |
-| karmada/failover/api | **handler 54.1% / middleware 93.3% / model 100%** ↑ | P1 | **P0 补充后大幅提升**：从 ~30% 提升，新增 4 个测试文件 |
-| karmada/failover/engine | **health 90.7% / karmada 88.5% / weight 95.6%** ↑ | P0 | **P0 补充后大幅提升**：从 ~25% 提升，新增 6 个测试文件 |
-
-| ai-assistant | ~37% | P1 | AI 助手服务 |
+| catalog | 73% | P1 | 元数据目录（2026-09-01基线） |
+| dqctl | 65% | P1 | 数据质量控制（2026-09-01基线） |
+| vector-engine | 73% | P0 | 向量引擎核心（2026-09-01基线） |
+| llm-gateway | 54% | P1 | LLM 网关（2026-09-01基线） |
+| observability/query-api | 32% | P1 | 总覆盖率 32%；子包 handler 81.2% / service 93.5% / middleware 94.0%（2026-09-01基线） |
+| infra-provider-baremetal | 47% | P0 | 裸金属 provider（2026-09-01基线） |
+| karmada/api | 56% | P1 | 总覆盖率 56%；子包 handler 71.6% / middleware 93.3% / model 100%（2026-09-01基线） |
+| karmada/failover/api | 30% | P1 | 总覆盖率 30%；子包 handler 54.1% / middleware 93.3% / model 100%（2026-09-01基线） |
+| karmada/failover/engine | 30% | P0 | 总覆盖率 30%；子包 health 90.7% / karmada 88.5% / weight 95.6%（2026-09-01基线） |
+| ai-assistant | 37% | P1 | AI 助手服务（2026-09-01基线） |
 
 ### 2.3 Python 模块（12 个）
 
@@ -132,6 +131,25 @@
 | evaluation | **~66%** ↑ | P0 | **P0 补充后大幅提升**：从 ~45% 提升，新增 92 个测试全部通过（llm-gateway/evaluation） |
 | operations-api | ~50% | P1 | 运维 API 服务 |
 | batch-pipeline | ~45% | P1 | 批处理流水线 |
+
+### 2.4 前端覆盖率门禁（frontend/）
+
+前端覆盖率门禁由 `vitest.config.ts` thresholds 定义，CI 通过 `ci.yml` 前端 job 和 `scripts/coverage-gate.sh` 执行。
+
+**分阶段提升计划**：
+
+| 阶段 | lines | functions | branches | statements | 状态 | 说明 |
+|------|-------|-----------|----------|------------|------|------|
+| 阶段 0（已过期） | 10% | 5% | 5% | 10% | 已过期 | 初始基线，仅防止覆盖率归零 |
+| 阶段 1（当前） | 25% | 15% | 15% | 25% | **生效中** | 中间目标，防止核心模块覆盖率回退，推动补齐关键路径单测 |
+| 阶段 2（最终目标） | 40% | 18% | 20% | 40% | 待切换 | 待核心视图与 API 层单测覆盖达标后切换 |
+
+> **配置位置**：
+> - `frontend/vitest.config.ts`：thresholds 定义（阶段计划注释）
+> - `.github/workflows/ci.yml`：CI 前端 job `THRESHOLD=25`（与阶段1对齐）
+> - `scripts/coverage-gate.sh`：`FRONTEND_MIN_COVERAGE=25`（与阶段1对齐）
+>
+> **提升节奏**：每阶段至少观察 2 周无回归后再提升阈值，避免一次性提升导致 CI 大面积红。
 
 ## 3. 提升路线图
 

@@ -218,7 +218,7 @@
               type="textarea"
               :rows="8"
               :placeholder="t('engIotdb.sql.placeholder')"
-              style="font-family: var(--ds-font-family-mono); font-size: 12px"
+              style="font-family: var(--ds-font-family-mono); font-size: var(--ds-font-size-xs)"
             />
             <div class="sql-actions">
               <el-button
@@ -511,7 +511,7 @@ onUnmounted(() => {
 }
 .kpi {
   font-size: var(--ds-font-size-4xl);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   line-height: 1.2;
 }

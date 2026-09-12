@@ -133,31 +133,56 @@ public class DorisClient {
      * @return 含 columns/rows/rowCount/durationMs 的结果
      */
     public Map<String, Object> executeQuery(String sql) {
+        return executeQuery(sql, null);
+    }
+
+    /**
+     * 执行 SQL 查询并返回结构化结果（带租户隔离，R12 安全修复）。
+     *
+     * <p>当 tenantId 非空时，在执行查询前通过 {@code SET @tenant_id = ?} 设置会话变量，
+     * 供 Doris 视图/行级安全策略实现租户隔离。同时在结果中记录 tenantId 便于审计。</p>
+     *
+     * @param sql      SQL 文本
+     * @param tenantId 租户 ID（来自 JWT，可为 null 表示不强制租户隔离）
+     * @return 含 columns/rows/rowCount/durationMs/tenantId 的结果
+     */
+    public Map<String, Object> executeQuery(String sql, String tenantId) {
         long start = System.currentTimeMillis();
         Map<String, Object> result = new LinkedHashMap<>();
-        try (Connection conn = openConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            ResultSetMetaData meta = rs.getMetaData();
-            int colCount = meta.getColumnCount();
-            List<String> columns = new ArrayList<>();
-            for (int i = 1; i <= colCount; i++) {
-                columns.add(meta.getColumnLabel(i));
-            }
-            List<List<Object>> rows = new ArrayList<>();
-            while (rs.next()) {
-                List<Object> row = new ArrayList<>();
-                for (int i = 1; i <= colCount; i++) {
-                    row.add(rs.getObject(i));
+        try (Connection conn = openConnection()) {
+            // R12 安全修复：设置租户会话变量，供 Doris 视图/行级安全策略使用
+            if (tenantId != null && !tenantId.isBlank()) {
+                try (Statement setStmt = conn.createStatement()) {
+                    // 使用字符串拼接设置会话变量（tenantId 已由 JWT 校验，非用户输入）
+                    setStmt.execute("SET @tenant_id = '" + tenantId.replace("'", "''") + "'");
                 }
-                rows.add(row);
             }
-            result.put("columns", columns);
-            result.put("rows", rows);
-            result.put("rowCount", rows.size());
-            result.put("durationMs", System.currentTimeMillis() - start);
-            result.put("status", "SUCCESS");
-            return result;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                ResultSetMetaData meta = rs.getMetaData();
+                int colCount = meta.getColumnCount();
+                List<String> columns = new ArrayList<>();
+                for (int i = 1; i <= colCount; i++) {
+                    columns.add(meta.getColumnLabel(i));
+                }
+                List<List<Object>> rows = new ArrayList<>();
+                while (rs.next()) {
+                    List<Object> row = new ArrayList<>();
+                    for (int i = 1; i <= colCount; i++) {
+                        row.add(rs.getObject(i));
+                    }
+                    rows.add(row);
+                }
+                result.put("columns", columns);
+                result.put("rows", rows);
+                result.put("rowCount", rows.size());
+                result.put("durationMs", System.currentTimeMillis() - start);
+                result.put("status", "SUCCESS");
+                if (tenantId != null) {
+                    result.put("tenantId", tenantId);
+                }
+                return result;
+            }
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {

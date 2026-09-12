@@ -19,7 +19,7 @@ eleases/v2.0.0/ERRATUM.md\） |
 ---
 
 ## 2. 核心定位：差异化交付
-本版本在 V2.0.0-RC（骨架与文档交付）基础上，**聚焦 21 个已生产级组件的生产化加固**，明确 **不承诺** 10 个 AI/模型组件的 GA 就绪（标注为 **experimental**，默认 Mock 模式）。
+本版本在 V2.0.0-RC（骨架与文档交付）基础上，**聚焦 22 个真实可部署组件的生产化加固**，明确 **不承诺** 10 个 AI/模型组件的 GA 就绪（标注为 **experimental**，默认 Mock 模式）。
 
 | 层 | GA 承诺组件（21） | Experimental 组件（10，仅接口+Mock） |
 |---|---|---|
@@ -45,14 +45,14 @@ eleases/v2.0.0/ERRATUM.md\） |
 
 ### 3.2 生产化加固
 - **Argo Rollouts 金丝雀/蓝绿/流量镜像** Chart 已交付（\design/deploy/charts/argo-rollouts/\）
-- **Helm Chart 生产级补全**：82 个 Chart 全部具备 HPA/PDB/Ingress/资源配额
+- **Helm Chart 生产级补全**：88 个 Chart 全部具备 HPA/PDB/Ingress/资源配额
 - **覆盖率门禁诚实化**：Java line≥35%/branch≥15%、Go≥30%、Python≥55%（略低于实测值，保 CI 绿）
 - **四环境 Profile 渲染门禁**：\chart-render-check.sh\ 校验 xinchuang/onprem/public-cloud/private-cloud 4 套 values 无占位符
 - **catalog 容器化就绪**：纯 Go sqlite 驱动、emptyDir 数据卷、kind 实测 2/2 Running
 
 ### 3.3 行业生态扩展
 - 新增 4 个行业模板：医疗（电子病历 NLP+DRG/DIP）、交通（路网流量+信号调度）、教育（学情画像+教学质量）、农牧（物联监测+产量预测）
-- 行业模板数量 3→7，每模板含 DDL+DAG+Dashboard+Chart 包装
+- 行业模板：3 套基础模板已实现 + 4 套骨架已交付，目标 9 套，已完成 3/9，每模板含 DDL+DAG+Dashboard+Chart 包装
 
 ### 3.4 前端与接口
 - 6 个 Dashboard 统一为 npm workspace，依赖版本对齐
@@ -135,8 +135,8 @@ eleases/v2.1.0-RC/helm-values.yaml\ | RC 版本完整配置 |
 | RC 检查清单 | \
 eleases/v2.1.0-RC/rc-checklist.md\ | 发布前/中/后检查项 |
 | 组件版本矩阵 | \
-eleases/v2.1.0-RC/component-matrix.md\ | 37 自研 + 第三方引擎 |
-| Helm Chart 仓库 | \design/deploy/charts/\ | 87 个 Chart（含 umbrella） |
+eleases/v2.1.0-RC/component-matrix.md\ | 46 自研 + 第三方引擎 |
+
 | 容器镜像 | Harbor \shuqing/v2.1.0-RC/*\ | ARM64+x86_64 manifest，cosign 签名 |
 | 用户文档 | \docs/user-guide/\ | 5 份文档（手册/运维/API/升级/模板） |
 | 合规文档 | \docs/compliance/\ | 等保三级/密评/整改/复测报告 |
@@ -161,6 +161,6 @@ eleases/v2.1.0-RC/component-matrix.md\ | 37 自研 + 第三方引擎 |
 ---
 
 > **数据引擎大数据平台 V2.1.0-RC — Borealis（北极光）**  
-> **2026-08-27 · 候选版本 · 21 组件 GA 就绪 + 10 组件 Experimental · 诚实交付**
+> **2026-08-27 · 候选版本 · 22 组件 GA 就绪 + 10 组件 Experimental · 诚实交付**
 
 — 发布说明结束 —

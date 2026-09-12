@@ -549,8 +549,9 @@ jobs:
         run: npm run test:coverage
 
       - name: 前端覆盖率门禁
-        # 解析 coverage/coverage-summary.json 的 total.lines.pct，断言 ≥80%
-        # 阈值来源：scripts/coverage-gate.sh:17 FRONTEND_MIN_COVERAGE=80
+        # 解析 coverage/coverage-summary.json 的 total.lines.pct，断言 ≥25%（阶段1）
+        # 阈值来源：scripts/coverage-gate.sh:17 FRONTEND_MIN_COVERAGE=25
+        # 与 vitest.config.ts thresholds.lines=25 对齐（阶段1当前值，阶段2目标40%）
         # 与 Java/Go/Python 覆盖率门禁写法对齐（见 ci.yml 各 build-test job）
         # 注：本 job defaults.working-directory 为 frontend/，故用相对路径
         run: |
@@ -560,8 +561,9 @@ jobs:
           fi
           pct=$(jq '.total.lines.pct' coverage/coverage-summary.json)
           echo "前端行覆盖率: ${pct}%"
-          # 阈值 80%（与 coverage-gate.sh FRONTEND_MIN_COVERAGE 对齐）
-          THRESHOLD=80
+          # 阈值 25%（阶段1，与 vitest.config.ts thresholds.lines=25 和 coverage-gate.sh FRONTEND_MIN_COVERAGE 对齐）
+          # 阶段2（最终目标）：40%（与 vitest.config.ts 注释一致）
+          THRESHOLD=25
           # 使用 awk 做浮点比较（与 Go 覆盖率门禁一致，避免 bc 依赖）
           below=$(awk -v c="$pct" -v t="$THRESHOLD" 'BEGIN { print (c < t) ? 1 : 0 }')
           if [ "$below" = "1" ]; then

@@ -501,7 +501,7 @@ onMounted(() => {
 }
 .panel-head .title {
   font-size: var(--ds-font-size-base);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .panel-head .spacer {
   flex: 1;
@@ -589,7 +589,7 @@ onMounted(() => {
 }
 .trace-head .title {
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
 }
 .trace-head .spacer {
   flex: 1;
@@ -650,7 +650,7 @@ onMounted(() => {
 }
 .ev-kind {
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   padding: 1px 6px;
   border-radius: var(--ds-radius-md);
   background: var(--c-surface-alt);
@@ -725,7 +725,7 @@ onMounted(() => {
 }
 .ckpt-kind {
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   padding: 1px 6px;
   border-radius: var(--ds-radius-md);
   background: var(--c-surface-alt);
@@ -805,7 +805,7 @@ onMounted(() => {
 }
 .iv-status {
   font-size: var(--ds-font-size-xs);
-  font-weight: var(--ds-font-weight-bold);
+  font-weight: var(--ds-font-weight-extrabold);
   padding: 1px 6px;
   border-radius: var(--ds-radius-md);
 }

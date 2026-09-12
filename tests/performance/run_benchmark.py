@@ -589,6 +589,44 @@ def generate_report(
 
 
 # ---------------------------------------------------------------------------
+# SLA 违规检查
+# ---------------------------------------------------------------------------
+# 场景 → (基准 P95 ms, 服务名, 端点名) 映射，与 generate_report 中 mappings 一致
+_SLA_MAPPINGS = [
+    ("RAG 检索", 2000, "encaps-layer", "actuator/health"),
+    ("数据入仓", 5000, "sql-gateway", "sql/execute"),
+    ("联邦查询", 10000, "sql-gateway", "sql/execute"),
+    ("物化视图", 100, "rule-engine", "rules/execute"),
+]
+
+
+def check_sla_violations(results: dict) -> list:
+    """检查 SLA（P95 延迟基准）违规情况。
+
+    对每个场景，优先使用实测 P95（服务可达且有延迟数据），
+    否则使用理论 P95。P95 超过基准即视为违规。
+
+    Returns:
+        违规场景列表，每项为 (场景名, 基准 ms, 实际 P95 ms, 数据来源)。
+        无违规时返回空列表。
+    """
+    violations = []
+    for scenario, baseline, svc, ep in _SLA_MAPPINGS:
+        svc_results = results.get(svc, [])
+        r = next((x for x in svc_results if x.endpoint == ep), None)
+        if r and r.reachable and r.latencies_ms:
+            p95 = r.p95
+            source = "实测"
+        else:
+            theo = THEORETICAL.get(svc, {}).get(ep, {})
+            p95 = theo.get("p95", 0)
+            source = "理论"
+        if p95 > baseline:
+            violations.append((scenario, baseline, p95, source))
+    return violations
+
+
+# ---------------------------------------------------------------------------
 # 主入口
 # ---------------------------------------------------------------------------
 def main() -> int:
@@ -599,6 +637,8 @@ def main() -> int:
                         help="测试模式: auto=探测+压测, theoretical=仅理论分析")
     parser.add_argument("--output", default="benchmark_report.md",
                         help="报告输出路径")
+    parser.add_argument("--fail-on-sla-violation", action="store_true",
+                        help="启用 SLA 阻断：检测到 P95 延迟超过 BASELINE 基准则 return 1")
     args = parser.parse_args()
 
     print(f"舒清大数据平台 - 性能基准测试")
@@ -616,6 +656,14 @@ def main() -> int:
                                   error="理论分析模式(未实测)")
                 )
         generate_report(results, args.requests, "theoretical(仅理论分析)", args.output)
+        if args.fail_on_sla_violation:
+            violations = check_sla_violations(results)
+            if violations:
+                print("\n❌ SLA 违规检测（--fail-on-sla-violation）：")
+                for scenario, baseline, p95, source in violations:
+                    print(f"  - {scenario}: P95={p95:.1f}ms ({source}) > 基准 {baseline}ms")
+                return 1
+            print("✓ SLA 检查通过：所有场景 P95 延迟满足基准要求")
         return 0
 
     # auto 模式: 探测并压测
@@ -627,6 +675,14 @@ def main() -> int:
     )
     mode_label = "实测+理论" if any_reachable else "理论(服务不可达)"
     generate_report(results, args.requests, mode_label, args.output)
+    if args.fail_on_sla_violation:
+        violations = check_sla_violations(results)
+        if violations:
+            print("\n❌ SLA 违规检测（--fail-on-sla-violation）：")
+            for scenario, baseline, p95, source in violations:
+                print(f"  - {scenario}: P95={p95:.1f}ms ({source}) > 基准 {baseline}ms")
+            return 1
+        print("✓ SLA 检查通过：所有场景 P95 延迟满足基准要求")
     return 0
 
 

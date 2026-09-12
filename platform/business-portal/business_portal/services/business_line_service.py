@@ -83,8 +83,15 @@ class BusinessLineService:
             raise PermissionDeniedError(bl_id, user_id)
         await self._store.delete(bl_id)
 
-    async def get_usage(self, bl_id: str) -> BusinessLineUsage:
-        """获取业务线用量概览."""
-        # 先校验业务线存在
-        await self._store.get(bl_id)
+    async def get_usage(
+        self, bl_id: str, user_id: str | None = None, tenant_id: str | None = None
+    ) -> BusinessLineUsage:
+        """获取业务线用量概览（带租户隔离与权限校验，R12 安全修复）."""
+        bl = await self._store.get(bl_id)
+        # 租户隔离：若指定 tenant_id，必须与业务线租户匹配，否则视为不存在（404）
+        if tenant_id and bl.tenantId != tenant_id:
+            raise BusinessLineNotFoundError(bl_id)
+        # 权限隔离：若指定 user_id，必须在该业务线成员列表中
+        if user_id and not self._has_access(bl, user_id):
+            raise PermissionDeniedError(bl_id, user_id)
         return await self._store.get_usage(bl_id)

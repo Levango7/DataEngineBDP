@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -45,6 +46,7 @@ import java.util.UUID;
 @RestController
 @Tag(name = "规则引擎-Agent", description = "内置Agent角色执行与元数据")
 @RequestMapping("/api/v1/agents")
+@PreAuthorize("isAuthenticated()")
 public class AgentController {
 
     private static final Logger log = LoggerFactory.getLogger(AgentController.class);
@@ -113,6 +115,8 @@ public class AgentController {
     @Operation(summary = "列出所有可用角色")
     @GetMapping
     public ResponseEntity<List<String>> listRoles() {
+        // R12 安全修复：要求认证 + 租户上下文
+        resolveTenant();
         Set<Agent.Role> roles = agentService.listRoles();
         List<String> names = roles.stream().map(Enum::name).sorted().toList();
         return ResponseEntity.ok(names);
@@ -126,6 +130,8 @@ public class AgentController {
     @Operation(summary = "查询所有智能体角色元数据")
     @GetMapping("/describe")
     public ResponseEntity<Map<Agent.Role, Map<String, Object>>> describeAll() {
+        // R12 安全修复：要求认证 + 租户上下文
+        resolveTenant();
         return ResponseEntity.ok(agentService.describe());
     }
 
@@ -138,6 +144,8 @@ public class AgentController {
     @Operation(summary = "描述单个角色元数据")
     @GetMapping("/{role}/describe")
     public ResponseEntity<?> describeOne(@PathVariable("role") String roleStr) {
+        // R12 安全修复：要求认证 + 租户上下文
+        resolveTenant();
         Agent.Role role = parseRole(roleStr);
         if (role == null) {
             return ResponseEntity.badRequest().body(Map.of("error", "INVALID_ROLE", "message", "Unknown role: " + roleStr));

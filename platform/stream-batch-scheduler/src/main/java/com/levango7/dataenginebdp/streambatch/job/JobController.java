@@ -1,5 +1,6 @@
 package com.levango7.dataenginebdp.streambatch.job;
 
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.streambatch.model.DagExecutionResult;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,6 +34,7 @@ import java.util.Map;
 @Tag(name = "流批调度-作业管理", description = "作业CRUD与运行控制")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/jobs")
+@PreAuthorize("isAuthenticated()")
 public class JobController {
 
     private final JobService jobService;
@@ -54,6 +57,8 @@ public class JobController {
             @RequestParam(required = false) String workspaceId,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         Page<JobEntity> result = jobService.list(workspaceId, page, size);
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("list", result.getContent().stream().map(this::toView).toList());
@@ -67,6 +72,8 @@ public class JobController {
     @Operation(summary = "查询作业详情")
     @GetMapping("/{id}")
     public ResponseEntity<?> get(@PathVariable Long id) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         return jobService.get(id)
                 .map(j -> ResponseEntity.ok((Object) toView(j)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -76,6 +83,8 @@ public class JobController {
     @Operation(summary = "创建作业")
     @PostMapping
     public ResponseEntity<Map<String, Object>> create(@Valid @RequestBody JobRequest req) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         JobEntity job = JobEntity.builder()
                 .name(req.name())
                 .workspaceId(req.workspaceId())
@@ -91,6 +100,8 @@ public class JobController {
     @Operation(summary = "更新作业")
     @PutMapping("/{id}")
     public ResponseEntity<?> update(@PathVariable Long id, @Valid @RequestBody JobRequest req) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         JobEntity patch = JobEntity.builder()
                 .name(req.name())
                 .type(req.type())
@@ -107,6 +118,8 @@ public class JobController {
     @Operation(summary = "删除作业")
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         if (jobService.delete(id)) {
             return ResponseEntity.ok(Map.of("deleted", true));
         }
@@ -117,6 +130,8 @@ public class JobController {
     @Operation(summary = "运行（转 DAG 提交）")
     @PostMapping("/{id}/run")
     public ResponseEntity<?> run(@PathVariable Long id) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         return jobService.run(id)
                 .<ResponseEntity<?>>map(result -> ResponseEntity.ok(toRunView(result)))
                 .orElseGet(() -> ResponseEntity.notFound().build());
@@ -135,6 +150,8 @@ public class JobController {
     @Operation(summary = "取消作业")
     @PostMapping("/{id}/cancel")
     public ResponseEntity<?> cancel(@PathVariable Long id) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         if (jobService.cancel(id)) {
             log.info("作业已取消: id={}", id);
             return ResponseEntity.ok(Map.of("cancelled", true));
@@ -155,6 +172,8 @@ public class JobController {
     @Operation(summary = "获取作业运行日志")
     @GetMapping("/{id}/logs")
     public ResponseEntity<String> logs(@PathVariable Long id) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         log.info("查询作业日志: id={}", id);
         return ResponseEntity.ok(jobLogService.getJobLogs(id));
     }
@@ -171,11 +190,27 @@ public class JobController {
     @Operation(summary = "查询作业当前状态")
     @GetMapping("/{id}/status")
     public ResponseEntity<?> status(@PathVariable Long id) {
+        // R12 安全修复：fail-closed 租户校验
+        requireTenant();
         java.util.Map<String, Object> status = jobLogService.getJobStatus(id);
         if (status == null) {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(status);
+    }
+
+    /**
+     * 从 TenantContext 获取租户 ID，缺失则 fail-closed（R12 安全修复）。
+     *
+     * @return 当前请求的租户 ID
+     * @throws IllegalStateException 若 TenantContext 未设置租户 ID
+     */
+    private static String requireTenant() {
+        String tenantId = TenantContext.getTenantId();
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tenantId;
     }
 
     /** 作业视图。 */

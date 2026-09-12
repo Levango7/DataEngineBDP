@@ -186,6 +186,12 @@ export interface Workspace extends Identifiable {
   createdAt: string
   /** 更新时间 */
   updatedAt: string
+  /** 工作空间描述 */
+  description?: string
+  /** 资源配额 */
+  resourceQuota?: string
+  /** 网络策略 */
+  networkPolicy?: string
 }
 
 /** 创建工作空间参数 */

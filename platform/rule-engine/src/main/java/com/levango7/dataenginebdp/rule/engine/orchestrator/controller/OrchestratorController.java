@@ -129,6 +129,8 @@ public class OrchestratorController {
     @Operation(summary = "生成 Mermaid 可视化文本")
     @GetMapping("/{id}/mermaid")
     public ResponseEntity<String> mermaid(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(orchestratorService.visualize(id));
     }
 
@@ -136,6 +138,8 @@ public class OrchestratorController {
     @Operation(summary = "导出 JSON 结构")
     @GetMapping("/{id}/json")
     public ResponseEntity<Map<String, Object>> json(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(orchestratorService.exportJson(id));
     }
 
@@ -167,6 +171,8 @@ public class OrchestratorController {
     @Operation(summary = "拉取 Agent 思考链")
     @GetMapping("/{id}/thoughts")
     public ResponseEntity<List<Map<String, Object>>> thoughts(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.getThoughts(id));
     }
 
@@ -181,6 +187,8 @@ public class OrchestratorController {
     @Operation(summary = "拉取工具调用记录")
     @GetMapping("/{id}/tool-calls")
     public ResponseEntity<List<Map<String, Object>>> toolCalls(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.getToolCalls(id));
     }
 
@@ -195,6 +203,8 @@ public class OrchestratorController {
     @Operation(summary = "查询待处理人工介入请求")
     @GetMapping("/{id}/intervention")
     public ResponseEntity<List<Map<String, Object>>> intervention(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.getInterventions(id));
     }
 
@@ -211,6 +221,8 @@ public class OrchestratorController {
     @PostMapping("/{id}/intervene")
     public ResponseEntity<Map<String, Object>> intervene(@PathVariable String id,
                                                          @RequestBody Map<String, Object> payload) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.submitIntervention(id, payload));
     }
 
@@ -225,6 +237,8 @@ public class OrchestratorController {
     @Operation(summary = "拉取检查点列表")
     @GetMapping("/{id}/checkpoints")
     public ResponseEntity<List<Map<String, Object>>> checkpoints(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.getCheckpoints(id));
     }
 
@@ -241,6 +255,8 @@ public class OrchestratorController {
     @PostMapping("/{id}/checkpoint")
     public ResponseEntity<Map<String, Object>> checkpoint(@PathVariable String id,
                                                           @RequestBody Map<String, Object> body) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.createCheckpoint(id, body));
     }
 
@@ -257,6 +273,8 @@ public class OrchestratorController {
     @PostMapping("/{id}/resume")
     public ResponseEntity<Map<String, Object>> resume(@PathVariable String id,
                                                       @RequestBody Map<String, Object> body) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.resumeFromCheckpoint(id, body));
     }
 
@@ -271,6 +289,8 @@ public class OrchestratorController {
     @Operation(summary = "拉取执行历史")
     @GetMapping("/{id}/executions")
     public ResponseEntity<List<Map<String, Object>>> executions(@PathVariable String id) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.getExecutions(id));
     }
 
@@ -287,6 +307,8 @@ public class OrchestratorController {
     @GetMapping("/{id}/replay/{execId}")
     public ResponseEntity<Map<String, Object>> replay(@PathVariable String id,
                                                       @PathVariable String execId) {
+        // R12 安全修复：扩展端点按租户隔离
+        requireTenantOwnedDag(id);
         return ResponseEntity.ok(extensionService.getReplayTrace(id, execId));
     }
 
