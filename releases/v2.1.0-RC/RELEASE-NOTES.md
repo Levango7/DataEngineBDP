@@ -21,7 +21,7 @@ eleases/v2.0.0/ERRATUM.md\） |
 ## 2. 核心定位：差异化交付
 本版本在 V2.0.0-RC（骨架与文档交付）基础上，**聚焦 22 个真实可部署组件的生产化加固**，明确 **不承诺** 10 个 AI/模型组件的 GA 就绪（标注为 **experimental**，默认 Mock 模式）。
 
-| 层 | GA 承诺组件（21） | Experimental 组件（10，仅接口+Mock） |
+| 层 | GA 承诺组件（22） | Experimental 组件（10，仅接口+Mock） |
 |---|---|---|
 | L0 基座 | SKE、encaps-layer/-tenant/-gateway/-data、infra-orchestrator、4 个 infra-provider、observability、dqctl、storage-io、common-security | — |
 | L2 引擎 | sql-gateway、catalog、rule-engine、tag-engine、flink-cdc、stream-batch-scheduler、governance(3模块) | vector-engine、llm-gateway、llmops、ml-platform、knowledge-engine、model-finetuning、registry、industry-templates、karmada-api、knative |
@@ -52,7 +52,7 @@ eleases/v2.0.0/ERRATUM.md\） |
 
 ### 3.3 行业生态扩展
 - 新增 4 个行业模板：医疗（电子病历 NLP+DRG/DIP）、交通（路网流量+信号调度）、教育（学情画像+教学质量）、农牧（物联监测+产量预测）
-- 行业模板：3 套基础模板已实现 + 4 套骨架已交付，目标 9 套，已完成 3/9，每模板含 DDL+DAG+Dashboard+Chart 包装
+- 行业模板：3 套基础模板已实现 + 6 套骨架已交付，目标 9 套，已完成 3/9，每模板含 DDL+DAG+Dashboard+Chart 包装
 
 ### 3.4 前端与接口
 - 6 个 Dashboard 统一为 npm workspace，依赖版本对齐

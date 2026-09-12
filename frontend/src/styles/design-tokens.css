@@ -187,10 +187,36 @@
   --ds-font-weight-bold: 700;
   --ds-font-weight-extrabold: 800;
 
-  /* line-height */
-  --ds-line-height-tight: 1.25;
-  --ds-line-height-normal: 1.5;
-  --ds-line-height-relaxed: 1.75;
+  /* line-height (5档阶梯：none/heading/snug/normal/loose/extra-loose) */
+  --ds-line-height-none: 1; /* 单行紧凑（标签/徽章/按钮文字） */
+  --ds-line-height-heading: 1.2; /* 标题（H1/H2 大字号紧凑） */
+  --ds-line-height-snug: 1.4; /* 紧凑（H1/H2/表头/侧边栏分组标题） */
+  --ds-line-height-tight: 1.25; /* 旧 token 保留兼容（=heading 与 snug 之间） */
+  --ds-line-height-normal: 1.5; /* 常规（H3/侧边栏导航） */
+  --ds-line-height-relaxed: 1.55; /* 辅助文字（略宽于 normal） */
+  --ds-line-height-loose: 1.6; /* 宽松（正文/页脚小字） */
+  --ds-line-height-extra-loose: 1.75; /* 极宽松（保留兼容旧 token） */
+
+  /* letter-spacing (4档阶梯) */
+  --ds-letter-spacing-none: 0; /* 默认 */
+  --ds-letter-spacing-tight: -0.01em; /* 大标题紧凑 */
+  --ds-letter-spacing-normal: 0; /* 常规（=none，语义别名） */
+  --ds-letter-spacing-wide: 0.025em; /* 略宽（小字号大写） */
+  --ds-letter-spacing-wider: 0.05em; /* 宽（侧边栏分组标题 uppercase） */
+  --ds-letter-spacing-widest: 0.1em; /* 极宽（标签/徽章 uppercase） */
+
+  /* opacity (8档阶梯，4px 基准 0.05 步进) */
+  --ds-opacity-0: 0; /* 完全透明 */
+  --ds-opacity-1: 0.05; /* 极弱（骨架屏底纹） */
+  --ds-opacity-2: 0.1; /* 弱（分隔线/底纹） */
+  --ds-opacity-3: 0.15; /* 较弱 */
+  --ds-opacity-4: 0.25; /* 占位/禁用 */
+  --ds-opacity-5: 0.4; /* 次要禁用 */
+  --ds-opacity-6: 0.5; /* 中等（遮罩） */
+  --ds-opacity-7: 0.65; /* 次强 */
+  --ds-opacity-8: 0.8; /* 强（辅助文字） */
+  --ds-opacity-9: 0.9; /* 极强 */
+  --ds-opacity-10: 1; /* 完全不透明 */
 
   /* ============================================================
    * 7. 圆角系统
@@ -214,8 +240,11 @@
   /* ============================================================
    * 9. 过渡系统
    * ============================================================ */
+  --ds-transition-instant: 100ms cubic-bezier(0.4, 0, 0.2, 1);
   --ds-transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-transition-quick: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --ds-transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --ds-transition-moderate: 300ms cubic-bezier(0.4, 0, 0.2, 1);
   --ds-transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* ============================================================
@@ -228,6 +257,14 @@
   --ds-z-modal: 1310;
   --ds-z-popover: 1500;
   --ds-z-tooltip: 1600;
+
+  /* ============================================================
+   * 11. 响应式断点
+   * ============================================================ */
+  --ds-breakpoint-xs: 640px; /* 移动端 / 单列 */
+  --ds-breakpoint-sm: 1024px; /* 平板竖屏 / 组件级次级断点 */
+  --ds-breakpoint-md: 1440px; /* 平板横屏 / 桌面切换 */
+  --ds-breakpoint-lg: 1920px; /* 大桌面 */
 }
 
 /* ============================================================

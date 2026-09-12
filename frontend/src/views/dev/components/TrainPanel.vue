@@ -187,7 +187,7 @@ function fmtMetrics(m: Record<string, number>) {
 <style scoped>
 .kpi-row {
   display: flex;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   margin-bottom: 14px;
 }
 .kpi-card {
@@ -207,7 +207,7 @@ function fmtMetrics(m: Record<string, number>) {
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
 }
 .kpi-card .num.running {
   color: var(--ds-color-success-600);

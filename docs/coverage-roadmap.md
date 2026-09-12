@@ -1,9 +1,16 @@
 # 覆盖率提升路线图
 
-> 文档版本：v1.2 ｜ 更新日期：2026-08-23 ｜ 负责人：覆盖率门禁工程师
+> 文档版本：v1.3 ｜ 更新日期：2026-09-13 ｜ 负责人：覆盖率门禁工程师
 >
 > 本文档定义 DataEngineBDP 项目从当前覆盖率水平逐步提升至 GA 标准（85%）的路线图，
 > 以及配套的 CI 门禁策略调整计划。
+>
+> **v1.3 变更说明**：2026-09-13 R13 修复轮次——
+> ① 创建 scripts/coverage/update-baseline.sh 基线更新脚本，支持 java/go/python/all 参数，
+> Go 基线键名使用相对 platform/ 路径（如 karmada/api），内置只升不降保护（新值 < 旧值则 exit 1）；
+> ② 修复 coverage-gate.sh Go 模块名提取，从 basename 改为相对 platform/ 路径，与 go.json 键名一致；
+> ③ ci.yml performance-test job 添加 --fail-on-sla-violation 参数，为 SLA 阻断模式做准备；
+> ④ python.json 基线 operations-api/batch-pipeline 从保守值 5% 更新为接近实测值 45%/40%。
 >
 > **v1.2 变更说明**：2026-08-23 将 CI 门禁阈值从过高水平（Java 80%/70%、Go 70%、Python 75%）
 > 调整为略低于实际覆盖率的保守值（Java 35%/15%、Go 35%、Python 55%），解决 CI 持续阻断问题。

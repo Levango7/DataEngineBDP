@@ -81,15 +81,15 @@ class MockTagStoreTest {
         // 模拟已计算画像
         store.putUserFacts("u1", Map.of("tenant_id", "t1", "total_amount", 8000));
         store.computeTag(def.getTagId(), ComputeRequest.builder().tenantId("t1").mode("full").build());
-        assertNotNull(store.getProfile("u1"));
-        assertTrue(store.getProfile("u1").getTags().containsKey("level"));
+        assertNotNull(store.getProfile("u1", "t1"));
+        assertTrue(store.getProfile("u1", "t1").getTags().containsKey("level"));
 
         boolean deleted = store.deleteTagDefinition(def.getTagId());
         assertTrue(deleted);
         assertNull(store.getTagDefinition(def.getTagId()));
         assertTrue(store.getTagRules(def.getTagId()).isEmpty());
         // 画像中对应列被移除
-        UserProfile p = store.getProfile("u1");
+        UserProfile p = store.getProfile("u1", "t1");
         assertNotNull(p);
         assertFalse(p.getTags().containsKey("level"));
     }
@@ -153,9 +153,9 @@ class MockTagStoreTest {
 
         assertEquals("SUCCESS", result.getStatus());
         assertEquals(3, result.getAffectedRows());
-        assertEquals("活跃", store.getProfile("u1").getTags().get("level"));
-        assertEquals("新客", store.getProfile("u2").getTags().get("level"));
-        assertEquals("沉睡", store.getProfile("u3").getTags().get("level"));
+        assertEquals("活跃", store.getProfile("u1", "t1").getTags().get("level"));
+        assertEquals("新客", store.getProfile("u2", "t1").getTags().get("level"));
+        assertEquals("沉睡", store.getProfile("u3", "t1").getTags().get("level"));
     }
 
     @Test
@@ -171,8 +171,8 @@ class MockTagStoreTest {
 
         assertEquals("SUCCESS", result.getStatus());
         assertEquals(2, result.getAffectedRows());
-        assertEquals(1234.56, store.getProfile("u1").getTags().get("total_amount"));
-        assertEquals(789.0, store.getProfile("u2").getTags().get("total_amount"));
+        assertEquals(1234.56, store.getProfile("u1", "t1").getTags().get("total_amount"));
+        assertEquals(789.0, store.getProfile("u2", "t1").getTags().get("total_amount"));
     }
 
     @Test
@@ -261,7 +261,7 @@ class MockTagStoreTest {
     @Test
     @DisplayName("getProfile：不存在返回 null")
     void getProfile_nonExisting_shouldReturnNull() {
-        assertNull(store.getProfile("non-existing"));
+        assertNull(store.getProfile("non-existing", "t1"));
     }
 
     // ==================== 人群圈选 ====================

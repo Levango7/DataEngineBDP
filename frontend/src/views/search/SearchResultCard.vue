@@ -227,31 +227,31 @@ function openUrl(): void {
   background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: var(--ds-radius-md-plus);
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: var(--ds-spacing-4);
+  box-shadow: var(--ds-shadow-sm);
   cursor: pointer;
   transition:
     box-shadow 0.2s,
     transform 0.2s;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .result-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--ds-shadow-md);
   transform: translateY(-1px);
 }
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .header-left,
 .header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .type-badge {
   display: inline-block;
@@ -259,17 +259,17 @@ function openUrl(): void {
   padding: 2px 9px;
   border-radius: var(--ds-radius-2xl);
   font-weight: var(--ds-font-weight-semibold);
-  background: var(--primary-soft, #e9f1f0);
+  background: var(--primary-soft, var(--ds-color-success-50));
   color: var(--primary, var(--ds-color-success-700));
 }
 .type-badge.table,
 .type-badge.view {
-  background: var(--c-green-50, #ecfdf5);
+  background: var(--c-green-50, var(--ds-color-success-50));
   color: var(--green, var(--ds-color-success-600));
 }
 .type-badge.api,
 .type-badge.stream {
-  background: var(--c-indigo-50, #eef0fb);
+  background: var(--c-indigo-50, var(--ds-color-info-50));
   color: var(--ds-color-info-600);
 }
 .type-badge.model,
@@ -285,7 +285,7 @@ function openUrl(): void {
 .source-pill {
   font-size: var(--ds-font-size-xs);
   color: var(--muted, var(--ds-text-secondary));
-  background: var(--c-surface-alt, #eaf0f1);
+  background: var(--c-surface-alt, var(--ds-bg-subtle));
   padding: 2px 8px;
   border-radius: var(--ds-radius-sm);
 }
@@ -302,7 +302,7 @@ function openUrl(): void {
   font-weight: var(--ds-font-weight-extrabold);
   margin: 0;
   color: var(--ink, var(--ds-text-primary));
-  line-height: 1.4;
+  line-height: var(--ds-line-height-snug);
 }
 .card-title :deep(mark) {
   background: var(--ds-color-warning-100);
@@ -314,7 +314,7 @@ function openUrl(): void {
   font-size: var(--ds-font-size-base);
   color: var(--muted, var(--ds-text-secondary));
   margin: 0;
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
@@ -328,7 +328,7 @@ function openUrl(): void {
 }
 .card-meta {
   display: flex;
-  gap: 16px;
+  gap: var(--ds-spacing-4);
   font-size: var(--ds-font-size-xs);
   color: var(--muted, var(--ds-text-secondary));
   flex-wrap: wrap;
@@ -336,7 +336,7 @@ function openUrl(): void {
 .meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 .card-tags {
   display: flex;
@@ -345,9 +345,9 @@ function openUrl(): void {
 }
 .card-footer {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
-  padding-top: 8px;
+  gap: var(--ds-spacing-2);
+  margin-top: var(--ds-spacing-1);
+  padding-top: var(--ds-spacing-2);
   border-top: 1px dashed var(--line, var(--ds-border-default));
 }
 </style>

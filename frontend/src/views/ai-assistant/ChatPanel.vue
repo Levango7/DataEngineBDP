@@ -373,11 +373,11 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 }
 .empty-icon {
   color: var(--ds-color-primary-500);
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
 }
 .chat-empty h2 {
   font-size: var(--ds-font-size-2xl);
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .empty-desc {
   color: var(--ds-text-tertiary);
@@ -387,7 +387,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 .example-prompts {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   justify-content: center;
 }
 .example-chip {
@@ -401,7 +401,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   font-size: var(--ds-font-size-base);
   color: var(--c-slate-700);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--ds-transition-fast);
 }
 .example-chip:hover {
   border-color: var(--ds-color-primary-500);
@@ -412,7 +412,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 /* 消息项 */
 .chat-msg {
   display: flex;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   max-width: 100%;
 }
 .chat-msg.msg-user {
@@ -438,7 +438,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   max-width: 78%;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .msg-user .msg-body {
   align-items: flex-end;
@@ -456,7 +456,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   border-radius: var(--ds-radius-md-plus);
   padding: 10px 14px;
   font-size: var(--ds-font-size-base);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -476,7 +476,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 }
 @keyframes blink {
   50% {
-    opacity: 0;
+    opacity: var(--ds-opacity-0);
   }
 }
 
@@ -489,7 +489,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   color: var(--ds-color-error-500);
   border: 1px solid var(--ds-color-error-500);
   border-radius: var(--ds-radius-md);
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-size: var(--ds-font-size-base);
 }
 
@@ -512,15 +512,15 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md-plus);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   width: 100%;
 }
 
 /* pending 三点动画 */
 .content-pending {
   display: inline-flex;
-  gap: 4px;
-  padding: 8px 12px;
+  gap: var(--ds-spacing-1);
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md-plus);
@@ -543,19 +543,19 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   80%,
   100% {
     transform: scale(0.6);
-    opacity: 0.5;
+    opacity: var(--ds-opacity-6);
   }
   40% {
     transform: scale(1);
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
   }
 }
 
 /* 反馈 */
 .msg-feedback {
   display: flex;
-  gap: 4px;
-  margin-top: 4px;
+  gap: var(--ds-spacing-1);
+  margin-top: var(--ds-spacing-1);
 }
 
 /* 输入区 */
@@ -568,7 +568,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
 }
@@ -580,7 +580,7 @@ function summaryText(msg: ChatMessage, cardIdx: number): string {
 }
 .input-box {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   align-items: flex-end;
 }
 .input-box :deep(.el-textarea) {

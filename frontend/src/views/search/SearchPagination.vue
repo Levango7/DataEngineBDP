@@ -184,7 +184,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
 .search-pagination {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   padding: 12px 0;
 }
 .pagination-header {
@@ -192,7 +192,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .total-info {
   font-size: var(--ds-font-size-base);
@@ -215,7 +215,7 @@ function onModeChangeRaw(val: string | number | boolean | undefined): void {
 .loading-more {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   color: var(--muted, var(--ds-text-secondary));
   font-size: var(--ds-font-size-base);
 }

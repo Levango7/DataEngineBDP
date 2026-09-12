@@ -25,11 +25,19 @@ public class ProfileService {
     /**
      * 获取单个用户画像。
      *
-     * @param userId 用户 ID
-     * @return 用户画像；不存在返回 null
+     * <p>R13 安全修复：添加 tenantId 参数实现租户隔离，tenantId 由 Controller 从 JWT
+     * （TenantContext）获取并显式传入，Service/Store 据此过滤，不信任客户端请求。</p>
+     *
+     * @param userId   用户 ID
+     * @param tenantId 租户 ID（来自 JWT，不可为 null/空）
+     * @return 用户画像；不存在或不属于该租户返回 null
+     * @throws IllegalStateException 若 tenantId 为 null/空（fail-closed）
      */
-    public UserProfile getProfile(String userId) {
-        return tagStore.getProfile(userId);
+    public UserProfile getProfile(String userId, String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalStateException("缺少租户上下文");
+        }
+        return tagStore.getProfile(userId, tenantId);
     }
 
     /**

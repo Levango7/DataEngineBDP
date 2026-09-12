@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,6 +42,7 @@ import java.util.regex.Pattern;
 @Tag(name = "封装数据-Doris引擎", description = "Doris节点/库/表/查询管理")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/doris")
+@PreAuthorize("isAuthenticated()")  // R13 安全修复：类级认证校验
 public class DorisController {
 
     private final DorisClient dorisClient;
@@ -62,7 +64,7 @@ public class DorisController {
         String tenantId = requireTenant();
         log.info("列出 Doris 节点: tenant={}", tenantId);
         try {
-            return ResponseEntity.ok(dorisClient.listNodes());
+            return ResponseEntity.ok(dorisClient.listNodes(tenantId));
         } catch (EngineUnavailableException e) {
             log.warn("Doris 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -77,7 +79,7 @@ public class DorisController {
         String tenantId = requireTenant();
         log.info("列出 Doris 数据库: tenant={}", tenantId);
         try {
-            return ResponseEntity.ok(dorisClient.listDatabases());
+            return ResponseEntity.ok(dorisClient.listDatabases(tenantId));
         } catch (EngineUnavailableException e) {
             log.warn("Doris 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -92,7 +94,7 @@ public class DorisController {
         String tenantId = requireTenant();
         log.info("列出 Doris 表: db={}, tenant={}", database, tenantId);
         try {
-            return ResponseEntity.ok(dorisClient.listTables(database));
+            return ResponseEntity.ok(dorisClient.listTables(database, tenantId));
         } catch (EngineUnavailableException e) {
             log.warn("Doris 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -107,7 +109,7 @@ public class DorisController {
         String tenantId = requireTenant();
         log.info("列出 Doris 表: db={}, tenant={}", db, tenantId);
         try {
-            return ResponseEntity.ok(dorisClient.listTables(db));
+            return ResponseEntity.ok(dorisClient.listTables(db, tenantId));
         } catch (EngineUnavailableException e) {
             log.warn("Doris 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)

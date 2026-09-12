@@ -156,20 +156,20 @@ const tabs = computed(() => [
 .panel-slide-enter-from,
 .panel-slide-leave-to {
   transform: translateX(100%);
-  opacity: 0;
+  opacity: var(--ds-opacity-0);
 }
 
 .rp-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   padding: 10px 12px;
   border-bottom: 1px solid var(--ds-border-subtle);
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(99, 102, 241, 0.04) 100%);
 }
 .rp-tabs {
   display: flex;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   flex: 1;
 }
 .rp-tab {
@@ -200,7 +200,7 @@ const tabs = computed(() => [
   font-size: var(--ds-font-size-xs);
   min-width: 15px;
   height: 15px;
-  line-height: 1;
+  line-height: var(--ds-line-height-none);
   text-align: center;
   border-radius: var(--ds-radius-md);
   background: var(--ds-color-error-500);
@@ -237,7 +237,7 @@ const tabs = computed(() => [
   gap: 10px;
   padding: 11px 14px;
   border-bottom: 1px solid var(--ds-border-subtle);
-  transition: background 0.18s var(--ease-smooth);
+  transition: background var(--ds-transition-fast);
 }
 .rp-item:hover {
   background: var(--c-surface-hover);
@@ -275,7 +275,7 @@ const tabs = computed(() => [
 .rp-item-title {
   font-size: var(--ds-font-size-sm);
   color: var(--ds-text-primary);
-  line-height: 1.45;
+  line-height: var(--ds-line-height-normal);
 }
 .rp-item-meta {
   font-size: var(--ds-font-size-xs);
@@ -297,7 +297,7 @@ const tabs = computed(() => [
   cursor: pointer;
   padding: 5px 10px;
   border-radius: var(--ds-radius-md);
-  transition: background 0.18s var(--ease-smooth);
+  transition: background var(--ds-transition-fast);
 }
 .rp-clear:hover {
   background: var(--ds-color-primary-50);

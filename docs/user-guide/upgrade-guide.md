@@ -487,7 +487,7 @@ echo "=== 检查完成 ==="
 
 | 变更类别 | 变更项 | V2.0.0 | V2.1.0-RC |
 |----------|--------|--------|-----------|
-| Security | K8s 安全策略模板 | 部分覆盖 | 81 个 Chart 添加 NetworkPolicy + ServiceMonitor，新增 namespace-security Chart |
+| Security | K8s 安全策略模板 | 部分覆盖 | 88 个 Chart 添加 NetworkPolicy + ServiceMonitor，新增 namespace-security Chart |
 | Security | Dockerfile HEALTHCHECK | 无 | 17 个应用 Dockerfile 添加健康检查 |
 | Security | 硬编码密码 | docker-compose 明文 | 改为环境变量引用 |
 | Security | 容器非 root | 部分 root | 18 个 Dockerfile 全部非 root 化 |
@@ -696,7 +696,7 @@ networkPolicy:
 ```bash
 # 验证 NetworkPolicy 生效
 kubectl get networkpolicy -n ${NAMESPACE}
-# 期望：81 个 Chart 对应的 NetworkPolicy 全部创建
+# 期望：88 个 Chart 对应的 NetworkPolicy 全部创建
 ```
 
 #### 3.4.2 启用 ServiceMonitor
@@ -714,7 +714,7 @@ serviceMonitor:
 ```bash
 # 验证 ServiceMonitor 生效
 kubectl get servicemonitor -n ${NAMESPACE}
-# 期望：81 个 Chart 对应的 ServiceMonitor 全部创建
+# 期望：88 个 Chart 对应的 ServiceMonitor 全部创建
 
 # 验证 Prometheus 采集目标
 kubectl exec -n shuqing-infra deployment/prometheus -- \
@@ -738,7 +738,7 @@ kubectl get pods -n ${NAMESPACE} -o jsonpath='{range .items[*]}{.metadata.name}{
 #### 3.5.1 Helm lint 全量 Chart
 
 ```bash
-# 对 81 个 Chart 执行 lint
+# 对 88 个 Chart 执行 lint
 for chart in $(helm search repo shuqing/ -o json | jq -r '.[].name'); do
   helm lint ${chart} --version 2.1.0-rc || echo "LINT FAILED: ${chart}"
 done

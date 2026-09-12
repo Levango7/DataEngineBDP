@@ -31,7 +31,7 @@ function goHome() {
   align-items: center;
   justify-content: center;
   min-height: 60vh;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   text-align: center;
 }
 

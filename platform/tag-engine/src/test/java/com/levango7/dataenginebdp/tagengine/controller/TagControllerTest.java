@@ -1,6 +1,7 @@
 package com.levango7.dataenginebdp.tagengine.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.tagengine.model.AudienceRequest;
 import com.levango7.dataenginebdp.tagengine.model.AudienceResult;
 import com.levango7.dataenginebdp.tagengine.model.BatchComputeResult;
@@ -70,10 +71,19 @@ class TagControllerTest {
 
     @BeforeEach
     void setUp() {
+        // R13 安全修复：Controller 调用 requireTenant() 从 TenantContext 获取租户 ID，
+        // 测试需显式设置 TenantContext，否则 fail-closed 返回 403
+        TenantContext.setTenantId("t1");
+        TenantContext.setUserId("user_test");
         tagMvc = MockMvcBuilders.standaloneSetup(tagController).build();
         profileMvc = MockMvcBuilders.standaloneSetup(profileController).build();
         audienceMvc = MockMvcBuilders.standaloneSetup(audienceController).build();
         healthMvc = MockMvcBuilders.standaloneSetup(healthController).build();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        TenantContext.clear();
     }
 
     // ==================== HealthController ====================
@@ -221,7 +231,7 @@ class TagControllerTest {
     void getProfile_existing_shouldReturn200() throws Exception {
         UserProfile p = UserProfile.builder()
                 .userId("u1").tenantId("t1").tags(Map.of("level", "活跃")).build();
-        when(profileService.getProfile("u1")).thenReturn(p);
+        when(profileService.getProfile("u1", "t1")).thenReturn(p);
 
         profileMvc.perform(get("/api/v1/profiles/u1"))
                 .andExpect(status().isOk())
@@ -232,7 +242,7 @@ class TagControllerTest {
     @Test
     @DisplayName("GET /api/v1/profiles/{userId} — 不存在返回 404")
     void getProfile_nonExisting_shouldReturn404() throws Exception {
-        when(profileService.getProfile("nope")).thenReturn(null);
+        when(profileService.getProfile("nope", "t1")).thenReturn(null);
         profileMvc.perform(get("/api/v1/profiles/nope")).andExpect(status().isNotFound());
     }
 

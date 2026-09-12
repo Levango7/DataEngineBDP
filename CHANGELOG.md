@@ -115,7 +115,7 @@
 - **开发环境**：vite bind 127.0.0.1修复IPv6问题、Windows原生启动脚本、RestTemplate超时修复
 - **深度审计P0修复**：Spring Boot回退3.2.6、CORS漏洞修复、Doris特权移除、Mono阻塞重构、CI门禁修复、国密警告、nginx反代启用、Dockerfile mock移除、@Operation注解100%覆盖（f7ef0953）
 - **深度审计P1修复**：JWT密钥硬编码×4模块改为fail-fast、CORS不安全配置×3模块改为环境变量白名单（f7ef0953）
-- **P2/P3文档勘误**：README技术栈版本修正（Spring Boot 4.1→3.2.6、Go 1.26→1.25），模块数统一为37个（原36/32不一致），Helm Chart数修正（81→87个）
+- **P2/P3文档勘误**：README技术栈版本修正（Spring Boot 4.1→3.2.6、Go 1.26→1.25），模块数统一为37个（原36/32不一致）（⚠️ 勘误：37 为 v2.0 旧口径，v2.1 已修订为 46 个自研组件，见 README §组件清单），Helm Chart数修正（81→87个）（⚠️ 勘误：87 为中间口径，当前实测 88 个 Chart）
 - **P2文档矛盾**：docs/README.md、docs/development-guide.md、docs/deployment-guide.md中模块数与Helm Chart数对齐实际值
 - **P2 gitignore完善**：补充.env/.env.*环境变量文件忽略规则，防止敏感配置入库
 - **P2构建产物审计**：确认git索引中无target/、.coverage、*.log等构建产物入库

@@ -131,7 +131,7 @@ function changeIcon(m: SummaryMetric) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .summary-title {
   display: inline-flex;
@@ -146,13 +146,13 @@ function changeIcon(m: SummaryMetric) {
   color: var(--ds-text-tertiary);
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 .summary-text {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   font-size: var(--ds-font-size-base);
-  line-height: 1.7;
+  line-height: var(--ds-line-height-extra-loose);
   color: var(--c-slate-700);
   background: var(--c-surface-hover);
   border-radius: var(--ds-radius-md);
@@ -187,7 +187,7 @@ function changeIcon(m: SummaryMetric) {
   gap: 6px;
   font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
 }
 .insight-bullet {
   color: var(--ds-color-success-500);
@@ -197,7 +197,7 @@ function changeIcon(m: SummaryMetric) {
 .summary-metrics {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .metric-card {
   background: var(--c-surface-hover);
@@ -206,7 +206,7 @@ function changeIcon(m: SummaryMetric) {
   padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 .metric-label {
   font-size: var(--ds-font-size-xs);

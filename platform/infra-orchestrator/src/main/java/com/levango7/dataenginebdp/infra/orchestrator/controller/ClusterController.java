@@ -179,10 +179,16 @@ public class ClusterController {
     @Operation(summary = "列出指定环境的全部集群")
     @GetMapping("/{environment}")
     public ResponseEntity<List<ClusterInfo>> listClustersByEnvironment(@PathVariable String environment) {
+        // R13 安全修复：fail-closed 租户校验 + 按租户过滤结果
+        String tenantId = requireTenant();
         EnvironmentType env = EnvironmentType.fromString(environment);
-        log.info("GET /api/v1/clusters/{} - listClusters", env);
+        log.info("GET /api/v1/clusters/{} - listClusters tenant={}", env, tenantId);
         List<ClusterInfo> clusters = orchestrator.listClusters(env);
-        return ResponseEntity.ok(clusters);
+        // 按租户过滤，仅返回当前租户的集群
+        List<ClusterInfo> filtered = clusters.stream()
+                .filter(c -> tenantId.equals(c.getTenantId()))
+                .toList();
+        return ResponseEntity.ok(filtered);
     }
 
     /**
@@ -193,9 +199,15 @@ public class ClusterController {
     @Operation(summary = "列出所有集群（跨环境聚合）")
     @GetMapping
     public ResponseEntity<List<ClusterInfo>> listAllClusters() {
-        log.info("GET /api/v1/clusters - listAllClusters");
+        // R13 安全修复：fail-closed 租户校验 + 按租户过滤结果
+        String tenantId = requireTenant();
+        log.info("GET /api/v1/clusters - listAllClusters tenant={}", tenantId);
         List<ClusterInfo> clusters = orchestrator.listAllClusters();
-        return ResponseEntity.ok(clusters);
+        // 按租户过滤，仅返回当前租户的集群
+        List<ClusterInfo> filtered = clusters.stream()
+                .filter(c -> tenantId.equals(c.getTenantId()))
+                .toList();
+        return ResponseEntity.ok(filtered);
     }
 
     /**
@@ -270,22 +282,27 @@ public class ClusterController {
     }
 
     /**
-     * 校验集群归属当前租户（R12 安全修复）。
+     * 校验集群归属当前租户（R12/R13 安全修复）。
      *
-     * <p>若集群信息的 tenantId 为空（下游 Provider 未回填）则放行，避免误杀；
-     * 若非空且与当前租户不匹配则抛 404 等价异常（不暴露存在性）。</p>
+     * <p>R13 安全修复：改为 fail-closed — 若集群信息的 tenantId 为空（下游 Provider 未回填），
+     * 也拒绝访问，避免无主集群被任意租户访问。若非空且与当前租户不匹配则抛 404 等价异常
+     * （不暴露存在性）。</p>
      *
      * @param info      集群信息
      * @param tenantId  当前租户 ID
      * @param clusterId 集群 ID（用于日志）
-     * @throws IllegalArgumentException 集群不属于当前租户
+     * @throws IllegalArgumentException 集群不存在或不属于当前租户
      */
     private static void requireTenantOwnedCluster(ClusterInfo info, String tenantId, String clusterId) {
         if (info == null) {
             throw new IllegalArgumentException("cluster not found: " + clusterId);
         }
         String clusterTenant = info.getTenantId();
-        if (clusterTenant != null && !clusterTenant.isBlank() && !tenantId.equals(clusterTenant)) {
+        // R13 安全修复：fail-closed — 集群租户为空时拒绝访问，不放行
+        if (clusterTenant == null || clusterTenant.isBlank()) {
+            throw new IllegalArgumentException("cluster not found: " + clusterId);
+        }
+        if (!tenantId.equals(clusterTenant)) {
             throw new IllegalArgumentException("cluster not found: " + clusterId);
         }
     }
@@ -308,7 +325,12 @@ public class ClusterController {
     @GetMapping("/{environment}/{clusterId}/network")
     public ResponseEntity<Map<String, Object>> getNetworkConfig(@PathVariable String environment,
                                                                 @PathVariable String clusterId) {
-        log.info("GET /api/v1/clusters/{}/{}/network", environment, clusterId);
+        // R13 安全修复：fail-closed 租户校验 + 集群归属校验
+        String tenantId = requireTenant();
+        EnvironmentType env = EnvironmentType.fromString(environment);
+        ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
+        log.info("GET /api/v1/clusters/{}/{}/network tenant={}", environment, clusterId, tenantId);
         Map<String, Object> cfg = new LinkedHashMap<>();
         // CNI 基本信息（k3s 默认 flannel，可由环境变量覆盖）
         cfg.put("podCidr", "10.244.0.0/16");
@@ -346,7 +368,12 @@ public class ClusterController {
     @GetMapping("/{environment}/{clusterId}/storage")
     public ResponseEntity<List<Map<String, Object>>> getStorage(@PathVariable String environment,
                                                                 @PathVariable String clusterId) {
-        log.info("GET /api/v1/clusters/{}/{}/storage", environment, clusterId);
+        // R13 安全修复：fail-closed 租户校验 + 集群归属校验
+        String tenantId = requireTenant();
+        EnvironmentType env = EnvironmentType.fromString(environment);
+        ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
+        log.info("GET /api/v1/clusters/{}/{}/storage tenant={}", environment, clusterId, tenantId);
         // 主响应：StorageClass 列表（对齐前端 getStorageClasses 契约）
         List<Map<String, Object>> storageClasses = k8sClientService.listStorageClasses().stream()
                 .map(this::storageClassToView).toList();
@@ -377,8 +404,13 @@ public class ClusterController {
     @Operation(summary = "获取集群 PVC 列表")
     @GetMapping("/{environment}/{clusterId}/storage/pvcs")
     public ResponseEntity<List<Map<String, Object>>> getPvcs(@PathVariable String environment,
-                                                             @PathVariable String clusterId) {
-        log.info("GET /api/v1/clusters/{}/{}/storage/pvcs", environment, clusterId);
+                                                              @PathVariable String clusterId) {
+        // R13 安全修复：fail-closed 租户校验 + 集群归属校验
+        String tenantId = requireTenant();
+        EnvironmentType env = EnvironmentType.fromString(environment);
+        ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
+        log.info("GET /api/v1/clusters/{}/{}/storage/pvcs tenant={}", environment, clusterId, tenantId);
         List<Map<String, Object>> pvcs = k8sClientService.listPersistentVolumeClaims().stream()
                 .map(this::pvcToView).toList();
         return ResponseEntity.ok(pvcs);
@@ -395,7 +427,12 @@ public class ClusterController {
     @GetMapping("/{environment}/{clusterId}/storage/pvs")
     public ResponseEntity<List<Map<String, Object>>> getPvs(@PathVariable String environment,
                                                             @PathVariable String clusterId) {
-        log.info("GET /api/v1/clusters/{}/{}/storage/pvs", environment, clusterId);
+        // R13 安全修复：fail-closed 租户校验 + 集群归属校验
+        String tenantId = requireTenant();
+        EnvironmentType env = EnvironmentType.fromString(environment);
+        ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
+        log.info("GET /api/v1/clusters/{}/{}/storage/pvs tenant={}", environment, clusterId, tenantId);
         List<Map<String, Object>> pvs = k8sClientService.listPersistentVolumes().stream()
                 .map(this::pvToView).toList();
         return ResponseEntity.ok(pvs);
@@ -414,7 +451,12 @@ public class ClusterController {
     @GetMapping("/{environment}/{clusterId}/hpa")
     public ResponseEntity<List<Map<String, Object>>> getHpa(@PathVariable String environment,
                                                             @PathVariable String clusterId) {
-        log.info("GET /api/v1/clusters/{}/{}/hpa", environment, clusterId);
+        // R13 安全修复：fail-closed 租户校验 + 集群归属校验
+        String tenantId = requireTenant();
+        EnvironmentType env = EnvironmentType.fromString(environment);
+        ClusterInfo info = orchestrator.getClusterInfo(env, clusterId);
+        requireTenantOwnedCluster(info, tenantId, clusterId);
+        log.info("GET /api/v1/clusters/{}/{}/hpa tenant={}", environment, clusterId, tenantId);
         List<Map<String, Object>> hpas = k8sClientService.listHpas().stream()
                 .map(this::hpaToView).toList();
         return ResponseEntity.ok(hpas);

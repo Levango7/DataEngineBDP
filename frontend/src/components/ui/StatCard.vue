@@ -22,7 +22,7 @@ defineProps<{
 
 <style scoped>
 .stat-card {
-  padding: 16px;
+  padding: var(--ds-spacing-4);
   border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
@@ -31,14 +31,14 @@ defineProps<{
 .stat-card__label {
   font-size: var(--ds-font-size-sm);
   color: var(--ds-text-secondary);
-  margin-bottom: 4px;
+  margin-bottom: var(--ds-spacing-1);
 }
 
 .stat-card__value {
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
 }
 
 .stat-card__trend {

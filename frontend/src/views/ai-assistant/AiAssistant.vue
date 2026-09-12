@@ -413,12 +413,12 @@ void buildChartConfig
   justify-content: space-between;
   padding: 0 0 16px;
   border-bottom: 1px solid var(--ds-border-subtle);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 .ai-title {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
 }
 .ai-title h1 {
   font-size: var(--ds-font-size-3xl);
@@ -432,7 +432,7 @@ void buildChartConfig
 .ai-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 
 /* 主体三栏 */
@@ -470,11 +470,11 @@ void buildChartConfig
 .session-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   padding: 8px 10px;
   border-radius: var(--ds-radius-md);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: background var(--ds-transition-fast);
 }
 .session-item:hover {
   background: var(--c-surface-hover);
@@ -512,7 +512,7 @@ void buildChartConfig
   flex: none;
 }
 .sessions-empty {
-  padding: 24px 12px;
+  padding: var(--ds-spacing-6) var(--ds-spacing-3);
   text-align: center;
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
@@ -535,7 +535,7 @@ void buildChartConfig
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md-plus);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -544,7 +544,7 @@ void buildChartConfig
 .side-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .side-section-title {
   display: flex;
@@ -559,7 +559,7 @@ void buildChartConfig
 .side-empty {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   text-align: center;
   background: var(--c-surface-hover);
   border-radius: var(--ds-radius-md);
@@ -568,5 +568,26 @@ void buildChartConfig
   margin-top: 6px;
   display: flex;
   justify-content: center;
+}
+
+/* 响应式断点（规范三档：640 / 1440） */
+@media (max-width: 640px) {
+  /* 单列：会话列表 → 聊天 → 分析面板纵向堆叠 */
+  .ai-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+  }
+  .ai-sessions {
+    max-height: 200px;
+  }
+  .ai-side {
+    max-height: 300px;
+  }
+}
+@media (min-width: 641px) and (max-width: 1440px) {
+  /* 两列：会话列表折叠为窄栏，聊天 + 分析面板并列 */
+  .ai-body {
+    grid-template-columns: 160px 1fr 280px;
+  }
 }
 </style>

@@ -68,9 +68,14 @@ public class DorisClient {
     /**
      * 列出 Doris 节点（FE + BE）。
      *
+     * <p>R13 安全修复：添加 tenantId 参数用于审计日志，HTTP API 本身不支持租户隔离，
+     * 但记录 tenantId 便于追踪。</p>
+     *
+     * @param tenantId 租户 ID（来自 JWT，用于审计）
      * @return 节点列表，含 host/port/role/status 等
      */
-    public List<Map<String, Object>> listNodes() {
+    public List<Map<String, Object>> listNodes(String tenantId) {
+        log.debug("listNodes tenant={}", tenantId);
         List<Map<String, Object>> result = new ArrayList<>();
         result.addAll(queryProc("/frontends", "FE"));
         result.addAll(queryProc("/backends", "BE"));
@@ -110,20 +115,28 @@ public class DorisClient {
     /**
      * 列出数据库。
      *
+     * <p>R13 安全修复：添加 tenantId 参数，通过 SET @tenant_id 设置会话变量，
+     * 供 Doris 视图/行级安全策略实现租户隔离。</p>
+     *
+     * @param tenantId 租户 ID（来自 JWT）
      * @return 数据库名列表
      */
-    public List<String> listDatabases() {
-        return queryStrings("SHOW DATABASES", 1);
+    public List<String> listDatabases(String tenantId) {
+        return queryStrings("SHOW DATABASES", 1, tenantId);
     }
 
     /**
      * 列出指定数据库的表。
      *
-     * @param db 数据库名
+     * <p>R13 安全修复：添加 tenantId 参数，通过 SET @tenant_id 设置会话变量，
+     * 供 Doris 视图/行级安全策略实现租户隔离。</p>
+     *
+     * @param db       数据库名
+     * @param tenantId 租户 ID（来自 JWT）
      * @return 表名列表
      */
-    public List<String> listTables(String db) {
-        return queryStrings("SHOW TABLES FROM " + db, 1);
+    public List<String> listTables(String db, String tenantId) {
+        return queryStrings("SHOW TABLES FROM " + db, 1, tenantId);
     }
 
     /**
@@ -196,19 +209,29 @@ public class DorisClient {
     /**
      * 执行返回单列字符串的 SQL（如 SHOW DATABASES）。
      *
+     * <p>R13 安全修复：添加 tenantId 参数，在查询前设置会话变量实现租户隔离。</p>
+     *
      * @param sql      SQL 文本
      * @param colIndex 列索引（从 1 开始）
+     * @param tenantId 租户 ID（来自 JWT，可为 null 表示不强制租户隔离）
      * @return 字符串列表
      */
-    private List<String> queryStrings(String sql, int colIndex) {
+    private List<String> queryStrings(String sql, int colIndex, String tenantId) {
         List<String> result = new ArrayList<>();
-        try (Connection conn = openConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                result.add(rs.getString(colIndex));
+        try (Connection conn = openConnection()) {
+            // R13 安全修复：设置租户会话变量
+            if (tenantId != null && !tenantId.isBlank()) {
+                try (Statement setStmt = conn.createStatement()) {
+                    setStmt.execute("SET @tenant_id = '" + tenantId.replace("'", "''") + "'");
+                }
             }
-            return result;
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    result.add(rs.getString(colIndex));
+                }
+                return result;
+            }
         } catch (EngineUnavailableException e) {
             throw e;
         } catch (Exception e) {

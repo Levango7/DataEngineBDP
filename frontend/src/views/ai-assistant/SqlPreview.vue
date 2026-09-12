@@ -274,21 +274,21 @@ async function copySql(): Promise<void> {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   background: var(--c-surface-alt);
   border-bottom: 1px solid var(--ds-border-subtle);
 }
 .sql-title {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   font-size: var(--ds-font-size-base);
   font-weight: var(--ds-font-weight-semibold);
 }
 .sql-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 .sql-code-wrap {
   margin: 0;
@@ -299,7 +299,7 @@ async function copySql(): Promise<void> {
   padding: 12px 14px;
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--c-slate-700);
@@ -322,13 +322,13 @@ async function copySql(): Promise<void> {
   border-top: 1px solid var(--ds-border-subtle);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   font-size: var(--ds-font-size-xs);
 }
 .meta-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   flex-wrap: wrap;
 }
 .meta-label {
@@ -352,10 +352,10 @@ async function copySql(): Promise<void> {
 }
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.2s;
+  transition: opacity var(--ds-transition-quick);
 }
 .fade-enter-from,
 .fade-leave-to {
-  opacity: 0;
+  opacity: var(--ds-opacity-0);
 }
 </style>

@@ -10,13 +10,13 @@
 > - **设计模块数 49**（产品原型 §3.3，含规划模块）→ **自研组件数 46**（platform/ 构建文件实测，含子模块拆分）→ **矩阵实列 43**（governance/finops 合并显示）→ **独立部署单元 42**（ADR-001，扣库形态组件）→ **platform/ 目录数 38**（一级子目录）。
 
 - 仓库地址：https://github.com/Levango7/DataEngineBDP
-- 当前版本：**2.1.0-SNAPSHOT（开发中）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
+- 当前版本：**2.1.0-RC（已发布）**，基于 v2.0.0 RC（GA 勘误见 releases/v2.0.0/ERRATUM.md）继续生产化加固
 - 工程成熟度：综合评分 72/100（B+），6200+ 后端测试 + 前端单元/E2E 测试（含已知失败用例，详见 [审核报告](docs/PROJECT-AUDIT-REPORT.md)）
 - 开源协议：Apache License 2.0
 
 > ℹ️ **状态说明**：本项目由 AI 辅助开发（华为云码道(CodeArts)代码智能体），经人工审查与验证。
-> 2.1.0-SNAPSHOT 开发中，基于 v2.0.0 RC 继续核心组件生产化进行中（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
-> v2.1.0-RC 发布就绪：21 组件 RC 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
+> 2.1.0-RC 已发布（2026-08-27），基于 v2.0.0 RC 完成核心组件生产化加固（封装层 / SQL 网关 / 规则引擎 / 治理闭环 / 安全合规 / 镜像签名），
+> 22 组件 GA 就绪 + 10 组件 Experimental，灰度发布/故障演练/性能调优/多集群联邦增强已交付。
 > **完成度口径**（三维度统一表述，全仓文档共用）：
 > - **80% 端到端可用**：真实完成度，含端到端联调、真实环境部署、外部依赖对接等因素（本口径用于 README/ROADMAP 总体状态描述）
 > - **74.1% 功能模块完成**：GA 检查清单通过率 40/54 项（见 `releases/v2.0.0/ga-checklist.md`），衡量功能模块完成程度
@@ -129,7 +129,7 @@ DataEngineBDP/
 | --- | --- | --- |
 | JDK | 17 | Java 组件构建 |
 | Maven | 3.9 | Java 组件构建 |
-| Go | 1.26 | Go 组件构建 |
+| Go | 1.22+ | Go 组件构建 |
 | Python | 3.11 | Python 组件构建 |
 | Node.js | 22 | 前端构建 |
 | Docker | 24.0 | 容器镜像构建 |
@@ -201,9 +201,20 @@ bash scripts/poc/run-poc.sh
 | infra-provider-cloud | platform/infra-provider-cloud | 公有云环境供应 Driver | 70+ |
 | infra-provider-private | platform/infra-provider-private | 私有云环境供应 Driver | 70+ |
 | infra-orchestrator | platform/infra-orchestrator | 跨环境供给编排器 | 90+ |
-| finops | platform/finops | FinOps 成本运营服务，成本模型与资源用量采集 | 70+ |
+| finops-billing | platform/finops/billing | FinOps 计费子模块，账单生成与结算 | 30+ |
+| finops-cost-model | platform/finops/cost-model | FinOps 成本模型，资源用量采集与成本核算 | 25+ |
+| finops-dashboard | platform/finops/dashboard | FinOps 运营看板，成本可视化与优化建议 | 15+ |
 | flink-cdc | platform/flink-cdc | Flink CDC 实时数据集成组件 | 70+ |
 | stream-batch-scheduler | platform/stream-batch-scheduler | 流批统一调度组件 | 70+ |
+| common-security | platform/common-security | 通用安全组件，加密/脱敏/令牌化/国密抽象 | 60+ |
+| data-standard | platform/data-standard | 数据标准管理，标准定义与映射 | 60+ |
+| encaps-data | platform/encaps-data | 数据封装层，数据源/数据集 CRUD | 80+ |
+| encaps-gateway | platform/encaps-gateway | 封装层网关，统一 API 入口与路由 | 60+ |
+| encaps-tenant | platform/encaps-tenant | 租户封装层，租户/工作空间/配额 CRUD | 80+ |
+| real-time-pipeline | platform/governance/real-time-pipeline | 实时治理管线，流式元数据/质量/血缘 | 60+ |
+| federated-query | platform/karmada/federated-query | 跨集群联邦查询，多集群数据联合 | 60+ |
+| master-data | platform/master-data | 主数据管理，主数据定义与分发 | 60+ |
+| storage-io | platform/storage-io | 存储 IO 组件，对象存储/块存储抽象 | 60+ |
 
 ### Go 组件（10 个）
 

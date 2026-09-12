@@ -485,7 +485,7 @@ onMounted(() => {
 }
 .sub-badge {
   display: inline-block;
-  margin-left: 4px;
+  margin-left: var(--ds-spacing-1);
   font-size: var(--ds-font-size-xs);
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
@@ -496,8 +496,8 @@ onMounted(() => {
 .panel-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-2);
 }
 .panel-head .title {
   font-size: var(--ds-font-size-base);
@@ -579,13 +579,13 @@ onMounted(() => {
 .replay-trace {
   margin-top: 14px;
   border-top: 1px solid var(--ds-border-subtle);
-  padding-top: 12px;
+  padding-top: var(--ds-spacing-3);
 }
 .trace-head {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .trace-head .title {
   font-size: var(--ds-font-size-xs);
@@ -598,7 +598,7 @@ onMounted(() => {
 .progress {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   margin-bottom: 10px;
 }
 .progress-bar {
@@ -612,7 +612,7 @@ onMounted(() => {
   display: block;
   height: 100%;
   background: var(--ds-color-primary-500);
-  transition: width 0.2s;
+  transition: width var(--ds-transition-quick);
 }
 .progress-text {
   font-size: var(--ds-font-size-xs);
@@ -631,13 +631,13 @@ onMounted(() => {
 .event {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
+  gap: var(--ds-spacing-2);
+  padding: var(--ds-spacing-1) var(--ds-spacing-2);
   border-radius: var(--ds-radius-sm);
-  opacity: 0.5;
+  opacity: var(--ds-opacity-6);
 }
 .event.done {
-  opacity: 1;
+  opacity: var(--ds-opacity-10);
 }
 .event.current {
   background: var(--c-amber-50);
@@ -705,7 +705,7 @@ onMounted(() => {
 .ckpt-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .ckpt-card {
   border: 1px solid var(--ds-border-subtle);
@@ -716,7 +716,7 @@ onMounted(() => {
 .ckpt-head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   margin-bottom: 6px;
 }
 .ckpt-id {
@@ -796,8 +796,8 @@ onMounted(() => {
 .iv-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-1);
 }
 .iv-node {
   font-weight: var(--ds-font-weight-semibold);
@@ -836,12 +836,12 @@ onMounted(() => {
   margin-bottom: 6px;
 }
 .iv-context {
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .json {
   background: var(--c-surface-hover);
   border-radius: var(--ds-radius-md);
-  padding: 8px;
+  padding: var(--ds-spacing-2);
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
   color: var(--c-slate-700);
@@ -855,7 +855,7 @@ onMounted(() => {
   display: flex;
   gap: 6px;
   align-items: center;
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
   flex-wrap: wrap;
 }
 .iv-resolved {

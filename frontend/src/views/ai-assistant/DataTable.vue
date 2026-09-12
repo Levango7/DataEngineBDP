@@ -46,7 +46,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElTable, ElTableColumn, ElTag, ElIcon } from 'element-plus'
 import { Grid } from '@element-plus/icons-vue'
-import type { TableData, TableColumn, ColumnDataType } from '@/types/ai-assistant'
+import type { TableData, TableColumn } from '@/types/ai-assistant'
 
 interface Props {
   table: TableData
@@ -83,8 +83,6 @@ function formatCell(value: unknown, col: TableColumn): string {
   return String(value)
 }
 
-// 显式标注未使用的类型，避免 lint 报错（dataType 已通过 col.dataType 使用）
-void (0 as unknown as ColumnDataType)
 </script>
 
 <style scoped>
@@ -95,7 +93,7 @@ void (0 as unknown as ColumnDataType)
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
   font-size: var(--ds-font-size-base);
 }
 .table-title {

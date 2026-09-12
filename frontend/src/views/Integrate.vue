@@ -498,7 +498,7 @@ onUnmounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   gap: 10px;
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
 }
 .conn {
   border: 1px solid var(--ds-border-default);

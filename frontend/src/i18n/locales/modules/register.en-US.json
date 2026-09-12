@@ -47,7 +47,7 @@
       "rolePlatformAdmin": "Platform Admin", "roleTenantAdmin": "Tenant Admin", "roleUser": "User"
     },
     "messages": {
-      "codeRequired": "Please enter invite code", "codeInvalid": "Invalid invite code", "submitFailed": "Registration failed"
+      "codeRequired": "Please enter invite code", "codeInvalid": "Invalid invite code", "submitFailed": "Registration failed", "invalidInvite": "Invite code state is invalid, please re-validate"
     }
   }
 }

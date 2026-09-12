@@ -114,7 +114,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   padding: 0 18px;
   background: linear-gradient(
     90deg,
@@ -177,7 +177,7 @@ onUnmounted(() => {
   border-radius: var(--ds-radius-md);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
-  transition: all 0.2s var(--ease-smooth);
+  transition: all var(--ds-transition-quick);
 }
 .sb-service:hover {
   border-color: var(--ds-color-primary-300);
@@ -240,10 +240,10 @@ onUnmounted(() => {
 @keyframes sbBreath {
   0%,
   100% {
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
   }
   50% {
-    opacity: 0.55;
+    opacity: var(--ds-opacity-6);
   }
 }
 </style>

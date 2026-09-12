@@ -54,7 +54,7 @@ class ProfileServiceTest {
         computeService.computeTag(def.getTagId(),
                 ComputeRequest.builder().tenantId("t1").mode("full").build());
 
-        UserProfile p = profileService.getProfile("u1");
+        UserProfile p = profileService.getProfile("u1", "t1");
         assertNotNull(p);
         assertEquals("u1", p.getUserId());
         assertEquals("活跃", p.getTags().get("level"));
@@ -63,7 +63,7 @@ class ProfileServiceTest {
     @Test
     @DisplayName("getProfile：不存在返回 null")
     void getProfile_nonExisting_shouldReturnNull() {
-        assertNull(profileService.getProfile("nope"));
+        assertNull(profileService.getProfile("nope", "t1"));
     }
 
     @Test

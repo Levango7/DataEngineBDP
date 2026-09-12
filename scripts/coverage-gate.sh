@@ -100,7 +100,14 @@ check_go_coverage() {
         return 0
     fi
     while IFS= read -r cov; do
-        mod_name=$(basename "$cov" .cov)
+        # R13 修复：原用 basename "$cov" .cov 提取模块名，得到的是 basename（如 query-api），
+        # 但 go.json 基线 key 为相对 platform/ 的模块路径（如 observability/query-api），
+        # 导致门禁检查模块名与基线 key 不匹配，趋势阻断形同虚设。
+        # 改为从 .cov 文件路径去掉 go-coverage-reports/ 前缀和 .cov 后缀，
+        # 得到相对路径（如 observability/query-api），与 go.json key 及 ci.yml:1131 趋势检查口径一致。
+        # 来源：2026-09-12-go-test-cover-no-total-line-trend-check-bypass
+        mod_name=${cov#*go-coverage-reports/}
+        mod_name=${mod_name%.cov}
         # 使用 go tool cover 计算总覆盖率
         if command -v go &>/dev/null; then
             coverage=$(go tool cover -func="$cov" 2>/dev/null | tail -1 | awk '{print $NF}' | tr -d '%')

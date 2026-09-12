@@ -595,7 +595,7 @@ onBeforeUnmount(() => {
   color: var(--ds-text-tertiary);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   margin: 0;
 }
 .auto-poll input {
@@ -659,7 +659,7 @@ onBeforeUnmount(() => {
   overflow: auto;
   background: var(--c-surface-hover);
   border-radius: var(--ds-radius-md);
-  padding: 8px;
+  padding: var(--ds-spacing-2);
 }
 .dag-svg {
   display: block;
@@ -674,7 +674,7 @@ onBeforeUnmount(() => {
   fill: var(--ds-text-inverse);
   stroke: var(--ds-border-subtle);
   stroke-width: 1.5;
-  transition: all 0.2s;
+  transition: all var(--ds-transition-quick);
 }
 .node-g:hover .node-rect {
   stroke-width: 2;
@@ -751,10 +751,10 @@ onBeforeUnmount(() => {
 @keyframes pulse {
   0%,
   100% {
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
   }
   50% {
-    opacity: 0.4;
+    opacity: var(--ds-opacity-4);
   }
 }
 
@@ -842,7 +842,7 @@ onBeforeUnmount(() => {
 }
 .tab-badge {
   display: inline-block;
-  margin-left: 4px;
+  margin-left: var(--ds-spacing-1);
   font-size: var(--ds-font-size-xs);
   background: var(--ds-color-primary-50);
   color: var(--ds-color-primary-500);
@@ -871,7 +871,7 @@ onBeforeUnmount(() => {
   word-break: break-all;
 }
 .params-block {
-  margin-top: 12px;
+  margin-top: var(--ds-spacing-3);
 }
 .json {
   background: var(--c-surface-hover);

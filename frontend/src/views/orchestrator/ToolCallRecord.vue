@@ -126,8 +126,8 @@ onMounted(load)
 .tc-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-1);
 }
 .tc-head .title {
   font-size: var(--ds-font-size-base);
@@ -150,7 +150,7 @@ onMounted(load)
 .call-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .call-card {
   border: 1px solid var(--ds-border-subtle);
@@ -175,7 +175,7 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   cursor: pointer;
   font-size: var(--ds-font-size-xs);
 }
@@ -228,7 +228,7 @@ onMounted(load)
 }
 .call-expand {
   color: var(--ds-text-tertiary);
-  transition: transform 0.2s;
+  transition: transform var(--ds-transition-quick);
   font-size: var(--ds-font-size-xs);
 }
 .call-expand.open {
@@ -247,7 +247,7 @@ onMounted(load)
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-tertiary);
-  margin-bottom: 4px;
+  margin-bottom: var(--ds-spacing-1);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
@@ -274,9 +274,9 @@ onMounted(load)
 }
 .call-time {
   display: flex;
-  gap: 16px;
+  gap: var(--ds-spacing-4);
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  margin-top: 4px;
+  margin-top: var(--ds-spacing-1);
 }
 </style>

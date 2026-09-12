@@ -6,7 +6,7 @@
 
 | 编号 | 检查项 | 标准 | 结果 | 备注 |
 |------|--------|------|------|------|
-| 1.1 | 版本号一致性 | 所有 pom.xml/go.mod/pyproject.toml/package.json 统一为 2.1.0-RC | ✅ | 本地验证：22 个 pom.xml + 6 个 package.json 全部 2.1.0-RC；go.mod 无版本字段（由 git tag 管理） |
+| 1.1 | 版本号一致性 | 所有 pom.xml/go.mod/pyproject.toml/package.json 统一为 2.1.0-RC | ✅ | 本地验证：24 个 pom.xml + 6 个 package.json 全部 2.1.0-RC；go.mod 无版本字段（由 git tag 管理） |
 | 1.2 | CHANGELOG 更新 | [2.1.0-RC] 章节完整，含 Security/Fixed/Added/Changed/Corrected | ✅ | 本地验证：[2.1.0-RC] - 2026-08-27 章节存在，五分类齐备 |
 | 1.3 | RELEASE-NOTES 存在 | releases/v2.1.0-RC/RELEASE-NOTES.md 完整 | ✅ | 本地验证：文件存在，166 行，10 节完整 |
 | 1.4 | Git tag 打标 | git tag v2.1.0-RC && git push origin v2.1.0-RC | ✅ | 本地验证：git tag -l 显示 v2.1.0 与 v2.1.0-RC 均已存在（push 状态待远端确认） |
@@ -106,7 +106,7 @@
 
 | 编号 | 检查项 | 验证证据 |
 |------|--------|----------|
-| 1.1 | 版本号一致性 | 22 个 pom.xml + 6 个 package.json 全部 2.1.0-RC |
+| 1.1 | 版本号一致性 | 24 个 pom.xml + 6 个 package.json 全部 2.1.0-RC |
 | 1.2 | CHANGELOG 更新 | [2.1.0-RC] - 2026-08-27 章节存在，五分类齐备 |
 | 1.3 | RELEASE-NOTES 存在 | 文件存在，166 行，10 节完整 |
 | 1.4 | Git tag 打标 | v2.1.0-RC tag 已存在（push 状态待远端确认） |

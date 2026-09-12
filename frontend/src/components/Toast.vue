@@ -90,7 +90,7 @@ function iconOf(type?: string): Component {
   vertical-align: middle;
 }
 .toast__close {
-  margin-left: 8px;
+  margin-left: var(--ds-spacing-2);
   color: rgba(255, 255, 255, 0.7);
 }
 .toast__close:hover {
@@ -110,13 +110,13 @@ function iconOf(type?: string): Component {
 }
 .ds-toast-enter-from {
   transform: translateY(20px) scale(0.9);
-  opacity: 0;
+  opacity: var(--ds-opacity-0);
 }
 .ds-toast-leave-to {
   transform: translateY(-10px) scale(0.95);
-  opacity: 0;
+  opacity: var(--ds-opacity-0);
 }
 .ds-toast-move {
-  transition: transform 0.3s ease;
+  transition: transform var(--ds-transition-moderate);
 }
 </style>

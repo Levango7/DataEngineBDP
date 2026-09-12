@@ -374,10 +374,10 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .lineage-page {
-  padding: 20px 28px;
+  padding: var(--ds-spacing-5) var(--ds-spacing-7);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--ds-spacing-4);
   max-width: 1200px;
   margin: 0 auto;
 }
@@ -385,17 +385,17 @@ onBeforeUnmount(() => {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md);
-  padding: 16px 20px;
+  padding: var(--ds-spacing-4) var(--ds-spacing-5);
   box-shadow: var(--ds-shadow-sm);
 }
 .card-title {
   font-size: var(--ds-font-size-base);
   font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-primary);
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .meta-tag {
   font-size: var(--ds-font-size-xs);
@@ -413,7 +413,7 @@ onBeforeUnmount(() => {
 }
 .action-row {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   margin-top: 10px;
   align-items: center;
 }
@@ -421,7 +421,7 @@ onBeforeUnmount(() => {
   width: 140px;
 }
 .error-tip {
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
   color: var(--ds-color-error-600);
   font-size: var(--ds-font-size-xs);
 }
@@ -446,7 +446,7 @@ onBeforeUnmount(() => {
 }
 .relation-tabs {
   display: flex;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   margin-bottom: 10px;
 }
 .relation-table .mono {
@@ -465,7 +465,7 @@ onBeforeUnmount(() => {
 }
 .query-row {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   align-items: center;
 }
 .table-input {
@@ -475,15 +475,15 @@ onBeforeUnmount(() => {
   font-family: var(--ds-font-family-mono);
 }
 .query-result {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: var(--ds-spacing-3);
+  padding: var(--ds-spacing-3);
   background: var(--ds-bg-subtle);
   border-radius: var(--ds-radius-md);
 }
 .result-summary {
   font-size: var(--ds-font-size-sm);
   color: var(--ds-text-primary);
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .badge {
   display: inline-block;
@@ -511,7 +511,7 @@ onBeforeUnmount(() => {
 .paths-title {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  margin-bottom: 4px;
+  margin-bottom: var(--ds-spacing-1);
 }
 .path-item {
   font-family: var(--ds-font-family-mono);
@@ -529,7 +529,7 @@ onBeforeUnmount(() => {
 /* 响应式断点：中等屏幕收窄页面内边距与最大宽度 */
 @media (max-width: 1024px) {
   .lineage-page {
-    padding: 16px 20px;
+    padding: var(--ds-spacing-4) var(--ds-spacing-5);
     max-width: 100%;
   }
   .action-row {
@@ -546,11 +546,11 @@ onBeforeUnmount(() => {
 /* 响应式断点：小屏幕单列布局，紧凑间距 */
 @media (max-width: 640px) {
   .lineage-page {
-    padding: 12px;
-    gap: 12px;
+    padding: var(--ds-spacing-3);
+    gap: var(--ds-spacing-3);
   }
   .card {
-    padding: 12px;
+    padding: var(--ds-spacing-3);
   }
   .chart {
     height: 300px;

@@ -336,18 +336,18 @@ function downloadBlob(blob: Blob, filename: string): void {
 .field-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 12px;
-  margin-left: 8px;
+  gap: var(--ds-spacing-1) var(--ds-spacing-3);
+  margin-left: var(--ds-spacing-2);
 }
 .export-tip {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   background: var(--c-amber-50, #fffbeb);
   border-radius: var(--ds-radius-md);
   font-size: var(--ds-font-size-xs);
   color: var(--amber, var(--ds-color-warning-600));
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
 }
 </style>

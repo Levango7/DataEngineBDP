@@ -246,6 +246,8 @@ public class VirtualTableController {
     @Operation(summary = "获取元数据缓存统计信息")
     @GetMapping("/cache/stats")
     public ResponseEntity<Map<String, Object>> cacheStats() {
+        // R13 安全修复：fail-closed 租户校验，确保只有认证用户才能访问缓存统计
+        resolveTenantId(null);
         return ResponseEntity.ok(virtualTableService.getCacheStats());
     }
 

@@ -810,7 +810,7 @@ watch(
 .sub {
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-base);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 .grid {
   display: grid;
@@ -832,7 +832,7 @@ watch(
 .card {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md-plus);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
   background: var(--ds-bg-surface);
 }
 .card h3 {
@@ -845,7 +845,7 @@ watch(
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
 }
 .kpi.running {
   color: var(--ds-color-success-600);
@@ -859,7 +859,7 @@ watch(
   font-size: var(--ds-font-size-xl);
   font-weight: var(--ds-font-weight-semibold);
   color: var(--ds-text-muted, var(--ds-text-secondary));
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
   padding: 4px 0;
   animation: kpi-pulse 1.4s ease-in-out infinite;
 }
@@ -867,7 +867,7 @@ watch(
   font-size: var(--ds-font-size-base);
   font-weight: var(--ds-font-weight-medium);
   color: var(--ds-color-error-500);
-  line-height: 1.4;
+  line-height: var(--ds-line-height-snug);
   padding: 4px 0;
 }
 .retry-btn {
@@ -879,7 +879,7 @@ watch(
   border: 1px solid var(--ds-color-primary-500);
   border-radius: var(--ds-radius-sm);
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--ds-transition-quick);
 }
 .retry-btn:hover {
   background: var(--ds-color-primary-50);
@@ -887,10 +887,10 @@ watch(
 @keyframes kpi-pulse {
   0%,
   100% {
-    opacity: 0.55;
+    opacity: var(--ds-opacity-6);
   }
   50% {
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
   }
 }
 .page-card {
@@ -900,7 +900,7 @@ watch(
 .log-container {
   background: var(--ds-color-gray-900);
   border-radius: var(--ds-radius-md);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   min-height: 320px;
   max-height: 480px;
   overflow: auto;
@@ -909,7 +909,7 @@ watch(
   color: var(--ds-color-gray-300);
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;

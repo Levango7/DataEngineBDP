@@ -75,7 +75,7 @@ defineEmits<{
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
   flex-wrap: wrap;
 }
 

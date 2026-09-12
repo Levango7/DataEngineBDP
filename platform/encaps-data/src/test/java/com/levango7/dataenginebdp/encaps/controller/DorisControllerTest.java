@@ -46,7 +46,7 @@ class DorisControllerTest {
     @Test
     @DisplayName("GET /nodes：正常返回节点列表")
     void listNodes_ok() {
-        when(dorisClient.listNodes()).thenReturn(List.of(Map.of("name", "fe-1", "role", "FE")));
+        when(dorisClient.listNodes("tenant_doris")).thenReturn(List.of(Map.of("name", "fe-1", "role", "FE")));
         ResponseEntity<?> resp = controller.listNodes();
         assertThat(resp.getStatusCode().value()).isEqualTo(200);
         assertThat(resp.getBody().toString()).contains("fe-1");
@@ -55,7 +55,7 @@ class DorisControllerTest {
     @Test
     @DisplayName("GET /nodes：引擎不可用返回 503 与错误信息")
     void listNodes_engineUnavailable_503() throws Exception {
-        when(dorisClient.listNodes()).thenThrow(new EngineUnavailableException("connect refused"));
+        when(dorisClient.listNodes("tenant_doris")).thenThrow(new EngineUnavailableException("connect refused"));
         ResponseEntity<?> resp = controller.listNodes();
         assertThat(resp.getStatusCode().value()).isEqualTo(503);
         assertThat(resp.getBody().toString()).contains("Doris 引擎不可用");
@@ -64,7 +64,7 @@ class DorisControllerTest {
     @Test
     @DisplayName("GET /databases/{db}/tables：路径参数透传")
     void listTablesByDb_passesDb() throws Exception {
-        when(dorisClient.listTables("sales")).thenReturn(List.of("orders", "users"));
+        when(dorisClient.listTables("sales", "tenant_doris")).thenReturn(List.of("orders", "users"));
         ResponseEntity<?> resp = controller.listTablesByDb("sales");
         assertThat(resp.getStatusCode().value()).isEqualTo(200);
         assertThat(resp.getBody().toString()).contains("orders");
@@ -73,10 +73,10 @@ class DorisControllerTest {
     @Test
     @DisplayName("POST /query：SELECT 查询放行并透传")
     void executeQuery_selectAllowed() {
-        when(dorisClient.executeQuery("SELECT 1")).thenReturn(Map.of("rows", List.of()));
+        when(dorisClient.executeQuery("SELECT 1", "tenant_doris")).thenReturn(Map.of("rows", List.of()));
         ResponseEntity<?> resp = controller.executeQuery(new DorisController.QueryRequest("SELECT 1"));
         assertThat(resp.getStatusCode().value()).isEqualTo(200);
-        Mockito.verify(dorisClient).executeQuery("SELECT 1");
+        Mockito.verify(dorisClient).executeQuery("SELECT 1", "tenant_doris");
     }
 
     @Test
@@ -113,7 +113,7 @@ class DorisControllerTest {
     @Test
     @DisplayName("POST /query：SHOW/DESCRIBE/EXPLAIN 白名单放行")
     void executeQuery_showAllowed() {
-        when(dorisClient.executeQuery(anyString())).thenReturn(Map.of("rows", List.of()));
+        when(dorisClient.executeQuery(anyString(), anyString())).thenReturn(Map.of("rows", List.of()));
         for (String sql : new String[]{"SHOW DATABASES", "DESCRIBE orders", "EXPLAIN SELECT 1"}) {
             ResponseEntity<?> resp = controller.executeQuery(new DorisController.QueryRequest(sql));
             assertThat(resp.getStatusCode().value()).as("SQL: %s", sql).isEqualTo(200);
@@ -123,7 +123,7 @@ class DorisControllerTest {
     @Test
     @DisplayName("POST /query：引擎不可用返回 503")
     void executeQuery_engineUnavailable_503() {
-        when(dorisClient.executeQuery("SELECT 1")).thenThrow(new EngineUnavailableException("timeout"));
+        when(dorisClient.executeQuery("SELECT 1", "tenant_doris")).thenThrow(new EngineUnavailableException("timeout"));
         ResponseEntity<?> resp = controller.executeQuery(new DorisController.QueryRequest("SELECT 1"));
         assertThat(resp.getStatusCode().value()).isEqualTo(503);
     }

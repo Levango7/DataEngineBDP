@@ -410,8 +410,8 @@ onMounted(() => {
   background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: var(--ds-radius-md-plus);
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  padding: var(--ds-spacing-4);
+  box-shadow: var(--ds-shadow-sm);
 }
 .portal-body {
   display: grid;
@@ -433,7 +433,7 @@ onMounted(() => {
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .sort-title {
   font-size: var(--ds-font-size-base);
@@ -446,9 +446,9 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
   flex-wrap: wrap;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .result-stat {
   font-size: var(--ds-font-size-base);
@@ -460,17 +460,17 @@ onMounted(() => {
 }
 .toolbar-actions {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   align-items: center;
 }
 .suggestion-bar {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--ds-spacing-2);
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   background: var(--c-amber-50, #fffbeb);
   border-radius: var(--ds-radius-md);
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
   flex-wrap: wrap;
 }
 .sug-label {
@@ -499,11 +499,11 @@ onMounted(() => {
   background: var(--panel, var(--ds-bg-surface));
   border: 1px solid var(--line, var(--ds-border-default));
   border-radius: var(--ds-radius-md-plus);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
   height: 180px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
 }
 .sk-line {
   height: 14px;
@@ -538,9 +538,9 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: var(--ds-spacing-15) var(--ds-spacing-5);
   color: var(--muted, var(--ds-text-secondary));
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .empty-state p,
 .init-state p {
@@ -554,7 +554,7 @@ onMounted(() => {
 .detail-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
 }
 .detail-row {
   display: flex;
@@ -566,23 +566,23 @@ onMounted(() => {
 .detail-label {
   color: var(--muted, var(--ds-text-secondary));
   flex-shrink: 0;
-  margin-right: 12px;
+  margin-right: var(--ds-spacing-3);
 }
 .detail-value {
   text-align: right;
   word-break: break-all;
 }
 .detail-desc {
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
 }
 .detail-desc p {
   margin-top: 6px;
   font-size: var(--ds-font-size-base);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   color: var(--ink, var(--ds-text-primary));
 }
 .detail-actions {
-  margin-top: 12px;
+  margin-top: var(--ds-spacing-3);
 }
 
 /* 响应式：窄屏过滤器折叠到顶部 */

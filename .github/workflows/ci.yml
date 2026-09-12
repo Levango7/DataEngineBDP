@@ -2121,7 +2121,11 @@ jobs:
         run: pip install locust pytest -q
 
       - name: 运行性能基准测试
-        run: python tests/performance/run_benchmark.py
+        # R13 修复：添加 --fail-on-sla-violation 参数，SLA 违规时以非零退出码阻断 CI。
+        # 配合 T-04 SLA 基线分阶段阻断计划：当前 continue-on-error: true 仍允许失败，
+        # 但该参数使 run_benchmark.py 在 SLA 违规时返回非零退出码，
+        # 为后续删除 continue-on-error 切换为阻断模式做好准备。
+        run: python tests/performance/run_benchmark.py --fail-on-sla-violation
 
       - name: 上传性能报告 artifact
         uses: actions/upload-artifact@v4

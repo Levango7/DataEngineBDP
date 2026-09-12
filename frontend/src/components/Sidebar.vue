@@ -127,7 +127,7 @@ function toggleGroup(idx: number): void {
   cursor: pointer;
   user-select: none;
   padding: 12px 18px 4px;
-  transition: color 0.2s var(--ease-smooth);
+  transition: color var(--ds-transition-quick);
   white-space: nowrap;
 }
 .nav .grp:hover {
@@ -140,7 +140,7 @@ function toggleGroup(idx: number): void {
 .grp-arrow {
   display: inline-block;
   font-size: var(--ds-font-size-xs);
-  line-height: 1;
+  line-height: var(--ds-line-height-none);
   color: var(--sidebar-muted);
   transition:
     transform 0.25s var(--ease-smooth),
@@ -170,14 +170,14 @@ function toggleGroup(idx: number): void {
 .grp-items {
   overflow: hidden;
   max-height: 1200px;
-  opacity: 1;
+  opacity: var(--ds-opacity-10);
   transition:
     max-height 0.32s var(--ease-drawer),
     opacity 0.24s var(--ease-smooth);
 }
 .grp-items.collapsed {
   max-height: 0;
-  opacity: 0;
+  opacity: var(--ds-opacity-0);
 }
 
 /* === 菜单项流光 hover 效果（::after 横向流光，不遮文字） === */
@@ -197,13 +197,13 @@ function toggleGroup(idx: number): void {
   );
   background-size: 200% 100%;
   background-position: -100% 0;
-  opacity: 0;
-  transition: opacity 0.3s var(--ease-smooth);
+  opacity: var(--ds-opacity-0);
+  transition: opacity var(--ds-transition-moderate);
   pointer-events: none;
   z-index: 0;
 }
 .nav-item:hover::after {
-  opacity: 1;
+  opacity: var(--ds-opacity-10);
   animation: flowLight 0.9s var(--ease-smooth);
 }
 /* 文字与图标置于流光之上 */

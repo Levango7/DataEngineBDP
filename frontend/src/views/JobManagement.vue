@@ -525,7 +525,7 @@ onUnmounted(() => {
 .sub {
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-base);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 .page-card {
   border: 1px solid var(--ds-border-default);
@@ -535,7 +535,7 @@ onUnmounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
   flex-wrap: wrap;
 }
 .toolbar .spacer {
@@ -544,12 +544,12 @@ onUnmounted(() => {
 .pagination-wrap {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: var(--ds-spacing-4);
 }
 .log-container {
   background: var(--ds-bg-code);
   border-radius: var(--ds-radius-md);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   min-height: 320px;
   max-height: 480px;
   overflow: auto;
@@ -558,7 +558,7 @@ onUnmounted(() => {
   color: var(--ds-text-code);
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   white-space: pre-wrap;
   word-break: break-all;
   margin: 0;

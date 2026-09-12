@@ -31,14 +31,14 @@ defineEmits<{
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 16px;
+  padding: var(--ds-spacing-12) var(--ds-spacing-4);
   text-align: center;
 }
 
 .empty-state__icon {
   width: 48px;
   height: 48px;
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
   color: var(--el-text-color-placeholder);
 }
 

@@ -47,7 +47,7 @@
       "rolePlatformAdmin": "平台超管", "roleTenantAdmin": "租户管理员", "roleUser": "普通用户"
     },
     "messages": {
-      "codeRequired": "请输入邀请码", "codeInvalid": "邀请码无效", "submitFailed": "注册失败"
+      "codeRequired": "请输入邀请码", "codeInvalid": "邀请码无效", "submitFailed": "注册失败", "invalidInvite": "邀请码状态异常，请重新验证"
     }
   }
 }

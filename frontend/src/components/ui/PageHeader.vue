@@ -22,8 +22,8 @@ defineProps<{
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--ds-spacing-4);
+  margin-bottom: var(--ds-spacing-4);
 }
 
 .page-header__title {
@@ -43,6 +43,6 @@ defineProps<{
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 </style>

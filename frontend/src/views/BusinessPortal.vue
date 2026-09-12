@@ -774,7 +774,7 @@ onMounted(async () => {
   background: var(--card-bg, var(--ds-bg-surface));
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   max-height: calc(100vh - 200px);
   overflow-y: auto;
 }
@@ -793,7 +793,7 @@ onMounted(async () => {
 .bp-sidebar-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 
 .bp-sidebar-item {
@@ -801,7 +801,7 @@ onMounted(async () => {
   border-radius: var(--ds-radius-md);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 0.15s;
+  transition: all var(--ds-transition-fast);
 }
 
 .bp-sidebar-item:hover {
@@ -860,6 +860,17 @@ onMounted(async () => {
 .unit {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  margin-left: 4px;
+  margin-left: var(--ds-spacing-1);
+}
+
+/* 响应式断点（规范三档：640 / 1440） */
+@media (max-width: 640px) {
+  /* 单列：侧栏 → 主区纵向堆叠 */
+  .bp-layout {
+    grid-template-columns: 1fr;
+  }
+  .bp-sidebar {
+    max-height: none;
+  }
 }
 </style>

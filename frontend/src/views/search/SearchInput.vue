@@ -300,7 +300,7 @@ onUnmounted(() => {
 }
 .mode-switch {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .natural-input {
   position: relative;
@@ -310,11 +310,11 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 4px;
+  margin-top: var(--ds-spacing-1);
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--ds-shadow-md);
   z-index: 10;
   max-height: 240px;
   overflow-y: auto;
@@ -322,8 +322,8 @@ onUnmounted(() => {
 .suggestion-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: var(--ds-spacing-2);
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   cursor: pointer;
   font-size: var(--ds-font-size-base);
 }
@@ -333,16 +333,16 @@ onUnmounted(() => {
 .structured-input {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .condition-row {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   align-items: center;
 }
 .condition-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 4px;
+  gap: var(--ds-spacing-2);
+  margin-top: var(--ds-spacing-1);
 }
 </style>

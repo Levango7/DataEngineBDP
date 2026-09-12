@@ -597,7 +597,7 @@ onUnmounted(() => {
 .sub {
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-base);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 .grid {
   display: grid;
@@ -619,7 +619,7 @@ onUnmounted(() => {
 .card {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md-plus);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
   background: var(--ds-bg-surface);
 }
 .card h3 {
@@ -632,7 +632,7 @@ onUnmounted(() => {
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
 }
 .kpi.s {
   color: var(--ds-color-success-600);
@@ -653,7 +653,7 @@ onUnmounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
   flex-wrap: wrap;
 }
 .toolbar .spacer {
@@ -668,6 +668,6 @@ onUnmounted(() => {
 .query-meta {
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-xs);
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
 }
 </style>

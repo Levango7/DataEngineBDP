@@ -618,8 +618,8 @@ onMounted(() => {
 .usage-row {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
-  gap: 12px;
+  margin-bottom: var(--ds-spacing-4);
+  gap: var(--ds-spacing-3);
 }
 .usage-label {
   color: var(--ds-text-secondary);

@@ -800,7 +800,7 @@ onMounted(() => {
 /* 状态提示：加载/错误统一样式 */
 .state-tip {
   text-align: center;
-  padding: 24px;
+  padding: var(--ds-spacing-6);
   color: var(--ds-text-tertiary);
 }
 .state-tip.error {
@@ -810,7 +810,7 @@ onMounted(() => {
 .empty-cell {
   text-align: center;
   color: var(--ds-text-tertiary);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
 }
 
 .asset-card {
@@ -827,7 +827,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 /* 资产类型标签：使用 design tokens 语义色 */
 .asset-type {
@@ -860,14 +860,14 @@ onMounted(() => {
   justify-content: space-between;
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .asset-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-top: 1px solid var(--ds-border-subtle);
-  padding-top: 8px;
+  padding-top: var(--ds-spacing-2);
 }
 .price {
   color: var(--ds-color-primary-600);
@@ -883,7 +883,7 @@ onMounted(() => {
 /* 样本数据展示：使用 design tokens 次级表面色 */
 .sample {
   background: var(--ds-bg-subtle);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   border-radius: var(--ds-radius-sm);
   font-size: var(--ds-font-size-xs);
   max-height: 200px;
@@ -903,8 +903,8 @@ onMounted(() => {
     font-size: var(--ds-font-size-xs);
   }
   :deep(.el-table .cell) {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--ds-spacing-2);
+    padding-right: var(--ds-spacing-2);
   }
   /* 筛选行在小屏幕下垂直排列 */
   .row {

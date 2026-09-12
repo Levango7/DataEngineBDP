@@ -305,7 +305,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--ds-spacing-4);
 }
 .filter-header {
   display: flex;
@@ -320,7 +320,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
 .filter-section {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .section-title {
   display: flex;
@@ -331,16 +331,16 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   color: var(--ink, var(--ds-text-primary));
 }
 .custom-time {
-  margin-top: 4px;
+  margin-top: var(--ds-spacing-1);
 }
 .filter-checkbox {
-  margin-right: 12px;
-  margin-bottom: 4px;
+  margin-right: var(--ds-spacing-3);
+  margin-bottom: var(--ds-spacing-1);
 }
 .opt-count {
   color: var(--muted, var(--ds-text-secondary));
   font-size: var(--ds-font-size-xs);
-  margin-left: 4px;
+  margin-left: var(--ds-spacing-1);
 }
 .empty-tags {
   color: var(--muted, var(--ds-text-secondary));
@@ -361,7 +361,7 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   font-size: var(--ds-font-size-xs);
   cursor: pointer;
   background: var(--ds-bg-surface);
-  transition: all 0.15s;
+  transition: all var(--ds-transition-fast);
 }
 .tag-chip:hover {
   border-color: var(--primary, var(--ds-color-success-700));
@@ -378,13 +378,13 @@ const hasActiveFilter = computed(() => activeCount.value > 0)
   font-size: var(--ds-font-size-xs);
 }
 .filter-summary {
-  padding-top: 8px;
+  padding-top: var(--ds-spacing-2);
   border-top: 1px dashed var(--line, var(--ds-border-default));
   font-size: var(--ds-font-size-xs);
   color: var(--muted, var(--ds-text-secondary));
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 .summary-count {
   color: var(--primary, var(--ds-color-success-700));

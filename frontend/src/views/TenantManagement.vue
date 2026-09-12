@@ -613,14 +613,14 @@ onMounted(() => loadList())
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md-plus);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--ds-shadow-sm);
   transition:
     transform 0.2s var(--ease-smooth),
     box-shadow 0.2s var(--ease-smooth);
 }
 .stat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
+  box-shadow: var(--ds-shadow-md);
 }
 .stat-num {
   font-size: var(--ds-font-size-3xl);
@@ -641,11 +641,11 @@ onMounted(() => loadList())
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
   margin: 18px 0 10px;
-  padding-left: 8px;
+  padding-left: var(--ds-spacing-2);
   border-left: 3px solid var(--ds-color-info-500);
 }
 .invite-result {
-  padding: 8px 4px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-1);
 }
 .invite-hint {
   font-size: var(--ds-font-size-base);
@@ -665,7 +665,7 @@ onMounted(() => loadList())
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.06) 0%, rgba(99, 102, 241, 0.04) 100%);
   border: 2px dashed var(--ds-color-primary-300);
   border-radius: var(--ds-radius-md-plus);
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
 }
 .invite-code-text {
   font-family: var(--ds-font-family-mono);

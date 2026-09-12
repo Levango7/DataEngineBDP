@@ -32,7 +32,7 @@ defineProps<{
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
 }
 
 .page-card__title {
@@ -52,6 +52,6 @@ defineProps<{
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 </style>

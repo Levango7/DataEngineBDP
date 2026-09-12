@@ -175,7 +175,7 @@
       :title="t('develop.confirmModal.title')"
       @close="scheduleConfirmVisible = false"
     >
-      <div style="line-height: 1.8">
+      <div style="line-height: var(--ds-line-height-extra-loose)">
         <p>
           <strong>{{ t('develop.confirmModal.file') }}</strong>
           {{ currentFilePath || t('develop.confirmModal.unsaved') }}
@@ -438,13 +438,13 @@ watch(
 .ide {
   display: grid;
   grid-template-columns: 220px 1fr 200px;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   margin-top: 14px;
 }
 .tree {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
-  padding: 8px;
+  padding: var(--ds-spacing-2);
   min-height: 360px;
   max-height: 480px;
   overflow: auto;
@@ -459,7 +459,7 @@ watch(
 .code-loading,
 .code-error {
   color: var(--ds-text-secondary);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   text-align: center;
 }
 .tree-error,
@@ -525,25 +525,25 @@ watch(
   border: none;
   outline: 2px solid var(--ds-border-focus);
   outline-offset: 2px;
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-xs);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   resize: none;
   background: var(--ds-bg-surface);
 }
 .params {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   background: var(--ds-bg-subtle);
 }
 .params label {
   display: block;
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
-  margin-top: 8px;
-  margin-bottom: 4px;
+  margin-top: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-1);
 }
 
 .params .row {
@@ -554,7 +554,7 @@ watch(
 .dag {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   flex-wrap: wrap;
   padding: 8px 0;
 }
@@ -578,7 +578,7 @@ watch(
 @media (max-width: 1024px) {
   .ide {
     grid-template-columns: 180px 1fr 180px;
-    gap: 8px;
+    gap: var(--ds-spacing-2);
   }
   .tree {
     min-height: 280px;

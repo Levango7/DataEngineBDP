@@ -312,7 +312,7 @@ onMounted(() => {
 @media (max-width: 1024px) {
   .tabbar {
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--ds-spacing-1);
   }
 }
 
@@ -320,7 +320,7 @@ onMounted(() => {
 @media (max-width: 640px) {
   .tabbar {
     flex-wrap: wrap;
-    gap: 4px;
+    gap: var(--ds-spacing-1);
   }
   .tabbar .t {
     flex: 1 1 calc(50% - 4px);

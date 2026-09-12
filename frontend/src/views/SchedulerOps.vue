@@ -323,6 +323,6 @@ function formatTime(ts?: string | null): string {
 
 <style scoped>
 .scheduler-ops-page {
-  padding: 8px;
+  padding: var(--ds-spacing-2);
 }
 </style>

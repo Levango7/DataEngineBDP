@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -50,6 +51,7 @@ import java.util.Map;
 @Tag(name = "封装数据-Kafka引擎", description = "Kafka Broker/Topic/消费组管理")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/kafka")
+@PreAuthorize("isAuthenticated()")  // R13 安全修复：类级认证校验
 public class KafkaController {
 
     private final KafkaAdminService kafkaAdminService;

@@ -139,7 +139,7 @@ onMounted(() => {
 /* 状态提示：加载/错误统一样式，颜色使用 design tokens */
 .state-tip {
   text-align: center;
-  padding: 24px;
+  padding: var(--ds-spacing-6);
   color: var(--ds-text-tertiary);
 }
 .state-tip.error {
@@ -159,8 +159,8 @@ onMounted(() => {
     font-size: var(--ds-font-size-xs);
   }
   :deep(.el-table .cell) {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--ds-spacing-2);
+    padding-right: var(--ds-spacing-2);
   }
 }
 </style>

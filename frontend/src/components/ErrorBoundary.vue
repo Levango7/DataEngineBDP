@@ -53,12 +53,12 @@ function reset() {
   align-items: center;
   justify-content: center;
   min-height: 400px;
-  padding: 32px;
+  padding: var(--ds-spacing-8);
   text-align: center;
 }
 
 .error-boundary__icon {
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
   display: flex;
   justify-content: center;
 }
@@ -90,12 +90,12 @@ function reset() {
   color: var(--ds-text-tertiary);
   overflow-x: auto;
   background: var(--ds-bg-subtle);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   border-radius: var(--ds-radius-sm);
 }
 
 .error-boundary__retry {
-  padding: 8px 24px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-6);
   background: var(--ds-color-primary-500);
   color: var(--ds-text-inverse);
   border: none;

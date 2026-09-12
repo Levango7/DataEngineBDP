@@ -300,14 +300,14 @@ onMounted(() => loadList())
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md-plus);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--ds-shadow-sm);
   transition:
     transform 0.2s var(--ease-smooth),
     box-shadow 0.2s var(--ease-smooth);
 }
 .stat:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.07);
+  box-shadow: var(--ds-shadow-md);
 }
 .stat-num {
   font-size: var(--ds-font-size-3xl);
@@ -342,7 +342,7 @@ onMounted(() => loadList())
   margin: 0 0 12px;
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
-  line-height: 1.7;
+  line-height: var(--ds-line-height-extra-loose);
 }
 .appr-confirm b {
   color: var(--ds-color-primary-700);

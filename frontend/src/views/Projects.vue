@@ -331,7 +331,7 @@ onMounted(() => {
 .empty-cell {
   text-align: center;
   color: var(--ds-text-tertiary);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
 }
 
 /* 响应式断点：中等屏幕紧凑化 */
@@ -347,8 +347,8 @@ onMounted(() => {
     font-size: var(--ds-font-size-xs);
   }
   :deep(.el-table .cell) {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--ds-spacing-2);
+    padding-right: var(--ds-spacing-2);
   }
   .tabbar {
     flex-wrap: wrap;

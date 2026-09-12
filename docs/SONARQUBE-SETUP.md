@@ -389,7 +389,7 @@ curl -u "your-token-here:" https://sonarcloud.io/api/user_tokens/search
 
 ## 附录 B：项目模块清单
 
-当前 `platform/` 下共 31 个 Java 模块，每个模块对应一个独立的 SonarCloud 项目：
+当前 `platform/` 下共 35 个 Java 模块，每个模块对应一个独立的 SonarCloud 项目：
 
 | # | 模块名 | projectKey |
 |---|--------|------------|
@@ -398,33 +398,35 @@ curl -u "your-token-here:" https://sonarcloud.io/api/user_tokens/search
 | 3 | business-portal | Levango7_DataEngineBDP_business-portal |
 | 4 | catalog | Levango7_DataEngineBDP_catalog |
 | 5 | chunker | Levango7_DataEngineBDP_chunker |
-| 6 | dqctl | Levango7_DataEngineBDP_dqctl |
-| 7 | encaps-layer | Levango7_DataEngineBDP_encaps-layer |
-| 8 | finops | Levango7_DataEngineBDP_finops |
-| 9 | flink-cdc | Levango7_DataEngineBDP_flink-cdc |
-| 10 | governance | Levango7_DataEngineBDP_governance |
-| 11 | industry-templates | Levango7_DataEngineBDP_industry-templates |
-| 12 | infra-orchestrator | Levango7_DataEngineBDP_infra-orchestrator |
-| 13 | infra-provider-baremetal | Levango7_DataEngineBDP_infra-provider-baremetal |
-| 14 | infra-provider-cloud | Levango7_DataEngineBDP_infra-provider-cloud |
-| 15 | infra-provider-private | Levango7_DataEngineBDP_infra-provider-private |
-| 16 | infra-provider-xinchang | Levango7_DataEngineBDP_infra-provider-xinchang |
-| 17 | karmada | Levango7_DataEngineBDP_karmada |
-| 18 | knative | Levango7_DataEngineBDP_knative |
-| 19 | knowledge-engine | Levango7_DataEngineBDP_knowledge-engine |
-| 20 | llm-gateway | Levango7_DataEngineBDP_llm-gateway |
-| 21 | llmops | Levango7_DataEngineBDP_llmops |
-| 22 | ml-platform | Levango7_DataEngineBDP_ml-platform |
-| 23 | model-finetuning | Levango7_DataEngineBDP_model-finetuning |
-| 24 | nl2sql | Levango7_DataEngineBDP_nl2sql |
-| 25 | observability | Levango7_DataEngineBDP_observability |
-| 26 | open-api-catalog | Levango7_DataEngineBDP_open-api-catalog |
-| 27 | registry | Levango7_DataEngineBDP_registry |
-| 28 | rule-engine | Levango7_DataEngineBDP_rule-engine |
-| 29 | sql-gateway | Levango7_DataEngineBDP_sql-gateway |
-| 30 | storage-io | Levango7_DataEngineBDP_storage-io |
-| 31 | stream-batch-scheduler | Levango7_DataEngineBDP_stream-batch-scheduler |
-| 32 | tag-engine | Levango7_DataEngineBDP_tag-engine |
-| 33 | vector-engine | Levango7_DataEngineBDP_vector-engine |
+| 6 | data-standard | Levango7_DataEngineBDP_data-standard |
+| 7 | dqctl | Levango7_DataEngineBDP_dqctl |
+| 8 | encaps-layer | Levango7_DataEngineBDP_encaps-layer |
+| 9 | finops | Levango7_DataEngineBDP_finops |
+| 10 | flink-cdc | Levango7_DataEngineBDP_flink-cdc |
+| 11 | governance | Levango7_DataEngineBDP_governance |
+| 12 | industry-templates | Levango7_DataEngineBDP_industry-templates |
+| 13 | infra-orchestrator | Levango7_DataEngineBDP_infra-orchestrator |
+| 14 | infra-provider-baremetal | Levango7_DataEngineBDP_infra-provider-baremetal |
+| 15 | infra-provider-cloud | Levango7_DataEngineBDP_infra-provider-cloud |
+| 16 | infra-provider-private | Levango7_DataEngineBDP_infra-provider-private |
+| 17 | infra-provider-xinchang | Levango7_DataEngineBDP_infra-provider-xinchang |
+| 18 | karmada | Levango7_DataEngineBDP_karmada |
+| 19 | knative | Levango7_DataEngineBDP_knative |
+| 20 | knowledge-engine | Levango7_DataEngineBDP_knowledge-engine |
+| 21 | llm-gateway | Levango7_DataEngineBDP_llm-gateway |
+| 22 | llmops | Levango7_DataEngineBDP_llmops |
+| 23 | master-data | Levango7_DataEngineBDP_master-data |
+| 24 | ml-platform | Levango7_DataEngineBDP_ml-platform |
+| 25 | model-finetuning | Levango7_DataEngineBDP_model-finetuning |
+| 26 | nl2sql | Levango7_DataEngineBDP_nl2sql |
+| 27 | observability | Levango7_DataEngineBDP_observability |
+| 28 | open-api-catalog | Levango7_DataEngineBDP_open-api-catalog |
+| 29 | registry | Levango7_DataEngineBDP_registry |
+| 30 | rule-engine | Levango7_DataEngineBDP_rule-engine |
+| 31 | sql-gateway | Levango7_DataEngineBDP_sql-gateway |
+| 32 | storage-io | Levango7_DataEngineBDP_storage-io |
+| 33 | stream-batch-scheduler | Levango7_DataEngineBDP_stream-batch-scheduler |
+| 34 | tag-engine | Levango7_DataEngineBDP_tag-engine |
+| 35 | vector-engine | Levango7_DataEngineBDP_vector-engine |
 
 > **注**：模块清单随项目演进可能变化，以 `platform/` 目录实际结构为准。

@@ -312,8 +312,16 @@ public class MockTagStore implements TagStore {
     // ==================== 画像查询 ====================
 
     @Override
-    public UserProfile getProfile(String userId) {
-        return profiles.get(userId);
+    public UserProfile getProfile(String userId, String tenantId) {
+        UserProfile p = profiles.get(userId);
+        if (p == null) {
+            return null;
+        }
+        // R13 安全修复：按 tenantId 过滤，防止跨租户越权读取画像
+        if (tenantId != null && !tenantId.equals(p.getTenantId())) {
+            return null;
+        }
+        return p;
     }
 
     @Override

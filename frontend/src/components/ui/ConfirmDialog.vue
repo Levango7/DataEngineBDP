@@ -70,6 +70,6 @@ function onCancel() {
   margin: 0;
   font-size: var(--ds-font-size-base);
   color: var(--el-text-color-regular);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
 }
 </style>

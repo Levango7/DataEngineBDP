@@ -124,8 +124,8 @@ onMounted(load)
 .tc-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-1);
 }
 .tc-head .title {
   font-size: var(--ds-font-size-base);
@@ -163,7 +163,7 @@ onMounted(load)
 .step {
   display: grid;
   grid-template-columns: 100px 1fr;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   padding: 8px 0;
   position: relative;
 }
@@ -212,7 +212,7 @@ onMounted(load)
 .step-body {
   background: var(--c-surface-hover);
   border-radius: var(--ds-radius-md);
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-size: var(--ds-font-size-xs);
 }
 .step-meta {
@@ -220,7 +220,7 @@ onMounted(load)
   gap: 10px;
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  margin-bottom: 4px;
+  margin-bottom: var(--ds-spacing-1);
 }
 .meta-node {
   background: var(--ds-color-primary-50);
@@ -230,7 +230,7 @@ onMounted(load)
 }
 .step-content {
   color: var(--ds-text-primary);
-  line-height: 1.55;
+  line-height: var(--ds-line-height-relaxed);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -257,5 +257,14 @@ onMounted(load)
 .tool-link {
   color: var(--ds-color-primary-500);
   font-family: var(--ds-font-family-mono);
+}
+
+/* 响应式断点（规范三档：640 / 1440） */
+@media (max-width: 640px) {
+  /* 单列：标记 → 内容纵向堆叠 */
+  .step {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
 }
 </style>

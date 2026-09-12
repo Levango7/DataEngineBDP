@@ -262,7 +262,7 @@ import { useApi } from '@/composables/useApi'
 import { PageHeader, PageCard, Toolbar, StatusTag } from '@/components/ui'
 import * as workspaceApi from '@/api/workspace'
 import * as tenantApi from '@/api/tenant'
-import type { Workspace, Tenant, PagedResult } from '@/api/types'
+import type { Workspace, Tenant, PagedResult, WorkspaceStatus } from '@/api/types'
 
 const { t, te } = useI18n()
 
@@ -274,6 +274,12 @@ const searchKeyword = ref('')
 const filterTenantId = ref<string | ''>('')
 const filterStatus = ref<string | ''>('')
 
+/** 类型守卫：判断字符串是否为合法的 WorkspaceStatus */
+const WORKSPACE_STATUSES: readonly WorkspaceStatus[] = ['running', 'stopped', 'limited', 'creating', 'failed']
+function isWorkspaceStatus(s: string): s is WorkspaceStatus {
+  return WORKSPACE_STATUSES.includes(s as WorkspaceStatus)
+}
+
 // 工作空间列表：通过 useApi 包装 API 调用，自动维护 loading / error / data 三态
 const {
   data: wsPaged,
@@ -284,7 +290,7 @@ const {
   () =>
     workspaceApi.listWorkspaces({
       tenantId: filterTenantId.value || undefined,
-      status: (filterStatus.value as Workspace['status']) || undefined,
+      status: (filterStatus.value && isWorkspaceStatus(filterStatus.value) ? filterStatus.value : undefined),
       page: currentPage.value,
       pageSize: pageSize.value
     }),
@@ -496,7 +502,7 @@ onMounted(() => {
 .pagination-wrap {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: var(--ds-spacing-4);
 }
 .quota-text {
   font-family: var(--ds-font-family-mono);
@@ -506,14 +512,14 @@ onMounted(() => {
 .form-tip {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-muted, var(--ds-text-secondary));
-  margin-top: 4px;
-  line-height: 1.4;
+  margin-top: var(--ds-spacing-1);
+  line-height: var(--ds-line-height-snug);
 }
 .status-row {
   display: flex;
   align-items: center;
-  margin-bottom: 12px;
-  gap: 8px;
+  margin-bottom: var(--ds-spacing-3);
+  gap: var(--ds-spacing-2);
 }
 .status-label {
   color: var(--ds-text-secondary);

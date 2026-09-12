@@ -70,8 +70,8 @@ class ComputeServiceTest {
         assertEquals("SUCCESS", result.getStatus());
         assertEquals(2, result.getAffectedRows());
         assertNotNull(result.getTagVersion());
-        assertEquals("活跃", mockTagStore.getProfile("u1").getTags().get("user_level"));
-        assertEquals("新客", mockTagStore.getProfile("u2").getTags().get("user_level"));
+        assertEquals("活跃", mockTagStore.getProfile("u1", "t1").getTags().get("user_level"));
+        assertEquals("新客", mockTagStore.getProfile("u2", "t1").getTags().get("user_level"));
     }
 
     @Test

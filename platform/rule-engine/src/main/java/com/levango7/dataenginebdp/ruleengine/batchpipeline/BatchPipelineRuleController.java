@@ -7,7 +7,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,6 +46,7 @@ import java.util.Map;
 @Tag(name = "规则引擎-batch-pipeline适配", description = "平台质量规则翻译为batch-pipeline八类规则配置")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/quality/rules/batch-pipeline")
+@PreAuthorize("isAuthenticated()")  // R13 安全修复：类级认证校验
 public class BatchPipelineRuleController {
 
     private final BatchPipelineRuleAdapter adapter;
@@ -126,6 +130,8 @@ public class BatchPipelineRuleController {
     @Operation(summary = "模板 → batch-pipeline 八类规则映射表")
     @GetMapping("/mapping")
     public ResponseEntity<List<Map<String, Object>>> mapping() {
+        // R13 安全修复：requireTenant fail-closed，保持与其他端点一致性
+        requireTenant();
         List<Map<String, Object>> rows = new ArrayList<>();
         rows.add(row("not_null", "completeness", "非空检查 → required_columns（null 与空串同等判缺）"));
         rows.add(row("pk_not_null", "completeness", "主键完整性 → required_columns"));
@@ -182,5 +188,15 @@ public class BatchPipelineRuleController {
             throw new IllegalStateException("缺少租户上下文");
         }
         return tenantId;
+    }
+
+    /**
+     * 异常处理：缺少租户上下文返回 403（R13 安全修复）。
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException e) {
+        log.warn("batch-pipeline 规则操作被拒绝: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "forbidden", "message", e.getMessage()));
     }
 }

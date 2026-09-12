@@ -286,8 +286,8 @@ function handleLogout() {
 }
 .ws-arrow {
   font-size: var(--ds-font-size-xs);
-  opacity: 0.7;
-  transition: transform 0.2s var(--ease-smooth);
+  opacity: var(--ds-opacity-7);
+  transition: transform var(--ds-transition-quick);
 }
 .ws-switch[aria-expanded='true'] .ws-arrow {
   transform: rotate(180deg);
@@ -348,7 +348,7 @@ function handleLogout() {
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-extrabold);
-  line-height: 1;
+  line-height: var(--ds-line-height-none);
   text-align: center;
   box-shadow: 0 0 0 2px var(--ds-bg-surface);
   animation: bellPulse 2.4s var(--ease-smooth) infinite;
@@ -463,10 +463,10 @@ function handleLogout() {
   border-radius: var(--ds-radius-sm);
   padding: 1px 5px;
   pointer-events: none;
-  transition: opacity 0.2s var(--ease-smooth);
+  transition: opacity var(--ds-transition-quick);
 }
 .gs-kbd.dim {
-  opacity: 0;
+  opacity: var(--ds-opacity-0);
 }
 
 /* 铃铛呼吸 */
@@ -503,7 +503,7 @@ function handleLogout() {
   transform-origin: top left;
 }
 .ws-item {
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-size: var(--ds-font-size-sm);
   font-weight: var(--ds-font-weight-medium);
   color: var(--ds-text-primary);
@@ -546,7 +546,7 @@ function handleLogout() {
   transform-origin: top right;
 }
 .user-info {
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   border-bottom: 1px solid var(--ds-border-subtle);
 }
 .user-name {
@@ -565,7 +565,7 @@ function handleLogout() {
 .user-action {
   display: block;
   width: 100%;
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-size: var(--ds-font-size-sm);
   color: var(--ds-text-primary);
   text-decoration: none;

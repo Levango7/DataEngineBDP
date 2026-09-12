@@ -38,7 +38,7 @@ design/deploy/
 │   │   ├── values.yaml              # Chart 默认 values（骨架级）
 │   │   └── templates/
 │   ├── sql-gateway/
-│   └── ...                          # 其余 81 个 Chart
+│   └── ...                          # 其余 88 个 Chart
 ├── values/                          # 深度调优 values（单环境）
 │   ├── spark-values.yaml
 │   └── ...

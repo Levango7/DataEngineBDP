@@ -921,7 +921,7 @@ onMounted(() => {
 .sub {
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-base);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 .grid {
   display: grid;
@@ -943,7 +943,7 @@ onMounted(() => {
 .card {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md-plus);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
   background: var(--ds-bg-surface);
 }
 .card h3 {
@@ -956,7 +956,7 @@ onMounted(() => {
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
 }
 .kpi.s {
   color: var(--ds-color-success-600);
@@ -977,7 +977,7 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
   flex-wrap: wrap;
 }
 .toolbar .spacer {
@@ -988,14 +988,14 @@ onMounted(() => {
 }
 .cond-row {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
   flex-wrap: wrap;
 }
 .rule-form {
   border-top: 1px solid var(--ds-border-default);
-  margin-top: 12px;
-  padding-top: 8px;
+  margin-top: var(--ds-spacing-3);
+  padding-top: var(--ds-spacing-2);
 }
 </style>

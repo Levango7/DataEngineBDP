@@ -308,7 +308,7 @@ onMounted(() => {
   .grid.g4,
   .grid.g2 {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: var(--ds-spacing-3);
   }
   /* 卡片内边距收紧，提升小屏空间利用率 */
   .card {

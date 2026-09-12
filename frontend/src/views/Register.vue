@@ -162,7 +162,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage, type FormInstance } from 'element-plus'
 import { useTenantAdminStore, type AdminInvite, type AdminTenant } from '@/stores/tenantAdmin'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const route = useRoute()
 const admin = useTenantAdminStore()
@@ -252,8 +252,15 @@ async function submitForm() {
   const valid = await step2FormRef.value.validate().catch(() => false)
   if (!valid) return
   submitting.value = true
+  // 安全检查：preview.value.invite 可能为 null（邀请码未验证或状态异常）
+  const inviteCode = preview.value.invite?.code
+  if (!inviteCode) {
+    submitting.value = false
+    ElMessage.error(t('register.messages.invalidInvite'))
+    return
+  }
   const result = admin.submitRegistration({
-    code: preview.value.invite!.code,
+    code: inviteCode,
     ...step2
   })
   submitting.value = false
@@ -261,7 +268,8 @@ async function submitForm() {
     ElMessage.error(result.error || t('register.messages.submitFailed'))
     return
   }
-  submittedAt.value = new Date().toLocaleString('zh-CN')
+  // 使用 i18n 当前 locale，避免硬编码 zh-CN
+  submittedAt.value = new Date().toLocaleString(locale.value)
   step.value = 3
 }
 </script>
@@ -273,7 +281,7 @@ async function submitForm() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
+  padding: var(--ds-spacing-10) var(--ds-spacing-5);
   overflow: hidden;
   background:
     radial-gradient(ellipse 1100px 700px at 0% 0%, #dbeafe 0%, transparent 60%),
@@ -326,7 +334,7 @@ async function submitForm() {
   z-index: 2;
   width: 100%;
   max-width: 520px;
-  padding: 36px 40px;
+  padding: var(--ds-spacing-9) var(--ds-spacing-10);
   background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
@@ -365,7 +373,7 @@ async function submitForm() {
 .reg-steps li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   color: var(--ds-border-strong);
   flex: 1;
 }
@@ -392,7 +400,7 @@ async function submitForm() {
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-extrabold);
   flex: none;
-  transition: all 0.2s var(--ease-smooth);
+  transition: all var(--ds-transition-quick);
 }
 .reg-steps li.on .step-dot {
   background: var(--ds-color-primary-500);
@@ -419,7 +427,7 @@ async function submitForm() {
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
   margin: 0 0 22px;
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
 }
 .reg-btn {
   width: 100%;
@@ -439,7 +447,7 @@ async function submitForm() {
 }
 .reg-tip a,
 .reg-tip .reg-link {
-  margin-left: 4px;
+  margin-left: var(--ds-spacing-1);
   color: var(--ds-color-primary-500);
   text-decoration: none;
   font-weight: var(--ds-font-weight-semibold);
@@ -457,7 +465,7 @@ async function submitForm() {
   border: 1px solid var(--ds-color-error-200);
   border-left: 3px solid var(--ds-color-error-500);
   border-radius: var(--ds-radius-md);
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-size: var(--ds-font-size-xs);
   margin: 8px 0;
 }
@@ -466,7 +474,7 @@ async function submitForm() {
   background: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(99, 102, 241, 0.04) 100%);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: var(--ds-radius-md-plus);
-  padding: 12px 16px;
+  padding: var(--ds-spacing-3) var(--ds-spacing-4);
   margin-bottom: 18px;
   font-size: var(--ds-font-size-base);
 }
@@ -507,7 +515,7 @@ async function submitForm() {
 }
 .reg-actions .el-button:first-child {
   flex: 1;
-  margin-right: 8px;
+  margin-right: var(--ds-spacing-2);
 }
 .reg-actions .el-button:last-child {
   flex: 2;
@@ -525,7 +533,7 @@ async function submitForm() {
   color: var(--ds-text-inverse);
   font-size: var(--ds-font-size-5xl);
   font-weight: var(--ds-font-weight-extrabold);
-  line-height: 1;
+  line-height: var(--ds-line-height-none);
   margin: 0 auto 16px;
   box-shadow: 0 6px 18px rgba(16, 185, 129, 0.3);
   animation: regSuccess 0.45s var(--ease-spring);
@@ -533,19 +541,19 @@ async function submitForm() {
 @keyframes regSuccess {
   0% {
     transform: scale(0.5);
-    opacity: 0;
+    opacity: var(--ds-opacity-0);
   }
   60% {
     transform: scale(1.1);
   }
   100% {
     transform: scale(1);
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
   }
 }
 .reg-success-meta {
   list-style: none;
-  padding: 16px 20px;
+  padding: var(--ds-spacing-4) var(--ds-spacing-5);
   margin: 20px 0 0;
   background: var(--ds-bg-base);
   border: 1px solid var(--ds-border-subtle);
@@ -567,7 +575,7 @@ async function submitForm() {
   margin-top: 18px;
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
 }
 
 .reg-bottom {

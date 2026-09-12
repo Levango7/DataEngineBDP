@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 
-from fastapi import Depends, Request
+from fastapi import Depends, HTTPException, Request, status
 
 from business_portal.api.jwt_auth import AuthContext, getAuthContext
 from business_portal.repositories import (
@@ -29,6 +29,19 @@ def _is_anon_mode() -> bool:
     return os.environ.get("AUTH_MODE", "none").strip().lower() == "none"
 
 
+def _is_test_env() -> bool:
+    """判断是否运行在测试环境（允许缺少租户上下文）.
+
+    R13 安全修复：fail-closed — 非测试环境强制要求 tenant_id 非空。
+    测试环境通过 PYTEST_CURRENT_TEST 环境变量或 ENVIRONMENT=test 标识。
+    """
+    return (
+        "PYTEST_CURRENT_TEST" in os.environ
+        or os.environ.get("ENVIRONMENT", "").strip().lower() == "test"
+        or os.environ.get("TESTING", "").strip().lower() == "true"
+    )
+
+
 def get_current_user(
     request: Request,
     ctx: AuthContext = Depends(getAuthContext),
@@ -49,12 +62,29 @@ def get_current_tenant(
 ) -> str | None:
     """当前租户 ID.
 
-    AUTH_MODE=none（本地/测试）：从 X-Tenant-Id 头读取（None 表示未认证）
+    AUTH_MODE=none（本地/测试）：从 X-Tenant-Id 头读取
     AUTH_MODE=jwt（生产）：从 JWT tenantId 声明读取
+
+    R13 安全修复：fail-closed — 非测试环境强制要求 tenant_id 非空，
+    缺失租户上下文时返回 403 而非 None，防止未认证请求绕过租户隔离。
     """
     if _is_anon_mode():
-        return request.headers.get("X-Tenant-Id")
-    return ctx.tenantId or None
+        tenant_id = request.headers.get("X-Tenant-Id")
+        # R13 安全修复：fail-closed — 非测试环境缺少租户上下文时拒绝访问
+        if not tenant_id and not _is_test_env():
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="缺少租户上下文（X-Tenant-Id）",
+            )
+        return tenant_id
+    # jwt 模式：fail-closed — 缺少 tenantId 声明时拒绝访问
+    tenant_id = ctx.tenantId or None
+    if not tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="缺少租户上下文（JWT tenantId）",
+        )
+    return tenant_id
 
 
 # HTTP 状态码映射

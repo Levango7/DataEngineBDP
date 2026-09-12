@@ -773,7 +773,15 @@ const {
   execute: loadNetworkConfig
 } = useApi<NetworkConfig>(
   () => infraApi.getNetworkConfig(selectedEnv.value, selectedClusterId.value),
-  { initialData: null as unknown as NetworkConfig }
+  // 安全初始化：提供符合 NetworkConfig 必填字段的空对象，避免 null as unknown as 双重断言
+  {
+    initialData: {
+      cni: '',
+      podCidr: '',
+      serviceCidr: '',
+      mtu: 0
+    }
+  }
 )
 
 // StorageClass 列表
@@ -881,7 +889,7 @@ onUnmounted(() => {
 .stat-card {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md-plus);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 .stat-content {
   text-align: center;
@@ -890,13 +898,13 @@ onUnmounted(() => {
 .stat-label {
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .stat-value {
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
 }
 .stat-value.healthy {
   color: var(--ds-color-success-600);
@@ -919,15 +927,15 @@ onUnmounted(() => {
 .cell-bar {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
 }
 .comp-card {
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
-  padding: 12px;
-  margin-bottom: 12px;
+  padding: var(--ds-spacing-3);
+  margin-bottom: var(--ds-spacing-3);
   background: var(--ds-bg-surface);
   text-align: center;
 }
@@ -954,7 +962,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 4px;
+  margin-bottom: var(--ds-spacing-1);
 }
 .comp-status .dot {
   width: 8px;
@@ -978,12 +986,12 @@ onUnmounted(() => {
 .tab-loading {
   color: var(--ds-text-secondary);
   text-align: center;
-  padding: 20px;
+  padding: var(--ds-spacing-5);
 }
 .tab-error {
   color: var(--ds-color-error-600);
   text-align: center;
-  padding: 20px;
+  padding: var(--ds-spacing-5);
 }
 </style>
 <!-- 暗色模式覆写（2026-09-12 修复）

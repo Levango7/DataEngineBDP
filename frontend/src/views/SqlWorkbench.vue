@@ -474,24 +474,24 @@ function tablesOfSource(source: string): string[] {
 
 <style scoped>
 .sql-workbench {
-  padding: 20px;
+  padding: var(--ds-spacing-5);
 }
 
 .sub {
   color: var(--ds-text-secondary);
   font-size: var(--ds-font-size-base);
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 
 .editor-card {
-  margin-bottom: 16px;
+  margin-bottom: var(--ds-spacing-4);
 }
 
 .toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: var(--ds-spacing-3);
+  margin-bottom: var(--ds-spacing-3);
 }
 
 .spacer {
@@ -523,7 +523,7 @@ function tablesOfSource(source: string): string[] {
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   user-select: none;
 }
 
@@ -537,19 +537,19 @@ function tablesOfSource(source: string): string[] {
   outline: 2px solid var(--ds-border-focus);
   outline-offset: 2px;
   resize: none;
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   font-family: var(--ds-font-family-mono);
   font-size: var(--ds-font-size-base);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   background: var(--ds-bg-surface);
   color: var(--ds-text-primary);
 }
 
 .sql-hint {
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 
 .hint-text {
@@ -573,8 +573,8 @@ function tablesOfSource(source: string): string[] {
 .result-summary {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 12px;
+  gap: var(--ds-spacing-4);
+  margin-bottom: var(--ds-spacing-3);
   flex-wrap: wrap;
 }
 
@@ -588,25 +588,25 @@ function tablesOfSource(source: string): string[] {
 }
 
 .error-box {
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
 }
 
 /* 执行计划 */
 .explain-block {
-  margin-top: 8px;
+  margin-top: var(--ds-spacing-2);
 }
 
 .explain-summary {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: var(--ds-spacing-4);
+  margin-bottom: var(--ds-spacing-4);
   flex-wrap: wrap;
 }
 
 .source-list {
   display: flex;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   flex-wrap: wrap;
 }
 
@@ -614,7 +614,7 @@ function tablesOfSource(source: string): string[] {
 .join-viz {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: var(--ds-spacing-6);
   flex-wrap: wrap;
   padding: 12px 0;
 }
@@ -630,7 +630,7 @@ function tablesOfSource(source: string): string[] {
 .source-header {
   font-size: var(--ds-font-size-lg);
   font-weight: var(--ds-font-weight-semibold);
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -641,7 +641,7 @@ function tablesOfSource(source: string): string[] {
 .source-tables {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   justify-content: center;
 }
 
@@ -651,7 +651,7 @@ function tablesOfSource(source: string): string[] {
   align-items: center;
   color: var(--ds-color-warning-500);
   font-size: var(--ds-font-size-base);
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 
 .merge-arrow .el-icon {

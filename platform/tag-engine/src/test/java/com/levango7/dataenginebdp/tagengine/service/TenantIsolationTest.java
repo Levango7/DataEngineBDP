@@ -121,13 +121,13 @@ class TenantIsolationTest {
                 .tenantId(TENANT_B).name("level_b").type(TagType.FACT).build());
 
         // 租户 B 列表 → 仅 1 个（自己的）
-        List<TagDefinition> bTags = tagService.listTagDefinitions();
+        List<TagDefinition> bTags = tagService.listTagDefinitions(TENANT_B);
         assertEquals(1, bTags.size(), "租户 B 应仅看到自己的 1 个标签");
         assertEquals("level_b", bTags.get(0).getName());
 
         // 租户 A 列表 → 仅 2 个（自己的）
         asTenantA();
-        List<TagDefinition> aTags = tagService.listTagDefinitions();
+        List<TagDefinition> aTags = tagService.listTagDefinitions(TENANT_A);
         assertEquals(2, aTags.size(), "租户 A 应仅看到自己的 2 个标签");
     }
 
@@ -223,7 +223,7 @@ class TenantIsolationTest {
 
         // 验证：租户 B 列表中没有这个标签
         asTenantB();
-        List<TagDefinition> bTags = tagService.listTagDefinitions();
+        List<TagDefinition> bTags = tagService.listTagDefinitions(TENANT_B);
         assertTrue(bTags.stream().noneMatch(t -> t.getTagId().equals(def.getTagId())),
                 "被越权创建的标签不应出现在租户 B 的列表中");
     }
@@ -350,11 +350,11 @@ class TenantIsolationTest {
                 ComputeRequest.builder().tenantId(TENANT_A).mode("full").build());
 
         // 验证租户 A 能读取
-        assertNotNull(profileService.getProfile("u_a1"), "租户 A 应能读取自己的用户画像");
+        assertNotNull(profileService.getProfile("u_a1", TENANT_A), "租户 A 应能读取自己的用户画像");
 
         // 租户 B 尝试读取同一用户 → 应返回 null
         asTenantB();
-        assertNull(profileService.getProfile("u_a1"),
+        assertNull(profileService.getProfile("u_a1", TENANT_B),
                 "租户 B 不应能读取租户 A 用户的画像");
     }
 
@@ -366,14 +366,14 @@ class TenantIsolationTest {
         // 确保无租户上下文
         TenantContext.clear();
         assertThrows(IllegalStateException.class,
-                () -> tagService.listTagDefinitions(),
+                () -> tagService.listTagDefinitions(null),
                 "无租户上下文时应抛 IllegalStateException，防止未认证请求绕过隔离");
         assertThrows(IllegalStateException.class,
                 () -> tagService.createTagDefinition(TagDefinitionRequest.builder()
                         .tenantId("x").name("y").type(TagType.FACT).build()),
                 "无租户上下文时创建标签应抛异常");
         assertThrows(IllegalStateException.class,
-                () -> profileService.getProfile("any"),
+                () -> profileService.getProfile("any", null),
                 "无租户上下文时查询画像应抛异常");
         assertThrows(IllegalStateException.class,
                 () -> audienceService.selectAudience(AudienceRequest.builder().build()),

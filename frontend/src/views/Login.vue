@@ -222,7 +222,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 60px 48px;
+  padding: var(--ds-spacing-15) var(--ds-spacing-12);
   overflow: hidden;
 }
 .left-bg-grid {
@@ -261,11 +261,11 @@ async function handleLogin() {
 }
 @keyframes orbFloat {
   0% {
-    opacity: 0;
+    opacity: var(--ds-opacity-0);
     transform: translateY(12px);
   }
   100% {
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
     transform: translateY(0);
   }
 }
@@ -273,7 +273,7 @@ async function handleLogin() {
 @media (prefers-reduced-motion: reduce) {
   .left-bg-glow {
     animation: none;
-    opacity: 1;
+    opacity: var(--ds-opacity-10);
     transform: none;
   }
 }
@@ -289,7 +289,7 @@ async function handleLogin() {
   font-size: var(--ds-font-size-xl);
   font-weight: var(--ds-font-weight-extrabold);
   color: var(--ds-text-primary);
-  margin-bottom: 64px;
+  margin-bottom: var(--ds-spacing-16);
   letter-spacing: 0.3px;
 }
 .brand .dot {
@@ -318,7 +318,7 @@ async function handleLogin() {
 .slogan {
   font-size: var(--ds-font-size-5xl);
   font-weight: var(--ds-font-weight-extrabold);
-  line-height: 1.35;
+  line-height: var(--ds-line-height-snug);
   color: var(--ds-text-primary);
   margin: 0 0 18px;
   letter-spacing: 0.5px;
@@ -333,19 +333,19 @@ async function handleLogin() {
 .sub-slogan {
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
-  line-height: 1.7;
+  line-height: var(--ds-line-height-extra-loose);
   margin: 0 0 56px;
 }
 .metrics {
   display: flex;
-  gap: 36px;
+  gap: var(--ds-spacing-9);
   border-top: 1px solid rgba(100, 116, 139, 0.18);
-  padding-top: 24px;
+  padding-top: var(--ds-spacing-6);
 }
 .metric-num {
   font-size: var(--ds-font-size-4xl);
   font-weight: var(--ds-font-weight-extrabold);
-  line-height: 1.2;
+  line-height: var(--ds-line-height-heading);
   color: var(--ds-color-gray-800);
 }
 .metric-num span {
@@ -365,7 +365,7 @@ async function handleLogin() {
 .metric-lbl {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  margin-top: 4px;
+  margin-top: var(--ds-spacing-1);
 }
 
 /* === 右侧表单区 === */
@@ -374,7 +374,7 @@ async function handleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px 48px;
+  padding: var(--ds-spacing-8) var(--ds-spacing-12);
 }
 .right-topbar {
   position: absolute;
@@ -388,7 +388,7 @@ async function handleLogin() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   height: 30px;
   padding: 0 10px;
   border-radius: var(--ds-radius-lg);
@@ -398,7 +398,7 @@ async function handleLogin() {
   font-size: var(--ds-font-size-xs);
   font-weight: var(--ds-font-weight-semibold);
   cursor: pointer;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  box-shadow: var(--ds-shadow-sm);
   transition:
     background 0.18s var(--ease-smooth),
     color 0.18s var(--ease-smooth),
@@ -438,7 +438,7 @@ async function handleLogin() {
   margin: 0 0 32px;
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-tertiary);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
 }
 .form-row {
   display: flex;
@@ -451,7 +451,7 @@ async function handleLogin() {
   color: var(--ds-color-primary-500);
   text-decoration: none;
   font-weight: var(--ds-font-weight-medium);
-  transition: color 0.18s var(--ease-smooth);
+  transition: color var(--ds-transition-fast);
 }
 .forgot:hover {
   color: var(--ds-color-primary-700);
@@ -486,9 +486,9 @@ async function handleLogin() {
 }
 .error {
   color: var(--ds-color-error-700);
-  margin-top: 12px;
+  margin-top: var(--ds-spacing-3);
   font-size: var(--ds-font-size-xs);
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   background: var(--ds-color-error-50);
   border: 1px solid var(--ds-color-error-200);
   border-radius: var(--ds-radius-md);
@@ -505,11 +505,11 @@ async function handleLogin() {
   color: var(--ds-border-default);
 }
 .bottom-link {
-  margin-left: 4px;
+  margin-left: var(--ds-spacing-1);
   color: var(--ds-color-primary-500);
   text-decoration: none;
   font-weight: var(--ds-font-weight-semibold);
-  transition: color 0.18s var(--ease-smooth);
+  transition: color var(--ds-transition-fast);
 }
 .bottom-link:hover {
   color: var(--ds-color-primary-700);
@@ -525,7 +525,7 @@ async function handleLogin() {
   color: var(--ds-text-secondary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   flex-wrap: wrap;
 }
 .dev-tip-label {
@@ -580,7 +580,7 @@ async function handleLogin() {
     display: none;
   }
   .login-right {
-    padding: 40px 24px;
+    padding: var(--ds-spacing-10) var(--ds-spacing-6);
   }
 }
 /* === 右上角二合一胶囊：i18n + theme（2026-09-07 整合） === */
@@ -598,7 +598,7 @@ async function handleLogin() {
   background: rgba(255, 255, 255, 0.9);
   border: 1.5px solid var(--ds-border-default);
   border-radius: var(--ds-radius-2xl);
-  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08);
+  box-shadow: var(--ds-shadow-md);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
@@ -611,7 +611,7 @@ async function handleLogin() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   height: 32px;
   padding: 0 14px;
   background: transparent;
@@ -631,7 +631,7 @@ async function handleLogin() {
 }
 .tb-pill-ic {
   font-size: var(--ds-font-size-base);
-  line-height: 1;
+  line-height: var(--ds-line-height-none);
 }
 .tb-divider {
   width: 1px;

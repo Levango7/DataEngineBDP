@@ -326,7 +326,7 @@ onUnmounted(() => {
   .grid.g3,
   .grid.g2 {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: var(--ds-spacing-3);
   }
   /* 卡片内边距收紧 */
   .card {

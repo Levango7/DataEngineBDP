@@ -117,10 +117,14 @@ public interface TagStore {
     /**
      * 获取单个用户的画像（全量标签值）。
      *
-     * @param userId 用户 ID
-     * @return 用户画像；不存在返回 null
+     * <p>R13 安全修复：添加 tenantId 参数实现租户隔离，调用方必须传入从 JWT 获取的 tenantId，
+     * Store 实现层据此过滤，防止跨租户越权读取画像。</p>
+     *
+     * @param userId   用户 ID
+     * @param tenantId 租户 ID（来自 JWT，不可为 null/空）
+     * @return 用户画像；不存在或不属于该租户返回 null
      */
-    UserProfile getProfile(String userId);
+    UserProfile getProfile(String userId, String tenantId);
 
     /**
      * 按标签条件查询用户列表。

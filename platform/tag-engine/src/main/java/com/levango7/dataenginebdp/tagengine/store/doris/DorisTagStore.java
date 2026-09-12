@@ -240,9 +240,9 @@ public class DorisTagStore implements TagStore {
     // ==================== 画像查询 ====================
 
     @Override
-    public UserProfile getProfile(String userId) {
-        // 简化：租户过滤由调用方保证
-        DorisSqlGenerator.PreparedSql ps = sqlGenerator.buildProfileSql(wideTable, null, userId);
+    public UserProfile getProfile(String userId, String tenantId) {
+        // R13 安全修复：使用调用方传入的 tenantId 进行租户过滤，不再传 null
+        DorisSqlGenerator.PreparedSql ps = sqlGenerator.buildProfileSql(wideTable, tenantId, userId);
         try (Connection conn = dataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(ps.sql())) {
             bindParams(stmt, ps.params());
@@ -253,7 +253,7 @@ public class DorisTagStore implements TagStore {
                 return mapRowToProfile(rs);
             }
         } catch (SQLException e) {
-            log.error("DorisTagStore.getProfile failed: userId={}", userId, e);
+            log.error("DorisTagStore.getProfile failed: userId={}, tenantId={}", userId, tenantId, e);
             throw new RuntimeException("query profile failed", e);
         }
     }

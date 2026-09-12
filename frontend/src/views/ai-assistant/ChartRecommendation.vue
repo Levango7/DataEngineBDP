@@ -152,7 +152,7 @@ function onSelect(rec: ChartRecommendation): void {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md-plus);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
 }
 .rec-header {
   display: flex;
@@ -176,17 +176,17 @@ function onSelect(rec: ChartRecommendation): void {
 .rec-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .rec-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   padding: 10px 12px;
   border: 1px solid var(--ds-border-subtle);
   border-radius: var(--ds-radius-md);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all var(--ds-transition-fast);
   background: var(--ds-bg-surface);
 }
 .rec-item:hover {
@@ -246,13 +246,13 @@ function onSelect(rec: ChartRecommendation): void {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   min-width: 0;
 }
 .rec-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   font-size: var(--ds-font-size-base);
   font-weight: var(--ds-font-weight-semibold);
 }
@@ -262,7 +262,7 @@ function onSelect(rec: ChartRecommendation): void {
 .rec-reason {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-tertiary);
-  line-height: 1.5;
+  line-height: var(--ds-line-height-normal);
 }
 .rec-fields {
   display: flex;
@@ -273,7 +273,7 @@ function onSelect(rec: ChartRecommendation): void {
 .field-group {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 .field-label {
   color: var(--ds-text-tertiary);

@@ -710,7 +710,7 @@ onMounted(() => {
 .template-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: 16px;
+  gap: var(--ds-spacing-4);
   min-height: 200px;
 }
 .template-card {
@@ -722,7 +722,7 @@ onMounted(() => {
 }
 .template-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--ds-shadow-md);
 }
 .card-header {
   display: flex;
@@ -732,7 +732,7 @@ onMounted(() => {
 }
 .card-icon {
   font-size: var(--ds-font-size-4xl);
-  line-height: 1;
+  line-height: var(--ds-line-height-none);
 }
 .card-title-wrap {
   flex: 1;
@@ -754,7 +754,7 @@ onMounted(() => {
 .card-desc {
   font-size: var(--ds-font-size-base);
   color: var(--ds-text-secondary);
-  line-height: 1.5;
+  line-height: var(--ds-line-height-normal);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -772,13 +772,13 @@ onMounted(() => {
   gap: 14px;
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
-  padding-top: 8px;
+  padding-top: var(--ds-spacing-2);
   border-top: 1px solid var(--ds-border-subtle);
 }
 .meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
 }
 
 /* 详情弹窗 */
@@ -787,10 +787,10 @@ onMounted(() => {
   overflow-y: auto;
 }
 .loading-wrap {
-  padding: 20px;
+  padding: var(--ds-spacing-5);
 }
 .detail-tabs {
-  margin-top: 16px;
+  margin-top: var(--ds-spacing-4);
 }
 
 /* 架构图 */
@@ -800,14 +800,14 @@ onMounted(() => {
 .arch-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: var(--ds-spacing-3);
+  margin-bottom: var(--ds-spacing-5);
 }
 .arch-flow {
   display: flex;
-  gap: 12px;
+  gap: var(--ds-spacing-3);
   flex-wrap: wrap;
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   background: var(--ds-bg-subtle);
   border-radius: var(--ds-radius-md);
 }
@@ -815,7 +815,7 @@ onMounted(() => {
   background: var(--ds-bg-surface);
   border: 1px solid var(--ds-border-default);
   border-radius: var(--ds-radius-md);
-  padding: 8px 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
   min-width: 140px;
   text-align: center;
 }
@@ -872,17 +872,17 @@ onMounted(() => {
 }
 .step-io {
   display: flex;
-  gap: 16px;
-  margin-bottom: 8px;
+  gap: var(--ds-spacing-4);
+  margin-bottom: var(--ds-spacing-2);
   font-size: var(--ds-font-size-base);
 }
 .step-io :deep(.el-tag) {
-  margin-right: 4px;
+  margin-right: var(--ds-spacing-1);
 }
 .step-code {
   background: var(--ds-text-primary);
   color: var(--ds-text-inverse);
-  padding: 12px;
+  padding: var(--ds-spacing-3);
   border-radius: var(--ds-radius-md);
   font-size: var(--ds-font-size-xs);
   overflow-x: auto;
@@ -893,7 +893,7 @@ onMounted(() => {
 .viz-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  gap: var(--ds-spacing-3);
 }
 .viz-panel-card {
   border-radius: var(--ds-radius-md);
@@ -904,11 +904,11 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .panel-meta {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   align-items: center;
   margin-bottom: 6px;
 }
@@ -924,10 +924,10 @@ onMounted(() => {
 /* README */
 .readme-content {
   background: var(--ds-bg-subtle);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
   border-radius: var(--ds-radius-md);
   font-size: var(--ds-font-size-base);
-  line-height: 1.6;
+  line-height: var(--ds-line-height-loose);
   white-space: pre-wrap;
   font-family: var(--ds-font-family-mono);
 }
@@ -937,7 +937,7 @@ onMounted(() => {
   font-size: var(--ds-font-size-xs);
   color: var(--ds-text-secondary);
   margin-top: 2px;
-  line-height: 1.4;
+  line-height: var(--ds-line-height-snug);
 }
 
 /* 部署结果 */

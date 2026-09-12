@@ -476,22 +476,22 @@ onUnmounted(() => {
   background: var(--ds-color-success-50);
   padding: 2px 6px;
   border-radius: var(--ds-radius-sm);
-  margin-right: 4px;
+  margin-right: var(--ds-spacing-1);
 }
 .secret-warning {
   background: var(--ds-color-warning-50);
   border: 1px solid var(--ds-color-warning-400);
   border-radius: var(--ds-radius-md);
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  padding: var(--ds-spacing-2) var(--ds-spacing-3);
+  margin-bottom: var(--ds-spacing-3);
   color: var(--ds-color-warning-800);
   font-size: var(--ds-font-size-base);
 }
 .secret-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-3);
 }
 .secret-cell {
   flex: 1;

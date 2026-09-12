@@ -418,7 +418,7 @@ onUnmounted(() => {
 <style scoped>
 /* 告警详情行：背景使用 design tokens 次级表面色 */
 .alert-detail-row {
-  margin-bottom: 12px;
+  margin-bottom: var(--ds-spacing-3);
   padding: 6px 8px;
   background: var(--ds-bg-subtle);
   border-radius: var(--ds-radius-sm);
@@ -451,7 +451,7 @@ onUnmounted(() => {
 .alerts-title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
 }
 .alert-filter {
   width: 140px;
@@ -467,7 +467,7 @@ onUnmounted(() => {
 .empty-cell {
   text-align: center;
   color: var(--ds-text-tertiary);
-  padding: 16px;
+  padding: var(--ds-spacing-4);
 }
 
 /* 响应式断点：中等屏幕紧凑化 */
@@ -486,8 +486,8 @@ onUnmounted(() => {
     font-size: var(--ds-font-size-xs);
   }
   :deep(.el-table .cell) {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--ds-spacing-2);
+    padding-right: var(--ds-spacing-2);
   }
   .health-grid {
     grid-template-columns: 1fr !important;

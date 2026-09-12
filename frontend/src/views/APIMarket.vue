@@ -827,7 +827,7 @@ onUnmounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ds-spacing-2);
 }
 .api-name {
   font-weight: var(--ds-font-weight-semibold);
@@ -845,8 +845,8 @@ onUnmounted(() => {
 .api-card-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--ds-spacing-2);
+  margin-bottom: var(--ds-spacing-2);
 }
 .api-card-meta code {
   font-size: var(--ds-font-size-xs);
@@ -861,7 +861,7 @@ onUnmounted(() => {
 .api-card-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: var(--ds-spacing-1);
   margin-bottom: 10px;
 }
 .tag {
@@ -882,10 +882,10 @@ onUnmounted(() => {
 /* Tab 切换栏：使用 Element Plus 按钮组，保留底部间距 */
 .tab-bar {
   display: flex;
-  gap: 8px;
+  gap: var(--ds-spacing-2);
   border-bottom: 1px solid var(--ds-border-subtle);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin-bottom: var(--ds-spacing-3);
+  padding-bottom: var(--ds-spacing-2);
 }
 .tab-content {
   min-height: 200px;
@@ -910,7 +910,7 @@ onUnmounted(() => {
   align-items: flex-end;
   gap: 2px;
   height: 100px;
-  padding: 8px;
+  padding: var(--ds-spacing-2);
   background: var(--ds-bg-subtle);
   border-radius: var(--ds-radius-sm);
 }
@@ -925,7 +925,7 @@ onUnmounted(() => {
 @media (max-width: 1024px) {
   .api-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 12px;
+    gap: var(--ds-spacing-3);
   }
   :deep(.el-table) {
     font-size: var(--ds-font-size-sm);
@@ -942,8 +942,8 @@ onUnmounted(() => {
     font-size: var(--ds-font-size-xs);
   }
   :deep(.el-table .cell) {
-    padding-left: 8px;
-    padding-right: 8px;
+    padding-left: var(--ds-spacing-2);
+    padding-right: var(--ds-spacing-2);
   }
   .tab-bar {
     flex-wrap: wrap;

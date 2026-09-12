@@ -10,7 +10,7 @@
 | --- | --- | --- | --- |
 | JDK | 17 | 17.0.10 (LTS) | [Adoptium](https://adoptium.net/) |
 | Maven | 3.9 | 3.9.6 | [maven.apache.org](https://maven.apache.org/download.cgi) |
-| Go | 1.26 | 1.26.0 | [go.dev](https://go.dev/dl/) |
+| Go | 1.22+ | 1.23.4 | [go.dev](https://go.dev/dl/) |
 | Python | 3.11 | 3.11.8 | [python.org](https://www.python.org/downloads/) |
 | Node.js | 22 | 22 LTS | [nodejs.org](https://nodejs.org/) |
 | Git | 2.40 | 2.44 | [git-scm.com](https://git-scm.com/) |

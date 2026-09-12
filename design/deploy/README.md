@@ -34,7 +34,7 @@ for chart in encaps-layer sql-gateway catalog; do
     -f profiles/$ENV.yaml \
     > "rendered/$ENV-$chart.yaml"
 done
-# 说明：design/deploy/charts 下 81 个 Chart 为独立部署单元，无顶层 sq-bigdata 聚合 Chart。
+# 说明：design/deploy/charts 下 88 个 Chart 为独立部署单元，无顶层 sq-bigdata 聚合 Chart。
 # 生产建议使用 ArgoCD ApplicationSet（argocd/applicationsets/platform-engines.yaml）批量编排。
 
 # 3) 部署（封装层先于平台组件，见 values-base.yaml encapsulation.enabled）

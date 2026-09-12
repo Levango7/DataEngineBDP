@@ -564,6 +564,6 @@ onMounted(() => {
 .pagination-wrap {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
+  margin-top: var(--ds-spacing-4);
 }
 </style>

@@ -56,9 +56,9 @@ public class ProfileController {
     @Operation(summary = "获取单用户画像")
     @GetMapping("/{userId}")
     public ResponseEntity<UserProfile> getProfile(@PathVariable String userId) {
-        // R12 安全修复：fail-closed 租户校验
-        requireTenant();
-        UserProfile profile = profileService.getProfile(userId);
+        // R13 安全修复：fail-closed 租户校验 + 显式传递 tenantId 实现租户隔离
+        String tenantId = requireTenant();
+        UserProfile profile = profileService.getProfile(userId, tenantId);
         if (profile == null) {
             return ResponseEntity.notFound().build();
         }
