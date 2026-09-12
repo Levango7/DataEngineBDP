@@ -48,7 +48,7 @@ jobs:
       # （New Code Definition = previous version，需历史 commit 支持 blame）
       # ============================================================
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
