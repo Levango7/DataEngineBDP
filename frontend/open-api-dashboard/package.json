@@ -12,15 +12,15 @@
     "lint": "eslint src --ext .vue,.js,.ts --fix"
   },
   "dependencies": {
-    "vue": "^3.5.0",
+    "vue": "^3.5.42",
     "vue-router": "^4.4.0",
     "pinia": "^2.2.0",
-    "axios": "^1.7.0",
+    "axios": "^1.20.0",
     "echarts": "^5.5.0",
     "vue-echarts": "^6.7.0",
-    "element-plus": "^2.8.0",
+    "element-plus": "^2.14.5",
     "@element-plus/icons-vue": "^2.3.1",
-    "dayjs": "^1.11.10"
+    "dayjs": "^1.11.23"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.0",
