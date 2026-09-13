@@ -696,6 +696,7 @@ function renderTrendChart() {
     xAxis: {
       type: 'category',
       data: days,
+      // ECharts 在 canvas 上绘制，不支持 CSS 变量，因此使用固定颜色（对应 --ds-color-gray-300）
       axisLine: { lineStyle: { color: '#cbd5e1' } },
       axisLabel: { color: 'var(--ds-text-secondary)' }
     },
