@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -42,6 +43,7 @@ import java.util.Map;
 @Tag(name = "封装数据-Flink引擎", description = "Flink作业管理与监控")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/flink")
+@PreAuthorize("isAuthenticated()")  // R16 安全修复：类级认证校验
 public class FlinkController {
 
     private final FlinkClient flinkClient;
@@ -53,7 +55,7 @@ public class FlinkController {
         String tenantId = requireTenant();
         log.info("列出 Flink 作业: status={}, tenant={}", status, tenantId);
         try {
-            return ResponseEntity.ok(flinkClient.listJobs(status));
+            return ResponseEntity.ok(flinkClient.listJobs(tenantId, status));
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -80,7 +82,7 @@ public class FlinkController {
             int parallelism = req.parallelism() != null ? req.parallelism() : 1;
             long checkpointMs = req.checkpointIntervalMs() != null ? req.checkpointIntervalMs() : 60000L;
             String sql = req.sql() != null ? req.sql() : "";
-            return ResponseEntity.ok(flinkClient.submitJob(req.name(), sql, parallelism, checkpointMs));
+            return ResponseEntity.ok(flinkClient.submitJob(tenantId, req.name(), sql, parallelism, checkpointMs));
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
@@ -95,12 +97,16 @@ public class FlinkController {
         String tenantId = requireTenant();
         log.info("取消 Flink 作业: jobId={}, tenant={}", id, tenantId);
         try {
-            flinkClient.cancelJob(id);
+            flinkClient.cancelJob(tenantId, id);
             return ResponseEntity.ok(Map.of("cancelled", true, "jobId", id));
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Flink 引擎不可用", "message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("非法 Flink jobId: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "invalid jobId", "message", e.getMessage()));
         }
     }
 
@@ -111,11 +117,15 @@ public class FlinkController {
         String tenantId = requireTenant();
         log.info("查询 Flink 作业状态: jobId={}, tenant={}", id, tenantId);
         try {
-            return ResponseEntity.ok(flinkClient.getJobStatus(id));
+            return ResponseEntity.ok(flinkClient.getJobStatus(tenantId, id));
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Flink 引擎不可用", "message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("非法 Flink jobId: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "invalid jobId", "message", e.getMessage()));
         }
     }
 
@@ -126,12 +136,16 @@ public class FlinkController {
         String tenantId = requireTenant();
         log.info("查询 Flink Checkpoint: jobId={}, tenant={}", id, tenantId);
         try {
-            List<Map<String, Object>> checkpoints = flinkClient.getCheckpoints(id);
+            List<Map<String, Object>> checkpoints = flinkClient.getCheckpoints(tenantId, id);
             return ResponseEntity.ok(checkpoints);
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Flink 引擎不可用", "message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("非法 Flink jobId: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "invalid jobId", "message", e.getMessage()));
         }
     }
 
@@ -152,11 +166,15 @@ public class FlinkController {
         String tenantId = requireTenant();
         log.info("查询 Flink 反压: jobId={}, tenant={}", id, tenantId);
         try {
-            return ResponseEntity.ok(flinkClient.getBackpressure(id));
+            return ResponseEntity.ok(flinkClient.getBackpressure(tenantId, id));
         } catch (EngineUnavailableException e) {
             log.warn("Flink 引擎不可用: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
                     .body(Map.of("error", "Flink 引擎不可用", "message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.warn("非法 Flink jobId: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "invalid jobId", "message", e.getMessage()));
         }
     }
 

@@ -389,7 +389,7 @@ curl -u "your-token-here:" https://sonarcloud.io/api/user_tokens/search
 
 ## 附录 B：项目模块清单
 
-当前 `platform/` 下共 38 个 Java 模块，每个模块对应一个独立的 SonarCloud 项目：
+当前 `platform/` 下共 38 个模块（含 Java/Go/Python 多语言，对应 platform/ 一级子目录数），每个模块对应一个独立的 SonarCloud 项目：
 
 | # | 模块名 | projectKey |
 |---|--------|------------|

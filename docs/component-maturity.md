@@ -52,9 +52,9 @@
 | finops | Java 17 双服务 cost-model / dashboard（Spring Boot 3.2.x + JPA）+ exporters 与 Prometheus 告警规则 YAML | 服务级（部分功能） | H2 文件（cost-model / dashboard 各自 `./data/*-db`），`DB_URL` 切 PostgreSQL | 成本归集依赖 Prometheus / Kubernetes 指标真实采集 |
 | operations-api | Python 3.11 · FastAPI + Pydantic（合同管理 CRUD，完整 MVC：models / repositories / services / api/routers） | 服务级 | 内存 dict（`ContractRepository` 骨架），TODO 替换 PostgreSQL | 内存存储骨架，生产需替换 PostgreSQL；缺鉴权中间件 / CORS / Prometheus 指标 |
 
-## 三、骨架 / Mock 默认（15 个）
+## 三、骨架 / Mock 默认（12 个，另有 3 个已降级为规划并移至 design/planned/）
 
-> 🧊 **骨架冻结期（v2.1 ~ v2.2）**：以下 15 个骨架组件统一标记为 `frozen-until-mvp`，冻结期内不新增骨架组件、不做大规模重构。处置决策见下表最后一列，详见 [ROADMAP.md - 骨架冻结期](../ROADMAP.md#骨架冻结期v21--v22)。
+> 🧊 **骨架冻结期（v2.1 ~ v2.2）**：以下 12 个骨架组件（另有 3 个已降级为规划并移至 design/planned/：model-finetuning/registry/knative）统一标记为 `frozen-until-mvp`，冻结期内不新增骨架组件、不做大规模重构。处置决策见下表最后一列，详见 [ROADMAP.md - 骨架冻结期](../ROADMAP.md#骨架冻结期v21--v22)。
 
 | 组件 | 技术栈 | 成熟度 | 默认持久层 | 关键缺口 | 处置决策（frozen-until-mvp） |
 | --- | --- | --- | --- | --- | --- |

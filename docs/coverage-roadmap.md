@@ -135,7 +135,7 @@
 | llmops | ~55% | P1 | LLM Ops |
 | open-api-catalog | ~50% | P0 | API 目录 |
 | industry-templates | ~70% | P2 | 行业模板 |
-| evaluation | **~66%** ↑ | P0 | **P0 补充后大幅提升**：从 ~45% 提升，新增 92 个测试全部通过（llm-gateway/evaluation） |
+| llm-gateway/evaluation | **~66%** ↑ | P0 | **P0 补充后大幅提升**：从 ~45% 提升，新增 92 个测试全部通过（llm-gateway/evaluation） |
 | operations-api | ~50% | P1 | 运维 API 服务 |
 | batch-pipeline | ~45% | P1 | 批处理流水线 |
 
@@ -167,7 +167,7 @@
 **范围**：
 - Java：real-time-pipeline、stream-batch-scheduler、flink-cdc、infra-orchestrator、infra-provider-private、infra-provider-cloud、infra-provider-xinchang
 - Go：vector-engine、infra-provider-baremetal、karmada/failover/engine
-- Python：ml-platform、open-api-catalog、evaluation
+- Python：ml-platform、open-api-catalog、llm-gateway/evaluation
 
 **预期结果**：
 - Java 整体覆盖率：42.26% → ~50%
@@ -177,7 +177,7 @@
 **实际结果（2026-08-13 完成，commit 6c22b1d）**：
 - Java 整体覆盖率：42.26% → ~44%（sql-gateway 行覆盖率提升至 70.49%）
 - Go 整体覆盖率：~30% → ~45%（**超出预期**，5 个模块达标）
-- Python 整体覆盖率：~64% → ~66%（evaluation 新增 92 个测试全部通过）
+- Python 整体覆盖率：~64% → ~66%（llm-gateway/evaluation 新增 92 个测试全部通过）
 - 详细记录见 §5
 
 **验收标准**：

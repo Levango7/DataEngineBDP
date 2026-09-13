@@ -244,9 +244,9 @@ bash scripts/poc/run-poc.sh
 | open-api-catalog | platform/open-api-catalog | 开放 API 服务目录 | 70+ |
 | asset-exchange | platform/asset-exchange | 数据资产流通 | 70+ |
 | chunker | platform/chunker | 文档分块服务，向量化预处理 | 60+ |
-| model-finetuning | platform/model-finetuning | 模型微调服务，支持 LoRA / 全参微调 | 60+ |
+| operations-api | platform/operations-api | 合同管理 CRUD 服务（FastAPI + Pydantic，完整 MVC） | 60+ |
 | nl2sql | platform/nl2sql | 自然语言转 SQL 服务，Text2SQL 引擎 | 60+ |
-| registry | platform/registry | 元数据注册中心服务 | 60+ |
+| llm-gateway-evaluation | platform/llm-gateway/evaluation | 大模型网关评测子模块（FastAPI 评测脚手架） | 60+ |
 
 ### 配置与部署组件（2 个）
 

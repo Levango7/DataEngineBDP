@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -45,6 +46,7 @@ import java.util.Map;
 @Tag(name = "封装数据-数据源管理", description = "数据源CRUD与连接测试")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/datasources")
+@PreAuthorize("isAuthenticated()")  // R16 安全修复：类级认证校验
 public class DataSourceController {
 
     private final DataSourceRepository repository;

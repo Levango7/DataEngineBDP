@@ -229,7 +229,7 @@ graph LR
 
 ## 骨架冻结期（v2.1 ~ v2.2）
 
-> **冻结声明**：v2.1 ~ v2.2 周期内不再新增骨架组件（skeleton / Mock-default），现有 **15 个骨架组件**统一标记为 `frozen-until-mvp`，按处置决策分类管理，避免骨架无序膨胀稀释工程资源。
+> **冻结声明**：v2.1 ~ v2.2 周期内不再新增骨架组件（skeleton / Mock-default），现有 **12 个骨架组件**（另有 3 个已降级为规划并移至 design/planned/：model-finetuning/registry/knative）统一标记为 `frozen-until-mvp`，按处置决策分类管理，避免骨架无序膨胀稀释工程资源。
 >
 > 冻结期目标：把工程精力集中在"真实可部署 22 组件 + 服务级 7 组件"的主链路加固上，待 v2.2 MVP 验收后再按处置决策逐项激活或淘汰骨架组件。
 

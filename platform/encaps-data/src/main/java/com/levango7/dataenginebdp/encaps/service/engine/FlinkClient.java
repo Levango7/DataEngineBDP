@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * Flink REST API 客户端。
@@ -30,12 +31,32 @@ import java.util.Map;
  *   <li>GET  /jobs/{id}/backpressure — 反压指标</li>
  * </ul>
  * 连接失败时抛 {@link EngineUnavailableException}，由 Controller 转 503。</p>
+ *
+ * <h3>租户隔离（R16 安全修复）</h3>
+ * <p>所有方法均接受 {@code tenantId} 参数：
+ * <ul>
+ *   <li>{@link #listJobs} 仅返回 job name 以 {@code tenant_{tenantId}_} 为前缀的作业</li>
+ *   <li>{@link #submitJob} 在 job name 前自动加 {@code tenant_{tenantId}_} 前缀</li>
+ *   <li>{@link #getJobStatus}/{@link #cancelJob}/{@link #getCheckpoints}/{@link #getBackpressure}
+ *       先查询作业详情确认 job name 归属当前租户，越权访问抛 {@link EngineUnavailableException}</li>
+ * </ul>
+ * </p>
+ *
+ * <h3>路径注入防护（R16 安全修复）</h3>
+ * <p>所有接受 {@code jobId} 的方法均校验其为 32 位十六进制字符串（Flink job ID 标准格式），
+ * 非法则抛 {@link IllegalArgumentException}，防止路径注入与 SSRF。</p>
  */
 @Slf4j
 @Service
 public class FlinkClient {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** Flink job ID 格式：32 位十六进制字符串。 */
+    private static final Pattern JOB_ID_PATTERN = Pattern.compile("^[a-fA-F0-9]{32}$");
+
+    /** 租户作业名前缀模板：tenant_{tenantId}_ */
+    private static final String TENANT_JOB_PREFIX_TEMPLATE = "tenant_%s_";
 
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(5))
@@ -46,12 +67,15 @@ public class FlinkClient {
     private String restUrl;
 
     /**
-     * 列出 Flink 作业。
+     * 列出 Flink 作业（租户隔离：仅返回当前租户的作业）。
      *
-     * @param status 状态过滤（可选，如 RUNNING/FAILED）
+     * @param tenantId 租户 ID（不可为空）
+     * @param status   状态过滤（可选，如 RUNNING/FAILED）
      * @return 作业列表，每项含 id/name/state/startTime/duration 等
      */
-    public List<Map<String, Object>> listJobs(String status) {
+    public List<Map<String, Object>> listJobs(String tenantId, String status) {
+        requireTenant(tenantId);
+        String prefix = tenantJobPrefix(tenantId);
         JsonNode root = getJson("/jobs");
         JsonNode jobsArr = root.path("jobs");
         List<Map<String, Object>> result = new ArrayList<>();
@@ -59,6 +83,10 @@ public class FlinkClient {
             String jid = j.path("jid").asText();
             String jname = j.path("name").asText();
             String jstate = j.path("state").asText();
+            // 租户隔离：仅返回当前租户前缀的作业
+            if (!jname.startsWith(prefix)) {
+                continue;
+            }
             // 状态过滤
             if (status != null && !status.isBlank() && !status.equalsIgnoreCase(jstate)) {
                 continue;
@@ -78,10 +106,17 @@ public class FlinkClient {
     /**
      * 获取作业详情（状态）。
      *
-     * @param jobId 作业 ID
+     * @param tenantId 租户 ID（不可为空）
+     * @param jobId    作业 ID（必须为 32 位十六进制）
      * @return 作业详情，含 state/vertices/metrics 等
+     * @throws IllegalArgumentException jobId 格式非法
+     * @throws EngineUnavailableException 作业不属于当前租户或引擎不可用
      */
-    public Map<String, Object> getJobStatus(String jobId) {
+    public Map<String, Object> getJobStatus(String tenantId, String jobId) {
+        requireTenant(tenantId);
+        validateJobId(jobId);
+        // 越权校验：先确认作业归属当前租户
+        ensureJobOwnedByTenant(tenantId, jobId);
         JsonNode root = getJson("/jobs/" + jobId);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("id", root.path("jid").asText());
@@ -99,47 +134,67 @@ public class FlinkClient {
     /**
      * 取消作业。
      *
-     * @param jobId 作业 ID
+     * @param tenantId 租户 ID（不可为空）
+     * @param jobId    作业 ID（必须为 32 位十六进制）
+     * @throws IllegalArgumentException jobId 格式非法
+     * @throws EngineUnavailableException 作业不属于当前租户或引擎不可用
      */
-    public void cancelJob(String jobId) {
+    public void cancelJob(String tenantId, String jobId) {
+        requireTenant(tenantId);
+        validateJobId(jobId);
+        // 越权校验：先确认作业归属当前租户
+        ensureJobOwnedByTenant(tenantId, jobId);
         // Flink REST: PATCH /jobs/{id} with body {"target":"CANCEL"}
         String body = "{\"target\":\"CANCEL\"}";
         patchJson("/jobs/" + jobId, body);
     }
 
     /**
-     * 提交 Flink SQL 作业。
+     * 提交 Flink SQL 作业（租户隔离：在 job name 前加租户前缀）。
      *
      * <p>简化实现：通过 Flink SQL Gateway 或直接提交 SQL。这里返回作业占位信息，
      * 实际部署时可通过 /jars 上传 + /jars/{id}/run 提交。</p>
      *
-     * @param name           作业名
-     * @param sql            Flink SQL
-     * @param parallelism    并行度
-     * @param checkpointMs   Checkpoint 间隔（毫秒）
+     * @param tenantId     租户 ID（不可为空）
+     * @param name         作业名
+     * @param sql          Flink SQL
+     * @param parallelism  并行度
+     * @param checkpointMs Checkpoint 间隔（毫秒）
      * @return 提交结果（含 jobId）
      */
-    public Map<String, Object> submitJob(String name, String sql, int parallelism, long checkpointMs) {
+    public Map<String, Object> submitJob(String tenantId, String name, String sql,
+                                         int parallelism, long checkpointMs) {
+        requireTenant(tenantId);
+        // 租户隔离：在 job name 前加 tenant_{tenantId}_ 前缀
+        String prefixedName = tenantJobPrefix(tenantId) + (name == null ? "unnamed" : name);
         // 简化：调用 Flink SQL Gateway（如配置）或返回待提交占位
         // 实际生产环境应：1) 上传 JAR  2) POST /jars/{jarId}/run
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("name", name);
+        result.put("name", prefixedName);
         result.put("sql", sql);
         result.put("parallelism", parallelism);
         result.put("checkpointIntervalMs", checkpointMs);
         result.put("status", "SUBMITTED");
         result.put("message", "作业已提交至 Flink 集群");
-        log.info("提交 Flink 作业: name={}, parallelism={}, checkpointMs={}", name, parallelism, checkpointMs);
+        log.info("提交 Flink 作业: name={}, parallelism={}, checkpointMs={}, tenant={}",
+                prefixedName, parallelism, checkpointMs, tenantId);
         return result;
     }
 
     /**
      * 获取 Checkpoint 历史。
      *
-     * @param jobId 作业 ID
+     * @param tenantId 租户 ID（不可为空）
+     * @param jobId    作业 ID（必须为 32 位十六进制）
      * @return Checkpoint 列表
+     * @throws IllegalArgumentException jobId 格式非法
+     * @throws EngineUnavailableException 作业不属于当前租户或引擎不可用
      */
-    public List<Map<String, Object>> getCheckpoints(String jobId) {
+    public List<Map<String, Object>> getCheckpoints(String tenantId, String jobId) {
+        requireTenant(tenantId);
+        validateJobId(jobId);
+        // 越权校验：先确认作业归属当前租户
+        ensureJobOwnedByTenant(tenantId, jobId);
         JsonNode root = getJson("/jobs/" + jobId + "/checkpoints");
         List<Map<String, Object>> result = new ArrayList<>();
         JsonNode history = root.path("history");
@@ -158,10 +213,17 @@ public class FlinkClient {
     /**
      * 获取反压指标。
      *
-     * @param jobId 作业 ID
+     * @param tenantId 租户 ID（不可为空）
+     * @param jobId    作业 ID（必须为 32 位十六进制）
      * @return 反压指标
+     * @throws IllegalArgumentException jobId 格式非法
+     * @throws EngineUnavailableException 作业不属于当前租户或引擎不可用
      */
-    public Map<String, Object> getBackpressure(String jobId) {
+    public Map<String, Object> getBackpressure(String tenantId, String jobId) {
+        requireTenant(tenantId);
+        validateJobId(jobId);
+        // 越权校验：先确认作业归属当前租户
+        ensureJobOwnedByTenant(tenantId, jobId);
         JsonNode root = getJson("/jobs/" + jobId + "/backpressure");
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("jobId", jobId);
@@ -171,6 +233,69 @@ public class FlinkClient {
     }
 
     /* ------------------------------ 内部工具 ------------------------------ */
+
+    /**
+     * 校验 jobId 格式（32 位十六进制），防止路径注入。
+     *
+     * @param jobId 待校验的作业 ID
+     * @throws IllegalArgumentException 格式非法
+     */
+    private void validateJobId(String jobId) {
+        if (jobId == null || !JOB_ID_PATTERN.matcher(jobId).matches()) {
+            throw new IllegalArgumentException("非法的 Flink jobId: " + jobId
+                    + "（要求 32 位十六进制字符串）");
+        }
+    }
+
+    /**
+     * 校验租户 ID 非空。
+     *
+     * @param tenantId 租户 ID
+     * @throws IllegalArgumentException 租户 ID 为空
+     */
+    private void requireTenant(String tenantId) {
+        if (tenantId == null || tenantId.isBlank()) {
+            throw new IllegalArgumentException("缺少租户上下文");
+        }
+    }
+
+    /**
+     * 构造租户作业名前缀。
+     *
+     * @param tenantId 租户 ID
+     * @return 形如 "tenant_{tenantId}_" 的前缀
+     */
+    private String tenantJobPrefix(String tenantId) {
+        return String.format(TENANT_JOB_PREFIX_TEMPLATE, tenantId);
+    }
+
+    /**
+     * 越权校验：查询作业详情，确认 job name 以当前租户前缀开头。
+     *
+     * <p>若作业不存在或不属于当前租户，抛 {@link EngineUnavailableException}，
+     * 避免泄露其他租户作业的存在性（统一返回"作业不存在"语义）。</p>
+     *
+     * @param tenantId 租户 ID
+     * @param jobId    作业 ID
+     * @throws EngineUnavailableException 作业不存在或不属于当前租户
+     */
+    private void ensureJobOwnedByTenant(String tenantId, String jobId) {
+        String prefix = tenantJobPrefix(tenantId);
+        try {
+            JsonNode root = getJson("/jobs/" + jobId);
+            String jname = root.path("name").asText();
+            if (!jname.startsWith(prefix)) {
+                log.warn("租户越权访问 Flink 作业: tenant={}, jobId={}, jobName={}",
+                        tenantId, jobId, jname);
+                throw new EngineUnavailableException("Flink 作业不存在: " + jobId);
+            }
+        } catch (EngineUnavailableException e) {
+            throw e;
+        } catch (Exception e) {
+            // 作业不存在或查询失败，统一抛 EngineUnavailableException
+            throw new EngineUnavailableException("Flink 作业不存在或查询失败: " + jobId, e);
+        }
+    }
 
     /** 发起 GET 请求并解析 JSON */
     private JsonNode getJson(String path) {

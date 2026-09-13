@@ -100,7 +100,7 @@ jobs:
           fail_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             echo "============================================"
             echo "  go vet: $mod_name ($mod_dir)"
             echo "============================================"
@@ -126,7 +126,7 @@ jobs:
           fail_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             echo "============================================"
             echo "  gofmt: $mod_name ($mod_dir)"
             echo "============================================"
@@ -1026,7 +1026,7 @@ jobs:
           fail_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             echo "============================================"
             echo "  测试: $mod_name ($mod_dir)"
             echo "============================================"
@@ -1067,7 +1067,7 @@ jobs:
           mod_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             mod_count=$((mod_count + 1))
             echo "--------------------------------------------"
             echo "  Go Coverage: $mod_name ($mod_dir)"
@@ -1333,7 +1333,7 @@ jobs:
           warn_count=0
           mod_count=0
           while IFS= read -r mod_dir; do
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             mod_count=$((mod_count + 1))
             echo "--------------------------------------------"
             echo "  Python Coverage: $mod_name ($mod_dir)"
@@ -1434,7 +1434,7 @@ jobs:
           with open('.python-modules.txt') as f:
               mod_dirs = [l.strip() for l in f if l.strip()]
           for mod_dir in mod_dirs:
-              mod_name = os.path.basename(mod_dir)
+              mod_name = mod_dir[len('platform/'):] if mod_dir.startswith('platform/') else mod_dir
               try:
                   out = subprocess.check_output(
                       ['python', '-m', 'pytest', 'tests/', '--cov=.', '--cov-report=term-missing', '--no-header', '-q'],
@@ -1845,7 +1845,7 @@ jobs:
           fail_count=0
           while IFS= read -r gomod; do
             mod_dir=$(dirname "$gomod")
-            mod_name=$(basename "$mod_dir")
+            mod_name=${mod_dir#platform/}
             echo "============================================"
             echo "  golangci-lint: $mod_name ($mod_dir)"
             echo "============================================"

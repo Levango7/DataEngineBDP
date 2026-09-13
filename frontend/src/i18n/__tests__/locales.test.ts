@@ -100,12 +100,12 @@ describe('i18n locales structure', () => {
     expect(enKeys).toEqual(zhKeys)
   })
 
-  it('导航 52 项 + 7 分组全部有中英词条', () => {
+  it('导航 52 项 + 8 分组全部有中英词条', () => {
     const navItems = Object.keys((zhCN as any).nav.items)
     const navGroups = Object.keys((zhCN as any).nav.groups)
-    // 实数：Sidebar groups 共 52 个导航项（7 分组，含 2026-09-07 新增 approvals）
+    // 实数：Sidebar groups 共 52 个导航项（8 分组，含 2026-09-07 新增 approvals）
     expect(navItems.length).toBe(52)
-    expect(navGroups.length).toBe(7)
+    expect(navGroups.length).toBe(8)
     for (const k of navItems) {
       expect((enUS as any).nav.items[k]).toBeTruthy()
     }

@@ -9,6 +9,7 @@ import com.levango7.dataenginebdp.encaps.service.ElasticsearchIndexer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -44,6 +45,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Tag(name = "封装数据-检索门户", description = "全文检索与跨资产搜索")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/search")
+@PreAuthorize("isAuthenticated()")  // R16 安全修复：类级认证校验
 public class SearchController {
 
     private final AssetRepository assetRepository;
@@ -274,10 +276,19 @@ public class SearchController {
     @GetMapping("/history")
     public ResponseEntity<List<Object>> history(@RequestParam(defaultValue = "20") int limit) {
         String tenantId = requireTenant();
-        List<Map<String, Object>> records = SEARCH_HISTORY.getOrDefault(tenantId, List.of());
+        List<Map<String, Object>> records = SEARCH_HISTORY.get(tenantId);
+        if (records == null) {
+            return ResponseEntity.ok(List.of());
+        }
         int safeLimit = limit > 0 ? limit : 20;
-        int n = Math.min(safeLimit, records.size());
-        return ResponseEntity.ok(new ArrayList<>(records.subList(0, n)));
+        // R16 安全修复：synchronized 保护 subList 操作，避免并发修改异常
+        // （search 方法在 synchronized(records) 块内会修改 records，此处读取需同步保护）
+        List<Object> snapshot;
+        synchronized (records) {
+            int n = Math.min(safeLimit, records.size());
+            snapshot = new ArrayList<>(records.subList(0, n));
+        }
+        return ResponseEntity.ok(snapshot);
     }
 
     /**

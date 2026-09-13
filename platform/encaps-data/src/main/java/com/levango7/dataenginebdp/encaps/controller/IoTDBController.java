@@ -2,6 +2,7 @@ package com.levango7.dataenginebdp.encaps.controller;
 
 import com.levango7.dataenginebdp.encaps.model.DataSourceEntity;
 import com.levango7.dataenginebdp.encaps.repository.DataSourceRepository;
+import com.levango7.dataenginebdp.encaps.util.CredentialEncryptor;
 import com.levango7.dataenginebdp.common.security.TenantContext;
 import com.levango7.dataenginebdp.encaps.service.engine.EngineUnavailableException;
 import com.levango7.dataenginebdp.encaps.service.engine.IoTDBClient;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +24,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /**
  * IoTDB 引擎端点（ROADMAP 前后端接线：前端 /iotdb）。
@@ -44,10 +47,25 @@ import java.util.Map;
 @Tag(name = "封装数据-IoTDB引擎", description = "IoTDB时序数据查询与管理")
 @RequiredArgsConstructor
 @RequestMapping("/api/v1/iotdb")
+@PreAuthorize("isAuthenticated()")  // R16 安全修复：类级认证校验
 public class IoTDBController {
+
+    /** 危险 SQL 关键词全词匹配正则（大小写不敏感，词边界匹配防绕过）。 */
+    private static final Pattern DANGEROUS_SQL_PATTERN = Pattern.compile(
+            "\\b(DROP|ALTER|DELETE|INSERT|UPDATE|TRUNCATE|CREATE|GRANT|REVOKE)\\b",
+            Pattern.CASE_INSENSITIVE);
+
+    /** 只读查询起始关键词正则（大小写不敏感）。 */
+    private static final Pattern READONLY_SQL_PATTERN = Pattern.compile(
+            "^\\s*(SELECT|SHOW|DESCRIBE|EXPLAIN)\\b",
+            Pattern.CASE_INSENSITIVE);
+
+    /** IoTDB device/时序名白名单：仅允许字母数字下划线点（防 SQL 注入）。 */
+    private static final Pattern DEVICE_NAME_PATTERN = Pattern.compile("^[a-zA-Z0-9_.]+$");
 
     private final IoTDBClient ioTdbClient;
     private final DataSourceRepository dataSourceRepository;
+    private final CredentialEncryptor credentialEncryptor;
 
     /** 存储组列表。 */
     @Operation(summary = "查询IoTDB列表")
@@ -87,6 +105,13 @@ public class IoTDBController {
             @RequestParam(required = false) String device) {
         log.info("列出 IoTDB 时序: id={}, device={}, tenant={}",
                 id, device, TenantContext.getTenantId());
+        // R16 安全修复：device 参数白名单校验（防 SQL 注入）
+        if (device != null && !device.isBlank() && !DEVICE_NAME_PATTERN.matcher(device).matches()) {
+            log.warn("非法 IoTDB device 参数: id={}, device={}", id, device);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "invalid device",
+                            "message", "device 参数仅允许字母数字下划线点"));
+        }
         try {
             var conn = resolveConn(id);
             return ResponseEntity.ok(ioTdbClient.listTimeseries(conn, device));
@@ -107,6 +132,26 @@ public class IoTDBController {
     public ResponseEntity<?> executeQuery(@PathVariable String id,
                                           @RequestBody QueryRequest req) {
         log.info("执行 IoTDB SQL: id={}, tenant={}", id, TenantContext.getTenantId());
+        // R16 安全修复：SQL 安全校验（参照 DorisController.executeQuery）
+        String sql = req.sql();
+        if (sql == null || sql.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "SQL 不能为空"));
+        }
+        // 禁止分号多语句（防 SQL 注入堆叠）
+        if (sql.contains(";")) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "不允许执行多语句查询（含分号）"));
+        }
+        // 全词匹配危险关键词（防 "SELECT * FROM t; DROP TABLE" 绕过及 "DROP_TABLE" 变体）
+        if (DANGEROUS_SQL_PATTERN.matcher(sql).find()) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "不允许执行危险 SQL 操作（DDL/DML 写操作）"));
+        }
+        // 必须以只读关键词开头
+        if (!READONLY_SQL_PATTERN.matcher(sql).find()) {
+            return ResponseEntity.status(403)
+                    .body(Map.of("error", "只允许执行 SELECT/SHOW/DESCRIBE/EXPLAIN 查询"));
+        }
         try {
             var conn = resolveConn(id);
             return ResponseEntity.ok(ioTdbClient.executeQuery(conn, req.sql()));
@@ -149,7 +194,11 @@ public class IoTDBController {
         }
         String jdbcUrl = "jdbc:iotdb://" + ds.getHost() + ":" + ds.getPort() + "/";
         String user = ds.getUsername() != null ? ds.getUsername() : "root";
-        String pass = ds.getPassword() != null ? ds.getPassword() : "root";
+        // R16 安全修复：密码解密后再传给 IoTDBClient
+        String pass = "root";
+        if (ds.getPassword() != null && !ds.getPassword().isBlank()) {
+            pass = credentialEncryptor.decrypt(ds.getPassword());
+        }
         return ioTdbClient.connParams(jdbcUrl, user, pass);
     }
 
